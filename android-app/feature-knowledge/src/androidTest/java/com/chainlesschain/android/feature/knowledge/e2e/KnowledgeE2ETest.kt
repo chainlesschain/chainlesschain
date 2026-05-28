@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.core.app.ApplicationProvider
 import com.chainlesschain.android.core.common.util.DeviceIdManager
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
+import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
 import com.chainlesschain.android.feature.knowledge.presentation.FilterMode
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
@@ -14,7 +15,9 @@ import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeViewMo
 import com.chainlesschain.android.test.DatabaseFixture
 import com.chainlesschain.android.test.assertTextDoesNotExist
 import com.chainlesschain.android.test.assertTextExists
+import com.chainlesschain.android.test.scrollToText
 import com.chainlesschain.android.test.waitForText
+import com.chainlesschain.android.test.withKnowledgeItems
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -47,9 +50,9 @@ import org.junit.Test
  *   testPaginationLoading / testFavoritesFunctionality /
  *   testTagFiltering / testMultiDeviceSync
  *
- * Reactivated: testCompleteKnowledgeWorkflow (KB-01) + testFavoritesFunctionality (KB-06).
- * The other 6 remain `@Ignore` pending per-test scope decisions (see KDoc
- * on each).
+ * Reactivated: KB-01 testCompleteKnowledgeWorkflow + KB-05 testPaginationLoading
+ * + KB-06 testFavoritesFunctionality. The other 5 remain `@Ignore` pending
+ * per-test scope decisions (see KDoc on each).
  */
 class KnowledgeE2ETest {
 
@@ -166,10 +169,54 @@ class KnowledgeE2ETest {
         TODO("KB-04 — depends on FTS-backed KnowledgeItemDao.search() shape")
     }
 
-    @Ignore("Needs paging fixture with >50 items + scroll assertions (KB-05)")
     @Test
     fun testPaginationLoading() {
-        TODO("KB-05 — pending DatabaseFixture.withKnowledgeItems(N) helper")
+        // Pre-populate 50 items directly via DatabaseFixture (bypass the VM —
+        // 50 createItem() calls would saturate viewModelScope and the test
+        // would race the Compose first composition). Titles are zero-padded so
+        // lexical ordering matches numeric ordering when scrolling. PAGE_SIZE
+        // in KnowledgeRepository is 20, so 50 items = 3 pages.
+        databaseFixture.withKnowledgeItems(50) { idx ->
+            val padded = idx.toString().padStart(3, '0')
+            KnowledgeItemEntity(
+                id = "kb05-$padded",
+                title = "分页测试条目 $padded",
+                content = "内容 $padded",
+                type = "note",
+                deviceId = "kb05-device"
+            )
+        }
+
+        initViewModel()
+        composeTestRule.setContent {
+            KnowledgeListScreen(
+                onItemClick = {},
+                onAddClick = {},
+                viewModel = viewModel
+            )
+        }
+
+        // 1) First page (0..19) renders without scrolling.
+        composeTestRule.waitForText("分页测试条目 000", timeoutMillis = 5000)
+        composeTestRule.assertTextExists("分页测试条目 005")
+        composeTestRule.assertTextExists("分页测试条目 019")
+
+        // 2) Scroll to an item on page 2 (20..39). scrollToText drives the
+        //    LazyColumn far enough to materialize the item — which also
+        //    triggers Paging3 to load the next page (PagingSource.load is
+        //    invoked when the prefetch window is reached).
+        composeTestRule.scrollToText("分页测试条目 025")
+        composeTestRule.assertTextExists("分页测试条目 025")
+
+        // 3) Scroll to page 3 (40..49) — full range loadable.
+        composeTestRule.scrollToText("分页测试条目 045")
+        composeTestRule.assertTextExists("分页测试条目 045")
+
+        // DB-level sanity: all 50 rows are persisted (no insertAll dropped).
+        val totalRows = runBlocking {
+            databaseFixture.database.knowledgeItemDao().getAllItemsSync().size
+        }
+        assertEquals("All 50 items should be persisted", 50, totalRows)
     }
 
     @Test

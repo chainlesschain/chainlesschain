@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
+import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostEntity
@@ -90,6 +91,13 @@ class DatabaseFixture : TestWatcher() {
         }
     }
 
+    /** 插入测试数据（知识库条目） */
+    fun insertKnowledgeItems(vararg items: KnowledgeItemEntity) {
+        runBlocking(Dispatchers.IO) {
+            database.knowledgeItemDao().insertAll(items.toList())
+        }
+    }
+
     suspend fun getFriendCount(): Int = database.friendDao().getFriendCount()
     suspend fun getPostCount(did: String): Int = database.postDao().getPostCount(did)
 
@@ -113,5 +121,14 @@ fun DatabaseFixture.withPosts(
 ): DatabaseFixture {
     val posts = List(count, builder)
     insertPosts(*posts.toTypedArray())
+    return this
+}
+
+fun DatabaseFixture.withKnowledgeItems(
+    count: Int,
+    builder: (Int) -> KnowledgeItemEntity
+): DatabaseFixture {
+    val items = List(count, builder)
+    insertKnowledgeItems(*items.toTypedArray())
     return this
 }
