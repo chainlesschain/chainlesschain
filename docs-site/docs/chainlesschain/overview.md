@@ -1,8 +1,22 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.85 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.18 / 144 命令 / 30,000+ 测试 | Android 5.0.3.85 (versionCode 503085，与 productVersion 对齐) | iOS 5.0.3 (build 85，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.97 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.27 / 144 命令 / 30,000+ 测试 | Android 5.0.3.97 (versionCode 503097，与 productVersion 对齐) | iOS 5.0.3 (build 97，Hua Zhang 团队 ad-hoc 签名 .ipa)**
 >
-> **v5.0.3.85 三大用户可感知突破（2026-05-24）**：
+> **v5.0.3.97 用户可感知突破（2026-05-27）**：
+>
+> 1. **🧠 Android 云 LLM 路由真接通本地 RAG** — 之前 CLOUD_ANDROID 路由只送问题原文给云模型，AI 变无脑闲聊；本轮 `cc hub retrieve-context` CLI 命令 + Kotlin LocalCcRunner.retrieveContext 桥 + HubLocalViewModel 整合，云路由先拉 hub.retrieveContext(question) 取本机金库 facts → 拼进系统消息 → 再发云模型，AI 答案真有 citations 引回原始事件。配套 `getHubMinimal()` 工厂跳过 8 个 aichat adapter / kg / bm25 重型 init，retrieve-context 冷启 90s → <5s（真机 2026-05-27 验过 4.2s vs 旧 87s），让云路由问问题在用户感知内可用。
+> 2. **📞 联系人电话号码 / 微信号 / 邮箱真对 LLM 可见** — 之前 PDH `summarizePerson()` strip 掉 phone / wechatId / email 字段，导致 768 个联系人在 vault 但 LLM 答「妈手机号」类查询永远「没有足够信息」；本轮保留 identifiers Map + notes 串拼进 person facts，再加 entity-focus routing + searchPersons LIKE 名字搜索，让 contacts 不再被 events 挤出 RAG 200 条上限。
+> 3. **🔧 6 平台 endpoint hotfix 套件** — Xhs 3 endpoint path/param 对齐 JsBridge 真路径（`/api/sns/web/v1/me` → `/api/sns/web/v2/user/me` 等）+ Toutiao extractUid 加 `uid_tt` / `sso_uid_tt` / `tt_webid` fallback 解 passport_uid 长期 null 拒登录 + Weibo `/api/favorites` 上游下线 graceful skip 不再给假 404 + Douyin 收藏分页 has_more 循环拉全（之前只取一页 ~24/N 静默丢）。Android askQuestion timeout 60s → 240s 兜底 MediaPipe cold-start over budget。
+>
+> **工程基础**：handbook 加 trap #27 (USR_VERSION sentinel cache miss — 改 pdh/lib 或 cli/lib 必 bump android USR_VERSION 否则真机走 fast-path 跳解压用旧代码) + trap #28 (workspace dep npm publish stale — 改 pdh/lib 或 cli/lib 必 bump 包 version + npm publish + USR_VERSION 否则 cc-cli.tgz 装旧代码)。Android USR_VERSION 累计 12→17 共 5 次 bump 真触发重抽。`cc hub` 系列命令 aichat-health timers unref 让命令秒退不被 setInterval 持有 event loop。
+>
+> ---
+>
+> **v5.0.3.96 桌面检查更新两路兜底**（release.yml workflow 还在上传 assets 时 `latest*.yml` 暂 404 不再糊 HttpError stacktrace；托盘点检查更新主窗口在托盘时通知卡片不再哑响 — 9 case 单测覆盖 null/destroyed/不支持/可见/隐藏/最小化/防御性兼容） | **v5.0.3.95 legacy-GPU Chromium 130+ 崩溃自动恢复 trap #26**（marker file 模式同 VS Code/Slack/Cursor/Discord — 启动前写 `.launching` marker 到 userData，`ready-to-show` 清掉；下次启动看到残留 marker → 判定上次崩了 → 持久化 `.gpu-disabled` + `app.disableHardwareAcceleration()` + Chromium switches；user 报「installer 闪退」实为 Electron 39 / Chromium 130+ GPU 进程在 CoreMessaging.dll 抛 `0xc0000602` STATUS_FAIL_FAST_EXCEPTION，2016-09 老 Intel HD/Iris 驱动 100% 撞） | **v5.0.3.93 hotfix bs3mc ABI mismatch + Providers 配置加载假阴**（PDH 刷新「NODE_MODULE_VERSION 127. This version of Node.js requires NODE_MODULE_VERSION 140」 — `release.yml` 加 `@electron/rebuild@^4 --only better-sqlite3-multiple-ciphers` 拉 bs3mc 官方 Electron prebuild 绕 `npmRebuild: false` 禁因；Providers.vue parser 改跟踪 currentSection 不再让 enterprise 段 apiKey:null 跨段污染 llm 段；saveConfig 改成只快照 parsed 值不再 `{ ...configForm }` 把"未保存的值"误当 baseline；保存成功弹横幅提示需新建 Chat 或重启 app — ws-cli-loader 只在 createSession 时重读 config.json） | **v5.0.3.92 PDH Mode B Phase 7 (6 平台 Android 内嵌 root local DB extraction) + Toutiao in-WebView prefetch (6/6 platforms 全 ship) + npm pkg refresh**
+>
+> ---
+>
+> **v5.0.3.91 PDH 社交双通道大收口**（C 路径 Kuaishou 补齐第 4 家 + Toutiao/Bilibili/Weibo/Xhs Mode B 安卓内嵌 root 四家齐落 + Bridge dry-run doctor 提前 5-10 天捕 SDK rotation）| **v5.0.3.85 三大用户可感知突破（2026-05-24）**：
 >
 > 1. **🧠 安卓端本机大模型真接通** — MediaPipe tasks-genai 端侧推理跑通；HubAsk 4 档 LLM 路由统一选择器（端侧 LOCAL_DEVICE / 云 CLOUD_ANDROID / 桌面 PC_LOCAL / 局域网 LAN_OLLAMA），三屏 selector 镜像（首页 + 本机数据 + 本机提问），LAN baseUrl 进 EncryptedSharedPreferences 持久。MediaPipe prompt-length guard 修 JNI abort SIGABRT 整 app trap #22。
 > 2. **📊 个人数据中台双端可视化浏览器（Vault Browser Phase 16）** — 桌面 `/personal-data-hub/browser` Pinia store + Android 第 6 tab "数据浏览"双端同步；FTS5 trigram tokenizer CJK 子串匹配（比 LIKE 快 10-100×）+ 7 buckets categories 分类侧栏 + 5 种 category-keyed renderers（ChatBubble/OrderTable/Timeline/EmailList/Generic）+ JSON/NDJSON/CSV 三格客户端导出 + 149 测试全绿。

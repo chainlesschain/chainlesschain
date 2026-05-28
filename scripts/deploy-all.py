@@ -287,35 +287,54 @@ DEPLOYS = [
     # infra) on cli.astro/en. README.md 测试数 + iter range 同步。
     # 仅 docs + www 改 — design.chainlesschain.com 源 (docs/design/**) 0 改动，
     # 跳过 build/tar/deploy 节省 ~5min 远端 .bak 噪音。
-    # 2026-05-22 v5.0.3.78 滚动更新 (3 站全刷):
-    # Personal Data Hub Plan A v0.1 Android 本地数据 hub snapshot 模式真机闭环
-    # (Xiaomi 24115RA8EC · 1305 entities 入 vault · npm @chainlesschain/
-    # personal-data-hub@0.2.1 + CLI 0.162.14 PDH-first publish ordering).
-    # Path C — phone-native snapshot writer + 桌面 ingest pipeline (bypass A6 JNI).
-    # Path Y — desktop returns RAG context + Android-local LLM inference.
-    # 新 cc android 15 子命令 scaffold + system-data-android bridge-direct.
-    # 3 真机硬化: originalId required / skip-embeddings / audit pagination.
-    # Android cc subprocess W^X via mksh + reader-thread EOF race + 30→120s timeout.
-    # E2EE 7 androidTest 经 X3DHSimulator 重新激活.
-    # iOS .ipa 7.9MB ship in v5.0.3.77 + Phase 14.1 step 5 ChatBubble.
-    # 改动: docs-site/docs/index.md tagline + chainlesschain/overview.md ⭐ 块 +
-    # docs-site-design/docs/index.md tagline + docs-website-v2/src/pages/{index,
-    # en/index}.astro 顶一张 v5.0.3.78 卡 (中英对照) + release-sizes.json 自动
-    # refresh 到 v5.0.3.78 (GitHub Release published 2026-05-21T23:47:47Z, 18 assets).
-    # CHANGELOG.md + docs-site/docs/changelog.md v5.0.3.77/.78 合并 entry.
+    # 2026-05-28 v5.0.3.97 滚动更新 (3 站全刷, drift catch-up 跨 .91 → .97):
+    # v5.0.3.97 — PDH RAG 接通 Android CLOUD_ANDROID 路由 (3f31e2894 + eb24c4d5d +
+    #   a41d50ebd + f5d66debc + 90343ff93): 新 `cc hub retrieve-context` CLI +
+    #   LocalCcRunner.retrieveContext Kotlin 桥 + HubLocalViewModel 整合，云路由
+    #   先拉 hub.retrieveContext(question) 取本机 facts → 拼系统消息 → 再发云模型;
+    #   getHubMinimal() 跳 8 个 aichat/kg/bm25 重型 init 冷启 90s→<5s; summarizePerson
+    #   保留 identifiers/notes 让 LLM 真能答「妈手机号」; entity-focus routing +
+    #   searchPersons LIKE 让 contacts 不被 events 挤出 RAG 200 上限. 4 平台 endpoint
+    #   hotfix: Xhs path 对齐 JsBridge + Toutiao uid_tt/sso_uid_tt/tt_webid fallback +
+    #   Weibo /api/favorites graceful skip + Douyin 收藏分页 has_more 循环.
+    #   Android askQuestion 60s → 240s 兜底 MediaPipe cold-start. aichat-health timers
+    #   全 unref 让 cc hub 命令秒退. handbook trap #27 (USR_VERSION cache miss) + #28
+    #   (workspace dep npm publish stale). USR_VERSION 12→17 累计 5 次 bump.
+    # v5.0.3.96 — 桌面检查更新两路兜底 (39913cfd7 + bc322467d): update-error-classifier
+    #   release-in-progress 友好提示不糊 stacktrace; enhanced-tray-manager 触发前
+    #   showWindow + OS Notification 兜底窗口隐藏时. 17 case 单测.
+    # v5.0.3.95 — legacy-GPU Chromium 130+ 自动恢复 trap #26 (d8dc212f1): marker file
+    #   模式同 VS Code/Slack; user 报「installer 闪退」实为 0xc0000602 GPU 进程 fail-fast
+    #   在 CoreMessaging.dll; 任何 ≤2018 GPU 驱动 + 老 Intel HD/Iris 100% 撞.
+    # v5.0.3.94 — re-tag .93 fixes (f90c7a903): release.yml workflow_dispatch HTTP 500
+    #   都没成, bump 强触发.
+    # v5.0.3.93 — hotfix PDH bs3mc ABI mismatch (NODE_MODULE_VERSION 127 vs 140) +
+    #   Providers parser 跨段污染修 + saveConfig 假阴修: release.yml 加 @electron/rebuild
+    #   --only better-sqlite3-multiple-ciphers 拉 Electron ABI prebuild 绕 npmRebuild:false.
+    # v5.0.3.92 — PDH Mode B Phase 7 (6 platforms Android in-APK root local DB extraction)
+    #   + Toutiao in-WebView prefetch (6/6 全 ship) + npm pkg refresh.
+    # 改动: docs-site/docs/changelog.md 顶部新加 v5.0.3.97 完整 entry (.96/.95/.94/.93/.92
+    #   prior session 已落); docs-site/docs/index.md tagline (lead .97 + 摘要 .96-.92
+    #   保 .91+ 历史) + chainlesschain/overview.md ⭐ 当前版本块全升 .97;
+    #   docs-site-design/docs/index.md tagline 同步; docs-website-v2/src/pages/{index,
+    #   en/index}.astro 顶 3 张新卡 (.97 + .96 + .95, 中英对照, results-only per
+    #   feedback_official_site_results_only.md). release-sizes.json 自动 refresh 到
+    #   v5.0.3.97 build-time (GitHub Release published 2026-05-27T15:16:45Z, isDraft=false).
+    # 构建: docs-site 329.5s / 526 HTML; docs-site-design 180.5s / 243 HTML;
+    #   docs-website-v2 16.1s / 18 pages. 三站并行触发. Tarball stamp 20260528-0926.
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.78-20260522-0850.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.97-20260528-0926.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.78-20260522-0850.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.97-20260528-0926.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.78-20260522-0850.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260528-0926.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
