@@ -55,7 +55,7 @@ After every `git commit` on this repo, `.husky/post-commit` automatically pushes
 
 If the hook fires but a push fails, it prints `[post-commit] WARN github push FAILED` with the last 5 lines of error. Retry manually with `git push github main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
 
-**Gitee status (2026-05-26)**: gitee main was reset to a single-commit orphan snapshot at `969068dfc` because local `.git` (1325MB) exceeds gitee's 1GB quota. Gitee history is now detached from local main — any further `git push gitee main` would be non-fast-forward. To re-push to gitee after new local commits, rebuild a snapshot:
+**Gitee status (2026-05-26)**: gitee main was reset to a single-commit orphan snapshot at `deea10de9` because local `.git` (1325MB) exceeds gitee's 1GB quota. Gitee history is now detached from local main — any further `git push gitee main` would be non-fast-forward. To re-push to gitee after new local commits, rebuild a snapshot:
 ```bash
 TREE=$(git rev-parse HEAD^{tree})
 COMMIT=$(git commit-tree "$TREE" -m "snapshot of $(git rev-parse --short HEAD)")
