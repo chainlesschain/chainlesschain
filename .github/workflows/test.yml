@@ -298,7 +298,12 @@ jobs:
   full-tests:
     name: Full Test Suite
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 2026-05-28: bump 30 → 60 min. Run all unit tests takes ~17 min and
+    # Run test coverage another ~15 min, so the previous 30 min cap killed
+    # the coverage step mid-flight every push (runs 26568184549, 26522992152
+    # both cancelled at the limit). The coverage step is continue-on-error
+    # so it doesn't fail the job, but a JOB-level timeout still cancels it.
+    timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
     steps:
