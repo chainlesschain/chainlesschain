@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  feature-family-guard manifest stub (FAMILY-01).
+  Real permissions (FOREGROUND_SERVICE_SPECIAL_USE / ACCESS_FINE_LOCATION /
+  ACCESS_BACKGROUND_LOCATION / RECORD_AUDIO / SYSTEM_ALERT_WINDOW /
+  BIND_ACCESSIBILITY_SERVICE) land in FAMILY-07 (manifest batch).
+  Real Service / Receiver / Activity declarations land per-feature ticket
+  (FAMILY-05 ForegroundService, FAMILY-19 BootReceiver, etc.).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+</manifest>

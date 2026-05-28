@@ -63,6 +63,8 @@ include(":feature-hooks")
 include(":feature-collaboration")
 include(":feature-performance")
 include(":feature-local-terminal")
+// AI 陪学 (FAMILY-01..67) — 见 docs/design/AI陪学_主文档.md + AI陪学_v0.1_ticket_tree.md
+include(":feature-family-guard")
 
 // 数据模块
 include(":data-knowledge")

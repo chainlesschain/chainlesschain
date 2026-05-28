@@ -327,6 +327,7 @@ dependencies {
     implementation(project(":feature-project"))
     implementation(project(":feature-file-browser"))
     implementation(project(":feature-local-terminal"))
+    implementation(project(":feature-family-guard"))
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
