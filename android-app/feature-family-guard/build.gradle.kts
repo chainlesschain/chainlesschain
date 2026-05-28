@@ -97,6 +97,10 @@ dependencies {
     implementation("net.zetetic:sqlcipher-android:4.12.0")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
 
+    // FAMILY-04: DataStore Preferences for local_role (轻量持久, 不经 SQLCipher;
+    // 角色选择不含 PII, 不需加密)。版本对齐 :feature-ai/.../build.gradle.kts。
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
 
