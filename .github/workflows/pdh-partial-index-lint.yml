@@ -8,10 +8,24 @@ name: PDH Partial Index Lint (hard gate, trap #25)
 # `IF NOT EXISTS` makes the drift permanent for any user already on the old
 # index, so detection must happen *before* merge.
 #
+# Two jobs:
+#   1. lint (MANDATORY) — static regex scan of migrations.js + vault.js
+#      source text for `CREATE UNIQUE INDEX ... (source_adapter,
+#      source_original_id)` without the WHERE clause. Authoritative gate.
+#
+#   2. schema-diff-runtime (ADVISORY, continue-on-error) — actually executes
+#      `applyMigrations(db)` against a plain better-sqlite3 :memory: instance
+#      and queries `sqlite_master` for the 4 partial indices. Verifies each
+#      DDL has the WHERE clause as SQLite stored it. Also runs the drift-fix
+#      scenario (pre-v4 vault with non-partial index → migration v4 DROP+CREATE).
+#      Catches semantic drift the regex misses (typos, dead code branches,
+#      conditional construction).
+#
 # See:
 #   docs/internal/hidden-risk-traps.md #25
 #   memory pdh_partial_index_if_not_exists_drift.md
 #   scripts/lint-pdh-partial-index.mjs
+#   scripts/check-pdh-schema-runtime.mjs
 
 on:
   pull_request:
@@ -20,6 +34,7 @@ on:
       - 'packages/personal-data-hub/lib/vault.js'
       - 'scripts/lint-pdh-partial-index.mjs'
       - 'scripts/__tests__/lint-pdh-partial-index.test.mjs'
+      - 'scripts/check-pdh-schema-runtime.mjs'
       - '.github/workflows/pdh-partial-index-lint.yml'
   push:
     branches:
@@ -28,6 +43,7 @@ on:
       - 'packages/personal-data-hub/lib/migrations.js'
       - 'packages/personal-data-hub/lib/vault.js'
       - 'scripts/lint-pdh-partial-index.mjs'
+      - 'scripts/check-pdh-schema-runtime.mjs'
 
 permissions:
   contents: read
@@ -38,6 +54,7 @@ concurrency:
 
 jobs:
   lint:
+    name: Static regex lint (mandatory)
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -51,3 +68,49 @@ jobs:
 
       - name: Lint PDH partial indices
         run: node scripts/lint-pdh-partial-index.mjs
+
+  schema-diff-runtime:
+    name: Runtime schema-diff (advisory watchdog)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install plain better-sqlite3 (no SQLCipher)
+        # Standalone install — bypasses workspace lifecycle scripts and the
+        # bs3mc Electron ABI 140 path. Partial-index WHERE semantics are pure
+        # SQLite, so plain better-sqlite3 is the right tool here.
+        run: npm install better-sqlite3@^11 --no-save --no-audit --no-fund --no-package-lock
+
+      - name: Run runtime schema check
+        id: check
+        run: node scripts/check-pdh-schema-runtime.mjs
+
+      - name: Notify on success
+        if: success()
+        run: |
+          {
+            echo "## ✓ Runtime schema check passed"
+            echo ""
+            echo "All 4 partial unique indices (\`uniq_{events,persons,places,items}_source\`)"
+            echo "have \`WHERE source_original_id IS NOT NULL\` in their stored DDL,"
+            echo "and the v4 drift-fix scenario replaces pre-v4 non-partial indices"
+            echo "with the partial form."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record failure (advisory)
+        if: failure()
+        run: |
+          {
+            echo "## ⚠️ Runtime schema check FAILED (advisory)"
+            echo ""
+            echo "Static regex (mandatory \`lint\` job) and runtime schema disagree."
+            echo "Mandatory gate may have passed by accident — investigate before merge."
+            echo ""
+            echo "See: \`docs/internal/hidden-risk-traps.md\` #25, memory"
+            echo "\`pdh_partial_index_if_not_exists_drift.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
