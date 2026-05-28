@@ -12,6 +12,7 @@
  * See docs/design/Personal_Data_Hub_Architecture.md.
  */
 
+// THROWAWAY: pdh-bundle-staleness-check.yml gate verification — delete me
 "use strict";
 
 const constants = require("./constants");
