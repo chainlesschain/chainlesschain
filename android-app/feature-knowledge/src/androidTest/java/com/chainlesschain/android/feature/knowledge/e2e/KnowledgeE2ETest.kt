@@ -55,9 +55,11 @@ import org.junit.Test
  *   testTagFiltering / testMultiDeviceSync
  *
  * Reactivated: KB-01 testCompleteKnowledgeWorkflow + KB-02
- * testMarkdownEditorFunctionality + KB-05 testPaginationLoading + KB-06
- * testFavoritesFunctionality. The other 4 remain `@Ignore` pending per-test
- * scope decisions (see KDoc on each).
+ * testMarkdownEditorFunctionality + KB-03 testOfflineCreationAndSync + KB-04
+ * testFullTextSearch + KB-05 testPaginationLoading + KB-06
+ * testFavoritesFunctionality. The other 2 (KB-07 tag filter — needs prod
+ * filter API; KB-08 multi-device sync — needs multi-emulator matrix) remain
+ * `@Ignore` per per-test KDoc.
  */
 class KnowledgeE2ETest {
 
@@ -208,16 +210,150 @@ class KnowledgeE2ETest {
         assertEquals("# 标题\n\n**粗体** *斜体* `code`", saved.content)
     }
 
-    @Ignore("Needs sync wiring (SyncManager → FakeSyncOutbound) + WorkManager harness (KB-03)")
     @Test
     fun testOfflineCreationAndSync() {
-        TODO("KB-03 — pending FakeSyncOutbound assertions infra")
+        initViewModel()
+
+        composeTestRule.setContent {
+            KnowledgeListScreen(
+                onItemClick = {},
+                onAddClick = {},
+                viewModel = viewModel
+            )
+        }
+
+        // 1) Offline creation: createItem without any network. The default
+        //    syncStatus on KnowledgeItemEntity is "pending" — the prod sync
+        //    flow (SyncManager → SyncOutbound) is what flips this to "synced"
+        //    when network is available. This test verifies the offline tracking
+        //    state machine without needing the actual SyncManager (which would
+        //    pull in :core-p2p + Hilt — see file KDoc on the avoid-Hilt rationale).
+        viewModel.createItem(
+            title = "离线笔记 KB-03",
+            content = "无网创建，等同步",
+            type = KnowledgeType.NOTE,
+            tags = listOf("kb-03", "offline")
+        )
+        composeTestRule.waitForText("离线笔记 KB-03", timeoutMillis = 5000)
+
+        // 2) DB-level: row has syncStatus = "pending" + appears in
+        //    getPendingSyncItems (the queue the prod sync worker drains).
+        val pending = runBlocking {
+            delay(50)
+            databaseFixture.database.knowledgeItemDao().getPendingSyncItems(10)
+        }
+        assertEquals("Should be exactly 1 pending row", 1, pending.size)
+        assertEquals("离线笔记 KB-03", pending.first().title)
+        assertEquals("pending", pending.first().syncStatus)
+        val pendingId = pending.first().id
+
+        // 3) Simulate the sync worker flipping the row to "synced" (this is
+        //    what SyncManager.pushItem → updateSyncStatus does on success).
+        runBlocking {
+            databaseFixture.database.knowledgeItemDao()
+                .updateSyncStatus(pendingId, "synced")
+        }
+
+        // 4) After sync: row drops out of getPendingSyncItems but still exists
+        //    in getAllItemsSync — proves the queue logic, not deletion.
+        val pendingAfter = runBlocking {
+            databaseFixture.database.knowledgeItemDao().getPendingSyncItems(10)
+        }
+        val totalAfter = runBlocking {
+            databaseFixture.database.knowledgeItemDao().getAllItemsSync().size
+        }
+        assertEquals("Pending queue should be empty after sync", 0, pendingAfter.size)
+        assertEquals("Item still persisted, just synced", 1, totalAfter)
     }
 
-    @Ignore("Needs FTS5 / search indexer setup with real corpus (KB-04)")
     @Test
     fun testFullTextSearch() {
-        TODO("KB-04 — depends on FTS-backed KnowledgeItemDao.search() shape")
+        // Seed 4 distinct items via DAO so FTS gets clean rowids. Titles +
+        // contents use ASCII tokens — SQLite FTS4 default tokenizer is
+        // `simple`, which splits on whitespace/punctuation; CJK tokens would
+        // be a single blob and harder to assert against.
+        databaseFixture.insertKnowledgeItems(
+            KnowledgeItemEntity(
+                id = "kb04-a",
+                title = "Kotlin coroutines guide",
+                content = "structured concurrency basics",
+                type = "note",
+                deviceId = "kb04-device"
+            ),
+            KnowledgeItemEntity(
+                id = "kb04-b",
+                title = "Compose layout primer",
+                content = "Modifier chains and slot APIs",
+                type = "note",
+                deviceId = "kb04-device"
+            ),
+            KnowledgeItemEntity(
+                id = "kb04-c",
+                title = "Room database tutorial",
+                content = "SQLite FTS virtual table walkthrough",
+                type = "note",
+                deviceId = "kb04-device"
+            ),
+            KnowledgeItemEntity(
+                id = "kb04-d",
+                title = "Network calls with Retrofit",
+                content = "OkHttp interceptor patterns",
+                type = "note",
+                deviceId = "kb04-device"
+            )
+        )
+
+        // Force FTS index rebuild — production sets up auto-update triggers
+        // via the v2→v3 migration in DatabaseMigrations.kt, but in-memory
+        // Room only creates the FTS virtual table itself from @Fts4
+        // (contentEntity=KnowledgeItemEntity) and skips the trigger setup
+        // (those live in raw migration SQL, not Room's annotation pipeline).
+        // Without this rebuild, inserts above don't populate the FTS index
+        // and MATCH queries return empty. This sidesteps the trigger gap.
+        runBlocking {
+            databaseFixture.database.openHelper.writableDatabase.execSQL(
+                "INSERT INTO knowledge_items_fts(knowledge_items_fts) VALUES('rebuild')"
+            )
+        }
+
+        initViewModel()
+        composeTestRule.setContent {
+            KnowledgeListScreen(
+                onItemClick = {},
+                onAddClick = {},
+                viewModel = viewModel
+            )
+        }
+
+        // 1) Empty query — all 4 items render (ALL filter mode).
+        composeTestRule.waitForText("Kotlin coroutines guide", timeoutMillis = 5000)
+        composeTestRule.assertTextExists("Compose layout primer")
+        composeTestRule.assertTextExists("Room database tutorial")
+        composeTestRule.assertTextExists("Network calls with Retrofit")
+
+        // 2) Search by title token — FTS MATCH "Kotlin" returns only item a.
+        viewModel.searchKnowledge("Kotlin")
+        composeTestRule.waitForText("Kotlin coroutines guide", timeoutMillis = 3000)
+        composeTestRule.assertTextDoesNotExist("Compose layout primer")
+        composeTestRule.assertTextDoesNotExist("Network calls with Retrofit")
+
+        // 3) Search by content token — FTS indexes both title and content
+        //    columns (per KnowledgeItemFts entity), so "Modifier" hits item b
+        //    via its content field even though its title doesn't contain it.
+        viewModel.searchKnowledge("Modifier")
+        composeTestRule.waitForText("Compose layout primer", timeoutMillis = 3000)
+        composeTestRule.assertTextDoesNotExist("Kotlin coroutines guide")
+
+        // 4) Search a content-only token from a different row — proves we're
+        //    not just hitting some artifact of result (1).
+        viewModel.searchKnowledge("interceptor")
+        composeTestRule.waitForText("Network calls with Retrofit", timeoutMillis = 3000)
+        composeTestRule.assertTextDoesNotExist("Room database tutorial")
+
+        // 5) Clear search → all 4 return.
+        viewModel.clearSearch()
+        composeTestRule.waitForText("Kotlin coroutines guide", timeoutMillis = 3000)
+        composeTestRule.assertTextExists("Room database tutorial")
     }
 
     @Test
@@ -340,15 +476,15 @@ class KnowledgeE2ETest {
         composeTestRule.assertTextExists("可收藏笔记 A")
     }
 
-    @Ignore("Needs tag-index data + filter chip assertions (KB-07)")
+    @Ignore("KB-07 prod gap: no tag-filter API exists on VM/Repository/Dao — needs prod feature add before test can be written. See memory feature_ai_e2e_stub_prod_gaps.md for the prod-gap discovery pattern.")
     @Test
     fun testTagFiltering() {
-        TODO("KB-07")
+        TODO("KB-07 — blocked on prod: add setTagFilter(tag) to KnowledgeViewModel + getItemsByTag(tag) DAO query + tag chip UI")
     }
 
-    @Ignore("Needs two-device emulator harness + sync mock (KB-08)")
+    @Ignore("KB-08 infra: needs multi-emulator CI matrix (two API 30 emulators in same job) — out of scope for android-e2e-tests.yml single-emulator setup. Defer to Phase D real-device benchmark stream.")
     @Test
     fun testMultiDeviceSync() {
-        TODO("KB-08 — likely requires multi-emulator CI matrix")
+        TODO("KB-08 — needs reactivecircus/android-emulator-runner matrix with 2 emulators + paired signaling-relay; see plan-c-first memory")
     }
 }
