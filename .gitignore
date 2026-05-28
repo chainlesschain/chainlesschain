@@ -243,3 +243,16 @@ docs/marketing/
 # Keep tooling like tools/cost-calculator.py and tools/postman/ tracked,
 # but exclude device-pinned e2e helpers.
 tools/e2e-*.sh
+
+# Android internal binaries — fetched at gradle build time from GitHub
+# Release `internal-binaries-android-v<N>`. binariesVersion lives in
+# android-app/gradle.properties; SHA256SUMS in same file. node-runtime-bundle.yml
+# uploads new versions to release (replaces prior `git add + commit + push`
+# auto-commit pattern that bloated .git history by ~1.2 GB). See
+# docs/internal/android-binary-distribution.md.
+android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/*.so
+android-app/feature-local-terminal/src/main/jniLibs/armeabi-v7a/*.so
+android-app/feature-local-terminal/src/main/jniLibs/x86_64/*.so
+android-app/app/src/main/assets/frida/frida-inject-arm
+android-app/app/src/main/assets/frida/frida-inject-arm64
