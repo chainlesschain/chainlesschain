@@ -1,12 +1,11 @@
 echo "📤 Auto push to github (--no-verify, skip vue-tsc)..."
 echo ""
 
-# Auto push installed 2026-05-12, gitee dropped 2026-05-26. Rationale:
-# - Originally dual-pushed to gitee + github. Gitee dropped after orphan-snapshot
-#   reset 2026-05-26 (969068dfc): .git size 1325MB exceeded gitee 1GB quota, so
-#   gitee main was rewritten to a single-commit snapshot. Now gitee history is
-#   detached from local main — any further `git push gitee main` would be
-#   non-fast-forward. Push to gitee manually with --force-with-lease when needed.
+# Auto push installed 2026-05-12. Dual-pushed to github + gitee since
+# 2026-05-28 (gitee was dropped 2026-05-26 because local .git 1325MB exceeded
+# gitee 1GB quota; re-added after the .git slim operation 2026-05-28 brought
+# pack size to ~1.97 GiB with HEAD-reachable closure well under 1 GB — see
+# git_slim_2026_05_28_recipe memory entry).
 # - Pre-push hook runs vue-tsc (~30s). Auto-push uses --no-verify to skip it
 #   per user pref — type-checking still runs in CI (test-automation-full.yml /
 #   pr-tests.yml). Manual `git push` without --no-verify still triggers vue-tsc.
@@ -31,7 +30,7 @@ fi
 
 echo "[post-commit] $branch${amended}"
 
-for remote in github; do
+for remote in github gitee; do
   if ! git remote get-url "$remote" >/dev/null 2>&1; then
     echo "[post-commit] (skip $remote: remote not configured)"
     continue

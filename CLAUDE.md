@@ -49,19 +49,13 @@ cd packages/cli && npm install && npm test
 docker-compose up -d
 ```
 
-## Git Workflow — auto push to github (installed 2026-05-12, gitee dropped 2026-05-26)
+## Git Workflow — auto push to github + gitee (installed 2026-05-12, gitee re-added 2026-05-28 after .git slim)
 
-After every `git commit` on this repo, `.husky/post-commit` automatically pushes to the `github` remote (skips `github-https`). **No manual `git push github main` needed** — that runs by default. Uses `--no-verify` to skip the pre-push `vue-tsc` check (~60s saved per commit); type-checking still runs in CI.
+After every `git commit` on this repo, `.husky/post-commit` automatically pushes to **both `github` and `gitee` remotes** (skips `github-https`, which is the HTTPS mirror of github). **No manual `git push` needed** — that runs by default. Uses `--no-verify` to skip the pre-push `vue-tsc` check (~60s saved per commit); type-checking still runs in CI.
 
-If the hook fires but a push fails, it prints `[post-commit] WARN github push FAILED` with the last 5 lines of error. Retry manually with `git push github main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
+If the hook fires but a push fails, it prints `[post-commit] WARN <remote> push FAILED` with the last 5 lines of error. Retry manually with `git push <remote> main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
 
-**Gitee status (2026-05-26)**: gitee main was reset to a single-commit orphan snapshot at `deea10de9` because local `.git` (1325MB) exceeds gitee's 1GB quota. Gitee history is now detached from local main — any further `git push gitee main` would be non-fast-forward. To re-push to gitee after new local commits, rebuild a snapshot:
-```bash
-TREE=$(git rev-parse HEAD^{tree})
-COMMIT=$(git commit-tree "$TREE" -m "snapshot of $(git rev-parse --short HEAD)")
-git push gitee "$COMMIT:refs/heads/main" --force
-```
-Gitee is intentionally out of the auto-push loop to avoid every commit failing non-ff.
+**Internal Android binaries (2026-05-28 split)**: Termux Node + cc-cli.tgz + frida-inject-arm/arm64 + 20 .so files are **no longer tracked in git**. They live in GitHub Release [`internal-binaries-android-v<binariesVersion>`](https://github.com/chainlesschain/chainlesschain/releases/tag/internal-binaries-android-v20260528) and are fetched at gradle build time by the `downloadInternalBinaries` task in `android-app/build.gradle.kts` (verified against sha256 in `android-app/binaries-manifest.txt`). The prior pattern (`node-runtime-bundle.yml` doing `git add + commit + push` of fresh binaries) had bloated `.git` to 3.4 GB / 24 cc-cli.tgz versions; the slim brought it to ~2.1 GB (size-pack 1.97 GiB) and re-enabled gitee dual-push. To refresh, the workflow uploads new files to a new release version then bumps `binariesVersion` via a tiny text-only commit. See `git_slim_2026_05_28_recipe` memory entry for the full recipe + risks.
 
 Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `core.hooksPath=.husky/_`).
 
