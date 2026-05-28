@@ -67,7 +67,12 @@
     "Personal_Data_Hub_Analysis_Skills.md": "Personal_Data_Hub_Analysis_Skills.md",
     "Personal_Data_Hub_Fixture_Pin_Protocol.md": "Personal_Data_Hub_Fixture_Pin_Protocol.md",
     "Personal_Data_Hub_Android_Standalone_Cc.md": "Personal_Data_Hub_Android_Standalone_Cc.md",
-    "Cc_NL_Phone_App_Manager.md": "Cc_NL_Phone_App_Manager.md"
+    "Cc_NL_Phone_App_Manager.md": "Cc_NL_Phone_App_Manager.md",
+    "AI陪学_主文档.md": "ai-study-companion-design.md",
+    "spike/Spike_DPC_Multi_ROM.md": "spike-dpc-multi-rom.md",
+    "spike/Spike_WebRTC_Mobile_Mobile.md": "spike-webrtc-mobile-mobile.md",
+    "spike/Spike_Accessibility_Persistent_Banner.md": "spike-accessibility-persistent-banner.md",
+    "spike/Spike_DPC_AOSP_Baseline_Runbook.md": "spike-dpc-aosp-baseline-runbook.md"
   },
   "modules": {
     "01_知识库管理模块.md": {
