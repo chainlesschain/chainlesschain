@@ -8,9 +8,11 @@ import androidx.test.core.app.ApplicationProvider
 import com.chainlesschain.android.core.common.util.DeviceIdManager
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
+import com.chainlesschain.android.feature.knowledge.presentation.FilterMode
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeViewModel
 import com.chainlesschain.android.test.DatabaseFixture
+import com.chainlesschain.android.test.assertTextDoesNotExist
 import com.chainlesschain.android.test.assertTextExists
 import com.chainlesschain.android.test.waitForText
 import kotlinx.coroutines.delay
@@ -45,8 +47,8 @@ import org.junit.Test
  *   testPaginationLoading / testFavoritesFunctionality /
  *   testTagFiltering / testMultiDeviceSync
  *
- * Reactivated in this commit: testCompleteKnowledgeWorkflow (KB-01) only.
- * The other 7 remain `@Ignore` pending per-test scope decisions (see KDoc
+ * Reactivated: testCompleteKnowledgeWorkflow (KB-01) + testFavoritesFunctionality (KB-06).
+ * The other 6 remain `@Ignore` pending per-test scope decisions (see KDoc
  * on each).
  */
 class KnowledgeE2ETest {
@@ -170,10 +172,74 @@ class KnowledgeE2ETest {
         TODO("KB-05 — pending DatabaseFixture.withKnowledgeItems(N) helper")
     }
 
-    @Ignore("Needs favorite-mode filter wired (KB-06) — small addition once KB-01 lands cleanly")
     @Test
     fun testFavoritesFunctionality() {
-        TODO("KB-06 — pending toggleFavorite + setFilterMode(FAVORITE) assertions")
+        initViewModel()
+
+        // 1) Render list; create two items — one will be marked favorite, the
+        //    other stays as a control to verify the filter actually filters.
+        composeTestRule.setContent {
+            KnowledgeListScreen(
+                onItemClick = {},
+                onAddClick = {},
+                viewModel = viewModel
+            )
+        }
+        viewModel.createItem(
+            title = "可收藏笔记 A",
+            content = "内容 A",
+            type = KnowledgeType.NOTE,
+            tags = listOf("kb-06")
+        )
+        viewModel.createItem(
+            title = "普通笔记 B",
+            content = "内容 B",
+            type = KnowledgeType.NOTE,
+            tags = listOf("kb-06")
+        )
+        composeTestRule.waitForText("可收藏笔记 A", timeoutMillis = 5000)
+        composeTestRule.waitForText("普通笔记 B", timeoutMillis = 5000)
+
+        // 2) Toggle favorite on item A via the VM. createItem doesn't return
+        //    the id (Unit return); fetch it from the DAO by title.
+        val favoriteId = runBlocking {
+            delay(50)
+            databaseFixture.database.knowledgeItemDao()
+                .getAllItemsSync()
+                .first { it.title == "可收藏笔记 A" }
+                .id
+        }
+        viewModel.toggleFavorite(favoriteId)
+
+        // DB-level sanity: exactly one row has isFavorite=true and it's A.
+        val favoritedTitles = runBlocking {
+            delay(50)
+            databaseFixture.database.knowledgeItemDao()
+                .getAllItemsSync()
+                .filter { it.isFavorite }
+                .map { it.title }
+        }
+        assertEquals("Exactly one item should be favorited", 1, favoritedTitles.size)
+        assertEquals("Favorited item should be A", "可收藏笔记 A", favoritedTitles.first())
+
+        // 3) Switch filter mode to FAVORITE — VM state and UI both update.
+        viewModel.setFilterMode(FilterMode.FAVORITE)
+        assertEquals(
+            "filterMode should be FAVORITE after setFilterMode",
+            FilterMode.FAVORITE,
+            viewModel.uiState.value.filterMode
+        )
+
+        // The flatMapLatest re-emission swaps repository.getItems() →
+        // repository.getFavoriteItems(), so the LazyColumn should drop B.
+        composeTestRule.waitForText("可收藏笔记 A", timeoutMillis = 3000)
+        composeTestRule.assertTextDoesNotExist("普通笔记 B")
+
+        // 4) Switch back to ALL — both items reappear.
+        viewModel.setFilterMode(FilterMode.ALL)
+        assertEquals(FilterMode.ALL, viewModel.uiState.value.filterMode)
+        composeTestRule.waitForText("普通笔记 B", timeoutMillis = 3000)
+        composeTestRule.assertTextExists("可收藏笔记 A")
     }
 
     @Ignore("Needs tag-index data + filter chip assertions (KB-07)")
