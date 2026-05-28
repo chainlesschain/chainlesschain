@@ -60,6 +60,15 @@ dependencies {
     // SharedPreferences slot); a dedicated key派生 lands when M6 Companion
     // TEE Vault ships (see docs/design/AI陪学_主文档.md §3.6).
     implementation(project(":core-security"))
+    // FAMILY-03: reuse FriendDao (alongside FAMILY-02's FamilyRelationshipDao)
+    // for FamilyFriend wrapper. Avoid pulling :feature-p2p to keep the dep
+    // graph thin — FriendRepository's sync side-effects are not needed at this
+    // layer; FAMILY-13 (Flow C pairing) wires the higher-level Repo if/when
+    // the use case requires.
+    implementation(project(":core-database"))
+    // FAMILY-03: DIDManager for current-self DID lookup (FAMILY-13 配对时签
+    // 互信凭证 + FAMILY-16 复活码绑设备指纹都要用)。
+    implementation(project(":core-did"))
 
     // Kotlin + Coroutine 标配 (FAMILY-01 ticket scope)
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
@@ -100,6 +109,9 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.11")
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("androidx.test.ext:junit:1.1.5")
+    // FAMILY-03: Turbine for Flow assertion in repository tests. 与 :core-database
+    // 测试套 (FriendDao 也用) 版本对齐, 复用同一份 Turbine API。
+    testImplementation("app.cash.turbine:turbine:1.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
