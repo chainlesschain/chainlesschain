@@ -57,6 +57,12 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    # 2026-05-28: cap at 60 min — the aggregate `gradlew test` previously
+    # hung on :core-p2p (see run 26521153803, 6 h cancel = GHA max). With
+    # core-p2p excluded below, the remaining graph completes in ~10–15 min;
+    # 60 min leaves headroom for cache misses without re-burning the
+    # default 6-hour limit on the next hang.
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,14 +83,24 @@ jobs:
       # all library testDebugUnitTest verified passing after the minSdk 26→28
       # fix. The aggregate `test` task here exercises the same targets that
       # were independently verified. See feedback_ci_false_green_audit_checklist.md.
+      #
+      # 2026-05-28: exclude :core-p2p:testDebugUnitTest + testReleaseUnitTest
+      # — they hang indefinitely under the aggregate `test` task (run
+      # 26521153803 cancelled at 6 h GHA max, Run Unit Tests step never
+      # produced a per-test event after launch). The android-tests.yml
+      # workflow runs :core-p2p separately with timeout-minutes: 15 so the
+      # module IS still exercised on every push; only the aggregated run
+      # here was wedging the whole Android CI/CD Pipeline.
       - name: Run Unit Tests
         working-directory: android-app
         run: |
           # Run unit tests excluding E2EE tests that require Android runtime (android.util.Log)
-          # These tests should be run as instrumentation tests instead
+          # and core-p2p which hangs under aggregate `test` (covered separately in android-tests.yml).
           ./gradlew test \
             -x :core-e2ee:testDebugUnitTest \
             -x :core-e2ee:testReleaseUnitTest \
+            -x :core-p2p:testDebugUnitTest \
+            -x :core-p2p:testReleaseUnitTest \
             --continue
 
       - name: Upload test reports
