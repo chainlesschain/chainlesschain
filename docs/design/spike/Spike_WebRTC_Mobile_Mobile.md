@@ -131,31 +131,67 @@ mobile-mobile 时两端可能"同时"发起。需协商谁是 initiator：
 
 更鲁棒方案是加 `family.call.invite` envelope 含 `proposedRole`，由收到方拍板。MVP 先用字典序。
 
-### 5.3 `CallKind` 枚举与 track 配置
+### 5.3 `CallKind` 枚举与 track 配置（v0.2 修订：加 permission 校验 + MediaProjection 现实约束）
 
 ```kotlin
-enum class CallKind { AUDIO, VIDEO, SILENT_OBSERVE, URGENT }
+enum class CallKind { AUDIO, VIDEO, SILENT_OBSERVE, URGENT, SOS_BROADCAST }
 
-private fun setupCallKindTracks(kind: CallKind) = when (kind) {
-    AUDIO -> {
-        peerConnection.addTrack(localAudioTrack())
-    }
-    VIDEO -> {
-        peerConnection.addTrack(localAudioTrack())
-        peerConnection.addTrack(localVideoTrack(useFront = true))
-    }
-    SILENT_OBSERVE -> {
-        // 孩子端：不加 audio track（麦克风关），加 screen-capture track
-        peerConnection.addTrack(localScreenTrack())  // MediaProjection
-        // 注意：不加 audio track 防偷听
-    }
-    URGENT -> {
-        // 强接通：audio + front camera + 红色横幅
-        peerConnection.addTrack(localAudioTrack())
-        peerConnection.addTrack(localVideoTrack(useFront = true))
+private suspend fun setupCallKindTracks(kind: CallKind) {
+    // v0.2 关键新增：每个 track 添加前必须校验 family_relationship.permissions
+    // 防止孩子端被远程指令偷偷打开摄像头 / 麦克风
+    val perm = familyPermissionChecker.checkFor(targetPeerId)
+
+    when (kind) {
+        AUDIO -> {
+            require(perm.allowCall) { "Audio call not permitted" }
+            peerConnection.addTrack(localAudioTrack())
+        }
+        VIDEO -> {
+            require(perm.allowCall) { "Video call not permitted" }
+            peerConnection.addTrack(localAudioTrack())
+            peerConnection.addTrack(localVideoTrack(useFront = true))
+        }
+        SILENT_OBSERVE -> {
+            require(perm.allowSilentObserve) { "Silent observe not permitted" }
+            // v0.2 修正：Android 14+ MediaProjection 必须每次用户同意
+            // 不再是"配对时一次性同意永久有效"
+            val mpToken = requestMediaProjectionWithUserConsent()
+                ?: throw CallRejectedException("用户拒绝授权屏幕共享")
+            // 单次最长 30min，到期自动断
+            scheduleAutoHangup(durationMs = 30 * 60 * 1000)
+            peerConnection.addTrack(localScreenTrack(mpToken))
+            // 不加 audio track 防偷听
+            // 同时显示 SilentObserveOverlay 横幅（依赖 spike 3）
+            silentObserveOverlay.show()
+        }
+        URGENT -> {
+            require(perm.allowForcePickup) { "Force pickup not permitted" }
+            require(checkUrgentQuota()) { "Urgent quota exhausted (3/24h)" }
+            peerConnection.addTrack(localAudioTrack())
+            peerConnection.addTrack(localVideoTrack(useFront = true))
+            // 红色横幅 + 不可静音
+            urgentBanner.show()
+        }
+        SOS_BROADCAST -> {
+            // M7 SOS 触发后，孩子端向所有 guardian 同时发起
+            // 不需要 perm 校验（SOS 总是允许）
+            peerConnection.addTrack(localAudioTrack())
+            peerConnection.addTrack(localVideoTrack(useFront = true))
+        }
     }
 }
 ```
+
+**MediaProjection Android 14+ 现实约束**（v0.2 关键修正）：
+
+- Android 14+ 系统在每次启动屏幕共享时**强制弹用户授权对话框**，应用层无法 bypass（这是 Google 出于安全考虑加的）
+- → **"配对时一次性同意，长期有效"的设计不成立**
+- v0.2 改为：
+  1. 静音旁观启动时孩子端弹"X 想看您屏幕，是 / 否"系统对话框
+  2. 同意后单次最长 30min，到期自动断
+  3. 期间显示 SilentObserveOverlay 持久横幅（spike 3）+ 状态栏蓝色 LED
+  4. 孩子可随时按"暂停 2 分钟"或"立刻结束"
+- 之前 v0.1 主文档承诺的"长期 24h 后台旁观" **不可上线**，已在主文档 §3.3 修正
 
 ### 5.4 `:feature-family-guard` 新模块结构
 
@@ -232,15 +268,31 @@ mobile-mobile 4G/5G 互通 ICE 建立：
 
 ---
 
-## 9. 风险
+## 9. 风险（v0.2 修订）
 
 | 风险 | 缓解 |
 |---|---|
 | signaling-relay 服务端假设只有 desktop 可注册为"被叫" | 检查代码确认 from/to 已对称；若有边界，发个 PR 改 |
 | 字典序 collision 防御过弱（家长持续按拨号）| 增加 invite envelope 含 `callId` + 服务端去重 |
-| MediaProjection 启动需用户单次授权 | 配对时弹一次"是否允许 ChainlessChain 推屏"，授权后存 token + 5min 复检 |
+| **MediaProjection Android 14+ 每次同意（v0.2 改）**| ✅ 改成每次启动都弹系统对话框 + 单次 30min 上限；放弃"长期后台旁观"卖点 |
 | 孩子端摄像头被劫持（其他 app 占用）| Android API 自动报错，UI 提示孩子结束其他应用 |
 | TURN 凭证 24h 过期 + mobile-mobile 长会话 | 心跳 + 临近过期前刷新 + ICE restart |
+| **远程指令偷开摄像头 / 麦克风（v0.2 新增）**| 每个 track 加 permission 校验 + 系统强制 UI 通知（红点 + 状态栏摄像头图标）+ 孩子端横幅 |
+| **强接通配额耗尽后家长仍想呼（v0.2 新增）**| 改为普通呼叫 + 写审计 + UI 提示家长"3/3 强接通已用完，请等待重置" |
+
+## 10. Android 14+ MediaProjection 实际验证（v0.2 新增）
+
+**TC4** 需在以下设备上跑：
+
+- [ ] Pixel 8 (Android 14) — 验证 MediaProjection 每次启动都弹系统对话框
+- [ ] Pixel 8 (Android 15 preview) — 验证 Android 15 是否进一步限制（如要求"特定应用类型"才能用）
+- [ ] MIUI 14 (Android 14 base) — 验证 MIUI 是否额外加层
+- [ ] Pixel 6 (Android 12-13) — 旧 API 行为对照（确认旧版本仍支持持久授权）
+
+**期望输出**：
+- 报告：哪个 Android 版本起 MediaProjection 从"持久授权"变为"每次同意"
+- 报告：MIUI / HyperOS 是否在系统弹窗前先弹一层"是否允许 ChainlessChain 录屏"
+- 决策：v0.1 MVP 的"静音旁观"是否照本设计 ship，还是降级为"仅紧急时使用"
 
 ---
 

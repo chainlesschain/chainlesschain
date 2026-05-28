@@ -108,49 +108,79 @@ unzip grapheneos-<device>-<version>.zip
 
 ## 4. 注册 ChainlessChain 为 Device Owner
 
-### 4.1 准备 APK
+### 4.1 准备 stub APK（v0.2 改：用独立 module）
+
+详见 §5 独立 stub APK module 设计。一句话：用 `:baseline-stub-apk` module 独立 build，包名 `com.chainlesschain.android.baselinestub`，不污染主 release。
 
 ```bash
-# 选项 A：跑 release build
 cd C:\code\chainlesschain\android-app
-./gradlew :app:assembleRelease
-
-# 选项 B：用最新 GitHub Actions 产物
-gh release download v5.0.3.97 --pattern '*.apk'
+./gradlew :baseline-stub-apk:assembleRelease
+ls baseline-stub-apk/build/outputs/apk/release/baseline-stub-apk-release.apk
 ```
 
 ### 4.2 安装 + 设为 DO
 
 ```bash
 # 1. 连 USB，启用 USB 调试
-adb devices       # 确认设备在线
+adb devices
 
-# 2. 装 APK
-adb install -r android-app/app/build/outputs/apk/release/app-release.apk
+# 2. 装 stub APK
+adb install -r baseline-stub-apk-release.apk
 
-# 3. 设置 device owner（核心）
-adb shell dpm set-device-owner com.chainlesschain.android/.dpc.ChainlessDeviceAdminReceiver
+# 3. 设置 device owner
+adb shell dpm set-device-owner com.chainlesschain.android.baselinestub/.ChainlessDeviceAdminReceiver
 
-# 期望输出：Success: Device owner set to package ComponentInfo{com.chainlesschain.android/...}
+# 期望输出：Success: Device owner set to package ComponentInfo{...}
 # 失败常见输出（记录之）：
 #   - "Not allowed to set the device owner because there are already several users on the device"
 #   - "Trying to set the device owner, but device owner is already set"
 #   - "Can't set DO because there's an account: com.google ..."
 ```
 
-⚠️ **当前 v5.0.3.97 APK 还没有 `ChainlessDeviceAdminReceiver` 类**（spike 1 §2.1 全空）。本 runbook 假设已有一个**测试用 stub APK** 包含：
+⚠️ **当前 v5.0.3.97 APK 还没有 `ChainlessDeviceAdminReceiver` 类**（spike 1 §2.1 全空）。
 
-```kotlin
-// android-app/app/src/main/java/com/chainlesschain/android/dpc/ChainlessDeviceAdminReceiver.kt
-package com.chainlesschain.android.dpc
-import android.app.admin.DeviceAdminReceiver
-class ChainlessDeviceAdminReceiver : DeviceAdminReceiver()
+**v0.2 修订（不污染主 release）**：用**独立 Gradle module `:baseline-stub-apk`**，只在该 module 内含 receiver；主 app 不引入；CI 跑 spike 时单独 build；永久不入 release。
+
+#### 5.1 独立 module 结构
+
+```
+android-app/
+├── app/                          ← 主 app，不动
+├── feature-family-guard/         ← 未来 v0.1 MVP 模块（含真正的 DPC 代码）
+└── baseline-stub-apk/            ← v0.2 新增：spike 专用，独立 packageName
+    ├── build.gradle.kts          ← applicationId "com.chainlesschain.android.baselinestub"
+    └── src/main/
+        ├── AndroidManifest.xml
+        ├── res/xml/device_admin_receiver.xml
+        └── java/com/chainlesschain/android/baselinestub/
+            ├── ChainlessDeviceAdminReceiver.kt
+            └── DpcTriggerActivity.kt   ← 通过 ADB broadcast 调用 DPC API
 ```
 
+#### 5.2 stub APK 关键代码
+
+`ChainlessDeviceAdminReceiver.kt`：
+
+```kotlin
+package com.chainlesschain.android.baselinestub
+import android.app.admin.DeviceAdminReceiver
+import android.content.Context
+import android.content.Intent
+class ChainlessDeviceAdminReceiver : DeviceAdminReceiver() {
+    override fun onEnabled(context: Context, intent: Intent) {
+        android.util.Log.i("ChainlessDPC", "Device admin enabled")
+    }
+    override fun onDisabled(context: Context, intent: Intent) {
+        android.util.Log.i("ChainlessDPC", "Device admin disabled")
+    }
+}
+```
+
+`AndroidManifest.xml`：
+
 ```xml
-<!-- AndroidManifest.xml 加 -->
 <receiver
-    android:name=".dpc.ChainlessDeviceAdminReceiver"
+    android:name=".ChainlessDeviceAdminReceiver"
     android:permission="android.permission.BIND_DEVICE_ADMIN"
     android:exported="true">
     <meta-data
@@ -160,10 +190,19 @@ class ChainlessDeviceAdminReceiver : DeviceAdminReceiver()
         <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
     </intent-filter>
 </receiver>
+
+<!-- DpcTriggerActivity 用于 ADB broadcast 触发 setApplicationHidden 等调用 -->
+<activity android:name=".DpcTriggerActivity" android:exported="true">
+    <intent-filter>
+        <action android:name="com.chainlesschain.baselinestub.TRIGGER_DPC" />
+        <category android:name="android.intent.category.DEFAULT" />
+    </intent-filter>
+</activity>
 ```
 
+`res/xml/device_admin_receiver.xml`：
+
 ```xml
-<!-- res/xml/device_admin_receiver.xml -->
 <device-admin>
     <uses-policies>
         <limit-password />
@@ -176,7 +215,52 @@ class ChainlessDeviceAdminReceiver : DeviceAdminReceiver()
 </device-admin>
 ```
 
-→ 跑 baseline 前需先**改主仓增 stub receiver + manifest** 并出 `app-baseline.apk`。这是 spike 必要前置（~0.5d）
+#### 5.3 build 命令
+
+```bash
+cd C:\code\chainlesschain\android-app
+./gradlew :baseline-stub-apk:assembleRelease
+
+# 输出
+ls baseline-stub-apk/build/outputs/apk/release/baseline-stub-apk-release.apk
+```
+
+#### 5.4 安装 + 设为 DO
+
+```bash
+# 装 stub APK（包名 com.chainlesschain.android.baselinestub，不冲突主 app）
+adb install -r baseline-stub-apk-release.apk
+
+# 设为 device owner
+adb shell dpm set-device-owner com.chainlesschain.android.baselinestub/.ChainlessDeviceAdminReceiver
+```
+
+#### 5.5 ADB 触发 DPC 调用
+
+stub APK 接受 ADB broadcast：
+
+```bash
+# 隐藏 app
+adb shell am broadcast -a com.chainlesschain.baselinestub.TRIGGER_DPC \
+    --es action "hide" --es target "com.android.calculator2"
+
+# 加 user restriction
+adb shell am broadcast -a com.chainlesschain.baselinestub.TRIGGER_DPC \
+    --es action "addRestriction" --es key "no_install_apps"
+
+# v0.2 新增：setPackagesSuspended
+adb shell am broadcast -a com.chainlesschain.baselinestub.TRIGGER_DPC \
+    --es action "suspend" --es target "com.android.calculator2"
+```
+
+#### 5.6 优点
+
+- 主 app `com.chainlesschain.android` 完全不含 receiver
+- 商店审核时主 app 不会因 device-admin 被拒
+- spike branch `spike/dpc-baseline-stub-apk` 可以长期保留独立 module，每次 rebase 即可拿最新主仓代码
+- baseline 完成后 module 可保留（用于后续测试）或彻底删除（spike branch 直接 drop）
+
+→ **预算 0.5d** 给 stub APK module 搭建
 
 ---
 
@@ -374,38 +458,16 @@ baseline YAML 拍完后，5 个国产 ROM 跑同样 4 TC，每个生成 `baselin
 
 ---
 
-## 附 A：stub APK build 一次性脚本
+## 附 A：stub APK 完整代码（已上移到 §5 独立 module 设计）
 
-```bash
-# 在主仓加最小 receiver + manifest，build 一个 baseline-only APK
+详见 §5 "独立 :baseline-stub-apk module"。当前位置改为引用，不再重复 inline 代码。
 
-cd C:\code\chainlesschain\android-app
+**简要步骤**：
+1. 新 Gradle module `:baseline-stub-apk`，applicationId `com.chainlesschain.android.baselinestub`
+2. 加 `ChainlessDeviceAdminReceiver.kt` + `DpcTriggerActivity.kt`
+3. AndroidManifest 声明 receiver + activity
+4. res/xml/device_admin_receiver.xml 声明策略
+5. `./gradlew :baseline-stub-apk:assembleRelease`
+6. 在独立分支 `spike/dpc-baseline-stub-apk` 提交，**永久不合 main**
 
-# 1. 加 stub 文件
-cat > app/src/main/java/com/chainlesschain/android/dpc/ChainlessDeviceAdminReceiver.kt <<'EOF'
-package com.chainlesschain.android.dpc
-import android.app.admin.DeviceAdminReceiver
-import android.content.Context
-import android.content.Intent
-class ChainlessDeviceAdminReceiver : DeviceAdminReceiver() {
-    override fun onEnabled(context: Context, intent: Intent) {
-        android.util.Log.i("ChainlessDPC", "Device admin enabled")
-    }
-    override fun onDisabled(context: Context, intent: Intent) {
-        android.util.Log.i("ChainlessDPC", "Device admin disabled")
-    }
-}
-EOF
-
-# 2. 加 res/xml/device_admin_receiver.xml（见 §4.2）
-# 3. AndroidManifest.xml 加 receiver（见 §4.2）
-# 4. 加一个 ADB-broadcast trigger Activity 用来调用 setApplicationHidden 等（避免每次手写 reflection）
-
-./gradlew :app:assembleRelease
-
-# 5. 输出
-ls app/build/outputs/apk/release/app-release.apk
-# 拿这个 APK 跑 baseline
-```
-
-→ stub APK 完成后可 commit 到一个独立分支 `spike/dpc-baseline-stub`，不合 main（避免污染主线 release）
+→ 主 app `com.chainlesschain.android` 完全干净，应用商店审核无碍

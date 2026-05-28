@@ -106,16 +106,21 @@ dpm.addUserRestriction(componentName, UserManager.DISALLOW_CONFIG_DATE_TIME)
 
 ## 4. 5 ROM 已知风险矩阵
 
-| ROM | Device Owner 注册 | setApplicationHidden | userRestriction | 反卸载（DO 自身）| 备注 |
-|---|---|---|---|---|---|
-| **AOSP / 像素** | ✅ root + `dpm set-device-owner` | ✅ | ✅ | ✅ | 基线，必通 |
-| **MIUI 14 / 15** | ⚠️ 部分版本要禁 MIUI 优化 + 关账户同步 | ⚠️ 报"设备已激活"错；workaround 删 `/data/system/device_owner_2.xml` 旧记录后重试 | ⚠️ `DISALLOW_INSTALL_APPS` 在 MIUI 应用商店仍可装（厂商商店绕开） | ⚠️ MIUI 应用清理可能强卸；需 Magisk hide | [[miui_query_all_packages_silently_blocked]] |
-| **HyperOS** | ⚠️ 同 MIUI 但更严，部分小米 14 Pro 上 dpm 报 "current user has account" | ⚠️ 同 MIUI | ⚠️ 同 MIUI | ⚠️ 同 MIUI | 与 MIUI 共底层 |
-| **EMUI 13 / HarmonyOS 4** | ❌ 华为 EMUI 13+ **默认禁止** 任何第三方 device-admin 取得 DO | — | — | — | 必须降级档 1+3 |
-| **OriginOS 4 (vivo)** | ⚠️ 部分机型可注册，但 setApplicationHidden 对系统应用无效；vivo 自家应用商店绕开 install restriction | ⚠️ | ⚠️ | ⚠️ | 中等可行 |
-| **ColorOS 14 (OPPO)** | ⚠️ 同 vivo，类似限制；OPPO Find X7 实测可注册但限制较多 | ⚠️ | ⚠️ | ⚠️ | 中等可行 |
+| ROM | Device Owner 注册 | setApplicationHidden | userRestriction | 反卸载（DO 自身）| **Fallback 路径** | 备注 |
+|---|---|---|---|---|---|---|
+| **AOSP / 像素** | ✅ root + `dpm set-device-owner` | ✅ | ✅ | ✅ | 不需要 | 基线，必通 |
+| **MIUI 14 / 15** | ⚠️ 部分版本要禁 MIUI 优化 + 关账户同步 | ⚠️ 报"设备已激活"错；workaround 删 `/data/system/device_owner_2.xml` 旧记录后重试 | ⚠️ `DISALLOW_INSTALL_APPS` 在 MIUI 应用商店仍可装（厂商商店绕开） | ⚠️ MIUI 应用清理可能强卸；需 Magisk hide | DPC 失败时降到 Accessibility 拦截 + VPN 拦小米应用商店 | [[miui_query_all_packages_silently_blocked]] |
+| **HyperOS** | ⚠️ 同 MIUI 但更严，部分小米 14 Pro 上 dpm 报 "current user has account" | ⚠️ 同 MIUI | ⚠️ 同 MIUI | ⚠️ 同 MIUI | 同 MIUI | 与 MIUI 共底层 |
+| **EMUI 13 / HarmonyOS 4** | ❌ 华为 EMUI 13+ **默认禁止** 任何第三方 device-admin 取得 DO | — | — | — | **必走档 1 + 档 3 VPN + Accessibility 拦截**；尝试接入华为应用市场"教育"类目 DPM API（非通用）| 必须降级档 1+3 |
+| **OriginOS 4 (vivo)** | ⚠️ 部分机型可注册，但 setApplicationHidden 对系统应用无效；vivo 自家应用商店绕开 install restriction | ⚠️ | ⚠️ | ⚠️ | DPC 失败时降到 setPackagesSuspended（系统 app 也生效）+ Accessibility 兜底 | 中等可行 |
+| **ColorOS 14 (OPPO)** | ⚠️ 同 vivo，类似限制；OPPO Find X7 实测可注册但限制较多 | ⚠️ | ⚠️ | ⚠️ | 同 vivo | 中等可行 |
 
 → **结论**：5 ROM 中 AOSP 满分，MIUI/HyperOS 中度可行，OriginOS/ColorOS 中度，EMUI 几乎不行。EMUI 用户必须接受档 1+档 3（VPN）方案
+
+**Fallback API 替代品**：
+- `setPackagesSuspended`（Android 7+, API 24+）：比 `setApplicationHidden` 更细粒度，系统 app 也生效，部分 ROM 限制较小。**建议同时实现**作为 hide 失败时兜底
+- `setPermittedInputMethods`：限制输入法（v0.2 spike 扩展）
+- `setKeyguardDisabledFeatures`：锁屏限制
 
 ---
 
@@ -191,6 +196,7 @@ class RomAdapterFactory {
 
 - [ ] **TC1**：root 设备执行 `dpm set-device-owner` 成功 / 失败 + 错误信息
 - [ ] **TC2**：注册后调 `setApplicationHidden("com.tencent.tmgp.sgame", true)` → 桌面是否消失？
+- [ ] **TC2.5**（v0.2 新增）：`setPackagesSuspended` 对系统 app（如自带浏览器）是否生效？hide 不行时是否可替代？
 - [ ] **TC3**：`addUserRestriction(DISALLOW_INSTALL_APPS)` 后从厂商应用商店尝试装 app → 是否拦住？
 - [ ] **TC4**：在系统设置中尝试卸载 ChainlessChain → 是否拦住？强卸 + Magisk 守护是否恢复？
 

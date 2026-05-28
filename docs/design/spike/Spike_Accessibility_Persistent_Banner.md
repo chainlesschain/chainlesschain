@@ -101,19 +101,24 @@ class FamilyGuardForegroundService : Service() {
 - `setBypassDnd(true)`：勿扰模式也显示（旁观/紧急时）
 - `setShowBadge(true)`
 
-### 3.2 组件 2：SilentObserveOverlay（系统覆盖窗口）
+### 3.2 组件 2：SilentObserveOverlay（系统覆盖窗口 + v0.2 配额）
 
-**用途**：仅在静音旁观期间显示横幅 + LED 闪烁
+**用途**：仅在静音旁观期间显示横幅 + LED 闪烁；**v0.2**：单次最长 30min（呼应 spike 2 Android 14+ MediaProjection 现实约束）+ 暂停 2min 按钮配额
 
 ```kotlin
 class SilentObserveOverlay(private val ctx: Context) {
     private lateinit var wm: WindowManager
     private lateinit var bannerView: View
+    private var sessionStartMs: Long = 0L
+    private var pauseUsageThisSession: Int = 0
+    private var pauseUsageToday: Int = 0  // v0.2: 24h 内 3 次配额
 
     fun show() {
         if (!Settings.canDrawOverlays(ctx)) { promptPermission(); return }
+        sessionStartMs = SystemClock.elapsedRealtime()
         wm = ctx.getSystemService(WindowManager::class.java)
-        bannerView = inflate(R.layout.silent_observe_banner)  // 红色横条 + 倒计时 + "暂停 2 分钟" 按钮
+        bannerView = inflate(R.layout.silent_observe_banner)  
+        // 横条内容：红色 + 倒计时（30:00 → 0:00 自动断）+ "暂停 2 分钟" 按钮（配额 X/3）
         val lp = WindowManager.LayoutParams(
             MATCH_PARENT, WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -121,45 +126,116 @@ class SilentObserveOverlay(private val ctx: Context) {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP
-            y = statusBarHeight()  // 紧贴状态栏下
+            y = statusBarHeight()
         }
         wm.addView(bannerView, lp)
         startPulse()  // 红色闪烁 + 5min 复检弹窗
+        scheduleAutoHangup(durationMs = 30 * 60 * 1000L)  // v0.2: 30min 上限
     }
 
-    fun hide() = wm.removeView(bannerView)
+    // v0.2: 暂停按钮配额（每天最多 3 次，每次 2 分钟）
+    fun onPauseButtonClick() {
+        if (pauseUsageToday >= 3) {
+            showToast("今日暂停配额已用完（3/3）")
+            return
+        }
+        pauseUsageToday++
+        auditLog("silent_observe_paused", durationMs = 2 * 60 * 1000L)
+        // 通知家长端"孩子暂停了 2 分钟旁观"
+        notifyParentOfPause()
+        // 暂停推屏 2 分钟（但持久横幅仍显示，倒计时切到 2:00）
+        screenTrack.setEnabled(false)
+        handler.postDelayed({ screenTrack.setEnabled(true) }, 2 * 60 * 1000L)
+    }
+
+    fun hide() {
+        wm.removeView(bannerView)
+        auditLog("silent_observe_ended", durationMs = SystemClock.elapsedRealtime() - sessionStartMs)
+    }
 }
 ```
+
+**注意**（v0.2 修订）：
+- 30min 自动断与 spike 2 MediaProjection 30min 上限对齐
+- 配额持久化到 SharedPreferences，重启不丢
+- 触发"暂停"立刻通知家长（透明化），避免家长误解"为什么屏幕黑了"
+- 部分 ROM（MIUI / HyperOS）会"延迟显示"或"被自动取消"，需 5min 周期复显
+- 不可触摸 / 不可拖移，防孩子无意挪开
 
 **注意**：
 - `TYPE_APPLICATION_OVERLAY`（API 26+，替代废弃的 `TYPE_SYSTEM_ALERT`）
 - 部分 ROM（MIUI / HyperOS）会"延迟显示"或"被自动取消"，需 5min 周期复显
 - 不可触摸 / 不可拖移，防孩子无意挪开
 
-### 3.3 组件 3：FamilyGuardAccessibilityService（实时拦截）
+### 3.3 组件 3：FamilyGuardAccessibilityService（实时拦截 + v0.2 异步重构）
+
+**v0.1 风险**（审查发现）：`onAccessibilityEvent` 在 Android 主流 app 上每分钟触发**几百到上千次**事件（每滚动、每点击、每聚焦）。即使 5s 降采样，规则引擎仍在 UI 线程读 `AccessibilityNodeInfo` 树并匹配 → MIUI 复杂界面（小红书 / 抖音）可触发 ANR + 中端机多耗电 15-30%/天
+
+**v0.2 设计**：白名单过滤 + 异步 Channel 处理：
 
 ```kotlin
 class FamilyGuardAccessibilityService : AccessibilityService() {
-    override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        when (event.eventType) {
-            TYPE_WINDOW_STATE_CHANGED -> {
-                val pkg = event.packageName?.toString() ?: return
-                val rule = ruleEngine.matchApp(pkg) ?: return
-                if (rule.shouldBlockNow()) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                    showBlockedToast(pkg, rule.reason)
-                    auditLog(pkg, rule, "blocked")
+    // v0.2: event type 白名单——只接收必须的，其余全丢
+    private val acceptedTypes = setOf(
+        AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,  // 窗口切换（app 启动）
+        AccessibilityEvent.TYPE_VIEW_CLICKED           // 点击（充值、按钮）
+        // 显式不接收：SCROLLED / HOVER / FOCUSED / TEXT_CHANGED
+    )
+
+    // v0.2: 异步 Channel，主线程只做最小快照拷贝
+    private val eventChannel = Channel<AccessibilityEventSnapshot>(
+        capacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST  // 满了丢老的，绝不阻塞主线程
+    )
+
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    init {
+        scope.launch {
+            for (snapshot in eventChannel) {
+                runCatching {
+                    ruleEngine.matchAsync(snapshot)
+                }.onFailure { 
+                    Log.w("FamilyGuard", "rule match failed", it)
                 }
-            }
-            TYPE_VIEW_CLICKED, TYPE_VIEW_FOCUSED -> {
-                detectPaymentIntent(event)  // 检测充值页面，挂起 + 推家长审批
             }
         }
     }
 
+    override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        if (event.eventType !in acceptedTypes) return  // v0.2: 白名单
+        // v0.2: 立刻拷贝快照（仅 packageName + className + 简要 text），不在主线程读 NodeInfo tree
+        val snapshot = AccessibilityEventSnapshot.fromMinimal(event)
+        eventChannel.trySend(snapshot)  // 异步交付
+    }
+
     override fun onInterrupt() {}
 }
+
+// 异步规则引擎
+class RuleEngine(private val timeAuthority: TimeAuthority) {
+    suspend fun matchAsync(snapshot: AccessibilityEventSnapshot) = withContext(Dispatchers.Default) {
+        val now = timeAuthority.authoritativeNow()  // v0.2: 用权威时间，防孩子改时钟
+        val rule = matchRule(snapshot.packageName, now) ?: return@withContext
+        if (rule.shouldBlockNow(now)) {
+            // 通过 Service handle 回主线程执行 globalAction
+            mainHandler.post {
+                accessibilityService.performGlobalAction(GLOBAL_ACTION_BACK)
+            }
+            showBlockedToast(snapshot.packageName, rule.reason)
+            auditLog(snapshot, rule, "blocked")
+        }
+        if (snapshot.eventType == TYPE_VIEW_CLICKED) {
+            detectPaymentIntent(snapshot)
+        }
+    }
+}
 ```
+
+**性能目标**（v0.2 新增预算）：
+- onAccessibilityEvent 主线程时间 < 100μs / 次
+- 规则匹配异步处理；ANR 阈值（5s）不可能命中
+- 24h 累计耗电 < 5%
 
 **配置 XML**（`res/xml/family_guard_accessibility_config.xml`）：
 
@@ -295,6 +371,8 @@ UI 模板：每项引导提供"立即设置"按钮直接跳系统 Settings；每
 - [ ] **TC6**：MediaProjection 推屏 720p@15fps 持续 30min CPU < 10%、电量 < 8%/h
 - [ ] **TC7**：家长心跳超时 6h → 推送 + 紧急寻找模式触发
 - [ ] **TC8**：MIUI / HyperOS 用户跳过 ROM 引导后是否退化为档 1 + 提示
+- [ ] **TC9（v0.2 新增）**：AccessibilityService 异步规则引擎 24h 连续运行电量损耗 / CPU 占用 / RAM 峰值，确认符合 §12.1 预算（CPU < 2% 平均；RAM < 50MB；电量 < 5%/天）。测试方式：纯净 Pixel 6 跑 24h 持续刷小红书 + 抖音 + 微信，记录 `dumpsys batterystats` 和 `top` 输出
+- [ ] **TC10（v0.2 新增）**：暂停 2 分钟配额（每天 3 次）跨日重置正确性；用 ADB 改时间到次日凌晨 0:01 验证
 
 ---
 
