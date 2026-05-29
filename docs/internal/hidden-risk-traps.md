@@ -17,12 +17,12 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**9 / 23**（#6, #10, #15, #16, #19, #20, #25, #27, #28）
+当前关闭率：**11 / 23**（#6, #7, #10, #15, #16, #19, #20, #21, #25, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
 | 🛡️ 6 | 文档同步陷阱 | 编辑 `docs-site/docs/design/**` 或 `docs-site-design/docs/**`；加新中文-named design doc。**自动化已 land** `.husky/pre-commit` step 0.5 (本地 mandatory) + `doc-sync-generated-copy-gate.yml` (PR mandatory) + `doc-sync-audit.yml` (PR advisory, 检 CJK 映射) | `docs_site_sync_unmapped_fallthrough.md` |
-| 7 | npm 发版漏发 | 改 `packages/*/{lib,src}`；加新 `packages/*` 包；发版前 | `npm_publish_audit_and_dep_chain.md` |
+| 🛡️ 7 | npm 发版漏发 | 改 `packages/*/{lib,src}`；加新 `packages/*` 包；发版前。**自动化已 land** `scripts/lint-publish-staleness.mjs` + `publish-staleness-check.yml` (PR mandatory，覆盖 8 个非 PDH/CLI 的可发布 workspace 包，私有包跳过)。PDH + CLI 仍走 `pdh-bundle-staleness-check.yml` (#27/#28，更严，加 USR_VERSION + dep 传播)。 | `npm_publish_audit_and_dep_chain.md` |
 | 8 | CI 假绿 mask | 改 `.github/workflows/*.yml`；大发版前；任何"明明应该失败但绿了"事件后 | `feedback_ci_false_green_audit_checklist.md` |
 | 9 | 并行 session git race | 多 session 同时活跃；`git add .` / `git commit -a`；rebase / reset / autostash | `feedback_parallel_session_git_race.md` |
 | 🛡️ 10 | lint-staged untracked sweep | worktree 含 `??` 状态文件 commit；改 CHANGELOG/README/package.json。**自动化已 land** `.husky/pre-commit` step 0.7 untracked 预警 + step 1.5 post-lint-staged sweep-victim 检测 (本地 advisory，配合 step 0 工作树快照) | `feedback_lint_staged_sweep_unstaged_files.md` |
@@ -36,7 +36,7 @@
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
 | 🛡️ 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前。**自动化已 land** `android-release-precheck.yml` (2026-05-26) | `android_release_r8_minify_hotfix_chain.md` |
 | 🛡️ 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集。**自动化已 land** `scripts/audit-webview-cookie-race.js` 静态扫 + `webview-cookie-race-audit.yml` (PR advisory，识 postDelayed / Handler.post / delay(N) / LaunchedEffect / lifecycleScope.launch 等 defer 模式) | `bilibili_post_onload_cookie_race.md` |
-| 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符 | `android_cc_bundle_tar_gnu_long_name.md` |
+| 🛡️ 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符。**自动化已 land** `scripts/audit-hand-written-tar-parsers.js` + `hand-written-tar-parser-audit.yml` (PR advisory，识 `typeFlag` ref 缺 `'L'`/`'K'` 字面量) | `android_cc_bundle_tar_gnu_long_name.md` |
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
 | 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter | `bs3mc_bs3_abi_dual_load_adapter.md` |
 | 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 10, 15, 16, 19, 20, 25, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 7, 10, 15, 16, 19, 20, 21, 25, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
