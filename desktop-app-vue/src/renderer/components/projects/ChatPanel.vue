@@ -246,6 +246,7 @@ import { useTaskPlanning } from "@/composables/useTaskPlanning";
 import { useChatExecution } from "@/composables/useChatExecution";
 import { useConversationPersistence } from "@/composables/useConversationPersistence";
 import { useFollowupIntent } from "@/composables/useFollowupIntent";
+import { useMessageMemory } from "@/composables/useMessageMemory";
 
 // 配置 marked 选项
 marked.setOptions({
@@ -306,17 +307,10 @@ const thinkingState = reactive({
   showCancelButton: true,
 });
 
-// 🔥 消息分页加载状态
-const messageLoadState = reactive({
-  currentPage: 0,
-  pageSize: 50,
-  hasMore: true,
-  isLoadingMore: false,
-});
-
-// 🔥 消息内存管理配置
-const MAX_MESSAGES_IN_MEMORY = 200; // 内存中最多保留200条消息
-const CLEANUP_THRESHOLD = 220; // 超过220条时触发清理
+// 🔥 消息内存管理配置（messageLoadState + cleanupThreshold 已下沉到
+// useMessageMemory；MAX_MESSAGES_IN_MEMORY 留在此处因 useConversation-
+// Persistence 也消费这个值，保持单一来源）
+const MAX_MESSAGES_IN_MEMORY = 200;
 
 // 计算属性
 const contextInfo = computed(() => {
@@ -723,135 +717,24 @@ const handleKeyDown = (event) => {
   }
 };
 
-/**
- * 🔥 清理过多的消息以释放内存
- * 当消息数量超过阈值时，保留最近的消息，移除最旧的消息
- */
-const cleanupOldMessages = () => {
-  if (messages.value.length > CLEANUP_THRESHOLD) {
-    const messagesToRemove = messages.value.length - MAX_MESSAGES_IN_MEMORY;
-    logger.info(
-      `[ChatPanel] 🧹 消息数量超过阈值(${CLEANUP_THRESHOLD})，清理最旧的${messagesToRemove}条消息`,
-    );
+// ============ 内存 / 滚动 / 思考状态（已抽取到 useMessageMemory composable） ============
 
-    // 保留最近的 MAX_MESSAGES_IN_MEMORY 条消息
-    messages.value = messages.value.slice(-MAX_MESSAGES_IN_MEMORY);
-
-    logger.info(
-      `[ChatPanel] ✅ 清理完成，当前消息数: ${messages.value.length}`,
-    );
-  }
-};
-
-/**
- * 滚动到底部（使用虚拟列表）
- */
-const scrollToBottom = () => {
-  if (virtualListRef.value) {
-    virtualListRef.value.scrollToBottom();
-  } else if (messagesContainer.value) {
-    // 后备方案：如果虚拟列表未初始化
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
-};
-
-/**
- * 处理加载更多消息（分页加载）
- */
-const handleLoadMoreMessages = async () => {
-  if (messageLoadState.isLoadingMore || !messageLoadState.hasMore) {
-    return;
-  }
-
-  if (!currentConversation.value) {
-    return;
-  }
-
-  try {
-    messageLoadState.isLoadingMore = true;
-
-    // 加载下一页消息
-    const nextPage = messageLoadState.currentPage + 1;
-    const offset = nextPage * messageLoadState.pageSize;
-
-    const result = await window.electronAPI.conversation.getMessages(
-      currentConversation.value.id,
-      {
-        limit: messageLoadState.pageSize,
-        offset: offset,
-      },
-    );
-
-    const loadedMessages = result?.data || [];
-
-    if (loadedMessages.length > 0) {
-      // 在前面插入历史消息
-      messages.value.unshift(
-        ...loadedMessages.map((msg) => {
-          if (msg.message_type) {
-            return { ...msg, type: msg.message_type };
-          }
-          return msg;
-        }),
-      );
-
-      // 🔥 清理过多的消息以释放内存（从末尾移除最新的消息）
-      if (messages.value.length > CLEANUP_THRESHOLD) {
-        const messagesToRemove = messages.value.length - MAX_MESSAGES_IN_MEMORY;
-        logger.info(
-          `[ChatPanel] 🧹 加载历史消息后超过阈值，移除末尾${messagesToRemove}条最新消息`,
-        );
-        messages.value = messages.value.slice(0, MAX_MESSAGES_IN_MEMORY);
-      }
-
-      messageLoadState.currentPage = nextPage;
-      logger.info(`[ChatPanel] 📜 加载了${loadedMessages.length}条历史消息`);
-    } else {
-      messageLoadState.hasMore = false;
-      logger.info("[ChatPanel] 📜 没有更多历史消息");
-    }
-  } catch (error) {
-    logger.error("[ChatPanel] 加载历史消息失败:", error);
-    antMessage.error("加载历史消息失败");
-  } finally {
-    messageLoadState.isLoadingMore = false;
-  }
-};
-
-/**
- * 处理滚动到底部事件
- */
-const handleScrollToBottom = () => {
-  // 可以在这里添加逻辑，比如标记消息为已读
-  logger.info("[ChatPanel] 📍 已滚动到底部");
-};
-
-/**
- * 取消AI思考/生成
- */
-const handleCancelThinking = async () => {
-  logger.info("[ChatPanel] ⛔ 用户取消了AI思考");
-  isLoading.value = false;
-  thinkingState.show = false;
-
-  // 通过IPC通知主进程取消正在进行的AI请求
-  try {
-    if (window.electronAPI?.project?.cancelAiChat) {
-      await window.electronAPI.project.cancelAiChat();
-    }
-  } catch (error) {
-    logger.warn("[ChatPanel] 取消请求失败:", error);
-  }
-
-  antMessage.info("已取消");
-};
-
-/**
- * 更新思考过程状态
- */
-const updateThinkingState = (updates) => {
-  Object.assign(thinkingState, updates);
-};
+const {
+  cleanupOldMessages,
+  scrollToBottom,
+  handleLoadMoreMessages,
+  handleScrollToBottom,
+  handleCancelThinking,
+  updateThinkingState,
+} = useMessageMemory({
+  messages,
+  currentConversation,
+  isLoading,
+  thinkingState,
+  virtualListRef,
+  messagesContainer,
+  maxMessagesInMemory: MAX_MESSAGES_IN_MEMORY,
+});
 
 // ============ 对话持久化（已抽取到 useConversationPersistence composable） ============
 
