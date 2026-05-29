@@ -17,7 +17,7 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**13 / 23**（#6, #7, #10, #12, #15, #16, #19, #20, #21, #23, #25, #27, #28）
+当前关闭率：**15 / 23**（#6, #7, #10, #12, #15, #16, #19, #20, #21, #22, #23, #25, #26, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
@@ -37,11 +37,11 @@
 | 🛡️ 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前。**自动化已 land** `android-release-precheck.yml` (2026-05-26) | `android_release_r8_minify_hotfix_chain.md` |
 | 🛡️ 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集。**自动化已 land** `scripts/audit-webview-cookie-race.js` 静态扫 + `webview-cookie-race-audit.yml` (PR advisory，识 postDelayed / Handler.post / delay(N) / LaunchedEffect / lifecycleScope.launch 等 defer 模式) | `bilibili_post_onload_cookie_race.md` |
 | 🛡️ 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符。**自动化已 land** `scripts/audit-hand-written-tar-parsers.js` + `hand-written-tar-parser-audit.yml` (PR advisory，识 `typeFlag` ref 缺 `'L'`/`'K'` 字面量) | `android_cc_bundle_tar_gnu_long_name.md` |
-| 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
+| 🛡️ 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆。**自动化已 land** `scripts/audit-trap-fix-invariants.js` + `trap-fix-invariants-audit.yml` (PR mandatory，守 estimateTokens + ctxBudget + safetyMargin + LlmInferenceException 4 个 building blocks) | `mediapipe_jni_out_of_range_abort.md` |
 | 🛡️ 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter。**自动化已 land** `scripts/audit-bs3mc-dual-load.js` + `bs3mc-dual-load-audit.yml` (PR advisory，识 `dbDriverFactory` 或 `this._driver`/`opts.driver` DI seam pattern) | `bs3mc_bs3_abi_dual_load_adapter.md` |
 | 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
 | 🛡️ 25 | SQLite partial-index `IF NOT EXISTS` 隐藏 schema drift | 改 `packages/personal-data-hub/lib/migrations.js` partial unique index 定义；改 `vault.js` UPSERT `ON CONFLICT ... WHERE`；老 vault 升级；user 报 "events=1 rawEvents=1308"。**自动化已 land** `pdh-partial-index-lint.yml` mandatory regex + advisory runtime schema-diff (2026-05-28) | `pdh_partial_index_if_not_exists_drift.md` |
-| 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持 | `gpu_crash_recovery_legacy_intel_driver.md` |
+| 🛡️ 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持。**自动化已 land** `scripts/audit-trap-fix-invariants.js` + `trap-fix-invariants-audit.yml` (PR mandatory，守 _gpuRecoveryMarker + .launching/.gpu-disabled + disableHardwareAcceleration + crashRecovered 4 个 building blocks) | `gpu_crash_recovery_legacy_intel_driver.md` |
 | 🛡️ 27 | 改 PDH lib / cc-cli.tgz refresh 后忘 bump `USR_VERSION` —— 真机缓存旧代码 | 改 `packages/personal-data-hub/lib/**` / `packages/cli/lib/**` 后；`node-runtime-bundle.yml` 跑完看到 `cc-cli.tgz` Bin 大小变化；user 报"装新版 Android APK 但 PDH 行为还是旧的"。**自动化已 land** `pdh-bundle-staleness-check.yml` `usr-version-bump-check` (mandatory) + `.husky/pre-push` step 0.5 (本地) (2026-05-28) | `android_usr_version_sentinel_cache.md` |
 | 🛡️ 28 | 改 workspace package lib 后忘 bump version + publish — `cc-cli.tgz` 依赖 npm registry 实际仍是旧代码 | 改 `packages/personal-data-hub/lib/**` / `packages/cli/lib/**` 后 CI 跑 `node-runtime-bundle.yml` 出 tgz，但设备装新 APK 后 `adb shell run-as grep <new-symbol> .../lib/analysis.js` 0 命中；和 trap #27 经常叠加（USR_VERSION 也忘 bump）。**自动化已 land** `pdh-bundle-staleness-check.yml` `workspace-version-bump-check` (mandatory) + `npm-registry-availability-check` (advisory) + `.husky/pre-push` step 0.5 (本地) (2026-05-28) | `pdh_workspace_dep_npm_publish_stale.md` |
 
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 15, 16, 19, 20, 21, 23, 25, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 15, 16, 19, 20, 21, 22, 23, 25, 26, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
