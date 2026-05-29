@@ -119,6 +119,9 @@ class XhsApiClient @Inject constructor() {
             setLastError(-8, "missing cookie")
             return@withContext null
         }
+        if (lastErrorCode == -461) {  // audit F5 — short-circuit after ban (call clearBanState() to retry)
+            return@withContext null
+        }
         val url = baseUrl.newBuilder().addPathSegments("api/sns/web/v1/user/me").build()
         val obj = doGetJson(url, cookie, requireSign = false) ?: return@withContext null
         // doGetJson already gated on success!=false / code!=0 (sets lastError).
@@ -181,6 +184,9 @@ class XhsApiClient @Inject constructor() {
                 setLastError(-8, "missing cookie")
                 return@withContext emptyList()
             }
+            if (lastErrorCode == -461) {  // audit F5
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/sns/web/v2/user_posted")
                 .addQueryParameter("user_id", userId)
@@ -232,6 +238,9 @@ class XhsApiClient @Inject constructor() {
                 setLastError(-8, "missing cookie")
                 return@withContext emptyList()
             }
+            if (lastErrorCode == -461) {  // audit F5
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/sns/web/v1/note/liked")
                 .addQueryParameter("num", "30")
@@ -272,6 +281,9 @@ class XhsApiClient @Inject constructor() {
         withContext(Dispatchers.IO) {
             if (cookie.isBlank()) {  // audit F4
                 setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
+            if (lastErrorCode == -461) {  // audit F5
                 return@withContext emptyList()
             }
             val url = baseUrl.newBuilder()
@@ -406,6 +418,22 @@ class XhsApiClient @Inject constructor() {
     private fun clearLastError() {
         lastErrorCode = 0
         lastErrorMessage = null
+    }
+
+    /**
+     * Reset the -461 ban circuit-breaker. After [lastErrorCode] hits -461
+     * (xhs risk-control ban sentinel), every public fetcher short-circuits
+     * to [emptyList] to avoid slamming xhs and worsening the ban. This
+     * method clears that state — caller invokes after an explicit user
+     * action that warrants another attempt (manual re-login, app
+     * restart, user tapping "重试"). No-op when last error is not -461.
+     *
+     * See audit F5 (`docs/internal/pdh-security-audit-2026-05-29.md`).
+     */
+    fun clearBanState() {
+        if (lastErrorCode == -461) {
+            clearLastError()
+        }
     }
 
     companion object {
