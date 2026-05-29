@@ -17,7 +17,7 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**11 / 23**（#6, #7, #10, #15, #16, #19, #20, #21, #25, #27, #28）
+当前关闭率：**13 / 23**（#6, #7, #10, #12, #15, #16, #19, #20, #21, #23, #25, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
@@ -27,7 +27,7 @@
 | 9 | 并行 session git race | 多 session 同时活跃；`git add .` / `git commit -a`；rebase / reset / autostash | `feedback_parallel_session_git_race.md` |
 | 🛡️ 10 | lint-staged untracked sweep | worktree 含 `??` 状态文件 commit；改 CHANGELOG/README/package.json。**自动化已 land** `.husky/pre-commit` step 0.7 untracked 预警 + step 1.5 post-lint-staged sweep-victim 检测 (本地 advisory，配合 step 0 工作树快照) | `feedback_lint_staged_sweep_unstaged_files.md` |
 | 11 | E2E web-shell opt-out 失效 | 写 / 维护针对 V5 baseline 的 E2E 测试；预写 app-config.json | `e2e_helper_web_shell_opt_out_trap.md` |
-| 12 | Node 23 native-dep prebuild gap | `node -v` 显示 odd-numbered 版本；`npm install` 后启动 MODULE_NOT_FOUND；CI runner image 升级 | `node_23_native_dep_trap.md` |
+| 🛡️ 12 | Node 23 native-dep prebuild gap | `node -v` 显示 odd-numbered 版本；`npm install` 后启动 MODULE_NOT_FOUND；CI runner image 升级。**Resolved 2026-05-26**：bs3mc ABI v131 已 ship，`engines.node` 放宽回 `>=22.12.0`；`upstream-watch.yml` 每周 Sunday 04:00 UTC 守门，从 green 转 red 时考虑回 pin。 | `node_23_native_dep_trap.md` |
 | 13 | Desktop release npm workspace hoisting | `desktop-app-vue` 加新 dep；release 跑得通 dev 跑得通但用户装完启动崩 | `desktop_release_npm_workspace_hoisting.md` |
 | 14 | Android in-app update 5 traps | 改 `UpdateChecker.kt`；改 `release.yml` Android 段；改 keystore；用户报"装不上新版" | `feedback_android_update_loop_immutable_apk.md` |
 | 🛡️ 15 | better-sqlite3 Number→TEXT `"1.0"` trap | 写 SQLite TEXT 列；JS Number 绑定；`WHERE col = '1'` silent miss。**自动化已 land** `scripts/audit-sqlite-number-text-bind.js` 静态扫 + `sqlite-number-text-bind-audit.yml` (PR advisory，检 Number/parseInt/Math.round/unary-plus 绑到 INSERT/UPDATE/REPLACE 的 .run/.get/.all/.iterate 及 prepare(SQL).run() 链式) | `better_sqlite3_text_number_trap.md` |
@@ -38,7 +38,7 @@
 | 🛡️ 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集。**自动化已 land** `scripts/audit-webview-cookie-race.js` 静态扫 + `webview-cookie-race-audit.yml` (PR advisory，识 postDelayed / Handler.post / delay(N) / LaunchedEffect / lifecycleScope.launch 等 defer 模式) | `bilibili_post_onload_cookie_race.md` |
 | 🛡️ 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符。**自动化已 land** `scripts/audit-hand-written-tar-parsers.js` + `hand-written-tar-parser-audit.yml` (PR advisory，识 `typeFlag` ref 缺 `'L'`/`'K'` 字面量) | `android_cc_bundle_tar_gnu_long_name.md` |
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
-| 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter | `bs3mc_bs3_abi_dual_load_adapter.md` |
+| 🛡️ 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter。**自动化已 land** `scripts/audit-bs3mc-dual-load.js` + `bs3mc-dual-load-audit.yml` (PR advisory，识 `dbDriverFactory` 或 `this._driver`/`opts.driver` DI seam pattern) | `bs3mc_bs3_abi_dual_load_adapter.md` |
 | 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
 | 🛡️ 25 | SQLite partial-index `IF NOT EXISTS` 隐藏 schema drift | 改 `packages/personal-data-hub/lib/migrations.js` partial unique index 定义；改 `vault.js` UPSERT `ON CONFLICT ... WHERE`；老 vault 升级；user 报 "events=1 rawEvents=1308"。**自动化已 land** `pdh-partial-index-lint.yml` mandatory regex + advisory runtime schema-diff (2026-05-28) | `pdh_partial_index_if_not_exists_drift.md` |
 | 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持 | `gpu_crash_recovery_legacy_intel_driver.md` |
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 7, 10, 15, 16, 19, 20, 21, 25, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 15, 16, 19, 20, 21, 23, 25, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
