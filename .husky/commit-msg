@@ -3,7 +3,10 @@ COMMIT_MSG=$(cat "$1")
 
 # 检查 Conventional Commits 格式
 # 格式: <type>(<scope>): <subject>
-PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|security)(\([a-z-]+\))?: .{1,100}"
+# Scope 字符集 = [a-z0-9-]+ — 允许数字（trap #16 修复，2026-05-29）。
+#   原来 [a-z-]+ 拒绝 feat(p2p) / feat(v6) / feat(b4) / fix(http2) 等含数字的产品代号，
+#   被迫绕到 feat(mobile) / feat(shell) / feat(release) — 失去精确性。
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|security)(\([a-z0-9-]+\))?: .{1,100}"
 
 if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
   echo ""
@@ -21,10 +24,11 @@ if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
   echo "  - chore:            构建/工具链更新"
   echo "  - perf(module):     性能优化"
   echo ""
-  echo "Scope 模块: rag, llm, p2p, database, plugin, ui, trade, did, git, etc."
+  echo "Scope 模块（含数字 OK，如 p2p / v6 / b4 / http2）: rag, llm, p2p, ui, did, git, etc."
   echo ""
   echo "示例:"
   echo "  feat(rag): 添加重排序器支持"
+  echo "  feat(p2p): WebRTC reconnect 兜底  # 数字 OK"
   echo "  fix(ukey): 修复Windows驱动兼容性问题"
   echo "  security(database): 修复SQL注入漏洞"
   echo ""
