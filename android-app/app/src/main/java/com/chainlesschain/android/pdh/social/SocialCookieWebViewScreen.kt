@@ -105,6 +105,84 @@ internal fun sanitizeWebViewUserAgent(raw: String): String =
         .replace(Regex(" Version/[0-9.]+"), "")
 
 /**
+ * Bundle of bridge bits needed for one platform — the JS-side @JavascriptInterface
+ * object, the name it's exposed as in `window.*`, and the setPending / clearPending
+ * callbacks used by the prefetch flow.
+ *
+ * See [selectJsBridge] — the audit (`docs/internal/pdh-security-audit-2026-05-29.md`
+ * §4 WebView) flagged that all 4 bridges used to be installed unconditionally,
+ * giving an attacker who XSS'd a Weibo login page the ability to call
+ * `window.BilibiliBridge.onSyncData(...)` and poison Bilibili's sync pipeline.
+ * After this fix only the bridge matching the active platform's cookieDomain
+ * is installed.
+ */
+private data class ActiveJsBridge(
+    val instance: Any,
+    val jsName: String,
+    val setPending: ((String?) -> Unit) -> Unit,
+    val clearPending: () -> Unit,
+)
+
+/**
+ * Pick the correct JS bridge for the platform whose login is currently being
+ * driven by this WebView. Returns null when no bridge is needed (Weibo and
+ * Kuaishou flows don't use prefetch / in-WebView JS sync).
+ *
+ * Mapping is by [cookieDomain] (the URL passed to CookieManager.getCookie),
+ * which is set by the calling ViewModel per platform — see HubLocalViewModel
+ * call sites around lines 2539 / 3026 / 3406 / 3904 / 4401 / 4877.
+ *
+ * **Security**: a hostile page on platform A *must not* be able to call into
+ * platform B's bridge. Returning null for unknown domains is the safe default.
+ */
+private fun selectJsBridge(cookieDomain: String): ActiveJsBridge? {
+    val lower = cookieDomain.lowercase()
+    return when {
+        "bilibili.com" in lower -> ActiveJsBridge(
+            instance = com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge,
+            jsName = "BilibiliBridge",
+            setPending = { cb ->
+                com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge.setPending(cb)
+            },
+            clearPending = {
+                com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge.clearPending()
+            },
+        )
+        "douyin.com" in lower -> ActiveJsBridge(
+            instance = com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge,
+            jsName = "DouyinBridge",
+            setPending = { cb ->
+                com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge.setPending(cb)
+            },
+            clearPending = {
+                com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge.clearPending()
+            },
+        )
+        "xiaohongshu.com" in lower -> ActiveJsBridge(
+            instance = com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge,
+            jsName = "XhsBridge",
+            setPending = { cb ->
+                com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge.setPending(cb)
+            },
+            clearPending = {
+                com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge.clearPending()
+            },
+        )
+        "toutiao.com" in lower -> ActiveJsBridge(
+            instance = com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge,
+            jsName = "ToutiaoBridge",
+            setPending = { cb ->
+                com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge.setPending(cb)
+            },
+            clearPending = {
+                com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge.clearPending()
+            },
+        )
+        else -> null
+    }
+}
+
+/**
  * A8 v0.1 — generic in-app WebView used by all 4 social adapters
  * (Bilibili / Weibo / Douyin / Xiaohongshu) for cookie capture.
  *
@@ -445,15 +523,19 @@ private fun CookieWebViewHost(
                     onPrefetchComplete(cookie, data)
                 }
             }
-            // broadcast 注册 — 每平台 bridge 一个单例，AtomicBoolean 守护去重
-            com.chainlesschain.android.pdh.social.bilibili
-                .BilibiliJsBridge.setPending(sharedCb)
-            com.chainlesschain.android.pdh.social.douyin
-                .DouyinJsBridge.setPending(sharedCb)
-            com.chainlesschain.android.pdh.social.xiaohongshu
-                .XhsJsBridge.setPending(sharedCb)
-            com.chainlesschain.android.pdh.social.toutiao
-                .ToutiaoJsBridge.setPending(sharedCb)
+            // 仅注册当前平台对应的 bridge（audit 2026-05-29 §4 WebView 修复：
+            // 原代码 4 个 bridge 全 setPending → 平台 A 的恶意页能 onSyncData
+            // 到平台 B 的 sharedCb）。selectJsBridge 没匹配的平台 (Weibo /
+            // Kuaishou) 此时 prefetchJs 一般为 null 走不到这里；若被误传非空
+            // prefetchJs 则 15s 超时分支兜底。
+            val activeBridge = selectJsBridge(cookieDomain)
+            if (activeBridge == null) {
+                Timber.e(
+                    "SocialCookieWebView: prefetchJs set but no bridge matches cookieDomain=%s — JS callback will never fire, 15s timeout will trigger",
+                    cookieDomain,
+                )
+            }
+            activeBridge?.setPending?.invoke(sharedCb)
             // 注入 Kotlin 侧拿到的 user_id (xhs JWT decode / toutiao passport_uid
             // httpOnly cookie 抠) — JS 端 window.__XHS_USER_ID__ /
             // __TOUTIAO_UID__ 直接读, 跳过 HTTP /user/me + /passport/account/
@@ -468,14 +550,7 @@ private fun CookieWebViewHost(
             view.evaluateJavascript(injectedPrefix + prefetchJs, null)
             view.postDelayed({
                 if (responded.compareAndSet(false, true)) {
-                    com.chainlesschain.android.pdh.social.bilibili
-                        .BilibiliJsBridge.clearPending()
-                    com.chainlesschain.android.pdh.social.douyin
-                        .DouyinJsBridge.clearPending()
-                    com.chainlesschain.android.pdh.social.xiaohongshu
-                        .XhsJsBridge.clearPending()
-                    com.chainlesschain.android.pdh.social.toutiao
-                        .ToutiaoJsBridge.clearPending()
+                    activeBridge?.clearPending?.invoke()
                     Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
                     onPrefetchComplete(cookie, null)
                 }
@@ -511,24 +586,16 @@ private fun CookieWebViewHost(
                         ?: sanitizeWebViewUserAgent(settings.userAgentString)
                 }
                 // 2026-05-25 真机：b 站 OkHttp 路径被风控（详 BilibiliJsBridge KDoc）。
-                // 唯一稳路是登录后在 WebView 内 evaluateJavascript 跑 fetch。统一注
-                // 入 `BilibiliBridge` JavascriptInterface（其它平台不用就 idle，无成本）
-                addJavascriptInterface(
-                    com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge,
-                    "BilibiliBridge",
-                )
-                addJavascriptInterface(
-                    com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge,
-                    "DouyinBridge",
-                )
-                addJavascriptInterface(
-                    com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge,
-                    "XhsBridge",
-                )
-                addJavascriptInterface(
-                    com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge,
-                    "ToutiaoBridge",
-                )
+                // 唯一稳路是登录后在 WebView 内 evaluateJavascript 跑 fetch。
+                //
+                // 2026-05-29 audit 修复（pdh-security-audit-2026-05-29.md §4 WebView）：
+                // 仅注入当前平台的 bridge — 原代码 4 个全装无条件，让平台 A 的
+                // 恶意页能 `window.BilibiliBridge.onSyncData(...)` 投毒 Bilibili 同
+                // 步流。Weibo / Kuaishou 不走 in-WebView prefetch → selectJsBridge
+                // 返 null → 一个 bridge 都不装（安全默认）。
+                selectJsBridge(cookieDomain)?.let { bridge ->
+                    addJavascriptInterface(bridge.instance, bridge.jsName)
+                }
                 webViewClient = object : WebViewClient() {
                     /**
                      * 2026-05-24: 各平台 web 登录页弹"打开 App 授权/扫码"按钮
