@@ -1,10 +1,12 @@
 package com.chainlesschain.android.feature.familyguard.di
 
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyFriendRepositoryImpl
+import com.chainlesschain.android.feature.familyguard.data.repository.FamilyGroupRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.RevivalCodeRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.RolePreferencesRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
 import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalCodeRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
@@ -49,4 +51,10 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindRevivalCodeRepository(
         impl: RevivalCodeRepositoryImpl,
     ): RevivalCodeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFamilyGroupRepository(
+        impl: FamilyGroupRepositoryImpl,
+    ): FamilyGroupRepository
 }
