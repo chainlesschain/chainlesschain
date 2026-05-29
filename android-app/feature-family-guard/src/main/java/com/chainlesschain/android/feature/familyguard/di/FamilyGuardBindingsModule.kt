@@ -10,6 +10,7 @@ import com.chainlesschain.android.feature.familyguard.data.repository.RolePrefer
 import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
 import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
 import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
+import com.chainlesschain.android.feature.familyguard.data.unbind.UnbindStateMachineImpl
 import com.chainlesschain.android.feature.familyguard.domain.permission.FamilyPermissionChecker
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
@@ -20,6 +21,7 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalC
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
+import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -95,4 +97,10 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindFamilyPermissionChecker(
         impl: FamilyPermissionCheckerImpl,
     ): FamilyPermissionChecker
+
+    @Binds
+    @Singleton
+    abstract fun bindUnbindStateMachine(
+        impl: UnbindStateMachineImpl,
+    ): UnbindStateMachine
 }

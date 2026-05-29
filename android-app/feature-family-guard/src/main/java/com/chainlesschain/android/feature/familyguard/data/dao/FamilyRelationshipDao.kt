@@ -64,4 +64,72 @@ interface FamilyRelationshipDao {
 
     @Query("SELECT * FROM family_relationship WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): FamilyRelationshipEntity?
+
+    // ─── FAMILY-15 unbind state machine (atomic SQL state transitions) ───
+
+    /**
+     * active → unbind_pending; WHERE status='active' 让重复 request 自动 no-op
+     * (返 0 行影响), 避免 race condition 改坏数据。
+     */
+    @Query(
+        """
+        UPDATE family_relationship
+           SET status = 'unbind_pending',
+               unbind_request_at = :requestAt,
+               unbind_cooldown_until = :cooldownUntil,
+               unbind_requester = :requesterDid,
+               updated_at = :updatedAt
+         WHERE id = :id AND status = 'active'
+        """,
+    )
+    suspend fun markUnbindPending(
+        id: Long,
+        requestAt: Long,
+        cooldownUntil: Long,
+        requesterDid: String,
+        updatedAt: Long,
+    ): Int
+
+    /**
+     * unbind_pending → active (撤销解绑); 清三个 unbind 列。WHERE status 守卫
+     * 防对 active / unbound 误调。
+     */
+    @Query(
+        """
+        UPDATE family_relationship
+           SET status = 'active',
+               unbind_request_at = NULL,
+               unbind_cooldown_until = NULL,
+               unbind_requester = NULL,
+               updated_at = :updatedAt
+         WHERE id = :id AND status = 'unbind_pending'
+        """,
+    )
+    suspend fun cancelUnbindPending(id: Long, updatedAt: Long): Int
+
+    /**
+     * unbind_pending → unbound; 只有冷却到期 (now ≥ cooldown_until) 才生效。
+     * 由后台 Worker 周期调用; 或 forceFinalize 路径。
+     */
+    @Query(
+        """
+        UPDATE family_relationship
+           SET status = 'unbound',
+               updated_at = :updatedAt
+         WHERE id = :id
+           AND status = 'unbind_pending'
+           AND unbind_cooldown_until <= :now
+        """,
+    )
+    suspend fun finalizeUnbindIfExpired(id: Long, now: Long, updatedAt: Long): Int
+
+    /** 查所有冷却到期但仍 unbind_pending 的 id; Worker 用. */
+    @Query(
+        """
+        SELECT id FROM family_relationship
+         WHERE status = 'unbind_pending'
+           AND unbind_cooldown_until <= :now
+        """,
+    )
+    suspend fun listExpiredPendingIds(now: Long): List<Long>
 }
