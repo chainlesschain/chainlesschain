@@ -21,12 +21,50 @@ import timber.log.Timber
 object FamilyGuardMigrations {
 
     /**
-     * 完整 migration 链入口。v1 是首版, 暂空。
+     * 完整 migration 链入口。
+     * - v1: 首版 (FAMILY-02) — 7 表 baseline。
+     * - v2: FAMILY-08 加 revival_code (6 位复活码, SHA256 hash + salt, 紧急解绑前置)。
      */
     fun all(): Array<Migration> = ALL_MIGRATIONS
 
-    @Suppress("VariableNaming") // 名字按 :core-database 风格保持 UPPER_SNAKE
-    val ALL_MIGRATIONS: Array<Migration> = emptyArray()
+    /**
+     * v1 → v2 (FAMILY-08).
+     *
+     * 加 revival_code 表 + 2 索引. SQL 与 Room 自动生成的 1.json → 2.json
+     * schema diff 完全对齐 (字段名 / 类型 / 默认值)。改本 migration 前必先跑
+     * `./gradlew :feature-family-guard:assembleDebug` 让 Room 重新导出 2.json,
+     * 然后 diff schemas/2.json ↔ MIGRATION_1_2.migrate body 防漂移
+     * (trap [[pdh_partial_index_if_not_exists_drift]] 的 family-guard 版本).
+     */
+    val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS revival_code (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    family_relationship_id INTEGER,
+                    code_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    failed_attempts INTEGER NOT NULL DEFAULT 0,
+                    locked_until INTEGER,
+                    consumed_at INTEGER
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_revival_code_family_relationship_id " +
+                    "ON revival_code(family_relationship_id)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_revival_code_created_at " +
+                    "ON revival_code(created_at)",
+            )
+        }
+    }
+
+    @Suppress("VariableNaming")
+    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

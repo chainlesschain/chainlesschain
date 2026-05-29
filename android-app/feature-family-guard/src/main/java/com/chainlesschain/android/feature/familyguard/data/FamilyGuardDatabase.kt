@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipD
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
+import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyGroupEntity
@@ -15,6 +16,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembersh
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyRelationshipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.LocationPointEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.RevivalCodeEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
 
 /**
@@ -38,6 +40,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         LocationPointEntity::class,
         GeofenceEntity::class,
         EnforceRuleEntity::class,
+        // v2 (FAMILY-08): 复活码 — 紧急解绑前置 (主文档 §3.1 v0.2)
+        RevivalCodeEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -51,9 +55,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun locationPointDao(): LocationPointDao
     abstract fun geofenceDao(): GeofenceDao
     abstract fun enforceRuleDao(): EnforceRuleDao
+    abstract fun revivalCodeDao(): RevivalCodeDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 1
+        const val SCHEMA_VERSION = 2
     }
 }

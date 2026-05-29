@@ -31,6 +31,8 @@ class FamilyGuardSchemaTest {
         "location_point",
         "geofence",
         "enforce_rules",
+        // FAMILY-08 (v2)
+        "revival_code",
     )
 
     @Before
@@ -49,12 +51,12 @@ class FamilyGuardSchemaTest {
     }
 
     @Test
-    fun `schema version constant is 1`() {
-        assertEquals(1, FamilyGuardDatabase.SCHEMA_VERSION)
+    fun `schema version constant is 2 (FAMILY-08 bumped from 1)`() {
+        assertEquals(2, FamilyGuardDatabase.SCHEMA_VERSION)
     }
 
     @Test
-    fun `all 7 placeholder tables exist in schema`() {
+    fun `all 8 placeholder tables exist in schema`() {
         val cursor = db.openHelper.readableDatabase.query(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%' AND name NOT LIKE 'android_metadata'"
         )
@@ -67,7 +69,7 @@ class FamilyGuardSchemaTest {
         assertEquals(
             expectedTables,
             filteredActual,
-            "Expected exactly 7 family-guard tables, got: $filteredActual",
+            "Expected exactly ${expectedTables.size} family-guard tables, got: $filteredActual",
         )
     }
 

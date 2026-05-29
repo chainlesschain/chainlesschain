@@ -13,6 +13,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipD
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
+import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.preferences.appRoleDataStore
 import dagger.Module
@@ -92,6 +93,10 @@ object FamilyGuardModule {
     @Provides
     @Singleton
     fun provideEnforceRuleDao(db: FamilyGuardDatabase): EnforceRuleDao = db.enforceRuleDao()
+
+    @Provides
+    @Singleton
+    fun provideRevivalCodeDao(db: FamilyGuardDatabase): RevivalCodeDao = db.revivalCodeDao()
 
     // ─── FAMILY-04: role preferences + clock ───
 
