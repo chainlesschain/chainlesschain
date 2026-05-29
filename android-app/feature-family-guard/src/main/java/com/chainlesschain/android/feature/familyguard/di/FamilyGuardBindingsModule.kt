@@ -1,5 +1,8 @@
 package com.chainlesschain.android.feature.familyguard.di
 
+import com.chainlesschain.android.feature.familyguard.data.emergency.EmergencyUnbindServiceImpl
+import com.chainlesschain.android.feature.familyguard.data.emergency.InMemoryUpstreamFreezer
+import com.chainlesschain.android.feature.familyguard.data.emergency.NoOpExternalContactNotifier
 import com.chainlesschain.android.feature.familyguard.data.permission.FamilyPermissionCheckerImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyFriendRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyGroupRepositoryImpl
@@ -11,6 +14,9 @@ import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardSe
 import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
 import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
 import com.chainlesschain.android.feature.familyguard.data.unbind.UnbindStateMachineImpl
+import com.chainlesschain.android.feature.familyguard.domain.emergency.EmergencyUnbindService
+import com.chainlesschain.android.feature.familyguard.domain.emergency.ExternalContactNotifier
+import com.chainlesschain.android.feature.familyguard.domain.emergency.UpstreamFreezer
 import com.chainlesschain.android.feature.familyguard.domain.permission.FamilyPermissionChecker
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
@@ -103,4 +109,20 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindUnbindStateMachine(
         impl: UnbindStateMachineImpl,
     ): UnbindStateMachine
+
+    @Binds
+    @Singleton
+    abstract fun bindUpstreamFreezer(impl: InMemoryUpstreamFreezer): UpstreamFreezer
+
+    @Binds
+    @Singleton
+    abstract fun bindExternalContactNotifier(
+        impl: NoOpExternalContactNotifier,
+    ): ExternalContactNotifier
+
+    @Binds
+    @Singleton
+    abstract fun bindEmergencyUnbindService(
+        impl: EmergencyUnbindServiceImpl,
+    ): EmergencyUnbindService
 }

@@ -132,4 +132,27 @@ interface FamilyRelationshipDao {
         """,
     )
     suspend fun listExpiredPendingIds(now: Long): List<Long>
+
+    // ─── FAMILY-16 emergency unbind ───
+
+    /**
+     * 紧急解绑写库: 任意非 unbound 状态 → emergency_unbound.
+     * 主文档 §3.1 v0.2: 复活码触发立刻生效, 不走 24h 冷却。
+     */
+    @Query(
+        """
+        UPDATE family_relationship
+           SET status = 'emergency_unbound',
+               emergency_unbind_at = :triggeredAt,
+               emergency_unbind_reason = :reason,
+               updated_at = :updatedAt
+         WHERE id = :id AND status != 'unbound'
+        """,
+    )
+    suspend fun markEmergencyUnbound(
+        id: Long,
+        triggeredAt: Long,
+        reason: String,
+        updatedAt: Long,
+    ): Int
 }
