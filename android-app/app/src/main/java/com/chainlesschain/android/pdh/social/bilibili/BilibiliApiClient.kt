@@ -592,9 +592,13 @@ class BilibiliApiClient @Inject constructor() {
             // Browser-like UA: required to bypass Bilibili anti-spider; the
             // app's own UA is rejected. Pinning to Chrome 120 mobile UA — if
             // Bilibili adds UA-version fingerprinting later, may need bump.
+            // Device model unified to `Pixel 7` to match the /spi + /nav UAs
+            // (lines 157, 256) — inconsistent device model within one session
+            // is itself a fingerprint anomaly. Removed prior `ChainlessChain`
+            // literal which was a trivial blocklist string (audit 2026-05-29 S1).
             .header(
                 "User-Agent",
-                "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
                     "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
             )
             // Bilibili enforces Referer + Origin for the four endpoints we hit

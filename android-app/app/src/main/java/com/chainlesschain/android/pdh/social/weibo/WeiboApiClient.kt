@@ -192,9 +192,11 @@ class WeiboApiClient @Inject constructor() {
         val req = Request.Builder()
             .url(url)
             .header("Cookie", cookie)
+            // Device model uses `Pixel 7` instead of literal `ChainlessChain`
+            // — the latter was a trivial blocklist signal (audit 2026-05-29 S1).
             .header(
                 "User-Agent",
-                "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
                     "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
             )
             .header("Referer", "https://m.weibo.cn/")
