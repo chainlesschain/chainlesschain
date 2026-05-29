@@ -6,6 +6,8 @@ name: Trap-Fix Invariants Audit (PR mandatory)
 # and the workflow fails if any required pattern disappears.
 #
 # Currently covered:
+#   #13 — desktop-app-vue/scripts/asar-surgery.js B4 walker-dropped pkg
+#         injection
 #   #22 — android-app/.../MediaPipeLlmEngine.kt prompt-length pre-check
 #   #24 — android-app/.../LocalFilesystemBootstrapper.kt companion Mutex
 #         + tmp+rename atomicity
@@ -23,6 +25,7 @@ on:
       - 'android-app/app/src/main/java/com/chainlesschain/android/pdh/llm/MediaPipeLlmEngine.kt'
       - 'android-app/feature-local-terminal/src/main/java/com/chainlesschain/android/feature/localterminal/LocalFilesystemBootstrapper.kt'
       - 'desktop-app-vue/src/main/index.js'
+      - 'desktop-app-vue/scripts/asar-surgery.js'
       - 'scripts/audit-trap-fix-invariants.js'
       - '.github/workflows/trap-fix-invariants-audit.yml'
 

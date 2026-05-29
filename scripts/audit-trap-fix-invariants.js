@@ -33,6 +33,16 @@
  *        singleton) and writes new files via tmp + renameTo (atomic
  *        on POSIX rename(2)). Losing either pattern reverts the race.
  *
+ *   #13  desktop-app-vue/scripts/asar-surgery.js
+ *        — must keep B4 post-pack surgery that re-injects walker-
+ *        dropped packages into app.asar. electron-builder's nested-
+ *        only walker drops top-level requires that resolve via parent
+ *        directories; users install fine, app starts to require, can't
+ *        find the package, dies. The surgery walks the staged asar
+ *        contents, copies the missing packages to node_modules top-
+ *        level, repacks, and runs a verification gate. Any of those
+ *        steps disappearing = the original install-then-die regression.
+ *
  * Failure mode: the file exists, opens fine, but is missing one or
  * more required patterns. We don't try to verify the patterns are
  * arranged correctly — that's what code review is for. We just
@@ -44,7 +54,7 @@
  *
  * Exit: 0 clean, 1 missing patterns.
  *
- * See: docs/internal/hidden-risk-traps.md §22, §24, §26
+ * See: docs/internal/hidden-risk-traps.md §13, §22, §24, §26
  */
 
 "use strict";
@@ -130,6 +140,38 @@ const CHECKS = [
       },
     ],
     fixHint: "see line 124 (withLock at top of bootstrapLocked) + 448 (chainlesschain.tmp) + 477 (renameTo) + 771-781 (companion object holding processBootstrapMutex)",
+  },
+  {
+    trap: "#13",
+    title: "Desktop release ASAR surgery (B4) — walker-dropped package injection",
+    file: "desktop-app-vue/scripts/asar-surgery.js",
+    patterns: [
+      {
+        re: /\bWALKER_DROPPED_PKGS\s*=\s*\[/,
+        why: "must declare the package allow-list as a top-level constant — the list of nested-only requires electron-builder's walker drops",
+      },
+      {
+        re: /asar\.extractAll\s*\(/,
+        why: "must extract the packed asar into a staging dir so we can mutate node_modules/",
+      },
+      {
+        re: /asar\.createPackageWithOptions\s*\(/,
+        why: "must repack the staged contents back into app.asar (electron-builder ran this once already; we run again with corrected node_modules)",
+      },
+      {
+        re: /for\s*\([^)]*\bof\s+WALKER_DROPPED_PKGS\b/,
+        why: "must iterate the package list to do the injection (and again for verification) — the surgery is exactly 'foreach package, copy into top-level'",
+      },
+      {
+        re: /verification|missing\.push|verifyAsar|verification\s+passed/,
+        why: "must run a post-repack verification gate — proves the new asar actually contains the injected packages, not just that the script ran without throwing",
+      },
+      {
+        re: /module\.exports|exports\.WALKER_DROPPED_PKGS|exports\.runSurgery/,
+        why: "must export entry points (runSurgery and/or the package list) so electron-after-pack.js can call in",
+      },
+    ],
+    fixHint: "see lines 59 (WALKER_DROPPED_PKGS) + 170 (extractAll) + 188 (per-pkg inject loop) + 233 (createPackageWithOptions) + 247-261 (post-repack verification gate) + 286 (module exports)",
   },
 ];
 

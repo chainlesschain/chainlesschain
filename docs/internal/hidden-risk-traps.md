@@ -17,7 +17,7 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**16 / 23**（#6, #7, #10, #12, #15, #16, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28）
+当前关闭率：**17 / 23**（#6, #7, #10, #12, #13, #15, #16, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
@@ -28,7 +28,7 @@
 | 🛡️ 10 | lint-staged untracked sweep | worktree 含 `??` 状态文件 commit；改 CHANGELOG/README/package.json。**自动化已 land** `.husky/pre-commit` step 0.7 untracked 预警 + step 1.5 post-lint-staged sweep-victim 检测 (本地 advisory，配合 step 0 工作树快照) | `feedback_lint_staged_sweep_unstaged_files.md` |
 | 11 | E2E web-shell opt-out 失效 | 写 / 维护针对 V5 baseline 的 E2E 测试；预写 app-config.json | `e2e_helper_web_shell_opt_out_trap.md` |
 | 🛡️ 12 | Node 23 native-dep prebuild gap | `node -v` 显示 odd-numbered 版本；`npm install` 后启动 MODULE_NOT_FOUND；CI runner image 升级。**Resolved 2026-05-26**：bs3mc ABI v131 已 ship，`engines.node` 放宽回 `>=22.12.0`；`upstream-watch.yml` 每周 Sunday 04:00 UTC 守门，从 green 转 red 时考虑回 pin。 | `node_23_native_dep_trap.md` |
-| 13 | Desktop release npm workspace hoisting | `desktop-app-vue` 加新 dep；release 跑得通 dev 跑得通但用户装完启动崩 | `desktop_release_npm_workspace_hoisting.md` |
+| 🛡️ 13 | Desktop release npm workspace hoisting | `desktop-app-vue` 加新 dep；release 跑得通 dev 跑得通但用户装完启动崩。**自动化已 land** `scripts/audit-trap-fix-invariants.js` + `trap-fix-invariants-audit.yml` (PR mandatory，守 asar-surgery.js 的 WALKER_DROPPED_PKGS + extractAll + createPackageWithOptions + per-pkg inject loop + verification gate + module exports 6 个 building blocks)。B4 surgery 自身用 `WALKER_DROPPED_PKGS` allow-list；加新 dep 触发 walker drop 时手动 append 到该列表。 | `desktop_release_npm_workspace_hoisting.md` |
 | 14 | Android in-app update 5 traps | 改 `UpdateChecker.kt`；改 `release.yml` Android 段；改 keystore；用户报"装不上新版" | `feedback_android_update_loop_immutable_apk.md` |
 | 🛡️ 15 | better-sqlite3 Number→TEXT `"1.0"` trap | 写 SQLite TEXT 列；JS Number 绑定；`WHERE col = '1'` silent miss。**自动化已 land** `scripts/audit-sqlite-number-text-bind.js` 静态扫 + `sqlite-number-text-bind-audit.yml` (PR advisory，检 Number/parseInt/Math.round/unary-plus 绑到 INSERT/UPDATE/REPLACE 的 .run/.get/.all/.iterate 及 prepare(SQL).run() 链式) | `better_sqlite3_text_number_trap.md` |
 | 🛡️ 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope。**已修** 2026-05-29 commit `a71a83b4d`：`.husky/commit-msg` regex `[a-z-]+` → `[a-z0-9-]+`；caps 仍拒。 | `feedback_commit_msg_hook_scope_regex.md` |
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 15, 16, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 13, 15, 16, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
