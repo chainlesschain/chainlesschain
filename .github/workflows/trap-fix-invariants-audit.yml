@@ -7,6 +7,8 @@ name: Trap-Fix Invariants Audit (PR mandatory)
 #
 # Currently covered:
 #   #22 — android-app/.../MediaPipeLlmEngine.kt prompt-length pre-check
+#   #24 — android-app/.../LocalFilesystemBootstrapper.kt companion Mutex
+#         + tmp+rename atomicity
 #   #26 — desktop-app-vue/src/main/index.js GPU crash recovery flow
 #
 # Mandatory because the fix-in-place is the trap's mitigation; losing
@@ -19,6 +21,7 @@ on:
   pull_request:
     paths:
       - 'android-app/app/src/main/java/com/chainlesschain/android/pdh/llm/MediaPipeLlmEngine.kt'
+      - 'android-app/feature-local-terminal/src/main/java/com/chainlesschain/android/feature/localterminal/LocalFilesystemBootstrapper.kt'
       - 'desktop-app-vue/src/main/index.js'
       - 'scripts/audit-trap-fix-invariants.js'
       - '.github/workflows/trap-fix-invariants-audit.yml'

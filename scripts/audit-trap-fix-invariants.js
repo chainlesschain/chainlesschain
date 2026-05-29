@@ -24,6 +24,15 @@
  *        (≤2018) hit a Chromium 130+ fail-fast at GPU init that
  *        looks like "installer crashes" from the user's POV.
  *
+ *   #24  android-app/.../LocalFilesystemBootstrapper.kt
+ *        — must keep the companion-object Mutex + .tmp+rename atomicity
+ *        pattern. A per-instance Mutex on a @Singleton-injected
+ *        Bootstrapper would race when multiple Hub*ViewModels fire
+ *        bootstrap() concurrently (real-device 14ms-apart traces).
+ *        The fix promotes the Mutex to companion-level (process-wide
+ *        singleton) and writes new files via tmp + renameTo (atomic
+ *        on POSIX rename(2)). Losing either pattern reverts the race.
+ *
  * Failure mode: the file exists, opens fine, but is missing one or
  * more required patterns. We don't try to verify the patterns are
  * arranged correctly — that's what code review is for. We just
@@ -35,7 +44,7 @@
  *
  * Exit: 0 clean, 1 missing patterns.
  *
- * See: docs/internal/hidden-risk-traps.md §22, §26
+ * See: docs/internal/hidden-risk-traps.md §22, §24, §26
  */
 
 "use strict";
@@ -93,6 +102,34 @@ const CHECKS = [
       },
     ],
     fixHint: "see the 'Legacy-GPU crash recovery (v5.0.3.95+)' block — lines 170-225 ish",
+  },
+  {
+    trap: "#24",
+    title: "Bootstrap companion-Mutex + tmp+rename atomicity",
+    file: "android-app/feature-local-terminal/src/main/java/com/chainlesschain/android/feature/localterminal/LocalFilesystemBootstrapper.kt",
+    patterns: [
+      {
+        re: /companion\s+object\b/,
+        why: "Mutex must live in companion object (process-singleton); per-instance Mutex on @Singleton races (real-device traces showed 14ms-apart concurrent enters)",
+      },
+      {
+        re: /\bMutex\s*\(\s*\)/,
+        why: "must instantiate Mutex() — the lock primitive",
+      },
+      {
+        re: /\.withLock\s*\{/,
+        why: "must use withLock to actually serialize the bootstrap critical section",
+      },
+      {
+        re: /\.tmp\b|"[^"]*\.tmp"/,
+        why: "must write new files via a .tmp filename first (half-step of the atomic-rename pattern)",
+      },
+      {
+        re: /\.renameTo\s*\(|Files\.move|atomicMove/,
+        why: "must rename the .tmp to the final name atomically — POSIX rename(2) guarantees readers never see a half-written file",
+      },
+    ],
+    fixHint: "see line 124 (withLock at top of bootstrapLocked) + 448 (chainlesschain.tmp) + 477 (renameTo) + 771-781 (companion object holding processBootstrapMutex)",
   },
 ];
 
