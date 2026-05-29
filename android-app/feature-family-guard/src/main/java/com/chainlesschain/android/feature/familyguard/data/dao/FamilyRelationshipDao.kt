@@ -34,9 +34,34 @@ interface FamilyRelationshipDao {
     @Query("SELECT COUNT(*) > 0 FROM family_relationship WHERE friend_did = :friendDid AND status = 'active'")
     suspend fun isActiveFamily(friendDid: String): Boolean
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(entity: FamilyRelationshipEntity): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: FamilyRelationshipEntity): Long
 
     @Query("UPDATE family_relationship SET status = :newStatus, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateStatus(id: Long, newStatus: String, updatedAt: Long): Int
+
+    /** FAMILY-12: 改 permissions JSON 但不动 status / cooldown 等其他字段。 */
+    @Query(
+        "UPDATE family_relationship " +
+            "SET permissions = :permissionsJson, updated_at = :updatedAt " +
+            "WHERE id = :id",
+    )
+    suspend fun updatePermissions(id: Long, permissionsJson: String, updatedAt: Long): Int
+
+    @Query(
+        "UPDATE family_relationship " +
+            "SET emergency_contacts = :emergencyContactsJson, updated_at = :updatedAt " +
+            "WHERE id = :id",
+    )
+    suspend fun updateEmergencyContacts(
+        id: Long,
+        emergencyContactsJson: String?,
+        updatedAt: Long,
+    ): Int
+
+    @Query("SELECT * FROM family_relationship WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): FamilyRelationshipEntity?
 }
