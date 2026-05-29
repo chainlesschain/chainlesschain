@@ -46,6 +46,31 @@ if [ -n "$GENERATED_DOC_HITS" ]; then
   exit 1
 fi
 
+# 0.7 lint-staged sweep race 预警（trap #10）
+# lint-staged 的 glob 在 worktree 含 untracked 文件时会 sweep 所有匹配文件，
+# 包括对方 session 未 stage 的改动。配合 --no-stash 可能 silent 改写它们。
+# 这里仅 warn 不 block — 用户/对端 session 可能就是想这样。
+# 同时记下"非 staged 已 tracked-modified"文件的 SHA-256，供 post 步骤比对。
+UNTRACKED_LIST=$(git status --porcelain | awk '/^\?\?/ {print $2}')
+UNTRACKED_COUNT=$(echo -n "$UNTRACKED_LIST" | grep -c '^' 2>/dev/null || true)
+UNSTAGED_TRACKED=$(git diff --name-only)
+if [ -n "$UNTRACKED_LIST" ] || [ -n "$UNSTAGED_TRACKED" ]; then
+  echo ""
+  echo "⚠️  Worktree 不干净 (trap #10 lint-staged sweep)："
+  [ -n "$UNTRACKED_LIST" ] && echo "    untracked (??): $UNTRACKED_COUNT 个 — lint-staged glob 会 sweep 进来"
+  [ -n "$UNSTAGED_TRACKED" ] && echo "    unstaged tracked (.M/.D): 可能被 prettier/eslint silent 改格式"
+  echo "    若另一 session 正改这些文件 → race 风险。建议 ctrl-c 先 git status 看清。"
+  echo "    防御已自动：步骤 0 工作树快照（恢复见日志）"
+fi
+# 取一份 unstaged-tracked 文件的内容快照供 post 步骤 diff
+PRE_LS_SNAP=""
+if [ -n "$UNSTAGED_TRACKED" ]; then
+  PRE_LS_SNAP=$(mktemp)
+  while IFS= read -r f; do
+    [ -f "$f" ] && printf '%s\t%s\n' "$(sha256sum "$f" 2>/dev/null | awk '{print $1}')" "$f"
+  done <<< "$UNSTAGED_TRACKED" > "$PRE_LS_SNAP"
+fi
+
 # 1. 运行 lint-staged（ESLint + Prettier，仅针对暂存文件）
 echo "📝 [1/2] 运行 ESLint 和代码格式化（仅暂存文件）..."
 npx lint-staged --no-stash
@@ -54,10 +79,35 @@ if [ $? -ne 0 ]; then
   echo ""
   echo "❌ ESLint 或格式化失败！请修复后重试。"
   echo "   跳过验证: git commit --no-verify"
+  [ -n "$PRE_LS_SNAP" ] && rm -f "$PRE_LS_SNAP"
   exit 1
 fi
 
 echo "✅ ESLint 和代码格式化通过"
+
+# 1.5 post-lint-staged sweep 受害者检测（trap #10）
+# lint-staged 跑完后，比对 unstaged-tracked 文件 SHA。若变了 = lint-staged
+# 改了用户没 stage 的文件 → 对方 session 的改动被 silent 改格式。
+if [ -n "$PRE_LS_SNAP" ] && [ -f "$PRE_LS_SNAP" ]; then
+  SWEEP_VICTIMS=""
+  while IFS=$'\t' read -r old_sha f; do
+    [ -z "$f" ] && continue
+    [ ! -f "$f" ] && continue
+    new_sha=$(sha256sum "$f" 2>/dev/null | awk '{print $1}')
+    if [ "$old_sha" != "$new_sha" ]; then
+      SWEEP_VICTIMS="${SWEEP_VICTIMS}    $f\n"
+    fi
+  done < "$PRE_LS_SNAP"
+  rm -f "$PRE_LS_SNAP"
+  if [ -n "$SWEEP_VICTIMS" ]; then
+    echo ""
+    echo "⚠️  lint-staged 改写了未 staged 的 tracked 文件 (trap #10 sweep 命中)："
+    printf "$SWEEP_VICTIMS"
+    echo "    这些改动不在你本次 commit 里，但工作树已变。"
+    echo "    若你和对方 session 都在改，先核对 git diff 再继续。"
+    echo "    恢复对方改动：tail .git/last-precommit-snapshots.log → git stash apply <sha>"
+  fi
+fi
 echo ""
 
 # 2. 运行 TypeScript 类型检查（仅暂存的 .ts/.vue 文件变更时）

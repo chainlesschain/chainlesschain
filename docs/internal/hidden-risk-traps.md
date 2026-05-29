@@ -17,20 +17,20 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**4 / 23**（#19, #25, #27, #28）
+当前关闭率：**7 / 23**（#6, #10, #15, #19, #25, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
-| 6 | 文档同步陷阱 | 编辑 `docs-site/docs/design/**` 或 `docs-site-design/docs/**`；加新中文-named design doc | `docs_site_sync_unmapped_fallthrough.md` |
+| 🛡️ 6 | 文档同步陷阱 | 编辑 `docs-site/docs/design/**` 或 `docs-site-design/docs/**`；加新中文-named design doc。**自动化已 land** `.husky/pre-commit` step 0.5 (本地 mandatory) + `doc-sync-generated-copy-gate.yml` (PR mandatory) + `doc-sync-audit.yml` (PR advisory, 检 CJK 映射) | `docs_site_sync_unmapped_fallthrough.md` |
 | 7 | npm 发版漏发 | 改 `packages/*/{lib,src}`；加新 `packages/*` 包；发版前 | `npm_publish_audit_and_dep_chain.md` |
 | 8 | CI 假绿 mask | 改 `.github/workflows/*.yml`；大发版前；任何"明明应该失败但绿了"事件后 | `feedback_ci_false_green_audit_checklist.md` |
 | 9 | 并行 session git race | 多 session 同时活跃；`git add .` / `git commit -a`；rebase / reset / autostash | `feedback_parallel_session_git_race.md` |
-| 10 | lint-staged untracked sweep | worktree 含 `??` 状态文件 commit；改 CHANGELOG/README/package.json | `feedback_lint_staged_sweep_unstaged_files.md` |
+| 🛡️ 10 | lint-staged untracked sweep | worktree 含 `??` 状态文件 commit；改 CHANGELOG/README/package.json。**自动化已 land** `.husky/pre-commit` step 0.7 untracked 预警 + step 1.5 post-lint-staged sweep-victim 检测 (本地 advisory，配合 step 0 工作树快照) | `feedback_lint_staged_sweep_unstaged_files.md` |
 | 11 | E2E web-shell opt-out 失效 | 写 / 维护针对 V5 baseline 的 E2E 测试；预写 app-config.json | `e2e_helper_web_shell_opt_out_trap.md` |
 | 12 | Node 23 native-dep prebuild gap | `node -v` 显示 odd-numbered 版本；`npm install` 后启动 MODULE_NOT_FOUND；CI runner image 升级 | `node_23_native_dep_trap.md` |
 | 13 | Desktop release npm workspace hoisting | `desktop-app-vue` 加新 dep；release 跑得通 dev 跑得通但用户装完启动崩 | `desktop_release_npm_workspace_hoisting.md` |
 | 14 | Android in-app update 5 traps | 改 `UpdateChecker.kt`；改 `release.yml` Android 段；改 keystore；用户报"装不上新版" | `feedback_android_update_loop_immutable_apk.md` |
-| 15 | better-sqlite3 Number→TEXT `"1.0"` trap | 写 SQLite TEXT 列；JS Number 绑定；`WHERE col = '1'` silent miss | `better_sqlite3_text_number_trap.md` |
+| 🛡️ 15 | better-sqlite3 Number→TEXT `"1.0"` trap | 写 SQLite TEXT 列；JS Number 绑定；`WHERE col = '1'` silent miss。**自动化已 land** `scripts/audit-sqlite-number-text-bind.js` 静态扫 + `sqlite-number-text-bind-audit.yml` (PR advisory，检 Number/parseInt/Math.round/unary-plus 绑到 INSERT/UPDATE/REPLACE 的 .run/.get/.all/.iterate 及 prepare(SQL).run() 链式) | `better_sqlite3_text_number_trap.md` |
 | 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope | `feedback_commit_msg_hook_scope_regex.md` |
 | 17 | Android remote file skill 接通 6 雷 | 加新 `RemoteCommandClient.invoke` 类 Android skill；接 Plan C signaling 路径 | `android_remote_file_skill_traps.md` |
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI gate 已 land : 19, 25, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 10, 15, 19, 25, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
