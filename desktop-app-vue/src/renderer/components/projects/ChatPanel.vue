@@ -247,6 +247,7 @@ import {
 import { useMemoryLeakGuard } from "@/composables/useMemoryLeakGuard";
 import { useTaskPlanning } from "@/composables/useTaskPlanning";
 import { useChatExecution } from "@/composables/useChatExecution";
+import { useConversationPersistence } from "@/composables/useConversationPersistence";
 
 // 配置 marked 选项
 marked.setOptions({
@@ -854,186 +855,17 @@ const updateThinkingState = (updates) => {
   Object.assign(thinkingState, updates);
 };
 
-/**
- * 创建对话
- */
-const createConversation = async () => {
-  try {
-    // 检查API是否可用
-    if (!window.electronAPI?.conversation) {
-      logger.warn("[ChatPanel] 对话API未实现，跳过创建");
-      return;
-    }
+// ============ 对话持久化（已抽取到 useConversationPersistence composable） ============
 
-    const conversationData = {
-      id: `conv_${Date.now()}`, // 添加ID字段
-      title:
-        contextMode.value === "project"
-          ? "项目对话"
-          : contextMode.value === "file"
-            ? "文件对话"
-            : "新对话",
-      project_id: contextMode.value === "project" ? props.projectId : null,
-      context_type: contextMode.value,
-      context_data:
-        contextMode.value === "file" && props.currentFile
-          ? {
-              file_id: props.currentFile.id,
-              file_name: props.currentFile.file_name,
-            }
-          : null,
-    };
-
-    const result =
-      await window.electronAPI.conversation.create(conversationData);
-
-    // 提取对话数据（API返回 {success: true, data: {...}} 格式）
-    if (result && result.success && result.data) {
-      currentConversation.value = result.data;
-      emit("conversationLoaded", currentConversation.value);
-    } else {
-      throw new Error(result?.error || "创建对话失败");
-    }
-  } catch (error) {
-    logger.error("创建对话失败:", error);
-    antMessage.error("创建对话失败");
-  }
-};
-
-/**
- * 加载对话
- */
-const loadConversation = async () => {
-  try {
-    // 检查对话API是否可用
-    if (!window.electronAPI?.conversation) {
-      logger.warn("[ChatPanel] 对话API未实现，跳过加载");
-      messages.value = [];
-      currentConversation.value = null;
-      return;
-    }
-
-    if (contextMode.value === "project") {
-      // 尝试加载项目对话
-      const result = await window.electronAPI.conversation.getByProject(
-        props.projectId,
-      );
-
-      // 提取对话数据（API返回 {success: true, data: [...]} 格式）
-      let conversation = null;
-      if (
-        result &&
-        result.success &&
-        Array.isArray(result.data) &&
-        result.data.length > 0
-      ) {
-        conversation = result.data[0]; // 取第一个对话
-      } else if (result && !result.success) {
-        logger.warn("[ChatPanel] 获取项目对话失败:", result.error);
-      }
-
-      if (conversation) {
-        currentConversation.value = conversation;
-
-        // 🔥 加载消息（使用分页，只加载最近的消息）
-        const loadedMessages =
-          await window.electronAPI.conversation.getMessages(conversation.id, {
-            limit: MAX_MESSAGES_IN_MEMORY, // 只加载最近的 N 条消息
-            offset: 0,
-          });
-
-        // 提取消息数组（API返回 {success: true, data: [...]} 格式）
-        let rawMessages = [];
-        if (
-          loadedMessages &&
-          loadedMessages.success &&
-          Array.isArray(loadedMessages.data)
-        ) {
-          rawMessages = loadedMessages.data;
-        } else if (Array.isArray(loadedMessages)) {
-          // 兼容直接返回数组的情况
-          rawMessages = loadedMessages;
-        }
-
-        // 🔄 恢复特殊类型的消息（INTERVIEW、TASK_PLAN）
-        messages.value = rawMessages.map((msg) => {
-          // 🔥 反序列化 metadata（如果是字符串）
-          let metadata = msg.metadata;
-          if (typeof metadata === "string") {
-            try {
-              metadata = JSON.parse(metadata);
-            } catch (e) {
-              logger.error("[ChatPanel] metadata 解析失败:", e, metadata);
-            }
-          }
-
-          // 如果有message_type字段，使用它来恢复消息类型
-          if (msg.message_type) {
-            return {
-              ...msg,
-              type: msg.message_type, // 将message_type映射到type字段
-              metadata: metadata,
-            };
-          }
-          // 向后兼容：没有message_type的旧消息
-          return {
-            ...msg,
-            metadata: metadata,
-          };
-        });
-
-        // 🔥 数据修复：验证并修复采访消息的 currentIndex
-        messages.value.forEach((msg, index) => {
-          if (msg.type === MessageType.INTERVIEW && msg.metadata) {
-            const currentIdx = msg.metadata.currentIndex || 0;
-            const totalQuestions = msg.metadata.questions?.length || 0;
-
-            logger.info("[ChatPanel] 🔍 检查采访消息", {
-              messageId: msg.id,
-              currentIndex: currentIdx,
-              totalQuestions: totalQuestions,
-              metadata类型: typeof msg.metadata,
-              metadata: msg.metadata,
-            });
-
-            if (currentIdx > totalQuestions) {
-              logger.warn("[ChatPanel] 🔧 修复损坏的采访消息数据", {
-                messageId: msg.id,
-                原currentIndex: currentIdx,
-                问题总数: totalQuestions,
-                修复为: totalQuestions,
-              });
-              msg.metadata.currentIndex = totalQuestions;
-            }
-          }
-        });
-
-        logger.info(
-          "[ChatPanel] 💾 从数据库恢复了",
-          messages.value.length,
-          "条消息",
-        );
-
-        emit("conversationLoaded", conversation);
-
-        // 滚动到底部
-        await nextTick();
-        scrollToBottom();
-      } else {
-        // 没有对话，清空消息
-        messages.value = [];
-        currentConversation.value = null;
-      }
-    } else {
-      // 非项目模式，清空对话
-      messages.value = [];
-      currentConversation.value = null;
-    }
-  } catch (error) {
-    logger.error("加载对话失败:", error);
-    // 不显示错误消息，因为API可能未实现
-  }
-};
+const { createConversation, loadConversation } = useConversationPersistence({
+  messages,
+  currentConversation,
+  contextMode,
+  props,
+  maxMessagesInMemory: MAX_MESSAGES_IN_MEMORY,
+  scrollToBottom,
+  emit,
+});
 
 // 监听上下文模式变化
 watch(contextMode, () => {
