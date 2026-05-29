@@ -104,6 +104,10 @@ class DouyinApiClient @Inject constructor() {
      * 表示失败（cookie 过期 / 限流）。
      */
     suspend fun fetchProfile(cookie: String): ProfileInfo? = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext null
+        }
         val url = baseUrl.newBuilder()
             .addPathSegments("aweme/v1/passport/account/info/v2/")
             .addQueryParameter("aid", "2906")
@@ -196,6 +200,10 @@ class DouyinApiClient @Inject constructor() {
      */
     suspend fun fetchHistory(cookie: String, limit: Int = 50): List<HistoryItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("aweme/v1/web/history/read/")
                 .addQueryParameter("aid", "6383")
@@ -226,6 +234,10 @@ class DouyinApiClient @Inject constructor() {
      */
     suspend fun fetchFavourites(cookie: String, limit: Int = 100): List<FavouriteItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("aweme/v1/web/aweme/favorite/")
                 .addQueryParameter("aid", "6383")
@@ -257,6 +269,10 @@ class DouyinApiClient @Inject constructor() {
      */
     suspend fun fetchLikes(cookie: String, limit: Int = 100): List<LikeItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("aweme/v1/web/aweme/post/like/")
                 .addQueryParameter("aid", "6383")

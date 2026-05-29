@@ -383,6 +383,10 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchHistory(cookie: String, limit: Int = 200): List<HistoryItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4 — fail-fast on missing creds
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 // Real-device 2026-05-22: /x/v2/history/cursor returns 404
                 // (HTML page, not JSON) — Bilibili deprecated the v2 path in
@@ -422,6 +426,10 @@ class BilibiliApiClient @Inject constructor() {
      */
     suspend fun fetchFavourites(cookie: String, uid: Long, perFolderLimit: Int = 50): List<FavouriteItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawFoldersUrl = baseUrl.newBuilder()
                 .addPathSegments("x/v3/fav/folder/created/list-all")
                 .addQueryParameter("up_mid", uid.toString())
@@ -500,6 +508,10 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchDynamics(cookie: String, limit: Int = 50): List<DynamicItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             // Real-device 2026-05-22: Bilibili dynamics returned 0 items
             // silently (code=0 + empty list, no WARN). Adding `type=all` +
             // `platform=web` + `timezone_offset` to match what the web client
@@ -541,6 +553,10 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("x/relation/followings")
                 .addQueryParameter("vmid", uid.toString())

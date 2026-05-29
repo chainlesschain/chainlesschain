@@ -115,6 +115,10 @@ class XhsApiClient @Inject constructor() {
      * 因为 me 端点只验 cookie 完整性。返 null = cookie 失效或登录未完成。
      */
     suspend fun fetchMe(cookie: String): MeResult? = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext null
+        }
         val url = baseUrl.newBuilder().addPathSegments("api/sns/web/v1/user/me").build()
         val obj = doGetJson(url, cookie, requireSign = false) ?: return@withContext null
         // doGetJson already gated on success!=false / code!=0 (sets lastError).
@@ -173,6 +177,10 @@ class XhsApiClient @Inject constructor() {
      */
     suspend fun fetchNotes(cookie: String, a1: String, userId: String, limit: Int = 30): List<NoteItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/sns/web/v2/user_posted")
                 .addQueryParameter("user_id", userId)
@@ -220,6 +228,10 @@ class XhsApiClient @Inject constructor() {
      */
     suspend fun fetchLiked(cookie: String, a1: String, limit: Int = 30): List<LikedItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/sns/web/v1/note/liked")
                 .addQueryParameter("num", "30")
@@ -258,6 +270,10 @@ class XhsApiClient @Inject constructor() {
      */
     suspend fun fetchFollows(cookie: String, a1: String, userId: String, limit: Int = 100): List<FollowItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/sns/web/v1/user/$userId/followings")
                 .addQueryParameter("page", "1")

@@ -172,6 +172,10 @@ class ToutiaoApiClient @Inject constructor() {
      * 非 0 表示失败（cookie 过期 / 限流）。
      */
     suspend fun fetchProfile(cookie: String): ProfileInfo? = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext null
+        }
         val url = baseUrl.newBuilder()
             .addPathSegments("passport/account/info/v2/")
             .addQueryParameter("aid", "24")
@@ -258,6 +262,10 @@ class ToutiaoApiClient @Inject constructor() {
      */
     suspend fun fetchFeed(cookie: String, limit: Int = 50): List<FeedItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("api/news/feed/v90/")
                 .addQueryParameter("category", "__all__")
@@ -282,6 +290,10 @@ class ToutiaoApiClient @Inject constructor() {
      */
     suspend fun fetchCollection(cookie: String, limit: Int = 200): List<CollectionItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("article/v2/tab_comments/")
                 .addQueryParameter("aid", "24")
@@ -322,6 +334,10 @@ class ToutiaoApiClient @Inject constructor() {
      */
     suspend fun fetchSearchHistory(cookie: String, limit: Int = 100): List<SearchItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("api/search/content/")
                 .addQueryParameter("aid", "24")

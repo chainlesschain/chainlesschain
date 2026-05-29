@@ -91,6 +91,10 @@ class Kyfw12306ApiClient @Inject constructor() {
      *  Note: `status:true` 只表示请求被服务端处理 (不是 4xx)，登录态由
      *  data.is_login 字段判定 — `Y` = 登录 / `N` = 未登录。 */
     suspend fun checkLogin(cookie: String): Boolean = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext false
+        }
         val url = baseUrl.newBuilder()
             .addPathSegments("otn/login/conf")
             .build()
@@ -117,6 +121,10 @@ class Kyfw12306ApiClient @Inject constructor() {
         endDateMs: Long = System.currentTimeMillis(),
         maxPages: Int = 4,
     ): List<TicketRecord> = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext emptyList()
+        }
         val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("Asia/Shanghai")
         }
@@ -155,6 +163,10 @@ class Kyfw12306ApiClient @Inject constructor() {
 
     /** Pull pending (unpaid / unticketed) orders. Usually empty for normal users. */
     suspend fun fetchPendingOrders(cookie: String): List<TicketRecord> = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext emptyList()
+        }
         val url = baseUrl.newBuilder()
             .addPathSegments("otn/queryOrder/queryMyOrderNoComplete")
             .build()

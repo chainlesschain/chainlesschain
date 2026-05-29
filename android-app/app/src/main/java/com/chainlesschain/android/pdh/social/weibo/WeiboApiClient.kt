@@ -83,6 +83,10 @@ class WeiboApiClient @Inject constructor() {
      * 与 Bilibili 不同：Weibo cookie 中无可靠 UID 字段，必须发一次 HTTP 调用。
      */
     suspend fun fetchUid(cookie: String): Long? = withContext(Dispatchers.IO) {
+        if (cookie.isBlank()) {  // audit F4
+            setLastError(-8, "missing cookie")
+            return@withContext null
+        }
         val url = baseUrl.newBuilder().addPathSegments("api/config").build()
         val obj = doGetJson(url, cookie) ?: return@withContext null
         val data = obj.optJSONObject("data") ?: return@withContext null
@@ -95,6 +99,10 @@ class WeiboApiClient @Inject constructor() {
     /** 用户自己发布的微博 (timeline)。 */
     suspend fun fetchPosts(cookie: String, uid: Long, limit: Int = 100): List<PostItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val containerid = "107603$uid"
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/container/getIndex")
@@ -155,6 +163,10 @@ class WeiboApiClient @Inject constructor() {
     /** 关注列表。 */
     suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val url = baseUrl.newBuilder()
                 .addPathSegments("api/friendships/friends")
                 .addQueryParameter("uid", uid.toString())

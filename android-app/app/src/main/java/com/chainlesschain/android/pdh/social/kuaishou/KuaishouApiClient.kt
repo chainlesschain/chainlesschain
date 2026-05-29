@@ -225,6 +225,10 @@ class KuaishouApiClient @Inject constructor() {
      */
     suspend fun fetchWatchHistory(cookie: String, limit: Int = 50): List<WatchItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val variables = JSONObject().apply {
                 put("pcursor", "")
                 put("count", limit)
@@ -256,6 +260,10 @@ class KuaishouApiClient @Inject constructor() {
      */
     suspend fun fetchProfilePhotos(cookie: String, userId: String, limit: Int = 100): List<ProfilePhotoItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val variables = JSONObject().apply {
                 put("userId", userId)
                 put("pcursor", "")
@@ -284,6 +292,10 @@ class KuaishouApiClient @Inject constructor() {
      */
     suspend fun fetchSearchHistory(cookie: String, limit: Int = 50): List<SearchItem> =
         withContext(Dispatchers.IO) {
+            if (cookie.isBlank()) {  // audit F4
+                setLastError(-8, "missing cookie")
+                return@withContext emptyList()
+            }
             val variables = JSONObject().apply {
                 put("keyword", "")
                 put("pcursor", "")
