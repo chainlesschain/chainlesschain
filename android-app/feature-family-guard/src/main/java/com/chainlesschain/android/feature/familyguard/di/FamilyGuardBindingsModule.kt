@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.familyguard.di
 
+import com.chainlesschain.android.feature.familyguard.data.permission.FamilyPermissionCheckerImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyFriendRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyGroupRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyMembershipRepositoryImpl
@@ -9,6 +10,7 @@ import com.chainlesschain.android.feature.familyguard.data.repository.RolePrefer
 import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
 import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
 import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
+import com.chainlesschain.android.feature.familyguard.domain.permission.FamilyPermissionChecker
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
@@ -87,4 +89,10 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindInvitePairingService(
         impl: InvitePairingServiceImpl,
     ): InvitePairingService
+
+    @Binds
+    @Singleton
+    abstract fun bindFamilyPermissionChecker(
+        impl: FamilyPermissionCheckerImpl,
+    ): FamilyPermissionChecker
 }
