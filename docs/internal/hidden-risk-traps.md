@@ -17,7 +17,7 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**7 / 23**（#6, #10, #15, #19, #25, #27, #28）
+当前关闭率：**9 / 23**（#6, #10, #15, #16, #19, #20, #25, #27, #28）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
@@ -31,11 +31,11 @@
 | 13 | Desktop release npm workspace hoisting | `desktop-app-vue` 加新 dep；release 跑得通 dev 跑得通但用户装完启动崩 | `desktop_release_npm_workspace_hoisting.md` |
 | 14 | Android in-app update 5 traps | 改 `UpdateChecker.kt`；改 `release.yml` Android 段；改 keystore；用户报"装不上新版" | `feedback_android_update_loop_immutable_apk.md` |
 | 🛡️ 15 | better-sqlite3 Number→TEXT `"1.0"` trap | 写 SQLite TEXT 列；JS Number 绑定；`WHERE col = '1'` silent miss。**自动化已 land** `scripts/audit-sqlite-number-text-bind.js` 静态扫 + `sqlite-number-text-bind-audit.yml` (PR advisory，检 Number/parseInt/Math.round/unary-plus 绑到 INSERT/UPDATE/REPLACE 的 .run/.get/.all/.iterate 及 prepare(SQL).run() 链式) | `better_sqlite3_text_number_trap.md` |
-| 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope | `feedback_commit_msg_hook_scope_regex.md` |
+| 🛡️ 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope。**已修** 2026-05-29 commit `a71a83b4d`：`.husky/commit-msg` regex `[a-z-]+` → `[a-z0-9-]+`；caps 仍拒。 | `feedback_commit_msg_hook_scope_regex.md` |
 | 17 | Android remote file skill 接通 6 雷 | 加新 `RemoteCommandClient.invoke` 类 Android skill；接 Plan C signaling 路径 | `android_remote_file_skill_traps.md` |
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
 | 🛡️ 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前。**自动化已 land** `android-release-precheck.yml` (2026-05-26) | `android_release_r8_minify_hotfix_chain.md` |
-| 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集 | `bilibili_post_onload_cookie_race.md` |
+| 🛡️ 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集。**自动化已 land** `scripts/audit-webview-cookie-race.js` 静态扫 + `webview-cookie-race-audit.yml` (PR advisory，识 postDelayed / Handler.post / delay(N) / LaunchedEffect / lifecycleScope.launch 等 defer 模式) | `bilibili_post_onload_cookie_race.md` |
 | 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符 | `android_cc_bundle_tar_gnu_long_name.md` |
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
 | 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter | `bs3mc_bs3_abi_dual_load_adapter.md` |
@@ -57,7 +57,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 10, 15, 19, 25, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 10, 15, 16, 19, 20, 25, 27, 28
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
