@@ -354,6 +354,8 @@
     <string name="nav_projects">Projects</string>
     <string name="nav_social">Social</string>
     <string name="nav_profile">Profile</string>
+    <!-- FAMILY-06: family-guard bottom tab. See docs/design/AI陪学_v0.1_ticket_tree.md. -->
+    <string name="nav_family_guard">Family</string>
     <string name="nav_unread_notifications">%d unread notifications</string>
 
     <!-- ==================== Common Components ==================== -->

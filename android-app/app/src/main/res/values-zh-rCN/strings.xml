@@ -354,6 +354,8 @@
     <string name="nav_projects">项目</string>
     <string name="nav_social">社交</string>
     <string name="nav_profile">我的</string>
+    <!-- FAMILY-06 -->
+    <string name="nav_family_guard">家庭</string>
     <string name="nav_unread_notifications">%d 条未读通知</string>
 
     <!-- ==================== Common Components ==================== -->

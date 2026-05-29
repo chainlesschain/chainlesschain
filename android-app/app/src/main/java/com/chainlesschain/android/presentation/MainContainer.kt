@@ -7,10 +7,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
+import com.chainlesschain.android.feature.familyguard.presentation.shell.FamilyShellScreen
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
 import com.chainlesschain.android.presentation.components.BottomNavigationBar
 import com.chainlesschain.android.presentation.screens.*
+import kotlinx.coroutines.launch
 import com.chainlesschain.android.update.UpdateViewModel
 
 /**
@@ -89,6 +93,10 @@ fun MainContainer(
         }
     }
 
+    // FAMILY-06: SOS placeholder snackbar; FAMILY-40 接通真触发流程后改回调。
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -96,7 +104,8 @@ fun MainContainer(
                 onTabSelected = { selectedTab = it },
                 socialUnreadCount = notificationState.unreadCount
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -155,7 +164,21 @@ fun MainContainer(
                         onNavigateToP2PChat = onNavigateToP2PChatSessionList
                     )
                 }
-                3 -> key("profile") {
+                // FAMILY-06: 家庭 tab. Index 3 (was profile pre-FAMILY-06).
+                // FamilyShellScreen 自 :feature-family-guard. v0.1: SOS click →
+                // snackbar 占位; FAMILY-40 接通真触发流程 (sos_event upsert + 录音 + broadcast call)。
+                3 -> key("family_guard") {
+                    FamilyShellScreen(
+                        onSosTriggered = {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "SOS 触发流程将在 FAMILY-40 接通; v0.1 仅为占位",
+                                )
+                            }
+                        },
+                    )
+                }
+                4 -> key("profile") {
                     ProfileScreen(
                         onLogout = onLogout,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
