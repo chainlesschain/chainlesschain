@@ -179,9 +179,10 @@ class ToutiaoApiClient @Inject constructor() {
         val statusCode = obj.optInt("status_code", Int.MIN_VALUE)
         if (statusCode == Int.MIN_VALUE) {
             val topKeys = obj.keys().asSequence().toList().joinToString(",")
+            // body=%s dropped — passport JSON has mobile / user_id / screen_name (audit F2)
             Timber.w(
-                "ToutiaoApiClient: passport/info/v2 missing status_code; topKeys=[%s] body=%s",
-                topKeys, obj.toString().take(500),
+                "ToutiaoApiClient: passport/info/v2 missing status_code; topKeys=[%s] bodyLen=%d",
+                topKeys, obj.toString().length,
             )
             setLastError(-5, "passport/info/v2 missing status_code (keys=[$topKeys])")
             return@withContext null
@@ -191,18 +192,20 @@ class ToutiaoApiClient @Inject constructor() {
                 ?: obj.optStringOrNull("message")
                 ?: obj.optStringOrNull("error_description")
                 ?: "status_code=$statusCode"
+            // body=%s dropped — passport PII (audit F2)
             Timber.w(
-                "ToutiaoApiClient: passport/info/v2 status_code=%d msg=%s body=%s",
-                statusCode, msg, obj.toString().take(500),
+                "ToutiaoApiClient: passport/info/v2 status_code=%d msg=%s bodyLen=%d",
+                statusCode, msg, obj.toString().length,
             )
             setLastError(statusCode, msg)
             return@withContext null
         }
         val data = obj.optJSONObject("data")
         if (data == null) {
+            // body=%s dropped — passport PII (audit F2)
             Timber.w(
-                "ToutiaoApiClient: passport/info/v2 status_code=0 but no `data` object; body=%s",
-                obj.toString().take(500),
+                "ToutiaoApiClient: passport/info/v2 status_code=0 but no `data` object; bodyLen=%d",
+                obj.toString().length,
             )
             setLastError(-6, "status_code=0 but no `data` object")
             return@withContext null
@@ -212,9 +215,10 @@ class ToutiaoApiClient @Inject constructor() {
             ?: data.optLong("user_id", 0L).takeIf { it > 0L }?.toString()
         if (rawUid == null) {
             val dataKeys = data.keys().asSequence().toList().joinToString(",")
+            // body=%s dropped — passport PII (audit F2). dataKeys field-names only, safe.
             Timber.w(
-                "ToutiaoApiClient: passport/info/v2 ok but no user_id; dataKeys=[%s] body=%s",
-                dataKeys, obj.toString().take(500),
+                "ToutiaoApiClient: passport/info/v2 ok but no user_id; dataKeys=[%s] bodyLen=%d",
+                dataKeys, obj.toString().length,
             )
             setLastError(
                 -7,
@@ -421,9 +425,10 @@ class ToutiaoApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body=%s dropped — 401/403 redirect HTML may echo Set-Cookie (audit F2)
                     Timber.w(
-                        "ToutiaoApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200),
+                        "ToutiaoApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null

@@ -124,18 +124,20 @@ class XhsApiClient @Inject constructor() {
         if (!success) {
             // Defensive — doGetJson should have caught this. If hit, xhs returned
             // success=false but no code field (shape drift).
+            // body=%s dropped — /user/me response contains nickname / user_id (audit F2)
             Timber.w(
-                "XhsApiClient: /user/me success=false but no code; body=%s",
-                obj.toString().take(500),
+                "XhsApiClient: /user/me success=false but no code; bodyLen=%d",
+                obj.toString().length,
             )
             setLastError(-5, "/user/me success=false (no code field)")
             return@withContext null
         }
         val data = obj.optJSONObject("data")
         if (data == null) {
+            // body=%s dropped — /user/me PII (audit F2)
             Timber.w(
-                "XhsApiClient: /user/me ok but no `data` object; body=%s",
-                obj.toString().take(500),
+                "XhsApiClient: /user/me ok but no `data` object; bodyLen=%d",
+                obj.toString().length,
             )
             setLastError(-6, "/user/me ok but no `data` object")
             return@withContext null
@@ -143,9 +145,10 @@ class XhsApiClient @Inject constructor() {
         val uidStr = data.optString("user_id").takeIf { it.isNotBlank() }
         if (uidStr == null) {
             val dataKeys = data.keys().asSequence().toList().joinToString(",")
+            // body=%s dropped — /user/me PII (audit F2). dataKeys is field-name-only, safe.
             Timber.w(
-                "XhsApiClient: /user/me ok but user_id blank; dataKeys=[%s] body=%s",
-                dataKeys, obj.toString().take(500),
+                "XhsApiClient: /user/me ok but user_id blank; dataKeys=[%s] bodyLen=%d",
+                dataKeys, obj.toString().length,
             )
             setLastError(
                 -7,
@@ -334,9 +337,10 @@ class XhsApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body=%s dropped — 461/406 HTML may echo Set-Cookie (audit F2)
                     Timber.w(
-                        "XhsApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200),
+                        "XhsApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null

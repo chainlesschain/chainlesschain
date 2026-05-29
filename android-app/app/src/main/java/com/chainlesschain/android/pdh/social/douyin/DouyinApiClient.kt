@@ -113,9 +113,11 @@ class DouyinApiClient @Inject constructor() {
         if (statusCode == Int.MIN_VALUE) {
             // No status_code field at all — likely endpoint shape changed.
             val topKeys = obj.keys().asSequence().toList().joinToString(",")
+            // body=%s logging dropped — passport response contains mobile / screen_name
+            // / sec_user_id / avatar_url PII (audit 2026-05-29 §S5 / F2).
             Timber.w(
-                "DouyinApiClient: passport/info/v2 missing status_code; topKeys=[%s] body=%s",
-                topKeys, obj.toString().take(500),
+                "DouyinApiClient: passport/info/v2 missing status_code; topKeys=[%s] bodyLen=%d",
+                topKeys, obj.toString().length,
             )
             setLastError(-5, "passport/info/v2 missing status_code (keys=[$topKeys])")
             return@withContext null
@@ -125,18 +127,20 @@ class DouyinApiClient @Inject constructor() {
                 ?: obj.optStringOrNull("message")
                 ?: obj.optStringOrNull("error_description")
                 ?: "status_code=$statusCode"
+            // body excerpt dropped — passport JSON contains PII (audit F2)
             Timber.w(
-                "DouyinApiClient: passport/info/v2 status_code=%d msg=%s body=%s",
-                statusCode, msg, obj.toString().take(500),
+                "DouyinApiClient: passport/info/v2 status_code=%d msg=%s bodyLen=%d",
+                statusCode, msg, obj.toString().length,
             )
             setLastError(statusCode, msg)
             return@withContext null
         }
         val data = obj.optJSONObject("data")
         if (data == null) {
+            // body excerpt dropped — passport JSON contains PII (audit F2)
             Timber.w(
-                "DouyinApiClient: passport/info/v2 status_code=0 but no `data` object; body=%s",
-                obj.toString().take(500),
+                "DouyinApiClient: passport/info/v2 status_code=0 but no `data` object; bodyLen=%d",
+                obj.toString().length,
             )
             setLastError(-6, "status_code=0 but no `data` object")
             return@withContext null
@@ -148,9 +152,10 @@ class DouyinApiClient @Inject constructor() {
             // passport_csrf_token，passport endpoint 返 ok 但 data 是匿名 shape
             // (只剩 device 字段等)。Surface data 字段名让用户能定位。
             val dataKeys = data.keys().asSequence().toList().joinToString(",")
+            // body excerpt dropped — passport JSON contains PII (audit F2)
             Timber.w(
-                "DouyinApiClient: passport/info/v2 ok but no sec_user_id; dataKeys=[%s] body=%s",
-                dataKeys, obj.toString().take(500),
+                "DouyinApiClient: passport/info/v2 ok but no sec_user_id; dataKeys=[%s] bodyLen=%d",
+                dataKeys, obj.toString().length,
             )
             setLastError(
                 -7,
@@ -315,9 +320,11 @@ class DouyinApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body excerpt dropped — error bodies may echo Set-Cookie /
+                    // cookie fragments (audit F2)
                     Timber.w(
-                        "DouyinApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200),
+                        "DouyinApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null

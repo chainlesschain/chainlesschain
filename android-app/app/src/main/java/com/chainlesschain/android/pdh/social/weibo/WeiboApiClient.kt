@@ -214,9 +214,11 @@ class WeiboApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body=%s dropped — redirect HTML may echo Set-Cookie mirrors
+                    // / CSRF tokens / partial cookie values (audit F2)
                     Timber.w(
-                        "WeiboApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200),
+                        "WeiboApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null

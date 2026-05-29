@@ -171,9 +171,11 @@ class BilibiliApiClient @Inject constructor() {
                     val obj = try {
                         JSONObject(body)
                     } catch (e: Exception) {
+                        // head=%s dropped — anti-bot redirect page could
+                        // contain anti-detection signatures (audit F2)
                         Timber.w(
-                            "BilibiliApiClient: /spi body not JSON (len=%d head=%s)",
-                            body.length, body.take(120),
+                            "BilibiliApiClient: /spi body not JSON (len=%d)",
+                            body.length,
                         )
                         return@withContext null
                     }
@@ -270,9 +272,10 @@ class BilibiliApiClient @Inject constructor() {
                     val obj = try {
                         JSONObject(body)
                     } catch (e: Exception) {
+                        // head=%s dropped (audit F2)
                         Timber.w(
-                            "BilibiliApiClient: /nav body not JSON (len=%d head=%s)",
-                            body.length, body.take(120),
+                            "BilibiliApiClient: /nav body not JSON (len=%d)",
+                            body.length,
                         )
                         return@withContext null
                     }
@@ -615,8 +618,9 @@ class BilibiliApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
-                    Timber.w("BilibiliApiClient: %s → HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200))
+                    // body=%s dropped — error responses may echo uid in error msg (audit F2)
+                    Timber.w("BilibiliApiClient: %s → HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length)
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null
                 }
@@ -624,9 +628,12 @@ class BilibiliApiClient @Inject constructor() {
                 val code = obj.optInt("code", 0)
                 if (code != 0) {
                     val msg = obj.optString("message")
+                    // full-url=%s + body-head=%s dropped — signed URL contains
+                    // w_rid+wts (WBI mixin_key fingerprint), body may echo uid
+                    // in error msg (audit F2)
                     Timber.w(
-                        "BilibiliApiClient: %s → code=%d msg=%s | full-url=%s | body-head=%s",
-                        url.encodedPath, code, msg, url.toString(), body.take(300)
+                        "BilibiliApiClient: %s → code=%d msg=%s bodyLen=%d",
+                        url.encodedPath, code, msg, body.length,
                     )
                     setLastError(code, msg)
                     return null

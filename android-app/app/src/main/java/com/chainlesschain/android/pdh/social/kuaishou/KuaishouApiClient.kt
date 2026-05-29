@@ -162,9 +162,11 @@ class KuaishouApiClient @Inject constructor() {
         val jsonCandidate = decoded.trimStart()
         if (!jsonCandidate.startsWith("{")) {
             setLastError(-9, "kuaishou.web.cp.api_ph 解码后非 JSON (likely base64 — v0.3 加 fallback)")
+            // head=%s dropped — api_ph is the credential blob; even 50 chars
+            // typically leaks the JSON header + user_id field (audit F2)
             Timber.w(
-                "KuaishouApiClient.fetchProfile: api_ph not JSON after URL-decode (length=%d, head=%s)",
-                decoded.length, decoded.take(50),
+                "KuaishouApiClient.fetchProfile: api_ph not JSON after URL-decode (length=%d, head1=%s)",
+                decoded.length, decoded.take(1),
             )
             return@withContext null
         }
@@ -185,9 +187,11 @@ class KuaishouApiClient @Inject constructor() {
                 -7,
                 "api_ph JSON 缺 user_id (keys=[$keys])",
             )
+            // body=%s dropped — api_ph 300-char excerpt leaks nickname / uid /
+            // headurl (audit F2). keys list is field-name only, safe.
             Timber.w(
-                "KuaishouApiClient.fetchProfile: api_ph JSON lacks user_id; keys=[%s] body=%s",
-                keys, jsonCandidate.take(300),
+                "KuaishouApiClient.fetchProfile: api_ph JSON lacks user_id; keys=[%s] bodyLen=%d",
+                keys, jsonCandidate.length,
             )
             return@withContext null
         }
@@ -395,9 +399,10 @@ class KuaishouApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body excerpt dropped — error body may echo cookie / Set-Cookie (audit F2)
                     Timber.w(
-                        "KuaishouApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, rawBody.take(200),
+                        "KuaishouApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, rawBody.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null
@@ -478,9 +483,10 @@ class KuaishouApiClient @Inject constructor() {
                     return null
                 }
                 if (!resp.isSuccessful) {
+                    // body excerpt dropped — error body may echo cookie / Set-Cookie (audit F2)
                     Timber.w(
-                        "KuaishouApiClient: %s -> HTTP %d body=%s",
-                        url.encodedPath, resp.code, body.take(200),
+                        "KuaishouApiClient: %s -> HTTP %d bodyLen=%d",
+                        url.encodedPath, resp.code, body.length,
                     )
                     setLastError(resp.code, "HTTP ${resp.code}")
                     return null

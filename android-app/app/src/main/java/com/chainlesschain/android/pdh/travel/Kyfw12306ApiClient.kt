@@ -278,7 +278,10 @@ class Kyfw12306ApiClient @Inject constructor() {
                     val msg = messages?.let {
                         (0 until it.length()).joinToString(",") { i -> it.optString(i) }
                     } ?: "status=false"
-                    Timber.w("Kyfw12306ApiClient: %s -> status=false msg=%s", url.encodedPath, msg)
+                    // msg dropped from Timber log — server messages may echo
+                    // user identifiers ("用户XXX订单查询失败" pattern). Still
+                    // surfaced via setLastError → UI (intended). (audit F2)
+                    Timber.w("Kyfw12306ApiClient: %s -> status=false msgLen=%d", url.encodedPath, msg.length)
                     setLastError(-2, msg)
                     return null
                 }
