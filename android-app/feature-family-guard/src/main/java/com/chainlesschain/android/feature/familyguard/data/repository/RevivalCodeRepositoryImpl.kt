@@ -61,7 +61,9 @@ class RevivalCodeRepositoryImpl @Inject constructor(
         if (match != null) {
             if (match.consumedAt != null) return RevivalCodeVerification.AlreadyConsumed
             revivalCodeDao.markConsumed(id = match.id, consumedAt = now)
-            return RevivalCodeVerification.Success
+            return RevivalCodeVerification.Success(
+                familyRelationshipId = match.familyRelationshipId,
+            )
         }
 
         // 错码: 在每一个 active code 上记录失败 (因为攻击者不知是哪个 code 上错的)

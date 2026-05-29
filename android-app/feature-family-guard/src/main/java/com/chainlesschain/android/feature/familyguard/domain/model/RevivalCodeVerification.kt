@@ -12,7 +12,11 @@ package com.chainlesschain.android.feature.familyguard.domain.model
  */
 sealed interface RevivalCodeVerification {
 
-    data object Success : RevivalCodeVerification
+    /**
+     * FAMILY-16: Success 携带 familyRelationshipId, 让上层 (EmergencyUnbindService)
+     * 知道哪条关系要 emergency_unbound. null 仅当 FAMILY-08 生成时未关联 (测试 / 旧数据)。
+     */
+    data class Success(val familyRelationshipId: Long?) : RevivalCodeVerification
 
     data class WrongCode(val remainingAttempts: Int) : RevivalCodeVerification
 
