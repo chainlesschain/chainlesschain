@@ -230,9 +230,6 @@ import { marked } from "marked";
 import {
   findExecutingTask,
   buildClassificationContext,
-  createIntentSystemMessage,
-  mergeRequirements,
-  addClarificationToTaskPlan,
   formatIntentLog,
   handleClassificationError,
 } from "../../utils/followupIntentHelper";
@@ -248,6 +245,7 @@ import { useMemoryLeakGuard } from "@/composables/useMemoryLeakGuard";
 import { useTaskPlanning } from "@/composables/useTaskPlanning";
 import { useChatExecution } from "@/composables/useChatExecution";
 import { useConversationPersistence } from "@/composables/useConversationPersistence";
+import { useFollowupIntent } from "@/composables/useFollowupIntent";
 
 // 配置 marked 选项
 marked.setOptions({
@@ -1344,211 +1342,14 @@ const handlePlanModify = (message) => {
   antMessage.info("请在输入框中描述需要修改的内容");
 };
 
-// ============ 后续输入意图处理函数 ============
+// ============ 后续输入意图（已抽取到 useFollowupIntent composable） ============
 
-/**
- * 处理后续输入的不同意图
- * @param {string} intent - 意图类型
- * @param {string} userInput - 用户输入
- * @param {string} extractedInfo - 提取的关键信息
- * @param {string} reason - 判断理由
- * @param {Object} executingTask - 正在执行的任务消息
- */
-const handleFollowupIntent = async (
-  intent,
-  userInput,
-  extractedInfo,
-  reason,
-  executingTask,
-) => {
-  logger.info(`[ChatPanel] 📋 处理后续输入意图: ${intent}`);
-
-  // 创建用户消息（记录用户的输入）
-  const userMessage = createUserMessage(
-    userInput,
-    currentConversation.value?.id,
-  );
-  messages.value.push(userMessage);
-
-  // 保存用户消息到数据库
-  if (currentConversation.value && currentConversation.value.id) {
-    try {
-      await window.electronAPI.conversation.createMessage({
-        id: userMessage.id, // 🔥 关键修复：传入id以保持一致性
-        conversation_id: currentConversation.value.id,
-        role: "user",
-        content: userInput,
-        timestamp: userMessage.timestamp,
-      });
-    } catch (error) {
-      logger.error("[ChatPanel] 保存用户消息失败:", error);
-    }
-  }
-
-  switch (intent) {
-    case "CONTINUE_EXECUTION": {
-      // 用户催促继续执行，不做任何修改
-      logger.info("[ChatPanel] ✅ 用户催促继续执行，无需操作");
-
-      // 添加一条确认消息
-      const continueMessage = createIntentSystemMessage(intent, userInput, {
-        reason,
-        extractedInfo,
-      });
-      messages.value.push(continueMessage);
-      await saveMessageToDb(continueMessage);
-
-      // 可选：向用户反馈正在执行
-      antMessage.info("继续执行任务中...");
-      break;
-    }
-
-    case "MODIFY_REQUIREMENT": {
-      // 用户修改需求，需要暂停并重新规划
-      logger.info("[ChatPanel] ⚠️ 用户修改需求:", extractedInfo);
-
-      // 1. 暂停当前任务
-      if (executingTask) {
-        executingTask.metadata.status = "paused";
-        executingTask.metadata.pauseReason = "用户修改需求";
-        messages.value = [...messages.value]; // 触发更新
-        await updateMessageInDb(executingTask);
-      }
-
-      // 2. 添加系统提示
-      const modifyMessage = createIntentSystemMessage(intent, userInput, {
-        reason,
-        extractedInfo,
-      });
-      messages.value.push(modifyMessage);
-      await saveMessageToDb(modifyMessage);
-
-      // 3. 重新启动任务规划（将原需求和新需求合并）
-      const originalRequirement =
-        executingTask.metadata?.plan?.description || "原始需求";
-      const mergedInput = mergeRequirements(originalRequirement, userInput);
-
-      antMessage.warning("检测到需求变更，正在重新规划任务...");
-
-      // 延迟一下，让用户看到提示消息
-      await nextTick();
-      scrollToBottom();
-
-      // 重新启动任务规划
-      await startTaskPlanning(mergedInput);
-      break;
-    }
-
-    case "CLARIFICATION": {
-      // 用户补充说明，追加到上下文继续执行
-      logger.info("[ChatPanel] 📝 用户补充说明:", extractedInfo);
-
-      // 1. 将信息追加到任务计划的上下文中
-      if (
-        executingTask &&
-        executingTask.metadata &&
-        executingTask.metadata.plan
-      ) {
-        const updatedPlan = addClarificationToTaskPlan(
-          executingTask.metadata.plan,
-          extractedInfo || userInput,
-        );
-        executingTask.metadata.plan = updatedPlan;
-        messages.value = [...messages.value]; // 触发更新
-        await updateMessageInDb(executingTask);
-      }
-
-      // 2. 添加确认消息
-      const clarifyMessage = createIntentSystemMessage(intent, userInput, {
-        reason,
-        extractedInfo,
-      });
-      messages.value.push(clarifyMessage);
-      await saveMessageToDb(clarifyMessage);
-
-      antMessage.success("已记录补充信息，继续执行任务...");
-
-      // 3. 可选：调用 AI 服务使用更新后的上下文重新生成响应
-      // 这里可以根据需要决定是否重新调用 AI
-      break;
-    }
-
-    case "CANCEL_TASK": {
-      // 用户取消任务
-      logger.info("[ChatPanel] ❌ 用户取消任务");
-
-      // 1. 停止任务执行
-      if (executingTask) {
-        executingTask.metadata.status = "cancelled";
-        executingTask.metadata.cancelReason = reason;
-        messages.value = [...messages.value]; // 触发更新
-        await updateMessageInDb(executingTask);
-      }
-
-      // 2. 添加取消消息
-      const cancelMessage = createIntentSystemMessage(intent, userInput, {
-        reason,
-      });
-      messages.value.push(cancelMessage);
-      await saveMessageToDb(cancelMessage);
-
-      antMessage.info("任务已取消");
-      break;
-    }
-
-    default:
-      logger.warn("[ChatPanel] ⚠️ 未知意图类型:", intent);
-      antMessage.warning("无法识别您的意图，请重新表述");
-  }
-
-  // 滚动到底部
-  await nextTick();
-  scrollToBottom();
-};
-
-/**
- * 保存消息到数据库
- */
-const saveMessageToDb = async (message) => {
-  if (!currentConversation.value || !currentConversation.value.id) {
-    logger.warn("[ChatPanel] 无当前对话，无法保存消息");
-    return;
-  }
-
-  try {
-    await window.electronAPI.conversation.createMessage({
-      id: message.id, // 🔥 关键修复：传入id以保持一致性
-      conversation_id: currentConversation.value.id,
-      role: message.role || "system",
-      content: message.content,
-      timestamp: message.timestamp,
-      type: message.type,
-      metadata: cleanForIPC(message.metadata), // 🔥 清理不可序列化的对象
-    });
-  } catch (error) {
-    logger.error("[ChatPanel] 保存消息失败:", error);
-  }
-};
-
-/**
- * 更新消息到数据库
- */
-const updateMessageInDb = async (message) => {
-  if (!currentConversation.value || !currentConversation.value.id) {
-    logger.warn("[ChatPanel] 无当前对话，无法更新消息");
-    return;
-  }
-
-  try {
-    await window.electronAPI.conversation.updateMessage({
-      id: message.id,
-      conversation_id: currentConversation.value.id,
-      metadata: cleanForIPC(message.metadata), // 🔥 清理不可序列化的对象
-    });
-  } catch (error) {
-    logger.error("[ChatPanel] 更新消息失败:", error);
-  }
-};
+const { handleFollowupIntent } = useFollowupIntent({
+  messages,
+  currentConversation,
+  scrollToBottom,
+  startTaskPlanning,
+});
 
 // ============ 意图确认 + 对话执行（已抽取到 useChatExecution composable） ============
 
