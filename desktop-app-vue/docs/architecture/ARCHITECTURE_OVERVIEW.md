@@ -37,9 +37,9 @@
 2. `src/renderer/composables/useChatExecution.js` - 13.2 KB
 3. `src/renderer/utils/__tests__/file-utils.test.js` - 12.1 KB
 4. `src/renderer/workers/file-worker.js` - 10.3 KB
-5. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
-6. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
-7. `src/renderer/components/projects/chatPanelUtils.js` - 7.4 KB
+5. `src/renderer/components/projects/chatPanelUtils.js` - 10.1 KB
+6. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
+7. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
 8. `src/renderer/composables/useFollowupIntent.js` - 6.8 KB
 9. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.7 KB
 10. `src/renderer/composables/useConversationPersistence.js` - 6.4 KB
