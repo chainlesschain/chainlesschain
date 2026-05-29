@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  feature-family-guard manifest stub (FAMILY-01).
-  Real permissions (FOREGROUND_SERVICE_SPECIAL_USE / ACCESS_FINE_LOCATION /
-  ACCESS_BACKGROUND_LOCATION / RECORD_AUDIO / SYSTEM_ALERT_WINDOW /
-  BIND_ACCESSIBILITY_SERVICE) land in FAMILY-07 (manifest batch).
-  Real Service / Receiver / Activity declarations land per-feature ticket
-  (FAMILY-05 ForegroundService, FAMILY-19 BootReceiver, etc.).
+  feature-family-guard manifest (FAMILY-01 + FAMILY-05).
+  FAMILY-07 batch 会一次性把全套权限补齐 (FINE_LOCATION / RECORD_AUDIO /
+  SYSTEM_ALERT_WINDOW / BIND_ACCESSIBILITY_SERVICE 等). 本文件目前仅声明
+  FAMILY-05 启动 FamilyGuardForegroundService 所必须的权限 + service 注册。
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Foreground Service base (API 28+ 必须); FAMILY-07 全套权限批 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- specialUse type (Android 14+); 其他类型 (location/dataSync) 不匹配亲子守护语义 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Notification permission (Android 13+); 不申请用户也能跑但通知会被默认拒 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name=".service.FamilyGuardForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <!-- Android 14+ 要求 specialUse 服务提供说明 (用途 + 替代方案审计). -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="family-guard: 持久监管亲子绑定状态 + 接收 SOS, 无 location/dataSync 等系统现有 type 适用" />
+        </service>
+    </application>
 </manifest>

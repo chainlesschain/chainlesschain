@@ -2,7 +2,9 @@ package com.chainlesschain.android.feature.familyguard.di
 
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyFriendRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.RolePreferencesRepositoryImpl
+import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
 import dagger.Binds
 import dagger.Module
@@ -33,4 +35,10 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindRolePreferencesRepository(
         impl: RolePreferencesRepositoryImpl,
     ): RolePreferencesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFamilyGuardServiceController(
+        impl: FamilyGuardServiceControllerImpl,
+    ): FamilyGuardServiceController
 }
