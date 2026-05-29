@@ -7,7 +7,7 @@
 | Module | Files | Total Size |
 |--------|-------|------------|
 | main | 1844 | 25.77 MB |
-| renderer | 25 | 0.15 MB |
+| renderer | 26 | 0.15 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
@@ -29,7 +29,7 @@
 
 ## renderer Module
 
-**Files**: 25
+**Files**: 26
 
 **Top 10 Largest Files**:
 
@@ -40,9 +40,9 @@
 5. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
 6. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
 7. `src/renderer/components/projects/chatPanelUtils.js` - 7.4 KB
-8. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.7 KB
-9. `src/renderer/composables/useConversationPersistence.js` - 6.4 KB
-10. `src/renderer/workers/file-parser.worker.js` - 6.0 KB
+8. `src/renderer/composables/useFollowupIntent.js` - 6.8 KB
+9. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.7 KB
+10. `src/renderer/composables/useConversationPersistence.js` - 6.4 KB
 
 ## shared Module
 
