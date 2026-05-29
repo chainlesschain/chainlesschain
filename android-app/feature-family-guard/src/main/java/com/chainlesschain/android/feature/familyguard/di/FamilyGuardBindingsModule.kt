@@ -7,6 +7,8 @@ import com.chainlesschain.android.feature.familyguard.data.repository.FamilyRela
 import com.chainlesschain.android.feature.familyguard.data.repository.RevivalCodeRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.RolePreferencesRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
+import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
+import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
@@ -14,6 +16,8 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMe
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyRelationshipRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalCodeRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
+import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
+import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -73,4 +77,14 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindFamilyRelationshipRepository(
         impl: FamilyRelationshipRepositoryImpl,
     ): FamilyRelationshipRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInviteSigner(impl: DidManagerInviteSigner): InviteSigner
+
+    @Binds
+    @Singleton
+    abstract fun bindInvitePairingService(
+        impl: InvitePairingServiceImpl,
+    ): InvitePairingService
 }
