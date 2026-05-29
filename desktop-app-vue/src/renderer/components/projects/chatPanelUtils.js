@@ -1,5 +1,6 @@
 import { marked } from "marked";
 import { logger } from "@/utils/logger";
+import { MessageType } from "../../utils/messageTypes";
 
 /**
  * 清理JSON字符串中的控制字符
@@ -253,6 +254,99 @@ export const renderMarkdown = (content) => {
  *  same day → "HH:mm"
  *  else     → "MM-DD HH:mm" (zh-CN)
  */
+/**
+ * 智能上下文历史构建：从消息列表里挑出"对 LLM 来说最有价值的 N 条"
+ * 作为 conversationHistory 发给后端。
+ *
+ * 策略：
+ *   1. 分类消息：TASK_PLAN / INTERVIEW / INTENT_CONFIRMATION / INTENT_RECOGNITION
+ *      为"重要消息"，其他 user/assistant 为"普通对话"
+ *   2. 最近 MIN_RECENT_TURNS * 2 = 6 条普通对话保底
+ *   3. 最近 3 条重要消息加进去
+ *   4. 按 id 去重 + 按 timestamp 排序 + 截到 MAX_HISTORY_MESSAGES (20)
+ *   5. 转 API 格式 `{role, content, type}`
+ *
+ * @param {Array} messages - 消息列表（messages.value）
+ * @returns {Array} conversationHistory，至多 20 条
+ */
+export const buildSmartContextHistory = (messages) => {
+  const MAX_HISTORY_MESSAGES = 20;
+  const MIN_RECENT_TURNS = 3;
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
+  const importantMessages = [];
+  const regularMessages = [];
+
+  messages.forEach((msg) => {
+    if (
+      [
+        MessageType.TASK_PLAN,
+        MessageType.INTERVIEW,
+        MessageType.INTENT_CONFIRMATION,
+        MessageType.INTENT_RECOGNITION,
+      ].includes(msg.type)
+    ) {
+      importantMessages.push(msg);
+    } else if (msg.role === "user" || msg.role === "assistant") {
+      regularMessages.push(msg);
+    }
+  });
+
+  logger.info("[chatPanelUtils] 📊 消息分类:", {
+    total: messages.length,
+    important: importantMessages.length,
+    regular: regularMessages.length,
+  });
+
+  // 最近 N 轮 (一轮 = user + assistant)
+  const recentTurns = [];
+  let turnCount = 0;
+  for (
+    let i = regularMessages.length - 1;
+    i >= 0 && turnCount < MIN_RECENT_TURNS * 2;
+    i--
+  ) {
+    recentTurns.unshift(regularMessages[i]);
+    turnCount++;
+  }
+
+  const contextMessages = [];
+  const recentImportant = importantMessages.slice(-3);
+  contextMessages.push(...recentImportant);
+  contextMessages.push(...recentTurns);
+
+  // 去重 + 排序
+  const seenIds = new Set();
+  const uniqueMessages = [];
+  contextMessages.forEach((msg) => {
+    if (!seenIds.has(msg.id)) {
+      seenIds.add(msg.id);
+      uniqueMessages.push(msg);
+    }
+  });
+  uniqueMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+  const finalMessages = uniqueMessages.slice(-MAX_HISTORY_MESSAGES);
+  const conversationHistory = finalMessages.map((msg) => ({
+    role: msg.role,
+    content: msg.content,
+    type: msg.type,
+  }));
+
+  logger.info("[chatPanelUtils] 📝 智能上下文历史:", {
+    selectedMessages: conversationHistory.length,
+    fromTotal: messages.length,
+    turns: Math.floor(
+      conversationHistory.filter((m) => m.role === "user").length,
+    ),
+  });
+
+  return conversationHistory;
+};
+
 export const formatTime = (timestamp) => {
   if (!timestamp) {
     return "";

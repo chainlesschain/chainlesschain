@@ -382,176 +382,12 @@ const handleFileClick = (file) => {
   });
 };
 
-/**
- * 🔥 构建智能对话历史（多轮上下文保持）
- *
- * 策略：
- * 1. 优先保留重要消息（任务计划、采访、意图确认等）
- * 2. 保留最近的N轮对话（用户-助手配对）
- * 3. 如果有当前文件上下文，包含文件相关的对话
- * 4. 控制总 token 数不超过限制
- */
-const buildSmartContextHistory = () => {
-  const MAX_HISTORY_MESSAGES = 20; // 最多保留20条消息
-  const MIN_RECENT_TURNS = 3; // 至少保留最近3轮对话
-
-  if (messages.value.length === 0) {
-    return [];
-  }
-
-  // 1. 分类消息
-  const importantMessages = []; // 重要消息（任务计划、采访等）
-  const regularMessages = []; // 普通对话消息
-
-  messages.value.forEach((msg) => {
-    // 重要消息类型
-    if (
-      [
-        MessageType.TASK_PLAN,
-        MessageType.INTERVIEW,
-        MessageType.INTENT_CONFIRMATION,
-        MessageType.INTENT_RECOGNITION,
-      ].includes(msg.type)
-    ) {
-      importantMessages.push(msg);
-    } else if (msg.role === "user" || msg.role === "assistant") {
-      // 排除系统消息，只保留用户和助手的对话
-      regularMessages.push(msg);
-    }
-  });
-
-  logger.info("[ChatPanel] 📊 消息分类:", {
-    total: messages.value.length,
-    important: importantMessages.length,
-    regular: regularMessages.length,
-  });
-
-  // 2. 提取最近的N轮对话（一轮 = 用户消息 + 助手回复）
-  const recentTurns = [];
-  let turnCount = 0;
-
-  for (
-    let i = regularMessages.length - 1;
-    i >= 0 && turnCount < MIN_RECENT_TURNS * 2;
-    i--
-  ) {
-    recentTurns.unshift(regularMessages[i]);
-    turnCount++;
-  }
-
-  // 3. 合并重要消息和最近对话
-  const contextMessages = [];
-
-  // 添加最近的重要消息（最多3条）
-  const recentImportant = importantMessages.slice(-3);
-  contextMessages.push(...recentImportant);
-
-  // 添加最近的对话
-  contextMessages.push(...recentTurns);
-
-  // 4. 去重（按 ID）
-  const uniqueMessages = [];
-  const seenIds = new Set();
-
-  contextMessages.forEach((msg) => {
-    if (!seenIds.has(msg.id)) {
-      seenIds.add(msg.id);
-      uniqueMessages.push(msg);
-    }
-  });
-
-  // 5. 按时间戳排序
-  uniqueMessages.sort((a, b) => a.timestamp - b.timestamp);
-
-  // 6. 限制总消息数
-  const finalMessages = uniqueMessages.slice(-MAX_HISTORY_MESSAGES);
-
-  // 7. 转换为API格式
-  const conversationHistory = finalMessages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-    // 可选：添加消息类型信息供后端参考
-    type: msg.type,
-  }));
-
-  logger.info("[ChatPanel] 📝 智能上下文历史:", {
-    selectedMessages: conversationHistory.length,
-    fromTotal: messages.value.length,
-    turns: Math.floor(
-      conversationHistory.filter((m) => m.role === "user").length,
-    ),
-  });
-
-  return conversationHistory;
-};
-
-/**
- * 构建项目上下文
- */
-const buildProjectContext = async () => {
-  try {
-    // 获取项目信息
-    const project = await window.electronAPI.project.get(props.projectId);
-    if (!project) {
-      return "";
-    }
-
-    // 获取项目文件列表
-    const files = await window.electronAPI.project.getFiles(props.projectId);
-
-    // 构建文件树结构文本
-    let context = `# 项目：${project.name}\n\n`;
-    context += `描述：${project.description || "无"}\n`;
-    context += `类型：${project.project_type}\n\n`;
-    context += `## 文件列表\n\n`;
-
-    if (files && files.length > 0) {
-      files.forEach((file) => {
-        context += `- ${file.file_path} (${file.file_type})\n`;
-      });
-    } else {
-      context += "暂无文件\n";
-    }
-
-    return context;
-  } catch (error) {
-    logger.error("构建项目上下文失败:", error);
-    return "";
-  }
-};
-
-/**
- * 构建文件上下文
- */
-const buildFileContext = () => {
-  if (!props.currentFile) {
-    return "";
-  }
-
-  let context = `# 当前文件：${props.currentFile.file_name}\n\n`;
-  context += `路径：${props.currentFile.file_path}\n`;
-  context += `类型：${props.currentFile.file_type}\n\n`;
-  context += `## 文件内容\n\n\`\`\`\n${props.currentFile.content || ""}\n\`\`\`\n`;
-
-  return context;
-};
-
-/**
- * 构建系统提示
- */
-const buildSystemPrompt = async () => {
-  let systemPrompt = "你是一个专业的编程助手。";
-
-  if (contextMode.value === "project") {
-    const projectContext = await buildProjectContext();
-    systemPrompt += `\n\n${projectContext}\n\n请基于以上项目信息回答用户的问题。`;
-  } else if (contextMode.value === "file" && props.currentFile) {
-    const fileContext = buildFileContext();
-    systemPrompt += `\n\n${fileContext}\n\n请基于以上文件内容回答用户的问题。`;
-  }
-
-  return systemPrompt;
-};
+// ============ 上下文构建器（已移到 chatPanelUtils.js） ============
+// buildSmartContextHistory → 已 export 自 chatPanelUtils.js，
+//   useChatExecution composable 直接 import 使用，不再走 props 注入。
+// buildProjectContext / buildFileContext / buildSystemPrompt 删除 —
+//   只有 buildSystemPrompt 链路用它们，而 buildSystemPrompt 本身从未
+//   被调用（dead code 自创建以来 0 callsites）。
 
 /**
  * 发送消息
@@ -1248,7 +1084,6 @@ const { handleIntentConfirm, handleIntentCorrect, understandUserIntent } =
     createConversation,
     updateThinkingState,
     getProjectFiles,
-    buildSmartContextHistory,
     cleanupOldMessages,
     safeSetTimeout,
     emit,

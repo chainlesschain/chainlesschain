@@ -5,7 +5,10 @@ import {
   MessageType,
   createIntentConfirmationMessage,
 } from "../utils/messageTypes";
-import { cleanForIPC } from "../components/projects/chatPanelUtils";
+import {
+  cleanForIPC,
+  buildSmartContextHistory,
+} from "../components/projects/chatPanelUtils";
 
 /**
  * ChatPanel 对话执行子系统。从 ChatPanel.vue 提取的 ~400 LOC composable。
@@ -31,7 +34,6 @@ import { cleanForIPC } from "../components/projects/chatPanelUtils";
  * @param {Function} deps.createConversation
  * @param {Function} deps.updateThinkingState
  * @param {Function} deps.getProjectFiles
- * @param {Function} deps.buildSmartContextHistory
  * @param {Function} deps.cleanupOldMessages
  * @param {Function} deps.safeSetTimeout
  * @param {Function} deps.emit
@@ -47,7 +49,6 @@ export function useChatExecution({
   createConversation,
   updateThinkingState,
   getProjectFiles,
-  buildSmartContextHistory,
   cleanupOldMessages,
   safeSetTimeout,
   emit,
@@ -242,7 +243,7 @@ export function useChatExecution({
         progressText: "AI正在思考答案",
       });
 
-      const conversationHistory = buildSmartContextHistory();
+      const conversationHistory = buildSmartContextHistory(messages.value);
 
       const cleanCurrentFile = props.currentFile
         ? {
