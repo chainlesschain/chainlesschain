@@ -1,5 +1,6 @@
 package com.chainlesschain.android.pdh.social.weibo
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -252,6 +253,7 @@ class WeiboApiClient @Inject constructor() {
             setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3
             Timber.w(e, "WeiboApiClient: parse error on %s", url.encodedPath)
             setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null
@@ -283,7 +285,8 @@ class WeiboApiClient @Inject constructor() {
                     java.util.Locale.US,
                 )
                 fmt.parse(raw)?.time ?: 0L
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t  // audit F3
                 0L
             }
         }

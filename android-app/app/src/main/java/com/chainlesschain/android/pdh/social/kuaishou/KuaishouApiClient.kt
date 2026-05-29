@@ -2,6 +2,7 @@ package com.chainlesschain.android.pdh.social.kuaishou
 
 import com.chainlesschain.android.pdh.social.NullSignProvider
 import com.chainlesschain.android.pdh.social.SignProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -173,6 +174,7 @@ class KuaishouApiClient @Inject constructor() {
         val obj = try {
             JSONObject(jsonCandidate)
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t  // audit F3
             setLastError(-3, "parse: ${t.message ?: t.javaClass.simpleName}")
             return@withContext null
         }
@@ -434,6 +436,7 @@ class KuaishouApiClient @Inject constructor() {
             setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3
             Timber.w(e, "KuaishouApiClient: parse error on %s", url.encodedPath)
             setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null
@@ -509,6 +512,7 @@ class KuaishouApiClient @Inject constructor() {
             setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3
             Timber.w(e, "KuaishouApiClient: parse error on %s", url.encodedPath)
             setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null

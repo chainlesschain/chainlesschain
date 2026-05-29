@@ -2,6 +2,7 @@ package com.chainlesschain.android.pdh.social.douyin
 
 import com.chainlesschain.android.pdh.social.NullSignProvider
 import com.chainlesschain.android.pdh.social.SignProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -348,6 +349,7 @@ class DouyinApiClient @Inject constructor() {
             setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3
             Timber.w(e, "DouyinApiClient: parse error on %s", url.encodedPath)
             setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null

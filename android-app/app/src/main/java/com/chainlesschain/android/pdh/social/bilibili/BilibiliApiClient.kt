@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.bilibili
 
 import com.chainlesschain.android.pdh.social.SocialCookieWebViewHelpers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -171,6 +172,7 @@ class BilibiliApiClient @Inject constructor() {
                     val obj = try {
                         JSONObject(body)
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e  // audit F3
                         // head=%s dropped — anti-bot redirect page could
                         // contain anti-detection signatures (audit F2)
                         Timber.w(
@@ -196,6 +198,7 @@ class BilibiliApiClient @Inject constructor() {
                     b3
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e  // audit F3
                 Timber.w(e, "BilibiliApiClient: mintBuvid3 failed")
                 null
             }
@@ -272,6 +275,7 @@ class BilibiliApiClient @Inject constructor() {
                     val obj = try {
                         JSONObject(body)
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e  // audit F3
                         // head=%s dropped (audit F2)
                         Timber.w(
                             "BilibiliApiClient: /nav body not JSON (len=%d)",
@@ -316,6 +320,7 @@ class BilibiliApiClient @Inject constructor() {
                     mixin
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e  // audit F3
                 Timber.w(e, "BilibiliApiClient: ensureWbiMixinKey failed")
                 null
             }
@@ -369,6 +374,7 @@ class BilibiliApiClient @Inject constructor() {
         val signed = try {
             signUrl(url, mixin)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3
             Timber.w(e, "BilibiliApiClient: signUrl failed")
             url
         }
@@ -646,6 +652,7 @@ class BilibiliApiClient @Inject constructor() {
             setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
+            if (e is CancellationException) throw e  // audit F3 — propagate structured-concurrency cancel
             Timber.w(e, "BilibiliApiClient: parse error on %s", url.encodedPath)
             setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null
