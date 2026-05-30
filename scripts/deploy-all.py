@@ -332,6 +332,13 @@ DEPLOYS = [
     # tag 回 v5.0.3.97 / 11 sizes。docs/design 12:39 那批已 shipped 干净，
     # 下方 entries 用 1239 stamp 占位以便下次全量 deploy 直接复用，本轮单跑
     # 时 www-only 的口子靠注释掉 docs/design 完成（见 git log 52b7a0780）。
+    # 2026-05-30 13:05 — www-only redeploy #2：替换 4 surface 的 `releases/latest`
+    # 直链 (index.astro/en/index.astro/desktop.astro/en/desktop.astro 共 8 hrefs)
+    # 为 `releases/tag/${releaseSizes.tag}`，避免 GitHub `/releases/latest`
+    # semantics 受 internal-binaries Release 占位影响把用户引到没桌面包的 Release
+    # 页（同 trap 第二层泄漏，per memory `release_latest_internal_binaries_trap`）。
+    # docs/design 12:39 那批已 ship 干净；下方 entries 用 1239 stamp 占位以便下次
+    # 全量 deploy 直接复用。
     {
         "name": "docs.chainlesschain.com",
         "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.97-20260530-1239.tar.gz",
@@ -344,7 +351,7 @@ DEPLOYS = [
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260530-1251.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260530-1305.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]

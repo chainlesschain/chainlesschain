@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import rootPkg from '../../../../package.json';
 import releaseSizes from '../../data/release-sizes.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
+const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
 ---
 <BaseLayout
   title="Desktop — Local AI workbench built on Electron + Vue3 | ChainlessChain"
@@ -166,7 +167,7 @@ const PRODUCT_VERSION = rootPkg.productVersion;
             ['Linux', 'linux', linuxLabel, 'Ubuntu 20.04+ · simulation mode'],
           ];
         })().map(([name, key, meta, note]) => (
-          <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
+          <a href={RELEASE_TAG_URL} target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
             <div class="font-mono text-xs text-muted mb-3">{key.toUpperCase()}</div>
             <h3 class="font-display text-3xl mb-2 group-hover:text-ember transition-colors">{name}</h3>
             <div class="text-sm text-ink mb-3">{meta}</div>
