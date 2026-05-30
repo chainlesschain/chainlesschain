@@ -5,6 +5,36 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.98] - 2026-05-30 — fix(android): 社交/首页 ANR 修 + FAMILY-20 Epic C M2 telemetry 底座 + docs/design DEPLOYS 恢复
+
+> 用户反馈「点社交会卡住」长期未解；本轮定位到 ViewModel init 块默认在主线程同步读 EncryptedSharedPreferences + DIDManager.initialize 里的 StrongBox 解密（小米 amethyst 单次解密可达数秒），两路汇总把主线程吃 >5s 触发 ANR。一并把 family-guard Epic C M2 telemetry 底座（孩子端共享 child_event 表 + ForegroundAppAggregator pure state machine）落到 main，让后续 FAMILY-21/25 ticket 不再二次拆表。
+
+### Fix #1 — 主线程 keystore 阻塞致社交/首页 ANR 全切 IO 线程 (`6ad0f7989`)
+
+- `HubLocalViewModel.init { … 13 个 refresh*FromStore() }` 同步读 EncryptedSharedPreferences（keystore-backed），改包进 `viewModelScope.launch(Dispatchers.IO) { … }`
+- `DIDManager.initialize()` 整段 `withContext(Dispatchers.IO)`：loadWallet→loadEntry→StrongBoxKeyManager.unwrapEd25519Private 是阻塞式 Android Keystore (StrongBox) 调用，部分机型单次解密数秒；旧 `init { viewModelScope.launch { didManager.initialize() } }` 默认跑 Main → 进社交页主线程卡 >5s → ANR
+- 内部仅 `_state.update` / `launchIn(viewModelScope)`，线程安全
+
+### Feat #2 — FAMILY-20 Epic C M2 telemetry 底座（主文档 §3.2 v0.2 起步）(`abd3a2cb7`)
+
+- 新 `ChildEventEntity` (child_event 表) + `ChildEventDao` + `ChildEventRepository`(Impl)：source / kind / payload JSON / timestamp / duration_ms / level=L1，3 index (did+timestamp / source / level)
+- 新 `ForegroundAppAggregator` (pure state machine, 同 app 连续 30min 合一行 / 切 package / 乱序 ts 强制 flush) + `ForegroundAppRun` + `ForegroundAppSample` (UsageStats 分钟级采样)
+- Room SCHEMA_VERSION 2→3, `MIGRATION_2_3` (CREATE TABLE + 3 index, IF NOT EXISTS 全 trap `[[pdh_partial_index_if_not_exists_drift]]` family-guard 版规避), `exportSchema=true` 生成 3.json
+- DI: `FamilyGuardModule.provideChildEventDao` + `FamilyGuardBindingsModule.bindChildEventRepository` (@Singleton)
+- `FamilyGuardSchemaTest` version 2→3 / 8→9 tables
+- Epic C M2 后续 (FAMILY-21 ForegroundAppTimer 服务 / FAMILY-25 上行权限过滤层) 复用本 schema + Repository
+
+### Chore #3 — docs/design 站 DEPLOYS 恢复 + www hotfix (`52b7a0780` + `daf3bcd05`)
+
+- `docs-website-v2/scripts/fetch-release-sizes.mjs` 加 `internal-binaries-*` tag skip（避免选错最新 binaries release 拿不到 desktop asset），sweep `/releases?per_page=30` 找第一个含 desktop asset 的；release-sizes.json tag 回到 v5.0.3.97 / 11 sizes
+- `scripts/deploy-all.py` DEPLOYS[] 恢复 `docs.chainlesschain.com` + `design.chainlesschain.com` 两路（用 12:39 stamp tarball 占位），下次全量 deploy 直接复用，本轮 www-only 跑过的不重复
+
+### 版本同步
+
+- productVersion v5.0.3.97 → v5.0.3.98
+- desktop-app-vue 5.0.3-alpha.97 → 5.0.3-alpha.98
+- chainlesschain CLI 0.162.27 → 0.162.28（无 src 改，仅版本号 bump，跟 productVersion 节奏）
+
 ## [v5.0.3.97] - 2026-05-27 — PDH RAG 接通 Android 云模型 + 联系人电话号码 LLM 真可见 + 6 平台 endpoint hotfix 套件
 
 > 之前 Android CLOUD_ANDROID 路由只把用户问题原文打给云模型，AI 真就「无脑闲聊」；本地金库里有的联系人、近期事件全部失联。本轮把 PDH RAG 检索真接到云路由 + 修两个长期幻觉死角（联系人字段 strip + entity routing 被挤），并扫了 4 个社交平台的 endpoint 漂移。

@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.97 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.27 / 144 命令 / 30,000+ 测试 | Android 5.0.3.97 (versionCode 503097，与 productVersion 对齐) | iOS 5.0.3 (build 97，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.98 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.28 / 144 命令 / 30,000+ 测试 | Android 5.0.3.98 (versionCode 503098，与 productVersion 对齐) | iOS 5.0.3 (build 98，Hua Zhang 团队 ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.97 用户可感知突破（2026-05-27）**：
 >
