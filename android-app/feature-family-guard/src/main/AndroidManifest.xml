@@ -41,6 +41,11 @@
          所以这里仅声明; UI 引导孩子授权落 FAMILY-35. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- ───── FAMILY-19 自启拉活 ───── -->
+
+    <!-- 开机自启 receiver — 拉起 FamilyGuardForegroundService + 跑 reconciler -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- ───── M4 Enforce / Spike 3 — Accessibility 拦截 (不实装 in FAMILY-07) ─────
 
          BIND_ACCESSIBILITY_SERVICE 是 service-level permission (写在 service
@@ -86,5 +91,34 @@
                 android:value="family-guard: 持久监管亲子绑定状态 + 接收 SOS, 无 location/dataSync 等系统现有 type 适用"
                 tools:ignore="MissingTvBanner" />
         </service>
+
+        <!-- ───── FAMILY-19 BootReceiver + KeepAliveReceiver ───── -->
+
+        <receiver
+            android:name=".boot.BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true"
+            tools:ignore="ExportedReceiver">
+            <!-- exported=true 因 BOOT_COMPLETED 由系统派发, 必须可 receive 系统广播.
+                 directBootAware=true 让 Android 7+ 在 user unlock 前也能跑, 抢
+                 早期保活窗口 (主文档 §3.1 v0.2 + spike 3 §5.1 layer 4). -->
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".boot.KeepAliveReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <!-- 内部 alarm 触发, 仅 self 发送, exported=false. -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.familyguard.KEEP_ALIVE" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -21,6 +21,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.security.SecureRandom
 import java.time.Clock
 import javax.inject.Singleton
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -115,4 +116,16 @@ object FamilyGuardModule {
     @Provides
     @Singleton
     fun provideClock(): Clock = Clock.systemUTC()
+
+    /**
+     * SecureRandom for ULID 生成 (FAMILY-10 FamilyGroupRepositoryImpl / RevivalCode /
+     * InvitePairing). 这些 Impl 的 `@Inject constructor(... secureRandom: SecureRandom
+     * = SecureRandom())` 默认值 **不被 Dagger 识别** (Dagger 忽略 Kotlin 默认参数), 仍要求
+     * 一个显式 binding; 否则 FamilyMembersViewModel(FAMILY-18) 把 FamilyGroupRepository 拉进
+     * ViewModel 图时报 [Dagger/MissingBinding] java.security.SecureRandom。单测仍可用
+     * fixed-seed SecureRandom 直接构造, 不走 DI。
+     */
+    @Provides
+    @Singleton
+    fun provideSecureRandom(): SecureRandom = SecureRandom()
 }
