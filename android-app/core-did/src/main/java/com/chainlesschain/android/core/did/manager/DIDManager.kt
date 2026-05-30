@@ -19,9 +19,11 @@ import com.chainlesschain.android.core.did.wallet.WrappedPrivateKeyStorage
 import com.chainlesschain.android.core.security.strongbox.StrongBoxKeyManager
 import com.chainlesschain.android.core.security.strongbox.WrappedEd25519Key
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -93,7 +95,11 @@ class DIDManager @Inject constructor(
     /**
      * 初始化：尝试 1）加载现有 wallet；2）迁移旧明文格式；3）创建新 DID 作为兜底。
      */
-    suspend fun initialize() {
+    suspend fun initialize() = withContext(Dispatchers.IO) {
+        // 全程切到 IO 线程：loadWallet→loadEntry→StrongBoxKeyManager.unwrapEd25519Private
+        // 是阻塞式 Android Keystore (StrongBox) 调用，部分机型 (小米 amethyst) 单次解密
+        // 可达数秒。早期 init { viewModelScope.launch { didManager.initialize() } } 默认
+        // 跑在 Dispatchers.Main → 进社交页时主线程卡 >5s → ANR("点社交会卡住")。
         Timber.i("Initializing DID Manager (v0.2 wallet)")
 
         if (loadWallet()) {

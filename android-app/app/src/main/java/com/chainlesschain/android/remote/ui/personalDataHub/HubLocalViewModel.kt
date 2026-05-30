@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -625,21 +626,26 @@ class HubLocalViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
-        refreshPermissionState()
-        refreshSystemDataFromStore()
-        refreshBilibiliFromStore()
-        refreshWeiboFromStore()
-        refreshDouyinFromStore()
-        refreshXhsFromStore()
-        refreshToutiaoFromStore()
-        refreshKuaishouFromStore()
-        refreshWechatFromStore()
-        refreshQQFromStore()
-        refreshAiChatFromStore()
-        refreshEmailFromStore()
-        refreshTravelFromStore()
-        observeModelManager()
-        initAskRouteState()
+        // 这些 refresh*FromStore() 同步读 EncryptedSharedPreferences (keystore-backed)，
+        // 早期直接在 init 跑 → ViewModel 在主线程构造 → 进 Hub/首页 tab 时主线程阻塞 → ANR。
+        // 全部挪到 IO 线程；内部仅做线程安全的 _state.update / launchIn(viewModelScope)。
+        viewModelScope.launch(Dispatchers.IO) {
+            refreshPermissionState()
+            refreshSystemDataFromStore()
+            refreshBilibiliFromStore()
+            refreshWeiboFromStore()
+            refreshDouyinFromStore()
+            refreshXhsFromStore()
+            refreshToutiaoFromStore()
+            refreshKuaishouFromStore()
+            refreshWechatFromStore()
+            refreshQQFromStore()
+            refreshAiChatFromStore()
+            refreshEmailFromStore()
+            refreshTravelFromStore()
+            observeModelManager()
+            initAskRouteState()
+        }
     }
 
     /**
