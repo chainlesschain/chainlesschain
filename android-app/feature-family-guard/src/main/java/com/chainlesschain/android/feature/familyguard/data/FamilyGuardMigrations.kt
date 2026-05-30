@@ -24,6 +24,8 @@ object FamilyGuardMigrations {
      * 完整 migration 链入口。
      * - v1: 首版 (FAMILY-02) — 7 表 baseline。
      * - v2: FAMILY-08 加 revival_code (6 位复活码, SHA256 hash + salt, 紧急解绑前置)。
+     * - v3: FAMILY-20 加 child_event (Epic C M2 telemetry events; ForegroundAppTimer
+     *   + 后续 PDH collectors 共享 schema, 主文档 §3.2)。
      */
     fun all(): Array<Migration> = ALL_MIGRATIONS
 
@@ -63,8 +65,46 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v2 → v3 (FAMILY-20).
+     *
+     * 加 child_event 表 + 3 索引. SQL 与 Room 自动 3.json schema diff 必对齐;
+     * 改本 migration 前必跑 assembleDebug 让 Room 重新导出 3.json 再 diff
+     * (trap [[pdh_partial_index_if_not_exists_drift]] family-guard 版).
+     */
+    val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS child_event (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    child_did TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    duration_ms INTEGER NOT NULL DEFAULT 0,
+                    level TEXT NOT NULL DEFAULT 'L1'
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_child_event_did_time " +
+                    "ON child_event(child_did, timestamp)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_child_event_source " +
+                    "ON child_event(source)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_child_event_level " +
+                    "ON child_event(level)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
-    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

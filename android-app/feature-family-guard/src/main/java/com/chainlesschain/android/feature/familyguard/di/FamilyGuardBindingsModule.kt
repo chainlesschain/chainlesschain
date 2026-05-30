@@ -4,6 +4,7 @@ import com.chainlesschain.android.feature.familyguard.data.emergency.EmergencyUn
 import com.chainlesschain.android.feature.familyguard.data.emergency.InMemoryUpstreamFreezer
 import com.chainlesschain.android.feature.familyguard.data.emergency.NoOpExternalContactNotifier
 import com.chainlesschain.android.feature.familyguard.data.permission.FamilyPermissionCheckerImpl
+import com.chainlesschain.android.feature.familyguard.data.repository.ChildEventRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyFriendRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyGroupRepositoryImpl
 import com.chainlesschain.android.feature.familyguard.data.repository.FamilyMembershipRepositoryImpl
@@ -18,6 +19,7 @@ import com.chainlesschain.android.feature.familyguard.domain.emergency.Emergency
 import com.chainlesschain.android.feature.familyguard.domain.emergency.ExternalContactNotifier
 import com.chainlesschain.android.feature.familyguard.domain.emergency.UpstreamFreezer
 import com.chainlesschain.android.feature.familyguard.domain.permission.FamilyPermissionChecker
+import com.chainlesschain.android.feature.familyguard.domain.repository.ChildEventRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyFriendRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
@@ -125,4 +127,10 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindEmergencyUnbindService(
         impl: EmergencyUnbindServiceImpl,
     ): EmergencyUnbindService
+
+    @Binds
+    @Singleton
+    abstract fun bindChildEventRepository(
+        impl: ChildEventRepositoryImpl,
+    ): ChildEventRepository
 }

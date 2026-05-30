@@ -7,6 +7,7 @@ import androidx.room.Room
 import com.chainlesschain.android.core.security.KeyManager
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardDatabase
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardMigrations
+import com.chainlesschain.android.feature.familyguard.data.dao.ChildEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyGroupDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipDao
@@ -98,6 +99,10 @@ object FamilyGuardModule {
     @Provides
     @Singleton
     fun provideRevivalCodeDao(db: FamilyGuardDatabase): RevivalCodeDao = db.revivalCodeDao()
+
+    @Provides
+    @Singleton
+    fun provideChildEventDao(db: FamilyGuardDatabase): ChildEventDao = db.childEventDao()
 
     // ─── FAMILY-04: role preferences + clock ───
 
