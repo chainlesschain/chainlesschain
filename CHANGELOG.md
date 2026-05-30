@@ -5,6 +5,72 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.97] - 2026-05-27 — PDH RAG 接通 Android 云模型 + 联系人电话号码 LLM 真可见 + 6 平台 endpoint hotfix 套件
+
+> 之前 Android CLOUD_ANDROID 路由只把用户问题原文打给云模型，AI 真就「无脑闲聊」；本地金库里有的联系人、近期事件全部失联。本轮把 PDH RAG 检索真接到云路由 + 修两个长期幻觉死角（联系人字段 strip + entity routing 被挤），并扫了 4 个社交平台的 endpoint 漂移。
+
+### Fix #1 — PDH RAG 真接通到 Android CLOUD_ANDROID route (`3f31e2894`)
+
+- 新 `cc hub retrieve-context` CLI 命令 + `LocalCcRunner.retrieveContext` Kotlin 桥
+- `HubLocalViewModel` 整合：云路由先拉 `hub.retrieveContext(question)` 拿到 facts → 拼进系统消息 → 再发云模型
+- AI label 从「无脑闲聊」改为真有 citations 引回原始事件
+
+### Fix #2 — PDH `cc hub retrieve-context` 冷启动 90s → <5s (`eb24c4d5d`)
+
+- 新 `getHubMinimal()` 工厂跳过 8 个 aichat adapter / kg / bm25 重型 init — retrieve-context 走只读 vault 查询无需这些
+- 真机 2026-05-27 验过：冷启 4.2s vs 旧 87s
+- 让云路由问问题在用户感知内可用
+
+### Fix #3 — PDH `summarizePerson` 含 identifiers + notes (`a41d50ebd`)
+
+- 之前 strip phone / wechatId / email 字段 → 768 个联系人在 vault 但 LLM 答「没有足够信息」
+- 「妈手机号」「张三的微信号」类查询真能命中
+- 改 `summarizePerson()` 保留 identifiers Map + notes 串拼进 person facts
+
+### Fix #4 — PDH entity-focus routing + searchPersons LIKE 名字搜索 (`f5d66debc` + `90343ff93`)
+
+- `_gatherFacts` 加 entity-focus path：question 抽出 person name candidate → searchPersons → 优先注入
+- contacts 不再被 events 挤出 RAG 200 上限
+- 之前 events 多的用户问联系人问题，contacts 全被淹
+
+### Fix #5 — PDH-Android 4 个平台 endpoint hotfix
+
+- **Xhs** 3 endpoint path / param 对齐 JsBridge 真路径 (`64c549609`) — `/api/sns/web/v1/me` → `/api/sns/web/v2/user/me` 等
+- **Toutiao** extractUid 加 `uid_tt` / `sso_uid_tt` / `tt_webid` fallback (`e2de2d8e2`) — passport_uid 长期 null 拒登录
+- **Weibo** `/api/favorites` 上游下线 → graceful skip (`48cece8e3`) — 不再给假 404
+- **Douyin** 收藏分页 — 之前只一页（~24 / N）静默丢 (`de4be43c6`) — has_more 循环分页拉全
+
+### Fix #6 — Android askQuestion timeout 60s → 240s (`d9a85d325`)
+
+- MediaPipe cold-start over budget 导致首问 LLM 无响应 — 用户体感「按了没反应」
+- 一次性提到 4 min 兜底 cold-start，warm 后正常 30-60s
+
+### Fix #7 — PDH aichat-health timers unref (`c1aaf553b`)
+
+- `cc hub` 系列命令调完不立即 exit — 因为 aichat-health setInterval 把 event loop 持有
+- 全部 `timer.unref()` 后 cc hub 命令秒退
+
+### 文档
+
+- `docs/internal/hidden-risk-traps.md` 加 trap #27 (USR_VERSION sentinel cache miss after PDH/CLI lib refresh) + trap #28 (workspace dep npm publish stale — 改 pdh/lib 或 cli/lib 必 bump version + npm publish + Android USR_VERSION，否则真机走 fast-path 跳解压用旧代码)
+- handbook 标题升到 `#6-#28`
+
+### 版本同步
+
+- productVersion v5.0.3.96 → v5.0.3.97
+- desktop-app-vue 5.0.3-alpha.96 → 5.0.3-alpha.97
+- chainlesschain CLI 0.162.26 → 0.162.27（src 改 + pin `@chainlesschain/personal-data-hub` 0.3.7 → 0.3.9）
+- `@chainlesschain/personal-data-hub` 0.3.7 → 0.3.9（含 RAG retrieve-context 接通 + summarizePerson 字段保留 + entity-focus routing）
+- Android versionCode 503096 → 503097 / versionName 5.0.3.96 → 5.0.3.97（USR_VERSION 12→17 累计 5 次 bump 强制重抽 cc-cli.tgz）
+- iOS CFBundleVersion 96 → 97
+
+### Bundled
+
+- `test(android): Phase 2-6 androidTest infra — 18-stub reactivation foundation` (`c34e8b8ee`)
+- `fix(android-ci): scope AVD cache key to dodge prefix-match collision` (`54eb55246`)
+- `fix(android-test): 3 flaky/drifted tests + XhsApiClientSignBridgeTest endpoint sync` (`5e688c537` + `b01f264f4`)
+- `fix(ci): free 30+ GB on Android E2E runner to dodge dex-merge ENOSPC` (`6cab8b1c3`)
+
 ## [v5.0.3.96] - 2026-05-27 — fix(desktop): 检查更新两路兜底 — release-in-progress friendly dialog + window-hidden OS notification
 
 > User report on v5.0.3.94: 托盘点「检查更新」没反应；早些时候同一按钮还弹出过红色 dialog 整段 HttpError 404 stacktrace 糊脸。诊断 → 两个独立但叠在一起的问题：(1) tag 推后 release.yml workflow 还在上传 assets 时 `latest*.yml` 暂 404，electron-updater 把整段 stacktrace 当 error 发渲染端 + 弹红卡；(2) v5.0.3.44 后更新提示走渲染端 AppUpdateNotifier 卡片（画在 BrowserWindow 内），用户从托盘点检查更新时主窗口仍在托盘里 → 卡片画在不可见窗口 → 哑响。
