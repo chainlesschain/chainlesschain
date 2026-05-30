@@ -329,8 +329,19 @@ DEPLOYS = [
     # 见 `deployment_scripts.md` release-sizes.json timing window 段)。已 patch
     # `docs-website-v2/scripts/fetch-release-sizes.mjs` 改用 /releases?per_page=30
     # 列表 + 跳 `internal-binaries-*` tag + 取第一个有 desktop asset 的，重建后
-    # tag 回 v5.0.3.97 / 11 sizes。docs/design 不动（12:39 那批已部署，内容
-    # 一致；再 deploy 只会增加无用 .bak-）。
+    # tag 回 v5.0.3.97 / 11 sizes。docs/design 12:39 那批已 shipped 干净，
+    # 下方 entries 用 1239 stamp 占位以便下次全量 deploy 直接复用，本轮单跑
+    # 时 www-only 的口子靠注释掉 docs/design 完成（见 git log 52b7a0780）。
+    {
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.97-20260530-1239.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    },
+    {
+        "name": "design.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.97-20260530-1239.tar.gz",
+        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    },
     {
         "name": "www.chainlesschain.com",
         "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260530-1251.tar.gz",
