@@ -322,19 +322,18 @@ DEPLOYS = [
     #   v5.0.3.97 build-time (GitHub Release published 2026-05-27T15:16:45Z, isDraft=false).
     # 构建: docs-site 329.5s / 526 HTML; docs-site-design 180.5s / 243 HTML;
     #   docs-website-v2 16.1s / 18 pages. 三站并行触发. Tarball stamp 20260528-0926.
-    {
-        "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.97-20260528-0926.tar.gz",
-        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    },
-    {
-        "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.97-20260528-0926.tar.gz",
-        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    },
+    # 2026-05-30 12:51 — www-only hotfix redeploy: 12:39 build 把 release-sizes.json
+    # 糊成 `{tag:"internal-binaries-android-v20260528", sizes:{}}` (因 GitHub
+    # /releases/latest 自 5-28 起返回 Android internal-binaries Release，
+    # per memory `android_binary_release_artifact_pattern.md`; 同 trap pattern
+    # 见 `deployment_scripts.md` release-sizes.json timing window 段)。已 patch
+    # `docs-website-v2/scripts/fetch-release-sizes.mjs` 改用 /releases?per_page=30
+    # 列表 + 跳 `internal-binaries-*` tag + 取第一个有 desktop asset 的，重建后
+    # tag 回 v5.0.3.97 / 11 sizes。docs/design 不动（12:39 那批已部署，内容
+    # 一致；再 deploy 只会增加无用 .bak-）。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260528-0926.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.97-20260530-1251.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]

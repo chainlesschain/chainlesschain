@@ -8,7 +8,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, '..', 'src', 'data', 'release-sizes.json');
 const REPO = 'chainlesschain/chainlesschain';
-const URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+// Note: was `/releases/latest` but post-2026-05-28 the "latest" tag is the
+// `internal-binaries-android-vYYYYMMDD` Release (Android prebuilt binaries
+// split out of git per `git_slim_2026_05_28_recipe`), which has zero desktop
+// assets → empty sizes shipped to homepage. We now walk `/releases?per_page=30`
+// and pick the first non-internal release with at least one classifiable asset.
+const LIST_URL = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
 
 function fmtSize(bytes) {
   const mb = bytes / 1024 / 1024;
@@ -36,8 +41,18 @@ async function readCache() {
   catch { return null; }
 }
 
+function pickDesktopRelease(releases) {
+  for (const r of releases) {
+    if (!r || !r.tag_name) continue;
+    if (r.tag_name.startsWith('internal-binaries-')) continue;
+    const hits = (r.assets || []).filter(a => classify(a.name));
+    if (hits.length > 0) return r;
+  }
+  return null;
+}
+
 async function main() {
-  console.log(`[fetch-release-sizes] GET ${URL}`);
+  console.log(`[fetch-release-sizes] GET ${LIST_URL}`);
   let data;
   try {
     const headers = {
@@ -45,13 +60,16 @@ async function main() {
       'Accept': 'application/vnd.github+json',
     };
     if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-    const res = await fetch(URL, { headers });
+    const res = await fetch(LIST_URL, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    data = await res.json();
+    const list = await res.json();
+    data = pickDesktopRelease(list);
+    if (!data) throw new Error(`no release with desktop assets in first ${list.length}`);
+    console.log(`[fetch-release-sizes] picked ${data.tag_name} (skipped internal-binaries-* tags)`);
   } catch (err) {
     console.warn(`[fetch-release-sizes] fetch failed: ${err.message}`);
     const cached = await readCache();
-    if (cached && cached.tag) {
+    if (cached && cached.tag && !cached.tag.startsWith('internal-binaries-')) {
       console.warn(`[fetch-release-sizes] keeping cache (tag=${cached.tag}, fetchedAt=${cached.fetchedAt})`);
       return;
     }
