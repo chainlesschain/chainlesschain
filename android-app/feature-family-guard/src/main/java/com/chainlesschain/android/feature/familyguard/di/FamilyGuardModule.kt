@@ -25,6 +25,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.security.SecureRandom
 import java.time.Clock
+import java.time.ZoneId
 import javax.inject.Singleton
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
@@ -122,6 +123,15 @@ object FamilyGuardModule {
     @Provides
     @Singleton
     fun provideClock(): Clock = Clock.systemUTC()
+
+    /**
+     * 设备本地时区 — [QuietHoursEngine] (FAMILY-24) 用其把事件 epoch 时间戳折成本地
+     * 墙钟比对私有时段 ('20:00'-'06:00' 是用户感知的本地时间)。与 [provideClock] 的 UTC
+     * epoch clock 正交: clock 管 "何时", zoneId 管 "墙钟几点"。单测传固定 ZoneId 直接构造。
+     */
+    @Provides
+    @Singleton
+    fun provideZoneId(): ZoneId = ZoneId.systemDefault()
 
     /**
      * SecureRandom for ULID 生成 (FAMILY-10 FamilyGroupRepositoryImpl / RevivalCode /
