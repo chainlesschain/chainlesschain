@@ -13,6 +13,8 @@ import com.chainlesschain.android.feature.familyguard.domain.quiethours.QuietHou
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyRelationshipRepository
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryEvent
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetrySourceType
+import com.chainlesschain.android.feature.familyguard.domain.time.TimeAuthority
+import com.chainlesschain.android.feature.familyguard.domain.time.TimeAuthorityStatus
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
@@ -23,8 +25,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * FAMILY-25 v0.1 + FAMILY-24 验收: RelationshipTelemetryUploadGate —
- * L0 永远放行 / L1+ 逐 guardian 查 checker / 无 active 返空 / 私有时段内 L1+ 排除。
+ * FAMILY-25 v0.1 + FAMILY-24 + FAMILY-60 验收: RelationshipTelemetryUploadGate —
+ * L0 永远放行 / L1+ 逐 guardian 查 checker / 无 active 返空 / 私有时段内 L1+ 排除
+ * (按 **权威时间** [TimeAuthority.authoritativeNow] 判, 不读可伪造的 event.timestampMs)。
  */
 class RelationshipTelemetryUploadGateTest {
 
@@ -47,8 +50,12 @@ class RelationshipTelemetryUploadGateTest {
         level = level,
     )
 
-    private fun gate(repo: FamilyRelationshipRepository, checker: FamilyPermissionChecker) =
-        RelationshipTelemetryUploadGate(repo, checker, engine)
+    /** 权威时间默认 = 13:00 (在 12:00-14:00 测试窗口内); 个别测试覆盖 nowMs。 */
+    private fun gate(
+        repo: FamilyRelationshipRepository,
+        checker: FamilyPermissionChecker,
+        nowMs: Long = wedNoonMs,
+    ) = RelationshipTelemetryUploadGate(repo, checker, engine, FakeTimeAuthority(nowMs))
 
     @Test
     fun `no active relationship returns empty`() = runTest {
@@ -90,11 +97,11 @@ class RelationshipTelemetryUploadGateTest {
         assertEquals(FamilyAction.ReadTelemetryL3, checker.lastAction)
     }
 
-    // ─── FAMILY-24: quiet hours exclusion ───
+    // ─── FAMILY-24 + FAMILY-60: quiet hours exclusion (按权威时间判) ───
 
     @Test
-    fun `L1 excluded when event falls in guardian quiet hours`() = runTest {
-        // mom 配私有时段 12:00-14:00; 事件 13:00 命中 → mom 被排除, dad 无窗口仍放行。
+    fun `L1 excluded when authoritative now falls in guardian quiet hours`() = runTest {
+        // mom 配私有时段 12:00-14:00; 权威时间 13:00 (默认) 命中 → mom 排除, dad 无窗口仍放行。
         val gate = gate(
             FakeRelRepo(listOf(rel(mom, quiet = listOf(noon())), rel(dad))),
             FakeChecker(allowed = setOf(mom, dad)),
@@ -113,21 +120,45 @@ class RelationshipTelemetryUploadGateTest {
     }
 
     @Test
-    fun `L1 flows when event outside quiet hours`() = runTest {
-        // 同窗口但事件落在 18:00 (窗外) → 不排除。
+    fun `L1 flows when authoritative now is outside quiet hours`() = runTest {
+        // 同窗口但权威时间 18:00 (窗外) → 不排除。
         val eveningMs =
             LocalDateTime.of(2026, 6, 3, 18, 0).atZone(zone).toInstant().toEpochMilli()
         val gate = gate(
             FakeRelRepo(listOf(rel(mom, quiet = listOf(noon())))),
             FakeChecker(allowed = setOf(mom)),
+            nowMs = eveningMs,
         )
+        assertEquals(listOf(mom), gate.permittedGuardians(event(TelemetryLevel.L1)))
+    }
+
+    @Test
+    fun `quiet check uses authoritative now not spoofable event timestamp`() = runTest {
+        // 绕过向量: 孩子把事件时间戳伪造成落在私有窗内 (13:00) 想抑制 L1 上行,
+        // 但权威时间 (单调钟锚定) 是 18:00 窗外 → 不排除, telemetry 照常上行。
+        val eveningMs =
+            LocalDateTime.of(2026, 6, 3, 18, 0).atZone(zone).toInstant().toEpochMilli()
+        val gate = gate(
+            FakeRelRepo(listOf(rel(mom, quiet = listOf(noon())))),
+            FakeChecker(allowed = setOf(mom)),
+            nowMs = eveningMs, // 权威时间窗外
+        )
+        // 事件 timestampMs = 13:00 (伪造进窗内) — 旧逻辑会误排除 mom; 新逻辑按权威时间放行。
         assertEquals(
             listOf(mom),
-            gate.permittedGuardians(event(TelemetryLevel.L1, timestampMs = eveningMs)),
+            gate.permittedGuardians(event(TelemetryLevel.L1, timestampMs = wedNoonMs)),
         )
     }
 
     // ─── fakes ───
+
+    private class FakeTimeAuthority(private val nowMs: Long) : TimeAuthority {
+        override fun authoritativeNow(): Long = nowMs
+        override fun status(): TimeAuthorityStatus = TimeAuthorityStatus.TRUSTED
+        override fun isTimeTrusted(): Boolean = true
+        override fun shouldLockTimeFeatures(): Boolean = false
+        override suspend fun sync(): Boolean = true
+    }
 
     private fun noon() = QuietHourWindow(start = "12:00", end = "14:00")
 
