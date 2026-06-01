@@ -17,6 +17,8 @@ import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInvi
 import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppTelemetrySource
 import com.chainlesschain.android.feature.familyguard.data.telemetry.NoOpTelemetryOutbox
 import com.chainlesschain.android.feature.familyguard.data.telemetry.RelationshipTelemetryUploadGate
+import com.chainlesschain.android.feature.familyguard.data.telemetry.RoleAwareChildIdentityProvider
+import com.chainlesschain.android.feature.familyguard.data.telemetry.UsageStatsForegroundAppQuery
 import com.chainlesschain.android.feature.familyguard.data.unbind.UnbindStateMachineImpl
 import com.chainlesschain.android.feature.familyguard.domain.emergency.EmergencyUnbindService
 import com.chainlesschain.android.feature.familyguard.domain.emergency.ExternalContactNotifier
@@ -32,6 +34,8 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalC
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppQuery
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryOutbox
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetrySource
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryUploadGate
@@ -172,4 +176,18 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindTelemetryOutbox(
         impl: NoOpTelemetryOutbox,
     ): TelemetryOutbox
+
+    /** FAMILY-20 ForegroundAppTimer: UsageStatsManager 包装 (可 fake 单测)。 */
+    @Binds
+    @Singleton
+    abstract fun bindForegroundAppQuery(
+        impl: UsageStatsForegroundAppQuery,
+    ): ForegroundAppQuery
+
+    /** FAMILY-20 ForegroundAppTimer: 角色 + DID 双闸的本机 child 身份解析。 */
+    @Binds
+    @Singleton
+    abstract fun bindChildIdentityProvider(
+        impl: RoleAwareChildIdentityProvider,
+    ): ChildIdentityProvider
 }

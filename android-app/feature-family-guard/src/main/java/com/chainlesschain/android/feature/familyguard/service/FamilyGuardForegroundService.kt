@@ -6,8 +6,11 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import com.chainlesschain.android.feature.familyguard.data.telemetry.CentralTelemetryDispatcher
+import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppTimer
 import com.chainlesschain.android.feature.familyguard.domain.model.FamilyGuardState
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import timber.log.Timber
 
 /**
@@ -30,7 +33,22 @@ import timber.log.Timber
 @AndroidEntryPoint
 class FamilyGuardForegroundService : Service() {
 
+    @Inject lateinit var telemetryDispatcher: CentralTelemetryDispatcher
+
+    @Inject lateinit var foregroundAppTimer: ForegroundAppTimer
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * FAMILY-20/21: 服务常驻期间托管 telemetry 链路。**顺序关键** — dispatcher 先
+     * 订阅 source.events (SharedFlow replay=0), 再启 timer 开始 emit, 否则启动瞬间的
+     * 事件会丢。dispatcher/timer 各自幂等 + 自闸 (非孩子端 timer 轮询即早返)。
+     */
+    override fun onCreate() {
+        super.onCreate()
+        telemetryDispatcher.start()
+        foregroundAppTimer.start()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
@@ -68,6 +86,8 @@ class FamilyGuardForegroundService : Service() {
 
     override fun onDestroy() {
         Timber.i("FamilyGuardForegroundService.onDestroy")
+        foregroundAppTimer.stop()
+        telemetryDispatcher.stop()
         super.onDestroy()
     }
 

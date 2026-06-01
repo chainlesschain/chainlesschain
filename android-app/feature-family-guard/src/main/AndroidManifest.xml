@@ -19,6 +19,13 @@
     <!-- Android 13+ 通知 runtime 权限. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- FAMILY-20 ForegroundAppTimer: UsageStatsManager 前台 app 采样. appop 特殊权限,
+         用户须在 系统设置 → 使用情况访问 手动开 (非普通 runtime 权限); 这里仅声明,
+         UI 引导 + UsageStatsForegroundAppQuery.isAccessGranted 检查实际授予态. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- ───── FAMILY-07 batch (v0.1 MVP 路径前置声明) ───── -->
 
     <!-- M8 (FAMILY-50..56): 位置 / 电子围栏. 主文档 §3.8.
