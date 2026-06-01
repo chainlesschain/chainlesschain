@@ -207,10 +207,22 @@ class WebRTCClient @Inject constructor(
         }
     }
 
-    suspend fun connect(pcPeerId: String, localPeerId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * @param targetPeerId 对端 peerId（旧名 pcPeerId — desktop↔mobile 时是 desktop，
+     *   mobile↔mobile 时是对方手机）。
+     * @param isInitiator true=主叫（createOffer→等 answer，既有 desktop↔mobile 默认路径）；
+     *   false=被叫（FAMILY-30 mobile↔mobile：等对方 offer→回 answer，DataChannel 经
+     *   onDataChannel 受领，不自建）。默认 true 保向后兼容（P2PClient / remote-terminal /
+     *   operate / pairing 三流不传此参，仍走 initiator）。
+     */
+    suspend fun connect(
+        targetPeerId: String,
+        localPeerId: String,
+        isInitiator: Boolean = true,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             Timber.i("========================================")
-            Timber.i("Starting P2P connection to PC: $pcPeerId")
+            Timber.i("Starting P2P connection to peer: $targetPeerId (isInitiator=$isInitiator)")
             Timber.i("Local peer ID: $localPeerId")
             Timber.i("========================================")
 
@@ -236,28 +248,48 @@ class WebRTCClient @Inject constructor(
             _connectionState.value = P2PConnectionState.REGISTERED
             Timber.i("[Step 2/5] ✓ Registered successfully")
 
-            // 3. Create PeerConnection and DataChannel
-            Timber.i("[Step 3/5] Creating PeerConnection and DataChannel...")
-            createPeerConnection(pcPeerId)
-            createDataChannel()
+            // 3. Create PeerConnection (DataChannel: initiator 自建; responder 经 onDataChannel 受领)
+            Timber.i("[Step 3/5] Creating PeerConnection (isInitiator=$isInitiator)...")
+            createPeerConnection(targetPeerId)
+            if (isInitiator) {
+                createDataChannel()
+            }
             startRemoteIceListener()
-            Timber.i("[Step 3/5] ✓ PeerConnection and DataChannel created")
+            Timber.i("[Step 3/5] ✓ PeerConnection created")
 
-            // 4. Create and send offer
-            Timber.i("[Step 4/5] Creating and sending offer to $pcPeerId...")
-            _connectionState.value = P2PConnectionState.CREATING_OFFER
-            val offer = createOffer()
-            signalClient.sendOffer(pcPeerId, offer)
-            Timber.i("[Step 4/5] ✓ Offer sent")
+            if (isInitiator) {
+                // 4i. Create and send offer
+                Timber.i("[Step 4/5] (initiator) Creating and sending offer to $targetPeerId...")
+                _connectionState.value = P2PConnectionState.CREATING_OFFER
+                val offer = createOffer()
+                signalClient.sendOffer(targetPeerId, offer)
+                Timber.i("[Step 4/5] ✓ Offer sent")
 
-            // 5. Wait for answer
-            Timber.i("[Step 5/5] Waiting for answer from PC (15s timeout)...")
-            _connectionState.value = P2PConnectionState.WAITING_ANSWER
-            val answer = signalClient.waitForAnswer(pcPeerId, timeout = 15000)
-            Timber.i("[Step 5/5] ✓ Answer received, setting remote description...")
-            setRemoteDescription(answer)
-            isRemoteDescriptionSet = true
-            drainPendingRemoteCandidates()
+                // 5i. Wait for answer
+                Timber.i("[Step 5/5] (initiator) Waiting for answer (15s timeout)...")
+                _connectionState.value = P2PConnectionState.WAITING_ANSWER
+                val answer = signalClient.waitForAnswer(targetPeerId, timeout = 15000)
+                Timber.i("[Step 5/5] ✓ Answer received, setting remote description...")
+                setRemoteDescription(answer)
+                isRemoteDescriptionSet = true
+                drainPendingRemoteCandidates()
+            } else {
+                // 4r. Wait for offer (FAMILY-30 responder path)
+                Timber.i("[Step 4/5] (responder) Waiting for offer from $targetPeerId (15s timeout)...")
+                _connectionState.value = P2PConnectionState.WAITING_ANSWER
+                val offer = signalClient.waitForOffer(targetPeerId, timeout = 15000)
+                Timber.i("[Step 4/5] ✓ Offer received, setting remote description...")
+                setRemoteDescription(offer)
+                isRemoteDescriptionSet = true
+                drainPendingRemoteCandidates()
+
+                // 5r. Create and send answer
+                Timber.i("[Step 5/5] (responder) Creating and sending answer to $targetPeerId...")
+                _connectionState.value = P2PConnectionState.CREATING_OFFER
+                val answer = createAnswer()
+                signalClient.sendAnswer(targetPeerId, answer)
+                Timber.i("[Step 5/5] ✓ Answer sent")
+            }
 
             _connectionState.value = P2PConnectionState.ICE_CONNECTING
             Timber.i("========================================")
@@ -280,12 +312,12 @@ class WebRTCClient @Inject constructor(
         }
     }
 
-    private fun createPeerConnection(pcPeerId: String) {
+    private fun createPeerConnection(targetPeerId: String) {
         Timber.d("Creating peer connection")
         // v1.3+ plan B — 用桌面 QR 签发的 ICE servers (含 turn.chainlesschain.com TURN)，
         // fallback Google STUN。这样 WAN 跨 NAT 下 WebRTC 也能打洞。
-        currentIceServers = resolveIceServersFor(pcPeerId)
-        Timber.i("[WebRTCClient] ice servers (${currentIceServers.size}) for $pcPeerId: " +
+        currentIceServers = resolveIceServersFor(targetPeerId)
+        Timber.i("[WebRTCClient] ice servers (${currentIceServers.size}) for $targetPeerId: " +
             currentIceServers.joinToString { it.urls.firstOrNull() ?: "?" })
 
         val rtcConfig = PeerConnection.RTCConfiguration(currentIceServers).apply {
@@ -298,7 +330,7 @@ class WebRTCClient @Inject constructor(
                 override fun onIceCandidate(candidate: IceCandidate) {
                     Timber.d("ICE candidate generated")
                     scope.launch {
-                        signalClient.sendIceCandidate(pcPeerId, candidate)
+                        signalClient.sendIceCandidate(targetPeerId, candidate)
                     }
                 }
 
@@ -454,6 +486,43 @@ class WebRTCClient @Inject constructor(
         }, constraints)
     }
 
+    // FAMILY-30 responder path — 镜像 createOffer，但 createAnswer（setRemoteDescription(offer)
+    // 必须已先调）。
+    private suspend fun createAnswer(): SessionDescription = suspendCancellableCoroutine { continuation ->
+        val constraints = MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
+        }
+
+        peerConnection?.createAnswer(object : SdpObserver {
+            override fun onCreateSuccess(sdp: SessionDescription) {
+                Timber.d("Answer created")
+                peerConnection?.setLocalDescription(object : SdpObserver {
+                    override fun onSetSuccess() {
+                        Timber.d("Local description (answer) set")
+                        continuation.resume(sdp) {}
+                    }
+
+                    override fun onSetFailure(error: String) {
+                        Timber.e("Set local description (answer) failed: $error")
+                        continuation.resumeWith(Result.failure(Exception(error)))
+                    }
+
+                    override fun onCreateSuccess(p0: SessionDescription?) {}
+                    override fun onCreateFailure(p0: String?) {}
+                }, sdp)
+            }
+
+            override fun onCreateFailure(error: String) {
+                Timber.e("Create answer failed: $error")
+                continuation.resumeWith(Result.failure(Exception(error)))
+            }
+
+            override fun onSetSuccess() {}
+            override fun onSetFailure(p0: String?) {}
+        }, constraints)
+    }
+
     private suspend fun setRemoteDescription(answer: SessionDescription) = suspendCancellableCoroutine<Unit> { continuation ->
         peerConnection?.setRemoteDescription(object : SdpObserver {
             override fun onSetSuccess() {
@@ -568,6 +637,11 @@ interface SignalClient {
     suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription
     suspend fun receiveIceCandidate(): org.webrtc.IceCandidate
 
+    // FAMILY-30 — responder path (mobile↔mobile 对等改造): 非 initiator 端等对方 offer
+    // 并回 answer。default 实现保留向后兼容（既有 desktop↔mobile 流仅用 initiator 路径）。
+    suspend fun sendAnswer(peerId: String, answer: org.webrtc.SessionDescription)
+    suspend fun waitForOffer(peerId: String, timeout: Long): org.webrtc.SessionDescription
+
     /**
      * v1.1 W3.7 Flow B: 发任意 payload 给指定 peer 经信令服务器 forward。
      * 用于 `pair-ack`、自定义消息 等非 WebRTC 标准 signaling 路径。
@@ -604,6 +678,8 @@ class WebSocketSignalClient @Inject constructor(
     @Volatile
     private var webSocket: okhttp3.WebSocket? = null
     private val answerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
+    // FAMILY-30 responder path — 收到对方 offer 时投递给 waitForOffer。
+    private val offerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
     private val iceCandidateChannel = kotlinx.coroutines.channels.Channel<org.webrtc.IceCandidate>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 
     @Volatile
@@ -783,6 +859,23 @@ class WebSocketSignalClient @Inject constructor(
                         Timber.d("Answer received")
                     } else {
                         Timber.e("Answer received but could not extract SDP")
+                    }
+                }
+
+                // FAMILY-30 responder path — 入向 offer 投 offerChannel 供 waitForOffer。
+                "offer" -> {
+                    val sdpString = extractSdpFromMessage(json, "offer")
+                    if (sdpString != null) {
+                        val offer = org.webrtc.SessionDescription(
+                            org.webrtc.SessionDescription.Type.OFFER,
+                            sdpString
+                        )
+                        scope.launch {
+                            offerChannel.send(offer)
+                        }
+                        Timber.d("Offer received (responder path)")
+                    } else {
+                        Timber.e("Offer received but could not extract SDP")
                     }
                 }
 
@@ -1043,6 +1136,29 @@ class WebSocketSignalClient @Inject constructor(
         Timber.d("Waiting for answer from $peerId")
         return withTimeout(timeout) {
             answerChannel.receive()
+        }
+    }
+
+    // FAMILY-30 responder path — 镜像 sendOffer / waitForAnswer。peerId 是 TARGET（同
+    // sendOffer 注释：勿碰 currentPeerId，那是 self）。
+    override suspend fun sendAnswer(peerId: String, answer: org.webrtc.SessionDescription) {
+        Timber.i("[SignalClient] 发送 Answer → 目标 peerId: $peerId (SDP ${answer.description.length})")
+        val json = org.json.JSONObject().apply {
+            put("type", "answer")
+            put("to", peerId)
+            put("answer", org.json.JSONObject().apply {
+                put("type", "answer")
+                put("sdp", answer.description)
+            })
+        }
+        sendWebSocketMessage(json.toString())
+        Timber.i("[SignalClient] ✓ Answer 消息已发送到 $peerId")
+    }
+
+    override suspend fun waitForOffer(peerId: String, timeout: Long): org.webrtc.SessionDescription {
+        Timber.d("Waiting for offer from $peerId")
+        return withTimeout(timeout) {
+            offerChannel.receive()
         }
     }
 

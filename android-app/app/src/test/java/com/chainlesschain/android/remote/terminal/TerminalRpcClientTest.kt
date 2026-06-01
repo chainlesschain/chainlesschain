@@ -59,6 +59,9 @@ class TerminalRpcClientTest {
         override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {}
         override suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription =
             throw UnsupportedOperationException()
+        override suspend fun sendAnswer(peerId: String, answer: org.webrtc.SessionDescription) {}
+        override suspend fun waitForOffer(peerId: String, timeout: Long): org.webrtc.SessionDescription =
+            throw UnsupportedOperationException()
         override suspend fun receiveIceCandidate(): org.webrtc.IceCandidate =
             throw UnsupportedOperationException()
         override suspend fun sendForwardedMessage(

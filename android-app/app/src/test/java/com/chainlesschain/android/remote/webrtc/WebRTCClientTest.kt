@@ -201,6 +201,42 @@ class WebRTCClientTest {
     }
 
     @Test
+    fun `connect() as responder waits for offer and sends answer (FAMILY-30)`() = runTest {
+        // Arrange
+        webRTCClient.initialize()
+        val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\no=- 1 1 IN IP4 0.0.0.0\n...")
+        val mockAnswer = SessionDescription(SessionDescription.Type.ANSWER, "v=0\no=- 2 2 IN IP4 0.0.0.0\n...")
+
+        // Responder creates an ANSWER (not an offer)
+        every { mockPeerConnection.createAnswer(any(), any()) } answers {
+            firstArg<SdpObserver>().onCreateSuccess(mockAnswer)
+        }
+        every { mockPeerConnection.setLocalDescription(any(), any()) } answers {
+            firstArg<SdpObserver>().onSetSuccess()
+        }
+        every { mockPeerConnection.setRemoteDescription(any(), any()) } answers {
+            firstArg<SdpObserver>().onSetSuccess()
+        }
+        coEvery { mockSignalClient.waitForOffer(testPeerId, any()) } returns mockOffer
+        coEvery { mockSignalClient.sendAnswer(any(), any()) } just Runs
+        coEvery { mockSignalClient.receiveIceCandidate() } throws Exception("No ICE")
+
+        // Act — responder path (isInitiator = false)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId, isInitiator = false)
+
+        // Assert — responder: waitForOffer → setRemoteDescription(offer) → createAnswer → sendAnswer
+        assertTrue(result.isSuccess, "Responder connection should succeed")
+        coVerify { mockSignalClient.waitForOffer(testPeerId, 15000) }
+        verify { mockPeerConnection.setRemoteDescription(any(), any()) }
+        verify { mockPeerConnection.createAnswer(any(), any()) }
+        coVerify { mockSignalClient.sendAnswer(testPeerId, mockAnswer) }
+        // Responder does NOT self-create a DataChannel (受领 via onDataChannel) nor an offer.
+        verify(exactly = 0) { mockPeerConnection.createDataChannel(any(), any()) }
+        verify(exactly = 0) { mockPeerConnection.createOffer(any(), any()) }
+        coVerify(exactly = 0) { mockSignalClient.sendOffer(any(), any()) }
+    }
+
+    @Test
     fun `connect() should fail when signal server connection fails`() = runTest {
         // Arrange
         webRTCClient.initialize()
