@@ -5,11 +5,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardDatabase
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindResult
+import com.chainlesschain.android.feature.familyguard.domain.time.TimeAuthority
+import com.chainlesschain.android.feature.familyguard.domain.time.TimeAuthorityStatus
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine
 import com.chainlesschain.android.feature.familyguard.fixtures.FamilyFixtures
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -22,9 +21,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
- * FAMILY-15 验收: 5 happy + 3 边界 + reconcileExpired.
- * Room in-memory 真跑 SQL atomic state transitions; Clock fixed 让 cooldown
- * 边界硬测可重现。
+ * FAMILY-15 (+ FAMILY-60) 验收: 5 happy + 3 边界 + reconcileExpired.
+ * Room in-memory 真跑 SQL atomic state transitions; fake TimeAuthority 让 cooldown
+ * 边界硬测可重现 (权威时间替设备墙钟)。
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [33])
@@ -33,11 +32,16 @@ class UnbindStateMachineImplTest {
     private lateinit var db: FamilyGuardDatabase
     private val baseClockMs = FamilyFixtures.FIXTURE_TIME_MS
 
-    private fun clockAt(ms: Long): Clock =
-        Clock.fixed(Instant.ofEpochMilli(ms), ZoneOffset.UTC)
+    private class FakeTimeAuthority(private val nowMs: Long) : TimeAuthority {
+        override fun authoritativeNow(): Long = nowMs
+        override fun status(): TimeAuthorityStatus = TimeAuthorityStatus.TRUSTED
+        override fun isTimeTrusted(): Boolean = true
+        override fun shouldLockTimeFeatures(): Boolean = false
+        override suspend fun sync(): Boolean = true
+    }
 
     private fun service(clockMs: Long): UnbindStateMachineImpl =
-        UnbindStateMachineImpl(db.familyRelationshipDao(), clockAt(clockMs))
+        UnbindStateMachineImpl(db.familyRelationshipDao(), FakeTimeAuthority(clockMs))
 
     @Before
     fun setUp() {

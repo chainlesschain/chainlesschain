@@ -5,13 +5,14 @@ import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindResult
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine.Companion.COOLDOWN_MS
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine.Companion.FORCE_GRACE_MS
-import java.time.Clock
+import com.chainlesschain.android.feature.familyguard.domain.time.TimeAuthority
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * FAMILY-15 实装. 所有状态转换走 DAO 的原子 SQL UPDATE (含 WHERE status 守卫),
- * 让并发 race 自然成 last-write-wins, 不会乱跳状态 (e.g. active → unbound 越过 pending).
+ * FAMILY-15 实装 (FAMILY-60 接权威时间). 所有状态转换走 DAO 的原子 SQL UPDATE (含 WHERE
+ * status 守卫), 让并发 race 自然成 last-write-wins, 不会乱跳状态 (e.g. active → unbound
+ * 越过 pending).
  *
  * 主文档 §3.1 v0.2:
  *   - active → request → unbind_pending (24h)
@@ -19,20 +20,24 @@ import javax.inject.Singleton
  *   - unbind_pending → 冷却到期 finalize → unbound
  *   - 强制 finalize: cooldown_until + 6h grace 后申请方可调
  *
+ * 时刻基线走 [TimeAuthority.authoritativeNow] (锚定单调钟) 而非设备墙钟: cooldown_until
+ * 记录与到期判定两端同源, 防孩子调设备时钟把 24h 冷却"调过期"提前 finalize 逃脱家庭绑定
+ * (解绑发生在配对后, TimeAuthority 通常已可同步; 未同步退墙钟 baseline)。
+ *
  * Worker 实际接入留 FAMILY-19 (BootReceiver + AlarmManager); FAMILY-15 仅提供
  * [reconcileExpired] 入口供 Worker 调用。
  */
 @Singleton
 class UnbindStateMachineImpl @Inject constructor(
     private val familyRelationshipDao: FamilyRelationshipDao,
-    private val clock: Clock,
+    private val timeAuthority: TimeAuthority,
 ) : UnbindStateMachine {
 
     override suspend fun requestUnbind(
         relationshipId: Long,
         requesterDid: String,
     ): UnbindResult {
-        val now = clock.millis()
+        val now = timeAuthority.authoritativeNow()
         val cooldownUntil = now + COOLDOWN_MS
         val rows = familyRelationshipDao.markUnbindPending(
             id = relationshipId,
@@ -55,7 +60,7 @@ class UnbindStateMachineImpl @Inject constructor(
     }
 
     override suspend fun cancelUnbind(relationshipId: Long): UnbindResult {
-        val now = clock.millis()
+        val now = timeAuthority.authoritativeNow()
         val rows = familyRelationshipDao.cancelUnbindPending(
             id = relationshipId,
             updatedAt = now,
@@ -72,7 +77,7 @@ class UnbindStateMachineImpl @Inject constructor(
     }
 
     override suspend fun finalizeUnbind(relationshipId: Long): UnbindResult {
-        val now = clock.millis()
+        val now = timeAuthority.authoritativeNow()
         val rows = familyRelationshipDao.finalizeUnbindIfExpired(
             id = relationshipId,
             now = now,
@@ -101,7 +106,7 @@ class UnbindStateMachineImpl @Inject constructor(
 
         // 主文档 §3.1 v0.2 — 申请方在 cooldown_until + 6h 之后才能强制 finalize
         val cooldownEnd = existing.unbindCooldownUntil ?: return UnbindResult.NotPending
-        val now = clock.millis()
+        val now = timeAuthority.authoritativeNow()
         val forceTimeOk = now >= (cooldownEnd + FORCE_GRACE_MS)
         if (!forceTimeOk) {
             return UnbindResult.TooEarly(cooldownUntilMs = cooldownEnd + FORCE_GRACE_MS)
@@ -118,7 +123,7 @@ class UnbindStateMachineImpl @Inject constructor(
     }
 
     override suspend fun reconcileExpired(): Int {
-        val now = clock.millis()
+        val now = timeAuthority.authoritativeNow()
         val expired = familyRelationshipDao.listExpiredPendingIds(now)
         var done = 0
         for (id in expired) {
