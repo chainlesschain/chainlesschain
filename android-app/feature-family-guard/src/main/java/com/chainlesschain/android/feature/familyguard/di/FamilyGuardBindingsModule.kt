@@ -15,7 +15,6 @@ import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardSe
 import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
 import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
 import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppTelemetrySource
-import com.chainlesschain.android.feature.familyguard.data.telemetry.NoOpTelemetryOutbox
 import com.chainlesschain.android.feature.familyguard.data.telemetry.RelationshipTelemetryUploadGate
 import com.chainlesschain.android.feature.familyguard.data.telemetry.RoleAwareChildIdentityProvider
 import com.chainlesschain.android.feature.familyguard.data.telemetry.UsageStatsForegroundAppQuery
@@ -36,7 +35,6 @@ import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairi
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppQuery
-import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryOutbox
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetrySource
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryUploadGate
 import com.chainlesschain.android.feature.familyguard.domain.unbind.UnbindStateMachine
@@ -167,15 +165,9 @@ abstract class FamilyGuardBindingsModule {
         impl: RelationshipTelemetryUploadGate,
     ): TelemetryUploadGate
 
-    /**
-     * FAMILY-26 上行 outbox 默认 no-op (落库不上行)。:app 层提供 SyncManager 适配器
-     * 覆盖本绑定接通真实上行。
-     */
-    @Binds
-    @Singleton
-    abstract fun bindTelemetryOutbox(
-        impl: NoOpTelemetryOutbox,
-    ): TelemetryOutbox
+    // FAMILY-26: TelemetryOutbox 不在此绑定 —— :feature-family-guard 不依赖 :core-p2p。
+    // 真实上行适配器 (SyncManagerTelemetryOutbox) 在 :app TelemetryModule 绑定。
+    // NoOpTelemetryOutbox 类保留, 供无 sync 的宿主可选 fallback。
 
     /** FAMILY-20 ForegroundAppTimer: UsageStatsManager 包装 (可 fake 单测)。 */
     @Binds

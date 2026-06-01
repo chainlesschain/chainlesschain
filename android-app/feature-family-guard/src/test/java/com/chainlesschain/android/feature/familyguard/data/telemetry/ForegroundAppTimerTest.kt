@@ -30,7 +30,7 @@ class ForegroundAppTimerTest {
 
     @Test
     fun `non-child device does not sample`() = runTest {
-        val source = ForegroundAppTelemetrySource()
+        val source = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = collect(source)
         val timer = timer(
             source = source,
@@ -47,7 +47,7 @@ class ForegroundAppTimerTest {
 
     @Test
     fun `no usage access does not sample`() = runTest {
-        val source = ForegroundAppTelemetrySource()
+        val source = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = collect(source)
         val timer = timer(
             source = source,
@@ -63,7 +63,7 @@ class ForegroundAppTimerTest {
 
     @Test
     fun `child device samples foreground app and emits run on package change`() = runTest {
-        val source = ForegroundAppTelemetrySource()
+        val source = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = collect(source)
         val query = FakeQuery(granted = true, current = pkgGame)
         val timer = timer(source = source, identity = FakeIdentity(did = childDid), query = query)
@@ -82,7 +82,7 @@ class ForegroundAppTimerTest {
 
     @Test
     fun `null query result reuses last foreground package so run keeps extending`() = runTest {
-        val source = ForegroundAppTelemetrySource()
+        val source = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = collect(source)
         val query = FakeQuery(granted = true, current = pkgGame)
         val timer = timer(source = source, identity = FakeIdentity(did = childDid), query = query)

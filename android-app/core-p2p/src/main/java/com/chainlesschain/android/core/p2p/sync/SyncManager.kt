@@ -695,7 +695,10 @@ enum class ResourceType {
     POST_SHARE,
     NOTIFICATION,
     // 项目管理资源类型（v1：仅 PROJECT 元数据；PROJECT_FILE 待 v2）
-    PROJECT
+    PROJECT,
+    // 家庭守护 telemetry 事件（FAMILY-26）：孩子端前台 app / PDH / snapshot 等采集事件
+    // 上行到家长桌面端。append-only CREATE; 冲突走默认 LAST_WRITE_WINS（无真实冲突）。
+    TELEMETRY
 }
 
 /**

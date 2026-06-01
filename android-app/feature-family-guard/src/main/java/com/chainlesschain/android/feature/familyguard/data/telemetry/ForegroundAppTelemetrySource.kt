@@ -28,7 +28,10 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 @Singleton
 class ForegroundAppTelemetrySource @Inject constructor(
-    private val aggregator: ForegroundAppAggregator = ForegroundAppAggregator(),
+    // 不给默认值: `@Inject constructor(x = Default())` 会让 Kotlin 生成**两个**带 @Inject
+    // 的构造器 (有参 + 合成无参) → Dagger 报 "may only contain one injected constructor"。
+    // aggregator 由 FamilyGuardModule.provideForegroundAppAggregator 供给; 单测显式构造。
+    private val aggregator: ForegroundAppAggregator,
 ) : TelemetrySource {
 
     override val sourceType: TelemetrySourceType = TelemetrySourceType.FOREGROUND_APP

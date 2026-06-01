@@ -30,13 +30,13 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `sourceType is FOREGROUND_APP`() {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         assertEquals(TelemetrySourceType.FOREGROUND_APP, src.sourceType)
     }
 
     @Test
     fun `single sample does not emit (aggregator延伸态)`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -48,7 +48,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `package change emits one TelemetryEvent`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -68,7 +68,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `flushCurrent emits pending run and clears aggregator`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -84,7 +84,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `pause blocks submit and drops partial run`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -100,7 +100,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `resume after pause allows new emits`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -117,7 +117,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `child switch finalizes prior run under the previous child`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         val emitted = mutableListOf<TelemetryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             src.events().collect { emitted.add(it) }
@@ -139,7 +139,7 @@ class ForegroundAppTelemetrySourceTest {
 
     @Test
     fun `pause is idempotent`() = runTest {
-        val src = ForegroundAppTelemetrySource()
+        val src = ForegroundAppTelemetrySource(ForegroundAppAggregator())
         src.pause()
         src.pause() // 第二次 no-op
         assertTrue(src.isPaused())
