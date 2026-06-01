@@ -53,6 +53,10 @@ const { ToutiaoAdapter } = require("./adapters/social-toutiao");
 const { KuaishouAdapter } = require("./adapters/social-kuaishou");
 // FAMILY-23 v0.1 — 家庭守护 telemetry collectors (cookie-scrape placeholder).
 const { GenshinAdapter } = require("./adapters/game-genshin");
+const { HonorOfKingsAdapter } = require("./adapters/game-honor-of-kings");
+const { ZuoyebangAdapter } = require("./adapters/edu-zuoyebang");
+const { AlipayAdapter } = require("./adapters/finance-alipay");
+const { HuaweiLearningAdapter } = require("./adapters/edu-huawei-learning");
 const { QQAdapter } = require("./adapters/messaging-qq");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
@@ -259,6 +263,10 @@ module.exports = {
   ToutiaoAdapter,
   KuaishouAdapter,
   GenshinAdapter,
+  HonorOfKingsAdapter,
+  ZuoyebangAdapter,
+  AlipayAdapter,
+  HuaweiLearningAdapter,
   QQAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
