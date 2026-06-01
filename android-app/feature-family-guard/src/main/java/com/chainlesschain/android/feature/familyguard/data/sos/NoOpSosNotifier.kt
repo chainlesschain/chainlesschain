@@ -20,4 +20,32 @@ class NoOpSosNotifier @Inject constructor() : SosNotifier {
     ) {
         Timber.i("SOS false-alarm (no-op notifier): id=%s child=%s reason=%s", sosEventId, childDid, reason)
     }
+
+    override suspend fun notifyBroadcast(
+        sosEventId: String,
+        childDid: String,
+        familyGroupId: String,
+        guardianDids: List<String>,
+        locationSnapshot: String?,
+    ) {
+        Timber.i(
+            "SOS broadcast (no-op notifier): id=%s child=%s guardians=%d",
+            sosEventId,
+            childDid,
+            guardianDids.size,
+        )
+    }
+
+    override suspend fun notifyAcknowledged(
+        sosEventId: String,
+        acknowledgedByDid: String,
+        standDownGuardianDids: List<String>,
+    ) {
+        Timber.i(
+            "SOS acknowledged (no-op notifier): id=%s by=%s standDown=%d",
+            sosEventId,
+            acknowledgedByDid,
+            standDownGuardianDids.size,
+        )
+    }
 }

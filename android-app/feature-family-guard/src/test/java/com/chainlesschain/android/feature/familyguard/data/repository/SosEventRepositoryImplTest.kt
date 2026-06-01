@@ -55,6 +55,18 @@ class SosEventRepositoryImplTest {
         ) {
             falseAlarms += sosEventId
         }
+        override suspend fun notifyBroadcast(
+            sosEventId: String,
+            childDid: String,
+            familyGroupId: String,
+            guardianDids: List<String>,
+            locationSnapshot: String?,
+        ) = Unit
+        override suspend fun notifyAcknowledged(
+            sosEventId: String,
+            acknowledgedByDid: String,
+            standDownGuardianDids: List<String>,
+        ) = Unit
     }
 
     private val fakeTime = FakeTimeAuthority(baseNow)
