@@ -15,8 +15,8 @@ sealed interface RoleLockState {
      * 已选锁定中 (selected < 24h ago, 仍可改).
      *
      * @property role 已选择的角色
-     * @property selectedAtMs 选定时刻 (epoch ms, 用墙钟; v1 暂不接 TimeAuthority,
-     *   等 FAMILY-60 落地后再切;) 这是 FAMILY-04 已知约束。
+     * @property selectedAtMs 选定时刻 (epoch ms, FAMILY-60 起走 TimeAuthority 权威时间;
+     *   配对+同步后防改钟绕过, 未同步时退墙钟 baseline)。
      * @property lockAtMs `selectedAtMs + 24h` 计算结果; 用于 UI 倒计时显示。
      */
     data class LockPending(

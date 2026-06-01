@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.Flow
  *   2. select(role) 保存到 DataStore 并刷新 state
  *   3. tryChangeRole(): 仅 LockPending 时允许; Locked 拒绝
  *
- * 时间裁决基线: v1 用 java.time.Clock 注入 (Hilt 提供 systemClock); FAMILY-60
- * TimeAuthority 落地后切换为权威时间, 防孩子改设备时钟绕过锁。
+ * 时间裁决基线: FAMILY-60 起用 TimeAuthority.authoritativeNow() (锚定单调钟),
+ * 防孩子改设备时钟把锁"调过期"绕过 (配对+同步后生效; 未同步退墙钟 baseline)。
  */
 interface RolePreferencesRepository {
 
