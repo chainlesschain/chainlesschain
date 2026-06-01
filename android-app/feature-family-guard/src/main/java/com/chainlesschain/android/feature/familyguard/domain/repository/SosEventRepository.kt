@@ -34,7 +34,10 @@ interface SosEventRepository {
     /** PENDING / ACKNOWLEDGED → RESOLVED (处理结束)。 */
     suspend fun resolve(id: String, note: String? = null): SosTransitionResult
 
-    /** PENDING → FALSE_ALARM (误触撤销)。 */
+    /**
+     * PENDING → FALSE_ALARM (FAMILY-44 误触撤销)。仅触发后 [CANCEL_WINDOW_MS] (5min) 内
+     * 允许; 超窗返 [SosTransitionResult.CancelWindowExpired]。成功后经 SosNotifier 通知家长。
+     */
     suspend fun cancelAsFalseAlarm(id: String, reason: String): SosTransitionResult
 
     /** 观察所有 pending SOS (家长端待处理列表)。 */
@@ -47,4 +50,9 @@ interface SosEventRepository {
     ): kotlinx.coroutines.flow.Flow<List<SosEventEntity>>
 
     suspend fun findById(id: String): SosEventEntity?
+
+    companion object {
+        /** 误触撤销窗口 (FAMILY-44, 主文档 §3.7: 5min)。 */
+        const val CANCEL_WINDOW_MS: Long = 5L * 60 * 1000
+    }
 }

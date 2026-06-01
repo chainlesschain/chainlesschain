@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardDatabase
+import com.chainlesschain.android.feature.familyguard.domain.repository.SosEventRepository
+import com.chainlesschain.android.feature.familyguard.domain.sos.SosNotifier
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosStatus
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosTransitionResult
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosTriggerSource
@@ -43,7 +45,20 @@ class SosEventRepositoryImplTest {
         override suspend fun sync(): Boolean = true
     }
 
+    private class FakeSosNotifier : SosNotifier {
+        val falseAlarms = mutableListOf<String>() // sosEventId
+        override suspend fun notifyFalseAlarm(
+            sosEventId: String,
+            childDid: String,
+            familyGroupId: String,
+            reason: String,
+        ) {
+            falseAlarms += sosEventId
+        }
+    }
+
     private val fakeTime = FakeTimeAuthority(baseNow)
+    private val fakeNotifier = FakeSosNotifier()
     private lateinit var sut: SosEventRepositoryImpl
 
     @Before
@@ -52,7 +67,7 @@ class SosEventRepositoryImplTest {
             ApplicationProvider.getApplicationContext(),
             FamilyGuardDatabase::class.java,
         ).allowMainThreadQueries().build()
-        sut = SosEventRepositoryImpl(db.sosEventDao(), fakeTime, SecureRandom())
+        sut = SosEventRepositoryImpl(db.sosEventDao(), fakeTime, fakeNotifier, SecureRandom())
     }
 
     @After
@@ -129,12 +144,32 @@ class SosEventRepositoryImplTest {
     // ─── false alarm ───
 
     @Test
-    fun `cancelAsFalseAlarm from pending succeeds`(): Unit = runBlocking {
+    fun `cancelAsFalseAlarm within 5min succeeds and notifies guardian`(): Unit = runBlocking {
         val id = seedPending()
+        // 触发后 4min 撤销 (窗口内)
+        fakeTime.nowMs = baseNow + 4 * 60 * 1000
         assertIs<SosTransitionResult.Success>(sut.cancelAsFalseAlarm(id, "误触"))
         val rel = db.sosEventDao().findById(id)
         assertEquals(SosStatus.FALSE_ALARM.storageValue, rel?.status)
         assertEquals("误触", rel?.cancelReason)
+        assertEquals(listOf(id), fakeNotifier.falseAlarms) // 通知家长
+    }
+
+    @Test
+    fun `cancelAsFalseAlarm after 5min window returns CancelWindowExpired and does not notify`(): Unit =
+        runBlocking {
+            val id = seedPending()
+            // 触发后 6min 撤销 (超 5min 窗口)
+            fakeTime.nowMs = baseNow + 6 * 60 * 1000
+            assertIs<SosTransitionResult.CancelWindowExpired>(sut.cancelAsFalseAlarm(id, "误触"))
+            // 仍 pending (未改状态), 不通知
+            assertEquals(SosStatus.PENDING.storageValue, db.sosEventDao().findById(id)?.status)
+            assertTrue(fakeNotifier.falseAlarms.isEmpty())
+        }
+
+    @Test
+    fun `cancel window boundary uses CANCEL_WINDOW_MS constant`() {
+        assertEquals(5L * 60 * 1000, SosEventRepository.CANCEL_WINDOW_MS)
     }
 
     @Test
@@ -143,6 +178,7 @@ class SosEventRepositoryImplTest {
         sut.acknowledge(id, "did:chain:mom")
         val invalid = assertIs<SosTransitionResult.InvalidState>(sut.cancelAsFalseAlarm(id, "误触"))
         assertEquals(SosStatus.ACKNOWLEDGED, invalid.current)
+        assertTrue(fakeNotifier.falseAlarms.isEmpty()) // 非 pending → 不撤销不通知
     }
 
     // ─── queries ───

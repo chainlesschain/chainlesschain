@@ -15,4 +15,11 @@ sealed interface SosTransitionResult {
 
     /** 当前状态不允许该转换 (e.g. 已 resolved 再 acknowledge); 附当前状态。 */
     data class InvalidState(val current: SosStatus) : SosTransitionResult
+
+    /**
+     * 误触撤销超出 5min 窗口 (FAMILY-44): 事件仍 pending 但触发已超
+     * [com.chainlesschain.android.feature.familyguard.domain.repository.SosEventRepository.Companion.CANCEL_WINDOW_MS],
+     * 不再允许孩子自行撤销 (走家长 resolve / 兜底升级 FAMILY-45)。
+     */
+    data object CancelWindowExpired : SosTransitionResult
 }

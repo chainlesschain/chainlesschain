@@ -55,13 +55,16 @@ interface SosEventDao {
     )
     suspend fun markResolved(id: String, at: Long, note: String?): Int
 
-    /** PENDING → FALSE_ALARM (误触撤销). */
+    /**
+     * PENDING → FALSE_ALARM (FAMILY-44 误触撤销). 仅 5min 窗口内 (triggered_at >=
+     * minTriggeredAt) 允许; 超窗 guard 不命中 (0 行) → 调用方判 CancelWindowExpired。
+     */
     @Query(
         """
         UPDATE sos_event
            SET status = 'false_alarm', cancelled_at = :at, cancel_reason = :reason
-         WHERE id = :id AND status = 'pending'
+         WHERE id = :id AND status = 'pending' AND triggered_at >= :minTriggeredAt
         """,
     )
-    suspend fun markFalseAlarm(id: String, at: Long, reason: String): Int
+    suspend fun markFalseAlarm(id: String, at: Long, reason: String, minTriggeredAt: Long): Int
 }

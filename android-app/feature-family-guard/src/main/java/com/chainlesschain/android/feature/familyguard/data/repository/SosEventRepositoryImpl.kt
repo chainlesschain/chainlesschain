@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.familyguard.data.repository
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
 import com.chainlesschain.android.feature.familyguard.domain.repository.SosEventRepository
+import com.chainlesschain.android.feature.familyguard.domain.sos.SosNotifier
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosStatus
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosTransitionResult
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosTriggerSource
@@ -11,6 +12,7 @@ import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import timber.log.Timber
 
 /**
  * FAMILY-40 实装. 时刻走 [TimeAuthority.authoritativeNow] (防改钟误记紧急事件时序);
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 class SosEventRepositoryImpl @Inject constructor(
     private val sosEventDao: SosEventDao,
     private val timeAuthority: TimeAuthority,
+    private val sosNotifier: SosNotifier,
     // 不给默认值: `@Inject constructor(x = Default())` 会让 Kotlin 生成双构造器 → Dagger
     // 报 "may only contain one injected constructor" ([[android_inject_default_param_dual_ctor]])。
     // SecureRandom 由 FamilyGuardModule.provideSecureRandom 供给; 单测显式传 fixed-seed。
@@ -66,8 +69,28 @@ class SosEventRepositoryImpl @Inject constructor(
     }
 
     override suspend fun cancelAsFalseAlarm(id: String, reason: String): SosTransitionResult {
-        val rows = sosEventDao.markFalseAlarm(id, timeAuthority.authoritativeNow(), reason)
-        return resultFor(id, rows)
+        val now = timeAuthority.authoritativeNow()
+        val minTriggeredAt = now - SosEventRepository.CANCEL_WINDOW_MS
+        val rows = sosEventDao.markFalseAlarm(id, now, reason, minTriggeredAt)
+        if (rows > 0) {
+            // 撤销成功 → 通知家长 (best-effort; 通知失败不回滚已落库的 false_alarm)。
+            val event = sosEventDao.findById(id)
+            if (event != null) {
+                runCatching {
+                    sosNotifier.notifyFalseAlarm(id, event.childDid, event.familyGroupId, reason)
+                }.onFailure { Timber.w(it, "SOS false-alarm notify failed for %s", id) }
+            }
+            return SosTransitionResult.Success
+        }
+        // 未命中: 区分 不存在 / 状态非 pending / 仍 pending 但超 5min 窗口。
+        val existing = sosEventDao.findById(id) ?: return SosTransitionResult.NotFound
+        return if (existing.status == SosStatus.PENDING.storageValue) {
+            SosTransitionResult.CancelWindowExpired // pending 但 triggered_at < minTriggeredAt
+        } else {
+            SosTransitionResult.InvalidState(
+                SosStatus.fromStorage(existing.status) ?: SosStatus.PENDING,
+            )
+        }
     }
 
     override fun observePending(): Flow<List<SosEventEntity>> = sosEventDao.observePending()
