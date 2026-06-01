@@ -5,7 +5,7 @@ docs/.vitepress/.temp/
 /.vitepress/
 *.tar.gz
 
-# 同步产物（源文件在 docs/design/）
-docs/design/*.md
+# 同步产物（源文件在 docs/design/）— 整个 design/ 子树都是 sync artifact，仅保留 index.md。
+# 用 glob 而非逐子目录枚举，防新子目录（如 spike/）fall-through（trap docs_site_sync_unmapped_fallthrough）。
+docs/design/*
 !docs/design/index.md
-docs/design/modules/
