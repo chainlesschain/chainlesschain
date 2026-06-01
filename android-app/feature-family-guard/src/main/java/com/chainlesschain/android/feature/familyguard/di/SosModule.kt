@@ -1,8 +1,10 @@
 package com.chainlesschain.android.feature.familyguard.di
 
 import com.chainlesschain.android.feature.familyguard.data.repository.SosEventRepositoryImpl
+import com.chainlesschain.android.feature.familyguard.data.sos.NoOpEmergencyContactNotifier
 import com.chainlesschain.android.feature.familyguard.data.sos.NoOpSosNotifier
 import com.chainlesschain.android.feature.familyguard.domain.repository.SosEventRepository
+import com.chainlesschain.android.feature.familyguard.domain.sos.EmergencyContactNotifier
 import com.chainlesschain.android.feature.familyguard.domain.sos.SosNotifier
 import dagger.Binds
 import dagger.Module
@@ -30,4 +32,9 @@ abstract class SosModule {
     @Binds
     @Singleton
     abstract fun bindSosNotifier(impl: NoOpSosNotifier): SosNotifier
+
+    /** FAMILY-45 兜底外部联系人通知默认 no-op; :app 接云厂商短信 API 覆盖。 */
+    @Binds
+    @Singleton
+    abstract fun bindEmergencyContactNotifier(impl: NoOpEmergencyContactNotifier): EmergencyContactNotifier
 }
