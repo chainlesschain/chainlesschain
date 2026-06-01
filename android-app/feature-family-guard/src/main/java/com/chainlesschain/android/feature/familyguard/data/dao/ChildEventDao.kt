@@ -58,6 +58,13 @@ interface ChildEventDao {
     @Query("DELETE FROM child_event WHERE timestamp < :cutoffMs")
     suspend fun deleteOlderThan(cutoffMs: Long): Int
 
+    /**
+     * 按分级硬删过期事件 (FAMILY-28 数据生命周期; 主文档 §4.6 L0 1y / L1 90d /
+     * L2 30d / L3 7d 各自保留期不同, 故按 level 分别 cutoff)。
+     */
+    @Query("DELETE FROM child_event WHERE level = :level AND timestamp < :cutoffMs")
+    suspend fun deleteOlderThanByLevel(level: String, cutoffMs: Long): Int
+
     @Query("SELECT COUNT(*) FROM child_event WHERE child_did = :childDid")
     suspend fun countForChild(childDid: String): Int
 }

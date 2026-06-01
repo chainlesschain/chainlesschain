@@ -127,5 +127,17 @@
                 <action android:name="com.chainlesschain.android.familyguard.KEEP_ALIVE" />
             </intent-filter>
         </receiver>
+
+        <!-- ───── FAMILY-28 数据生命周期日清理 (主文档 §4.6) ───── -->
+
+        <receiver
+            android:name=".boot.DataLifecycleReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <!-- 内部日 alarm (~03:00) 触发, 仅 self 发送, exported=false. -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.familyguard.DATA_LIFECYCLE_CLEANUP" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -138,6 +138,7 @@ class AnomalyScanTimerTest {
         override fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>> =
             flowOf(emptyList())
         override suspend fun deleteOlderThan(cutoffMs: Long): Int = 0
+        override suspend fun deleteOlderThanByLevel(level: String, cutoffMs: Long): Int = 0
         override suspend fun countForChild(childDid: String): Int = 0
     }
 }

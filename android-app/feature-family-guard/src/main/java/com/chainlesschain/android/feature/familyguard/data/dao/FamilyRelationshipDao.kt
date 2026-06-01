@@ -65,6 +65,14 @@ interface FamilyRelationshipDao {
     @Query("SELECT * FROM family_relationship WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): FamilyRelationshipEntity?
 
+    /**
+     * FAMILY-28 数据生命周期: 硬删指定状态且 updated_at 早于 cutoff 的关系。
+     * 主文档 §4.6 "解绑后历史 90d 后硬删除" → 传 status='unbound'。
+     * updated_at 在状态转 unbound 时被置, 故为"解绑以来"的合理近似。
+     */
+    @Query("DELETE FROM family_relationship WHERE status = :status AND updated_at < :cutoffMs")
+    suspend fun deleteByStatusOlderThan(status: String, cutoffMs: Long): Int
+
     // ─── FAMILY-15 unbind state machine (atomic SQL state transitions) ───
 
     /**

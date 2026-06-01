@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.familyguard.boot
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.chainlesschain.android.feature.familyguard.data.lifecycle.DataLifecycleScheduler
 import com.chainlesschain.android.feature.familyguard.domain.model.FamilyGuardState
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGuardServiceController
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,7 @@ class BootReceiver : BroadcastReceiver() {
     @Inject lateinit var serviceController: FamilyGuardServiceController
     @Inject lateinit var startupReconciler: StartupReconciler
     @Inject lateinit var keepAliveScheduler: KeepAliveScheduler
+    @Inject lateinit var dataLifecycleScheduler: DataLifecycleScheduler
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -48,8 +50,9 @@ class BootReceiver : BroadcastReceiver() {
         // 1. 立刻拉起前台服务到 IDLE; setState 异步, 不阻塞 onReceive 10s 上限
         serviceController.setState(FamilyGuardState.IDLE)
 
-        // 2. KeepAlive 周期 alarm
+        // 2. KeepAlive 周期 alarm + 数据生命周期日清理 alarm (FAMILY-28, 主文档 §4.6)
         keepAliveScheduler.schedule()
+        dataLifecycleScheduler.schedule()
 
         // 3. Reconciler 走 IO 协程; goAsync 让广播保持 alive 直到完成
         val pendingResult = goAsync()
