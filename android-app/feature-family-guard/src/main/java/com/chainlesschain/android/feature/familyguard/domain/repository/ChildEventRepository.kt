@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.familyguard.domain.repository
 
 import com.chainlesschain.android.feature.familyguard.data.entity.ChildEventEntity
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppRun
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryEvent
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -24,6 +25,12 @@ interface ChildEventRepository {
 
     /** 通用写入入口; 其他 source (PDH, snapshot, etc.) 调本接口. */
     suspend fun saveEvent(event: ChildEventEntity): Long
+
+    /**
+     * 类型化 TelemetryEvent 入口 (FAMILY-21). 走 [TelemetryEventConverter] 转
+     * ChildEventEntity 后插库; 是 [TelemetrySource] 实装的标准写入路径。
+     */
+    suspend fun saveTelemetryEvent(event: TelemetryEvent): Long
 
     suspend fun querySince(childDid: String, sinceMs: Long): List<ChildEventEntity>
 

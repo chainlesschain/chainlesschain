@@ -17,6 +17,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.preferences.appRoleDataStore
+import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppAggregator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -133,4 +134,21 @@ object FamilyGuardModule {
     @Provides
     @Singleton
     fun provideSecureRandom(): SecureRandom = SecureRandom()
+
+    // ─── FAMILY-21: telemetry source ───
+
+    /**
+     * [ForegroundAppAggregator] binding for [ForegroundAppTelemetrySource].
+     *
+     * 同 [provideSecureRandom] 的坑: ForegroundAppTelemetrySource 的
+     * `@Inject constructor(aggregator: ForegroundAppAggregator = ForegroundAppAggregator())`
+     * 默认值 **不被 Dagger 识别** (Dagger 忽略 Kotlin 默认参数)。一旦 FAMILY-XX
+     * CentralTelemetryDispatcher `@Inject ForegroundAppTelemetrySource` 把它拉进图,
+     * 缺这个 binding 就会 [Dagger/MissingBinding] java.security... ForegroundAppAggregator。
+     * aggregator 是 pure state machine, 单 source 独占, 故 @Singleton。单测仍直接构造
+     * (走 Kotlin 默认值), 不经 DI。
+     */
+    @Provides
+    @Singleton
+    fun provideForegroundAppAggregator(): ForegroundAppAggregator = ForegroundAppAggregator()
 }

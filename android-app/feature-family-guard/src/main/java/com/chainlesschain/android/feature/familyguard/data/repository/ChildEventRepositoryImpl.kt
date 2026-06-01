@@ -2,8 +2,10 @@ package com.chainlesschain.android.feature.familyguard.data.repository
 
 import com.chainlesschain.android.feature.familyguard.data.dao.ChildEventDao
 import com.chainlesschain.android.feature.familyguard.data.entity.ChildEventEntity
+import com.chainlesschain.android.feature.familyguard.data.telemetry.TelemetryEventConverter
 import com.chainlesschain.android.feature.familyguard.domain.repository.ChildEventRepository
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppRun
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryEvent
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +36,9 @@ class ChildEventRepositoryImpl @Inject constructor(
 
     override suspend fun saveEvent(event: ChildEventEntity): Long =
         childEventDao.insert(event)
+
+    override suspend fun saveTelemetryEvent(event: TelemetryEvent): Long =
+        childEventDao.insert(TelemetryEventConverter.toEntity(event))
 
     override suspend fun querySince(childDid: String, sinceMs: Long): List<ChildEventEntity> =
         childEventDao.querySince(childDid, sinceMs)
