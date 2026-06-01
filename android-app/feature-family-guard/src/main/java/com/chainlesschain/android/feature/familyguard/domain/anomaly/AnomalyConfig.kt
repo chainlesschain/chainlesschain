@@ -16,6 +16,10 @@ package com.chainlesschain.android.feature.familyguard.domain.anomaly
  * @property gamePackages 游戏类包名集 (DAILY_GAME_OVERUSE 判定)。
  * @property rechargeKinds 视为充值意图的 child_event.kind 集 (RECHARGE_INTENT_SPIKE 判定)。
  * @property knownApps 已知/系统 app 白名单 (UNKNOWN_APP_FIRST_SEEN 跳过这些)。
+ * @property dwellMinMinutes 连续停留触发 GEOFENCE_DWELL 的时长下限 (主文档: 30min)。
+ * @property dwellRadiusM 判定"同一处停留"的位置点聚合半径米; 新点偏离会话锚点超此即视为离开。
+ * @property dwellMaxPointGapMs 同一停留会话内相邻点最大时间间隔; 超此(数据缺失)断开会话,
+ *   不把跨缺口的两段误并成一次长停留。
  */
 data class AnomalyConfig(
     val singleAppMaxMinutes: Int = 90,
@@ -27,6 +31,9 @@ data class AnomalyConfig(
     val gamePackages: Set<String> = DEFAULT_GAME_PACKAGES,
     val rechargeKinds: Set<String> = DEFAULT_RECHARGE_KINDS,
     val knownApps: Set<String> = emptySet(),
+    val dwellMinMinutes: Int = 30,
+    val dwellRadiusM: Double = 150.0,
+    val dwellMaxPointGapMs: Long = 20 * 60_000L,
 ) {
     companion object {
         /**

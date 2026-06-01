@@ -4,7 +4,7 @@ package com.chainlesschain.android.feature.familyguard.domain.anomaly
  * 异常事件类型 (FAMILY-27 AnomalyDetector v0). 主文档 §3.2 异常事件触发 5 条 v0 规则。
  *
  * [storageValue] 写入 anomaly.type 列; 改值会破坏 on-disk 已记录的异常, 不许改。
- * v0.2 围栏外异常停留 (M8 联动) 加 GEOFENCE_DWELL 时追加枚举项即可。
+ * GEOFENCE_DWELL (FAMILY-55, M8 联动) 已追加。
  */
 enum class AnomalyType(val storageValue: String) {
     /** 单 app 连续使用 > 阈值 (默认 90min)。 */
@@ -21,6 +21,9 @@ enum class AnomalyType(val storageValue: String) {
 
     /** 单日充值类 intent 次数 ≥ 阈值 (默认 3)。 */
     RECHARGE_INTENT_SPIKE("recharge_intent_spike"),
+
+    /** 在非安全区域 / 禁入区连续停留 > 阈值 (默认 30min); FAMILY-55 M8 联动。 */
+    GEOFENCE_DWELL("geofence_dwell"),
 
     ;
 
