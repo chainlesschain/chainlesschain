@@ -27,7 +27,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (141 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skills System (144 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Skill Lazy Loading            | `main/ai-engine/cowork/skills/skill-loader.js` (`parseMetadataOnly`)     | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
@@ -101,11 +101,11 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **141 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
+- **144 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
-#### Built-in Skills Overview (141 total)
+#### Built-in Skills Overview (144 total)
 
 | 组别                     | 版本    | 数量 | 技能（技能名）                                                                                                                                                                                                                                       |
 | ------------------------ | ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -122,7 +122,10 @@ All entry files are relative to `desktop-app-vue/src/`.
 | 知识/研究/内容/生产力    | v0.38.2 | 10   | deep-research, tavily-search, summarizer, youtube-summarizer, news-monitor, obsidian, content-publisher, humanizer, notion, google-workspace                                                                                                         |
 | 系统/媒体/安全/工具/示例 | v0.38.3 | 11   | api-gateway, free-model-manager, find-skills, skill-creator, self-improving-agent, remotion-video, weather, zkp-toolkit, handler-test-skill, my-custom-skill, test-skill                                                                             |
 | 社区生态补充技能         | v1.2.1  | 6    | brainstorming, debugging-strategies, api-design, frontend-design, create-pr, doc-coauthoring                                                                                                                                                         |
-| 视频剪辑 Agent (CutClaw) | v5.0.2.10 | 1  | video-editing (CLI `cc video edit/deconstruct/plan/assemble/render/assets` + Desktop IPC 7ch + Pinia store + Vue page + parallel orchestrator + beat-snap + ducking + QualityGate)                                                                    |
+| Agent/研究/协作补充       | —       | 7    | complete, deep-interview, multi-search-engine, ralph, ralplan, team, verify                                                                                                                                                                          |
+| 视频剪辑 Agent (CutClaw) | v5.0.2.10 | 1* | video-editing (CLI `cc video edit/deconstruct/plan/assemble/render/assets` + Desktop IPC 7ch + Pinia store + Vue page + parallel orchestrator + beat-snap + ducking + QualityGate)                                                                    |
+
+> 注：上表 13 组 builtin 目录小计 = 137 + 「Agent/研究/协作补充」7 = **144** 个 `builtin/*/SKILL.md`（与磁盘一致）。`video-editing`（标 `1*`）是 CutClaw CLI/IPC 技能，**没有独立 `builtin/` SKILL.md 目录**，单列展示，不计入 144。
 
 ### Hooks System
 
@@ -272,8 +275,8 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `chat`     | —                                              | Interactive AI chat with streaming (headless)                      |
 | `ask`      | —                                              | Single-shot AI query (headless)                                    |
 | `llm`      | models, test, providers, add-provider, switch  | LLM provider management (headless)                                 |
-| `agent`    | —                                              | Agentic AI session with 10 tools + 141 skills + Plan Mode + Sub-Agent Isolation (headless)|
-| `skill`    | list, categories, info, search, run            | 141 built-in skill management (headless)                           |
+| `agent`    | —                                              | Agentic AI session with 10 tools + 144 skills + Plan Mode + Sub-Agent Isolation (headless)|
+| `skill`    | list, categories, info, search, run            | 144 built-in skill management (headless)                           |
 | `search`   | —                                              | BM25 hybrid search (Phase 1)                                      |
 | `tokens`   | show, breakdown, recent, cache                 | Token usage tracking + cost analysis (Phase 1)                     |
 | `memory`   | show, add, search, delete, daily, file         | Persistent memory + daily notes (Phase 1)                          |

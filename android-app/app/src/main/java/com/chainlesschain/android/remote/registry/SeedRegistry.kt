@@ -1,9 +1,10 @@
 package com.chainlesschain.android.remote.registry
 
 /**
- * 23 个 *Commands.kt 的 file-level 种子数据（来源：M1 [Android_REMOTE_commands_inventory.md]）。
+ * 24 个 *Commands.kt 的 file-level 种子数据（来源：M1 [Android_REMOTE_commands_inventory.md]）。
+ * 注：remote/commands/ 下共 25 个 *Commands.kt 文件，本 SKILLS 列表 seed 其中 24 个。
  *
- * - 数量与 inventory 表对齐：23 entries，total methodCount = 795
+ * - 数量与 inventory 表对齐：24 entries，total methodCount = 816
  * - risk 取**每文件最高档**（mutating + privileged → Privileged；safe + mutating → Mutating；
  *   safe + privileged → Privileged）
  * - requiresApproval 默认从 risk 推导（Privileged 强 ApprovalUI）
