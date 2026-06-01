@@ -70,6 +70,7 @@ class FamilyCallRpcClient @Inject constructor(
     private val didManager: DIDManager,
     private val negotiator: CallNegotiator,
     private val kindGate: CallKindGate,
+    private val urgentCallQuota: UrgentCallQuota,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val seqCounter = AtomicLong(0)
@@ -115,8 +116,19 @@ class FamilyCallRpcClient @Inject constructor(
     suspend fun silentObserve(targetPeerId: String, targetDid: String): Result<String> =
         gatedSend(FamilyCallType.SILENT_OBSERVE, targetPeerId, targetDid, CallKind.SILENT_OBSERVE)
 
+    /**
+     * 强接通：FAMILY-36 配额闸——24h 内每对端限 3 次。超额**降级**为普通 AUDIO 呼叫
+     * （不再强接通）。Allowed 才发 URGENT_FORCE。
+     */
     suspend fun urgentForce(targetPeerId: String, targetDid: String): Result<String> =
-        gatedSend(FamilyCallType.URGENT_FORCE, targetPeerId, targetDid, CallKind.URGENT)
+        when (val q = urgentCallQuota.consume(targetDid, System.currentTimeMillis())) {
+            is UrgentQuotaResult.Allowed ->
+                gatedSend(FamilyCallType.URGENT_FORCE, targetPeerId, targetDid, CallKind.URGENT)
+            is UrgentQuotaResult.Exhausted -> {
+                Timber.w("[FamilyCall] urgent quota exhausted for $targetDid (reset@${q.resetAtMs}); 降级 AUDIO")
+                invite(targetPeerId, targetDid, CallKind.AUDIO)
+            }
+        }
 
     suspend fun accept(targetPeerId: String, callId: String): Result<Unit> =
         sendControl(FamilyCallType.ACCEPT, targetPeerId, callId)

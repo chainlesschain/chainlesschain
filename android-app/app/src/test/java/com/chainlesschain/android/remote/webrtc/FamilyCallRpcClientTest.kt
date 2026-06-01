@@ -68,8 +68,14 @@ class FamilyCallRpcClientTest {
     private fun didManager(): DIDManager =
         mockk { every { getCurrentDID() } returns parentDid }
 
-    private fun client(checker: FamilyPermissionChecker, signal: FakeSignalClient) =
-        FamilyCallRpcClient(signal, didManager(), CallNegotiator(), CallKindGate(checker))
+    private fun allowQuota(): UrgentCallQuota =
+        mockk { every { consume(any(), any()) } returns UrgentQuotaResult.Allowed(2) }
+
+    private fun client(
+        checker: FamilyPermissionChecker,
+        signal: FakeSignalClient,
+        quota: UrgentCallQuota = allowQuota(),
+    ) = FamilyCallRpcClient(signal, didManager(), CallNegotiator(), CallKindGate(checker), quota)
 
     @Test
     fun `invite AUDIO allowed sends invite envelope with callKind + inviterRole`() = runTest {
@@ -110,12 +116,27 @@ class FamilyCallRpcClientTest {
     }
 
     @Test
-    fun `urgentForce gates on StartForcePickup`() = runTest {
+    fun `urgentForce within quota gates on StartForcePickup`() = runTest {
         val checker = FakeChecker(PermissionDecision.Allow)
         val signal = FakeSignalClient()
         client(checker, signal).urgentForce(targetPeer, targetDid)
         assertEquals(FamilyAction.StartForcePickup, checker.lastAction)
         assertEquals("chainlesschain:family:call:urgent_force", signal.lastPayload!!.getString("type"))
+    }
+
+    @Test
+    fun `urgentForce over quota degrades to normal AUDIO invite (FAMILY-36)`() = runTest {
+        val checker = FakeChecker(PermissionDecision.Allow)
+        val signal = FakeSignalClient()
+        val exhausted: UrgentCallQuota = mockk {
+            every { consume(any(), any()) } returns UrgentQuotaResult.Exhausted(999L)
+        }
+        val res = client(checker, signal, exhausted).urgentForce(targetPeer, targetDid)
+        assertTrue(res.isSuccess)
+        // 降级：发普通 AUDIO invite 而非 urgent_force
+        assertEquals("chainlesschain:family:call:invite", signal.lastPayload!!.getString("type"))
+        assertEquals("AUDIO", signal.lastPayload!!.getString("callKind"))
+        assertEquals(FamilyAction.StartAudioCall, checker.lastAction)
     }
 
     @Test
