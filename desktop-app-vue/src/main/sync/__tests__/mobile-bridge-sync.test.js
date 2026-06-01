@@ -237,6 +237,22 @@ function bootstrapSchema(sqlDb) {
       PRIMARY KEY (scope, key)
     );
 
+    -- FAMILY-26 (2026-06-01) — family_child_event 入向 telemetry 镜像表。
+    CREATE TABLE family_child_event (
+      resource_id TEXT PRIMARY KEY,
+      child_did TEXT NOT NULL,
+      source TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      payload TEXT,
+      timestamp_ms INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      level TEXT NOT NULL DEFAULT 'L1',
+      guardian_dids TEXT,
+      device_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
     CREATE TABLE sync_external_provider_cursor (
       provider_id TEXT NOT NULL,
       account_key TEXT NOT NULL DEFAULT '',
@@ -2098,5 +2114,84 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
     );
     expect(r11.ok).toBe(false);
     expect(r11.error).toBe("RATE_LIMITED");
+  });
+});
+
+// ============================================================
+// handlePush — TELEMETRY (FAMILY-26 家庭守护入向镜像)
+// ============================================================
+describe("MobileBridgeSync · handlePush TELEMETRY (FAMILY-26)", () => {
+  const telemetryItem = (overrides = {}) => ({
+    resourceType: ResourceType.TELEMETRY,
+    resourceId: "telemetry|did:chain:kid|foreground_app|run|1000",
+    operation: SyncOperation.CREATE,
+    version: 1,
+    timestamp: 1000,
+    deviceId: "android-kid",
+    data: JSON.stringify({
+      childDid: "did:chain:kid",
+      source: "foreground_app",
+      kind: "run",
+      payload: '{"package":"com.x","duration_ms":60000}',
+      timestampMs: 1000,
+      durationMs: 60000,
+      level: "L1",
+      rowId: 42,
+      guardianDids: ["did:chain:mom", "did:chain:dad"],
+      ...overrides,
+    }),
+  });
+
+  it("mirrors a remote telemetry event into family_child_event", async () => {
+    const sync = makeSync();
+    const res = await sync.handlePush({ item: telemetryItem() });
+
+    expect(res.status).toBe("applied");
+    const row = dbManager.get(
+      `SELECT * FROM family_child_event WHERE resource_id = ?`,
+      ["telemetry|did:chain:kid|foreground_app|run|1000"],
+    );
+    expect(row.child_did).toBe("did:chain:kid");
+    expect(row.source).toBe("foreground_app");
+    expect(row.kind).toBe("run");
+    expect(row.timestamp_ms).toBe(1000);
+    expect(row.duration_ms).toBe(60000);
+    expect(row.level).toBe("L1");
+    expect(row.payload).toContain("com.x");
+    expect(JSON.parse(row.guardian_dids)).toEqual([
+      "did:chain:mom",
+      "did:chain:dad",
+    ]);
+  });
+
+  it("is idempotent — re-pushing same resourceId does not duplicate", async () => {
+    const sync = makeSync();
+    await sync.handlePush({ item: telemetryItem() });
+    const second = await sync.handlePush({ item: telemetryItem() });
+
+    // 同 id 第二次走 conflict 预检判 "local" 跳过 apply
+    expect(second.status).toBe("conflict");
+    const rows = dbManager.all(
+      `SELECT resource_id FROM family_child_event WHERE child_did = ?`,
+      ["did:chain:kid"],
+    );
+    expect(rows.length).toBe(1);
+  });
+
+  it("DELETE operation removes the mirrored row", async () => {
+    const sync = makeSync();
+    await sync.handlePush({ item: telemetryItem() });
+    await sync._applyTelemetry({
+      resourceType: ResourceType.TELEMETRY,
+      resourceId: "telemetry|did:chain:kid|foreground_app|run|1000",
+      operation: SyncOperation.DELETE,
+      timestamp: 2000,
+      data: "{}",
+    });
+    const row = dbManager.get(
+      `SELECT * FROM family_child_event WHERE resource_id = ?`,
+      ["telemetry|did:chain:kid|foreground_app|run|1000"],
+    );
+    expect(row).toBeUndefined();
   });
 });

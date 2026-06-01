@@ -313,6 +313,28 @@ function createTables(dbManager, logger) {
       CREATE INDEX IF NOT EXISTS idx_user_settings_updated ON user_settings(updated_at);
       CREATE INDEX IF NOT EXISTS idx_user_settings_scope ON user_settings(scope);
 
+      -- FAMILY-26 家庭守护 telemetry 入向镜像表。Android child 端上行的采集事件
+      -- (前台 app / PDH / snapshot) 经 mobile-bridge-sync ResourceType.TELEMETRY 落这里，
+      -- 供家长端 UI 查看孩子使用情况。append-only：仅入向 apply，无出向 walker。
+      -- resource_id = SyncItem.resourceId (telemetry|childDid|source|kind|startMs)，唯一 → 幂等。
+      -- level 存 Android TelemetryLevel.name (L0..L3)，不加 CHECK 防未来枚举漂移。
+      CREATE TABLE IF NOT EXISTS family_child_event (
+        resource_id TEXT PRIMARY KEY,
+        child_did TEXT NOT NULL,
+        source TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        payload TEXT,
+        timestamp_ms INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        level TEXT NOT NULL DEFAULT 'L1',
+        guardian_dids TEXT,
+        device_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_family_child_event_child ON family_child_event(child_did, timestamp_ms DESC);
+      CREATE INDEX IF NOT EXISTS idx_family_child_event_source ON family_child_event(source);
+
       -- 项目评论表
       CREATE TABLE IF NOT EXISTS project_comments (
         id TEXT PRIMARY KEY,

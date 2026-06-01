@@ -51,6 +51,10 @@ const ResourceType = Object.freeze({
   // CREATE/UPDATE 走 walker LWW UPSERT，DELETE 走 trg_sync_ext_tombstone_user_settings
   // tombstone trigger（item_id = "scope:key"）。
   SETTING: "SETTING",
+  // FAMILY-26 (2026-06-01)：家庭守护 telemetry 入向镜像。Android child 端上行
+  // 前台 app / PDH / snapshot 采集事件 → family_child_event 镜像表供家长查看。
+  // append-only：仅 apply 入向 (无 walker 出向)；resourceId 唯一 → 幂等。
+  TELEMETRY: "TELEMETRY",
 });
 
 const SyncOperation = Object.freeze({
@@ -1229,6 +1233,10 @@ class MobileBridgeSync {
         case ResourceType.SETTING:
           await this._applySetting(item);
           break;
+        // FAMILY-26 (2026-06-01)：家庭守护 telemetry 入向镜像。
+        case ResourceType.TELEMETRY:
+          await this._applyTelemetry(item);
+          break;
         default:
           // CONTACT 和未来类型走这里。CONTACT v1 不接，详见 _tableFetchers 注释。
           this.logger.warn(
@@ -1653,6 +1661,60 @@ class MobileBridgeSync {
     );
   }
 
+  /**
+   * TELEMETRY apply — FAMILY-26 家庭守护入向镜像。
+   *
+   * Android child 端上行的采集事件 (前台 app / PDH / snapshot) 落 family_child_event
+   * 镜像表供家长查看。data JSON shape (来自 :app SyncManagerTelemetryOutbox.TelemetrySyncData):
+   *   {childDid, source, kind, payload, timestampMs, durationMs, level, rowId, guardianDids}
+   *
+   * append-only / 不可变事件：resourceId 唯一 (telemetry|childDid|source|kind|startMs);
+   * 同 id 再 push 在 _applyItemLocal 的 conflict 预检即判 "local" 跳过, 这里 ON CONFLICT
+   * 仅作二重保险 (updated_at LWW)。source/level 用字符串 (storageValue / enum name)。
+   */
+  async _applyTelemetry(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(
+        `DELETE FROM family_child_event WHERE resource_id = ?`,
+        [item.resourceId],
+      );
+      return;
+    }
+    const tsMs = Number(data.timestampMs) || item.timestamp || 0;
+    this.dbManager.run(
+      `INSERT INTO family_child_event
+       (resource_id, child_did, source, kind, payload, timestamp_ms, duration_ms, level, guardian_dids, device_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(resource_id) DO UPDATE SET
+         payload = excluded.payload,
+         duration_ms = excluded.duration_ms,
+         level = excluded.level,
+         guardian_dids = excluded.guardian_dids,
+         device_id = excluded.device_id,
+         updated_at = excluded.updated_at
+       WHERE excluded.updated_at > family_child_event.updated_at`,
+      [
+        item.resourceId,
+        data.childDid || "",
+        data.source || "",
+        data.kind || "",
+        typeof data.payload === "string"
+          ? data.payload
+          : JSON.stringify(data.payload ?? {}),
+        tsMs,
+        Number(data.durationMs) || 0,
+        data.level || "L1",
+        Array.isArray(data.guardianDids)
+          ? JSON.stringify(data.guardianDids)
+          : "[]",
+        item.deviceId || "",
+        tsMs,
+        tsMs,
+      ],
+    );
+  }
+
   // ============================================================
   // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
   // ============================================================
@@ -1907,6 +1969,21 @@ class MobileBridgeSync {
         return row
           ? {
               resourceId: `${row.scope}:${row.key}`,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: row.device_id || "",
+            }
+          : null;
+      }
+      // FAMILY-26 TELEMETRY — resourceId 唯一; 已存在则 conflict 预检判 "local" 跳过 (幂等)。
+      case ResourceType.TELEMETRY: {
+        const row = this.dbManager.get(
+          `SELECT resource_id, device_id, updated_at FROM family_child_event WHERE resource_id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.resource_id,
               version: 1,
               timestamp: row.updated_at,
               deviceId: row.device_id || "",
