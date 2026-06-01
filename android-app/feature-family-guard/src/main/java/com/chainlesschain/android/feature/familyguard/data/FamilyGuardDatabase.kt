@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.familyguard.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.chainlesschain.android.feature.familyguard.data.dao.AnomalyDao
 import com.chainlesschain.android.feature.familyguard.data.dao.ChildEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyGroupDao
@@ -11,6 +12,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
+import com.chainlesschain.android.feature.familyguard.data.entity.AnomalyEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.ChildEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyGroupEntity
@@ -46,6 +48,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         RevivalCodeEntity::class,
         // v3 (FAMILY-20, Epic C M2): child telemetry 事件 (主文档 §3.2)
         ChildEventEntity::class,
+        // v4 (FAMILY-27, Epic C M2): AnomalyDetector v0 检出的异常事件 (主文档 §3.2)
+        AnomalyEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -61,9 +65,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun enforceRuleDao(): EnforceRuleDao
     abstract fun revivalCodeDao(): RevivalCodeDao
     abstract fun childEventDao(): ChildEventDao
+    abstract fun anomalyDao(): AnomalyDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 3
+        const val SCHEMA_VERSION = 4
     }
 }

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import com.chainlesschain.android.feature.familyguard.data.anomaly.AnomalyScanTimer
 import com.chainlesschain.android.feature.familyguard.data.telemetry.CentralTelemetryDispatcher
 import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppTimer
 import com.chainlesschain.android.feature.familyguard.domain.model.FamilyGuardState
@@ -37,6 +38,8 @@ class FamilyGuardForegroundService : Service() {
 
     @Inject lateinit var foregroundAppTimer: ForegroundAppTimer
 
+    @Inject lateinit var anomalyScanTimer: AnomalyScanTimer
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     /**
@@ -48,6 +51,8 @@ class FamilyGuardForegroundService : Service() {
         super.onCreate()
         telemetryDispatcher.start()
         foregroundAppTimer.start()
+        // FAMILY-27: 每 15min 扫 child_event 检异常; 自闸 (非孩子端早返), 与 timer 独立。
+        anomalyScanTimer.start()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -86,6 +91,7 @@ class FamilyGuardForegroundService : Service() {
 
     override fun onDestroy() {
         Timber.i("FamilyGuardForegroundService.onDestroy")
+        anomalyScanTimer.stop()
         foregroundAppTimer.stop()
         telemetryDispatcher.stop()
         super.onDestroy()

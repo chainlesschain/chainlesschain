@@ -26,6 +26,8 @@ object FamilyGuardMigrations {
      * - v2: FAMILY-08 加 revival_code (6 位复活码, SHA256 hash + salt, 紧急解绑前置)。
      * - v3: FAMILY-20 加 child_event (Epic C M2 telemetry events; ForegroundAppTimer
      *   + 后续 PDH collectors 共享 schema, 主文档 §3.2)。
+     * - v4: FAMILY-27 加 anomaly (AnomalyDetector v0 检出的异常事件; dedup_key UNIQUE,
+     *   主文档 §3.2 异常事件触发)。
      */
     fun all(): Array<Migration> = ALL_MIGRATIONS
 
@@ -103,8 +105,45 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v3 → v4 (FAMILY-27).
+     *
+     * 加 anomaly 表 + 1 UNIQUE 索引 (dedup_key) + 1 普通索引 (child_did, detected_at)。
+     * acknowledged 是 Room Boolean → INTEGER NOT NULL DEFAULT 0。SQL 与 Room 自动
+     * 4.json schema diff 必对齐; 改本 migration 前必跑 assembleDebug 让 Room 重新导出
+     * 4.json 再 diff (trap [[pdh_partial_index_if_not_exists_drift]] family-guard 版)。
+     */
+    val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS anomaly (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    child_did TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    dedup_key TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    detail TEXT NOT NULL,
+                    detected_at INTEGER NOT NULL,
+                    acknowledged INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_anomaly_dedup_key " +
+                    "ON anomaly(dedup_key)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_anomaly_child_time " +
+                    "ON anomaly(child_did, detected_at)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
-    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

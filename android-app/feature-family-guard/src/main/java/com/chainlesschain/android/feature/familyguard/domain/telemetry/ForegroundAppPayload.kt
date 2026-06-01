@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.familyguard.domain.telemetry
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -25,8 +26,19 @@ data class ForegroundAppPayload(
     companion object {
         private val json = Json
 
+        /** decode 容忍未知键 (跨版本字段增减不炸)。 */
+        private val decoder = Json { ignoreUnknownKeys = true }
+
         /** 编码为 child_event.payload 列的 JSON 字面量。 */
         fun encode(packageName: String, durationMs: Long): String =
             json.encodeToString(ForegroundAppPayload(packageName, durationMs))
+
+        /**
+         * 解析 child_event.payload 取包名; 非 foreground_app payload / 解析失败返 null
+         * (FAMILY-27 AnomalyDetector + AnomalyScanTimer 消费前台事件包名时复用)。
+         */
+        fun decodePackageOrNull(payload: String): String? =
+            runCatching { decoder.decodeFromString<ForegroundAppPayload>(payload).packageName }
+                .getOrNull()
     }
 }
