@@ -66,6 +66,17 @@ function registerPhase2Core({ safeRegister, logger, deps }) {
     handlers: 22,
   });
 
+  // FAMILY-26 家长端仪表板只读查询 (函数模式 - 3 handlers, degraded on null db)
+  safeRegister("FamilyGuard IPC", {
+    register: () => {
+      const {
+        registerFamilyGuardIPC,
+      } = require("../../family-guard/family-guard-ipc");
+      registerFamilyGuardIPC({ database });
+    },
+    handlers: 3,
+  });
+
   // Git 版本控制 (函数模式 - 中等模块，16 handlers)
   // 注意：即使 gitManager 为 null 也注册 IPC，让 handler 内部处理
   safeRegister("Git IPC", {

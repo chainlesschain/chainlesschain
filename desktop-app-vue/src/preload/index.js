@@ -158,6 +158,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("database:reset-encryption-config"),
   },
 
+  // FAMILY-26 家长端家庭守护仪表板（只读 telemetry 镜像）
+  familyGuard: {
+    listChildren: () => ipcRenderer.invoke("family-guard:list-children"),
+    listChildEvents: (params) =>
+      ipcRenderer.invoke("family-guard:list-child-events", params),
+    appUsageSummary: (params) =>
+      ipcRenderer.invoke("family-guard:app-usage-summary", params),
+  },
+
   // 应用管理
   app: {
     restart: () => ipcRenderer.invoke("app:restart"),
