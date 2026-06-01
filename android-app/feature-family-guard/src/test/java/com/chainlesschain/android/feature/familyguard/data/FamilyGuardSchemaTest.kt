@@ -37,6 +37,8 @@ class FamilyGuardSchemaTest {
         "child_event",
         // FAMILY-27 (v4) Epic C M2 异常事件
         "anomaly",
+        // FAMILY-63 (v5) 不可删审计日志
+        "audit_log",
     )
 
     @Before
@@ -55,12 +57,12 @@ class FamilyGuardSchemaTest {
     }
 
     @Test
-    fun `schema version constant is 4 (FAMILY-27 bumped from 3)`() {
-        assertEquals(4, FamilyGuardDatabase.SCHEMA_VERSION)
+    fun `schema version constant is 5 (FAMILY-63 bumped from 4)`() {
+        assertEquals(5, FamilyGuardDatabase.SCHEMA_VERSION)
     }
 
     @Test
-    fun `all 10 tables exist in schema`() {
+    fun `all 11 tables exist in schema`() {
         val cursor = db.openHelper.readableDatabase.query(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%' AND name NOT LIKE 'android_metadata'"
         )

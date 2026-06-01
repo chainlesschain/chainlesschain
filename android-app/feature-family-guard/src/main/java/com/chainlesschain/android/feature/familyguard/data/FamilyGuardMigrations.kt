@@ -28,6 +28,7 @@ object FamilyGuardMigrations {
      *   + 后续 PDH collectors 共享 schema, 主文档 §3.2)。
      * - v4: FAMILY-27 加 anomaly (AnomalyDetector v0 检出的异常事件; dedup_key UNIQUE,
      *   主文档 §3.2 异常事件触发)。
+     * - v5: FAMILY-63 加 audit_log (不可删审计日志, 主文档 §4.6; append-only)。
      */
     fun all(): Array<Migration> = ALL_MIGRATIONS
 
@@ -142,8 +143,45 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v4 → v5 (FAMILY-63).
+     *
+     * 加 audit_log 表 + 3 索引. append-only (不可删, 主文档 §4.6)。SQL 与 Room 自动
+     * 5.json schema diff 必对齐; 改本 migration 前必跑 assembleDebug 让 Room 重新导出
+     * 5.json 再 diff (trap [[pdh_partial_index_if_not_exists_drift]] family-guard 版)。
+     */
+    val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    actor_did TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    target_did TEXT,
+                    family_group_id TEXT,
+                    detail TEXT NOT NULL DEFAULT '',
+                    timestamp INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_audit_log_group_time " +
+                    "ON audit_log(family_group_id, timestamp)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
-    val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val ALL_MIGRATIONS: Array<Migration> =
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。
