@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 584
+**Total Components**: 585
 
 ---
 
@@ -1199,6 +1199,14 @@
 **File**: `src/renderer/pages/p2p/DeviceManagementPage.vue`
 
 **Description**: Current Device Info
+
+---
+
+## src/renderer/pages/family-guard
+
+### FamilyGuardDashboard
+
+**File**: `src/renderer/pages/family-guard/FamilyGuardDashboard.vue`
 
 ---
 
