@@ -75,6 +75,7 @@
             <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>{{ $t('appLayout.items.knowledge') }}</a-menu-item>
             <a-menu-item key="personal-data-hub"><template #icon><DatabaseOutlined /></template>个人数据中台</a-menu-item>
             <a-menu-item key="personal-data-hub/browser"><template #icon><UnorderedListOutlined /></template>数据浏览器</a-menu-item>
+            <a-menu-item key="family-guard"><template #icon><TeamOutlined /></template>家庭守护</a-menu-item>
             <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>{{ $t('appLayout.items.marketplace') }}</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>{{ $t('appLayout.items.cron') }}</a-menu-item>
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>{{ $t('appLayout.items.workflow') }}</a-menu-item>

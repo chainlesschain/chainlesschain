@@ -48,6 +48,9 @@ const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 const { createSyncWebDAVHandlers } = require("./handlers/sync-webdav-handlers");
 const { createSyncOSSHandlers } = require("./handlers/sync-oss-handlers");
 const { createSyncStatusHandlers } = require("./handlers/sync-status-handlers");
+const {
+  createFamilyGuardHandlers,
+} = require("./handlers/family-guard-handlers");
 const { createMtcStatusHandlers } = require("./handlers/mtc-status-handlers");
 const { createGitConfigHandlers } = require("./handlers/git-config-handlers");
 const {
@@ -236,6 +239,8 @@ async function startWebShell(options = {}) {
     // Phase 3b — sync.status / push / pull / conflicts / resolve. 复用 main 已开
     // 的 db handle，避免 ws.execute('sync ...') spawn 子进程抢同一 SQLite 文件。
     ...createSyncStatusHandlers({ database: options.database ?? null }),
+    // FAMILY-26 家长端家庭守护仪表板（只读 telemetry 镜像，desktop DB 专属）。
+    ...createFamilyGuardHandlers({ database: options.database ?? null }),
     // 2026-05-07 — mtc.audit-status / mtc.bridge-status / mtc.bridge-sla.
     // v5.0.3.39 (asar:true) 后 ws.execute('audit mtc status') 子进程冷启动
     // 6-10s，Mtc.vue onMounted 三发并发必爆原 8s timeout。in-process 直查
