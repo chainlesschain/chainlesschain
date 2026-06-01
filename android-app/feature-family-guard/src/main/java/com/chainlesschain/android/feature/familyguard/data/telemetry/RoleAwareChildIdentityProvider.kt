@@ -2,7 +2,7 @@ package com.chainlesschain.android.feature.familyguard.data.telemetry
 
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.feature.familyguard.domain.model.AppRole
-import com.chainlesschain.android.feature.familyguard.domain.model.RoleLockState
+import com.chainlesschain.android.feature.familyguard.domain.model.selectedRole
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
 import javax.inject.Inject
@@ -25,12 +25,5 @@ class RoleAwareChildIdentityProvider @Inject constructor(
         val role = rolePreferencesRepository.observeLockState().first().selectedRole()
         if (role != AppRole.CHILD) return null
         return didManager.getCurrentDID()
-    }
-
-    /** Unselected → null; LockPending / Locked → 已选角色。 */
-    private fun RoleLockState.selectedRole(): AppRole? = when (this) {
-        is RoleLockState.LockPending -> role
-        is RoleLockState.Locked -> role
-        RoleLockState.Unselected -> null
     }
 }

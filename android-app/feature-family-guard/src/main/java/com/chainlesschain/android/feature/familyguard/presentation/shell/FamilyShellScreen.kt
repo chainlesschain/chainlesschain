@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.feature.familyguard.presentation.sos.SosTriggerButton
+import com.chainlesschain.android.feature.familyguard.presentation.usageaccess.UsageAccessCard
 
 /**
  * FAMILY-06 Family-Guard shell screen.
@@ -62,6 +63,9 @@ fun FamilyShellScreen(
         SosTriggerButton(onClick = onSosTriggered)
 
         HorizontalDivider()
+
+        // FAMILY-20: 仅 CHILD 端且未授 Usage Access 时显引导卡, 其余渲染空。
+        UsageAccessCard()
 
         SectionCard(
             title = "家人",

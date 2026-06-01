@@ -37,3 +37,10 @@ sealed interface RoleLockState {
         val selectedAtMs: Long,
     ) : RoleLockState
 }
+
+/** 已选角色 (LockPending / Locked) 或 null (Unselected)。 */
+fun RoleLockState.selectedRole(): AppRole? = when (this) {
+    is RoleLockState.LockPending -> role
+    is RoleLockState.Locked -> role
+    RoleLockState.Unselected -> null
+}
