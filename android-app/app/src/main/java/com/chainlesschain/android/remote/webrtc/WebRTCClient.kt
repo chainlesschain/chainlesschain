@@ -34,7 +34,7 @@ enum class P2PConnectionState {
 class WebRTCClient @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val signalClient: SignalClient,
-    private val pairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore,
+    private val pairedPeersStore: com.chainlesschain.android.core.p2p.pairing.PairedPeersStore,
 ) {
     @Volatile
     private var peerConnectionFactory: PeerConnectionFactory? = null
@@ -50,7 +50,7 @@ class WebRTCClient @Inject constructor(
     @Volatile
     private var isRemoteDescriptionSet = false
 
-    /** Google STUN fallback — 当 PairedDesktopsStore 没存 iceServers 时用。 */
+    /** Google STUN fallback — 当 PairedPeersStore 没存 iceServers 时用。 */
     private val fallbackIceServers = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
         PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
@@ -67,7 +67,7 @@ class WebRTCClient @Inject constructor(
     private var currentIceServers: List<PeerConnection.IceServer> = fallbackIceServers
 
     private fun resolveIceServersFor(pcPeerId: String): List<PeerConnection.IceServer> {
-        val desktop = pairedDesktopsStore.devices.value.firstOrNull { it.pcPeerId == pcPeerId }
+        val desktop = pairedPeersStore.devices.value.firstOrNull { it.pcPeerId == pcPeerId }
         val json = desktop?.iceServersJson ?: return fallbackIceServers
         val now = System.currentTimeMillis() / 1000
         if (desktop.iceExpiry > 0 && now > desktop.iceExpiry) {
@@ -83,7 +83,7 @@ class WebRTCClient @Inject constructor(
     }
 
     /**
-     * v1.3+ plan B — 收到桌面 push 的 ice:config 时持久化到 PairedDesktopsStore，
+     * v1.3+ plan B — 收到桌面 push 的 ice:config 时持久化到 PairedPeersStore，
      * 后续 createPeerConnection 拿。Wire shape (desktop pushIceServersToMobile):
      *   `{type:"chainlesschain:ice:config", payload:{pcPeerId, iceServers, iceExpiry}}`
      */
@@ -98,13 +98,13 @@ class WebRTCClient @Inject constructor(
             val pcPeerId = payload.optString("pcPeerId", null) ?: return
             val iceServersJson = payload.opt("iceServers")?.toString() ?: return
             val iceExpiry = payload.optLong("iceExpiry", 0L)
-            val existing = pairedDesktopsStore.devices.value
+            val existing = pairedPeersStore.devices.value
                 .firstOrNull { it.pcPeerId == pcPeerId }
                 ?: run {
                     Timber.w("[WebRTCClient] ice:config for unknown pcPeerId=$pcPeerId")
                     return
                 }
-            pairedDesktopsStore.upsert(
+            pairedPeersStore.upsert(
                 existing.copy(
                     iceServersJson = iceServersJson,
                     iceExpiry = iceExpiry,

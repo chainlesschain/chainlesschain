@@ -18,7 +18,7 @@ import com.chainlesschain.android.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +40,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RemoteOperateViewModel @Inject constructor(
     private val rpc: SignalingRpcClient,
-    private val pairedDesktopsStore: PairedDesktopsStore,
+    private val pairedPeersStore: PairedPeersStore,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -49,7 +49,7 @@ class RemoteOperateViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         RemoteOperateState(
             pcPeerId = pcPeerId,
-            desktopName = pairedDesktopsStore.devices.value
+            desktopName = pairedPeersStore.devices.value
                 .firstOrNull { it.pcPeerId == pcPeerId }
                 ?.deviceName
                 ?: pcPeerId.take(12),
@@ -81,7 +81,7 @@ class RemoteOperateViewModel @Inject constructor(
     }
 
     fun unpair() {
-        pairedDesktopsStore.remove(pcPeerId)
+        pairedPeersStore.remove(pcPeerId)
     }
 }
 

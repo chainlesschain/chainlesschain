@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.p2p.config.SignalingConfig
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeer
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +40,7 @@ class ScanDesktopPairingViewModel @Inject constructor(
     private val didManager: DIDManager,
     private val signalingGate: PairingSignalingGate,
     private val signalingConfig: SignalingConfig,
-    private val pairedDesktopsStore: PairedDesktopsStore,
+    private val pairedPeersStore: PairedPeersStore,
     private val deviceInfoProvider: PairingDeviceInfoProvider,
     private val clock: PairingClock = PairingClock.System,
 ) : ViewModel() {
@@ -166,8 +166,8 @@ class ScanDesktopPairingViewModel @Inject constructor(
 
                 // v1.3+ 持久化：写本地 prefs，让首页 DesktopConnectionCard 不再读
                 // live WS 连接（扫码后信令立刻断），改读这个表 → 显示"已连接 X 台"
-                pairedDesktopsStore.upsert(
-                    PairedDesktop(
+                pairedPeersStore.upsert(
+                    PairedPeer(
                         pcPeerId = pcPeerId,
                         deviceName = desktopName,
                         platform = desktopDeviceInfo?.get("platform")?.jsonPrimitive?.contentOrNull

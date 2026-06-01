@@ -1,6 +1,6 @@
 package com.chainlesschain.android.presentation.screens.helper
 
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -31,14 +31,14 @@ import kotlin.test.assertFalse
  *  - findPcProjectPathByName: 名字命中 + 缺路径返 null + 没命中返 null
  *  - pushPcRootPathToDesktop: ok=true / ok=false / 异常
  *
- * 纯 JVM 测试 — SignalingRpcClient + PairedDesktopsStore 全 mock。
+ * 纯 JVM 测试 — SignalingRpcClient + PairedPeersStore 全 mock。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemoteContextViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var rpc: SignalingRpcClient
-    private lateinit var store: PairedDesktopsStore
+    private lateinit var store: PairedPeersStore
 
     @Before
     fun setUp() {

@@ -3,7 +3,7 @@ package com.chainlesschain.android.remote.terminal.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.RemoteConnectionManager
 import com.chainlesschain.android.remote.terminal.TerminalRpcClient
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
@@ -31,7 +31,7 @@ class TerminalListViewModel @Inject constructor(
     private val terminalRpc: TerminalRpcClient,
     private val remoteConnectionManager: RemoteConnectionManager,
     private val webRTCClient: WebRTCClient,
-    private val pairedDesktopsStore: PairedDesktopsStore,
+    private val pairedPeersStore: PairedPeersStore,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -66,13 +66,13 @@ class TerminalListViewModel @Inject constructor(
             return
         }
         // pcDID 在 P2PClient.connect 里仅作 metadata 存到 PeerInfo（不影响 WebRTC
-        // handshake — 那里只用 pcPeerId）。PairedDesktop 当前不存 DID，所以构造
-        // 占位 did:peer:<peerId>。后续 PairedDesktop 加 did 字段后改用真实值。
-        val pcDID = pairedDesktopsStore.devices.value
+        // handshake — 那里只用 pcPeerId）。PairedPeer 当前不存 DID，所以构造
+        // 占位 did:peer:<peerId>。后续 PairedPeer 加 did 字段后改用真实值。
+        val pcDID = pairedPeersStore.devices.value
             .firstOrNull { it.pcPeerId == pcPeerId }
             ?.let { "did:peer:$pcPeerId" }
         if (pcDID == null) {
-            Timber.w("[TerminalListVM] pcPeerId=$pcPeerId not in PairedDesktopsStore, can't trigger DC handshake")
+            Timber.w("[TerminalListVM] pcPeerId=$pcPeerId not in PairedPeersStore, can't trigger DC handshake")
             return
         }
         viewModelScope.launch {

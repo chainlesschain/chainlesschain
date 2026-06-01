@@ -1,8 +1,8 @@
 package com.chainlesschain.android.presentation.screens.helper
 
 import androidx.lifecycle.ViewModel
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeer
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +26,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RemoteContextViewModel @Inject constructor(
-    pairedDesktopsStore: PairedDesktopsStore,
+    pairedPeersStore: PairedPeersStore,
     private val rpc: SignalingRpcClient,
 ) : ViewModel() {
-    val pairedDesktops: StateFlow<List<PairedDesktop>> = pairedDesktopsStore.devices
+    val pairedPeers: StateFlow<List<PairedPeer>> = pairedPeersStore.devices
 
     /**
      * Sub-phase 5-6 v2 (2026-05-18): 拉桌面项目列表用作 picker UI 数据源。

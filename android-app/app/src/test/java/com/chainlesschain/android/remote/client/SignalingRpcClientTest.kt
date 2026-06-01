@@ -157,7 +157,7 @@ class SignalingRpcClientTest {
             signalClient = fakeSignalClient,
             didManager = didManager,
             signalingConfig = signalingConfig,
-            pairedDesktopsStore = mockk(relaxed = true),
+            pairedPeersStore = mockk(relaxed = true),
             webRTCClient = webRTCClient,
         )
 

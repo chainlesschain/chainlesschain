@@ -1,6 +1,6 @@
 package com.chainlesschain.android.remote.client
 
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.data.CommandRequest
 import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.remote.p2p.CommandCancelledException
@@ -32,7 +32,7 @@ class RemoteCommandClient @Inject constructor(
     @PublishedApi internal val p2pClient: P2PClient,
     @PublishedApi internal val offlineCommandQueue: OfflineCommandQueue,
     @PublishedApi internal val signalingRpc: SignalingRpcClient,
-    @PublishedApi internal val pairedDesktopsStore: PairedDesktopsStore,
+    @PublishedApi internal val pairedPeersStore: PairedPeersStore,
 ) {
     @PublishedApi
     internal val gson: Gson = Gson()
@@ -67,9 +67,9 @@ class RemoteCommandClient @Inject constructor(
             // Plan C 路径下 P2PClient.connectionState 默认 DISCONNECTED（没人调
             // P2PClient.connect()），sendCommand 第一行就 "Not connected" 返回。
             // 改走 SignalingRpcClient（terminal 验证过的 DC fast-path + signaling
-            // fallback），pcPeerId 从 PairedDesktopsStore 取已配对桌面 firstOrNull。
+            // fallback），pcPeerId 从 PairedPeersStore 取已配对桌面 firstOrNull。
             // 多桌面场景下后续可让 caller 显式传 pcPeerId。
-            val pcPeerId = pairedDesktopsStore.devices.value.firstOrNull()?.pcPeerId
+            val pcPeerId = pairedPeersStore.devices.value.firstOrNull()?.pcPeerId
             if (pcPeerId == null) {
                 Timber.w("invokeTyped: 无已配对桌面，method=$method 拒绝")
                 return Result.failure(Exception("无已配对桌面"))

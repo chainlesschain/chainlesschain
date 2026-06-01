@@ -1,8 +1,8 @@
 package com.chainlesschain.android.remote.ui
 
 import androidx.lifecycle.SavedStateHandle
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeer
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 /**
  * RemoteOperateViewModel 单元测试 — v1.3+ issue #21 plan C。
  *
- * 不依赖 Robolectric——SignalingRpcClient + PairedDesktopsStore 全 mock，
+ * 不依赖 Robolectric——SignalingRpcClient + PairedPeersStore 全 mock，
  * SavedStateHandle 直接 new 出一个，纯 JVM 测试。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,8 +36,8 @@ class RemoteOperateViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var rpc: SignalingRpcClient
-    private lateinit var store: PairedDesktopsStore
-    private lateinit var devicesFlow: MutableStateFlow<List<PairedDesktop>>
+    private lateinit var store: PairedPeersStore
+    private lateinit var devicesFlow: MutableStateFlow<List<PairedPeer>>
 
     @Before
     fun setUp() {
@@ -55,7 +55,7 @@ class RemoteOperateViewModelTest {
 
     private fun makeVm(
         peerId: String = "desktop-peer-1",
-        seedDesktop: PairedDesktop? = null,
+        seedDesktop: PairedPeer? = null,
     ): RemoteOperateViewModel {
         if (seedDesktop != null) {
             devicesFlow.value = listOf(seedDesktop)
@@ -68,7 +68,7 @@ class RemoteOperateViewModelTest {
     fun `initial state takes desktop name from store when matched`() {
         val vm = makeVm(
             peerId = "desktop-peer-1",
-            seedDesktop = PairedDesktop(
+            seedDesktop = PairedPeer(
                 pcPeerId = "desktop-peer-1",
                 deviceName = "My Mac",
             ),

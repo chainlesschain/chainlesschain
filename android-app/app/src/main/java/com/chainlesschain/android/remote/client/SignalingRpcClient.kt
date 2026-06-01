@@ -56,7 +56,7 @@ class SignalingRpcClient @Inject constructor(
     private val didManager: DIDManager,
     private val signalingConfig: SignalingConfig,
     @Suppress("unused") // Plan A.1 — ice:config 拦截搬回 WebRTCClient.initialize；构造参数保留避免改 Hilt 注入图
-    private val pairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore,
+    private val pairedPeersStore: com.chainlesschain.android.core.p2p.pairing.PairedPeersStore,
     // Plan A.1 — DC fast-path transport + DC-path response listener
     private val webRTCClient: WebRTCClient,
 ) {
@@ -92,7 +92,7 @@ class SignalingRpcClient @Inject constructor(
     /**
      * 调用桌面命令。method/params 与 desktop AICommands/SystemCommands 期望一致。
      *
-     * @param pcPeerId 已配对桌面的 peerId（PairedDesktopsStore 拿）
+     * @param pcPeerId 已配对桌面的 peerId（PairedPeersStore 拿）
      * @param method 命令方法名（e.g. "system.status" / "ai.chat"）
      * @param params 参数 map
      * @param timeoutMs 超时（默认 30s）

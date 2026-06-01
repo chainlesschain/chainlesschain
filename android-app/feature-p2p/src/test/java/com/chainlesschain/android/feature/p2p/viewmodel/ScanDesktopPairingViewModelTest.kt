@@ -96,7 +96,7 @@ class ScanDesktopPairingViewModelTest {
             didManager = didManager,
             signalingGate = gate,
             signalingConfig = io.mockk.mockk(relaxed = true),
-            pairedDesktopsStore = io.mockk.mockk(relaxed = true),
+            pairedPeersStore = io.mockk.mockk(relaxed = true),
             deviceInfoProvider = fakeDeviceInfo,
             clock = fixedClock(nowMs),
         )

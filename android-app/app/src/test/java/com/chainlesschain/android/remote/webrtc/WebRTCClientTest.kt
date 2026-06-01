@@ -36,7 +36,7 @@ class WebRTCClientTest {
     private lateinit var webRTCClient: WebRTCClient
     private lateinit var mockContext: Context
     private lateinit var mockSignalClient: SignalClient
-    private lateinit var mockPairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+    private lateinit var mockPairedPeersStore: com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
     private lateinit var mockPeerConnectionFactory: PeerConnectionFactory
     private lateinit var mockPeerConnection: PeerConnection
     private lateinit var mockDataChannel: DataChannel
@@ -58,15 +58,15 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.connect() } returns Result.success(Unit)
         coEvery { mockSignalClient.disconnect() } just Runs
 
-        // Mock PairedDesktopsStore (Plan B v1.3+ ICE servers persistence).
-        // `devices` is `StateFlow<List<PairedDesktop>>`. A bare relaxed mock returns
+        // Mock PairedPeersStore (Plan B v1.3+ ICE servers persistence).
+        // `devices` is `StateFlow<List<PairedPeer>>`. A bare relaxed mock returns
         // a relaxed StateFlow whose `.value` is a relaxed `Any`, not a `List`, so
-        // production-side `pairedDesktopsStore.devices.value.firstOrNull { ... }`
+        // production-side `pairedPeersStore.devices.value.firstOrNull { ... }`
         // would crash with "class java.lang.Object cannot be cast to java.lang.Iterable"
         // and `connect()` would surface "连接失败: ..." (see WebRTCClient.kt:70).
         // Stub with a real MutableStateFlow so the generic erasure stays sound.
-        mockPairedDesktopsStore = mockk(relaxed = true)
-        every { mockPairedDesktopsStore.devices } returns MutableStateFlow(emptyList())
+        mockPairedPeersStore = mockk(relaxed = true)
+        every { mockPairedPeersStore.devices } returns MutableStateFlow(emptyList())
 
         // Mock PeerConnectionFactory static initialization
         mockkStatic(PeerConnectionFactory::class)
@@ -110,7 +110,7 @@ class WebRTCClientTest {
         } returns mockDataChannel
 
         // Create WebRTCClient instance
-        webRTCClient = WebRTCClient(mockContext, mockSignalClient, mockPairedDesktopsStore)
+        webRTCClient = WebRTCClient(mockContext, mockSignalClient, mockPairedPeersStore)
     }
 
     @After

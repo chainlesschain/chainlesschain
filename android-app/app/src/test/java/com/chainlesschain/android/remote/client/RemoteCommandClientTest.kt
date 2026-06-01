@@ -1,7 +1,7 @@
 package com.chainlesschain.android.remote.client
 
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
-import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
+import com.chainlesschain.android.core.p2p.pairing.PairedPeer
+import com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
 import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.remote.p2p.P2PClient
 import io.mockk.clearAllMocks
@@ -25,7 +25,7 @@ import org.junit.Test
  *
  * 验证 2026-05-17 transport bug 修复回归：
  * - invokeTyped 必须 delegate 到 SignalingRpcClient（不走 P2PClient.sendCommand）
- * - pcPeerId 从 PairedDesktopsStore.devices.firstOrNull() 取
+ * - pcPeerId 从 PairedPeersStore.devices.firstOrNull() 取
  * - 已配对桌面为空时返回 Result.failure("无已配对桌面")
  * - SignalingRpc 返回 JSONObject → Gson roundtrip 转 typed T
  *
@@ -39,8 +39,8 @@ class RemoteCommandClientTest {
     private lateinit var p2pClient: P2PClient
     private lateinit var offlineQueue: OfflineCommandQueue
     private lateinit var signalingRpc: SignalingRpcClient
-    private lateinit var pairedStore: PairedDesktopsStore
-    private lateinit var devicesFlow: MutableStateFlow<List<PairedDesktop>>
+    private lateinit var pairedStore: PairedPeersStore
+    private lateinit var devicesFlow: MutableStateFlow<List<PairedPeer>>
 
     @Before
     fun setup() {
@@ -49,7 +49,7 @@ class RemoteCommandClientTest {
         signalingRpc = mockk(relaxed = true)
         pairedStore = mockk(relaxed = true)
         devicesFlow = MutableStateFlow(emptyList())
-        every { pairedStore.devices } returns (devicesFlow as StateFlow<List<PairedDesktop>>)
+        every { pairedStore.devices } returns (devicesFlow as StateFlow<List<PairedPeer>>)
 
         client = RemoteCommandClient(p2pClient, offlineQueue, signalingRpc, pairedStore)
     }
@@ -60,11 +60,11 @@ class RemoteCommandClientTest {
     }
 
     @Test
-    fun `invoke delegates to SignalingRpcClient with pcPeerId from PairedDesktopsStore`() = runTest {
+    fun `invoke delegates to SignalingRpcClient with pcPeerId from PairedPeersStore`() = runTest {
         // Given: 配对桌面已存在
         val testPeerId = "fb8380b1d3cccd16cb38721a5b51c458"
         devicesFlow.value = listOf(
-            PairedDesktop(
+            PairedPeer(
                 pcPeerId = testPeerId,
                 deviceName = "Test Desktop",
             ),
@@ -117,7 +117,7 @@ class RemoteCommandClientTest {
         // Given
         val testPeerId = "test-peer-id"
         devicesFlow.value = listOf(
-            PairedDesktop(testPeerId, "Test"),
+            PairedPeer(testPeerId, "Test"),
         )
         coEvery {
             signalingRpc.invoke(testPeerId, "file.listDirectory", any(), any())
@@ -135,8 +135,8 @@ class RemoteCommandClientTest {
     fun `invoke picks first device when multiple paired`() = runTest {
         // Given: 多个配对桌面
         devicesFlow.value = listOf(
-            PairedDesktop("peer-1", "Desktop A"),
-            PairedDesktop("peer-2", "Desktop B"),
+            PairedPeer("peer-1", "Desktop A"),
+            PairedPeer("peer-2", "Desktop B"),
         )
         coEvery {
             signalingRpc.invoke(any(), any(), any(), any())
