@@ -116,6 +116,28 @@ class ForegroundAppTelemetrySourceTest {
     }
 
     @Test
+    fun `child switch finalizes prior run under the previous child`() = runTest {
+        val src = ForegroundAppTelemetrySource()
+        val emitted = mutableListOf<TelemetryEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            src.events().collect { emitted.add(it) }
+        }
+        val childA = "did:chain:kidA"
+        val childB = "did:chain:kidB"
+        // child A 在飞一段 game run
+        src.submitSample(childA, pkgGame, 1000L)
+        src.submitSample(childA, pkgGame, 61_000L)
+        // 切到 child B: 旧 game run 必须 finalize 并归属 A (不是 B)
+        src.submitSample(childB, pkgChat, 120_000L)
+
+        assertEquals(1, emitted.size)
+        val ev = emitted[0]
+        assertEquals(childA, ev.childDid) // 关键: 归属旧 child, 不串到 B
+        assertTrue(ev.payload.contains(pkgGame))
+        assertEquals(60_000L, ev.durationMs)
+    }
+
+    @Test
     fun `pause is idempotent`() = runTest {
         val src = ForegroundAppTelemetrySource()
         src.pause()
