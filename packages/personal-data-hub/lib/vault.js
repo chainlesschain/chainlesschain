@@ -1196,9 +1196,16 @@ class LocalVault {
    * visits) don't dilute the sum.
    *
    * Filters mirror {@link countEvents} (subtype / since / until / actor /
-   * adapter). Returns { total, currency, count, byDirection: { out, in } } in
-   * major units (yuan), rounded to 2 decimals. currency = the single currency
-   * if uniform, else "mixed"; "CNY" when empty.
+   * adapter). Returns
+   *   { total, currency, count, byDirection: { out, in }, byCurrency: { <cur>: { total, count, byDirection } } }
+   * Amounts in major units (yuan), rounded to 2 decimals.
+   *
+   * Cross-currency sums are meaningless (¥ + $ ≠ a number), so the SUM is
+   * grouped per currency. byCurrency holds the full per-currency breakdown;
+   * the top-level total / currency / byDirection report the PRIMARY currency
+   * (the one with the most events — almost always CNY) so a single-currency
+   * vault (the common case) reads exactly as before. count is the total event
+   * count across all currencies. Empty → total 0, currency "CNY", byCurrency {}.
    */
   sumEventAmount(q = {}) {
     const where = [];
@@ -1238,27 +1245,44 @@ class LocalVault {
       ") WHERE amt IS NOT NULL GROUP BY dir, cur";
     const rows = this._requireOpen().prepare(sql).all(params);
 
-    let total = 0;
-    let count = 0;
-    const byDirection = { out: 0, in: 0 };
-    const currencies = new Set();
+    // Group per currency — cross-currency sums are meaningless.
+    const acc = {}; // cur -> { total, count, out, in }
+    let totalCount = 0;
     for (const r of rows) {
+      const cur = r.cur || "CNY";
       const s = Number(r.s) || 0;
-      total += s;
-      count += Number(r.c) || 0;
-      currencies.add(r.cur || "CNY");
+      const c = Number(r.c) || 0;
+      totalCount += c;
+      const e = acc[cur] || (acc[cur] = { total: 0, count: 0, out: 0, in: 0 });
+      e.total += s;
+      e.count += c;
       // null / unknown direction → treat as spending (out) so it isn't dropped.
       const d = r.dir === "in" ? "in" : "out";
-      byDirection[d] += s;
+      e[d] += s;
     }
     const round2 = (n) => Math.round(n * 100) / 100;
-    const currency =
-      currencies.size === 0 ? "CNY" : currencies.size === 1 ? [...currencies][0] : "mixed";
+    const currencies = Object.keys(acc);
+    // Primary currency = most events (stable: first-seen wins a tie via reduce seed).
+    const primary =
+      currencies.length === 0
+        ? "CNY"
+        : currencies.reduce((a, b) => (acc[b].count > acc[a].count ? b : a), currencies[0]);
+    const byCurrency = {};
+    for (const cur of currencies) {
+      const e = acc[cur];
+      byCurrency[cur] = {
+        total: round2(e.total),
+        count: e.count,
+        byDirection: { out: round2(e.out), in: round2(e.in) },
+      };
+    }
+    const p = acc[primary] || { total: 0, out: 0, in: 0 };
     return {
-      total: round2(total),
-      currency,
-      count,
-      byDirection: { out: round2(byDirection.out), in: round2(byDirection.in) },
+      total: round2(p.total),
+      currency: primary,
+      count: totalCount,
+      byDirection: { out: round2(p.out), in: round2(p.in) },
+      byCurrency,
     };
   }
 

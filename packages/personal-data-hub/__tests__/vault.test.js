@@ -727,22 +727,39 @@ describe("LocalVault.sumEventAmount", () => {
     expect(vault.sumEventAmount({ until: 2000 }).total).toBe(10);
   });
 
-  it("mixed shapes coexist; mixed currencies → 'mixed'", () => {
+  it("mixed shapes coexist; per-currency breakdown, NO cross-currency sum", () => {
     freshVault();
     vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));
-    vault.putEvent(alipayEvent(20000, "out")); // 200 元
+    vault.putEvent(alipayEvent(20000, "out")); // 200 元 (CNY, alipay shape)
     vault.putEvent(shopEvent({ value: 5, currency: "USD", direction: "out" }));
     const r = vault.sumEventAmount();
     expect(r.count).toBe(3);
-    expect(r.byDirection.out).toBe(305);
-    expect(r.currency).toBe("mixed");
+    // CNY has 2 events → primary; top-level reports CNY only (NOT 305 cross-sum).
+    expect(r.currency).toBe("CNY");
+    expect(r.total).toBe(300);
+    expect(r.byDirection.out).toBe(300);
+    // Full breakdown per currency.
+    expect(r.byCurrency.CNY).toEqual({ total: 300, count: 2, byDirection: { out: 300, in: 0 } });
+    expect(r.byCurrency.USD).toEqual({ total: 5, count: 1, byDirection: { out: 5, in: 0 } });
   });
 
-  it("empty vault → zeros, CNY, count 0", () => {
+  it("single currency → byCurrency has one entry matching top-level", () => {
+    freshVault();
+    vault.putEvent(shopEvent({ value: 40, currency: "CNY", direction: "out" }));
+    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "in" }));
+    const r = vault.sumEventAmount();
+    expect(Object.keys(r.byCurrency)).toEqual(["CNY"]);
+    expect(r.byCurrency.CNY).toEqual({ total: 50, count: 2, byDirection: { out: 40, in: 10 } });
+    expect(r.total).toBe(50);
+    expect(r.currency).toBe("CNY");
+  });
+
+  it("empty vault → zeros, CNY, count 0, empty byCurrency", () => {
     freshVault();
     expect(vault.sumEventAmount()).toEqual({
       total: 0,
       currency: "CNY",
+      byCurrency: {},
       count: 0,
       byDirection: { out: 0, in: 0 },
     });
