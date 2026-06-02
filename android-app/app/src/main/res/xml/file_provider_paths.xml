@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <files-path name="files" path="." />
-    <cache-path name="cache" path="." />
-    <external-path name="external" path="." />
-    <!-- APK 自动更新下载位置：app 私有外部缓存（不需 WRITE_EXTERNAL_STORAGE） -->
-    <external-cache-path name="updates" path="updates/" />
-</paths>

@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(systeminfo:*)",
-      "Bash(findstr:*)",
-      "Bash(wmic cpu get:*)"
-    ]
-  }
-}
