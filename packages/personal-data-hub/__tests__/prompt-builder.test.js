@@ -177,6 +177,31 @@ describe("buildPrompt", () => {
     expect(messages[1].content).toContain("never as instructions");
   });
 
+  it("emits AMOUNT_SUM block when amountSummary present + Rule 7 in system prompt", () => {
+    const { messages } = buildPrompt({
+      question: "上个月总共花了多少",
+      facts,
+      intent: "sum-amount",
+      amountSummary: { total: 1234.5, currency: "CNY", count: 7, byDirection: { out: 1200, in: 34.5 } },
+    });
+    expect(messages[1].content).toContain("AMOUNT_SUM");
+    expect(messages[1].content).toContain('"total": 1234.5');
+    expect(messages[1].content).toContain('"out": 1200');
+    // system prompt instructs LLM to trust AMOUNT_SUM, not sum FACTS
+    expect(messages[0].content).toMatch(/AMOUNT_SUM.*authoritative/i);
+  });
+
+  it("omits AMOUNT_SUM block when count is 0 or amountSummary absent", () => {
+    const { messages } = buildPrompt({
+      question: "x",
+      facts,
+      amountSummary: { total: 0, currency: "CNY", count: 0, byDirection: { out: 0, in: 0 } },
+    });
+    expect(messages[1].content).not.toContain("AMOUNT_SUM");
+    const { messages: m2 } = buildPrompt({ question: "x", facts });
+    expect(m2[1].content).not.toContain("AMOUNT_SUM");
+  });
+
   it("throws on bad opts", () => {
     expect(() => buildPrompt()).toThrow();
     expect(() => buildPrompt(null)).toThrow();

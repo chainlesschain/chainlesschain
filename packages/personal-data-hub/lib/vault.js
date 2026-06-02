@@ -1181,6 +1181,87 @@ class LocalVault {
     return this._requireOpen().prepare(sql).get(params).n;
   }
 
+  /**
+   * Authoritative SUM of amount-bearing events (PDH AnalysisEngine intent=
+   * sum-amount Phase 2). Aggregated in SQL so "总共花了多少" answers come from
+   * the real total, not a truncated FACTS sample the LLM would undercount.
+   *
+   * Amount lives in JSON (no dedicated column). Two normalized shapes coexist:
+   *   - shopping-* / travel-*: content.amount = { value (major units), currency,
+   *     direction }
+   *   - finance-alipay:        extra.amountFen (cents) + extra.direction
+   * Both are COALESCE'd: value prefers content.amount.value, falls back to
+   * extra.amountFen/100; direction/currency likewise. Rows with no extractable
+   * amount are excluded (WHERE amt IS NOT NULL) so non-amount events (messages /
+   * visits) don't dilute the sum.
+   *
+   * Filters mirror {@link countEvents} (subtype / since / until / actor /
+   * adapter). Returns { total, currency, count, byDirection: { out, in } } in
+   * major units (yuan), rounded to 2 decimals. currency = the single currency
+   * if uniform, else "mixed"; "CNY" when empty.
+   */
+  sumEventAmount(q = {}) {
+    const where = [];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    if (q.actor) {
+      where.push("actor = @actor");
+      params.actor = q.actor;
+    }
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    const whereSql = where.length ? " WHERE " + where.join(" AND ") : "";
+    const sql =
+      "SELECT dir, cur, SUM(amt) AS s, COUNT(*) AS c FROM (" +
+      "SELECT " +
+      "COALESCE(json_extract(content,'$.amount.direction'), json_extract(extra,'$.direction')) AS dir, " +
+      "COALESCE(json_extract(content,'$.amount.currency'), 'CNY') AS cur, " +
+      "CASE " +
+      "WHEN json_extract(content,'$.amount.value') IS NOT NULL THEN json_extract(content,'$.amount.value') " +
+      "WHEN json_extract(extra,'$.amountFen') IS NOT NULL THEN json_extract(extra,'$.amountFen') / 100.0 " +
+      "ELSE NULL END AS amt " +
+      "FROM events" +
+      whereSql +
+      ") WHERE amt IS NOT NULL GROUP BY dir, cur";
+    const rows = this._requireOpen().prepare(sql).all(params);
+
+    let total = 0;
+    let count = 0;
+    const byDirection = { out: 0, in: 0 };
+    const currencies = new Set();
+    for (const r of rows) {
+      const s = Number(r.s) || 0;
+      total += s;
+      count += Number(r.c) || 0;
+      currencies.add(r.cur || "CNY");
+      // null / unknown direction → treat as spending (out) so it isn't dropped.
+      const d = r.dir === "in" ? "in" : "out";
+      byDirection[d] += s;
+    }
+    const round2 = (n) => Math.round(n * 100) / 100;
+    const currency =
+      currencies.size === 0 ? "CNY" : currencies.size === 1 ? [...currencies][0] : "mixed";
+    return {
+      total: round2(total),
+      currency,
+      count,
+      byDirection: { out: round2(byDirection.out), in: round2(byDirection.in) },
+    };
+  }
+
   // ─── Sync watermarks ───────────────────────────────────────────────────
 
   getWatermark(adapter, scope = "") {

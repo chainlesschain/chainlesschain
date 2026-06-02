@@ -354,6 +354,75 @@ describe("AnalysisEngine emits TOTALS preamble", () => {
   });
 });
 
+// ─── intent=sum-amount Phase 2 — AMOUNT_SUM authoritative total ──────────
+describe("AnalysisEngine emits AMOUNT_SUM preamble (intent=sum-amount Phase 2)", () => {
+  const baseVault = (over) => ({
+    queryEvents: () => [],
+    queryPersons: () => [],
+    queryItems: () => [],
+    stats: () => ({ events: 5, persons: 0, places: 0, items: 0, topics: 0 }),
+    getEvent: () => null,
+    audit: () => {},
+    ...over,
+  });
+  const captureLlm = (calls) => ({
+    isLocal: true,
+    chat: async (msgs) => {
+      calls.push(msgs);
+      return { text: "ok", usage: {} };
+    },
+  });
+
+  it("calls sumEventAmount for sum-amount intent and puts AMOUNT_SUM in prompt", async () => {
+    const sumCalls = [];
+    const fakeVault = baseVault({
+      sumEventAmount: (f) => {
+        sumCalls.push(f);
+        return { total: 888.8, currency: "CNY", count: 5, byDirection: { out: 888.8, in: 0 } };
+      },
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我总共花了多少钱");
+    expect(sumCalls.length).toBe(1);
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("AMOUNT_SUM");
+    expect(userMsg).toContain('"total": 888.8');
+    expect(chatCalls[0][0].content).toMatch(/AMOUNT_SUM.*authoritative/i);
+  });
+
+  it("does NOT call sumEventAmount for non-sum-amount intent", async () => {
+    const sumCalls = [];
+    const fakeVault = baseVault({
+      sumEventAmount: (f) => {
+        sumCalls.push(f);
+        return { total: 0, currency: "CNY", count: 0, byDirection: { out: 0, in: 0 } };
+      },
+    });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm([]) });
+    await engine.ask("列出我的联系人"); // intent=list
+    expect(sumCalls.length).toBe(0);
+  });
+
+  it("omits AMOUNT_SUM block when sumEventAmount returns count 0", async () => {
+    const fakeVault = baseVault({
+      sumEventAmount: () => ({ total: 0, currency: "CNY", count: 0, byDirection: { out: 0, in: 0 } }),
+    });
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我总共花了多少钱");
+    expect(chatCalls[0][1].content).not.toContain("AMOUNT_SUM");
+  });
+
+  it("legacy vault without sumEventAmount falls back gracefully", async () => {
+    const fakeVault = baseVault({}); // no sumEventAmount
+    const chatCalls = [];
+    const engine = new AnalysisEngine({ vault: fakeVault, llm: captureLlm(chatCalls) });
+    await engine.ask("我总共花了多少钱");
+    expect(chatCalls[0][1].content).not.toContain("AMOUNT_SUM");
+  });
+});
+
 // ─── Cache bypass — PDH ask must always go to LLM, never cached ───────
 //
 // Bug 2026-05-21: desktop ResponseCache (7-day TTL) served a stale

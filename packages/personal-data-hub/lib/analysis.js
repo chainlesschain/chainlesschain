@@ -214,6 +214,8 @@ class AnalysisEngine {
       timeWindow: parsed.timeWindow,
       maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
+      amountSummary:
+        parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
     });
 
     // Telemetry: post-cap prompt size + truncation count. If `truncated` > 0
@@ -377,6 +379,8 @@ class AnalysisEngine {
       timeWindow: parsed.timeWindow,
       maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
+      amountSummary:
+        parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -737,6 +741,32 @@ class AnalysisEngine {
    * not expose `stats()`; falling back to undefined makes prompt-builder
    * skip the block entirely.
    */
+  /**
+   * intent=sum-amount Phase 2: pull the authoritative amount total from the
+   * vault (SQL SUM, not a FACTS sample) so prompt-builder can emit an
+   * AMOUNT_SUM block. Scoped by adapter + time window (same reliable filters
+   * _gatherFacts uses; subtype is intentionally NOT passed — the keyword
+   * classifier is too crude, and non-amount events are excluded by the SUM
+   * anyway). Returns undefined when there's nothing to sum (count===0) so the
+   * block is omitted rather than showing a misleading ¥0.
+   */
+  _gatherAmountSummary(parsed) {
+    if (typeof this.vault.sumEventAmount !== "function") return undefined;
+    try {
+      const f = {};
+      if (parsed.filters && parsed.filters.adapter) f.adapter = parsed.filters.adapter;
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) f.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) f.until = parsed.timeWindow.until;
+      }
+      const r = this.vault.sumEventAmount(f);
+      if (!r || !r.count) return undefined;
+      return r;
+    } catch (_e) {
+      return undefined;
+    }
+  }
+
   _gatherVaultTotals() {
     if (typeof this.vault.stats !== "function") return undefined;
     try {

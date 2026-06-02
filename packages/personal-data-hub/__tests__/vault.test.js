@@ -666,3 +666,85 @@ describe("LocalVault.stats", () => {
     expect(s.auditLog).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("LocalVault.sumEventAmount", () => {
+  // shopping/travel shape: content.amount = { value, currency, direction }
+  const shopEvent = (amount, over = {}) =>
+    eventOk({
+      subtype: "order",
+      source: source({ adapter: "shopping-jd" }),
+      content: { title: "订单", amount },
+      ...over,
+    });
+  // alipay shape: extra.amountFen (cents) + extra.direction
+  const alipayEvent = (amountFen, direction, over = {}) =>
+    eventOk({
+      subtype: "payment",
+      source: source({ adapter: "finance-alipay" }),
+      content: { title: "支付" },
+      extra: { amountFen, direction },
+      ...over,
+    });
+
+  it("sums content.amount (shopping/travel) split by direction", () => {
+    freshVault();
+    vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));
+    vault.putEvent(shopEvent({ value: 30, currency: "CNY", direction: "out" }));
+    vault.putEvent(shopEvent({ value: 50, currency: "CNY", direction: "in" }));
+    const r = vault.sumEventAmount();
+    expect(r.count).toBe(3);
+    expect(r.byDirection.out).toBe(130);
+    expect(r.byDirection.in).toBe(50);
+    expect(r.total).toBe(180);
+    expect(r.currency).toBe("CNY");
+  });
+
+  it("sums extra.amountFen (alipay), converting cents → yuan", () => {
+    freshVault();
+    vault.putEvent(alipayEvent(12345, "out"));
+    vault.putEvent(alipayEvent(5500, "in"));
+    const r = vault.sumEventAmount();
+    expect(r.count).toBe(2);
+    expect(r.byDirection.out).toBe(123.45);
+    expect(r.byDirection.in).toBe(55);
+  });
+
+  it("excludes events with no extractable amount (messages/visits)", () => {
+    freshVault();
+    vault.putEvent(eventOk({ subtype: "message", content: { text: "hi" }, source: source({ adapter: "wechat" }) }));
+    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }));
+    const r = vault.sumEventAmount();
+    expect(r.count).toBe(1);
+    expect(r.total).toBe(10);
+  });
+
+  it("filters by adapter and by time window", () => {
+    freshVault();
+    vault.putEvent(shopEvent({ value: 10, currency: "CNY", direction: "out" }, { occurredAt: 1000, source: source({ adapter: "shopping-jd" }) }));
+    vault.putEvent(shopEvent({ value: 20, currency: "CNY", direction: "out" }, { occurredAt: 5000, source: source({ adapter: "shopping-taobao" }) }));
+    expect(vault.sumEventAmount({ adapter: "shopping-jd" }).total).toBe(10);
+    expect(vault.sumEventAmount({ since: 2000 }).total).toBe(20);
+    expect(vault.sumEventAmount({ until: 2000 }).total).toBe(10);
+  });
+
+  it("mixed shapes coexist; mixed currencies → 'mixed'", () => {
+    freshVault();
+    vault.putEvent(shopEvent({ value: 100, currency: "CNY", direction: "out" }));
+    vault.putEvent(alipayEvent(20000, "out")); // 200 元
+    vault.putEvent(shopEvent({ value: 5, currency: "USD", direction: "out" }));
+    const r = vault.sumEventAmount();
+    expect(r.count).toBe(3);
+    expect(r.byDirection.out).toBe(305);
+    expect(r.currency).toBe("mixed");
+  });
+
+  it("empty vault → zeros, CNY, count 0", () => {
+    freshVault();
+    expect(vault.sumEventAmount()).toEqual({
+      total: 0,
+      currency: "CNY",
+      count: 0,
+      byDirection: { out: 0, in: 0 },
+    });
+  });
+});

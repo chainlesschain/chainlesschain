@@ -27,6 +27,8 @@ mkdir -p "$SANDBOX/lib" "$SANDBOX/__tests__"
 # Sync sources every run (lib/ may have evolved since last sandbox build)
 cp -r "$ROOT/lib/." "$SANDBOX/lib/"
 cp "$ROOT/__tests__/vault-search.test.js" "$SANDBOX/__tests__/"
+# vault.test.js exercises native SQL (incl. sumEventAmount, intent=sum-amount Phase 2)
+cp "$ROOT/__tests__/vault.test.js" "$SANDBOX/__tests__/"
 
 # Minimal package.json — only the deps the target test needs.
 cat > "$SANDBOX/package.json" <<'EOF'
