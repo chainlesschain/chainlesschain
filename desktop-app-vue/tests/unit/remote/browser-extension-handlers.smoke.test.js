@@ -78,6 +78,12 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "history.search",
       "history.getVisits",
       "history.delete",
+      "clipboard.read",
+      "clipboard.write",
+      "clipboard.readRich",
+      "clipboard.writeRich",
+      "clipboard.getFormats",
+      "clipboard.writeImage",
     ];
     for (const method of migrated) {
       expect(
