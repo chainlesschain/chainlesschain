@@ -37,13 +37,22 @@ class RemoteSkillRegistry @Inject constructor(
     /**
      * Manifest signature verifier (forward-compat for ADR-8 amend, #21 A.3 AI-3).
      *
-     * Default [NoOpManifestVerifier] accepts everything — current v1.2/v1.3 stage
-     * 不 enforce signature verification (push-based updateFromRemote 来源即可信)。
-     * Marketplace M0 (#21 A.3 AI-5) 上线时, app 启动注入真验签 implementation
-     * via [setManifestVerifier]。
+     * Default [LenientManifestVerifier.withoutTrustAnchor] — **verify-if-present**:
+     *  - unsigned manifests (100% of current skills: SeedRegistry + desktop push)
+     *    are accepted, so push-based [updateFromRemote] keeps working;
+     *  - a manifest that *claims* a signature must verify — a forged or
+     *    unverifiable signature is rejected rather than blindly accepted (which
+     *    [NoOpManifestVerifier] used to do).
+     *
+     * This is strictly stronger than the old NoOp default with zero regression
+     * for unsigned skills. Marketplace M0 (#21 A.3 AI-5) provisions a real
+     * publisher pubkey + enforces signatures by injecting an
+     * [Ed25519ManifestVerifier] (or a [LenientManifestVerifier] with a real trust
+     * anchor) via [setManifestVerifier].
      */
     @Volatile
-    private var manifestVerifier: ManifestSignatureVerifier = NoOpManifestVerifier
+    private var manifestVerifier: ManifestSignatureVerifier =
+        LenientManifestVerifier.withoutTrustAnchor()
 
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills: StateFlow<List<SkillMetadata>> = _skills.asStateFlow()
@@ -53,8 +62,9 @@ class RemoteSkillRegistry @Inject constructor(
 
     /**
      * Replace the manifest signature verifier (forward-compat #21 A.3 AI-3).
-     * Defaults to [NoOpManifestVerifier]; real Ed25519 / SLH-DSA hybrid verifier
-     * wires in when marketplace M0 lands.
+     * Defaults to [LenientManifestVerifier.withoutTrustAnchor] (verify-if-present,
+     * no trust anchor); real Ed25519 / SLH-DSA hybrid verifier with a provisioned
+     * publisher pubkey wires in when marketplace M0 lands.
      */
     fun setManifestVerifier(v: ManifestSignatureVerifier) {
         manifestVerifier = v
@@ -167,11 +177,13 @@ class RemoteSkillRegistry @Inject constructor(
             Timber.w("updateFromRemote called with empty list, ignoring")
             return byNamespace.size
         }
-        // Manifest signature gate (forward-compat #21 A.3 AI-3). NoOpManifestVerifier
-        // accepts everything by default; real verifier (post-marketplace M0) will
-        // reject skills with invalid signatures, which we skip + log rather than
-        // failing the whole update — partial-acceptance is the safer default for
-        // a verifier whose policy may evolve.
+        // Manifest signature gate (forward-compat #21 A.3 AI-3). The default
+        // LenientManifestVerifier accepts unsigned manifests (current state) but
+        // rejects a manifest that claims an unverifiable signature; the real
+        // verifier (post-marketplace M0) will additionally require signatures.
+        // Rejected skills are skipped + logged rather than failing the whole
+        // update — partial-acceptance is the safer default for a verifier whose
+        // policy may evolve.
         val accepted = mutableListOf<SkillMetadata>()
         val rejected = mutableListOf<Pair<String, String>>()
         for (skill in newSkills) {

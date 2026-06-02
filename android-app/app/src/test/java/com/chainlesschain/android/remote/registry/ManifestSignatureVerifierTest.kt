@@ -126,7 +126,12 @@ class ManifestSignatureVerifierTest {
     }
 
     @Test
-    fun `updateFromRemote accepts both signed and unsigned with NoOpManifestVerifier`() {
+    fun `updateFromRemote default lenient verifier accepts unsigned, rejects unverifiable-signed`() {
+        // Default verifier is now LenientManifestVerifier.withoutTrustAnchor()
+        // (verify-if-present, no trust anchor): unsigned manifests still flow,
+        // but a manifest carrying a bogus/unverifiable signature is rejected
+        // UNKNOWN_PUBLISHER instead of NoOp-accepted. This is the deliberate
+        // A7 hardening (was: NoOp default accepted both).
         registry.initialize()
         val before = registry.listAll().size
 
@@ -134,11 +139,30 @@ class ManifestSignatureVerifierTest {
         val unsigned = sampleSkill(namespace = "beta", signature = null)
         registry.updateFromRemote(listOf(signed, unsigned))
 
-        assertEquals(before + 2, registry.listAll().size)
-        assertNotNull(registry.get("alpha"))
-        assertEquals("sig-a", registry.get("alpha")!!.signature)
+        // Only the unsigned skill is merged; the bogus-signed one is dropped.
+        assertEquals(before + 1, registry.listAll().size)
+        assertNull("bogus-signed manifest must be rejected under lenient default", registry.get("alpha"))
         assertNotNull(registry.get("beta"))
         assertNull(registry.get("beta")!!.signature)
+    }
+
+    @Test
+    fun `updateFromRemote default lenient verifier accepts both when both unsigned`() {
+        // Regression guard: the common case (all unsigned) is unchanged from the
+        // old NoOp default — both merge.
+        registry.initialize()
+        val before = registry.listAll().size
+
+        registry.updateFromRemote(
+            listOf(
+                sampleSkill(namespace = "alpha", signature = null),
+                sampleSkill(namespace = "beta", signature = null),
+            ),
+        )
+
+        assertEquals(before + 2, registry.listAll().size)
+        assertNotNull(registry.get("alpha"))
+        assertNotNull(registry.get("beta"))
     }
 
     @Test
@@ -176,9 +200,9 @@ class ManifestSignatureVerifierTest {
     }
 
     @Test
-    fun `existing tests' default path still works when verifier left at NoOp`() {
-        // Smoke: don't call setManifestVerifier; updateFromRemote should behave
-        // identically to pre-#21-A.3-AI-3 code.
+    fun `existing tests' default path still works on the lenient default for unsigned skills`() {
+        // Smoke: don't call setManifestVerifier; an unsigned updateFromRemote
+        // behaves identically to the old NoOp default (unsigned always accepted).
         registry.initialize()
         val before = registry.listAll().size
 
