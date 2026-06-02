@@ -9,6 +9,12 @@
 /* global chrome */
 
 import { commandHandlerRegistry, listTabs } from "./handlers/index.js";
+import {
+  captureScreenshot,
+  ensureDebuggerAttached,
+  executeScript,
+  executeScriptInFrame,
+} from "./handlers/_shared.js";
 
 // Connection state
 let ws = null;
@@ -1764,45 +1770,9 @@ async function getPageContent(tabId, selector) {
   return { content: results[0]?.result };
 }
 
-async function executeScript(tabId, script) {
-  // SECURITY-EXCEPTION: Dynamic code execution is INTENTIONAL here.
-  // This is a browser automation feature that executes scripts from the trusted
-  // ChainlessChain Desktop app only. Security is enforced by:
-  // 1. WebSocket connection is localhost-only (127.0.0.1:18790)
-  // 2. No external network access to this endpoint
-  // 3. User must explicitly install and enable the extension
-  // 4. All commands are logged and auditable
-  // security-scanner-ignore: new-function
-  const results = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: (code) => {
-      // eslint-disable-next-line no-new-func
-      const fn = new Function(code); // NOSONAR SECURITY-EXCEPTION
-      return fn();
-    },
-    args: [script],
-  });
-  return { result: results[0]?.result };
-}
-
-async function captureScreenshot(tabId, options = {}) {
-  // Get the tab's window
-  const tab = await chrome.tabs.get(tabId);
-
-  // Focus the tab first
-  await chrome.tabs.update(tabId, { active: true });
-  await chrome.windows.update(tab.windowId, { focused: true });
-
-  // Wait a bit for focus
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
-    format: options.format || "png",
-    quality: options.quality || 80,
-  });
-
-  return { dataUrl };
-}
+// executeScript + captureScreenshot moved to ./handlers/_shared.js (Phase 0
+// split). The earlier captureVisibleTab-based captureScreenshot here was dead
+// code shadowed by the CDP variant below — both collapsed into _shared.js.
 
 // ==================== Clipboard ====================
 
@@ -3368,22 +3338,7 @@ async function listFrames(tabId) {
   }
 }
 
-async function executeScriptInFrame(tabId, frameId, script) {
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId, frameIds: [frameId] },
-      func: (code) => {
-        // eslint-disable-next-line no-new-func
-        const fn = new Function(code); // NOSONAR - intentional for automation
-        return fn();
-      },
-      args: [script],
-    });
-    return { result: results[0]?.result };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// executeScriptInFrame moved to ./handlers/_shared.js (Phase 0 split).
 
 // ==================== Notifications ====================
 
@@ -3909,17 +3864,7 @@ async function getSitePermissions(tabId) {
   }
 }
 
-// Helper function to ensure debugger is attached
-async function ensureDebuggerAttached(tabId) {
-  try {
-    await chrome.debugger.attach({ tabId }, "1.3");
-  } catch (error) {
-    // Already attached is ok
-    if (!error.message.includes("already attached")) {
-      throw error;
-    }
-  }
-}
+// ensureDebuggerAttached moved to ./handlers/_shared.js (Phase 0 split).
 
 // ==================== Phase 17: Animation Control ====================
 
@@ -6325,27 +6270,7 @@ function getViewportPresets() {
 
 // ==================== Phase 19: Screenshot Comparison ====================
 
-async function captureScreenshot(tabId, options = {}) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    const result = await chrome.debugger.sendCommand(
-      { tabId },
-      "Page.captureScreenshot",
-      {
-        format: options.format || "png",
-        quality: options.quality || 100,
-        fromSurface: true,
-      },
-    );
-    return {
-      success: true,
-      data: result.data,
-      format: options.format || "png",
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// captureScreenshot moved to ./handlers/_shared.js (Phase 0 split).
 
 async function captureElementScreenshot(tabId, selector, options = {}) {
   try {

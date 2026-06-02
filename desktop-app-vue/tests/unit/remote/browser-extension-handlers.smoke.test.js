@@ -1,0 +1,89 @@
+/**
+ * Characterization smoke test for the browser-extension handler split.
+ *
+ * The background service worker (background.js, ~15k lines) is being broken up
+ * into per-domain handler modules under `handlers/`, dispatched through a
+ * registry-first `commandHandlerRegistry`. There is no other automated coverage
+ * of these files, so this test is the safety net for the incremental split:
+ *
+ *  - It fails loudly if any handler module has an import/syntax error.
+ *  - It pins the shape of the shared primitive layer (`_shared.js`).
+ *  - It pins the set of command methods already migrated into the registry, so
+ *    a future extraction that accidentally drops a method is caught here.
+ *
+ * The handler files reference `chrome.*` only inside function bodies, so they
+ * import cleanly under vitest/jsdom without a `chrome` global. Behavior of the
+ * handlers themselves (which call chrome.*) is out of scope — that needs a real
+ * extension load in Chrome.
+ */
+
+const EXT = "../../../src/main/remote/browser-extension";
+
+describe("browser-extension/_shared.js (extracted primitive layer)", () => {
+  it("exports the shared inject + CDP helpers as functions", async () => {
+    const shared = await import(`${EXT}/handlers/_shared.js`);
+
+    for (const name of [
+      "executeScript",
+      "executeScriptInFrame",
+      "ensureDebuggerAttached",
+      "captureScreenshot",
+    ]) {
+      expect(typeof shared[name], `_shared.${name}`).toBe("function");
+    }
+  });
+
+  it("captureScreenshot is the single (de-shadowed) CDP variant", async () => {
+    const { captureScreenshot } = await import(`${EXT}/handlers/_shared.js`);
+    // The de-duplicated definition takes (tabId, options = {}).
+    expect(captureScreenshot.length).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("browser-extension/handlers/index.js (command registry)", () => {
+  it("loads without import/syntax errors and exports a registry object", async () => {
+    const mod = await import(`${EXT}/handlers/index.js`);
+    expect(mod.commandHandlerRegistry).toBeTypeOf("object");
+    expect(mod.commandHandlerRegistry).not.toBeNull();
+    expect(mod.listTabs).toBeTypeOf("function");
+  });
+
+  it("keeps every registered method mapped to a function", async () => {
+    const { commandHandlerRegistry } = await import(`${EXT}/handlers/index.js`);
+    const entries = Object.entries(commandHandlerRegistry);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [method, handler] of entries) {
+      expect(typeof handler, `registry["${method}"]`).toBe("function");
+    }
+  });
+
+  it("pins the already-migrated command methods (regression guard)", async () => {
+    const { commandHandlerRegistry } = await import(`${EXT}/handlers/index.js`);
+    // Methods extracted so far. As new domains are migrated, ADD their methods
+    // here — never silently remove one.
+    const migrated = [
+      "tabs.list",
+      "tabs.get",
+      "tabs.create",
+      "tabs.close",
+      "tabs.focus",
+      "tabs.navigate",
+      "tabs.reload",
+      "tabs.goBack",
+      "tabs.goForward",
+      "bookmarks.getTree",
+      "bookmarks.search",
+      "bookmarks.create",
+      "bookmarks.remove",
+      "history.search",
+      "history.getVisits",
+      "history.delete",
+    ];
+    for (const method of migrated) {
+      expect(
+        commandHandlerRegistry[method],
+        `expected "${method}" in registry`,
+      ).toBeTypeOf("function");
+    }
+  });
+});
