@@ -284,10 +284,6 @@ async function executeCommand(method, params) {
     case "history.delete":
       return await deleteHistory(params.url);
 
-    // Notifications
-    case "notification.show":
-      return await showNotification(params);
-
     // Cookies
     case "cookies.getAll":
       return await getAllCookies(params);
@@ -299,38 +295,6 @@ async function executeCommand(method, params) {
       return await removeCookie(params);
     case "cookies.clear":
       return await clearCookies(params);
-
-    // Downloads
-    case "downloads.list":
-      return await listDownloads(params);
-    case "downloads.download":
-      return await startDownload(params);
-    case "downloads.cancel":
-      return await cancelDownload(params.downloadId);
-    case "downloads.pause":
-      return await pauseDownload(params.downloadId);
-    case "downloads.resume":
-      return await resumeDownload(params.downloadId);
-    case "downloads.open":
-      return await openDownload(params.downloadId);
-    case "downloads.show":
-      return await showDownloadInFolder(params.downloadId);
-    case "downloads.erase":
-      return await eraseDownloads(params);
-
-    // Windows
-    case "windows.getAll":
-      return await getAllWindows();
-    case "windows.get":
-      return await getWindow(params.windowId);
-    case "windows.create":
-      return await createWindow(params);
-    case "windows.update":
-      return await updateWindow(params.windowId, params);
-    case "windows.remove":
-      return await removeWindow(params.windowId);
-    case "windows.getCurrent":
-      return await getCurrentWindow();
 
     // Storage (via content script)
     case "storage.getLocal":
@@ -944,18 +908,6 @@ async function executeCommand(method, params) {
     case "permissions.request":
       return await requestPermission(params.tabId, params.name);
 
-    // Notifications
-    case "notifications.getPermission":
-      return await getNotificationPermission(params.tabId);
-    case "notifications.requestPermission":
-      return await requestNotificationPermission(params.tabId);
-    case "notifications.create":
-      return await createNotification(
-        params.tabId,
-        params.title,
-        params.options,
-      );
-
     // Fullscreen
     case "fullscreen.enter":
       return await enterFullscreen(params.tabId, params.selector);
@@ -1296,20 +1248,6 @@ async function executeCommand(method, params) {
         params.handleId,
         params.options,
       );
-
-    // Tab Groups API (Chrome specific)
-    case "tabGroups.create":
-      return await createTabGroup(params.tabIds, params.options);
-    case "tabGroups.get":
-      return await getTabGroup(params.groupId);
-    case "tabGroups.getAll":
-      return await getAllTabGroups(params.windowId);
-    case "tabGroups.update":
-      return await updateTabGroup(params.groupId, params.options);
-    case "tabGroups.move":
-      return await moveTabGroup(params.groupId, params.moveProperties);
-    case "tabGroups.ungroup":
-      return await ungroupTabs(params.tabIds);
 
     // Eye Dropper API
     case "eyeDropper.open":
@@ -1822,212 +1760,9 @@ async function clearCookies(params) {
   return { success: true, removed };
 }
 
-// ==================== Downloads ====================
+// Download handlers moved to ./handlers/downloads.js (Phase 1 split).
 
-async function listDownloads(params = {}) {
-  const query = {};
-  if (params.query) {
-    query.query = [params.query];
-  }
-  if (params.limit) {
-    query.limit = params.limit;
-  }
-  if (params.orderBy) {
-    query.orderBy = [params.orderBy];
-  }
-  if (params.state) {
-    query.state = params.state;
-  }
-  const downloads = await chrome.downloads.search(query);
-  return {
-    downloads: downloads.map((d) => ({
-      id: d.id,
-      url: d.url,
-      filename: d.filename,
-      state: d.state,
-      bytesReceived: d.bytesReceived,
-      totalBytes: d.totalBytes,
-      startTime: d.startTime,
-      endTime: d.endTime,
-      error: d.error,
-      mime: d.mime,
-    })),
-  };
-}
-
-async function startDownload(params) {
-  const options = {
-    url: params.url,
-  };
-  if (params.filename) {
-    options.filename = params.filename;
-  }
-  if (params.saveAs !== undefined) {
-    options.saveAs = params.saveAs;
-  }
-  if (params.conflictAction) {
-    options.conflictAction = params.conflictAction;
-  }
-  const downloadId = await chrome.downloads.download(options);
-  return { downloadId };
-}
-
-async function cancelDownload(downloadId) {
-  await chrome.downloads.cancel(downloadId);
-  return { success: true };
-}
-
-async function pauseDownload(downloadId) {
-  await chrome.downloads.pause(downloadId);
-  return { success: true };
-}
-
-async function resumeDownload(downloadId) {
-  await chrome.downloads.resume(downloadId);
-  return { success: true };
-}
-
-async function openDownload(downloadId) {
-  await chrome.downloads.open(downloadId);
-  return { success: true };
-}
-
-async function showDownloadInFolder(downloadId) {
-  await chrome.downloads.show(downloadId);
-  return { success: true };
-}
-
-async function eraseDownloads(params = {}) {
-  const query = {};
-  if (params.state) {
-    query.state = params.state;
-  }
-  if (params.startedBefore) {
-    query.startedBefore = params.startedBefore;
-  }
-  const erased = await chrome.downloads.erase(query);
-  return { erased: erased.length };
-}
-
-// ==================== Windows ====================
-
-async function getAllWindows() {
-  const windows = await chrome.windows.getAll({ populate: true });
-  return {
-    windows: windows.map((w) => ({
-      id: w.id,
-      type: w.type,
-      state: w.state,
-      focused: w.focused,
-      top: w.top,
-      left: w.left,
-      width: w.width,
-      height: w.height,
-      incognito: w.incognito,
-      tabCount: w.tabs ? w.tabs.length : 0,
-    })),
-  };
-}
-
-async function getWindow(windowId) {
-  const window = await chrome.windows.get(windowId, { populate: true });
-  return {
-    id: window.id,
-    type: window.type,
-    state: window.state,
-    focused: window.focused,
-    top: window.top,
-    left: window.left,
-    width: window.width,
-    height: window.height,
-    incognito: window.incognito,
-    tabs: window.tabs
-      ? window.tabs.map((t) => ({
-          id: t.id,
-          title: t.title,
-          url: t.url,
-          active: t.active,
-        }))
-      : [],
-  };
-}
-
-async function createWindow(params) {
-  const options = {};
-  if (params.url) {
-    options.url = params.url;
-  }
-  if (params.type) {
-    options.type = params.type;
-  }
-  if (params.state) {
-    options.state = params.state;
-  }
-  if (params.focused !== undefined) {
-    options.focused = params.focused;
-  }
-  if (params.incognito !== undefined) {
-    options.incognito = params.incognito;
-  }
-  if (params.width) {
-    options.width = params.width;
-  }
-  if (params.height) {
-    options.height = params.height;
-  }
-  if (params.top !== undefined) {
-    options.top = params.top;
-  }
-  if (params.left !== undefined) {
-    options.left = params.left;
-  }
-  const window = await chrome.windows.create(options);
-  return { windowId: window.id };
-}
-
-async function updateWindow(windowId, params) {
-  const updateInfo = {};
-  if (params.state) {
-    updateInfo.state = params.state;
-  }
-  if (params.focused !== undefined) {
-    updateInfo.focused = params.focused;
-  }
-  if (params.width) {
-    updateInfo.width = params.width;
-  }
-  if (params.height) {
-    updateInfo.height = params.height;
-  }
-  if (params.top !== undefined) {
-    updateInfo.top = params.top;
-  }
-  if (params.left !== undefined) {
-    updateInfo.left = params.left;
-  }
-  if (params.drawAttention !== undefined) {
-    updateInfo.drawAttention = params.drawAttention;
-  }
-  const window = await chrome.windows.update(windowId, updateInfo);
-  return { success: true, state: window.state };
-}
-
-async function removeWindow(windowId) {
-  await chrome.windows.remove(windowId);
-  return { success: true };
-}
-
-async function getCurrentWindow() {
-  const window = await chrome.windows.getCurrent({ populate: true });
-  return {
-    id: window.id,
-    type: window.type,
-    state: window.state,
-    focused: window.focused,
-    width: window.width,
-    height: window.height,
-  };
-}
+// Window handlers moved to ./handlers/windows.js (Phase 1 split).
 
 // ==================== Storage (via content script) ====================
 
@@ -3286,18 +3021,7 @@ async function listFrames(tabId) {
 
 // executeScriptInFrame moved to ./handlers/_shared.js (Phase 0 split).
 
-// ==================== Notifications ====================
-
-async function showNotification(params) {
-  const id = await chrome.notifications.create({
-    type: "basic",
-    iconUrl: "icons/icon128.png",
-    title: params.title || "ChainlessChain",
-    message: params.message,
-    priority: params.priority || 0,
-  });
-  return { id };
-}
+// Notification handlers moved to ./handlers/notifications.js (Phase 1 split).
 
 // ==================== Phase 17: WebSocket Debugging ====================
 
@@ -7178,64 +6902,7 @@ async function requestPermission(tabId, name) {
   }
 }
 
-// ==================== Phase 20: Notifications ====================
-
-async function getNotificationPermission(tabId) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => ({
-        permission: Notification.permission,
-        supported: typeof Notification !== "undefined",
-      }),
-    });
-    return result[0]?.result || { permission: "unsupported" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function requestNotificationPermission(tabId) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: async () => {
-        try {
-          const permission = await Notification.requestPermission();
-          return { permission };
-        } catch (e) {
-          return { error: e.message };
-        }
-      },
-    });
-    return result[0]?.result || { error: "Failed to request permission" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function createNotification(tabId, title, options = {}) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (t, opts) => {
-        if (Notification.permission !== "granted") {
-          return { error: "Notification permission not granted" };
-        }
-        try {
-          new Notification(t, opts);
-          return { success: true, title: t };
-        } catch (e) {
-          return { error: e.message };
-        }
-      },
-      args: [title, options],
-    });
-    return result[0]?.result || { error: "Failed to create notification" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// Web Notification API handlers moved to ./handlers/notifications.js (Phase 1).
 
 // ==================== Phase 20: Fullscreen ====================
 
@@ -10823,119 +10490,7 @@ async function removeFileEntry(tabId, handleId, options) {
   }
 }
 
-// ==================== Phase 23: Tab Groups API ====================
-
-async function createTabGroup(tabIds, options = {}) {
-  try {
-    if (!chrome.tabGroups) {
-      return { error: "Tab Groups API not supported" };
-    }
-    const groupId = await chrome.tabs.group({ tabIds });
-    if (options.title || options.color || options.collapsed !== undefined) {
-      await chrome.tabGroups.update(groupId, {
-        title: options.title,
-        color: options.color,
-        collapsed: options.collapsed,
-      });
-    }
-    const group = await chrome.tabGroups.get(groupId);
-    return {
-      groupId,
-      title: group.title,
-      color: group.color,
-      collapsed: group.collapsed,
-      windowId: group.windowId,
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function getTabGroup(groupId) {
-  try {
-    if (!chrome.tabGroups) {
-      return { error: "Tab Groups API not supported" };
-    }
-    const group = await chrome.tabGroups.get(groupId);
-    const tabs = await chrome.tabs.query({ groupId });
-    return {
-      id: group.id,
-      title: group.title,
-      color: group.color,
-      collapsed: group.collapsed,
-      windowId: group.windowId,
-      tabs: tabs.map((t) => ({ id: t.id, title: t.title, url: t.url })),
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function getAllTabGroups(windowId) {
-  try {
-    if (!chrome.tabGroups) {
-      return { error: "Tab Groups API not supported" };
-    }
-    const queryInfo = windowId ? { windowId } : {};
-    const groups = await chrome.tabGroups.query(queryInfo);
-    const result = [];
-    for (const group of groups) {
-      const tabs = await chrome.tabs.query({ groupId: group.id });
-      result.push({
-        id: group.id,
-        title: group.title,
-        color: group.color,
-        collapsed: group.collapsed,
-        windowId: group.windowId,
-        tabCount: tabs.length,
-      });
-    }
-    return { groups: result };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function updateTabGroup(groupId, options) {
-  try {
-    if (!chrome.tabGroups) {
-      return { error: "Tab Groups API not supported" };
-    }
-    const group = await chrome.tabGroups.update(groupId, options);
-    return {
-      id: group.id,
-      title: group.title,
-      color: group.color,
-      collapsed: group.collapsed,
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function moveTabGroup(groupId, moveProperties) {
-  try {
-    if (!chrome.tabGroups) {
-      return { error: "Tab Groups API not supported" };
-    }
-    const group = await chrome.tabGroups.move(groupId, moveProperties);
-    return {
-      id: group.id,
-      windowId: group.windowId,
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function ungroupTabs(tabIds) {
-  try {
-    await chrome.tabs.ungroup(tabIds);
-    return { success: true, ungroupedTabs: tabIds.length };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// Tab Groups handlers moved to ./handlers/windows.js (Phase 1 split).
 
 // ==================== Phase 23: Eye Dropper API ====================
 
