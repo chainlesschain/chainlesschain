@@ -341,3 +341,61 @@ describe("MobileBridge — Plan A.1 Phase 4 LRU dedup", () => {
     });
   });
 });
+
+describe("MobileBridge — FAMILY-60 family.time responder", () => {
+  let bridge;
+  let sendSpy;
+
+  beforeEach(() => {
+    ({ bridge } = createBridge());
+    sendSpy = vi.fn();
+    bridge.send = sendSpy;
+  });
+
+  it("replies to a family.time.request with parentEpochMs + matching requestId", async () => {
+    await bridge.handleP2PMessage({
+      from: "mobile-child",
+      payload: {
+        type: "chainlesschain:family:time:request",
+        requestId: "time-req-1",
+      },
+    });
+
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    const sent = sendSpy.mock.calls[0][0];
+    expect(sent.type).toBe("message");
+    expect(sent.to).toBe("mobile-child");
+    expect(sent.payload.type).toBe("chainlesschain:family:time:response");
+    expect(sent.payload.requestId).toBe("time-req-1");
+    expect(sent.payload.parentEpochMs).toBeTypeOf("number");
+    // Sanity: a real epoch-ms wall clock (after 2020-09-13).
+    expect(sent.payload.parentEpochMs).toBeGreaterThan(1_600_000_000_000);
+  });
+
+  it("does NOT bridge a time request to libp2p", async () => {
+    const bridgeSpy = vi
+      .spyOn(bridge, "bridgeToLibp2p")
+      .mockResolvedValue(undefined);
+
+    await bridge.handleP2PMessage({
+      from: "mobile-child",
+      payload: { type: "chainlesschain:family:time:request", requestId: "r" },
+    });
+
+    expect(bridgeSpy).not.toHaveBeenCalled();
+  });
+
+  it("bridges non-time P2P messages normally (responder is scoped)", async () => {
+    const bridgeSpy = vi
+      .spyOn(bridge, "bridgeToLibp2p")
+      .mockResolvedValue(undefined);
+
+    await bridge.handleP2PMessage({
+      from: "mobile-child",
+      payload: { type: "chainlesschain:event", payload: { event: "x" } },
+    });
+
+    expect(sendSpy).not.toHaveBeenCalled();
+    expect(bridgeSpy).toHaveBeenCalledTimes(1);
+  });
+});

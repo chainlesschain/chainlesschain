@@ -862,6 +862,29 @@ class MobileBridge extends EventEmitter {
       return;
     }
 
+    // FAMILY-60: family.time.request responder — 孩子端经 P2P 拉桌面(家长端)权威
+    // wall-clock epoch ms, CristianTimeAuthority 据此 + RTT/2 锚定单调钟, 防孩子改设备
+    // 钟绕过时间约束。立即回 Date.now() (桌面是可信授时源); 不 bridgeToLibp2p。
+    if (payload && payload.type === "chainlesschain:family:time:request") {
+      this.send({
+        type: "message",
+        to: from,
+        payload: {
+          type: "chainlesschain:family:time:response",
+          requestId: payload.requestId,
+          parentEpochMs: Date.now(),
+        },
+      });
+      logger.info(
+        "[MobileBridge] ✓ family.time.response → " +
+          from +
+          " (reqId=" +
+          (payload.requestId || "?") +
+          ")",
+      );
+      return;
+    }
+
     // 桥接到libp2p网络
     await this.bridgeToLibp2p(from, JSON.stringify(payload));
   }

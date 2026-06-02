@@ -27,7 +27,7 @@
 
 | # | NoOp 实现 | 接口 | 绑定处 | 应做什么 / 阻塞点 | 风险 |
 |---|---|---|---|---|---|
-| A1 | `NoOpParentTimeSource` | `ParentTimeSource` | `feature-family-guard/.../di/TimeModule.kt` | 从家长端 P2P 拉权威时间锚 `CristianTimeAuthority`。现永远 `NEVER_SYNCED` → 退化设备墙钟，**防改钟机制失效**。需 :app 接 `family.time.*` P2P responder + 2 真机 | 🔒 安全(可被改钟绕过监管) |
+| ~~A1~~ | ~~`NoOpParentTimeSource`~~ → `P2PParentTimeSource` | `ParentTimeSource` | feature TimeModule(移除默认)→ `:app/di/ParentTimeModule.kt` | ✅ **2026-06-02 已接线(两半 armed)**。详见下方「A1 处理记录」。剩余:2-真机 E2E 验证真实同步 | 🟡→ 2-真机 E2E |
 | A2 | `NoOpSosNotifier` | `SosNotifier` | `feature-family-guard/.../di/SosModule.kt` | SOS 广播 / 误触撤销 / 已接通 stand-down 通知。现全空。需 :app 接 P2P + PushVendor(FAMILY-43/46) | 🔒 安全(SOS 不达) |
 | A3 | `NoOpEmergencyContactNotifier` | `EmergencyContactNotifier` | `feature-family-guard/.../di/SosModule.kt` | SOS 60s 兜底给 emergency_contacts 发短信(FAMILY-45)。现空。需接云厂商 SMS API | 🔒 安全(兜底不达) |
 | A4 | `NoOpExternalContactNotifier` | `ExternalContactNotifier` | `feature-family-guard/.../di/FamilyGuardBindingsModule.kt:130` | 复活码紧急解绑时通知外部联系人(`EmergencyUnbindServiceImpl` 消费)。现空 | 中 |
@@ -88,11 +88,26 @@
 - 测试：`LenientManifestVerifierTest`(6 例)+ 更新 `ManifestSignatureVerifierTest`(默认行为变更 + 回归守卫)；`:app:testDebugUnitTest` 四类全绿。
 - **剩(marketplace M0)**：桌面 manifest 签名流水线 + 公钥分发 + 把 `withoutTrustAnchor()` 换成带真实 resolver 的验签器 + 全员签名后把 null 分支翻成拒。
 
+## A1 处理记录(2026-06-02)
+
+> **纠正**：A1 最初被标为「纯 :app 接线」，**此判断低估了**。它需要**请求-响应式 P2P + 桌面 responder + 2 真机**，端到端无法在 Win 开发机验证（与 A7 的纯逻辑自包含不同）。user 选「建两半 armed 代码 + 单测，留 2-真机 E2E」。
+
+**已落地(两半 armed，单测 + Hilt 全图编译全绿)**：
+- **桌面 parent 侧**（`p2p/mobile-bridge.js`）：`handleP2PMessage` 加 `family.time.request` responder → 回 `{parentEpochMs: Date.now()}`（桌面=可信授时源）。+3 vitest。
+- **Android child 侧**：
+  - `remote/webrtc/FamilyTimeRpcClient`（请求-响应 over `SignalClient`，requestId 关联 + 5s 超时，FamilyCallRpcClient 模板派生）。
+  - `familyguard/time/P2PParentTimeSource`（实现 `ParentTimeSource`，从 `PairedPeersStore` 取第一个对端 pcPeerId 委托 RPC）。
+  - `di/ParentTimeModule`（:app 绑 `ParentTimeSource` → `P2PParentTimeSource`）；feature `TimeModule` **移除** NoOp 默认绑定（照 TelemetryOutbox 成例，避 Hilt 重复绑定）。`NoOpParentTimeSource` 类保留作 fallback。
+  - `data/time/TimeSyncTimer`（30min 周期调 `TimeAuthority.sync()`，FamilyGuardForegroundService 托管，同 AnomalyScanTimer 模式）。
+  - +FamilyTimeRpcClientTest（5 例）+ P2PParentTimeSourceTest（3 例）+ TimeSyncTimerTest（3 例）。
+- **效果**：链路全通 —— 30min timer → TimeAuthority.sync() → P2PParentTimeSource → FamilyTimeRpcClient →（P2P）→ 桌面 responder → 回 epoch → Cristian 锚定单调钟。**今日**：只要孩子端配对了桌面并联网，防改钟即真生效（不再恒 NEVER_SYNCED）。
+- **剩(2-真机 E2E)**：真实 child↔desktop 同步 + RTT 估算 + skew 锁触发，需 Android 真机 + 真桌面 + 配对，Win 不可跑。mobile↔mobile 家长选择（非桌面 parent）留后续细化。
+
 ## 处理优先级建议
 
 **可立即处理(与真机无关，纯 :app 接线)**
 - [x] **A7** 验签：已换 `LenientManifestVerifier` 默认(verify-if-present)。完整强制验签待 marketplace M0
-- [ ] **A1** 防改钟：:app 实现 `family.time.*` P2P responder + 覆盖 `ParentTimeSource` 绑定(安全；需对端 desktop responder，但逻辑层已就绪)
+- [x] **A1** 防改钟：两半 armed（桌面 responder + Android RPC/适配器/绑定/30min 触发）已落 + 单测 + Hilt 全图绿。剩 2-真机 E2E 验真实同步
 
 **需先做前置基建**
 - [ ] **B** 推送厂商：接通华为/OPPO/Vivo/FCM SDK(解锁 A2/A3/A5/A6 的告警落点)
@@ -109,3 +124,4 @@
 |---|---|---|
 | 2026-06-02 | 初版，10 NoOp 类 + 推送 stub 盘点 | `47b6993e7` |
 | 2026-06-02 | A7 硬化：NoOp→LenientManifestVerifier(verify-if-present)默认 + 测试全绿；纠正 A7 风险定性 | `47b6993e7` |
+| 2026-06-02 | A1 两半 armed：桌面 family.time responder + Android FamilyTimeRpcClient/P2PParentTimeSource/绑定迁移/30min TimeSyncTimer + 11 单测 + Hilt 全图绿；纠正 A1 为 2-真机阻塞 | `eb94d2f15` |
