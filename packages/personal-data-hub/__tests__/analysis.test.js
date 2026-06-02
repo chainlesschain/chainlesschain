@@ -1638,9 +1638,15 @@ describe("AnalysisEngine._gatherFacts intent=sum-amount routing", () => {
 // 2026-05-24 — `intent=count` ("几个 X" / "多少个 Y") is handled by the
 // TOTALS preamble (commit 19c11920e): vault.stats() is rendered before
 // FACTS so the LLM quotes the real number instead of FACTS array length.
-// FACTS itself still goes through the default broader path (no narrow
-// routing). This block isolates the count-specific behavior into its
-// own describe so the audit gap is closed.
+//
+// 2026-06-02 — FACTS now ALSO hard-caps to COUNT_INTENT_FACT_LIMIT (5)
+// illustrative rows instead of the full ≤80 default sample: TOTALS already
+// carries the authoritative count (Rule 6), so a count question only needs a
+// few examples — saves prompt budget on local small models. Scoped by reliable
+// adapter+time filters; persons/items skipped (count-of-contacts/apps routes
+// via entityFocus). 0 hits → fall through to the default broader path (safety
+// net for a count misclassification of a list question). Memory:
+// pdh_analysis_engine_intent_routing.md.
 
 describe("AnalysisEngine._gatherFacts intent=count routing", () => {
   const mkEvent = (id, subtype = "order", adapter = "taobao") => ({
@@ -1649,28 +1655,56 @@ describe("AnalysisEngine._gatherFacts intent=count routing", () => {
     source: { adapter, adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
   });
 
-  it("(a) intent=count goes through default broader path (no narrow query)", async () => {
+  it("(a) intent=count → ≤5 illustrative events (capped), persons/items NOT queried", async () => {
     const queryEventsCalls = [];
     const fakeVault = {
       queryEvents: (q) => {
         queryEventsCalls.push(q);
-        return [mkEvent("e-1"), mkEvent("e-2")];
+        return Array.from({ length: 20 }, (_, i) => mkEvent("e-" + i)).slice(0, q.limit);
+      },
+      queryPersons: vi.fn(() => []),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 20, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我有多少个订单");
+
+    expect(r.parsed.intent).toBe("count");
+    // Capped to COUNT_INTENT_FACT_LIMIT (5), NOT the old default 200 — TOTALS
+    // carries the authoritative count, FACTS is just a few examples.
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(5);
+    expect(queryEventsCalls[0].subtype).toBeUndefined(); // subtype NOT passed (unreliable)
+    expect(r.facts).toHaveLength(5);
+    // count-of-events doesn't need contacts/apps — skipped (those route via entityFocus).
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryItems).not.toHaveBeenCalled();
+  });
+
+  it("(a2) intent=count with adapter scope → adapter passed through on the capped query", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return [mkEvent("e-1")];
       },
       queryPersons: () => [],
       queryItems: () => [],
       getEvent: () => null,
       audit: () => {},
-      stats: () => ({ events: 2, persons: 500, places: 0, items: 0, topics: 0 }),
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
     };
-    const llm = new MockLLMClient({ reply: "你有 500 个联系人" });
+    const llm = new MockLLMClient({ reply: "ok" });
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
-    const r = await engine.ask("我有几个联系人");
+    const r = await engine.ask("我在淘宝有多少个订单");
 
     expect(r.parsed.intent).toBe("count");
-    // Single default queryEvents call (limit=200, no subtype filter, no narrow).
     expect(queryEventsCalls).toHaveLength(1);
-    expect(queryEventsCalls[0].limit).toBe(200);
-    expect(queryEventsCalls[0].subtype).toBeUndefined();
+    expect(queryEventsCalls[0].limit).toBe(5);
+    expect(queryEventsCalls[0].adapter).toBe("taobao");
   });
 
   it("(b) intent=count emits TOTALS block in prompt (authoritative ground truth)", async () => {
@@ -1730,12 +1764,14 @@ describe("AnalysisEngine._gatherFacts intent=count routing", () => {
     const llm = new MockLLMClient({ reply: "ok" });
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     await engine.ask("几个订单");
-    // Single default call — NOT 4 subtype calls (those are sum-amount only).
-    expect(queryEventsCalls).toHaveLength(1);
-    expect(queryEventsCalls[0].subtype).toBeUndefined();
+    // count branch (limit 5, 0 hits) → fall through to default (limit 200).
+    // Neither call carries a subtype filter — NOT the 4 subtype-narrowed calls
+    // that are sum-amount only.
+    expect(queryEventsCalls.map((q) => q.limit)).toEqual([5, 200]);
+    expect(queryEventsCalls.every((q) => q.subtype === undefined)).toBe(true);
   });
 
-  it("(e) intent=count pulls persons + items in FACTS (default path behavior)", async () => {
+  it("(e) intent=count with 0 events falls through → persons + items in FACTS (safety net)", async () => {
     const fakeVault = {
       queryEvents: () => [],
       queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 5) }, (_, i) => ({

@@ -41,6 +41,13 @@ const DEFAULT_MAX_QUERY_LIMIT = 200;
 // through to the default broader path — see _gatherFacts.
 const LATEST_INTENT_FACT_LIMIT = 3;
 
+// intent=count illustrative-sample cap. The TOTALS block (vault.stats per-table
+// counts) is the authoritative count and Rule 6 tells the LLM to quote it, NOT
+// count FACTS — so a count question only needs a few example rows, not the full
+// ≤80 sample. Hard-cap to keep prompt budget free on local small models (2-4K
+// token window). See _gatherFacts intent=count branch.
+const COUNT_INTENT_FACT_LIMIT = 5;
+
 // intent=list FTS5 augmentation cap. When the question carries a probable
 // entity-name ("提到王老板的消息", "苹果的订单") we run an extra
 // vault.searchEvents(q=term) and append non-duplicate hits to FACTS. Cap
@@ -533,6 +540,33 @@ class AnalysisEngine {
       }
     }
 
+    // intent=count routing — "我有多少订单 / 多少条记录". The TOTALS block
+    // (vault.stats per-table counts) already carries the authoritative number
+    // and Rule 6 tells the LLM to quote it, NOT count FACTS. Pulling the full
+    // effMaxFacts (≤80) event sample is wasted prompt budget — expensive on
+    // local small models (2-4K token window). Hard-cap to COUNT_INTENT_FACT_LIMIT
+    // illustrative rows so the model can cite a couple examples without burning
+    // the budget.
+    //
+    // Adapter + time window pass through (reliable filters); subtype does NOT
+    // (keyword classifier too crude — same rationale as sum-amount). Skip
+    // persons/items: count of contacts / apps routes via entityFocus above.
+    //
+    // 0 hits → fall through to the default broader path (safety net for a
+    // low-confidence count misclassification of a list question), same as the
+    // latest branch.
+    if (parsed.intent === "count") {
+      const countQ = { limit: Math.min(COUNT_INTENT_FACT_LIMIT, effMaxFacts) };
+      if (parsed.filters && parsed.filters.adapter) countQ.adapter = parsed.filters.adapter;
+      if (parsed.timeWindow) {
+        if (Number.isFinite(parsed.timeWindow.since)) countQ.since = parsed.timeWindow.since;
+        if (Number.isFinite(parsed.timeWindow.until)) countQ.until = parsed.timeWindow.until;
+      }
+      const countEvents = this.vault.queryEvents(countQ);
+      if (countEvents.length > 0) return countEvents;
+      // 0 results → fall through to default broader path below.
+    }
+
     // intent=sum-amount routing — "总共花了多少" / "在淘宝花了多少钱"
     // only needs events from amount-bearing subtypes (order/payment/
     // transfer/income). Pulling messages / visits / browses wastes
@@ -791,6 +825,7 @@ module.exports = {
   DEFAULT_MAX_FACTS,
   DEFAULT_MAX_QUERY_LIMIT,
   LATEST_INTENT_FACT_LIMIT,
+  COUNT_INTENT_FACT_LIMIT,
   LIST_INTENT_FTS_LIMIT,
   SUM_AMOUNT_SUBTYPES,
   SUM_AMOUNT_MIN_PER_SUBTYPE,
