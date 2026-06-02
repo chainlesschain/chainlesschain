@@ -50,7 +50,9 @@
 | 小米 | `XiaomiPushService.kt`(独立文件) | 参考实现 | 唯一非 stub；需真机确认是否真通 |
 
 > **叠加风险**：A2/A3/A5/A6 的告警最终都走推送通道，而推送本身 4/5 厂商是 stub。
-> **先接通推送厂商 SDK，A 组的 notifier 才有落点。** 文档：`docs/guides/Vendor_Push_Setup.md`
+> **先接通推送厂商 SDK，A 组的 notifier 才有落点。**
+> - 接入步骤（怎么改代码）：[`docs/guides/Vendor_Push_Setup.md`](../guides/Vendor_Push_Setup.md)
+> - **可执行清单**（前置账号/凭证阻塞项 + checkbox + 验收口径）：[`docs/guides/Vendor_Push_Integration_Checklist.md`](../guides/Vendor_Push_Integration_Checklist.md)
 
 ---
 
