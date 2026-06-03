@@ -264,6 +264,17 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "fonts.query",
       "fonts.getPostscriptNames",
       "fonts.isSupported",
+      "accessibility.getTree",
+      "accessibility.getRole",
+      "accessibility.getARIA",
+      "accessibility.checkContrast",
+      "accessibility.getFocusOrder",
+      "accessibility.getLandmarks",
+      "accessibility.getHeadingStructure",
+      "accessibility.checkAlt",
+      "accessibility.checkLabels",
+      "accessibility.simulate",
+      "accessibility.runAudit",
     ];
     for (const method of migrated) {
       expect(

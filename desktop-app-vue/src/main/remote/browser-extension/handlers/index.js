@@ -1,3 +1,4 @@
+import { accessibilityHandlers } from "./accessibility.js";
 import { bookmarksHandlers } from "./bookmarks.js";
 import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
@@ -42,6 +43,7 @@ export const commandHandlerRegistry = {
   ...mediaEmulationHandlers,
   ...lifecycleHandlers,
   ...fontsHandlers,
+  ...accessibilityHandlers,
 };
 
 export { listTabs };
