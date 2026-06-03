@@ -258,6 +258,12 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "lifecycle.onStateChange",
       "lifecycle.freeze",
       "lifecycle.resume",
+      "fonts.getUsed",
+      "fonts.getComputed",
+      "fonts.checkAvailability",
+      "fonts.query",
+      "fonts.getPostscriptNames",
+      "fonts.isSupported",
     ];
     for (const method of migrated) {
       expect(
