@@ -446,9 +446,9 @@ describe("OfficeSkill", () => {
       expect(result.statistics.value.max).toBe(50);
     });
 
-    // SKIP: impl `_groupByColumn` 仅返回 `{key: [rows...]}`，未支持 sum/avg/count 聚合函数；
-    // 接 aggregation 是真 feature gap，需扩 impl 而非改测试。
-    test.skip("应该执行分组汇总（impl 暂未支持 aggregation）", async () => {
+    // feature gap 已修复：_groupByColumn 现支持 aggregateColumn + aggregateFunction
+    // （sum/avg/count/min/max）；不传聚合参数时仍返回 {key: [rows...]} 保持向后兼容。
+    test("应该执行分组汇总", async () => {
       const input = {
         data: [
           { category: "A", sales: 100 },
@@ -469,8 +469,7 @@ describe("OfficeSkill", () => {
       expect(result.groupBy.B).toBe(450);
     });
 
-    // SKIP: 同上，sum/average/count aggregate functions 未实现。
-    test.skip("应该支持多种聚合函数（impl 暂未支持）", async () => {
+    test("应该支持多种聚合函数", async () => {
       const data = [
         { category: "A", value: 10 },
         { category: "A", value: 20 },

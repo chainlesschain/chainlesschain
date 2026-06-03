@@ -631,7 +631,12 @@ class OfficeSkill extends BaseSkill {
           break;
 
         case "groupBy":
-          results.groupBy = this._groupByColumn(data, input.groupByColumn);
+          results.groupBy = this._groupByColumn(
+            data,
+            input.groupByColumn,
+            input.aggregateColumn,
+            input.aggregateFunction,
+          );
           break;
 
         default:
@@ -690,10 +695,19 @@ class OfficeSkill extends BaseSkill {
   }
 
   /**
-   * 按列分组
+   * 按列分组（可选聚合）
+   *
+   * - 不传 aggregateColumn/aggregateFunction 时：返回 `{ key: [rows...] }`（向后兼容）。
+   * - 同时传入聚合列与聚合函数时：返回 `{ key: aggregatedValue }`，
+   *   支持 sum / avg(average) / count / min / max。
+   *
+   * @param {Array<Object>} data - 数据行
+   * @param {string} column - 分组列
+   * @param {string} [aggregateColumn] - 聚合列
+   * @param {string} [aggregateFunction] - 聚合函数（sum/avg/average/count/min/max）
    * @private
    */
-  _groupByColumn(data, column) {
+  _groupByColumn(data, column, aggregateColumn, aggregateFunction) {
     if (!Array.isArray(data) || data.length === 0 || !column) {
       return {};
     }
@@ -708,7 +722,53 @@ class OfficeSkill extends BaseSkill {
       groups[key].push(row);
     }
 
-    return groups;
+    // 未指定聚合 → 保持向后兼容，返回原始分组（每组为行数组）
+    if (!aggregateColumn || !aggregateFunction) {
+      return groups;
+    }
+
+    // 指定聚合列与聚合函数 → 返回每组的聚合标量值
+    const aggregated = {};
+    for (const [key, rows] of Object.entries(groups)) {
+      if (aggregateFunction === "count") {
+        aggregated[key] = rows.length;
+        continue;
+      }
+      const values = rows
+        .map((r) => r[aggregateColumn])
+        .filter((v) => typeof v === "number");
+      aggregated[key] = this._aggregate(values, aggregateFunction);
+    }
+    return aggregated;
+  }
+
+  /**
+   * 对一组数值应用聚合函数。空集合返回 null；未知函数返回 null（不静默假装成功）。
+   * @param {number[]} values
+   * @param {string} fn - sum/avg/average/count/min/max
+   * @returns {number|null}
+   * @private
+   */
+  _aggregate(values, fn) {
+    if (!Array.isArray(values) || values.length === 0) {
+      return fn === "count" ? 0 : null;
+    }
+    switch (fn) {
+      case "sum":
+        return values.reduce((a, b) => a + b, 0);
+      case "avg":
+      case "average":
+        return values.reduce((a, b) => a + b, 0) / values.length;
+      case "count":
+        return values.length;
+      case "min":
+        return Math.min(...values);
+      case "max":
+        return Math.max(...values);
+      default:
+        this._log(`未知的聚合函数: ${fn}`, "warn");
+        return null;
+    }
   }
 }
 
