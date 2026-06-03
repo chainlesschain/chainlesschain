@@ -175,13 +175,36 @@ _calculateStatistics(data)
 
 ---
 
-## _groupByColumn(data, column)
+## _groupByColumn(data, column, aggregateColumn, aggregateFunction)
 
 ```javascript
-_groupByColumn(data, column)
+_groupByColumn(data, column, aggregateColumn, aggregateFunction)
 ```
 
-* 按列分组
+* 按列分组（可选聚合）
+   *
+   * - 不传 aggregateColumn/aggregateFunction 时：返回 `{ key: [rows...] }`（向后兼容）。
+   * - 同时传入聚合列与聚合函数时：返回 `{ key: aggregatedValue }`，
+   *   支持 sum / avg(average) / count / min / max。
+   *
+   * @param {Array<Object>} data - 数据行
+   * @param {string} column - 分组列
+   * @param {string} [aggregateColumn] - 聚合列
+   * @param {string} [aggregateFunction] - 聚合函数（sum/avg/average/count/min/max）
+   * @private
+
+---
+
+## _aggregate(values, fn)
+
+```javascript
+_aggregate(values, fn)
+```
+
+* 对一组数值应用聚合函数。空集合返回 null；未知函数返回 null（不静默假装成功）。
+   * @param {number[]} values
+   * @param {string} fn - sum/avg/average/count/min/max
+   * @returns {number|null}
    * @private
 
 ---
