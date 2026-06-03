@@ -17,6 +17,9 @@ dist/
 build/
 out/
 
+# Scratch / debug artifacts dumped at repo root (screenshots, UI dumps, etc.)
+build_tmp*
+
 # electron-builder NSIS source includes live under desktop-app-vue/build/
 # and are SOURCE (custom installer hooks), not generated output — un-ignore
 # the dir so installer.nsh and friends are tracked.
