@@ -1,0 +1,59 @@
+{
+  "id": "tpl_demo_meeting_001",
+  "name": "meeting_notes_manager",
+  "display_name": "会议记录管理器",
+  "description": "演示记忆管理技能的日记和提取功能，自动提取会议中的行动项和决策",
+  "icon": "📋",
+  "category": "knowledge",
+  "subcategory": "productivity",
+  "tags": ["meeting", "notes", "action-items", "decisions", "demo", "skill"],
+  "project_type": "knowledge",
+  "prompt_template": "请帮我创建会议记录并提取关键信息：\n\n**会议信息：**\n- 会议主题：{{meetingTitle}}\n- 参与人员：{{participants}}\n- 会议日期：{{meetingDate}}\n- 会议类型：{{meetingType}}\n\n**会议记录模板：**\n\n# {{meetingTitle}}\n\n**日期：** {{meetingDate}}\n**参与者：** {{participants}}\n**类型：** {{meetingType}}\n\n## 议程\n1. [议题1]\n2. [议题2]\n3. [议题3]\n\n## 讨论要点\n{{#eq meetingType \"项目周会\"}}\n### 项目进展\n- [各项目当前状态]\n\n### 风险与问题\n- [需要关注的风险]\n\n### 资源需求\n- [资源分配讨论]\n{{/eq}}\n{{#eq meetingType \"技术评审\"}}\n### 技术方案\n- [方案描述和评审意见]\n\n### 优缺点分析\n- 优点：\n- 缺点：\n\n### 评审结论\n- [通过/修改后通过/不通过]\n{{/eq}}\n{{#eq meetingType \"头脑风暴\"}}\n### 创意列表\n- [创意1]\n- [创意2]\n\n### 投票结果\n- [Top 3 创意及票数]\n{{/eq}}\n{{#eq meetingType \"一对一\"}}\n### 工作回顾\n- [近期工作表现]\n\n### 发展计划\n- [职业发展讨论]\n\n### 反馈\n- [双向反馈]\n{{/eq}}\n\n## 决策\n- [ ] 决策1：[描述] — 负责人：[人名]\n- [ ] 决策2：[描述] — 负责人：[人名]\n\n## 行动项\n- [ ] [行动项1] — 负责人：[人名] — 截止：[日期]\n- [ ] [行动项2] — 负责人：[人名] — 截止：[日期]\n\n## 下次会议\n- 时间：[下次会议时间]\n- 议题预告：[预告内容]\n\n---\n\n**保存会议记录：**\n```\n/memory-management save \"会议: {{meetingTitle}} ({{meetingDate}}) - 参与者: {{participants}} - [决策和行动项摘要]\"\n```\n\n**搜索历史会议：**\n```\n/smart-search 会议 {{meetingTitle}}\n```\n\n**使用的技能：** memory-management, smart-search",
+  "variables_schema": [
+    {
+      "name": "meetingTitle",
+      "label": "会议主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：Q1产品规划讨论"
+    },
+    {
+      "name": "participants",
+      "label": "参与人员",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：张三, 李四, 王五"
+    },
+    {
+      "name": "meetingDate",
+      "label": "会议日期",
+      "type": "string",
+      "required": false,
+      "default": "today",
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "name": "meetingType",
+      "label": "会议类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "项目周会", "label": "项目周会" },
+        { "value": "技术评审", "label": "技术评审" },
+        { "value": "头脑风暴", "label": "头脑风暴" },
+        { "value": "一对一", "label": "一对一" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["memory-management", "smart-search"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

@@ -1,0 +1,81 @@
+{
+  "id": "tpl_resume_tech_001",
+  "name": "tech_professional_resume",
+  "display_name": "技术岗位简历",
+  "description": "适用于软件工程师、产品经理等技术岗位的专业简历模板",
+  "icon": "💼",
+  "cover_image": "/templates/covers/tech-resume.png",
+
+  "category": "resume",
+  "subcategory": "tech",
+  "tags": ["简历", "技术", "求职", "IT"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{jobTitle}}岗位的专业简历，要求：\n\n**个人信息：**\n- 姓名：{{name}}\n- 期望职位：{{jobTitle}}\n- 工作年限：{{experience}}年\n- 学历：{{education}}\n\n**简历结构：**\n1. 个人信息\n   - 姓名、联系方式、邮箱、GitHub/个人网站\n   - 一句话自我介绍\n\n2. 专业技能\n   - 编程语言：{{#if skills}}{{skills}}{{else}}根据职位自动生成{{/if}}\n   - 技术栈\n   - 工具和框架\n\n3. 工作经历（{{experience}}年）\n   - 公司名称、职位、时间\n   - 工作职责和成就（使用STAR法则）\n   - 量化的工作成果\n\n4. 项目经验\n   - 3-5个代表性项目\n   - 项目名称、技术栈、个人职责、项目成果\n\n5. 教育背景\n   - 学校、专业、学历、时间\n\n6. 证书和荣誉（如有）\n\n7. 自我评价（简短精炼）\n\n**格式要求：**\n- Word格式，现代简约设计\n- 突出关键信息\n- 使用表格和图标美化\n- 总长度1-2页",
+
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名",
+      "type": "string",
+      "required": true,
+      "placeholder": "您的姓名"
+    },
+    {
+      "name": "jobTitle",
+      "label": "期望职位",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：高级前端工程师、产品经理"
+    },
+    {
+      "name": "experience",
+      "label": "工作年限",
+      "type": "number",
+      "required": false,
+      "default": 3,
+      "min": 0,
+      "max": 30
+    },
+    {
+      "name": "education",
+      "label": "学历",
+      "type": "select",
+      "required": false,
+      "default": "本科",
+      "options": [
+        { "value": "专科", "label": "专科" },
+        { "value": "本科", "label": "本科" },
+        { "value": "硕士", "label": "硕士" },
+        { "value": "博士", "label": "博士" }
+      ]
+    },
+    {
+      "name": "skills",
+      "label": "核心技能",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：Java, Python, React（可选，留空自动生成）"
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{name}}-简历",
+    "files": [
+      {
+        "path": "{{name}}-{{jobTitle}}-简历.docx",
+        "type": "document"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

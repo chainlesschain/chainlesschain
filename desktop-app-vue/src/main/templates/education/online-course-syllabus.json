@@ -1,0 +1,139 @@
+{
+  "id": "tpl_education_online_course_003",
+  "name": "online_course_syllabus",
+  "display_name": "在线课程大纲",
+  "description": "完整的在线课程设计大纲，包含课程内容、互动和评估",
+  "icon": "💻",
+  "category": "education",
+  "subcategory": "online-learning",
+  "tags": [
+    "在线教育",
+    "课程设计",
+    "MOOC",
+    "网课"
+  ],
+  "project_type": "document",
+  "prompt_template": "在线课程大纲\n\n**课程信息：**\n- 课程名称：{{courseName}}\n- 课程类型：{{courseType}}\n- 总课时：{{totalHours}}小时\n- 难度等级：{{difficulty}}\n\n# 在线课程：{{courseName}}\n\n## 课程概述\n\n**课程简介：**\n{{courseDescription}}\n\n**学习目标：**\n完成本课程后，学员将能够：\n1. {{learningObjective1}}\n2. {{learningObjective2}}\n3. {{learningObjective3}}\n\n**目标学员：**{{targetAudience}}\n\n**先修要求：**{{prerequisites}}\n\n## 课程结构\n\n**总时长：**{{totalHours}}小时\n**模块数：**{{moduleCount}}个\n**视频课时：**{{videoHours}}小时\n**实践项目：**{{projectCount}}个\n**考核方式：**{{assessmentMethod}}\n\n## 教学大纲\n\n### 模块1：{{module1Title}}\n**时长：**{{module1Duration}}小时\n\n**学习内容：**\n- {{module1Topic1}}\n- {{module1Topic2}}\n- {{module1Topic3}}\n\n**视频课程：**\n1. 1.1 {{video1_1}} ({{video1_1Duration}}分钟)\n2. 1.2 {{video1_2}} ({{video1_2Duration}}分钟)\n3. 1.3 {{video1_3}} ({{video1_3Duration}}分钟)\n\n**阅读材料：**\n- {{reading1_1}}\n- {{reading1_2}}\n\n**实践作业：**\n{{module1Assignment}}\n- 提交时间：第{{week1}}周\n- 分值：{{module1Points}}分\n\n**知识检测：**\n- 选择题 x {{module1Quiz}}题\n\n### 模块2：{{module2Title}}\n**时长：**{{module2Duration}}小时\n\n**学习内容：**\n- {{module2Topic1}}\n- {{module2Topic2}}\n- {{module2Topic3}}\n\n**视频课程：**\n1. 2.1 {{video2_1}}\n2. 2.2 {{video2_2}}\n3. 2.3 {{video2_3}}\n\n**案例分析：**{{module2Case}}\n\n**实践项目：**{{module2Project}}\n\n### 模块3-{{lastModule}}: 进阶内容\n\n**模块3：**{{module3Title}}\n**模块4：**{{module4Title}}\n**模块{{lastModule}}：**{{moduleFinalTitle}}\n\n## 互动环节\n\n### 讨论区\n**每周话题：**\n- 第1周：{{discussionTopic1}}\n- 第2周：{{discussionTopic2}}\n- 第3周：{{discussionTopic3}}\n\n**参与要求：**\n- 发帖：每周至少1次\n- 回复：至少2次有质量的回复\n- 计分：占总分{{discussionPercent}}%\n\n### 直播答疑\n**时间：**每周{{liveSessionDay}} {{liveSessionTime}}\n**时长：**{{liveSessionDuration}}分钟\n**形式：**{{liveFormat}}\n\n### 同伴互评\n**项目：**{{peerReviewProject}}\n**流程：**\n1. 提交作品\n2. 系统分配3份作品进行互评\n3. 根据评分标准打分\n4. 给出建设性意见\n\n## 评估体系\n\n**总分构成：**100分\n\n| 评估项目 | 分值 | 说明 |\n|---------|------|------|\n| 视频观看 | {{videoWatchPoints}}% | 完成度追踪 |\n| 单元测验 | {{quizPoints}}% | 每模块测验 |\n| 讨论参与 | {{discussionPoints}}% | 发帖+回复质量 |\n| 实践作业 | {{assignmentPoints}}% | {{assignmentCount}}次作业 |\n| 期末项目 | {{finalProjectPoints}}% | 综合应用 |\n| **总计** | **100%** | |\n\n**及格标准：**{{passingScore}}分\n**优秀标准：**{{excellentScore}}分\n\n**证书：**\n- 及格：结业证书\n- 优秀：优秀学员证书\n\n## 教学资源\n\n### 视频课程\n**总视频：**{{totalVideos}}个\n**总时长：**{{videoHours}}小时\n\n**制作标准：**\n- 分辨率：1080p\n- 字幕：中英双语\n- 可倍速播放（0.5x-2x）\n- 支持下载离线观看\n\n### 课件资料\n- PPT讲义：{{pptCount}}份\n- PDF文档：{{pdfCount}}份\n- 代码示例：{{codeCount}}个（如适用）\n- 工具软件：{{toolsList}}\n\n### 推荐阅读\n**必读：**\n1. 《{{requiredBook1}}》\n2. 《{{requiredBook2}}》\n\n**选读：**\n1. {{optionalBook1}}\n2. {{optionalBook2}}\n\n### 在线资源\n- 官方文档：{{officialDocs}}\n- 学习社区：{{learningCommunity}}\n- 参考网站：{{referenceWebsite}}\n\n## 实践项目\n\n### 项目1：{{project1Name}}\n**模块：**第{{project1Module}}模块\n**难度：**{{project1Difficulty}}\n\n**项目描述：**\n{{project1Description}}\n\n**要求：**\n- {{project1Req1}}\n- {{project1Req2}}\n- {{project1Req3}}\n\n**提交物：**{{project1Deliverable}}\n**截止日期：**第{{project1Deadline}}周\n**评分标准：**\n- 功能完整性：40%\n- 代码质量：30%\n- 文档规范：20%\n- 创新性：10%\n\n### 期末大项目：{{finalProjectName}}\n**综合应用：**整合所有模块知识\n\n**项目选题：**\n1. {{finalOption1}}\n2. {{finalOption2}}\n3. 自拟题目（需经老师批准）\n\n**时间安排：**\n- 选题：第{{topicWeek}}周\n- 中期检查：第{{midtermWeek}}周\n- 最终提交：第{{finalWeek}}周\n- 答辩：第{{presentationWeek}}周\n\n## 学习安排\n\n### 建议学习路径\n\n**密集型（4周完成）：**\n- 每周学习{{intensiveHoursPerWeek}}小时\n- 适合有基础的学员\n\n**常规型（8周完成）：**\n- 每周学习{{regularHoursPerWeek}}小时\n- 适合大部分学员\n\n**自定进度：**\n- 最长{{maxWeeks}}周内完成\n- 灵活安排时间\n\n### 每周学习计划\n\n**第1周：**\n- 模块1学习\n- 完成测验1\n- 参与讨论\n\n**第2周：**\n- 模块2学习\n- 完成作业1\n- 直播答疑\n\n**第3-{{lastWeek}}周：**\n继续后续模块\n\n## 技术要求\n\n**设备：**\n- 电脑（推荐配置：{{computerSpecs}}）\n- 稳定网络（建议{{bandwidth}}Mbps+）\n- 耳机/音箱\n- 摄像头（用于直播互动）\n\n**软件：**\n- 浏览器：Chrome/Firefox最新版\n- 学习平台App（可选）\n- {{requiredSoftware}}\n\n**账号：**\n- 学习平台账号\n- {{additionalAccounts}}\n\n## 支持服务\n\n**答疑方式：**\n1. 讨论区提问（24小时内回复）\n2. 每周直播答疑\n3. 邮件咨询：{{supportEmail}}\n\n**技术支持：**\n- 平台技术问题：{{techSupport}}\n- 工作时间：{{supportHours}}\n\n**学习小组：**\n- 自动分组（{{groupSize}}人/组）\n- 微信/Discord学习群\n- 定期小组作业\n\n## 课程费用\n\n**价格：**¥{{coursePrice}}\n\n**费用包含：**\n- 全部视频课程\n- 所有学习资料\n- 作业批改\n- 讨论区指导\n- 直播答疑\n- 结业证书\n\n**优惠政策：**\n- 早鸟价：{{earlyBirdDiscount}}%折扣\n- 学生优惠：{{studentDiscount}}%\n- 团购（{{groupBuyMin}}人+）：{{groupDiscount}}%\n\n**退款政策：**\n- 开课前：全额退款\n- 开课后7天内：{{refundPercent}}%退款\n- 7天后：不退款\n\n## 讲师介绍\n\n**主讲老师：**{{instructorName}}\n- 职位：{{instructorTitle}}\n- 经验：{{instructorExperience}}\n- 教学经历：{{teachingHistory}}\n\n**助教团队：**{{taCount}}名\n- 负责答疑和作业批改\n\n## 学习成果\n\n**技能掌握：**\n- {{skill1}}\n- {{skill2}}\n- {{skill3}}\n\n**作品集：**\n- {{projectCount}}个实践项目\n- 可放入个人作品集\n- 展示于平台（经同意）\n\n**职业发展：**\n- 适用岗位：{{relevantJobs}}\n- 就业指导：{{careerSupport}}\n\n## 后续课程\n\n**进阶课程：**{{advancedCourse}}\n**相关课程：**{{relatedCourse}}",
+  "variables_schema": [
+    {
+      "name": "courseName",
+      "label": "课程名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "courseType",
+      "label": "课程类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "编程开发",
+          "label": "编程开发"
+        },
+        {
+          "value": "设计创意",
+          "label": "设计创意"
+        },
+        {
+          "value": "商业管理",
+          "label": "商业管理"
+        },
+        {
+          "value": "数据科学",
+          "label": "数据科学"
+        },
+        {
+          "value": "语言学习",
+          "label": "语言学习"
+        },
+        {
+          "value": "职业技能",
+          "label": "职业技能"
+        }
+      ]
+    },
+    {
+      "name": "totalHours",
+      "label": "总课时（小时）",
+      "type": "number",
+      "required": false,
+      "default": 40
+    },
+    {
+      "name": "difficulty",
+      "label": "难度等级",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "入门",
+          "label": "入门"
+        },
+        {
+          "value": "初级",
+          "label": "初级"
+        },
+        {
+          "value": "中级",
+          "label": "中级"
+        },
+        {
+          "value": "高级",
+          "label": "高级"
+        }
+      ]
+    },
+    {
+      "name": "assessmentMethod",
+      "label": "考核方式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "自动评分",
+          "label": "自动评分（测验为主）"
+        },
+        {
+          "value": "项目评审",
+          "label": "项目评审"
+        },
+        {
+          "value": "综合评估",
+          "label": "综合评估"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "课程-{{courseName}}",
+    "files": [
+      {
+        "path": "课程大纲.docx",
+        "type": "document"
+      },
+      {
+        "path": "教学资源/",
+        "type": "folder"
+      },
+      {
+        "path": "作业模板/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

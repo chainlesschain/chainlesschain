@@ -1,0 +1,241 @@
+/**
+ * ChainlessChain Browser Extension - Content Script Styles
+ */
+
+/* 浮动工具栏 */
+#chainlesschain-floating-toolbar {
+  position: absolute;
+  z-index: 999999;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  transform: translateX(-50%) translateY(-10px);
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+#chainlesschain-floating-toolbar.cc-toolbar-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#chainlesschain-floating-toolbar.cc-toolbar-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cc-toolbar-content {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.cc-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.cc-toolbar-btn:hover {
+  background: #f5f5f5;
+  color: #1890ff;
+}
+
+.cc-toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.cc-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cc-toolbar-close {
+  color: #999;
+}
+
+.cc-toolbar-close:hover {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+/* Toast消息 */
+.cc-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000000;
+  background: #ffffff;
+  color: #333;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  opacity: 0;
+  transform: translateX(100px);
+  transition: all 0.3s ease;
+}
+
+.cc-toast.cc-toast-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.cc-toast.cc-toast-success {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.cc-toast.cc-toast-error {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+}
+
+.cc-toast.cc-toast-info {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  color: #1890ff;
+}
+
+/* 搜索结果面板 */
+#chainlesschain-search-results {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000000;
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.cc-search-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cc-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cc-search-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.cc-search-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 24px;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cc-search-close:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.cc-search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.cc-search-result {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-search-result:hover {
+  border-color: #1890ff;
+  background: #f0f7ff;
+}
+
+.cc-search-result h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.cc-search-result p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.cc-result-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.cc-no-results {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+/* 滚动条样式 */
+.cc-search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cc-search-results::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.cc-search-results::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 3px;
+}
+
+.cc-search-results::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 防止与网页样式冲突 */
+#chainlesschain-floating-toolbar *,
+#chainlesschain-search-results *,
+.cc-toast * {
+  all: revert;
+  box-sizing: border-box;
+}

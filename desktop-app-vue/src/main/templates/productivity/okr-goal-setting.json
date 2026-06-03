@@ -1,0 +1,66 @@
+{
+  "id": "tpl_productivity_okr_001",
+  "name": "okr_goal_setting",
+  "display_name": "OKR目标设定",
+  "description": "使用OKR(Objectives and Key Results)方法设定和追踪个人或团队目标",
+  "icon": "🎯",
+  "cover_image": "/templates/covers/okr.png",
+  "category": "productivity",
+  "subcategory": "goal-setting",
+  "tags": ["OKR", "目标管理", "绩效", "KPI"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定{{period}}的OKR目标：\n\n**基本信息：**\n- 制定对象：{{subject}}\n- 时间周期：{{period}}\n- 主题领域：{{domain}}\n\n# {{period}} OKR目标\n\n## 目标概览\n\n**愿景：**{{vision}}\n**使命：**{{mission}}\n\n## Objective 1: {{objective1}}\n\n**目标描述：**{{objective1Description}}\n**目标优先级：**{{objective1Priority}}\n**负责人：**{{objective1Owner}}\n\n### Key Results（关键结果）\n\n**KR1.1：**{{kr1_1}}\n- 当前值：{{kr1_1_baseline}}\n- 目标值：{{kr1_1_target}}\n- 衡量指标：{{kr1_1_metric}}\n- 信心指数：{{kr1_1_confidence}}/10\n\n**KR1.2：**{{kr1_2}}\n- 当前值：{{kr1_2_baseline}}\n- 目标值：{{kr1_2_target}}\n- 衡量指标：{{kr1_2_metric}}\n- 信心指数：{{kr1_2_confidence}}/10\n\n**KR1.3：**{{kr1_3}}\n- 当前值：{{kr1_3_baseline}}\n- 目标值：{{kr1_3_target}}\n- 衡量指标：{{kr1_3_metric}}\n- 信心指数：{{kr1_3_confidence}}/10\n\n### 行动计划\n1. {{action1_1}}\n2. {{action1_2}}\n3. {{action1_3}}\n\n---\n\n## Objective 2: {{objective2}}\n\n**目标描述：**{{objective2Description}}\n**目标优先级：**{{objective2Priority}}\n**负责人：**{{objective2Owner}}\n\n### Key Results\n\n**KR2.1：**{{kr2_1}}\n- 当前值：{{kr2_1_baseline}}\n- 目标值：{{kr2_1_target}}\n- 衡量指标：{{kr2_1_metric}}\n\n**KR2.2：**{{kr2_2}}\n- 当前值：{{kr2_2_baseline}}\n- 目标值：{{kr2_2_target}}\n- 衡量指标：{{kr2_2_metric}}\n\n### 行动计划\n1. {{action2_1}}\n2. {{action2_2}}\n\n---\n\n## Objective 3: {{objective3}}\n\n**目标描述：**{{objective3Description}}\n**目标优先级：**{{objective3Priority}}\n\n### Key Results\n\n**KR3.1：**{{kr3_1}}\n- 当前值：{{kr3_1_baseline}}\n- 目标值：{{kr3_1_target}}\n\n**KR3.2：**{{kr3_2}}\n- 当前值：{{kr3_2_baseline}}\n- 目标值：{{kr3_2_target}}\n\n---\n\n## 周度检查清单\n\n**每周回顾（建议每周五）：**\n- [ ] 更新KR进度\n- [ ] 识别风险与障碍\n- [ ] 调整行动计划\n- [ ] 记录关键学习\n\n## 月度评估\n\n**评估维度：**\n1. 目标完成度\n2. KR达成率\n3. 行动执行率\n4. 障碍与挑战\n5. 下月调整方向\n\n---\n\n**制定日期：**{{createdDate}}\n**评估日期：**{{reviewDate}}",
+  "variables_schema": [
+    {
+      "name": "subject",
+      "label": "制定对象",
+      "type": "string",
+      "required": true,
+      "placeholder": "个人/团队名称"
+    },
+    {
+      "name": "period",
+      "label": "时间周期",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "2026年Q1", "label": "季度OKR" },
+        { "value": "2026年度", "label": "年度OKR" },
+        { "value": "2026年1月", "label": "月度OKR" }
+      ]
+    },
+    {
+      "name": "domain",
+      "label": "领域",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "业务增长", "label": "业务增长" },
+        { "value": "产品开发", "label": "产品开发" },
+        { "value": "个人成长", "label": "个人成长" },
+        { "value": "团队建设", "label": "团队建设" },
+        { "value": "客户成功", "label": "客户成功" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{period}}-OKR",
+    "files": [
+      {
+        "path": "OKR-{{period}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "OKR-进度追踪表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_document_processing"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

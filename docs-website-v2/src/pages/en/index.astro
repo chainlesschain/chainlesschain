@@ -1,0 +1,1122 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Terminal from '../../components/Terminal.astro';
+import rootPkg from '../../../../package.json';
+import cliPkg from '../../../../packages/cli/package.json';
+import releaseSizes from '../../data/release-sizes.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+const CLI_VERSION = cliPkg.version;
+const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
+const ANDROID_VERSION = ANDROID_TAG;
+const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
+const androidArm64 = releaseSizes.sizes['android-arm64-v8a'];
+const androidUniversal = releaseSizes.sizes['android-universal'];
+
+const templates = [
+  { id: 'doc-convert', name: 'Document Conversion', tools: 'pandoc · LibreOffice' },
+  { id: 'media-process', name: 'Audio / Video', tools: 'ffmpeg · yt-dlp' },
+  { id: 'data-analysis', name: 'Data Analysis', tools: 'pandas · matplotlib' },
+  { id: 'web-research', name: 'Web Research', tools: 'curl · BeautifulSoup' },
+  { id: 'image-process', name: 'Image Processing', tools: 'ImageMagick · Tesseract' },
+  { id: 'code-helper', name: 'Code Helper', tools: 'Python · Node.js' },
+  { id: 'system-admin', name: 'System Admin', tools: 'system commands' },
+  { id: 'file-organize', name: 'File Organization', tools: 'pathlib · 7-Zip' },
+  { id: 'network-tools', name: 'Network Tools', tools: 'curl · nslookup' },
+];
+
+const pillars = [
+  {
+    icon: '📚',
+    title: 'Knowledge Base',
+    en: 'Personal Second Brain',
+    bullets: [
+      'Notes / docs / chat history — your personal second brain',
+      'Hybrid search: BM25 + Qdrant vectors',
+      'Hierarchical memory 2.0: working → short → long → core',
+      'RAG-powered Q&A · code knowledge graph',
+    ],
+  },
+  {
+    icon: '🌐',
+    title: 'Decentralized Social',
+    en: 'P2P Identity & Messaging',
+    bullets: [
+      'W3C DID v2 identity + verifiable credentials',
+      'P2P end-to-end: Signal + libp2p + WebRTC',
+      'Community / channel gossip cross-machine sync (v5.0.3.41+)',
+      'Audit-grade Merkle envelopes + cross-machine distribution + external archival (B4 suite)',
+      'Protocol bridge: ActivityPub · Nostr · Matrix',
+      'Anti-censorship: Tor + domain fronting + satellite',
+    ],
+  },
+  {
+    icon: '💎',
+    title: 'Trading Assistant',
+    en: 'Multi-Chain Wallet & Bridge',
+    bullets: [
+      'Multi-chain wallets: EVM family + Solana',
+      'Cross-chain bridge: HTLC atomic swap + messaging',
+      'zk-SNARK / zk-STARK generated locally',
+      'DAO governance v2 · quadratic voting · treasury',
+    ],
+  },
+];
+
+const everyday = [
+  { icon: '📄', title: 'Document Conversion', example: 'Batch Word → PDF / Word → Markdown' },
+  { icon: '🎬', title: 'Media Processing', example: 'Compress video, extract audio, transcode' },
+  { icon: '📊', title: 'Data Analysis', example: 'CSV / Excel analysis + chart generation' },
+  { icon: '🖼️', title: 'Image Processing', example: 'Batch compress, OCR text extraction' },
+  { icon: '🔎', title: 'Web Research', example: 'Auto-search and summarize results' },
+  { icon: '🧰', title: 'System Admin', example: 'Disk analysis, process audit, network test' },
+];
+
+const highlights = [
+  {
+    tag: 'v5.0.3.97 · 2026-05-27',
+    title: 'Android cloud LLM route now reads from local RAG + contact phone numbers visible to AI + 6-platform endpoint hotfix bundle',
+    sub: 'Before this release, the Android CLOUD_ANDROID route forwarded the raw user question to the cloud model — AI was effectively "blind chat" with 768 vault contacts and thousands of events invisible. Three things landed: (1) New `cc hub retrieve-context` CLI + LocalCcRunner.retrieveContext Kotlin bridge + HubLocalViewModel integration — the cloud route now calls hub.retrieveContext(question) first, splices facts into the system message, then asks the cloud model. AI answers carry real citations back to source events. (2) PDH `getHubMinimal()` factory skips 8 heavy aichat adapter / kg / bm25 init steps that retrieve-context does not need; cold start drops 90s → <5s (verified on real device 2026-05-27: 4.2s vs old 87s), making cloud-route questions feel real-time. (3) summarizePerson now includes identifiers + notes — previously stripping phone / wechatId / email meant queries like "mom\'s phone number" always returned "insufficient information"; now identifiers Map is spliced into person facts and queries actually hit. Plus entity-focus routing + searchPersons LIKE name search prevent contacts from being squeezed out of the 200-row RAG ceiling by events.',
+    desc: '6-platform endpoint hotfix bundle: Xhs 3 endpoint path/param sync to real JsBridge routes (/api/sns/web/v1/me → /v2/user/me etc.) + Toutiao extractUid adds uid_tt / sso_uid_tt / tt_webid fallback to fix passport_uid being null and rejecting login + Weibo /api/favorites upstream removed → graceful skip instead of fake 404 + Douyin favorites pagination has_more loop fetches the full set (previously only first page ~24/N silently dropped) + Android askQuestion timeout 60s → 240s (covers MediaPipe cold-start over budget so first ask is not silent) + cc hub aichat-health timers all unref so commands exit immediately (previously held event loop). Engineering docs: handbook adds trap #27 (USR_VERSION sentinel cache miss after PDH/CLI lib refresh — must bump Android USR_VERSION when editing pdh/lib or cli/lib, otherwise real device hits fast-path and skips extraction, runs old code) + trap #28 (workspace dep npm publish stale — must bump package version + npm publish + USR_VERSION when editing pdh/lib or cli/lib, otherwise cc-cli.tgz ships stale code). Version surfaces: productVersion v5.0.3.96 → v5.0.3.97 / CLI 0.162.26 → 0.162.27 / @chainlesschain/personal-data-hub 0.3.7 → 0.3.9 / Android versionCode 503097 / USR_VERSION 12→17 (5 cumulative bumps to force re-extraction) / iOS CFBundleVersion 97.',
+  },
+  {
+    tag: 'v5.0.3.96 · 2026-05-27',
+    title: 'Desktop check-for-updates safety net — release-in-progress friendly toast + system notification fallback when window is hidden',
+    sub: 'User report: clicking "Check for Updates" from the tray did nothing; earlier the same button surfaced a red dialog with a full HttpError 404 stacktrace. Two independent problems were stacking: (1) right after a tag push, release.yml is still uploading assets so latest*.yml 404s briefly, and electron-updater forwarded the entire stacktrace as an error to the renderer + red card; (2) from v5.0.3.44 onward, update notifications go through the renderer AppUpdateNotifier card (painted inside BrowserWindow), so when the user triggers "Check for Updates" from the tray with the main window still hidden, the card paints into an invisible window → no response.',
+    desc: 'New desktop-app-vue/src/main/system/update-error-classifier.js classifies electron-updater errors by kind: release-in-progress (Cannot find latest*.yml / 404 fetching latest*.yml) vs generic. auto-updater.js error handler routes by kind: release-in-progress is silent during background checks; manual checks pop an info dialog "New release is publishing, please try again in a few minutes" instead of dumping a stacktrace. enhanced-tray-manager.js#triggerCheckForUpdates calls showWindow() before triggering the check so the main window is in front. auto-updater.js on update-downloaded + update-not-available adds OS Notification fallback (when window is hidden / minimized / destroyed); clicking the notification brings the window forward → user immediately sees the notifier card / native dialog. New update-window-visibility.js extracts shouldFallbackToOsNotification as a pure helper. 17 unit test cases cover both halves (8 error-classifier including real v5.0.3.95 error text + latest-mac/linux variants + 404-only-on-non-yml counterexample + null/undefined edges; 9 window visibility cases including null / destroyed / unsupported / visible / hidden / minimized / defensive compat).',
+  },
+  {
+    tag: 'v5.0.3.95 · 2026-05-27',
+    title: 'legacy-GPU Chromium 130+ crash auto-recovery (trap #26) — "installer crashes" report turned out to be 0xc0000602 GPU process fail-fast',
+    sub: 'User report: `ChainlessChain-Setup-5.0.3-alpha.94.exe` crashes shortly after install. Diagnosis: not an installer issue — NSIS installed successfully, but the final auto-launch of ChainlessChain.exe hit Electron 39 / Chromium 130+ GPU process throwing STATUS_FAIL_FAST_EXCEPTION (0xc0000602) inside CoreMessaging.dll because the target box has an ancient GPU driver (confirmed: Intel Iris Pro 5200 + 2016-09 driver). Any ≤2018 GPU driver + older Intel HD/Iris series machine will hit this 100% of the time.',
+    desc: 'Fix: marker-file auto-recovery. desktop-app-vue/src/main/index.js setupApp() writes a .launching marker to userData before startup; mainWindow.once("ready-to-show") clears it. Next launch finds the leftover marker → assumes last run crashed → persists .gpu-disabled file + app.disableHardwareAcceleration() + Chromium switches (--disable-gpu / --disable-gpu-compositing / --disable-software-rasterizer). Supports CHAINLESSCHAIN_DISABLE_GPU=1 env var for manual trigger; deleting <userData>/.gpu-disabled restores GPU. Same disable-gpu recovery model as VS Code / Slack / Cursor / Discord — external-behavior-driven, does not depend on any GPU API state.',
+  },
+  {
+    tag: 'v5.0.3.91 · 2026-05-26',
+    title: 'PDH social dual-channel buildout — Kuaishou as 4th PC-ADB C-path platform + Toutiao/Bilibili/Weibo/Xhs Mode B in-APK root collectors + Bridge dry-run doctor catches SDK rotations 5-10 days early',
+    sub: 'Two on-device social capture channels filled in. (1) C path (desktop PC ADB pulls platform DB) grew from 3 to 4 platforms: added Kuaishou with a KuaishouSignBridge (Electron WebContentsView driving its NS_sig3 signature) + social-kuaishou-adb Node collector + CLI / WS / desktop wiring across three entry points + web-shell UI with 9 Chinese reason banners + Win-first real-device E2E doc. Bilibili / Weibo / Xhs / Kuaishou C-path now all ship, reusing the shared chromium-cookies-reader module + SignProvider interface (NullSignProvider default + ApiClient short-circuits and refuses to send unsigned HTTP). (2) Mode B (Android in-APK root, su directly reads DB) opened 4 platforms: Toutiao Mode B v0.1 scaffold (CredentialsStore + DbExtractor with defensive PRAGMA-based column picker + DbCollector + 21 JVM tests) → wired into HubLocalViewModel + UI; Bilibili Mode B v0.1 (scaffold + wire + Win-first real-device E2E); Weibo schema probe doc + Mode B v0.1 (scaffold + wire + 21 JVM tests + real-device E2E); Xhs Mode B v0.1 (scaffold + wire + 21 JVM tests). Mode B uses root + su to read the DB directly without attaching to the process, bypassing libshield.so / libmsaoaidsec.so anti-frida detection. (3) Bridge dry-run doctor cold-starts the 3 sign bridges (Douyin / Toutiao / Kuaishou) inside the desktop app and probes candidate globals + warmUp / probe latency, surfacing SDK rotations 5-10 days early (anyCandidatePresent=false is the sentinel).',
+    desc: 'Xhs / Douyin in-WebView prefetch ported from the Bilibili architecture (hidden WebView runs the platform-native signing JS + JavascriptInterface bridges results back to Kotlin which writes staging JSON). Xhs v6 added cookie cross-subdomain bridge + v8 raised isLoginSuccessByCookie threshold 20 → 50 to reject visitor tracking sessions + v13 id_token httpOnly cookie decode + profile event push. All 5 social login flows switched to Mobile Chrome UA + Douyin gains cookie-presence detection (reverting the wrong v5.0.3.84 direction). Android release engineering: R8 minify moved to systemProp prefix to resolve the v5.0.3.89 ConcurrentModificationException regression; v5.0.3.91 disables R8 outright as the safety net. Repo hygiene: gitee removed from .husky/post-commit auto-push chain (local .git is 1325MB > gitee 1GB quota, every commit was failing and stacking WARN lines); the orphan-snapshot script remains as an emergency rebuild path. Six design docs published together: PDH_Kuaishou_C_Path_Real_Device_E2E + PDH_Toutiao_C_Path_Real_Device_E2E + PDH_Bilibili_Mode_B_Real_Device_E2E + PDH_Weibo_DB_Schema_Probe + PDH_Weibo_Mode_B_Real_Device_E2E + PDH_Mode_B_Toutiao_Douyin_Real_Device_E2E — all Win-first 6-scenario template. Outstanding: Toutiao / Bilibili / Weibo / Xhs Mode B real-device root + magisk + frida-server runs (cannot be done on the Win dev box — needs Mac/Linux + a rooted device). Version surfaces: productVersion v5.0.3.85 → v5.0.3.91.',
+  },
+  {
+    tag: 'v5.0.3.85 · 2026-05-24',
+    title: 'Android MediaPipe on-device LLM real-wiring + 4-route unified LLM selector + Personal Data Hub Vault Browser (desktop + Android data visualization)',
+    sub: 'Two user-visible breakthroughs. (1) On-device LLM: MediaPipe tasks-genai pivot landed; added a prompt-length guard before the native call to fix a JNI-abort SIGABRT that took down the whole app (trap #22 — predictSync throws IllegalStateException when prompt > maxTokens, then calls NewByteArray without clearing the pending exception, triggering CheckJNI JniAbort that Kotlin try/catch cannot reach). HubAsk now exposes 4 LLM routes (LOCAL_DEVICE / CLOUD_ANDROID / PC_LOCAL / LAN_OLLAMA) mirrored across three screens (home tab 0 + local-data tab 3 + local-ask tab 4), with LAN baseUrl persisted to EncryptedSharedPreferences. (2) Vault Browser on both shells: FTS5 external-content virtual table + trigram tokenizer for CJK substring matching (10-100× faster than LIKE) + 7-bucket category taxonomy + desktop /personal-data-hub/browser Pinia store (300ms debounce + race-resolution token) + Android 6th tab "data browser" + 5 category-keyed renderers (ChatBubble / OrderTable / Timeline / EmailList / Generic) + client-side JSON / NDJSON / CSV export.',
+    desc: '149 tests green (36 categories + 13 vault helpers + 27 FTS5 native integration via sandbox runner + 4 composable + 10 store + 12 view + 19 desktop renderer + 11 export + 10 android renderer + 7 android VM). PDH partial-index drift recovery: migration v4 explicit DROP+CREATE on 4 tables — all partial unique indexes now carry WHERE source_original_id IS NOT NULL — fixes trap #23 where CREATE UNIQUE INDEX IF NOT EXISTS hid the schema drift so adapter.sync silently failed (events table stuck at 0 rows while raw_events accumulated 1308 — the golden symptom). New cc hub rederive [--adapter <name>] [--batch-size <n>] salvages orphan rows in legacy vaults without re-fetching the source. PDH §2.5 travel adds 12306 (5 cards) + content platforms Toutiao / Kuaishou v0.1 placeholder cards + QQ HubLocal UI wire to Phase 13.5 v0.2 collector (already landed) plus 11 ViewModel unit tests. PDH social MockWebServer integration tests filled the 0-coverage layer: 4 platforms / 33 cases (Bilibili 7 + Weibo 9 + Xiaohongshu 11 + Douyin 6) covering HTTP 412/401/461/500 propagation, anti-bot login redirects, X-S / X-T signing header gates, buvid3 substitution, containerid magic prefix. Bilibili WBI signature fix for the silent {code:0,data:list:[]} response. Android Bootstrap @Singleton race fix → companion-object Mutex + self-healing mkdirs (trap #24). Version surfaces: productVersion v5.0.3.84 → v5.0.3.85 / CLI 0.162.17 → 0.162.18 / npm @chainlesschain/personal-data-hub 0.2.4.',
+  },
+  {
+    tag: 'Phase 17 + 18 · v5.0.3.83+',
+    title: 'Seven on-device developer-activity adapters landed — your local workflow IS your personal RAG corpus',
+    sub: 'Phase 17 (five cross-platform desktop developer captures) + Phase 18 (two developer command-chain captures). Zero-config no-arg adapters — the vault scans on startup, no login / cookie / API key required. git-activity: commit / branch / merge history across every git repo on the box. shell-history: bash / zsh / pwsh command history with sensitive-token redaction. vscode: VSCode recent workspaces + integrated terminal history. win-recent: %APPDATA%/Microsoft/Windows/Recent/*.lnk — cross-app file-open history (any file any App ever opened lives here). local-files: Documents / Desktop / Downloads / Pictures / Videos / Music file-metadata walk (does NOT read contents — zero privacy risk). browser-history-chrome + browser-history-edge: direct read of Default/History SQLite, full browse history + bookmarks, Chrome / Edge auto-scanned on install.',
+    desc: 'All 7 adapters route into the category=system bucket so they are individually filterable in the Vault Browser sidebar; FTS5 trigram CJK full-text search works the same way (searching "react" matches git commit messages AND npm install lines from shell history AND vscode workspace paths). This matters most for developers: your 8-hours-a-day keyboard workflow — which repo on which branch doing what / what was open in vscode / what you Googled / which zip you dragged from Downloads — all flow into the vault, so when the AI is asked "what was I debugging last Wednesday?" it can correlate git checkout logs + vscode workspace + browser stackoverflow history + shell commands all at once. A single data source can never answer that. Companion fix: bs3mc / bs3 ABI dual-load (trap #23) — fixes Electron 39 (ABI 140) vs Node 22 (ABI 127) where any SQLite reader (chrome-db-reader / vscode-reader / etc.) would crash native binding on one of the two paths. All readers now dual-load with a new Database(":memory:") smoke test.',
+  },
+  {
+    tag: 'v5.0.3.80 · 2026-05-22',
+    title: 'Personal Data Hub v0.2 burst — 11 placeholder cards wired + WeChat / QQ real-capture + Android on-device LLM scaffold',
+    sub: 'Expanded Plan A v0.1 (Bilibili only) to v0.2 real wiring across 11 platforms: social content (Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou) + shopping (JD / Meituan / Pinduoduo / Taobao / Alipay) + travel & maps (Amap / Ctrip / Baidu Maps / Tencent Maps) + AI assistant 9-route WebView cookie scrape (DeepSeek / Kimi / Tongyi / Zhipu / Tencent Hunyuan / Wenxin / Coze / Dreamina / Doubao) + email 4 providers IMAP (QQ / Gmail / 163 / Outlook via Jakarta Mail). WeChat Phase 12.10 four sub-phases (SQLCipher real decrypt + frida-inject real injection + 16.5.9 binary vendored + APK shipped to real device) + QQ Phase 13.5 v0.2 (XOR-IMEI algorithm byte-identical to sjqz qq.py port — no SQLCipher, no frida, just root + IMEI input). Full-chain skeleton for Android on-device LLM (Ktor server + ModelManager + cc spawn + PDH "ask locally" tab).',
+    desc: 'Three locks UI + real wiring: reject cloud / destroy / export (cc hub export wired through). AI citation chip → cc hub event-detail links back to the raw event. release.yml split publish-deps into a pre-job to break the v5.0.3.79 desktop build chicken-and-egg. Test baseline: 93 new snapshot tests (weibo 8 + douyin 8 + xhs 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13) + WeChat Phase 12.10 51 new unit tests (CredentialsStore 14 + DbExtractor 17 + FridaInjector 15 + LocalCollector 10) + QQ Phase 13.5 27 Kotlin unit tests. 3 stale-assertion fixes same day: longtail Douyin uid (constructor went dual-mode optional) + analysis TOTALS regex case (/i flag) + hub-command snapshot (event-detail / export missing from pin list). Version surfaces: productVersion v5.0.3.78 → v5.0.3.80 / CLI 0.162.14 → 0.162.16 / npm @chainlesschain/personal-data-hub 0.2.1 → 0.2.3 / Android versionCode 503080 / iOS CFBundleVersion 80.',
+  },
+  {
+    tag: 'v5.0.3.78 · 2026-05-22',
+    title: 'Personal Data Hub Plan A v0.1 — Android local data hub snapshot mode, real-device closure',
+    sub: 'End-to-end on Xiaomi 24115RA8EC: 1305 entities (contacts / calls / SMS / location / system) ingested into the local vault. npm @chainlesschain/personal-data-hub@0.2.1 + chainlesschain@0.162.14 with PDH-first publish ordering (release.yml publishes PDH before CLI to avoid the dep-chain 404 from before). New `cc android` 15-subcommand scaffold + `system-data-android` bridge-direct mode. Path C — phone-native snapshot writer + desktop ingest pipeline (Kotlin ContentResolver + PackageManager direct collection → WS push to desktop staging → existing adapter snapshot-mode into vault, bypassing A6 JNI entirely). Path Y — desktop returns RAG context + Android-local LLM inference (DeepSeek + Doubao + 7 more cloud LLM endpoints wired). Phase 14.1 step 5 ChatBubble landed + Phase 14.5 streaming-ask design.',
+    desc: 'Three real-device hardening fixes: originalId required (adapter yield must carry the field or invalidCount=rawCount false-success + a 1305-row audit burst) + skip-embeddings flag (Plan A mode does not need vectors) + audit pagination splits 1305 → 50/page. Android cc subprocess W^X execve via mksh symlink + reader-thread try/catch(Throwable) for EOF race + ingestSystemDataAndroid timeout 30s→120s. The 7 E2EE androidTest cases were reactivated via X3DHSimulator state-less E2EESession factories. bootstrap LLMManager is now registered as a singleton + web-shell PDH wiring injects CcLLMAdapter so web-shell honors the active LLM provider. AnalysisEngine reads persons + items, not just events, to stop hallucinated contact counts + LLM ResponseCache bypass for analysis ask (no more stale-cache answers). 6 real-device traps closed; engineering foundation 100% verified; feature layer ~7-9d remaining. v5.0.3.77 shipped the iOS .ipa real-device build alongside.',
+  },
+  {
+    tag: 'v5.0.3.75 · 2026-05-21',
+    title: 'WeChat Phase 12.6.7-10 — bootstrap orchestration + IPC/WS + cc hub wechat CLI + Vue UI wizard',
+    sub: 'Closed the WeChat 8.0+ frida-dep path end-to-end across four sub-phases in a single evening. 12.6.7 bootstrap.js stitches env-probe → KeyProvider choice → WechatAdapter ctor into a single hermetic entry point so IPC/WS/CLI no longer have to reinvent the wiring (decision matrix md5/frida/unsupported + opts.keyProviderOverride + full _probe / _md5Provider / _fridaProvider / _WechatAdapter test seams). 12.6.8 — 4 new IPC channels and 4 cc-ui WS topics (wechat-env-probe / register-wechat / unregister-wechat / list-wechat-accounts), register-wechat and unregister-wechat join the privileged ApprovalUI gate so mobile peers cannot silently wire an adapter against an attacker-controlled dbPath or trigger a Frida session. 12.6.9 — cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister CLI verbs with --json on every verb for scripting and the Plan A in-app terminal. 12.6.10 — WechatWizard.vue 295 LOC three-step drawer (env-probe checklist with dynamic per-row tag colors → uin + dbPath + wechatDataPath + forceProvider form → result with probe.reasons surface) plus PersonalDataHub.vue button. 9 hermetic integration tests cover md5 happy / frida happy / unsupported / idempotent re-register / two-uin coexistence / override semantics — no adb, no Frida, no real device. Phase 12.9 rooted-Android real-device E2E now has a dedicated §11 of the runbook with three flow scenarios (pre-8.0 md5 / 8.0+ frida / 8.0+ unrooted graceful rejection) and performance baselines.',
+    desc: 'Total this session: 1223 tests across 67 files (1068 hub package + 183 desktop + 46 CLI + 18 web-panel — composable / VM / IPC / WS / wiring / store / accounts JSON / privileged whitelist / integration end-to-end). Memory captured: wechat_bootstrap_orchestration_layer.md — the pattern of adding a bootstrap.js when N component sub-phases produce parts but 3 callers (IPC, WS, CLI) each have to wire them. Also corrected a stale docs-site claim: iOS Phase 14.2 UI scaffold was actually fully landed at 3db7b5a73 (650 LOC PersonalDataHubViews.swift + 3 ViewModels + RemoteDependencies + 1491 LOC of tests), not lost-to-race as previously noted. Remaining: Phase 12.9 rooted-Android real-device E2E and Phase 14.4 mobile real-device E2E both gated on physical hardware.',
+  },
+  {
+    tag: 'v5.0.3.72 · 2026-05-20',
+    title: 'Personal Data Hub 13-phase burst — 8/8 AIChat real-vendor wired + 7 social adapters + .72 iOS keychain hotfix repackage',
+    sub: 'Personal Data Hub rolled from Phase 4 (real third-party wiring) all the way to Phase 13.7 (seven social adapters all live) in one evening across 15 commits 763047a22 → b2baf4eda. Phase 4.5 Python sidecar bridge + SystemDataAdapter wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 real sjqz parsers via subprocess JSON-RPC, avoiding parser rewrite. Phase 7 Shopping three-pack (Taobao + JD + Meituan) + Phase 7.5 Mobile Extraction Layer (Android ADB + iOS iTunes encrypted backup) + Phase 9 Travel four-pack. Phase 10.1+10.2 AIChat 8/8 vendors all live: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan, with HttpClient infra wiring retry-with-backoff + progress streaming. Phase 11 — 5 built-in analysis skills cross data sources. Phase 12 v0.5 — WechatAdapter frida-independent slice, T3 risk dropped from High to Medium. Phase 13.3-13.7 — 5 social adapters (Douyin + Xiaohongshu + QQ + Telegram + WhatsApp) + 13+ Bilibili + Weibo via sjqz parsers. 38 test files / 792 tests all green.',
+    desc: 'v5.0.3.72 is also a release-pipeline retrospective. v5.0.3.71 had all 5 desktop builds fail with EUSAGE — root package-lock.json out of sync with packages/personal-data-hub/package.json: during the Phase 12/13 burst the hub added adm-zip@^0.5.16 (iTunes encrypted backup zip) + iconv-lite@^0.6.3 (GBK-encoded social history) optional deps; workspace package.json declared them but root package-lock never synced, so all desktop installers hit EUSAGE at the electron-builder step. 5d8ba08b5 fix(deps) synced root lock, then .72 was repackaged with the same iOS keychain Logger.swift NSLock concurrency fix (commit 625e86819, forward from .70) and shipped 18 assets complete. d03c87d0a follow-up bumped packages/cli in root lock to 0.162.7 closing the loop. Version surfaces: CLI 0.162.5→0.162.8 / productVersion v5.0.3.70→v5.0.3.72 (skipping .71) / desktop-app-vue 5.0.3-alpha.70→.72 / iOS CFBundleVersion 70→72 / Android versionCode 503070→503072. The actual released artifact is .72; .71 does not exist in GitHub Release list, but lib/adapters code is on main and npm chainlesschain@0.162.7 is published — only desktop installers ride .72.',
+  },
+  {
+    tag: 'v5.0.3.66 · 2026-05-19',
+    title: 'iOS .ipa reship + Android cc CLI bundle wired (v5.0.3.65/66 one-evening double-patch)',
+    sub: 'v5.0.3.66 fixes v5.0.3.65 build-ios failure: v5.0.3.65 release shipped 17 assets (full Win/macOS/Linux/Android + npm CLI chainlesschain@0.162.2) but build-ios got stuck on 9 "cannot find X in scope" errors — 13 SwiftUI views added in the Phase 6 sprint (RemoteInputView / RemoteDisplayView / SystemToolsView / RemoteMediaView / RemoteBrowserView / RemoteDesktopView / KnowledgeView / AIExtendedView etc.) lived on disk but were never added to ChainlessChain.xcodeproj\'s app target Sources phase. Fix: extend ios-app/scripts/wire_app_sources.rb FILES list + manually dispatch ios-wire-app-sources.yml workflow on a macOS runner to run ruby for 17s rewriting pbxproj and commit back to main. GitHub immutable-releases then blocks all asset mutations on the published v5.0.3.65, so bump v5.0.3.66 reship — build-ios passes in 5min11s producing an 8.15MB .ipa, final release v5.0.3.66 ships with 18 assets including ChainlessChain.ipa. npm skip-publish via publish-cli-precheck detecting 0.162.2 already published — avoids dist-tag mishap. v5.0.3.65 same period landed Android cc CLI bundle real wiring: Phase 2.5 Node runtime + cc CLI bundle 41MB tarball entry into android-app/feature-local-terminal/src/main/assets/local-terminal/ + wrapper shell scripts working around the unusable `#!/usr/bin/env node` shebang trap on Android + Termux libc++_shared.so → libtermux_cxx.so AGP 8 naming compat + cc CLI wrapper mksh shebang replacing /system/bin/sh — because Android W^X untrusted_app pty domain cannot execve the /system/bin/sh in shell_exec SELinux context, prefix/bin/mksh → ../lib/libmksh.so → nativeLibraryDir/libmksh.so is execve-allowed under the lib/<abi>/lib*.so whitelist.',
+    desc: 'v5.0.3.66 in essence is a release-flow engineering retrospective — a reship of v5.0.3.65. Root: v5.0.3.65 build-ios failed because Phase 6 new views were not wired into Xcode; desktop + Android + npm all green but .ipa missing. GitHub release model is immutable-releases once published, so .ipa can no longer be patched onto v5.0.3.65 — must cut a new version. Repair chain: (1) inspect build-ios job log to find 9 "cannot find X in scope" errors (UpdateBannerOverlay + 8 Phase 6 views referenced from RemoteOperateView) → verify files on disk but not in pbxproj; (2) extend wire_app_sources.rb FILES with 13 .swift paths + ios-wire-app-sources.yml workflow_dispatch (dry_run=false) lets ruby xcodeproj gem rewrite pbxproj on a macOS runner and push back to main (commit 2fe98ef9f); (3) bump 4 enforced surfaces (productVersion / desktop-app-vue version / ios CFBundleVersion / android versionCode+versionName) + tag v5.0.3.66 + push; (4) release.yml goes 11/11 green, build-ios 5min11s produces .ipa, create-release / publish-cli / finalize-release all pass, 18 assets in final release. cli-tests and publish-cli skip because 0.162.2 already published — keeps npm latest dist-tag clean. Android cc CLI bundle in v5.0.3.65: the full 41MB chainlesschain CLI npm package (with Node 22 runtime) is dropped into Android APK assets/local-terminal/, wrapper shell scripts route around the unusable #!/usr/bin/env node shebang trap, Termux libc++_shared.so is renamed libtermux_cxx.so for AGP 8 stripping compat, the cc CLI wrapper\'s own shebang switches from /system/bin/sh to prefix/bin/mksh — Android W^X puts /system/bin/sh under shell_exec SELinux domain which untrusted_app (pty domain) cannot execve, while prefix/bin/mksh actually points to ../lib/libmksh.so → nativeLibraryDir/libmksh.so, on the Android lib/<abi>/lib*.so execve whitelist. The combo lets cc CLI run inside the Android app directly without Termux.',
+  },
+  {
+    tag: 'v5.0.3.64 · 2026-05-18',
+    title: 'iOS maturity — Phase 1-6 + AI Chat closure + 4-segment version + signed .ipa shipped',
+    sub: 'v5.0.3.61 → .64 over one week tightened iOS: .61 signed .ipa shipped (Hua Zhang team ad-hoc profile, 7.7MB .ipa in release assets), .62 deployment target iOS 17 → iOS 16 (covers iPhone 8+, expands test pool by +30%), .63 fixed iOS 16 PIN crash (AppState.swift MainActor.assumeIsolated replaced with Task @MainActor — back-deploys to iOS 13) + AppIcon full-bleed regenerated (1282×1282 source, 18 AppIcon assets, all RGB no alpha — App Store compliant), .64 unified the 4-segment version + cleared 3 stale AppConstants hardcodes (0.32.0 / 32 / com.chainlesschain.ios) to Bundle.main dynamic reads + Settings About row locked to v5.0.3.64 display + 18 unit + 7 integration + 2 UITest three-layer regression coverage. Same period iOS Phase 5 AI Chat static audit found 4 real bugs fixed one by one: finalizeStreamingPlaceholder empty-string nil-coalesce bypass / deleteConversation partial rollback / sendMessage missing stream-in-flight guard / selectConversation stale streamId pollution — each with a regression unit test + 4 integration tests covering events fan-out / cancel ordering / offline drain / multi-conversation stream isolation — iOS test suite ~313 → ~358. Phase 6 sprint one night 19 commits delivered Knowledge 30 method + AI Extended 25 method desktop hybrid + iOS Commands actor wrap + 15 main tab UI + Multimodal v0.3 live recording (AVAudioRecorder 16kHz mono AAC) + Agent streaming runAgentStream + iOS poll loop + Agents UI live. Green baseline 1fb947b32, iOS CI real-compile verified.',
+    desc: 'v5.0.3.64 does three things and closes iOS version management: (A) Clear all stale AppConstants hardcodes — `AppConstants.App.version` was hardcoded "0.32.0" (months stale), `buildNumber` "32", `bundleId` "com.chainlesschain.ios" (actual Info.plist is com.chainlesschain.ChainlessChain — CodeSign also uses this). All migrated to dynamic Bundle.main reads via 5 new helpers (`Bundle.appShortVersion` / `appBuildNumber` / `appFullVersion` / `appFullVersionTag` / `appDisplayName`). AIDashboardView.swift hardcoded "v0.16.0" + PluginManager.swift fallback "1.7.0" all replaced. Settings About row now shows full 4-segment v5.0.3.64 + a Bundle ID row so users can confirm they have the real build. (B) Second-pass iOS 17 API audit — 596 .swift files scanned with 29 patterns (assumeIsolated / @Observable / SwiftData / symbolEffect / ContentUnavailableView / scrollPosition / KeyframeAnimator / visualEffect / sensoryFeedback / Previewable / dialogSeverity / SubscriptionStoreView etc.) — 0 new violations. AppState.swift:94-118 v5.0.3.63 fix in place (Task { @MainActor in ... }); SystemInfoView.swift:65-73 .symbolEffect inside #available(iOS 17, *) with iOS 16 static fallback; ImagePickerView.swift @Previewable inside @available(iOS 17, *) #Preview {} — preview-only never ships. (C) Three-layer regression coverage — BundleVersionTests.swift 11 unit (helpers + AppConstants dynamic semantics); AppStateNotificationTests.swift 7 integration (databaseUnlocked / didAuthenticated post does not crash + repeated post stability + 4-segment version lock); ChainlessChainUITests testSettingsVersionDisplaysFourSegmentTag + testPINUnlockDoesNotCrashOnFirstLaunch XCUITest real-device regression. Same period iOS Phase 5 AI Chat static audit found 4 real bugs: (1) finalizeStreamingPlaceholder empty-string nil-coalesce bypass — old code `messageId ?? oldMsg.id` but ChatStreamEnd.parseFromEnvelope fills "" (not nil) when server lacks messageId; nil-coalesce does not catch "", which overwrites the local-assistant-<UUID> placeholder id; SwiftUI ForEach(messages, id: \\.id) identity collapses (multiple rows share empty id). Fix: explicit guard `if let mid = messageId, !mid.isEmpty`. (2) deleteConversation partial rollback — failure to delete current conversation only restored the list; currentConversation / messages stayed empty. New rollbackDelete + wasCurrent / originalCurrent / originalMessages snapshot enables atomic full rollback. (3) sendMessage missing defensive stream-in-flight guard — UI switches to cancel button while streaming, but VM cannot assume the upper layer disabled send (programmatic call / double-tap race / upper bug can bypass). Added `guard currentStreamId == nil` before the DC gate. (4) selectConversation stale streamId pollution — switching conversations did not clear currentStreamId; edge case where the new conversation\'s last row was a streaming placeholder (previously never finalized) — prev stream\'s delta would mutate the new conv\'s last. Fix: explicit currentStreamId = nil + isStreamingMessage = false. + 4 integration tests (Phase5AIChatIntegrationTests) cover events fan-out / cancel ordering (discardStream → local state settled → cancelStream RPC sent → late chunk silently dropped) / offline drain (DC down → ai.createConversation queues → DC ready edge → drainer triggers) / multi-conversation stream isolation (conv A streams → switch to conv B → sA later delta+end never touches conv B messages). iOS Phase 6 sprint one night 19 commits: desktop knowledge-handler.js +30 method (folders 5 + tags 3 + alias 1 + versions 4 + star/pin 6 + archive 3 + import-export 4 + advanced tags 3) + ai-handler.js +25 method (Conversations advanced 5 + Prompt templates 3 + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4); iOS KnowledgeCommands actor wraps 31 method (30 desktop + getNote alias) + AIExtendedCommands actor wraps 25 method; KnowledgeView + AIExtendedView SwiftUI + 2 VM + 2 new main tab (→ 15 total); Multimodal v0.3 live recording AVAudioRecorder 16kHz mono AAC + Agents 2 new sub-tab + 5 tab horizontal picker + Agent streaming desktop runAgentStream + iOS poll loop + Agents UI live. Green baseline 1fb947b32, iOS CI real-compile verified (the only Swift compile path available on Win).',
+  },
+  {
+    tag: 'v5.0.3.57 · 2026-05-17',
+    title: 'Android remote file skill wired — browse / upload / download PC files, one-tap open inside the app',
+    sub: 'After pairing, Android FileTransferScreen exposes full remote file management: browse any PC directory (~ / C:/ / project paths, no sandbox) + upload phone files to PC Downloads (auto (1)/(2) suffix anti-collision) + download PC files to the phone public Downloads folder (MediaStore.Downloads — native Files / Gallery / readers see them directly) + 4th TopAppBar icon "Local Downloads" lists in-app, tap opens directly via Intent.ACTION_VIEW (never leaves the app). Reuses the Plan C signaling channel — zero new infra. One night cleared 6 interlocking bugs (P2PClient skip guard too wide / Plan C does not call connect / handleFileCommand opens PC folder picker + missing listDirectory case / FileTransferHandler sandboxed in userData / checksum sha256-prefix vs md5 mismatch auto-deletes / getExternalFilesDir hides files from user). 34 new unit tests all green (PC vitest 30 + Android RemoteCommandClientTest 4). Xiaomi 24115RA8EC × Win desktop real-device E2E 8 scenarios pass.',
+    desc: 'Productization closure for Plan C Android↔PC file transfer. FileTransferScreen now exposes 5 TopBar icons: Browse remote (input ~ / C:/Users/... → enter, directories first alphabetical, tap directory recursive, tap file downloads, ↑ parent / refresh) / Upload (system GetContent picker → auto chunk upload → Snackbar shows "PC: C:/Users/longfa/Downloads/<name>" + "Copy path" button, PC auto-appends (1)/(2) suffix anti-collision) / Manual download (input remote path + filename) / Local downloads folder (v5.0.3.57 new — MediaStore.Downloads.EXTERNAL_CONTENT_URI query of public Downloads, DATE_ADDED DESC sorted, each row shows filename/size/time + "Open" launches system viewer) / Clean up history older than 30 days. PC side desktop-app-vue/src/main/remote/handlers/android-file-handler.js newly written 460 lines, dispatches 11 actions (listDirectory/getFileInfo/exists/delete/createDirectory/requestUpload/uploadChunk/completeUpload/requestDownload/downloadChunk/cancelTransfer/listTransfers), fields aligned with Android FileCommands.kt (type not isDirectory / modifiedTime not modifiedAt / entries not items). 6 interlocking bugs fixed: (1) P2PClient.kt:538-542 chainlesschain:* skip guard too wide — old code shadowed P2PClient.sendCommand own responses, pendingRequests never completed. Fix: narrow to skip only chainlesschain:command:request. (2) Plan C path P2PClient.connectionState always DISCONNECTED — RemoteOperateScreen → signaling forward never called P2PClient.connect(), all RemoteCommandClient invocations failed immediately. Fix: RemoteCommandClient.invokeTyped delegates to SignalingRpcClient.invoke(pcPeerId), pcPeerId from PairedDesktopsStore.devices.firstOrNull(). (3) PC handleFileCommand was a thin stub — old switch only had case "list" (SQL table) + case "requestUpload" (dialog.showOpenDialog showed a PC-side folder picker, completely wrong UX). Fix: replace switch with delegate to new android-file-handler. (4) FileTransferHandler (remote-gateway registered) sandboxed in userData + field mismatch — _resolvePath forces prefix app.getPath("userData"), C:\\Users\\... always Access denied. Fix: do not reuse, write dedicated handler with no sandbox (trusted paired peer). (5) Checksum algorithm mismatch → repository auto-deletes downloaded file — first cut returned "sha256-prefix:abc...", but FileTransferRepository.kt:264-276 expected "md5:" + full MD5, mismatch immediately deletes local file + marks FAILED + throws Checksum mismatch. Fix: return checksum:null to skip Repository verification. (6) getExternalFilesDir(null) hides downloads — /sdcard/Android/data/.../files/downloads/ under Android 13+ scoped storage takes 5 taps + "show hidden" to reach. Fix: API 29+ uses MediaStore.Downloads.EXTERNAL_CONTENT_URI insert to write public Downloads, returns content:// URI ready for Intent.ACTION_VIEW, no WRITE_EXTERNAL_STORAGE permission needed. 34 new unit tests — PC vitest 30 cases (_resolvePath × 5 / listDirectory × 5 / getFileInfo + exists × 3 / createDirectory + delete × 3 / Upload roundtrip × 5 incl collision + metadata.targetDir / Download roundtrip × 3 incl Bug 5 regression checksum-must-be-null / cancelTransfer × 2 / handle() dispatch × 2 / listTransfers × 1) + Android RemoteCommandClientTest 4 cases (delegate to SignalingRpc + Bug 1+2 lockdown coVerify(exactly=0) does-not-touch p2pClient.sendCommand). Xiaomi 24115RA8EC × Win desktop real-device E2E 8 scenarios all pass: E1 browse home / E2 browse root / E3 enter sub-directory / E4 small file upload + copy path / E5 collision (1) suffix / E6 small file download / E7 "Open" launches viewer / E8 local downloads panel lists everything. Design doc docs/design/Android_Remote_File_Skill.md / user doc docs-site/docs/guide/remote-file.md. Known limits: large files >10MB through signaling 4-hop base64 chunks may time out — will switch to DC after Plan A.1 stabilizes; API <29 MediaStore.Downloads unavailable, fallback to app-private path which users cannot find — add FileProvider later if reported; destructive actions (delete / writeFile) currently have no approval gate, trusted paired peer executes automatically — future mobileApprovalChannel layer.',
+  },
+  {
+    tag: 'v5.0.3.55',
+    title: 'iOS port — Phase 1+2+3+4 framework complete (desktop pairing + remote terminal + remote-operate framework + 4 typed skills + Notification skill)',
+    sub: 'After Android v1.0 GA validation, the iOS port mirroring began. All 4 phases landed framework-complete in one day: ~313 unit tests / 4 design docs / 4 trap memories. Phase 1 desktop pairing three flows (Flow A camera scans desktop QR / Flow B desktop displays QR for phone / manual 6-digit code) + Phase 2 remote desktop terminal (WebRTC DataChannel + xterm.js WKWebView) + Phase 3 remote-operate framework (RemoteCommandClient generic RPC + OfflineQueue + 4 typed skills: Clipboard / File / Screenshot / SystemInfo) + Phase 4 Notification skill (NotificationCommands actor 11 methods + LRU dedup 256 + UN center push + optimistic update + offline gate three branches + RemoteOperateView 6th tab horizontal scroll picker + Capsule unread badge). Mirrors the Android version already validated on Xiaomi 24115RA8EC real device; UI information architecture 1:1 aligned. Remaining Phase 1.7 / 2.7 / 3.7 / 4.7 real-device E2E requires Mac + iPhone + real desktop — handed to user. Plus #21 P1 main scope 5/5 fully closed (A.1 Linux native pairing + A.2 three-platform UI consistency design doc + B.1 web-shell private-key signing UI + B.5 cross-chain bridge m-of-n multisig + C.1 wear→phone voice forward · ~270 unit tests). CLI 0.162.0 minor (cc pair preflight LAN diagnostics + cc pair token subcommand group + systemd hardening template + docs/linux/PAIRING.md 9-section user guide).',
+    desc: 'v5.0.3.55 mirrors 1+ year of accumulated Android mobile capabilities (QR pairing / remote terminal / remote-operate framework / Notification skill) onto iOS. All 4 phases are framework-complete ports. Phase 1 desktop pairing three flows commit c30b415a8 (71 unit tests, Modules/CoreP2P/Pairing 9 swift + Features/Pairing 8 swift + PairingSignalingGate interface + PairedDesktopsStore UserDefaults JSON persistence + desktop follow-up manual-pair-listener.js 220 LOC pairing-code alias listener). Phase 2 remote desktop terminal commit 7613ea710 (163 unit tests, Modules/CoreP2P/RemoteTerminal 13 swift + Features/RemoteTerminal 6 swift + 4 xterm.js bundle resources + SignalClient.forwardedMessages multi-subscribe AsyncStream backfilling Phase 1 design gap). Phase 3 remote-operate framework + 4 typed skills commit 759a1e907 (~264 unit tests, Modules/CoreP2P/RemoteSkills 16 swift + Features/RemoteOperate 6 swift + RemoteCommandClient single-consumer fix moves webRTCClient.inboundMessages subscription owner to commandClient, TerminalRpcClient now subscribes to commandClient.events to avoid AsyncStream single-consumer event split bug). Phase 4 Notification skill commits 45b485fdd → 5877b5d84 6 sub-phases all landed (41 new unit tests cumulative ~313, 3 swift CoreP2P + ViewModel 322 LOC + View 517 LOC + existing PushNotificationManager unchanged / only 1-line conformance extension + DI events fan-out task fixing the cmdClient.events AsyncStream single-consumer multi-skill subscription trap + RemoteOperateView 6th tab + SkillTabPickerView REWRITE horizontal scroll + Capsule unread badge per design §7.9 option B). 2 P0 fixes: RemoteCommandClient.invoke withThrowingTaskGroup timeout path pendingResponses leak + RemoteWebRTCClient.waitForAnswer pendingAnswer not cleared cleanly — 2 regression tests + 1 integration test verify pools clean. 4 design docs + 4 trap memories (ios_qr_pairing_three_flows / ios_remote_terminal_phase2 / ios_remote_operate_phase3 / ios_remote_notification_phase4) + feedback_ios_ui_mirrors_validated_android (UI info architecture must mirror Android Kt screens already real-device E2E validated, HIG deviation limited to 6-item whitelist). Same batch: #21 P1 main scope 5/5 — A.1 Linux native pairing (cc pair preflight 5-item LAN diagnostics + cc pair token subcommand group + systemd hardening template + 9-section docs/linux/PAIRING.md, 57 unit tests) + A.2 three-platform UI consistency design doc (4 must-match + 4 must-differ) + B.1 web-shell private-key signing UI (MultisigSigner + in-process WS topic bypassing 6-10s cold start + SignProposalModal + unified-key-manager DID routing, 113 unit tests) + B.5 cross-chain bridge outbound × m-of-n multisig Layer 1+2 across 8 PRs (CLI + cc_bridges provenance columns + crosschain-mtc helpers + verifyMultiHopBridgeEnvelope auto-runs check) + C.1 watch face VoiceMode shortcut (phone NavGraph + wear MessageClient forward + trigger_source locked to WEAR_FORWARD anti-spoof, 33 unit tests).',
+  },
+  {
+    tag: 'v5.0.3.53',
+    title: 'Plan A.1 Remote Terminal Android↔Desktop WebRTC DataChannel direct (Phase 1-5 landed in one day, 7 commits)',
+    sub: 'Plan A real-device validation surfaced one architectural issue: a 4-hop signaling chain (phone → router → public relay → desktop RelayClient) is fragile under NAT idle / cellular carrier-side TCP RST — any hop down kills the whole chain · Plan A.1 moves high-frequency / high-throughput terminal traffic onto a WebRTC DataChannel direct connection, bypassing every middle hop; signaling stays as fallback · Phase 1 Trap 1 fix: SignalClient.forwardedMessages migrated to multi-subscribe SharedFlow replacing the single-listener setOnForwardedMessageReceived which was the root cause of the ice:config interceptor being silently overwritten + new WebRTCClient.dataChannelReady StateFlow derived flag · Phase 2 SignalingRpcClient.invoke embeds a transport selector DC-first fallback signaling, two listeners simultaneously consume signaling + DC streams, same requestId → same CompletableDeferred (second complete is a no-op; dual delivery is safe without explicit dedup) · Phase 3 TerminalListViewModel async-triggers handshake on entry + UI chip "P2P direct" green vs "Relay path" yellow · Phase 4 Android stdout 256-LRU + exit 64-LRU dual-stream subscriber + desktop mobile-bridge 128-LRU / 30s-TTL keyed by payload.id · Phase 5 falls out of existing wiring with no new code · Perf RTT p50 200-500ms → 30-80ms LAN · p99 1.5-30s → 200-800ms · stability 20s-2min outages → hours-long sustained · Tests Android +8 / desktop +14 / all three suites green (11 + 15 + 21 Android + 14 desktop) + 12-test regression fix (mockk relaxed StateFlow generic erasure) · Real-device E2E §5.3 5-scenario matrix on the user · Design doc Android_Remote_Terminal_Plan_A1.md v1.0 · Telemetry path=dc|signaling live',
+    desc: 'v5.0.3.52 Plan A real-device validation on Xiaomi 24115RA8EC × Win desktop dev surfaced one architectural issue: a 4-hop signaling chain phone→router→public-relay→desktop-RelayClient is fragile under NAT idle / cellular carrier-side TCP RST — any hop down kills the whole chain. Plan A.1 moves high-frequency / high-throughput terminal traffic from the signaling chain onto a WebRTC DataChannel direct connection, bypassing every middle hop; signaling stays as a fallback. Perf targets: end-to-end RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN, p99 1.5-30s with timeouts → 200-800ms, sustained-connection stability 20s-2min outages → hours-long (depends on ICE keepalive). Phase 1 Trap 1 fix commits d22b7ac8a + bb759bc78: SignalClient.forwardedMessages migrated to multi-subscribe SharedFlow replacing the single-listener setOnForwardedMessageReceived — original bug: the ice:config interceptor installed by WebRTCClient.initialize was silently overwritten when the user entered TerminalListScreen and TerminalRpcClient.start set its own listener → ice:config pushes dropped → iceServers expired in 24h → cross-NAT became unreachable; added WebRTCClient.dataChannelReady StateFlow Boolean derived flag where READY truly means DC OPEN (avoiding ICE-connected-but-DC-not-open false positives). Phase 2 commit a01eeac47: SignalingRpcClient.invoke now embeds a transport selector connectionState==READY && preferDataChannel → webRTCClient.sendMessage (DC), throws or not-ready → fallback signaling, two listeners simultaneously consume signalClient.forwardedMessages + webRTCClient.messages, same requestId → same CompletableDeferred (second complete is a no-op; dual delivery is safe without explicit dedup), all RPC clients (TerminalRpc + system.* + ai.*) share one chokepoint. Phase 3 commit 91e77e489: TerminalListViewModel.init detects DC not-ready and async-triggers RemoteConnectionManager.connect + UI chip shows P2P direct (green) vs Relay path (yellow) so the path state is user-visible. Phase 4 commit dd9b1227e Android + fc3752360 desktop: Android TerminalRpcClient subscribes BOTH signaling + DC SharedFlow, dedups stdout by (sessionId|seq) with a 256-entry LRU / exit by sessionId with 64-entry; desktop mobile-bridge.bridgeToLibp2p gains 128-entry / 30s-TTL LRU keyed by payload.id for mobile→desktop command requests, guarding against double-stdin in terminal.stdin and duplicate PtyManager side effects. Phase 5 falls out of existing wiring (no new code): DC failure fallback = Phase 2 trySendViaDataChannel catches IllegalStateException and falls through to signaling automatically; auto-reconnect = P2PClient.scheduleReconnect exponential backoff 1s→60s / maxAttempts 10 (already there); recovery auto-switch back = isDcReady re-evaluates on every invoke entry; UI live mapping = Phase 3 dataChannelReady chip. Tests: Android TerminalRpcClientTest +3 dedup / SignalingRpcClientTest +4 transport selection / WebRTCClientTest +1 Trap 1 regression + 12-test regression fix where mockk(relaxed=true) on StateFlow<List<X>> generic-erased .value to a relaxed Object instead of a real List → production-side pairedDesktopsStore.devices.value.firstOrNull threw Object cannot be cast to Iterable → connect() caught and wrapped as "连接失败: ..."; the fix adds every { mockPairedDesktopsStore.devices } returns MutableStateFlow(emptyList()) in test setup. Desktop mobile-bridge.test.js gains 14 new tests covering LRU dedup (5 angles: TTL / capacity eviction / non-whitelisted frame types / JSON-RPC responses untouched / missing payload.id pass through) + sendToMobile DC-first vs signaling-relay double-send fallback (5 angles: DC OPEN single DC / readyState shape normalisation / DC missing double-send / DC closed double-send / missing relay client does not throw) + guard rails 2. All three Android suites green (11 + 15 + 21) + 14 new desktop tests + the rest untouched. Real-device E2E §5.3 5-scenario matrix is on the user: LAN same WiFi DC second-level handshake / cellular TURN relay path / double-NAT 3G symmetric should fallback signaling / DC working forcibly killed → fallback ≤ 3s / DC recovered auto-switches back. Design doc docs/design/Android_Remote_Terminal_Plan_A1.md v1.0 includes §1.2 full analysis of three traps (setOnForwardedMessageReceived single listener / DC inbound vs signaling forward two independent paths / P2PClient.sendCommand is DC-only but uses its own envelope incompatible with TerminalRpc) + §3.7 rationale for not reusing :core-p2p DataChannelTransport (terminal envelope JSON vs sync binary P2PMessage are not interchangeable) + §5.3 real-device E2E 5-scenario acceptance matrix. Telemetry [SignalingRpc.metric] path=dc|signaling reqId is live; first-week fast-path-fraction target ≥80% on user base ≥10 devices; below 80% indicates DC unreachable more than expected and needs diagnosis. Distribution: desktop binary v5.0.3.52 → v5.0.3.53 rebuilt; CLI chainlesschain npm 0.161.12 unchanged (Plan A.1 work all under android-app/ + desktop-app-vue/ + docs/); Android versionCode 503052 → 503053 / versionName 5.0.3.52 → 5.0.3.53 per feedback_android_tag_follows_desktop align-with-desktop convention.',
+  },
+  {
+    tag: 'v5.0.3.52',
+    title: 'Plan A Remote Terminal: Android↔Desktop PTY end-to-end (Phase 1-4 all landed + 162 tests green)',
+    sub: 'Single PtyManager shared between web-shell WS gateway + cc ui WS gateway + V6 native IPC · 8 terminal.* WS topics (create/list/stdin/resize/close/history + server-push stdout/exit) · attachTopicHandlers shared helper extracted from ws-cli-loader dispatcher wrap so cc ui mirrors it · web-panel useTerminal composable + Terminal.vue route /terminal with xterm.js lazy + multi-session tabs + history backfill + dangerous-keyword toast · V6 plugin widget + TerminalPanel modal IPC bridge electronAPI.terminal.* + slash /terminal · Android TerminalRpcClient reuses SignalingRpcClient envelope pattern + WebView↔Kotlin JS bridge + xterm-shell.html + xterm.js/addon-fit vendored + Compose list/session + softkey toolbar Ctrl/Tab/Esc/arrows/Ctrl+C/D + 2 NavGraph routes + RemoteOperateScreen entry · confirmation-dialog dangerous-keyword Electron messageBox + permanent trust per-cmd cache · mobile-bridge stdout/exit per-peer fanout',
+    desc: 'User pain point: "I have many terminals open on my PC, can my Android phone see their output and remotely send commands?" Hard constraint: external terminals already running on Windows cannot be attached by another process (OS handles are private to the parent). Solution Plan A: ChainlessChain desktop uses node-pty to host new terminal sessions; reuses the existing #21 Remote Operate signaling-relay channel to stream stdin/stdout to Android. Phase 1 Desktop main process: PtyManager (lazy node-pty + 256KB ring buffer + 24h idle kill + shell whitelist pwsh/cmd/bash/wsl + 8 concurrent limit) + RingBuffer (byte-aware FIFO, intentionally not persisted to disk — safety > durability since terminal stdout often contains API keys or git diffs of .env files) + terminal-handlers.js (8 WS topics) + terminal-ipc.js (V6 native IPC bridge) + confirmation-dialog.js (dangerous-keyword Electron messageBox + permanent trust per-cmd cache). startWebShell accepts ptyManager + terminalRequireConfirmation; handleMobileCommand adds terminal.* namespace + mobile-bridge per-peer stdout/exit subscription fanout. Phase 1.5 cc ui mirror: packages/cli/src/gateways/ws/topic-handler-attachment.js extracts the ws-cli-loader dispatcher wrap as a reusable ESM helper; cc ui agent-runtime.startUiServer calls it — cc ui users also get /terminal. Phase 2 Cross-shell UI: web-panel useTerminal composable (singleton fanout via module-level sub map + base64↔UTF-8 encoding) + Terminal.vue route /terminal (xterm.js lazy import + multi-session tabs + history backfill + ResizeObserver + dangerous-keyword toast) + sidebar entry + i18n; V6 plugin widget plugins-builtin/terminal/plugin.json + shell/widgets/TerminalWidget.vue + shell/TerminalPanel.vue (xterm.js + IPC bridge electronAPI.terminal.*) + slash command /terminal. Phase 3 Android: TerminalRpcClient.kt (reuses SignalingRpcClient envelope pattern + observeStdout/observeExit SharedFlow) + TerminalWebView.kt (WebView↔Kotlin JS bridge) + xterm-shell.html + xterm.js / addon-fit / xterm.css vendored to assets/terminal/ + TerminalListScreen / TerminalSessionScreen Compose + softkey toolbar (Ctrl/Tab/Esc/arrows/Ctrl+C/D) + NavGraph 2 routes + RemoteOperateScreen "Open Remote Terminal" entry. Phase 4 Resilience: requireConfirmation wired to desktop systray + paired_devices/permission-gate (reuses existing p2p-command-adapter) + mobile-bridge stdout fanout (per-peer subscription map) + reconnect history backfill + 24h idle kill. Tests 162 new all green — Desktop main 61 (RingBuffer 7 + PtyManager 15 + terminal-handlers 15 + terminal-ipc 12 + confirmation-dialog 5 + ws-smoke integration 6 + real PTY spawn cmd.exe integration 1 — completes in 5.08s, end-to-end stdin echo PLAN_A_PROBE_42 stdout stream contains probe) + CLI cc ui 21 (PtyManager 10 + handlers 8 + ws-mirror-smoke 3 with real ChainlessChainWSServer + attachTopicHandlers + real WS client) + Web Panel 17 useTerminal composable + 3 e2e (real cc ui subprocess + real WebSocket + real shell stdin/stdout round-trip via probe echo) + Android 10 TerminalRpcClientTest (full happy path + flow event fanout). Also fixed pre-existing test drift — widget-registry.test.ts (PREVIEW_WIDGETS already extended to 7 entries; bridge-mtc + federation-governance were missing) / dashboard-store.test.js (no mock for mcp.list_tools sendRaw reply, drift since commit d9cc41432) / views-mount-smoke.test.js 5 tail views (Projects/VideoEditing/P2P/Memory/Git hit Notification + Pinia cross-test state pollution under 50+ files parallel suite) / Projects-folder-picker.test.js deleted (tested UI no longer exists). Design doc docs/design/Android_Remote_Terminal_Plan_A.md + user doc docs-site/docs/guide/remote-terminal.md synced to both doc sites. Future A.1 stream traffic through WebRTC DataChannel to bypass relay bandwidth bottleneck / Future B read-only snapshot of already-running external terminals via screenshot + OCR + Win32 SendInput left for later.',
+  },
+  {
+    tag: 'v5.0.3.51',
+    title: 'Remote Operate Plan A + B infrastructure landed: WebRTC signaling pass-through + STUN/TURN deployment + iceServers credential signing',
+    sub: 'Plan A: relay server forwards WebRTC offer/answer/ice-candidate (commit e9f9d6275) · Desktop RelayClient.onMessage collapses into mobileBridge.handleSignalingMessage unified dispatch fully equivalent to LAN · Plan B: coturn 4.6 docker compose host network listening 0.0.0.0:3478 UDP/TCP + 5349 TLS + 49152-65535 UDP relay range · turn.chainlesschain.com Let_s Encrypt acme.sh renewal · signIceCredentials HMAC-SHA1 24h TTL ephemeral creds, desktop CC_TURN_SECRET mandatory zero hardcoded · pushIceServersToMobile dual-send LAN signaling + public relay chainlesschain:ice:config after pair-ack matched (commit af11daa6e) · Android WebRTCClient injects PairedDesktopsStore resolveIceServersFor by pcPeerId, expiry/missing fallback Google STUN · intercepts ice:config to persist iceServers / iceExpiry · SignalingRpcClient race-tolerant backup · iceServers removed from QR payload (650 chars + 280px + error-H crashed scan recognition with 30s blocking, switched to signaling push) · backend/signaling-relay-service/ enters repo · design doc Android_Remote_Operate_Plan_AB.md',
+    desc: 'Plan C (v5.0.3.50) signaling-forward wired low-frequency commands at 100-400ms p99 but two hard constraints remain: throughput (relay bandwidth shared across all clients — streaming tokens / files / video cannot pass) + privacy (the relay server can read plaintext payloads beyond public wss TLS). Plan A+B closes both: real WebRTC P2P DataChannel = end-to-end encryption + direct-link bandwidth. Complete three-tier picture: low-frequency commands → Plan C signaling forward / high-throughput streaming + files → Plan A WebRTC DC / NAT-traversal fallback → Plan B STUN/TURN. Clients fall through by scenario: prefer DataChannel, fall back to signaling forward on failure. Plan A core changes: (1) relay server.js handleMessage switch adds case offer/answer/ice-candidate/ice-candidates/peer-status on the same forwarding path as type=message + injects from field (taking the ws-registered peerId, parity with LAN signaling-handlers — desktop handleOffer reads socket.peerId or message.from to identify the peer; the relay path must explicitly inject from). (2) Desktop main startRelayClient.onMessage collapses to a unified dispatch instead of per-type case: pair-ack still routes alone to write sessionState; the rest (command:request / offer / answer / ice) goes to mobileBridge.handleSignalingMessage, which already dispatches by msg.type to handleOffer / handleAnswer / handleICECandidate / handleP2PMessage — LAN and relay paths become fully equivalent. Plan B core changes: (1) coturn 4.6 docker compose host-network UDP relay port range 49152-65535 host-network avoids NAT translation, listening 0.0.0.0:3478 UDP+TCP + 5349 TLS, domain turn.chainlesschain.com A record 47.111.5.128, Let_s Encrypt cert via acme.sh @gitee mirror (GitHub access throttled in mainland China), use-auth-secret time-limited credentials. (2) signIceCredentials(userId) signing: username = expiry-ts:user-id, credential = base64(HMAC-SHA1(TURN_SECRET, username)); iceServers returns three-tier priority list stun:turn.chainlesschain.com:3478 + turn:3478?transport=udp/tcp + turns:5349 with credentials. TTL 24h is enough for a single-device session — by the time it expires the user has likely re-paired anyway. CC_TURN_SECRET env is mandatory with no source-level fallback and never hardcoded (no fork can mint working credentials); without it the system degrades to STUN-only (LAN + dual-NAT-friendly scenarios still WebRTC; cross-NAT unavailable). (3) iceServers no longer embedded in QR — QR payload 650+ chars + high error correction at 280px crashed scan recognition (verified 2026-05-14: 30s blocking with no detection); switched to async push after scan: when desktop pair-ack matches it calls pushIceServersToMobile(ackPayload) over both LAN signaling + the public relay (dual-send) with type chainlesschain:ice:config payload {pcPeerId, iceServers, iceExpiry} for mobileDid. Android WebRTCClient.setOnForwardedMessageReceived intercepts that type, persistIceConfigMessage upserts PairedDesktopsStore.iceServersJson; SignalingRpcClient.handleIceConfigMessage adds a race-tolerant backup. (4) Android WebRTCClient.createPeerConnection calls resolveIceServersFor(pcPeerId) using stored iceServers (TURN included), with expiry/missing fallback to Google STUN; parseIceServersJson accepts urls as either string or array. Full Plan A+B data flow: pairing — phone scans QR → pair-ack → desktop persists SQLite + pushes iceServers → phone receives ice:config → PairedDesktopsStore upsert; WebRTC connection — phone opens RemoteControl → WebRTCClient.connect(pcPeerId) → createPeerConnection with stored iceServers (TURN included) → createOffer → signaling forward (LAN or relay) → desktop handleOffer → setRemoteDescription → createAnswer → forward back → ICE candidate exchange via forward, STUN/TURN punches → DataChannel open. Command path split: low-freq SignalingRpcClient relay forward = Plan C / high-throughput DataChannel direct = Plan A / NAT-hard TURN relay = Plan B (DataChannel through relay). Aliyun security groups must allow UDP 3478 / TCP 3478 / TCP 5349 / UDP 49152-65535 to 0.0.0.0/0 — without it the coturn container runs but is externally unreachable, ICE gathering fails. Known constraints / outstanding: iceServers TTL 24h — once expired, fallback Google STUN cannot traverse NAT (mobile-side detection of approaching expiry to request fresh credentials over signaling lands later); WebRTC P2P real-device cross-NAT verification still pending — full file-transfer test on phone 4G + desktop home WiFi planned before v1.4 GA; Signal Protocol E2EE waits for Plan A DC to land first (DC is already direct + TLS, marginal gain from Signal); coturn credential management API needs backend HMAC signing API in the long run, gated by user identity. Design doc docs/design/Android_Remote_Operate_Plan_AB.md.',
+  },
+  {
+    tag: 'v5.0.3.50 · #21 project workflow',
+    title: 'v1.2 GA feedback 5+3 integrated: desktop↔mobile project workflow P1+P2+P3A + delete fix + daily templates',
+    sub: 'cc project CLI 4 subcommands write directly to desktop SQLite WAL · project-management-handler exposes 6 actions to L3 REMOTE · ProjectSyncWalker + CompositeSyncRepositoryWalker close the reverse-sync gap · web-shell Projects.vue project management list + 6 in-process WS topics reuse same handler for web-shell + mobile · 11 daily-life templates replace 11 IDE templates · delete UI fix · north star: phone-side AI project interaction as smooth as desktop · 80 Android + 51 Desktop tests pass',
+    desc: 'v1.2 GA feedback integrated 5+3 items: issue 21 https://github.com/chainlesschain/chainlesschain/issues/21 #2/#3/#4/#5/#7/#8. North star: phone-side AI project interaction should be as smooth as desktop. Two phases. Phase 1 (earlier P0 before GA): A.3 ADR review + B.6 PQC strict-mode verifier + B.2 trim web-shell multisig cc subprocess cold-start + AI-3 forward-compat seam + 2 bug fixes already landed commits 348896382 / e24386d00 / b1c7cfd95 / 45a88270e / c0d061328 / 409afddcd. Phase 2 (mid-stage after GA feedback) project workflow 4 pieces: #2 project undeletable fix (commit fc24f9856) EnhancedProjectCard had no delete UI at all the old ProjectListScreen delete code was dead never wired into NavGraph added 3-dot menu + AlertDialog confirm onDeleteClick invokes viewModel.deleteProject DAO softDelete status deleted Room Flow auto removes from list. #3 templates to daily life 11 entries (commit 99d38bf69) under the L1+L2+L3 mobile positioning users are not developers the original 11 IDE templates Android React Spring Flutter mismatch real usage scenarios rewrote ProjectTemplates as daily-life templates shopping list travel plan reading notes idea capture fitness plan recipe study plan household ledger work journal meeting minutes blank TemplateCategory added 5 new categories DAILY TRAVEL STUDY HEALTH FINANCE. #4/#7 desktop CLI + REMOTE handler P1 (commit 32ccabdb5) packages/cli/src/lib/project-runtime.js SQLite cascade native better-sqlite3-multiple-ciphers better-sqlite3 sql.js WASM auto fallback + Electron userData path resolution Win macOS Linux + cc project init/list/show/delete 4 subcommands write directly to desktop chainlesschain.db WAL concurrency safe. desktop-app-vue/src/main/remote/handlers/project-management-handler.js 6 actions list get init delete listFiles getFile exposed to Android L3 REMOTE calls reusing desktop DatabaseManager. CLI 7 integration tests + handler 21 unit tests all pass. #4 Android to Desktop reverse sync P2 (commit 2646bbb4e) audit found desktop to mobile sync was working mobile-bridge-sync _fetchProjects walker + Android ProjectSyncApplierImpl but reverse mobile to desktop was broken SocialSyncWalker did not include projects table. Added ProjectDao.getProjectsSinceCursor no status filter so status=deleted also emits + ProjectSyncWalker.kt feature-project about 120 lines op mapping CREATE/UPDATE/DELETE snake_case JSON aligned with desktop + CompositeSyncRepositoryWalker.kt :app/sync aggregates SocialSyncWalker + ProjectSyncWalker + SyncWalkerModule.kt Hilt @Binds replaces feature-p2p single-walker binding. P2PModule.kt commented out the old binding. ProjectSyncWalker 12 tests + CompositeSyncRepositoryWalker 7/7 tests all pass. Also fixed 5 pre-existing feature-project tests kotlin.test.* org.junit.Assert.* imports to unblock :feature-project:compileDebugUnitTestKotlin. #5/#8 web-shell Projects + in-process WS P3 Part A (commit bfdde637d) desktop-app-vue/src/main/web-shell/handlers/project-handlers.js 6 in-process WS topics wrap the P1 ProjectManagementHandler DRY reuses the same handler to serve web-shell + mobile L3 REMOTE avoiding ws.execute(cc project …) asar:true subprocess cold-start 6-10s. packages/web-panel/src/views/Projects.vue rewritten as a real project management page 4 stats + state/name filter + table with id/name/type/status/sync_status/updated_at + Detail drawer with Descriptions + file list + Create modal with 10 types useShellMode.isEmbedded dispatches between in-process and ws.executeJson fallback. The original Projects.vue project init/setup/templates content was moved to ProjectInit.vue at route /project-init to keep backward access. project-handlers 7 unit tests all pass. No version bump; will release alongside the P1 main scope once P3 Part B Android ProjectCommands.kt lands and the user has verified P1+P2+P3A.',
+  },
+  {
+    tag: 'v5.0.3.50 · #21 P0',
+    title: 'Android v1.3+ P0 prerequisites GA-independent closed + AI-3 forward-compat + 2 bug fixes',
+    sub: 'A.3 ADR Review v2.0 (8 ADRs audited: 5 keep / 2 amend / 1 revise) · B.6 LandmarkCache.strictPqMode opt-in rejects Ed25519 partial sigs · B.2 web-shell multisig.* in-process WS topics cold-start 6-10s → ~20ms 60-100x speedup · AI-3 SkillMetadata.signature forward-compat + NoOpManifestVerifier swap seam · 2 bug fixes (wear test imports + B.6 disk-load gate) · tests 11+23+10+57+379 all pass · no version bump (will release with P1 main scope after v1.2 GA)',
+    desc: 'P0 prerequisite batch before v1.2 GA. Issue 21 https://github.com/chainlesschain/chainlesschain/issues/21 A.3 ADR review + AI-1 amend (commit 348896382): 8 ADRs audited — 5 keep + 2 amend (ADR-7 cc-mobile.json was never created and actually goes through user_settings + mobile.* scope; ADR-8 registry is disk-first + push-based, not pull) + 1 revise (ADR-2 M2 DID wallet still uses software Ed25519, which blocks B.3 DID rotate). ADR-2 option A/B/C decision waits on v1.2 GA Play Console API-level data. Same commit adds design doc §10 v1.3+ scope triage layering across 12 sub-items (P0/P1/P2) plus 5 dependency chains. B.6 PQC strict-mode verifier (commit e24386d00): packages/core-mtc/lib/landmark-cache.js gains strictPqMode opt-in flag + _assertStrictPqMode landmark-level gate + _assertStrictPqModeForSnapshot per-snap gate + STRICT_PQ_MODE_VIOLATION error code + CLASSICAL_ALGS constant. Reading A semantic rejects any partial sig + publisher_signature where alg === Ed25519. Backward-compatible with the existing heterogeneous federation data format (zero schema changes, zero producer-side changes). B.2 skip cc subprocess cold-start (commit b1c7cfd95): desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js adds 7 in-process WS topics that mirror the CLI --json output shape (multisig.list / show / policy.show / cancel / finalize / sweep + marketplace.consume). The topics invoke openMultisigManager() from the CLI multisig-runtime.js via dynamic-import across the CJS/ESM boundary. Multisig.vue gains callMultisigTopic() helper that dispatches via useShellMode().isEmbedded; all 7 ws.executeJson sites switch. Perf: asar:true subprocess cold-start 6-10s → in-process ~20ms (SQLite open) + query, 60-100x speedup. Zero UX changes. AI-3 SkillMetadata.signature forward-compat (commit 45a88270e): Android Kotlin adds ManifestSignatureVerifier interface + sealed VerificationResult.{Accepted/Rejected(reason)} + object NoOpManifestVerifier always-accept stub. SkillMetadata gains signature: String? = null field + init invariant. RemoteSkillRegistry gains @Volatile manifestVerifier + setManifestVerifier(v) swap seam + updateFromRemote runs the verifier per-skill (Accepted merges; Rejected Timber.w warn-logs + skips). When marketplace M0 (#21 AI-5) lands, app injection of a real Ed25519/SLH-DSA hybrid verifier is enough; callers do not change. Bug fix 1 wear test imports (commit c0d061328): CcPhoneDecisionListenerTest since cc08da0b0 (v1.2 #20 P0.2) used kotlinx.coroutines.GlobalScope.launch with delay() but the imports were missing launch / delay / GlobalScope / DelicateCoroutinesApi, which blocked the entire :app:compileDebugUnitTestKotlin. Added 4 imports to unblock. Bug fix 2 B.6 disk-load gate (test-driven discovery in this QA sweep): LandmarkCache.loadFromDisk() called _validateAndStoreSnapshot directly, bypassing ingest\'s strict-mode gate; an Ed25519 landmark cached when strictPqMode was off would later be accepted by a strictPqMode=true cache on disk reload (silent strict invariant violation). Fix: moved the per-snapshot strict check into _validateAndStoreSnapshot so both ingest and disk-load paths run through the gate; +2 disk-load integration tests lock the regression. Tests: B.6 landmark-cache-strict-pq-mode 11/11 (9 original + 2 disk-load integration) + B.2 multisig-handlers 23/23 unit tests via runtimeFactory injection seam + AI-3 ManifestSignatureVerifier 10/10 + SkillMetadataTest 9/9 + RemoteSkillRegistryTest 38/38 regression + web-shell 379 regression across 25 test files, all pass. No version bump: this batch is the v1.2 GA prerequisite; will release with P1 main scope after v1.2 GA feedback lands.',
+  },
+  {
+    tag: 'v5.0.3.50',
+    title: 'Android Remote Operate Plan C signaling-forward RPC: mobile remote really wired to the desktop',
+    sub: 'After pairing the mobile taps Ping / System Status / System Info → desktop runs it → response comes back (commit f8ec994ef) · SignalingRpcClient with 30s withTimeout + automatic LAN→relay fallback (reset gate + switch URL + re-register + retry) · RemoteOperateScreen 3 chip buttons + JSON response display + NavGraph remote_operate/{peerId} · PairedDesktopsStore SharedPreferences persists paired desktops, upsert idempotent by pcPeerId · Desktop RelayClient outbound long-lived connection to wss://signaling.chainlesschain.com, exponential backoff capped at 60s · mobile-bridge.handlePairAckFromRelay bug fix · MobileBridgeHeaderStatus.vue header shows paired mobile count, 5s polling + parseJsonOutput skips CLI log-prefix lines · 11 i18n strings extracted into values/strings.xml + values-zh-rCN/strings.xml · 3 new unit test files / 20 tests all green (PairedDesktopsStoreTest 7 / SignalingRpcClientTest 7 / RemoteOperateViewModelTest 6) · design doc Android_Remote_Operate_Plan_C.md',
+    desc: 'After pairing landed in v5.0.3.49 (W3.7 Flow B QR), the next step is letting the mobile actually operate the desktop. Three candidate paths: A WebRTC P2P direct (big engineering) + B STUN/TURN traversal (medium) + C reuse the signaling-forward pipe that pair-ack already proved (small). Plan C ships first pragmatically: pair-ack already routes through forward in both directions, the desktop handleMobileCommand is already in place, only the mobile-side SignalingRpcClient and a minimal UI are missing. A+B left for follow-up (video streams, real-time sync, high-frequency small messages). (1) SignalingRpcClient lands (app/.../remote/client/SignalingRpcClient.kt): builds {type:"chainlesschain:command:request", payload:{id, method, params, auth, timestamp}} → PairingSignalingGate.sendAck; one-shot installs setOnForwardedMessageReceived listener and matches requestId to CompletableDeferred to resolve responses; 30s withTimeout safety net; automatically resets the gate, switches to the public relay URL, re-registers and retries once when the LAN sendAck fails — same pattern as ScanDesktopPairingViewModel pairing fallback. (2) RemoteOperateScreen + ViewModel (app/.../remote/ui/RemoteOperateScreen.kt): minimal UI with three chip buttons (Ping / System Status / System Info) + response JSON display + unpair; the home screen connected-desktop card taps into NavGraph route remote_operate/{peerId}. (3) PairedDesktopsStore (core-p2p/.../pairing/PairedDesktopsStore.kt): SharedPreferences JSON of paired desktops (pcPeerId / deviceName / lanSignalingUrl / relayUrl / pairedAt / lastSeenAt); upsert idempotent by pcPeerId; the home screen now reads from this store instead of p2pClient.connectedPeers because Plan C does not maintain a persistent P2P connection — once the post-scan signaling drops, connectedPeers is empty and the UX would look like not-connected right after a successful pairing. (4) Desktop RelayClient (desktop-app-vue/src/main/p2p/relay-client.js): outbound long-lived connection to wss://signaling.chainlesschain.com, registers the desktop pcPeerId (must match mobileBridge.peerId, otherwise off-LAN phones cannot find the target peer), onMessage routes pair-ack / regular mobile commands into recordPairAck / handleMobileCommand (same pipeline as LAN); exponential backoff reconnect capped at 60s. (5) mobile-bridge.handlePairAckFromRelay bug fix: main/index.js was calling this.mobileBridge?.handlePairAckFromRelay(...) but the method did not exist; the optional-chain swallowed it silently, so the relay path pair-ack triggered no event. Added an EventEmitter notification symmetric with the LAN branch. (6) MobileBridgeHeaderStatus.vue web-panel header shows paired-mobile count, polling cc p2p devices --type mobile every 5s; parseJsonOutput now skips CLI log-prefix lines [AppConfig] / [DatabaseManager] etc. to stop false-positive matching them as JSON-array starts. (7) i18n: 11 RemoteOperateScreen strings extracted into values/strings.xml + values-zh-rCN/strings.xml — ro_title / ro_subtitle / ro_peer_id_fmt / ro_quick_commands / ro_cmd_ping/status/info / ro_executing_fmt / ro_error_label / ro_response_label / ro_unpair. Tests: 3 new unit test files / 20 tests all green — PairedDesktopsStoreTest 7 (mocked SharedPreferences instead of Robolectric, orders-of-magnitude faster startup) / SignalingRpcClientTest 7 (FakeSignalClient + CapturingGate; happy / no-DID fail fast / LAN→relay fallback / double-fail / response with error field / real withTimeout / unknown rid silent ignore) / RemoteOperateViewModelTest 6 (mockk + StandardTestDispatcher state transitions + null-message error fallback + unpair calls store.remove). Two key technical decisions: use runCurrent() instead of advanceUntilIdle() — SignalingRpcClient.invoke uses withTimeout(30000) on virtual time and advanceUntilIdle would push the virtual clock past 30s and falsely trigger the timeout; added testImplementation org.json:json:20240303 — the Android SDK stubbed org.json.JSONObject silently returns defaults under isReturnDefaultValues=true instead of really parsing JSON. ScanDesktopPairingViewModelTest signaling gate failure surfaces Failed now expects sendAckCallCount == 2 (LAN + relay both called). Desktop vitest 7600+ suite all green. Plan C real-device E2E is on the user-side checklist, same pattern as Flow B verification. Constraints: one signaling hop + one public-relay hop puts p99 latency at 100-500ms — acceptable for low-frequency commands; relay traffic is TLS but the relay server can see the payload, so end-to-end encryption requires Signal Protocol session; relay outage = Plan C unavailable, LAN still works. Roadmap: Plan C landed → Plan A.1 DataChannel reuse → Plan A.2 high-throughput true P2P direct to bypass relay bandwidth → Plan B STUN/TURN traversal. Design doc docs/design/Android_Remote_Operate_Plan_C.md. Distribution: desktop binary v5.0.3.49 → v5.0.3.50 rebuilt; chainlesschain npm version unchanged (no CLI changes); Android versionCode/Name unchanged (v1.0.0 GA holds — this Plan C round is desktop-first; the full Android v1.1 minor will ship the complete mobile client). All three doc sites synchronized this round: docs-site / docs-site-design pull the new Plan C design doc through the sync scripts; docs-site tagline bumped to v5.0.3.50; README / README_EN gain this changelog entry.',
+  },
+  {
+    tag: 'v5.0.3.49',
+    title: 'M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Android v1.1 W3.7 Flow B QR pairing closes + test backfill',
+    sub: '@chainlesschain/core-multisig (5 libs + 75 unit tests) · cc multisig CLI (8 subcommands + 10 integration tests, Phase 1d) · cc marketplace purchase / consume mediator + multisig-runtime.js shared module (−130 lines dedup) + 8 new E2E tests (Phase 2a commit 2755093d0) · web-panel Multisig.vue view: 6-card stats + proposal list + domain policies + detail drawer + sidebar entry, WS through CLI subprocess (Phase 2b commit c758492d9) · 18 multisig integration tests total · SQLite native → sql.js WASM auto-fallback · Flow B (commit c47cbc649) verified end-to-end on Xiaomi hardware · ScanDesktopPairingViewModelTest (10) + desktop-pair-handlers.test.js (19)',
+    desc: 'Four main lines this release. (1) `@chainlesschain/core-multisig` package + `cc multisig` CLI lands (commit 3c890dcac, v1.2 m-of-n Phase 1d): Phase 1 ships 5 lib files — policy.js (domain {m,n,members[],requirePqc,defaultExpiryMs} validate / normalize); store.js (SQLite 3-table schema — proposals / signatures / policies — plus 5 helpers); proposals.js (state machine pending → reached → consumed plus cancelled / expired terminal); signing.js (JCS canonicalize + DOMAIN_PREFIX "MULTISIG:" replay protection + Ed25519 / SLH-DSA dispatcher + verifyThreshold strip-all-sigs); governance-log.js (append-only JSON Lines audit log capturing every state transition). 75 lib unit tests (policy 14 + signing 21 + proposals 20 + store 12 + governance-log 8) all pass. cc multisig CLI 8 subcommands: propose / sign / cancel / finalize / list / show / sweep / policy {set,show}; all support --json; 10 CLI integration tests pass. SQLite driver cascade: native better-sqlite3-multiple-ciphers / better-sqlite3 falls back to sql.js WASM on load failure — CLI works out of the box on any platform without per-platform native prebuild. Unlocks three canonical domains: marketplace.purchase / did.rotate / cross-chain bridge. Three test-infra fixes: core-multisig vitest.config.js sets globals: true (vitest 4 rejects CJS require("vitest")); 5 test files switch to ESM import; multisig-cli.test.js import path drops .js suffix on @chainlesschain/core-mtc/signers/ed25519 (core-mtc exports key has no suffix). (2) Phase 2a marketplace.purchase mediator (commit 2755093d0, design doc §6.1 lands): `cc marketplace purchase <itemId> --amount-fen N --buyer <did> --key <hex> [--threshold-fen N] [--item-name <name>]` — when amount < threshold (default `LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen = ¥1000) the command takes the direct path (CLI stub prints "purchased", no real payment processor); when amount ≥ threshold a `marketplace.purchase` domain policy is required, otherwise exit 2 `no_policy`; with a policy in place, `mgr.propose` returns the proposalId so the other signers can add their signatures. `cc marketplace consume <proposalId>` — requires `domain == "marketplace.purchase"` and `state == "reached"` before executing; after finalize it prints the order payload and writes a `consumed` event to the governance log; wrong domain or state both exit 2. Shared runtime in `packages/cli/src/lib/multisig-runtime.js` (new file) extracts the SQLite cascade (better-sqlite3-multiple-ciphers → better-sqlite3 → sql.js), manager loader, and readSecretKey / readJsonArg helpers that used to live inline inside commands/multisig.js, so commands/marketplace.js can reuse the same code path; commands/multisig.js was refactored to use the shared module, dropping ~130 duplicate lines while leaving Phase 1 behaviour untouched (10/10 integration tests still pass). 8 new E2E tests pass (`packages/cli/__tests__/integration/marketplace-multisig-e2e.test.js`): (a) full ¥1500 2-of-2 walkthrough — policy set → purchase opens proposal → two signers sign → reached → consume → finalize → governance.log records four events `proposed`/`signed`×2/`reached`/`consumed`; (b) ¥500 takes the direct path without creating a proposal; (c) `--threshold-fen` overrides the default; (d) large purchase without a policy → exit 2 blocked; (e) consume on a pending proposal → exit 2 `proposal_state_pending`; (f) consume on a wrong-domain proposal → exit 2 `wrong_domain`; (g) `--help` text verified; (h) Phase 1 compatibility regression. 18 multisig integration tests pass overall (Phase 1 10 + Phase 2 8). marketplace.purchase becomes the first mediator wired to a real business path. (3) Phase 2b web-panel Multisig view lands (commit c758492d9, design doc §8.1 lands): web-shell (default desktop entry) gains an M-of-N multisig view + operations panel that reuses Phase 1 CLI via `ws.executeJson("multisig list --json")` calls. New `packages/web-panel/src/views/Multisig.vue` (468 lines): six top stat cards — total / pending / reached / consumed / cancelled / expired, each with an Ant icon + colour token. Two tabs: Proposal list — table columns (ID / Domain / State / Sigs / Created / Expires / Actions) + state filter (pending / reached / consumed / cancelled / expired) + domain filter; row actions (detail / cancel / execute purchase — marketplace.purchase reached only). Domain policy — lists known domains (marketplace.purchase / did.rotate / crosschain.outbound) with policy detail and member expansion. Detail drawer (640px) Descriptions render domain / state / threshold / sigs / initiator / timestamps / payload (pretty JSON) + signature list (signer DID + alg + timestamp) + operation buttons (cancel for pending|reached / execute purchase for marketplace.purchase reached / finalize for other reached) + info Alert "web shell does not hold private keys; sign goes through CLI". Top action bar: refresh + sweep expired (`cc multisig sweep`). AppLayout.vue adds the multisig menu item to the security/audit group (TeamOutlined icon) + collapsed-mode parity + i18n fallback "M-of-N 多签" (`appLayout.items.multisig` displays Chinese when unconfigured). router/index.js adds `{ path: "multisig", name: "Multisig", component }`. WS communication goes through the CLI subprocess (`ws.executeJson("multisig list --json")` on the CLI WS server `_executeCommand` path); first cold-start is 6–10s (asar:true overhead, per `mtc-status-handlers.js` comment) — acceptable for Phase 2. Same SPA auto-available in both desktop web-shell and `cc ui` (per memory `feedback_cross_shell_feature_pattern`). Phase 3 follow-up: private-key signing UI (needs UnifiedKeyStore wired) / in-process WS handlers (`multisig.list` / `multisig.show` / ...) to shave latency / real-time push (currently `onMounted` one-shot, no WS subscription) / Marketplace.vue integration entry (purchase modal flowing into the multisig pipeline). (4) Android v1.1 W3.7 Flow B QR pairing lands (commit c47cbc649): desktop displays the QR / phone scans — the standard UX pattern in mainstream apps (WeChat / Alipay / Discord / WhatsApp Web). Camera-scans-screen is dramatically more reliable than the reverse direction. Verified end-to-end on real Xiaomi 24115RA8EC hardware. Cross-module DI split: PairingSignalingGate.sendAck interface lives in :core-p2p so :feature-p2p does not reverse-depend on :app; WebSocketPairingSignalingGate.sendAck implementation in :app serializes via ensureRegistered + Mutex; WebRTCClient.SignalClient.sendForwardedMessage(toPeerId, payload) bridges the mobile signaling forward. Mobile UI: ScanDesktopPairingScreen + ScanDesktopPairingViewModel use the non-social QRCodeScannerScreen (ZXing pass-through; the social variant validates and would reject our desktop-pairing JSON); NavGraph + SettingsScreen gain a "Scan desktop QR" entry. Desktop WS topics trio in desktop-pair-handlers.js: desktop.pair.generate-qr (6-digit code + payload + pcPeerId three-tier fallback: mobileBridge.peerId → deviceManager.getCurrentDevice → "desktop-unknown") / desktop.pair.poll-ack (idle / waiting / acked / expired four states) / desktop.pair.reset; mobile-bridge.js adds this.peerId persistence + intercepts type=pair-ack via recordPairAck, then writes SQLite paired_devices. Vue UI: MobileBridge.vue gets a Flow B tab (default) + Flow A + manual entry 3-tab layout; antd.js registers AQrcode. End-to-end chain on real hardware: Xiaomi 24115RA8EC desktop QR → ML Kit scan → signaling pair-ack → desktop mobileBridge intercept → recordPairAck match → CLI pair-from-qr writes SQLite → Vue refreshes device list. Nine production traps swept. (5) Test backfill: ScanDesktopPairingViewModelTest.kt (new, 10 tests) covers every validation branch of onQrScanned plus happy path + retry + idempotent + malformed JSON, built on MockK + StandardTestDispatcher + FakeGate that captures sendAckCallCount. desktop-pair-handlers.test.js (new, 19 tests) covers all three handler factories plus recordPairAck: generate-qr (6 cases) / poll-ack (4 cases using vi.useFakeTimers for the expired case) / reset (1 case) / recordPairAck (4 cases). Android :feature-p2p:testDebugUnitTest 41s all green (138 actionable tasks); Desktop 3 files / 45 tests all green. Distribution: desktop binary v5.0.3.48 → v5.0.3.49 rebuilt (now carries Flow B + multisig source; auto-updater compares 5.0.3-alpha.49 > 5.0.3-alpha.48); chainlesschain npm 0.161.8 → 0.161.9 (CLI gains multisig command + dep @chainlesschain/core-multisig); Android versionCode/Name unchanged (v1.0.0 GA holds), Flow B desktop-first this release, full mobile client follows in the next Android v1.1 minor.',
+  },
+  {
+    tag: 'v5.0.3.48',
+    title: 'Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias compat window + M7 Android v1.0.0 GA flip',
+    sub: 'Design §5.3 five capture pieces landed: VoiceMode / CameraOCR / LocationTagger / SharePayloadFlusher / PushNotifier · §6 M4 D1 method-level metadata · §5.4 ApprovalUI four-category UI + ProgressViewer task.* reverse-RPC · §8.3 alias compat window · Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA (commit ffe722162) · 187 new unit tests green / Android total 196+ → 383+',
+    desc: 'Android v1.0 RFC M3 + M4 closing batch (7 commits / 187 new unit tests) + M7 Android GA flip lands together (commit ffe722162, versionCode 37 → 100, versionName 0.37.0 → 1.0.0). No desktop / CLI source changes; CLI npm 0.161.7 → 0.161.8 (force publish on the release.yml sync track). (1) M3 capture suite goes 5/5 to code: VoiceMode end-to-end voice chain (commit 47bebed80, ASR → REMOTE chat → TTS pipeline); CameraOCR snap-to-KB pipeline (commit a69269ced, ai.ocrImage + knowledge.createNote); LocationTagger via Play Services FusedLocationProvider + Foreground Service (commit 3f5ac8647, GPS flows into createNote.metadata); SharePayloadFlusher feeds SyncCoordinator → knowledge.createNote (commit 3d1a6e3a8, 5 SharePayload variants → note fields, drained at the tail of the 30s push loop, failures re-enqueued, 19 new tests); PushNotifier local channel + FCM skeleton (commit c0d990c91, 4 NotificationChannel — Cowork / Marketplace / SystemAlert / ShareInbox — plus a protocol-neutral CcPushNotificationService entry, 36 new tests; real google-services.json wiring stays on the user via the 5-step android-app/docs/M3_FCM_SETUP.md). (2) M4 D1 RemoteSkillRegistry method-level metadata (commit 6e49270fd): MethodMetadata (name / paramCount / riskOverride / requiresApprovalOverride) + listMethods / getMethod / requiresApprovalForMethod / riskForMethod accessors; knowledge.* and ai.* seeded with 10 methods each (8 riskOverride demos); the other 21 namespaces stay empty pending desktop mobile-skill-whitelist push. 16 new tests. (3) M4 closing pair (commit f4f83cc67): ApprovalUI four-category adapter — ApprovalCategory enum {Sign / Cowork / Marketplace / SystemCritical} + fromMethod inference; AndroidApprovalGate 4-arg overload carries category through (old 3-arg auto-forwards); Dialog swaps icon / tint / title / footer per category. ProgressViewer long-running task panel — LongTaskRegistry @Singleton MutableStateFlow (Pending / Running / Completed / Failed / Cancelled, MAX_TASKS=100 sliding window) + TaskProgressCommandRouter consumes task.* reverse-RPC (update / complete / fail / cancel / remove) + Compose ProgressViewerScreen (StatusChip + Linear / indeterminate Circular + dismiss / clear-terminal). 43 new tests across the trio (9 + 15 + 19). (4) §8.3 alias compat window (commit 0bc8e2797): SkillMetadata.aliases field + internal aliasIndex; get / listMethods / requiresApproval / risk* all route through resolveAlias so renaming a namespace next release doesn\'t break old callers for one window. 7 new tests. (5) §8.1 README versionName fix + v1.0 GA checklist (commits 0bc8e2797 3da484e9c): android-app/README.md M3 (2/5) → (5/5 code); M4 row gains method-level + ApprovalUI + ProgressViewer; new ANDROID_v1_GA_CHECKLIST.md. (6) M7 Android v1.0.0 GA flip (commit ffe722162): android-app/app/build.gradle.kts versionCode 37 → 100, versionName 0.37.0 → 1.0.0; android-app/CHANGELOG.md adds [1.0.0] - 2026-05-12 GA entry summarising 9 commits + 4 known limitations (FCM mainland-China reach / single peer / offline queue / QRPairing scaffold); android-app/README.md title flips to "🎉 v1.0.0 — GA". Next step: tag v1.0.0 at ffe722162 and push to gitee + github. v1.0 GA still has 4 user-side items remaining: M3 device E2E / M4 D2 device E2E / FCM credentials / M6 perf measurements.',
+  },
+  {
+    tag: 'v5.0.3.47',
+    title: 'Verification release: build-android keystore fix VERIFIED + density splits 14→4 first user-visible drop + outstanding `../` fully swept',
+    sub: 'release.yml run #25632845952 all 11 jobs green · build-android keystore fix confirmed · 4 Android assets in Release · keystore.properties.template / KEYSTORE_SETUP.md / orphan workflow `../` all gone',
+    desc: 'Verification-only release. No desktop / CLI / Android source changes — just runs the three release-pipeline fixes landed after v5.0.3.46 through real CI to prove green. (1) build-android keystore fix VERIFIED (commit f9a7ba716): 49f1440ca had switched android-app/app/build.gradle.kts:79 from `file(...)` to `rootProject.file(...)`, moving the `release.storeFile` resolution base from `:app` module up to rootProject (android-app/). The workflow had `release.storeFile=../debug-ci.keystore`, which under the new base resolves to `<repo-root>/debug-ci.keystore` — gradle could not find the keystore and v5.0.3.46 build-android failed at `:app:validateSigningRelease`. f9a7ba716 drops the `../` from workflow keystore.properties content so `rootProject.file("debug-ci.keystore")` resolves directly to `android-app/debug-ci.keystore` (exactly where keytool writes). v5.0.3.47 release.yml run #25632845952 verified build-android green; 4 Android assets (`app-{arm64-v8a,armeabi-v7a,universal}-release.apk` + `app-release.aab`) correctly land in the Release. (2) Density APK splits first user-visible drop (commit 9865c5c08): merged with v5.0.3.46 but never produced release assets because build-android was broken; this release is the first time it ships to users — per-density × ABI splits add little value with Android 5.0+ runtime resource selection, so dropping them cuts release asset count from 14 to 4 (3 APK + 1 AAB); the AAB still uses the `bundle{}` block for Play Store density delivery. (3) Remaining `../` triple sweep (commit 5a06421cd): f9a7ba716 only fixed the active workflow; keystore.properties.template / docs/guides/KEYSTORE_SETUP.md / orphan android-app/.github/workflows/android-release.yml all carried the same `../` pattern and got swept this round. Convention now uniform across the repo: `release.storeFile=keystore/<name>.keystore` (no `../`), physical keystore at `android-app/keystore/<name>.keystore`. The CI example in KEYSTORE_SETUP.md also gained `working-directory: android-app` so the keystore lands in the right place. The orphan workflow received a header comment noting that nested `.github/workflows/` directories are not picked up by GitHub Actions. Desktop binary rebuilt v5.0.3.46 → v5.0.3.47 with equivalent contents; auto-updater compares `5.0.3-alpha.47 > 5.0.3-alpha.46`, so v5.0.3.46 desktop users will see a real "new version" prompt on restart. `chainlesschain` npm stays at 0.161.7 (no CLI changes; release.yml `cli-tests` job correctly skipped). Android versionCode/Name unchanged but the APK product set shrinks from 14 to 4 because of the density splits drop.',
+  },
+  {
+    tag: 'v5.0.3.46',
+    title: 'Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix',
+    sub: 'Mobile-bridge-sync M2 → v1.2 · gates 1–4 all real Ed25519 · Volcengine voice / APK auto-update / splash redesign / coral theme / i18n three regions / biometric / DID Key',
+    desc: 'Three themes shipped together. (1) Phase 3d desktop ↔ Android two-way sync (12 commits): M2 lands the desktop sync engine (5 ResourceType walkers — note / conversation / did / community / channel — with tombstones + IPC wire-up + 52 tests, surfacing and fixing 3 prod bugs along the way); M3 wires the Android side via dagger.Lazy to break 4 Hilt cycles + Room-persisted SyncRemoteCursor + sync.* JSON-RPC handlers + transport wiring; M4 adds the desktop SyncMobile settings page + DeviceManager + manual pairing form; v1.1 makes SocialSyncWalker actually return data via handlePullRpc + DID auth verification + SyncCoordinator auto-trigger when the socket connects; v1.2 swaps placeholder signatures for real @noble/ed25519 + Android gate 4 verify, so all 4 gates are now strict-verify. (2) Android 0.37.0 (commit 1348636ad, 7 user-visible features): Volcengine SeedASR voice (16kHz mono PCM + 800ms poll + AsrSettingsScreen + Recording/Transcribing dialogs); APK auto-update issue #21 (GitHub Releases android-v tag arm64-v8a + DownloadManager + REQUEST_INSTALL_PACKAGES + Settings "Check for updates" entry); splash purple gradient + rotating ring + TT logo + splash-race fix; Claude coral theme #D97757 primary + dynamicColor=false to preserve brand colour; i18n issue #16 three regions zh-rCN/rTW/rHK explicit qualifiers + AppCompatDelegate locales; biometric toggle wired to AuthVM; KeyManagementScreen DID + public key hex + trusted devices + reset; drive-by fixes for OpenAIAdapter main-thread 12s freeze + 256 rs_* string stubs. (3) e2e CI silent-regression fix (commit e807d576c): drop e2e-tests workflow JOB-level continue-on-error: true — it had been masking 3/3 OS failures as success, leaving "No team IPC interface found" buried for weeks; same batch adds Playwright browsers + npm cache, dropping single-OS time from ~14m to ~6–8m.',
+  },
+  {
+    tag: 'v5.0.3.45',
+    title: 'cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix',
+    sub: 'QuickAsk no longer 60s timeout · project mode no longer stalls on "Understanding…" · chatStream queue+waiter · placeholder-card reactivity fix',
+    desc: 'Four interlocking landings. (1) cc ui llm.chat route (f41c4b4e2): the desktop web-shell has had llm.chat since 4eaf90137, but cc ui never registered it → QuickAsk hung 60s on "Stream idle timeout". New packages/cli/src/gateways/ws/llm-chat-protocol.js mirrors the desktop frame protocol (`<topic>.chunk` + `<topic>.result`); new llm-creds.js shares the resolver (explicit options → session creds → VOLCENGINE_API_KEY-style env vars), returning ok:false instantly on missing creds. chat-intent-protocol picks up the same helper, fixing a latent bug along the way: previously `session.baseUrl || "http://localhost:11434"` hardcoded ollama whenever a session lacked baseUrl, killing every cloud provider on machines without local ollama. (2) Intent opt-in toggle (f41c4b4e2): Chat / Agent project/file mode header gets an `<a-switch>`, off by default. Pre-v5.0.3.45 every project/file message went through chat.intent.understand-stream first → 0.5–90s of latency that surprised users coming from the direct-send path. Now defaults to direct send; users who want the confirmation card flip the switch (persisted to localStorage cc.web-panel.chat.intentEnabled). submitUserInput first-line short-circuit. The desktop shell shares this SPA bundle so its behaviour now matches cc ui. (3) chatStream truly streams (35f6e60ea): packages/cli/src/lib/chat-core.js chatStream was a fake async generator that buffered every onToken into an array and only yielded after streamX(...) settled — consumers saw zero progress for the full LLM round-trip. Replaced with a token queue + Promise waiter: onToken push wakes the generator, which yields immediately. Chat / Agent / QuickAsk / chat-intent all benefit. (4) Intent placeholder Vue Proxy reactivity fix (a76e451e2): submitUserInput pushed the placeholder into reactive messages[sessionId] (Proxy-wrapped) but kept mutating through the unwrapped local ref → the set trap never fired → card sat pinned at "Understanding… / 0 tokens / Intent: unrecognised" even with 30+ chunks streamed. Fix: re-acquire the Proxy via `card = msgs[msgs.length - 1]` after push. NPM: chainlesschain 0.161.5 → 0.161.6 → 0.161.7 (0.161.6 was published ahead of productVersion to unblock npm-package users on the QuickAsk hang; 0.161.7 carries the chatStream streaming fix + Vue Proxy fix).',
+  },
+  {
+    tag: 'v5.0.3.44',
+    title: 'LLM OCR + audit-ipc coverage + chat-intent 90s safeguard',
+    sub: 'Three-way OCR engine · 18 channels × 23 cases first coverage · slow-LLM dribble safeguard',
+    desc: 'One user-visible feature + three quality follow-ups. (1) Screenshot OCR LLM engine (39b16e29f): Tesseract.js Chinese accuracy is poor; new engine parameter auto/llm/tesseract three-way. auto (default) routes to volcengine doubao vision if configured, else falls back to Tesseract; LLM errors auto-degrade with fallbackFrom / fallbackReason tags. llm forces vision LLM (doubao-1.5-vision-pro, userBudget=medium); tesseract forces local. Provider whitelist Set(["volcengine"]); extending to gemini / openai / anthropic is mechanical once their LLMManager exposes chatWithImage*. V5/V6 shared dialog + web-panel dialog both get an `<a-select>` engine picker + blue/grey/orange tag. (2) chat intent understand 90s wall-clock safeguard (6cbd04c50): sendStream\'s built-in 60s idle timer rearms on every chunk; a slow LLM that dribbles tokens but never emits `final` leaves the placeholder card spinning forever — AbortController + setTimeout(90s) safeguard. (3) compliance-ipc dead handler cleanup (29006decf): typo\'d prefix compliance-classify:* had no callers and even backed onto a different service than the real one; drop both + sync IPC_CHANNELS. (4) audit-ipc.js first unit test coverage (b092673be): zero-coverage gap surfaced by the typo bug — 18 channels + DI refactor + 23 cases. Regression: desktop 1477/1477 + CLI 17,455/17,455.',
+  },
+  {
+    tag: 'v5.0.3.43',
+    title: 'MTC publisher_signature M-of-N fix + security hardening cascade',
+    sub: 'HIGH 44→0 · MOD 4→0 · LOW 45→0 · publisher_signature strip-all-sigs symmetrized',
+    desc: 'Two themes shipped together. (1) MTC `landmark.publisher_signature` fix: producer + verifier must symmetrically strip ALL per-member sigs (not just publisher_signature.sig) before feeding JCS — otherwise tampering with any one member sig in an M-of-N federation breaks publisher_signature, completely defeating the M-of-N threshold. Helper extracted to `@chainlesschain/core-mtc/publisher-signing` subpath, three call sites (batch.js single + federated, landmark-cache.js verifier, desktop governance-multisig.js). `LandmarkCache` defaults `verifyPublisherSignature:true` opt-in, all real-verifier callers enabled. Const BAD_PUBLISHER_SIG → BAD_LANDMARK_SIG (matches spec §11). (2) Eight npm audit sweeps in one week — HIGH 44→0 / MOD 4→0 / LOW 45→0: override `serialize-javascript`/`tar`/`semver`/`undici`/`make-fetch-happen`/`tmp`/`ip-address`/`dompurify`, drop unmaintained `speedtest-net` (native fetch replacement) + `werift` + `hdkey`, split hardhat-stack into standalone `contracts/` workspace, channel-manager DDL hardening, wrtc-compat patches CVE-2024-29415. Bonus: updater renderer progress notifier (notifier-only flow).',
+  },
+  {
+    tag: 'v5.0.3.41',
+    title: 'chat-panel-v5 three-shell parity + B4 social rolling closure',
+    sub: 'V5 / V6 / web-shell chat strictly equivalent · neither keys nor passwords cross the wire',
+    desc: 'productVersion .40 → .41, formally shipping the four 5.0.3.40-rolling entries (cred-persist + auto-archive, mofn-sign v2 + webpanel UI, merkle envelope finality, cross-machine sync Phase A + Web Shell Phase 3c.7) plus two new items: (A) V6 default-shell AIChatPanel reverse-aligned to V5 ChatPanel\'s 4 core features (streaming response + history switching + context memory references + tool-call panel, Phase E commit b33527d31); (B) web-shell ChatPanel v5 port v1+v1.1 (commit 72b13388a) bringing all V5 router protocols / autoSendMessage signals / virtual list / 5 intents / 6 IPCs through WS topics. From now on V5 / V6 / web-shell chat experiences are strictly equivalent — Phase 1.6 default web-shell users no longer miss any V5 chat capability. Also fixed: web-panel views-mount-smoke hitting 30s default timeout under 63-file fork contention via file-level `vi.setConfig({ testTimeout: 60_000 })`.',
+  },
+  {
+    tag: 'v5.0.3.40 (rolling)',
+    title: 'P2P social full-stack audit-grade closure (§2.2.10 → §2.2.24)',
+    sub: '15 sections · 14+1 commits · neither private keys nor passwords ever traverse the wire',
+    desc: 'Closes 15 sub-phases at once, taking P2P social from "messages can cross machines" to "fully audited end-to-end loop": cross-machine sync (Phase A — 7 underlying bug fixes) → MTC federation dual-track (B v1) → DID signing + auto peer bridging (B4) → Merkle batch envelope finality (B4-merkle) → cross-machine envelope gossipsub broadcast + on-demand pull (B4-cross) → community-member trust filter (B4-cross-trust) → desktop viewer button + modal (B4-ui) → external archival to filesystem/WebDAV (B4-archive) → M-of-N multi-sig governance (B4-mofn) → cross-federation trust anchors (B4-crossfed) → 13 WS topics for default web-shell (B4-webshell) → 4 composables + MtcAudit.vue UI (B4-webpanel) → sign-as-self v2: renderer sends only IDs (B4-mofn-sign v2, plus fix of a ~1-month-latent IPC bag missing 12 managers) → WebDAV creds via secure-config.enc (safeStorage / AES-256-GCM, plus fix of a ~1-month-latent baseUrl/remoteRoot vs url/remotePath field-name bug) → main-process periodic archival cron (5-min minimum, per-community try/catch, runOnce non-reentrant, lastRun* auto-persisted). Private keys and passwords stay inside main process; the full suite is visible in the default web-shell; audit-grade.',
+  },
+  {
+    tag: 'v5.0.3.40',
+    title: 'MTC view in-process speedup + CI triple-unblock',
+    sub: '4 fixes · bypass asar cold-start · 12224 tests',
+    desc: 'Headline: after v5.0.3.39 flipped to `asar:true`, `cc` subprocess cold-start jumped from ~2.5s in dev to 6-10s when packaged, and `Mtc.vue`\'s parallel onMounted (`loadStatus` + `loadBridgeStatus` + `loadBridgeSla`) reliably blew the 8s/6s ceilings ("状态加载失败 / 加载桥 MTC 状态失败"). Fix: 3 new in-process WS topics (`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`) hit `audit-mtc` / `cross-chain-mtc` libs directly — pure file reads, no spawn, zero asar overhead. `Mtc.vue` branches on `useShellMode().isEmbedded`. Bundled with three CI fixes: macOS `realpathSync` flagged `/var → /private/var` as a symlink → POSIX uses `lstat`; rules-validator flagged a test-fixture `TestDbManager.exec(sql)` → exclude `__tests__/`; CLI subprocess Win cold-start exceeded 10/15s execSync timeouts → unified to 60s.',
+  },
+  {
+    tag: 'v5.0.3.39',
+    title: 'B4 ASAR surgery — Win install dramatically faster',
+    sub: 'issue #8 · 23 unit + integration tests',
+    desc: 'Windows install substantially reduced: dev-box (NVMe SSD + Defender OFF) measured 190.9s vs 1201s legacy baseline = 6.3× speedup; HDD + Defender ON default-environment strict parity not measured. Re-enabled asar:true (v5.0.3.4-13 fell back to asar:false because the electron-builder walker dropped 4 transitive deps). New surgery runs in afterPack: extract → inject the 4 walker-dropped packages → repack while preserving the original unpackDir decisions. Win wrapper handles workspace symlinks.',
+  },
+  {
+    tag: 'v5.0.3.5',
+    title: 'MTC v0.11 — Cross-federation trust anchors + offline audit',
+    sub: 'Phases 0–4 complete · 476 tests across six layers',
+    desc: 'Decentralized certificate system on Merkle trees: cross-federation trust anchors + third-party auditor + multi-hop routing + gas-aware batch closure + SLA monitoring dashboard. M-of-N multi-sig with heterogeneous Ed25519/SLH-DSA federations + dual-transport service discovery (filesystem + libp2p).',
+  },
+  {
+    tag: 'v5.0.3.4',
+    title: 'Web Panel bilingual M3',
+    sub: '~25 views internationalized · vue-i18n dictionaries',
+    desc: 'Migrated all major web-panel views to vue-i18n (SpeechSettings / Analytics / Cron / Security / Audit / MCP / Backup / Tokens / MTC / WebAuthn / Community / Wallet / Inference / Organization / Federation, etc.) — full Chinese/English coverage, no hardcoded strings. V6 Preview top-bar gets a language switcher.',
+  },
+  {
+    tag: 'v5.0.3.1',
+    title: 'Web Shell as default + multi-window',
+    sub: 'Electron embeds web-panel · WindowRegistry',
+    desc: 'Desktop pivots from "native Vue renderer" to "Electron main embeds ws-server + loads web-panel dist" — true cross-target uniformity. Multi-window scaffold (role-based hash routing + per-role geometry persistence); window.open WS topic lets the renderer spawn new windows.',
+  },
+  {
+    tag: 'v5.0.2.34',
+    title: 'V6 Chat-First Shell hard-flip',
+    sub: '13 first-party packs · 7 UI extension points',
+    desc: 'Desktop now defaults to V6 Chat-First Shell (three-pane layout + 5 enterprise providers + dispatcher with widget registry + Ctrl+Shift+A admin console). .ccprofile + MDM push as 3 enterprise customization paths. Top-10 V5 routes all have V6 widget probes.',
+  },
+  {
+    tag: 'v5.0.2.10',
+    title: 'CLI V2 governance surfaces · 220+',
+    sub: '4-state maturity × 5-state lifecycle',
+    desc: 'From a2apgov to pmodegov — 136 lib-level V2 governance surfaces (dual-cap + auto-flip + autoStaleIdle + autoFailStuck) + 5,984 V2 tests. Coexists with same-module legacy surfaces via shared nest-blocker.',
+  },
+];
+
+const badges = [
+  { icon: '🏆', label: '4 invention patents' },
+  { icon: '🔒', label: 'Military-grade encryption' },
+  { icon: '⭐', label: 'GitHub 10k+ stars' },
+  { icon: '✅', label: 'MLPS Level 3' },
+  { icon: '📋', label: 'Co-author · Intrinsic Security of AI Agent (T/ZGCMCA 023—2025)', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
+];
+---
+<BaseLayout
+  title="ChainlessChain — Sovereignty for your data. Productivity at your fingertips."
+  description="CLI-driven local AI × hardware-level encryption. 144 CLI commands, 141 built-in skills, U-Key/SIMKey hardware protection, Signal end-to-end encryption. Built for anyone who wants control over their own data."
+  canonical="https://www.chainlesschain.com/en/"
+  locale="en"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-ember/10 blur-3xl pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="animate-fade-in flex items-center gap-3 mb-8 flex-wrap">
+          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
+          <span class="chip">CLI v{CLI_VERSION}</span>
+          <span class="chip">144 commands</span>
+          <span class="chip">Web Shell (default)</span>
+          <span class="chip">Bilingual Web Panel</span>
+          <span class="chip">MTC v0.11</span>
+        </div>
+
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
+          Data sovereignty<br/>
+          <span class="italic">returned to you</span>,<br/>
+          AI <span class="text-ember italic">at your fingertips</span>.
+        </h1>
+
+        <p class="animate-fade-in-delay-2 mt-8 text-xl md:text-2xl text-muted leading-relaxed max-w-3xl">
+          CLI-driven local AI × hardware-grade encryption.<br class="hidden md:block"/>
+          Built for everyone who wants to own their data.
+        </p>
+
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap items-center gap-4">
+          <button
+            class="btn-primary group"
+            data-copy="npm i -g chainlesschain"
+            aria-label="Copy install command"
+          >
+            <span class="text-ember">$</span>
+            <span>npm i -g chainlesschain</span>
+            <span class="text-muted-dark text-xs ml-2 group-hover:text-cream">click to copy</span>
+          </button>
+          <a href="#security" class="btn-ghost">
+            See the hardware crypto stack <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
+          {badges.map((b) => (
+            b.href ? (
+              <a href={b.href} target="_blank" rel="noopener" class="flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors">
+                <span class="text-base">{b.icon}</span>
+                <span>{b.label}</span>
+              </a>
+            ) : (
+              <div class="flex items-center gap-2 text-sm text-muted">
+                <span class="text-base">{b.icon}</span>
+                <span>{b.label}</span>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三大核心能力 -->
+  <section class="py-20 md:py-28 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Product Positioning · Three Pillars</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Knowledge · Social · Trading,<br/>
+          <span class="italic text-ember">end-to-end, individual-first</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          One foundation — hardware security + on-device AI + true decentralization. Three pillars stand independently and compose freely.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        {pillars.map((p) => (
+          <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="text-3xl mb-4">{p.icon}</div>
+            <h3 class="font-display text-2xl mb-1">{p.title}</h3>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-5">{p.en}</div>
+            <ul class="space-y-2 text-sm text-ink/80">
+              {p.bullets.map((b) => (
+                <li class="flex gap-2"><span class="text-ember shrink-0">·</span><span>{b}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Privacy First</div>
+          <div class="text-sm text-ink/80">End-to-end encryption · hardware security · zero-knowledge proofs — service operators can't see your data.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Truly Decentralized</div>
+          <div class="text-sm text-ink/80">Local storage (SQLCipher AES-256) · P2P (libp2p) · self-sovereign identity (DID v2).</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">AI Native</div>
+          <div class="text-sm text-ink/80">Local LLMs (Ollama / LLaMA / Qwen) · prompts never uploaded by default · AI search + agent orchestration.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Personal Data Hub -->
+  <section class="py-24 md:py-32 bg-ink text-cream relative overflow-hidden">
+    <div class="absolute inset-0 opacity-[0.04] pointer-events-none" aria-hidden="true">
+      <div class="absolute top-10 left-10 w-72 h-72 rounded-full bg-ember blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-ember blur-3xl"></div>
+    </div>
+
+    <div class="container-wide relative">
+      <div class="max-w-4xl mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">Personal Data Hub · Plan A real-device closure in v5.0.3.78</span>
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight font-display">
+          Pull every digital footprint home —<br/>
+          <span class="italic text-ember">into a vault that's yours alone.</span>
+        </h2>
+        <p class="mt-6 text-xl md:text-2xl text-cream/80 leading-relaxed">
+          Email · WeChat · Alipay · 8 AI chatbots · 7 social platforms · shopping · travel · Android system data —<br class="hidden md:block"/>
+          <span class="text-cream">22+ sources end-to-end pulled to local</span>, untouchable by anyone else.
+        </p>
+        <p class="mt-5 text-base text-cream/60 italic max-w-2xl">
+          "Data sovereignty returned to individuals" is not a slogan — it's 22 real adapters, 5 built-in analysis skills, 1 local encrypted vault.
+        </p>
+      </div>
+
+      <!-- 5-grid data source categories -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📧</div>
+          <div class="font-display text-lg mb-2">Email / Bills</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· IMAP across all mail providers</li>
+            <li>· Alipay statement CSV / PDF</li>
+            <li>· 6 template extractors (bill/order/travel)</li>
+            <li>· PDF decryption + transactions</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🤖</div>
+          <div class="font-display text-lg mb-2">AI Chat History</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· DeepSeek · Kimi · Tongyi</li>
+            <li>· Zhipu · Hunyuan · Qianfan</li>
+            <li>· Coze · Dreamina · Doubao</li>
+            <li class="text-ember/80 font-mono text-[10px] pt-1">9 / 9 vendors wired · Phase 10.2</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">💬</div>
+          <div class="font-display text-lg mb-2">Social Platforms</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· WeChat (SQLCipher)</li>
+            <li>· QQ · Weibo · Bilibili</li>
+            <li>· Douyin · Xiaohongshu</li>
+            <li>· Telegram · WhatsApp</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🛍️</div>
+          <div class="font-display text-lg mb-2">Shopping / Travel</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· Taobao · JD · Meituan</li>
+            <li>· Amap · Baidu Map</li>
+            <li>· Ctrip · 12306</li>
+            <li>· Orders / logistics / footprints unified</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📱</div>
+          <div class="font-display text-lg mb-2">System Data</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· Contacts · call log</li>
+            <li>· SMS · location history</li>
+            <li>· Android ADB backup</li>
+            <li>· iOS iTunes encrypted</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 3-feature pillars -->
+      <div class="grid md:grid-cols-3 gap-4 mb-10">
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Local Vault</div>
+          <div class="text-sm text-cream/85 leading-relaxed">SQLCipher AES-256 on disk — data never leaves your device. Email passwords, chat keys, bill amounts all stay on your hardware.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">5 Built-in Analysis Skills</div>
+          <div class="text-sm text-cream/85 leading-relaxed">Consumption trends · travel profile · communication frequency · content preference · time distribution — LLM-callable. Ask "which three shops did I spend the most at last year?" — instant answer.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Entity Resolver</div>
+          <div class="text-sm text-cream/85 leading-relaxed">"Zhang San" / "张三" / "+86 138-xxxx" auto-resolved as the same person — relationship graphs across email/WeChat/contacts finally connect.</div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex flex-wrap gap-3 items-center">
+        <a href="https://docs.chainlesschain.com/chainlesschain/personal-data-hub.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-ember text-ink font-medium hover:bg-ember/90 transition-colors">
+          Full feature guide →
+        </a>
+        <a href="https://design.chainlesschain.com/design/Personal_Data_Hub_Architecture.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-cream/20 text-cream/80 hover:border-ember hover:text-cream transition-all">
+          Architecture design ↗
+        </a>
+        <span class="text-xs font-mono text-cream/40 ml-2">50 test files / 952 tests · 6 integration + 3 E2E scenarios · 9 / 9 AIChat vendors wired · mobile remote entry v0.1 in development</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+      <div>
+        <div class="chip mb-6">CLI · Primary Entry</div>
+        <h2 class="text-display-md md:text-5xl mb-6">
+          Your terminal,<br/>your AI workbench.
+        </h2>
+        <p class="prose-muted text-lg mb-8">
+          No GUI required — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> runs local AI, agent coding, and multi-agent orchestration entirely in the terminal.
+        </p>
+        <div class="grid grid-cols-3 gap-6 mb-8">
+          <div>
+            <div class="font-display text-4xl text-ember">112</div>
+            <div class="text-sm text-muted mt-1">CLI commands</div>
+          </div>
+          <div>
+            <div class="font-display text-4xl text-ember">139</div>
+            <div class="text-sm text-muted mt-1">Built-in skills</div>
+          </div>
+          <div>
+            <div class="font-display text-4xl text-ember">30,000+</div>
+            <div class="text-sm text-muted mt-1">Tests</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="/en/cli" class="btn-ember">All commands →</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/cli.html" rel="noopener" class="btn-ghost">CLI docs ↗</a>
+        </div>
+      </div>
+      <div class="md:pl-4">
+        <Terminal />
+        <div class="mt-4 text-xs text-muted font-mono text-center">Agent / Cowork / Skill — full AI workflow in the terminal</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 普通人能做什么 -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Web Cowork · Zero-friction AI Toolbox</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Just say what you need —<br/>
+          <span class="italic text-ember">the agent does it</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          No commands to memorize. Open the web console, describe your task —<br class="hidden md:block"/>
+          the agent picks tools, installs dependencies, streams progress live.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        {everyday.map((e) => (
+          <div class="group p-7 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="text-3xl mb-4">{e.icon}</div>
+            <h3 class="font-display text-xl mb-2 group-hover:text-ember transition-colors">{e.title}</h3>
+            <p class="text-sm text-muted leading-relaxed mb-4">{e.example}</p>
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-ember/10 text-ember text-[11px] font-mono">
+              <span class="w-1 h-1 bg-ember rounded-full"></span> Auto-installs required tools
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <figure class="mt-10 border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/cowork.png"
+          alt="Web Cowork interface · 10 task templates"
+          width="1400"
+          height="900"
+          loading="lazy"
+          class="block w-full h-auto"
+        />
+      </figure>
+      <p class="mt-3 text-center text-xs text-muted">Run <code class="font-mono bg-cream px-2 py-0.5 rounded">chainlesschain ui</code>, browser opens <code class="font-mono bg-cream px-2 py-0.5 rounded">http://localhost:18810/#/cowork</code></p>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Zero-install Workflow</div>
+          <div class="text-sm text-ink/80">Agent auto-runs winget / choco / pip / npm — no env config needed.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Sandbox Isolation</div>
+          <div class="text-sm text-ink/80">SubAgentContext sandboxes every task — independent contexts, no cross-pollution.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Live Progress</div>
+          <div class="text-sm text-ink/80">WebSocket streams every step — not "black box, hope it works."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cowork 5 阶段编排 -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">AI Engine · Cowork Multi-Agent</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          5-stage orchestration · Plan Mode · <br/>
+          <span class="italic text-ember">instinct learning · verification loop</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          Not a single agent rolling dice. Planner / Architect / Coder / Reviewer / Verify — five roles in series, every step interruptible, auditable, replayable.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-2 mb-12">
+        {[
+          { n: '01', name: 'Planner', sub: 'Decompose' },
+          { n: '02', name: 'Architect', sub: 'Design' },
+          { n: '03', name: 'Coder', sub: 'Implement' },
+          { n: '04', name: 'Reviewer', sub: 'Adversarial review' },
+          { n: '05', name: 'Verify', sub: '6-stage validation' },
+        ].map((s, i) => (
+          <div class="relative">
+            <div class="p-5 rounded-xl border border-line bg-paper hover:border-ember transition-colors">
+              <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{s.n}</div>
+              <div class="font-display text-xl mb-1">{s.name}</div>
+              <div class="text-xs text-muted">{s.sub}</div>
+            </div>
+            {i < 4 && (
+              <div class="hidden md:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10 w-4 h-4 items-center justify-center text-ember">
+                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">4 Templates</div>
+          <div class="text-sm text-muted">feature / bugfix / refactor / security-audit — apply with one command.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Plan Mode</div>
+          <div class="text-sm text-muted">Plan first, confirm, then execute — keeps the AI on the rails.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Instinct Learning</div>
+          <div class="text-sm text-muted">8 pattern types + confidence decay + auto-injection — sharper with use.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Sub-Agent Isolation</div>
+          <div class="text-sm text-muted">Tool whitelist + 3-tier summary + isolated messages — context stays clean.</div>
+        </div>
+      </div>
+
+      <div class="mt-10 p-6 md:p-8 rounded-2xl bg-ink text-cream">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+          <div class="font-display text-xl">141 built-in skills · 13 categories</div>
+          <div class="font-mono text-xs text-muted-dark">141 desktop + 25 Android REMOTE + 144 CLI</div>
+        </div>
+        <div class="text-sm text-muted-dark leading-relaxed">
+          Original 15 · Dev tools 15 · Advanced 10 · AI session 10 · Office A/V 10 · Image data 10 · Dev system 10 · Security design 10 · Tooling 10 · Workflow 10 · Knowledge research 10 · Media security 11 · Community video 7
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工程基线 · 测试细分 -->
+  <section class="py-20 md:py-24 bg-cream/40 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Engineering Baseline · 5 Platforms</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          One AI engine,<br/>
+          <span class="italic text-ember">30,000+ tests guarding it</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          Win / macOS / Linux / Android / iOS / CLI — same engine across every target. Six layers must all pass before release; one red layer blocks the entire ship.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-10">
+        {[
+          { name: 'Windows', sub: 'Electron 39 · Win 10/11' },
+          { name: 'macOS', sub: 'Electron 39 · 12+' },
+          { name: 'Linux', sub: 'Electron 39 · Ubuntu 20+' },
+          { name: 'Android', sub: 'Jetpack Compose · Kotlin' },
+          { name: 'iOS', sub: 'SwiftUI' },
+          { name: 'CLI', sub: 'npm · Node 22 LTS' },
+        ].map((p) => (
+          <div class="p-4 rounded-xl border border-line bg-paper text-center">
+            <div class="font-display text-base md:text-lg mb-1">{p.name}</div>
+            <div class="font-mono text-[10px] text-muted leading-tight">{p.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: '14,255', label: 'CLI Unit' },
+          { n: '696', label: 'CLI Integration' },
+          { n: '565', label: 'CLI E2E' },
+          { n: '197', label: 'Desktop Coding Agent' },
+          { n: '84', label: 'Phase 5 harness' },
+          { n: '27', label: 'Web Panel' },
+        ].map((t) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-display text-2xl md:text-3xl text-ember">{t.n}</div>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mt-2">{t.label}</div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-4 text-xs text-muted text-center font-mono">2026-04-19 verification regression · all green</p>
+    </div>
+  </section>
+
+  <!-- SECURITY (dark) -->
+  <section id="security" class="relative bg-ink text-cream py-24 md:py-32">
+    <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
+    <div class="container-wide relative">
+      <div class="max-w-3xl mb-16">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-line-dark border border-line-dark text-muted-dark mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span> Security Core
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Your keys,<br/><span class="italic text-ember">held in your hand</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted-dark leading-relaxed">
+          U-Key / SIMKey hardware chips · keys never exported. AES-256 + SQLCipher full encryption. Signal end-to-end. Local Ollama inference — data never reaches the cloud.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">01 · U-KEY</div>
+          <h3 class="font-display text-2xl mb-3">USB security chip</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            Windows Koffi FFI talks directly to the SIMKey SDK. PIN-protected, auto-locks on repeated failure, all critical operations require physical confirmation. BLE/NFC wireless U-Key + biometrics.
+          </p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">02 · SIMKEY</div>
+          <h3 class="font-display text-2xl mb-3">SIM-card security chip</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            Android OMAPI / iOS eSIM API. USIM + 5G super-SIM across three Chinese carriers. Fingerprint / Face ID replaces PIN. 12 enhancements: eSIM OTA, TEE integration, post-quantum readiness.
+          </p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">03 · LOCAL AI</div>
+          <h3 class="font-display text-2xl mb-3">Local Ollama</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            qwen2 / llama3 / deepseek-r1 inference on-device. 14+ cloud LLMs available but never required. Sensitive data auto-routes to local models — the cloud path is severed at the source.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 border-t border-line-dark">
+        <div><div class="font-display text-3xl text-ember">4</div><div class="text-sm text-muted-dark mt-1">Patents</div></div>
+        <div><div class="font-display text-3xl text-ember">AES-256</div><div class="text-sm text-muted-dark mt-1">SQLCipher database</div></div>
+        <div><div class="font-display text-3xl text-ember">Signal</div><div class="text-sm text-muted-dark mt-1">E2E protocol</div></div>
+        <div><div class="font-display text-3xl text-ember">MLPS L3</div><div class="text-sm text-muted-dark mt-1">Compliance</div></div>
+      </div>
+
+      <div class="mt-10">
+        <a href="/en/security" class="inline-flex items-center gap-2 text-ember hover:text-cream transition-colors">Full security architecture <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- WEB COWORK -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Web Cowork</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Speak plainly to AI,<br/>
+          <span class="italic text-ember">tools do the work</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          10 task templates · auto dependency install · live streaming progress.<br class="hidden md:block"/>
+          "Convert report.docx to PDF" — agent installs pandoc, runs the tool, reports back.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {templates.map((t) => (
+          <div class="group p-5 rounded-xl border border-line hover:border-ember hover:bg-ember/5 transition-all cursor-default">
+            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mb-2">{t.id}</div>
+            <div class="font-display text-lg mb-1 group-hover:text-ember transition-colors">{t.name}</div>
+            <div class="text-xs text-muted">{t.tools}</div>
+          </div>
+        ))}
+        <div class="p-5 rounded-xl border border-dashed border-ember bg-ember/5">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">free-mode</div>
+          <div class="font-display text-lg mb-1">Free Mode</div>
+          <div class="text-xs text-muted">Skip the template, describe the task directly</div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3 items-center">
+        <div class="font-mono text-sm bg-ink text-cream px-4 py-2 rounded-md">$ chainlesschain ui → http://localhost:18810/#/cowork</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGHLIGHTS -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Recent Highlights</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Multi-agent, made into<br/>
+          <span class="italic">repeatable engineering patterns</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          Not concept demos. Each item is shipped, tested, and codified. Full changelog at
+          <a href="https://design.chainlesschain.com" rel="noopener" class="text-ember underline-offset-4 hover:underline">design.chainlesschain.com</a>.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {highlights.map((h, i) => (
+          <a href="https://design.chainlesschain.com" rel="noopener" class="group bg-paper p-8 hover:bg-ember/5 transition-colors">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Highlight</div>
+              <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-ember text-cream">{h.tag}</span>
+            </div>
+            <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{h.title}</h3>
+            <div class="text-xs text-muted mb-3 font-mono">{h.sub}</div>
+            <p class="text-sm text-ink/80 leading-relaxed">{h.desc}</p>
+            <div class="mt-5 text-xs text-muted group-hover:text-ember transition-colors">Read design doc →</div>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a href="https://github.com/chainlesschain/chainlesschain/releases" target="_blank" rel="noopener" class="btn-ghost">Full Release Notes ↗</a>
+        <a href="https://design.chainlesschain.com" rel="noopener" class="btn-ghost">Design Docs ↗</a>
+      </div>
+
+      <!-- Roadmap: RFC under review, not in highlights (not a shipped feature) -->
+      <div class="mt-10 p-6 rounded-xl border border-line bg-paper/60">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-muted/30 text-ink">📋 RFC under review</span>
+          <span class="text-sm text-muted">2026-05-11 (v0.2)</span>
+        </div>
+        <h3 class="font-display text-xl mb-2">Android v1.0 Repositioning — L1 Wallet / L2 Capture / L3 REMOTE</h3>
+        <p class="text-sm text-ink/80 leading-relaxed">
+          Desktop = AI workstation · Mobile = key + capture + remote. Stop chasing desktop skill count — pivot to StrongBox hardware signing + Voice/Camera OCR + REMOTE-invoke desktop skills three-layer architecture. 11-day 7-milestone roadmap · 258+ unit tests · 12 E2E.
+          <a href="https://design.chainlesschain.com/android-repositioning" rel="noopener" class="text-ember underline-offset-4 hover:underline">Read RFC →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR WHOM -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Who It's For</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Two audiences, one foundation.</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="p-10 rounded-2xl border border-line hover:border-ink transition-colors">
+          <div class="font-mono text-xs text-muted mb-4">FOR INDIVIDUALS</div>
+          <h3 class="font-display text-3xl mb-4 leading-tight">"I want a truly private<br/>AI assistant."</h3>
+          <ul class="space-y-2 text-muted mb-8">
+            <li>· Local encryption · data never goes to cloud</li>
+            <li>· Zero-config · works out of the box</li>
+            <li>· Bilingual UI</li>
+            <li>· Doctors, lawyers, researchers' daily companion</li>
+          </ul>
+          <a href="/en/desktop" class="btn-ember">Download desktop →</a>
+        </div>
+
+        <div class="p-10 rounded-2xl bg-ink text-cream hover:bg-[#2a2a27] transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">FOR DEVELOPERS</div>
+          <h3 class="font-display text-3xl mb-4 leading-tight">"I want agent-driven<br/>coding from my terminal."</h3>
+          <ul class="space-y-2 text-muted-dark mb-8">
+            <li>· CLI Agent · Claude Code style</li>
+            <li>· Cowork multi-agent parallel review</li>
+            <li>· MCP tool ecosystem + 9 Skill Packs</li>
+            <li>· 144 commands · 30,000+ tests · 220+ V2 governance surfaces</li>
+          </ul>
+          <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
+            <span>$ npm i -g chainlesschain</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 行业落地案例 -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Industry Case Studies</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Beyond demos —<br/>
+          <span class="italic text-ember">running on real factory floors</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          From supply-chain Excel collaboration to AI reporting — validated in real factory deployments.
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-ink text-cream border border-line-dark overflow-hidden">
+        <div class="p-10 md:p-14 border-b border-line-dark">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="font-mono text-xs text-ember">CASE · 01 · MANUFACTURING</span>
+            <span class="chip bg-ember/15 text-ember border border-ember/30">Delivered</span>
+          </div>
+          <h3 class="font-display text-4xl md:text-5xl leading-tight mb-4">
+            ChainFactory Data Steward · <span class="italic text-ember">factory supply-chain AI</span>
+          </h3>
+          <p class="text-xl text-muted-dark leading-relaxed max-w-3xl">
+            Move Excel into the browser, install AI in the factory —<br class="hidden md:block"/>
+            OnlyOffice real-time collab · AI Text-to-SQL · OCR intake · Git versioning.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-[1px] bg-line-dark">
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">01 · COLLAB</div>
+            <h4 class="font-display text-xl mb-3">Excel collaboration online</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">OnlyOffice embedded in browser, multiple users edit one spreadsheet in real time, Git auto-versioning lets you roll back. Socket.IO syncs cells live.</p>
+          </div>
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">02 · TEXT-TO-SQL</div>
+            <h4 class="font-display text-xl mb-3">Natural-language reporting</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">Ask in plain language — AI auto-generates SQL against the operational SQLite, returns tables and charts in seconds.</p>
+          </div>
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">03 · OCR</div>
+            <h4 class="font-display text-xl mb-3">Auto receipt intake</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">Snap receipts on phone, AI extracts and structures into the database. End manual Excel transcription. Drizzle ORM for canonical storage.</p>
+          </div>
+        </div>
+
+        <div class="p-8 md:p-10 flex flex-wrap items-center justify-between gap-6 bg-[#17171510] border-t border-line-dark">
+          <div>
+            <div class="font-mono text-[10px] text-muted-dark uppercase tracking-widest mb-2">Use cases</div>
+            <div class="text-sm text-muted-dark">Supply chain · materials · production planning · cost accounting · quality traceability</div>
+          </div>
+          <div class="flex gap-3 items-center">
+            <a href="/en/enterprise" class="btn-ember">Customize a factory edition</a>
+            <a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream transition-colors">☎ 400-1068-687</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mt-10">
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 02 · HEALTHCARE</div>
+          <h4 class="font-display text-xl mb-2">Hospital records AI search</h4>
+          <p class="text-sm text-muted leading-relaxed">Local Ollama inference — patient data never leaves the hospital. RAG retrieval + medical-order assistance.</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 03 · LEGAL</div>
+          <h4 class="font-display text-xl mb-2">Law firm KB & contract review</h4>
+          <p class="text-sm text-muted leading-relaxed">U-Key hardware encryption protects case files; Cowork multi-role contract clause review.</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 04 · GOVERNMENT</div>
+          <h4 class="font-display text-xl mb-2">Intranet AI office platform</h4>
+          <p class="text-sm text-muted leading-relaxed">Private deployment · SSO / SCIM / RBAC · MLPS Level 3 · audit logs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EDITIONS -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Editions</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Personal, or enterprise?</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="p-10 rounded-2xl bg-paper border border-line">
+          <div class="flex items-baseline justify-between mb-4">
+            <h3 class="font-display text-3xl">Personal</h3>
+            <span class="font-mono text-sm text-ember">Free / Open Source</span>
+          </div>
+          <p class="text-muted mb-6">For individuals & independent developers. Full CLI, desktop, mobile experience.</p>
+          <ul class="space-y-2 text-sm mb-8">
+            <li>✓ All 144 CLI commands + 141 skills</li>
+            <li>✓ U-Key / SIMKey hardware encryption</li>
+            <li>✓ Local Ollama + 10 LLM providers</li>
+            <li>✓ Cowork multi-agent collaboration</li>
+            <li>✓ Windows / macOS / Linux / Android</li>
+          </ul>
+          <div class="flex gap-3">
+            <a href="/en/desktop" class="btn-ember">Download desktop</a>
+            <a href="/en/cli" class="btn-ghost">npm install</a>
+          </div>
+        </div>
+        <div class="p-10 rounded-2xl bg-ink text-cream border border-line-dark">
+          <div class="flex items-baseline justify-between mb-4">
+            <h3 class="font-display text-3xl">Enterprise</h3>
+            <span class="font-mono text-sm text-ember">Custom</span>
+          </div>
+          <p class="text-muted-dark mb-6">For finance, healthcare, legal, government — strict compliance and on-prem requirements.</p>
+          <ul class="space-y-2 text-sm mb-8 text-muted-dark">
+            <li>✓ Private deployment + UI branding</li>
+            <li>✓ SSO / SCIM / RBAC / audit & compliance</li>
+            <li>✓ Industry-specific skills (healthcare / legal / research)</li>
+            <li>✓ U-Key batch issuance + DLP + SIEM</li>
+            <li>✓ Dedicated technical support</li>
+          </ul>
+          <div class="flex gap-3 items-center">
+            <a href="/en/enterprise" class="btn-ember">Enterprise solutions</a>
+            <a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream transition-colors">☎ 400-1068-687</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOADS -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Downloads</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Same source, every target · {PRODUCT_VERSION}</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
+          <h3 class="font-display text-2xl mb-3">Command-line</h3>
+          <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy="npm i -g chainlesschain">$ npm i -g chainlesschain</div>
+          <p class="text-sm text-muted">npm / yarn / pnpm / bun · ~2MB</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">DESKTOP · {PRODUCT_VERSION}</div>
+          <h3 class="font-display text-2xl mb-3">Desktop App</h3>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Windows</a>
+            <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">macOS</a>
+            <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Linux</a>
+          </div>
+          <p class="text-sm text-muted">Electron 39 · Vue 3.4 · 141 skills</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">MOBILE · Android {ANDROID_VERSION} · GA</div>
+          <h3 class="font-display text-2xl mb-3">Android</h3>
+          <div class="flex flex-wrap gap-2 mb-4">
+            {androidArm64 && (
+              <a
+                href={`https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${androidArm64.name}`}
+                target="_blank"
+                rel="noopener"
+                class="chip hover:bg-ember hover:text-cream transition-colors"
+              >arm64-v8a · {androidArm64.label}</a>
+            )}
+            {androidUniversal && (
+              <a
+                href={`https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${androidUniversal.name}`}
+                target="_blank"
+                rel="noopener"
+                class="chip hover:bg-ember hover:text-cream transition-colors"
+              >universal · {androidUniversal.label}</a>
+            )}
+            <span class="chip opacity-60">iOS coming</span>
+          </div>
+          <p class="text-sm text-muted mb-3">L1 DID wallet · L2 mobile capture · L3 REMOTE · 28 skills · 383+ tests</p>
+          <a href="/en/mobile" class="text-sm text-ember hover:underline">See the mobile edition →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPANY + CTA -->
+  <section class="py-24 md:py-32 bg-ink text-cream">
+    <div class="container-wide grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <div class="font-mono text-xs text-ember mb-6">Xiamen Chainlesschain Technology Co., Ltd.</div>
+        <h2 class="text-display-md md:text-5xl leading-tight mb-6">
+          Need an enterprise edition?<br/>
+          <span class="text-ember italic">Pick up the phone.</span>
+        </h2>
+        <p class="text-muted-dark text-lg leading-relaxed mb-8">
+          We provide full-cycle custom services from POC to production for healthcare, legal, research, and government clients. Free needs assessment · 90-day POC guarantee.
+        </p>
+        <div class="space-y-3 text-sm">
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Phone</span><a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream">400-1068-687</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Email</span><a href="mailto:zhanglongfa@chainlesschain.com" class="hover:text-ember">zhanglongfa@chainlesschain.com</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Address</span><span class="text-muted-dark">Unit 431-H, Floor 4, Building C, Xiamen International Shipping Center, 93 Xiangyu Rd., Xiamen FTZ</span></div>
+        </div>
+      </div>
+      <div class="md:justify-self-end">
+        <a href="tel:400-1068-687" class="block p-10 rounded-2xl bg-ember hover:bg-ember-dark transition-colors">
+          <div class="font-mono text-xs text-ink/70 mb-3">CALL US</div>
+          <div class="font-display text-5xl md:text-6xl text-ink mb-2 tracking-tight">400-1068-687</div>
+          <div class="text-ink/80">Mon-Fri 9:00–18:00 · Free consult</div>
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

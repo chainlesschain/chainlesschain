@@ -1,0 +1,80 @@
+{
+  "id": "tpl_video_youtube_script_001",
+  "name": "youtube_video_script",
+  "display_name": "YouTube视频脚本",
+  "description": "生成完整的YouTube视频脚本，包含Hook、内容结构、CTA等要素",
+  "icon": "🎬",
+  "cover_image": "/templates/covers/youtube-script.png",
+  "category": "video",
+  "subcategory": "youtube",
+  "tags": ["YouTube", "视频脚本", "内容创作", "视频营销"],
+  "project_type": "document",
+  "prompt_template": "请帮我编写一期YouTube视频脚本：\n\n**视频信息：**\n- 视频标题：{{videoTitle}}\n- 频道名称：{{channelName}}\n- 视频主题：{{topic}}\n- 目标时长：{{duration}}分钟\n- 目标受众：{{targetAudience}}\n- 视频风格：{{style}}\n\n# YouTube视频脚本：{{videoTitle}}\n\n**频道：**{{channelName}}\n**预计时长：**{{duration}}分钟\n**发布日期：**{{publishDate}}\n\n---\n\n## 【前期准备】\n\n### SEO优化\n- **主关键词：**{{primaryKeyword}}\n- **次关键词：**{{secondaryKeywords}}\n- **标签（Tags）：**{{tags}}\n\n### 缩略图创意\n{{thumbnailIdea}}\n\n---\n\n## 【视频脚本】\n\n### 开场Hook（0:00-0:15，15秒）\n\n**【画面】**{{hookVisual}}\n\n**【口播】**\n{{hookScript}}\n\n**【字幕】**{{hookSubtitle}}\n\n**【音乐】**快节奏BGM，制造紧迫感\n\n---\n\n### 简短介绍（0:15-0:30，15秒）\n\n**【画面】**主播露脸 + 频道Logo动画\n\n**【口播】**\n\"大家好，欢迎来到{{channelName}}！我是{{hostName}}。今天我们要聊的是{{topic}}。在正式开始之前，别忘了点赞、订阅、打开小铃铛，支持一下频道！\"\n\n**【屏幕提示】**订阅按钮动画\n\n---\n\n### 内容预告（0:30-1:00，30秒）\n\n**【口播】**\n\"今天这期视频，我会分享：\n1. {{point1}}\n2. {{point2}}\n3. {{point3}}\n\n废话不多说，Let's dive in！\"\n\n**【画面】**快速剪辑精彩片段\n\n---\n\n### 第一部分：{{section1Title}}（1:00-{{section1End}}）\n\n**【内容要点】**\n{{section1Content}}\n\n**【口播脚本】**\n{{section1Script}}\n\n**【B-Roll素材】**\n- {{broll1_1}}\n- {{broll1_2}}\n- {{broll1_3}}\n\n**【屏幕文字】**\n{{onScreenText1}}\n\n**【过渡】**\"接下来，让我们看看第二个重点...\"\n\n---\n\n### 第二部分：{{section2Title}}（{{section2Start}}-{{section2End}}）\n\n**【内容要点】**\n{{section2Content}}\n\n**【口播脚本】**\n{{section2Script}}\n\n**【案例/演示】**\n{{demo2}}\n\n**【互动提示】**\n\"如果你也遇到过这个问题，在评论区告诉我！\"\n\n---\n\n### 第三部分：{{section3Title}}（{{section3Start}}-{{section3End}}）\n\n**【内容要点】**\n{{section3Content}}\n\n**【口播脚本】**\n{{section3Script}}\n\n**【图表/数据】**\n{{dataVisualization}}\n\n---\n\n### 总结回顾（{{summaryStart}}-{{summaryEnd}}）\n\n**【口播】**\n\"好了，快速回顾一下今天的重点：\n1. {{recap1}}\n2. {{recap2}}\n3. {{recap3}}\"\n\n**【画面】**要点图文展示\n\n---\n\n### 行动号召CTA（{{ctaStart}}-{{duration}}:00）\n\n**【第一CTA：订阅】**\n\"如果这期视频对你有帮助，请帮我点个赞👍，这对我真的很重要！如果还没订阅，记得订阅频道并打开小铃铛🔔，这样就不会错过后续精彩内容啦！\"\n\n**【第二CTA：互动】**\n\"评论区告诉我：{{questionForAudience}}\"\n\n**【第三CTA：相关视频】**\n\"想了解更多{{relatedTopic}}，可以看我之前的这期视频（屏幕右侧）。\"\n\n**【画面】**终端卡片（End Screen）：\n- 左侧：最新视频\n- 右侧：推荐相关视频\n- 中间：订阅按钮\n\n**【最后一句】**\n\"我们下期再见，拜拜！\"\n\n**【结尾音乐】**频道专属Outro音乐\n\n---\n\n## 【视频描述（Description）】\n\n```\n{{videoTitle}}\n\n{{videoDescription}}\n\n📌 本期时间轴：\n0:00 开场\n0:15 简介\n0:30 内容预告\n1:00 {{section1Title}}\n{{section2Start}} {{section2Title}}\n{{section3Start}} {{section3Title}}\n{{summaryStart}} 总结\n\n🔗 相关链接：\n{{link1}}\n{{link2}}\n{{link3}}\n\n📱 关注我的社交媒体：\nInstagram: {{instagram}}\nTwitter: {{twitter}}\n微信公众号: {{wechat}}\n\n💬 合作联系：{{email}}\n\n#{{hashtag1}} #{{hashtag2}} #{{hashtag3}}\n```\n\n---\n\n## 【拍摄清单】\n\n### 主镜头\n- [ ] 开场Hook\n- [ ] 主播出镜段落\n- [ ] 总结部分\n- [ ] CTA部分\n\n### B-Roll素材\n- [ ] {{brollItem1}}\n- [ ] {{brollItem2}}\n- [ ] {{brollItem3}}\n\n### 屏幕录制\n- [ ] {{screenRecording1}}\n- [ ] {{screenRecording2}}\n\n### 图文动画\n- [ ] {{graphics1}}\n- [ ] {{graphics2}}\n\n---\n\n## 【后期制作清单】\n\n- [ ] 粗剪（Rough Cut）\n- [ ] 精剪（Fine Cut）\n- [ ] 音频降噪\n- [ ] 背景音乐混音\n- [ ] 字幕添加\n- [ ] 颜色校正\n- [ ] 缩略图设计\n- [ ] 终端卡片设置\n- [ ] SEO优化（标题、描述、标签）\n- [ ] 上传定时发布\n\n---\n\n**制作日期：**{{createdDate}}\n**发布日期：**{{publishDate}}\n**预估播放量：**{{expectedViews}}",
+  "variables_schema": [
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "吸引人的标题，包含关键词"
+    },
+    {
+      "name": "channelName",
+      "label": "频道名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "topic",
+      "label": "视频主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "label": "目标时长(分钟)",
+      "type": "select",
+      "required": false,
+      "default": "10",
+      "options": [
+        { "value": "5", "label": "5分钟（短视频）" },
+        { "value": "10", "label": "10分钟" },
+        { "value": "15", "label": "15分钟" },
+        { "value": "20", "label": "20分钟+" }
+      ]
+    },
+    {
+      "name": "style",
+      "label": "视频风格",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "教程讲解", "label": "教程讲解" },
+        { "value": "Vlog", "label": "Vlog" },
+        { "value": "评测开箱", "label": "评测开箱" },
+        { "value": "知识分享", "label": "知识分享" },
+        { "value": "娱乐搞笑", "label": "娱乐搞笑" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "YouTube-{{videoTitle}}",
+    "files": [
+      {
+        "path": "脚本-{{videoTitle}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "拍摄清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_video_editing"],
+  "required_tools": ["tool_word_generator", "tool_file_writer"],
+  "execution_engine": "document"
+}

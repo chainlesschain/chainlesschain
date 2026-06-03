@@ -1,0 +1,20 @@
+{
+  "id": "compliance-default",
+  "name": "本地审计日志（默认）",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "默认本地文件审计日志；企业 Profile 可替换为 Splunk/SIEM 输出",
+  "extensionPoints": [
+    {
+      "point": "compliance.audit",
+      "priority": 10,
+      "config": {
+        "id": "local-file-audit",
+        "name": "本地文件审计",
+        "kind": "file",
+        "sinks": ["audit.log"],
+        "priority": 10
+      }
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <!-- Knowledge Base Icon -->
+    <symbol id="icon-knowledge-base" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#667eea" opacity="0.1"/>
+      <path d="M20 16h24v32H20z" fill="none" stroke="#667eea" stroke-width="2.5"/>
+      <line x1="20" y1="44" x2="44" y2="44" stroke="#667eea" stroke-width="2.5"/>
+      <line x1="26" y1="24" x2="38" y2="24" stroke="#667eea" stroke-width="2"/>
+      <line x1="26" y1="30" x2="38" y2="30" stroke="#667eea" stroke-width="2"/>
+      <line x1="26" y1="36" x2="34" y2="36" stroke="#667eea" stroke-width="2"/>
+      <circle cx="38" cy="38" r="6" fill="#1890ff"/>
+      <path d="M36 38l2 2 4-4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Enterprise/Organization Icon -->
+    <symbol id="icon-enterprise" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#1890ff" opacity="0.1"/>
+      <rect x="18" y="20" width="28" height="24" fill="none" stroke="#1890ff" stroke-width="2.5" rx="2"/>
+      <rect x="26" y="36" width="12" height="8" fill="#1890ff"/>
+      <rect x="22" y="26" width="4" height="4" fill="#1890ff"/>
+      <rect x="30" y="26" width="4" height="4" fill="#1890ff"/>
+      <rect x="38" y="26" width="4" height="4" fill="#1890ff"/>
+      <rect x="22" y="32" width="4" height="4" fill="#1890ff" opacity="0.5"/>
+      <rect x="38" y="32" width="4" height="4" fill="#1890ff" opacity="0.5"/>
+    </symbol>
+
+    <!-- Project Management Icon -->
+    <symbol id="icon-project-management" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#52c41a" opacity="0.1"/>
+      <rect x="16" y="20" width="32" height="4" fill="#52c41a" rx="2"/>
+      <rect x="16" y="28" width="24" height="4" fill="#52c41a" rx="2" opacity="0.7"/>
+      <rect x="16" y="36" width="28" height="4" fill="#52c41a" rx="2" opacity="0.5"/>
+      <circle cx="42" cy="30" r="3" fill="#52c41a"/>
+      <circle cx="46" cy="38" r="3" fill="#52c41a"/>
+      <circle cx="20" cy="44" r="3" fill="#52c41a" opacity="0.7"/>
+      <path d="M36 44l4 4 8-8" stroke="#52c41a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Social/Communication Icon -->
+    <symbol id="icon-social" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#722ed1" opacity="0.1"/>
+      <circle cx="24" cy="26" r="6" fill="none" stroke="#722ed1" stroke-width="2.5"/>
+      <path d="M14 44c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="none" stroke="#722ed1" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="42" cy="28" r="5" fill="none" stroke="#722ed1" stroke-width="2"/>
+      <path d="M36 44c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="none" stroke="#722ed1" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Trading/Commerce Icon -->
+    <symbol id="icon-trading" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#fa8c16" opacity="0.1"/>
+      <circle cx="32" cy="28" r="10" fill="none" stroke="#fa8c16" stroke-width="2.5"/>
+      <path d="M32 38v-4M28 28h8M32 22v2" stroke="#fa8c16" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M18 42h28l-4 6H22z" fill="#fa8c16" opacity="0.5"/>
+    </symbol>
+
+    <!-- Security/Lock Icon -->
+    <symbol id="icon-security" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#f5222d" opacity="0.1"/>
+      <path d="M32 18l-10 5v9c0 6.2 4.3 12 10 13.4 5.7-1.4 10-7.2 10-13.4v-9z" fill="none" stroke="#f5222d" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="4" fill="#f5222d"/>
+      <path d="M32 36v6" stroke="#f5222d" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- AI/Brain Icon -->
+    <symbol id="icon-ai-brain" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#13c2c2" opacity="0.1"/>
+      <path d="M24 22c-4 0-6 3-6 6s2 6 6 6M40 22c4 0 6 3 6 6s-2 6-6 6" fill="none" stroke="#13c2c2" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M24 28c0 4 2 8 8 8s8-4 8-8M32 36v8M28 44h8" stroke="#13c2c2" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="26" cy="26" r="2" fill="#13c2c2"/>
+      <circle cx="38" cy="26" r="2" fill="#13c2c2"/>
+    </symbol>
+
+    <!-- Cloud Sync Icon -->
+    <symbol id="icon-cloud-sync" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#2f54eb" opacity="0.1"/>
+      <path d="M20 34c0-2 1-4 3-5 0-5 4-9 9-9s9 4 9 9c2 1 3 3 3 5 0 3-3 6-6 6H26c-3 0-6-3-6-6z" fill="none" stroke="#2f54eb" stroke-width="2.5"/>
+      <path d="M28 36l4-4 4 4M32 32v10" stroke="#2f54eb" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Collaboration Icon -->
+    <symbol id="icon-collaboration" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#eb2f96" opacity="0.1"/>
+      <circle cx="22" cy="24" r="5" fill="none" stroke="#eb2f96" stroke-width="2"/>
+      <circle cx="42" cy="24" r="5" fill="none" stroke="#eb2f96" stroke-width="2"/>
+      <circle cx="32" cy="36" r="5" fill="none" stroke="#eb2f96" stroke-width="2"/>
+      <path d="M26 28l10 6M38 28l-10 6" stroke="#eb2f96" stroke-width="2"/>
+      <path d="M18 42c0-3 2.7-5.5 6-5.5M46 42c0-3-2.7-5.5-6-5.5M32 41v6" stroke="#eb2f96" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Decentralized Network Icon -->
+    <symbol id="icon-p2p-network" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#faad14" opacity="0.1"/>
+      <circle cx="32" cy="20" r="4" fill="#faad14"/>
+      <circle cx="20" cy="32" r="4" fill="#faad14"/>
+      <circle cx="44" cy="32" r="4" fill="#faad14"/>
+      <circle cx="26" cy="44" r="4" fill="#faad14"/>
+      <circle cx="38" cy="44" r="4" fill="#faad14"/>
+      <line x1="32" y1="24" x2="24" y2="28" stroke="#faad14" stroke-width="2"/>
+      <line x1="32" y1="24" x2="40" y2="28" stroke="#faad14" stroke-width="2"/>
+      <line x1="24" y1="32" x2="26" y2="40" stroke="#faad14" stroke-width="2"/>
+      <line x1="40" y1="32" x2="38" y2="40" stroke="#faad14" stroke-width="2"/>
+      <line x1="26" y1="44" x2="38" y2="44" stroke="#faad14" stroke-width="2"/>
+    </symbol>
+
+    <!-- Data Ownership Icon -->
+    <symbol id="icon-data-ownership" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#52c41a" opacity="0.1"/>
+      <circle cx="32" cy="26" r="6" fill="none" stroke="#52c41a" stroke-width="2.5"/>
+      <path d="M32 32c-6 0-11 4-11 8v4h22v-4c0-4-5-8-11-8z" fill="none" stroke="#52c41a" stroke-width="2.5"/>
+      <path d="M32 18l-2 2 2 2 2-2z" fill="#52c41a"/>
+    </symbol>
+
+    <!-- Zero Cost Icon -->
+    <symbol id="icon-zero-cost" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="#1890ff" opacity="0.1"/>
+      <circle cx="32" cy="32" r="12" fill="none" stroke="#1890ff" stroke-width="2.5"/>
+      <text x="32" y="38" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#1890ff">0¥</text>
+      <path d="M28 28h8M28 36h8" stroke="#52c41a" stroke-width="2"/>
+    </symbol>
+  </defs>
+</svg>

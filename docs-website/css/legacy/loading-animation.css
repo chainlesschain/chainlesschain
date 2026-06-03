@@ -1,0 +1,444 @@
+/* ================================================
+   ChainlessChain Logo Loading Animation
+   精美的页面加载动画效果
+   ================================================ */
+
+/* 加载容器 - 全屏覆盖 */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 活泼渐变背景 - 梦幻蓝紫 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientMove 8s ease infinite, autoFadeOut 1.5s ease 0.5s forwards;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+    pointer-events: none; /* 防止阻止用户交互 */
+}
+
+#loading-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* 自动淡出动画 - 备用方案 */
+@keyframes autoFadeOut {
+    0% {
+        opacity: 1;
+        visibility: visible;
+    }
+    99% {
+        opacity: 0;
+        visibility: visible;
+    }
+    100% {
+        opacity: 0;
+        visibility: hidden;
+        display: none;
+    }
+}
+
+/* 背景渐变流动 */
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+#loading-overlay:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 50%, #e082eb 100%);
+}
+
+.loading-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 核心 Logo 层 */
+.logo-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    animation: logoFloat 3s ease-in-out infinite;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+
+.logo-wrapper:hover {
+    animation-play-state: paused;
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.03);
+    }
+}
+
+/* 立体光影层 */
+.logo-shadow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 182, 193, 0.4) 30%,
+        rgba(186, 85, 211, 0.2) 60%,
+        transparent 70%);
+    filter: blur(1px);
+    animation: shadowPulse 3s ease-in-out infinite;
+    transition: filter 0.3s ease;
+}
+
+.logo-wrapper:hover .logo-shadow {
+    animation-play-state: paused;
+    filter: blur(0.5px);
+    background: radial-gradient(circle at 30% 30%,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 182, 193, 0.5) 30%,
+        rgba(186, 85, 211, 0.3) 60%,
+        transparent 70%);
+}
+
+@keyframes shadowPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Logo 图片 */
+.logo-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow:
+        inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.3),
+        0 8px 24px rgba(118, 75, 162, 0.25),
+        0 0 20px rgba(240, 147, 251, 0.2);
+    animation: logoRotate 12s linear infinite;
+    transition: box-shadow 0.3s ease;
+    object-fit: cover;
+}
+
+.logo-wrapper:hover .logo-image {
+    animation-play-state: paused;
+    box-shadow:
+        inset 4px 4px 12px rgba(255, 255, 255, 0.9),
+        inset -3px -3px 10px rgba(0, 0, 0, 0.15),
+        0 6px 20px rgba(102, 126, 234, 0.4),
+        0 12px 40px rgba(118, 75, 162, 0.35),
+        0 0 30px rgba(240, 147, 251, 0.3),
+        0 0 60px rgba(255, 182, 193, 0.15);
+}
+
+@keyframes logoRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 金属光泽扫过 */
+.shine {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 40%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0.5) 60%,
+        transparent 100%
+    );
+    z-index: 3;
+    opacity: 0;
+    animation: shineMove 4s ease-in-out infinite;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.logo-wrapper:hover .shine {
+    animation: shineMoveHover 2s ease-in-out infinite;
+    opacity: 1;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.7) 40%,
+        rgba(255, 255, 255, 0.95) 50%,
+        rgba(255, 255, 255, 0.7) 60%,
+        transparent 100%
+    );
+}
+
+@keyframes shineMove {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(-120px);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(120px);
+    }
+}
+
+@keyframes shineMoveHover {
+    0% {
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(-120px);
+    }
+    50% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(120px);
+    }
+}
+
+/* 光环层 */
+.ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid transparent;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.ring-1 {
+    width: 160px;
+    height: 160px;
+    border-top-color: #fff;
+    border-right-color: rgba(255, 255, 255, 0.5);
+    animation: ringRotate 2s linear infinite;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.ring-2 {
+    width: 180px;
+    height: 180px;
+    border-bottom-color: rgba(255, 255, 255, 0.8);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    animation: ringRotate 2.5s linear infinite reverse;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+}
+
+.logo-wrapper:hover .ring {
+    animation-duration: 1s;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+.logo-wrapper:hover .ring-1 {
+    border-top-color: #fff;
+    border-right-color: rgba(255, 255, 255, 0.7);
+}
+
+.logo-wrapper:hover .ring-2 {
+    border-bottom-color: rgba(255, 255, 255, 0.95);
+    border-left-color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes ringRotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 外部光晕 */
+.outer-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.15) 0%,
+        transparent 70%);
+    animation: glowBreathe 4s ease-in-out infinite;
+    z-index: 0;
+    transition: all 0.3s ease;
+}
+
+.logo-wrapper:hover .outer-glow {
+    animation: glowBreatheHover 2s ease-in-out infinite;
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.25) 0%,
+        transparent 75%);
+    width: 220px;
+    height: 220px;
+}
+
+@keyframes glowBreathe {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes glowBreatheHover {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 1;
+    }
+}
+
+/* 3点跳动节奏 */
+.loading-dots {
+    margin-top: 60px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.logo-wrapper:hover ~ .loading-dots .dot {
+    width: 11px;
+    height: 11px;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+    border-radius: 50%;
+    box-shadow:
+        0 2px 8px rgba(255, 255, 255, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    animation: dotBounce 1.4s ease-in-out infinite;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.dot:hover {
+    animation-play-state: paused;
+    transform: scale(1.3);
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.9) 100%);
+    box-shadow:
+        0 4px 15px rgba(255, 255, 255, 0.6),
+        inset 0 1px 3px rgba(255, 255, 255, 0.7);
+}
+
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+    0%, 80%, 100% {
+        transform: scale(0.5);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 品牌名称 */
+.brand-name {
+    margin-top: 25px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 4px;
+    font-weight: 500;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 2s ease-in-out;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.logo-wrapper:hover ~ .loading-dots ~ .brand-name {
+    color: #fff;
+    letter-spacing: 5px;
+    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .logo-wrapper {
+        width: 110px;
+        height: 110px;
+    }
+
+    .logo-wrapper:hover {
+        transform: scale(1.1);
+    }
+
+    .logo-shadow {
+        width: 110px;
+        height: 110px;
+    }
+
+    .logo-image {
+        width: 110px;
+        height: 110px;
+    }
+
+    .shine {
+        width: 110px;
+        height: 110px;
+    }
+
+    .ring-1 {
+        width: 125px;
+        height: 125px;
+    }
+
+    .ring-2 {
+        width: 140px;
+        height: 140px;
+    }
+
+    .outer-glow {
+        width: 160px;
+        height: 160px;
+    }
+
+    .logo-wrapper:hover .outer-glow {
+        width: 180px;
+        height: 180px;
+    }
+
+    .brand-name {
+        font-size: 10px;
+        letter-spacing: 3px;
+    }
+}

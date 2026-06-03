@@ -1,0 +1,71 @@
+{
+  "id": "com.chainlesschain.calculator",
+  "name": "Calculator Skill Plugin",
+  "displayName": "计算器技能插件",
+  "version": "1.0.0",
+  "description": "提供基础计算器技能的示例插件",
+  "author": "ChainlessChain Team",
+  "main": "index.js",
+  "permissions": [],
+  "extensionPoints": [
+    {
+      "point": "ai.function-tool",
+      "config": {
+        "tools": [
+          {
+            "name": "calculator_add",
+            "description": "计算两个数字的和",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "number",
+                  "description": "第一个数字"
+                },
+                "b": {
+                  "type": "number",
+                  "description": "第二个数字"
+                }
+              },
+              "required": ["a", "b"]
+            },
+            "handler": "handleAdd",
+            "category": "math",
+            "riskLevel": 1
+          },
+          {
+            "name": "calculator_multiply",
+            "description": "计算两个数字的乘积",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "number",
+                  "description": "第一个数字"
+                },
+                "b": {
+                  "type": "number",
+                  "description": "第二个数字"
+                }
+              },
+              "required": ["a", "b"]
+            },
+            "handler": "handleMultiply",
+            "category": "math",
+            "riskLevel": 1
+          }
+        ],
+        "skills": [
+          {
+            "id": "basic_calculator",
+            "name": "基础计算器",
+            "description": "提供基础的数学计算功能",
+            "category": "math",
+            "tools": ["calculator_add", "calculator_multiply"],
+            "icon": "calculator"
+          }
+        ]
+      }
+    }
+  ]
+}

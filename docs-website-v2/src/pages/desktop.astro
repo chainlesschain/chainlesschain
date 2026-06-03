@@ -1,0 +1,188 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import rootPkg from '../../../package.json';
+import releaseSizes from '../data/release-sizes.json';
+const PRODUCT_VERSION = rootPkg.productVersion;
+const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
+---
+<BaseLayout
+  title="桌面版 — Electron + Vue3 打造的本地 AI 工作台 | ChainlessChain"
+  description={`ChainlessChain 桌面版 ${PRODUCT_VERSION}：Electron 39 + Vue 3.4 + TypeScript，Web Shell（Phase 1.6 hard-flip 默认，opt-out 回 V5/V6 桌面壳）+ 141 内置 Skills、RAG 知识库、Plan Mode、Instinct 学习、113 Pinia stores。Windows / macOS / Linux 全平台。`}
+  canonical="https://www.chainlesschain.com/desktop"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">DESKTOP · {PRODUCT_VERSION}</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          Electron + Vue3<br/>打造的<span class="italic text-ember">本地 AI 工作台</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          不是浏览器套壳，不是 web 包装。原生文件系统访问、硬件 U-Key 直连、本地 Ollama 深度集成 —
+          GUI 该有的体验，Electron 该给的性能。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="#download" class="btn-ember">下载桌面版 ↓</a>
+          <a href="/cli" class="btn-ghost">偏好命令行？</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero screenshot -->
+  <section class="pb-16">
+    <div class="container-wide">
+      <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/dashboard.png"
+          alt="ChainlessChain 桌面版 · 主面板"
+          width="1400"
+          height="900"
+          loading="eager"
+          class="block w-full h-auto"
+        />
+      </figure>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">不是更多功能，是更合适的功能。</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          ['141', '内置 Skills', '代码审查、文档生成、医疗分诊、法律起草 — 装完即用。'],
+          ['RAG', '语义检索', 'BM25 + TF-IDF + Qdrant 向量混合检索，精度与召回双优。'],
+          ['Plan', 'Plan Mode', '先生成计划、经你审批、再动文件。高风险操作不打扰。'],
+          ['Instinct', 'Instinct 学习', '从你的修改、提问、选择中自动学会偏好，越用越贴合。'],
+          ['51', 'Pinia Stores', '精细拆分的状态层，每一块数据都有它的归属。'],
+          ['MCP', '外部工具生态', '文件系统、Git、SQLite 等主流 MCP 服务器开箱可用。'],
+        ].map(([tag, title, desc]) => (
+          <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-3">{tag}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Web Shell experimental — 2026-04-30 -->
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">实验 · Phase 1.4 prep · 2026-04-30</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Web Shell 模式（Phase 1.6 已默认）</h2>
+        <p class="text-muted leading-relaxed">
+          桌面端方向：<strong class="text-ink">Web 加强版</strong>。Electron 同进程嵌入 <code class="font-mono bg-cream px-1 rounded">packages/web-panel</code> SPA，桌面专属能力（U-Key 硬件签名 / 本地文件 / MCP 子进程 / Ollama 本地推理）通过新增 WS topic + 极薄 preload 注入；web 版做不到的，桌面也能用。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Phase 0 → 1.6 全量落地</strong>：协议合并 + skill.list / fs.* / mcp.* / llm.chat / ukey.sign / window.open / shell.switch 桌面专属 topic + 流式取消 + 多窗口架构 + 双向顶栏切换按钮</li>
+          <li>· <strong class="text-ink">300+ 测试覆盖</strong>：web-shell 单元 169 + config 26 + system 5 + scripts 14 + integration 14 + Playwright e2e 4</li>
+          <li>· <strong class="text-ink">激活（默认即 web-shell）</strong>：右上角 🖥️ 切回桌面壳 / 🌐 切到 web-shell 一键切换；或 SystemSettings → 通用 → "使用 Web Shell（默认）" toggle；旧 V5/V6 桌面壳保留为 opt-out</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%A1%8C%E9%9D%A2Web%E5%A3%B3_%E6%9E%B6%E6%9E%84%E4%B8%8E%E8%90%BD%E5%9C%B0_%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >设计文档：桌面 Web 壳架构与落地 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Multi-target sync — 2026-05-06 (Phase 3b/3c) -->
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3b/3c · 2026-05-06</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">多目标同步</h2>
+        <p class="text-muted leading-relaxed">
+          一个 SyncProvider 抽象，5 种真实通道 + 2 种占位预留，桌面 V5/V6 跟 web-shell 两条壳都能跑。每个 provider 独立启用、独立"立即同步"按钮、共用一个全局自动同步周期；本地凭证加密存。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">已接通</strong>：Backend HTTP / Git 仓库（markdown 导出 + push）/ P2P 设备直连 / WebDAV 网盘（Nextcloud / 坚果云 / 群晖）/ Mobile 占位</li>
+          <li>· <strong class="text-ink">入口</strong>：托盘菜单 → 同步 → 同步设置… 或直接打开 <code class="font-mono bg-cream px-1 rounded">/settings/sync</code> · web-shell 下走 <code class="font-mono bg-cream px-1 rounded">sync.* WS topic</code> 直连主进程，避开 CLI 子进程抢 SQLite 锁的老 bug</li>
+          <li>· <strong class="text-ink">测试</strong>：sync handler 16 单测 + web-panel SyncSettings 4 envelope 回归 + 集成 Phase 3c WebDAV 端到端</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >设计文档：数据同步方案 §4.6 多目标同步抽象 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot grid -->
+  <section class="py-16 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <h2 class="text-3xl md:text-4xl mb-10">功能预览</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        {[
+          ['chat', 'AI 对话 · 流式响应'],
+          ['cowork', 'Web Cowork · 任务自动化'],
+          ['skills', 'Skills 系统 · 141 项内置技能'],
+        ].map(([file, caption]) => (
+          <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+            <img
+              src={`/screenshots/${file}.png`}
+              alt={caption}
+              width="1400"
+              height="900"
+              loading="lazy"
+              class="block w-full h-auto"
+            />
+            <figcaption class="px-4 py-3 text-xs text-muted border-t border-line font-mono">{caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Download -->
+  <section id="download" class="py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">下载 · {PRODUCT_VERSION}</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">三大平台，同一份体验。</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        {(() => {
+          const w = releaseSizes.sizes['win-setup'];
+          const mi = releaseSizes.sizes['mac-intel'];
+          const ma = releaseSizes.sizes['mac-arm64'];
+          const lx = releaseSizes.sizes['linux-appimage'];
+          const winLabel = w ? `.exe · 约 ${w.label}` : '.exe · Setup 安装包';
+          const macLabel = (mi && ma)
+            ? `.dmg · Intel ${mi.label} / arm64 ${ma.label}`
+            : '.dmg · Intel / Apple Silicon';
+          const linuxLabel = lx ? `.AppImage · 约 ${lx.label} · x86_64` : '.AppImage · x86_64';
+          return [
+            ['Windows', 'win', winLabel, '支持 Win 10+ · U-Key 原生驱动'],
+            ['macOS', 'mac', macLabel, 'macOS 12+ · 模拟模式'],
+            ['Linux', 'linux', linuxLabel, 'Ubuntu 20.04+ · 模拟模式'],
+          ];
+        })().map(([name, key, meta, note]) => (
+          <a href={RELEASE_TAG_URL} target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
+            <div class="font-mono text-xs text-muted mb-3">{key.toUpperCase()}</div>
+            <h3 class="font-display text-3xl mb-2 group-hover:text-ember transition-colors">{name}</h3>
+            <div class="text-sm text-ink mb-3">{meta}</div>
+            <div class="text-xs text-muted">{note}</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载安装包 ↓</div>
+          </a>
+        ))}
+      </div>
+      <p class="mt-8 text-sm text-muted text-center">
+        开发者偏好命令行？试试 <code class="font-mono bg-cream px-2 py-0.5 rounded">npm i -g chainlesschain</code>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

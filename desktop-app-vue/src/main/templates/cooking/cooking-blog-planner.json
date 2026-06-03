@@ -1,0 +1,169 @@
+{
+  "id": "tpl_cooking_blog_001",
+  "name": "cooking_blog_planning_template",
+  "display_name": "美食博客规划",
+  "description": "美食博客完整运营方案，包含内容策划、SEO优化、读者增长和商业变现",
+  "icon": "📝",
+  "cover_image": "",
+  "category": "cooking",
+  "subcategory": "blogging",
+  "tags": ["美食博客", "内容创作", "博客运营", "美食写作", "博客变现"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建美食博客规划方案：\n\n**博客信息：**\n- 博客名称：{{blogName}}\n- 内容定位：{{blogNiche}}\n- 目标受众：{{targetAudience}}\n- 更新频率：{{postingFrequency}}\n\n# 美食博客完整运营方案\n\n## 博客定位与规划\n\n**博客基本信息：**\n- 博客名称：{{blogName}}\n- 英文域名：{{domainName}}\n- Slogan：{{blogSlogan}}\n- 创立时间：{{launchDate}}\n\n**内容定位：**{{blogNiche}}\n\n**细分领域（Niche）选择：**\n{{nicheStrategy}}\n\n**目标受众画像：**\n- 年龄层：{{audienceAge}}\n- 性别比例：{{audienceGender}}\n- 地域分布：{{audienceLocation}}\n- 烹饪水平：{{cookingLevel}}\n- 生活方式：{{lifestyle}}\n- 痛点需求：{{audiencePainPoints}}\n- 消费能力：{{spendingPower}}\n\n**博客使命：**{{blogMission}}\n\n**独特价值主张（UVP）：**\n我的博客与其他美食博客的不同之处：\n1. {{uvp1}}\n2. {{uvp2}}\n3. {{uvp3}}\n\n**竞品分析：**\n\n**竞品1：**{{competitor1}}\n- 优势：{{comp1Strengths}}\n- 不足：{{comp1Weaknesses}}\n- 月访问量：{{comp1Traffic}}\n\n**竞品2：**{{competitor2}}\n- 优势：{{comp2Strengths}}\n- 不足：{{comp2Weaknesses}}\n\n**差异化策略：**{{differentiationStrategy}}\n\n## 技术平台搭建\n\n### 建站方案选择\n\n**推荐方案：**{{platformChoice}}\n\n**方案A：WordPress（推荐）**\n- 优势：{{wordpressAdvantages}}\n- 劣势：{{wordpressDisadvantages}}\n- 成本：{{wordpressCost}}元/年\n- 适合人群：{{wordpressSuitable}}\n\n**方案B：Squarespace/Wix**\n- 优势：{{squarespaceAdvantages}}\n- 成本：{{squarespaceCost}}元/年\n- 适合人群：{{squarespaceSuitable}}\n\n**方案C：微信公众号/小程序**\n- 优势：{{wechatAdvantages}}\n- 局限：{{wechatLimitations}}\n\n**方案D：自建技术栈**\n- 技术选型：{{customTech}}\n- 适合：{{customSuitable}}\n\n### WordPress详细配置\n\n**主机选择：**\n- 推荐主机商：{{hostingProvider}}\n- 配置方案：{{hostingPlan}}\n- 月费用：{{hostingCost}}元\n\n**域名注册：**\n- 域名：{{domainName}}\n- 注册商：{{domainRegistrar}}\n- 费用：{{domainCost}}元/年\n\n**主题选择：**\n- 推荐主题：{{wordpressTheme}}\n- 价格：{{themeCost}}元\n- 特点：{{themeFeatures}}\n- 备选主题：{{alternativeThemes}}\n\n**必装插件：**\n1. {{plugin1}} - {{plugin1Purpose}}\n2. {{plugin2}} - {{plugin2Purpose}}\n3. {{plugin3}} - {{plugin3Purpose}}\n4. {{plugin4}} - {{plugin4Purpose}}\n5. {{plugin5}} - {{plugin5Purpose}}\n6. {{plugin6}} - {{plugin6Purpose}}\n7. {{plugin7}} - {{plugin7Purpose}}\n8. {{plugin8}} - {{plugin8Purpose}}\n\n**SEO插件配置：**\n- 插件选择：{{seoPlugin}}（Yoast SEO/Rank Math）\n- 基础设置：{{seoPluginSetup}}\n\n**菜谱插件：**\n- WP Recipe Maker或类似\n- 结构化数据：Schema.org标记\n- Google富媒体展示\n\n### 网站结构设计\n\n**导航菜单：**\n- 首页\n- 菜谱分类：{{recipeCategories}}\n- 关于我\n- 联系方式\n- {{additionalPages}}\n\n**页脚信息：**\n- 社交媒体链接\n- 订阅表单\n- 隐私政策\n- 免责声明\n\n**侧边栏元素：**\n- 搜索框\n- 热门菜谱\n- 分类导航\n- 订阅表单\n- 社交媒体\n- 广告位（后期）\n\n## 内容策略规划\n\n### 内容类型矩阵\n\n**核心内容（70%）：菜谱文章**\n\n**标准菜谱结构：**\n1. 吸睛标题：{{recipeTitleFormula}}\n2. 精美首图：{{featureImageRequirements}}\n3. 简介段落：{{recipeIntro}}\n4. 食材清单：{{ingredientsList}}\n5. 详细步骤：{{stepByStep}}\n6. 配图说明：{{stepImages}}\n7. 小贴士：{{cookingTips}}\n8. 营养信息：{{nutritionInfo}}\n9. 常见问题FAQ：{{recipeFAQ}}\n\n**菜谱文章字数：**{{recipeWordCount}}字以上\n\n**配图数量：**至少{{recipeImageCount}}张高质量图片\n\n**支撑内容（20%）：**\n- 烹饪技巧教程：{{cookingTutorials}}\n- 食材选购指南：{{ingredientGuides}}\n- 厨具评测推荐：{{equipmentReviews}}\n- 烹饪科学知识：{{cookingScience}}\n- 餐厅探店：{{restaurantReviews}}\n\n**引流内容（10%）：**\n- 节日特辑：{{holidayContent}}\n- 热点话题：{{trendingTopics}}\n- 榜单文章：{{listPosts}}\n- 对比文章：{{comparisonPosts}}\n\n### 内容日历规划\n\n**更新频率：**{{postingFrequency}}\n\n**每月内容计划（{{monthlyPostCount}}篇）：**\n\n**第1周：**\n- 周一：{{week1Monday}}\n- 周三：{{week1Wednesday}}\n- 周五：{{week1Friday}}\n\n**第2周：**\n- 周一：{{week2Monday}}\n- 周三：{{week2Wednesday}}\n- 周五：{{week2Friday}}\n\n**第3周：**\n- 周一：{{week3Monday}}\n- 周三：{{week3Wednesday}}\n- 周五：{{week3Friday}}\n\n**第4周：**\n- 周一：{{week4Monday}}\n- 周三：{{week4Wednesday}}\n- 周五：{{week4Friday}}\n\n**季节性内容规划：**\n- 春季：{{springContent}}\n- 夏季：{{summerContent}}\n- 秋季：{{fallContent}}\n- 冬季：{{winterContent}}\n\n**节日特辑：**\n- 春节：{{springFestival}}\n- 情人节：{{valentinesDay}}\n- 端午节：{{dragonBoat}}\n- 中秋节：{{midAutumn}}\n- 圣诞节：{{christmas}}\n- 其他：{{otherHolidays}}\n\n### 关键词研究策略\n\n**主要关键词类型：**\n\n**配方关键词（Recipe Keywords）：**\n- 格式：[食材]+[烹饪方法]\n- 示例：{{recipeKeywordExamples}}\n- 工具：{{keywordTools}}\n\n**问题关键词（Question Keywords）：**\n- 格式：怎么做、如何制作、怎样\n- 示例：{{questionKeywordExamples}}\n\n**长尾关键词：**\n- 策略：{{longtailStrategy}}\n- 示例：{{longtailExamples}}\n\n**关键词研究工具：**\n1. {{keywordTool1}}\n2. {{keywordTool2}}\n3. {{keywordTool3}}\n4. Google Autocomplete\n5. 百度下拉框\n\n**竞争分析：**{{competitorKeywordAnalysis}}\n\n## SEO优化策略\n\n### 页面SEO（On-Page SEO）\n\n**标题优化：**\n- 格式：{{titleFormat}}\n- 长度：{{titleLength}}字符内\n- 包含关键词：在前60字符内\n- 示例：{{titleExample}}\n\n**元描述（Meta Description）：**\n- 长度：{{metaLength}}字符\n- 包含：{{metaElements}}\n- 示例：{{metaExample}}\n\n**URL结构：**\n- 格式：{{urlStructure}}\n- 示例：yoursite.com/recipe/{{urlSlugExample}}\n- 原则：简短、包含关键词、用连字符分隔\n\n**标题标签层级（H1-H6）：**\n{{headingStructure}}\n\n**图片优化：**\n- 文件名：{{imageFileName}}\n- Alt文本：{{altTextFormat}}\n- 压缩：{{imageCompression}}\n- 格式：{{imageFormat}}（WebP推荐）\n\n**内部链接：**\n- 每篇文章至少{{internalLinksCount}}个内部链接\n- 锚文本策略：{{anchorTextStrategy}}\n- 相关文章推荐\n\n**Schema标记（结构化数据）：**\n- Recipe Schema：必须！\n- 包含元素：{{schemaElements}}\n- 测试工具：Google Rich Results Test\n\n### 技术SEO（Technical SEO）\n\n**网站速度优化：**\n- 目标加载时间：<{{loadTimeTarget}}秒\n- CDN使用：{{cdnProvider}}\n- 缓存插件：{{cachePlugin}}\n- 图片懒加载：{{lazyLoading}}\n- 代码压缩：{{minification}}\n\n**移动端优化：**\n- 响应式设计：必须\n- 移动友好测试：Google Mobile-Friendly Test\n- 核心Web指标（Core Web Vitals）：{{webVitals}}\n\n**网站安全：**\n- SSL证书：{{sslCertificate}}（必须HTTPS）\n- 定期备份：{{backupStrategy}}\n\n**站点地图：**\n- XML Sitemap自动生成\n- 提交到Google Search Console\n- 提交到百度站长平台\n\n### 外链建设（Off-Page SEO）\n\n**获取外链策略：**\n1. {{backlinkStrategy1}}\n2. {{backlinkStrategy2}}\n3. {{backlinkStrategy3}}\n4. {{backlinkStrategy4}}\n\n**客座博客（Guest Posting）：**{{guestPostingPlan}}\n\n**社交媒体信号：**{{socialSignals}}\n\n## 流量增长策略\n\n### 搜索引擎流量（SEO）\n\n**目标：**\n- 3个月：{{seoTraffic3m}} PV/月\n- 6个月：{{seoTraffic6m}} PV/月\n- 12个月：{{seoTraffic12m}} PV/月\n\n**策略：**{{seoGrowthStrategy}}\n\n### 社交媒体流量\n\n**Pinterest（重要！）：**\n- 为什么重要：{{pinterestImportance}}\n- Pin图设计：{{pinDesign}}\n- 发布频率：{{pinFrequency}}\n- 群组板（Group Boards）：{{groupBoards}}\n- 目标粉丝：{{pinterestFollowers}}\n\n**Instagram：**\n- 内容策略：{{instagramStrategy}}\n- Reels视频：{{reelsStrategy}}\n- Stories互动：{{storiesStrategy}}\n- 目标粉丝：{{instagramFollowers}}\n\n**小红书：**\n- 内容定位：{{xiaohongshuPosition}}\n- 发布策略：{{xiaohongshuStrategy}}\n- 目标粉丝：{{xiaohongshuFollowers}}\n\n**抖音/快手：**\n- 短视频策略：{{douyinStrategy}}\n- 内容形式：{{douyinContent}}\n\n**微博：**\n- 使用场景：{{weiboUsage}}\n\n**Facebook群组/Reddit：**\n{{communityStrategy}}\n\n### 邮件列表（Email Marketing）\n\n**为什么重要：**{{emailImportance}}\n\n**订阅表单位置：**\n- 文章顶部\n- 文章结尾\n- 侧边栏\n- 弹窗（Exit Intent）\n\n**Lead Magnet（引流磁铁）：**\n- 免费电子书：{{ebookOffer}}\n- 菜谱合集PDF：{{recipeCollectionPDF}}\n- 每周菜单规划：{{weeklyMenuPlan}}\n\n**邮件服务商：**\n- 推荐：{{emailProvider}}（Mailchimp/ConvertKit）\n- 成本：{{emailCost}}\n\n**邮件发送频率：**{{emailFrequency}}\n\n**邮件内容：**\n- 欢迎邮件序列：{{welcomeSequence}}\n- 每周通讯：{{weeklyNewsletter}}\n- 新文章通知：{{newPostAlert}}\n\n### 合作与联盟\n\n**博主互推：**{{bloggerCollaboration}}\n\n**品牌合作：**{{brandPartnerships}}\n\n**媒体投稿：**{{mediaContribution}}\n\n## 内容创作工作流\n\n### 菜谱开发流程\n\n**1. 选题确定（第1天）：**\n- [ ] {{topicSelectionStep1}}\n- [ ] {{topicSelectionStep2}}\n- [ ] {{topicSelectionStep3}}\n\n**2. 菜谱测试（第2-3天）：**\n- [ ] {{recipeTesting1}}\n- [ ] {{recipeTesting2}}\n- [ ] {{recipeTesting3}}\n\n**3. 摄影拍摄（第4天）：**\n- [ ] {{photographyStep1}}\n- [ ] {{photographyStep2}}\n- [ ] {{photographyStep3}}\n\n**4. 后期处理（第5天）：**\n- [ ] {{postProcessing1}}\n- [ ] {{postProcessing2}}\n\n**5. 文章撰写（第6天）：**\n- [ ] {{writingStep1}}\n- [ ] {{writingStep2}}\n- [ ] {{writingStep3}}\n\n**6. SEO优化（第7天）：**\n- [ ] {{seoOptimization1}}\n- [ ] {{seoOptimization2}}\n- [ ] {{seoOptimization3}}\n\n**7. 发布推广（第8天）：**\n- [ ] {{publishingStep1}}\n- [ ] {{publishingStep2}}\n- [ ] {{publishingStep3}}\n\n### 写作技巧\n\n**吸引人的开头：**{{engagingIntro}}\n\n**讲故事（Storytelling）：**{{storytellingTips}}\n\n**个人风格与语气：**{{writingTone}}\n\n**可读性优化：**\n- 段落：{{paragraphLength}}\n- 句子：{{sentenceLength}}\n- 项目符号和列表\n- 小标题分割\n\n### 批量内容创作\n\n**批处理策略：**{{batchCreation}}\n\n**内容库建立：**{{contentLibrary}}\n\n**常青内容（Evergreen Content）：**{{evergreenStrategy}}\n\n## 数据分析与优化\n\n### 关键指标追踪\n\n**流量指标：**\n- 总访问量（Pageviews）：{{pageviews}}\n- 独立访客（Unique Visitors）：{{uniqueVisitors}}\n- 跳出率（Bounce Rate）：{{bounceRate}}%\n- 平均停留时间：{{avgTimeOnSite}}\n- 每次访问页数：{{pagesPerSession}}\n\n**搜索排名：**\n- 关键词排名追踪：{{rankTracking}}\n- Google Search Console数据\n- 点击率（CTR）：{{organicCTR}}%\n\n**用户互动：**\n- 评论数：{{commentsPerPost}}\n- 社交分享：{{socialShares}}\n- 邮件订阅转化率：{{emailConversion}}%\n\n**商业指标（变现后）：**\n- 广告收入：{{adRevenue}}\n- 联盟佣金：{{affiliateCommission}}\n- RPM（千次展示收入）：{{rpm}}\n\n### 分析工具\n\n**Google Analytics 4：**\n- 安装配置：{{ga4Setup}}\n- 关键报告：{{ga4Reports}}\n- 自定义事件：{{customEvents}}\n\n**Google Search Console：**\n- 搜索表现\n- 覆盖率问题\n- Core Web Vitals\n\n**热力图工具：**\n- Hotjar/Crazy Egg\n- 用户行为分析\n\n**社交媒体分析：**\n- Pinterest Analytics\n- Instagram Insights\n\n### A/B测试\n\n**测试项目：**\n- 文章标题：{{titleABTest}}\n- 首图设计：{{imageABTest}}\n- CTA按钮：{{ctaABTest}}\n- 邮件订阅表单：{{formABTest}}\n\n## 变现策略\n\n### 收入来源矩阵\n\n**阶段1（0-6个月）：专注增长，轻变现**\n- 目标流量：{{phase1Traffic}}\n- 主要收入：{{phase1Revenue}}\n\n**阶段2（6-12个月）：开始变现**\n- 目标流量：{{phase2Traffic}}\n- 收入来源：\n  1. {{phase2Revenue1}}\n  2. {{phase2Revenue2}}\n  3. {{phase2Revenue3}}\n\n**阶段3（12个月+）：多元化变现**\n- 目标流量：{{phase3Traffic}}\n- 月收入目标：{{phase3Income}}元\n\n### 具体变现方式\n\n**1. 展示广告（Display Ads）：**\n- 平台选择：{{adNetwork}}\n  - Google AdSense（入门）\n  - Mediavine（需50k月访问量）\n  - AdThrive（需100k月访问量）\n- 预期RPM：{{expectedRPM}}元\n- 计算：月收入 = (月PV / 1000) × RPM\n\n**2. 联盟营销（Affiliate Marketing）：**\n- 推荐平台：{{affiliatePrograms}}\n  - 亚马逊联盟\n  - 京东联盟\n  - 淘宝联盟\n  - 专业厨具联盟\n- 佣金比例：{{affiliateCommission}}%\n- 植入策略：{{affiliateIntegration}}\n- 预期收入：{{affiliateIncome}}元/月\n\n**3. 赞助内容（Sponsored Posts）：**\n- 定价策略：{{sponsoredPricing}}\n- 寻找赞助商：{{findSponsors}}\n- 合作条款：{{sponsorTerms}}\n\n**4. 数字产品销售：**\n- 电子书：{{ebookProduct}}\n- 在线课程：{{onlineCourse}}\n- 菜谱合集：{{recipeBundle}}\n- 定价：{{digitalProductPricing}}\n\n**5. 实体产品：**\n- 自有品牌厨具：{{brandedProducts}}\n- 食材/调料：{{ingredientProducts}}\n\n**6. 咨询与服务：**\n- 私人定制菜单：{{customMenus}}\n- 烹饪课程：{{cookingClasses}}\n- 企业合作：{{corporateServices}}\n\n**7. 会员订阅：**\n- 平台：Patreon/付费社群\n- 会员权益：{{membershipPerks}}\n- 定价：{{membershipPrice}}元/月\n\n### 变现优化技巧\n\n**广告位置优化：**{{adPlacementOptimization}}\n\n**转化率优化：**{{conversionOptimization}}\n\n**价值阶梯（Value Ladder）：**{{valueLadder}}\n\n## 法律与合规\n\n**版权保护：**\n- 图片版权：{{imageCopyright}}\n- 菜谱版权：{{recipeCopyright}}\n- 防盗用策略：{{antiTheft}}\n\n**隐私政策：**{{privacyPolicy}}\n\n**免责声明：**{{disclaimer}}\n\n**广告披露（FTC合规）：**{{ftcDisclosure}}\n\n**GDPR合规（欧盟用户）：**{{gdprCompliance}}\n\n## 时间管理\n\n### 每周工作流程\n\n**周一：**{{mondayTasks}}\n**周二：**{{tuesdayTasks}}\n**周三：**{{wednesdayTasks}}\n**周四：**{{thursdayTasks}}\n**周五：**{{fridayTasks}}\n**周末：**{{weekendTasks}}\n\n**每周工作时长：**{{weeklyHours}}小时\n\n### 外包与委托\n\n**可外包任务：**\n- 图片后期：{{photoEditingOutsource}}\n- 内容校对：{{proofreadingOutsource}}\n- 技术维护：{{techOutsource}}\n\n## 预算规划\n\n### 启动成本（第1年）\n\n**技术基础设施：**\n- 域名：{{domainCost}}元/年\n- 主机：{{hostingCost}}元/年\n- 主题：{{themeCost}}元\n- 插件：{{pluginsCost}}元\n- 小计：{{techCost}}元\n\n**内容创作：**\n- 摄影器材：{{photographyEquipment}}元\n- 道具背景：{{propsCost}}元\n- 食材成本：{{ingredientCost}}元/月\n- 小计：{{contentCost}}元\n\n**营销推广：**\n- 社交媒体广告：{{socialAdsCost}}元\n- SEO工具：{{seoToolsCost}}元/年\n- 邮件服务：{{emailServiceCost}}元/年\n- 小计：{{marketingCost}}元\n\n**教育学习：**\n- 课程培训：{{coursesCost}}元\n\n**总预算：**{{totalBudget}}元\n\n### 收入预测\n\n**第6个月：**{{month6Revenue}}元\n**第12个月：**{{month12Revenue}}元\n**第24个月：**{{month24Revenue}}元\n\n**盈亏平衡点：**{{breakEvenMonth}}个月\n\n## 成功案例学习\n\n**案例1：**{{successCase1}}\n**关键策略：**{{case1Strategy}}\n\n**案例2：**{{successCase2}}\n**关键策略：**{{case2Strategy}}\n\n**案例3：**{{successCase3}}\n**关键策略：**{{case3Strategy}}\n\n## 行动计划\n\n### 启动前（第1月）\n- [ ] {{launchPrep1}}\n- [ ] {{launchPrep2}}\n- [ ] {{launchPrep3}}\n- [ ] {{launchPrep4}}\n\n### 前3个月\n- [ ] {{first3Months1}}\n- [ ] {{first3Months2}}\n- [ ] {{first3Months3}}\n\n### 3-6个月\n- [ ] {{months36_1}}\n- [ ] {{months36_2}}\n\n### 6-12个月\n- [ ] {{months612_1}}\n- [ ] {{months612_2}}\n\n---\n\n**核心理念：**内容为王，SEO为后，用户至上，持续精进\n**成功公式：**优质内容 + SEO优化 + 持续更新 + 社交推广 + 耐心坚持 = 成功博客",
+  "variables_schema": [
+    {
+      "name": "blogName",
+      "label": "博客名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "blogNiche",
+      "label": "内容定位",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "综合美食",
+          "label": "综合美食博客"
+        },
+        {
+          "value": "烘焙甜点",
+          "label": "烘焙甜点专精"
+        },
+        {
+          "value": "健康饮食",
+          "label": "健康饮食"
+        },
+        {
+          "value": "快手菜",
+          "label": "快手家常菜"
+        },
+        {
+          "value": "素食",
+          "label": "素食/纯素"
+        },
+        {
+          "value": "特定菜系",
+          "label": "特定菜系（中/西/日）"
+        },
+        {
+          "value": "儿童食谱",
+          "label": "儿童营养食谱"
+        },
+        {
+          "value": "低卡轻食",
+          "label": "减脂低卡饮食"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标读者",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "postingFrequency",
+      "label": "更新频率",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "每日",
+          "label": "每天1篇"
+        },
+        {
+          "value": "3次/周",
+          "label": "每周3次"
+        },
+        {
+          "value": "2次/周",
+          "label": "每周2次"
+        },
+        {
+          "value": "1次/周",
+          "label": "每周1次"
+        }
+      ]
+    },
+    {
+      "name": "platformChoice",
+      "label": "建站平台",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "WordPress",
+          "label": "WordPress自建站"
+        },
+        {
+          "value": "Squarespace",
+          "label": "Squarespace托管"
+        },
+        {
+          "value": "微信生态",
+          "label": "微信公众号/小程序"
+        },
+        {
+          "value": "多平台",
+          "label": "多平台分发"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "美食博客规划-{{blogName}}",
+    "files": [
+      {
+        "path": "博客运营方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "内容日历.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "SEO关键词库.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "菜谱模板.md",
+        "type": "markdown"
+      },
+      {
+        "path": "预算规划表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "数据追踪看板.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "WordPress插件清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "内容创作",
+    "SEO基础",
+    "摄影拍摄",
+    "社交媒体运营",
+    "基础网站搭建"
+  ],
+  "required_tools": [
+    "WordPress/建站平台",
+    "SEO工具",
+    "邮件营销工具",
+    "图片编辑软件"
+  ],
+  "execution_engine": "llm"
+}

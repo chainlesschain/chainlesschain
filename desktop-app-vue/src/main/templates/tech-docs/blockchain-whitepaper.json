@@ -1,0 +1,63 @@
+{
+  "id": "tpl_techdocs_blockchain_whitepaper_001",
+  "name": "blockchain_whitepaper",
+  "display_name": "区块链白皮书",
+  "description": "专业的区块链项目白皮书模板，包含技术架构、代币经济、路线图等完整内容",
+  "icon": "⛓️",
+  "category": "tech-docs",
+  "subcategory": "blockchain",
+  "tags": ["区块链", "白皮书", "Web3", "加密货币", "技术文档"],
+  "project_type": "document",
+  "prompt_template": "# {{projectName}} 白皮书\n## {{projectName}} Whitepaper\n\n**版本**：{{version}}\n**发布日期**：{{publishDate}}\n**最后更新**：{{lastUpdate}}\n\n---\n\n## 免责声明\n\n{{disclaimer}}\n\n---\n\n## 摘要 | Abstract\n\n{{abstract}}\n\n**核心要点**：\n- {{keyPoint1}}\n- {{keyPoint2}}\n- {{keyPoint3}}\n\n---\n\n## 目录\n\n1. 项目愿景\n2. 问题与解决方案\n3. 技术架构\n4. 代币经济\n5. 生态系统\n6. 路线图\n7. 团队介绍\n8. 法律合规\n\n---\n\n## 一、项目愿景\n\n### 1.1 使命\n\n{{mission}}\n\n### 1.2 愿景\n\n{{vision}}\n\n### 1.3 核心价值观\n\n{{coreValues}}\n\n## 二、问题与解决方案\n\n### 2.1 当前问题\n\n#### 问题1：{{problem1Title}}\n{{problem1Description}}\n\n**痛点分析**：\n- {{painPoint1_1}}\n- {{painPoint1_2}}\n- {{painPoint1_3}}\n\n#### 问题2：{{problem2Title}}\n{{problem2Description}}\n\n#### 问题3：{{problem3Title}}\n{{problem3Description}}\n\n### 2.2 解决方案\n\n#### 核心创新\n{{coreInnovation}}\n\n#### 技术优势\n1. **{{advantage1}}**：{{advantage1Details}}\n2. **{{advantage2}}**：{{advantage2Details}}\n3. **{{advantage3}}**：{{advantage3Details}}\n\n### 2.3 市场机会\n\n**市场规模**：\n- TAM（总市场）：{{tam}}\n- SAM（可服务市场）：{{sam}}\n- SOM（可获得市场）：{{som}}\n\n**增长预测**：{{marketGrowth}}\n\n## 三、技术架构\n\n### 3.1 系统概述\n\n{{systemOverview}}\n\n### 3.2 区块链层\n\n**底层公链**：{{baseBlockchain}}\n\n**共识机制**：{{consensusMechanism}}\n\n**性能指标**：\n- TPS（每秒交易数）：{{tps}}\n- 区块时间：{{blockTime}}秒\n- 最终性：{{finality}}\n\n### 3.3 智能合约\n\n#### 核心合约\n\n**合约1：{{contract1Name}}**\n```solidity\n// 核心功能说明\n{{contract1Code}}\n```\n\n**功能**：\n{{contract1Functions}}\n\n**安全措施**：\n{{contract1Security}}\n\n#### 合约2：{{contract2Name}}\n{{contract2Details}}\n\n### 3.4 技术栈\n\n| 层级 | 技术选型 | 说明 |\n|------|---------|------|\n| 区块链层 | {{blockchainTech}} | {{blockchainReason}} |\n| 智能合约 | {{contractTech}} | {{contractReason}} |\n| 中间件 | {{middlewareTech}} | {{middlewareReason}} |\n| 前端 | {{frontendTech}} | {{frontendReason}} |\n| 存储 | {{storageTech}} | {{storageReason}} |\n| 预言机 | {{oracleTech}} | {{oracleReason}} |\n\n### 3.5 安全架构\n\n**安全措施**：\n1. {{securityMeasure1}}\n2. {{securityMeasure2}}\n3. {{securityMeasure3}}\n\n**审计**：\n{{auditInfo}}\n\n### 3.6 可扩展性方案\n\n{{scalabilitySolution}}\n\n## 四、代币经济（Tokenomics）\n\n### 4.1 代币信息\n\n**代币名称**：{{tokenName}}\n**代币符号**：{{tokenSymbol}}\n**代币标准**：{{tokenStandard}}\n**总供应量**：{{totalSupply}}\n**初始流通量**：{{initialCirculation}}\n\n### 4.2 代币分配\n\n| 分配对象 | 比例 | 数量 | 锁仓期 | 释放规则 |\n|---------|------|------|--------|----------|\n| 团队 | {{teamAllocation}}% | {{teamTokens}} | {{teamVesting}} | {{teamRelease}} |\n| 早期投资者 | {{investorAllocation}}% | {{investorTokens}} | {{investorVesting}} | {{investorRelease}} |\n| 生态建设 | {{ecosystemAllocation}}% | {{ecosystemTokens}} | {{ecosystemVesting}} | {{ecosystemRelease}} |\n| 公开销售 | {{publicAllocation}}% | {{publicTokens}} | - | {{publicRelease}} |\n| 基金会储备 | {{reserveAllocation}}% | {{reserveTokens}} | {{reserveVesting}} | {{reserveRelease}} |\n\n**分配图示**：\n{{allocationChart}}\n\n### 4.3 代币用途\n\n1. **{{utility1}}**：{{utility1Details}}\n2. **{{utility2}}**：{{utility2Details}}\n3. **{{utility3}}**：{{utility3Details}}\n4. **{{utility4}}**：{{utility4Details}}\n\n### 4.4 代币经济模型\n\n#### 价值捕获机制\n{{valueCaptureMe chanism}}\n\n#### 通缩/通胀机制\n{{inflationDeflation}}\n\n#### 激励机制\n{{incentiveMechanism}}\n\n### 4.5 治理模型\n\n{{governanceModel}}\n\n## 五、生态系统\n\n### 5.1 生态参与者\n\n#### 用户角色\n1. **{{role1}}**：{{role1Description}}\n2. **{{role2}}**：{{role2Description}}\n3. **{{role3}}**：{{role3Description}}\n\n### 5.2 生态应用场景\n\n#### 场景1：{{useCase1}}\n{{useCase1Details}}\n\n#### 场景2：{{useCase2}}\n{{useCase2Details}}\n\n#### 场景3：{{useCase3}}\n{{useCase3Details}}\n\n### 5.3 合作伙伴\n\n{{partnerships}}\n\n### 5.4 社区建设\n\n{{communityStrategy}}\n\n## 六、路线图\n\n### 6.1 已完成里程碑\n\n- **{{milestone1Date}}**：{{milestone1}}\n- **{{milestone2Date}}**：{{milestone2}}\n- **{{milestone3Date}}**：{{milestone3}}\n\n### 6.2 开发路线图\n\n#### 第一阶段：{{phase1Name}}（{{phase1Timeline}}）\n\n**目标**：{{phase1Goal}}\n\n**关键任务**：\n- {{phase1Task1}}\n- {{phase1Task2}}\n- {{phase1Task3}}\n\n#### 第二阶段：{{phase2Name}}（{{phase2Timeline}}）\n\n**目标**：{{phase2Goal}}\n\n**关键任务**：\n{{phase2Tasks}}\n\n#### 第三阶段：{{phase3Name}}（{{phase3Timeline}}）\n\n**目标**：{{phase3Goal}}\n\n**关键任务**：\n{{phase3Tasks}}\n\n#### 第四阶段：{{phase4Name}}（{{phase4Timeline}}）\n\n**目标**：{{phase4Goal}}\n\n**关键任务**：\n{{phase4Tasks}}\n\n### 6.3 长期愿景\n\n{{longTermVision}}\n\n## 七、团队介绍\n\n### 7.1 核心团队\n\n#### {{founderName}} - {{founderTitle}}\n{{founderBio}}\n\n#### {{ctoName}} - CTO\n{{ctoBio}}\n\n#### {{cboName}} - {{cboTitle}}\n{{cboBio}}\n\n### 7.2 顾问团队\n\n{{advisors}}\n\n### 7.3 投资机构\n\n{{investors}}\n\n## 八、法律合规\n\n### 8.1 法律架构\n\n{{legalStructure}}\n\n### 8.2 监管合规\n\n{{regulatoryCompliance}}\n\n### 8.3 风险提示\n\n{{riskDisclosure}}\n\n## 九、联系方式\n\n**官网**：{{website}}\n**电子邮件**：{{email}}\n**Twitter**：{{twitter}}\n**Telegram**：{{telegram}}\n**Discord**：{{discord}}\n**GitHub**：{{github}}\n\n---\n\n## 附录\n\n### 附录A：术语表\n\n{{glossary}}\n\n### 附录B：技术参考\n\n{{technicalReferences}}\n\n### 附录C：审计报告\n\n{{auditReports}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "tokenSymbol",
+      "label": "代币符号",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：BTC, ETH, DOT"
+    },
+    {
+      "name": "baseBlockchain",
+      "label": "底层公链",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "Ethereum", "label": "以太坊（Ethereum）" },
+        { "value": "Polkadot", "label": "波卡（Polkadot）" },
+        { "value": "Solana", "label": "Solana" },
+        { "value": "BNB Chain", "label": "币安智能链（BNB Chain）" },
+        { "value": "Cosmos", "label": "Cosmos" },
+        { "value": "自研公链", "label": "自研公链（Custom）" }
+      ]
+    },
+    {
+      "name": "totalSupply",
+      "label": "代币总供应量",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：1,000,000,000"
+    }
+  ],
+  "file_structure": {
+    "root": "{{projectName}}-Whitepaper",
+    "files": [
+      {"path": "{{projectName}}-Whitepaper-CN.pdf", "type": "document"},
+      {"path": "{{projectName}}-Whitepaper-EN.pdf", "type": "document"},
+      {"path": "Tokenomics-Chart.xlsx", "type": "spreadsheet"},
+      {"path": "Technical-Diagrams/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_blockchain_development", "skill_technical_writing", "skill_tokenomics_design"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator", "tool_chart_generator"],
+  "execution_engine": "document"
+}

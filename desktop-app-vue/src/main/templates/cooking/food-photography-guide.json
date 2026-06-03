@@ -1,0 +1,169 @@
+{
+  "id": "tpl_cooking_photography_001",
+  "name": "food_photography_guide",
+  "display_name": "美食摄影指南",
+  "description": "专业美食摄影完整指南，包含器材选择、布光技巧、构图方法和后期处理",
+  "icon": "📷",
+  "cover_image": "",
+  "category": "cooking",
+  "subcategory": "photography",
+  "tags": ["美食摄影", "食物拍摄", "摄影技巧", "图片处理", "视觉呈现"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建美食摄影指南：\n\n**摄影需求：**\n- 拍摄场景：{{shootingScenario}}\n- 菜品类型：{{foodType}}\n- 使用平台：{{targetPlatform}}\n- 预算范围：{{budget}}元\n\n# 美食摄影完整指南\n\n## 摄影目标设定\n\n**拍摄用途：**{{purpose}}\n\n**目标受众：**{{targetAudience}}\n\n**风格定位：**{{styleGoal}}\n\n**应用场景：**\n- {{useCase1}}\n- {{useCase2}}\n- {{useCase3}}\n\n## 器材准备方案\n\n### 相机设备选择\n\n**推荐方案（预算：{{budget}}元）**\n\n**入门级方案（3000-8000元）：**\n- 相机：{{entryCameraBody}}\n  - 类型：{{entryCameraType}}（微单/单反）\n  - 传感器：{{entrySensor}}\n  - 像素：{{entryMegapixels}}万\n  - 价格：{{entryCameraPrice}}元\n  - 优势：{{entryCameraAdvantages}}\n\n- 镜头：{{entryLens}}\n  - 焦距：{{entryFocalLength}}mm\n  - 光圈：{{entryAperture}}\n  - 价格：{{entryLensPrice}}元\n  - 适合拍摄：{{entryLensSuitable}}\n\n**进阶方案（8000-20000元）：**\n- 相机：{{midCameraBody}} - {{midCameraPrice}}元\n- 镜头1：{{midLens1}} - {{midLens1Price}}元\n- 镜头2：{{midLens2}} - {{midLens2Price}}元\n\n**专业方案（20000元+）：**\n- 机身：{{proCameraBody}} - {{proCameraPrice}}元\n- 主力镜头：{{proMainLens}} - {{proMainLensPrice}}元\n- 微距镜头：{{proMacroLens}} - {{proMacroPrice}}元\n\n**手机摄影方案：**\n如果使用手机拍摄：\n- 推荐机型：{{phoneModel}}\n- 必备配件：{{phoneAccessories}}\n- 优势：{{phoneAdvantages}}\n- 局限：{{phoneLimitations}}\n\n### 辅助器材清单\n\n**三脚架：**\n- 推荐型号：{{tripod}}\n- 价格：{{tripodPrice}}元\n- 重要性：{{tripodImportance}}\n- 使用场景：{{tripodUsage}}\n\n**灯光设备：**\n\n**自然光拍摄（推荐新手）：**\n- 反光板：{{reflector}} - {{reflectorPrice}}元\n  - 尺寸：{{reflectorSize}}\n  - 类型：{{reflectorType}}\n- 柔光板/扩散板：{{diffuser}} - {{diffuserPrice}}元\n\n**人造光拍摄（进阶）：**\n- 持续光源：{{continuousLight}} - {{continuousLightPrice}}元\n  - 色温：{{lightTemperature}}K（可调）\n  - 功率：{{lightPower}}W\n- 柔光箱：{{softbox}} - {{softboxPrice}}元\n- 补光灯：{{fillLight}} - {{fillLightPrice}}元\n\n**闪光灯方案（专业）：**\n- 外置闪光灯：{{flash}} - {{flashPrice}}元\n- 引闪器：{{trigger}} - {{triggerPrice}}元\n- 柔光罩：{{flashModifier}} - {{modifierPrice}}元\n\n**背景与道具：**\n- 背景板：{{backdrop}} - {{backdropPrice}}元\n  - 材质选择：{{backdropMaterials}}\n  - 颜色推荐：{{backdropColors}}\n- 桌布/桌面：{{tablecloth}} - {{tableclothPrice}}元\n- 餐具道具：{{props}} - {{propsPrice}}元\n- 装饰元素：{{decorations}} - {{decorationsPrice}}元\n\n**总器材投资：**{{totalEquipmentCost}}元\n\n## 摄影基础知识\n\n### 相机设置参数\n\n**拍摄模式：**\n- 推荐模式：{{shootingMode}}（光圈优先/手动模式）\n- 原因：{{modeReason}}\n\n**核心参数设置：**\n\n**1. 光圈（Aperture）：**\n- 推荐范围：{{apertureRange}}\n- 大光圈效果（f/1.8-f/2.8）：{{largeApertureEffect}}\n- 中等光圈（f/4-f/5.6）：{{midApertureEffect}}\n- 小光圈（f/8-f/11）：{{smallApertureEffect}}\n- 美食摄影最佳光圈：{{optimalAperture}}\n\n**2. 快门速度（Shutter Speed）：**\n- 静态食物：{{staticShutter}}\n- 倾倒液体动作：{{pouringShutter}}\n- 蒸汽烟雾：{{steamShutter}}\n- 防抖建议：{{stabilizationTip}}\n\n**3. ISO感光度：**\n- 自然光充足：{{isoNatural}}\n- 室内光线不足：{{isoIndoor}}\n- 夜间拍摄：{{isoNight}}\n- 降噪建议：{{isoNoiseTip}}\n\n**4. 白平衡（White Balance）：**\n- 自然光：{{wbDaylight}}K\n- 白炽灯：{{wbIncandescent}}K\n- 荧光灯：{{wbFluorescent}}K\n- 推荐设置：{{wbRecommendation}}\n- 后期调整建议：{{wbPostProcessing}}\n\n**5. 对焦设置：**\n- 对焦模式：{{focusMode}}（单次/手动）\n- 对焦点选择：{{focusPoint}}\n- 对焦技巧：{{focusTechnique}}\n\n**6. 文件格式：**\n- RAW vs JPEG：{{rawVsJpeg}}\n- 推荐：{{fileFormatRecommendation}}\n- 原因：{{formatReason}}\n\n### 光线理解与运用\n\n**自然光拍摄：**\n\n**最佳拍摄时间：**\n- 上午：{{morningLight}}\n- 中午：{{noonLight}}\n- 下午：{{afternoonLight}}\n- 黄金时段：{{goldenHour}}\n\n**窗户光运用：**\n- 最佳窗户朝向：{{windowDirection}}\n- 距离窗户：{{windowDistance}}\n- 光线柔化：{{lightDiffusion}}\n- 阴影控制：{{shadowControl}}\n\n**人造光拍摄：**\n\n**布光方案：**\n\n**单灯布光：**\n- 主光位置：{{mainLightPosition}}\n- 角度：{{mainLightAngle}}\n- 效果：{{singleLightEffect}}\n\n**双灯布光：**\n- 主光：{{twoLightMain}}\n- 补光：{{twoLightFill}}\n- 光比：{{lightRatio}}\n\n**三点布光（专业）：**\n- 主光（Key Light）：{{keyLight}}\n- 补光（Fill Light）：{{fillLightSetup}}\n- 轮廓光（Rim Light）：{{rimLight}}\n- 应用场景：{{threeLightUsage}}\n\n**光线方向效果：**\n- 顺光：{{frontLight}}\n- 侧光：{{sideLight}}\n- 逆光：{{backLight}}\n- 顶光：{{topLight}}\n- 推荐方向：{{recommendedLighting}}\n\n## 构图技巧大全\n\n### 经典构图法则\n\n**1. 三分法（Rule of Thirds）：**\n- 原理：{{ruleOfThirdsTheory}}\n- 应用：{{ruleOfThirdsApplication}}\n- 适合场景：{{ruleOfThirdsScenario}}\n- 示例：{{ruleOfThirdsExample}}\n\n**2. 对角线构图：**\n- 原理：{{diagonalTheory}}\n- 效果：{{diagonalEffect}}\n- 适合食物：{{diagonalSuitable}}\n\n**3. 中心构图：**\n- 适用场景：{{centerCompositionCase}}\n- 注意事项：{{centerCompositionTips}}\n\n**4. 对称构图：**\n- 应用：{{symmetryUsage}}\n- 效果：{{symmetryEffect}}\n\n**5. 框架构图：**\n- 技巧：{{framingTechnique}}\n- 道具运用：{{framingProps}}\n\n**6. 引导线构图：**\n- 创造方法：{{leadingLines}}\n- 效果：{{leadingLinesEffect}}\n\n### 拍摄角度选择\n\n**0度角（平视）：**\n- 适合：{{zeroAngleSuitable}}\n- 效果：{{zeroAngleEffect}}\n- 示例菜品：{{zeroAngleExample}}\n\n**45度角（最常用）：**\n- 为什么常用：{{fortyFiveAngleReason}}\n- 适合：{{fortyFiveAngleSuitable}}\n- 技巧：{{fortyFiveAngleTips}}\n\n**90度俯拍（鸟瞰）：**\n- 适合：{{overheadSuitable}}\n- 平铺摆拍（Flat Lay）：{{flatLayTechnique}}\n- Instagram风格：{{instagramStyle}}\n\n**特殊角度：**\n- 低角度仰拍：{{lowAngle}}\n- 特写微距：{{macroAngle}}\n\n### 景深控制\n\n**浅景深效果：**\n- 设置：{{shallowDOFSettings}}\n- 效果：{{shallowDOFEffect}}\n- 适合：{{shallowDOFSuitable}}\n\n**大景深效果：**\n- 设置：{{deepDOFSettings}}\n- 效果：{{deepDOFEffect}}\n- 适合：{{deepDOFSuitable}}\n\n**背景虚化技巧：**{{bokehTechnique}}\n\n## 食物造型技巧\n\n### 摆盘原则\n\n**色彩搭配：**\n- 主色调选择：{{colorScheme}}\n- 对比色运用：{{contrastColors}}\n- 三色原则：{{threeColorRule}}\n- 避免配色：{{colorDontDo}}\n\n**高度层次：**\n- 创造立体感：{{heightVariation}}\n- 堆叠技巧：{{stackingTips}}\n\n**留白艺术：**\n- 留白比例：{{negativeSpace}}\n- 呼吸感：{{breathingRoom}}\n\n**奇数原则：**\n- 3、5、7规则：{{oddNumberRule}}\n- 应用场景：{{oddNumberUsage}}\n\n### 食材处理技巧\n\n**保持新鲜度：**\n- 叶菜类：{{leafyGreens}}\n- 水果切面：{{fruitCuts}}\n- 肉类光泽：{{meatSheen}}\n- 饮品气泡：{{beverageBubbles}}\n\n**增强质感：**\n- 喷水珠：{{waterDrops}}\n- 涂油：{{oilGlaze}}\n- 糖粉装饰：{{powderSugar}}\n- 蒸汽效果：{{steamEffect}}\n\n**颜色增强：**\n- 烤制上色：{{browning}}\n- 调味料点缀：{{garnishColor}}\n\n### 道具与背景选择\n\n**餐具选择：**\n- 盘子：{{plates}}\n- 碗：{{bowls}}\n- 杯子：{{glassware}}\n- 刀叉：{{cutlery}}\n- 颜色建议：{{dishwareColors}}\n\n**桌面/背景：**\n- 木质背景：{{woodBackground}}\n- 大理石：{{marbleBackground}}\n- 布料：{{fabricBackground}}\n- 纯色背景：{{solidBackground}}\n- DIY背景：{{diyBackgrounds}}\n\n**装饰道具：**\n- 新鲜食材：{{freshIngredients}}\n- 香草香料：{{herbs}}\n- 餐巾：{{napkins}}\n- 鲜花：{{flowers}}\n- 原则：{{propsPrinciples}}\n\n## 不同食物拍摄技巧\n\n### {{foodType}}类拍摄要点\n\n**汤品/液体：**\n- 容器选择：{{soupContainer}}\n- 蒸汽拍摄：{{soupSteam}}\n- 配料点缀：{{soupGarnish}}\n- 倾倒动作：{{pouringTechnique}}\n\n**甜品/蛋糕：**\n- 切面展示：{{dessertCutAway}}\n- 质感表现：{{dessertTexture}}\n- 糖霜光泽：{{frostingGloss}}\n- 巧克力：{{chocolatePhotography}}\n\n**主菜/肉类：**\n- 烹饪程度：{{meatDoneness}}\n- 切片技巧：{{meatSlicing}}\n- 汁水表现：{{meatJuices}}\n- 搭配蔬菜：{{meatAccompaniments}}\n\n**面食/米饭：**\n- 光泽处理：{{noodlesSheen}}\n- 层次感：{{noodlesLayers}}\n- 配料摆放：{{noodlesToppings}}\n\n**饮品：**\n- 气泡拍摄：{{drinkBubbles}}\n- 冰块处理：{{iceCubes}}\n- 玻璃杯反光：{{glassReflections}}\n- 顶视图：{{drinkOverhead}}\n\n**烘焙面包：**\n- 内部组织：{{breadCrumb}}\n- 表面纹理：{{breadCrust}}\n- 撕开效果：{{breadTear}}\n\n**沙拉：**\n- 色彩平衡：{{saladColors}}\n- 新鲜度：{{saladFreshness}}\n- 酱汁：{{saladDressing}}\n\n**水果：**\n- 切面展示：{{fruitCross}}\n- 水珠效果：{{fruitDrops}}\n- 组合摆放：{{fruitArrangement}}\n\n## 实战拍摄流程\n\n### 拍摄前准备（30分钟）\n\n**1. 场景布置：**\n- [ ] {{setupStep1}}\n- [ ] {{setupStep2}}\n- [ ] {{setupStep3}}\n\n**2. 光线测试：**\n- [ ] {{lightTestStep1}}\n- [ ] {{lightTestStep2}}\n\n**3. 相机设置：**\n- [ ] {{cameraSetupStep1}}\n- [ ] {{cameraSetupStep2}}\n- [ ] {{cameraSetupStep3}}\n\n**4. 试拍调整：**\n- [ ] {{testShotStep1}}\n- [ ] {{testShotStep2}}\n\n### 正式拍摄流程\n\n**食物准备时机：**{{foodTimingTip}}\n\n**多角度拍摄清单：**\n- [ ] 45度主角度（至少5张）\n- [ ] 90度俯拍（3张）\n- [ ] 0度平视（2张）\n- [ ] 特写细节（3-5张）\n- [ ] 环境氛围（2张）\n- [ ] 创意角度（若干）\n\n**拍摄数量建议：**\n- 每个角度：{{shotsPerAngle}}张\n- 总拍摄量：{{totalShots}}张+\n- 原则：{{shootingVolumePrinciple}}\n\n**检查清单：**\n- [ ] 对焦准确\n- [ ] 曝光正确\n- [ ] 构图平衡\n- [ ] 无杂物穿帮\n- [ ] 白平衡准确\n\n## 后期处理技巧\n\n### 软件选择\n\n**专业软件：**\n- Adobe Lightroom：{{lightroomUse}}\n- Adobe Photoshop：{{photoshopUse}}\n- Capture One：{{captureOneUse}}\n\n**移动端APP：**\n- VSCO：{{vscoUse}}\n- Snapseed：{{snapseedUse}}\n- Lightroom Mobile：{{lrMobileUse}}\n- Foodie：{{foodieUse}}\n\n### 基础调整步骤\n\n**1. 裁剪构图（Crop）：**\n- 比例选择：{{cropRatio}}\n- 二次构图：{{recropTips}}\n- 水平校正：{{straighten}}\n\n**2. 曝光调整：**\n- 整体曝光：{{exposureAdjustment}}\n- 高光压暗：{{highlightRecovery}}\n- 阴影提亮：{{shadowLift}}\n- 白色/黑色色阶：{{whitesBlacks}}\n\n**3. 色彩调整：**\n- 色温：{{temperatureAdjustment}}\n- 色调：{{tintAdjustment}}\n- 饱和度：{{saturationLevel}}\n- 自然饱和度：{{vibranceLevel}}\n\n**4. 细节增强：**\n- 清晰度：{{clarityLevel}}\n- 锐化：{{sharpenSettings}}\n- 降噪：{{noiseReduction}}\n\n**5. HSL调整（高级）：**\n- 红色/橙色（肉类）：{{redOrangeHSL}}\n- 绿色（蔬菜）：{{greenHSL}}\n- 黄色（面包）：{{yellowHSL}}\n- 蓝色（背景）：{{blueHSL}}\n\n**6. 局部调整：**\n- 径向滤镜：{{radialFilter}}\n- 渐变滤镜：{{gradientFilter}}\n- 画笔工具：{{brushTool}}\n\n### 美食摄影专属调色\n\n**日系清新风格：**\n{{japaneseStyle}}\n\n**暗调美食风格：**\n{{darkMoodyStyle}}\n\n**明亮高调风格：**\n{{brightAiryStyle}}\n\n**复古胶片风格：**\n{{vintageFilmStyle}}\n\n**预设（Preset）使用：**\n- 推荐预设：{{recommendedPresets}}\n- 自定义预设：{{customPresetTips}}\n\n### 高级技巧\n\n**Photoshop修饰：**\n- 去除杂物：{{removeDistraction}}\n- 液化工具：{{liquify}}\n- 颜色替换：{{colorReplace}}\n- 合成叠加：{{compositing}}\n\n**批量处理：**{{batchProcessing}}\n\n## 社交媒体优化\n\n### 平台适配\n\n**Instagram：**\n- 推荐比例：{{instagramRatio}}\n- 尺寸：{{instagramSize}}\n- 滤镜风格：{{instagramFilters}}\n- Hashtag策略：{{instagramHashtags}}\n\n**小红书：**\n- 封面设计：{{xiaohongshuCover}}\n- 拼图策略：{{xiaohongshuLayout}}\n- 文字标注：{{xiaohongshuText}}\n\n**微博：**\n- 九宫格：{{weiboGrid}}\n- 长图：{{weiboLongImage}}\n\n**抖音/快手（视频）：**\n- 竖版拍摄：{{verticalVideo}}\n- 动态展示：{{foodVideo}}\n\n### 图片优化输出\n\n**文件格式：**\n- 社交媒体：{{socialMediaFormat}}\n- 印刷：{{printFormat}}\n- 网站：{{webFormat}}\n\n**尺寸优化：**\n- 分辨率：{{resolution}}\n- 文件大小：{{fileSize}}\n- 压缩工具：{{compressionTools}}\n\n## 进阶提升路径\n\n### 创意技巧探索\n\n**动态拍摄：**\n- 倾倒液体：{{pouringShot}}\n- 粉末撒落：{{flourPour}}\n- 切割瞬间：{{cuttingAction}}\n- 设备需求：{{actionPhotographyGear}}\n\n**俯拍平铺（Flat Lay）：**\n- 场景搭建：{{flatLaySetup}}\n- 元素组合：{{flatLayElements}}\n- 对称平衡：{{flatLayBalance}}\n\n**手部入镜：**\n- 自然姿势：{{handPoses}}\n- 指甲美化：{{nailCare}}\n- 持物道具：{{handProps}}\n\n**环境人像融合：**{{lifestylePhotography}}\n\n### 建立个人风格\n\n**风格定位：**{{styleDefinition}}\n\n**色彩系统：**\n- 主色调：{{signatureColors}}\n- 调色一致性：{{colorConsistency}}\n\n**作品集建设：**{{portfolioBuilding}}\n\n### 商业化路径\n\n**接单途径：**\n1. {{commercialPath1}}\n2. {{commercialPath2}}\n3. {{commercialPath3}}\n\n**定价策略：**\n- 餐厅菜单拍摄：{{restaurantPricing}}\n- 商业广告：{{commercialAdPricing}}\n- 社交媒体内容：{{socialMediaPricing}}\n\n**客户沟通：**{{clientCommunication}}\n\n## 常见问题解决\n\n### 技术问题\n\n**问题1：图片发虚/不清晰**\n- 原因：{{blurryReason}}\n- 解决：{{blurrySolution}}\n\n**问题2：颜色不准确**\n- 原因：{{colorCastReason}}\n- 解决：{{colorCastSolution}}\n\n**问题3：过曝/欠曝**\n- 原因：{{exposureIssueReason}}\n- 解决：{{exposureIssueSolution}}\n\n**问题4：阴影太重**\n- 原因：{{harshShadowReason}}\n- 解决：{{harshShadowSolution}}\n\n**问题5：背景杂乱**\n- 原因：{{busyBackgroundReason}}\n- 解决：{{busyBackgroundSolution}}\n\n### 创意困境\n\n**灵感枯竭时：**{{inspirationSources}}\n\n**参考学习资源：**\n- Instagram账号：{{instagramAccounts}}\n- 摄影师推荐：{{photographerRecommendations}}\n- 书籍：{{photographyBooks}}\n- 在线课程：{{onlineCourses}}\n\n## 实践计划\n\n### 30天进步计划\n\n**第1周：基础掌握**\n- Day 1-2：{{week1Day12}}\n- Day 3-4：{{week1Day34}}\n- Day 5-7：{{week1Day57}}\n\n**第2周：技巧提升**\n- Day 8-10：{{week2Day810}}\n- Day 11-14：{{week2Day1114}}\n\n**第3周：风格探索**\n- Day 15-17：{{week3Day1517}}\n- Day 18-21：{{week3Day1821}}\n\n**第4周：综合实践**\n- Day 22-25：{{week4Day2225}}\n- Day 26-30：{{week4Day2630}}\n\n### 日常练习建议\n\n**每日一拍：**{{dailyPractice}}\n**主题挑战：**{{themeChallenge}}\n**复刻名作：**{{recreateClassics}}\n\n## 总结检查清单\n\n### 拍摄前检查\n- [ ] 器材充电/备用电池\n- [ ] 存储卡清空/准备\n- [ ] 场景清洁\n- [ ] 光线确认\n- [ ] 背景准备\n- [ ] 道具齐全\n- [ ] 相机设置检查\n\n### 拍摄中检查\n- [ ] 构图平衡\n- [ ] 对焦清晰\n- [ ] 曝光准确\n- [ ] 多角度覆盖\n- [ ] 细节特写\n- [ ] 即时回放检查\n\n### 后期检查\n- [ ] 挑选最佳照片\n- [ ] 基础调整\n- [ ] 色彩优化\n- [ ] 细节锐化\n- [ ] 尺寸裁剪\n- [ ] 导出备份\n\n---\n\n**核心原则：**光线是灵魂，构图是骨架，色彩是情绪，细节是品质\n**成功关键：**多拍多练，研究学习，建立风格，持续精进",
+  "variables_schema": [
+    {
+      "name": "shootingScenario",
+      "label": "拍摄场景",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "家庭美食博客",
+          "label": "家庭美食博客"
+        },
+        {
+          "value": "餐厅商业拍摄",
+          "label": "餐厅商业拍摄"
+        },
+        {
+          "value": "社交媒体内容",
+          "label": "社交媒体内容"
+        },
+        {
+          "value": "菜谱书籍",
+          "label": "菜谱书籍出版"
+        },
+        {
+          "value": "产品广告",
+          "label": "食品产品广告"
+        },
+        {
+          "value": "个人爱好",
+          "label": "个人兴趣爱好"
+        }
+      ]
+    },
+    {
+      "name": "foodType",
+      "label": "主要拍摄食物类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "甜品烘焙",
+          "label": "甜品/烘焙"
+        },
+        {
+          "value": "中餐",
+          "label": "中餐菜肴"
+        },
+        {
+          "value": "西餐",
+          "label": "西餐"
+        },
+        {
+          "value": "日料",
+          "label": "日式料理"
+        },
+        {
+          "value": "饮品",
+          "label": "饮品/咖啡"
+        },
+        {
+          "value": "综合",
+          "label": "综合各类"
+        }
+      ]
+    },
+    {
+      "name": "targetPlatform",
+      "label": "发布平台",
+      "type": "multiselect",
+      "required": false,
+      "options": [
+        {
+          "value": "Instagram",
+          "label": "Instagram"
+        },
+        {
+          "value": "小红书",
+          "label": "小红书"
+        },
+        {
+          "value": "微博",
+          "label": "微博"
+        },
+        {
+          "value": "抖音",
+          "label": "抖音/快手"
+        },
+        {
+          "value": "个人网站",
+          "label": "个人网站/博客"
+        },
+        {
+          "value": "商业用途",
+          "label": "商业广告"
+        }
+      ]
+    },
+    {
+      "name": "budget",
+      "label": "器材预算（元）",
+      "type": "number",
+      "required": false,
+      "default": 5000
+    },
+    {
+      "name": "currentEquipment",
+      "label": "现有器材",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "美食摄影指南",
+    "files": [
+      {
+        "path": "摄影指南.md",
+        "type": "markdown"
+      },
+      {
+        "path": "器材购买清单.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "相机设置速查表.md",
+        "type": "markdown"
+      },
+      {
+        "path": "后期调色指南.md",
+        "type": "markdown"
+      },
+      {
+        "path": "30天练习计划.md",
+        "type": "markdown"
+      },
+      {
+        "path": "拍摄检查清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "摄影基础",
+    "光线理解",
+    "构图美学",
+    "后期处理",
+    "审美能力"
+  ],
+  "required_tools": ["相机或手机", "后期软件", "基础道具"],
+  "execution_engine": "llm"
+}

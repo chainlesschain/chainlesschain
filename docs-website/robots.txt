@@ -1,0 +1,101 @@
+# robots.txt for ChainlessChain Official Website
+# Website: https://www.chainlesschain.com
+# Last Updated: 2025-12-31
+
+# Allow all major search engines to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow specific directories and files
+Disallow: /admin/
+Disallow: /private/
+Disallow: /temp/
+Disallow: /backup/
+Disallow: /*.log
+Disallow: /*.sql
+Disallow: /*.zip
+Disallow: /*.tar
+Disallow: /*.gz
+
+# Allow crawling of CSS, JS, and images for better rendering
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /assets/
+
+# Disallow internal usage examples (for developers only)
+Disallow: /images/USAGE_EXAMPLES.html
+
+# Sitemap location
+Sitemap: https://www.chainlesschain.com/sitemap.xml
+
+# Specific rules for Baidu spider (百度爬虫)
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 1
+
+# Specific rules for Google spider
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Specific rules for Bing spider
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Specific rules for Sogou spider (搜狗爬虫)
+User-agent: Sogou web spider
+Allow: /
+Crawl-delay: 1
+
+# Specific rules for 360 spider (360搜索爬虫)
+User-agent: 360Spider
+Allow: /
+Crawl-delay: 1
+
+# Disallow bad bots and scrapers
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Social media crawlers (allow for rich previews)
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+# Allow AI training bots (optional - can be disabled if needed)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Disallow aggressive AI scrapers
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /

@@ -1,0 +1,913 @@
+<template>
+  <a-modal
+    :open="open"
+    :title="title"
+    :width="700"
+    :footer="null"
+    @cancel="handleClose"
+  >
+    <div class="git-status-dialog">
+      <!-- 加载状态 -->
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
+        <a-spin tip="加载Git状态..." />
+      </div>
+
+      <!-- Git状态内容 -->
+      <div
+        v-else-if="status"
+        class="status-content"
+      >
+        <!-- 分支信息 -->
+        <div class="branch-info">
+          <div class="info-item">
+            <BranchesOutlined />
+            <span class="label">当前分支:</span>
+            <a-tag color="blue">
+              {{ status.branch || "main" }}
+            </a-tag>
+          </div>
+          <div
+            v-if="status.ahead || status.behind"
+            class="info-item"
+          >
+            <CloudOutlined />
+            <span class="label">与远程:</span>
+            <a-tag
+              v-if="status.ahead"
+              color="green"
+            >
+              领先 {{ status.ahead }} 个提交
+            </a-tag>
+            <a-tag
+              v-if="status.behind"
+              color="orange"
+            >
+              落后 {{ status.behind }} 个提交
+            </a-tag>
+          </div>
+        </div>
+
+        <!-- 已暂存的更改 -->
+        <div
+          v-if="status.staged && status.staged.length > 0"
+          class="status-section"
+        >
+          <div class="section-header">
+            <h4>
+              <CheckCircleOutlined style="color: #10b981" />
+              已暂存的更改 ({{ status.staged.length }})
+            </h4>
+            <a-button
+              size="small"
+              @click="handleUnstageAll"
+            >
+              取消暂存全部
+            </a-button>
+          </div>
+          <div class="file-list">
+            <div
+              v-for="file in status.staged"
+              :key="file.path"
+              class="file-item staged"
+            >
+              <div class="file-info">
+                <component
+                  :is="getFileIcon(file.status)"
+                  :style="{ color: getFileColor(file.status) }"
+                />
+                <span class="file-path">{{ file.path }}</span>
+                <a-tag
+                  :color="getStatusColor(file.status)"
+                  size="small"
+                >
+                  {{ getStatusText(file.status) }}
+                </a-tag>
+              </div>
+              <div class="file-actions">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleViewDiff(file)"
+                >
+                  <EyeOutlined />
+                  查看
+                </a-button>
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleUnstageFile(file)"
+                >
+                  <MinusCircleOutlined />
+                  取消暂存
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未暂存的更改 -->
+        <div
+          v-if="status.modified && status.modified.length > 0"
+          class="status-section"
+        >
+          <div class="section-header">
+            <h4>
+              <EditOutlined style="color: #f59e0b" />
+              未暂存的更改 ({{ status.modified.length }})
+            </h4>
+            <a-button
+              size="small"
+              type="primary"
+              @click="handleStageAll"
+            >
+              暂存全部
+            </a-button>
+          </div>
+          <div class="file-list">
+            <div
+              v-for="file in status.modified"
+              :key="file.path || file"
+              class="file-item modified"
+            >
+              <div class="file-info">
+                <EditOutlined style="color: #f59e0b" />
+                <span class="file-path">{{ file.path || file }}</span>
+                <a-tag
+                  color="orange"
+                  size="small"
+                >
+                  已修改
+                </a-tag>
+              </div>
+              <div class="file-actions">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleViewDiff(file)"
+                >
+                  <EyeOutlined />
+                  查看
+                </a-button>
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleStageFile(file)"
+                >
+                  <PlusCircleOutlined />
+                  暂存
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未跟踪的文件 -->
+        <div
+          v-if="status.untracked && status.untracked.length > 0"
+          class="status-section"
+        >
+          <div class="section-header">
+            <h4>
+              <FileAddOutlined style="color: #3b82f6" />
+              未跟踪的文件 ({{ status.untracked.length }})
+            </h4>
+            <a-button
+              size="small"
+              @click="handleAddAll"
+            >
+              添加全部
+            </a-button>
+          </div>
+          <div class="file-list">
+            <div
+              v-for="file in status.untracked"
+              :key="file.path || file"
+              class="file-item untracked"
+            >
+              <div class="file-info">
+                <FileAddOutlined style="color: #3b82f6" />
+                <span class="file-path">{{ file.path || file }}</span>
+                <a-tag
+                  color="blue"
+                  size="small"
+                >
+                  新文件
+                </a-tag>
+              </div>
+              <div class="file-actions">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleAddFile(file)"
+                >
+                  <PlusCircleOutlined />
+                  添加
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 已删除的文件 -->
+        <div
+          v-if="status.deleted && status.deleted.length > 0"
+          class="status-section"
+        >
+          <div class="section-header">
+            <h4>
+              <DeleteOutlined style="color: #ef4444" />
+              已删除的文件 ({{ status.deleted.length }})
+            </h4>
+          </div>
+          <div class="file-list">
+            <div
+              v-for="file in status.deleted"
+              :key="file.path || file"
+              class="file-item deleted"
+            >
+              <div class="file-info">
+                <DeleteOutlined style="color: #ef4444" />
+                <span class="file-path">{{ file.path || file }}</span>
+                <a-tag
+                  color="red"
+                  size="small"
+                >
+                  已删除
+                </a-tag>
+              </div>
+              <div class="file-actions">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleStageFile(file)"
+                >
+                  <CheckOutlined />
+                  确认删除
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 工作区干净 -->
+        <div
+          v-if="isClean"
+          class="clean-state"
+        >
+          <a-empty description="工作区干净，没有变更">
+            <template #image>
+              <CheckCircleOutlined style="font-size: 64px; color: #10b981" />
+            </template>
+          </a-empty>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div
+          v-if="!isClean"
+          class="action-bar"
+        >
+          <a-space>
+            <a-button
+              type="primary"
+              :disabled="!hasStaged"
+              @click="handleCommit"
+            >
+              <CheckOutlined />
+              提交更改
+            </a-button>
+            <a-button @click="handleRefresh">
+              <ReloadOutlined />
+              刷新
+            </a-button>
+            <a-button @click="handleClose">
+              关闭
+            </a-button>
+          </a-space>
+        </div>
+      </div>
+
+      <!-- 错误状态 -->
+      <div
+        v-else
+        class="error-state"
+      >
+        <a-empty description="无法获取Git状态">
+          <template #image>
+            <ExclamationCircleOutlined
+              style="font-size: 64px; color: #ef4444"
+            />
+          </template>
+          <a-button
+            type="primary"
+            @click="handleRefresh"
+          >
+            重试
+          </a-button>
+        </a-empty>
+      </div>
+    </div>
+
+    <!-- 差异对比Modal -->
+    <a-modal
+      v-model:open="showDiffModal"
+      title="文件差异"
+      :width="900"
+      :footer="null"
+    >
+      <div class="diff-content">
+        <pre>{{ currentDiff }}</pre>
+      </div>
+    </a-modal>
+
+    <!-- 提交信息输入Modal -->
+    <a-modal
+      v-model:open="showCommitModal"
+      title="提交更改"
+      :width="600"
+      :confirm-loading="committing"
+      @ok="handleConfirmCommit"
+      @cancel="handleCancelCommit"
+    >
+      <div class="commit-modal-content">
+        <a-form layout="vertical">
+          <a-form-item
+            label="提交信息"
+            required
+          >
+            <a-textarea
+              v-model:value="commitMessage"
+              placeholder="请输入提交信息..."
+              :rows="4"
+              :maxlength="500"
+              show-count
+            />
+          </a-form-item>
+
+          <a-form-item>
+            <a-space>
+              <a-button
+                type="dashed"
+                :loading="generatingAI"
+                :disabled="generatingAI || !hasStaged"
+                @click="handleGenerateAICommit"
+              >
+                <template #icon>
+                  <BulbOutlined />
+                </template>
+                AI生成提交信息
+              </a-button>
+              <a-tooltip
+                v-if="!hasStaged"
+                title="请先暂存文件"
+              >
+                <QuestionCircleOutlined style="color: #faad14" />
+              </a-tooltip>
+            </a-space>
+            <div
+              v-if="aiGeneratedMessage"
+              class="ai-generated-hint"
+            >
+              <CheckCircleOutlined style="color: #52c41a" />
+              <span>AI已生成提交信息，您可以编辑后提交</span>
+            </div>
+          </a-form-item>
+        </a-form>
+      </div>
+    </a-modal>
+  </a-modal>
+</template>
+
+<script setup>
+import { logger } from "@/utils/logger";
+
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import {
+  BranchesOutlined,
+  CloudOutlined,
+  CheckCircleOutlined,
+  EditOutlined,
+  FileAddOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  PlusCircleOutlined,
+  MinusCircleOutlined,
+  CheckOutlined,
+  ReloadOutlined,
+  ExclamationCircleOutlined,
+  BulbOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons-vue";
+
+const props = defineProps({
+  open: {
+    type: Boolean,
+    default: false,
+  },
+  projectId: {
+    type: String,
+    default: "",
+  },
+  repoPath: {
+    type: String,
+    default: "",
+  },
+  title: {
+    type: String,
+    default: "Git状态",
+  },
+});
+
+const emit = defineEmits(["close", "commit", "refresh"]);
+
+// 响应式状态
+const loading = ref(false);
+const status = ref(null);
+const showDiffModal = ref(false);
+const currentDiff = ref("");
+
+// 提交相关状态
+const showCommitModal = ref(false);
+const commitMessage = ref("");
+const committing = ref(false);
+const generatingAI = ref(false);
+const aiGeneratedMessage = ref(false);
+
+// 计算属性
+const isClean = computed(() => {
+  if (!status.value) {
+    return true;
+  }
+
+  const { staged, modified, untracked, deleted } = status.value;
+  return (
+    (!staged || staged.length === 0) &&
+    (!modified || modified.length === 0) &&
+    (!untracked || untracked.length === 0) &&
+    (!deleted || deleted.length === 0)
+  );
+});
+
+const hasStaged = computed(() => {
+  return status.value?.staged && status.value.staged.length > 0;
+});
+
+// 获取文件状态图标
+const getFileIcon = (statusType) => {
+  const iconMap = {
+    added: FileAddOutlined,
+    modified: EditOutlined,
+    deleted: DeleteOutlined,
+  };
+  return iconMap[statusType] || EditOutlined;
+};
+
+// 获取文件状态颜色
+const getFileColor = (statusType) => {
+  const colorMap = {
+    added: "#10b981",
+    modified: "#f59e0b",
+    deleted: "#ef4444",
+  };
+  return colorMap[statusType] || "#6b7280";
+};
+
+// 获取状态标签颜色
+const getStatusColor = (statusType) => {
+  const colorMap = {
+    added: "green",
+    modified: "orange",
+    deleted: "red",
+  };
+  return colorMap[statusType] || "default";
+};
+
+// 获取状态文本
+const getStatusText = (statusType) => {
+  const textMap = {
+    added: "新增",
+    modified: "修改",
+    deleted: "删除",
+  };
+  return textMap[statusType] || "更改";
+};
+
+// 加载Git状态
+const loadStatus = async () => {
+  loading.value = true;
+  try {
+    const result = await window.electronAPI.project.gitStatus(props.repoPath);
+    status.value = result;
+  } catch (error) {
+    logger.error("Load git status failed:", error);
+    message.error("获取Git状态失败：" + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 暂存文件
+const handleStageFile = async (file) => {
+  try {
+    const filePath = file.path || file;
+    await window.electronAPI.project.gitAdd(props.repoPath, filePath);
+    message.success(`已暂存: ${filePath}`);
+    await loadStatus();
+  } catch (error) {
+    logger.error("Stage file failed:", error);
+    message.error("暂存失败：" + error.message);
+  }
+};
+
+// 暂存全部
+const handleStageAll = async () => {
+  try {
+    await window.electronAPI.project.gitAdd(props.repoPath, ".");
+    message.success("已暂存全部更改");
+    await loadStatus();
+  } catch (error) {
+    logger.error("Stage all failed:", error);
+    message.error("暂存失败：" + error.message);
+  }
+};
+
+// 取消暂存文件
+const handleUnstageFile = async (file) => {
+  try {
+    const filePath = file.path || file;
+    await window.electronAPI.project.gitUnstage(props.repoPath, filePath);
+    message.success(`已取消暂存: ${filePath}`);
+    await loadStatus();
+  } catch (error) {
+    logger.error("Unstage file failed:", error);
+    message.error("取消暂存失败：" + error.message);
+  }
+};
+
+// 取消暂存全部
+const handleUnstageAll = async () => {
+  try {
+    await window.electronAPI.project.gitUnstage(props.repoPath, ".");
+    message.success("已取消暂存全部");
+    await loadStatus();
+  } catch (error) {
+    logger.error("Unstage all failed:", error);
+    message.error("取消暂存失败：" + error.message);
+  }
+};
+
+// 添加文件
+const handleAddFile = async (file) => {
+  await handleStageFile(file);
+};
+
+// 添加全部
+const handleAddAll = async () => {
+  await handleStageAll();
+};
+
+// 查看差异
+const handleViewDiff = async (file) => {
+  try {
+    const filePath = file.path || file;
+    const diff = await window.electronAPI.project.gitDiff(
+      props.repoPath,
+      filePath,
+    );
+    currentDiff.value = diff || "没有差异";
+    showDiffModal.value = true;
+  } catch (error) {
+    logger.error("View diff failed:", error);
+    message.error("查看差异失败：" + error.message);
+  }
+};
+
+// 提交更改 - 打开提交modal
+const handleCommit = () => {
+  commitMessage.value = "";
+  aiGeneratedMessage.value = false;
+  showCommitModal.value = true;
+};
+
+// AI生成提交信息
+const handleGenerateAICommit = async () => {
+  if (!props.repoPath) {
+    message.error("仓库路径不存在");
+    return;
+  }
+
+  generatingAI.value = true;
+  try {
+    const result = await window.electron.ipcRenderer.invoke(
+      "git:generateCommitMessage",
+      props.repoPath,
+    );
+
+    if (result.success && result.message) {
+      commitMessage.value = result.message;
+      aiGeneratedMessage.value = true;
+      message.success("AI已生成提交信息");
+    } else {
+      message.error(result.error || "AI生成失败");
+    }
+  } catch (error) {
+    logger.error("Generate AI commit message failed:", error);
+    message.error("AI生成失败：" + error.message);
+  } finally {
+    generatingAI.value = false;
+  }
+};
+
+// 确认提交
+const handleConfirmCommit = async () => {
+  if (!commitMessage.value.trim()) {
+    message.error("请输入提交信息");
+    return;
+  }
+
+  if (!props.projectId) {
+    message.error("项目ID不存在");
+    return;
+  }
+
+  if (!props.repoPath) {
+    message.error("仓库路径不存在");
+    return;
+  }
+
+  committing.value = true;
+  try {
+    // 调用git commit
+    await window.electronAPI.project.gitCommit(
+      props.projectId,
+      props.repoPath,
+      commitMessage.value.trim(),
+    );
+
+    message.success("提交成功");
+    showCommitModal.value = false;
+    commitMessage.value = "";
+    aiGeneratedMessage.value = false;
+
+    // 刷新状态
+    await loadStatus();
+    emit("commit");
+  } catch (error) {
+    logger.error("Commit failed:", error);
+    message.error("提交失败：" + error.message);
+  } finally {
+    committing.value = false;
+  }
+};
+
+// 取消提交
+const handleCancelCommit = () => {
+  commitMessage.value = "";
+  aiGeneratedMessage.value = false;
+  showCommitModal.value = false;
+};
+
+// 刷新
+const handleRefresh = async () => {
+  await loadStatus();
+  emit("refresh");
+};
+
+// 关闭
+const handleClose = () => {
+  emit("close");
+};
+
+// 监听visible变化
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal) {
+      loadStatus();
+    }
+  },
+  { immediate: true },
+);
+</script>
+
+<style scoped>
+.git-status-dialog {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* 加载状态 */
+.loading-container {
+  padding: 60px;
+  text-align: center;
+}
+
+/* 分支信息 */
+.branch-info {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-item :deep(.anticon) {
+  font-size: 16px;
+  color: #667eea;
+}
+
+.label {
+  font-size: 14px;
+  color: #6b7280;
+  min-width: 80px;
+}
+
+/* 状态区块 */
+.status-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header h4 :deep(.anticon) {
+  font-size: 18px;
+}
+
+/* 文件列表 */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.file-item:hover {
+  background: #f3f4f6;
+}
+
+.file-item.staged {
+  border-left-color: #10b981;
+}
+
+.file-item.modified {
+  border-left-color: #f59e0b;
+}
+
+.file-item.untracked {
+  border-left-color: #3b82f6;
+}
+
+.file-item.deleted {
+  border-left-color: #ef4444;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.file-info :deep(.anticon) {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.file-path {
+  flex: 1;
+  font-size: 13px;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 干净状态 */
+.clean-state {
+  padding: 40px;
+  text-align: center;
+}
+
+/* 错误状态 */
+.error-state {
+  padding: 40px;
+  text-align: center;
+}
+
+/* 操作栏 */
+.action-bar {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 差异内容 */
+.diff-content {
+  max-height: 500px;
+  overflow: auto;
+  background: #1e1e1e;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.diff-content pre {
+  margin: 0;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* 滚动条样式 */
+.git-status-dialog::-webkit-scrollbar {
+  width: 8px;
+}
+
+.git-status-dialog::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.git-status-dialog::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.git-status-dialog::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 提交Modal样式 */
+.commit-modal-content {
+  padding-top: 16px;
+}
+
+.ai-generated-hint {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #52c41a;
+}
+
+.ai-generated-hint span {
+  color: #389e0d;
+}
+</style>

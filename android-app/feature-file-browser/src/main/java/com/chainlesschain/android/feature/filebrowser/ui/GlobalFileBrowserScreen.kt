@@ -1,0 +1,570 @@
+package com.chainlesschain.android.feature.filebrowser.ui
+
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.filebrowser.R
+import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectEntity
+import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileListItem
+import com.chainlesschain.android.feature.filebrowser.ui.components.FilePreviewDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileBrowserSettingsDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileImportDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileStatisticsCard
+import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
+
+/**
+ * Global File Browser Screen
+ *
+ * Full-featured file browsing UI with:
+ * - Permission handling
+ * - MediaStore scanning with progress
+ * - Category filtering with per-category counts
+ * - Search and sort
+ * - File statistics dashboard
+ * - File import to projects
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GlobalFileBrowserScreen(
+    projectId: String?,
+    availableProjects: List<ProjectEntity> = emptyList(),
+    onNavigateBack: () -> Unit,
+    onFileImported: (String) -> Unit,
+    onOpenInEditor: ((ExternalFileEntity) -> Unit)? = null,
+    viewModel: GlobalFileBrowserViewModel = hiltViewModel()
+) {
+    // State
+    val permissionGranted by viewModel.permissionGranted.collectAsState()
+    val scanProgress by viewModel.scanProgress.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val files by viewModel.files.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val sortBy by viewModel.sortBy.collectAsState()
+    val sortDirection by viewModel.sortDirection.collectAsState()
+    val isClassifying by viewModel.isClassifying.collectAsState()
+    val statistics by viewModel.statistics.collectAsState()
+
+    var showSearchBar by remember { mutableStateOf(false) }
+    var statisticsExpanded by remember { mutableStateOf(false) }
+    var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
+    var fileToImport by remember { mutableStateOf<ExternalFileEntity?>(null) }
+    var showSettings by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.values.all { it }) {
+            viewModel.onPermissionsGranted()
+        }
+    }
+
+    // Request permissions on first launch
+    LaunchedEffect(Unit) {
+        if (!permissionGranted) {
+            val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_AUDIO
+                )
+            } else {
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            permissionLauncher.launch(permissions)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    if (showSearchBar) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.searchFiles(it) },
+                            placeholder = { Text(stringResource(R.string.file_browser_search_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    } else {
+                        Text(text = stringResource(R.string.file_browser_title))
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.file_browser_back)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showSearchBar = !showSearchBar }) {
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.file_browser_search))
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.classifyVisibleFiles(context.contentResolver)
+                        },
+                        enabled = !isClassifying && files.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.file_browser_ai_classify))
+                    }
+                    IconButton(onClick = { viewModel.refresh() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.file_browser_refresh))
+                    }
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.file_browser_settings))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
+        floatingActionButton = {
+            if (permissionGranted && scanProgress !is MediaStoreScanner.ScanProgress.Scanning) {
+                FloatingActionButton(
+                    onClick = { viewModel.startScan() }
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.file_browser_scan_files))
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Permission request UI
+            if (!permissionGranted) {
+                PermissionRequiredContent(
+                    onRequestPermission = {
+                        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            arrayOf(
+                                Manifest.permission.READ_MEDIA_IMAGES,
+                                Manifest.permission.READ_MEDIA_VIDEO,
+                                Manifest.permission.READ_MEDIA_AUDIO
+                            )
+                        } else {
+                            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                        }
+                        permissionLauncher.launch(permissions)
+                    }
+                )
+            } else {
+                // Category tabs with file counts
+                CategoryTabRow(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { viewModel.selectCategory(it) },
+                    statistics = statistics
+                )
+
+                // Sort bar
+                SortBar(
+                    sortBy = sortBy,
+                    sortDirection = sortDirection,
+                    onSortByChange = { viewModel.setSortBy(it) },
+                    onToggleSortDirection = { viewModel.toggleSortDirection() }
+                )
+
+                // Scan progress indicator
+                when (val progress = scanProgress) {
+                    is MediaStoreScanner.ScanProgress.Scanning -> {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            progress = { if (progress.total > 0) progress.current.toFloat() / progress.total else 0f }
+                        )
+                        Text(
+                            text = stringResource(R.string.file_browser_scanning, progress.currentType, progress.current, progress.total),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    is MediaStoreScanner.ScanProgress.Completed -> {
+                        Text(
+                            text = stringResource(R.string.file_browser_scan_complete, progress.totalFiles),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    is MediaStoreScanner.ScanProgress.Error -> {
+                        Text(
+                            text = stringResource(R.string.file_browser_scan_error, progress.message),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    else -> {}
+                }
+
+                // File statistics card
+                statistics?.let { stats ->
+                    FileStatisticsCard(
+                        statistics = stats,
+                        isExpanded = statisticsExpanded,
+                        onToggleExpanded = { statisticsExpanded = !statisticsExpanded }
+                    )
+                }
+
+                // AI Classification progress indicator
+                if (isClassifying) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = stringResource(R.string.file_browser_ai_classifying),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                // File list
+                when (uiState) {
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Empty -> {
+                        EmptyStateContent()
+                    }
+
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Error -> {
+                        ErrorStateContent(
+                            message = (uiState as GlobalFileBrowserViewModel.FileBrowserUiState.Error).message,
+                            onRetry = { viewModel.refresh() }
+                        )
+                    }
+
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Success -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(files, key = { it.id }) { file ->
+                                FileListItem(
+                                    file = file,
+                                    onFileClick = {
+                                        // 用户首选 UX：text/code 文件 tap → 全屏 EnhancedCodeEditor（readOnly）。
+                                        // 非 text/code 或调用方未提供 onOpenInEditor 时回落到 FilePreviewDialog。
+                                        // Import / favorite 行内按钮独立于 click，仍按原行为。
+                                        if (onOpenInEditor != null && isTextOrCode(file)) {
+                                            onOpenInEditor(file)
+                                        } else {
+                                            fileToPreview = file
+                                        }
+                                    },
+                                    onImportClick = {
+                                        if (projectId != null) {
+                                            viewModel.importFile(file.id, projectId)
+                                            onFileImported(file.id)
+                                        } else {
+                                            fileToImport = file
+                                        }
+                                    },
+                                    onFavoriteClick = { viewModel.toggleFavorite(file.id) },
+                                    showImportButton = true,
+                                    thumbnailCache = viewModel.thumbnailCache
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // File preview dialog
+    fileToPreview?.let { file ->
+        FilePreviewDialog(
+            file = file,
+            onDismiss = { fileToPreview = null },
+            textRecognizer = viewModel.textRecognizer,
+            fileSummarizer = viewModel.fileSummarizer
+        )
+    }
+
+    // Settings dialog
+    if (showSettings) {
+        FileBrowserSettingsDialog(
+            onDismiss = { showSettings = false },
+            onClearCache = {
+                viewModel.clearCache()
+            }
+        )
+    }
+
+    // File import dialog
+    fileToImport?.let { file ->
+        FileImportDialog(
+            file = file,
+            projectId = projectId,
+            availableProjects = availableProjects,
+            onDismiss = { fileToImport = null },
+            onImport = { selectedProjectId ->
+                viewModel.importFile(file.id, selectedProjectId)
+                onFileImported(file.id)
+                fileToImport = null
+            }
+        )
+    }
+}
+
+/**
+ * Category Tab Row with optional file counts
+ */
+@Composable
+private fun CategoryTabRow(
+    selectedCategory: FileCategory?,
+    onCategorySelected: (FileCategory?) -> Unit,
+    statistics: GlobalFileBrowserViewModel.FileBrowserStatistics? = null
+) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            val totalLabel = if (statistics != null) {
+                stringResource(R.string.category_all_with_count, statistics.totalFiles)
+            } else {
+                stringResource(R.string.category_all)
+            }
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = { onCategorySelected(null) },
+                label = { Text(totalLabel) }
+            )
+        }
+
+        items(FileCategory.values()) { category ->
+            val categoryCount = statistics?.categories
+                ?.find { it.category == category.name }?.count
+            val displayName = when (category) {
+                FileCategory.DOCUMENT -> stringResource(R.string.category_document)
+                FileCategory.IMAGE -> stringResource(R.string.category_image)
+                FileCategory.VIDEO -> stringResource(R.string.category_video)
+                FileCategory.AUDIO -> stringResource(R.string.category_audio)
+                FileCategory.ARCHIVE -> stringResource(R.string.category_archive)
+                FileCategory.CODE -> stringResource(R.string.category_code)
+                FileCategory.OTHER -> stringResource(R.string.category_other)
+            }
+            val label = if (categoryCount != null && categoryCount > 0) {
+                stringResource(R.string.category_with_count, displayName, categoryCount)
+            } else {
+                displayName
+            }
+            FilterChip(
+                selected = selectedCategory == category,
+                onClick = { onCategorySelected(category) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+/**
+ * Sort Bar
+ */
+@Composable
+private fun SortBar(
+    sortBy: GlobalFileBrowserViewModel.SortBy,
+    sortDirection: GlobalFileBrowserViewModel.SortDirection,
+    onSortByChange: (GlobalFileBrowserViewModel.SortBy) -> Unit,
+    onToggleSortDirection: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GlobalFileBrowserViewModel.SortBy.values().forEach { sort ->
+                FilterChip(
+                    selected = sortBy == sort,
+                    onClick = { onSortByChange(sort) },
+                    label = {
+                        Text(
+                            when (sort) {
+                                GlobalFileBrowserViewModel.SortBy.NAME -> stringResource(R.string.sort_name)
+                                GlobalFileBrowserViewModel.SortBy.SIZE -> stringResource(R.string.sort_size)
+                                GlobalFileBrowserViewModel.SortBy.DATE -> stringResource(R.string.sort_date)
+                                GlobalFileBrowserViewModel.SortBy.TYPE -> stringResource(R.string.sort_type)
+                            }
+                        )
+                    }
+                )
+            }
+        }
+
+        TextButton(onClick = onToggleSortDirection) {
+            Text(if (sortDirection == GlobalFileBrowserViewModel.SortDirection.ASC) stringResource(R.string.sort_ascending) else stringResource(R.string.sort_descending))
+        }
+    }
+}
+
+/**
+ * Permission Required Content
+ */
+@Composable
+private fun PermissionRequiredContent(onRequestPermission: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.permission_required_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = stringResource(R.string.permission_required_message),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+
+            Button(
+                onClick = onRequestPermission,
+                modifier = Modifier.padding(top = 24.dp)
+            ) {
+                Text(stringResource(R.string.permission_grant))
+            }
+        }
+    }
+}
+
+/**
+ * Empty State Content
+ */
+@Composable
+private fun EmptyStateContent() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.empty_no_files),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = stringResource(R.string.empty_tap_scan),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Whether to route a tap to the code viewer instead of the preview dialog.
+ *
+ * 三个判定来源（任一命中即可）：
+ *  - 分类是 CODE（FileCategory.fromExtension 已把 .kt/.js/.json 等映射进来）
+ *  - MIME 以 `text/` 开头（ScannerProvider 给 .txt/.md/.log 等填的 text/plain）
+ *  - 扩展名是常见但未被 fromExtension 标记为 CODE 的纯文本（md/txt/log/csv）
+ */
+private fun isTextOrCode(file: ExternalFileEntity): Boolean {
+    if (file.category == FileCategory.CODE) return true
+    if (file.mimeType.startsWith("text/")) return true
+    val ext = file.extension?.lowercase() ?: return false
+    return ext in setOf("md", "txt", "log", "csv")
+}
+
+/**
+ * Error State Content
+ */
+@Composable
+private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.error_load_failed),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.padding(top = 24.dp)
+            ) {
+                Text(stringResource(R.string.error_retry))
+            }
+        }
+    }
+}

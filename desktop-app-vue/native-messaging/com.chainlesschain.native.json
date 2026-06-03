@@ -1,0 +1,9 @@
+{
+  "name": "com.chainlesschain.native",
+  "description": "ChainlessChain Native Messaging Host",
+  "path": "/Applications/ChainlessChain.app/Contents/Resources/native-messaging-host",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_HERE/"
+  ]
+}

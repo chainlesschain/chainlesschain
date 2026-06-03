@@ -1,0 +1,632 @@
+name: Node.js Runtime Bundle (Termux)
+
+# Phase 2.5 CI gate — package Termux's pre-built Node.js + transitive
+# .so dependencies into a relocatable set that we can ship inside our
+# APK's lib/<abi>/ directory.
+#
+# Why:
+#  - Building Node.js from upstream on Android NDK is heavy (~30+ min
+#    CI per ABI, fragile patches). Termux maintainers already ship a
+#    working aarch64 Node binary; we re-use it.
+#  - Termux's Node has DT_RUNPATH hardcoded to
+#    /data/data/com.termux/files/usr/lib. We patchelf that to $ORIGIN
+#    so the libs work from any prefix (we'll drop them in $PREFIX/lib).
+#  - Termux SONAME convention uses .so.N (e.g. libcrypto.so.3). Android
+#    packager rejects that for jniLibs/<abi>/, so we rename .so.N → .so
+#    and update SONAME + DT_NEEDED references via patchelf.
+#
+# Out: artifact `node-runtime-aarch64` containing all .so files ready
+# to drop into feature-local-terminal/src/main/jniLibs/arm64-v8a/.
+#
+# Phase 2.5 sub-phase b (next session) will:
+#  - Download artifact, commit to jniLibs/
+#  - Bootstrapper extracts symlinks + LD_LIBRARY_PATH env
+#  - Bundle chainlesschain CLI npm pack snapshot
+#  - Real-device validate `cc -v`
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/node-runtime-bundle.yml"
+  workflow_dispatch:
+    inputs:
+      abis:
+        description: "Space-separated list of ABIs to build (aarch64 / arm / x86_64 / i686)"
+        default: "aarch64"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Required for the Phase 2.5b auto-commit step at the end of the bundle
+# job. push trigger gets contents:write by default but workflow_dispatch
+# inherits the repo default which can be read-only — make it explicit.
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    name: Bundle Termux Node + deps (${{ matrix.abi }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [aarch64]
+        # NOTE: arm + x86_64 + i686 are Termux ABIs (NDK calls them
+        # armeabi-v7a / x86_64 / x86). They're listed but not built in
+        # the default push trigger to keep iteration fast. Manual
+        # dispatch with abis="aarch64 arm x86_64" expands the matrix.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install patchelf + xz-utils
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y patchelf xz-utils binutils
+          patchelf --version
+
+      - name: Resolve + download Termux .debs
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/termux-debs
+
+          # Packages.gz lists all available Termux packages with their
+          # relative pool paths. Parse once + look up the 8 we need.
+          PKG_INDEX="$(curl -fsSL --retry 3 --retry-delay 2 \
+            https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-${{ matrix.abi }}/Packages.gz \
+            | gunzip)"
+          echo "Index size: $(echo "$PKG_INDEX" | wc -l) lines"
+
+          # Required packages — direct DT_NEEDED of Termux's Node binary,
+          # excluding system libs (libc/libm/libdl which are Bionic-native).
+          # libc++ is the Termux package providing libc++_shared.so —
+          # we *might* be able to use NDK's own copy but include for
+          # ABI compatibility safety.
+          # Termux's node binary's DT_NEEDED list can drift between releases
+          # (Xiaomi 24115RA8EC 2026-05-19: a node upgrade added libffi). Keep
+          # this list in sync; verify with `readelf -d libnode.so | grep NEEDED`
+          # after each Termux update. libdl/libc/libm/libz/etc are Bionic so
+          # excluded.
+          # 2026-05-20 v2 — REVERT to `nodejs` (Node 26) after real-device
+          # verification on Xiaomi 24115RA8EC. Node 24 libnode.so fails to
+          # dlopen in our APK (silent — `node -v` produces no output) because
+          # Termux's stripped libc++_shared.so (renamed libtermux_cxx.so for
+          # AGP) doesn't contain all C++ runtime symbols Node 24's libnode
+          # requires. Phase 2.5 trap 5 same pattern. Node 26 libnode works
+          # (cc -v → 0.162.11, cc --help, node /path/script.js all verified
+          # on device). Trade-off: better-sqlite3-multiple-ciphers engines
+          # .node doesn't list 25/26 so we compile against Node 26 headers
+          # "off-label" — V8 13.x may break some V8 12.x API symbols (e.g.
+          # v8::HandleScope(Isolate*) constructor signature change). Verified
+          # via run on Xiaomi: bs3mc dlopen succeeds but symbol resolution
+          # fails at runtime with cannot locate _ZN2v811HandleScopeC1EPNS_
+          # 7IsolateE. A2.5 = rebuild bs3mc against Node 26 headers.
+          # See docs/design/Personal_Data_Hub_Android_Standalone_Cc.md §7
+          # Sub-Phase A2 + Traps 2/14 for full analysis.
+          PKGS="nodejs libc++ openssl libsqlite libicu c-ares zlib libandroid-support libffi"
+
+          for pkg in $PKGS; do
+            # awk MUST NOT `exit` early — under `set -o pipefail` the
+            # echo at the head of the pipe gets SIGPIPE (exit 141) and
+            # the substitution propagates it, aborting the script. Use
+            # END instead so awk reads to EOF and exits cleanly.
+            filename=$(printf '%s\n' "$PKG_INDEX" | awk -v p="$pkg" '
+              /^Package: /{cur=$2; next}
+              cur==p && /^Filename:/{f=$2}
+              END {print f}
+            ')
+            if [ -z "$filename" ]; then
+              echo "::error::Cannot find $pkg in Termux ${{ matrix.abi }} repo"
+              exit 1
+            fi
+            url="https://packages.termux.dev/apt/termux-main/$filename"
+            out="/tmp/termux-debs/${pkg}.deb"
+            echo "Fetch $pkg → $out (from $url)"
+            curl -fsSL --retry 3 --retry-delay 2 -o "$out" "$url"
+            echo "  $(stat -c%s "$out") bytes"
+          done
+          ls -lh /tmp/termux-debs/
+
+      - name: Extract all .debs
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/extracted
+          for deb in /tmp/termux-debs/*.deb; do
+            name=$(basename "$deb" .deb)
+            tmpdir=$(mktemp -d)
+            ( cd "$tmpdir" && ar x "$deb" )
+            # data.tar may be .xz or .gz or .zst
+            if   [ -f "$tmpdir/data.tar.xz"  ]; then tar -xJf "$tmpdir/data.tar.xz"  -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar.gz"  ]; then tar -xzf "$tmpdir/data.tar.gz"  -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar.zst" ]; then tar --zstd -xf "$tmpdir/data.tar.zst" -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar"     ]; then tar -xf  "$tmpdir/data.tar"     -C /tmp/extracted
+            else echo "::error::No data tarball in $deb"; exit 1
+            fi
+            rm -rf "$tmpdir"
+            echo "Extracted $name"
+          done
+
+      - name: Inventory raw extracted ELF files
+        run: |
+          set -euo pipefail
+          USR=/tmp/extracted/data/data/com.termux/files/usr
+          echo "::group::node binary"
+          ls -la "$USR/bin/node" 2>/dev/null || echo "no node"
+          file "$USR/bin/node" 2>/dev/null || true
+          echo "::endgroup::"
+
+          echo "::group::all *.so* under lib/"
+          find "$USR/lib" -maxdepth 2 \( -type f -o -type l \) -name "*.so*" \
+            -printf "%-6y %s\t%p -> %l\n" | sort
+          echo "::endgroup::"
+
+      - name: Stage + rename libs (`.so.N` → `.so`)
+        id: stage
+        run: |
+          set -euo pipefail
+          USR=/tmp/extracted/data/data/com.termux/files/usr
+          STAGE=/tmp/staged
+          mkdir -p "$STAGE"
+
+          # Copy node first, renamed to libnode.so so Android packager
+          # accepts it as a jniLibs entry. The exec bit is preserved.
+          cp -L "$USR/bin/node" "$STAGE/libnode.so"
+          chmod +x "$STAGE/libnode.so"
+
+          # Copy each .so file resolved through symlinks (cp -L). Termux
+          # ships libcrypto.so.3 + symlink libcrypto.so → libcrypto.so.3.
+          # We want the actual file, renamed to libcrypto.so (no version).
+          for f in $(find "$USR/lib" -maxdepth 2 -type f -name "*.so*"); do
+            base=$(basename "$f")
+            # Strip the ".so.<digits>" suffix to plain ".so". E.g.
+            # libcrypto.so.3        → libcrypto.so
+            # libicui18n.so.78.1    → libicui18n.so
+            # libz.so.1.3.1         → libz.so
+            new=$(echo "$base" | sed -E 's/(\.so)\.[0-9].*$/\1/')
+            cp -L "$f" "$STAGE/$new"
+            echo "  $base → $new"
+          done
+          echo "::group::Stage contents"
+          ls -lh "$STAGE/"
+          echo "::endgroup::"
+
+      - name: Patch RUNPATH + SONAME + DT_NEEDED
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+
+          # Pass 1: every .so + libnode.so → RUNPATH = $ORIGIN so loader
+          # searches the same directory the binary itself lives in.
+          for f in "$STAGE"/*.so; do
+            # Termux libs have stale RUNPATH=/data/data/com.termux/...
+            patchelf --remove-rpath "$f"
+            patchelf --set-rpath '$ORIGIN' "$f"
+          done
+
+          # Pass 2: SONAME on every .so → its file basename (without
+          # version suffix). Without this, libnode.so's "libcrypto.so.3"
+          # DT_NEEDED can't find libcrypto.so even though it's right there
+          # (Android linker matches by SONAME, not filename).
+          for f in "$STAGE"/*.so; do
+            soname=$(basename "$f")
+            if [ "$soname" != "libnode.so" ]; then
+              patchelf --set-soname "$soname" "$f"
+            fi
+          done
+
+          # Pass 3: replace every `.so.N`-style DT_NEEDED reference with
+          # `.so`. Walk libnode + every lib in case Termux's libs cross-
+          # depend (e.g. libssl.so.3 → libcrypto.so.3).
+          for f in "$STAGE"/*.so; do
+            for old in $(patchelf --print-needed "$f"); do
+              new=$(echo "$old" | sed -E 's/(\.so)\.[0-9].*$/\1/')
+              if [ "$old" != "$new" ]; then
+                patchelf --replace-needed "$old" "$new" "$f"
+                echo "  $(basename "$f"): NEEDED $old → $new"
+              fi
+            done
+          done
+
+          # Pass 4: rename libc++_shared.so → libtermux_cxx.so + repoint
+          # every DT_NEEDED reference. Why: AGP merges jniLibs from all
+          # modules into a single APK lib/<abi>/ dir. The NDK's
+          # libc++_shared.so (used by libpty_jni, libtoybox, etc) lacks
+          # specific symbol instantiations (e.g.
+          # `_ZTVNSt6__ndk119basic_ostringstream*`) that Termux Node 25
+          # depends on. AGP's first-wins merge non-deterministically
+          # picks the NDK's smaller stripped variant → libnode fails to
+          # link at runtime ("cannot locate symbol"). Renaming gives our
+          # Termux libc++ a unique SONAME so it coexists with NDK's.
+          if [ -f "$STAGE/libc++_shared.so" ]; then
+            mv "$STAGE/libc++_shared.so" "$STAGE/libtermux_cxx.so"
+            patchelf --set-soname "libtermux_cxx.so" "$STAGE/libtermux_cxx.so"
+            for f in "$STAGE"/*.so; do
+              for old in $(patchelf --print-needed "$f"); do
+                if [ "$old" = "libc++_shared.so" ]; then
+                  patchelf --replace-needed "libc++_shared.so" "libtermux_cxx.so" "$f"
+                  echo "  $(basename "$f"): NEEDED libc++_shared.so → libtermux_cxx.so"
+                fi
+              done
+            done
+          fi
+
+      - name: Verify final ELF metadata
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+          echo "::group::Per-file inventory"
+          for f in "$STAGE"/*.so; do
+            sz=$(stat -c%s "$f")
+            printf "  %-30s %8d B\n" "$(basename "$f")" "$sz"
+          done
+          echo "::endgroup::"
+
+          echo "::group::libnode.so dynamic deps after patching"
+          patchelf --print-needed "$STAGE/libnode.so"
+          echo "  RUNPATH: $(patchelf --print-rpath "$STAGE/libnode.so")"
+          echo "::endgroup::"
+
+          # Sanity check: no remaining `.so.<digit>` references — those
+          # would crash the Android linker at runtime.
+          echo "::group::Stray version refs"
+          fail=0
+          for f in "$STAGE"/*.so; do
+            for n in $(patchelf --print-needed "$f"); do
+              if echo "$n" | grep -qE '\.so\.[0-9]'; then
+                echo "::error::$(basename "$f") still NEEDS $n"
+                fail=1
+              fi
+            done
+          done
+          [ "$fail" = 0 ] || exit 1
+          echo "  (none — all references normalised to .so)"
+          echo "::endgroup::"
+
+      - name: Total size summary
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+          total=$(du -sb "$STAGE" | awk '{print $1}')
+          mb=$((total / 1024 / 1024))
+          {
+            echo "## Termux Node.js Bundle (${{ matrix.abi }})"
+            echo ""
+            echo "Total: **${mb} MB** ($total bytes)"
+            echo ""
+            echo "| File | Size |"
+            echo "|---|---|"
+            for f in "$STAGE"/*.so; do
+              echo "| $(basename "$f") | $(numfmt --to=iec-i --suffix=B $(stat -c%s "$f")) |"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-runtime-${{ matrix.abi }}
+          path: /tmp/staged/*.so
+          retention-days: 30
+          if-no-files-found: error
+
+      # ──────────────────────────────────────────────────────────────────
+      # Phase 2.5b — integrate the staged libs into the repo so that local
+      # builds on Windows can `git pull && ./gradlew :app:assembleDebug`
+      # without ever needing to gh-download the 35MB artifact (Azure CDN
+      # is too flaky for that path from this dev box). Done in-CI so the
+      # patchelf step's output ships directly into jniLibs.
+      #
+      # Only runs for aarch64 (the only ABI Phase 2.5 ships); skip on
+      # other matrix entries via the if-guard.
+      # ──────────────────────────────────────────────────────────────────
+      - name: Stage to jniLibs/arm64-v8a/
+        if: matrix.abi == 'aarch64'
+        run: |
+          set -euo pipefail
+          DEST=android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a
+          mkdir -p "$DEST"
+          # Wipe pre-existing Phase 2.5 .so (NOT libtoybox.so which Phase 5
+          # owns) — match libnode + Termux deps only.
+          for f in libnode.so libc++_shared.so libcrypto.so libssl.so \
+                   libsqlite3.so libicui18n.so libicuuc.so libicudata.so \
+                   libicuio.so libcares.so libz.so libandroid-support.so; do
+            rm -f "$DEST/$f"
+          done
+          cp /tmp/staged/*.so "$DEST/"
+          ls -lh "$DEST/"
+
+      - name: Setup Node.js for CLI pack
+        if: matrix.abi == 'aarch64'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Android NDK (for bs3mc cross-compile)
+        if: matrix.abi == 'aarch64'
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          # local-cache: false — restoring NDK from cache.tzst via `tar -xf`
+          # breaks symlinks (clang -> clang-19), causing the API-versioned
+          # wrapper script (aarch64-linux-android30-clang) to fail at line 4
+          # with "clang: No such file or directory" (exit 127). Verified
+          # run 26150064142 (cache hit fail) vs 26148746496 (fresh download
+          # success). Fresh NDK download is ~30s; acceptable cost. Bug:
+          # https://github.com/nttld/setup-ndk/issues (symlink preservation).
+          local-cache: false
+
+      - name: Pack chainlesschain CLI snapshot (with prod deps)
+        if: matrix.abi == 'aarch64'
+        run: |
+          set -euo pipefail
+          ASSET_DIR=android-app/feature-local-terminal/src/main/assets/local-terminal
+          mkdir -p "$ASSET_DIR"
+
+          # `npm pack` writes only the files listed in package.json — NOT
+          # node_modules/. The unpacked CLI on-device fails with
+          # ERR_MODULE_NOT_FOUND when it imports `commander` etc. We need
+          # to hydrate node_modules too.
+          #
+          # Strategy: pack → extract → npm install --omit=dev → re-tar.
+          # This adds ~15-30MB to the asset but is the only way to keep
+          # the on-device extraction step pure-Kotlin (no Node-on-device
+          # `npm install` which would need network).
+
+          # 0. Build web-panel dist first — `prepublishOnly` runs on `npm
+          # publish` only, NOT on `npm pack`. Without this, the packed CLI
+          # ships an index.html that references missing /assets/index-*.js
+          # bundles → MIME-type fail on first load. (Verified Xiaomi
+          # 24115RA8EC 2026-05-19: `cc ui` HTTP UI loaded blank with
+          # Chrome console errors "expected JavaScript-or-Wasm module
+          # script but server responded with text/html".)
+          (cd packages/cli && npm run build:web-panel) || {
+            echo "::warning::build:web-panel failed; cc ui will fall back to embedded minimal HTML"
+          }
+
+          # 1. Pack the workspace package (captures main HEAD, not registry).
+          PACKED=$(cd packages/cli && npm pack --silent)
+          mv "packages/cli/$PACKED" /tmp/cc-cli-source.tgz
+          echo "Source pack: $(du -h /tmp/cc-cli-source.tgz | cut -f1)"
+
+          # 2. Extract pack to a clean dir.
+          rm -rf /tmp/cc-cli-hydrate
+          mkdir /tmp/cc-cli-hydrate
+          tar -xzf /tmp/cc-cli-source.tgz -C /tmp/cc-cli-hydrate
+          # The tarball leaves a single `package/` directory.
+
+          # 3. Hydrate prod deps INSIDE the extracted package dir.
+          # All @chainlesschain/* deps are published to npm registry as of
+          # 2026-05-19; no more file: rewrite gymnastics needed.
+          cd /tmp/cc-cli-hydrate/package
+          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
+                      --no-package-lock
+          echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
+          echo "Top-level deps: $(ls node_modules | wc -l)"
+
+          # 3b. Plan A Sub-Phase A2.2 — NDK cross-compile of
+          # better-sqlite3-multiple-ciphers Android arm64 binding so the in-APK
+          # cc CLI can open SQLCipher vaults for the Personal Data Hub.
+          #
+          # Method (verified standalone in bs3mc-android-prebuild.yml run
+          # 26148746496, 2026-05-20): NDK r27c + Node 24.15.0 headers +
+          # -static-libstdc++ → .node with DT_NEEDED = libc.so only (fully
+          # Bionic-compatible, no Termux libc++ ABI drift risk).
+          #
+          # Earlier attempts (dry-run 2026-05-20): upstream prebuilt
+          # node-v137-{linux,linuxmusl}-arm64 → REJECTED. musl prebuild needs
+          # libc.musl-aarch64.so.1 + libstdc++.so.6, glibc needs libc.so.6 +
+          # libpthread.so.0 + libstdc++.so.6; neither resolvable on Android
+          # Bionic (Termux ships libc++ LLVM, not libstdc++ GNU). patchelf
+          # rename can't fix the C++ exception ABI mismatch.
+          #
+          # See docs/design/Personal_Data_Hub_Android_Standalone_Cc.md §7
+          # Sub-Phase A2 + Traps 2 / 14 for full analysis.
+
+          # 2026-05-23 — npm's nested resolution leaves TWO bs3mc dirs when
+          # workspace deps disagree on version:
+          #   - core-db@0.1.1 pulls bs3mc 11.0.0 → hoists to top-level node_modules/
+          #   - personal-data-hub@0.2.3 pulls bs3mc 12.5.0 → nested under .../pdh/node_modules/
+          # cc/runtime/bootstrap.js imports @chainlesschain/core-db, which
+          # at runtime resolves to the TOP-LEVEL bs3mc. Compiling only one
+          # (whichever find returned first) shipped a tgz where the runtime-
+          # resolved bs3mc had no .node → "Could not locate the bindings
+          # file" on real device. Loop over ALL bs3mc dirs found.
+          BS3MC_DIRS="$(find /tmp/cc-cli-hydrate/package/node_modules \
+                        -maxdepth 6 -name better-sqlite3-multiple-ciphers \
+                        -type d)"
+          if [ -z "$BS3MC_DIRS" ]; then
+            echo "::notice::better-sqlite3-multiple-ciphers not hoisted to node_modules — skipping NDK build (PDH vault.open will fail on-device until next deps refresh)"
+          else
+            echo "Found bs3mc dirs:"
+            echo "$BS3MC_DIRS"
+
+            # Fetch Node 26 headers matching Termux nodejs apt package
+            # (currently 26.1.0 — DON'T use nodejs-lts/Node 24, see Trap 15
+            # for the real-device verification dead end on Node 24 libnode).
+            # bs3mc upstream engines.node officially supports up to 24.x
+            # only — Node 26 compile may hit V8 13.x API breaks at our V8
+            # direct API call sites. A2.5 experiment — see workflow change
+            # commit message + Trap 15.
+            NODE_TARGET_VERSION="26.1.0"
+            HEADERS_URL="https://nodejs.org/download/release/v${NODE_TARGET_VERSION}/node-v${NODE_TARGET_VERSION}-headers.tar.gz"
+            echo "Fetching Node headers: $HEADERS_URL"
+            curl -fsSL --retry 3 --retry-delay 2 \
+              -o /tmp/node-headers.tar.gz "$HEADERS_URL"
+            mkdir -p /tmp/node-headers
+            tar -xzf /tmp/node-headers.tar.gz -C /tmp/node-headers \
+              --strip-components=1
+
+            # Cross-compile env — set once, reused per bs3mc dir.
+            ANDROID_NDK_HOME="${{ steps.setup-ndk.outputs.ndk-path }}"
+            TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+            API_LEVEL=30
+            export CC="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang"
+            export CXX="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang++"
+            export AR="$TOOLCHAIN/bin/llvm-ar"
+            export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+            export STRIP="$TOOLCHAIN/bin/llvm-strip"
+            export LD="$TOOLCHAIN/bin/ld.lld"
+            export CFLAGS="-fPIC -DANDROID"
+            export CXXFLAGS="-fPIC -DANDROID -std=c++20"
+            # -static-libstdc++ statically embeds libc++ symbols into the
+            # .node — verified produces DT_NEEDED=libc.so only (fully
+            # Bionic-compatible, no Termux libc++ ABI drift risk).
+            export LDFLAGS="-static-libstdc++"
+            # android_ndk_path required — Node 24 common.gypi has
+            # -I<(android_ndk_path)/sources/android/cpufeatures in
+            # OS==android cflags; gyp errors without it (Trap 14).
+            export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"
+
+            # Per-dir compile is best-effort: bs3mc 11.x (resolved from
+            # core-db@0.1.1) doesn't compile against Node 26 V8 13.x headers
+            # (`Value()` deprecated → -Werror). bs3mc 12.5.x (from PDH)
+            # compiles fine. cc/runtime/bootstrap.js wraps core-db import in
+            # try/catch → falls back to ctx.db=null → harmless for `cc hub`
+            # which uses PDH's nested 12.5.x. So tolerate per-dir compile
+            # failure; only fail the workflow if ZERO bs3mc dirs produced
+            # a usable .node.
+            COMPILED=0
+            FAILED=0
+            echo "$BS3MC_DIRS" | while IFS= read -r BS3MC_DIR; do
+              [ -z "$BS3MC_DIR" ] && continue
+              echo ""
+              echo "=== Compiling bs3mc at: $BS3MC_DIR ==="
+              BS3MC_VERSION="$(node -p "require('$BS3MC_DIR/package.json').version")"
+              echo "Version: $BS3MC_VERSION"
+
+              if ! (
+                cd "$BS3MC_DIR"
+                npx -p node-gyp@latest node-gyp configure \
+                  --target_arch=arm64 \
+                  --target_platform=android \
+                  --nodedir=/tmp/node-headers \
+                  && npx -p node-gyp@latest node-gyp build
+              ); then
+                echo "::warning::bs3mc $BS3MC_VERSION compile failed at $BS3MC_DIR — runtime will use try/catch fallback (only fatal if ALL dirs fail)"
+                continue
+              fi
+
+              NODE_BIN="$BS3MC_DIR/build/Release/better_sqlite3.node"
+              if [ ! -f "$NODE_BIN" ]; then
+                echo "::warning::bs3mc $BS3MC_VERSION compile silently dropped .node at $BS3MC_DIR"
+                find "$BS3MC_DIR/build" -maxdepth 4 -type f 2>/dev/null | head -20
+                continue
+              fi
+
+              echo "Pre-strip DT_NEEDED:"
+              patchelf --print-needed "$NODE_BIN" || true
+              echo "Pre-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+
+              # Strip debug info — saves ~10% of size for C++ .node
+              "$STRIP" "$NODE_BIN" || echo "::warning::strip failed; shipping unstripped"
+              echo "Post-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+
+              # Defensive patchelf — if libc++_shared.so leaked into
+              # DT_NEEDED (would mean -static-libstdc++ didn't work this
+              # build), rename to libtermux_cxx.so to match Phase 2.5
+              # convention.
+              if patchelf --print-needed "$NODE_BIN" 2>/dev/null \
+                 | grep -q '^libc++_shared\.so'; then
+                echo "::warning::libc++_shared.so in DT_NEEDED — falling back to patchelf rename"
+                patchelf --replace-needed libc++_shared.so libtermux_cxx.so "$NODE_BIN"
+                echo "Post-patch DT_NEEDED:"
+                patchelf --print-needed "$NODE_BIN"
+              fi
+
+              # Cleanup intermediate artifacts (gyp build dir + sqlite3.a +
+              # object files) — only the .node needs to survive in the tree.
+              # Saves ~30MB per bs3mc dir in cc-cli.tgz.
+              find "$BS3MC_DIR/build" -mindepth 1 -maxdepth 1 \
+                ! -name Release -exec rm -rf {} +
+              find "$BS3MC_DIR/build/Release" -mindepth 1 -maxdepth 1 \
+                ! -name better_sqlite3.node -exec rm -rf {} +
+
+              echo "Final .node + tree:"
+              ls -la "$BS3MC_DIR/build/Release/"
+            done
+
+            # Post-loop: at least one bs3mc dir must have produced a .node.
+            # while-loop var scope dies with subshell, so count via find.
+            PRODUCED=$(find /tmp/cc-cli-hydrate/package/node_modules \
+                       -maxdepth 7 -name better_sqlite3.node -type f \
+                       | wc -l)
+            echo "bs3mc .node files produced: $PRODUCED"
+            if [ "$PRODUCED" = "0" ]; then
+              echo "::error::ALL bs3mc dirs failed to compile — cc hub will not work on-device"
+              exit 1
+            fi
+          fi
+
+          # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
+          # `--strip-components=1`-style tar parser keeps working unchanged.
+          # Force ustar format (POSIX 1003.1-1988) — GNU tar's default is
+          # PAX which encodes long paths via extended headers ('x' typeFlag),
+          # and our hand-rolled Kotlin tar parser in
+          # LocalFilesystemBootstrapper.extractTarToDir handles only ustar's
+          # prefix-split (100 + 155 = 255 char limit). Chainlesschain CLI's
+          # deepest node_modules paths fit comfortably under 255 chars.
+          cd /tmp/cc-cli-hydrate
+          tar --format=ustar -czf /tmp/cc-cli.tgz package/
+          cd "$GITHUB_WORKSPACE"
+          mv /tmp/cc-cli.tgz "$ASSET_DIR/cc-cli.tgz"
+          echo "Hydrated pack: $(du -h "$ASSET_DIR/cc-cli.tgz" | cut -f1)"
+          sha256sum "$ASSET_DIR/cc-cli.tgz" | head -c 16
+          echo "  ← cc-cli.tgz sha256 prefix"
+
+      - name: Commit + push integration
+        if: matrix.abi == 'aarch64'
+        run: |
+          set -euo pipefail
+          git config user.email "actions@github.com"
+          git config user.name  "github-actions[bot]"
+          git add android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/ \
+                  android-app/feature-local-terminal/src/main/assets/local-terminal/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          # Show what's about to land so the run log is self-documenting.
+          git diff --cached --stat
+          # Use single-line subject so the YAML run:| block stays unambiguous;
+          # detailed body via -m flag repeats.
+          git commit \
+            -m "chore(android): refresh Phase 2.5 Node + cc CLI bundle [skip ci]" \
+            -m "Auto-generated by node-runtime-bundle.yml run ${{ github.run_id }}." \
+            -m "- Termux nodejs (Node 26.x current) + 8 transitive deps (libssl/libcrypto/libicu*/libz/libsqlite/libc-ares/libc++_shared/libandroid-support/libffi)" \
+            -m "- chainlesschain CLI snapshot @ HEAD (packages/cli/ npm pack) + bs3mc Android arm64 .node (NDK r27c cross-compile against Node 26.1.0 headers, Plan A A2.5)" \
+            -m "Manual rebuild: re-run the workflow via workflow_dispatch."
+          # Push back to main using GITHUB_TOKEN (default permission is
+          # contents:write on push triggers, but workflow_dispatch needs
+          # the same scope — the repo workflow defaults already grant it).
+          #
+          # Defensive rebase-pull before push: if a concurrent commit landed
+          # on main between this workflow's checkout (step 2) and now, plain
+          # push fails with "! [rejected] HEAD -> main (fetch first)".
+          # Pulling with rebase replays our auto-commit on top of any remote
+          # progress. Conflict only possible if the concurrent commit also
+          # changed jniLibs/arm64-v8a/ or assets/local-terminal/ — unlikely
+          # because those paths are auto-managed. If a conflict surfaces, the
+          # rebase aborts and the workflow fails loudly (preferred over
+          # silent stomp). 2026-05-20 — added after run 26147061489 race.
+          #
+          # --autostash: step 14 runs `npm run build:web-panel` which
+          # regenerates packages/web-panel/dist/index.html (git tracked) —
+          # the regen is unstaged-not-committed. Without autostash, the pull
+          # rebase refuses with "cannot pull with rebase: You have unstaged
+          # changes" (verified run 26147569387). autostash stashes the
+          # unstaged regen, rebases, restores. The regen itself is intentional
+          # for cc-cli.tgz inclusion but does NOT need to be committed
+          # (re-emitted on each run anyway).
+          git pull --rebase --autostash origin main || {
+            echo "::error::git pull --rebase failed — likely conflict on auto-managed paths. Manual intervention required."
+            exit 1
+          }
+          git push origin HEAD:main

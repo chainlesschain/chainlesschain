@@ -1,0 +1,735 @@
+/**
+ * Electron Forge Configuration
+ * 配置打包选项，包含后端服务组件
+ */
+
+const path = require("path");
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+const APP_NAME = "ChainlessChain";
+const ROOT_DIR = path.join(__dirname, "..");
+const PACKAGING_DIR = path.join(ROOT_DIR, "packaging");
+const PROJECT_SERVICE_TARGET_DIR = path.join(
+  ROOT_DIR,
+  "backend",
+  "project-service",
+  "target",
+);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const tryKillProcess = (imageName) => {
+  if (process.platform !== "win32") {
+    return;
+  }
+  try {
+    execSync(`taskkill /F /IM ${imageName} /T`, { stdio: "ignore" });
+  } catch (error) {
+    // Process may not be running; ignore.
+  }
+};
+
+const resolveProjectServiceJar = () => {
+  const directJar = path.join(
+    PROJECT_SERVICE_TARGET_DIR,
+    "project-service.jar",
+  );
+  if (fs.existsSync(directJar)) {
+    return directJar;
+  }
+
+  if (!fs.existsSync(PROJECT_SERVICE_TARGET_DIR)) {
+    return null;
+  }
+
+  const candidates = fs
+    .readdirSync(PROJECT_SERVICE_TARGET_DIR)
+    .filter(
+      (name) =>
+        /^project-service-.*\.jar$/.test(name) && !/sources|javadoc/.test(name),
+    )
+    .map((name) => ({
+      name,
+      fullPath: path.join(PROJECT_SERVICE_TARGET_DIR, name),
+    }))
+    .filter((entry) => fs.statSync(entry.fullPath).isFile());
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => {
+    return fs.statSync(b.fullPath).mtimeMs - fs.statSync(a.fullPath).mtimeMs;
+  });
+
+  return candidates[0].fullPath;
+};
+
+const collectExtraResources = () => {
+  const extraResources = [];
+  const missingResources = [];
+
+  // sql.js wasm文件可能在desktop-app-vue/node_modules或根目录node_modules
+  let sqlWasmPath = path.join(
+    __dirname,
+    "node_modules",
+    "sql.js",
+    "dist",
+    "sql-wasm.wasm",
+  );
+  if (!fs.existsSync(sqlWasmPath)) {
+    // 尝试根目录的node_modules
+    sqlWasmPath = path.join(
+      ROOT_DIR,
+      "node_modules",
+      "sql.js",
+      "dist",
+      "sql-wasm.wasm",
+    );
+  }
+
+  if (fs.existsSync(sqlWasmPath)) {
+    extraResources.push(sqlWasmPath);
+  } else {
+    missingResources.push("node_modules/sql.js/dist/sql-wasm.wasm");
+  }
+
+  const scriptsDir = path.join(PACKAGING_DIR, "scripts");
+  if (fs.existsSync(scriptsDir)) {
+    // electron-packager extraResource需要的是简单的字符串路径，不是对象
+    extraResources.push(scriptsDir);
+  } else {
+    // scripts目录不是必需的，只记录警告
+    console.warn(
+      "[Packaging] Optional scripts directory not found: packaging/scripts",
+    );
+  }
+
+  const projectServiceJar = resolveProjectServiceJar();
+  if (projectServiceJar) {
+    extraResources.push(projectServiceJar);
+  } else {
+    missingResources.push(
+      "backend/project-service/target/project-service-*.jar",
+    );
+  }
+
+  const dirPaths = [
+    {
+      path: path.join(PACKAGING_DIR, "jre-17"),
+      label: "packaging/jre-17",
+    },
+    {
+      path: path.join(PACKAGING_DIR, "postgres"),
+      label: "packaging/postgres",
+    },
+    {
+      path: path.join(PACKAGING_DIR, "redis"),
+      label: "packaging/redis",
+    },
+    {
+      path: path.join(PACKAGING_DIR, "qdrant"),
+      label: "packaging/qdrant",
+    },
+    {
+      path: path.join(PACKAGING_DIR, "config"),
+      label: "packaging/config",
+    },
+  ];
+
+  dirPaths.forEach(({ path: dirPath, label }) => {
+    if (fs.existsSync(dirPath)) {
+      extraResources.push(dirPath);
+    } else {
+      missingResources.push(label);
+    }
+  });
+
+  // Docker 离线打包支持：包含 Docker 镜像和脚本
+  const dockerImagesDir = path.join(PACKAGING_DIR, "docker-images");
+  if (fs.existsSync(dockerImagesDir)) {
+    console.log(
+      "[Packaging] ✓ Found Docker images directory - creating offline package",
+    );
+    extraResources.push(dockerImagesDir);
+
+    // 统计镜像大小
+    const getDirectorySize = (dir) => {
+      let totalSize = 0;
+      const files = fs.readdirSync(dir);
+      files.forEach((file) => {
+        const filePath = path.join(dir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.isFile()) {
+          totalSize += stats.size;
+        }
+      });
+      return totalSize;
+    };
+
+    const sizeBytes = getDirectorySize(dockerImagesDir);
+    const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+    console.log(`[Packaging] Docker images size: ${sizeMB} MB`);
+  } else {
+    console.warn(
+      "[Packaging] ⚠ Docker images not found - package will require internet",
+    );
+    console.warn(
+      '[Packaging] Run "export-docker-images.bat" to create offline package',
+    );
+  }
+
+  // 包含 Docker Compose 和启动脚本
+  const dockerFiles = [
+    "docker-compose.production.yml",
+    "start-services.sh",
+    "start-services.bat",
+    "load-docker-images.sh",
+    "load-docker-images.bat",
+    ".env.example",
+  ];
+
+  dockerFiles.forEach((filename) => {
+    const filePath = path.join(PACKAGING_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      extraResources.push(filePath);
+    }
+  });
+
+  return { extraResources, missingResources, projectServiceJar };
+};
+
+const cleanPackagerOutput = async (platform, arch) => {
+  const outDir = path.join(__dirname, "out", `${APP_NAME}-${platform}-${arch}`);
+  if (!fs.existsSync(outDir)) {
+    return;
+  }
+
+  tryKillProcess("chainlesschain.exe");
+  tryKillProcess("ChainlessChain.exe");
+
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        const reason = error && error.message ? ` (${error.message})` : "";
+        throw new Error(
+          `Failed to remove ${outDir}${reason}. Close any running ChainlessChain app or open Explorer windows and retry.`,
+        );
+      }
+    }
+
+    if (!fs.existsSync(outDir)) {
+      return;
+    }
+    await sleep(600);
+  }
+};
+
+const { extraResources, missingResources, projectServiceJar } =
+  collectExtraResources();
+
+module.exports = {
+  rebuildConfig: {
+    // Skip rebuilding native DB modules — CI sets CHAINLESSCHAIN_DISABLE_NATIVE_DB=1
+    // and uses a pure-JS fallback, so node-gyp rebuild is unnecessary and fails on macOS CI.
+    onlyModules: [],
+  },
+  packagerConfig: {
+    name: "ChainlessChain",
+    executableName: "chainlesschain",
+    icon: path.join(__dirname, "assets", "icon"),
+    // Allow offline packaging when a local Electron ZIP cache directory is provided.
+    electronZipDir: process.env.ELECTRON_ZIP_DIR,
+    asar: {
+      // 仅排除原生模块和可执行文件。Phase 1.4 web-shell vendor 树
+      // (packages/cli/src + packages/web-panel/dist) 由 packageAfterCopy 直接
+      // 拷到 path.join(buildPath, "..") = Resources/ — 在 asar 之外，
+      // 无需 unpack glob 覆盖。loader 的 4-up REL 命中 Resources/packages/...
+      // 时是真 fs 路径，dynamic import via pathToFileURL 不经过 Electron 的
+      // asar fs shim。
+      unpack: "*.{node,dll,dylib,so,exe}",
+    },
+    extraResource: extraResources,
+
+    // 🚀 性能优化：启用prune以移除未使用的依赖（减少30-50%包体积）
+    // 注意：如果使用workspace，需要确保所有依赖都在package.json中声明
+    // Disable prune for workspace installs; flora-colossus mis-resolves our
+    // hoisted and nested dependency layout before packageAfterCopy can fix it.
+    prune: false,
+
+    // 指定需要保留的npm包（即使prune=true）
+    // 如果某些包在运行时动态require，在这里列出
+    // pruneKeepList: [
+    //   'some-dynamic-module',
+    // ],
+
+    // 忽略不需要打包的文件
+    ignore: [
+      // 测试文件
+      /^\/tests/,
+      /^\/test/,
+      /\.test\.js$/,
+      /\.test\.ts$/,
+      /\.spec\.js$/,
+      /\.spec\.ts$/,
+
+      // 文档和配置文件
+      /^\/docs/,
+      /^\/\.vscode/,
+      /^\/\.git/,
+      /^\/\.github/,
+      /^\/browser-extension/,
+
+      // 开发工具
+      /^\/scripts\/test/,
+      /^\/coverage/,
+      /^\/playwright-report/,
+      /\.coverage$/,
+
+      // Node modules 优化 - 修改为更精确的规则，避免误删
+      /node_modules\/.*\/test\//,
+      /node_modules\/.*\/tests\//,
+      /node_modules\/.*\/\.github\//,
+      /node_modules\/.*\/\.vscode\//,
+
+      // 运行时不需要的类型声明和文档（节省 10-30 MB）
+      /node_modules\/.*\.d\.ts$/,
+      /node_modules\/.*\/CHANGELOG(\.md)?$/i,
+      /node_modules\/.*\/HISTORY(\.md)?$/i,
+      /node_modules\/.*\/AUTHORS$/i,
+      /node_modules\/.*\/CONTRIBUTING(\.md)?$/i,
+      /node_modules\/.*\/\.editorconfig$/,
+      /node_modules\/.*\/\.eslintrc(\..+)?$/,
+      /node_modules\/.*\/\.prettierrc(\..+)?$/,
+      /node_modules\/.*\/tsconfig(\..+)?\.json$/,
+      /node_modules\/.*\/\.nycrc$/,
+      /node_modules\/.*\/\.travis\.yml$/,
+      /node_modules\/.*\/appveyor\.yml$/i,
+      /node_modules\/.*\/yarn\.lock$/,
+
+      // Native SQLite modules — packaged app uses sql.js (pure JS/WASM) for
+      // cross-platform compatibility. Excluding .node binaries avoids ABI mismatch
+      // errors on macOS (older versions / different architectures) and reduces bundle size.
+      /node_modules\/better-sqlite3[^/]*\/build\//,
+      /node_modules\/better-sqlite3[^/]*\/prebuilds\//,
+
+      // Playwright-core：只打包当前平台的浏览器
+      // playwright 浏览器安装到 ~/.cache/ms-playwright，不进包；但仍去除 driver 冗余
+      /node_modules\/playwright-core\/.local-browsers\//,
+
+      // 源码映射
+      /\.map$/,
+
+      // 临时文件
+      /^\/temp/,
+      /^\/tmp/,
+      /\.log$/,
+
+      // Windows特殊文件（防止NUL设备文件被打包）
+      /\/NUL$/i,
+      /\/nul$/i,
+      /^NUL$/i,
+      /^nul$/i,
+
+      // 其他
+      /^\/\.env\.local/,
+      /^\/\.env\.development/,
+    ],
+  },
+
+  makers: [
+    {
+      name: "@electron-forge/maker-zip",
+      platforms: ["win32", "darwin", "linux"],
+    },
+    // DMG maker depends on `appdmg` → native `fs-xattr` whose old binding.gyp
+    // fails to compile on macOS 15 runners (clang: unknown option '-o').
+    // CI sets DISABLE_DMG=1 and ships macOS as ZIP instead.
+    ...(process.env.DISABLE_DMG === "1"
+      ? []
+      : [
+          {
+            name: "@electron-forge/maker-dmg",
+            config: {
+              name: "ChainlessChain",
+              icon: path.join(__dirname, "assets", "icon.icns"),
+              format: "ULFO",
+              overwrite: true,
+            },
+          },
+        ]),
+    // Squirrel installer - temporarily disabled due to path issues
+    // Re-enable after investigating the nuspec generation error
+    /*
+    {
+      name: '@electron-forge/maker-squirrel',
+      config: {
+        name: 'chainlesschain',
+        authors: 'ChainlessChain Team',
+        description: 'ChainlessChain - 去中心化个人AI管理系统',
+        setupIcon: path.join(__dirname, 'build', 'icon.ico'),
+        // Squirrel.Windows 安装选项
+        noMsi: true,
+        // 设置安装目录
+        setupExe: `ChainlessChain-Setup-${require('./package.json').version}.exe`
+      }
+    },
+    */
+    {
+      name: "@electron-forge/maker-deb",
+      config: {
+        options: {
+          bin: "chainlesschain",
+          maintainer: "ChainlessChain Team",
+          homepage: "https://chainlesschain.com",
+        },
+      },
+    },
+    {
+      name: "@electron-forge/maker-rpm",
+      config: {
+        options: {
+          bin: "chainlesschain",
+          homepage: "https://chainlesschain.com",
+        },
+      },
+    },
+  ],
+
+  publishers: [
+    // 可以配置发布到GitHub Releases等
+    /*
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'chainlesschain',
+          name: 'chainlesschain'
+        },
+        prerelease: false,
+        draft: true
+      }
+    }
+    */
+  ],
+
+  hooks: {
+    prePackage: async (config, platform, arch) => {
+      // Mac打包：使用Docker，不需要所有后端资源
+      // 或者设置环境变量 SKIP_BACKEND_CHECK=true 跳过后端检查
+      if (platform === "darwin" || process.env.SKIP_BACKEND_CHECK === "true") {
+        console.log(
+          "[Packaging] Mac build or SKIP_BACKEND_CHECK: Backend services will use Docker",
+        );
+        console.log("[Packaging] Skipping backend resources check");
+        if (process.env.SKIP_BACKEND_CHECK === "true") {
+          console.log("[Packaging] ⚠️  WARNING: This is a frontend-only build");
+          console.log(
+            "[Packaging] Backend services (PostgreSQL, Redis, Qdrant) will not be included",
+          );
+          console.log(
+            "[Packaging] Use Docker Compose to run backend services separately",
+          );
+        }
+      } else if (missingResources.length > 0) {
+        const missingList = missingResources
+          .map((item) => `- ${item}`)
+          .join("\n");
+        throw new Error(
+          `Missing packaging resources:\n${missingList}\n\nFollow packaging/docs/MANUAL_DOWNLOAD_GUIDE.md to download dependencies manually.`,
+        );
+      }
+
+      if (projectServiceJar) {
+        console.log(
+          `[Packaging] Using Project Service JAR: ${projectServiceJar}`,
+        );
+      }
+
+      await cleanPackagerOutput(platform, arch);
+    },
+    // 打包前的钩子
+    packageAfterCopy: async (
+      config,
+      buildPath,
+      electronVersion,
+      platform,
+      arch,
+    ) => {
+      console.log("Running post-copy hook...");
+
+      // Merge workspace hoisted deps into buildPath/node_modules.
+      // npm workspaces split deps between root/node_modules (hoisted) and
+      // desktop-app-vue/node_modules (non-hoistable conflict-resolution versions,
+      // e.g. handlebars pinned to v4 while another workspace needs v5). Plus,
+      // workspace-linked packages (@chainlesschain/*) are symlinks pointing at
+      // sibling `packages/*` dirs.
+      //
+      // electron-forge's own copy brings the nested tree (including symlinks) into
+      // buildPath. We must merge root hoisted on top WITHOUT:
+      //   1. overwriting nested conflict-resolution versions (breaks version pins),
+      //   2. re-creating symlinks that already exist (EEXIST crash).
+      //
+      // Strategy: walk root's package dirs, and for each entry only copy when the
+      // destination has NO corresponding entry at all. Inside scoped namespaces
+      // (@xxx/) recurse one level to merge individual scoped packages.
+      const rootNodeModules = path.join(ROOT_DIR, "node_modules");
+      const buildNodeModules = path.join(buildPath, "node_modules");
+
+      console.log("[Packaging] Merging workspace hoisted deps into bundle...");
+      console.log(`  From: ${rootNodeModules}`);
+      console.log(`  Into: ${buildNodeModules}`);
+
+      if (!fs.existsSync(buildNodeModules)) {
+        fs.mkdirSync(buildNodeModules, { recursive: true });
+      }
+
+      const hasEntry = (p) => {
+        try {
+          fs.lstatSync(p);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const copyMissing = (srcDir, dstDir) => {
+        for (const name of fs.readdirSync(srcDir)) {
+          if (name.startsWith(".")) {
+            continue;
+          }
+          const src = path.join(srcDir, name);
+          const dst = path.join(dstDir, name);
+          const srcStat = fs.lstatSync(src);
+          if (srcStat.isSymbolicLink()) {
+            continue;
+          }
+          if (hasEntry(dst)) {
+            // Scoped namespaces (@chainlesschain/, @eslint/, …) need per-package
+            // merging: dst may have some sub-packages (from forge's copy of nested)
+            // and be missing others (hoisted at root only).
+            if (name.startsWith("@")) {
+              const dstStat = fs.lstatSync(dst);
+              if (srcStat.isDirectory() && dstStat.isDirectory()) {
+                copyMissing(src, dst);
+              }
+            }
+            continue;
+          }
+          fs.cpSync(src, dst, { recursive: true, dereference: false });
+        }
+      };
+
+      try {
+        copyMissing(rootNodeModules, buildNodeModules);
+        console.log(
+          "[Packaging] Merge complete (nested deps and symlinks preserved)",
+        );
+      } catch (error) {
+        console.error(
+          "[Packaging] Failed to merge node_modules:",
+          error.message,
+        );
+        throw error;
+      }
+
+      // Phase 1.4 — vendor packages/cli/src + packages/web-panel/dist into
+      // path.join(buildPath, "..") = Resources/ in a packaged app. The
+      // web-shell loaders' REL constants (`../../../../packages/cli/src/lib/
+      // web-ui-server.js` etc.) hop 4-up from `<buildPath>/dist/main/
+      // web-shell/`, landing at the parent of buildPath. So packages/ must
+      // live there — NOT under buildPath, where it would overshoot.
+      // Sitting at Resources/ also keeps the vendored ESM files outside
+      // the asar entirely, so dynamic import via pathToFileURL hits real
+      // on-disk paths without going through Electron's asar fs shim.
+      // Path math validated by tests/unit/scripts/phase1.4-path-math.test.js.
+      try {
+        const {
+          vendorWebShellInto,
+        } = require("./scripts/prepare-web-shell-vendor.js");
+        const vendorTarget = path.join(buildPath, "..");
+        const stats = vendorWebShellInto(vendorTarget);
+        console.log(
+          `[Packaging] web-shell vendor → ${vendorTarget}: ${stats.cli.files + stats.webPanel.files} files, ` +
+            `${(stats.totalBytes / (1024 * 1024)).toFixed(2)} MB`,
+        );
+      } catch (error) {
+        console.error("[Packaging] web-shell vendor failed:", error.message);
+        throw error;
+      }
+
+      // 校验：package.json 中声明的每个 runtime 依赖必须真实落到 buildNodeModules。
+      // 若 hoisting / junction / prune 任一环节把依赖弄丢，这里直接抛错，
+      // 让构建在生成 zip 之前失败 —— 胜过终端用户双击时才炸出 "Cannot find module"。
+      const buildPkg = JSON.parse(
+        fs.readFileSync(path.join(buildPath, "package.json"), "utf-8"),
+      );
+      const declaredDeps = Object.keys(buildPkg.dependencies || {});
+      const missingDeps = declaredDeps.filter((depName) => {
+        const depPkgJson = path.join(buildNodeModules, depName, "package.json");
+        return !fs.existsSync(depPkgJson);
+      });
+      if (missingDeps.length > 0) {
+        throw new Error(
+          `[Packaging] Packaged bundle missing ${missingDeps.length} declared dependencies: ${missingDeps.join(", ")}\n` +
+            `Run \`npm install\` at repo root to restore workspace hoisting, then re-run the packaging command.`,
+        );
+      }
+      console.log(
+        `[Packaging] Verified ${declaredDeps.length} declared deps are present in bundle`,
+      );
+
+      // ==========================================================
+      // 跨平台二进制瘦身：删除当前打包平台/架构之外的原生预构建文件。
+      // 一次节省 80-200 MB（sharp/@img、ffmpeg-installer、ffprobe-installer）。
+      // ==========================================================
+      try {
+        const keepPlatform = platform; // "win32" | "darwin" | "linux"
+        const keepArch = arch; // "x64" | "arm64"
+        const pruneForeignBinaries = (
+          dir,
+          { platformKeys, currentPlatformArch },
+        ) => {
+          if (!fs.existsSync(dir)) return 0;
+          let freed = 0;
+          for (const name of fs.readdirSync(dir)) {
+            const full = path.join(dir, name);
+            let stat;
+            try {
+              stat = fs.lstatSync(full);
+            } catch {
+              continue;
+            }
+            if (!stat.isDirectory()) continue;
+            const lower = name.toLowerCase();
+            const matchesSomePlatform = platformKeys.some((p) =>
+              lower.includes(p),
+            );
+            if (matchesSomePlatform && !lower.includes(currentPlatformArch)) {
+              try {
+                fs.rmSync(full, { recursive: true, force: true });
+                freed++;
+              } catch {
+                // 忽略个别文件夹删除失败
+              }
+            }
+          }
+          return freed;
+        };
+
+        const currentKey = `${keepPlatform}-${keepArch}`;
+        const platformKeys = [
+          "win32",
+          "darwin",
+          "linux",
+          "linuxmusl",
+          "freebsd",
+        ];
+
+        // sharp v0.33+ 拆成独立的 @img/sharp-<platform>-<arch> 模块
+        const imgScopeDir = path.join(buildNodeModules, "@img");
+        if (fs.existsSync(imgScopeDir)) {
+          const freed = pruneForeignBinaries(imgScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey.replace("darwin", "darwin"),
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @img/sharp-* binaries`,
+            );
+          }
+        }
+
+        // @ffmpeg-installer/<platform>-<arch>
+        const ffmpegScopeDir = path.join(buildNodeModules, "@ffmpeg-installer");
+        if (fs.existsSync(ffmpegScopeDir)) {
+          const freed = pruneForeignBinaries(ffmpegScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey,
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @ffmpeg-installer binaries`,
+            );
+          }
+        }
+
+        // @ffprobe-installer/<platform>-<arch>
+        const ffprobeScopeDir = path.join(
+          buildNodeModules,
+          "@ffprobe-installer",
+        );
+        if (fs.existsSync(ffprobeScopeDir)) {
+          const freed = pruneForeignBinaries(ffprobeScopeDir, {
+            platformKeys,
+            currentPlatformArch: currentKey,
+          });
+          if (freed > 0) {
+            console.log(
+              `[Packaging] Pruned ${freed} foreign @ffprobe-installer binaries`,
+            );
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "[Packaging] Foreign-binary prune failed (non-fatal):",
+          error.message,
+        );
+      }
+
+      // 创建必要的目录结构
+      const dataDir = path.join(buildPath, "..", "..", "data");
+      const dirs = [
+        dataDir,
+        path.join(dataDir, "postgres"),
+        path.join(dataDir, "redis"),
+        path.join(dataDir, "qdrant"),
+        path.join(dataDir, "logs"),
+      ];
+
+      dirs.forEach((dir) => {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+          console.log(`Created directory: ${dir}`);
+        }
+      });
+
+      // 创建 README 文件说明数据目录
+      const readmePath = path.join(dataDir, "README.txt");
+      const readmeContent = `ChainlessChain Data Directory
+========================================
+
+This directory contains all application data:
+- postgres/: PostgreSQL database files
+- redis/: Redis persistence files
+- qdrant/: Qdrant vector database
+- logs/: Application and service logs
+- chainlesschain.db: Main SQLite database (encrypted)
+
+IMPORTANT: Do not delete this directory unless you want to reset all data.
+
+For backup, copy this entire directory to a safe location.
+`;
+      fs.writeFileSync(readmePath, readmeContent, "utf8");
+
+      console.log("Post-copy hook completed");
+    },
+
+    // 生成安装包后的钩子
+    postMake: async (config, makeResults) => {
+      console.log("Build completed successfully!");
+      console.log("Output files:");
+      makeResults.forEach((result) => {
+        result.artifacts.forEach((artifact) => {
+          console.log(`  - ${artifact}`);
+        });
+      });
+
+      return makeResults;
+    },
+  },
+};

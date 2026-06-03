@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Electron
+*.lnk
+
+# Playwright
+playwright-report/
+test-results/
+
+# Temporary files
+*.txt
+*.pptx
+*.json.bak
+
+# OCR training data (large files)
+*.traineddata
+
+# Temporary directories
+.temp/
+.temp-cache-test/
+*/.temp-cache-test/
+.plugin-cache/
+test-auto-mkdir/
+test-data/
+test-data-output/
+
+# Temporary fix/debug scripts (root level one-off scripts)
+fix-*.js
+diagnose-*.js
+verify-*.js
+check-*.bat
+test-*.js
+!tests/
+!tests/unit/scripts/verify-release-artifacts.test.js
+!scripts/verify-release-artifacts.js
+!scripts/fix-broken-bin-shims.js
+!scripts/remove-nested-asar-dupes.js
+!scripts/electron-after-pack.js
+
+# Temporary summary/report docs
+*_FIX.md
+*_SUMMARY.md
+*_VERIFICATION.md
+*_REPORT.txt
+*_COMPLETION_REPORT.txt
+
+# Ad-hoc test scripts directory
+test-scripts/

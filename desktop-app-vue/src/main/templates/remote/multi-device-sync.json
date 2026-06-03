@@ -1,0 +1,64 @@
+{
+  "id": "tpl_demo_sync_001",
+  "name": "multi_device_sync",
+  "display_name": "多设备文件同步",
+  "description": "演示远程控制技能，实现多设备间的文件同步和剪贴板共享工作流",
+  "icon": "🔗",
+  "category": "remote",
+  "subcategory": "sync",
+  "tags": [
+    "sync",
+    "multi-device",
+    "file-transfer",
+    "clipboard",
+    "remote",
+    "demo",
+    "skill"
+  ],
+  "project_type": "workflow",
+  "prompt_template": "请帮我配置多设备文件同步工作流：\n\n**同步方式：** {{syncMode}}\n**同步内容：** {{syncContent}}\n**设备选择：** {{deviceFilter}}\n\n**工作流步骤：**\n\n### 步骤1：发现可用设备\n列出所有已连接的设备：\n```\n/remote-control list-devices\n```\n\n### 步骤2：检查设备状态\n获取目标设备的系统信息：\n```\n/remote-control system-info\n```\n\n### 步骤3：执行同步\n\n{{#eq syncMode \"文件同步\"}}\n#### 文件同步\n将指定文件传输到远程设备：\n```\n/remote-control file-transfer send {{syncContent}}\n```\n{{/eq}}\n\n{{#eq syncMode \"剪贴板同步\"}}\n#### 剪贴板同步\n同步剪贴板内容到所有设备：\n```\n/remote-control clipboard-sync\n```\n{{/eq}}\n\n{{#eq syncMode \"双向同步\"}}\n#### 双向同步\n1. 同步文件：\n```\n/remote-control file-transfer send {{syncContent}}\n```\n2. 同步剪贴板：\n```\n/remote-control clipboard-sync\n```\n{{/eq}}\n\n### 步骤4：验证同步结果\n在远程设备上执行验证命令：\n```\n/remote-control exec ls -la /path/to/synced/files\n```\n\n### 步骤5：记录同步日志\n```\n/memory-management save \"设备同步完成: {{syncMode}} - {{syncContent}}\"\n```\n\n**使用的技能：** remote-control, memory-management\n\n**注意：**\n- 确保设备已通过 WebRTC 信令服务器连接\n- 大文件传输请确保网络稳定\n- 敏感文件传输使用端到端加密",
+  "variables_schema": [
+    {
+      "name": "syncMode",
+      "label": "同步方式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "文件同步", "label": "文件同步" },
+        { "value": "剪贴板同步", "label": "剪贴板同步" },
+        { "value": "双向同步", "label": "双向同步（文件+剪贴板）" }
+      ]
+    },
+    {
+      "name": "syncContent",
+      "label": "同步内容",
+      "type": "string",
+      "required": false,
+      "placeholder": "文件路径或目录，如 /Documents/project",
+      "default": "./data"
+    },
+    {
+      "name": "deviceFilter",
+      "label": "设备筛选",
+      "type": "select",
+      "required": false,
+      "default": "所有设备",
+      "options": [
+        { "value": "所有设备", "label": "所有已连接设备" },
+        { "value": "仅Android", "label": "仅Android设备" },
+        { "value": "仅桌面", "label": "仅桌面设备" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["remote-control", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

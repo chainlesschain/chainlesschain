@@ -1,0 +1,29 @@
+{
+  "name": "chainlesschain-website",
+  "version": "12.0.0",
+  "description": "ChainlessChain 官方网站 - 性能优化版",
+  "scripts": {
+    "build": "node build.js",
+    "optimize": "npm run optimize:images && npm run optimize:qr && npm run optimize:css",
+    "optimize:images": "node scripts/tools/optimize-images-sharp.js",
+    "optimize:qr": "node scripts/tools/generate-qr.js",
+    "optimize:css": "node scripts/tools/build-css.js",
+    "serve": "python -m http.server 8000 || npx http-server -p 8000",
+    "deploy:server": "npm run optimize && npm run build && bash scripts/deploy/deploy-to-server.sh",
+    "deploy:github": "npm run optimize && npm run build && bash scripts/deploy/deploy-to-github.sh",
+    "clean": "rm -rf dist",
+    "test:performance": "echo '请访问 https://pagespeed.web.dev/ 测试性能'"
+  },
+  "keywords": [
+    "chainlesschain",
+    "website",
+    "static",
+    "performance-optimized"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.5"
+  }
+}

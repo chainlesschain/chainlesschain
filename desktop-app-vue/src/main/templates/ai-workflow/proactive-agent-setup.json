@@ -1,0 +1,60 @@
+{
+  "id": "tpl_demo_proactive_001",
+  "name": "proactive_agent_setup",
+  "display_name": "主动式智能助手配置",
+  "description": "演示主动式智能代理技能，配置 AI 自动感知上下文并主动提供建议",
+  "icon": "🎯",
+  "category": "ai-workflow",
+  "subcategory": "agent",
+  "tags": ["proactive", "agent", "ai", "suggestion", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我配置主动式智能助手：\n\n**监控场景：** {{scenario}}\n**主动程度：** {{proactiveLevel}}\n**通知方式：** {{notifyMethod}}\n\n**配置步骤：**\n\n### 步骤1：启动主动感知\n```\n/proactive-agent enable --scenario {{scenario}} --level {{proactiveLevel}}\n```\n\n### 步骤2：配置触发规则\n根据场景自动设置触发条件：\n{{#eq scenario \"coding\"}}\n- 代码错误自动提示修复建议\n- 重复模式自动建议抽象\n- 性能问题自动预警\n{{/eq}}\n{{#eq scenario \"writing\"}}\n- 语法和拼写自动纠错\n- 风格一致性建议\n- 内容结构优化建议\n{{/eq}}\n{{#eq scenario \"research\"}}\n- 相关资料自动推荐\n- 知识图谱关联提示\n- 研究方向建议\n{{/eq}}\n\n### 步骤3：查看建议\n```\n/proactive-agent suggestions\n```\n\n**使用的技能：** proactive-agent, memory-management, smart-search",
+  "variables_schema": [
+    {
+      "name": "scenario",
+      "label": "监控场景",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "coding", "label": "编码开发" },
+        { "value": "writing", "label": "内容写作" },
+        { "value": "research", "label": "研究分析" }
+      ]
+    },
+    {
+      "name": "proactiveLevel",
+      "label": "主动程度",
+      "type": "select",
+      "required": false,
+      "default": "moderate",
+      "options": [
+        { "value": "minimal", "label": "最小（仅关键问题）" },
+        { "value": "moderate", "label": "适中" },
+        { "value": "aggressive", "label": "积极（频繁建议）" }
+      ]
+    },
+    {
+      "name": "notifyMethod",
+      "label": "通知方式",
+      "type": "select",
+      "required": false,
+      "default": "inline",
+      "options": [
+        { "value": "inline", "label": "内联提示" },
+        { "value": "sidebar", "label": "侧边栏" },
+        { "value": "notification", "label": "系统通知" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["proactive-agent", "memory-management", "smart-search"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

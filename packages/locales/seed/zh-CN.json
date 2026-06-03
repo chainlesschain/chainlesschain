@@ -1,0 +1,4477 @@
+{
+  "common": {
+    "refresh": "刷新",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "loading": "加载中...",
+    "empty": "暂无数据",
+    "search": "搜索",
+    "back": "返回"
+  },
+  "language": {
+    "label": "语言",
+    "switch": "中文",
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "error": {
+    "boundary": {
+      "title": "此页面渲染失败",
+      "retry": "重试",
+      "goHome": "返回仪表板",
+      "stack": "错误堆栈（仅开发模式可见）"
+    },
+    "runtime": "运行时错误"
+  },
+  "quickAsk": {
+    "title": "Quick Ask",
+    "subtitle": "单次流式提问 — 不保存会话历史，直接走 LLMManager.chatStream（桌面 web-shell 模式）",
+    "promptPlaceholder": "输入问题，Ctrl+Enter 发送",
+    "modelPlaceholder": "model（留空走默认）",
+    "charsSuffix": "字符",
+    "tokensSuffix": "tokens",
+    "send": "发送",
+    "cancel": "取消",
+    "clear": "清空",
+    "answerCardTitle": "回复",
+    "streaming": "流式接收中...",
+    "done": "完成",
+    "waitingFirstToken": "等待第一个 token..."
+  },
+  "compliance": {
+    "title": "合规与威胁情报",
+    "subtitle": "威胁指标 (IoC) · 用户行为分析 (UEBA)",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "match": "匹配指标",
+      "uebaBuild": "构建基线",
+      "uebaAnalyze": "行为分析"
+    },
+    "stats": {
+      "iocTotal": "IoC 总数",
+      "iocTypes": "IoC 类型",
+      "riskEntities": "风险实体",
+      "highRisk": "高风险 (≥70)",
+      "recentAnomalies": "近期异常"
+    },
+    "typeBreakdown": "IoC 类型分布",
+    "tabs": {
+      "threat": "威胁情报",
+      "ueba": "行为分析 (UEBA)"
+    },
+    "filter": { "all": "全部" },
+    "cols": {
+      "type": "类型",
+      "value": "值",
+      "labels": "标签",
+      "confidence": "置信度",
+      "source": "来源",
+      "lastSeen": "最近见到",
+      "action": "操作",
+      "entity": "实体",
+      "riskScore": "风险分",
+      "eventCount": "事件数",
+      "failureRate": "失败率",
+      "uniqueResources": "资源数",
+      "burstiness": "突发度"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "delete": "删除",
+      "deleteConfirm": "删除该指标？",
+      "deleteOk": "删除",
+      "cancel": "取消",
+      "emptyThreatsLine1": "暂无威胁指标。需通过 CLI 导入 STIX bundle:",
+      "emptyAuditEntities": "审计日志为空，无可分析实体",
+      "emptyRiskEntities": "暂无风险实体",
+      "noAnomalies": "无异常"
+    },
+    "ueba": {
+      "noAuditLog": "尚无审计日志",
+      "noAuditLogDesc": "UEBA 基于 audit_log 表的审计事件。先在桌面端或 CLI 触发一些受审计的操作（如 cc auth login / cc note add），再回来运行「构建基线」。",
+      "errorMessage": "UEBA 错误：{err}",
+      "topRiskTitle": "高风险实体 (Top {count})",
+      "anomalyTitle": "近期异常 ({count})"
+    },
+    "match": {
+      "modalTitle": "匹配威胁指标",
+      "ok": "匹配",
+      "close": "关闭",
+      "label": "可观测值",
+      "placeholder": "IP / 域名 / URL / 邮箱 / 文件哈希",
+      "result": "匹配结果",
+      "hit": "命中",
+      "miss": "未命中",
+      "detectType": "检测类型:",
+      "sourcePrefix": "来源:",
+      "confidencePrefix": "置信度:"
+    },
+    "build": {
+      "modalTitle": "构建 UEBA 基线",
+      "ok": "构建",
+      "cancel": "取消",
+      "entityLabel": "实体（可选）",
+      "entityPlaceholder": "留空则全量",
+      "daysLabel": "天数",
+      "daysPlaceholder": "例如 30",
+      "footnote": "从 audit_log 读取最近 N 天的事件，按实体计算事件计数 / 失败率 / 资源覆盖等基线指标。"
+    },
+    "analyze": {
+      "modalTitle": "运行行为分析",
+      "ok": "分析",
+      "cancel": "取消",
+      "entityLabel": "实体（可选）",
+      "entityPlaceholder": "留空则全量",
+      "thresholdLabel": "阈值",
+      "daysLabel": "天数",
+      "footnote": "将最近 N 天事件与已存基线对比；分数 ≥ 阈值的事件作为异常输出。"
+    },
+    "msg": {
+      "loadFailed": "加载合规数据失败",
+      "matchEmpty": "请输入要匹配的可观测值",
+      "matchFailed": "匹配失败",
+      "matchHit": "命中威胁指标 ({type})",
+      "matchUnknownType": "无法识别该可观测值类型",
+      "matchMiss": "未命中（已识别为 {type}）",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "指标已删除",
+      "auditEmptyBuild": "audit_log 表为空，无法构建基线",
+      "buildFailed": "构建失败",
+      "buildSuccess": "基线已构建",
+      "auditEmptyAnalyze": "audit_log 表为空，无可分析事件",
+      "analyzeFailed": "分析失败",
+      "analyzeSuccess": "分析完成，发现 {n} 个异常"
+    }
+  },
+  "pipeline": {
+    "title": "开发流水线",
+    "subtitle": "7 阶段 AI 开发流水线 · 质量门 · 部署策略",
+    "refresh": "刷新",
+    "create": "创建流水线",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc pipeline ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "totalPipelines": "流水线总数",
+      "running": "运行中",
+      "totalStages": "阶段总数",
+      "totalArtifacts": "制品",
+      "totalDeploys": "部署"
+    },
+    "stagesCardTitle": "7 阶段流水线",
+    "tabs": {
+      "pipelines": "流水线",
+      "deploys": "部署",
+      "templates": "模板"
+    },
+    "filters": {
+      "allTemplates": "全部模板",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "unnamed": "(未命名)",
+      "actions": {
+        "details": "详情",
+        "start": "启动",
+        "pause": "暂停",
+        "resume": "继续",
+        "approveGate": "批准门",
+        "cancel": "取消"
+      },
+      "cancelConfirm": "取消该流水线？",
+      "cancelOk": "取消",
+      "cancelBack": "返回",
+      "emptyFiltered": "没有符合条件的流水线",
+      "empty": "暂无流水线，点\"创建流水线\"创建第一条",
+      "emptyDeploys": "暂无部署记录"
+    },
+    "cols": {
+      "name": "名称",
+      "template": "模板",
+      "progress": "进度",
+      "currentStage": "当前阶段",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作",
+      "pipeline": "流水线",
+      "strategy": "策略"
+    },
+    "create_modal": {
+      "title": "创建流水线",
+      "ok": "创建",
+      "cancel": "取消",
+      "templateLabel": "模板",
+      "nameLabel": "名称",
+      "namePlaceholder": "可选，例如: 修复登录 Bug",
+      "configLabel": "配置 (JSON)",
+      "configPlaceholder": "JSON 对象，例如 repo=web、ticket=PROJ-123"
+    },
+    "details": {
+      "title": "流水线详情：{label}",
+      "template": "模板",
+      "status": "状态",
+      "progress": "进度",
+      "createdAt": "创建时间",
+      "startedAt": "开始时间",
+      "stagesHeader": "阶段详情",
+      "needsApproval": "需要审批",
+      "approved": "(已批准)",
+      "errorPrefix": "错误:"
+    },
+    "templateLabels": {
+      "feature": "功能开发",
+      "bugfix": "缺陷修复",
+      "refactor": "重构",
+      "security-audit": "安全审计"
+    },
+    "stageLabels": {
+      "requirement": "需求",
+      "architecture": "架构",
+      "code-generation": "代码生成",
+      "testing": "测试",
+      "code-review": "代码评审",
+      "deploy": "部署",
+      "monitoring": "监控"
+    },
+    "pipelineStatusLabels": {
+      "pending": "待启动",
+      "running": "运行中",
+      "paused": "已暂停",
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "stageStatusLabels": {
+      "pending": "待处理",
+      "running": "运行中",
+      "gate-waiting": "等待审批",
+      "completed": "已完成",
+      "failed": "失败",
+      "skipped": "跳过"
+    },
+    "deployStatusLabels": {
+      "pending": "待部署",
+      "running": "部署中",
+      "succeeded": "成功",
+      "failed": "失败",
+      "rolled-back": "已回滚"
+    },
+    "msg": {
+      "loadFailed": "加载流水线数据失败",
+      "selectTemplate": "请选择模板",
+      "badConfigJson": "配置 JSON 格式错误",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "createFailed": "创建失败",
+      "createSuccess": "流水线已创建",
+      "actionFailed": "操作失败",
+      "started": "已启动",
+      "paused": "已暂停",
+      "resumed": "已恢复",
+      "gateApproved": "门已批准",
+      "cancelled": "已取消"
+    }
+  },
+  "did": {
+    "title": "DID 身份管理",
+    "subtitle": "去中心化身份 / 密钥 / 签名验证",
+    "refresh": "刷新",
+    "create": "创建身份",
+    "stats": {
+      "count": "身份数量",
+      "default": "默认身份",
+      "method": "DID 方法",
+      "signable": "可签名",
+      "yes": "是",
+      "no": "否",
+      "unsetDefault": "未设置",
+      "noMethod": "无"
+    },
+    "webOnly": {
+      "message": "仅 Web 模式",
+      "description": "助记词备份/恢复 与 DHT 网络发布 仅在桌面端可用。本页面提供创建/签名/删除/查看 DID Document 等核心操作，通过 CLI 转发执行。"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "defaultTag": "默认",
+      "empty": "暂无 DID 身份，点击「创建身份」添加"
+    },
+    "cols": {
+      "did": "DID",
+      "name": "名称",
+      "method": "方法",
+      "createdAt": "创建时间",
+      "default": "默认",
+      "action": "操作"
+    },
+    "actions": {
+      "details": "详情",
+      "sign": "签名",
+      "setDefault": "设为默认",
+      "delete": "删除"
+    },
+    "deleteConfirm": {
+      "title": "确定删除该 DID 身份吗？删除后私钥将无法找回。",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "create_modal": {
+      "title": "创建 DID 身份",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "显示名称",
+      "namePlaceholder": "可选 — 用于识别身份"
+    },
+    "details": {
+      "title": "身份详情：{label}",
+      "did": "DID",
+      "name": "名称",
+      "method": "方法",
+      "default": "默认",
+      "yes": "是",
+      "no": "否",
+      "createdAt": "创建时间",
+      "publicKey": "公钥（hex）",
+      "publicKeyLoading": "加载中...",
+      "viewDoc": "查看 DID Document",
+      "docHeader": "DID Document (W3C):"
+    },
+    "sign_modal": {
+      "title": "签名消息：{label}...",
+      "defaultIdentityFallback": "默认身份",
+      "ok": "签名",
+      "cancel": "取消",
+      "messageLabel": "消息",
+      "messagePlaceholder": "请输入要签名的消息",
+      "resultHeader": "签名结果（hex）:"
+    },
+    "msg": {
+      "loadFailed": "加载 DID 列表失败",
+      "createFailed": "创建失败",
+      "createSuccess": "DID 身份已创建",
+      "setDefaultFailed": "设置失败",
+      "setDefaultSuccess": "已设为默认身份",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "身份已删除",
+      "loadDocFailed": "加载 DID Document 失败",
+      "signEmpty": "请输入要签名的消息",
+      "signSuccess": "签名成功",
+      "signFailed": "签名失败"
+    }
+  },
+  "knowledgeGraph": {
+    "title": "知识图谱",
+    "subtitle": "实体 / 关系 / 多跳推理 / 力导向图谱",
+    "refresh": "刷新",
+    "addEntity": "添加实体",
+    "addRelation": "添加关系",
+    "stats": {
+      "entityCount": "实体数量",
+      "relationCount": "关系数量",
+      "avgDegree": "平均度",
+      "density": "密度"
+    },
+    "webOnly": {
+      "message": "仅 Web 模式",
+      "description": "AI 自动抽取（从笔记/对话生成实体与关系）仅在桌面端可用，本页面禁用相关按钮。所有 CRUD/推理/统计操作通过 CLI 转发执行。"
+    },
+    "tabs": {
+      "graph": "图谱",
+      "entities": "实体（{n}）",
+      "relations": "关系（{n}）",
+      "distribution": "分布"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "emptyGraph": "暂无实体数据。点击「添加实体」开始构建知识图谱",
+      "emptyEntities": "暂无实体",
+      "emptyRelations": "暂无关系",
+      "emptyData": "暂无数据"
+    },
+    "entityCols": {
+      "id": "ID",
+      "name": "名称",
+      "type": "类型",
+      "tags": "标签",
+      "action": "操作"
+    },
+    "relationCols": {
+      "source": "源",
+      "target": "目标",
+      "relationType": "关系",
+      "weight": "权重"
+    },
+    "actions": {
+      "reason": "推理",
+      "delete": "删除"
+    },
+    "deleteConfirm": {
+      "title": "删除实体？关联的关系将级联删除。",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "distribution": {
+      "entityTypes": "实体类型分布",
+      "relationTypes": "关系类型分布"
+    },
+    "addEntity_modal": {
+      "title": "添加实体",
+      "ok": "添加",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "实体名称（如 Alice / ChainlessChain / RAG）",
+      "typeLabel": "类型",
+      "typePlaceholder": "请选择实体类型",
+      "tagsLabel": "标签",
+      "tagsPlaceholder": "逗号分隔，如 ai, project"
+    },
+    "addRelation_modal": {
+      "title": "添加关系",
+      "ok": "添加",
+      "cancel": "取消",
+      "sourceLabel": "源实体",
+      "sourcePlaceholder": "选择源实体",
+      "targetLabel": "目标实体",
+      "targetPlaceholder": "选择目标实体",
+      "relationTypeLabel": "关系类型",
+      "relationTypePlaceholder": "如 知道 / 属于 / 创建",
+      "weightLabel": "权重"
+    },
+    "reason_modal": {
+      "title": "多跳推理：{name}",
+      "maxDepth": "最大深度",
+      "direction": "方向",
+      "directionOut": "出",
+      "directionIn": "入",
+      "directionBoth": "双向",
+      "run": "执行",
+      "hint": "点击「执行」查看从此实体出发可达的实体"
+    },
+    "msg": {
+      "loadEntitiesFailed": "加载实体失败",
+      "loadRelationsFailed": "加载关系失败",
+      "loadStatsFailed": "加载统计失败",
+      "loadEntityTypesFailed": "加载实体类型失败",
+      "addEntityEmpty": "请输入名称并选择类型",
+      "addEntityFailed": "添加失败",
+      "addEntitySuccess": "实体已添加",
+      "addRelationEmpty": "请填写源、目标和关系类型",
+      "addRelationSelfLoop": "源和目标不能是同一实体",
+      "addRelationFailed": "添加失败",
+      "addRelationSuccess": "关系已添加",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "实体已删除",
+      "reasonEmpty": "从该实体无可达节点",
+      "reasonFailed": "推理失败"
+    }
+  },
+  "governance": {
+    "title": "社区治理",
+    "subtitle": "提案 · 加权投票 · 启发式影响分析 · 投票预测",
+    "refresh": "刷新",
+    "create": "创建提案",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc governance ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "total": "提案总数",
+      "active": "进行中",
+      "passed": "已通过",
+      "rejected": "被否决",
+      "votes": "投票总数"
+    },
+    "typesCard": "提案类型",
+    "tabs": {
+      "proposals": "提案",
+      "breakdown": "状态分布"
+    },
+    "filter": {
+      "allStatuses": "全部状态",
+      "allTypes": "全部类型"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "unnamed": "(未命名)",
+      "emptyFiltered": "没有符合条件的提案",
+      "empty": "暂无提案，点\"创建提案\"创建第一条"
+    },
+    "cols": {
+      "title": "标题",
+      "type": "类型",
+      "status": "状态",
+      "tally": "票数",
+      "impact": "影响",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "actions": {
+      "details": "详情",
+      "activate": "启动投票",
+      "vote": "投票",
+      "close": "关闭",
+      "analyze": "影响分析",
+      "predict": "预测"
+    },
+    "closeConfirm": {
+      "title": "关闭投票并按当前票数结算？",
+      "ok": "关闭",
+      "cancel": "返回"
+    },
+    "breakdown": {
+      "byStatus": "按状态",
+      "byType": "按类型"
+    },
+    "create_modal": {
+      "title": "创建提案",
+      "ok": "创建",
+      "cancel": "取消",
+      "titleLabel": "标题",
+      "titlePlaceholder": "例如: 增加深色模式支持",
+      "typeLabel": "类型",
+      "proposerLabel": "提案人 DID",
+      "proposerPlaceholder": "可选，例如 did:key:z6Mk...",
+      "descLabel": "描述",
+      "descPlaceholder": "提案的背景、动机、范围（描述越详细，影响分析的 benefit 评分越高）"
+    },
+    "vote_modal": {
+      "title": "对提案投票：{title}",
+      "ok": "投票",
+      "cancel": "取消",
+      "voterLabel": "投票人 DID",
+      "valueLabel": "选项",
+      "yes": "赞成",
+      "no": "反对",
+      "abstain": "弃权",
+      "weightLabel": "权重",
+      "weightHint": "默认 1.0",
+      "reasonLabel": "理由",
+      "reasonPlaceholder": "可选，说明投票理由"
+    },
+    "details": {
+      "title": "提案详情：{title}",
+      "id": "ID",
+      "type": "类型",
+      "status": "状态",
+      "proposer": "提案人",
+      "proposerUnset": "未指定",
+      "description": "描述",
+      "tally": "投票汇总",
+      "tallyYes": "赞成: {n}",
+      "tallyNo": "反对: {n}",
+      "tallyAbstain": "弃权: {n}",
+      "impact": "影响等级",
+      "createdAt": "创建时间",
+      "votingStartsAt": "投票开始",
+      "votingEndsAt": "投票结束",
+      "votesHeader": "投票记录",
+      "votesEmpty": "暂无投票"
+    },
+    "analysis": {
+      "title": "影响分析：{title}",
+      "impactLevel": "影响等级",
+      "effort": "工作量",
+      "sentiment": "社区情绪",
+      "riskBenefit": "风险 / 收益",
+      "riskScore": "风险评分",
+      "benefitScore": "收益评分",
+      "components": "影响组件",
+      "recommendations": "建议"
+    },
+    "prediction": {
+      "title": "投票预测：{title}",
+      "outcomePass": "预计通过",
+      "outcomeReject": "预计否决",
+      "confidence": "置信度",
+      "basedOn": "预测依据",
+      "basedOnVotes": "已有投票",
+      "basedOnHeuristic": "启发式（无投票）",
+      "sampleSize": "样本数",
+      "yesProb": "赞成概率",
+      "noProb": "反对概率",
+      "abstainProb": "弃权概率"
+    },
+    "statusLabels": {
+      "draft": "草稿",
+      "active": "进行中",
+      "passed": "已通过",
+      "rejected": "已否决",
+      "expired": "已过期"
+    },
+    "typeLabels": {
+      "parameter_change": "参数变更",
+      "feature_request": "功能请求",
+      "policy_update": "策略更新",
+      "budget_allocation": "预算分配"
+    },
+    "impactLabels": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "critical": "关键"
+    },
+    "voteLabels": {
+      "yes": "赞成",
+      "no": "反对",
+      "abstain": "弃权"
+    },
+    "effortLabels": {
+      "small": "小",
+      "medium": "中",
+      "large": "大"
+    },
+    "sentimentLabels": {
+      "positive": "积极",
+      "cautious": "谨慎",
+      "negative": "负面"
+    },
+    "msg": {
+      "loadFailed": "加载治理数据失败",
+      "titleEmpty": "请填写标题",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "createFailed": "创建失败",
+      "createSuccess": "提案已创建（草稿）",
+      "actionFailed": "操作失败",
+      "activated": "已启动投票",
+      "closed": "投票已关闭",
+      "voterEmpty": "请填写投票人 DID",
+      "voteFailed": "投票失败",
+      "voteSuccess": "投票已记录",
+      "analyzeFailed": "分析失败",
+      "predictFailed": "预测失败"
+    }
+  },
+  "privacy": {
+    "title": "隐私计算",
+    "subtitle": "联邦学习 · 多方计算 · 差分隐私 · 同态加密",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "model": "创建联邦学习模型",
+      "computation": "创建 MPC 计算",
+      "dp": "差分隐私发布",
+      "he": "同态加密查询"
+    },
+    "stats": {
+      "models": "FL 模型",
+      "avgAccuracy": "平均准确度",
+      "computations": "MPC 计算",
+      "budget": "预算余量 ε",
+      "budgetState": "预算状态",
+      "exhausted": "已耗尽",
+      "ample": "充足"
+    },
+    "catalog": {
+      "protocols": "MPC 协议",
+      "dp": "DP 噪声机制",
+      "he": "HE 同态方案"
+    },
+    "tabs": {
+      "models": "联邦学习",
+      "computations": "MPC 计算"
+    },
+    "filter": {
+      "all": "全部",
+      "allProtocols": "全部协议",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "rounds": "{cur} / {total} 轮",
+      "trainOne": "训练一轮",
+      "failConfirm": "标记该模型为失败？",
+      "failOk": "确认",
+      "failCancel": "取消",
+      "failMark": "标记失败",
+      "submitShare": "提交份额",
+      "emptyModelsFiltered": "没有符合条件的模型",
+      "emptyModels": "暂无 FL 模型，点\"操作 → 创建联邦学习模型\"创建第一个",
+      "emptyComputations": "暂无 MPC 计算，点\"操作 → 创建 MPC 计算\"创建第一个"
+    },
+    "modelCols": {
+      "name": "名称",
+      "status": "状态",
+      "progress": "进度",
+      "accuracy": "准确度",
+      "participants": "参与方",
+      "budget": "预算 ε",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "computationCols": {
+      "type": "类型",
+      "protocol": "协议",
+      "progress": "份额进度",
+      "status": "状态",
+      "time": "耗时",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "flStatusLabels": {
+      "initializing": "初始化",
+      "training": "训练中",
+      "aggregating": "聚合中",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "mpcStatusLabels": {
+      "pending": "待处理",
+      "computing": "计算中",
+      "completed": "已完成"
+    },
+    "model_modal": {
+      "title": "创建联邦学习模型",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "模型名称",
+      "namePlaceholder": "例如: fraud-detector",
+      "typeLabel": "模型类型",
+      "typePlaceholder": "neural_network（默认）",
+      "archLabel": "架构",
+      "archPlaceholder": "mlp（默认）",
+      "roundsLabel": "总轮次",
+      "lrLabel": "学习率",
+      "participantsLabel": "参与方数量"
+    },
+    "computation_modal": {
+      "title": "创建 MPC 计算",
+      "ok": "创建",
+      "cancel": "取消",
+      "typeLabel": "计算类型",
+      "typePlaceholder": "例如: sum / multiplication",
+      "protocolLabel": "协议",
+      "participantsLabel": "参与方 ID",
+      "participantsPlaceholder": "逗号分隔，例如: alice,bob,carol",
+      "thresholdLabel": "所需份额",
+      "thresholdPlaceholder": "留空自动取半数"
+    },
+    "dp_modal": {
+      "title": "差分隐私发布",
+      "ok": "发布",
+      "cancel": "关闭",
+      "dataLabel": "数据",
+      "dataPlaceholder": "数字或 JSON 数组，例如 10 或 [1,2,3]",
+      "mechanismLabel": "噪声机制",
+      "epsilonLabel": "ε (epsilon)",
+      "deltaLabel": "δ (delta)",
+      "sensitivityLabel": "敏感度",
+      "noisedTitle": "加噪后数据",
+      "spentLine": "消耗预算: {n}",
+      "remainingLine": "剩余预算: {n}",
+      "mechanismLine": "机制: {name} (ε={epsilon})",
+      "failedTitle": "发布失败"
+    },
+    "he_modal": {
+      "title": "同态加密查询",
+      "ok": "查询",
+      "cancel": "关闭",
+      "dataLabel": "数据",
+      "dataPlaceholder": "JSON 数组，例如 [1,2,3,4,5]",
+      "operationLabel": "操作",
+      "schemeLabel": "同态方案",
+      "resultTitle": "加密计算结果",
+      "schemeLine": "方案: {name}",
+      "operationLine": "操作: {name}",
+      "inputCountLine": "输入项数: {n}",
+      "encrypted": "已加密"
+    },
+    "msg": {
+      "loadFailed": "加载隐私计算数据失败",
+      "modelNameEmpty": "请输入模型名称",
+      "modelCreateFailed": "创建失败",
+      "modelCreateSuccess": "FL 模型已创建",
+      "computationTypeEmpty": "请输入计算类型",
+      "computationCreateFailed": "创建失败",
+      "computationCreateSuccess": "MPC 计算已创建",
+      "trainFailed": "训练失败",
+      "trainSuccess": "训练一轮完成",
+      "failMarkFailed": "标记失败",
+      "failMarkSuccess": "已标记为失败",
+      "submitFailed": "提交失败",
+      "submitSuccess": "份额已提交",
+      "dataEmpty": "请输入数据",
+      "dataInvalidJson": "数据格式错误，请输入合法 JSON 数组",
+      "dpFailed": "发布失败",
+      "dpSuccess": "已发布",
+      "dpRejected": "发布拒绝: {reason}",
+      "heFailed": "查询失败",
+      "heSuccess": "计算完成 ({scheme}/{op})"
+    }
+  },
+  "aiops": {
+    "title": "AIOps 自治运维",
+    "subtitle": "异常检测 · 事件管理 · 自动化 Playbook",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "actions": {
+      "incident": "创建事件",
+      "playbook": "创建 Playbook",
+      "baseline": "更新基线",
+      "detect": "异常检测"
+    },
+    "stats": {
+      "incidents": "事件总数",
+      "pending": "待处理",
+      "playbooks": "Playbook",
+      "enabled": "启用 Playbook",
+      "baselines": "基线指标"
+    },
+    "severityCard": "严重度分布",
+    "avgResolveLabel": "平均解决时间: {time}",
+    "tabs": {
+      "incidents": "事件",
+      "playbooks": "Playbook",
+      "baselines": "基线"
+    },
+    "filter": {
+      "all": "全部",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "incidentEmptyFiltered": "没有符合条件的事件",
+      "incidentEmpty": "暂无事件，可点\"新建 → 创建事件\"或运行\"异常检测\"自动触发",
+      "playbookEmpty": "暂无 Playbook，点\"新建 → 创建 Playbook\"创建第一个",
+      "baselineEmpty": "暂无基线，点\"新建 → 更新基线\"喂入指标样本",
+      "successCount": "成功 {n}",
+      "failureCount": "失败 {n}"
+    },
+    "incidentActions": {
+      "ack": "确认",
+      "resolve": "解决",
+      "close": "关闭",
+      "postmortem": "复盘"
+    },
+    "playbookActions": {
+      "success": "+ 成功",
+      "failure": "+ 失败"
+    },
+    "incidentCols": {
+      "severity": "严重度",
+      "metric": "指标",
+      "description": "描述",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "playbookCols": {
+      "name": "名称",
+      "enabled": "启用",
+      "stats": "执行统计",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "baselineCols": {
+      "metric": "指标",
+      "mean": "均值 / σ",
+      "iqr": "四分位",
+      "sampleCount": "样本数",
+      "updatedAt": "更新时间"
+    },
+    "incident_modal": {
+      "title": "创建事件",
+      "ok": "创建",
+      "cancel": "取消",
+      "severityLabel": "严重度",
+      "metricLabel": "指标",
+      "metricPlaceholder": "例如: cpu_usage（可选）",
+      "descLabel": "描述"
+    },
+    "playbook_modal": {
+      "title": "创建 Playbook",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "restart-pod",
+      "triggerLabel": "触发条件 (JSON)",
+      "triggerPlaceholder": "例如 metric=cpu, threshold=90",
+      "stepsLabel": "步骤 (JSON)",
+      "stepsPlaceholder": "JSON 数组，例如 action=restart, target=pod-1"
+    },
+    "baseline_modal": {
+      "title": "更新基线",
+      "ok": "更新",
+      "cancel": "取消",
+      "metricLabel": "指标名",
+      "metricPlaceholder": "cpu_usage",
+      "valuesLabel": "样本值",
+      "valuesPlaceholder": "逗号分隔的数值，例如: 45.2, 47.1, 50.8, 49.3"
+    },
+    "detect_modal": {
+      "title": "异常检测",
+      "ok": "检测",
+      "cancel": "关闭",
+      "metricLabel": "指标名",
+      "metricPlaceholder": "选择已建立基线的指标",
+      "metricOptionLabel": "{name}（n={count}）",
+      "valueLabel": "测试值",
+      "algorithmLabel": "算法",
+      "resultTitle": "检测结果",
+      "anomaly": "异常",
+      "normal": "正常",
+      "reasonLine": "原因: {reason}",
+      "scoreLine": "得分: {score} (阈值 {threshold})",
+      "baselineLine": "基线: 均值 {mean}, σ {stdDev}",
+      "incidentCreated": "已自动创建 {severity} 事件"
+    },
+    "statusLabels": {
+      "open": "待处理",
+      "acknowledged": "已确认",
+      "resolved": "已解决",
+      "closed": "已关闭"
+    },
+    "reasonLabels": {
+      "no_baseline": "该指标尚无基线，请先\"更新基线\"",
+      "zero_stddev": "基线方差为零（样本完全相同）",
+      "missing_metric_name": "缺少指标名",
+      "missing_value": "缺少测试值",
+      "unknown_algorithm": "未知算法"
+    },
+    "duration": {
+      "none": "—"
+    },
+    "msg": {
+      "loadFailed": "加载 AIOps 数据失败",
+      "descEmpty": "请填写事件描述",
+      "createFailed": "创建失败",
+      "incidentCreated": "事件已创建",
+      "playbookNameEmpty": "请填写 Playbook 名称",
+      "jsonInvalid": "{label} JSON 格式错误",
+      "playbookCreated": "Playbook 已创建",
+      "metricEmpty": "请填写指标名",
+      "valuesInvalid": "请输入至少一个有效数值（逗号或空白分隔）",
+      "baselineUpdateFailed": "更新失败",
+      "baselineUpdated": "基线已更新（n={n}）",
+      "detectFieldsEmpty": "请选择指标并填写测试值",
+      "detectFailed": "检测失败",
+      "detectAnomaly": "检测到异常 ({severity})",
+      "incidentTransitionFailed": "转换失败",
+      "incidentAcked": "事件已确认",
+      "incidentResolved": "事件已解决",
+      "incidentClosed": "事件已关闭",
+      "postmortemTitle": "事件 {id} 复盘",
+      "postmortemEmpty": "（无内容）",
+      "postmortemFailed": "生成复盘失败",
+      "playbookToggleFailed": "切换失败",
+      "playbookEnabled": "Playbook 已启用",
+      "playbookDisabled": "Playbook 已禁用",
+      "playbookRecordFailed": "记录失败",
+      "playbookRecordSuccess": "已记录成功执行",
+      "playbookRecordFailure": "已记录失败执行",
+      "triggerLabel": "触发条件",
+      "stepsLabel": "步骤"
+    }
+  },
+  "reputation": {
+    "title": "声誉优化",
+    "subtitle": "观察记录 · 衰减模型 · 异常检测 · 贝叶斯参数优化",
+    "refresh": "刷新",
+    "actions": {
+      "anomalies": "异常检测",
+      "optimize": "启动优化"
+    },
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc reputation ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "trackedDids": "跟踪 DID",
+      "totalObservations": "观察总数",
+      "optimizationRuns": "优化运行",
+      "active": "进行中",
+      "bestEver": "历史最佳"
+    },
+    "tabs": {
+      "scores": "评分排行",
+      "runs": "优化运行",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "decayLabel": "衰减模型:",
+      "addObservation": "添加观察"
+    },
+    "scoreColumns": {
+      "rank": "排名",
+      "did": "DID",
+      "score": "声誉分数",
+      "observations": "观察数",
+      "weightTotal": "权重和"
+    },
+    "runColumns": {
+      "runId": "Run ID",
+      "objective": "目标",
+      "iterations": "迭代",
+      "bestScore": "最佳分数",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "totals": {
+      "dids": "共 {count} 个 DID",
+      "rows": "共 {count} 条"
+    },
+    "empty": {
+      "scores": "暂无声誉数据，点添加观察记录第一条",
+      "runs": "暂无优化运行，点启动优化开始第一次"
+    },
+    "rowActions": {
+      "analyze": "分析",
+      "apply": "应用"
+    },
+    "breakdown": {
+      "byStatus": "按状态",
+      "byObjective": "按目标"
+    },
+    "observe": {
+      "title": "添加观察记录",
+      "ok": "记录",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:...",
+      "scoreLabel": "评分",
+      "scoreRange": "范围 0.0 ~ 1.0",
+      "kindLabel": "种类",
+      "weightLabel": "权重"
+    },
+    "optimize": {
+      "title": "启动优化",
+      "ok": "启动",
+      "objectiveLabel": "目标",
+      "iterationsLabel": "迭代次数",
+      "iterationsRange": "范围 1 ~ 1000，默认 50",
+      "syncMessage": "同步执行",
+      "syncDescription": "优化将运行所有迭代后立即返回最佳参数与建议（CLI lib 内置启发式 Bayesian 模拟）。"
+    },
+    "anomaly": {
+      "title": "异常评分检测",
+      "methodLabel": "检测方法",
+      "zScoreLabel": "Z 分数 (3σ)",
+      "iqrLabel": "IQR (1.5×)",
+      "thresholdLabel": "阈值",
+      "thresholdHint": "默认 z_score=2.5 / iqr=1.5",
+      "decayLabel": "衰减模型",
+      "start": "开始检测",
+      "notDetected": "尚未检测",
+      "totalSamples": "样本数",
+      "threshold": "阈值",
+      "anomalies": "异常数",
+      "scoreTag": "score: {score}",
+      "zNote": "z={value}"
+    },
+    "analytics": {
+      "title": "运行详情：{runId}",
+      "objective": "目标",
+      "status": "状态",
+      "iterations": "迭代次数",
+      "bestScore": "最佳分数",
+      "createdAt": "创建时间",
+      "completedAt": "完成时间",
+      "bestParams": "最佳参数",
+      "errorMessage": "错误信息",
+      "distributionTitle": "声誉分布",
+      "mean": "平均: {value}",
+      "stdDev": "标准差: {value}",
+      "recommendations": "建议"
+    },
+    "decay": {
+      "none": "无",
+      "exponential": "指数",
+      "linear": "线性",
+      "step": "步进"
+    },
+    "kind": {
+      "generic": "通用",
+      "task": "任务",
+      "review": "评审",
+      "vote": "投票"
+    },
+    "objective": {
+      "accuracy": "准确性",
+      "fairness": "公平性",
+      "resilience": "抗扰动",
+      "convergence_speed": "收敛速度"
+    },
+    "objectiveDesc": {
+      "accuracy": "最大化对真实声誉的拟合",
+      "fairness": "降低衰减强度，平等对待各 DID",
+      "resilience": "提高对异常值的容忍度",
+      "convergence_speed": "尽量少迭代获得稳定结果"
+    },
+    "status": {
+      "running": "运行中",
+      "complete": "已完成",
+      "applied": "已应用",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "applyConfirm": {
+      "title": "应用本次优化结果？",
+      "content": "Run {runId} 的最佳参数将被标记为已应用。",
+      "ok": "应用",
+      "cancel": "取消"
+    },
+    "messages": {
+      "loadFailed": "加载声誉数据失败: {err}",
+      "loadScoresFailed": "加载评分失败: {err}",
+      "didRequired": "请填写 DID",
+      "scoreRange": "评分必须在 0 ~ 1 之间",
+      "needInit": "需要先 cc init 初始化项目",
+      "observeFailed": "记录失败: {err}",
+      "observeOk": "观察已记录",
+      "optimizeFailed": "优化失败: {err}",
+      "optimizeOk": "优化完成，最佳分数 {score}",
+      "applyFailed": "应用失败: {err}",
+      "applyOk": "已应用",
+      "detectFailed": "检测失败: {err}"
+    }
+  },
+  "federation": {
+    "title": "联邦强化",
+    "subtitle": "熔断器 FSM · 健康检查 · 连接池模拟",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "newMenu": {
+      "register": "注册节点",
+      "check": "记录健康检查",
+      "pool": "新建连接池"
+    },
+    "stats": {
+      "breakers": "熔断器节点",
+      "checks": "健康检查",
+      "pools": "连接池",
+      "degraded": "降级节点",
+      "availability": "可用率",
+      "breakerSub": "{closed} 闭合 · {open} 开",
+      "checkSub": "{healthy} 健康 · {unhealthy} 不可用",
+      "poolSub": "{active} 活跃 · {idle} 空闲",
+      "degradedSub": "{halfOpen} 半开"
+    },
+    "tabs": {
+      "breakers": "熔断器",
+      "checks": "健康检查",
+      "pools": "连接池",
+      "nodeHealth": "节点健康聚合"
+    },
+    "filter": {
+      "allStates": "全部状态",
+      "allMetrics": "全部指标"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "breakerColumns": {
+      "node": "节点",
+      "state": "状态",
+      "failure": "失败计数",
+      "success": "成功计数",
+      "openTimeout": "超时 (ms)",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "checkColumns": {
+      "id": "ID",
+      "node": "节点",
+      "metric": "指标",
+      "status": "状态",
+      "metrics": "指标值",
+      "checkedAt": "采集时间"
+    },
+    "poolColumns": {
+      "node": "节点",
+      "active": "活跃",
+      "idle": "空闲",
+      "max": "上限",
+      "utilization": "使用率",
+      "waiting": "排队中",
+      "totalCreated": "已创建",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "latestColumns": {
+      "metric": "指标",
+      "status": "状态",
+      "checkedAt": "采集时间"
+    },
+    "breakerActions": {
+      "failure": "失败",
+      "success": "成功",
+      "halfOpen": "半开",
+      "reset": "重置",
+      "remove": "移除",
+      "removeConfirm": "移除该节点？所有相关熔断器与健康检查会被删除"
+    },
+    "poolActions": {
+      "acquire": "取连接",
+      "release": "还连接",
+      "destroy": "销毁",
+      "destroyConfirm": "销毁该连接池？"
+    },
+    "empty": {
+      "breakers": "暂无熔断器",
+      "checks": "暂无健康检查记录",
+      "pools": "暂无连接池",
+      "noLatest": "无最近检查"
+    },
+    "nodeHealth": {
+      "inputPlaceholder": "节点 ID",
+      "query": "查询",
+      "node": "节点",
+      "status": "聚合状态",
+      "checkCount": "检查总数",
+      "latestTitle": "最近各指标状态"
+    },
+    "register": {
+      "title": "注册联邦节点",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "如 node-shanghai-01",
+      "failureThresholdLabel": "失败阈值（默认 5）",
+      "successThresholdLabel": "成功阈值（默认 2）",
+      "openTimeoutLabel": "开路超时 (ms)（默认 60000）"
+    },
+    "check": {
+      "title": "记录健康检查",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "必须先注册节点",
+      "metricLabel": "指标类型",
+      "statusLabel": "健康状态",
+      "metricsLabel": "指标 JSON（可选，例如 latencyMs:42）",
+      "metricsPlaceholder": "metrics 字符串：例如 latencyMs=42, cpu=0.4"
+    },
+    "pool": {
+      "title": "新建连接池",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "如 node-shanghai-01",
+      "minLabel": "最小连接数（默认 5）",
+      "maxLabel": "最大连接数（默认 50）",
+      "idleTimeoutLabel": "空闲超时 (ms)（默认 300000）"
+    },
+    "state": {
+      "closed": "闭合",
+      "open": "开路",
+      "half_open": "半开"
+    },
+    "metric": {
+      "heartbeat": "心跳",
+      "latency": "延迟",
+      "success_rate": "成功率",
+      "cpu_usage": "CPU",
+      "memory_usage": "内存"
+    },
+    "health": {
+      "healthy": "健康",
+      "degraded": "降级",
+      "unhealthy": "不可用",
+      "unknown": "未知"
+    },
+    "messages": {
+      "loadFailed": "加载数据失败: {err}",
+      "nodeIdRequired": "请填写节点 ID",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "节点已注册：{id}",
+      "checkFailed": "记录失败: {err}",
+      "checkOk": "检查已记录：{id}",
+      "poolFailed": "创建失败: {err}",
+      "poolOk": "连接池已创建：{id}",
+      "removeFailed": "移除失败: {err}",
+      "removeOk": "节点已移除",
+      "operationFailed": "操作失败: {err}",
+      "operationNoEffect": "操作未生效",
+      "operationCooldown": "操作未生效（还需 {ms}ms）",
+      "transitionMsg": "{from} → {to}",
+      "resetMsg": "熔断器已重置",
+      "recordedMsg": "已记录",
+      "destroyMsg": "连接池已销毁",
+      "acquireMsg": "已获取（活跃 {active} · 空闲 {idle}）",
+      "releaseMsg": "已释放（活跃 {active} · 空闲 {idle}）",
+      "queryFailed": "查询失败: {err}"
+    }
+  },
+  "recommend": {
+    "title": "智能推荐",
+    "subtitle": "兴趣画像 · 主题衰减 · 内容评分 · 反馈学习",
+    "refresh": "刷新",
+    "createProfile": "创建画像",
+    "userBar": {
+      "currentUser": "当前用户:",
+      "selectPlaceholder": "选择用户档案",
+      "applyDecay": "应用衰减",
+      "suggest": "建议调整",
+      "topicSuffix": "{count} topics"
+    },
+    "stats": {
+      "profiles": "用户档案",
+      "totalRecs": "推荐总数",
+      "pending": "待查看",
+      "feedbackRate": "反馈率",
+      "avgScore": "平均分"
+    },
+    "typeCatalogue": "内容类型",
+    "tabs": {
+      "recs": "推荐流",
+      "profiles": "用户档案",
+      "interests": "兴趣画像"
+    },
+    "filter": {
+      "allStatuses": "全部状态",
+      "allTypes": "全部类型"
+    },
+    "totals": {
+      "rows": "共 {count} 条",
+      "profiles": "共 {count} 个档案"
+    },
+    "recColumns": {
+      "title": "标题",
+      "contentType": "类型",
+      "score": "评分",
+      "reason": "理由",
+      "status": "状态",
+      "feedback": "反馈",
+      "action": "操作"
+    },
+    "profileColumns": {
+      "userId": "用户 ID",
+      "topicCount": "主题数",
+      "decayFactor": "衰减因子",
+      "updateCount": "更新次数",
+      "lastUpdated": "最后更新",
+      "action": "操作"
+    },
+    "noTitle": "(无标题)",
+    "feedbackDropdown": "反馈 ▼",
+    "feedbackMenu": {
+      "like": "赞",
+      "dislike": "踩",
+      "later": "稍后"
+    },
+    "rowActions": {
+      "view": "查看",
+      "dismiss": "忽略",
+      "dismissConfirmTitle": "忽略该推荐？",
+      "dismissOk": "忽略",
+      "details": "详情",
+      "switch": "切换",
+      "delete": "删除",
+      "deleteConfirmTitle": "删除该档案？",
+      "deleteOk": "删除"
+    },
+    "empty": {
+      "selectUser": "请先选择用户档案",
+      "filtered": "没有符合条件的推荐",
+      "noRecsHint": "该用户暂无推荐 — 用 cc recommend generate 从内容池生成",
+      "noProfiles": "暂无用户档案",
+      "noInterests": "该用户暂无兴趣权重",
+      "noSuggestions": "暂无建议 — 需要更多反馈",
+      "noTopics": "无主题权重"
+    },
+    "interest": {
+      "topicWeights": "主题权重",
+      "feedbackSuggest": "反馈建议",
+      "boost": "提升",
+      "lower": "降低"
+    },
+    "topicTagSuffix": "{count} 主题",
+    "create": {
+      "title": "创建用户档案",
+      "ok": "创建",
+      "userIdLabel": "用户 ID",
+      "userIdPlaceholder": "例如 alice",
+      "topicsLabel": "主题权重",
+      "topicsPlaceholder": "可选 JSON：例如 ai=0.8, vue=0.5",
+      "weightsLabel": "交互权重",
+      "weightsPlaceholder": "可选 JSON：例如 like=1.0, view=0.3"
+    },
+    "details": {
+      "title": "档案详情：{userId}",
+      "id": "ID",
+      "topicCount": "主题数",
+      "decayFactor": "衰减因子",
+      "updateCount": "更新次数",
+      "lastUpdated": "最后更新",
+      "topicWeights": "主题权重",
+      "interactionWeights": "交互权重"
+    },
+    "type": {
+      "note": "笔记",
+      "post": "帖子",
+      "article": "文章",
+      "document": "文档"
+    },
+    "status": {
+      "pending": "待查看",
+      "viewed": "已查看",
+      "dismissed": "已忽略"
+    },
+    "feedbackLabel": {
+      "like": "赞",
+      "dislike": "踩",
+      "later": "稍后"
+    },
+    "messages": {
+      "loadProfilesFailed": "加载档案失败: {err}",
+      "loadUserFailed": "加载用户数据失败: {err}",
+      "userIdRequired": "请填写用户 ID",
+      "topicsJsonInvalid": "主题权重 JSON 格式错误",
+      "weightsJsonInvalid": "交互权重 JSON 格式错误",
+      "createFailed": "创建失败: {err}",
+      "createOk": "档案已创建：{id}",
+      "decayFailed": "衰减失败: {err}",
+      "decayOkTopics": "衰减已应用，剩余 {count} 个主题",
+      "decayOk": "衰减已应用",
+      "suggestNone": "暂无建议 — 需要更多反馈",
+      "suggestFound": "找到 {count} 条建议",
+      "loadSuggestFailed": "加载建议失败: {err}",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "档案已删除",
+      "viewFailed": "标记失败: {err}",
+      "viewOk": "已标记为已查看",
+      "feedbackFailed": "反馈失败: {err}",
+      "feedbackOk": "反馈已记录",
+      "dismissFailed": "忽略失败: {err}",
+      "dismissOk": "已忽略"
+    }
+  },
+  "organization": {
+    "title": "组织管理",
+    "subtitle": "组织 / 成员 / 审批",
+    "refresh": "刷新",
+    "tabs": {
+      "orgs": "组织列表",
+      "members": "成员管理",
+      "approvals": "审批管理"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "orgs": {
+      "createButton": "创建组织",
+      "createTitle": "创建组织",
+      "createOk": "创建",
+      "nameLabel": "名称",
+      "namePlaceholder": "请输入组织名称",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "请输入组织描述（可选）",
+      "emptyText": "暂无组织，点击创建组织添加",
+      "detailTitle": "组织详情: {name}",
+      "detailLabels": {
+        "id": "ID",
+        "name": "名称",
+        "owner": "所有者",
+        "description": "描述",
+        "memberCount": "成员数",
+        "createdAt": "创建时间"
+      }
+    },
+    "orgColumns": {
+      "id": "ID",
+      "name": "名称",
+      "owner": "所有者",
+      "description": "描述",
+      "memberCount": "成员数"
+    },
+    "members": {
+      "selectPlaceholder": "选择组织",
+      "inviteButton": "邀请成员",
+      "emptyMembers": "暂无成员",
+      "selectFirst": "请先选择一个组织",
+      "teamsTitle": "团队",
+      "createTeamButton": "创建团队",
+      "emptyTeams": "暂无团队",
+      "inviteTitle": "邀请成员",
+      "inviteOk": "邀请",
+      "userIdLabel": "用户 ID",
+      "userIdPlaceholder": "请输入用户 ID",
+      "nameLabel": "名称",
+      "namePlaceholder": "请输入用户名称",
+      "roleLabel": "角色",
+      "roleAdmin": "管理员 (admin)",
+      "roleMember": "成员 (member)",
+      "roleViewer": "查看者 (viewer)",
+      "createTeamTitle": "创建团队",
+      "createTeamOk": "创建",
+      "teamNameLabel": "团队名称",
+      "teamNamePlaceholder": "请输入团队名称",
+      "teamDescLabel": "描述",
+      "teamDescPlaceholder": "请输入团队描述（可选）",
+      "teamLeadLabel": "负责人",
+      "teamLeadPlaceholder": "请输入负责人 ID（可选）"
+    },
+    "memberColumns": {
+      "userId": "用户 ID",
+      "name": "名称",
+      "role": "角色",
+      "joinedAt": "加入时间"
+    },
+    "teamColumns": {
+      "name": "团队名称",
+      "description": "描述",
+      "lead": "负责人"
+    },
+    "approvals": {
+      "submitButton": "提交审批",
+      "submitTitle": "提交审批",
+      "submitOk": "提交",
+      "orgLabel": "组织",
+      "orgPlaceholder": "选择组织",
+      "titleLabel": "标题",
+      "titlePlaceholder": "请输入审批标题",
+      "typeLabel": "类型",
+      "typePlaceholder": "请输入审批类型",
+      "descLabel": "描述",
+      "descPlaceholder": "请输入审批描述（可选）",
+      "approve": "通过",
+      "reject": "拒绝",
+      "emptyText": "暂无审批记录"
+    },
+    "approvalColumns": {
+      "id": "ID",
+      "title": "标题",
+      "type": "类型",
+      "requester": "申请人",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "messages": {
+      "loadOrgsFailed": "加载组织列表失败: {err}",
+      "orgNameRequired": "请输入组织名称",
+      "orgCreateFailed": "创建失败: {err}",
+      "orgCreateOk": "组织已创建",
+      "loadDetailFailed": "加载详情失败: {err}",
+      "loadMembersFailed": "加载成员失败: {err}",
+      "loadTeamsFailed": "加载团队失败: {err}",
+      "userIdRequired": "请输入用户 ID",
+      "inviteFailed": "邀请失败: {err}",
+      "inviteOk": "邀请已发送",
+      "teamNameRequired": "请输入团队名称",
+      "teamCreateFailed": "创建失败: {err}",
+      "teamCreateOk": "团队已创建",
+      "loadApprovalsFailed": "加载审批列表失败: {err}",
+      "approveFailed": "审批失败: {err}",
+      "approveOk": "已通过",
+      "rejectFailed": "拒绝失败: {err}",
+      "rejectOk": "已拒绝",
+      "orgRequired": "请选择组织",
+      "approvalTitleRequired": "请输入审批标题",
+      "submitFailed": "提交失败: {err}",
+      "submitOk": "审批已提交"
+    }
+  },
+  "inference": {
+    "title": "推理网络",
+    "subtitle": "去中心化推理节点 · 任务调度 · 隐私模式",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "register": "注册节点",
+      "submit": "提交推理任务"
+    },
+    "stats": {
+      "totalNodes": "节点总数",
+      "onlineNodes": "在线节点",
+      "totalTasks": "任务总数",
+      "queued": "排队中",
+      "avgDuration": "平均耗时"
+    },
+    "breakdown": {
+      "title": "节点状态分布",
+      "online": "在线 {count}",
+      "busy": "忙碌 {count}",
+      "offline": "离线 {count}",
+      "extra": "完成: {complete} · 失败: {failed}"
+    },
+    "tabs": {
+      "nodes": "节点",
+      "tasks": "任务"
+    },
+    "filter": {
+      "all": "全部",
+      "allStatuses": "全部状态",
+      "allModes": "全部模式"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "nodeColumns": {
+      "nodeId": "节点 ID",
+      "capabilities": "能力",
+      "gpu": "GPU",
+      "status": "状态",
+      "taskCount": "任务数",
+      "lastHeartbeat": "最近心跳",
+      "action": "操作"
+    },
+    "taskColumns": {
+      "model": "模型",
+      "privacyMode": "隐私",
+      "priority": "优先级",
+      "assignedNode": "执行节点",
+      "status": "状态",
+      "duration": "耗时",
+      "createdAt": "提交时间",
+      "action": "操作"
+    },
+    "rowActions": {
+      "heartbeat": "心跳",
+      "statusDropdown": "状态 ▼",
+      "unregister": "注销",
+      "unregisterConfirm": "注销该节点？",
+      "unregisterOk": "注销",
+      "complete": "完成",
+      "fail": "失败",
+      "failConfirm": "标记任务失败？",
+      "failOk": "确认"
+    },
+    "empty": {
+      "filteredNodes": "没有符合条件的节点",
+      "noNodes": "暂无节点，点操作 → 注册节点添加第一个",
+      "filteredTasks": "没有符合条件的任务",
+      "noTasks": "暂无任务，点操作 → 提交推理任务创建第一个"
+    },
+    "register": {
+      "title": "注册推理节点",
+      "ok": "注册",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "例如: gpu-host-1",
+      "endpointLabel": "端点 URL",
+      "endpointPlaceholder": "https://node.example.com（可选）",
+      "capabilitiesLabel": "能力列表",
+      "capabilitiesPlaceholder": "逗号分隔，例如: llama2,mistral,gpt-4",
+      "gpuLabel": "GPU 内存 (MB)"
+    },
+    "submit": {
+      "title": "提交推理任务",
+      "ok": "提交",
+      "modelLabel": "模型",
+      "modelPlaceholder": "例如: llama2-7b",
+      "inputLabel": "输入",
+      "priorityLabel": "优先级",
+      "modeLabel": "隐私模式"
+    },
+    "nodeStatus": {
+      "online": "在线",
+      "offline": "离线",
+      "busy": "忙碌",
+      "degraded": "降级"
+    },
+    "taskStatus": {
+      "queued": "排队中",
+      "dispatched": "已派发",
+      "running": "运行中",
+      "complete": "已完成",
+      "failed": "失败"
+    },
+    "privacy": {
+      "standard": "标准",
+      "encrypted": "加密",
+      "federated": "联邦"
+    },
+    "messages": {
+      "loadFailed": "加载推理网络数据失败: {err}",
+      "nodeIdRequired": "请填写节点 ID",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "节点已注册",
+      "modelRequired": "请填写模型名",
+      "submitFailed": "提交失败: {err}",
+      "submitOk": "任务已提交",
+      "heartbeatFailed": "心跳失败: {err}",
+      "heartbeatOk": "心跳已更新",
+      "statusFailed": "状态转换失败: {err}",
+      "statusOk": "节点状态已更新为 {status}",
+      "unregisterFailed": "注销失败: {err}",
+      "unregisterOk": "节点已注销",
+      "completeFailed": "完成失败: {err}",
+      "completeOk": "任务已完成",
+      "failFailed": "标记失败: {err}",
+      "failOk": "已标记为失败"
+    }
+  },
+  "wallet": {
+    "title": "钱包管理",
+    "subtitle": "资产 / 转账 / 历史",
+    "refresh": "刷新",
+    "stats": {
+      "walletCount": "钱包数量",
+      "assetCount": "总资产数",
+      "defaultWallet": "默认钱包",
+      "defaultUnset": "未设置",
+      "totalTx": "总交易数"
+    },
+    "tabs": {
+      "wallets": "钱包列表",
+      "assets": "资产管理",
+      "transfer": "转账"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "wallets": {
+      "refreshList": "刷新列表",
+      "createButton": "创建钱包",
+      "createTitle": "创建钱包",
+      "createOk": "创建",
+      "nameLabel": "钱包名称",
+      "namePlaceholder": "请输入钱包名称",
+      "emptyText": "暂无钱包，点击创建钱包添加",
+      "default": "默认",
+      "currentDefault": "当前默认",
+      "setDefault": "设为默认"
+    },
+    "walletColumns": {
+      "address": "地址",
+      "name": "名称",
+      "isDefault": "默认",
+      "balance": "余额",
+      "action": "操作"
+    },
+    "assets": {
+      "refreshAssets": "刷新资产",
+      "registerButton": "注册资产",
+      "registerTitle": "注册资产",
+      "registerOk": "注册",
+      "nameLabel": "资产名称",
+      "namePlaceholder": "请输入资产名称",
+      "typeLabel": "资产类型",
+      "typePlaceholder": "请选择类型",
+      "descLabel": "描述",
+      "descPlaceholder": "资产描述（可选）",
+      "emptyText": "暂无资产，点击注册资产添加"
+    },
+    "assetColumns": {
+      "name": "名称",
+      "type": "类型",
+      "description": "描述",
+      "address": "地址"
+    },
+    "transfer": {
+      "formCardTitle": "发起转账",
+      "assetIdLabel": "资产 ID",
+      "assetIdPlaceholder": "请输入资产 ID",
+      "toAddressLabel": "目标地址",
+      "toAddressPlaceholder": "请输入接收方地址",
+      "amountLabel": "数量",
+      "amountPlaceholder": "转账数量",
+      "submitButton": "确认转账",
+      "successTag": "成功",
+      "failureTag": "失败",
+      "historyCardTitle": "交易历史",
+      "historyEmpty": "暂无交易记录",
+      "confirmTitle": "确认转账",
+      "confirmIntro": "请确认以下转账信息：",
+      "confirmOk": "确认"
+    },
+    "historyColumns": {
+      "time": "时间",
+      "type": "类型",
+      "amount": "数量",
+      "to": "目标"
+    },
+    "messages": {
+      "loadWalletsFailed": "加载钱包列表失败: {err}",
+      "walletNameRequired": "请输入钱包名称",
+      "walletCreateFailed": "创建失败: {err}",
+      "walletCreateOk": "钱包已创建",
+      "setDefaultFailed": "设置失败: {err}",
+      "setDefaultOk": "已设为默认钱包",
+      "loadAssetsFailed": "加载资产列表失败: {err}",
+      "assetNameRequired": "请输入资产名称",
+      "assetRegisterFailed": "注册失败: {err}",
+      "assetRegisterOk": "资产已注册",
+      "transferIncomplete": "请填写完整的转账信息",
+      "transferOk": "转账成功",
+      "transferDefault": "转账已提交",
+      "transferFailed": "转账失败: {err}",
+      "loadHistoryFailed": "加载交易历史失败: {err}"
+    }
+  },
+  "community": {
+    "title": "社区",
+    "subtitle": "联系人 · 好友 · 帖子（去中心化社交平台）",
+    "refresh": "刷新",
+    "publishButton": "发布帖子",
+    "addContactButton": "添加联系人",
+    "stats": {
+      "contacts": "联系人",
+      "friends": "好友",
+      "posts": "帖子",
+      "messages": "消息",
+      "pendingRequests": "待处理请求"
+    },
+    "tabs": {
+      "posts": "帖子",
+      "friends": "好友",
+      "contacts": "联系人"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "posts": {
+      "emptyText": "暂无帖子，点击发布帖子创建第一条",
+      "publishTitle": "发布帖子",
+      "publishOk": "发布",
+      "authorLabel": "作者",
+      "authorPlaceholder": "可选，留空则使用 cli-user",
+      "contentLabel": "内容",
+      "contentPlaceholder": "说点什么..."
+    },
+    "friends": {
+      "removeConfirm": "移除该好友？",
+      "removeOk": "移除",
+      "remove": "移除",
+      "emptyText": "暂无好友。在联系人标签页给联系人发送好友请求。"
+    },
+    "friendColumns": {
+      "contact": "联系人",
+      "status": "状态",
+      "createdAt": "建立时间",
+      "action": "操作"
+    },
+    "contacts": {
+      "addFriend": "添加好友",
+      "alreadyFriend": "已是好友",
+      "deleteConfirm": "删除该联系人？",
+      "deleteOk": "删除",
+      "delete": "删除",
+      "emptyText": "暂无联系人，点击添加联系人创建",
+      "addTitle": "添加联系人",
+      "addOk": "添加",
+      "nameLabel": "姓名",
+      "namePlaceholder": "联系人显示名称",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:... (可选)",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "可选",
+      "notesLabel": "备注"
+    },
+    "contactColumns": {
+      "name": "姓名",
+      "did": "DID",
+      "email": "邮箱",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "status": {
+      "accepted": "已接受",
+      "pending": "待处理",
+      "blocked": "已屏蔽"
+    },
+    "messages": {
+      "loadFailed": "加载社区数据失败: {err}",
+      "contentRequired": "请输入帖子内容",
+      "publishFailed": "发布失败: {err}",
+      "publishOk": "帖子已发布",
+      "nameRequired": "请输入联系人姓名",
+      "addFailed": "添加失败: {err}",
+      "addOk": "联系人已添加",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "联系人已删除",
+      "friendRequestFailed": "好友请求失败: {err}",
+      "friendRequestOk": "好友请求已发送",
+      "removeFailed": "移除失败: {err}",
+      "removeOk": "已移除好友",
+      "likeFailed": "点赞失败: {err}"
+    }
+  },
+  "webauthn": {
+    "title": "认证管理",
+    "subtitle": "WebAuthn / SSO / 双因素认证",
+    "refresh": "刷新",
+    "tabs": {
+      "webauthn": "WebAuthn",
+      "sso": "SSO 配置",
+      "tfa": "双因素认证"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "credentials": {
+      "registerButton": "注册新凭证",
+      "registerTitle": "注册 WebAuthn 凭证",
+      "registerOk": "注册",
+      "nameLabel": "凭证名称",
+      "namePlaceholder": "例如：YubiKey-5, TouchID",
+      "deleteConfirm": "确定要删除此凭证吗？",
+      "deleteOk": "确定",
+      "delete": "删除",
+      "emptyText": "暂无 WebAuthn 凭证，点击注册新凭证添加"
+    },
+    "credentialColumns": {
+      "id": "ID",
+      "name": "名称",
+      "type": "类型",
+      "createdAt": "创建时间",
+      "lastUsed": "最后使用",
+      "actions": "操作"
+    },
+    "sso": {
+      "currentTitle": "当前 SSO 配置",
+      "providerLabel": "提供商",
+      "clientIdLabel": "Client ID",
+      "redirectUrlLabel": "Redirect URL",
+      "statusLabel": "状态",
+      "configureButton": "配置 SSO",
+      "modalTitle": "配置 SSO",
+      "modalOk": "保存",
+      "providerPlaceholder": "选择 SSO 提供商",
+      "clientIdPlaceholder": "输入 Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretPlaceholder": "输入 Client Secret",
+      "issuerLabel": "Issuer URL",
+      "issuerPlaceholder": "https://sso.example.com",
+      "notConfigured": "未配置",
+      "enabled": "已启用",
+      "disabled": "未启用"
+    },
+    "tfa": {
+      "totpCardTitle": "TOTP 双因素认证",
+      "statusPrefix": "状态:",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "enableButton": "启用 TOTP",
+      "disableConfirm": "确定要禁用双因素认证吗？这会降低账户安全性。",
+      "disableOk": "确定禁用",
+      "disableButton": "禁用",
+      "recoveryCardTitle": "恢复码",
+      "recoveryHint": "恢复码可在丢失 TOTP 设备时用于登录。请妥善保管。",
+      "generateButton": "生成恢复码",
+      "saveAlert": "请立即保存这些恢复码，关闭后将无法再次查看。",
+      "totpResultPrefix": "TOTP Secret: {secret}",
+      "totpResultUrl": "OTP Auth URL: {url}"
+    },
+    "messages": {
+      "loadFailed": "加载 WebAuthn 凭证失败: {err}",
+      "credNameRequired": "请输入凭证名称",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "WebAuthn 凭证已注册",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "凭证已删除",
+      "providerRequired": "请选择 SSO 提供商",
+      "clientIdRequired": "请输入 Client ID",
+      "ssoSaveFailed": "保存失败: {err}",
+      "ssoSaveOk": "SSO 配置已保存",
+      "totpEnableFailed": "启用失败: {err}",
+      "totpEnableOk": "TOTP 已启用",
+      "totpDisableFailed": "禁用失败: {err}",
+      "totpDisableOk": "双因素认证已禁用",
+      "codesFailed": "生成恢复码失败: {err}",
+      "codesOk": "恢复码已生成",
+      "codesUnable": "无法生成恢复码"
+    }
+  },
+  "mtc": {
+    "title": "默克尔树证书 (MTC)",
+    "subtitle": "Audit 双轨状态 · Marketplace publisher 历史 · 离线验证工具",
+    "refresh": "刷新状态",
+    "tabs": {
+      "status": "Audit 双轨状态",
+      "publisher": "Marketplace publisher",
+      "verify": "Envelope 验证工具"
+    },
+    "status": {
+      "enabledLabel": "启用状态",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "intervalLabel": "批次间隔",
+      "stagingLabel": "待批次关闭",
+      "stagingMalformed": "{count} 损坏",
+      "totalBatches": "累计批次",
+      "configCard": "配置",
+      "lastBatchSize": "size={size} · {time}",
+      "noBatches": "尚未关批",
+      "loadFailMessage": "状态加载失败",
+      "loadFailDescription": "`cc audit mtc status --json` 没返回有效输出。请确认 cc serve 在运行，且当前账户能读 audit-mtc 目录。",
+      "notEnabledMessage": "audit-mtc 未启用 · 已就绪",
+      "notEnabledDescription": "法务出函阻塞已于 2026-05-01 解除。运行 `cc audit mtc enable --interval [60|3600] --namespace [ns] --issuer [issuer]` 即可在本租户启用双轨签名。"
+    },
+    "publisher": {
+      "stateFileLabel": "状态文件路径",
+      "stateFilePlaceholder": "e.g. ~/.chainlesschain/marketplace-state.json",
+      "queryButton": "查询",
+      "missingMessage": "状态文件不存在",
+      "missingDescription": "路径 {path} 还没有任何发布记录。运行一次 cc mtc publish-skills 后此处会出现历史。",
+      "lastSeq": "last seq",
+      "historyEntries": "历史条目",
+      "lastPublished": "last published"
+    },
+    "historyColumns": {
+      "seq": "Seq",
+      "namespace": "Namespace",
+      "treeSize": "Tree size",
+      "treeHeadId": "Tree head",
+      "publishedAt": "Published"
+    },
+    "verify": {
+      "infoMessage": "只读验证 · 通过本机 cc serve 运行",
+      "infoDescription": "此工具调用 `cc mtc verify` 子命令。Envelope + landmark 文件必须已在本机磁盘上 — 浏览器只把路径转给 cc serve，不会上传文件内容。",
+      "envelopeLabel": "Envelope 文件路径",
+      "envelopePlaceholder": "e.g. ./mtc-out/envelope-000000.json",
+      "landmarkLabel": "Landmark 文件路径",
+      "landmarkPlaceholder": "e.g. ./mtc-out/landmark.json",
+      "runButton": "运行 cc mtc verify",
+      "passTitle": "✓ 验证通过",
+      "failTitle": "✗ 验证失败",
+      "resultLabel": "结果",
+      "errorCodeLabel": "错误码",
+      "errorCodeNone": "(none)",
+      "recoverable": "可恢复",
+      "subjectLabel": "Subject",
+      "kindLabel": "Kind",
+      "treeSizeLabel": "Tree size",
+      "issuerLabel": "Issuer",
+      "rawHeader": "原始 JSON 输出"
+    },
+    "messages": {
+      "loadStatusFailed": "状态加载失败: {err}",
+      "stateFileRequired": "请输入状态文件路径",
+      "loadPublishFailed": "publisher 状态加载失败: {err}",
+      "verifyPathsRequired": "请填写 envelope 和 landmark 路径",
+      "verifyNoJson": "验证命令未返回 JSON。请检查路径是否正确。",
+      "verifyFailed": "验证失败: {err}"
+    }
+  },
+  "tokens": {
+    "title": "Token 用量",
+    "subtitle": "LLM 调用追踪 · 成本核算 · 响应缓存",
+    "refresh": "刷新",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc tokens ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "periodLabel": "时间范围:",
+    "period": {
+      "today": "今日",
+      "week": "近 7 日",
+      "month": "近 30 日",
+      "all": "全部"
+    },
+    "stats": {
+      "calls": "调用次数",
+      "callsToday": "今日 {count}",
+      "totalTokens": "Token 总数",
+      "tokensInOut": "{inputs} 入 / {outputs} 出",
+      "totalCost": "累计成本",
+      "costToday": "今日 {amount}",
+      "avgResponse": "平均响应",
+      "cacheHits": "缓存命中",
+      "cacheTokensSaved": "省 {count} tokens"
+    },
+    "tabs": {
+      "breakdown": "模型成本",
+      "recent": "最近调用",
+      "cache": "响应缓存"
+    },
+    "totals": {
+      "models": "共 {count} 个模型",
+      "rows": "共 {count} 条"
+    },
+    "breakdownColumns": {
+      "provider": "提供商",
+      "model": "模型",
+      "calls": "调用",
+      "totalTokens": "Token",
+      "costUsd": "成本",
+      "avgCost": "均价/次"
+    },
+    "breakdownDetails": {
+      "tokensInOut": "{inputs} 入 / {outputs} 出"
+    },
+    "recentColumns": {
+      "createdAt": "时间",
+      "provider": "提供商",
+      "model": "模型",
+      "tokens": "Tokens",
+      "costUsd": "成本",
+      "responseTimeMs": "响应",
+      "endpoint": "端点"
+    },
+    "empty": {
+      "breakdown": "暂无用量数据",
+      "recent": "暂无调用记录"
+    },
+    "cache": {
+      "totalEntries": "缓存条目",
+      "totalHits": "命中次数",
+      "totalTokensSaved": "节省 Tokens",
+      "expiredEntries": "过期条目",
+      "maintenanceTitle": "缓存维护",
+      "cleanupConfirm": "移除所有过期缓存？",
+      "cleanupOk": "清理",
+      "cleanupButton": "清理过期条目 ({count})",
+      "clearConfirm": "清空整个响应缓存？此操作不可撤销。",
+      "clearOk": "清空",
+      "clearButton": "清空全部缓存"
+    },
+    "v2": {
+      "cardTitle": "V2 预算治理",
+      "budgetsTitle": "预算 (Budgets V2)",
+      "recordsTitle": "使用记录 (Records V2)"
+    },
+    "budgetStatus": {
+      "planning": "筹划",
+      "active": "活跃",
+      "suspended": "暂停",
+      "archived": "已归档"
+    },
+    "recordStatus": {
+      "pending": "待处理",
+      "recorded": "已记录",
+      "billed": "已结算",
+      "rejected": "已拒绝",
+      "refunded": "已退款"
+    },
+    "messages": {
+      "loadFailed": "加载用量数据失败: {err}",
+      "loadShowFailed": "加载用量失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "cleanupFailed": "清理失败: {err}",
+      "cleanupOk": "过期条目已清理",
+      "clearFailed": "清空失败: {err}",
+      "clearOk": "缓存已清空"
+    }
+  },
+  "backup": {
+    "title": "备份与同步",
+    "subtitle": "备份管理 / 数据同步 / IPFS",
+    "refresh": "刷新",
+    "tabs": {
+      "backup": "备份管理",
+      "sync": "数据同步",
+      "ipfs": "IPFS 存储"
+    },
+    "backup": {
+      "cardTitle": "备份操作",
+      "exportButton": "导出列表",
+      "createButton": "创建备份",
+      "emptyText": "暂无备份记录",
+      "lastResultLabel": "最近操作结果",
+      "createDefaultMessage": "备份已创建",
+      "restoreTitle": "确认恢复备份",
+      "restoreOk": "确认恢复",
+      "restoreIntro": "确定要恢复以下备份吗？此操作将覆盖当前数据。",
+      "backupIdPrefix": "备份 ID:",
+      "createdAtPrefix": "创建时间:",
+      "restoreDefaultMessage": "恢复完成"
+    },
+    "backupColumns": {
+      "id": "备份 ID",
+      "size": "大小",
+      "createdAt": "创建时间",
+      "action": "操作",
+      "restore": "恢复"
+    },
+    "sync": {
+      "statusLabel": "同步状态",
+      "pendingLabel": "待同步变更",
+      "lastSyncLabel": "最近同步",
+      "noLastSync": "无",
+      "synced": "已同步",
+      "notSynced": "未同步",
+      "unknown": "未知",
+      "pushButton": "推送",
+      "pullButton": "拉取",
+      "outputLabel": "操作结果",
+      "conflictsTitle": "冲突列表",
+      "conflictDefault": "冲突",
+      "pushDefaultMessage": "推送完成",
+      "pullDefaultMessage": "拉取完成"
+    },
+    "conflictColumns": {
+      "path": "文件路径",
+      "type": "冲突类型"
+    },
+    "ipfs": {
+      "statusCardTitle": "IPFS 状态",
+      "online": "在线",
+      "offline": "离线",
+      "nodeStatusLabel": "节点状态",
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "pinnedLabel": "已固定文件",
+      "peerIdLabel": "Peer ID",
+      "pinListTitle": "固定文件列表",
+      "pinFileButton": "固定文件",
+      "pinEmptyText": "暂无固定文件",
+      "unpinConfirm": "确定取消固定？",
+      "unpinOk": "确定",
+      "unpinAction": "取消固定",
+      "pinModalTitle": "固定文件到 IPFS",
+      "pinModalOk": "固定",
+      "pinModalIntro": "请输入要固定的文件路径",
+      "pinModalPlaceholder": "文件路径，例如: /path/to/file.txt",
+      "pinDefaultSuccess": "固定成功"
+    },
+    "pinColumns": {
+      "cid": "CID",
+      "name": "名称",
+      "size": "大小",
+      "pinnedAt": "固定时间",
+      "action": "操作"
+    },
+    "messages": {
+      "loadBackupsFailed": "加载备份列表失败: {err}",
+      "createBackupFailed": "创建备份失败: {err}",
+      "restoreFailed": "恢复失败: {err}",
+      "loadSyncFailed": "加载同步状态失败: {err}",
+      "pushFailed": "推送失败: {err}",
+      "pullFailed": "拉取失败: {err}",
+      "loadIpfsFailed": "加载 IPFS 状态失败: {err}",
+      "loadPinsFailed": "加载固定列表失败: {err}",
+      "pinFailed": "固定失败: {err}",
+      "unpinFailed": "取消固定失败: {err}",
+      "exportOk": "已导出 {count} 条备份信息到 {path}",
+      "exportOkDefault": "已导出",
+      "exportFailed": "导出失败: {err}"
+    }
+  },
+  "mcpTools": {
+    "title": "MCP 工具",
+    "subtitle": "Model Context Protocol — 已挂载工具与服务器",
+    "refresh": "刷新",
+    "stats": {
+      "servers": "服务器数量",
+      "tools": "工具数量",
+      "running": "运行状态",
+      "ready": "就绪"
+    },
+    "servers": {
+      "title": "已配置服务器",
+      "emptyHintPrefix": "暂无 MCP 服务器，运行",
+      "emptyHintCommand": "chainlesschain mcp add",
+      "emptyHintSuffix": "添加"
+    },
+    "tools": {
+      "title": "可用工具",
+      "searchPlaceholder": "搜索工具...",
+      "runAction": "运行",
+      "desktopOnly": "仅桌面模式",
+      "emptyText": "暂无可用工具"
+    },
+    "toolColumns": {
+      "name": "工具名称",
+      "server": "服务器",
+      "description": "描述",
+      "action": "操作"
+    },
+    "resources": {
+      "title": "可用资源",
+      "searchPlaceholder": "搜索资源...",
+      "emptyHint": "当前无 MCP 资源（部分服务器不暴露 resources，是正常的）",
+      "emptyTable": "无匹配资源",
+      "readAction": "读取"
+    },
+    "resourceColumns": {
+      "uri": "URI",
+      "server": "服务器",
+      "mime": "MIME",
+      "action": "操作"
+    },
+    "run": {
+      "okIdle": "运行",
+      "okRunning": "运行中...",
+      "cancel": "关闭",
+      "fallbackTitle": "运行 MCP 工具",
+      "modalTitle": "运行 {server}.{tool}",
+      "serverLabel": "服务器 / 工具",
+      "descriptionLabel": "描述",
+      "schemaLabel": "参数 schema",
+      "paramsLabel": "参数",
+      "modeForm": "表单",
+      "modeJson": "JSON",
+      "jsonParseFailed": "JSON 解析失败：{err}",
+      "paramsMustBeObject": "参数必须是 JSON 对象",
+      "errorTitle": "运行失败",
+      "resultLabel": "结果"
+    },
+    "read": {
+      "fallbackTitle": "读取 MCP 资源",
+      "modalTitle": "读取 {server}",
+      "serverLabel": "服务器 / URI",
+      "descriptionLabel": "描述",
+      "spinnerTip": "读取中...",
+      "errorTitle": "读取失败",
+      "contentsLabel": "内容（{count} 段）",
+      "binaryNote": "[二进制 blob，{count} 字符 base64 — 此 demo 不渲染]",
+      "emptyContent": "[空内容]"
+    }
+  },
+  "audit": {
+    "title": "审计日志",
+    "subtitle": "安全事件追踪 · 风险评估 · 合规导出",
+    "refresh": "刷新",
+    "exportJson": "导出 JSON",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc audit ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "total": "事件总数",
+      "failures": "失败次数",
+      "highRisk": "高风险",
+      "critical": "关键事件",
+      "successRate": "成功率"
+    },
+    "typeCatalogueTitle": "事件类型",
+    "tabs": {
+      "events": "事件流",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "searchPlaceholder": "搜索操作 / 角色 / 目标...",
+      "allTypes": "全部类型",
+      "allRisks": "全部风险",
+      "failuresOnly": "仅失败"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "logColumns": {
+      "createdAt": "时间",
+      "eventType": "类型",
+      "operation": "操作",
+      "actor": "角色",
+      "target": "目标",
+      "riskLevel": "风险",
+      "success": "状态",
+      "mtc": "MTC",
+      "action": "操作"
+    },
+    "rowAction": {
+      "details": "详情"
+    },
+    "empty": {
+      "filtered": "没有符合条件的事件",
+      "noEvents": "暂无审计事件"
+    },
+    "breakdown": {
+      "byType": "按事件类型",
+      "byRisk": "按风险等级"
+    },
+    "details": {
+      "title": "事件详情：{id}",
+      "id": "ID",
+      "eventType": "事件类型",
+      "riskLevel": "风险等级",
+      "operation": "操作",
+      "status": "状态",
+      "success": "成功",
+      "failure": "失败",
+      "time": "时间",
+      "actor": "角色",
+      "target": "目标",
+      "ip": "IP",
+      "userAgent": "User-Agent",
+      "errorMessage": "错误信息",
+      "details": "详细信息"
+    },
+    "type": {
+      "auth": "认证",
+      "permission": "权限",
+      "data": "数据",
+      "system": "系统",
+      "file": "文件",
+      "did": "DID",
+      "crypto": "加密",
+      "api": "API"
+    },
+    "risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "critical": "关键"
+    },
+    "mtc": {
+      "noneTooltip": "此事件未走 MTC 双轨（audit-mtc 未对该租户启用）",
+      "signedNotChecked": "已签 · 未查",
+      "stagingLabel": "待关批",
+      "batchedLabel": "已关批 #{batchId}",
+      "unknownLabel": "未知",
+      "tooltipBase": "event_id: {id}",
+      "tooltipNotChecked": "{base} — 点击查询 reconcile 状态",
+      "tooltipStaging": "{base}\n仍在 staging，等待下次 reconcile",
+      "tooltipBatched": "{base}\n已落入 batch #{batchId}\ntree_head_id: {treeHead}",
+      "noJson": "reconcile-check 没返回 JSON",
+      "checkFailed": "reconcile-check 失败: {err}"
+    },
+    "messages": {
+      "loadFailed": "加载审计日志失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "exportFailed": "导出失败: {err}",
+      "exportOk": "已导出到 {path}",
+      "exportOkDefault": "已导出"
+    }
+  },
+  "search": {
+    "title": "RAG 搜索",
+    "subtitle": "BM25 · 向量检索 · 混合 RRF 融合",
+    "refreshIndex": "刷新索引",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc search` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "form": {
+      "queryPlaceholder": "输入查询，例如：vue 防抖组件、AES 加密原理...",
+      "topKPlaceholder": "topK",
+      "submit": "搜索"
+    },
+    "recent": {
+      "label": "最近：",
+      "clear": "清空"
+    },
+    "stats": {
+      "indexedNotes": "索引笔记",
+      "categories": "分类数",
+      "tags": "标签数",
+      "results": "结果数",
+      "topScore": "最高分"
+    },
+    "tabs": {
+      "results": "搜索结果",
+      "index": "索引浏览"
+    },
+    "results": {
+      "promptEmpty": "输入查询后开始搜索",
+      "noMatch": "没有找到与 \"{query}\" 匹配的笔记",
+      "viewFull": "查看完整",
+      "noTitle": "(无标题)"
+    },
+    "index": {
+      "allCategories": "全部分类",
+      "tagFilterPlaceholder": "按标签筛选...",
+      "topTagsLabel": "高频标签：",
+      "rowAction": {
+        "view": "查看",
+        "similar": "相似搜索"
+      }
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "noteColumns": {
+      "title": "标题",
+      "category": "分类",
+      "tags": "标签",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "empty": {
+      "filtered": "没有符合条件的笔记",
+      "noNotes": "暂无笔记"
+    },
+    "mode": {
+      "bm25": "BM25",
+      "vector": "向量",
+      "hybrid": "混合"
+    },
+    "note": {
+      "title": "笔记详情：{title}",
+      "id": "ID",
+      "category": "分类",
+      "tags": "标签",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "content": "正文",
+      "emptyContent": "笔记内容为空"
+    },
+    "messages": {
+      "loadIndexFailed": "加载索引失败: {err}",
+      "queryRequired": "请输入查询",
+      "searchFailed": "搜索失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "noteLoadFailed": "笔记加载失败",
+      "loadFailed": "加载失败: {err}"
+    }
+  },
+  "templates": {
+    "title": "模板中心",
+    "subtitle": "项目模板 / BI 模板 / Prompt 模板",
+    "tabs": {
+      "project": "项目模板",
+      "bi": "BI 模板",
+      "prompts": "Prompt 模板"
+    },
+    "project": {
+      "initButton": "初始化",
+      "initSuccessAlert": "初始化成功",
+      "initFailureAlert": "初始化失败",
+      "confirmTitle": "确认初始化",
+      "confirmOk": "确认",
+      "confirmIntro": "确定要使用模板",
+      "confirmIntroSuffix": "初始化项目吗？",
+      "confirmHint": "这将在当前工作目录创建项目结构。",
+      "items": {
+        "code-project": "代码项目 — 代码审查、重构、单元测试",
+        "data-science": "数据科学 — ML/数据分析、可视化",
+        "devops": "DevOps — 基础设施、部署、监控",
+        "medical-triage": "医疗分诊 — 症状分析、分诊建议",
+        "agriculture-expert": "农业专家 — 作物管理、病虫害",
+        "general-assistant": "通用助手 — 日常问答、任务管理",
+        "ai-media-creator": "AI 媒体创作 — 图文生成、视频脚本",
+        "ai-doc-creator": "AI 文档创作 — 文档生成、格式转换",
+        "empty": "空白模板 — 最小项目结构"
+      }
+    },
+    "bi": {
+      "loadingHint": "加载 BI 模板...",
+      "emptyText": "暂无 BI 模板",
+      "noDescription": "暂无描述",
+      "createButton": "创建仪表板",
+      "createSuccessAlert": "仪表板创建成功",
+      "createFailureAlert": "创建失败"
+    },
+    "prompts": {
+      "newButton": "新建模板",
+      "exportAll": "导出全部",
+      "import": "导入",
+      "emptyText": "暂无 Prompt 模板，点击上方按钮创建",
+      "useButton": "使用",
+      "copyButton": "复制",
+      "deleteButton": "删除",
+      "modalTitle": "新建 Prompt 模板",
+      "modalOk": "保存",
+      "nameLabel": "模板名称",
+      "namePlaceholder": "输入模板名称",
+      "categoryLabel": "分类",
+      "contentLabel": "模板内容",
+      "contentPlaceholder": "输入 Prompt 模板内容",
+      "filePickerTitle": "选择 prompt-templates JSON"
+    },
+    "messages": {
+      "initFailed": "初始化失败: {err}",
+      "createFailed": "创建失败: {err}",
+      "promptSaved": "模板已保存",
+      "promptDeleted": "模板已删除",
+      "exportOk": "已导出 {count} 条到 {path}",
+      "exportOkDefault": "已导出",
+      "exportFailed": "导出失败: {err}",
+      "fileTooLarge": "文件过大",
+      "jsonParseFailed": "JSON 解析失败: {err}",
+      "fileShapeUnknown": "文件格式不识别（期待 {expected} 或数组）",
+      "importedCount": "已导入 {count} 条",
+      "importEmpty": "文件中没有有效的 prompt 条目",
+      "importFailed": "导入失败: {err}",
+      "copiedClipboard": "已复制到剪贴板",
+      "copyFailed": "复制失败"
+    }
+  },
+  "security": {
+    "title": "安全中心",
+    "subtitle": "DID 身份 / 加密 / 审计",
+    "refresh": "刷新",
+    "tabs": {
+      "did": "DID 身份",
+      "encrypt": "文件加密",
+      "audit": "审计日志"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "did": {
+      "createButton": "创建身份",
+      "signButton": "签名消息",
+      "default": "默认",
+      "available": "可用",
+      "emptyText": "暂无 DID 身份，点击创建身份添加",
+      "signTitle": "DID 签名",
+      "signOk": "签名",
+      "messageLabel": "消息",
+      "messagePlaceholder": "请输入要签名的消息",
+      "signResultLabel": "签名结果:"
+    },
+    "didColumns": {
+      "did": "DID",
+      "method": "方法",
+      "created": "创建时间",
+      "status": "状态"
+    },
+    "encrypt": {
+      "encryptCardTitle": "加密文件",
+      "decryptCardTitle": "解密文件",
+      "pathLabel": "文件路径",
+      "encryptPlaceholder": "输入文件路径，如 /path/to/file.txt",
+      "decryptPlaceholder": "输入加密文件路径，如 /path/to/file.txt.enc",
+      "encryptButton": "加密",
+      "decryptButton": "解密",
+      "successTag": "成功",
+      "failureTag": "失败",
+      "encryptDefault": "加密完成",
+      "decryptDefault": "解密完成"
+    },
+    "audit": {
+      "emptyText": "暂无审计日志",
+      "totalEvents": "总事件数",
+      "statusLabel": "状态",
+      "ready": "就绪"
+    },
+    "auditColumns": {
+      "time": "时间",
+      "event": "事件",
+      "user": "用户",
+      "level": "级别",
+      "detail": "详情"
+    },
+    "messages": {
+      "loadDidsFailed": "加载 DID 列表失败: {err}",
+      "didCreateFailed": "创建失败: {err}",
+      "didCreateOk": "DID 身份已创建",
+      "messageRequired": "请输入消息",
+      "signFailed": "签名失败: {err}",
+      "signOk": "签名成功",
+      "encryptFailed": "加密失败: {err}",
+      "encryptOk": "文件加密成功",
+      "decryptFailed": "解密失败: {err}",
+      "decryptOk": "文件解密成功",
+      "loadAuditFailed": "加载审计日志失败: {err}"
+    }
+  },
+  "cron": {
+    "title": "定时任务",
+    "subtitle": "定时任务调度管理",
+    "newTask": "新建任务",
+    "refresh": "刷新",
+    "stats": {
+      "all": "全部任务",
+      "active": "启用中",
+      "paused": "已暂停",
+      "presets": "预设方案"
+    },
+    "presetsCardTitle": "快速添加预设",
+    "presets": {
+      "every5m": "每5分钟",
+      "every15m": "每15分钟",
+      "everyHour": "每小时",
+      "every9am": "每天9点",
+      "every6pm": "每天18点",
+      "weeklyMon9": "每周一9点",
+      "monthly1": "每月1号"
+    },
+    "running": "运行中",
+    "paused": "已暂停",
+    "actions": {
+      "run": "运行",
+      "pause": "暂停",
+      "enable": "启用",
+      "delete": "删除",
+      "deleteConfirm": "确认删除此任务?"
+    },
+    "emptyText": "暂无定时任务",
+    "modal": {
+      "title": "新建定时任务",
+      "nameLabel": "任务名称",
+      "namePlaceholder": "任务名称",
+      "cronLabel": "Cron 表达式",
+      "cronPlaceholder": "如: 0 9 * * * (每天9点)",
+      "cronHint": "格式: 分 时 日 月 周",
+      "payloadLabel": "任务内容",
+      "payloadPlaceholder": "要执行的 AI 任务描述...",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "可选描述",
+      "enabledLabel": "立即启用"
+    },
+    "columns": {
+      "name": "任务名称",
+      "cron": "Cron",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "messages": {
+      "nameAndCronRequired": "请填写任务名称和 Cron 表达式",
+      "createOk": "任务已创建",
+      "createFailed": "创建失败: {err}",
+      "runOk": "任务 {name} 已触发",
+      "runFailed": "触发失败: {err}",
+      "toggleEnabled": "任务已启用",
+      "togglePaused": "任务已暂停",
+      "toggleFailed": "操作失败",
+      "deleteOk": "任务已删除",
+      "deleteFailed": "删除失败"
+    }
+  },
+  "analytics": {
+    "title": "使用分析",
+    "subtitle": "Token 用量 / 成本 / 缓存",
+    "refresh": "刷新",
+    "period": {
+      "today": "今天",
+      "week": "本周",
+      "month": "本月",
+      "all": "全部"
+    },
+    "summary": {
+      "totalCalls": "总调用次数",
+      "callsSuffix": "次",
+      "totalTokens": "总 Token 数",
+      "totalCost": "总费用",
+      "avgResponseTime": "平均响应时间"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "providerCardTitle": "Provider 分布",
+    "providerEmpty": "暂无调用记录",
+    "recentCardTitle": "最近调用记录",
+    "recentEmpty": "暂无调用记录",
+    "sessionCardTitle": "Session Token Usage",
+    "sessionStats": {
+      "totalCalls": "Session 调用总次数",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens"
+    },
+    "sessionEmpty": "暂无 Session 用量数据 — 使用 cc chat 后刷新",
+    "cacheCardTitle": "缓存状态",
+    "cacheActions": {
+      "cleanup": "清理过期",
+      "clear": "清理缓存"
+    },
+    "cacheStats": {
+      "entries": "缓存条目",
+      "hits": "命中次数",
+      "tokensSaved": "节省 Token",
+      "expired": "已过期"
+    },
+    "breakdownColumns": {
+      "calls": "调用次数",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens",
+      "cost": "费用 (USD)",
+      "avgResponseTime": "平均响应"
+    },
+    "recentColumns": {
+      "timestamp": "时间",
+      "input": "Input",
+      "output": "Output",
+      "cost": "费用",
+      "responseTime": "响应时间"
+    },
+    "sessionUsageColumns": {
+      "calls": "调用次数"
+    },
+    "messages": {
+      "cacheClearOk": "缓存已清理",
+      "cacheClearFailed": "清理缓存失败: {err}",
+      "cacheCleanupOk": "过期缓存已清理",
+      "cacheCleanupFailed": "清理过期失败: {err}"
+    }
+  },
+  "speechSettings": {
+    "title": "语音识别配置",
+    "subtitle": "引擎选择 / Web Speech / Whisper API / Whisper Local",
+    "refresh": "刷新",
+    "alert": {
+      "message": "部分配置仍在桌面端",
+      "description": "高级 storage / audio / 知识库集成 / 性能选项仍在桌面端 SystemSettings 编辑（低频使用，未迁移）。本页覆盖引擎选择 + 三种引擎各自的核心配置。"
+    },
+    "engineCardTitle": "识别引擎",
+    "engineLabel": "默认引擎",
+    "engineOptions": {
+      "webspeech": "Web Speech API（浏览器内置）",
+      "whisper-api": "Whisper API（OpenAI 云端）",
+      "whisper-local": "Whisper Local（本地服务）"
+    },
+    "engineHint": {
+      "webspeech": "✓ 免费，无需配置；准确度较低",
+      "whisper-api": "⚠ 需要 OpenAI API 密钥，按使用量计费；准确度高",
+      "whisper-local": "✓ 免费，需要本地部署 Whisper 服务；准确度高"
+    },
+    "webSpeech": {
+      "cardTitle": "Web Speech API 配置",
+      "langLabel": "语言",
+      "langOptions": {
+        "zh-CN": "中文（简体）",
+        "zh-TW": "中文（繁体）",
+        "en-US": "English (US)",
+        "en-GB": "English (UK)",
+        "ja-JP": "日本語",
+        "ko-KR": "한국어"
+      }
+    },
+    "whisperAPI": {
+      "cardTitle": "Whisper API 配置",
+      "apiKeyLabel": "API Key",
+      "baseUrlLabel": "Base URL",
+      "modelLabel": "模型",
+      "languageLabel": "语言代码",
+      "timeoutLabel": "超时（毫秒）"
+    },
+    "whisperLocal": {
+      "cardTitle": "Whisper Local 配置",
+      "serverUrlLabel": "服务地址",
+      "modelSizeLabel": "模型规模",
+      "deviceLabel": "设备",
+      "timeoutLabel": "超时（毫秒）"
+    },
+    "buttons": {
+      "reset": "重置",
+      "save": "保存配置"
+    },
+    "dirtyHint": "有未保存的修改",
+    "messages": {
+      "loadFailed": "加载配置失败: {err}",
+      "noChanges": "没有需要保存的修改",
+      "saveItemFailed": "保存 speech.{key} 失败: {err}",
+      "saveOk": "保存成功（{count} 项）",
+      "savePartial": "部分保存成功：{ok} 成功 / {fail} 失败"
+    }
+  },
+  "projects": {
+    "title": "项目管理",
+    "subtitle": "初始化 / 状态 / 诊断",
+    "refresh": "刷新",
+    "stats": {
+      "system": "系统状态",
+      "running": "运行中",
+      "notRunning": "未运行",
+      "editionPrefix": "版本: {edition}",
+      "llmProvider": "LLM 提供商",
+      "notConfigured": "未配置",
+      "init": "初始化",
+      "done": "已完成",
+      "notDone": "未完成",
+      "config": "项目配置",
+      "loaded": "已加载",
+      "notLoaded": "未加载"
+    },
+    "configCardTitle": "项目配置",
+    "initCardTitle": "项目初始化",
+    "templateCount": "{count} 个模板",
+    "selected": "已选择",
+    "templates": {
+      "code-project": "代码项目模板 — 代码审查、重构、单元测试生成",
+      "medical-triage": "医疗分诊模板 — 症状分析、分诊建议、病历管理",
+      "agriculture-expert": "农业专家模板 — 作物管理、病虫害识别、农事建议",
+      "general-assistant": "通用助手模板 — 日常问答、文档处理、任务管理",
+      "ai-media-creator": "AI 媒体创作模板 — 图文生成、视频脚本、内容编辑",
+      "ai-doc-creator": "AI 文档创作模板 — 文档生成、格式转换、文档编辑"
+    },
+    "actions": {
+      "initInFolder": "在所选文件夹初始化",
+      "initCwd": "初始化（当前目录）",
+      "pickFolder": "选择文件夹...",
+      "clear": "清除",
+      "templatePrefix": "模板: {name}"
+    },
+    "folder": {
+      "alreadyProject": "已是项目",
+      "pendingInit": "待初始化",
+      "alreadyMessage": "该文件夹已是 ChainlessChain 项目",
+      "alreadyDescription": "检测到 .chainlesschain/config.json。无需重新初始化 — 重新启动 cc ui 时把工作目录指向这里即可使用现有配置。",
+      "pickerTitle": "选择项目文件夹"
+    },
+    "initResult": {
+      "success": "初始化成功",
+      "failure": "初始化失败"
+    },
+    "doctor": {
+      "cardTitle": "环境诊断",
+      "runButton": "运行诊断",
+      "runningHint": "正在诊断环境...",
+      "emptyHint": "点击运行诊断检查环境状态"
+    },
+    "messages": {
+      "initFailed": "初始化失败: {err}",
+      "alreadyProjectInfo": "该文件夹已是项目，无需重新初始化",
+      "browserUnsupported": "浏览器模式不支持选择文件夹 — 请在桌面壳里使用此功能",
+      "pickFolderFailed": "选择文件夹失败: {err}",
+      "doctorFailed": "诊断失败: {err}"
+    }
+  },
+  "videoEditing": {
+    "title": "视频剪辑",
+    "subtitle": "长视频素材 + 音乐 → 节奏化蒙太奇（CutClaw 风格）",
+    "refreshAssets": "刷新资产",
+    "library": {
+      "title": "素材库",
+      "empty": "暂无已解构素材",
+      "emptyHint": "请先执行解构"
+    },
+    "workspace": {
+      "title": "编辑工作台",
+      "videoLabel": "视频文件",
+      "videoPlaceholder": "/path/to/video.mp4",
+      "audioLabel": "音乐文件",
+      "audioPlaceholder": "/path/to/bgm.mp3（可选）",
+      "srtLabel": "字幕文件",
+      "srtPlaceholder": "/path/to/subtitle.srt（可选，跳过 ASR）",
+      "instructionLabel": "剪辑指令",
+      "instructionPlaceholder": "节奏感强的角色蒙太奇...",
+      "fpsLabel": "采样 FPS",
+      "characterLabel": "主角名",
+      "outputLabel": "输出路径",
+      "outputPlaceholder": "./output.mp4",
+      "actions": {
+        "fullPipeline": "一键剪辑",
+        "deconstruct": "仅解构",
+        "plan": "生成计划",
+        "cancel": "取消"
+      }
+    },
+    "progress": {
+      "title": "进度",
+      "waiting": "等待开始..."
+    },
+    "shotPlan": {
+      "title": "分镜时间轴",
+      "summary": "{sections} 段 / {shots} 镜头"
+    },
+    "events": {
+      "title": "事件日志"
+    },
+    "preview": {
+      "title": "成片预览",
+      "copyButton": "复制路径"
+    },
+    "messages": {
+      "completed": "完成",
+      "failed": "失败",
+      "copied": "已复制"
+    }
+  },
+  "p2p": {
+    "title": "P2P 网络",
+    "subtitle": "设备管理与数据同步",
+    "refresh": "刷新",
+    "peers": {
+      "cardTitle": "P2P 设备",
+      "pairButton": "配对设备",
+      "sendButton": "发送消息",
+      "online": "在线",
+      "offline": "离线",
+      "emptyText": "暂无已连接设备",
+      "rowSend": "发送"
+    },
+    "peerColumns": {
+      "name": "设备名称",
+      "id": "Peer ID",
+      "status": "状态",
+      "action": "操作"
+    },
+    "sync": {
+      "cardTitle": "同步状态",
+      "synced": "已同步",
+      "notSynced": "未同步",
+      "unknown": "未知",
+      "statusLabel": "同步状态",
+      "pendingLabel": "待推送",
+      "lastSyncLabel": "最近同步",
+      "noLastSync": "无",
+      "pushButton": "推送变更",
+      "pullButton": "拉取变更",
+      "outputLabel": "操作结果",
+      "pushDefault": "推送完成",
+      "pullDefault": "拉取完成"
+    },
+    "pair": {
+      "title": "配对新设备",
+      "ok": "配对",
+      "intro": "请输入要配对的设备名称",
+      "placeholder": "设备名称，例如: My Phone"
+    },
+    "send": {
+      "title": "发送消息",
+      "ok": "发送",
+      "targetLabel": "选择目标设备",
+      "targetPlaceholder": "选择设备",
+      "messageLabel": "消息内容",
+      "messagePlaceholder": "输入消息内容",
+      "messageDefault": "消息已发送"
+    },
+    "messages": {
+      "loadPeersFailed": "加载失败: {err}",
+      "pairFailed": "配对失败: {err}",
+      "sendFailed": "发送失败: {err}",
+      "loadSyncFailed": "加载失败: {err}",
+      "pushFailed": "推送失败: {err}",
+      "pullFailed": "拉取失败: {err}"
+    }
+  },
+  "memory": {
+    "title": "记忆文件",
+    "subtitle": "分层记忆系统 — 短期 / 长期 / 核心记忆",
+    "storeButton": "存储记忆",
+    "refresh": "刷新",
+    "stats": {
+      "shortTerm": "短期记忆",
+      "shortTermHint": "最近会话内容",
+      "longTerm": "长期记忆",
+      "longTermHint": "巩固后的重要信息",
+      "core": "核心记忆",
+      "coreHint": "高重要性长期保留"
+    },
+    "card": {
+      "title": "记忆内容",
+      "tabs": {
+        "short": "短期",
+        "long": "长期",
+        "core": "核心"
+      },
+      "searchPlaceholder": "语义搜索记忆...",
+      "emptyText": "暂无记忆内容，点击存储记忆添加",
+      "importanceLabel": "重要度 {value}"
+    },
+    "layer": {
+      "short-term": "短期",
+      "long-term": "长期",
+      "core": "核心"
+    },
+    "consolidateButton": "巩固记忆（短期 → 长期晋升）",
+    "modal": {
+      "title": "存储新记忆",
+      "contentLabel": "内容",
+      "contentPlaceholder": "要存储的记忆内容...",
+      "importanceLabel": "重要度",
+      "marks": {
+        "low": "低",
+        "mid": "中",
+        "high": "高"
+      }
+    },
+    "messages": {
+      "contentRequired": "请输入记忆内容",
+      "storeOk": "记忆已存储",
+      "storeDefault": "存储完成",
+      "storeFailed": "存储失败: {err}",
+      "consolidateOk": "记忆巩固完成",
+      "consolidateFailed": "巩固失败: {err}"
+    }
+  },
+  "git": {
+    "title": "Git 与数据",
+    "subtitle": "版本控制 / 导入导出",
+    "tabs": {
+      "git": "Git 仓库",
+      "io": "导入导出"
+    },
+    "actions": {
+      "refresh": "刷新状态",
+      "autoCommit": "自动提交"
+    },
+    "status": {
+      "changedCount": "{count} 个文件变更",
+      "clean": "工作区干净",
+      "emptyHint": "点击刷新状态查看 Git 信息",
+      "commitSuccessAlert": "提交成功",
+      "commitResultAlert": "提交结果"
+    },
+    "import": {
+      "cardTitle": "导入数据",
+      "pathLabel": "文件路径",
+      "pathPlaceholder": "输入文件或目录路径，如 ./docs",
+      "formatLabel": "格式",
+      "submit": "导入"
+    },
+    "export": {
+      "cardTitle": "导出站点",
+      "pathLabel": "输出路径",
+      "pathPlaceholder": "输出目录，如 ./site",
+      "submit": "导出为静态站点"
+    },
+    "io": {
+      "successAlert": "操作成功",
+      "resultAlert": "操作结果",
+      "outputCardTitle": "命令输出",
+      "importIssue": "导入过程中可能存在问题，请查看输出",
+      "importDone": "导入完成",
+      "exportIssue": "导出过程中可能存在问题，请查看输出",
+      "exportDone": "导出完成"
+    },
+    "confirm": {
+      "title": "确认自动提交",
+      "ok": "确认提交",
+      "intro1": "将执行",
+      "intro2": "自动提交当前所有变更。请确认工作区文件已准备就绪。"
+    },
+    "messages": {
+      "statusFailed": "获取 Git 状态失败: {err}",
+      "commitOk": "自动提交完成",
+      "commitFailedToast": "自动提交失败",
+      "commitFailedDetail": "提交失败: {err}",
+      "importPathRequired": "请输入文件路径",
+      "importOk": "导入成功",
+      "importFailed": "导入失败",
+      "importFailedDetail": "导入失败: {err}",
+      "exportPathRequired": "请输入输出路径",
+      "exportOk": "导出成功",
+      "exportFailed": "导出失败",
+      "exportFailedDetail": "导出失败: {err}"
+    }
+  },
+  "appLayout": {
+    "groups": {
+      "overview": "概 览",
+      "config": "配 置",
+      "data": "数 据",
+      "advanced": "高 级",
+      "enterprise": "企 业",
+      "social": "社 交",
+      "media": "媒 体",
+      "extension": "扩 展",
+      "desktop": "桌面专属"
+    },
+    "items": {
+      "dashboard": "仪表板",
+      "chat": "AI 对话",
+      "quickAsk": "Quick Ask",
+      "cowork": "日常协作",
+      "services": "服务管理",
+      "aiops": "AIOps",
+      "tokens": "Token 用量",
+      "logs": "日志查看",
+      "skills": "技能管理",
+      "providers": "LLM 配置",
+      "mcp": "MCP 工具",
+      "projectSettings": "项目存储",
+      "speechSettings": "语音识别",
+      "notificationSettings": "通知设置",
+      "syncSettings": "同步设置",
+      "nlprog": "自然语言编程",
+      "codegen": "代码生成",
+      "notes": "笔记管理",
+      "search": "RAG 搜索",
+      "memory": "记忆文件",
+      "knowledge": "知识图谱",
+      "marketplace": "技能市场",
+      "cron": "定时任务",
+      "workflow": "工作流编辑",
+      "pipeline": "开发流水线",
+      "tasks": "后台任务",
+      "security": "安全中心",
+      "ukeySign": "U-Key 签名",
+      "trust": "信任与安全",
+      "audit": "审计日志",
+      "mtc": "MTC 默克尔证书",
+      "did": "DID 身份",
+      "permissions": "权限管理",
+      "p2p": "P2P 网络",
+      "backup": "备份同步",
+      "git": "Git 与数据",
+      "projects": "项目管理",
+      "crosschain": "跨链桥",
+      "compliance": "合规与情报",
+      "privacy": "隐私计算",
+      "inference": "推理网络",
+      "federation": "联邦强化",
+      "wallet": "钱包管理",
+      "organization": "组织管理",
+      "tenant": "多租户 SaaS",
+      "sla": "SLA 管理",
+      "analytics": "使用分析",
+      "templates": "模板中心",
+      "community": "社区",
+      "governance": "社区治理",
+      "reputation": "声誉优化",
+      "recommend": "智能推荐",
+      "video": "视频剪辑",
+      "rssfeed": "RSS 订阅",
+      "webauthn": "身份认证",
+      "desktopHardware": "硬件钱包",
+      "desktopBackup": "备份与恢复",
+      "desktopLlmTest": "LLM 测试",
+      "desktopSettings": "系统设置"
+    },
+    "scope": {
+      "fallbackProject": "项目",
+      "global": "全局模式",
+      "projectPanel": "项目级面板"
+    },
+    "shellSwitch": "切换到桌面壳（保存后重启生效）",
+    "wsStatus": {
+      "connected": "已连接",
+      "connecting": "连接中",
+      "disconnected": "断开"
+    },
+    "footerStatus": {
+      "connected": "已连接",
+      "connecting": "连接中...",
+      "error": "连接错误",
+      "disconnected": "未连接",
+      "unknown": "未知"
+    }
+  },
+  "crosschain": {
+    "title": "跨链桥",
+    "subtitle": "链间资产桥接 · HTLC 原子交换 · 跨链消息",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "feeEstimate": "费用估算",
+    "actions": {
+      "bridge": "桥接资产",
+      "swap": "HTLC 原子交换",
+      "message": "跨链消息"
+    },
+    "stats": {
+      "chains": "支持链",
+      "bridges": "桥接交易",
+      "swaps": "原子交换",
+      "messages": "跨链消息",
+      "volume": "总交易额"
+    },
+    "chainsCard": "支持的区块链",
+    "tabs": {
+      "bridges": "桥接交易",
+      "swaps": "原子交换",
+      "messages": "跨链消息"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "retrySuffix": "{n} 次",
+      "emptyBridges": "暂无桥接交易，点\"新建 → 桥接资产\"发起",
+      "emptySwaps": "暂无原子交换，点\"新建 → HTLC 原子交换\"发起",
+      "emptyMessages": "暂无跨链消息，点\"新建 → 跨链消息\"发送"
+    },
+    "bridgeCols": {
+      "route": "路径",
+      "amount": "金额",
+      "fee": "费用",
+      "status": "状态",
+      "createdAt": "创建时间"
+    },
+    "swapCols": {
+      "route": "路径",
+      "amount": "金额",
+      "hashLock": "哈希锁",
+      "status": "状态",
+      "expiresAt": "过期时间"
+    },
+    "messageCols": {
+      "route": "路径",
+      "payload": "消息",
+      "retries": "重试",
+      "status": "状态",
+      "createdAt": "创建时间"
+    },
+    "bridge_modal": {
+      "title": "桥接资产",
+      "ok": "发起桥接",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "amount": "金额",
+      "asset": "资产",
+      "assetPlaceholder": "native（默认）",
+      "sender": "发送方",
+      "senderPlaceholder": "0x...（可选）",
+      "recipient": "接收方",
+      "recipientPlaceholder": "0x...（可选）"
+    },
+    "swap_modal": {
+      "title": "HTLC 原子交换",
+      "ok": "发起交换",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "amount": "金额",
+      "fromAsset": "源资产",
+      "toAsset": "目标资产",
+      "assetPlaceholder": "native（默认）",
+      "counterparty": "对手方",
+      "counterpartyPlaceholder": "0x...（可选）",
+      "timeoutMs": "超时 (ms)",
+      "timeoutPlaceholder": "默认 24h"
+    },
+    "message_modal": {
+      "title": "发送跨链消息",
+      "ok": "发送",
+      "cancel": "取消",
+      "fromChain": "源链",
+      "fromChainPlaceholder": "选择源链",
+      "toChain": "目标链",
+      "toChainPlaceholder": "选择目标链",
+      "payload": "消息",
+      "contract": "目标合约",
+      "contractPlaceholder": "0x...（可选）"
+    },
+    "fee_modal": {
+      "title": "费用估算",
+      "ok": "估算",
+      "cancel": "关闭",
+      "fromChain": "源链",
+      "toChain": "目标链",
+      "amount": "金额",
+      "resultTitle": "预估费用",
+      "sourceFee": "源链费: {fee} {currency}",
+      "destFee": "目标链费: {fee} {currency}",
+      "bridgeFee": "桥接费: {fee} {currency}"
+    },
+    "statusLabels": {
+      "pending": "待处理",
+      "locked": "已锁定",
+      "minted": "已铸造",
+      "completed": "已完成",
+      "refunded": "已退款",
+      "failed": "失败",
+      "initiated": "已发起",
+      "hash_locked": "哈希锁定",
+      "claimed": "已领取",
+      "expired": "已过期",
+      "sent": "已发送",
+      "delivered": "已送达"
+    },
+    "msg": {
+      "loadFailed": "加载跨链数据失败",
+      "pairEmpty": "请选择源链和目标链",
+      "pairSame": "源链和目标链必须不同",
+      "amountInvalid": "请输入正数金额",
+      "bridgeFailed": "桥接发起失败",
+      "bridgeSuccess": "桥接已发起",
+      "swapFailed": "原子交换发起失败",
+      "swapSuccess": "原子交换已发起",
+      "sendFailed": "消息发送失败",
+      "sendSuccess": "消息已发送",
+      "feeFailed": "费用估算失败"
+    }
+  },
+  "nlprog": {
+    "title": "自然语言编程",
+    "subtitle": "意图识别 · 实体抽取 · 技术栈检测 · 自然语言→规约",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "analyze": "文本分析",
+      "translate": "翻译为规约",
+      "convention": "添加约定"
+    },
+    "stats": {
+      "translations": "翻译总数",
+      "avgCompleteness": "平均完整度",
+      "drafts": "草稿",
+      "completed": "已完成",
+      "conventions": "项目约定"
+    },
+    "intentCard": "意图分布",
+    "tabs": {
+      "translations": "翻译",
+      "conventions": "项目约定"
+    },
+    "filter": {
+      "allIntents": "全部意图",
+      "allStatuses": "全部状态",
+      "allCategories": "全部"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionDetails": "详情",
+      "actionStatusDropdown": "状态 ▼",
+      "emptyTranslationsFiltered": "没有符合条件的翻译",
+      "emptyTranslations": "暂无翻译，点\"操作 → 翻译为规约\"创建第一个",
+      "emptyConventions": "暂无约定，点\"操作 → 添加约定\"创建第一个"
+    },
+    "deleteTranslationConfirm": {
+      "title": "删除该翻译？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "deleteConventionConfirm": {
+      "title": "删除该约定？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "translationCols": {
+      "inputText": "原文",
+      "intent": "意图",
+      "completeness": "完整度",
+      "status": "状态",
+      "updatedAt": "更新时间",
+      "action": "操作"
+    },
+    "conventionCols": {
+      "category": "类别",
+      "pattern": "模式",
+      "examples": "示例",
+      "confidence": "置信度",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "analyze_modal": {
+      "title": "文本分析（无状态）",
+      "ok": "分析",
+      "cancel": "关闭",
+      "textLabel": "文本",
+      "textPlaceholder": "例如: create a login button component using React",
+      "intent": "意图",
+      "confidenceLine": "置信度: {pct}%",
+      "entities": "实体（{n}）",
+      "notDetected": "未识别到",
+      "stack": "技术栈",
+      "stackPrimary": "主: {name}"
+    },
+    "translate_modal": {
+      "title": "翻译为规约",
+      "ok": "翻译",
+      "cancel": "取消",
+      "textLabel": "自然语言",
+      "textPlaceholder": "例如: create a Vue 3 LoginForm component with email and password fields",
+      "intentLabel": "意图覆盖",
+      "intentPlaceholder": "留空则自动识别",
+      "noDbMessage": "该命令需要项目级数据库",
+      "noDbDescription": "`cc nlprog translate` 仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "convention_modal": {
+      "title": "添加项目约定",
+      "ok": "添加",
+      "cancel": "取消",
+      "categoryLabel": "类别",
+      "patternLabel": "模式",
+      "patternPlaceholder": "例如: kebab-case for file names",
+      "examplesLabel": "示例",
+      "examplesPlaceholder": "JSON 数组，例如 [\"login-form.vue\",\"user-card.vue\"]",
+      "confidenceLabel": "置信度"
+    },
+    "details": {
+      "title": "翻译详情：{id}",
+      "intent": "意图",
+      "status": "状态",
+      "completeness": "完整度",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "inputText": "原文",
+      "entities": "实体",
+      "techStack": "技术栈",
+      "spec": "规约"
+    },
+    "intentLabels": {
+      "create_component": "创建组件",
+      "add_feature": "新增功能",
+      "fix_bug": "修复 Bug",
+      "refactor": "重构",
+      "add_api": "加 API",
+      "add_test": "加测试",
+      "update_style": "改样式",
+      "configure": "配置",
+      "general": "通用"
+    },
+    "statusLabels": {
+      "draft": "草稿",
+      "complete": "已完成",
+      "refined": "已精炼"
+    },
+    "categoryLabels": {
+      "naming": "命名",
+      "architecture": "架构",
+      "testing": "测试",
+      "style": "样式",
+      "imports": "导入",
+      "components": "组件"
+    },
+    "msg": {
+      "loadFailed": "加载 NL 数据失败",
+      "textEmpty": "请输入文本",
+      "analyzeFailed": "分析失败",
+      "translateTextEmpty": "请输入自然语言文本",
+      "translateFailed": "翻译失败",
+      "translateSuccess": "翻译完成 (完整度 {pct}%)",
+      "transitionFailed": "状态转换失败",
+      "transitionSuccess": "已更新为 {label}",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "已删除",
+      "patternEmpty": "请填写模式",
+      "examplesBadJson": "示例 JSON 格式错误",
+      "addFailed": "添加失败",
+      "addSuccess": "约定已添加"
+    }
+  },
+  "tenant": {
+    "title": "多租户 SaaS",
+    "subtitle": "租户管理 · 订阅计费 · 用量计量 · 配额检查",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "tenant": "创建租户",
+      "quota": "检查配额",
+      "record": "记录用量"
+    },
+    "stats": {
+      "total": "租户总数",
+      "active": "活跃订阅",
+      "mrr": "月度收入",
+      "apiCalls": "API 调用",
+      "storage": "存储用量"
+    },
+    "plansCard": "计划分布",
+    "summarySuffix": "活跃 {active} · 暂停 {suspended} · 已删除 {deleted}",
+    "tabs": {
+      "tenants": "租户",
+      "subscriptions": "订阅",
+      "plans": "计划"
+    },
+    "filter": {
+      "allPlans": "全部计划",
+      "allStatuses": "全部状态"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionSubscribe": "订阅",
+      "actionPlanDropdown": "计划 ▼",
+      "actionSuspend": "暂停",
+      "actionActivate": "激活",
+      "emptyTenantsFiltered": "没有符合条件的租户",
+      "emptyTenants": "暂无租户，点\"操作 → 创建租户\"添加第一个",
+      "emptySubscriptions": "暂无订阅记录"
+    },
+    "deleteConfirm": {
+      "title": "软删除该租户？",
+      "ok": "删除",
+      "cancel": "取消"
+    },
+    "cancelConfirm": {
+      "title": "取消该订阅？",
+      "ok": "取消订阅",
+      "cancel": "返回"
+    },
+    "tenantCols": {
+      "name": "租户",
+      "plan": "计划",
+      "status": "状态",
+      "owner": "所有者",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "subscriptionCols": {
+      "tenant": "租户",
+      "plan": "计划",
+      "amount": "金额",
+      "status": "状态",
+      "startedAt": "开始",
+      "expiresAt": "到期",
+      "action": "操作"
+    },
+    "planCard": {
+      "monthlySuffix": "/ 月",
+      "contactSales": "联系销售",
+      "quotas": "配额",
+      "features": "特性",
+      "unlimited": "无限"
+    },
+    "deletedTenant": "(已删除)",
+    "create_modal": {
+      "title": "创建租户",
+      "ok": "创建",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "例如: Acme Corp",
+      "slugLabel": "Slug",
+      "slugPlaceholder": "小写字母数字+连字符，例如: acme-corp",
+      "planLabel": "计划",
+      "ownerLabel": "所有者 ID",
+      "ownerPlaceholder": "可选"
+    },
+    "subscribe_modal": {
+      "title": "订阅：{name}",
+      "ok": "订阅",
+      "cancel": "取消",
+      "planLabel": "计划",
+      "amountLabel": "金额覆盖",
+      "amountPlaceholder": "留空使用计划默认价",
+      "durationLabel": "周期",
+      "duration30": "30 天",
+      "duration90": "90 天",
+      "duration365": "1 年"
+    },
+    "quota_modal": {
+      "title": "配额检查",
+      "ok": "检查",
+      "cancel": "关闭",
+      "tenantLabel": "租户",
+      "tenantPlaceholder": "选择租户",
+      "metricLabel": "指标",
+      "periodLabel": "周期",
+      "periodPlaceholder": "YYYY-MM，留空则当前月",
+      "resultTitle": "配额状态",
+      "unlimited": "无限",
+      "exceeded": "已超额",
+      "ok_state": "正常",
+      "planLine": "计划:",
+      "periodLine": "周期: {period}",
+      "usedLine": "已用:",
+      "limitLine": "上限:"
+    },
+    "record_modal": {
+      "title": "记录用量",
+      "ok": "记录",
+      "cancel": "取消",
+      "tenantLabel": "租户",
+      "tenantPlaceholder": "选择租户",
+      "metricLabel": "指标",
+      "valueLabel": "数量",
+      "periodLabel": "周期",
+      "periodPlaceholder": "YYYY-MM，留空则当前月"
+    },
+    "planLabels": {
+      "free": "免费版",
+      "starter": "入门版",
+      "pro": "专业版",
+      "enterprise": "企业版"
+    },
+    "tenantStatusLabels": {
+      "active": "活跃",
+      "suspended": "已暂停",
+      "deleted": "已删除"
+    },
+    "subStatusLabels": {
+      "active": "活跃",
+      "cancelled": "已取消",
+      "expired": "已过期",
+      "past_due": "逾期"
+    },
+    "msg": {
+      "loadFailed": "加载租户数据失败",
+      "createFieldsEmpty": "请填写名称和 slug",
+      "slugInvalid": "slug 必须为小写字母数字 + 连字符",
+      "createFailed": "创建失败",
+      "createSuccess": "租户已创建",
+      "subscribeFailed": "订阅失败",
+      "subscribeSuccess": "订阅已创建",
+      "planChangeFailed": "计划变更失败",
+      "planChangeSuccess": "已切换到 {plan}",
+      "statusChangeFailed": "状态变更失败",
+      "activated": "已激活",
+      "suspended": "已暂停",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "租户已软删除",
+      "cancelFailed": "取消失败",
+      "cancelSuccess": "订阅已取消",
+      "tenantEmpty": "请选择租户",
+      "checkFailed": "检查失败",
+      "exceededWarning": "该租户已超额!",
+      "valueInvalid": "请输入有效数量",
+      "recordFailed": "记录失败",
+      "recordSuccess": "用量已记录"
+    }
+  },
+  "codegen": {
+    "title": "代码生成",
+    "subtitle": "生成记录 · 启发式审查 · 5 类脚手架",
+    "refresh": "刷新",
+    "review": "代码审查",
+    "newDropdown": "新建 ▼",
+    "actions": { "generate": "记录生成", "scaffold": "创建脚手架" },
+    "stats": {
+      "generations": "生成记录",
+      "reviews": "代码审查",
+      "securityIssues": "安全问题",
+      "scaffolds": "脚手架",
+      "languages": "语言数"
+    },
+    "templatesCard": "脚手架模板",
+    "tabs": { "generations": "生成记录", "reviews": "代码审查", "scaffolds": "脚手架" },
+    "filter": {
+      "languagePlaceholder": "按语言筛选...",
+      "frameworkPlaceholder": "按框架筛选...",
+      "allTemplates": "全部模板"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "issuesSuffix": "{n} 项",
+      "noIssues": "— 无问题",
+      "unnamed": "(未命名)",
+      "actionDetails": "详情",
+      "actionReview": "审查",
+      "emptyGenerationsFiltered": "没有符合条件的生成记录",
+      "emptyGenerations": "暂无生成记录",
+      "emptyReviews": "暂无审查记录，点\"代码审查\"运行第一次",
+      "emptyScaffoldsFiltered": "没有符合条件的脚手架",
+      "emptyScaffolds": "暂无脚手架记录"
+    },
+    "generationCols": {
+      "prompt": "提示词",
+      "language": "语言",
+      "framework": "框架",
+      "fileCount": "文件",
+      "tokenCount": "Tokens",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "reviewCols": {
+      "codeHash": "代码哈希",
+      "language": "语言",
+      "issuesFound": "问题",
+      "securityIssues": "安全",
+      "severityBreak": "严重度",
+      "reviewedAt": "审查时间",
+      "action": "操作"
+    },
+    "scaffoldCols": {
+      "projectName": "项目名",
+      "template": "模板",
+      "filesGenerated": "文件数",
+      "outputPath": "输出路径",
+      "createdAt": "创建时间"
+    },
+    "generate_modal": {
+      "title": "记录代码生成",
+      "ok": "记录",
+      "cancel": "取消",
+      "promptLabel": "提示词",
+      "promptPlaceholder": "例如：创建一个带防抖的搜索框组件",
+      "languageLabel": "语言",
+      "languagePlaceholder": "例如 typescript / python",
+      "frameworkLabel": "框架",
+      "frameworkPlaceholder": "例如 vue / react / fastapi",
+      "codeLabel": "生成代码",
+      "codePlaceholder": "可选 — 粘贴生成的代码",
+      "filesLabel": "文件数",
+      "tokensLabel": "Token 数"
+    },
+    "review_modal": {
+      "title": "启发式代码审查",
+      "languageLabel": "语言",
+      "languagePlaceholder": "可选，例如 javascript / python",
+      "generationIdLabel": "生成 ID",
+      "generationIdPlaceholder": "可选，关联到一条生成记录",
+      "codeLabel": "代码",
+      "codePlaceholder": "粘贴需要审查的代码（lib 内置 5 类规则：eval / SQL / XSS / path_traversal / command_injection）",
+      "submit": "开始审查",
+      "notReviewed": "尚未审查",
+      "issuesStat": "发现问题",
+      "securityStat": "安全问题",
+      "reviewIdStat": "审查 ID",
+      "bySeverity": "按严重度",
+      "failedReason": "审查失败: {reason}"
+    },
+    "scaffold_modal": {
+      "title": "创建脚手架",
+      "ok": "创建",
+      "cancel": "取消",
+      "templateLabel": "模板",
+      "projectLabel": "项目名",
+      "projectPlaceholder": "例如 my-app",
+      "optionsLabel": "选项",
+      "optionsPlaceholder": "可选 JSON，例如 typescript=true、router=true",
+      "filesLabel": "文件数",
+      "outputLabel": "输出路径",
+      "outputPlaceholder": "可选，例如 /tmp/my-app"
+    },
+    "gen_details": {
+      "title": "生成详情：{id}",
+      "id": "ID",
+      "language": "语言",
+      "framework": "框架",
+      "fileCount": "文件数",
+      "tokenCount": "Token 数",
+      "createdAt": "创建时间",
+      "prompt": "提示词",
+      "code": "生成代码"
+    },
+    "review_details": {
+      "title": "审查详情：{id}",
+      "id": "ID",
+      "codeHash": "代码哈希",
+      "generationId": "生成 ID",
+      "language": "语言",
+      "reviewedAt": "审查时间",
+      "issuesFound": "发现问题",
+      "securityIssues": "安全问题",
+      "bySeverity": "按严重度",
+      "issues": "问题列表"
+    },
+    "severityLabels": {
+      "critical": "关键",
+      "high": "高",
+      "medium": "中",
+      "low": "低",
+      "info": "提示"
+    },
+    "msg": {
+      "loadFailed": "加载数据失败",
+      "promptEmpty": "请填写提示词",
+      "generateFailed": "记录失败",
+      "generateSuccess": "生成已记录：{id}",
+      "codeEmpty": "请粘贴需要审查的代码",
+      "reviewFailed": "审查失败",
+      "reviewSuccess": "审查完成：{n} 项问题（{sec} 安全）",
+      "projectEmpty": "请填写项目名",
+      "optionsBadJson": "选项 JSON 格式错误",
+      "scaffoldFailed": "创建失败",
+      "scaffoldSuccess": "脚手架已创建：{id}"
+    }
+  },
+  "sla": {
+    "title": "SLA 管理",
+    "subtitle": "服务等级合约 · 指标记录 · 偏差检测 · 补偿计算",
+    "refresh": "刷新",
+    "recordMetric": "记录指标",
+    "create": "新建合约",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc sla ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "stats": {
+      "totalContracts": "合约总数",
+      "active": "活跃合约",
+      "orgs": "合作组织",
+      "violations": "违规总数",
+      "compensation": "累计补偿"
+    },
+    "tierCard": "SLA 等级",
+    "tierCompRate": "补偿率 {pct}%",
+    "tierTerms": {
+      "availability": "可用性 ≥ {pct}%",
+      "p95": "p95 ≤ {ms}ms",
+      "rps": "RPS ≥ {n}",
+      "errorRate": "错误率 ≤ {pct}%"
+    },
+    "tabs": {
+      "contracts": "合约",
+      "violations": "违规",
+      "breakdown": "分布统计"
+    },
+    "filter": {
+      "allTiers": "全部等级",
+      "allStatuses": "全部状态",
+      "allSeverities": "全部严重度"
+    },
+    "table": {
+      "contractsSuffix": "共 {n} 个合约",
+      "totalSuffix": "共 {n} 条",
+      "uncomputed": "未计算",
+      "actionMetrics": "指标",
+      "actionCheck": "检查",
+      "actionReport": "报告",
+      "actionView": "查看",
+      "actionComputeComp": "计算补偿",
+      "emptyContractsFiltered": "没有符合条件的合约",
+      "emptyContracts": "暂无合约，点\"新建合约\"创建第一个",
+      "emptyViolationsFiltered": "没有符合条件的违规",
+      "emptyViolations": "暂无违规记录"
+    },
+    "terminateConfirm": {
+      "title": "终止该合约？",
+      "ok": "终止",
+      "cancel": "取消"
+    },
+    "contractCols": {
+      "slaId": "SLA ID",
+      "orgId": "组织",
+      "tier": "等级",
+      "status": "状态",
+      "monthlyFee": "月费",
+      "endDate": "到期",
+      "action": "操作"
+    },
+    "violationCols": {
+      "id": "ID",
+      "term": "指标",
+      "severity": "严重度",
+      "deviation": "偏差",
+      "expected": "期望",
+      "actual": "实际",
+      "compensation": "补偿",
+      "occurredAt": "发生时间",
+      "action": "操作"
+    },
+    "aggCols": {
+      "term": "指标",
+      "expected": "期望",
+      "mean": "均值",
+      "p95": "p95",
+      "min": "最小",
+      "max": "最大",
+      "count": "样本数"
+    },
+    "breakdown": {
+      "contractsByStatus": "合约 — 按状态",
+      "contractsByTier": "合约 — 按等级",
+      "violationsBySeverity": "违规 — 按严重度",
+      "violationsByTerm": "违规 — 按指标",
+      "violationsBySeverityHeader": "违规分布 — 按严重度",
+      "metricsAggregation": "指标聚合"
+    },
+    "create_modal": {
+      "title": "新建 SLA 合约",
+      "ok": "创建",
+      "cancel": "取消",
+      "orgLabel": "组织 ID",
+      "orgPlaceholder": "例如 org-acme",
+      "tierLabel": "等级",
+      "feeLabel": "月费",
+      "durationLabel": "期限 (天)",
+      "durationHint": "默认 30 天"
+    },
+    "record_modal": {
+      "title": "记录指标",
+      "ok": "记录",
+      "cancel": "取消",
+      "slaLabel": "SLA",
+      "slaPlaceholder": "选择合约",
+      "termLabel": "指标",
+      "valueLabel": "数值"
+    },
+    "metrics_modal": {
+      "title": "指标聚合：{id}",
+      "org": "组织",
+      "tier": "等级",
+      "samples": "样本数",
+      "monthlyFee": "月费",
+      "byTerm": "按指标聚合",
+      "empty": "尚无指标数据"
+    },
+    "check_modal": {
+      "title": "违规检测：{id}",
+      "noViolations": "未检测到违规",
+      "withViolations": "检测到 {n} 项违规",
+      "checkedAt": "检测时间: {time}",
+      "expectedActual": "期望 {expected} · 实际 {actual}"
+    },
+    "report_modal": {
+      "title": "合规报告：{id}",
+      "compliance": "合规率",
+      "violations": "违规总数",
+      "compensation": "累计补偿"
+    },
+    "compensation_modal": {
+      "title": "补偿计算：{id}",
+      "violationId": "违规 ID",
+      "severity": "严重度",
+      "base": "基础金额",
+      "multiplier": "偏差倍数",
+      "amount": "最终补偿"
+    },
+    "statusLabels": {
+      "active": "活跃",
+      "expired": "已过期",
+      "terminated": "已终止"
+    },
+    "termLabels": {
+      "availability": "可用性",
+      "response_time": "响应时间",
+      "throughput": "吞吐量",
+      "error_rate": "错误率"
+    },
+    "termHints": {
+      "availability": "比例 0~1，例如 0.997",
+      "response_time": "毫秒，例如 120",
+      "throughput": "每秒请求数，例如 850",
+      "error_rate": "比例 0~1，例如 0.003"
+    },
+    "severityLabels": {
+      "minor": "轻微",
+      "moderate": "中等",
+      "major": "严重",
+      "critical": "关键"
+    },
+    "msg": {
+      "loadFailed": "加载 SLA 数据失败",
+      "needCcInit": "需要先 cc init 初始化项目",
+      "orgEmpty": "请填写组织 ID",
+      "createFailed": "创建失败",
+      "createSuccess": "合约已创建：{id}",
+      "slaEmpty": "请选择 SLA 合约",
+      "valueEmpty": "请填写指标数值",
+      "recordFailed": "记录失败",
+      "recordSuccess": "指标已记录",
+      "terminateFailed": "终止失败",
+      "terminateSuccess": "合约已终止",
+      "loadMetricsFailed": "加载指标失败",
+      "checkFailed": "检查失败",
+      "loadReportFailed": "加载报告失败",
+      "compFailed": "计算失败"
+    }
+  },
+  "trust": {
+    "title": "信任与安全",
+    "subtitle": "TPM/TEE 证明 · PQC 互操作 · 卫星消息 · HSM 设备",
+    "refresh": "刷新",
+    "newDropdown": "新建 ▼",
+    "actions": {
+      "attest": "证明请求",
+      "interop": "PQC 互操作",
+      "sat": "卫星消息",
+      "hsm": "注册 HSM"
+    },
+    "stats": {
+      "attestations": "证明记录",
+      "validSuffix": "{n} 个有效",
+      "interop": "PQC 测试",
+      "interopSub": "{compatible} 兼容 · 均 {avg}ms",
+      "satellite": "卫星消息",
+      "satelliteSub": "{queued} 队列 · {confirmed} 已确认",
+      "hsm": "HSM 设备",
+      "passRate": "证明通过率"
+    },
+    "tabs": {
+      "attestations": "信任根 · TPM/TEE",
+      "interop": "PQC 互操作",
+      "satellite": "卫星消息",
+      "hsm": "HSM 设备"
+    },
+    "filter": {
+      "allAnchors": "全部锚点",
+      "allStatuses": "全部状态",
+      "allProviders": "全部提供商",
+      "allVendors": "全部厂商"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "deviceSuffix": "共 {n} 个设备",
+      "emptyAttestFiltered": "没有符合条件的证明",
+      "emptyAttest": "暂无证明记录，点\"证明请求\"运行第一次",
+      "emptyInterop": "暂无 PQC 互操作测试",
+      "emptySatFiltered": "没有符合条件的消息",
+      "emptySat": "暂无卫星消息",
+      "emptyHsmFiltered": "没有符合条件的设备",
+      "emptyHsm": "暂无 HSM 设备",
+      "compatible": "兼容",
+      "incompatible": "不兼容",
+      "satMarkSent": "标记已发送",
+      "satConfirm": "确认",
+      "satFail": "失败",
+      "hsmSign": "签名",
+      "hsmRemove": "移除"
+    },
+    "removeConfirm": {
+      "title": "移除该 HSM 设备？",
+      "ok": "移除",
+      "cancel": "取消"
+    },
+    "attestCols": {
+      "id": "ID",
+      "anchor": "锚点",
+      "status": "状态",
+      "fingerprint": "指纹",
+      "response": "响应",
+      "createdAt": "创建时间"
+    },
+    "interopCols": {
+      "id": "ID",
+      "algorithm": "算法",
+      "compatible": "兼容",
+      "result": "结果",
+      "latency": "延迟",
+      "peer": "对端",
+      "createdAt": "创建时间"
+    },
+    "satCols": {
+      "id": "ID",
+      "provider": "提供商",
+      "priority": "优先级",
+      "status": "状态",
+      "payload": "负载",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "hsmCols": {
+      "id": "ID",
+      "vendor": "厂商",
+      "model": "型号",
+      "serial": "序列号",
+      "compliance": "合规等级",
+      "firmware": "固件",
+      "action": "操作"
+    },
+    "anchorLabels": {
+      "tpm": "TPM",
+      "tee": "TEE",
+      "secure_element": "SE"
+    },
+    "attestStatusLabels": {
+      "valid": "有效",
+      "expired": "过期",
+      "failed": "失败",
+      "pending": "待处理"
+    },
+    "satStatusLabels": {
+      "queued": "排队中",
+      "sent": "已发送",
+      "confirmed": "已确认",
+      "failed": "失败"
+    },
+    "attest_modal": {
+      "title": "证明请求",
+      "ok": "提交",
+      "cancel": "取消",
+      "anchorLabel": "信任锚点",
+      "challengeLabel": "挑战值",
+      "challengePlaceholder": "可选 hex challenge",
+      "fingerprintLabel": "设备指纹",
+      "fingerprintPlaceholder": "可选 device fingerprint"
+    },
+    "interop_modal": {
+      "title": "PQC 互操作测试",
+      "ok": "运行",
+      "cancel": "取消",
+      "algorithmLabel": "算法",
+      "algorithmPlaceholder": "例如 ml_kem_768 / ml_dsa_65 / slh_dsa_128s",
+      "peerLabel": "对端",
+      "peerPlaceholder": "可选 peer ID",
+      "latencyLabel": "延迟 ms"
+    },
+    "sat_modal": {
+      "title": "发送卫星消息",
+      "ok": "发送",
+      "cancel": "取消",
+      "providerLabel": "提供商",
+      "priorityLabel": "优先级",
+      "priorityHint": "1-10，默认 5",
+      "payloadLabel": "负载",
+      "payloadPlaceholder": "消息内容（建议简短，卫星带宽受限）"
+    },
+    "hsm_modal": {
+      "title": "注册 HSM 设备",
+      "ok": "注册",
+      "cancel": "取消",
+      "vendorLabel": "厂商",
+      "modelLabel": "型号",
+      "modelPlaceholder": "例如 YK5 / Nano X",
+      "serialLabel": "序列号",
+      "serialPlaceholder": "设备序列号",
+      "complianceLabel": "合规等级",
+      "firmwareLabel": "固件版本",
+      "firmwarePlaceholder": "可选"
+    },
+    "sign_modal": {
+      "title": "HSM 签名：{id}",
+      "deviceLabel": "设备",
+      "algorithmLabel": "算法",
+      "algorithmPlaceholder": "可选，例如 ed25519 / ecdsa_p256",
+      "dataLabel": "数据",
+      "dataPlaceholder": "待签名的数据",
+      "submit": "签名",
+      "notSigned": "尚未签名",
+      "resultAlgorithm": "算法",
+      "resultSignature": "签名",
+      "failedReason": "签名失败: {reason}"
+    },
+    "msg": {
+      "loadFailed": "加载数据失败",
+      "attestFailed": "证明失败",
+      "attestSuccess": "证明已记录 [{status}]",
+      "interopAlgEmpty": "请填写算法",
+      "interopFailed": "测试失败",
+      "interopSuccess": "测试完成：{compat} ({latency}ms)",
+      "satPayloadEmpty": "请填写消息负载",
+      "satFailed": "发送失败",
+      "satSuccess": "消息已入队：{id}",
+      "satUpdateFailed": "更新失败",
+      "satUpdateSuccess": "状态已更新",
+      "hsmRegisterFailed": "注册失败",
+      "hsmRegisterSuccess": "HSM 已注册：{id}",
+      "hsmRemoveFailed": "移除失败",
+      "hsmRemoveSuccess": "设备已移除",
+      "signEmpty": "请填写待签名数据",
+      "signSuccess": "签名完成",
+      "signFailed": "签名失败"
+    }
+  },
+  "marketplace": {
+    "title": "技能市场",
+    "subtitle": "发布技能服务 · 记录调用 · 查看统计",
+    "refresh": "刷新",
+    "publish": "发布服务",
+    "stats": {
+      "total": "服务总数",
+      "published": "已发布",
+      "invocations": "调用总数",
+      "successRate": "成功率",
+      "avgDuration": "平均耗时"
+    },
+    "tabs": {
+      "services": "服务",
+      "invocations": "调用记录"
+    },
+    "filter": {
+      "all": "全部",
+      "namePlaceholder": "按名称搜索",
+      "byService": "按服务过滤"
+    },
+    "table": {
+      "totalSuffix": "共 {n} 条",
+      "actionRecord": "记录调用",
+      "statusDropdown": "状态 ▼",
+      "emptyFiltered": "没有符合条件的服务",
+      "empty": "暂无服务，点击\"发布服务\"创建第一个",
+      "emptyInvocations": "暂无调用记录。在\"服务\"标签页对已发布服务点\"记录调用\"。"
+    },
+    "serviceCols": {
+      "name": "名称",
+      "status": "状态",
+      "invocationCount": "调用次数",
+      "owner": "所有者",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "invocationCols": {
+      "service": "服务",
+      "caller": "调用方",
+      "status": "状态",
+      "durationMs": "耗时",
+      "createdAt": "时间"
+    },
+    "deletedService": "(已删除)",
+    "publish_modal": {
+      "title": "发布技能服务",
+      "ok": "发布",
+      "cancel": "取消",
+      "nameLabel": "服务名称",
+      "namePlaceholder": "例如：text-summarizer",
+      "versionLabel": "版本",
+      "versionPlaceholder": "1.0.0（默认）",
+      "descLabel": "描述",
+      "endpointLabel": "调用端点",
+      "endpointPlaceholder": "https://...（可选）",
+      "ownerLabel": "所有者",
+      "ownerPlaceholder": "did:key:...（可选）",
+      "statusLabel": "初始状态"
+    },
+    "record_modal": {
+      "title": "记录调用：{name}",
+      "ok": "记录",
+      "cancel": "取消",
+      "callerLabel": "调用方",
+      "callerPlaceholder": "did:key:...（可选）",
+      "statusLabel": "状态",
+      "durationLabel": "耗时 (ms)",
+      "errorLabel": "错误信息"
+    },
+    "serviceStatusLabels": {
+      "draft": "草稿",
+      "published": "已发布",
+      "deprecated": "已弃用",
+      "suspended": "已暂停"
+    },
+    "invocationStatusLabels": {
+      "pending": "待处理",
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败",
+      "timeout": "超时"
+    },
+    "msg": {
+      "loadFailed": "加载市场数据失败",
+      "publishEmpty": "请输入服务名称",
+      "publishFailed": "发布失败",
+      "publishSuccess": "服务已发布",
+      "recordOnlyPublished": "只能对\"已发布\"状态的服务记录调用",
+      "recordFailed": "记录失败",
+      "recordSuccess": "调用已记录",
+      "transitionFailed": "状态转换失败",
+      "transitionSuccess": "服务状态已更新为 {label}"
+    }
+  },
+  "workflow": {
+    "title": "工作流编辑器",
+    "subtitle": "创建、编辑、运行 Cowork 工作流（N1 — 初版：表单编辑，画布视图规划中）",
+    "new": "新建",
+    "refresh": "刷新",
+    "list": {
+      "title": "工作流列表",
+      "empty": "暂无工作流",
+      "stepCount": "{n} 步骤",
+      "delete": "删除"
+    },
+    "editor": {
+      "headerPrefix": "编辑:",
+      "exportJson": "导出 JSON",
+      "run": "运行",
+      "save": "保存",
+      "idLabel": "ID (唯一标识)",
+      "idPlaceholder": "my-workflow",
+      "nameLabel": "名称",
+      "namePlaceholder": "我的工作流",
+      "descLabel": "描述",
+      "descPlaceholder": "（可选）",
+      "stepsDivider": "步骤",
+      "stepIdPlaceholder": "step-id",
+      "dependsOnPlaceholder": "dependsOn",
+      "messagePlaceholder": "任务 prompt（支持 $step.<id>.summary 占位）",
+      "whenPlaceholder": "when 条件（可选，如 step.s1.status === 'completed'）",
+      "stepDelete": "删除",
+      "stepCounter": "step {idx} / {total}",
+      "addStep": "+ 添加步骤",
+      "emptyHint": "从左侧选择工作流或新建一个"
+    },
+    "runLog": {
+      "title": "运行日志"
+    },
+    "msg": {
+      "loadFailed": "加载失败: {err}",
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失败: {err}",
+      "deleteSuccess": "已删除",
+      "deleteFailed": "删除失败: {err}",
+      "runSuccess": "运行完成：{status}",
+      "runFailed": "运行失败: {err}",
+      "exportSuccess": "已保存到 {path}",
+      "exportFailed": "导出失败: {err}"
+    }
+  },
+  "chat": {
+    "scope": {
+      "fallbackProjectName": "项目",
+      "globalSessions": "全局会话"
+    },
+    "newChat": "Chat",
+    "newAgent": "Agent",
+    "role": {
+      "me": "我"
+    },
+    "contextMode": {
+      "project": "项目",
+      "file": "文件",
+      "global": "全局"
+    },
+    "session": {
+      "untitled": "新对话",
+      "messageCountSuffix": "{n} 条消息"
+    },
+    "sidebarEmpty": "点击上方按钮 开始新对话",
+    "empty": {
+      "title": "开始 AI 对话",
+      "subtitle": "选择左侧会话或创建新对话",
+      "newChat": "新建 Chat",
+      "newAgent": "新建 Agent",
+      "startTitle": "开始新的对话",
+      "hint": {
+        "project": "在项目上下文中提问",
+        "file": "针对当前文件提问",
+        "global": "通用 AI 助手"
+      }
+    },
+    "quickPrompts": {
+      "summarize": "总结一下这个项目",
+      "brainstorm": "帮我头脑风暴",
+      "explain": "解释一个概念",
+      "codeReview": "代码审查清单"
+    },
+    "quickPromptsEditor": {
+      "openButton": "+ 编辑",
+      "title": "自定义快捷提示",
+      "hint": "每行一条；最多 12 条，每条 120 字以内。留空恢复默认。",
+      "placeholder": "总结一下这个项目\n帮我头脑风暴\n…",
+      "save": "保存",
+      "cancel": "取消",
+      "reset": "恢复默认"
+    },
+    "input": {
+      "loading": "等待响应中...",
+      "placeholder": "输入消息，Shift+Enter 换行，Enter 发送",
+      "answerPlaceholder": "输入回答...",
+      "send": "发送"
+    },
+    "tool": {
+      "argsPreview": "参数 {n} · {key}…",
+      "running": "执行中",
+      "done": "完成",
+      "unknownTool": "unknown"
+    },
+    "intent": {
+      "confirmed": "✅ 已确认",
+      "corrected": "🔄 已修正",
+      "label": {
+        "original": "您的原始输入：",
+        "understood": "我理解为：",
+        "intent": "意图：",
+        "keyPoints": "关键要点：",
+        "correction": "您的修正："
+      },
+      "action": {
+        "confirm": "确认",
+        "correct": "纠正",
+        "correctPlaceholder": "请输入您想要纠正的内容...",
+        "submitCorrection": "提交修正",
+        "cancelCorrection": "取消"
+      },
+      "status": {
+        "understanding": "正在理解您的请求..."
+      },
+      "toggleLabel": "意图理解",
+      "toggleHint": "开启后，每条消息会先调用 LLM 提炼意图与关键要点（仅项目/文件模式生效）。默认关闭以避免额外延迟。"
+    }
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subProject": "项目「{name}」运行概览",
+    "subGlobal": "ChainlessChain 全局运行概览",
+    "unnamedProject": "未命名",
+    "refresh": "刷新",
+    "projectBanner": {
+      "fallbackName": "项目",
+      "tag": "项目面板"
+    },
+    "stats": {
+      "wsGateway": "WebSocket Gateway",
+      "wsRunning": "运行中",
+      "wsDisconnected": "未连接",
+      "wsPortLine": "端口 {port} · {host}",
+      "currentLlm": "当前 LLM",
+      "llmUnconfigured": "未配置",
+      "skills": "可用技能",
+      "skillsHint": "点击管理技能",
+      "sessions": "AI 会话",
+      "sessionsHint": "点击进入对话",
+      "appStatus": "应用状态",
+      "appRunning": "运行中",
+      "appReady": "已初始化",
+      "appNotStarted": "未启动",
+      "edition": "{name} Edition",
+      "mcp": "MCP 工具",
+      "mcpHint": "已挂载扩展",
+      "notes": "知识库笔记",
+      "notesHint": "点击管理笔记"
+    },
+    "quick": {
+      "title": "快速操作",
+      "enterProjectChat": "进入项目 Chat",
+      "newAiChat": "新建 AI 对话",
+      "startAgent": "启动 Agent 模式",
+      "services": "服务管理",
+      "logs": "查看日志",
+      "skills": "技能管理",
+      "providers": "LLM 配置"
+    },
+    "status": {
+      "title": "最近状态",
+      "more": "查看更多",
+      "placeholder": "点击刷新加载系统状态..."
+    },
+    "telemetry": {
+      "title": "压缩策略观测",
+      "filterWindow": "时间窗口",
+      "filterProvider": "Provider 切片",
+      "filterModel": "Model 切片",
+      "windowAll": "全部样本",
+      "window1h": "近 1 小时",
+      "window24h": "近 24 小时",
+      "window7d": "近 7 天",
+      "providerAll": "全部 Provider",
+      "modelAll": "全部 Model",
+      "hitRate": "压缩命中率",
+      "hitRateSub": "{compressed} / {total} 次压缩产生了有效节省",
+      "savedTokens": "累计节省 Token",
+      "savedTokensSub": "平均每次 {avg} Token",
+      "netSavingsRate": "净节省率",
+      "netSavingsRateSub": "原始 {original} -> 压缩后 {compressed}",
+      "strategyDistribution": "策略命中分布",
+      "strategyEmpty": "暂无压缩样本",
+      "strategyRow": "{hits} 次 · {rate}",
+      "variantDistribution": "变体分布",
+      "variantEmpty": "暂无变体数据",
+      "variantRow": "{count} 次",
+      "providerSlice": "Provider 切片",
+      "providerEmpty": "暂无 Provider 数据",
+      "providerRow": "{samples} 次 · {rate}",
+      "modelSlice": "Model 切片",
+      "modelEmpty": "暂无 Model 数据",
+      "modelRow": "{samples} 次 · {saved} saved"
+    },
+    "info": {
+      "title": "运行信息",
+      "panelMode": "面板模式",
+      "modeProject": "项目级",
+      "modeGlobal": "全局",
+      "projectName": "项目名称",
+      "projectPath": "项目路径",
+      "websocket": "WebSocket",
+      "auth": "认证",
+      "authEnabled": "已启用",
+      "authDisabled": "未启用",
+      "version": "版本"
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "id": "tpl_cooking_recipe_001",
+  "name": "recipe_creation_template",
+  "display_name": "菜谱创作模板",
+  "description": "专业菜谱模板，包含食材、步骤、营养成分和烹饪技巧",
+  "icon": "👨‍🍳",
+  "category": "lifestyle",
+  "subcategory": "recipe",
+  "tags": [
+    "菜谱",
+    "烹饪",
+    "美食",
+    "食谱"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我创作菜谱：\n\n**菜品信息：**\n- 菜名：{{dishName}}\n- 菜系：{{cuisine}}\n- 难度：{{difficulty}}\n- 烹饪时间：{{cookingTime}}分钟\n- 份量：{{servings}}人份\n\n# {{dishName}}\n\n## 菜品介绍\n\n**菜系：**{{cuisine}}\n**口味：**{{flavor}}\n**特点：**{{characteristics}}\n**适合人群：**{{suitableFor}}\n\n## 食材清单\n\n### 主料\n- {{mainIngredient1}}：{{quantity1}}\n- {{mainIngredient2}}：{{quantity2}}\n- {{mainIngredient3}}：{{quantity3}}\n\n### 辅料\n- {{subIngredient1}}：{{subQuantity1}}\n- {{subIngredient2}}：{{subQuantity2}}\n\n### 调料\n- {{seasoning1}}：{{seasoningAmount1}}\n- {{seasoning2}}：{{seasoningAmount2}}\n- {{seasoning3}}：{{seasoningAmount3}}\n\n## 烹饪步骤\n\n### 准备工作\n1. {{prep1}}\n2. {{prep2}}\n\n### 制作步骤\n\n**步骤1：**{{step1}}\n{{step1Detail}}\n\n**步骤2：**{{step2}}\n{{step2Detail}}\n\n**步骤3：**{{step3}}\n{{step3Detail}}\n\n**步骤4：**{{step4}}\n{{step4Detail}}\n\n**步骤5：**{{step5}}\n{{step5Detail}}\n\n## 烹饪技巧\n\n💡 **小贴士：**\n1. {{tip1}}\n2. {{tip2}}\n3. {{tip3}}\n\n⚠️ **注意事项：**\n- {{caution1}}\n- {{caution2}}\n\n## 营养信息\n\n**每份营养成分：**\n- 热量：{{calories}} 千卡\n- 蛋白质：{{protein}} 克\n- 脂肪：{{fat}} 克\n- 碳水化合物：{{carbs}} 克\n\n## 搭配建议\n\n**主食搭配：**{{stapleFood}}\n**汤品搭配：**{{soup}}\n**饮品搭配：**{{beverage}}\n\n## 变化版本\n\n- **简化版：**{{simpleVersion}}\n- **升级版：**{{advancedVersion}}\n\n## 食材替代\n\n如果找不到某些食材，可以这样替代：\n- {{ingredient1}} → {{substitute1}}\n- {{ingredient2}} → {{substitute2}}",
+  "variables_schema": [
+    {
+      "name": "dishName",
+      "label": "菜名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "cuisine",
+      "label": "菜系",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "川菜",
+          "label": "川菜"
+        },
+        {
+          "value": "粤菜",
+          "label": "粤菜"
+        },
+        {
+          "value": "鲁菜",
+          "label": "鲁菜"
+        },
+        {
+          "value": "苏菜",
+          "label": "苏菜"
+        },
+        {
+          "value": "浙菜",
+          "label": "浙菜"
+        },
+        {
+          "value": "湘菜",
+          "label": "湘菜"
+        },
+        {
+          "value": "西餐",
+          "label": "西餐"
+        },
+        {
+          "value": "日料",
+          "label": "日式料理"
+        }
+      ]
+    },
+    {
+      "name": "difficulty",
+      "label": "难度",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "简单",
+          "label": "简单（新手可做）"
+        },
+        {
+          "value": "中等",
+          "label": "中等（需要经验）"
+        },
+        {
+          "value": "困难",
+          "label": "困难（专业级）"
+        }
+      ]
+    },
+    {
+      "name": "cookingTime",
+      "label": "烹饪时间（分钟）",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "servings",
+      "label": "份量（人份）",
+      "type": "number",
+      "required": false,
+      "default": 2
+    }
+  ],
+  "file_structure": {
+    "root": "菜谱-{{dishName}}",
+    "files": [
+      {
+        "path": "菜谱.md",
+        "type": "markdown"
+      },
+      {
+        "path": "食材采购清单.txt",
+        "type": "document"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

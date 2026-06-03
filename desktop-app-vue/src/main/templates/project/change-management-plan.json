@@ -1,0 +1,54 @@
+{
+  "id": "tpl_project_change_mgmt_001",
+  "name": "change_management_plan",
+  "display_name": "变革管理计划",
+  "description": "组织变革管理方案，包含利益相关者分析、沟通策略、培训计划和变革准备度评估",
+  "icon": "🔄",
+  "category": "project",
+  "subcategory": "change-management",
+  "tags": ["变革管理", "组织发展", "项目管理", "变革"],
+  "project_type": "document",
+  "prompt_template": "# {{changeName}} 变革管理计划\n## Change Management Plan\n\n**变革项目**：{{changeName}}\n**发起人**：{{sponsor}}\n**变革经理**：{{changeManager}}\n**生效日期**：{{effectiveDate}}\n**计划周期**：{{changeDuration}}\n\n---\n\n## 执行摘要\n\n### 变革概述\n\n{{changeSummary}}\n\n### 变革理由\n\n{{changeRationale}}\n\n### 关键里程碑\n\n| 日期 | 里程碑 | 状态 |\n|------|--------|------|\n| {{milestone1Date}} | {{milestone1}} | {{milestone1Status}} |\n| {{milestone2Date}} | {{milestone2}} | {{milestone2Status}} |\n| {{milestone3Date}} | {{milestone3}} | {{milestone3Status}} |\n\n---\n\n## 一、变革背景\n\n### 1.1 当前状态分析\n\n{{currentStateAnalysis}}\n\n### 1.2 期望未来状态\n\n{{desiredFutureState}}\n\n### 1.3 差距分析\n\n**人员差距**：{{peopleGap}}\n\n**流程差距**：{{processGap}}\n\n**技术差距**：{{technologyGap}}\n\n**文化差距**：{{cultureGap}}\n\n## 二、变革影响评估\n\n### 2.1 影响范围\n\n**受影响部门**：\n- {{affectedDept1}}：{{impact1}}\n- {{affectedDept2}}：{{impact2}}\n- {{affectedDept3}}：{{impact3}}\n\n**受影响人数**：{{impactedHeadcount}}人\n\n### 2.2 影响维度分析\n\n| 维度 | 变更前 | 变更后 | 影响程度 |\n|------|--------|--------|----------|\n| 组织结构 | {{orgBefore}} | {{orgAfter}} | {{orgImpact}} |\n| 工作流程 | {{processBefore}} | {{processAfter}} | {{processImpact}} |\n| 系统工具 | {{systemBefore}} | {{systemAfter}} | {{systemImpact}} |\n| 岗位职责 | {{roleBefore}} | {{roleAfter}} | {{roleImpact}} |\n| 绩效考核 | {{kpiBefore}} | {{kpiAfter}} | {{kpiImpact}} |\n\n### 2.3 风险与阻力分析\n\n{{riskAndResistanceAnalysis}}\n\n## 三、利益相关者管理\n\n### 3.1 利益相关者分析\n\n| 利益相关者 | 角色 | 影响力 | 支持度 | 管理策略 |\n|-----------|------|--------|--------|----------|\n| {{stakeholder1}} | {{sh1Role}} | {{sh1Power}} | {{sh1Support}} | {{sh1Strategy}} |\n| {{stakeholder2}} | {{sh2Role}} | {{sh2Power}} | {{sh2Support}} | {{sh2Strategy}} |\n| {{stakeholder3}} | {{sh3Role}} | {{sh3Power}} | {{sh3Support}} | {{sh3Strategy}} |\n\n### 3.2 权力-支持度矩阵\n\n{{powerSupportMatrix}}\n\n### 3.3 角色与职责\n\n#### 变革发起人（Sponsor）\n{{sponsorResponsibilities}}\n\n#### 变革经理（Change Manager）\n{{changeManagerResponsibilities}}\n\n#### 变革代理人（Change Agents）\n{{changeAgentsResponsibilities}}\n\n#### 受影响员工\n{{employeeExpectations}}\n\n## 四、变革准备度评估\n\n### 4.1 组织准备度\n\n**ADKAR准备度评估**：\n\n| 维度 | 当前状态 | 目标状态 | 差距 | 行动计划 |\n|------|---------|---------|------|----------|\n| Awareness（意识） | {{awarenessCurrentState}} | {{awarenessTarget}} | {{awarenessGap}} | {{awarenessAction}} |\n| Desire（意愿） | {{desireCurrentState}} | {{desireTarget}} | {{desireGap}} | {{desireAction}} |\n| Knowledge（知识） | {{knowledgeCurrentState}} | {{knowledgeTarget}} | {{knowledgeGap}} | {{knowledgeAction}} |\n| Ability（能力） | {{abilityCurrentState}} | {{abilityTarget}} | {{abilityGap}} | {{abilityAction}} |\n| Reinforcement（强化） | {{reinforcementCurrentState}} | {{reinforcementTarget}} | {{reinforcementGap}} | {{reinforcementAction}} |\n\n### 4.2 准备度调查\n\n{{readinessSurvey}}\n\n### 4.3 准备度提升计划\n\n{{readinessImprovementPlan}}\n\n## 五、沟通策略\n\n### 5.1 沟通原则\n\n{{communicationPrinciples}}\n\n### 5.2 核心信息\n\n**为什么要变革？**（Why）\n{{whyMessage}}\n\n**变革是什么？**（What）\n{{whatMessage}}\n\n**如何变革？**（How）\n{{howMessage}}\n\n**对我的影响？**（WIIFM - What's In It For Me）\n{{wiiMessage}}\n\n### 5.3 沟通计划\n\n| 时间点 | 受众 | 沟通内容 | 渠道 | 负责人 |\n|--------|------|---------|------|--------|\n| {{comm1Time}} | {{comm1Audience}} | {{comm1Message}} | {{comm1Channel}} | {{comm1Owner}} |\n| {{comm2Time}} | {{comm2Audience}} | {{comm2Message}} | {{comm2Channel}} | {{comm2Owner}} |\n| {{comm3Time}} | {{comm3Audience}} | {{comm3Message}} | {{comm3Channel}} | {{comm3Owner}} |\n\n### 5.4 双向沟通机制\n\n{{feedbackMechanism}}\n\n## 六、培训与发展\n\n### 6.1 培训需求分析\n\n{{trainingNeedsAnalysis}}\n\n### 6.2 培训计划\n\n| 培训课程 | 目标受众 | 培训方式 | 时长 | 时间安排 |\n|---------|---------|---------|------|----------|\n| {{training1}} | {{training1Audience}} | {{training1Method}} | {{training1Duration}} | {{training1Schedule}} |\n| {{training2}} | {{training2Audience}} | {{training2Method}} | {{training2Duration}} | {{training2Schedule}} |\n| {{training3}} | {{training3Audience}} | {{training3Method}} | {{training3Duration}} | {{training3Schedule}} |\n\n### 6.3 培训材料\n\n{{trainingMaterials}}\n\n### 6.4 能力验证\n\n{{competencyValidation}}\n\n## 七、实施路线图\n\n### 7.1 变革阶段划分\n\n#### 阶段1：准备期（{{phase1Duration}}）\n\n**目标**：{{phase1Goal}}\n\n**关键活动**：\n- {{phase1Activity1}}\n- {{phase1Activity2}}\n- {{phase1Activity3}}\n\n**成功标准**：{{phase1Success}}\n\n#### 阶段2：启动期（{{phase2Duration}}）\n\n{{phase2Details}}\n\n#### 阶段3：实施期（{{phase3Duration}}）\n\n{{phase3Details}}\n\n#### 阶段4：固化期（{{phase4Duration}}）\n\n{{phase4Details}}\n\n### 7.2 详细时间表\n\n{{detailedTimeline}}\n\n### 7.3 快速成功（Quick Wins）\n\n{{quickWins}}\n\n## 八、阻力管理\n\n### 8.1 阻力来源分析\n\n{{resistanceSources}}\n\n### 8.2 阻力应对策略\n\n| 阻力类型 | 表现形式 | 应对策略 | 负责人 |\n|---------|---------|---------|--------|\n| {{resistance1}} | {{resistance1Symptom}} | {{resistance1Strategy}} | {{resistance1Owner}} |\n| {{resistance2}} | {{resistance2Symptom}} | {{resistance2Strategy}} | {{resistance2Owner}} |\n| {{resistance3}} | {{resistance3Symptom}} | {{resistance3Strategy}} | {{resistance3Owner}} |\n\n### 8.3 影响者网络\n\n{{influencerNetwork}}\n\n## 九、强化与固化\n\n### 9.1 强化机制\n\n**正向激励**：\n{{positiveReinforcement}}\n\n**负向后果**：\n{{negativeConsequences}}\n\n### 9.2 文化嵌入\n\n{{cultureEmbedding}}\n\n### 9.3 可持续机制\n\n{{sustainabilityMechanisms}}\n\n## 十、监控与评估\n\n### 10.1 变革指标\n\n| 指标 | 基线值 | 目标值 | 当前值 | 状态 |\n|------|--------|--------|--------|------|\n| {{metric1}} | {{metric1Baseline}} | {{metric1Target}} | {{metric1Current}} | {{metric1Status}} |\n| {{metric2}} | {{metric2Baseline}} | {{metric2Target}} | {{metric2Current}} | {{metric2Status}} |\n| {{metric3}} | {{metric3Baseline}} | {{metric3Target}} | {{metric3Current}} | {{metric3Status}} |\n\n### 10.2 监控方法\n\n{{monitoringMethods}}\n\n### 10.3 定期评审\n\n{{regularReviews}}\n\n## 十一、应急预案\n\n### 11.1 风险应对\n\n{{riskResponse}}\n\n### 11.2 回退计划\n\n{{rollbackPlan}}\n\n---\n\n## 附录\n\n### 附录A：变革工具包\n\n{{changeToolkit}}\n\n### 附录B：FAQ\n\n{{faq}}\n\n### 附录C：参考模型\n\n{{referenceModels}}",
+  "variables_schema": [
+    {
+      "name": "changeName",
+      "label": "变革项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "changeType",
+      "label": "变革类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "组织架构调整", "label": "组织架构调整" },
+        { "value": "流程优化", "label": "流程优化" },
+        { "value": "系统升级", "label": "系统/技术升级" },
+        { "value": "文化变革", "label": "企业文化变革" },
+        { "value": "业务转型", "label": "业务模式转型" },
+        { "value": "并购整合", "label": "并购整合" }
+      ]
+    },
+    {
+      "name": "impactedHeadcount",
+      "label": "受影响人数",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "变革管理计划-{{changeName}}",
+    "files": [
+      {"path": "变革管理计划.docx", "type": "document"},
+      {"path": "沟通计划.xlsx", "type": "spreadsheet"},
+      {"path": "培训材料/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_change_management", "skill_stakeholder_management", "skill_organizational_development"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator", "tool_ppt_generator"],
+  "execution_engine": "document"
+}

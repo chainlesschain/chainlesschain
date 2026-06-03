@@ -1,0 +1,100 @@
+name: iOS App Target Test Build (Manual)
+
+# 一次性 / 偶尔用 — workflow_dispatch trigger，跑 xcodebuild app target
+# unsigned simulator build，验证 commit 159fc2403 加进 pbxproj 的 SPM
+# wiring 是否真让 app target 编译过。
+#
+# 镜像 release.yml build-ios 的 unsigned 路径，但不打 release / 不上传
+# artifact 到 release-assets / 不影响版本号。仅 print 编译结果 + 上传
+# 一份 simulator zip 做 7 天保留 artifact (CI 内可下载查看)。
+#
+# 等下次真发版（release.yml）确认能产 .ipa/.zip 后，这个 workflow 可删。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-app-target-build:
+    name: xcodebuild app target (unsigned simulator)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Show toolchain version
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve Swift Package dependencies
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -clonedSourcePackagesDirPath .spm-cache
+
+      - name: Build iOS app for Simulator (unsigned)
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — xcpretty silent-drops
+          # some error formats; see release.yml signed-archive path).
+          xcodebuild build \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            -clonedSourcePackagesDirPath .spm-cache \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/xcodebuild-build-unsigned.log
+
+      - name: Upload xcodebuild log (diagnostics, always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-target-test-xcodebuild-log
+          path: ios-app/build/xcodebuild-build-unsigned.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Verify and package .app bundle
+        working-directory: ios-app
+        shell: bash
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release-iphonesimulator/ChainlessChain.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Build claimed success but $APP_PATH not produced"
+            exit 1
+          fi
+          APP_SIZE=$(du -k "$APP_PATH" | cut -f1)
+          if [ "$APP_SIZE" -lt 1024 ]; then
+            echo "::error::$APP_PATH is only ${APP_SIZE} KB — likely broken bundle (v5.0.3.55 had 2.4KB破壳同款)"
+            exit 1
+          fi
+          echo "✅ ChainlessChain.app size: ${APP_SIZE} KB"
+          mkdir -p build/output
+          cd build/DerivedData/Build/Products/Release-iphonesimulator
+          zip -r ../../../../output/ChainlessChain-ios-simulator-test.zip ChainlessChain.app
+          ls -la ../../../../output/
+
+      - name: Upload simulator zip (test artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-test-build
+          path: ios-app/build/output/*.zip
+          if-no-files-found: error
+          retention-days: 7

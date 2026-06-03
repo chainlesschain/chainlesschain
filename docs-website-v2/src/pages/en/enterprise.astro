@@ -1,0 +1,311 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const menu = [
+  ['UI Branding', 'Replace logo, colors, naming, splash screen — your brand throughout'],
+  ['Private Deployment', 'Full Docker / Kubernetes packs, fully air-gapped, zero external dependencies'],
+  ['Industry Skills', 'Healthcare triage, legal drafting, research assistant, financial compliance — deep customization per industry'],
+  ['U-Key Batch Issuance', 'Bulk key generation, management, revocation; integrates with corporate CA / HSM'],
+  ['SSO + SCIM', 'SAML 2.0 / OIDC single sign-on, SCIM 2.0 auto-sync with Azure AD / Okta'],
+  ['Audit & Compliance', 'Full audit logs, automated SOC2 evidence collection, MLPS Level 3 reports'],
+  ['DLP + SIEM', 'Data-loss-prevention policy engine + CEF / LEEF / JSON log export to SIEM'],
+  ['Schema Extension', 'Extend the database schema for your business fields with ORM and migration tooling'],
+];
+
+const industries = [
+  ['Manufacturing', 'Supply-chain collaboration, OCR data entry, AI reporting, Excel Git versioning'],
+  ['Healthcare', 'Triage assistance, case management, HIPAA-compatible isolation'],
+  ['Legal', 'Contract drafting, case-law search, deadline tracking'],
+  ['Research', 'Literature summarization, lab notebooks, multi-institution collaboration'],
+  ['Government', 'Intranet deployment, Chinese-domestic crypto algorithms, MLPS Level 3'],
+];
+---
+<BaseLayout
+  title="Enterprise — Decentralized AI tailored for organizations | ChainlessChain"
+  description="ChainlessChain Enterprise: private deployment, UI branding, industry-specific skills, SSO + SCIM, audit & compliance, batch U-Key issuance. Full-cycle services from POC to delivery for healthcare, legal, research, and government clients. 400-1068-687"
+  canonical="https://www.chainlesschain.com/en/enterprise"
+  locale="en"
+>
+  <section class="relative overflow-hidden bg-ink text-cream">
+    <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-line-dark text-muted-dark mb-6 animate-fade-in">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span> ENTERPRISE
+        </div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          Decentralized AI<br/><span class="italic text-ember">tailored for your organization</span>.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted-dark leading-relaxed max-w-3xl">
+          From requirements call to POC to delivery and operations. We don't ship one-size-fits-all SaaS — we ship an AI substrate that runs in your data center and bends to your business process.
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10">
+          <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-8 py-4 rounded-md bg-ember text-ink font-display text-2xl hover:bg-ember-dark transition-colors">
+            <span>☎</span><span>400-1068-687</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 steps -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Delivery Process</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Four steps, from call to launch.</h2>
+      </div>
+      <div class="grid md:grid-cols-4 gap-6">
+        {[
+          ['01', 'Requirements Call', 'Free 30-minute call (phone or video) to scope core needs and boundaries'],
+          ['02', 'Solution Design', '7 working days to deliver technical proposal, budget, milestones'],
+          ['03', 'POC', '2–4 weeks to deliver a working POC running real workflows on real data'],
+          ['04', 'Delivery & Ops', 'Private deployment + training + annual operations support'],
+        ].map(([n, title, desc]) => (
+          <div class="p-6 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-4">{n}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-sm text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu -->
+  <section class="py-20 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">8 customization areas</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Compose what you need, pay for what you use.</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {menu.map(([title, desc], i) => (
+          <div class="bg-paper p-8">
+            <div class="flex items-baseline gap-4 mb-3">
+              <span class="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
+              <h3 class="font-display text-2xl">{title}</h3>
+            </div>
+            <p class="text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Industries -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">Industry Track Record</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Already deployed in production.</h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {industries.map(([name, desc]) => (
+          <div class="p-8 rounded-2xl border border-line">
+            <h3 class="font-display text-3xl text-ember mb-3">{name}</h3>
+            <p class="text-sm text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Factory case deep-dive -->
+  <section class="py-20 md:py-28 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">Flagship Case · Manufacturing</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          ChainFactory Data Steward —<br/>
+          <span class="italic text-ember">factory supply-chain AI collaboration</span>
+        </h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          Move Excel into the browser, install AI in the factory. End-to-end digitization from receipt scanning to executive dashboards.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">01 · BROWSER EXCEL COLLAB</div>
+          <h3 class="font-display text-2xl mb-3">OnlyOffice deep integration</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">Multiple users editing the same spreadsheet in real time, Socket.IO syncs cell-by-cell in milliseconds; saves auto-commit to Git for full history rollback and diff comparison. No Office install, no file shipping — all in the browser.</p>
+          <div class="text-xs font-mono text-muted">OnlyOffice · Socket.IO · simple-git</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">02 · AI TEXT-TO-SQL</div>
+          <h3 class="font-display text-2xl mb-3">Natural-language data queries</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">"What were last month's kg sales for product X?" "Year-over-year growth?" — AI auto-generates SQL against the operational SQLite, returns tables and charts. SQL knowledge not required.</p>
+          <div class="text-xs font-mono text-muted">Ollama / Anthropic · SQLite · Drizzle ORM</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">03 · OCR INTAKE</div>
+          <h3 class="font-display text-2xl mb-3">Snap-and-import receipts</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">Buyers photograph material orders / delivery slips on their phone — AI recognizes and structures the data into the database. End manual transcription, cut entry errors by 90%.</p>
+          <div class="text-xs font-mono text-muted">Vision OCR · structured schema · review workflow</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">04 · GIT VERSION CONTROL</div>
+          <h3 class="font-display text-2xl mb-3">Excel that knows how to undo</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">Every save auto-commits to Git — who changed what, when, all visible. End-of-month anomaly? Roll back to any prior version in one click.</p>
+          <div class="text-xs font-mono text-muted">simple-git · auto-commit · diff visualization</div>
+        </div>
+      </div>
+
+      <div class="p-8 rounded-2xl bg-ink text-cream">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <div class="font-mono text-xs text-ember mb-3">Use Cases</div>
+            <ul class="space-y-2 text-sm text-muted-dark">
+              <li>· Supply chain / inventory: BOM, purchase orders, in / out flow</li>
+              <li>· Production planning: schedules, capacity balance, bottleneck analysis</li>
+              <li>· Cost accounting: unit cost, margins, automated reports</li>
+              <li>· Quality traceability: batch info, defect statistics, root-cause search</li>
+              <li>· Executive dashboards: multi-dimensional KPIs, AI Q&A, anomaly alerts</li>
+            </ul>
+          </div>
+          <div class="md:text-right">
+            <div class="font-mono text-xs text-muted-dark mb-3">Customize a factory edition</div>
+            <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-6 py-3 rounded-md bg-ember text-ink font-display text-xl hover:bg-ember-dark transition-colors">
+              <span>☎</span><span>400-1068-687</span>
+            </a>
+            <div class="text-xs text-muted-dark mt-3">Mon-Fri 9:00–18:00 · Free POC consultation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLA + 5 partner types + 6 cooperation models -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">Service Commitments · Partnership</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          Standard SLA · <span class="italic text-ember">multiple cooperation models</span>.
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mb-10">
+        <div class="rounded-2xl border border-line overflow-hidden">
+          <div class="px-6 py-4 bg-ink text-cream">
+            <div class="font-display text-lg">Service Level Agreement · Standard</div>
+          </div>
+          <div class="bg-paper">
+            {[
+              ['Response time', 'Initial response within 4 working hours'],
+              ['Major incident recovery', 'Within 24 hours'],
+              ['Version upgrades', 'Minor each quarter / major every 6 months'],
+              ['Security patches', 'High-severity within 72 hours'],
+              ['Remote support', '7×8 (standard) / 7×24 (enterprise)'],
+            ].map(([k, v], i, arr) => (
+              <div class={`flex items-baseline gap-4 px-6 py-4 ${i < arr.length - 1 ? 'border-b border-line' : ''}`}>
+                <div class="font-display text-sm w-36 shrink-0">{k}</div>
+                <div class="text-sm text-muted">{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-line overflow-hidden">
+          <div class="px-6 py-4 bg-ember text-cream">
+            <div class="font-display text-lg">Partner with us · 5 partner types</div>
+          </div>
+          <div class="bg-paper">
+            {[
+              ['System integrators', 'Co-build vertical solutions'],
+              ['Local government', 'Digital government & gov cloud'],
+              ['State-owned enterprises', 'Digital transformation & domestic adaptation'],
+              ['Universities & research', 'Joint research & academic collaboration'],
+              ['Open-source community', 'MCP / DID / PQC ecosystem'],
+            ].map(([k, v], i, arr) => (
+              <div class={`flex items-baseline gap-4 px-6 py-4 ${i < arr.length - 1 ? 'border-b border-line' : ''}`}>
+                <div class="font-display text-sm w-36 shrink-0">{k}</div>
+                <div class="text-sm text-muted">{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="font-mono text-xs text-muted uppercase tracking-widest mb-5">Cooperation Models</div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            ['🏢', 'Private Deployment'],
+            ['☁', 'SaaS Subscription'],
+            ['🏷', 'OEM Branding'],
+            ['🛠', 'Custom Project'],
+            ['📦', 'SDK Embed'],
+            ['🔗', 'Integration Service'],
+          ].map(([icon, label]) => (
+            <div class="p-5 rounded-xl border border-line bg-paper text-center hover:border-ember transition-colors">
+              <div class="text-2xl mb-2">{icon}</div>
+              <div class="font-display text-sm">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact form (mailto) -->
+  <section class="py-20 bg-ink text-cream">
+    <div class="container-wide grid md:grid-cols-2 gap-16 items-start">
+      <div>
+        <h2 class="text-4xl md:text-5xl leading-tight mb-6">Or simply,<br/>tell us what you need.</h2>
+        <p class="text-muted-dark mb-8">We'll respond within one working day with a free needs assessment.</p>
+        <div class="space-y-3 text-sm">
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-24">Phone</span><a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream">400-1068-687</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-24">Email</span><a href="mailto:zhanglongfa@chainlesschain.com" class="hover:text-ember">zhanglongfa@chainlesschain.com</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-24">Hours</span><span>Mon-Fri 9:00–18:00</span></div>
+        </div>
+      </div>
+
+      <form id="enterprise-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">Company</span>
+            <input type="text" name="company" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">Name</span>
+            <input type="text" name="name" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">Email</span>
+            <input type="email" name="email" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">Phone</span>
+            <input type="tel" name="phone" class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+        </div>
+        <label class="block">
+          <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">What you need</span>
+          <textarea name="message" rows="5" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none"></textarea>
+        </label>
+        <button type="submit" class="w-full py-3 rounded-md bg-ember text-ink font-medium hover:bg-ember-dark transition-colors">Send →</button>
+        <p class="text-xs text-muted-dark">Click to send opens your email client; nothing routes through our servers.</p>
+      </form>
+    </div>
+  </section>
+
+  <script is:inline>
+    document.getElementById('enterprise-form')?.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var subject = encodeURIComponent('[Enterprise Inquiry] ' + (f.company.value || '') + ' · ' + (f.name.value || ''));
+      var body = encodeURIComponent(
+        'Company: ' + f.company.value + '\n' +
+        'Name: ' + f.name.value + '\n' +
+        'Email: ' + f.email.value + '\n' +
+        'Phone: ' + (f.phone.value || 'N/A') + '\n\n' +
+        'Requirements:\n' + f.message.value
+      );
+      window.location.href = 'mailto:zhanglongfa@chainlesschain.com?subject=' + subject + '&body=' + body;
+    });
+  </script>
+</BaseLayout>

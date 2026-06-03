@@ -1,0 +1,814 @@
+package com.chainlesschain.android.feature.localterminal
+
+import android.content.Context
+import com.chainlesschain.android.feature.localterminal.BuildConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Phase 2 — set up the `$PREFIX` filesystem skeleton that LocalPtyClient
+ * spawns shells against. Idempotent + APK-upgrade-safe.
+ *
+ * Layout produced under `<filesDir>/usr/`:
+ *
+ *   usr/
+ *   ├── bin/
+ *   │   ├── mksh         → ../lib/libmksh.so
+ *   │   ├── sh           → ../lib/libmksh.so
+ *   │   └── <toybox cmds>→ ../lib/libtoybox.so  (only when libtoybox is built)
+ *   ├── etc/
+ *   │   ├── profile
+ *   │   ├── mkshrc
+ *   │   └── motd
+ *   ├── lib/
+ *   │   ├── libmksh.so   → <APK nativeLibraryDir>/libmksh.so
+ *   │   └── libtoybox.so → <APK nativeLibraryDir>/libtoybox.so  (when built)
+ *   ├── share/doc/
+ *   ├── tmp/
+ *   └── .bootstrap_version  (sentinel = BuildConfig.USR_VERSION)
+ *
+ * The `$HOME = <filesDir>/home/` is created separately (independent of
+ * `$PREFIX`; user data persists across $PREFIX rebootstrap).
+ *
+ * On every `bootstrap()` invocation:
+ *
+ *  1. If `.bootstrap_version != BuildConfig.USR_VERSION`, wipe `$PREFIX` and
+ *     reconstruct the static layout.
+ *  2. ALWAYS relink `lib/lib*.so` to the current APK's `nativeLibraryDir` —
+ *     APK upgrade moves that path (different install UUID), so stale
+ *     absolute symlinks would break exec.
+ *  3. ALWAYS sync `bin/<cmd>` symlinks to whatever libraries exist in lib/ —
+ *     missing libraries (e.g. libtoybox.so on a Windows-host build) are
+ *     simply skipped.
+ *
+ * Design choice: inline profile/mkshrc/motd text strings instead of shipping
+ * `assets/usr.tar.xz` — the static content is < 1 KB compressed, so the
+ * tarball overhead is not worth the extra build-time tooling. Phase 5
+ * Sub-phase 2.5 will introduce `assets/` for Node.js + chainlesschain CLI
+ * (separate, larger snapshot).
+ */
+@Singleton
+class LocalFilesystemBootstrapper @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
+    // Hilt @Inject ctor can't have Kotlin-defaulted args, so the ioDispatcher
+    // knob is hard-coded. Tests that need a deterministic dispatcher should
+    // wrap calls in runBlocking with a TestScope rather than swapping it.
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+
+    // 2026-05-24 trap #24 — serialise bootstrap() invocations. The class is
+    // @Singleton but the suspend body had no concurrency guard, and HubLocal*
+    // cards init in parallel (askQuestion + facetCounts + queryEvents all
+    // call bootstrapper.bootstrap() from independent viewModelScope launches).
+    // Two callers racing `wipeAndRecreate()` produced: thread A finishes
+    // wipe+mkdirs+writeStaticFiles, then enters extractTarToDir holding an
+    // open FileOutputStream; thread B re-enters wipeAndRecreate, its
+    // prefixDir.deleteRecursively() partially succeeds (deletes etc/+share/
+    // but fails on A's open file) → IOException for B + permanently broken
+    // tree (.bootstrap_version=6 written by A but etc/ wiped by B → every
+    // subsequent boot: fullExtract=false → writeStaticFiles ENOENT on
+    // etc/profile). Holding the mutex across the entire suspend body is
+    // safe — bootstrap() is idempotent and the slow path (~5s tarball
+    // extract) only runs once anyway; concurrent callers get the fast
+    // relink-only path.
+    //
+    // 2026-05-24 v2 — Real-device race STILL fired with instance-scoped
+    // mutex. Logcat showed 2 threads (same PID 23272, different threads
+    // 25776 + 25662) both inside `Bootstrapping $PREFIX (target version 6)`
+    // 14ms apart, meaning withLock did NOT serialise them. Hypothesis:
+    // even with `@Singleton`, Hilt cross-module DI on feature-local-terminal
+    // can produce >1 instance under certain classloader paths (the
+    // Bootstrapper is injected from BOTH app (via PtyEnvironment) AND
+    // feature-local-terminal (LocalSessionViewModel) — both paths should
+    // resolve to the SAME SingletonComponent binding, but reality differs).
+    // Promoting the mutex to `companion object` (see bottom of file) makes
+    // it provably process-wide: regardless of how many instances Hilt
+    // produces, all serialise on this single mutex value.
+
+    /** Returns the `$PREFIX` directory; safe to call before bootstrap (no
+     *  side effects). */
+    val prefixDir: File get() = File(context.filesDir, "usr")
+
+    /** Returns the `$HOME` directory. Created lazily on bootstrap. */
+    val homeDir: File get() = File(context.filesDir, "home")
+
+    /** Returns `$TMPDIR` under `$PREFIX`. */
+    val tmpDir: File get() = File(prefixDir, "tmp")
+
+    /** Returns the APK's per-ABI native library directory containing
+     *  libmksh.so / libtoybox.so / libpty_jni.so. Re-read every bootstrap
+     *  because APK upgrade may change the path. */
+    private val nativeLibraryDir: File
+        get() = File(context.applicationInfo.nativeLibraryDir)
+
+    /**
+     * Initialise `$PREFIX` if needed, then relink dynamic symlinks against
+     * the current APK install path. Safe to call repeatedly.
+     *
+     * @return Result.success(true) on first-time bootstrap (full extract),
+     *         Result.success(false) when only relink was required (version
+     *         match), Result.failure on IO error.
+     */
+    suspend fun bootstrap(): Result<Boolean> = withContext(ioDispatcher) {
+        processBootstrapMutex.withLock { bootstrapLocked() }
+    }
+
+    private fun bootstrapLocked(): Result<Boolean> {
+        return try {
+            val versionFile = File(prefixDir, ".bootstrap_version")
+            val targetVersion = BuildConfig.USR_VERSION
+            val fullExtract = !versionFile.exists() ||
+                versionFile.readText().trim() != targetVersion
+
+            if (fullExtract) {
+                Timber.tag(TAG).i(
+                    "Bootstrapping \$PREFIX (target version $targetVersion, " +
+                        "instance=${System.identityHashCode(this)}, " +
+                        "thread=${Thread.currentThread().name})"
+                )
+                wipeAndRecreate()
+            }
+            // Always rewrite etc/ — Kotlin code changes to profile/mkshrc/motd
+            // shouldn't require bumping USR_VERSION every time, and the files
+            // are < 1KB total so the write cost is negligible. This sidesteps
+            // a class of bug where a bootstrapper change (eg new alias) lands
+            // but on-disk etc/ stays stale because the version field didn't
+            // bump.
+            writeStaticFiles()
+
+            // Always: relink lib symlinks. APK upgrade may have moved
+            // nativeLibraryDir, and new ABI binaries may have landed since
+            // last bootstrap.
+            relinkLibraries()
+
+            // 2026-05-25 trap #24 v3 — atomic bin/ rebuild. Old code called
+            // relinkBinSymlinks() + relinkNodeIfPresent() + extractCcCliIfPresent()
+            // directly against `$PREFIX/bin/`, and relinkBinSymlinks started
+            // with `binDir.listFiles().forEach { it.delete() }` — a destructive
+            // wipe-then-recreate on every bootstrap. A LocalCcRunner caller
+            // running `File("bin/cc").exists()` AFTER its own bootstrap returned
+            // success but BEFORE another tab's concurrent bootstrap completed
+            // its rebuild would observe an empty bin/ and bail with "cc/mksh
+            // shim missing under …/usr". Symptom: HubBrowser tab shows red
+            // banner + 0 events even though node ran and vault has data.
+            //
+            // rebuildBinAtomically() builds the new bin contents in an inactive
+            // slot dir (.bin-slot-{a,b}, ping-pong) and atomically swaps the
+            // bin/ symlink via rename(2). Concurrent readers either see the
+            // OLD slot via the still-pointing-there symlink, or the NEW slot
+            // via the swapped symlink — never a transient empty dir.
+            rebuildBinAtomically()
+
+            // Ensure $HOME / $TMPDIR exist (untouched by $PREFIX rebootstrap).
+            homeDir.mkdirs()
+            tmpDir.mkdirs()
+
+            if (fullExtract) {
+                versionFile.writeText(targetVersion)
+            }
+            Result.success(fullExtract)
+        } catch (t: Throwable) {
+            Timber.tag(TAG).e(t, "Bootstrap failed")
+            Result.failure(t)
+        }
+    }
+
+    private fun wipeAndRecreate() {
+        if (prefixDir.exists() && !prefixDir.deleteRecursively()) {
+            throw java.io.IOException("Could not wipe stale \$PREFIX at $prefixDir")
+        }
+        listOf(
+            prefixDir,
+            File(prefixDir, "bin"),
+            File(prefixDir, "etc"),
+            File(prefixDir, "lib"),
+            File(prefixDir, "share"),
+            File(prefixDir, "share/doc"),
+            File(prefixDir, "tmp"),
+        ).forEach { dir ->
+            if (!dir.mkdirs() && !dir.isDirectory) {
+                throw java.io.IOException("Could not create \$PREFIX subdir: $dir")
+            }
+        }
+    }
+
+    private fun writeStaticFiles() {
+        // Defense in depth (trap #24): a previous bootstrap race may have
+        // wiped etc/+share/ after .bootstrap_version was already written,
+        // landing the on-disk tree in a stuck state where every subsequent
+        // boot takes the relink-only path and crashes here on ENOENT. The
+        // mutex now prevents the race upstream, but self-heal is cheap.
+        File(prefixDir, "etc").mkdirs()
+        File(prefixDir, "share/doc").mkdirs()
+        File(prefixDir, "etc/profile").writeText(profileContents())
+        File(prefixDir, "etc/mkshrc").writeText(mkshrcContents())
+        File(prefixDir, "etc/motd").writeText(motdContents())
+    }
+
+    /**
+     * Re-create `lib/lib*.so` as symlinks pointing at the APK's current
+     * `nativeLibraryDir`. Removes stale links from previous APK installs
+     * (different install UUID).
+     */
+    private fun relinkLibraries() {
+        val libDir = File(prefixDir, "lib")
+        libDir.mkdirs()
+        // Wipe any pre-existing lib/*.so symlinks; we re-establish below.
+        libDir.listFiles()?.forEach { it.delete() }
+
+        nativeLibraryDir.listFiles()
+            ?.filter { it.name.endsWith(".so") }
+            ?.forEach { soInApk ->
+                val link = File(libDir, soInApk.name)
+                try {
+                    Files.createSymbolicLink(link.toPath(), soInApk.toPath())
+                } catch (e: Exception) {
+                    Timber.tag(TAG).w(e, "Failed to symlink ${soInApk.name}")
+                }
+            }
+    }
+
+    /**
+     * Build `$PREFIX/bin/` contents in an inactive slot then atomically
+     * make `$PREFIX/bin` point at it via symlink rename.
+     *
+     * Slot layout: `.bin-slot-a/` and `.bin-slot-b/` ping-pong. `bin/` is
+     * a symlink to the currently-active one. On each rebuild:
+     *
+     *  1. Detect which slot bin/ currently points at (or that bin/ is a
+     *     legacy regular dir from pre-fix Bootstrapper).
+     *  2. Wipe and re-populate the INACTIVE slot via the same helpers
+     *     ([relinkBinSymlinks] + [relinkNodeIfPresent] +
+     *     [extractCcCliIfPresent]), but targeting the slot instead of `bin/`.
+     *  3. Create a temp symlink at `.bin-linktmp` pointing at the new slot.
+     *  4. `Files.move(.bin-linktmp, bin, REPLACE_EXISTING)` — rename(2)
+     *     atomicity on POSIX guarantees concurrent observers see either
+     *     the OLD slot or the NEW slot, never an empty directory.
+     *
+     * Legacy migration: if `bin/` is a real dir (existing install from
+     * before this fix landed), it's deleted first — a sub-millisecond
+     * window that triggers once per install. All subsequent rebuilds are
+     * symlink-over-symlink renames, fully atomic.
+     *
+     * The relative `../lib/<x>.so` symlinks inside the slot still resolve
+     * correctly: kernel walks `bin/mksh` → `.bin-slot-a/mksh` → reads the
+     * symlink target `../lib/libmksh.so`, resolves it relative to the
+     * symlink's containing directory (`.bin-slot-a/`), giving
+     * `$PREFIX/lib/libmksh.so`. Same for the cc/chainlesschain wrapper
+     * scripts whose shebang `#!$PREFIX/bin/mksh` resolves through the
+     * active symlink on every execve.
+     */
+    private fun rebuildBinAtomically() {
+        val activeBin = File(prefixDir, "bin")
+        val slotA = File(prefixDir, ".bin-slot-a")
+        val slotB = File(prefixDir, ".bin-slot-b")
+
+        // Pick the inactive slot to build into. If bin/ is currently a
+        // symlink, build into the OTHER slot so concurrent readers of bin/<x>
+        // keep working against the still-active slot.
+        val currentTargetCanonical: String? = try {
+            if (Files.isSymbolicLink(activeBin.toPath())) {
+                val rel = Files.readSymbolicLink(activeBin.toPath())
+                val resolved = if (rel.isAbsolute) rel.toFile() else File(prefixDir, rel.toString())
+                resolved.canonicalPath
+            } else null
+        } catch (_: Exception) {
+            null
+        }
+        val targetSlot = if (currentTargetCanonical == slotA.canonicalPath) slotB else slotA
+
+        // Wipe target slot first — it's either stale-inactive from a prior
+        // rebuild (no concurrent reader uses it; the active symlink points
+        // elsewhere) or never used. No race window here.
+        if (targetSlot.exists() && !targetSlot.deleteRecursively()) {
+            throw java.io.IOException(
+                "Failed to clean inactive bin slot at ${targetSlot.absolutePath}"
+            )
+        }
+        targetSlot.mkdirs()
+
+        // Build into target slot (helpers take binDir explicitly so they
+        // don't touch the live bin/ symlink while concurrent readers hold it).
+        relinkBinSymlinks(targetSlot)
+        relinkNodeIfPresent(targetSlot)
+        extractCcCliIfPresent(targetSlot)
+
+        // Atomically replace bin/ with a symlink to the new slot. Create the
+        // symlink at a temp path first, then rename(2) it over bin/. POSIX
+        // rename(2) is atomic for symlink-over-symlink. For the
+        // upgrade-from-legacy case (bin/ is a real dir from pre-atomic
+        // Bootstrapper), we delete it first; that window is microseconds and
+        // only triggers ONCE per install.
+        val tmpLink = File(prefixDir, ".bin-linktmp")
+        if (tmpLink.exists()) tmpLink.delete()
+        // Relative symlink so the slot dir is referenced by name — matches
+        // the convention used by lib/lib*.so symlinks elsewhere in $PREFIX.
+        Files.createSymbolicLink(tmpLink.toPath(), Paths.get(targetSlot.name))
+
+        val activeIsLegacyDir = activeBin.exists() &&
+            !Files.isSymbolicLink(activeBin.toPath())
+        if (activeIsLegacyDir) {
+            if (!activeBin.deleteRecursively()) {
+                throw java.io.IOException(
+                    "Failed to migrate legacy bin/ dir at ${activeBin.absolutePath}"
+                )
+            }
+        }
+        Files.move(
+            tmpLink.toPath(),
+            activeBin.toPath(),
+            StandardCopyOption.REPLACE_EXISTING,
+        )
+    }
+
+    /**
+     * Re-create `<binDir>/<cmd>` symlinks pointing at `../lib/<library>.so`.
+     *
+     * - `<binDir>/mksh` and `<binDir>/sh` always point at `../lib/libmksh.so`.
+     * - Each entry in [TOYBOX_COMMANDS] gets a `<binDir>/<cmd>` → `../lib/libtoybox.so`
+     *   symlink ONLY IF `lib/libtoybox.so` actually exists (i.e. the toybox
+     *   build wasn't skipped on Windows). Missing toybox = clean skip; mksh
+     *   still works.
+     *
+     * [binDir] is the build target — typically an inactive slot dir from
+     * [rebuildBinAtomically], NOT the live `$PREFIX/bin/` symlink. The
+     * relative `../lib/<x>.so` symlinks resolve correctly after the slot
+     * becomes the active bin/ target.
+     */
+    private fun relinkBinSymlinks(binDir: File) {
+        binDir.mkdirs()
+        binDir.listFiles()?.forEach { it.delete() }
+
+        val mkshLib = File(prefixDir, "lib/libmksh.so")
+        val toyboxLib = File(prefixDir, "lib/libtoybox.so")
+
+        if (mkshLib.exists()) {
+            createBinSymlink(binDir, "mksh", "../lib/libmksh.so")
+            createBinSymlink(binDir, "sh", "../lib/libmksh.so")
+        } else {
+            Timber.tag(TAG).w("libmksh.so missing in \$PREFIX/lib; bin/mksh+sh skipped")
+        }
+
+        if (toyboxLib.exists()) {
+            TOYBOX_COMMANDS.forEach { cmd ->
+                createBinSymlink(binDir, cmd, "../lib/libtoybox.so")
+            }
+        } else {
+            Timber.tag(TAG).i(
+                "libtoybox.so not in \$PREFIX/lib (likely Windows-host build); " +
+                    "skipping ${TOYBOX_COMMANDS.size} bin/<cmd> symlinks"
+            )
+        }
+    }
+
+    /**
+     * Phase 2.5 — establish `$PREFIX/bin/node` if Termux Node.js binary
+     * (`libnode.so`) shipped in our APK. Also creates `$PREFIX/bin/npm`
+     * if npm-cli.js was extracted (see [extractCcCliIfPresent]).
+     *
+     * libnode.so is the relocated Termux Node 25 binary with RUNPATH
+     * patched to `$ORIGIN` — it loads libcrypto/libssl/libicu* from the
+     * same lib/<abi>/ directory at runtime. See workflow
+     * `node-runtime-bundle.yml` for the patchelf details.
+     */
+    private fun relinkNodeIfPresent(binDir: File) {
+        val libDir = File(prefixDir, "lib")
+        val nodeLib = File(libDir, "libnode.so")
+        if (!nodeLib.exists()) {
+            Timber.tag(TAG).i("libnode.so absent — \$PREFIX/bin/node not created (Phase 2.5 not bundled)")
+            return
+        }
+        createBinSymlink(binDir, "node", "../lib/libnode.so")
+        Timber.tag(TAG).i("\$PREFIX/bin/node → ../lib/libnode.so wired")
+    }
+
+    /**
+     * Phase 2.5 — extract `assets/local-terminal/cc-cli.tgz` (if shipped)
+     * to `$PREFIX/lib/node_modules/chainlesschain/`, then symlink
+     * `$PREFIX/bin/{cc,chainlesschain,npm}` to the right node-modules
+     * entries.
+     *
+     * Idempotent via `$PREFIX/var/lib/cc/.bundled-version` sentinel
+     * matched against [BuildConfig.USR_VERSION] (bumped at the same
+     * time as the rest of \$PREFIX changes).
+     */
+    private fun extractCcCliIfPresent(binDir: File) {
+        val tgzAsset = "local-terminal/cc-cli.tgz"
+        val markerFile = File(prefixDir, "var/lib/cc/.bundled-version")
+        val targetVersion = BuildConfig.USR_VERSION
+
+        // Skip if asset isn't shipped (Phase 0-4 baseline). openFd() throws
+        // on compressed assets — AGP deflates .tgz inside the APK unless
+        // listed in `aaptOptions.noCompress`. AssetManager.open() handles
+        // both forms, so we probe by opening + reading one byte.
+        val assetPresent = try {
+            context.assets.open(tgzAsset).use { it.read() != -1 }
+        } catch (_: Exception) {
+            false
+        }
+        if (!assetPresent) {
+            Timber.tag(TAG).i("$tgzAsset absent — cc CLI not bundled (Phase 2.5 not landed)")
+            return
+        }
+
+        val ccModule = File(prefixDir, "lib/node_modules/chainlesschain")
+        if (markerFile.exists() &&
+            markerFile.readText().trim() == targetVersion &&
+            ccModule.isDirectory
+        ) {
+            // Already extracted at this version — just refresh symlinks.
+            wireCcCliSymlinks(binDir)
+            return
+        }
+
+        Timber.tag(TAG).i("Extracting cc CLI snapshot from $tgzAsset")
+        // 2026-05-24 trap #24 v2 — atomic extract via .tmp + rename.
+        // Old code wrote directly to ccModule. If a concurrent caller
+        // entered with a stale view, it might wipe partway through OR
+        // leave half-written files mixed with prior install's files.
+        // Real-device symptom: hub.js extracted as 1286 lines (matching
+        // an older cc CLI commit, NOT what's in the bundled tgz), while
+        // bin/ + node_modules/ landed correctly from the new tgz —
+        // half-and-half corruption.
+        //
+        // Fix: extract to ccModule.tmp first, then atomically rename
+        // over ccModule. If ANY step fails, ccModule keeps its prior
+        // state (working or absent) rather than ending up half-written.
+        val tmpModule = File(ccModule.parentFile, "chainlesschain.tmp")
+        if (tmpModule.exists()) {
+            val deleted = tmpModule.deleteRecursively()
+            if (!deleted) {
+                throw java.io.IOException(
+                    "Failed to clean prior tmp extract at ${tmpModule.absolutePath} — " +
+                        "concurrent extract suspected"
+                )
+            }
+        }
+        tmpModule.mkdirs()
+
+        context.assets.open(tgzAsset).use { tgzIn ->
+            java.util.zip.GZIPInputStream(tgzIn).use { gzIn ->
+                extractTarToDir(gzIn, tmpModule)
+            }
+        }
+
+        // Atomically swap: delete stale ccModule + rename tmp into place.
+        if (ccModule.exists()) {
+            val deleted = ccModule.deleteRecursively()
+            if (!deleted) {
+                throw java.io.IOException(
+                    "Failed to delete stale ccModule at ${ccModule.absolutePath} " +
+                        "(file still open by another process?) — leaving tmp at " +
+                        tmpModule.absolutePath
+                )
+            }
+        }
+        val renamed = tmpModule.renameTo(ccModule)
+        if (!renamed) {
+            throw java.io.IOException(
+                "Failed to rename ${tmpModule.absolutePath} → ${ccModule.absolutePath}"
+            )
+        }
+        wireCcCliSymlinks(binDir)
+
+        markerFile.parentFile?.mkdirs()
+        markerFile.writeText(targetVersion)
+        Timber.tag(TAG).i("cc CLI snapshot extracted → ${ccModule.absolutePath}")
+    }
+
+    /**
+     * Create `$PREFIX/bin/{cc,chainlesschain,clc,clchain}` as wrapper shell
+     * scripts (NOT symlinks).
+     *
+     * Why not symlinks: the cc CLI entrypoint is `chainlesschain.js` whose
+     * shebang is `#!/usr/bin/env node` — Android has no `/usr/bin/env`, so
+     * the kernel would fail with ENOENT when execve()ing the .js. We
+     * sidestep this by wrapping with a `/system/bin/sh` shim that exec's
+     * our bundled node directly.
+     *
+     * `/system/bin/sh` exists on all Android M+ devices (mksh upstream).
+     * Absolute paths into `$PREFIX` are safe because filesDir is stable
+     * across APK upgrades (only the per-version SHA in /data/app/<pkg>-<x>
+     * changes, and that's nativeLibraryDir not filesDir).
+     */
+    private fun wireCcCliSymlinks(binDir: File) {
+        val prefix = prefixDir.absolutePath
+        // Shebang MUST point at our bundled mksh — `/system/bin/sh` lives in
+        // `shell_exec` SELinux context, which `untrusted_app` (the terminal
+        // pty domain) can't execve. `$prefix/bin/mksh` → ../lib/libmksh.so →
+        // nativeLibraryDir/libmksh.so, which IS execve-allowed under
+        // Android W^X (lib/<abi>/lib*.so whitelist).
+        val mksh = "$prefix/bin/mksh"
+        val wrapper = """
+            |#!$mksh
+            |# Auto-generated by LocalFilesystemBootstrapper.wireCcCliSymlinks().
+            |# Avoids the `#!/usr/bin/env node` shebang trap on Android.
+            |exec "$prefix/bin/node" "$prefix/lib/node_modules/chainlesschain/bin/chainlesschain.js" "${'$'}@"
+            |""".trimMargin()
+        for (name in listOf("cc", "chainlesschain", "clc", "clchain")) {
+            val script = File(binDir, name)
+            // Clean up legacy symlink shape if upgrading from earlier 2.5 attempt.
+            if (java.nio.file.Files.isSymbolicLink(script.toPath()) || script.exists()) {
+                script.delete()
+            }
+            try {
+                script.writeText(wrapper)
+                script.setExecutable(true, false)
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "bin/$name wrapper write failed")
+            }
+        }
+    }
+
+    /**
+     * Minimal tar reader — extracts an uncompressed tar stream to [destDir].
+     * Handles regular files, directories, and symlinks. Hand-rolled to avoid
+     * the commons-compress ~600KB dep (the module already declares
+     * `org.tukaani:xz` for gzip not needed; GZIPInputStream is JDK-built-in).
+     */
+    @androidx.annotation.VisibleForTesting
+    internal fun extractTarToDir(tarIn: java.io.InputStream, destDir: File) {
+        val buf = ByteArray(512)
+        destDir.mkdirs()
+        // 2026-05-24 — GNU tar 'L' (long-name) / 'K' (long-linkname) extension：
+        // 一个 typeFlag='L' header 后跟 size 字节的下一 entry 真实路径（path>100 字符
+        // 时触发），随后才是下一个 entry 的真 header（其 name 字段被截断）。修前
+        // 解析器把 @LongLink 当 regular file 写入磁盘 + 用截断 name → 路径错位 +
+        // EISDIR collision → 整个 cc bootstrap 挂。npm pack @aws-sdk/core 等深路径
+        // 包会触发。
+        var pendingLongName: String? = null
+        var pendingLongLink: String? = null
+        while (true) {
+            // Read tar header (512 bytes per block)
+            var read = 0
+            while (read < 512) {
+                val n = tarIn.read(buf, read, 512 - read)
+                if (n < 0) return  // EOF, normal termination
+                read += n
+            }
+            // All zeros = end-of-archive marker
+            if (buf.all { it == 0.toByte() }) return
+
+            val name = parseTarString(buf, 0, 100)
+            if (name.isEmpty()) return
+            val sizeOctal = parseTarString(buf, 124, 12).trim()
+            val size = if (sizeOctal.isEmpty()) 0L else sizeOctal.toLong(8)
+            val typeFlag = buf[156].toInt().toChar()
+            val linkName = parseTarString(buf, 157, 100)
+            val prefix = parseTarString(buf, 345, 155)
+
+            // GNU long-name / long-linkname: 读 size 字节作为下一 entry 的覆盖路径
+            if (typeFlag == 'L' || typeFlag == 'K') {
+                val longBuf = ByteArray(size.toInt())
+                var got = 0
+                while (got < longBuf.size) {
+                    val n = tarIn.read(longBuf, got, longBuf.size - got)
+                    if (n < 0) return  // truncated
+                    got += n
+                }
+                val padding = ((512L - (size % 512L)) % 512L).toInt()
+                if (padding > 0) {
+                    val padBuf = ByteArray(padding)
+                    var p = 0
+                    while (p < padding) {
+                        val n = tarIn.read(padBuf, p, padding - p)
+                        if (n < 0) return
+                        p += n
+                    }
+                }
+                // GNU 'L' data 末尾习惯加 NULL terminator；不剥掉会让 File 路径
+                // 含 NULL → libc open() 在 NULL 截断 → 文件落到错误位置，且 Java
+                // File API 视为有效路径不抛错。Kotlin Character.isWhitespace
+                // 不含 U+0000，所以单独 trim。
+                val nullIdx = longBuf.indexOf(0)
+                val effectiveLen = if (nullIdx >= 0) nullIdx else longBuf.size
+                val longStr = String(longBuf, 0, effectiveLen, Charsets.UTF_8)
+                    .trimEnd(' ')
+                if (typeFlag == 'L') pendingLongName = longStr
+                else pendingLongLink = longStr
+                continue  // 直接进下一 entry，绝不写 @LongLink 文件
+            }
+
+            val headerFullName = if (prefix.isNotEmpty()) "$prefix/$name" else name
+            val fullName = pendingLongName ?: headerFullName
+            val effectiveLinkName = pendingLongLink ?: linkName
+            pendingLongName = null
+            pendingLongLink = null
+
+            // npm pack output starts with `package/` — strip the leading
+            // segment so we extract directly into destDir (matching `tar
+            // --strip-components=1` behaviour).
+            val effective = fullName.removePrefix("package/")
+            if (effective.isEmpty() || effective.startsWith("/")) {
+                skipPadding(tarIn, size)
+                continue
+            }
+            val target = File(destDir, effective)
+
+            when (typeFlag) {
+                '5' -> target.mkdirs()  // directory
+                '2' -> {                // symlink
+                    target.parentFile?.mkdirs()
+                    if (target.exists()) target.delete()
+                    try {
+                        Files.createSymbolicLink(target.toPath(), Paths.get(effectiveLinkName))
+                    } catch (_: Exception) {
+                        // ignore — symlinks in npm packs are rare
+                    }
+                }
+                else -> {                // regular file (also covers ' ')
+                    target.parentFile?.mkdirs()
+                    // 2026-05-24 trap fix: cc-cli.tgz 里 @aws-sdk/core 等包存在
+                    // 同名 文件+目录 entry —— sub-entry 先把 `foo/` 建成目录，后续
+                    // 又出现 `foo` 当 regular file 写 → FileOutputStream EISDIR 抛 →
+                    // 整个 cc bootstrap 挂 → 数据浏览/审计/提问全 0 结果。npm pack
+                    // 同名 file 通常是 0 字节 marker，跳过无害；仍需消费 entry 字节
+                    // 流，否则下一 entry 错位。
+                    if (target.isDirectory) {
+                        Timber.tag(TAG).w(
+                            "Skipping tar file entry that collides with existing dir: %s",
+                            effective,
+                        )
+                        var remainingSkip = size
+                        while (remainingSkip > 0) {
+                            val want = minOf(remainingSkip, 8192L).toInt()
+                            val skipped = tarIn.skip(want.toLong())
+                            if (skipped <= 0) break
+                            remainingSkip -= skipped
+                        }
+                    } else {
+                        target.outputStream().use { fileOut ->
+                            var remaining = size
+                            while (remaining > 0) {
+                                val want = minOf(remaining, 8192L).toInt()
+                                val tmp = ByteArray(want)
+                                var got = 0
+                                while (got < want) {
+                                    val n = tarIn.read(tmp, got, want - got)
+                                    if (n < 0) return  // truncated
+                                    got += n
+                                }
+                                fileOut.write(tmp, 0, got)
+                                remaining -= got
+                            }
+                        }
+                    }
+                }
+            }
+            skipPadding(tarIn, size)
+        }
+    }
+
+    private fun parseTarString(buf: ByteArray, off: Int, len: Int): String {
+        val end = (off until off + len).firstOrNull { buf[it] == 0.toByte() } ?: (off + len)
+        return String(buf, off, end - off, Charsets.UTF_8)
+    }
+
+    private fun skipPadding(input: java.io.InputStream, size: Long) {
+        // tar pads each entry to 512-byte boundary
+        val pad = ((size + 511) / 512 * 512 - size).toInt()
+        var remaining = pad
+        while (remaining > 0) {
+            val n = input.skip(remaining.toLong())
+            if (n <= 0) break
+            remaining -= n.toInt()
+        }
+    }
+
+    private fun createBinSymlink(binDir: File, name: String, target: String) {
+        val link = File(binDir, name)
+        try {
+            Files.createSymbolicLink(link.toPath(), Paths.get(target))
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "bin/$name symlink failed")
+        }
+    }
+
+    // ${'$'} inside triple-quoted strings combined with mksh parameter
+    // expansion like ${PWD##*/} confuses the Kotlin lexer (false "unclosed
+    // comment" diagnostic). We write `__D__` as a sentinel for the literal
+    // dollar character and replace at runtime — robust across Kotlin versions.
+    private fun profileContents(): String = """
+        # Generated by ChainlessChain LocalFilesystemBootstrapper.
+        # Loaded by mksh -l. Keep changes idempotent — file is regenerated on
+        # every USR_VERSION bump.
+
+        PREFIX="__D__{PREFIX:-${prefixDir.absolutePath}}"
+        export PATH="__D__PREFIX/bin:/system/bin:/system/xbin"
+        export HOME="__D__{HOME:-${homeDir.absolutePath}}"
+        export TMPDIR="__D__{TMPDIR:-${tmpDir.absolutePath}}"
+        export SHELL="__D__PREFIX/bin/mksh"
+        export TERM="__D__{TERM:-xterm-256color}"
+        export LANG="__D__{LANG:-en_US.UTF-8}"
+        # Static prompt — `__D__{PWD##` + slashstar + `}` would trip the Kotlin
+        # lexer's nested-block-comment handling when this string sits in a
+        # triple-quoted literal. We use `cc>` instead.
+        export PS1='cc> '
+
+        if [ -f "__D__PREFIX/etc/motd" ] && [ -z "__D__MOTD_SHOWN" ]; then
+            cat "__D__PREFIX/etc/motd"
+            MOTD_SHOWN=1
+            export MOTD_SHOWN
+        fi
+
+        # Source mkshrc so its aliases (incl. cc/chainlesschain/clc/clchain)
+        # are active. mksh -l only auto-loads __D__ENV (= this profile);
+        # interactive mkshrc is NOT loaded for login shells by default.
+        if [ -f "__D__PREFIX/etc/mkshrc" ]; then
+            . "__D__PREFIX/etc/mkshrc"
+        fi
+    """.trimIndent().replace("__D__", "\$") + "\n"
+
+    private fun mkshrcContents(): String = """
+        # Per-shell mksh rc — loaded for interactive sessions.
+        # ChainlessChain LocalFilesystemBootstrapper-generated; do not edit.
+
+        # Reasonable history defaults.
+        HISTFILE="__D__HOME/.mksh_history"
+        HISTSIZE=1000
+
+        # Useful aliases.
+        alias ll='ls -la'
+        alias ..='cd ..'
+        alias ...='cd ../..'
+
+        # chainlesschain CLI aliases. We cannot ship bin/cc as an executable
+        # wrapper script: SELinux on Android rejects execve of files in
+        # __D__PREFIX (app_data_file context) with execute_no_trans denial.
+        # Aliases work because mksh expands them inline before execve, so
+        # the actual exec target is bin/node which IS exec-allowed under
+        # W^X (it resolves through ../lib/libnode.so to nativeLibraryDir).
+        alias cc='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias chainlesschain='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias clc='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias clchain='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+    """.trimIndent().replace("__D__", "\$") + "\n"
+
+    private fun motdContents(): String = """
+        ChainlessChain Local Terminal
+        =============================
+        Powered by mksh (MirOS Korn Shell) on Android.
+
+        Type `help` for built-in mksh commands, or any binary on __D__PATH.
+        Bundled toybox provides: ls, cat, grep, find, ps, df, du, awk, sed, ...
+
+        __D__PREFIX = ${prefixDir.absolutePath}
+        __D__HOME   = ${homeDir.absolutePath}
+
+    """.trimIndent().replace("__D__", "\$") + "\n"
+
+    companion object {
+        private const val TAG = "LocalFsBootstrap"
+
+        /**
+         * Process-wide bootstrap mutex (NOT instance-scoped). See trap #24
+         * v2 comment near the top of the class — instance mutex didn't
+         * serialise threads on real device because Hilt apparently
+         * produced multiple Bootstrapper instances despite `@Singleton`.
+         * Companion-object scope guarantees one shared mutex per process.
+         */
+        private val processBootstrapMutex = Mutex()
+
+        /**
+         * Toybox subcommands enabled in `kconfig/android_miniconfig`. When a
+         * Linux/macOS CI build produces `libtoybox.so`, [relinkBinSymlinks]
+         * creates `$PREFIX/bin/<cmd>` for each entry pointing at it.
+         *
+         * Curated subset of the ~250 commands in toybox android_miniconfig;
+         * focused on commands users actually run interactively. Add more
+         * here as needed — toybox dispatches by argv[0] so any of its
+         * built-in commands work once symlinked.
+         */
+        internal val TOYBOX_COMMANDS = listOf(
+            // Filesystem
+            "ls", "cat", "cp", "mv", "rm", "mkdir", "rmdir", "ln", "find",
+            "stat", "touch", "chmod", "chown", "chgrp", "df", "du", "pwd",
+            "readlink", "realpath", "basename", "dirname", "file",
+            // Text processing
+            "echo", "grep", "egrep", "fgrep", "sed", "awk", "cut", "sort",
+            "uniq", "tr", "head", "tail", "wc", "tee", "tac",
+            // Process / system
+            "ps", "kill", "killall", "uname", "whoami", "id", "groups",
+            "uptime", "free", "date", "hostname", "env", "printenv",
+            "true", "false", "yes", "sleep", "sync",
+            // Archive / compression (often toybox-provided on Android)
+            "tar", "gzip", "gunzip", "zcat",
+            // Networking diag (limited under untrusted_app)
+            "nc", "ping",
+            // Misc
+            "which", "test", "[", "expr", "seq", "rev", "base64", "md5sum",
+            "sha1sum", "sha256sum",
+        )
+    }
+}

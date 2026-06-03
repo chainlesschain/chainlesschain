@@ -1,0 +1,155 @@
+name: Hand-Written Tar Parser Audit (PR advisory)
+
+# Advisory gate for trap #21. Any Kotlin file that hand-rolls tar
+# header parsing (references `typeFlag` / `typeflag`) must handle the
+# GNU 'L' (long-name) and 'K' (long-linkname) extensions, otherwise
+# `@LongLink` entries get parsed as regular files and tar payloads
+# with paths >100 chars (npm-pack tarballs in particular) get silently
+# corrupted on-device.
+#
+# The canonical fix is at
+# android-app/feature-local-terminal/src/main/java/com/chainlesschain/
+# android/feature/localterminal/LocalFilesystemBootstrapper.kt
+# (search for `if (typeFlag == 'L' || typeFlag == 'K')`).
+#
+# Advisory because the heuristic is approximate — a Kotlin file using
+# `typeFlag` for an unrelated purpose, or handling 'L'/'K' via a helper
+# function / constants pool, would surface as a false positive. PR
+# reviewer can dismiss.
+
+on:
+  pull_request:
+    paths:
+      - 'android-app/**/*.kt'
+      - 'scripts/audit-hand-written-tar-parsers.js'
+      - '.github/workflows/hand-written-tar-parser-audit.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: tar-parser-audit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run static audit
+        id: audit
+        continue-on-error: true
+        run: |
+          node scripts/audit-hand-written-tar-parsers.js --json > /tmp/findings.json
+          cat /tmp/findings.json | head -100
+
+      - name: Comment on PR with findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- tar-parser-audit-v1 -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/findings.json', 'utf-8'));
+            } catch {
+              return;
+            }
+            const findings = report.findings || [];
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.data.find(c => c.body && c.body.includes(marker));
+
+            if (findings.length === 0) {
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                });
+              }
+              return;
+            }
+
+            const body = [
+              marker,
+              '## ⚠️ Hand-Written Tar Parser Audit — possible missing GNU typeflag handling',
+              '',
+              `Found **${findings.length}** Kotlin file(s) referencing a tar \`typeFlag\` but missing the literal \`'L'\` or \`'K'\` typeflag handling.`,
+              '',
+              '### Why this matters',
+              '',
+              'GNU tar (and `npm pack`-produced tarballs) emit `@LongLink` entries for',
+              'paths > 100 chars. The header has `typeflag = \'L\'` (long-name) or',
+              "`'K'` (long-linkname), and the entry's data section is the next entry's",
+              "true path. A naive parser that doesn't special-case 'L'/'K' writes the",
+              '`@LongLink` data to disk as a regular file and uses the truncated 100-',
+              'char name for the next entry — silent on-device corruption.',
+              '',
+              '### Findings',
+              '',
+              findings.map(f => `- \`${f.file}:${f.line}\` [${f.severity}] ${f.message}`).join('\n'),
+              '',
+              '### Canonical fix pattern',
+              '',
+              '```kotlin',
+              'var pendingLongName: String? = null',
+              'var pendingLongLink: String? = null',
+              '// ...inside the entry loop:',
+              "if (typeFlag == 'L' || typeFlag == 'K') {",
+              '    val sizeBytes = readSize(header)',
+              '    val longStr = readBytes(sizeBytes).decodeToString().trimEnd(0.toChar())',
+              "    if (typeFlag == 'L') pendingLongName = longStr",
+              '    else pendingLongLink = longStr',
+              '    continue  // do not write @LongLink as a real file',
+              '}',
+              'val effectiveName = pendingLongName ?: name',
+              'val effectiveLinkName = pendingLongLink ?: linkName',
+              'pendingLongName = null',
+              'pendingLongLink = null',
+              '```',
+              '',
+              'Reference: `android-app/feature-local-terminal/src/main/.../LocalFilesystemBootstrapper.kt`.',
+              '',
+              '### False positives',
+              '',
+              "Use of `typeFlag` outside tar parsing (other binary formats), or 'L'/'K'",
+              "handled via constants like `private const val LONG_NAME = 'L'` — the",
+              'lint only matches the literal `\'L\'` and `\'K\'` patterns. Explain in PR',
+              'conversation if your handling is equivalent.',
+              '',
+              `Run log: ${runUrl}`,
+              '',
+              '_Trap #21 in `docs/internal/hidden-risk-traps.md`. Auto-generated by `.github/workflows/hand-written-tar-parser-audit.yml`._',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

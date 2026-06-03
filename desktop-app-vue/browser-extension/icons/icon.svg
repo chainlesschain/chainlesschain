@@ -1,0 +1,7 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners -->
+  <rect x="0" y="0" width="128" height="128" rx="20" ry="20" fill="#1890ff"/>
+
+  <!-- Text "CC" -->
+  <text x="64" y="80" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#ffffff" text-anchor="middle">CC</text>
+</svg>

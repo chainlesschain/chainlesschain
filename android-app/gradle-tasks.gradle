@@ -1,0 +1,123 @@
+// Gradle tasks for CI/CD automation
+
+// Task to print version name (for GitHub Actions)
+task printVersionName {
+    doLast {
+        println android.defaultConfig.versionName
+    }
+}
+
+// Task to print version code (for GitHub Actions)
+task printVersionCode {
+    doLast {
+        println android.defaultConfig.versionCode
+    }
+}
+
+// Task to increment version code
+task incrementVersionCode {
+    doLast {
+        def versionPropsFile = file('version.properties')
+        def Properties versionProps = new Properties()
+
+        if (versionPropsFile.exists()) {
+            versionProps.load(new FileInputStream(versionPropsFile))
+        }
+
+        def code = (versionProps['VERSION_CODE'] ?: '0').toInteger() + 1
+        versionProps['VERSION_CODE'] = code.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        println "Version code incremented to ${code}"
+    }
+}
+
+// Task to set version name
+task setVersionName {
+    doLast {
+        def versionName = project.findProperty('versionName') ?: '1.0.0'
+        def versionPropsFile = file('version.properties')
+        def Properties versionProps = new Properties()
+
+        if (versionPropsFile.exists()) {
+            versionProps.load(new FileInputStream(versionPropsFile))
+        }
+
+        versionProps['VERSION_NAME'] = versionName
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        println "Version name set to ${versionName}"
+    }
+}
+
+// Task to generate build info
+task generateBuildInfo {
+    doLast {
+        def buildInfoFile = file('app/src/main/assets/build-info.json')
+        buildInfoFile.parentFile.mkdirs()
+
+        def buildInfo = [
+            versionName: android.defaultConfig.versionName,
+            versionCode: android.defaultConfig.versionCode,
+            buildTime: new Date().format('yyyy-MM-dd HH:mm:ss'),
+            gitCommit: 'git rev-parse --short HEAD'.execute().text.trim(),
+            gitBranch: 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+        ]
+
+        buildInfoFile.text = groovy.json.JsonOutput.toJson(buildInfo)
+        println "Build info generated: ${buildInfoFile.absolutePath}"
+    }
+}
+
+// Automatically run before build
+tasks.whenTaskAdded { task ->
+    if (task.name == 'preBuild') {
+        task.dependsOn generateBuildInfo
+    }
+}
+
+// Task to clean all build outputs
+task cleanAll {
+    doLast {
+        delete rootProject.buildDir
+        rootProject.subprojects.each {
+            delete it.buildDir
+        }
+        println "All build directories cleaned"
+    }
+}
+
+// Task to generate APK size report
+task generateApkSizeReport {
+    doLast {
+        def apkDir = file('app/build/outputs/apk/release')
+        if (!apkDir.exists()) {
+            println "No release APK found. Run assembleRelease first."
+            return
+        }
+
+        def reportFile = file('build/reports/apk-size-report.txt')
+        reportFile.parentFile.mkdirs()
+
+        reportFile.text = "APK Size Report\n"
+        reportFile.text += "=" * 50 + "\n\n"
+
+        apkDir.eachFileRecurse { file ->
+            if (file.name.endsWith('.apk')) {
+                def size = file.length()
+                def sizeMB = String.format("%.2f", size / (1024 * 1024))
+                reportFile.text += "${file.name}: ${sizeMB} MB\n"
+            }
+        }
+
+        println "APK size report generated: ${reportFile.absolutePath}"
+    }
+}
+
+// Task to run all checks before release
+task preReleaseCheck {
+    dependsOn 'lint', 'test', 'assembleRelease'
+    doLast {
+        println "Pre-release checks completed successfully"
+    }
+}

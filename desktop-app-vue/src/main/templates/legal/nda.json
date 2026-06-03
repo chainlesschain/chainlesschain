@@ -1,0 +1,148 @@
+{
+  "id": "tpl_legal_nda_003",
+  "name": "nda",
+  "display_name": "保密协议",
+  "description": "保密协议模板(NDA)，适用于商务合作、技术交流、员工入职等场景",
+  "icon": "🔒",
+  "category": "legal",
+  "subcategory": "保密文书",
+  "tags": [
+    "保密协议",
+    "NDA",
+    "商业秘密",
+    "信息安全"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成保密协议，要求:\n\n# {{agreementTitle}}\n\n**协议编号**: {{agreementNumber}}\n**签订日期**: {{#if signDate}}{{signDate}}{{else}}{{currentDate}}{{/if}}\n**签订地点**: {{signPlace}}\n\n## 甲方（披露方）\n\n**名称**: {{partyAName}}\n**法定代表人**: {{partyALegalRep}}\n**地址**: {{partyAAddress}}\n**联系方式**: {{partyAContact}}\n\n## 乙方（接收方）\n\n**名称/姓名**: {{partyBName}}\n{{#if partyBType}}{{#eq partyBType \"企业\"}}**法定代表人**: {{partyBLegalRep}}{{/eq}}{{/if}}\n**地址**: {{partyBAddress}}\n**联系方式**: {{partyBContact}}\n{{#if partyBType}}{{#eq partyBType \"个人\"}}**身份证号**: {{partyBID}}{{/eq}}{{/if}}\n\n## 鉴于\n\n{{recitals}}\n\n为保护甲方的商业秘密和保密信息，甲乙双方本着平等互利、诚实信用的原则，就保密事宜达成如下协议：\n\n## 第一条 定义\n\n### 1.1 保密信息\n\n本协议所称\"保密信息\"是指甲方披露给乙方的所有信息，包括但不限于：\n\n{{confidentialInfoScope}}\n\n### 1.2 例外情形\n\n下列信息不属于保密信息：\n\n- 披露时已为公众所知的信息\n- 披露后非因接收方原因成为公开信息的\n- 接收方从合法第三方获得的信息\n- 接收方独立开发的信息\n- 法律法规要求披露的信息\n\n## 第二条 保密义务\n\n### 2.1 保密责任\n\n乙方应对保密信息承担保密义务，包括但不限于：\n\n- 不得向第三方披露保密信息\n- 仅将保密信息用于{{permittedPurpose}}\n- 采取合理措施保护保密信息安全\n- 限制知悉范围，仅向需要知悉的人员披露\n- 确保知悉人员遵守同等保密义务\n\n### 2.2 保护措施\n\n{{protectionMeasures}}\n\n### 2.3 返还与销毁\n\n{{returnProvision}}\n\n## 第三条 保密期限\n\n### 3.1 协议期限\n\n本协议自{{effectiveDate}}起生效，有效期为{{duration}}。\n\n### 3.2 保密义务存续期\n\n{{confidentialityPeriod}}\n\n## 第四条 知识产权\n\n{{intellectualProperty}}\n\n## 第五条 违约责任\n\n### 5.1 违约情形\n\n乙方有下列情形之一的，视为违约：\n\n- 未经授权披露保密信息\n- 将保密信息用于约定范围外的用途\n- 未采取合理保护措施导致信息泄露\n- 违反本协议其他条款\n\n### 5.2 违约后果\n\n{{breachConsequences}}\n\n### 5.3 损害赔偿\n\n{{damagesProvision}}\n\n## 第六条 争议解决\n\n### 6.1 适用法律\n\n本协议适用中华人民共和国法律。\n\n### 6.2 争议解决方式\n\n{{disputeResolution}}\n\n## 第七条 其他约定\n\n### 7.1 协议修改\n\n本协议的任何修改应经双方书面同意。\n\n### 7.2 不可抗力\n\n因不可抗力导致协议无法履行的，双方均不承担责任。\n\n### 7.3 可分割性\n\n如本协议任何条款被认定为无效，不影响其他条款的效力。\n\n### 7.4 完整协议\n\n本协议构成双方关于保密事宜的完整协议。\n\n### 7.5 合同份数\n\n本协议一式{{copies}}份，甲方执{{partyACopies}}份，乙方执{{partyBCopies}}份，具有同等法律效力。\n\n## 附则\n\n{{additionalTerms}}\n\n---\n\n**甲方（盖章）**: _________________\n\n**法定代表人/授权代表（签字）**: _________________\n\n**日期**: _________________\n\n\n**乙方（盖章/签字）**: _________________\n\n{{#if partyBType}}{{#eq partyBType \"企业\"}}**法定代表人/授权代表（签字）**: _________________{{/eq}}{{/if}}\n\n**日期**: _________________",
+  "variables_schema": [
+    {
+      "name": "agreementTitle",
+      "type": "text",
+      "label": "协议标题",
+      "default": "保密协议",
+      "required": true
+    },
+    {
+      "name": "agreementNumber",
+      "type": "text",
+      "label": "协议编号",
+      "default": "NDA2024001",
+      "required": true
+    },
+    {
+      "name": "partyAName",
+      "type": "text",
+      "label": "甲方名称",
+      "default": "XX公司",
+      "required": true
+    },
+    {
+      "name": "partyBName",
+      "type": "text",
+      "label": "乙方名称/姓名",
+      "default": "XX公司/张三",
+      "required": true
+    },
+    {
+      "name": "partyBType",
+      "type": "select",
+      "label": "乙方类型",
+      "default": "企业",
+      "required": true,
+      "options": [
+        {
+          "value": "企业",
+          "label": "企业"
+        },
+        {
+          "value": "个人",
+          "label": "个人"
+        }
+      ]
+    },
+    {
+      "name": "permittedPurpose",
+      "type": "text",
+      "label": "允许用途",
+      "default": "项目合作评估",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "type": "text",
+      "label": "协议期限",
+      "default": "三年",
+      "required": true
+    },
+    {
+      "name": "confidentialityPeriod",
+      "type": "select",
+      "label": "保密期",
+      "default": "永久",
+      "required": true,
+      "options": [
+        {
+          "value": "永久",
+          "label": "永久保密"
+        },
+        {
+          "value": "协议期内",
+          "label": "仅在协议期内"
+        },
+        {
+          "value": "协议终止后X年",
+          "label": "协议终止后继续X年"
+        }
+      ]
+    },
+    {
+      "name": "disputeResolution",
+      "type": "select",
+      "label": "争议解决",
+      "default": "诉讼",
+      "required": true,
+      "options": [
+        {
+          "value": "诉讼",
+          "label": "诉讼"
+        },
+        {
+          "value": "仲裁",
+          "label": "仲裁"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{agreementTitle}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "保密协议.md",
+        "description": "协议正文"
+      },
+      {
+        "type": "file",
+        "name": "附件-保密信息清单.md",
+        "description": "保密信息清单"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

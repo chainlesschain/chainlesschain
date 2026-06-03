@@ -1,0 +1,84 @@
+{
+  "id": "tpl_medical_terminology_005",
+  "name": "terminology-explain",
+  "display_name": "医学术语解释",
+  "description": "将专业医学术语转换为患者可理解的语言",
+  "icon": "📖",
+  "category": "medical",
+  "subcategory": "患者教育",
+  "tags": [
+    "医学术语",
+    "患者教育",
+    "健康科普",
+    "通俗解释"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我解释医学术语：\n\n术语：{{terminology}}\n\n应用场景：{{#if context}}{{context}}{{else}}一般性解释{{/if}}\n\n目标受众：{{#if audience}}{{audience}}{{else}}普通患者{{/if}}\n\n请提供：\n1. 术语的准确医学定义\n2. 通俗易懂的解释（避免使用复杂医学术语）\n3. 相关的生理或病理机制说明\n4. 实际案例或类比说明\n5. 与该术语相关的常见问题解答\n6. 相关术语或延伸阅读建议\n\n要求：\n- 语言通俗易懂\n- 准确不失专业性\n- 适合患者阅读理解",
+  "variables_schema": [
+    {
+      "name": "terminology",
+      "type": "text",
+      "label": "医学术语",
+      "default": "示例内容",
+      "required": true
+    },
+    {
+      "name": "context",
+      "type": "textarea",
+      "label": "应用场景",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "audience",
+      "type": "select",
+      "label": "目标受众",
+      "default": "普通患者",
+      "required": true,
+      "options": [
+        {
+          "value": "普通患者",
+          "label": "普通患者"
+        },
+        {
+          "value": "患者家属",
+          "label": "患者家属"
+        },
+        {
+          "value": "医学生",
+          "label": "医学生"
+        },
+        {
+          "value": "非专科医生",
+          "label": "非专科医生"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "医学术语解释",
+    "children": [
+      {
+        "type": "file",
+        "name": "术语解释.md",
+        "description": "术语解释正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

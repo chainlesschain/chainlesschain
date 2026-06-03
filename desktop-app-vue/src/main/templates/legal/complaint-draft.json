@@ -1,0 +1,75 @@
+{
+  "id": "tpl_legal_complaint_302",
+  "name": "complaint-draft",
+  "display_name": "起诉状代写",
+  "description": "民事、刑事起诉状撰写",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "诉讼文书",
+  "tags": [
+    "诉讼文书"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写起诉状：\n\n原告：{{plaintiff}}\n被告：{{defendant}}\n案由：{{caseReason}}\n\n诉讼请求：\n{{claims}}\n\n事实与理由：\n{{factsAndReasons}}",
+  "variables_schema": [
+    {
+      "name": "plaintiff",
+      "type": "textarea",
+      "label": "plaintiff",
+      "required": true,
+      "default": "张三"
+    },
+    {
+      "name": "defendant",
+      "type": "textarea",
+      "label": "defendant",
+      "required": true,
+      "default": "某科技公司"
+    },
+    {
+      "name": "caseReason",
+      "type": "textarea",
+      "label": "caseReason",
+      "required": true,
+      "default": "劳动合同纠纷"
+    },
+    {
+      "name": "claims",
+      "type": "textarea",
+      "label": "claims",
+      "required": true,
+      "default": "1. 请求判令被告支付违法解除劳动合同赔偿金50000元\n2. 诉讼费由被告承担"
+    },
+    {
+      "name": "factsAndReasons",
+      "type": "textarea",
+      "label": "factsAndReasons",
+      "required": true,
+      "default": "原告于2023年1月入职被告公司，从事软件开发工作。2025年12月，被告以\"业绩不佳\"为由解除劳动合同，但未提供任何证据。根据《劳动合同法》规定，被告行为构成违法解除。"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "起诉状代写",
+    "children": [
+      {
+        "type": "file",
+        "name": "起诉状代写.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

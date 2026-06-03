@@ -1,0 +1,240 @@
+{
+  "id": "tpl_creative_lyrics_005",
+  "name": "lyrics_writing_template",
+  "display_name": "歌词创作",
+  "description": "生成歌曲歌词，包含韵律设计、情感表达和曲式结构",
+  "icon": "🎵",
+  "category": "creative-writing",
+  "subcategory": "lyrics",
+  "tags": [
+    "歌词",
+    "作词",
+    "音乐",
+    "创作"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成歌词创作方案，要求:\n\n**歌曲信息：**\n- 歌名：{{songTitle}}\n- 风格：{{musicGenre}}\n- 情感基调：{{mood}}\n- 主题：{{theme}}\n- 曲式结构：{{songStructure}}\n\n---\n\n# 《{{songTitle}}》\n\n**词作者**：{{lyricist}}\n**曲作者**：{{composer}}\n**音乐风格**：{{musicGenre}}\n**情感基调**：{{mood}}\n**主题**：{{theme}}\n\n---\n\n## 创作构思\n\n### 灵感来源\n{{inspiration}}\n\n### 核心意象\n{{coreImagery}}\n\n### 想传达的情感\n{{emotionToConvey}}\n\n### 目标听众\n{{#eq musicGenre \"流行\"}}\n- 主流大众\n- 年龄：18-35岁\n- 偏好：旋律性强、易传唱\n{{/eq}}\n{{#eq musicGenre \"民谣\"}}\n- 文艺青年\n- 关注歌词内涵\n- 喜欢故事性和画面感\n{{/eq}}\n{{#eq musicGenre \"摇滚\"}}\n- 年轻群体\n- 追求态度和释放\n- 喜欢力量感\n{{/eq}}\n{{#eq musicGenre \"说唱\"}}\n- Hip-hop文化爱好者\n- 关注韵脚和flow\n- 喜欢真实表达\n{{/eq}}\n\n---\n\n## 歌词正文\n\n{{#eq songStructure \"主歌-副歌式\"}}\n### 【前奏】\n（器乐演奏，{{introLength}}小节）\n\n### 【主歌A1】\n{{verseA1Line1}}\n{{verseA1Line2}}\n{{verseA1Line3}}\n{{verseA1Line4}}\n\n### 【主歌A2】\n{{verseA2Line1}}\n{{verseA2Line2}}\n{{verseA2Line3}}\n{{verseA2Line4}}\n\n### 【副歌B】\n{{chorusLine1}}\n{{chorusLine2}}\n{{chorusLine3}}\n{{chorusLine4}}\n\n### 【间奏】\n（器乐演奏，{{interludeLength}}小节）\n\n### 【主歌A3】\n{{verseA3Line1}}\n{{verseA3Line2}}\n{{verseA3Line3}}\n{{verseA3Line4}}\n\n### 【副歌B】\n{{chorusLine1}}（重复）\n{{chorusLine2}}\n{{chorusLine3}}\n{{chorusLine4}}\n\n{{#if includeBridge}}\n### 【桥段C】\n{{bridgeLine1}}\n{{bridgeLine2}}\n{{bridgeLine3}}\n{{bridgeLine4}}\n{{/if}}\n\n### 【副歌B】（强化版）\n{{chorusLine1}}\n{{chorusLine2}}\n{{chorusLine3}}\n{{chorusLine4}}\n（可加和声或改编）\n\n### 【尾奏】\n{{outroLine}}\n（渐弱或戛然而止）\n{{/eq}}\n\n{{#eq songStructure \"一段体\"}}\n### 【全曲】\n（一个完整段落，适合民谣叙事）\n\n{{line1}}\n{{line2}}\n{{line3}}\n...\n{{/eq}}\n\n{{#eq songStructure \"自由体\"}}\n### 【第一部分】\n{{section1}}\n\n### 【第二部分】\n{{section2}}\n\n### 【第三部分】\n{{section3}}\n{{/eq}}\n\n---\n\n## 歌词创作技法\n\n### 韵律设计\n\n**押韵方案**：\n{{#eq rhymeScheme \"AABB\"}}\n- 对句押韵（AABB）\n- 例：\n  - A：天（tian）\n  - A：边（bian）\n  - B：梦（meng）\n  - B：中（zhong）\n{{/eq}}\n\n{{#eq rhymeScheme \"ABAB\"}}\n- 交叉押韵（ABAB）\n- 副歌常用，增强记忆点\n{{/eq}}\n\n{{#eq rhymeScheme \"AAAA\"}}\n- 一韵到底（AAAA）\n- 气势连贯，适合摇滚/说唱\n{{/eq}}\n\n**韵脚选择**：\n- 主韵：{{mainRhyme}}韵（如：ang、ing、ong）\n- 副韵：{{secondaryRhyme}}韵\n- 避免僻韵（难押的韵）\n\n**节奏型**：\n{{#eq musicGenre \"流行\"}}\n- 字数：每句6-10字\n- 断句：2+2+3、3+4等\n- 重音：放在关键词上\n{{/eq}}\n\n{{#eq musicGenre \"说唱\"}}\n- Flow设计：\n  - 快速连击：连续押韵\n  - 停顿重音：制造节奏\n  - 多音节韵：增强技巧性\n- 例：我/站在/舞台/中央（2-2-2-2）\n{{/eq}}\n\n{{#eq musicGenre \"民谣\"}}\n- 自然语感优先\n- 可以不严格押韵\n- 重视画面和故事\n{{/eq}}\n\n### 意象运用\n\n**视觉意象**：\n- 具体画面：{{visualImage1}}\n- 色彩：{{colorImage}}\n- 光影：{{lightImage}}\n\n**听觉意象**：\n- 声音：{{soundImage}}\n\n**嗅觉/触觉意象**：\n- 气味：{{smellImage}}\n- 质感：{{touchImage}}\n\n**抽象意象**：\n- 情感具象化：{{abstractImage}}\n\n### 修辞手法\n\n**比喻**：\n- 明喻：你像一颗星\n- 暗喻：你是我的星\n- 例句：{{metaphorExample}}\n\n**拟人**：\n- 赋予事物人的特征\n- 例句：{{personificationExample}}\n\n**排比**：\n- 增强气势\n- 例：我要/我要/我要\n\n**反复**：\n- 强调主题\n- 副歌核心句重复\n\n**对比**：\n- 黑与白、冷与暖\n- 制造张力\n\n### 叙事技巧\n\n{{#eq narrativeStyle \"第一人称\"}}\n**第一人称叙事**：\n- 用\"我\"讲述\n- 强烈代入感\n- 适合情歌、自传式歌曲\n{{/eq}}\n\n{{#eq narrativeStyle \"第二人称\"}}\n**第二人称叙事**：\n- 对\"你\"诉说\n- 直接对话感\n- 适合告白、倾诉\n{{/eq}}\n\n{{#eq narrativeStyle \"第三人称\"}}\n**第三人称叙事**：\n- 讲\"他/她\"的故事\n- 客观视角\n- 适合故事歌曲\n{{/eq}}\n\n**时态运用**：\n- 现在时：增强现场感\n- 过去时：回忆、叙事\n- 将来时：憧憬、期待\n\n**情节发展**：\n- 主歌：铺陈、叙事\n- 副歌：情感爆发、主题升华\n- 桥段：转折、新视角\n\n---\n\n## 分段功能解析\n\n### 【主歌A】\n\n**功能**：\n- 叙事、铺垫\n- 建立场景和情绪\n- 引出主题\n\n**写作要点**：\n- 具体细节\n- 画面感\n- 为副歌蓄势\n\n**主歌变化**：\n- A1：开场，新鲜感\n- A2：深化，增加信息\n- A3：升华，情绪推进\n\n### 【副歌B】\n\n**功能**：\n- 情感高潮\n- 主题句\n- 记忆点（Hook）\n\n**写作要点**：\n- 简洁有力\n- 高度凝练主题\n- 易于传唱\n- 重复性强\n\n**副歌特征**：\n- 旋律最抓耳\n- 歌名常在副歌\n- 全曲最高音\n\n### 【桥段C】\n\n**功能**：\n- 打破重复\n- 提供新视角\n- 情绪转折\n\n**写作要点**：\n- 与主歌副歌不同\n- 可以用新韵脚\n- 可以改变节奏\n\n**出现时机**：\n- 第二次副歌后\n- 作为过渡到最后副歌\n\n---\n\n## 情感曲线设计\n\n```\n情绪强度\n  ↑\n10│                    ┌─副歌3（高潮）\n  │                   │\n 8│          ┌─副歌2──┘\n  │         │    ↑桥段\n 6│    ┌─副歌1  │\n  │   │        │\n 4│主歌1 主歌2  主歌3\n  │\n 2│前奏        间奏        尾奏\n  │\n 0└─────────────────────────→ 时间\n```\n\n**设计原则**：\n- 层层递进\n- 不要一开始就到顶\n- 留有余地升华\n\n---\n\n## 不同风格的歌词特点\n\n{{#eq musicGenre \"流行\"}}\n### 流行歌词\n\n**特点**：\n- 口语化、生活化\n- 情感真挚\n- 易懂易记\n\n**常见主题**：\n- 爱情：初恋、失恋、暗恋\n- 励志：追梦、坚持\n- 治愈：陪伴、温暖\n\n**写作技巧**：\n- 副歌洗脑循环\n- 金句制造（可单独传播）\n- 避免生僻词\n{{/eq}}\n\n{{#eq musicGenre \"民谣\"}}\n### 民谣歌词\n\n**特点**：\n- 故事性强\n- 画面感丰富\n- 文学性\n\n**常见主题**：\n- 旅行、远方\n- 乡愁、记忆\n- 小人物故事\n\n**写作技巧**：\n- 白描手法\n- 细节刻画\n- 诗意语言\n- 可以较长（5-6分钟）\n{{/eq}}\n\n{{#eq musicGenre \"摇滚\"}}\n### 摇滚歌词\n\n**特点**：\n- 有态度\n- 直接、锋利\n- 呐喊式\n\n**常见主题**：\n- 反叛、自由\n- 社会批判\n- 自我宣言\n\n**写作技巧**：\n- 短句、重复\n- 力量型词汇\n- 节奏感强\n{{/eq}}\n\n{{#eq musicGenre \"说唱\"}}\n### 说唱歌词\n\n**特点**：\n- 韵脚密集\n- 节奏复杂\n- 真实表达\n\n**常见主题**：\n- 个人经历\n- 社会现实\n- 炫技（Battle）\n\n**写作技巧**：\n- 内韵（句中押韵）\n- 多音节韵\n- Punchline（惊艳句）\n- 双关、谐音\n{{/eq}}\n\n---\n\n## 歌词打磨清单\n\n### 初稿完成后检查\n\n**韵律层面**：\n- [ ] 韵脚是否和谐自然？\n- [ ] 节奏是否顺畅（唱出来试试）？\n- [ ] 是否有别扭的字音？\n\n**内容层面**：\n- [ ] 主题是否清晰？\n- [ ] 是否有具体意象（避免空洞）？\n- [ ] 是否有记忆点/金句？\n- [ ] 主歌和副歌是否有区分度？\n\n**情感层面**：\n- [ ] 情感是否真挚？\n- [ ] 是否有情绪曲线？\n- [ ] 是否感动自己？（这很重要！）\n\n**语言层面**：\n- [ ] 删除陈词滥调\n- [ ] 避免网络流行语（容易过时）\n- [ ] 统一人称和时态\n- [ ] 是否适合演唱（不拗口）\n\n**商业层面**：\n- [ ] 是否有传唱度？\n- [ ] 是否适合目标受众？\n- [ ] 是否有短视频传播潜力？\n\n---\n\n## 与作曲的配合\n\n### 先词后曲\n\n**优势**：\n- 歌词完整性强\n- 主题明确\n\n**注意**：\n- 预留旋律空间\n- 标注情绪和节奏建议\n\n### 先曲后词\n\n**优势**：\n- 词曲贴合度高\n- 歌词顺应旋律\n\n**注意**：\n- 听demo，理解情绪\n- 数好音节\n- 重音位置对应歌词重点\n\n### 词曲同步创作\n\n**优势**：\n- 最佳配合\n- 相互激发灵感\n\n**方式**：\n- 边弹边写\n- 哼唱即兴\n\n---\n\n## 版权与发表\n\n### 版权登记\n\n1. **中国音乐著作权协会（音著协）**\n   - 登记作品\n   - 保护权益\n\n2. **中国版权保护中心**\n   - 作品登记证书\n\n3. **数字版权保护**\n   - 区块链存证\n   - 时间戳\n\n### 合作模式\n\n**买断**：\n- 一次性付费\n- 版权归购买方\n- 适合商业定制\n\n**分成**：\n- 保留版权\n- 收益分成\n- 长期受益\n\n**联合署名**：\n- 多人共创\n- 明确比例\n\n### 发表渠道\n\n**歌手演唱**：\n- 联系歌手/经纪公司\n- 投递demo\n\n**音乐平台**：\n- 网易云音乐石头计划\n- QQ音乐开放平台\n\n**比赛/征集**：\n- 词曲创作大赛\n- 影视歌曲征集\n\n---\n\n## 创作练习\n\n### 日常积累\n\n1. **素材本**\n   - 记录金句、意象\n   - 生活观察\n   - 灵感碎片\n\n2. **听歌分析**\n   - 拆解经典歌词\n   - 学习结构和技巧\n\n3. **填词练习**\n   - 找纯音乐填词\n   - 锻炼词曲配合\n\n### 进阶训练\n\n**限定词创作**：\n- 必须用某个词\n- 锻炼灵活性\n\n**命题创作**：\n- 给定主题\n- 30分钟完成\n\n**改写经典**：\n- 用自己的方式重写\n- 理解经典的妙处\n\n---\n\n**创作寄语**\n\n> \"好的歌词，是诗和歌的完美结合。\" ——林夕\n\n- 真诚永远大于技巧\n- 让歌词成为旋律的翅膀\n- 写打动自己的歌，才能打动别人\n\n愿你的文字化作旋律，传唱千里！",
+  "variables_schema": [
+    {
+      "name": "songTitle",
+      "label": "歌名",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：平凡之路"
+    },
+    {
+      "name": "musicGenre",
+      "label": "音乐风格",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "流行",
+          "label": "流行"
+        },
+        {
+          "value": "民谣",
+          "label": "民谣"
+        },
+        {
+          "value": "摇滚",
+          "label": "摇滚"
+        },
+        {
+          "value": "说唱",
+          "label": "说唱/Hip-hop"
+        },
+        {
+          "value": "电子",
+          "label": "电子"
+        }
+      ]
+    },
+    {
+      "name": "mood",
+      "label": "情感基调",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "温暖治愈",
+          "label": "温暖治愈"
+        },
+        {
+          "value": "悲伤忧郁",
+          "label": "悲伤忧郁"
+        },
+        {
+          "value": "激昂振奋",
+          "label": "激昂振奋"
+        },
+        {
+          "value": "轻松欢快",
+          "label": "轻松欢快"
+        }
+      ]
+    },
+    {
+      "name": "theme",
+      "label": "主题",
+      "type": "select",
+      "required": false,
+      "default": "爱情",
+      "options": [
+        {
+          "value": "爱情",
+          "label": "爱情"
+        },
+        {
+          "value": "励志",
+          "label": "励志/追梦"
+        },
+        {
+          "value": "思念",
+          "label": "思念/乡愁"
+        },
+        {
+          "value": "自由",
+          "label": "自由/反叛"
+        },
+        {
+          "value": "成长",
+          "label": "成长/青春"
+        }
+      ]
+    },
+    {
+      "name": "songStructure",
+      "label": "曲式结构",
+      "type": "select",
+      "required": false,
+      "default": "主歌-副歌式",
+      "options": [
+        {
+          "value": "主歌-副歌式",
+          "label": "主歌-副歌式（A-B）"
+        },
+        {
+          "value": "一段体",
+          "label": "一段体（民谣）"
+        },
+        {
+          "value": "自由体",
+          "label": "自由体（实验）"
+        }
+      ]
+    },
+    {
+      "name": "lyricist",
+      "label": "词作者",
+      "type": "string",
+      "required": false,
+      "default": "李词人",
+      "placeholder": "您的姓名或笔名"
+    },
+    {
+      "name": "composer",
+      "label": "曲作者",
+      "type": "string",
+      "required": false,
+      "placeholder": "作曲家姓名（如有）"
+    },
+    {
+      "name": "rhymeScheme",
+      "label": "押韵方案",
+      "type": "select",
+      "required": false,
+      "default": "ABAB",
+      "options": [
+        {
+          "value": "AABB",
+          "label": "对句押韵(AABB)"
+        },
+        {
+          "value": "ABAB",
+          "label": "交叉押韵(ABAB)"
+        },
+        {
+          "value": "AAAA",
+          "label": "一韵到底(AAAA)"
+        },
+        {
+          "value": "自由",
+          "label": "自由押韵"
+        }
+      ]
+    },
+    {
+      "name": "narrativeStyle",
+      "label": "叙事人称",
+      "type": "select",
+      "required": false,
+      "default": "第一人称",
+      "options": [
+        {
+          "value": "第一人称",
+          "label": "第一人称（我）"
+        },
+        {
+          "value": "第二人称",
+          "label": "第二人称（你）"
+        },
+        {
+          "value": "第三人称",
+          "label": "第三人称（他/她）"
+        }
+      ]
+    },
+    {
+      "name": "includeBridge",
+      "label": "包含桥段",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含桥段"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "《{{songTitle}}》歌词",
+    "files": [
+      {
+        "path": "歌词正文.txt",
+        "type": "document"
+      },
+      {
+        "path": "创作说明.md",
+        "type": "markdown"
+      },
+      {
+        "path": "演唱提示.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer",
+    "tool_template_renderer"
+  ],
+  "execution_engine": "document"
+}

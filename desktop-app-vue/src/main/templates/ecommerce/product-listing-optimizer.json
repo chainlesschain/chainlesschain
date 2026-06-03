@@ -1,0 +1,72 @@
+{
+  "id": "tpl_ecommerce_listing_001",
+  "name": "product_listing_optimizer",
+  "display_name": "电商产品详情页优化",
+  "description": "生成高转化率的电商产品标题、详情描述和关键词优化方案",
+  "icon": "🛍️",
+  "cover_image": "/templates/covers/ecommerce-listing.png",
+  "category": "ecommerce",
+  "subcategory": "product-listing",
+  "tags": ["电商", "产品详情", "SEO", "转化率优化"],
+  "project_type": "document",
+  "prompt_template": "请帮我优化电商产品详情页：\n\n**产品基本信息：**\n- 产品名称：{{productName}}\n- 产品类别：{{category}}\n- 核心卖点：{{usp}}\n- 目标平台：{{platform}}\n- 价格区间：{{priceRange}}\n- 目标人群：{{targetCustomer}}\n\n# {{productName}} - 产品详情页优化方案\n\n## 一、产品标题优化\n\n### 主标题方案（3个版本）\n\n**版本1（关键词优先）：**\n{{title1}}\n\n**版本2（卖点优先）：**\n{{title2}}\n\n**版本3（场景优先）：**\n{{title3}}\n\n### 副标题/推广语\n{{subtitle}}\n\n---\n\n## 二、五大卖点提炼\n\n### 卖点1：{{usp1Title}}\n{{usp1Description}}\n\n### 卖点2：{{usp2Title}}\n{{usp2Description}}\n\n### 卖点3：{{usp3Title}}\n{{usp3Description}}\n\n### 卖点4：{{usp4Title}}\n{{usp4Description}}\n\n### 卖点5：{{usp5Title}}\n{{usp5Description}}\n\n---\n\n## 三、产品详情描述\n\n### 开篇痛点共鸣\n{{painPointIntro}}\n\n### 产品解决方案\n{{solutionDescription}}\n\n### 产品参数\n\n| 参数项 | 参数值 |\n|--------|--------|\n| 品牌 | {{brand}} |\n| 型号 | {{model}} |\n| 规格 | {{specs}} |\n| 材质 | {{material}} |\n| 颜色 | {{colors}} |\n| 尺寸 | {{dimensions}} |\n| 重量 | {{weight}} |\n| 产地 | {{origin}} |\n\n### 使用场景\n\n**场景1：{{scene1}}**\n{{sceneDescription1}}\n\n**场景2：{{scene2}}**\n{{sceneDescription2}}\n\n**场景3：{{scene3}}**\n{{sceneDescription3}}\n\n### 用户评价亮点\n{{testimonials}}\n\n### 常见问题FAQ\n\n**Q1：{{faq1Question}}**\nA：{{faq1Answer}}\n\n**Q2：{{faq2Question}}**\nA：{{faq2Answer}}\n\n**Q3：{{faq3Question}}**\nA：{{faq3Answer}}\n\n---\n\n## 四、SEO关键词策略\n\n### 核心关键词（主词）\n{{primaryKeywords}}\n\n### 长尾关键词\n{{longtailKeywords}}\n\n### 平台推荐关键词\n{{platformKeywords}}\n\n---\n\n## 五、主图/详情图建议\n\n### 主图方案（5张）\n1. **第1张（白底产品图）：**{{mainImage1}}\n2. **第2张（场景图）：**{{mainImage2}}\n3. **第3张（细节图）：**{{mainImage3}}\n4. **第4张（对比图）：**{{mainImage4}}\n5. **第5张（包装/赠品）：**{{mainImage5}}\n\n### 详情页图片结构\n1. Banner图（痛点+解决方案）\n2. 五大卖点图\n3. 产品细节图（多角度）\n4. 使用场景图\n5. 参数对比表\n6. 用户评价截图\n7. 品牌故事/资质证书\n8. 售后服务承诺\n\n---\n\n## 六、促销文案\n\n### 限时活动\n{{promotionText}}\n\n### 优惠组合\n{{bundleOffer}}\n\n### 赠品策略\n{{giftStrategy}}\n\n---\n\n## 七、转化率优化建议\n\n1. **价格策略：**{{pricingStrategy}}\n2. **评价优化：**{{reviewStrategy}}\n3. **客服话术：**{{customerServiceScript}}\n4. **关联推荐：**{{crossSellProducts}}\n\n---\n\n**优化日期：**{{optimizedDate}}\n**预期转化率提升：**{{expectedImprovement}}",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "category",
+      "label": "产品类别",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：数码配件、家居用品"
+    },
+    {
+      "name": "platform",
+      "label": "目标平台",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "淘宝/天猫", "label": "淘宝/天猫" },
+        { "value": "京东", "label": "京东" },
+        { "value": "拼多多", "label": "拼多多" },
+        { "value": "抖音电商", "label": "抖音电商" },
+        { "value": "Amazon", "label": "Amazon" }
+      ]
+    },
+    {
+      "name": "priceRange",
+      "label": "价格区间",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：99-299元"
+    }
+  ],
+  "file_structure": {
+    "root": "{{productName}}-详情页优化",
+    "files": [
+      {
+        "path": "产品详情文案.docx",
+        "type": "document"
+      },
+      {
+        "path": "关键词列表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "视觉设计需求.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_seo_optimization"],
+  "required_tools": ["tool_word_generator", "tool_seo_analyzer"],
+  "execution_engine": "document"
+}

@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+
+/**
+ * ChainlessChain Native Messaging Host
+ *
+ * 启动脚本，用于浏览器扩展与桌面应用通信
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+// 设置日志文件
+const logFile = path.join(process.env.HOME || process.env.USERPROFILE, '.chainlesschain', 'native-messaging.log');
+const logDir = path.dirname(logFile);
+
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// 重定向stderr到日志文件
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+process.stderr.write = (chunk) => {
+  logStream.write(`[${new Date().toISOString()}] ${chunk}`);
+};
+
+// 加载数据库管理器
+const DatabaseManager = require('../src/main/database');
+const NativeMessagingServer = require('../src/main/native-messaging/server');
+
+// 初始化
+async function main() {
+  try {
+    console.error('Native messaging host starting...');
+
+    // 初始化数据库
+    const db = new DatabaseManager();
+    await db.initialize();
+
+    console.error('Database initialized');
+
+    // 创建并启动服务器
+    const server = new NativeMessagingServer(db);
+    server.start();
+
+    console.error('Native messaging host started');
+  } catch (error) {
+    console.error('Failed to start native messaging host:', error);
+    process.exit(1);
+  }
+}
+
+// 处理未捕获的异常
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled rejection:', reason);
+  process.exit(1);
+});
+
+// 启动
+main();

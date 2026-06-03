@@ -1,0 +1,61 @@
+{
+  "id": "tpl_demo_research_001",
+  "name": "ai_research_assistant",
+  "display_name": "AI研究助手",
+  "description": "演示智能搜索、记忆管理和网页采集技能组合，自动搜索、总结和记忆的研究工作流",
+  "icon": "🔬",
+  "category": "ai-workflow",
+  "subcategory": "research",
+  "tags": ["research", "ai", "search", "memory", "workflow", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个AI研究助手工作流：\n\n**研究主题：** {{researchTopic}}\n**研究深度：** {{researchDepth}}\n**输出语言：** {{outputLanguage}}\n\n**研究工作流步骤：**\n\n### 阶段1：知识库搜索\n搜索已有知识库中关于该主题的信息：\n```\n/smart-search {{researchTopic}}\n```\n\n### 阶段2：网页资料采集\n{{#eq researchDepth \"深度研究\"}}\n从多个来源采集相关资料：\n```\n/web-scraping text https://en.wikipedia.org/wiki/{{researchTopic}}\n/web-scraping links search_results_page\n```\n{{else}}\n采集基本资料：\n```\n/web-scraping text search_results_page\n```\n{{/eq}}\n\n### 阶段3：信息整理\n将采集到的信息进行分类整理：\n- 核心概念和定义\n- 关键发现和数据\n- 不同观点和争议\n- 相关参考文献\n\n### 阶段4：保存到记忆\n将研究成果保存到永久记忆中：\n```\n/memory-management save \"研究主题: {{researchTopic}} - [整理后的关键发现]\"\n```\n\n### 阶段5：生成研究报告\n基于收集的资料生成结构化研究报告：\n\n**报告模板：**\n\n# {{researchTopic}} 研究报告\n\n## 1. 概述\n[基于知识库和网页资料的主题概述]\n\n## 2. 核心发现\n[关键数据和发现]\n\n## 3. 分析\n[深度分析和洞察]\n\n## 4. 结论\n[总结和建议]\n\n## 5. 参考来源\n[数据来源列表]\n\n**使用的技能：** smart-search, memory-management, web-scraping, workflow-automation",
+  "variables_schema": [
+    {
+      "name": "researchTopic",
+      "label": "研究主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：大语言模型的应用前景"
+    },
+    {
+      "name": "researchDepth",
+      "label": "研究深度",
+      "type": "select",
+      "required": false,
+      "default": "快速概览",
+      "options": [
+        { "value": "快速概览", "label": "快速概览（5分钟）" },
+        { "value": "标准研究", "label": "标准研究（15分钟）" },
+        { "value": "深度研究", "label": "深度研究（30+分钟）" }
+      ]
+    },
+    {
+      "name": "outputLanguage",
+      "label": "输出语言",
+      "type": "select",
+      "required": false,
+      "default": "中文",
+      "options": [
+        { "value": "中文", "label": "中文" },
+        { "value": "English", "label": "English" },
+        { "value": "双语", "label": "中英双语" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": [
+    "smart-search",
+    "memory-management",
+    "web-scraping",
+    "workflow-automation"
+  ],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

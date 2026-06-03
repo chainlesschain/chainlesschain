@@ -1,0 +1,161 @@
+{
+  "id": "tpl_health_workout_plan_001",
+  "name": "personalized_workout_plan",
+  "display_name": "个性化健身计划",
+  "description": "根据个人体质、目标和时间，生成科学的健身训练计划",
+  "icon": "💪",
+  "cover_image": "/templates/covers/workout-plan.png",
+  "category": "health",
+  "subcategory": "fitness",
+  "tags": [
+    "健身",
+    "运动",
+    "健康",
+    "训练计划"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我制定一份个性化健身计划：\n\n**个人信息：**\n- 姓名：{{userName}}\n- 性别：{{gender}}\n- 年龄：{{age}}岁\n- 身高：{{height}}cm\n- 体重：{{weight}}kg\n- BMI：{{bmi}}\n- 运动基础：{{fitnessLevel}}\n\n**健身目标：**\n- 主要目标：{{mainGoal}}\n- 目标体重：{{targetWeight}}kg\n- 计划周期：{{duration}}周\n- 每周训练：{{weeklyFrequency}}次\n- 单次时长：{{sessionDuration}}分钟\n\n**身体状况：**\n- 健康状况：{{healthCondition}}\n- 既往运动伤病：{{injuries}}\n- 饮食习惯：{{dietHabits}}\n\n# 个性化健身计划\n\n## 一、目标设定\n\n**当前状态：**\n- 体重：{{weight}}kg\n- BMI：{{bmi}}\n- 体脂率（预估）：{{bodyFatEstimate}}%\n\n**目标状态（{{duration}}周后）：**\n- 目标体重：{{targetWeight}}kg\n- 目标BMI：{{targetBMI}}\n- 预期体脂率：{{targetBodyFat}}%\n- 预期减重/增重：{{weightChange}}kg\n\n**阶段性目标：**\n- 第1-2周（适应期）：{{phase1Goal}}\n- 第3-6周（进阶期）：{{phase2Goal}}\n- 第7-10周（强化期）：{{phase3Goal}}\n- 第11-12周（巩固期）：{{phase4Goal}}\n\n## 二、训练计划\n\n### 训练频率\n- 每周训练：{{weeklyFrequency}}天\n- 休息日：{{restDays}}天\n- 建议训练时间：{{preferredTime}}\n\n### 周训练安排\n\n**周一：{{day1Focus}}**\n{{day1Workout}}\n\n**周二：{{day2Focus}}**\n{{day2Workout}}\n\n**周三：{{day3Focus}}**\n{{day3Workout}}\n\n**周四：{{day4Focus}}**\n{{day4Workout}}\n\n**周五：{{day5Focus}}**\n{{day5Workout}}\n\n**周六：{{day6Focus}}**\n{{day6Workout}}\n\n**周日：{{day7Focus}}**\n{{day7Workout}}\n\n## 三、详细动作指南\n\n### 热身（每次必做，10分钟）\n1. 动态拉伸：{{warmupStretch}}\n2. 关节活动：{{jointMobility}}\n3. 有氧激活：{{cardioWarmup}}\n\n### 力量训练动作库\n\n**上肢训练：**\n1. {{upperExercise1}}：{{sets1}}组 × {{reps1}}次\n2. {{upperExercise2}}：{{sets2}}组 × {{reps2}}次\n3. {{upperExercise3}}：{{sets3}}组 × {{reps3}}次\n\n**下肢训练：**\n1. {{lowerExercise1}}：{{sets4}}组 × {{reps4}}次\n2. {{lowerExercise2}}：{{sets5}}组 × {{reps5}}次\n3. {{lowerExercise3}}：{{sets6}}组 × {{reps6}}次\n\n**核心训练：**\n1. {{coreExercise1}}：{{sets7}}组 × {{reps7}}秒\n2. {{coreExercise2}}：{{sets8}}组 × {{reps8}}次\n3. {{coreExercise3}}：{{sets9}}组 × {{reps9}}秒\n\n### 有氧训练方案\n- 类型：{{cardioType}}\n- 强度：{{cardioIntensity}}\n- 时长：{{cardioDuration}}分钟\n- 心率区间：{{heartRateZone}}\n\n### 拉伸放松（每次必做，10分钟）\n{{cooldownStretch}}\n\n## 四、营养指导\n\n### 每日营养需求\n- 总热量：{{dailyCalories}} kcal\n- 蛋白质：{{protein}}g ({{proteinRatio}}%)\n- 碳水化合物：{{carbs}}g ({{carbsRatio}}%)\n- 脂肪：{{fat}}g ({{fatRatio}}%)\n- 水分：{{waterIntake}}L\n\n### 饮食建议\n\n**早餐（7:00-8:00）：**\n{{breakfastPlan}}\n\n**加餐1（10:00）：**\n{{snack1Plan}}\n\n**午餐（12:00-13:00）：**\n{{lunchPlan}}\n\n**加餐2（15:00）：**\n{{snack2Plan}}\n\n**晚餐（18:00-19:00）：**\n{{dinnerPlan}}\n\n**训练后补充：**\n{{postWorkoutNutrition}}\n\n### 推荐食物清单\n- 优质蛋白：{{proteinSources}}\n- 复合碳水：{{carbSources}}\n- 健康脂肪：{{fatSources}}\n- 蔬菜水果：{{veggiesFruits}}\n\n### 避免食物\n{{avoidFoods}}\n\n## 五、补剂建议（可选）\n\n{{#if includeSupplements}}\n1. 蛋白粉：{{proteinPowder}}\n2. 肌酸：{{creatine}}\n3. BCAA：{{bcaa}}\n4. 维生素：{{vitamins}}\n{{else}}\n暂不建议使用补剂，优先从天然食物获取营养。\n{{/if}}\n\n## 六、进度追踪\n\n### 每周记录指标\n- [ ] 体重变化\n- [ ] 体围测量（胸围、腰围、臀围、大腿围）\n- [ ] 训练重量/次数\n- [ ] 体能测试（引体向上、深蹲、平板支撑时长）\n- [ ] 照片对比（正面、侧面、背面）\n\n### 调整机制\n- 每2周评估一次进度\n- 根据效果调整训练强度和饮食\n- 如体重变化过快/过慢，及时修正\n\n## 七、注意事项\n\n1. **安全第一**：{{safetyTips}}\n2. **循序渐进**：{{progressionPrinciple}}\n3. **充分休息**：保证每晚{{sleepHours}}小时睡眠\n4. **受伤处理**：{{injuryPrevention}}\n5. **心理调节**：{{mentalHealth}}\n\n## 八、常见问题\n\n**Q1：没时间去健身房怎么办？**\nA：{{homeWorkoutSolution}}\n\n**Q2：肌肉酸痛还要继续训练吗？**\nA：{{soreMuscleAdvice}}\n\n**Q3：体重没变化怎么办？**\nA：{{plateauSolution}}\n\n## 九、激励与支持\n\n{{motivationalMessage}}\n\n---\n\n**制定日期：**{{currentDate}}\n**计划周期：**{{duration}}周\n**预计完成日期：**{{endDate}}\n\n祝你健身顺利，早日达成目标！💪",
+  "variables_schema": [
+    {
+      "name": "userName",
+      "label": "姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "gender",
+      "label": "性别",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "男", "label": "男" },
+        { "value": "女", "label": "女" }
+      ]
+    },
+    {
+      "name": "age",
+      "label": "年龄",
+      "type": "number",
+      "required": true,
+      "min": 16,
+      "max": 80
+    },
+    {
+      "name": "height",
+      "label": "身高(cm)",
+      "type": "number",
+      "required": true,
+      "min": 140,
+      "max": 220
+    },
+    {
+      "name": "weight",
+      "label": "当前体重(kg)",
+      "type": "number",
+      "required": true,
+      "min": 40,
+      "max": 150
+    },
+    {
+      "name": "targetWeight",
+      "label": "目标体重(kg)",
+      "type": "number",
+      "required": true,
+      "min": 40,
+      "max": 150
+    },
+    {
+      "name": "fitnessLevel",
+      "label": "运动基础",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "零基础", "label": "零基础（从未系统锻炼）" },
+        { "value": "初级", "label": "初级（锻炼1-6个月）" },
+        { "value": "中级", "label": "中级（锻炼6-24个月）" },
+        { "value": "高级", "label": "高级（锻炼2年以上）" }
+      ]
+    },
+    {
+      "name": "mainGoal",
+      "label": "主要目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "减脂", "label": "减脂/减重" },
+        { "value": "增肌", "label": "增肌/增重" },
+        { "value": "塑形", "label": "塑形/线条" },
+        { "value": "提高体能", "label": "提高体能/耐力" },
+        { "value": "康复训练", "label": "康复训练" }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "计划周期(周)",
+      "type": "number",
+      "required": false,
+      "default": 12,
+      "min": 4,
+      "max": 24
+    },
+    {
+      "name": "weeklyFrequency",
+      "label": "每周训练次数",
+      "type": "select",
+      "required": false,
+      "default": "4",
+      "options": [
+        { "value": "3", "label": "3次/周" },
+        { "value": "4", "label": "4次/周" },
+        { "value": "5", "label": "5次/周" },
+        { "value": "6", "label": "6次/周" }
+      ]
+    },
+    {
+      "name": "sessionDuration",
+      "label": "单次训练时长(分钟)",
+      "type": "select",
+      "required": false,
+      "default": "60",
+      "options": [
+        { "value": "45", "label": "45分钟" },
+        { "value": "60", "label": "60分钟" },
+        { "value": "90", "label": "90分钟" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{userName}}-健身计划",
+    "files": [
+      {
+        "path": "健身计划-{{mainGoal}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "训练记录表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "饮食计划.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

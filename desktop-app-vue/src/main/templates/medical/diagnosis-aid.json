@@ -1,0 +1,97 @@
+{
+  "id": "tpl_medical_diagnosis_002",
+  "name": "diagnosis-aid",
+  "display_name": "诊断辅助分析",
+  "description": "基于症状和检查结果进行诊断分析，提供鉴别诊断建议",
+  "icon": "🔬",
+  "category": "medical",
+  "subcategory": "临床诊断",
+  "tags": [
+    "诊断",
+    "鉴别诊断",
+    "临床分析",
+    "辅助诊疗"
+  ],
+  "project_type": "document",
+  "prompt_template": "请进行诊断辅助分析：\n\n患者基本信息：\n- 年龄：{{patientAge}}\n- 性别：{{patientGender}}\n\n主要症状：\n{{symptoms}}\n\n症状持续时间：{{duration}}\n\n检查结果：\n{{examResults}}\n\n既往病史：\n{{medicalHistory}}\n\n请提供：\n1. 可能的诊断及依据\n2. 鉴别诊断建议\n3. 需要进一步的检查项目\n4. 初步治疗建议\n5. 注意事项\n\n注意：本分析仅供参考，最终诊断需由临床医师结合实际情况做出。",
+  "variables_schema": [
+    {
+      "name": "patientAge",
+      "type": "text",
+      "label": "患者年龄",
+      "default": "45岁",
+      "required": true
+    },
+    {
+      "name": "patientGender",
+      "type": "select",
+      "label": "患者性别",
+      "default": "男",
+      "required": true,
+      "options": [
+        {
+          "value": "男",
+          "label": "男"
+        },
+        {
+          "value": "女",
+          "label": "女"
+        }
+      ]
+    },
+    {
+      "name": "symptoms",
+      "type": "textarea",
+      "label": "主要症状",
+      "default": "发热、咳嗽",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "type": "text",
+      "label": "症状持续时间",
+      "default": "7天",
+      "required": true
+    },
+    {
+      "name": "examResults",
+      "type": "textarea",
+      "label": "检查结果",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "medicalHistory",
+      "type": "textarea",
+      "label": "既往病史",
+      "default": "无特殊",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "诊断分析",
+    "children": [
+      {
+        "type": "file",
+        "name": "诊断分析报告.md",
+        "description": "诊断分析详情"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

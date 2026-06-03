@@ -1,0 +1,553 @@
+/* ChainlessChain 移动端优化样式 - 不影响PC端 */
+
+/* ==========================================
+   PC端确保 - 导航栏始终固定
+   ========================================== */
+@media (min-width: 769px) {
+    .navbar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        z-index: 1000 !important;
+    }
+
+    .top-contact-bar {
+        position: fixed !important;
+        top: 70px !important;
+        z-index: 998 !important;
+    }
+
+    /* PC端隐藏移动端专属元素 */
+    .mobile-menu-toggle {
+        display: none !important;
+    }
+
+    .mobile-contact-btn {
+        display: none !important;
+    }
+}
+
+/* ==========================================
+   移动端优化 - 768px及以下
+   ========================================== */
+@media (max-width: 768px) {
+
+    /* 导航栏优化 - 简化布局 */
+    .navbar {
+        padding: 10px 0 !important;
+    }
+
+    .nav-wrapper {
+        padding: 8px 15px !important;
+    }
+
+    /* Logo优化 */
+    .logo {
+        font-size: 16px !important;
+    }
+
+    .logo-image {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    /* 移动端导航菜单 - 全屏覆盖样式 */
+    .nav-menu {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        padding: 80px 0 30px 0 !important;
+        z-index: 1001 !important;
+        overflow-y: auto !important;
+        /* 默认隐藏 */
+        max-height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: max-height 0.3s ease, opacity 0.3s ease !important;
+    }
+
+    .nav-menu.active {
+        max-height: 100vh !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* 隐藏下拉菜单，直接显示所有链接 */
+    .nav-menu .nav-dropdown {
+        display: contents !important;
+    }
+
+    .nav-menu .dropdown-menu {
+        display: contents !important;
+        position: static !important;
+        max-height: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    /* 隐藏产品/技术的父级链接，只显示子菜单 */
+    .nav-menu .nav-dropdown > .nav-link {
+        display: none !important;
+    }
+
+    .nav-menu .nav-link,
+    .nav-menu .dropdown-item {
+        display: flex !important;
+        align-items: center !important;
+        padding: 20px 30px !important;
+        font-size: 17px !important;
+        font-weight: 500 !important;
+        border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+        width: 100% !important;
+        text-align: left !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        background: transparent !important;
+        min-height: 60px !important;
+        box-sizing: border-box !important;
+    }
+
+    .nav-menu .nav-link:active,
+    .nav-menu .dropdown-item:active {
+        background: rgba(255,255,255,0.15) !important;
+    }
+
+    .nav-menu .nav-link::after {
+        display: none !important;
+    }
+
+    .nav-menu .dropdown-item {
+        gap: 15px !important;
+    }
+
+    .nav-menu .dropdown-item .icon {
+        font-size: 24px !important;
+        width: 32px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .nav-menu .dropdown-item div {
+        flex: 1 !important;
+    }
+
+    .nav-menu .dropdown-item strong {
+        color: #fff !important;
+        font-size: 16px !important;
+        display: block !important;
+    }
+
+    .nav-menu .dropdown-item p {
+        color: rgba(255,255,255,0.7) !important;
+        font-size: 13px !important;
+        margin: 4px 0 0 0 !important;
+    }
+
+    /* 关闭按钮样式优化 */
+    .mobile-menu-toggle {
+        position: fixed !important;
+        top: 15px !important;
+        right: 15px !important;
+        z-index: 1002 !important;
+    }
+
+    .mobile-menu-toggle.active span {
+        background: #fff !important;
+    }
+
+    /* 导航操作按钮优化 */
+    .nav-actions {
+        gap: 8px !important;
+    }
+
+    .nav-actions .btn-outline {
+        display: none !important; /* 隐藏文档按钮 */
+    }
+
+    .nav-actions .btn-primary {
+        font-size: 14px !important;
+        padding: 8px 16px !important;
+        white-space: nowrap !important;
+    }
+
+    /* 显示移动端菜单切换按钮 */
+    .mobile-menu-toggle {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 8px !important;
+        gap: 5px !important;
+        z-index: 1002 !important;
+    }
+
+    .mobile-menu-toggle span {
+        display: block !important;
+        width: 24px !important;
+        height: 3px !important;
+        background: #333 !important;
+        border-radius: 2px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px) !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(2) {
+        opacity: 0 !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -6px) !important;
+    }
+
+    /* 移动端：隐藏顶部联系栏，避免遮挡内容 */
+    .top-contact-bar {
+        display: none !important;
+    }
+
+    /* 移动端：浮动联系按钮 */
+    .mobile-contact-btn {
+        position: fixed !important;
+        bottom: 80px !important;
+        right: 20px !important;
+        width: 50px !important;
+        height: 50px !important;
+        background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 22px !important;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4) !important;
+        z-index: 999 !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        animation: floatButton 3s ease-in-out infinite !important;
+    }
+
+    @keyframes floatButton {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-8px);
+        }
+    }
+
+    /* Hero区域优化 - 因为隐藏了联系栏，减少顶部间距 */
+    .hero {
+        padding-top: 100px !important; /* 从180px减少到100px */
+        padding-bottom: 60px !important;
+        min-height: auto !important;
+    }
+
+    .hero-title {
+        font-size: 28px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 15px !important;
+    }
+
+    .hero-subtitle {
+        font-size: 15px !important;
+        line-height: 1.5 !important;
+        padding: 0 20px !important;
+    }
+
+    /* 版本标签优化 */
+    .version-tags {
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+        padding: 0 20px !important;
+    }
+
+    .version-tag {
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+    }
+
+    /* 信任徽章优化 */
+    .trust-badges {
+        gap: 12px !important;
+        flex-wrap: wrap !important;
+        padding: 0 20px !important;
+    }
+
+    .trust-badge {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+    }
+
+    /* 按钮优化 */
+    .btn-hero-primary,
+    .btn-hero-outline {
+        font-size: 15px !important;
+        padding: 12px 24px !important;
+        min-width: 140px !important;
+    }
+
+    .hero-cta {
+        gap: 12px !important;
+        flex-direction: column !important;
+        padding: 0 20px !important;
+    }
+
+    .hero-cta .btn-hero-primary,
+    .hero-cta .btn-hero-outline {
+        width: 100% !important;
+        max-width: 300px;
+    }
+
+    /* 统计数据优化 */
+    .hero-stats {
+        gap: 20px !important;
+        padding: 0 20px !important;
+    }
+
+    .stat-item {
+        flex: 1 1 45% !important;
+        min-width: 140px !important;
+    }
+
+    .stat-number {
+        font-size: 28px !important;
+    }
+
+    .stat-label {
+        font-size: 12px !important;
+    }
+
+    /* 快速导航优化 */
+    .quick-nav {
+        padding: 15px 20px !important;
+    }
+
+    .quick-nav-link {
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+    }
+
+    /* 产品卡片优化 */
+    .product-card,
+    .feature-card,
+    .scenario-card {
+        margin-bottom: 20px !important;
+    }
+
+    .product-card-header h3,
+    .feature-card h3 {
+        font-size: 20px !important;
+    }
+
+    .product-card p,
+    .feature-card p {
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+    }
+
+    /* 版本对比卡片优化 */
+    .version-card {
+        margin-bottom: 20px !important;
+    }
+
+    .version-card-title {
+        font-size: 22px !important;
+    }
+
+    /* 下载卡片优化 */
+    .download-card {
+        padding: 20px !important;
+    }
+
+    .download-card h3 {
+        font-size: 20px !important;
+    }
+
+    /* 表单优化 */
+    input[type="email"],
+    input[type="text"],
+    textarea {
+        font-size: 16px !important; /* 防止iOS自动缩放 */
+    }
+
+    /* 底部信息优化 */
+    .footer {
+        padding: 40px 20px !important;
+    }
+
+    .footer-content {
+        flex-direction: column !important;
+        gap: 30px !important;
+    }
+
+    .footer-section {
+        width: 100% !important;
+        text-align: center !important;
+    }
+}
+
+/* ==========================================
+   小屏手机优化 - 480px及以下
+   ========================================== */
+@media (max-width: 480px) {
+
+    /* 顶部联系栏进一步优化 */
+    .top-contact-bar {
+        padding: 10px 0 !important;
+    }
+
+    .contact-item {
+        gap: 8px !important;
+    }
+
+    .contact-item .icon {
+        font-size: 20px !important;
+    }
+
+    /* Hero区域进一步优化 */
+    .hero {
+        padding-top: 80px !important; /* 因为隐藏了联系栏 */
+    }
+
+    .hero-title {
+        font-size: 24px !important;
+    }
+
+    .hero-subtitle {
+        font-size: 14px !important;
+    }
+
+    /* 统计数据换行 */
+    .hero-stats {
+        gap: 15px !important;
+    }
+
+    .stat-item {
+        flex: 1 1 100% !important;
+    }
+
+    .stat-number {
+        font-size: 24px !important;
+    }
+
+    /* 按钮堆叠 */
+    .hero-cta {
+        gap: 10px !important;
+    }
+
+    /* 卡片进一步优化 */
+    .product-card,
+    .feature-card,
+    .scenario-card {
+        padding: 20px 15px !important;
+    }
+
+    /* 标题进一步缩小 */
+    .section-title {
+        font-size: 24px !important;
+    }
+
+    .section-subtitle {
+        font-size: 14px !important;
+    }
+}
+
+/* ==========================================
+   横屏优化 - 针对横屏手机
+   ========================================== */
+@media (max-width: 768px) and (orientation: landscape) {
+
+    .hero {
+        padding-top: 120px !important;
+        min-height: auto !important;
+    }
+
+    .hero-title {
+        font-size: 26px !important;
+    }
+
+    .hero-stats {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+    }
+
+    .stat-item {
+        flex: 1 1 30% !important;
+    }
+}
+
+/* ==========================================
+   触摸优化
+   ========================================== */
+@media (hover: none) and (pointer: coarse) {
+
+    /* 增大触摸区域 */
+    .nav-link,
+    .btn-primary,
+    .btn-outline,
+    .quick-nav-link,
+    a {
+        min-height: 44px !important; /* iOS建议的最小触摸尺寸 */
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* 移除hover效果 */
+    .product-card:hover,
+    .feature-card:hover,
+    .scenario-card:hover {
+        transform: none !important;
+    }
+
+    /* 简化动画 */
+    * {
+        animation-duration: 0.2s !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ==========================================
+   性能优化 - 移动端
+   ========================================== */
+@media (max-width: 768px) {
+
+    /* 简化阴影 */
+    .product-card,
+    .feature-card,
+    .scenario-card,
+    .version-card,
+    .download-card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 简化背景 */
+    .hero,
+    .section {
+        background-attachment: scroll !important; /* 避免视差滚动性能问题 */
+    }
+
+    /* 禁用复杂动画 */
+    .floating-shape,
+    .hero-decoration {
+        display: none !important;
+    }
+}

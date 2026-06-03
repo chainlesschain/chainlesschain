@@ -1,0 +1,294 @@
+# Electron Builder 配置文件
+# 用于构建安装包和配置自动更新
+
+appId: com.chainlesschain.desktop
+productName: ChainlessChain
+copyright: Copyright © 2024 ChainlessChain Team
+
+# Skip native dep rebuild — equivalent of forge.config.js
+# `rebuildConfig.onlyModules = []`. The app sets CHAINLESSCHAIN_DISABLE_NATIVE_DB=1
+# in CI and at runtime falls back to a pure-JS path, so better-sqlite3-multiple-ciphers
+# / similar native modules do not need to be rebuilt against Electron's V8 ABI.
+# Without this flag, node-gyp / MSBuild fail on:
+#   - Linux: better_sqlite3.lzz uses removed v8::Context::GetIsolate (Node 22+)
+#   - Windows: MSBuild compile error from same C++ source
+#   - macOS: ModuleNotFoundError: distutils (Python 3.13)
+npmRebuild: false
+
+# Re-enabled asar:true after B4 post-pack surgery landed (issue #8, 2026-05-06).
+#
+# History: v5.0.3.4-13 set `asar: false` to work around electron-builder's
+# prod-dep walker dropping 4 packages (call-bind-apply-helpers,
+# side-channel-{list,map,weakmap}) from the asar manifest. Cost: ~110k loose
+# files in NSIS = ~20 min Win install (per-file LZMA dict reset + NTFS
+# transaction + Defender scan).
+#
+# B4 fix (2026-05-06):
+#   1. `scripts/build-win-with-deref.js` — wraps `electron-builder --win`,
+#      temporarily replaces `@chainlesschain/{core-mtc,session-core}`
+#      directory symlinks with verbatim copies AND detaches the top-level
+#      `node_modules/chainlesschain` link (asar packer rejects symlinks
+#      pointing outside app root). After electron-builder completes
+#      successfully, calls `runSurgery` to inject the 4 walker-dropped
+#      packages. Restores symlinks in finally with 'junction' (Windows
+#      non-admin can't create 'dir' symlinks).
+#   2. `scripts/asar-surgery.js` — extracts the asar, injects the 4 packages
+#      at top-level node_modules/, repacks via @electron/asar with unpackDir
+#      preserving electron-builder's original auto-unpack decisions.
+#   3. ASAR integrity — Electron's `EnableEmbeddedAsarIntegrityValidation`
+#      fuse currently only enforces on macOS (per Electron docs:
+#      https://www.electronjs.org/docs/latest/tutorial/fuses). On Windows
+#      the fuse is a no-op, so post-surgery hash mismatch doesn't crash
+#      startup. When macOS support is added (or Windows support lands in a
+#      later Electron version), follow-up: either keep integrity off via
+#      @electron/fuses post-build patch, or re-compute the hash after
+#      surgery and patch electron.exe.
+#
+# Refuted approaches (don't try again):
+#   - asarUnpack glob (issue #6): only marks files-in-walker-manifest for
+#     unpacking, can't add new top-level entries.
+#   - extraResources to app.asar.unpacked/ (v5.0.3.12): Electron's ASAR-aware
+#     resolver only falls back for paths IN the asar header.
+#   - Direct deps for the 4 packages (v5.0.3.6): walker dedupes regardless.
+asar: true
+
+# 目录配置
+# buildResources points to assets/ — there is no `build/` directory in the
+# repo. All icon refs below are RELATIVE to this dir (electron-builder
+# convention).
+directories:
+  output: out/build
+  buildResources: assets
+
+# 文件包含/排除
+files:
+  - dist/**/*
+  - package.json
+  - node_modules/**/*
+  - "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!node_modules/*.d.ts"
+  - "!node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+
+# Windows 配置
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+  publisherName: ChainlessChain Team
+  verifyUpdateCodeSignature: false
+
+# NSIS 安装程序配置
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  installerIcon: icon.ico
+  uninstallerIcon: icon.ico
+  installerHeaderIcon: icon.ico
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: ChainlessChain
+  # Custom NSIS script — force-kills any running ChainlessChain.exe in
+  # .onInit so the installer/updater doesn't show the "无法关闭，请手动
+  # 关闭它" manual-retry dialog when overwriting the locked .exe.
+  include: build/installer.nsh
+  perMachine: true
+  runAfterFinish: false
+  # 差分更新配置
+  differentialPackage: true
+
+# Portable 用独立文件名，避免和 NSIS 安装包同名互相覆盖；
+# 同时 verify-release-artifacts.js 据此识别哪些 .exe 不需要 blockmap
+portable:
+  artifactName: ${productName}-Portable-${version}.${ext}
+
+# macOS 配置
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: icon.icns
+  category: public.app-category.productivity
+  # hardenedRuntime + entitlements only matter when signing/notarizing,
+  # which CI does not do (CSC_IDENTITY_AUTO_DISCOVERY=false). Add back
+  # alongside the Apple ID secrets when signing lands.
+  gatekeeperAssess: false
+
+# DMG 配置
+# icon + background removed — files do not exist in repo. electron-builder
+# uses sane defaults (the app icon for the DMG icon, a plain background).
+dmg:
+  title: ${productName} ${version}
+  contents:
+    - x: 410
+      y: 150
+      type: link
+      path: /Applications
+    - x: 130
+      y: 150
+      type: file
+
+# Linux 配置
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+  icon: icon.png
+  category: Office
+  synopsis: Personal AI Knowledge Management System
+  description: ChainlessChain is a decentralized personal AI management system with hardware-level security.
+  # Required by .deb / .rpm packaging — electron-builder hard-fails without it.
+  maintainer: "ChainlessChain Team <team@chainlesschain.com>"
+  vendor: "ChainlessChain"
+
+# 发布配置
+# Provider config drives sidecar generation (.blockmap + latest*.yml) which
+# electron-updater REQUIRES for differential updates. We keep it set, but
+# the workflow passes `--publish never` to electron-builder so the build
+# step does NOT attempt the actual GitHub upload (which would fail without
+# GH_TOKEN). The `create-release` job in release.yml uploads via
+# `gh release upload` instead.
+publish:
+  - provider: github
+    owner: chainlesschain
+    repo: chainlesschain
+    private: false
+    releaseType: release
+
+# macOS notarization hook — disabled until scripts/notarize.js exists.
+# afterSign is loaded for all platforms (not just mac), so a missing file
+# crashes Linux/Windows builds too. Re-enable after adding the file +
+# wiring APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID secrets.
+# afterSign: scripts/notarize.js
+
+# afterPack: promote nested call-bind-apply-helpers to top-level after the
+# walker has finished its damage. v5.0.3.4-13 saga: electron-builder's
+# prod-dep walker dedupes the top-level copy when call-bind has a nested
+# private copy. Removing the source nested copy doesn't help (walker
+# re-creates it), and asar:false doesn't help (dedupe is a file-selection
+# issue not an asar packaging one). This hook runs AFTER files are placed
+# in `<appOutDir>/resources/app/`, where we can copy the nested copy back
+# to top-level before the installer is generated.
+afterPack: scripts/electron-after-pack.js
+
+# 压缩配置
+compression: normal  # 或 maximum（但会更慢）
+
+# 额外资源
+# Only ship resources that actually exist in the repo. The legacy entries
+# for ../.env.example and install-docker-desktop.bat referenced files that
+# do not exist; electron-builder treated them as warnings here, but kept
+# them silently truncating the bundle. Drop until those files actually land.
+extraResources:
+  # System tray icon — `EnhancedTrayManager` reads via process.resourcesPath
+  # at runtime (= <install-dir>/resources/). buildResources: assets is for
+  # build-time only (NSIS installer icon, embedded exe icon via rcedit), so
+  # ship a runtime copy here. Without these the tray initializes "successfully"
+  # with an empty nativeImage but the icon is invisible in the Windows tray
+  # (verified 2026-05-05: tray icon never appeared after d57759dc9).
+  - from: assets/icon.ico
+    to: icon.ico
+  - from: assets/icon.png
+    to: icon.png
+  - from: ../docker-compose.yml
+    to: backend-services/docker-compose.yml
+  # packages/cli + packages/web-panel/dist MUST go through extraResources,
+  # NOT through the afterPack hook. electron-builder builds an internal
+  # file manifest BEFORE afterPack runs; new paths added in afterPack
+  # (verified: copy succeeds in win-unpacked/) get dropped by the NSIS /
+  # Portable target packing step because they're not in the manifest.
+  # v5.0.3.18 confirmed this: afterPack copied resources/packages/ at
+  # build time, but the final Setup.exe / Portable.exe install showed
+  # resources/packages/ missing.
+  #
+  # afterPack still does the heavy lifting for the node_modules nuclear
+  # replacement (those paths ARE in the manifest because electron-builder
+  # walked them itself; afterPack just rewrites their contents).
+  - from: ../packages/cli/src
+    to: packages/cli/src
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
+  - from: ../packages/cli/bin
+    to: packages/cli/bin
+  - from: ../packages/cli/package.json
+    to: packages/cli/package.json
+  # CLI runtime deps (ws, commander, ora, sql.js etc.) — installed standalone
+  # by CI step "Install packages/cli prod deps standalone". Without this, the
+  # CLI files crash with `Cannot find package 'ws'` when loaded by web-shell
+  # (they'd need to find ws via Node CJS ancestor walk, which in dev resolves
+  # to repo-root hoisted ws but in prod has no equivalent path).
+  - from: ../packages/cli/node_modules
+    to: packages/cli/node_modules
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
+      - "!.bin"
+  - from: ../packages/web-panel/dist
+    to: packages/web-panel/dist
+  - from: ../packages/web-panel/package.json
+    to: packages/web-panel/package.json
+  # Bundled cowork skills — needed at install-relative path so the CLI's
+  # `CLISkillLoader.getLayerPaths()` bundled candidate
+  # (`__dirname/../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin`)
+  # resolves under packaged installs. With `asar: true`, the desktop-app-vue
+  # source tree is inside app.asar and `fs.existsSync` from a CLI subprocess
+  # spawned out-of-asar can't see it — bundled layer collapses to 0 skills,
+  # dashboard "可用技能" drops from ~158 to 15 (marketplace+managed+workspace
+  # only). Mounting via extraResources places the .md tree at
+  # `<install>/resources/desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/`,
+  # which `__dirname/../../../../desktop-app-vue/...` from
+  # `<install>/resources/packages/cli/src/lib/skill-loader.js` already finds.
+  - from: src/main/ai-engine/cowork/skills/builtin
+    to: desktop-app-vue/src/main/ai-engine/cowork/skills/builtin
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
+  # NOTE (issue #8, 2026-05-06): Removed 7 force-include extraResources
+  # entries (call-bind-apply-helpers, dunder-proto, get-proto, math-intrinsics,
+  # side-channel-{list,map,weakmap}) that targeted app.asar.unpacked/. Those
+  # were the workaround for `asar: false` mode and no longer apply. With
+  # `asar: true` + `scripts/build-win-with-deref.js` post-electron-builder
+  # asar-surgery, the 4 walker-dropped packages get injected directly into
+  # the asar header at top-level node_modules/, which is what dunder-proto's
+  # CJS require path actually walks.
+
+# 元数据
+appx:
+  backgroundColor: "#464646"
+  showNameOnTiles: true
+  publisher: CN=ChainlessChain Team
+  publisherDisplayName: ChainlessChain Team
+  identityName: ChainlessChain.ChainlessChainDesktop
+
+# 协议处理
+protocols:
+  name: ChainlessChain
+  schemes:
+    - chainlesschain

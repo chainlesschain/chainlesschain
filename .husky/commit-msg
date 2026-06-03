@@ -1,0 +1,41 @@
+# 读取提交信息
+COMMIT_MSG=$(cat "$1")
+
+# 检查 Conventional Commits 格式
+# 格式: <type>(<scope>): <subject>
+# Scope 字符集 = [a-z0-9-]+ — 允许数字（trap #16 修复，2026-05-29）。
+#   原来 [a-z-]+ 拒绝 feat(p2p) / feat(v6) / feat(b4) / fix(http2) 等含数字的产品代号，
+#   被迫绕到 feat(mobile) / feat(shell) / feat(release) — 失去精确性。
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|security)(\([a-z0-9-]+\))?: .{1,100}"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "❌ 提交信息格式不符合 Conventional Commits 规范！"
+  echo ""
+  echo "正确格式: <type>(<scope>): <subject>"
+  echo ""
+  echo "Type 类型:"
+  echo "  - feat(module):     新功能"
+  echo "  - fix(module):      Bug 修复"
+  echo "  - security(module): 安全问题修复"
+  echo "  - docs:             文档更新"
+  echo "  - refactor(module): 重构"
+  echo "  - test(module):     添加测试"
+  echo "  - chore:            构建/工具链更新"
+  echo "  - perf(module):     性能优化"
+  echo ""
+  echo "Scope 模块（含数字 OK，如 p2p / v6 / b4 / http2）: rag, llm, p2p, ui, did, git, etc."
+  echo ""
+  echo "示例:"
+  echo "  feat(rag): 添加重排序器支持"
+  echo "  feat(p2p): WebRTC reconnect 兜底  # 数字 OK"
+  echo "  fix(ukey): 修复Windows驱动兼容性问题"
+  echo "  security(database): 修复SQL注入漏洞"
+  echo ""
+  echo "当前提交信息:"
+  echo "  $COMMIT_MSG"
+  echo ""
+  exit 1
+fi
+
+echo "✅ 提交信息格式正确"

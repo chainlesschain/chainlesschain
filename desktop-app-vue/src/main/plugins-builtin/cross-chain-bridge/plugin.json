@@ -1,0 +1,31 @@
+{
+  "id": "cross-chain-bridge",
+  "name": "Cross-Chain Bridge",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/bridge 斜杠命令 + Home 页跨链桥快捷卡片（V5 Bridge.vue 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "cross-chain-bridge",
+        "trigger": "/bridge",
+        "handler": "builtin:openCrossChainBridgePanel",
+        "description": "打开跨链桥面板",
+        "icon": "SwapOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "bridge-quick",
+        "component": "builtin:CrossChainBridgeWidget",
+        "size": "medium",
+        "order": 70,
+        "title": "跨链桥"
+      }
+    }
+  ]
+}

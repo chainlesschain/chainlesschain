@@ -1,0 +1,50 @@
+{
+  "id": "chat-core",
+  "name": "对话核心",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "提供 /new、/clear 斜杠命令以及消息 Artifact 渲染",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "new-session",
+        "trigger": "new",
+        "description": "开启新会话",
+        "icon": "PlusOutlined"
+      }
+    },
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "clear-session",
+        "trigger": "clear",
+        "description": "清空当前会话",
+        "icon": "ClearOutlined"
+      }
+    },
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "message",
+        "renderer": "builtin:MessageArtifact",
+        "icon": "MessageOutlined",
+        "label": "消息",
+        "actions": [
+          { "id": "copy", "label": "复制" },
+          { "id": "reply", "label": "引用回复" }
+        ]
+      }
+    },
+    {
+      "point": "ui.composer-slot",
+      "config": {
+        "id": "send",
+        "component": "builtin:SendButton",
+        "position": "right",
+        "order": 100,
+        "tooltip": "发送"
+      }
+    }
+  ]
+}

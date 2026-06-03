@@ -1,0 +1,98 @@
+{
+  "id": "tpl_time_gtd_001",
+  "name": "gtd_workflow",
+  "display_name": "GTD工作流",
+  "description": "GTD（Getting Things Done）时间管理模板，包含收集、处理、组织、回顾、执行五大流程",
+  "icon": "📥",
+  "category": "productivity",
+  "subcategory": "GTD方法",
+  "tags": [
+    "GTD",
+    "时间管理",
+    "任务管理",
+    "效率提升"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成GTD工作流，要求:\n\n# {{workflowTitle}}\n\n**创建日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**GTD实践者**: {{practitioner}}\n\n## GTD概述\n\nGTD（Getting Things Done）是由David Allen提出的时间管理方法，核心理念是将所有待办事项从大脑中清空到可信赖的系统中，让大脑专注于思考而非记忆。\n\n### GTD五大步骤\n\n1. **收集（Capture）**: 捕获所有引起你注意的事情\n2. **处理（Clarify）**: 明确每件事的含义和下一步行动\n3. **组织（Organize）**: 将事项分类整理到合适的清单\n4. **回顾（Reflect）**: 定期回顾和更新系统\n5. **执行（Engage）**: 根据情境选择行动\n\n---\n\n## 一、收集箱（Inbox）\n\n> 所有未处理的想法、任务、信息都先放入收集箱\n\n### 待处理事项\n\n- [ ] {{inbox1}}\n- [ ] {{inbox2}}\n- [ ] {{inbox3}}\n- [ ] {{inbox4}}\n- [ ] {{inbox5}}\n\n**收集原则**:\n- 任何引起注意的事情都要记录\n- 不判断、不分类、不处理\n- 定期清空收集箱（每日/每周）\n\n**收集工具**:\n{{captureTools}}\n\n---\n\n## 二、处理流程\n\n### 处理决策树\n\n```\n收集箱中的事项\n  ↓\n是否需要行动？\n  ├─ 否 → \n  │   ├─ 垃圾 → 删除\n  │   ├─ 参考资料 → 归档\n  │   └─ 将来/可能 → 将来清单\n  │\n  └─ 是 → \n      ├─ 能否2分钟内完成？\n      │   ├─ 是 → 立即执行\n      │   └─ 否 → \n      │       ├─ 是否需要多个步骤？\n      │       │   ├─ 是 → 项目清单\n      │       │   └─ 否 → 下一步行动\n      │       └─ 是否需要他人完成？\n      │           └─ 是 → 等待清单\n```\n\n### 处理规则\n\n1. **一次处理一项**\n2. **不放回收集箱**\n3. **2分钟原则**: 2分钟内能完成的立即做\n4. **明确下一步行动**: 必须是具体可执行的动作\n\n---\n\n## 三、组织系统\n\n### 3.1 项目清单（Projects）\n\n> 需要多个步骤才能完成的事项\n\n#### 进行中的项目\n\n**项目1**: {{project1}}\n- 期望结果: {{project1Outcome}}\n- 下一步行动: {{project1NextAction}}\n- 截止日期: {{project1Deadline}}\n\n**项目2**: {{project2}}\n- 期望结果: {{project2Outcome}}\n- 下一步行动: {{project2NextAction}}\n- 截止日期: {{project2Deadline}}\n\n**项目3**: {{project3}}\n- 期望结果: {{project3Outcome}}\n- 下一步行动: {{project3NextAction}}\n- 截止日期: {{project3Deadline}}\n\n#### 项目分类\n\n- **工作项目**: {{workProjects}}\n- **个人项目**: {{personalProjects}}\n- **家庭项目**: {{familyProjects}}\n\n### 3.2 下一步行动清单（Next Actions）\n\n> 可以立即执行的具体行动\n\n#### 按情境分类\n\n**@办公室**\n- [ ] {{officeAction1}}\n- [ ] {{officeAction2}}\n- [ ] {{officeAction3}}\n\n**@电脑**\n- [ ] {{computerAction1}}\n- [ ] {{computerAction2}}\n- [ ] {{computerAction3}}\n\n**@电话**\n- [ ] {{phoneAction1}}\n- [ ] {{phoneAction2}}\n\n**@外出**\n- [ ] {{errandAction1}}\n- [ ] {{errandAction2}}\n\n**@家里**\n- [ ] {{homeAction1}}\n- [ ] {{homeAction2}}\n\n**@任何地方**\n- [ ] {{anywhereAction1}}\n- [ ] {{anywhereAction2}}\n\n### 3.3 等待清单（Waiting For）\n\n> 已委派给他人或等待他人反馈的事项\n\n| 事项 | 等待对象 | 委派日期 | 预计完成 | 状态 |\n|------|---------|---------|---------|------|\n| {{waiting1}} | {{waitingPerson1}} | {{waitingDate1}} | {{waitingDue1}} | {{waitingStatus1}} |\n| {{waiting2}} | {{waitingPerson2}} | {{waitingDate2}} | {{waitingDue2}} | {{waitingStatus2}} |\n| {{waiting3}} | {{waitingPerson3}} | {{waitingDate3}} | {{waitingDue3}} | {{waitingStatus3}} |\n\n### 3.4 日程表（Calendar）\n\n> 有明确日期和时间的事项\n\n#### 今日日程\n\n{{todaySchedule}}\n\n#### 本周日程\n\n{{weekSchedule}}\n\n**注意**: 日程表只放有明确时间的事项，不要把待办清单放进去\n\n### 3.5 将来/可能清单（Someday/Maybe）\n\n> 现在不需要做，但将来可能想做的事情\n\n**想学的技能**:\n{{skillsToLearn}}\n\n**想去的地方**:\n{{placesToVisit}}\n\n**想读的书**:\n{{booksToRead}}\n\n**想做的事**:\n{{thingsToDo}}\n\n### 3.6 参考资料（Reference）\n\n> 可能用得上的信息和资料\n\n{{referenceFiles}}\n\n---\n\n## 四、回顾流程\n\n### 4.1 每日回顾（Daily Review）\n\n**时间**: {{dailyReviewTime}}\n\n**检查项**:\n- [ ] 清空收集箱\n- [ ] 查看日程表\n- [ ] 查看下一步行动清单\n- [ ] 检查等待清单\n- [ ] 记录完成事项\n\n### 4.2 每周回顾（Weekly Review）\n\n**时间**: {{weeklyReviewTime}}\n\n**检查清单**:\n\n1. **收集阶段**\n   - [ ] 收集所有松散的纸张和材料\n   - [ ] 清空大脑中的想法\n   - [ ] 清空收集箱\n\n2. **处理阶段**\n   - [ ] 处理所有收集的事项\n   - [ ] 更新项目清单\n   - [ ] 审查下一步行动\n\n3. **回顾阶段**\n   - [ ] 回顾项目清单（所有进行中的项目）\n   - [ ] 回顾等待清单\n   - [ ] 回顾将来/可能清单\n   - [ ] 回顾过去一周的日程\n   - [ ] 回顾未来2周的日程\n\n4. **更新阶段**\n   - [ ] 标记已完成的项目\n   - [ ] 添加新的下一步行动\n   - [ ] 删除不再相关的事项\n\n### 4.3 每月/季度回顾\n\n{{monthlyReview}}\n\n---\n\n## 五、执行选择\n\n### 5.1 四个标准模型\n\n选择做什么时，依次考虑：\n\n1. **情境（Context）**: 你在哪里？有什么工具？\n2. **可用时间（Time Available）**: 有多少时间？\n3. **可用精力（Energy Available）**: 精力水平如何？\n4. **优先级（Priority）**: 什么最重要？\n\n### 5.2 优先级评估\n\n**三层次视角**:\n\n- **地面层（Ground）**: 当前的行动清单\n- **视野层（Horizon）**: 关注领域和责任范围\n  - 工作职责: {{workResponsibilities}}\n  - 个人角色: {{personalRoles}}\n  - 兴趣爱好: {{interests}}\n- **高度层（Altitude）**: 目标和愿景\n  - 1-2年目标: {{shortTermGoals}}\n  - 3-5年目标: {{midTermGoals}}\n  - 人生目标: {{lifeGoals}}\n\n### 5.3 自然计划模式\n\n对于复杂项目，使用自然计划模式：\n\n1. **定义目的和原则**\n2. **展望结果**\n3. **头脑风暴**\n4. **组织整理**\n5. **明确下一步行动**\n\n---\n\n## 六、GTD工具推荐\n\n### 6.1 数字工具\n\n{{digitalTools}}\n\n### 6.2 纸质工具\n\n{{paperTools}}\n\n### 6.3 混合系统\n\n{{hybridSystem}}\n\n---\n\n## 七、常见问题\n\n### Q1: 收集箱多久清空一次？\n\n{{q1Answer}}\n\n### Q2: 项目和任务如何区分？\n\n{{q2Answer}}\n\n### Q3: 如何坚持每周回顾？\n\n{{q3Answer}}\n\n### Q4: GTD系统太复杂怎么办？\n\n{{q4Answer}}\n\n---\n\n## 八、实践建议\n\n### 8.1 开始使用GTD\n\n{{gettingStarted}}\n\n### 8.2 常见陷阱\n\n{{commonPitfalls}}\n\n### 8.3 进阶技巧\n\n{{advancedTips}}\n\n---\n\n## 附录\n\n### A. GTD清单模板\n\n{{checklistTemplate}}\n\n### B. 每周回顾检查表\n\n{{weeklyReviewChecklist}}\n\n### C. 情境标签示例\n\n{{contextExamples}}\n\n---\n\n**GTD实践者**: {{#if practitioner}}{{practitioner}}{{else}}用户{{/if}}\n**系统建立日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "workflowTitle",
+      "type": "text",
+      "label": "工作流标题",
+      "default": "我的GTD系统",
+      "required": true
+    },
+    {
+      "name": "practitioner",
+      "type": "text",
+      "label": "实践者",
+      "default": "用户",
+      "required": true
+    },
+    {
+      "name": "dailyReviewTime",
+      "type": "text",
+      "label": "每日回顾时间",
+      "default": "每天18:00",
+      "required": true
+    },
+    {
+      "name": "weeklyReviewTime",
+      "type": "text",
+      "label": "每周回顾时间",
+      "default": "周五17:00",
+      "required": true
+    },
+    {
+      "name": "project1",
+      "type": "text",
+      "label": "项目1",
+      "default": "示例项目",
+      "required": false
+    },
+    {
+      "name": "project1NextAction",
+      "type": "text",
+      "label": "项目1下一步",
+      "default": "具体行动",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{workflowTitle}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "GTD工作流.md",
+        "description": "GTD系统"
+      },
+      {
+        "type": "file",
+        "name": "收集箱.md",
+        "description": "待处理事项"
+      },
+      {
+        "type": "file",
+        "name": "项目清单.md",
+        "description": "项目列表"
+      },
+      {
+        "type": "file",
+        "name": "下一步行动.md",
+        "description": "行动清单"
+      },
+      {
+        "type": "file",
+        "name": "每周回顾.md",
+        "description": "回顾记录"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

@@ -1,0 +1,58 @@
+{
+  "id": "tpl_writing_novel_001",
+  "name": "novel_chapter_outline",
+  "display_name": "小说章节大纲",
+  "description": "生成小说章节大纲，包含人物设定、情节发展和冲突设计",
+  "icon": "📚",
+  "category": "creative-writing",
+  "subcategory": "fiction",
+  "tags": ["小说", "创意写作", "大纲", "故事"],
+  "project_type": "document",
+  "prompt_template": "# 《{{novelTitle}}》章节大纲\n\n## 作品信息\n- 小说类型：{{genre}}\n- 目标字数：{{targetWordCount}}\n- 章节数：{{totalChapters}}\n\n## 核心设定\n\n### 主要角色\n\n**主角：**{{protagonist}}\n- 性格：{{protagonistPersonality}}\n- 背景：{{protagonistBackground}}\n- 目标：{{protagonistGoal}}\n\n**反派：**{{antagonist}}\n\n### 世界观\n{{worldBuilding}}\n\n## 情节结构（三幕式）\n\n### 第一幕：起（1-{{act1End}}章）\n{{act1Summary}}\n\n### 第二幕：承（{{act2Start}}-{{act2End}}章）\n{{act2Summary}}\n\n### 第三幕：转（{{act3Start}}-{{act3End}}章）\n{{act3Summary}}\n\n### 第四幕：合（{{act4Start}}-{{totalChapters}}章）\n{{act4Summary}}\n\n## 章节详细大纲\n\n### 第1章：{{chapter1Title}}\n**场景：**{{chapter1Scene}}\n**人物：**{{chapter1Characters}}\n**冲突：**{{chapter1Conflict}}\n**情节：**{{chapter1Plot}}\n**钩子：**{{chapter1Hook}}\n\n### 第2章：{{chapter2Title}}\n{{chapter2Details}}\n\n...",
+  "variables_schema": [
+    {
+      "name": "novelTitle",
+      "label": "小说标题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "genre",
+      "label": "小说类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "玄幻", "label": "玄幻" },
+        { "value": "都市", "label": "都市" },
+        { "value": "科幻", "label": "科幻" },
+        { "value": "悬疑", "label": "悬疑" },
+        { "value": "言情", "label": "言情" }
+      ]
+    },
+    {
+      "name": "targetWordCount",
+      "label": "目标字数",
+      "type": "select",
+      "options": [
+        { "value": "10万字", "label": "短篇（10万字）" },
+        { "value": "50万字", "label": "中篇（50万字）" },
+        { "value": "100万字+", "label": "长篇（100万字+）" }
+      ],
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "小说-{{novelTitle}}",
+    "files": [
+      {"path": "大纲.docx", "type": "document"},
+      {"path": "人物设定.md", "type": "markdown"},
+      {"path": "世界观设定.md", "type": "markdown"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_creative_writing", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_file_writer"],
+  "execution_engine": "document"
+}

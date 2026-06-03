@@ -1,0 +1,154 @@
+{
+  "id": "tpl_music_marketing_001",
+  "name": "music_marketing_strategy",
+  "display_name": "音乐人营销推广策略",
+  "display_name": "音乐人营销推广策略",
+  "description": "为独立音乐人或乐队制定全面的品牌营销和推广策略，帮助扩大影响力和粉丝基础",
+  "icon": "🎵",
+  "cover_image": "/templates/covers/music-marketing.png",
+  "category": "music",
+  "subcategory": "marketing",
+  "tags": [
+    "音乐",
+    "营销",
+    "推广",
+    "品牌"
+  ],
+  "project_type": "document",
+  "prompt_template": "请为音乐人/乐队《{{artistName}}》制定全面的营销推广策略，要求：\n\n**基本信息：**\n- 艺人/乐队名：{{artistName}}\n- 音乐风格：{{musicGenre}}\n- 当前阶段：{{careerStage}}\n- 目标受众：{{targetAudience}}\n- 推广预算：{{budget}}\n- 推广目标：{{marketingGoal}}\n\n**第一部分：品牌定位**\n\n**1. 音乐人设打造**\n- 核心标签：3-5个关键词定义{{artistName}}（例如：独立、才华、治愈、先锋）\n- 品牌故事：音乐历程、创作理念、独特价值\n- 视觉识别：Logo、专属字体、配色方案、视觉风格\n- 人设一致性：所有平台保持统一的形象和调性\n\n**2. 差异化竞争**\n- 在{{musicGenre}}领域的独特之处\n- 对标艺人分析（3-5位）\n- 避免同质化的策略\n\n**第二部分：多平台运营策略**\n\n**音乐流媒体平台：**\n\n**网易云音乐：**\n- 完善艺人主页（简介、照片、社交链接）\n- 定期发布新歌（保持活跃度）\n- 精选歌单收录（提交给编辑推荐）\n- 歌曲评论区运营（置顶精彩评论、与粉丝互动）\n- 云村直播（定期线上演出或分享）\n\n**QQ音乐/酷狗/酷我：**\n- 多平台同步发行\n- 申请新歌推荐位\n- 榜单打榜策略\n\n**国际平台（Spotify/Apple Music/YouTube Music）：**\n- 全球发行拓展海外市场\n- 提交到编辑歌单（Editorial Playlists）\n- 优化元数据（标签、分类、描述）\n\n**社交媒体矩阵：**\n\n**抖音/快手：**\n- 内容类型：音乐片段、创作过程、生活日常、翻唱挑战\n- 发布频率：每周3-5条\n- 利用热门BGM和话题标签\n- 与粉丝连麦互动\n- 目标：病毒式传播，吸引年轻听众\n\n**小红书：**\n- 音乐教学笔记（和弦、演奏技巧）\n- 乐器/设备测评\n- 创作灵感分享\n- 音乐人穿搭/生活方式\n\n**微博：**\n- 新歌发布官宣\n- 演出预告和回顾\n- 参与音乐话题讨论\n- 与音乐博主互动\n- 建立超话社区\n\n**B站：**\n- 上传MV/Live视频\n- 创作过程Vlog\n- 音乐教学视频\n- 翻唱其他热门歌曲\n- 参与音乐区活动和榜单\n\n**Instagram（海外）：**\n- 精美图片和短视频\n- Stories分享日常\n- Reels发布音乐片段\n- 使用音乐相关hashtag\n\n**第三部分：内容营销计划**\n\n**1. 新歌发布营销（以单曲为例）**\n\n**发布前4周：**\n- 预告片段（15-30秒snippet）\n- 倒计时海报\n- 幕后创作故事\n- 预售/预存（如适用）\n\n**发布前1周：**\n- 完整MV预告片\n- 歌词海报\n- 合作方联动（如有featuring艺人）\n- 媒体预热（音乐媒体、博主试听）\n\n**发布当天：**\n- 全平台同步上线（00:00首发）\n- MV/Lyric Video发布\n- 社交媒体密集宣传\n- 感谢粉丝支持\n- 鼓励分享和评论\n\n**发布后2周：**\n- 分享粉丝反馈和评论\n- 幕后花絮和制作故事\n- Live演唱版本\n- 翻唱/改编征集活动\n- 数据分享（播放量里程碑）\n\n**2. 持续内容输出**\n\n- 每周固定内容日（例如：周三新歌/Cover，周六Vlog）\n- UGC激励：鼓励粉丝翻唱、二创、舞蹈\n- 系列内容：创作日记、设备测评、音乐人访谈\n\n**第四部分：粉丝运营**\n\n**1. 粉丝分层管理**\n\n- **核心粉丝（死忠粉）：**\n  * 建立粉丝群/Discord服务器\n  * 独家内容和提前试听\n  * 定期线上/线下见面会\n  * 征集意见参与创作\n\n- **活跃粉丝：**\n  * 互动奖励（点赞、评论、转发抽奖）\n  * 粉丝作品展示\n  * 演出优先购票权\n\n- **普通听众：**\n  * 优质内容吸引\n  * 转化为活跃粉丝\n\n**2. 互动机制**\n\n- 定期问答（Q&A）\n- 投票决定下一首Cover歌曲\n- 粉丝点歌直播\n- 生日/纪念日特别活动\n- 粉丝创作大赛（翻唱、MV、舞蹈）\n\n**第五部分：合作与联动**\n\n**1. 跨界合作**\n\n- 与其他音乐人合作（featuring）\n- 参与综艺/音乐节目\n- 品牌代言和商业合作\n- 影视剧OST\n\n**2. 媒体和KOL合作**\n\n- 音乐媒体专访（豆瓣、虾米、街声）\n- 音乐博主推荐和试听\n- Playlist编辑推荐\n- 音乐评论人评测\n\n**3. 演出和巡演**\n\n- LiveHouse小型演出（与粉丝近距离接触）\n- 音乐节露出（扩大受众）\n- 巡演计划（覆盖主要城市）\n- 线上演唱会/直播\n\n**第六部分：付费推广**\n\n根据预算{{budget}}分配：\n\n{{#if budget == \"小预算（<10000元）\"}}\n- 社交媒体信息流广告：5000元\n- 音乐博主推广：3000元\n- 设计和视频制作：2000元\n\n{{else if budget == \"中等预算（10000-50000元）\"}}\n- 流媒体平台推广位：15000元\n- 短视频平台广告：15000元\n- KOL/网红合作：10000元\n- 内容制作（MV、海报）：10000元\n\n{{else if budget == \"大预算（>50000元）\"}}\n- 综合平台推广：30000-50000元\n- 明星/大V合作：20000-50000元\n- 专业MV/视觉制作：30000-100000元\n- PR和媒体发布：20000-50000元\n{{/if}}\n\n**第七部分：数据追踪与优化**\n\n**关键指标：**\n- 流媒体播放量和增长率\n- 社交媒体粉丝数和互动率\n- 演出票房和上座率\n- 搜索量和话题热度\n- 粉丝转化率（听众→粉丝→付费用户）\n\n**工具：**\n- 音乐平台后台数据\n- 社交媒体分析工具\n- Google Analytics（官网）\n- 第三方数据平台（如：艺恩、猫眼）\n\n**优化策略：**\n- 每月数据复盘\n- A/B测试不同内容形式\n- 调整发布时间和频率\n- 优化表现好的渠道，减少低效渠道\n\n**第八部分：年度营销日历**\n\n- 1月：年度规划发布\n- 2-3月：春季单曲发布\n- 4-5月：巡演筹备和宣传\n- 6-8月：音乐节季，密集演出\n- 9-10月：秋季专辑/EP发布\n- 11月：粉丝见面会\n- 12月：年终总结、回馈粉丝\n\n**重要节点：**\n- 个人/乐队纪念日\n- 新歌/专辑发布\n- 演出和巡演\n- 音乐节和颁奖典礼\n- 重要合作官宣\n\n**第九部分：成功指标**\n\n根据目标{{marketingGoal}}设定里程碑：\n\n- **3个月目标：**\n  * 粉丝增长：[数量]\n  * 单曲播放量：[数量]\n  * 社交媒体互动率：[百分比]\n\n- **6个月目标：**\n  * 在{{musicGenre}}领域的排名\n  * 完成[数量]场演出\n  * 媒体曝光[数量]次\n\n- **12个月目标：**\n  * 成为{{musicGenre}}领域代表性艺人\n  * 年度播放量达到[数量]\n  * 粉丝社群规模[数量]\n\n**输出格式：**\n- Word文档：完整营销策略方案\n- Excel表格：年度营销日历、预算分配、KPI追踪\n- PPT：用于团队汇报或对外合作",
+  "variables_schema": [
+    {
+      "name": "artistName",
+      "label": "艺人/乐队名",
+      "type": "string",
+      "required": true,
+      "placeholder": "你的艺名或乐队名称"
+    },
+    {
+      "name": "musicGenre",
+      "label": "音乐风格",
+      "type": "string",
+      "required": false,
+      "default": "流行",
+      "placeholder": "例如：流行、摇滚、民谣、电子、嘻哈"
+    },
+    {
+      "name": "careerStage",
+      "label": "当前阶段",
+      "type": "select",
+      "required": false,
+      "default": "成长期",
+      "options": [
+        {
+          "value": "新人期",
+          "label": "新人期（刚起步，<1年）"
+        },
+        {
+          "value": "成长期",
+          "label": "成长期（1-3年，有一定基础）"
+        },
+        {
+          "value": "成熟期",
+          "label": "成熟期（>3年，稳定发展）"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false,
+      "default": "18-30岁年轻人",
+      "placeholder": "年龄、兴趣、特征"
+    },
+    {
+      "name": "budget",
+      "label": "推广预算（年度）",
+      "type": "select",
+      "required": false,
+      "default": "中等预算（10000-50000元）",
+      "options": [
+        {
+          "value": "小预算（<10000元）",
+          "label": "小预算（少于10000元）"
+        },
+        {
+          "value": "中等预算（10000-50000元）",
+          "label": "中等预算（10000-50000元）"
+        },
+        {
+          "value": "大预算（>50000元）",
+          "label": "大预算（超过50000元）"
+        }
+      ]
+    },
+    {
+      "name": "marketingGoal",
+      "label": "推广目标",
+      "type": "select",
+      "required": false,
+      "default": "扩大粉丝基础",
+      "options": [
+        {
+          "value": "建立品牌认知",
+          "label": "建立品牌认知（新人）"
+        },
+        {
+          "value": "扩大粉丝基础",
+          "label": "扩大粉丝基础"
+        },
+        {
+          "value": "提升商业价值",
+          "label": "提升商业价值（代言、演出）"
+        },
+        {
+          "value": "出圈破壁",
+          "label": "出圈破壁（进入主流）"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{artistName}}-营销推广策略",
+    "files": [
+      {
+        "path": "营销策略完整方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "年度营销日历.xlsx",
+        "type": "excel"
+      },
+      {
+        "path": "预算分配表.xlsx",
+        "type": "excel"
+      },
+      {
+        "path": "KPI追踪表.xlsx",
+        "type": "excel"
+      },
+      {
+        "path": "内容发布计划.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_marketing",
+    "skill_social_media",
+    "skill_music_production"
+  ],
+  "required_tools": [
+    "tool_file_writer",
+    "tool_word_generator",
+    "tool_excel_generator"
+  ],
+  "execution_engine": "document"
+}

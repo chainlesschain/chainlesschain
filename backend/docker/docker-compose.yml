@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Ollama - 本地LLM推理引擎
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chainlesschain-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    # 如果有NVIDIA GPU,取消下面的注释
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Qdrant - 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: chainlesschain-qdrant
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # AnythingLLM - RAG问答系统 (可选)
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: chainlesschain-rag
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./anythingllm_data:/app/server/storage
+    environment:
+      - LLM_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - VECTOR_DB=qdrant
+      - QDRANT_ENDPOINT=http://qdrant:6333
+      - EMBEDDING_ENGINE=native
+      - STORAGE_DIR=/app/server/storage
+    depends_on:
+      - ollama
+      - qdrant
+    restart: unless-stopped
+
+  # Gitea - 自托管Git服务器 (可选)
+  gitea:
+    image: gitea/gitea:latest
+    container_name: chainlesschain-git
+    ports:
+      - "3000:3000"  # HTTP
+      - "2222:22"    # SSH
+    volumes:
+      - ./gitea_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__server__DOMAIN=localhost
+      - GITEA__server__ROOT_URL=http://localhost:3000
+    restart: unless-stopped
+
+networks:
+  default:
+    name: chainlesschain-network

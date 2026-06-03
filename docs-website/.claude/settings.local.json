@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/code/chainlesschain/docs-website && npm run build 2>&1)",
+      "WebFetch(domain:www.chainlesschain.com)",
+      "Bash(cd:*)"
+    ]
+  }
+}

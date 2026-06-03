@@ -1,0 +1,156 @@
+name: SQLite Number→TEXT Bind Audit (PR advisory)
+
+# Advisory gate for trap #15 (docs/internal/hidden-risk-traps.md §15).
+#
+# JS Number bound to SQLite TEXT column stores as REAL "1.0" (SQLite type
+# affinity). Later WHERE col = '1' silent-misses. Fix is to wrap with
+# String() at every write site.
+#
+# This workflow runs scripts/audit-sqlite-number-text-bind.js on PR-touched
+# JS files (or every PR — cheap enough; scans ~2k files in <1s). Reports
+# findings as a PR comment. Advisory only because the static heuristic
+# can't tell which columns are TEXT vs INTEGER without parsing migrations;
+# false positives are accepted (cheaper to add String() than to ignore).
+
+on:
+  pull_request:
+    paths:
+      - 'desktop-app-vue/src/main/**/*.js'
+      - 'desktop-app-vue/src/main/**/*.cjs'
+      - 'packages/personal-data-hub/lib/**/*.js'
+      - 'packages/cli/lib/**/*.js'
+      - 'packages/core-knowledge/src/**/*.js'
+      - 'scripts/audit-sqlite-number-text-bind.js'
+      - '.github/workflows/sqlite-number-text-bind-audit.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: sqlite-text-bind-audit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run static audit
+        id: audit
+        continue-on-error: true
+        run: |
+          node scripts/audit-sqlite-number-text-bind.js --json > /tmp/findings.json
+          # exit code 0 = clean, 1 = findings; we capture but don't fail the job.
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/findings.json | head -200
+
+      - name: Comment on PR with findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- sqlite-text-bind-audit-v1 -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/findings.json', 'utf-8'));
+            } catch {
+              console.log('No audit output to comment on');
+              return;
+            }
+            const findings = report.findings || [];
+
+            // Find existing comment first — we'll either delete it (clean) or update it (findings).
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.data.find(c => c.body && c.body.includes(marker));
+
+            if (findings.length === 0) {
+              // Clean: delete prior comment if any, otherwise stay silent.
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                });
+              }
+              return;
+            }
+
+            // Group findings by file for readability.
+            const byFile = new Map();
+            for (const f of findings) {
+              if (!byFile.has(f.file)) byFile.set(f.file, []);
+              byFile.get(f.file).push(f);
+            }
+            const fileBlocks = [...byFile.entries()].map(([file, hits]) => {
+              const rows = hits.map(h => `- L${h.line} \`.${h.method}(\` — ${h.pattern}`).join('\n');
+              return `**\`${file}\`** (${hits.length})\n${rows}`;
+            }).join('\n\n');
+
+            const body = [
+              marker,
+              '## ⚠️ SQLite Number→TEXT Bind Audit — advisory findings',
+              '',
+              `Found **${findings.length}** suspicious binding(s) across ${byFile.size} file(s) in ${report.scanned} scanned.`,
+              '',
+              '### Why this matters',
+              '',
+              'SQLite type affinity stores `Number(1)` bound to a TEXT column as REAL `1.0`.',
+              'A later `WHERE col = \'1\'` silent-misses (compares against `"1.0"`).',
+              'Fix: wrap the value with `String(...)` at the write site.',
+              '',
+              '### Findings',
+              '',
+              fileBlocks,
+              '',
+              '### Fix pattern',
+              '',
+              '```js',
+              '// ❌ broken — Number → REAL "1.0" in TEXT column',
+              'stmt.run([noteId, Number(version)]);',
+              '',
+              '// ✅ fixed — string binding stores as "1"',
+              'stmt.run([String(noteId), String(version)]);',
+              '```',
+              '',
+              '### False positives',
+              '',
+              'The static heuristic can\'t infer which columns are TEXT vs INTEGER. If a',
+              'flagged value targets an INTEGER column, it\'s safe — the binding is correct.',
+              'Common false-positive case: `INSERT INTO counts (n) VALUES (?)` where `n` is',
+              'declared `INTEGER`.',
+              '',
+              `Run log: ${runUrl}`,
+              '',
+              '_Trap #15 in `docs/internal/hidden-risk-traps.md`. Auto-generated by `.github/workflows/sqlite-number-text-bind-audit.yml`._',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

@@ -1,0 +1,56 @@
+{
+  "id": "tpl_career_performance_001",
+  "name": "performance_review",
+  "display_name": "员工绩效评估",
+  "description": "生成员工绩效评估报告，包含KPI达成、优缺点分析和发展建议",
+  "icon": "📈",
+  "category": "career",
+  "subcategory": "performance",
+  "tags": ["绩效", "评估", "HR", "管理"],
+  "project_type": "document",
+  "prompt_template": "# {{employeeName}} {{period}} 绩效评估报告\n\n## 基本信息\n- 员工姓名：{{employeeName}}\n- 部门：{{department}}\n- 岗位：{{position}}\n- 评估周期：{{period}}\n- 评估人：{{reviewer}}\n- 评估日期：{{reviewDate}}\n\n## 一、工作目标达成情况\n\n### 目标1：{{goal1}}\n- 完成度：{{goal1Achievement}}%\n- 评价：{{goal1Comment}}\n\n### 目标2：{{goal2}}\n- 完成度：{{goal2Achievement}}%\n- 评价：{{goal2Comment}}\n\n### 目标3：{{goal3}}\n- 完成度：{{goal3Achievement}}%\n- 评价：{{goal3Comment}}\n\n## 二、能力评估（5分制）\n\n| 能力维度 | 评分 | 说明 |\n|----------|------|------|\n| 专业技能 | {{technicalSkillScore}} | {{technicalSkillComment}} |\n| 沟通协作 | {{communicationScore}} | {{communicationComment}} |\n| 问题解决 | {{problemSolvingScore}} | {{problemSolvingComment}} |\n| 学习能力 | {{learningScore}} | {{learningComment}} |\n| 责任心 | {{responsibilityScore}} | {{responsibilityComment}} |\n\n**综合评分：**{{overallScore}}/5\n\n## 三、优势亮点\n\n1. {{strength1}}\n2. {{strength2}}\n3. {{strength3}}\n\n## 四、待改进领域\n\n1. {{improvement1}}\n2. {{improvement2}}\n\n## 五、发展建议\n\n{{developmentPlan}}\n\n## 六、下一周期目标\n\n1. {{nextGoal1}}\n2. {{nextGoal2}}\n3. {{nextGoal3}}\n\n## 七、薪资/晋升建议\n\n{{compensationRecommendation}}\n\n---\n\n**评估人签字：**___________  **日期：**___________\n\n**员工确认签字：**___________  **日期：**___________",
+  "variables_schema": [
+    {
+      "name": "employeeName",
+      "label": "员工姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "period",
+      "label": "评估周期",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "2026年Q1", "label": "季度评估" },
+        { "value": "2026年上半年", "label": "半年评估" },
+        { "value": "2026年度", "label": "年度评估" }
+      ]
+    },
+    {
+      "name": "department",
+      "label": "部门",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "position",
+      "label": "岗位",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "绩效评估-{{employeeName}}-{{period}}",
+    "files": [
+      {"path": "绩效评估报告.docx", "type": "document"},
+      {"path": "评分表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_hr_management", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

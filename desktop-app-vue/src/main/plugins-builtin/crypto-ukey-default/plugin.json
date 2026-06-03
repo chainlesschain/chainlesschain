@@ -1,0 +1,27 @@
+{
+  "id": "crypto-ukey-default",
+  "name": "U-Key 硬件加密（默认）",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "默认 U-Key PKCS#11 硬件加密；macOS/Linux 下降级为软件模拟",
+  "extensionPoints": [
+    {
+      "point": "data.crypto",
+      "priority": 10,
+      "config": {
+        "id": "ukey-pkcs11",
+        "name": "U-Key PKCS#11",
+        "algs": ["ed25519", "secp256k1", "rsa-2048", "aes-256-gcm", "sha256"],
+        "priority": 10,
+        "capabilities": {
+          "sign": true,
+          "encrypt": true,
+          "hash": true,
+          "hardware": true,
+          "pqc": false,
+          "pin": true
+        }
+      }
+    }
+  ]
+}

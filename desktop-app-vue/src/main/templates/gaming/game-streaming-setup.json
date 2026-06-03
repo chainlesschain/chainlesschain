@@ -1,0 +1,170 @@
+{
+  "id": "tpl_gaming_streaming_001",
+  "name": "game_streaming_setup_guide",
+  "display_name": "游戏直播设置指南",
+  "description": "完整的游戏直播设置方案，包含硬件配置、软件设置、直播优化和运营策略",
+  "icon": "📹",
+  "cover_image": "",
+  "category": "gaming",
+  "subcategory": "streaming",
+  "tags": ["游戏直播", "OBS设置", "直播优化", "流媒体", "主播"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建游戏直播设置指南：\n\n**直播信息：**\n- 直播平台：{{platform}}\n- 游戏类型：{{gameType}}\n- 直播频率：{{streamingFrequency}}\n- 预算范围：{{budget}}元\n\n# 游戏直播设置完整指南\n\n## 直播概况\n\n**主播信息：**\n- 主播昵称：{{streamerName}}\n- 直播平台：{{platform}}\n- 主要游戏：{{mainGame}}\n- 游戏类型：{{gameType}}\n- 直播时段：{{streamingSchedule}}\n- 目标观众：{{targetAudience}}\n\n**直播目标：**\n- 短期目标（3个月）：{{shortTermGoal}}\n- 长期目标（1年）：{{longTermGoal}}\n\n## 硬件配置方案\n\n### 基础配置（预算：{{budget}}元）\n\n#### 电脑配置\n**主机配置：**\n- CPU：{{cpuModel}} - 理由：{{cpuReason}}\n- GPU：{{gpuModel}} - 理由：{{gpuReason}}\n- 内存：{{ramSize}}GB {{ramType}} - 频率：{{ramFrequency}}MHz\n- 主板：{{motherboard}}\n- 存储：{{storage}} - 建议：系统盘SSD + 录像盘HDD\n- 电源：{{powerSupply}}W - 80Plus {{efficiency}} 认证\n- 散热：{{coolingSystem}}\n\n**估算费用：**{{pcCost}}元\n\n#### 外设设备\n**视频设备：**\n- 摄像头：{{webcam}} - {{webcamPrice}}元\n  - 分辨率：{{webcamResolution}}\n  - 帧率：{{webcamFPS}} FPS\n  - 特点：{{webcamFeatures}}\n\n**音频设备：**\n- 麦克风：{{microphone}} - {{micPrice}}元\n  - 类型：{{micType}}（电容/动圈）\n  - 连接方式：{{micConnection}}\n  - 需要声卡：{{audioInterface}}\n- 耳机/监听音箱：{{headphones}} - {{headphonePrice}}元\n\n**采集卡（双机直播）：**\n- 型号：{{captureCard}}\n- 价格：{{captureCardPrice}}元\n- 支持分辨率：{{captureResolution}}\n- 适用场景：{{captureCardUse}}\n\n**其他配件：**\n- 补光灯：{{ringLight}} - {{lightPrice}}元\n- 绿幕：{{greenScreen}} - {{greenScreenPrice}}元\n- 支架/悬臂：{{micStand}} - {{standPrice}}元\n\n**外设总费用：**{{peripheralsCost}}元\n\n### 双机直播方案（进阶）\n\n**游戏主机：**专注运行游戏，保证流畅度\n- 配置：{{gamingPC}}\n\n**直播主机：**专注编码推流，降低游戏负担\n- 配置：{{streamingPC}}\n- 采集卡连接：游戏机 → 采集卡 → 直播机\n\n**优势：**\n1. {{dualPCAdvantage1}}\n2. {{dualPCAdvantage2}}\n3. {{dualPCAdvantage3}}\n\n## 软件配置方案\n\n### 直播软件选择\n\n**推荐方案：**{{streamingSoftware}}\n\n**OBS Studio（开源免费）：**\n- 优点：{{obsAdvantages}}\n- 缺点：{{obsDisadvantages}}\n- 适合人群：{{obsSuitableFor}}\n\n**Streamlabs OBS：**\n- 优点：{{slObsAdvantages}}\n- 缺点：{{slObsDisadvantages}}\n\n**XSplit：**\n- 优点：{{xsplitAdvantages}}\n- 缺点：{{xsplitDisadvantages}}\n- 费用：{{xsplitPrice}}\n\n### OBS Studio 详细设置\n\n#### 输出设置\n\n**编码器选择：**\n- NVIDIA GPU：NVENC H.264（推荐）\n- AMD GPU：AMD HW H.264\n- CPU编码：x264（高质量但占用CPU）\n\n**视频比特率设置：**\n- 1080p 60fps：{{bitrate1080p60}} Kbps\n- 1080p 30fps：{{bitrate1080p30}} Kbps\n- 720p 60fps：{{bitrate720p60}} Kbps\n- 720p 30fps：{{bitrate720p30}} Kbps\n\n根据上传速度选择：{{uploadSpeed}} Mbps → 推荐比特率：{{recommendedBitrate}} Kbps\n\n**录制设置：**\n- 录制格式：{{recordFormat}}（推荐MKV防止文件损坏）\n- 录制质量：{{recordQuality}}\n- 录制路径：{{recordPath}}\n\n#### 视频设置\n\n**基础画布分辨率：**{{baseResolution}}\n**输出分辨率：**{{outputResolution}}\n**缩放滤镜：**{{scaleFilter}}（推荐Lanczos）\n**帧率：**{{fps}} FPS\n\n**常用分辨率方案：**\n- 方案1：1920x1080 → 1920x1080 (60fps)\n- 方案2：1920x1080 → 1280x720 (60fps)\n- 方案3：2560x1440 → 1920x1080 (60fps)\n\n#### 音频设置\n\n**采样率：**{{sampleRate}} Hz（推荐48kHz）\n**声道：**{{channels}}\n\n**音频源配置：**\n- 桌面音频：游戏声音 - 音量：{{gameVolume}}%\n- 麦克风音频：主播语音 - 音量：{{micVolume}}%\n- 音乐播放器：背景音乐 - 音量：{{musicVolume}}%\n\n**音频滤镜：**\n1. 噪声抑制：{{noiseGate}} dB\n2. 噪声门：阈值 {{gateThreshold}} dB\n3. 压缩器：比率 {{compressionRatio}}:1\n4. 增益：{{gain}} dB\n5. 均衡器（EQ）：{{eqSettings}}\n\n#### 场景设置\n\n**场景1：游戏场景**\n- 游戏捕获源\n- 摄像头画面（右下角，{{webcamSize}}）\n- 聊天框\n- 捐赠提醒\n- Logo水印\n\n**场景2：开播/闲聊**\n- 静态背景图\n- 摄像头全屏\n- 开播倒计时\n- BGM播放器\n\n**场景3：游戏暂离（BRB）**\n- BRB画面\n- 倒计时器\n- 聊天框\n- BGM\n\n**场景4：结束画面**\n- 感谢观看\n- 关注提醒\n- 下次直播预告\n\n### 插件推荐\n\n**必装插件：**\n1. {{plugin1}} - {{plugin1Purpose}}\n2. {{plugin2}} - {{plugin2Purpose}}\n3. {{plugin3}} - {{plugin3Purpose}}\n4. {{plugin4}} - {{plugin4Purpose}}\n5. {{plugin5}} - {{plugin5Purpose}}\n\n**高级插件：**\n- StreamFX：高级滤镜和特效\n- VLC Video Source：播放视频文件\n- Browser Source：网页内容嵌入\n\n## 网络优化\n\n### 网络要求\n\n**最低上传速度：**\n- 1080p 60fps：{{minUpload1080p60}} Mbps\n- 1080p 30fps：{{minUpload1080p30}} Mbps\n- 720p 60fps：{{minUpload720p60}} Mbps\n\n**当前网络：**{{currentNetwork}}\n**测速结果：**\n- 下载速度：{{downloadSpeed}} Mbps\n- 上传速度：{{uploadSpeed}} Mbps\n- 延迟：{{ping}} ms\n- 丢包率：{{packetLoss}}%\n\n### 优化建议\n\n**网络优化：**\n1. {{networkOptimization1}}\n2. {{networkOptimization2}}\n3. {{networkOptimization3}}\n\n**推流服务器选择：**\n- 主服务器：{{primaryServer}}\n- 备用服务器：{{backupServer}}\n- 延迟测试：{{serverLatency}} ms\n\n## 平台设置\n\n### {{platform}} 平台配置\n\n**直播间设置：**\n- 直播间标题：{{streamTitle}}\n- 分类/游戏：{{gameCategory}}\n- 标签：{{streamTags}}\n- 直播封面：{{coverImage}}\n\n**推流地址：**\n- RTMP URL：{{rtmpUrl}}\n- 串流密钥：{{streamKey}}（保密！）\n\n**弹幕/聊天设置：**\n- 房管设置：{{modSettings}}\n- 关键词过滤：{{wordFilter}}\n- 慢速模式：{{slowMode}} 秒\n\n**互动功能：**\n- 礼物提醒：{{giftAlert}}\n- 关注提醒：{{followAlert}}\n- 订阅提醒：{{subAlert}}\n- 弹幕互动游戏：{{chatGames}}\n\n## 直播内容规划\n\n### 直播日程\n\n**每周安排：**\n- 周一：{{mondayContent}} {{mondayTime}}\n- 周三：{{wednesdayContent}} {{wednesdayTime}}\n- 周五：{{fridayContent}} {{fridayTime}}\n- 周日：{{sundayContent}} {{sundayTime}}\n\n**特殊企划：**\n- 每月首播：{{monthlySpecial}}\n- 粉丝里程碑：{{milestoneEvent}}\n- 节日活动：{{holidayEvent}}\n\n### 内容类型\n\n**主要内容：**{{mainContent}}\n\n**内容占比：**\n- 游戏实况：{{gameplayPercent}}%\n- 技术教学：{{tutorialPercent}}%\n- 娱乐互动：{{entertainmentPercent}}%\n- 闲聊杂谈：{{chattingPercent}}%\n\n**差异化策略：**\n1. {{differentiationStrategy1}}\n2. {{differentiationStrategy2}}\n3. {{differentiationStrategy3}}\n\n## 直播运营策略\n\n### 粉丝增长\n\n**引流渠道：**\n1. {{promotionChannel1}} - {{channel1Strategy}}\n2. {{promotionChannel2}} - {{channel2Strategy}}\n3. {{promotionChannel3}} - {{channel3Strategy}}\n4. {{promotionChannel4}} - {{channel4Strategy}}\n\n**内容分发：**\n- 短视频平台：{{shortVideoStrategy}}\n- 社交媒体：{{socialMediaStrategy}}\n- 视频网站：{{videoSiteStrategy}}\n\n### 变现策略\n\n**收入来源：**\n1. 平台分成：{{platformRevenue}}\n2. 礼物打赏：{{donationRevenue}}\n3. 广告合作：{{adRevenue}}\n4. 付费订阅：{{subscriptionRevenue}}\n5. 商品销售：{{merchandiseRevenue}}\n6. 赛事奖金：{{prizeMoney}}\n\n**预期收入（3个月后）：**{{expectedIncome}}元/月\n\n### 社群管理\n\n**粉丝群建设：**\n- QQ群/微信群：{{fanGroup}}\n- Discord服务器：{{discordServer}}\n- 粉丝专属福利：{{fanBenefits}}\n\n**房管团队：**\n- 招募标准：{{modRequirements}}\n- 管理规则：{{modRules}}\n- 权限分配：{{modPermissions}}\n\n## 常见问题与优化\n\n### 画面问题\n\n**画面卡顿：**\n- 原因：{{stutterCause}}\n- 解决：{{stutterSolution}}\n\n**画面模糊：**\n- 原因：{{blurryCause}}\n- 解决：{{blurrySolution}}\n\n**掉帧：**\n- 原因：{{frameDropCause}}\n- 解决：{{frameDropSolution}}\n\n### 音频问题\n\n**声音延迟：**\n- 解决：{{audioDelaySolution}}\n\n**噪音/电流声：**\n- 解决：{{noiseSolution}}\n\n**音量不平衡：**\n- 解决：{{volumeBalanceSolution}}\n\n### 网络问题\n\n**断流：**\n- 解决：{{disconnectSolution}}\n\n**延迟高：**\n- 解决：{{highLatencySolution}}\n\n## 性能监控\n\n### OBS性能指标\n\n**监控项目：**\n- CPU使用率：目标 < {{cpuTarget}}%\n- GPU使用率：目标 < {{gpuTarget}}%\n- 渲染延迟：目标 < {{renderLagTarget}} ms\n- 编码延迟：目标 < {{encodingLagTarget}} ms\n- 掉帧率：目标 < {{droppedFramesTarget}}%\n- 网络掉帧：目标 < {{networkDropTarget}}%\n\n**优化阈值：**\n如果CPU > 80%：{{cpuOptimization}}\n如果GPU > 90%：{{gpuOptimization}}\n如果掉帧 > 1%：{{frameOptimization}}\n\n### 数据分析\n\n**关键指标：**\n- 平均在线人数：{{avgViewers}}\n- 峰值在线人数：{{peakViewers}}\n- 直播时长：{{streamDuration}} 小时/周\n- 互动率：{{engagementRate}}%\n- 新增关注：{{newFollowers}}/周\n- 弹幕数量：{{chatMessages}}/小时\n\n**数据复盘：**\n- 每日：记录数据，分析高峰时段\n- 每周：总结内容效果，调整策略\n- 每月：对比增长趋势，设定新目标\n\n## 进阶提升\n\n### 技能提升\n\n**游戏技术：**\n- {{gameSkillImprovement}}\n\n**表达能力：**\n- {{communicationImprovement}}\n\n**技术能力：**\n- {{technicalSkillImprovement}}\n\n### 设备升级路线\n\n**第一阶段（0-3个月）：**{{phase1Upgrade}}\n**第二阶段（3-6个月）：**{{phase2Upgrade}}\n**第三阶段（6-12个月）：**{{phase3Upgrade}}\n\n### 职业化路径\n\n**兼职主播阶段：**\n- 目标：稳定{{partTimeGoal}}观众\n- 时长：每周{{partTimeHours}}小时\n\n**全职主播阶段：**\n- 目标：月收入{{fullTimeIncome}}元\n- 时长：每周{{fullTimeHours}}小时\n- 签约条件：{{signingConditions}}\n\n**进阶发展：**\n- 加入公会：{{guildBenefits}}\n- 参加比赛：{{competitionStrategy}}\n- 跨平台发展：{{multiPlatformStrategy}}\n- IP打造：{{personalBrandStrategy}}\n\n## 行动清单\n\n### 准备阶段（第1周）\n- [ ] {{prep1}}\n- [ ] {{prep2}}\n- [ ] {{prep3}}\n- [ ] {{prep4}}\n\n### 测试阶段（第2周）\n- [ ] {{test1}}\n- [ ] {{test2}}\n- [ ] {{test3}}\n\n### 正式开播（第3周起）\n- [ ] {{launch1}}\n- [ ] {{launch2}}\n- [ ] {{launch3}}\n\n## 资源清单\n\n**学习资源：**\n- OBS教程：{{obsTutorial}}\n- 直播技巧：{{streamingTips}}\n- 设备评测：{{gearReviews}}\n\n**工具网站：**\n- 网速测试：{{speedTest}}\n- 比特率计算：{{bitrateCalculator}}\n- 推流延迟测试：{{latencyTest}}\n\n**社区资源：**\n- 主播交流群：{{streamerCommunity}}\n- 技术论坛：{{techForum}}\n- 设备购买：{{gearShop}}\n\n---\n\n**预计总投资：**{{totalBudget}}元\n**回本周期预估：**{{breakEvenPeriod}}个月\n**成功关键：**坚持、质量、互动、创新",
+  "variables_schema": [
+    {
+      "name": "platform",
+      "label": "直播平台",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "斗鱼",
+          "label": "斗鱼直播"
+        },
+        {
+          "value": "虎牙",
+          "label": "虎牙直播"
+        },
+        {
+          "value": "B站",
+          "label": "哔哩哔哩"
+        },
+        {
+          "value": "抖音",
+          "label": "抖音直播"
+        },
+        {
+          "value": "快手",
+          "label": "快手直播"
+        },
+        {
+          "value": "Twitch",
+          "label": "Twitch"
+        },
+        {
+          "value": "YouTube",
+          "label": "YouTube Gaming"
+        }
+      ]
+    },
+    {
+      "name": "gameType",
+      "label": "游戏类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "FPS射击",
+          "label": "FPS射击游戏"
+        },
+        {
+          "value": "MOBA",
+          "label": "MOBA竞技"
+        },
+        {
+          "value": "生存建造",
+          "label": "生存建造类"
+        },
+        {
+          "value": "角色扮演",
+          "label": "RPG角色扮演"
+        },
+        {
+          "value": "策略",
+          "label": "策略游戏"
+        },
+        {
+          "value": "休闲游戏",
+          "label": "休闲小游戏"
+        },
+        {
+          "value": "综合",
+          "label": "多类型游戏"
+        }
+      ]
+    },
+    {
+      "name": "streamingFrequency",
+      "label": "直播频率",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "每日",
+          "label": "每日直播"
+        },
+        {
+          "value": "3-5次/周",
+          "label": "每周3-5次"
+        },
+        {
+          "value": "周末",
+          "label": "仅周末"
+        },
+        {
+          "value": "不定期",
+          "label": "不定期直播"
+        }
+      ]
+    },
+    {
+      "name": "budget",
+      "label": "预算（元）",
+      "type": "number",
+      "required": true,
+      "default": 10000
+    },
+    {
+      "name": "streamerName",
+      "label": "主播昵称",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "mainGame",
+      "label": "主要游戏",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "游戏直播设置-{{streamerName}}",
+    "files": [
+      {
+        "path": "直播设置指南.md",
+        "type": "markdown"
+      },
+      {
+        "path": "OBS配置文档.md",
+        "type": "markdown"
+      },
+      {
+        "path": "硬件采购清单.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "直播日程表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "数据统计模板.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "基础电脑硬件知识",
+    "网络设置",
+    "OBS软件操作",
+    "内容创作"
+  ],
+  "required_tools": ["OBS Studio", "直播平台账号", "游戏客户端"],
+  "execution_engine": "llm"
+}

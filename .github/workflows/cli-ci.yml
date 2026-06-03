@@ -1,0 +1,123 @@
+name: CLI CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+      - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/_cli-test.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+      - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/_cli-test.yml"
+  workflow_dispatch:
+
+# Cancel older runs of this workflow on the same branch/PR when a newer push
+# arrives. The 36+ matrix jobs make stacking expensive.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Per-OS test fan-out via the shared reusable workflow.
+  # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
+  test-ubuntu:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: ubuntu-latest
+
+  test-windows:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: windows-latest
+
+  test-macos:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: macos-latest
+
+  verify-cli:
+    needs: [test-ubuntu, test-windows, test-macos]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: Verify CLI --version
+        working-directory: packages/cli
+        run: node bin/chainlesschain.js --version
+      - name: Verify CLI --help
+        working-directory: packages/cli
+        run: node bin/chainlesschain.js --help
+
+  # Phase 4a: validate `cc pack` end-to-end on Linux without running pkg.
+  # Dry-run exercises precheck → web-panel → config-template → native-prebuilds
+  # → pkg-config synthesis, which is where most platform regressions surface.
+  # A full pkg + smoke run would need CC_PACK_E2E=1 and ~30s of pkg download
+  # on every PR — out of scope for this job; use the manual e2e suite instead.
+  pack-linux-dryrun:
+    needs: [test-ubuntu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (workspace-aware)
+        uses: ./.github/actions/setup-node-deps
+
+      - name: Ensure web-panel dist exists (stub)
+        working-directory: packages/cli
+        run: |
+          mkdir -p src/assets/web-panel
+          if [ ! -f src/assets/web-panel/index.html ]; then
+            echo '<!doctype html><title>stub</title>' > src/assets/web-panel/index.html
+          fi
+
+      - name: cc pack --dry-run for linux-x64
+        working-directory: packages/cli
+        run: |
+          node bin/chainlesschain.js pack \
+            --dry-run \
+            --targets node20-linux-x64 \
+            --allow-dirty \
+            --skip-web-panel-build \
+            --no-smoke-test
+
+  dry-run-publish:
+    needs: [test-ubuntu]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (workspace-aware)
+        uses: ./.github/actions/setup-node-deps
+
+      - name: Dry-run publish
+        working-directory: packages/cli
+        run: npm publish --dry-run

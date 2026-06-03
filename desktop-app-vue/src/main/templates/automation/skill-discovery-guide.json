@@ -1,0 +1,36 @@
+{
+  "id": "tpl_demo_findskills_001",
+  "name": "skill_discovery_guide",
+  "display_name": "技能发现与探索指南",
+  "description": "演示 find-skills 和 skill-creator 技能，帮助用户发现可用技能并创建自定义技能",
+  "icon": "🔎",
+  "category": "automation",
+  "subcategory": "skills",
+  "tags": ["skills", "discovery", "creator", "guide", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我探索和管理可用技能：\n\n**探索目标：** {{objective}}\n\n**操作步骤：**\n\n### 步骤1：搜索相关技能\n```\n/find-skills {{objective}}\n```\n\n### 步骤2：查看技能详情\n浏览搜索结果，了解每个技能的功能和用法。\n\n{{#eq objective \"创建新技能\"}}\n### 步骤3：创建自定义技能\n```\n/skill-creator create my-custom-skill\n```\n\n### 步骤4：验证技能\n```\n/skill-creator validate my-custom-skill\n```\n{{/eq}}\n\n{{#eq objective \"优化现有技能\"}}\n### 步骤3：分析技能性能\n```\n/skill-creator optimize target-skill\n```\n{{/eq}}\n\n### 最终步骤：保存发现\n```\n/memory-management save \"技能探索: {{objective}}\"\n```\n\n**使用的技能：** find-skills, skill-creator, memory-management",
+  "variables_schema": [
+    {
+      "name": "objective",
+      "label": "探索目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "浏览所有技能", "label": "浏览所有可用技能" },
+        { "value": "创建新技能", "label": "创建自定义技能" },
+        { "value": "优化现有技能", "label": "优化现有技能" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["find-skills", "skill-creator", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

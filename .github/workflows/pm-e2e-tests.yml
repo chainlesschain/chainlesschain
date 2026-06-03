@@ -1,0 +1,378 @@
+name: Project Management E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'desktop-app-vue/src/main/task/**'
+      - 'desktop-app-vue/src/main/permission/**'
+      - 'desktop-app-vue/src/main/project/**'
+      - 'tests/e2e/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'desktop-app-vue/src/main/task/**'
+      - 'desktop-app-vue/src/main/permission/**'
+      - 'desktop-app-vue/src/main/project/**'
+      - 'tests/e2e/**'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - journey
+          - approval
+          - error
+          - performance
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Electron App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install desktop app dependencies
+        working-directory: desktop-app-vue
+        run: npm ci
+
+      - name: Build Electron main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build
+          path: desktop-app-vue/dist
+          retention-days: 1
+
+  test-journey:
+    name: Project Management Journey Tests
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'journey' || github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-build
+          path: desktop-app-vue/dist
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Project Management Journey tests
+        run: npx playwright test tests/e2e/project-management-journey.e2e.test.ts --reporter=html,json
+        env:
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-html-report
+          path: playwright-report/
+          retention-days: 7
+
+  test-approval:
+    name: Approval Workflow Tests
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'approval' || github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-build
+          path: desktop-app-vue/dist
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Approval Workflow tests
+        run: npx playwright test tests/e2e/approval-workflow-journey.e2e.test.ts --reporter=html,json
+        env:
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: approval-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  test-error:
+    name: Error Scenario Tests
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'error' || github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-build
+          path: desktop-app-vue/dist
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Error Scenario tests
+        run: npx playwright test tests/e2e/error-scenarios.e2e.test.ts --reporter=html,json
+        env:
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  test-performance:
+    name: Performance & Stress Tests
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'performance' || github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-build
+          path: desktop-app-vue/dist
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Performance tests
+        run: npx playwright test tests/e2e/performance-stress.e2e.test.ts --reporter=html,json
+        env:
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Upload performance metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-metrics
+          path: test-results/performance-*.json
+          retention-days: 30
+
+  report:
+    name: Generate Test Report
+    needs: [test-journey, test-approval, test-error, test-performance]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-test-results
+
+      - name: Generate summary report
+        env:
+          JOURNEY_RESULT: ${{ needs.test-journey.result }}
+          APPROVAL_RESULT: ${{ needs.test-approval.result }}
+          ERROR_RESULT: ${{ needs.test-error.result }}
+          PERFORMANCE_RESULT: ${{ needs.test-performance.result }}
+        run: |
+          # Render status icon from job outcome (2026-05-18 audit follow-up:
+          # was hardcoded ✅ regardless of result — Pattern A false-green).
+          mark() {
+            case "$1" in
+              success) echo "✅" ;;
+              skipped) echo "⏭️" ;;
+              cancelled) echo "🚫" ;;
+              *) echo "❌" ;;
+            esac
+          }
+
+          echo "# Project Management E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "- Total test suites executed: 4" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Test Suites" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite | Status | Outcome |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Project Management Journey (33 tests) | $(mark "$JOURNEY_RESULT") | $JOURNEY_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Approval Workflow Journey (20+ tests) | $(mark "$APPROVAL_RESULT") | $APPROVAL_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Error Scenarios (30+ tests) | $(mark "$ERROR_RESULT") | $ERROR_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance & Stress (15+ tests) | $(mark "$PERFORMANCE_RESULT") | $PERFORMANCE_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Test reports have been uploaded as artifacts and will be available for 7 days." >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Render status icon from job outcome (2026-05-18 audit follow-up:
+            // was hardcoded ✅ regardless of result — Pattern A false-green).
+            const mark = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : s === 'cancelled' ? '🚫' : '❌';
+            const journey = '${{ needs.test-journey.result }}';
+            const approval = '${{ needs.test-approval.result }}';
+            const error = '${{ needs.test-error.result }}';
+            const performance = '${{ needs.test-performance.result }}';
+            const allPassed = [journey, approval, error, performance].every(s => s === 'success');
+            const overall = allPassed ? '✅ All test suites passed' : '❌ One or more test suites failed';
+
+            const comment = `## 🧪 Project Management E2E Test Results
+
+            **Status**: ${overall}
+
+            ### Test Suites
+            - ${mark(journey)} Project Management Journey (33 tests) — \`${journey}\`
+            - ${mark(approval)} Approval Workflow Journey (20+ tests) — \`${approval}\`
+            - ${mark(error)} Error Scenarios (30+ tests) — \`${error}\`
+            - ${mark(performance)} Performance & Stress (15+ tests) — \`${performance}\`
+
+            📊 [View detailed test reports in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  notify:
+    name: Notify Results
+    needs: [test-journey, test-approval, test-error, test-performance]
+    runs-on: ubuntu-latest
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Check test results
+        id: test-results
+        run: |
+          if [ "${{ needs.test-journey.result }}" == "success" ] && \
+             [ "${{ needs.test-approval.result }}" == "success" ] && \
+             [ "${{ needs.test-error.result }}" == "success" ] && \
+             [ "${{ needs.test-performance.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send success notification
+        if: steps.test-results.outputs.status == 'success'
+        run: |
+          echo "✅ All PM E2E tests passed on main branch!"
+          # Add your notification logic here (Slack, Discord, Email, etc.)
+
+      - name: Send failure notification
+        if: steps.test-results.outputs.status == 'failure'
+        run: |
+          echo "❌ Some PM E2E tests failed on main branch!"
+          # Add your notification logic here (Slack, Discord, Email, etc.)

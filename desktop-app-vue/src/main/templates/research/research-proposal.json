@@ -1,0 +1,109 @@
+{
+  "id": "tpl_research_proposal_200",
+  "name": "research-proposal",
+  "display_name": "研究计划撰写",
+  "description": "学术研究项目申请书/研究计划书模板",
+  "icon": "🔬",
+  "category": "research",
+  "subcategory": "项目申请",
+  "tags": [
+    "研究计划",
+    "项目申请",
+    "课题申报",
+    "研究设计"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写研究计划：\n\n研究题目：{{researchTitle}}\n研究领域：{{researchField}}\n研究类型：{{researchType}}\n\n研究背景：\n{{background}}\n\n研究问题：\n{{researchQuestions}}\n\n研究目标：\n{{objectives}}\n\n研究方法：\n{{methodology}}\n\n预期成果：\n{{expectedOutcomes}}\n\n请生成完整的研究计划，包括：\n1. 研究背景和意义\n2. 国内外研究现状\n3. 研究内容和研究问题\n4. 研究方法和技术路线\n5. 研究计划和时间安排\n6. 预期成果和创新点\n7. 研究基础和条件保障\n8. 经费预算",
+  "variables_schema": [
+    {
+      "name": "researchTitle",
+      "type": "text",
+      "label": "研究题目",
+      "required": true,
+      "default": "示例标题"
+    },
+    {
+      "name": "researchField",
+      "type": "text",
+      "label": "研究领域",
+      "required": true,
+      "default": "示例内容"
+    },
+    {
+      "name": "researchType",
+      "type": "select",
+      "label": "研究类型",
+      "default": "基础研究",
+      "required": true,
+      "options": [
+        {
+          "value": "基础研究",
+          "label": "基础研究"
+        },
+        {
+          "value": "应用研究",
+          "label": "应用研究"
+        }
+      ]
+    },
+    {
+      "name": "background",
+      "type": "textarea",
+      "label": "研究背景",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    },
+    {
+      "name": "researchQuestions",
+      "type": "textarea",
+      "label": "研究问题",
+      "required": true,
+      "default": "AI技术如何提高疾病诊断的准确率？"
+    },
+    {
+      "name": "objectives",
+      "type": "textarea",
+      "label": "研究目标",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    },
+    {
+      "name": "methodology",
+      "type": "textarea",
+      "label": "研究方法",
+      "required": true,
+      "default": "文献综述法、实证研究法"
+    },
+    {
+      "name": "expectedOutcomes",
+      "type": "textarea",
+      "label": "预期成果",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "研究计划-{{researchTitle}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "研究计划书.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

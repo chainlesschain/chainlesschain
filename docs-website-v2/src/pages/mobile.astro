@@ -1,0 +1,642 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import rootPkg from '../../../package.json';
+import releaseSizes from '../data/release-sizes.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
+const ANDROID_VERSION = ANDROID_TAG;
+const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
+const dl = (key) => {
+  const s = releaseSizes.sizes[key];
+  if (!s) return null;
+  return {
+    href: `https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${s.name}`,
+    name: s.name,
+    label: s.label,
+  };
+};
+const apkArm64 = dl('android-arm64-v8a');
+const apkArmV7 = dl('android-armeabi-v7a');
+const apkUniversal = dl('android-universal');
+const aab = dl('android-aab');
+---
+<BaseLayout
+  title={`移动版 ${ANDROID_VERSION} — Android 原生应用 · DID 钱包 · 移动捕获 · REMOTE 遥控器 | ChainlessChain`}
+  description={`ChainlessChain Android ${ANDROID_VERSION} GA：Jetpack Compose + Kotlin 原生应用。三层定位（L1 StrongBox DID 钱包 / L2 Voice·Camera·Location·Share·Push 移动捕获 / L3 REMOTE 远程调用桌面 skill）+ 25 REMOTE Skills + 383+ 单测 + W3.7 Flow B 真机扫码配对。直接下载 APK，也可上 Google Play (AAB)。`}
+  canonical="https://www.chainlesschain.com/mobile"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">ANDROID · {ANDROID_VERSION} · GA</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          手机不是迷你桌面，<br/>
+          是<span class="italic text-ember">钥匙 · 捕获器 · 遥控器</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          Android v1.0 重新定位：StrongBox 硬件 DID 钱包 + 语音/拍照/位置/分享/推送 5 件移动捕获 + REMOTE 远程调用桌面 141 skill。
+          对齐 Claude Desktop / Mobile 的二端分工 —— 桌面是 AI 工作站，手机是它的延伸。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="#download" class="btn-ember">下载 APK ↓</a>
+          <a href="/desktop" class="btn-ghost">桌面端在这里 →</a>
+        </div>
+        <div class="mt-6 text-sm text-muted">
+          桌面与移动同版本同步发布：<code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>。每个 release tag 同时挂桌面 8 包 + Android 4 包。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三层定位 -->
+  <section class="py-16 md:py-24 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-4">三层定位</div>
+        <h2 class="text-4xl md:text-5xl leading-tight font-display">L1 · L2 · L3 — 各司其职。</h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          不再以 skill 数量对标桌面。手机做手机最擅长的三件事：保管私钥、采集现场数据、远程指挥桌面。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L1 · WALLET</div>
+          <h3 class="font-display text-2xl mb-3">StrongBox DID 钱包</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            硬件级密钥库（Android Keystore + StrongBox HSM）保管 W3C DID v2 私钥。BIP-39 助记词、生物识别（指纹/面容）解锁、多 DID 切换、旧明文自动迁移。
+          </p>
+          <div class="text-xs text-muted font-mono">68 单测 · M2 落地</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L2 · CAPTURE</div>
+          <h3 class="font-display text-2xl mb-3">移动现场捕获</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            五件齐落：<strong class="text-ink">VoiceMode</strong>（连续语音 SeedASR → LLM → TTS）· <strong class="text-ink">CameraOCR</strong>（拍照 OCR → 入笔记）· <strong class="text-ink">LocationTagger</strong>（GPS 前台服务）· <strong class="text-ink">ShareReceiver</strong>（5 种 SharePayload → 知识库）· <strong class="text-ink">PushNotifier</strong>（4 类通知 + FCM 骨架）。
+          </p>
+          <div class="text-xs text-muted font-mono">130 单测 · M3 落地（code 5/5）</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L3 · REMOTE</div>
+          <h3 class="font-display text-2xl mb-3">REMOTE 远程遥控</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            手机 → 桌面 23 个 REMOTE command（795 suspend fun 盘点）。RemoteSkillRegistry 文件 + 方法双粒度白名单 · ApprovalUI 4 类审批（Sign / Cowork / Marketplace / SystemCritical）· ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口。
+          </p>
+          <div class="text-xs text-muted font-mono">152 单测 · M4 落地</div>
+        </div>
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">硬件隔离</div>
+          <div class="text-sm text-ink/80">StrongBox HSM · 私钥永不导出 · 解锁需生物识别 · 多次错误自动锁。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">SignAsService</div>
+          <div class="text-sm text-ink/80">M5 反向签名：macOS / Linux 桌面调手机硬件签名 —— 跨平台 U-Key 替代。33 单测。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">25 REMOTE Skills</div>
+          <div class="text-sm text-ink/80">25 REMOTE Commands.kt（SeedRegistry，v1.0 GA 后纯远程委托架构），按手机定位精选。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phase 5.6/5.8 · cc Chat 自然语言查询 (2026-05-19, v5.0.3.67) -->
+  <section class="py-16 md:py-20 border-b border-line bg-cream/30">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🆕 自然语言 cc · 2026-05-19 · v5.0.3.67</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">
+          直接用大白话问 ——
+          <span class="italic text-ember">"列下我最近的笔记"</span>
+        </h2>
+        <p class="text-muted leading-relaxed text-lg">
+          个人中心 → 「cc Chat (自然语言)」打开，输入"搜下 RAG 相关的笔记 / 我有哪些 skill / cc 跑得起来吗"，
+          AI 自动识别意图、调本机 cc 命令、把命令 + 结果回贴到聊天里。
+          再也不用记 cc 子命令 + flag 怎么拼。
+        </p>
+
+        <div class="mt-10 grid md:grid-cols-2 gap-6">
+          <div class="p-6 rounded-2xl border border-line bg-paper">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">默认安全</div>
+            <h3 class="font-display text-xl mb-3">只读子命令白名单</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              即便 AI 收到"帮我把所有笔记删了"，请求也走不出白名单 ——
+              v1 只放过 note / search / memory / skill / status / session / mcp / did 八个只读子命令。
+              写操作、安装、shell 元字符全部当场拦截，结果回卡片显示 "exitCode=126 denied"。
+            </p>
+          </div>
+          <div class="p-6 rounded-2xl border border-line bg-paper">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">流式状态可视</div>
+            <h3 class="font-display text-xl mb-3">5 状态进度条 + 工具卡片</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              思考中 → 准备调用 → 执行 cc → 处理结果 → 整理。
+              每条调用作为独立卡片显示 <code class="font-mono bg-cream px-1 rounded">cc &lt;cmd&gt;</code> + exitCode + 耗时 +
+              stdout 折叠/展开，长查询有"取消"按钮一键终止。
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 grid md:grid-cols-3 gap-3">
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">支持模型</div>
+            <div class="text-sm text-ink/80">OpenAI · Doubao 豆包 · Claude / Anthropic 三家原生 tool-use；其余厂商自动走"防幻觉 fallback"明确告知用户切模型</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">测试覆盖</div>
+            <div class="text-sm text-ink/80">127 新单测 + 集成测试全绿，覆盖 9 个 E2E 场景（含恶意 prompt 拒绝 / 取消 / dedup / fallback）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">底层</div>
+            <div class="text-sm text-ink/80">复用 Phase 2.5 内置 Node + cc CLI bundle，无配对依赖，离线可用</div>
+          </div>
+        </div>
+
+        <p class="mt-8 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/changelog#v5-0-3-67-android-phase-5-6-5-8-cc-exec-自然语言-chat" target="_blank" rel="noopener">用户文档：完整更新日志 →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://design.chainlesschain.com/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP" target="_blank" rel="noopener">设计文档：Phase 5.8 E2E SOP →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phase 2.5 · 本地终端 cc 跑通 — 真机 cc -v 验证 (2026-05-19) -->
+  <section class="py-16 md:py-20 border-b border-line bg-paper">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🚀 重大突破 · 安卓本地终端 cc · 2026-05-19 · Xiaomi 真机验证</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">手机本地跑 <span class="italic text-ember">cc</span> —— 不用配对桌面，也能用整套 ChainlessChain CLI。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          Android 本地终端 Phase 2.5 闭环：APK 内置 Termux <strong class="text-ink">Node.js v25 + chainlesschain CLI</strong>
+          + mksh + toybox + xterm.js WebView，开 app 进 RemoteOperate "本地" tab，直接敲
+          <code class="font-mono bg-cream px-1 rounded">cc -v</code> 返回
+          <code class="font-mono bg-cream px-1 rounded">0.162.2</code> ✅，
+          <code class="font-mono bg-cream px-1 rounded">cc chat / cc skill / cc note / cc ask</code> 全套即开即用。
+          应用启动自动桥接 8 个 LLM 厂商 API 密钥（OPENAI / ANTHROPIC / DEEPSEEK / DASHSCOPE / GEMINI / VOLCENGINE / MOONSHOT / 智谱 / 讯飞）到 cc CLI 环境变量，<strong class="text-ink">无需手动配置</strong>。
+        </p>
+        <p class="mt-6 text-muted leading-relaxed">
+          与"远程终端"是<strong class="text-ink">两条独立链路</strong>：远程终端控桌面 shell（需要配对），
+          <strong class="text-ink">本地终端在手机自己沙箱内跑 cc / mksh / toybox ~250 命令</strong>（完全离线可用）。
+          地铁、飞机、断网环境也能跑 <code class="font-mono bg-cream px-1 rounded">cc note add</code>、<code class="font-mono bg-cream px-1 rounded">cc search</code>、<code class="font-mono bg-cream px-1 rounded">cc memory</code> 等本地子命令。
+        </p>
+
+        <div class="mt-10 grid md:grid-cols-2 gap-6">
+          <div class="p-6 rounded-2xl border border-line bg-cream/30">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">CC UI · LAN 访问</div>
+            <h3 class="font-display text-xl mb-3">手机起 <code class="font-mono">cc ui</code>，电脑浏览器直连</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              终端内敲 <code class="font-mono bg-paper px-1 rounded">cc ui</code> 拉起 Web 管理面板，自动绑定
+              <code class="font-mono bg-paper px-1 rounded">0.0.0.0</code> + 自动生成 token，
+              同 WiFi 的电脑直接浏览器开 <code class="font-mono bg-paper px-1 rounded">http://&lt;手机 IP&gt;:5174</code>，
+              在大屏上看手机的笔记 / 知识图谱 / cowork。
+            </p>
+          </div>
+          <div class="p-6 rounded-2xl border border-line bg-cream/30">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">自动更新</div>
+            <h3 class="font-display text-xl mb-3">总是拿 npm registry 最新版</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              首启用 APK bundled snapshot（离线可用），24 小时周期 WorkManager 后台对比
+              <code class="font-mono bg-paper px-1 rounded">registry.npmjs.org/chainlesschain</code> 自动升级；
+              Settings 可手动触发"立即检查"。
+              中国用户可在终端内 <code class="font-mono bg-paper px-1 rounded">npm config set registry https://registry.npmmirror.com/</code> 切镜像。
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 grid md:grid-cols-4 gap-3">
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">体积</div>
+            <div class="text-sm text-ink/80">arm64-v8a Lite ~50MB（含 Node 25 + cc CLI + mksh + toybox + xterm.js）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">首启 bootstrap</div>
+            <div class="text-sm text-ink/80">≤ 10s 解压 $PREFIX；二次启动 ≤ 500ms（仅 relink lib）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">CI 自动化</div>
+            <div class="text-sm text-ink/80">node-runtime-bundle.yml 周期拉 Termux Node + npm pack + patchelf 重打 → 自动 commit 到 jniLibs/</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">真机验证</div>
+            <div class="text-sm text-ink/80">Xiaomi 24115RA8EC × <code class="font-mono">cc -v → 0.162.2</code> ✅ 2026-05-19</div>
+          </div>
+        </div>
+
+        <p class="mt-8 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/chainlesschain/android-local-terminal.html" target="_blank" rel="noopener">用户文档：完整使用方法 + 故障排查 + 11 章节 →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Local_Terminal.html" target="_blank" rel="noopener">设计文档：6 phase + 12 trap →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Local_Terminal_CI_Bundle.html" target="_blank" rel="noopener">CI Bundle 设计：Termux Node + patchelf →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- #21 P1 主体 5/5 · v5.0.3.55 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">#21 P1 主体 5/5 · 2026-05-15 · v5.0.3.55</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Android GA 后续 scope P1 主体 5/5 闭环</h2>
+        <p class="text-muted leading-relaxed">
+          v1.0 GA 上架后 issue #21 跟进的 5 项主体 scope 一日内全部 land — A.1 桌面 Linux native 配对（cc pair preflight + cc pair token + systemd 模板 + 9 段用户指南）/ A.2 三端 UI consistency 设计文档 v0.1（4 项必须一致 + 4 项必须不同）/ B.1 web-shell 私钥签字 UI（MultisigSigner + in-process WS topic + SignProposalModal + DID 路由）/ B.5 跨链桥 outbound × m-of-n 多签（Layer 1+2 共 8 PRs，cc_bridges provenance 列 + crosschain-mtc helpers + verifyMultiHopBridgeEnvelope auto-runs check）/ C.1 watch face VoiceMode shortcut（phone NavGraph + wear MessageClient forward，trigger_source 锁 WEAR_FORWARD 防伪）。累计约 270 单测全绿，最终 sweep 修 2 个 Robolectric @Config 漏标。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://github.com/chainlesschain/chainlesschain/issues/21" target="_blank" rel="noopener">issue #21 GA 后续 scope tracker →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://design.chainlesschain.com/android-repositioning" target="_blank" rel="noopener">设计文档 §10 GA 后续 scope →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- W3.7 Flow B QR pairing -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">W3.7 · 2026-05-12 · Xiaomi 真机 verified</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Flow B 扫码配对（默认）</h2>
+        <p class="text-muted leading-relaxed">
+          桌面显二维码、手机摄像头扫桌面屏 —— 跟微信 / 支付宝 / Discord / WhatsApp Web 一个套路。
+          1 秒完成配对，Xiaomi 真机验证。Flow A（手机生码桌面扫，Signal e2ee）保留为高级路径。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_3-首次设置-扫码配对桌面（w3-7-flow-b）" target="_blank" rel="noopener">用户文档：扫码配对完整步骤 + 故障排查 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- iOS Phase 6 — 15 main tab + 5 AI sub-tab + Knowledge + 多模态 + Agent streaming -->
+  <section class="py-16 md:py-20 border-b border-line bg-cream/30">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">iOS · Phase 6 · 2026-05-18 · 编译验证完成 / 待真机 E2E</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">iOS 端 15 个主屏 tab，远程知识库 + 多模态 + Agent 流式输出。</h2>
+        <p class="text-muted leading-relaxed">
+          RemoteOperate 主屏 <strong>15 tab</strong>（含 Phase 6.3 知识库 + Phase 6.4 AI 扩展），AI 扩展子页 5 个（模板 / 代码 / RAG / 多模态 / Agents）。
+          桌面 +55 method，iOS 56 wrap，桌面 ai-handler 共 37 method 覆盖（chat 12 + extended 25）。
+          多模态 v0.3 支持 PhotosPicker OCR / 文本生图 / AVAudioPlayer TTS 播放 / AVAudioRecorder 实时录音（16kHz mono AAC，Whisper 优化）；Agent 后台 250ms poll 实时累积渲染。
+          iOS 16+ SwiftUI + Swift Concurrency，绿基线 iOS CI commit <code>1fb947b32</code>。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-ios.html" target="_blank" rel="noopener">用户文档：iOS Phase 1-6 完整 + 真机 E2E 38 场景矩阵 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 桌面 ↔ Android 双向同步 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3d · 2026-05-09</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">桌面 ↔ Android 双向同步</h2>
+        <p class="text-muted leading-relaxed">
+          Note / Conversation / DID / Community / Channel + tombstones 五类资源双向同步。
+          全链路 Ed25519 严格验签，私钥不离手机，密码不上线。30 分钟后台 wifi 自动同步 + 手动触发。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_8-桌面-↔-android-双向同步（phase-3d-v1-3）" target="_blank" rel="noopener">用户文档：同步资源 / 触发时机 / 故障排查 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan C 信令转发 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">远程操控 Plan C · v5.0.3.50 · 2026-05-13</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">遥控器先通：信令转发 RPC。</h2>
+        <p class="text-muted leading-relaxed">
+          手机当遥控器调桌面 skill / 列表 / 状态，第一段先走低带宽路径。
+          LAN 直连优先，失败回落公网中继，实测 Ping 100–400ms，日常遥控完全够用。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-远程操控架构（plan-a-b-c-三段位）" target="_blank" rel="noopener">用户文档：Plan A/B/C 三段位完整说明 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A+B 基础设施 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A + B 基础设施 · v5.0.3.51</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">WebRTC 透传 + STUN/TURN 兜底。</h2>
+        <p class="text-muted leading-relaxed">
+          WebRTC P2P 通道 + TURN 自动接管 NAT 穿透。双 NAT / 蜂窝运营商 / 防火墙重重场景下，
+          照样能稳定连上。HMAC-SHA1 24h TTL ephemeral 凭证，零硬编码 secret。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-4-plan-a-b-基础设施（v5-0-3-51）" target="_blank" rel="noopener">用户文档：TURN 部署 / 5 场景验收矩阵 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- v5.0.3.54 真机 E2E 收口：远程终端打通可用 -->
+  <section class="py-16 md:py-20 border-b border-line bg-paper">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 远程终端真机可用 · v5.0.3.54 · 2026-05-14</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">远程终端真机可用 —— 地铁里敲 cc / claude 指挥桌面。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          Xiaomi 真机 × Windows git-bash 真机 E2E 跑通：登录 → 配对桌面 → "+ 新会话" 选 bash → 直接敲
+          <code class="font-mono bg-cream px-1 rounded">cc -v</code> / <code class="font-mono bg-cream px-1 rounded">claude</code> / <code class="font-mono bg-cream px-1 rounded">npm</code>。
+          手机端从"演示截图"走到了"地铁里能干活"。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_7-远程终端（android-操控桌面-pty）" target="_blank" rel="noopener">用户文档：8 个 bug 详解 + 故障排查 →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v5.0.3.54 CHANGELOG →</a>
+        </p>
+
+        <!-- 真机截图：Android 上跑 Claude Code -->
+        <div class="mt-10 grid md:grid-cols-2 gap-6 items-center">
+          <div>
+            <h3 class="font-display text-2xl mb-3">手机上跑 Claude Code，不是截图蒙太奇。</h3>
+            <p class="text-muted leading-relaxed text-sm mb-4">
+              手机敲 <code class="font-mono bg-cream px-1 rounded">claude</code>，桌面 git-bash 启动 Claude Code，
+              Welcome back · Opus 4.7 · Claude Max · 工作目录、softkey toolbar、xterm.js 渲染全部就绪。
+              地铁里照样能继续昨晚的对话。
+            </p>
+            <p class="text-muted leading-relaxed text-sm">
+              支持任意 CLI：cc / claude / git / npm / kubectl / docker / pytest …… 桌面跑什么 shell 都行（pwsh / cmd / bash / wsl）。
+            </p>
+            <p class="mt-4 text-xs text-muted font-mono">
+              prompt: <code class="bg-cream px-1 rounded">longfa@DESKTOP-MTMV2RE MINGW64 /c/code/test1</code>
+            </p>
+          </div>
+          <div>
+            <img src="/screenshots/android-claude-code-remote-terminal.jpg"
+                 alt="Android 远程终端运行 Claude Code（Opus 4.7 / Claude Max）— Xiaomi 24115RA8EC × Windows git-bash 真机 E2E"
+                 class="rounded-2xl border border-line shadow-lg w-full max-w-sm mx-auto"
+                 loading="lazy" />
+            <p class="mt-3 text-xs text-muted text-center">v5.0.3.54 真机 E2E · 手机 Android · 桌面 Windows git-bash longfa 用户</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Android 项目 + 远程终端 2026-05-18 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 项目 + 远程终端 · 2026-05-18</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">手机上选个 PC 项目，一键开远程终端落在项目根目录。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          打开项目详情页点终端图标，<strong class="text-ink">弹出桌面项目列表 → tap 一个 → 终端自动开在那个目录</strong>，
+          零键盘输入。手机不用输 Windows 长路径，也不用记 cd 命令。
+          同时<strong class="text-ink">拉取 PC 项目时把文件内容全量同步到手机</strong>，离线打开项目也能看到文件，
+          有进度条显示当前下载到哪。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_8-项目-远程终端入口" target="_blank" rel="noopener">用户文档：操作流程 + 场景演示 →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Project_Remote_Terminal_Entry.html" target="_blank" rel="noopener">设计文档：v2 picker + 全量拉文件 + 真机 E2E 8 场景 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Android 远程文件 skill -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 远程文件 · 2026-05-17</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">不只能开终端 —— Android 现在能<strong class="text-ember">浏览 / 上传 / 下载</strong>桌面任意文件。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          地铁里要看桌面上昨天写的设计稿、改服务器配置、下载某个 build 产物到手机，
+          再也不用打开桌面。<strong class="text-ink">浏览 PC 任意目录</strong>（无 sandbox 限制，
+          家目录 / 盘根 / 项目目录都能进）、<strong class="text-ink">手机本机文件上传到 PC Downloads 目录</strong>（防覆盖 (1)/(2) 后缀）、
+          <strong class="text-ink">PC 文件下载到手机公共 Download 目录</strong>（原生「文件管理」/「相册」/「阅读器」都能直接看到）、
+          <strong class="text-ink">app 内一键打开下载文件</strong>（图片→相册、PDF→阅读器，不跳出 app）。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/remote-file.html" target="_blank" rel="noopener">用户文档：5 个 UI 入口 + 操作流程 + 已知限制 →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Remote_File_Skill.html" target="_blank" rel="noopener">设计文档：协议接口 + 6 bug 修法 + 真机 E2E 8 场景 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A.1 远程终端 WebRTC DataChannel 直连 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A.1 远程终端 · v5.0.3.53 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">同一天再升级：4 跳信令砍到 1 跳 DataChannel 直连。</h2>
+        <p class="text-muted leading-relaxed">
+          高频高吞吐的终端流量切到 <strong class="text-ink">WebRTC DataChannel 直连</strong>，绕开公网中转。
+          RTT p50 从 200-500ms 降到 30-80ms（LAN）/ 50-200ms（TURN），p99 从 1.5-30s 降到 200-800ms，
+          稳定性从"间歇断"到"数小时持续"。signaling 路径保留兜底。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-3-plan-a-1-webrtc-dc-直连（v5-0-3-53-4-跳信令砍到-1-跳）" target="_blank" rel="noopener">用户文档：Plan A.1 5 phase 拆分 + 性能对比 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A 远程终端 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A 远程终端 · v5.0.3.52 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">手机里看到桌面终端的输出。</h2>
+        <p class="text-muted leading-relaxed">
+          手机当桌面终端的"远程显示器 + 键盘"。可以跑 cc / claude / git / npm / kubectl 等任意 CLI，
+          但不能 attach 桌面已经打开的外部终端（OS 限制）。出差路上查 CI、家里改服务器、凌晨被告警唤起，
+          不用开电脑也能干活。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/remote-terminal.html" target="_blank" rel="noopener">用户文档：远程终端使用指南 →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/guide/mobile-android.html#_7-远程终端（android-操控桌面-pty）" target="_blank" rel="noopener">移动端远程终端章节 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 社交功能产线化 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">社交收口 · 2026-05-13</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">社交功能从 demo 走到上线。</h2>
+        <p class="text-muted leading-relaxed">
+          发帖 / 朋友圈 / 好友 / 用户资料 / 评论 / 通知中心 / 屏蔽 / 举报全部接通真实屏幕，
+          不再是占位符。跨设备 DID 资料查询走端到端协议，5 秒超时；通知中心支持筛选 / 批量已读 / 清理菜单。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_10-社交功能（v5-0-3-53-产线化）" target="_blank" rel="noopener">用户文档：社交功能完整说明 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 测试与质量基线 -->
+  <section class="py-16 md:py-20 bg-cream/50 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-4">质量基线</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">383+ 单测 · GA 标准。</h2>
+        <p class="text-muted leading-relaxed">
+          M1–M5 JVM 部分全部 green。M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs 同步 5 项用户出场清单见
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md" target="_blank" rel="noopener">v1.0 GA checklist</a>。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: 'M1', label: 'REMOTE inventory', tests: '795 fn 盘点' },
+          { n: 'M2', label: 'L1 钱包', tests: '68 测' },
+          { n: 'M3', label: 'L2 捕获 (5/5)', tests: '130 测' },
+          { n: 'M4', label: 'L3 REMOTE 收敛', tests: '152 测' },
+          { n: 'M5', label: 'SignAsService', tests: '33 测' },
+        ].map((m) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{m.n}</div>
+            <div class="font-display text-base mb-1">{m.label}</div>
+            <div class="text-xs text-muted">{m.tests}</div>
+          </div>
+        ))}
+      </div>
+
+      <p class="mt-6 text-sm text-muted">
+        架构：Jetpack Compose · Kotlin · Hilt DI · Room · MockK + Robolectric ·
+        Play Services（FusedLocationProvider / FCM 骨架）· StrongBox Keystore ·
+        ML Kit / ZXing 扫码 · 火山 SeedASR 16 kHz 流式语音。
+      </p>
+    </div>
+  </section>
+
+  <!-- 已知限制（v1.0 不修，v1.1 上） -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">已知限制 · v1.1 待修</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">v1.0 不修的几件事。</h2>
+        <ul class="mt-6 space-y-2.5 text-muted">
+          <li>· <strong class="text-ink">FCM 国内可达性</strong>：墙内不稳定 · v1.1 接 OPPO / 小米 / 华为统一推送</li>
+          <li>· <strong class="text-ink">单 peer pair</strong>：v1.0 仅 1 个桌面配对 · 多设备 N 端走 v1.1</li>
+          <li>· <strong class="text-ink">离线消息队列</strong>：桌面离线时 REMOTE 请求不缓存 · v1.1 加重放</li>
+          <li>· <strong class="text-ink">M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs 同步</strong>：5 项用户出场清单</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download" class="py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">下载 · Android {ANDROID_VERSION}</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">挑一个适合你的包。</h2>
+        <p class="mt-6 text-muted">
+          多数 2019 年后的国行 / 海外设备选 <strong class="text-ink">arm64-v8a</strong>。老设备或不确定就用 universal。
+          Google Play 上架走 AAB（开发者侧）。所有包均由 GitHub Actions release.yml 签名出包。
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        {apkArm64 && (
+          <a
+            href={apkArm64.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border-2 border-ember bg-ember/5 hover:bg-ember/10 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-ember">ARM64-V8A · 推荐</div>
+              <span class="font-mono text-xs text-ember">{apkArm64.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-arm64-v8a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">64-bit ARM 设备 · Android 8.0+ · 主流首选</div>
+            <div class="text-xs text-muted">小米 / 红米 / 华为 / OPPO / vivo / 一加 / 三星 / Pixel 等 2019+</div>
+            <div class="mt-6 text-sm text-ember">下载 APK ↓</div>
+          </a>
+        )}
+
+        {apkUniversal && (
+          <a
+            href={apkUniversal.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">UNIVERSAL</div>
+              <span class="font-mono text-xs text-muted">{apkUniversal.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-universal-release.apk</h3>
+            <div class="text-sm text-ink mb-3">通用包 · 双架构合一 · 不确定就用这个</div>
+            <div class="text-xs text-muted">体积更大但兼容所有 ARM 架构 · 一包通吃</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 APK ↓</div>
+          </a>
+        )}
+
+        {apkArmV7 && (
+          <a
+            href={apkArmV7.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">ARMEABI-V7A</div>
+              <span class="font-mono text-xs text-muted">{apkArmV7.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-armeabi-v7a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">32-bit ARM · 老设备 fallback</div>
+            <div class="text-xs text-muted">2018 年前的低端设备 · 体积最小</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 APK ↓</div>
+          </a>
+        )}
+
+        {aab && (
+          <a
+            href={aab.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">AAB · DEVELOPER</div>
+              <span class="font-mono text-xs text-muted">{aab.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-release.aab</h3>
+            <div class="text-sm text-ink mb-3">Android App Bundle · Google Play 上架专用</div>
+            <div class="text-xs text-muted">不是给终端用户的直装包 —— 普通用户请选 APK</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 AAB ↓</div>
+          </a>
+        )}
+      </div>
+
+      <div class="mt-10 p-6 rounded-2xl bg-cream/70 border border-line text-sm text-muted leading-relaxed">
+        <strong class="text-ink">安装说明：</strong> 国行设备首次安装本地 APK 需在系统设置允许"来自此来源的应用"。
+        Android 自更新由应用内 <code class="font-mono bg-paper px-1 rounded">设置 → 检查更新</code> 入口走 GitHub
+        Releases <code class="font-mono bg-paper px-1 rounded">{ANDROID_TAG}</code> tag → DownloadManager →
+        REQUEST_INSTALL_PACKAGES 闭环。iOS 版本即将上线。
+      </div>
+
+      <p class="mt-6 text-sm text-muted text-center">
+        看一下完整版本说明？前往 <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="text-ember hover:underline">GitHub Release {ANDROID_TAG} ↗</a>
+        或 <a href="https://github.com/chainlesschain/chainlesschain/blob/main/android-app/CHANGELOG.md" target="_blank" rel="noopener" class="text-ember hover:underline">Android CHANGELOG ↗</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,231 @@
+# Docker Compose - 监控系统配置
+# 用途: Prometheus + Grafana + AlertManager 监控栈
+# 使用: docker-compose -f docker-compose.monitoring.yml up -d
+
+version: '3.8'
+
+services:
+  # ==================== Prometheus ====================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chainlesschain_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # ==================== AlertManager ====================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: chainlesschain_alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # ==================== Grafana ====================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chainlesschain_grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_SERVER_ROOT_URL=https://grafana.yourdomain.com
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ==================== Node Exporter（系统指标）====================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: chainlesschain_node_exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "127.0.0.1:9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # ==================== cAdvisor（容器指标）====================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: chainlesschain_cadvisor
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    privileged: true
+    devices:
+      - /dev/kmsg
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # ==================== PostgreSQL Exporter ====================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: chainlesschain_postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${DB_USER:-chainlesschain}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-chainlesschain}?sslmode=disable
+    ports:
+      - "127.0.0.1:9187:9187"
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+      - monitoring_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # ==================== Redis Exporter ====================
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: chainlesschain_redis_exporter
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:9121:9121"
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+      - monitoring_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # ==================== Blackbox Exporter（HTTP探测）====================
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: chainlesschain_blackbox_exporter
+    ports:
+      - "127.0.0.1:9115:9115"
+    volumes:
+      - ./monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # ==================== 钉钉Webhook（可选）====================
+  dingtalk-webhook:
+    image: timonwong/prometheus-webhook-dingtalk:latest
+    container_name: chainlesschain_dingtalk_webhook
+    command:
+      - '--config.file=/etc/prometheus-webhook-dingtalk/config.yml'
+    ports:
+      - "127.0.0.1:8060:8060"
+    volumes:
+      - ./monitoring/dingtalk/config.yml:/etc/prometheus-webhook-dingtalk/config.yml:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+networks:
+  chainlesschain_network:
+    external: true
+  monitoring_network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  grafana_data:
+    driver: local

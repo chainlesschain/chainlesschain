@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Task Status -->
+    <string name="task_status_pending">待办</string>
+    <string name="task_status_in_progress">进行中</string>
+    <string name="task_status_completed">已完成</string>
+    <string name="task_status_cancelled">已取消</string>
+    <string name="task_status_unknown">未知</string>
+
+    <!-- Task Priority -->
+    <string name="task_priority_low">低</string>
+    <string name="task_priority_medium">中</string>
+    <string name="task_priority_high">高</string>
+    <string name="task_priority_urgent">紧急</string>
+    <string name="task_priority_unknown">未知</string>
+
+    <!-- Project Status -->
+    <string name="project_status_active">进行中</string>
+    <string name="project_status_paused">已暂停</string>
+    <string name="project_status_completed">已完成</string>
+    <string name="project_status_archived">已归档</string>
+    <string name="project_status_deleted">已删除</string>
+    <string name="project_status_unknown">未知</string>
+
+    <!-- Project Type -->
+    <string name="project_type_document">文档</string>
+    <string name="project_type_web">网站</string>
+    <string name="project_type_app">应用</string>
+    <string name="project_type_data">数据</string>
+    <string name="project_type_design">设计</string>
+    <string name="project_type_research">研究</string>
+    <string name="project_type_other">其他</string>
+    <string name="project_type_unknown">未知</string>
+
+    <!-- File Category -->
+    <string name="file_category_document">文档</string>
+    <string name="file_category_image">图片</string>
+    <string name="file_category_video">视频</string>
+    <string name="file_category_audio">音频</string>
+    <string name="file_category_archive">压缩包</string>
+    <string name="file_category_code">代码</string>
+    <string name="file_category_other">其他</string>
+
+    <!-- Import Type -->
+    <string name="import_type_copy">复制</string>
+    <string name="import_type_link">链接</string>
+    <string name="import_type_sync">同步</string>
+
+    <!-- Import Source -->
+    <string name="import_source_file_browser">文件浏览器</string>
+    <string name="import_source_share_intent">系统分享</string>
+    <string name="import_source_ai_chat">AI对话</string>
+
+    <!-- Transfer Priority -->
+    <string name="transfer_priority_highest">最高</string>
+    <string name="transfer_priority_high">高</string>
+    <string name="transfer_priority_normal">普通</string>
+    <string name="transfer_priority_low">低</string>
+    <string name="transfer_priority_lowest">最低</string>
+</resources>

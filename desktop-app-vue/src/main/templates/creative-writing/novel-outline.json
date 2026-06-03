@@ -1,0 +1,219 @@
+{
+  "id": "tpl_creative_novel_001",
+  "name": "novel_outline_template",
+  "display_name": "小说大纲",
+  "description": "生成完整的小说创作大纲，包含人物设定、情节结构、世界观和章节规划",
+  "icon": "📖",
+  "category": "creative-writing",
+  "subcategory": "novel",
+  "tags": [
+    "小说",
+    "大纲",
+    "创作",
+    "故事"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成小说创作大纲，要求:\n\n**小说信息：**\n- 小说名称：{{novelTitle}}\n- 题材类型：{{genre}}\n- 目标字数：{{targetWordCount}}万字\n- 写作风格：{{writingStyle}}\n\n**一、核心创意**\n\n### 中心主题\n{{theme}}\n\n### 故事梗概（200字）\n一句话介绍：{{oneLine}}\n\n完整梗概：\n[根据题材展开，包含开端、发展、高潮、结局]\n\n**二、世界观设定**\n\n{{#eq genre \"玄幻/仙侠\"}}\n### 修炼体系\n- 境界划分：\n  1. 初级：炼气期、筑基期\n  2. 中级：金丹期、元婴期\n  3. 高级：化神期、合体期\n  4. 顶级：大乘期、渡劫期\n\n- 功法/武技：\n  [描述主要修炼功法和战斗技能]\n\n### 势力划分\n- 正道：[三大宗门]\n- 魔道：[魔宗、邪教]\n- 散修联盟\n{{/eq}}\n\n{{#eq genre \"都市/现实\"}}\n### 社会背景\n- 时代：现代都市\n- 地点：{{city}}市\n- 社会阶层：上流社会、中产阶级、普通民众\n\n### 行业设定\n- 主角所在行业：{{industry}}\n- 行业规则和潜规则\n- 竞争对手和合作伙伴\n{{/eq}}\n\n{{#eq genre \"科幻\"}}\n### 科技设定\n- 时间线：{{timeline}}年\n- 科技水平：\n  - 太空技术：[星际旅行、超光速]\n  - AI技术：[人工智能、机器人]\n  - 生物技术：[基因改造、延寿]\n\n### 宇宙结构\n- 星球/文明划分\n- 种族设定\n- 政治格局\n{{/eq}}\n\n{{#eq genre \"历史/架空\"}}\n### 历史背景\n- 朝代：{{dynasty}}\n- 历史事件：[真实与虚构结合]\n- 政治格局：朝堂、地方、边疆\n\n### 社会制度\n- 官职体系\n- 科举制度\n- 军事体系\n{{/eq}}\n\n**三、人物设定**\n\n### 主角\n- 姓名：{{protagonistName}}\n- 年龄：{{protagonistAge}}岁\n- 性别：{{protagonistGender}}\n- 外貌特征：\n  - 身高/体型：\n  - 标志性特征：\n- 性格特点：\n  - 优点：[3个]\n  - 缺点：[2个]\n  - 特殊癖好：\n- 背景故事：\n  - 出身：\n  - 家庭：\n  - 重要经历：\n- 初始能力：\n- 成长目标：\n- 人物弧光：[从A状态到B状态的转变]\n\n### 女主角/男主角\n- 姓名：\n- 年龄：\n- 性格：\n- 与主角关系发展：\n  1. 初次相遇（第X章）\n  2. 产生好感（第X章）\n  3. 确立关系（第X章）\n\n### 主要配角（3-5人）\n\n**配角1：[导师/前辈]**\n- 姓名：\n- 作用：引导主角、传授技能\n- 关键出场：第X章、第Y章\n\n**配角2：[挚友]**\n- 姓名：\n- 作用：并肩作战、提供帮助\n- 命运：[生死未卜/牺牲/成长]\n\n**配角3：[竞争对手]**\n- 姓名：\n- 作用：刺激主角成长\n- 关系转变：敌人 → 朋友/继续敌对\n\n### 反派角色\n\n**大反派**\n- 姓名：\n- 动机：[为什么要这么做]\n- 实力：远超主角（前期）/势均力敌（中期）/被超越（后期）\n- 弱点：\n- 结局：第X章被击败\n\n**小反派/炮灰（5-10个）**\n- [分阶段登场的对手]\n\n**四、情节结构**\n\n### 三幕式结构\n\n**第一幕：开端（{{divide targetWordCount 4}}万字）**\n\n1-{{divide targetWordCount 20}}章：引入\n- 主角登场、日常生活\n- 激励事件（改变主角命运的事件）\n- 进入新世界/开始冒险\n\n**第二幕：发展（{{divide targetWordCount 2}}万字）**\n\n{{add (divide targetWordCount 20) 1}}-{{divide targetWordCount 10}}章：上升\n- 主角初步成长\n- 结识伙伴\n- 小胜利积累\n\n{{add (divide targetWordCount 10) 1}}-{{multiply (divide targetWordCount 20) 3}}章：中点转折\n- 重大挫折/背叛\n- 失去重要的人/物\n- 主角陷入低谷\n\n**第三幕：高潮与结局（{{divide targetWordCount 4}}万字）**\n\n{{add (multiply (divide targetWordCount 20) 3) 1}}-结尾：决战\n- 主角觉醒/突破\n- 最终对决\n- 解决所有伏笔\n- 开放式/完美结局\n\n### 关键情节点（15个）\n\n1. **开篇钩子**（第1章）：[吸引读者的开头]\n2. **激励事件**（第{{divide targetWordCount 40}}章）：[改变主角命运]\n3. **第一次战斗**（第{{divide targetWordCount 30}}章）：\n4. **获得关键物品/能力**（第{{divide targetWordCount 20}}章）：\n5. **认识女主**（第{{divide targetWordCount 15}}章）：\n6. **第一次挫折**（第{{divide targetWordCount 10}}章）：\n7. **修炼/成长蒙太奇**（第{{add (divide targetWordCount 10) 5}}章）：\n8. **中点反转**（第{{divide targetWordCount 5}}章）：\n9. **背叛/失去**（第{{add (divide targetWordCount 5) 10}}章）：\n10. **低谷期**（第{{add (divide targetWordCount 5) 15}}章）：\n11. **顿悟/突破**（第{{add (divide targetWordCount 5) 20}}章）：\n12. **集结盟友**（第{{add (divide targetWordCount 5) 25}}章）：\n13. **决战前夕**（第{{add (divide targetWordCount 5) 30}}章）：\n14. **最终之战**（第{{subtract (divide targetWordCount 2.5) 5}}章）：\n15. **尾声**（第{{divide targetWordCount 2.5}}章）：\n\n**五、章节规划**\n\n### 章节结构（每章3000-5000字）\n\n总章节数：约{{multiply targetWordCount 3}}章（按4000字/章计算）\n\n### 前10章详细大纲\n\n**第1章：[章节标题]**\n- 场景：\n- 出场人物：\n- 主要情节：\n  1. \n  2. \n  3. \n- 章末钩子：[悬念/引出下章]\n\n**第2章：[章节标题]**\n- ...\n\n[第3-10章同样格式]\n\n### 中期章节框架（第11-{{divide (multiply targetWordCount 3) 2}}章）\n\n[每10章一个阶段，列出核心情节]\n\n### 后期章节框架（第{{add (divide (multiply targetWordCount 3) 2) 1}}-{{multiply targetWordCount 3}}章）\n\n[冲向高潮的章节安排]\n\n**六、写作计划**\n\n### 时间规划\n\n- 总字数：{{targetWordCount}}万字\n- 日更字数：{{dailyWords}}字\n- 预计完成时间：{{divide (multiply targetWordCount 10000) dailyWords}}天（约{{divide (divide (multiply targetWordCount 10000) dailyWords) 30}}个月）\n\n### 更新节奏\n\n{{#eq updateFrequency \"日更\"}}\n- 每日更新：{{dailyWords}}字\n- 建议时间：每晚8点更新\n- 存稿建议：提前写好20章备用\n{{/eq}}\n\n{{#eq updateFrequency \"周更\"}}\n- 每周更新：{{multiply dailyWords 7}}字\n- 更新频率：每周X/X/X更新\n{{/eq}}\n\n### 里程碑\n\n- [ ] 完成人物设定（第1周）\n- [ ] 完成前30章大纲（第2周）\n- [ ] 完成全文大纲（第3周）\n- [ ] 写完10万字（第X周）\n- [ ] 写完50万字（第X周）\n- [ ] 完结（第X周）\n\n**七、金手指/特殊设定**\n\n{{#if goldenFinger}}\n### 主角金手指\n\n- 类型：{{goldenFingerType}}\n- 获得方式：\n- 作用：\n  1. \n  2. \n  3. \n- 限制/代价：[避免主角过于逆天]\n- 升级路线：\n{{/if}}\n\n**八、伏笔与悬念**\n\n### 长线伏笔（贯穿全文）\n\n1. 主角身世之谜\n2. 终极BOSS的阴谋\n3. 世界真相\n\n### 中期伏笔（50-100章内解答）\n\n1. \n2. \n3. \n\n### 短期伏笔（10-30章内解答）\n\n1. \n2. \n3. \n\n**九、写作技巧提醒**\n\n1. **开篇3章黄金法则**\n   - 第1章：吸引眼球，展示主角魅力\n   - 第2章：引入冲突，制造悬念\n   - 第3章：确立基调，明确方向\n\n2. **节奏把控**\n   - 每10章一个小高潮\n   - 每50章一个中高潮\n   - 避免连续5章平淡无奇\n\n3. **人物塑造**\n   - 给每个角色独特的口头禅\n   - 避免脸谱化\n   - 配角也要有弧光\n\n4. **避免的坑**\n   - 不要频繁更改设定\n   - 避免无意义的水文\n   - 伏笔不要挖太多忘记填\n\n**十、推广与变现**\n\n### 发布平台\n\n{{#eq publishPlatform \"网文平台\"}}\n- 首选：起点中文网/晋江文学城\n- 备选：纵横中文网/17K小说网\n- 签约目标：3万字前签约\n{{/eq}}\n\n### 收入预期\n\n- 签约收入：千字X元\n- 全勤奖：月更X万字奖励X元\n- 订阅分成：[根据平台规则]\n\n### 读者互动\n\n- 设置读者群\n- 定期征集意见\n- 番外投票\n\n---\n\n**创作寄语**\n\n创作小说是一场马拉松，坚持比灵感更重要。\n\n- 保持更新节奏\n- 倾听读者反馈但不被左右\n- 享受创作过程\n\n祝创作顺利！",
+  "variables_schema": [
+    {
+      "name": "novelTitle",
+      "label": "小说名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：剑指苍穹"
+    },
+    {
+      "name": "genre",
+      "label": "题材类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "玄幻/仙侠",
+          "label": "玄幻/仙侠"
+        },
+        {
+          "value": "都市/现实",
+          "label": "都市/现实"
+        },
+        {
+          "value": "科幻",
+          "label": "科幻"
+        },
+        {
+          "value": "历史/架空",
+          "label": "历史/架空"
+        },
+        {
+          "value": "悬疑/推理",
+          "label": "悬疑/推理"
+        }
+      ]
+    },
+    {
+      "name": "targetWordCount",
+      "label": "目标字数(万字)",
+      "type": "number",
+      "required": false,
+      "default": 100,
+      "min": 10,
+      "max": 1000
+    },
+    {
+      "name": "writingStyle",
+      "label": "写作风格",
+      "type": "select",
+      "required": false,
+      "default": "爽文",
+      "options": [
+        {
+          "value": "爽文",
+          "label": "爽文（快节奏打脸）"
+        },
+        {
+          "value": "虐文",
+          "label": "虐文（情感纠葛）"
+        },
+        {
+          "value": "正剧",
+          "label": "正剧（严肃写实）"
+        }
+      ]
+    },
+    {
+      "name": "theme",
+      "label": "中心主题",
+      "type": "string",
+      "required": false,
+      "default": "成长与复仇",
+      "placeholder": "例如：爱与救赎、权力与正义"
+    },
+    {
+      "name": "oneLine",
+      "label": "一句话简介",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：废柴少年获得系统，逆袭成为最强者"
+    },
+    {
+      "name": "protagonistName",
+      "label": "主角姓名",
+      "type": "string",
+      "required": false,
+      "default": "叶凡",
+      "placeholder": "主角的名字"
+    },
+    {
+      "name": "protagonistAge",
+      "label": "主角年龄",
+      "type": "number",
+      "required": false,
+      "default": 18,
+      "min": 10,
+      "max": 100
+    },
+    {
+      "name": "protagonistGender",
+      "label": "主角性别",
+      "type": "select",
+      "required": false,
+      "default": "男",
+      "options": [
+        {
+          "value": "男",
+          "label": "男"
+        },
+        {
+          "value": "女",
+          "label": "女"
+        }
+      ]
+    },
+    {
+      "name": "dailyWords",
+      "label": "日更字数",
+      "type": "number",
+      "required": false,
+      "default": 4000,
+      "min": 2000,
+      "max": 10000
+    },
+    {
+      "name": "updateFrequency",
+      "label": "更新频率",
+      "type": "select",
+      "required": false,
+      "default": "日更",
+      "options": [
+        {
+          "value": "日更",
+          "label": "日更"
+        },
+        {
+          "value": "周更",
+          "label": "周更"
+        }
+      ]
+    },
+    {
+      "name": "publishPlatform",
+      "label": "发布平台",
+      "type": "select",
+      "required": false,
+      "default": "网文平台",
+      "options": [
+        {
+          "value": "网文平台",
+          "label": "网文平台（起点/晋江）"
+        },
+        {
+          "value": "自媒体",
+          "label": "自媒体（公众号）"
+        },
+        {
+          "value": "实体出版",
+          "label": "实体出版"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "《{{novelTitle}}》大纲",
+    "files": [
+      {
+        "path": "完整大纲.md",
+        "type": "markdown"
+      },
+      {
+        "path": "人物卡.md",
+        "type": "markdown",
+        "content": "# 人物设定卡\\n\\n## 主角\\n- 姓名：{{protagonistName}}\\n- 年龄：{{protagonistAge}}\\n\\n## 配角\\n..."
+      },
+      {
+        "path": "世界观设定.md",
+        "type": "markdown"
+      },
+      {
+        "path": "章节大纲.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer",
+    "tool_template_renderer"
+  ],
+  "execution_engine": "document"
+}

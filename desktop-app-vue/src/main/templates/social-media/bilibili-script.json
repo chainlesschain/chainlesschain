@@ -1,0 +1,124 @@
+{
+  "id": "tpl_social_bilibili_001",
+  "name": "bilibili_video_content",
+  "display_name": "B站视频文案",
+  "description": "为B站视频生成脚本和简介，包含三连引导、弹幕互动设计和投币福利",
+  "icon": "📺",
+  "category": "social-media",
+  "subcategory": "bilibili",
+  "tags": [
+    "B站",
+    "视频",
+    "UP主",
+    "三连"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成B站视频内容，要求：\n\n**视频信息：**\n- 标题：{{videoTitle}}\n- 分区：{{bilibiliZone}}\n- 时长：{{duration}}分钟\n\n**视频脚本要点：**\n\n开场（0:00-0:30）：\n- UP主问候\n- 视频主题介绍\n- 三连提醒：喜欢的话记得一键三连哦！\n{{#if useCoinBenefit}}\n- 投币福利：投币的朋友优先回复问题\n{{/if}}\n\n主体内容（0:30-{{subtract duration 2}}:00）：\n根据{{bilibiliZone}}分区特点展开内容\n\n结尾（{{subtract duration 2}}:00-{{duration}}:00）：\n- 总结要点\n- 下期预告\n- 再次引导三连和关注\n\n**视频简介模板：**\n\n{{videoTitle}}\n\n📌 时间轴：\n{{#if includeTimestamp}}\n0:00 开场\n0:30 第一部分\n{{divide duration 2}}:00 第二部分\n{{subtract duration 1}}:00 总结\n{{/if}}\n\n💡 本期看点：\n- 看点1\n- 看点2\n- 看点3\n\n{{#if includeBGM}}\n🎵 BGM：\n- 开场BGM\n- 主体BGM\n- 结尾BGM\n{{/if}}\n\n#标签1# #标签2# #标签3#\n\n**弹幕互动设计：**\n\n{{#if includeDanmaku}}\n1. 引导弹幕：\n   - 00:15 新来的扣1\n   - 重点处：这里是重点！\n   - 结尾：看到这里的都是真爱\n\n2. 互动问题：\n   - 你们觉得是A还是B？A扣1，B扣2\n   - 支持的发冲，反对的发溜\n{{/if}}\n\n**封面设计：**\n- 尺寸：1146x717px（16:10）\n- 包含：震撼画面 + 大字标题（5-8字）\n- 高饱和度颜色，吸引眼球\n\n**标签策略：**\n- 主标签：{{bilibiliZone}}（必带）\n- 内容标签：3-5个\n- 热门标签：1-2个\n\n**最佳发布时间：**\n- 工作日：18:00-20:00\n- 周末：10:00-12:00、20:00-22:00",
+  "variables_schema": [
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：Python入门教程"
+    },
+    {
+      "name": "bilibiliZone",
+      "label": "B站分区",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "知识",
+          "label": "知识区"
+        },
+        {
+          "value": "生活",
+          "label": "生活区"
+        },
+        {
+          "value": "游戏",
+          "label": "游戏区"
+        },
+        {
+          "value": "科技",
+          "label": "科技区"
+        }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "视频时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 10,
+      "min": 3,
+      "max": 60
+    },
+    {
+      "name": "includeTimestamp",
+      "label": "包含时间轴",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "生成时间轴"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeDanmaku",
+      "label": "弹幕互动设计",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "设计弹幕互动"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "B站-{{videoTitle}}",
+    "files": [
+      {
+        "path": "视频脚本.md",
+        "type": "markdown"
+      },
+      {
+        "path": "视频简介.txt",
+        "type": "document"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_keyword_extractor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
+}

@@ -1,0 +1,41 @@
+{
+  "id": "tpl_travel_backpacking_002",
+  "name": "backpacking_guide",
+  "display_name": "背包旅行攻略",
+  "description": "经济实惠的背包旅行计划，适合穷游和深度旅行",
+  "icon": "🎒",
+  "category": "travel",
+  "subcategory": "backpacking",
+  "tags": ["背包客", "穷游", "深度旅行"],
+  "project_type": "document",
+  "prompt_template": "背包旅行攻略\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 旅行天数：{{duration}}天\n- 预算：¥{{budget}}\n- 旅行方式：{{travelStyle}}\n\n# 背包旅行：{{destination}}\n\n## 行程概览\n\n**旅行类型：**{{tripType}}\n**出行日期：**{{departureDate}} - {{returnDate}}\n**同行人数：{{travelers}}人\n\n{{#eq tripType \"城市探索\"}}\n**城市特色：**\n- 历史文化：{{culturalHighlights}}\n- 美食特色：{{foodHighlights}}\n- 夜生活：{{nightlife}}\n{{/eq}}\n\n{{#eq tripType \"自然探险\"}}\n**自然景观：**\n- 徒步路线：{{hikingTrails}}\n- 野营地点：{{campingSites}}\n- 观景点：{{viewpoints}}\n{{/eq}}\n\n## 预算分配\n\n**总预算：**¥{{budget}}\n\n**分项预算：**\n- 交通：¥{{transportBudget}} ({{transportPercent}}%)\n- 住宿：¥{{accommodationBudget}} ({{accommPercent}}%)\n- 餐饮：¥{{foodBudget}} ({{foodPercent}}%)\n- 门票：¥{{ticketBudget}} ({{ticketPercent}}%)\n- 其他：¥{{otherBudget}} ({{otherPercent}}%)\n\n**省钱策略：**\n- 青年旅舍多人间（¥{{hostelPrice}}/晚）\n- 自己做饭/街边小吃\n- 步行+公共交通\n- 免费景点优先\n- 提前预订折扣\n\n## 交通方案\n\n### 往返交通\n\n**去程：**\n- 方式：{{outboundTransport}}\n- 时间：{{outboundTime}}\n- 费用：¥{{outboundCost}}\n- 预订：{{bookingPlatform}}\n\n**返程：**\n- 方式：{{returnTransport}}\n- 时间：{{returnTime}}\n- 费用：¥{{returnCost}}\n\n### 当地交通\n\n**主要方式：**{{localTransport}}\n- 日通票：¥{{dailyPass}}\n- 多日通票：¥{{multiDayPass}}\n\n**备选方案：**\n- 共享单车\n- 拼车\n- 步行\n\n## 住宿计划\n\n**住宿类型：**{{accommodationType}}\n\n{{#eq accommodationType \"青年旅舍\"}}\n**推荐旅舍：**\n1. {{hostel1}} - ¥{{hostel1Price}}/晚\n   - 位置：{{hostel1Location}}\n   - 评分：{{hostel1Rating}}/10\n   - 设施：免费WiFi、公共厨房、洗衣房\n{{/eq}}\n\n{{#eq accommodationType \"民宿\"}}\n**推荐民宿：**\n1. {{airbnb1}} - ¥{{airbnb1Price}}/晚\n   - 可住{{guestCapacity}}人\n   - 有厨房设施\n{{/eq}}\n\n{{#eq accommodationType \"沙发冲浪\"}}\n**Couchsurfing：**\n- 提前2周联系host\n- 准备小礼物\n- 尊重house rules\n{{/eq}}\n\n## 每日行程\n\n### Day 1: 抵达+市区探索\n\n**上午：**\n- 抵达{{destination}}\n- Check-in旅舍\n- 补给采购\n\n**下午：**\n- {{day1Afternoon}}\n- 步行游览老城区\n\n**晚上：**\n- {{day1Evening}}\n- 预算：¥{{day1Budget}}\n\n### Day 2: {{day2Theme}}\n\n**全天行程：**\n{{day2Itinerary}}\n\n**餐食：**\n- 早：旅舍自制（¥10）\n- 午：{{day2Lunch}}（¥{{day2LunchCost}}）\n- 晚：{{day2Dinner}}（¥{{day2DinnerCost}}）\n\n### Day 3-{{lastDay}}: 深度体验\n\n**弹性安排：**\n- 根据天气调整\n- 根据遇到的旅伴调整\n- 留出探索时间\n\n**必去景点：**\n1. {{mustSee1}} - {{mustSee1Time}}\n2. {{mustSee2}} - {{mustSee2Time}}\n3. {{mustSee3}} - {{mustSee3Time}}\n\n**小众推荐：**\n- {{hiddenGem1}}\n- {{hiddenGem2}}\n\n## 装备清单\n\n### 背包装备\n\n**主包（{{backpackSize}}L）：**\n- [ ] 背包（带防雨罩）\n- [ ] 压缩袋\n\n**衣物（极简）：**\n- [ ] 速干衣裤 x3套\n- [ ] 内衣袜子 x4套\n- [ ] 冲锋衣/外套 x1\n- [ ] 舒适运动鞋\n- [ ] 人字拖\n\n**洗漱用品：**\n- [ ] 旅行装洗护\n- [ ] 速干毛巾\n- [ ] 防晒霜\n- [ ] 常用药品\n\n**电子设备：**\n- [ ] 手机+充电器\n- [ ] 充电宝\n- [ ] 转换插头\n- [ ] {{optionalGadget}}\n\n**文件证件：**\n- [ ] 护照/身份证\n- [ ] 学生证（打折）\n- [ ] 电子行程单\n- [ ] 保险单\n\n**其他：**\n- [ ] 水壶\n- [ ] 塑料袋\n- [ ] 笔记本+笔\n- [ ] 门锁（旅舍用）\n\n**总重量目标：**<{{targetWeight}}kg\n\n## 美食探索\n\n**当地特色：**\n1. {{localFood1}} - 推荐店：{{food1Shop}}\n2. {{localFood2}} - 推荐店：{{food2Shop}}\n3. {{localFood3}} - 推荐店：{{food3Shop}}\n\n**省钱吃法：**\n- 早餐：旅舍自制（面包+水果）\n- 午餐：当地小吃/快餐\n- 晚餐：超市采购自己做\n\n**美食预算：**¥{{dailyFoodBudget}}/天\n\n## 安全注意事项\n\n**财物安全：**\n- 使用贴身钱包\n- 贵重物品寄存\n- 备份重要文件\n\n**人身安全：**\n- 避免深夜独行\n- 告知家人行踪\n- 保持手机畅通\n\n**健康：**\n- 旅行保险（¥{{insuranceCost}}）\n- 常备药品\n- 饮用瓶装水\n\n## 社交技巧\n\n**结识旅伴：**\n- 旅舍公共区域\n- Free Walking Tour\n- 当地活动/聚会\n\n**语言沟通：**\n- 学习基本用语：你好、谢谢、多少钱\n- 翻译App\n- 肢体语言\n\n## 可持续旅行\n\n**环保原则：**\n- 自带水壶和餐具\n- 减少一次性用品\n- 垃圾分类\n- 支持本地小店\n\n**文化尊重：**\n- 了解当地习俗\n- 尊重宗教场所\n- 适当着装\n\n## 应急预案\n\n**紧急联系：**\n- 当地报警电话：{{emergencyNumber}}\n- 中国大使馆：{{embassyContact}}\n- 紧急联系人：{{emergencyContact}}\n\n**备用资金：**\n- 预留¥{{emergencyFund}}\n- 多张银行卡\n- 少量现金\n\n## 旅行记录\n\n**记录方式：**\n- 日记/Vlog\n- 照片打卡\n- 收集纪念品（免费）\n- 结交的朋友\n\n**分享平台：**{{sharingPlatform}}",
+  "variables_schema": [
+    {"name": "destination", "label": "目的地", "type": "string", "required": true},
+    {"name": "duration", "label": "旅行天数", "type": "number", "required": false, "default": 7},
+    {"name": "budget", "label": "总预算（元）", "type": "number", "required": false, "default": 3000},
+    {"name": "tripType", "label": "旅行类型", "type": "select", "required": false, "options": [
+      {"value": "城市探索", "label": "城市探索"},
+      {"value": "自然探险", "label": "自然探险"},
+      {"value": "文化深度游", "label": "文化深度游"},
+      {"value": "混合型", "label": "混合型"}
+    ]},
+    {"name": "accommodationType", "label": "住宿类型", "type": "select", "required": false, "options": [
+      {"value": "青年旅舍", "label": "青年旅舍"},
+      {"value": "民宿", "label": "民宿"},
+      {"value": "沙发冲浪", "label": "沙发冲浪Couchsurfing"},
+      {"value": "露营", "label": "露营"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "背包旅行-{{destination}}",
+    "files": [
+      {"path": "旅行攻略.md", "type": "markdown"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "旅行日记/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

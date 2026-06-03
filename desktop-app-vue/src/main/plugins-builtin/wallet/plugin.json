@@ -1,0 +1,31 @@
+{
+  "id": "wallet",
+  "name": "Wallet",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/wallet 斜杠命令 + Home 页钱包快捷卡片（V5 Wallet.vue 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "wallet",
+        "trigger": "/wallet",
+        "handler": "builtin:openWalletPanel",
+        "description": "打开钱包面板",
+        "icon": "WalletOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "wallet-quick",
+        "component": "builtin:WalletWidget",
+        "size": "medium",
+        "order": 80,
+        "title": "钱包"
+      }
+    }
+  ]
+}

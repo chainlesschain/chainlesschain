@@ -1,0 +1,57 @@
+{
+  "id": "tpl_health_mealprep_001",
+  "name": "meal_prep_plan",
+  "display_name": "健康饮食计划",
+  "description": "生成个性化饮食计划，包含营养配比、食谱和购物清单",
+  "icon": "🥗",
+  "category": "health",
+  "subcategory": "nutrition",
+  "tags": ["饮食计划", "营养", "健康", "食谱"],
+  "project_type": "document",
+  "prompt_template": "# {{planName}} 饮食计划\n\n## 基本信息\n- 目标：{{goal}}\n- 卡路里目标：{{dailyCalories}} kcal/天\n- 饮食类型：{{dietType}}\n- 餐次：{{mealsPerDay}}餐/天\n\n## 营养配比\n- 蛋白质：{{proteinRatio}}%\n- 碳水化合物：{{carbRatio}}%\n- 脂肪：{{fatRatio}}%\n\n## 每周食谱\n\n### 周一\n**早餐：**{{monday_breakfast}}\n**午餐：**{{monday_lunch}}\n**晚餐：**{{monday_dinner}}\n\n### 周二\n{{tuesday_meals}}\n\n...\n\n## 购物清单\n\n### 蛋白质类\n- {{protein1}}\n- {{protein2}}\n\n### 蔬菜类\n- {{veggie1}}\n- {{veggie2}}\n\n### 主食类\n- {{carb1}}\n- {{carb2}}\n\n## 备餐建议\n{{mealPrepTips}}",
+  "variables_schema": [
+    {
+      "name": "planName",
+      "label": "计划名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：减脂饮食、增肌饮食"
+    },
+    {
+      "name": "goal",
+      "label": "饮食目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "减脂", "label": "减脂" },
+        { "value": "增肌", "label": "增肌" },
+        { "value": "维持", "label": "健康维持" }
+      ]
+    },
+    {
+      "name": "dietType",
+      "label": "饮食类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "均衡", "label": "均衡饮食" },
+        { "value": "低碳", "label": "低碳饮食" },
+        { "value": "生酮", "label": "生酮饮食" },
+        { "value": "素食", "label": "素食" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "饮食计划-{{planName}}",
+    "files": [
+      {"path": "饮食计划.docx", "type": "document"},
+      {"path": "购物清单.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_nutrition_planning"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

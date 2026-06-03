@@ -1,0 +1,117 @@
+---
+import rootPkg from '../../../package.json';
+const year = new Date().getFullYear();
+const PRODUCT_VERSION = rootPkg.productVersion;
+
+const pathname = Astro.url.pathname;
+const isEn = pathname === '/en' || pathname === '/en/' || pathname.startsWith('/en/');
+
+const t = isEn ? {
+  tagline: 'Data sovereignty returned to individuals, AI productivity at hand. A decentralized personal AI management system built on CLI and hardware encryption.',
+  productH: 'Product',
+  resourcesH: 'Resources',
+  companyH: 'Company',
+  cli: 'CLI',
+  desktop: 'Desktop',
+  security: 'Hardware Encryption',
+  enterprise: 'Enterprise',
+  docs: 'Docs ↗',
+  design: 'Design ↗',
+  github: 'GitHub ↗',
+  gitee: 'Gitee ↗',
+  about: 'About Us',
+  business: 'Business Inquiries',
+  rights: 'Xiamen Chainlesschain Technology Co., Ltd. · Unit 431-H, Floor 4, Building C, Xiamen International Shipping Center, 93 Xiangyu Rd., Xiamen FTZ',
+  cert: 'MLPS Level 3',
+  standard: 'Intrinsic Security of AI Agent · T/ZGCMCA 023—2025',
+} : {
+  tagline: '让数据主权回归个人，AI 效率触手可及。基于 CLI 与硬件加密的去中心化个人 AI 管理系统。',
+  productH: '产品',
+  resourcesH: '资源',
+  companyH: '公司',
+  cli: 'CLI 工具',
+  desktop: '桌面版',
+  security: '硬件加密',
+  enterprise: '企业版',
+  docs: '开发文档 ↗',
+  design: '设计文档 ↗',
+  github: 'GitHub ↗',
+  gitee: 'Gitee ↗',
+  about: '关于我们',
+  business: '商务合作',
+  rights: '厦门无链之链科技有限公司 · 自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H',
+  cert: '等保三级认证',
+  standard: '《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025',
+};
+
+const p = (path) => isEn ? `/en${path}` : path;
+---
+<footer class="mt-32 border-t border-line bg-paper">
+  <div class="container-wide py-16 grid grid-cols-2 md:grid-cols-5 gap-10">
+    <div class="col-span-2">
+      <div class="flex items-center gap-3 mb-4">
+        <picture>
+          <source srcset="/logo.webp" type="image/webp" />
+          <img src="/logo.png" alt="ChainlessChain" width="32" height="32" class="w-8 h-8 object-contain" />
+        </picture>
+        <span class="font-display text-xl tracking-tight">chainless<span class="text-ember">·</span>chain</span>
+      </div>
+      <p class="text-sm text-muted leading-relaxed max-w-xs">
+        {t.tagline}
+      </p>
+      <div class="mt-6 space-y-1.5 text-sm">
+        <a href="tel:400-1068-687" class="flex items-center gap-2 text-ink hover:text-ember transition-colors">
+          <span class="font-mono">☎</span><span class="font-mono tracking-wide">400-1068-687</span>
+        </a>
+        <a href="mailto:zhanglongfa@chainlesschain.com" class="flex items-center gap-2 text-ink hover:text-ember transition-colors">
+          <span class="font-mono">✉</span><span>zhanglongfa@chainlesschain.com</span>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">{t.productH}</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href={p('/cli')} class="hover:text-ember transition-colors">{t.cli}</a></li>
+        <li><a href={p('/desktop')} class="hover:text-ember transition-colors">{t.desktop}</a></li>
+        <li><a href={p('/security')} class="hover:text-ember transition-colors">{t.security}</a></li>
+        <li><a href={p('/enterprise')} class="hover:text-ember transition-colors">{t.enterprise}</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">{t.resourcesH}</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="https://docs.chainlesschain.com/chainlesschain/overview.html" rel="noopener" class="hover:text-ember transition-colors">{t.docs}</a></li>
+        <li><a href="https://design.chainlesschain.com" rel="noopener" class="hover:text-ember transition-colors">{t.design}</a></li>
+        <li><a href="https://github.com/chainlesschain/chainlesschain" target="_blank" rel="noopener" class="hover:text-ember transition-colors">{t.github}</a></li>
+        <li><a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="hover:text-ember transition-colors">{t.gitee}</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">{t.companyH}</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href={p('/about')} class="hover:text-ember transition-colors">{t.about}</a></li>
+        <li><a href={p('/enterprise')} class="hover:text-ember transition-colors">{t.business}</a></li>
+        <li><a href="tel:400-1068-687" class="hover:text-ember transition-colors">400-1068-687</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="border-t border-line">
+    <div class="container-wide py-6 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-muted">
+      <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+        <span>© {year} {t.rights}</span>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/50 hover:text-ink/70">闽ICP备2025105973号-1</a>
+      </div>
+      <div class="flex items-center gap-4 font-mono">
+        <span>{PRODUCT_VERSION}</span>
+        <span>·</span>
+        <span>{t.cert}</span>
+        <span>·</span>
+        <a href="https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7" target="_blank" rel="noopener" class="hover:text-ink/80 transition-colors">{t.standard}</a>
+      </div>
+    </div>
+  </div>
+</footer>

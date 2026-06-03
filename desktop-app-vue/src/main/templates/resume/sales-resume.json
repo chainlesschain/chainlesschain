@@ -1,0 +1,28 @@
+{
+  "id": "tpl_resume_sales_007",
+  "name": "sales_resume",
+  "display_name": "销售简历",
+  "description": "业绩导向的销售简历，突出销售业绩、客户案例和销售技巧",
+  "icon": "💼",
+  "category": "resume",
+  "subcategory": "professional",
+  "tags": ["销售", "简历", "业绩", "求职"],
+  "project_type": "document",
+  "prompt_template": "销售简历\n\n**姓名：** {{name}}\n**职位目标：** {{targetPosition}}\n**联系方式：** {{contact}}\n\n# {{name}}\n\n## {{targetPosition}}\n\n---\n\n### 联系方式\n\n📞 {{phone}}  \n📧 {{email}}  \n🔗 LinkedIn: {{linkedin}}  \n📍 {{location}}\n\n---\n\n### 个人总结\n\n{{#if summary}}\n{{summary}}\n{{else}}\n具有{{yearsOfExperience}}年{{industry}}行业销售经验，擅长{{salesStrength}}，累计完成销售额¥{{totalSales}}，客户保留率{{retentionRate}}%，连续{{consecutiveYears}}年超额完成销售目标{{achievementRate}}%以上。精通{{salesSkill1}}、{{salesSkill2}}，擅长开拓{{targetMarket}}市场，建立长期客户关系。\n{{/if}}\n\n---\n\n### 核心竞争力\n\n✅ **销售业绩**\n- 年均销售额：¥{{annualSales}}\n- 目标达成率：{{achievementRate}}%\n- 新客户开发：{{newClientsPerYear}}家/年\n\n✅ **客户管理**\n- 客户保留率：{{retentionRate}}%\n- 客户满意度：{{satisfactionScore}}/5\n- 大客户数量：{{keyAccountsCount}}家\n\n✅ **销售技能**\n- {{skill1}}\n- {{skill2}}\n- {{skill3}}\n\n---\n\n### 工作经历\n\n#### {{company1}} | {{position1}}\n**{{startDate1}} - {{endDate1}}** | {{location1}}\n\n**职责：**\n- {{responsibility1}}\n- {{responsibility2}}\n- {{responsibility3}}\n\n**业绩亮点：**\n- 🏆 {{achievement1}}\n- 📈 {{achievement2}}\n- 💰 {{achievement3}}\n- 🎯 {{achievement4}}\n\n**关键项目：**\n\n**项目1：{{project1Name}}**\n- 背景：{{project1Background}}\n- 策略：{{project1Strategy}}\n- 成果：{{project1Result}}\n\n---\n\n#### {{company2}} | {{position2}}\n**{{startDate2}} - {{endDate2}}** | {{location2}}\n\n**职责：** {{responsibilities2}}\n\n**业绩亮点：**\n- 🏆 {{achievement2_1}}\n- 📈 {{achievement2_2}}\n- 💰 {{achievement2_3}}\n\n---\n\n### 销售技能\n\n**销售方法论：**\n- {{salesMethodology1}}（如SPIN销售法）\n- {{salesMethodology2}}（如挑战者销售法）\n- {{salesMethodology3}}\n\n**CRM系统：**\n- {{crm1}}（精通）\n- {{crm2}}（熟练）\n\n**商务工具：**\n- {{tool1}}\n- {{tool2}}\n- {{tool3}}\n\n**语言能力：**\n- {{language1}}：{{language1Level}}\n- {{language2}}：{{language2Level}}\n\n---\n\n### 教育背景\n\n**{{degree}}** | {{major}}\n{{university}} | {{graduationYear}}\n\n**相关课程：** {{relevantCourses}}\n\n---\n\n### 证书与培训\n\n- {{certification1}} | {{cert1Date}}\n- {{certification2}} | {{cert2Date}}\n- {{training1}} | {{training1Date}}\n\n---\n\n### 荣誉与奖项\n\n- {{award1}} | {{award1Year}}\n- {{award2}} | {{award2Year}}\n- {{award3}} | {{award3Year}}\n",
+  "variables_schema": [
+    {"name": "name", "label": "姓名", "type": "string", "required": true},
+    {"name": "targetPosition", "label": "目标职位", "type": "string", "required": true},
+    {"name": "yearsOfExperience", "label": "工作年限", "type": "number", "required": false},
+    {"name": "industry", "label": "行业", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "简历-{{name}}-销售",
+    "files": [
+      {"path": "{{name}}-销售简历.pdf", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
