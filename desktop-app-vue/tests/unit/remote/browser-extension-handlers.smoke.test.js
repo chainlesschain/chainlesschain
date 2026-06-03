@@ -249,6 +249,11 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "events.monitorEvents",
       "events.stopMonitoring",
       "events.getLog",
+      "media.emulateColorScheme",
+      "media.emulateReducedMotion",
+      "media.emulateForcedColors",
+      "media.emulateVisionDeficiency",
+      "media.clearEmulation",
     ];
     for (const method of migrated) {
       expect(

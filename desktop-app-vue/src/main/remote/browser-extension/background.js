@@ -334,17 +334,7 @@ async function executeCommand(method, params) {
 
     // Input Recording moved to ./handlers/input.js
 
-    // Media Emulation
-    case "media.emulateColorScheme":
-      return await emulateColorScheme(params.tabId, params.scheme);
-    case "media.emulateReducedMotion":
-      return await emulateReducedMotion(params.tabId, params.reduce);
-    case "media.emulateForcedColors":
-      return await emulateForcedColors(params.tabId, params.forced);
-    case "media.emulateVisionDeficiency":
-      return await emulateVisionDeficiency(params.tabId, params.type);
-    case "media.clearEmulation":
-      return await clearMediaEmulation(params.tabId);
+    // Media Emulation moved to ./handlers/media-emulation.js
 
     // Page Lifecycle
     case "lifecycle.getState":
@@ -1602,84 +1592,7 @@ async function listFrames(tabId) {
 
 // Input Recording handlers moved to ./handlers/input.js (Phase 1 split).
 
-// ==================== Phase 18: Media Emulation ====================
-
-async function emulateColorScheme(tabId, scheme) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
-      features: [{ name: "prefers-color-scheme", value: scheme }],
-    });
-    return { success: true, colorScheme: scheme };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function emulateReducedMotion(tabId, reduce) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
-      features: [
-        {
-          name: "prefers-reduced-motion",
-          value: reduce ? "reduce" : "no-preference",
-        },
-      ],
-    });
-    return { success: true, reducedMotion: reduce };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function emulateForcedColors(tabId, forced) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
-      features: [{ name: "forced-colors", value: forced ? "active" : "none" }],
-    });
-    return { success: true, forcedColors: forced };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function emulateVisionDeficiency(tabId, type) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand(
-      { tabId },
-      "Emulation.setEmulatedVisionDeficiency",
-      {
-        type: type || "none", // none, achromatopsia, blurredVision, deuteranopia, protanopia, tritanopia
-      },
-    );
-    return { success: true, visionDeficiency: type };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function clearMediaEmulation(tabId) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
-      media: "",
-      features: [],
-    });
-    await chrome.debugger.sendCommand(
-      { tabId },
-      "Emulation.setEmulatedVisionDeficiency",
-      {
-        type: "none",
-      },
-    );
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// Media Emulation handlers moved to ./handlers/media-emulation.js (Phase 1).
 
 // ==================== Phase 18: Page Lifecycle ====================
 
