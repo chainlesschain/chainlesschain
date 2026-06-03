@@ -50,6 +50,10 @@ class LocalCcRunner @Inject constructor(
         val llmName: String?,
         val isLocal: Boolean,
         val durationMs: Long,
+        // 防幻觉信号 — `cc hub ask --json` 透出的 hallucinatedCitations 条数
+        // （LLM 引用但 vault 里不存在的 event id，见 analysis.js validateCitations）。
+        // >0 → UI 显警示条。旧 cc 不带该字段时默认 0，向后兼容。
+        val hallucinatedCount: Int = 0,
     ) {
         data class Citation(
             val eventId: String,
@@ -1301,23 +1305,32 @@ class LocalCcRunner @Inject constructor(
         val citations = buildList {
             if (citationsArr != null) {
                 for (i in 0 until citationsArr.length()) {
-                    val c = citationsArr.optJSONObject(i) ?: continue
+                    // AnalysisEngine.ask() 回传 citations 是 event-id **字符串**数组
+                    // （analysis.js 的 `known`）。旧代码只认对象形态 → optJSONObject
+                    // 对字符串元素恒返 null → citations 永远为空，"依据" chip 全丢。
+                    // 防御性兼容两种形态：对象元素取 eventId 字段，字符串元素直接用。
+                    val asObj = citationsArr.optJSONObject(i)
+                    val eventId = asObj?.optString("eventId", "") ?: citationsArr.optString(i, "")
+                    if (eventId.isEmpty()) continue
                     add(
                         AskReport.Citation(
-                            eventId = c.optString("eventId", ""),
-                            excerpt = c.optString("excerpt", "").takeIf { it.isNotEmpty() },
-                            source = c.optString("source", "").takeIf { it.isNotEmpty() },
+                            eventId = eventId,
+                            excerpt = asObj?.optString("excerpt", "")?.takeIf { it.isNotEmpty() },
+                            source = asObj?.optString("source", "")?.takeIf { it.isNotEmpty() },
                         )
                     )
                 }
             }
         }
+        // hallucinatedCitations 是 id 字符串数组（analysis.js 的 `unknown`）；只取条数驱动 UI。
+        val hallucinatedCount = obj.optJSONArray("hallucinatedCitations")?.length() ?: 0
         return AskReport(
             answer = obj.optString("answer", ""),
             citations = citations,
             llmName = obj.optString("llmName", "").takeIf { it.isNotEmpty() },
             isLocal = obj.optBoolean("isLocal", true),
             durationMs = obj.optLong("durationMs", 0L),
+            hallucinatedCount = hallucinatedCount,
         )
     }
 

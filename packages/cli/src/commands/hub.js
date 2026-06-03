@@ -103,11 +103,10 @@ async function cmdAsk(question, options) {
       }
       logger.log(result.answer);
       if (result.citations && result.citations.length) {
-        logger.log(
-          chalk.gray(
-            `\n依据: ${result.citations.map((c) => c.eventId).join(", ")}`,
-          ),
-        );
+        // AnalysisEngine.ask() 回传 citations 是 event-id 字符串数组（analysis.js
+        // 的 `known`），不是对象 — 旧代码 `c.eventId` 取到 undefined，依据行恒为
+        // "undefined, undefined"。直接 join 字符串。
+        logger.log(chalk.gray(`\n依据: ${result.citations.join(", ")}`));
       }
       if (result.llmName) {
         const localTag = result.isLocal

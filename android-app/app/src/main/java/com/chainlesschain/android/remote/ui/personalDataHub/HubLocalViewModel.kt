@@ -1255,13 +1255,15 @@ class HubLocalViewModel @Inject constructor(
                             ask = st.ask.copy(
                                 isAsking = false,
                                 answer = res.answer,
-                                citations = res.citations.map {
+                                // res.citations 现在是 event-id 字符串数组（见 AskResult 注释）。
+                                citations = res.citations.map { id ->
                                     LocalCcRunner.AskReport.Citation(
-                                        eventId = it.eventId,
-                                        excerpt = it.excerpt,
+                                        eventId = id,
+                                        excerpt = null,
                                         source = null,
                                     )
                                 },
+                                hallucinatedCount = res.hallucinatedCitations.size,
                                 llmName = "${res.llmName ?: "PC Ollama"} (PC)",
                                 isLocal = res.isLocal,
                                 durationMs = elapsed,

@@ -391,7 +391,7 @@ class HubAskViewModelTest {
     }
 
     @Test
-    fun `submit CLOUD_ANDROID hallucinated citations are dropped silently`() = runTest(testDispatcher) {
+    fun `submit CLOUD_ANDROID known citations kept and hallucinated counted`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
         coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
             RetrieveContextResult(
@@ -401,7 +401,9 @@ class HubAskViewModelTest {
                 factCount = 1
             )
         )
-        coEvery { androidLlm.chat(any(), any()) } returns "答案 [evt-real] 还引了 [evt-fake]。"
+        // 引了 1 个真 id + 2 个 vault 里没有的 id → 1 citation + hallucinatedCount=2
+        coEvery { androidLlm.chat(any(), any()) } returns
+            "答案 [evt-real] 还引了 [evt-fake] 和 [evt-fake2]。"
 
         val vm = newVm()
         advanceUntilIdle()
@@ -412,6 +414,77 @@ class HubAskViewModelTest {
         val s = vm.uiState.value
         assertEquals(1, s.citations.size)
         assertEquals("evt-real", s.citations.first().eventId)
+        assertEquals(2, s.hallucinatedCount)
+    }
+
+    @Test
+    fun `submit CLOUD_ANDROID no hallucination when all citations known`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factIds = listOf("evt-1", "evt-2"),
+                factCount = 2
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } returns "买了 [evt-1] 和 [evt-2]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        assertEquals(0, vm.uiState.value.hallucinatedCount)
+    }
+
+    @Test
+    fun `submit CLOUD_ANDROID empty factIds never flags hallucination (no-facts)`() = runTest(testDispatcher) {
+        // factIds 空 = 没召回任何事实，此时 token 谈不上"幻觉"，不该误报。
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factIds = emptyList(),
+                factCount = 0
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } returns "瞎编 [evt-x][evt-y]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertEquals(0, s.hallucinatedCount)
+        assertTrue(s.citations.isEmpty())
+    }
+
+    @Test
+    fun `submit PC_LOCAL surfaces desktop hallucinatedCitations count`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.ask("Q", null, null, null) } returns Result.success(
+            AskResult(
+                answer = "桌面答 [evt-bad]",
+                citations = emptyList(),
+                llmName = "ollama:qwen2.5",
+                isLocal = true,
+                warning = "hallucinated-citations",
+                hallucinatedCitations = listOf("evt-bad")
+            )
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setRoute(LlmRoute.PC_LOCAL)
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.hallucinatedCount)
     }
 
     @Test

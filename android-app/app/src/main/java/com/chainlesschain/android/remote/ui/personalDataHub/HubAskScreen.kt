@@ -171,6 +171,12 @@ fun HubAskScreen(
                 HorizontalDivider()
                 Spacer(Modifier.height(12.dp))
 
+                // 防幻觉警示 — 仅在推理完成且检测到编造 id 时显示。
+                if (!state.isLoading && state.answer != null && state.hallucinatedCount > 0) {
+                    PdhHallucinationBanner(count = state.hallucinatedCount)
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 if (submittedQuestion != null) {
                     HubChatBubble(role = HubChatRole.USER) {
                         Text(submittedQuestion, style = MaterialTheme.typography.bodyMedium)

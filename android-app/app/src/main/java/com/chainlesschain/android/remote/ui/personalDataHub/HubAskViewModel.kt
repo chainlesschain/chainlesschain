@@ -32,6 +32,10 @@ data class HubAskUiState(
     val isLoading: Boolean = false,
     val answer: String? = null,
     val citations: List<Citation> = emptyList(),
+    // LLM 引用了 vault 里不存在的 event id 的条数。>0 → UI 显 PdhHallucinationBanner。
+    // Path-Y（手机端云 LLM）由 splitCitations 客户端算；桌面 ask 由 AskResult
+    // .hallucinatedCitations.size 透传。
+    val hallucinatedCount: Int = 0,
     val llmName: String? = null,
     val isLocal: Boolean = true,
     val errorMessage: String? = null,
@@ -198,6 +202,7 @@ class HubAskViewModel @Inject constructor(
                     errorMessage = null,
                     answer = null,
                     citations = emptyList(),
+                    hallucinatedCount = 0,
                     submittedQuestion = q
                 )
             }
@@ -271,6 +276,7 @@ class HubAskViewModel @Inject constructor(
                 it.copy(
                     answer = result.report.answer,
                     citations = result.report.citations.map { c -> Citation(eventId = c.eventId) },
+                    hallucinatedCount = result.report.hallucinatedCount,
                     llmName = "${result.report.llmName ?: "Ollama"} @ LAN",
                     isLocal = false,
                     errorMessage = null,
@@ -321,11 +327,12 @@ class HubAskViewModel @Inject constructor(
             return
         }
 
-        val citations = extractCitations(answerText, ctx)
+        val split = splitCitations(answerText, ctx)
         _uiState.update {
             it.copy(
                 answer = answerText,
-                citations = citations,
+                citations = split.citations,
+                hallucinatedCount = split.hallucinatedCount,
                 llmName = "${configured.provider.displayName} · ${configured.model}",
                 // Y 路径用的是云 LLM，对外仍然不是本地推理；UI 据此显示"非本地"标
                 isLocal = false,
@@ -334,28 +341,41 @@ class HubAskViewModel @Inject constructor(
         }
     }
 
+    /** [splitCitations] 的结果：已知引用 + 幻觉条数（引用了但 factIds 里没有）。 */
+    private data class CitationSplit(
+        val citations: List<Citation>,
+        val hallucinatedCount: Int,
+    )
+
     /**
      * 从 LLM 回答中抓 `[evt-xxx]` 形式的 citation token，与 retrieveContext 拿回
-     * 的 factIds 交集 — 已知则保留，未知静默丢（v0.1 不显式标记 hallucination
-     * 给用户，与 ask() 走桌面侧时的展示一致）。
+     * 的 factIds 求交：命中的进 [CitationSplit.citations]，未命中的计入
+     * [CitationSplit.hallucinatedCount]（= 模型编造的 id 数）。镜像桌面
+     * prompt-builder.js `validateCitations` 的 known/unknown 切分逻辑。
+     *
+     * factIds 为空 = 这条问题压根没召回任何事实（no-facts），此时任何 token 都
+     * 谈不上"幻觉"（没有"真值"可比对），返回 0，不误报。
      */
-    private fun extractCitations(answer: String, ctx: RetrieveContextResult): List<Citation> {
-        if (ctx.factIds.isEmpty()) return emptyList()
+    private fun splitCitations(answer: String, ctx: RetrieveContextResult): CitationSplit {
+        if (ctx.factIds.isEmpty()) return CitationSplit(emptyList(), 0)
         val known = ctx.factIds.toSet()
         // 形如 [evt-abc123] / [event-id] / [任意 id token]。
         val tokens = CITATION_RE.findAll(answer)
             .map { it.groupValues[1] }
             .toSet()
-        return tokens
-            .filter { it in known }
-            .map { Citation(eventId = it) }
+        val citations = tokens.filter { it in known }.map { Citation(eventId = it) }
+        val hallucinated = tokens.count { it !in known }
+        return CitationSplit(citations, hallucinated)
     }
 
     private fun applyAskResult(result: AskResult) {
         _uiState.update {
             it.copy(
                 answer = result.answer,
-                citations = result.citations,
+                // result.citations 是 event-id 字符串数组（见 AskResult 注释）；
+                // 包成 UI 的 Citation 模型供 chip 点击深链。
+                citations = result.citations.map { id -> Citation(eventId = id) },
+                hallucinatedCount = result.hallucinatedCitations.size,
                 llmName = result.llmName,
                 isLocal = result.isLocal,
                 errorMessage = null
@@ -432,6 +452,7 @@ class HubAskViewModel @Inject constructor(
                 question = "",
                 answer = null,
                 citations = emptyList(),
+                hallucinatedCount = 0,
                 errorMessage = null,
                 submittedQuestion = null
             )

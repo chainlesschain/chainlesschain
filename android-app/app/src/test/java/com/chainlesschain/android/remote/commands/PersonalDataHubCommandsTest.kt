@@ -41,7 +41,7 @@ class PersonalDataHubCommandsTest {
     fun `ask sends question and parses AskResult`() = runTest {
         val expected = AskResult(
             answer = "上月在淘宝花了 1234.56 元",
-            citations = listOf(Citation("evt-1", excerpt = "订单 #x")),
+            citations = listOf("evt-1"),  // citations = event-id 字符串数组（见 AskResult）
             llmName = "qwen2.5:7b-instruct",
             isLocal = true
         )

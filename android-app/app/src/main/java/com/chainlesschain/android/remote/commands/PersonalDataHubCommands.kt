@@ -329,9 +329,18 @@ data class EmailAccount(
 @Serializable
 data class AskResult(
     val answer: String,
-    val citations: List<Citation> = emptyList(),
+    // 桌面 AnalysisEngine.ask() 回传 citations 是 event-id **字符串**数组（analysis.js
+    // 的 `known`），不是对象。旧版声明为 List<Citation>(对象) → kotlinx 反序列化
+    // 在 citations 非空时会抛 SerializationException，桌面 ask 路径带引用必崩。
+    // 改回字符串数组以匹配真实 schema；UI 侧再 map 成 Citation 模型。
+    val citations: List<String> = emptyList(),
     val llmName: String,
-    val isLocal: Boolean
+    val isLocal: Boolean,
+    // 防幻觉信号 — 桌面 AnalysisEngine.ask() 回传：warning ∈ {null,"no-facts",
+    // "hallucinated-citations"}；hallucinatedCitations = LLM 引用但 vault 里
+    // 不存在的 event id（string[]，见 analysis.js）。带默认值向后兼容旧桌面。
+    val warning: String? = null,
+    val hallucinatedCitations: List<String> = emptyList()
 )
 
 @Serializable

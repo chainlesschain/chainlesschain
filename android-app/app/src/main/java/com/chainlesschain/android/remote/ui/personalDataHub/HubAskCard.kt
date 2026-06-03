@@ -163,6 +163,11 @@ fun HubAskCard(
             val answer = state.answer
             if (answer != null) {
                 Spacer(modifier = Modifier.height(12.dp))
+                // 防幻觉警示 — 模型引用了 vault 里不存在的 event id 时显示。
+                if (state.hallucinatedCount > 0) {
+                    PdhHallucinationBanner(count = state.hallucinatedCount)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Text(
                     text = answer,
                     style = MaterialTheme.typography.bodyMedium,
