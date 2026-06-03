@@ -20,6 +20,28 @@ if [ -n "$GIT_DIR" ]; then
   fi
 fi
 
+# 0.3 防并行 session index-race 的「空树/批量删除」commit（trap #29）
+# 两个 Claude session 共用同一 .git/index 时，一方 commit 期间另一方的 git 操作
+# （尤其 git commit --only 会临时换 index）会让本方 commit 捕获到近乎空的 index，
+# 把全部 tracked 文件记成 deletion 推上两端 remote。文件其实一直在磁盘上（snapshot
+# 步骤 0 + 工作树都没丢），只是 commit 的 tree 错了。lint-staged / typecheck 只看
+# added/modified，纯删除 commit 会静默过闸 —— 这里专门拦它。
+# 历史事故：5f11fb9ae（删 13331，空树）/ 7bd9c62b8（删 13348，只剩 4 个 intended 文件）。
+# 详见 memory parallel_session_empty_tree_index_race。
+# 故意大批删除（如清 .broken 测试）：ALLOW_BULK_DELETE=1 git commit ...
+DELETED_COUNT=$(git diff --cached --name-only --diff-filter=D | grep -c . || true)
+if [ "${DELETED_COUNT:-0}" -gt 50 ] && [ "$ALLOW_BULK_DELETE" != "1" ]; then
+  echo ""
+  echo "❌ 拒绝提交：本次 commit 删除了 $DELETED_COUNT 个 tracked 文件。"
+  echo "   这是并行 session index-race「空树 commit」的典型特征（trap #29）。"
+  echo "   先确认不是 race：git status / git diff --cached --diff-filter=D --name-only | head"
+  echo "   若文件其实还在磁盘上 → 多半是 race，**不要** --no-verify 强推；改用"
+  echo "     git commit --only -- <你真正要提交的文件>  重做。"
+  echo "   恢复工作树：tail .git/last-precommit-snapshots.log → git stash apply <sha>"
+  echo "   确属故意批量删除：ALLOW_BULK_DELETE=1 git commit ..."
+  exit 1
+fi
+
 # 0.5 防止直接编辑 docs-site 生成副本（CLAUDE.md "Doc-site source-of-truth"）
 # docs-site/docs/design/**/*.md 和 docs-site-design/docs/**/*.md 由 sync 脚本
 # 从 docs/design/**/*.md 自动生成。直接改副本会被下一次 sync 静默覆盖且

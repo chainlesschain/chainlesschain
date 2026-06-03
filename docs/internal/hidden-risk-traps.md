@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#28）
+# 隐性风险陷阱手册（#6-#29）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -17,7 +17,7 @@
 - 🛡️ **CI gate 已 land** — 触发路径有 mandatory PR/pre-push 自动化拦截；handbook 是 backup 文档而非唯一防线
 - *(无 badge)* — 仍靠手册 / SOP / `grep memory` 流程预防；漏读 = 复现陷阱
 
-当前关闭率：**17 / 23**（#6, #7, #10, #12, #13, #15, #16, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28）
+当前关闭率：**18 / 24**（#6, #7, #10, #12, #13, #15, #16, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29）
 
 | # | 主题 | 触发条件（开工前必读） | 核心 memory |
 |---|---|---|---|
@@ -44,12 +44,13 @@
 | 🛡️ 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持。**自动化已 land** `scripts/audit-trap-fix-invariants.js` + `trap-fix-invariants-audit.yml` (PR mandatory，守 _gpuRecoveryMarker + .launching/.gpu-disabled + disableHardwareAcceleration + crashRecovered 4 个 building blocks) | `gpu_crash_recovery_legacy_intel_driver.md` |
 | 🛡️ 27 | 改 PDH lib / cc-cli.tgz refresh 后忘 bump `USR_VERSION` —— 真机缓存旧代码 | 改 `packages/personal-data-hub/lib/**` / `packages/cli/lib/**` 后；`node-runtime-bundle.yml` 跑完看到 `cc-cli.tgz` Bin 大小变化；user 报"装新版 Android APK 但 PDH 行为还是旧的"。**自动化已 land** `pdh-bundle-staleness-check.yml` `usr-version-bump-check` (mandatory) + `.husky/pre-push` step 0.5 (本地) (2026-05-28) | `android_usr_version_sentinel_cache.md` |
 | 🛡️ 28 | 改 workspace package lib 后忘 bump version + publish — `cc-cli.tgz` 依赖 npm registry 实际仍是旧代码 | 改 `packages/personal-data-hub/lib/**` / `packages/cli/lib/**` 后 CI 跑 `node-runtime-bundle.yml` 出 tgz，但设备装新 APK 后 `adb shell run-as grep <new-symbol> .../lib/analysis.js` 0 命中；和 trap #27 经常叠加（USR_VERSION 也忘 bump）。**自动化已 land** `pdh-bundle-staleness-check.yml` `workspace-version-bump-check` (mandatory) + `npm-registry-availability-check` (advisory) + `.husky/pre-push` step 0.5 (本地) (2026-05-28) | `pdh_workspace_dep_npm_publish_stale.md` |
+| 🛡️ 29 | 并行 session index-race「空树 / 批量删除」commit — 整 repo 被记成 deletion 推上两端 remote | 两个 Claude session 同时对同一 `.git` 写 commit（一方 `git commit --only` 会临时换 index，另一方此刻 `git add`/commit 捕获到近乎空的 index）；改 `.husky/pre-commit`。文件全程在磁盘上没丢，只是 commit 的 tree 错；lint-staged/typecheck 只看 added/modified，**纯删除 commit 静默过闸**，被 post-commit 双推 `--no-verify` 立刻推上 github+gitee。历史事故 `5f11fb9ae`(删 13331 空树) / `7bd9c62b8`(删 13348 只剩 4 文件)。**自动化已 land** `.husky/pre-commit` step 0.3 (本地 mandatory，>50 个 staged deletion 拦截，`ALLOW_BULK_DELETE=1` 放行) (2026-06-03) | `parallel_session_empty_tree_index_race.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
 ```
 Release / 打包   : 7, 13, 14, 18, 19, 26, 27, 28
-Git / 并发       : 9, 10, 24
+Git / 并发       : 9, 10, 24, 29
 CI / 测试        : 8, 11, 19, 23, 28
 Toolchain        : 12, 16, 23, 28
 Runtime / 数据   : 15, 20, 21, 22, 23, 24, 25, 26
@@ -57,7 +58,7 @@ Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27, 28
 Desktop 平台     : 13, 26
 Docs             : 6
 
-🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 13, 15, 16, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28
+🛡️ CI / Hook gate 已 land : 6, 7, 10, 12, 13, 15, 16, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
 ```
 
 **4 个跨条共性**（所有陷阱都满足至少 2 条）：
