@@ -46,6 +46,19 @@ function resolveDbPassword()
 
 ---
 
+## async function maybeRunLegacyRekey()
+
+```javascript
+async function maybeRunLegacyRekey()
+```
+
+* Phase 2（默认 OFF，gated）：把 legacy `.encrypted("123456")` 库 rekey 到 safeStorage
+ * 托管随机口令。仅当加密 opt-in **且** rekey opt-in 时运行；先做中断恢复，再在确有
+ * legacy 库且尚无托管口令时执行 rekey。任何异常都吞掉并保持 legacy（不阻塞启动）。
+ * 成功后会写出 db-secret.enc → 随后的 resolveDbPassword() 走 managed 分支用新 key 开库。
+
+---
+
 ## function registerCoreInitializers(factory)
 
 ```javascript
