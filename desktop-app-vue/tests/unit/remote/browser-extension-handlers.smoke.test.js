@@ -160,6 +160,21 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "network.analyzeRequests",
       "networkInfo.get",
       "networkInfo.onChange",
+      "websocket.enable",
+      "websocket.disable",
+      "websocket.getConnections",
+      "websocket.getMessages",
+      "websocket.send",
+      "websocket.close",
+      "serviceWorker.list",
+      "serviceWorker.getInfo",
+      "serviceWorker.unregister",
+      "serviceWorker.update",
+      "serviceWorker.postMessage",
+      "security.getCertificate",
+      "security.getSecurityState",
+      "security.checkMixedContent",
+      "security.getPermissions",
     ];
     for (const method of migrated) {
       expect(
