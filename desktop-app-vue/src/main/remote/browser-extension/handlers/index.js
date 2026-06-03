@@ -16,6 +16,7 @@ import { indexeddbHandlers } from "./indexeddb.js";
 import { networkHandlers } from "./network.js";
 import { notificationsHandlers } from "./notifications.js";
 import { pageHandlers } from "./page.js";
+import { performanceHandlers } from "./performance.js";
 import { selectionDragdropHandlers } from "./selection-dragdrop.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
@@ -44,6 +45,7 @@ export const commandHandlerRegistry = {
   ...lifecycleHandlers,
   ...fontsHandlers,
   ...accessibilityHandlers,
+  ...performanceHandlers,
 };
 
 export { listTabs };

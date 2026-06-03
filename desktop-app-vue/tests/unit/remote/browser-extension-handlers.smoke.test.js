@@ -275,6 +275,20 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "accessibility.checkLabels",
       "accessibility.simulate",
       "accessibility.runAudit",
+      "performance.getMetrics",
+      "performance.getEntries",
+      "performance.startTrace",
+      "performance.stopTrace",
+      "performance.getTimeline",
+      "performance.getLongTasks",
+      "performance.getLayoutShifts",
+      "performance.getPaintTiming",
+      "performance.getResourceTiming",
+      "performance.getNavigationTiming",
+      "performance.measureElement",
+      "performance.startMark",
+      "performance.measureBetweenMarks",
+      "performance.clearMarks",
     ];
     for (const method of migrated) {
       expect(
