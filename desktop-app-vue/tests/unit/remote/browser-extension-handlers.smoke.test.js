@@ -239,6 +239,11 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "selection.selectAll",
       "selection.clearSelection",
       "selection.getSelectedHTML",
+      "input.startRecording",
+      "input.stopRecording",
+      "input.getRecording",
+      "input.replay",
+      "input.clearRecording",
     ];
     for (const method of migrated) {
       expect(

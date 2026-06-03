@@ -6,6 +6,7 @@ import { devtoolsInspectHandlers } from "./devtools-inspect.js";
 import { domHandlers } from "./dom.js";
 import { downloadsHandlers } from "./downloads.js";
 import { historyHandlers } from "./history.js";
+import { inputHandlers } from "./input.js";
 import { indexeddbHandlers } from "./indexeddb.js";
 import { networkHandlers } from "./network.js";
 import { notificationsHandlers } from "./notifications.js";
@@ -32,6 +33,7 @@ export const commandHandlerRegistry = {
   ...pageHandlers,
   ...domHandlers,
   ...selectionDragdropHandlers,
+  ...inputHandlers,
 };
 
 export { listTabs };
