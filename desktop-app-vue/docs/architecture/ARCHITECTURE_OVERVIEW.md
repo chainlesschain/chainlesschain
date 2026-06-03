@@ -6,13 +6,13 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1875 | 25.84 MB |
+| main | 1879 | 25.86 MB |
 | renderer | 31 | 0.22 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1875
+**Files**: 1879
 
 **Top 10 Largest Files**:
 
