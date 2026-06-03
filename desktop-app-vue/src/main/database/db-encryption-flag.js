@@ -1,27 +1,76 @@
 /**
- * db-encryption-flag — master opt-in switch for DB-at-rest encryption (Phase 1).
+ * db-encryption-flag — master switch for DB-at-rest encryption (Phase 1 / 1.5).
  *
- * The packaged build currently runs the DB unencrypted (NODE_ENV misdetection,
- * see docs/internal/db-master-key-hardening-design.md §1.0). Phase 1 enables
- * encryption + a plaintext→.encrypted migration, which carries data-loss risk
- * and must be verified on a real device before becoming the default.
+ * The packaged build historically ran the DB unencrypted (NODE_ENV misdetection,
+ * see docs/internal/db-master-key-hardening-design.md §1.0). Enabling encryption
+ * triggers a plaintext→.encrypted migration that carries data-loss risk and must
+ * be verified on a real device before becoming the default.
  *
- * This flag keeps Phase 1 **OFF by default**: nothing changes for existing users
- * until someone explicitly opts in (e.g. on a test device). Once verified on real
- * hardware, the default can be flipped in a follow-up by making this return true
- * (ideally keyed on app.isPackaged rather than NODE_ENV).
+ * Resolution order in isDbEncryptionOptIn():
+ *   1. Env override (highest priority):
+ *        CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1|true  → force ON
+ *        CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=0|false → force OFF (kill-switch)
+ *   2. Otherwise the GATED default:
+ *        - PHASE_1_5_DEFAULT_ON === false (current) → OFF everywhere.
+ *        - PHASE_1_5_DEFAULT_ON === true            → ON in packaged builds
+ *          (app.isPackaged), OFF in dev/test.
  *
- * Enable via: CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1
+ * Phase 1.5 flip procedure: after the real-device smoke in design §5.2 passes,
+ * change PHASE_1_5_DEFAULT_ON to `true` (one reviewed line). That turns encryption
+ * on by default for packaged users while leaving dev/test plaintext and keeping
+ * the `=0` env kill-switch as an emergency off. Do NOT flip it before that smoke.
  *
  * @module database/db-encryption-flag
  */
 
 /**
- * @returns {boolean} whether DB encryption + migration is opted in. Default false.
+ * GATE — keep false until the real-device migration smoke (design §5.2) passes.
+ * Flipping to true makes packaged production encrypt + migrate by default.
  */
-function isDbEncryptionOptIn() {
-  const v = process.env.CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION;
-  return v === "1" || v === "true";
+const PHASE_1_5_DEFAULT_ON = false;
+
+/**
+ * @returns {boolean} whether this is a packaged Electron build. Falls back to
+ * false outside Electron (unit tests, headless scripts).
+ */
+function _resolveIsPackaged() {
+  try {
+    // eslint-disable-next-line global-require
+    const { app } = require("electron");
+    return !!(app && app.isPackaged);
+  } catch (_e) {
+    return false;
+  }
 }
 
-module.exports = { isDbEncryptionOptIn };
+/**
+ * @param {Object} [opts] - test seams
+ * @param {boolean} [opts.isPackaged] - override packaged detection
+ * @param {boolean} [opts.defaultOn] - override the PHASE_1_5_DEFAULT_ON gate
+ * @returns {boolean} whether DB encryption + migration is enabled.
+ */
+function isDbEncryptionOptIn(opts = {}) {
+  const env = process.env.CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION;
+  if (env === "1" || env === "true") {
+    return true; // explicit force-on
+  }
+  if (env === "0" || env === "false") {
+    return false; // explicit kill-switch
+  }
+
+  const defaultOn =
+    opts.defaultOn !== undefined ? opts.defaultOn : PHASE_1_5_DEFAULT_ON;
+  if (!defaultOn) {
+    return false; // gate closed → off everywhere
+  }
+
+  const isPackaged =
+    opts.isPackaged !== undefined ? opts.isPackaged : _resolveIsPackaged();
+  return !!isPackaged; // gate open → on only in packaged prod
+}
+
+module.exports = {
+  isDbEncryptionOptIn,
+  PHASE_1_5_DEFAULT_ON,
+  _resolveIsPackaged,
+};

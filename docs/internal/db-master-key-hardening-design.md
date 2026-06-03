@@ -149,7 +149,7 @@ if (provider.isAvailable()) {
 |---|---|---|---|---|
 | 0 | `db-secret-provider.js` + bootstrap 去 `"123456"` | ✅ `01f8b00b2` | 低（生产休眠） | 单测 |
 | 1 | opt-in flag + 明文→.encrypted 安全迁移（lock + reopen-verify）+ fail-closed | ✅ **代码 landed，默认 OFF** | **高**（开启时给现存明文库做加密迁移） | **真机 smoke 后才可 flip 默认** |
-| 1.5 | flip 默认开启（改 flag 默认或 `isDevelopmentMode`→`app.isPackaged`） | ⬜ 待真机验证 | **高** | 真机 smoke 通过 |
+| 1.5 | gated flip：默认改 `app.isPackaged`（代码已就绪，**gate 仍关**） | ✅ **代码 landed，gate `PHASE_1_5_DEFAULT_ON=false`** | **高** | 翻 gate 前必过真机 smoke |
 | 2 | 罕见 legacy .encrypted("123456") 库 rekey 到随机口令 | ⬜ | 中 | 真机（需先造 legacy .encrypted 库） |
 | 3 | U-Key 重新接通（`forcePassword:true` → `deriveKeyFromUKey`） | ⬜ | 中 | Win + SIMKey 真机 |
 
@@ -170,6 +170,16 @@ if (provider.isAvailable()) {
 4. 杀进程/断电模拟中断重启，确认源库未丢、能恢复或重试。
 5. 多实例/并行启动，确认锁生效不双写坏库。
 6. 通过后再做 Phase 1.5（flip 默认）。
+
+### 5.3 Phase 1.5 gated flip（已落地，gate 仍关）
+
+`db-encryption-flag.js` 现在支持三态解析：
+- env `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1|true` → 强开；`=0|false` → 强关（kill-switch）。
+- 无 env → **gated 默认**：`PHASE_1_5_DEFAULT_ON`（当前 **false**）为 true 时，打包构建（`app.isPackaged`）默认开、dev/test 默认关。
+
+**翻 gate 步骤（真机 smoke §5.2 通过后）**：把 `PHASE_1_5_DEFAULT_ON` 改成 `true`（一行、需评审）。生效后打包用户默认加密，dev/test 仍明文，`=0` 仍可紧急关停。**未过真机 smoke 前不得翻。**
+
+测试 `db-encryption-flag.test.js`(7) 已用 opts seam 预先验证 gate 开/关 × packaged 各组合，并断言"shipped gate 仍为 false"。
 
 > 原 "Phase 1 仅新库随机零风险" 切片**作废**（§1.0：生产根本没开加密，无效果），降级为已落地的 Phase 0 休眠基建。
 
