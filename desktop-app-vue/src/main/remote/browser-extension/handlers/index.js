@@ -10,6 +10,7 @@ import { indexeddbHandlers } from "./indexeddb.js";
 import { networkHandlers } from "./network.js";
 import { notificationsHandlers } from "./notifications.js";
 import { pageHandlers } from "./page.js";
+import { selectionDragdropHandlers } from "./selection-dragdrop.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
 import { windowsHandlers } from "./windows.js";
@@ -30,6 +31,7 @@ export const commandHandlerRegistry = {
   ...devtoolsInspectHandlers,
   ...pageHandlers,
   ...domHandlers,
+  ...selectionDragdropHandlers,
 };
 
 export { listTabs };

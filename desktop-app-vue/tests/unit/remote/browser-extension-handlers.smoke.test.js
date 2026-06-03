@@ -230,6 +230,15 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "dom.stopObserving",
       "dom.getMutations",
       "dom.clearMutations",
+      "dragdrop.simulateDrag",
+      "dragdrop.simulateFileDrop",
+      "dragdrop.getDropZones",
+      "dragdrop.getDraggableElements",
+      "selection.getSelection",
+      "selection.setSelection",
+      "selection.selectAll",
+      "selection.clearSelection",
+      "selection.getSelectedHTML",
     ];
     for (const method of migrated) {
       expect(
