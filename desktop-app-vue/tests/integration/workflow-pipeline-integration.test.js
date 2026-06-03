@@ -248,6 +248,8 @@ describe("工作流管道 - 阶段失败和回滚测试", () => {
       title: "失败测试工作流",
       stageExecutors: executors,
       qualityGateManager: mockQualityGateManager,
+      // 注入快照阶段工厂，使每个阶段在执行前创建快照、失败时回滚
+      stageFactory: new SnapshotWorkflowStageFactory(snapshotManager),
     });
   });
 
@@ -293,13 +295,10 @@ describe("工作流管道 - 阶段失败和回滚测试", () => {
     expect(errorEvent.error).toContain("Stage 3 failed");
   });
 
-  // SKIP: 真 architectural gap — `WorkflowPipeline._initializeStages()` (line 76 of
-  // workflow-pipeline.js) hard-code 用 `WorkflowStageFactory.createDefaultStages()`，
-  // 不接受 `options.stageFactory` injection，无法让用户传 `SnapshotWorkflowStageFactory`。
-  // 要 unskip 需先扩 WorkflowPipeline constructor 加 `stageFactory` 可选参，默认 fallback
-  // 当前工厂。修法不在 test-side。SnapshotWorkflowStage 类自身的 rollback 逻辑已通过
-  // 其他测试 (workflow-snapshot.test.js / snapshot-workflow-stage 单测) 覆盖。
-  test.skip("带快照的阶段失败时应该自动回滚（架构 gap，需 WorkflowPipeline 接受 stageFactory）", async () => {
+  // 架构 gap 已修复：WorkflowPipeline 现接受 options.stageFactory 注入（默认回退到
+  // 内置 WorkflowStageFactory）。此处注入 SnapshotWorkflowStageFactory 后，每个阶段
+  // 在执行前创建快照，stage_3 失败时触发回滚。
+  test("带快照的阶段失败时应该自动回滚", async () => {
     const context = { initialData: "test" };
 
     const result = await workflow.execute({ test: "data" }, context);

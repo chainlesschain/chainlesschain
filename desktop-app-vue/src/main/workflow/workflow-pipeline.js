@@ -13,13 +13,16 @@
  * v0.27.0: 新建文件
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const { WorkflowStateMachine, WorkflowState } = require('./workflow-state-machine.js');
-const { QualityGateManager, GateStatus } = require('./quality-gate-manager.js');
-const { WorkflowStageFactory, StageStatus } = require('./workflow-stage.js');
-const ProgressEmitter = require('../utils/progress-emitter.js');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const {
+  WorkflowStateMachine,
+  WorkflowState,
+} = require("./workflow-state-machine.js");
+const { QualityGateManager, GateStatus } = require("./quality-gate-manager.js");
+const { WorkflowStageFactory, StageStatus } = require("./workflow-stage.js");
+const ProgressEmitter = require("../utils/progress-emitter.js");
 
 /**
  * 工作流管道类
@@ -28,23 +31,31 @@ class WorkflowPipeline extends EventEmitter {
   constructor(options = {}) {
     super();
     this.id = options.id || `wf-${uuidv4().substring(0, 8)}`;
-    this.title = options.title || '项目工作流';
-    this.description = options.description || '';
+    this.title = options.title || "项目工作流";
+    this.description = options.description || "";
 
     // 核心组件
     this.stateMachine = new WorkflowStateMachine(this.id);
-    this.qualityGateManager = options.qualityGateManager || new QualityGateManager({
-      llmService: options.llmService,
-    });
-    this.progressEmitter = options.progressEmitter || new ProgressEmitter({
-      autoForwardToIPC: true,
-      throttleInterval: 100,
-    });
+    this.qualityGateManager =
+      options.qualityGateManager ||
+      new QualityGateManager({
+        llmService: options.llmService,
+      });
+    this.progressEmitter =
+      options.progressEmitter ||
+      new ProgressEmitter({
+        autoForwardToIPC: true,
+        throttleInterval: 100,
+      });
 
     // 阶段管理
     this.stages = [];
     this.currentStageIndex = -1;
     this.stageExecutors = options.stageExecutors || {};
+    // 阶段工厂（可注入）。默认用内置 WorkflowStageFactory；调用方可传入自定义工厂
+    // （如 SnapshotWorkflowStageFactory）以启用快照/回滚等能力。任何实现
+    // createDefaultStages(executors) 的对象/类均可。
+    this.stageFactory = options.stageFactory || WorkflowStageFactory;
 
     // 运行时数据
     this.input = null;
@@ -73,18 +84,18 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   _initializeStages() {
-    this.stages = WorkflowStageFactory.createDefaultStages(this.stageExecutors);
+    this.stages = this.stageFactory.createDefaultStages(this.stageExecutors);
 
     // 监听每个阶段的事件
     this.stages.forEach((stage, index) => {
-      stage.on('stage-start', (data) => this._onStageStart(index, data));
-      stage.on('stage-progress', (data) => this._onStageProgress(index, data));
-      stage.on('stage-complete', (data) => this._onStageComplete(index, data));
-      stage.on('stage-error', (data) => this._onStageError(index, data));
-      stage.on('step-start', (data) => this._onStepStart(data));
-      stage.on('step-progress', (data) => this._onStepProgress(data));
-      stage.on('step-complete', (data) => this._onStepComplete(data));
-      stage.on('step-error', (data) => this._onStepError(data));
+      stage.on("stage-start", (data) => this._onStageStart(index, data));
+      stage.on("stage-progress", (data) => this._onStageProgress(index, data));
+      stage.on("stage-complete", (data) => this._onStageComplete(index, data));
+      stage.on("stage-error", (data) => this._onStageError(index, data));
+      stage.on("step-start", (data) => this._onStepStart(data));
+      stage.on("step-progress", (data) => this._onStepProgress(data));
+      stage.on("step-complete", (data) => this._onStepComplete(data));
+      stage.on("step-error", (data) => this._onStepError(data));
     });
   }
 
@@ -93,9 +104,12 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   _setupStateMachineListeners() {
-    this.stateMachine.on('state-change', (data) => {
-      this._log('info', `状态变更: ${data.previousState} -> ${data.currentState}`);
-      this.emit('workflow:state-change', data);
+    this.stateMachine.on("state-change", (data) => {
+      this._log(
+        "info",
+        `状态变更: ${data.previousState} -> ${data.currentState}`,
+      );
+      this.emit("workflow:state-change", data);
       this._emitProgress();
     });
   }
@@ -105,18 +119,21 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   _setupQualityGateListeners() {
-    this.qualityGateManager.on('gate-checking', (data) => {
-      this._log('info', `开始质量检查: ${data.gateName}`);
-      this.emit('workflow:gate-checking', data);
+    this.qualityGateManager.on("gate-checking", (data) => {
+      this._log("info", `开始质量检查: ${data.gateName}`);
+      this.emit("workflow:gate-checking", data);
     });
 
-    this.qualityGateManager.on('check-completed', (data) => {
-      this.emit('workflow:check-completed', data);
+    this.qualityGateManager.on("check-completed", (data) => {
+      this.emit("workflow:check-completed", data);
     });
 
-    this.qualityGateManager.on('gate-completed', (data) => {
-      this._log(data.passed ? 'info' : 'warn', `质量门禁${data.passed ? '通过' : '失败'}: ${data.gateName}`);
-      this.emit('workflow:gate-result', data);
+    this.qualityGateManager.on("gate-completed", (data) => {
+      this._log(
+        data.passed ? "info" : "warn",
+        `质量门禁${data.passed ? "通过" : "失败"}: ${data.gateName}`,
+      );
+      this.emit("workflow:gate-result", data);
     });
   }
 
@@ -126,7 +143,7 @@ class WorkflowPipeline extends EventEmitter {
    * @param {Function} executor - 执行函数
    */
   registerStageExecutor(stageId, executor) {
-    const stage = this.stages.find(s => s.id === stageId);
+    const stage = this.stages.find((s) => s.id === stageId);
     if (stage) {
       stage.executor = executor;
     }
@@ -141,7 +158,7 @@ class WorkflowPipeline extends EventEmitter {
    */
   async execute(input, context = {}) {
     if (!this.stateMachine.start()) {
-      throw new Error('无法启动工作流，当前状态不允许');
+      throw new Error("无法启动工作流，当前状态不允许");
     }
 
     this.input = input;
@@ -154,11 +171,11 @@ class WorkflowPipeline extends EventEmitter {
       title: this.title,
       description: this.description,
       totalSteps: this.stages.length * 100,
-      metadata: { type: 'workflow' },
+      metadata: { type: "workflow" },
     });
 
-    this._log('info', '工作流开始执行');
-    this.emit('workflow:start', this._getWorkflowInfo());
+    this._log("info", "工作流开始执行");
+    this.emit("workflow:start", this._getWorkflowInfo());
 
     let currentInput = input;
 
@@ -169,19 +186,24 @@ class WorkflowPipeline extends EventEmitter {
 
         // 检查取消状态
         if (this.stateMachine.getState() === WorkflowState.CANCELLED) {
-          throw new Error('工作流已取消');
+          throw new Error("工作流已取消");
         }
 
         const stage = this.stages[i];
         this.currentStageIndex = i;
 
         // 执行阶段
-        this._log('info', `开始阶段 ${i + 1}/${this.stages.length}: ${stage.name}`);
+        this._log(
+          "info",
+          `开始阶段 ${i + 1}/${this.stages.length}: ${stage.name}`,
+        );
         const stageResult = await stage.execute(currentInput, this.context);
         this.results[stage.id] = stageResult;
 
         // 更新进度
-        const overallProgress = Math.round(((i + 1) / this.stages.length) * 100);
+        const overallProgress = Math.round(
+          ((i + 1) / this.stages.length) * 100,
+        );
         tracker.setPercent(overallProgress, `完成阶段: ${stage.name}`);
 
         // 质量门禁检查
@@ -189,7 +211,7 @@ class WorkflowPipeline extends EventEmitter {
           const gateResult = await this.qualityGateManager.check(
             stage.qualityGateId,
             stageResult,
-            this.context
+            this.context,
           );
 
           if (!gateResult.passed && gateResult.blocking) {
@@ -205,10 +227,10 @@ class WorkflowPipeline extends EventEmitter {
       // 完成
       this.stateMachine.complete();
       this.endTime = Date.now();
-      tracker.complete({ message: '工作流执行完成', results: this.results });
+      tracker.complete({ message: "工作流执行完成", results: this.results });
 
-      this._log('info', '工作流执行完成');
-      this.emit('workflow:complete', {
+      this._log("info", "工作流执行完成");
+      this.emit("workflow:complete", {
         ...this._getWorkflowInfo(),
         results: this.results,
       });
@@ -219,14 +241,13 @@ class WorkflowPipeline extends EventEmitter {
         results: this.results,
         duration: this.endTime - this.startTime,
       };
-
     } catch (error) {
       this.stateMachine.fail(error.message);
       this.endTime = Date.now();
       tracker.error(error);
 
-      this._log('error', `工作流执行失败: ${error.message}`);
-      this.emit('workflow:error', {
+      this._log("error", `工作流执行失败: ${error.message}`);
+      this.emit("workflow:error", {
         ...this._getWorkflowInfo(),
         error: error.message,
       });
@@ -235,7 +256,10 @@ class WorkflowPipeline extends EventEmitter {
         success: false,
         workflowId: this.id,
         error: error.message,
-        failedStage: this.currentStageIndex >= 0 ? this.stages[this.currentStageIndex].id : null,
+        failedStage:
+          this.currentStageIndex >= 0
+            ? this.stages[this.currentStageIndex].id
+            : null,
         duration: this.endTime - this.startTime,
       };
     }
@@ -250,12 +274,12 @@ class WorkflowPipeline extends EventEmitter {
       return false;
     }
 
-    this.pausePromise = new Promise(resolve => {
+    this.pausePromise = new Promise((resolve) => {
       this.pauseResolve = resolve;
     });
 
-    this._log('info', '工作流已暂停');
-    this.emit('workflow:paused', this._getWorkflowInfo());
+    this._log("info", "工作流已暂停");
+    this.emit("workflow:paused", this._getWorkflowInfo());
     return true;
   }
 
@@ -274,8 +298,8 @@ class WorkflowPipeline extends EventEmitter {
       this.pausePromise = null;
     }
 
-    this._log('info', '工作流已恢复');
-    this.emit('workflow:resumed', this._getWorkflowInfo());
+    this._log("info", "工作流已恢复");
+    this.emit("workflow:resumed", this._getWorkflowInfo());
     return true;
   }
 
@@ -284,7 +308,7 @@ class WorkflowPipeline extends EventEmitter {
    * @param {string} reason - 取消原因
    * @returns {boolean} 是否成功
    */
-  cancel(reason = '用户取消') {
+  cancel(reason = "用户取消") {
     if (!this.stateMachine.cancel(reason)) {
       return false;
     }
@@ -297,8 +321,8 @@ class WorkflowPipeline extends EventEmitter {
     }
 
     this.endTime = Date.now();
-    this._log('info', `工作流已取消: ${reason}`);
-    this.emit('workflow:cancelled', {
+    this._log("info", `工作流已取消: ${reason}`);
+    this.emit("workflow:cancelled", {
       ...this._getWorkflowInfo(),
       reason,
     });
@@ -311,7 +335,7 @@ class WorkflowPipeline extends EventEmitter {
    */
   async retry() {
     if (!this.stateMachine.retry()) {
-      throw new Error('无法重试，当前状态不允许');
+      throw new Error("无法重试，当前状态不允许");
     }
 
     // 重置失败的阶段
@@ -329,18 +353,19 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   async _continueFromStage(startIndex) {
-    let currentInput = startIndex > 0
-      ? this.results[this.stages[startIndex - 1].id]
-      : this.input;
+    let currentInput =
+      startIndex > 0
+        ? this.results[this.stages[startIndex - 1].id]
+        : this.input;
 
-    this._log('info', `从阶段 ${startIndex + 1} 继续执行`);
+    this._log("info", `从阶段 ${startIndex + 1} 继续执行`);
 
     try {
       for (let i = startIndex; i < this.stages.length; i++) {
         await this._checkPause();
 
         if (this.stateMachine.getState() === WorkflowState.CANCELLED) {
-          throw new Error('工作流已取消');
+          throw new Error("工作流已取消");
         }
 
         const stage = this.stages[i];
@@ -353,7 +378,7 @@ class WorkflowPipeline extends EventEmitter {
           const gateResult = await this.qualityGateManager.check(
             stage.qualityGateId,
             stageResult,
-            this.context
+            this.context,
           );
 
           if (!gateResult.passed && gateResult.blocking) {
@@ -367,7 +392,7 @@ class WorkflowPipeline extends EventEmitter {
       this.stateMachine.complete();
       this.endTime = Date.now();
 
-      this.emit('workflow:complete', {
+      this.emit("workflow:complete", {
         ...this._getWorkflowInfo(),
         results: this.results,
       });
@@ -377,12 +402,11 @@ class WorkflowPipeline extends EventEmitter {
         workflowId: this.id,
         results: this.results,
       };
-
     } catch (error) {
       this.stateMachine.fail(error.message);
       this.endTime = Date.now();
 
-      this.emit('workflow:error', {
+      this.emit("workflow:error", {
         ...this._getWorkflowInfo(),
         error: error.message,
       });
@@ -411,7 +435,7 @@ class WorkflowPipeline extends EventEmitter {
    * @param {string} reason - 原因
    * @returns {boolean} 是否成功
    */
-  overrideQualityGate(gateId, reason = '手动覆盖') {
+  overrideQualityGate(gateId, reason = "手动覆盖") {
     return this.qualityGateManager.override(gateId, reason);
   }
 
@@ -428,7 +452,7 @@ class WorkflowPipeline extends EventEmitter {
    * @returns {Array} 阶段信息列表
    */
   getStages() {
-    return this.stages.map(stage => stage.getStatus());
+    return this.stages.map((stage) => stage.getStatus());
   }
 
   /**
@@ -486,9 +510,10 @@ class WorkflowPipeline extends EventEmitter {
         status: state,
         elapsedTime: this.startTime ? Date.now() - this.startTime : 0,
       },
-      currentStage: this.currentStageIndex >= 0
-        ? this.stages[this.currentStageIndex].getStatus()
-        : null,
+      currentStage:
+        this.currentStageIndex >= 0
+          ? this.stages[this.currentStageIndex].getStatus()
+          : null,
       qualityGates: this.qualityGateManager.getAllStatuses(),
       recentLogs: this.logs.slice(-10),
     };
@@ -499,7 +524,9 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   _calculateOverallProgress() {
-    if (this.currentStageIndex < 0) {return 0;}
+    if (this.currentStageIndex < 0) {
+      return 0;
+    }
 
     const completedWeight = this.stages
       .slice(0, this.currentStageIndex)
@@ -510,7 +537,10 @@ class WorkflowPipeline extends EventEmitter {
       ? (currentStage.progress / 100) * currentStage.estimatedWeight
       : 0;
 
-    const totalWeight = this.stages.reduce((sum, s) => sum + s.estimatedWeight, 0);
+    const totalWeight = this.stages.reduce(
+      (sum, s) => sum + s.estimatedWeight,
+      0,
+    );
 
     return Math.round(((completedWeight + currentWeight) / totalWeight) * 100);
   }
@@ -520,50 +550,50 @@ class WorkflowPipeline extends EventEmitter {
    * @private
    */
   _emitProgress() {
-    this.emit('workflow:progress', this._getWorkflowInfo());
+    this.emit("workflow:progress", this._getWorkflowInfo());
   }
 
   // 阶段事件处理器
   _onStageStart(index, data) {
-    this._log('info', `阶段开始: ${data.name}`);
-    this.emit('workflow:stage-start', { ...data, stageIndex: index });
+    this._log("info", `阶段开始: ${data.name}`);
+    this.emit("workflow:stage-start", { ...data, stageIndex: index });
     this._emitProgress();
   }
 
   _onStageProgress(index, data) {
-    this.emit('workflow:stage-progress', { ...data, stageIndex: index });
+    this.emit("workflow:stage-progress", { ...data, stageIndex: index });
     this._emitProgress();
   }
 
   _onStageComplete(index, data) {
-    this._log('info', `阶段完成: ${data.name}`);
-    this.emit('workflow:stage-complete', { ...data, stageIndex: index });
+    this._log("info", `阶段完成: ${data.name}`);
+    this.emit("workflow:stage-complete", { ...data, stageIndex: index });
     this._emitProgress();
   }
 
   _onStageError(index, data) {
-    this._log('error', `阶段失败: ${data.name} - ${data.error}`);
-    this.emit('workflow:stage-error', { ...data, stageIndex: index });
+    this._log("error", `阶段失败: ${data.name} - ${data.error}`);
+    this.emit("workflow:stage-error", { ...data, stageIndex: index });
   }
 
   _onStepStart(data) {
-    this._log('info', `步骤开始: ${data.step.name}`);
-    this.emit('workflow:step-start', data);
+    this._log("info", `步骤开始: ${data.step.name}`);
+    this.emit("workflow:step-start", data);
   }
 
   _onStepProgress(data) {
-    this.emit('workflow:step-progress', data);
+    this.emit("workflow:step-progress", data);
     this._emitProgress();
   }
 
   _onStepComplete(data) {
-    this._log('info', `步骤完成: ${data.step.name}`);
-    this.emit('workflow:step-complete', data);
+    this._log("info", `步骤完成: ${data.step.name}`);
+    this.emit("workflow:step-complete", data);
   }
 
   _onStepError(data) {
-    this._log('error', `步骤失败: ${data.step.name} - ${data.error}`);
-    this.emit('workflow:step-error', data);
+    this._log("error", `步骤失败: ${data.step.name} - ${data.error}`);
+    this.emit("workflow:step-error", data);
   }
 
   /**
@@ -577,7 +607,7 @@ class WorkflowPipeline extends EventEmitter {
       description: this.description,
       state: this.stateMachine.toJSON(),
       currentStageIndex: this.currentStageIndex,
-      stages: this.stages.map(s => s.getStatus()),
+      stages: this.stages.map((s) => s.getStatus()),
       results: this.results,
       logs: this.logs,
       startTime: this.startTime,
@@ -598,7 +628,7 @@ class WorkflowManager extends EventEmitter {
     this.llmService = options.llmService;
     this.mainWindow = null;
 
-    logger.info('[WorkflowManager] 初始化工作流管理器');
+    logger.info("[WorkflowManager] 初始化工作流管理器");
   }
 
   /**
@@ -647,7 +677,7 @@ class WorkflowManager extends EventEmitter {
    * @returns {Array} 工作流列表
    */
   getAllWorkflows() {
-    return Array.from(this.workflows.values()).map(wf => wf.getStatus());
+    return Array.from(this.workflows.values()).map((wf) => wf.getStatus());
   }
 
   /**
@@ -657,11 +687,13 @@ class WorkflowManager extends EventEmitter {
    */
   deleteWorkflow(workflowId) {
     const workflow = this.workflows.get(workflowId);
-    if (!workflow) {return false;}
+    if (!workflow) {
+      return false;
+    }
 
     // 如果正在运行，先取消
     if (workflow.stateMachine.isRunning()) {
-      workflow.cancel('工作流被删除');
+      workflow.cancel("工作流被删除");
     }
 
     workflow.removeAllListeners();
@@ -677,25 +709,25 @@ class WorkflowManager extends EventEmitter {
    */
   _forwardWorkflowEvents(workflow) {
     const events = [
-      'workflow:start',
-      'workflow:progress',
-      'workflow:stage-start',
-      'workflow:stage-complete',
-      'workflow:stage-error',
-      'workflow:step-start',
-      'workflow:step-complete',
-      'workflow:step-error',
-      'workflow:gate-checking',
-      'workflow:gate-result',
-      'workflow:complete',
-      'workflow:error',
-      'workflow:paused',
-      'workflow:resumed',
-      'workflow:cancelled',
-      'workflow:state-change',
+      "workflow:start",
+      "workflow:progress",
+      "workflow:stage-start",
+      "workflow:stage-complete",
+      "workflow:stage-error",
+      "workflow:step-start",
+      "workflow:step-complete",
+      "workflow:step-error",
+      "workflow:gate-checking",
+      "workflow:gate-result",
+      "workflow:complete",
+      "workflow:error",
+      "workflow:paused",
+      "workflow:resumed",
+      "workflow:cancelled",
+      "workflow:state-change",
     ];
 
-    events.forEach(event => {
+    events.forEach((event) => {
       workflow.on(event, (data) => {
         this.emit(event, data);
 
