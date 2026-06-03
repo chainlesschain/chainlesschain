@@ -57,6 +57,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.presentation.screens.peers.PairedDevicesViewModel
 import com.chainlesschain.android.remote.ui.personalDataHub.HubLocalViewModel
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
+import com.chainlesschain.android.remote.ui.personalDataHub.PdhHallucinationBanner
 import java.util.Locale
 import timber.log.Timber
 
@@ -1355,6 +1356,11 @@ fun HomeRagAnswerSheet(
                 }
                 askState.answer != null -> {
                     val ans = askState.answer
+                    // 防幻觉警示 — 模型引用了 vault 里不存在的 event id 时显示。
+                    if (askState.hallucinatedCount > 0) {
+                        PdhHallucinationBanner(count = askState.hallucinatedCount)
+                        Spacer(Modifier.height(8.dp))
+                    }
                     // 首页 inline 预览压到 ~6 行；想看完整走「查看详情」跳 PDH tab 4
                     val preview = if (ans.length > 280) ans.take(280) + "…" else ans
                     Text(
