@@ -10,7 +10,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
-import com.chainlesschain.android.feature.familyguard.presentation.shell.FamilyShellScreen
+import com.chainlesschain.android.feature.familyguard.presentation.shell.FamilyGuardTab
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
 import com.chainlesschain.android.presentation.components.BottomNavigationBar
 import com.chainlesschain.android.presentation.screens.*
@@ -168,7 +168,7 @@ fun MainContainer(
                 // FamilyShellScreen 自 :feature-family-guard. v0.1: SOS click →
                 // snackbar 占位; FAMILY-40 接通真触发流程 (sos_event upsert + 录音 + broadcast call)。
                 3 -> key("family_guard") {
-                    FamilyShellScreen(
+                    FamilyGuardTab(
                         onSosTriggered = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(

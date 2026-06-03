@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.familyguard.presentation.shell
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,10 +42,13 @@ import com.chainlesschain.android.feature.familyguard.presentation.usageaccess.U
  *
  * @param onSosTriggered click 回调; v0.1 host (MainContainer) 可只接 toast/snackbar,
  *   真触发流程 FAMILY-40 接通。
+ * @param onNavigateToFamilyMembers "家人"卡 click 回调; 由 host (FamilyGuardTab)
+ *   导航到真实的 FamilyMembersScreen (FAMILY-18)。AI陪学/任务 仍为占位, 不接。
  */
 @Composable
 fun FamilyShellScreen(
     onSosTriggered: () -> Unit,
+    onNavigateToFamilyMembers: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -72,13 +76,15 @@ fun FamilyShellScreen(
             description = "查看家长 / 孩子绑定关系, 配对邀请, 解绑流程",
             enabled = true,
             testTag = TestTag.SectionFamily,
+            onClick = onNavigateToFamilyMembers,
         )
 
         SectionCard(
             title = "AI 陪学",
-            description = "学习 tab + 陪伴 tab 双轨; 错题本 + 学情报告",
+            description = "学习 tab + 陪伴 tab 双轨; 错题本 + 学情报告 (即将开放)",
             enabled = true,
             testTag = TestTag.SectionAi,
+            // 占位: 屏幕未建, 暂不接 onClick (FAMILY AI 陪学 epic 落地后接)。
         )
 
         SectionCard(
@@ -104,6 +110,7 @@ private fun SectionCard(
     description: String,
     enabled: Boolean,
     testTag: String,
+    onClick: (() -> Unit)? = null,
 ) {
     val containerColor =
         if (enabled) MaterialTheme.colorScheme.surfaceVariant
@@ -111,9 +118,13 @@ private fun SectionCard(
     val titleColor =
         if (enabled) MaterialTheme.colorScheme.onSurface
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val clickModifier =
+        if (enabled && onClick != null) Modifier.clickable(onClick = onClick)
+        else Modifier
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .then(clickModifier)
             .semantics { contentDescription = testTag },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
