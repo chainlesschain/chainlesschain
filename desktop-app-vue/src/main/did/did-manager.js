@@ -12,6 +12,7 @@ const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 const { DIDCache } = require("./did-cache");
 const { DIDUpdater } = require("./did-updater");
+const didKeystore = require("./did-keystore");
 
 // Module-level let + seams for vi.mock CJS interop (RFC T1).
 let _nacl = require("tweetnacl");
@@ -77,6 +78,9 @@ class DIDManager extends EventEmitter {
     try {
       // 确保数据库表存在
       await this.ensureTables();
+
+      // 将历史明文 private_key_ref 迁移为 safeStorage 密文（best-effort）
+      await this.migrateEncryptPrivateKeys();
 
       // 初始化DID缓存
       await this.cache.initialize();
@@ -181,8 +185,9 @@ class DIDManager extends EventEmitter {
         bio: profile.bio || null,
         public_key_sign: naclUtil.encodeBase64(signKeyPair.publicKey),
         public_key_encrypt: naclUtil.encodeBase64(encryptKeyPair.publicKey),
-        // 注意：这里暂时将私钥存储在数据库中（开发阶段）
-        // 生产环境应该存储在 U 盾中，这里只存储引用
+        // 私钥材料（签名/加密私钥 + 助记词）。saveIdentity() 会在落库前用
+        // Electron safeStorage（OS keychain）加密本字段，详见 did-keystore.js。
+        // 未来接入 U-Key 后，此处可改为只存硬件密钥引用。
         private_key_ref: JSON.stringify({
           sign: naclUtil.encodeBase64(signKeyPair.secretKey),
           encrypt: naclUtil.encodeBase64(encryptKeyPair.secretKey),
@@ -441,6 +446,9 @@ class DIDManager extends EventEmitter {
    */
   async saveIdentity(identity) {
     try {
+      // 私钥材料落库前用 OS keychain 加密（idempotent，已加密则原样返回）。
+      const encryptedRef = didKeystore.encrypt(identity.private_key_ref);
+
       this.db
         .prepare(
           `
@@ -458,7 +466,7 @@ class DIDManager extends EventEmitter {
           identity.bio,
           identity.public_key_sign,
           identity.public_key_encrypt,
-          identity.private_key_ref,
+          encryptedRef,
           identity.did_document,
           identity.created_at,
           identity.is_default,
@@ -468,6 +476,91 @@ class DIDManager extends EventEmitter {
     } catch (error) {
       logger.error("[DIDManager] 保存身份失败:", error);
       throw error;
+    }
+  }
+
+  /**
+   * 将一行身份记录的 private_key_ref 就地解密（读路径统一入口）。
+   * 解密失败时保留原值并告警，避免整条身份因密钥不可解而消失。
+   * @param {Object|null} identity
+   * @returns {Object|null}
+   */
+  _decryptIdentityRow(identity) {
+    if (identity && typeof identity.private_key_ref === "string") {
+      try {
+        identity.private_key_ref = didKeystore.decrypt(
+          identity.private_key_ref,
+        );
+      } catch (err) {
+        logger.error("[DIDManager] 解密 private_key_ref 失败:", err.message);
+      }
+    }
+    return identity;
+  }
+
+  /**
+   * 将 sql.js / better-sqlite3 两种结果格式归一化为对象数组。
+   * @param {*} result
+   * @returns {Array<Object>}
+   */
+  _normalizeRows(result) {
+    if (!result || result.length === 0) {
+      return [];
+    }
+    if (result[0] && result[0].values && result[0].columns) {
+      const { columns, values } = result[0];
+      return values.map((row) => {
+        const obj = {};
+        columns.forEach((col, index) => {
+          obj[col] = row[index];
+        });
+        return obj;
+      });
+    }
+    return result;
+  }
+
+  /**
+   * 启动迁移：把历史明文 private_key_ref 重新写为 safeStorage 密文。
+   * safeStorage 不可用（dev/test/headless）时跳过 —— 此时无法加密，保持原状。
+   * @returns {Promise<{migrated: number, skipped: boolean}>}
+   */
+  async migrateEncryptPrivateKeys() {
+    try {
+      if (!didKeystore.isEncryptionAvailable()) {
+        return { migrated: 0, skipped: true };
+      }
+      const result = this.db
+        .prepare("SELECT did, private_key_ref FROM identities")
+        .all();
+      const rows = this._normalizeRows(result);
+
+      let migrated = 0;
+      for (const row of rows) {
+        const ref = row.private_key_ref;
+        if (
+          typeof ref === "string" &&
+          ref.length > 0 &&
+          !didKeystore.isEncrypted(ref)
+        ) {
+          const encrypted = didKeystore.encrypt(ref);
+          this.db
+            .prepare("UPDATE identities SET private_key_ref = ? WHERE did = ?")
+            .run(encrypted, row.did);
+          migrated++;
+        }
+      }
+
+      if (migrated > 0) {
+        this.db.saveToFile();
+        logger.info(
+          `[DIDManager] 已将 ${migrated} 条身份的 private_key_ref 迁移为加密存储`,
+        );
+      }
+      return { migrated, skipped: false };
+    } catch (error) {
+      logger.error("[DIDManager] private_key_ref 加密迁移失败:", error);
+      return { migrated: 0, skipped: true };
     }
   }
 
@@ -486,19 +579,9 @@ class DIDManager extends EventEmitter {
       }
 
       // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
-      if (result[0] && result[0].values && result[0].columns) {
-        const columns = result[0].columns;
-        const rows = result[0].values;
-        return rows.map((row) => {
-          const identity = {};
-          columns.forEach((col, index) => {
-            identity[col] = row[index];
-          });
-          return identity;
-        });
-      }
-      // better-sqlite3 format - result is array of objects
-      return result;
+      return this._normalizeRows(result).map((identity) =>
+        this._decryptIdentityRow(identity),
+      );
     } catch (error) {
       logger.error("[DIDManager] 获取身份列表失败:", error);
       return [];
@@ -521,20 +604,11 @@ class DIDManager extends EventEmitter {
       }
 
       // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
-      if (result[0] && result[0].values && result[0].columns) {
-        if (result[0].values.length === 0) {
-          return null;
-        }
-        const columns = result[0].columns;
-        const row = result[0].values[0];
-        const identity = {};
-        columns.forEach((col, index) => {
-          identity[col] = row[index];
-        });
-        return identity;
+      const rows = this._normalizeRows(result);
+      if (rows.length === 0) {
+        return null;
       }
-      // better-sqlite3 format - result is array of objects
-      return result[0];
+      return this._decryptIdentityRow(rows[0]);
     } catch (error) {
       logger.error("[DIDManager] 获取身份失败:", error);
       return null;
@@ -583,25 +657,14 @@ class DIDManager extends EventEmitter {
       }
 
       // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
-      let identity;
-      if (result[0] && result[0].values && result[0].columns) {
-        if (result[0].values.length === 0) {
-          logger.info("[DIDManager] 未找到默认身份");
-          return;
-        }
-        const columns = result[0].columns;
-        const row = result[0].values[0];
-        identity = {};
-        columns.forEach((col, index) => {
-          identity[col] = row[index];
-        });
-      } else {
-        // better-sqlite3 format - result is array of objects
-        identity = result[0];
+      const rows = this._normalizeRows(result);
+      if (rows.length === 0) {
+        logger.info("[DIDManager] 未找到默认身份");
+        return;
       }
 
-      this.currentIdentity = identity;
-      logger.info("[DIDManager] 已加载默认身份:", identity.did);
+      this.currentIdentity = this._decryptIdentityRow(rows[0]);
+      logger.info("[DIDManager] 已加载默认身份:", this.currentIdentity.did);
     } catch (error) {
       logger.error("[DIDManager] 加载默认身份失败:", error);
     }
