@@ -156,6 +156,43 @@ async saveIdentity(identity)
 
 ---
 
+## _decryptIdentityRow(identity)
+
+```javascript
+_decryptIdentityRow(identity)
+```
+
+* 将一行身份记录的 private_key_ref 就地解密（读路径统一入口）。
+   * 解密失败时保留原值并告警，避免整条身份因密钥不可解而消失。
+   * @param {Object|null} identity
+   * @returns {Object|null}
+
+---
+
+## _normalizeRows(result)
+
+```javascript
+_normalizeRows(result)
+```
+
+* 将 sql.js / better-sqlite3 两种结果格式归一化为对象数组。
+   * @param {*} result
+   * @returns {Array<Object>}
+
+---
+
+## async migrateEncryptPrivateKeys()
+
+```javascript
+async migrateEncryptPrivateKeys()
+```
+
+* 启动迁移：把历史明文 private_key_ref 重新写为 safeStorage 密文。
+   * safeStorage 不可用（dev/test/headless）时跳过 —— 此时无法加密，保持原状。
+   * @returns {Promise<{migrated: number, skipped: boolean}>}
+
+---
+
 ## getAllIdentities()
 
 ```javascript
