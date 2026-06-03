@@ -80,6 +80,9 @@ class DatabaseManager {
     this.customPath = customPath; // 允许指定自定义路径
     this.encryptionPassword = options.password || null; // 加密密码
     this.encryptionEnabled = options.encryptionEnabled !== false; // 默认启用加密
+    // requireEncryption: 加密为"必需"——禁用明文兜底，且跳过 dev 明文 Better-SQLite3 分支。
+    // 默认 false（不影响任何现有调用）；仅 Phase 1 opt-in 的 bootstrap 显式传 true。
+    this.requireEncryption = options.requireEncryption === true;
 
     // 🚀 性能优化：Prepared Statement 缓存（LRU 策略，避免长期运行无界增长）
     this.initializePreparedStatementCache();
@@ -185,10 +188,15 @@ class DatabaseManager {
 
       logger.info("数据库路径:", this.dbPath);
 
-      // 开发环境优先使用 Better-SQLite3
+      // 开发环境优先使用 Better-SQLite3（明文）。requireEncryption 时跳过此分支，
+      // 否则会先落到明文 Better-SQLite3、永远到不了下面的加密适配器。
       const isDevelopment =
         process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
-      if (isDevelopment && createBetterSQLiteAdapter) {
+      if (
+        isDevelopment &&
+        !this.requireEncryption &&
+        createBetterSQLiteAdapter
+      ) {
         try {
           await this.initializeWithBetterSQLite();
           logger.info("数据库初始化成功（Better-SQLite3 开发模式）");
@@ -221,6 +229,16 @@ class DatabaseManager {
 
           return true;
         } catch (error) {
+          // Fail-closed：加密为必需时，绝不静默回退到明文 sql.js。
+          if (this.requireEncryption) {
+            logger.error(
+              "[Database] 加密初始化失败且 requireEncryption=true，拒绝明文回退:",
+              error.message,
+            );
+            throw new Error(
+              `加密数据库初始化失败且要求加密，拒绝明文回退: ${error.message}`,
+            );
+          }
           logger.warn(
             "[Database] 加密初始化失败，回退到 sql.js:",
             error.message,
@@ -228,6 +246,13 @@ class DatabaseManager {
           logger.warn("[Database] 错误堆栈:", error.stack);
           // 继续使用 sql.js
         }
+      }
+
+      // Fail-closed：加密为必需却走到明文 sql.js 兜底（如适配器不可用），拒绝。
+      if (this.requireEncryption) {
+        throw new Error(
+          "加密为必需（requireEncryption=true），但加密适配器不可用，拒绝回退到明文 sql.js",
+        );
       }
 
       // Fallback: 使用 sql.js

@@ -145,14 +145,33 @@ if (provider.isAvailable()) {
 
 ## 5. 分阶段落地（按 §1.0 修正后重排）
 
-| Phase | 内容 | 风险 | 门禁 |
-|---|---|---|---|
-| 0 | `db-secret-provider.js` + 单测 + bootstrap 接入（去 `"123456"`）。**生产仍不加密，故休眠**；只为后续步骤备好安全密钥源 | 低（零数据丢失，生产行为不变） | 单测绿即可 |
-| 1 | 把 `isDevelopmentMode()` 三处改 `app.isPackaged`，**让生产真正开加密** + 明文→.encrypted 迁移（backup/verify/rollback + 文件锁） | **高**（首次给现存用户的明文库做加密迁移） | 真机 smoke：装旧版建明文库→升级→数据在 + 库变 .encrypted + 用随机口令开 |
-| 2 | 罕见 legacy .encrypted("123456") 库 rekey 到随机口令 | 中 | 真机（需先造 legacy .encrypted 库） |
-| 3 | U-Key 重新接通 | 中 | Win + SIMKey 真机 |
+| Phase | 内容 | 状态 | 风险 | 门禁 |
+|---|---|---|---|---|
+| 0 | `db-secret-provider.js` + bootstrap 去 `"123456"` | ✅ `01f8b00b2` | 低（生产休眠） | 单测 |
+| 1 | opt-in flag + 明文→.encrypted 安全迁移（lock + reopen-verify）+ fail-closed | ✅ **代码 landed，默认 OFF** | **高**（开启时给现存明文库做加密迁移） | **真机 smoke 后才可 flip 默认** |
+| 1.5 | flip 默认开启（改 flag 默认或 `isDevelopmentMode`→`app.isPackaged`） | ⬜ 待真机验证 | **高** | 真机 smoke 通过 |
+| 2 | 罕见 legacy .encrypted("123456") 库 rekey 到随机口令 | ⬜ | 中 | 真机（需先造 legacy .encrypted 库） |
+| 3 | U-Key 重新接通（`forcePassword:true` → `deriveKeyFromUKey`） | ⬜ | 中 | Win + SIMKey 真机 |
 
-> 原 Phase 1（"仅新库随机、零风险、可本机验"）**作废**：§1.0 证明生产根本没开加密，该切片在生产里无效果。降级为 Phase 0 的休眠基建。真正的价值在 Phase 1（开加密+迁移），其风险与门禁与原 Phase 2 同级。
+### 5.1 Phase 1 已落地内容（默认 OFF）
+
+- `database/db-encryption-flag.js`：`isDbEncryptionOptIn()` 读 `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION`，**默认 false** → 生产行为零变化。
+- `database/encrypted-migration.js`：`migratePlaintextToEncrypted()` 在现有 `DatabaseMigrator`（已含 backup + 行数 verify + 失败保留源库）外再加 **并发锁**（`<target>.migrating.lock`，陈旧锁 10min 回收）+ **重开校验**（用 key 重新打开 .encrypted 跑 `sqlite_master` 查询，证明可解密）。
+- `database-adapter.performMigration` 改调上面的安全包装。
+- `database.js`：新增 `requireEncryption`（默认 false）。为 true 时：(a) 跳过 dev 明文 Better-SQLite3 分支（否则永远到不了加密适配器）；(b) 加密初始化失败 / 适配器不可用时 **fail-closed 抛错**，绝不回退明文。
+- `core-initializer.js`：opt-in 时 `encryptionEnabled=true` + `requireEncryption=true` + Phase 0 托管随机口令。
+- 测试：`db-encryption-flag.test.js`(3) + `encrypted-migration.test.js`(5)，含 lock-held/stale-lock/reopen-verify-fail→删可疑库。
+
+### 5.2 真机验证步骤（flip 默认前必跑，真机已可用）
+
+1. 装一个**当前默认版**（明文库），正常用一会儿，产生笔记/会话等数据。
+2. 升级到含本 Phase 1 的版本，**设 `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` 启动**。
+3. 验证：(a) 数据完好（笔记/会话条数一致）；(b) 出现 `<userData>/db-secret.enc`；(c) 出现 `chainlesschain.encrypted.db`、原 `chainlesschain.db` 变 `.old`；(d) 用旧 "123456"/空 key 打不开新库。
+4. 杀进程/断电模拟中断重启，确认源库未丢、能恢复或重试。
+5. 多实例/并行启动，确认锁生效不双写坏库。
+6. 通过后再做 Phase 1.5（flip 默认）。
+
+> 原 "Phase 1 仅新库随机零风险" 切片**作废**（§1.0：生产根本没开加密，无效果），降级为已落地的 Phase 0 休眠基建。
 
 ## 6. 测试计划
 

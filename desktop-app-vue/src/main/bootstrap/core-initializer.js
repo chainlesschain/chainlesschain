@@ -94,7 +94,18 @@ function registerCoreInitializers(factory) {
 
       // 检查加密配置
       const encryptionConfig = new EncryptionConfigManager(app);
-      const encryptionEnabled = encryptionConfig.isEncryptionEnabled();
+      let encryptionEnabled = encryptionConfig.isEncryptionEnabled();
+
+      // Phase 1（默认 OFF）：opt-in 时强制开启加密 + 明文→.encrypted 迁移 + fail-closed。
+      // 默认不开 → encryptionEnabled 仍由 config 决定（打包生产为 false），行为零变化。
+      const { isDbEncryptionOptIn } = require("../database/db-encryption-flag");
+      const encryptionOptIn = isDbEncryptionOptIn();
+      if (encryptionOptIn) {
+        encryptionEnabled = true;
+        logger.warn(
+          "[core-init] DB 加密 opt-in 已开启（Phase 1，真机验证用）：将启用加密 + fail-closed",
+        );
+      }
       logger.info(`数据库加密状态: ${encryptionEnabled ? "已启用" : "未启用"}`);
 
       // Phase 0: 去硬编码 "123456"，加密启用时改用 safeStorage 托管随机口令。
@@ -109,6 +120,8 @@ function registerCoreInitializers(factory) {
       const database = new DatabaseManager(null, {
         password: dbPassword,
         encryptionEnabled,
+        // fail-closed 仅在 opt-in 时启用，避免给未迁移用户造成可用性回归。
+        requireEncryption: encryptionOptIn,
       });
 
       await database.initialize();

@@ -17,7 +17,7 @@ const {
   createEncryptedDatabase,
   createUnencryptedDatabase,
 } = require("./sqlcipher-wrapper");
-const { migrateDatabase } = require("./database-migration");
+const { migratePlaintextToEncrypted } = require("./encrypted-migration");
 
 /**
  * 数据库引擎类型
@@ -192,8 +192,8 @@ class DatabaseAdapter {
         encryptionEnabled: true,
       });
 
-      // 执行迁移
-      const migrationResult = await migrateDatabase({
+      // 执行迁移（带并发锁 + 重开校验的安全包装，见 encrypted-migration.js）
+      const migrationResult = await migratePlaintextToEncrypted({
         sourcePath: this.dbPath,
         targetPath: this.getEncryptedDbPath(),
         encryptionKey: keyResult.key,
