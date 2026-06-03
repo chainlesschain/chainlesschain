@@ -1,0 +1,143 @@
+# Template Application
+
+## 📋 概述
+
+**技能ID**: `skill_template_application`
+**分类**: template
+**状态**: ✅ 启用
+**类型**: 🔧 内置技能
+**图标**: layout
+
+使用模板创建项目和内容
+
+---
+
+## 🏷️ 标签
+
+`模板` `快速创建`
+
+---
+
+## ⚙️ 配置选项
+
+```json
+{
+  "defaultCategory": "writing"
+}
+```
+
+### 配置说明
+
+- **defaultCategory**: writing - 自定义配置项
+
+---
+
+## 🛠️ 包含的工具
+
+暂无关联工具
+
+---
+
+## 📖 使用场景
+
+根据 template 分类的应用场景
+
+---
+
+## 💡 使用示例
+
+### 示例 1: 基础使用
+
+```javascript
+// 调用 模板应用 技能
+const result = await executeSkill('skill_template_application', {
+  // 技能参数
+  ...yourParams
+});
+
+console.log('执行结果:', result);
+```
+
+### 示例 2: 组合使用
+
+```javascript
+// 结合多个工具使用
+const workflow = {
+  skill: 'skill_template_application',
+  tools: []
+};
+
+const result = await executeWorkflow(workflow);
+```
+
+### 示例 3: 自动化流程
+
+```javascript
+// 创建自动化任务
+await createAutomationTask({
+  name: '模板应用自动化',
+  skill: 'skill_template_application',
+  schedule: '0 9 * * *', // 每天9点执行
+  params: {
+    // 自动化参数
+  }
+});
+```
+
+---
+
+## 🎯 最佳实践
+
+遵循行业最佳实践
+
+---
+
+## ⚠️ 常见问题
+
+暂无常见问题
+
+---
+
+## 🚀 进阶技巧
+
+探索更多高级功能
+
+---
+
+## 🔐 权限要求
+
+✅ 无特殊权限要求
+
+---
+
+## 📊 性能优化建议
+
+- 根据实际需求优化性能
+
+---
+
+## 🔗 相关技能
+
+暂无相关技能
+
+---
+
+## 📝 更新日志
+
+### v1.0.0 (2025-12-29)
+- ✅ 初始版本发布
+- ✅ 完整功能实现
+- ✅ 文档完善
+
+---
+
+## 📚 参考资料
+
+- 参考官方文档
+
+---
+
+**文档版本**: v1.0.0
+**最后更新**: 2025-12-29
+**维护者**: ChainlessChain Team
+**反馈**: [提交Issue](https://github.com/chainlesschain/chainlesschain/issues)

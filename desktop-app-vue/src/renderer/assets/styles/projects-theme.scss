@@ -1,0 +1,325 @@
+/**
+ * ChainlessChain 项目管理页面主题样式
+ * 遵循"扣子空间"设计风格
+ */
+
+/* ========== 颜色变量 ========== */
+$bg-primary: #FFFFFF;
+$bg-secondary: #F5F5F5;
+$bg-tertiary: #F9FAFB;
+$sidebar-bg: #2B2D31;
+
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-tertiary: #9CA3AF;
+$text-inverse: #FFFFFF;
+
+$accent-blue: #1677FF;
+$accent-orange: #FF8C00;
+$accent-purple: #667EEA;
+
+$success: #52C41A;
+$warning: #FAAD14;
+$error: #FF4D4F;
+$info: #1677FF;
+
+$border-light: #E5E7EB;
+$border-medium: #D1D5DB;
+$border-dark: #9CA3AF;
+
+/* ========== 间距变量 ========== */
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+$spacing-xxl: 32px;
+$spacing-xxxl: 40px;
+
+/* ========== 字体变量 ========== */
+$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+$font-family-mono: 'Courier New', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+
+$font-size-xs: 12px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-md: 15px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-xxl: 20px;
+$font-size-xxxl: 24px;
+$font-size-huge: 36px;
+
+/* ========== 圆角变量 ========== */
+$border-radius-sm: 4px;
+$border-radius-base: 6px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+$border-radius-round: 24px;
+
+/* ========== 阴影变量 ========== */
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+$shadow-base: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+$shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.16);
+
+/* ========== 过渡变量 ========== */
+$transition-fast: 0.15s ease-in-out;
+$transition-base: 0.2s ease-in-out;
+$transition-slow: 0.3s ease-in-out;
+
+/* ========== 布局 Mixins ========== */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== 文本省略 Mixin ========== */
+@mixin text-ellipsis($lines: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @if $lines == 1 {
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+  }
+}
+
+/* ========== 滚动条样式 Mixin ========== */
+@mixin custom-scrollbar($width: 8px, $thumb-color: $border-medium, $track-color: $bg-tertiary) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: calc($width / 2);
+
+    &:hover {
+      background: darken($thumb-color, 10%);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+  }
+}
+
+/* ========== 卡片样式 Mixin ========== */
+@mixin card-base {
+  background: $bg-primary;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-base;
+  transition: box-shadow $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+/* ========== 按钮样式 Mixin ========== */
+@mixin button-base {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius-base;
+  font-size: $font-size-base;
+  font-weight: 500;
+  transition: all $transition-fast;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* ========== 输入框样式 Mixin ========== */
+@mixin input-base {
+  padding: $spacing-md;
+  border: 1px solid $border-light;
+  border-radius: $border-radius-base;
+  font-size: $font-size-base;
+  transition: all $transition-base;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+    box-shadow: 0 0 0 3px rgba($accent-blue, 0.1);
+  }
+
+  &::placeholder {
+    color: $text-tertiary;
+  }
+}
+
+/* ========== 响应式断点 ========== */
+$breakpoint-xs: 480px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 992px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1600px;
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) { @content; }
+  }
+  @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) { @content; }
+  }
+  @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) { @content; }
+  }
+  @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) { @content; }
+  }
+  @else if $breakpoint == xl {
+    @media (max-width: $breakpoint-xl) { @content; }
+  }
+}
+
+/* ========== 全局样式覆盖（Ant Design） ========== */
+:root {
+  --primary-color: #{$accent-blue};
+  --success-color: #{$success};
+  --warning-color: #{$warning};
+  --error-color: #{$error};
+  --info-color: #{$info};
+  --text-color: #{$text-primary};
+  --text-color-secondary: #{$text-secondary};
+  --border-radius-base: #{$border-radius-base};
+}
+
+/* ========== 动画定义 ========== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========== 工具类 ========== */
+.fade-in {
+  animation: fade-in $transition-base;
+}
+
+.slide-up {
+  animation: slide-up $transition-base;
+}
+
+.slide-down {
+  animation: slide-down $transition-base;
+}
+
+.scale-in {
+  animation: scale-in $transition-base;
+}
+
+/* 文本颜色 */
+.text-primary { color: $text-primary; }
+.text-secondary { color: $text-secondary; }
+.text-tertiary { color: $text-tertiary; }
+.text-inverse { color: $text-inverse; }
+.text-success { color: $success; }
+.text-warning { color: $warning; }
+.text-error { color: $error; }
+.text-info { color: $info; }
+
+/* 背景颜色 */
+.bg-primary { background-color: $bg-primary; }
+.bg-secondary { background-color: $bg-secondary; }
+.bg-tertiary { background-color: $bg-tertiary; }
+.bg-sidebar { background-color: $sidebar-bg; }
+
+/* 间距 */
+.m-0 { margin: 0; }
+.m-xs { margin: $spacing-xs; }
+.m-sm { margin: $spacing-sm; }
+.m-md { margin: $spacing-md; }
+.m-lg { margin: $spacing-lg; }
+.m-xl { margin: $spacing-xl; }
+
+.p-0 { padding: 0; }
+.p-xs { padding: $spacing-xs; }
+.p-sm { padding: $spacing-sm; }
+.p-md { padding: $spacing-md; }
+.p-lg { padding: $spacing-lg; }
+.p-xl { padding: $spacing-xl; }
+
+/* Flex布局 */
+.flex { display: flex; }
+.flex-center { @include flex-center; }
+.flex-between { @include flex-between; }
+.flex-column { @include flex-column; }
+.flex-1 { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+/* 文本对齐 */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+/* 文本省略 */
+.ellipsis { @include text-ellipsis(1); }
+.ellipsis-2 { @include text-ellipsis(2); }
+.ellipsis-3 { @include text-ellipsis(3); }

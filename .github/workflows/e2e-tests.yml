@@ -1,0 +1,147 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-tests:
+    name: E2E Tests (Electron + Playwright)
+    runs-on: ${{ matrix.os }}
+    # macOS runners are slower; allow up to 60 minutes for all platforms
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          # Cache ~/.npm so subsequent installs hit the local registry mirror
+          # instead of re-downloading every transitive package. Two lockfiles
+          # keyed because both root and desktop-app-vue installs run.
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
+
+      - name: Install root dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm install --legacy-peer-deps
+          install-desktop-app-vue: "true"
+
+      - name: Build desktop app main process
+        working-directory: ./desktop-app-vue
+        run: npm run build:main
+
+      - name: Build desktop app renderer
+        working-directory: ./desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      # Cache Playwright's chromium download (~150MB) — both root and
+      # desktop-app-vue pin @playwright/test, so hash both lockfiles so a
+      # bump in either invalidates. On Windows the cache hit shaves ~3m
+      # off the job; on Linux we still need the OS-level deps step so
+      # split into two install branches.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json', 'desktop-app-vue/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only (cache hit, Linux)
+        if: steps.playwright-cache.outputs.cache-hit == 'true' && runner.os == 'Linux'
+        run: npx playwright install-deps chromium
+
+      - name: Install Xvfb for Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Run E2E smoke tests
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+              npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
+          else
+            npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
+          fi
+        shell: bash
+        env:
+          CI: true
+          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+          ELECTRON_ENABLE_LOGGING: "true"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report-${{ matrix.os }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  test-summary:
+    name: Test Summary
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-test-results
+
+      - name: Generate test summary
+        run: |
+          echo "# E2E Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results by Platform" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for os in ubuntu-latest macos-latest windows-latest; do
+            echo "### $os" >> $GITHUB_STEP_SUMMARY
+            if [ -f "all-test-results/playwright-report-$os/results.json" ]; then
+              # artifact存在 ≠ 测试通过；Playwright 失败时也会写 results.json。
+              # 真正的 pass/fail 看 e2e 矩阵 job 的 outcome（上方 Test Results 表格）。
+              echo "📄 Playwright report uploaded" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          done

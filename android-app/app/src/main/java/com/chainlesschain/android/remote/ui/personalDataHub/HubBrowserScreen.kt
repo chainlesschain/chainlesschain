@@ -1,0 +1,551 @@
+package com.chainlesschain.android.remote.ui.personalDataHub
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.pdh.LocalCcRunner.EventRow
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Phase 16 Vault Browser — Android "我的数据" tab.
+ *
+ * Stateful wrapper around [HubBrowserScreenContent] — keeps the
+ * Hilt-injected ViewModel out of the testable composable surface so
+ * unit / instrumentation tests can render the Content directly with
+ * a synthetic state (avoiding the mockk<HiltViewModel> initialization
+ * trap, memory `android_mockk_viewmodel_androidtest_initializer_trap`).
+ */
+@Composable
+fun HubBrowserScreen(
+    modifier: Modifier = Modifier,
+    viewModel: HubBrowserViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsState()
+    // Re-run search on every (re-)entry to the tab. ViewModel's `init { search() }`
+    // only fires once at construction; with HiltViewModel scoped to the Activity
+    // (default for top-level tabs), a sync triggered from another tab (e.g. the
+    // SystemDataCard refresh in HubLocal writing new events to vault) would not
+    // be reflected here until the Activity is destroyed. LaunchedEffect(Unit)
+    // re-queries facets + first page each time the screen enters composition,
+    // so the user sees fresh data after switching back from any data-writing tab.
+    LaunchedEffect(Unit) { viewModel.search() }
+    HubBrowserScreenContent(
+        modifier = modifier,
+        state = state,
+        onQueryChange = viewModel::setQuery,
+        onCategorySelect = viewModel::selectCategory,
+        onAdapterSelect = viewModel::selectAdapter,
+        onLoadMore = viewModel::loadMore,
+        onReset = viewModel::resetFilters,
+        onRefresh = viewModel::search,
+    )
+}
+
+/**
+ * Stateless body — receives the entire UI state + callback lambdas. Used by
+ * the wrapper above and directly by tests / @Preview.
+ *
+ * Tap-to-detail: when a row is tapped, we surface a ModalBottomSheet showing
+ * the full event JSON. State is local (not in HubBrowserUiState) because the
+ * event payload already lives in `state.rows` — re-fetching via
+ * LocalCcRunner.queryEvent would be redundant.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HubBrowserScreenContent(
+    modifier: Modifier = Modifier,
+    state: HubBrowserUiState,
+    onQueryChange: (String) -> Unit,
+    onCategorySelect: (String?) -> Unit,
+    onAdapterSelect: (String?) -> Unit,
+    onLoadMore: () -> Unit,
+    onReset: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    var selectedEvent by remember { mutableStateOf<EventRow?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // Search row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = state.q,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text(if (state.category != null) "在「${categoryLabelFor(state.category)}」内搜索…" else "搜索关键词…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (state.q.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "清空")
+                        }
+                    }
+                },
+                singleLine = true,
+            )
+        }
+
+        // Mode + total banner
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "共 ${state.facets.total} 条" +
+                    (if (state.shortQuery) " · 关键词需至少 3 字" else "") +
+                    (if (state.mode == "like") " · LIKE 兜底" else "") +
+                    (if (state.rows.isNotEmpty()) " · 已显示 ${state.rows.size}" else ""),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            if (state.q.isNotEmpty() || state.category != null || state.adapter != null) {
+                OutlinedButton(onClick = onReset) { Text("清空筛选") }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Category chip row
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item(key = "cat-all") {
+                FilterChip(
+                    selected = state.category == null,
+                    onClick = { onCategorySelect(null) },
+                    label = { Text("全部 (${state.facets.total})") },
+                )
+            }
+            itemsIndexed(
+                items = CATEGORY_ORDER,
+                key = { idx, cat -> "cat-$idx-$cat" },
+            ) { _, cat ->
+                val count = state.facets.byCategory[cat] ?: 0
+                FilterChip(
+                    selected = state.category == cat,
+                    onClick = { onCategorySelect(cat) },
+                    label = { Text("${categoryLabelFor(cat)} ($count)") },
+                    enabled = count > 0 || state.category == cat,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Error banner
+        if (state.errorMessage != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text(
+                    text = state.errorMessage,
+                    modifier = Modifier.padding(12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Result list
+        if (state.isLoading && state.rows.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (state.rows.isEmpty() && state.errorMessage == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = emptyHintFor(state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // itemsIndexed + idx-prefixed key — avoids
+                // measureLazyList crash when adapters burst-emit events
+                // with same occurredAt millisecond (memory
+                // compose_lazycolumn_key_burst_collision).
+                itemsIndexed(
+                    items = state.rows,
+                    key = { idx, ev -> "row-$idx-${ev.id}" },
+                ) { _, ev ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedEvent = ev },
+                    ) {
+                        EventRenderer(event = ev)
+                    }
+                }
+                if (state.canLoadMore) {
+                    item(key = "load-more") {
+                        OutlinedButton(
+                            onClick = onLoadMore,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            enabled = !state.isAppending,
+                        ) {
+                            if (state.isAppending) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.size(8.dp))
+                            }
+                            Text("加载下一页 (${BROWSER_PAGE_SIZE} 条)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Detail sheet — rendered above the Column so swipe-down to dismiss works.
+    selectedEvent?.let { ev ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedEvent = null },
+            sheetState = sheetState,
+        ) {
+            EventDetailSheet(
+                event = ev,
+                onClose = {
+                    scope.launch {
+                        sheetState.hide()
+                        selectedEvent = null
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
+    val parsed = remember(event.rawJson) {
+        try {
+            org.json.JSONObject(event.rawJson)
+        } catch (_: Throwable) {
+            org.json.JSONObject()
+        }
+    }
+    val content = parsed.optJSONObject("content") ?: org.json.JSONObject()
+    val extra = parsed.optJSONObject("extra") ?: org.json.JSONObject()
+    val kind = extra.optString("kind", "")
+    val prettyJson = remember(event.rawJson) {
+        try {
+            parsed.toString(2)
+        } catch (_: Throwable) {
+            event.rawJson
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Text(
+            text = content.optString("title").ifEmpty { event.summary ?: "(无摘要)" },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = formatTime(event.occurredAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            event.sourceAdapter?.let {
+                AssistChip(
+                    onClick = {},
+                    label = { Text(it, fontSize = 10.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                )
+            }
+            Spacer(modifier = Modifier.size(4.dp))
+            Text(
+                text = event.subtype,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Per-kind formatted fields. For known synthetic-event kinds
+        // (contact-snapshot / app-snapshot) the adapter denormalised
+        // identifying fields onto event.extra, so this just reads them
+        // out. Unknown kinds fall through to the JSON section below.
+        when (kind) {
+            "contact-snapshot" -> ContactDetail(extra)
+            "app-snapshot" -> AppDetail(extra)
+            else -> {
+                // Generic detail: dump content fields as kv rows.
+                GenericContentFields(content, extra)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("ID", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Text(event.id, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("完整 JSON", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text(
+                text = prettyJson,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("关闭")
+        }
+    }
+}
+
+@Composable
+private fun ContactDetail(extra: org.json.JSONObject) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("联系方式", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        val phones = extra.optJSONArray("phones")
+        if (phones != null && phones.length() > 0) {
+            for (i in 0 until phones.length()) {
+                DetailRow(label = "电话", value = phones.optString(i))
+            }
+        }
+        val emails = extra.optJSONArray("emails")
+        if (emails != null && emails.length() > 0) {
+            for (i in 0 until emails.length()) {
+                DetailRow(label = "邮箱", value = emails.optString(i))
+            }
+        }
+        val org = extra.optString("organization", "")
+        if (org.isNotEmpty()) DetailRow(label = "组织", value = org)
+        if (extra.has("starred")) {
+            DetailRow(label = "星标", value = if (extra.optBoolean("starred")) "是" else "否")
+        }
+        if (phones == null && emails == null && org.isEmpty()) {
+            Text(
+                "（同步时该联系人没有电话/邮箱/组织字段）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppDetail(extra: org.json.JSONObject) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("应用信息", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        DetailRow(label = "包名", value = extra.optString("packageName", "—"))
+        val versionName = extra.optString("versionName", "")
+        if (versionName.isNotEmpty()) DetailRow(label = "版本", value = versionName)
+        if (extra.has("versionCode")) {
+            DetailRow(label = "versionCode", value = extra.optInt("versionCode").toString())
+        }
+        if (extra.has("firstInstallTime")) {
+            DetailRow(label = "首次安装", value = formatTime(extra.optLong("firstInstallTime")))
+        }
+        if (extra.has("lastUpdateTime")) {
+            DetailRow(label = "最近更新", value = formatTime(extra.optLong("lastUpdateTime")))
+        }
+        if (extra.has("isSystem")) {
+            DetailRow(label = "系统应用", value = if (extra.optBoolean("isSystem")) "是" else "否")
+        }
+    }
+}
+
+@Composable
+private fun GenericContentFields(content: org.json.JSONObject, extra: org.json.JSONObject) {
+    val keys = mutableListOf<String>()
+    content.keys().forEachRemaining { keys.add(it) }
+    if (keys.isEmpty() && extra.length() == 0) return
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (keys.isNotEmpty()) {
+            Text("内容", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(4.dp))
+            for (k in keys) {
+                if (k == "title") continue  // already shown as the header
+                DetailRow(label = k, value = content.opt(k)?.toString() ?: "")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(width = 88.dp, height = 20.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun EventCard(event: EventRow) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatTime(event.occurredAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                event.sourceAdapter?.let {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(it, fontSize = 10.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        ),
+                    )
+                }
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = event.subtype,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = event.summary ?: "(无摘要)",
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 4,
+            )
+        }
+    }
+}
+
+private val CATEGORY_ORDER = listOf(
+    "chat", "social", "email", "shopping", "travel", "system", "ai-chat", "other",
+)
+
+private fun categoryLabelFor(id: String?): String = when (id) {
+    "chat" -> "社交聊天"
+    "social" -> "内容平台"
+    "email" -> "邮件"
+    "shopping" -> "支付订单"
+    "travel" -> "出行"
+    "system" -> "系统数据"
+    "ai-chat" -> "AI 对话"
+    "other" -> "其他"
+    else -> id ?: "未知"
+}
+
+private fun emptyHintFor(state: HubBrowserUiState): String = when {
+    state.q.isNotEmpty() ->
+        "没有匹配 \"${state.q}\" 的事件 — 换个关键词或类目试试"
+    state.category != null ->
+        "「${categoryLabelFor(state.category)}」类目下还没数据 — 去本机数据 tab 同步对应 adapter"
+    else ->
+        "Vault 里还没数据 — 去本机数据 tab 同步任意 adapter"
+}
+
+private fun formatTime(ms: Long): String {
+    if (ms <= 0) return ""
+    return try {
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(ms))
+    } catch (_: Throwable) {
+        ""
+    }
+}

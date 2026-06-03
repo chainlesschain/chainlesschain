@@ -1,0 +1,61 @@
+{
+  "id": "tpl_travel_itinerary_001",
+  "name": "travel_itinerary",
+  "display_name": "旅行行程规划",
+  "description": "生成详细旅行行程单，包含景点安排、预算和打卡清单",
+  "icon": "✈️",
+  "category": "travel",
+  "subcategory": "planning",
+  "tags": ["旅行", "行程", "规划", "攻略"],
+  "project_type": "document",
+  "prompt_template": "# {{destination}} {{duration}}日游行程\n\n## 旅行信息\n- 目的地：{{destination}}\n- 旅行天数：{{duration}}天\n- 出发日期：{{startDate}}\n- 旅行人数：{{travelers}}人\n- 预算：¥{{budget}}\n- 旅行主题：{{travelTheme}}\n\n## 每日行程\n\n### Day 1：{{day1Theme}}\n**上午：**{{day1Morning}}\n**下午：**{{day1Afternoon}}\n**晚上：**{{day1Evening}}\n**餐饮：**{{day1Meals}}\n**住宿：**{{day1Hotel}}\n**预算：**¥{{day1Budget}}\n\n### Day 2：{{day2Theme}}\n{{day2Details}}\n\n...\n\n## 必备物品清单\n- [ ] {{item1}}\n- [ ] {{item2}}\n- [ ] {{item3}}\n\n## 美食推荐\n{{foodRecommendations}}\n\n## 旅行贴士\n{{travelTips}}",
+  "variables_schema": [
+    {
+      "name": "destination",
+      "label": "目的地",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：成都、东京"
+    },
+    {
+      "name": "duration",
+      "label": "旅行天数",
+      "type": "number",
+      "required": true,
+      "min": 1,
+      "max": 30
+    },
+    {
+      "name": "budget",
+      "label": "总预算(元)",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "travelTheme",
+      "label": "旅行主题",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "文化古迹", "label": "文化古迹" },
+        { "value": "自然风光", "label": "自然风光" },
+        { "value": "美食探索", "label": "美食探索" },
+        { "value": "休闲度假", "label": "休闲度假" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{destination}}-{{duration}}日游",
+    "files": [
+      {"path": "行程单.docx", "type": "document"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "打卡清单.md", "type": "markdown"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_travel_planning", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

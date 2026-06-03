@@ -1,0 +1,155 @@
+name: bs3mc Dual-Load Audit (PR advisory)
+
+# Advisory gate for trap #23. PDH adapter (or any module that opens
+# SQLCipher DBs) must accept an injectable Driver factory so:
+#   - non-Electron contexts (Node-only tests, CI sandbox) can swap in a
+#     compatible better-sqlite3 driver
+#   - the Electron ABI 140 / Node ABI 127 mismatch can't trip runtime
+#
+# Canonical patterns (both accepted by the lint):
+#   1. `this._deps.dbDriverFactory ? this._deps.dbDriverFactory() :
+#       require("better-sqlite3-multiple-ciphers")`  — 10 PDH adapters
+#   2. `opts.driver` / `this._driver` field with module-level fallback
+#       to a `loadDriver()` helper                    — wechat/db-reader.js
+#
+# Advisory because the file-level "compliant if both require + DI seam
+# present" heuristic might miss patterns where the DI seam is in a
+# sibling file (e.g. exported helper, builder pattern).
+
+on:
+  pull_request:
+    paths:
+      - 'packages/personal-data-hub/lib/**'
+      - 'scripts/audit-bs3mc-dual-load.js'
+      - '.github/workflows/bs3mc-dual-load-audit.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: bs3mc-dual-load-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run static audit
+        id: audit
+        continue-on-error: true
+        run: |
+          node scripts/audit-bs3mc-dual-load.js --json > /tmp/findings.json
+          cat /tmp/findings.json | head -100
+
+      - name: Comment on PR with findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- bs3mc-dual-load-audit-v1 -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/findings.json', 'utf-8'));
+            } catch {
+              return;
+            }
+            const findings = report.findings || [];
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.data.find(c => c.body && c.body.includes(marker));
+
+            if (findings.length === 0) {
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                });
+              }
+              return;
+            }
+
+            const body = [
+              marker,
+              '## ⚠️ bs3mc Dual-Load Audit — missing DI seam',
+              '',
+              `Found **${findings.length}** PDH adapter file(s) requiring \`better-sqlite3-multiple-ciphers\` without a Driver-factory escape hatch.`,
+              '',
+              '### Why this matters',
+              '',
+              'bs3mc native binding is ABI-specific:',
+              '- Electron 39 → ABI 140',
+              '- Node 22 → ABI 127',
+              '',
+              'A direct `require("better-sqlite3-multiple-ciphers")` from a file that',
+              'gets loaded in BOTH contexts (Electron main + Node-only tests / sandbox)',
+              'throws at the second one. Tests CI-fail, sandbox CI-fails, and there\'s',
+              'no clean way to substitute a compatible driver.',
+              '',
+              '### Findings',
+              '',
+              findings.map(f => `- \`${f.file}:${f.line}\` [${f.severity}] ${f.message}`).join('\n'),
+              '',
+              '### Canonical fix',
+              '',
+              'Either the explicit dbDriverFactory pattern:',
+              '',
+              '```js',
+              'const Driver = this._deps.dbDriverFactory',
+              '    ? this._deps.dbDriverFactory()',
+              '    : require("better-sqlite3-multiple-ciphers");',
+              '```',
+              '',
+              'Or the constructor-injected driver pattern:',
+              '',
+              '```js',
+              'constructor(opts) {',
+              '    this._driver = opts.driver || null;  // DI seam',
+              '}',
+              'open() {',
+              '    const Driver = this._driver || loadDriver();',
+              '    // ...',
+              '}',
+              'function loadDriver() { ',
+              '    return require("better-sqlite3-multiple-ciphers");',
+              '}',
+              '```',
+              '',
+              'Either works — lint accepts both shapes.',
+              '',
+              `Run log: ${runUrl}`,
+              '',
+              '_Trap #23 in `docs/internal/hidden-risk-traps.md`. Auto-generated by `.github/workflows/bs3mc-dual-load-audit.yml`._',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

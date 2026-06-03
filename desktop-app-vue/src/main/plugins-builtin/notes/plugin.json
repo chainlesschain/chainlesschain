@@ -1,0 +1,60 @@
+{
+  "id": "notes",
+  "name": "笔记",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "笔记斜杠命令、笔记 Artifact、主页最近笔记 widget",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "new-note",
+        "trigger": "note",
+        "description": "新建笔记",
+        "icon": "FileAddOutlined"
+      }
+    },
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "search-notes",
+        "trigger": "search-notes",
+        "description": "搜索笔记",
+        "icon": "SearchOutlined"
+      }
+    },
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "note",
+        "renderer": "builtin:NoteArtifact",
+        "icon": "FileTextOutlined",
+        "label": "笔记",
+        "actions": [
+          { "id": "edit", "label": "编辑" },
+          { "id": "sign", "label": "签名" },
+          { "id": "publish", "label": "发布" }
+        ]
+      }
+    },
+    {
+      "point": "ui.mention",
+      "config": {
+        "prefix": "note",
+        "source": "notes",
+        "label": "笔记",
+        "icon": "FileTextOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "config": {
+        "id": "recent-notes",
+        "component": "builtin:RecentNotesWidget",
+        "size": "medium",
+        "order": 10,
+        "title": "最近笔记"
+      }
+    }
+  ]
+}

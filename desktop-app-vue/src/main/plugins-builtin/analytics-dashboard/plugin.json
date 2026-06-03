@@ -1,0 +1,31 @@
+{
+  "id": "analytics-dashboard",
+  "name": "Analytics Dashboard",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/analytics 斜杠命令 + Home 页分析仪表盘快捷卡片（V5 AnalyticsDashboardPage 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "analytics-dashboard",
+        "trigger": "/analytics",
+        "handler": "builtin:openAnalyticsDashboardPanel",
+        "description": "打开高级分析仪表盘",
+        "icon": "BarChartOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "analytics-quick",
+        "component": "builtin:AnalyticsDashboardWidget",
+        "size": "medium",
+        "order": 90,
+        "title": "高级分析"
+      }
+    }
+  ]
+}

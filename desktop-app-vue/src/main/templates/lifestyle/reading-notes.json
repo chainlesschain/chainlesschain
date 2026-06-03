@@ -1,0 +1,29 @@
+{
+  "id": "tpl_lifestyle_reading_003",
+  "name": "reading_notes_template",
+  "display_name": "读书笔记模板",
+  "description": "结构化读书笔记，包含书籍信息、核心观点和个人感悟",
+  "icon": "📖",
+  "category": "lifestyle",
+  "subcategory": "reading",
+  "tags": ["读书笔记", "阅读", "知识管理"],
+  "project_type": "document",
+  "prompt_template": "请帮我整理读书笔记：\n\n**书籍信息：**\n- 书名：{{bookTitle}}\n- 作者：{{author}}\n- 阅读日期：{{readingDate}}\n- 阅读目的：{{purpose}}\n\n# 《{{bookTitle}}》读书笔记\n\n## 基本信息\n\n**书名：**{{bookTitle}}\n**作者：**{{author}}\n**出版社：**{{publisher}}\n**出版日期：**{{publishDate}}\n**ISBN：**{{isbn}}\n**页数：**{{pages}}页\n\n**阅读信息：**\n- 开始日期：{{startDate}}\n- 完成日期：{{finishDate}}\n- 阅读用时：{{readingDays}}天\n\n## 为什么读这本书\n\n{{readingMotivation}}\n\n## 书籍概要\n\n**核心主题：**{{coreTheme}}\n\n**内容框架：**\n- 第一部分：{{part1Summary}}\n- 第二部分：{{part2Summary}}\n- 第三部分：{{part3Summary}}\n\n## 核心观点\n\n### 观点1：{{keyPoint1}}\n**说明：**{{explanation1}}\n**案例：**{{example1}}\n**我的思考：**{{reflection1}}\n\n### 观点2：{{keyPoint2}}\n**说明：**{{explanation2}}\n**案例：**{{example2}}\n**我的思考：**{{reflection2}}\n\n### 观点3：{{keyPoint3}}\n**说明：**{{explanation3}}\n\n## 金句摘抄\n\n> {{quote1}}\n> \n> — P.{{page1}}\n\n> {{quote2}}\n> \n> — P.{{page2}}\n\n> {{quote3}}\n> \n> — P.{{page3}}\n\n## 行动清单\n\n基于这本书，我计划：\n- [ ] {{action1}}\n- [ ] {{action2}}\n- [ ] {{action3}}\n\n## 思维导图\n\n```\n{{mindMap}}\n```\n\n## 个人评价\n\n**评分：**{{rating}}/5\n\n**推荐指数：**⭐⭐⭐⭐⭐\n\n**适合人群：**{{targetReaders}}\n\n**优点：**\n- {{pro1}}\n- {{pro2}}\n\n**不足：**\n- {{con1}}\n- {{con2}}\n\n## 相关推荐\n\n读完这本书，我还想读：\n1. {{relatedBook1}}\n2. {{relatedBook2}}\n\n## 延伸阅读\n\n- {{extendedReading1}}\n- {{extendedReading2}}",
+  "variables_schema": [
+    {"name": "bookTitle", "label": "书名", "type": "string", "required": true},
+    {"name": "author", "label": "作者", "type": "string", "required": true},
+    {"name": "readingDate", "label": "阅读日期", "type": "string", "required": false},
+    {"name": "purpose", "label": "阅读目的", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "读书笔记-{{bookTitle}}",
+    "files": [
+      {"path": "笔记.md", "type": "markdown"},
+      {"path": "思维导图.png", "type": "image"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

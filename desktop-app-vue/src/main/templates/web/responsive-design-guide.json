@@ -1,0 +1,74 @@
+{
+  "id": "tpl_web_responsive_004",
+  "name": "responsive_design_guide",
+  "display_name": "响应式设计指南",
+  "description": "移动优先的响应式Web设计规范，包含断点、布局和组件适配",
+  "icon": "📐",
+  "category": "web",
+  "subcategory": "design",
+  "tags": [
+    "响应式设计",
+    "移动优先",
+    "断点",
+    "自适应"
+  ],
+  "project_type": "document",
+  "prompt_template": "响应式设计指南\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 设计系统：{{designSystem}}\n- 目标设备：{{targetDevices}}\n\n# 响应式设计规范\n\n## 设计原则\n\n**移动优先（Mobile First）：**\n从最小屏幕开始设计，逐步增强到大屏\n\n**渐进增强：**\n- 核心功能在所有设备可用\n- 高级功能在支持的设备上增强\n\n## 断点（Breakpoints）\n\n**标准断点：**\n```css\n/* 移动设备 */\n@media (min-width: 320px) { }\n\n/* 平板（竖屏） */\n@media (min-width: 768px) { }\n\n/* 平板（横屏）/小桌面 */\n@media (min-width: 1024px) { }\n\n/* 桌面 */\n@media (min-width: 1280px) { }\n\n/* 大桌面 */\n@media (min-width: 1920px) { }\n```\n\n**自定义断点：**\n- XS: {{xsBreakpoint}}px\n- SM: {{smBreakpoint}}px\n- MD: {{mdBreakpoint}}px\n- LG: {{lgBreakpoint}}px\n- XL: {{xlBreakpoint}}px\n\n## 布局系统\n\n**网格系统：**\n- 列数：12列\n- 间距（Gutter）：\n  - 移动：16px\n  - 平板：24px\n  - 桌面：32px\n\n**容器宽度：**\n- 移动：100% - 32px\n- 平板：720px\n- 桌面：960px\n- 大桌面：1140px\n- 超大：1320px\n\n## 排版系统\n\n**字号比例：**\n\n| 元素 | 移动 | 桌面 |\n|------|------|------|\n| H1 | 28px | 48px |\n| H2 | 24px | 36px |\n| H3 | 20px | 28px |\n| H4 | 18px | 24px |\n| Body | 16px | 18px |\n| Small | 14px | 14px |\n\n**行高：**\n- 标题：1.2\n- 正文：1.6\n\n## 组件适配\n\n### 导航栏\n\n**移动端：**\n- 汉堡菜单\n- 抽屉式导航\n- 固定顶部\n\n**桌面端：**\n- 横向菜单\n- 下拉子菜单\n- Sticky导航\n\n### 卡片布局\n\n**移动：**1列\n**平板：**2列\n**桌面：**3-4列\n\n```css\n.cards {\n  display: grid;\n  grid-template-columns: 1fr; /* 移动 */\n}\n\n@media (min-width: 768px) {\n  .cards {\n    grid-template-columns: repeat(2, 1fr); /* 平板 */\n  }\n}\n\n@media (min-width: 1024px) {\n  .cards {\n    grid-template-columns: repeat(3, 1fr); /* 桌面 */\n  }\n}\n```\n\n### 表格\n\n**移动端策略：**\n- 卡片化显示\n- 横向滚动（带阴影提示）\n- 隐藏次要列\n\n**桌面端：**\n- 标准表格\n- 固定表头\n\n## 图片优化\n\n**响应式图片：**\n```html\n<picture>\n  <source media=\"(min-width: 1024px)\" srcset=\"large.jpg\">\n  <source media=\"(min-width: 768px)\" srcset=\"medium.jpg\">\n  <img src=\"small.jpg\" alt=\"描述\">\n</picture>\n```\n\n**图片尺寸：**\n- 移动：320-640px宽\n- 平板：768-1024px宽\n- 桌面：1280px+宽\n\n**格式选择：**\n- WebP（现代浏览器）\n- JPEG（照片）\n- PNG（透明）\n- SVG（图标/Logo）\n\n## 触摸优化\n\n**触摸目标：**\n- 最小尺寸：44x44px\n- 间距：8px+\n\n**手势支持：**\n- 滑动导航\n- 下拉刷新\n- 捏合缩放（地图/图片）\n\n## 性能优化\n\n**移动端优化：**\n- 延迟加载图片\n- 代码分割\n- 预加载关键资源\n- Service Worker缓存\n\n**目标指标：**\n- First Contentful Paint: <1.8s\n- Largest Contentful Paint: <2.5s\n- Cumulative Layout Shift: <0.1\n\n## 测试清单\n\n**设备测试：**\n- [ ] iPhone SE (375px)\n- [ ] iPhone 12/13 (390px)\n- [ ] iPhone 14 Pro Max (430px)\n- [ ] iPad (768px)\n- [ ] iPad Pro (1024px)\n- [ ] Desktop (1920px)\n\n**浏览器测试：**\n- [ ] Chrome (移动/桌面)\n- [ ] Safari (iOS/macOS)\n- [ ] Firefox\n- [ ] Edge\n\n**方向测试：**\n- [ ] 竖屏\n- [ ] 横屏\n\n## 代码示例\n\n**Flexbox布局：**\n```css\n.container {\n  display: flex;\n  flex-direction: column;\n}\n\n@media (min-width: 768px) {\n  .container {\n    flex-direction: row;\n  }\n}\n```\n\n**Grid布局：**\n```css\n.grid {\n  display: grid;\n  gap: 1rem;\n  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));\n}\n```\n\n## 工具推荐\n\n**设计工具：**\n- Figma（响应式原型）\n- Adobe XD\n\n**开发工具：**\n- Chrome DevTools（设备模拟）\n- Responsively App\n\n**测试工具：**\n- BrowserStack\n- LambdaTest",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "designSystem",
+      "label": "设计系统",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "自定义",
+          "label": "自定义"
+        },
+        {
+          "value": "Bootstrap",
+          "label": "Bootstrap"
+        },
+        {
+          "value": "Tailwind CSS",
+          "label": "Tailwind CSS"
+        },
+        {
+          "value": "Material Design",
+          "label": "Material Design"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "响应式设计-{{projectName}}",
+    "files": [
+      {
+        "path": "设计规范.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_web_development",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_html_generator",
+    "tool_css_generator",
+    "tool_js_generator",
+    "tool_create_project_structure",
+    "tool_word_generator"
+  ],
+  "execution_engine": "web"
+}

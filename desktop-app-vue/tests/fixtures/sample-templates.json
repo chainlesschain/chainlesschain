@@ -1,0 +1,109 @@
+[
+  {
+    "id": "tpl-001",
+    "name": "technical_article",
+    "display_name": "技术文章模板",
+    "description": "用于撰写技术博客文章的模板",
+    "category": "writing",
+    "project_type": "article",
+    "prompt_template": "你是一个专业的技术博客作者。请根据以下要求撰写一篇技术文章：\n\n主题：{{topic}}\n目标读者：{{audience}}\n文章长度：{{length}}字\n技术栈：{{tech_stack}}\n\n文章要求：\n1. 结构清晰，包含引言、正文和结论\n2. 提供代码示例和最佳实践\n3. 语言简洁易懂，避免过度复杂\n4. 包含相关资源链接",
+    "variables_schema": [
+      { "name": "topic", "label": "文章主题", "type": "text", "required": true },
+      { "name": "audience", "label": "目标读者", "type": "text", "default": "中级开发者" },
+      { "name": "length", "label": "文章长度（字数）", "type": "number", "default": 1500 },
+      { "name": "tech_stack", "label": "技术栈", "type": "text", "required": true }
+    ],
+    "is_builtin": true,
+    "usage_count": 156,
+    "rating": 4.7,
+    "created_at": 1703462400000,
+    "updated_at": 1705363200000
+  },
+  {
+    "id": "tpl-002",
+    "name": "business_report",
+    "display_name": "商业报告模板",
+    "description": "生成专业商业分析报告",
+    "category": "writing",
+    "project_type": "report",
+    "prompt_template": "你是一个资深商业分析师。请生成一份{{report_type}}报告：\n\n公司/项目：{{company}}\n分析周期：{{period}}\n重点领域：{{focus_areas}}\n\n报告结构：\n1. 执行摘要\n2. 市场分析\n3. 财务状况\n4. SWOT分析\n5. 建议和结论\n\n要求：数据驱动，客观中立，提供可执行建议。",
+    "variables_schema": [
+      { "name": "report_type", "label": "报告类型", "type": "select", "options": [
+        { "value": "quarterly", "label": "季度报告" },
+        { "value": "annual", "label": "年度报告" },
+        { "value": "project", "label": "项目报告" }
+      ], "required": true },
+      { "name": "company", "label": "公司/项目名称", "type": "text", "required": true },
+      { "name": "period", "label": "分析周期", "type": "text", "default": "Q4 2024" },
+      { "name": "focus_areas", "label": "重点领域", "type": "text", "default": "销售、市场、运营" }
+    ],
+    "is_builtin": true,
+    "usage_count": 89,
+    "rating": 4.5,
+    "created_at": 1703548800000,
+    "updated_at": 1705449600000
+  },
+  {
+    "id": "tpl-003",
+    "name": "code_review",
+    "display_name": "代码审查模板",
+    "description": "自动化代码审查和建议",
+    "category": "web",
+    "project_type": "code",
+    "prompt_template": "你是一个经验丰富的代码审查专家。请审查以下{{language}}代码：\n\n```{{language}}\n{{code}}\n```\n\n审查重点：\n1. 代码质量和可读性\n2. 性能问题\n3. 安全隐患\n4. 最佳实践\n5. 可维护性\n\n请提供具体的改进建议和优化后的代码示例。",
+    "variables_schema": [
+      { "name": "language", "label": "编程语言", "type": "select", "options": [
+        { "value": "javascript", "label": "JavaScript" },
+        { "value": "python", "label": "Python" },
+        { "value": "java", "label": "Java" },
+        { "value": "typescript", "label": "TypeScript" }
+      ], "required": true },
+      { "name": "code", "label": "代码内容", "type": "textarea", "required": true }
+    ],
+    "is_builtin": true,
+    "usage_count": 234,
+    "rating": 4.8,
+    "created_at": 1703635200000,
+    "updated_at": 1705536000000
+  },
+  {
+    "id": "tpl-004",
+    "name": "ppt_outline",
+    "display_name": "PPT大纲生成模板",
+    "description": "快速生成演示文稿大纲",
+    "category": "ppt",
+    "project_type": "presentation",
+    "prompt_template": "你是一个专业的演讲顾问。请为以下主题生成PPT大纲：\n\n演讲主题：{{title}}\n演讲时长：{{duration}}分钟\n目标听众：{{audience}}\n核心信息：{{key_messages}}\n\n请生成包含以下内容的大纲：\n1. 封面页\n2. 目录\n3. 主要章节（3-5个）\n4. 每个章节的要点\n5. 结论和行动号召\n6. Q&A页\n\n每页PPT建议包含标题和关键要点。",
+    "variables_schema": [
+      { "name": "title", "label": "演讲主题", "type": "text", "required": true },
+      { "name": "duration", "label": "演讲时长（分钟）", "type": "number", "default": 30 },
+      { "name": "audience", "label": "目标听众", "type": "text", "default": "商业人士" },
+      { "name": "key_messages", "label": "核心信息", "type": "textarea", "required": true }
+    ],
+    "is_builtin": true,
+    "usage_count": 178,
+    "rating": 4.6,
+    "created_at": 1703721600000,
+    "updated_at": 1705622400000
+  },
+  {
+    "id": "tpl-005",
+    "name": "data_analysis",
+    "display_name": "数据分析报告模板",
+    "description": "生成数据分析洞察报告",
+    "category": "excel",
+    "project_type": "data",
+    "prompt_template": "你是一个数据分析专家。请分析以下数据并生成报告：\n\n数据集：{{dataset_name}}\n分析目标：{{objective}}\n关注指标：{{metrics}}\n时间范围：{{time_range}}\n\n报告要求：\n1. 数据概览和基本统计\n2. 趋势分析和模式识别\n3. 异常值检测\n4. 关键发现和洞察\n5. 可视化建议\n6. 行动建议\n\n请使用数据驱动的方法，提供具体的数值和比例。",
+    "variables_schema": [
+      { "name": "dataset_name", "label": "数据集名称", "type": "text", "required": true },
+      { "name": "objective", "label": "分析目标", "type": "text", "required": true },
+      { "name": "metrics", "label": "关注指标", "type": "text", "default": "增长率、转化率、留存率" },
+      { "name": "time_range", "label": "时间范围", "type": "text", "default": "最近30天" }
+    ],
+    "is_builtin": true,
+    "usage_count": 145,
+    "rating": 4.7,
+    "created_at": 1703808000000,
+    "updated_at": 1705708800000
+  }
+]

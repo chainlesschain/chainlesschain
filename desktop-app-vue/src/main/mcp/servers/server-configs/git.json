@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Git Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-git",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the Git server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-git"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "repositoryPath": {
+      "type": "string",
+      "description": "Path to Git repository (absolute path)",
+      "examples": [
+        "D:\\code\\chainlesschain",
+        "/Users/username/projects/my-repo"
+      ]
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for Git operations",
+      "properties": {
+        "allowedOperations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "status",
+              "log",
+              "diff",
+              "show",
+              "branch",
+              "commit",
+              "push",
+              "pull",
+              "clone",
+              "reset",
+              "revert"
+            ]
+          },
+          "default": ["status", "log", "diff", "show"],
+          "description": "Git operations that are allowed"
+        },
+
+        "forbiddenOperations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["push", "reset --hard", "force-push"],
+          "description": "Git operations that are always blocked"
+        },
+
+        "readOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, only read operations are allowed"
+        },
+
+        "allowForce": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow force push and reset operations"
+        },
+
+        "requireConfirmation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["commit", "push", "reset", "revert"],
+          "description": "Operations that require user confirmation"
+        }
+      },
+      "required": ["readOnly"]
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for Git operations",
+      "properties": {
+        "enableCommits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable commit operations"
+        },
+
+        "enablePush": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable push to remote"
+        },
+
+        "enableBranching": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable branch creation and switching"
+        },
+
+        "enableRemotes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable remote repository operations"
+        },
+
+        "enableSubmodules": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable submodule operations"
+        },
+
+        "enableHooks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Git hooks (pre-commit, post-commit, etc.)"
+        }
+      }
+    },
+
+    "commit": {
+      "type": "object",
+      "description": "Commit configuration",
+      "properties": {
+        "autoSign": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically sign commits with GPG"
+        },
+
+        "defaultAuthor": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Default commit author name"
+            },
+            "email": {
+              "type": "string",
+              "description": "Default commit author email"
+            }
+          }
+        },
+
+        "messageTemplate": {
+          "type": "string",
+          "description": "Default commit message template"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 60000,
+          "description": "Git operation timeout in milliseconds"
+        },
+
+        "maxDiffSize": {
+          "type": "integer",
+          "default": 10485760,
+          "description": "Maximum diff size in bytes (default: 10MB)"
+        },
+
+        "maxLogEntries": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of log entries to fetch"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logOperations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all Git operations"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logPath": {
+          "type": "string",
+          "default": ".chainlesschain/logs/mcp-git.log",
+          "description": "Path to log file (relative to app root)"
+        }
+      }
+    }
+  },
+
+  "required": ["repositoryPath"],
+
+  "examples": [
+    {
+      "enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "D:\\code\\chainlesschain"
+      ],
+      "repositoryPath": "D:\\code\\chainlesschain",
+      "autoConnect": false,
+      "permissions": {
+        "allowedOperations": ["status", "log", "diff", "show", "branch"],
+        "forbiddenOperations": ["push", "reset --hard"],
+        "readOnly": true,
+        "requireConfirmation": ["commit", "push"]
+      },
+      "features": {
+        "enableCommits": false,
+        "enablePush": false,
+        "enableBranching": false,
+        "enableRemotes": true
+      },
+      "performance": {
+        "timeout": 60000,
+        "maxLogEntries": 100
+      },
+      "logging": {
+        "enabled": true,
+        "logOperations": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}

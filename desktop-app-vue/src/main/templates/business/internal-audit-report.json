@@ -1,0 +1,62 @@
+{
+  "id": "tpl_business_audit_001",
+  "name": "internal_audit_report",
+  "display_name": "内部审计报告",
+  "description": "企业内部审计报告模板，包含审计发现、风险评估、整改建议等内容",
+  "icon": "🔍",
+  "category": "business",
+  "subcategory": "audit",
+  "tags": ["内部审计", "合规", "风险管理", "财务审计"],
+  "project_type": "document",
+  "prompt_template": "# {{auditTitle}} 内部审计报告\n## Internal Audit Report\n\n**审计项目**：{{auditTitle}}\n**审计期间**：{{auditPeriod}}\n**报告日期**：{{reportDate}}\n**审计小组组长**：{{auditLeader}}\n**审计小组成员**：{{auditTeam}}\n\n---\n\n## 执行摘要\n\n### 审计概述\n\n**审计目的**：{{auditObjective}}\n\n**审计范围**：{{auditScope}}\n\n**审计方法**：{{auditMethodology}}\n\n### 总体结论\n\n{{overallConclusion}}\n\n**审计意见**：{{auditOpinion}}\n\n### 关键发现\n\n1. **高风险问题**：{{highRiskCount}}项\n2. **中风险问题**：{{mediumRiskCount}}项\n3. **低风险问题**：{{lowRiskCount}}项\n4. **最佳实践**：{{bestPracticeCount}}项\n\n---\n\n## 一、审计背景\n\n### 1.1 审计依据\n\n{{auditBasis}}\n\n### 1.2 被审计单位概况\n\n**单位名称**：{{auditedEntity}}\n**业务性质**：{{businessNature}}\n**组织架构**：{{organizationalStructure}}\n**关键人员**：{{keyPersonnel}}\n\n### 1.3 上次审计情况\n\n{{previousAuditStatus}}\n\n## 二、审计目标与范围\n\n### 2.1 审计目标\n\n1. {{objective1}}\n2. {{objective2}}\n3. {{objective3}}\n4. {{objective4}}\n\n### 2.2 审计范围\n\n**时间范围**：{{timeScope}}\n\n**业务范围**：\n- {{businessScope1}}\n- {{businessScope2}}\n- {{businessScope3}}\n\n**系统范围**：{{systemScope}}\n\n**排除项**：{{exclusions}}\n\n### 2.3 审计重点\n\n{{auditFocus}}\n\n## 三、审计方法与程序\n\n### 3.1 审计方法\n\n{{auditMethods}}\n\n### 3.2 审计程序\n\n| 序号 | 审计程序 | 工作内容 | 证据获取 |\n|------|---------|---------|----------|\n| 1 | {{procedure1}} | {{procedure1Content}} | {{procedure1Evidence}} |\n| 2 | {{procedure2}} | {{procedure2Content}} | {{procedure2Evidence}} |\n| 3 | {{procedure3}} | {{procedure3Content}} | {{procedure3Evidence}} |\n| 4 | {{procedure4}} | {{procedure4Content}} | {{procedure4Evidence}} |\n\n### 3.3 样本选取\n\n{{samplingApproach}}\n\n## 四、审计发现\n\n### 4.1 高风险问题\n\n#### 发现1：{{highRisk1Title}}\n\n**问题描述**：\n{{highRisk1Description}}\n\n**风险评级**：高 🔴\n\n**影响分析**：\n- 财务影响：{{highRisk1FinancialImpact}}\n- 合规影响：{{highRisk1ComplianceImpact}}\n- 运营影响：{{highRisk1OperationalImpact}}\n\n**根本原因**：\n{{highRisk1RootCause}}\n\n**审计证据**：\n{{highRisk1Evidence}}\n\n**整改建议**：\n1. {{highRisk1Recommendation1}}\n2. {{highRisk1Recommendation2}}\n3. {{highRisk1Recommendation3}}\n\n**管理层回应**：\n{{highRisk1ManagementResponse}}\n\n**整改期限**：{{highRisk1Deadline}}\n\n**责任人**：{{highRisk1Owner}}\n\n---\n\n#### 发现2：{{highRisk2Title}}\n\n{{highRisk2Details}}\n\n---\n\n### 4.2 中风险问题\n\n#### 发现3：{{mediumRisk1Title}}\n\n**问题描述**：{{mediumRisk1Description}}\n\n**风险评级**：中 🟡\n\n**影响分析**：{{mediumRisk1Impact}}\n\n**整改建议**：{{mediumRisk1Recommendations}}\n\n**整改期限**：{{mediumRisk1Deadline}}\n\n---\n\n#### 发现4：{{mediumRisk2Title}}\n\n{{mediumRisk2Details}}\n\n---\n\n### 4.3 低风险问题\n\n#### 发现5：{{lowRisk1Title}}\n\n**问题描述**：{{lowRisk1Description}}\n\n**风险评级**：低 🟢\n\n**整改建议**：{{lowRisk1Recommendations}}\n\n---\n\n### 4.4 最佳实践\n\n{{bestPractices}}\n\n## 五、专项审计领域\n\n### 5.1 财务审计\n\n#### 会计核算\n{{accountingReview}}\n\n#### 财务报表\n{{financialStatementsReview}}\n\n#### 资金管理\n{{cashManagementReview}}\n\n### 5.2 合规审计\n\n#### 法律法规遵从性\n{{legalComplianceReview}}\n\n#### 内部政策执行\n{{policyComplianceReview}}\n\n### 5.3 运营审计\n\n#### 业务流程效率\n{{processEfficiencyReview}}\n\n#### 资源利用\n{{resourceUtilizationReview}}\n\n### 5.4 信息系统审计\n\n#### 系统安全\n{{itSecurityReview}}\n\n#### 数据完整性\n{{dataIntegrityReview}}\n\n#### 访问控制\n{{accessControlReview}}\n\n### 5.5 风险管理审计\n\n{{riskManagementReview}}\n\n## 六、内部控制评价\n\n### 6.1 控制环境\n\n{{controlEnvironmentAssessment}}\n\n### 6.2 风险评估\n\n{{riskAssessmentProcessReview}}\n\n### 6.3 控制活动\n\n| 控制点 | 控制设计 | 控制执行 | 有效性评价 |\n|--------|---------|---------|------------|\n| {{control1}} | {{control1Design}} | {{control1Execution}} | {{control1Effectiveness}} |\n| {{control2}} | {{control2Design}} | {{control2Execution}} | {{control2Effectiveness}} |\n| {{control3}} | {{control3Design}} | {{control3Execution}} | {{control3Effectiveness}} |\n\n### 6.4 信息与沟通\n\n{{informationCommunicationReview}}\n\n### 6.5 监控活动\n\n{{monitoringReview}}\n\n## 七、整改建议汇总\n\n### 7.1 分类汇总\n\n| 风险等级 | 问题数量 | 整改期限 | 状态 |\n|---------|---------|---------|------|\n| 高 | {{highRiskCount}} | {{highRiskDeadline}} | {{highRiskStatus}} |\n| 中 | {{mediumRiskCount}} | {{mediumRiskDeadline}} | {{mediumRiskStatus}} |\n| 低 | {{lowRiskCount}} | {{lowRiskDeadline}} | {{lowRiskStatus}} |\n\n### 7.2 优先级排序\n\n1. {{priority1}}\n2. {{priority2}}\n3. {{priority3}}\n4. {{priority4}}\n5. {{priority5}}\n\n### 7.3 资源需求\n\n{{resourceRequirements}}\n\n## 八、管理层回应\n\n### 8.1 整体回应\n\n{{managementOverallResponse}}\n\n### 8.2 行动计划\n\n| 问题编号 | 整改措施 | 责任人 | 完成期限 | 预期效果 |\n|---------|---------|--------|----------|----------|\n| {{issue1ID}} | {{action1}} | {{owner1}} | {{deadline1}} | {{outcome1}} |\n| {{issue2ID}} | {{action2}} | {{owner2}} | {{deadline2}} | {{outcome2}} |\n| {{issue3ID}} | {{action3}} | {{owner3}} | {{deadline3}} | {{outcome3}} |\n\n## 九、后续跟进\n\n### 9.1 跟进计划\n\n{{followUpPlan}}\n\n### 9.2 复查时间表\n\n{{reviewSchedule}}\n\n### 9.3 报告分发\n\n{{reportDistribution}}\n\n## 十、审计小组意见\n\n{{auditTeamOpinion}}\n\n---\n\n## 附录\n\n### 附录A：审计工作底稿清单\n\n{{workpaperList}}\n\n### 附录B：审计证据\n\n{{evidenceDocumentation}}\n\n### 附录C：参考文件\n\n{{referenceDocuments}}\n\n### 附录D：术语表\n\n{{glossary}}\n\n---\n\n**审计小组组长签字**：_____________________\n\n**日期**：{{reportDate}}\n\n**审计委员会审批**：_____________________\n\n**日期**：{{approvalDate}}",
+  "variables_schema": [
+    {
+      "name": "auditTitle",
+      "label": "审计项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "auditedEntity",
+      "label": "被审计单位",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "auditType",
+      "label": "审计类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "财务审计", "label": "财务审计" },
+        { "value": "合规审计", "label": "合规审计" },
+        { "value": "运营审计", "label": "运营审计/绩效审计" },
+        { "value": "IT审计", "label": "信息系统审计" },
+        { "value": "综合审计", "label": "综合审计" },
+        { "value": "专项审计", "label": "专项审计" }
+      ]
+    },
+    {
+      "name": "auditPeriod",
+      "label": "审计期间",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2025年1月1日-12月31日"
+    }
+  ],
+  "file_structure": {
+    "root": "内部审计报告-{{auditedEntity}}",
+    "files": [
+      {"path": "审计报告.docx", "type": "document"},
+      {"path": "审计发现详表.xlsx", "type": "spreadsheet"},
+      {"path": "整改跟踪表.xlsx", "type": "spreadsheet"},
+      {"path": "审计工作底稿/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_internal_audit", "skill_risk_assessment", "skill_compliance_review"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

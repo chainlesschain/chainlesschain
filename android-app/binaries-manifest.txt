@@ -1,0 +1,47 @@
+# Android internal binaries manifest.
+#
+# Listed below are the per-release binaries that ship inside the Android APK
+# but are NOT tracked in git. They live in a dedicated GitHub Release
+# `internal-binaries-android-v<binariesVersion>`. binariesVersion is set in
+# android-app/gradle.properties.
+#
+# Format: <sha256>  <release-asset-name>  <target-path-relative-to-repo-root>
+#
+# `downloadBootstrapBinaries` Gradle task (defined in
+# feature-local-terminal/build.gradle.kts) + `downloadFridaBinaries`
+# (defined in app/build.gradle.kts) read this manifest, ensure each
+# target exists with matching sha256, downloading from
+# https://github.com/chainlesschain/chainlesschain/releases/download/internal-binaries-android-v$BINARIES_VERSION/<asset-name>
+# if missing or stale. Verified files become part of the APK at packageRelease time.
+#
+# To refresh: the node-runtime-bundle.yml workflow rebuilds, uploads to a
+# new release tag, then bumps binariesVersion in gradle.properties via a
+# tiny text-only commit (replaces the prior auto-commit-binaries pattern
+# that bloated .git history by ~1.2 GB / 24 cc-cli.tgz versions in v5.0.3.97
+# pre-slim state).
+
+ef0594193a679bcd72b4502156d66f088b823c772bf34922f29f27996c25d15c  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f  libnode.so                       android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so
+b74d37b407a9092573671dd031ccaa8c36576bb067d21c9effa2edb748526400  libicudata.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicudata.so
+5c08255d1f0ca3529ec79daab5b3cd8d0064ed27efc66b2937415460e02522b1  libicui18n.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicui18n.so
+4b0bad70f99b7e81ce1e8e6de4a33c678646818440f272b53f2432910b1f625f  libicuio.so                      android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicuio.so
+8857885bfcb96f9de5e548b33f980e132f3e121b456a8272c175df3dc2b6851c  libicutest.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicutest.so
+31ce7ebad0f459b5f95cafe717769e2aa0d9d4bbe61aea15c5ca5fea840781fc  libicutu.so                      android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicutu.so
+e25c1163a3a76074c04fa2e358dc3b9c6ce97a7c69f37f0effda4fa872b16b44  libicuuc.so                      android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicuuc.so
+0ddf20b5306b6597cd378d3d463193baab2f3c8304f34309b3c9d563a1dd6545  libcrypto.so                     android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libcrypto.so
+5baa265f2ce98a5e1bf3d6a10ed9cd9aa20c2574b598a208afedbbe9062284ab  libssl.so                        android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libssl.so
+e7e1b3d0b5f5945cf439c83214060372804c497b45d49441b131a881277e9525  libtermux_cxx.so                 android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libtermux_cxx.so
+f5110bd7e942463daaaa2c7562bf3b9cf71b552afada1c8ae456673c4d456a0d  libcares.so                      android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libcares.so
+3e5311aadb86b2eb36e9edfc077b03ac7feed04be7911663351fee1400a233c5  libffi.so                        android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libffi.so
+6493fcd6a0ba244f1067b6e97ae5d03d3ae3b83eb014e0a457424da09ef07a25  libz.so                          android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libz.so
+a143fe89698bf203a24d7d62627cb737bcc2b6303c11288d66b25e1f9ecd75fb  libandroid-support.so            android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libandroid-support.so
+02a12e9520b9a2526429ccf74c0e2d5c49032e95e4b87a6ce8fa225575f2ec4f  libsqlite3.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libsqlite3.so
+e79119de562dec0dd41c09c1045faf9e75d3b1a0ad5ff4bd44a52807a3dabf99  libsqlite3.53.1.so               android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libsqlite3.53.1.so
+da604a504c7292dc11bd929e2c691385b18297cf1e6f9b149e84fcad0cfbaab9  libtoybox.so                     android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libtoybox.so
+cba8d5e35b5e02a151a000c2a619f3ba0182db260a634fa88a78869e135aa94f  capi.so                          android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/capi.so
+e4d8b87c19be0721f64b213d7195903d2ee6dbee4178fdcee86889006aca808a  legacy.so                        android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/legacy.so
+c946c2452f531794a21f0dd38976805f6b9247e4531a71c69f6c7d99fcd97c4e  loader_attic.so                  android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/loader_attic.so
+a0298b9f275102d0e830ef379058e7a53d29789384b7125df9fc0f820ed9c8cf  libtoybox-armeabi-v7a.so         android-app/feature-local-terminal/src/main/jniLibs/armeabi-v7a/libtoybox.so
+474a5547b72eb12fccb9d29ae8b5a4c20ccf83bb16c5405f627cbe208451dd0b  libtoybox-x86_64.so              android-app/feature-local-terminal/src/main/jniLibs/x86_64/libtoybox.so
+a4293c6948685d6ce66b92d97c680e7fd944d97b738e3151806d43e6464743e6  frida-inject-arm                 android-app/app/src/main/assets/frida/frida-inject-arm
+eb76e487846301ae4c7563cb1a908a3c3c3f0472430af472047d1a9552a79412  frida-inject-arm64               android-app/app/src/main/assets/frida/frida-inject-arm64

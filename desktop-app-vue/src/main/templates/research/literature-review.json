@@ -1,0 +1,68 @@
+{
+  "id": "tpl_research_literature_review_201",
+  "name": "literature-review",
+  "display_name": "文献综述撰写",
+  "description": "学术文献综述和研究现状分析",
+  "icon": "🔬",
+  "category": "research",
+  "subcategory": "文献研究",
+  "tags": [
+    "文献研究"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写文献综述：\n\n研究主题：{{researchTopic}}\n研究领域：{{field}}\n\n文献范围：\n{{literatureScope}}\n\n研究现状：\n{{currentStatus}}\n\n请生成完整的文献综述",
+  "variables_schema": [
+    {
+      "name": "researchTopic",
+      "type": "textarea",
+      "label": "researchTopic",
+      "required": true,
+      "default": "记叙文写作"
+    },
+    {
+      "name": "field",
+      "type": "textarea",
+      "label": "field",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    },
+    {
+      "name": "literatureScope",
+      "type": "textarea",
+      "label": "literatureScope",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    },
+    {
+      "name": "currentStatus",
+      "type": "textarea",
+      "label": "currentStatus",
+      "required": true,
+      "default": "详细描述研究相关内容"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "文献综述撰写",
+    "children": [
+      {
+        "type": "file",
+        "name": "文献综述撰写.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

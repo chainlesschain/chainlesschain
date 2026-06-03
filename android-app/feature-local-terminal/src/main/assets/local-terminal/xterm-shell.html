@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Local Terminal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<!--
+  Plan A Android terminal renderer.
+
+  Static HTML + xterm.js (vendored locally so the WebView works offline /
+  on locked-down networks). Loaded by TerminalSessionScreen's WebView; the
+  Kotlin side talks to the JS via the `LocalTerminalBridge` JavascriptInterface.
+
+  Kotlin → JS: window.cc.onStdout(data: string) / cc.onExit({exitCode, signal})
+  JS → Kotlin: LocalTerminalBridge.onUserInput(data) / onResize(cols, rows) / onReady()
+
+  This file is just the shell + ANSI rendering. All session state (history
+  backfill, stdin/stdout routing, exit handling) is on the Kotlin side; the
+  WebView is pure VT100 emulator.
+-->
+<link rel="stylesheet" href="file:///android_asset/local-terminal/xterm.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; width: 100%;
+    background: #1e1e1e;
+    overflow: hidden;
+    font-family: -apple-system, "Helvetica Neue", monospace;
+  }
+  #term {
+    height: 100%; width: 100%;
+  }
+  .banner {
+    color: #888;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div id="term"></div>
+  <script src="file:///android_asset/local-terminal/xterm.js"></script>
+  <script src="file:///android_asset/local-terminal/addon-fit.js"></script>
+  <script>
+(function () {
+  var X = window.Terminal;
+  var FitAddon = window.FitAddon ? window.FitAddon.FitAddon : null;
+  var term = null;
+  var fitAddon = null;
+
+  var readyFired = false;
+  var lastCols = 0;
+  var lastRows = 0;
+
+  function refit() {
+    if (!term || !fitAddon) return;
+    // Plan A.1 v5.0.3.53-fix10 — guard on DOM size, not xterm cols/rows.
+    // xterm.fit() in a 0×0 container returns garbage like cols=49 rows=1
+    // (>0 so the previous guard let it through). Check the host's actual
+    // clientWidth/clientHeight to decide if we have a real layout pass.
+    var host = document.getElementById('term');
+    var hw = host ? host.clientWidth : -1;
+    var hh = host ? host.clientHeight : -1;
+    if (!host || hw < 10 || hh < 10) {
+      console.log('[xterm-shell] refit skip — host size ' + hw + 'x' + hh);
+      return;
+    }
+    try {
+      fitAddon.fit();
+      var c = term.cols;
+      var r = term.rows;
+      console.log('[xterm-shell] refit fit ok host=' + hw + 'x' + hh + ' cols=' + c + ' rows=' + r);
+      if (c <= 0 || r <= 0) return;
+      // Plan A.1 v5.0.3.53-fix9 真机 E2E 真因：AndroidView WebView 早期 layout
+      // size=0×0，window.resize 不会因 WebView 自身 size 变化而触发；导致 onReady
+      // 在 cols=49 rows=1 时 fired，桌面 PTY 被 resize 成 1 行 → 用户看到全黑。
+      // 改用 ResizeObserver 监听 #term，size>0 才 fire onReady，后续 size 变化
+      // 仅 emit onResize 让 Kotlin/桌面 PTY 同步真实尺寸。
+      if (!readyFired) {
+        readyFired = true;
+        lastCols = c; lastRows = r;
+        try { LocalTerminalBridge.onReady(c, r); } catch (e) {}
+        return;
+      }
+      if (c !== lastCols || r !== lastRows) {
+        lastCols = c; lastRows = r;
+        try { LocalTerminalBridge.onResize(c, r); } catch (e) {}
+      }
+    } catch (e) { /* benign — container still 0×0 */ }
+  }
+
+  function init() {
+    term = new X({
+      cursorBlink: true,
+      fontFamily: 'Consolas, "Courier New", monospace',
+      fontSize: 13,
+      theme: { background: '#1e1e1e', foreground: '#d4d4d4' },
+      convertEol: false,
+    });
+    if (FitAddon) {
+      fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+    }
+    var host = document.getElementById('term');
+    term.open(host);
+
+    // stdin: xterm.onData → Kotlin
+    term.onData(function (data) {
+      try { LocalTerminalBridge.onUserInput(data); } catch (e) { /* Kotlin bridge unavailable */ }
+    });
+
+    // Primary size-change hook — ResizeObserver fires when the host div
+    // is laid out (Compose AndroidView grows from 0×0 to full extent).
+    if (typeof ResizeObserver === 'function') {
+      try {
+        var ro = new ResizeObserver(function () { refit(); });
+        ro.observe(host);
+      } catch (e) { /* fall through to interval */ }
+    }
+    // window.resize as a secondary hook (rotation / IME show).
+    window.addEventListener('resize', refit);
+    // Belt-and-suspenders polling for the first 3s in case ResizeObserver
+    // isn't supported on this WebView build — covers the 0×0 → full-size
+    // layout transition that AndroidView triggers asynchronously.
+    var pollCount = 0;
+    var pollId = setInterval(function () {
+      refit();
+      if (++pollCount > 30 || readyFired) clearInterval(pollId);
+    }, 100);
+
+    // Initial fit attempt — may be a no-op when host is still 0×0,
+    // ResizeObserver / polling will catch the next layout pass.
+    refit();
+  }
+
+  // Public surface for Kotlin → JS calls.
+  window.cc = {
+    write: function (data) {
+      if (term) term.write(data);
+    },
+    writeln: function (line) {
+      if (term) term.writeln(line);
+    },
+    clear: function () {
+      if (term) term.clear();
+    },
+    onStdout: function (data) {
+      if (term) term.write(data);
+    },
+    onExit: function (payload) {
+      if (!term) return;
+      var code = payload && payload.exitCode !== undefined ? payload.exitCode : '-';
+      var sig = payload && payload.signal ? payload.signal : '-';
+      term.writeln('\r\n\x1b[33m[session exited, code=' + code + ', signal=' + sig + ']\x1b[0m');
+    },
+    fit: function () {
+      try { fitAddon && fitAddon.fit(); } catch (e) { /* benign */ }
+    },
+    // Programmatic key injection (softkey toolbar in Compose UI).
+    sendKey: function (sequence) {
+      try { LocalTerminalBridge.onUserInput(sequence); } catch (e) {}
+    },
+  };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();
+  </script>
+</body>
+</html>

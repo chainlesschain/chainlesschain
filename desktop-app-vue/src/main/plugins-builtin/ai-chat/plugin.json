@@ -1,0 +1,31 @@
+{
+  "id": "ai-chat",
+  "name": "AI 对话",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/chat 斜杠命令 + Home 页 AI 对话快捷卡片（V5 AIChatPage.vue 的 V6 探针迁移，gating route 收口）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "ai-chat",
+        "trigger": "/chat",
+        "handler": "builtin:openAIChatPanel",
+        "description": "打开 AI 对话面板",
+        "icon": "MessageOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "ai-chat-quick",
+        "component": "builtin:AIChatWidget",
+        "size": "medium",
+        "order": 130,
+        "title": "AI 对话"
+      }
+    }
+  ]
+}

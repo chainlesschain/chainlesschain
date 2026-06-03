@@ -1,0 +1,135 @@
+{
+  "id": "tpl_health_diet_002",
+  "name": "diet_plan",
+  "display_name": "饮食计划",
+  "description": "健康饮食计划模板，包含营养目标、食谱安排、购物清单、饮食记录等",
+  "icon": "🥗",
+  "category": "health",
+  "subcategory": "营养饮食",
+  "tags": [
+    "饮食计划",
+    "营养搭配",
+    "健康饮食",
+    "食谱"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成饮食计划，要求:\n\n# {{planTitle}}\n\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**计划周期**: {{planDuration}}\n**饮食目标**: {{dietGoal}}\n\n## 一、个人信息\n\n**姓名**: {{name}}\n**性别**: {{gender}}\n**年龄**: {{age}}\n**身高**: {{height}} cm\n**体重**: {{weight}} kg\n**BMI**: {{bmi}}\n**活动水平**: {{activityLevel}}\n\n## 二、饮食目标\n\n### 2.1 主要目标\n\n{{mainGoal}}\n\n### 2.2 健康诉求\n\n{{healthConcerns}}\n\n### 2.3 饮食偏好\n\n**喜欢的食物**: {{favoriteFood}}\n**不喜欢/过敏**: {{allergens}}\n**饮食限制**: {{dietaryRestrictions}}\n\n## 三、营养需求\n\n### 3.1 每日热量\n\n**基础代谢率(BMR)**: {{bmr}} kcal\n**总消耗(TDEE)**: {{tdee}} kcal\n**目标摄入**: {{targetCalories}} kcal\n\n### 3.2 三大营养素\n\n| 营养素 | 克数 | 热量 | 占比 |\n|--------|------|------|------|\n| 蛋白质 | {{protein}}g | {{proteinCal}}kcal | {{proteinPercent}}% |\n| 碳水化合物 | {{carbs}}g | {{carbsCal}}kcal | {{carbsPercent}}% |\n| 脂肪 | {{fat}}g | {{fatCal}}kcal | {{fatPercent}}% |\n\n### 3.3 微量营养素\n\n{{micronutrients}}\n\n## 四、每日食谱\n\n### 周一食谱\n\n#### 早餐 ({{mondayBreakfastCal}} kcal)\n\n{{mondayBreakfast}}\n\n#### 上午加餐 ({{mondaySnack1Cal}} kcal)\n\n{{mondaySnack1}}\n\n#### 午餐 ({{mondayLunchCal}} kcal)\n\n{{mondayLunch}}\n\n#### 下午加餐 ({{mondaySnack2Cal}} kcal)\n\n{{mondaySnack2}}\n\n#### 晚餐 ({{mondayDinnerCal}} kcal)\n\n{{mondayDinner}}\n\n---\n\n### 周二食谱\n\n#### 早餐 ({{tuesdayBreakfastCal}} kcal)\n\n{{tuesdayBreakfast}}\n\n#### 午餐 ({{tuesdayLunchCal}} kcal)\n\n{{tuesdayLunch}}\n\n#### 晚餐 ({{tuesdayDinnerCal}} kcal)\n\n{{tuesdayDinner}}\n\n---\n\n### 周三食谱\n\n{{wednesdayMeals}}\n\n### 周四食谱\n\n{{thursdayMeals}}\n\n### 周五食谱\n\n{{fridayMeals}}\n\n### 周六食谱\n\n{{saturdayMeals}}\n\n### 周日食谱\n\n{{sundayMeals}}\n\n## 五、推荐食材\n\n### 5.1 优质蛋白质\n\n{{proteinSources}}\n\n### 5.2 复合碳水\n\n{{carbSources}}\n\n### 5.3 健康脂肪\n\n{{fatSources}}\n\n### 5.4 蔬菜水果\n\n{{vegetables}}\n\n## 六、购物清单\n\n### 6.1 主食类\n\n{{stapleFood}}\n\n### 6.2 肉蛋类\n\n{{meatEggs}}\n\n### 6.3 蔬菜类\n\n{{veggies}}\n\n### 6.4 水果类\n\n{{fruits}}\n\n### 6.5 调料类\n\n{{seasonings}}\n\n## 七、烹饪建议\n\n### 7.1 健康烹饪方式\n\n{{cookingMethods}}\n\n### 7.2 减盐减油\n\n{{lowSaltOil}}\n\n### 7.3 食物储存\n\n{{foodStorage}}\n\n### 7.4 餐前准备\n\n{{mealPrep}}\n\n## 八、饮水计划\n\n### 8.1 每日饮水量\n\n{{dailyWater}}\n\n### 8.2 饮水时间\n\n{{waterSchedule}}\n\n### 8.3 其他饮品\n\n{{otherBeverages}}\n\n## 九、补充剂建议\n\n### 9.1 必要补充剂\n\n{{supplements}}\n\n### 9.2 服用时间\n\n{{supplementTiming}}\n\n## 十、外出就餐\n\n### 10.1 餐厅选择\n\n{{restaurantChoice}}\n\n### 10.2 点餐技巧\n\n{{orderingTips}}\n\n### 10.3 应急方案\n\n{{emergencyPlan}}\n\n## 十一、饮食记录\n\n### 11.1 记录方法\n\n{{trackingMethod}}\n\n### 11.2 记录模板\n\n{{recordTemplate}}\n\n### 11.3 推荐APP\n\n{{recommendedApps}}\n\n## 十二、常见问题\n\n### Q1: 饿了怎么办？\n\n{{hungerSolution}}\n\n### Q2: 外食聚餐如何控制？\n\n{{socialEating}}\n\n### Q3: 如何避免暴食？\n\n{{bingePrevention}}\n\n## 十三、调整优化\n\n### 13.1 进度评估\n\n{{progressEvaluation}}\n\n### 13.2 计划调整\n\n{{planAdjustment}}\n\n### 13.3 平台期应对\n\n{{plateauSolution}}\n\n## 附录\n\n### A. 食物营养成分表\n\n{{nutritionTable}}\n\n### B. 简易食谱\n\n{{easyRecipes}}\n\n### C. 食材替换表\n\n{{foodSubstitutes}}\n\n---\n\n**营养师**: {{#if nutritionist}}{{nutritionist}}{{else}}自主制定{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "planTitle",
+      "type": "text",
+      "label": "计划标题",
+      "default": "我的饮食计划",
+      "required": true
+    },
+    {
+      "name": "planDuration",
+      "type": "select",
+      "label": "计划周期",
+      "default": "4周",
+      "required": true,
+      "options": [
+        {
+          "value": "1周",
+          "label": "1周"
+        },
+        {
+          "value": "4周",
+          "label": "4周"
+        },
+        {
+          "value": "8周",
+          "label": "8周"
+        },
+        {
+          "value": "12周",
+          "label": "12周"
+        }
+      ]
+    },
+    {
+      "name": "dietGoal",
+      "type": "select",
+      "label": "饮食目标",
+      "default": "健康饮食",
+      "required": true,
+      "options": [
+        {
+          "value": "减脂",
+          "label": "减脂"
+        },
+        {
+          "value": "增肌",
+          "label": "增肌"
+        },
+        {
+          "value": "健康饮食",
+          "label": "健康饮食"
+        },
+        {
+          "value": "疾病调理",
+          "label": "疾病调理"
+        },
+        {
+          "value": "素食",
+          "label": "素食"
+        }
+      ]
+    },
+    {
+      "name": "targetCalories",
+      "type": "text",
+      "label": "目标热量(kcal)",
+      "default": "2000",
+      "required": true
+    },
+    {
+      "name": "protein",
+      "type": "text",
+      "label": "蛋白质(g)",
+      "default": "150",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{planTitle}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "饮食计划.md",
+        "description": "计划正文"
+      },
+      {
+        "type": "file",
+        "name": "食谱库/",
+        "description": "食谱集合"
+      },
+      {
+        "type": "file",
+        "name": "购物清单.md",
+        "description": "采购清单"
+      },
+      {
+        "type": "file",
+        "name": "饮食日志.xlsx",
+        "description": "记录表格"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

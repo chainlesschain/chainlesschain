@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  feature-family-guard manifest (FAMILY-01 + FAMILY-05 + FAMILY-07).
+  v0.2 FAMILY-07 batch: 一次性声明 v0.1 MVP 路径上 family-guard 模块直接消费
+  的全套权限。AndroidManifest merger 会与 :app 同名声明自动 dedupe; module 这
+  里仍写一遍是为了"feature 自描述", 后续别的 host 重用本 module 不会漏权限。
+
+  Runtime 申请流程 (Activity / Composable 拉起 ActivityResultLauncher) 留对应业务
+  ticket; FAMILY-07 仅声明。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ───── FAMILY-05 (已 land): 前台服务 + 通知 ───── -->
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- specialUse type (Android 14+); FamilyGuardForegroundService 用. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Android 13+ 通知 runtime 权限. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- FAMILY-20 ForegroundAppTimer: UsageStatsManager 前台 app 采样. appop 特殊权限,
+         用户须在 系统设置 → 使用情况访问 手动开 (非普通 runtime 权限); 这里仅声明,
+         UI 引导 + UsageStatsForegroundAppQuery.isAccessGranted 检查实际授予态. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ───── FAMILY-07 batch (v0.1 MVP 路径前置声明) ───── -->
+
+    <!-- M8 (FAMILY-50..56): 位置 / 电子围栏. 主文档 §3.8.
+         FAMILY-08 围栏 + on_enter / on_exit / on_late 触发后. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 后台位置 (API 29+): 围栏 / 异常停留必需 (孩子端关屏仍要上报).
+         注意: 必须先有 ACCESS_FINE_LOCATION runtime 权限才能申请 BACKGROUND. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- FOREGROUND_SERVICE_LOCATION (Android 14+): 持续 GPS / FusedLocation
+         的 FGS 子类型. FAMILY-51 启动后台位置时附加. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- M7 (FAMILY-40..46): SOS 自动录音 30s. 主文档 §3.7.
+         FAMILY-42 录音模块落地时 runtime 申请; 拒绝后 SOS 走"无录音"降级路径. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- M3 静音旁观横幅 + Spike 3 §3.2 SilentObserveOverlay.
+         API 29+ overlay 仍需用户在 系统设置 → 特殊权限 中手动开 (不是普通 runtime 权限),
+         所以这里仅声明; UI 引导孩子授权落 FAMILY-35. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ───── FAMILY-19 自启拉活 ───── -->
+
+    <!-- 开机自启 receiver — 拉起 FamilyGuardForegroundService + 跑 reconciler -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- ───── M4 Enforce / Spike 3 — Accessibility 拦截 (不实装 in FAMILY-07) ─────
+
+         BIND_ACCESSIBILITY_SERVICE 是 service-level permission (写在 service
+         element 上, 不是 uses-permission). 不在 FAMILY-07 声明; 由 Epic
+         Enforce v0.2 添加 FamilyGuardAccessibilityService 时一并加上, 形如:
+           <service
+             android:name=".accessibility.FamilyGuardAccessibilityService"
+             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+             android:exported="true">
+             <intent-filter>
+               <action android:name="android.accessibilityservice.AccessibilityService" />
+             </intent-filter>
+             <meta-data
+               android:name="android.accessibilityservice"
+               android:resource="@xml/family_guard_accessibility_config" />
+           </service>
+         此处仅注释提示, 等 FAMILY-04 Enforce body 落地时取消注释; FAMILY-07 范围内
+         "不实装". -->
+
+    <!-- ───── 硬件特征声明 (与 :app 对齐, 不强制要求) ───── -->
+
+    <uses-feature
+        android:name="android.hardware.location"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <!-- ───── Service 注册 (FAMILY-05) ───── -->
+
+    <application>
+        <service
+            android:name=".service.FamilyGuardForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <!-- Android 14+ 要求 specialUse 服务提供说明 (用途 + 替代方案审计). -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="family-guard: 持久监管亲子绑定状态 + 接收 SOS, 无 location/dataSync 等系统现有 type 适用"
+                tools:ignore="MissingTvBanner" />
+        </service>
+
+        <!-- ───── FAMILY-19 BootReceiver + KeepAliveReceiver ───── -->
+
+        <receiver
+            android:name=".boot.BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true"
+            tools:ignore="ExportedReceiver">
+            <!-- exported=true 因 BOOT_COMPLETED 由系统派发, 必须可 receive 系统广播.
+                 directBootAware=true 让 Android 7+ 在 user unlock 前也能跑, 抢
+                 早期保活窗口 (主文档 §3.1 v0.2 + spike 3 §5.1 layer 4). -->
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".boot.KeepAliveReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <!-- 内部 alarm 触发, 仅 self 发送, exported=false. -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.familyguard.KEEP_ALIVE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ───── FAMILY-28 数据生命周期日清理 (主文档 §4.6) ───── -->
+
+        <receiver
+            android:name=".boot.DataLifecycleReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <!-- 内部日 alarm (~03:00) 触发, 仅 self 发送, exported=false. -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.familyguard.DATA_LIFECYCLE_CLEANUP" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

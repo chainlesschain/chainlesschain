@@ -1,0 +1,31 @@
+{
+  "id": "knowledge-graph",
+  "name": "Knowledge Graph",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/kg 斜杠命令 + Home 页知识图谱快捷卡片（V5 KnowledgeGraphPage 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "knowledge-graph",
+        "trigger": "/kg",
+        "handler": "builtin:openKnowledgeGraphPanel",
+        "description": "打开知识图谱面板",
+        "icon": "NodeIndexOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "knowledge-graph-quick",
+        "component": "builtin:KnowledgeGraphWidget",
+        "size": "medium",
+        "order": 40,
+        "title": "知识图谱"
+      }
+    }
+  ]
+}

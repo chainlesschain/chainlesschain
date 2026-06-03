@@ -1,0 +1,184 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import rootPkg from '../../../../package.json';
+import releaseSizes from '../../data/release-sizes.json';
+const PRODUCT_VERSION = rootPkg.productVersion;
+const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
+---
+<BaseLayout
+  title="Desktop — Local AI workbench built on Electron + Vue3 | ChainlessChain"
+  description={`ChainlessChain Desktop ${PRODUCT_VERSION}: Electron 39 + Vue 3.4 + TypeScript, Web Shell (Phase 1.6 hard-flip default, opt-out to V5/V6 native shell) + 141 built-in skills, RAG knowledge base, Plan Mode, Instinct learning, 113 Pinia stores. Windows / macOS / Linux.`}
+  canonical="https://www.chainlesschain.com/en/desktop"
+  locale="en"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">DESKTOP · {PRODUCT_VERSION}</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          A <span class="italic text-ember">local AI workbench</span><br/>built on Electron + Vue3.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          Not a browser wrapper. Native filesystem access, direct U-Key hardware integration, deep local-Ollama integration —
+          the experience a GUI should give, the performance Electron should deliver.
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="#download" class="btn-ember">Download ↓</a>
+          <a href="/en/cli" class="btn-ghost">Prefer the command line?</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-16">
+    <div class="container-wide">
+      <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/dashboard.png"
+          alt="ChainlessChain Desktop · main dashboard"
+          width="1400"
+          height="900"
+          loading="eager"
+          class="block w-full h-auto"
+        />
+      </figure>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Not more features — the right features.</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          ['141', 'Built-in Skills', 'Code review, doc generation, healthcare triage, legal drafting — install and use.'],
+          ['RAG', 'Semantic Search', 'BM25 + TF-IDF + Qdrant vector hybrid retrieval — high precision and recall.'],
+          ['Plan', 'Plan Mode', 'Generate a plan, get your approval, then touch files. High-risk ops never surprise you.'],
+          ['Instinct', 'Instinct Learning', 'Learns your preferences from edits, questions, choices — sharper with every use.'],
+          ['51', 'Pinia Stores', 'Finely partitioned state — every piece of data has its proper home.'],
+          ['MCP', 'External Tools', 'Filesystem, Git, SQLite, and other major MCP servers ready out of the box.'],
+        ].map(([tag, title, desc]) => (
+          <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-3">{tag}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Experimental · Phase 1.4 prep · 2026-04-30</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Web Shell mode (Phase 1.6 default)</h2>
+        <p class="text-muted leading-relaxed">
+          Desktop direction: <strong class="text-ink">enhanced web</strong>. Electron embeds <code class="font-mono bg-cream px-1 rounded">packages/web-panel</code> SPA in-process; desktop-exclusive capabilities (U-Key signing / local files / MCP subprocesses / local Ollama) are exposed via new WS topics + a thin preload bridge — desktop does what the web edition can't.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Phases 0 → 1.6 fully landed</strong>: protocol consolidation + skill.list / fs.* / mcp.* / llm.chat / ukey.sign / window.open / shell.switch desktop-only topics + streaming cancel + multi-window architecture + bidirectional shell switcher</li>
+          <li>· <strong class="text-ink">300+ test coverage</strong>: web-shell unit 169 + config 26 + system 5 + scripts 14 + integration 14 + Playwright e2e 4</li>
+          <li>· <strong class="text-ink">Activated (default = web-shell)</strong>: 🖥️ top-right toggle back to native shell / 🌐 switch to web-shell; or SystemSettings → General → "Use Web Shell (default)" toggle. Legacy V5/V6 native shell preserved as opt-out</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%A1%8C%E9%9D%A2Web%E5%A3%B3_%E6%9E%B6%E6%9E%84%E4%B8%8E%E8%90%BD%E5%9C%B0_%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >Design doc: Desktop Web Shell architecture →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Multi-target sync — 2026-05-06 (Phase 3b/3c) -->
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3b/3c · 2026-05-06</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Multi-target sync</h2>
+        <p class="text-muted leading-relaxed">
+          One SyncProvider abstraction, 5 real channels + 2 placeholders, usable from both V5/V6 desktop and web-shell. Each provider has its own enable toggle and "Sync now" button; one global auto-sync schedule drives them all. Credentials encrypted locally.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Wired</strong>: Backend HTTP / Git repo (markdown export + push) / P2P device direct / WebDAV (Nextcloud / 坚果云 / Synology) / Mobile placeholder</li>
+          <li>· <strong class="text-ink">Entry</strong>: tray menu → Sync → Sync settings… or open <code class="font-mono bg-cream px-1 rounded">/settings/sync</code> directly · web-shell uses <code class="font-mono bg-cream px-1 rounded">sync.* WS topic</code> direct to main process, sidestepping the old CLI-subprocess SQLite-lock contention</li>
+          <li>· <strong class="text-ink">Tests</strong>: 16 sync handler units + 4 web-panel SyncSettings envelope regressions + Phase 3c WebDAV integration end-to-end</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >Design doc: Data Sync §4.6 multi-target abstraction →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <h2 class="text-3xl md:text-4xl mb-10">Feature preview</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        {[
+          ['chat', 'AI Chat · streaming response'],
+          ['cowork', 'Web Cowork · task automation'],
+          ['skills', 'Skills · 141 built-in'],
+        ].map(([file, caption]) => (
+          <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+            <img
+              src={`/screenshots/${file}.png`}
+              alt={caption}
+              width="1400"
+              height="900"
+              loading="lazy"
+              class="block w-full h-auto"
+            />
+            <figcaption class="px-4 py-3 text-xs text-muted border-t border-line font-mono">{caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">Download · {PRODUCT_VERSION}</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Three platforms, one experience.</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        {(() => {
+          const w = releaseSizes.sizes['win-setup'];
+          const mi = releaseSizes.sizes['mac-intel'];
+          const ma = releaseSizes.sizes['mac-arm64'];
+          const lx = releaseSizes.sizes['linux-appimage'];
+          const winLabel = w ? `.exe · ~${w.label}` : '.exe · Setup installer';
+          const macLabel = (mi && ma)
+            ? `.dmg · Intel ${mi.label} / arm64 ${ma.label}`
+            : '.dmg · Intel / Apple Silicon';
+          const linuxLabel = lx ? `.AppImage · ~${lx.label} · x86_64` : '.AppImage · x86_64';
+          return [
+            ['Windows', 'win', winLabel, 'Win 10+ · native U-Key driver'],
+            ['macOS', 'mac', macLabel, 'macOS 12+ · simulation mode'],
+            ['Linux', 'linux', linuxLabel, 'Ubuntu 20.04+ · simulation mode'],
+          ];
+        })().map(([name, key, meta, note]) => (
+          <a href={RELEASE_TAG_URL} target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
+            <div class="font-mono text-xs text-muted mb-3">{key.toUpperCase()}</div>
+            <h3 class="font-display text-3xl mb-2 group-hover:text-ember transition-colors">{name}</h3>
+            <div class="text-sm text-ink mb-3">{meta}</div>
+            <div class="text-xs text-muted">{note}</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download ↓</div>
+          </a>
+        ))}
+      </div>
+      <p class="mt-8 text-sm text-muted text-center">
+        Prefer the command line? Try <code class="font-mono bg-cream px-2 py-0.5 rounded">npm i -g chainlesschain</code>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

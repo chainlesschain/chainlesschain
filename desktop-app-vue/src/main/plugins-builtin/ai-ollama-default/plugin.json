@@ -1,0 +1,28 @@
+{
+  "id": "ai-ollama-default",
+  "name": "Ollama 本地 LLM（默认）",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "默认本地 Ollama LLM 提供方；企业 Profile 通过更高 priority 的贡献覆盖",
+  "extensionPoints": [
+    {
+      "point": "ai.llm-provider",
+      "priority": 10,
+      "config": {
+        "id": "ollama-default",
+        "name": "Ollama (local)",
+        "endpoint": "http://localhost:11434",
+        "models": ["llama3.2:latest", "qwen2.5:latest", "nomic-embed-text"],
+        "priority": 10,
+        "capabilities": {
+          "chat": true,
+          "streaming": true,
+          "embeddings": true,
+          "functionCalling": true,
+          "vision": false,
+          "offline": true
+        }
+      }
+    }
+  ]
+}

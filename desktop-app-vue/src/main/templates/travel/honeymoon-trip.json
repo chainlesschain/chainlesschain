@@ -1,0 +1,146 @@
+{
+  "id": "tpl_travel_honeymoon_001",
+  "name": "honeymoon_trip",
+  "display_name": "蜜月旅行策划",
+  "description": "浪漫蜜月旅行规划，包含目的地推荐、酒店预订、浪漫活动、拍照攻略",
+  "icon": "💑",
+  "cover_image": "/templates/covers/honeymoon-trip.png",
+  "category": "travel",
+  "subcategory": "romantic",
+  "tags": ["蜜月", "浪漫", "度蜜月", "新婚旅行"],
+  "project_type": "document",
+  "prompt_template": "请帮我策划一次浪漫的{{destination}}蜜月旅行，要求：\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 出发日期：{{departureDate}}\n- 行程天数：{{duration}}天\n- 预算范围：{{budget}}\n- 旅行风格：{{travelStyle}}\n\n**蜜月旅行完整方案：**\n\n## 💕 第一部分：目的地精选\n\n### {{destination}} - 为什么适合蜜月？\n\n**浪漫指数：** ⭐⭐⭐⭐⭐\n\n**推荐理由：**\n{{#eq destination \"马尔代夫\"}}\n- 🏝️ 一岛一酒店，私密性极佳\n- 🌊 水上屋，推窗即是大海\n- 🐠 浮潜看海龟、魔鬼鱼\n- 🌅 世界最美日落\n- 💆 水疗SPA，情侣按摩\n{{/eq}}\n\n{{#eq destination \"圣托里尼\"}}\n- 🏛️ 蓝白小镇，明信片般美景\n- 🌅 伊亚小镇观日落\n- 🍷 火山红酒配海鲜\n- 📸 随手一拍都是大片\n- ⛪ 蓝顶教堂打卡\n{{/eq}}\n\n{{#eq destination \"巴厘岛\"}}\n- 🏝️ 性价比之王\n- 🏨 豪华别墅酒店\n- 🌾 乌布梯田漫步\n- 🎭 传统舞蹈表演\n- 💆 SPA天堂\n{{/eq}}\n\n{{#eq destination \"大溪地\"}}\n- 🏝️ 南太平洋明珠\n- 💎 蒂芙尼蓝海水\n- 🐠 鲨鱼、鳐鱼共游\n- 🏨 四季、洲际等顶级酒店\n- 👫 绝对的私密和奢华\n{{/eq}}\n\n**最佳旅行时间：** {{bestSeason}}\n**签证要求：** {{visaRequirement}}\n**飞行时长：** 约{{flightDuration}}小时\n\n---\n\n## 🏨 第二部分：酒店精选\n\n### 推荐酒店（3选1）\n\n**1. 奢华型酒店** 💎\n- 酒店名称：{{luxuryHotel}}\n- 房型：{{luxuryRoomType}}\n- 价格：¥{{luxuryPrice}}/晚\n- 特色：\n  - 私人泳池\n  - 管家服务\n  - 米其林餐厅\n  - 蜜月布置（玫瑰花瓣、香槟）\n- 适合：预算充足，追求极致体验\n\n**2. 浪漫型酒店** 💕（推荐）\n- 酒店名称：{{romanticHotel}}\n- 房型：{{romanticRoomType}}\n- 价格：¥{{romanticPrice}}/晚\n- 特色：\n  - 海景房/花园房\n  - 情侣SPA\n  - 烛光晚餐\n  - 蜜月礼遇\n- 适合：性价比高，浪漫氛围足\n\n**3. 精品型酒店** ✨\n- 酒店名称：{{boutiqueHotel}}\n- 房型：{{boutiqueRoomType}}\n- 价格：¥{{boutiquePrice}}/晚\n- 特色：\n  - 设计感强\n  - 位置便利\n  - 网红打卡点\n- 适合：年轻人，喜欢拍照\n\n**订房建议：**\n- ✅ 提前告知酒店是蜜月，通常有惊喜\n- ✅ 预订含早餐房型\n- ✅ 选择高楼层/海景房\n- ✅ 要求蜜月布置（免费/收费）\n\n---\n\n## 📅 第三部分：每日行程\n\n{{#each itinerary}}\n### Day {{this.day}} - {{this.theme}} {{this.icon}}\n\n**上午（9:00-12:00）**\n{{this.morningActivity}}\n\n**午餐（12:30-14:00）**\n- 推荐餐厅：{{this.lunchRestaurant}}\n- 人均消费：¥{{this.lunchPrice}}\n- 必点菜品：{{this.lunchDishes}}\n\n**下午（14:30-18:00）**\n{{this.afternoonActivity}}\n\n**晚餐（19:00-21:00）**\n- {{#if this.specialDinner}}\n  🌹 **浪漫烛光晚餐**\n  - 地点：{{this.dinnerLocation}}\n  - 预订：需提前预订，提及蜜月\n  - 人均：¥{{this.dinnerPrice}}\n  - 特别安排：求婚/纪念日布置（可选）\n{{else}}\n  - 餐厅：{{this.dinnerRestaurant}}\n  - 人均：¥{{this.dinnerPrice}}\n{{/if}}\n\n**晚间（21:00-）**\n{{this.eveningActivity}}\n\n**📸 今日打卡点：** {{this.photoSpots}}\n\n{{/each}}\n\n---\n\n## 💕 第四部分：浪漫活动清单\n\n### 1. 必体验活动\n\n{{#if includeWaterActivities}}\n**🌊 水上活动**\n- 浮潜/深潜（看珊瑚礁）\n- 双人皮划艇\n- 香蕉船\n- 帆船出海\n- 海钓\n{{/if}}\n\n{{#if includeSpa}}\n**💆 情侣SPA**\n- 传统按摩（90分钟）\n- 精油SPA\n- 热石疗法\n- 花瓣浴\n- 价格：¥{{spaPrice}}/2人\n{{/if}}\n\n{{#if includeSunset}}\n**🌅 日落体验**\n- 观日落最佳地点：{{sunsetSpot}}\n- 时间：{{sunsetTime}}\n- 建议：带野餐篮，香槟+芝士+水果\n- 📸 拍照姿势：剪影、亲吻、拥抱\n{{/if}}\n\n{{#if includeDinner}}\n**🍽️ 特色用餐**\n- 沙滩烛光晚餐\n- 私人海滩晚宴\n- 悬崖餐厅\n- 水下餐厅（如马尔代夫）\n{{/if}}\n\n### 2. 拍照攻略\n\n**📸 婚纱照/写真拍摄**\n{{#if includePhotoshoot}}\n- 推荐摄影师：{{photographer}}\n- 套餐价格：¥{{photoshootPrice}}\n- 包含：{{photoshootHours}}小时拍摄 + {{photosCount}}张精修\n- 服装：{{outfitOptions}}\n- 场景：{{photoLocations}}\n{{/if}}\n\n**手机自拍技巧：**\n- 黄金时间：日出后1小时、日落前1小时\n- 最佳角度：低角度、逆光、剪影\n- 道具：太阳镜、草帽、鲜花、气球\n- 姿势：\n  - 牵手远景\n  - 拥抱背影\n  - 鼻尖相碰\n  - 旋转起舞\n  - 水中倒影\n\n**必拍场景：**\n1. {{photoScene1}}\n2. {{photoScene2}}\n3. {{photoScene3}}\n4. 酒店房间（蜜月布置）\n5. 日出/日落\n\n---\n\n## 💰 第五部分：预算规划\n\n### 详细预算表（2人）\n\n| 项目 | 明细 | 费用 |\n|------|------|------|\n| **交通** | | |\n| 往返机票 | {{flightClass}} | ¥{{flightCost}} |\n| 接送机 | | ¥{{transferCost}} |\n| 当地交通 | 包车/出租车 | ¥{{localTransport}} |\n| **住宿** | | |\n| 酒店 | {{nights}}晚 × {{hotelPrice}}/晚 | ¥{{totalHotelCost}} |\n| **餐饮** | | |\n| 早餐 | 酒店含早 | ¥0 |\n| 午/晚餐 | {{meals}}顿 × {{avgMealPrice}}/顿 | ¥{{totalMealCost}} |\n| 特色晚餐 | 烛光晚餐等 | ¥{{specialDinnerCost}} |\n| **活动** | | |\n| 水上活动 | | ¥{{waterActivityCost}} |\n| 情侣SPA | | ¥{{spaCost}} |\n| 婚纱拍摄 | | ¥{{photoshootCost}} |\n| 一日游 | | ¥{{dayTourCost}} |\n| **签证** | | ¥{{visaCost}} |\n| **保险** | 旅行保险 | ¥{{insuranceCost}} |\n| **购物** | 纪念品、免税品 | ¥{{shoppingBudget}} |\n| **其他** | 小费、应急 | ¥{{miscellaneous}} |\n| **总计** | | **¥{{grandTotal}}** |\n| 人均 | | ¥{{perPersonCost}} |\n\n**省钱技巧：**\n- ✅ 提前3-6个月订机票（便宜30-50%）\n- ✅ 淡季出行（避开春节、国庆、暑假）\n- ✅ 酒店官网预订（比OTA便宜，且有蜜月礼遇）\n- ✅ 部分餐饮自己准备（超市买水果、零食）\n- ✅ 活动提前网上预订（比现场便宜）\n\n---\n\n## 🎁 第六部分：蜜月贴士\n\n### 1. 出发前准备\n\n**30天前**\n- ✅ 预订机票、酒店\n- ✅ 办理签证（如需要）\n- ✅ 购买旅行保险\n- ✅ 预订特色餐厅、SPA\n\n**15天前**\n- ✅ 确认所有预订\n- ✅ 准备衣物（{{clothingList}}）\n- ✅ 购买防晒霜、墨镜\n- ✅ 充电器、转换插头\n\n**7天前**\n- ✅ 打印所有预订确认单\n- ✅ 兑换外币\n- ✅ 下载离线地图\n- ✅ 通知银行出境（避免信用卡被冻结）\n\n### 2. 蜜月物品清单\n\n**衣物**\n- {{#if beachDestination}}\n  - 比基尼/泳裤（3套）\n  - 沙滩裙/衬衫\n  - 人字拖\n{{/if}}\n- 晚礼服/衬衫（晚餐用）\n- 舒适鞋（白天游玩）\n- 墨镜、遮阳帽\n\n**摄影装备**\n- 相机/无人机（如允许）\n- 自拍杆/三脚架\n- 防水相机袋\n- 备用电池/充电宝\n\n**浪漫道具**\n{{#if bringRomanticProps}}\n- 蜡烛（可折叠LED蜡烛）\n- 玫瑰花瓣\n- 香槟（当地买）\n- 情侣装\n{{/if}}\n\n### 3. 安全与健康\n\n- ⚠️ 防晒！SPF50+，每2小时补涂\n- ⚠️ 防蚊虫（热带地区）\n- ⚠️ 水土不服：带肠胃药\n- ⚠️ 贵重物品：使用酒店保险箱\n- ⚠️ 护照复印件：分开存放\n\n### 4. 文化礼仪\n\n{{#eq destination \"马尔代夫\"}}\n- 🕌 尊重伊斯兰文化\n- 👙 居民岛不可穿比基尼\n- 🍺 不可携带酒精上岛\n{{/eq}}\n\n{{#eq destination \"巴厘岛\"}}\n- 🙏 进寺庙需穿长裤/长裙\n- 🎭 观看表演禁止大声喧哗\n- 🚫 不能用左手递东西\n{{/eq}}\n\n### 5. 纪念方式\n\n**留下美好回忆：**\n- 📔 手写旅行日记\n- 📸 每天vlog记录\n- 🎞️ 制作相册/视频\n- 🌟 收集当地明信片寄给自己\n- 💌 给未来的自己写信（1年后拆开）\n\n---\n\n## 🌹 第七部分：惊喜策划（可选）\n\n{{#if planSurprise}}\n**给TA的惊喜：**\n\n**方案A：海滩求婚/重温誓言**\n- 布置：玫瑰花瓣拼心形、蜡烛围绕\n- 道具：戒指/鲜花\n- 摄影师：偷拍全程\n- 费用：¥{{surpriseCost}}\n\n**方案B：房间惊喜**\n- 提前联系酒店\n- 布置：气球、横幅\"Happy Honeymoon\"\n- 准备：蛋糕、香槟、玫瑰\n- 费用：¥{{roomSurpriseCost}}\n\n**方案C：写一封情书**\n- 每天在TA枕头下放一封情书\n- 写下{{duration}}天的感动瞬间\n- 最后一天送上珍藏相册\n{{/if}}\n\n---\n\n**祝您蜜月甜蜜！💕**\n\n*生成时间：{{currentDate}}*\n*ChainlessChain AI助手为您定制*",
+  "variables_schema": [
+    {
+      "name": "destination",
+      "label": "蜜月目的地",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "马尔代夫", "label": "马尔代夫🏝️（经典海岛）"},
+        {"value": "圣托里尼", "label": "圣托里尼🇬🇷（浪漫爱琴海）"},
+        {"value": "巴厘岛", "label": "巴厘岛🇮🇩（性价比高）"},
+        {"value": "大溪地", "label": "大溪地🇵🇫（奢华私密）"},
+        {"value": "塞舌尔", "label": "塞舌尔🇸🇨（原始自然）"},
+        {"value": "普吉岛", "label": "普吉岛🇹🇭（热闹海岛）"},
+        {"value": "迪拜", "label": "迪拜🇦🇪（奢华都市）"}
+      ]
+    },
+    {
+      "name": "departureDate",
+      "label": "出发日期",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2025-10-01"
+    },
+    {
+      "name": "duration",
+      "label": "行程天数",
+      "type": "number",
+      "required": true,
+      "default": 7,
+      "min": 5,
+      "max": 14
+    },
+    {
+      "name": "budget",
+      "label": "预算范围（2人）",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "2-3万", "label": "¥2-3万（经济）"},
+        {"value": "3-5万", "label": "¥3-5万（舒适）"},
+        {"value": "5-8万", "label": "¥5-8万（豪华）"},
+        {"value": "8万+", "label": "¥8万+（奢华）"}
+      ]
+    },
+    {
+      "name": "travelStyle",
+      "label": "旅行风格",
+      "type": "select",
+      "required": false,
+      "default": "浪漫休闲",
+      "options": [
+        {"value": "浪漫休闲", "label": "浪漫休闲（酒店度假为主）"},
+        {"value": "探险刺激", "label": "探险刺激（水上运动、徒步）"},
+        {"value": "文化体验", "label": "文化体验（当地风情）"},
+        {"value": "奢华享受", "label": "奢华享受（顶级酒店、米其林）"}
+      ]
+    },
+    {
+      "name": "includePhotoshoot",
+      "label": "婚纱拍摄",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {"value": "是", "label": "预订摄影师拍摄"},
+        {"value": "否", "label": "仅自拍"}
+      ]
+    },
+    {
+      "name": "includeSpa",
+      "label": "情侣SPA",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {"value": "是", "label": "包含情侣SPA"},
+        {"value": "否", "label": "不需要"}
+      ]
+    },
+    {
+      "name": "planSurprise",
+      "label": "惊喜策划",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {"value": "是", "label": "策划浪漫惊喜"},
+        {"value": "否", "label": "不需要"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{destination}}-蜜月旅行",
+    "files": [
+      {
+        "path": "蜜月旅行完整方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "每日行程.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "预算明细.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "物品清单.md",
+        "type": "markdown"
+      },
+      {
+        "path": "拍照攻略.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

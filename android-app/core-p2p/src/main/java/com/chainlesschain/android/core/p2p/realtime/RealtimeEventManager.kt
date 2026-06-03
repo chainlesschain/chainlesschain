@@ -1,0 +1,531 @@
+package com.chainlesschain.android.core.p2p.realtime
+
+import timber.log.Timber
+import com.chainlesschain.android.core.p2p.model.MessageType
+import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.core.p2p.sync.MessageQueue
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicReference
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * 实时事件管理器
+ *
+ * 负责处理实时事件的分发和监听：
+ * - 好友请求和响应
+ * - 在线状态更新
+ * - 实时通知（点赞、评论、提及）
+ * - 正在输入指示
+ */
+@Singleton
+class RealtimeEventManager @Inject constructor(
+    private val messageQueue: MessageQueue,
+    private val presenceManager: PresenceManager
+) {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val json = Json { ignoreUnknownKeys = true }
+
+    // 实时事件流
+    private val _realtimeEvents = MutableSharedFlow<RealtimeEvent>(
+        replay = 0,
+        extraBufferCapacity = 100,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val realtimeEvents: SharedFlow<RealtimeEvent> = _realtimeEvents.asSharedFlow()
+
+    // 特定类型的事件流
+    private val _friendRequestEvents = MutableSharedFlow<FriendRequestEvent>(replay = 0, extraBufferCapacity = 10)
+    val friendRequestEvents: SharedFlow<FriendRequestEvent> = _friendRequestEvents.asSharedFlow()
+
+    private val _notificationEvents = MutableSharedFlow<NotificationEvent>(replay = 0, extraBufferCapacity = 50)
+    val notificationEvents: SharedFlow<NotificationEvent> = _notificationEvents.asSharedFlow()
+
+    private val _typingEvents = MutableSharedFlow<TypingEvent>(replay = 0, extraBufferCapacity = 10)
+    val typingEvents: SharedFlow<TypingEvent> = _typingEvents.asSharedFlow()
+
+    private val _profileResponseEvents = MutableSharedFlow<ProfileResponseEvent>(replay = 0, extraBufferCapacity = 32)
+    val profileResponseEvents: SharedFlow<ProfileResponseEvent> = _profileResponseEvents.asSharedFlow()
+
+    // 由 app 层在启动时通过 [setSelfProfileProvider] 注入。未注入时收到 PROFILE_QUERY 直接忽略。
+    private val selfProfileProviderRef = AtomicReference<SelfProfileProvider?>(null)
+
+    private var isListening = false
+
+    /**
+     * 启动实时事件监听
+     */
+    fun startListening() {
+        if (isListening) {
+            Timber.w("Already listening to realtime events")
+            return
+        }
+
+        isListening = true
+        Timber.i("Starting realtime event listening")
+
+        // 监听消息队列中的实时消息
+        scope.launch {
+            messageQueue.incomingMessages
+                .filter { isRealtimeMessage(it.type) }
+                .collect { message ->
+                    try {
+                        handleRealtimeMessage(message)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to handle realtime message: ${message.id}")
+                    }
+                }
+        }
+
+        // 启动在线状态管理
+        presenceManager.startBroadcasting()
+    }
+
+    /**
+     * 停止实时事件监听
+     */
+    fun stopListening() {
+        isListening = false
+        presenceManager.stopBroadcasting()
+        Timber.i("Stopped realtime event listening")
+    }
+
+    /**
+     * 发送好友请求
+     */
+    suspend fun sendFriendRequest(targetDid: String, message: String?) {
+        val payload = FriendRequestPayload(
+            message = message,
+            timestamp = System.currentTimeMillis()
+        )
+
+        sendRealtimeMessage(
+            toDeviceId = targetDid,
+            type = MessageType.FRIEND_REQUEST,
+            payload = json.encodeToString(FriendRequestPayload.serializer(), payload)
+        )
+
+        Timber.d("Friend request sent to: $targetDid")
+    }
+
+    /**
+     * 响应好友请求
+     */
+    suspend fun respondToFriendRequest(targetDid: String, accepted: Boolean) {
+        val payload = FriendResponsePayload(
+            accepted = accepted,
+            timestamp = System.currentTimeMillis()
+        )
+
+        sendRealtimeMessage(
+            toDeviceId = targetDid,
+            type = MessageType.FRIEND_RESPONSE,
+            payload = json.encodeToString(FriendResponsePayload.serializer(), payload)
+        )
+
+        Timber.d("Friend request response sent to: $targetDid, accepted: $accepted")
+    }
+
+    /**
+     * 发送实时通知
+     */
+    suspend fun sendNotification(
+        targetDid: String,
+        notificationType: NotificationType,
+        title: String,
+        content: String,
+        targetId: String? = null
+    ) {
+        val payload = NotificationPayload(
+            type = notificationType,
+            title = title,
+            content = content,
+            targetId = targetId,
+            timestamp = System.currentTimeMillis()
+        )
+
+        val messageType = when (notificationType) {
+            NotificationType.LIKE -> MessageType.LIKE_NOTIFICATION
+            NotificationType.COMMENT -> MessageType.COMMENT_NOTIFICATION
+            NotificationType.MENTION -> MessageType.MENTION_NOTIFICATION
+            NotificationType.POST -> MessageType.POST_NOTIFICATION
+        }
+
+        sendRealtimeMessage(
+            toDeviceId = targetDid,
+            type = messageType,
+            payload = json.encodeToString(NotificationPayload.serializer(), payload)
+        )
+
+        Timber.d("Notification sent to: $targetDid, type: $notificationType")
+    }
+
+    /**
+     * 注册自身资料提供者。
+     *
+     * 调用后，RealtimeEventManager 收到 PROFILE_QUERY 时会用 [SelfProfileProvider.loadSelfProfile]
+     * 取本机资料并回包 PROFILE_RESPONSE。未注册时静默忽略——保持与 v0 demo 兼容。
+     *
+     * 重复调用会替换上一次注入，方便测试 / app 切换用户态。
+     */
+    fun setSelfProfileProvider(provider: SelfProfileProvider?) {
+        selfProfileProviderRef.set(provider)
+        Timber.d("SelfProfileProvider ${if (provider == null) "cleared" else "registered"}")
+    }
+
+    /**
+     * 查询远程 DID 的展示资料。
+     *
+     * 发起 PROFILE_QUERY，订阅 [profileResponseEvents] 等待 requestId 匹配的响应；
+     * 超时（默认 5s）返回 null。
+     *
+     * 注意：本地数据库已有的好友/曾交互过的 DID 应优先走本地查找——这是远程 fallback。
+     */
+    suspend fun queryProfile(targetDid: String, timeoutMs: Long = 5_000L): SelfProfileSnapshot? {
+        val requestId = java.util.UUID.randomUUID().toString()
+        val payload = ProfileQueryPayload(
+            requestId = requestId,
+            targetDid = targetDid,
+            timestamp = System.currentTimeMillis()
+        )
+
+        return try {
+            // onSubscription 保证订阅完成后才发请求，避免响应抢在订阅前到达
+            // （_profileResponseEvents 是 replay=0 SharedFlow，订阅前发出的事件会丢）
+            val event = withTimeoutOrNull(timeoutMs) {
+                profileResponseEvents
+                    .onSubscription {
+                        sendRealtimeMessage(
+                            toDeviceId = targetDid,
+                            type = MessageType.PROFILE_QUERY,
+                            payload = json.encodeToString(ProfileQueryPayload.serializer(), payload),
+                            requiresAck = false
+                        )
+                    }
+                    .first { it.requestId == requestId }
+            }
+            event?.profile
+        } catch (e: Exception) {
+            Timber.w(e, "Profile query failed for DID: $targetDid")
+            null
+        }
+    }
+
+    /**
+     * 发送正在输入指示
+     */
+    suspend fun sendTypingIndicator(targetDid: String, isTyping: Boolean) {
+        val payload = TypingPayload(
+            isTyping = isTyping,
+            timestamp = System.currentTimeMillis()
+        )
+
+        sendRealtimeMessage(
+            toDeviceId = targetDid,
+            type = MessageType.TYPING_INDICATOR,
+            payload = json.encodeToString(TypingPayload.serializer(), payload),
+            requiresAck = false // 不需要确认，丢失也无妨
+        )
+    }
+
+    /**
+     * 处理实时消息
+     */
+    private suspend fun handleRealtimeMessage(message: P2PMessage) {
+        when (message.type) {
+            MessageType.FRIEND_REQUEST -> handleFriendRequest(message)
+            MessageType.FRIEND_RESPONSE -> handleFriendResponse(message)
+            MessageType.PRESENCE_UPDATE -> handlePresenceUpdate(message)
+            MessageType.LIKE_NOTIFICATION,
+            MessageType.COMMENT_NOTIFICATION,
+            MessageType.MENTION_NOTIFICATION,
+            MessageType.POST_NOTIFICATION -> handleNotification(message)
+            MessageType.TYPING_INDICATOR -> handleTypingIndicator(message)
+            MessageType.PROFILE_QUERY -> handleProfileQuery(message)
+            MessageType.PROFILE_RESPONSE -> handleProfileResponse(message)
+            else -> Timber.w("Unhandled realtime message type: ${message.type}")
+        }
+    }
+
+    private suspend fun handleFriendRequest(message: P2PMessage) {
+        val payload = json.decodeFromString(FriendRequestPayload.serializer(), message.payload)
+        val event = FriendRequestEvent(
+            fromDid = message.fromDeviceId,
+            message = payload.message,
+            timestamp = payload.timestamp
+        )
+        _friendRequestEvents.emit(event)
+        _realtimeEvents.emit(RealtimeEvent.FriendRequest(event))
+        Timber.d("Friend request received from: ${message.fromDeviceId}")
+    }
+
+    private suspend fun handleFriendResponse(message: P2PMessage) {
+        val payload = json.decodeFromString(FriendResponsePayload.serializer(), message.payload)
+        val event = FriendResponseEvent(
+            fromDid = message.fromDeviceId,
+            accepted = payload.accepted,
+            timestamp = payload.timestamp
+        )
+        _realtimeEvents.emit(RealtimeEvent.FriendResponse(event))
+        Timber.d("Friend response received from: ${message.fromDeviceId}, accepted: ${payload.accepted}")
+    }
+
+    private suspend fun handlePresenceUpdate(message: P2PMessage) {
+        val payload = json.decodeFromString(PresencePayload.serializer(), message.payload)
+        val event = PresenceUpdateEvent(
+            did = message.fromDeviceId,
+            status = payload.status,
+            lastActiveAt = payload.lastActiveAt
+        )
+        _realtimeEvents.emit(RealtimeEvent.PresenceUpdate(event))
+        Timber.d("Presence update received: ${message.fromDeviceId} -> ${payload.status}")
+    }
+
+    private suspend fun handleNotification(message: P2PMessage) {
+        val payload = json.decodeFromString(NotificationPayload.serializer(), message.payload)
+        val event = NotificationEvent(
+            fromDid = message.fromDeviceId,
+            type = payload.type,
+            title = payload.title,
+            content = payload.content,
+            targetId = payload.targetId,
+            timestamp = payload.timestamp
+        )
+        _notificationEvents.emit(event)
+        _realtimeEvents.emit(RealtimeEvent.Notification(event))
+        Timber.d("Notification received: ${payload.type} from ${message.fromDeviceId}")
+    }
+
+    private suspend fun handleTypingIndicator(message: P2PMessage) {
+        val payload = json.decodeFromString(TypingPayload.serializer(), message.payload)
+        val event = TypingEvent(
+            fromDid = message.fromDeviceId,
+            isTyping = payload.isTyping,
+            timestamp = payload.timestamp
+        )
+        _typingEvents.emit(event)
+        Timber.d("Typing indicator: ${message.fromDeviceId} -> ${payload.isTyping}")
+    }
+
+    private suspend fun handleProfileQuery(message: P2PMessage) {
+        val payload = json.decodeFromString(ProfileQueryPayload.serializer(), message.payload)
+        val provider = selfProfileProviderRef.get()
+        if (provider == null) {
+            Timber.d("Received PROFILE_QUERY but no SelfProfileProvider registered; ignoring")
+            return
+        }
+        val profile = provider.loadSelfProfile()
+        if (profile == null) {
+            Timber.d("Received PROFILE_QUERY but provider returned null (no self DID?); ignoring")
+            return
+        }
+        val responsePayload = ProfileResponsePayload(
+            requestId = payload.requestId,
+            profile = profile,
+            timestamp = System.currentTimeMillis()
+        )
+        sendRealtimeMessage(
+            toDeviceId = message.fromDeviceId,
+            type = MessageType.PROFILE_RESPONSE,
+            payload = json.encodeToString(ProfileResponsePayload.serializer(), responsePayload),
+            requiresAck = false
+        )
+        Timber.d("Responded to PROFILE_QUERY from ${message.fromDeviceId} (requestId=${payload.requestId})")
+    }
+
+    private suspend fun handleProfileResponse(message: P2PMessage) {
+        val payload = json.decodeFromString(ProfileResponsePayload.serializer(), message.payload)
+        val event = ProfileResponseEvent(
+            fromDid = message.fromDeviceId,
+            requestId = payload.requestId,
+            profile = payload.profile,
+            timestamp = payload.timestamp
+        )
+        _profileResponseEvents.emit(event)
+        Timber.d("PROFILE_RESPONSE received from ${message.fromDeviceId} (requestId=${payload.requestId})")
+    }
+
+    /**
+     * 发送实时消息（不经过队列，直接发送）
+     */
+    private suspend fun sendRealtimeMessage(
+        toDeviceId: String,
+        type: MessageType,
+        payload: String,
+        requiresAck: Boolean = true
+    ) {
+        val message = P2PMessage(
+            id = java.util.UUID.randomUUID().toString(),
+            fromDeviceId = "", // 将由发送方填充
+            toDeviceId = toDeviceId,
+            type = type,
+            payload = payload,
+            requiresAck = requiresAck
+        )
+
+        messageQueue.enqueue(message)
+    }
+
+    /**
+     * 判断是否为实时消息
+     */
+    private fun isRealtimeMessage(type: MessageType): Boolean {
+        return when (type) {
+            MessageType.FRIEND_REQUEST,
+            MessageType.FRIEND_RESPONSE,
+            MessageType.FRIEND_STATUS_UPDATE,
+            MessageType.PRESENCE_UPDATE,
+            MessageType.POST_NOTIFICATION,
+            MessageType.LIKE_NOTIFICATION,
+            MessageType.COMMENT_NOTIFICATION,
+            MessageType.MENTION_NOTIFICATION,
+            MessageType.CHAT_MESSAGE,
+            MessageType.TYPING_INDICATOR,
+            MessageType.PROFILE_QUERY,
+            MessageType.PROFILE_RESPONSE -> true
+            else -> false
+        }
+    }
+}
+
+// ===== 实时事件模型 =====
+
+/**
+ * 实时事件基类
+ */
+sealed class RealtimeEvent {
+    data class FriendRequest(val event: FriendRequestEvent) : RealtimeEvent()
+    data class FriendResponse(val event: FriendResponseEvent) : RealtimeEvent()
+    data class PresenceUpdate(val event: PresenceUpdateEvent) : RealtimeEvent()
+    data class Notification(val event: NotificationEvent) : RealtimeEvent()
+}
+
+/**
+ * 好友请求事件
+ */
+data class FriendRequestEvent(
+    val fromDid: String,
+    val message: String?,
+    val timestamp: Long
+)
+
+/**
+ * 好友响应事件
+ */
+data class FriendResponseEvent(
+    val fromDid: String,
+    val accepted: Boolean,
+    val timestamp: Long
+)
+
+/**
+ * 在线状态更新事件
+ */
+data class PresenceUpdateEvent(
+    val did: String,
+    val status: PresenceStatus,
+    val lastActiveAt: Long
+)
+
+/**
+ * 通知事件
+ */
+data class NotificationEvent(
+    val fromDid: String,
+    val type: NotificationType,
+    val title: String,
+    val content: String,
+    val targetId: String?,
+    val timestamp: Long
+)
+
+/**
+ * 正在输入事件
+ */
+data class TypingEvent(
+    val fromDid: String,
+    val isTyping: Boolean,
+    val timestamp: Long
+)
+
+/**
+ * 远端资料响应事件
+ */
+data class ProfileResponseEvent(
+    val fromDid: String,
+    val requestId: String,
+    val profile: SelfProfileSnapshot,
+    val timestamp: Long
+)
+
+// ===== 消息负载模型 =====
+
+@Serializable
+data class FriendRequestPayload(
+    val message: String?,
+    val timestamp: Long
+)
+
+@Serializable
+data class FriendResponsePayload(
+    val accepted: Boolean,
+    val timestamp: Long
+)
+
+@Serializable
+data class PresencePayload(
+    val status: PresenceStatus,
+    val lastActiveAt: Long
+)
+
+@Serializable
+data class NotificationPayload(
+    val type: NotificationType,
+    val title: String,
+    val content: String,
+    val targetId: String?,
+    val timestamp: Long
+)
+
+@Serializable
+data class TypingPayload(
+    val isTyping: Boolean,
+    val timestamp: Long
+)
+
+@Serializable
+data class ProfileQueryPayload(
+    val requestId: String,
+    val targetDid: String,
+    val timestamp: Long
+)
+
+@Serializable
+data class ProfileResponsePayload(
+    val requestId: String,
+    val profile: SelfProfileSnapshot,
+    val timestamp: Long
+)
+
+// ===== 枚举类型 =====
+
+@Serializable
+enum class PresenceStatus {
+    ONLINE,
+    AWAY,
+    BUSY,
+    OFFLINE
+}
+
+@Serializable
+enum class NotificationType {
+    LIKE,
+    COMMENT,
+    MENTION,
+    POST
+}

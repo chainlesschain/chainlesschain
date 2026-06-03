@@ -1,0 +1,223 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const templates = [
+  { id: 'doc-convert',   name: 'Document Conversion', desc: 'Batch Word → PDF, Word ↔ Markdown, PPT → images',   tools: 'pandoc · LibreOffice' },
+  { id: 'media-process', name: 'Audio / Video',       desc: 'Compress video, extract audio, edit & splice, transcode', tools: 'ffmpeg · yt-dlp' },
+  { id: 'data-analysis', name: 'Data Analysis',       desc: 'CSV / Excel statistics, chart generation, pivot summaries', tools: 'pandas · matplotlib' },
+  { id: 'web-research',  name: 'Web Research',        desc: 'Auto-scrape pages, summarize key points, generate report', tools: 'curl · BeautifulSoup' },
+  { id: 'image-process', name: 'Image Processing',    desc: 'Batch compress, transcode, OCR text extraction',          tools: 'ImageMagick · Tesseract' },
+  { id: 'code-helper',   name: 'Code Helper',         desc: 'Script generation, code review, refactoring suggestions',  tools: 'Python · Node.js' },
+  { id: 'system-admin',  name: 'System Admin',        desc: 'Disk analysis, process audit, service management',         tools: 'system commands' },
+  { id: 'file-organize', name: 'File Organization',   desc: 'Batch rename, rule-based archiving, decompression',        tools: 'pathlib · 7-Zip' },
+  { id: 'network-tools', name: 'Network Tools',       desc: 'Port scan, DNS lookup, latency testing',                   tools: 'curl · nslookup' },
+  { id: 'custom',        name: 'Custom Task',         desc: 'Describe in natural language, agent orchestrates the toolchain', tools: 'any executable tool' },
+];
+
+const modules = [
+  { path: '/#/cowork',       name: 'Cowork',           desc: '10 task templates + natural-language description → auto-execution' },
+  { path: '/#/chat',         name: 'AI Chat',          desc: 'Streaming chat + virtual list + intent recognition card (V5 desktop parity) + URL auto-send + project/file/global context modes' },
+  { path: '/#/aiops',        name: 'AIOps',            desc: 'Z-Score / IQR anomaly detection, incident state machine, auto playbooks' },
+  { path: '/#/skills',       name: 'Skills',           desc: '141 built-in skills, four-layer loading: marketplace / managed / workspace' },
+  { path: '/#/marketplace',  name: 'Skill Marketplace', desc: 'Publish skill services, track invocation stats, lifecycle state machine' },
+  { path: '/#/knowledge',    name: 'Knowledge Graph',  desc: 'ECharts force-directed view, CRUD entities/relations, multi-hop BFS reasoning' },
+  { path: '/#/community',    name: 'Community',        desc: 'Contacts / friends / posts — decentralized social' },
+  { path: '/#/crosschain',   name: 'Cross-chain Bridge', desc: '5-chain bridging + HTLC atomic swap + cross-chain messages + fee estimation' },
+  { path: '/#/compliance',   name: 'Compliance & Threat Intel', desc: 'STIX 2.1 IoC matching + UEBA behavioral analytics + risk scoring' },
+  { path: '/#/privacy',      name: 'Privacy Computing', desc: 'FL federated learning + MPC + DP differential privacy + HE homomorphic encryption' },
+  { path: '/#/inference',    name: 'Inference Network', desc: 'Node registry + task scheduling + privacy modes + resource allocation' },
+  { path: '/#/nlprog',       name: 'NL Programming',   desc: 'Intent classification + entity extraction + translation + coding-convention governance' },
+  { path: '/#/tenant',       name: 'Multi-Tenant SaaS', desc: '4 plans + usage metering + quota checking + MRR computation' },
+  { path: '/#/pipeline',     name: 'Pipeline Orchestrator', desc: '7-stage pipeline + deploy strategy + templates + gate stages' },
+  { path: '/#/governance',   name: 'Community Governance', desc: 'Proposals + weighted voting + impact analysis + prediction confidence' },
+  { path: '/#/audit',        name: 'Audit Logs',       desc: 'Audit-event search / filter / export + compliance retention' },
+  { path: '/#/reputation',   name: 'Reputation Optimizer', desc: 'exp/linear/step decay + anomaly detection + simulated Bayesian' },
+  { path: '/#/recommend',    name: 'Content Recommendation', desc: 'Interest profiles + topic scoring + time decay + feedback loop' },
+  { path: '/#/sla',          name: 'SLA Manager',      desc: 'Tier catalog + direction-aware deviation + p95 + compensation cap' },
+  { path: '/#/codegen',      name: 'Code Generation',  desc: 'Generation tracking + 5-rule security review + scaffold catalog' },
+  { path: '/#/tokens',       name: 'Token Incentive',  desc: 'Token ledger + 7 contribution types + leaderboard' },
+  { path: '/#/trust',        name: 'Trust Root',       desc: 'Trust-root management + PQC interop + satellite transport + HSM' },
+  { path: '/#/federation',   name: 'Federation Hardening', desc: 'Circuit-breaker FSM + health checks + connection pool + node aggregation' },
+  { path: '/#/did',          name: 'DID Identity',     desc: 'Decentralized-identity create / sign / DID Document view' },
+  { path: '/#/agent',        name: 'Agent Mode',       desc: 'Claude Code-style agentic loop — read/write files, run commands' },
+  { path: '/#/settings',     name: 'System Settings',  desc: 'LLM Provider, Ollama, theme, config sync' },
+];
+---
+<BaseLayout
+  title="Web Edition — Cowork workbench in your browser | ChainlessChain"
+  description="ChainlessChain Web Edition: launch with one command (cc ui), open http://localhost:18810. 10 task templates, natural-language orchestration, auto tool installation, WebSocket live progress. Runs locally — data never leaves your machine."
+  canonical="https://www.chainlesschain.com/en/web"
+  locale="en"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-ember/10 blur-3xl pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="flex flex-wrap gap-2 mb-6 animate-fade-in">
+          <div class="chip">WEB · Cowork Edition</div>
+          <div class="chip">中文 / English · vue-i18n</div>
+        </div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          A <span class="italic text-ember">Cowork workbench</span><br/>in your browser.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          No desktop install, no command-line learning curve — one <code class="font-mono bg-cream px-2 py-0.5 rounded">cc ui</code> brings up a full workbench.
+          10 task templates cover everyday high-frequency scenarios. Describe what you need in natural language; the agent installs tools, runs the flow, and streams results back.
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="/en/cli" class="btn-ember">Install CLI first →</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/web-cowork.html" class="btn-ghost" rel="noopener">Web Cowork docs ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- START -->
+  <section class="pb-16">
+    <div class="container-wide">
+      <div class="max-w-4xl p-8 rounded-2xl border border-line bg-paper">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-4">30-second startup</div>
+        <pre class="font-mono text-sm leading-relaxed overflow-x-auto"><code># 1. Install the CLI (one-time)
+npm i -g chainlesschain
+
+# 2. Start the web panel
+cc ui
+
+# 3. Open in browser
+# → http://localhost:18810/#/cowork</code></pre>
+        <p class="mt-5 text-sm text-muted leading-relaxed">
+          HTTP port <code class="font-mono bg-cream px-1.5 py-0.5 rounded">18810</code>, WebSocket port <code class="font-mono bg-cream px-1.5 py-0.5 rounded">18800</code>, both bound to localhost.
+          Service runs on your machine — no account, no cloud, no telemetry.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOT -->
+  <section class="pb-20">
+    <div class="container-wide">
+      <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/cowork.png"
+          alt="Web Cowork interface · 10 task templates + natural-language input"
+          width="1400"
+          height="900"
+          loading="eager"
+          class="block w-full h-auto"
+        />
+      </figure>
+      <p class="mt-3 text-center text-xs text-muted">Web Cowork · task templates + streaming progress</p>
+    </div>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section class="py-16 md:py-24 bg-cream/40">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-3">10 task templates</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">High-frequency scenarios, <span class="italic text-ember">ready out of the box</span>.</h2>
+        <p class="mt-5 text-lg text-muted leading-relaxed">
+          Each template is a pre-configured toolchain + prompt. Pick a template → describe your need → agent installs deps, runs the flow, returns results. No commands to remember, no flags to tune.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {templates.map((t) => (
+          <div class="group p-6 rounded-xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="font-mono text-[10px] text-muted mb-2">{t.id}</div>
+            <h3 class="font-display text-xl mb-2 group-hover:text-ember transition-colors">{t.name}</h3>
+            <p class="text-sm text-muted leading-relaxed mb-3">{t.desc}</p>
+            <div class="font-mono text-[11px] text-ink/60">{t.tools}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">From one sentence to executed result.</h2>
+      <div class="grid md:grid-cols-4 gap-6">
+        {[
+          ['01', 'Describe',         'Express what you want in natural language; no CLI syntax to learn.'],
+          ['02', 'Auto-orchestrate', 'Agent parses intent, picks templates, calls skills, orchestrates the toolchain.'],
+          ['03', 'Install on demand','Missing tool? winget / choco / pip / npm runs automatically.'],
+          ['04', 'Stream back',      'WebSocket pushes every step — you see progress, not just the final result.'],
+        ].map(([n, t, d]) => (
+          <div class="p-6 rounded-xl border border-line bg-paper">
+            <div class="font-mono text-xs text-ember mb-3">{n}</div>
+            <h3 class="font-display text-lg mb-2">{t}</h3>
+            <p class="text-sm text-muted leading-relaxed">{d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="py-16 md:py-24 bg-cream/40">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-3">More than Cowork</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">The Web panel's <span class="italic text-ember">full module set</span>.</h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {modules.map((m) => (
+          <div class="p-6 rounded-xl border border-line bg-paper">
+            <div class="font-mono text-[11px] text-ember mb-2">http://localhost:18810{m.path}</div>
+            <h3 class="font-display text-xl mb-2">{m.name}</h3>
+            <p class="text-sm text-muted leading-relaxed">{m.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY WEB -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Why pick the Web edition?</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">Zero install friction</div>
+          <h3 class="font-display text-xl mb-2">Browser-ready</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            No desktop installer, no Electron init. After the CLI is installed, <code class="font-mono">cc ui</code> brings up the service in one command.
+          </p>
+        </div>
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">Fully local</div>
+          <h3 class="font-display text-xl mb-2">localhost binding</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            HTTP / WebSocket bound to 127.0.0.1. Data, models, keys all stay on your machine — power down equals air-gap.
+          </p>
+        </div>
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">Switch any time</div>
+          <h3 class="font-display text-xl mb-2">Consistent across targets</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            CLI / Web / desktop share the same skill set and configuration. The same skill behaves identically on every target — switch surfaces, not muscle memory.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-20 md:py-28 bg-ink text-cream">
+    <div class="container-wide text-center">
+      <h2 class="text-4xl md:text-5xl leading-tight mb-6">
+        One command, <span class="italic text-ember">working in your browser</span>.
+      </h2>
+      <p class="text-lg text-muted-dark mb-10 max-w-2xl mx-auto">
+        No new tool to learn, no environment to configure, no account to register. Your machine, your data, your pace.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="/en/cli" class="btn-ember">Install CLI →</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/web-cowork.html" class="btn-ghost" rel="noopener">Read the docs ↗</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

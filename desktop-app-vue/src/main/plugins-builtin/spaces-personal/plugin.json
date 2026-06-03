@@ -1,0 +1,53 @@
+{
+  "id": "spaces-personal",
+  "name": "个人空间",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "提供默认的四个个人空间：工作 / 财务 / 社交 / 学习",
+  "extensionPoints": [
+    {
+      "point": "ui.space",
+      "config": {
+        "id": "work",
+        "name": "工作",
+        "icon": "BankOutlined",
+        "template": "personal",
+        "order": 10,
+        "description": "工作相关的笔记、会议、任务"
+      }
+    },
+    {
+      "point": "ui.space",
+      "config": {
+        "id": "finance",
+        "name": "财务",
+        "icon": "DollarOutlined",
+        "template": "personal",
+        "order": 20,
+        "description": "账单、投资、预算、资产凭证"
+      }
+    },
+    {
+      "point": "ui.space",
+      "config": {
+        "id": "social",
+        "name": "社交",
+        "icon": "TeamOutlined",
+        "template": "personal",
+        "order": 30,
+        "description": "联系人、P2P 消息、社区"
+      }
+    },
+    {
+      "point": "ui.space",
+      "config": {
+        "id": "learning",
+        "name": "学习",
+        "icon": "BookOutlined",
+        "template": "personal",
+        "order": 40,
+        "description": "文献、课程、知识图谱"
+      }
+    }
+  ]
+}

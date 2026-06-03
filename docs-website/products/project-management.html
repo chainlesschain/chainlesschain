@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO优化 -->
+    <title>AI驱动的智能项目管理 - 对话即项目，AI即团队 | ChainlessChain</title>
+    <meta name="description" content="ChainlessChain项目管理：AI驱动的对话式项目创建、19个专业引擎、智能代码/文档生成、知识库深度集成。让AI成为你的项目经理，从想法到代码只需一句话。适合个人开发者和创业团队。">
+    <meta name="keywords" content="AI项目管理,智能项目管理,对话式项目创建,AI代码生成,AI文档生成,知识库集成,RAG检索,19个AI引擎">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ChainlessChain项目管理 - AI驱动的智能协作">
+    <meta property="og:description" content="对话式项目创建、19个专业AI引擎、智能文件生成、知识库深度集成">
+    <meta property="og:url" content="https://www.chainlesschain.com/products/project-management.html">
+
+    <!-- 样式 -->
+    <link rel="preload" href="../css/style.css" as="style">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 项目管理专用样式 */
+        .pm-hero {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 140px 0 100px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pm-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .pm-hero .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .pm-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .pm-hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .pm-hero .subtitle {
+            font-size: 24px;
+            opacity: 0.95;
+            margin-bottom: 40px;
+        }
+
+        /* 核心能力卡片 */
+        .capabilities {
+            padding: 100px 0;
+        }
+
+        .capabilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .capability-card {
+            background: white;
+            padding: 40px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .capability-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(245,87,108,0.2);
+            border-color: #f5576c;
+        }
+
+        .capability-card h3 {
+            font-size: 26px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .capability-card > p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .chat-example {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .chat-message.user {
+            background: #e3f2fd;
+            color: #1976d2;
+            margin-left: 40px;
+        }
+
+        .chat-message.ai {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            margin-right: 40px;
+        }
+
+        .chat-message strong {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .chat-message ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+
+        /* 工作流程 */
+        .workflow {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .workflow-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-top: 60px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            background: white;
+            padding: 32px 24px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            line-height: 48px;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .step h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .step p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .arrow {
+            font-size: 32px;
+            color: #f5576c;
+            margin: 0 -8px;
+        }
+
+        /* AI引擎展示 */
+        .ai-engines {
+            padding: 100px 0;
+        }
+
+        .engines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 60px;
+        }
+
+        .engine-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .engine-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            border-left-color: #f5576c;
+        }
+
+        .engine-card h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .engine-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .engine-tag {
+            display: inline-block;
+            background: var(--bg-light);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* 集成说明 */
+        .integration {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .integration-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .integration-card h3 {
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+        }
+
+        .integration-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .integration-card li {
+            padding: 12px 0;
+            padding-left: 32px;
+            position: relative;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .integration-card li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #f5576c;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .pm-hero h1 {
+                font-size: 36px;
+            }
+
+            .pm-hero .subtitle {
+                font-size: 18px;
+            }
+
+            .workflow-steps {
+                flex-direction: column;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+                margin: -8px 0;
+            }
+
+            .capabilities-grid,
+            .engines-grid,
+            .integration-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="../index.html">
+                        <img src="../logo.png" alt="ChainlessChain" class="logo-image" loading="lazy">
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="../index.html" class="nav-link">首页</a>
+                    <a href="../index.html#products" class="nav-link active">产品</a>
+                    <a href="../index.html#download" class="nav-link">下载</a>
+                    <a href="https://docs.chainlesschain.com" class="nav-link" target="_blank">文档</a>
+                    <a href="../index.html#about" class="nav-link">关于我们</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank">GitHub</a>
+                    <a href="../index.html#download" class="btn-primary">立即下载</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero区域 -->
+    <section class="pm-hero">
+        <div class="container">
+            <span class="pm-badge">⭐ 核心功能</span>
+            <h1>AI驱动的智能项目管理</h1>
+            <p class="subtitle">对话即项目，AI即团队</p>
+        </div>
+    </section>
+
+    <!-- 核心能力 -->
+    <section class="capabilities">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">四大核心能力</h2>
+                <p class="section-subtitle">重新定义项目管理的方式</p>
+            </div>
+
+            <div class="capabilities-grid">
+                <!-- 对话式项目创建 -->
+                <div class="capability-card">
+                    <h3>💬 对话式项目创建</h3>
+                    <p>告别繁琐的表单填写，用自然语言描述你的需求</p>
+                    <div class="chat-example">
+                        <div class="chat-message user">
+                            <strong>用户：</strong>
+                            "创建一个电商网站项目"
+                        </div>
+                        <div class="chat-message ai">
+                            <strong>AI：</strong>
+                            "好的，我已为您创建项目结构，生成了以下文件：
+                            <ul>
+                                <li>✅ index.html - 首页</li>
+                                <li>✅ product-list.html - 商品列表</li>
+                                <li>✅ shopping-cart.js - 购物车逻辑</li>
+                                <li>✅ styles.css - 样式文件</li>
+                                <li>✅ README.md - 项目说明</li>
+                            </ul>
+                            现在可以开始开发了！"
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI文件生成 -->
+                <div class="capability-card">
+                    <h3>🤖 AI文件生成</h3>
+                    <p>19个专业AI引擎，覆盖所有文件类型</p>
+                    <ul style="list-style: none; padding: 0; margin-top: 20px;">
+                        <li style="padding: 8px 0;">📝 代码引擎：Java/Python/JavaScript/Go...</li>
+                        <li style="padding: 8px 0;">📄 文档引擎：Word/PDF/Markdown</li>
+                        <li style="padding: 8px 0;">📊 表格引擎：Excel数据处理</li>
+                        <li style="padding: 8px 0;">📽️ 演示引擎：PPT自动生成</li>
+                        <li style="padding: 8px 0;">🖼️ 图像引擎：图片处理+OCR</li>
+                        <li style="padding: 8px 0;">🎬 视频引擎：视频编辑</li>
+                    </ul>
+                </div>
+
+                <!-- 知识库深度集成 -->
+                <div class="capability-card">
+                    <h3>📚 知识库深度集成</h3>
+                    <p>项目与知识库无缝融合</p>
+                    <ul style="list-style: none; padding: 0; margin-top: 20px;">
+                        <li style="padding: 8px 0;">✓ 自动关联：项目文件自动索引到知识库</li>
+                        <li style="padding: 8px 0;">✓ 智能检索：RAG增强的语义搜索</li>
+                        <li style="padding: 8px 0;">✓ 上下文感知：AI基于项目上下文回答</li>
+                        <li style="padding: 8px 0;">✓ 版本控制：Git集成，完整历史追溯</li>
+                        <li style="padding: 8px 0;">✓ 标签管理：智能标签自动分类</li>
+                    </ul>
+                </div>
+
+                <!-- 智能任务拆解 -->
+                <div class="capability-card">
+                    <h3>🎯 智能任务拆解</h3>
+                    <p>AI自动将项目拆解为可执行任务</p>
+                    <ul style="list-style: none; padding: 0; margin-top: 20px;">
+                        <li style="padding: 8px 0;">✓ 任务分解：自动识别关键步骤</li>
+                        <li style="padding: 8px 0;">✓ 依赖分析：智能识别任务依赖</li>
+                        <li style="padding: 8px 0;">✓ 进度追踪：实时同步任务状态</li>
+                        <li style="padding: 8px 0;">✓ 提醒通知：智能提醒和建议</li>
+                        <li style="padding: 8px 0;">✓ 优先级排序：自动优先级管理</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 工作流程 -->
+    <section class="workflow">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">典型工作流程</h2>
+                <p class="section-subtitle">从想法到代码，只需四步</p>
+            </div>
+
+            <div class="workflow-steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <h3>对话创建项目</h3>
+                    <p>"帮我创建一个博客系统"</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <h3>AI生成结构</h3>
+                    <p>自动创建目录和文件</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <h3>生成代码/文档</h3>
+                    <p>一键生成完整代码</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <h3>智能问答</h3>
+                    <p>基于项目上下文回答</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; text-align: center;">
+                <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 800px; margin: 0 auto;">
+                    <h3 style="font-size: 24px; margin-bottom: 24px; color: var(--text-primary);">实际案例</h3>
+                    <div class="chat-example" style="text-align: left;">
+                        <div class="chat-message user">
+                            <strong>开发者：</strong>
+                            "创建一个React Todo应用项目"
+                        </div>
+                        <div class="chat-message ai">
+                            <strong>AI：</strong>
+                            "已创建项目 'react-todo-app'，目录结构：<br>
+                            ├── src/<br>
+                            │   ├── components/ (Todo组件)<br>
+                            │   ├── App.js (主应用)<br>
+                            │   └── index.js<br>
+                            ├── package.json<br>
+                            └── README.md<br><br>
+                            需要我帮你生成组件代码吗？"
+                        </div>
+                        <div class="chat-message user">
+                            <strong>开发者：</strong>
+                            "生成TodoList组件"
+                        </div>
+                        <div class="chat-message ai">
+                            <strong>AI：</strong>
+                            "已生成 src/components/TodoList.jsx，包含：<br>
+                            ✓ 添加任务功能<br>
+                            ✓ 删除任务功能<br>
+                            ✓ 标记完成功能<br>
+                            ✓ 完整的TypeScript类型定义<br>
+                            ✓ 响应式设计<br><br>
+                            代码已保存，可以直接使用！"
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 19个AI引擎 -->
+    <section class="ai-engines">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">19个专业AI引擎</h2>
+                <p class="section-subtitle">覆盖所有开发场景的智能助手</p>
+            </div>
+
+            <div class="engines-grid">
+                <div class="engine-card">
+                    <h4>📝 代码引擎</h4>
+                    <p>智能代码生成、审查和重构。支持Java、Python、JavaScript、Go等主流语言。</p>
+                    <span class="engine-tag">code-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📄 文档引擎</h4>
+                    <p>Word文档处理，自动生成技术文档、产品说明、合同模板等。</p>
+                    <span class="engine-tag">document-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📊 Excel引擎</h4>
+                    <p>Excel表格编辑和数据处理，支持公式计算、图表生成、数据分析。</p>
+                    <span class="engine-tag">excel-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📽️ PPT引擎</h4>
+                    <p>自动生成演示文稿，根据内容智能排版、配图和配色。</p>
+                    <span class="engine-tag">ppt-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📋 PDF引擎</h4>
+                    <p>PDF文档操作，支持解析、编辑、合并、水印添加等。</p>
+                    <span class="engine-tag">pdf-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🖼️ 图像引擎</h4>
+                    <p>图片处理和OCR识别，自动提取图片中的文字和信息。</p>
+                    <span class="engine-tag">image-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🎬 视频引擎</h4>
+                    <p>视频处理和编辑，支持剪辑、字幕、特效等功能。</p>
+                    <span class="engine-tag">video-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🌐 Web引擎</h4>
+                    <p>HTML/CSS/JavaScript开发，生成完整的Web应用。</p>
+                    <span class="engine-tag">web-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📈 数据引擎</h4>
+                    <p>数据处理和分析，支持清洗、转换、可视化等操作。</p>
+                    <span class="engine-tag">data-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🔍 测试引擎</h4>
+                    <p>自动生成测试用例和测试代码，提高测试覆盖率。</p>
+                    <span class="engine-tag">test-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🐛 调试引擎</h4>
+                    <p>智能错误诊断和修复建议，快速定位问题根源。</p>
+                    <span class="engine-tag">debug-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📱 移动引擎</h4>
+                    <p>移动应用开发，支持React Native、Flutter等框架。</p>
+                    <span class="engine-tag">mobile-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🗄️ 数据库引擎</h4>
+                    <p>数据库设计和SQL生成，支持多种数据库系统。</p>
+                    <span class="engine-tag">database-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🔐 安全引擎</h4>
+                    <p>代码安全审计，发现潜在的安全漏洞。</p>
+                    <span class="engine-tag">security-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>⚙️ DevOps引擎</h4>
+                    <p>CI/CD配置生成，自动化部署流程。</p>
+                    <span class="engine-tag">devops-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📚 文档生成引擎</h4>
+                    <p>自动生成API文档、用户手册、开发指南。</p>
+                    <span class="engine-tag">doc-gen-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🎨 UI/UX引擎</h4>
+                    <p>界面设计建议和原型生成，提升用户体验。</p>
+                    <span class="engine-tag">uiux-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>🔄 重构引擎</h4>
+                    <p>代码重构建议，优化代码结构和性能。</p>
+                    <span class="engine-tag">refactor-engine.js</span>
+                </div>
+
+                <div class="engine-card">
+                    <h4>📊 BI引擎</h4>
+                    <p>商业智能分析，生成数据报表和可视化图表。</p>
+                    <span class="engine-tag">bi-engine.js</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 与其他模块的协同 -->
+    <section class="integration">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">与其他模块的协同</h2>
+                <p class="section-subtitle">强强联合，发挥最大价值</p>
+            </div>
+
+            <div class="integration-grid">
+                <div class="integration-card">
+                    <h3>+ 知识库管理</h3>
+                    <ul>
+                        <li>项目文档自动索引到知识库</li>
+                        <li>RAG增强的智能检索</li>
+                        <li>智能标签自动关联</li>
+                        <li>版本历史完整追溯</li>
+                        <li>知识图谱关联展示</li>
+                        <li>跨项目知识复用</li>
+                    </ul>
+                </div>
+
+                <div class="integration-card">
+                    <h3>+ 企业版（去中心化组织）</h3>
+                    <ul>
+                        <li>多人协同开发项目</li>
+                        <li>权限分级管理</li>
+                        <li>团队任务分配</li>
+                        <li>实时进度同步</li>
+                        <li>组织知识库共享</li>
+                        <li>代码审查和评论</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; text-align: center; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                <h3 style="font-size: 28px; margin-bottom: 24px; color: var(--primary-color);">完整生态闭环</h3>
+                <div style="font-size: 18px; color: var(--text-secondary); line-height: 2;">
+                    <strong>项目管理</strong> → 自动索引 → <strong>知识库</strong> → RAG检索 → <strong>AI问答</strong><br>
+                    ↓<br>
+                    <strong>企业版</strong> → 团队协作 → <strong>实时同步</strong> → 权限管理
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 100px 0; text-align: center;">
+        <div class="container">
+            <h2 style="font-size: 42px; margin-bottom: 16px;">让AI成为你的项目经理</h2>
+            <p style="font-size: 20px; opacity: 0.95; margin-bottom: 40px;">
+                从想法到代码，只需一句话
+            </p>
+            <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 40px;">
+                <button class="btn-primary" style="background: white; color: #f5576c; padding: 16px 32px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer;" onclick="window.location.href='../index.html#download'">
+                    立即下载体验
+                </button>
+                <a href="knowledge-base.html" class="btn-outline" style="background: transparent; color: white; border: 2px solid white; padding: 16px 32px; font-size: 16px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                    查看知识库功能
+                </a>
+            </div>
+            <p style="font-size: 14px; opacity: 0.8; margin-top: 32px; line-height: 1.8;">
+                💡 当前版本：v5.0.1.8 (项目管理100%完成，生产就绪)<br>
+                🎯 支持14+云LLM API + Ollama本地部署<br>
+                📞 咨询热线：400-1068-687 | zhanglongfa@chainlesschain.com
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: var(--text-primary); color: white; padding: 60px 0 20px;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 40px;">
+                <div>
+                    <h3 style="margin-bottom: 20px;">ChainlessChain</h3>
+                    <p style="color: rgba(255,255,255,0.8); line-height: 1.8;">
+                        AI驱动的智能项目管理<br>
+                        让每个开发者都拥有AI团队
+                    </p>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">产品</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="knowledge-base.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">知识库管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="project-management.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">项目管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="enterprise.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">企业版</a></li>
+                        <li style="margin-bottom: 12px;"><a href="social.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">去中心化社交</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">资源</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="https://docs.chainlesschain.com" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">文档</a></li>
+                        <li style="margin-bottom: 12px;"><a href="https://github.com/chainlesschain" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">GitHub</a></li>
+                        <li style="margin-bottom: 12px;"><a href="../technology/technical-docs.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">技术文档</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">联系我们</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📞 400-1068-687</li>
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📧 zhanglongfa@chainlesschain.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);">
+                <p>&copy; 2025 厦门无链之链科技有限公司. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255,255,255,0.98)';
+                navbar.style.boxShadow = '0 2px 20px rgba(0,0,0,0.1)';
+            } else {
+                navbar.style.background = 'rgba(255,255,255,0.95)';
+                navbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+    </script>
+</body>
+</html>

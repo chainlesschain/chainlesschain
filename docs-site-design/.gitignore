@@ -1,0 +1,14 @@
+node_modules/
+.vitepress/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+package-lock.json
+
+# 同步过来的设计文档（源文件在 docs/design/）。docs/ 下还有 .vitepress/ 自管配置，
+# 不能用 docs/* 一刀切，必须逐子目录枚举 sync 子目录 —— 加新子目录时必须在此补一行
+# （否则 git status 出现 untracked 副本，trap docs_site_sync_unmapped_fallthrough）。
+docs/*.md
+!docs/index.md
+docs/modules/
+docs/spike/
+*.tar.gz

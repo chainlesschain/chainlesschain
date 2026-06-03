@@ -1,0 +1,72 @@
+{
+  "id": "tpl_education_lesson_002",
+  "name": "lesson_plan_template",
+  "display_name": "教案模板",
+  "description": "标准教学教案，包含教学目标、教学过程和课后作业",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "teaching",
+  "tags": [
+    "教案",
+    "教学设计",
+    "课程",
+    "教育"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我编写教案：\n\n**课程信息：**\n- 课程名称：{{courseName}}\n- 授课对象：{{students}}\n- 课时：{{duration}}分钟\n- 教学目标：{{objective}}\n\n# 教案：{{courseName}}\n\n## 基本信息\n\n**课程名称：**{{courseName}}\n**授课对象：**{{students}}\n**课时：**{{duration}}分钟\n**授课日期：**{{date}}\n**授课教师：**{{teacher}}\n\n## 教学目标\n\n**知识目标：**\n- {{knowledgeGoal1}}\n- {{knowledgeGoal2}}\n\n**能力目标：**\n- {{abilityGoal1}}\n- {{abilityGoal2}}\n\n**情感态度价值观：**\n- {{attitudeGoal}}\n\n## 教学重难点\n\n**重点：**{{keyPoint}}\n**难点：**{{difficultPoint}}\n\n## 教学准备\n\n**教具：**{{teachingAids}}\n**课件：**{{courseware}}\n**预习作业：**{{preparation}}\n\n## 教学过程\n\n### 导入环节（{{introTime}}分钟）\n**方式：**{{introMethod}}\n**内容：**{{introContent}}\n\n### 新课讲授（{{lectureTime}}分钟）\n\n**知识点1：**{{knowledgePoint1}}\n教学活动：{{activity1}}\n\n**知识点2：**{{knowledgePoint2}}\n教学活动：{{activity2}}\n\n### 巩固练习（{{practiceTime}}分钟）\n**练习题：**\n1. {{exercise1}}\n2. {{exercise2}}\n\n### 课堂小结（{{summaryTime}}分钟）\n{{summary}}\n\n## 板书设计\n\n```\n{{boardLayout}}\n```\n\n## 课后作业\n\n1. {{homework1}}\n2. {{homework2}}\n\n## 教学反思\n\n（课后填写）\n- 教学效果：\n- 存在问题：\n- 改进措施：",
+  "variables_schema": [
+    {
+      "name": "courseName",
+      "label": "课程名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "students",
+      "label": "授课对象",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：高一年级"
+    },
+    {
+      "name": "duration",
+      "label": "课时（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 45
+    },
+    {
+      "name": "objective",
+      "label": "教学目标",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "教案-{{courseName}}",
+    "files": [
+      {
+        "path": "教案.docx",
+        "type": "document"
+      },
+      {
+        "path": "课件.pptx",
+        "type": "presentation"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

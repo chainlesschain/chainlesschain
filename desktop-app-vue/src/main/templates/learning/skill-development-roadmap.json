@@ -1,0 +1,69 @@
+{
+  "id": "tpl_learning_skill_008",
+  "name": "skill_development_roadmap",
+  "display_name": "技能发展路线图",
+  "description": "职业技能学习路径规划，包含技能树、学习资源和项目实践",
+  "icon": "🎯",
+  "category": "learning",
+  "subcategory": "professional",
+  "tags": [
+    "技能提升",
+    "职业发展",
+    "学习路径",
+    "刻意练习"
+  ],
+  "project_type": "document",
+  "prompt_template": "技能发展路线图\n\n**技能名称：** {{skillName}}\n**当前水平：** {{currentLevel}}\n**目标水平：** {{targetLevel}}\n**学习周期：** {{learningPeriod}}\n\n# {{skillName}} 完整学习路径\n\n## 1. 技能定义与价值\n\n**技能描述：**\n{{skillDescription}}\n\n**应用场景：**\n{{applicationScenarios}}\n\n**学习此技能的价值：**\n1. {{value1}}\n2. {{value2}}\n3. {{value3}}\n\n---\n\n## 2. 技能树结构\n\n### 2.1 基础层（Foundation）\n\n**必备知识：**\n- {{prerequisite1}}\n- {{prerequisite2}}\n- {{prerequisite3}}\n\n**基础技能：**\n1. {{basicSkill1}}（掌握度：{{basic1Mastery}}%）\n2. {{basicSkill2}}（掌握度：{{basic2Mastery}}%）\n3. {{basicSkill3}}（掌握度：{{basic3Mastery}}%）\n\n### 2.2 进阶层（Intermediate）\n\n1. {{intermediateSkill1}}\n2. {{intermediateSkill2}}\n3. {{intermediateSkill3}}\n\n### 2.3 高级层（Advanced）\n\n1. {{advancedSkill1}}\n2. {{advancedSkill2}}\n3. {{advancedSkill3}}\n\n### 2.4 专家层（Expert）\n\n1. {{expertSkill1}}\n2. {{expertSkill2}}\n\n---\n\n## 3. 学习路径\n\n### 阶段1：基础构建（{{phase1Duration}}）\n\n**学习目标：**\n{{phase1Goal}}\n\n**学习内容：**\n1. {{phase1Content1}}\n2. {{phase1Content2}}\n3. {{phase1Content3}}\n\n**学习资源：**\n- 课程：{{phase1Course}}\n- 书籍：{{phase1Book}}\n- 实践项目：{{phase1Project}}\n\n**验收标准：**\n{{phase1Criteria}}\n\n### 阶段2：技能深化（{{phase2Duration}}）\n\n**学习目标：**\n{{phase2Goal}}\n\n**学习内容：**\n1. {{phase2Content1}}\n2. {{phase2Content2}}\n\n**学习资源：**\n- 课程：{{phase2Course}}\n- 书籍：{{phase2Book}}\n- 实践项目：{{phase2Project}}\n\n**验收标准：**\n{{phase2Criteria}}\n\n### 阶段3：实战应用（{{phase3Duration}}）\n\n**学习目标：**\n{{phase3Goal}}\n\n**项目实践：**\n{{phase3Projects}}\n\n**验收标准：**\n{{phase3Criteria}}\n\n### 阶段4：精通优化（{{phase4Duration}}）\n\n**学习目标：**\n{{phase4Goal}}\n\n**高级主题：**\n1. {{phase4Topic1}}\n2. {{phase4Topic2}}\n\n**验收标准：**\n{{phase4Criteria}}\n\n---\n\n## 4. 学习资源库\n\n### 4.1 在线课程\n\n1. {{course1}}（{{course1Platform}}）- {{course1Level}}\n2. {{course2}}（{{course2Platform}}）- {{course2Level}}\n3. {{course3}}（{{course3Platform}}）- {{course3Level}}\n\n### 4.2 书籍推荐\n\n**入门级：**\n1. {{beginnerBook1}}\n2. {{beginnerBook2}}\n\n**进阶级：**\n1. {{intermediateBook1}}\n2. {{intermediateBook2}}\n\n**高级/参考书：**\n1. {{advancedBook1}}\n2. {{advancedBook2}}\n\n### 4.3 实践平台\n\n- {{practicePlatform1}}\n- {{practicePlatform2}}\n- {{practicePlatform3}}\n\n### 4.4 社区资源\n\n- 论坛/社区：{{community}}\n- GitHub项目：{{githubRepo}}\n- 博客/文档：{{documentation}}\n\n---\n\n## 5. 刻意练习计划\n\n### 5.1 每日练习\n\n**练习时间：** {{dailyPracticeTime}}小时\n\n**练习内容：**\n- 理论学习：{{theoryTime}}分钟\n- 动手实践：{{practiceTime}}分钟\n- 复习总结：{{reviewTime}}分钟\n\n### 5.2 每周项目\n\n**项目难度：** {{projectDifficulty}}\n**项目主题：** {{weeklyProjectTheme}}\n**时间投入：** {{projectHours}}小时\n\n### 5.3 月度挑战\n\n**挑战项目：** {{monthlyChallenge}}\n**成果展示：** {{outcomePresentation}}\n\n---\n\n## 6. 实战项目\n\n### 项目1：{{project1Name}}\n\n**难度：** {{project1Difficulty}}\n**技能点：** {{project1Skills}}\n**预计时长：** {{project1Duration}}\n**项目描述：** {{project1Description}}\n\n**学习重点：**\n1. {{project1Learning1}}\n2. {{project1Learning2}}\n\n### 项目2：{{project2Name}}\n\n**难度：** {{project2Difficulty}}\n**技能点：** {{project2Skills}}\n**预计时长：** {{project2Duration}}\n**项目描述：** {{project2Description}}\n\n### 项目3：{{project3Name}}\n\n**难度：** {{project3Difficulty}}\n**技能点：** {{project3Skills}}\n**预计时长：** {{project3Duration}}\n**项目描述：** {{project3Description}}\n\n---\n\n## 7. 进度追踪\n\n### 7.1 技能掌握度\n\n| 技能点 | 目标等级 | 当前等级 | 完成度 | 下一步 |\n|--------|----------|----------|--------|--------|\n| {{skill1}} | {{skill1Target}} | {{skill1Current}} | {{skill1Progress}}% | {{skill1Next}} |\n| {{skill2}} | {{skill2Target}} | {{skill2Current}} | {{skill2Progress}}% | {{skill2Next}} |\n| {{skill3}} | {{skill3Target}} | {{skill3Current}} | {{skill3Progress}}% | {{skill3Next}} |\n\n### 7.2 学习时长统计\n\n**本周学习：** _____ 小时\n**累计学习：** _____ 小时\n**目标时长：** {{totalHoursGoal}} 小时\n**完成进度：** _____% \n\n### 7.3 里程碑\n\n- [{{milestone1Status}}] {{milestone1}}\n- [{{milestone2Status}}] {{milestone2}}\n- [{{milestone3Status}}] {{milestone3}}\n- [{{milestone4Status}}] {{milestone4}}\n\n---\n\n## 8. 知识体系构建\n\n### 8.1 核心概念地图\n\n**中心概念：** {{coreConcept}}\n\n**关联概念：**\n- {{concept1}}\n- {{concept2}}\n- {{concept3}}\n\n### 8.2 笔记整理\n\n**笔记方法：** {{noteMethod}}\n**知识库工具：** {{knowledgeBase}}\n\n---\n\n## 9. 评估与认证\n\n### 9.1 自我评估\n\n**每周测验：**\n{{weeklyQuiz}}\n\n**月度考核：**\n{{monthlyAssessment}}\n\n### 9.2 官方认证\n\n**目标证书：** {{targetCertification}}\n**考试时间：** {{certExamDate}}\n**备考计划：** {{certPreparation}}\n\n---\n\n## 10. 持续提升\n\n### 10.1 高级资源\n\n- 研究论文：{{researchPapers}}\n- 会议/Meetup：{{conferences}}\n- 专家博客：{{expertBlogs}}\n\n### 10.2 教学输出\n\n- 写技术博客：{{blogging}}\n- 开源贡献：{{openSource}}\n- 指导他人：{{mentoring}}\n\n---\n\n## 附录\n\n### A. 学习时间分配建议\n\n- 理论学习：30%\n- 动手实践：50%\n- 项目应用：20%\n\n### B. 常见误区\n\n1. {{pitfall1}}\n2. {{pitfall2}}\n3. {{pitfall3}}\n",
+  "variables_schema": [
+    {
+      "name": "skillName",
+      "label": "技能名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "currentLevel",
+      "label": "当前水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "零基础", "label": "零基础"},
+        {"value": "初学者", "label": "初学者"},
+        {"value": "入门", "label": "入门"},
+        {"value": "中级", "label": "中级"},
+        {"value": "高级", "label": "高级"}
+      ]
+    },
+    {
+      "name": "targetLevel",
+      "label": "目标水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "入门", "label": "入门"},
+        {"value": "中级", "label": "中级"},
+        {"value": "高级", "label": "高级"},
+        {"value": "专家", "label": "专家"}
+      ]
+    },
+    {
+      "name": "learningPeriod",
+      "label": "学习周期",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "{{skillName}}-学习路线图",
+    "files": [
+      {"path": "路线图.md", "type": "document"},
+      {"path": "进度追踪.xlsx", "type": "spreadsheet"},
+      {"path": "项目实践/", "type": "folder"},
+      {"path": "学习笔记/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

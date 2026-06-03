@@ -1,0 +1,68 @@
+{
+  "id": "tpl_education_evaluation_103",
+  "name": "student-evaluation",
+  "display_name": "学生评价报告",
+  "description": "综合素质评价和学期总结",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "学生评价",
+  "tags": [
+    "学生评价"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写学生评价报告：\n\n学生姓名：{{studentName}}\n学期：{{semester}}\n\n学习表现：\n{{academicPerformance}}\n\n综合表现：\n{{overallPerformance}}\n\n请生成完整的评价报告",
+  "variables_schema": [
+    {
+      "name": "studentName",
+      "type": "textarea",
+      "label": "studentName",
+      "required": true,
+      "default": "李明"
+    },
+    {
+      "name": "semester",
+      "type": "textarea",
+      "label": "semester",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    },
+    {
+      "name": "academicPerformance",
+      "type": "textarea",
+      "label": "academicPerformance",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    },
+    {
+      "name": "overallPerformance",
+      "type": "textarea",
+      "label": "overallPerformance",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "学生评价报告",
+    "children": [
+      {
+        "type": "file",
+        "name": "学生评价报告.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

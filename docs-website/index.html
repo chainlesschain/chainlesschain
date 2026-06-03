@@ -1,0 +1,3149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO优化：标题包含核心关键词 -->
+    <title>个人AI知识库_硬件加密存储_本地AI部署-ChainlessChain无链之链</title>
+
+    <!-- SEO优化：描述扩展，包含更多关键词和价值主张 -->
+    <meta name="description" content="ChainlessChain（无链之链）提供个人AI知识库、去中心化社交、AI辅助交易解决方案。基于U盾和SIMKey硬件加密技术，支持Ollama本地AI部署，数据完全自己掌控，永不上云。医生、律师、研究员首选。支持Windows/Mac/Linux/Android全平台，永久免费开源。咨询电话：400-1068-687">
+
+    <!-- SEO优化：扩展关键词 -->
+    <meta name="keywords" content="个人AI知识库,加密知识库,本地AI部署,U盾加密,SIMKey,去中心化社交,AI辅助交易,硬件加密存储,Ollama,数据安全,隐私保护,Notion替代品,Obsidian加密版,ChainlessChain,无链之链,厦门无链之链,400-1068-687">
+
+    <meta name="author" content="厦门无链之链科技有限公司">
+
+    <!-- Canonical URL - 避免重复内容问题 -->
+    <link rel="canonical" href="https://www.chainlesschain.com/">
+
+    <!-- Open Graph优化 - 社交媒体分享 -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.chainlesschain.com/">
+    <meta property="og:title" content="ChainlessChain - 让数据主权回归个人，AI效率触手可及">
+    <meta property="og:description" content="硬件级加密+本地AI部署，打造安全可信的个人AI生态系统。4项发明专利，10,000+专业人士选择">
+    <meta property="og:image" content="https://www.chainlesschain.com/images/og-image.svg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="ChainlessChain - 个人AI知识库系统">
+    <meta property="og:site_name" content="ChainlessChain">
+    <meta property="og:locale" content="zh_CN">
+
+    <!-- Twitter Card优化 - Twitter分享 -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ChainlessChain - 让数据主权回归个人，AI效率触手可及">
+    <meta name="twitter:description" content="硬件级加密+本地AI部署，打造安全可信的个人AI生态系统。4项发明专利，10,000+专业人士选择">
+    <meta name="twitter:image" content="https://www.chainlesschain.com/images/og-image.svg">
+    <meta name="twitter:site" content="@ChainlessChain">
+    <meta name="twitter:creator" content="@ChainlessChain">
+
+    <!-- 移动端优化 -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ChainlessChain">
+
+    <!-- 联系信息 -->
+    <meta name="contact" content="400-1068-687">
+    <meta name="email" content="zhanglongfa@chainlesschain.com">
+
+    <!-- 地理位置信息 - 本地SEO -->
+    <meta name="geo.region" content="CN-FJ">
+    <meta name="geo.placename" content="厦门">
+    <meta name="geo.position" content="24.479834;118.089425">
+
+    <!-- 性能优化：DNS预解析 -->
+    <link rel="dns-prefetch" href="//hm.baidu.com">
+
+    <!-- 性能优化：资源预加载 -->
+    <link rel="preload" href="logo.svg" as="image">
+    <link rel="preload" href="css/style.css?v=12.0" as="style">
+    <link rel="preload" href="js/main.js" as="script">
+
+    <!-- 加载动画CSS - 同步加载确保首屏动画正确显示 -->
+    <link rel="stylesheet" href="css/legacy/loading.css">
+
+    <!-- 性能优化：关键CSS内联 -->
+    <style>
+        /* Critical CSS - 首屏关键样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* ========== 导航栏样式 - 简化版防止闪烁 ========== */
+        .navbar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 1000 !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+            /* 关键：禁用所有过渡效果 */
+            transition: none !important;
+        }
+
+        /* 确保body和html没有transform等属性干扰fixed定位 */
+        html, body {
+            padding-top: 0 !important;
+            transform: none !important;
+            perspective: none !important;
+            transform-style: flat !important;
+            overflow-x: hidden !important;
+        }
+
+        /* Hero区域必须居中 */
+        .hero {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            /* 增加上边距，避免被导航栏和联系栏遮挡 */
+            /* 导航栏70px + 联系栏约80px = 150px，再加70px间距 = 220px */
+            padding-top: 220px !important;
+        }
+
+        /* 移动端Hero区域调整 */
+        @media (max-width: 768px) {
+            .hero {
+                /* 移动端：导航栏60px + 60px间距 = 120px (联系栏改为悬浮，不占空间) */
+                padding-top: 120px !important;
+                min-height: auto !important;
+                padding-bottom: 80px !important;
+            }
+        }
+
+        .hero .container {
+            width: 100% !important;
+            max-width: 1200px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
+        .hero-content {
+            text-align: center !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-top: 40px !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .hero-title {
+            text-align: center !important;
+            width: 100% !important;
+        }
+
+        .hero-subtitle {
+            text-align: center !important;
+            width: 100% !important;
+            display: block !important;
+        }
+
+        .version-tags,
+        .trust-badges,
+        .hero-cta,
+        .hero-stats {
+            text-align: center !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+        }
+
+        /* 隐藏装饰元素避免布局问题 */
+        .floating-shape,
+        .hero-decoration {
+            display: none !important;
+        }
+
+        /* 禁用所有浮动 */
+        .hero *,
+        .hero-content * {
+            float: none !important;
+        }
+
+        /* ========== 顶部联系栏样式修复 ========== */
+        .top-contact-bar {
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+            color: white !important;
+            padding: 16px 0 !important;
+            position: fixed !important;
+            top: 70px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 998 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            /* 始终显示，不隐藏 */
+            transform: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* 禁用隐藏效果 */
+        .top-contact-bar.hidden {
+            transform: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        .contact-bar-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            cursor: pointer;
+            /* 移除 transform transition，避免影响导航栏 */
+        }
+
+        .contact-item:hover {
+            /* 使用 opacity 代替 transform */
+            opacity: 0.9;
+        }
+
+        .contact-item .icon {
+            font-size: 24px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .contact-info .label {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .contact-info .contact-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 企业微信二维码弹窗 */
+        .wechat-qr-popup {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            margin-top: 12px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .contact-item.wechat:hover .wechat-qr-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .wechat-qr-popup::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid white;
+        }
+
+        .qr-container {
+            text-align: center;
+        }
+
+        .qr-tip {
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 12px 0;
+        }
+
+        @media (max-width: 768px) {
+            /* 移动端：将联系栏改为右侧悬浮按钮 */
+            .top-contact-bar {
+                position: fixed !important;
+                top: auto !important;
+                bottom: 80px !important;
+                right: 16px !important;
+                left: auto !important;
+                width: 56px !important;
+                height: 56px !important;
+                background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+                border-radius: 50% !important;
+                padding: 0 !important;
+                box-shadow: 0 4px 20px rgba(24, 144, 255, 0.4) !important;
+                z-index: 997 !important;
+                transition: all 0.3s ease !important;
+            }
+
+            .top-contact-bar:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 24px rgba(24, 144, 255, 0.5) !important;
+            }
+
+            /* 联系栏收起状态：只显示电话图标 */
+            .contact-bar-content {
+                width: 56px;
+                height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .contact-item {
+                display: none !important;
+            }
+
+            /* 只显示第一个联系项的图标作为触发按钮 */
+            .contact-item.hotline {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+                margin: 0;
+                gap: 0;
+            }
+
+            .contact-item.hotline .icon {
+                font-size: 28px !important;
+                margin: 0 !important;
+                animation: pulse 2s ease-in-out infinite;
+                filter: none !important;
+            }
+
+            .contact-item.hotline .contact-info {
+                display: none !important;
+            }
+
+            .contact-divider {
+                display: none !important;
+            }
+
+            /* 联系栏展开状态 */
+            .top-contact-bar.expanded {
+                border-radius: 16px !important;
+                width: calc(100% - 32px) !important;
+                max-width: 320px !important;
+                height: auto !important;
+                padding: 20px !important;
+            }
+
+            .top-contact-bar.expanded .contact-bar-content {
+                width: 100%;
+                height: auto;
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .top-contact-bar.expanded .contact-item {
+                display: flex !important;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                backdrop-filter: blur(10px);
+                transition: background 0.2s ease;
+            }
+
+            .top-contact-bar.expanded .contact-item:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline {
+                gap: 12px;
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline .contact-info {
+                display: flex !important;
+            }
+
+            .top-contact-bar.expanded .contact-item .icon {
+                font-size: 24px !important;
+                animation: none !important;
+            }
+
+            .contact-info .contact-value {
+                font-size: 16px;
+            }
+
+            /* 脉冲动画 */
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+            }
+
+            /* 移动端菜单打开时不隐藏悬浮按钮 */
+            body.mobile-menu-open .top-contact-bar {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+        }
+
+        /* CLI Showcase 移动端响应 */
+        @media (max-width: 768px) {
+            .cli-showcase [style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <!-- 合并压缩的 CSS - 异步加载避免阻塞渲染 -->
+    <link rel="preload" href="css/style.css?v=12.0" as="style" onload="this.onload=null;this.rel='stylesheet';setTimeout(function(){var m=document.createElement('link');m.rel='stylesheet';m.href='mobile-optimize.css?v=12.0';document.head.appendChild(m);},100);">
+    <noscript><link rel="stylesheet" href="css/style.css?v=12.0"><link rel="stylesheet" href="mobile-optimize.css?v=12.0"></noscript>
+
+    <!-- 字体优化：使用系统字体栈，无需外部请求 -->
+
+    <!-- 结构化数据（Schema.org）- SEO增强 -->
+    <!-- 1. SoftwareApplication - 软件产品信息 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ChainlessChain",
+        "alternateName": "无链之链",
+        "description": "基于U盾和SIMKey硬件加密技术的个人AI知识库和去中心化社交平台",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Windows, macOS, Linux, Android, iOS",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "CNY",
+            "availability": "https://schema.org/InStock"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "2380",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "厦门无链之链科技有限公司",
+            "telephone": "+86-400-1068-687",
+            "email": "zhanglongfa@chainlesschain.com",
+            "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "CN",
+                "addressRegion": "福建省",
+                "addressLocality": "厦门市",
+                "streetAddress": "自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H"
+            }
+        },
+        "downloadUrl": "https://www.chainlesschain.com/download.html",
+        "screenshot": "https://www.chainlesschain.com/images/screenshots/main-interface.png",
+        "softwareVersion": "0.21.0",
+        "releaseNotes": "https://www.chainlesschain.com/changelog.html",
+        "featureList": [
+            "个人AI知识库管理",
+            "硬件级加密存储（U盾/SIMKey）",
+            "本地AI部署（Ollama）",
+            "去中心化社交",
+            "P2P加密通讯",
+            "AI辅助交易",
+            "多端同步"
+        ]
+    }
+    </script>
+
+    <!-- 2. Organization - 组织信息 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "厦门无链之链科技有限公司",
+        "alternateName": "ChainlessChain",
+        "url": "https://www.chainlesschain.com",
+        "logo": "https://www.chainlesschain.com/logo.png",
+        "description": "专注于个人数据主权和AI技术的创新科技公司，提供基于硬件加密的个人AI知识库解决方案",
+        "foundingDate": "2020",
+        "telephone": "+86-400-1068-687",
+        "email": "zhanglongfa@chainlesschain.com",
+        "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "CN",
+            "addressRegion": "福建省",
+            "addressLocality": "厦门市",
+            "postalCode": "361000",
+            "streetAddress": "自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+86-400-1068-687",
+            "contactType": "customer service",
+            "areaServed": "CN",
+            "availableLanguage": ["zh-CN", "en"]
+        },
+        "sameAs": [
+            "https://github.com/chainlesschain",
+            "https://twitter.com/ChainlessChain"
+        ]
+    }
+    </script>
+
+    <!-- 3. WebSite - 网站搜索功能 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "ChainlessChain官网",
+        "url": "https://www.chainlesschain.com",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.chainlesschain.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+
+    <!-- 4. FAQPage - 常见问题 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "ChainlessChain是什么？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain（无链之链）是一款基于U盾和SIMKey硬件加密技术的个人AI知识库系统。它集成了个人知识库管理、去中心化社交、AI辅助交易三大核心功能，支持本地AI部署（Ollama），确保数据完全由用户掌控，永不上云。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain为什么是免费的？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain采用去中心化P2P架构，无需中心化服务器，因此没有服务器运维成本。用户数据存储在本地，AI计算也在本地完成，这使得我们能够提供完全免费的服务。我们的盈利模式是通过提供企业级技术支持和定制化服务。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain的数据安全吗？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain采用硬件级加密（U盾/SIMKey）保护用户数据，所有敏感信息都使用AES-256加密存储在本地。我们支持P2P加密通讯（Signal Protocol），确保端到端加密。数据永不上云，完全由用户掌控，即使开发者也无法访问您的数据。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain支持哪些平台？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain支持全平台部署：Windows、macOS、Linux（桌面版）、Android、iOS（移动版）。我们还提供浏览器扩展插件，方便快速保存网页内容到知识库。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "如何开始使用ChainlessChain？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "非常简单！您只需：1）下载安装ChainlessChain桌面应用；2）创建账户（支持U盾/SIMKey硬件加密）；3）（可选）配置本地AI（Ollama）或使用云端AI；4）开始导入您的知识库内容。整个过程不超过5分钟。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain与Notion、Obsidian有什么区别？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "与Notion相比，ChainlessChain提供硬件级加密和本地存储，数据不上云。与Obsidian相比，ChainlessChain内置AI问答功能（RAG检索增强）、去中心化社交、P2P加密通讯等功能。我们还支持企业级去中心化组织协作，无需中心化服务器。"
+                }
+            }
+        ]
+    }
+    </script>
+
+    <!-- CSS 已合并到 dist/main.min.css -->
+</head>
+<body>
+    <!-- 页面加载动画 -->
+    <div id="page-loader">
+        <div class="loader-container">
+            <!-- 粒子效果 -->
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+
+            <!-- Logo容器 -->
+            <div class="loader-logo-wrapper">
+                <div class="loader-glow"></div>
+                <div class="loader-shadow"></div>
+                <div class="loader-ring-outer"></div>
+                <div class="loader-ring-inner"></div>
+                <!-- 使用优化后的小尺寸 logo -->
+                <picture>
+                    <source srcset="logo.webp" type="image/webp">
+                    <img src="logo-optimized.png" alt="ChainlessChain Logo" class="loader-logo">
+                </picture>
+            </div>
+
+            <!-- 加载文字 -->
+            <div class="loader-text">ChainlessChain</div>
+            <div class="loader-tip">无链之链 · 让数据主权回归个人</div>
+
+            <!-- 进度条 -->
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <!-- 使用 SVG 优先，降级到优化的小尺寸 PNG -->
+                    <picture>
+                        <source srcset="logo.webp" type="image/webp">
+                        <img src="logo.svg" alt="ChainlessChain无链之链Logo" class="logo-image" loading="eager" onerror="this.src='logo-32.png'; this.onerror=null;">
+                    </picture>
+                    <div class="logo-text-wrapper" style="display: none;">
+                        <span class="logo-icon"></span>
+                        <span class="logo-text">无链之链</span>
+                    </div>
+                </div>
+                <div class="nav-menu" id="navMenu">
+                    <a href="#home" class="nav-link active">首页</a>
+
+                    <!-- 产品下拉菜单 -->
+                    <div class="nav-dropdown">
+                        <a href="#products" class="nav-link">产品 ▾</a>
+                        <div class="dropdown-menu">
+                            <a href="products/knowledge-base.html" class="dropdown-item">
+                                <span class="icon">📚</span>
+                                <div>
+                                    <strong>个人AI知识库</strong>
+                                    <p>本地加密存储，AI问答</p>
+                                </div>
+                            </a>
+                            <a href="products/enterprise.html" class="dropdown-item featured">
+                                <span class="icon">🏢</span>
+                                <div>
+                                    <strong>企业版</strong>
+                                    <p>去中心化组织协作</p>
+                                </div>
+                            </a>
+                            <a href="products/project-management.html" class="dropdown-item">
+                                <span class="icon">📊</span>
+                                <div>
+                                    <strong>AI项目管理</strong>
+                                    <p>对话即项目，AI即团队</p>
+                                </div>
+                            </a>
+                            <a href="products/social.html" class="dropdown-item">
+                                <span class="icon">💬</span>
+                                <div>
+                                    <strong>去中心化社交</strong>
+                                    <p>端到端加密通信</p>
+                                </div>
+                            </a>
+                            <a href="products/trading.html" class="dropdown-item">
+                                <span class="icon">🤝</span>
+                                <div>
+                                    <strong>AI辅助交易</strong>
+                                    <p>智能合约托管</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 技术下拉菜单 -->
+                    <div class="nav-dropdown">
+                        <a href="#features" class="nav-link">技术 ▾</a>
+                        <div class="dropdown-menu">
+                            <a href="technology/technical-docs.html" class="dropdown-item">
+                                <span class="icon">📖</span>
+                                <div>
+                                    <strong>技术文档</strong>
+                                    <p>220,000+行开源代码</p>
+                                </div>
+                            </a>
+                            <a href="technology/evomap.html" class="dropdown-item">
+                                <span class="icon">🧬</span>
+                                <div>
+                                    <strong>EvoMap GEP协议</strong>
+                                    <p>全球Agent知识共享</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">🏗️</span>
+                                <div>
+                                    <strong>系统设计</strong>
+                                    <p>完整架构文档</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">📚</span>
+                                <div>
+                                    <strong>README</strong>
+                                    <p>项目说明文档</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                                    </svg>
+                                </span>
+                                <div>
+                                    <strong>GitHub仓库</strong>
+                                    <p>查看源代码</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="#download" class="nav-link">下载</a>
+                    <a href="https://docs.chainlesschain.com/chainlesschain/overview.html" class="nav-link" target="_blank" rel="noopener">系统文档</a>
+                    <a href="https://forum.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">论坛</a>
+                    <a href="#about" class="nav-link">关于我们</a>
+                    <a href="#contact" class="nav-link">联系我们</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain" class="btn-outline" target="_blank" rel="noopener">Gitee</a>
+                    <button class="btn-primary" onclick="scrollToDownload()">立即下载</button>
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="菜单">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 顶部联系栏 - 显著位置 -->
+    <div class="top-contact-bar">
+        <div class="container">
+            <div class="contact-bar-content">
+                <div class="contact-item hotline">
+                    <span class="icon">📞</span>
+                    <div class="contact-info">
+                        <span class="label">客服热线</span>
+                        <a href="tel:400-1068-687" class="contact-value">400-1068-687</a>
+                    </div>
+                </div>
+                <div class="contact-divider"></div>
+                <div class="contact-item wechat">
+                    <span class="icon">💬</span>
+                    <div class="contact-info">
+                        <span class="label">企业微信</span>
+                        <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" class="contact-value">扫码添加 ↓</a>
+                    </div>
+                    <div class="wechat-qr-popup">
+                        <div class="qr-container">
+                            <div class="qr-placeholder">
+                                <img src="images/qr/wework-contact.png"
+                                     alt="企业微信二维码"
+                                     width="200"
+                                     height="200"
+                                     loading="lazy"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect width=%22200%22 height=%22200%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2214%22 fill=%22%23666%22%3E企业微信二维码%3C/text%3E%3C/svg%3E'">
+                            </div>
+                            <p class="qr-tip">扫码添加企业微信客服</p>
+                            <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" class="qr-link">点击直接打开 →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-divider"></div>
+                <div class="contact-item email">
+                    <span class="icon">📧</span>
+                    <div class="contact-info">
+                        <span class="label">商务合作</span>
+                        <a href="mailto:zhanglongfa@chainlesschain.com" class="contact-value">zhanglongfa@chainlesschain.com</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section - 优化版 -->
+    <section id="home" class="hero" style="display: flex; align-items: center; justify-content: center;">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+        </div>
+        <div class="container" style="width: 100%;">
+            <div class="hero-content" style="text-align: center; width: 100%;">
+                <!-- 主标题 - 更新为双版本定位 -->
+                <h1 class="hero-title animate-fade-in">
+                    让数据主权回归个人<br>
+                    <span class="highlight">AI效率触手可及</span>
+                </h1>
+
+                <!-- 版本标识 -->
+                <div class="version-tags animate-fade-in-delay">
+                    <span class="version-tag personal">个人版：本地加密 AI知识库</span>
+                    <span class="version-tag enterprise">企业版：去中心化组织协作</span>
+                </div>
+
+                <!-- 新增：信任标签 -->
+                <div class="trust-badges animate-fade-in-delay">
+                    <span class="badge">🏆 4项发明专利</span>
+                    <span class="badge">🔒 军事级加密</span>
+                    <span class="badge">⭐ GitHub 10k+ Star</span>
+                    <span class="badge">✅ 等保三级认证</span>
+                    <span class="badge">📋 AI团体标准参编 T/ZGCMCA 023—2025</span>
+                </div>
+
+                <!-- 副标题 - 更新突出双版本 -->
+                <p class="hero-subtitle animate-fade-in-delay">
+                    <strong>个人版</strong>：基于U盾/SIMKey硬件加密的AI知识库，数据不上云，完全离线可用<br>
+                    <strong>企业版</strong>：去中心化组织架构，零部署成本，彻底解决传统企业软件的安全与成本问题
+                </p>
+
+                <!-- 优化：双CTA按钮 + 电话 -->
+                <div class="hero-cta animate-fade-in-delay-2">
+                    <button class="btn-hero-primary" onclick="scrollToDownload()">
+                        <span class="btn-icon">⬇</span>
+                        免费下载试用
+                        <span class="btn-sub">· 支持Win/Mac/Linux/Android</span>
+                    </button>
+                    <a href="tel:400-1068-687" class="btn-hero-phone">
+                        <span class="btn-icon">📞</span>
+                        电话咨询：400-1068-687
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CLI 命令行工具重点介绍 -->
+    <section class="cli-showcase" style="padding: 80px 0; background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: white;">
+        <div class="container">
+            <div class="section-header" style="margin-bottom: 48px;">
+                <span style="display: inline-block; background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 16px;">npm install -g chainlesschain</span>
+                <h2 class="section-title" style="color: white;">CLI 命令行工具</h2>
+                <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">开发者友好的终端体验，64个命令覆盖全场景 · 5517+测试保障质量 · Claude Code 风格 Agent REPL</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
+                <!-- 左侧：终端演示 -->
+                <div style="background: #1a1a2e; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <!-- 终端标题栏 -->
+                    <div style="background: #16213e; padding: 12px 16px; display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></span>
+                        <span style="margin-left: 8px; color: rgba(255,255,255,0.6); font-size: 13px;">Terminal — chainlesschain</span>
+                    </div>
+                    <!-- 终端内容 -->
+                    <div style="padding: 20px; font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; color: #e0e0e0;">
+                        <div><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> agent</div>
+                        <div style="color: #888;">🤖 Entering Agent mode (Claude Code style)...</div>
+                        <div style="color: #888;">📋 10 tools + 138 skills loaded</div>
+                        <div style="color: #888;">🧠 Context Engineering: KV-Cache optimized</div>
+                        <div style="margin-top: 8px;"><span style="color: #ffbd2e;">agent></span> 帮我分析这个项目的架构</div>
+                        <div style="color: #27c93f; margin-top: 4px;">✓ Reading project files...</div>
+                        <div style="color: #27c93f;">✓ Building knowledge graph...</div>
+                        <div style="color: #27c93f;">✓ Analysis complete.</div>
+                        <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> serve --port 18800</div>
+                        <div style="color: #888;">🌐 WebSocket server listening on ws://localhost:18800</div>
+                        <div style="color: #888;">🔑 Token auth: enabled</div>
+                        <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> ui</div>
+                        <div style="color: #888;">🌐 Web UI listening on http://127.0.0.1:18810</div>
+                        <div style="color: #27c93f;">✓ Opening browser...</div>
+                        <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> orchestrate "Fix the auth bug"</div>
+                        <div style="color: #888;">⚡ Detected: claude 2.1.81 (Claude Code)</div>
+                        <div style="color: #27c93f;">✓ CI passed · Task completed in 45s</div>
+                        <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> skill list</div>
+                        <div style="color: #888;">📦 138 skills (bundled: 138, workspace: 0)</div>
+                        <div style="color: #888;">  code-review, explain-code, refactor...</div>
+                    </div>
+                </div>
+
+                <!-- 右侧：功能亮点 -->
+                <div>
+                    <div style="display: grid; gap: 20px;">
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #00d2ff;">⌨️ 64个命令 · 全场景覆盖</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">系统管理、AI对话、知识库、安全加密、P2P通信、企业管理、区块链、DAO治理、合规审计、AI编排层等。短别名 <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">cc</code> / <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">clc</code> / <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">clchain</code></p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #27c93f;">🤖 Agent REPL · Claude Code 风格</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">10个内置工具 + 138技能 + Plan Mode + Context Engineering + Sub-Agent隔离v2 + Persona系统 + SlotFiller + InteractivePlanner</p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #ffbd2e;">🌐 WebSocket + Web 管理界面</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">WebSocket服务器（端口18800）支持远程Agent会话；<code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">cc ui</code> 一键启动浏览器端Web管理界面（端口18810），支持项目模式/全局模式。</p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #f093fb;">✅ 5517+ 测试 · 生产级质量</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">118核心包测试 + 2503 CLI测试 + 168 AI模板测试 + 99 Web UI测试 + 106 AI编排层测试 + Hashline/Hooks/Skill-MCP新增测试。Vitest测试框架，CI/CD全自动验证。</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 24px; text-align: center;">
+                        <code style="background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 8px; font-size: 14px; color: #00d2ff; display: inline-block;">npm install -g chainlesschain && cc doctor</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：核心价值主张区 -->
+    <section class="value-proposition">
+        <div class="container">
+            <div class="value-grid">
+                <div class="value-item">
+                    <div class="value-icon">🔐</div>
+                    <h3>硬件级安全</h3>
+                    <p>U盾/SIMKey物理隔离加密，密钥永不触网，黑客无法破解</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">🤖</div>
+                    <h3>本地AI问答</h3>
+                    <p>支持Ollama本地大模型，数据不出设备，隐私100%保护</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">💾</div>
+                    <h3>完全离线可用</h3>
+                    <p>无需联网，随时随地访问，紧急时刻不掉链子</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">🆓</div>
+                    <h3>永久免费开源</h3>
+                    <p>MIT开源协议，核心功能免费，代码透明可审计</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：版本对比板块 -->
+    <section class="version-comparison">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">选择适合您的版本</h2>
+                <p class="section-subtitle">个人版和企业版，满足不同场景需求</p>
+            </div>
+            <div class="version-cards">
+                <!-- 个人版卡片 -->
+                <div class="version-card personal-edition">
+                    <div class="version-badge">个人版</div>
+                    <div class="version-icon">👤</div>
+                    <h3 class="version-title">ChainlessChain 个人版</h3>
+                    <p class="version-tagline">本地加密的个人AI知识库</p>
+
+                    <div class="version-price">
+                        <span class="price">¥0</span>
+                        <span class="price-desc">永久免费</span>
+                    </div>
+
+                    <div class="version-features">
+                        <h4>核心功能</h4>
+                        <ul>
+                            <li><span class="icon">✅</span> U盾/SIMKey硬件加密存储</li>
+                            <li><span class="icon">✅</span> 本地AI部署（Ollama）</li>
+                            <li><span class="icon">✅</span> RAG增强检索（ChromaDB/Qdrant）</li>
+                            <li><span class="icon">✅</span> 多格式导入（MD/PDF/Word/OCR）</li>
+                            <li><span class="icon">✅</span> 多设备加密同步（Git + E2E）</li>
+                            <li><span class="icon">✅</span> 19个AI专用引擎</li>
+                            <li><span class="icon">✅</span> 完全离线可用</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-ideal-for">
+                        <h4>适用人群</h4>
+                        <div class="user-tags">
+                            <span>医生</span>
+                            <span>律师</span>
+                            <span>研究员</span>
+                            <span>学生</span>
+                            <span>自由职业</span>
+                        </div>
+                    </div>
+
+                    <div class="version-cta">
+                        <button class="btn-version-primary" onclick="scrollToDownload()">立即下载</button>
+                        <a href="products/knowledge-base.html" class="btn-version-outline">了解详情 →</a>
+                    </div>
+                </div>
+
+                <!-- 企业版卡片 -->
+                <div class="version-card enterprise-edition featured">
+                    <div class="featured-label">推荐创业团队</div>
+                    <div class="version-badge">企业版</div>
+                    <div class="version-icon">🏢</div>
+                    <h3 class="version-title">ChainlessChain 企业版</h3>
+                    <p class="version-tagline">去中心化组织协作平台</p>
+
+                    <div class="version-price">
+                        <span class="price">¥0</span>
+                        <span class="price-desc">零部署成本</span>
+                        <span class="price-save">省下数万至数十万/年</span>
+                    </div>
+
+                    <div class="version-features">
+                        <h4>核心功能（包含个人版所有功能）</h4>
+                        <ul>
+                            <li><span class="icon">✅</span> 去中心化组织架构（无需服务器）</li>
+                            <li><span class="icon">✅</span> 多身份切换（个人+N个组织）</li>
+                            <li><span class="icon">✅</span> RBAC权限管理（管理员/成员/访客）</li>
+                            <li><span class="icon">✅</span> P2P加密通信（libp2p + Signal）</li>
+                            <li><span class="icon">✅</span> 团队知识库共享</li>
+                            <li><span class="icon">✅</span> AI驱动的项目管理</li>
+                            <li><span class="icon">✅</span> 数据完全隔离（本地存储）</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-highlights">
+                        <h4>三大核心卖点</h4>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">💰</span>
+                            <div>
+                                <strong>零成本</strong>
+                                <p>数万至数十万/年 → ¥0元</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🔒</span>
+                            <div>
+                                <strong>彻底安全</strong>
+                                <p>告别服务器攻击、网络故障、供应商倒闭</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🚀</span>
+                            <div>
+                                <strong>AI加持</strong>
+                                <p>19个AI引擎，让团队效率倍增</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="version-ideal-for">
+                        <h4>适用人群</h4>
+                        <div class="user-tags">
+                            <span>创业团队</span>
+                            <span>中小企业</span>
+                            <span>远程团队</span>
+                            <span>DAO组织</span>
+                            <span>项目组</span>
+                        </div>
+                    </div>
+
+                    <div class="version-cta">
+                        <button class="btn-version-primary" onclick="scrollToDownload()">立即下载</button>
+                        <a href="products/enterprise.html" class="btn-version-outline">了解详情 →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section - 优化版 -->
+    <section id="products" class="products">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">核心功能</h2>
+                <p class="section-subtitle">五大核心功能，覆盖个人与团队全场景</p>
+            </div>
+            <div class="products-grid five-columns">
+                <!-- Product 1 - 优化版 -->
+                <div class="product-card">
+                    <div class="product-icon">📚</div>
+                    <h3 class="product-title">个人AI知识库</h3>
+
+                    <!-- 新增：用户痛点 -->
+                    <div class="pain-points">
+                        <p class="pain-point">😰 担心笔记数据被平台窃取？</p>
+                        <p class="pain-point">😰 Notion/印象笔记隐私没保障？</p>
+                    </div>
+
+                    <!-- 解决方案 -->
+                    <div class="solutions">
+                        <p class="solution">✅ U盾硬件加密，数据不上云</p>
+                        <p class="solution">✅ 本地AI问答，隐私100%保护</p>
+                        <p class="solution">✅ 支持离线使用，永久免费</p>
+                    </div>
+
+                    <!-- 功能特性 -->
+                    <ul class="product-features">
+                        <li>硬件级加密存储（SQLCipher AES-256）</li>
+                        <li>本地AI模型部署（14+云LLM + Ollama）</li>
+                        <li>RAG增强检索（ChromaDB/Qdrant）</li>
+                        <li>多格式导入（MD/PDF/Word/图片OCR）</li>
+                        <li>多设备加密同步（Git + E2E加密）</li>
+                        <li>19个AI专用引擎（代码/文档/表格/PPT）</li>
+                    </ul>
+
+                    <!-- 新增：适用人群 -->
+                    <div class="target-users">
+                        <span class="user-tag">医生</span>
+                        <span class="user-tag">律师</span>
+                        <span class="user-tag">研究员</span>
+                        <span class="user-tag">学生</span>
+                    </div>
+
+                    <!-- 新增：客户评价 -->
+                    <blockquote class="testimonial-mini">
+                        <p>"作为医生，患者病历安全是第一要务，ChainlessChain让我放心"</p>
+                        <cite>- 张医生，三甲医院主任医师</cite>
+                    </blockquote>
+
+                    <!-- CTA按钮 -->
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="learnMore('knowledge-base')">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 2 - 去中心化社交 -->
+                <div class="product-card featured">
+                    <div class="featured-badge">热门</div>
+                    <div class="product-icon">💬</div>
+                    <h3 class="product-title">去中心化AI社交</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 微信/QQ聊天记录被监控？</p>
+                        <p class="pain-point">😰 隐私对话不敢发敏感内容？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 端到端加密，服务器无法查看</p>
+                        <p class="solution">✅ P2P直连，无中心化服务器</p>
+                        <p class="solution">✅ AI代理处理，保护真实身份</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>W3C DID标准身份（Ed25519 + X25519）</li>
+                        <li>Signal Protocol端到端加密</li>
+                        <li>libp2p P2P网络（Kademlia DHT）</li>
+                        <li>WebRTC P2P语音/视频通话（DTLS-SRTP全加密）</li>
+                        <li>社区/频道（Gossip协议 + 去中心化治理投票）</li>
+                        <li>去中心化直播（弹幕 + SFU多级分发）</li>
+                        <li>共享加密相册（AES-256 + EXIF隐私剥离）</li>
+                        <li>协作文档（Yjs CRDT + P2P实时同步）</li>
+                        <li>朋友圈时光机（AI生成年度报告）</li>
+                        <li>匿名模式（零知识证明）+ 社交代币</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">隐私关注者</span>
+                        <span class="user-tag">企业高管</span>
+                        <span class="user-tag">自由职业</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"真正的端到端加密，不用担心聊天记录泄露，创业团队必备"</p>
+                        <cite>- 李总，科技公司CEO</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="learnMore('social')">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 3 - AI辅助交易 -->
+                <div class="product-card">
+                    <div class="product-icon">🤝</div>
+                    <h3 class="product-title">AI辅助交易</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 找不到合适的交易对象？</p>
+                        <p class="pain-point">😰 担心交易纠纷没保障？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ AI智能匹配供需双方</p>
+                        <p class="solution">✅ 智能合约托管资金</p>
+                        <p class="solution">✅ 去中心化仲裁机制</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>8大核心模块（资产、市场、托管、知识付费）</li>
+                        <li>6个智能合约（ERC20/721、托管、订阅、悬赏）</li>
+                        <li>信用评分系统（6维度、5等级）</li>
+                        <li>HD钱包 + MetaMask + WalletConnect</li>
+                        <li>订单管理 + 评价系统 + 争议解决</li>
+                        <li>区块链智能合约引擎（2400+行代码）</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">中小企业</span>
+                        <span class="user-tag">供应商</span>
+                        <span class="user-tag">采购商</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"AI匹配很精准，智能合约保障交易安全，节省了大量时间"</p>
+                        <cite>- 王总，贸易公司总经理</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="contact('trading')">预约演示</button>
+                        <button class="btn-product-outline" onclick="learnMore('trading')">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 4 - AI项目管理（新增） -->
+                <div class="product-card featured">
+                    <div class="featured-badge">新功能</div>
+                    <div class="product-icon">📊</div>
+                    <h3 class="product-title">AI项目管理</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 项目管理工具太复杂？</p>
+                        <p class="pain-point">😰 需要AI帮助生成项目文件？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 对话即可创建项目</p>
+                        <p class="solution">✅ AI自动生成代码和文档</p>
+                        <p class="solution">✅ 19个AI引擎随时待命</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>对话式项目创建（聊天即创建）</li>
+                        <li>AI自动生成项目结构和文件</li>
+                        <li>19个AI专业引擎（代码/文档/Excel/PPT等）</li>
+                        <li>知识库深度集成（RAG增强）</li>
+                        <li>智能任务拆解和管理</li>
+                        <li>版本控制和Git同步</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">开发者</span>
+                        <span class="user-tag">项目经理</span>
+                        <span class="user-tag">产品经理</span>
+                        <span class="user-tag">创业者</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"用对话创建项目太方便了，AI直接帮我生成了所有代码框架"</p>
+                        <cite>- 陈工，技术总监</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="window.location.href='products/project-management.html'">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 5 - 企业版（新增） -->
+                <div class="product-card enterprise">
+                    <div class="featured-badge">零成本</div>
+                    <div class="product-icon">🏢</div>
+                    <h3 class="product-title">企业版（去中心化组织）</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 传统企业软件成本高昂？</p>
+                        <p class="pain-point">😰 担心服务器被攻击或供应商倒闭？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 零部署成本（省下数万至数十万/年）</p>
+                        <p class="solution">✅ 彻底解决安全问题（去中心化）</p>
+                        <p class="solution">✅ 19个AI引擎提升团队效率</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>去中心化组织架构（无需服务器）</li>
+                        <li>多身份切换（个人+N个组织身份）</li>
+                        <li>RBAC权限管理（管理员/成员/访客）</li>
+                        <li>P2P加密通信（libp2p + Signal Protocol）</li>
+                        <li>团队知识库和项目协作</li>
+                        <li>完全数据隔离（本地加密存储）</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">创业团队</span>
+                        <span class="user-tag">中小企业</span>
+                        <span class="user-tag">远程团队</span>
+                        <span class="user-tag">DAO组织</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"零成本部署，数据还完全自己掌控，创业团队的最佳选择"</p>
+                        <cite>- 李总，创业公司CEO</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="window.location.href='products/enterprise.html'">了解详情</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：竞品对比区 -->
+    <section class="comparison">
+        <div class="container">
+            <h2 class="section-title">为什么选择ChainlessChain？</h2>
+            <p class="section-subtitle">与主流云笔记软件的对比</p>
+
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>功能特性</th>
+                            <th class="highlight">ChainlessChain</th>
+                            <th>Notion</th>
+                            <th>Obsidian</th>
+                            <th>印象笔记</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>硬件级加密</td>
+                            <td class="highlight">✅ U盾/SIMKey</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                        </tr>
+                        <tr>
+                            <td>本地AI问答</td>
+                            <td class="highlight">✅ 完全离线</td>
+                            <td>⚠️ 需上传数据</td>
+                            <td>❌</td>
+                            <td>⚠️ 需上传数据</td>
+                        </tr>
+                        <tr>
+                            <td>数据存储</td>
+                            <td class="highlight">✅ 本地加密</td>
+                            <td>❌ 云端</td>
+                            <td>✅ 本地</td>
+                            <td>❌ 云端</td>
+                        </tr>
+                        <tr>
+                            <td>离线使用</td>
+                            <td class="highlight">✅ 全功能</td>
+                            <td>⚠️ 部分功能</td>
+                            <td>✅</td>
+                            <td>⚠️ 部分功能</td>
+                        </tr>
+                        <tr>
+                            <td>开源透明</td>
+                            <td class="highlight">✅ MIT协议</td>
+                            <td>❌ 闭源</td>
+                            <td>⚠️ 部分开源</td>
+                            <td>❌ 闭源</td>
+                        </tr>
+                        <tr>
+                            <td>价格</td>
+                            <td class="highlight">✅ 永久免费</td>
+                            <td>💰 $10/月</td>
+                            <td>💰 $50/年</td>
+                            <td>💰 ¥148/年</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="comparison-cta">
+                <button class="btn-primary-large" onclick="scrollToDownload()">
+                    立即下载ChainlessChain
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：企业版Spotlight -->
+    <section class="enterprise-spotlight">
+        <div class="container">
+            <div class="spotlight-header">
+                <span class="spotlight-badge">🏢 企业版</span>
+                <h2 class="spotlight-title">创业团队的首选<br>零成本 • 更安全 • AI加持</h2>
+                <p class="spotlight-subtitle">告别传统企业软件的高昂成本和安全隐患</p>
+            </div>
+
+            <!-- 核心卖点网格 -->
+            <div class="spotlight-grid">
+                <!-- 卖点1: 零成本 -->
+                <div class="spotlight-item cost-saving">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">💰</div>
+                        <h3>零部署成本</h3>
+                        <div class="cost-comparison">
+                            <div class="cost-old">
+                                <span class="label">传统企业软件</span>
+                                <span class="amount">数万至数十万/年</span>
+                                <ul class="cost-items">
+                                    <li>服务器租赁：¥50,000+/年</li>
+                                    <li>运维人员：¥100,000+/年</li>
+                                    <li>软件授权：¥30,000+/年</li>
+                                </ul>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="cost-new">
+                                <span class="label">ChainlessChain企业版</span>
+                                <span class="amount highlight">¥0元</span>
+                                <ul class="cost-items">
+                                    <li>✅ 无需服务器</li>
+                                    <li>✅ 无需运维</li>
+                                    <li>✅ 永久免费</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点2: 彻底安全 -->
+                <div class="spotlight-item security">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">🔒</div>
+                        <h3>彻底解决安全问题</h3>
+                        <p class="description">传统中心化企业软件的三大噩梦</p>
+                        <div class="problems-list">
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>服务器被攻击</strong>
+                                    <p>中心化存储，一旦被黑全部数据泄露</p>
+                                </div>
+                            </div>
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>网络故障中断</strong>
+                                    <p>服务器宕机，整个公司业务停摆</p>
+                                </div>
+                            </div>
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>供应商倒闭</strong>
+                                    <p>服务商跑路，数据全部丢失</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="solution-box">
+                            <p><strong>ChainlessChain解决方案</strong></p>
+                            <ul>
+                                <li>✅ 去中心化架构，无单点故障</li>
+                                <li>✅ 数据本地加密存储，完全自主掌控</li>
+                                <li>✅ P2P通信，无需担心服务器问题</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点3: AI功能 -->
+                <div class="spotlight-item ai-power">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">🚀</div>
+                        <h3>19个AI引擎，让团队事半功倍</h3>
+                        <p class="description">强大的AI功能，提升团队协作效率</p>
+                        <div class="ai-engines-grid">
+                            <div class="engine-item">
+                                <span class="icon">💻</span>
+                                <span>代码引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📄</span>
+                                <span>文档引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📊</span>
+                                <span>Excel引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📽️</span>
+                                <span>PPT引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📑</span>
+                                <span>PDF引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🎨</span>
+                                <span>图像引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🎬</span>
+                                <span>视频引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🌐</span>
+                                <span>Web引擎</span>
+                            </div>
+                            <div class="engine-item more">
+                                <span>+11个引擎</span>
+                            </div>
+                        </div>
+                        <div class="ai-benefits">
+                            <p>✅ 对话即可创建项目和生成文件</p>
+                            <p>✅ AI自动生成代码、文档、报告</p>
+                            <p>✅ 知识库深度集成，智能问答</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点4: 快速上手 -->
+                <div class="spotlight-item quick-start">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">⚡</div>
+                        <h3>5分钟创建组织，立即开始协作</h3>
+                        <div class="steps">
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <strong>下载安装</strong>
+                                    <p>全平台支持，一键安装</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <strong>创建组织</strong>
+                                    <p>填写组织名称，生成DID身份</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <strong>邀请成员</strong>
+                                    <p>分享邀请码，成员P2P加入</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <strong>开始协作</strong>
+                                    <p>共享知识库，AI辅助项目管理</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="spotlight-cta">
+                <button class="btn-spotlight-primary" onclick="scrollToDownload()">
+                    立即下载企业版
+                    <span class="sub">零成本启动您的组织</span>
+                </button>
+                <a href="products/enterprise.html" class="btn-spotlight-outline">
+                    了解更多企业版功能 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">软件下载</h2>
+                <p class="section-subtitle">支持全平台，5分钟完成安装</p>
+            </div>
+
+            <!-- 新增：快速下载提示 -->
+            <div class="quick-download">
+                <p class="detected-os">检测到您的系统：<span id="detectedOS">Windows 10</span></p>
+                <button class="btn-download-quick" onclick="downloadForOS()">
+                    <span class="icon">⬇</span>
+                    立即下载（推荐）
+                </button>
+                <p class="download-info">
+                    <span>✅ 永久免费</span>
+                    <span>✅ 无需注册</span>
+                    <span>✅ 安装包已签名</span>
+                </p>
+            </div>
+
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-icon">💻</div>
+                    <h3>Windows 桌面版</h3>
+                    <p class="download-desc">支持 Windows 10/11 (64位)</p>
+                    <p class="download-version">最新版本：v5.0.2.9</p>
+                    <p class="file-size">文件大小：156 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('windows')">
+                        下载 (.exe)
+                    </a>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain/releases/latest"
+                       class="btn-download-alt"
+                       target="_blank"
+                       rel="noopener">
+                        Gitee镜像（国内快）
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🍎</div>
+                    <h3>macOS 桌面版</h3>
+                    <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
+                    <p class="download-version">最新版本：v5.0.2.9</p>
+                    <p class="file-size">文件大小：180 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('macos')">
+                        下载 (.dmg)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🐧</div>
+                    <h3>Linux 桌面版</h3>
+                    <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
+                    <p class="download-version">最新版本：v5.0.2.9</p>
+                    <p class="file-size">文件大小：145 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('linux')">
+                        下载 (.AppImage)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">📱</div>
+                    <h3>Android 移动版</h3>
+                    <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
+                    <p class="download-version">最新版本：v5.0.2.9</p>
+                    <p class="file-size">文件大小：45 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('android')">
+                        下载 (.apk)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🍏</div>
+                    <h3>iOS 移动版</h3>
+                    <p class="download-desc">支持 iOS 13.0 及以上</p>
+                    <p class="download-version">开发中，敬请期待</p>
+                    <button class="btn-download disabled" disabled>即将推出</button>
+                    <button class="btn-notify" onclick="notifyMe('ios')">
+                        <span class="icon">🔔</span>
+                        上线时通知我
+                    </button>
+                </div>
+
+                <div class="download-card featured">
+                    <div class="download-icon">📦</div>
+                    <h3>源码编译</h3>
+                    <p class="download-desc">从源码编译，自定义配置</p>
+                    <div class="source-links">
+                        <a href="https://github.com/chainlesschain/chainlesschain" target="_blank" rel="noopener" class="source-link">
+                            <span class="source-icon">📂</span> GitHub
+                        </a>
+                        <a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="source-link">
+                            <span class="source-icon">📂</span> Gitee
+                        </a>
+                    </div>
+                    <a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" class="btn-download-outline" target="_blank" rel="noopener">查看编译文档</a>
+                </div>
+            </div>
+
+            <div class="download-notice">
+                <p>💡 <strong>提示：</strong>首次使用请查看<a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" target="_blank" rel="noopener">快速开始指南</a>，或联系客服 <strong><a href="tel:400-1068-687">400-1068-687</a></strong> 获取帮助</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：FAQ区域 -->
+    <section class="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">常见问题</h2>
+                <p class="section-subtitle">解答您的疑虑</p>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🔐</span>
+                        数据真的安全吗？会不会被黑客攻破？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>绝对安全。</strong>我们采用U盾/SIMKey物理隔离加密芯片，密钥永不触网，配合SM2国密算法和SQLCipher数据库加密，三重防护。</p>
+                        <p>即使黑客拿到你的电脑，没有U盾也无法解密数据。我们已获得等保三级认证，符合国家信息安全标准。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">💰</span>
+                        免费吗？有什么收费项目？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>核心功能永久免费。</strong>开源MIT协议，基础版完全免费，包括：知识库、本地AI、加密存储、多设备同步。</p>
+                        <p>企业版提供私有化部署、技术支持、定制开发等增值服务，按需付费。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🤖</span>
+                        AI功能需要联网吗？数据会上传到云端吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>完全本地，无需联网。</strong>支持Ollama本地部署大模型（Qwen、LLaMA3等），AI推理全在本地完成。</p>
+                        <p>数据永不上云，100%隐私保护。也可选择云端AI（需联网，数据加密传输）。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">📱</span>
+                        支持哪些设备？能跨设备同步吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>全平台支持。</strong>Windows、macOS、Linux、Android、iOS（开发中）。</p>
+                        <p>支持基于Git的端到端加密同步，数据在不同设备间安全传输，中间服务器无法查看。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🛡️</span>
+                        U盾/SIMKey是必需的吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p>开发模式下使用模拟实现，生产环境<strong>强烈建议</strong>使用真实硬件：</p>
+                        <ul>
+                            <li>开发/测试：使用模拟模式（任意PIN码：123456）</li>
+                            <li>生产环境：集成真实U盾/SIMKey SDK，获得军事级安全保障</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">❓</span>
+                        如何获取技术支持？
+                    </h3>
+                    <div class="faq-answer">
+                        <p>您可以通过以下方式获取帮助：</p>
+                        <ul>
+                            <li>📖 查看<a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" target="_blank" rel="noopener">在线文档</a></li>
+                            <li>💬 访问<a href="https://github.com/chainlesschain/issues" target="_blank" rel="noopener">GitHub Issues</a></li>
+                            <li>📧 发送邮件至 <a href="mailto:zhanglongfa@chainlesschain.com">zhanglongfa@chainlesschain.com</a></li>
+                            <li>📞 拨打客服热线 <a href="tel:400-1068-687">400-1068-687</a>（工作日 9:00-18:00）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：技术透明度板块 -->
+    <section class="tech-transparency">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">技术透明，值得信赖</h2>
+                <p class="section-subtitle">220,000+行开源代码，完全透明可审计</p>
+            </div>
+
+            <!-- 统计数据网格 -->
+            <div class="tech-stats-grid">
+                <div class="tech-stat-item">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value">310,000+</div>
+                    <div class="stat-label">代码总行数</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🧩</div>
+                    <div class="stat-value">370</div>
+                    <div class="stat-label">Vue组件</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">整体完成度</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🔌</div>
+                    <div class="stat-value">380+</div>
+                    <div class="stat-label">IPC处理器</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🗄️</div>
+                    <div class="stat-value">5517+</div>
+                    <div class="stat-label">测试用例</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🛠️</div>
+                    <div class="stat-value">138</div>
+                    <div class="stat-label">内置技能</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🤖</div>
+                    <div class="stat-value">16</div>
+                    <div class="stat-label">AI引擎</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">⛓️</div>
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">智能合约</div>
+                </div>
+            </div>
+
+            <!-- 开源信息 -->
+            <div class="open-source-info">
+                <div class="opensource-card">
+                    <h3>🌟 完全开源</h3>
+                    <p>MIT开源协议，代码完全透明，欢迎审计和贡献</p>
+                    <div class="repo-links">
+                        <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="repo-link github">
+                            <span class="icon">
+                                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                                </svg>
+                            </span>
+                            <span>GitHub仓库</span>
+                            <span class="star-count">⭐ 10k+</span>
+                        </a>
+                        <a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="repo-link gitee">
+                            <span class="icon">📦</span>
+                            <span>Gitee镜像</span>
+                            <span class="badge">国内快</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="opensource-card">
+                    <h3>📖 技术文档</h3>
+                    <p>完整的系统设计文档、架构说明、API文档、EvoMap协议</p>
+                    <div class="doc-links">
+                        <a href="technology/technical-docs.html" class="doc-link">
+                            <span class="icon">📄</span>
+                            <span>查看技术文档</span>
+                        </a>
+                        <a href="technology/evomap.html" class="doc-link">
+                            <span class="icon">🧬</span>
+                            <span>EvoMap GEP协议</span>
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener" class="doc-link">
+                            <span class="icon">🏗️</span>
+                            <span>系统设计文档</span>
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener" class="doc-link">
+                            <span class="icon">📚</span>
+                            <span>README</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技术栈预览 -->
+            <div class="tech-stack-preview">
+                <h3>🔧 技术栈亮点</h3>
+                <div class="tech-categories-grid">
+                    <div class="tech-cat">
+                        <h4>前端</h4>
+                        <span>Electron 39 • Vue 3 • TypeScript</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>后端</h4>
+                        <span>Node.js • Spring Boot • FastAPI</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>AI/ML</h4>
+                        <span>Ollama • Qdrant • RAG</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>安全</h4>
+                        <span>U盾 • SIMKey • Signal Protocol</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>区块链</h4>
+                        <span>Hardhat • Solidity • Ethers.js</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>数据库</h4>
+                        <span>SQLCipher • PostgreSQL • Redis</span>
+                    </div>
+                </div>
+                <a href="technology/technical-docs.html" class="btn-view-all">
+                    查看完整技术栈 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">核心技术特性</h2>
+                <p class="section-subtitle">硬件安全与AI能力的完美结合</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <h3>硬件级安全</h3>
+                    <p>采用U盾（PC端）和SIMKey（手机端）双重物理隔离加密，使用SM2国密算法与SQLCipher数据库加密</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <h3>本地AI部署</h3>
+                    <p>支持Ollama等本地大模型，数据不出设备，完全掌控AI推理过程，保护隐私安全</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">☁️</div>
+                    <h3>云端能力扩展</h3>
+                    <p>可选择连接云端AI服务，享受更强大的模型能力，支持混合部署模式</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <h3>跨设备同步</h3>
+                    <p>基于Git和端到端加密的数据同步，多设备无缝协作，数据安全可控</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <h3>全平台覆盖</h3>
+                    <p>支持Windows、macOS、Linux、Android、iOS全平台，一次部署，处处可用</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🎯</div>
+                    <h3>开源生态</h3>
+                    <p>核心代码开源，支持插件扩展，打造开放的AI生态系统</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最新功能 v1.0.0 -->
+    <section class="new-features">
+        <div class="container">
+            <div class="section-header">
+                <span class="version-badge">🎉 v5.0.2.9 Evolution Edition · Phase 1-102 全部完成</span>
+                <h2 class="section-title">最新功能亮点</h2>
+                <p class="section-subtitle">持续创新，为您带来更强大的AI能力 · 138桌面技能 + 28 Android技能 + CLI 64命令/5517+测试 + CLI技能包 + AI创作模板 + Web管理界面 + AI编排层 + Hashline哈希编辑 + Skill-Embedded MCP + Category Routing</p>
+            </div>
+            <div class="new-features-grid">
+                <!-- MCP Integration -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">POC v0.1.0</div>
+                    <div class="feature-icon">🔌</div>
+                    <h3>MCP 集成</h3>
+                    <h4>Model Context Protocol</h4>
+                    <p class="feature-desc">标准化AI工具集成，支持文件系统、PostgreSQL、SQLite、Git服务器，具备深度防御安全架构。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">✨ 标准化接口</span>
+                        <span class="highlight-tag">🔒 深度防御</span>
+                        <span class="highlight-tag">🛠️ 工具测试UI</span>
+                    </div>
+                </div>
+
+                <!-- LLM Performance Dashboard -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>LLM 性能仪表板</h3>
+                    <h4>智能成本分析</h4>
+                    <p class="feature-desc">实时监控Token使用量、成本分析、性能指标，通过ECharts可视化展示，帮助您优化AI使用策略。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📈 实时监控</span>
+                        <span class="highlight-tag">💰 成本优化</span>
+                        <span class="highlight-tag">📉 可视化图表</span>
+                    </div>
+                </div>
+
+                <!-- SessionManager -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.22.0</div>
+                    <div class="feature-icon">💬</div>
+                    <h3>智能会话管理</h3>
+                    <h4>SessionManager</h4>
+                    <p class="feature-desc">自动压缩节省30-40% Token，支持会话搜索、标签管理、导入/导出、自动摘要生成。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚡ 30-40% Token节省</span>
+                        <span class="highlight-tag">🔍 智能搜索</span>
+                        <span class="highlight-tag">📝 自动摘要</span>
+                    </div>
+                </div>
+
+                <!-- ErrorMonitor -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">🩺</div>
+                    <h3>AI 错误诊断</h3>
+                    <h4>ErrorMonitor</h4>
+                    <p class="feature-desc">本地Ollama LLM智能诊断，自动分类错误严重程度，提供修复策略建议，完全免费。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🤖 本地AI诊断</span>
+                        <span class="highlight-tag">🎯 自动分类</span>
+                        <span class="highlight-tag">🆓 完全免费</span>
+                    </div>
+                </div>
+
+                <!-- Manus Optimizations -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.24.0</div>
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Manus 优化</h3>
+                    <h4>智能上下文工程</h4>
+                    <p class="feature-desc">KV-Cache优化、工具屏蔽、任务跟踪(todo.md)、多Agent系统，提升AI响应效率。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🚀 性能提升</span>
+                        <span class="highlight-tag">📋 任务跟踪</span>
+                        <span class="highlight-tag">🤝 多Agent</span>
+                    </div>
+                </div>
+
+                <!-- Cowork Multi-Agent -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">👥</div>
+                    <h3>Cowork 多Agent协作</h3>
+                    <h4>团队智能化协作</h4>
+                    <p class="feature-desc">Claude Cowork风格多Agent系统，13核心操作，安全文件访问控制，长任务检查点恢复，扩展技能框架。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">👥 13核心操作</span>
+                        <span class="highlight-tag">🔒 文件沙箱</span>
+                        <span class="highlight-tag">♻️ 检查点恢复</span>
+                        <span class="highlight-tag">🎯 ~90%测试覆盖</span>
+                    </div>
+                </div>
+
+                <!-- GitHub Release Automation -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>发布自动化</h3>
+                    <h4>GitHub Release</h4>
+                    <p class="feature-desc">全自动化发布流程，多平台构建优化，确保每个版本稳定可靠。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚙️ 自动化CI/CD</span>
+                        <span class="highlight-tag">📦 多平台构建</span>
+                        <span class="highlight-tag">✅ 质量保证</span>
+                    </div>
+                </div>
+
+                <!-- Android Phase 5 -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Android 应用</h3>
+                    <h4>28个AI技能 + PC远程委派</h4>
+                    <p class="feature-desc">P2P网络、DID身份、28个AI技能（12 Handler + 8文档 + 8远程），支持PC远程委派执行桌面专属技能。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📱 28个AI技能</span>
+                        <span class="highlight-tag">🔗 PC远程委派</span>
+                        <span class="highlight-tag">🔧 12个Handler</span>
+                    </div>
+                </div>
+
+                <!-- Computer Use Capabilities - 重点功能 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v0.33.0</div>
+                    <div class="feature-icon">🖥️</div>
+                    <h3>Computer Use 能力</h3>
+                    <h4>类 Claude Computer Use</h4>
+                    <p class="feature-desc">浏览器和桌面级操作能力，支持视觉AI定位、坐标点击、网络拦截、工作流引擎、屏幕录制与回放。68+ IPC handlers。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎯 Vision AI</span>
+                        <span class="highlight-tag">🔄 工作流引擎</span>
+                        <span class="highlight-tag">📹 屏幕录制</span>
+                        <span class="highlight-tag">🛡️ 安全模式</span>
+                    </div>
+                </div>
+
+                <!-- AI Skills System - v1.2.1 重点功能 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.2.1</div>
+                    <div class="feature-icon">🎨</div>
+                    <h3>AI 技能系统</h3>
+                    <h4>138内置技能 + Android 28技能 + PC远程委派</h4>
+                    <p class="feature-desc">138个桌面内置技能覆盖开发/自动化/知识/安全/文档/媒体等15大类别，Android 28个技能支持远程委派到PC执行，统一工具注册表聚合60+内置工具+8 MCP服务器+138技能，Agent Skills开放标准，10个演示模板。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🛠️ 138桌面技能</span>
+                        <span class="highlight-tag">📱 28 Android技能</span>
+                        <span class="highlight-tag">🔗 PC远程委派</span>
+                        <span class="highlight-tag">📐 Agent Skills标准</span>
+                    </div>
+                </div>
+
+                <!-- Enterprise Features - v0.34.0 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.34.0</div>
+                    <div class="feature-icon">🏢</div>
+                    <h3>企业级功能</h3>
+                    <h4>SSO + 审计 + 插件市场</h4>
+                    <p class="feature-desc">SSO单点登录（SAML/OAuth/OIDC），企业审计与合规（GDPR/SOC2），插件市场，8个专业Agent模板，MCP SDK。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔐 SSO认证</span>
+                        <span class="highlight-tag">📋 合规审计</span>
+                        <span class="highlight-tag">🏪 插件市场</span>
+                        <span class="highlight-tag">🤖 8专业Agent</span>
+                    </div>
+                </div>
+
+                <!-- Permanent Memory System -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.26.2</div>
+                    <div class="feature-icon">🧠</div>
+                    <h3>永久记忆系统</h3>
+                    <h4>Clawdbot 架构</h4>
+                    <p class="feature-desc">跨会话持久记忆，Daily Notes自动记录、MEMORY.md长期知识、混合搜索（向量+BM25）、压缩前自动保存。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📝 Daily Notes</span>
+                        <span class="highlight-tag">🔍 混合搜索</span>
+                        <span class="highlight-tag">💾 自动保存</span>
+                    </div>
+                </div>
+
+                <!-- Hooks System -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.27.0</div>
+                    <div class="feature-icon">🪝</div>
+                    <h3>钩子系统</h3>
+                    <h4>Claude Code 风格</h4>
+                    <p class="feature-desc">可扩展钩子系统，21种事件类型，4种钩子类型，优先级系统，中间件集成，脚本钩子自动加载。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚡ 21种事件</span>
+                        <span class="highlight-tag">🔧 中间件</span>
+                        <span class="highlight-tag">📜 脚本钩子</span>
+                    </div>
+                </div>
+
+                <!-- Permission Engine -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.29.0</div>
+                    <div class="feature-icon">🔐</div>
+                    <h3>企业级权限引擎</h3>
+                    <h4>RBAC 系统</h4>
+                    <p class="feature-desc">资源级权限控制、权限继承、权限委托、团队权限、审计日志，完整的企业级访问控制。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">👥 团队权限</span>
+                        <span class="highlight-tag">🔄 权限委托</span>
+                        <span class="highlight-tag">📋 审计日志</span>
+                    </div>
+                </div>
+
+                <!-- Context Engineering -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.29.0</div>
+                    <div class="feature-icon">⚡</div>
+                    <h3>上下文工程</h3>
+                    <h4>KV-Cache 优化</h4>
+                    <p class="feature-desc">静态/动态内容分离，60-85%缓存命中率，工具定义序列化，错误历史追踪，可恢复压缩。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎯 60-85%命中率</span>
+                        <span class="highlight-tag">📦 智能压缩</span>
+                        <span class="highlight-tag">🔄 可恢复</span>
+                    </div>
+                </div>
+
+                <!-- Plan Mode -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.29.0</div>
+                    <div class="feature-icon">📋</div>
+                    <h3>规划模式</h3>
+                    <h4>Claude Code 风格</h4>
+                    <p class="feature-desc">安全分析模式，只读工具权限，自动记录操作计划，完整/部分审批工作流，Hooks集成。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔒 安全模式</span>
+                        <span class="highlight-tag">✅ 审批工作流</span>
+                        <span class="highlight-tag">🪝 Hooks集成</span>
+                    </div>
+                </div>
+
+                <!-- Skills System -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.2.1</div>
+                    <div class="feature-icon">🎯</div>
+                    <h3>技能系统</h3>
+                    <h4>138内置技能 + 四层加载</h4>
+                    <p class="feature-desc">四层加载机制（bundled→marketplace→managed→workspace），平台/依赖门检查，/skill命令解析，138个内置技能100% Handler覆盖。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📝 Markdown定义</span>
+                        <span class="highlight-tag">🔄 四层加载</span>
+                        <span class="highlight-tag">🛠️ 138内置技能</span>
+                    </div>
+                </div>
+
+                <!-- Browser Automation -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.29.0</div>
+                    <div class="feature-icon">🌐</div>
+                    <h3>浏览器自动化</h3>
+                    <h4>完整自动化系统</h4>
+                    <p class="feature-desc">多策略元素定位，快照比较诊断，用户操作录制回放，AI智能诊断，95%+定位准确率。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎯 95%+准确率</span>
+                        <span class="highlight-tag">📹 录制回放</span>
+                        <span class="highlight-tag">🤖 AI诊断</span>
+                    </div>
+                </div>
+
+                <!-- TypeScript Migration -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">📘</div>
+                    <h3>TypeScript 全面升级</h3>
+                    <h4>46个 Pinia Store 类型安全</h4>
+                    <p class="feature-desc">46个Pinia Store完全迁移至TypeScript，完整类型定义，IDE智能提示，logger.info()兼容优化。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📦 46 Stores</span>
+                        <span class="highlight-tag">🔒 类型安全</span>
+                        <span class="highlight-tag">💡 智能提示</span>
+                    </div>
+                </div>
+
+                <!-- 去中心化社交平台 v1.0.0 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">🌐</div>
+                    <h3>去中心化社交平台</h3>
+                    <h4>P2P通话 + 直播 + 社区 + 协作</h4>
+                    <p class="feature-desc">全面升级的社交平台：WebRTC P2P语音/视频通话（DTLS-SRTP全加密）、去中心化直播（弹幕+SFU分发）、社区/频道系统（Gossip协议+治理投票）、共享加密相册（AES-256+EXIF剥离）、协作文档（Yjs CRDT）、AI社交助手、匿名模式（零知识证明）、社交代币。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📞 P2P语音/视频</span>
+                        <span class="highlight-tag">📺 去中心化直播</span>
+                        <span class="highlight-tag">👥 社区/频道</span>
+                        <span class="highlight-tag">🔮 社交代币</span>
+                    </div>
+                </div>
+
+                <!-- Cowork v2.1.0 演化技能 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">🧬</div>
+                    <h3>Cowork 演化系统 v2.1.0</h3>
+                    <h4>自我进化 + 代码知识图谱 + 决策知识库</h4>
+                    <p class="feature-desc">代码知识图谱（实体关系分析+热点检测+循环依赖）、决策知识库（多源记录+相似度搜索）、Prompt优化器（A/B变体测试）、技能自发现（任务失败触发市场检索）、体验回放（工作流提炼）。新增5个协作技能：/debate-review、/ab-compare、/orchestrate、/verification-loop、/stream-processor。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🕸️ 代码知识图谱</span>
+                        <span class="highlight-tag">🧠 决策知识库</span>
+                        <span class="highlight-tag">🔬 Prompt A/B测试</span>
+                        <span class="highlight-tag">🤖 技能自发现</span>
+                    </div>
+                </div>
+
+                <!-- Autonomous Ops v3.3 - Phase 7 新功能 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0 新增</div>
+                    <div class="feature-icon">🛡️</div>
+                    <h3>自主运维系统 v3.3</h3>
+                    <h4>异常检测 + 告警 + 自动修复</h4>
+                    <p class="feature-desc">15个IPC处理器覆盖完整运维闭环：事件管理（检测/确认/解决）、基线监控、行动手册（创建/更新/触发）、自动修复（AutoRemediator）、版本回滚（RollbackManager）、告警配置（AlertManager）、事后复盘（Postmortem自动生成）。AI驱动的根因分析和修复决策。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔍 异常检测</span>
+                        <span class="highlight-tag">🔧 自动修复</span>
+                        <span class="highlight-tag">⏪ 版本回滚</span>
+                        <span class="highlight-tag">📋 事后复盘</span>
+                    </div>
+                </div>
+
+                <!-- Multimodal Collaboration v3.2 - Phase 7 新功能 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0 新增</div>
+                    <div class="feature-icon">🎭</div>
+                    <h3>多模态协作系统 v3.2</h3>
+                    <h4>文档/图像/音频/屏幕 全模态融合</h4>
+                    <p class="feature-desc">12个IPC处理器实现多模态输入输出一体化：模态融合引擎（ModalityFusion）、文档解析（DocumentParser，支持PDF/Word/Markdown）、多模态上下文构建、屏幕捕获（ScreenRecorder）、音频转写、富文本输出生成（MultimodalOutput）。Agent之间共享多模态上下文，协同处理复杂跨模态任务。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📄 文档解析</span>
+                        <span class="highlight-tag">🖥️ 屏幕捕获</span>
+                        <span class="highlight-tag">🎙️ 音频转写</span>
+                        <span class="highlight-tag">🖼️ 富文本输出</span>
+                    </div>
+                </div>
+
+                <!-- NL Programming v3.1 - Phase 7 新功能 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.0.0 新增</div>
+                    <div class="feature-icon">💻</div>
+                    <h3>自然语言编程系统 v3.1</h3>
+                    <h4>需求 → 代码 全流程自动化</h4>
+                    <p class="feature-desc">10个IPC处理器打通NL→代码全流程：需求解析（RequirementParser）、规格翻译（SpecTranslator，需求→技术规格→代码框架）、项目风格分析（ProjectStyleAnalyzer，学习现有代码约定）、代码验证/精炼、执行历史追踪。无需手写代码，用自然语言描述功能即可自动生成符合项目规范的实现。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📝 需求解析</span>
+                        <span class="highlight-tag">⚙️ 规格翻译</span>
+                        <span class="highlight-tag">🎨 风格学习</span>
+                        <span class="highlight-tag">✅ 代码验证</span>
+                    </div>
+                </div>
+
+                <!-- Decentralized Agent Network v4.0 - Phase 7 新功能 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0 新增</div>
+                    <div class="feature-icon">🌐</div>
+                    <h3>去中心化Agent网络 v4.0</h3>
+                    <h4>Agent DID身份 + 联邦注册 + 跨组织协作</h4>
+                    <p class="feature-desc">20个IPC处理器构建完整去中心化Agent生态：Agent DID身份（创建/解析/撤销）、联邦Agent注册表（FederatedAgentRegistry，跨节点发现与技能检索）、可验证凭证（AgentCredentialManager）、跨组织任务路由（CrossOrgTaskRouter，负载均衡+能力匹配）、Agent声誉系统（AgentReputation，行为评分+信任图谱）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔑 Agent DID</span>
+                        <span class="highlight-tag">🏛️ 联邦注册表</span>
+                        <span class="highlight-tag">🤝 跨组织路由</span>
+                        <span class="highlight-tag">⭐ 声誉系统</span>
+                    </div>
+                </div>
+
+                <!-- Pipeline Orchestration v3.0 - Phase 7 新功能 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.0.0 新增</div>
+                    <div class="feature-icon">🚀</div>
+                    <h3>AI驱动开发流水线 v3.0</h3>
+                    <h4>构建/测试/部署/监控 全生命周期管理</h4>
+                    <p class="feature-desc">15个IPC处理器实现全自动化开发流水线：流水线生命周期管理（创建/启动/暂停/恢复/取消）、人工审批门控（approve-gate/reject-gate）、制品管理、Stage详情与指标采集、部署Agent（DeployAgent，多环境自动部署）、部署后监控（PostDeployMonitor，自动回滚触发）、事后复盘（Postmortem自动生成）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚡ 全自动流水线</span>
+                        <span class="highlight-tag">🚪 审批门控</span>
+                        <span class="highlight-tag">📦 制品管理</span>
+                        <span class="highlight-tag">📊 指标采集</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 IPC Domain Split & DI Container -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.0 新增</div>
+                    <div class="feature-icon">🏗️</div>
+                    <h3>架构重构基座</h3>
+                    <h4>IPC域分割 + DI容器 + 数据库迁移框架</h4>
+                    <p class="feature-desc">IPC域分割与懒加载（10个领域文件按需加载）、共享资源层与依赖注入容器（全局缓存/事件总线/资源池/服务定位器）、数据库演进与迁移框架（版本化Schema管理+自动回滚）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📦 IPC域分割</span>
+                        <span class="highlight-tag">💉 DI容器</span>
+                        <span class="highlight-tag">🗃️ 迁移框架</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 A2A Protocol & Workflow Engine -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.0 新增</div>
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Agent 2.0</h3>
+                    <h4>A2A协议 + 工作流编排 + 层次化记忆2.0</h4>
+                    <p class="feature-desc">A2A（Agent-to-Agent）协议引擎实现跨平台Agent通信，自主工作流编排器支持复杂DAG任务拆解与并行执行，层次化记忆系统2.0（工作记忆+短期+长期+元认知），多模态感知层（视觉/听觉/文本统一理解）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔗 A2A协议</span>
+                        <span class="highlight-tag">⚙️ 工作流编排</span>
+                        <span class="highlight-tag">🧠 层次化记忆</span>
+                        <span class="highlight-tag">👁️ 多模态感知</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 Agent Economy & Code Agent 2.0 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v5.0.0 新增</div>
+                    <div class="feature-icon">💰</div>
+                    <h3>Agent经济系统</h3>
+                    <h4>代币激励 + 代码生成Agent 2.0 + 安全沙箱2.0</h4>
+                    <p class="feature-desc">Agent经济系统（任务定价/收益分配/代币激励），代码生成Agent 2.0（上下文感知+多文件重构+测试自动生成），Agent安全沙箱2.0（细粒度权限+资源限制+行为审计）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">💰 代币激励</span>
+                        <span class="highlight-tag">🧑‍💻 代码Agent</span>
+                        <span class="highlight-tag">🛡️ 安全沙箱</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 Web3 Deepening -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.0 新增</div>
+                    <div class="feature-icon">⛓️</div>
+                    <h3>Web3深化</h3>
+                    <h4>零知识证明 + 跨链桥 + DID 2.0 + DAO治理2.0</h4>
+                    <p class="feature-desc">零知识证明引擎（zk-SNARK/zk-STARK隐私验证），跨链互操作协议（多链资产桥接），去中心化身份2.0（可选择性披露+凭证聚合），隐私计算框架（联邦学习+安全多方计算），DAO治理2.0（提案/投票/执行全链上）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔐 零知识证明</span>
+                        <span class="highlight-tag">🌉 跨链桥</span>
+                        <span class="highlight-tag">🆔 DID 2.0</span>
+                        <span class="highlight-tag">🏛️ DAO治理</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 Enterprise Platform -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v5.0.0 新增</div>
+                    <div class="feature-icon">🏢</div>
+                    <h3>企业级平台</h3>
+                    <h4>低代码 + 知识图谱 + BI分析 + 多租户SaaS</h4>
+                    <p class="feature-desc">低代码平台（可视化拖拽构建应用），企业知识图谱（关系推理+智能问答），BI智能分析引擎（多维度数据洞察+自然语言查询），工作流自动化引擎（触发器+条件分支+审批流），多租户SaaS引擎（租户隔离+计费+配额管理）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎨 低代码平台</span>
+                        <span class="highlight-tag">🕸️ 知识图谱</span>
+                        <span class="highlight-tag">📊 BI分析</span>
+                        <span class="highlight-tag">☁️ 多租户SaaS</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.0 Self-Evolving AI -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v5.0.0</div>
+                    <div class="feature-icon">🧬</div>
+                    <h3>自进化AI系统</h3>
+                    <h4>统一运行时 + 智能插件2.0 + 自我进化</h4>
+                    <p class="feature-desc">统一应用运行时（跨平台热更新+性能分析器），智能插件生态2.0（插件市场+依赖解析+沙箱隔离+版本管理），自进化AI系统（模型自适应+策略进化+能力自评估+知识蒸馏）。Phase 1-102全部完成，系统具备完整自我进化能力。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔄 热更新</span>
+                        <span class="highlight-tag">🔌 插件生态2.0</span>
+                        <span class="highlight-tag">🧬 自我进化</span>
+                        <span class="highlight-tag">✅ Phase 102</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.1.8 CLI 62 Commands -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.1.8</div>
+                    <div class="feature-icon">⌨️</div>
+                    <h3>CLI 命令行工具</h3>
+                    <h4>64命令 + 5517+测试 + WebSocket服务器 + Web管理界面</h4>
+                    <p class="feature-desc">完整命令行工具包，64个命令覆盖系统管理/AI交互/知识库/安全/P2P/企业/区块链全场景。5517+测试用例保障质量，支持短别名（cc/clc/clchain），WebSocket服务器（端口18800）实现远程Agent会话，Web管理界面（端口18810）提供浏览器端AI对话。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⌨️ 64个命令</span>
+                        <span class="highlight-tag">✅ 5517+测试</span>
+                        <span class="highlight-tag">🌐 WebSocket服务</span>
+                        <span class="highlight-tag">📦 npm全球安装</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.1.8 Sub-Agent Isolation v2 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.1.8</div>
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Sub-Agent 隔离 v2</h3>
+                    <h4>安全沙箱 + 智能Agent增强</h4>
+                    <p class="feature-desc">Sub-Agent隔离v2实现完整的子Agent安全沙箱，SlotFiller智能参数填充，InteractivePlanner交互式任务规划，Agent Intelligence v2智能增强，Persona系统支持角色定制（医疗分诊/农业专家/通用助手）。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔒 安全隔离</span>
+                        <span class="highlight-tag">🧩 SlotFiller</span>
+                        <span class="highlight-tag">📋 InteractivePlanner</span>
+                        <span class="highlight-tag">🎭 Persona系统</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.1.8 EvoMap + Task Model Selector -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v5.0.1.8</div>
+                    <div class="feature-icon">🗺️</div>
+                    <h3>EvoMap + 智能选模</h3>
+                    <h4>基因交换协议 + 10个LLM提供商 + 3个代理中继</h4>
+                    <p class="feature-desc">EvoMap基因交换协议实现AI能力共享，Task Model Selector根据任务自动选择最优模型。支持10个LLM提供商（OpenAI/Anthropic/Google等）+3个代理中继，CLI-Anything集成外部工具链。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🧬 EvoMap协议</span>
+                        <span class="highlight-tag">🤖 10个LLM</span>
+                        <span class="highlight-tag">🔀 智能选模</span>
+                        <span class="highlight-tag">🔗 CLI-Anything</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- v5.0.2 新增功能 -->
+            <div class="new-features-grid" style="margin-top: 32px;">
+                <!-- v5.0.2 CLI技能包系统 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.2 最新</div>
+                    <div class="feature-icon">📦</div>
+                    <h3>CLI 技能包系统</h3>
+                    <h4>9个域技能包 · 101个测试 · Agent原生集成</h4>
+                    <p class="feature-desc">自动生成9个CLI命令域技能包（知识库/身份/AI查询/Agent/Web3/安全/企业/集成/基础设施），直接在Agent会话中通过自然语言调用任意CLI命令，npm install后自动同步。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📦 9个技能包</span>
+                        <span class="highlight-tag">🤖 Agent原生</span>
+                        <span class="highlight-tag">🔄 自动同步</span>
+                        <span class="highlight-tag">✅ 101个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.1 AI创作模板 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.2.1 最新</div>
+                    <div class="feature-icon">🎬</div>
+                    <h3>AI 创作模板</h3>
+                    <h4>AI音视频创作 + AI文档创作</h4>
+                    <p class="feature-desc">cc init --template ai-media-creator 集成ComfyUI/AnimateDiff/TTS；cc init --template ai-doc-creator 集成LibreOffice/pandoc，支持doc/xlsx/pptx智能编辑。168个测试覆盖全流程。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎥 AI音视频</span>
+                        <span class="highlight-tag">📄 AI文档创作</span>
+                        <span class="highlight-tag">🔧 LibreOffice集成</span>
+                        <span class="highlight-tag">✅ 168个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.2 Web管理界面 -->
+                <div class="new-feature-card highlight" style="border: 2px solid #00d2ff; box-shadow: 0 0 20px rgba(0,210,255,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #00d2ff, #3a7bd5);">v5.0.2.2</div>
+                    <div class="feature-icon">🖥️</div>
+                    <h3>Web 管理界面</h3>
+                    <h4>一键浏览器端 AI 对话 · 项目/全局双模式</h4>
+                    <p class="feature-desc">cc ui 一条命令在浏览器中打开完整Web管理界面。项目目录下自动加载项目上下文（AI感知代码库）；任意目录打开全局AI管理面板。支持Markdown渲染、流式输出、会话管理、Agent slot-filling。99个测试全部通过。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🌐 浏览器端UI</span>
+                        <span class="highlight-tag">📁 项目感知</span>
+                        <span class="highlight-tag">⚡ 流式输出</span>
+                        <span class="highlight-tag">✅ 99个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.9 AI编排层 -->
+                <div class="new-feature-card highlight" style="border: 2px solid #f093fb; box-shadow: 0 0 20px rgba(240,147,251,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #f093fb, #764ba2);">v5.0.2.9 ⭐最新</div>
+                    <div class="feature-icon">⚡</div>
+                    <h3>AI 编排层</h3>
+                    <h4>Claude Code / Codex / Gemini 并行执行 · CI/CD 自动验证</h4>
+                    <p class="feature-desc">cc orchestrate 让 ChainlessChain 成为 AI 编程任务编排中心：自动检测已安装 AI CLI 工具 → LLM 分解任务为子任务 → 并行分发给 Claude Code / Codex / Gemini / OpenAI / Ollama → CI/CD 自动验证（失败携带错误上下文重试）→ 结果通知到 Telegram / 企业微信 / 钉钉 / 飞书。支持从 IM 平台接收任务指令（Webhook 模式）。106个测试全部通过。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚡ 多路Agent并行</span>
+                        <span class="highlight-tag">🔄 CI/CD自动验证</span>
+                        <span class="highlight-tag">📲 IM双向集成</span>
+                        <span class="highlight-tag">✅ 106个测试</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- v5.0.2.9 新增功能 -->
+            <div class="new-features-grid" style="margin-top: 32px;">
+                <!-- v5.0.2.9 Hashline 哈希锚定编辑 -->
+                <div class="new-feature-card highlight" style="border: 2px solid #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #00ff88, #00b4d8);">v5.0.2.9 ⭐最新</div>
+                    <div class="feature-icon">🔗</div>
+                    <h3>Hashline 哈希锚定编辑</h3>
+                    <h4>内容哈希替代行号 · 抗格式化漂移 · 三层自愈</h4>
+                    <p class="feature-desc">借鉴 oh-my-openagent 的 Hashline 设计，用 SHA256 内容哈希锚定行位置替代脆弱的行号定位。.trim() 使哈希对缩进不敏感，hash_mismatch / ambiguous_anchor / content_mismatch 三种错误返回实现自愈。41个测试全部通过。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🔗 哈希锚定</span>
+                        <span class="highlight-tag">🛡️ 三层自愈</span>
+                        <span class="highlight-tag">📝 抗漂移</span>
+                        <span class="highlight-tag">✅ 41个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.9 Hooks三件套 + Skill-Embedded MCP -->
+                <div class="new-feature-card highlight" style="border: 2px solid #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #00ff88, #00b4d8);">v5.0.2.9 ⭐最新</div>
+                    <div class="feature-icon">🪝</div>
+                    <h3>Hooks 三件套 + Skill-Embedded MCP</h3>
+                    <h4>会话级钩子触发 · 技能内联 MCP 服务器</h4>
+                    <p class="feature-desc">SessionStart/UserPromptSubmit/SessionEnd 三个会话级钩子在 agent-repl.js 中触发，fire-and-forget 不中断 REPL。Skill-Embedded MCP 允许技能在 SKILL.md 中声明 MCP 服务器，运行时按需 mount/unmount，解决工具爆炸问题。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🪝 会话钩子</span>
+                        <span class="highlight-tag">🔌 技能内联MCP</span>
+                        <span class="highlight-tag">⚡ 按需挂载</span>
+                        <span class="highlight-tag">✅ 47个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.9 Category Routing + Canonical Tool Descriptor -->
+                <div class="new-feature-card highlight" style="border: 2px solid #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #00ff88, #00b4d8);">v5.0.2.9 ⭐最新</div>
+                    <div class="feature-icon">🧭</div>
+                    <h3>Category Routing + 工具描述规范</h3>
+                    <h4>5类别 LLM 智能路由 · inputSchema 统一真源</h4>
+                    <p class="feature-desc">Category Routing 将技能分为 quick/deep/reasoning/vision/creative 5个类别，根据用户已配置的 LLM provider 自动选择最优模型。Canonical Tool Descriptor 统一 CLI/Desktop/Renderer/MCP 四端工具定义，inputSchema 为真源，parameters 只读镜像。Sub-Runtime Pool 实现 Electron 主进程子运行时 spawn。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🧭 类别路由</span>
+                        <span class="highlight-tag">📐 工具规范统一</span>
+                        <span class="highlight-tag">🏊 子运行时池</span>
+                        <span class="highlight-tag">✅ 120+测试</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更新日志链接 -->
+            <div class="features-cta">
+                <a href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" class="btn-features-outline">
+                    查看完整更新日志 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack -->
+    <section class="tech-stack">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">技术架构</h2>
+                <p class="section-subtitle">现代化的技术栈，保障系统稳定可靠</p>
+            </div>
+            <div class="tech-categories">
+                <div class="tech-category">
+                    <h3>前端技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Electron 39.2.7</span>
+                        <span class="tech-tag">Vue 3.4</span>
+                        <span class="tech-tag">TypeScript</span>
+                        <span class="tech-tag">Ant Design Vue 4.1</span>
+                        <span class="tech-tag">Pinia 2.1.7</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>后端技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Node.js</span>
+                        <span class="tech-tag">SQLCipher</span>
+                        <span class="tech-tag">Spring Boot 3.1.11</span>
+                        <span class="tech-tag">FastAPI</span>
+                        <span class="tech-tag">Ollama</span>
+                        <span class="tech-tag">Qdrant</span>
+                        <span class="tech-tag">PostgreSQL 16</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>安全技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">U盾</span>
+                        <span class="tech-tag">SIMKey</span>
+                        <span class="tech-tag">SM2国密</span>
+                        <span class="tech-tag">RSA 2048</span>
+                        <span class="tech-tag">AES-256</span>
+                        <span class="tech-tag">Signal Protocol</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>区块链技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Hardhat</span>
+                        <span class="tech-tag">Solidity</span>
+                        <span class="tech-tag">Ethers.js</span>
+                        <span class="tech-tag">MetaMask</span>
+                        <span class="tech-tag">WalletConnect</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scenarios Section -->
+    <section id="scenarios" class="scenarios">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">应用场景</h2>
+                <p class="section-subtitle">覆盖多个垂直领域，满足不同行业需求</p>
+            </div>
+            <div class="scenarios-grid">
+                <div class="scenario-card" id="scenario-healthcare">
+                    <div class="scenario-icon">🏥</div>
+                    <h3>医疗健康</h3>
+                    <p>医生病历管理、患者健康档案、医疗知识库，确保敏感医疗数据安全</p>
+                    <a href="#contact" class="scenario-link">咨询医疗解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">🏢</div>
+                    <h3>企业办公</h3>
+                    <p>企业文档管理、项目协作、知识沉淀，提升团队协作效率</p>
+                    <a href="#contact" class="scenario-link">咨询企业解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">💼</div>
+                    <h3>中小企业</h3>
+                    <p>供应链管理、客户关系、交易撮合，降低运营成本</p>
+                    <a href="#contact" class="scenario-link">咨询交易解决方案 →</a>
+                </div>
+                <div class="scenario-card" id="scenario-education">
+                    <div class="scenario-icon">📚</div>
+                    <h3>教育学习</h3>
+                    <p>个人笔记管理、学习资料整理、AI辅助学习，提升学习效率</p>
+                    <a href="#download" class="scenario-link">立即下载试用 →</a>
+                </div>
+                <div class="scenario-card" id="scenario-legal">
+                    <div class="scenario-icon">⚖️</div>
+                    <h3>法律咨询</h3>
+                    <p>案例管理、法律文书、客户隐私保护，专业可靠</p>
+                    <a href="#contact" class="scenario-link">咨询法律解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">💡</div>
+                    <h3>创新研发</h3>
+                    <p>技术文档、研发笔记、专利管理，保护知识产权</p>
+                    <a href="#download" class="scenario-link">立即下载试用 →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2 class="section-title">关于我们</h2>
+                    <p class="about-description">
+                        ChainlessChain（无链之链）致力于打造安全可信的个人AI生态系统。
+                        我们相信数据主权应该回归个人，AI应该为每个人服务。
+                    </p>
+                    <p class="about-description">
+                        通过创新的硬件加密技术和本地AI部署方案，我们为用户提供了
+                        既安全又高效的数字化解决方案。我们的产品已获得4项发明专利，
+                        并通过了多项行业认证。
+                    </p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <span class="about-feature-icon">🏆</span>
+                            <div>
+                                <h4>4项专利技术</h4>
+                                <p>核心技术获国家发明专利保护</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <span class="about-feature-icon">✅</span>
+                            <div>
+                                <h4>行业认证</h4>
+                                <p>通过等保三级等多项安全认证</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <span class="about-feature-icon">📋</span>
+                            <div>
+                                <h4>人工智能团体标准参编单位</h4>
+                                <p>参与制定中国移动通信联合会团体标准《人工智能 智能体内生安全技术要求》（T/ZGCMCA 023—2025），与中国信息通信研究院等机构联合起草，共同推动 AI 智能体安全技术规范化发展。<a href="https://www.ttbz.org.cn/StandardManage/Detail/162166/" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">查看标准详情 →</a></p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <span class="about-feature-icon">🌐</span>
+                            <div>
+                                <h4>开源生态</h4>
+                                <p>MIT协议开源，GitHub 10k+ Star</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="about-stats-card">
+                        <div class="stat-row">
+                            <span class="stat-value">2024</span>
+                            <span class="stat-desc">成立年份</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-value">10k+</span>
+                            <span class="stat-desc">用户选择</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-value">99.9%</span>
+                            <span class="stat-desc">系统稳定性</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section - 优化版 -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">联系我们</h2>
+                <p class="section-subtitle">我们期待与您交流合作</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>联系方式</h3>
+                    <div class="contact-items">
+                        <div class="contact-item">
+                            <span class="contact-icon">📞</span>
+                            <div>
+                                <h4>客服热线（推荐）</h4>
+                                <a href="tel:400-1068-687" class="contact-phone">400-1068-687</a>
+                                <p style="font-size: 12px; color: #999;">工作日 9:00-18:00，1分钟快速响应</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">📧</span>
+                            <div>
+                                <h4>电子邮件</h4>
+                                <a href="mailto:zhanglongfa@chainlesschain.com">zhanglongfa@chainlesschain.com</a>
+                                <p style="font-size: 12px; color: #999;">24小时内回复</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">📍</span>
+                            <div>
+                                <h4>公司地址</h4>
+                                <p style="font-size: 14px; line-height: 1.6;">中国（福建）自由贸易试验区厦门片区象屿路93号<br>厦门国际航运中心C栋4层431单元H</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">💬</span>
+                            <div>
+                                <h4>企业微信</h4>
+                                <p>扫码添加企业微信客服</p>
+                                <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" rel="noopener">添加企业微信 →</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon"></span>
+                            <div>
+                                <h4>GitHub</h4>
+                                <a href="https://github.com/chainlesschain" target="_blank" rel="noopener">github.com/chainlesschain</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="social-links">
+                        <a href="#" class="social-link">微博</a>
+                        <a href="#" class="social-link">知乎</a>
+                        <a href="#" class="social-link">B站</a>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <h3>发送消息</h3>
+                    <p class="form-note">1个工作日内回复</p>
+                    <form id="contactForm" onsubmit="return handleFormSubmit(event)">
+                        <div class="form-group">
+                            <label for="name">您的姓名 *</label>
+                            <input type="text" id="name" name="name" placeholder="张三" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">联系电话 *</label>
+                            <input type="tel" id="phone" name="phone" placeholder="138xxxx8888" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">您的邮箱</label>
+                            <input type="email" id="email" name="email" placeholder="zhangsan@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">您的消息 *</label>
+                            <textarea id="message" name="message" placeholder="请描述您的需求..." rows="5" required></textarea>
+                        </div>
+
+                        <!-- 新增：隐私承诺 -->
+                        <div class="form-privacy">
+                            <label>
+                                <input type="checkbox" required>
+                                我已阅读并同意<a href="/privacy.html" target="_blank">隐私政策</a>。ChainlessChain承诺不会向第三方泄露您的信息。
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-submit">发送消息</button>
+                    </form>
+
+                    <!-- 新增：替代联系方式 -->
+                    <div class="form-alternative">
+                        <p>着急？直接致电：</p>
+                        <a href="tel:400-1068-687" class="btn-phone-alt">📞 400-1068-687</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <span class="logo-icon"></span>
+                        <span class="logo-text">无链之链</span>
+                    </div>
+                    <p class="footer-description">
+                        让数据主权回归个人<br>
+                        AI效率触手可及
+                    </p>
+                    <p class="footer-company">
+                        厦门无链之链科技有限公司
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h4>产品</h4>
+                    <ul class="footer-links">
+                        <li><a href="products/knowledge-base.html">AI知识库</a></li>
+                        <li><a href="products/enterprise.html">企业版</a></li>
+                        <li><a href="products/project-management.html">AI项目管理</a></li>
+                        <li><a href="products/social.html">去中心化社交</a></li>
+                        <li><a href="products/trading.html">AI辅助交易</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>技术</h4>
+                    <ul class="footer-links">
+                        <li><a href="technology/technical-docs.html">技术文档</a></li>
+                        <li><a href="technology/evomap.html">EvoMap GEP协议</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener">系统设计</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener">README</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" target="_blank" rel="noopener">API文档</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>资源</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://forum.chainlesschain.com" target="_blank" rel="noopener">社区论坛</a></li>
+                        <li><a href="#download">软件下载</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" target="_blank" rel="noopener">开发文档</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关于</h4>
+                    <ul class="footer-links">
+                        <li><a href="#about">关于我们</a></li>
+                        <li><a href="#contact">联系我们</a></li>
+                        <li><a href="https://github.com/chainlesschain" target="_blank" rel="noopener">GitHub</a></li>
+                        <li><a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener">Gitee</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>联系方式</h4>
+                    <ul class="footer-links">
+                        <li><a href="tel:400-1068-687">📞 400-1068-687</a></li>
+                        <li><a href="mailto:zhanglongfa@chainlesschain.com">📧 联系邮箱</a></li>
+                        <li>工作日 9:00-18:00</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 厦门无链之链科技有限公司 版权所有</p>
+                <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color: rgba(255, 255, 255, 0.5); text-decoration: none;">闽ICP备2025105973号-1</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 移动端浮动联系按钮 -->
+    <a href="tel:400-1068-687" class="mobile-contact-btn" aria-label="拨打电话">📞</a>
+
+    <!-- 延迟加载JS -->
+    <script src="js/main.js" defer></script>
+
+    <!-- 百度统计 -->
+    <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?701abdeb98b4b1ae8e652de15f95fa93"; // 替换为实际的百度统计ID
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+
+    // 转化事件跟踪函数
+    function trackEvent(category, action, label) {
+        if (typeof _hmt !== 'undefined') {
+            _hmt.push(['_trackEvent', category, action, label]);
+        }
+    }
+
+    function trackDownload(platform) {
+        trackEvent('download', 'click', platform);
+    }
+
+    function scrollToDownload() {
+        document.getElementById('download').scrollIntoView({ behavior: 'smooth' });
+        trackEvent('cta', 'click', 'download');
+    }
+
+    function contact(product) {
+        document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        trackEvent('cta', 'click', 'contact_' + product);
+    }
+
+    function learnMore(product) {
+        trackEvent('product', 'learn_more', product);
+        // 跳转到产品详情页
+        const pages = {
+            'knowledge-base': 'products/knowledge-base.html',
+            'social': 'products/social.html',
+            'trading': 'products/trading.html'
+        };
+        if (pages[product]) {
+            window.location.href = pages[product];
+        }
+    }
+
+    function openDemo() {
+        trackEvent('cta', 'click', 'demo_video');
+        // 跳转到演示页面
+        window.location.href = 'demo.html';
+    }
+
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        trackEvent('form', 'submit', 'contact');
+
+        // 获取表单数据
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData);
+
+        // 这里可以添加实际的表单提交逻辑（发送到后端API）
+        console.log('Form submitted:', data);
+
+        // 显示成功消息
+        alert('感谢您的咨询！我们将在1个工作日内与您联系。');
+        event.target.reset();
+
+        return false;
+    }
+
+    function notifyMe(platform) {
+        trackEvent('notify', 'click', platform);
+        const email = prompt('请输入您的邮箱，我们将在' + platform + '版本上线时通知您：');
+        if (email) {
+            // 保存到后端（待实现）
+            alert('谢谢！我们会在上线时第一时间通知您。');
+        }
+    }
+
+    // 检测操作系统
+    function detectOS() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        let os = 'Unknown';
+
+        if (userAgent.indexOf('win') > -1) {
+            os = 'Windows';
+        } else if (userAgent.indexOf('mac') > -1) {
+            os = 'macOS';
+        } else if (userAgent.indexOf('linux') > -1) {
+            os = 'Linux';
+        } else if (userAgent.indexOf('android') > -1) {
+            os = 'Android';
+        } else if (userAgent.indexOf('iphone') > -1 || userAgent.indexOf('ipad') > -1) {
+            os = 'iOS';
+        }
+
+        const osElement = document.getElementById('detectedOS');
+        if (osElement) {
+            osElement.textContent = os;
+        }
+
+        return os;
+    }
+
+    function downloadForOS() {
+        const os = detectOS();
+        trackEvent('download', 'quick_download', os);
+
+        // 根据操作系统跳转到对应下载链接
+        const downloadLinks = {
+            'Windows': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'macOS': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'Linux': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'Android': 'https://github.com/chainlesschain/chainlesschain/releases/latest'
+        };
+
+        const link = downloadLinks[os] || 'https://github.com/chainlesschain/chainlesschain/releases/latest';
+        window.open(link, '_blank');
+    }
+
+    // 页面加载时检测操作系统
+    document.addEventListener('DOMContentLoaded', function() {
+        detectOS();
+    });
+
+    // 图片懒加载完成后添加 loaded 类
+    window.addEventListener('load', function() {
+        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+        lazyImages.forEach(function(img) {
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                img.addEventListener('load', function() {
+                    this.classList.add('loaded');
+                });
+            }
+        });
+    });
+
+    // 导航栏滚动效果 - 优化版（移除频繁刷新）
+    let scrollTimeout;
+    window.addEventListener('scroll', function() {
+        // 使用防抖，避免过度触发
+        if (scrollTimeout) {
+            window.cancelAnimationFrame(scrollTimeout);
+        }
+
+        scrollTimeout = window.requestAnimationFrame(function() {
+            const navbar = document.getElementById('navbar');
+
+            if (navbar) {
+                // 只添加/移除class，不强制刷新所有样式
+                if (window.scrollY > 50) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            }
+        });
+    });
+
+    // 滚动到视口时的动画效果
+    function handleScrollAnimations() {
+        const elements = document.querySelectorAll('.product-card, .feature-item, .scenario-card, .download-card, .version-card');
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        elements.forEach(function(element) {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(element);
+        });
+    }
+
+    // 页面加载完成后初始化滚动动画
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', handleScrollAnimations);
+    } else {
+        handleScrollAnimations();
+    }
+    </script>
+
+    <!-- 页面加载动画JS -->
+    <script src="js/loading.js"></script>
+</body>
+</html>

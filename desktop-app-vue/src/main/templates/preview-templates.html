@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChainlessChain 项目模板预览</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f7fa;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a202c;
+      margin-bottom: 10px;
+      font-size: 36px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+
+    .stats {
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+
+    .template-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .template-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .template-preview {
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .template-icon {
+      font-size: 72px;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .template-category {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .template-info {
+      padding: 20px;
+    }
+
+    .template-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .template-description {
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .template-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #a0aec0;
+    }
+
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .tag {
+      padding: 4px 10px;
+      background: #edf2f7;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #4a5568;
+    }
+
+    /* 分类渐变色 */
+    .writing { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .ppt { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .excel { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .web { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .resume { background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%); }
+    .research { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .marketing { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+    .design { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+    .podcast { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+    .education { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+    .lifestyle { background: linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 ChainlessChain 项目模板库</h1>
+    <p class="subtitle">一键生成专业文档、网站、数据分析表格等项目</p>
+    <div class="stats" id="stats"></div>
+
+    <div class="templates-grid" id="templates-grid"></div>
+  </div>
+
+  <script>
+    const templates = [
+      {
+        id: "tpl_writing_office_work_report_001",
+        name: "office_work_report",
+        displayName: "5分钟企业工作汇报",
+        description: "适用于企业内部工作汇报，支持安全、季度总结、项目进展等多种场景",
+        icon: "📝",
+        category: "writing",
+        subcategory: "office",
+        tags: ["办公", "汇报", "总结", "企业"],
+        projectType: "document",
+        variableCount: 8
+      },
+      {
+        id: "tpl_ppt_product_launch_001",
+        name: "product_launch_presentation",
+        displayName: "产品发布会PPT",
+        description: "适用于新产品发布演示，包含产品介绍、功能亮点、市场定位等内容",
+        icon: "🚀",
+        category: "ppt",
+        subcategory: "business",
+        tags: ["产品", "发布会", "演示", "商业"],
+        projectType: "document",
+        variableCount: 7
+      },
+      {
+        id: "tpl_web_landing_page_001",
+        name: "product_landing_page",
+        displayName: "产品营销落地页",
+        description: "现代化的产品落地页网站，包含Hero区、功能介绍、客户评价、CTA等模块",
+        icon: "🌐",
+        category: "web",
+        subcategory: "marketing",
+        tags: ["网页", "落地页", "营销", "产品"],
+        projectType: "web",
+        variableCount: 5
+      },
+      {
+        id: "tpl_excel_project_gantt_001",
+        name: "project_gantt_chart",
+        displayName: "施工项目甘特图",
+        description: "用于项目进度管理的甘特图表格，支持任务分解、时间规划、资源分配",
+        icon: "📊",
+        category: "excel",
+        subcategory: "planning",
+        tags: ["项目管理", "甘特图", "进度", "规划"],
+        projectType: "data",
+        variableCount: 6
+      },
+      {
+        id: "tpl_resume_tech_001",
+        name: "tech_professional_resume",
+        displayName: "技术岗位简历",
+        description: "适用于软件工程师、产品经理等技术岗位的专业简历模板",
+        icon: "💼",
+        category: "resume",
+        subcategory: "tech",
+        tags: ["简历", "技术", "求职", "IT"],
+        projectType: "document",
+        variableCount: 5
+      },
+      {
+        id: "tpl_marketing_social_001",
+        name: "social_media_content_plan",
+        displayName: "自媒体内容创作计划",
+        description: "30天自媒体内容规划，包含选题、脚本、发布时间等完整方案",
+        icon: "📱",
+        category: "marketing",
+        subcategory: "social",
+        tags: ["自媒体", "内容营销", "社交媒体", "运营"],
+        projectType: "document",
+        variableCount: 5
+      },
+      {
+        id: "tpl_research_market_001",
+        name: "market_research_report",
+        displayName: "市场调研分析报告",
+        description: "深度市场调研报告，包含行业分析、竞品研究、用户画像等内容",
+        icon: "📈",
+        category: "research",
+        subcategory: "market",
+        tags: ["市场调研", "分析报告", "商业", "研究"],
+        projectType: "document",
+        variableCount: 6
+      },
+      {
+        id: "tpl_design_poster_001",
+        name: "event_poster_design",
+        displayName: "活动海报设计方案",
+        description: "为线上/线下活动设计宣传海报，提供设计方案和文案建议",
+        icon: "🎨",
+        category: "design",
+        subcategory: "graphic",
+        tags: ["设计", "海报", "活动", "宣传"],
+        projectType: "document",
+        variableCount: 7
+      },
+      {
+        id: "tpl_writing_office_training_002",
+        name: "employee_training_plan",
+        displayName: "员工入职培训方案",
+        description: "为新员工制定系统化的培训计划，包含培训目标、内容、时间安排等",
+        icon: "👥",
+        category: "writing",
+        subcategory: "office",
+        tags: ["培训", "入职", "人力资源", "办公"],
+        projectType: "document",
+        variableCount: 6
+      },
+      {
+        id: "tpl_podcast_interview_001",
+        name: "interview_podcast_script",
+        displayName: "访谈类播客脚本",
+        description: "为访谈类播客节目生成完整脚本，包含开场白、提问大纲、互动环节和结尾",
+        icon: "🎙️",
+        category: "podcast",
+        subcategory: "interview",
+        tags: ["播客", "访谈", "脚本", "内容创作"],
+        projectType: "document",
+        variableCount: 9
+      },
+      {
+        id: "tpl_podcast_storytelling_002",
+        name: "storytelling_podcast_script",
+        displayName: "故事叙述类播客脚本",
+        description: "生成故事叙述类播客脚本，适用于历史故事、真实案例、悬疑推理等内容",
+        icon: "📖",
+        category: "podcast",
+        subcategory: "storytelling",
+        tags: ["播客", "故事", "叙述", "脚本"],
+        projectType: "document",
+        variableCount: 10
+      },
+      {
+        id: "tpl_education_course_001",
+        name: "online_course_outline",
+        displayName: "在线课程大纲设计",
+        description: "为在线课程设计完整的课程大纲，包含章节规划、知识点拆解、作业设计等",
+        icon: "📚",
+        category: "education",
+        subcategory: "course",
+        tags: ["在线课程", "教学设计", "课程大纲", "教育"],
+        projectType: "document",
+        variableCount: 12
+      },
+      {
+        id: "tpl_education_lesson_002",
+        name: "lesson_plan_design",
+        displayName: "单次课程教案设计",
+        description: "设计单次课程的详细教案，包含教学目标、教学流程、互动环节、课后作业等",
+        icon: "✏️",
+        category: "education",
+        subcategory: "lesson",
+        tags: ["教案", "教学设计", "课程设计", "教育"],
+        projectType: "document",
+        variableCount: 12
+      },
+      {
+        id: "tpl_lifestyle_travel_001",
+        name: "travel_guide_plan",
+        displayName: "深度旅行攻略",
+        description: "生成详细的旅行攻略，包含景点推荐、行程规划、美食住宿、预算估算等",
+        icon: "✈️",
+        category: "lifestyle",
+        subcategory: "travel",
+        tags: ["旅行", "攻略", "行程规划", "生活"],
+        projectType: "document",
+        variableCount: 8
+      },
+      {
+        id: "tpl_lifestyle_wellness_002",
+        name: "wellness_lifestyle_plan",
+        displayName: "个人健康管理计划",
+        description: "制定个性化的健康管理计划，包含饮食、运动、作息、心理健康等全方位指导",
+        icon: "🏃",
+        category: "lifestyle",
+        subcategory: "wellness",
+        tags: ["健康", "生活方式", "健身", "饮食"],
+        projectType: "document",
+        variableCount: 8
+      }
+    ];
+
+    const categoryNames = {
+      writing: "办公文档",
+      ppt: "演示文稿",
+      excel: "数据表格",
+      web: "网站开发",
+      resume: "简历模板",
+      research: "研究报告",
+      marketing: "营销策划",
+      design: "设计方案",
+      podcast: "播客脚本",
+      education: "在线教育",
+      lifestyle: "生活方式"
+    };
+
+    function renderTemplates() {
+      const grid = document.getElementById('templates-grid');
+      const totalVariables = templates.reduce((sum, t) => sum + t.variableCount, 0);
+      const avgVariables = (totalVariables / templates.length).toFixed(1);
+
+      document.getElementById('stats').innerHTML = `
+        共 <strong>${templates.length}</strong> 个模板 |
+        平均 <strong>${avgVariables}</strong> 个可配置变量 |
+        覆盖 <strong>${Object.keys(categoryNames).length}</strong> 个业务场景
+      `;
+
+      templates.forEach(template => {
+        const card = document.createElement('div');
+        card.className = 'template-card';
+        card.innerHTML = `
+          <div class="template-preview ${template.category}">
+            <div class="template-icon">${template.icon}</div>
+            <div class="template-category">${categoryNames[template.category]}</div>
+          </div>
+          <div class="template-info">
+            <div class="template-name">${template.displayName}</div>
+            <div class="template-description">${template.description}</div>
+            <div class="template-meta">
+              <span class="meta-item">🔧 ${template.variableCount} 个变量</span>
+              <span class="meta-item">📦 ${template.projectType}</span>
+            </div>
+            <div class="tags">
+              ${template.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    renderTemplates();
+  </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业微信二维码生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #1890ff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #f7f9fc;
+            border-left: 4px solid #1890ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+        }
+        .info-box h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .info-box p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 5px 0;
+        }
+        .qr-url {
+            background: #e6f7ff;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            border: 1px solid #91d5ff;
+        }
+        .qr-preview {
+            text-align: center;
+            padding: 30px;
+            background: #fafafa;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .qr-preview h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .qr-preview img {
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(24,144,255,0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+            color: white;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(82,196,26,0.4);
+        }
+        .size-options {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .size-btn {
+            padding: 8px 16px;
+            border: 2px solid #1890ff;
+            background: white;
+            color: #1890ff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .size-btn.active,
+        .size-btn:hover {
+            background: #1890ff;
+            color: white;
+        }
+        .tips {
+            background: #fff7e6;
+            border-left: 4px solid #faad14;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 25px;
+        }
+        .tips h4 {
+            color: #d48806;
+            margin-bottom: 10px;
+        }
+        .tips ul {
+            margin-left: 20px;
+            color: #666;
+        }
+        .tips li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 企业微信二维码生成器</h1>
+        <p class="subtitle">ChainlessChain 官方企业微信客服</p>
+
+        <div class="info-box">
+            <h3>企业微信链接</h3>
+            <div class="qr-url">https://work.weixin.qq.com/ca/cawcde653996f7ecb2</div>
+            <p><strong>功能：</strong>扫码直接添加企业微信客服，获取技术支持和商务咨询</p>
+        </div>
+
+        <div class="size-options">
+            <button class="size-btn" onclick="changeSize(150)">150×150</button>
+            <button class="size-btn active" onclick="changeSize(200)">200×200</button>
+            <button class="size-btn" onclick="changeSize(300)">300×300</button>
+            <button class="size-btn" onclick="changeSize(400)">400×400</button>
+        </div>
+
+        <div class="qr-preview">
+            <h3>二维码预览</h3>
+            <img id="qrImage"
+                 src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://work.weixin.qq.com/ca/cawcde653996f7ecb2"
+                 alt="企业微信二维码"
+                 width="200"
+                 height="200">
+            <p style="margin-top: 15px; color: #666;">扫码添加企业微信客服</p>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="downloadQR()">💾 下载二维码</button>
+            <a class="btn btn-success" href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank">🔗 测试链接</a>
+        </div>
+
+        <div class="tips">
+            <h4>💡 使用说明</h4>
+            <ul>
+                <li>选择合适的尺寸（推荐200×200或300×300）</li>
+                <li>点击"下载二维码"保存到本地</li>
+                <li>将图片上传至 <code>images/qr/wechat-enterprise.png</code></li>
+                <li>或直接使用在线二维码API（已集成在网站中）</li>
+                <li>测试链接确认二维码可正常跳转</li>
+            </ul>
+        </div>
+
+        <div class="info-box" style="margin-top: 25px;">
+            <h3>📝 集成状态</h3>
+            <p>✅ 顶部联系栏已集成（悬停显示二维码）</p>
+            <p>✅ 使用在线API自动生成，无需手动上传</p>
+            <p>✅ 点击可直接跳转企业微信添加页面</p>
+            <p>✅ 包含备用SVG占位图（网络异常时显示）</p>
+        </div>
+    </div>
+
+    <script>
+        let currentSize = 200;
+
+        function changeSize(size) {
+            currentSize = size;
+            const qrImage = document.getElementById('qrImage');
+            qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=https://work.weixin.qq.com/ca/cawcde653996f7ecb2`;
+            qrImage.width = size;
+            qrImage.height = size;
+
+            // 更新按钮状态
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function downloadQR() {
+            const link = document.createElement('a');
+            link.href = `https://api.qrserver.com/v1/create-qr-code/?size=${currentSize}x${currentSize}&data=https://work.weixin.qq.com/ca/cawcde653996f7ecb2&format=png`;
+            link.download = `wechat-enterprise-qr-${currentSize}x${currentSize}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 显示成功提示
+            alert(`✅ 二维码下载成功！\n尺寸：${currentSize}×${currentSize}\n文件名：wechat-enterprise-qr-${currentSize}x${currentSize}.png`);
+        }
+
+        // 页面加载时显示提示
+        window.addEventListener('load', function() {
+            console.log('%c 企业微信二维码生成器 ', 'background: #1890ff; color: white; padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: bold;');
+            console.log('%c 企业微信链接: https://work.weixin.qq.com/ca/cawcde653996f7ecb2 ', 'color: #52c41a; font-size: 12px;');
+        });
+    </script>
+</body>
+</html>

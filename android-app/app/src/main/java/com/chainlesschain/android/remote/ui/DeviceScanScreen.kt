@@ -1,0 +1,392 @@
+﻿package com.chainlesschain.android.remote.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.NetworkCheck
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
+import kotlinx.coroutines.delay
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceScanScreen(
+    onNavigateBack: () -> Unit = {},
+    onDeviceSelected: (String, String) -> Unit = { _, _ -> },
+    viewModel: DeviceScanViewModel = hiltViewModel()
+) {
+    var isScanning by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
+    val discoveredDevices = uiState.discoveredDevices
+
+    var showRegisterDialog by remember { mutableStateOf(false) }
+    var selectedDevice by remember { mutableStateOf<DiscoveredDevice?>(null) }
+    var showDebugDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isScanning) {
+        if (isScanning) {
+            delay(1500)
+            viewModel.discoverDevices()
+            isScanning = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.device_scan_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
+                },
+                actions = {
+                    // 调试信息按钮
+                    if (uiState.lastScanDebugInfo.isNotBlank()) {
+                        IconButton(onClick = { showDebugDialog = true }) {
+                            Icon(Icons.Default.NetworkCheck, contentDescription = stringResource(R.string.device_scan_debug_info))
+                        }
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            ScanStatusCard(
+                isScanning = isScanning,
+                deviceCount = discoveredDevices.size,
+                onStartScan = { isScanning = true }
+            )
+
+            if (discoveredDevices.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.rs_devscan_discovered_count_fmt, discoveredDevices.size),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(16.dp)
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(discoveredDevices) { device ->
+                        DiscoveredDeviceItem(
+                            device = device,
+                            onClick = {
+                                timber.log.Timber.i("========================================")
+                                timber.log.Timber.i("[DeviceScan] 点击设备: ${device.deviceName}")
+                                timber.log.Timber.i("[DeviceScan] peerId: ${device.peerId}")
+                                timber.log.Timber.i("[DeviceScan] isRegistered: ${device.isRegistered}")
+                                timber.log.Timber.i("========================================")
+                                if (device.isRegistered) {
+                                    timber.log.Timber.i("[DeviceScan] 设备已注册，导航到远程控制页面")
+                                    onDeviceSelected(device.peerId, device.did)
+                                } else {
+                                    timber.log.Timber.i("[DeviceScan] 设备未注册，显示注册对话框")
+                                    selectedDevice = device
+                                    showRegisterDialog = true
+                                }
+                            }
+                        )
+                    }
+                }
+            } else if (!isScanning) {
+                EmptyScanState()
+            }
+        }
+    }
+
+    val deviceToRegister = selectedDevice
+    if (showRegisterDialog && deviceToRegister != null) {
+        RegisterDeviceDialog(
+            device = deviceToRegister,
+            onDismiss = {
+                showRegisterDialog = false
+                selectedDevice = null
+            },
+            onConfirm = { deviceName ->
+                val target = selectedDevice ?: return@RegisterDeviceDialog
+                timber.log.Timber.i("[DeviceScan] 注册设备: $deviceName -> ${target.peerId}")
+                viewModel.registerDevice(target, deviceName) {
+                    timber.log.Timber.i("[DeviceScan] 注册完成，导航到远程控制: ${target.peerId}")
+                    onDeviceSelected(target.peerId, target.did)
+                }
+                showRegisterDialog = false
+                selectedDevice = null
+            }
+        )
+    }
+
+    // 调试信息对话框
+    if (showDebugDialog) {
+        AlertDialog(
+            onDismissRequest = { showDebugDialog = false },
+            title = { Text(stringResource(R.string.device_scan_debug_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = uiState.lastScanDebugInfo.ifBlank { stringResource(R.string.rs_devscan_no_debug_info) },
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDebugDialog = false }) {
+                    Text(stringResource(R.string.common_close))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ScanStatusCard(
+    isScanning: Boolean,
+    deviceCount: Int,
+    onStartScan: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isScanning) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (isScanning) stringResource(R.string.rs_devscan_scanning_title) else stringResource(R.string.rs_devscan_ready_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (isScanning) stringResource(R.string.rs_devscan_searching_lan)
+                else stringResource(R.string.rs_devscan_tap_button_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
+            )
+            if (!isScanning && deviceCount > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.rs_devscan_found_count_fmt, deviceCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onStartScan,
+                enabled = !isScanning,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isScanning) stringResource(R.string.device_scan_scanning) else stringResource(R.string.device_scan_start))
+            }
+        }
+    }
+}
+
+@Composable
+fun DiscoveredDeviceItem(
+    device: DiscoveredDevice,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Computer, contentDescription = null)
+            }
+            Spacer(modifier = Modifier.size(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(device.deviceName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.NetworkCheck,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.size(4.dp))
+                    Text(
+                        text = device.ipAddress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (device.isRegistered) {
+                Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFF4CAF50).copy(alpha = 0.15f)) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text(stringResource(R.string.device_scan_registered), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                    }
+                }
+            } else {
+                Icon(Icons.Default.ChevronRight, contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyScanState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.SearchOff,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(stringResource(R.string.device_scan_no_devices), style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.rs_devscan_ensure_same_lan),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun RegisterDeviceDialog(
+    device: DiscoveredDevice,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var deviceName by remember { mutableStateOf(device.deviceName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.device_scan_register_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.device_scan_register_hint))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = deviceName,
+                    onValueChange = { deviceName = it },
+                    label = { Text(stringResource(R.string.device_scan_device_name)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(stringResource(R.string.rs_devscan_ip_fmt, device.ipAddress), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(deviceName) }, enabled = deviceName.isNotBlank()) {
+                Text(stringResource(R.string.device_scan_register))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        }
+    )
+}
+
+data class DiscoveredDevice(
+    val peerId: String,
+    val deviceName: String,
+    val ipAddress: String,
+    val did: String = "did:key:$peerId",
+    val isRegistered: Boolean = false
+)

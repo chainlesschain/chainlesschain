@@ -1,0 +1,42 @@
+{
+  "id": "tpl_resume_coverletter_001",
+  "name": "cover_letter",
+  "display_name": "求职信生成器",
+  "description": "生成个性化求职信，突出个人优势和岗位匹配度",
+  "icon": "✉️",
+  "category": "resume",
+  "subcategory": "cover-letter",
+  "tags": ["求职信", "简历", "求职", "职业"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成求职信：\n\n**个人信息：**\n- 姓名：{{name}}\n- 应聘岗位：{{position}}\n- 公司名称：{{company}}\n- 个人优势：{{strengths}}\n\n尊敬的{{company}}招聘负责人：\n\n您好！我是{{name}}，{{intro}}。\n\n{{bodyParagraph1}}\n\n{{bodyParagraph2}}\n\n{{bodyParagraph3}}\n\n期待您的回复！\n\n此致\n敬礼\n\n{{name}}\n{{contactInfo}}",
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "position",
+      "label": "应聘岗位",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "company",
+      "label": "目标公司",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "求职信-{{company}}-{{position}}",
+    "files": [{"path": "求职信.docx", "type": "document"}]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation"],
+  "required_tools": ["tool_word_generator"],
+  "execution_engine": "document"
+}

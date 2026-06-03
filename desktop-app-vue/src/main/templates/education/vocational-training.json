@@ -1,0 +1,142 @@
+{
+  "id": "tpl_education_vocational_001",
+  "name": "vocational_training",
+  "display_name": "职业培训课程",
+  "description": "企业职业技能培训课程设计，包含培训需求分析、课程大纲、教学活动、考核评估",
+  "icon": "💼",
+  "cover_image": "/templates/covers/vocational-training.png",
+  "category": "education",
+  "subcategory": "professional",
+  "tags": [
+    "职业培训",
+    "企业培训",
+    "技能提升",
+    "员工培训"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我设计一套{{trainingTopic}}职业培训课程，要求：\n\n**培训信息：**\n- 培训主题：{{trainingTopic}}\n- 培训对象：{{targetAudience}}\n- 培训目标：{{trainingGoal}}\n- 培训天数：{{duration}}天\n- 学员人数：{{participantCount}}人\n\n**职业培训课程方案：**\n\n# {{trainingTopic}}职业培训课程\n\n## 📋 第一部分：培训需求分析\n\n### 1. 背景分析\n**企业现状：**\n{{companyBackground}}\n\n**培训需求：**\n{{#each trainingNeeds}}\n- {{this}}\n{{/each}}\n\n**痛点问题：**\n{{#each painPoints}}\n- {{this}}\n{{/each}}\n\n### 2. 学员分析\n**目标学员：** {{targetAudience}}\n**现有水平：** {{currentLevel}}\n**学习动机：** {{learningMotivation}}\n**预期成果：** {{expectedOutcome}}\n\n---\n\n## 🎯 第二部分：培训目标\n\n### 培训目标（SMART原则）\n\n**知识层面：**\n{{#each knowledgeGoals}}\n- {{this}}\n{{/each}}\n\n**技能层面：**\n{{#each skillGoals}}\n- {{this}}\n{{/each}}\n\n**态度层面：**\n{{#each attitudeGoals}}\n- {{this}}\n{{/each}}\n\n**可衡量指标：**\n- 培训后考核通过率：≥{{passRate}}%\n- 技能提升幅度：≥{{improvementRate}}%\n- 工作绩效改善：{{performanceMetric}}\n\n---\n\n## 📚 第三部分：课程大纲\n\n### 整体课程架构（{{duration}}天，{{totalHours}}学时）\n\n{{#each modules}}\n#### 模块{{this.number}}：{{this.title}}（{{this.hours}}学时）\n\n**学习目标：**\n{{this.objectives}}\n\n**主要内容：**\n{{#each this.topics}}\n{{this.index}}. {{this.topic}}（{{this.duration}}）\n   - {{this.keyPoints}}\n{{/each}}\n\n**教学方法：**\n{{this.teachingMethods}}\n\n**考核方式：**\n{{this.assessment}}\n\n---\n{{/each}}\n\n---\n\n## 📅 第四部分：详细教学计划\n\n### Day 1 - {{day1Title}}\n\n**09:00-09:30 开班仪式**\n- 领导致辞\n- 培训目标介绍\n- 破冰活动：{{icebreaker}}\n- 学员分组（{{groupSize}}人/组）\n\n**09:30-12:00 上午课程**\n- 主题：{{am1Topic}}\n- 内容：{{am1Content}}\n- 形式：讲授（60%）+ 案例分析（30%）+ 讨论（10%）\n- 讲师：{{am1Instructor}}\n\n**14:00-17:00 下午课程**\n- 主题：{{pm1Topic}}\n- 内容：{{pm1Content}}\n- 形式：{{pm1Format}}\n- 实践活动：{{pm1Practice}}\n\n**17:00-17:30 每日总结**\n- 学员分享心得\n- 答疑解惑\n- 布置作业：{{day1Homework}}\n\n---\n\n### Day 2 - {{day2Title}}\n\n**09:00-09:15 晨会**\n- 昨日回顾\n- 今日计划\n\n**09:15-12:00 上午课程**\n- 主题：{{am2Topic}}\n- 教学重点：{{am2Focus}}\n- 教学方式：\n  {{#if includeGroupWork}}\n  - 分组讨论（30分钟）\n  - 小组展示（每组10分钟）\n  - 讲师点评\n  {{/if}}\n\n**14:00-17:00 下午课程**\n- 主题：{{pm2Topic}}\n- 实战演练：{{pm2Practice}}\n- 场景模拟：{{pm2Simulation}}\n\n---\n\n### Day {{duration}} - 结业考核\n\n**09:00-11:00 理论考核**\n- 闭卷考试（{{examDuration}}分钟）\n- 题型：{{examFormat}}\n- 满分：100分，及格：{{passingScore}}分\n\n**14:00-16:00 实操考核**\n- 实践任务：{{practicalTask}}\n- 评分标准：{{scoringCriteria}}\n\n**16:00-17:00 结业仪式**\n- 颁发证书\n- 优秀学员表彰\n- 培训效果调查问卷\n\n---\n\n## 🎓 第五部分：教学方法\n\n### 1. 理论讲授（30%）\n- PowerPoint讲解\n- 知识点梳理\n- 理论框架搭建\n\n### 2. 案例分析（25%）\n**经典案例：**\n{{#each cases}}\n- 案例{{this.number}}：{{this.title}}\n  - 背景：{{this.background}}\n  - 问题：{{this.problem}}\n  - 讨论点：{{this.discussion}}\n  - 启示：{{this.insights}}\n{{/each}}\n\n### 3. 小组讨论（15%）\n- 分组：{{groupSize}}人/组\n- 角色：组长、记录员、发言人\n- 讨论主题：{{discussionTopics}}\n- 成果展示：PPT/海报/演讲\n\n### 4. 角色扮演（15%）\n{{#if includeRolePlaying}}\n**场景：** {{rolePlayScenario}}\n**角色：** {{rolePlayRoles}}\n**目标：** {{rolePlayObjective}}\n**反馈：** 同伴评价 + 讲师点评\n{{/if}}\n\n### 5. 实操演练（15%）\n{{#if includePractice}}\n- 工具/设备：{{practiceTools}}\n- 操作步骤：{{practiceSteps}}\n- 评分标准：{{practiceScoring}}\n{{/if}}\n\n---\n\n## 📊 第六部分：考核评估\n\n### 1. 过程性评估（40%）\n| 项目 | 权重 | 评分标准 |\n|------|------|----------|\n| 出勤率 | 10% | 全勤10分，缺勤1次扣2分 |\n| 课堂参与 | 10% | 发言、讨论积极性 |\n| 小组作业 | 10% | 小组成果质量 |\n| 日常作业 | 10% | 作业完成质量 |\n\n### 2. 终结性评估（60%）\n| 项目 | 权重 | 形式 |\n|------|------|------|\n| 理论考试 | 30% | 闭卷笔试 |\n| 实操考核 | 30% | 实践操作 |\n\n### 3. 培训效果评估\n\n**柯氏四级评估模型：**\n\n**Level 1 - 反应层（培训结束时）**\n- 问卷调查：课程满意度\n- 讲师评价\n- 后勤服务\n- 目标满意度：≥{{satisfactionTarget}}分（5分制）\n\n**Level 2 - 学习层（培训结束时）**\n- 理论考试成绩\n- 实操考核成绩\n- 目标通过率：≥{{passRate}}%\n\n**Level 3 - 行为层（培训后1-3个月）**\n- 工作行为改变\n- 上级/同事评价\n- 案例：{{behaviorChangeExample}}\n\n**Level 4 - 结果层（培训后3-6个月）**\n- 工作绩效提升：{{performanceMetric}}\n- 业务指标改善：{{businessMetric}}\n- ROI（投资回报率）：{{roiTarget}}\n\n---\n\n## 🛠️ 第七部分：培训资源\n\n### 1. 师资安排\n{{#each instructors}}\n- **{{this.name}}**：{{this.title}}\n  - 专长：{{this.expertise}}\n  - 授课模块：{{this.modules}}\n{{/each}}\n\n### 2. 培训教材\n- 学员手册（{{handbookPages}}页）\n- PPT课件（{{slideCount}}页）\n- 案例集（{{caseCount}}个）\n- 工具模板（{{templateCount}}份）\n- 参考书籍：{{referenceBooks}}\n\n### 3. 培训场地\n- 教室：{{classroomType}}（容纳{{classroomCapacity}}人）\n- 设备：投影仪、音响、白板、翻页笔\n- {{#if includePractice}}实训室：{{practiceRoom}}{{/if}}\n\n### 4. 物资准备\n- 学员资料袋（笔记本、笔、资料）\n- 茶歇（{{snackBudget}}元/人/天）\n- 午餐（{{lunchBudget}}元/人/天）\n- 证书、奖品\n\n---\n\n## 💰 第八部分：预算方案\n\n### 培训预算（{{participantCount}}人，{{duration}}天）\n\n| 项目 | 单价 | 数量 | 小计 |\n|------|------|------|------|\n| 讲师费 | {{instructorFee}}/天 | {{instructorDays}}天 | ¥{{instructorTotal}} |\n| 场地费 | {{venueFee}}/天 | {{duration}}天 | ¥{{venueTotal}} |\n| 教材费 | {{materialFee}}/人 | {{participantCount}}人 | ¥{{materialTotal}} |\n| 餐饮费 | {{mealFee}}/人/天 | {{participantCount}}×{{duration}} | ¥{{mealTotal}} |\n| 证书奖品 | {{certificateFee}}/人 | {{participantCount}}人 | ¥{{certificateTotal}} |\n| 其他 | - | - | ¥{{miscellaneous}} |\n| **总计** | | | **¥{{totalBudget}}** |\n| 人均成本 | | | ¥{{perPersonCost}} |\n\n---\n\n## ⚠️ 第九部分：风险应对\n\n### 潜在风险\n1. **学员参与度低**\n   - 原因：内容枯燥、与工作脱节\n   - 对策：增加互动、案例贴近实际\n\n2. **时间不足**\n   - 原因：内容过多、讨论超时\n   - 对策：精简内容、严格时间管理\n\n3. **讲师临时缺席**\n   - 对策：备用讲师方案\n\n4. **设备故障**\n   - 对策：提前测试、准备备用设备\n\n---\n\n## 📝 附件清单\n\n1. 学员手册（PDF）\n2. 培训课件（PPTX）\n3. 案例分析材料\n4. 考试试卷及答案\n5. 培训效果调查问卷\n6. 学员签到表\n7. 结业证书模板\n\n---\n\n**祝培训圆满成功！💼**\n\n*方案生成时间：{{currentDate}}*\n*ChainlessChain AI助手*",
+  "variables_schema": [
+    {
+      "name": "trainingTopic",
+      "label": "培训主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：销售技巧、项目管理、Excel高级应用",
+      "default": "记叙文写作"
+    },
+    {
+      "name": "targetAudience",
+      "label": "培训对象",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：销售部新员工、中层管理者"
+    },
+    {
+      "name": "trainingGoal",
+      "label": "培训目标",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：提升销售转化率、掌握项目管理工具"
+    },
+    {
+      "name": "duration",
+      "label": "培训天数",
+      "type": "number",
+      "required": true,
+      "default": 3,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "name": "participantCount",
+      "label": "学员人数",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 10,
+      "max": 100
+    },
+    {
+      "name": "includeExam",
+      "label": "结业考核",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含考核"
+        },
+        {
+          "value": "否",
+          "label": "无考核"
+        }
+      ]
+    },
+    {
+      "name": "includePractice",
+      "label": "实操演练",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含实操"
+        },
+        {
+          "value": "否",
+          "label": "纯理论"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{trainingTopic}}-培训方案",
+    "files": [
+      {
+        "path": "培训方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "课程大纲.docx",
+        "type": "document"
+      },
+      {
+        "path": "学员手册.docx",
+        "type": "document"
+      },
+      {
+        "path": "培训课件.pptx",
+        "type": "presentation"
+      },
+      {
+        "path": "考试试卷.docx",
+        "type": "document"
+      },
+      {
+        "path": "预算表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_office_suite"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_excel_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

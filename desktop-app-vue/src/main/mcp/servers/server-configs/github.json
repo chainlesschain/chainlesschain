@@ -1,0 +1,346 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GitHub Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-github",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the GitHub server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-github"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "authentication": {
+      "type": "object",
+      "description": "GitHub authentication",
+      "properties": {
+        "personalAccessToken": {
+          "type": "string",
+          "description": "GitHub Personal Access Token (classic or fine-grained)",
+          "pattern": "^(ghp|github_pat)_[a-zA-Z0-9]{36,}$"
+        },
+
+        "owner": {
+          "type": "string",
+          "description": "Default repository owner (username or organization)"
+        },
+
+        "repo": {
+          "type": "string",
+          "description": "Default repository name"
+        },
+
+        "apiBaseUrl": {
+          "type": "string",
+          "default": "https://api.github.com",
+          "description": "GitHub API base URL (for GitHub Enterprise)"
+        }
+      },
+      "required": ["personalAccessToken"]
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for GitHub operations",
+      "properties": {
+        "allowedRepos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"
+          },
+          "default": [],
+          "description": "Repositories that are allowed (format: owner/repo)"
+        },
+
+        "forbiddenRepos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Repositories that are always blocked"
+        },
+
+        "allowedOperations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read_repo",
+              "read_issues",
+              "create_issue",
+              "update_issue",
+              "read_pulls",
+              "create_pull",
+              "update_pull",
+              "merge_pull",
+              "read_commits",
+              "create_branch",
+              "delete_branch",
+              "create_file",
+              "update_file",
+              "delete_file",
+              "fork_repo",
+              "star_repo"
+            ]
+          },
+          "default": ["read_repo", "read_issues", "read_pulls", "read_commits"],
+          "description": "GitHub operations that are allowed"
+        },
+
+        "readOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, only read operations are allowed"
+        },
+
+        "allowForking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow forking repositories"
+        },
+
+        "requireConfirmation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "create_issue",
+            "create_pull",
+            "merge_pull",
+            "delete_branch",
+            "delete_file"
+          ],
+          "description": "Operations that require user confirmation"
+        }
+      }
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for GitHub operations",
+      "properties": {
+        "enableIssues": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable issue management"
+        },
+
+        "enablePullRequests": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable pull request management"
+        },
+
+        "enableCommitHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable reading commit history"
+        },
+
+        "enableBranchManagement": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable branch creation and deletion"
+        },
+
+        "enableFileOperations": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable creating/updating/deleting files"
+        },
+
+        "enableRepositorySearch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable searching repositories"
+        },
+
+        "enableCodeSearch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable searching code within repositories"
+        },
+
+        "enableGists": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Gist operations"
+        },
+
+        "enableWorkflows": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable GitHub Actions workflow operations"
+        }
+      }
+    },
+
+    "filtering": {
+      "type": "object",
+      "description": "Content filtering options",
+      "properties": {
+        "maxIssuesPerQuery": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of issues to fetch per query"
+        },
+
+        "maxPullsPerQuery": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of pull requests to fetch per query"
+        },
+
+        "maxCommitsPerQuery": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of commits to fetch per query"
+        },
+
+        "includePrivateRepos": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include private repositories in operations"
+        },
+
+        "defaultBranch": {
+          "type": "string",
+          "default": "main",
+          "description": "Default branch name for operations"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "API call timeout in milliseconds"
+        },
+
+        "rateLimitPerHour": {
+          "type": "integer",
+          "default": 5000,
+          "description": "Maximum API calls per hour (GitHub default)"
+        },
+
+        "cacheEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable caching of repository metadata"
+        },
+
+        "cacheTTL": {
+          "type": "integer",
+          "default": 1800,
+          "description": "Cache time-to-live in seconds"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logOperations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all GitHub operations"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logPath": {
+          "type": "string",
+          "default": ".chainlesschain/logs/mcp-github.log",
+          "description": "Path to log file (relative to app root)"
+        }
+      }
+    }
+  },
+
+  "required": ["authentication"],
+
+  "examples": [
+    {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "autoConnect": false,
+      "authentication": {
+        "personalAccessToken": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        "owner": "myusername",
+        "repo": "my-project"
+      },
+      "permissions": {
+        "allowedRepos": ["myusername/my-project", "myorg/team-repo"],
+        "allowedOperations": [
+          "read_repo",
+          "read_issues",
+          "create_issue",
+          "read_pulls"
+        ],
+        "readOnly": false
+      },
+      "features": {
+        "enableIssues": true,
+        "enablePullRequests": true,
+        "enableCommitHistory": true,
+        "enableFileOperations": false
+      },
+      "filtering": {
+        "maxIssuesPerQuery": 100,
+        "includePrivateRepos": true,
+        "defaultBranch": "main"
+      },
+      "performance": {
+        "timeout": 30000,
+        "cacheEnabled": true
+      },
+      "logging": {
+        "enabled": true,
+        "logOperations": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "id": "tpl_code_wechat_006",
+  "name": "wechat_miniprogram_template",
+  "display_name": "微信小程序",
+  "description": "快速搭建微信小程序项目，包含页面路由、组件化、状态管理和云开发",
+  "icon": "📱",
+  "category": "code-project",
+  "subcategory": "mobile",
+  "tags": [
+    "微信小程序",
+    "小程序",
+    "移动端",
+    "云开发"
+  ],
+  "project_type": "app",
+  "prompt_template": "请帮我生成微信小程序项目，要求:\n\n**项目信息：**\n- 小程序名称：{{appName}}\n- 小程序类型：{{appType}}\n- 使用TypeScript：{{useTypeScript}}\n- 云开发：{{useCloudbase}}\n- UI框架：{{uiFramework}}\n\n**项目结构：**\n\n```\n{{appName}}/\n├── pages/                 # 页面目录\n{{#eq appType \"电商小程序\"}}\n│   ├── index/             # 首页\n│   │   ├── index.wxml\n│   │   ├── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── index.wxss\n│   │   └── index.json\n│   ├── product/           # 商品详情\n│   ├── cart/              # 购物车\n│   ├── order/             # 订单\n│   └── profile/           # 个人中心\n{{/eq}}\n{{#eq appType \"工具类小程序\"}}\n│   ├── index/             # 首页\n│   ├── tools/             # 工具页面\n│   └── settings/          # 设置\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n│   ├── index/             # 首页\n│   ├── list/              # 列表页\n│   ├── detail/            # 详情页\n│   └── profile/           # 个人中心\n{{/eq}}\n│\n├── components/            # 自定义组件\n│   ├── navbar/\n│   │   ├── navbar.wxml\n│   │   ├── navbar.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── navbar.wxss\n│   │   └── navbar.json\n│   ├── card/\n│   └── button/\n│\n├── utils/                 # 工具函数\n│   ├── request.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   ├── storage.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   └── util.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│\n├── api/                   # API接口\n│   ├── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   └── user.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│\n├── store/                 # 状态管理（可选）\n│   └── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│\n{{#eq useCloudbase \"是\"}}\n├── cloudfunctions/        # 云函数\n│   ├── login/\n│   └── getOpenId/\n{{/eq}}\n│\n├── static/                # 静态资源\n│   ├── images/\n│   └── icons/\n│\n├── app.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n├── app.json\n├── app.wxss\n├── project.config.json\n{{#eq useTypeScript \"是\"}}\n├── tsconfig.json\n{{/eq}}\n├── sitemap.json\n└── README.md\n```\n\n**app.json（全局配置）：**\n\n```json\n{\n  \"pages\": [\n{{#eq appType \"电商小程序\"}}\n    \"pages/index/index\",\n    \"pages/product/product\",\n    \"pages/cart/cart\",\n    \"pages/order/order\",\n    \"pages/profile/profile\"\n{{/eq}}\n{{#eq appType \"工具类小程序\"}}\n    \"pages/index/index\",\n    \"pages/tools/tools\",\n    \"pages/settings/settings\"\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n    \"pages/index/index\",\n    \"pages/list/list\",\n    \"pages/detail/detail\",\n    \"pages/profile/profile\"\n{{/eq}}\n  ],\n  \"window\": {\n    \"backgroundTextStyle\": \"light\",\n    \"navigationBarBackgroundColor\": \"#fff\",\n    \"navigationBarTitleText\": \"{{appName}}\",\n    \"navigationBarTextStyle\": \"black\"\n  },\n{{#eq appType \"电商小程序\"}}\n  \"tabBar\": {\n    \"color\": \"#7A7E83\",\n    \"selectedColor\": \"#3cc51f\",\n    \"borderStyle\": \"black\",\n    \"backgroundColor\": \"#ffffff\",\n    \"list\": [\n      {\n        \"pagePath\": \"pages/index/index\",\n        \"iconPath\": \"static/icons/home.png\",\n        \"selectedIconPath\": \"static/icons/home-active.png\",\n        \"text\": \"首页\"\n      },\n      {\n        \"pagePath\": \"pages/cart/cart\",\n        \"iconPath\": \"static/icons/cart.png\",\n        \"selectedIconPath\": \"static/icons/cart-active.png\",\n        \"text\": \"购物车\"\n      },\n      {\n        \"pagePath\": \"pages/profile/profile\",\n        \"iconPath\": \"static/icons/profile.png\",\n        \"selectedIconPath\": \"static/icons/profile-active.png\",\n        \"text\": \"我的\"\n      }\n    ]\n  },\n{{/eq}}\n  \"style\": \"v2\",\n  \"sitemapLocation\": \"sitemap.json\",\n{{#eq useCloudbase \"是\"}}\n  \"cloud\": true,\n{{/eq}}\n  \"lazyCodeLoading\": \"requiredComponents\"\n}\n```\n\n**app.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（全局逻辑）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq useTypeScript \"是\"}}// app.ts\ninterface IAppOption {\n  globalData: {\n    userInfo?: WechatMiniprogram.UserInfo\n    token?: string\n  }\n  userInfoReadyCallback?: WechatMiniprogram.GetUserInfoSuccessCallback\n}\n{{/eq}}\n\nApp{{#eq useTypeScript \"是\"}}<IAppOption>{{/eq}}({\n  globalData: {\n    userInfo: null,\n    token: ''\n  },\n  \n  onLaunch(options) {\n    console.log('小程序启动', options)\n    \n{{#eq useCloudbase \"是\"}}\n    // 初始化云开发\n    if (wx.cloud) {\n      wx.cloud.init({\n        env: 'your-env-id',\n        traceUser: true\n      })\n    }\n{{/eq}}\n    \n    // 获取用户信息\n    this.getUserInfo()\n    \n    // 检查更新\n    this.checkUpdate()\n  },\n  \n  getUserInfo() {\n    wx.getSetting({\n      success: (res) => {\n        if (res.authSetting['scope.userInfo']) {\n          wx.getUserInfo({\n            success: (res) => {\n              this.globalData.userInfo = res.userInfo\n              if (this.userInfoReadyCallback) {\n                this.userInfoReadyCallback(res)\n              }\n            }\n          })\n        }\n      }\n    })\n  },\n  \n  checkUpdate() {\n    const updateManager = wx.getUpdateManager()\n    updateManager.onUpdateReady(() => {\n      wx.showModal({\n        title: '更新提示',\n        content: '新版本已经准备好，是否重启应用？',\n        success: (res) => {\n          if (res.confirm) {\n            updateManager.applyUpdate()\n          }\n        }\n      })\n    })\n  }\n})\n```\n\n**utils/request.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（网络请求封装）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\nconst BASE_URL = 'https://api.example.com'\n\ninterface RequestOptions {\n  url: string\n  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'\n  data?: any\n  header?: any\n}\n\nexport function request{{#eq useTypeScript \"是\"}}<T = any>{{/eq}}(options{{#eq useTypeScript \"是\"}}: RequestOptions{{/eq}}){{#eq useTypeScript \"是\"}}: Promise<T>{{/eq}} {\n  const token = wx.getStorageSync('token')\n  \n  return new Promise((resolve, reject) => {\n    wx.request({\n      url: BASE_URL + options.url,\n      method: options.method || 'GET',\n      data: options.data,\n      header: {\n        'Content-Type': 'application/json',\n        'Authorization': token ? `Bearer ${token}` : '',\n        ...options.header\n      },\n      success: (res) => {\n        if (res.statusCode === 200) {\n          resolve(res.data{{#eq useTypeScript \"是\"}} as T{{/eq}})\n        } else {\n          wx.showToast({\n            title: '请求失败',\n            icon: 'none'\n          })\n          reject(res)\n        }\n      },\n      fail: (err) => {\n        wx.showToast({\n          title: '网络错误',\n          icon: 'none'\n        })\n        reject(err)\n      }\n    })\n  })\n}\n```\n\n**pages/index/index.wxml（页面结构）：**\n\n```xml\n<view class=\"container\">\n  <!-- 导航栏组件 -->\n  <navbar title=\"{{appName}}\"></navbar>\n  \n{{#eq appType \"电商小程序\"}}\n  <!-- 轮播图 -->\n  <swiper class=\"banner\" indicator-dots autoplay>\n    <swiper-item wx:for=\"{{banners}}\" wx:key=\"index\">\n      <image src=\"{{item.image}}\" mode=\"aspectFill\"></image>\n    </swiper-item>\n  </swiper>\n  \n  <!-- 商品列表 -->\n  <view class=\"product-list\">\n    <view class=\"product-item\" wx:for=\"{{products}}\" wx:key=\"id\" \n          bindtap=\"goToProduct\" data-id=\"{{item.id}}\">\n      <image src=\"{{item.image}}\" mode=\"aspectFill\"></image>\n      <view class=\"product-info\">\n        <text class=\"name\">{{item.name}}</text>\n        <text class=\"price\">¥{{item.price}}</text>\n      </view>\n    </view>\n  </view>\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n  <!-- 内容列表 -->\n  <view class=\"article-list\">\n    <view class=\"article-item\" wx:for=\"{{articles}}\" wx:key=\"id\"\n          bindtap=\"goToDetail\" data-id=\"{{item.id}}\">\n      <image src=\"{{item.cover}}\" mode=\"aspectFill\"></image>\n      <view class=\"article-info\">\n        <text class=\"title\">{{item.title}}</text>\n        <text class=\"summary\">{{item.summary}}</text>\n      </view>\n    </view>\n  </view>\n{{/eq}}\n</view>\n```\n\n**pages/index/index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（页面逻辑）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\nimport { request } from '../../utils/request'\n\nPage({\n  data: {\n{{#eq appType \"电商小程序\"}}\n    banners: [],\n    products: []\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n    articles: []\n{{/eq}}\n  },\n  \n  onLoad() {\n    this.loadData()\n  },\n  \n  async loadData() {\n    wx.showLoading({ title: '加载中...' })\n    \n    try {\n{{#eq appType \"电商小程序\"}}\n      const [banners, products] = await Promise.all([\n        request({ url: '/banners' }),\n        request({ url: '/products' })\n      ])\n      \n      this.setData({ banners, products })\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n      const articles = await request({ url: '/articles' })\n      this.setData({ articles })\n{{/eq}}\n    } catch (error) {\n      console.error('加载数据失败', error)\n    } finally {\n      wx.hideLoading()\n    }\n  },\n  \n  onPullDownRefresh() {\n    this.loadData().then(() => {\n      wx.stopPullDownRefresh()\n    })\n  },\n  \n{{#eq appType \"电商小程序\"}}\n  goToProduct(e{{#eq useTypeScript \"是\"}}: any{{/eq}}) {\n    const id = e.currentTarget.dataset.id\n    wx.navigateTo({\n      url: `/pages/product/product?id=${id}`\n    })\n  }\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n  goToDetail(e{{#eq useTypeScript \"是\"}}: any{{/eq}}) {\n    const id = e.currentTarget.dataset.id\n    wx.navigateTo({\n      url: `/pages/detail/detail?id=${id}`\n    })\n  }\n{{/eq}}\n})\n```\n\n**project.config.json（项目配置）：**\n\n```json\n{\n  \"description\": \"{{appName}}\",\n  \"appid\": \"your-appid\",\n  \"projectname\": \"{{appName}}\",\n  \"miniprogramRoot\": \"./\",\n  \"compileType\": \"miniprogram\",\n  \"setting\": {\n    \"urlCheck\": true,\n    \"es6\": true,\n    \"enhance\": true,\n    \"postcss\": true,\n    \"minified\": true,\n    \"newFeature\": true,\n    \"coverView\": true,\n    \"autoAudits\": false,\n    \"showShadowRootInWxmlPanel\": true\n  },\n  \"condition\": {},\n  \"editorSetting\": {\n    \"tabIndent\": \"insertSpaces\",\n    \"tabSize\": 2\n  }\n}\n```\n\n{{#eq useTypeScript \"是\"}}\n**tsconfig.json：**\n\n```json\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"module\": \"CommonJS\",\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"lib\": [\"ES2020\"],\n    \"types\": [\"@types/wechat-miniprogram\"]\n  },\n  \"include\": [\"**/*.ts\"],\n  \"exclude\": [\"node_modules\"]\n}\n```\n{{/eq}}\n\n**README.md：**\n\n```markdown\n# {{appName}}\n\n{{appDescription}}\n\n## 功能特性\n\n{{#eq appType \"电商小程序\"}}\n- 商品展示\n- 购物车\n- 订单管理\n- 用户中心\n- 支付功能\n{{/eq}}\n{{#eq appType \"工具类小程序\"}}\n- 实用工具集合\n- 数据本地存储\n- 分享功能\n{{/eq}}\n{{#eq appType \"内容类小程序\"}}\n- 内容浏览\n- 收藏功能\n- 分享转发\n- 评论互动\n{{/eq}}\n\n## 技术栈\n\n- 微信小程序原生开发\n{{#eq useTypeScript \"是\"}}\n- TypeScript\n{{/eq}}\n{{#eq useCloudbase \"是\"}}\n- 微信云开发\n{{/eq}}\n{{#if uiFramework}}\n- {{uiFramework}}\n{{/if}}\n\n## 快速开始\n\n### 前置要求\n\n- 微信开发者工具\n- 微信小程序账号\n\n### 开发\n\n1. 克隆项目\n2. 使用微信开发者工具打开项目\n3. 配置AppID（project.config.json）\n4. 点击编译运行\n\n### 配置\n\n1. 修改`app.json`配置页面路由\n2. 修改`utils/request.js`配置API地址\n{{#eq useCloudbase \"是\"}}\n3. 配置云开发环境ID\n{{/eq}}\n\n## 目录说明\n\n- `pages/` - 页面文件\n- `components/` - 自定义组件\n- `utils/` - 工具函数\n- `api/` - 接口封装\n- `static/` - 静态资源\n\n## 开发建议\n\n1. **性能优化**\n   - 图片懒加载\n   - 分包加载\n   - 合理使用setData\n\n2. **用户体验**\n   - 加载提示\n   - 错误处理\n   - 下拉刷新\n\n3. **代码规范**\n   - 组件化开发\n   - 统一命名规范\n   - 注释完善\n\n## 发布\n\n1. 微信开发者工具 -> 上传\n2. 登录小程序后台\n3. 提交审核\n4. 审核通过后发布\n\n## 许可证\n\nMIT\n```\n\n**开发最佳实践：**\n\n1. **性能优化**\n   - 避免频繁setData\n   - 图片使用CDN\n   - 合理使用分包\n   - 懒加载非首屏组件\n\n2. **用户体验**\n   - Loading状态提示\n   - 空状态设计\n   - 错误提示友好\n   - 支持下拉刷新\n\n3. **代码质量**\n   - 组件化开发\n   - 复用公共逻辑\n   - TypeScript类型安全\n   - ESLint代码检查\n\n4. **安全性**\n   - 敏感数据加密\n   - HTTPS接口\n   - 用户授权合规\n   - 数据校验\n\n5. **云开发（可选）**\n   - 云函数处理后端逻辑\n   - 云数据库存储数据\n   - 云存储管理文件\n   - 云调用调用微信API",
+  "variables_schema": [
+    {
+      "name": "appName",
+      "label": "小程序名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：我的小程序"
+    },
+    {
+      "name": "appDescription",
+      "label": "小程序描述",
+      "type": "string",
+      "required": false,
+      "default": "一个基于微信小程序的应用",
+      "placeholder": "简短描述功能"
+    },
+    {
+      "name": "appType",
+      "label": "小程序类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "电商小程序",
+          "label": "电商小程序"
+        },
+        {
+          "value": "内容类小程序",
+          "label": "内容类小程序"
+        },
+        {
+          "value": "工具类小程序",
+          "label": "工具类小程序"
+        }
+      ]
+    },
+    {
+      "name": "useTypeScript",
+      "label": "使用TypeScript",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用TypeScript"
+        },
+        {
+          "value": "否",
+          "label": "使用JavaScript"
+        }
+      ]
+    },
+    {
+      "name": "useCloudbase",
+      "label": "微信云开发",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用云开发"
+        },
+        {
+          "value": "否",
+          "label": "不使用"
+        }
+      ]
+    },
+    {
+      "name": "uiFramework",
+      "label": "UI框架（可选）",
+      "type": "select",
+      "required": false,
+      "default": "无",
+      "options": [
+        {
+          "value": "Vant Weapp",
+          "label": "Vant Weapp"
+        },
+        {
+          "value": "ColorUI",
+          "label": "ColorUI"
+        },
+        {
+          "value": "无",
+          "label": "不使用"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{appName}}",
+    "files": [
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "app.json",
+        "type": "document"
+      },
+      {
+        "path": "project.config.json",
+        "type": "document"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_code_development",
+    "skill_project_management"
+  ],
+  "required_tools": [
+    "tool_create_project_structure",
+    "tool_git_init",
+    "tool_file_writer"
+  ],
+  "execution_engine": "code"
+}

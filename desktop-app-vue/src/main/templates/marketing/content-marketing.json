@@ -1,0 +1,92 @@
+{
+  "id": "tpl_marketing_content_003",
+  "name": "content_marketing",
+  "display_name": "内容营销策略",
+  "description": "内容营销策略方案模板,包含内容规划、选题策划、分发渠道、效果评估等",
+  "icon": "📝",
+  "category": "marketing",
+  "subcategory": "内容营销",
+  "tags": [
+    "内容营销",
+    "内容策略",
+    "内容运营",
+    "自媒体"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成内容营销策略，要求:\n\n# {{projectName}} 内容营销策略\n\n## 1. 内容定位\n\n**目标受众**: {{targetAudience}}\n**内容主题**: {{contentTheme}}\n**内容风格**: {{contentStyle}}\n**核心价值**: {{coreValue}}\n\n## 2. 内容规划\n\n### 2.1 内容类型\n- 图文内容: {{textContentRatio}}%\n- 视频内容: {{videoContentRatio}}%\n- 音频内容: {{audioContentRatio}}%\n- 直播内容: {{liveContentRatio}}%\n\n### 2.2 发布频率\n- 微信公众号: {{wechatFrequency}}\n- 知乎/小红书: {{socialFrequency}}\n- 视频平台: {{videoFrequency}}\n- 其他渠道: {{otherFrequency}}\n\n## 3. 选题策划\n\n### 第一周\n- 选题1: {{topic1Week1}}\n- 选题2: {{topic2Week1}}\n- 选题3: {{topic3Week1}}\n\n### 第二周\n- 选题1: {{topic1Week2}}\n- 选题2: {{topic2Week2}}\n- 选题3: {{topic3Week2}}\n\n## 4. 内容分发\n\n### 4.1 主要渠道\n{{primaryChannels}}\n\n### 4.2 分发策略\n- 首发平台: {{firstPlatform}}\n- 同步平台: {{syncPlatforms}}\n- 延后平台: {{delayedPlatforms}}\n\n## 5. 效果评估\n\n**KPI指标**:\n- 阅读/播放量: {{viewTarget}}\n- 互动率: {{engagementTarget}}\n- 转化率: {{conversionTarget}}\n- 粉丝增长: {{followerGrowth}}\n\n## 6. 内容优化\n\n{{contentOptimization}}\n\n---\n\n**内容负责人**: {{#if contentManager}}{{contentManager}}{{else}}内容团队{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "type": "text",
+      "label": "项目名称",
+      "default": "内容营销项目",
+      "required": true
+    },
+    {
+      "name": "targetAudience",
+      "type": "text",
+      "label": "目标受众",
+      "default": "25-35岁职场人士",
+      "required": true
+    },
+    {
+      "name": "contentTheme",
+      "type": "text",
+      "label": "内容主题",
+      "default": "职场成长、技能提升",
+      "required": true
+    },
+    {
+      "name": "wechatFrequency",
+      "type": "text",
+      "label": "公众号发布频率",
+      "default": "每周3篇",
+      "required": true
+    },
+    {
+      "name": "viewTarget",
+      "type": "text",
+      "label": "阅读量目标",
+      "default": "单篇10000+",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{projectName}}_内容策略",
+    "children": [
+      {
+        "type": "file",
+        "name": "内容策略.md",
+        "description": "策略方案"
+      },
+      {
+        "type": "file",
+        "name": "选题库.xlsx",
+        "description": "选题规划"
+      },
+      {
+        "type": "file",
+        "name": "数据分析.xlsx",
+        "description": "效果分析"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_file_writer",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
+}

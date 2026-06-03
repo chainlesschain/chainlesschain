@@ -1,0 +1,21 @@
+{
+  "id": "auth-local",
+  "name": "本地 DID 认证（默认）",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "默认本地 DID + U-Key 认证；企业可由 auth-oidc / auth-saml 覆盖",
+  "extensionPoints": [
+    {
+      "point": "auth.provider",
+      "priority": 10,
+      "config": {
+        "id": "local-did",
+        "name": "本地 DID + U-Key",
+        "kind": "did",
+        "endpoints": {},
+        "scopes": ["openid", "profile", "did", "ukey"],
+        "priority": 10
+      }
+    }
+  ]
+}

@@ -1,0 +1,4477 @@
+{
+  "common": {
+    "refresh": "Refresh",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "empty": "No data",
+    "search": "Search",
+    "back": "Back"
+  },
+  "language": {
+    "label": "Language",
+    "switch": "EN",
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "error": {
+    "boundary": {
+      "title": "Page failed to render",
+      "retry": "Retry",
+      "goHome": "Back to dashboard",
+      "stack": "Stack trace (dev only)"
+    },
+    "runtime": "Runtime error"
+  },
+  "quickAsk": {
+    "title": "Quick Ask",
+    "subtitle": "One-shot streaming prompt — no session history; routed through LLMManager.chatStream (desktop web-shell mode).",
+    "promptPlaceholder": "Type your question. Ctrl+Enter to send.",
+    "modelPlaceholder": "model (blank → default)",
+    "charsSuffix": "chars",
+    "tokensSuffix": "tokens",
+    "send": "Send",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "answerCardTitle": "Reply",
+    "streaming": "Streaming...",
+    "done": "Done",
+    "waitingFirstToken": "Waiting for first token..."
+  },
+  "compliance": {
+    "title": "Compliance & Threat Intel",
+    "subtitle": "Threat indicators (IoC) · User behaviour analytics (UEBA)",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "match": "Match indicator",
+      "uebaBuild": "Build baseline",
+      "uebaAnalyze": "Run analysis"
+    },
+    "stats": {
+      "iocTotal": "Total IoCs",
+      "iocTypes": "IoC types",
+      "riskEntities": "Risk entities",
+      "highRisk": "High risk (≥70)",
+      "recentAnomalies": "Recent anomalies"
+    },
+    "typeBreakdown": "IoC type breakdown",
+    "tabs": {
+      "threat": "Threat intel",
+      "ueba": "Behaviour analytics (UEBA)"
+    },
+    "filter": { "all": "All" },
+    "cols": {
+      "type": "Type",
+      "value": "Value",
+      "labels": "Labels",
+      "confidence": "Confidence",
+      "source": "Source",
+      "lastSeen": "Last seen",
+      "action": "Action",
+      "entity": "Entity",
+      "riskScore": "Risk score",
+      "eventCount": "Events",
+      "failureRate": "Failure rate",
+      "uniqueResources": "Resources",
+      "burstiness": "Burstiness"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this indicator?",
+      "deleteOk": "Delete",
+      "cancel": "Cancel",
+      "emptyThreatsLine1": "No threat indicators yet. Import a STIX bundle via CLI:",
+      "emptyAuditEntities": "Audit log empty — no entities to analyse",
+      "emptyRiskEntities": "No risk entities yet",
+      "noAnomalies": "No anomalies"
+    },
+    "ueba": {
+      "noAuditLog": "Audit log empty",
+      "noAuditLogDesc": "UEBA reads from the audit_log table. Trigger a few audited actions first (cc auth login / cc note add), then come back and click \"Build baseline\".",
+      "errorMessage": "UEBA error: {err}",
+      "topRiskTitle": "Top risk entities (Top {count})",
+      "anomalyTitle": "Recent anomalies ({count})"
+    },
+    "match": {
+      "modalTitle": "Match threat indicator",
+      "ok": "Match",
+      "close": "Close",
+      "label": "Observable",
+      "placeholder": "IP / domain / URL / email / file hash",
+      "result": "Match result",
+      "hit": "Hit",
+      "miss": "Miss",
+      "detectType": "Detected type:",
+      "sourcePrefix": "Source:",
+      "confidencePrefix": "Confidence:"
+    },
+    "build": {
+      "modalTitle": "Build UEBA baseline",
+      "ok": "Build",
+      "cancel": "Cancel",
+      "entityLabel": "Entity (optional)",
+      "entityPlaceholder": "leave blank for all entities",
+      "daysLabel": "Days",
+      "daysPlaceholder": "e.g. 30",
+      "footnote": "Reads the last N days of events from audit_log and computes per-entity event counts / failure rates / resource coverage."
+    },
+    "analyze": {
+      "modalTitle": "Run behaviour analysis",
+      "ok": "Analyse",
+      "cancel": "Cancel",
+      "entityLabel": "Entity (optional)",
+      "entityPlaceholder": "leave blank for all entities",
+      "thresholdLabel": "Threshold",
+      "daysLabel": "Days",
+      "footnote": "Compares the last N days of events to the stored baseline; events with score ≥ threshold are reported as anomalies."
+    },
+    "msg": {
+      "loadFailed": "Failed to load compliance data",
+      "matchEmpty": "Enter an observable to match",
+      "matchFailed": "Match failed",
+      "matchHit": "Threat indicator hit ({type})",
+      "matchUnknownType": "Could not classify the observable",
+      "matchMiss": "No hit (classified as {type})",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Indicator deleted",
+      "auditEmptyBuild": "audit_log is empty — cannot build baseline",
+      "buildFailed": "Build failed",
+      "buildSuccess": "Baseline built",
+      "auditEmptyAnalyze": "audit_log is empty — no events to analyse",
+      "analyzeFailed": "Analysis failed",
+      "analyzeSuccess": "Analysis complete — {n} anomalies found"
+    }
+  },
+  "pipeline": {
+    "title": "Development pipeline",
+    "subtitle": "7-stage AI dev pipeline · quality gates · deploy strategies",
+    "refresh": "Refresh",
+    "create": "Create pipeline",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc pipeline ...` commands only work inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "totalPipelines": "Total pipelines",
+      "running": "Running",
+      "totalStages": "Total stages",
+      "totalArtifacts": "Artifacts",
+      "totalDeploys": "Deploys"
+    },
+    "stagesCardTitle": "7-stage pipeline",
+    "tabs": {
+      "pipelines": "Pipelines",
+      "deploys": "Deploys",
+      "templates": "Templates"
+    },
+    "filters": {
+      "allTemplates": "All templates",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "unnamed": "(unnamed)",
+      "actions": {
+        "details": "Details",
+        "start": "Start",
+        "pause": "Pause",
+        "resume": "Resume",
+        "approveGate": "Approve gate",
+        "cancel": "Cancel"
+      },
+      "cancelConfirm": "Cancel this pipeline?",
+      "cancelOk": "Cancel",
+      "cancelBack": "Back",
+      "emptyFiltered": "No pipelines match the current filter",
+      "empty": "No pipelines yet — click \"Create pipeline\" to start one",
+      "emptyDeploys": "No deploy history yet"
+    },
+    "cols": {
+      "name": "Name",
+      "template": "Template",
+      "progress": "Progress",
+      "currentStage": "Current stage",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action",
+      "pipeline": "Pipeline",
+      "strategy": "Strategy"
+    },
+    "create_modal": {
+      "title": "Create pipeline",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "templateLabel": "Template",
+      "nameLabel": "Name",
+      "namePlaceholder": "Optional, e.g. \"fix login bug\"",
+      "configLabel": "Config (JSON)",
+      "configPlaceholder": "JSON object, e.g. repo=web, ticket=PROJ-123"
+    },
+    "details": {
+      "title": "Pipeline details: {label}",
+      "template": "Template",
+      "status": "Status",
+      "progress": "Progress",
+      "createdAt": "Created",
+      "startedAt": "Started",
+      "stagesHeader": "Stage details",
+      "needsApproval": "Needs approval",
+      "approved": "(approved)",
+      "errorPrefix": "Error:"
+    },
+    "templateLabels": {
+      "feature": "Feature",
+      "bugfix": "Bug fix",
+      "refactor": "Refactor",
+      "security-audit": "Security audit"
+    },
+    "stageLabels": {
+      "requirement": "Requirement",
+      "architecture": "Architecture",
+      "code-generation": "Code generation",
+      "testing": "Testing",
+      "code-review": "Code review",
+      "deploy": "Deploy",
+      "monitoring": "Monitoring"
+    },
+    "pipelineStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "stageStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "gate-waiting": "Awaiting approval",
+      "completed": "Completed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "deployStatusLabels": {
+      "pending": "Pending",
+      "running": "Deploying",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "rolled-back": "Rolled back"
+    },
+    "msg": {
+      "loadFailed": "Failed to load pipeline data",
+      "selectTemplate": "Pick a template",
+      "badConfigJson": "Config JSON is malformed",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "createFailed": "Create failed",
+      "createSuccess": "Pipeline created",
+      "actionFailed": "Action failed",
+      "started": "Started",
+      "paused": "Paused",
+      "resumed": "Resumed",
+      "gateApproved": "Gate approved",
+      "cancelled": "Cancelled"
+    }
+  },
+  "did": {
+    "title": "DID identity manager",
+    "subtitle": "Decentralised identity / keys / signature verification",
+    "refresh": "Refresh",
+    "create": "Create identity",
+    "stats": {
+      "count": "Identities",
+      "default": "Default identity",
+      "method": "DID method",
+      "signable": "Signable",
+      "yes": "Yes",
+      "no": "No",
+      "unsetDefault": "(not set)",
+      "noMethod": "—"
+    },
+    "webOnly": {
+      "message": "Web-only mode",
+      "description": "Mnemonic backup/recovery and DHT publishing are desktop-only. This page covers core actions (create / sign / delete / view DID Document) via CLI."
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "defaultTag": "default",
+      "empty": "No DID identities yet — click \"Create identity\""
+    },
+    "cols": {
+      "did": "DID",
+      "name": "Name",
+      "method": "Method",
+      "createdAt": "Created",
+      "default": "Default",
+      "action": "Action"
+    },
+    "actions": {
+      "details": "Details",
+      "sign": "Sign",
+      "setDefault": "Set default",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Delete this DID identity? The private key cannot be recovered.",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "create_modal": {
+      "title": "Create DID identity",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Display name",
+      "namePlaceholder": "Optional — for your own reference"
+    },
+    "details": {
+      "title": "Identity details: {label}",
+      "did": "DID",
+      "name": "Name",
+      "method": "Method",
+      "default": "Default",
+      "yes": "Yes",
+      "no": "No",
+      "createdAt": "Created",
+      "publicKey": "Public key (hex)",
+      "publicKeyLoading": "loading...",
+      "viewDoc": "View DID Document",
+      "docHeader": "DID Document (W3C):"
+    },
+    "sign_modal": {
+      "title": "Sign message: {label}...",
+      "defaultIdentityFallback": "default identity",
+      "ok": "Sign",
+      "cancel": "Cancel",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Type the message to sign",
+      "resultHeader": "Signature (hex):"
+    },
+    "msg": {
+      "loadFailed": "Failed to load DID list",
+      "createFailed": "Create failed",
+      "createSuccess": "DID identity created",
+      "setDefaultFailed": "Set default failed",
+      "setDefaultSuccess": "Default identity updated",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Identity deleted",
+      "loadDocFailed": "Failed to load DID Document",
+      "signEmpty": "Type the message to sign",
+      "signSuccess": "Signed",
+      "signFailed": "Sign failed"
+    }
+  },
+  "knowledgeGraph": {
+    "title": "Knowledge graph",
+    "subtitle": "Entities / relations / multi-hop reasoning / force-directed view",
+    "refresh": "Refresh",
+    "addEntity": "Add entity",
+    "addRelation": "Add relation",
+    "stats": {
+      "entityCount": "Entities",
+      "relationCount": "Relations",
+      "avgDegree": "Avg. degree",
+      "density": "Density"
+    },
+    "webOnly": {
+      "message": "Web-only mode",
+      "description": "AI auto-extraction (entities + relations from notes/chats) is desktop-only; that button is disabled here. CRUD / reasoning / stats actions still work via CLI."
+    },
+    "tabs": {
+      "graph": "Graph",
+      "entities": "Entities ({n})",
+      "relations": "Relations ({n})",
+      "distribution": "Distribution"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "emptyGraph": "No entities yet. Click \"Add entity\" to start the graph",
+      "emptyEntities": "No entities",
+      "emptyRelations": "No relations",
+      "emptyData": "No data"
+    },
+    "entityCols": {
+      "id": "ID",
+      "name": "Name",
+      "type": "Type",
+      "tags": "Tags",
+      "action": "Action"
+    },
+    "relationCols": {
+      "source": "Source",
+      "target": "Target",
+      "relationType": "Relation",
+      "weight": "Weight"
+    },
+    "actions": {
+      "reason": "Reason",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Delete this entity? Linked relations will cascade delete.",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "distribution": {
+      "entityTypes": "Entity type breakdown",
+      "relationTypes": "Relation type breakdown"
+    },
+    "addEntity_modal": {
+      "title": "Add entity",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "Entity name (e.g. Alice / ChainlessChain / RAG)",
+      "typeLabel": "Type",
+      "typePlaceholder": "Pick an entity type",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Comma-separated, e.g. ai, project"
+    },
+    "addRelation_modal": {
+      "title": "Add relation",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "sourceLabel": "Source",
+      "sourcePlaceholder": "Pick source entity",
+      "targetLabel": "Target",
+      "targetPlaceholder": "Pick target entity",
+      "relationTypeLabel": "Relation type",
+      "relationTypePlaceholder": "e.g. knows / belongs to / created",
+      "weightLabel": "Weight"
+    },
+    "reason_modal": {
+      "title": "Multi-hop reasoning: {name}",
+      "maxDepth": "Max depth",
+      "direction": "Direction",
+      "directionOut": "Out",
+      "directionIn": "In",
+      "directionBoth": "Both",
+      "run": "Run",
+      "hint": "Click \"Run\" to see entities reachable from this node"
+    },
+    "msg": {
+      "loadEntitiesFailed": "Failed to load entities",
+      "loadRelationsFailed": "Failed to load relations",
+      "loadStatsFailed": "Failed to load stats",
+      "loadEntityTypesFailed": "Failed to load entity types",
+      "addEntityEmpty": "Enter a name and pick a type",
+      "addEntityFailed": "Add failed",
+      "addEntitySuccess": "Entity added",
+      "addRelationEmpty": "Fill source, target, and relation type",
+      "addRelationSelfLoop": "Source and target must be different entities",
+      "addRelationFailed": "Add failed",
+      "addRelationSuccess": "Relation added",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Entity deleted",
+      "reasonEmpty": "No reachable entities from this node",
+      "reasonFailed": "Reasoning failed"
+    }
+  },
+  "governance": {
+    "title": "Community Governance",
+    "subtitle": "Proposals · weighted voting · heuristic impact · vote prediction",
+    "refresh": "Refresh",
+    "create": "New proposal",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc governance ...` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "total": "Total proposals",
+      "active": "Active",
+      "passed": "Passed",
+      "rejected": "Rejected",
+      "votes": "Total votes"
+    },
+    "typesCard": "Proposal types",
+    "tabs": {
+      "proposals": "Proposals",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "unnamed": "(untitled)",
+      "emptyFiltered": "No proposals match the current filter",
+      "empty": "No proposals yet — click \"New proposal\" to create the first one"
+    },
+    "cols": {
+      "title": "Title",
+      "type": "Type",
+      "status": "Status",
+      "tally": "Tally",
+      "impact": "Impact",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "actions": {
+      "details": "Details",
+      "activate": "Open voting",
+      "vote": "Vote",
+      "close": "Close",
+      "analyze": "Impact",
+      "predict": "Predict"
+    },
+    "closeConfirm": {
+      "title": "Close voting and tally with the current votes?",
+      "ok": "Close",
+      "cancel": "Back"
+    },
+    "breakdown": {
+      "byStatus": "By status",
+      "byType": "By type"
+    },
+    "create_modal": {
+      "title": "New proposal",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. \"Add dark mode support\"",
+      "typeLabel": "Type",
+      "proposerLabel": "Proposer DID",
+      "proposerPlaceholder": "Optional, e.g. did:key:z6Mk...",
+      "descLabel": "Description",
+      "descPlaceholder": "Background, motivation, scope (more detail → higher benefit score in impact analysis)"
+    },
+    "vote_modal": {
+      "title": "Vote on proposal: {title}",
+      "ok": "Vote",
+      "cancel": "Cancel",
+      "voterLabel": "Voter DID",
+      "valueLabel": "Choice",
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain",
+      "weightLabel": "Weight",
+      "weightHint": "default 1.0",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Optional rationale"
+    },
+    "details": {
+      "title": "Proposal details: {title}",
+      "id": "ID",
+      "type": "Type",
+      "status": "Status",
+      "proposer": "Proposer",
+      "proposerUnset": "(unset)",
+      "description": "Description",
+      "tally": "Tally",
+      "tallyYes": "Yes: {n}",
+      "tallyNo": "No: {n}",
+      "tallyAbstain": "Abstain: {n}",
+      "impact": "Impact level",
+      "createdAt": "Created",
+      "votingStartsAt": "Voting starts",
+      "votingEndsAt": "Voting ends",
+      "votesHeader": "Vote log",
+      "votesEmpty": "No votes yet"
+    },
+    "analysis": {
+      "title": "Impact analysis: {title}",
+      "impactLevel": "Impact level",
+      "effort": "Effort",
+      "sentiment": "Community sentiment",
+      "riskBenefit": "Risk / Benefit",
+      "riskScore": "Risk score",
+      "benefitScore": "Benefit score",
+      "components": "Affected components",
+      "recommendations": "Recommendations"
+    },
+    "prediction": {
+      "title": "Vote prediction: {title}",
+      "outcomePass": "Predicted: pass",
+      "outcomeReject": "Predicted: reject",
+      "confidence": "Confidence",
+      "basedOn": "Based on",
+      "basedOnVotes": "existing votes",
+      "basedOnHeuristic": "heuristic (no votes)",
+      "sampleSize": "Sample size",
+      "yesProb": "Yes probability",
+      "noProb": "No probability",
+      "abstainProb": "Abstain probability"
+    },
+    "statusLabels": {
+      "draft": "Draft",
+      "active": "Active",
+      "passed": "Passed",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    },
+    "typeLabels": {
+      "parameter_change": "Parameter change",
+      "feature_request": "Feature request",
+      "policy_update": "Policy update",
+      "budget_allocation": "Budget allocation"
+    },
+    "impactLabels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "voteLabels": {
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain"
+    },
+    "effortLabels": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "sentimentLabels": {
+      "positive": "Positive",
+      "cautious": "Cautious",
+      "negative": "Negative"
+    },
+    "msg": {
+      "loadFailed": "Failed to load governance data",
+      "titleEmpty": "Enter a title",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "createFailed": "Create failed",
+      "createSuccess": "Proposal created (draft)",
+      "actionFailed": "Action failed",
+      "activated": "Voting opened",
+      "closed": "Voting closed",
+      "voterEmpty": "Enter a voter DID",
+      "voteFailed": "Vote failed",
+      "voteSuccess": "Vote recorded",
+      "analyzeFailed": "Analysis failed",
+      "predictFailed": "Prediction failed"
+    }
+  },
+  "privacy": {
+    "title": "Privacy computing",
+    "subtitle": "Federated learning · MPC · differential privacy · homomorphic encryption",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "model": "New FL model",
+      "computation": "New MPC computation",
+      "dp": "DP publish",
+      "he": "HE query"
+    },
+    "stats": {
+      "models": "FL models",
+      "avgAccuracy": "Avg. accuracy",
+      "computations": "MPC computations",
+      "budget": "Budget left ε",
+      "budgetState": "Budget state",
+      "exhausted": "Exhausted",
+      "ample": "Ample"
+    },
+    "catalog": {
+      "protocols": "MPC protocols",
+      "dp": "DP noise mechanisms",
+      "he": "HE schemes"
+    },
+    "tabs": {
+      "models": "Federated learning",
+      "computations": "MPC"
+    },
+    "filter": {
+      "all": "All",
+      "allProtocols": "All protocols",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "rounds": "{cur} / {total} rounds",
+      "trainOne": "Train one round",
+      "failConfirm": "Mark this model as failed?",
+      "failOk": "Confirm",
+      "failCancel": "Cancel",
+      "failMark": "Mark failed",
+      "submitShare": "Submit share",
+      "emptyModelsFiltered": "No models match the current filter",
+      "emptyModels": "No FL models yet — click \"Actions → New FL model\"",
+      "emptyComputations": "No MPC computations yet — click \"Actions → New MPC computation\""
+    },
+    "modelCols": {
+      "name": "Name",
+      "status": "Status",
+      "progress": "Progress",
+      "accuracy": "Accuracy",
+      "participants": "Parties",
+      "budget": "Budget ε",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "computationCols": {
+      "type": "Type",
+      "protocol": "Protocol",
+      "progress": "Shares",
+      "status": "Status",
+      "time": "Duration",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "flStatusLabels": {
+      "initializing": "Initialising",
+      "training": "Training",
+      "aggregating": "Aggregating",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "mpcStatusLabels": {
+      "pending": "Pending",
+      "computing": "Computing",
+      "completed": "Completed"
+    },
+    "model_modal": {
+      "title": "New FL model",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Model name",
+      "namePlaceholder": "e.g. fraud-detector",
+      "typeLabel": "Model type",
+      "typePlaceholder": "neural_network (default)",
+      "archLabel": "Architecture",
+      "archPlaceholder": "mlp (default)",
+      "roundsLabel": "Total rounds",
+      "lrLabel": "Learning rate",
+      "participantsLabel": "Parties"
+    },
+    "computation_modal": {
+      "title": "New MPC computation",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "typeLabel": "Computation type",
+      "typePlaceholder": "e.g. sum / multiplication",
+      "protocolLabel": "Protocol",
+      "participantsLabel": "Party IDs",
+      "participantsPlaceholder": "Comma-separated, e.g. alice,bob,carol",
+      "thresholdLabel": "Required shares",
+      "thresholdPlaceholder": "blank → half automatically"
+    },
+    "dp_modal": {
+      "title": "Differential privacy publish",
+      "ok": "Publish",
+      "cancel": "Close",
+      "dataLabel": "Data",
+      "dataPlaceholder": "Number or JSON array, e.g. 10 or [1,2,3]",
+      "mechanismLabel": "Mechanism",
+      "epsilonLabel": "ε (epsilon)",
+      "deltaLabel": "δ (delta)",
+      "sensitivityLabel": "Sensitivity",
+      "noisedTitle": "Noised data",
+      "spentLine": "Budget spent: {n}",
+      "remainingLine": "Budget remaining: {n}",
+      "mechanismLine": "Mechanism: {name} (ε={epsilon})",
+      "failedTitle": "Publish failed"
+    },
+    "he_modal": {
+      "title": "Homomorphic encryption query",
+      "ok": "Query",
+      "cancel": "Close",
+      "dataLabel": "Data",
+      "dataPlaceholder": "JSON array, e.g. [1,2,3,4,5]",
+      "operationLabel": "Operation",
+      "schemeLabel": "Scheme",
+      "resultTitle": "Encrypted result",
+      "schemeLine": "Scheme: {name}",
+      "operationLine": "Operation: {name}",
+      "inputCountLine": "Inputs: {n}",
+      "encrypted": "encrypted"
+    },
+    "msg": {
+      "loadFailed": "Failed to load privacy data",
+      "modelNameEmpty": "Enter a model name",
+      "modelCreateFailed": "Create failed",
+      "modelCreateSuccess": "FL model created",
+      "computationTypeEmpty": "Enter a computation type",
+      "computationCreateFailed": "Create failed",
+      "computationCreateSuccess": "MPC computation created",
+      "trainFailed": "Train failed",
+      "trainSuccess": "One round complete",
+      "failMarkFailed": "Mark failed",
+      "failMarkSuccess": "Marked as failed",
+      "submitFailed": "Submit failed",
+      "submitSuccess": "Share submitted",
+      "dataEmpty": "Enter data",
+      "dataInvalidJson": "Invalid format — enter a valid JSON array",
+      "dpFailed": "Publish failed",
+      "dpSuccess": "Published",
+      "dpRejected": "Publish rejected: {reason}",
+      "heFailed": "Query failed",
+      "heSuccess": "Computation complete ({scheme}/{op})"
+    }
+  },
+  "aiops": {
+    "title": "AIOps autonomy",
+    "subtitle": "Anomaly detection · incident management · automated playbooks",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "actions": {
+      "incident": "Create incident",
+      "playbook": "Create playbook",
+      "baseline": "Update baseline",
+      "detect": "Detect anomaly"
+    },
+    "stats": {
+      "incidents": "Incidents",
+      "pending": "Pending",
+      "playbooks": "Playbooks",
+      "enabled": "Enabled",
+      "baselines": "Baselines"
+    },
+    "severityCard": "Severity breakdown",
+    "avgResolveLabel": "Avg. resolve time: {time}",
+    "tabs": {
+      "incidents": "Incidents",
+      "playbooks": "Playbooks",
+      "baselines": "Baselines"
+    },
+    "filter": {
+      "all": "All",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "incidentEmptyFiltered": "No incidents match the current filter",
+      "incidentEmpty": "No incidents yet — click \"New → Create incident\" or run \"Detect anomaly\"",
+      "playbookEmpty": "No playbooks yet — click \"New → Create playbook\"",
+      "baselineEmpty": "No baselines yet — click \"New → Update baseline\" to feed samples",
+      "successCount": "{n} ok",
+      "failureCount": "{n} fail"
+    },
+    "incidentActions": {
+      "ack": "Ack",
+      "resolve": "Resolve",
+      "close": "Close",
+      "postmortem": "Postmortem"
+    },
+    "playbookActions": {
+      "success": "+ Success",
+      "failure": "+ Failure"
+    },
+    "incidentCols": {
+      "severity": "Severity",
+      "metric": "Metric",
+      "description": "Description",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "playbookCols": {
+      "name": "Name",
+      "enabled": "Enabled",
+      "stats": "Stats",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "baselineCols": {
+      "metric": "Metric",
+      "mean": "Mean / σ",
+      "iqr": "Quartiles",
+      "sampleCount": "Samples",
+      "updatedAt": "Updated"
+    },
+    "incident_modal": {
+      "title": "Create incident",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "severityLabel": "Severity",
+      "metricLabel": "Metric",
+      "metricPlaceholder": "e.g. cpu_usage (optional)",
+      "descLabel": "Description"
+    },
+    "playbook_modal": {
+      "title": "Create playbook",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "restart-pod",
+      "triggerLabel": "Trigger (JSON)",
+      "triggerPlaceholder": "e.g. metric=cpu, threshold=90",
+      "stepsLabel": "Steps (JSON)",
+      "stepsPlaceholder": "JSON array, e.g. action=restart, target=pod-1"
+    },
+    "baseline_modal": {
+      "title": "Update baseline",
+      "ok": "Update",
+      "cancel": "Cancel",
+      "metricLabel": "Metric name",
+      "metricPlaceholder": "cpu_usage",
+      "valuesLabel": "Sample values",
+      "valuesPlaceholder": "Comma-separated numbers, e.g. 45.2, 47.1, 50.8, 49.3"
+    },
+    "detect_modal": {
+      "title": "Detect anomaly",
+      "ok": "Detect",
+      "cancel": "Close",
+      "metricLabel": "Metric name",
+      "metricPlaceholder": "Pick a metric with an established baseline",
+      "metricOptionLabel": "{name} (n={count})",
+      "valueLabel": "Test value",
+      "algorithmLabel": "Algorithm",
+      "resultTitle": "Result",
+      "anomaly": "Anomaly",
+      "normal": "Normal",
+      "reasonLine": "Reason: {reason}",
+      "scoreLine": "Score: {score} (threshold {threshold})",
+      "baselineLine": "Baseline: mean {mean}, σ {stdDev}",
+      "incidentCreated": "Auto-created {severity} incident"
+    },
+    "statusLabels": {
+      "open": "Open",
+      "acknowledged": "Acked",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "reasonLabels": {
+      "no_baseline": "Metric has no baseline yet — run \"Update baseline\" first",
+      "zero_stddev": "Baseline variance is zero (samples are identical)",
+      "missing_metric_name": "Missing metric name",
+      "missing_value": "Missing test value",
+      "unknown_algorithm": "Unknown algorithm"
+    },
+    "duration": {
+      "none": "—"
+    },
+    "msg": {
+      "loadFailed": "Failed to load AIOps data",
+      "descEmpty": "Enter an incident description",
+      "createFailed": "Create failed",
+      "incidentCreated": "Incident created",
+      "playbookNameEmpty": "Enter a playbook name",
+      "jsonInvalid": "{label} JSON is malformed",
+      "playbookCreated": "Playbook created",
+      "metricEmpty": "Enter a metric name",
+      "valuesInvalid": "Enter at least one valid number (comma- or space-separated)",
+      "baselineUpdateFailed": "Update failed",
+      "baselineUpdated": "Baseline updated (n={n})",
+      "detectFieldsEmpty": "Pick a metric and enter a test value",
+      "detectFailed": "Detect failed",
+      "detectAnomaly": "Anomaly detected ({severity})",
+      "incidentTransitionFailed": "Transition failed",
+      "incidentAcked": "Incident acknowledged",
+      "incidentResolved": "Incident resolved",
+      "incidentClosed": "Incident closed",
+      "postmortemTitle": "Incident {id} postmortem",
+      "postmortemEmpty": "(no content)",
+      "postmortemFailed": "Postmortem generation failed",
+      "playbookToggleFailed": "Toggle failed",
+      "playbookEnabled": "Playbook enabled",
+      "playbookDisabled": "Playbook disabled",
+      "playbookRecordFailed": "Record failed",
+      "playbookRecordSuccess": "Success run recorded",
+      "playbookRecordFailure": "Failure run recorded",
+      "triggerLabel": "Trigger",
+      "stepsLabel": "Steps"
+    }
+  },
+  "reputation": {
+    "title": "Reputation Optimizer",
+    "subtitle": "Observations · Decay models · Anomaly detection · Bayesian parameter optimization",
+    "refresh": "Refresh",
+    "actions": {
+      "anomalies": "Anomaly check",
+      "optimize": "Start optimization"
+    },
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc reputation ...` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "stats": {
+      "trackedDids": "Tracked DIDs",
+      "totalObservations": "Observations",
+      "optimizationRuns": "Optimization runs",
+      "active": "Active",
+      "bestEver": "Best ever"
+    },
+    "tabs": {
+      "scores": "Score ranking",
+      "runs": "Optimization runs",
+      "breakdown": "Distribution"
+    },
+    "filter": {
+      "decayLabel": "Decay model:",
+      "addObservation": "Add observation"
+    },
+    "scoreColumns": {
+      "rank": "Rank",
+      "did": "DID",
+      "score": "Reputation score",
+      "observations": "Observations",
+      "weightTotal": "Weight total"
+    },
+    "runColumns": {
+      "runId": "Run ID",
+      "objective": "Objective",
+      "iterations": "Iterations",
+      "bestScore": "Best score",
+      "status": "Status",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "totals": {
+      "dids": "{count} DIDs total",
+      "rows": "{count} rows"
+    },
+    "empty": {
+      "scores": "No reputation data yet — click Add observation to record one",
+      "runs": "No optimization runs yet — click Start optimization to begin"
+    },
+    "rowActions": {
+      "analyze": "Analyze",
+      "apply": "Apply"
+    },
+    "breakdown": {
+      "byStatus": "By status",
+      "byObjective": "By objective"
+    },
+    "observe": {
+      "title": "Add observation",
+      "ok": "Record",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:...",
+      "scoreLabel": "Score",
+      "scoreRange": "Range 0.0 ~ 1.0",
+      "kindLabel": "Kind",
+      "weightLabel": "Weight"
+    },
+    "optimize": {
+      "title": "Start optimization",
+      "ok": "Start",
+      "objectiveLabel": "Objective",
+      "iterationsLabel": "Iterations",
+      "iterationsRange": "Range 1 ~ 1000, default 50",
+      "syncMessage": "Synchronous run",
+      "syncDescription": "Optimization runs all iterations and returns best params plus recommendations (heuristic Bayesian simulation in the CLI lib)."
+    },
+    "anomaly": {
+      "title": "Anomaly score detection",
+      "methodLabel": "Method",
+      "zScoreLabel": "Z-score (3σ)",
+      "iqrLabel": "IQR (1.5×)",
+      "thresholdLabel": "Threshold",
+      "thresholdHint": "Defaults: z_score=2.5 / iqr=1.5",
+      "decayLabel": "Decay model",
+      "start": "Detect",
+      "notDetected": "Not detected yet",
+      "totalSamples": "Samples",
+      "threshold": "Threshold",
+      "anomalies": "Anomalies",
+      "scoreTag": "score: {score}",
+      "zNote": "z={value}"
+    },
+    "analytics": {
+      "title": "Run details: {runId}",
+      "objective": "Objective",
+      "status": "Status",
+      "iterations": "Iterations",
+      "bestScore": "Best score",
+      "createdAt": "Created",
+      "completedAt": "Completed",
+      "bestParams": "Best params",
+      "errorMessage": "Error",
+      "distributionTitle": "Reputation distribution",
+      "mean": "Mean: {value}",
+      "stdDev": "Std dev: {value}",
+      "recommendations": "Recommendations"
+    },
+    "decay": {
+      "none": "None",
+      "exponential": "Exponential",
+      "linear": "Linear",
+      "step": "Step"
+    },
+    "kind": {
+      "generic": "Generic",
+      "task": "Task",
+      "review": "Review",
+      "vote": "Vote"
+    },
+    "objective": {
+      "accuracy": "Accuracy",
+      "fairness": "Fairness",
+      "resilience": "Resilience",
+      "convergence_speed": "Convergence speed"
+    },
+    "objectiveDesc": {
+      "accuracy": "Maximize fit to ground-truth reputation",
+      "fairness": "Lower decay strength, treat all DIDs equally",
+      "resilience": "Increase tolerance to outliers",
+      "convergence_speed": "Reach a stable result in as few iterations as possible"
+    },
+    "status": {
+      "running": "Running",
+      "complete": "Complete",
+      "applied": "Applied",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "applyConfirm": {
+      "title": "Apply this optimization result?",
+      "content": "Run {runId}'s best params will be marked as applied.",
+      "ok": "Apply",
+      "cancel": "Cancel"
+    },
+    "messages": {
+      "loadFailed": "Failed to load reputation data: {err}",
+      "loadScoresFailed": "Failed to load scores: {err}",
+      "didRequired": "Please enter a DID",
+      "scoreRange": "Score must be between 0 and 1",
+      "needInit": "Run `cc init` to initialize the project first",
+      "observeFailed": "Record failed: {err}",
+      "observeOk": "Observation recorded",
+      "optimizeFailed": "Optimization failed: {err}",
+      "optimizeOk": "Optimization complete — best score {score}",
+      "applyFailed": "Apply failed: {err}",
+      "applyOk": "Applied",
+      "detectFailed": "Detection failed: {err}"
+    }
+  },
+  "federation": {
+    "title": "Federation Hardening",
+    "subtitle": "Circuit breaker FSM · Health checks · Connection pool simulation",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "newMenu": {
+      "register": "Register node",
+      "check": "Record health check",
+      "pool": "New connection pool"
+    },
+    "stats": {
+      "breakers": "Breaker nodes",
+      "checks": "Health checks",
+      "pools": "Connection pools",
+      "degraded": "Degraded nodes",
+      "availability": "Availability",
+      "breakerSub": "{closed} closed · {open} open",
+      "checkSub": "{healthy} healthy · {unhealthy} unhealthy",
+      "poolSub": "{active} active · {idle} idle",
+      "degradedSub": "{halfOpen} half-open"
+    },
+    "tabs": {
+      "breakers": "Breakers",
+      "checks": "Health checks",
+      "pools": "Connection pools",
+      "nodeHealth": "Node health aggregate"
+    },
+    "filter": {
+      "allStates": "All states",
+      "allMetrics": "All metrics"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "breakerColumns": {
+      "node": "Node",
+      "state": "State",
+      "failure": "Failures",
+      "success": "Successes",
+      "openTimeout": "Timeout (ms)",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "checkColumns": {
+      "id": "ID",
+      "node": "Node",
+      "metric": "Metric",
+      "status": "Status",
+      "metrics": "Value",
+      "checkedAt": "Checked"
+    },
+    "poolColumns": {
+      "node": "Node",
+      "active": "Active",
+      "idle": "Idle",
+      "max": "Max",
+      "utilization": "Utilization",
+      "waiting": "Waiting",
+      "totalCreated": "Created",
+      "createdAt": "Created at",
+      "action": "Action"
+    },
+    "latestColumns": {
+      "metric": "Metric",
+      "status": "Status",
+      "checkedAt": "Checked"
+    },
+    "breakerActions": {
+      "failure": "Failure",
+      "success": "Success",
+      "halfOpen": "Half-open",
+      "reset": "Reset",
+      "remove": "Remove",
+      "removeConfirm": "Remove this node? All related breakers and health checks will be deleted."
+    },
+    "poolActions": {
+      "acquire": "Acquire",
+      "release": "Release",
+      "destroy": "Destroy",
+      "destroyConfirm": "Destroy this pool?"
+    },
+    "empty": {
+      "breakers": "No breakers yet",
+      "checks": "No health-check records yet",
+      "pools": "No connection pools yet",
+      "noLatest": "No recent checks"
+    },
+    "nodeHealth": {
+      "inputPlaceholder": "Node ID",
+      "query": "Query",
+      "node": "Node",
+      "status": "Aggregate status",
+      "checkCount": "Total checks",
+      "latestTitle": "Latest status per metric"
+    },
+    "register": {
+      "title": "Register federation node",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. node-shanghai-01",
+      "failureThresholdLabel": "Failure threshold (default 5)",
+      "successThresholdLabel": "Success threshold (default 2)",
+      "openTimeoutLabel": "Open timeout (ms) (default 60000)"
+    },
+    "check": {
+      "title": "Record health check",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "Must register the node first",
+      "metricLabel": "Metric type",
+      "statusLabel": "Health status",
+      "metricsLabel": "Metrics JSON (optional, e.g. latencyMs:42)",
+      "metricsPlaceholder": "metrics string: e.g. latencyMs=42, cpu=0.4"
+    },
+    "pool": {
+      "title": "New connection pool",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. node-shanghai-01",
+      "minLabel": "Min connections (default 5)",
+      "maxLabel": "Max connections (default 50)",
+      "idleTimeoutLabel": "Idle timeout (ms) (default 300000)"
+    },
+    "state": {
+      "closed": "Closed",
+      "open": "Open",
+      "half_open": "Half-open"
+    },
+    "metric": {
+      "heartbeat": "Heartbeat",
+      "latency": "Latency",
+      "success_rate": "Success rate",
+      "cpu_usage": "CPU",
+      "memory_usage": "Memory"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy",
+      "unknown": "Unknown"
+    },
+    "messages": {
+      "loadFailed": "Failed to load data: {err}",
+      "nodeIdRequired": "Please enter a node ID",
+      "registerFailed": "Registration failed: {err}",
+      "registerOk": "Node registered: {id}",
+      "checkFailed": "Record failed: {err}",
+      "checkOk": "Check recorded: {id}",
+      "poolFailed": "Create failed: {err}",
+      "poolOk": "Pool created: {id}",
+      "removeFailed": "Remove failed: {err}",
+      "removeOk": "Node removed",
+      "operationFailed": "Operation failed: {err}",
+      "operationNoEffect": "Operation had no effect",
+      "operationCooldown": "Operation had no effect ({ms}ms remaining)",
+      "transitionMsg": "{from} → {to}",
+      "resetMsg": "Breaker reset",
+      "recordedMsg": "Recorded",
+      "destroyMsg": "Pool destroyed",
+      "acquireMsg": "Acquired (active {active} · idle {idle})",
+      "releaseMsg": "Released (active {active} · idle {idle})",
+      "queryFailed": "Query failed: {err}"
+    }
+  },
+  "recommend": {
+    "title": "Smart Recommendations",
+    "subtitle": "Interest profile · Topic decay · Content scoring · Feedback learning",
+    "refresh": "Refresh",
+    "createProfile": "New profile",
+    "userBar": {
+      "currentUser": "Current user:",
+      "selectPlaceholder": "Pick a user profile",
+      "applyDecay": "Apply decay",
+      "suggest": "Suggest tweaks",
+      "topicSuffix": "{count} topics"
+    },
+    "stats": {
+      "profiles": "User profiles",
+      "totalRecs": "Total recs",
+      "pending": "Pending",
+      "feedbackRate": "Feedback rate",
+      "avgScore": "Avg score"
+    },
+    "typeCatalogue": "Content types",
+    "tabs": {
+      "recs": "Feed",
+      "profiles": "Profiles",
+      "interests": "Interest profile"
+    },
+    "filter": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types"
+    },
+    "totals": {
+      "rows": "{count} rows",
+      "profiles": "{count} profiles"
+    },
+    "recColumns": {
+      "title": "Title",
+      "contentType": "Type",
+      "score": "Score",
+      "reason": "Reason",
+      "status": "Status",
+      "feedback": "Feedback",
+      "action": "Action"
+    },
+    "profileColumns": {
+      "userId": "User ID",
+      "topicCount": "Topics",
+      "decayFactor": "Decay",
+      "updateCount": "Updates",
+      "lastUpdated": "Last updated",
+      "action": "Action"
+    },
+    "noTitle": "(no title)",
+    "feedbackDropdown": "Feedback ▼",
+    "feedbackMenu": {
+      "like": "Like",
+      "dislike": "Dislike",
+      "later": "Later"
+    },
+    "rowActions": {
+      "view": "View",
+      "dismiss": "Dismiss",
+      "dismissConfirmTitle": "Dismiss this recommendation?",
+      "dismissOk": "Dismiss",
+      "details": "Details",
+      "switch": "Switch",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete this profile?",
+      "deleteOk": "Delete"
+    },
+    "empty": {
+      "selectUser": "Select a user profile first",
+      "filtered": "No recommendations match the filters",
+      "noRecsHint": "No recommendations for this user — run `cc recommend generate` to populate from content pool",
+      "noProfiles": "No user profiles yet",
+      "noInterests": "No interest weights yet for this user",
+      "noSuggestions": "No suggestions yet — needs more feedback",
+      "noTopics": "No topic weights"
+    },
+    "interest": {
+      "topicWeights": "Topic weights",
+      "feedbackSuggest": "Feedback suggestions",
+      "boost": "Boost",
+      "lower": "Lower"
+    },
+    "topicTagSuffix": "{count} topics",
+    "create": {
+      "title": "Create user profile",
+      "ok": "Create",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "e.g. alice",
+      "topicsLabel": "Topic weights",
+      "topicsPlaceholder": "Optional JSON, e.g. ai=0.8, vue=0.5",
+      "weightsLabel": "Interaction weights",
+      "weightsPlaceholder": "Optional JSON, e.g. like=1.0, view=0.3"
+    },
+    "details": {
+      "title": "Profile details: {userId}",
+      "id": "ID",
+      "topicCount": "Topic count",
+      "decayFactor": "Decay factor",
+      "updateCount": "Updates",
+      "lastUpdated": "Last updated",
+      "topicWeights": "Topic weights",
+      "interactionWeights": "Interaction weights"
+    },
+    "type": {
+      "note": "Note",
+      "post": "Post",
+      "article": "Article",
+      "document": "Document"
+    },
+    "status": {
+      "pending": "Pending",
+      "viewed": "Viewed",
+      "dismissed": "Dismissed"
+    },
+    "feedbackLabel": {
+      "like": "Like",
+      "dislike": "Dislike",
+      "later": "Later"
+    },
+    "messages": {
+      "loadProfilesFailed": "Failed to load profiles: {err}",
+      "loadUserFailed": "Failed to load user data: {err}",
+      "userIdRequired": "Please enter a user ID",
+      "topicsJsonInvalid": "Topic-weight JSON is malformed",
+      "weightsJsonInvalid": "Interaction-weight JSON is malformed",
+      "createFailed": "Create failed: {err}",
+      "createOk": "Profile created: {id}",
+      "decayFailed": "Decay failed: {err}",
+      "decayOkTopics": "Decay applied, {count} topics remaining",
+      "decayOk": "Decay applied",
+      "suggestNone": "No suggestions yet — needs more feedback",
+      "suggestFound": "{count} suggestions found",
+      "loadSuggestFailed": "Failed to load suggestions: {err}",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Profile deleted",
+      "viewFailed": "Mark failed: {err}",
+      "viewOk": "Marked as viewed",
+      "feedbackFailed": "Feedback failed: {err}",
+      "feedbackOk": "Feedback recorded",
+      "dismissFailed": "Dismiss failed: {err}",
+      "dismissOk": "Dismissed"
+    }
+  },
+  "organization": {
+    "title": "Organization",
+    "subtitle": "Orgs / Members / Approvals",
+    "refresh": "Refresh",
+    "tabs": {
+      "orgs": "Orgs",
+      "members": "Members",
+      "approvals": "Approvals"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "orgs": {
+      "createButton": "Create org",
+      "createTitle": "Create organization",
+      "createOk": "Create",
+      "nameLabel": "Name",
+      "namePlaceholder": "Organization name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Organization description (optional)",
+      "emptyText": "No orgs yet — click Create org to add one",
+      "detailTitle": "Organization detail: {name}",
+      "detailLabels": {
+        "id": "ID",
+        "name": "Name",
+        "owner": "Owner",
+        "description": "Description",
+        "memberCount": "Members",
+        "createdAt": "Created at"
+      }
+    },
+    "orgColumns": {
+      "id": "ID",
+      "name": "Name",
+      "owner": "Owner",
+      "description": "Description",
+      "memberCount": "Members"
+    },
+    "members": {
+      "selectPlaceholder": "Pick an org",
+      "inviteButton": "Invite member",
+      "emptyMembers": "No members yet",
+      "selectFirst": "Pick an organization first",
+      "teamsTitle": "Teams",
+      "createTeamButton": "Create team",
+      "emptyTeams": "No teams yet",
+      "inviteTitle": "Invite member",
+      "inviteOk": "Invite",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "Enter user ID",
+      "nameLabel": "Name",
+      "namePlaceholder": "Display name",
+      "roleLabel": "Role",
+      "roleAdmin": "Admin (admin)",
+      "roleMember": "Member (member)",
+      "roleViewer": "Viewer (viewer)",
+      "createTeamTitle": "Create team",
+      "createTeamOk": "Create",
+      "teamNameLabel": "Team name",
+      "teamNamePlaceholder": "Team name",
+      "teamDescLabel": "Description",
+      "teamDescPlaceholder": "Team description (optional)",
+      "teamLeadLabel": "Lead",
+      "teamLeadPlaceholder": "Lead user ID (optional)"
+    },
+    "memberColumns": {
+      "userId": "User ID",
+      "name": "Name",
+      "role": "Role",
+      "joinedAt": "Joined"
+    },
+    "teamColumns": {
+      "name": "Team",
+      "description": "Description",
+      "lead": "Lead"
+    },
+    "approvals": {
+      "submitButton": "Submit approval",
+      "submitTitle": "Submit approval",
+      "submitOk": "Submit",
+      "orgLabel": "Org",
+      "orgPlaceholder": "Pick an org",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Approval title",
+      "typeLabel": "Type",
+      "typePlaceholder": "Approval type",
+      "descLabel": "Description",
+      "descPlaceholder": "Approval description (optional)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "emptyText": "No approvals yet"
+    },
+    "approvalColumns": {
+      "id": "ID",
+      "title": "Title",
+      "type": "Type",
+      "requester": "Requester",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "messages": {
+      "loadOrgsFailed": "Failed to load orgs: {err}",
+      "orgNameRequired": "Enter an organization name",
+      "orgCreateFailed": "Create failed: {err}",
+      "orgCreateOk": "Organization created",
+      "loadDetailFailed": "Failed to load detail: {err}",
+      "loadMembersFailed": "Failed to load members: {err}",
+      "loadTeamsFailed": "Failed to load teams: {err}",
+      "userIdRequired": "Enter a user ID",
+      "inviteFailed": "Invite failed: {err}",
+      "inviteOk": "Invitation sent",
+      "teamNameRequired": "Enter a team name",
+      "teamCreateFailed": "Create failed: {err}",
+      "teamCreateOk": "Team created",
+      "loadApprovalsFailed": "Failed to load approvals: {err}",
+      "approveFailed": "Approve failed: {err}",
+      "approveOk": "Approved",
+      "rejectFailed": "Reject failed: {err}",
+      "rejectOk": "Rejected",
+      "orgRequired": "Pick an organization",
+      "approvalTitleRequired": "Enter an approval title",
+      "submitFailed": "Submit failed: {err}",
+      "submitOk": "Approval submitted"
+    }
+  },
+  "inference": {
+    "title": "Inference Network",
+    "subtitle": "Decentralized inference nodes · Task scheduling · Privacy modes",
+    "refresh": "Refresh",
+    "actionDropdown": "Action ▼",
+    "actions": {
+      "register": "Register node",
+      "submit": "Submit inference task"
+    },
+    "stats": {
+      "totalNodes": "Nodes",
+      "onlineNodes": "Online",
+      "totalTasks": "Tasks",
+      "queued": "Queued",
+      "avgDuration": "Avg duration"
+    },
+    "breakdown": {
+      "title": "Node status breakdown",
+      "online": "Online {count}",
+      "busy": "Busy {count}",
+      "offline": "Offline {count}",
+      "extra": "Complete: {complete} · Failed: {failed}"
+    },
+    "tabs": {
+      "nodes": "Nodes",
+      "tasks": "Tasks"
+    },
+    "filter": {
+      "all": "All",
+      "allStatuses": "All statuses",
+      "allModes": "All modes"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "nodeColumns": {
+      "nodeId": "Node ID",
+      "capabilities": "Capabilities",
+      "gpu": "GPU",
+      "status": "Status",
+      "taskCount": "Tasks",
+      "lastHeartbeat": "Last heartbeat",
+      "action": "Action"
+    },
+    "taskColumns": {
+      "model": "Model",
+      "privacyMode": "Privacy",
+      "priority": "Priority",
+      "assignedNode": "Node",
+      "status": "Status",
+      "duration": "Duration",
+      "createdAt": "Submitted",
+      "action": "Action"
+    },
+    "rowActions": {
+      "heartbeat": "Heartbeat",
+      "statusDropdown": "Status ▼",
+      "unregister": "Unregister",
+      "unregisterConfirm": "Unregister this node?",
+      "unregisterOk": "Unregister",
+      "complete": "Complete",
+      "fail": "Fail",
+      "failConfirm": "Mark task as failed?",
+      "failOk": "Confirm"
+    },
+    "empty": {
+      "filteredNodes": "No nodes match the filter",
+      "noNodes": "No nodes yet — Action → Register node to add the first",
+      "filteredTasks": "No tasks match the filter",
+      "noTasks": "No tasks yet — Action → Submit inference task to create the first"
+    },
+    "register": {
+      "title": "Register inference node",
+      "ok": "Register",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. gpu-host-1",
+      "endpointLabel": "Endpoint URL",
+      "endpointPlaceholder": "https://node.example.com (optional)",
+      "capabilitiesLabel": "Capabilities",
+      "capabilitiesPlaceholder": "Comma-separated, e.g. llama2,mistral,gpt-4",
+      "gpuLabel": "GPU memory (MB)"
+    },
+    "submit": {
+      "title": "Submit inference task",
+      "ok": "Submit",
+      "modelLabel": "Model",
+      "modelPlaceholder": "e.g. llama2-7b",
+      "inputLabel": "Input",
+      "priorityLabel": "Priority",
+      "modeLabel": "Privacy mode"
+    },
+    "nodeStatus": {
+      "online": "Online",
+      "offline": "Offline",
+      "busy": "Busy",
+      "degraded": "Degraded"
+    },
+    "taskStatus": {
+      "queued": "Queued",
+      "dispatched": "Dispatched",
+      "running": "Running",
+      "complete": "Complete",
+      "failed": "Failed"
+    },
+    "privacy": {
+      "standard": "Standard",
+      "encrypted": "Encrypted",
+      "federated": "Federated"
+    },
+    "messages": {
+      "loadFailed": "Failed to load inference data: {err}",
+      "nodeIdRequired": "Enter a node ID",
+      "registerFailed": "Register failed: {err}",
+      "registerOk": "Node registered",
+      "modelRequired": "Enter a model name",
+      "submitFailed": "Submit failed: {err}",
+      "submitOk": "Task submitted",
+      "heartbeatFailed": "Heartbeat failed: {err}",
+      "heartbeatOk": "Heartbeat updated",
+      "statusFailed": "Status transition failed: {err}",
+      "statusOk": "Node status updated to {status}",
+      "unregisterFailed": "Unregister failed: {err}",
+      "unregisterOk": "Node unregistered",
+      "completeFailed": "Complete failed: {err}",
+      "completeOk": "Task completed",
+      "failFailed": "Mark failed: {err}",
+      "failOk": "Marked as failed"
+    }
+  },
+  "wallet": {
+    "title": "Wallet",
+    "subtitle": "Assets / Transfers / History",
+    "refresh": "Refresh",
+    "stats": {
+      "walletCount": "Wallets",
+      "assetCount": "Assets",
+      "defaultWallet": "Default wallet",
+      "defaultUnset": "Not set",
+      "totalTx": "Transactions"
+    },
+    "tabs": {
+      "wallets": "Wallets",
+      "assets": "Assets",
+      "transfer": "Transfer"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "wallets": {
+      "refreshList": "Refresh list",
+      "createButton": "Create wallet",
+      "createTitle": "Create wallet",
+      "createOk": "Create",
+      "nameLabel": "Wallet name",
+      "namePlaceholder": "Wallet name",
+      "emptyText": "No wallets yet — click Create wallet to add",
+      "default": "Default",
+      "currentDefault": "Current default",
+      "setDefault": "Set default"
+    },
+    "walletColumns": {
+      "address": "Address",
+      "name": "Name",
+      "isDefault": "Default",
+      "balance": "Balance",
+      "action": "Action"
+    },
+    "assets": {
+      "refreshAssets": "Refresh assets",
+      "registerButton": "Register asset",
+      "registerTitle": "Register asset",
+      "registerOk": "Register",
+      "nameLabel": "Asset name",
+      "namePlaceholder": "Asset name",
+      "typeLabel": "Asset type",
+      "typePlaceholder": "Pick a type",
+      "descLabel": "Description",
+      "descPlaceholder": "Asset description (optional)",
+      "emptyText": "No assets yet — click Register asset to add"
+    },
+    "assetColumns": {
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "address": "Address"
+    },
+    "transfer": {
+      "formCardTitle": "New transfer",
+      "assetIdLabel": "Asset ID",
+      "assetIdPlaceholder": "Asset ID",
+      "toAddressLabel": "Recipient",
+      "toAddressPlaceholder": "Recipient address",
+      "amountLabel": "Amount",
+      "amountPlaceholder": "Amount",
+      "submitButton": "Confirm transfer",
+      "successTag": "Success",
+      "failureTag": "Failed",
+      "historyCardTitle": "Transaction history",
+      "historyEmpty": "No transactions yet",
+      "confirmTitle": "Confirm transfer",
+      "confirmIntro": "Please confirm the transfer:",
+      "confirmOk": "Confirm"
+    },
+    "historyColumns": {
+      "time": "Time",
+      "type": "Type",
+      "amount": "Amount",
+      "to": "To"
+    },
+    "messages": {
+      "loadWalletsFailed": "Failed to load wallets: {err}",
+      "walletNameRequired": "Enter a wallet name",
+      "walletCreateFailed": "Create failed: {err}",
+      "walletCreateOk": "Wallet created",
+      "setDefaultFailed": "Set default failed: {err}",
+      "setDefaultOk": "Set as default wallet",
+      "loadAssetsFailed": "Failed to load assets: {err}",
+      "assetNameRequired": "Enter an asset name",
+      "assetRegisterFailed": "Register failed: {err}",
+      "assetRegisterOk": "Asset registered",
+      "transferIncomplete": "Fill in all transfer fields",
+      "transferOk": "Transfer succeeded",
+      "transferDefault": "Transfer submitted",
+      "transferFailed": "Transfer failed: {err}",
+      "loadHistoryFailed": "Failed to load history: {err}"
+    }
+  },
+  "community": {
+    "title": "Community",
+    "subtitle": "Contacts · Friends · Posts (decentralized social)",
+    "refresh": "Refresh",
+    "publishButton": "Publish post",
+    "addContactButton": "Add contact",
+    "stats": {
+      "contacts": "Contacts",
+      "friends": "Friends",
+      "posts": "Posts",
+      "messages": "Messages",
+      "pendingRequests": "Pending requests"
+    },
+    "tabs": {
+      "posts": "Posts",
+      "friends": "Friends",
+      "contacts": "Contacts"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "posts": {
+      "emptyText": "No posts yet — click Publish post to create the first one",
+      "publishTitle": "Publish post",
+      "publishOk": "Publish",
+      "authorLabel": "Author",
+      "authorPlaceholder": "Optional, defaults to cli-user",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Say something..."
+    },
+    "friends": {
+      "removeConfirm": "Remove this friend?",
+      "removeOk": "Remove",
+      "remove": "Remove",
+      "emptyText": "No friends yet. Send a friend request to a contact from the Contacts tab."
+    },
+    "friendColumns": {
+      "contact": "Contact",
+      "status": "Status",
+      "createdAt": "Since",
+      "action": "Action"
+    },
+    "contacts": {
+      "addFriend": "Add friend",
+      "alreadyFriend": "Already friends",
+      "deleteConfirm": "Delete this contact?",
+      "deleteOk": "Delete",
+      "delete": "Delete",
+      "emptyText": "No contacts yet — click Add contact to create one",
+      "addTitle": "Add contact",
+      "addOk": "Add",
+      "nameLabel": "Name",
+      "namePlaceholder": "Display name",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:... (optional)",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Optional",
+      "notesLabel": "Notes"
+    },
+    "contactColumns": {
+      "name": "Name",
+      "did": "DID",
+      "email": "Email",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "status": {
+      "accepted": "Accepted",
+      "pending": "Pending",
+      "blocked": "Blocked"
+    },
+    "messages": {
+      "loadFailed": "Failed to load community data: {err}",
+      "contentRequired": "Enter post content",
+      "publishFailed": "Publish failed: {err}",
+      "publishOk": "Post published",
+      "nameRequired": "Enter a contact name",
+      "addFailed": "Add failed: {err}",
+      "addOk": "Contact added",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Contact deleted",
+      "friendRequestFailed": "Friend request failed: {err}",
+      "friendRequestOk": "Friend request sent",
+      "removeFailed": "Remove failed: {err}",
+      "removeOk": "Friend removed",
+      "likeFailed": "Like failed: {err}"
+    }
+  },
+  "webauthn": {
+    "title": "Authentication",
+    "subtitle": "WebAuthn / SSO / Two-factor",
+    "refresh": "Refresh",
+    "tabs": {
+      "webauthn": "WebAuthn",
+      "sso": "SSO config",
+      "tfa": "Two-factor"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "credentials": {
+      "registerButton": "Register credential",
+      "registerTitle": "Register WebAuthn credential",
+      "registerOk": "Register",
+      "nameLabel": "Credential name",
+      "namePlaceholder": "e.g. YubiKey-5, TouchID",
+      "deleteConfirm": "Delete this credential?",
+      "deleteOk": "OK",
+      "delete": "Delete",
+      "emptyText": "No WebAuthn credentials yet — click Register credential to add"
+    },
+    "credentialColumns": {
+      "id": "ID",
+      "name": "Name",
+      "type": "Type",
+      "createdAt": "Created",
+      "lastUsed": "Last used",
+      "actions": "Actions"
+    },
+    "sso": {
+      "currentTitle": "Current SSO config",
+      "providerLabel": "Provider",
+      "clientIdLabel": "Client ID",
+      "redirectUrlLabel": "Redirect URL",
+      "statusLabel": "Status",
+      "configureButton": "Configure SSO",
+      "modalTitle": "Configure SSO",
+      "modalOk": "Save",
+      "providerPlaceholder": "Pick an SSO provider",
+      "clientIdPlaceholder": "Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretPlaceholder": "Client Secret",
+      "issuerLabel": "Issuer URL",
+      "issuerPlaceholder": "https://sso.example.com",
+      "notConfigured": "Not configured",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "tfa": {
+      "totpCardTitle": "TOTP two-factor",
+      "statusPrefix": "Status:",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableButton": "Enable TOTP",
+      "disableConfirm": "Disable two-factor authentication? This lowers account security.",
+      "disableOk": "Confirm disable",
+      "disableButton": "Disable",
+      "recoveryCardTitle": "Recovery codes",
+      "recoveryHint": "Recovery codes let you sign in if you lose your TOTP device. Keep them safe.",
+      "generateButton": "Generate recovery codes",
+      "saveAlert": "Save these codes immediately — once closed they cannot be shown again.",
+      "totpResultPrefix": "TOTP Secret: {secret}",
+      "totpResultUrl": "OTP Auth URL: {url}"
+    },
+    "messages": {
+      "loadFailed": "Failed to load WebAuthn credentials: {err}",
+      "credNameRequired": "Enter a credential name",
+      "registerFailed": "Register failed: {err}",
+      "registerOk": "WebAuthn credential registered",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Credential deleted",
+      "providerRequired": "Pick an SSO provider",
+      "clientIdRequired": "Enter a Client ID",
+      "ssoSaveFailed": "Save failed: {err}",
+      "ssoSaveOk": "SSO config saved",
+      "totpEnableFailed": "Enable failed: {err}",
+      "totpEnableOk": "TOTP enabled",
+      "totpDisableFailed": "Disable failed: {err}",
+      "totpDisableOk": "Two-factor disabled",
+      "codesFailed": "Failed to generate recovery codes: {err}",
+      "codesOk": "Recovery codes generated",
+      "codesUnable": "Could not generate recovery codes"
+    }
+  },
+  "mtc": {
+    "title": "Merkle Tree Certificates (MTC)",
+    "subtitle": "Audit dual-track state · Marketplace publisher history · Offline verify tool",
+    "refresh": "Refresh status",
+    "tabs": {
+      "status": "Audit dual-track",
+      "publisher": "Marketplace publisher",
+      "verify": "Envelope verify"
+    },
+    "status": {
+      "enabledLabel": "Status",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "intervalLabel": "Batch interval",
+      "stagingLabel": "Pending batch close",
+      "stagingMalformed": "{count} malformed",
+      "totalBatches": "Cumulative batches",
+      "configCard": "Config",
+      "lastBatchSize": "size={size} · {time}",
+      "noBatches": "No batches closed yet",
+      "loadFailMessage": "Failed to load status",
+      "loadFailDescription": "`cc audit mtc status --json` returned no valid output. Ensure `cc serve` is running and the current account can read the audit-mtc directory.",
+      "notEnabledMessage": "audit-mtc not enabled · ready",
+      "notEnabledDescription": "Legal blocker was lifted on 2026-05-01. Run `cc audit mtc enable --interval [60|3600] --namespace [ns] --issuer [issuer]` to enable dual-track signing for this tenant."
+    },
+    "publisher": {
+      "stateFileLabel": "State file path",
+      "stateFilePlaceholder": "e.g. ~/.chainlesschain/marketplace-state.json",
+      "queryButton": "Query",
+      "missingMessage": "State file does not exist",
+      "missingDescription": "{path} has no publish records yet. Run `cc mtc publish-skills` once and history will show up here.",
+      "lastSeq": "Last seq",
+      "historyEntries": "History entries",
+      "lastPublished": "Last published"
+    },
+    "historyColumns": {
+      "seq": "Seq",
+      "namespace": "Namespace",
+      "treeSize": "Tree size",
+      "treeHeadId": "Tree head",
+      "publishedAt": "Published"
+    },
+    "verify": {
+      "infoMessage": "Read-only verify · runs through local cc serve",
+      "infoDescription": "This tool calls the `cc mtc verify` subcommand. Envelope + landmark files must already be on the local disk — the browser only forwards the paths to cc serve, not the contents.",
+      "envelopeLabel": "Envelope file path",
+      "envelopePlaceholder": "e.g. ./mtc-out/envelope-000000.json",
+      "landmarkLabel": "Landmark file path",
+      "landmarkPlaceholder": "e.g. ./mtc-out/landmark.json",
+      "runButton": "Run cc mtc verify",
+      "passTitle": "✓ Verified",
+      "failTitle": "✗ Failed",
+      "resultLabel": "Result",
+      "errorCodeLabel": "Error code",
+      "errorCodeNone": "(none)",
+      "recoverable": "Recoverable",
+      "subjectLabel": "Subject",
+      "kindLabel": "Kind",
+      "treeSizeLabel": "Tree size",
+      "issuerLabel": "Issuer",
+      "rawHeader": "Raw JSON output"
+    },
+    "messages": {
+      "loadStatusFailed": "Failed to load status: {err}",
+      "stateFileRequired": "Enter a state file path",
+      "loadPublishFailed": "Failed to load publisher status: {err}",
+      "verifyPathsRequired": "Fill in envelope and landmark paths",
+      "verifyNoJson": "Verify command returned no JSON. Check the paths.",
+      "verifyFailed": "Verify failed: {err}"
+    }
+  },
+  "tokens": {
+    "title": "Token Usage",
+    "subtitle": "LLM call tracking · Cost accounting · Response cache",
+    "refresh": "Refresh",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc tokens ...` commands are only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "periodLabel": "Range:",
+    "period": {
+      "today": "Today",
+      "week": "Last 7 days",
+      "month": "Last 30 days",
+      "all": "All time"
+    },
+    "stats": {
+      "calls": "Calls",
+      "callsToday": "Today {count}",
+      "totalTokens": "Total tokens",
+      "tokensInOut": "{inputs} in / {outputs} out",
+      "totalCost": "Total cost",
+      "costToday": "Today {amount}",
+      "avgResponse": "Avg response",
+      "cacheHits": "Cache hits",
+      "cacheTokensSaved": "Saved {count} tokens"
+    },
+    "tabs": {
+      "breakdown": "By model",
+      "recent": "Recent calls",
+      "cache": "Response cache"
+    },
+    "totals": {
+      "models": "{count} models",
+      "rows": "{count} rows"
+    },
+    "breakdownColumns": {
+      "provider": "Provider",
+      "model": "Model",
+      "calls": "Calls",
+      "totalTokens": "Tokens",
+      "costUsd": "Cost",
+      "avgCost": "Avg/call"
+    },
+    "breakdownDetails": {
+      "tokensInOut": "{inputs} in / {outputs} out"
+    },
+    "recentColumns": {
+      "createdAt": "Time",
+      "provider": "Provider",
+      "model": "Model",
+      "tokens": "Tokens",
+      "costUsd": "Cost",
+      "responseTimeMs": "Response",
+      "endpoint": "Endpoint"
+    },
+    "empty": {
+      "breakdown": "No usage data yet",
+      "recent": "No call records yet"
+    },
+    "cache": {
+      "totalEntries": "Cache entries",
+      "totalHits": "Hits",
+      "totalTokensSaved": "Tokens saved",
+      "expiredEntries": "Expired entries",
+      "maintenanceTitle": "Cache maintenance",
+      "cleanupConfirm": "Remove all expired cache entries?",
+      "cleanupOk": "Cleanup",
+      "cleanupButton": "Clean up expired entries ({count})",
+      "clearConfirm": "Clear the entire response cache? This cannot be undone.",
+      "clearOk": "Clear",
+      "clearButton": "Clear all cache"
+    },
+    "v2": {
+      "cardTitle": "V2 Budget governance",
+      "budgetsTitle": "Budgets V2",
+      "recordsTitle": "Records V2"
+    },
+    "budgetStatus": {
+      "planning": "Planning",
+      "active": "Active",
+      "suspended": "Suspended",
+      "archived": "Archived"
+    },
+    "recordStatus": {
+      "pending": "Pending",
+      "recorded": "Recorded",
+      "billed": "Billed",
+      "rejected": "Rejected",
+      "refunded": "Refunded"
+    },
+    "messages": {
+      "loadFailed": "Failed to load usage data: {err}",
+      "loadShowFailed": "Failed to load usage: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "cleanupFailed": "Cleanup failed: {err}",
+      "cleanupOk": "Expired entries cleaned",
+      "clearFailed": "Clear failed: {err}",
+      "clearOk": "Cache cleared"
+    }
+  },
+  "backup": {
+    "title": "Backup & Sync",
+    "subtitle": "Backup management / Data sync / IPFS",
+    "refresh": "Refresh",
+    "tabs": {
+      "backup": "Backups",
+      "sync": "Sync",
+      "ipfs": "IPFS"
+    },
+    "backup": {
+      "cardTitle": "Backup operations",
+      "exportButton": "Export list",
+      "createButton": "Create backup",
+      "emptyText": "No backups yet",
+      "lastResultLabel": "Last operation result",
+      "createDefaultMessage": "Backup created",
+      "restoreTitle": "Confirm restore",
+      "restoreOk": "Confirm restore",
+      "restoreIntro": "Restore this backup? Current data will be overwritten.",
+      "backupIdPrefix": "Backup ID:",
+      "createdAtPrefix": "Created at:",
+      "restoreDefaultMessage": "Restore complete"
+    },
+    "backupColumns": {
+      "id": "Backup ID",
+      "size": "Size",
+      "createdAt": "Created",
+      "action": "Action",
+      "restore": "Restore"
+    },
+    "sync": {
+      "statusLabel": "Sync status",
+      "pendingLabel": "Pending changes",
+      "lastSyncLabel": "Last sync",
+      "noLastSync": "Never",
+      "synced": "Synced",
+      "notSynced": "Out of sync",
+      "unknown": "Unknown",
+      "pushButton": "Push",
+      "pullButton": "Pull",
+      "outputLabel": "Operation result",
+      "conflictsTitle": "Conflicts",
+      "conflictDefault": "Conflict",
+      "pushDefaultMessage": "Push complete",
+      "pullDefaultMessage": "Pull complete"
+    },
+    "conflictColumns": {
+      "path": "File path",
+      "type": "Conflict type"
+    },
+    "ipfs": {
+      "statusCardTitle": "IPFS status",
+      "online": "Online",
+      "offline": "Offline",
+      "nodeStatusLabel": "Node status",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "pinnedLabel": "Pinned files",
+      "peerIdLabel": "Peer ID",
+      "pinListTitle": "Pinned files",
+      "pinFileButton": "Pin file",
+      "pinEmptyText": "No pinned files yet",
+      "unpinConfirm": "Unpin this file?",
+      "unpinOk": "OK",
+      "unpinAction": "Unpin",
+      "pinModalTitle": "Pin file to IPFS",
+      "pinModalOk": "Pin",
+      "pinModalIntro": "Enter the path of the file to pin",
+      "pinModalPlaceholder": "File path, e.g. /path/to/file.txt",
+      "pinDefaultSuccess": "Pinned"
+    },
+    "pinColumns": {
+      "cid": "CID",
+      "name": "Name",
+      "size": "Size",
+      "pinnedAt": "Pinned at",
+      "action": "Action"
+    },
+    "messages": {
+      "loadBackupsFailed": "Failed to load backups: {err}",
+      "createBackupFailed": "Backup failed: {err}",
+      "restoreFailed": "Restore failed: {err}",
+      "loadSyncFailed": "Failed to load sync status: {err}",
+      "pushFailed": "Push failed: {err}",
+      "pullFailed": "Pull failed: {err}",
+      "loadIpfsFailed": "Failed to load IPFS status: {err}",
+      "loadPinsFailed": "Failed to load pin list: {err}",
+      "pinFailed": "Pin failed: {err}",
+      "unpinFailed": "Unpin failed: {err}",
+      "exportOk": "Exported {count} backup entries to {path}",
+      "exportOkDefault": "Exported",
+      "exportFailed": "Export failed: {err}"
+    }
+  },
+  "mcpTools": {
+    "title": "MCP Tools",
+    "subtitle": "Model Context Protocol — mounted tools and servers",
+    "refresh": "Refresh",
+    "stats": {
+      "servers": "Servers",
+      "tools": "Tools",
+      "running": "Run status",
+      "ready": "Ready"
+    },
+    "servers": {
+      "title": "Configured servers",
+      "emptyHintPrefix": "No MCP servers yet — run",
+      "emptyHintCommand": "chainlesschain mcp add",
+      "emptyHintSuffix": "to add one"
+    },
+    "tools": {
+      "title": "Available tools",
+      "searchPlaceholder": "Search tools...",
+      "runAction": "Run",
+      "desktopOnly": "Desktop mode only",
+      "emptyText": "No tools available"
+    },
+    "toolColumns": {
+      "name": "Tool",
+      "server": "Server",
+      "description": "Description",
+      "action": "Action"
+    },
+    "resources": {
+      "title": "Available resources",
+      "searchPlaceholder": "Search resources...",
+      "emptyHint": "No MCP resources right now (some servers do not expose resources — that is normal)",
+      "emptyTable": "No matching resources",
+      "readAction": "Read"
+    },
+    "resourceColumns": {
+      "uri": "URI",
+      "server": "Server",
+      "mime": "MIME",
+      "action": "Action"
+    },
+    "run": {
+      "okIdle": "Run",
+      "okRunning": "Running...",
+      "cancel": "Close",
+      "fallbackTitle": "Run MCP tool",
+      "modalTitle": "Run {server}.{tool}",
+      "serverLabel": "Server / tool",
+      "descriptionLabel": "Description",
+      "schemaLabel": "Input schema",
+      "paramsLabel": "Params",
+      "modeForm": "Form",
+      "modeJson": "JSON",
+      "jsonParseFailed": "JSON parse failed: {err}",
+      "paramsMustBeObject": "Params must be a JSON object",
+      "errorTitle": "Run failed",
+      "resultLabel": "Result"
+    },
+    "read": {
+      "fallbackTitle": "Read MCP resource",
+      "modalTitle": "Read {server}",
+      "serverLabel": "Server / URI",
+      "descriptionLabel": "Description",
+      "spinnerTip": "Reading...",
+      "errorTitle": "Read failed",
+      "contentsLabel": "Contents ({count} segments)",
+      "binaryNote": "[binary blob, {count} chars of base64 — not rendered in this demo]",
+      "emptyContent": "[empty content]"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "subtitle": "Security event tracking · Risk assessment · Compliance export",
+    "refresh": "Refresh",
+    "exportJson": "Export JSON",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc audit ...` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "stats": {
+      "total": "Total events",
+      "failures": "Failures",
+      "highRisk": "High risk",
+      "critical": "Critical events",
+      "successRate": "Success rate"
+    },
+    "typeCatalogueTitle": "Event types",
+    "tabs": {
+      "events": "Event stream",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "searchPlaceholder": "Search operation / actor / target...",
+      "allTypes": "All types",
+      "allRisks": "All risks",
+      "failuresOnly": "Failures only"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "logColumns": {
+      "createdAt": "Time",
+      "eventType": "Type",
+      "operation": "Operation",
+      "actor": "Actor",
+      "target": "Target",
+      "riskLevel": "Risk",
+      "success": "Status",
+      "mtc": "MTC",
+      "action": "Action"
+    },
+    "rowAction": {
+      "details": "Details"
+    },
+    "empty": {
+      "filtered": "No events match the filters",
+      "noEvents": "No audit events yet"
+    },
+    "breakdown": {
+      "byType": "By event type",
+      "byRisk": "By risk level"
+    },
+    "details": {
+      "title": "Event details: {id}",
+      "id": "ID",
+      "eventType": "Event type",
+      "riskLevel": "Risk level",
+      "operation": "Operation",
+      "status": "Status",
+      "success": "Success",
+      "failure": "Failed",
+      "time": "Time",
+      "actor": "Actor",
+      "target": "Target",
+      "ip": "IP",
+      "userAgent": "User-Agent",
+      "errorMessage": "Error",
+      "details": "Details"
+    },
+    "type": {
+      "auth": "Auth",
+      "permission": "Permission",
+      "data": "Data",
+      "system": "System",
+      "file": "File",
+      "did": "DID",
+      "crypto": "Crypto",
+      "api": "API"
+    },
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "mtc": {
+      "noneTooltip": "This event did not go through MTC dual-track (audit-mtc not enabled for this tenant)",
+      "signedNotChecked": "Signed · not checked",
+      "stagingLabel": "Pending batch",
+      "batchedLabel": "Batched #{batchId}",
+      "unknownLabel": "Unknown",
+      "tooltipBase": "event_id: {id}",
+      "tooltipNotChecked": "{base} — click to query reconcile status",
+      "tooltipStaging": "{base}\nStill in staging, waiting for next reconcile",
+      "tooltipBatched": "{base}\nLanded in batch #{batchId}\ntree_head_id: {treeHead}",
+      "noJson": "reconcile-check returned no JSON",
+      "checkFailed": "reconcile-check failed: {err}"
+    },
+    "messages": {
+      "loadFailed": "Failed to load audit log: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "exportFailed": "Export failed: {err}",
+      "exportOk": "Exported to {path}",
+      "exportOkDefault": "Exported"
+    }
+  },
+  "search": {
+    "title": "RAG Search",
+    "subtitle": "BM25 · Vector retrieval · Hybrid RRF fusion",
+    "refreshIndex": "Refresh index",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc search` is only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "form": {
+      "queryPlaceholder": "Enter a query, e.g. vue debounce component, AES encryption...",
+      "topKPlaceholder": "topK",
+      "submit": "Search"
+    },
+    "recent": {
+      "label": "Recent:",
+      "clear": "Clear"
+    },
+    "stats": {
+      "indexedNotes": "Indexed notes",
+      "categories": "Categories",
+      "tags": "Tags",
+      "results": "Results",
+      "topScore": "Top score"
+    },
+    "tabs": {
+      "results": "Results",
+      "index": "Index browser"
+    },
+    "results": {
+      "promptEmpty": "Enter a query to start searching",
+      "noMatch": "No notes match \"{query}\"",
+      "viewFull": "View full",
+      "noTitle": "(no title)"
+    },
+    "index": {
+      "allCategories": "All categories",
+      "tagFilterPlaceholder": "Filter by tag...",
+      "topTagsLabel": "Top tags:",
+      "rowAction": {
+        "view": "View",
+        "similar": "Find similar"
+      }
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "noteColumns": {
+      "title": "Title",
+      "category": "Category",
+      "tags": "Tags",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "empty": {
+      "filtered": "No notes match the filters",
+      "noNotes": "No notes yet"
+    },
+    "mode": {
+      "bm25": "BM25",
+      "vector": "Vector",
+      "hybrid": "Hybrid"
+    },
+    "note": {
+      "title": "Note details: {title}",
+      "id": "ID",
+      "category": "Category",
+      "tags": "Tags",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "content": "Content",
+      "emptyContent": "Note content is empty"
+    },
+    "messages": {
+      "loadIndexFailed": "Failed to load index: {err}",
+      "queryRequired": "Enter a query",
+      "searchFailed": "Search failed: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "noteLoadFailed": "Failed to load note",
+      "loadFailed": "Load failed: {err}"
+    }
+  },
+  "templates": {
+    "title": "Template Hub",
+    "subtitle": "Project templates / BI templates / Prompt templates",
+    "tabs": {
+      "project": "Project",
+      "bi": "BI",
+      "prompts": "Prompts"
+    },
+    "project": {
+      "initButton": "Initialize",
+      "initSuccessAlert": "Initialization succeeded",
+      "initFailureAlert": "Initialization failed",
+      "confirmTitle": "Confirm initialization",
+      "confirmOk": "Confirm",
+      "confirmIntro": "Initialize the project with template",
+      "confirmIntroSuffix": "?",
+      "confirmHint": "This creates the project structure in the current working directory.",
+      "items": {
+        "code-project": "Code project — code review, refactoring, unit tests",
+        "data-science": "Data science — ML/data analysis, visualization",
+        "devops": "DevOps — infrastructure, deployment, monitoring",
+        "medical-triage": "Medical triage — symptom analysis, triage advice",
+        "agriculture-expert": "Agriculture expert — crop management, pest control",
+        "general-assistant": "General assistant — daily Q&A, task management",
+        "ai-media-creator": "AI media creator — image/text generation, video scripts",
+        "ai-doc-creator": "AI doc creator — document generation, format conversion",
+        "empty": "Empty template — minimal project structure"
+      }
+    },
+    "bi": {
+      "loadingHint": "Loading BI templates...",
+      "emptyText": "No BI templates available",
+      "noDescription": "No description",
+      "createButton": "Create dashboard",
+      "createSuccessAlert": "Dashboard created",
+      "createFailureAlert": "Creation failed"
+    },
+    "prompts": {
+      "newButton": "New template",
+      "exportAll": "Export all",
+      "import": "Import",
+      "emptyText": "No Prompt templates yet — click the buttons above to add one",
+      "useButton": "Use",
+      "copyButton": "Copy",
+      "deleteButton": "Delete",
+      "modalTitle": "New Prompt template",
+      "modalOk": "Save",
+      "nameLabel": "Template name",
+      "namePlaceholder": "Template name",
+      "categoryLabel": "Category",
+      "contentLabel": "Template content",
+      "contentPlaceholder": "Enter the Prompt template content",
+      "filePickerTitle": "Select prompt-templates JSON"
+    },
+    "messages": {
+      "initFailed": "Initialization failed: {err}",
+      "createFailed": "Creation failed: {err}",
+      "promptSaved": "Template saved",
+      "promptDeleted": "Template deleted",
+      "exportOk": "Exported {count} entries to {path}",
+      "exportOkDefault": "Exported",
+      "exportFailed": "Export failed: {err}",
+      "fileTooLarge": "File too large",
+      "jsonParseFailed": "JSON parse failed: {err}",
+      "fileShapeUnknown": "Unrecognized file shape (expected {expected} or an array)",
+      "importedCount": "Imported {count} entries",
+      "importEmpty": "No valid prompt entries in the file",
+      "importFailed": "Import failed: {err}",
+      "copiedClipboard": "Copied to clipboard",
+      "copyFailed": "Copy failed"
+    }
+  },
+  "security": {
+    "title": "Security Center",
+    "subtitle": "DID identity / Encryption / Audit",
+    "refresh": "Refresh",
+    "tabs": {
+      "did": "DID identity",
+      "encrypt": "File encryption",
+      "audit": "Audit log"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "did": {
+      "createButton": "Create identity",
+      "signButton": "Sign message",
+      "default": "Default",
+      "available": "Available",
+      "emptyText": "No DID identities yet — click Create identity to add one",
+      "signTitle": "DID sign",
+      "signOk": "Sign",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter the message to sign",
+      "signResultLabel": "Signature:"
+    },
+    "didColumns": {
+      "did": "DID",
+      "method": "Method",
+      "created": "Created",
+      "status": "Status"
+    },
+    "encrypt": {
+      "encryptCardTitle": "Encrypt file",
+      "decryptCardTitle": "Decrypt file",
+      "pathLabel": "File path",
+      "encryptPlaceholder": "File path, e.g. /path/to/file.txt",
+      "decryptPlaceholder": "Encrypted file path, e.g. /path/to/file.txt.enc",
+      "encryptButton": "Encrypt",
+      "decryptButton": "Decrypt",
+      "successTag": "Success",
+      "failureTag": "Failed",
+      "encryptDefault": "Encryption complete",
+      "decryptDefault": "Decryption complete"
+    },
+    "audit": {
+      "emptyText": "No audit logs yet",
+      "totalEvents": "Total events",
+      "statusLabel": "Status",
+      "ready": "Ready"
+    },
+    "auditColumns": {
+      "time": "Time",
+      "event": "Event",
+      "user": "User",
+      "level": "Level",
+      "detail": "Detail"
+    },
+    "messages": {
+      "loadDidsFailed": "Failed to load DID list: {err}",
+      "didCreateFailed": "Create failed: {err}",
+      "didCreateOk": "DID identity created",
+      "messageRequired": "Enter a message",
+      "signFailed": "Sign failed: {err}",
+      "signOk": "Signed",
+      "encryptFailed": "Encrypt failed: {err}",
+      "encryptOk": "File encrypted",
+      "decryptFailed": "Decrypt failed: {err}",
+      "decryptOk": "File decrypted",
+      "loadAuditFailed": "Failed to load audit log: {err}"
+    }
+  },
+  "cron": {
+    "title": "Scheduled Tasks",
+    "subtitle": "Cron task scheduler management",
+    "newTask": "New task",
+    "refresh": "Refresh",
+    "stats": {
+      "all": "All tasks",
+      "active": "Active",
+      "paused": "Paused",
+      "presets": "Presets"
+    },
+    "presetsCardTitle": "Quick presets",
+    "presets": {
+      "every5m": "Every 5 min",
+      "every15m": "Every 15 min",
+      "everyHour": "Every hour",
+      "every9am": "Daily 9am",
+      "every6pm": "Daily 6pm",
+      "weeklyMon9": "Mon 9am",
+      "monthly1": "1st of month"
+    },
+    "running": "Running",
+    "paused": "Paused",
+    "actions": {
+      "run": "Run",
+      "pause": "Pause",
+      "enable": "Enable",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this task?"
+    },
+    "emptyText": "No scheduled tasks yet",
+    "modal": {
+      "title": "New scheduled task",
+      "nameLabel": "Task name",
+      "namePlaceholder": "Task name",
+      "cronLabel": "Cron expression",
+      "cronPlaceholder": "e.g. 0 9 * * * (daily 9am)",
+      "cronHint": "Format: min hour day month weekday",
+      "payloadLabel": "Task content",
+      "payloadPlaceholder": "AI task description to execute...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "enabledLabel": "Enable now"
+    },
+    "columns": {
+      "name": "Task name",
+      "cron": "Cron",
+      "status": "Status",
+      "actions": "Action"
+    },
+    "messages": {
+      "nameAndCronRequired": "Enter task name and Cron expression",
+      "createOk": "Task created",
+      "createFailed": "Create failed: {err}",
+      "runOk": "Task {name} triggered",
+      "runFailed": "Trigger failed: {err}",
+      "toggleEnabled": "Task enabled",
+      "togglePaused": "Task paused",
+      "toggleFailed": "Operation failed",
+      "deleteOk": "Task deleted",
+      "deleteFailed": "Delete failed"
+    }
+  },
+  "analytics": {
+    "title": "Usage Analytics",
+    "subtitle": "Token usage / Cost / Cache",
+    "refresh": "Refresh",
+    "period": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "all": "All time"
+    },
+    "summary": {
+      "totalCalls": "Total calls",
+      "callsSuffix": "calls",
+      "totalTokens": "Total tokens",
+      "totalCost": "Total cost",
+      "avgResponseTime": "Avg response time"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "providerCardTitle": "Provider breakdown",
+    "providerEmpty": "No call records yet",
+    "recentCardTitle": "Recent calls",
+    "recentEmpty": "No call records yet",
+    "sessionCardTitle": "Session Token Usage",
+    "sessionStats": {
+      "totalCalls": "Session calls",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens"
+    },
+    "sessionEmpty": "No session usage yet — refresh after running cc chat",
+    "cacheCardTitle": "Cache status",
+    "cacheActions": {
+      "cleanup": "Cleanup expired",
+      "clear": "Clear cache"
+    },
+    "cacheStats": {
+      "entries": "Cache entries",
+      "hits": "Hits",
+      "tokensSaved": "Tokens saved",
+      "expired": "Expired"
+    },
+    "breakdownColumns": {
+      "calls": "Calls",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalTokens": "Total Tokens",
+      "cost": "Cost (USD)",
+      "avgResponseTime": "Avg response"
+    },
+    "recentColumns": {
+      "timestamp": "Time",
+      "input": "Input",
+      "output": "Output",
+      "cost": "Cost",
+      "responseTime": "Response time"
+    },
+    "sessionUsageColumns": {
+      "calls": "Calls"
+    },
+    "messages": {
+      "cacheClearOk": "Cache cleared",
+      "cacheClearFailed": "Clear cache failed: {err}",
+      "cacheCleanupOk": "Expired cache cleaned",
+      "cacheCleanupFailed": "Cleanup expired failed: {err}"
+    }
+  },
+  "speechSettings": {
+    "title": "Speech Recognition",
+    "subtitle": "Engine selection / Web Speech / Whisper API / Whisper Local",
+    "refresh": "Refresh",
+    "alert": {
+      "message": "Some settings remain on the desktop app",
+      "description": "Advanced storage / audio / knowledge-base / performance options still live in the desktop SystemSettings page (low-traffic, not migrated). This page covers engine selection plus the core config for each of the three engines."
+    },
+    "engineCardTitle": "Recognition engine",
+    "engineLabel": "Default engine",
+    "engineOptions": {
+      "webspeech": "Web Speech API (browser built-in)",
+      "whisper-api": "Whisper API (OpenAI cloud)",
+      "whisper-local": "Whisper Local (self-hosted)"
+    },
+    "engineHint": {
+      "webspeech": "✓ Free, zero config; lower accuracy",
+      "whisper-api": "⚠ Requires OpenAI API key, billed by usage; high accuracy",
+      "whisper-local": "✓ Free, requires local Whisper service; high accuracy"
+    },
+    "webSpeech": {
+      "cardTitle": "Web Speech API config",
+      "langLabel": "Language",
+      "langOptions": {
+        "zh-CN": "Chinese (Simplified)",
+        "zh-TW": "Chinese (Traditional)",
+        "en-US": "English (US)",
+        "en-GB": "English (UK)",
+        "ja-JP": "Japanese",
+        "ko-KR": "Korean"
+      }
+    },
+    "whisperAPI": {
+      "cardTitle": "Whisper API config",
+      "apiKeyLabel": "API Key",
+      "baseUrlLabel": "Base URL",
+      "modelLabel": "Model",
+      "languageLabel": "Language code",
+      "timeoutLabel": "Timeout (ms)"
+    },
+    "whisperLocal": {
+      "cardTitle": "Whisper Local config",
+      "serverUrlLabel": "Server URL",
+      "modelSizeLabel": "Model size",
+      "deviceLabel": "Device",
+      "timeoutLabel": "Timeout (ms)"
+    },
+    "buttons": {
+      "reset": "Reset",
+      "save": "Save config"
+    },
+    "dirtyHint": "Unsaved changes",
+    "messages": {
+      "loadFailed": "Failed to load config: {err}",
+      "noChanges": "No changes to save",
+      "saveItemFailed": "Save speech.{key} failed: {err}",
+      "saveOk": "Saved ({count} items)",
+      "savePartial": "Partial save: {ok} succeeded / {fail} failed"
+    }
+  },
+  "projects": {
+    "title": "Project Management",
+    "subtitle": "Initialize / Status / Diagnostics",
+    "refresh": "Refresh",
+    "stats": {
+      "system": "System status",
+      "running": "Running",
+      "notRunning": "Stopped",
+      "editionPrefix": "Edition: {edition}",
+      "llmProvider": "LLM provider",
+      "notConfigured": "Not configured",
+      "init": "Initialization",
+      "done": "Complete",
+      "notDone": "Pending",
+      "config": "Project config",
+      "loaded": "Loaded",
+      "notLoaded": "Not loaded"
+    },
+    "configCardTitle": "Project config",
+    "initCardTitle": "Project initialization",
+    "templateCount": "{count} templates",
+    "selected": "Selected",
+    "templates": {
+      "code-project": "Code project — code review, refactoring, unit-test generation",
+      "medical-triage": "Medical triage — symptom analysis, triage advice, record management",
+      "agriculture-expert": "Agriculture expert — crop management, pest identification, advisory",
+      "general-assistant": "General assistant — daily Q&A, doc handling, task management",
+      "ai-media-creator": "AI media creator — image/text generation, video scripts, content editing",
+      "ai-doc-creator": "AI doc creator — document generation, format conversion, doc editing"
+    },
+    "actions": {
+      "initInFolder": "Initialize in selected folder",
+      "initCwd": "Initialize (current dir)",
+      "pickFolder": "Pick folder...",
+      "clear": "Clear",
+      "templatePrefix": "Template: {name}"
+    },
+    "folder": {
+      "alreadyProject": "Already a project",
+      "pendingInit": "Pending init",
+      "alreadyMessage": "This folder is already a ChainlessChain project",
+      "alreadyDescription": "Detected .chainlesschain/config.json. No need to re-initialize — restart cc ui with this folder as the working directory to use the existing config.",
+      "pickerTitle": "Select project folder"
+    },
+    "initResult": {
+      "success": "Initialization succeeded",
+      "failure": "Initialization failed"
+    },
+    "doctor": {
+      "cardTitle": "Environment diagnostics",
+      "runButton": "Run diagnostics",
+      "runningHint": "Diagnosing environment...",
+      "emptyHint": "Click Run diagnostics to check environment status"
+    },
+    "messages": {
+      "initFailed": "Initialization failed: {err}",
+      "alreadyProjectInfo": "This folder is already a project — no need to re-initialize",
+      "browserUnsupported": "Browser mode does not support folder picking — use this in the desktop shell",
+      "pickFolderFailed": "Pick folder failed: {err}",
+      "doctorFailed": "Diagnostics failed: {err}"
+    }
+  },
+  "videoEditing": {
+    "title": "Video Editing",
+    "subtitle": "Long-form footage + music → rhythmic montage (CutClaw style)",
+    "refreshAssets": "Refresh assets",
+    "library": {
+      "title": "Asset library",
+      "empty": "No deconstructed assets yet",
+      "emptyHint": "Run deconstruct first"
+    },
+    "workspace": {
+      "title": "Editing workspace",
+      "videoLabel": "Video file",
+      "videoPlaceholder": "/path/to/video.mp4",
+      "audioLabel": "Music file",
+      "audioPlaceholder": "/path/to/bgm.mp3 (optional)",
+      "srtLabel": "Subtitle file",
+      "srtPlaceholder": "/path/to/subtitle.srt (optional, skip ASR)",
+      "instructionLabel": "Editing prompt",
+      "instructionPlaceholder": "Rhythmic character montage...",
+      "fpsLabel": "Sample FPS",
+      "characterLabel": "Main character",
+      "outputLabel": "Output path",
+      "outputPlaceholder": "./output.mp4",
+      "actions": {
+        "fullPipeline": "One-click edit",
+        "deconstruct": "Deconstruct only",
+        "plan": "Generate plan",
+        "cancel": "Cancel"
+      }
+    },
+    "progress": {
+      "title": "Progress",
+      "waiting": "Waiting to start..."
+    },
+    "shotPlan": {
+      "title": "Shot timeline",
+      "summary": "{sections} sections / {shots} shots"
+    },
+    "events": {
+      "title": "Event log"
+    },
+    "preview": {
+      "title": "Final preview",
+      "copyButton": "Copy path"
+    },
+    "messages": {
+      "completed": "Done",
+      "failed": "Failed",
+      "copied": "Copied"
+    }
+  },
+  "p2p": {
+    "title": "P2P Network",
+    "subtitle": "Device management and data sync",
+    "refresh": "Refresh",
+    "peers": {
+      "cardTitle": "P2P devices",
+      "pairButton": "Pair device",
+      "sendButton": "Send message",
+      "online": "Online",
+      "offline": "Offline",
+      "emptyText": "No connected devices yet",
+      "rowSend": "Send"
+    },
+    "peerColumns": {
+      "name": "Device",
+      "id": "Peer ID",
+      "status": "Status",
+      "action": "Action"
+    },
+    "sync": {
+      "cardTitle": "Sync status",
+      "synced": "Synced",
+      "notSynced": "Out of sync",
+      "unknown": "Unknown",
+      "statusLabel": "Sync status",
+      "pendingLabel": "Pending",
+      "lastSyncLabel": "Last sync",
+      "noLastSync": "Never",
+      "pushButton": "Push changes",
+      "pullButton": "Pull changes",
+      "outputLabel": "Operation result",
+      "pushDefault": "Push complete",
+      "pullDefault": "Pull complete"
+    },
+    "pair": {
+      "title": "Pair new device",
+      "ok": "Pair",
+      "intro": "Enter the device name to pair",
+      "placeholder": "Device name, e.g. My Phone"
+    },
+    "send": {
+      "title": "Send message",
+      "ok": "Send",
+      "targetLabel": "Select target device",
+      "targetPlaceholder": "Pick a device",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter message",
+      "messageDefault": "Message sent"
+    },
+    "messages": {
+      "loadPeersFailed": "Load failed: {err}",
+      "pairFailed": "Pair failed: {err}",
+      "sendFailed": "Send failed: {err}",
+      "loadSyncFailed": "Load failed: {err}",
+      "pushFailed": "Push failed: {err}",
+      "pullFailed": "Pull failed: {err}"
+    }
+  },
+  "memory": {
+    "title": "Memory",
+    "subtitle": "Layered memory system — Short-term / Long-term / Core",
+    "storeButton": "Store memory",
+    "refresh": "Refresh",
+    "stats": {
+      "shortTerm": "Short-term",
+      "shortTermHint": "Recent conversation",
+      "longTerm": "Long-term",
+      "longTermHint": "Consolidated important info",
+      "core": "Core",
+      "coreHint": "High-importance long-term retention"
+    },
+    "card": {
+      "title": "Memory contents",
+      "tabs": {
+        "short": "Short",
+        "long": "Long",
+        "core": "Core"
+      },
+      "searchPlaceholder": "Semantic search memories...",
+      "emptyText": "No memory contents yet — click Store memory to add",
+      "importanceLabel": "Importance {value}"
+    },
+    "layer": {
+      "short-term": "Short",
+      "long-term": "Long",
+      "core": "Core"
+    },
+    "consolidateButton": "Consolidate memory (short-term → long-term)",
+    "modal": {
+      "title": "Store new memory",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Memory content to store...",
+      "importanceLabel": "Importance",
+      "marks": {
+        "low": "Low",
+        "mid": "Mid",
+        "high": "High"
+      }
+    },
+    "messages": {
+      "contentRequired": "Enter memory content",
+      "storeOk": "Memory stored",
+      "storeDefault": "Stored",
+      "storeFailed": "Store failed: {err}",
+      "consolidateOk": "Consolidation complete",
+      "consolidateFailed": "Consolidate failed: {err}"
+    }
+  },
+  "git": {
+    "title": "Git & Data",
+    "subtitle": "Version control / Import & export",
+    "tabs": {
+      "git": "Git repo",
+      "io": "Import / Export"
+    },
+    "actions": {
+      "refresh": "Refresh status",
+      "autoCommit": "Auto commit"
+    },
+    "status": {
+      "changedCount": "{count} files changed",
+      "clean": "Working tree clean",
+      "emptyHint": "Click Refresh status to view Git info",
+      "commitSuccessAlert": "Commit succeeded",
+      "commitResultAlert": "Commit result"
+    },
+    "import": {
+      "cardTitle": "Import data",
+      "pathLabel": "File path",
+      "pathPlaceholder": "Enter file or directory path, e.g. ./docs",
+      "formatLabel": "Format",
+      "submit": "Import"
+    },
+    "export": {
+      "cardTitle": "Export site",
+      "pathLabel": "Output path",
+      "pathPlaceholder": "Output directory, e.g. ./site",
+      "submit": "Export as static site"
+    },
+    "io": {
+      "successAlert": "Operation succeeded",
+      "resultAlert": "Operation result",
+      "outputCardTitle": "Command output",
+      "importIssue": "Possible issues during import — see output",
+      "importDone": "Import complete",
+      "exportIssue": "Possible issues during export — see output",
+      "exportDone": "Export complete"
+    },
+    "confirm": {
+      "title": "Confirm auto commit",
+      "ok": "Confirm",
+      "intro1": "This will run",
+      "intro2": "to auto-commit all current changes. Make sure the working tree is ready."
+    },
+    "messages": {
+      "statusFailed": "Failed to get Git status: {err}",
+      "commitOk": "Auto commit complete",
+      "commitFailedToast": "Auto commit failed",
+      "commitFailedDetail": "Commit failed: {err}",
+      "importPathRequired": "Enter a file path",
+      "importOk": "Import succeeded",
+      "importFailed": "Import failed",
+      "importFailedDetail": "Import failed: {err}",
+      "exportPathRequired": "Enter an output path",
+      "exportOk": "Export succeeded",
+      "exportFailed": "Export failed",
+      "exportFailedDetail": "Export failed: {err}"
+    }
+  },
+  "appLayout": {
+    "groups": {
+      "overview": "Overview",
+      "config": "Config",
+      "data": "Data",
+      "advanced": "Advanced",
+      "enterprise": "Enterprise",
+      "social": "Social",
+      "media": "Media",
+      "extension": "Extensions",
+      "desktop": "Desktop-only"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "chat": "AI chat",
+      "quickAsk": "Quick Ask",
+      "cowork": "Cowork",
+      "services": "Services",
+      "aiops": "AIOps",
+      "tokens": "Token usage",
+      "logs": "Logs",
+      "skills": "Skills",
+      "providers": "LLM config",
+      "mcp": "MCP tools",
+      "projectSettings": "Project storage",
+      "speechSettings": "Speech",
+      "notificationSettings": "Notifications",
+      "syncSettings": "Sync",
+      "nlprog": "NL programming",
+      "codegen": "Code gen",
+      "notes": "Notes",
+      "search": "RAG search",
+      "memory": "Memory",
+      "knowledge": "Knowledge graph",
+      "marketplace": "Marketplace",
+      "cron": "Cron",
+      "workflow": "Workflow editor",
+      "pipeline": "Dev pipeline",
+      "tasks": "Background tasks",
+      "security": "Security",
+      "ukeySign": "U-Key sign",
+      "trust": "Trust & security",
+      "audit": "Audit log",
+      "mtc": "MTC Merkle cert",
+      "did": "DID identity",
+      "permissions": "Permissions",
+      "p2p": "P2P",
+      "backup": "Backup & sync",
+      "git": "Git & data",
+      "projects": "Projects",
+      "crosschain": "Cross-chain",
+      "compliance": "Compliance",
+      "privacy": "Privacy",
+      "inference": "Inference",
+      "federation": "Federation",
+      "wallet": "Wallet",
+      "organization": "Organization",
+      "tenant": "Multi-tenant",
+      "sla": "SLA",
+      "analytics": "Analytics",
+      "templates": "Templates",
+      "community": "Community",
+      "governance": "Governance",
+      "reputation": "Reputation",
+      "recommend": "Recommend",
+      "video": "Video editing",
+      "rssfeed": "RSS",
+      "webauthn": "WebAuthn",
+      "desktopHardware": "Hardware wallet",
+      "desktopBackup": "Backup & restore",
+      "desktopLlmTest": "LLM test",
+      "desktopSettings": "Settings"
+    },
+    "scope": {
+      "fallbackProject": "Project",
+      "global": "Global mode",
+      "projectPanel": "Project panel"
+    },
+    "shellSwitch": "Switch to desktop shell (restart required)",
+    "wsStatus": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "disconnected": "Offline"
+    },
+    "footerStatus": {
+      "connected": "Connected",
+      "connecting": "Connecting...",
+      "error": "Connection error",
+      "disconnected": "Offline",
+      "unknown": "Unknown"
+    }
+  },
+  "crosschain": {
+    "title": "Cross-chain bridge",
+    "subtitle": "Asset bridging · HTLC atomic swap · cross-chain messages",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "feeEstimate": "Estimate fee",
+    "actions": {
+      "bridge": "Bridge asset",
+      "swap": "HTLC atomic swap",
+      "message": "Cross-chain message"
+    },
+    "stats": {
+      "chains": "Chains",
+      "bridges": "Bridges",
+      "swaps": "Swaps",
+      "messages": "Messages",
+      "volume": "Total volume"
+    },
+    "chainsCard": "Supported chains",
+    "tabs": {
+      "bridges": "Bridges",
+      "swaps": "Swaps",
+      "messages": "Messages"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "retrySuffix": "{n} retries",
+      "emptyBridges": "No bridges yet — click \"New → Bridge asset\"",
+      "emptySwaps": "No swaps yet — click \"New → HTLC atomic swap\"",
+      "emptyMessages": "No messages yet — click \"New → Cross-chain message\""
+    },
+    "bridgeCols": {
+      "route": "Route",
+      "amount": "Amount",
+      "fee": "Fee",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "swapCols": {
+      "route": "Route",
+      "amount": "Amount",
+      "hashLock": "Hash lock",
+      "status": "Status",
+      "expiresAt": "Expires"
+    },
+    "messageCols": {
+      "route": "Route",
+      "payload": "Payload",
+      "retries": "Retries",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "bridge_modal": {
+      "title": "Bridge asset",
+      "ok": "Initiate",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "amount": "Amount",
+      "asset": "Asset",
+      "assetPlaceholder": "native (default)",
+      "sender": "Sender",
+      "senderPlaceholder": "0x... (optional)",
+      "recipient": "Recipient",
+      "recipientPlaceholder": "0x... (optional)"
+    },
+    "swap_modal": {
+      "title": "HTLC atomic swap",
+      "ok": "Initiate",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "amount": "Amount",
+      "fromAsset": "From asset",
+      "toAsset": "To asset",
+      "assetPlaceholder": "native (default)",
+      "counterparty": "Counterparty",
+      "counterpartyPlaceholder": "0x... (optional)",
+      "timeoutMs": "Timeout (ms)",
+      "timeoutPlaceholder": "default 24h"
+    },
+    "message_modal": {
+      "title": "Send cross-chain message",
+      "ok": "Send",
+      "cancel": "Cancel",
+      "fromChain": "From chain",
+      "fromChainPlaceholder": "Pick source chain",
+      "toChain": "To chain",
+      "toChainPlaceholder": "Pick destination chain",
+      "payload": "Payload",
+      "contract": "Target contract",
+      "contractPlaceholder": "0x... (optional)"
+    },
+    "fee_modal": {
+      "title": "Fee estimate",
+      "ok": "Estimate",
+      "cancel": "Close",
+      "fromChain": "From chain",
+      "toChain": "To chain",
+      "amount": "Amount",
+      "resultTitle": "Estimated fee",
+      "sourceFee": "Source chain: {fee} {currency}",
+      "destFee": "Dest chain: {fee} {currency}",
+      "bridgeFee": "Bridge fee: {fee} {currency}"
+    },
+    "statusLabels": {
+      "pending": "Pending",
+      "locked": "Locked",
+      "minted": "Minted",
+      "completed": "Completed",
+      "refunded": "Refunded",
+      "failed": "Failed",
+      "initiated": "Initiated",
+      "hash_locked": "Hash-locked",
+      "claimed": "Claimed",
+      "expired": "Expired",
+      "sent": "Sent",
+      "delivered": "Delivered"
+    },
+    "msg": {
+      "loadFailed": "Failed to load cross-chain data",
+      "pairEmpty": "Pick source and destination chains",
+      "pairSame": "Source and destination chains must differ",
+      "amountInvalid": "Enter a positive amount",
+      "bridgeFailed": "Bridge failed",
+      "bridgeSuccess": "Bridge initiated",
+      "swapFailed": "Swap failed",
+      "swapSuccess": "Swap initiated",
+      "sendFailed": "Send failed",
+      "sendSuccess": "Message sent",
+      "feeFailed": "Fee estimate failed"
+    }
+  },
+  "nlprog": {
+    "title": "Natural-language programming",
+    "subtitle": "Intent · entity extraction · stack detection · NL→spec",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "analyze": "Analyse text",
+      "translate": "Translate to spec",
+      "convention": "Add convention"
+    },
+    "stats": {
+      "translations": "Translations",
+      "avgCompleteness": "Avg. completeness",
+      "drafts": "Drafts",
+      "completed": "Completed",
+      "conventions": "Conventions"
+    },
+    "intentCard": "Intent breakdown",
+    "tabs": {
+      "translations": "Translations",
+      "conventions": "Conventions"
+    },
+    "filter": {
+      "allIntents": "All intents",
+      "allStatuses": "All statuses",
+      "allCategories": "All"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionDetails": "Details",
+      "actionStatusDropdown": "Status ▼",
+      "emptyTranslationsFiltered": "No translations match the current filter",
+      "emptyTranslations": "No translations yet — click \"Actions → Translate to spec\"",
+      "emptyConventions": "No conventions yet — click \"Actions → Add convention\""
+    },
+    "deleteTranslationConfirm": {
+      "title": "Delete this translation?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "deleteConventionConfirm": {
+      "title": "Delete this convention?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "translationCols": {
+      "inputText": "Source",
+      "intent": "Intent",
+      "completeness": "Completeness",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "action": "Action"
+    },
+    "conventionCols": {
+      "category": "Category",
+      "pattern": "Pattern",
+      "examples": "Examples",
+      "confidence": "Confidence",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "analyze_modal": {
+      "title": "Text analysis (stateless)",
+      "ok": "Analyse",
+      "cancel": "Close",
+      "textLabel": "Text",
+      "textPlaceholder": "e.g. create a login button component using React",
+      "intent": "Intent",
+      "confidenceLine": "Confidence: {pct}%",
+      "entities": "Entities ({n})",
+      "notDetected": "none detected",
+      "stack": "Stack",
+      "stackPrimary": "primary: {name}"
+    },
+    "translate_modal": {
+      "title": "Translate to spec",
+      "ok": "Translate",
+      "cancel": "Cancel",
+      "textLabel": "Natural language",
+      "textPlaceholder": "e.g. create a Vue 3 LoginForm component with email and password fields",
+      "intentLabel": "Intent override",
+      "intentPlaceholder": "blank → auto-detect",
+      "noDbMessage": "This command requires a project-level database",
+      "noDbDescription": "`cc nlprog translate` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "convention_modal": {
+      "title": "Add convention",
+      "ok": "Add",
+      "cancel": "Cancel",
+      "categoryLabel": "Category",
+      "patternLabel": "Pattern",
+      "patternPlaceholder": "e.g. kebab-case for file names",
+      "examplesLabel": "Examples",
+      "examplesPlaceholder": "JSON array, e.g. [\"login-form.vue\",\"user-card.vue\"]",
+      "confidenceLabel": "Confidence"
+    },
+    "details": {
+      "title": "Translation details: {id}",
+      "intent": "Intent",
+      "status": "Status",
+      "completeness": "Completeness",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "inputText": "Source",
+      "entities": "Entities",
+      "techStack": "Tech stack",
+      "spec": "Spec"
+    },
+    "intentLabels": {
+      "create_component": "Create component",
+      "add_feature": "Add feature",
+      "fix_bug": "Fix bug",
+      "refactor": "Refactor",
+      "add_api": "Add API",
+      "add_test": "Add test",
+      "update_style": "Update style",
+      "configure": "Configure",
+      "general": "General"
+    },
+    "statusLabels": {
+      "draft": "Draft",
+      "complete": "Complete",
+      "refined": "Refined"
+    },
+    "categoryLabels": {
+      "naming": "Naming",
+      "architecture": "Architecture",
+      "testing": "Testing",
+      "style": "Style",
+      "imports": "Imports",
+      "components": "Components"
+    },
+    "msg": {
+      "loadFailed": "Failed to load NL data",
+      "textEmpty": "Enter text",
+      "analyzeFailed": "Analysis failed",
+      "translateTextEmpty": "Enter natural-language text",
+      "translateFailed": "Translate failed",
+      "translateSuccess": "Translation complete (completeness {pct}%)",
+      "transitionFailed": "Status transition failed",
+      "transitionSuccess": "Status set to {label}",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Deleted",
+      "patternEmpty": "Enter a pattern",
+      "examplesBadJson": "Examples JSON is malformed",
+      "addFailed": "Add failed",
+      "addSuccess": "Convention added"
+    }
+  },
+  "tenant": {
+    "title": "Multi-tenant SaaS",
+    "subtitle": "Tenants · subscription billing · usage metering · quota checks",
+    "refresh": "Refresh",
+    "actionDropdown": "Actions ▼",
+    "actions": {
+      "tenant": "Create tenant",
+      "quota": "Check quota",
+      "record": "Record usage"
+    },
+    "stats": {
+      "total": "Tenants",
+      "active": "Active subs",
+      "mrr": "MRR",
+      "apiCalls": "API calls",
+      "storage": "Storage"
+    },
+    "plansCard": "Plan distribution",
+    "summarySuffix": "active {active} · suspended {suspended} · deleted {deleted}",
+    "tabs": {
+      "tenants": "Tenants",
+      "subscriptions": "Subscriptions",
+      "plans": "Plans"
+    },
+    "filter": {
+      "allPlans": "All plans",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionSubscribe": "Subscribe",
+      "actionPlanDropdown": "Plan ▼",
+      "actionSuspend": "Suspend",
+      "actionActivate": "Activate",
+      "emptyTenantsFiltered": "No tenants match the current filter",
+      "emptyTenants": "No tenants yet — click \"Actions → Create tenant\"",
+      "emptySubscriptions": "No subscriptions yet"
+    },
+    "deleteConfirm": {
+      "title": "Soft-delete this tenant?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "cancelConfirm": {
+      "title": "Cancel this subscription?",
+      "ok": "Cancel sub",
+      "cancel": "Back"
+    },
+    "tenantCols": {
+      "name": "Tenant",
+      "plan": "Plan",
+      "status": "Status",
+      "owner": "Owner",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "subscriptionCols": {
+      "tenant": "Tenant",
+      "plan": "Plan",
+      "amount": "Amount",
+      "status": "Status",
+      "startedAt": "Started",
+      "expiresAt": "Expires",
+      "action": "Action"
+    },
+    "planCard": {
+      "monthlySuffix": "/ month",
+      "contactSales": "Contact sales",
+      "quotas": "Quotas",
+      "features": "Features",
+      "unlimited": "unlimited"
+    },
+    "deletedTenant": "(deleted)",
+    "create_modal": {
+      "title": "Create tenant",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Acme Corp",
+      "slugLabel": "Slug",
+      "slugPlaceholder": "lowercase alphanumeric + hyphens, e.g. acme-corp",
+      "planLabel": "Plan",
+      "ownerLabel": "Owner ID",
+      "ownerPlaceholder": "optional"
+    },
+    "subscribe_modal": {
+      "title": "Subscribe: {name}",
+      "ok": "Subscribe",
+      "cancel": "Cancel",
+      "planLabel": "Plan",
+      "amountLabel": "Amount override",
+      "amountPlaceholder": "blank → plan's default price",
+      "durationLabel": "Duration",
+      "duration30": "30 days",
+      "duration90": "90 days",
+      "duration365": "1 year"
+    },
+    "quota_modal": {
+      "title": "Quota check",
+      "ok": "Check",
+      "cancel": "Close",
+      "tenantLabel": "Tenant",
+      "tenantPlaceholder": "Pick tenant",
+      "metricLabel": "Metric",
+      "periodLabel": "Period",
+      "periodPlaceholder": "YYYY-MM, blank → current month",
+      "resultTitle": "Quota state",
+      "unlimited": "Unlimited",
+      "exceeded": "Exceeded",
+      "ok_state": "OK",
+      "planLine": "Plan:",
+      "periodLine": "Period: {period}",
+      "usedLine": "Used:",
+      "limitLine": "Limit:"
+    },
+    "record_modal": {
+      "title": "Record usage",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "tenantLabel": "Tenant",
+      "tenantPlaceholder": "Pick tenant",
+      "metricLabel": "Metric",
+      "valueLabel": "Value",
+      "periodLabel": "Period",
+      "periodPlaceholder": "YYYY-MM, blank → current month"
+    },
+    "planLabels": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "enterprise": "Enterprise"
+    },
+    "tenantStatusLabels": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "deleted": "Deleted"
+    },
+    "subStatusLabels": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "past_due": "Past due"
+    },
+    "msg": {
+      "loadFailed": "Failed to load tenant data",
+      "createFieldsEmpty": "Enter both name and slug",
+      "slugInvalid": "Slug must be lowercase alphanumeric + hyphens",
+      "createFailed": "Create failed",
+      "createSuccess": "Tenant created",
+      "subscribeFailed": "Subscribe failed",
+      "subscribeSuccess": "Subscription created",
+      "planChangeFailed": "Plan change failed",
+      "planChangeSuccess": "Switched to {plan}",
+      "statusChangeFailed": "Status change failed",
+      "activated": "Activated",
+      "suspended": "Suspended",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Tenant soft-deleted",
+      "cancelFailed": "Cancel failed",
+      "cancelSuccess": "Subscription cancelled",
+      "tenantEmpty": "Pick a tenant",
+      "checkFailed": "Check failed",
+      "exceededWarning": "This tenant has exceeded quota!",
+      "valueInvalid": "Enter a valid amount",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Usage recorded"
+    }
+  },
+  "codegen": {
+    "title": "Code generation",
+    "subtitle": "Generation log · heuristic review · 5 scaffold templates",
+    "refresh": "Refresh",
+    "review": "Code review",
+    "newDropdown": "New ▼",
+    "actions": { "generate": "Log generation", "scaffold": "New scaffold" },
+    "stats": {
+      "generations": "Generations",
+      "reviews": "Reviews",
+      "securityIssues": "Security issues",
+      "scaffolds": "Scaffolds",
+      "languages": "Languages"
+    },
+    "templatesCard": "Scaffold templates",
+    "tabs": { "generations": "Generations", "reviews": "Reviews", "scaffolds": "Scaffolds" },
+    "filter": {
+      "languagePlaceholder": "Filter by language...",
+      "frameworkPlaceholder": "Filter by framework...",
+      "allTemplates": "All templates"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "issuesSuffix": "{n}",
+      "noIssues": "— clean",
+      "unnamed": "(unnamed)",
+      "actionDetails": "Details",
+      "actionReview": "Review",
+      "emptyGenerationsFiltered": "No generations match the current filter",
+      "emptyGenerations": "No generation log yet",
+      "emptyReviews": "No reviews yet — click \"Code review\" to run the first one",
+      "emptyScaffoldsFiltered": "No scaffolds match the current filter",
+      "emptyScaffolds": "No scaffold history yet"
+    },
+    "generationCols": {
+      "prompt": "Prompt",
+      "language": "Language",
+      "framework": "Framework",
+      "fileCount": "Files",
+      "tokenCount": "Tokens",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "reviewCols": {
+      "codeHash": "Code hash",
+      "language": "Language",
+      "issuesFound": "Issues",
+      "securityIssues": "Security",
+      "severityBreak": "Severity",
+      "reviewedAt": "Reviewed",
+      "action": "Action"
+    },
+    "scaffoldCols": {
+      "projectName": "Project",
+      "template": "Template",
+      "filesGenerated": "Files",
+      "outputPath": "Output",
+      "createdAt": "Created"
+    },
+    "generate_modal": {
+      "title": "Log code generation",
+      "ok": "Log",
+      "cancel": "Cancel",
+      "promptLabel": "Prompt",
+      "promptPlaceholder": "e.g. \"Build a debounced search input\"",
+      "languageLabel": "Language",
+      "languagePlaceholder": "e.g. typescript / python",
+      "frameworkLabel": "Framework",
+      "frameworkPlaceholder": "e.g. vue / react / fastapi",
+      "codeLabel": "Generated code",
+      "codePlaceholder": "Optional — paste the generated code",
+      "filesLabel": "Files",
+      "tokensLabel": "Tokens"
+    },
+    "review_modal": {
+      "title": "Heuristic code review",
+      "languageLabel": "Language",
+      "languagePlaceholder": "Optional, e.g. javascript / python",
+      "generationIdLabel": "Generation ID",
+      "generationIdPlaceholder": "Optional — link to a generation",
+      "codeLabel": "Code",
+      "codePlaceholder": "Paste code to review (built-in rules: eval / SQL / XSS / path_traversal / command_injection)",
+      "submit": "Run review",
+      "notReviewed": "Not reviewed yet",
+      "issuesStat": "Issues found",
+      "securityStat": "Security issues",
+      "reviewIdStat": "Review ID",
+      "bySeverity": "By severity",
+      "failedReason": "Review failed: {reason}"
+    },
+    "scaffold_modal": {
+      "title": "New scaffold",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "templateLabel": "Template",
+      "projectLabel": "Project name",
+      "projectPlaceholder": "e.g. my-app",
+      "optionsLabel": "Options",
+      "optionsPlaceholder": "Optional JSON, e.g. typescript=true, router=true",
+      "filesLabel": "Files",
+      "outputLabel": "Output path",
+      "outputPlaceholder": "Optional, e.g. /tmp/my-app"
+    },
+    "gen_details": {
+      "title": "Generation details: {id}",
+      "id": "ID",
+      "language": "Language",
+      "framework": "Framework",
+      "fileCount": "Files",
+      "tokenCount": "Tokens",
+      "createdAt": "Created",
+      "prompt": "Prompt",
+      "code": "Generated code"
+    },
+    "review_details": {
+      "title": "Review details: {id}",
+      "id": "ID",
+      "codeHash": "Code hash",
+      "generationId": "Generation ID",
+      "language": "Language",
+      "reviewedAt": "Reviewed",
+      "issuesFound": "Issues found",
+      "securityIssues": "Security issues",
+      "bySeverity": "By severity",
+      "issues": "Issue list"
+    },
+    "severityLabels": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "info": "Info"
+    },
+    "msg": {
+      "loadFailed": "Failed to load data",
+      "promptEmpty": "Enter a prompt",
+      "generateFailed": "Log failed",
+      "generateSuccess": "Generation logged: {id}",
+      "codeEmpty": "Paste code to review",
+      "reviewFailed": "Review failed",
+      "reviewSuccess": "Review complete: {n} issues ({sec} security)",
+      "projectEmpty": "Enter a project name",
+      "optionsBadJson": "Options JSON is malformed",
+      "scaffoldFailed": "Create failed",
+      "scaffoldSuccess": "Scaffold created: {id}"
+    }
+  },
+  "sla": {
+    "title": "SLA management",
+    "subtitle": "Service-level contracts · metric records · deviation detection · compensation",
+    "refresh": "Refresh",
+    "recordMetric": "Record metric",
+    "create": "New contract",
+    "noDb": {
+      "message": "This module requires a project-level database",
+      "description": "`cc sla ...` only works inside a chainlesschain project directory. Run `cc init` first, or start `cc serve` from an initialised directory."
+    },
+    "stats": {
+      "totalContracts": "Contracts",
+      "active": "Active",
+      "orgs": "Orgs",
+      "violations": "Violations",
+      "compensation": "Compensation"
+    },
+    "tierCard": "SLA tiers",
+    "tierCompRate": "Comp. rate {pct}%",
+    "tierTerms": {
+      "availability": "Availability ≥ {pct}%",
+      "p95": "p95 ≤ {ms}ms",
+      "rps": "RPS ≥ {n}",
+      "errorRate": "Error rate ≤ {pct}%"
+    },
+    "tabs": {
+      "contracts": "Contracts",
+      "violations": "Violations",
+      "breakdown": "Breakdown"
+    },
+    "filter": {
+      "allTiers": "All tiers",
+      "allStatuses": "All statuses",
+      "allSeverities": "All severities"
+    },
+    "table": {
+      "contractsSuffix": "{n} contracts",
+      "totalSuffix": "{n} total",
+      "uncomputed": "(uncomputed)",
+      "actionMetrics": "Metrics",
+      "actionCheck": "Check",
+      "actionReport": "Report",
+      "actionView": "View",
+      "actionComputeComp": "Compute comp.",
+      "emptyContractsFiltered": "No contracts match the current filter",
+      "emptyContracts": "No contracts yet — click \"New contract\"",
+      "emptyViolationsFiltered": "No violations match the current filter",
+      "emptyViolations": "No violations yet"
+    },
+    "terminateConfirm": {
+      "title": "Terminate this contract?",
+      "ok": "Terminate",
+      "cancel": "Cancel"
+    },
+    "contractCols": {
+      "slaId": "SLA ID",
+      "orgId": "Org",
+      "tier": "Tier",
+      "status": "Status",
+      "monthlyFee": "Fee",
+      "endDate": "Expires",
+      "action": "Action"
+    },
+    "violationCols": {
+      "id": "ID",
+      "term": "Term",
+      "severity": "Severity",
+      "deviation": "Deviation",
+      "expected": "Expected",
+      "actual": "Actual",
+      "compensation": "Comp.",
+      "occurredAt": "Occurred",
+      "action": "Action"
+    },
+    "aggCols": {
+      "term": "Term",
+      "expected": "Expected",
+      "mean": "Mean",
+      "p95": "p95",
+      "min": "Min",
+      "max": "Max",
+      "count": "Samples"
+    },
+    "breakdown": {
+      "contractsByStatus": "Contracts — by status",
+      "contractsByTier": "Contracts — by tier",
+      "violationsBySeverity": "Violations — by severity",
+      "violationsByTerm": "Violations — by term",
+      "violationsBySeverityHeader": "Violations — by severity",
+      "metricsAggregation": "Metrics aggregation"
+    },
+    "create_modal": {
+      "title": "New SLA contract",
+      "ok": "Create",
+      "cancel": "Cancel",
+      "orgLabel": "Org ID",
+      "orgPlaceholder": "e.g. org-acme",
+      "tierLabel": "Tier",
+      "feeLabel": "Monthly fee",
+      "durationLabel": "Duration (days)",
+      "durationHint": "default 30"
+    },
+    "record_modal": {
+      "title": "Record metric",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "slaLabel": "SLA",
+      "slaPlaceholder": "Pick contract",
+      "termLabel": "Term",
+      "valueLabel": "Value"
+    },
+    "metrics_modal": {
+      "title": "Metrics aggregation: {id}",
+      "org": "Org",
+      "tier": "Tier",
+      "samples": "Samples",
+      "monthlyFee": "Monthly fee",
+      "byTerm": "By term",
+      "empty": "No metric data yet"
+    },
+    "check_modal": {
+      "title": "Violation check: {id}",
+      "noViolations": "No violations detected",
+      "withViolations": "Detected {n} violations",
+      "checkedAt": "Checked at: {time}",
+      "expectedActual": "expected {expected} · actual {actual}"
+    },
+    "report_modal": {
+      "title": "Compliance report: {id}",
+      "compliance": "Compliance",
+      "violations": "Violations",
+      "compensation": "Compensation"
+    },
+    "compensation_modal": {
+      "title": "Compensation: {id}",
+      "violationId": "Violation ID",
+      "severity": "Severity",
+      "base": "Base",
+      "multiplier": "Multiplier",
+      "amount": "Final amount"
+    },
+    "statusLabels": {
+      "active": "Active",
+      "expired": "Expired",
+      "terminated": "Terminated"
+    },
+    "termLabels": {
+      "availability": "Availability",
+      "response_time": "Response time",
+      "throughput": "Throughput",
+      "error_rate": "Error rate"
+    },
+    "termHints": {
+      "availability": "Ratio 0~1, e.g. 0.997",
+      "response_time": "Milliseconds, e.g. 120",
+      "throughput": "Requests per second, e.g. 850",
+      "error_rate": "Ratio 0~1, e.g. 0.003"
+    },
+    "severityLabels": {
+      "minor": "Minor",
+      "moderate": "Moderate",
+      "major": "Major",
+      "critical": "Critical"
+    },
+    "msg": {
+      "loadFailed": "Failed to load SLA data",
+      "needCcInit": "Run `cc init` first to initialise the project",
+      "orgEmpty": "Enter an org ID",
+      "createFailed": "Create failed",
+      "createSuccess": "Contract created: {id}",
+      "slaEmpty": "Pick an SLA contract",
+      "valueEmpty": "Enter a metric value",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Metric recorded",
+      "terminateFailed": "Terminate failed",
+      "terminateSuccess": "Contract terminated",
+      "loadMetricsFailed": "Failed to load metrics",
+      "checkFailed": "Check failed",
+      "loadReportFailed": "Failed to load report",
+      "compFailed": "Compute failed"
+    }
+  },
+  "trust": {
+    "title": "Trust & Security",
+    "subtitle": "TPM/TEE attestation · PQC interop · Satellite messages · HSM devices",
+    "refresh": "Refresh",
+    "newDropdown": "New ▼",
+    "actions": {
+      "attest": "Attestation request",
+      "interop": "PQC interop",
+      "sat": "Satellite message",
+      "hsm": "Register HSM"
+    },
+    "stats": {
+      "attestations": "Attestations",
+      "validSuffix": "{n} valid",
+      "interop": "PQC tests",
+      "interopSub": "{compatible} compatible · avg {avg}ms",
+      "satellite": "Satellite messages",
+      "satelliteSub": "{queued} queued · {confirmed} confirmed",
+      "hsm": "HSM devices",
+      "passRate": "Attest pass rate"
+    },
+    "tabs": {
+      "attestations": "Trust root · TPM/TEE",
+      "interop": "PQC interop",
+      "satellite": "Satellite messages",
+      "hsm": "HSM devices"
+    },
+    "filter": {
+      "allAnchors": "All anchors",
+      "allStatuses": "All statuses",
+      "allProviders": "All providers",
+      "allVendors": "All vendors"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "deviceSuffix": "{n} devices",
+      "emptyAttestFiltered": "No attestations match the current filter",
+      "emptyAttest": "No attestations yet — click \"Attestation request\" to run the first one",
+      "emptyInterop": "No PQC interop tests yet",
+      "emptySatFiltered": "No messages match the current filter",
+      "emptySat": "No satellite messages yet",
+      "emptyHsmFiltered": "No devices match the current filter",
+      "emptyHsm": "No HSM devices yet",
+      "compatible": "compatible",
+      "incompatible": "incompatible",
+      "satMarkSent": "Mark sent",
+      "satConfirm": "Confirm",
+      "satFail": "Fail",
+      "hsmSign": "Sign",
+      "hsmRemove": "Remove"
+    },
+    "removeConfirm": {
+      "title": "Remove this HSM device?",
+      "ok": "Remove",
+      "cancel": "Cancel"
+    },
+    "attestCols": {
+      "id": "ID",
+      "anchor": "Anchor",
+      "status": "Status",
+      "fingerprint": "Fingerprint",
+      "response": "Response",
+      "createdAt": "Created"
+    },
+    "interopCols": {
+      "id": "ID",
+      "algorithm": "Algorithm",
+      "compatible": "Compatible",
+      "result": "Result",
+      "latency": "Latency",
+      "peer": "Peer",
+      "createdAt": "Created"
+    },
+    "satCols": {
+      "id": "ID",
+      "provider": "Provider",
+      "priority": "Priority",
+      "status": "Status",
+      "payload": "Payload",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "hsmCols": {
+      "id": "ID",
+      "vendor": "Vendor",
+      "model": "Model",
+      "serial": "Serial",
+      "compliance": "Compliance",
+      "firmware": "Firmware",
+      "action": "Action"
+    },
+    "anchorLabels": {
+      "tpm": "TPM",
+      "tee": "TEE",
+      "secure_element": "SE"
+    },
+    "attestStatusLabels": {
+      "valid": "Valid",
+      "expired": "Expired",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "satStatusLabels": {
+      "queued": "Queued",
+      "sent": "Sent",
+      "confirmed": "Confirmed",
+      "failed": "Failed"
+    },
+    "attest_modal": {
+      "title": "Attestation request",
+      "ok": "Submit",
+      "cancel": "Cancel",
+      "anchorLabel": "Trust anchor",
+      "challengeLabel": "Challenge",
+      "challengePlaceholder": "Optional hex challenge",
+      "fingerprintLabel": "Device fingerprint",
+      "fingerprintPlaceholder": "Optional device fingerprint"
+    },
+    "interop_modal": {
+      "title": "PQC interop test",
+      "ok": "Run",
+      "cancel": "Cancel",
+      "algorithmLabel": "Algorithm",
+      "algorithmPlaceholder": "e.g. ml_kem_768 / ml_dsa_65 / slh_dsa_128s",
+      "peerLabel": "Peer",
+      "peerPlaceholder": "Optional peer ID",
+      "latencyLabel": "Latency ms"
+    },
+    "sat_modal": {
+      "title": "Send satellite message",
+      "ok": "Send",
+      "cancel": "Cancel",
+      "providerLabel": "Provider",
+      "priorityLabel": "Priority",
+      "priorityHint": "1-10, default 5",
+      "payloadLabel": "Payload",
+      "payloadPlaceholder": "Message body (keep it short — bandwidth is constrained)"
+    },
+    "hsm_modal": {
+      "title": "Register HSM device",
+      "ok": "Register",
+      "cancel": "Cancel",
+      "vendorLabel": "Vendor",
+      "modelLabel": "Model",
+      "modelPlaceholder": "e.g. YK5 / Nano X",
+      "serialLabel": "Serial",
+      "serialPlaceholder": "Device serial number",
+      "complianceLabel": "Compliance",
+      "firmwareLabel": "Firmware",
+      "firmwarePlaceholder": "Optional"
+    },
+    "sign_modal": {
+      "title": "HSM sign: {id}",
+      "deviceLabel": "Device",
+      "algorithmLabel": "Algorithm",
+      "algorithmPlaceholder": "Optional, e.g. ed25519 / ecdsa_p256",
+      "dataLabel": "Data",
+      "dataPlaceholder": "Data to sign",
+      "submit": "Sign",
+      "notSigned": "Not signed yet",
+      "resultAlgorithm": "Algorithm",
+      "resultSignature": "Signature",
+      "failedReason": "Sign failed: {reason}"
+    },
+    "msg": {
+      "loadFailed": "Failed to load data",
+      "attestFailed": "Attestation failed",
+      "attestSuccess": "Attestation recorded [{status}]",
+      "interopAlgEmpty": "Enter an algorithm",
+      "interopFailed": "Test failed",
+      "interopSuccess": "Test complete: {compat} ({latency}ms)",
+      "satPayloadEmpty": "Enter a message payload",
+      "satFailed": "Send failed",
+      "satSuccess": "Message queued: {id}",
+      "satUpdateFailed": "Update failed",
+      "satUpdateSuccess": "Status updated",
+      "hsmRegisterFailed": "Register failed",
+      "hsmRegisterSuccess": "HSM registered: {id}",
+      "hsmRemoveFailed": "Remove failed",
+      "hsmRemoveSuccess": "Device removed",
+      "signEmpty": "Enter data to sign",
+      "signSuccess": "Signed",
+      "signFailed": "Sign failed"
+    }
+  },
+  "marketplace": {
+    "title": "Skill marketplace",
+    "subtitle": "Publish skill services · record invocations · view stats",
+    "refresh": "Refresh",
+    "publish": "Publish service",
+    "stats": {
+      "total": "Total services",
+      "published": "Published",
+      "invocations": "Total invocations",
+      "successRate": "Success rate",
+      "avgDuration": "Avg. duration"
+    },
+    "tabs": {
+      "services": "Services",
+      "invocations": "Invocation history"
+    },
+    "filter": {
+      "all": "All",
+      "namePlaceholder": "Search by name",
+      "byService": "Filter by service"
+    },
+    "table": {
+      "totalSuffix": "{n} total",
+      "actionRecord": "Record invocation",
+      "statusDropdown": "Status ▼",
+      "emptyFiltered": "No services match the current filter",
+      "empty": "No services yet — click \"Publish service\" to add the first one",
+      "emptyInvocations": "No invocations yet. Click \"Record invocation\" on a published service in the Services tab."
+    },
+    "serviceCols": {
+      "name": "Name",
+      "status": "Status",
+      "invocationCount": "Invocations",
+      "owner": "Owner",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "invocationCols": {
+      "service": "Service",
+      "caller": "Caller",
+      "status": "Status",
+      "durationMs": "Duration",
+      "createdAt": "Time"
+    },
+    "deletedService": "(deleted)",
+    "publish_modal": {
+      "title": "Publish skill service",
+      "ok": "Publish",
+      "cancel": "Cancel",
+      "nameLabel": "Service name",
+      "namePlaceholder": "e.g. text-summarizer",
+      "versionLabel": "Version",
+      "versionPlaceholder": "1.0.0 (default)",
+      "descLabel": "Description",
+      "endpointLabel": "Endpoint",
+      "endpointPlaceholder": "https://... (optional)",
+      "ownerLabel": "Owner",
+      "ownerPlaceholder": "did:key:... (optional)",
+      "statusLabel": "Initial status"
+    },
+    "record_modal": {
+      "title": "Record invocation: {name}",
+      "ok": "Record",
+      "cancel": "Cancel",
+      "callerLabel": "Caller",
+      "callerPlaceholder": "did:key:... (optional)",
+      "statusLabel": "Status",
+      "durationLabel": "Duration (ms)",
+      "errorLabel": "Error message"
+    },
+    "serviceStatusLabels": {
+      "draft": "Draft",
+      "published": "Published",
+      "deprecated": "Deprecated",
+      "suspended": "Suspended"
+    },
+    "invocationStatusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "timeout": "Timeout"
+    },
+    "msg": {
+      "loadFailed": "Failed to load marketplace data",
+      "publishEmpty": "Enter a service name",
+      "publishFailed": "Publish failed",
+      "publishSuccess": "Service published",
+      "recordOnlyPublished": "Only \"Published\" services accept invocation records",
+      "recordFailed": "Record failed",
+      "recordSuccess": "Invocation recorded",
+      "transitionFailed": "Status transition failed",
+      "transitionSuccess": "Service status set to {label}"
+    }
+  },
+  "workflow": {
+    "title": "Workflow editor",
+    "subtitle": "Create, edit, and run Cowork workflows (N1 — form editor; canvas view planned)",
+    "new": "New",
+    "refresh": "Refresh",
+    "list": {
+      "title": "Workflows",
+      "empty": "No workflows yet",
+      "stepCount": "{n} steps",
+      "delete": "Delete"
+    },
+    "editor": {
+      "headerPrefix": "Editing:",
+      "exportJson": "Export JSON",
+      "run": "Run",
+      "save": "Save",
+      "idLabel": "ID (unique)",
+      "idPlaceholder": "my-workflow",
+      "nameLabel": "Name",
+      "namePlaceholder": "My workflow",
+      "descLabel": "Description",
+      "descPlaceholder": "(optional)",
+      "stepsDivider": "Steps",
+      "stepIdPlaceholder": "step-id",
+      "dependsOnPlaceholder": "dependsOn",
+      "messagePlaceholder": "Task prompt (use $step.<id>.summary as placeholder)",
+      "whenPlaceholder": "when condition (optional, e.g. step.s1.status === 'completed')",
+      "stepDelete": "Delete",
+      "stepCounter": "step {idx} / {total}",
+      "addStep": "+ Add step",
+      "emptyHint": "Pick a workflow on the left or create a new one"
+    },
+    "runLog": {
+      "title": "Run log"
+    },
+    "msg": {
+      "loadFailed": "Load failed: {err}",
+      "saveSuccess": "Saved",
+      "saveFailed": "Save failed: {err}",
+      "deleteSuccess": "Deleted",
+      "deleteFailed": "Delete failed: {err}",
+      "runSuccess": "Run finished: {status}",
+      "runFailed": "Run failed: {err}",
+      "exportSuccess": "Exported to {path}",
+      "exportFailed": "Export failed: {err}"
+    }
+  },
+  "chat": {
+    "scope": {
+      "fallbackProjectName": "Project",
+      "globalSessions": "Global sessions"
+    },
+    "newChat": "Chat",
+    "newAgent": "Agent",
+    "role": {
+      "me": "Me"
+    },
+    "contextMode": {
+      "project": "Project",
+      "file": "File",
+      "global": "Global"
+    },
+    "session": {
+      "untitled": "New chat",
+      "messageCountSuffix": "{n} messages"
+    },
+    "sidebarEmpty": "Click a button above to start a new chat",
+    "empty": {
+      "title": "Start an AI chat",
+      "subtitle": "Pick a session on the left or create a new one",
+      "newChat": "New Chat",
+      "newAgent": "New Agent",
+      "startTitle": "Start a new chat",
+      "hint": {
+        "project": "Ask anything about this project",
+        "file": "Ask anything about the current file",
+        "global": "General AI assistant"
+      }
+    },
+    "quickPrompts": {
+      "summarize": "Summarise the project",
+      "brainstorm": "Help me brainstorm",
+      "explain": "Explain a concept",
+      "codeReview": "Code review checklist"
+    },
+    "quickPromptsEditor": {
+      "openButton": "+ Edit",
+      "title": "Customise quick prompts",
+      "hint": "One per line; up to 12 entries, each ≤ 120 chars. Leave empty to restore defaults.",
+      "placeholder": "Summarise the project\nHelp me brainstorm\n…",
+      "save": "Save",
+      "cancel": "Cancel",
+      "reset": "Restore defaults"
+    },
+    "input": {
+      "loading": "Waiting for response...",
+      "placeholder": "Type a message. Shift+Enter for newline, Enter to send.",
+      "answerPlaceholder": "Type your answer...",
+      "send": "Send"
+    },
+    "tool": {
+      "argsPreview": "{n} args · {key}…",
+      "running": "running",
+      "done": "done",
+      "unknownTool": "unknown"
+    },
+    "intent": {
+      "confirmed": "✅ Confirmed",
+      "corrected": "🔄 Corrected",
+      "label": {
+        "original": "Your original input:",
+        "understood": "I understood:",
+        "intent": "Intent:",
+        "keyPoints": "Key points:",
+        "correction": "Your correction:"
+      },
+      "action": {
+        "confirm": "Confirm",
+        "correct": "Correct",
+        "correctPlaceholder": "Type your correction...",
+        "submitCorrection": "Submit",
+        "cancelCorrection": "Cancel"
+      },
+      "status": {
+        "understanding": "Understanding your request..."
+      },
+      "toggleLabel": "Intent",
+      "toggleHint": "When on, every message first calls the LLM to extract intent and key points (project/file mode only). Off by default to avoid added latency."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subProject": "Project \"{name}\" overview",
+    "subGlobal": "ChainlessChain global overview",
+    "unnamedProject": "(unnamed)",
+    "refresh": "Refresh",
+    "projectBanner": {
+      "fallbackName": "Project",
+      "tag": "Project panel"
+    },
+    "stats": {
+      "wsGateway": "WebSocket Gateway",
+      "wsRunning": "Running",
+      "wsDisconnected": "Disconnected",
+      "wsPortLine": "Port {port} · {host}",
+      "currentLlm": "Current LLM",
+      "llmUnconfigured": "(unconfigured)",
+      "skills": "Skills",
+      "skillsHint": "Click to manage skills",
+      "sessions": "AI sessions",
+      "sessionsHint": "Click to enter chat",
+      "appStatus": "App status",
+      "appRunning": "Running",
+      "appReady": "Initialised",
+      "appNotStarted": "Not started",
+      "edition": "{name} Edition",
+      "mcp": "MCP tools",
+      "mcpHint": "Mounted extensions",
+      "notes": "Knowledge base notes",
+      "notesHint": "Click to manage notes"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "enterProjectChat": "Enter project chat",
+      "newAiChat": "New AI chat",
+      "startAgent": "Start agent mode",
+      "services": "Services",
+      "logs": "View logs",
+      "skills": "Manage skills",
+      "providers": "LLM config"
+    },
+    "status": {
+      "title": "Recent status",
+      "more": "View more",
+      "placeholder": "Click refresh to load system status..."
+    },
+    "telemetry": {
+      "title": "Compression telemetry",
+      "filterWindow": "Time window",
+      "filterProvider": "Provider slice",
+      "filterModel": "Model slice",
+      "windowAll": "All samples",
+      "window1h": "Last hour",
+      "window24h": "Last 24 hours",
+      "window7d": "Last 7 days",
+      "providerAll": "All providers",
+      "modelAll": "All models",
+      "hitRate": "Hit rate",
+      "hitRateSub": "{compressed} / {total} compressions produced real savings",
+      "savedTokens": "Tokens saved (cumulative)",
+      "savedTokensSub": "Avg. {avg} tokens per compression",
+      "netSavingsRate": "Net savings rate",
+      "netSavingsRateSub": "Original {original} -> after compression {compressed}",
+      "strategyDistribution": "Strategy hits",
+      "strategyEmpty": "No compression samples yet",
+      "strategyRow": "{hits} hits · {rate}",
+      "variantDistribution": "Variant breakdown",
+      "variantEmpty": "No variant data yet",
+      "variantRow": "{count}",
+      "providerSlice": "Provider slice",
+      "providerEmpty": "No provider data yet",
+      "providerRow": "{samples} samples · {rate}",
+      "modelSlice": "Model slice",
+      "modelEmpty": "No model data yet",
+      "modelRow": "{samples} samples · {saved} saved"
+    },
+    "info": {
+      "title": "Runtime info",
+      "panelMode": "Panel mode",
+      "modeProject": "Project",
+      "modeGlobal": "Global",
+      "projectName": "Project name",
+      "projectPath": "Project path",
+      "websocket": "WebSocket",
+      "auth": "Auth",
+      "authEnabled": "Enabled",
+      "authDisabled": "Disabled",
+      "version": "Version"
+    }
+  }
+}

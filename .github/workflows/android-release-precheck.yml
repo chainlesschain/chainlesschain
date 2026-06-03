@@ -1,0 +1,245 @@
+name: Android Release Precheck
+
+# Catches Android release-build failures at PR time instead of release tag push.
+# See docs/internal/hidden-risk-traps.md #19 — the "R8 hotfix chain" (v5.0.3.80→.91)
+# burned 3 immutable tag namespaces because no PR-gating workflow ran
+# `assembleRelease`. This gate closes that loop.
+#
+# Two jobs:
+#   1. shipping-config (MANDATORY) — replicates release.yml current shipping
+#      config (minify off, R8 fullMode off, -dontoptimize on). Catches AGP /
+#      dep / proguard / signing-config errors that surface only in release
+#      mode. If this fails on a PR, do NOT merge — release.yml will fail too.
+#
+#   2. r8-fullmode-probe (ADVISORY, continue-on-error) — flips minify+shrink
+#      on via -Pminify.override=true and R8 fullMode on. Strips -dontoptimize
+#      via sed. PURPOSE: passive watchdog. Pass = AGP/R8 upstream race may be
+#      fixed, time to consider re-enabling minify by default. Fail = expected,
+#      do not block merge.
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-release-precheck.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shipping-config:
+    name: Release build (shipping config — mandatory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-precheck-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-precheck-
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        working-directory: android-app
+        run: chmod +x ./gradlew
+
+      - name: Generate debug-only signing for precheck
+        working-directory: android-app
+        run: |
+          keytool -genkey -v \
+            -keystore debug-ci.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -storepass android -keypass android \
+            -dname "CN=PR Precheck, OU=CI, O=ChainlessChain, L=Unknown, ST=Unknown, C=US"
+          cat > keystore.properties << 'EOF'
+          release.storeFile=debug-ci.keystore
+          release.storePassword=android
+          release.keyAlias=androiddebugkey
+          release.keyPassword=android
+          EOF
+
+      - name: Tune Gradle for CI (match release.yml)
+        working-directory: android-app
+        run: |
+          # Override JVM args: CI runners have 7GB, gradle.properties requests 8GB
+          sed -i 's/org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dfile.encoding=UTF-8/' gradle.properties
+          # Defensive redundancy: ensure R8 fullMode is off even if source flipped
+          sed -i 's/android.enableR8.fullMode=true/android.enableR8.fullMode=false/' gradle.properties
+
+      - name: Build release APK (shipping config — minify off)
+        working-directory: android-app
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build App Bundle (shipping config — minify off)
+        working-directory: android-app
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: List outputs
+        if: always()
+        working-directory: android-app
+        run: |
+          echo "=== APK outputs ==="
+          find app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || echo "no apk"
+          echo ""
+          echo "=== AAB outputs ==="
+          find app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null || echo "no aab"
+
+      - name: Clean up signing files
+        if: always()
+        working-directory: android-app
+        run: rm -f keystore.jks debug-ci.keystore keystore.properties
+
+      - name: Upload precheck artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-precheck-${{ github.sha }}
+          path: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-app/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
+          retention-days: 7
+
+  r8-fullmode-probe:
+    name: R8 fullMode probe (advisory watchdog)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-probe-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-probe-
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        working-directory: android-app
+        run: chmod +x ./gradlew
+
+      - name: Generate debug-only signing for probe
+        working-directory: android-app
+        run: |
+          keytool -genkey -v \
+            -keystore debug-ci.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -storepass android -keypass android \
+            -dname "CN=R8 Probe, OU=CI, O=ChainlessChain, L=Unknown, ST=Unknown, C=US"
+          cat > keystore.properties << 'EOF'
+          release.storeFile=debug-ci.keystore
+          release.storePassword=android
+          release.keyAlias=androiddebugkey
+          release.keyPassword=android
+          EOF
+
+      - name: Tune Gradle for CI (heap only — leave R8 fullMode at true via -P)
+        working-directory: android-app
+        run: |
+          sed -i 's/org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dfile.encoding=UTF-8/' gradle.properties
+
+      - name: Strip -dontoptimize from proguard for honest probe
+        working-directory: android-app
+        run: |
+          # Comment out -dontoptimize so R8 actually runs the optimize pass —
+          # that's the pass that crashes with CME in AGP 8.5.2 (the whole point
+          # of this probe). Without this, the probe tests shrink+obfuscate
+          # only, which is not what's broken upstream.
+          sed -i 's/^-dontoptimize/# -dontoptimize (commented by probe)/' app/proguard-rules.pro
+          echo "--- proguard-rules.pro (head 20) ---"
+          head -20 app/proguard-rules.pro
+
+      - name: Build release APK with R8 fullMode + minify + optimize ON
+        id: probe
+        working-directory: android-app
+        # set -o pipefail is critical: `tee` always exits 0, so without it
+        # gradle's non-zero exit gets swallowed by the pipe and the step is
+        # reported as success — making the next `if: success()` notify step
+        # post a misleading "R8 upstream may be fixed" notice.
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon \
+            -Pminify.override=true \
+            -Pandroid.enableR8.fullMode=true \
+            2>&1 | tee r8-probe.log
+
+      - name: Notify on probe success (upstream may be fixed)
+        if: success()
+        run: |
+          echo "::notice title=R8 fullMode probe PASSED::AGP/R8 upstream race may be fixed. Consider flipping defaults: build.gradle.kts release block isMinifyEnabled/isShrinkResources to true, gradle.properties android.enableR8.fullMode=true, remove -dontoptimize from proguard-rules.pro. Run probe on another PR to confirm before changing production."
+          {
+            echo "## 🎉 R8 fullMode probe PASSED"
+            echo ""
+            echo "AGP/R8 upstream ConcurrentModificationException race may be fixed."
+            echo ""
+            echo "**Next steps to re-enable production minify:**"
+            echo "1. Flip \`android-app/app/build.gradle.kts\` release block: \`isMinifyEnabled = true\`, \`isShrinkResources = true\` (or remove \`minifyOverride\` indirection)"
+            echo "2. Flip \`android-app/gradle.properties\`: \`android.enableR8.fullMode=true\`"
+            echo "3. Remove \`-dontoptimize\` from \`android-app/app/proguard-rules.pro\`"
+            echo "4. Run probe on 2-3 more PRs to confirm stability"
+            echo "5. Update \`docs/internal/hidden-risk-traps.md\` #19 to closed status"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record probe failure (expected while upstream broken)
+        if: failure()
+        run: |
+          echo "::notice title=R8 fullMode probe still failing::Upstream AGP/R8 race not yet fixed. This is EXPECTED and does NOT block PR merge. Production ships with -dontoptimize + fullMode=false. See docs/internal/hidden-risk-traps.md #19."
+          {
+            echo "## R8 fullMode probe still failing (expected)"
+            echo ""
+            echo "AGP/R8 upstream race not yet fixed. Probe failure does not block PR."
+            echo ""
+            echo "Last 50 lines of probe log:"
+            echo '```'
+            tail -50 android-app/r8-probe.log 2>/dev/null || echo "(no log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload probe log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r8-probe-log-${{ github.sha }}
+          path: android-app/r8-probe.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Clean up signing files
+        if: always()
+        working-directory: android-app
+        run: rm -f keystore.jks debug-ci.keystore keystore.properties

@@ -1,0 +1,62 @@
+{
+  "id": "tpl_prod_deep_007",
+  "name": "deep_work_schedule",
+  "display_name": "深度工作计划",
+  "description": "深度工作时间管理，基于Cal Newport理论打造专注力系统",
+  "icon": "🧠",
+  "category": "productivity",
+  "subcategory": "focus",
+  "tags": [
+    "深度工作",
+    "专注力",
+    "时间管理",
+    "Deep Work"
+  ],
+  "project_type": "document",
+  "prompt_template": "深度工作计划\n\n**工作信息：**\n- 职业类型：{{occupation}}\n- 深度工作目标：{{deepWorkGoal}}\n- 每日可用时间：{{availableHours}}小时\n- 工作模式：{{workMode}}\n\n# 深度工作完整系统\n\n## 1. 深度工作理论\n\n### 核心概念\n**深度工作（Deep Work）**：在无干扰的状态下专注进行职业活动，使个人的认知能力达到极限。这种努力能够创造新价值，提升技能，且难以复制。\n\n**浅层工作（Shallow Work）**：对认知要求不高的事务性任务，往往在受干扰的情况下开展。此类工作通常不会为世界创造太多新价值，且容易复制。\n\n### 深度工作的价值\n- 提升技能掌握速度\n- 产出高质量成果\n- 获得心流体验\n- 建立竞争优势\n\n## 2. 工作模式选择\n\n{{#eq workStyle \"monastic\"}}\n### 禁欲主义模式（Monastic）\n- 特点：完全隔绝浅层工作，全身心投入深度工作\n- 适用人群：作家、研究员、艺术家\n- 实施方式：\n  - 关闭社交媒体\n  - 极少回复邮件\n  - 设置固定的深度工作时段\n{{/eq}}\n\n{{#eq workStyle \"bimodal\"}}\n### 双峰模式（Bimodal）\n- 特点：将时间分为深度工作时段和开放时段\n- 适用人群：教授、咨询师、管理者\n- 实施方式：\n  - 每周划分：3天深度工作 + 2天浅层工作\n  - 或每天划分：上午深度 + 下午浅层\n{{/eq}}\n\n{{#eq workStyle \"rhythmic\"}}\n### 节奏模式（Rhythmic）\n- 特点：每天固定时间进行深度工作\n- 适用人群：大多数知识工作者\n- 实施方式：\n  - 每天早晨6:00-9:00深度工作\n  - 养成日常习惯，降低启动阻力\n{{/eq}}\n\n{{#eq workStyle \"journalistic\"}}\n### 记者模式（Journalistic）\n- 特点：随时随地抓住空闲时间进行深度工作\n- 适用人群：经验丰富、适应能力强的专业人士\n- 实施方式：\n  - 见缝插针安排深度工作\n  - 快速进入专注状态\n{{/eq}}\n\n## 3. 每日时间安排\n\n### 理想作息\n\n```\n06:00-06:30  晨间仪式（运动/冥想）\n06:30-07:00  早餐 + 计划\n07:00-09:30  深度工作区块 1\n09:30-10:00  休息（散步/咖啡）\n10:00-12:00  深度工作区块 2\n12:00-13:00  午餐 + 休息\n13:00-15:00  深度工作区块 3（可选）\n15:00-17:00  浅层工作（邮件/会议）\n17:00-18:00  回顾总结\n18:00+       个人时间\n```\n\n### 深度工作区块设计\n\n**单个区块结构（90-120分钟）**\n- 5分钟：准备环境，关闭干扰\n- 85-115分钟：专注工作\n- 10分钟：记录进展，休息\n\n**每日目标**\n- 深度工作总时长：{{dailyDeepWorkHours}}小时\n- 深度工作区块数：{{deepWorkBlocks}}个\n- 核心任务数量：{{coreTasks}}个\n\n## 4. 环境优化\n\n### 物理环境\n- 工作地点：{{workLocation}}\n- 环境要求：\n  - 安静、无干扰\n  - 充足光线\n  - 舒适温度（20-22°C）\n  - 整洁桌面\n\n### 数字环境\n- [ ] 关闭手机通知\n- [ ] 使用网站屏蔽工具（Freedom/Cold Turkey）\n- [ ] 启用免打扰模式\n- [ ] 关闭即时通讯软件\n\n### 仪式化\n**启动仪式**\n1. {{startRitual1}}\n2. {{startRitual2}}\n3. {{startRitual3}}\n\n**结束仪式**\n1. 记录成果\n2. 规划明日任务\n3. 清空大脑（Brain Dump）\n\n## 5. 任务管理\n\n### 任务分类\n\n**深度工作任务**（需要专注和认知投入）\n- 写作\n- 编程\n- 策略思考\n- 学习新技能\n- 创意设计\n\n**浅层工作任务**（事务性、可被打断）\n- 回复邮件\n- 例行会议\n- 行政事务\n- 简单沟通\n\n### 每周计划\n\n| 周一 | 周二 | 周三 | 周四 | 周五 |\n|------|------|------|------|------|\n| {{mon_task}} | {{tue_task}} | {{wed_task}} | {{thu_task}} | {{fri_task}} |\n\n## 6. 注意力管理\n\n### 对抗干扰\n- 社交媒体：每天限制{{socialMediaTime}}分钟\n- 邮件检查：每日3次（10:00/14:00/17:00）\n- 即时通讯：关键时段完全关闭\n\n### 提升专注力\n- 冥想练习：每日{{meditationTime}}分钟\n- 规律运动：{{exerciseFrequency}}\n- 充足睡眠：每晚{{sleepHours}}小时\n- 营养补充：{{supplements}}\n\n## 7. 休息策略\n\n### 积极休息\n- 散步（最佳）\n- 伸展运动\n- 冥想呼吸\n- 户外活动\n\n### 避免\n- 刷社交媒体\n- 看新闻\n- 浏览购物网站\n\n### 恢复性休息\n- 午睡：{{napDuration}}分钟（可选）\n- 周末完全断开工作\n- 定期度假\n\n## 8. 效果评估\n\n### 每日记录\n\n**日期：{{date}}**\n- 深度工作总时长：____小时\n- 完成任务：\n  - [ ] {{task1}}\n  - [ ] {{task2}}\n  - [ ] {{task3}}\n- 专注度评分：____/10\n- 产出质量：____/10\n- 干扰次数：____次\n\n### 每周回顾\n\n- 本周深度工作总时长：{{weeklyTotal}}小时\n- 完成的重要任务：{{weeklyTasks}}\n- 主要挑战：{{weeklyChallenges}}\n- 改进方向：{{weeklyImprovements}}\n\n## 9. 常见问题\n\n**Q: 无法长时间专注怎么办？**\nA: 从短时间开始（25分钟），逐步延长。刚开始可能只能专注1小时，经过训练可达到4小时。\n\n**Q: 总是被打断怎么办？**\nA: \n1. 与团队沟通深度工作时间\n2. 设置\"请勿打扰\"标识\n3. 安排固定的开放时段\n\n**Q: 如何平衡深度工作和协作？**\nA: 采用双峰模式，划分深度时段和协作时段。\n\n## 10. 进阶技巧\n\n### 批处理浅层工作\n- 集中处理邮件\n- 统一安排会议\n- 固定时段处理杂事\n\n### 学会说不\n- 拒绝不重要的会议\n- 减少社交承诺\n- 保护深度工作时间\n\n### 定期回顾\n- 每周回顾：调整时间分配\n- 每月回顾：评估目标进展\n- 每季度回顾：优化系统",
+  "variables_schema": [
+    {
+      "name": "occupation",
+      "label": "职业类型",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "deepWorkGoal",
+      "label": "深度工作目标",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "workStyle",
+      "label": "工作模式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "monastic", "label": "禁欲主义模式"},
+        {"value": "bimodal", "label": "双峰模式"},
+        {"value": "rhythmic", "label": "节奏模式"},
+        {"value": "journalistic", "label": "记者模式"}
+      ]
+    },
+    {
+      "name": "dailyDeepWorkHours",
+      "label": "每日深度工作时长（小时）",
+      "type": "number",
+      "required": false,
+      "default": 4
+    }
+  ],
+  "file_structure": {
+    "root": "深度工作计划",
+    "files": [
+      {"path": "工作计划.md", "type": "markdown"},
+      {"path": "每日记录/", "type": "folder"},
+      {"path": "每周回顾/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

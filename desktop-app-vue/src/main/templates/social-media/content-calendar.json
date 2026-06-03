@@ -1,0 +1,30 @@
+{
+  "id": "tpl_social_calendar_007",
+  "name": "content_calendar",
+  "display_name": "社媒内容日历",
+  "description": "社交媒体内容规划与排期，包含选题、制作、发布和数据追踪",
+  "icon": "📅",
+  "category": "social-media",
+  "subcategory": "planning",
+  "tags": ["内容日历", "内容规划", "排期", "社媒运营"],
+  "project_type": "spreadsheet",
+  "prompt_template": "社交媒体内容日历\n\n**月份：** {{month}}\n**平台：** {{platforms}}\n**内容主题：** {{contentTheme}}\n\n# {{month}} 内容日历\n\n## 1. 月度内容策略\n\n### 1.1 本月目标\n\n**核心目标：** {{monthlyGoal}}\n**KPI指标：**\n- 发布数量：{{postTarget}}条\n- 曝光目标：{{impressionTarget}}\n- 互动目标：{{engagementTarget}}\n- 涨粉目标：{{followerGrowthTarget}}\n\n### 1.2 内容主题\n\n**主题1：** {{theme1}}（{{theme1Percentage}}%）\n**主题2：** {{theme2}}（{{theme2Percentage}}%）\n**主题3：** {{theme3}}（{{theme3Percentage}}%）\n**热点内容：** {{trending}}（{{trendingPercentage}}%）\n\n### 1.3 内容类型分配\n\n| 类型 | 占比 | 数量 | 目的 |\n|------|------|------|------|\n| 教育内容 | {{educationalPercentage}}% | {{educationalCount}} | 提供价值 |\n| 娱乐内容 | {{entertainmentPercentage}}% | {{entertainmentCount}} | 增加互动 |\n| 产品推广 | {{promotionalPercentage}}% | {{promotionalCount}} | 转化销售 |\n| 用户UGC | {{ugcPercentage}}% | {{ugcCount}} | 社区建设 |\n\n---\n\n## 2. 周度排期\n\n### 第1周（{{week1Dates}}）\n\n| 日期 | 平台 | 内容主题 | 格式 | 发布时间 | 负责人 | 状态 |\n|------|------|----------|------|----------|--------|------|\n| {{date1}} | {{platform1}} | {{topic1}} | {{format1}} | {{time1}} | {{owner1}} | {{status1}} |\n| {{date2}} | {{platform2}} | {{topic2}} | {{format2}} | {{time2}} | {{owner2}} | {{status2}} |\n| {{date3}} | {{platform3}} | {{topic3}} | {{format3}} | {{time3}} | {{owner3}} | {{status3}} |\n\n### 第2周（{{week2Dates}}）\n\n| 日期 | 平台 | 内容主题 | 格式 | 发布时间 | 负责人 | 状态 |\n|------|------|----------|------|----------|--------|------|\n| {{date4}} | {{platform4}} | {{topic4}} | {{format4}} | {{time4}} | {{owner4}} | {{status4}} |\n\n### 第3周（{{week3Dates}}）\n\n{{week3Schedule}}\n\n### 第4周（{{week4Dates}}）\n\n{{week4Schedule}}\n\n---\n\n## 3. 重要节点\n\n### 3.1 营销日历\n\n- {{event1Date}}：{{event1Name}} - {{event1Content}}\n- {{event2Date}}：{{event2Name}} - {{event2Content}}\n- {{event3Date}}：{{event3Name}} - {{event3Content}}\n\n### 3.2 产品发布\n\n{{productLaunches}}\n\n---\n\n## 4. 内容创作清单\n\n### 待策划（Ideas）\n- [ ] {{idea1}}\n- [ ] {{idea2}}\n- [ ] {{idea3}}\n\n### 创作中（In Progress）\n- [ ] {{inProgress1}}（截止：{{deadline1}}）\n- [ ] {{inProgress2}}（截止：{{deadline2}}）\n\n### 待审核（Review）\n- [ ] {{review1}}\n- [ ] {{review2}}\n\n### 待发布（Scheduled）\n- [ ] {{scheduled1}}（{{scheduleDate1}}）\n- [ ] {{scheduled2}}（{{scheduleDate2}}）\n\n---\n\n## 5. 内容模板库\n\n### 5.1 图文模板\n\n**模板A：知识分享**\n- 标题：{{templateATitle}}\n- 结构：{{templateAStructure}}\n- 配图：{{templateAImage}}\n\n**模板B：用户故事**\n- 标题：{{templateBTitle}}\n- 结构：{{templateBStructure}}\n\n### 5.2 视频脚本\n\n**15秒短视频：**\n{{shortVideoScript}}\n\n**1分钟视频：**\n{{mediumVideoScript}}\n\n---\n\n## 6. 发布最佳时间\n\n### 各平台最佳发布时间\n\n| 平台 | 工作日 | 周末 | 说明 |\n|------|--------|------|------|\n| 微信公众号 | 18:00-20:00 | 10:00-12:00 | {{wechatNote}} |\n| 微博 | 9:00, 12:00, 18:00 | 全天 | {{weiboNote}} |\n| 抖音 | 12:00, 18:00, 21:00 | 10:00, 15:00, 21:00 | {{douyinNote}} |\n| 小红书 | 20:00-22:00 | 10:00-22:00 | {{xiaohongshuNote}} |\n\n---\n\n## 7. 数据追踪\n\n### 7.1 每周数据\n\n| 指标 | 周1 | 周2 | 周3 | 周4 | 月度目标 | 完成率 |\n|------|-----|-----|-----|-----|----------|--------|\n| 发布数 | | | | | {{postTarget}} | |\n| 曝光量 | | | | | {{impressionTarget}} | |\n| 互动数 | | | | | {{engagementTarget}} | |\n| 新增粉丝 | | | | | {{followerGrowthTarget}} | |\n\n### 7.2 内容表现\n\n**Top 5表现最佳内容：**\n1. {{topPost1}}（互动率：{{engagement1}}%）\n2. {{topPost2}}（互动率：{{engagement2}}%）\n3. {{topPost3}}（互动率：{{engagement3}}%）\n4. {{topPost4}}（互动率：{{engagement4}}%）\n5. {{topPost5}}（互动率：{{engagement5}}%）\n\n**改进建议：**\n{{improvementSuggestions}}\n\n---\n\n## 8. 团队协作\n\n### 8.1 角色分工\n\n- 内容策划：{{planner}}\n- 文案撰写：{{copywriter}}\n- 视觉设计：{{designer}}\n- 视频剪辑：{{videoEditor}}\n- 发布运营：{{operator}}\n- 数据分析：{{analyst}}\n\n### 8.2 协作流程\n\n```\n选题策划 → 内容创作 → 审核修改 → 排期发布 → 数据监测 → 优化迭代\n```\n\n---\n\n## 9. 工具与资源\n\n### 9.1 内容工具\n\n- 设计：{{designTool}}\n- 视频：{{videoTool}}\n- 数据：{{analyticsTool}}\n- 排期：{{schedulingTool}}\n\n### 9.2 素材库\n\n- 图片库：{{imageLibrary}}\n- 音乐库：{{musicLibrary}}\n- 模板库：{{templateLibrary}}\n\n---\n\n## 10. 下月预告\n\n**下月主题：** {{nextMonthTheme}}\n**重点活动：** {{nextMonthCampaign}}\n**需提前准备：** {{nextMonthPrep}}\n",
+  "variables_schema": [
+    {"name": "month", "label": "月份", "type": "string", "required": true},
+    {"name": "platforms", "label": "目标平台", "type": "string", "required": false},
+    {"name": "contentTheme", "label": "内容主题", "type": "string", "required": false},
+    {"name": "postTarget", "label": "发布目标数", "type": "number", "required": false}
+  ],
+  "file_structure": {
+    "root": "内容日历-{{month}}",
+    "files": [
+      {"path": "内容日历.xlsx", "type": "spreadsheet"},
+      {"path": "选题库.md", "type": "document"},
+      {"path": "素材/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

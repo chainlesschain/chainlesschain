@@ -1,0 +1,125 @@
+{
+  "id": "tpl_education_training_004",
+  "name": "training_program",
+  "display_name": "企业培训方案",
+  "description": "企业员工培训项目方案，包含需求分析、课程设计和效果评估",
+  "icon": "🎯",
+  "category": "education",
+  "subcategory": "corporate-training",
+  "tags": [
+    "企业培训",
+    "员工发展",
+    "培训方案"
+  ],
+  "project_type": "document",
+  "prompt_template": "企业培训方案\n\n**项目信息：**\n- 培训主题：{{trainingTopic}}\n- 培训对象：{{targetGroup}}\n- 培训人数：{{participantCount}}人\n- 培训周期：{{duration}}天\n\n# 企业培训项目：{{trainingTopic}}\n\n## 需求分析\n\n**培训背景：**\n{{trainingBackground}}\n\n**问题诊断：**\n当前存在的问题：\n1. {{problem1}}\n2. {{problem2}}\n3. {{problem3}}\n\n**培训目标：**\n- 知识目标：{{knowledgeGoal}}\n- 技能目标：{{skillGoal}}\n- 态度目标：{{attitudeGoal}}\n\n**目标学员：**{{targetGroup}}\n- 岗位：{{positions}}\n- 工作年限：{{workExperience}}\n- 当前水平：{{currentLevel}}\n\n## 培训方案设计\n\n**培训类型：**{{trainingType}}\n\n{{#eq trainingType \"新员工入职培训\"}}\n**入职培训重点：**\n- 企业文化与价值观\n- 规章制度\n- 岗位技能基础\n- 团队融入\n{{/eq}}\n\n{{#eq trainingType \"专业技能提升\"}}\n**技能提升方向：**\n- 专业知识深化\n- 实操能力强化\n- 工具使用\n- 案例分析\n{{/eq}}\n\n{{#eq trainingType \"管理能力培养\"}}\n**管理能力模块：**\n- 领导力\n- 团队管理\n- 沟通协调\n- 决策能力\n{{/eq}}\n\n**培训形式：**{{trainingFormat}}\n- 集中授课：{{lecturePercent}}%\n- 小组讨论：{{discussionPercent}}%\n- 实操演练：{{practicePercent}}%\n- 案例分析：{{caseStudyPercent}}%\n\n## 课程安排\n\n**总课时：**{{totalHours}}小时\n**培训时间：**{{trainingDates}}\n**培训地点：**{{venue}}\n\n### Day 1: {{day1Theme}}\n\n**09:00-09:30** 开班仪式\n- 领导致辞\n- 培训目标介绍\n- 学员破冰\n\n**09:30-12:00** 第一讲：{{lecture1}}\n- 讲师：{{lecturer1}}\n- 内容：{{lecture1Content}}\n- 形式：理论讲授+案例分析\n\n**12:00-13:30** 午餐休息\n\n**13:30-15:30** 第二讲：{{lecture2}}\n- 讲师：{{lecturer2}}\n- 内容：{{lecture2Content}}\n\n**15:30-17:00** 小组研讨\n- 主题：{{day1DiscussionTopic}}\n- 分{{groupCount}}组讨论\n- 成果汇报\n\n**17:00-17:30** 每日总结\n\n### Day 2: {{day2Theme}}\n\n**09:00-12:00** 实操训练\n- 项目：{{practiceProject}}\n- 分组操作\n- 老师指导\n\n**13:30-15:30** 案例分析\n- 案例：{{caseStudy}}\n- 小组讨论\n- 方案展示\n\n**15:30-17:00** 模拟演练\n- 情景：{{rolePlayScenario}}\n- 角色扮演\n- 反馈点评\n\n### Day 3-{{lastDay}}: 深化巩固\n\n**Day 3：**{{day3Theme}}\n**Day {{lastDay}}：**结业考核+总结\n\n## 课程内容\n\n### 模块1：{{module1Name}}\n**课时：**{{module1Hours}}小时\n\n**知识点：**\n1. {{module1Topic1}}\n2. {{module1Topic2}}\n3. {{module1Topic3}}\n\n**教学方法：**\n- 讲授法\n- 案例教学\n- 视频学习\n\n**考核方式：**{{module1Assessment}}\n\n### 模块2：{{module2Name}}\n**课时：**{{module2Hours}}小时\n\n**实操内容：**\n- {{module2Practice1}}\n- {{module2Practice2}}\n\n### 模块3：{{module3Name}}\n**行动学习：**\n- 真实工作问题\n- 小组共创方案\n- 导师辅导\n\n## 师资配置\n\n### 主讲讲师\n\n**讲师1：**{{instructor1}}\n- 职位：{{instructor1Title}}\n- 专长：{{instructor1Expertise}}\n- 授课：{{instructor1Sessions}}\n\n**讲师2：**{{instructor2}}\n- 背景：{{instructor2Background}}\n- 授课：{{instructor2Sessions}}\n\n### 辅导员\n**数量：**{{facilitatorCount}}名\n**职责：**\n- 小组活动组织\n- 学员答疑\n- 课后辅导\n\n## 教学资源\n\n**课件资料：**\n- PPT讲义：{{pptCount}}套\n- 学员手册：{{participantCount}}本\n- 案例集：{{caseCount}}个\n\n**工具表单：**\n- {{tool1}}\n- {{tool2}}\n- {{tool3}}\n\n**参考书籍：**\n1. 《{{refBook1}}》\n2. 《{{refBook2}}》\n\n**视频资料：**\n- 教学视频：{{videoCount}}个\n- 案例视频：{{caseVideoCount}}个\n\n## 学员管理\n\n**分组安排：**\n- 总人数：{{participantCount}}人\n- 分{{groupCount}}组\n- 每组{{groupSize}}人\n- 每组设组长1名\n\n**考勤制度：**\n- 签到签退\n- 迟到{{lateLimit}}分钟以上记缺勤\n- 出勤率要求：{{attendanceRequirement}}%\n\n**课堂规范：**\n- 手机静音\n- 积极参与\n- 尊重发言\n\n## 评估体系\n\n**评估维度：**\n\n### 一级评估：反应层\n**满意度调查：**\n- 课程内容：☆☆☆☆☆\n- 讲师水平：☆☆☆☆☆\n- 组织服务：☆☆☆☆☆\n- 综合评价：☆☆☆☆☆\n\n### 二级评估：学习层\n**知识测试：**\n- 笔试：{{writtenTestPoints}}分\n- 实操：{{practicalTestPoints}}分\n- 及格线：{{passingScore}}分\n\n### 三级评估：行为层\n**培训后1个月：**\n- 主管评估工作表现\n- 是否应用所学知识\n- 行为改进情况\n\n### 四级评估：结果层\n**培训后3个月：**\n- 绩效指标变化\n- 工作效率提升\n- ROI计算\n\n**总分构成：**\n- 出勤：{{attendanceWeight}}%\n- 课堂表现：{{participationWeight}}%\n- 小组作业：{{groupWorkWeight}}%\n- 结业考试：{{examWeight}}%\n\n**证书发放：**\n- 总分≥{{certificateScore}}分\n- 出勤率≥{{attendanceRequirement}}%\n\n## 后勤保障\n\n**场地安排：**\n- 教室：{{classroom}}\n- 容量：{{classroomCapacity}}人\n- 设施：投影仪、音响、白板、空调\n- 桌椅：小组讨论式摆放\n\n**餐饮安排：**\n- 午餐：{{lunchArrangement}}\n- 茶歇：上下午各一次\n- 标准：{{cateringStandard}}/人/天\n\n**学习用品：**\n- 笔记本+笔\n- 文件夹\n- 名牌\n- 学员证\n\n**技术支持：**\n- IT技术员现场\n- 备用投影设备\n- 网络保障\n\n## 预算明细\n\n**总预算：**¥{{totalBudget}}\n\n| 项目 | 单价 | 数量 | 小计 |\n|------|------|------|------|\n| 讲师费 | ¥{{instructorFee}}/天 | {{instructorDays}}天 | ¥{{instructorTotal}} |\n| 场地费 | ¥{{venueFee}}/天 | {{duration}}天 | ¥{{venueTotal}} |\n| 餐饮费 | ¥{{cateringCost}}/人 | {{participantCount}}人 | ¥{{cateringTotal}} |\n| 资料费 | ¥{{materialCost}}/人 | {{participantCount}}人 | ¥{{materialTotal}} |\n| 其他 | - | - | ¥{{otherCost}} |\n| **总计** | - | - | **¥{{totalBudget}}** |\n\n**人均成本：**¥{{costPerPerson}}\n\n## 项目时间表\n\n**准备阶段：**\n- T-30天：需求调研\n- T-20天：方案设计\n- T-10天：讲师确认\n- T-5天：物料准备\n- T-1天：场地布置\n\n**实施阶段：**\n- Day 1-{{duration}}：培训实施\n- 每日：现场管理+问题解决\n\n**总结阶段：**\n- T+1天：资料整理\n- T+3天：满意度分析\n- T+7天：培训报告\n- T+30天：跟踪评估\n\n## 效果保障措施\n\n**培训前：**\n1. 充分需求调研\n2. 定制化课程设计\n3. 学员基线调查\n\n**培训中：**\n1. 每日复盘优化\n2. 及时答疑辅导\n3. 氛围营造激励\n\n**培训后：**\n1. 行动计划制定\n2. 主管跟踪辅导\n3. 定期复训巩固\n\n## 风险预案\n\n**讲师缺席：**备用讲师名单\n**学员缺席过多：**补训安排\n**设备故障：**备用设备\n**场地变更：**备选场地\n\n## 项目总结\n\n**总结报告：**\n- 参训情况统计\n- 培训效果评估\n- 学员反馈汇总\n- 改进建议\n- 后续计划\n\n**成果交付：**\n- 培训总结报告\n- 学员成绩单\n- 结业证书\n- 培训照片/视频\n- 课程资料电子版",
+  "variables_schema": [
+    {
+      "name": "trainingTopic",
+      "label": "培训主题",
+      "type": "string",
+      "required": true,
+      "default": "记叙文写作"
+    },
+    {
+      "name": "targetGroup",
+      "label": "培训对象",
+      "type": "string",
+      "required": false,
+      "placeholder": "如：销售团队、新员工等"
+    },
+    {
+      "name": "participantCount",
+      "label": "培训人数",
+      "type": "number",
+      "required": false,
+      "default": 30
+    },
+    {
+      "name": "duration",
+      "label": "培训天数",
+      "type": "number",
+      "required": false,
+      "default": 3
+    },
+    {
+      "name": "trainingType",
+      "label": "培训类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "新员工入职培训",
+          "label": "新员工入职培训"
+        },
+        {
+          "value": "专业技能提升",
+          "label": "专业技能提升"
+        },
+        {
+          "value": "管理能力培养",
+          "label": "管理能力培养"
+        },
+        {
+          "value": "团队建设",
+          "label": "团队建设"
+        }
+      ]
+    },
+    {
+      "name": "trainingFormat",
+      "label": "培训形式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "线下集中培训",
+          "label": "线下集中培训"
+        },
+        {
+          "value": "线上培训",
+          "label": "线上培训"
+        },
+        {
+          "value": "混合式培训",
+          "label": "混合式培训"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "培训-{{trainingTopic}}",
+    "files": [
+      {
+        "path": "培训方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "课程资料/",
+        "type": "folder"
+      },
+      {
+        "path": "考核材料/",
+        "type": "folder"
+      },
+      {
+        "path": "预算表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

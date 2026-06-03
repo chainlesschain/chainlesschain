@@ -1,0 +1,29 @@
+{
+  "id": "tpl_productivity_pomodoro_002",
+  "name": "pomodoro_technique_plan",
+  "display_name": "番茄工作法计划",
+  "description": "使用番茄工作法提高专注力和工作效率",
+  "icon": "🍅",
+  "category": "productivity",
+  "subcategory": "focus",
+  "tags": ["番茄工作法", "专注力", "时间管理"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定番茄工作法计划：\n\n**基本设置：**\n- 番茄时长：{{pomodoroLength}}分钟\n- 短休息：{{shortBreak}}分钟\n- 长休息：{{longBreak}}分钟\n- 每日目标番茄数：{{dailyGoal}}个\n\n# 番茄工作法实施计划\n\n## 基本规则\n\n1. 选择任务\n2. 设定{{pomodoroLength}}分钟计时器\n3. 专注工作，不被打断\n4. 计时器响起，休息{{shortBreak}}分钟\n5. 每4个番茄，长休息{{longBreak}}分钟\n\n## 今日任务清单\n\n| 任务 | 预估番茄数 | 实际番茄数 | 完成状态 |\n|------|------------|------------|----------|\n| {{task1}} | {{estimate1}} | | ⬜ |\n| {{task2}} | {{estimate2}} | | ⬜ |\n| {{task3}} | {{estimate3}} | | ⬜ |\n\n## 防打扰策略\n\n**内部打扰：**\n- 突然想到的事→记录在待办清单\n- 想查手机→告诉自己休息时再看\n\n**外部打扰：**\n- 同事打断→礼貌告知稍后回复\n- 电话/消息→静音模式\n\n## 效率追踪\n\n**每日记录：**\n- 完成番茄数：{{dailyCount}}\n- 达成率：{{achievementRate}}%\n- 打断次数：{{interruptionCount}}\n\n**每周统计：**\n- 总番茄数：{{weeklyTotal}}\n- 最高效时段：{{peakTime}}\n- 改进建议：{{improvement}}",
+  "variables_schema": [
+    {"name": "pomodoroLength", "label": "番茄时长（分钟）", "type": "number", "required": false, "default": 25},
+    {"name": "shortBreak", "label": "短休息（分钟）", "type": "number", "required": false, "default": 5},
+    {"name": "longBreak", "label": "长休息（分钟）", "type": "number", "required": false, "default": 15},
+    {"name": "dailyGoal", "label": "每日目标番茄数", "type": "number", "required": false, "default": 8}
+  ],
+  "file_structure": {
+    "root": "番茄工作法",
+    "files": [
+      {"path": "每日计划.md", "type": "markdown"},
+      {"path": "效率统计.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

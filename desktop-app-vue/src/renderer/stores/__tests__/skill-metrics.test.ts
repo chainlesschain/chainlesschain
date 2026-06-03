@@ -21,7 +21,10 @@ import { useSkillMetricsStore } from "../skill-metrics";
 
 const mockInvoke = vi.fn();
 
-function metric(skillId: string, overrides: Record<string, any> = {}): any {
+function metric(
+  skillId: string,
+  overrides: Record<string, any> = {},
+): any {
   return {
     skillId,
     totalExecutions: 0,
@@ -83,7 +86,11 @@ describe("useSkillMetricsStore", () => {
         "a",
       ]);
       // original order preserved
-      expect(store.skillMetrics.map((m) => m.skillId)).toEqual(["a", "b", "c"]);
+      expect(store.skillMetrics.map((m) => m.skillId)).toEqual([
+        "a",
+        "b",
+        "c",
+      ]);
     });
 
     it("sortedByUsage + sortedByCost sort by their respective fields", () => {
@@ -98,7 +105,11 @@ describe("useSkillMetricsStore", () => {
         "c",
         "a",
       ]);
-      expect(store.sortedByCost.map((m) => m.skillId)).toEqual(["c", "a", "b"]);
+      expect(store.sortedByCost.map((m) => m.skillId)).toEqual([
+        "c",
+        "a",
+        "b",
+      ]);
     });
   });
 

@@ -1,0 +1,93 @@
+version: '3.8'
+
+# ChainlessChain 生产环境 Docker Compose 配置
+# 用于桌面应用的后端服务
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: chainlesschain-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: chainlesschain
+      POSTGRES_USER: chainlesschain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chainlesschain2024}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chainlesschain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: chainlesschain-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    container_name: chainlesschain-qdrant
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama LLM 服务
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chainlesschain-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    # GPU 支持 (需要 NVIDIA Docker Runtime)
+    # 取消下面的注释以启用 GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  postgres-data:
+    name: chainlesschain_postgres_data
+  redis-data:
+    name: chainlesschain_redis_data
+  qdrant-data:
+    name: chainlesschain_qdrant_data
+  ollama-data:
+    name: chainlesschain_ollama_data
+
+networks:
+  default:
+    name: chainlesschain-network
+    driver: bridge

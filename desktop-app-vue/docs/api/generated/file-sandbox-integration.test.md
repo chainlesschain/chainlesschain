@@ -1,0 +1,28 @@
+# file-sandbox-integration.test
+
+**Source**: `src/main/cowork/__tests__/integration/file-sandbox-integration.test.js`
+
+---
+
+## import
+
+```javascript
+import
+```
+
+* File Sandbox Integration Tests
+ *
+ * Tests the complete file access permission flow including:
+ * - Permission requests and grants
+ * - Sensitive path detection
+ * - Audit logging
+ * - Team-based access control
+ * - Real-world file operation scenarios
+ *
+ * @category Integration Tests
+ * @module FileSandboxIntegration
+ *
+ * NOTE: Skipped - source files moved to ai-engine/cowork
+
+---
+

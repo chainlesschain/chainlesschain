@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_apidocs_001",
+  "name": "api_docs_generation",
+  "display_name": "API 文档自动生成",
+  "description": "演示 API 文档生成技能，自动分析代码接口并生成标准 API 文档",
+  "icon": "📖",
+  "category": "ai-workflow",
+  "subcategory": "development",
+  "tags": ["api", "docs", "documentation", "openapi", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我自动生成 API 文档：\n\n**项目路径：** {{projectPath}}\n**文档格式：** {{docFormat}}\n**API 框架：** {{framework}}\n\n**生成步骤：**\n\n### 步骤1：扫描 API 端点\n```\n/api-docs-generator scan {{projectPath}} --framework {{framework}}\n```\n\n### 步骤2：生成文档\n```\n/api-docs-generator generate {{projectPath}} --format {{docFormat}}\n```\n\n### 步骤3：代码审查\n```\n/code-review {{projectPath}}\n```\n\n### 步骤4：保存结果\n```\n/memory-management save \"API文档生成: {{projectPath}}\"\n```\n\n**使用的技能：** api-docs-generator, code-review, memory-management",
+  "variables_schema": [
+    {
+      "name": "projectPath",
+      "label": "项目路径",
+      "type": "string",
+      "required": true,
+      "placeholder": "src/api/ 或 backend/routes/"
+    },
+    {
+      "name": "docFormat",
+      "label": "文档格式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "openapi", "label": "OpenAPI/Swagger" },
+        { "value": "markdown", "label": "Markdown" },
+        { "value": "html", "label": "HTML" }
+      ]
+    },
+    {
+      "name": "framework",
+      "label": "API 框架",
+      "type": "select",
+      "required": false,
+      "default": "auto",
+      "options": [
+        { "value": "auto", "label": "自动检测" },
+        { "value": "express", "label": "Express.js" },
+        { "value": "fastapi", "label": "FastAPI" },
+        { "value": "springboot", "label": "Spring Boot" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["api-docs-generator", "code-review", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

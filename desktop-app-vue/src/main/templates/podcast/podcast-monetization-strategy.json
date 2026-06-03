@@ -1,0 +1,162 @@
+{
+  "id": "tpl_podcast_monetization_001",
+  "name": "podcast_monetization_strategy",
+  "display_name": "播客变现策略方案",
+  "description": "为播客主生成全面的变现策略方案，包含多种变现模式、执行计划和收入预测",
+  "icon": "💰",
+  "cover_image": "/templates/covers/podcast-monetization.png",
+  "category": "podcast",
+  "subcategory": "business",
+  "tags": [
+    "播客",
+    "变现",
+    "商业模式",
+    "收入"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我为播客《{{podcastName}}》制定一份全面的变现策略方案，要求：\n\n**播客基本信息：**\n- 播客名称：{{podcastName}}\n- 节目定位：{{niche}}\n- 目标听众：{{targetAudience}}\n- 当前规模：{{currentScale}}\n- 更新频率：{{updateFrequency}}\n- 运营时长：{{operationMonths}}个月\n\n**第一部分：现状分析**\n\n1. **数据盘点**\n   - 总集数和总播放量\n   - 平均每集播放量\n   - 听众增长趋势\n   - 核心听众画像（年龄、职业、地域）\n   - 听众活跃度（评论、分享、互动率）\n\n2. **优势分析**\n   - 内容差异化优势\n   - 主播个人IP价值\n   - 听众忠诚度和粘性\n   - 现有资源和合作关系\n\n3. **变现基础评估**\n   - 是否达到平台变现门槛\n   - 听众付费意愿评估\n   - 商业价值潜力分析\n\n**第二部分：变现模式设计**\n\n根据播客规模{{currentScale}}，设计以下变现路径：\n\n**1. 广告/赞助变现**\n\n{{#if currentScale == \"小型（<1000听众）\"}}\n- **初级策略：**\n  - 联系相关垂直领域的小品牌\n  - 使用播客广告联盟平台（如播客星球、荔枝FM）\n  - 尝试affiliate marketing（分成模式）\n  - 参考价格：100-500元/期\n\n{{else if currentScale == \"中型（1000-10000听众）\"}}\n- **成长策略：**\n  - 主动对接中等品牌的市场部\n  - 提供赞助套餐（口播+shownotes+社交媒体）\n  - 建立媒体kit展示数据和案例\n  - 参考价格：500-3000元/期\n  - 年度赞助合作：10000-50000元\n\n{{else if currentScale == \"大型（>10000听众）\"}}\n- **成熟策略：**\n  - 与知名品牌建立长期合作\n  - 定制化内容营销方案\n  - 冠名赞助和独家合作\n  - 参考价格：3000-10000元/期\n  - 年度合作：50000-200000元+\n{{/if}}\n\n**执行步骤：**\n1. 制作精美的播客媒体资料包\n2. 列出50个潜在赞助商清单\n3. 设计3个价位的赞助套餐\n4. 每周发送5封合作邮件\n5. 建立赞助商管理系统\n\n**2. 会员订阅变现**\n\n- **平台选择：**\n  - 小宇宙会员计划\n  - Patreon / 爱发电\n  - 微信公众号付费订阅\n  - 自建会员平台（播客通）\n\n- **会员权益设计：**\n  - 基础会员（9.9-19.9元/月）：\n    * 无广告版本\n    * 提前收听新集\n    * 独家幕后花絮\n  \n  - 高级会员（29.9-49.9元/月）：\n    * 基础权益全包含\n    * 每月专属会员节目\n    * 主播问答互动\n    * 会员专属社群\n  \n  - VIP会员（99-199元/月）：\n    * 全部权益\n    * 一对一咨询机会（每季度1次）\n    * 线下活动优先席位\n    * 节目内容共创权\n\n- **会员转化策略：**\n  - 设定目标：前3个月转化率1-3%\n  - 推出限时优惠（首月半价）\n  - 展示会员专属内容预览\n  - 分享会员成功案例和好评\n\n**预期收入：**\n- 假设听众{{currentScale}}，转化率2%\n- 平均会员费20元/月\n- 月收入预估：[自动计算]\n\n**3. 知识付费变现**\n\n- **播客延伸课程：**\n  - 将播客内容系统化为付费课程\n  - 价格区间：99-999元\n  - 平台：知识星球、千聊、荔枝微课\n  - 课程形式：音频课程+配套文档+社群答疑\n\n- **主题训练营：**\n  - 基于播客话题的深度训练营\n  - 价格：1999-4999元\n  - 周期：21天/30天\n  - 包含：每日任务+社群打卡+作业点评\n\n- **咨询服务：**\n  - 一对一咨询：500-2000元/小时\n  - 团队工作坊：5000-20000元/场\n\n**4. 内容授权变现**\n\n- 播客内容转文字出版（书籍/电子书）\n- 音频内容授权给有声书平台\n- 播客IP授权（周边、联名产品）\n- 内容二次创作（视频、图文）授权\n\n**5. 线下活动变现**\n\n- **听众见面会：**\n  - 门票：99-299元/人\n  - 规模：50-200人\n  - 频率：每季度1次\n\n- **主题沙龙/工作坊：**\n  - 价格：299-999元/人\n  - 小班教学：20-30人\n\n- **年度大会：**\n  - VIP票：999-2999元\n  - 普通票：299-599元\n  - 规模：200-1000人\n\n**6. 联盟营销/导购变现**\n\n- 推广相关工具和服务（获取佣金）\n- 建立播客精选商店（淘宝客、京东联盟）\n- 书单推荐（当当、京东图书返佣）\n\n**第三部分：收入预测**\n\n**短期目标（1-3个月）：**\n- 主要收入来源：{{primaryRevenue}}\n- 预期月收入：[根据规模计算]\n- 成本投入：[设备、平台、推广]\n- 净利润预估：\n\n**中期目标（3-12个月）：**\n- 多元化收入组合\n- 预期月收入：\n- 收入来源占比：\n  * 广告/赞助：40-50%\n  * 会员订阅：30-40%\n  * 知识付费：10-20%\n  * 其他：5-10%\n\n**长期目标（1-3年）：**\n- 建立完整商业生态\n- 年收入目标：\n- 团队规模扩展计划\n- IP价值提升路径\n\n**第四部分：执行计划**\n\n**月度行动清单：**\n\n第1个月：\n- [ ] 完成媒体资料包制作\n- [ ] 设计会员权益体系\n- [ ] 联系10个潜在赞助商\n- [ ] 策划首个会员专属内容\n\n第2-3个月：\n- [ ] 至少签约1个赞助商\n- [ ] 会员数达到[目标数]\n- [ ] 筹备首次线下活动\n- [ ] 开发付费课程大纲\n\n第4-6个月：\n- [ ] 稳定赞助收入\n- [ ] 会员续费率达到70%+\n- [ ] 推出付费课程\n- [ ] 举办首次线下见面会\n\n**第五部分：风险防范**\n\n- 避免过度商业化影响内容质量\n- 广告/赞助与播客价值观匹配\n- 会员权益持续更新，避免流失\n- 多元化收入，降低单一依赖\n- 合规运营，注意税务和法律问题\n\n**第六部分：关键指标监控**\n\n每月追踪：\n- 播放量和增长率\n- 会员转化率和续费率\n- 广告/赞助收入\n- 课程销售额\n- 总收入和利润率\n- ROI（投资回报率）\n\n**输出格式：**\n- Word文档，包含详细的执行计划\n- Excel表格，收入预测和财务模型\n- PPT演示，用于对外合作洽谈",
+  "variables_schema": [
+    {
+      "name": "podcastName",
+      "label": "播客名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "你的播客名称"
+    },
+    {
+      "name": "niche",
+      "label": "节目定位",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：科技评论、个人成长、商业财经"
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标听众",
+      "type": "string",
+      "required": false,
+      "default": "25-35岁职场人",
+      "placeholder": "年龄、职业、兴趣特征"
+    },
+    {
+      "name": "currentScale",
+      "label": "当前规模",
+      "type": "select",
+      "required": false,
+      "default": "中型（1000-10000听众）",
+      "options": [
+        {
+          "value": "小型（<1000听众）",
+          "label": "小型（少于1000听众）"
+        },
+        {
+          "value": "中型（1000-10000听众）",
+          "label": "中型（1000-10000听众）"
+        },
+        {
+          "value": "大型（>10000听众）",
+          "label": "大型（超过10000听众）"
+        }
+      ]
+    },
+    {
+      "name": "updateFrequency",
+      "label": "更新频率",
+      "type": "select",
+      "required": false,
+      "default": "每周1期",
+      "options": [
+        {
+          "value": "每天1期",
+          "label": "日更"
+        },
+        {
+          "value": "每周2-3期",
+          "label": "周更2-3期"
+        },
+        {
+          "value": "每周1期",
+          "label": "周更"
+        },
+        {
+          "value": "每两周1期",
+          "label": "双周更"
+        }
+      ]
+    },
+    {
+      "name": "operationMonths",
+      "label": "运营时长（月）",
+      "type": "number",
+      "required": false,
+      "default": 6,
+      "min": 1,
+      "max": 120
+    },
+    {
+      "name": "primaryRevenue",
+      "label": "首选变现方式",
+      "type": "select",
+      "required": false,
+      "default": "广告/赞助",
+      "options": [
+        {
+          "value": "广告/赞助",
+          "label": "广告/赞助（适合有一定流量）"
+        },
+        {
+          "value": "会员订阅",
+          "label": "会员订阅（适合垂直领域）"
+        },
+        {
+          "value": "知识付费",
+          "label": "知识付费（适合专业内容）"
+        },
+        {
+          "value": "多元组合",
+          "label": "多元组合（推荐）"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{podcastName}}-变现策略方案",
+    "files": [
+      {
+        "path": "变现策略完整方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "收入预测模型.xlsx",
+        "type": "excel",
+        "content": "包含：月度收入预测、成本分析、利润率计算"
+      },
+      {
+        "path": "媒体资料包模板.md",
+        "type": "markdown",
+        "content": "# {{podcastName}} 媒体资料包\n\n## 播客简介\n- 名称：{{podcastName}}\n- 定位：{{niche}}\n- 听众：{{targetAudience}}\n- 更新：{{updateFrequency}}\n\n## 数据表现\n- 总播放量：\n- 平均播放量：\n- 听众画像：\n\n## 合作方式\n- 赞助套餐\n- 合作案例\n- 联系方式"
+      },
+      {
+        "path": "执行计划时间表.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_business_planning",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_file_writer",
+    "tool_word_generator",
+    "tool_excel_generator"
+  ],
+  "execution_engine": "document"
+}

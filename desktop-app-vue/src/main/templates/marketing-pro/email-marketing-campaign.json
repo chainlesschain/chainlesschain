@@ -1,0 +1,61 @@
+{
+  "id": "tpl_marketing_email_007",
+  "name": "email_marketing_campaign",
+  "display_name": "邮件营销活动",
+  "description": "EDM邮件营销活动策划，包含内容设计、用户分群和效果分析",
+  "icon": "📧",
+  "category": "marketing-pro",
+  "subcategory": "email",
+  "tags": [
+    "邮件营销",
+    "EDM",
+    "营销自动化",
+    "用户增长"
+  ],
+  "project_type": "document",
+  "prompt_template": "邮件营销活动策划\n\n**活动信息：**\n- 活动名称：{{campaignName}}\n- 活动目标：{{campaignGoal}}\n- 目标受众：{{targetAudience}}\n- 发送时间：{{sendTime}}\n\n# 邮件营销完整方案\n\n## 1. 活动策略\n\n### 营销目标\n- 主要目标：{{primaryGoal}}\n- KPI指标：{{kpiMetrics}}\n- 预期ROI：{{expectedROI}}%\n\n### 目标受众分析\n- 用户画像：{{userPersona}}\n- 细分标签：{{segmentTags}}\n- 行为特征：{{behaviorPattern}}\n\n## 2. 邮件设计\n\n### 标题优化\n- 主标题：{{emailSubject}}\n- A/B测试方案：\n  - 版本A：强调利益点\n  - 版本B：制造紧迫感\n  - 版本C：个性化称呼\n\n### 内容结构\n1. **开场白**\n   - 个性化问候：Hi {{firstName}}\n   - 吸引注意力的第一句话\n\n2. **价值主张**\n   - 产品/服务亮点\n   - 用户痛点解决方案\n   - 社会证明（案例/数据）\n\n3. **行动召唤（CTA）**\n   - 主CTA：{{primaryCTA}}\n   - 次要CTA：{{secondaryCTA}}\n   - 按钮文案：{{ctaButtonText}}\n\n4. **视觉设计**\n   - 配色方案：{{colorScheme}}\n   - 图片素材：{{imageAssets}}\n   - 响应式设计要求\n\n## 3. 用户分群策略\n\n### 分群维度\n- 新用户 vs 老用户\n- 活跃度分层\n- 购买历史\n- 兴趣偏好\n\n### 个性化内容\n{{#eq userSegment \"high_value\"}}\n- 专属VIP优惠\n- 优先体验新品\n{{/eq}}\n{{#eq userSegment \"inactive\"}}\n- 唤醒激励\n- 重新介绍产品价值\n{{/eq}}\n\n## 4. 发送策略\n\n### 时间安排\n- 发送日期：{{sendDate}}\n- 最佳发送时间：{{optimalTime}}\n- 时区考虑：{{timezone}}\n\n### 频率控制\n- 发送频率：{{sendFrequency}}\n- 疲劳度监控\n- 退订率阈值：<2%\n\n## 5. 技术实施\n\n### 邮件服务商\n- ESP平台：{{espPlatform}}\n- SMTP配置\n- 域名认证（SPF/DKIM/DMARC）\n\n### 跟踪代码\n- 打开率监测：UTM参数\n- 点击率追踪：链接标记\n- 转化追踪：{{conversionPixel}}\n\n## 6. 效果分析\n\n### 核心指标\n| 指标 | 目标值 | 实际值 |\n|------|--------|--------|\n| 送达率 | >95% | |\n| 打开率 | {{targetOpenRate}}% | |\n| 点击率 | {{targetClickRate}}% | |\n| 转化率 | {{targetConversionRate}}% | |\n| 退订率 | <2% | |\n\n### A/B测试结果\n- 测试变量：{{testVariable}}\n- 样本量：{{sampleSize}}\n- 获胜方案：\n\n## 7. 优化迭代\n\n### 改进方向\n- [ ] 标题优化\n- [ ] CTA位置调整\n- [ ] 内容长度测试\n- [ ] 发送时间优化\n- [ ] 受众细分调整\n\n### 下期改进计划\n基于本次数据分析，下期优化重点：\n1. {{improvement1}}\n2. {{improvement2}}\n3. {{improvement3}}",
+  "variables_schema": [
+    {
+      "name": "campaignName",
+      "label": "活动名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "campaignGoal",
+      "label": "活动目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "产品促销", "label": "产品促销"},
+        {"value": "用户激活", "label": "用户激活"},
+        {"value": "内容推广", "label": "内容推广"},
+        {"value": "活动邀请", "label": "活动邀请"}
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "emailSubject",
+      "label": "邮件标题",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "邮件营销-{{campaignName}}",
+    "files": [
+      {"path": "活动方案.md", "type": "markdown"},
+      {"path": "邮件内容/", "type": "folder"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

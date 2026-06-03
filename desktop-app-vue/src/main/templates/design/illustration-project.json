@@ -1,0 +1,70 @@
+{
+  "id": "tpl_design_illustration_007",
+  "name": "illustration_project",
+  "display_name": "插画设计项目",
+  "description": "插画创作项目文档，包含风格定位、角色设计、色彩方案和绘制流程",
+  "icon": "🎨",
+  "category": "design",
+  "subcategory": "visual-design",
+  "tags": ["插画", "角色设计", "视觉风格", "创意设计"],
+  "project_type": "document",
+  "prompt_template": "插画设计项目文档\n\n**项目名称：** {{projectName}}\n**设计师：** {{designer}}\n**客户/用途：** {{client}}\n**交付日期：** {{deadline}}\n\n# {{projectName}} 插画设计方案\n\n## 1. 项目概述\n\n**项目目标：** {{projectGoal}}\n**应用场景：** {{applicationScene}}\n**目标受众：** {{targetAudience}}\n**交付物：** {{deliverables}}\n\n---\n\n## 2. 风格定位\n\n### 2.1 插画风格\n\n**主风格：** {{illustrationStyle}}\n\n**风格特点：**\n{{#eq illustrationStyle \"扁平插画\"}}\n- 简洁的几何形状\n- 鲜明的色块对比\n- 无阴影或轻微阴影\n- 现代感强，适合品牌传播\n{{/eq}}\n\n{{#eq illustrationStyle \"手绘风格\"}}\n- 手绘质感的线条\n- 自然的笔触肌理\n- 温暖亲和的视觉感受\n- 适合儿童、生活类主题\n{{/eq}}\n\n{{#eq illustrationStyle \"2.5D等距\"}}\n- 等距视角（isometric）\n- 立体空间感\n- 适合科技、商业场景\n- 信息传达清晰\n{{/eq}}\n\n{{#eq illustrationStyle \"写实风格\"}}\n- 细腻的光影处理\n- 真实的材质表现\n- 适合高端品牌、艺术项目\n- 制作周期较长\n{{/eq}}\n\n{{#eq illustrationStyle \"赛博朋克\"}}\n- 高饱和度霓虹色\n- 科技感元素\n- 未来主义氛围\n- 适合游戏、科幻题材\n{{/eq}}\n\n{{#eq illustrationStyle \"水彩风格\"}}\n- 柔和的色彩渐变\n- 水痕肌理效果\n- 艺术感、文艺气质\n- 适合文化、教育项目\n{{/eq}}\n\n### 2.2 参考灵感\n\n**参考艺术家/作品：**\n1. {{reference1}}\n2. {{reference2}}\n3. {{reference3}}\n\n**Moodboard关键词：**\n{{moodboardKeywords}}\n\n---\n\n## 3. 色彩方案\n\n### 3.1 主色调\n\n**主色（Primary Color）：** {{primaryColor}}\n- HEX: {{primaryHex}}\n- RGB: {{primaryRGB}}\n- 用途：{{primaryUsage}}\n\n**辅色（Secondary Color）：** {{secondaryColor}}\n- HEX: {{secondaryHex}}\n- RGB: {{secondaryRGB}}\n- 用途：{{secondaryUsage}}\n\n### 3.2 配色方案\n\n**配色类型：** {{colorScheme}}\n\n{{#eq colorScheme \"类比色\"}}\n相邻色相搭配，和谐统一\n{{/eq}}\n\n{{#eq colorScheme \"互补色\"}}\n对比强烈，视觉冲击力强\n{{/eq}}\n\n{{#eq colorScheme \"三色组\"}}\n色环等距三色，平衡活泼\n{{/eq}}\n\n{{#eq colorScheme \"单色调\"}}\n同一色相的明暗变化，简洁统一\n{{/eq}}\n\n**完整色板：**\n\n| 颜色名称 | HEX | RGB | 用途 |\n|----------|-----|-----|------|\n| {{color1Name}} | {{color1Hex}} | {{color1RGB}} | {{color1Usage}} |\n| {{color2Name}} | {{color2Hex}} | {{color2RGB}} | {{color2Usage}} |\n| {{color3Name}} | {{color3Hex}} | {{color3RGB}} | {{color3Usage}} |\n| {{color4Name}} | {{color4Hex}} | {{color4RGB}} | {{color4Usage}} |\n| {{color5Name}} | {{color5Hex}} | {{color5RGB}} | {{color5Usage}} |\n\n### 3.3 色彩情绪\n\n**整体情绪：** {{colorMood}}\n\n**色彩心理：**\n- {{colorPsychology}}\n\n---\n\n## 4. 角色/元素设计\n\n### 4.1 主要角色\n\n**角色1：{{character1Name}}**\n\n**角色定位：** {{character1Role}}\n**性格特点：** {{character1Personality}}\n**年龄/性别：** {{character1Age}} / {{character1Gender}}\n\n**视觉特征：**\n- 外形：{{character1Appearance}}\n- 服装：{{character1Clothing}}\n- 配色：{{character1Colors}}\n- 标志性元素：{{character1Signature}}\n\n**表情设计：**\n- 😊 开心：{{character1Happy}}\n- 😢 悲伤：{{character1Sad}}\n- 😮 惊讶：{{character1Surprised}}\n- 😠 生气：{{character1Angry}}\n\n**动作设计：**\n1. {{character1Action1}}\n2. {{character1Action2}}\n3. {{character1Action3}}\n\n---\n\n**角色2：{{character2Name}}**\n\n**角色定位：** {{character2Role}}\n**性格特点：** {{character2Personality}}\n\n**视觉特征：**\n- 外形：{{character2Appearance}}\n- 服装：{{character2Clothing}}\n- 配色：{{character2Colors}}\n\n### 4.2 场景元素\n\n**主场景：** {{mainScene}}\n\n**场景元素清单：**\n1. {{sceneElement1}} - {{element1Description}}\n2. {{sceneElement2}} - {{element2Description}}\n3. {{sceneElement3}} - {{element3Description}}\n4. {{sceneElement4}} - {{element4Description}}\n\n**背景风格：** {{backgroundStyle}}\n\n---\n\n## 5. 构图设计\n\n### 5.1 构图原则\n\n**主构图方式：** {{compositionType}}\n\n{{#eq compositionType \"三分法\"}}\n- 画面分为九宫格\n- 主体放在交叉点\n- 经典稳定构图\n{{/eq}}\n\n{{#eq compositionType \"对角线\"}}\n- 动态视觉引导\n- 增强空间纵深感\n- 适合动作场景\n{{/eq}}\n\n{{#eq compositionType \"居中对称\"}}\n- 庄重稳定\n- 适合展示主体\n- 强调平衡感\n{{/eq}}\n\n{{#eq compositionType \"框架构图\"}}\n- 用前景框住主体\n- 增强代入感\n- 引导视线聚焦\n{{/eq}}\n\n### 5.2 视觉层次\n\n**前景：** {{foreground}}\n**中景：** {{middleground}}\n**背景：** {{background}}\n\n**视觉焦点：** {{focalPoint}}\n**引导线：** {{leadingLines}}\n\n---\n\n## 6. 线条与肌理\n\n### 6.1 线条风格\n\n**线条类型：** {{lineStyle}}\n\n{{#eq lineStyle \"粗细变化\"}}\n- 有生命力的手绘感\n- 强调轮廓的表现力\n{{/eq}}\n\n{{#eq lineStyle \"均匀线条\"}}\n- 现代简洁\n- 适合扁平风格\n{{/eq}}\n\n{{#eq lineStyle \"无线条\"}}\n- 纯色块表现\n- 极简风格\n{{/eq}}\n\n**线条粗细：** {{lineWeight}}px\n**线条颜色：** {{lineColor}}\n\n### 6.2 肌理效果\n\n**是否添加肌理：** {{addTexture}}\n\n{{#if addTexture}}\n**肌理类型：**\n- {{texture1}}\n- {{texture2}}\n- {{texture3}}\n\n**肌理不透明度：** {{textureOpacity}}%\n{{/if}}\n\n---\n\n## 7. 光影处理\n\n**光源方向：** {{lightDirection}}\n**光影风格：** {{shadowStyle}}\n\n{{#eq shadowStyle \"长投影\"}}\n- 扁平风格常用\n- 增强空间感\n- 投影长度：{{shadowLength}}\n{{/eq}}\n\n{{#eq shadowStyle \"柔和阴影\"}}\n- 真实自然\n- 模糊半径：{{shadowBlur}}\n- 不透明度：{{shadowOpacity}}%\n{{/eq}}\n\n{{#eq shadowStyle \"无阴影\"}}\n- 极简风格\n- 纯色块表现\n{{/eq}}\n\n**高光处理：** {{highlightStyle}}\n\n---\n\n## 8. 绘制流程\n\n### 8.1 创作步骤\n\n**Step 1：草图阶段（{{sketchDuration}}）**\n- [ ] 快速草图 (thumbnail sketches)\n- [ ] 确定构图和主体位置\n- [ ] 调整比例和动态\n\n**Step 2：线稿阶段（{{lineartDuration}}）**\n- [ ] 绘制精细线稿\n- [ ] 确定细节元素\n- [ ] 检查透视和比例\n\n**Step 3：配色阶段（{{coloringDuration}}）**\n- [ ] 铺设基础色块\n- [ ] 添加渐变和过渡\n- [ ] 调整色彩平衡\n\n**Step 4：细化阶段（{{detailingDuration}}）**\n- [ ] 添加光影效果\n- [ ] 绘制细节和肌理\n- [ ] 完善角色表情\n\n**Step 5：后期调整（{{postProcessingDuration}}）**\n- [ ] 整体色调调整\n- [ ] 添加特效（光晕、粒子等）\n- [ ] 锐化和输出\n\n### 8.2 工具选择\n\n**主要工具：** {{primaryTool}}\n\n{{#eq primaryTool \"Procreate\"}}\n- iPad专业绘画工具\n- 笔刷：{{procreate Brushes}}\n{{/eq}}\n\n{{#eq primaryTool \"Adobe Illustrator\"}}\n- 矢量插画工具\n- 适合扁平风格、Logo\n{{/eq}}\n\n{{#eq primaryTool \"Photoshop\"}}\n- 位图绘画工具\n- 适合写实风格、概念设计\n{{/eq}}\n\n{{#eq primaryTool \"Clip Studio Paint\"}}\n- 漫画插画专业工具\n- 强大的笔刷引擎\n{{/eq}}\n\n**辅助工具：** {{secondaryTools}}\n\n---\n\n## 9. 系列规范\n\n{{#if isSeries}}\n### 9.1 系列一致性\n\n**系列主题：** {{seriesTheme}}\n**系列数量：** {{seriesCount}}张\n\n**一致性元素：**\n- [ ] 统一色板\n- [ ] 统一角色设计\n- [ ] 统一构图方式\n- [ ] 统一画幅比例：{{aspectRatio}}\n\n**变化元素：**\n- {{variationElement1}}\n- {{variationElement2}}\n\n### 9.2 系列清单\n\n| 序号 | 标题 | 主题 | 状态 |\n|------|------|------|------|\n| 1 | {{series1Title}} | {{series1Theme}} | {{series1Status}} |\n| 2 | {{series2Title}} | {{series2Theme}} | {{series2Status}} |\n| 3 | {{series3Title}} | {{series3Theme}} | {{series3Status}} |\n{{/if}}\n\n---\n\n## 10. 输出规范\n\n### 10.1 文件格式\n\n**最终交付：**\n- 格式：{{outputFormat}}\n- 尺寸：{{outputSize}}\n- 分辨率：{{dpi}} DPI\n- 色彩模式：{{colorMode}}\n\n**源文件：**\n- 分层PSD/AI文件\n- 保留可编辑性\n\n### 10.2 导出清单\n\n- [ ] 高分辨率成品图（{{finalResolution}}）\n- [ ] 低分辨率预览图（用于网络）\n- [ ] 透明背景PNG（如需要）\n- [ ] 矢量文件（如适用）\n- [ ] 源文件（分层）\n\n---\n\n## 11. 版权与授权\n\n**版权归属：** {{copyrightOwner}}\n**授权范围：** {{licenseScope}}\n**使用限制：** {{usageRestrictions}}\n\n**商业使用：** {{commercialUse}}\n\n---\n\n## 12. 修改与反馈\n\n### 12.1 修改轮次\n\n**初稿提交：** {{draft1Date}}\n- 客户反馈：{{draft1Feedback}}\n\n**二稿提交：** {{draft2Date}}\n- 客户反馈：{{draft2Feedback}}\n\n**终稿确认：** {{finalDate}}\n\n### 12.2 修改记录\n\n| 日期 | 修改内容 | 修改人 |\n|------|----------|--------|\n| {{revision1Date}} | {{revision1Content}} | {{reviser1}} |\n| {{revision2Date}} | {{revision2Content}} | {{reviser2}} |\n\n---\n\n## 13. 附录\n\n### A. 快捷键速查（Procreate）\n\n- 双指轻点：撤销\n- 三指轻点：重做\n- 双指长按：复制粘贴\n- 双指捏合：缩放画布\n\n### B. 色彩代码速查\n\n```\n主色：{{primaryHex}}\n辅色：{{secondaryHex}}\n强调色：{{accentHex}}\n背景色：{{bgHex}}\n```\n\n### C. 参考资源\n\n**插画平台：**\n- Behance\n- Dribbble\n- Pinterest\n- ArtStation\n\n**色彩工具：**\n- Adobe Color\n- Coolors.co\n- Color Hunt\n",
+  "variables_schema": [
+    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
+    {"name": "designer", "label": "设计师", "type": "string", "required": false},
+    {"name": "client", "label": "客户/用途", "type": "string", "required": false},
+    {
+      "name": "illustrationStyle",
+      "label": "插画风格",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "扁平插画", "label": "扁平插画（Flat Design）"},
+        {"value": "手绘风格", "label": "手绘风格（Hand-drawn）"},
+        {"value": "2.5D等距", "label": "2.5D等距（Isometric）"},
+        {"value": "写实风格", "label": "写实风格（Realistic）"},
+        {"value": "赛博朋克", "label": "赛博朋克（Cyberpunk）"},
+        {"value": "水彩风格", "label": "水彩风格（Watercolor）"}
+      ]
+    },
+    {
+      "name": "colorScheme",
+      "label": "配色方案",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "类比色", "label": "类比色（Analogous）"},
+        {"value": "互补色", "label": "互补色（Complementary）"},
+        {"value": "三色组", "label": "三色组（Triadic）"},
+        {"value": "单色调", "label": "单色调（Monochromatic）"}
+      ]
+    },
+    {
+      "name": "primaryTool",
+      "label": "主要绘画工具",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "Procreate", "label": "Procreate"},
+        {"value": "Adobe Illustrator", "label": "Adobe Illustrator"},
+        {"value": "Photoshop", "label": "Photoshop"},
+        {"value": "Clip Studio Paint", "label": "Clip Studio Paint"}
+      ]
+    },
+    {"name": "isSeries", "label": "是否系列插画", "type": "boolean", "required": false}
+  ],
+  "file_structure": {
+    "root": "插画设计-{{projectName}}",
+    "files": [
+      {"path": "设计文档.md", "type": "document"},
+      {"path": "草图/", "type": "folder"},
+      {"path": "线稿/", "type": "folder"},
+      {"path": "成品/", "type": "folder"},
+      {"path": "参考素材/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

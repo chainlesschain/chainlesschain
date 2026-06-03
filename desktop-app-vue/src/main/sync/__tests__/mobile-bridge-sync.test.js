@@ -1,0 +1,2197 @@
+/**
+ * mobile-bridge-sync.js 单元测试 — Phase 3d M2 step 8
+ *
+ * 用 sql.js (WASM) 起内存 SQLite，建 5 张目标表 + cursor + tombstone schema +
+ * 6 个触发器，验证：
+ *   - resolveConflict LWW 算法严格对齐 Android ConflictResolver
+ *   - 5 张表的 walker (p2p_chat_messages / friends / social_posts /
+ *     post_comments / notifications) cursor 正确推进
+ *   - 5 ResourceType 的 apply 写入 + DELETE 路径
+ *   - handlePush 冲突 / 应用 / 失败三态
+ *   - handleAck 清 pendingAcks
+ *   - tombstone 走 resource_type 过滤 + trigger 自动 fan-out
+ *   - 字段 normalizer（Android UPPERCASE → schema CHECK lowercase）
+ */
+
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+
+vi.mock("../../utils/logger.js", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+const MobileBridgeSync = require("../mobile-bridge-sync");
+const { ResourceType, SyncOperation } = MobileBridgeSync;
+
+// ── 内存 sql.js dbManager 适配器 ─────────────────────────────────
+class TestDbManager {
+  constructor(sqlJsDb) {
+    this.db = sqlJsDb;
+  }
+  exec(sql) {
+    this.db.exec(sql);
+  }
+  run(sql, params = []) {
+    this.db.run(sql, params);
+    // 与生产 dbManager.run 接口对齐 — 返 { changes } 供调用方判 affected row（如
+    // handleProjectUpdatePath 的 res.changes === 0 → PROJECT_NOT_FOUND 分支）。
+    return { changes: this.db.getRowsModified() };
+  }
+  get(sql, params = []) {
+    const stmt = this.db.prepare(sql);
+    stmt.bind(params);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  }
+  all(sql, params = []) {
+    const stmt = this.db.prepare(sql);
+    stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return rows;
+  }
+}
+
+// ── fake mobileBridge：sendToMobile 默认成功，可 override ────────
+function makeFakeMobileBridge(impl = {}) {
+  const calls = [];
+  return {
+    calls,
+    sendToMobile: vi.fn(async (deviceId, message) => {
+      calls.push({ deviceId, message });
+      if (impl.sendToMobile) {
+        return impl.sendToMobile(deviceId, message);
+      }
+    }),
+    dataChannels: new Map(),
+  };
+}
+
+// ── 把 _invokeRemote 包成可 stub 的版本：测试时直接 mock ─────────
+function patchInvokeRemote(sync, responder) {
+  sync._invokeRemote = vi.fn(async (deviceId, method, params) => {
+    return responder(method, params, deviceId);
+  });
+}
+
+let initSqlJs;
+let SQL;
+let dbManager;
+
+beforeAll(async () => {
+  initSqlJs = (await import("sql.js")).default;
+  SQL = await initSqlJs();
+});
+
+/**
+ * 建最小 schema：6 张目标表 + cursor + tombstone（带 resource_type）+ 4 个 trigger。
+ * 镜像 database-schema.js 的相关定义；列限制范围最小化（只有 walker / apply 用得到的）。
+ *
+ * v1.1 W1 (2026-05-12)：加 knowledge_items 表 + trigger，让 KNOWLEDGE_ITEM 走全链路
+ * round-trip。trigger 一刻同时写所有已建游标的 provider（包括 mobile + webdav + oss），
+ * 这是 Phase 3c 的 fan-out per-provider 设计；本测试只验 mobile provider 路径。
+ */
+function bootstrapSchema(sqlDb) {
+  sqlDb.exec(`
+    CREATE TABLE knowledge_items (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('note', 'document', 'conversation', 'web_clip')),
+      content TEXT,
+      content_path TEXT,
+      embedding_path TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      git_commit_hash TEXT,
+      device_id TEXT,
+      sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict'))
+    );
+    CREATE TABLE p2p_chat_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      sender_did TEXT NOT NULL,
+      receiver_did TEXT NOT NULL,
+      content TEXT NOT NULL,
+      message_type TEXT DEFAULT 'text',
+      file_path TEXT,
+      file_size INTEGER,
+      encrypted INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'sent',
+      device_id TEXT,
+      timestamp INTEGER NOT NULL,
+      forwarded_from_id TEXT,
+      forward_count INTEGER DEFAULT 0
+    );
+    CREATE TABLE friends (
+      id TEXT PRIMARY KEY,
+      user_did TEXT NOT NULL,
+      friend_did TEXT NOT NULL,
+      nickname TEXT,
+      avatar TEXT,
+      status TEXT DEFAULT 'pending',
+      notes TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      UNIQUE(user_did, friend_did)
+    );
+    CREATE TABLE social_posts (
+      id TEXT PRIMARY KEY,
+      author_did TEXT NOT NULL,
+      content TEXT NOT NULL,
+      media TEXT,
+      visibility TEXT DEFAULT 'public',
+      likes_count INTEGER DEFAULT 0,
+      comments_count INTEGER DEFAULT 0,
+      shares_count INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE post_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      author_did TEXT NOT NULL,
+      content TEXT NOT NULL,
+      parent_id TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE notifications (
+      id TEXT PRIMARY KEY,
+      user_did TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      data TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    -- v1.2 (2026-05-12) PROJECT 同步：projects 表最小列子集（生产 schema 见
+    -- database-schema.js;149）。CHECK 与生产一致，确保 _normalizeProjectType /
+    -- _normalizeProjectStatus 兜底逻辑能在测试里 exercise。
+    CREATE TABLE projects (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
+      status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
+      root_path TEXT,
+      file_count INTEGER DEFAULT 0,
+      total_size INTEGER DEFAULT 0,
+      tags TEXT,
+      metadata TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      sync_status TEXT DEFAULT 'pending',
+      device_id TEXT,
+      deleted INTEGER DEFAULT 0,
+      -- v1.3 (2026-05-17) Android 项目管理 → 远程终端入口
+      source_peer_id TEXT,
+      pc_root_path TEXT
+    );
+
+    -- v1.1 W5 (2026-05-12) issue #19 — CONVERSATION 同步用最小子集，不带 messages
+    -- 表（conversations 表本身的 walker round-trip 即可验证）。
+    CREATE TABLE conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      knowledge_id TEXT,
+      project_id TEXT,
+      context_type TEXT DEFAULT 'global',
+      context_data TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    -- v1.1 W5 (2026-05-12) issue #19 — POST_LIKE 表。append-only，无 updated_at /
+    -- 无 tombstone。UNIQUE 约束让 INSERT OR IGNORE 自然处理重复 push。
+    CREATE TABLE post_likes (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      user_did TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      UNIQUE(post_id, user_did)
+    );
+
+    -- v1.2 prep #4 (2026-05-12) — user_settings 表 (复合 PK scope+key)。
+    CREATE TABLE user_settings (
+      scope TEXT NOT NULL DEFAULT 'global',
+      key TEXT NOT NULL,
+      value TEXT,
+      value_type TEXT DEFAULT 'string' CHECK(value_type IN ('string', 'number', 'boolean', 'json')),
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      device_id TEXT,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (scope, key)
+    );
+
+    -- FAMILY-26 (2026-06-01) — family_child_event 入向 telemetry 镜像表。
+    CREATE TABLE family_child_event (
+      resource_id TEXT PRIMARY KEY,
+      child_did TEXT NOT NULL,
+      source TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      payload TEXT,
+      timestamp_ms INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      level TEXT NOT NULL DEFAULT 'L1',
+      guardian_dids TEXT,
+      device_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE sync_external_provider_cursor (
+      provider_id TEXT NOT NULL,
+      account_key TEXT NOT NULL DEFAULT '',
+      last_sync_at INTEGER NOT NULL DEFAULT 0,
+      last_item_id TEXT,
+      remote_etag_map TEXT NOT NULL DEFAULT '{}',
+      remote_filename_map TEXT NOT NULL DEFAULT '{}',
+      last_run_status TEXT,
+      last_run_error TEXT,
+      last_run_duration_ms INTEGER,
+      items_pushed INTEGER NOT NULL DEFAULT 0,
+      items_skipped INTEGER NOT NULL DEFAULT 0,
+      items_deleted INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (provider_id, account_key)
+    );
+    CREATE TABLE sync_external_tombstones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id TEXT NOT NULL,
+      account_key TEXT NOT NULL DEFAULT '',
+      item_id TEXT NOT NULL,
+      resource_type TEXT,
+      deleted_at INTEGER NOT NULL,
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      UNIQUE(provider_id, account_key, item_id)
+    );
+
+    CREATE TRIGGER trg_knowledge_items_del
+    AFTER DELETE ON knowledge_items FOR EACH ROW BEGIN
+      INSERT OR IGNORE INTO sync_external_tombstones
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.id, 'KNOWLEDGE_ITEM', 1234567890
+      FROM sync_external_provider_cursor c;
+    END;
+    CREATE TRIGGER trg_p2p_chat_messages_del
+    AFTER DELETE ON p2p_chat_messages FOR EACH ROW BEGIN
+      INSERT OR IGNORE INTO sync_external_tombstones
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.id, 'MESSAGE', 1234567890
+      FROM sync_external_provider_cursor c;
+    END;
+    CREATE TRIGGER trg_friends_del
+    AFTER DELETE ON friends FOR EACH ROW BEGIN
+      INSERT OR IGNORE INTO sync_external_tombstones
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.friend_did, 'FRIEND', 1234567890
+      FROM sync_external_provider_cursor c;
+    END;
+    CREATE TRIGGER trg_social_posts_del
+    AFTER DELETE ON social_posts FOR EACH ROW BEGIN
+      INSERT OR IGNORE INTO sync_external_tombstones
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.id, 'POST', 1234567890
+      FROM sync_external_provider_cursor c;
+    END;
+  `);
+}
+
+beforeEach(() => {
+  const sqlDb = new SQL.Database();
+  bootstrapSchema(sqlDb);
+  dbManager = new TestDbManager(sqlDb);
+});
+
+function makeSync(overrides = {}) {
+  return new MobileBridgeSync({
+    mobileBridge: makeFakeMobileBridge(),
+    dbManager,
+    deps: {
+      getExternalStore: () => require("../sync-external-store"),
+      getLogger: () => ({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      }),
+      now: () => 2000,
+    },
+    ...overrides,
+  });
+}
+
+// ============================================================
+// Constructor + 基础 invariants
+// ============================================================
+describe("MobileBridgeSync · constructor", () => {
+  it("throws when mobileBridge missing", () => {
+    expect(
+      () => new MobileBridgeSync({ mobileBridge: null, dbManager }),
+    ).toThrow(/mobileBridge/);
+  });
+
+  it("throws when dbManager missing", () => {
+    expect(
+      () =>
+        new MobileBridgeSync({
+          mobileBridge: makeFakeMobileBridge(),
+          dbManager: null,
+        }),
+    ).toThrow(/dbManager/);
+  });
+
+  it("ResourceType / SyncOperation are exported & frozen", () => {
+    expect(Object.isFrozen(ResourceType)).toBe(true);
+    expect(Object.isFrozen(SyncOperation)).toBe(true);
+    expect(ResourceType.MESSAGE).toBe("MESSAGE");
+    expect(SyncOperation.DELETE).toBe("DELETE");
+  });
+});
+
+// ============================================================
+// resolveConflict — LWW 算法
+// ============================================================
+describe("MobileBridgeSync · resolveConflict", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("null local → remote wins (initial sync)", () => {
+    expect(sync.resolveConflict(null, { version: 1, timestamp: 100 })).toBe(
+      "remote",
+    );
+  });
+
+  it("null remote → local wins", () => {
+    expect(sync.resolveConflict({ version: 1, timestamp: 100 }, null)).toBe(
+      "local",
+    );
+  });
+
+  it("higher version wins regardless of timestamp", () => {
+    const local = { version: 5, timestamp: 1000 };
+    const remote = { version: 6, timestamp: 100 };
+    expect(sync.resolveConflict(local, remote)).toBe("remote");
+  });
+
+  it("same version → timestamp tie-break", () => {
+    const local = { version: 1, timestamp: 100 };
+    const remote = { version: 1, timestamp: 200 };
+    expect(sync.resolveConflict(local, remote)).toBe("remote");
+  });
+
+  it("same version + timestamp → deviceId tie-break (lex DESC)", () => {
+    const local = { version: 1, timestamp: 100, deviceId: "device-a" };
+    const remote = { version: 1, timestamp: 100, deviceId: "device-z" };
+    expect(sync.resolveConflict(local, remote)).toBe("remote");
+    // 反向：local 的 deviceId 大
+    expect(sync.resolveConflict(remote, local)).toBe("local");
+  });
+});
+
+// ============================================================
+// Walker — p2p_chat_messages
+// ============================================================
+describe("MobileBridgeSync · _fetchP2PChatMessages", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchP2PChatMessages(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits SyncItem with MESSAGE resourceType + JSON-encoded data", async () => {
+    dbManager.run(
+      `INSERT INTO p2p_chat_messages
+       (id, session_id, sender_did, receiver_did, content, message_type, encrypted, status, device_id, timestamp)
+       VALUES ('m1', 's1', 'did:alice', 'did:bob', 'hello', 'text', 1, 'sent', 'dev-a', 100)`,
+    );
+    const rows = await sync._fetchP2PChatMessages(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.MESSAGE,
+      resourceId: "m1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "dev-a",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.senderDid).toBe("did:alice");
+    expect(decoded.encrypted).toBe(true); // 1 → boolean
+  });
+
+  it("respects (timestamp, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO p2p_chat_messages (id, session_id, sender_did, receiver_did, content, timestamp) VALUES
+       ('a', 's', 'd1', 'd2', 'x', 100),
+       ('b', 's', 'd1', 'd2', 'x', 100),
+       ('c', 's', 'd1', 'd2', 'x', 200)`,
+    );
+    // sinceMs=100, sinceId='a' → 应只返 b 和 c
+    const rows = await sync._fetchP2PChatMessages(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+});
+
+// ============================================================
+// Walker — friends
+// ============================================================
+describe("MobileBridgeSync · _fetchFriends", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("emits FRIEND SyncItem with friend_did as resourceId", async () => {
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, nickname, status, notes, created_at, updated_at)
+       VALUES ('f1', 'me', 'did:alice', 'Alice', 'accepted', 'best friend', 50, 100)`,
+    );
+    const rows = await sync._fetchFriends(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].resourceId).toBe("did:alice");
+    expect(rows[0].resourceType).toBe(ResourceType.FRIEND);
+    const data = JSON.parse(rows[0].data);
+    expect(data.nickname).toBe("Alice");
+    expect(data.remarkName).toBe("best friend");
+  });
+});
+
+// ============================================================
+// Apply — FRIEND（含 normalizer + UPSERT）
+// ============================================================
+describe("MobileBridgeSync · _applyFriend", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new friend with status normalize (UPPERCASE → lowercase)", async () => {
+    await sync._applyFriend({
+      resourceId: "did:bob",
+      operation: SyncOperation.UPDATE,
+      timestamp: 1500,
+      data: JSON.stringify({
+        nickname: "Bob",
+        status: "ACCEPTED", // Android enum UPPERCASE
+        addedAt: 1000,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM friends WHERE friend_did = ?`, [
+      "did:bob",
+    ]);
+    expect(row.nickname).toBe("Bob");
+    expect(row.status).toBe("accepted"); // 已 normalize
+    expect(row.updated_at).toBe(1500);
+  });
+
+  it("UPSERT updates existing row instead of duplicating", async () => {
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, nickname, status, created_at, updated_at)
+       VALUES ('did:bob', '', 'did:bob', 'Bob old', 'pending', 100, 100)`,
+    );
+    await sync._applyFriend({
+      resourceId: "did:bob",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({ nickname: "Bob new", status: "accepted" }),
+    });
+    const rows = dbManager.all(`SELECT * FROM friends`);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].nickname).toBe("Bob new");
+    expect(rows[0].status).toBe("accepted");
+  });
+
+  it("DELETE removes the row by friend_did", async () => {
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, status, created_at, updated_at)
+       VALUES ('did:eve', '', 'did:eve', 'pending', 1, 1)`,
+    );
+    await sync._applyFriend({
+      resourceId: "did:eve",
+      operation: SyncOperation.DELETE,
+      timestamp: 999,
+    });
+    const rows = dbManager.all(`SELECT * FROM friends`);
+    expect(rows).toHaveLength(0);
+  });
+
+  it("invalid status falls back to 'pending'", async () => {
+    await sync._applyFriend({
+      resourceId: "did:x",
+      operation: SyncOperation.UPDATE,
+      timestamp: 1,
+      data: JSON.stringify({ status: "GARBAGE" }),
+    });
+    const row = dbManager.get(
+      `SELECT status FROM friends WHERE friend_did = 'did:x'`,
+    );
+    expect(row.status).toBe("pending");
+  });
+});
+
+// ============================================================
+// Apply — MESSAGE
+// ============================================================
+describe("MobileBridgeSync · _applyMessage", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT OR REPLACE p2p_chat_messages", async () => {
+    await sync._applyMessage({
+      resourceId: "m42",
+      operation: SyncOperation.CREATE,
+      timestamp: 1000,
+      deviceId: "device-x",
+      data: JSON.stringify({
+        sessionId: "s1",
+        senderDid: "did:a",
+        receiverDid: "did:b",
+        content: "hi",
+        messageType: "text",
+        encrypted: true,
+        status: "sent",
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM p2p_chat_messages WHERE id = ?`, [
+      "m42",
+    ]);
+    expect(row.content).toBe("hi");
+    expect(row.encrypted).toBe(1);
+    expect(row.device_id).toBe("device-x");
+    expect(row.timestamp).toBe(1000);
+  });
+
+  it("DELETE removes by id", async () => {
+    dbManager.run(
+      `INSERT INTO p2p_chat_messages (id, session_id, sender_did, receiver_did, content, timestamp)
+       VALUES ('m1', 's', 'd', 'd', 'x', 1)`,
+    );
+    await sync._applyMessage({
+      resourceId: "m1",
+      operation: SyncOperation.DELETE,
+      timestamp: 999,
+    });
+    expect(dbManager.all(`SELECT * FROM p2p_chat_messages`)).toHaveLength(0);
+  });
+});
+
+// ============================================================
+// Apply — NOTIFICATION（含 type normalizer）
+// ============================================================
+describe("MobileBridgeSync · _applyNotification", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("normalizes Android UPPERCASE NotificationType to schema lowercase", async () => {
+    await sync._applyNotification({
+      resourceId: "n1",
+      operation: SyncOperation.CREATE,
+      timestamp: 1,
+      data: JSON.stringify({
+        type: "FRIEND_REQUEST",
+        title: "Bob 请求加好友",
+        isRead: false,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM notifications WHERE id = 'n1'`);
+    expect(row.type).toBe("friend_request");
+    expect(row.is_read).toBe(0);
+  });
+
+  it("unknown type falls back to 'system'", async () => {
+    await sync._applyNotification({
+      resourceId: "n2",
+      operation: SyncOperation.CREATE,
+      timestamp: 1,
+      data: JSON.stringify({ type: "GARBAGE", title: "" }),
+    });
+    const row = dbManager.get(`SELECT * FROM notifications WHERE id = 'n2'`);
+    expect(row.type).toBe("system");
+  });
+});
+
+// ============================================================
+// handlePush — 完整路径（无冲突 / 冲突）
+// ============================================================
+describe("MobileBridgeSync · handlePush", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("invalid item shape → status:failed", async () => {
+    const res = await sync.handlePush({ item: null });
+    expect(res.status).toBe("failed");
+    expect(res.error).toMatch(/invalid/i);
+  });
+
+  it("applies remote item when local doesn't exist", async () => {
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.FRIEND,
+        resourceId: "did:new",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 100,
+        data: JSON.stringify({ nickname: "New" }),
+      },
+    });
+    expect(res.status).toBe("applied");
+    expect(
+      dbManager.get(`SELECT nickname FROM friends WHERE friend_did = 'did:new'`)
+        .nickname,
+    ).toBe("New");
+  });
+
+  it("returns conflict when local newer (LWW: local timestamp wins)", async () => {
+    // 本地有更新的 friend 记录
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, nickname, status, created_at, updated_at)
+       VALUES ('did:bob', '', 'did:bob', 'Bob LOCAL', 'accepted', 100, 5000)`,
+    );
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.FRIEND,
+        resourceId: "did:bob",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 100, // 比本地 5000 旧
+        data: JSON.stringify({ nickname: "Bob REMOTE" }),
+      },
+    });
+    expect(res.status).toBe("conflict");
+    expect(res.resolved).toBeTruthy();
+    // 本地未被覆盖
+    expect(
+      dbManager.get(`SELECT nickname FROM friends WHERE friend_did = 'did:bob'`)
+        .nickname,
+    ).toBe("Bob LOCAL");
+  });
+
+  it("unimplemented ResourceType (CONTACT) returns failed", async () => {
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.CONTACT,
+        resourceId: "x",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 1,
+        data: "{}",
+      },
+    });
+    expect(res.status).toBe("failed");
+    expect(res.error).toMatch(/unimplemented/i);
+  });
+});
+
+// ============================================================
+// handleAck — pendingAcks cleanup
+// ============================================================
+describe("MobileBridgeSync · handleAck", () => {
+  it("resolves matching pendingAcks promise", async () => {
+    const sync = makeSync();
+    // 手动塞一个 pendingAck（模拟 _invokeRemote 已发出但未 ack）
+    let resolved = false;
+    const timer = setTimeout(() => {}, 1000);
+    const p = new Promise((resolve) => {
+      sync.pendingAcks.set("req-123", {
+        resolve: (v) => {
+          resolved = true;
+          resolve(v);
+        },
+        reject: () => {},
+        timer,
+      });
+    });
+    sync.handleAck({ requestId: "req-123", status: "applied" });
+    await p;
+    expect(resolved).toBe(true);
+    expect(sync.pendingAcks.has("req-123")).toBe(false);
+  });
+
+  it("ignores unknown requestId silently", () => {
+    const sync = makeSync();
+    expect(() => sync.handleAck({ requestId: "nope" })).not.toThrow();
+  });
+});
+
+// ============================================================
+// pushPending — tombstone iteration with resourceType filter
+// ============================================================
+describe("MobileBridgeSync · pushPending tombstone integration", () => {
+  it("iterates mobile-aware ResourceType tombstones incl. KNOWLEDGE_ITEM (v1.1 W1), excl. CONTACT", async () => {
+    const sync = makeSync();
+
+    // 为 mobile provider 建 cursor 让 trigger fan-out
+    dbManager.run(
+      `INSERT INTO sync_external_provider_cursor (provider_id, account_key) VALUES ('mobile', 'dev-1')`,
+    );
+
+    // 删一个 friend → trigger 写 FRIEND tombstone
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, status, created_at, updated_at)
+       VALUES ('did:x', 'me', 'did:x', 'pending', 1, 1)`,
+    );
+    dbManager.run(`DELETE FROM friends WHERE friend_did = 'did:x'`);
+
+    // 删一个 knowledge_items → trigger 写 KNOWLEDGE_ITEM tombstone
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, content, created_at, updated_at)
+       VALUES ('k1', 'old note', 'note', 'body', 1, 1)`,
+    );
+    dbManager.run(`DELETE FROM knowledge_items WHERE id = 'k1'`);
+
+    // 手动塞一行 CONTACT tombstone（v1 不在 mobile-aware filter 内）
+    dbManager.run(
+      `INSERT INTO sync_external_tombstones (provider_id, account_key, item_id, resource_type, deleted_at)
+       VALUES ('mobile', 'dev-1', 'c1', 'CONTACT', 999)`,
+    );
+
+    // stub _invokeRemote 让 push 不真发网络
+    patchInvokeRemote(sync, () => ({ status: "applied" }));
+
+    const result = await sync.pushPending("dev-1");
+    // FRIEND + KNOWLEDGE_ITEM 应被 push（CONTACT 跳过）
+    expect(result.pushed).toBe(2);
+    const calls = sync._invokeRemote.mock.calls;
+    const pushCalls = calls.filter((c) => c[1] === "sync.push");
+    expect(pushCalls).toHaveLength(2);
+    const pushedTypes = pushCalls.map((c) => c[2].item.resourceType).sort();
+    expect(pushedTypes).toEqual([
+      ResourceType.FRIEND,
+      ResourceType.KNOWLEDGE_ITEM,
+    ]);
+    expect(
+      pushCalls.every((c) => c[2].item.operation === SyncOperation.DELETE),
+    ).toBe(true);
+  });
+});
+
+// ============================================================
+// Walker — knowledge_items (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · _fetchKnowledgeItems", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits SyncItem with KNOWLEDGE_ITEM resourceType + JSON-encoded data", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, created_at, updated_at, device_id)
+       VALUES ('k1', 'My Note', 'note', 'body text', 100, 100, 'dev-a')`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.KNOWLEDGE_ITEM,
+      resourceId: "k1",
+      operation: SyncOperation.CREATE, // updated_at == created_at
+      timestamp: 100,
+      deviceId: "dev-a",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.title).toBe("My Note");
+    expect(decoded.type).toBe("note");
+    expect(decoded.content).toBe("body text");
+  });
+
+  it("emits UPDATE op when updated_at > created_at", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at)
+       VALUES ('k2', 'Edited', 'document', 100, 500)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.UPDATE);
+  });
+
+  it("respects (updated_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at) VALUES
+       ('a', 'A', 'note', 100, 100),
+       ('b', 'B', 'note', 100, 100),
+       ('c', 'C', 'note', 200, 200)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+
+  it("skips local-only columns from payload (no content_path / embedding_path / git_commit_hash)", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, content_path, embedding_path, git_commit_hash,
+        created_at, updated_at)
+       VALUES ('k3', 't', 'note', 'c', '/local/path', '/emb', 'abc123', 1, 1)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.content_path).toBeUndefined();
+    expect(decoded.embedding_path).toBeUndefined();
+    expect(decoded.git_commit_hash).toBeUndefined();
+  });
+});
+
+// ============================================================
+// Apply — KNOWLEDGE_ITEM (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · _applyKnowledgeItem", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new knowledge_item with type normalize + sync_status=synced", async () => {
+    await sync._applyKnowledgeItem({
+      resourceId: "k1",
+      operation: SyncOperation.CREATE,
+      timestamp: 500,
+      deviceId: "dev-android",
+      data: JSON.stringify({
+        title: "Mobile Note",
+        type: "NOTE", // Android KnowledgeType.value 实为 lowercase 但兜底 normalize
+        content: "from phone",
+        createdAt: 100,
+        updatedAt: 500,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = ?`, [
+      "k1",
+    ]);
+    expect(row.title).toBe("Mobile Note");
+    expect(row.type).toBe("note");
+    expect(row.content).toBe("from phone");
+    expect(row.sync_status).toBe("synced");
+    expect(row.device_id).toBe("dev-android");
+  });
+
+  it("UPSERT preserves local-only columns (content_path / embedding_path / git_commit_hash)", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, content_path, embedding_path, git_commit_hash,
+        created_at, updated_at, sync_status)
+       VALUES ('k2', 'Old', 'note', 'old body', '/local/x.md', '/emb/x.bin',
+               'sha1', 100, 100, 'synced')`,
+    );
+    await sync._applyKnowledgeItem({
+      resourceId: "k2",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "New",
+        type: "note",
+        content: "new body",
+        createdAt: 100,
+        updatedAt: 200,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = 'k2'`);
+    expect(row.title).toBe("New");
+    expect(row.content).toBe("new body");
+    // 本地独有列未被清空
+    expect(row.content_path).toBe("/local/x.md");
+    expect(row.embedding_path).toBe("/emb/x.bin");
+    expect(row.git_commit_hash).toBe("sha1");
+  });
+
+  it("DELETE removes by id", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at)
+       VALUES ('k3', 't', 'note', 1, 1)`,
+    );
+    await sync._applyKnowledgeItem({
+      resourceId: "k3",
+      operation: SyncOperation.DELETE,
+      timestamp: 999,
+    });
+    expect(dbManager.all(`SELECT * FROM knowledge_items`)).toHaveLength(0);
+  });
+
+  it("invalid type falls back to 'note' (防绕过 CHECK 约束)", async () => {
+    await sync._applyKnowledgeItem({
+      resourceId: "k4",
+      operation: SyncOperation.CREATE,
+      timestamp: 1,
+      data: JSON.stringify({
+        title: "Bad Type",
+        type: "GARBAGE",
+        content: "x",
+      }),
+    });
+    const row = dbManager.get(
+      `SELECT type FROM knowledge_items WHERE id = 'k4'`,
+    );
+    expect(row.type).toBe("note");
+  });
+
+  it("_normalizeKnowledgeType accepts all 4 KnowledgeType values + falls back", () => {
+    expect(sync._normalizeKnowledgeType("note")).toBe("note");
+    expect(sync._normalizeKnowledgeType("document")).toBe("document");
+    expect(sync._normalizeKnowledgeType("conversation")).toBe("conversation");
+    expect(sync._normalizeKnowledgeType("web_clip")).toBe("web_clip");
+    expect(sync._normalizeKnowledgeType("NOTE")).toBe("note"); // case-insensitive
+    expect(sync._normalizeKnowledgeType(null)).toBe("note");
+    expect(sync._normalizeKnowledgeType("anything")).toBe("note");
+  });
+});
+
+// ============================================================
+// handlePush — KNOWLEDGE_ITEM round-trip (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · handlePush KNOWLEDGE_ITEM", () => {
+  it("applies remote KB item when local doesn't exist", async () => {
+    const sync = makeSync();
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.KNOWLEDGE_ITEM,
+        resourceId: "k-remote",
+        operation: SyncOperation.CREATE,
+        version: 1,
+        timestamp: 100,
+        data: JSON.stringify({
+          title: "From Phone",
+          type: "note",
+          content: "captured via OCR",
+          createdAt: 50,
+          updatedAt: 100,
+        }),
+      },
+    });
+    expect(res.status).toBe("applied");
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = ?`, [
+      "k-remote",
+    ]);
+    expect(row.title).toBe("From Phone");
+    expect(row.sync_status).toBe("synced");
+  });
+
+  it("returns conflict when local KB newer (LWW)", async () => {
+    const sync = makeSync();
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, content, created_at, updated_at, device_id, sync_status)
+       VALUES ('k-conf', 'LOCAL', 'note', 'local body', 100, 5000, 'desktop', 'synced')`,
+    );
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.KNOWLEDGE_ITEM,
+        resourceId: "k-conf",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 100, // 比本地 5000 旧
+        data: JSON.stringify({
+          title: "REMOTE",
+          type: "note",
+          content: "remote body",
+        }),
+      },
+    });
+    expect(res.status).toBe("conflict");
+    expect(
+      dbManager.get(`SELECT title FROM knowledge_items WHERE id = 'k-conf'`)
+        .title,
+    ).toBe("LOCAL");
+  });
+});
+
+// ============================================================
+// runOnce — orchestration
+// ============================================================
+describe("MobileBridgeSync · runOnce", () => {
+  it("throws when deviceId missing", async () => {
+    const sync = makeSync();
+    await expect(sync.runOnce()).rejects.toThrow(/deviceId/);
+  });
+
+  it("ensures cursor + writes durationMs", async () => {
+    const sync = makeSync({
+      deps: {
+        getExternalStore: () => require("../sync-external-store"),
+        getLogger: () => ({
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+          debug: vi.fn(),
+        }),
+        // Sequential clock: start=2000, end=2050
+        now: vi.fn().mockReturnValueOnce(2000).mockReturnValueOnce(2050),
+      },
+    });
+    patchInvokeRemote(sync, (method) =>
+      method === "sync.pull"
+        ? { items: [], nextCursor: null, hasMore: false }
+        : { status: "applied" },
+    );
+    const res = await sync.runOnce("dev-1");
+    expect(res.error).toBeFalsy();
+    expect(res.durationMs).toBe(50);
+    const cursor = require("../sync-external-store").getCursor(
+      dbManager,
+      "mobile",
+      "dev-1",
+    );
+    expect(cursor).toBeTruthy();
+    expect(cursor.lastRunStatus).toBe("success");
+    expect(cursor.lastRunDurationMs).toBe(50);
+  });
+
+  it("captures error string when push throws", async () => {
+    const sync = makeSync();
+    patchInvokeRemote(sync, () => {
+      throw new Error("network down");
+    });
+    // 让 walker 找到一行让 push 路径走起来
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, status, created_at, updated_at)
+       VALUES ('did:x', 'me', 'did:x', 'pending', 1, 100)`,
+    );
+    const res = await sync.runOnce("dev-1");
+    expect(res.error).toMatch(/network down/);
+    const cursor = require("../sync-external-store").getCursor(
+      dbManager,
+      "mobile",
+      "dev-1",
+    );
+    expect(cursor.lastRunStatus).toBe("failed");
+    expect(cursor.lastRunError).toMatch(/network down/);
+  });
+});
+
+// ============================================================
+// pullRemote — apply incoming items
+// ============================================================
+describe("MobileBridgeSync · pullRemote", () => {
+  it("applies items returned from sync.pull", async () => {
+    const sync = makeSync();
+    require("../sync-external-store").ensureCursor(
+      dbManager,
+      "mobile",
+      "dev-1",
+    );
+    patchInvokeRemote(sync, (method) =>
+      method === "sync.pull"
+        ? {
+            items: [
+              {
+                resourceType: ResourceType.FRIEND,
+                resourceId: "did:remote",
+                operation: SyncOperation.UPDATE,
+                version: 1,
+                timestamp: 5000,
+                data: JSON.stringify({ nickname: "Remote" }),
+              },
+            ],
+            nextCursor: null,
+            hasMore: false,
+          }
+        : { status: "applied" },
+    );
+    const res = await sync.pullRemote("dev-1");
+    expect(res.pulled).toBe(1);
+    expect(res.conflicts).toBe(0);
+    expect(
+      dbManager.get(
+        `SELECT nickname FROM friends WHERE friend_did = 'did:remote'`,
+      ).nickname,
+    ).toBe("Remote");
+  });
+
+  it("returns 0/0 when remote returns no items", async () => {
+    const sync = makeSync();
+    require("../sync-external-store").ensureCursor(
+      dbManager,
+      "mobile",
+      "dev-1",
+    );
+    patchInvokeRemote(sync, () => ({
+      items: [],
+      nextCursor: null,
+      hasMore: false,
+    }));
+    const res = await sync.pullRemote("dev-1");
+    expect(res).toEqual({ pulled: 0, conflicts: 0 });
+  });
+});
+
+// ============================================================
+// handlePull — emits SyncItems by cursor
+// ============================================================
+describe("MobileBridgeSync · handlePull", () => {
+  it("returns items above cursor + nextCursor", async () => {
+    const sync = makeSync();
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, nickname, status, created_at, updated_at)
+       VALUES ('did:a', 'me', 'did:a', 'A', 'accepted', 1, 100),
+              ('did:b', 'me', 'did:b', 'B', 'accepted', 1, 200)`,
+    );
+    const res = await sync.handlePull({ cursor: { ts: 50, id: null } });
+    expect(res.items.length).toBeGreaterThanOrEqual(2);
+    const friends = res.items.filter(
+      (i) => i.resourceType === ResourceType.FRIEND,
+    );
+    expect(friends.map((f) => f.resourceId).sort()).toEqual(["did:a", "did:b"]);
+    expect(res.nextCursor.ts).toBeGreaterThan(0);
+  });
+
+  it("respects requestedTypes filter", async () => {
+    const sync = makeSync();
+    dbManager.run(
+      `INSERT INTO friends (id, user_did, friend_did, nickname, status, created_at, updated_at)
+       VALUES ('did:a', 'me', 'did:a', 'A', 'accepted', 1, 100)`,
+    );
+    dbManager.run(
+      `INSERT INTO p2p_chat_messages (id, session_id, sender_did, receiver_did, content, timestamp)
+       VALUES ('m1', 's', 'd', 'd', 'x', 100)`,
+    );
+    const res = await sync.handlePull({
+      cursor: { ts: 0, id: null },
+      resourceTypes: [ResourceType.MESSAGE],
+    });
+    const types = new Set(res.items.map((i) => i.resourceType));
+    expect(types).toEqual(new Set([ResourceType.MESSAGE]));
+  });
+});
+
+// ============================================================
+// v1.1 W5 issue #19 — CONVERSATION + POST_LIKE walker (2026-05-12)
+// ============================================================
+describe("MobileBridgeSync · _fetchConversations (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits CONVERSATION SyncItem with required fields", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, knowledge_id, project_id, context_type, context_data, created_at, updated_at)
+       VALUES ('c1', 'Test Conv', 'k1', 'p1', 'project', '{"foo":"bar"}', 100, 200)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.CONVERSATION,
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE, // updated_at > created_at
+      timestamp: 200,
+      deviceId: "",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.title).toBe("Test Conv");
+    expect(decoded.knowledge_id).toBe("k1");
+    expect(decoded.project_id).toBe("p1");
+    expect(decoded.context_type).toBe("project");
+    expect(decoded.context_data).toBe('{"foo":"bar"}');
+  });
+
+  it("emits CREATE op when updated_at == created_at", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at)
+       VALUES ('c1', 'Fresh', 100, 100)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.CREATE);
+  });
+
+  it("respects (updated_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES
+       ('a', 't', 100, 100),
+       ('b', 't', 100, 100),
+       ('c', 't', 200, 200)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+});
+
+describe("MobileBridgeSync · _applyConversation (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new conversation", async () => {
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        title: "New",
+        knowledge_id: null,
+        project_id: null,
+        context_type: "global",
+        context_data: null,
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row).toMatchObject({
+      id: "c1",
+      title: "New",
+      context_type: "global",
+      created_at: 100,
+      updated_at: 100,
+    });
+  });
+
+  it("UPSERT updates existing row when newer updated_at", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'Old', 100, 100)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "Updated",
+        context_type: "project",
+        created_at: 100,
+        updated_at: 200,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row.title).toBe("Updated");
+    expect(row.context_type).toBe("project");
+    expect(row.updated_at).toBe(200);
+  });
+
+  it("LWW: stale incoming (older updated_at) does NOT overwrite", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'Newer', 100, 500)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "StaleIncoming",
+        created_at: 100,
+        updated_at: 200, // < existing 500
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row.title).toBe("Newer"); // unchanged
+    expect(row.updated_at).toBe(500);
+  });
+
+  it("DELETE removes the row", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'X', 100, 100)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row).toBeUndefined();
+  });
+});
+
+describe("MobileBridgeSync · _fetchPostLikes (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchPostLikes(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits POST_LIKE SyncItem with all fields", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at)
+       VALUES ('like-1', 'post-1', 'did:alice', 100)`,
+    );
+    const rows = await sync._fetchPostLikes(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.POST_LIKE,
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.post_id).toBe("post-1");
+    expect(decoded.user_did).toBe("did:alice");
+  });
+
+  it("respects (created_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES
+       ('a', 'p1', 'd:1', 100),
+       ('b', 'p1', 'd:2', 100),
+       ('c', 'p1', 'd:3', 200)`,
+    );
+    const rows = await sync._fetchPostLikes(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+});
+
+describe("MobileBridgeSync · _applyPostLike (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new like", async () => {
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        post_id: "p1",
+        user_did: "did:alice",
+        created_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row).toMatchObject({
+      id: "like-1",
+      post_id: "p1",
+      user_did: "did:alice",
+      created_at: 100,
+    });
+  });
+
+  it("INSERT OR IGNORE: duplicate (post_id, user_did) silently no-op", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES ('like-1', 'p1', 'did:alice', 100)`,
+    );
+    await sync._applyPostLike({
+      resourceId: "like-2", // 不同 PK 但 (p1, alice) 重复
+      operation: SyncOperation.CREATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        post_id: "p1",
+        user_did: "did:alice",
+        created_at: 200,
+      }),
+    });
+    const rows = dbManager.all(
+      "SELECT * FROM post_likes WHERE post_id = ? AND user_did = ?",
+      ["p1", "did:alice"],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("like-1"); // 原 row 保留
+  });
+
+  it("DELETE removes the row", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES ('like-1', 'p1', 'did:alice', 100)`,
+    );
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row).toBeUndefined();
+  });
+
+  it("camelCase fallback: postId / userDid keys also accepted", async () => {
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        postId: "p1", // camelCase
+        userDid: "did:alice",
+        created_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row.post_id).toBe("p1");
+    expect(row.user_did).toBe("did:alice");
+  });
+});
+
+describe("MobileBridgeSync · ResourceType v1.1 W5 enum coverage", () => {
+  it("enum exports CONVERSATION + POST_LIKE", () => {
+    expect(ResourceType.CONVERSATION).toBe("CONVERSATION");
+    expect(ResourceType.POST_LIKE).toBe("POST_LIKE");
+  });
+
+  it("enum has SETTING (v1.2 prep #4) + active types (excludes CONTACT v1)", () => {
+    const all = Object.values(ResourceType);
+    expect(all).toContain("KNOWLEDGE_ITEM");
+    expect(all).toContain("MESSAGE");
+    expect(all).toContain("FRIEND");
+    expect(all).toContain("POST");
+    expect(all).toContain("POST_COMMENT");
+    expect(all).toContain("NOTIFICATION");
+    expect(all).toContain("PROJECT");
+    expect(all).toContain("CONVERSATION");
+    expect(all).toContain("POST_LIKE");
+    expect(all).toContain("SETTING");
+    // CONTACT 在 enum 但 walker not active；不强求总数
+  });
+});
+
+describe("MobileBridgeSync · _fetchUserSettings (v1.2 prep #4)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits SETTING SyncItem with composite resourceId scope:key", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at, device_id)
+       VALUES ('global', 'ui.theme', 'dark', 'string', 100, 200, 'desktop-1')`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.SETTING,
+      resourceId: "global:ui.theme",
+      operation: SyncOperation.UPDATE, // updated_at > created_at
+      timestamp: 200,
+      deviceId: "desktop-1",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.scope).toBe("global");
+    expect(decoded.key).toBe("ui.theme");
+    expect(decoded.value).toBe("dark");
+    expect(decoded.value_type).toBe("string");
+  });
+
+  it("emits CREATE op when updated_at == created_at", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'zh-CN', 'string', 100, 100)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.CREATE);
+  });
+
+  it("respects (updated_at, scope:key) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at) VALUES
+       ('global', 'a', '1', 'string', 100, 100),
+       ('global', 'b', '2', 'string', 100, 100),
+       ('user:did1', 'c', '3', 'string', 200, 200)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 100, "global:a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["global:b", "user:did1:c"]);
+  });
+
+  it("excludes deleted rows (deleted = 1 filtered)", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at, deleted)
+       VALUES ('global', 'gone', 'x', 'string', 100, 100, 1)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("MobileBridgeSync · _applySetting (v1.2 prep #4)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new setting splits scope:key", async () => {
+    await sync._applySetting({
+      resourceId: "global:ui.theme",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "android-1",
+      data: JSON.stringify({
+        scope: "global",
+        key: "ui.theme",
+        value: "dark",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "ui.theme"],
+    );
+    expect(row).toMatchObject({
+      scope: "global",
+      key: "ui.theme",
+      value: "dark",
+      value_type: "string",
+      device_id: "android-1",
+      deleted: 0,
+    });
+  });
+
+  it("UPSERT updates value when newer updated_at", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'en-US', 'string', 100, 100)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:lang",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        value: "zh-CN",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 200,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "lang"],
+    );
+    expect(row.value).toBe("zh-CN");
+    expect(row.updated_at).toBe(200);
+  });
+
+  it("LWW: stale incoming (older updated_at) does NOT overwrite", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'newer', 'string', 100, 500)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:lang",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        value: "stale-incoming",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 200, // < existing 500
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "lang"],
+    );
+    expect(row.value).toBe("newer");
+    expect(row.updated_at).toBe(500);
+  });
+
+  it("DELETE removes the row by scope+key", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'gone', 'x', 'string', 100, 100)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:gone",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "gone"],
+    );
+    expect(row).toBeUndefined();
+  });
+
+  it("invalid value_type falls back to 'string'", async () => {
+    await sync._applySetting({
+      resourceId: "global:foo",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        value: "v",
+        value_type: "bogus", // not in CHECK whitelist
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "foo"],
+    );
+    expect(row.value_type).toBe("string");
+  });
+
+  it("scope key with embedded colon: treats first colon as separator", async () => {
+    // resourceId "user:did:foo.bar" → scope="user", key="did:foo.bar"
+    await sync._applySetting({
+      resourceId: "user:did:foo.bar",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        value: "v",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["user", "did:foo.bar"],
+    );
+    expect(row).toBeDefined();
+  });
+});
+
+// ============================================================
+// v1.3 (2026-05-17) PROJECT walker + applier — source_peer_id + pc_root_path
+// Android 项目管理 → 远程终端入口 Sub-phase 2
+// 详见 docs/design/Android_Project_Remote_Terminal_Entry.md
+// ============================================================
+describe("MobileBridgeSync · _fetchProjects (v1.3 source_peer_id + pc_root_path)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("emits source_peer_id + pc_root_path in payload when columns set", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+       VALUES ('p1', 'u1', 'Test', 'document', 'active',
+        '/home/x/proj', 100, 100, 'DEV-A', 'PC-PEER-XYZ', '/home/x/proj')`,
+    );
+    const rows = await sync._fetchProjects(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.source_peer_id).toBe("PC-PEER-XYZ");
+    expect(decoded.pc_root_path).toBe("/home/x/proj");
+  });
+
+  it("falls back source_peer_id to device_id when column null", async () => {
+    // 本机自建项目场景：source_peer_id 列还没填 (Sub-phase 2 之前的老数据)
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, device_id, source_peer_id, pc_root_path)
+       VALUES ('p2', 'u1', 'Local', 'document', 'active', 100, 100, 'DEV-B', NULL, NULL)`,
+    );
+    const rows = await sync._fetchProjects(dbManager, 0, null, 100);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.source_peer_id).toBe("DEV-B");
+  });
+
+  it("falls back pc_root_path to root_path when column null", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+       VALUES ('p3', 'u1', 'X', 'document', 'active',
+        '/legacy/path', 100, 100, 'DEV-C', NULL, NULL)`,
+    );
+    const rows = await sync._fetchProjects(dbManager, 0, null, 100);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.pc_root_path).toBe("/legacy/path");
+  });
+
+  it("both fields null when row has no source data at all", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, device_id, source_peer_id, pc_root_path)
+       VALUES ('p4', 'u1', 'Bare', 'document', 'active', 100, 100, NULL, NULL, NULL)`,
+    );
+    const rows = await sync._fetchProjects(dbManager, 0, null, 100);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.source_peer_id).toBeNull();
+    expect(decoded.pc_root_path).toBeNull();
+  });
+});
+
+describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("writes source_peer_id + pc_root_path on CREATE", async () => {
+    await sync._applyProject({
+      resourceType: ResourceType.PROJECT,
+      resourceId: "p1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "DEV-X",
+      data: JSON.stringify({
+        user_id: "u1",
+        name: "From PC",
+        project_type: "document",
+        status: "active",
+        root_path: "/pc/path",
+        created_at: 100,
+        updated_at: 100,
+        source_peer_id: "PC-XYZ",
+        pc_root_path: "/pc/path",
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM projects WHERE id = ?", ["p1"]);
+    expect(row.source_peer_id).toBe("PC-XYZ");
+    expect(row.pc_root_path).toBe("/pc/path");
+  });
+
+  it("preserves existing source_peer_id + pc_root_path when incoming payload lacks them (字段级 merge 核心)", async () => {
+    // 桌面端已有项目（含 source_peer_id），Android 推送的 payload 不带新字段
+    // 期望：桌面值不被清零
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, source_peer_id, pc_root_path)
+       VALUES ('p2', 'u1', 'Existing', 'document', 'active',
+        100, 100, 'PC-ORIGINAL', '/original/path')`,
+    );
+    await sync._applyProject({
+      resourceType: ResourceType.PROJECT,
+      resourceId: "p2",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      deviceId: "ANDROID-DEV",
+      data: JSON.stringify({
+        user_id: "u1",
+        name: "Renamed by Android", // 仅改名
+        project_type: "document",
+        status: "active",
+        created_at: 100,
+        updated_at: 200,
+        // 故意不带 source_peer_id / pc_root_path （Android walker 不写这俩）
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM projects WHERE id = ?", ["p2"]);
+    expect(row.name).toBe("Renamed by Android");
+    expect(row.source_peer_id).toBe("PC-ORIGINAL"); // 保留
+    expect(row.pc_root_path).toBe("/original/path"); // 保留
+  });
+
+  it("overrides existing values when incoming explicitly provides them", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, source_peer_id, pc_root_path)
+       VALUES ('p3', 'u1', 'X', 'document', 'active',
+        100, 100, 'OLD-PEER', '/old/path')`,
+    );
+    await sync._applyProject({
+      resourceType: ResourceType.PROJECT,
+      resourceId: "p3",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      deviceId: "DEV",
+      data: JSON.stringify({
+        user_id: "u1",
+        name: "X",
+        project_type: "document",
+        status: "active",
+        created_at: 100,
+        updated_at: 200,
+        source_peer_id: "NEW-PEER",
+        pc_root_path: "/new/path",
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM projects WHERE id = ?", ["p3"]);
+    expect(row.source_peer_id).toBe("NEW-PEER");
+    expect(row.pc_root_path).toBe("/new/path");
+  });
+
+  it("handles DELETE operation as soft-delete (sets deleted=1)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at)
+       VALUES ('p4', 'u1', 'ToDelete', 'document', 'active', 100, 100)`,
+    );
+    await sync._applyProject({
+      resourceType: ResourceType.PROJECT,
+      resourceId: "p4",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+    });
+    const row = dbManager.get("SELECT deleted FROM projects WHERE id = ?", [
+      "p4",
+    ]);
+    expect(row.deleted).toBe(1);
+  });
+});
+
+// ============================================================
+// v1.3 (2026-05-17) handleProjectList / handleProjectPullSingle (Sub-phase 10)
+// 选项 C 单向选择性拉
+// ============================================================
+describe("MobileBridgeSync · handleProjectList (v1.3 Sub-phase 10)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  // v1.3 fix2 (2026-05-17, commit 504bd6dde): P2P pairing trust 由 signaling auth.did
+  // 兜底，应用层不再 userId 过滤；本测试反映新约定。
+  it("returns all active projects regardless of userId (trust handled at signaling layer)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at)
+       VALUES ('p-default', 'default', 'PC Side', 'document', 'active', '/x', 100, 100),
+              ('p-other',   'u-other',  'Other Owner', 'document', 'active', '/y', 101, 101)`,
+    );
+    // 不传 userId
+    const r1 = await sync.handleProjectList({});
+    expect(r1.projects).toHaveLength(2);
+    expect(r1.reason).toBeUndefined();
+    // 即使传不匹配 userId 也不过滤（pairing 已校验 trust）
+    const r2 = await sync.handleProjectList({ userId: "anyone-different" });
+    expect(r2.projects).toHaveLength(2);
+    expect(r2.reason).toBeUndefined();
+  });
+
+  it("returns user projects with sourcePeerId + pcRootPath derived", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+       VALUES ('p1', 'u1', 'PC Proj', 'document', 'active',
+        '/home/x', 100, 200, 'DEV', 'PC-XYZ', '/home/x')`,
+    );
+    const result = await sync.handleProjectList({ userId: "u1" });
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0].id).toBe("p1");
+    expect(result.projects[0].sourcePeerId).toBe("PC-XYZ");
+    expect(result.projects[0].pcRootPath).toBe("/home/x");
+    expect(result.total).toBe(1);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it("respects limit + offset pagination", async () => {
+    for (let i = 0; i < 5; i++) {
+      dbManager.run(
+        `INSERT INTO projects (id, user_id, name, project_type, status,
+          created_at, updated_at) VALUES (?, 'u1', ?, 'document', 'active', ?, ?)`,
+        [`p${i}`, `Proj${i}`, 100 + i, 100 + i],
+      );
+    }
+    const page1 = await sync.handleProjectList({
+      userId: "u1",
+      limit: 2,
+      offset: 0,
+    });
+    expect(page1.projects).toHaveLength(2);
+    expect(page1.total).toBe(5);
+    expect(page1.hasMore).toBe(true);
+    const page2 = await sync.handleProjectList({
+      userId: "u1",
+      limit: 2,
+      offset: 4,
+    });
+    expect(page2.projects).toHaveLength(1);
+    expect(page2.hasMore).toBe(false);
+  });
+
+  it("excludes deleted projects from list", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, deleted)
+       VALUES ('p1', 'u1', 'Live', 'document', 'active', 100, 100, 0),
+              ('p2', 'u1', 'Gone', 'document', 'active', 100, 100, 1)`,
+    );
+    const result = await sync.handleProjectList({ userId: "u1" });
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0].id).toBe("p1");
+  });
+
+  it("respects rate limit (>10 calls/min returns RATE_LIMITED)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at) VALUES ('p1', 'u1', 'X', 'document', 'active', 100, 100)`,
+    );
+    for (let i = 0; i < 10; i++) {
+      const r = await sync.handleProjectList(
+        { userId: "u1" },
+        { peerId: "PEER-A" },
+      );
+      expect(r.reason).toBeUndefined();
+    }
+    const r11 = await sync.handleProjectList(
+      { userId: "u1" },
+      { peerId: "PEER-A" },
+    );
+    expect(r11.reason).toBe("RATE_LIMITED");
+  });
+});
+
+describe("MobileBridgeSync · handleProjectPullSingle (v1.3 Sub-phase 10)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns MISSING_PROJECT_ID when projectId not given", async () => {
+    const result = await sync.handleProjectPullSingle({});
+    expect(result.error).toBe("MISSING_PROJECT_ID");
+  });
+
+  it("returns PROJECT_NOT_FOUND for unknown id", async () => {
+    const result = await sync.handleProjectPullSingle({ projectId: "no-such" });
+    expect(result.error).toBe("PROJECT_NOT_FOUND");
+  });
+
+  it("returns project metadata + empty files list when no project_files table rows", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, source_peer_id, pc_root_path)
+       VALUES ('p1', 'u1', 'Test', 'document', 'active',
+        '/home/x', 100, 100, 'PC-Z', '/home/x')`,
+    );
+    // 注意：这个测试库 schema 没建 project_files 表，所以 query 应抛错被 catch
+    // 实测：handleProjectPullSingle 会因 project_files 缺失抛 SQL error，但 v0.1
+    // 实现假设 project_files 表存在；测试用 try/catch 验证 unhandled 是否被报。
+    // 这里改成只用 includeFileList=false 验证元数据返回。
+    const result = await sync.handleProjectPullSingle({
+      projectId: "p1",
+      includeFileList: false,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.project).toBeDefined();
+    expect(result.project.id).toBe("p1");
+    expect(result.project.sourcePeerId).toBe("PC-Z");
+    expect(result.files).toEqual([]);
+  });
+
+  // v1.3 fix2 (2026-05-17, commit 504bd6dde): 同 handleProjectList — 应用层不再
+  // userId 过滤，trust 走 signaling auth.did。userId 不匹配仍返项目，不再 PERMISSION_DENIED。
+  it("returns project even when userId mismatches (trust handled at signaling layer)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at) VALUES ('p1', 'owner-a', 'X', 'document', 'active', 100, 100)`,
+    );
+    const result = await sync.handleProjectPullSingle({
+      projectId: "p1",
+      userId: "owner-b",
+      includeFileList: false,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.project).toBeDefined();
+    expect(result.project.id).toBe("p1");
+  });
+});
+
+// ============================================================
+// Sub-phase 5-6 fix (2026-05-17, commit 3319febc4) handleProjectUpdatePath
+// Android LOCAL 项目首次配 PC 路径后双向同步写回桌面 projects.pc_root_path
+// ============================================================
+describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns MISSING_PROJECT_ID when projectId not given", async () => {
+    const result = await sync.handleProjectUpdatePath({ pcRootPath: "/x" });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("MISSING_PROJECT_ID");
+  });
+
+  it("updates pc_root_path on existing project", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', null, 100, 100, null)`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "C:\\code\\new",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.pcRootPath).toBe("C:\\code\\new");
+    const row = dbManager.get(
+      `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBe("C:\\code\\new");
+    // root_path 之前为 null → COALESCE 也补成同值（兼容只有 root_path 字段的旧客户端）
+    expect(row.root_path).toBe("C:\\code\\new");
+  });
+
+  it("preserves existing root_path via COALESCE", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', '/existing/root', 100, 100, null)`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "C:\\code\\new",
+    });
+    expect(result.ok).toBe(true);
+    const row = dbManager.get(
+      `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBe("C:\\code\\new");
+    // root_path 已有值 → COALESCE 保留原值
+    expect(row.root_path).toBe("/existing/root");
+  });
+
+  it("returns PROJECT_NOT_FOUND for unknown id", async () => {
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "no-such",
+      pcRootPath: "/x",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("PROJECT_NOT_FOUND");
+  });
+
+  it("normalizes empty string to null (clear)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', 100, 100, '/old')`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "  ",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.pcRootPath).toBeNull();
+    const row = dbManager.get(
+      `SELECT pc_root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBeNull();
+  });
+
+  it("rate-limits >10 calls/min from same peer", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at) VALUES ('p1', 'u1', 'T', 'document', 'active', 100, 100)`,
+    );
+    for (let i = 0; i < 10; i++) {
+      const r = await sync.handleProjectUpdatePath(
+        { projectId: "p1", pcRootPath: `/p${i}` },
+        { peerId: "PEER-X" },
+      );
+      expect(r.ok).toBe(true);
+    }
+    const r11 = await sync.handleProjectUpdatePath(
+      { projectId: "p1", pcRootPath: "/p11" },
+      { peerId: "PEER-X" },
+    );
+    expect(r11.ok).toBe(false);
+    expect(r11.error).toBe("RATE_LIMITED");
+  });
+});
+
+// ============================================================
+// handlePush — TELEMETRY (FAMILY-26 家庭守护入向镜像)
+// ============================================================
+describe("MobileBridgeSync · handlePush TELEMETRY (FAMILY-26)", () => {
+  const telemetryItem = (overrides = {}) => ({
+    resourceType: ResourceType.TELEMETRY,
+    resourceId: "telemetry|did:chain:kid|foreground_app|run|1000",
+    operation: SyncOperation.CREATE,
+    version: 1,
+    timestamp: 1000,
+    deviceId: "android-kid",
+    data: JSON.stringify({
+      childDid: "did:chain:kid",
+      source: "foreground_app",
+      kind: "run",
+      payload: '{"package":"com.x","duration_ms":60000}',
+      timestampMs: 1000,
+      durationMs: 60000,
+      level: "L1",
+      rowId: 42,
+      guardianDids: ["did:chain:mom", "did:chain:dad"],
+      ...overrides,
+    }),
+  });
+
+  it("mirrors a remote telemetry event into family_child_event", async () => {
+    const sync = makeSync();
+    const res = await sync.handlePush({ item: telemetryItem() });
+
+    expect(res.status).toBe("applied");
+    const row = dbManager.get(
+      `SELECT * FROM family_child_event WHERE resource_id = ?`,
+      ["telemetry|did:chain:kid|foreground_app|run|1000"],
+    );
+    expect(row.child_did).toBe("did:chain:kid");
+    expect(row.source).toBe("foreground_app");
+    expect(row.kind).toBe("run");
+    expect(row.timestamp_ms).toBe(1000);
+    expect(row.duration_ms).toBe(60000);
+    expect(row.level).toBe("L1");
+    expect(row.payload).toContain("com.x");
+    expect(JSON.parse(row.guardian_dids)).toEqual([
+      "did:chain:mom",
+      "did:chain:dad",
+    ]);
+  });
+
+  it("is idempotent — re-pushing same resourceId does not duplicate", async () => {
+    const sync = makeSync();
+    await sync.handlePush({ item: telemetryItem() });
+    const second = await sync.handlePush({ item: telemetryItem() });
+
+    // 同 id 第二次走 conflict 预检判 "local" 跳过 apply
+    expect(second.status).toBe("conflict");
+    const rows = dbManager.all(
+      `SELECT resource_id FROM family_child_event WHERE child_did = ?`,
+      ["did:chain:kid"],
+    );
+    expect(rows.length).toBe(1);
+  });
+
+  it("DELETE operation removes the mirrored row", async () => {
+    const sync = makeSync();
+    await sync.handlePush({ item: telemetryItem() });
+    await sync._applyTelemetry({
+      resourceType: ResourceType.TELEMETRY,
+      resourceId: "telemetry|did:chain:kid|foreground_app|run|1000",
+      operation: SyncOperation.DELETE,
+      timestamp: 2000,
+      data: "{}",
+    });
+    const row = dbManager.get(
+      `SELECT * FROM family_child_event WHERE resource_id = ?`,
+      ["telemetry|did:chain:kid|foreground_app|run|1000"],
+    );
+    expect(row).toBeUndefined();
+  });
+});

@@ -1,0 +1,528 @@
+{
+  "_comment": "Single-source filename map shared by docs-site/scripts/sync-design-docs.js + docs-site-design/scripts/sync-docs.js. Edit here, both sites pick up. String value = both sites map to the same target; object = per-site override. See CLAUDE.md 'Doc-site source-of-truth' section.",
+  "root": {
+    "系统设计_主文档.md": "system-design-main.md",
+    "系统设计_个人移动AI管理系统.md": "system-design-full.md",
+    "安全机制设计.md": "security-design.md",
+    "数据同步方案.md": {
+      "docs-site": "data-sync.md",
+      "docs-site-design": "data-sync-design.md"
+    },
+    "AI模型部署方案.md": "ai-model-deploy.md",
+    "实施总结与附录.md": "implementation-summary.md",
+    "HOOKS_SYSTEM_DESIGN.md": "HOOKS_SYSTEM_DESIGN.md",
+    "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
+    "README.md": "README.md",
+    "桌面版UI重构_设计文档.md": "desktop-ui-refactor.md",
+    "桌面Web壳_架构与落地_设计文档.md": "desktop-web-shell-architecture.md",
+    "CC_PACK_打包指令设计文档.md": "cc-pack-design.md",
+    "CC_PACK_项目模式_设计文档.md": "cc-pack-project-mode-design.md",
+    "ClaudeBox学习_工具卡与任务面板落地方案.md": "claudebox-learning-plan.md",
+    "默克尔树证书_MTC_落地方案.md": "mtc-landing-plan.md",
+    "MTC_数据格式_v1.md": "mtc-data-format-v1.md",
+    "默克尔树证书_MTC_v0.2_评审清单.md": "mtc-review-checklist.md",
+    "MTC_联邦治理_v1.md": "mtc-federation-governance-v1.md",
+    "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
+    "Android_重新定位_设计文档.md": "android-repositioning.md",
+    "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
+    "三端_UI_Consistency_设计文档.md": "three-surface-ui-consistency.md",
+    "B1_WebShell_Multisig_Sign_spike.md": "b1-webshell-multisig-sign.md",
+    "B5_Crosschain_Outbound_Multisig_spike.md": "b5-crosschain-outbound-multisig.md",
+    "C1_WatchFace_VoiceMode_spike.md": "c1-watchface-voicemode.md",
+    "A1_Linux_Native_Pairing_spike.md": "a1-linux-native-pairing.md",
+    "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
+    "Android_Remote_Operate_Plan_C.md": "Android_Remote_Operate_Plan_C.md",
+    "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",
+    "Android_Remote_Terminal_Plan_A1.md": "Android_Remote_Terminal_Plan_A1.md",
+    "Android_Remote_Operate_Plan_AB.md": "Android_Remote_Operate_Plan_AB.md",
+    "Android_Remote_File_Skill.md": "Android_Remote_File_Skill.md",
+    "iOS_Phase_1_Pairing_Flow_B.md": "iOS_Phase_1_Pairing_Flow_B.md",
+    "iOS_Phase_2_Remote_Terminal.md": "iOS_Phase_2_Remote_Terminal.md",
+    "iOS_Phase_3_Remote_Operate_Framework.md": "iOS_Phase_3_Remote_Operate_Framework.md",
+    "iOS_Phase_4_Notification_Skill.md": "iOS_Phase_4_Notification_Skill.md",
+    "iOS_Phase_5_AI_Chat_Skill.md": "iOS_Phase_5_AI_Chat_Skill.md",
+    "iOS_对标_Android_Phase_6_Plan.md": "iOS_Phase_6_Mirror_Android_Plan.md",
+    "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
+    "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
+    "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
+    "MofN_多签_应用扩展_v1.md": "mofn-multisig-extension-v1.md",
+    "Android_Auto_DHU_Setup.md": "Android_Auto_DHU_Setup.md",
+    "Personal_Data_Hub_Architecture.md": "Personal_Data_Hub_Architecture.md",
+    "Personal_Data_Hub_E2E_Runbook.md": "Personal_Data_Hub_E2E_Runbook.md",
+    "Personal_Data_Hub_EntityResolver.md": "Personal_Data_Hub_EntityResolver.md",
+    "Adapter_Email_IMAP.md": "Adapter_Email_IMAP.md",
+    "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
+    "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
+    "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
+    "Adapter_WeChat_SQLCipher_Frida_Setup.md": "Adapter_WeChat_SQLCipher_Frida_Setup.md",
+    "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md": "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md",
+    "Adapter_System_Data.md": "Adapter_System_Data.md",
+    "Adapter_Shopping_Cookie.md": "Adapter_Shopping_Cookie.md",
+    "Adapter_Travel_LBS.md": "Adapter_Travel_LBS.md",
+    "Adapter_Social_Messaging.md": "Adapter_Social_Messaging.md",
+    "Personal_Data_Hub_Python_Sidecar.md": "Personal_Data_Hub_Python_Sidecar.md",
+    "Personal_Data_Hub_sjqz_Comparison.md": "Personal_Data_Hub_sjqz_Comparison.md",
+    "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md": "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md",
+    "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md": "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md",
+    "Personal_Data_Hub_Analysis_Skills.md": "Personal_Data_Hub_Analysis_Skills.md",
+    "Personal_Data_Hub_Fixture_Pin_Protocol.md": "Personal_Data_Hub_Fixture_Pin_Protocol.md",
+    "Personal_Data_Hub_Android_Standalone_Cc.md": "Personal_Data_Hub_Android_Standalone_Cc.md",
+    "Cc_NL_Phone_App_Manager.md": "Cc_NL_Phone_App_Manager.md",
+    "AI陪学_主文档.md": "ai-study-companion-design.md",
+    "AI陪学_v0.1_ticket_tree.md": "ai-study-companion-v0-1-ticket-tree.md",
+    "spike/Spike_DPC_Multi_ROM.md": "spike-dpc-multi-rom.md",
+    "spike/Spike_WebRTC_Mobile_Mobile.md": "spike-webrtc-mobile-mobile.md",
+    "spike/Spike_Accessibility_Persistent_Banner.md": "spike-accessibility-persistent-banner.md",
+    "spike/Spike_DPC_AOSP_Baseline_Runbook.md": "spike-dpc-aosp-baseline-runbook.md"
+  },
+  "modules": {
+    "01_知识库管理模块.md": {
+      "docs-site": "01-knowledge-base.md",
+      "docs-site-design": "m01-knowledge-base.md"
+    },
+    "02_去中心化社交模块.md": {
+      "docs-site": "02-decentralized-social.md",
+      "docs-site-design": "m02-decentralized-social.md"
+    },
+    "03_交易辅助模块.md": {
+      "docs-site": "03-trading.md",
+      "docs-site-design": "m03-trading-assistant.md"
+    },
+    "04_项目管理模块.md": {
+      "docs-site": "04-project-management.md",
+      "docs-site-design": "m04-project-management.md"
+    },
+    "05_企业版组织模块.md": {
+      "docs-site": "05-enterprise-org.md",
+      "docs-site-design": "m05-enterprise-org.md"
+    },
+    "06_AI优化系统.md": {
+      "docs-site": "06-ai-optimization.md",
+      "docs-site-design": "m06-ai-optimization.md"
+    },
+    "07_性能优化系统.md": {
+      "docs-site": "07-performance.md",
+      "docs-site-design": "m07-performance-optimization.md"
+    },
+    "08_MCP与配置系统.md": {
+      "docs-site": "08-mcp-config.md",
+      "docs-site-design": "m08-mcp-config.md"
+    },
+    "09_浏览器自动化系统.md": {
+      "docs-site": "09-browser-automation.md",
+      "docs-site-design": "m09-browser-automation.md"
+    },
+    "10_远程控制系统.md": {
+      "docs-site": "10-remote-control.md",
+      "docs-site-design": "m10-remote-control.md"
+    },
+    "11_企业审计系统.md": {
+      "docs-site": "11-audit.md",
+      "docs-site-design": "m11-enterprise-audit.md"
+    },
+    "12_插件市场系统.md": {
+      "docs-site": "12-plugin-marketplace.md",
+      "docs-site-design": "m12-plugin-marketplace.md"
+    },
+    "13_多代理系统.md": {
+      "docs-site": "13-multi-agent.md",
+      "docs-site-design": "m13-multi-agent.md"
+    },
+    "14_SSO企业认证.md": {
+      "docs-site": "14-sso.md",
+      "docs-site-design": "m14-sso-enterprise-auth.md"
+    },
+    "15_MCP_SDK系统.md": {
+      "docs-site": "15-mcp-sdk.md",
+      "docs-site-design": "m15-mcp-sdk.md"
+    },
+    "16_AI技能系统.md": {
+      "docs-site": "16-ai-skills.md",
+      "docs-site-design": "m16-ai-skills.md"
+    },
+    "17_EvoMap系统.md": {
+      "docs-site": "17-evomap.md",
+      "docs-site-design": "m17-evomap.md"
+    },
+    "17_IPFS去中心化存储.md": {
+      "docs-site": "17b-ipfs.md",
+      "docs-site-design": "m17b-ipfs-storage.md"
+    },
+    "18_P2P实时协作系统.md": {
+      "docs-site": "18-p2p-collab.md",
+      "docs-site-design": "m18b-p2p-realtime-collab.md"
+    },
+    "18_社交AI系统.md": {
+      "docs-site": "18b-social-ai.md",
+      "docs-site-design": "m18-social-ai.md"
+    },
+    "19_合规分类系统.md": {
+      "docs-site": "19-compliance.md",
+      "docs-site-design": "m19-compliance.md"
+    },
+    "19_自治Agent_Runner.md": {
+      "docs-site": "19b-agent-runner.md",
+      "docs-site-design": "m19b-agent-runner.md"
+    },
+    "20_企业用户配置系统.md": {
+      "docs-site": "20-scim.md",
+      "docs-site-design": "m20-enterprise-provisioning.md"
+    },
+    "20_模型量化系统.md": {
+      "docs-site": "20b-quantization.md",
+      "docs-site-design": "m20b-model-quantization.md"
+    },
+    "21_i18n国际化.md": {
+      "docs-site": "21-i18n.md",
+      "docs-site-design": "m21b-i18n.md"
+    },
+    "21_统一密钥系统.md": {
+      "docs-site": "21b-unified-key.md",
+      "docs-site-design": "m21-unified-key.md"
+    },
+    "22_性能自动调优.md": {
+      "docs-site": "22-auto-tuning.md",
+      "docs-site-design": "m22b-performance-tuning.md"
+    },
+    "22_智能内容推荐系统.md": {
+      "docs-site": "22b-content-rec.md",
+      "docs-site-design": "m22-content-recommendation.md"
+    },
+    "23_Nostr桥接系统.md": {
+      "docs-site": "23-nostr.md",
+      "docs-site-design": "m23-nostr-bridge.md"
+    },
+    "23_企业组织管理.md": {
+      "docs-site": "23b-org-management.md",
+      "docs-site-design": "m23b-enterprise-org-mgmt.md"
+    },
+    "24_去中心化Agent网络.md": {
+      "docs-site": "24-agent-network.md",
+      "docs-site-design": "m24-decentralized-agent-network.md"
+    },
+    "24_数据防泄漏系统.md": {
+      "docs-site": "24b-dlp.md",
+      "docs-site-design": "m24b-dlp-prevention.md"
+    },
+    "25_安全信息事件管理系统.md": {
+      "docs-site": "25-siem.md",
+      "docs-site-design": "m25-siem.md"
+    },
+    "25_自治运维系统.md": {
+      "docs-site": "25b-autonomous-ops.md",
+      "docs-site-design": "m25b-autonomous-ops.md"
+    },
+    "26_开发流水线编排.md": {
+      "docs-site": "26-pipeline.md",
+      "docs-site-design": "m26b-dev-pipeline.md"
+    },
+    "26_社区治理系统.md": {
+      "docs-site": "26b-governance.md",
+      "docs-site-design": "m26-community-governance.md"
+    },
+    "27_Matrix集成系统.md": {
+      "docs-site": "27-matrix.md",
+      "docs-site-design": "m27-matrix-integration.md"
+    },
+    "27_多模态协作.md": {
+      "docs-site": "27b-multimodal.md",
+      "docs-site-design": "m27b-multimodal-collab.md"
+    },
+    "28_基础设施编排系统.md": {
+      "docs-site": "28-infrastructure.md",
+      "docs-site-design": "m28-infra-orchestration.md"
+    },
+    "28_自然语言编程.md": {
+      "docs-site": "28b-nl-programming.md",
+      "docs-site-design": "m28b-nl-programming.md"
+    },
+    "29_生产强化系统.md": {
+      "docs-site": "29-production-hardening.md",
+      "docs-site-design": "m29-production-hardening.md"
+    },
+    "30_联邦强化系统.md": {
+      "docs-site": "30-federation-hardening.md",
+      "docs-site-design": "m30-federation-hardening.md"
+    },
+    "31_压力测试系统.md": {
+      "docs-site": "31-stress-test.md",
+      "docs-site-design": "m31-stress-testing.md"
+    },
+    "32_信誉优化系统.md": {
+      "docs-site": "32-reputation.md",
+      "docs-site-design": "m32-reputation-optimizer.md"
+    },
+    "33_跨组织SLA管理系统.md": {
+      "docs-site": "33-sla.md",
+      "docs-site-design": "m33-cross-org-sla.md"
+    },
+    "34_技术学习引擎系统.md": {
+      "docs-site": "34-tech-learning.md",
+      "docs-site-design": "m34-tech-learning.md"
+    },
+    "35_自主开发者系统.md": {
+      "docs-site": "35-autonomous-dev.md",
+      "docs-site-design": "m35-autonomous-developer.md"
+    },
+    "36_协作治理系统.md": {
+      "docs-site": "36-collab-governance.md",
+      "docs-site-design": "m36-collaboration-governance.md"
+    },
+    "37_技能市场系统.md": {
+      "docs-site": "37-skill-marketplace.md",
+      "docs-site-design": "m37-skill-marketplace.md"
+    },
+    "38_去中心化推理网络系统.md": {
+      "docs-site": "38-inference-network.md",
+      "docs-site-design": "m38-decentralized-inference.md"
+    },
+    "39_信任安全系统.md": {
+      "docs-site": "39-trust-security.md",
+      "docs-site-design": "m39-trust-security.md"
+    },
+    "40_协议融合系统.md": {
+      "docs-site": "40-protocol-fusion.md",
+      "docs-site-design": "m40-protocol-fusion.md"
+    },
+    "41_去中心化基础设施系统.md": {
+      "docs-site": "41-decentralized-infra.md",
+      "docs-site-design": "m41-decentralized-infra.md"
+    },
+    "42_EvoMap高级联邦系统.md": {
+      "docs-site": "42-evomap-federation.md",
+      "docs-site-design": "m42-evomap-federation.md"
+    },
+    "43_IPC域分割与懒加载系统.md": {
+      "docs-site": "43-ipc-split.md",
+      "docs-site-design": "m43-ipc-domain-split.md"
+    },
+    "44_共享资源层与依赖注入容器.md": {
+      "docs-site": "44-di-container.md",
+      "docs-site-design": "m44-di-container.md"
+    },
+    "45_数据库演进与迁移框架.md": {
+      "docs-site": "45-db-migration.md",
+      "docs-site-design": "m45-database-migration.md"
+    },
+    "46_A2A协议引擎.md": {
+      "docs-site": "46-a2a-protocol.md",
+      "docs-site-design": "m46-a2a-protocol.md"
+    },
+    "47_自主工作流编排器.md": {
+      "docs-site": "47-workflow.md",
+      "docs-site-design": "m47-workflow-orchestrator.md"
+    },
+    "48_层次化记忆系统2.0.md": {
+      "docs-site": "48-hierarchical-memory.md",
+      "docs-site-design": "m48-hierarchical-memory.md"
+    },
+    "49_多模态感知层.md": {
+      "docs-site": "49-multimodal-perception.md",
+      "docs-site-design": "m49-multimodal-perception.md"
+    },
+    "50_Agent经济系统.md": {
+      "docs-site": "50-agent-economy.md",
+      "docs-site-design": "m50-agent-economy.md"
+    },
+    "51_代码生成Agent2.0.md": {
+      "docs-site": "51-code-agent.md",
+      "docs-site-design": "m51-code-agent.md"
+    },
+    "52_Agent安全沙箱2.0.md": {
+      "docs-site": "52-sandbox.md",
+      "docs-site-design": "m52-agent-sandbox.md"
+    },
+    "53_零知识证明引擎.md": {
+      "docs-site": "53-zkp.md",
+      "docs-site-design": "m53-zkp-engine.md"
+    },
+    "54_跨链互操作协议.md": {
+      "docs-site": "54-cross-chain.md",
+      "docs-site-design": "m54-cross-chain.md"
+    },
+    "55_去中心化身份2.0.md": {
+      "docs-site": "55-did-v2.md",
+      "docs-site-design": "m55-did-v2.md"
+    },
+    "56_隐私计算框架.md": {
+      "docs-site": "56-privacy-computing.md",
+      "docs-site-design": "m56-privacy-computing.md"
+    },
+    "57_DAO治理2.0.md": {
+      "docs-site": "57-dao-governance.md",
+      "docs-site-design": "m57-dao-governance.md"
+    },
+    "58_低代码平台.md": {
+      "docs-site": "58-low-code.md",
+      "docs-site-design": "m58-low-code.md"
+    },
+    "59_企业知识图谱.md": {
+      "docs-site": "59-knowledge-graph.md",
+      "docs-site-design": "m59-enterprise-kg.md"
+    },
+    "60_BI智能分析.md": {
+      "docs-site": "60-bi-engine.md",
+      "docs-site-design": "m60-bi-analytics.md"
+    },
+    "60_CLI指令技能包系统.md": {
+      "docs-site": "60b-cli-skill-packs.md",
+      "docs-site-design": "m60b-cli-skill-packs.md"
+    },
+    "61_工作流自动化引擎.md": {
+      "docs-site": "61-workflow-automation.md",
+      "docs-site-design": "m61-workflow-automation.md"
+    },
+    "62_多租户SaaS引擎.md": {
+      "docs-site": "62-saas.md",
+      "docs-site-design": "m62-multi-tenant-saas.md"
+    },
+    "63_统一应用运行时.md": {
+      "docs-site": "63-unified-runtime.md",
+      "docs-site-design": "m63-unified-runtime.md"
+    },
+    "64_智能插件生态2.0.md": {
+      "docs-site": "64-plugin-ecosystem.md",
+      "docs-site-design": "m64-plugin-ecosystem.md"
+    },
+    "65_自进化AI系统.md": {
+      "docs-site": "65-self-evolving-ai.md",
+      "docs-site-design": "m65-self-evolving-ai.md"
+    },
+    "66_CLI分发系统.md": {
+      "docs-site": "66-cli-distribution.md",
+      "docs-site-design": "m66-cli-distribution.md"
+    },
+    "67_CLI高级功能补齐.md": {
+      "docs-site": "67-cli-advanced.md",
+      "docs-site-design": "m67-cli-advanced.md"
+    },
+    "68_CLI-Anything集成.md": {
+      "docs-site": "68-cli-anything.md",
+      "docs-site-design": "m68-cli-anything.md"
+    },
+    "69_WebSocket服务器接口.md": {
+      "docs-site": "69-websocket-server.md",
+      "docs-site-design": "m69-websocket-server.md"
+    },
+    "70_Agent智能增强系统.md": {
+      "docs-site": "70-agent-intelligence.md",
+      "docs-site-design": "m70-agent-intelligence.md"
+    },
+    "71_子代理隔离系统.md": {
+      "docs-site": "71-sub-agent-isolation.md",
+      "docs-site-design": "m71-sub-agent-isolation.md"
+    },
+    "71_AI音视频创作模板.md": {
+      "docs-site": "71b-ai-media-creator.md",
+      "docs-site-design": "m71b-ai-media-creator.md"
+    },
+    "72_AI文档创作模板.md": {
+      "docs-site": "72-ai-doc-creator.md",
+      "docs-site-design": "m72-ai-doc-creator.md"
+    },
+    "73_Web管理界面.md": {
+      "docs-site": "73-web-ui.md",
+      "docs-site-design": "m73-web-ui.md"
+    },
+    "74_AI编排层系统.md": {
+      "docs-site": "74-orchestration-layer.md",
+      "docs-site-design": "m74-orchestration-layer.md"
+    },
+    "75_Web管理面板.md": {
+      "docs-site": "75-web-panel.md",
+      "docs-site-design": "m75-web-panel.md"
+    },
+    "76_技能创建系统.md": {
+      "docs-site": "76-skill-creator.md",
+      "docs-site-design": "m76-skill-creator.md"
+    },
+    "77_Agent架构优化系统.md": {
+      "docs-site": "77-agent-optimization.md",
+      "docs-site-design": "m77-agent-optimization.md"
+    },
+    "78_CLI_Agent_Runtime重构实施计划.md": {
+      "docs-site": "78-cli-agent-runtime.md",
+      "docs-site-design": "m78-cli-agent-runtime.md"
+    },
+    "79_Coding_Agent系统.md": {
+      "docs-site": "79-coding-agent.md",
+      "docs-site-design": "m79-coding-agent.md"
+    },
+    "80_规范工作流系统.md": {
+      "docs-site": "80-canonical-workflow.md",
+      "docs-site-design": "m80-canonical-workflow.md"
+    },
+    "81_轻量多Agent编排系统.md": {
+      "docs-site": "81-sub-runtime-pool.md",
+      "docs-site-design": "m81-sub-runtime-pool.md"
+    },
+    "82_CLI_Runtime收口路线图.md": {
+      "docs-site": "82-cli-runtime-convergence.md",
+      "docs-site-design": "m82-cli-runtime-convergence.md"
+    },
+    "83_工具描述规范统一.md": {
+      "docs-site": "83-tool-descriptor-unification.md",
+      "docs-site-design": "m83-tool-descriptor-unification.md"
+    },
+    "84_自主学习闭环系统.md": {
+      "docs-site": "84-autonomous-learning-loop.md",
+      "docs-site-design": "m84-autonomous-learning-loop.md"
+    },
+    "85_Hermes_Agent对标实施方案.md": {
+      "docs-site": "85-hermes-agent-parity.md",
+      "docs-site-design": "m85-hermes-agent-parity.md"
+    },
+    "85_文档代码差距补全.md": {
+      "docs-site": "85b-doc-code-gap-fill.md",
+      "docs-site-design": "m85b-doc-code-gap-fill.md"
+    },
+    "86_Web_Cowork日常任务协作系统.md": {
+      "docs-site": "86-web-cowork.md",
+      "docs-site-design": "m86-web-cowork.md"
+    },
+    "87_Cowork_Evolution_N1_N7.md": {
+      "docs-site": "87-cowork-evolution.md",
+      "docs-site-design": "m87-cowork-evolution.md"
+    },
+    "88_OpenAgents对标补齐方案.md": {
+      "docs-site": "88-open-agents-parity.md",
+      "docs-site-design": "m88-open-agents-parity.md"
+    },
+    "89_v5.0.2.9_六项优化_设计说明.md": {
+      "docs-site": "89-runtime-six-enhancements.md",
+      "docs-site-design": "m89-runtime-six-enhancements.md"
+    },
+    "90_AI视频生成_Volcengine_Seedance.md": {
+      "docs-site": "90-ai-video-generation-seedance.md",
+      "docs-site-design": "m90-ai-video-generation-seedance.md"
+    },
+    "91_Managed_Agents对标计划.md": {
+      "docs-site": "91-managed-agents-parity.md",
+      "docs-site-design": "m91-managed-agents-parity.md"
+    },
+    "92_Deep_Agents_Deploy借鉴落地方案.md": {
+      "docs-site": "92-deep-agents-deploy.md",
+      "docs-site-design": "m92-deep-agents-deploy.md"
+    },
+    "93_CutClaw借鉴_视频剪辑Agent.md": {
+      "docs-site": "93-cutclaw-video-editing-agent.md",
+      "docs-site-design": "m93-cutclaw-video-editing-agent.md"
+    },
+    "94_QualityGate通用质量门控.md": {
+      "docs-site": "94-quality-gate.md",
+      "docs-site-design": "m94-quality-gate.md"
+    },
+    "95_社交协议生态补齐方案.md": {
+      "docs-site": "95-social-protocols-landing.md",
+      "docs-site-design": "m95-social-protocol-parity.md"
+    },
+    "96_V2规范层governance.md": {
+      "docs-site": "96-v2-governance.md",
+      "docs-site-design": "m96-v2-governance.md"
+    },
+    "97_桌面版UI_ClaudeDesktop重构计划.md": {
+      "docs-site": "97-claude-desktop-refactor.md",
+      "docs-site-design": "m97-claude-desktop-refactor.md"
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "id": "tpl_health_record_005",
+  "name": "health_record",
+  "display_name": "健康档案",
+  "description": "个人健康档案模板，包含体检记录、病史、用药记录、家族病史等完整健康信息",
+  "icon": "📋",
+  "category": "health",
+  "subcategory": "健康管理",
+  "tags": [
+    "健康档案",
+    "体检记录",
+    "病历",
+    "健康管理"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成健康档案，要求:\n\n# {{recordTitle}} - 个人健康档案\n\n**建档日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**档案编号**: {{recordNumber}}\n\n## 一、基本信息\n\n**姓名**: {{name}}\n**性别**: {{gender}}\n**出生日期**: {{birthDate}}\n**年龄**: {{age}}\n**身份证号**: {{idNumber}}\n**血型**: {{bloodType}}\n**联系电话**: {{phone}}\n**紧急联系人**: {{emergencyContact}}\n**紧急联系电话**: {{emergencyPhone}}\n**现住址**: {{address}}\n\n## 二、身体基础数据\n\n### 2.1 体格测量\n\n**身高**: {{height}} cm\n**体重**: {{weight}} kg\n**BMI**: {{bmi}}\n**体脂率**: {{bodyFat}}%\n**腰围**: {{waist}} cm\n**臀围**: {{hip}} cm\n**腰臀比**: {{waistHipRatio}}\n\n### 2.2 生命体征\n\n**血压**: {{bloodPressure}} mmHg\n**心率**: {{heartRate}} 次/分\n**体温**: {{temperature}} °C\n**呼吸频率**: {{respiratoryRate}} 次/分\n\n## 三、健康史\n\n### 3.1 既往病史\n\n{{medicalHistory}}\n\n### 3.2 手术史\n\n{{surgicalHistory}}\n\n### 3.3 过敏史\n\n**药物过敏**: {{drugAllergy}}\n**食物过敏**: {{foodAllergy}}\n**其他过敏**: {{otherAllergy}}\n\n### 3.4 家族病史\n\n{{familyHistory}}\n\n## 四、体检记录\n\n### 最近一次体检 ({{lastCheckupDate}})\n\n#### 4.1 一般检查\n\n{{generalExamination}}\n\n#### 4.2 血常规\n\n| 项目 | 结果 | 参考范围 | 状态 |\n|------|------|----------|------|\n| 白细胞 | {{wbc}} | 3.5-9.5×10^9/L | {{wbcStatus}} |\n| 红细胞 | {{rbc}} | 4.3-5.8×10^12/L | {{rbcStatus}} |\n| 血红蛋白 | {{hgb}} | 130-175g/L | {{hgbStatus}} |\n| 血小板 | {{plt}} | 125-350×10^9/L | {{pltStatus}} |\n\n#### 4.3 生化检查\n\n| 项目 | 结果 | 参考范围 | 状态 |\n|------|------|----------|------|\n| 总胆固醇 | {{cholesterol}} | <5.2mmol/L | {{cholesterolStatus}} |\n| 甘油三酯 | {{triglycerides}} | <1.7mmol/L | {{triglyceridesStatus}} |\n| 血糖 | {{glucose}} | 3.9-6.1mmol/L | {{glucoseStatus}} |\n| 尿酸 | {{uricAcid}} | 208-428μmol/L | {{uricAcidStatus}} |\n| 肌酐 | {{creatinine}} | 59-104μmol/L | {{creatinineStatus}} |\n| 转氨酶 | {{alt}} | 9-50U/L | {{altStatus}} |\n\n#### 4.4 影像检查\n\n**胸片/胸部CT**: {{chestXray}}\n**腹部B超**: {{abdominalUltrasound}}\n**心电图**: {{ecg}}\n**其他**: {{otherImaging}}\n\n#### 4.5 专科检查\n\n{{specializedExams}}\n\n#### 4.6 体检结论\n\n{{checkupConclusion}}\n\n#### 4.7 健康建议\n\n{{healthAdvice}}\n\n### 历史体检记录\n\n{{historicalCheckups}}\n\n## 五、用药记录\n\n### 5.1 当前用药\n\n| 药品名称 | 剂量 | 频次 | 用途 | 开始日期 |\n|---------|------|------|------|----------|\n| {{drug1}} | {{dose1}} | {{freq1}} | {{purpose1}} | {{start1}} |\n| {{drug2}} | {{dose2}} | {{freq2}} | {{purpose2}} | {{start2}} |\n\n### 5.2 历史用药\n\n{{historicalMedications}}\n\n### 5.3 保健品/营养补充剂\n\n{{supplements}}\n\n## 六、疫苗接种记录\n\n| 疫苗名称 | 接种日期 | 接种部位 | 批号 | 下次接种 |\n|---------|---------|---------|------|----------|\n| {{vaccine1}} | {{vDate1}} | {{vSite1}} | {{vBatch1}} | {{vNext1}} |\n| {{vaccine2}} | {{vDate2}} | {{vSite2}} | {{vBatch2}} | {{vNext2}} |\n\n## 七、就诊记录\n\n### 就诊记录 1 ({{visit1Date}})\n\n**医院**: {{hospital1}}\n**科室**: {{department1}}\n**主诉**: {{chiefComplaint1}}\n**诊断**: {{diagnosis1}}\n**处理**: {{treatment1}}\n\n### 就诊记录 2 ({{visit2Date}})\n\n**医院**: {{hospital2}}\n**科室**: {{department2}}\n**主诉**: {{chiefComplaint2}}\n**诊断**: {{diagnosis2}}\n**处理**: {{treatment2}}\n\n### 更多就诊记录\n\n{{moreVisits}}\n\n## 八、慢性病管理\n\n### 8.1 已确诊慢性病\n\n{{chronicDiseases}}\n\n### 8.2 管理方案\n\n{{diseaseManagement}}\n\n### 8.3 监测指标\n\n{{monitoringMetrics}}\n\n## 九、生活方式\n\n### 9.1 饮食习惯\n\n{{dietHabits}}\n\n### 9.2 运动习惯\n\n{{exerciseHabits}}\n\n### 9.3 睡眠情况\n\n{{sleepPattern}}\n\n### 9.4 吸烟饮酒\n\n**吸烟**: {{smokingStatus}}\n**饮酒**: {{drinkingStatus}}\n\n### 9.5 职业环境\n\n{{occupationalExposure}}\n\n## 十、女性健康（如适用）\n\n### 10.1 月经史\n\n{{menstrualHistory}}\n\n### 10.2 孕产史\n\n{{pregnancyHistory}}\n\n### 10.3 妇科检查\n\n{{gynecologicalExam}}\n\n## 十一、口腔健康\n\n### 11.1 口腔状况\n\n{{dentalStatus}}\n\n### 11.2 牙科治疗史\n\n{{dentalHistory}}\n\n## 十二、心理健康\n\n### 12.1 心理状态\n\n{{mentalHealth}}\n\n### 12.2 压力评估\n\n{{stressLevel}}\n\n### 12.3 心理咨询史\n\n{{counselingHistory}}\n\n## 十三、健康目标\n\n### 13.1 短期目标\n\n{{shortTermGoals}}\n\n### 13.2 长期目标\n\n{{longTermGoals}}\n\n### 13.3 改善计划\n\n{{improvementPlan}}\n\n## 十四、重要提醒\n\n### 14.1 定期检查项目\n\n{{regularCheckups}}\n\n### 14.2 复查提醒\n\n{{followUpReminders}}\n\n### 14.3 注意事项\n\n{{precautions}}\n\n## 十五、医疗文件\n\n### 15.1 检查报告\n\n{{labReports}}\n\n### 15.2 诊断证明\n\n{{medicalCertificates}}\n\n### 15.3 影像资料\n\n{{imagingFiles}}\n\n## 附录\n\n### A. 医疗保险信息\n\n{{insuranceInfo}}\n\n### B. 就医记录查询\n\n{{medicalRecordAccess}}\n\n### C. 医生建议\n\n{{doctorRecommendations}}\n\n---\n\n**档案管理人**: {{#if manager}}{{manager}}{{else}}本人{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}\n**下次体检**: {{#if nextCheckup}}{{nextCheckup}}{{else}}一年后{{/if}}",
+  "variables_schema": [
+    {
+      "name": "recordTitle",
+      "type": "text",
+      "label": "档案标题",
+      "default": "个人健康档案",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "label": "姓名",
+      "default": "张三",
+      "required": true
+    },
+    {
+      "name": "gender",
+      "type": "select",
+      "label": "性别",
+      "default": "男",
+      "required": true,
+      "options": [
+        {
+          "value": "男",
+          "label": "男"
+        },
+        {
+          "value": "女",
+          "label": "女"
+        }
+      ]
+    },
+    {
+      "name": "age",
+      "type": "text",
+      "label": "年龄",
+      "default": "30",
+      "required": true
+    },
+    {
+      "name": "bloodType",
+      "type": "select",
+      "label": "血型",
+      "default": "A型",
+      "required": false,
+      "options": [
+        {
+          "value": "A型",
+          "label": "A型"
+        },
+        {
+          "value": "B型",
+          "label": "B型"
+        },
+        {
+          "value": "AB型",
+          "label": "AB型"
+        },
+        {
+          "value": "O型",
+          "label": "O型"
+        },
+        {
+          "value": "未知",
+          "label": "未知"
+        }
+      ]
+    },
+    {
+      "name": "height",
+      "type": "text",
+      "label": "身高(cm)",
+      "default": "170",
+      "required": true
+    },
+    {
+      "name": "weight",
+      "type": "text",
+      "label": "体重(kg)",
+      "default": "65",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{recordTitle}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "健康档案.md",
+        "description": "档案正文"
+      },
+      {
+        "type": "file",
+        "name": "体检报告/",
+        "description": "体检文件"
+      },
+      {
+        "type": "file",
+        "name": "就诊记录/",
+        "description": "就医记录"
+      },
+      {
+        "type": "file",
+        "name": "影像资料/",
+        "description": "影像文件"
+      },
+      {
+        "type": "file",
+        "name": "用药记录.xlsx",
+        "description": "用药表格"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

@@ -1,0 +1,51 @@
+{
+  "id": "cowork-runner",
+  "name": "Cowork 多智能体",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "/cowork 斜杠命令 + 协作会话 Artifact + 主页最近协作 widget",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "cowork",
+        "trigger": "cowork",
+        "description": "启动 Cowork 多智能体协作",
+        "icon": "TeamOutlined"
+      }
+    },
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "cowork-session",
+        "renderer": "builtin:CoworkSessionArtifact",
+        "icon": "TeamOutlined",
+        "label": "协作会话",
+        "actions": [
+          { "id": "inspect", "label": "查看计划" },
+          { "id": "stop", "label": "中止" },
+          { "id": "export", "label": "导出结果" }
+        ]
+      }
+    },
+    {
+      "point": "ui.mention",
+      "config": {
+        "prefix": "agent",
+        "source": "cowork-agents",
+        "label": "智能体",
+        "icon": "RobotOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "config": {
+        "id": "recent-cowork",
+        "component": "builtin:RecentCoworkWidget",
+        "size": "medium",
+        "order": 20,
+        "title": "最近协作"
+      }
+    }
+  ]
+}

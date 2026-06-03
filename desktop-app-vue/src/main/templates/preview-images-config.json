@@ -1,0 +1,86 @@
+{
+  "description": "模板预览图生成配置 - 使用CSS渐变背景 + emoji图标",
+  "version": "1.0.0",
+  "defaultSize": {
+    "width": 800,
+    "height": 600
+  },
+  "categoryGradients": {
+    "writing": {
+      "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "colors": ["#667eea", "#764ba2"],
+      "textColor": "#ffffff"
+    },
+    "ppt": {
+      "gradient": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+      "colors": ["#4facfe", "#00f2fe"],
+      "textColor": "#ffffff"
+    },
+    "excel": {
+      "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+      "colors": ["#43e97b", "#38f9d7"],
+      "textColor": "#ffffff"
+    },
+    "web": {
+      "gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+      "colors": ["#f093fb", "#f5576c"],
+      "textColor": "#ffffff"
+    },
+    "resume": {
+      "gradient": "linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)",
+      "colors": ["#fccb90", "#d57eeb"],
+      "textColor": "#ffffff"
+    },
+    "research": {
+      "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+      "colors": ["#fa709a", "#fee140"],
+      "textColor": "#ffffff"
+    },
+    "marketing": {
+      "gradient": "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
+      "colors": ["#30cfd0", "#330867"],
+      "textColor": "#ffffff"
+    },
+    "design": {
+      "gradient": "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+      "colors": ["#a8edea", "#fed6e3"],
+      "textColor": "#333333"
+    },
+    "podcast": {
+      "gradient": "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+      "colors": ["#ff9a9e", "#fecfef"],
+      "textColor": "#ffffff"
+    },
+    "education": {
+      "gradient": "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+      "colors": ["#ffecd2", "#fcb69f"],
+      "textColor": "#333333"
+    },
+    "lifestyle": {
+      "gradient": "linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)",
+      "colors": ["#ff6e7f", "#bfe9ff"],
+      "textColor": "#ffffff"
+    },
+    "travel": {
+      "gradient": "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)",
+      "colors": ["#e0c3fc", "#8ec5fc"],
+      "textColor": "#ffffff"
+    }
+  },
+  "svgTemplate": "<svg width=\"800\" height=\"600\" xmlns=\"http://www.w3.org/2000/svg\"><defs><linearGradient id=\"grad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" style=\"stop-color:{{color1}};stop-opacity:1\" /><stop offset=\"100%\" style=\"stop-color:{{color2}};stop-opacity:1\" /></linearGradient></defs><rect width=\"800\" height=\"600\" fill=\"url(#grad)\" /><text x=\"400\" y=\"250\" font-family=\"Arial, sans-serif\" font-size=\"120\" fill=\"{{textColor}}\" text-anchor=\"middle\">{{icon}}</text><text x=\"400\" y=\"400\" font-family=\"Arial, sans-serif\" font-size=\"36\" font-weight=\"bold\" fill=\"{{textColor}}\" text-anchor=\"middle\">{{displayName}}</text></svg>",
+  "usage": {
+    "frontend": "在前端使用CSS渐变作为卡片背景",
+    "generation": "可使用SVG模板生成实际PNG图片",
+    "fallback": "如果cover_image文件不存在，使用渐变背景 + emoji作为预览"
+  },
+  "examples": [
+    {
+      "template_id": "tpl_writing_office_work_report_001",
+      "category": "writing",
+      "icon": "📝",
+      "display_name": "5分钟企业工作汇报",
+      "preview_css": "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);",
+      "preview_svg_url": "data:image/svg+xml;base64,..."
+    }
+  ]
+}

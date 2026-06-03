@@ -1,0 +1,58 @@
+{
+  "id": "tpl_techdocs_patent_001",
+  "name": "patent_application",
+  "display_name": "专利申请书",
+  "description": "发明专利/实用新型专利申请文件模板，包含技术领域、背景技术、发明内容等完整结构",
+  "icon": "📜",
+  "category": "tech-docs",
+  "subcategory": "intellectual-property",
+  "tags": ["专利", "知识产权", "发明", "技术文档"],
+  "project_type": "document",
+  "prompt_template": "# {{patentTitle}} 专利申请书\n\n**申请号**：{{applicationNumber}}\n**申请日**：{{filingDate}}\n**发明名称**：{{patentTitle}}\n**申请人**：{{applicant}}\n**发明人**：{{inventor}}\n**代理机构**：{{agent}}\n\n---\n\n## 摘要\n\n{{abstract}}\n\n**摘要附图**：{{abstractDrawing}}\n\n---\n\n## 权利要求书\n\n### 1. 独立权利要求\n\n**权利要求1**：\n{{claim1}}\n\n### 2. 从属权利要求\n\n**权利要求2**（依赖于权利要求1）：\n{{claim2}}\n\n**权利要求3**（依赖于权利要求1或2）：\n{{claim3}}\n\n**权利要求4**：\n{{claim4}}\n\n**权利要求5**：\n{{claim5}}\n\n{{additionalClaims}}\n\n---\n\n## 说明书\n\n### 技术领域\n\n本发明涉及{{technicalField}}领域，具体涉及{{specificField}}。\n\n### 背景技术\n\n#### 现有技术\n\n{{priorArt}}\n\n#### 存在的问题\n\n现有技术存在以下问题：\n1. {{problem1}}\n2. {{problem2}}\n3. {{problem3}}\n\n#### 相关专利\n\n- **专利1**：{{relatedPatent1}}\n- **专利2**：{{relatedPatent2}}\n\n### 发明内容\n\n#### 发明目的\n\n本发明的目的是提供{{inventionPurpose}}，以解决上述现有技术中存在的问题。\n\n#### 技术方案\n\n为实现上述目的，本发明采用以下技术方案：\n\n{{technicalSolution}}\n\n**优选实施方式**：\n{{preferredEmbodiment}}\n\n#### 有益效果\n\n与现有技术相比，本发明具有以下有益效果：\n1. {{benefit1}}\n2. {{benefit2}}\n3. {{benefit3}}\n4. {{benefit4}}\n\n### 附图说明\n\n**图1**：{{figure1Description}}\n\n**图2**：{{figure2Description}}\n\n**图3**：{{figure3Description}}\n\n{{additionalFigures}}\n\n### 具体实施方式\n\n下面结合附图和具体实施例对本发明作进一步详细说明。\n\n#### 实施例1\n\n{{embodiment1}}\n\n**步骤1**：{{step1}}\n\n**步骤2**：{{step2}}\n\n**步骤3**：{{step3}}\n\n**效果**：{{embodiment1Effect}}\n\n#### 实施例2\n\n{{embodiment2}}\n\n#### 实施例3\n\n{{embodiment3}}\n\n### 工业应用性\n\n{{industrialApplicability}}\n\n---\n\n## 附录\n\n### 附录A：技术术语表\n\n{{technicalTerms}}\n\n### 附录B：参考文献\n\n{{references}}\n\n---\n\n**申请人签字/盖章**：_____________________\n\n**日期**：{{filingDate}}",
+  "variables_schema": [
+    {
+      "name": "patentTitle",
+      "label": "发明名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "applicant",
+      "label": "申请人（个人或单位）",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "inventor",
+      "label": "发明人",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "patentType",
+      "label": "专利类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "发明专利", "label": "发明专利（保护期20年）" },
+        { "value": "实用新型专利", "label": "实用新型专利（保护期10年）" },
+        { "value": "外观设计专利", "label": "外观设计专利（保护期15年）" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "专利申请-{{patentTitle}}",
+    "files": [
+      {"path": "专利申请书.docx", "type": "document"},
+      {"path": "权利要求书.docx", "type": "document"},
+      {"path": "说明书.docx", "type": "document"},
+      {"path": "附图/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_patent_writing", "skill_technical_writing"],
+  "required_tools": ["tool_word_generator"],
+  "execution_engine": "document"
+}

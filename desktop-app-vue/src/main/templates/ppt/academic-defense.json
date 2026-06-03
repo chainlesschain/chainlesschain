@@ -1,0 +1,88 @@
+{
+  "id": "tpl_ppt_defense_006",
+  "name": "academic_defense",
+  "display_name": "学术答辩PPT",
+  "description": "毕业论文/学术答辩PPT，包含研究背景、方法、结果和结论",
+  "icon": "🎓",
+  "category": "ppt",
+  "subcategory": "academic",
+  "tags": [
+    "学术答辩",
+    "毕业论文",
+    "开题报告",
+    "学术汇报"
+  ],
+  "project_type": "document",
+  "prompt_template": "学术答辩PPT\n\n**答辩信息：**\n- 论文题目：{{thesisTitle}}\n- 答辩人：{{student}}\n- 导师：{{advisor}}\n- 学位类型：{{degreeType}}\n- 答辩时长：{{duration}}分钟\n\n# 学术答辩PPT完整结构\n\n## 第一部分：开场（1-3页）\n\n### 封面页\n论文题目：{{thesisTitle}}\n答辩人：{{student}}\n导师：{{advisor}}\n答辩委员会\n\n### 研究背景\n- 研究领域介绍\n- 研究意义\n- 研究现状\n\n## 第二部分：文献综述（4-6页）\n\n### 理论基础\n- 相关理论\n- 前人研究\n- 研究空白\n\n### 研究问题\n- 研究问题\n- 研究假设\n- 研究目标\n\n## 第三部分：研究方法（7-10页）\n\n### 研究设计\n- 研究类型\n- 研究对象\n- 数据来源\n\n### 研究过程\n- 数据收集\n- 数据分析\n- 技术路线\n\n## 第四部分：研究结果（11-16页）\n\n### 数据呈现\n- 描述性统计\n- 推断性统计\n- 可视化图表\n\n### 结果分析\n- 假设验证\n- 结果解释\n- 讨论\n\n## 第五部分：结论与展望（17-19页）\n\n### 研究结论\n- 主要发现\n- 理论贡献\n- 实践意义\n\n### 研究局限\n- 样本局限\n- 方法局限\n- 改进方向\n\n### 未来展望\n- 后续研究\n- 应用前景\n\n## 第六部分：致谢（20页）\n\n感谢导师、答辩委员会、同学、家人",
+  "variables_schema": [
+    {
+      "name": "thesisTitle",
+      "label": "论文题目",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "student",
+      "label": "答辩人",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "advisor",
+      "label": "导师",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "degreeType",
+      "label": "学位类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "学士",
+          "label": "学士学位"
+        },
+        {
+          "value": "硕士",
+          "label": "硕士学位"
+        },
+        {
+          "value": "博士",
+          "label": "博士学位"
+        }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "答辩时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 20
+    }
+  ],
+  "file_structure": {
+    "root": "学术答辩-{{student}}",
+    "files": [
+      {
+        "path": "答辩PPT.pptx",
+        "type": "presentation"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_office_suite",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_ppt_generator",
+    "tool_ppt_slide_creator",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "ppt"
+}

@@ -1,0 +1,138 @@
+{
+  "name": "chainlesschain",
+  "version": "0.37.15",
+  "productVersion": "v5.0.3.98",
+  "description": "基于U盾和SIMKey的个人移动AI管理系统",
+  "private": true,
+  "workspaces": [
+    "desktop-app",
+    "backend/services",
+    "packages/core-env",
+    "packages/shared-logger",
+    "packages/core-db",
+    "packages/core-config",
+    "packages/core-infra",
+    "packages/core-llm",
+    "packages/core-knowledge",
+    "packages/core-ai",
+    "packages/core-social",
+    "packages/core-blockchain",
+    "packages/core-mtc",
+    "packages/core-multisig",
+    "packages/session-core",
+    "packages/cli",
+    "packages/personal-data-hub"
+  ],
+  "scripts": {
+    "dev:desktop": "npm run dev --workspace=desktop-app",
+    "dev:desktop-vue": "cd desktop-app-vue && npm run dev",
+    "build:desktop": "npm run build --workspace=desktop-app",
+    "build:desktop-vue": "cd desktop-app-vue && npm run build",
+    "build:web-panel": "cd packages/web-panel && npm install --legacy-peer-deps && npm run build && node --input-type=module -e \"import fs from 'fs'; import path from 'path'; const src=path.resolve(process.cwd(),'dist'),dst=path.resolve(process.cwd(),'../cli/src/assets/web-panel'); fs.rmSync(dst,{recursive:true,force:true}); fs.cpSync(src,dst,{recursive:true}); console.log('Web panel bundled →',dst);\"",
+    "dev:web-panel": "cd packages/web-panel && npm install --legacy-peer-deps && npm run dev",
+    "signaling:start": "cd signaling-server && npm start",
+    "signaling:dev": "cd signaling-server && npm run dev",
+    "signaling:docker": "docker-compose up -d signaling-server",
+    "test:jest": "jest",
+    "test:jest:project": "jest tests/unit/project",
+    "test:jest:watch": "jest --watch",
+    "test:jest:coverage": "jest --coverage",
+    "test:vitest:coverage": "vitest run --coverage -c config/vitest.config.js",
+    "test:coverage": "npm run test:jest:coverage && npm run test:vitest:coverage",
+    "test:coverage:open": "open coverage/jest/index.html && open coverage/vitest/index.html",
+    "test:performance": "vitest run tests/performance/benchmark.test.js",
+    "test:all": "npm run test:jest && npm run test:vitest:coverage && npm run test:performance",
+    "test:e2e": "playwright test",
+    "test:e2e:project": "playwright test tests/e2e/project-management.e2e.test.ts",
+    "test:e2e:workflow": "playwright test tests/e2e/complete-workflow.e2e.test.ts",
+    "test:e2e:knowledge": "playwright test tests/e2e/knowledge-base.e2e.test.ts",
+    "test:e2e:social": "playwright test tests/e2e/social-features.e2e.test.ts",
+    "test:e2e:creation": "playwright test tests/e2e/project-creation-workflow.e2e.test.ts",
+    "test:e2e:ai-flow": "playwright test tests/e2e/ai-intelligent-creation.e2e.test.ts",
+    "test:e2e:chat": "playwright test tests/e2e/ai-chat.e2e.test.ts",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "dev:android": "cd mobile-app/android && ./gradlew installDebug",
+    "docker:up": "cd backend/docker && docker-compose up -d",
+    "docker:down": "cd backend/docker && docker-compose down",
+    "docker:logs": "cd backend/docker && docker-compose logs -f",
+    "init:db": "node scripts/init-database.js",
+    "setup": "node scripts/setup.js",
+    "test": "npm test --workspaces",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "rimraf desktop-app/dist desktop-app/out node_modules/.cache",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "decentralized",
+    "ai",
+    "knowledge-base",
+    "privacy",
+    "u-key",
+    "sim-key",
+    "blockchain"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@electron/rebuild": "^4.0.2",
+    "@faker-js/faker": "^10.2.0",
+    "@playwright/test": "^1.57.0",
+    "@types/jest": "^30.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "babel-jest": "^29.7.0",
+    "electron": "^39.2.7",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.2.4",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourname/chainlesschain.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourname/chainlesschain/issues"
+  },
+  "homepage": "https://www.chainlesschain.com",
+  "lint-staged": {
+    "desktop-app-vue/**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "desktop-app-vue/**/*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "packages/cli/**/*.{js,json,md}": [
+      "prettier --write"
+    ],
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "node scripts/security-check.js"
+    ]
+  },
+  "dependencies": {
+    "claude": "^0.1.1"
+  },
+  "overrides": {
+    "cookie": "0.7.2",
+    "diff": "8.0.3",
+    "axios": "1.15.0",
+    "protobufjs": ">=7.5.5"
+  }
+}

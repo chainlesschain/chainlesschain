@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 网络权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- v1.2 #1 Android Auto — CarApp template host 调 CarAppService 必需 -->
+    <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+
+    <!-- v1.2 #1 Android Auto feature gate — Auto host 用 hardware.type.automotive
+         过滤 launcher；required=false 让 phone APK 仍可装非 Auto 设备 -->
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="false" />
+
+    <!-- 存储权限 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"
+        tools:ignore="ScopedStorage" />
+
+    <!-- Android 13+媒体权限 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- 相机权限（QR码扫描） -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- 录音权限（语音输入、语音通话） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- PDH 本机采集 — Path C snapshot-writer (system-data-android adapter)。
+         READ_CONTACTS 触发 runtime permission dialog；用户拒后采集只剩 PackageManager 路径
+         (无权限要求)。 -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- WebRTC通话权限 -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
+    <!-- Wake Lock（通话期间保持屏幕唤醒） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- 振动权限（反馈） -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- 通知权限（Android 13+） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 列出已安装应用（Android 11+ R 之后查询包列表需 QUERY_ALL_PACKAGES，
+         为本机数据中台采集已装应用清单使用；Play Console 政策审批见 Plan A
+         设计稿 §5。当前 GitHub release 渠道不受 Play 政策限制。
+         READ_CONTACTS 已在 line 42 声明 (PDH Path C snapshot writer)。 -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- 前台服务权限（WorkManager foreground workers） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- M3 D2 LocationForegroundService 用，API 34+ 需特定子类型 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- 生物识别权限 -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- 位置权限（M3 D-loc LocationTagger：GPS 打卡笔记 / DID 凭证附带位置） -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+    <!-- APK 自动更新：sideload 安装权限（API 26+ 需要用户授权一次） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Android 11+ 包可见性 —— 让 SpeechRecognizer.isRecognitionAvailable
+         能看到任何已安装的语音识别服务（搜狗/讯飞/百度/Google 等输入法都注册
+         android.speech.RecognitionService action） -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".ChainlessChainApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ChainlessChain"
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ChainlessChain"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+                #21 C.1 PR1 — generic VoiceMode launch action. Reachable by:
+                  - PR2 wear-forward: CcPhoneVoiceListener WearableListenerService
+                  - PR3 wear UI (complication / tile / watch face)
+                  - PR4 (future) phone shortcut / Quick Settings tile
+                  - External apps (Tasker / Shortcuts) via VoiceTriggerSource.EXTERNAL
+                Receivers must use VoiceLaunchActions.buildIntent(...) for
+                proper extras + use VoiceLaunchActions.extractTriggerSource()
+                to parse incoming intents.
+            -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.action.START_VOICE_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- M3 D-share：处理来自其它 app 的 ACTION_SEND / ACTION_SEND_MULTIPLE 分享。
+             Activity 不显示 UI，仅解析 Intent → enqueue 到 SharedInboxRepository → finish。
+             由 SyncCoordinator 下个 30s 循环 push 到桌面 KB。 -->
+        <activity
+            android:name=".capture.share.ShareReceiverActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- AppCompat 1.6+ 提供的本地 locale 持久化服务（API <33 用） -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <!-- M3 D2 LocationTagger 后台采集前台服务（API 34+ 需 foregroundServiceType=location） -->
+        <service
+            android:name=".capture.location.LocationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- v1.2 #1 Android Auto — CarAppService entry。Auto host 通过
+             androidx.car.app.CarAppService category + automotiveApp meta-data
+             发现并 launch 本服务。Phase 0 仅占位 Voice Mode；Phase 1 接 ASR。 -->
+        <service
+            android:name=".auto.CcCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT" />
+            </intent-filter>
+        </service>
+        <!-- 必需：Auto host 读 automotive_app_desc.xml 决定 app 类别 -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <!-- v1.2 #20 P0.2 Wear Phase 2: watch → phone decision listener -->
+        <service
+            android:name=".wear.CcPhoneDecisionListener"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/cc/" />
+            </intent-filter>
+        </service>
+
+        <!--
+            #21 C.1 PR2: wear → phone voice forward listener. Exact path match
+            on /cc/voice/start so the decision listener (pathPrefix /cc/) and
+            this one co-exist without firing for each other's traffic.
+            wear-app/sync/WearVoiceSender (PR3) will produce these messages.
+        -->
+        <service
+            android:name=".wear.CcPhoneVoiceListener"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:path="/cc/voice/start" />
+            </intent-filter>
+        </service>
+
+        <!-- Disable default WorkManager initializer (using Hilt's HiltWorkerFactory) -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!-- FileProvider for file sharing -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
+
+    </application>
+
+</manifest>

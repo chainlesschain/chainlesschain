@@ -1,0 +1,29 @@
+{
+  "name": "community-forum-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ChainlessChain Community Forum Frontend",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.2",
+    "element-plus": "^2.5.1",
+    "@element-plus/icons-vue": "^2.3.1",
+    "markdown-it": "^14.0.0",
+    "highlight.js": "^11.9.0",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.8",
+    "unplugin-vue-components": "^0.26.0",
+    "unplugin-auto-import": "^0.17.3",
+    "sass": "^1.69.5"
+  }
+}

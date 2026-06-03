@@ -1,0 +1,26 @@
+{
+  "name": "chainlesschain-website-api",
+  "version": "1.0.0",
+  "description": "ChainlessChain官网联系表单API",
+  "main": "contact.js",
+  "scripts": {
+    "start": "node contact.js",
+    "dev": "nodemon contact.js"
+  },
+  "keywords": ["contact-form", "api", "chainlesschain"],
+  "author": "ChainlessChain",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "nodemailer": "^6.9.8",
+    "express-rate-limit": "^7.1.5",
+    "axios": "^1.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
