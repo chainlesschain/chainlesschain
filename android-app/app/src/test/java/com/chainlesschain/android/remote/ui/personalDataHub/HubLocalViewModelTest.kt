@@ -379,6 +379,9 @@ class HubLocalViewModelTest {
             androidLlmExecutor,
             remoteHub,
             appContext,
+            // init 在 ioDispatcher 上 launch；传 testDispatcher 让 advanceUntilIdle()
+            // 能驱动 init 完成（生产由 Hilt @IoDispatcher 提供 Dispatchers.IO）。
+            testDispatcher,
         )
 
     // ─── Initialization ─────────────────────────────────────────────────────

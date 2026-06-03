@@ -44,7 +44,7 @@ class HubBrowserScreenE2ETest {
         id: String,
         subtype: String = "note",
         summary: String = "summary-$id",
-    ): LocalCcRunner.Companion.EventRow = LocalCcRunner.Companion.EventRow(
+    ): LocalCcRunner.EventRow = LocalCcRunner.EventRow(
         id = id,
         subtype = subtype,
         occurredAt = 1700000000_000L,

@@ -50,7 +50,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Dispatchers
+import com.chainlesschain.android.di.IoDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -142,6 +143,10 @@ class HubLocalViewModel @Inject constructor(
     private val androidLlmExecutor: AndroidLocalLlmExecutor,
     private val remoteHub: PersonalDataHubCommands,
     @ApplicationContext private val appContext: Context,
+    // init 的 refresh*FromStore() 读 keystore-backed EncryptedSharedPreferences，
+    // 必须挪到 IO 线程避免主线程 ANR。注入而非硬编码 Dispatchers.IO，让单测能
+    // 传 TestDispatcher 使 advanceUntilIdle() 能驱动 init 完成。
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     @Immutable
@@ -301,6 +306,8 @@ class HubLocalViewModel @Inject constructor(
         val isAsking: Boolean = false,
         val answer: String? = null,
         val citations: List<LocalCcRunner.AskReport.Citation> = emptyList(),
+        // LLM 引用了 vault 里不存在的 event id 的条数。>0 → 显 PdhHallucinationBanner。
+        val hallucinatedCount: Int = 0,
         val llmName: String? = null,
         val isLocal: Boolean = true,
         val durationMs: Long = 0L,
@@ -629,7 +636,7 @@ class HubLocalViewModel @Inject constructor(
         // 这些 refresh*FromStore() 同步读 EncryptedSharedPreferences (keystore-backed)，
         // 早期直接在 init 跑 → ViewModel 在主线程构造 → 进 Hub/首页 tab 时主线程阻塞 → ANR。
         // 全部挪到 IO 线程；内部仅做线程安全的 _state.update / launchIn(viewModelScope)。
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             refreshPermissionState()
             refreshSystemDataFromStore()
             refreshBilibiliFromStore()
@@ -1056,6 +1063,7 @@ class HubLocalViewModel @Inject constructor(
                     isAsking = true,
                     answer = null,
                     citations = emptyList(),
+                    hallucinatedCount = 0,
                     errorMessage = null,
                 ),
             )
@@ -1080,6 +1088,7 @@ class HubLocalViewModel @Inject constructor(
                             isAsking = false,
                             answer = result.report.answer,
                             citations = result.report.citations,
+                            hallucinatedCount = result.report.hallucinatedCount,
                             // llmName 保持 raw 模型名，路由信息走 radio 标签;
                             // 兼容旧测试断言 llmName == "qwen2.5"。
                             llmName = result.report.llmName,
@@ -1134,6 +1143,7 @@ class HubLocalViewModel @Inject constructor(
                     isAsking = true,
                     answer = null,
                     citations = emptyList(),
+                    hallucinatedCount = 0,
                     errorMessage = null,
                 ),
             )
@@ -1230,6 +1240,7 @@ class HubLocalViewModel @Inject constructor(
                     isAsking = true,
                     answer = null,
                     citations = emptyList(),
+                    hallucinatedCount = 0,
                     errorMessage = null,
                 ),
             )
@@ -1273,7 +1284,7 @@ class HubLocalViewModel @Inject constructor(
     }
 
     fun clearAskAnswer() {
-        _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), errorMessage = null)) }
+        _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), hallucinatedCount = 0, errorMessage = null)) }
     }
 
     /**
@@ -1288,6 +1299,7 @@ class HubLocalViewModel @Inject constructor(
                     isAsking = true,
                     answer = null,
                     citations = emptyList(),
+                    hallucinatedCount = 0,
                     errorMessage = null,
                 ),
             )
