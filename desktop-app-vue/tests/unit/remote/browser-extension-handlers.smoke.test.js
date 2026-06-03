@@ -216,6 +216,20 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "annotation.remove",
       "annotation.clear",
       "annotation.export",
+      "element.hover",
+      "element.focus",
+      "element.blur",
+      "element.select",
+      "element.getAttribute",
+      "element.setAttribute",
+      "element.getBoundingRect",
+      "element.isVisible",
+      "element.waitForSelector",
+      "element.dragDrop",
+      "dom.observeMutations",
+      "dom.stopObserving",
+      "dom.getMutations",
+      "dom.clearMutations",
     ];
     for (const method of migrated) {
       expect(

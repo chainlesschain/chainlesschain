@@ -3,6 +3,7 @@ import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
 import { devtoolsDebugHandlers } from "./devtools-debug.js";
 import { devtoolsInspectHandlers } from "./devtools-inspect.js";
+import { domHandlers } from "./dom.js";
 import { downloadsHandlers } from "./downloads.js";
 import { historyHandlers } from "./history.js";
 import { indexeddbHandlers } from "./indexeddb.js";
@@ -28,6 +29,7 @@ export const commandHandlerRegistry = {
   ...devtoolsDebugHandlers,
   ...devtoolsInspectHandlers,
   ...pageHandlers,
+  ...domHandlers,
 };
 
 export { listTabs };
