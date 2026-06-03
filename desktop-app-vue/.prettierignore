@@ -1,2 +1,0 @@
-# Files with HTML in JS strings that confuse prettier's Vue parser
-src/renderer/components/projects/ExcelEditor.vue

@@ -1,9 +1,0 @@
-# Runtime dependencies for forensics-bridge sidecar
-# Phase 4.5.1: core skeleton has zero runtime deps (uses stdlib only)
-# Later phases will add:
-#   pysqlcipher3  >= 1.0.4   # Phase 12 WeChat SQLCipher decryption
-#   pymobiledevice3 >= 4.0   # Phase 4.5 iOS extraction
-
-# Test deps
-pytest>=8.0
-pytest-timeout>=2.3

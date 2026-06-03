@@ -8,6 +8,7 @@ import { historyHandlers } from "./history.js";
 import { indexeddbHandlers } from "./indexeddb.js";
 import { networkHandlers } from "./network.js";
 import { notificationsHandlers } from "./notifications.js";
+import { pageHandlers } from "./page.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
 import { windowsHandlers } from "./windows.js";
@@ -26,6 +27,7 @@ export const commandHandlerRegistry = {
   ...networkHandlers,
   ...devtoolsDebugHandlers,
   ...devtoolsInspectHandlers,
+  ...pageHandlers,
 };
 
 export { listTabs };
