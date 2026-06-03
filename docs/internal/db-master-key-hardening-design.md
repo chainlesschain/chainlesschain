@@ -164,6 +164,8 @@ if (provider.isAvailable()) {
 
 ### 5.2 真机验证步骤（flip 默认前必跑，真机已可用）
 
+> 可勾选清单：`docs/internal/db-encryption-phase1-realdevice-smoke.md`（含精确文件路径、日志锚点、中断/并发/kill-switch/fail-closed 场景 + 翻 gate 签核）。下面是摘要。
+
 1. 装一个**当前默认版**（明文库），正常用一会儿，产生笔记/会话等数据。
 2. 升级到含本 Phase 1 的版本，**设 `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` 启动**。
 3. 验证：(a) 数据完好（笔记/会话条数一致）；(b) 出现 `<userData>/db-secret.enc`；(c) 出现 `chainlesschain.encrypted.db`、原 `chainlesschain.db` 变 `.old`；(d) 用旧 "123456"/空 key 打不开新库。
