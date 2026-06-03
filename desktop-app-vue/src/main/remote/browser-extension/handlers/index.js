@@ -4,6 +4,7 @@ import { clipboardHandlers } from "./clipboard.js";
 import { downloadsHandlers } from "./downloads.js";
 import { historyHandlers } from "./history.js";
 import { indexeddbHandlers } from "./indexeddb.js";
+import { networkHandlers } from "./network.js";
 import { notificationsHandlers } from "./notifications.js";
 import { storageHandlers } from "./storage.js";
 import { listTabs, tabsHandlers } from "./tabs.js";
@@ -20,6 +21,7 @@ export const commandHandlerRegistry = {
   ...storageHandlers,
   ...indexeddbHandlers,
   ...cacheHandlers,
+  ...networkHandlers,
 };
 
 export { listTabs };

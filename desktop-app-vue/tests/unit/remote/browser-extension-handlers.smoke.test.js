@@ -145,6 +145,21 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "cache.deleteEntry",
       "cache.deleteCache",
       "cache.addEntry",
+      "network.enableInterception",
+      "network.disableInterception",
+      "network.setRequestBlocking",
+      "network.clearRequestBlocking",
+      "network.getRequests",
+      "network.mockResponse",
+      "network.setThrottling",
+      "network.clearThrottling",
+      "network.getThrottlingProfiles",
+      "network.setOffline",
+      "network.getTiming",
+      "network.getWaterfall",
+      "network.analyzeRequests",
+      "networkInfo.get",
+      "networkInfo.onChange",
     ];
     for (const method of migrated) {
       expect(
