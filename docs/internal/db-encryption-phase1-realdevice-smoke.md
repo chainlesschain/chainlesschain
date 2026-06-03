@@ -95,6 +95,23 @@
 - [ ] commit（建议 `feat(db): flip Phase 1.5 — DB encryption on by default in packaged builds`），随下次发版生效。
 - [ ] 发版后留意：老用户首启会跑迁移，关注崩溃率 / `[encrypted-migration]` 失败日志；备好 `=0` 急停话术。
 
+## Phase 2 — legacy `.encrypted("123456")` 库 rekey（单独 smoke，双 gate）
+
+> 仅适用于**曾手动开过加密**、已有 `chainlesschain.encrypted.db`（"123456" 加密）的机器。
+> 双 gate：须 `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` **且** `CHAINLESSCHAIN_ENABLE_DB_REKEY=1`。
+
+- [ ] 造一台 legacy 现场：有 `chainlesschain.encrypted.db`（"123456" 派生）+ `db-key-config.json`（含 salt）+ **无** `db-secret.enc`。
+- [ ] 两个 env 都设为 1 启动 → 日志 `legacy rekey 结果: {"success":true}` + `[legacy-rekey] rekey + 重开校验通过`。
+- [ ] 数据完好；出现 `db-secret.enc`；`db-key-config.json` 的 salt 已更新；`*.rekey-bak` 已删除；`*.rekeying.lock` 不残留。
+- [ ] **旧 key 验证**：用 "123456" + 旧 salt 重算 key 已**打不开** `encrypted.db`（已 rekey 到托管口令）。
+- [ ] 再次启动（双 gate 仍开）→ 日志走 `managed`，不再 rekey；数据仍在。
+- [ ] **中断恢复**：重置 legacy 现场，rekey 进行中强杀/断电。重启：
+  - [ ] 若提交未完成 → `[legacy-rekey] 恢复：…已回滚到 legacy 加密库`，`.rekey-bak` 被恢复为主库，数据完好，可重试。
+  - [ ] 若提交已完成 → `恢复：rekey 已提交，清理陈旧备份`，用托管 key 正常开。
+  - [ ] **任一情况都不得丢数据**（rekey 只改加密 key、不改数据）。
+- [ ] **并发**：双实例同时启动（双 gate 开），只有一个 rekey，另一个见锁跳过，库不坏。
+- [ ] 全过后：Phase 2 也可纳入默认（给 rekey 加 gated 默认，或在 Phase 1.5 翻 gate 时一并；建议保持 `CHAINLESSCHAIN_ENABLE_DB_REKEY` 显式开，因受众罕见）。
+
 ## 签核
 
 - 执行人 / 日期 / 构建版本：__________

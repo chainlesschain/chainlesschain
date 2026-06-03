@@ -69,8 +69,26 @@ function isDbEncryptionOptIn(opts = {}) {
   return !!isPackaged; // gate open → on only in packaged prod
 }
 
+/**
+ * Phase 2 (legacy rekey) opt-in — separate, independently gated from Phase 1/1.5.
+ *
+ * Rekeys a rare legacy `.encrypted` DB that was created with the hard-coded
+ * "123456" passphrase onto a safeStorage-managed random one (in-place SQLCipher
+ * rekey with backup/verify/rollback). OFF by default — only runs when explicitly
+ * opted in, and even then only when DB encryption itself is on.
+ *
+ * Enable via: CHAINLESSCHAIN_ENABLE_DB_REKEY=1
+ *
+ * @returns {boolean} whether legacy→managed rekey is opted in. Default false.
+ */
+function isDbRekeyOptIn() {
+  const v = process.env.CHAINLESSCHAIN_ENABLE_DB_REKEY;
+  return v === "1" || v === "true";
+}
+
 module.exports = {
   isDbEncryptionOptIn,
+  isDbRekeyOptIn,
   PHASE_1_5_DEFAULT_ON,
   _resolveIsPackaged,
 };

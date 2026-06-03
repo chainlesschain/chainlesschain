@@ -150,7 +150,7 @@ if (provider.isAvailable()) {
 | 0 | `db-secret-provider.js` + bootstrap 去 `"123456"` | ✅ `01f8b00b2` | 低（生产休眠） | 单测 |
 | 1 | opt-in flag + 明文→.encrypted 安全迁移（lock + reopen-verify）+ fail-closed | ✅ **代码 landed，默认 OFF** | **高**（开启时给现存明文库做加密迁移） | **真机 smoke 后才可 flip 默认** |
 | 1.5 | gated flip：默认改 `app.isPackaged`（代码已就绪，**gate 仍关**） | ✅ **代码 landed，gate `PHASE_1_5_DEFAULT_ON=false`** | **高** | 翻 gate 前必过真机 smoke |
-| 2 | 罕见 legacy .encrypted("123456") 库 rekey 到随机口令 | ⬜ | 中 | 真机（需先造 legacy .encrypted 库） |
+| 2 | 罕见 legacy .encrypted("123456") 库 rekey 到托管随机口令 | ✅ **代码 landed，gate `CHAINLESSCHAIN_ENABLE_DB_REKEY` 默认 OFF** | **高**（in-place re-encrypt） | 真机（需先造 legacy .encrypted 库），见 smoke §Phase 2 |
 | 3 | U-Key 重新接通（`forcePassword:true` → `deriveKeyFromUKey`） | ⬜ | 中 | Win + SIMKey 真机 |
 
 ### 5.1 Phase 1 已落地内容（默认 OFF）
@@ -182,6 +182,19 @@ if (provider.isAvailable()) {
 **翻 gate 步骤（真机 smoke §5.2 通过后）**：把 `PHASE_1_5_DEFAULT_ON` 改成 `true`（一行、需评审）。生效后打包用户默认加密，dev/test 仍明文，`=0` 仍可紧急关停。**未过真机 smoke 前不得翻。**
 
 测试 `db-encryption-flag.test.js`(7) 已用 opts seam 预先验证 gate 开/关 × packaged 各组合，并断言"shipped gate 仍为 false"。
+
+### 5.4 Phase 2 legacy rekey（已落地，双 gate）
+
+针对**罕见**的、曾手动开过加密的 legacy `.encrypted("123456")` 库，rekey 到 safeStorage 托管随机口令。**双重 gate**：须 `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION` 开 **且** `CHAINLESSCHAIN_ENABLE_DB_REKEY=1` 才运行；默认全关。
+
+- `database/file-lock.js`：抽出共享 lockfile（`acquireLock/releaseLock/STALE_LOCK_MS`），migration 与 rekey 共用一份实现（encrypted-migration 已重构为引用它，5 测试仍绿）。
+- `database/legacy-rekey.js`：
+  - `rekeyEncryptedDb()`：lock → backup `.rekey-bak` → 用旧 key 开（校验旧 key）→ `db.rekey(newKey)` in-place → 用新 key 重开校验 → 失败回滚恢复 legacy。**成功时保留备份**交给上层（提交后才删，crash-safe）。
+  - `rekeyLegacyDbToManaged()`：mint 托管口令（不落盘）→ 派生 old/new key → rekey → **提交顺序：persist 口令 → save 新 salt → 删备份**。
+  - `recoverInterruptedRekey()`：启动时若 `.rekey-bak` 残留：托管 key 能开目标=提交完成→删陈旧备份；否则→恢复 legacy 备份+回退，供下次重试。**rekey 只改加密 key 不改数据，故任何分支都不丢数据。**
+- `db-secret-provider.js` 新增 `mintPassphrase()`/`persistPassphrase()`，支持"先 mint 后提交"。
+- `core-initializer.maybeRunLegacyRekey()`：双 gate 开时，先 recover 再 rekey（仅当有 .encrypted 且无托管口令）；任何异常吞掉保持 legacy。须在 `resolveDbPassword()` 前 —— 成功后 db-secret.enc 出现，自动走 managed 分支用新 key 开库。
+- 测试 `legacy-rekey.test.js`(11)：rekey 成功保留备份 / 旧 key 错回滚 / 重开校验失败回滚 / 锁占用跳过 / 编排提交顺序 / no-salt / no-safestorage / 恢复三分支。
 
 > 原 "Phase 1 仅新库随机零风险" 切片**作废**（§1.0：生产根本没开加密，无效果），降级为已落地的 Phase 0 休眠基建。
 

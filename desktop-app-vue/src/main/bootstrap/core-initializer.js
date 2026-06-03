@@ -78,6 +78,92 @@ function resolveDbPassword() {
 }
 
 /**
+ * Phase 2（默认 OFF，gated）：把 legacy `.encrypted("123456")` 库 rekey 到 safeStorage
+ * 托管随机口令。仅当加密 opt-in **且** rekey opt-in 时运行；先做中断恢复，再在确有
+ * legacy 库且尚无托管口令时执行 rekey。任何异常都吞掉并保持 legacy（不阻塞启动）。
+ * 成功后会写出 db-secret.enc → 随后的 resolveDbPassword() 走 managed 分支用新 key 开库。
+ */
+async function maybeRunLegacyRekey() {
+  try {
+    const {
+      isDbEncryptionOptIn,
+      isDbRekeyOptIn,
+    } = require("../database/db-encryption-flag");
+    if (!isDbEncryptionOptIn() || !isDbRekeyOptIn()) {
+      return; // gate 关 → 不运行
+    }
+
+    const {
+      createDbSecretProvider,
+    } = require("../database/db-secret-provider");
+    const { KeyManager } = require("../database/key-manager");
+    const {
+      rekeyLegacyDbToManaged,
+      recoverInterruptedRekey,
+    } = require("../database/legacy-rekey");
+    const { getAppConfig } = require("../config/database-config");
+
+    const userData = app.getPath("userData");
+    const secretPath = path.join(userData, "db-secret.enc");
+    const configPath = path.join(userData, "db-key-config.json");
+    const provider = createDbSecretProvider({ secretPath });
+
+    const dbPath = getAppConfig().getDatabasePath();
+    const ext = path.extname(dbPath);
+    const encryptedDbPath = `${dbPath.slice(0, dbPath.length - ext.length)}.encrypted${ext}`;
+
+    if (!fs.existsSync(encryptedDbPath)) {
+      return; // 无 .encrypted 库 → 无需 rekey（明文→加密走 Phase 1 迁移）
+    }
+
+    const keyManager = new KeyManager({ encryptionEnabled: true, configPath });
+    const deriveKey = (password, saltHex) =>
+      keyManager.deriveKeyFromPassword(
+        password,
+        saltHex ? Buffer.from(saltHex, "hex") : null,
+      );
+    const loadMetadata = () => keyManager.loadKeyMetadata();
+    const saveMetadata = (m) => keyManager.saveKeyMetadata(m);
+
+    // 1. 中断恢复：若上次 rekey 未提交完，依据托管 key 能否打开来 drop 或 restore。
+    const managedKeyResolver = async () => {
+      if (!provider.hasManagedPassphrase()) {
+        return null;
+      }
+      const meta = await loadMetadata();
+      if (!meta || !meta.salt) {
+        return null;
+      }
+      const mp = provider.getOrCreateManagedPassphrase();
+      return (await deriveKey(mp, meta.salt)).key;
+    };
+    await recoverInterruptedRekey(
+      { encryptedDbPath, managedKeyResolver },
+      { provider },
+    );
+
+    // 2. 已有托管口令 → 库已是 managed，无需 rekey。
+    if (provider.hasManagedPassphrase() || !provider.isAvailable()) {
+      return;
+    }
+
+    const legacyPassword = process.env.DEFAULT_PASSWORD || "123456";
+    const res = await rekeyLegacyDbToManaged(
+      { encryptedDbPath, legacyPassword },
+      { provider, deriveKey, loadMetadata, saveMetadata },
+    );
+    logger.warn(
+      `[core-init] legacy rekey 结果: ${JSON.stringify(res)}（Phase 2，真机验证用）`,
+    );
+  } catch (err) {
+    logger.error(
+      "[core-init] legacy rekey 失败，保持 legacy 口令继续:",
+      err.message,
+    );
+  }
+}
+
+/**
  * 注册核心模块初始化器
  * @param {import('./initializer-factory').InitializerFactory} factory - 初始化器工厂
  */
@@ -107,6 +193,12 @@ function registerCoreInitializers(factory) {
         );
       }
       logger.info(`数据库加密状态: ${encryptionEnabled ? "已启用" : "未启用"}`);
+
+      // Phase 2（gated，默认 OFF）：rekey legacy .encrypted 库到托管口令。须在
+      // resolveDbPassword 之前 —— 成功后会写 db-secret.enc，使下面走 managed 分支。
+      if (encryptionEnabled) {
+        await maybeRunLegacyRekey();
+      }
 
       // Phase 0: 去硬编码 "123456"，加密启用时改用 safeStorage 托管随机口令。
       const { password: dbPassword, source: passwordSource } = encryptionEnabled

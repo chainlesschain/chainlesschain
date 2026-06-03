@@ -85,6 +85,37 @@ function createDbSecretProvider(options = {}) {
   }
 
   /**
+   * Mint a high-entropy passphrase WITHOUT persisting it. Used by the rekey flow
+   * which must only commit the secret to disk AFTER the DB is successfully
+   * rekeyed — otherwise a crash would leave db-secret.enc claiming "managed" while
+   * the DB is still on the old key.
+   * @returns {string}
+   */
+  function mintPassphrase() {
+    return crypto.randomBytes(32).toString("base64");
+  }
+
+  /**
+   * Persist a passphrase (safeStorage-encrypted). Idempotent overwrite.
+   * @param {string} passphrase
+   */
+  function persistPassphrase(passphrase) {
+    if (!secretPath) {
+      throw new Error("[db-secret-provider] secretPath 未配置");
+    }
+    if (!isAvailable()) {
+      throw new Error(
+        "[db-secret-provider] safeStorage 不可用，无法托管 DB 口令",
+      );
+    }
+    const encrypted = safeStorage.encryptString(passphrase);
+    fs.mkdirSync(path.dirname(secretPath), { recursive: true });
+    // mode 0600 best-effort (largely ignored on Windows; safeStorage is the real guard).
+    fs.writeFileSync(secretPath, Buffer.from(encrypted), { mode: 0o600 });
+    logger.info("[db-secret-provider] DB 口令已托管落盘（safeStorage 加密）");
+  }
+
+  /**
    * Return the managed passphrase, generating + persisting one on first use.
    * Throws if safeStorage is unavailable (caller must fall back to legacy).
    * @returns {string}
@@ -108,15 +139,9 @@ function createDbSecretProvider(options = {}) {
       return passphrase;
     }
 
-    // First run: mint a high-entropy passphrase and persist its ciphertext.
-    const passphrase = crypto.randomBytes(32).toString("base64");
-    const encrypted = safeStorage.encryptString(passphrase);
-    fs.mkdirSync(path.dirname(secretPath), { recursive: true });
-    // mode 0600 best-effort (largely ignored on Windows; safeStorage is the real guard).
-    fs.writeFileSync(secretPath, Buffer.from(encrypted), { mode: 0o600 });
-    logger.info(
-      "[db-secret-provider] 已生成并托管新的 DB 口令（safeStorage 加密落盘）",
-    );
+    // First run: mint + persist.
+    const passphrase = mintPassphrase();
+    persistPassphrase(passphrase);
     return passphrase;
   }
 
@@ -125,6 +150,8 @@ function createDbSecretProvider(options = {}) {
     isAvailable,
     hasManagedPassphrase,
     getOrCreateManagedPassphrase,
+    mintPassphrase,
+    persistPassphrase,
   };
 }
 
