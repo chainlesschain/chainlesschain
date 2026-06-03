@@ -244,6 +244,11 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "input.getRecording",
       "input.replay",
       "input.clearRecording",
+      "events.getListeners",
+      "events.removeListener",
+      "events.monitorEvents",
+      "events.stopMonitoring",
+      "events.getLog",
     ];
     for (const method of migrated) {
       expect(
