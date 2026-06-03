@@ -45,6 +45,11 @@ function pickDesktopRelease(releases) {
   for (const r of releases) {
     if (!r || !r.tag_name) continue;
     if (r.tag_name.startsWith('internal-binaries-')) continue;
+    // Skip drafts + prereleases: when run with a GITHUB_TOKEN (CI), the REST
+    // /releases list includes draft releases (often clustered ahead of the
+    // published ones), so a stale draft with desktop assets would otherwise be
+    // picked over the real latest published release. Mirror /releases/latest.
+    if (r.draft || r.prerelease) continue;
     const hits = (r.assets || []).filter(a => classify(a.name));
     if (hits.length > 0) return r;
   }

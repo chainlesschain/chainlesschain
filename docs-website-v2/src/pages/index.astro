@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.98 · 2026-06-03',
+    title: '社交/首页 ANR 修复（主线程 keystore 全切 IO） + 家庭守护「AI 陪学」Epic A–G 纯逻辑层做透 + PDH 分析引擎意图路由收口',
+    sub: '用户反馈「点社交会卡住」长期未解：定位到 HubLocalViewModel init 块同步读 EncryptedSharedPreferences（keystore-backed）+ DIDManager.initialize 里的 StrongBox 解密（小米机型单次可达数秒）两路汇总把主线程吃 >5s 触发 ANR。本轮把这些初始化全切 Dispatchers.IO 根治，点社交 / 首页不再卡死。',
+    desc: '本版在 .97 基础上累计约 150 commit 一并 ship：家庭守护 / AI 陪学 Epic A 脚手架 → B 解绑配对 → C telemetry 上行 → D mobile↔mobile 通话 → E SOS 一键求助 → F 地理围栏 → G 多家长协商 + TimeAuthority 防改钟，纯逻辑层（可单测、零设备）全 7 epic 挖尽（:feature-family-guard 337 测试全绿）。PDH AnalysisEngine 意图路由收口（sum-amount 按币种拆分不再跨币种乱加 / count 硬上限采样）+ 静态安全审计 F2–F6（PII 脱敏 / cookie fail-fast / WebView bridge 收窄）。浏览器扩展 background.js Phase 0/1 大拆分：cookies / storage / network / page / devtools / performance 等 handler 全模块化。桌面新增约 80 个 Pinia store 单测套件。版本面：productVersion v5.0.3.97 → v5.0.3.98 / desktop 5.0.3-alpha.97 → .98 / CLI 0.162.27 → 0.162.28（仅版本号跟节奏，无 src 改）。全平台 17 产物（Win / Mac / Linux / Android / iOS）已 ship，桌面 auto-update 版本比对正常。',
+  },
+  {
     tag: 'v5.0.3.97 · 2026-05-27',
     title: 'Android 云 LLM 路由真接通本地 RAG + 联系人电话号码真对 AI 可见 + 6 平台 endpoint hotfix 套件',
     sub: '之前 Android CLOUD_ANDROID 路由只把问题原文打给云模型，AI 真就「无脑闲聊」 — 本机金库里 768 个联系人 / 上千事件全部失联。本轮三件落到位：(1) 新 `cc hub retrieve-context` CLI + LocalCcRunner.retrieveContext Kotlin 桥 + HubLocalViewModel 整合，云路由先拉 hub.retrieveContext(question) 取本机 facts → 拼进系统消息 → 再发云模型，AI 答案真有 citations 引回原始事件；(2) PDH `getHubMinimal()` 工厂跳过 8 个 aichat adapter / kg / bm25 重型 init，retrieve-context 冷启 90s → <5s（真机 2026-05-27 验过 4.2s vs 旧 87s），让云路由问问题在用户感知内可用；(3) summarizePerson 含 identifiers / notes — 之前 strip phone / wechatId / email 让「妈手机号」类查询永远「没有足够信息」，本轮保留 identifiers Map 拼进 person facts 真能命中 + entity-focus routing + searchPersons LIKE 名字搜索让 contacts 不再被 events 挤出 RAG 200 上限。',

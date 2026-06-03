@@ -5,9 +5,11 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v5.0.3.98] - 2026-05-30 — fix(android): 社交/首页 ANR 修 + FAMILY-20 Epic C M2 telemetry 底座 + docs/design DEPLOYS 恢复
+## [v5.0.3.98] - 2026-06-03 — fix(android): 社交/首页 ANR 修 + 家庭守护「AI 陪学」Epic A–G 纯逻辑全做透 + PDH 意图路由收口 + 浏览器扩展 handler 拆分
 
 > 用户反馈「点社交会卡住」长期未解；本轮定位到 ViewModel init 块默认在主线程同步读 EncryptedSharedPreferences + DIDManager.initialize 里的 StrongBox 解密（小米 amethyst 单次解密可达数秒），两路汇总把主线程吃 >5s 触发 ANR。一并把 family-guard Epic C M2 telemetry 底座（孩子端共享 child_event 表 + ForegroundAppAggregator pure state machine）落到 main，让后续 FAMILY-21/25 ticket 不再二次拆表。
+>
+> **范围说明**：productVersion 在 `3514e55e0` 即 bump 到 .98，但 tag 直到 2026-06-03 才 cut；其间约 150 commit 累计骑在 .98 版本号上，随同一 tag 一并 ship。下方 #1–#3 是 .98 prep 当时的三件，#4 汇总 prep 之后累计落地的工作。
 
 ### Fix #1 — 主线程 keystore 阻塞致社交/首页 ANR 全切 IO 线程 (`6ad0f7989`)
 
@@ -28,6 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs-website-v2/scripts/fetch-release-sizes.mjs` 加 `internal-binaries-*` tag skip（避免选错最新 binaries release 拿不到 desktop asset），sweep `/releases?per_page=30` 找第一个含 desktop asset 的；release-sizes.json tag 回到 v5.0.3.97 / 11 sizes
 - `scripts/deploy-all.py` DEPLOYS[] 恢复 `docs.chainlesschain.com` + `design.chainlesschain.com` 两路（用 12:39 stamp tarball 占位），下次全量 deploy 直接复用，本轮 www-only 跑过的不重复
+
+### Feat #4 — 随 .98 tag 累计 ship 的工作（.97 prep 之后，约 150 commit）
+
+- **家庭守护 / AI 陪学 Epic A–G 纯逻辑层全做透**（`:feature-family-guard` 337 测试全绿）：Epic A 模块脚手架 + 角色首启锁 → B 解绑 / QR 配对 / 复活码紧急解绑 → C telemetry 上行管线（CentralTelemetryDispatcher + AnomalyDetector v0 + Quiet Hours + 数据生命周期清理）+ 桌面家长仪表板镜像 → D mobile↔mobile 通话（WebRTC 对等 + 角色协商 + 强接通配额 + 通话 UI）→ E SOS 一键求助（event 状态机 + broadcast call 协调 + 误触撤销 + 60s 外部联系人升级）→ F 地理围栏（Repository + 动作引擎 + 异常停留检测）→ G 多家长协商频道 + 不可删审计日志 + TimeAuthority 防改钟（接 24h 角色锁 / 解绑冷却 / quiet hours 三约束点）。剩余 device/UI/真机/PM 阻塞项不在本版范围。
+- **PDH AnalysisEngine 意图路由收口**：sum-amount 按币种拆分（不再跨币种乱加）/ count 硬上限采样 / 多币种 breakdown；静态安全审计 F2–F6（7 个 ApiClient PII 脱敏 / 缺 cookie fail-fast / CancellationException rethrow / WebView JS bridge 收窄到 active 平台 / Xhs -461 风控熔断）。
+- **浏览器扩展 background.js Phase 0/1 大拆分**：从单体 background.js 抽出共享 inject/CDP core，并把 clipboard / cookies / storage / network / page / notifications / devtools(debug+inspect) / indexeddb / dom / input / events / media-emulation / lifecycle / fonts / accessibility / selection-dragdrop / performance 等 handler 全部模块化到 `handlers/*.js` + 注册表。
+- **桌面新增约 80 个 Pinia store 单测套件**：覆盖 taskBoard / workspace / planning / memory / 各 EvoMap / federation / PQC / ZKP / WebAuthn / IPFS-cluster / GraphQL 等 store。
+- **iOS / Android 验签 + 防改钟接通**：Android LenientManifestVerifier 接 RemoteSkillRegistry 默认（A7）+ A1 防改钟桌面 responder / Android RpcClient。
 
 ### 版本同步
 
