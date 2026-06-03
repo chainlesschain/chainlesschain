@@ -336,15 +336,7 @@ async function executeCommand(method, params) {
 
     // Media Emulation moved to ./handlers/media-emulation.js
 
-    // Page Lifecycle
-    case "lifecycle.getState":
-      return await getPageLifecycleState(params.tabId);
-    case "lifecycle.onStateChange":
-      return await subscribeLifecycleChanges(params.tabId);
-    case "lifecycle.freeze":
-      return await freezePage(params.tabId);
-    case "lifecycle.resume":
-      return await resumePage(params.tabId);
+    // Page Lifecycle moved to ./handlers/lifecycle.js
 
     // Font Inspector
     case "fonts.getUsed":
@@ -1594,90 +1586,7 @@ async function listFrames(tabId) {
 
 // Media Emulation handlers moved to ./handlers/media-emulation.js (Phase 1).
 
-// ==================== Phase 18: Page Lifecycle ====================
-
-async function getPageLifecycleState(tabId) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => ({
-        visibilityState: document.visibilityState,
-        hidden: document.hidden,
-        hasFocus: document.hasFocus(),
-        readyState: document.readyState,
-        wasDiscarded: document.wasDiscarded || false,
-      }),
-    });
-    return result[0]?.result || { error: "Failed to get lifecycle state" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function subscribeLifecycleChanges(tabId) {
-  try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => {
-        window.__chainlessLifecycleLog = [];
-
-        const logChange = (type, data) => {
-          window.__chainlessLifecycleLog.push({
-            type,
-            timestamp: Date.now(),
-            ...data,
-          });
-        };
-
-        document.addEventListener("visibilitychange", () => {
-          logChange("visibilitychange", {
-            visibilityState: document.visibilityState,
-          });
-        });
-
-        window.addEventListener("focus", () => logChange("focus", {}));
-        window.addEventListener("blur", () => logChange("blur", {}));
-        window.addEventListener("freeze", () => logChange("freeze", {}));
-        window.addEventListener("resume", () => logChange("resume", {}));
-        window.addEventListener("pageshow", (e) =>
-          logChange("pageshow", { persisted: e.persisted }),
-        );
-        window.addEventListener("pagehide", (e) =>
-          logChange("pagehide", { persisted: e.persisted }),
-        );
-
-        return { success: true };
-      },
-    });
-    return result[0]?.result || { error: "Failed to subscribe" };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function freezePage(tabId) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Page.setWebLifecycleState", {
-      state: "frozen",
-    });
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-async function resumePage(tabId) {
-  try {
-    await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Page.setWebLifecycleState", {
-      state: "active",
-    });
-    return { success: true };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+// Page Lifecycle handlers moved to ./handlers/lifecycle.js (Phase 1 split).
 
 // ==================== Phase 18: Font Inspector ====================
 

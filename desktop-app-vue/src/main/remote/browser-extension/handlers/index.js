@@ -8,6 +8,7 @@ import { downloadsHandlers } from "./downloads.js";
 import { eventsHandlers } from "./events.js";
 import { historyHandlers } from "./history.js";
 import { inputHandlers } from "./input.js";
+import { lifecycleHandlers } from "./lifecycle.js";
 import { mediaEmulationHandlers } from "./media-emulation.js";
 import { indexeddbHandlers } from "./indexeddb.js";
 import { networkHandlers } from "./network.js";
@@ -38,6 +39,7 @@ export const commandHandlerRegistry = {
   ...inputHandlers,
   ...eventsHandlers,
   ...mediaEmulationHandlers,
+  ...lifecycleHandlers,
 };
 
 export { listTabs };

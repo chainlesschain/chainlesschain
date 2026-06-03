@@ -254,6 +254,10 @@ describe("browser-extension/handlers/index.js (command registry)", () => {
       "media.emulateForcedColors",
       "media.emulateVisionDeficiency",
       "media.clearEmulation",
+      "lifecycle.getState",
+      "lifecycle.onStateChange",
+      "lifecycle.freeze",
+      "lifecycle.resume",
     ];
     for (const method of migrated) {
       expect(
