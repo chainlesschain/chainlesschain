@@ -6,7 +6,28 @@
 
 ## 1. 问题陈述（root cause）
 
-桌面端 SQLite/SQLCipher 主库的"加密"目前形同虚设：
+### 1.0 最关键发现（2026-06-03 复查，纠正本文初稿前提）
+
+**打包的生产版整个 SQLite 主库是明文落盘的，SQLCipher/"123456" 那条路在生产里是死代码。**
+
+链条：
+- `scripts/build-main.js` 只在**构建时**用 `NODE_ENV` 决定是否 minify，**不把 `process.env.NODE_ENV="production"` 注入运行时**（`build-main.js:5`）；Electron 运行时也不设 NODE_ENV。
+- 故装好的 app 里 `process.env.NODE_ENV === undefined`。
+- `isDevelopmentMode()` = `NODE_ENV==="development" || !NODE_ENV` → **true**（`config-manager.js:18-19`、`database.js:189-190`、`database-adapter.js:54-56` 三处同款误判）。
+- ⇒ `EncryptionConfigManager` 默认 `encryptionEnabled = !isDev = false`（`config-manager.js:37`；且 bootstrap `new EncryptionConfigManager(app)` 把 `app` 对象当 configPath，`loadConfig` 永远落默认值）。
+- ⇒ `database.js initialize()` 命中 `isDevelopment` 分支，用**无加密 Better-SQLite3**（`database.js:188-209`）。
+
+**净效果**：生产版的笔记 / 会话 / P2P / 知识 / DID 行……全部明文在磁盘。先前以为的"PBKDF2('123456') 弱加密"在生产里**根本没发生**。
+
+推论：
+1. 已落地的 **DID 列级加密（`4f9057d0c`）是生产里唯一在保护 DID 私钥的机制**，价值被低估了。
+2. 真正的修复不是"换个强密码"，而是**让生产真正开启加密**：把 dev 判定从 `NODE_ENV` 改成 `app.isPackaged`（`database.js:50-59` 已 import `app`，line 365 已用 `app.isPackaged`，信号现成）。
+3. 一旦开启，已有用户的**明文 `chainlesschain.db` 需要"明文→`.encrypted`"迁移**（走 `database-adapter.performMigration` / `migrateDatabase`），这是**有数据丢失风险的数据迁移**，与 rekey 同级，必须真机门禁。
+4. ⇒ **不存在"既高价值又零风险"的 Phase 1 切片**：去硬编码密码在生产里休眠（生产没开加密），有价值的开加密+迁移天然有风险。
+
+### 1.1 原始证据（即便加密开启也存在的弱点）
+
+桌面端 SQLite/SQLCipher 主库的"加密"即使被启用也形同虚设：
 
 | 证据 | 位置 |
 |---|---|
@@ -74,18 +95,25 @@ if (provider.isAvailable()) {
 ```
 
 - `LEGACY_PASSWORD` = `process.env.DEFAULT_PASSWORD || "123456"`（保留 env 逃生口）。
-- **兼容矩阵**：
+- **兼容矩阵**（按 §1.0 修正：生产现状是**明文 Better-SQLite3 库**，不是 legacy .encrypted）：
 
 | 场景 | 行为 | 数据丢失风险 |
 |---|---|---|
-| 全新安装（无 .encrypted） | 随机口令 + 托管 | 无 |
-| dev（Better-SQLite3 明文） | 不变（本就无 key） | 无 |
-| 已有 .encrypted（legacy "123456"） | **取决于 4.3 选项** | 见下 |
+| 全新安装（无任何库） | 开加密 + 随机口令 + 托管 | 无 |
+| **已有明文生产库（绝大多数现存用户）** | **开加密需"明文→.encrypted"迁移**（performMigration） | **有**（数据迁移，需真机门禁） |
+| dev（Better-SQLite3 明文） | 保持明文（开发便利） | 无 |
+| 罕见：已有 .encrypted（曾手动开过加密，legacy "123456"） | rekey 到随机口令（§4.3 路径 B） | 有（rekey） |
 | safeStorage 不可用 | 见 4.4 | — |
 
-### 4.3 已有 legacy 库迁移（rekey）—— 高风险，需真机门禁
+> **前置改动**：开加密必须先把 `isDevelopmentMode()` 的判定从 `NODE_ENV` 改为 `app.isPackaged`（三处：config-manager / database.js / database-adapter），否则生产永远走 dev 明文分支。这一改动本身就会让所有现存生产用户**首次进入加密路径 → 触发明文→.encrypted 迁移**，故与迁移同属高风险、同一门禁。
 
-两种落地路径，二选一（由发版决策）：
+### 4.3 已有库迁移 —— 高风险，需真机门禁
+
+> **§1.0 修正**：现存生产用户绝大多数是**明文 Better-SQLite3 库**，主迁移路径是 **"明文→.encrypted"**（走 `database-adapter.performMigration` → `migrateDatabase`，已存在），而非 rekey。rekey（下文路径 B）只针对**罕见**的、曾手动开过加密的 legacy `.encrypted("123456")` 库。两类迁移都必须带下方安全网 + 真机门禁。
+
+**明文→.encrypted（主路径）安全网**：迁移前 `copyFile(plaintext.db → plaintext.db.premigrate-bak)`；`migrateDatabase` 产出 `.encrypted` 后校验（开新库 + 抽查表行数 == 源）；通过→写托管口令 + 删 bak（或保留一个版本周期）；失败→删坏的 .encrypted、保留明文库 + 明文路径、telemetry 告警。同样需进程内文件锁防并发。
+
+下面是 legacy `.encrypted` 的 rekey 路径（罕见场景），两种落地二选一（由发版决策）：
 
 **路径 A（零风险，先上）**：legacy 库继续用 "123456" 开，不 rekey。只有新库随机。老用户保持现状（不更弱），全新用户立即受保护。`db-secret-provider` 与 wiring 先 land + 单测。rekey 留作 Phase 2。
 
@@ -115,13 +143,16 @@ if (provider.isAvailable()) {
 
 现状 `forcePassword:true` 让 `deriveKeyFromUKey`（`key-manager.js:105`）永不触发。Windows 真插 U-Key 时应优先硬件派生：bootstrap 检测 U-Key 可用 → 不传 password、传 pin、`forcePassword:false`。需真机 + Win + SIMKey SDK 验证（见 memory `ios_*`/U-Key 限制：仅 Windows，mac/Linux 模拟）。本期不做，仅记 backlog。
 
-## 5. 分阶段落地（建议顺序）
+## 5. 分阶段落地（按 §1.0 修正后重排）
 
 | Phase | 内容 | 风险 | 门禁 |
 |---|---|---|---|
-| 1 | `db-secret-provider.js` + 单测；bootstrap 接入**路径 A**（仅新库随机）；fail-closed 分流（4.4） | 低（零数据丢失） | 单测绿即可 |
-| 2 | 路径 B legacy rekey（backup/verify/rollback + 文件锁） | **高** | 真机 smoke：旧版建库→升级→数据在 + 已 rekey；多实例并发 rekey 不坏库 |
+| 0 | `db-secret-provider.js` + 单测 + bootstrap 接入（去 `"123456"`）。**生产仍不加密，故休眠**；只为后续步骤备好安全密钥源 | 低（零数据丢失，生产行为不变） | 单测绿即可 |
+| 1 | 把 `isDevelopmentMode()` 三处改 `app.isPackaged`，**让生产真正开加密** + 明文→.encrypted 迁移（backup/verify/rollback + 文件锁） | **高**（首次给现存用户的明文库做加密迁移） | 真机 smoke：装旧版建明文库→升级→数据在 + 库变 .encrypted + 用随机口令开 |
+| 2 | 罕见 legacy .encrypted("123456") 库 rekey 到随机口令 | 中 | 真机（需先造 legacy .encrypted 库） |
 | 3 | U-Key 重新接通 | 中 | Win + SIMKey 真机 |
+
+> 原 Phase 1（"仅新库随机、零风险、可本机验"）**作废**：§1.0 证明生产根本没开加密，该切片在生产里无效果。降级为 Phase 0 的休眠基建。真正的价值在 Phase 1（开加密+迁移），其风险与门禁与原 Phase 2 同级。
 
 ## 6. 测试计划
 
