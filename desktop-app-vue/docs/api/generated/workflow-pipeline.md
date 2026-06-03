@@ -115,10 +115,10 @@ resume()
 
 ---
 
-## cancel(reason = '用户取消')
+## cancel(reason = "用户取消")
 
 ```javascript
-cancel(reason = '用户取消')
+cancel(reason = "用户取消")
 ```
 
 * 取消工作流
@@ -160,10 +160,10 @@ async _checkPause()
 
 ---
 
-## overrideQualityGate(gateId, reason = '手动覆盖')
+## overrideQualityGate(gateId, reason = "手动覆盖")
 
 ```javascript
-overrideQualityGate(gateId, reason = '手动覆盖')
+overrideQualityGate(gateId, reason = "手动覆盖")
 ```
 
 * 手动覆盖质量门禁
