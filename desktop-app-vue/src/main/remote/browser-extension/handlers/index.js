@@ -2,6 +2,7 @@ import { bookmarksHandlers } from "./bookmarks.js";
 import { cacheHandlers } from "./cache.js";
 import { clipboardHandlers } from "./clipboard.js";
 import { devtoolsDebugHandlers } from "./devtools-debug.js";
+import { devtoolsInspectHandlers } from "./devtools-inspect.js";
 import { downloadsHandlers } from "./downloads.js";
 import { historyHandlers } from "./history.js";
 import { indexeddbHandlers } from "./indexeddb.js";
@@ -24,6 +25,7 @@ export const commandHandlerRegistry = {
   ...cacheHandlers,
   ...networkHandlers,
   ...devtoolsDebugHandlers,
+  ...devtoolsInspectHandlers,
 };
 
 export { listTabs };
