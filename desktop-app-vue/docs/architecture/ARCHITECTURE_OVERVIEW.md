@@ -6,17 +6,17 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1849 | 25.80 MB |
-| renderer | 27 | 0.16 MB |
+| main | 1861 | 25.81 MB |
+| renderer | 31 | 0.22 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1849
+**Files**: 1861
 
 **Top 10 Largest Files**:
 
-1. `src/main/remote/browser-extension/background.js` - 442.1 KB
+1. `src/main/remote/browser-extension/background.js` - 323.7 KB
 2. `src/main/database/database-schema.js` - 177.1 KB
 3. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 4. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
@@ -29,20 +29,20 @@
 
 ## renderer Module
 
-**Files**: 27
+**Files**: 31
 
 **Top 10 Largest Files**:
 
 1. `src/renderer/composables/useTaskPlanning.js` - 34.6 KB
-2. `src/renderer/composables/useChatExecution.js` - 13.2 KB
-3. `src/renderer/utils/__tests__/file-utils.test.js` - 12.1 KB
-4. `src/renderer/workers/file-worker.js` - 10.3 KB
-5. `src/renderer/components/projects/chatPanelUtils.js` - 10.1 KB
-6. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
-7. `src/renderer/workers/syntax-highlighter.worker.js` - 8.0 KB
-8. `src/renderer/composables/useFollowupIntent.js` - 6.8 KB
-9. `src/renderer/components/tool/additionalToolsStatsExport.js` - 6.7 KB
-10. `src/renderer/composables/useConversationPersistence.js` - 6.4 KB
+2. `src/renderer/pages/useAiChatWorktree.js` - 28.5 KB
+3. `src/renderer/pages/useCodingAgentEvents.js` - 13.4 KB
+4. `src/renderer/composables/useChatExecution.js` - 13.2 KB
+5. `src/renderer/pages/useAgentApprovals.js` - 12.2 KB
+6. `src/renderer/utils/__tests__/file-utils.test.js` - 12.1 KB
+7. `src/renderer/pages/useAiChatHarness.js` - 12.1 KB
+8. `src/renderer/workers/file-worker.js` - 10.3 KB
+9. `src/renderer/components/projects/chatPanelUtils.js` - 10.1 KB
+10. `src/renderer/pages/projects/ProjectsPage.improved.example.js` - 8.7 KB
 
 ## shared Module
 
