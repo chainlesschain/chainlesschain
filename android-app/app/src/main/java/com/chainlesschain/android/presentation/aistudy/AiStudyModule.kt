@@ -1,0 +1,23 @@
+package com.chainlesschain.android.presentation.aistudy
+
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+/**
+ * AI 陪学 MVP 的 DI 绑定。两个 impl 都走 @Inject constructor，@Binds 即可。
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class AiStudyModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindStudyProfileStore(impl: DefaultStudyProfileStore): StudyProfileStore
+
+    @Binds
+    @Singleton
+    abstract fun bindAiStudyLlm(impl: DefaultAiStudyLlm): AiStudyLlm
+}

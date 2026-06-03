@@ -31,6 +31,7 @@ fun MainContainer(
     onLogout: () -> Unit,
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
+    onNavigateToAiStudy: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToConversation: (String) -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
@@ -169,6 +170,7 @@ fun MainContainer(
                 // snackbar 占位; FAMILY-40 接通真触发流程 (sos_event upsert + 录音 + broadcast call)。
                 3 -> key("family_guard") {
                     FamilyGuardTab(
+                        onNavigateToAiStudy = onNavigateToAiStudy,
                         onSosTriggered = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(

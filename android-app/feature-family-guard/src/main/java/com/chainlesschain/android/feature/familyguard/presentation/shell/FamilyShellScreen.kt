@@ -43,12 +43,15 @@ import com.chainlesschain.android.feature.familyguard.presentation.usageaccess.U
  * @param onSosTriggered click 回调; v0.1 host (MainContainer) 可只接 toast/snackbar,
  *   真触发流程 FAMILY-40 接通。
  * @param onNavigateToFamilyMembers "家人"卡 click 回调; 由 host (FamilyGuardTab)
- *   导航到真实的 FamilyMembersScreen (FAMILY-18)。AI陪学/任务 仍为占位, 不接。
+ *   导航到真实的 FamilyMembersScreen (FAMILY-18)。
+ * @param onNavigateToAiStudy "AI陪学"卡 click 回调; 由 :app 导航到 AiStudyScreen
+ *   (M6 MVP, 双轨 学习/陪伴 chat)。任务 仍灰显占位。
  */
 @Composable
 fun FamilyShellScreen(
     onSosTriggered: () -> Unit,
     onNavigateToFamilyMembers: () -> Unit,
+    onNavigateToAiStudy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -81,10 +84,10 @@ fun FamilyShellScreen(
 
         SectionCard(
             title = "AI 陪学",
-            description = "学习 tab + 陪伴 tab 双轨; 错题本 + 学情报告 (即将开放)",
+            description = "学习 tab + 陪伴 tab 双轨 (M6 MVP); 错题本 / 学情报告后续",
             enabled = true,
             testTag = TestTag.SectionAi,
-            // 占位: 屏幕未建, 暂不接 onClick (FAMILY AI 陪学 epic 落地后接)。
+            onClick = onNavigateToAiStudy,
         )
 
         SectionCard(

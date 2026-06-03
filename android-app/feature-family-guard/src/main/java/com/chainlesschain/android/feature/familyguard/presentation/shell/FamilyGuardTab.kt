@@ -26,10 +26,12 @@ import com.chainlesschain.android.feature.familyguard.presentation.family.Family
  * 后续这些 epic 落地时, 在此 NavHost 加对应 route 即可。
  *
  * @param onSosTriggered SOS 大红按钮 click; 真触发流程 FAMILY-40 接通, host 现接 snackbar。
+ * @param onNavigateToAiStudy "AI陪学"卡 click; 由 :app 导航到全屏 AiStudyScreen (M6 MVP)。
  */
 @Composable
 fun FamilyGuardTab(
     onSosTriggered: () -> Unit,
+    onNavigateToAiStudy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -42,6 +44,7 @@ fun FamilyGuardTab(
             FamilyShellScreen(
                 onSosTriggered = onSosTriggered,
                 onNavigateToFamilyMembers = { navController.navigate(Route.MEMBERS) },
+                onNavigateToAiStudy = onNavigateToAiStudy,
             )
         }
         composable(Route.MEMBERS) {
