@@ -31,7 +31,7 @@
 
 **默认配置**:
 
-- API Key: `7185ce7d-9775-450c-8450-783176be6265`
+- API Key: `<YOUR_API_KEY>`
 - 模型: `doubao-seed-1-8-251228`
 - BaseURL: `https://ark.cn-beijing.volces.com/api/v3`
 

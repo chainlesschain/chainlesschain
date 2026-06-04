@@ -134,7 +134,7 @@
 await window.electronAPI.llm.setConfig({
   provider: 'volcengine',
   volcengine: {
-    apiKey: '7185ce7d-9775-450c-8450-783176be6265',
+    apiKey: '<YOUR_API_KEY>',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-flash-250828',
     embeddingModel: 'doubao-embedding'
@@ -166,7 +166,7 @@ const embedding = await generateEmbedding(text, {
 ```typescript
 const config = {
   provider: 'volcengine',
-  'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
+  'volcengine.apiKey': '<YOUR_API_KEY>',
   'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
   'volcengine.model': 'doubao-seed-1-6-flash-250828',
   'volcengine.embeddingModel': 'doubao-embedding', // 新增

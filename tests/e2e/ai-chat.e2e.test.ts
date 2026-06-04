@@ -21,7 +21,7 @@ async function setupVolcengineConfig(window: any) {
     // 一次性设置所有配置，包括 provider 和 volcengine 的 API key
     const config = {
       provider: 'volcengine',
-      'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
+      'volcengine.apiKey': (process.env.VOLCENGINE_API_KEY || 'test-volcengine-key'),
       'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
       'volcengine.model': 'doubao-seed-1-8-251228',
       'volcengine.embeddingModel': 'doubao-embedding-text-240715',
@@ -70,7 +70,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         // 断言配置已正确设置
         expect(updatedConfig.provider).toBe('volcengine');
-        expect(updatedConfig.volcengine?.apiKey).toBe('7185ce7d-9775-450c-8450-783176be6265');
+        expect(updatedConfig.volcengine?.apiKey).toBe((process.env.VOLCENGINE_API_KEY || 'test-volcengine-key'));
 
         console.log('✅ Volcengine配置设置成功!');
       } finally {

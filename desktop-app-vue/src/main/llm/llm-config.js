@@ -13,7 +13,6 @@ const {
   extractSensitiveFields,
   mergeSensitiveFields,
   sanitizeConfig,
-  SENSITIVE_FIELDS,
 } = require("./secure-config-storage");
 
 const normalizeProvider = (provider) => {
@@ -65,7 +64,8 @@ const DEFAULT_CONFIG = {
 
   // 豆包（火山引擎）配置
   volcengine: {
-    apiKey: "7185ce7d-9775-450c-8450-783176be6265", // 默认测试API密钥
+    // 不再硬编码密钥：优先读环境变量，否则留空由用户在设置中填写并加密存储
+    apiKey: process.env.VOLCENGINE_API_KEY || "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
     model: "doubao-seed-1-6-251015", // 使用最新版本（注意：下划线格式，带版本号）
     embeddingModel: "doubao-embedding-text-240715", // 嵌入模型（最新版本，支持中英双语）

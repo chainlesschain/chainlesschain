@@ -35,7 +35,7 @@
 **总运行时间**: 8.6分钟
 **LLM提供商**: Volcengine (火山引擎豆包)
 **使用模型**: doubao-seed-1-6-flash-250828
-**API Key**: 7185ce7d-9775-450c-8450-783176be6265
+**API Key**: <YOUR_API_KEY>
 
 ### 关键改进
 
@@ -138,7 +138,7 @@ async function setupVolcengineConfig(window: any) {
     // 一次性设置所有配置
     const config = {
       provider: 'volcengine',
-      'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
+      'volcengine.apiKey': '<YOUR_API_KEY>',
       'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
       'volcengine.model': 'doubao-seed-1-6-flash-250828',
     };

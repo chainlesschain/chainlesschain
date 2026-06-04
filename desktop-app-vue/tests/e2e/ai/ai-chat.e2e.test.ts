@@ -5,54 +5,64 @@
  * 优化：使用 beforeAll/afterAll 共享 Electron 实例，从 25 次启动减少到 6 次
  */
 
-import { test, expect } from '@playwright/test';
-import type { ElectronApplication, Page } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from '../helpers/common';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { test, expect } from "@playwright/test";
+import type { ElectronApplication, Page } from "@playwright/test";
+import {
+  launchElectronApp,
+  closeElectronApp,
+  callIPC,
+} from "../helpers/common";
 
 // 测试数据
-const TEST_USER_ID = 'ai-chat-test-user';
-const TEST_PROJECT_ID = 'ai-chat-test-project';
+const _TEST_USER_ID = "ai-chat-test-user";
+const TEST_PROJECT_ID = "ai-chat-test-project";
 
 // 设置Volcengine配置的辅助函数
 async function setupVolcengineConfig(window: any) {
-  console.log('\n========== 配置 Volcengine Provider ==========');
+  console.log("\n========== 配置 Volcengine Provider ==========");
 
   try {
     // 一次性设置所有配置，包括 provider 和 volcengine 的 API key
     const config = {
-      provider: 'volcengine',
-      'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
-      'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
-      'volcengine.model': 'doubao-seed-1-6-flash-250828',
-      'volcengine.embeddingModel': 'doubao-embedding-large',
+      provider: "volcengine",
+      "volcengine.apiKey":
+        process.env.VOLCENGINE_API_KEY || "test-volcengine-key",
+      "volcengine.baseURL": "https://ark.cn-beijing.volces.com/api/v3",
+      "volcengine.model": "doubao-seed-1-6-flash-250828",
+      "volcengine.embeddingModel": "doubao-embedding-large",
     };
 
-    console.log('正在设置配置...');
-    await callIPC(window, 'llm:set-config', config);
-    console.log('✅ Volcengine 配置设置成功');
+    console.log("正在设置配置...");
+    await callIPC(window, "llm:set-config", config);
+    console.log("✅ Volcengine 配置设置成功");
 
     // 验证配置
-    const currentConfig = await callIPC(window, 'llm:get-config');
-    console.log('当前配置:');
-    console.log('  Provider:', currentConfig.provider);
-    console.log('  API Key:', currentConfig.volcengine?.apiKey ? currentConfig.volcengine.apiKey.substring(0, 20) + '...' : '未设置');
-    console.log('  Model:', currentConfig.volcengine?.model || '未设置');
-    console.log('  Embedding Model:', currentConfig.volcengine?.embeddingModel || '未设置');
+    const currentConfig = await callIPC(window, "llm:get-config");
+    console.log("当前配置:");
+    console.log("  Provider:", currentConfig.provider);
+    console.log(
+      "  API Key:",
+      currentConfig.volcengine?.apiKey
+        ? currentConfig.volcengine.apiKey.substring(0, 20) + "..."
+        : "未设置",
+    );
+    console.log("  Model:", currentConfig.volcengine?.model || "未设置");
+    console.log(
+      "  Embedding Model:",
+      currentConfig.volcengine?.embeddingModel || "未设置",
+    );
   } catch (error: any) {
-    console.error('❌ 配置 Volcengine 失败:', error);
-    console.error('错误详情:', error.stack);
+    console.error("❌ 配置 Volcengine 失败:", error);
+    console.error("错误详情:", error.stack);
     // 不抛出错误，让测试继续运行
   }
 
-  console.log('========================================\n');
+  console.log("========================================\n");
 }
 
-test.describe('AI对话功能 E2E 测试', () => {
+test.describe("AI对话功能 E2E 测试", () => {
   // Group 1: 配置与LLM基础功能 (4 tests, 1 Electron launch)
-  test.describe('配置与LLM基础功能', () => {
+  test.describe("配置与LLM基础功能", () => {
     let app: ElectronApplication;
     let window: Page;
 
@@ -66,85 +76,102 @@ test.describe('AI对话功能 E2E 测试', () => {
       await closeElectronApp(app, { delay: 4000 });
     });
 
-    test('应该能够设置Volcengine配置', async () => {
-      console.log('\n========== 测试Volcengine配置设置 ==========');
+    test("应该能够设置Volcengine配置", async () => {
+      console.log("\n========== 测试Volcengine配置设置 ==========");
 
       // 获取初始配置
-      const initialConfig = await callIPC(window, 'llm:get-config');
-      console.log('初始 Provider:', initialConfig.provider);
-      console.log('初始 Volcengine API Key:', initialConfig.volcengine?.apiKey || '未设置');
+      const initialConfig = await callIPC(window, "llm:get-config");
+      console.log("初始 Provider:", initialConfig.provider);
+      console.log(
+        "初始 Volcengine API Key:",
+        initialConfig.volcengine?.apiKey || "未设置",
+      );
 
       // 设置Volcengine配置
       await setupVolcengineConfig(window);
 
       // 验证配置已更新
-      const updatedConfig = await callIPC(window, 'llm:get-config');
-      console.log('\n更新后 Provider:', updatedConfig.provider);
-      console.log('更新后 Volcengine API Key:', updatedConfig.volcengine?.apiKey ? '已设置' : '未设置');
+      const updatedConfig = await callIPC(window, "llm:get-config");
+      console.log("\n更新后 Provider:", updatedConfig.provider);
+      console.log(
+        "更新后 Volcengine API Key:",
+        updatedConfig.volcengine?.apiKey ? "已设置" : "未设置",
+      );
 
       // 断言配置已正确设置
-      expect(updatedConfig.provider).toBe('volcengine');
-      expect(updatedConfig.volcengine?.apiKey).toBe('7185ce7d-9775-450c-8450-783176be6265');
+      expect(updatedConfig.provider).toBe("volcengine");
+      expect(updatedConfig.volcengine?.apiKey).toBe(
+        process.env.VOLCENGINE_API_KEY || "test-volcengine-key",
+      );
 
-      console.log('✅ Volcengine配置设置成功!');
+      console.log("✅ Volcengine配置设置成功!");
     });
 
-    test('应该能够检查LLM服务状态', async () => {
-      console.log('\n========== 检查LLM状态 ==========');
+    test("应该能够检查LLM服务状态", async () => {
+      console.log("\n========== 检查LLM状态 ==========");
 
-      const status = await callIPC(window, 'llm:check-status');
+      const status = await callIPC(window, "llm:check-status");
 
-      console.log('LLM状态:', status);
+      console.log("LLM状态:", status);
 
       expect(status).toBeDefined();
 
       // 验证状态字段
       if (status.available !== undefined) {
-        console.log(`✅ LLM服务状态: ${status.available ? '可用' : '不可用'}`);
-        console.log(`   当前模型: ${status.model || status.currentModel || 'N/A'}`);
-        console.log(`   提供商: ${status.provider || 'N/A'}`);
+        console.log(`✅ LLM服务状态: ${status.available ? "可用" : "不可用"}`);
+        console.log(
+          `   当前模型: ${status.model || status.currentModel || "N/A"}`,
+        );
+        console.log(`   提供商: ${status.provider || "N/A"}`);
       } else {
         console.log(`ℹ️  LLM状态检查完成`);
       }
     });
 
-    test('应该能够获取LLM配置', async () => {
-      console.log('\n========== 获取LLM配置 ==========');
+    test("应该能够获取LLM配置", async () => {
+      console.log("\n========== 获取LLM配置 ==========");
 
-      const config = await callIPC(window, 'llm:get-config');
+      const config = await callIPC(window, "llm:get-config");
 
-      console.log('LLM配置:', config);
+      console.log("LLM配置:", config);
 
       expect(config).toBeDefined();
 
       // 验证配置字段
       if (config.model || config.provider || config.apiKey !== undefined) {
         console.log(`✅ 获取LLM配置成功!`);
-        console.log(`   模型: ${config.model || 'N/A'}`);
-        console.log(`   提供商: ${config.provider || 'N/A'}`);
-        console.log(`   温度: ${config.temperature || config.temp || 'N/A'}`);
-        console.log(`   最大Token: ${config.maxTokens || config.max_tokens || 'N/A'}`);
+        console.log(`   模型: ${config.model || "N/A"}`);
+        console.log(`   提供商: ${config.provider || "N/A"}`);
+        console.log(`   温度: ${config.temperature || config.temp || "N/A"}`);
+        console.log(
+          `   最大Token: ${config.maxTokens || config.max_tokens || "N/A"}`,
+        );
       } else {
         console.log(`ℹ️  配置获取完成`);
       }
 
       // 尝试设置 Volcengine 配置
-      console.log('\n尝试配置 Volcengine...');
+      console.log("\n尝试配置 Volcengine...");
       await setupVolcengineConfig(window);
 
       // 再次获取配置验证
-      const newConfig = await callIPC(window, 'llm:get-config');
-      console.log('\n配置后的LLM配置:');
-      console.log('  Provider:', newConfig.provider);
-      console.log('  Volcengine API Key:', newConfig.volcengine?.apiKey ? '已设置 (' + newConfig.volcengine.apiKey.substring(0, 20) + '...)' : '未设置');
+      const newConfig = await callIPC(window, "llm:get-config");
+      console.log("\n配置后的LLM配置:");
+      console.log("  Provider:", newConfig.provider);
+      console.log(
+        "  Volcengine API Key:",
+        newConfig.volcengine?.apiKey
+          ? "已设置 (" + newConfig.volcengine.apiKey.substring(0, 20) + "...)"
+          : "未设置",
+      );
     });
 
-    test('应该能够列出可用模型', async () => {
-      console.log('\n========== 列出可用模型 ==========');
+    test("应该能够列出可用模型", async () => {
+      console.log("\n========== 列出可用模型 ==========");
 
-      const models = await callIPC(window, 'llm:list-models');
+      const models = await callIPC(window, "llm:list-models");
 
-      console.log('可用模型结果:', models);
+      console.log("可用模型结果:", models);
 
       expect(models).toBeDefined();
 
@@ -155,7 +182,8 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log(`✅ 找到 ${modelList.length} 个可用模型:`);
 
         modelList.slice(0, 5).forEach((model: any, index: number) => {
-          const modelName = typeof model === 'string' ? model : model.name || model.id;
+          const modelName =
+            typeof model === "string" ? model : model.name || model.id;
           console.log(`   ${index + 1}. ${modelName}`);
         });
 
@@ -170,7 +198,7 @@ test.describe('AI对话功能 E2E 测试', () => {
   });
 
   // Group 2: 基础对话功能 (3 tests, 1 Electron launch)
-  test.describe('基础对话功能', () => {
+  test.describe("基础对话功能", () => {
     let app: ElectronApplication;
     let window: Page;
 
@@ -186,27 +214,33 @@ test.describe('AI对话功能 E2E 测试', () => {
       await closeElectronApp(app, { delay: 4000 });
     });
 
-    test('应该能够进行简单的LLM查询', async () => {
-      console.log('\n========== 简单LLM查询 ==========');
+    test("应该能够进行简单的LLM查询", async () => {
+      console.log("\n========== 简单LLM查询 ==========");
 
-      const prompt = '你好，请用一句话介绍一下你自己';
+      const prompt = "你好，请用一句话介绍一下你自己";
 
-      const result = await callIPC(window, 'llm:query', prompt, {
+      const result = await callIPC(window, "llm:query", prompt, {
         maxTokens: 100,
       });
 
-      console.log('查询结果:', result);
+      console.log("查询结果:", result);
 
       expect(result).toBeDefined();
 
       // 提取响应内容
       const response =
-        result.response || result.content || result.text || result.message || result;
+        result.response ||
+        result.content ||
+        result.text ||
+        result.message ||
+        result;
 
-      if (typeof response === 'string' && response.length > 0) {
+      if (typeof response === "string" && response.length > 0) {
         console.log(`✅ LLM查询成功!`);
         console.log(`   提问: ${prompt}`);
-        console.log(`   回答: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`);
+        console.log(
+          `   回答: ${response.substring(0, 100)}${response.length > 100 ? "..." : ""}`,
+        );
 
         // 验证响应不为空
         expect(response.length).toBeGreaterThan(0);
@@ -215,21 +249,19 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够进行多轮对话', async () => {
-      console.log('\n========== 多轮对话测试 ==========');
+    test("应该能够进行多轮对话", async () => {
+      console.log("\n========== 多轮对话测试 ==========");
 
       // 第一轮对话
-      const messages1 = [
-        { role: 'user', content: '我想学习Python编程' },
-      ];
+      const messages1 = [{ role: "user", content: "我想学习Python编程" }];
 
-      const result1 = await callIPC(window, 'llm:chat', {
+      const result1 = await callIPC(window, "llm:chat", {
         messages: messages1,
         stream: false,
         enableRAG: false,
       });
 
-      console.log('第一轮对话结果:', result1);
+      console.log("第一轮对话结果:", result1);
 
       const response1 =
         result1.response || result1.content || result1.message || result1;
@@ -242,21 +274,21 @@ test.describe('AI对话功能 E2E 测试', () => {
 
       // 第二轮对话（带上下文）
       const messages2 = [
-        { role: 'user', content: '我想学习Python编程' },
+        { role: "user", content: "我想学习Python编程" },
         {
-          role: 'assistant',
-          content: response1 || '好的，我可以帮你学习Python。',
+          role: "assistant",
+          content: response1 || "好的，我可以帮你学习Python。",
         },
-        { role: 'user', content: '那我应该从哪里开始？' },
+        { role: "user", content: "那我应该从哪里开始？" },
       ];
 
-      const result2 = await callIPC(window, 'llm:chat', {
+      const result2 = await callIPC(window, "llm:chat", {
         messages: messages2,
         stream: false,
         enableRAG: false,
       });
 
-      console.log('第二轮对话结果:', result2);
+      console.log("第二轮对话结果:", result2);
 
       const response2 =
         result2.response || result2.content || result2.message || result2;
@@ -273,29 +305,30 @@ test.describe('AI对话功能 E2E 测试', () => {
       console.log(`✅ 多轮对话测试完成!`);
     });
 
-    test('应该能够使用模板进行对话', async () => {
-      console.log('\n========== 模板对话测试 ==========');
+    test("应该能够使用模板进行对话", async () => {
+      console.log("\n========== 模板对话测试 ==========");
 
       const templateOptions = {
-        templateId: 'code-review',
+        templateId: "code-review",
         variables: {
           code: 'def hello(): print("Hello, World!")',
-          language: 'python',
+          language: "python",
         },
         messages: [],
       };
 
       const result = await callIPC(
         window,
-        'llm:chat-with-template',
-        templateOptions
+        "llm:chat-with-template",
+        templateOptions,
       );
 
-      console.log('模板对话结果:', result);
+      console.log("模板对话结果:", result);
 
       expect(result).toBeDefined();
 
-      const response = result.response || result.content || result.message || result;
+      const response =
+        result.response || result.content || result.message || result;
 
       if (response) {
         console.log(`✅ 模板对话成功!`);
@@ -308,7 +341,7 @@ test.describe('AI对话功能 E2E 测试', () => {
   });
 
   // Group 3: 项目AI对话 (1 test, 1 Electron launch)
-  test.describe('项目AI对话', () => {
+  test.describe("项目AI对话", () => {
     let app: ElectronApplication;
     let window: Page;
 
@@ -322,26 +355,27 @@ test.describe('AI对话功能 E2E 测试', () => {
       await closeElectronApp(app, { delay: 4000 });
     });
 
-    test('应该能够在项目上下文中进行AI对话', async () => {
-      console.log('\n========== 项目AI对话 ==========');
+    test("应该能够在项目上下文中进行AI对话", async () => {
+      console.log("\n========== 项目AI对话 ==========");
 
       const chatData = {
         projectId: TEST_PROJECT_ID,
-        message: '帮我分析一下这个项目的结构',
+        message: "帮我分析一下这个项目的结构",
         context: {
-          projectName: 'E2E Test Project',
-          projectType: 'python',
+          projectName: "E2E Test Project",
+          projectType: "python",
         },
       };
 
-      const result = await callIPC(window, 'project:aiChat', chatData);
+      const result = await callIPC(window, "project:aiChat", chatData);
 
-      console.log('项目AI对话结果:', result);
+      console.log("项目AI对话结果:", result);
 
       expect(result).toBeDefined();
 
       // 提取响应
-      const response = result.response || result.content || result.message || result.data;
+      const response =
+        result.response || result.content || result.message || result.data;
 
       if (result.success || response) {
         console.log(`✅ 项目AI对话成功!`);
@@ -358,8 +392,8 @@ test.describe('AI对话功能 E2E 测试', () => {
   });
 
   // Group 4: 对话历史管理 (6 tests, 1 Electron launch, serial mode for shared state)
-  test.describe('对话历史管理', () => {
-    test.describe.configure({ mode: 'serial' });
+  test.describe("对话历史管理", () => {
+    test.describe.configure({ mode: "serial" });
 
     let app: ElectronApplication;
     let window: Page;
@@ -375,26 +409,26 @@ test.describe('AI对话功能 E2E 测试', () => {
       await closeElectronApp(app, { delay: 4000 });
     });
 
-    test('应该能够创建新对话', async () => {
-      console.log('\n========== 创建对话 ==========');
+    test("应该能够创建新对话", async () => {
+      console.log("\n========== 创建对话 ==========");
 
       const conversationData = {
         projectId: TEST_PROJECT_ID,
-        title: 'E2E测试对话',
-        type: 'ai-chat',
+        title: "E2E测试对话",
+        type: "ai-chat",
         metadata: {
-          model: 'gpt-3.5-turbo',
+          model: "gpt-3.5-turbo",
           temperature: 0.7,
         },
       };
 
       const result = await callIPC(
         window,
-        'conversation:create',
-        conversationData
+        "conversation:create",
+        conversationData,
       );
 
-      console.log('创建对话结果:', result);
+      console.log("创建对话结果:", result);
 
       expect(result).toBeDefined();
 
@@ -414,22 +448,21 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够获取项目的对话列表', async () => {
-      console.log('\n========== 获取对话列表 ==========');
+    test("应该能够获取项目的对话列表", async () => {
+      console.log("\n========== 获取对话列表 ==========");
 
       const result = await callIPC(
         window,
-        'conversation:get-by-project',
-        TEST_PROJECT_ID
+        "conversation:get-by-project",
+        TEST_PROJECT_ID,
       );
 
-      console.log('对话列表结果:', result);
+      console.log("对话列表结果:", result);
 
       expect(result).toBeDefined();
 
       // 提取对话列表
-      const conversations =
-        result.conversations || result.data || result;
+      const conversations = result.conversations || result.data || result;
 
       if (Array.isArray(conversations)) {
         console.log(`✅ 获取对话列表成功!`);
@@ -438,7 +471,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         if (conversations.length > 0) {
           conversations.slice(0, 3).forEach((conv: any, index: number) => {
             console.log(
-              `   ${index + 1}. ${conv.title || conv.name || 'Untitled'} (${conv.id || 'N/A'})`
+              `   ${index + 1}. ${conv.title || conv.name || "Untitled"} (${conv.id || "N/A"})`,
             );
           });
         }
@@ -447,17 +480,18 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够在对话中添加消息', async () => {
-      console.log('\n========== 添加消息到对话 ==========');
+    test("应该能够在对话中添加消息", async () => {
+      console.log("\n========== 添加消息到对话 ==========");
 
       // 先获取一个对话ID
       const conversations = await callIPC(
         window,
-        'conversation:get-by-project',
-        TEST_PROJECT_ID
+        "conversation:get-by-project",
+        TEST_PROJECT_ID,
       );
 
-      const convList = conversations.conversations || conversations.data || conversations;
+      const convList =
+        conversations.conversations || conversations.data || conversations;
       const conversationId =
         Array.isArray(convList) && convList.length > 0
           ? convList[0].id
@@ -466,42 +500,43 @@ test.describe('AI对话功能 E2E 测试', () => {
       // 添加用户消息
       const messageData = {
         conversationId,
-        role: 'user',
-        content: '这是一条E2E测试消息',
+        role: "user",
+        content: "这是一条E2E测试消息",
         timestamp: Date.now(),
       };
 
       const result = await callIPC(
         window,
-        'conversation:create-message',
-        messageData
+        "conversation:create-message",
+        messageData,
       );
 
-      console.log('添加消息结果:', result);
+      console.log("添加消息结果:", result);
 
       expect(result).toBeDefined();
 
       if (result.success || result.id || result.messageId) {
         console.log(`✅ 消息添加成功!`);
         console.log(`   对话ID: ${conversationId}`);
-        console.log(`   消息ID: ${result.id || result.messageId || 'N/A'}`);
+        console.log(`   消息ID: ${result.id || result.messageId || "N/A"}`);
         console.log(`   内容: ${messageData.content}`);
       } else {
         console.log(`ℹ️  消息添加完成`);
       }
     });
 
-    test('应该能够获取对话的消息历史', async () => {
-      console.log('\n========== 获取消息历史 ==========');
+    test("应该能够获取对话的消息历史", async () => {
+      console.log("\n========== 获取消息历史 ==========");
 
       // 获取对话ID
       const conversations = await callIPC(
         window,
-        'conversation:get-by-project',
-        TEST_PROJECT_ID
+        "conversation:get-by-project",
+        TEST_PROJECT_ID,
       );
 
-      const convList = conversations.conversations || conversations.data || conversations;
+      const convList =
+        conversations.conversations || conversations.data || conversations;
       const conversationId =
         Array.isArray(convList) && convList.length > 0
           ? convList[0].id
@@ -510,12 +545,12 @@ test.describe('AI对话功能 E2E 测试', () => {
       // 获取消息
       const result = await callIPC(
         window,
-        'conversation:get-messages',
+        "conversation:get-messages",
         conversationId,
-        { limit: 20, offset: 0 }
+        { limit: 20, offset: 0 },
       );
 
-      console.log('消息历史结果:', result);
+      console.log("消息历史结果:", result);
 
       expect(result).toBeDefined();
 
@@ -529,32 +564,33 @@ test.describe('AI对话功能 E2E 测试', () => {
         if (messages.length > 0) {
           messages.slice(0, 3).forEach((msg: any, index: number) => {
             console.log(
-              `   ${index + 1}. [${msg.role || 'unknown'}] ${String(msg.content).substring(0, 30)}...`
+              `   ${index + 1}. [${msg.role || "unknown"}] ${String(msg.content).substring(0, 30)}...`,
             );
           });
 
           // 验证消息结构
-          expect(messages[0]).toHaveProperty('content');
+          expect(messages[0]).toHaveProperty("content");
         }
       } else {
         console.log(`ℹ️  消息历史获取完成`);
       }
     });
 
-    test('应该能够更新对话信息', async () => {
-      console.log('\n========== 更新对话 ==========');
+    test("应该能够更新对话信息", async () => {
+      console.log("\n========== 更新对话 ==========");
 
       // 获取对话ID
       const conversations = await callIPC(
         window,
-        'conversation:get-by-project',
-        TEST_PROJECT_ID
+        "conversation:get-by-project",
+        TEST_PROJECT_ID,
       );
 
-      const convList = conversations.conversations || conversations.data || conversations;
+      const convList =
+        conversations.conversations || conversations.data || conversations;
 
       if (!Array.isArray(convList) || convList.length === 0) {
-        console.log('⚠️  没有对话，跳过测试');
+        console.log("⚠️  没有对话，跳过测试");
         return;
       }
 
@@ -562,7 +598,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
       // 更新对话
       const updates = {
-        title: 'Updated E2E Test Conversation',
+        title: "Updated E2E Test Conversation",
         metadata: {
           updated: true,
           updatedAt: new Date().toISOString(),
@@ -571,12 +607,12 @@ test.describe('AI对话功能 E2E 测试', () => {
 
       const result = await callIPC(
         window,
-        'conversation:update',
+        "conversation:update",
         conversationId,
-        updates
+        updates,
       );
 
-      console.log('更新对话结果:', result);
+      console.log("更新对话结果:", result);
 
       expect(result).toBeDefined();
 
@@ -589,40 +625,38 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够删除对话', async () => {
-      console.log('\n========== 删除对话 ==========');
+    test("应该能够删除对话", async () => {
+      console.log("\n========== 删除对话 ==========");
 
       // 先创建一个临时对话
       const tempConversation = {
         projectId: TEST_PROJECT_ID,
-        title: 'Temp Conversation for Deletion',
-        type: 'ai-chat',
+        title: "Temp Conversation for Deletion",
+        type: "ai-chat",
       };
 
       const createResult = await callIPC(
         window,
-        'conversation:create',
-        tempConversation
+        "conversation:create",
+        tempConversation,
       );
 
       const conversationId =
-        createResult.id ||
-        createResult.conversationId ||
-        createResult.data?.id;
+        createResult.id || createResult.conversationId || createResult.data?.id;
 
       if (!conversationId) {
-        console.log('⚠️  无法创建临时对话，跳过删除测试');
+        console.log("⚠️  无法创建临时对话，跳过删除测试");
         return;
       }
 
       // 删除对话
       const deleteResult = await callIPC(
         window,
-        'conversation:delete',
-        conversationId
+        "conversation:delete",
+        conversationId,
       );
 
-      console.log('删除对话结果:', deleteResult);
+      console.log("删除对话结果:", deleteResult);
 
       expect(deleteResult).toBeDefined();
 
@@ -636,7 +670,7 @@ test.describe('AI对话功能 E2E 测试', () => {
   });
 
   // Group 5: LLM高级功能与错误处理 (10 tests, 1 Electron launch)
-  test.describe('LLM高级功能与错误处理', () => {
+  test.describe("LLM高级功能与错误处理", () => {
     let app: ElectronApplication;
     let window: Page;
 
@@ -650,18 +684,14 @@ test.describe('AI对话功能 E2E 测试', () => {
       await closeElectronApp(app, { delay: 4000 });
     });
 
-    test('应该能够清除对话上下文', async () => {
-      console.log('\n========== 清除对话上下文 ==========');
+    test("应该能够清除对话上下文", async () => {
+      console.log("\n========== 清除对话上下文 ==========");
 
       const conversationId = `test-context-${Date.now()}`;
 
-      const result = await callIPC(
-        window,
-        'llm:clear-context',
-        conversationId
-      );
+      const result = await callIPC(window, "llm:clear-context", conversationId);
 
-      console.log('清除上下文结果:', result);
+      console.log("清除上下文结果:", result);
 
       expect(result).toBeDefined();
 
@@ -673,14 +703,14 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够生成文本嵌入', async () => {
-      console.log('\n========== 生成文本嵌入 ==========');
+    test("应该能够生成文本嵌入", async () => {
+      console.log("\n========== 生成文本嵌入 ==========");
 
-      const text = '这是一段用于测试嵌入功能的文本';
+      const text = "这是一段用于测试嵌入功能的文本";
 
-      const result = await callIPC(window, 'llm:embeddings', text);
+      const result = await callIPC(window, "llm:embeddings", text);
 
-      console.log('嵌入结果:', result);
+      console.log("嵌入结果:", result);
 
       expect(result).toBeDefined();
 
@@ -692,7 +722,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log(`✅ 文本嵌入生成成功!`);
         console.log(`   输入文本: ${text}`);
         console.log(`   向量维度: ${embeddings.length}`);
-        console.log(`   前5个值: ${embeddings.slice(0, 5).join(', ')}...`);
+        console.log(`   前5个值: ${embeddings.slice(0, 5).join(", ")}...`);
 
         // 验证向量维度
         expect(embeddings.length).toBeGreaterThan(0);
@@ -701,21 +731,21 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够切换LLM提供商', async () => {
-      console.log('\n========== 切换LLM提供商 ==========');
+    test("应该能够切换LLM提供商", async () => {
+      console.log("\n========== 切换LLM提供商 ==========");
 
       // 获取当前配置
-      const currentConfig = await callIPC(window, 'llm:get-config');
-      const currentProvider = currentConfig.provider || 'unknown';
+      const currentConfig = await callIPC(window, "llm:get-config");
+      const currentProvider = currentConfig.provider || "unknown";
 
       console.log(`   当前提供商: ${currentProvider}`);
 
       // 尝试切换（可能不支持）
-      const newProvider = 'ollama'; // 或其他支持的提供商
+      const newProvider = "ollama"; // 或其他支持的提供商
 
-      const result = await callIPC(window, 'llm:switch-provider', newProvider);
+      const result = await callIPC(window, "llm:switch-provider", newProvider);
 
-      console.log('切换提供商结果:', result);
+      console.log("切换提供商结果:", result);
 
       expect(result).toBeDefined();
 
@@ -730,12 +760,12 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够获取模型选择器信息', async () => {
-      console.log('\n========== 获取模型选择器信息 ==========');
+    test("应该能够获取模型选择器信息", async () => {
+      console.log("\n========== 获取模型选择器信息 ==========");
 
-      const result = await callIPC(window, 'llm:get-selector-info');
+      const result = await callIPC(window, "llm:get-selector-info");
 
-      console.log('选择器信息:', result);
+      console.log("选择器信息:", result);
 
       expect(result).toBeDefined();
 
@@ -752,18 +782,18 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够选择最佳模型', async () => {
-      console.log('\n========== 选择最佳模型 ==========');
+    test("应该能够选择最佳模型", async () => {
+      console.log("\n========== 选择最佳模型 ==========");
 
       const options = {
-        task: 'code-generation',
-        language: 'python',
-        complexity: 'medium',
+        task: "code-generation",
+        language: "python",
+        complexity: "medium",
       };
 
-      const result = await callIPC(window, 'llm:select-best', options);
+      const result = await callIPC(window, "llm:select-best", options);
 
-      console.log('最佳模型选择结果:', result);
+      console.log("最佳模型选择结果:", result);
 
       expect(result).toBeDefined();
 
@@ -776,14 +806,14 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该能够生成使用报告', async () => {
-      console.log('\n========== 生成使用报告 ==========');
+    test("应该能够生成使用报告", async () => {
+      console.log("\n========== 生成使用报告 ==========");
 
-      const taskType = 'chat';
+      const taskType = "chat";
 
-      const result = await callIPC(window, 'llm:generate-report', taskType);
+      const result = await callIPC(window, "llm:generate-report", taskType);
 
-      console.log('使用报告结果:', result);
+      console.log("使用报告结果:", result);
 
       expect(result).toBeDefined();
 
@@ -801,13 +831,13 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该正确处理空消息', async () => {
-      console.log('\n========== 空消息测试 ==========');
+    test("应该正确处理空消息", async () => {
+      console.log("\n========== 空消息测试 ==========");
 
       try {
-        const result = await callIPC(window, 'llm:query', '', {});
+        const result = await callIPC(window, "llm:query", "", {});
 
-        console.log('空消息结果:', result);
+        console.log("空消息结果:", result);
 
         // 应该返回错误或空响应
         if (result.error || !result.response) {
@@ -821,14 +851,14 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该正确处理不存在的对话ID', async () => {
-      console.log('\n========== 不存在的对话ID ==========');
+    test("应该正确处理不存在的对话ID", async () => {
+      console.log("\n========== 不存在的对话ID ==========");
 
-      const fakeId = 'non-existent-conversation-12345';
+      const fakeId = "non-existent-conversation-12345";
 
-      const result = await callIPC(window, 'conversation:get-by-id', fakeId);
+      const result = await callIPC(window, "conversation:get-by-id", fakeId);
 
-      console.log('不存在对话的查询结果:', result);
+      console.log("不存在对话的查询结果:", result);
 
       // 应该返回null或错误
       if (result === null || result === undefined || result.error) {
@@ -838,17 +868,17 @@ test.describe('AI对话功能 E2E 测试', () => {
       }
     });
 
-    test('应该正确处理无效的配置更新', async () => {
-      console.log('\n========== 无效配置更新 ==========');
+    test("应该正确处理无效的配置更新", async () => {
+      console.log("\n========== 无效配置更新 ==========");
 
       const invalidConfig = {
         temperature: 100, // 无效值（应该在0-2之间）
         maxTokens: -1, // 无效值
       };
 
-      const result = await callIPC(window, 'llm:set-config', invalidConfig);
+      const result = await callIPC(window, "llm:set-config", invalidConfig);
 
-      console.log('无效配置更新结果:', result);
+      console.log("无效配置更新结果:", result);
 
       if (result.error || !result.success) {
         console.log(`✅ 正确拒绝了无效配置`);
@@ -860,7 +890,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 });
 
 // Group 6: AI对话性能测试 (2 tests, 1 Electron launch)
-test.describe('AI对话性能测试', () => {
+test.describe("AI对话性能测试", () => {
   let app: ElectronApplication;
   let window: Page;
 
@@ -874,12 +904,12 @@ test.describe('AI对话性能测试', () => {
     await closeElectronApp(app, { delay: 4000 });
   });
 
-  test('简单查询的响应时间应该在合理范围内', async () => {
-    console.log('\n========== 查询性能测试 ==========');
+  test("简单查询的响应时间应该在合理范围内", async () => {
+    console.log("\n========== 查询性能测试 ==========");
 
     const startTime = Date.now();
 
-    await callIPC(window, 'llm:query', 'Hello', { maxTokens: 10 });
+    await callIPC(window, "llm:query", "Hello", { maxTokens: 10 });
 
     const duration = Date.now() - startTime;
 
@@ -891,16 +921,12 @@ test.describe('AI对话性能测试', () => {
     console.log(`✅ 性能测试通过`);
   });
 
-  test('对话历史查询性能应该在合理范围内', async () => {
-    console.log('\n========== 对话历史查询性能 ==========');
+  test("对话历史查询性能应该在合理范围内", async () => {
+    console.log("\n========== 对话历史查询性能 ==========");
 
     const startTime = Date.now();
 
-    await callIPC(
-      window,
-      'conversation:get-by-project',
-      TEST_PROJECT_ID
-    );
+    await callIPC(window, "conversation:get-by-project", TEST_PROJECT_ID);
 
     const duration = Date.now() - startTime;
 
