@@ -29,10 +29,10 @@ function legacyEncryptedDbExists()
 
 ---
 
-## function resolveDbPassword()
+## function resolveDbPassword(deps =
 
 ```javascript
-function resolveDbPassword()
+function resolveDbPassword(deps =
 ```
 
 * 解析 DB 加密口令来源（Phase 0：去硬编码 "123456"）。
