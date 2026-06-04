@@ -37,14 +37,21 @@ function legacyEncryptedDbExists() {
  *
  * @returns {{ password: string, source: string }}
  */
-function resolveDbPassword() {
-  const LEGACY_PASSWORD = process.env.DEFAULT_PASSWORD || "123456";
+function resolveDbPassword(deps = {}) {
+  const LEGACY_PASSWORD =
+    deps.legacyPassword || process.env.DEFAULT_PASSWORD || "123456";
+  // Seams (default to production behavior): injectable for the selection-matrix
+  // unit tests, which can't reach electron's app/safeStorage. With deps={} the
+  // path is byte-for-byte the original.
+  const legacyDbExists =
+    deps.legacyEncryptedDbExists || legacyEncryptedDbExists;
   try {
-    const {
-      createDbSecretProvider,
-    } = require("../database/db-secret-provider");
-    const secretPath = path.join(app.getPath("userData"), "db-secret.enc");
-    const provider = createDbSecretProvider({ secretPath });
+    const createProvider =
+      deps.createDbSecretProvider ||
+      require("../database/db-secret-provider").createDbSecretProvider;
+    const userData = deps.userDataPath || app.getPath("userData");
+    const secretPath = path.join(userData, "db-secret.enc");
+    const provider = deps.provider || createProvider({ secretPath });
 
     if (!provider.isAvailable()) {
       logger.warn("[core-init] safeStorage 不可用，DB 口令退回 legacy（弱）");
@@ -56,7 +63,7 @@ function resolveDbPassword() {
         source: "managed",
       };
     }
-    if (legacyEncryptedDbExists()) {
+    if (legacyDbExists()) {
       // 已有 legacy .encrypted 库：保持 legacy 口令开库，rekey 留待后续阶段（不更弱）。
       logger.warn(
         "[core-init] 检测到 legacy 加密库，暂用 legacy 口令；rekey 待后续阶段",
@@ -689,4 +696,4 @@ function registerCoreInitializers(factory) {
   });
 }
 
-module.exports = { registerCoreInitializers };
+module.exports = { registerCoreInitializers, resolveDbPassword };
