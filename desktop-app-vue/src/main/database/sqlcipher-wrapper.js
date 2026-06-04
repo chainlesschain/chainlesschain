@@ -396,6 +396,14 @@ class SQLCipherWrapper {
     }
 
     try {
+      // SQLCipher cannot rekey while in WAL journal mode, but open() enables WAL.
+      // Switch to DELETE for the one-shot rekey; callers reopen the DB fresh
+      // afterwards (which re-applies WAL), so this isn't persisted beyond rekey.
+      try {
+        this.db.pragma("journal_mode = DELETE");
+      } catch (_e) {
+        /* best-effort; the rekey below will surface a clear error if still WAL */
+      }
       this.db.pragma(`rekey = "x'${newKey}'"`);
       this.key = newKey;
       logger.info("[SQLCipher] 数据库密钥已更新");

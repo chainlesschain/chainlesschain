@@ -354,7 +354,10 @@ class DatabaseMigrator {
         `SELECT COUNT(*) as count FROM "${table.name}"`,
       );
       const targetCountResult = targetCountStmt.get();
-      const targetCount = targetCountResult ? targetCountResult[0] : 0;
+      // SQLCipherWrapper.get() returns a row OBJECT ({count: N}), not a value
+      // array — index by the column alias, not [0] (which is always undefined
+      // and made every real-SQLCipher migration fail this verify).
+      const targetCount = targetCountResult ? targetCountResult.count : 0;
       targetCountStmt.free();
 
       if (sourceCount !== targetCount) {
