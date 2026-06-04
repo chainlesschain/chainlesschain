@@ -37,17 +37,9 @@ const path = require("path");
 const fs = require("fs");
 console.log("[DEBUG] Node modules loaded");
 
-// Resolve app icon for BrowserWindow + Windows AppUserModelId. Same dual-
-// origin pattern as EnhancedTrayManager: assets/ in dev, resources/ when
-// packaged (electron-builder.yml extraResources copies icon.ico into
-// process.resourcesPath at build time).
-function resolveAppIconPath() {
-  const candidates = [
-    path.join(__dirname, "../../assets/icon.ico"),
-    path.join(process.resourcesPath || "", "icon.ico"),
-  ];
-  return candidates.find((p) => p && fs.existsSync(p)) || candidates[0];
-}
+// Pure helpers (icon resolution + console-noise filter) live in index-helpers.js
+// so this entry file stays focused on startup orchestration.
+const { resolveAppIconPath, shouldFilterMessage } = require("./index-helpers");
 
 // Bootstrap 模块
 const {
@@ -82,24 +74,6 @@ const InitialSetupIPC = require("./config/initial-setup-ipc");
 const DeepLinkHandler = require("./system/deep-link-handler");
 const FileSyncManager = require("./file-sync/sync-manager");
 const PreviewManager = require("./preview/preview-manager");
-
-// 过滤控制台输出
-const filterPatterns = [
-  /Request interrupted/i,
-  /interrupted by user/i,
-  /没有可用实例/,
-];
-
-const shouldFilterMessage = (message) => {
-  const msgStr = String(message);
-  if (!msgStr || msgStr.trim() === "") {
-    return true;
-  }
-  if (msgStr.trim().length <= 3 && /^[\]\d\s]+$/.test(msgStr.trim())) {
-    return true;
-  }
-  return filterPatterns.some((pattern) => pattern.test(msgStr));
-};
 
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
