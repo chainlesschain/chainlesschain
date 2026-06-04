@@ -92,10 +92,10 @@ async getUserOrganizations(userDID)
 
 ---
 
-## async addMember(orgId, memberData)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async addMember(orgId, memberData)
+async syncOrganizationData(orgId)
 ```
 
 * 添加成员
@@ -105,10 +105,10 @@ async addMember(orgId, memberData)
 
 ---
 
-## async getOrganizationMembers(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getOrganizationMembers(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 获取组织成员列表
@@ -117,10 +117,10 @@ async getOrganizationMembers(orgId)
 
 ---
 
-## async updateMemberRole(orgId, memberDID, newRole)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async updateMemberRole(orgId, memberDID, newRole)
+async syncOrganizationData(orgId)
 ```
 
 * 更新成员角色
@@ -131,10 +131,10 @@ async updateMemberRole(orgId, memberDID, newRole)
 
 ---
 
-## async removeMember(orgId, memberDID)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async removeMember(orgId, memberDID)
+async syncOrganizationData(orgId)
 ```
 
 * 移除成员
@@ -144,10 +144,10 @@ async removeMember(orgId, memberDID)
 
 ---
 
-## async createInvitation(orgId, inviteData)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async createInvitation(orgId, inviteData)
+async syncOrganizationData(orgId)
 ```
 
 * 创建邀请
@@ -157,10 +157,10 @@ async createInvitation(orgId, inviteData)
 
 ---
 
-## getInvitations(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-getInvitations(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 获取组织的所有邀请（包括邀请码和DID邀请）
@@ -169,10 +169,10 @@ getInvitations(orgId)
 
 ---
 
-## getInvitationStatus(invitation)
+## async syncOrganizationData(orgId)
 
 ```javascript
-getInvitationStatus(invitation)
+async syncOrganizationData(orgId)
 ```
 
 * 获取邀请状态
@@ -181,10 +181,10 @@ getInvitationStatus(invitation)
 
 ---
 
-## async revokeInvitation(orgId, invitationId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async revokeInvitation(orgId, invitationId)
+async syncOrganizationData(orgId)
 ```
 
 * 撤销邀请
@@ -194,10 +194,10 @@ async revokeInvitation(orgId, invitationId)
 
 ---
 
-## async deleteInvitation(orgId, invitationId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async deleteInvitation(orgId, invitationId)
+async syncOrganizationData(orgId)
 ```
 
 * 删除邀请
@@ -207,10 +207,10 @@ async deleteInvitation(orgId, invitationId)
 
 ---
 
-## shortenDID(did)
+## async syncOrganizationData(orgId)
 
 ```javascript
-shortenDID(did)
+async syncOrganizationData(orgId)
 ```
 
 * 缩短DID显示
@@ -219,10 +219,10 @@ shortenDID(did)
 
 ---
 
-## async inviteByDID(orgId, inviteData)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async inviteByDID(orgId, inviteData)
+async syncOrganizationData(orgId)
 ```
 
 * 通过DID邀请用户加入组织
@@ -236,10 +236,10 @@ async inviteByDID(orgId, inviteData)
 
 ---
 
-## async acceptDIDInvitation(invitationId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async acceptDIDInvitation(invitationId)
+async syncOrganizationData(orgId)
 ```
 
 * 接受DID邀请
@@ -248,10 +248,10 @@ async acceptDIDInvitation(invitationId)
 
 ---
 
-## async rejectDIDInvitation(invitationId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async rejectDIDInvitation(invitationId)
+async syncOrganizationData(orgId)
 ```
 
 * 拒绝DID邀请
@@ -260,10 +260,10 @@ async rejectDIDInvitation(invitationId)
 
 ---
 
-## async getPendingDIDInvitations()
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getPendingDIDInvitations()
+async syncOrganizationData(orgId)
 ```
 
 * 获取待处理的DID邀请（当前用户收到的）
@@ -271,10 +271,10 @@ async getPendingDIDInvitations()
 
 ---
 
-## async getDIDInvitationHistory(options =
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getDIDInvitationHistory(options =
+async syncOrganizationData(orgId)
 ```
 
 * 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
@@ -285,10 +285,10 @@ async getDIDInvitationHistory(options =
 
 ---
 
-## async getDIDInvitations(orgId, options =
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getDIDInvitations(orgId, options =
+async syncOrganizationData(orgId)
 ```
 
 * 获取组织的DID邀请列表（用于管理）
@@ -300,10 +300,10 @@ async getDIDInvitations(orgId, options =
 
 ---
 
-## async initializeBuiltinRoles(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async initializeBuiltinRoles(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 初始化内置角色
@@ -312,10 +312,10 @@ async initializeBuiltinRoles(orgId)
 
 ---
 
-## async checkPermission(orgId, userDID, permission)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async checkPermission(orgId, userDID, permission)
+async syncOrganizationData(orgId)
 ```
 
 * 检查权限
@@ -326,10 +326,10 @@ async checkPermission(orgId, userDID, permission)
 
 ---
 
-## async logActivity(
+## async syncOrganizationData(orgId)
 
 ```javascript
-async logActivity(
+async syncOrganizationData(orgId)
 ```
 
 * 记录活动日志
@@ -343,10 +343,10 @@ async logActivity(
 
 ---
 
-## async getOrganizationActivities(orgId, limit = 50)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getOrganizationActivities(orgId, limit = 50)
+async syncOrganizationData(orgId)
 ```
 
 * 获取组织活动日志
@@ -356,10 +356,10 @@ async getOrganizationActivities(orgId, limit = 50)
 
 ---
 
-## getMemberActivities(orgId, memberDID, limit = 10)
+## async syncOrganizationData(orgId)
 
 ```javascript
-getMemberActivities(orgId, memberDID, limit = 10)
+async syncOrganizationData(orgId)
 ```
 
 * 获取成员活动历史
@@ -370,10 +370,10 @@ getMemberActivities(orgId, memberDID, limit = 10)
 
 ---
 
-## generateInviteCode()
+## async syncOrganizationData(orgId)
 
 ```javascript
-generateInviteCode()
+async syncOrganizationData(orgId)
 ```
 
 * 生成邀请码
@@ -381,10 +381,10 @@ generateInviteCode()
 
 ---
 
-## getDefaultPermissionsByRole(role)
+## async syncOrganizationData(orgId)
 
 ```javascript
-getDefaultPermissionsByRole(role)
+async syncOrganizationData(orgId)
 ```
 
 * 根据角色获取默认权限
@@ -393,10 +393,10 @@ getDefaultPermissionsByRole(role)
 
 ---
 
-## async initializeOrgP2PNetwork(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async initializeOrgP2PNetwork(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 初始化组织P2P网络
@@ -405,10 +405,10 @@ async initializeOrgP2PNetwork(orgId)
 
 ---
 
-## async connectToOrgP2PNetwork(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async connectToOrgP2PNetwork(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 连接到组织P2P网络
@@ -417,10 +417,10 @@ async connectToOrgP2PNetwork(orgId)
 
 ---
 
-## async handleOrgSyncMessage(orgId, message)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async handleOrgSyncMessage(orgId, message)
+async syncOrganizationData(orgId)
 ```
 
 * 处理组织同步消息
@@ -430,10 +430,10 @@ async handleOrgSyncMessage(orgId, message)
 
 ---
 
-## async broadcastOrgMessage(orgId, data)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async broadcastOrgMessage(orgId, data)
+async syncOrganizationData(orgId)
 ```
 
 * 广播组织消息
@@ -443,10 +443,10 @@ async broadcastOrgMessage(orgId, data)
 
 ---
 
-## async requestIncrementalSync(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async requestIncrementalSync(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 请求增量同步
@@ -455,10 +455,10 @@ async requestIncrementalSync(orgId)
 
 ---
 
-## async getLocalVersion(orgId)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async getLocalVersion(orgId)
+async syncOrganizationData(orgId)
 ```
 
 * 获取本地数据版本号
@@ -467,10 +467,10 @@ async getLocalVersion(orgId)
 
 ---
 
-## async sendIncrementalData(orgId, targetDID, sinceVersion)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async sendIncrementalData(orgId, targetDID, sinceVersion)
+async syncOrganizationData(orgId)
 ```
 
 * 发送增量数据
@@ -481,10 +481,10 @@ async sendIncrementalData(orgId, targetDID, sinceVersion)
 
 ---
 
-## async applyIncrementalData(orgId, syncData)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async applyIncrementalData(orgId, syncData)
+async syncOrganizationData(orgId)
 ```
 
 * 应用增量数据
@@ -494,10 +494,10 @@ async applyIncrementalData(orgId, syncData)
 
 ---
 
-## async checkConflict(orgId, change)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async checkConflict(orgId, change)
+async syncOrganizationData(orgId)
 ```
 
 * 检查是否有冲突
@@ -507,10 +507,10 @@ async checkConflict(orgId, change)
 
 ---
 
-## async resolveConflict(orgId, change)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async resolveConflict(orgId, change)
+async syncOrganizationData(orgId)
 ```
 
 * 解决冲突 - 使用Last-Write-Wins策略
@@ -520,10 +520,10 @@ async resolveConflict(orgId, change)
 
 ---
 
-## async applyChange(orgId, change)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async applyChange(orgId, change)
+async syncOrganizationData(orgId)
 ```
 
 * 应用变更
@@ -533,10 +533,10 @@ async applyChange(orgId, change)
 
 ---
 
-## async syncMemberUpdate(orgId, data)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async syncMemberUpdate(orgId, data)
+async syncOrganizationData(orgId)
 ```
 
 * 同步成员更新
@@ -546,10 +546,10 @@ async syncMemberUpdate(orgId, data)
 
 ---
 
-## async syncKnowledgeChange(orgId, data)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async syncKnowledgeChange(orgId, data)
+async syncOrganizationData(orgId)
 ```
 
 * 同步知识库变更
@@ -559,10 +559,10 @@ async syncKnowledgeChange(orgId, data)
 
 ---
 
-## async syncKnowledgeChange(orgId, data)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async syncKnowledgeChange(orgId, data)
+async syncOrganizationData(orgId)
 ```
 
 * 同步知识库变更
@@ -576,30 +576,30 @@ async syncKnowledgeChange(orgId, data)
 
 ---
 
-## async createKnowledgeEntry(
+## async syncOrganizationData(orgId)
 
 ```javascript
-async createKnowledgeEntry(
+async syncOrganizationData(orgId)
 ```
 
 * 创建知识库条目
 
 ---
 
-## async updateKnowledgeEntry(
+## async syncOrganizationData(orgId)
 
 ```javascript
-async updateKnowledgeEntry(
+async syncOrganizationData(orgId)
 ```
 
 * 更新知识库条目
 
 ---
 
-## async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
+## async syncOrganizationData(orgId)
 
 ```javascript
-async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
+async syncOrganizationData(orgId)
 ```
 
 * 删除知识库条目
@@ -644,10 +644,10 @@ async deleteOrganization(orgId, userDID)
 
 ---
 
-## async getRoles(orgId)
+## Object.assign(
 
 ```javascript
-async getRoles(orgId)
+Object.assign(
 ```
 
 * 获取组织所有角色
@@ -656,10 +656,10 @@ async getRoles(orgId)
 
 ---
 
-## async getRole(roleId)
+## Object.assign(
 
 ```javascript
-async getRole(roleId)
+Object.assign(
 ```
 
 * 获取单个角色
@@ -668,10 +668,10 @@ async getRole(roleId)
 
 ---
 
-## async createCustomRole(orgId, roleData, creatorDID)
+## Object.assign(
 
 ```javascript
-async createCustomRole(orgId, roleData, creatorDID)
+Object.assign(
 ```
 
 * 创建自定义角色
@@ -685,10 +685,10 @@ async createCustomRole(orgId, roleData, creatorDID)
 
 ---
 
-## async updateRole(roleId, updates, updaterDID)
+## Object.assign(
 
 ```javascript
-async updateRole(roleId, updates, updaterDID)
+Object.assign(
 ```
 
 * 更新角色（仅能更新自定义角色）
@@ -702,10 +702,10 @@ async updateRole(roleId, updates, updaterDID)
 
 ---
 
-## async deleteRole(roleId, deleterDID)
+## Object.assign(
 
 ```javascript
-async deleteRole(roleId, deleterDID)
+Object.assign(
 ```
 
 * 删除自定义角色
@@ -715,10 +715,10 @@ async deleteRole(roleId, deleterDID)
 
 ---
 
-## getAllPermissions()
+## Object.assign(
 
 ```javascript
-getAllPermissions()
+Object.assign(
 ```
 
 * 获取所有可用权限列表
@@ -726,10 +726,10 @@ getAllPermissions()
 
 ---
 
-## getOnlineMembers(orgId)
+## Object.assign(
 
 ```javascript
-getOnlineMembers(orgId)
+Object.assign(
 ```
 
 * 获取组织在线成员列表
@@ -738,10 +738,10 @@ getOnlineMembers(orgId)
 
 ---
 
-## getOnlineMemberCount(orgId)
+## Object.assign(
 
 ```javascript
-getOnlineMemberCount(orgId)
+Object.assign(
 ```
 
 * 获取组织在线成员数量
@@ -750,10 +750,10 @@ getOnlineMemberCount(orgId)
 
 ---
 
-## isMemberOnline(orgId, memberDID)
+## Object.assign(
 
 ```javascript
-isMemberOnline(orgId, memberDID)
+Object.assign(
 ```
 
 * 检查成员是否在线
@@ -763,10 +763,10 @@ isMemberOnline(orgId, memberDID)
 
 ---
 
-## async isMember(orgId, userDID)
+## Object.assign(
 
 ```javascript
-async isMember(orgId, userDID)
+Object.assign(
 ```
 
 * 检查用户是否是组织成员
@@ -776,10 +776,10 @@ async isMember(orgId, userDID)
 
 ---
 
-## async broadcastOrgP2PMessage(orgId, message)
+## Object.assign(
 
 ```javascript
-async broadcastOrgP2PMessage(orgId, message)
+Object.assign(
 ```
 
 * 广播消息到组织
@@ -789,10 +789,10 @@ async broadcastOrgP2PMessage(orgId, message)
 
 ---
 
-## getOrgNetworkStats(orgId)
+## Object.assign(
 
 ```javascript
-getOrgNetworkStats(orgId)
+Object.assign(
 ```
 
 * 获取组织P2P网络统计信息
@@ -801,10 +801,10 @@ getOrgNetworkStats(orgId)
 
 ---
 
-## async disconnectFromOrgP2PNetwork(orgId)
+## Object.assign(
 
 ```javascript
-async disconnectFromOrgP2PNetwork(orgId)
+Object.assign(
 ```
 
 * 断开组织P2P网络连接
@@ -813,10 +813,10 @@ async disconnectFromOrgP2PNetwork(orgId)
 
 ---
 
-## async handleKnowledgeEvent(orgId, type, data)
+## Object.assign(
 
 ```javascript
-async handleKnowledgeEvent(orgId, type, data)
+Object.assign(
 ```
 
 * 处理知识库事件
@@ -827,10 +827,10 @@ async handleKnowledgeEvent(orgId, type, data)
 
 ---
 
-## async getOrgKnowledgeForSync(orgId, since = 0)
+## Object.assign(
 
 ```javascript
-async getOrgKnowledgeForSync(orgId, since = 0)
+Object.assign(
 ```
 
 * 获取组织知识库数据用于同步
