@@ -30,12 +30,13 @@ npm run test:db-encryption
   - `legacy-rekey.test.js`(11) rekey 保留备份 / 回滚 / 编排提交顺序 / 恢复三分支（fake fs）
   - `core-initializer-db-password.test.js`(8) **resolveDbPassword 选路矩阵**：legacy-no-safestorage / managed / legacy-pending-rekey / managed-new / legacy-error + env override + post-rekey + factory seam
   - `core-initializer-rekey.test.js`(8) **maybeRunLegacyRekey 选路**：gate-off×2 / no-encrypted-db / recover-then-skip(already-managed | unavailable) / recover-BEFORE-rekey 顺序 / env override / 异常吞掉保持 legacy
-- [ ] **L2 真 SQLCipher 集成**（`npm run test:db-encryption-native`，Electron-as-Node，**非 CI**）——当前 **6 passed**：
+- [ ] **L2 真 SQLCipher 集成**（`npm run test:db-encryption-native`，Electron-as-Node，**非 CI**）——当前 **7 passed**：
   - G1 明文→.encrypted 迁移**数据逐字段一致**（中文/emoji/NULL/BLOB/TEXT-number）
   - G2 legacy("123456")→managed rekey **真换 key**（新开 / 旧败）
   - G3 fail-closed：不可解密目标**抛错 + 删除**（绝不静默落明文）
   - G5a/G5b 崩溃恢复（drop-stale-backup / restored-legacy，真文件）
-  - G6 并发锁跳过第二次迁移
+  - G6 并发锁跳过第二次迁移（同进程预占锁）
+  - G7 **真·双进程并发**：spawn 两个 Electron-as-Node 子进程同时迁移同一库 → 恰好一个真迁移、无双写/损坏、锁清理
 
 > ⚠️ L2 必须用 **Electron-as-Node（bs3mc ABI 140）** 跑，cwd 必须 `desktop-app-vue/`（sql.js WASM 相对 cwd 定位）。plain Node/vitest 加载不了 bs3mc，故 L2 **不进 CI gate**——翻 gate 前**手动跑一次并贴结果**。
 

@@ -370,6 +370,87 @@ async function g5b_recover_restored_legacy(dir) {
   db.close();
 }
 
+// =============================================================== G7 ==========
+// True two-process race: spawn TWO Electron-as-Node workers migrating the SAME
+// plaintext DB to the SAME target simultaneously. The cross-process file lock
+// (or the target-exists guard, depending on interleaving) must ensure EXACTLY
+// ONE real migration, no double-write/corruption, and a cleaned-up lock.
+function runMigrateWorker(workerPath, src, target, key) {
+  const { spawn } = require("child_process");
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [workerPath, src, target, key], {
+      cwd: process.cwd(), // desktop-app-vue (sql.js WASM locateFile)
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+    });
+    let out = "";
+    child.stdout.on("data", (d) => (out += d.toString()));
+    child.stderr.on("data", () => {});
+    child.on("close", () => {
+      const line = out.split("\n").find((l) => l.startsWith("WORKER_RESULT "));
+      let parsed = { outcome: "no-output", raw: out.slice(0, 200) };
+      if (line) {
+        try {
+          parsed = JSON.parse(line.slice("WORKER_RESULT ".length));
+        } catch (_e) {
+          /* keep no-output */
+        }
+      }
+      resolve(parsed);
+    });
+  });
+}
+
+async function g7_two_process_concurrent_migration(dir) {
+  const src = path.join(dir, "p.db");
+  const target = path.join(dir, "p.encrypted.db");
+  const KEY = hex32();
+
+  const sdb = new D(src);
+  sdb.pragma("journal_mode = DELETE");
+  sdb.exec("CREATE TABLE t(id INTEGER PRIMARY KEY, v TEXT)");
+  const ins = sdb.prepare("INSERT INTO t(v) VALUES (?)");
+  for (let i = 0; i < 50; i++) {
+    ins.run("row-" + i);
+  }
+  sdb.close();
+
+  const worker = path.join(__dirname, "db-encryption-migrate-worker.js");
+  const [a, b] = await Promise.all([
+    runMigrateWorker(worker, src, target, KEY),
+    runMigrateWorker(worker, src, target, KEY),
+  ]);
+
+  const both = [a, b];
+  const migrated = both.filter((x) => x.outcome === "migrated").length;
+  assert.strictEqual(
+    migrated,
+    1,
+    `exactly one process must migrate, got ${JSON.stringify(both)}`,
+  );
+  assert.ok(
+    both.every((x) =>
+      ["migrated", "locked", "skipped-exists"].includes(x.outcome),
+    ),
+    `no errors / corruption from the race: ${JSON.stringify(both)}`,
+  );
+
+  // The single resulting target must be valid + all rows present exactly once.
+  assert.ok(fs.existsSync(target), "target exists after the race");
+  const tdb = openRawEncrypted(target, KEY);
+  assert.strictEqual(
+    tdb.prepare("SELECT count(*) c FROM t").get().c,
+    50,
+    "all 50 rows migrated exactly once (no double-write)",
+  );
+  tdb.close();
+
+  // Lock must be released regardless of which process won.
+  assert.ok(
+    !fs.existsSync(target + ".migrating.lock"),
+    "migrating lock cleaned up",
+  );
+}
+
 // ----------------------------------------------------------------- main ------
 (async () => {
   console.log(
@@ -400,6 +481,10 @@ async function g5b_recover_restored_legacy(dir) {
   await test(
     "G5b recovery restores legacy backup when commit incomplete",
     g5b_recover_restored_legacy,
+  );
+  await test(
+    "G7 two-process concurrent migration: exactly one wins, no corruption",
+    g7_two_process_concurrent_migration,
   );
 
   console.log(`\n${pass} passed, ${failCount} failed`);
