@@ -15,16 +15,24 @@
  *        - PHASE_1_5_DEFAULT_ON === true            → ON in packaged builds
  *          (app.isPackaged), OFF in dev/test.
  *
- * Phase 1.5 flip procedure: after the real-device smoke in design §5.2 passes,
- * change PHASE_1_5_DEFAULT_ON to `true` (one reviewed line). That turns encryption
- * on by default for packaged users while leaving dev/test plaintext and keeping
- * the `=0` env kill-switch as an emergency off. Do NOT flip it before that smoke.
+ * Phase 1.5 flip procedure: complete EVERY item in the pre-flip checklist
+ * (docs/internal/db-encryption-preflip-checklist.md) — L1+L2+L3 automated tests
+ * AND the L4 real-device smoke — THEN change PHASE_1_5_DEFAULT_ON to `true` (one
+ * reviewed line). That turns encryption on by default for packaged users while
+ * leaving dev/test plaintext and keeping the `=0` env kill-switch as an emergency
+ * off. Do NOT flip it before the checklist is fully signed off.
  *
  * @module database/db-encryption-flag
  */
 
 /**
- * GATE — keep false until the real-device migration smoke (design §5.2) passes.
+ * GATE — keep false until the pre-flip checklist passes.
+ *
+ *   ⛔ Before changing this to `true`, run and sign off:
+ *      docs/internal/db-encryption-preflip-checklist.md
+ *      - npm run test:db-encryption   (L1 fake-fs + L3 selection matrix + L2 real SQLCipher)
+ *      - L4 real-device migration smoke (design §5.2) — Win cannot substitute.
+ *
  * Flipping to true makes packaged production encrypt + migrate by default.
  */
 const PHASE_1_5_DEFAULT_ON = false;
