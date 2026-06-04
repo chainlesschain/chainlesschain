@@ -10,10 +10,10 @@
 const
 ```
 
-* DID (Decentralized Identity) 管理器
- *
- * 实现 W3C DID Core 标准
- * DID 格式: did:chainlesschain:<identifier>
+- DID (Decentralized Identity) 管理器
+-
+- 实现 W3C DID Core 标准
+- DID 格式: did:chainlesschain:<identifier>
 
 ---
 
@@ -23,7 +23,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* DID 配置
+- DID 配置
 
 ---
 
@@ -33,18 +33,18 @@ const DEFAULT_CONFIG =
 class DIDManager extends EventEmitter
 ```
 
-* DID 管理器类
+- DID 管理器类
 
 ---
 
 ## setP2PManager(p2pManager)
 
 ```javascript
-setP2PManager(p2pManager)
+setP2PManager(p2pManager);
 ```
 
-* 设置 P2P 管理器（用于延迟初始化）
-   * @param {Object} p2pManager - P2P 管理器实例
+- 设置 P2P 管理器（用于延迟初始化）
+  - @param {Object} p2pManager - P2P 管理器实例
 
 ---
 
@@ -54,7 +54,7 @@ setP2PManager(p2pManager)
 async initialize()
 ```
 
-* 初始化 DID 管理器
+- 初始化 DID 管理器
 
 ---
 
@@ -64,7 +64,7 @@ async initialize()
 async ensureTables()
 ```
 
-* 确保数据库表存在
+- 确保数据库表存在
 
 ---
 
@@ -74,10 +74,10 @@ async ensureTables()
 async createIdentity(profile =
 ```
 
-* 生成新的 DID 身份
-   * @param {Object} profile - 用户资料 { nickname, bio, avatar }
-   * @param {Object} options - 选项 { setAsDefault }
-   * @returns {Promise<Object>} DID 身份对象
+- 生成新的 DID 身份
+  - @param {Object} profile - 用户资料 { nickname, bio, avatar }
+  - @param {Object} options - 选项 { setAsDefault }
+  - @returns {Promise<Object>} DID 身份对象
 
 ---
 
@@ -87,61 +87,61 @@ async createIdentity(profile =
 async createOrganizationDID(orgId, orgName)
 ```
 
-* 为组织创建 DID
-   * @param {string} orgId - 组织ID
-   * @param {string} orgName - 组织名称
-   * @returns {Promise<string>} 组织DID
+- 为组织创建 DID
+  - @param {string} orgId - 组织ID
+  - @param {string} orgName - 组织名称
+  - @returns {Promise<string>} 组织DID
 
 ---
 
 ## generateDID(publicKey, prefix = null)
 
 ```javascript
-generateDID(publicKey, prefix = null)
+generateDID(publicKey, (prefix = null));
 ```
 
-* 生成 DID 标识符
-   * @param {Uint8Array} publicKey - 公钥
-   * @param {string} prefix - 可选前缀（例如 'org' 用于组织）
-   * @returns {string} DID 标识符
+- 生成 DID 标识符
+  - @param {Uint8Array} publicKey - 公钥
+  - @param {string} prefix - 可选前缀（例如 'org' 用于组织）
+  - @returns {string} DID 标识符
 
 ---
 
 ## createDIDDocument(did, keys)
 
 ```javascript
-createDIDDocument(did, keys)
+createDIDDocument(did, keys);
 ```
 
-* 创建 DID 文档
-   * @param {string} did - DID 标识符
-   * @param {Object} keys - 密钥信息
-   * @returns {Object} DID 文档
+- 创建 DID 文档
+  - @param {string} did - DID 标识符
+  - @param {Object} keys - 密钥信息
+  - @returns {Object} DID 文档
 
 ---
 
 ## signDIDDocument(document, secretKey)
 
 ```javascript
-signDIDDocument(document, secretKey)
+signDIDDocument(document, secretKey);
 ```
 
-* 签名 DID 文档
-   * @param {Object} document - DID 文档
-   * @param {Uint8Array} secretKey - 私钥
-   * @returns {Object} 签名后的 DID 文档
+- 签名 DID 文档
+  - @param {Object} document - DID 文档
+  - @param {Uint8Array} secretKey - 私钥
+  - @returns {Object} 签名后的 DID 文档
 
 ---
 
 ## verifyDIDDocument(signedDocument)
 
 ```javascript
-verifyDIDDocument(signedDocument)
+verifyDIDDocument(signedDocument);
 ```
 
-* 验证 DID 文档签名
-   * @param {Object} signedDocument - 签名的 DID 文档
-   * @returns {boolean} 验证结果
+- 验证 DID 文档签名
+  - @param {Object} signedDocument - 签名的 DID 文档
+  - @returns {boolean} 验证结果
 
 ---
 
@@ -151,68 +151,31 @@ verifyDIDDocument(signedDocument)
 async saveIdentity(identity)
 ```
 
-* 保存身份到数据库
-   * @param {Object} identity - 身份对象
-
----
-
-## _decryptIdentityRow(identity)
-
-```javascript
-_decryptIdentityRow(identity)
-```
-
-* 将一行身份记录的 private_key_ref 就地解密（读路径统一入口）。
-   * 解密失败时保留原值并告警，避免整条身份因密钥不可解而消失。
-   * @param {Object|null} identity
-   * @returns {Object|null}
-
----
-
-## _normalizeRows(result)
-
-```javascript
-_normalizeRows(result)
-```
-
-* 将 sql.js / better-sqlite3 两种结果格式归一化为对象数组。
-   * @param {*} result
-   * @returns {Array<Object>}
-
----
-
-## async migrateEncryptPrivateKeys()
-
-```javascript
-async migrateEncryptPrivateKeys()
-```
-
-* 启动迁移：把历史明文 private_key_ref 重新写为 safeStorage 密文。
-   * safeStorage 不可用（dev/test/headless）时跳过 —— 此时无法加密，保持原状。
-   * @returns {Promise<{migrated: number, skipped: boolean}>}
+- 保存身份到数据库
+  - @param {Object} identity - 身份对象
 
 ---
 
 ## getAllIdentities()
 
 ```javascript
-getAllIdentities()
+getAllIdentities();
 ```
 
-* 获取所有身份
-   * @returns {Array} 身份列表
+- 获取所有身份
+  - @returns {Array} 身份列表
 
 ---
 
 ## getIdentityByDID(did)
 
 ```javascript
-getIdentityByDID(did)
+getIdentityByDID(did);
 ```
 
-* 根据 DID 获取身份
-   * @param {string} did - DID 标识符
-   * @returns {Object|null} 身份对象
+- 根据 DID 获取身份
+  - @param {string} did - DID 标识符
+  - @returns {Object|null} 身份对象
 
 ---
 
@@ -222,8 +185,8 @@ getIdentityByDID(did)
 async setDefaultIdentity(did)
 ```
 
-* 设置默认身份
-   * @param {string} did - DID 标识符
+- 设置默认身份
+  - @param {string} did - DID 标识符
 
 ---
 
@@ -233,7 +196,7 @@ async setDefaultIdentity(did)
 async loadDefaultIdentity()
 ```
 
-* 加载默认身份
+- 加载默认身份
 
 ---
 
@@ -243,9 +206,9 @@ async loadDefaultIdentity()
 async updateIdentityProfile(did, updates)
 ```
 
-* 更新身份资料
-   * @param {string} did - DID 标识符
-   * @param {Object} updates - 更新内容 { nickname, bio, avatar }
+- 更新身份资料
+  - @param {string} did - DID 标识符
+  - @param {Object} updates - 更新内容 { nickname, bio, avatar }
 
 ---
 
@@ -255,43 +218,43 @@ async updateIdentityProfile(did, updates)
 async deleteIdentity(did)
 ```
 
-* 删除身份
-   * @param {string} did - DID 标识符
+- 删除身份
+  - @param {string} did - DID 标识符
 
 ---
 
 ## exportDIDDocument(did)
 
 ```javascript
-exportDIDDocument(did)
+exportDIDDocument(did);
 ```
 
-* 导出 DID 文档
-   * @param {string} did - DID 标识符
-   * @returns {Object} DID 文档
+- 导出 DID 文档
+  - @param {string} did - DID 标识符
+  - @returns {Object} DID 文档
 
 ---
 
 ## generateQRCodeData(did)
 
 ```javascript
-generateQRCodeData(did)
+generateQRCodeData(did);
 ```
 
-* 生成 DID 二维码数据
-   * @param {string} did - DID 标识符
-   * @returns {string} 二维码数据（JSON 字符串）
+- 生成 DID 二维码数据
+  - @param {string} did - DID 标识符
+  - @returns {string} 二维码数据（JSON 字符串）
 
 ---
 
 ## getCurrentIdentity()
 
 ```javascript
-getCurrentIdentity()
+getCurrentIdentity();
 ```
 
-* 获取当前身份
-   * @returns {Object|null} 当前身份
+- 获取当前身份
+  - @returns {Object|null} 当前身份
 
 ---
 
@@ -301,9 +264,9 @@ getCurrentIdentity()
 async publishToDHT(did)
 ```
 
-* 发布 DID 文档到 DHT 网络
-   * @param {string} did - DID 标识符
-   * @returns {Promise<Object>} 发布结果 { success, key, publishedAt }
+- 发布 DID 文档到 DHT 网络
+  - @param {string} did - DID 标识符
+  - @returns {Promise<Object>} 发布结果 { success, key, publishedAt }
 
 ---
 
@@ -313,9 +276,9 @@ async publishToDHT(did)
 async resolveFromDHT(did)
 ```
 
-* 从 DHT 网络解析 DID 文档
-   * @param {string} did - DID 标识符
-   * @returns {Promise<Object>} DID 文档数据
+- 从 DHT 网络解析 DID 文档
+  - @param {string} did - DID 标识符
+  - @returns {Promise<Object>} DID 文档数据
 
 ---
 
@@ -325,9 +288,9 @@ async resolveFromDHT(did)
 async unpublishFromDHT(did)
 ```
 
-* 从 DHT 网络取消发布 DID
-   * @param {string} did - DID 标识符
-   * @returns {Promise<Object>} 取消发布结果
+- 从 DHT 网络取消发布 DID
+  - @param {string} did - DID 标识符
+  - @returns {Promise<Object>} 取消发布结果
 
 ---
 
@@ -337,30 +300,30 @@ async unpublishFromDHT(did)
 async isPublishedToDHT(did)
 ```
 
-* 检查 DID 是否已发布到 DHT
-   * @param {string} did - DID 标识符
-   * @returns {Promise<boolean>} 是否已发布
+- 检查 DID 是否已发布到 DHT
+  - @param {string} did - DID 标识符
+  - @returns {Promise<boolean>} 是否已发布
 
 ---
 
 ## startAutoRepublish(interval = null)
 
 ```javascript
-startAutoRepublish(interval = null)
+startAutoRepublish((interval = null));
 ```
 
-* 启动自动重新发布
-   * @param {number} interval - 重新发布间隔（毫秒），默认 24 小时
+- 启动自动重新发布
+  - @param {number} interval - 重新发布间隔（毫秒），默认 24 小时
 
 ---
 
 ## stopAutoRepublish()
 
 ```javascript
-stopAutoRepublish()
+stopAutoRepublish();
 ```
 
-* 停止自动重新发布
+- 停止自动重新发布
 
 ---
 
@@ -370,67 +333,67 @@ stopAutoRepublish()
 async republishAllDIDs()
 ```
 
-* 重新发布所有已发布的 DID
-   * @returns {Promise<Object>} 重新发布结果
+- 重新发布所有已发布的 DID
+  - @returns {Promise<Object>} 重新发布结果
 
 ---
 
 ## getAutoRepublishStatus()
 
 ```javascript
-getAutoRepublishStatus()
+getAutoRepublishStatus();
 ```
 
-* 获取自动重新发布状态
-   * @returns {Object} 状态信息
+- 获取自动重新发布状态
+  - @returns {Object} 状态信息
 
 ---
 
 ## setAutoRepublishInterval(interval)
 
 ```javascript
-setAutoRepublishInterval(interval)
+setAutoRepublishInterval(interval);
 ```
 
-* 设置自动重新发布间隔
-   * @param {number} interval - 间隔（毫秒）
+- 设置自动重新发布间隔
+  - @param {number} interval - 间隔（毫秒）
 
 ---
 
 ## generateMnemonic(strength = 256)
 
 ```javascript
-generateMnemonic(strength = 256)
+generateMnemonic((strength = 256));
 ```
 
-* 生成助记词
-   * @param {number} strength - 强度（默认 256 位，24 个单词）
-   * @returns {string} 助记词
+- 生成助记词
+  - @param {number} strength - 强度（默认 256 位，24 个单词）
+  - @returns {string} 助记词
 
 ---
 
 ## validateMnemonic(mnemonic)
 
 ```javascript
-validateMnemonic(mnemonic)
+validateMnemonic(mnemonic);
 ```
 
-* 验证助记词
-   * @param {string} mnemonic - 助记词
-   * @returns {boolean} 是否有效
+- 验证助记词
+  - @param {string} mnemonic - 助记词
+  - @returns {boolean} 是否有效
 
 ---
 
 ## deriveKeysFromMnemonic(mnemonic, index = 0)
 
 ```javascript
-deriveKeysFromMnemonic(mnemonic, index = 0)
+deriveKeysFromMnemonic(mnemonic, (index = 0));
 ```
 
-* 从助记词派生密钥对
-   * @param {string} mnemonic - 助记词
-   * @param {number} index - 派生索引（默认 0）
-   * @returns {Object} 密钥对
+- 从助记词派生密钥对
+  - @param {string} mnemonic - 助记词
+  - @param {number} index - 派生索引（默认 0）
+  - @returns {Object} 密钥对
 
 ---
 
@@ -440,35 +403,35 @@ deriveKeysFromMnemonic(mnemonic, index = 0)
 async createIdentityFromMnemonic(profile, mnemonic, options =
 ```
 
-* 使用助记词创建身份
-   * @param {Object} profile - 身份资料
-   * @param {string} mnemonic - 助记词
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 创建的身份
+- 使用助记词创建身份
+  - @param {Object} profile - 身份资料
+  - @param {string} mnemonic - 助记词
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 创建的身份
 
 ---
 
 ## exportMnemonic(did)
 
 ```javascript
-exportMnemonic(did)
+exportMnemonic(did);
 ```
 
-* 从身份导出助记词
-   * @param {string} did - DID 标识符
-   * @returns {string|null} 助记词（如果存在）
+- 从身份导出助记词
+  - @param {string} did - DID 标识符
+  - @returns {string|null} 助记词（如果存在）
 
 ---
 
 ## hasMnemonic(did)
 
 ```javascript
-hasMnemonic(did)
+hasMnemonic(did);
 ```
 
-* 检查身份是否有助记词备份
-   * @param {string} did - DID 标识符
-   * @returns {boolean} 是否有助记词
+- 检查身份是否有助记词备份
+  - @param {string} did - DID 标识符
+  - @returns {boolean} 是否有助记词
 
 ---
 
@@ -478,7 +441,6 @@ hasMnemonic(did)
 async close()
 ```
 
-* 关闭管理器
+- 关闭管理器
 
 ---
-
