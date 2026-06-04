@@ -23,12 +23,13 @@ npm run test:db-encryption
 
 它依次跑：
 
-- [ ] **L1 + L3 单测**（`npm run test:db-encryption-unit`，普通 vitest / CI）——当前 **37 passed**：
+- [ ] **L1 + L3 单测**（`npm run test:db-encryption-unit`，普通 vitest / CI）——当前 **45 passed**：
   - `db-secret-provider.test.js`(7) safeStorage 托管口令随机性/幂等/持久/seam
   - `db-encryption-flag.test.js`(7) gate 三态（env 强开/强关 + `PHASE_1_5_DEFAULT_ON`×packaged），含**断言 shipped gate 仍 false**
   - `encrypted-migration.test.js`(5) 并发锁 / 陈旧锁 / 重开校验失败→删可疑库（fake fs）
   - `legacy-rekey.test.js`(11) rekey 保留备份 / 回滚 / 编排提交顺序 / 恢复三分支（fake fs）
-  - `core-initializer-db-password.test.js`(8) **选路矩阵**：legacy-no-safestorage / managed / legacy-pending-rekey / managed-new / legacy-error + env override + post-rekey + factory seam
+  - `core-initializer-db-password.test.js`(8) **resolveDbPassword 选路矩阵**：legacy-no-safestorage / managed / legacy-pending-rekey / managed-new / legacy-error + env override + post-rekey + factory seam
+  - `core-initializer-rekey.test.js`(8) **maybeRunLegacyRekey 选路**：gate-off×2 / no-encrypted-db / recover-then-skip(already-managed | unavailable) / recover-BEFORE-rekey 顺序 / env override / 异常吞掉保持 legacy
 - [ ] **L2 真 SQLCipher 集成**（`npm run test:db-encryption-native`，Electron-as-Node，**非 CI**）——当前 **6 passed**：
   - G1 明文→.encrypted 迁移**数据逐字段一致**（中文/emoji/NULL/BLOB/TEXT-number）
   - G2 legacy("123456")→managed rekey **真换 key**（新开 / 旧败）

@@ -90,47 +90,66 @@ function resolveDbPassword(deps = {}) {
  * legacy 库且尚无托管口令时执行 rekey。任何异常都吞掉并保持 legacy（不阻塞启动）。
  * 成功后会写出 db-secret.enc → 随后的 resolveDbPassword() 走 managed 分支用新 key 开库。
  */
-async function maybeRunLegacyRekey() {
+async function maybeRunLegacyRekey(deps = {}) {
+  // Seams default to production behavior; with deps={} this is byte-for-byte the
+  // original. Injectable for the end-to-end gate/recover/rekey selection tests,
+  // which can't reach electron app / safeStorage / a real KeyManager. The return
+  // value (skip reason / rekeyed flag) is for tests; the bootstrap caller ignores it.
   try {
-    const {
-      isDbEncryptionOptIn,
-      isDbRekeyOptIn,
-    } = require("../database/db-encryption-flag");
+    const { isDbEncryptionOptIn, isDbRekeyOptIn } =
+      deps.flags || require("../database/db-encryption-flag");
     if (!isDbEncryptionOptIn() || !isDbRekeyOptIn()) {
-      return; // gate 关 → 不运行
+      return { skipped: "gate-off" }; // gate 关 → 不运行
     }
 
-    const {
-      createDbSecretProvider,
-    } = require("../database/db-secret-provider");
-    const { KeyManager } = require("../database/key-manager");
-    const {
-      rekeyLegacyDbToManaged,
-      recoverInterruptedRekey,
-    } = require("../database/legacy-rekey");
-    const { getAppConfig } = require("../config/database-config");
+    const createProvider =
+      deps.createDbSecretProvider ||
+      require("../database/db-secret-provider").createDbSecretProvider;
+    const rekeyLegacyDbToManaged =
+      deps.rekeyLegacyDbToManaged ||
+      require("../database/legacy-rekey").rekeyLegacyDbToManaged;
+    const recoverInterruptedRekey =
+      deps.recoverInterruptedRekey ||
+      require("../database/legacy-rekey").recoverInterruptedRekey;
+    const getAppConfig =
+      deps.getAppConfig || require("../config/database-config").getAppConfig;
+    const fsImpl = deps.fs || fs;
 
-    const userData = app.getPath("userData");
+    const userData = deps.userDataPath || app.getPath("userData");
     const secretPath = path.join(userData, "db-secret.enc");
     const configPath = path.join(userData, "db-key-config.json");
-    const provider = createDbSecretProvider({ secretPath });
+    const provider = deps.provider || createProvider({ secretPath });
 
     const dbPath = getAppConfig().getDatabasePath();
     const ext = path.extname(dbPath);
     const encryptedDbPath = `${dbPath.slice(0, dbPath.length - ext.length)}.encrypted${ext}`;
 
-    if (!fs.existsSync(encryptedDbPath)) {
-      return; // 无 .encrypted 库 → 无需 rekey（明文→加密走 Phase 1 迁移）
+    if (!fsImpl.existsSync(encryptedDbPath)) {
+      return { skipped: "no-encrypted-db" }; // 明文→加密走 Phase 1 迁移
     }
 
-    const keyManager = new KeyManager({ encryptionEnabled: true, configPath });
-    const deriveKey = (password, saltHex) =>
-      keyManager.deriveKeyFromPassword(
-        password,
-        saltHex ? Buffer.from(saltHex, "hex") : null,
-      );
-    const loadMetadata = () => keyManager.loadKeyMetadata();
-    const saveMetadata = (m) => keyManager.saveKeyMetadata(m);
+    // Build deriveKey/load/saveMetadata from a real KeyManager only when the
+    // test hasn't injected them (so unit tests need no real KeyManager).
+    let deriveKey = deps.deriveKey;
+    let loadMetadata = deps.loadMetadata;
+    let saveMetadata = deps.saveMetadata;
+    if (!deriveKey || !loadMetadata || !saveMetadata) {
+      const KeyManager =
+        deps.KeyManager || require("../database/key-manager").KeyManager;
+      const keyManager = new KeyManager({
+        encryptionEnabled: true,
+        configPath,
+      });
+      deriveKey =
+        deriveKey ||
+        ((password, saltHex) =>
+          keyManager.deriveKeyFromPassword(
+            password,
+            saltHex ? Buffer.from(saltHex, "hex") : null,
+          ));
+      loadMetadata = loadMetadata || (() => keyManager.loadKeyMetadata());
+      saveMetadata = saveMetadata || ((m) => keyManager.saveKeyMetadata(m));
+    }
 
     // 1. 中断恢复：若上次 rekey 未提交完，依据托管 key 能否打开来 drop 或 restore。
     const managedKeyResolver = async () => {
@@ -151,10 +170,11 @@ async function maybeRunLegacyRekey() {
 
     // 2. 已有托管口令 → 库已是 managed，无需 rekey。
     if (provider.hasManagedPassphrase() || !provider.isAvailable()) {
-      return;
+      return { skipped: "already-managed-or-unavailable" };
     }
 
-    const legacyPassword = process.env.DEFAULT_PASSWORD || "123456";
+    const legacyPassword =
+      deps.legacyPassword || process.env.DEFAULT_PASSWORD || "123456";
     const res = await rekeyLegacyDbToManaged(
       { encryptedDbPath, legacyPassword },
       { provider, deriveKey, loadMetadata, saveMetadata },
@@ -162,11 +182,13 @@ async function maybeRunLegacyRekey() {
     logger.warn(
       `[core-init] legacy rekey 结果: ${JSON.stringify(res)}（Phase 2，真机验证用）`,
     );
+    return { rekeyed: true, result: res };
   } catch (err) {
     logger.error(
       "[core-init] legacy rekey 失败，保持 legacy 口令继续:",
       err.message,
     );
+    return { error: err.message };
   }
 }
 
@@ -696,4 +718,8 @@ function registerCoreInitializers(factory) {
   });
 }
 
-module.exports = { registerCoreInitializers, resolveDbPassword };
+module.exports = {
+  registerCoreInitializers,
+  resolveDbPassword,
+  maybeRunLegacyRekey,
+};
