@@ -46,10 +46,10 @@ function resolveDbPassword(deps =
 
 ---
 
-## async function maybeRunLegacyRekey()
+## async function maybeRunLegacyRekey(deps =
 
 ```javascript
-async function maybeRunLegacyRekey()
+async function maybeRunLegacyRekey(deps =
 ```
 
 * Phase 2（默认 OFF，gated）：把 legacy `.encrypted("123456")` 库 rekey 到 safeStorage
