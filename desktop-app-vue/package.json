@@ -46,6 +46,7 @@
     "test:performance": "vitest run tests/performance",
     "test:coverage": "vitest run --coverage",
     "test:db": "node scripts/test-database.js",
+    "test:db-encryption-native": "cross-env ELECTRON_RUN_AS_NODE=1 electron src/main/database/__tests__/native/db-encryption.native.js",
     "test:ukey": "node scripts/test-ukey.js",
     "test:pkcs11": "node scripts/test-pkcs11-encryption.js",
     "test:secure-storage": "node scripts/test-secure-storage.js",
