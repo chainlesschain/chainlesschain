@@ -464,6 +464,88 @@ class HubAskViewModelTest {
         assertTrue(s.citations.isEmpty())
     }
 
+    // ─── splitCitations 纯逻辑边界：去重 + 正则最小长度 ──────────────────────
+    // 这些走 CLOUD_ANDROID 路径（splitCitations 唯一客户端入口），补上上面 known/
+    // hallucinated/no-facts 三例没覆盖的 toSet() 去重语义与 CITATION_RE 长度边界。
+
+    @Test
+    fun `submit CLOUD_ANDROID dedups repeated hallucinated id to count one`() = runTest(testDispatcher) {
+        // 同一个编造 id 被引用 3 次 → splitCitations 用 toSet() 去重 → 只算 1 条幻觉
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factIds = listOf("evt-real"),
+                factCount = 1
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } returns
+            "瞎编 [evt-fake] 又 [evt-fake] 再 [evt-fake]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertEquals(1, s.hallucinatedCount) // 去重后只算 1，而非引用次数 3
+        assertTrue(s.citations.isEmpty())
+    }
+
+    @Test
+    fun `submit CLOUD_ANDROID dedups repeated known id to single citation`() = runTest(testDispatcher) {
+        // 真 id 被引两次 → citations 去重为 1 条（chip 不重复）
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factIds = listOf("evt-1"),
+                factCount = 1
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } returns "买了 [evt-1]，详见 [evt-1]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertEquals(1, s.citations.size)
+        assertEquals("evt-1", s.citations.first().eventId)
+        assertEquals(0, s.hallucinatedCount)
+    }
+
+    @Test
+    fun `submit CLOUD_ANDROID ignores single-char bracket tokens (regex min length 2)`() =
+        runTest(testDispatcher) {
+            // CITATION_RE = [A-Za-z0-9_-]{2,}：[ab] 命中（编造，不在 factIds），[c] 太短被忽略
+            every { androidLlm.detectProvider() } returns doubaoProvider
+            coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+                RetrieveContextResult(
+                    question = "Q",
+                    messages = listOf(PromptMessage("user", "Q")),
+                    factIds = listOf("zz"),
+                    factCount = 1
+                )
+            )
+            coEvery { androidLlm.chat(any(), any()) } returns "脚注 [ab] 和单字 [c]。"
+
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.onQuestionChange("Q")
+            vm.submit()
+            advanceUntilIdle()
+
+            val s = vm.uiState.value
+            assertEquals(1, s.hallucinatedCount) // 仅 [ab]；[c] 单字符不算 token
+            assertTrue(s.citations.isEmpty())
+        }
+
     @Test
     fun `submit PC_LOCAL surfaces desktop hallucinatedCitations count`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
