@@ -8,6 +8,7 @@
 
 const { logger } = require("../utils/logger.js");
 const path = require("path");
+const { isPathWithin } = require("../utils/safe-open.js");
 
 /**
  * 注册文件操作相关的 IPC 处理器
@@ -561,6 +562,10 @@ function registerFileIPC({
 
         const rootPath = project.root_path;
         const resolvedPath = path.join(rootPath, filePath);
+        // 防路径遍历：filePath 来自渲染层，path.join 可被 `../` 逃逸出项目根。
+        if (!isPathWithin(rootPath, resolvedPath)) {
+          throw new Error(`拒绝打开越界路径(疑似路径遍历): ${filePath}`);
+        }
 
         logger.info("[Main] 解析后的路径:", resolvedPath);
 

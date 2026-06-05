@@ -4,7 +4,7 @@ const express = require("express");
 const path = require("path");
 const { spawn } = require("child_process");
 const getPort = require("get-port");
-const { shell } = require("electron");
+const { safeOpenExternal, safeOpenPathDir } = require("../utils/safe-open.js");
 
 /**
  * 预览管理器
@@ -259,7 +259,7 @@ class PreviewManager extends EventEmitter {
    */
   async openInExplorer(rootPath) {
     try {
-      await shell.openPath(rootPath);
+      await safeOpenPathDir(rootPath); // 仅打开存在且为目录的路径，防执行文件
       logger.info(`[PreviewManager] 已在文件管理器中打开: ${rootPath}`);
       return { success: true };
     } catch (error) {
@@ -274,7 +274,7 @@ class PreviewManager extends EventEmitter {
    */
   async openInBrowser(url) {
     try {
-      await shell.openExternal(url);
+      await safeOpenExternal(url); // 仅放行 http(s)
       logger.info(`[PreviewManager] 已在浏览器中打开: ${url}`);
       return { success: true };
     } catch (error) {

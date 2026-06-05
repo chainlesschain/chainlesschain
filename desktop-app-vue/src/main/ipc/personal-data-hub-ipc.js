@@ -699,7 +699,8 @@ async function openPdhWebWindow({ route, _deps } = {}) {
   const BrowserWindowCtor =
     deps.BrowserWindow || require("electron").BrowserWindow;
   const openExternal =
-    deps.openExternal || ((url) => require("electron").shell.openExternal(url));
+    deps.openExternal ||
+    ((url) => require("../utils/safe-open.js").safeOpenExternal(url));
   const logWarn = deps.logWarn || ((msg, err) => logger.warn(msg, err));
 
   const cleanRoute =

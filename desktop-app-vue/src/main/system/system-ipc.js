@@ -258,8 +258,8 @@ function registerSystemIPC({ mainWindow }) {
    */
   registerHandler("system:open-external", async (_event, url) => {
     try {
-      const { shell } = require("electron");
-      await shell.openExternal(url);
+      const { safeOpenExternal } = require("../utils/safe-open.js");
+      await safeOpenExternal(url); // 仅放行 http(s)，拒绝 file://smb:// 等
       return { success: true };
     } catch (error) {
       logger.error("[System IPC] 打开外部链接失败:", error);
