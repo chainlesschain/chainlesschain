@@ -52,6 +52,10 @@ function registerPhase5Project({
         logger.info(
           "[IPC Registry] ⚠️  Database not initialized (Project Core handlers registered with degraded functionality)",
         );
+        require("../degraded-registry").note(
+          "project-core",
+          "Database not initialized",
+        );
       }
     },
     handlers: 34,
@@ -80,10 +84,18 @@ function registerPhase5Project({
         logger.info(
           "[IPC Registry] ⚠️  Database not initialized (Project AI handlers registered with degraded functionality)",
         );
+        require("../degraded-registry").note(
+          "project-ai",
+          "Database not initialized",
+        );
       }
       if (!llmManager) {
         logger.info(
           "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
+        );
+        require("../degraded-registry").note(
+          "project-ai-llm",
+          "LLM manager not initialized",
         );
       }
     },

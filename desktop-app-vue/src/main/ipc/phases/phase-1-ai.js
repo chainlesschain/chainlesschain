@@ -80,6 +80,10 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
         logger.info(
           "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
         );
+        require("../degraded-registry").note(
+          "ai-llm",
+          "LLM manager not initialized",
+        );
       }
     },
     handlers: 14,

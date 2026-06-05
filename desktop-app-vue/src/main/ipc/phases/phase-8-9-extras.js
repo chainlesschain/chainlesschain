@@ -180,6 +180,7 @@ function registerPhases8to9Extras({
         logger.warn(
           "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
         );
+        require("../degraded-registry").note("sync", "syncManager 未初始化");
       }
       const { registerSyncIPC } = require("../../sync/sync-ipc");
       registerSyncIPC({ syncManager: syncManager || null });
@@ -233,6 +234,10 @@ function registerPhases8to9Extras({
         logger.warn(
           "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
         );
+        require("../degraded-registry").note(
+          "extras-db",
+          "Database manager not initialized",
+        );
       }
     },
     handlers: 12,
@@ -263,10 +268,18 @@ function registerPhases8to9Extras({
         logger.info(
           "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
         );
+        require("../degraded-registry").note(
+          "extras-db",
+          "Database manager not initialized",
+        );
       }
       if (!llmManager) {
         logger.info(
           "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
+        );
+        require("../degraded-registry").note(
+          "extras-llm",
+          "LLM manager not initialized",
         );
       }
       logger.info("[IPC Registry] Conversation advanced features:", {
@@ -290,6 +303,10 @@ function registerPhases8to9Extras({
           logger.warn(
             "[IPC Registry] ⚠️ fileSyncManager 未初始化，将注册降级的 File Sync IPC handlers",
           );
+          require("../degraded-registry").note(
+            "file-sync",
+            "fileSyncManager 未初始化",
+          );
         }
         const {
           registerFileSyncIPC,
@@ -303,6 +320,10 @@ function registerPhases8to9Extras({
     });
   } else {
     logger.warn("[IPC Registry] ⚠️ 数据库未初始化，跳过 File Sync IPC 注册");
+    require("../degraded-registry").note(
+      "file-sync-db",
+      "数据库未初始化，跳过 File Sync IPC 注册",
+    );
   }
 
   // 配置管理 (函数模式 - 小模块，4 handlers)

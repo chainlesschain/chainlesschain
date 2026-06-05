@@ -41,6 +41,10 @@ function registerPhase2Core({ safeRegister, logger, deps }) {
         logger.info(
           "[IPC Registry] ⚠️  U-Key manager not initialized (handlers registered with degraded functionality)",
         );
+        require("../degraded-registry").note(
+          "ukey",
+          "U-Key manager not initialized",
+        );
       }
     },
     handlers: 9,
@@ -60,6 +64,10 @@ function registerPhase2Core({ safeRegister, logger, deps }) {
       if (!database) {
         logger.info(
           "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
+        );
+        require("../degraded-registry").note(
+          "database-core",
+          "Database manager not initialized",
         );
       }
     },

@@ -67,6 +67,10 @@ function registerPhases6to7Content({ safeRegister, logger, deps }) {
         logger.warn(
           "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
         );
+        require("../degraded-registry").note(
+          "template",
+          "templateManager not initialized",
+        );
       }
     },
     handlers: 20,

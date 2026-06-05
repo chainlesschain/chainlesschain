@@ -467,6 +467,39 @@ function registerAllIPC(dependencies) {
     // 打印IPC Guard统计信息
     ipcGuard.printStats();
 
+    // ============================================================
+    // 降级注册可见告警 (degraded-registration visible alerts)
+    // 各 phase 在依赖缺失时只打一行 info/warn 就静默注册降级 handler；这里把它们
+    // 汇总成一条显眼 WARN + 广播给渲染层（UI 横幅）+ 暴露查询通道，避免 silent degrade。
+    // ============================================================
+    try {
+      const degradedRegistry = require("./degraded-registry");
+      const degraded = degradedRegistry.list();
+      if (degraded.length > 0) {
+        logger.warn(
+          `[IPC Registry] ⚠️  ${degraded.length} 个子系统以降级模式注册: ${degraded
+            .map((d) => d.subsystem)
+            .join(", ")}`,
+        );
+        for (const d of degraded) {
+          logger.warn(`[IPC Registry]   ↳ ${d.subsystem}: ${d.reason}`);
+        }
+        // 广播给渲染层，供 UI 显示可见横幅/通知（preload: electronAPI.system.onDegradedSubsystems）
+        const win = dependencies.mainWindow;
+        if (win && win.webContents && !win.webContents.isDestroyed()) {
+          win.webContents.send("system:degraded-subsystems", degraded);
+        }
+      }
+      // 查询通道：渲染层随时可拉取降级清单（preload: electronAPI.system.getDegradedSubsystems）
+      ipcGuard.safeRegisterHandler(
+        "system:get-degraded-subsystems",
+        () => degradedRegistry.list(),
+        "ipc-registry",
+      );
+    } catch (e) {
+      logger.error("[IPC Registry] degraded-registration surfacing failed:", e);
+    }
+
     return registeredModules;
   } catch (error) {
     logger.error("[IPC Registry] ❌ Registration failed:", error);

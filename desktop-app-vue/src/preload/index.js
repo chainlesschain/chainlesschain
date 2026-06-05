@@ -2479,6 +2479,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   system: {
     getSystemInfo: () => ipcRenderer.invoke("system:get-system-info"),
     getAppInfo: () => ipcRenderer.invoke("system:get-app-info"),
+    // 降级注册可见告警：查询当前以降级模式注册的子系统清单
+    getDegradedSubsystems: () =>
+      ipcRenderer.invoke("system:get-degraded-subsystems"),
+    // 订阅启动后广播的降级清单（UI 可据此弹横幅/通知）。返回取消订阅函数。
+    onDegradedSubsystems: (callback) => {
+      const listener = (_event, list) => callback(list);
+      ipcRenderer.on("system:degraded-subsystems", listener);
+      return () =>
+        ipcRenderer.removeListener("system:degraded-subsystems", listener);
+    },
     getPlatform: () => ipcRenderer.invoke("system:get-platform"),
     getVersion: () => ipcRenderer.invoke("system:get-version"),
     getPath: (name) => ipcRenderer.invoke("system:get-path", name),

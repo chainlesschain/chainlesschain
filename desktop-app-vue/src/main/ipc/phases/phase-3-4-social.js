@@ -113,6 +113,10 @@ function registerPhases3to4Social({
         logger.warn(
           "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
         );
+        require("../degraded-registry").note(
+          "social",
+          "registered with null dependencies (degraded mode)",
+        );
       }
     },
     handlers: 33,
