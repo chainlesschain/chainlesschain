@@ -33,7 +33,13 @@ class APContentSync extends EventEmitter {
 
     if (options.autoSync) {
       const interval = options.syncIntervalMs || 5 * 60 * 1000;
-      this._syncInterval = setInterval(() => this.syncAll().catch(() => {}), interval);
+      this._syncInterval = setInterval(
+        () =>
+          this.syncAll().catch((e) =>
+            logger.error("[APContentSync] 定时 syncAll 失败:", e),
+          ),
+        interval,
+      );
     }
 
     logger.info("[APContentSync] Content sync initialized successfully");
@@ -47,10 +53,14 @@ class APContentSync extends EventEmitter {
    */
   async publishPost(actorDid, post) {
     try {
-      if (!post || !post.content) {throw new Error("Post content is required");}
+      if (!post || !post.content) {
+        throw new Error("Post content is required");
+      }
 
       const actor = await this.apBridge.getActorByDid(actorDid);
-      if (!actor) {throw new Error("Actor not found");}
+      if (!actor) {
+        throw new Error("Actor not found");
+      }
 
       const noteObject = {
         type: "Note",
@@ -64,7 +74,11 @@ class APContentSync extends EventEmitter {
 
       if (post.media) {
         noteObject.attachment = Array.isArray(post.media)
-          ? post.media.map((m) => ({ type: "Document", url: m.url, mediaType: m.type }))
+          ? post.media.map((m) => ({
+              type: "Document",
+              url: m.url,
+              mediaType: m.type,
+            }))
           : [];
       }
 
@@ -90,7 +104,11 @@ class APContentSync extends EventEmitter {
    */
   async publishLike(actorDid, objectId) {
     try {
-      return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.LIKE, objectId);
+      return await this.apBridge.createActivity(
+        actorDid,
+        ACTIVITY_TYPES.LIKE,
+        objectId,
+      );
     } catch (error) {
       logger.error("[APContentSync] Failed to publish like:", error);
       throw error;
@@ -105,7 +123,11 @@ class APContentSync extends EventEmitter {
    */
   async publishBoost(actorDid, objectId) {
     try {
-      return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.ANNOUNCE, objectId);
+      return await this.apBridge.createActivity(
+        actorDid,
+        ACTIVITY_TYPES.ANNOUNCE,
+        objectId,
+      );
     } catch (error) {
       logger.error("[APContentSync] Failed to publish boost:", error);
       throw error;
@@ -120,7 +142,11 @@ class APContentSync extends EventEmitter {
    */
   async publishFollow(actorDid, targetActorId) {
     try {
-      return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.FOLLOW, targetActorId);
+      return await this.apBridge.createActivity(
+        actorDid,
+        ACTIVITY_TYPES.FOLLOW,
+        targetActorId,
+      );
     } catch (error) {
       logger.error("[APContentSync] Failed to publish follow:", error);
       throw error;
@@ -147,7 +173,9 @@ class APContentSync extends EventEmitter {
         source: "activitypub",
         remote_id: noteObject.id,
         remote_actor: noteObject.attributedTo,
-        created_at: noteObject.published ? new Date(noteObject.published).getTime() : Date.now(),
+        created_at: noteObject.published
+          ? new Date(noteObject.published).getTime()
+          : Date.now(),
       };
 
       this.emit("note:imported", post);
@@ -169,15 +197,21 @@ class APContentSync extends EventEmitter {
       }
 
       const published = this.database.db
-        .prepare("SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 1")
+        .prepare(
+          "SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 1",
+        )
         .get();
 
       const received = this.database.db
-        .prepare("SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 0 AND processed = 1")
+        .prepare(
+          "SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 0 AND processed = 1",
+        )
         .get();
 
       const pending = this.database.db
-        .prepare("SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 0 AND processed = 0")
+        .prepare(
+          "SELECT COUNT(*) as count FROM activitypub_activities WHERE is_local = 0 AND processed = 0",
+        )
         .get();
 
       return {
@@ -197,7 +231,9 @@ class APContentSync extends EventEmitter {
    */
   async syncAll() {
     try {
-      if (!this.database || !this.database.db) {return { synced: 0 };}
+      if (!this.database || !this.database.db) {
+        return { synced: 0 };
+      }
 
       const pending = this.database.db
         .prepare(
@@ -212,7 +248,11 @@ class APContentSync extends EventEmitter {
           await this.apBridge.processInboxActivity(parsed);
           synced++;
         } catch (err) {
-          logger.warn("[APContentSync] Failed to sync activity:", activity.id, err.message);
+          logger.warn(
+            "[APContentSync] Failed to sync activity:",
+            activity.id,
+            err.message,
+          );
         }
       }
 
@@ -236,7 +276,9 @@ class APContentSync extends EventEmitter {
 
 let _instance;
 function getAPContentSync() {
-  if (!_instance) {_instance = new APContentSync();}
+  if (!_instance) {
+    _instance = new APContentSync();
+  }
   return _instance;
 }
 

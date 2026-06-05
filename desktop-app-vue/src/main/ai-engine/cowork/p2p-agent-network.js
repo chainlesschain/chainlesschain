@@ -549,7 +549,12 @@ class P2PAgentNetwork extends EventEmitter {
         deviceId: this.localDeviceInfo?.deviceId,
         reason: "shutdown",
       },
-    }).catch(() => {});
+    }).catch((e) =>
+      logger.debug(
+        "[P2PAgentNetwork] best-effort P2P send failed:",
+        e?.message,
+      ),
+    );
 
     // Clear timers
     if (this._heartbeatTimer) {
@@ -669,7 +674,12 @@ class P2PAgentNetwork extends EventEmitter {
         timestamp: Date.now(),
         isReply: true,
       },
-    }).catch(() => {});
+    }).catch((e) =>
+      logger.debug(
+        "[P2PAgentNetwork] best-effort P2P send failed:",
+        e?.message,
+      ),
+    );
   }
 
   _handleHeartbeat(peerId, payload) {
@@ -856,7 +866,12 @@ class P2PAgentNetwork extends EventEmitter {
           platform: this.localDeviceInfo?.platform,
         },
       },
-    }).catch(() => {});
+    }).catch((e) =>
+      logger.debug(
+        "[P2PAgentNetwork] best-effort P2P send failed:",
+        e?.message,
+      ),
+    );
   }
 
   _handleSkillResponse(_peerId, payload) {
@@ -872,7 +887,12 @@ class P2PAgentNetwork extends EventEmitter {
         inviteId: payload.inviteId,
         accepted,
       },
-    }).catch(() => {});
+    }).catch((e) =>
+      logger.debug(
+        "[P2PAgentNetwork] best-effort P2P send failed:",
+        e?.message,
+      ),
+    );
 
     this.emit("team-invite-received", { peerId, ...payload, accepted });
   }
@@ -895,7 +915,12 @@ class P2PAgentNetwork extends EventEmitter {
           resources: this._getLocalResources(),
           timestamp: Date.now(),
         },
-      }).catch(() => {});
+      }).catch((e) =>
+        logger.debug(
+          "[P2PAgentNetwork] best-effort P2P send failed:",
+          e?.message,
+        ),
+      );
     }, this.config.heartbeatInterval);
 
     // Check for stale agents
@@ -956,7 +981,12 @@ class P2PAgentNetwork extends EventEmitter {
         device: this.localDeviceInfo,
         timestamp: Date.now(),
       },
-    }).catch(() => {});
+    }).catch((e) =>
+      logger.debug(
+        "[P2PAgentNetwork] best-effort P2P send failed:",
+        e?.message,
+      ),
+    );
   }
 
   _onPeerDisconnected(peerId) {

@@ -54,7 +54,13 @@ class SCIMSync extends EventEmitter {
 
     if (options.autoSync) {
       const interval = options.syncIntervalMs || 15 * 60 * 1000;
-      this._syncInterval = setInterval(() => this.syncAll().catch(() => {}), interval);
+      this._syncInterval = setInterval(
+        () =>
+          this.syncAll().catch((e) =>
+            logger.error("[SCIMSync] 定时 syncAll 失败:", e),
+          ),
+        interval,
+      );
     }
 
     logger.info("[SCIMSync] SCIM sync engine initialized");
@@ -68,7 +74,9 @@ class SCIMSync extends EventEmitter {
    */
   registerConnector(provider, config) {
     try {
-      if (!config.endpoint) {throw new Error("Connector endpoint is required");}
+      if (!config.endpoint) {
+        throw new Error("Connector endpoint is required");
+      }
 
       this._connectors.set(provider, {
         provider,
@@ -111,8 +119,12 @@ class SCIMSync extends EventEmitter {
   async syncProvider(provider) {
     try {
       const connector = this._connectors.get(provider);
-      if (!connector) {throw new Error(`Connector not found: ${provider}`);}
-      if (!connector.enabled) {throw new Error(`Connector disabled: ${provider}`);}
+      if (!connector) {
+        throw new Error(`Connector not found: ${provider}`);
+      }
+      if (!connector.enabled) {
+        throw new Error(`Connector disabled: ${provider}`);
+      }
 
       this._syncStatus = SYNC_STATUS.RUNNING;
       this.emit("sync:started", { provider });
@@ -174,7 +186,9 @@ class SCIMSync extends EventEmitter {
   async syncAll() {
     const results = [];
     for (const [provider, connector] of this._connectors) {
-      if (!connector.enabled) {continue;}
+      if (!connector.enabled) {
+        continue;
+      }
       try {
         const result = await this.syncProvider(provider);
         results.push(result);
@@ -194,7 +208,9 @@ class SCIMSync extends EventEmitter {
       status: this._syncStatus,
       lastSyncAt: this._lastSyncAt,
       connectorCount: this._connectors.size,
-      enabledConnectors: Array.from(this._connectors.values()).filter((c) => c.enabled).length,
+      enabledConnectors: Array.from(this._connectors.values()).filter(
+        (c) => c.enabled,
+      ).length,
     };
   }
 
@@ -205,14 +221,18 @@ class SCIMSync extends EventEmitter {
    */
   async getSyncHistory(options = {}) {
     try {
-      if (!this.database || !this.database.db) {return [];}
+      if (!this.database || !this.database.db) {
+        return [];
+      }
 
       const limit = options.limit || 50;
       const provider = options.provider;
 
       if (provider) {
         return this.database.db
-          .prepare("SELECT * FROM scim_sync_log WHERE provider = ? ORDER BY created_at DESC LIMIT ?")
+          .prepare(
+            "SELECT * FROM scim_sync_log WHERE provider = ? ORDER BY created_at DESC LIMIT ?",
+          )
           .all(provider, limit);
       }
 
@@ -239,7 +259,9 @@ class SCIMSync extends EventEmitter {
 
 let _instance;
 function getSCIMSync() {
-  if (!_instance) {_instance = new SCIMSync();}
+  if (!_instance) {
+    _instance = new SCIMSync();
+  }
   return _instance;
 }
 
