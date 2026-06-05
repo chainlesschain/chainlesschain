@@ -29,9 +29,9 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-2-core",
     exportName: "registerPhase2Core",
-    // 6 unconditional safeRegister calls (U-Key, Database, Git, MCP Basic
-    // Config, System early, Notification early)
-    expectedRegistrations: 6,
+    // 7 unconditional safeRegister calls (U-Key, Database, FamilyGuard,
+    // Git, MCP Basic Config, System early, Notification early)
+    expectedRegistrations: 7,
     needsRegisteredModules: false,
   },
   {
@@ -47,13 +47,13 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-8-9-extras",
     exportName: "registerPhases8to9Extras",
-    // 10 unconditional safeRegister calls fire with null stub deps:
-    // Blockchain, Collaboration, Automation, Plugin, Sync, WebDAV,
-    // Preference, Conversation, Config, Workflow. The other 8 are gated on
-    // managers (llmManager / reviewManager / vcTemplateManager / database /
-    // app.graphExtractor / creditScoreManager / fileImporter / database)
+    // 12 unconditional safeRegister calls fire with null stub deps:
+    // Blockchain, Collaboration, Automation, Plugin, Sync, WebDAV, OSS,
+    // Mobile Sync, Preference, Conversation, Config, Workflow. The rest are
+    // gated on managers (llmManager / reviewManager / vcTemplateManager /
+    // database / app.graphExtractor / creditScoreManager / fileImporter)
     // and don't fire with null deps.
-    expectedRegistrations: 10,
+    expectedRegistrations: 12,
     needsRegisteredModules: true,
   },
   {
