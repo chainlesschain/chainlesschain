@@ -62,7 +62,7 @@ npm run test:db-encryption-realstore   # 真 Electron 主进程（非 RUN_AS_NOD
 
 ### B.2 真·人工 GUI smoke（探针无法替代，仍须人工跑）
 
-按 `docs/internal/db-encryption-phase1-realdevice-smoke.md`，B.1 全绿后只剩这两条**真实用户路径**需人工签核：
+**照着跑**：`docs/internal/db-encryption-b2-powershell-runbook.md`（PowerShell 步骤单，含重置/启动/日志 grep/判据，已剔除 A 层+B.1 覆盖项）。底层场景出处见 `db-encryption-phase1-realdevice-smoke.md`。B.1 全绿后只剩这两条**真实用户路径**需人工签核：
 
 - [ ] **装旧版 → 升级**：先装当前默认版产生明文库 + ≥3 条笔记/会话数据 → 升级到本版 + `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` 启动 → 真 `<userData>` 目录内数据完好（条数一致）、出现 `db-secret.enc`/`chainlesschain.encrypted.db`、原库变 `.old`。（探针用临时 fixture 库，验不了真实安装升级路径）
 - [ ] **真断电/强杀中断**：迁移进行中物理断电/强杀进程，重启后源库或 `.old`/`.backup.<ts>` 仍在、可恢复重试、无 `*.migrating.lock` 残留、无数据丢失。（探针不做真断电；崩溃恢复的逻辑分支已由 L2 G5a/G5b 证过）
