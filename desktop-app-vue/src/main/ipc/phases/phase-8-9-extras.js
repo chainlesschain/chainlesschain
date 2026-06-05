@@ -235,8 +235,8 @@ function registerPhases8to9Extras({
           "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
         );
         require("../degraded-registry").note(
-          "extras-db",
-          "Database manager not initialized",
+          "preference",
+          "preferenceManager 未初始化，跳过 Preference IPC 注册",
         );
       }
     },
