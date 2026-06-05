@@ -81,9 +81,23 @@ function createValidAuth(didManager, did, method) {
   };
 }
 
-// Skip tests - better-sqlite3 native module version mismatch
-// Run `npm rebuild better-sqlite3` to fix
-describe.skip("Replay Attack Prevention", () => {
+// Native gate: better-sqlite3 ships a per-ABI binding that isn't always built in
+// this repo (the app standardizes on better-sqlite3-multiple-ciphers for Electron,
+// so plain better-sqlite3 may be installed-but-unbuilt). These are REAL PermissionGate
+// security tests (replay / nonce / timestamp / signature / audit) — run them wherever
+// the binding loads; skip cleanly (never red) where it doesn't. Build locally with:
+//   npm rebuild better-sqlite3
+let _sqliteAvailable = false;
+try {
+  const _probe = new Database(":memory:");
+  _probe.close();
+  _sqliteAvailable = true;
+} catch (_e) {
+  // better-sqlite3 native binding unavailable in this environment → skip, not fail.
+}
+const describeNative = _sqliteAvailable ? describe : describe.skip;
+
+describeNative("Replay Attack Prevention", () => {
   let database;
   let permissionGate;
   let mockDIDManager;
