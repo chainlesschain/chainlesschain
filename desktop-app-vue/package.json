@@ -48,6 +48,7 @@
     "test:db": "node scripts/test-database.js",
     "test:db-encryption-unit": "vitest run src/main/database/__tests__/db-secret-provider.test.js src/main/database/__tests__/db-encryption-flag.test.js src/main/database/__tests__/encrypted-migration.test.js src/main/database/__tests__/legacy-rekey.test.js src/main/bootstrap/__tests__/core-initializer-db-password.test.js src/main/bootstrap/__tests__/core-initializer-rekey.test.js",
     "test:db-encryption-native": "cross-env ELECTRON_RUN_AS_NODE=1 electron src/main/database/__tests__/native/db-encryption.native.js",
+    "test:db-encryption-realstore": "electron src/main/database/__tests__/native/db-encryption-realsafestorage.probe.js",
     "test:db-encryption": "npm run test:db-encryption-unit && npm run test:db-encryption-native",
     "test:ukey": "node scripts/test-ukey.js",
     "test:pkcs11": "node scripts/test-pkcs11-encryption.js",

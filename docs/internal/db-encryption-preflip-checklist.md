@@ -42,13 +42,30 @@ npm run test:db-encryption
 
 ## B. 真机门禁（**Win 不可代**，翻 gate 前必过）
 
-- [ ] 按 `docs/internal/db-encryption-phase1-realdevice-smoke.md` 全部场景逐项签核：
-  - [ ] 装当前默认版（明文库）→ 产生笔记/会话数据
-  - [ ] 升级到本版 + `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` 启动
-  - [ ] 数据完好（条数一致）+ 出现 `db-secret.enc` + `chainlesschain.encrypted.db`、原库变 `.old`
-  - [ ] 旧 "123456"/空 key 打不开新库
-  - [ ] 杀进程/断电模拟中断重启：源库未丢、能恢复或重试
-  - [ ] 多实例并行启动：锁生效不双写坏库
+### B.1 半自动 real-safeStorage 探针（已自动化，本机即可，**必须全绿**）
+
+```bash
+cd desktop-app-vue
+npm run test:db-encryption-realstore   # 真 Electron 主进程（非 RUN_AS_NODE）+ 真 DPAPI/Keychain
+```
+
+它在**真 OS keychain** 上跑（L2 用内存 provider 替身，碰不到 keychain），当前 **6 passed**：
+
+- [ ] R0 真 keychain 可用（`safeStorage.isEncryptionAvailable()===true`）
+- [ ] R1 首启 mint + safeStorage 加密落盘 `db-secret.enc`
+- [ ] R2 `db-secret.enc` 是真密文（口令明文不出现在文件内）
+- [ ] R3 二次启动用真 DPAPI 解出**同一**托管口令（managed 复用，不重 mint）
+- [ ] R4 **端到端**：keychain 口令 → 真 KeyManager PBKDF2 → 真明文→加密迁移 → 重开数据逐字段一致（中文/emoji/NULL/BLOB/TEXT-number）+ 错误 key 被拒（§3 的真实一半）
+- [ ] R5 kill-switch + gate 三态（env=0 压过开 gate；shipped 默认 OFF；开 gate×packaged→ON）
+
+> 这一项把清单 §2「managed-new key 驱动真迁移」、§3「旧/错 key 打不开」的真实一半、§7 kill-switch 全自动覆盖。**剩下只有两件真·人工 GUI 项**（B.2）。
+
+### B.2 真·人工 GUI smoke（探针无法替代，仍须人工跑）
+
+按 `docs/internal/db-encryption-phase1-realdevice-smoke.md`，B.1 全绿后只剩这两条**真实用户路径**需人工签核：
+
+- [ ] **装旧版 → 升级**：先装当前默认版产生明文库 + ≥3 条笔记/会话数据 → 升级到本版 + `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1` 启动 → 真 `<userData>` 目录内数据完好（条数一致）、出现 `db-secret.enc`/`chainlesschain.encrypted.db`、原库变 `.old`。（探针用临时 fixture 库，验不了真实安装升级路径）
+- [ ] **真断电/强杀中断**：迁移进行中物理断电/强杀进程，重启后源库或 `.old`/`.backup.<ts>` 仍在、可恢复重试、无 `*.migrating.lock` 残留、无数据丢失。（探针不做真断电；崩溃恢复的逻辑分支已由 L2 G5a/G5b 证过）
 
 ## C. 回滚预案（翻 gate 后若线上告警）
 
@@ -69,7 +86,8 @@ npm run test:db-encryption
 |---|---|---|---|
 | A. L1+L3 单测 | `npm run test:db-encryption-unit` | ____ passed | |
 | A. L2 真 SQLCipher | `npm run test:db-encryption-native` | ____ passed | |
-| B. 真机 smoke | realdevice-smoke.md | 全场景 ✅ | |
+| B.1 real-safeStorage 探针 | `npm run test:db-encryption-realstore` | ____ passed | |
+| B.2 人工 GUI smoke（装旧版→升级 + 真断电） | realdevice-smoke.md | 2 场景 ✅ | |
 | C. kill-switch + fail-closed | env `=0` + 真机 | ✅ | |
 | D. 翻 gate + 改断言 | db-encryption-flag.js / .test.js | merged | |
 
