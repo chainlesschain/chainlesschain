@@ -177,8 +177,10 @@ jobs:
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
-        run: npm run test:db || echo "⚠️ Database tests failed (may require native modules)"
-        continue-on-error: true
+        # No `|| echo` / continue-on-error: a test:db failure must fail the job so
+        # the required "Database Tests" status actually gates merges. Verified
+        # genuinely green in CI run 27056644357 (2026-06-06) before requiring it.
+        run: npm run test:db
 
   build-check:
     name: Build Check
