@@ -294,6 +294,60 @@ jobs:
         working-directory: ./desktop-app-vue
         run: npm run test:db
 
+  # Personal Data Hub 测试（独立 workspace，CI 之前完全没跑过 —— 见 memory
+  # bs3mc_electron_abi_sandbox_workaround "MAJOR FINDING"）。
+  # 关键：在 workspace 之外做独立 install，让 better-sqlite3-multiple-ciphers
+  # 拿到 host-Node 的预编译 (ABI 127)，而不是 desktop-app-vue 的 Electron 构建
+  # ——否则 vitest.config.js 的探针会判定 native 不可用而静默 skip 15 个 vault
+  # 测试，job 假绿。guard step 再显式断言 native 能加载，杜绝假绿。
+  pdh-tests:
+    name: PDH Data Hub Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Run PDH suite in an isolated install (host-ABI native drivers)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mirror the packages/ layout in a scratch dir OUTSIDE the workspace so
+          # npm install resolves standalone — bs3mc then gets the host-Node
+          # prebuild (ABI 127), not desktop-app-vue's Electron build. The pdh +
+          # cli siblings preserve the one cross-package import a test makes:
+          # __tests__/adapters/...test.js → `../../../cli/src/lib/host-adb-bridge.js`.
+          ROOT="${RUNNER_TEMP}/pdh-ci"
+          rm -rf "$ROOT"; mkdir -p "$ROOT/pdh" "$ROOT/cli"
+          cp -r packages/personal-data-hub/lib "$ROOT/pdh/"
+          cp -r packages/personal-data-hub/__tests__ "$ROOT/pdh/"
+          cp packages/personal-data-hub/package.json "$ROOT/pdh/"
+          cp packages/personal-data-hub/vitest.config.js "$ROOT/pdh/"
+          cp -r packages/cli/src "$ROOT/cli/src"   # host-adb-bridge.js (node builtins only)
+          cd "$ROOT/pdh"
+          npm install --no-audit --no-fund --loglevel=warn
+          # Plain better-sqlite3 (browser-history / *-adb / vscode adapters read
+          # external SQLite DBs) is hoisted in the real workspace but not a
+          # declared PDH dep, so a standalone install lacks it — add it.
+          npm install --no-save --no-audit --no-fund better-sqlite3
+          # Guard: both native drivers MUST load in CI. If a future Node has no
+          # prebuild, fail loud here instead of letting vitest.config.js silently
+          # skip the vault tests and report a false green.
+          node -e "new (require('better-sqlite3-multiple-ciphers'))(':memory:').close(); console.log('bs3mc OK, ABI '+process.versions.modules)"
+          node -e "new (require('better-sqlite3'))(':memory:').close(); console.log('better-sqlite3 OK')"
+          npx vitest run --reporter=default
+
   # 完整测试（可选，手动触发或定时运行）
   full-tests:
     name: Full Test Suite
