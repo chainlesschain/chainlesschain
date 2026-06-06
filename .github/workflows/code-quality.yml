@@ -141,13 +141,11 @@ jobs:
 
       - name: Check code style
         working-directory: ./desktop-app-vue
-        run: |
-          # 如果有 ESLint 配置
-          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-            npm run lint || echo "⚠️ Linting issues found"
-          else
-            echo "ℹ️ ESLint not configured"
-          fi
+        # No `|| echo`: an ESLint **error** must fail the job so the required
+        # "Lint & Format Check" status actually gates merges. As of 2026-06-06
+        # the suite is 0 errors / ~2440 warnings — warnings don't fail eslint
+        # by default, so this stays green now and only trips on new errors.
+        run: npm run lint
 
   test-database:
     name: Database Tests
