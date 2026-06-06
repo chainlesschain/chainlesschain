@@ -37,6 +37,17 @@ abstract class AiStudyModule {
     @Singleton
     abstract fun bindStudyTaskContext(impl: InMemoryStudyTaskContext): StudyTaskContext
 
+    // M9 奖励/积分账本 seam (内存态; SQLCipher 持久化 follow-up)。
+    @Binds
+    @Singleton
+    abstract fun bindPointsLedger(impl: InMemoryPointsLedger): PointsLedger
+
+    @Binds
+    @Singleton
+    abstract fun bindHomeworkGrader(
+        impl: com.chainlesschain.android.presentation.familytask.LlmHomeworkGrader,
+    ): com.chainlesschain.android.presentation.familytask.HomeworkGrader
+
     @Binds
     @Singleton
     abstract fun bindVaultStorage(impl: FileVaultStorage): VaultStorage

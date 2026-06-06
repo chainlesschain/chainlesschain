@@ -33,6 +33,8 @@ fun MainContainer(
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToAiStudy: () -> Unit = {},
     onNavigateToTasks: () -> Unit = {},
+    onNavigateToRewards: () -> Unit = {},
+    onNavigateToGentleness: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToConversation: (String) -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
@@ -173,6 +175,8 @@ fun MainContainer(
                     FamilyGuardTab(
                         onNavigateToAiStudy = onNavigateToAiStudy,
                         onNavigateToTasks = onNavigateToTasks,
+                        onNavigateToRewards = onNavigateToRewards,
+                        onNavigateToGentleness = onNavigateToGentleness,
                         onSosTriggered = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(

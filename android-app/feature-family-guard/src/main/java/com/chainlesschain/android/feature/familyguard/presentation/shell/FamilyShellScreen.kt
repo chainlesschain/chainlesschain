@@ -53,6 +53,8 @@ fun FamilyShellScreen(
     onNavigateToFamilyMembers: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
     onNavigateToTasks: () -> Unit,
+    onNavigateToRewards: () -> Unit,
+    onNavigateToGentleness: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -99,10 +101,26 @@ fun FamilyShellScreen(
             onClick = onNavigateToTasks,
         )
 
+        SectionCard(
+            title = "积分",
+            description = "完成任务赚积分 (M9); 兑换额外屏幕时间 / 解锁 app / 零花钱等",
+            enabled = true,
+            testTag = TestTag.SectionRewards,
+            onClick = onNavigateToRewards,
+        )
+
+        SectionCard(
+            title = "家长成长",
+            description = "监管温和度月报 (M10); 同类对比 + 关注点 + 微课程",
+            enabled = true,
+            testTag = TestTag.SectionGentleness,
+            onClick = onNavigateToGentleness,
+        )
+
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "v0.1 MVP: 家人 + AI 陪学 + SOS + 任务/作业。",
+            text = "v0.1 MVP: 家人 + AI 陪学 + SOS + 任务/作业 + 积分 + 家长成长。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -170,4 +188,6 @@ object TestTag {
     const val SectionFamily = "family_guard/shell/section_family"
     const val SectionAi = "family_guard/shell/section_ai"
     const val SectionTasks = "family_guard/shell/section_tasks"
+    const val SectionRewards = "family_guard/shell/section_rewards"
+    const val SectionGentleness = "family_guard/shell/section_gentleness"
 }

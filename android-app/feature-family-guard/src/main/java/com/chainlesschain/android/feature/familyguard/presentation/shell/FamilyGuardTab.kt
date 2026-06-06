@@ -33,6 +33,8 @@ fun FamilyGuardTab(
     onSosTriggered: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
     onNavigateToTasks: () -> Unit,
+    onNavigateToRewards: () -> Unit,
+    onNavigateToGentleness: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -47,6 +49,8 @@ fun FamilyGuardTab(
                 onNavigateToFamilyMembers = { navController.navigate(Route.MEMBERS) },
                 onNavigateToAiStudy = onNavigateToAiStudy,
                 onNavigateToTasks = onNavigateToTasks,
+                onNavigateToRewards = onNavigateToRewards,
+                onNavigateToGentleness = onNavigateToGentleness,
             )
         }
         composable(Route.MEMBERS) {

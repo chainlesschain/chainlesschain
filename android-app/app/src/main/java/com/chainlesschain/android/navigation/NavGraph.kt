@@ -34,6 +34,8 @@ import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.presentation.aistudy.AiStudyScreen
 import com.chainlesschain.android.presentation.familytask.FamilyTaskScreen
+import com.chainlesschain.android.presentation.familyrewards.FamilyRewardsScreen
+import com.chainlesschain.android.presentation.parentedu.GentlenessReportScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
@@ -157,6 +159,8 @@ fun NavGraph(
                 onNavigateToAIChat = { navController.navigate(Screen.ConversationList.route) },
                 onNavigateToAiStudy = { navController.navigate(Screen.AiStudy.route) },
                 onNavigateToTasks = { navController.navigate(Screen.FamilyTask.route) },
+                onNavigateToRewards = { navController.navigate(Screen.FamilyRewards.route) },
+                onNavigateToGentleness = { navController.navigate(Screen.GentlenessReport.route) },
                 onNavigateToAIChatWithMessage = { msg ->
                     // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
                     // 情况下 NewConversationScreen 自动选默认模型 + 自动创建 → Chat
@@ -318,6 +322,16 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenAiStudy = { navController.navigate(Screen.AiStudy.route) },
             )
+        }
+
+        // M9 奖励/积分 — 家庭 tab "积分" 卡导航至此。
+        composable(Screen.FamilyRewards.route) {
+            FamilyRewardsScreen(onBack = { navController.popBackStack() })
+        }
+
+        // M10 监管温和度月报 — 家庭 tab "家长成长" 卡导航至此。
+        composable(Screen.GentlenessReport.route) {
+            GentlenessReportScreen(onBack = { navController.popBackStack() })
         }
 
         composable(
@@ -1032,6 +1046,12 @@ sealed class Screen(val route: String) {
     /** AI 陪学 (M6 MVP) — 家庭 tab 的「AI陪学」入口。 */
     data object AiStudy : Screen("ai_study")
     data object FamilyTask : Screen("family_task")
+
+    /** M9 奖励/积分 — 家庭 tab「积分」入口。 */
+    data object FamilyRewards : Screen("family_rewards")
+
+    /** M10 监管温和度月报 — 家庭 tab「家长成长」入口。 */
+    data object GentlenessReport : Screen("gentleness_report")
     data object ProjectDetail : Screen("project_detail") {
         fun createRoute(projectId: String) = "project_detail/$projectId"
     }
