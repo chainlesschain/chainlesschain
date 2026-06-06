@@ -46,12 +46,16 @@ class AiStudyViewModelTest {
 
     private lateinit var llm: FakeAiStudyLlm
     private lateinit var store: FakeStudyProfileStore
+    private lateinit var mistakeBook: InMemoryMistakeBook
+    private lateinit var guardrailSink: InMemoryGuardrailEventSink
 
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         llm = FakeAiStudyLlm()
         store = FakeStudyProfileStore(StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明"))
+        mistakeBook = InMemoryMistakeBook()
+        guardrailSink = InMemoryGuardrailEventSink()
     }
 
     @After
@@ -59,7 +63,9 @@ class AiStudyViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun vm() = AiStudyViewModel(llm, store)
+    private fun vm() = AiStudyViewModel(
+        llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink,
+    )
 
     @Test
     fun `send appends user then assistant to learning history`() = runTest {
@@ -114,12 +120,13 @@ class AiStudyViewModelTest {
 
     @Test
     fun `llm error surfaces and stops sending`() = runTest {
-        val viewModel = vm()
         val erroringLlm = object : AiStudyLlm {
             override fun stream(messages: List<Message>): Flow<StreamChunk> =
                 flowOf(StreamChunk(content = "", isDone = true, error = "未配置模型"))
         }
-        val vm2 = AiStudyViewModel(erroringLlm, store)
+        val vm2 = AiStudyViewModel(
+            erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink,
+        )
         vm2.send("hi")
 
         assertEquals("未配置模型", vm2.uiState.value.error)
@@ -127,5 +134,74 @@ class AiStudyViewModelTest {
         // 出错时只追加了 user 消息, 无 assistant
         assertEquals(1, vm2.uiState.value.learningMessages.size)
         assertNull(vm2.uiState.value.streamingText.ifEmpty { null })
+    }
+
+    @Test
+    fun `learning request injects related mistake-book context (RAG)`() = runTest {
+        val viewModel = vm()
+        viewModel.addMistake(
+            MistakeEntry(
+                id = "m1", grade = GradeLevel.P5, subject = Subject.MATH,
+                knowledgeNode = "分数加减", question = "1/2 + 1/3 = ?",
+                wrongAnswer = "2/5", correctAnswer = "5/6", note = "", createdAt = 1L,
+            ),
+        )
+        viewModel.send("老师，分数加减怎么通分")
+
+        val system = llm.lastMessages.first()
+        assertEquals(MessageRole.SYSTEM, system.role)
+        assertTrue(system.content.contains("相关错题"))
+        assertTrue(system.content.contains("5/6"))
+    }
+
+    @Test
+    fun `unrelated query does not inject mistake context`() = runTest {
+        val viewModel = vm()
+        viewModel.addMistake(
+            MistakeEntry(
+                id = "m1", grade = GradeLevel.P5, subject = Subject.MATH,
+                knowledgeNode = "分数加减", question = "1/2 + 1/3 = ?",
+                wrongAnswer = "2/5", correctAnswer = "5/6", note = "", createdAt = 1L,
+            ),
+        )
+        viewModel.send("讲讲三角形面积")
+
+        assertTrue(!llm.lastMessages.first().content.contains("相关错题"))
+    }
+
+    @Test
+    fun `companion guardrail hit is recorded as category plus time only`() = runTest {
+        val viewModel = vm()
+        viewModel.selectTab(AiStudyTab.COMPANION)
+        viewModel.send("我最近总觉得活不下去")
+
+        val findings = guardrailSink.findings.value
+        assertEquals(1, findings.size)
+        assertEquals(RiskCategory.SELF_HARM, findings[0].category)
+        assertEquals(AiStudyTab.COMPANION, findings[0].tab)
+        // 对话仍正常进行 (不阻断)
+        assertEquals(2, viewModel.uiState.value.companionMessages.size)
+    }
+
+    @Test
+    fun `generateReport aggregates turns mistakes and guardrail categories`() = runTest {
+        val viewModel = vm()
+        viewModel.send("帮我做这道作业题：第1题 第2题")
+        viewModel.addMistake(
+            MistakeEntry(
+                id = "m1", grade = GradeLevel.P5, subject = Subject.MATH,
+                knowledgeNode = "分数", question = "q", wrongAnswer = "w",
+                correctAnswer = "c", note = "", createdAt = 1L,
+            ),
+        )
+        viewModel.selectTab(AiStudyTab.COMPANION)
+        viewModel.send("有人约我见面")
+
+        val report = viewModel.generateReport()
+        val text = report.render()
+        assertEquals("小明", report.nickname)
+        assertTrue(text.contains("学习答疑 1 次"))
+        assertTrue(text.contains("作业引导模式")) // homework heuristic 命中
+        assertTrue(text.contains("陌生人见面邀约"))
     }
 }

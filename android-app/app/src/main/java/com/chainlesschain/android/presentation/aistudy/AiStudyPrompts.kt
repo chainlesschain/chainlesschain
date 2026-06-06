@@ -70,6 +70,31 @@ object AiStudyPrompts {
     }
 
     /**
+     * 学习 tab：在基础 prompt 后追加错题本 RAG 上下文块 (主文档 §3.6 学习 tab RAG)。
+     * [retrievedContext] 为空时等价于 [learningSystemPrompt]。
+     */
+    fun learningSystemPrompt(profile: StudyProfile, retrievedContext: String): String {
+        val base = learningSystemPrompt(profile)
+        return if (retrievedContext.isBlank()) base else "$base\n\n$retrievedContext"
+    }
+
+    /**
+     * 作业模式启发式 (v0.1，纯文本侧近似)。设计中完整判定需"拍照 + 多题"，端侧无图时
+     * 用文本信号近似：出现"第N题/多个题号/多个问号/作业/练习"等。仅用于统计引导模式次数。
+     */
+    fun looksLikeHomework(text: String): Boolean {
+        if (text.isBlank()) return false
+        val t = text.lowercase()
+        if (HOMEWORK_KEYWORDS.any { t.contains(it) }) return true
+        // 多个题号 (1. 2. / (1)(2) / ①②) 或多个问号 → 像一组题
+        val numbered = Regex("[(（]?\\d+[)）.、]").findAll(t).count()
+        val questionMarks = t.count { it == '?' || it == '？' }
+        return numbered >= 2 || questionMarks >= 2
+    }
+
+    private val HOMEWORK_KEYWORDS = listOf("作业", "练习题", "第几题", "这道题", "这几题", "做题")
+
+    /**
      * 陪伴 tab：成长伙伴 + 未成年护栏 (主文档 §3.6 护栏模板，第 1 层 prompt 内置)。
      */
     fun companionSystemPrompt(nickname: String): String {

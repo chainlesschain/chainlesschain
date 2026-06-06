@@ -20,4 +20,16 @@ abstract class AiStudyModule {
     @Binds
     @Singleton
     abstract fun bindAiStudyLlm(impl: DefaultAiStudyLlm): AiStudyLlm
+
+    @Binds
+    @Singleton
+    abstract fun bindMistakeBook(impl: InMemoryMistakeBook): MistakeBook
+
+    @Binds
+    @Singleton
+    abstract fun bindGuardrailClassifier(impl: KeywordGuardrailClassifier): GuardrailClassifier
+
+    @Binds
+    @Singleton
+    abstract fun bindGuardrailEventSink(impl: InMemoryGuardrailEventSink): GuardrailEventSink
 }
