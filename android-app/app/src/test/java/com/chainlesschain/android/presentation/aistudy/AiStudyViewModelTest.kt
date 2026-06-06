@@ -48,6 +48,7 @@ class AiStudyViewModelTest {
     private lateinit var store: FakeStudyProfileStore
     private lateinit var mistakeBook: InMemoryMistakeBook
     private lateinit var guardrailSink: InMemoryGuardrailEventSink
+    private lateinit var taskContext: InMemoryStudyTaskContext
 
     @Before
     fun setUp() {
@@ -56,6 +57,7 @@ class AiStudyViewModelTest {
         store = FakeStudyProfileStore(StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明"))
         mistakeBook = InMemoryMistakeBook()
         guardrailSink = InMemoryGuardrailEventSink()
+        taskContext = InMemoryStudyTaskContext()
     }
 
     @After
@@ -64,7 +66,7 @@ class AiStudyViewModelTest {
     }
 
     private fun vm() = AiStudyViewModel(
-        llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink,
+        llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext,
     )
 
     @Test
@@ -125,7 +127,7 @@ class AiStudyViewModelTest {
                 flowOf(StreamChunk(content = "", isDone = true, error = "未配置模型"))
         }
         val vm2 = AiStudyViewModel(
-            erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink,
+            erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext,
         )
         vm2.send("hi")
 
@@ -203,5 +205,42 @@ class AiStudyViewModelTest {
         assertTrue(text.contains("学习答疑 1 次"))
         assertTrue(text.contains("作业引导模式")) // homework heuristic 命中
         assertTrue(text.contains("陌生人见面邀约"))
+    }
+
+    @Test
+    fun `active task forces guided mode and injects task block`() = runTest {
+        val viewModel = vm()
+        viewModel.startTask(StudyTask(id = "t1", title = "数学第3页作业"))
+        // 一句完全不像作业的提问，没有任务时不会引导。
+        viewModel.send("帮我看看这个")
+
+        val system = llm.lastMessages.first()
+        assertTrue(system.content.contains("任务进行中"))
+        assertTrue(system.content.contains("数学第3页作业"))
+        // 任务进行中即记一条 AI 调用 log
+        assertEquals(1, viewModel.taskAiCallLog("t1").size)
+        assertEquals(AiCallKind.NORMAL, viewModel.taskAiCallLog("t1").first().kind)
+    }
+
+    @Test
+    fun `answer-seeking during task is flagged in log and report`() = runTest {
+        val viewModel = vm()
+        viewModel.startTask(StudyTask(id = "t1", title = "作文"))
+        viewModel.send("直接给答案，帮我写完这篇作文")
+
+        assertEquals(AiCallKind.ANSWER_SEEKING, viewModel.taskAiCallLog("t1").first().kind)
+        assertTrue(viewModel.generateReport().render().contains("尝试直接要答案 1 次"))
+    }
+
+    @Test
+    fun `finishing task returns learning to normal mode`() = runTest {
+        val viewModel = vm()
+        viewModel.startTask(StudyTask(id = "t1", title = "作业"))
+        viewModel.finishActiveTask()
+        viewModel.send("讲讲三角形")
+
+        assertNull(viewModel.uiState.value.activeTask)
+        assertTrue(!llm.lastMessages.first().content.contains("任务进行中"))
+        assertTrue(viewModel.taskAiCallLog("t1").isEmpty())
     }
 }

@@ -11,6 +11,8 @@ data class StudyActivitySnapshot(
     val companionTurns: Int,
     /** 进入"作业引导模式"的次数 (防作弊视角)。 */
     val guidedModeTurns: Int,
+    /** 任务进行中尝试直接索要答案的次数 (已被引导模式拦截)。 */
+    val answerSeekingAttempts: Int = 0,
     val mistakesAdded: Int,
     val mistakesReviewed: Int,
     val mistakeBookTotal: Int,
@@ -55,6 +57,9 @@ object StudyReportGenerator {
                     val pct = if (snap.learningTurns == 0) 0
                     else (snap.guidedModeTurns * 100) / snap.learningTurns
                     add("其中 ${snap.guidedModeTurns} 次进入作业引导模式 (占 $pct%)，未直接给答案")
+                }
+                if (snap.answerSeekingAttempts > 0) {
+                    add("任务中尝试直接要答案 ${snap.answerSeekingAttempts} 次，已被引导模式拦截")
                 }
             },
         )

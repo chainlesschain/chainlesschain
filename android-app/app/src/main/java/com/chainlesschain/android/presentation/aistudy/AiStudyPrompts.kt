@@ -79,6 +79,43 @@ object AiStudyPrompts {
     }
 
     /**
+     * 学习 tab + M5 任务联动 (主文档 §3.5/§3.6 AI 防作弊)。
+     * 有进行中任务时，在 RAG prompt 后追加**强制引导模式**块：不给答案、只给思路。
+     * [activeTask] 为 null 时等价于上面的两参重载。
+     */
+    fun learningSystemPrompt(
+        profile: StudyProfile,
+        retrievedContext: String,
+        activeTask: StudyTask?,
+    ): String {
+        val base = learningSystemPrompt(profile, retrievedContext)
+        if (activeTask == null) return base
+        return "$base\n\n${guidedModeBlock(profile.nickname.ifBlank { "同学" }, activeTask)}"
+    }
+
+    private fun guidedModeBlock(name: String, task: StudyTask): String = """
+        【任务进行中：${task.title}】$name 正在完成这项作业，对本任务的任何提问一律走「引导模式」：
+        - 绝不直接给出最终答案 / 完整解题过程 / 作文成稿。
+        - 只拆解思路、给提示、反问，引导 $name 自己写出答案。
+        - 若 ta 反复索要答案，温和坚持引导，并提醒「自己想出来才学得会」。
+    """.trimIndent()
+
+    /**
+     * 防作弊启发式 (纯文本，v0.1)：用户是否在直接索要答案/成稿。
+     * 仅用于给任务 AI 调用 log 标 [AiCallKind]，供家长 review。
+     */
+    fun looksLikeAnswerSeeking(text: String): Boolean {
+        if (text.isBlank()) return false
+        val t = text.lowercase()
+        return ANSWER_SEEKING_KEYWORDS.any { t.contains(it) }
+    }
+
+    private val ANSWER_SEEKING_KEYWORDS = listOf(
+        "直接给答案", "直接告诉我答案", "答案是什么", "给我答案", "把答案",
+        "帮我写完", "帮我写一篇", "替我写", "抄答案", "完整答案", "标准答案",
+    )
+
+    /**
      * 作业模式启发式 (v0.1，纯文本侧近似)。设计中完整判定需"拍照 + 多题"，端侧无图时
      * 用文本信号近似：出现"第N题/多个题号/多个问号/作业/练习"等。仅用于统计引导模式次数。
      */

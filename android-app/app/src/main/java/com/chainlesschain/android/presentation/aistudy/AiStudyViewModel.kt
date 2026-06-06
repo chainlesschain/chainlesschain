@@ -19,6 +19,8 @@ enum class AiStudyTab { LEARNING, COMPANION }
 data class AiStudyUiState(
     val selectedTab: AiStudyTab = AiStudyTab.LEARNING,
     val profile: StudyProfile = StudyProfile(),
+    /** 当前进行中的 M5 任务 (有则学习 tab 走引导模式)。 */
+    val activeTask: StudyTask? = null,
     val learningMessages: List<Message> = emptyList(),
     val companionMessages: List<Message> = emptyList(),
     /** 当前正在流式输出的 assistant 文本 (仅 [selectedTab] 且 [isSending] 时展示)。 */
@@ -37,8 +39,9 @@ data class AiStudyUiState(
  * - 每次请求 = [system prompt] + 该 tab 历史 + 用户消息，走 [AiStudyLlm] 流式。
  * - 学段/学科/昵称 经 [StudyProfileStore] 持久 (设置性质)。
  *
- * 已接：错题本 RAG (学习 tab)、第 2 层端侧护栏 (post-hoc 记事件类型+时间)、学情报告生成。
- * 延后 (设备相关)：TEE 加密 vault 持久化、M5 任务联动、真机 E2E。
+ * 已接：错题本 RAG (学习 tab)、第 2 层端侧护栏 (post-hoc 记事件类型+时间)、学情报告生成、
+ *       M5 任务联动 (in_progress → 强制引导模式 + AI 调用防作弊 log)。
+ * 延后 (设备相关)：TEE 加密 vault 持久化、family_task 完整存储/同步、真机 E2E。
  */
 @HiltViewModel
 class AiStudyViewModel @Inject constructor(
@@ -47,6 +50,7 @@ class AiStudyViewModel @Inject constructor(
     private val mistakeBook: MistakeBook,
     private val guardrail: GuardrailClassifier,
     private val guardrailSink: GuardrailEventSink,
+    private val taskContext: StudyTaskContext,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
@@ -56,12 +60,16 @@ class AiStudyViewModel @Inject constructor(
     private var learningTurns = 0
     private var companionTurns = 0
     private var guidedModeTurns = 0
+    private var answerSeekingAttempts = 0
     private var mistakesAddedThisSession = 0
     private var mistakesReviewedThisSession = 0
 
     init {
         viewModelScope.launch {
             profileStore.profile.collect { p -> _uiState.update { it.copy(profile = p) } }
+        }
+        viewModelScope.launch {
+            taskContext.activeTask.collect { t -> _uiState.update { it.copy(activeTask = t) } }
         }
     }
 
@@ -99,11 +107,24 @@ class AiStudyViewModel @Inject constructor(
             guardrailSink.record(GuardrailFinding(category, tab, System.currentTimeMillis()))
         }
 
+        // M5 任务联动：进行中任务 → 该任务的 AI 调用一律走引导模式 + 记防作弊 log。
+        val activeTask = _uiState.value.activeTask
+
         // 会话内计数 (供学情报告)。
         when (tab) {
             AiStudyTab.LEARNING -> {
                 learningTurns++
-                if (AiStudyPrompts.looksLikeHomework(content)) guidedModeTurns++
+                // 有进行中任务则强制引导；否则用作业启发式判断。
+                if (activeTask != null || AiStudyPrompts.looksLikeHomework(content)) guidedModeTurns++
+                if (activeTask != null) {
+                    val kind = if (AiStudyPrompts.looksLikeAnswerSeeking(content)) {
+                        answerSeekingAttempts++
+                        AiCallKind.ANSWER_SEEKING
+                    } else {
+                        AiCallKind.NORMAL
+                    }
+                    taskContext.logAiCall(TaskAiCall(activeTask.id, System.currentTimeMillis(), kind))
+                }
             }
             AiStudyTab.COMPANION -> companionTurns++
         }
@@ -112,7 +133,11 @@ class AiStudyViewModel @Inject constructor(
             AiStudyTab.LEARNING -> {
                 // 学习 tab RAG：从错题本检索相关薄弱点注入上下文。
                 val related = MistakeRetriever.retrieve(content, profile, mistakeBook.snapshot())
-                AiStudyPrompts.learningSystemPrompt(profile, MistakeRetriever.renderContext(related))
+                AiStudyPrompts.learningSystemPrompt(
+                    profile,
+                    MistakeRetriever.renderContext(related),
+                    activeTask,
+                )
             }
             AiStudyTab.COMPANION -> AiStudyPrompts.companionSystemPrompt(profile.nickname)
         }
@@ -163,12 +188,26 @@ class AiStudyViewModel @Inject constructor(
         mistakeBook.markReviewed(id, System.currentTimeMillis())
     }
 
+    /** 开始一项任务 (置为 in_progress → 学习 tab 进入引导模式)。 */
+    fun startTask(task: StudyTask) {
+        taskContext.setActiveTask(task.copy(status = StudyTaskStatus.IN_PROGRESS))
+    }
+
+    /** 结束当前任务 (清掉进行中状态 → 学习 tab 回到普通模式)。 */
+    fun finishActiveTask() {
+        taskContext.setActiveTask(null)
+    }
+
+    /** 取某任务的 AI 调用 log (防作弊 review)。 */
+    fun taskAiCallLog(taskId: String): List<TaskAiCall> = taskContext.callLogFor(taskId)
+
     /** 生成家长端学情报告 (§3.6)。护栏块只含类别+次数，不含聊天原文。 */
     fun generateReport(): StudyReport {
         val snapshot = StudyActivitySnapshot(
             learningTurns = learningTurns,
             companionTurns = companionTurns,
             guidedModeTurns = guidedModeTurns,
+            answerSeekingAttempts = answerSeekingAttempts,
             mistakesAdded = mistakesAddedThisSession,
             mistakesReviewed = mistakesReviewedThisSession,
             mistakeBookTotal = mistakeBook.snapshot().size,

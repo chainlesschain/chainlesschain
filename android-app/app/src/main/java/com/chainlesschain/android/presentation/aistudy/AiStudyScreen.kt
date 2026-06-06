@@ -108,6 +108,18 @@ fun AiStudyScreen(
             )
         }
 
+        // M5 任务联动：进行中任务时，学习 tab 提示已进入引导模式 (不直接给答案)。
+        if (state.selectedTab == AiStudyTab.LEARNING) {
+            state.activeTask?.let { task ->
+                Text(
+                    text = "📒 任务进行中：${task.title}（引导模式，老师只给思路不给答案）",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+            }
+        }
+
         state.error?.let { err ->
             Text(
                 text = err,

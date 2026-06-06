@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.aistudy
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,5 +37,33 @@ class AiStudyPromptsTest {
         assertTrue(prompt.contains("陌生人"))
         // 不讨论成人/暴力/极端内容护栏
         assertTrue(prompt.contains("成人内容"))
+    }
+
+    @Test
+    fun `active task appends a strict guided-mode block`() {
+        val profile = StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明")
+        val task = StudyTask(id = "t1", title = "数学第3页")
+        val prompt = AiStudyPrompts.learningSystemPrompt(profile, "", task)
+
+        assertTrue(prompt.contains("任务进行中"))
+        assertTrue(prompt.contains("数学第3页"))
+        assertTrue(prompt.contains("绝不直接给出最终答案"))
+    }
+
+    @Test
+    fun `null active task equals plain rag prompt`() {
+        val profile = StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明")
+        assertEquals(
+            AiStudyPrompts.learningSystemPrompt(profile, ""),
+            AiStudyPrompts.learningSystemPrompt(profile, "", null),
+        )
+    }
+
+    @Test
+    fun `answer-seeking heuristic flags direct-answer requests only`() {
+        assertTrue(AiStudyPrompts.looksLikeAnswerSeeking("直接告诉我答案"))
+        assertTrue(AiStudyPrompts.looksLikeAnswerSeeking("帮我写完这篇作文"))
+        assertTrue(!AiStudyPrompts.looksLikeAnswerSeeking("这道题的思路是什么"))
+        assertTrue(!AiStudyPrompts.looksLikeAnswerSeeking(""))
     }
 }

@@ -10,12 +10,14 @@ class StudyReportGeneratorTest {
         learning: Int = 0,
         companion: Int = 0,
         guided: Int = 0,
+        answerSeeking: Int = 0,
         added: Int = 0,
         reviewed: Int = 0,
         total: Int = 0,
         categories: List<RiskCategory> = emptyList(),
     ) = StudyActivitySnapshot(
         learningTurns = learning, companionTurns = companion, guidedModeTurns = guided,
+        answerSeekingAttempts = answerSeeking,
         mistakesAdded = added, mistakesReviewed = reviewed, mistakeBookTotal = total,
         guardrailCategories = categories,
     )
@@ -31,6 +33,15 @@ class StudyReportGeneratorTest {
     fun `guided mode percentage is reported`() {
         val report = StudyReportGenerator.generate("小明", snap(learning = 4, guided = 2))
         assertTrue(report.render().contains("占 50%"))
+    }
+
+    @Test
+    fun `answer-seeking attempts surface in AI usage section only when present`() {
+        assertTrue(!StudyReportGenerator.generate("小明", snap(learning = 2)).render().contains("尝试直接要答案"))
+        assertTrue(
+            StudyReportGenerator.generate("小明", snap(learning = 2, answerSeeking = 3))
+                .render().contains("尝试直接要答案 3 次"),
+        )
     }
 
     @Test

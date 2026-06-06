@@ -32,4 +32,8 @@ abstract class AiStudyModule {
     @Binds
     @Singleton
     abstract fun bindGuardrailEventSink(impl: InMemoryGuardrailEventSink): GuardrailEventSink
+
+    @Binds
+    @Singleton
+    abstract fun bindStudyTaskContext(impl: InMemoryStudyTaskContext): StudyTaskContext
 }
