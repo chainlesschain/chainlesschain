@@ -179,9 +179,62 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v5 → v6 (M5).
+     *
+     * 加 family_task 表 (主文档 §3.5, 23 字段) + 3 索引。id 为 TEXT PK。SQL 与 Room 自动
+     * 6.json schema diff 必对齐 (NOT NULL / nullable / 无 DEFAULT 列与 entity 完全一致);
+     * 改本 migration 前必跑 assembleDebug 让 Room 重新导出 6.json 再 diff
+     * (trap [[pdh_partial_index_if_not_exists_drift]] family-guard 版)。
+     */
+    val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS family_task (
+                    id TEXT NOT NULL,
+                    family_group_id TEXT NOT NULL,
+                    assigner_did TEXT NOT NULL,
+                    child_did TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    subject TEXT,
+                    grade_level TEXT,
+                    attachments TEXT,
+                    due_at INTEGER,
+                    reminder_at INTEGER,
+                    hard_constraint TEXT,
+                    reward_points INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    submitted_at INTEGER,
+                    submission TEXT,
+                    ai_grade TEXT,
+                    parent_review TEXT,
+                    ai_call_log TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_family_task_child_status " +
+                    "ON family_task(child_did, status)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_family_task_group ON family_task(family_group_id)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_family_task_due ON family_task(due_at)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
     val ALL_MIGRATIONS: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

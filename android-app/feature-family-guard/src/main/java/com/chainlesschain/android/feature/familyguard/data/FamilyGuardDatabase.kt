@@ -7,6 +7,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.AuditLogDao
 import com.chainlesschain.android.feature.familyguard.data.dao.ChildEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyGroupDao
+import com.chainlesschain.android.feature.familyguard.data.dao.FamilyTaskDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
@@ -18,6 +19,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.AuditLogEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.ChildEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyGroupEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.FamilyTaskEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembershipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyRelationshipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
@@ -54,6 +56,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         AnomalyEntity::class,
         // v5 (FAMILY-63): 不可删审计日志 (主文档 §4.6)
         AuditLogEntity::class,
+        // v6 (M5): 任务/作业 family_task (主文档 §3.5)
+        FamilyTaskEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -71,9 +75,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun childEventDao(): ChildEventDao
     abstract fun anomalyDao(): AnomalyDao
     abstract fun auditLogDao(): AuditLogDao
+    abstract fun familyTaskDao(): FamilyTaskDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 5
+        const val SCHEMA_VERSION = 6
     }
 }
