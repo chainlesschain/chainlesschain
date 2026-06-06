@@ -1,10 +1,16 @@
 "use strict";
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
+
+// Every test here spawns real `git` (init/config/commit) across throwaway
+// repos. On Windows, under the full-suite parallel worker pool, that subprocess
+// fan-out routinely blows past the 10s default and flakes. Give the whole file
+// generous headroom — the work is real, the default timeout is just too tight.
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 const {
   GitActivityAdapter,

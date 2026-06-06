@@ -46,8 +46,6 @@ const NATIVE_DEPENDENT_TESTS = [
   "__tests__/registry.test.js",
   "__tests__/analysis.test.js",
   "__tests__/analysis-skills.test.js",
-  "__tests__/social-douyin-snapshot.test.js",
-  "__tests__/adapters/git-activity.test.js",
   "__tests__/entity-resolver.test.js",
   "__tests__/entity-resolver-stages.test.js",
   "__tests__/entity-resolver-vault.test.js",

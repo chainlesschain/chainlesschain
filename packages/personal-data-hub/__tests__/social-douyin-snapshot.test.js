@@ -33,14 +33,17 @@ describe("DouyinAdapter snapshot mode", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "douyin-snap-"));
   });
 
-  it("exports SNAPSHOT_SCHEMA_VERSION = 1 + 4 VALID_SNAPSHOT_KINDS", () => {
+  it("exports SNAPSHOT_SCHEMA_VERSION = 1 + 6 VALID_SNAPSHOT_KINDS", () => {
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
-    // v0.2 emits only profile; v0.3 will add history/favourite/like.
+    // Forward-compat list (lib index.js): profile/history/favourite/like from
+    // v0.2/v0.3, plus message/contact added in Phase 2a (3c5126401, _im.db pull).
     expect(VALID_SNAPSHOT_KINDS).toEqual([
       "profile",
       "history",
       "favourite",
       "like",
+      "message",
+      "contact",
     ]);
   });
 
