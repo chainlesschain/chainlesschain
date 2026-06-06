@@ -52,6 +52,7 @@ fun FamilyShellScreen(
     onSosTriggered: () -> Unit,
     onNavigateToFamilyMembers: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
+    onNavigateToTasks: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -92,15 +93,16 @@ fun FamilyShellScreen(
 
         SectionCard(
             title = "任务",
-            description = "家长派作业 / 家务 / 锻炼; AI 批改 + 积分奖励 (即将开放)",
-            enabled = false,
+            description = "家长派作业 / 家务 / 锻炼; 开始学习进 AI 陪学引导模式 + AI 批改",
+            enabled = true,
             testTag = TestTag.SectionTasks,
+            onClick = onNavigateToTasks,
         )
 
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "v0.1 MVP: 家人 + AI 陪学 + SOS 三件套优先; 任务模块 v0.2 上线。",
+            text = "v0.1 MVP: 家人 + AI 陪学 + SOS + 任务/作业。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

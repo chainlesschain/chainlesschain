@@ -33,6 +33,7 @@ import com.chainlesschain.android.config.ThemeMode
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.presentation.aistudy.AiStudyScreen
+import com.chainlesschain.android.presentation.familytask.FamilyTaskScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
@@ -155,6 +156,7 @@ fun NavGraph(
                 onNavigateToKnowledgeList = { navController.navigate(Screen.KnowledgeList.route) },
                 onNavigateToAIChat = { navController.navigate(Screen.ConversationList.route) },
                 onNavigateToAiStudy = { navController.navigate(Screen.AiStudy.route) },
+                onNavigateToTasks = { navController.navigate(Screen.FamilyTask.route) },
                 onNavigateToAIChatWithMessage = { msg ->
                     // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
                     // 情况下 NewConversationScreen 自动选默认模型 + 自动创建 → Chat
@@ -308,6 +310,14 @@ fun NavGraph(
         // AI 陪学 (M6 MVP) — 家庭 tab "AI陪学" 卡导航至此 (双轨 学习/陪伴 chat)。
         composable(Screen.AiStudy.route) {
             AiStudyScreen(onBack = { navController.popBackStack() })
+        }
+
+        // M5 任务/作业 — 家庭 tab "任务" 卡导航至此。开始学习 → 进 AI 陪学引导模式。
+        composable(Screen.FamilyTask.route) {
+            FamilyTaskScreen(
+                onBack = { navController.popBackStack() },
+                onOpenAiStudy = { navController.navigate(Screen.AiStudy.route) },
+            )
         }
 
         composable(
@@ -1021,6 +1031,7 @@ sealed class Screen(val route: String) {
 
     /** AI 陪学 (M6 MVP) — 家庭 tab 的「AI陪学」入口。 */
     data object AiStudy : Screen("ai_study")
+    data object FamilyTask : Screen("family_task")
     data object ProjectDetail : Screen("project_detail") {
         fun createRoute(projectId: String) = "project_detail/$projectId"
     }

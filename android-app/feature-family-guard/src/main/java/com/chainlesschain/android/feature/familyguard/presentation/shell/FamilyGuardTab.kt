@@ -32,6 +32,7 @@ import com.chainlesschain.android.feature.familyguard.presentation.family.Family
 fun FamilyGuardTab(
     onSosTriggered: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
+    onNavigateToTasks: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -45,6 +46,7 @@ fun FamilyGuardTab(
                 onSosTriggered = onSosTriggered,
                 onNavigateToFamilyMembers = { navController.navigate(Route.MEMBERS) },
                 onNavigateToAiStudy = onNavigateToAiStudy,
+                onNavigateToTasks = onNavigateToTasks,
             )
         }
         composable(Route.MEMBERS) {
