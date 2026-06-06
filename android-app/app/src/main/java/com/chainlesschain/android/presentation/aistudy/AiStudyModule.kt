@@ -36,4 +36,12 @@ abstract class AiStudyModule {
     @Binds
     @Singleton
     abstract fun bindStudyTaskContext(impl: InMemoryStudyTaskContext): StudyTaskContext
+
+    @Binds
+    @Singleton
+    abstract fun bindVaultStorage(impl: FileVaultStorage): VaultStorage
+
+    @Binds
+    @Singleton
+    abstract fun bindCompanionVault(impl: EncryptedCompanionVault): CompanionVault
 }

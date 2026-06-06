@@ -40,8 +40,9 @@ data class AiStudyUiState(
  * - 学段/学科/昵称 经 [StudyProfileStore] 持久 (设置性质)。
  *
  * 已接：错题本 RAG (学习 tab)、第 2 层端侧护栏 (post-hoc 记事件类型+时间)、学情报告生成、
- *       M5 任务联动 (in_progress → 强制引导模式 + AI 调用防作弊 log)。
- * 延后 (设备相关)：TEE 加密 vault 持久化、family_task 完整存储/同步、真机 E2E。
+ *       M5 任务联动 (in_progress → 强制引导模式 + AI 调用防作弊 log)、
+ *       陪伴 tab TEE 加密金库 (聊天经 Keystore AES-GCM 落盘，家长不可读)。
+ * 延后 (设备相关)：family_task 完整存储/同步、真机 E2E。
  */
 @HiltViewModel
 class AiStudyViewModel @Inject constructor(
@@ -51,6 +52,7 @@ class AiStudyViewModel @Inject constructor(
     private val guardrail: GuardrailClassifier,
     private val guardrailSink: GuardrailEventSink,
     private val taskContext: StudyTaskContext,
+    private val companionVault: CompanionVault,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
@@ -71,7 +73,22 @@ class AiStudyViewModel @Inject constructor(
         viewModelScope.launch {
             taskContext.activeTask.collect { t -> _uiState.update { it.copy(activeTask = t) } }
         }
+        // 从 TEE 金库恢复陪伴聊天历史 (解密在 IO 线程；失败则空历史)。
+        viewModelScope.launch {
+            val history = companionVault.load().map { it.toMessage() }
+            if (history.isNotEmpty()) {
+                _uiState.update { it.copy(companionMessages = history) }
+            }
+        }
     }
+
+    private fun CompanionChatRecord.toMessage(): Message = Message(
+        id = UUID.randomUUID().toString(),
+        conversationId = CONV_COMPANION,
+        role = if (isUser) MessageRole.USER else MessageRole.ASSISTANT,
+        content = content,
+        createdAt = timestamp,
+    )
 
     fun selectTab(tab: AiStudyTab) {
         _uiState.update { it.copy(selectedTab = tab, error = null) }
@@ -153,6 +170,10 @@ class AiStudyViewModel @Inject constructor(
         _uiState.update { it.copy(isSending = true, streamingText = "", error = null) }
 
         viewModelScope.launch {
+            // 陪伴 tab：用户消息先加密落 TEE 金库 (家长不可读)。
+            if (tab == AiStudyTab.COMPANION) {
+                companionVault.append(CompanionChatRecord(true, content, userMessage.createdAt))
+            }
             var full = ""
             llm.stream(request).collect { chunk ->
                 if (chunk.error != null) {
@@ -170,9 +191,20 @@ class AiStudyViewModel @Inject constructor(
                         createdAt = System.currentTimeMillis(),
                     )
                     appendMessage(tab, assistant)
+                    if (tab == AiStudyTab.COMPANION) {
+                        companionVault.append(CompanionChatRecord(false, full, assistant.createdAt))
+                    }
                     _uiState.update { it.copy(isSending = false, streamingText = "") }
                 }
             }
+        }
+    }
+
+    /** 清空陪伴 tab 的私密历史 (金库 + 内存)。 */
+    fun clearCompanionHistory() {
+        viewModelScope.launch {
+            companionVault.clear()
+            _uiState.update { it.copy(companionMessages = emptyList()) }
         }
     }
 

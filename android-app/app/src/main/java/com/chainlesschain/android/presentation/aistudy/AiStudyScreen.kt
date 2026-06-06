@@ -101,7 +101,7 @@ fun AiStudyScreen(
 
         if (state.selectedTab == AiStudyTab.COMPANION) {
             Text(
-                text = "这是你的私密空间（本版本聊天不保存，退出即清空）",
+                text = "这是你的私密空间（本机加密保存，连家长也看不到）",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),

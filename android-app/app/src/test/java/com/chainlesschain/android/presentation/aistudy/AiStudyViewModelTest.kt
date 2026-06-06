@@ -44,11 +44,20 @@ class AiStudyViewModelTest {
         }
     }
 
+    /** 内存 fake：替掉 Keystore/文件 I/O，验证 ViewModel 的金库读写接线。 */
+    private class FakeCompanionVault(initial: List<CompanionChatRecord> = emptyList()) : CompanionVault {
+        val records = initial.toMutableList()
+        override suspend fun load(): List<CompanionChatRecord> = records.toList()
+        override suspend fun append(record: CompanionChatRecord) { records += record }
+        override suspend fun clear() { records.clear() }
+    }
+
     private lateinit var llm: FakeAiStudyLlm
     private lateinit var store: FakeStudyProfileStore
     private lateinit var mistakeBook: InMemoryMistakeBook
     private lateinit var guardrailSink: InMemoryGuardrailEventSink
     private lateinit var taskContext: InMemoryStudyTaskContext
+    private lateinit var companionVault: FakeCompanionVault
 
     @Before
     fun setUp() {
@@ -58,6 +67,7 @@ class AiStudyViewModelTest {
         mistakeBook = InMemoryMistakeBook()
         guardrailSink = InMemoryGuardrailEventSink()
         taskContext = InMemoryStudyTaskContext()
+        companionVault = FakeCompanionVault()
     }
 
     @After
@@ -66,7 +76,7 @@ class AiStudyViewModelTest {
     }
 
     private fun vm() = AiStudyViewModel(
-        llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext,
+        llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
     )
 
     @Test
@@ -96,7 +106,7 @@ class AiStudyViewModelTest {
     }
 
     @Test
-    fun `companion tab keeps separate history and is not persisted to store`() = runTest {
+    fun `companion tab keeps separate history and persists to TEE vault not profile store`() = runTest {
         val viewModel = vm()
         viewModel.selectTab(AiStudyTab.COMPANION)
         viewModel.send("今天有点累")
@@ -105,8 +115,47 @@ class AiStudyViewModelTest {
         assertTrue(viewModel.uiState.value.learningMessages.isEmpty())
         // 陪伴 system prompt = 护栏模板
         assertTrue(llm.lastMessages.first().content.contains("自伤"))
-        // 聊天从不写入 profile store (内存态不落盘)
+        // 聊天不写 profile store；而是加密落 TEE 金库 (user + assistant 两条)。
         assertEquals(0, store.updateCount)
+        assertEquals(2, companionVault.records.size)
+        assertTrue(companionVault.records[0].isUser)
+        assertEquals("今天有点累", companionVault.records[0].content)
+        assertTrue(!companionVault.records[1].isUser)
+    }
+
+    @Test
+    fun `companion history is hydrated from vault on init`() = runTest {
+        companionVault = FakeCompanionVault(
+            listOf(
+                CompanionChatRecord(true, "昨天的悄悄话", 1L),
+                CompanionChatRecord(false, "我记得呀", 2L),
+            ),
+        )
+        val viewModel = vm()
+
+        val msgs = viewModel.uiState.value.companionMessages
+        assertEquals(2, msgs.size)
+        assertEquals("昨天的悄悄话", msgs[0].content)
+        assertEquals(MessageRole.USER, msgs[0].role)
+        assertEquals(MessageRole.ASSISTANT, msgs[1].role)
+    }
+
+    @Test
+    fun `clearCompanionHistory wipes vault and memory`() = runTest {
+        val viewModel = vm()
+        viewModel.selectTab(AiStudyTab.COMPANION)
+        viewModel.send("秘密")
+        viewModel.clearCompanionHistory()
+
+        assertTrue(viewModel.uiState.value.companionMessages.isEmpty())
+        assertTrue(companionVault.records.isEmpty())
+    }
+
+    @Test
+    fun `learning tab does not write companion vault`() = runTest {
+        val viewModel = vm()
+        viewModel.send("讲讲分数")
+        assertTrue(companionVault.records.isEmpty())
     }
 
     @Test
@@ -127,7 +176,7 @@ class AiStudyViewModelTest {
                 flowOf(StreamChunk(content = "", isDone = true, error = "未配置模型"))
         }
         val vm2 = AiStudyViewModel(
-            erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext,
+            erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
         )
         vm2.send("hi")
 
