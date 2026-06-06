@@ -350,7 +350,10 @@ describe("SystemDataAdapter.sync ADB pull flow", () => {
     });
     const adapter = new SystemDataAdapter({ supervisor: sup });
 
-    const iter = adapter.sync({ serial: "redmi", scratchDir: "/scratch" });
+    // No scratchDir → adapter defaults to fs.mkdtempSync(os.tmpdir()). Don't pass
+    // an absolute "/scratch": it mkdir's at FS root, which is EACCES on Linux CI
+    // (passed on Windows where /scratch maps to a creatable drive-relative path).
+    const iter = adapter.sync({ serial: "redmi" });
     for await (const _ of iter) { /* drain */ }
 
     expect(pullCalls).toEqual([
