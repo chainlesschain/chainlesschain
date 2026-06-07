@@ -1,15 +1,18 @@
 /**
  * Phase 7.5 — iOS iTunes backup reader.
  *
- * Reads an unencrypted iTunes-format backup directory and:
+ * Reads an iTunes-format backup directory and:
  *   - parses `Manifest.db` (a SQLite catalog of all files)
  *   - resolves Domain → file mappings (HomeDomain, AppDomainGroup-...)
  *   - extracts named files / app data to a flat dir structure
  *
- * Encrypted backup (iOS 10.2+) support is stubbed — actual PBKDF2 +
- * AES decryption needs a few hundred LOC and we ship that as Phase 7.5b
- * once we have a real backup to test against. Current encrypted path
- * throws with a clear "not yet supported" message.
+ * Phase 7.5b adds ENCRYPTED backup support (iOS 10.2+): supply
+ * `opts.password` and the reader parses the BackupKeyBag, derives the
+ * backup key (PBKDF2), unwraps the class keys (RFC 3394), decrypts
+ * Manifest.db, and transparently decrypts each file on copyOut. Without a
+ * password an encrypted backup still throws a clear error. Crypto lives
+ * in ./ios-backup-crypto.js; the per-file key blob is read from each
+ * row's NSKeyedArchiver `file` column via ./bplist.js.
  *
  * Inject `dbDriverFn` for tests to bypass better-sqlite3-multiple-ciphers
  * (the same package the LocalVault already uses, no new dep).
@@ -18,7 +21,19 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
+
+const {
+  parseKeybag,
+  deriveBackupKey,
+  aesUnwrap,
+  unwrapClassKeys,
+  unwrapEncryptionKey,
+  decryptCBC,
+} = require("./ios-backup-crypto");
+const { parseBplist, unwrapNSKeyedArchiver } = require("./bplist");
 
 class iOSBackupReader {
   constructor(opts = {}) {
@@ -30,14 +45,17 @@ class iOSBackupReader {
     }
     this._backupDir = opts.backupDir;
     this._dbDriver = opts.dbDriverFn || null; // test seam
+    this._password = opts.password != null ? opts.password : null;
     this._encrypted = false;
+    this._classKeys = null; // populated for encrypted backups
     this._manifest = null;
     this._info = null;
+    this._tmpManifestPath = null;
   }
 
   /**
    * Lazy-init: parses Info.plist / Manifest.plist + opens Manifest.db.
-   * Throws if backup is encrypted (Phase 7.5b will add decryption).
+   * For encrypted backups, decrypts Manifest.db first (needs opts.password).
    */
   async open() {
     const manifestPlistPath = path.join(this._backupDir, "Manifest.plist");
@@ -47,20 +65,22 @@ class iOSBackupReader {
     const manifestPlist = fs.readFileSync(manifestPlistPath, "utf-8");
     // Plist is XML — look for <key>IsEncrypted</key><true/>
     this._encrypted = /<key>IsEncrypted<\/key>\s*<true\/>/.test(manifestPlist);
-    if (this._encrypted) {
-      throw new Error(
-        "iOSBackupReader: encrypted backups not supported in Phase 7.5 v0 — Phase 7.5b will add PBKDF2 decryption",
-      );
-    }
 
     const infoPlistPath = path.join(this._backupDir, "Info.plist");
     if (fs.existsSync(infoPlistPath)) {
       this._info = this._parseInfoPlist(fs.readFileSync(infoPlistPath, "utf-8"));
     }
 
-    const manifestDbPath = path.join(this._backupDir, "Manifest.db");
-    if (!fs.existsSync(manifestDbPath)) {
-      throw new Error(`iOSBackupReader: Manifest.db missing at ${manifestDbPath}`);
+    const encryptedDbPath = path.join(this._backupDir, "Manifest.db");
+    if (!fs.existsSync(encryptedDbPath)) {
+      throw new Error(`iOSBackupReader: Manifest.db missing at ${encryptedDbPath}`);
+    }
+
+    // For encrypted backups, decrypt Manifest.db to a temp file and open
+    // that. Class keys are retained for transparent per-file decryption.
+    let manifestDbPath = encryptedDbPath;
+    if (this._encrypted) {
+      manifestDbPath = this._prepareEncryptedManifest(manifestPlist, encryptedDbPath);
     }
     // dbDriverFn (test seam) can be either a constructor OR a factory
     // function that returns an instance directly. Production case is a
@@ -83,7 +103,41 @@ class iOSBackupReader {
       this._db = new Database(manifestDbPath, { readonly: true });
     }
     this._manifest = manifestDbPath;
-    return { encrypted: false, info: this._info };
+    return { encrypted: this._encrypted, info: this._info };
+  }
+
+  /**
+   * Decrypt Manifest.db for an encrypted backup, returning the path to a
+   * temp file holding the plaintext SQLite. Parses the BackupKeyBag,
+   * derives the backup key from opts.password, unwraps the class keys, and
+   * unwraps the ManifestKey. Retains class keys for per-file decryption.
+   */
+  _prepareEncryptedManifest(manifestPlist, encryptedDbPath) {
+    if (this._password == null) {
+      throw new Error(
+        "iOSBackupReader: encrypted backup requires opts.password (the iTunes/Finder backup password)",
+      );
+    }
+    const keybagB64 = extractPlistData(manifestPlist, "BackupKeyBag");
+    const manifestKeyB64 = extractPlistData(manifestPlist, "ManifestKey");
+    if (!keybagB64) throw new Error("iOSBackupReader: Manifest.plist missing BackupKeyBag");
+    if (!manifestKeyB64) throw new Error("iOSBackupReader: Manifest.plist missing ManifestKey");
+
+    const { attrs, classKeys } = parseKeybag(Buffer.from(keybagB64, "base64"));
+    const backupKey = deriveBackupKey(this._password, attrs);
+    this._classKeys = unwrapClassKeys(classKeys, backupKey);
+
+    const manifestKey = unwrapEncryptionKey(this._classKeys, Buffer.from(manifestKeyB64, "base64"));
+    const cipher = fs.readFileSync(encryptedDbPath);
+    const plain = decryptCBC(manifestKey, cipher);
+
+    const tmp = path.join(
+      os.tmpdir(),
+      `pdh-ios-manifest-${process.pid}-${crypto.randomBytes(6).toString("hex")}.db`,
+    );
+    fs.writeFileSync(tmp, plain);
+    this._tmpManifestPath = tmp;
+    return tmp;
   }
 
   /**
@@ -137,7 +191,9 @@ class iOSBackupReader {
   }
 
   /**
-   * Copy a file from the backup to a local path. Returns the local path.
+   * Copy a file from the backup to a local path. For encrypted backups the
+   * file is decrypted in flight (per-file key unwrapped from its
+   * NSKeyedArchiver `file` blob). Returns the local path.
    */
   copyOut(fileID, localPath) {
     const src = this.resolveFileOnDisk(fileID);
@@ -145,8 +201,52 @@ class iOSBackupReader {
       throw new Error(`iOSBackupReader: file ${fileID} not found on disk at ${src}`);
     }
     fs.mkdirSync(path.dirname(localPath), { recursive: true });
+
+    if (this._encrypted) {
+      const meta = this._fileMeta(fileID);
+      if (meta && meta.encryptionKey) {
+        // EncryptionKey NSData = 4-byte length marker + wrapped key; the
+        // protection class is a separate field (unlike ManifestKey).
+        const ck = this._classKeys[meta.protectionClass];
+        if (!ck || !ck.KEY) {
+          throw new Error(
+            `iOSBackupReader: no class key for protection class ${meta.protectionClass} (file ${fileID})`,
+          );
+        }
+        const fileKey = aesUnwrap(ck.KEY, meta.encryptionKey.subarray(4));
+        const plain = decryptCBC(fileKey, fs.readFileSync(src), meta.size);
+        fs.writeFileSync(localPath, plain);
+        return localPath;
+      }
+      // No per-file key → file stored unencrypted (rare); fall through.
+    }
+
     fs.copyFileSync(src, localPath);
     return localPath;
+  }
+
+  /**
+   * Read + decode a file's NSKeyedArchiver `file` blob from Manifest.db,
+   * returning { protectionClass, encryptionKey:Buffer|null, size }.
+   * Returns null when the row or blob is unavailable.
+   */
+  _fileMeta(fileID) {
+    if (!this._db) throw new Error("iOSBackupReader: call open() first");
+    const row = this._db.prepare("SELECT file FROM Files WHERE fileID = ?").get(fileID);
+    if (!row || !row.file) return null;
+    const blob = Buffer.isBuffer(row.file) ? row.file : Buffer.from(row.file);
+    const obj = unwrapNSKeyedArchiver(parseBplist(blob));
+    let encryptionKey = obj.EncryptionKey;
+    // NSData unwraps to { "NS.data": Buffer }; raw Buffer is also accepted.
+    if (encryptionKey && !Buffer.isBuffer(encryptionKey) && Buffer.isBuffer(encryptionKey["NS.data"])) {
+      encryptionKey = encryptionKey["NS.data"];
+    }
+    if (!Buffer.isBuffer(encryptionKey)) encryptionKey = null;
+    return {
+      protectionClass: obj.ProtectionClass,
+      encryptionKey,
+      size: typeof obj.Size === "number" ? obj.Size : undefined,
+    };
   }
 
   /**
@@ -180,6 +280,10 @@ class iOSBackupReader {
       try { this._db.close(); } catch (_e) {}
       this._db = null;
     }
+    if (this._tmpManifestPath) {
+      try { fs.rmSync(this._tmpManifestPath, { force: true }); } catch (_e) {}
+      this._tmpManifestPath = null;
+    }
   }
 
   // ─── internals ────────────────────────────────────────────────────
@@ -204,6 +308,17 @@ class iOSBackupReader {
     while ((m = re2.exec(text)) !== null) out[m[1]] = true;
     return out;
   }
+}
+
+/**
+ * Pull a base64 `<data>` value out of an XML plist by key. Returns the
+ * whitespace-stripped base64 string, or null when absent.
+ */
+function extractPlistData(plistText, key) {
+  const re = new RegExp(`<key>${key}</key>\\s*<data>([\\s\\S]*?)</data>`, "i");
+  const m = plistText.match(re);
+  if (!m) return null;
+  return m[1].replace(/\s+/g, "");
 }
 
 let _sqliteCache = null;

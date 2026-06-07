@@ -89,6 +89,8 @@ const ALLOWED_FILES = [
   "email-pdf-extractor.test.js",
   // Hub Phase 6: tests fake ZIP password (no real credentials)
   "alipay-bill-adapter.test.js",
+  // Hub Phase 7.5b: tests fake iOS backup passwords + synthetic keys (no real credentials)
+  "mobile-extractor-encrypted.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

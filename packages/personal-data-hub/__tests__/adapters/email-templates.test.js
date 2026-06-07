@@ -262,6 +262,129 @@ describe("extractBill — bank statement", () => {
   });
 });
 
+// ─── bill.js Phase 5.5 — LLM gap-fill ─────────────────────────────────────
+
+describe("extractBill — Phase 5.5 LLM gap-fill", () => {
+  // A body the regex can't crack (HTML-stripped marketing-style prose with
+  // no recognizable keywords) so coverage stays under 0.6 and the LLM fires.
+  // from:[] so even `institution` (otherwise derived from sender domain)
+  // is missing — keeps regex coverage at 0 so the LLM path is exercised.
+  const opaqueEmail = () => emailOf({
+    from: [],
+    subject: "Your statement is ready",
+    textBody: "Hello, your latest statement is now available. Please sign in to view the details of your account activity for this period.",
+  });
+
+  const llmReturning = (obj, sink) => ({
+    async chat(messages, _opts) {
+      if (sink) sink.messages = messages;
+      return { text: JSON.stringify(obj) };
+    },
+  });
+
+  it("fills missing fields from LLM when regex coverage < 60%", async () => {
+    const r = await extractBill(opaqueEmail(), {
+      llm: llmReturning({
+        amount: { value: 1234.5, currency: "CNY" },
+        dueAmount: { value: 1000, currency: "CNY" },
+        dueDate: "2026-12-20",
+        billingPeriod: { start: "2026-11-01", end: "2026-11-30" },
+        accountIdentifier: "6225 8801 2345 6789",
+        institution: "Example Bank",
+        billingMonth: "2026-11",
+      }),
+    });
+    expect(r.fields.amount.value).toBe(1234.5);
+    expect(r.fields.amount.direction).toBe("out");
+    expect(r.fields.dueAmount.value).toBe(1000);
+    expect(r.fields.dueDate).toBeGreaterThan(0);
+    expect(r.fields.billingPeriod.startMs).toBeLessThan(r.fields.billingPeriod.endMs);
+    // accountIdentifier coerced to last-4 only — never the full PAN
+    expect(r.fields.accountIdentifier).toBe("**** 6789");
+    expect(r.fields.institution).toBe("Example Bank");
+    expect(r.fields.billingMonth).toBe("2026-11");
+    expect(r.llmFilled).toEqual(
+      expect.arrayContaining(["amount", "dueAmount", "dueDate", "accountIdentifier", "institution", "billingMonth"]),
+    );
+  });
+
+  it("regex wins: LLM fills only the gaps, never overwrites a regex field", async () => {
+    // Only an amount is regex-extractable → coverage 1/7 < 0.6, LLM fires.
+    const r = await extractBill(emailOf({
+      from: [],
+      subject: "statement",
+      textBody: "您的账单金额为 ¥3,256.78。",
+    }), {
+      llm: llmReturning({ amount: { value: 99999, currency: "USD" }, institution: "LLM Bank" }),
+    });
+    // regex amount retained, LLM's bogus 99999/USD ignored
+    expect(r.fields.amount.value).toBe(3256.78);
+    expect(r.fields.amount.currency).toBe("CNY");
+    // institution was missing → LLM allowed to fill it
+    expect(r.fields.institution).toBe("LLM Bank");
+    expect(r.llmFilled).toEqual(["institution"]);
+  });
+
+  it("does NOT call the LLM when regex coverage already ≥ 60%", async () => {
+    let called = false;
+    const r = await extractBill(emailOf({
+      from: [{ address: "ebank@ccb.com.cn" }],
+      subject: "建设银行 11 月对账单",
+      textBody: "本期应还金额 ¥800 元，尾号 5555，账单周期 2026-10-01 至 2026-10-31，最后还款日 2026-11-25。",
+    }), {
+      llm: { async chat() { called = true; return { text: "{}" }; } },
+    });
+    expect(called).toBe(false);
+    expect(r.llmFilled).toBeUndefined();
+  });
+
+  it("drops malformed LLM values (bad dates, zero amounts, short account)", async () => {
+    const r = await extractBill(opaqueEmail(), {
+      llm: llmReturning({
+        amount: { value: 0 },              // non-positive → dropped
+        dueDate: "2026-13-45",             // impossible date → dropped
+        accountIdentifier: "12",           // < 4 digits → dropped
+        billingMonth: "2026-99",           // bad month → dropped
+        institution: "   ",                // blank → dropped
+      }),
+    });
+    expect(r.fields.amount).toBeUndefined();
+    expect(r.fields.dueDate).toBeUndefined();
+    expect(r.fields.accountIdentifier).toBeUndefined();
+    expect(r.fields.billingMonth).toBeUndefined();
+    expect(r.fields.institution).toBeUndefined();
+    expect(r.llmFilled).toBeUndefined();
+  });
+
+  it("records a warning when the LLM returns unparseable output", async () => {
+    const r = await extractBill(opaqueEmail(), {
+      llm: { async chat() { return { text: "sorry, I can't help with that" }; } },
+    });
+    expect(r.warnings.some((w) => w.includes("not parseable JSON"))).toBe(true);
+  });
+
+  it("records a warning when the LLM call throws", async () => {
+    const r = await extractBill(opaqueEmail(), {
+      llm: { async chat() { throw new Error("rate limited"); } },
+    });
+    expect(r.warnings.some((w) => w.includes("LLM bill fill failed") && w.includes("rate limited"))).toBe(true);
+  });
+
+  it("tolerates LLM output wrapped in ```json fences", async () => {
+    const r = await extractBill(opaqueEmail(), {
+      llm: { async chat() { return { text: "```json\n{\"institution\":\"Fenced Bank\"}\n```" }; } },
+    });
+    expect(r.fields.institution).toBe("Fenced Bank");
+    expect(r.llmFilled).toEqual(["institution"]);
+  });
+
+  it("no LLM provided → behaves exactly as before (no llmFilled, no warning)", async () => {
+    const r = await extractBill(opaqueEmail());
+    expect(r.llmFilled).toBeUndefined();
+    expect(r.warnings.every((w) => !w.includes("LLM"))).toBe(true);
+  });
+});
+
 // ─── order.js ───────────────────────────────────────────────────────────
 
 describe("extractOrder — e-commerce", () => {
