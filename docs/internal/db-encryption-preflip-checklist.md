@@ -84,11 +84,16 @@ npm run test:db-encryption-realstore   # 真 Electron 主进程（非 RUN_AS_NOD
 
 | 项 | 命令 / 文档 | 结果 | 签核人 / 日期 |
 |---|---|---|---|
-| A. L1+L3 单测 | `npm run test:db-encryption-unit` | ____ passed | |
-| A. L2 真 SQLCipher | `npm run test:db-encryption-native` | ____ passed | |
-| B.1 real-safeStorage 探针 | `npm run test:db-encryption-realstore` | ____ passed | |
-| B.2 人工 GUI smoke（装旧版→升级 + 真断电） | realdevice-smoke.md | 2 场景 ✅ | |
-| C. kill-switch + fail-closed | env `=0` + 真机 | ✅ | |
-| D. 翻 gate + 改断言 | db-encryption-flag.js / .test.js | merged | |
+| A. L1+L3 单测 | `npm run test:db-encryption-unit` | **45 passed** | longfa 本机自动跑 2026-06-08 |
+| A. L2 真 SQLCipher | `npm run test:db-encryption-native` | **7 passed** | longfa 本机自动跑 2026-06-08 |
+| B.1 real-safeStorage 探针 | `npm run test:db-encryption-realstore` | **6 passed** | longfa 本机真 DPAPI 2026-06-08 |
+| B.2 人工 GUI smoke（装旧版→升级 + 真断电） | realdevice-smoke.md / b2-powershell-runbook.md | ⬜ 未跑（真·GUI + 物理断电，须人工） | |
+| C. kill-switch + fail-closed | env `=0` + 真机 | A 层 L3/L2 已证；真机待 B.2 一并确认 | |
+| D. 翻 gate + 改断言 | db-encryption-flag.js / .test.js | ⬜ 待 B.2 签核后 | |
 
 > 任一项未签核，`PHASE_1_5_DEFAULT_ON` 保持 `false`。
+>
+> **2026-06-08 进度**：自动化层（A L1+L3 45 + A L2 7 + B.1 6 = 58）本机全绿。
+> 翻 gate 的剩余阻塞收窄到 **B.2 的 2 条真·人工 GUI 场景**（装旧版→升级迁移、真断电中断）
+> —— 两者需打包安装包 + 真实用户数据 + 物理断电，开发机/headless 不可代。B.2 签核前
+> `PHASE_1_5_DEFAULT_ON` 维持 `false`，不得翻。
