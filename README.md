@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-08 发布 — **v5.0.3.100：个人数据中台采集大更新 + CLI 发布通道修复**
+
+> v5.0.3.99 把个人数据中台（PDH）采集能力大幅扩容并真机生效；v5.0.3.100 把其后的打包工作固化为一次正式发版（全平台 18 产物已 ship，GitHub Release v5.0.3.100 已发布）。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **PDH 采集大更新（v5.0.3.99）**：adapter **readiness** 止血（从宽松 `healthCheck` 分离真正「就绪」判定，解决「配置正常却采不到」死角）+ 桌面/移动端「一键采集 / 导入引导」UI + 新接通多家本地直读源（抖音 / 微信电脑版 / QQ-NT / 钉钉 / 飞书 / Apple 健康 / 网易云音乐 / 微信读书）+ email 账单 LLM 补全（Phase 5.5）+ iOS 加密备份解密（Phase 7.5b）。当前 PDH 共 **51 adapter / 121 测试文件 / 2040 测试**。
+- **DB 静态加密默认开启（v5.0.3.99）**：`PHASE_1_5_DEFAULT_ON=true` 落盘即加密（preflip 自动化闸门全绿）+ DID keystore 打包态 fail-closed。
+- **Android「AI 陪学」接入界面（v5.0.3.99）**：M9 积分引擎 + M10 家长温和度月报 + M5 任务可见 UI 接成家庭 tab 可交互入口；陪伴 tab 复用 core-security KeystoreFacade TEE 加密落盘。
+- **CLI npm 发布通道修复（v5.0.3.100）**：`prepublishOnly → build:web-panel` 在 `npm publish` 下因父进程泄漏 `npm_config_local_prefix` 把依赖装错位置 → 隔离 temp 构建 + scrub `npm_config_*` env 修复，CLI 从此可正常发版。
+- **npm 包**：`@chainlesschain/personal-data-hub` 0.4.1 + `chainlesschain` CLI 0.162.30 已发布并验证安装。
+- **版本面**：productVersion v5.0.3.98 → v5.0.3.100 / desktop 5.0.3-alpha.100 / Android versionCode 503100 / iOS CFBundleVersion 100。
+
+---
+
 ## 2026-05-24 收口 — **PDH Phase 17：桌面本机数据五件套 land**
 
 > 一轮把 PDH 从"主要采社交/订单/出行"扩展到 **覆盖桌面本机日常数据流**：浏览器（Chrome + Edge）/ 开发工具（VSCode）/ 系统活动（Win Recent）/ Android 媒体清单。**全部 desktop-local file-import 模式 — 零扩展、零网络、零账号** — 复用既有 PDH adapter 契约 + LocalVault 加密存储 + AdapterRegistry 调度链。

@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-08 Release — **v5.0.3.100: PDH collection major update + CLI publish channel fix**
+
+> v5.0.3.99 substantially expanded the Personal Data Hub (PDH) collection capability and went live on real devices; v5.0.3.100 formalizes the post-.99 packaging work as a release (all 18 platform artifacts shipped, GitHub Release v5.0.3.100 published). Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **PDH collection major update (v5.0.3.99)**: adapter **readiness** (split a real ready/needs_setup/unavailable judgment out of the loose `healthCheck`, fixing the "config looks fine but nothing collects" gap) + desktop/mobile "one-click collect / import guide" UI + new local-direct-read sources (Douyin / WeChat PC / QQ-NT / DingTalk / Feishu / Apple Health / NetEase Music / WeRead) + email-bill LLM gap-fill (Phase 5.5) + iOS encrypted-backup decryption (Phase 7.5b). PDH now totals **51 adapters / 121 test files / 2040 tests**.
+- **DB at-rest encryption ON by default (v5.0.3.99)**: `PHASE_1_5_DEFAULT_ON=true` (encrypted on disk; preflip automated gates all green) + DID keystore fails closed on packaged builds.
+- **Android "AI study companion" UI (v5.0.3.99)**: M9 points engine + M10 parent-gentleness monthly report + M5 task-visible UI wired into tappable Family-tab entries; companion tab persists via core-security KeystoreFacade (TEE encryption).
+- **CLI npm publish channel fix (v5.0.3.100)**: `prepublishOnly → build:web-panel` failed under `npm publish` because the parent leaked `npm_config_local_prefix`, installing deps in the wrong place → fixed with an isolated temp build + scrubbed `npm_config_*` env; the CLI can publish again.
+- **npm packages**: `@chainlesschain/personal-data-hub` 0.4.1 + `chainlesschain` CLI 0.162.30 published and install-verified.
+- **Version surfaces**: productVersion v5.0.3.98 → v5.0.3.100 / desktop 5.0.3-alpha.100 / Android versionCode 503100 / iOS CFBundleVersion 100.
+
+---
+
 ## 2026-05-22 Ship — **PDH v0.2 burst: 11 platforms wired + WeChat / QQ real-capture + Android on-device LLM scaffold (v5.0.3.80)**
 
 > Expanded PDH from v0.1 (Bilibili only) to **v0.2 real-connect across 11 platforms** in a single day: social content (Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou) + shopping (JD / Meituan / Pinduoduo / Taobao / Alipay) + travel & maps (Amap / Ctrip / Baidu Maps / Tencent Maps) + AI assistants 9-route WebView (DeepSeek / Kimi / Tongyi / Zhipu / Tencent Hunyuan / Wenxin / Coze / Dreamina / Doubao) + email 4 IMAP providers (QQ / Gmail / 163 / Outlook via Jakarta Mail). WeChat Phase 12.10 four sub-phases complete — SQLCipher real decrypt + frida-inject real injection + 16.5.9 binary vendored + APK shipped to Xiaomi real device; QQ Phase 13.5 v0.2 — XOR-IMEI algorithm byte-identical to sjqz port, no SQLCipher, no frida, just root + IMEI. Android on-device LLM full-chain skeleton landed (Ktor server + ModelManager + cc spawn + PDH "ask locally" tab).
