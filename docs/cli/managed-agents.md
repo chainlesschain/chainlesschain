@@ -55,6 +55,82 @@ chainlesschain session usage                                  # 全局汇总
 chainlesschain session usage --json --limit 500
 ```
 
+## Cost — 估算 $ 花费
+
+在 `session usage`（token 计数）之上叠加价格层（`src/lib/llm-pricing.js`）。读取
+同一份 JSONL `token_usage` 事件，所以无新数据采集——纯报表视图。
+
+```bash
+chainlesschain cost                        # 全局花费汇总 (按 provider/model 拆分)
+chainlesschain cost <sessionId>            # 单会话花费
+chainlesschain cost --json                 # 机器可读
+chainlesschain cost --limit 500            # 全局汇总最多扫描的会话数
+```
+
+规则：
+- 本地 provider（`ollama` / `local` / `llamacpp` / `mediapipe`）= **免费**（matched + free）。
+- 未知模型 → **`unpriced`**（不臆测），其 token **排除**出 `cost.totalCost` 并在 `unpriced[]` 单列。
+- 价格是公开 list 价的**估算**（USD / 1M tokens），内置覆盖 anthropic / openai /
+  deepseek / volcengine(doubao)。
+
+`--json` 输出形状（在 `session usage` 聚合上加 cost 字段）：
+
+```jsonc
+{
+  "total":  { "inputTokens", "outputTokens", "totalTokens", "calls" },
+  "byModel": [ { "provider", "model", "inputTokens", "outputTokens",
+                 "cost", "currency": "USD", "matched", "free" } ],
+  "cost":    { "totalCost", "currency": "USD", "unpricedCount" },
+  "unpriced": [ { "provider", "model", "totalTokens" } ]
+}
+```
+
+**配置价格覆盖**（无需改源码）——`config.llm.pricing`，同名 `match` 替换内置、
+新 provider 追加、畸形条目跳过：
+
+```jsonc
+// .chainlesschain/config.json
+{ "llm": { "pricing": {
+  "openai":     [ { "match": "gpt-4o", "in": 2.5, "out": 10 } ],
+  "myprovider": [ { "match": "custom", "in": 2,   "out": 8  } ]
+} } }
+```
+
+## Checkpoint — 文件状态快照 / 回滚
+
+Claude Code "rewind" 的 CLI 对标：有风险的 agent 运行前给文件拍快照，出问题再还原。
+内容寻址存储（`src/lib/file-checkpoint.js`）。**区别于 `cc workflow checkpoint`**
+（后者是工作流**执行态**，存 DB，不是文件）。
+
+```bash
+chainlesschain checkpoint create <paths...> [--label <l>]  # 快照文件/目录
+chainlesschain checkpoint list                             # 列出快照 (最新在前)
+chainlesschain checkpoint show <id>                        # 清单（文件 + 字节数）
+chainlesschain checkpoint show <id> --diff                 # 与当前文件对比 (modified/deleted/unchanged)
+chainlesschain checkpoint restore <id> --dry-run           # 预览将还原的文件
+chainlesschain checkpoint restore <id> --force             # 实际还原 (非交互必须 --force)
+chainlesschain checkpoint delete <id> [--force]            # 删除快照
+```
+
+语义与安全：
+- **目录递归**收集文件，跳过 `node_modules` / `.git` / `dist` / `build` /
+  `.chainlesschain` 等重目录；`maxFiles` 上限（默认 2000）防误快照整盘。
+- blob 按 **sha256 内容寻址**去重；相同内容只存一份。
+- `restore` **有破坏性**（覆盖当前文件）：非 TTY 无 `--force` 拒绝执行；TTY 弹确认。
+- 还原前**自动给当前态拍 safety checkpoint** → 回滚本身可再回滚
+  (`cc checkpoint restore <safetyId>`)。
+- 所有子命令支持 `--json`。
+
+**磁盘布局**（`~/.chainlesschain/checkpoints/`）：
+
+```
+<id>.json        # 清单 { id, label, createdAt, cwd, fileCount, files:[{rel,abs,bytes,sha256}] }
+<id>/<sha256>    # 各文件原始字节（内容寻址）
+```
+
+> 注：自动在 agent 工具循环里逐步快照（每次 write/edit/shell 前）是后续工作，
+> 当前为手动 checkpoint。
+
 ## Hosted Session API (Phase I)
 
 `cc serve` exposes session-core over WebSocket. Route types (dot-case)

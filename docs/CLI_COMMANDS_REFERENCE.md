@@ -9,7 +9,7 @@
 
 | Group | File | Covers |
 |-------|------|--------|
-| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `stream`, WS routes (Phase D–I) |
+| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `stream`, WS routes (Phase D–I) |
 | Core Phases 2–7 · Init · Cowork | [`cli/core-phases.md`](./cli/core-phases.md) | `import/export`, `mcp`, `did/encrypt/auth/audit`, `p2p/wallet/org/plugin`, `init/persona`, `cowork`, `hook/workflow/hmemory/a2a`, `sandbox/evolution/evomap/dao` |
 | Phase 8 · Blockchain & Enterprise | [`cli/blockchain-enterprise.md`](./cli/blockchain-enterprise.md) | `compliance/threat-intel`, `pqc`, `nostr/matrix/activitypub/scim/terraform`, `hardening/stress/reputation/sla/tech/dev/collab/marketplace/incentive/kg/tenant/governance/recommend/crosschain/privacy/inference/trust/social/fusion/infra` |
 | Observability & Code Intel | [`cli/observability.md`](./cli/observability.md) | `codegen` (Phase 86), `ops` (AIOps Phase 25), `perception` (Phase 84), `dbevo` (Phase 80), `federation` (Phase 58) |
@@ -116,33 +116,13 @@ chainlesschain session list                # 会话管理
 > For scoped-memory (`memory store/recall/consolidate`) and session lifecycle
 > (`session policy/tail/usage/park/unpark/end`), see [`cli/managed-agents.md`](./cli/managed-agents.md).
 
-## Cost — 估算 $ 花费 {#cost}
-
-在 `cc session usage`（token 计数）之上叠加价格层。读取同一份 JSONL `token_usage`
-事件；本地 provider (ollama 等) = 免费，未知模型标 `unpriced`（不臆测）。
+## Cost & Checkpoint
 
 ```bash
-chainlesschain cost                        # 全局花费汇总 (按 provider/model 拆分)
-chainlesschain cost <sessionId>            # 单会话花费
-chainlesschain cost --json                 # 机器可读
-chainlesschain cost --limit 500            # 全局汇总最多扫描的会话数
+chainlesschain cost [<sessionId>] [--json] [--limit 500]   # 估算 $ 花费 (叠加在 session usage 上)
+chainlesschain checkpoint create <paths...> [--label <l>]  # 文件状态快照 / 回滚 (Claude Code rewind 对标)
+chainlesschain checkpoint list | show <id> [--diff] | restore <id> [--dry-run|--force] | delete <id>
 ```
 
-价格为公开 list 价的估算 (USD / 1M tokens)。可在配置 `llm.pricing` 覆盖/新增费率，
-无需改源码：`{ "<provider>": [ { "match": "<子串>", "in": <num>, "out": <num> } ] }`。
-
-## Checkpoint — 文件状态快照 / 回滚 {#checkpoint}
-
-Claude Code "rewind" 的 CLI 对标：在有风险的 agent 运行前给文件拍快照，出问题再还原。
-内容寻址存储于 `~/.chainlesschain/checkpoints`。区别于 `cc workflow checkpoint`（执行态）。
-
-```bash
-chainlesschain checkpoint create <paths...> [--label <l>]  # 快照文件/目录 (跳过 node_modules 等)
-chainlesschain checkpoint list                             # 列出快照 (最新在前)
-chainlesschain checkpoint show <id> [--diff]               # 清单 / 与当前文件对比
-chainlesschain checkpoint restore <id> [--dry-run|--force] # 还原 (会先自动快照当前态，可再回滚)
-chainlesschain checkpoint delete <id> [--force]            # 删除快照
-```
-
-> `restore` 有破坏性：非交互环境必须加 `--force`，TTY 下会弹确认；还原前自动生成
-> safety checkpoint，所以回滚本身也可撤销。所有子命令支持 `--json`。
+> 详见 [`cli/managed-agents.md`](./cli/managed-agents.md)：`cost` 的定价规则 / JSON 形状 /
+> `llm.pricing` 配置覆盖；`checkpoint` 的安全语义 / 磁盘布局（区别于 `cc workflow checkpoint`）。
