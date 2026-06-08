@@ -291,9 +291,10 @@ class WeChatPcAdapter {
     const fallbackCapturedAt = Date.now();
     const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
     let emitted = 0;
-    const max = limit || Infinity;
+    // The sidecar already applied `limit` across all sources (chat/biz/sns/
+    // favorite). Yield everything it returned — do NOT re-cap here, or the
+    // trailing 朋友圈/收藏 entries and the contacts block would be skipped.
     for (const m of messages) {
-      if (emitted >= max) return;
       if (!m || typeof m !== "object") continue;
       const conv = typeof m.conversation === "string" ? m.conversation : null;
       const isGroup = !!conv && conv.endsWith("@chatroom");
@@ -311,6 +312,8 @@ class WeChatPcAdapter {
         senderWxid: isGroup ? (m.sender || null) : null,
         isGroup,
         contentBlob: typeof m.text === "string" ? m.text : null,
+        // provenance: chat | biz(公众号) | sns(朋友圈) | favorite(收藏)
+        wechatSource: typeof m.source === "string" ? m.source : "chat",
       };
       const idPart =
         m.originalId ||
@@ -448,6 +451,7 @@ function normalizeMessage(p, raw, ingestedAt) {
         isSend,
         isGroup,
         wechatType: typeof p.type === "number" ? p.type : null,
+        wechatSource: typeof p.wechatSource === "string" ? p.wechatSource : "chat",
         senderWxid: p.senderWxid || null,
         contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
         ...(topics.length ? { topicId: topics[0].id } : {}),

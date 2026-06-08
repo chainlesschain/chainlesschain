@@ -138,6 +138,63 @@ def test_parse_contact_db_builds_name_map():
     assert by_wxid["wxid_a"]["remark"] == "备注A"
 
 
+def test_message_rows_carry_source_tag():
+    friend = "wxid_s"
+    table = "Msg_" + hashlib.md5(friend.encode()).hexdigest()
+    path = os.path.join(tempfile.mkdtemp(prefix="wxsrc_"), "p.db")
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    cur.execute("CREATE TABLE Name2Id (user_name TEXT, is_session INTEGER)")
+    cur.execute("INSERT INTO Name2Id VALUES (?, 1)", (friend,))  # rowid 1
+    cur.execute(
+        f"CREATE TABLE '{table}' (local_id INTEGER, server_id INTEGER, local_type INTEGER, "
+        f"real_sender_id INTEGER, create_time INTEGER, message_content, WCDB_CT_message_content INTEGER)"
+    )
+    cur.execute(f"INSERT INTO '{table}' VALUES (1, 1, 1, 1, 100, 'hi', 0)")
+    con.commit()
+    con.close()
+    res = wx.parse_plaintext_message_db(path, source="biz")
+    assert res["messages"][0]["source"] == "biz"
+
+
+def test_parse_sns_db_extracts_moment_text_and_time():
+    path = os.path.join(tempfile.mkdtemp(prefix="wxsns_"), "sns.db")
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    cur.execute("CREATE TABLE SnsTimeLine (tid TEXT, user_name TEXT, content, pack_info_buf)")
+    xml = ("<SnsDataItem><TimelineObject><id>123</id>"
+           "<createTime>1700000000</createTime>"
+           "<contentDesc>今天天气真好</contentDesc></TimelineObject></SnsDataItem>")
+    cur.execute("INSERT INTO SnsTimeLine VALUES ('tid-1', 'wxid_poster', ?, NULL)", (xml,))
+    con.commit()
+    con.close()
+    name_map = {"wxid_poster": {"displayName": "老王"}}
+    moments = wx.parse_sns_db(path, name_map=name_map)
+    assert len(moments) == 1
+    assert moments[0]["text"] == "今天天气真好"
+    assert moments[0]["createTime"] == 1700000000
+    assert moments[0]["posterName"] == "老王"
+    assert moments[0]["originalId"] == "wechat-pc:sns:tid-1"
+
+
+def test_parse_favorite_db_extracts_title():
+    path = os.path.join(tempfile.mkdtemp(prefix="wxfav_"), "favorite.db")
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    cur.execute("CREATE TABLE fav_db_item (local_id INTEGER, server_id INTEGER, type INTEGER, "
+                "update_seq INTEGER, flag INTEGER, update_time INTEGER, version INTEGER, content)")
+    cur.execute("INSERT INTO fav_db_item (local_id, server_id, type, update_time, content) "
+                "VALUES (1, 9001, 5, 1690000000, ?)",
+                ("<favitem type=\"5\"><title>重要笔记</title></favitem>",))
+    con.commit()
+    con.close()
+    favs = wx.parse_favorite_db(path)
+    assert len(favs) == 1
+    assert favs[0]["title"] == "重要笔记"
+    assert favs[0]["updateTime"] == 1690000000
+    assert favs[0]["originalId"] == "wechat-pc:fav:9001"
+
+
 def test_find_accounts_never_throws(monkeypatch, tmp_path):
     # Point HOME at an empty dir → no accounts, no exception.
     monkeypatch.setattr(wx.Path, "home", staticmethod(lambda: tmp_path))

@@ -310,12 +310,19 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
     expect(raws[0].payload.isSend).toBe(1);
   });
 
-  it("v4 respects message limit (contacts not capped by it)", async () => {
+  it("v4 forwards limit to the sidecar collector (sidecar owns the cap)", async () => {
     const msgs = Array.from({ length: 5 }, (_v, i) => ({
       conversation: "wxid_f", sender: "wxid_f", type: 1, createTime: 1700000000 + i, text: "m" + i, originalId: "id-" + i,
     }));
-    const a = new WeChatPcAdapter({ v4Collector: fakeCollector({ account: "wxid_me", messages: msgs, contacts: [] }) });
+    let seenLimit = null;
+    // Collector that honors the limit, like the real Python sidecar does.
+    const collector = async (opts) => {
+      seenLimit = opts.limit;
+      return { account: "wxid_me", messages: msgs.slice(0, opts.limit || msgs.length), contacts: [] };
+    };
+    const a = new WeChatPcAdapter({ v4Collector: collector });
     const raws = await collect(a.sync({ mode: "v4", limit: 3 }));
+    expect(seenLimit).toBe(3);
     expect(raws.filter((r) => r.kind === "message")).toHaveLength(3);
   });
 

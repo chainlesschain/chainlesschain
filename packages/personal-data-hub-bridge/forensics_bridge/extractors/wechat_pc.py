@@ -138,12 +138,19 @@ def find_accounts() -> List[Dict[str, Any]]:
             continue
         msg_dir = storage / "message"
         message_dbs = sorted(str(p) for p in msg_dir.glob("message_*.db")) if msg_dir.is_dir() else []
+        # 公众号 messages live in biz_message_*.db (SAME Msg_<md5> schema).
+        biz_dbs = sorted(str(p) for p in msg_dir.glob("biz_message_*.db")) if msg_dir.is_dir() else []
         contact_db = storage / "contact" / "contact.db"
+        sns_db = storage / "sns" / "sns.db"           # 朋友圈
+        favorite_db = storage / "favorite" / "favorite.db"  # 收藏
         accounts.append({
             "id": child.name.rsplit("_", 1)[0],
             "root": str(child),
             "messageDbs": message_dbs,
+            "bizDbs": biz_dbs,
             "contactDb": str(contact_db) if contact_db.exists() else None,
+            "snsDb": str(sns_db) if sns_db.exists() else None,
+            "favoriteDb": str(favorite_db) if favorite_db.exists() else None,
         })
     return accounts
 
@@ -284,7 +291,7 @@ def _display_name(name_map, wxid):
     return wxid
 
 
-def parse_plaintext_message_db(plain_path: str, limit: int = 50000, name_map: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def parse_plaintext_message_db(plain_path: str, limit: int = 50000, name_map: Optional[Dict[str, Any]] = None, source: str = "chat") -> Dict[str, Any]:
     import sqlite3
     con = sqlite3.connect(plain_path)
     con.text_factory = lambda b: b.decode("utf-8", "replace")
@@ -350,6 +357,7 @@ def parse_plaintext_message_db(plain_path: str, limit: int = 50000, name_map: Op
                 "type": mtype,
                 "createTime": ctime,  # seconds
                 "text": text,
+                "source": source,  # chat | biz
                 "originalId": f"wechat-pc:{conv or t}:{server_id or local_id}",
             })
     con.close()
@@ -406,6 +414,81 @@ def parse_contact_db(plain_path: str) -> Tuple[Dict[str, Any], List[Dict[str, An
     return name_map, contacts
 
 
+import re as _re
+
+_RE_CONTENT_DESC = _re.compile(r"<contentDesc>(.*?)</contentDesc>", _re.DOTALL)
+_RE_CREATE_TIME = _re.compile(r"<createTime>(\d+)</createTime>")
+_RE_FAV_TITLE = _re.compile(r"<title>(.*?)</title>", _re.DOTALL)
+_RE_FAV_DESC = _re.compile(r"<desc>(.*?)</desc>", _re.DOTALL)
+
+
+def _xml_first(rx, s):
+    if not isinstance(s, str):
+        return None
+    m = rx.search(s)
+    return m.group(1).strip() if m else None
+
+
+def parse_sns_db(plain_path: str, name_map: Optional[Dict[str, Any]] = None, limit: int = 20000) -> List[Dict[str, Any]]:
+    """朋友圈 — SnsTimeLine rows → moments [{poster, posterName, text, createTime, rawXml, originalId}].
+
+    Content is a <SnsDataItem><TimelineObject> XML; we pull <contentDesc>
+    (post text) + <createTime> best-effort, preserving the raw XML.
+    """
+    import sqlite3
+    moments: List[Dict[str, Any]] = []
+    con = sqlite3.connect(plain_path)
+    con.text_factory = lambda b: b.decode("utf-8", "replace")
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT tid, user_name, content FROM SnsTimeLine")
+    except sqlite3.Error:
+        con.close()
+        return moments
+    for tid, user_name, content in cur.fetchall():
+        if len(moments) >= limit:
+            break
+        text = _xml_first(_RE_CONTENT_DESC, content)
+        ct = _xml_first(_RE_CREATE_TIME, content)
+        moments.append({
+            "poster": user_name,
+            "posterName": _display_name(name_map, user_name),
+            "text": text,
+            "createTime": int(ct) if ct and ct.isdigit() else None,
+            "rawXml": content if isinstance(content, str) else None,
+            "originalId": f"wechat-pc:sns:{tid}",
+        })
+    con.close()
+    return moments
+
+
+def parse_favorite_db(plain_path: str, limit: int = 20000) -> List[Dict[str, Any]]:
+    """收藏 — fav_db_item rows → favorites [{type, updateTime, title, rawXml, originalId}]."""
+    import sqlite3
+    favs: List[Dict[str, Any]] = []
+    con = sqlite3.connect(plain_path)
+    con.text_factory = lambda b: b.decode("utf-8", "replace")
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT local_id, server_id, type, update_time, content FROM fav_db_item")
+    except sqlite3.Error:
+        con.close()
+        return favs
+    for local_id, server_id, ftype, utime, content in cur.fetchall():
+        if len(favs) >= limit:
+            break
+        title = _xml_first(_RE_FAV_TITLE, content) or _xml_first(_RE_FAV_DESC, content)
+        favs.append({
+            "type": ftype if isinstance(ftype, int) else None,
+            "updateTime": utime if isinstance(utime, int) else None,
+            "title": title,
+            "rawXml": content if isinstance(content, str) else None,
+            "originalId": f"wechat-pc:fav:{server_id or local_id}",
+        })
+    con.close()
+    return favs
+
+
 # ─── registered methods ────────────────────────────────────────────────────
 
 @register("wechat_v4.find_account")
@@ -435,7 +518,10 @@ def m_extract_key(params, _progress, _chunk):
 @register("wechat_v4.collect")
 def m_collect(params, progress, _chunk):
     import tempfile
-    limit = int(params.get("limit") or 50000)
+    # Default is effectively "everything" (越完整越好) — a real full history is
+    # tens of thousands of messages. The cap only guards against runaway memory
+    # on extreme accounts; callers can pass a smaller `limit` for a quick probe.
+    limit = int(params.get("limit") or 1_000_000)
     accts = find_accounts()
     if not accts:
         raise IpcError("APP_NOT_INSTALLED", "no WeChat 4.x account found under xwechat_files")
@@ -443,13 +529,22 @@ def m_collect(params, progress, _chunk):
     if not acct["messageDbs"]:
         raise IpcError("DB_NOT_FOUND", "account has no message_*.db")
 
-    # WeChat 4.0 uses a PER-DB key. Collect the salt of every DB we'll open
-    # (all message DBs + contact.db) and resolve them all in ONE memory scan.
-    db_paths = list(acct["messageDbs"])
+    # WeChat 4.0 uses a PER-DB key. Collect the salt of EVERY DB we'll open
+    # (chat + 公众号 biz + contact + 朋友圈 sns + 收藏 favorite) and resolve
+    # them all in ONE memory scan.
     contact_db = acct.get("contactDb")
+    biz_dbs = acct.get("bizDbs") or []
+    sns_db = acct.get("snsDb")
+    favorite_db = acct.get("favoriteDb")
+    every_db = (
+        list(acct["messageDbs"]) + list(biz_dbs)
+        + ([contact_db] if contact_db else [])
+        + ([sns_db] if sns_db else [])
+        + ([favorite_db] if favorite_db else [])
+    )
     salt_to_db = {}
     salts = []
-    for dbp in db_paths + ([contact_db] if contact_db else []):
+    for dbp in every_db:
         try:
             with open(dbp, "rb") as f:
                 s = f.read(16).hex().lower()
@@ -507,10 +602,11 @@ def m_collect(params, progress, _chunk):
                 except OSError:
                     pass
 
-    # ── message DBs ──
+    # ── chat + 公众号(biz) message DBs (same Msg_<md5> schema) ──
     all_messages: List[Dict[str, Any]] = []
     db_reports = []
-    for i, dbp in enumerate(acct["messageDbs"]):
+    msg_sources = [(dbp, "chat") for dbp in acct["messageDbs"]] + [(dbp, "biz") for dbp in biz_dbs]
+    for i, (dbp, src) in enumerate(msg_sources):
         if len(all_messages) >= limit:
             break
         try:
@@ -519,12 +615,12 @@ def m_collect(params, progress, _chunk):
             pass
         opened, reason = _open_db(dbp)
         if not opened:
-            db_reports.append({"db": os.path.basename(dbp), "error": reason})
+            db_reports.append({"db": os.path.basename(dbp), "source": src, "error": reason})
             continue
         plain, rep = opened
         try:
             parsed = parse_plaintext_message_db(
-                plain, limit=limit - len(all_messages), name_map=name_map
+                plain, limit=limit - len(all_messages), name_map=name_map, source=src
             )
         finally:
             try:
@@ -534,6 +630,7 @@ def m_collect(params, progress, _chunk):
         all_messages.extend(parsed["messages"])
         db_reports.append({
             "db": os.path.basename(dbp),
+            "source": src,
             "messageTables": parsed["messageTables"],
             "messageCount": parsed["messageCount"],
             "compressedDecoded": parsed["compressedDecoded"],
@@ -541,10 +638,68 @@ def m_collect(params, progress, _chunk):
             "hmacFailures": rep["hmacFailures"],
         })
 
+    # ── 朋友圈 (sns) → map moments into the message stream (source="sns") ──
+    # Independent of the chat message `limit` (朋友圈 is a small, distinct set
+    # that shouldn't be starved by a large chat history).
+    moment_count = 0
+    if sns_db:
+        opened, _r = _open_db(sns_db)
+        if opened:
+            splain, _srep = opened
+            try:
+                for m in parse_sns_db(splain, name_map=name_map):
+                    all_messages.append({
+                        "conversation": "sns:朋友圈",
+                        "conversationName": "朋友圈",
+                        "sender": m["poster"],
+                        "senderName": m["posterName"],
+                        "senderId": None,
+                        "type": 1,
+                        "createTime": m["createTime"],
+                        "text": m["text"],
+                        "source": "sns",
+                        "originalId": m["originalId"],
+                    })
+                    moment_count += 1
+            finally:
+                try:
+                    os.remove(splain)
+                except OSError:
+                    pass
+
+    # ── 收藏 (favorite) → map into the message stream (source="favorite") ──
+    favorite_count = 0
+    if favorite_db:
+        opened, _r = _open_db(favorite_db)
+        if opened:
+            fplain, _frep = opened
+            try:
+                for fav in parse_favorite_db(fplain):
+                    all_messages.append({
+                        "conversation": "favorite:收藏",
+                        "conversationName": "收藏",
+                        "sender": acct["id"],
+                        "senderName": "我",
+                        "senderId": None,
+                        "type": fav["type"],
+                        "createTime": fav["updateTime"],
+                        "text": fav["title"],
+                        "source": "favorite",
+                        "originalId": fav["originalId"],
+                    })
+                    favorite_count += 1
+            finally:
+                try:
+                    os.remove(fplain)
+                except OSError:
+                    pass
+
     return {
         "account": acct["id"],
         "messageCount": len(all_messages),
         "contactCount": len(contacts),
+        "momentCount": moment_count,
+        "favoriteCount": favorite_count,
         "dbs": db_reports,
         "contacts": contacts,
         "messages": all_messages,
