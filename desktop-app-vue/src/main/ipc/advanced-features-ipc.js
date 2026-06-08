@@ -42,7 +42,7 @@ class AdvancedFeaturesIPC {
       async (event, days = 7) => {
         return this.executeScript("adaptive-threshold.js", [
           "monitor",
-          `--days=${days}`,
+          `--days=${this._sanitizeDays(days)}`,
         ]);
       },
     );
@@ -78,7 +78,7 @@ class AdvancedFeaturesIPC {
       async (event, days = 30) => {
         return this.executeScript("online-learning.js", [
           "train",
-          `--days=${days}`,
+          `--days=${this._sanitizeDays(days)}`,
         ]);
       },
     );
@@ -109,7 +109,7 @@ class AdvancedFeaturesIPC {
       async (event, days = 7) => {
         return this.executeScript("advanced-optimizer.js", [
           "bottleneck",
-          `--days=${days}`,
+          `--days=${this._sanitizeDays(days)}`,
         ]);
       },
     );
@@ -194,7 +194,24 @@ class AdvancedFeaturesIPC {
   /**
    * 获取总览数据
    */
+  /**
+   * 把 renderer 传入的 `days` 时间窗强制成安全的有界正整数。
+   * 防止 datetime('now', '-N days') SQL sink 注入，以及 spawn `--days` 参数注入。
+   * 非法/越界输入回退到默认值。
+   * @param {*} days
+   * @param {number} [fallback=7]
+   * @returns {number} [1, 3650] 区间内的整数
+   */
+  _sanitizeDays(days, fallback = 7) {
+    const n = Number.parseInt(days, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      return fallback;
+    }
+    return Math.min(n, 3650);
+  }
+
   async getOverviewData(days) {
+    days = this._sanitizeDays(days);
     const db = this.getDatabase();
     if (!db) {
       throw new Error("数据库未连接");

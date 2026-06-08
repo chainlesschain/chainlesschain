@@ -310,8 +310,10 @@ class AgentSandboxV2 extends EventEmitter {
           "INSERT INTO sandbox_audit (id, sandbox_id, action, resource, result) VALUES (?, ?, ?, ?, ?)",
         )
         .run(entry.id, sandboxId, action, resource, result);
-    } catch (_error) {
-      // Non-critical audit persistence failure
+    } catch (error) {
+      // Audit persistence is best-effort, but silently dropping it hides
+      // tampering / DB-failure signals — surface it instead of swallowing.
+      logger.warn("[AgentSandboxV2] 沙箱审计日志持久化失败:", error.message);
     }
   }
 
