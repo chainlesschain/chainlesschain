@@ -136,6 +136,11 @@ export function registerAgentCommand(program) {
       "--append-system-prompt <text>",
       "Append extra guidance to the system prompt (literal text or @file) (headless)",
     )
+    .option(
+      "--input-format <fmt>",
+      "Headless input: text | stream-json (NDJSON user events on stdin, multi-turn)",
+      "text",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -180,6 +185,50 @@ export function registerAgentCommand(program) {
 
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
+
+      // ── Streaming-input mode (--input-format stream-json) ────────────────
+      // A persistent multi-turn conversation driven by NDJSON user events on
+      // stdin; output is always NDJSON. Routed before single-prompt handling
+      // so stdin is consumed as events, not as one prompt.
+      if (options.inputFormat === "stream-json") {
+        const { runAgentHeadlessStream } =
+          await import("../runtime/headless-stream.js");
+        const { parseToolList } = await import("../runtime/headless-runner.js");
+        const cwd = process.cwd();
+        let outcome;
+        try {
+          outcome = await runAgentHeadlessStream({
+            model: options.model,
+            provider: options.provider,
+            baseUrl: options.baseUrl,
+            apiKey: options.apiKey,
+            sessionId: options.session,
+            permissionMode: options.permissionMode,
+            allowedTools: parseToolList(options.allowedTools),
+            disallowedTools: parseToolList(options.disallowedTools),
+            additionalDirectories,
+            maxTurns: options.maxTurns
+              ? parseInt(options.maxTurns, 10)
+              : undefined,
+            expandFileRefs: options.fileRefs !== false,
+            systemPrompt: resolvePromptText(options.systemPrompt, { cwd }),
+            appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
+              cwd,
+            }),
+          });
+        } catch (err) {
+          process.stderr.write(`Error: ${err.message}\n`);
+          process.exit(1);
+        }
+        process.exit(outcome.exitCode);
+        return;
+      }
+      if (options.inputFormat && options.inputFormat !== "text") {
+        process.stderr.write(
+          `Invalid --input-format "${options.inputFormat}". Expected: text | stream-json.\n`,
+        );
+        process.exit(1);
+      }
 
       // Resolve the headless prompt from: --print value, positional task, or
       // piped stdin (in that precedence). Any of them → headless mode.
