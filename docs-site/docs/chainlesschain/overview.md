@@ -1,6 +1,10 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.99 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.29 / 144 命令 / 30,000+ 测试 | Android 5.0.3.99 (versionCode 503099，与 productVersion 对齐 · binariesVersion 20260608 · USR_VERSION 19) | iOS 5.0.3 (build 99，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.100 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.30 / 144 命令 / 30,000+ 测试 | Android 5.0.3.100 (versionCode 503100，与 productVersion 对齐 · binariesVersion 20260608 · USR_VERSION 19) | iOS 5.0.3 (build 100，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.100 版本对齐发布（2026-06-08）**：把 .99 之后的打包工作固化为一次正式发版 —— 修复 CLI npm 发布通道（`prepublishOnly → build:web-panel` 在 `npm publish` 下因父 npm 泄漏 `npm_config_local_prefix` 把依赖装到真实仓库根、导致 vite 解析不到 `@vitejs/plugin-vue`；改为隔离 temp 构建 + scrub `npm_config_*` 环境变量，CLI 从此可正常发版）+ 个人数据中台 PDH 0.4.1 与 CLI 0.162.30 已发 npm。本版桌面/Android/iOS 产物与 v5.0.3.99 功能等同，无应用源码改动。
+>
+> ---
 >
 > **v5.0.3.99 个人数据中台（PDH）采集大更新 + 真机生效（2026-06-08）**：
 >

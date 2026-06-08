@@ -3,6 +3,30 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.100] - 2026-06-08 — chore(release): 版本对齐发布（CLI npm 发布通道修复 + PDH 0.4.1）
+
+> 把 v5.0.3.99 之后的打包工作固化为一次正式发版。**无桌面 / Android / iOS 应用源码改动** —— 本版产物与 v5.0.3.99 功能等同，仅版本号对齐 + 工程通道修复。
+
+### Fix —— CLI npm 发布通道修复（web-panel prepublishOnly 构建）
+
+- `chainlesschain` 的 `prepublishOnly → npm run build:web-panel` 在 `npm publish` 下长期失败：`vite ERR_MODULE_NOT_FOUND @vitejs/plugin-vue`。
+- 真因：构建脚本跑在父 `npm publish` 内，父 npm 泄漏 `npm_config_local_prefix` / `npm_config_*` 指向真实仓库根，子 `npm install` 因此把依赖装到真实根而非构建目录 → vite 解析不到工具链（standalone 运行正常，故只在 CI / publish 下复现）。
+- 修复：`build-web-panel.mjs` 改为**隔离 temp 目录构建** + **scrub `npm_config_*` / `npm_package_*` / `INIT_CWD` 环境变量**，子 npm 把 temp 目录当成自己的工程根。CLI 从此可正常发版（npm-publish dry-run 绿，CLI tarball 3.4 MB / 720 files）。
+
+### Publish —— npm 包
+
+- `@chainlesschain/personal-data-hub` 0.4.0 → **0.4.1**（README 刷新到 51 adapter / readiness / 一键采集 现状）
+- `chainlesschain` CLI 0.162.29 → **0.162.30**（dep pin pdh 0.4.1）
+- 两包均已发布并验证安装（`npm i` 拉取 + 加载/运行正常）
+
+### 版本同步
+
+- productVersion v5.0.3.99 → v5.0.3.100
+- desktop-app-vue 5.0.3-alpha.99 → 5.0.3-alpha.100
+- Android versionCode 503099 → 503100 / versionName 5.0.3.99 → 5.0.3.100
+- iOS CFBundleVersion 99 → 100
+- 全平台 18 产物（Win / Mac / Linux / Android / iOS）已 ship（release run 27130664552 全绿）
+
 ## [v5.0.3.99] - 2026-06-08 — feat: 个人数据中台（PDH）采集大更新 + DB 静态加密默认开启 + AI 陪学接入界面
 
 > 本版主线是 **个人数据中台（PDH）采集能力大幅扩容 + 真机生效**：adapter readiness 止血 + 一键采集/导入引导 UI，新接通多家本地直读源（抖音 / 微信 PC / QQ-NT / 钉钉 / 飞书 / Apple 健康 / 网易云音乐 / 微信读书）。同时把 **DB 静态加密 gate 默认翻开**（`PHASE_1_5_DEFAULT_ON=true`），并把 Android「AI 陪学」积分 / 温和度月报 / 任务可见 UI 接成可交互入口。pdh 0.4.0 + cli 0.162.29 已发 npm，Android binariesVersion 20260608（cc-cli.tgz 刷新）+ USR_VERSION 19 强制真机重抽。

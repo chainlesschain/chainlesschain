@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, '..', 'src', 'data', 'release-sizes.json');
+const ROOT_PKG = path.resolve(__dirname, '..', '..', 'package.json');
 const REPO = 'chainlesschain/chainlesschain';
 // Note: was `/releases/latest` but post-2026-05-28 the "latest" tag is the
 // `internal-binaries-android-vYYYYMMDD` Release (Android prebuilt binaries
@@ -56,21 +57,57 @@ function pickDesktopRelease(releases) {
   return null;
 }
 
+function ghHeaders() {
+  const headers = {
+    'User-Agent': 'chainlesschain-website-build',
+    'Accept': 'application/vnd.github+json',
+  };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  return headers;
+}
+
+// Deterministically resolve the release for the current productVersion tag.
+// Avoids the /releases list-order fragility: that endpoint clusters stale DRAFT
+// releases ahead of published ones, and never version-sorts, so a list sweep can
+// land on an older published release (e.g. v5.0.3.99 picked over v5.0.3.100 —
+// "99" > "100" lexically too). Returns null if no productVersion / 404 / no
+// desktop assets, so main() falls back to the list sweep then cache.
+async function fetchByProductVersion() {
+  let tag;
+  try {
+    tag = JSON.parse(await fs.readFile(ROOT_PKG, 'utf-8')).productVersion; // e.g. "v5.0.3.100"
+  } catch { return null; }
+  if (!tag) return null;
+  const url = `https://api.github.com/repos/${REPO}/releases/tags/${tag}`;
+  console.log(`[fetch-release-sizes] GET ${url}`);
+  const res = await fetch(url, { headers: ghHeaders() });
+  if (res.status === 404) {
+    console.warn(`[fetch-release-sizes] productVersion ${tag} not published yet (404); falling back to list`);
+    return null;
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  const rel = await res.json();
+  if (rel.draft || !(rel.assets || []).some(a => classify(a.name))) {
+    console.warn(`[fetch-release-sizes] ${tag} has no desktop assets yet; falling back to list`);
+    return null;
+  }
+  console.log(`[fetch-release-sizes] picked ${rel.tag_name} (by productVersion tag)`);
+  return rel;
+}
+
 async function main() {
-  console.log(`[fetch-release-sizes] GET ${LIST_URL}`);
   let data;
   try {
-    const headers = {
-      'User-Agent': 'chainlesschain-website-build',
-      'Accept': 'application/vnd.github+json',
-    };
-    if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-    const res = await fetch(LIST_URL, { headers });
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    const list = await res.json();
-    data = pickDesktopRelease(list);
-    if (!data) throw new Error(`no release with desktop assets in first ${list.length}`);
-    console.log(`[fetch-release-sizes] picked ${data.tag_name} (skipped internal-binaries-* tags)`);
+    data = await fetchByProductVersion();
+    if (!data) {
+      console.log(`[fetch-release-sizes] GET ${LIST_URL}`);
+      const res = await fetch(LIST_URL, { headers: ghHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      const list = await res.json();
+      data = pickDesktopRelease(list);
+      if (!data) throw new Error(`no release with desktop assets in first ${list.length}`);
+      console.log(`[fetch-release-sizes] picked ${data.tag_name} (list sweep; skipped internal-binaries-* + drafts)`);
+    }
   } catch (err) {
     console.warn(`[fetch-release-sizes] fetch failed: ${err.message}`);
     const cached = await readCache();
