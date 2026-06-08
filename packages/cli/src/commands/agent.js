@@ -144,7 +144,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--fallback-model <model>",
-      "Retry once on this model when the primary fails (overload/network) (headless)",
+      "Retry once on this model when the primary fails (overload/network)",
     )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
@@ -353,6 +353,8 @@ export function registerAgentCommand(program) {
         appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
           cwd: process.cwd(),
         }),
+        // --fallback-model also applies interactively (wrapper built in the REPL)
+        fallbackModel: options.fallbackModel || null,
       });
       await runtime.startAgentSession();
     });

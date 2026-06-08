@@ -31,6 +31,7 @@ export function resolveAgentPolicy({
       : [],
     systemPrompt: overrides.systemPrompt || null,
     appendSystemPrompt: overrides.appendSystemPrompt || null,
+    fallbackModel: overrides.fallbackModel || null,
   };
 }
 

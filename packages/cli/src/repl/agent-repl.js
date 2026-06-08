@@ -67,6 +67,7 @@ import {
 } from "../runtime/agent-core.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
+import { makeFallbackChatFn } from "../runtime/fallback-model.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -157,6 +158,21 @@ export async function startAgentRepl(options = {}) {
   const additionalDirectories = Array.isArray(options.additionalDirectories)
     ? options.additionalDirectories
     : [];
+
+  // --fallback-model: retry a turn's LLM call once on a backup model when the
+  // primary errors out (overload / network). Built once; passed into every
+  // agentLoop call via chatFn. Undefined when no fallback configured.
+  const _fallbackChatFn = options.fallbackModel
+    ? makeFallbackChatFn({
+        fallbackModel: options.fallbackModel,
+        onFallback: ({ from, to, error }) =>
+          logger.info(
+            chalk.yellow(
+              `[fallback] model "${from}" failed (${error}); retrying with "${to}"`,
+            ),
+          ),
+      })
+    : undefined;
 
   // Bootstrap runtime (best-effort, DB not required)
   let db = null;
@@ -1518,6 +1534,7 @@ export async function startAgentRepl(options = {}) {
         prepareCall: defaultPrepareCall,
         approvalGate: _approvalGate,
         mcpClient: _bundleMcpClient || undefined,
+        chatFn: _fallbackChatFn,
       });
 
       if (sessionId && usageEvents?.length) {
