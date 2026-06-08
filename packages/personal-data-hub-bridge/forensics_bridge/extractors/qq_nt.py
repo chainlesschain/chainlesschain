@@ -63,12 +63,15 @@ HMAC_VARIANTS = (
 )
 
 
-def derive_keys(passphrase: bytes, salt: bytes, hmac_ctor, hmac_dklen: int):
+def derive_keys(passphrase: bytes, salt: bytes, hmac_ctor=None, hmac_dklen: int = KEY_SZ):
+    # Main encryption key: PBKDF2-HMAC-SHA512(passphrase, salt, kdf_iter).
     enc_key = hashlib.pbkdf2_hmac("sha512", passphrase, salt, KDF_ITER, dklen=KEY_SZ)
     mac_salt = bytes(b ^ 0x3A for b in salt)
-    hmac_key = hashlib.pbkdf2_hmac(
-        hmac_ctor().name, enc_key, mac_salt, FAST_KDF_ITER, dklen=hmac_dklen
-    )
+    # HMAC subkey: SQLCipher ALWAYS derives it with the cipher_kdf_algorithm
+    # (PBKDF2-HMAC-SHA512), at the encryption-key length (32) — independent of
+    # the per-page cipher_hmac_algorithm (which may be SHA1). Verified against a
+    # real QQ NT nt_msg.db: subkey via SHA512 + per-page HMAC-SHA1 (reserve 48).
+    hmac_key = hashlib.pbkdf2_hmac("sha512", enc_key, mac_salt, FAST_KDF_ITER, dklen=KEY_SZ)
     return enc_key, hmac_key
 
 
@@ -160,18 +163,25 @@ def m_decrypt(params, progress, _chunk):
     """Decrypt nt_msg.db with a provided key → plaintext SQLite + table inventory.
 
     Params:
-        key:        REQUIRED — 16-byte QQ NT passphrase as hex (32 hex chars).
+        passphrase: the QQ NT key as the raw ASCII passphrase (qq-win-db-key
+                    emits a 16-char string like "5{sww#,6aq=)8=A@").
+        key:        alternatively the key as hex. If `key` is a valid even-length
+                    hex string it's decoded from hex, otherwise treated as ASCII.
         db_path:    optional — defaults to the auto-discovered nt_msg.db.
         staging_dir:optional — where to write the plaintext db.
     """
-    key_hex = params.get("key")
-    if not key_hex or not isinstance(key_hex, str):
+    pp = params.get("passphrase")
+    key_str = params.get("key")
+    if isinstance(pp, str) and pp:
+        passphrase = pp.encode("utf-8")
+    elif isinstance(key_str, str) and key_str:
+        # Auto: even-length all-hex → decode hex; else treat the string as the
+        # ASCII passphrase (qq-win-db-key's output is an ASCII passphrase).
+        is_hex = len(key_str) % 2 == 0 and all(c in "0123456789abcdefABCDEF" for c in key_str)
+        passphrase = bytes.fromhex(key_str) if is_hex else key_str.encode("utf-8")
+    else:
         raise IpcError("KEY_REQUIRED",
-                       "QQ NT key not provided — extract it with qq-win-db-key (debugger) and pass params.key (hex)")
-    try:
-        passphrase = bytes.fromhex(key_hex)
-    except ValueError:
-        raise IpcError("INVALID_PARAMS", "params.key must be hex")
+                       "QQ NT key not provided — extract it with qq-win-db-key and pass params.passphrase (or params.key)")
 
     db_path = params.get("db_path")
     if not db_path:

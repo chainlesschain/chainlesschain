@@ -74,6 +74,44 @@ def test_wrong_key_fails_verification():
         qq.decrypt_nt_msg(qq_file, os.urandom(16))
 
 
+def test_m_decrypt_key_routing(monkeypatch, tmp_path):
+    # m_decrypt must accept the qq-win-db-key ASCII passphrase (e.g.
+    # "5{sww#,6aq=)8=A@") via params.passphrase, and auto-route params.key:
+    # even-length hex -> from_hex, otherwise ASCII. Capture the passphrase bytes
+    # that reach decrypt_nt_msg (verified end-to-end on real data separately).
+    captured = {}
+    fake = tmp_path / "nt_msg.db"; fake.write_bytes(b"\x00" * (qq.PREAMBLE + qq.PAGE))
+    def fake_decrypt(raw, passphrase):
+        captured["pp"] = passphrase
+        return (b"SQLite format 3\x00", "sha1")
+    monkeypatch.setattr(qq, "decrypt_nt_msg", fake_decrypt)
+    import sqlite3
+    monkeypatch.setattr(sqlite3, "connect", lambda *_a, **_k: (_ for _ in ()).throw(sqlite3.Error("skip")))
+
+    # ASCII passphrase
+    try:
+        qq.m_decrypt({"passphrase": "5{sww#,6aq=)8=A@", "db_path": str(fake)}, lambda *a: None, None)
+    except Exception:
+        pass
+    assert captured["pp"] == b"5{sww#,6aq=)8=A@"
+
+    # hex key -> decoded
+    captured.clear()
+    try:
+        qq.m_decrypt({"key": "00ff10ab", "db_path": str(fake)}, lambda *a: None, None)
+    except Exception:
+        pass
+    assert captured["pp"] == bytes.fromhex("00ff10ab")
+
+    # non-hex string in `key` -> treated as ASCII passphrase
+    captured.clear()
+    try:
+        qq.m_decrypt({"key": "#8abc@uJ", "db_path": str(fake)}, lambda *a: None, None)
+    except Exception:
+        pass
+    assert captured["pp"] == b"#8abc@uJ"
+
+
 def test_preamble_alignment_guard():
     # body not page-aligned after the 1024 preamble → BAD_LAYOUT
     bad = b"\x00" * (PREAMBLE + 100)
