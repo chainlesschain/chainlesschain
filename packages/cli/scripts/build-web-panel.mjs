@@ -15,6 +15,7 @@
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -90,62 +91,89 @@ function readPreviousHash() {
 
 function runBuild() {
   // web-panel is NOT a workspace member of the monorepo root (see root
-  // package.json `workspaces`). In CI a bare `npm install` here gets absorbed by
-  // the parent workspace root and leaves NO packages/web-panel/node_modules — so
-  // vite's findNearestNodeModules() walks up to <root>/node_modules, writes its
-  // bundled-config temp file to <root>/node_modules/.vite-temp/, and the ESM
-  // import of `@vitejs/plugin-vue` (a web-panel devDependency that isn't at root)
-  // fails with ERR_MODULE_NOT_FOUND — breaking `npm publish` (prepublishOnly →
-  // build:web-panel). Force a self-contained LOCAL install so the full toolchain
-  // lands in packages/web-panel/node_modules and vite resolves it there:
-  //   - npm_config_workspaces=false → ignore the parent workspace root
-  //   - NODE_ENV=development        → never omit devDependencies (vite/plugin-vue)
-  const installEnv = {
-    ...process.env,
-    NODE_ENV: "development",
-    npm_config_workspaces: "false",
-  };
-  console.log("[build-web-panel] 安装依赖 (workspaces=false, dev)...");
-  execSync("npm install --legacy-peer-deps", {
-    cwd: WEB_PANEL_ROOT,
-    stdio: "inherit",
-    encoding: "utf-8",
-    env: installEnv,
-  });
+  // package.json `workspaces`). Running `npm install` anywhere inside the repo
+  // tree lets npm's workspace-root reconciliation absorb web-panel's deps — they
+  // never land in packages/web-panel/node_modules, so vite's
+  // findNearestNodeModules() walks up to <root>/node_modules and writes its
+  // bundled-config temp file to <root>/node_modules/.vite-temp/, where the
+  // web-panel-only devDep @vitejs/plugin-vue isn't resolvable → ERR_MODULE_NOT_FOUND.
+  // That breaks `npm publish` (prepublishOnly → build:web-panel). Forcing
+  // workspaces=false / installing at root both failed (npm keeps reconciling).
+  //
+  // The robust fix: build in an ISOLATED temp tree OUTSIDE the monorepo, with a
+  // minimal root package.json that carries productVersion but NO `workspaces`,
+  // plus the locales seed the config aliases. npm then installs locally and vite
+  // resolves the toolchain from the temp web-panel/node_modules. Sources are
+  // copied in and only dist/ is copied back.
+  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-web-panel-"));
+  const tmpRepo = path.join(tmpBase, "repo");
+  const tmpWp = path.join(tmpRepo, "packages", "web-panel");
+  try {
+    fs.mkdirSync(tmpWp, { recursive: true });
 
-  // Safety net: if the build toolchain still isn't in web-panel's own
-  // node_modules (older npm hoisting behavior), install it at the monorepo ROOT
-  // too, so vite resolves @vitejs/plugin-vue wherever it places .vite-temp.
-  // --no-save leaves root package.json / lockfile untouched (CI node_modules is
-  // ephemeral; a no-op locally once the local install above succeeds).
-  const localPlugin = path.join(
-    WEB_PANEL_ROOT,
-    "node_modules/@vitejs/plugin-vue/package.json",
-  );
-  if (!fs.existsSync(localPlugin)) {
-    const wp = JSON.parse(
-      fs.readFileSync(path.join(WEB_PANEL_ROOT, "package.json"), "utf-8"),
+    // 1. web-panel sources (skip node_modules/dist)
+    fs.cpSync(WEB_PANEL_ROOT, tmpWp, {
+      recursive: true,
+      filter: (src) => {
+        const base = path.basename(src);
+        return base !== "node_modules" && base !== "dist";
+      },
+    });
+
+    // 2. minimal root package.json — carries productVersion (vite.config reads
+    //    ../../package.json) but deliberately NO `workspaces` so npm installs
+    //    web-panel locally instead of hoisting to this fake root.
+    const rootPkg = JSON.parse(
+      fs.readFileSync(path.resolve(CLI_ROOT, "../../package.json"), "utf-8"),
     );
-    const dd = { ...wp.dependencies, ...wp.devDependencies };
-    const specs = `@vitejs/plugin-vue@${dd["@vitejs/plugin-vue"]} vite@${dd.vite}`;
-    const MONOREPO_ROOT = path.resolve(CLI_ROOT, "../..");
-    console.warn(
-      `[build-web-panel] @vitejs/plugin-vue 未落到 web-panel/node_modules，回退在仓库根安装构建工具链: ${specs}`,
+    fs.writeFileSync(
+      path.join(tmpRepo, "package.json"),
+      JSON.stringify(
+        {
+          name: "cc-web-panel-build-root",
+          private: true,
+          productVersion: rootPkg.productVersion,
+        },
+        null,
+        2,
+      ),
     );
-    execSync(`npm install --no-save --legacy-peer-deps ${specs}`, {
-      cwd: MONOREPO_ROOT,
+
+    // 3. locales seed — vite.config aliases @chainlesschain/locales → ../locales/seed
+    const localesSeed = path.resolve(CLI_ROOT, "../locales/seed");
+    if (fs.existsSync(localesSeed)) {
+      const tmpSeed = path.join(tmpRepo, "packages", "locales", "seed");
+      fs.mkdirSync(tmpSeed, { recursive: true });
+      fs.cpSync(localesSeed, tmpSeed, { recursive: true });
+    }
+
+    console.log(`[build-web-panel] 隔离构建目录: ${tmpWp}`);
+    console.log("[build-web-panel] 安装依赖...");
+    execSync("npm install --legacy-peer-deps", {
+      cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
-      env: installEnv,
+      env: { ...process.env, NODE_ENV: "development" },
     });
-  }
 
-  console.log("[build-web-panel] 执行 vite build...");
-  execSync("npm run build", {
-    cwd: WEB_PANEL_ROOT,
-    stdio: "inherit",
-    encoding: "utf-8",
-  });
+    console.log("[build-web-panel] 执行 vite build...");
+    execSync("npm run build", {
+      cwd: tmpWp,
+      stdio: "inherit",
+      encoding: "utf-8",
+    });
+
+    // copy the built dist/ back so copyDist() (reads WEB_PANEL_ROOT/dist) works
+    const builtDist = path.join(tmpWp, "dist");
+    if (!fs.existsSync(builtDist)) {
+      throw new Error(`隔离构建未产出 dist: ${builtDist}`);
+    }
+    const targetDist = path.join(WEB_PANEL_ROOT, "dist");
+    fs.rmSync(targetDist, { recursive: true, force: true });
+    fs.cpSync(builtDist, targetDist, { recursive: true });
+  } finally {
+    fs.rmSync(tmpBase, { recursive: true, force: true });
+  }
 }
 
 function copyDist() {
