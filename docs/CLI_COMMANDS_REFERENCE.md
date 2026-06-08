@@ -71,14 +71,29 @@ chainlesschain note list | note search "keyword"
 chainlesschain chat                               # 交互式 AI 对话 (流式)
 chainlesschain chat --agent                       # Agent 模式 (读写文件)
 chainlesschain ask "question"                     # 单次 AI 查询
+chainlesschain ask "summarize @notes.md"          # @path 引用：注入文件内容 (--no-file-refs 关闭)
 chainlesschain llm models | llm test              # 列出 / 测试模型
 chainlesschain agent                              # Agent AI 会话 (Claude Code 风格)
 chainlesschain agent --session <id>               # 恢复之前的 agent 会话
+chainlesschain agent --continue                   # 恢复最近一次会话 (无需 id)
 chainlesschain agent --agent-id <id>              # 按 agent 限定记忆召回范围
 chainlesschain agent --recall-limit 5             # 启动时注入 top-5 记忆
 chainlesschain agent --no-recall-memory           # 禁用启动记忆召回
 chainlesschain agent --no-stream                  # 禁用流式渲染
+chainlesschain agent --add-dir ../lib --add-dir x # 额外工作根 (可重复，agent 可读/搜/改)
 chainlesschain agent --bundle ./my-agent-bundle   # 加载 agent 包 (AGENTS.md + USER.md + skills/ + mcp.json)
+chainlesschain agent "review @src/x.js"           # 交互模式下 @path 注入文件内容
+
+# Headless / print 模式 (Claude Code `claude -p` 对标；可进 CI / 管道)
+chainlesschain agent -p "fix the bug in x.js"     # 单轮非交互执行后退出
+echo "task" | chainlesschain agent -p              # 从 stdin 读取任务
+chainlesschain agent -p "..." --output-format json        # text(默认)|json|stream-json
+chainlesschain agent -p "..." --max-turns 5               # 限制 agent 循环迭代上限
+chainlesschain agent -p "..." --allowed-tools "read_file,git"     # 工具白名单
+chainlesschain agent -p "..." --disallowed-tools "run_shell"      # 工具黑名单
+chainlesschain agent -p "..." --permission-mode plan      # plan|acceptEdits|bypassPermissions
+                                                  #   默认 fail-closed：拒绝中/高危 shell；
+                                                  #   plan=只读工具，bypassPermissions=全放行
 chainlesschain skill list                         # 列出全部技能 (四层: bundled/marketplace/managed/workspace)
 chainlesschain skill list --category cli-direct   # 列出 CLI 命令技能包
 chainlesschain skill run code-review "Review this code"
@@ -100,3 +115,34 @@ chainlesschain session list                # 会话管理
 
 > For scoped-memory (`memory store/recall/consolidate`) and session lifecycle
 > (`session policy/tail/usage/park/unpark/end`), see [`cli/managed-agents.md`](./cli/managed-agents.md).
+
+## Cost — 估算 $ 花费 {#cost}
+
+在 `cc session usage`（token 计数）之上叠加价格层。读取同一份 JSONL `token_usage`
+事件；本地 provider (ollama 等) = 免费，未知模型标 `unpriced`（不臆测）。
+
+```bash
+chainlesschain cost                        # 全局花费汇总 (按 provider/model 拆分)
+chainlesschain cost <sessionId>            # 单会话花费
+chainlesschain cost --json                 # 机器可读
+chainlesschain cost --limit 500            # 全局汇总最多扫描的会话数
+```
+
+价格为公开 list 价的估算 (USD / 1M tokens)。可在配置 `llm.pricing` 覆盖/新增费率，
+无需改源码：`{ "<provider>": [ { "match": "<子串>", "in": <num>, "out": <num> } ] }`。
+
+## Checkpoint — 文件状态快照 / 回滚 {#checkpoint}
+
+Claude Code "rewind" 的 CLI 对标：在有风险的 agent 运行前给文件拍快照，出问题再还原。
+内容寻址存储于 `~/.chainlesschain/checkpoints`。区别于 `cc workflow checkpoint`（执行态）。
+
+```bash
+chainlesschain checkpoint create <paths...> [--label <l>]  # 快照文件/目录 (跳过 node_modules 等)
+chainlesschain checkpoint list                             # 列出快照 (最新在前)
+chainlesschain checkpoint show <id> [--diff]               # 清单 / 与当前文件对比
+chainlesschain checkpoint restore <id> [--dry-run|--force] # 还原 (会先自动快照当前态，可再回滚)
+chainlesschain checkpoint delete <id> [--force]            # 删除快照
+```
+
+> `restore` 有破坏性：非交互环境必须加 `--force`，TTY 下会弹确认；还原前自动生成
+> safety checkpoint，所以回滚本身也可撤销。所有子命令支持 `--json`。
