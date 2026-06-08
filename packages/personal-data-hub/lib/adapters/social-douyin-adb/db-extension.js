@@ -37,7 +37,28 @@ const crypto = require("node:crypto");
 const DOUYIN_DB_REMOTE_DIR =
   "/data/data/com.ss.android.ugc.aweme/databases";
 
+// Legacy plaintext social-DM IM db (Brignoni 2018 TikTok era, `<19-digit-uid>_im.db`).
 const IM_DB_PATTERN = /^(\d{19})_im\.db$/;
+
+// Real-device verification 2026-06-08 (Xiaomi chopin / MIUI 13, Douyin
+// v??-2026 logged in) found CURRENT Douyin no longer ships a plaintext
+// social-DM IM db. Two new on-disk shapes coexist in databases/:
+//
+//   encrypted_<uid>_im.db   — the social DM store, now SQLCipher-ENCRYPTED
+//                             (header is NOT `SQLite format 3`). Reading it
+//                             needs the per-user key, which only the frida
+//                             key-hook path (Phase 2b, libmsaoaidsec.so
+//                             anti-debug bypass) can recover — the plaintext
+//                             C-path here cannot.
+//   im_database_<uid>       — a Room db, but it is the in-app 豆包/Doubao AI
+//                             ASSISTANT chat (tables im_message / im_conversation
+//                             / im_bot), NOT person-to-person social DMs.
+//
+// We classify all three so the handler can emit a precise, actionable error
+// instead of a misleading DOUYIN_NO_IM_DB. See memory
+// [[pdh_douyin_c_path_phase_2a]] / [[pdh_social_cookie_endpoint_drift_2026_05]].
+const ENCRYPTED_IM_DB_PATTERN = /^encrypted_(\d+)_im\.db$/;
+const DOUBAO_IM_DB_PATTERN = /^im_database_(\d{6,})$/;
 
 /**
  * List candidate IM db filenames + uid via `adb shell su -c "ls databases/"`.
@@ -64,15 +85,27 @@ async function listImDbs(adb, serial, opts) {
     return { candidates: [], dirMissing: true };
   }
   const candidates = [];
+  const encryptedCandidates = [];
+  const doubaoCandidates = [];
   for (const line of lines) {
     const fileName = line.trim();
     if (!fileName) continue;
     const m = fileName.match(IM_DB_PATTERN);
     if (m) {
       candidates.push({ uid: m[1], fileName });
+      continue;
+    }
+    const enc = fileName.match(ENCRYPTED_IM_DB_PATTERN);
+    if (enc) {
+      encryptedCandidates.push({ uid: enc[1], fileName });
+      continue;
+    }
+    const doubao = fileName.match(DOUBAO_IM_DB_PATTERN);
+    if (doubao) {
+      doubaoCandidates.push({ uid: doubao[1], fileName });
     }
   }
-  return { candidates, dirMissing: false };
+  return { candidates, encryptedCandidates, doubaoCandidates, dirMissing: false };
 }
 
 /**
@@ -159,9 +192,10 @@ function createDouyinDbExtension(factoryOpts = {}) {
     }
 
     // Step 1: discover candidate IM dbs.
-    const { candidates, dirMissing } = await listImDbs(ctx.adb, serial, {
-      timeoutMs,
-    });
+    const { candidates, encryptedCandidates, doubaoCandidates, dirMissing } =
+      await listImDbs(ctx.adb, serial, {
+        timeoutMs,
+      });
     if (dirMissing) {
       throw new Error(
         "DOUYIN_NOT_INSTALLED: " +
@@ -170,6 +204,32 @@ function createDouyinDbExtension(factoryOpts = {}) {
       );
     }
     if (candidates.length === 0) {
+      // No legacy plaintext IM db. Distinguish the modern layouts so the UI
+      // can tell the user the truth instead of "no db found". Real-device
+      // verification 2026-06-08 — see ENCRYPTED_IM_DB_PATTERN comment above.
+      if (encryptedCandidates && encryptedCandidates.length > 0) {
+        throw new Error(
+          "DOUYIN_IM_DB_ENCRYPTED: this Douyin version stores its social DM db as " +
+            `\`encrypted_<uid>_im.db\` (SQLCipher) — found ${encryptedCandidates
+              .map((c) => c.fileName)
+              .join(", ")}. The plaintext C-path can't read it; the per-user ` +
+            "key must be recovered via the frida key-hook path (Phase 2b, " +
+            "libmsaoaidsec.so anti-debug bypass). Plaintext direct-read is no " +
+            "longer possible on current Douyin.",
+        );
+      }
+      if (doubaoCandidates && doubaoCandidates.length > 0) {
+        throw new Error(
+          "DOUYIN_ONLY_DOUBAO_AI_CHAT: the only readable `im_database_<uid>` db " +
+            `(${doubaoCandidates
+              .map((c) => c.fileName)
+              .join(", ")}) is the in-app 豆包/Doubao AI ASSISTANT chat ` +
+            "(tables im_message / im_conversation / im_bot), not person-to-person " +
+            "social DMs. Social DMs live in the SQLCipher `encrypted_<uid>_im.db` " +
+            "and need the frida key path. (Collecting Doubao AI chat would be a " +
+            "separate, net-new adapter.)",
+        );
+      }
       throw new Error(
         "DOUYIN_NO_IM_DB: no `<19-digit-uid>_im.db` found in databases/. Open the Douyin App + log in once + open any chat thread to materialize the IM database, then retry.",
       );
@@ -273,6 +333,8 @@ module.exports = {
   createDouyinDbExtension,
   DOUYIN_DB_REMOTE_DIR,
   IM_DB_PATTERN,
+  ENCRYPTED_IM_DB_PATTERN,
+  DOUBAO_IM_DB_PATTERN,
   // Exposed for tests
   _internals: {
     listImDbs,

@@ -53,6 +53,22 @@ const {
 const WEIBO_COOKIES_REMOTE_PATH =
   "/data/data/com.sina.weibo/app_webview/Default/Cookies";
 
+/**
+ * Glob the WebView profile dir at pull time. Real-device verification
+ * (2026-06-08, Xiaomi chopin / MIUI 13 / Weibo logged in) showed current
+ * Weibo stores cookies under a SUFFIXED profile dir
+ * `app_webview_com.sina.weibo/Default/Cookies`, NOT the standard
+ * `app_webview/Default/Cookies` — so the old hardcoded path made the
+ * collector throw WEIBO_NOT_INSTALLED even though Weibo was installed and
+ * logged in. Chromium names the WebView data dir after the WebView
+ * `dataDirectorySuffix` the host app sets; Weibo sets it to its own
+ * package name. We glob `app_webview*` and take the first match (Default
+ * profile) so both the legacy and suffixed layouts resolve. See memory
+ * [[pdh_social_cookie_endpoint_drift_2026_05]].
+ */
+const WEIBO_COOKIES_REMOTE_GLOB =
+  "/data/data/com.sina.weibo/app_webview*/Default/Cookies";
+
 const WEIBO_COOKIE_HOST_DOMAIN = "m.weibo.cn";
 
 /** Minimum required cookie name — without SUB, /api/config returns login=false. */
@@ -60,21 +76,31 @@ const WEIBO_REQUIRED_COOKIE = "SUB";
 
 async function pullCookiesViaSu(adb, serial, opts) {
   const adbOpts = { serial, timeoutMs: opts?.timeoutMs || 60_000 };
+  // Resolve the actual Cookies path — glob `app_webview*` so the suffixed
+  // profile dir (app_webview_com.sina.weibo, observed on real devices) is
+  // found as well as the legacy `app_webview`. `ls -d <glob>` prints every
+  // match; we take the first (Default profile). When nothing matches the
+  // shell prints the unexpanded glob, so we sentinel-guard NOT_FOUND.
   const lsOut = await adb(
     [
       "shell",
       "su",
       "-c",
-      `ls ${WEIBO_COOKIES_REMOTE_PATH} 2>/dev/null || echo NOT_FOUND`,
+      `ls -d ${WEIBO_COOKIES_REMOTE_GLOB} 2>/dev/null | head -n1 || echo NOT_FOUND`,
     ],
     adbOpts,
   );
   const lsLine = lsOut.replace(/\r+$/gm, "").trim();
-  if (lsLine === "NOT_FOUND" || lsLine === "") {
+  const remotePath =
+    lsLine && lsLine !== "NOT_FOUND" && !lsLine.includes("*") ? lsLine : null;
+  if (!remotePath) {
     throw new Error(
-      "WEIBO_NOT_INSTALLED: " +
-        WEIBO_COOKIES_REMOTE_PATH +
-        " not found. Install Weibo App + log in once on the phone, then retry. (Some Weibo App versions store cookies in a non-default WebView profile dir; if Weibo is installed but the path is missing, file a bug to track the actual path.)",
+      "WEIBO_NOT_INSTALLED: no Cookies DB under " +
+        WEIBO_COOKIES_REMOTE_GLOB +
+        " (globbed `app_webview*` to cover both the legacy and the suffixed " +
+        "`app_webview_com.sina.weibo` profile layouts). Install Weibo App + " +
+        "log in once on the phone, then retry. If Weibo is installed but no " +
+        "match exists, the WebView dataDirectorySuffix changed again — file a bug.",
     );
   }
   // Probe root.
@@ -93,7 +119,7 @@ async function pullCookiesViaSu(adb, serial, opts) {
       "shell",
       "su",
       "-c",
-      `base64 ${WEIBO_COOKIES_REMOTE_PATH} | tr -d '\\n\\r'`,
+      `base64 ${remotePath} | tr -d '\\n\\r'`,
     ],
     { ...adbOpts, timeoutMs: opts?.timeoutMs || 60_000 },
   );
@@ -241,6 +267,7 @@ function createWeiboCookiesExtension(factoryOpts = {}) {
 module.exports = {
   createWeiboCookiesExtension,
   WEIBO_COOKIES_REMOTE_PATH,
+  WEIBO_COOKIES_REMOTE_GLOB,
   WEIBO_COOKIE_HOST_DOMAIN,
   WEIBO_REQUIRED_COOKIE,
   assembleWeiboCookieHeader,
