@@ -46,6 +46,7 @@ describe("cc hub command surface", () => {
         "kuaishou-adb-sync", // Phase 6d.3 (Kuaishou C 路径) — PC + ADB + NS_sig3 SignProvider
         "list-adapters",
         "query-events",
+        "readiness", // 就绪检查：每源能否采集 + 不能的原因
         "recent-audit",
         "rederive", // trap #25 recovery — promote orphan raw_events to canonical
         "register-mock",
