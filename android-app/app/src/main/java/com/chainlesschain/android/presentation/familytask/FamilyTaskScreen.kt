@@ -12,13 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -56,6 +60,7 @@ fun FamilyTaskScreen(
     viewModel: FamilyTaskViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    var submittingTask by remember { mutableStateOf<FamilyTask?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         Row(
@@ -100,11 +105,12 @@ fun FamilyTaskScreen(
             items(items = state.tasks, key = { it.id }) { task ->
                 TaskCard(
                     task = task,
+                    isGrading = state.gradingTaskId == task.id,
                     onEnterStudy = {
                         viewModel.enterStudy(task)
                         onOpenAiStudy()
                     },
-                    onSubmit = { viewModel.submit(task) },
+                    onSubmit = { submittingTask = task },
                     onAiGrade = { viewModel.aiGrade(task) },
                     onComplete = { viewModel.complete(task) },
                     onBounceBack = { viewModel.bounceBack(task) },
@@ -113,6 +119,42 @@ fun FamilyTaskScreen(
             }
         }
     }
+
+    submittingTask?.let { task ->
+        SubmitDialog(
+            task = task,
+            onConfirm = { text ->
+                viewModel.submit(task, text)
+                submittingTask = null
+            },
+            onDismiss = { submittingTask = null },
+        )
+    }
+}
+
+@Composable
+private fun SubmitDialog(
+    task: FamilyTask,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var answer by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("提交：${task.title}") },
+        text = {
+            OutlinedTextField(
+                value = answer,
+                onValueChange = { answer = it },
+                label = { Text("写下你的解题过程 / 答案") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(answer) }, enabled = answer.isNotBlank()) { Text("提交") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 @Composable
@@ -165,6 +207,7 @@ private fun CreateTaskForm(
 @Composable
 private fun TaskCard(
     task: FamilyTask,
+    isGrading: Boolean,
     onEnterStudy: () -> Unit,
     onSubmit: () -> Unit,
     onAiGrade: () -> Unit,
@@ -196,6 +239,13 @@ private fun TaskCard(
             if (task.description.isNotBlank()) {
                 Text(task.description, style = MaterialTheme.typography.bodySmall)
             }
+            task.submission?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "✍️ 作答：$it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             task.aiGrade?.let {
                 Text(
                     text = "🤖 $it",
@@ -216,7 +266,18 @@ private fun TaskCard(
                         OutlinedButton(onClick = onCancel) { Text("取消") }
                     }
                     FamilyTaskStatus.SUBMITTED -> {
-                        Button(onClick = onAiGrade) { Text("AI 批改") }
+                        Button(onClick = onAiGrade, enabled = !isGrading) {
+                            if (isGrading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text("批改中…")
+                            } else {
+                                Text("AI 批改")
+                            }
+                        }
                     }
                     FamilyTaskStatus.GRADED -> {
                         Button(onClick = onComplete) { Text("完成") }

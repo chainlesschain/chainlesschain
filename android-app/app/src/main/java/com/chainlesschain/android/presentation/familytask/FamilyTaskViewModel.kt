@@ -7,10 +7,15 @@ import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskSource
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStatus
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskType
+import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
+import com.chainlesschain.android.presentation.aistudy.GradeLevel
+import com.chainlesschain.android.presentation.aistudy.MistakeBook
+import com.chainlesschain.android.presentation.aistudy.MistakeEntry
 import com.chainlesschain.android.presentation.aistudy.StudyTask
 import com.chainlesschain.android.presentation.aistudy.StudyTaskContext
 import com.chainlesschain.android.presentation.aistudy.StudyTaskStatus
 import com.chainlesschain.android.presentation.aistudy.StudyTaskType
+import com.chainlesschain.android.presentation.aistudy.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +28,8 @@ import javax.inject.Inject
 data class FamilyTaskUiState(
     val tasks: List<FamilyTask> = emptyList(),
     val showCreateForm: Boolean = false,
+    /** 正在 AI 批改的任务 id (该卡显加载中)。 */
+    val gradingTaskId: String? = null,
 )
 
 /**
@@ -37,6 +44,8 @@ data class FamilyTaskUiState(
 class FamilyTaskViewModel @Inject constructor(
     private val repo: FamilyTaskRepository,
     private val studyTaskContext: StudyTaskContext,
+    private val grader: HomeworkGrader,
+    private val mistakeBook: MistakeBook,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyTaskUiState())
@@ -88,13 +97,68 @@ class FamilyTaskViewModel @Inject constructor(
         }
     }
 
-    fun submit(task: FamilyTask) = viewModelScope.launch {
-        repo.recordSubmission(task.id, "（演示）孩子已提交作业")
+    /** 孩子提交作答 (真实文本) → SUBMITTED。 */
+    fun submit(task: FamilyTask, submission: String) = viewModelScope.launch {
+        val text = submission.trim()
+        if (text.isBlank()) return@launch
+        repo.recordSubmission(task.id, text)
     }
 
-    fun aiGrade(task: FamilyTask) = viewModelScope.launch {
-        repo.recordAiGrade(task.id, "（演示）AI 批改：85 分，分数计算有进步，注意通分")
-        repo.transition(task.id, FamilyTaskStatus.GRADED)
+    /**
+     * 真 AI 批改：把题目 + 孩子作答喂给模型, 解析分数/评语/错题, 落库 + 进 GRADED,
+     * 并把识别出的错题写进错题本 (主文档 §3.5 error_book ← source_task_id; 接学习 RAG)。
+     */
+    fun aiGrade(task: FamilyTask) {
+        if (_uiState.value.gradingTaskId != null) return // 防重复点
+        _uiState.update { it.copy(gradingTaskId = task.id) }
+        viewModelScope.launch {
+            try {
+                // 防作弊审计：记一次批改 AI 调用 (只元数据)。
+                repo.appendAiCall(task.id, AiCallLogEntry(System.currentTimeMillis(), "grade"))
+
+                val result = grader.grade(
+                    GradingRequest(
+                        title = task.title,
+                        description = task.description,
+                        subjectCode = task.subject,
+                        gradeLevelCode = task.gradeLevel,
+                        submission = task.submission ?: "",
+                    ),
+                )
+                repo.recordAiGrade(task.id, formatGrade(result))
+                repo.transition(task.id, FamilyTaskStatus.GRADED)
+                addMistakesToBook(task, result.mistakes)
+            } finally {
+                _uiState.update { it.copy(gradingTaskId = null) }
+            }
+        }
+    }
+
+    private fun formatGrade(result: GradingResult): String =
+        if (result.score < 0) result.feedback else "${result.score} 分 — ${result.feedback}"
+
+    private fun addMistakesToBook(task: FamilyTask, mistakes: List<String>) {
+        if (mistakes.isEmpty()) return
+        val grade = task.gradeLevel?.let { runCatching { GradeLevel.valueOf(it) }.getOrNull() }
+            ?: GradeLevel.P4
+        val subject = task.subject?.let { code -> Subject.entries.firstOrNull { it.code == code } }
+            ?: Subject.MATH
+        val now = System.currentTimeMillis()
+        mistakes.forEach { node ->
+            mistakeBook.add(
+                MistakeEntry(
+                    id = "",
+                    grade = grade,
+                    subject = subject,
+                    knowledgeNode = node,
+                    question = task.title,
+                    wrongAnswer = task.submission?.take(80) ?: "",
+                    correctAnswer = "见 AI 评语",
+                    note = "来自作业「${task.title}」批改",
+                    createdAt = now,
+                ),
+            )
+        }
     }
 
     fun complete(task: FamilyTask) = viewModelScope.launch {

@@ -4,7 +4,9 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyTa
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStatus
+import com.chainlesschain.android.presentation.aistudy.InMemoryMistakeBook
 import com.chainlesschain.android.presentation.aistudy.InMemoryStudyTaskContext
+import com.chainlesschain.android.presentation.aistudy.Subject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -65,20 +67,34 @@ class FamilyTaskViewModelTest {
         override suspend fun deleteTerminalOlderThan(cutoffMs: Long) = 0
     }
 
+    private class FakeHomeworkGrader(
+        var result: GradingResult = GradingResult(85, "分数计算有进步，注意通分", listOf("分数通分")),
+    ) : HomeworkGrader {
+        var lastRequest: GradingRequest? = null
+        override suspend fun grade(request: GradingRequest): GradingResult {
+            lastRequest = request
+            return result
+        }
+    }
+
     private lateinit var repo: FakeFamilyTaskRepository
     private lateinit var taskContext: InMemoryStudyTaskContext
+    private lateinit var grader: FakeHomeworkGrader
+    private lateinit var mistakeBook: InMemoryMistakeBook
 
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repo = FakeFamilyTaskRepository()
         taskContext = InMemoryStudyTaskContext()
+        grader = FakeHomeworkGrader()
+        mistakeBook = InMemoryMistakeBook()
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyTaskViewModel(repo, taskContext)
+    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook)
 
     private fun firstTask(viewModel: FamilyTaskViewModel) = viewModel.uiState.value.tasks.first()
 
@@ -119,15 +135,43 @@ class FamilyTaskViewModelTest {
         viewModel.createTask("英语阅读", "english", "")
         val t = firstTask(viewModel)
         viewModel.enterStudy(t)
-        viewModel.submit(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "my answer")
         assertEquals(FamilyTaskStatus.SUBMITTED, firstTask(viewModel).status)
+        assertEquals("my answer", firstTask(viewModel).submission)
 
         viewModel.aiGrade(firstTask(viewModel))
         assertEquals(FamilyTaskStatus.GRADED, firstTask(viewModel).status)
-        assertTrue(firstTask(viewModel).aiGrade!!.contains("AI 批改"))
+        // 真批改结果格式化为"<分> 分 — <评语>"
+        assertTrue(firstTask(viewModel).aiGrade!!.contains("85 分"))
+        assertTrue(firstTask(viewModel).aiGrade!!.contains("分数计算有进步"))
+        assertNull(viewModel.uiState.value.gradingTaskId) // 批改完清加载态
+    }
 
-        viewModel.complete(firstTask(viewModel))
-        assertEquals(FamilyTaskStatus.DONE, firstTask(viewModel).status)
+    @Test
+    fun `aiGrade feeds the submission into the grader and writes mistakes to the book`() = runTest {
+        val viewModel = vm()
+        viewModel.createTask("数学作业", "math", "P5 题")
+        viewModel.enterStudy(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "1/2 + 1/3 = 2/5")
+        viewModel.aiGrade(firstTask(viewModel))
+
+        // grader 收到的是孩子真实作答
+        assertEquals("1/2 + 1/3 = 2/5", grader.lastRequest?.submission)
+        assertEquals("math", grader.lastRequest?.subjectCode)
+        // 识别出的错题进错题本 (接学习 RAG)
+        val mistakes = mistakeBook.snapshot()
+        assertEquals(1, mistakes.size)
+        assertEquals("分数通分", mistakes[0].knowledgeNode)
+        assertEquals(Subject.MATH, mistakes[0].subject)
+    }
+
+    @Test
+    fun `blank submission is not recorded`() = runTest {
+        val viewModel = vm()
+        viewModel.createTask("作业", null, "")
+        viewModel.enterStudy(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "   ")
+        assertEquals(FamilyTaskStatus.IN_PROGRESS, firstTask(viewModel).status)
     }
 
     @Test
@@ -135,7 +179,7 @@ class FamilyTaskViewModelTest {
         val viewModel = vm()
         viewModel.createTask("数学", null, "")
         viewModel.enterStudy(firstTask(viewModel))
-        viewModel.submit(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "ans")
         viewModel.aiGrade(firstTask(viewModel))
         viewModel.complete(firstTask(viewModel))
 
