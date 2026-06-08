@@ -1,9 +1,11 @@
 /**
  * db-encryption-flag tests — Phase 1 / 1.5 master switch.
  *
- * Default gate (PHASE_1_5_DEFAULT_ON) is currently false → OFF everywhere unless
- * force-on via env. Tests also exercise the gate-open behavior via the opts seam
- * so the flip is verified before it is actually flipped in code.
+ * Default gate (PHASE_1_5_DEFAULT_ON) is now true (flipped 2026-06-08) → ON in
+ * packaged builds, still OFF in dev/test (not packaged) and overridable by the
+ * CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=0 kill-switch. Tests exercise both gate
+ * states via the opts seam so each branch stays covered regardless of the
+ * shipped value.
  */
 
 const {
@@ -67,11 +69,14 @@ describe("db-encryption-flag", () => {
   });
 
   describe("shipped defaults", () => {
-    it("the gate is still CLOSED (not flipped) — pre-real-device-smoke", () => {
-      expect(PHASE_1_5_DEFAULT_ON).toBe(false);
+    it("the gate is OPEN (flipped on 2026-06-08, post real-device smoke)", () => {
+      expect(PHASE_1_5_DEFAULT_ON).toBe(true);
     });
 
-    it("defaults to OFF with no env and no opts (gate closed)", () => {
+    it("defaults to OFF in dev/test (not packaged) with no env and no opts", () => {
+      // Gate is open, but the test process is not a packaged build, so the
+      // resolved default is still OFF here. Packaged-on is covered by the
+      // gate-open opts-seam case above.
       setEnv(undefined);
       expect(isDbEncryptionOptIn()).toBe(false);
     });

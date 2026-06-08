@@ -244,17 +244,18 @@ async function r5_killswitch_and_gate() {
       "env=0 overrides open gate (emergency off still works post-flip)",
     );
     delete process.env[ENV];
-    // shipped gate today: default OFF everywhere
+    // shipped gate is now OPEN (PHASE_1_5_DEFAULT_ON=true), but this probe runs
+    // as a non-packaged electron process, so the resolved default is still OFF.
     assert.strictEqual(
       isDbEncryptionOptIn(),
       false,
-      "shipped default (PHASE_1_5_DEFAULT_ON=false) → OFF",
+      "open gate but non-packaged probe → OFF",
     );
     // post-flip behaviour: open gate → ON only in packaged
     assert.strictEqual(
       isDbEncryptionOptIn({ defaultOn: true, isPackaged: true }),
       true,
-      "open gate + packaged → ON (what the flip will do)",
+      "open gate + packaged → ON (the shipped behaviour now)",
     );
     assert.strictEqual(
       isDbEncryptionOptIn({ defaultOn: true, isPackaged: false }),

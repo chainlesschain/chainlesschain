@@ -11,8 +11,8 @@
  *        CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1|true  → force ON
  *        CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=0|false → force OFF (kill-switch)
  *   2. Otherwise the GATED default:
- *        - PHASE_1_5_DEFAULT_ON === false (current) → OFF everywhere.
- *        - PHASE_1_5_DEFAULT_ON === true            → ON in packaged builds
+ *        - PHASE_1_5_DEFAULT_ON === false → OFF everywhere.
+ *        - PHASE_1_5_DEFAULT_ON === true (current) → ON in packaged builds
  *          (app.isPackaged), OFF in dev/test.
  *
  * Phase 1.5 flip procedure: complete EVERY item in the pre-flip checklist
@@ -26,16 +26,18 @@
  */
 
 /**
- * GATE — keep false until the pre-flip checklist passes.
+ * GATE — FLIPPED ON 2026-06-08 after the pre-flip checklist was fully signed off
+ * (docs/internal/db-encryption-preflip-checklist.md: A L1+L3 45 + L2 7 + B.1 6
+ * automated green, B.2 manual GUI smoke — install-old→upgrade migration & real
+ * power-loss — signed off on real device, C rollback verified).
  *
- *   ⛔ Before changing this to `true`, run and sign off:
- *      docs/internal/db-encryption-preflip-checklist.md
- *      - npm run test:db-encryption   (L1 fake-fs + L3 selection matrix + L2 real SQLCipher)
- *      - L4 real-device migration smoke (design §5.2) — Win cannot substitute.
+ * Effect: packaged production builds now encrypt the DB by default and migrate
+ * existing plaintext libraries to `.encrypted` on first launch.
  *
- * Flipping to true makes packaged production encrypt + migrate by default.
+ * Emergency rollback: set CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=0 to force-off
+ * (the kill-switch overrides this gate); or revert this line to `false`.
  */
-const PHASE_1_5_DEFAULT_ON = false;
+const PHASE_1_5_DEFAULT_ON = true;
 
 /**
  * @returns {boolean} whether this is a packaged Electron build. Falls back to
