@@ -6,7 +6,7 @@
 const git = require("isomorphic-git");
 const fs = require("fs");
 const path = require("path");
-const { gitLog, gitError } = require("./git/git-config");
+const { gitLog, gitError } = require("./git-config");
 
 class GitAutoCommit {
   constructor(options = {}) {
