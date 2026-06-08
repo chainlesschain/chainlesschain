@@ -581,6 +581,42 @@ jobs:
           sha256sum "$ASSET_DIR/cc-cli.tgz" | head -c 16
           echo "  ← cc-cli.tgz sha256 prefix"
 
+      # cc-cli.tgz is gitignored (not committed) and historically had no
+      # retrieval path — so a rebuilt CLI bundle could never reach the
+      # internal-binaries release the APK fetches from. Upload it as its own
+      # artifact so a maintainer can download it, clobber-upload to the
+      # internal-binaries release, and bump binaries-manifest.txt's sha256.
+      - name: Upload cc-cli.tgz artifact
+        if: matrix.abi == 'aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc-cli-tgz
+          path: android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+          retention-days: 30
+          if-no-files-found: error
+
+      # Root-fix the refresh path: push the freshly-built cc-cli.tgz to the
+      # internal-binaries release the APK fetches from (gradle
+      # downloadBootstrapBinaries verifies against binaries-manifest.txt
+      # sha256). --clobber replaces the asset on the SAME binariesVersion
+      # release; the manifest sha bump (committed by the step below) forces
+      # downloadBootstrapBinaries to re-fetch it. No new release / no
+      # binariesVersion bump needed.
+      - name: Publish cc-cli.tgz to internal-binaries release + bump manifest sha
+        if: matrix.abi == 'aarch64'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TGZ=android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+          SHA=$(sha256sum "$TGZ" | cut -d' ' -f1)
+          BV=$(grep -oP 'binariesVersion=\K.*' android-app/gradle.properties)
+          echo "cc-cli.tgz sha256=$SHA → internal-binaries-android-v$BV"
+          gh release upload "internal-binaries-android-v$BV" "$TGZ" --clobber
+          # Rewrite the cc-cli.tgz line's sha256 in the manifest (committed below).
+          sed -i -E "s|^[0-9a-fA-F]{64}([[:space:]]+cc-cli\.tgz[[:space:]])|$SHA\1|" android-app/binaries-manifest.txt
+          grep -E "cc-cli\.tgz" android-app/binaries-manifest.txt
+
       - name: Commit + push integration
         if: matrix.abi == 'aarch64'
         run: |
@@ -588,7 +624,8 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name  "github-actions[bot]"
           git add android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/ \
-                  android-app/feature-local-terminal/src/main/assets/local-terminal/
+                  android-app/feature-local-terminal/src/main/assets/local-terminal/ \
+                  android-app/binaries-manifest.txt
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
