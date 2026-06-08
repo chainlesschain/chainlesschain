@@ -37,6 +37,7 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
 } from "../harness/jsonl-session-store.js";
 import { expandFileRefs } from "./file-ref-expander.js";
+import { composeSystemPrompt } from "./system-prompt.js";
 
 /** Tools that cannot mutate the filesystem or run commands. */
 export const READ_ONLY_TOOLS = Object.freeze([
@@ -325,11 +326,18 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     ? new IterationBudget({ limit: Math.max(1, Math.floor(options.maxTurns)) })
     : new IterationBudget();
 
-  const messages = [
+  // Effective system prompt: built-in base, optionally replaced by
+  // --system-prompt and/or extended by --append-system-prompt.
+  const systemContent = composeSystemPrompt(
+    buildSystemPrompt(cwd, { additionalDirectories }),
     {
-      role: "system",
-      content: buildSystemPrompt(cwd, { additionalDirectories }),
+      systemPrompt: options.systemPrompt,
+      appendSystemPrompt: options.appendSystemPrompt,
     },
+  );
+
+  const messages = [
+    { role: "system", content: systemContent },
     ...history,
     { role: "user", content: userContent },
   ];
