@@ -65,6 +65,7 @@ import {
   agentLoop as coreAgentLoop,
   formatToolArgs,
 } from "../runtime/agent-core.js";
+import { expandFileRefs } from "../runtime/file-ref-expander.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -1418,8 +1419,28 @@ export async function startAgentRepl(options = {}) {
       logger.verbose(`[hook] prompt rewritten by UserPromptSubmit hook`);
     }
 
+    // Expand @path file references into context blocks (Claude-Code parity),
+    // so `review @src/x.js` injects the file contents. Typo'd paths are warned
+    // about and left as-is.
+    let userContent = effectivePrompt;
+    try {
+      const fileRefs = expandFileRefs(effectivePrompt, { cwd: process.cwd() });
+      userContent = fileRefs.prompt;
+      for (const w of fileRefs.warnings) {
+        logger.info(chalk.yellow(`[@ref] ${w}`));
+      }
+      if (fileRefs.refs.length > 0) {
+        const summary = fileRefs.refs
+          .map((r) => `${r.rel}${r.kind === "dir" ? "/" : ""}`)
+          .join(", ");
+        logger.verbose(`[@ref] injected: ${summary}`);
+      }
+    } catch (err) {
+      logger.verbose(`[@ref] expansion skipped: ${err.message}`);
+    }
+
     // Add user message
-    messages.push({ role: "user", content: effectivePrompt });
+    messages.push({ role: "user", content: userContent });
 
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
