@@ -1773,13 +1773,15 @@ const FILE_COLLECT_ADAPTERS = new Set([
   'netease-music',
   'wechat-pc',
   'qq-pc',
+  'dingtalk-pc',
+  'feishu-pc',
   'social-douyin', // <uid>_im.db direct read
   'messaging-telegram',
   'messaging-whatsapp',
   'travel-amap',
 ])
 // SQLCipher-encrypted local DBs that accept an optional --key.
-const KEYED_FILE_ADAPTERS = new Set(['wechat-pc', 'qq-pc'])
+const KEYED_FILE_ADAPTERS = new Set(['wechat-pc', 'qq-pc', 'dingtalk-pc', 'feishu-pc'])
 // Cookie-mode sources: paste login cookie → sync (weread).
 const COOKIE_COLLECT_ADAPTERS = new Set(['weread'])
 

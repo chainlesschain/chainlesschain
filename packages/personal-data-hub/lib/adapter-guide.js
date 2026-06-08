@@ -42,6 +42,8 @@ const DISPLAY_NAMES = Object.freeze({
   "wechat": "微信（手机）",
   "wechat-pc": "微信（电脑版）",
   "qq-pc": "QQ（电脑版 NT）",
+  "dingtalk-pc": "钉钉（电脑版）",
+  "feishu-pc": "飞书（电脑版）",
   "email-imap": "邮箱（IMAP）",
   "finance-alipay": "支付宝",
   "alipay-bill": "支付宝账单",
@@ -71,6 +73,27 @@ const DISPLAY_NAMES = Object.freeze({
   "local-files": "本地文件",
   "system-data-android": "Android 系统数据",
 });
+
+// Shared guide for honest best-effort desktop IM local-DB sources (钉钉/飞书).
+function localImPcGuide(platform) {
+  const adapterName = platform === "钉钉" ? "dingtalk-pc" : "feishu-pc";
+  return {
+    summary: `采集${platform}电脑版的聊天记录（来自本地数据库）。⚠️ v0.1 实验性：${platform}桌面库为私有结构、可能加密、随版本变化，文本解析为尽力而为，原始行会完整保留以便后续解析。`,
+    methods: [
+      {
+        label: "解密本地库后直读（推荐）",
+        recommended: true,
+        steps: [
+          `登录${platform}电脑版，定位其数据目录下的本地 SQLite 库。`,
+          "若加密，用工具解密为明文（或采集时附带 --key）。",
+          `执行 cc hub sync-adapter ${adapterName} --input <本地库路径>，或界面「📂 选择文件采集」。`,
+          "中台自动发现消息表并入库；诊断会显示找到了哪些表/列。",
+        ],
+        note: "纯个人使用、全程本地。聊天记录敏感，首次会要求法律确认。文本若未解析出，原始行已保留，可后续在真机上微调列。",
+      },
+    ],
+  };
+}
 
 function displayName(name) {
   return DISPLAY_NAMES[name] || name;
@@ -340,6 +363,9 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
+  "dingtalk-pc": localImPcGuide("钉钉"),
+  "feishu-pc": localImPcGuide("飞书"),
+
   "social-douyin": {
     summary:
       "采集抖音私信 + 联系人（来自 App 本地明文数据库 <uid>_im.db）。明文 SQLite、无加密、无 X-Bogus 签名——本地直读是最可靠的方式。",
@@ -474,7 +500,7 @@ function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
   if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
-  if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|travel-amap)$/.test(name))
+  if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;
   if (
     /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files|apple-health)/.test(
