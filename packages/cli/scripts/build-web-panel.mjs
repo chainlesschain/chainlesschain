@@ -105,6 +105,30 @@ function runBuild() {
   // plus the locales seed the config aliases. npm then installs locally and vite
   // resolves the toolchain from the temp web-panel/node_modules. Sources are
   // copied in and only dist/ is copied back.
+  //
+  // CRITICAL: this script runs INSIDE `npm publish` → `npm run build:web-panel`,
+  // so the parent npm leaks npm_config_* env vars (notably npm_config_local_prefix
+  // / npm_config_prefix pointing at the REAL monorepo). Inherited verbatim, the
+  // child `npm install` ignores cwd and installs into the real repo root instead
+  // of the temp dir — so the temp has no node_modules and vite can't resolve vite/
+  // @vitejs/plugin-vue. We must scrub those vars so the child npm treats the temp
+  // dir as its own project root. (This is why it worked when run standalone but
+  // failed under `npm publish` in CI.)
+  const childEnv = (() => {
+    const env = { ...process.env };
+    for (const k of Object.keys(env)) {
+      if (k.toLowerCase().startsWith("npm_config_")) delete env[k];
+      if (k.toLowerCase().startsWith("npm_package_")) delete env[k];
+    }
+    delete env.npm_lifecycle_event;
+    delete env.npm_lifecycle_script;
+    delete env.npm_execpath;
+    delete env.npm_command;
+    delete env.npm_node_execpath;
+    delete env.INIT_CWD;
+    env.NODE_ENV = "development";
+    return env;
+  })();
   const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-web-panel-"));
   const tmpRepo = path.join(tmpBase, "repo");
   const tmpWp = path.join(tmpRepo, "packages", "web-panel");
@@ -148,12 +172,12 @@ function runBuild() {
     }
 
     console.log(`[build-web-panel] 隔离构建目录: ${tmpWp}`);
-    console.log("[build-web-panel] 安装依赖...");
+    console.log("[build-web-panel] 安装依赖 (scrubbed npm_config_* env)...");
     execSync("npm install --legacy-peer-deps", {
       cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
-      env: { ...process.env, NODE_ENV: "development" },
+      env: childEnv,
     });
 
     console.log("[build-web-panel] 执行 vite build...");
@@ -161,6 +185,7 @@ function runBuild() {
       cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
+      env: childEnv,
     });
 
     // copy the built dist/ back so copyDist() (reads WEB_PANEL_ROOT/dist) works
