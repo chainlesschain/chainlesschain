@@ -595,27 +595,13 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # Root-fix the refresh path: push the freshly-built cc-cli.tgz to the
-      # internal-binaries release the APK fetches from (gradle
-      # downloadBootstrapBinaries verifies against binaries-manifest.txt
-      # sha256). --clobber replaces the asset on the SAME binariesVersion
-      # release; the manifest sha bump (committed by the step below) forces
-      # downloadBootstrapBinaries to re-fetch it. No new release / no
-      # binariesVersion bump needed.
-      - name: Publish cc-cli.tgz to internal-binaries release + bump manifest sha
-        if: matrix.abi == 'aarch64'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          TGZ=android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
-          SHA=$(sha256sum "$TGZ" | cut -d' ' -f1)
-          BV=$(grep -oP 'binariesVersion=\K.*' android-app/gradle.properties)
-          echo "cc-cli.tgz sha256=$SHA → internal-binaries-android-v$BV"
-          gh release upload "internal-binaries-android-v$BV" "$TGZ" --clobber
-          # Rewrite the cc-cli.tgz line's sha256 in the manifest (committed below).
-          sed -i -E "s|^[0-9a-fA-F]{64}([[:space:]]+cc-cli\.tgz[[:space:]])|$SHA\1|" android-app/binaries-manifest.txt
-          grep -E "cc-cli\.tgz" android-app/binaries-manifest.txt
+      # NOTE: internal-binaries releases are IMMUTABLE — `gh release upload
+      # --clobber` cannot replace an existing asset (HTTP 422 "Cannot delete
+      # asset from an immutable release"). Refreshing cc-cli.tgz therefore
+      # requires CREATING A NEW dated internal-binaries release + bumping
+      # binariesVersion in gradle.properties (the documented recipe). That
+      # heavier flow is a follow-up; for now the cc-cli-tgz artifact above is
+      # the retrieval path a maintainer uses to assemble the new release.
 
       - name: Commit + push integration
         if: matrix.abi == 'aarch64'
@@ -624,8 +610,7 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name  "github-actions[bot]"
           git add android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/ \
-                  android-app/feature-local-terminal/src/main/assets/local-terminal/ \
-                  android-app/binaries-manifest.txt
+                  android-app/feature-local-terminal/src/main/assets/local-terminal/
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
