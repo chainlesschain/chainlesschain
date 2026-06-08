@@ -23,6 +23,10 @@ export function registerAgentCommand(program) {
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")
+    .option(
+      "-c, --continue",
+      "Resume the most recent session (no id needed — claude --continue parity)",
+    )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
@@ -37,6 +41,24 @@ export function registerAgentCommand(program) {
       "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
     )
     .action(async (options) => {
+      // `--continue` resolves the most recent session id so the user need not
+      // remember/copy it. Explicit `--session <id>` always wins.
+      if (options.continue && !options.session) {
+        const { bootstrap } = await import("../runtime/bootstrap.js");
+        const { resolveMostRecentSessionId } = await import(
+          "../lib/recent-session.js"
+        );
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const recent = resolveMostRecentSessionId(ctx);
+        if (!recent) {
+          process.stderr.write(
+            "No previous session to continue. Start one with `cc agent`.\n",
+          );
+          process.exit(1);
+        }
+        options.session = recent;
+      }
+
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
         provider: options.provider,
