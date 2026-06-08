@@ -10,6 +10,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
+import { makeFallbackChatFn } from "../runtime/fallback-model.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -141,6 +142,10 @@ export function registerAgentCommand(program) {
       "Headless input: text | stream-json (NDJSON user events on stdin, multi-turn)",
       "text",
     )
+    .option(
+      "--fallback-model <model>",
+      "Retry once on this model when the primary fails (overload/network) (headless)",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -186,6 +191,20 @@ export function registerAgentCommand(program) {
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
 
+      // --fallback-model: a chatFn that retries once on the backup model when
+      // the primary errors out (overload / rate-limit / network). Passed into
+      // the headless runners via options.chatFn (the agent loop's seam), so no
+      // runner changes are needed. Notice goes to stderr to keep stdout clean.
+      const fallbackChatFn = options.fallbackModel
+        ? makeFallbackChatFn({
+            fallbackModel: options.fallbackModel,
+            onFallback: ({ from, to, error }) =>
+              process.stderr.write(
+                `Note: model "${from}" failed (${error}); retrying with --fallback-model "${to}".\n`,
+              ),
+          })
+        : undefined;
+
       // ── Streaming-input mode (--input-format stream-json) ────────────────
       // A persistent multi-turn conversation driven by NDJSON user events on
       // stdin; output is always NDJSON. Routed before single-prompt handling
@@ -215,6 +234,7 @@ export function registerAgentCommand(program) {
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd,
             }),
+            chatFn: fallbackChatFn,
           });
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
@@ -300,6 +320,8 @@ export function registerAgentCommand(program) {
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd: process.cwd(),
             }),
+            // --fallback-model: retry once on a backup model on transient errors
+            chatFn: fallbackChatFn,
           });
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
