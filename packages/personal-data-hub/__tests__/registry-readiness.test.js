@@ -231,3 +231,62 @@ describe("AdapterRegistry.readiness()", () => {
     expect(byName(reports, "messaging-telegram").reason).toBe("DB_NOT_PULLED");
   });
 });
+
+describe("AdapterRegistry.readiness() — ADB one-click (social)", () => {
+  const oneClick = { oneClickNames: new Set(["social-bilibili"]) };
+
+  it("device connected → ready via adb-oneclick", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: { ...oneClick, probe: async () => ({ deviceConnected: true, serial: "ABC123" }) },
+    });
+    reg.register(new BilibiliAdapter());
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(true);
+    expect(r.status).toBe(READINESS_STATUS.READY);
+    expect(r.mode).toBe("adb-oneclick");
+    expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(r.message).toMatch(/一键采集/);
+  });
+
+  it("no device → ADB_DEVICE_NEEDED (actionable, not the snapshot message)", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: { ...oneClick, probe: async () => ({ deviceConnected: false }) },
+    });
+    reg.register(new BilibiliAdapter());
+    const [r] = await reg.readiness();
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe("ADB_DEVICE_NEEDED");
+    expect(r.category).toBe(READINESS_CATEGORY.DEVICE);
+    expect(r.message).toMatch(/root|USB|手机/);
+  });
+
+  it("a probe that throws degrades to ADB_DEVICE_NEEDED (never crashes)", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: { ...oneClick, probe: async () => { throw new Error("adb missing"); } },
+    });
+    reg.register(new BilibiliAdapter());
+    const [r] = await reg.readiness();
+    expect(r.reason).toBe("ADB_DEVICE_NEEDED");
+  });
+
+  it("non-one-click adapter is unaffected by ADB readiness", async () => {
+    const reg = new AdapterRegistry({
+      vault: stubVault(),
+      adbReadiness: { oneClickNames: new Set(["social-bilibili"]), probe: async () => ({ deviceConnected: true }) },
+    });
+    reg.register(new TelegramAdapter());
+    const [r] = await reg.readiness();
+    expect(r.name).toBe("messaging-telegram");
+    expect(r.reason).toBe("DB_NOT_PULLED"); // unchanged
+  });
+
+  it("without adbReadiness config, social adapter still reports NO_INPUT", async () => {
+    const reg = new AdapterRegistry({ vault: stubVault() });
+    reg.register(new BilibiliAdapter());
+    const [r] = await reg.readiness();
+    expect(r.reason).toBe("NO_INPUT");
+  });
+});

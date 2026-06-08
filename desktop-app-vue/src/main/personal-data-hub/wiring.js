@@ -278,6 +278,30 @@ async function initHub() {
   }
 
   // Registry with whatever sinks are available.
+  // ADB one-click readiness for the social platforms — mirror of the CLI
+  // wiring. One `adb devices` lets readiness() show "已连接手机，点一键采集" vs
+  // "请插上 root 手机". Best-effort; never throws into the readiness probe.
+  const ADB_ONE_CLICK_NAMES = new Set([
+    "social-bilibili",
+    "social-weibo",
+    "social-douyin",
+    "social-xiaohongshu",
+    "social-toutiao",
+    "social-kuaishou",
+  ]);
+  const adbReadinessProbe = async () => {
+    try {
+      const { listDevices } = require("./desktop-adb-bridge");
+      const serials = await listDevices();
+      return {
+        deviceConnected: Array.isArray(serials) && serials.length > 0,
+        serial: serials && serials[0],
+      };
+    } catch (_e) {
+      return { deviceConnected: false };
+    }
+  };
+
   const registry = new AdapterRegistry({
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
@@ -285,6 +309,10 @@ async function initHub() {
     entityResolver, // Phase 8.6 — sync-time rule resolution on every ingest
     onSyncEvent: (msg) =>
       logger.debug("[PersonalDataHub sync]", msg.kind, msg.adapter || ""),
+    adbReadiness: {
+      probe: adbReadinessProbe,
+      oneClickNames: ADB_ONE_CLICK_NAMES,
+    },
   });
 
   // Analysis engine — only if LLM is available.

@@ -94,6 +94,13 @@ const REASONS = Object.freeze({
     actionHint: "提取该 App 的数据库密钥后点「一键采集」（密钥可从运行中的 App 提取）",
     appendDetail: true,
   },
+  // ADB 一键平台：后端支持 root 手机 USB 一键采集，但当前未检测到设备。
+  ADB_DEVICE_NEEDED: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "可一键采集：请插上已 root 的安卓手机并开启 USB 调试（adb 可见后点「一键采集」）",
+    actionHint: "连接手机后刷新，即可一键拉取",
+  },
   // 自动发现：未检测到 App 的本机数据（未安装 / 未登录 / 非默认目录）。
   APP_NOT_INSTALLED: {
     status: READINESS_STATUS.UNAVAILABLE,

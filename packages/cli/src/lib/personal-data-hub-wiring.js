@@ -263,11 +263,41 @@ async function initHub() {
     // Fall back to rule-only — registry still works
   }
 
+  // ADB one-click readiness for the social platforms (B站/微博/抖音/小红书/
+  // 头条/快手): each has a *AdbSync hub method that pulls from a rooted phone
+  // over USB. The probe runs one `adb devices` so readiness() can show
+  // "已连接手机，点一键采集" vs "请插上 root 手机" instead of the misleading
+  // snapshot guidance. Best-effort — never throws into the readiness probe.
+  const ADB_ONE_CLICK_NAMES = new Set([
+    "social-bilibili",
+    "social-weibo",
+    "social-douyin",
+    "social-xiaohongshu",
+    "social-toutiao",
+    "social-kuaishou",
+  ]);
+  const adbReadinessProbe = async () => {
+    try {
+      const { listDevices } = await import("./host-adb-bridge.js");
+      const serials = await listDevices();
+      return {
+        deviceConnected: Array.isArray(serials) && serials.length > 0,
+        serial: serials && serials[0],
+      };
+    } catch (_e) {
+      return { deviceConnected: false };
+    }
+  };
+
   const registry = new AdapterRegistry({
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
     ragSink: ragSink ? ragSink.write.bind(ragSink) : null,
     entityResolver,
+    adbReadiness: {
+      probe: adbReadinessProbe,
+      oneClickNames: ADB_ONE_CLICK_NAMES,
+    },
   });
 
   const engine = new AnalysisEngine({

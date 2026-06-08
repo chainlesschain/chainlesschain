@@ -65,6 +65,26 @@ class AdapterRegistry {
     // depend on it).
     this.entityResolver = opts.entityResolver || null;
 
+    // ADB one-click readiness (Phase: social platforms). When supplied by the
+    // wiring, readiness() treats the named adapters as "collectable via a
+    // rooted-phone USB one-click" — flipping their NO_INPUT / DB_NOT_PULLED
+    // status to "ready (device connected)" or "ADB_DEVICE_NEEDED" depending on
+    // whether a device is currently attached. Keeps the registry generic: the
+    // platform list + the actual `adb devices` probe come from the host wiring.
+    //   opts.adbReadiness = {
+    //     probe: async () => ({ deviceConnected: boolean, serial?: string }),
+    //     oneClickNames: Set<string>,  // adapter names with an *AdbSync path
+    //   }
+    this._adbReadiness =
+      opts.adbReadiness && typeof opts.adbReadiness.probe === "function"
+        ? {
+            probe: opts.adbReadiness.probe,
+            oneClickNames: opts.adbReadiness.oneClickNames instanceof Set
+              ? opts.adbReadiness.oneClickNames
+              : new Set(opts.adbReadiness.oneClickNames || []),
+          }
+        : null;
+
     this._adapters = new Map();
     this._activeSync = null; // name of currently-running adapter, or null
   }
@@ -158,9 +178,24 @@ class AdapterRegistry {
       Number.isInteger(opts.timeoutMs) && opts.timeoutMs > 0
         ? opts.timeoutMs
         : DEFAULT_READINESS_TIMEOUT_MS;
+    // Probe the host's ADB device state ONCE (best-effort) so all ADB
+    // one-click adapters share a single `adb devices` call this round.
+    let adbState = null;
+    if (this._adbReadiness) {
+      try {
+        adbState = await this._withTimeout(
+          Promise.resolve().then(() => this._adbReadiness.probe()),
+          timeoutMs,
+          "adb-probe"
+        );
+      } catch (_e) {
+        adbState = { deviceConnected: false };
+      }
+    }
+
     const reports = [];
     for (const adapter of this._adapters.values()) {
-      const report = await this._probeReadiness(adapter, timeoutMs);
+      const report = await this._probeReadiness(adapter, timeoutMs, adbState);
       // Attach the step-by-step import guide (how to get this source's data
       // into the vault) keyed off the resolved category. Single source of
       // truth in adapter-guide.js — reused by every shell.
@@ -170,7 +205,7 @@ class AdapterRegistry {
     return reports;
   }
 
-  async _probeReadiness(adapter, timeoutMs) {
+  async _probeReadiness(adapter, timeoutMs, adbState) {
     const dd = adapter.dataDisclosure || {};
     const extractMode = adapter.extractMode || "web-api";
     const base = {
@@ -240,6 +275,47 @@ class AdapterRegistry {
     }
 
     const reason = (auth && auth.reason) || "UNKNOWN";
+
+    // ADB one-click platforms (social): the adapter itself has no snapshot yet
+    // (NO_INPUT / INPUT_PATH_REQUIRED / DB_NOT_PULLED), but the platform CAN be
+    // collected in one click from a rooted phone over USB. Reflect the real
+    // device state instead of the misleading "采集需先在手机 App 内…".
+    if (
+      this._adbReadiness &&
+      this._adbReadiness.oneClickNames.has(adapter.name) &&
+      (reason === "NO_INPUT" || reason === "INPUT_PATH_REQUIRED" || reason === "DB_NOT_PULLED")
+    ) {
+      if (adbState && adbState.deviceConnected) {
+        return {
+          ...base,
+          ready: true,
+          status: "ready",
+          category: "device",
+          reason: null,
+          message: "已连接 root 手机，点「一键采集」即可拉取",
+          actionHint: null,
+          mode: "adb-oneclick",
+          lastSyncedAt,
+          lastStatus,
+          lastError,
+        };
+      }
+      const adbDesc = describeReadiness("ADB_DEVICE_NEEDED");
+      return {
+        ...base,
+        ready: false,
+        status: adbDesc.status,
+        category: adbDesc.category,
+        reason: "ADB_DEVICE_NEEDED",
+        message: adbDesc.message,
+        actionHint: adbDesc.actionHint,
+        mode: null,
+        lastSyncedAt,
+        lastStatus,
+        lastError,
+      };
+    }
+
     const desc = describeReadiness(reason);
     const detail = auth && (auth.message || auth.error);
     const message =
