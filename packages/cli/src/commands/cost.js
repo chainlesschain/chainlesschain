@@ -34,12 +34,20 @@ export function registerCostCommand(program) {
       try {
         const { sessionUsage, allSessionsUsage } =
           await import("../lib/session-usage.js");
-        const { priceRollup } = await import("../lib/llm-pricing.js");
+        const { priceRollup, mergePricing } =
+          await import("../lib/llm-pricing.js");
+        const { loadConfig } = await import("../lib/config-manager.js");
+
+        // User price overrides live under config.llm.pricing — no need to edit
+        // source to correct/add a model rate.
+        const config = loadConfig();
+        const overrides = config?.llm?.pricing;
+        const table = mergePricing(overrides);
 
         const raw = id
           ? sessionUsage(id)
           : allSessionsUsage({ limit: parseInt(options.limit, 10) || 1000 });
-        const result = priceRollup(raw);
+        const result = priceRollup(raw, { table });
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -82,7 +90,14 @@ export function registerCostCommand(program) {
         if (result.unpriced.length > 0) {
           logger.log(
             chalk.yellow(
-              `  note: ${result.unpriced.length} model(s) have no rate — tokens excluded from total. Edit src/lib/llm-pricing.js to add rates.`,
+              `  note: ${result.unpriced.length} model(s) have no rate — tokens excluded from total. Add rates via config: llm.pricing.`,
+            ),
+          );
+        }
+        if (overrides && typeof overrides === "object") {
+          logger.log(
+            chalk.gray(
+              `  (price overrides active from config.llm.pricing: ${Object.keys(overrides).join(", ")})`,
             ),
           );
         }

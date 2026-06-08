@@ -3,6 +3,7 @@ import {
   lookupRate,
   estimateCost,
   priceRollup,
+  mergePricing,
   FREE_PROVIDERS,
 } from "../../src/lib/llm-pricing.js";
 
@@ -113,5 +114,81 @@ describe("llm-pricing — priceRollup", () => {
     expect(r.cost.totalCost).toBe(0);
     expect(r.byModel).toEqual([]);
     expect(r.unpriced).toEqual([]);
+  });
+
+  it("threads a custom table through priceRollup", () => {
+    const table = mergePricing({ mystery: [{ match: "x", in: 10, out: 0 }] });
+    const r = priceRollup(
+      {
+        total: {},
+        byModel: [
+          {
+            provider: "mystery",
+            model: "x-1",
+            inputTokens: 1_000_000,
+            outputTokens: 0,
+            totalTokens: 1_000_000,
+            calls: 1,
+          },
+        ],
+      },
+      { table },
+    );
+    expect(r.cost.totalCost).toBeCloseTo(10, 6);
+    expect(r.cost.unpricedCount).toBe(0);
+  });
+});
+
+describe("llm-pricing — mergePricing (config overrides)", () => {
+  it("adds a brand-new provider rate usable by lookupRate", () => {
+    const table = mergePricing({
+      myprovider: [{ match: "custom", in: 2, out: 8 }],
+    });
+    expect(lookupRate("myprovider", "custom-v1", table)).toEqual({
+      in: 2,
+      out: 8,
+      pattern: "custom",
+    });
+    // built-in providers still present
+    expect(lookupRate("openai", "gpt-4o", table).pattern).toBe("gpt-4o");
+  });
+
+  it("a user entry replaces a built-in pattern of the same match", () => {
+    const before = lookupRate("openai", "gpt-4o");
+    expect(before).toMatchObject({ in: 2.5, out: 10 });
+    const table = mergePricing({
+      openai: [{ match: "gpt-4o", in: 99, out: 1 }],
+    });
+    expect(lookupRate("openai", "gpt-4o", table)).toMatchObject({
+      in: 99,
+      out: 1,
+    });
+    // does not mutate the built-in table (default lookup unchanged)
+    expect(lookupRate("openai", "gpt-4o")).toMatchObject({ in: 2.5, out: 10 });
+  });
+
+  it("skips malformed override entries without throwing", () => {
+    const table = mergePricing({
+      openai: [
+        { match: "", in: 1, out: 1 }, // empty match
+        { match: "good", in: 5, out: 6 },
+        { match: "bad", in: "NaN", out: 2 }, // non-numeric
+        null,
+      ],
+    });
+    expect(lookupRate("openai", "good-1", table)).toMatchObject({
+      in: 5,
+      out: 6,
+    });
+    expect(lookupRate("openai", "bad-1", table)).toBeNull();
+  });
+
+  it("returns the base table untouched when overrides are absent/invalid", () => {
+    expect(lookupRate("openai", "gpt-4o", mergePricing()).pattern).toBe(
+      "gpt-4o",
+    );
+    expect(lookupRate("openai", "gpt-4o", mergePricing("nope")).pattern).toBe(
+      "gpt-4o",
+    );
   });
 });

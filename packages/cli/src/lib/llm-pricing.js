@@ -63,16 +63,67 @@ const round = (n, dp = 6) => {
 };
 
 /**
+ * Merge user-supplied price overrides (typically `config.llm.pricing`) onto the
+ * built-in table. Override shape mirrors PRICE_TABLE:
+ *   { "<provider>": [ { match: "<substr>", in: <num>, out: <num> }, ... ] }
+ *
+ * Per provider, a user entry whose `match` equals a built-in pattern REPLACES
+ * it; brand-new patterns are prepended so they win ties; unknown providers are
+ * added. Malformed entries (missing match / non-numeric rate) are skipped so a
+ * bad config line can't crash cost reporting. Returns a new table; never
+ * mutates PRICE_TABLE or the input.
+ *
+ * @param {object} [overrides]
+ * @param {object} [base=PRICE_TABLE]
+ * @returns {object} merged price table
+ */
+export function mergePricing(overrides, base = PRICE_TABLE) {
+  const merged = {};
+  for (const [p, entries] of Object.entries(base)) {
+    merged[p] = entries.map((e) => ({ ...e }));
+  }
+  if (!overrides || typeof overrides !== "object") return merged;
+
+  for (const [provider, rawEntries] of Object.entries(overrides)) {
+    if (!Array.isArray(rawEntries)) continue;
+    const valid = rawEntries
+      .filter(
+        (e) =>
+          e &&
+          typeof e.match === "string" &&
+          e.match.trim() &&
+          Number.isFinite(Number(e.in)) &&
+          Number.isFinite(Number(e.out)),
+      )
+      .map((e) => ({
+        match: e.match.toLowerCase(),
+        in: Number(e.in),
+        out: Number(e.out),
+      }));
+    if (valid.length === 0) continue;
+    const overridden = new Set(valid.map((v) => v.match));
+    const kept = (merged[provider] || []).filter(
+      (e) => !overridden.has(e.match.toLowerCase()),
+    );
+    merged[provider] = [...valid, ...kept];
+  }
+  return merged;
+}
+
+/**
  * Look up the rate for a provider/model, or null if unpriced.
+ * @param {string} provider
+ * @param {string} model
+ * @param {object} [table=PRICE_TABLE] merged table from mergePricing()
  * @returns {{ in:number, out:number, pattern:string }|null}
  */
-export function lookupRate(provider, model) {
+export function lookupRate(provider, model, table = PRICE_TABLE) {
   const p = String(provider || "").toLowerCase();
   const m = String(model || "").toLowerCase();
   if (FREE_PROVIDERS.includes(p)) {
     return { in: 0, out: 0, pattern: "free" };
   }
-  const entries = PRICE_TABLE[p];
+  const entries = (table || PRICE_TABLE)[p];
   if (!entries) return null;
   // Longest pattern first so specific beats generic regardless of table order.
   const sorted = [...entries].sort((a, b) => b.match.length - a.match.length);
@@ -94,8 +145,9 @@ export function estimateCost({
   model,
   inputTokens = 0,
   outputTokens = 0,
+  table,
 } = {}) {
-  const rate = lookupRate(provider, model);
+  const rate = lookupRate(provider, model, table);
   if (!rate) {
     return {
       inputCost: 0,
@@ -128,13 +180,14 @@ export function estimateCost({
  * top-level sums priced rows; `unpriced` lists provider/model rows that had
  * usage but no matching rate (their tokens are excluded from `cost.totalCost`).
  */
-export function priceRollup(aggregate) {
+export function priceRollup(aggregate, { table } = {}) {
   const byModel = (aggregate?.byModel || []).map((row) => {
     const est = estimateCost({
       provider: row.provider,
       model: row.model,
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,
+      table,
     });
     return {
       ...row,
