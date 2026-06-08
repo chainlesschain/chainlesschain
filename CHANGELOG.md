@@ -5,6 +5,13 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **CLI `cc agent --disallowed-tools` 此前静默无效**：`chatWithTools`（`agent-core.js`）只把 project-persona 的 deny-list 传给 `getAgentToolDefinitions`，丢弃了 caller 的 `options.disabledTools`，导致 headless `--disallowed-tools run_shell` 仍可调用 `run_shell`。现合并 persona + caller 两个 deny-list。回归测试 `__tests__/integration/headless-disallowed-tools.test.js`（驱动真 `chatWithTools` + stub fetch）。
+- **桌面 数据库性能面板（V6）后端 IPC 此前从未注册**：`registerDatabasePerformanceIPC` 被 export 但全仓无调用方，`DatabasePerformancePanel.vue` / `stores/dbPerformance.ts` 的 10 个 `db-performance:*` 通道全部 "No handler registered"，面板静默空白。现已在 `ipc/phases/phase-2-core.js` 经 `safeRegister` 接通（构造 `DatabaseOptimizer(database.db)`），并为 `database-performance-ipc.js` 加 `deps.ipcMain` DI 接缝（对齐 `analytics-ipc.js`，便于 CJS 测试）。新增 `database-performance-ipc.test.js`（6 测试）。
+
 ## [v5.0.3.100] - 2026-06-08 — chore(release): 版本对齐发布（CLI npm 发布通道修复 + PDH 0.4.1）
 
 > 把 v5.0.3.99 之后的打包工作固化为一次正式发版。**无桌面 / Android / iOS 应用源码改动** —— 本版产物与 v5.0.3.99 功能等同，仅版本号对齐 + 工程通道修复。全平台 18 产物已 ship（release run 27130664552 全绿，GitHub Release v5.0.3.100 已发布）。

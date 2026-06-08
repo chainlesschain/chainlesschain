@@ -29,9 +29,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-2-core",
     exportName: "registerPhase2Core",
-    // 7 unconditional safeRegister calls (U-Key, Database, FamilyGuard,
-    // Git, MCP Basic Config, System early, Notification early)
-    expectedRegistrations: 7,
+    // 8 unconditional safeRegister calls (U-Key, Database, Database
+    // Performance, FamilyGuard, Git, MCP Basic Config, System early,
+    // Notification early)
+    expectedRegistrations: 8,
     needsRegisteredModules: false,
   },
   {

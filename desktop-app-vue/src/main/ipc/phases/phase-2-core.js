@@ -74,6 +74,31 @@ function registerPhase2Core({ safeRegister, logger, deps }) {
     handlers: 22,
   });
 
+  // 数据库性能监控 (函数模式 - 10 handlers, degraded on null db)
+  // V6 DatabasePerformancePanel 的后端；此前 registerDatabasePerformanceIPC
+  // 从未被调用，导致 db-performance:* 通道全部 "No handler registered"。
+  safeRegister("Database Performance IPC", {
+    register: () => {
+      const {
+        registerDatabasePerformanceIPC,
+      } = require("../../database/database-performance-ipc");
+      const {
+        DatabaseOptimizer,
+      } = require("../../database/database-optimizer");
+      // database.db 是原始 better-sqlite3 连接；database 为 null（降级）时
+      // optimizer 仍可构造，handler 内部 try/catch 会返回 error 回复。
+      const optimizer = new DatabaseOptimizer(database?.db || null);
+      registerDatabasePerformanceIPC(optimizer);
+      if (!database?.db) {
+        require("../degraded-registry").note(
+          "database-performance",
+          "Database connection not initialized",
+        );
+      }
+    },
+    handlers: 10,
+  });
+
   // FAMILY-26 家长端仪表板只读查询 (函数模式 - 3 handlers, degraded on null db)
   safeRegister("FamilyGuard IPC", {
     register: () => {

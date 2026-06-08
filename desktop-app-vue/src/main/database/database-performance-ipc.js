@@ -4,7 +4,6 @@
  * 提供前端访问数据库性能统计和优化功能的接口
  */
 
-const { ipcMain } = require("electron");
 const { getLogger } = require("../logging/logger");
 
 const logger = getLogger("DatabasePerformanceIPC");
@@ -12,8 +11,12 @@ const logger = getLogger("DatabasePerformanceIPC");
 /**
  * 注册数据库性能监控 IPC 处理器
  * @param {DatabaseOptimizer} optimizer - 数据库优化器实例
+ * @param {object} [deps] - 注入接缝（测试用）。deps.ipcMain 可注入 mock；
+ *   省略时回退到 require("electron").ipcMain。CJS 源文件无法被 vi.mock
+ *   拦截 require("electron")，故沿用 analytics-ipc 的 DI 约定。
  */
-function registerDatabasePerformanceIPC(optimizer) {
+function registerDatabasePerformanceIPC(optimizer, deps = {}) {
+  const ipcMain = deps.ipcMain || require("electron").ipcMain;
   if (!optimizer) {
     logger.warn("Database optimizer not provided, IPC handlers not registered");
     return;
