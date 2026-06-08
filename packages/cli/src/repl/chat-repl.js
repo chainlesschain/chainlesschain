@@ -12,6 +12,7 @@ import readline from "readline";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import {
   streamOllama,
   streamOpenAI,
@@ -153,8 +154,22 @@ export async function startChatRepl(options = {}) {
       }
     }
 
+    // Expand @path file references into context blocks (Claude-Code parity),
+    // so `summarize @notes.md` injects the file. The model sees the expanded
+    // content; the JSONL log keeps the original line for readability.
+    let userContent = trimmed;
+    try {
+      const fileRefs = expandFileRefs(trimmed, { cwd: process.cwd() });
+      userContent = fileRefs.prompt;
+      for (const w of fileRefs.warnings) {
+        logger.info(chalk.yellow(`[@ref] ${w}`));
+      }
+    } catch (err) {
+      logger.verbose?.(`[@ref] expansion skipped: ${err.message}`);
+    }
+
     // Add user message
-    messages.push({ role: "user", content: trimmed });
+    messages.push({ role: "user", content: userContent });
 
     // Stream the response
     process.stdout.write(chalk.blue("ai>  "));

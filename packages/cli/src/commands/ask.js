@@ -25,8 +25,27 @@ import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { expandFileRefs } from "../runtime/file-ref-expander.js";
 
 const ANDROID_LOCAL_OLLAMA_URL = "http://127.0.0.1:18484";
+
+/**
+ * Expand `@path` file references in the question (Claude-Code parity), unless
+ * disabled. Returns the (possibly augmented) prompt plus any warnings for
+ * typo'd paths. Exported so the wiring is unit-testable without a live LLM.
+ *
+ * @param {string} question
+ * @param {object} [opts] { cwd, enabled }
+ * @returns {{ prompt:string, warnings:string[] }}
+ */
+export function expandQuestionRefs(
+  question,
+  { cwd = process.cwd(), enabled = true } = {},
+) {
+  if (!enabled) return { prompt: question, warnings: [] };
+  const { prompt, warnings } = expandFileRefs(question, { cwd });
+  return { prompt, warnings };
+}
 
 /**
  * Resolve effective Ollama base URL given CLI options, env, and config.
@@ -144,6 +163,10 @@ export function registerAskCommand(program) {
       "--prefer-android-local",
       "Route ollama provider at the Android in-APK LocalLlmServer (127.0.0.1:18484). One-shot equivalent of `cc config set llm.preferAndroidLocal true`.",
     )
+    .option(
+      "--no-file-refs",
+      "Do not expand @path file references in the question",
+    )
     .option("--json", "Output as JSON")
     .action(async (question, options) => {
       const config = loadConfig();
@@ -167,9 +190,20 @@ export function registerAskCommand(program) {
         resolvedOptions.baseUrl = options.baseUrl || config.llm?.baseUrl;
       }
 
+      // Expand @path references (e.g. `cc ask "summarize @notes.md"`) before
+      // sending to the model. The original question is preserved for --json
+      // output; only the LLM sees the injected file contents.
+      const { prompt: expandedQuestion, warnings } = expandQuestionRefs(
+        question,
+        { enabled: options.fileRefs !== false },
+      );
+      for (const w of warnings) {
+        process.stderr.write(`[@ref] ${w}\n`);
+      }
+
       const spinner = ora("Thinking...").start();
       try {
-        const answer = await queryLLM(question, resolvedOptions);
+        const answer = await queryLLM(expandedQuestion, resolvedOptions);
 
         spinner.stop();
 
