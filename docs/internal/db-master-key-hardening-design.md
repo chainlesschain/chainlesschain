@@ -139,9 +139,34 @@ if (provider.isAvailable()) {
 
 > 注意：直接把所有 sql.js 回退改成 fail-closed 会让 native 模块缺失的环境**开不了机**——属可用性回归，不可取。必须按"是否预期加密"分流。
 
-### 4.5 U-Key 重新接通（Phase 3，可选）
+### 4.5 U-Key 重新接通（Phase 3，gated，2026-06-08 定方案 B）
 
-现状 `forcePassword:true` 让 `deriveKeyFromUKey`（`key-manager.js:105`）永不触发。Windows 真插 U-Key 时应优先硬件派生：bootstrap 检测 U-Key 可用 → 不传 password、传 pin、`forcePassword:false`。需真机 + Win + SIMKey SDK 验证（见 memory `ios_*`/U-Key 限制：仅 Windows，mac/Linux 模拟）。本期不做，仅记 backlog。
+**死因（实测 HEAD 250755268）**：`database-adapter.js:233` `forcePassword: effectivePassword ? true : false`，而 `core-initializer` 经 `resolveDbPassword()` **永远传一个 dbPassword**（managed 随机口令或 legacy）→ `effectivePassword` 恒真 → `forcePassword=true` → `key-manager.js:201` `if (!options.forcePassword && this.hasUKey())` 永远短路 → `deriveKeyFromUKey`（:105）即使插着已解锁 U-Key 也不触发。`hasUKey()`(:96) / `deriveKeyFromUKey(pin)`(:105) / `getOrCreateKey`(:183) U-Key 分支全是**现成可用的死代码**。
+
+**两种威胁模型（2026-06-08 评估）**：
+
+| | 方案 A：U-Key 直接派生 DB key | 方案 B：U-Key 包裹 managed 口令（**选定**） |
+|---|---|---|
+| DB key 来源 | `deriveKeyFromUKey(pin)` 的硬件派生值 | 稳定的 managed 随机口令（不变） |
+| U-Key 角色 | DB 主 key 本身 | 加密「口令存储」的因子（替代/叠加 safeStorage） |
+| 插拔/换 key | **每次都要 rekey 整库**（复用 Phase 2 `legacy-rekey.js`，反复触发迁移风险窗口） | **不需 rekey**（DB key 不变，只换口令的包裹层） |
+| 丢 U-Key | **数据永久锁死，不可恢复** | 默认走 safeStorage escrow 副本恢复（dual-escrow）；hardware-only 模式下 fail-closed |
+| 适配个人第二大脑 | ❌ 数据丢失灾难性 | ✅ 可用性优先，迁移面近零 |
+
+**选定方案 B + 默认 dual-escrow + 可选 hardware-only**：
+- **默认 dual-escrow**：managed 口令同时被 (a) safeStorage(DPAPI) 与 (b) U-Key 各包裹一份落盘。开机优先用 U-Key 解包；U-Key 不在 → 回退 safeStorage 副本。无锁死风险。
+- **opt-in `hardware-only`**：仅 U-Key 包裹 + 强制导出一次性备份码（口令的离线 escrow），不写 safeStorage 副本。丢 U-Key 且无备份码 = 锁死（用户显式接受）。兑现"硬件级安全"话术。
+- **诚实标注**：dual-escrow 下口令仍可经 OS keychain 恢复，故"纯硬件安全"只对 hardware-only 用户成立；UI/文档须如实说明，不得对默认用户宣称纯硬件不可绕过。
+
+**接线点（实现时）**：
+1. `db-secret-provider.js`：`getOrCreateManagedPassphrase()` 旁加 U-Key 包裹层——`wrapWithUKey(passphrase)` / `unwrapWithUKey()`，复用 `key-manager.js` 的 `ukeyManager.encrypt/decrypt`（已存在，:121）。落盘格 `db-secret-ukey.enc`，与 `db-secret.enc`（safeStorage）并存（dual-escrow）。
+2. `core-initializer.js:resolveDbPassword`：provider 选口令源时，若 `hasUKey()` 优先 `unwrapWithUKey()`，失败回退 safeStorage（dual）或 fail-closed（hardware-only），返回的仍是同一 managed 口令字符串 → **下游 DatabaseManager / database-adapter 完全不变**（关键：避免改 `forcePassword` 那条 DB key 派生路径，绕开 rekey 风险）。
+3. `pin` 来源链待补：`database-adapter.this.pin` → 谁注入？默认 PIN `123456` 来自 SIMKey SDK（见 `.claude/rules/desktop-dev.md` U-Key 段）。需在 bootstrap 接 U-Key unlock 流（PIN 输入 UI 或配置）。
+4. flag gate：新 `CHAINLESSCHAIN_ENABLE_UKEY_WRAP`（默认 OFF）+ 子模式 `UKEY_HARDWARE_ONLY`（默认 OFF）。跟 Phase 1.5 同款三态，真机签核前不翻默认。
+
+**关键设计取舍**：方案 B 刻意**不碰** `database-adapter.js:233` 的 `forcePassword` 与 `deriveKeyFromUKey` 直接派生路径——让 U-Key 作用在「口令存储的包裹」而非「DB key 派生」，DB key 始终是稳定 managed 口令，从而 U-Key 状态变化不触发整库 rekey。原 §4.5 草案假设的方案 A（改 forcePassword=false 直接派生）已否决。
+
+**验证**：纯逻辑层（provider 包裹/解包、选路、fail-closed、dual-escrow 回退）可单测，Win 即可写。U-Key 真硬件 encrypt/decrypt + PIN unlock + 拔 key 回退 E2E 需 Win + SIMKey 真机（mac/Linux 仅模拟，见 U-Key 限制）。**本期产出：设计 + 可单测的 provider 包裹层 + flag（默认 OFF，生产零变化）；真机 E2E defer。**
 
 ## 5. 分阶段落地（按 §1.0 修正后重排）
 
@@ -149,9 +174,9 @@ if (provider.isAvailable()) {
 |---|---|---|---|---|
 | 0 | `db-secret-provider.js` + bootstrap 去 `"123456"` | ✅ `01f8b00b2` | 低（生产休眠） | 单测 |
 | 1 | opt-in flag + 明文→.encrypted 安全迁移（lock + reopen-verify）+ fail-closed | ✅ **代码 landed，默认 OFF** | **高**（开启时给现存明文库做加密迁移） | **真机 smoke 后才可 flip 默认** |
-| 1.5 | gated flip：默认改 `app.isPackaged`（代码已就绪，**gate 仍关**） | ✅ **代码 landed，gate `PHASE_1_5_DEFAULT_ON=false`** | **高** | 翻 gate 前必过真机 smoke |
+| 1.5 | gated flip：打包生产默认开（`isDbEncryptionOptIn()` opt-in override，非改 config NODE_ENV） | ✅ **代码 landed，gate `PHASE_1_5_DEFAULT_ON=true`（已翻 ON，2026-06-08 实测）** | **高** | 翻前已过真机 smoke + 自动化 58 |
 | 2 | 罕见 legacy .encrypted("123456") 库 rekey 到托管随机口令 | ✅ **代码 landed，gate `CHAINLESSCHAIN_ENABLE_DB_REKEY` 默认 OFF** | **高**（in-place re-encrypt） | 真机（需先造 legacy .encrypted 库），见 smoke §Phase 2 |
-| 3 | U-Key 重新接通（`forcePassword:true` → `deriveKeyFromUKey`） | ⬜ | 中 | Win + SIMKey 真机 |
+| 3 | U-Key 包裹 managed 口令（方案 B，**非**直接派生）+ dual-escrow / hardware-only opt-in | ⬜ 设计定（§4.5，2026-06-08） | 中（不碰 DB key 派生，迁移面近零） | Win + SIMKey 真机（provider 包裹层可先单测） |
 
 ### 5.1 Phase 1 已落地内容（默认 OFF）
 

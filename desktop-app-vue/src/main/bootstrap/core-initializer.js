@@ -31,9 +31,10 @@ function legacyEncryptedDbExists() {
  * 解析 DB 加密口令来源（Phase 0：去硬编码 "123456"）。
  *
  * 优先 safeStorage 托管的随机口令；不可用 / 已有 legacy 库 / 出错时退回 legacy
- * 口令（不更弱）。仅在加密启用时调用 —— 当前打包生产 encryptionEnabled=false
- * （NODE_ENV 误判，见 docs/internal/db-master-key-hardening-design.md §1.0），
- * 故本逻辑在生产里休眠。
+ * 口令（不更弱）。仅在加密启用时调用 —— 自 Phase 1.5（db-encryption-flag.js
+ * `PHASE_1_5_DEFAULT_ON=true`）起，打包生产默认开启加密，故本逻辑在生产里**生效**：
+ * safeStorage 可用（Windows DPAPI 一向可用）→ 返回 managed 随机口令；仅在 safeStorage
+ * 不可用 / 已有 legacy 库 / provider 出错时才退回 legacy "123456"。kill-switch=0 可关停。
  *
  * @returns {{ password: string, source: string }}
  */
@@ -220,8 +221,10 @@ function registerCoreInitializers(factory) {
       );
       let encryptionEnabled = encryptionConfig.isEncryptionEnabled();
 
-      // Phase 1（默认 OFF）：opt-in 时强制开启加密 + 明文→.encrypted 迁移 + fail-closed。
-      // 默认不开 → encryptionEnabled 仍由 config 决定（打包生产为 false），行为零变化。
+      // Phase 1/1.5：opt-in 时强制开启加密 + 明文→.encrypted 迁移 + fail-closed。
+      // 自 db-encryption-flag.js `PHASE_1_5_DEFAULT_ON=true` 起，打包生产
+      // isDbEncryptionOptIn() 默认返回 true → encryptionEnabled=true（dev/test 仍 false，
+      // 由 !app.isPackaged 区分）。env `=0` kill-switch 可紧急关停回明文。
       const { isDbEncryptionOptIn } = require("../database/db-encryption-flag");
       const encryptionOptIn = isDbEncryptionOptIn();
       if (encryptionOptIn) {

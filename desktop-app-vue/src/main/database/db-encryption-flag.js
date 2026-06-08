@@ -96,9 +96,53 @@ function isDbRekeyOptIn() {
   return v === "1" || v === "true";
 }
 
+/**
+ * Phase 3 (U-Key escrow) gate — independent of Phase 1/1.5/2. Default OFF.
+ *
+ * Method B (see design §4.5): the U-Key *wraps* the managed passphrase rather
+ * than deriving the DB key, so enabling it never rekeys the database. Still
+ * gated OFF until the hardware encrypt/decrypt + plug/unplug fallback is
+ * verified on a real Windows + SIMKey device.
+ *
+ * Resolution → one of 'safestorage-only' | 'dual-escrow' | 'hardware-only':
+ *   - CHAINLESSCHAIN_ENABLE_UKEY_WRAP=0|false → 'safestorage-only' (force off)
+ *   - CHAINLESSCHAIN_ENABLE_UKEY_WRAP=1|true  → enabled; then
+ *       CHAINLESSCHAIN_UKEY_HARDWARE_ONLY=1|true → 'hardware-only'
+ *       otherwise                                → 'dual-escrow'
+ *   - no env → the gated default (PHASE_3_UKEY_DEFAULT_ON, currently false →
+ *     'safestorage-only' everywhere).
+ */
+const PHASE_3_UKEY_DEFAULT_ON = false;
+
+/**
+ * @param {Object} [opts] - test seams
+ * @param {boolean} [opts.defaultOn] - override the PHASE_3_UKEY_DEFAULT_ON gate
+ * @returns {'safestorage-only'|'dual-escrow'|'hardware-only'}
+ */
+function getUKeyEscrowMode(opts = {}) {
+  const enableEnv = process.env.CHAINLESSCHAIN_ENABLE_UKEY_WRAP;
+  let enabled;
+  if (enableEnv === "1" || enableEnv === "true") {
+    enabled = true;
+  } else if (enableEnv === "0" || enableEnv === "false") {
+    enabled = false;
+  } else {
+    enabled =
+      opts.defaultOn !== undefined ? opts.defaultOn : PHASE_3_UKEY_DEFAULT_ON;
+  }
+
+  if (!enabled) {
+    return "safestorage-only";
+  }
+  const hw = process.env.CHAINLESSCHAIN_UKEY_HARDWARE_ONLY;
+  return hw === "1" || hw === "true" ? "hardware-only" : "dual-escrow";
+}
+
 module.exports = {
   isDbEncryptionOptIn,
   isDbRekeyOptIn,
+  getUKeyEscrowMode,
   PHASE_1_5_DEFAULT_ON,
+  PHASE_3_UKEY_DEFAULT_ON,
   _resolveIsPackaged,
 };
