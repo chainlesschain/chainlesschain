@@ -166,7 +166,47 @@ if (provider.isAvailable()) {
 
 **关键设计取舍**：方案 B 刻意**不碰** `database-adapter.js:233` 的 `forcePassword` 与 `deriveKeyFromUKey` 直接派生路径——让 U-Key 作用在「口令存储的包裹」而非「DB key 派生」，DB key 始终是稳定 managed 口令，从而 U-Key 状态变化不触发整库 rekey。原 §4.5 草案假设的方案 A（改 forcePassword=false 直接派生）已否决。
 
-**验证**：纯逻辑层（provider 包裹/解包、选路、fail-closed、dual-escrow 回退）可单测，Win 即可写。U-Key 真硬件 encrypt/decrypt + PIN unlock + 拔 key 回退 E2E 需 Win + SIMKey 真机（mac/Linux 仅模拟，见 U-Key 限制）。**本期产出：设计 + 可单测的 provider 包裹层 + flag（默认 OFF，生产零变化）；真机 E2E defer。**
+**验证**：纯逻辑层（provider 包裹/解包、选路、fail-closed、dual-escrow 回退）可单测，Win 即可写。U-Key 真硬件 encrypt/decrypt + PIN unlock + 拔 key 回退 E2E 需 Win + SIMKey 真机（mac/Linux 仅模拟，见 U-Key 限制）。
+
+**已落地（2026-06-08）**：provider 包裹层 `9da5bb5c7`（`db-secret-provider.js` 追加 wrap/unwrap/backup/resolvePassphrase + `createUKeyEscrowAdapter`，27 测试）+ bootstrap 路由 `d98a057fd`（`core-initializer.js resolveDbPasswordWithEscrow` + `buildUKeyAdapter` seam，10 测试）。两者 gated OFF（`PHASE_3_UKEY_DEFAULT_ON=false`），生产零变化。**剩余全部 device/UI/硬件耦合**，见 §4.6。
+
+### 4.6 Phase 3 后续设计（PIN 解锁流 + 备份码 UI + 真适配器，需真机验证）
+
+> 以下为**设计**，不含未验证代码。延续 Phase 0/1/2 "先设计后真机落地" 模式。四块对应 §4.5「剩余」①②③④。
+
+**A. 真 U-Key 适配器修正（`buildUKeyAdapter` 实装，对应①）**
+
+已 ship 的 `createUKeyEscrowAdapter` 假设 `ukeyManager.encrypt(buf)` 返回**裸 Buffer**——**实际不然**（`ukey-manager.js:360-401`）：encrypt/decrypt 返回 `{success, reason, message}` 结果对象，且前置要求 `isDeviceUnlocked()` 为真（即先 `unlock(pin)`，否则返回 `{success:false, reason:"device_locked"}`）。实装时适配器必须：
+
+1. 持有一个**已解锁**的 `ukeyManager`（解锁见 B），或在 wrap/unwrap 内确保 unlock；
+2. **解包 result 对象**：`success:false` → `throw`（让 dual-escrow 回退 safeStorage / hardware-only fail-closed 正确生效）；`success:true` → 取其密文/明文字段；
+3. 密文落 `db-secret-ukey.enc`，unwrap 还原。
+
+⚠️ 这是对已 ship adapter 的**已知修正点**——当前 `wrap: async (buf) => Buffer.from(await ukeyManager.encrypt(buf))` 会把 result 对象误当 Buffer。`buildUKeyAdapter` 目前返回 null（生产安全降级），所以该 bug **尚未在生产暴露**，但真实装前必修。
+
+**B. PIN 解锁流 —— bootstrap 时序约束（核心难点，对应②）**
+
+约束：`resolveDbPasswordWithEscrow` 在 main 进程 DB init **早期**跑，**此时还没创建任何 BrowserWindow**，无法弹 renderer PIN 框。鸡生蛋：app UI 依赖 DB，DB 又依赖 PIN（来自 UI）。三个选项：
+
+| | 方案 | 适用 | 代价 |
+|---|---|---|---|
+| C1 | **预-DB 解锁窗**：DB init 前先建一个不依赖 DB 的轻量"解锁窗"（类 OS 锁屏），收 PIN → 解锁 U-Key → unwrap 口令 → 再继续 DB init + 主窗 | **推荐 hardware-only** | 启动多一屏 + 需一个 DB-free BrowserWindow |
+| C2 | **延迟 DB 到主窗后**：先起主窗（degraded 无 DB），窗内弹 PIN，拿到再开 DB | 不推荐 | 主窗要支持 DB-未就绪态，侵入大 |
+| C3 | **SDK 原生 PIN + session 缓存**：用 SIMKey SDK 自带 PIN 弹窗（非 Electron），unlock 后 ukeyManager 整 session 保持 unlocked，口令解出缓存内存 | dual-escrow 退化用 | 依赖 SDK 是否提供原生 PIN UI |
+
+**推荐**：hardware-only 用 **C1**（安全门禁本就该在 DB 打开前）；**dual-escrow 不强制 PIN**——若 U-Key 未解锁/无 PIN，dual 已实现的"回退 safeStorage"直接生效，不阻塞启动（PIN 在 dual 下是锦上添花）。PIN 重试：SIMKey 有**硬件重试计数**（连错锁死卡），解锁窗必须显示剩余次数 + 危险提示。
+
+**C. hardware-only 备份码导出 UI（对应③）**
+
+- **时机**：用户在设置里开启 hardware-only 时，**强制**走一次性导出向导（不可跳过——否则 `resolvePassphrase` 首次设置 `throw "必须提供备份码"`）。
+- **流程**：(1) 解释"丢 U-Key 后唯一恢复手段，请离线妥善保管"；(2) 生成/让用户设高熵备份码（provider 要求 ≥6 位，建议更长）；(3) 调 main `exportBackupEscrow` 落 `db-secret-backup.enc`；(4) 显示一次 + 二次抄写校验确认；(5) 之后永不再显示。
+- **恢复 UI**：hardware-only 且 U-Key 不在时，解锁窗给"用备份码恢复"入口 → `recoverFromBackupEscrow(code)`，GCM auth 失败 → "备份码错误"。
+
+**D. IPC 面（B/C 共用）**
+
+新增 main handler：`ukey-escrow:setup-hardware-only`（导出向导）/ `ukey-escrow:unlock`（PIN → 解锁 + 返回成功/剩余次数）/ `ukey-escrow:recover-backup`（备份码恢复），经 preload 暴露给解锁窗/设置页。**铁律**：PIN / 备份码**只在 main 内存流转，绝不落 renderer 持久态 / 日志 / IPC echo**。
+
+**真机验证（对应④）**：A 修复后跑真 encrypt/decrypt round-trip；C1 解锁窗在真 SIMKey 上验 PIN→unwrap→DB 开；拔 key 后 dual 回退 safeStorage、hardware-only fail-closed；备份码恢复路径；连错 PIN 触发硬件锁定的 UI 表现。
 
 ## 5. 分阶段落地（按 §1.0 修正后重排）
 
@@ -176,7 +216,8 @@ if (provider.isAvailable()) {
 | 1 | opt-in flag + 明文→.encrypted 安全迁移（lock + reopen-verify）+ fail-closed | ✅ **代码 landed，默认 OFF** | **高**（开启时给现存明文库做加密迁移） | **真机 smoke 后才可 flip 默认** |
 | 1.5 | gated flip：打包生产默认开（`isDbEncryptionOptIn()` opt-in override，非改 config NODE_ENV） | ✅ **代码 landed，gate `PHASE_1_5_DEFAULT_ON=true`（已翻 ON，2026-06-08 实测）** | **高** | 翻前已过真机 smoke + 自动化 58 |
 | 2 | 罕见 legacy .encrypted("123456") 库 rekey 到托管随机口令 | ✅ **代码 landed，gate `CHAINLESSCHAIN_ENABLE_DB_REKEY` 默认 OFF** | **高**（in-place re-encrypt） | 真机（需先造 legacy .encrypted 库），见 smoke §Phase 2 |
-| 3 | U-Key 包裹 managed 口令（方案 B，**非**直接派生）+ dual-escrow / hardware-only opt-in | ⬜ 设计定（§4.5，2026-06-08） | 中（不碰 DB key 派生，迁移面近零） | Win + SIMKey 真机（provider 包裹层可先单测） |
+| 3 | U-Key 包裹 managed 口令（方案 B，**非**直接派生）+ dual-escrow / hardware-only opt-in | 🟡 **provider 层 + bootstrap 路由 landed（`9da5bb5c7`+`d98a057fd`，37 测试，gated OFF）**；剩 PIN 流/备份码 UI/真适配器/真机 E2E（§4.6） | 中（不碰 DB key 派生，迁移面近零） | Win + SIMKey 真机 |
+| 3.1 | §4.6 A 真适配器修正 + B PIN 解锁流（C1 预-DB 窗）+ C 备份码 UI + D IPC | ⬜ 设计定（§4.6，2026-06-08） | 中 | Win + SIMKey 真机 |
 
 ### 5.1 Phase 1 已落地内容（默认 OFF）
 
@@ -202,11 +243,11 @@ if (provider.isAvailable()) {
 
 `db-encryption-flag.js` 现在支持三态解析：
 - env `CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION=1|true` → 强开；`=0|false` → 强关（kill-switch）。
-- 无 env → **gated 默认**：`PHASE_1_5_DEFAULT_ON`（当前 **false**）为 true 时，打包构建（`app.isPackaged`）默认开、dev/test 默认关。
+- 无 env → **gated 默认**：`PHASE_1_5_DEFAULT_ON`（**已翻 `true`，2026-06-08**）为 true 时，打包构建（`app.isPackaged`）默认开、dev/test 默认关。
 
-**翻 gate 步骤（真机 smoke §5.2 通过后）**：把 `PHASE_1_5_DEFAULT_ON` 改成 `true`（一行、需评审）。生效后打包用户默认加密，dev/test 仍明文，`=0` 仍可紧急关停。**未过真机 smoke 前不得翻。**
+**翻 gate 已完成（2026-06-08）**：真机 smoke §5.2 + 自动化 58（L1+L3 45 + L2 7 + B.1 6）+ 回滚签核后，`PHASE_1_5_DEFAULT_ON` 已 `false→true`。打包用户默认加密，dev/test 仍明文，`=0` 仍可紧急关停。
 
-测试 `db-encryption-flag.test.js`(7) 已用 opts seam 预先验证 gate 开/关 × packaged 各组合，并断言"shipped gate 仍为 false"。
+测试 `db-encryption-flag.test.js` 已用 opts seam 验证 gate 开/关 × packaged 各组合（翻 gate 时同步把 shipped-gate 断言改成 `true`）。
 
 ### 5.4 Phase 2 legacy rekey（已落地，双 gate）
 
