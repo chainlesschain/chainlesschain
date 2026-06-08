@@ -16,8 +16,8 @@
  * @since v0.34.0
  */
 
-const { logger } = require('../utils/logger.js');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
 
 // ─── Optional XML Parser ───
 
@@ -25,71 +25,75 @@ let xmlParser = null;
 let xmlParserAvailable = false;
 
 try {
-  const { XMLParser } = require('fast-xml-parser');
+  const { XMLParser } = require("fast-xml-parser");
   xmlParser = new XMLParser({
     ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    textNodeName: '#text',
+    attributeNamePrefix: "@_",
+    textNodeName: "#text",
     parseAttributeValue: true,
     trimValues: true,
     isArray: (name) => {
       // Attributes and conditions that can appear multiple times
       const arrayTags = [
-        'saml:Attribute',
-        'Attribute',
-        'saml:AttributeValue',
-        'AttributeValue',
-        'saml:AudienceRestriction',
-        'AudienceRestriction'
+        "saml:Attribute",
+        "Attribute",
+        "saml:AttributeValue",
+        "AttributeValue",
+        "saml:AudienceRestriction",
+        "AudienceRestriction",
       ];
       return arrayTags.includes(name);
-    }
+    },
   });
   xmlParserAvailable = true;
-  logger.debug('[SAMLProvider] fast-xml-parser loaded');
+  logger.debug("[SAMLProvider] fast-xml-parser loaded");
 } catch (loadErr) {
-  logger.info('[SAMLProvider] fast-xml-parser not available, using regex-based XML parsing');
+  logger.info(
+    "[SAMLProvider] fast-xml-parser not available, using regex-based XML parsing",
+  );
 }
 
 // ─── Constants ───
 
 const SAML_NAMESPACES = {
-  saml: 'urn:oasis:names:tc:SAML:2.0:assertion',
-  samlp: 'urn:oasis:names:tc:SAML:2.0:protocol',
-  ds: 'http://www.w3.org/2000/09/xmldsig#',
-  xenc: 'http://www.w3.org/2001/04/xmlenc#',
-  md: 'urn:oasis:names:tc:SAML:2.0:metadata'
+  saml: "urn:oasis:names:tc:SAML:2.0:assertion",
+  samlp: "urn:oasis:names:tc:SAML:2.0:protocol",
+  ds: "http://www.w3.org/2000/09/xmldsig#",
+  xenc: "http://www.w3.org/2001/04/xmlenc#",
+  md: "urn:oasis:names:tc:SAML:2.0:metadata",
 };
 
 const SAML_BINDINGS = {
-  HTTP_POST: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-  HTTP_REDIRECT: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
-  HTTP_ARTIFACT: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact'
+  HTTP_POST: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+  HTTP_REDIRECT: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+  HTTP_ARTIFACT: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
 };
 
 const NAME_ID_FORMATS = {
-  UNSPECIFIED: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
-  EMAIL: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-  PERSISTENT: 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
-  TRANSIENT: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
-  ENTITY: 'urn:oasis:names:tc:SAML:2.0:nameid-format:entity'
+  UNSPECIFIED: "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+  EMAIL: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+  PERSISTENT: "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+  TRANSIENT: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+  ENTITY: "urn:oasis:names:tc:SAML:2.0:nameid-format:entity",
 };
 
 const AUTHN_CONTEXT = {
-  PASSWORD: 'urn:oasis:names:tc:SAML:2.0:ac:classes:Password',
-  PASSWORD_PROTECTED: 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
-  KERBEROS: 'urn:oasis:names:tc:SAML:2.0:ac:classes:Kerberos',
-  X509: 'urn:oasis:names:tc:SAML:2.0:ac:classes:X509',
-  WINDOWS: 'urn:oasis:names:tc:SAML:2.0:ac:classes:IntegratedWindowsAuthentication'
+  PASSWORD: "urn:oasis:names:tc:SAML:2.0:ac:classes:Password",
+  PASSWORD_PROTECTED:
+    "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+  KERBEROS: "urn:oasis:names:tc:SAML:2.0:ac:classes:Kerberos",
+  X509: "urn:oasis:names:tc:SAML:2.0:ac:classes:X509",
+  WINDOWS:
+    "urn:oasis:names:tc:SAML:2.0:ac:classes:IntegratedWindowsAuthentication",
 };
 
 const STATUS_CODES = {
-  SUCCESS: 'urn:oasis:names:tc:SAML:2.0:status:Success',
-  REQUESTER: 'urn:oasis:names:tc:SAML:2.0:status:Requester',
-  RESPONDER: 'urn:oasis:names:tc:SAML:2.0:status:Responder',
-  VERSION_MISMATCH: 'urn:oasis:names:tc:SAML:2.0:status:VersionMismatch',
-  AUTHN_FAILED: 'urn:oasis:names:tc:SAML:2.0:status:AuthnFailed',
-  NO_PASSIVE: 'urn:oasis:names:tc:SAML:2.0:status:NoPassive'
+  SUCCESS: "urn:oasis:names:tc:SAML:2.0:status:Success",
+  REQUESTER: "urn:oasis:names:tc:SAML:2.0:status:Requester",
+  RESPONDER: "urn:oasis:names:tc:SAML:2.0:status:Responder",
+  VERSION_MISMATCH: "urn:oasis:names:tc:SAML:2.0:status:VersionMismatch",
+  AUTHN_FAILED: "urn:oasis:names:tc:SAML:2.0:status:AuthnFailed",
+  NO_PASSIVE: "urn:oasis:names:tc:SAML:2.0:status:NoPassive",
 };
 
 // ─── Main Class ───
@@ -117,19 +121,19 @@ class SAMLProvider {
    */
   constructor({ config } = {}) {
     if (!config) {
-      throw new Error('[SAMLProvider] config parameter is required');
+      throw new Error("[SAMLProvider] config parameter is required");
     }
 
     if (!config.entityId) {
-      throw new Error('[SAMLProvider] config.entityId is required');
+      throw new Error("[SAMLProvider] config.entityId is required");
     }
 
     if (!config.ssoUrl) {
-      throw new Error('[SAMLProvider] config.ssoUrl is required');
+      throw new Error("[SAMLProvider] config.ssoUrl is required");
     }
 
     if (!config.assertionConsumerUrl) {
-      throw new Error('[SAMLProvider] config.assertionConsumerUrl is required');
+      throw new Error("[SAMLProvider] config.assertionConsumerUrl is required");
     }
 
     this.entityId = config.entityId;
@@ -144,11 +148,14 @@ class SAMLProvider {
     this.wantResponseSigned = config.wantResponseSigned || false;
     this.spCertificate = config.spCertificate || null;
     this.spPrivateKey = config.spPrivateKey || null;
-    this.signatureAlgorithm = config.signatureAlgorithm || 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
-    this.digestAlgorithm = config.digestAlgorithm || 'http://www.w3.org/2001/04/xmlenc#sha256';
+    this.signatureAlgorithm =
+      config.signatureAlgorithm ||
+      "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
+    this.digestAlgorithm =
+      config.digestAlgorithm || "http://www.w3.org/2001/04/xmlenc#sha256";
     this.clockSkew = config.clockSkew || 300; // 5 minutes default
 
-    logger.debug('[SAMLProvider] Initialized for SP:', this.entityId);
+    logger.debug("[SAMLProvider] Initialized for SP:", this.entityId);
   }
 
   // ════════════════════════════════════════════
@@ -169,7 +176,7 @@ class SAMLProvider {
    */
   generateAuthnRequest(id, relayState, options = {}) {
     if (!id) {
-      id = '_' + crypto.randomUUID().replace(/-/g, '');
+      id = "_" + crypto.randomUUID().replace(/-/g, "");
     }
 
     const issueInstant = new Date().toISOString();
@@ -184,7 +191,7 @@ class SAMLProvider {
       `IssueInstant="${issueInstant}"`,
       `Destination="${this._escapeXml(this.ssoUrl)}"`,
       `AssertionConsumerServiceURL="${this._escapeXml(this.assertionConsumerUrl)}"`,
-      `ProtocolBinding="${this._escapeXml(this.binding)}"`
+      `ProtocolBinding="${this._escapeXml(this.binding)}"`,
     ];
 
     if (options.forceAuthn) {
@@ -201,7 +208,7 @@ class SAMLProvider {
 
     // Build the XML document
     let xml = `<?xml version="1.0" encoding="UTF-8"?>`;
-    xml += `\n<samlp:AuthnRequest ${attrs.join(' ')}>`;
+    xml += `\n<samlp:AuthnRequest ${attrs.join(" ")}>`;
 
     // Issuer
     xml += `\n  <saml:Issuer>${this._escapeXml(this.entityId)}</saml:Issuer>`;
@@ -240,29 +247,36 @@ class SAMLProvider {
    */
   parseAssertion(samlResponse) {
     if (!samlResponse) {
-      throw new Error('[SAMLProvider] SAML Response is required');
+      throw new Error("[SAMLProvider] SAML Response is required");
     }
 
     // Step 1: Decode base64
     let xml;
     try {
-      xml = Buffer.from(samlResponse, 'base64').toString('utf8');
+      xml = Buffer.from(samlResponse, "base64").toString("utf8");
     } catch (decodeError) {
       // Try as plain XML (not base64 encoded)
-      if (samlResponse.includes('<')) {
+      if (samlResponse.includes("<")) {
         xml = samlResponse;
       } else {
-        throw new Error(`Failed to decode SAML Response: ${decodeError.message}`);
+        throw new Error(
+          `Failed to decode SAML Response: ${decodeError.message}`,
+        );
       }
     }
 
-    logger.debug('[SAMLProvider] Parsing SAML Response, XML length:', xml.length);
+    logger.debug(
+      "[SAMLProvider] Parsing SAML Response, XML length:",
+      xml.length,
+    );
 
     // Step 2: Check response status
     const status = this._extractStatus(xml);
     if (status.code !== STATUS_CODES.SUCCESS) {
-      const statusMsg = status.message || 'Unknown error';
-      throw new Error(`SAML authentication failed. Status: ${status.code}. Message: ${statusMsg}`);
+      const statusMsg = status.message || "Unknown error";
+      throw new Error(
+        `SAML authentication failed. Status: ${status.code}. Message: ${statusMsg}`,
+      );
     }
 
     // Step 3: Extract assertion data
@@ -274,7 +288,7 @@ class SAMLProvider {
     }
 
     if (!assertion) {
-      throw new Error('No assertion found in SAML Response');
+      throw new Error("No assertion found in SAML Response");
     }
 
     // Step 4: Verify signature (conceptual - log warning)
@@ -285,7 +299,9 @@ class SAMLProvider {
       this._validateConditions(assertion.conditions);
     }
 
-    logger.info(`[SAMLProvider] SAML assertion parsed successfully. NameID: ${assertion.nameId}`);
+    logger.info(
+      `[SAMLProvider] SAML assertion parsed successfully. NameID: ${assertion.nameId}`,
+    );
 
     return assertion;
   }
@@ -300,92 +316,125 @@ class SAMLProvider {
 
       // Navigate the parsed structure to find the assertion
       // SAML Response can be samlp:Response or Response
-      const response = parsed['samlp:Response'] || parsed['Response'] ||
-                       parsed['saml2p:Response'] || parsed;
+      const response =
+        parsed["samlp:Response"] ||
+        parsed["Response"] ||
+        parsed["saml2p:Response"] ||
+        parsed;
 
       if (!response) {
-        logger.warn('[SAMLProvider] No Response element found in parsed XML');
+        logger.warn("[SAMLProvider] No Response element found in parsed XML");
         return null;
       }
 
       // Find assertion (may be nested under different prefixes)
-      const assertion = response['saml:Assertion'] || response['Assertion'] ||
-                        response['saml2:Assertion'];
+      const assertion =
+        response["saml:Assertion"] ||
+        response["Assertion"] ||
+        response["saml2:Assertion"];
 
       if (!assertion) {
-        logger.warn('[SAMLProvider] No Assertion element found in Response');
+        logger.warn("[SAMLProvider] No Assertion element found in Response");
         return null;
       }
 
       // Extract NameID
-      const subject = assertion['saml:Subject'] || assertion['Subject'] ||
-                      assertion['saml2:Subject'];
+      const subject =
+        assertion["saml:Subject"] ||
+        assertion["Subject"] ||
+        assertion["saml2:Subject"];
       let nameId = null;
       let nameIdFormat = null;
 
       if (subject) {
-        const nameIdElement = subject['saml:NameID'] || subject['NameID'] ||
-                              subject['saml2:NameID'];
+        const nameIdElement =
+          subject["saml:NameID"] ||
+          subject["NameID"] ||
+          subject["saml2:NameID"];
         if (nameIdElement) {
-          nameId = typeof nameIdElement === 'string' ? nameIdElement : nameIdElement['#text'];
-          nameIdFormat = nameIdElement['@_Format'] || null;
+          nameId =
+            typeof nameIdElement === "string"
+              ? nameIdElement
+              : nameIdElement["#text"];
+          nameIdFormat = nameIdElement["@_Format"] || null;
         }
       }
 
       // Extract session index from AuthnStatement
-      const authnStatement = assertion['saml:AuthnStatement'] || assertion['AuthnStatement'] ||
-                             assertion['saml2:AuthnStatement'];
+      const authnStatement =
+        assertion["saml:AuthnStatement"] ||
+        assertion["AuthnStatement"] ||
+        assertion["saml2:AuthnStatement"];
       let sessionIndex = null;
       if (authnStatement) {
-        sessionIndex = authnStatement['@_SessionIndex'] || null;
+        sessionIndex = authnStatement["@_SessionIndex"] || null;
       }
 
       // Extract conditions
-      const conditionsElement = assertion['saml:Conditions'] || assertion['Conditions'] ||
-                                assertion['saml2:Conditions'];
+      const conditionsElement =
+        assertion["saml:Conditions"] ||
+        assertion["Conditions"] ||
+        assertion["saml2:Conditions"];
       let conditions = null;
       if (conditionsElement) {
         conditions = {
-          notBefore: conditionsElement['@_NotBefore'] || null,
-          notOnOrAfter: conditionsElement['@_NotOnOrAfter'] || null
+          notBefore: conditionsElement["@_NotBefore"] || null,
+          notOnOrAfter: conditionsElement["@_NotOnOrAfter"] || null,
         };
 
         // Extract audience restriction
-        const audienceRestriction = conditionsElement['saml:AudienceRestriction'] ||
-                                    conditionsElement['AudienceRestriction'] ||
-                                    conditionsElement['saml2:AudienceRestriction'];
+        const audienceRestriction =
+          conditionsElement["saml:AudienceRestriction"] ||
+          conditionsElement["AudienceRestriction"] ||
+          conditionsElement["saml2:AudienceRestriction"];
         if (audienceRestriction) {
-          const restriction = Array.isArray(audienceRestriction) ? audienceRestriction[0] : audienceRestriction;
-          const audience = restriction['saml:Audience'] || restriction['Audience'] ||
-                           restriction['saml2:Audience'];
-          conditions.audience = typeof audience === 'string' ? audience : (audience?.['#text'] || null);
+          const restriction = Array.isArray(audienceRestriction)
+            ? audienceRestriction[0]
+            : audienceRestriction;
+          const audience =
+            restriction["saml:Audience"] ||
+            restriction["Audience"] ||
+            restriction["saml2:Audience"];
+          conditions.audience =
+            typeof audience === "string"
+              ? audience
+              : audience?.["#text"] || null;
         }
       }
 
       // Extract attributes
-      const attributeStatement = assertion['saml:AttributeStatement'] || assertion['AttributeStatement'] ||
-                                  assertion['saml2:AttributeStatement'];
+      const attributeStatement =
+        assertion["saml:AttributeStatement"] ||
+        assertion["AttributeStatement"] ||
+        assertion["saml2:AttributeStatement"];
       const attributes = {};
 
       if (attributeStatement) {
-        const attrs = attributeStatement['saml:Attribute'] || attributeStatement['Attribute'] ||
-                      attributeStatement['saml2:Attribute'];
-        const attrArray = Array.isArray(attrs) ? attrs : (attrs ? [attrs] : []);
+        const attrs =
+          attributeStatement["saml:Attribute"] ||
+          attributeStatement["Attribute"] ||
+          attributeStatement["saml2:Attribute"];
+        const attrArray = Array.isArray(attrs) ? attrs : attrs ? [attrs] : [];
 
         for (const attr of attrArray) {
-          const attrName = attr['@_Name'] || attr['@_FriendlyName'] || 'unknown';
-          const friendlyName = attr['@_FriendlyName'] || null;
-          const values = attr['saml:AttributeValue'] || attr['AttributeValue'] ||
-                         attr['saml2:AttributeValue'];
+          const attrName =
+            attr["@_Name"] || attr["@_FriendlyName"] || "unknown";
+          const friendlyName = attr["@_FriendlyName"] || null;
+          const values =
+            attr["saml:AttributeValue"] ||
+            attr["AttributeValue"] ||
+            attr["saml2:AttributeValue"];
 
           let attrValue;
           if (Array.isArray(values)) {
-            attrValue = values.map(v => typeof v === 'object' ? v['#text'] : v);
+            attrValue = values.map((v) =>
+              typeof v === "object" ? v["#text"] : v,
+            );
             if (attrValue.length === 1) {
               attrValue = attrValue[0];
             }
           } else if (values !== undefined && values !== null) {
-            attrValue = typeof values === 'object' ? values['#text'] : values;
+            attrValue = typeof values === "object" ? values["#text"] : values;
           } else {
             attrValue = null;
           }
@@ -402,12 +451,15 @@ class SAMLProvider {
         sessionIndex,
         conditions,
         attributes,
-        issuer: this._extractElementText(response, 'Issuer'),
-        responseId: response['@_ID'] || null,
-        assertionId: assertion['@_ID'] || null
+        issuer: this._extractElementText(response, "Issuer"),
+        responseId: response["@_ID"] || null,
+        assertionId: assertion["@_ID"] || null,
       };
     } catch (parseError) {
-      logger.error('[SAMLProvider] XML parser error, falling back to regex:', parseError.message);
+      logger.error(
+        "[SAMLProvider] XML parser error, falling back to regex:",
+        parseError.message,
+      );
       return this._parseWithRegex(xml);
     }
   }
@@ -419,11 +471,15 @@ class SAMLProvider {
   _parseWithRegex(xml) {
     try {
       // Extract NameID
-      const nameIdMatch = xml.match(/<(?:saml[2]?:)?NameID[^>]*>([^<]+)<\/(?:saml[2]?:)?NameID>/);
+      const nameIdMatch = xml.match(
+        /<(?:saml[2]?:)?NameID[^>]*>([^<]+)<\/(?:saml[2]?:)?NameID>/,
+      );
       const nameId = nameIdMatch ? nameIdMatch[1].trim() : null;
 
       // Extract NameID Format
-      const nameIdFormatMatch = xml.match(/<(?:saml[2]?:)?NameID[^>]*Format="([^"]*)"[^>]*>/);
+      const nameIdFormatMatch = xml.match(
+        /<(?:saml[2]?:)?NameID[^>]*Format="([^"]*)"[^>]*>/,
+      );
       const nameIdFormat = nameIdFormatMatch ? nameIdFormatMatch[1] : null;
 
       // Extract SessionIndex
@@ -440,11 +496,13 @@ class SAMLProvider {
 
         conditions = {
           notBefore: notBeforeMatch ? notBeforeMatch[1] : null,
-          notOnOrAfter: notOnOrAfterMatch ? notOnOrAfterMatch[1] : null
+          notOnOrAfter: notOnOrAfterMatch ? notOnOrAfterMatch[1] : null,
         };
 
         // Extract Audience
-        const audienceMatch = xml.match(/<(?:saml[2]?:)?Audience>([^<]+)<\/(?:saml[2]?:)?Audience>/);
+        const audienceMatch = xml.match(
+          /<(?:saml[2]?:)?Audience>([^<]+)<\/(?:saml[2]?:)?Audience>/,
+        );
         if (audienceMatch) {
           conditions.audience = audienceMatch[1].trim();
         }
@@ -452,7 +510,8 @@ class SAMLProvider {
 
       // Extract Attributes
       const attributes = {};
-      const attrRegex = /<(?:saml[2]?:)?Attribute\s+([^>]*)>([\s\S]*?)<\/(?:saml[2]?:)?Attribute>/g;
+      const attrRegex =
+        /<(?:saml[2]?:)?Attribute\s+([^>]*)>([\s\S]*?)<\/(?:saml[2]?:)?Attribute>/g;
       let attrMatch;
 
       while ((attrMatch = attrRegex.exec(xml)) !== null) {
@@ -464,10 +523,13 @@ class SAMLProvider {
         const friendlyNameMatch = attrAttrs.match(/FriendlyName="([^"]*)"/);
         const attrName = friendlyNameMatch
           ? friendlyNameMatch[1]
-          : (nameMatch ? this._extractAttributeShortName(nameMatch[1]) : 'unknown');
+          : nameMatch
+            ? this._extractAttributeShortName(nameMatch[1])
+            : "unknown";
 
         // Extract attribute values
-        const valueRegex = /<(?:saml[2]?:)?AttributeValue[^>]*>([^<]*)<\/(?:saml[2]?:)?AttributeValue>/g;
+        const valueRegex =
+          /<(?:saml[2]?:)?AttributeValue[^>]*>([^<]*)<\/(?:saml[2]?:)?AttributeValue>/g;
         const values = [];
         let valueMatch;
 
@@ -475,23 +537,32 @@ class SAMLProvider {
           values.push(valueMatch[1].trim());
         }
 
-        attributes[attrName] = values.length === 1 ? values[0] : (values.length > 0 ? values : null);
+        attributes[attrName] =
+          values.length === 1 ? values[0] : values.length > 0 ? values : null;
       }
 
       // Extract Issuer
-      const issuerMatch = xml.match(/<(?:saml[2]?:)?Issuer[^>]*>([^<]+)<\/(?:saml[2]?:)?Issuer>/);
+      const issuerMatch = xml.match(
+        /<(?:saml[2]?:)?Issuer[^>]*>([^<]+)<\/(?:saml[2]?:)?Issuer>/,
+      );
       const issuer = issuerMatch ? issuerMatch[1].trim() : null;
 
       // Extract Response ID
-      const responseIdMatch = xml.match(/<(?:samlp|saml2p)?:?Response[^>]+ID="([^"]*)"/);
+      const responseIdMatch = xml.match(
+        /<(?:samlp|saml2p)?:?Response[^>]+ID="([^"]*)"/,
+      );
       const responseId = responseIdMatch ? responseIdMatch[1] : null;
 
       // Extract Assertion ID
-      const assertionIdMatch = xml.match(/<(?:saml[2]?:)?Assertion[^>]+ID="([^"]*)"/);
+      const assertionIdMatch = xml.match(
+        /<(?:saml[2]?:)?Assertion[^>]+ID="([^"]*)"/,
+      );
       const assertionId = assertionIdMatch ? assertionIdMatch[1] : null;
 
       if (!nameId) {
-        logger.warn('[SAMLProvider] No NameID found in SAML Response (regex parsing)');
+        logger.warn(
+          "[SAMLProvider] No NameID found in SAML Response (regex parsing)",
+        );
       }
 
       return {
@@ -502,10 +573,10 @@ class SAMLProvider {
         attributes,
         issuer,
         responseId,
-        assertionId
+        assertionId,
       };
     } catch (regexError) {
-      logger.error('[SAMLProvider] Regex parsing failed:', regexError.message);
+      logger.error("[SAMLProvider] Regex parsing failed:", regexError.message);
       throw new Error(`SAML Response parsing failed: ${regexError.message}`);
     }
   }
@@ -526,7 +597,9 @@ class SAMLProvider {
    */
   generateMetadata(options = {}) {
     const now = new Date().toISOString();
-    const validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year
+    const validUntil = new Date(
+      Date.now() + 365 * 24 * 60 * 60 * 1000,
+    ).toISOString(); // 1 year
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>`;
     xml += `\n<md:EntityDescriptor`;
@@ -580,7 +653,7 @@ class SAMLProvider {
       NAME_ID_FORMATS.EMAIL,
       NAME_ID_FORMATS.PERSISTENT,
       NAME_ID_FORMATS.TRANSIENT,
-      NAME_ID_FORMATS.UNSPECIFIED
+      NAME_ID_FORMATS.UNSPECIFIED,
     ];
 
     for (const format of formats) {
@@ -609,11 +682,23 @@ class SAMLProvider {
 
     // Common requested attributes
     const requestedAttributes = [
-      { name: 'urn:oid:0.9.2342.19200300.100.1.3', friendlyName: 'email', required: true },
-      { name: 'urn:oid:2.5.4.42', friendlyName: 'givenName', required: false },
-      { name: 'urn:oid:2.5.4.4', friendlyName: 'surname', required: false },
-      { name: 'urn:oid:2.16.840.1.113730.3.1.241', friendlyName: 'displayName', required: false },
-      { name: 'urn:oid:1.3.6.1.4.1.5923.1.1.1.7', friendlyName: 'groups', required: false }
+      {
+        name: "urn:oid:0.9.2342.19200300.100.1.3",
+        friendlyName: "email",
+        required: true,
+      },
+      { name: "urn:oid:2.5.4.42", friendlyName: "givenName", required: false },
+      { name: "urn:oid:2.5.4.4", friendlyName: "surname", required: false },
+      {
+        name: "urn:oid:2.16.840.1.113730.3.1.241",
+        friendlyName: "displayName",
+        required: false,
+      },
+      {
+        name: "urn:oid:1.3.6.1.4.1.5923.1.1.1.7",
+        friendlyName: "groups",
+        required: false,
+      },
     ];
 
     for (const attr of requestedAttributes) {
@@ -655,7 +740,9 @@ class SAMLProvider {
 
     xml += `\n</md:EntityDescriptor>`;
 
-    logger.info(`[SAMLProvider] SP metadata generated for entity: ${this.entityId}`);
+    logger.info(
+      `[SAMLProvider] SP metadata generated for entity: ${this.entityId}`,
+    );
 
     return xml;
   }
@@ -676,10 +763,10 @@ class SAMLProvider {
    */
   buildLogoutRequest(nameId, sessionIndex, options = {}) {
     if (!nameId) {
-      throw new Error('[SAMLProvider] nameId is required for logout request');
+      throw new Error("[SAMLProvider] nameId is required for logout request");
     }
 
-    const id = options.id || ('_' + crypto.randomUUID().replace(/-/g, ''));
+    const id = options.id || "_" + crypto.randomUUID().replace(/-/g, "");
     const issueInstant = new Date().toISOString();
     const destination = this.sloUrl || this.ssoUrl;
     const nameIdFormat = options.nameIdFormat || this.nameIdFormat;
@@ -721,7 +808,9 @@ class SAMLProvider {
 
     xml += `\n</samlp:LogoutRequest>`;
 
-    logger.debug(`[SAMLProvider] Generated LogoutRequest ID: ${id} for NameID: ${nameId}`);
+    logger.debug(
+      `[SAMLProvider] Generated LogoutRequest ID: ${id} for NameID: ${nameId}`,
+    );
 
     return xml;
   }
@@ -736,21 +825,29 @@ class SAMLProvider {
    */
   _extractStatus(xml) {
     // Try to extract StatusCode Value
-    const statusCodeMatch = xml.match(/<(?:samlp|saml2p)?:?StatusCode[^>]+Value="([^"]*)"/);
+    const statusCodeMatch = xml.match(
+      /<(?:samlp|saml2p)?:?StatusCode[^>]+Value="([^"]*)"/,
+    );
     const statusCode = statusCodeMatch ? statusCodeMatch[1] : null;
 
     // Try to extract StatusMessage
-    const statusMessageMatch = xml.match(/<(?:samlp|saml2p)?:?StatusMessage[^>]*>([^<]*)<\/(?:samlp|saml2p)?:?StatusMessage>/);
-    const statusMessage = statusMessageMatch ? statusMessageMatch[1].trim() : null;
+    const statusMessageMatch = xml.match(
+      /<(?:samlp|saml2p)?:?StatusMessage[^>]*>([^<]*)<\/(?:samlp|saml2p)?:?StatusMessage>/,
+    );
+    const statusMessage = statusMessageMatch
+      ? statusMessageMatch[1].trim()
+      : null;
 
     // Try to extract StatusDetail
-    const statusDetailMatch = xml.match(/<(?:samlp|saml2p)?:?StatusDetail[^>]*>([\s\S]*?)<\/(?:samlp|saml2p)?:?StatusDetail>/);
+    const statusDetailMatch = xml.match(
+      /<(?:samlp|saml2p)?:?StatusDetail[^>]*>([\s\S]*?)<\/(?:samlp|saml2p)?:?StatusDetail>/,
+    );
     const statusDetail = statusDetailMatch ? statusDetailMatch[1].trim() : null;
 
     return {
       code: statusCode || STATUS_CODES.SUCCESS, // Default to success if no status found
       message: statusMessage,
-      detail: statusDetail
+      detail: statusDetail,
     };
   }
 
@@ -759,54 +856,94 @@ class SAMLProvider {
    * @private
    */
   _verifySignature(xml, assertion) {
-    // Check if signature element exists
-    const hasSignature = xml.includes('<ds:Signature') || xml.includes('<Signature');
+    // FAIL-CLOSED (security audit 2026-06-08): when signing is required, a
+    // missing / unverifiable / invalid signature is REJECTED, not waved through.
+    // Kill-switch CHAINLESSCHAIN_SSO_ALLOW_UNVERIFIED=1 reverts to the prior
+    // warn-only behavior for environments that knowingly accept the risk.
+    const requireSigned = this.wantAssertionsSigned || this.wantResponseSigned;
+    const allowUnverified =
+      process.env.CHAINLESSCHAIN_SSO_ALLOW_UNVERIFIED === "1";
 
+    // "Cannot verify" (missing signature/tooling/cert) → reject only when signing
+    // is required; otherwise it's explicit unsigned mode.
+    const failClosed = (reason) => {
+      if (requireSigned && !allowUnverified) {
+        logger.error(`[SAMLProvider] ${reason} — rejecting (fail-closed)`);
+        throw new Error(`SAML signature not verified (fail-closed): ${reason}`);
+      }
+      logger.warn(
+        `[SAMLProvider] ${reason}` +
+          (allowUnverified
+            ? " — proceeding (CHAINLESSCHAIN_SSO_ALLOW_UNVERIFIED=1)"
+            : " — unsigned mode (signing not required)"),
+      );
+    };
+
+    const hasSignature =
+      xml.includes("<ds:Signature") || xml.includes("<Signature");
     if (!hasSignature) {
-      if (this.wantAssertionsSigned || this.wantResponseSigned) {
-        logger.warn('[SAMLProvider] Response/Assertion is not signed but signing is required');
-        logger.warn('[SAMLProvider] In production, install xml-crypto for full signature verification');
-      } else {
-        logger.debug('[SAMLProvider] No signature found in SAML Response (unsigned mode)');
+      failClosed("Response/Assertion is not signed");
+      return;
+    }
+
+    let xmlCrypto;
+    try {
+      xmlCrypto = require("xml-crypto");
+    } catch (loadErr) {
+      failClosed(
+        loadErr.code === "MODULE_NOT_FOUND"
+          ? "xml-crypto not installed, cannot verify signature"
+          : `xml-crypto load error: ${loadErr.message}`,
+      );
+      return;
+    }
+
+    if (!this.certificate) {
+      failClosed("no IdP certificate configured, cannot verify signature");
+      return;
+    }
+
+    const signatureMatch = xml.match(
+      /<(?:ds:)?Signature[\s\S]*?<\/(?:ds:)?Signature>/,
+    );
+    if (!signatureMatch) {
+      failClosed("could not extract Signature element");
+      return;
+    }
+
+    // We CAN verify — a present-but-invalid signature is ALWAYS rejected
+    // (regardless of requireSigned), unless the kill-switch is set.
+    let isValid = false;
+    try {
+      const cert = this._normalizeCertificate(this.certificate);
+      const sig = new xmlCrypto.SignedXml();
+      sig.keyInfoProvider = { getKey: () => cert };
+      sig.loadSignature(signatureMatch[0]);
+      isValid = sig.checkSignature(xml);
+      if (!isValid) {
+        logger.error(
+          "[SAMLProvider] SAML signature verification FAILED:",
+          sig.validationErrors,
+        );
+      }
+    } catch (verifyErr) {
+      logger.error(
+        "[SAMLProvider] SAML signature verification error:",
+        verifyErr.message,
+      );
+      if (!allowUnverified) {
+        throw new Error(
+          `SAML signature verification error (fail-closed): ${verifyErr.message}`,
+        );
       }
       return;
     }
 
-    // Attempt actual signature verification if xml-crypto is available
-    try {
-      const xmlCrypto = require('xml-crypto');
-
-      // Extract Signature element
-      const signatureMatch = xml.match(/<(?:ds:)?Signature[\s\S]*?<\/(?:ds:)?Signature>/);
-      if (!signatureMatch) {
-        logger.warn('[SAMLProvider] Could not extract Signature element');
-        return;
-      }
-
-      if (this.certificate) {
-        const cert = this._normalizeCertificate(this.certificate);
-        const sig = new xmlCrypto.SignedXml();
-        sig.keyInfoProvider = {
-          getKey: () => cert
-        };
-        sig.loadSignature(signatureMatch[0]);
-
-        const isValid = sig.checkSignature(xml);
-        if (isValid) {
-          logger.info('[SAMLProvider] SAML signature verified successfully');
-        } else {
-          logger.error('[SAMLProvider] SAML signature verification FAILED:', sig.validationErrors);
-          throw new Error('SAML signature verification failed');
-        }
-      }
-    } catch (xmlCryptoError) {
-      if (xmlCryptoError.code === 'MODULE_NOT_FOUND') {
-        logger.warn('[SAMLProvider] xml-crypto not available. Signature present but not verified.');
-        logger.warn('[SAMLProvider] Install xml-crypto for production signature verification: npm install xml-crypto');
-      } else {
-        logger.error('[SAMLProvider] Signature verification error:', xmlCryptoError.message);
-        // Don't throw - allow the assertion to proceed with a warning
-      }
+    if (!isValid && !allowUnverified) {
+      throw new Error("SAML signature verification failed (fail-closed)");
+    }
+    if (isValid) {
+      logger.info("[SAMLProvider] SAML signature verified successfully");
     }
   }
 
@@ -821,32 +958,42 @@ class SAMLProvider {
     // Check NotBefore
     if (conditions.notBefore) {
       const notBefore = new Date(conditions.notBefore);
-      const adjustedNotBefore = new Date(notBefore.getTime() - (this.clockSkew * 1000));
+      const adjustedNotBefore = new Date(
+        notBefore.getTime() - this.clockSkew * 1000,
+      );
 
       if (now < adjustedNotBefore) {
-        errors.push(`Assertion not yet valid. NotBefore: ${conditions.notBefore}`);
+        errors.push(
+          `Assertion not yet valid. NotBefore: ${conditions.notBefore}`,
+        );
       }
     }
 
     // Check NotOnOrAfter
     if (conditions.notOnOrAfter) {
       const notOnOrAfter = new Date(conditions.notOnOrAfter);
-      const adjustedNotOnOrAfter = new Date(notOnOrAfter.getTime() + (this.clockSkew * 1000));
+      const adjustedNotOnOrAfter = new Date(
+        notOnOrAfter.getTime() + this.clockSkew * 1000,
+      );
 
       if (now >= adjustedNotOnOrAfter) {
-        errors.push(`Assertion has expired. NotOnOrAfter: ${conditions.notOnOrAfter}`);
+        errors.push(
+          `Assertion has expired. NotOnOrAfter: ${conditions.notOnOrAfter}`,
+        );
       }
     }
 
     // Check Audience
     if (conditions.audience && this.entityId) {
       if (conditions.audience !== this.entityId) {
-        errors.push(`Audience mismatch. Expected: ${this.entityId}, Got: ${conditions.audience}`);
+        errors.push(
+          `Audience mismatch. Expected: ${this.entityId}, Got: ${conditions.audience}`,
+        );
       }
     }
 
     if (errors.length > 0) {
-      logger.warn('[SAMLProvider] Condition validation warnings:', errors);
+      logger.warn("[SAMLProvider] Condition validation warnings:", errors);
       // In strict mode, these would be errors. For flexibility, we log as warnings.
     }
 
@@ -862,13 +1009,15 @@ class SAMLProvider {
    * @private
    */
   _escapeXml(str) {
-    if (!str) {return '';}
+    if (!str) {
+      return "";
+    }
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
   }
 
   /**
@@ -876,14 +1025,16 @@ class SAMLProvider {
    * @private
    */
   _extractElementText(obj, elementName) {
-    if (!obj) {return null;}
+    if (!obj) {
+      return null;
+    }
 
-    const prefixes = ['saml:', 'saml2:', ''];
+    const prefixes = ["saml:", "saml2:", ""];
     for (const prefix of prefixes) {
       const key = prefix + elementName;
       if (obj[key]) {
         const val = obj[key];
-        return typeof val === 'string' ? val : val['#text'] || null;
+        return typeof val === "string" ? val : val["#text"] || null;
       }
     }
     return null;
@@ -894,24 +1045,26 @@ class SAMLProvider {
    * @private
    */
   _extractAttributeShortName(fullName) {
-    if (!fullName) {return 'unknown';}
+    if (!fullName) {
+      return "unknown";
+    }
 
     // Handle URN-based names (e.g., urn:oid:0.9.2342.19200300.100.1.3)
     // Common OID to friendly name mappings
     const oidMap = {
-      'urn:oid:0.9.2342.19200300.100.1.3': 'email',
-      'urn:oid:2.5.4.42': 'firstName',
-      'urn:oid:2.5.4.4': 'lastName',
-      'urn:oid:2.16.840.1.113730.3.1.241': 'displayName',
-      'urn:oid:1.3.6.1.4.1.5923.1.1.1.7': 'groups',
-      'urn:oid:2.5.4.3': 'cn',
-      'urn:oid:0.9.2342.19200300.100.1.1': 'uid',
-      'urn:oid:2.5.4.20': 'telephoneNumber',
-      'urn:oid:2.5.4.10': 'organization',
-      'urn:oid:2.5.4.11': 'organizationalUnit',
-      'urn:oid:2.5.4.6': 'country',
-      'urn:oid:2.5.4.7': 'locality',
-      'urn:oid:2.5.4.8': 'stateOrProvince'
+      "urn:oid:0.9.2342.19200300.100.1.3": "email",
+      "urn:oid:2.5.4.42": "firstName",
+      "urn:oid:2.5.4.4": "lastName",
+      "urn:oid:2.16.840.1.113730.3.1.241": "displayName",
+      "urn:oid:1.3.6.1.4.1.5923.1.1.1.7": "groups",
+      "urn:oid:2.5.4.3": "cn",
+      "urn:oid:0.9.2342.19200300.100.1.1": "uid",
+      "urn:oid:2.5.4.20": "telephoneNumber",
+      "urn:oid:2.5.4.10": "organization",
+      "urn:oid:2.5.4.11": "organizationalUnit",
+      "urn:oid:2.5.4.6": "country",
+      "urn:oid:2.5.4.7": "locality",
+      "urn:oid:2.5.4.8": "stateOrProvince",
     };
 
     if (oidMap[fullName]) {
@@ -919,14 +1072,14 @@ class SAMLProvider {
     }
 
     // Handle URL-based names - take last path segment
-    if (fullName.includes('/')) {
-      const segments = fullName.split('/');
+    if (fullName.includes("/")) {
+      const segments = fullName.split("/");
       return segments[segments.length - 1];
     }
 
     // Handle colon-separated names
-    if (fullName.includes(':')) {
-      const parts = fullName.split(':');
+    if (fullName.includes(":")) {
+      const parts = fullName.split(":");
       return parts[parts.length - 1];
     }
 
@@ -938,13 +1091,15 @@ class SAMLProvider {
    * @private
    */
   _extractCertificateBase64(cert) {
-    if (!cert) {return '';}
+    if (!cert) {
+      return "";
+    }
 
     // Remove PEM headers/footers and whitespace
     return cert
-      .replace(/-----BEGIN CERTIFICATE-----/g, '')
-      .replace(/-----END CERTIFICATE-----/g, '')
-      .replace(/[\r\n\s]/g, '');
+      .replace(/-----BEGIN CERTIFICATE-----/g, "")
+      .replace(/-----END CERTIFICATE-----/g, "")
+      .replace(/[\r\n\s]/g, "");
   }
 
   /**
@@ -952,13 +1107,15 @@ class SAMLProvider {
    * @private
    */
   _normalizeCertificate(cert) {
-    if (!cert) {return '';}
+    if (!cert) {
+      return "";
+    }
 
     const base64 = this._extractCertificateBase64(cert);
 
     // Re-wrap to proper PEM format
     const lines = base64.match(/.{1,64}/g) || [];
-    return `-----BEGIN CERTIFICATE-----\n${lines.join('\n')}\n-----END CERTIFICATE-----`;
+    return `-----BEGIN CERTIFICATE-----\n${lines.join("\n")}\n-----END CERTIFICATE-----`;
   }
 }
 

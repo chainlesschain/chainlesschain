@@ -21,17 +21,17 @@
  * @since v0.34.0
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const { EventEmitter } = require('events');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const { EventEmitter } = require("events");
+const crypto = require("crypto");
 
 // ─── Provider Types ───
 
 const ProviderType = {
-  SAML: 'saml',
-  OAUTH2: 'oauth2',
-  OIDC: 'oidc'
+  SAML: "saml",
+  OAUTH2: "oauth2",
+  OIDC: "oidc",
 };
 
 const VALID_PROVIDER_TYPES = Object.values(ProviderType);
@@ -39,36 +39,53 @@ const VALID_PROVIDER_TYPES = Object.values(ProviderType);
 // ─── Session States ───
 
 const SessionState = {
-  ACTIVE: 'active',
-  EXPIRED: 'expired',
-  REVOKED: 'revoked',
-  REFRESHING: 'refreshing'
+  ACTIVE: "active",
+  EXPIRED: "expired",
+  REVOKED: "revoked",
+  REFRESHING: "refreshing",
 };
 
 // ─── Encryption Constants ───
 
-const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+const ENCRYPTION_ALGORITHM = "aes-256-gcm";
 const ENCRYPTION_KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
-const ENCODING = 'hex';
+const ENCODING = "hex";
 
 // ─── Default Configuration ───
 
 const DEFAULT_CONFIG = {
-  sessionTimeout: 3600000,           // 1 hour
-  tokenRefreshThreshold: 300000,     // 5 minutes before expiry
+  sessionTimeout: 3600000, // 1 hour
+  tokenRefreshThreshold: 300000, // 5 minutes before expiry
   maxSessionsPerUser: 5,
   enableAutoRefresh: true,
-  encryptionKeyEnvVar: 'SSO_ENCRYPTION_KEY'
+  encryptionKeyEnvVar: "SSO_ENCRYPTION_KEY",
 };
 
 // ─── Required Fields Per Provider Type ───
 
 const REQUIRED_FIELDS = {
-  [ProviderType.OAUTH2]: ['clientId', 'authorizationEndpoint', 'tokenEndpoint', 'redirectUri'],
-  [ProviderType.OIDC]: ['clientId', 'authorizationEndpoint', 'tokenEndpoint', 'redirectUri', 'userinfoEndpoint'],
-  [ProviderType.SAML]: ['entityId', 'idpEntityId', 'ssoUrl', 'certificate', 'assertionConsumerUrl']
+  [ProviderType.OAUTH2]: [
+    "clientId",
+    "authorizationEndpoint",
+    "tokenEndpoint",
+    "redirectUri",
+  ],
+  [ProviderType.OIDC]: [
+    "clientId",
+    "authorizationEndpoint",
+    "tokenEndpoint",
+    "redirectUri",
+    "userinfoEndpoint",
+  ],
+  [ProviderType.SAML]: [
+    "entityId",
+    "idpEntityId",
+    "ssoUrl",
+    "certificate",
+    "assertionConsumerUrl",
+  ],
 };
 
 // ─── Main Class ───
@@ -84,7 +101,7 @@ class SSOManager extends EventEmitter {
     super();
 
     if (!database) {
-      throw new Error('[SSOManager] database parameter is required');
+      throw new Error("[SSOManager] database parameter is required");
     }
 
     this.database = database;
@@ -101,17 +118,17 @@ class SSOManager extends EventEmitter {
     this._samlProviderClass = null;
 
     // Initialize database tables
-    this._initTables().catch(err => {
-      logger.error('[SSOManager] Failed to initialize tables:', err);
+    this._initTables().catch((err) => {
+      logger.error("[SSOManager] Failed to initialize tables:", err);
     });
 
     // Derive encryption key
     this._initEncryptionKey();
 
-    logger.info('[SSOManager] Initialized with config:', {
+    logger.info("[SSOManager] Initialized with config:", {
       sessionTimeout: this.config.sessionTimeout,
       maxSessionsPerUser: this.config.maxSessionsPerUser,
-      enableAutoRefresh: this.config.enableAutoRefresh
+      enableAutoRefresh: this.config.enableAutoRefresh,
     });
   }
 
@@ -167,24 +184,48 @@ class SSOManager extends EventEmitter {
 
       // Create indexes
       const indexes = [
-        { name: 'idx_sso_config_type', table: 'sso_configurations', column: 'provider_type' },
-        { name: 'idx_sso_config_enabled', table: 'sso_configurations', column: 'enabled' },
-        { name: 'idx_sso_session_provider', table: 'sso_sessions', column: 'provider_id' },
-        { name: 'idx_sso_session_user', table: 'sso_sessions', column: 'user_did' },
-        { name: 'idx_sso_session_state', table: 'sso_sessions', column: 'state' },
-        { name: 'idx_sso_session_expires', table: 'sso_sessions', column: 'expires_at' }
+        {
+          name: "idx_sso_config_type",
+          table: "sso_configurations",
+          column: "provider_type",
+        },
+        {
+          name: "idx_sso_config_enabled",
+          table: "sso_configurations",
+          column: "enabled",
+        },
+        {
+          name: "idx_sso_session_provider",
+          table: "sso_sessions",
+          column: "provider_id",
+        },
+        {
+          name: "idx_sso_session_user",
+          table: "sso_sessions",
+          column: "user_did",
+        },
+        {
+          name: "idx_sso_session_state",
+          table: "sso_sessions",
+          column: "state",
+        },
+        {
+          name: "idx_sso_session_expires",
+          table: "sso_sessions",
+          column: "expires_at",
+        },
       ];
 
       for (const idx of indexes) {
         await this.database.run(
-          `CREATE INDEX IF NOT EXISTS ${idx.name} ON ${idx.table}(${idx.column})`
+          `CREATE INDEX IF NOT EXISTS ${idx.name} ON ${idx.table}(${idx.column})`,
         );
       }
 
       this._tableInitialized = true;
-      logger.info('[SSOManager] Database tables initialized');
+      logger.info("[SSOManager] Database tables initialized");
     } catch (error) {
-      logger.error('[SSOManager] Table initialization failed:', error);
+      logger.error("[SSOManager] Table initialization failed:", error);
       throw error;
     }
   }
@@ -199,17 +240,24 @@ class SSOManager extends EventEmitter {
     if (envKey) {
       // Use provided key (must be 64 hex chars = 32 bytes)
       if (envKey.length === 64 && /^[0-9a-fA-F]+$/.test(envKey)) {
-        this._encryptionKey = Buffer.from(envKey, 'hex');
+        this._encryptionKey = Buffer.from(envKey, "hex");
       } else {
         // Derive key from arbitrary string using SHA-256
-        this._encryptionKey = crypto.createHash('sha256').update(envKey).digest();
+        this._encryptionKey = crypto
+          .createHash("sha256")
+          .update(envKey)
+          .digest();
       }
-      logger.info('[SSOManager] Encryption key loaded from environment variable');
+      logger.info(
+        "[SSOManager] Encryption key loaded from environment variable",
+      );
     } else {
       // Generate a random key (will be different each app restart)
       // In production, this should be persisted securely
       this._encryptionKey = crypto.randomBytes(ENCRYPTION_KEY_LENGTH);
-      logger.warn('[SSOManager] Generated ephemeral encryption key. Set SSO_ENCRYPTION_KEY env var for persistent key.');
+      logger.warn(
+        "[SSOManager] Generated ephemeral encryption key. Set SSO_ENCRYPTION_KEY env var for persistent key.",
+      );
     }
   }
 
@@ -226,30 +274,30 @@ class SSOManager extends EventEmitter {
    */
   async listProviders(options = {}) {
     try {
-      let query = 'SELECT * FROM sso_configurations';
+      let query = "SELECT * FROM sso_configurations";
       const conditions = [];
       const params = [];
 
       if (options.providerType) {
-        conditions.push('provider_type = ?');
+        conditions.push("provider_type = ?");
         params.push(options.providerType);
       }
 
       if (options.enabledOnly) {
-        conditions.push('enabled = 1');
+        conditions.push("enabled = 1");
       }
 
       if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+        query += " WHERE " + conditions.join(" AND ");
       }
 
-      query += ' ORDER BY created_at DESC';
+      query += " ORDER BY created_at DESC";
 
       const rows = await this.database.all(query, params);
 
-      return rows.map(row => this._deserializeProvider(row));
+      return rows.map((row) => this._deserializeProvider(row));
     } catch (error) {
-      logger.error('[SSOManager] Error listing providers:', error);
+      logger.error("[SSOManager] Error listing providers:", error);
       return [];
     }
   }
@@ -265,30 +313,41 @@ class SSOManager extends EventEmitter {
   async addProvider(providerData) {
     try {
       // Validate provider type
-      if (!providerData.provider_type || !VALID_PROVIDER_TYPES.includes(providerData.provider_type)) {
+      if (
+        !providerData.provider_type ||
+        !VALID_PROVIDER_TYPES.includes(providerData.provider_type)
+      ) {
         return {
           success: false,
-          error: `Invalid provider_type. Must be one of: ${VALID_PROVIDER_TYPES.join(', ')}`
+          error: `Invalid provider_type. Must be one of: ${VALID_PROVIDER_TYPES.join(", ")}`,
         };
       }
 
       // Validate provider name
-      if (!providerData.provider_name || typeof providerData.provider_name !== 'string') {
-        return { success: false, error: 'provider_name is required and must be a string' };
+      if (
+        !providerData.provider_name ||
+        typeof providerData.provider_name !== "string"
+      ) {
+        return {
+          success: false,
+          error: "provider_name is required and must be a string",
+        };
       }
 
       // Validate required config fields
-      if (!providerData.config || typeof providerData.config !== 'object') {
-        return { success: false, error: 'config object is required' };
+      if (!providerData.config || typeof providerData.config !== "object") {
+        return { success: false, error: "config object is required" };
       }
 
       const requiredFields = REQUIRED_FIELDS[providerData.provider_type] || [];
-      const missingFields = requiredFields.filter(field => !providerData.config[field]);
+      const missingFields = requiredFields.filter(
+        (field) => !providerData.config[field],
+      );
 
       if (missingFields.length > 0) {
         return {
           success: false,
-          error: `Missing required config fields for ${providerData.provider_type}: ${missingFields.join(', ')}`
+          error: `Missing required config fields for ${providerData.provider_type}: ${missingFields.join(", ")}`,
         };
       }
 
@@ -309,19 +368,25 @@ class SSOManager extends EventEmitter {
           providerData.enabled !== false ? 1 : 0,
           providerData.metadata ? JSON.stringify(providerData.metadata) : null,
           now,
-          now
-        ]
+          now,
+        ],
       );
 
       // Invalidate cache
       this._providerCache.clear();
 
-      this.emit('provider:added', { id, type: providerData.provider_type, name: providerData.provider_name });
-      logger.info(`[SSOManager] Added provider: ${providerData.provider_name} (${providerData.provider_type})`);
+      this.emit("provider:added", {
+        id,
+        type: providerData.provider_type,
+        name: providerData.provider_name,
+      });
+      logger.info(
+        `[SSOManager] Added provider: ${providerData.provider_name} (${providerData.provider_type})`,
+      );
 
       return { success: true, id };
     } catch (error) {
-      logger.error('[SSOManager] Error adding provider:', error);
+      logger.error("[SSOManager] Error adding provider:", error);
       return { success: false, error: error.message };
     }
   }
@@ -335,20 +400,20 @@ class SSOManager extends EventEmitter {
   async updateProvider(id, updates) {
     try {
       if (!id) {
-        return { success: false, error: 'Provider ID is required' };
+        return { success: false, error: "Provider ID is required" };
       }
 
       // Verify provider exists
       const existing = await this.getProvider(id);
       if (!existing) {
-        return { success: false, error: 'Provider not found' };
+        return { success: false, error: "Provider not found" };
       }
 
       const setClauses = [];
       const params = [];
 
       if (updates.provider_name !== undefined) {
-        setClauses.push('provider_name = ?');
+        setClauses.push("provider_name = ?");
         params.push(updates.provider_name);
       }
 
@@ -356,56 +421,56 @@ class SSOManager extends EventEmitter {
         if (!VALID_PROVIDER_TYPES.includes(updates.provider_type)) {
           return {
             success: false,
-            error: `Invalid provider_type. Must be one of: ${VALID_PROVIDER_TYPES.join(', ')}`
+            error: `Invalid provider_type. Must be one of: ${VALID_PROVIDER_TYPES.join(", ")}`,
           };
         }
-        setClauses.push('provider_type = ?');
+        setClauses.push("provider_type = ?");
         params.push(updates.provider_type);
       }
 
       if (updates.config !== undefined) {
-        if (typeof updates.config !== 'object') {
-          return { success: false, error: 'config must be an object' };
+        if (typeof updates.config !== "object") {
+          return { success: false, error: "config must be an object" };
         }
         // Merge with existing config
         const mergedConfig = { ...existing.config, ...updates.config };
         const securedConfig = this._secureSensitiveConfig(mergedConfig);
-        setClauses.push('config = ?');
+        setClauses.push("config = ?");
         params.push(JSON.stringify(securedConfig));
       }
 
       if (updates.enabled !== undefined) {
-        setClauses.push('enabled = ?');
+        setClauses.push("enabled = ?");
         params.push(updates.enabled ? 1 : 0);
       }
 
       if (updates.metadata !== undefined) {
-        setClauses.push('metadata = ?');
+        setClauses.push("metadata = ?");
         params.push(updates.metadata ? JSON.stringify(updates.metadata) : null);
       }
 
       if (setClauses.length === 0) {
-        return { success: false, error: 'No valid update fields provided' };
+        return { success: false, error: "No valid update fields provided" };
       }
 
-      setClauses.push('updated_at = ?');
+      setClauses.push("updated_at = ?");
       params.push(Date.now());
       params.push(id);
 
       await this.database.run(
-        `UPDATE sso_configurations SET ${setClauses.join(', ')} WHERE id = ?`,
-        params
+        `UPDATE sso_configurations SET ${setClauses.join(", ")} WHERE id = ?`,
+        params,
       );
 
       // Invalidate cache
       this._providerCache.delete(id);
 
-      this.emit('provider:updated', { id, updates: Object.keys(updates) });
+      this.emit("provider:updated", { id, updates: Object.keys(updates) });
       logger.info(`[SSOManager] Updated provider: ${id}`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[SSOManager] Error updating provider:', error);
+      logger.error("[SSOManager] Error updating provider:", error);
       return { success: false, error: error.message };
     }
   }
@@ -418,28 +483,27 @@ class SSOManager extends EventEmitter {
   async deleteProvider(id) {
     try {
       if (!id) {
-        return { success: false, error: 'Provider ID is required' };
+        return { success: false, error: "Provider ID is required" };
       }
 
       // Verify provider exists
       const existing = await this.getProvider(id);
       if (!existing) {
-        return { success: false, error: 'Provider not found' };
+        return { success: false, error: "Provider not found" };
       }
 
       // Delete related sessions first
       const sessionResult = await this.database.run(
-        'DELETE FROM sso_sessions WHERE provider_id = ?',
-        [id]
+        "DELETE FROM sso_sessions WHERE provider_id = ?",
+        [id],
       );
 
       const deletedSessions = sessionResult?.changes || 0;
 
       // Delete provider configuration
-      await this.database.run(
-        'DELETE FROM sso_configurations WHERE id = ?',
-        [id]
-      );
+      await this.database.run("DELETE FROM sso_configurations WHERE id = ?", [
+        id,
+      ]);
 
       // Clear any refresh timers for sessions of this provider
       for (const [sessionId, timer] of this._refreshTimers.entries()) {
@@ -451,12 +515,18 @@ class SSOManager extends EventEmitter {
       this._providerCache.delete(id);
       this._sessionCache.clear();
 
-      this.emit('provider:deleted', { id, name: existing.provider_name, deletedSessions });
-      logger.info(`[SSOManager] Deleted provider: ${existing.provider_name} (${deletedSessions} sessions removed)`);
+      this.emit("provider:deleted", {
+        id,
+        name: existing.provider_name,
+        deletedSessions,
+      });
+      logger.info(
+        `[SSOManager] Deleted provider: ${existing.provider_name} (${deletedSessions} sessions removed)`,
+      );
 
       return { success: true, deletedSessions };
     } catch (error) {
-      logger.error('[SSOManager] Error deleting provider:', error);
+      logger.error("[SSOManager] Error deleting provider:", error);
       return { success: false, error: error.message };
     }
   }
@@ -468,7 +538,9 @@ class SSOManager extends EventEmitter {
    */
   async getProvider(id) {
     try {
-      if (!id) {return null;}
+      if (!id) {
+        return null;
+      }
 
       // Check cache
       if (this._providerCache.has(id)) {
@@ -476,18 +548,20 @@ class SSOManager extends EventEmitter {
       }
 
       const row = await this.database.get(
-        'SELECT * FROM sso_configurations WHERE id = ?',
-        [id]
+        "SELECT * FROM sso_configurations WHERE id = ?",
+        [id],
       );
 
-      if (!row) {return null;}
+      if (!row) {
+        return null;
+      }
 
       const provider = this._deserializeProvider(row);
       this._providerCache.set(id, provider);
 
       return provider;
     } catch (error) {
-      logger.error('[SSOManager] Error getting provider:', error);
+      logger.error("[SSOManager] Error getting provider:", error);
       return null;
     }
   }
@@ -501,7 +575,7 @@ class SSOManager extends EventEmitter {
     try {
       const provider = await this.getProvider(id);
       if (!provider) {
-        return { success: false, error: 'Provider not found' };
+        return { success: false, error: "Provider not found" };
       }
 
       const startTime = Date.now();
@@ -509,38 +583,55 @@ class SSOManager extends EventEmitter {
       const results = {
         provider: provider.provider_name,
         type: provider.provider_type,
-        checks: []
+        checks: [],
       };
 
-      if (provider.provider_type === ProviderType.OAUTH2 || provider.provider_type === ProviderType.OIDC) {
+      if (
+        provider.provider_type === ProviderType.OAUTH2 ||
+        provider.provider_type === ProviderType.OIDC
+      ) {
         // Test authorization endpoint
-        const authCheck = await this._testEndpoint(config.authorizationEndpoint, 'Authorization Endpoint');
+        const authCheck = await this._testEndpoint(
+          config.authorizationEndpoint,
+          "Authorization Endpoint",
+        );
         results.checks.push(authCheck);
 
         // Test token endpoint
-        const tokenCheck = await this._testEndpoint(config.tokenEndpoint, 'Token Endpoint');
+        const tokenCheck = await this._testEndpoint(
+          config.tokenEndpoint,
+          "Token Endpoint",
+        );
         results.checks.push(tokenCheck);
 
         // Test userinfo endpoint (OIDC)
         if (config.userinfoEndpoint) {
-          const userinfoCheck = await this._testEndpoint(config.userinfoEndpoint, 'UserInfo Endpoint');
+          const userinfoCheck = await this._testEndpoint(
+            config.userinfoEndpoint,
+            "UserInfo Endpoint",
+          );
           results.checks.push(userinfoCheck);
         }
 
         // Test OIDC discovery endpoint
         if (provider.provider_type === ProviderType.OIDC && config.issuer) {
-          const discoveryUrl = config.issuer.replace(/\/$/, '') + '/.well-known/openid-configuration';
-          const discoveryCheck = await this._testEndpoint(discoveryUrl, 'OIDC Discovery');
+          const discoveryUrl =
+            config.issuer.replace(/\/$/, "") +
+            "/.well-known/openid-configuration";
+          const discoveryCheck = await this._testEndpoint(
+            discoveryUrl,
+            "OIDC Discovery",
+          );
           results.checks.push(discoveryCheck);
         }
       } else if (provider.provider_type === ProviderType.SAML) {
         // Test SSO URL
-        const ssoCheck = await this._testEndpoint(config.ssoUrl, 'SSO URL');
+        const ssoCheck = await this._testEndpoint(config.ssoUrl, "SSO URL");
         results.checks.push(ssoCheck);
 
         // Test SLO URL if available
         if (config.sloUrl) {
-          const sloCheck = await this._testEndpoint(config.sloUrl, 'SLO URL');
+          const sloCheck = await this._testEndpoint(config.sloUrl, "SLO URL");
           results.checks.push(sloCheck);
         }
 
@@ -550,20 +641,26 @@ class SSOManager extends EventEmitter {
       }
 
       const elapsed = Date.now() - startTime;
-      const allPassed = results.checks.every(c => c.status === 'ok');
+      const allPassed = results.checks.every((c) => c.status === "ok");
 
       results.duration = elapsed;
       results.success = allPassed;
       results.summary = allPassed
         ? `All ${results.checks.length} checks passed in ${elapsed}ms`
-        : `${results.checks.filter(c => c.status !== 'ok').length} of ${results.checks.length} checks failed`;
+        : `${results.checks.filter((c) => c.status !== "ok").length} of ${results.checks.length} checks failed`;
 
-      this.emit('provider:tested', { id, success: allPassed, duration: elapsed });
-      logger.info(`[SSOManager] Connection test for ${provider.provider_name}: ${results.summary}`);
+      this.emit("provider:tested", {
+        id,
+        success: allPassed,
+        duration: elapsed,
+      });
+      logger.info(
+        `[SSOManager] Connection test for ${provider.provider_name}: ${results.summary}`,
+      );
 
       return results;
     } catch (error) {
-      logger.error('[SSOManager] Error testing connection:', error);
+      logger.error("[SSOManager] Error testing connection:", error);
       return { success: false, error: error.message, checks: [] };
     }
   }
@@ -589,11 +686,11 @@ class SSOManager extends EventEmitter {
     try {
       const provider = await this.getProvider(providerId);
       if (!provider) {
-        return { success: false, error: 'Provider not found' };
+        return { success: false, error: "Provider not found" };
       }
 
       if (!provider.enabled) {
-        return { success: false, error: 'Provider is disabled' };
+        return { success: false, error: "Provider is disabled" };
       }
 
       const state = uuidv4();
@@ -606,7 +703,12 @@ class SSOManager extends EventEmitter {
         result = await this._initiateSAMLLogin(config, state, options);
       } else {
         // OAuth 2.0 / OIDC flow
-        result = await this._initiateOAuthLogin(config, state, provider.provider_type, options);
+        result = await this._initiateOAuthLogin(
+          config,
+          state,
+          provider.provider_type,
+          options,
+        );
       }
 
       if (!result.success) {
@@ -619,19 +721,21 @@ class SSOManager extends EventEmitter {
         providerType: provider.provider_type,
         codeVerifier: result.codeVerifier || null,
         timestamp: Date.now(),
-        options
+        options,
       });
 
       // Clean up old pending states (older than 10 minutes)
       this._cleanupPendingStates();
 
-      this.emit('login:initiated', {
+      this.emit("login:initiated", {
         providerId,
         providerType: provider.provider_type,
-        state
+        state,
       });
 
-      logger.info(`[SSOManager] Login initiated for provider: ${provider.provider_name}`);
+      logger.info(
+        `[SSOManager] Login initiated for provider: ${provider.provider_name}`,
+      );
 
       return {
         success: true,
@@ -639,10 +743,10 @@ class SSOManager extends EventEmitter {
         state,
         codeVerifier: result.codeVerifier || null,
         providerType: provider.provider_type,
-        providerName: provider.provider_name
+        providerName: provider.provider_name,
       };
     } catch (error) {
-      logger.error('[SSOManager] Error initiating login:', error);
+      logger.error("[SSOManager] Error initiating login:", error);
       return { success: false, error: error.message };
     }
   }
@@ -669,18 +773,24 @@ class SSOManager extends EventEmitter {
     try {
       const provider = await this.getProvider(providerId);
       if (!provider) {
-        return { success: false, error: 'Provider not found' };
+        return { success: false, error: "Provider not found" };
       }
 
       // Verify state parameter
       if (callbackData.state) {
         const pendingState = this._pendingStates.get(callbackData.state);
         if (!pendingState) {
-          return { success: false, error: 'Invalid or expired state parameter' };
+          return {
+            success: false,
+            error: "Invalid or expired state parameter",
+          };
         }
 
         if (pendingState.providerId !== providerId) {
-          return { success: false, error: 'State parameter does not match provider' };
+          return {
+            success: false,
+            error: "State parameter does not match provider",
+          };
         }
 
         // Use stored code verifier if not provided
@@ -697,7 +807,10 @@ class SSOManager extends EventEmitter {
 
       if (provider.provider_type === ProviderType.SAML) {
         // Handle SAML assertion
-        const samlResult = await this._handleSAMLCallback(provider.config, callbackData);
+        const samlResult = await this._handleSAMLCallback(
+          provider.config,
+          callbackData,
+        );
         if (!samlResult.success) {
           return samlResult;
         }
@@ -705,7 +818,10 @@ class SSOManager extends EventEmitter {
         userInfo = samlResult.userInfo;
       } else {
         // Handle OAuth/OIDC code exchange
-        const oauthResult = await this._handleOAuthCallback(provider.config, callbackData);
+        const oauthResult = await this._handleOAuthCallback(
+          provider.config,
+          callbackData,
+        );
         if (!oauthResult.success) {
           return oauthResult;
         }
@@ -716,25 +832,30 @@ class SSOManager extends EventEmitter {
       // Create SSO session
       const session = await this._createSession(providerId, {
         userDid: callbackData.userDid || null,
-        externalUserId: userInfo.sub || userInfo.nameId || userInfo.email || null,
+        externalUserId:
+          userInfo.sub || userInfo.nameId || userInfo.email || null,
         tokenData,
         userInfo,
         ipAddress: callbackData.ipAddress || null,
         userAgent: callbackData.userAgent || null,
         samlSessionIndex: userInfo.sessionIndex || null,
-        samlNameId: userInfo.nameId || null
+        samlNameId: userInfo.nameId || null,
       });
 
       // Schedule token refresh if enabled
-      if (this.config.enableAutoRefresh && tokenData.refreshToken && tokenData.expiresIn) {
+      if (
+        this.config.enableAutoRefresh &&
+        tokenData.refreshToken &&
+        tokenData.expiresIn
+      ) {
         this._scheduleTokenRefresh(session.id, tokenData.expiresIn);
       }
 
-      this.emit('login:completed', {
+      this.emit("login:completed", {
         sessionId: session.id,
         providerId,
         userDid: callbackData.userDid,
-        externalUserId: session.externalUserId
+        externalUserId: session.externalUserId,
       });
 
       logger.info(`[SSOManager] Login completed. Session: ${session.id}`);
@@ -748,12 +869,12 @@ class SSOManager extends EventEmitter {
           externalUserId: session.externalUserId,
           state: session.state,
           expiresAt: session.expiresAt,
-          createdAt: session.createdAt
+          createdAt: session.createdAt,
         },
-        userInfo
+        userInfo,
       };
     } catch (error) {
-      logger.error('[SSOManager] Error handling callback:', error);
+      logger.error("[SSOManager] Error handling callback:", error);
       return { success: false, error: error.message };
     }
   }
@@ -766,16 +887,16 @@ class SSOManager extends EventEmitter {
   async logout(sessionId) {
     try {
       if (!sessionId) {
-        return { success: false, error: 'Session ID is required' };
+        return { success: false, error: "Session ID is required" };
       }
 
       const session = await this._getSession(sessionId);
       if (!session) {
-        return { success: false, error: 'Session not found' };
+        return { success: false, error: "Session not found" };
       }
 
       if (session.state === SessionState.REVOKED) {
-        return { success: true, message: 'Session already revoked' };
+        return { success: true, message: "Session already revoked" };
       }
 
       const provider = await this.getProvider(session.providerId);
@@ -784,19 +905,28 @@ class SSOManager extends EventEmitter {
       let tokenRevoked = false;
       if (provider && session.accessToken) {
         try {
-          if (provider.provider_type === ProviderType.OAUTH2 || provider.provider_type === ProviderType.OIDC) {
-            tokenRevoked = await this._revokeOAuthTokens(provider.config, session);
+          if (
+            provider.provider_type === ProviderType.OAUTH2 ||
+            provider.provider_type === ProviderType.OIDC
+          ) {
+            tokenRevoked = await this._revokeOAuthTokens(
+              provider.config,
+              session,
+            );
           }
           // SAML logout would typically use SLO (Single Logout)
         } catch (revokeError) {
-          logger.warn(`[SSOManager] Token revocation failed for session ${sessionId}:`, revokeError.message);
+          logger.warn(
+            `[SSOManager] Token revocation failed for session ${sessionId}:`,
+            revokeError.message,
+          );
         }
       }
 
       // Update session state
       await this.database.run(
         `UPDATE sso_sessions SET state = ?, updated_at = ? WHERE id = ?`,
-        [SessionState.REVOKED, Date.now(), sessionId]
+        [SessionState.REVOKED, Date.now(), sessionId],
       );
 
       // Cancel refresh timer
@@ -808,18 +938,20 @@ class SSOManager extends EventEmitter {
       // Clear session cache
       this._sessionCache.delete(sessionId);
 
-      this.emit('logout:completed', {
+      this.emit("logout:completed", {
         sessionId,
         providerId: session.providerId,
         userDid: session.userDid,
-        tokenRevoked
+        tokenRevoked,
       });
 
-      logger.info(`[SSOManager] Logout completed. Session: ${sessionId}, token revoked: ${tokenRevoked}`);
+      logger.info(
+        `[SSOManager] Logout completed. Session: ${sessionId}, token revoked: ${tokenRevoked}`,
+      );
 
       return { success: true, tokenRevoked };
     } catch (error) {
-      logger.error('[SSOManager] Error during logout:', error);
+      logger.error("[SSOManager] Error during logout:", error);
       return { success: false, error: error.message };
     }
   }
@@ -832,35 +964,38 @@ class SSOManager extends EventEmitter {
   async refreshToken(sessionId) {
     try {
       if (!sessionId) {
-        return { success: false, error: 'Session ID is required' };
+        return { success: false, error: "Session ID is required" };
       }
 
       const session = await this._getSession(sessionId);
       if (!session) {
-        return { success: false, error: 'Session not found' };
+        return { success: false, error: "Session not found" };
       }
 
       if (session.state === SessionState.REVOKED) {
-        return { success: false, error: 'Session has been revoked' };
+        return { success: false, error: "Session has been revoked" };
       }
 
       if (!session.refreshToken) {
-        return { success: false, error: 'No refresh token available' };
+        return { success: false, error: "No refresh token available" };
       }
 
       const provider = await this.getProvider(session.providerId);
       if (!provider) {
-        return { success: false, error: 'Provider not found for session' };
+        return { success: false, error: "Provider not found for session" };
       }
 
       if (provider.provider_type === ProviderType.SAML) {
-        return { success: false, error: 'Token refresh is not supported for SAML providers' };
+        return {
+          success: false,
+          error: "Token refresh is not supported for SAML providers",
+        };
       }
 
       // Mark session as refreshing
       await this.database.run(
         `UPDATE sso_sessions SET state = ?, updated_at = ? WHERE id = ?`,
-        [SessionState.REFRESHING, Date.now(), sessionId]
+        [SessionState.REFRESHING, Date.now(), sessionId],
       );
 
       // Decrypt refresh token
@@ -871,25 +1006,32 @@ class SSOManager extends EventEmitter {
       let tokenResponse;
 
       try {
-        tokenResponse = await oauthProvider.refreshAccessToken(decryptedRefreshToken);
+        tokenResponse = await oauthProvider.refreshAccessToken(
+          decryptedRefreshToken,
+        );
       } catch (refreshError) {
         // Mark session as expired on refresh failure
         await this.database.run(
           `UPDATE sso_sessions SET state = ?, updated_at = ? WHERE id = ?`,
-          [SessionState.EXPIRED, Date.now(), sessionId]
+          [SessionState.EXPIRED, Date.now(), sessionId],
         );
         this._sessionCache.delete(sessionId);
 
-        return { success: false, error: `Token refresh failed: ${refreshError.message}` };
+        return {
+          success: false,
+          error: `Token refresh failed: ${refreshError.message}`,
+        };
       }
 
       // Update session with new tokens
       const now = Date.now();
       const expiresAt = tokenResponse.expires_in
-        ? now + (tokenResponse.expires_in * 1000)
+        ? now + tokenResponse.expires_in * 1000
         : now + this.config.sessionTimeout;
 
-      const encryptedAccessToken = this._encryptToken(tokenResponse.access_token);
+      const encryptedAccessToken = this._encryptToken(
+        tokenResponse.access_token,
+      );
       const encryptedRefreshToken = tokenResponse.refresh_token
         ? this._encryptToken(tokenResponse.refresh_token)
         : session.refreshToken; // Keep existing refresh token if not rotated
@@ -899,7 +1041,14 @@ class SSOManager extends EventEmitter {
          SET access_token = ?, refresh_token = ?, expires_at = ?,
              state = ?, updated_at = ?
          WHERE id = ?`,
-        [encryptedAccessToken, encryptedRefreshToken, expiresAt, SessionState.ACTIVE, now, sessionId]
+        [
+          encryptedAccessToken,
+          encryptedRefreshToken,
+          expiresAt,
+          SessionState.ACTIVE,
+          now,
+          sessionId,
+        ],
       );
 
       // Invalidate session cache
@@ -910,10 +1059,10 @@ class SSOManager extends EventEmitter {
         this._scheduleTokenRefresh(sessionId, tokenResponse.expires_in);
       }
 
-      this.emit('token:refreshed', {
+      this.emit("token:refreshed", {
         sessionId,
         providerId: session.providerId,
-        expiresAt
+        expiresAt,
       });
 
       logger.info(`[SSOManager] Token refreshed for session: ${sessionId}`);
@@ -921,10 +1070,10 @@ class SSOManager extends EventEmitter {
       return {
         success: true,
         expiresAt,
-        tokenType: tokenResponse.token_type || 'Bearer'
+        tokenType: tokenResponse.token_type || "Bearer",
       };
     } catch (error) {
-      logger.error('[SSOManager] Error refreshing token:', error);
+      logger.error("[SSOManager] Error refreshing token:", error);
       return { success: false, error: error.message };
     }
   }
@@ -956,11 +1105,11 @@ class SSOManager extends EventEmitter {
         params.push(SessionState.ACTIVE);
       }
 
-      query += ' ORDER BY s.created_at DESC';
+      query += " ORDER BY s.created_at DESC";
 
       const rows = await this.database.all(query, params);
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         id: row.id,
         providerId: row.provider_id,
         providerName: row.provider_name,
@@ -972,10 +1121,10 @@ class SSOManager extends EventEmitter {
         ipAddress: row.ip_address,
         userAgent: row.user_agent,
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       }));
     } catch (error) {
-      logger.error('[SSOManager] Error getting active sessions:', error);
+      logger.error("[SSOManager] Error getting active sessions:", error);
       return [];
     }
   }
@@ -994,15 +1143,21 @@ class SSOManager extends EventEmitter {
       const pkce = this._generatePKCE();
 
       // Build authorization URL
-      const authUrl = this._buildAuthUrl(config, state, pkce.codeChallenge, providerType, options);
+      const authUrl = this._buildAuthUrl(
+        config,
+        state,
+        pkce.codeChallenge,
+        providerType,
+        options,
+      );
 
       return {
         success: true,
         authUrl,
-        codeVerifier: pkce.codeVerifier
+        codeVerifier: pkce.codeVerifier,
       };
     } catch (error) {
-      logger.error('[SSOManager] Error initiating OAuth login:', error);
+      logger.error("[SSOManager] Error initiating OAuth login:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1014,14 +1169,18 @@ class SSOManager extends EventEmitter {
   async _handleOAuthCallback(config, callbackData) {
     try {
       if (!callbackData.code) {
-        return { success: false, error: 'Authorization code is required' };
+        return { success: false, error: "Authorization code is required" };
       }
 
       // Exchange code for tokens
-      const tokenData = await this._exchangeCode(config, callbackData.code, callbackData.codeVerifier);
+      const tokenData = await this._exchangeCode(
+        config,
+        callbackData.code,
+        callbackData.codeVerifier,
+      );
 
       if (!tokenData || !tokenData.access_token) {
-        return { success: false, error: 'Failed to exchange code for tokens' };
+        return { success: false, error: "Failed to exchange code for tokens" };
       }
 
       // Get user info
@@ -1031,7 +1190,10 @@ class SSOManager extends EventEmitter {
           const oauthProvider = this._getOAuthProvider(config);
           userInfo = await oauthProvider.getUserInfo(tokenData.access_token);
         } catch (userinfoError) {
-          logger.warn('[SSOManager] Failed to fetch user info:', userinfoError.message);
+          logger.warn(
+            "[SSOManager] Failed to fetch user info:",
+            userinfoError.message,
+          );
         }
       }
 
@@ -1039,10 +1201,20 @@ class SSOManager extends EventEmitter {
       if (tokenData.id_token) {
         try {
           const oauthProvider = this._getOAuthProvider(config);
-          const idTokenClaims = await oauthProvider.validateIdToken(tokenData.id_token);
-          userInfo = { ...idTokenClaims, ...userInfo };
+          const idTokenClaims = await oauthProvider.validateIdToken(
+            tokenData.id_token,
+          );
+          // Fail-closed: reject claims from an invalid id_token (throws → caught
+          // below → id_token claims simply not merged; userinfo claims still used).
+          userInfo = {
+            ...this._enforceIdTokenClaims(idTokenClaims),
+            ...userInfo,
+          };
         } catch (idTokenError) {
-          logger.warn('[SSOManager] Failed to validate id_token:', idTokenError.message);
+          logger.warn(
+            "[SSOManager] Failed to validate id_token:",
+            idTokenError.message,
+          );
         }
       }
 
@@ -1052,14 +1224,14 @@ class SSOManager extends EventEmitter {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token || null,
           idToken: tokenData.id_token || null,
-          tokenType: tokenData.token_type || 'Bearer',
+          tokenType: tokenData.token_type || "Bearer",
           expiresIn: tokenData.expires_in || null,
-          scope: tokenData.scope || null
+          scope: tokenData.scope || null,
         },
-        userInfo
+        userInfo,
       };
     } catch (error) {
-      logger.error('[SSOManager] Error handling OAuth callback:', error);
+      logger.error("[SSOManager] Error handling OAuth callback:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1071,7 +1243,7 @@ class SSOManager extends EventEmitter {
   async _revokeOAuthTokens(config, session) {
     try {
       if (!config.revocationEndpoint) {
-        logger.debug('[SSOManager] No revocation endpoint configured');
+        logger.debug("[SSOManager] No revocation endpoint configured");
         return false;
       }
 
@@ -1085,13 +1257,16 @@ class SSOManager extends EventEmitter {
           const decryptedRefresh = this._decryptToken(session.refreshToken);
           await oauthProvider.revokeToken(decryptedRefresh);
         } catch (refreshRevokeErr) {
-          logger.debug('[SSOManager] Refresh token revocation failed:', refreshRevokeErr.message);
+          logger.debug(
+            "[SSOManager] Refresh token revocation failed:",
+            refreshRevokeErr.message,
+          );
         }
       }
 
       return true;
     } catch (error) {
-      logger.warn('[SSOManager] Token revocation error:', error.message);
+      logger.warn("[SSOManager] Token revocation error:", error.message);
       return false;
     }
   }
@@ -1107,26 +1282,26 @@ class SSOManager extends EventEmitter {
   async _initiateSAMLLogin(config, state, options = {}) {
     try {
       const samlProvider = this._getSAMLProvider(config);
-      const requestId = '_' + uuidv4().replace(/-/g, '');
+      const requestId = "_" + uuidv4().replace(/-/g, "");
 
       const authnRequest = samlProvider.generateAuthnRequest(requestId, state);
 
       // Build SSO URL with SAMLRequest parameter
-      const samlRequestBase64 = Buffer.from(authnRequest).toString('base64');
+      const samlRequestBase64 = Buffer.from(authnRequest).toString("base64");
       const encodedRequest = encodeURIComponent(samlRequestBase64);
       const encodedState = encodeURIComponent(state);
 
       let authUrl = config.ssoUrl;
-      const separator = authUrl.includes('?') ? '&' : '?';
+      const separator = authUrl.includes("?") ? "&" : "?";
       authUrl += `${separator}SAMLRequest=${encodedRequest}&RelayState=${encodedState}`;
 
       return {
         success: true,
         authUrl,
-        codeVerifier: null // SAML doesn't use PKCE
+        codeVerifier: null, // SAML doesn't use PKCE
       };
     } catch (error) {
-      logger.error('[SSOManager] Error initiating SAML login:', error);
+      logger.error("[SSOManager] Error initiating SAML login:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1138,36 +1313,53 @@ class SSOManager extends EventEmitter {
   async _handleSAMLCallback(config, callbackData) {
     try {
       if (!callbackData.samlResponse) {
-        return { success: false, error: 'SAML Response is required' };
+        return { success: false, error: "SAML Response is required" };
       }
 
       const samlProvider = this._getSAMLProvider(config);
       const assertion = samlProvider.parseAssertion(callbackData.samlResponse);
 
       if (!assertion || !assertion.nameId) {
-        return { success: false, error: 'Failed to parse SAML assertion' };
+        return { success: false, error: "Failed to parse SAML assertion" };
       }
 
       // Check assertion conditions
       if (assertion.conditions) {
         const now = new Date();
-        if (assertion.conditions.notBefore && now < new Date(assertion.conditions.notBefore)) {
-          return { success: false, error: 'SAML assertion is not yet valid' };
+        if (
+          assertion.conditions.notBefore &&
+          now < new Date(assertion.conditions.notBefore)
+        ) {
+          return { success: false, error: "SAML assertion is not yet valid" };
         }
-        if (assertion.conditions.notOnOrAfter && now >= new Date(assertion.conditions.notOnOrAfter)) {
-          return { success: false, error: 'SAML assertion has expired' };
+        if (
+          assertion.conditions.notOnOrAfter &&
+          now >= new Date(assertion.conditions.notOnOrAfter)
+        ) {
+          return { success: false, error: "SAML assertion has expired" };
         }
       }
 
       const userInfo = {
         nameId: assertion.nameId,
         sessionIndex: assertion.sessionIndex || null,
-        email: assertion.attributes?.email || assertion.attributes?.Email || null,
-        displayName: assertion.attributes?.displayName || assertion.attributes?.DisplayName || null,
-        firstName: assertion.attributes?.firstName || assertion.attributes?.FirstName || null,
-        lastName: assertion.attributes?.lastName || assertion.attributes?.LastName || null,
-        groups: assertion.attributes?.groups || assertion.attributes?.Groups || [],
-        ...assertion.attributes
+        email:
+          assertion.attributes?.email || assertion.attributes?.Email || null,
+        displayName:
+          assertion.attributes?.displayName ||
+          assertion.attributes?.DisplayName ||
+          null,
+        firstName:
+          assertion.attributes?.firstName ||
+          assertion.attributes?.FirstName ||
+          null,
+        lastName:
+          assertion.attributes?.lastName ||
+          assertion.attributes?.LastName ||
+          null,
+        groups:
+          assertion.attributes?.groups || assertion.attributes?.Groups || [],
+        ...assertion.attributes,
       };
 
       return {
@@ -1176,16 +1368,20 @@ class SSOManager extends EventEmitter {
           accessToken: null, // SAML doesn't issue access tokens
           refreshToken: null,
           idToken: null,
-          tokenType: 'saml',
+          tokenType: "saml",
           expiresIn: assertion.conditions?.notOnOrAfter
-            ? Math.floor((new Date(assertion.conditions.notOnOrAfter).getTime() - Date.now()) / 1000)
+            ? Math.floor(
+                (new Date(assertion.conditions.notOnOrAfter).getTime() -
+                  Date.now()) /
+                  1000,
+              )
             : 3600,
-          scope: null
+          scope: null,
         },
-        userInfo
+        userInfo,
       };
     } catch (error) {
-      logger.error('[SSOManager] Error handling SAML callback:', error);
+      logger.error("[SSOManager] Error handling SAML callback:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1205,25 +1401,25 @@ class SSOManager extends EventEmitter {
     const verifierLength = 64;
     const randomBytes = crypto.randomBytes(verifierLength);
     const codeVerifier = randomBytes
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "")
       .substring(0, 128);
 
     // Generate code challenge using S256 method
     const codeChallenge = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(codeVerifier)
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+      .digest("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
 
     return {
       codeVerifier,
       codeChallenge,
-      codeChallengeMethod: 'S256'
+      codeChallengeMethod: "S256",
     };
   }
 
@@ -1234,40 +1430,41 @@ class SSOManager extends EventEmitter {
   _buildAuthUrl(config, state, codeChallenge, providerType, options = {}) {
     const params = new URLSearchParams();
 
-    params.set('response_type', 'code');
-    params.set('client_id', config.clientId);
-    params.set('redirect_uri', config.redirectUri);
-    params.set('state', state);
+    params.set("response_type", "code");
+    params.set("client_id", config.clientId);
+    params.set("redirect_uri", config.redirectUri);
+    params.set("state", state);
 
     // PKCE parameters
-    params.set('code_challenge', codeChallenge);
-    params.set('code_challenge_method', 'S256');
+    params.set("code_challenge", codeChallenge);
+    params.set("code_challenge_method", "S256");
 
     // Scopes
     const scopes = options.scopes || config.scopes || [];
-    const defaultScopes = providerType === ProviderType.OIDC
-      ? ['openid', 'profile', 'email']
-      : ['read'];
+    const defaultScopes =
+      providerType === ProviderType.OIDC
+        ? ["openid", "profile", "email"]
+        : ["read"];
 
     const allScopes = [...new Set([...defaultScopes, ...scopes])];
-    params.set('scope', allScopes.join(' '));
+    params.set("scope", allScopes.join(" "));
 
     // Optional parameters
     if (options.loginHint) {
-      params.set('login_hint', options.loginHint);
+      params.set("login_hint", options.loginHint);
     }
 
     if (options.prompt) {
-      params.set('prompt', options.prompt);
+      params.set("prompt", options.prompt);
     }
 
     if (providerType === ProviderType.OIDC) {
       // Add nonce for OIDC
-      params.set('nonce', uuidv4());
+      params.set("nonce", uuidv4());
     }
 
     const baseUrl = config.authorizationEndpoint;
-    const separator = baseUrl.includes('?') ? '&' : '?';
+    const separator = baseUrl.includes("?") ? "&" : "?";
     return `${baseUrl}${separator}${params.toString()}`;
   }
 
@@ -1280,7 +1477,7 @@ class SSOManager extends EventEmitter {
       const oauthProvider = this._getOAuthProvider(config);
       return await oauthProvider.exchangeCode(code, codeVerifier);
     } catch (error) {
-      logger.error('[SSOManager] Code exchange failed:', error);
+      logger.error("[SSOManager] Code exchange failed:", error);
       throw error;
     }
   }
@@ -1296,13 +1493,19 @@ class SSOManager extends EventEmitter {
    * @returns {string} Encrypted token as hex string (iv:authTag:encrypted)
    */
   _encryptToken(token) {
-    if (!token) {return null;}
+    if (!token) {
+      return null;
+    }
 
     try {
       const iv = crypto.randomBytes(IV_LENGTH);
-      const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, this._encryptionKey, iv);
+      const cipher = crypto.createCipheriv(
+        ENCRYPTION_ALGORITHM,
+        this._encryptionKey,
+        iv,
+      );
 
-      let encrypted = cipher.update(token, 'utf8', ENCODING);
+      let encrypted = cipher.update(token, "utf8", ENCODING);
       encrypted += cipher.final(ENCODING);
 
       const authTag = cipher.getAuthTag();
@@ -1310,8 +1513,8 @@ class SSOManager extends EventEmitter {
       // Format: iv:authTag:encrypted (all hex)
       return `${iv.toString(ENCODING)}:${authTag.toString(ENCODING)}:${encrypted}`;
     } catch (error) {
-      logger.error('[SSOManager] Token encryption failed:', error);
-      throw new Error('Token encryption failed');
+      logger.error("[SSOManager] Token encryption failed:", error);
+      throw new Error("Token encryption failed");
     }
   }
 
@@ -1322,28 +1525,34 @@ class SSOManager extends EventEmitter {
    * @returns {string} Decrypted token
    */
   _decryptToken(encrypted) {
-    if (!encrypted) {return null;}
+    if (!encrypted) {
+      return null;
+    }
 
     try {
-      const parts = encrypted.split(':');
+      const parts = encrypted.split(":");
       if (parts.length !== 3) {
-        throw new Error('Invalid encrypted token format');
+        throw new Error("Invalid encrypted token format");
       }
 
       const [ivHex, authTagHex, encryptedData] = parts;
       const iv = Buffer.from(ivHex, ENCODING);
       const authTag = Buffer.from(authTagHex, ENCODING);
 
-      const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, this._encryptionKey, iv);
+      const decipher = crypto.createDecipheriv(
+        ENCRYPTION_ALGORITHM,
+        this._encryptionKey,
+        iv,
+      );
       decipher.setAuthTag(authTag);
 
-      let decrypted = decipher.update(encryptedData, ENCODING, 'utf8');
-      decrypted += decipher.final('utf8');
+      let decrypted = decipher.update(encryptedData, ENCODING, "utf8");
+      decrypted += decipher.final("utf8");
 
       return decrypted;
     } catch (error) {
-      logger.error('[SSOManager] Token decryption failed:', error);
-      throw new Error('Token decryption failed');
+      logger.error("[SSOManager] Token decryption failed:", error);
+      throw new Error("Token decryption failed");
     }
   }
 
@@ -1359,7 +1568,7 @@ class SSOManager extends EventEmitter {
     const id = uuidv4();
     const now = Date.now();
     const expiresAt = data.tokenData?.expiresIn
-      ? now + (data.tokenData.expiresIn * 1000)
+      ? now + data.tokenData.expiresIn * 1000
       : now + this.config.sessionTimeout;
 
     // Enforce max sessions per user
@@ -1368,7 +1577,9 @@ class SSOManager extends EventEmitter {
       if (activeSessions.length >= this.config.maxSessionsPerUser) {
         // Revoke the oldest session
         const oldest = activeSessions[activeSessions.length - 1];
-        logger.info(`[SSOManager] Max sessions reached, revoking oldest: ${oldest.id}`);
+        logger.info(
+          `[SSOManager] Max sessions reached, revoking oldest: ${oldest.id}`,
+        );
         await this.logout(oldest.id);
       }
     }
@@ -1394,20 +1605,30 @@ class SSOManager extends EventEmitter {
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        id, providerId, data.userDid, data.externalUserId,
-        encryptedAccessToken, encryptedRefreshToken, encryptedIdToken,
-        data.tokenData?.tokenType || 'Bearer',
+        id,
+        providerId,
+        data.userDid,
+        data.externalUserId,
+        encryptedAccessToken,
+        encryptedRefreshToken,
+        encryptedIdToken,
+        data.tokenData?.tokenType || "Bearer",
         expiresAt,
         data.tokenData?.scope || null,
         data.userInfo ? JSON.stringify(data.userInfo) : null,
         SessionState.ACTIVE,
-        data.samlSessionIndex, data.samlNameId,
-        data.ipAddress, data.userAgent,
-        now, now
-      ]
+        data.samlSessionIndex,
+        data.samlNameId,
+        data.ipAddress,
+        data.userAgent,
+        now,
+        now,
+      ],
     );
 
-    logger.info(`[SSOManager] Session created: ${id} for provider: ${providerId}`);
+    logger.info(
+      `[SSOManager] Session created: ${id} for provider: ${providerId}`,
+    );
 
     return {
       id,
@@ -1416,7 +1637,7 @@ class SSOManager extends EventEmitter {
       externalUserId: data.externalUserId,
       state: SessionState.ACTIVE,
       expiresAt,
-      createdAt: now
+      createdAt: now,
     };
   }
 
@@ -1431,11 +1652,13 @@ class SSOManager extends EventEmitter {
       }
 
       const row = await this.database.get(
-        'SELECT * FROM sso_sessions WHERE id = ?',
-        [sessionId]
+        "SELECT * FROM sso_sessions WHERE id = ?",
+        [sessionId],
       );
 
-      if (!row) {return null;}
+      if (!row) {
+        return null;
+      }
 
       const session = {
         id: row.id,
@@ -1455,22 +1678,26 @@ class SSOManager extends EventEmitter {
         ipAddress: row.ip_address,
         userAgent: row.user_agent,
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       };
 
       // Check if session has expired
-      if (session.state === SessionState.ACTIVE && session.expiresAt && Date.now() >= session.expiresAt) {
+      if (
+        session.state === SessionState.ACTIVE &&
+        session.expiresAt &&
+        Date.now() >= session.expiresAt
+      ) {
         session.state = SessionState.EXPIRED;
         await this.database.run(
           `UPDATE sso_sessions SET state = ?, updated_at = ? WHERE id = ?`,
-          [SessionState.EXPIRED, Date.now(), sessionId]
+          [SessionState.EXPIRED, Date.now(), sessionId],
         );
       }
 
       this._sessionCache.set(sessionId, session);
       return session;
     } catch (error) {
-      logger.error('[SSOManager] Error getting session:', error);
+      logger.error("[SSOManager] Error getting session:", error);
       return null;
     }
   }
@@ -1487,25 +1714,34 @@ class SSOManager extends EventEmitter {
 
     // Refresh before expiry (configurable threshold)
     const refreshDelay = Math.max(
-      (expiresInSeconds * 1000) - this.config.tokenRefreshThreshold,
-      0
+      expiresInSeconds * 1000 - this.config.tokenRefreshThreshold,
+      0,
     );
 
     const timer = setTimeout(async () => {
       try {
-        logger.info(`[SSOManager] Auto-refreshing token for session: ${sessionId}`);
+        logger.info(
+          `[SSOManager] Auto-refreshing token for session: ${sessionId}`,
+        );
         const result = await this.refreshToken(sessionId);
         if (!result.success) {
-          logger.warn(`[SSOManager] Auto-refresh failed for session ${sessionId}: ${result.error}`);
-          this.emit('token:refresh-failed', { sessionId, error: result.error });
+          logger.warn(
+            `[SSOManager] Auto-refresh failed for session ${sessionId}: ${result.error}`,
+          );
+          this.emit("token:refresh-failed", { sessionId, error: result.error });
         }
       } catch (error) {
-        logger.error(`[SSOManager] Auto-refresh error for session ${sessionId}:`, error);
+        logger.error(
+          `[SSOManager] Auto-refresh error for session ${sessionId}:`,
+          error,
+        );
       }
     }, refreshDelay);
 
     this._refreshTimers.set(sessionId, timer);
-    logger.debug(`[SSOManager] Token refresh scheduled for session ${sessionId} in ${Math.round(refreshDelay / 1000)}s`);
+    logger.debug(
+      `[SSOManager] Token refresh scheduled for session ${sessionId} in ${Math.round(refreshDelay / 1000)}s`,
+    );
   }
 
   // ════════════════════════════════════════════
@@ -1519,11 +1755,11 @@ class SSOManager extends EventEmitter {
   _getOAuthProvider(config) {
     if (!this._oauthProviderClass) {
       try {
-        const { OAuthProvider } = require('./oauth-provider.js');
+        const { OAuthProvider } = require("./oauth-provider.js");
         this._oauthProviderClass = OAuthProvider;
       } catch (loadError) {
-        logger.error('[SSOManager] Failed to load OAuthProvider:', loadError);
-        throw new Error('OAuthProvider module not available');
+        logger.error("[SSOManager] Failed to load OAuthProvider:", loadError);
+        throw new Error("OAuthProvider module not available");
       }
     }
 
@@ -1537,11 +1773,11 @@ class SSOManager extends EventEmitter {
   _getSAMLProvider(config) {
     if (!this._samlProviderClass) {
       try {
-        const { SAMLProvider } = require('./saml-provider.js');
+        const { SAMLProvider } = require("./saml-provider.js");
         this._samlProviderClass = SAMLProvider;
       } catch (loadError) {
-        logger.error('[SSOManager] Failed to load SAMLProvider:', loadError);
-        throw new Error('SAMLProvider module not available');
+        logger.error("[SSOManager] Failed to load SAMLProvider:", loadError);
+        throw new Error("SAMLProvider module not available");
       }
     }
 
@@ -1560,18 +1796,19 @@ class SSOManager extends EventEmitter {
     return new Promise((resolve) => {
       try {
         const parsedUrl = new URL(url);
-        const protocol = parsedUrl.protocol === 'https:' ? require('https') : require('http');
+        const protocol =
+          parsedUrl.protocol === "https:" ? require("https") : require("http");
         const startTime = Date.now();
 
         const options = {
           hostname: parsedUrl.hostname,
-          port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+          port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
           path: parsedUrl.pathname + parsedUrl.search,
-          method: 'HEAD',
+          method: "HEAD",
           timeout: 10000,
           headers: {
-            'User-Agent': 'ChainlessChain-SSO/1.0'
-          }
+            "User-Agent": "ChainlessChain-SSO/1.0",
+          },
         };
 
         const req = protocol.request(options, (res) => {
@@ -1579,30 +1816,30 @@ class SSOManager extends EventEmitter {
           resolve({
             name,
             url,
-            status: 'ok',
+            status: "ok",
             statusCode: res.statusCode,
             latency: elapsed,
-            message: `${name} reachable (${res.statusCode}) in ${elapsed}ms`
+            message: `${name} reachable (${res.statusCode}) in ${elapsed}ms`,
           });
         });
 
-        req.on('error', (err) => {
+        req.on("error", (err) => {
           resolve({
             name,
             url,
-            status: 'error',
+            status: "error",
             error: err.message,
-            message: `${name} unreachable: ${err.message}`
+            message: `${name} unreachable: ${err.message}`,
           });
         });
 
-        req.on('timeout', () => {
+        req.on("timeout", () => {
           req.destroy();
           resolve({
             name,
             url,
-            status: 'timeout',
-            message: `${name} timed out after 10s`
+            status: "timeout",
+            message: `${name} timed out after 10s`,
           });
         });
 
@@ -1611,9 +1848,9 @@ class SSOManager extends EventEmitter {
         resolve({
           name,
           url,
-          status: 'error',
+          status: "error",
           error: error.message,
-          message: `${name} invalid URL: ${error.message}`
+          message: `${name} invalid URL: ${error.message}`,
         });
       }
     });
@@ -1626,23 +1863,27 @@ class SSOManager extends EventEmitter {
   _validateCertificate(certificate) {
     if (!certificate) {
       return {
-        name: 'Certificate',
-        status: 'error',
-        message: 'Certificate is missing'
+        name: "Certificate",
+        status: "error",
+        message: "Certificate is missing",
       };
     }
 
     // Check for PEM format
-    const isPEM = certificate.includes('BEGIN CERTIFICATE') && certificate.includes('END CERTIFICATE');
+    const isPEM =
+      certificate.includes("BEGIN CERTIFICATE") &&
+      certificate.includes("END CERTIFICATE");
 
     // Try base64 decode if not PEM
-    const isBase64 = !isPEM && /^[A-Za-z0-9+/\r\n]+={0,2}$/.test(certificate.replace(/\s/g, ''));
+    const isBase64 =
+      !isPEM &&
+      /^[A-Za-z0-9+/\r\n]+={0,2}$/.test(certificate.replace(/\s/g, ""));
 
     if (!isPEM && !isBase64) {
       return {
-        name: 'Certificate',
-        status: 'error',
-        message: 'Certificate is not in valid PEM or base64 format'
+        name: "Certificate",
+        status: "error",
+        message: "Certificate is not in valid PEM or base64 format",
       };
     }
 
@@ -1650,35 +1891,35 @@ class SSOManager extends EventEmitter {
     let certBase64;
     if (isPEM) {
       certBase64 = certificate
-        .replace(/-----BEGIN CERTIFICATE-----/g, '')
-        .replace(/-----END CERTIFICATE-----/g, '')
-        .replace(/[\r\n\s]/g, '');
+        .replace(/-----BEGIN CERTIFICATE-----/g, "")
+        .replace(/-----END CERTIFICATE-----/g, "")
+        .replace(/[\r\n\s]/g, "");
     } else {
-      certBase64 = certificate.replace(/[\r\n\s]/g, '');
+      certBase64 = certificate.replace(/[\r\n\s]/g, "");
     }
 
     try {
-      const certDer = Buffer.from(certBase64, 'base64');
+      const certDer = Buffer.from(certBase64, "base64");
       if (certDer.length < 100) {
         return {
-          name: 'Certificate',
-          status: 'warning',
-          message: 'Certificate appears too short to be valid'
+          name: "Certificate",
+          status: "warning",
+          message: "Certificate appears too short to be valid",
         };
       }
 
       return {
-        name: 'Certificate',
-        status: 'ok',
-        format: isPEM ? 'PEM' : 'Base64/DER',
+        name: "Certificate",
+        status: "ok",
+        format: isPEM ? "PEM" : "Base64/DER",
         size: certDer.length,
-        message: `Certificate valid (${isPEM ? 'PEM' : 'Base64'} format, ${certDer.length} bytes)`
+        message: `Certificate valid (${isPEM ? "PEM" : "Base64"} format, ${certDer.length} bytes)`,
       };
     } catch (decodeError) {
       return {
-        name: 'Certificate',
-        status: 'error',
-        message: `Certificate decode error: ${decodeError.message}`
+        name: "Certificate",
+        status: "error",
+        message: `Certificate decode error: ${decodeError.message}`,
       };
     }
   }
@@ -1688,11 +1929,16 @@ class SSOManager extends EventEmitter {
    * @private
    */
   _secureSensitiveConfig(config) {
-    const sensitiveKeys = ['clientSecret', 'client_secret', 'privateKey', 'private_key'];
+    const sensitiveKeys = [
+      "clientSecret",
+      "client_secret",
+      "privateKey",
+      "private_key",
+    ];
     const secured = { ...config };
 
     for (const key of sensitiveKeys) {
-      if (secured[key] && typeof secured[key] === 'string') {
+      if (secured[key] && typeof secured[key] === "string") {
         secured[key] = this._encryptToken(secured[key]);
         secured[`${key}__encrypted`] = true;
       }
@@ -1711,20 +1957,30 @@ class SSOManager extends EventEmitter {
       config = JSON.parse(row.config);
 
       // Decrypt sensitive fields
-      const sensitiveKeys = ['clientSecret', 'client_secret', 'privateKey', 'private_key'];
+      const sensitiveKeys = [
+        "clientSecret",
+        "client_secret",
+        "privateKey",
+        "private_key",
+      ];
       for (const key of sensitiveKeys) {
         if (config[`${key}__encrypted`] && config[key]) {
           try {
             config[key] = this._decryptToken(config[key]);
             delete config[`${key}__encrypted`];
           } catch (decryptErr) {
-            logger.warn(`[SSOManager] Failed to decrypt ${key} for provider ${row.id}`);
+            logger.warn(
+              `[SSOManager] Failed to decrypt ${key} for provider ${row.id}`,
+            );
             config[key] = null;
           }
         }
       }
     } catch (parseError) {
-      logger.error(`[SSOManager] Failed to parse config for provider ${row.id}:`, parseError);
+      logger.error(
+        `[SSOManager] Failed to parse config for provider ${row.id}:`,
+        parseError,
+      );
     }
 
     let metadata = null;
@@ -1732,7 +1988,9 @@ class SSOManager extends EventEmitter {
       try {
         metadata = JSON.parse(row.metadata);
       } catch (metaError) {
-        logger.warn(`[SSOManager] Failed to parse metadata for provider ${row.id}`);
+        logger.warn(
+          `[SSOManager] Failed to parse metadata for provider ${row.id}`,
+        );
       }
     }
 
@@ -1744,7 +2002,7 @@ class SSOManager extends EventEmitter {
       enabled: row.enabled === 1,
       metadata,
       created_at: row.created_at,
-      updated_at: row.updated_at
+      updated_at: row.updated_at,
     };
   }
 
@@ -1783,7 +2041,31 @@ class SSOManager extends EventEmitter {
     this._pendingStates.clear();
 
     this.removeAllListeners();
-    logger.info('[SSOManager] Destroyed and cleaned up');
+    logger.info("[SSOManager] Destroyed and cleaned up");
+  }
+
+  /**
+   * Fail-closed gate for id_token claims (security audit 2026-06-08). Rejects
+   * claims from an id_token that failed basic validation (exp / iss / aud / sub)
+   * so they never enter a session, and strips the internal _validation metadata.
+   * Kill-switch: CHAINLESSCHAIN_SSO_ALLOW_UNVERIFIED=1 reverts to trusting them.
+   * @param {Object} idTokenClaims - return of OAuthProvider.validateIdToken
+   * @returns {Object} the trusted claims (without _validation)
+   * @throws if validation failed and the kill-switch is not set
+   */
+  _enforceIdTokenClaims(idTokenClaims) {
+    const { _validation, ...claims } = idTokenClaims || {};
+    if (
+      _validation &&
+      _validation.valid === false &&
+      process.env.CHAINLESSCHAIN_SSO_ALLOW_UNVERIFIED !== "1"
+    ) {
+      throw new Error(
+        "id_token failed validation (fail-closed): " +
+          (_validation.errors || []).join("; "),
+      );
+    }
+    return claims;
   }
 }
 
