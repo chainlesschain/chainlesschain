@@ -1,6 +1,8 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.85 (Phase 0–13 全部落地 + 14.1/14.2/14.3 + 10.3.6 CLI + 12.6.7-9 WeChat bootstrap + v0.2 大爆发：11 个 placeholder 卡接通 + WeChat 12.10 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 真接通 + **Vault Browser Phase 16 桌面 + Android 双端数据可视化（FTS5 trigram CJK + 7 buckets categories + 5 种 category-keyed renderers + JSON/NDJSON/CSV 导出）** + **HubAsk 4 档 LLM 路由统一选择器（LOCAL_DEVICE / CLOUD_ANDROID / PC_LOCAL / LAN_OLLAMA）** + **MediaPipe JNI abort 防 SIGABRT trap #22 + partial-index drift recovery trap #23 + cc hub rederive 救孤儿 raw_events**, 2026-05-24) | 状态: ✅ 可用 — **22 个 Adapter ✅ v0.2 真接通** (Email IMAP × 4 + Alipay + Taobao + SystemData + WeChat v0.5 SQLCipher 真解密 + QQ v0.2 XOR-IMEI + 4 Travel × 2 (高德/携程 v0.2 + 百度地图/腾讯地图 v0.2) + 5 Shopping (京东/美团/拼多多/淘宝/支付宝 v0.2) + 6 Social (Bilibili/微博 v0.2/抖音 v0.2/小红书 v0.2/头条 v0.2/快手 v0.2) + 3 Messaging (QQ/Telegram/WhatsApp) + 9 AIChat 厂商 v0.2) + Mobile Extraction Layer + EntityResolver + 5 Analysis Skill | **29 IPC + 29 WS** + Phase 14.1 Android + Phase 14.2 iOS 全 `PersonalDataHubCommands` 22 method typed wrapper | **70+ 测试文件 / 1370+ 测试**（含 v0.2 一轮新 snapshot tests: weibo 8 + douyin 8 + xiaohongshu 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13 = 93 新 snapshot tests + 27 QQ Android Kotlin unit tests）| 设计文档: 13-Phase 路线图 + 8 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口 + Phase 10.3 AIChat WebView 鉴权向导 + Phase 12.6.7-9 WeChat bootstrap + **Phase 12.10 WeChat in-app collector 4 sub-phase + Phase 13.5 QQ in-app collector**
+> **版本: v5.0.3.99（2026-06-08）— 采集大更新 + 真机生效** | 状态: ✅ 可用 — **51 个 Adapter 真接通**。本轮新增 adapter **readiness** 概念（从宽松的 `healthCheck` sync 闸门分离出真正的「就绪」判定，走 `registry.readiness()`，解决「配置看起来正常却采不到」的长期死角）+ 桌面/移动端「一键采集 / 导入引导」统一入口 + 多家本地直读源：抖音 / 微信（电脑版）/ QQ（电脑版 NT）/ 钉钉（电脑版）/ 飞书（电脑版）honest best-effort 本地 IM 采集 + 微信读书 weread cookie + Apple 健康 + 网易云音乐 + email 账单 LLM gap-fill（Phase 5.5，结构化字段缺失时由 LLM 补全）+ iOS 加密备份解密（Phase 7.5b）。**121 测试文件 / 2040 测试**。pdh npm 包 0.4.0 + CLI 0.162.29 已发；Android binariesVersion 20260608 + USR_VERSION 19 强制真机重抽。
+>
+> **历史版本 v5.0.3.85**: (Phase 0–13 全部落地 + 14.1/14.2/14.3 + 10.3.6 CLI + 12.6.7-9 WeChat bootstrap + v0.2 大爆发：11 个 placeholder 卡接通 + WeChat 12.10 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 真接通 + **Vault Browser Phase 16 桌面 + Android 双端数据可视化（FTS5 trigram CJK + 7 buckets categories + 5 种 category-keyed renderers + JSON/NDJSON/CSV 导出）** + **HubAsk 4 档 LLM 路由统一选择器（LOCAL_DEVICE / CLOUD_ANDROID / PC_LOCAL / LAN_OLLAMA）** + **MediaPipe JNI abort 防 SIGABRT trap #22 + partial-index drift recovery trap #23 + cc hub rederive 救孤儿 raw_events**, 2026-05-24) | 状态: ✅ 可用 — **22 个 Adapter ✅ v0.2 真接通** (Email IMAP × 4 + Alipay + Taobao + SystemData + WeChat v0.5 SQLCipher 真解密 + QQ v0.2 XOR-IMEI + 4 Travel × 2 (高德/携程 v0.2 + 百度地图/腾讯地图 v0.2) + 5 Shopping (京东/美团/拼多多/淘宝/支付宝 v0.2) + 6 Social (Bilibili/微博 v0.2/抖音 v0.2/小红书 v0.2/头条 v0.2/快手 v0.2) + 3 Messaging (QQ/Telegram/WhatsApp) + 9 AIChat 厂商 v0.2) + Mobile Extraction Layer + EntityResolver + 5 Analysis Skill | **29 IPC + 29 WS** + Phase 14.1 Android + Phase 14.2 iOS 全 `PersonalDataHubCommands` 22 method typed wrapper | **70+ 测试文件 / 1370+ 测试**（含 v0.2 一轮新 snapshot tests: weibo 8 + douyin 8 + xiaohongshu 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13 = 93 新 snapshot tests + 27 QQ Android Kotlin unit tests）| 设计文档: 13-Phase 路线图 + 8 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口 + Phase 10.3 AIChat WebView 鉴权向导 + Phase 12.6.7-9 WeChat bootstrap + **Phase 12.10 WeChat in-app collector 4 sub-phase + Phase 13.5 QQ in-app collector**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -36,6 +38,30 @@
 | **browser-history-edge** | `Default/History` SQLite | 桌面三端 | 浏览历史 + 书签 | Edge 安装即扫 |
 
 所有 7 个 adapter 走 `category=system` bucket 在 Vault Browser 侧栏可单独看；FTS5 全文检索同样有效。`cc hub sync browser-history-chrome` 单独触发某个 adapter，`cc hub stats --adapter <name>` 看分源覆盖。
+
+## v5.0.3.99 — 采集能力大更新（readiness + 一键采集 + 多家本地直读）
+
+这一版把个人数据中台的「采集」体验从「能跑但要手动多步配置 + 经常一条都采不到」推到「就绪可见 + 一键触发」：
+
+- **adapter readiness 止血** — 过去 `healthCheck` 是个宽松的「能不能 sync」闸门，配置看起来正常但实际采不到时没有任何信号。本轮把真正的「就绪」判定独立成 `registry.readiness()`：每个数据源返回 `ready / needs_setup / unavailable` + 一行中文原因，UI 直接显示「为什么现在采不了、下一步该做什么」。
+- **一键采集 / 导入引导 UI** — 把「装 App → 进采集页 → 填授权码 / root + ADB pull DB / IMAP 登录」这些分步操作收敛成单一入口。每个源的具体步骤由 `adapter-guide.js` 单源维护，web-shell / 桌面 / CLI / Android 四壳共用，指引不再各壳漂移。
+
+新接通的本地直读数据源：
+
+| 数据源 | 平台 | 采集方式 | 说明 |
+|---|---|---|---|
+| **抖音** | 桌面 | 本地直读 | 电脑端本地 DB / 文件直读样板 |
+| **微信（电脑版）** | 桌面 | 本地直读 | PC 端本地数据直读 |
+| **QQ（电脑版 NT）** | 桌面 | 本地直读 | NT 版本地 DB 直读 |
+| **钉钉（电脑版）** | 桌面 | 本地 IM 直读 | honest best-effort 本地 IM 采集 |
+| **飞书（电脑版）** | 桌面 | 本地 IM 直读 | honest best-effort 本地 IM 采集 |
+| **微信读书** | 桌面/移动 | cookie | weread cookie 采集 + 一键登录采集 UI |
+| **Apple 健康** | 移动 | 导出导入 | 健康数据 adapter + 一键采集 UI |
+| **网易云音乐** | 移动 | 本地/cookie | 听歌记录 adapter + 一键采集 UI |
+
+此外：**email 账单 LLM 补全（Phase 5.5）** — 邮件账单解析在结构化字段缺失时走 LLM gap-fill 补齐金额 / 商户 / 时间；**iOS 加密备份解密（Phase 7.5b）** — 移动提取层支持解密 iOS 加密备份后导入。当前 PDH 包共 **51 个 Adapter**、**121 测试文件 / 2040 测试**。
+
+> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。本版 pdh 0.4.0 / CLI 0.162.29 / binariesVersion 20260608 / USR_VERSION 19 已对齐。
 
 ## 核心特性
 

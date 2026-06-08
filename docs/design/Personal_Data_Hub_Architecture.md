@@ -1,6 +1,8 @@
 # Personal Data Hub Architecture — 个人数据中台（让数据回归个人）
 
-> **状态**：v0.3 设计稿（2026-05-20）。Phase 0 / 1 待启。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
+> **状态**：v0.5（2026-06-08，随 v5.0.3.99 ship）。Phase 0–13 + 多平台采集均已落地，**51 个 adapter 真接通 / 121 测试文件 / 2040 测试**，pdh npm 包 0.4.0。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
+>
+> **v0.5 (2026-06-08)**：**采集大更新 + 真机生效**（随 v5.0.3.99）。引入 adapter **readiness** 概念——从宽松的 `healthCheck` sync 闸门分离出真正的「就绪」判定（`registry.readiness()` 返回 `ready / needs_setup / unavailable` + 一行中文原因），解决「配置看起来正常却采不到」的长期死角；配套 `adapter-guide.js`（category-driven 导入指引单源，web-shell / 桌面 / CLI / Android 四壳共用）+ 桌面/移动端「一键采集 / 导入引导」UI。新接通本地直读源：抖音 / 微信（电脑版）/ QQ（电脑版 NT）/ 钉钉（电脑版）/ 飞书（电脑版）honest best-effort 本地 IM 采集 + 微信读书 weread cookie + Apple 健康 + 网易云音乐。email 账单 **LLM gap-fill（Phase 5.5）**——结构化字段缺失时由 LLM 补齐金额/商户/时间；**iOS 加密备份解密（Phase 7.5b）**。版本面：pdh 0.4.0 + CLI 0.162.29 已发 npm；Android binariesVersion 20260608 + USR_VERSION 19 强制真机重抽（trap #27/#28：改 pdh/lib 必 bump version + npm publish + USR_VERSION）。
 >
 > **v0.4 (2026-05-24)**：**Phase 17 桌面本机数据五件套** land — `browser-history-chrome` + `browser-history-edge`（Chromium 子类复用）+ `vscode`（workspace + 全局终端 history.entries）+ `win-recent`（.lnk 跨应用时间线）+ `system-data-android v0.3.0` 加媒体清单（5 类 /sdcard 目录元数据）。全部 desktop-local file-import 模式（零 ADB、零网络、零账号）；新增 76 单测 + 4-adapter pipeline 整合测试 + CLI E2E spawn 测试（bs3mc 本地 ABI 不匹配时 skip，CI Linux 真跑）；wiring 跨 3 入口（desktop IPC、CLI 单跑、web-shell WS）+ 2 categories.js 全同步。
 >
