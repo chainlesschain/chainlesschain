@@ -23,6 +23,7 @@ import FriendsWidget from "./FriendsWidget.vue";
 import MemoryBankWidget from "./MemoryBankWidget.vue";
 import TerminalWidget from "./TerminalWidget.vue";
 import DatabasePerformanceWidget from "./DatabasePerformanceWidget.vue";
+import LLMPerformanceWidget from "./LLMPerformanceWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -58,3 +59,4 @@ registerWidgetComponent(
   "builtin:DatabasePerformanceWidget",
   DatabasePerformanceWidget,
 );
+registerWidgetComponent("builtin:LLMPerformanceWidget", LLMPerformanceWidget);

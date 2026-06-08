@@ -1,0 +1,31 @@
+{
+  "id": "llm-performance",
+  "name": "LLM 性能",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/llm-performance 斜杠命令 + Home 页快捷卡片 — LLM 用量 / 成本 / 缓存命中 / 预算 / 告警监控与成本报告导出",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "llm-performance",
+        "trigger": "/llm-performance",
+        "handler": "builtin:openLlmPerformancePanel",
+        "description": "打开 LLM 性能面板",
+        "icon": "ThunderboltOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "llm-performance-quick",
+        "component": "builtin:LLMPerformanceWidget",
+        "size": "medium",
+        "order": 146,
+        "title": "LLM 性能"
+      }
+    }
+  ]
+}

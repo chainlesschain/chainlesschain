@@ -99,6 +99,10 @@
       v-model:open="dbPerformancePanelOpen"
       :prefill-text="dbPerformancePrefill"
     />
+    <LLMPerformancePanel
+      v-model:open="llmPerformancePanelOpen"
+      :prefill-text="llmPerformancePrefill"
+    />
   </a-layout>
 </template>
 
@@ -134,6 +138,7 @@ import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
+import LLMPerformancePanel from "./LLMPerformancePanel.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 
 const sidebarCollapsed = ref(false);
@@ -176,6 +181,8 @@ const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
 const dbPerformancePanelOpen = ref(false);
 const dbPerformancePrefill = ref("");
+const llmPerformancePanelOpen = ref(false);
+const llmPerformancePrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -222,6 +229,7 @@ let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
+let unregisterLlmPerformanceHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -357,6 +365,13 @@ onMounted(async () => {
       dbPerformancePanelOpen.value = true;
     },
   );
+  unregisterLlmPerformanceHandler = registerSlashHandler(
+    "builtin:openLlmPerformancePanel",
+    ({ args }) => {
+      llmPerformancePrefill.value = args ?? "";
+      llmPerformancePanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -403,6 +418,8 @@ onBeforeUnmount(() => {
   unregisterTerminalHandler = null;
   unregisterDbPerformanceHandler?.();
   unregisterDbPerformanceHandler = null;
+  unregisterLlmPerformanceHandler?.();
+  unregisterLlmPerformanceHandler = null;
 });
 </script>
 
