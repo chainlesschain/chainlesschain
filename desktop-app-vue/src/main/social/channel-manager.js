@@ -517,6 +517,53 @@ class ChannelManager extends EventEmitter {
   }
 
   /**
+   * Sign an outgoing channel message's immutable subset.
+   *
+   * Returns {sender_pubkey, signature} for a sign-capable identity, or
+   * {null, null} for a genuinely keyless legacy identity. FAIL-CLOSED (security
+   * audit 2026-06-08): a sign-capable identity whose signing throws propagates
+   * the error so sendMessage aborts — receivers accept unsigned messages as
+   * "legacy compat", so silently downgrading would emit an UNAUTHENTICATED
+   * message under this DID. Kill-switch
+   * CHAINLESSCHAIN_CHANNEL_ALLOW_UNSIGNED_FALLBACK=1 restores the old swallow.
+   *
+   * @param {Object} signedSubset - canonical subset to sign
+   * @returns {{ sender_pubkey: string|null, signature: string|null }}
+   */
+  _signOutgoingMessage(signedSubset) {
+    const identity =
+      this.didManager && this.didManager.getCurrentIdentity
+        ? this.didManager.getCurrentIdentity()
+        : null;
+    if (!(identity && identity.public_key_sign && identity.private_key_ref)) {
+      logger.warn(
+        "[ChannelManager] sendMessage: identity missing keys; sending unsigned (legacy compat)",
+      );
+      return { sender_pubkey: null, signature: null };
+    }
+    try {
+      const signed = signPayloadWithIdentity(signedSubset, identity);
+      return {
+        sender_pubkey: signed.sender_pubkey,
+        signature: signed.signature,
+      };
+    } catch (signErr) {
+      if (process.env.CHAINLESSCHAIN_CHANNEL_ALLOW_UNSIGNED_FALLBACK === "1") {
+        logger.warn(
+          "[ChannelManager] sendMessage: signing failed — sending unsigned (kill-switch):",
+          signErr.message,
+        );
+        return { sender_pubkey: null, signature: null };
+      }
+      logger.error(
+        "[ChannelManager] sendMessage: signing failed, refusing to send unsigned:",
+        signErr.message,
+      );
+      throw signErr;
+    }
+  }
+
+  /**
    * Send a message to a channel
    * @param {Object} options - Message options
    */
@@ -545,12 +592,10 @@ class ChannelManager extends EventEmitter {
 
       // B4a: sign the immutable subset with the current identity's Ed25519
       // secret key. Sender_pubkey + signature ride along on the wire and get
-      // verified at the receiver. Failure to sign (no identity / bad key
-      // shape) is non-fatal — we still INSERT unsigned and log warn so the
-      // local UX doesn't break, but cross-machine receivers will downgrade
-      // these to "unsigned legacy" warnings.
-      let senderPubkey = null;
-      let signature = null;
+      // verified at the receiver. A genuinely keyless legacy identity sends
+      // unsigned (receivers accept as "legacy compat"); a sign-CAPABLE identity
+      // that fails to sign fails closed (see _signOutgoingMessage) so we never
+      // emit an unauthenticated message under this DID.
       const signedSubset = buildSignedSubset({
         id: messageId,
         channel_id: channelId,
@@ -560,26 +605,8 @@ class ChannelManager extends EventEmitter {
         reply_to: replyTo,
         created_at: now,
       });
-      try {
-        const identity =
-          this.didManager && this.didManager.getCurrentIdentity
-            ? this.didManager.getCurrentIdentity()
-            : null;
-        if (identity && identity.public_key_sign && identity.private_key_ref) {
-          const signed = signPayloadWithIdentity(signedSubset, identity);
-          senderPubkey = signed.sender_pubkey;
-          signature = signed.signature;
-        } else {
-          logger.warn(
-            "[ChannelManager] sendMessage: identity missing keys; sending unsigned (legacy compat)",
-          );
-        }
-      } catch (signErr) {
-        logger.warn(
-          "[ChannelManager] sendMessage: signing failed — sending unsigned:",
-          signErr.message,
-        );
-      }
+      const { sender_pubkey: senderPubkey, signature } =
+        this._signOutgoingMessage(signedSubset);
 
       db.prepare(
         `
