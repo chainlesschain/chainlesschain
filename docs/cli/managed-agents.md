@@ -55,6 +55,44 @@ chainlesschain session usage                                  # 全局汇总
 chainlesschain session usage --json --limit 500
 ```
 
+## Headless / Print Mode (`agent -p`)
+
+Claude Code `claude -p` 对标:`cc agent` 的**单轮非交互**执行——进 CI / 管道 /
+脚本。绕过交互 REPL,prompt 来自 `-p` 值 / 位置参数 / stdin 管道,跑完即退出
+(agent 内部仍可多轮工具循环)。
+
+```bash
+chainlesschain agent -p "fix the bug in x.js"             # 单轮执行后退出
+chainlesschain agent -p "review @src/x.js"                # 支持 @path 文件引用
+echo "task" | chainlesschain agent -p                     # 从 stdin 读取任务
+chainlesschain agent -p "..." --output-format json        # text(默认) | json | stream-json
+chainlesschain agent -p "..." --max-turns 5               # 限制 agent 循环迭代上限
+chainlesschain agent -p "..." --allowed-tools "read_file,git"     # 工具白名单
+chainlesschain agent -p "..." --disallowed-tools "run_shell"      # 工具黑名单
+chainlesschain agent -p "..." --permission-mode bypassPermissions # 见下表
+chainlesschain agent -p "..." --add-dir ../lib            # 额外工作根 (可重复)
+```
+
+**输出格式**(`--output-format`):
+- `text`(默认)——最终回答 → stdout;工具轨迹 → stderr(保证管道纯净)。
+- `json`——单个结果信封 `{ type:"result", subtype, is_error, result, session_id,
+  num_turns, duration_ms, tool_calls[], usage }`。
+- `stream-json`——逐事件 NDJSON:首行 `{type:"system",subtype:"init",...}`,
+  随后 `tool_use` / `tool_result` / `token_usage`,末行 `{type:"result",...}`。
+
+**权限模式**(`--permission-mode`,映射 ApprovalGate 层级;headless 无法弹窗,
+故默认 **fail-closed**):
+
+| mode | 层级 | 行为 |
+| ---- | ---- | ---- |
+| (默认) | STRICT | 拒绝中/高危 shell(confirm 自动否决);文件编辑放行 |
+| `plan` | STRICT | 同上,且**工具收窄为只读集**(read_file/search_files/list_dir/...) |
+| `acceptEdits` | TRUSTED | 高危 shell 仍拒,中危放行 |
+| `bypassPermissions` | AUTOPILOT | 全放行,不确认 |
+
+退出码:成功 `0`;`--max-turns` 耗尽(`error_max_turns`)或错误 `1`。
+会话恢复:`--resume <id>` / `--continue`(恢复最近一次)+ JSONL 持久化。
+
 ## Cost — 估算 $ 花费
 
 在 `session usage`（token 计数）之上叠加价格层（`src/lib/llm-pricing.js`）。读取

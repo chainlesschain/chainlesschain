@@ -9,7 +9,7 @@
 
 | Group | File | Covers |
 |-------|------|--------|
-| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `stream`, WS routes (Phase D–I) |
+| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `stream`, WS routes (Phase D–I) |
 | Core Phases 2–7 · Init · Cowork | [`cli/core-phases.md`](./cli/core-phases.md) | `import/export`, `mcp`, `did/encrypt/auth/audit`, `p2p/wallet/org/plugin`, `init/persona`, `cowork`, `hook/workflow/hmemory/a2a`, `sandbox/evolution/evomap/dao` |
 | Phase 8 · Blockchain & Enterprise | [`cli/blockchain-enterprise.md`](./cli/blockchain-enterprise.md) | `compliance/threat-intel`, `pqc`, `nostr/matrix/activitypub/scim/terraform`, `hardening/stress/reputation/sla/tech/dev/collab/marketplace/incentive/kg/tenant/governance/recommend/crosschain/privacy/inference/trust/social/fusion/infra` |
 | Observability & Code Intel | [`cli/observability.md`](./cli/observability.md) | `codegen` (Phase 86), `ops` (AIOps Phase 25), `perception` (Phase 84), `dbevo` (Phase 80), `federation` (Phase 58) |
@@ -83,17 +83,7 @@ chainlesschain agent --no-stream                  # 禁用流式渲染
 chainlesschain agent --add-dir ../lib --add-dir x # 额外工作根 (可重复，agent 可读/搜/改)
 chainlesschain agent --bundle ./my-agent-bundle   # 加载 agent 包 (AGENTS.md + USER.md + skills/ + mcp.json)
 chainlesschain agent "review @src/x.js"           # 交互模式下 @path 注入文件内容
-
-# Headless / print 模式 (Claude Code `claude -p` 对标；可进 CI / 管道)
-chainlesschain agent -p "fix the bug in x.js"     # 单轮非交互执行后退出
-echo "task" | chainlesschain agent -p              # 从 stdin 读取任务
-chainlesschain agent -p "..." --output-format json        # text(默认)|json|stream-json
-chainlesschain agent -p "..." --max-turns 5               # 限制 agent 循环迭代上限
-chainlesschain agent -p "..." --allowed-tools "read_file,git"     # 工具白名单
-chainlesschain agent -p "..." --disallowed-tools "run_shell"      # 工具黑名单
-chainlesschain agent -p "..." --permission-mode plan      # plan|acceptEdits|bypassPermissions
-                                                  #   默认 fail-closed：拒绝中/高危 shell；
-                                                  #   plan=只读工具，bypassPermissions=全放行
+chainlesschain agent -p "fix bug in x.js" [opts]  # Headless / print 模式 (claude -p 对标) — 详见 cli/managed-agents.md
 chainlesschain skill list                         # 列出全部技能 (四层: bundled/marketplace/managed/workspace)
 chainlesschain skill list --category cli-direct   # 列出 CLI 命令技能包
 chainlesschain skill run code-review "Review this code"
