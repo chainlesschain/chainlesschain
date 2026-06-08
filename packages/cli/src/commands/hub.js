@@ -351,6 +351,8 @@ async function cmdSyncAdapter(name, options) {
     // sources (wechat-pc), --db-path as an explicit alias for the DB file.
     if (options.key) opts.key = String(options.key);
     if (options.dbPath) opts.dbPath = String(options.dbPath);
+    // Cookie-mode sources (weread): pass the login cookie through to the adapter.
+    if (options.cookie) opts.cookie = String(options.cookie);
     const report = await hub.registry.syncAdapter(name, opts);
     if (spinner) spinner.succeed(`synced ${name}`);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
@@ -2134,6 +2136,10 @@ export function registerHubCommand(program) {
     .option(
       "--key <hex>",
       "SQLCipher key (64-hex) for encrypted local DBs (e.g. wechat-pc)",
+    )
+    .option(
+      "--cookie <cookie>",
+      "Login cookie for cookie-mode sources (e.g. weread)",
     )
     .option("--json", "Output JSON")
     .action(cmdSyncAdapter);

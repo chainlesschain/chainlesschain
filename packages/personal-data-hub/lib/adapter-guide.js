@@ -61,6 +61,7 @@ const DISPLAY_NAMES = Object.freeze({
   "ai-chat-history": "AI 对话历史",
   "apple-health": "Apple 健康",
   "netease-music": "网易云音乐",
+  "weread": "微信读书",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
   "vscode": "VS Code",
@@ -370,6 +371,27 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
+  "weread": {
+    summary:
+      "采集微信读书的书架 / 划线 / 想法，构建你的阅读画像。走网页版 cookie——登录一次抓取登录态即可，无需 root。",
+    methods: [
+      {
+        label: "登录抓取 cookie 后一键采集（推荐）",
+        recommended: true,
+        steps: [
+          "电脑浏览器登录 weread.qq.com（微信扫码）。",
+          "在中台点这一行采集，按提示粘贴登录态 cookie（或用内置登录窗口抓取）。",
+          "中台自动拉取你有笔记的书 + 划线 + 想法入库。",
+        ],
+        note: "cookie 仅本地保存；wr_skey 会过期，过期后重新登录抓取即可。纯个人使用。",
+      },
+      {
+        label: "已有快照文件则直接选择采集",
+        steps: ["点「📂 选择文件采集」选中微信读书快照 JSON 即可入库。"],
+      },
+    ],
+  },
+
   "apple-health": {
     summary:
       "导入 iPhone「健康」App 导出的数据（步数 / 心率 / 睡眠 / 体重 / 运动等）。这是最省事的健康数据来源——自己导出，无需越狱或连接，文件直读。",
@@ -450,7 +472,7 @@ function getAdapterGuide(name, category) {
 // usable standalone, e.g. CLI without a live readiness probe).
 function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
-  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history)$/.test(name))
+  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
   if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;

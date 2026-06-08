@@ -1780,9 +1780,12 @@ const FILE_COLLECT_ADAPTERS = new Set([
 ])
 // SQLCipher-encrypted local DBs that accept an optional --key.
 const KEYED_FILE_ADAPTERS = new Set(['wechat-pc', 'qq-pc'])
+// Cookie-mode sources: paste login cookie → sync (weread).
+const COOKIE_COLLECT_ADAPTERS = new Set(['weread'])
 
 function collectMode(report) {
   if (!report) return 'snapshot'
+  if (COOKIE_COLLECT_ADAPTERS.has(report.name)) return 'cookie'
   if (FILE_COLLECT_ADAPTERS.has(report.name)) return 'file'
   if (report.category === 'local') return 'sync'
   return 'snapshot'
@@ -1791,6 +1794,7 @@ function collectMode(report) {
 function collectActionLabel(report) {
   const m = collectMode(report)
   if (m === 'file') return '📂 选择文件采集'
+  if (m === 'cookie') return '🔑 登录采集'
   if (m === 'sync') return '⚡ 立即采集'
   return '立即同步'
 }
@@ -1814,10 +1818,42 @@ async function oneClickCollect(name) {
       key = window.prompt('如该数据库已解密为明文，直接确定即可；若为加密库请粘贴 64 位十六进制密钥：') || undefined
     }
     await collectViaFile(name, filePath, key)
+  } else if (mode === 'cookie') {
+    const cookie = window.prompt(
+      '粘贴登录态 Cookie（在已登录的网页 DevTools → Application → Cookies 复制，或整条 Cookie 请求头）：',
+    )
+    if (!cookie || !cookie.trim()) {
+      message.info('已取消')
+      return
+    }
+    await collectViaCookie(name, cookie.trim())
   } else {
     // sync / snapshot both go through syncOne (snapshot tries ADB auto-pull)
     await syncOne(name)
     guideDrawerOpen.value = false
+  }
+}
+
+async function collectViaCookie(name, cookie) {
+  loading.sync[name] = true
+  resetSyncProgress(name)
+  try {
+    const options = { cookie }
+    if (typeof hub.syncAdapterStream === 'function') {
+      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
+    } else {
+      lastSync.value = await hub.syncAdapter(name, options)
+    }
+    const ec = (lastSync.value && lastSync.value.entityCounts) || {}
+    const total = (ec.events || 0) + (ec.persons || 0) + (ec.items || 0) + (ec.topics || 0)
+    message.success(`采集完成：${name} 入库 ${total} 条`)
+    guideDrawerOpen.value = false
+    await refresh()
+  } catch (err) {
+    message.error(`采集 ${name} 失败: ${err.message}`)
+  } finally {
+    loading.sync[name] = false
+    syncProgress.active = false
   }
 }
 
