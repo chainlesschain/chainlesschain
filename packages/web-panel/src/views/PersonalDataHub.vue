@@ -284,8 +284,17 @@
               <a-button size="small" type="link" @click="openGuide(record.name)">
                 如何导入
               </a-button>
-              <a-button size="small" :loading="loading.sync[record.name]" @click="syncOne(record.name)">
-                同步
+              <!-- one-click: file-collect sources open a native picker; local
+                   sources sync directly; snapshot sources try ADB auto-pull.
+                   Routing via oneClickCollect so the button is always correct -->
+              <a-button
+                size="small"
+                type="primary"
+                :title="collectMode(readinessOf(record.name) || record) === 'file' ? '选择文件采集' : '采集入库'"
+                :loading="loading.sync[record.name]"
+                @click="oneClickCollect(record.name)"
+              >
+                {{ collectMode(readinessOf(record.name) || record) === 'file' ? '📂 采集' : '采集' }}
               </a-button>
               <!-- Per-kind include toggles (only adapters with multi-kind
                    bridge output show this — currently just system-data-android).
@@ -803,13 +812,20 @@
         <a-space>
           <a-button
             type="primary"
+            size="large"
             :loading="loading.sync[guideTarget.name]"
-            @click="syncOne(guideTarget.name); guideDrawerOpen = false"
+            @click="oneClickCollect(guideTarget.name)"
           >
-            立即同步
+            {{ collectActionLabel(guideTarget) }}
           </a-button>
           <span style="font-size: 12px; color: #999;">
-            完成上述步骤后点此入库
+            {{
+              collectMode(guideTarget) === 'file'
+                ? '选择导出/解密好的文件，自动入库'
+                : collectMode(guideTarget) === 'sync'
+                  ? '直接读取本机数据入库'
+                  : '完成上述步骤后点此入库'
+            }}
           </span>
         </a-space>
       </template>
@@ -1741,6 +1757,92 @@ const READINESS_CATEGORY_LABEL = {
 }
 function readinessCategoryLabel(category) {
   return READINESS_CATEGORY_LABEL[category] || category || ''
+}
+
+// ─── One-click collect (友好引导 + 一键采集) ─────────────────────────────
+// Each source maps to ONE primary action so the user doesn't have to think:
+//   - file   : 📂 选择文件采集 — native picker → sync(inputPath) (file-import
+//              + local-DB direct-read sources)
+//   - sync    : ⚡ 立即采集 — read host-local data directly (browser/git/…)
+//   - snapshot: needs a device-side collector → show guidance (the dedicated
+//              ADB buttons cover the rooted-phone path)
+const FILE_COLLECT_ADAPTERS = new Set([
+  'apple-health',
+  'alipay-bill',
+  'finance-alipay',
+  'netease-music',
+  'wechat-pc',
+  'qq-pc',
+  'social-douyin', // <uid>_im.db direct read
+  'messaging-telegram',
+  'messaging-whatsapp',
+  'travel-amap',
+])
+// SQLCipher-encrypted local DBs that accept an optional --key.
+const KEYED_FILE_ADAPTERS = new Set(['wechat-pc', 'qq-pc'])
+
+function collectMode(report) {
+  if (!report) return 'snapshot'
+  if (FILE_COLLECT_ADAPTERS.has(report.name)) return 'file'
+  if (report.category === 'local') return 'sync'
+  return 'snapshot'
+}
+
+function collectActionLabel(report) {
+  const m = collectMode(report)
+  if (m === 'file') return '📂 选择文件采集'
+  if (m === 'sync') return '⚡ 立即采集'
+  return '立即同步'
+}
+
+// One-click: pick a file (if needed) then sync. Friendly toasts throughout.
+async function oneClickCollect(name) {
+  const r = readinessOf(name)
+  const mode = collectMode(r)
+  if (mode === 'file') {
+    const filePath = await hub.pickFile({
+      title: `选择 ${r && r.guide ? r.guide.displayName : name} 的数据文件`,
+    })
+    if (!filePath) {
+      message.info('已取消选择文件')
+      return
+    }
+    let key
+    if (KEYED_FILE_ADAPTERS.has(name)) {
+      // Plaintext DB needs no key; encrypted ones can pass --key. We try
+      // plaintext first (most users decrypt first), key entry is optional.
+      key = window.prompt('如该数据库已解密为明文，直接确定即可；若为加密库请粘贴 64 位十六进制密钥：') || undefined
+    }
+    await collectViaFile(name, filePath, key)
+  } else {
+    // sync / snapshot both go through syncOne (snapshot tries ADB auto-pull)
+    await syncOne(name)
+    guideDrawerOpen.value = false
+  }
+}
+
+async function collectViaFile(name, filePath, key) {
+  loading.sync[name] = true
+  resetSyncProgress(name)
+  try {
+    const options = { inputPath: filePath }
+    if (key) options.key = key
+    if (typeof hub.syncAdapterStream === 'function') {
+      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
+    } else {
+      lastSync.value = await hub.syncAdapter(name, options)
+    }
+    const ec = (lastSync.value && lastSync.value.entityCounts) || {}
+    const total = (ec.events || 0) + (ec.persons || 0) + (ec.items || 0) + (ec.topics || 0)
+    message.success(`采集完成：${name} 入库 ${total} 条`)
+    guideDrawerOpen.value = false
+    await refresh()
+  } catch (err) {
+    message.error(`采集 ${name} 失败: ${err.message}`)
+  } finally {
+    loading.sync[name] = false
+    syncProgress.active = false
+  }
 }
 
 // "X/N 可采集" summary for the header

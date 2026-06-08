@@ -59,6 +59,8 @@ const DISPLAY_NAMES = Object.freeze({
   "edu-zuoyebang": "作业帮",
   "edu-huawei-learning": "华为教育中心",
   "ai-chat-history": "AI 对话历史",
+  "apple-health": "Apple 健康",
+  "netease-music": "网易云音乐",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
   "vscode": "VS Code",
@@ -368,6 +370,41 @@ const ADAPTER_OVERRIDES = Object.freeze({
     ],
   },
 
+  "apple-health": {
+    summary:
+      "导入 iPhone「健康」App 导出的数据（步数 / 心率 / 睡眠 / 体重 / 运动等）。这是最省事的健康数据来源——自己导出，无需越狱或连接，文件直读。",
+    methods: [
+      {
+        label: "导出健康数据后一键选择文件采集（推荐）",
+        recommended: true,
+        steps: [
+          "iPhone 打开「健康」App → 右上角头像 → 最下方「导出所有健康数据」。",
+          "会生成一个 zip，解压得到 export.xml（可发到电脑）。",
+          "在中台点这一行的「📂 选择文件采集」，选中 export.xml 即可自动入库。",
+        ],
+        note: "完全本地、无需越狱。文件较大时首次导入稍慢，会自动分批。",
+      },
+    ],
+  },
+
+  "netease-music": {
+    summary: "采集网易云音乐的听歌记录 / 收藏 / 歌单，构建你的音乐口味画像。",
+    methods: [
+      {
+        label: "手机 App 内采集（推荐）",
+        recommended: true,
+        steps: [
+          "在手机 App「个人数据中心」里打开网易云音乐采集页。",
+          "登录后采集听歌记录 / 歌单，生成快照自动同步到中台。",
+        ],
+      },
+      {
+        label: "已有快照文件则直接选择采集",
+        steps: ["点「📂 选择文件采集」选中网易云快照 JSON 即可入库。"],
+      },
+    ],
+  },
+
   "system-data-android": {
     summary: "采集 Android 通讯录、已装应用列表、短信、通话记录等系统数据。",
     methods: [
@@ -418,7 +455,7 @@ function _inferCategory(name) {
   if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;
   if (
-    /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files)/.test(
+    /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files|apple-health)/.test(
       name,
     )
   )

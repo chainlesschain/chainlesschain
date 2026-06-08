@@ -71,6 +71,12 @@ const REASONS = Object.freeze({
     message: "需要提供快照文件路径",
     actionHint: "先在设备端采集生成快照",
   },
+  NO_FILE: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.LOCAL,
+    message: "尚未选择文件：从来源导出数据后，选择文件即可采集",
+    actionHint: "点「选择文件采集」选中导出的文件",
+  },
 
   // ── device-pull (root / local DB) ───────────────────────────────────────
   DB_NOT_PULLED: {

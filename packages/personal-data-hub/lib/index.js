@@ -62,6 +62,8 @@ const { HuaweiLearningAdapter } = require("./adapters/edu-huawei-learning");
 const { QQAdapter } = require("./adapters/messaging-qq");
 const { WeChatPcAdapter } = require("./adapters/wechat-pc");
 const { QQPcAdapter } = require("./adapters/qq-pc");
+const { AppleHealthAdapter } = require("./adapters/apple-health");
+const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
 const entityResolver = require("./entity-resolver");
@@ -286,6 +288,8 @@ module.exports = {
   QQAdapter,
   WeChatPcAdapter,
   QQPcAdapter,
+  AppleHealthAdapter,
+  NeteaseMusicAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
 

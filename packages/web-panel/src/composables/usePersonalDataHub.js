@@ -134,6 +134,30 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * One-click file picker via the desktop's native dialog (fs.openDialog
+     * WS topic). Returns the chosen absolute path (server-side), or null if
+     * cancelled / unavailable (e.g. pure `cc serve` without Electron — caller
+     * falls back to manual path entry). Powers 「📂 选择文件采集」.
+     *
+     * @param {{title?:string, filters?:Array<{name:string,extensions:string[]}>}} [opts]
+     * @returns {Promise<string|null>}
+     */
+    async pickFile(opts = {}) {
+      try {
+        const reply = await ws.sendRaw(
+          { type: "fs.openDialog", title: opts.title, filters: opts.filters },
+          60000,
+        );
+        // fs.openDialog result: { ok, filePath, ... } (may be wrapped)
+        const r = reply && reply.result !== undefined ? reply.result : reply;
+        if (r && r.ok && typeof r.filePath === "string") return r.filePath;
+        return null;
+      } catch (_e) {
+        return null; // dialog unavailable (non-Electron shell) → manual entry
+      }
+    },
+
+    /**
      * Per-adapter readiness — "能否采集 + 不能的原因". Each entry:
      *   { name, version, extractMode, sensitivity, legalGate,
      *     ready, status, category, reason, message, actionHint, mode,
