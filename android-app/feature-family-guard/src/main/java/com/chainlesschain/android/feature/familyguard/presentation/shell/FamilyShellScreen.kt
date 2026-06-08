@@ -1,6 +1,8 @@
 package com.chainlesschain.android.feature.familyguard.presentation.shell
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +62,7 @@ fun FamilyShellScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
             .semantics { contentDescription = TestTag.Screen },
         verticalArrangement = Arrangement.spacedBy(12.dp),
