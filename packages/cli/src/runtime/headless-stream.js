@@ -25,6 +25,7 @@ import {
   resolvePermissionMode,
   resolveEnabledTools,
 } from "./headless-runner.js";
+import { withQuietStdout } from "./quiet-stdout.js";
 
 /**
  * Parse one NDJSON input line into { text } / { error } / null (blank → skip).
@@ -163,7 +164,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
   let db = null;
   try {
-    const ctx = await doBootstrap({ verbose: false });
+    // Bootstrap logs db/config diagnostics via console.info (→ stdout); divert
+    // to stderr so the NDJSON stream stays clean.
+    const ctx = await withQuietStdout(() => doBootstrap({ verbose: false }));
     db = ctx.db || null;
   } catch {
     // DB optional — static-prompt fallback.
