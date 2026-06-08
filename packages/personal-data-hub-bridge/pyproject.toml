@@ -18,9 +18,10 @@ dependencies = []
 sqlcipher = ["pysqlcipher3>=1.0.4"]
 # WeChat 4.x / QQ NT desktop SQLCipher-4 decryption (pure-Python, no native
 # SQLCipher build needed — AES-256-CBC + PBKDF2/HMAC via `cryptography`).
-wechat = ["cryptography>=42"]
+# `zstandard` decompresses WCDB-compressed message bodies (best-effort).
+wechat = ["cryptography>=42", "zstandard>=0.22"]
 ios = ["pymobiledevice3>=4.0"]
-test = ["pytest>=8.0", "pytest-timeout>=2.3", "cryptography>=42"]
+test = ["pytest>=8.0", "pytest-timeout>=2.3", "cryptography>=42", "zstandard>=0.22"]
 dev = ["pyinstaller>=6.0"]
 
 [project.scripts]

@@ -166,17 +166,19 @@ def _largest_weixin_pid() -> Optional[int]:
         return None
 
 
-def extract_key_from_memory(db_salt: bytes, pid: Optional[int] = None) -> Optional[str]:
-    """Scan Weixin.exe memory for the key anchored by db_salt. Returns hex or None."""
+_HEXSET = frozenset(b"0123456789abcdefABCDEF")
+
+
+def _scan_regions(pid):
+    """Yield the raw bytes of each readable committed region of `pid`.
+
+    Windows-only. Opens the process once, walks the address space via
+    VirtualQueryEx, reads each readable committed region (<=256 MiB).
+    """
     if sys.platform != "win32":
         raise IpcError("PLATFORM_UNSUPPORTED", "key extraction is Windows-only")
     import ctypes
     import ctypes.wintypes as wt
-
-    if pid is None:
-        pid = _largest_weixin_pid()
-    if not pid:
-        raise IpcError("APP_NOT_RUNNING", "Weixin.exe is not running — open WeChat and log in first")
 
     class MBI(ctypes.Structure):
         _fields_ = [
@@ -186,7 +188,6 @@ def extract_key_from_memory(db_salt: bytes, pid: Optional[int] = None) -> Option
         ]
 
     k = ctypes.windll.kernel32
-    salt_hex = db_salt.hex().encode("ascii")
     h = k.OpenProcess(0x0400 | 0x0010, False, pid)  # QUERY_INFORMATION | VM_READ
     if not h:
         raise IpcError("EXTRACT_PERMISSION_DENIED",
@@ -205,24 +206,53 @@ def extract_key_from_memory(db_salt: bytes, pid: Optional[int] = None) -> Option
                 buf = ctypes.create_string_buffer(size)
                 n = ctypes.c_size_t(0)
                 if k.ReadProcessMemory(h, ctypes.c_void_p(base), buf, size, ctypes.byref(n)) and n.value:
-                    data = buf.raw[: n.value]
-                    idx = 0
-                    while True:
-                        j = data.find(salt_hex, idx)
-                        if j < 0:
-                            break
-                        start = j - 64
-                        if start >= 0:
-                            keyhex = data[start:j]
-                            if all(c in b"0123456789abcdefABCDEF" for c in keyhex):
-                                return keyhex.decode("ascii").lower()
-                        idx = j + 1
+                    yield buf.raw[: n.value]
             addr = base + size
             if size == 0:
                 break
     finally:
         k.CloseHandle(h)
-    return None
+
+
+def extract_keys_for_salts(salts_hex, pid=None):
+    """One memory pass → {salt_hex: key_hex} for the requested DB salts.
+
+    WeChat 4.0 uses a PER-DB key: each DB has its own random salt AND its own
+    32-byte key, both cached in memory as the 64+32 hex run `<key><salt>`. We
+    anchor on each DB's own salt and read the 64 hex chars immediately before
+    it. One scan resolves every DB's key (verified self-consistently by the
+    caller via verify_key).
+    """
+    targets = {s.lower().encode("ascii") for s in salts_hex}
+    if not targets:
+        return {}
+    if pid is None:
+        pid = _largest_weixin_pid()
+    if not pid:
+        raise IpcError("APP_NOT_RUNNING", "Weixin.exe is not running — open WeChat and log in first")
+    found = {}
+    for data in _scan_regions(pid):
+        if not targets:
+            break
+        for salt_b in list(targets):
+            idx = 0
+            while True:
+                j = data.find(salt_b, idx)
+                if j < 0:
+                    break
+                if j >= 64:
+                    keyhex = data[j - 64:j]
+                    if all(c in _HEXSET for c in keyhex):
+                        found[salt_b.decode()] = keyhex.decode("ascii").lower()
+                        targets.discard(salt_b)
+                        break
+                idx = j + 1
+    return found
+
+
+def extract_key_from_memory(db_salt: bytes, pid: Optional[int] = None) -> Optional[str]:
+    """Scan Weixin.exe memory for the key anchored by db_salt. Returns hex or None."""
+    return extract_keys_for_salts([db_salt.hex()], pid).get(db_salt.hex().lower())
 
 
 # ─── message parsing (decrypted plaintext) ─────────────────────────────────
@@ -235,11 +265,31 @@ def _strip_group_prefix(content: str) -> Tuple[Optional[str], str]:
     return None, content
 
 
-def parse_plaintext_message_db(plain_path: str, limit: int = 50000) -> Dict[str, Any]:
+_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+
+
+def _zstd_decompressor():
+    try:
+        import zstandard
+        return zstandard.ZstdDecompressor()
+    except Exception:
+        return None
+
+
+def _display_name(name_map, wxid):
+    if name_map and wxid:
+        entry = name_map.get(wxid)
+        if entry and entry.get("displayName"):
+            return entry["displayName"]
+    return wxid
+
+
+def parse_plaintext_message_db(plain_path: str, limit: int = 50000, name_map: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     import sqlite3
     con = sqlite3.connect(plain_path)
     con.text_factory = lambda b: b.decode("utf-8", "replace")
     cur = con.cursor()
+    dctx = _zstd_decompressor()
     # rowid -> user_name (sender / conversation identities)
     id2name: Dict[int, str] = {}
     name_by_md5: Dict[str, str] = {}
@@ -255,7 +305,8 @@ def parse_plaintext_message_db(plain_path: str, limit: int = 50000) -> Dict[str,
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Msg_%'")
     msg_tables = [r[0] for r in cur.fetchall()]
     messages: List[Dict[str, Any]] = []
-    compressed_skipped = 0
+    compressed_decoded = 0
+    compressed_failed = 0
     for t in msg_tables:
         if len(messages) >= limit:
             break
@@ -273,16 +324,28 @@ def parse_plaintext_message_db(plain_path: str, limit: int = 50000) -> Dict[str,
             local_id, server_id, mtype, sender_id, ctime, content, ct_marker = row
             text = None
             if isinstance(content, str):
-                sender_in_text, text = _strip_group_prefix(content)
+                _sender_in_text, text = _strip_group_prefix(content)
             elif isinstance(content, (bytes, bytearray)):
-                if content[:4] == b"\x28\xb5\x2f\xfd":  # zstd magic
-                    compressed_skipped += 1
-                    continue
-                text = None
+                if content[:4] == _ZSTD_MAGIC:
+                    if dctx is None:
+                        compressed_failed += 1
+                        continue
+                    try:
+                        decoded = dctx.decompress(content).decode("utf-8", "replace")
+                        _sender_in_text, text = _strip_group_prefix(decoded)
+                        compressed_decoded += 1
+                    except Exception:
+                        compressed_failed += 1
+                        continue
+                else:
+                    # non-zstd binary body (rare) — keep the row but no text
+                    text = None
             sender = id2name.get(sender_id) if sender_id else None
             messages.append({
                 "conversation": conv,
+                "conversationName": _display_name(name_map, conv),
                 "sender": sender,
+                "senderName": _display_name(name_map, sender),
                 "senderId": sender_id,
                 "type": mtype,
                 "createTime": ctime,  # seconds
@@ -293,9 +356,54 @@ def parse_plaintext_message_db(plain_path: str, limit: int = 50000) -> Dict[str,
     return {
         "messageTables": len(msg_tables),
         "messageCount": len(messages),
-        "compressedSkipped": compressed_skipped,
+        "compressedDecoded": compressed_decoded,
+        "compressedFailed": compressed_failed,
         "messages": messages,
     }
+
+
+def parse_contact_db(plain_path: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Read contact.db → (name_map, contacts).
+
+    name_map: wxid -> {nickname, remark, alias, displayName}
+              (displayName priority: remark > nick_name > alias > wxid)
+    contacts: list of {wxid, nickname, remark, alias, type}
+    """
+    import sqlite3
+    name_map: Dict[str, Any] = {}
+    contacts: List[Dict[str, Any]] = []
+    con = sqlite3.connect(plain_path)
+    con.text_factory = lambda b: b.decode("utf-8", "replace")
+    cur = con.cursor()
+    try:
+        cur.execute(
+            "SELECT username, alias, remark, nick_name, local_type FROM contact"
+        )
+    except sqlite3.Error:
+        con.close()
+        return name_map, contacts
+    for uname, alias, remark, nick, ltype in cur.fetchall():
+        if not uname:
+            continue
+        alias = alias or None
+        remark = remark or None
+        nick = nick or None
+        display = remark or nick or alias or uname
+        name_map[uname] = {
+            "nickname": nick,
+            "remark": remark,
+            "alias": alias,
+            "displayName": display,
+        }
+        contacts.append({
+            "wxid": uname,
+            "nickname": nick,
+            "remark": remark,
+            "alias": alias,
+            "type": ltype if isinstance(ltype, int) else None,
+        })
+    con.close()
+    return name_map, contacts
 
 
 # ─── registered methods ────────────────────────────────────────────────────
@@ -327,7 +435,6 @@ def m_extract_key(params, _progress, _chunk):
 @register("wechat_v4.collect")
 def m_collect(params, progress, _chunk):
     import tempfile
-    key = params.get("key")
     limit = int(params.get("limit") or 50000)
     accts = find_accounts()
     if not accts:
@@ -336,19 +443,71 @@ def m_collect(params, progress, _chunk):
     if not acct["messageDbs"]:
         raise IpcError("DB_NOT_FOUND", "account has no message_*.db")
 
-    # recover key once (same key decrypts every DB of this account)
-    with open(acct["messageDbs"][0], "rb") as f:
-        head0 = f.read(PAGE)
-    if not key:
-        key = extract_key_from_memory(head0[:16], params.get("pid"))
-        if not key:
-            raise IpcError("KEY_NOT_FOUND", "key not found in Weixin.exe memory")
-    enc_key = bytes.fromhex(key)
-    if not verify_key(head0, enc_key):
-        raise IpcError("KEY_VERIFY_FAILED", "key failed HMAC verification")
+    # WeChat 4.0 uses a PER-DB key. Collect the salt of every DB we'll open
+    # (all message DBs + contact.db) and resolve them all in ONE memory scan.
+    db_paths = list(acct["messageDbs"])
+    contact_db = acct.get("contactDb")
+    salt_to_db = {}
+    salts = []
+    for dbp in db_paths + ([contact_db] if contact_db else []):
+        try:
+            with open(dbp, "rb") as f:
+                s = f.read(16).hex().lower()
+            salt_to_db[dbp] = s
+            salts.append(s)
+        except OSError:
+            pass
+
+    provided = params.get("key")
+    if provided:
+        # Back-compat single-key override (applies to all DBs of the account).
+        keymap = {s: provided for s in salts}
+    else:
+        try:
+            progress(phase="extract-keys", count=len(salts))
+        except Exception:
+            pass
+        keymap = extract_keys_for_salts(salts, params.get("pid"))
+        if not keymap:
+            raise IpcError("KEY_NOT_FOUND", "no DB key found in Weixin.exe memory (is WeChat open + logged in?)")
 
     staging = params.get("staging_dir") or tempfile.mkdtemp(prefix="wxpc_")
     Path(staging).mkdir(parents=True, exist_ok=True)
+
+    def _open_db(dbp):
+        """Read+verify+decrypt one DB → plaintext path, or (None, reason)."""
+        salt = salt_to_db.get(dbp)
+        key = keymap.get(salt) if salt else None
+        if not key:
+            return None, "KEY_NOT_FOUND"
+        with open(dbp, "rb") as f:
+            raw = f.read()
+        if not verify_key(raw[:PAGE], bytes.fromhex(key)):
+            return None, "KEY_VERIFY_FAILED"
+        plain = os.path.join(staging, os.path.basename(dbp) + ".plain")
+        rep = decrypt_db_to_file(raw, bytes.fromhex(key), plain)
+        return (plain, rep), None
+
+    # ── contact.db first → name map + contacts (best-effort) ──
+    name_map: Dict[str, Any] = {}
+    contacts: List[Dict[str, Any]] = []
+    if contact_db:
+        try:
+            progress(phase="decrypt", db=os.path.basename(contact_db))
+        except Exception:
+            pass
+        opened, reason = _open_db(contact_db)
+        if opened:
+            cplain, _crep = opened
+            try:
+                name_map, contacts = parse_contact_db(cplain)
+            finally:
+                try:
+                    os.remove(cplain)
+                except OSError:
+                    pass
+
+    # ── message DBs ──
     all_messages: List[Dict[str, Any]] = []
     db_reports = []
     for i, dbp in enumerate(acct["messageDbs"]):
@@ -358,22 +517,36 @@ def m_collect(params, progress, _chunk):
             progress(phase="decrypt", db=os.path.basename(dbp), index=i)
         except Exception:
             pass
-        with open(dbp, "rb") as f:
-            raw = f.read()
-        plain = os.path.join(staging, os.path.basename(dbp) + ".plain")
-        rep = decrypt_db_to_file(raw, enc_key, plain)
-        parsed = parse_plaintext_message_db(plain, limit=limit - len(all_messages))
-        all_messages.extend(parsed["messages"])
-        db_reports.append({"db": os.path.basename(dbp), **{k: parsed[k] for k in ("messageTables", "messageCount", "compressedSkipped")}, "hmacFailures": rep["hmacFailures"]})
+        opened, reason = _open_db(dbp)
+        if not opened:
+            db_reports.append({"db": os.path.basename(dbp), "error": reason})
+            continue
+        plain, rep = opened
         try:
-            os.remove(plain)
-        except OSError:
-            pass
+            parsed = parse_plaintext_message_db(
+                plain, limit=limit - len(all_messages), name_map=name_map
+            )
+        finally:
+            try:
+                os.remove(plain)
+            except OSError:
+                pass
+        all_messages.extend(parsed["messages"])
+        db_reports.append({
+            "db": os.path.basename(dbp),
+            "messageTables": parsed["messageTables"],
+            "messageCount": parsed["messageCount"],
+            "compressedDecoded": parsed["compressedDecoded"],
+            "compressedFailed": parsed["compressedFailed"],
+            "hmacFailures": rep["hmacFailures"],
+        })
 
     return {
         "account": acct["id"],
         "messageCount": len(all_messages),
+        "contactCount": len(contacts),
         "dbs": db_reports,
+        "contacts": contacts,
         "messages": all_messages,
     }
 

@@ -324,6 +324,32 @@ class WeChatPcAdapter {
       };
       emitted += 1;
     }
+
+    // Contacts (from contact.db) → Person entities. Not bound by the message
+    // `limit` (that caps messages, not the address book). Opt out via
+    // opts.include.contact === false.
+    const include = opts.include || {};
+    if (include[KIND_CONTACT] !== false) {
+      const contacts = (result && Array.isArray(result.contacts)) ? result.contacts : [];
+      for (const c of contacts) {
+        if (!c || typeof c !== "object" || !c.wxid) continue;
+        if (typeof c.wxid === "string" && c.wxid.endsWith("@chatroom")) continue;
+        yield {
+          adapter: NAME,
+          kind: KIND_CONTACT,
+          originalId: stableOriginalId(KIND_CONTACT, c.wxid),
+          capturedAt: fallbackCapturedAt,
+          payload: {
+            kind: KIND_CONTACT,
+            wxid: c.wxid,
+            alias: c.alias || null,
+            nickname: c.nickname || null,
+            remark: c.remark || null,
+            type: typeof c.type === "number" ? c.type : null,
+          },
+        };
+      }
+    }
   }
 
   normalize(raw) {

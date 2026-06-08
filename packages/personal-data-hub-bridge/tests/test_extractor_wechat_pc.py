@@ -80,20 +80,62 @@ def test_parse_plaintext_resolves_sender_conversation_and_skips_zstd():
     )
     cur.execute(f"INSERT INTO '{table}' VALUES (1, 1001, 1, 2, 1700000002, 'hi there', 0)")
     cur.execute(f"INSERT INTO '{table}' VALUES (2, 1002, 1, 3, 1700000001, 'wxid_other:\nhello group', 0)")
-    cur.execute(f"INSERT INTO '{table}' VALUES (3, 1003, 49, 2, 1700000003, ?, 4)",
-                (b"\x28\xb5\x2f\xfd\x00compressedblob",))
+    # a real zstd-compressed body (marker != 0)
+    try:
+        import zstandard
+        zblob = zstandard.ZstdCompressor().compress("compressed hi".encode("utf-8"))
+    except Exception:
+        zblob = b"\x28\xb5\x2f\xfd\x00invalid"  # no zstandard → counts as failed
+    cur.execute(f"INSERT INTO '{table}' VALUES (3, 1003, 1, 2, 1700000003, ?, 4)", (zblob,))
     con.commit()
     con.close()
 
-    res = wx.parse_plaintext_message_db(path)
+    # name_map resolves display names
+    name_map = {friend: {"displayName": "Friend One", "remark": "Friend One"}}
+    res = wx.parse_plaintext_message_db(path, name_map=name_map)
     assert res["messageTables"] == 1
-    assert res["compressedSkipped"] == 1
-    assert res["messageCount"] == 2
     plain = next(m for m in res["messages"] if m["text"] == "hi there")
     assert plain["conversation"] == friend
     assert plain["sender"] == friend  # real_sender_id 2 -> Name2Id rowid 2
-    grp = next(m for m in res["messages"] if "group" in (m["text"] or ""))
+    assert plain["senderName"] == "Friend One"
+    assert plain["conversationName"] == "Friend One"
+    grp = next(m for m in res["messages"] if (m["text"] or "").endswith("hello group"))
     assert grp["text"] == "hello group"  # group prefix stripped
+
+    try:
+        import zstandard  # noqa: F401
+        assert res["compressedDecoded"] == 1
+        assert res["compressedFailed"] == 0
+        zmsg = next(m for m in res["messages"] if m["text"] == "compressed hi")
+        assert zmsg is not None
+    except ImportError:
+        assert res["compressedFailed"] == 1
+
+
+def test_parse_contact_db_builds_name_map():
+    path = os.path.join(tempfile.mkdtemp(prefix="wxcontact_"), "contact.db")
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    cur.execute(
+        "CREATE TABLE contact (id INTEGER, username TEXT, local_type INTEGER, alias TEXT, "
+        "remark TEXT, nick_name TEXT)"
+    )
+    cur.execute("INSERT INTO contact (username, local_type, alias, remark, nick_name) "
+                "VALUES ('wxid_a', 3, 'aliasA', '备注A', '昵称A')")  # remark wins
+    cur.execute("INSERT INTO contact (username, local_type, alias, remark, nick_name) "
+                "VALUES ('wxid_b', 3, NULL, NULL, '昵称B')")          # nick wins
+    cur.execute("INSERT INTO contact (username, local_type, alias, remark, nick_name) "
+                "VALUES ('wxid_c', 3, 'aliasC', NULL, NULL)")          # alias wins
+    con.commit()
+    con.close()
+
+    name_map, contacts = wx.parse_contact_db(path)
+    assert name_map["wxid_a"]["displayName"] == "备注A"
+    assert name_map["wxid_b"]["displayName"] == "昵称B"
+    assert name_map["wxid_c"]["displayName"] == "aliasC"
+    assert len(contacts) == 3
+    by_wxid = {c["wxid"]: c for c in contacts}
+    assert by_wxid["wxid_a"]["remark"] == "备注A"
 
 
 def test_find_accounts_never_throws(monkeypatch, tmp_path):

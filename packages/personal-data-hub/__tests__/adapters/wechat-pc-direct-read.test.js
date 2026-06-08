@@ -310,12 +310,49 @@ describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
     expect(raws[0].payload.isSend).toBe(1);
   });
 
-  it("v4 respects limit", async () => {
+  it("v4 respects message limit (contacts not capped by it)", async () => {
     const msgs = Array.from({ length: 5 }, (_v, i) => ({
       conversation: "wxid_f", sender: "wxid_f", type: 1, createTime: 1700000000 + i, text: "m" + i, originalId: "id-" + i,
     }));
-    const a = new WeChatPcAdapter({ v4Collector: fakeCollector({ account: "wxid_me", messages: msgs }) });
+    const a = new WeChatPcAdapter({ v4Collector: fakeCollector({ account: "wxid_me", messages: msgs, contacts: [] }) });
     const raws = await collect(a.sync({ mode: "v4", limit: 3 }));
-    expect(raws).toHaveLength(3);
+    expect(raws.filter((r) => r.kind === "message")).toHaveLength(3);
+  });
+
+  it("v4 yields contacts from contact.db as Person entities", async () => {
+    const a = new WeChatPcAdapter({
+      v4Collector: fakeCollector({
+        account: "wxid_me",
+        messages: [
+          { conversation: "wxid_friend", sender: "wxid_friend", type: 1, createTime: 1700000002, text: "hi", originalId: "m-1" },
+        ],
+        contacts: [
+          { wxid: "wxid_friend", nickname: "昵称", remark: "备注名", alias: "alias1", type: 3 },
+          { wxid: "12345@chatroom", nickname: "群", remark: null, alias: null, type: 2 }, // skipped (chatroom)
+        ],
+      }),
+    });
+    const raws = await collect(a.sync({ mode: "v4" }));
+    const contactRaws = raws.filter((r) => r.kind === "contact");
+    expect(contactRaws).toHaveLength(1); // chatroom filtered out
+    expect(contactRaws[0].payload.wxid).toBe("wxid_friend");
+    expect(contactRaws[0].payload.remark).toBe("备注名");
+
+    // normalize → Person entity
+    const n = a.normalize(contactRaws[0]);
+    expect(n.persons.length).toBeGreaterThanOrEqual(1);
+    expect(n.persons[0].identifiers.wechatId).toBe("wxid_friend");
+  });
+
+  it("v4 can opt out of contacts via include.contact=false", async () => {
+    const a = new WeChatPcAdapter({
+      v4Collector: fakeCollector({
+        account: "wxid_me",
+        messages: [],
+        contacts: [{ wxid: "wxid_x", nickname: "n", remark: null, alias: null, type: 3 }],
+      }),
+    });
+    const raws = await collect(a.sync({ mode: "v4", include: { contact: false } }));
+    expect(raws.filter((r) => r.kind === "contact")).toHaveLength(0);
   });
 });
