@@ -157,6 +157,61 @@ def test_message_rows_carry_source_tag():
     assert res["messages"][0]["source"] == "biz"
 
 
+def test_humanize_message_types():
+    # appmsg (type 49) with subtype packed into high 32 bits: (5<<32)|49 = link
+    lt_link = (5 << 32) | 49
+    xml = "<msg><appmsg><title>某文章标题</title><des>摘要</des><url>https://x.cn/a</url></appmsg></msg>"
+    text, base, sub, url = wx._humanize_message(lt_link, xml)
+    assert base == 49 and sub == 5
+    assert text == "[链接] 某文章标题"
+    assert url == "https://x.cn/a"
+
+    # image (base 3)
+    text, base, sub, url = wx._humanize_message(3, "<msg><img aeskey='..'/></msg>")
+    assert base == 3 and text == "[图片]"
+
+    # system revoke (base 10000)
+    sysxml = "<sysmsg type='revokemsg'><revokemsg><content>\"张三\" 撤回了一条消息</content></revokemsg></sysmsg>"
+    text, base, sub, url = wx._humanize_message(10000, sysxml)
+    assert base == 10000 and "撤回" in text
+
+    # file (type 49 subtype 6)
+    lt_file = (6 << 32) | 49
+    text, base, sub, url = wx._humanize_message(lt_file, "<msg><appmsg><title>合同.pdf</title></appmsg></msg>")
+    assert text == "[文件] 合同.pdf" and sub == 6
+
+
+def test_parse_plaintext_humanizes_nontext_rows():
+    friend = "wxid_h"
+    table = "Msg_" + hashlib.md5(friend.encode()).hexdigest()
+    path = os.path.join(tempfile.mkdtemp(prefix="wxh_"), "p.db")
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    cur.execute("CREATE TABLE Name2Id (user_name TEXT, is_session INTEGER)")
+    cur.execute("INSERT INTO Name2Id VALUES (?, 1)", (friend,))  # rowid 1
+    cur.execute(
+        f"CREATE TABLE '{table}' (local_id INTEGER, server_id INTEGER, local_type INTEGER, "
+        f"real_sender_id INTEGER, create_time INTEGER, message_content, WCDB_CT_message_content INTEGER)"
+    )
+    # an image row (base 3) — content is XML, should humanize to [图片]
+    cur.execute(f"INSERT INTO '{table}' VALUES (1, 1, 3, 1, 100, ?, 0)",
+                ("<msg><img aeskey='a'/></msg>",))
+    # a link appmsg (composite type) with title
+    lt_link = (5 << 32) | 49
+    cur.execute(f"INSERT INTO '{table}' VALUES (2, 2, ?, 1, 101, ?, 0)",
+                (lt_link, "<msg><appmsg><title>头条新闻</title><url>https://t.cn/x</url></appmsg></msg>"))
+    con.commit()
+    con.close()
+    res = wx.parse_plaintext_message_db(path)
+    img = next(m for m in res["messages"] if m["type"] == 3)
+    assert img["text"] == "[图片]"
+    assert img["rawContent"] and "<img" in img["rawContent"]
+    link = next(m for m in res["messages"] if m["type"] == 49)
+    assert link["text"] == "[链接] 头条新闻"
+    assert link["appType"] == 5
+    assert link["appUrl"] == "https://t.cn/x"
+
+
 def test_parse_sns_db_extracts_moment_text_and_time():
     path = os.path.join(tempfile.mkdtemp(prefix="wxsns_"), "sns.db")
     con = sqlite3.connect(path)

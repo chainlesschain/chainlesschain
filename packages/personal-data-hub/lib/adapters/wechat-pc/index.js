@@ -314,6 +314,8 @@ class WeChatPcAdapter {
         contentBlob: typeof m.text === "string" ? m.text : null,
         // provenance: chat | biz(公众号) | sns(朋友圈) | favorite(收藏)
         wechatSource: typeof m.source === "string" ? m.source : "chat",
+        appType: typeof m.appType === "number" ? m.appType : null,  // appmsg subtype (type 49)
+        appUrl: typeof m.appUrl === "string" ? m.appUrl : null,     // link/article url
       };
       const idPart =
         m.originalId ||
@@ -452,6 +454,8 @@ function normalizeMessage(p, raw, ingestedAt) {
         isGroup,
         wechatType: typeof p.type === "number" ? p.type : null,
         wechatSource: typeof p.wechatSource === "string" ? p.wechatSource : "chat",
+        ...(p.appType != null ? { wechatAppType: p.appType } : {}),
+        ...(p.appUrl ? { url: p.appUrl } : {}),
         senderWxid: p.senderWxid || null,
         contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
         ...(topics.length ? { topicId: topics[0].id } : {}),

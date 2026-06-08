@@ -274,6 +274,52 @@ def _strip_group_prefix(content: str) -> Tuple[Optional[str], str]:
 
 _ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 
+import re as _re2
+
+_RE_APP_TITLE = _re2.compile(r"<title>(.*?)</title>", _re2.DOTALL)
+_RE_APP_DES = _re2.compile(r"<des>(.*?)</des>", _re2.DOTALL)
+_RE_APP_URL = _re2.compile(r"<url>(.*?)</url>", _re2.DOTALL)
+_RE_SYS_CONTENT = _re2.compile(r"<content>(.*?)</content>", _re2.DOTALL)
+
+# base local_type → human label for non-text messages
+_BASE_LABELS = {
+    3: "图片", 34: "语音", 42: "名片", 43: "视频", 47: "表情",
+    48: "位置", 50: "通话", 62: "小视频", 2000: "转账", 2001: "红包",
+}
+# appmsg (type 49) subtype → label (subtype = local_type >> 32)
+_APPMSG_SUBLABELS = {
+    5: "链接", 6: "文件", 8: "表情", 17: "实时位置", 19: "合并转发",
+    21: "运动", 33: "小程序", 36: "小程序", 40: "收藏转发", 51: "视频号",
+    57: "引用", 63: "视频号直播", 2000: "转账", 2001: "红包",
+}
+
+
+def _humanize_message(local_type, content):
+    """Turn a non-text WeChat message into readable text + structured hints.
+
+    Returns (text, base_type, app_subtype, url). WeChat 4.0 packs the appmsg
+    subtype into the high 32 bits of local_type: base = lt & 0xffffffff,
+    subtype = lt >> 32.
+    """
+    base = local_type & 0xFFFFFFFF if isinstance(local_type, int) else local_type
+    sub = (local_type >> 32) if isinstance(local_type, int) else None
+    s = content if isinstance(content, str) else ""
+    if base == 49:
+        title = _xml_first(_RE_APP_TITLE, s)
+        des = _xml_first(_RE_APP_DES, s)
+        url = _xml_first(_RE_APP_URL, s)
+        label = _APPMSG_SUBLABELS.get(sub, "应用消息")
+        body = title or des or ""
+        text = f"[{label}] {body}".strip() if body else f"[{label}]"
+        return text, base, sub, url
+    if base == 10000:
+        c = _xml_first(_RE_SYS_CONTENT, s)
+        return (c or "[系统消息]"), base, None, None
+    label = _BASE_LABELS.get(base)
+    if label:
+        return f"[{label}]", base, None, None
+    return None, base, None, None
+
 
 def _zstd_decompressor():
     try:
@@ -329,37 +375,52 @@ def parse_plaintext_message_db(plain_path: str, limit: int = 50000, name_map: Op
             if len(messages) >= limit:
                 break
             local_id, server_id, mtype, sender_id, ctime, content, ct_marker = row
-            text = None
+            # Resolve the content body to a string (plain TEXT col, or zstd BLOB).
+            body = None
             if isinstance(content, str):
-                _sender_in_text, text = _strip_group_prefix(content)
+                body = content
             elif isinstance(content, (bytes, bytearray)):
                 if content[:4] == _ZSTD_MAGIC:
                     if dctx is None:
                         compressed_failed += 1
                         continue
                     try:
-                        decoded = dctx.decompress(content).decode("utf-8", "replace")
-                        _sender_in_text, text = _strip_group_prefix(decoded)
+                        body = dctx.decompress(content).decode("utf-8", "replace")
                         compressed_decoded += 1
                     except Exception:
                         compressed_failed += 1
                         continue
-                else:
-                    # non-zstd binary body (rare) — keep the row but no text
-                    text = None
+                # else: non-zstd binary → body stays None
+            # Strip the "wxid:\n" group prefix that precedes ALL message kinds
+            # in group chats, then interpret by type.
+            if body is not None:
+                _sender_in_text, body = _strip_group_prefix(body)
+            base = mtype & 0xFFFFFFFF if isinstance(mtype, int) else mtype
+            app_sub = (mtype >> 32) if isinstance(mtype, int) and mtype > 0xFFFFFFFF else None
+            app_url = None
+            raw_content = None
+            if base == 1:
+                text = body  # plain text
+            else:
+                text, base, app_sub, app_url = _humanize_message(mtype, body or "")
+                raw_content = body  # keep the XML for downstream richer parsing
             sender = id2name.get(sender_id) if sender_id else None
-            messages.append({
+            msg = {
                 "conversation": conv,
                 "conversationName": _display_name(name_map, conv),
                 "sender": sender,
                 "senderName": _display_name(name_map, sender),
                 "senderId": sender_id,
-                "type": mtype,
-                "createTime": ctime,  # seconds
+                "type": base,            # normalized base type (not the composite)
+                "appType": app_sub,      # appmsg subtype for type 49
+                "appUrl": app_url,       # link/article url for type 49
+                "createTime": ctime,     # seconds
                 "text": text,
-                "source": source,  # chat | biz
+                "rawContent": raw_content,
+                "source": source,        # chat | biz
                 "originalId": f"wechat-pc:{conv or t}:{server_id or local_id}",
-            })
+            }
+            messages.append(msg)
     con.close()
     return {
         "messageTables": len(msg_tables),
