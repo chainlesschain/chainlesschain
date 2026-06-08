@@ -3,6 +3,55 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.99] - 2026-06-08 — feat: 个人数据中台（PDH）采集大更新 + DB 静态加密默认开启 + AI 陪学接入界面
+
+> 本版主线是 **个人数据中台（PDH）采集能力大幅扩容 + 真机生效**：adapter readiness 止血 + 一键采集/导入引导 UI，新接通多家本地直读源（抖音 / 微信 PC / QQ-NT / 钉钉 / 飞书 / Apple 健康 / 网易云音乐 / 微信读书）。同时把 **DB 静态加密 gate 默认翻开**（`PHASE_1_5_DEFAULT_ON=true`），并把 Android「AI 陪学」积分 / 温和度月报 / 任务可见 UI 接成可交互入口。pdh 0.4.0 + cli 0.162.29 已发 npm，Android binariesVersion 20260608（cc-cli.tgz 刷新）+ USR_VERSION 19 强制真机重抽。
+
+### Feat #1 —— PDH adapter readiness 止血 + 一键采集 UI + 抖音/微信PC/QQ-NT 本地直读样板 (`6d978c78c`)
+
+- 新增 adapter **readiness** 概念：从宽松的 `healthCheck` sync 闸门分离出真正的「就绪」判定，走 `registry.readiness()`，解决「配置看起来正常却采不到」的死角（详见 memory `pdh_adapter_readiness_vs_healthcheck`）
+- 桌面/移动端「一键采集」+「导入引导」UI：把多步配置 + 触发采集收敛成单一可见入口
+- 抖音 / 微信 PC / QQ-NT 三家本地直读样板（电脑端本地 DB / 文件直读，honest best-effort）
+
+### Feat #2 —— 钉钉 / 飞书 电脑版本地 IM 采集 + 微信读书 + Apple 健康 / 网易云音乐 (`e43c12509` · `e1b38553b` · `67add5740`)
+
+- 钉钉 / 飞书 电脑版 honest best-effort 本地 IM 采集
+- 微信读书 weread cookie 采集 + 一键登录采集 UI
+- Apple 健康 + 网易云音乐 adapter + 一键采集 UI
+
+### Feat #3 —— email 账单 LLM 补全（Phase 5.5）+ iOS 加密备份解密（Phase 7.5b）(`77ae9ef2c`)
+
+- 邮件账单解析在结构化字段缺失时走 LLM gap-fill 补全
+- iOS 加密备份解密落地（Phase 7.5b 移动提取层延伸）
+
+### Feat #4 —— DB 静态加密 gate 默认开启 + DID keystore 打包态 fail-closed (`0b9f41c5e` · `7ecb3503d`)
+
+- `PHASE_1_5_DEFAULT_ON=true` — DB at-rest 加密从「默认关、需显式开」翻成**默认开启**；preflip 自动化闸门已全绿（A 层 L1+L3 45 + L2 真 SQLCipher 7 + B.1 真 Windows DPAPI 探针 6，详见 `d91d72f62`）
+- DID keystore 在打包态 **fail-closed**（不再静默回退明文）+ 修 `EncryptionConfigManager` 构造参数
+
+### Feat #5 —— Android「AI 陪学」积分 / 温和度月报 / 任务可见 UI 接入 (`e07f90086` · `e9f4b36ba` · `eca6b2dda` · `a87314aba` · `264cfbea4` · `760d70bd3`)
+
+- M9 奖励/积分引擎纯逻辑层 + M10 家长教育/监管温和度月报纯函数 → 接成家庭 tab 可见可交互入口（积分卡 + 兑换目录 + 温和度评分 + 同类对比 + 12355 公益热线）
+- M5 任务可见 UI：家长建作业 → 进 AI 陪学引导模式（不直接给答案）+ 提交 / AI 批改 / 完成 / 打回 + family_task 23 字段 Room 持久层
+- 陪伴 tab 复用 core-security KeystoreFacade（真 AES-GCM + StrongBox）TEE 加密落盘，家长 dump 也只得密文
+
+### Chore #6 —— 死代码清理 + 依赖瘦身 + 静默吞错收口 (`425382abc` · `cb039fcd2` · `bbd33ae27` · `c253890ff` · `b19f2f7a1`)
+
+- 删 9 个 dead/orphaned 模块（v2/optimized 重构残留）+ `ai-engine-manager-p2.js` 993 LOC（零引用）
+- 移除 7 个未用 runtime 依赖（146 → 139）
+- `shell.openExternal` / `openPath` 前校验 URL/路径（新增 `safe-open.js`，仅 http(s) + 防路径遍历）
+- 后台 sync / P2P send 静默吞错改 logger 记录
+- CI 真生效修：Database Tests / Lint & Format Check 之前 fail 不挂 job（`2f65700a1` · `16f81cf81`）+ personal-data-hub vitest 套件首次纳入 CI test.yml（`28435642b`）
+
+### 版本同步
+
+- productVersion v5.0.3.98 → v5.0.3.99
+- desktop-app-vue 5.0.3-alpha.98 → 5.0.3-alpha.99（electron-updater 比对）
+- chainlesschain CLI 0.162.28 → 0.162.29
+- @chainlesschain/personal-data-hub 0.3.9 → 0.4.0（已发 npm）
+- Android binariesVersion 20260528 → 20260608（cc-cli.tgz 刷新含 cli 0.162.29 + pdh 0.4.0）+ USR_VERSION 17 → 19（强制真机重抽 cc-cli.tgz）
+- iOS build 98 → 99
+
 ## [v5.0.3.98] - 2026-06-03 — fix(android): 社交/首页 ANR 修 + 家庭守护「AI 陪学」Epic A–G 纯逻辑全做透 + PDH 意图路由收口 + 浏览器扩展 handler 拆分
 
 > 用户反馈「点社交会卡住」长期未解；本轮定位到 ViewModel init 块默认在主线程同步读 EncryptedSharedPreferences + DIDManager.initialize 里的 StrongBox 解密（小米 amethyst 单次解密可达数秒），两路汇总把主线程吃 >5s 触发 ANR。一并把 family-guard Epic C M2 telemetry 底座（孩子端共享 child_event 表 + ForegroundAppAggregator pure state machine）落到 main，让后续 FAMILY-21/25 ticket 不再二次拆表。

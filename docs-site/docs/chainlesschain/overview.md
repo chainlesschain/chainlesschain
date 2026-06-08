@@ -1,6 +1,16 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.98 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.28 / 144 命令 / 30,000+ 测试 | Android 5.0.3.98 (versionCode 503098，与 productVersion 对齐) | iOS 5.0.3 (build 98，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.99 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.29 / 144 命令 / 30,000+ 测试 | Android 5.0.3.99 (versionCode 503099，与 productVersion 对齐 · binariesVersion 20260608 · USR_VERSION 19) | iOS 5.0.3 (build 99，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.99 个人数据中台（PDH）采集大更新 + 真机生效（2026-06-08）**：
+>
+> 1. **🧠 PDH 采集能力大幅扩容 + readiness 止血** — 从宽松的 `healthCheck` sync 闸门分离出真正的「就绪」判定（走 `registry.readiness()`），解决「配置看起来正常却采不到」的长期死角。新接通多家本地直读源：抖音 / 微信 PC / QQ-NT / 钉钉 / 飞书 电脑版 honest best-effort 本地 IM 采集 + 微信读书 weread cookie + Apple 健康 + 网易云音乐 adapter，全部配「一键采集 / 导入引导」UI。email 账单解析在结构化字段缺失时走 LLM gap-fill（Phase 5.5）+ iOS 加密备份解密（Phase 7.5b）。pdh 0.4.0 + cli 0.162.29 已发 npm；Android binariesVersion 20260608（cc-cli.tgz 刷新）+ USR_VERSION 17→19 强制真机重抽。
+> 2. **🔐 DB 静态加密 gate 默认开启** — `PHASE_1_5_DEFAULT_ON=true`，DB at-rest 加密从「默认关、需显式开」翻成默认开启；preflip 自动化闸门已全绿（A 层 L1+L3 45 + L2 真 SQLCipher 7 + B.1 真 Windows DPAPI 探针 6）。DID keystore 在打包态 **fail-closed**（不再静默回退明文）+ 修 `EncryptionConfigManager` 构造参数。
+> 3. **👨‍👩‍👧 Android「AI 陪学」积分 / 温和度月报 / 任务可见 UI 接入** — M9 奖励/积分引擎 + M10 家长教育/监管温和度月报接成家庭 tab 可见可交互入口（积分卡 + 兑换目录 + 温和度评分 + 同类对比 + 12355 公益热线）；M5 任务可见 UI（家长建作业 → 进 AI 陪学引导模式不直接给答案 → 提交 / AI 批改 / 完成 / 打回，family_task 23 字段 Room 持久）；陪伴 tab 复用 core-security KeystoreFacade（真 AES-GCM + StrongBox）TEE 加密落盘。
+>
+> **工程基础**：死代码清理（删 9 个 dead/orphaned 模块 + `ai-engine-manager-p2.js` 993 LOC 零引用）+ 依赖瘦身（移除 7 个未用 runtime 依赖 146→139）+ `shell.openExternal` / `openPath` 前校验 URL/路径防遍历（新增 `safe-open.js`）+ 后台 sync / P2P send 静默吞错改 logger 记录 + CI 真生效修（Database Tests / Lint & Format Check 之前 fail 不挂 job，已修；personal-data-hub vitest 套件首次纳入 CI test.yml）。
+>
+> ---
 >
 > **v5.0.3.97 用户可感知突破（2026-05-27）**：
 >
