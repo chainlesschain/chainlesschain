@@ -32,6 +32,10 @@ const { assertAdapter, toError } = require("./adapter-spec");
 const { partitionBatch } = require("./batch");
 const { deriveBatchTriples } = require("./kg-derive");
 const { deriveBatchDocs } = require("./rag-derive");
+const { describeReadiness, categoryForMode } = require("./adapter-readiness");
+const { getAdapterGuide } = require("./adapter-guide");
+
+const DEFAULT_READINESS_TIMEOUT_MS = 4000;
 
 const DEFAULT_BATCH_SIZE = 100;
 
@@ -105,6 +109,172 @@ class AdapterRegistry {
 
   has(name) {
     return this._adapters.has(name);
+  }
+
+  // ─── Readiness ───────────────────────────────────────────────────────
+
+  /**
+   * Report, per registered adapter, whether it can actually collect right
+   * now and — if not — a human-facing reason.
+   *
+   * This is DISTINCT from the pre-sync `healthCheck()` gate. healthCheck()
+   * is intentionally lenient for snapshot-mode adapters (their inputPath
+   * arrives at sync time, so a strict gate would block legitimate
+   * `sync-adapter --input <path>` calls). That leniency made the UI show
+   * "healthy" for adapters that can't collect a single row yet. readiness()
+   * instead probes `adapter.authenticate({ readinessOnly: true })` — a cheap,
+   * no-network check (adapters with expensive auth, e.g. email IMAP login /
+   * WeChat frida key extraction, short-circuit on the `readinessOnly` flag)
+   * — and maps the reason through adapter-readiness.describeReadiness().
+   *
+   * Each probe is wrapped in a timeout so one slow/hanging adapter can't
+   * stall the whole report. Also folds in the last sync outcome from the
+   * vault watermark (lastSyncedAt / lastStatus / lastError) so the UI can
+   * show both "can I start" and "how did the last run go".
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.timeoutMs=4000] per-adapter probe timeout
+   * @returns {Promise<Array<ReadinessReport>>} in registration order
+   *
+   * @typedef {object} ReadinessReport
+   * @property {string}  name
+   * @property {string}  version
+   * @property {string}  extractMode
+   * @property {string}  sensitivity
+   * @property {boolean} legalGate
+   * @property {boolean} ready            can collect right now?
+   * @property {string}  status           ready | needs_setup | unavailable | error
+   * @property {string}  category         local | snapshot | device | credential | platform
+   * @property {string|null} reason       machine reason code (null when ready)
+   * @property {string}  message          human (Chinese) explanation
+   * @property {string|null} actionHint   what to do next
+   * @property {string|null} mode         auth mode on success (snapshot-file / configured / ...)
+   * @property {number|null} lastSyncedAt
+   * @property {string|null} lastStatus
+   * @property {string|null} lastError
+   */
+  async readiness(opts = {}) {
+    const timeoutMs =
+      Number.isInteger(opts.timeoutMs) && opts.timeoutMs > 0
+        ? opts.timeoutMs
+        : DEFAULT_READINESS_TIMEOUT_MS;
+    const reports = [];
+    for (const adapter of this._adapters.values()) {
+      const report = await this._probeReadiness(adapter, timeoutMs);
+      // Attach the step-by-step import guide (how to get this source's data
+      // into the vault) keyed off the resolved category. Single source of
+      // truth in adapter-guide.js — reused by every shell.
+      report.guide = getAdapterGuide(report.name, report.category);
+      reports.push(report);
+    }
+    return reports;
+  }
+
+  async _probeReadiness(adapter, timeoutMs) {
+    const dd = adapter.dataDisclosure || {};
+    const extractMode = adapter.extractMode || "web-api";
+    const base = {
+      name: adapter.name,
+      version: adapter.version,
+      extractMode,
+      sensitivity: dd.sensitivity || null,
+      legalGate: !!dd.legalGate,
+    };
+
+    // Fold in last sync outcome from the watermark (best-effort).
+    let lastSyncedAt = null;
+    let lastStatus = null;
+    let lastError = null;
+    try {
+      const wm = this.vault.getWatermark(adapter.name, "");
+      if (wm) {
+        lastSyncedAt = wm.last_synced_at != null ? wm.last_synced_at : null;
+        lastStatus = wm.last_status != null ? wm.last_status : null;
+        lastError = wm.last_error != null ? wm.last_error : null;
+      }
+    } catch (_e) {
+      // watermark read is non-fatal — a fresh vault has no row yet
+    }
+
+    let auth;
+    try {
+      auth = await this._withTimeout(
+        Promise.resolve().then(() => adapter.authenticate({ readinessOnly: true })),
+        timeoutMs,
+        adapter.name
+      );
+    } catch (err) {
+      const msg = toError(err, "readiness.authenticate").message;
+      const isTimeout = /readiness probe timed out/.test(msg);
+      const code = isTimeout ? "PROBE_TIMEOUT" : "PROBE_ERROR";
+      const desc = describeReadiness(code);
+      return {
+        ...base,
+        ready: false,
+        status: desc.status,
+        category: desc.category,
+        reason: code,
+        message: isTimeout ? desc.message : `${desc.message}：${msg}`,
+        actionHint: desc.actionHint,
+        mode: null,
+        lastSyncedAt,
+        lastStatus,
+        lastError,
+      };
+    }
+
+    if (auth && auth.ok) {
+      return {
+        ...base,
+        ready: true,
+        status: "ready",
+        category: categoryForMode(extractMode),
+        reason: null,
+        message: "可以采集",
+        actionHint: null,
+        mode: auth.mode || null,
+        lastSyncedAt,
+        lastStatus,
+        lastError,
+      };
+    }
+
+    const reason = (auth && auth.reason) || "UNKNOWN";
+    const desc = describeReadiness(reason);
+    const detail = auth && (auth.message || auth.error);
+    const message =
+      desc.appendDetail && detail ? `${desc.message}（${detail}）` : desc.message;
+    return {
+      ...base,
+      ready: false,
+      status: desc.status,
+      category: desc.category,
+      reason,
+      message,
+      actionHint: desc.actionHint,
+      mode: null,
+      lastSyncedAt,
+      lastStatus,
+      lastError,
+    };
+  }
+
+  _withTimeout(promise, ms, name) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`readiness probe timed out after ${ms}ms (${name})`));
+      }, ms);
+      promise.then(
+        (v) => {
+          clearTimeout(timer);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(timer);
+          reject(e);
+        }
+      );
+    });
   }
 
   // ─── Sync orchestration ──────────────────────────────────────────────

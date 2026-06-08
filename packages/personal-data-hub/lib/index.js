@@ -22,6 +22,8 @@ const migrations = require("./migrations");
 const keyProviders = require("./key-providers");
 const { LocalVault } = require("./vault");
 const adapterSpec = require("./adapter-spec");
+const adapterReadiness = require("./adapter-readiness");
+const adapterGuide = require("./adapter-guide");
 const kgDerive = require("./kg-derive");
 const ragDerive = require("./rag-derive");
 const { AdapterRegistry, DEFAULT_BATCH_SIZE } = require("./registry");
@@ -58,6 +60,8 @@ const { ZuoyebangAdapter } = require("./adapters/edu-zuoyebang");
 const { AlipayAdapter } = require("./adapters/finance-alipay");
 const { HuaweiLearningAdapter } = require("./adapters/edu-huawei-learning");
 const { QQAdapter } = require("./adapters/messaging-qq");
+const { WeChatPcAdapter } = require("./adapters/wechat-pc");
+const { QQPcAdapter } = require("./adapters/qq-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
 const entityResolver = require("./entity-resolver");
@@ -116,6 +120,18 @@ module.exports = {
   // Adapter contract
   SENSITIVITY_LEVELS: adapterSpec.SENSITIVITY_LEVELS,
   assertAdapter: adapterSpec.assertAdapter,
+
+  // Adapter readiness (why-can't-I-collect descriptors)
+  describeReadiness: adapterReadiness.describeReadiness,
+  categoryForMode: adapterReadiness.categoryForMode,
+  READINESS_CATEGORY: adapterReadiness.READINESS_CATEGORY,
+  READINESS_STATUS: adapterReadiness.READINESS_STATUS,
+  READINESS_REASONS: adapterReadiness.READINESS_REASONS,
+
+  // Adapter import guides (step-by-step "how to import this source")
+  getAdapterGuide: adapterGuide.getAdapterGuide,
+  ADAPTER_DISPLAY_NAMES: adapterGuide.DISPLAY_NAMES,
+  ADAPTER_CATEGORY_GUIDES: adapterGuide.CATEGORY_GUIDES,
 
   // KG + RAG derivation
   triple: kgDerive.triple,
@@ -268,6 +284,8 @@ module.exports = {
   AlipayAdapter,
   HuaweiLearningAdapter,
   QQAdapter,
+  WeChatPcAdapter,
+  QQPcAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
 

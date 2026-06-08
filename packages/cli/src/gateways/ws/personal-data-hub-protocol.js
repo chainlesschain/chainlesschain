@@ -173,6 +173,20 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.list-adapters": async () =>
     withHub((hub) => hub.registry.list()),
 
+  // Per-adapter readiness ("能否采集 + 不能的原因"). Probes each adapter's
+  // authenticate({ readinessOnly: true }) — see AdapterRegistry.readiness().
+  // The web-shell PersonalDataHub view renders this as a 就绪状态 column so
+  // snapshot/device/credential sources show 待配置/需采集 instead of a
+  // misleading "healthy".
+  "personal-data-hub.adapter-readiness": async (msg) =>
+    withHub((hub) =>
+      hub.registry.readiness(
+        msg && Number.isInteger(msg.timeoutMs)
+          ? { timeoutMs: msg.timeoutMs }
+          : {},
+      ),
+    ),
+
   "personal-data-hub.sync-adapter": async (msg) =>
     withHub(async (hub) => {
       const options = await _tryAdbAutoPullInputPath(

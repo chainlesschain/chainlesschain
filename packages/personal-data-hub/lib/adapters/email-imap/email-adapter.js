@@ -179,6 +179,22 @@ class EmailAdapter {
   }
 
   async authenticate(ctx = {}) {
+    // Readiness probe — cheap, NO IMAP network login. Report configured-ness
+    // only so AdapterRegistry.readiness() never opens a live IMAP session on
+    // every UI adapter-list load. Snapshot stub (no account) → NO_INPUT;
+    // a per-account adapter → "configured" (the real sync surfaces auth
+    // errors, and lastError carries the last live result).
+    if (ctx && ctx.readinessOnly) {
+      if (this._snapshotMode) {
+        return {
+          ok: false,
+          reason: "NO_INPUT",
+          message: "email-imap (snapshot mode): 需手机端采集邮件快照",
+        };
+      }
+      return { ok: true, mode: "configured" };
+    }
+
     // Phase 5.8 — snapshot mode authenticate: validate ctx.inputPath is
     // readable; no IMAP login. Snapshot mode WITHOUT inputPath in ctx
     // returns NO_INPUT (parallel to travel-12306 / travel-baidu-map shape).

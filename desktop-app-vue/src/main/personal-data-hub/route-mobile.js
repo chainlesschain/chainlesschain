@@ -75,6 +75,15 @@ const DISPATCH = {
   // Android expects AdaptersResponse(adapters: [...])
   "list-adapters": async (hub) => ({ adapters: hub.registry.list() }),
 
+  // Per-adapter readiness ("能否采集 + 不能的原因"). Android expects
+  // AdapterReadinessResponse(readiness: [...]). Probes authenticate(
+  // { readinessOnly: true }) per adapter — see AdapterRegistry.readiness().
+  "adapter-readiness": async (hub, p) => ({
+    readiness: await hub.registry.readiness(
+      p && Number.isInteger(p.timeoutMs) ? { timeoutMs: p.timeoutMs } : {},
+    ),
+  }),
+
   "sync-adapter": async (hub, p) =>
     await hub.registry.syncAdapter(p.name, p.options || {}),
 

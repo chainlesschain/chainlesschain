@@ -72,13 +72,19 @@ class WechatAdapter {
     };
   }
 
-  async authenticate() {
+  async authenticate(ctx = {}) {
     // No server auth; sanity check the on-disk state.
     if (!this._dbPath || !fs.existsSync(this._dbPath)) {
       return { ok: false, reason: "DB_NOT_PULLED", error: `DB path missing: ${this._dbPath}` };
     }
     if (!this._keyProvider || typeof this._keyProvider.getKey !== "function") {
       return { ok: false, reason: "NO_KEY_PROVIDER", error: "keyProvider required" };
+    }
+    // Readiness probe — DB + key provider present means "configured". Do NOT
+    // invoke the (possibly frida-backed, expensive/side-effectful) key
+    // provider during a readiness check; the real sync exercises it.
+    if (ctx && ctx.readinessOnly) {
+      return { ok: true, mode: "configured" };
     }
     try {
       const key = await this._keyProvider.getKey();

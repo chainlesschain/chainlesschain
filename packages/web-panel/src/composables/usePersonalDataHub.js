@@ -133,6 +133,25 @@ export function usePersonalDataHub() {
       return await send("personal-data-hub.list-adapters", {}, 5000);
     },
 
+    /**
+     * Per-adapter readiness — "能否采集 + 不能的原因". Each entry:
+     *   { name, version, extractMode, sensitivity, legalGate,
+     *     ready, status, category, reason, message, actionHint, mode,
+     *     lastSyncedAt, lastStatus, lastError }
+     * status ∈ ready | needs_setup | unavailable | error.
+     * Probes authenticate({readinessOnly:true}) per adapter — gives the
+     * REAL "can I collect" answer that healthCheck() (a lenient sync gate)
+     * cannot. Slightly slower than listAdapters (per-adapter probe), so the
+     * UI fetches it alongside but tolerates absence on older hubs.
+     */
+    async adapterReadiness(timeoutMs) {
+      return await send(
+        "personal-data-hub.adapter-readiness",
+        Number.isInteger(timeoutMs) ? { timeoutMs } : {},
+        15000,
+      );
+    },
+
     /** Run one adapter end-to-end. Returns SyncReport. */
     async syncAdapter(name, options = {}) {
       return await send(

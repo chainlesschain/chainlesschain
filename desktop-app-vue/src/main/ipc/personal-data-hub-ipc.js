@@ -136,6 +136,21 @@ function register() {
     }),
   );
 
+  // Readiness — per-adapter "can I collect right now, and if not why".
+  // Unlike list-adapters (static metadata) this probes each adapter's
+  // authenticate({ readinessOnly: true }) so the UI can show 未配置/需采集/
+  // 不支持 reasons instead of a misleading "healthy". See
+  // AdapterRegistry.readiness() + adapter-readiness.js.
+  ipcMain.handle(
+    `${NS}:adapter-readiness`,
+    safe(async ({ timeoutMs } = {}) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registry.readiness(
+        Number.isInteger(timeoutMs) ? { timeoutMs } : {},
+      );
+    }),
+  );
+
   ipcMain.handle(
     `${NS}:sync-adapter`,
     safe(async ({ name, options }) => {
@@ -634,6 +649,7 @@ function unregister() {
     "stats",
     "health",
     "list-adapters",
+    "adapter-readiness",
     "sync-adapter",
     "sync-all",
     "register-mock",

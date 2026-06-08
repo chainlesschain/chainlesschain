@@ -175,7 +175,12 @@
     <!-- Adapters -->
     <a-card style="margin-bottom: 16px;">
       <template #title>
-        <a-space><AppstoreOutlined /><span>Adapters</span></a-space>
+        <a-space>
+          <AppstoreOutlined /><span>Adapters</span>
+          <a-tag v-if="readinessSummary" :color="readinessSummary.ready === readinessSummary.total ? 'green' : 'orange'">
+            {{ readinessSummary.ready }}/{{ readinessSummary.total }} 可采集
+          </a-tag>
+        </a-space>
       </template>
       <template #extra>
         <a-space>
@@ -237,7 +242,37 @@
         size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'sensitivity'">
+          <template v-if="column.key === 'readiness'">
+            <template v-if="readinessOf(record.name)">
+              <a-tooltip>
+                <template #title>
+                  <div>{{ readinessOf(record.name).message }}</div>
+                  <div v-if="readinessOf(record.name).actionHint" style="margin-top: 4px; opacity: 0.85;">
+                    → {{ readinessOf(record.name).actionHint }}
+                  </div>
+                  <div v-if="readinessOf(record.name).lastError" style="margin-top: 4px; color: #ffb3b3;">
+                    上次同步错误: {{ readinessOf(record.name).lastError }}
+                  </div>
+                </template>
+                <a-tag :color="readinessStatusColor(readinessOf(record.name).status)">
+                  {{ readinessStatusLabel(readinessOf(record.name)) }}
+                </a-tag>
+              </a-tooltip>
+              <span style="color: #999; font-size: 12px; margin-left: 2px;">
+                {{ readinessCategoryLabel(readinessOf(record.name).category) }}
+              </span>
+              <!-- inline reason for the non-ready rows so the user doesn't
+                   have to hover to learn why a source can't collect -->
+              <div
+                v-if="!readinessOf(record.name).ready"
+                style="color: #8c8c8c; font-size: 12px; margin-top: 2px; line-height: 1.4;"
+              >
+                {{ readinessOf(record.name).message }}
+              </div>
+            </template>
+            <a-tag v-else color="default">检测中</a-tag>
+          </template>
+          <template v-else-if="column.key === 'sensitivity'">
             <a-tag :color="sensitivityColor(record.sensitivity)">{{ record.sensitivity }}</a-tag>
             <a-tag v-if="record.legalGate" color="red" style="margin-left: 4px;">需法律确认</a-tag>
           </template>
@@ -246,6 +281,9 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
+              <a-button size="small" type="link" @click="openGuide(record.name)">
+                如何导入
+              </a-button>
               <a-button size="small" :loading="loading.sync[record.name]" @click="syncOne(record.name)">
                 同步
               </a-button>
@@ -711,6 +749,72 @@
       v-model:open="wechatWizardOpen"
       @registered="onWechatRegistered"
     />
+
+    <!-- 如何导入 — per-source onboarding guide -->
+    <a-drawer
+      v-model:open="guideDrawerOpen"
+      :title="guideTarget && guideTarget.guide ? `如何导入：${guideTarget.guide.displayName}` : '如何导入'"
+      width="520"
+      placement="right"
+    >
+      <template v-if="guideTarget && guideTarget.guide">
+        <a-space style="margin-bottom: 12px;" wrap>
+          <a-tag :color="readinessStatusColor(guideTarget.status)">
+            {{ readinessStatusLabel(guideTarget) }}
+          </a-tag>
+          <a-tag>{{ readinessCategoryLabel(guideTarget.guide.category) }}</a-tag>
+        </a-space>
+
+        <a-alert
+          type="info"
+          :message="guideTarget.guide.summary"
+          show-icon
+          style="margin-bottom: 8px;"
+        />
+        <a-alert
+          v-if="!guideTarget.ready && guideTarget.message"
+          type="warning"
+          :message="`当前状态：${guideTarget.message}`"
+          show-icon
+          style="margin-bottom: 16px;"
+        />
+
+        <div
+          v-for="(m, mi) in guideTarget.guide.methods"
+          :key="mi"
+          style="margin-bottom: 20px;"
+        >
+          <div style="font-weight: 600; margin-bottom: 8px;">
+            {{ m.label }}
+            <a-tag v-if="m.recommended" color="green" style="margin-left: 6px;">推荐</a-tag>
+          </div>
+          <ol style="margin: 0; padding-left: 20px; line-height: 1.9;">
+            <li v-for="(s, si) in m.steps" :key="si">{{ s }}</li>
+          </ol>
+          <div
+            v-if="m.note"
+            style="margin-top: 6px; font-size: 12px; color: #52c41a;"
+          >
+            {{ m.note }}
+          </div>
+        </div>
+
+        <a-divider style="margin: 12px 0;" />
+        <a-space>
+          <a-button
+            type="primary"
+            :loading="loading.sync[guideTarget.name]"
+            @click="syncOne(guideTarget.name); guideDrawerOpen = false"
+          >
+            立即同步
+          </a-button>
+          <span style="font-size: 12px; color: #999;">
+            完成上述步骤后点此入库
+          </span>
+        </a-space>
+      </template>
+      <a-empty v-else description="该数据源暂无导入指引" />
+    </a-drawer>
   </div>
 </template>
 
@@ -733,6 +837,11 @@ const hub = usePersonalDataHub()
 const health = ref(null)
 const stats = ref(null)
 const adapters = ref([])
+// Per-adapter readiness keyed by name — { ready, status, category, reason,
+// message, actionHint, lastError, ... }. Populated in refresh() from
+// hub.adapterReadiness(); tells the user WHY a source can't collect
+// (待配置 / 需手机采集 / 需 root / 不支持) instead of a misleading "健康".
+const readinessMap = ref({})
 const askInput = ref('')
 const askResult = ref(null)
 const askError = ref('')
@@ -1573,11 +1682,78 @@ async function bilibiliAdbSync() {
 // Table columns
 const adapterColumns = [
   { title: '名称', dataIndex: 'name', key: 'name', width: 140 },
-  { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
+  { title: '版本', dataIndex: 'version', key: 'version', width: 70 },
+  { title: '就绪状态', key: 'readiness', width: 220 },
   { title: '能力', key: 'capabilities' },
   { title: '敏感度', key: 'sensitivity', width: 140 },
   { title: '操作', key: 'actions', width: 160, align: 'right' },
 ]
+
+// ─── Readiness display helpers ───────────────────────────────────────────
+
+function readinessOf(name) {
+  return readinessMap.value[name] || null
+}
+
+// ─── Import-guide drawer ─────────────────────────────────────────────────
+// "如何导入" — per-source step-by-step onboarding. The guide payload rides
+// on each readiness report (report.guide), so no extra round trip.
+const guideDrawerOpen = ref(false)
+const guideTarget = ref(null) // the readiness report (incl .guide) being shown
+
+function openGuide(name) {
+  const r = readinessOf(name)
+  guideTarget.value =
+    r || { name, status: 'needs_setup', guide: null }
+  guideDrawerOpen.value = true
+}
+
+// status → Ant tag color
+const READINESS_STATUS_COLOR = {
+  ready: 'green',
+  needs_setup: 'orange',
+  unavailable: 'default',
+  error: 'red',
+}
+function readinessStatusColor(status) {
+  return READINESS_STATUS_COLOR[status] || 'default'
+}
+
+// status → short Chinese label for the tag
+const READINESS_STATUS_LABEL = {
+  ready: '可采集',
+  needs_setup: '待配置',
+  unavailable: '不支持',
+  error: '异常',
+}
+function readinessStatusLabel(r) {
+  if (!r) return '检测中'
+  return READINESS_STATUS_LABEL[r.status] || r.status
+}
+
+// category → human label (how this source is collected)
+const READINESS_CATEGORY_LABEL = {
+  local: '本机直采',
+  snapshot: '需手机采集',
+  device: '需 root/本地解密',
+  credential: '需登录授权',
+  platform: '平台限制',
+}
+function readinessCategoryLabel(category) {
+  return READINESS_CATEGORY_LABEL[category] || category || ''
+}
+
+// "X/N 可采集" summary for the header
+const readinessSummary = computed(() => {
+  const list = adapters.value || []
+  if (!list.length) return null
+  let ready = 0
+  for (const a of list) {
+    const r = readinessOf(a.name)
+    if (r && r.ready) ready += 1
+  }
+  return { ready, total: list.length }
+})
 const auditColumns = [
   { title: '时间', key: 'at', dataIndex: 'at', width: 170 },
   { title: '动作', dataIndex: 'action', key: 'action', width: 200 },
@@ -1614,6 +1790,18 @@ async function refresh() {
     health.value = await hub.health()
     stats.value = await hub.stats()
     adapters.value = await hub.listAdapters()
+    // Per-adapter readiness — WHY each source can / can't collect. Fetched
+    // after the list so the table renders immediately and the 就绪状态 column
+    // fills in. Non-fatal on older hubs without the topic (column shows
+    // "检测中" / falls back to nothing).
+    try {
+      const rd = await hub.adapterReadiness()
+      const map = {}
+      for (const r of Array.isArray(rd) ? rd : []) map[r.name] = r
+      readinessMap.value = map
+    } catch (_e) {
+      // Older hub without adapter-readiness topic — leave map empty.
+    }
     // Phase 10.3.5 — also refresh AIChat account list so the wizard's
     // existing-accounts prop is up to date when the drawer is reopened.
     try {

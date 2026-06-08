@@ -275,6 +275,65 @@ async function cmdListAdapters(options) {
   }
 }
 
+// ─── readiness ────────────────────────────────────────────────────────
+//
+// Per-adapter "能否采集 + 不能的原因". Unlike list-adapters (static
+// metadata, and every healthCheck() returns a lenient ok), this probes
+// each adapter's authenticate({ readinessOnly: true }) and maps the reason
+// to a human explanation. This is the "止血" surface for "好多数据源采不到"
+// — instead of a misleading green status, it shows 未配置/需采集/不支持.
+
+const READINESS_STATUS_STYLE = {
+  ready: (s) => chalk.green(s),
+  needs_setup: (s) => chalk.yellow(s),
+  unavailable: (s) => chalk.gray(s),
+  error: (s) => chalk.red(s),
+};
+
+async function cmdReadiness(options) {
+  try {
+    const hub = await getHub();
+    const reports = await hub.registry.readiness(
+      options.timeout ? { timeoutMs: Number(options.timeout) } : {},
+    );
+    if (options.json) {
+      printJson(reports);
+      return;
+    }
+    if (!reports.length) {
+      logger.log(chalk.yellow("(no adapters registered)"));
+      return;
+    }
+    const readyCount = reports.filter((r) => r.ready).length;
+    logger.log(
+      chalk.bold(`数据源就绪情况：${readyCount}/${reports.length} 可采集\n`),
+    );
+    // Sort: not-ready first (those need attention), then by name.
+    const sorted = [...reports].sort((a, b) => {
+      if (a.ready !== b.ready) return a.ready ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+    for (const r of sorted) {
+      const style = READINESS_STATUS_STYLE[r.status] || ((s) => s);
+      const mark = r.ready ? chalk.green("✔") : chalk.red("✘");
+      logger.log(
+        `${mark} ${chalk.cyan(r.name.padEnd(24))} ${style(
+          r.status.padEnd(12),
+        )} ${chalk.gray(`[${r.category}]`)}`,
+      );
+      if (!r.ready) {
+        logger.log(`    ${r.message}`);
+        if (r.actionHint) logger.log(chalk.gray(`    → ${r.actionHint}`));
+      }
+      if (r.lastError) {
+        logger.log(chalk.gray(`    上次同步错误: ${r.lastError}`));
+      }
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 // ─── sync-adapter / sync-all ──────────────────────────────────────────
 
 async function cmdSyncAdapter(name, options) {
@@ -288,6 +347,10 @@ async function cmdSyncAdapter(name, options) {
     // Plan A v0.1 — system-data-android needs a snapshot file path. Generic
     // pass-through so other input-driven adapters reuse the same flag.
     if (options.input) opts.inputPath = String(options.input);
+    // Local DB direct-read flags (本地直读样板): --key for SQLCipher-encrypted
+    // sources (wechat-pc), --db-path as an explicit alias for the DB file.
+    if (options.key) opts.key = String(options.key);
+    if (options.dbPath) opts.dbPath = String(options.dbPath);
     const report = await hub.registry.syncAdapter(name, opts);
     if (spinner) spinner.succeed(`synced ${name}`);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
@@ -2046,6 +2109,15 @@ export function registerHubCommand(program) {
     .action(cmdListAdapters);
 
   hub
+    .command("readiness")
+    .description(
+      "Per-adapter 就绪检查：能否采集 + 不能的原因（未配置/需采集/不支持）",
+    )
+    .option("--timeout <ms>", "Per-adapter probe timeout (default 4000)")
+    .option("--json", "Output JSON")
+    .action(cmdReadiness);
+
+  hub
     .command("sync-adapter <name>")
     .description("Run one adapter's ingest pipeline")
     .option("--since <ms>", "Override watermark — sync from this unix-ms")
@@ -2053,7 +2125,15 @@ export function registerHubCommand(program) {
     .option("--limit <n>", "Cap ingested events")
     .option(
       "--input <path>",
-      "Path to a snapshot file produced by a UI layer (system-data-android, etc.)",
+      "Path to a snapshot file or local DB (system-data-android snapshot, douyin <uid>_im.db, wechat-pc MSG*.db, etc.)",
+    )
+    .option(
+      "--db-path <path>",
+      "Explicit local DB path (alias of --input for device-pull adapters)",
+    )
+    .option(
+      "--key <hex>",
+      "SQLCipher key (64-hex) for encrypted local DBs (e.g. wechat-pc)",
     )
     .option("--json", "Output JSON")
     .action(cmdSyncAdapter);

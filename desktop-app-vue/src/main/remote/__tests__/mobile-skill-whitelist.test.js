@@ -160,7 +160,7 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     ],
   };
 
-  it("namespace wildcard allows all 23 PDH methods", () => {
+  it("namespace wildcard allows all 24 PDH methods", () => {
     const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
     const PDH_METHODS = [
       "personal-data-hub.ask",
@@ -169,6 +169,7 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
       "personal-data-hub.stats",
       "personal-data-hub.health",
       "personal-data-hub.list-adapters",
+      "personal-data-hub.adapter-readiness",
       "personal-data-hub.sync-adapter",
       "personal-data-hub.sync-all",
       "personal-data-hub.sync-adapter-stream",
@@ -190,7 +191,7 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     for (const method of PDH_METHODS) {
       expect(wl.isAllowed(method)).toBe(true);
     }
-    expect(PDH_METHODS).toHaveLength(23);
+    expect(PDH_METHODS).toHaveLength(24);
   });
 
   it("5 Privileged PDH methods require approval", () => {

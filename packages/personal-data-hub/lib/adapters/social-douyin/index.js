@@ -185,7 +185,27 @@ class DouyinAdapter {
   }
 
   async *sync(opts = {}) {
+    // ── 本地直读样板 (local direct-read) ─────────────────────────────────
+    // The most reliable Douyin path: point at a locally-present
+    // `<uid>_im.db` (pulled from a rooted device or copied off the phone)
+    // and read 私信 + 联系人 straight out of the plaintext SQLite — no ADB
+    // orchestration, no snapshot-JSON round trip, no X-Bogus signing.
+    //
+    // Routing:
+    //   1. opts.imDbPath        — explicit IM-db path → direct read
+    //   2. opts.inputPath that sniffs as a SQLite file → direct read
+    //      (so `cc hub sync-adapter social-douyin --input <uid>_im.db`
+    //       just works); a non-SQLite inputPath is a snapshot JSON.
+    //   3. opts.dbPath (legacy) — Phase 13.3 video-history tables.
+    if (typeof opts.imDbPath === "string" && opts.imDbPath.length > 0) {
+      yield* this._syncViaImDb({ ...opts, dbPath: opts.imDbPath });
+      return;
+    }
     if (typeof opts.inputPath === "string" && opts.inputPath.length > 0) {
+      if (this._looksLikeSqlite(opts.inputPath)) {
+        yield* this._syncViaImDb({ ...opts, dbPath: opts.inputPath });
+        return;
+      }
       yield* this._syncViaSnapshot(opts);
       return;
     }
@@ -195,8 +215,105 @@ class DouyinAdapter {
       return;
     }
     throw new Error(
-      "social-douyin.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode, legacy device-pull)",
+      "social-douyin.sync: needs opts.imDbPath / opts.inputPath (<uid>_im.db or snapshot JSON) OR opts.dbPath (legacy video-history sqlite)",
     );
+  }
+
+  /**
+   * Cheap SQLite-file sniff via the 16-byte magic header
+   * ("SQLite format 3\0"). Lets sync() auto-route a `--input <uid>_im.db`
+   * to direct IM read vs treating a `.json` snapshot as SQLite. Returns
+   * false on any read error (caller falls back to snapshot path).
+   */
+  _looksLikeSqlite(filePath) {
+    try {
+      const fd = this._deps.fs.openSync(filePath, "r");
+      try {
+        const buf = Buffer.alloc(16);
+        this._deps.fs.readSync(fd, buf, 0, 16, 0);
+        return buf.toString("latin1").startsWith("SQLite format 3");
+      } finally {
+        this._deps.fs.closeSync(fd);
+      }
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  /**
+   * 本地直读 <uid>_im.db — open the plaintext SQLite directly and yield
+   * message + contact raw events. Reuses social-douyin-adb/im-db-parser so
+   * the defensive column-picker / epoch-normalize / content-JSON logic stays
+   * byte-identical with the ADB-pull path (single source of truth). Emits
+   * the SAME composite originalIds as the snapshot path so re-syncing the
+   * same db (via either route) is idempotent.
+   */
+  async *_syncViaImDb(opts) {
+    const dbPath = opts.dbPath;
+    if (!dbPath || !this._deps.fs.existsSync(dbPath)) return;
+    // eslint-disable-next-line global-require
+    const { parseImDb } = require("../social-douyin-adb/im-db-parser");
+    const parseOpts = {};
+    if (Number.isInteger(opts.limitMessages)) parseOpts.limitMessages = opts.limitMessages;
+    if (Number.isInteger(opts.limitContacts)) parseOpts.limitContacts = opts.limitContacts;
+    if (this._deps.dbDriverFactory) parseOpts._databaseClass = this._deps.dbDriverFactory();
+
+    const { messages, contacts, diagnostic } = parseImDb(dbPath, parseOpts);
+    if (typeof opts.onProgress === "function") {
+      try {
+        opts.onProgress({ phase: "im-db-parsed", adapter: NAME, ...diagnostic });
+      } catch (_e) { /* progress is best-effort */ }
+    }
+
+    const include = opts.include || {};
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const fallbackCapturedAt = Date.now();
+    let emitted = 0;
+
+    if (include[KIND_MESSAGE] !== false) {
+      for (const m of messages) {
+        if (emitted >= limit) return;
+        if (!m || typeof m !== "object") continue;
+        // Mirror snapshot-builder's composite-id strategy verbatim so the
+        // direct-read and snapshot routes converge on one originalId.
+        const idPart =
+          m.conversationId && m.createdTimeMs
+            ? `${m.conversationId}-${m.createdTimeMs}`
+            : m.senderUid && m.createdTimeMs
+              ? `${m.senderUid}-${m.createdTimeMs}`
+              : `msg-${emitted}`;
+        const capturedAt =
+          typeof m.createdTimeMs === "number" && m.createdTimeMs > 0
+            ? m.createdTimeMs
+            : fallbackCapturedAt;
+        yield {
+          adapter: NAME,
+          kind: KIND_MESSAGE,
+          originalId: stableOriginalId(KIND_MESSAGE, `msg-${idPart}`),
+          capturedAt,
+          payload: { kind: KIND_MESSAGE, ...m },
+        };
+        emitted += 1;
+      }
+    }
+
+    if (include[KIND_CONTACT] !== false) {
+      for (const c of contacts) {
+        if (emitted >= limit) return;
+        if (!c || typeof c !== "object") continue;
+        yield {
+          adapter: NAME,
+          kind: KIND_CONTACT,
+          originalId: stableOriginalId(
+            KIND_CONTACT,
+            c.uid ? `contact-${c.uid}` : `contact-${emitted}`,
+          ),
+          capturedAt: fallbackCapturedAt,
+          payload: { kind: KIND_CONTACT, ...c },
+        };
+        emitted += 1;
+      }
+    }
   }
 
   async *_syncViaSnapshot(opts) {
@@ -330,6 +447,12 @@ class DouyinAdapter {
     }
     if (kind === KIND_SEARCH) {
       return normalizeSearch(p, raw, ingestedAt);
+    }
+    if (kind === KIND_MESSAGE) {
+      return normalizeMessage(p, raw, ingestedAt);
+    }
+    if (kind === KIND_CONTACT) {
+      return normalizeContact(p, raw, ingestedAt);
     }
     throw new Error(`DouyinAdapter.normalize: unknown kind ${kind}`);
   }
@@ -499,6 +622,76 @@ function normalizeSearch(p, raw, ingestedAt) {
       extra: { query: row.keyword || row.query, fromAdapter: NAME },
     }],
     persons: [], places: [], items: [], topics: [],
+  };
+}
+
+function normalizeMessage(p, raw, ingestedAt) {
+  // IM private message from <uid>_im.db (snapshot or 本地直读). Becomes one
+  // MESSAGE event. We don't reliably know the self uid here, so actor stays
+  // person-self and the real sender is preserved in extra.senderUid (the
+  // consumer / EntityResolver can correlate it to a contact person).
+  const occurredAt =
+    parseTime(p.createdTimeMs) || raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  const text = typeof p.text === "string" ? p.text : "";
+  return {
+    events: [{
+      id: newId(),
+      type: ENTITY_TYPES.EVENT,
+      subtype: EVENT_SUBTYPES.MESSAGE,
+      occurredAt,
+      actor: "person-self",
+      content: {
+        title: text ? text.slice(0, 80) : "(非文本消息)",
+        text,
+      },
+      ingestedAt,
+      source,
+      extra: {
+        platform: "douyin",
+        channel: "im",
+        senderUid: p.senderUid || null,
+        conversationId: p.conversationId || null,
+        readStatus: typeof p.readStatus === "number" ? p.readStatus : null,
+        // Preserve the raw content blob for non-text message types (stickers
+        // / voice / video) so a richer consumer can decode them later.
+        contentBlob: typeof p.contentBlob === "string" ? p.contentBlob : null,
+      },
+    }],
+    persons: [], places: [], items: [], topics: [],
+  };
+}
+
+function normalizeContact(p, raw, ingestedAt) {
+  // SIMPLE_USER row from <uid>_im.db → a contact Person. SIMPLE_USER has no
+  // per-row timestamp, so occurredAt falls back to capturedAt.
+  const uid =
+    (typeof p.uid === "string" && p.uid) ||
+    (typeof p.uid === "number" && String(p.uid)) ||
+    null;
+  const occurredAt = raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  const identifiers = {};
+  if (uid) identifiers["douyin-uid"] = [uid];
+  if (p.shortId) identifiers["douyin-short-id"] = [String(p.shortId)];
+  return {
+    events: [],
+    persons: [{
+      id: uid ? `person-douyin-${uid}` : `person-douyin-${newId()}`,
+      type: ENTITY_TYPES.PERSON,
+      subtype: PERSON_SUBTYPES.CONTACT,
+      names: [p.name || "(unnamed)"],
+      ingestedAt,
+      source,
+      identifiers,
+      extra: {
+        platform: "douyin",
+        avatarUrl: p.avatarUrl || null,
+        // 0/1/2 = none / following / mutual (Douyin follow_status)
+        followStatus: typeof p.followStatus === "number" ? p.followStatus : null,
+      },
+    }],
+    places: [], items: [], topics: [],
   };
 }
 
