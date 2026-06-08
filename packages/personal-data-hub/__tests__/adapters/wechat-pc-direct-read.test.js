@@ -89,14 +89,52 @@ async function collect(iter) {
 }
 
 describe("WeChatPcAdapter — readiness + construction", () => {
-  it("constructs no-arg and reports DB_NOT_PULLED via readinessOnly", async () => {
+  // Synthetic "nothing installed" filesystem so auto-discovery is
+  // deterministic regardless of what's on the host running the tests.
+  const EMPTY_FS = {
+    existsSync: () => false,
+    readdirSync: () => [],
+    statSync: () => ({ size: 0 }),
+    constants: { R_OK: 4 },
+  };
+
+  it("constructs no-arg and reports APP_NOT_INSTALLED when nothing is discoverable", async () => {
     const a = new WeChatPcAdapter();
+    a._deps.discoveryDeps = { fs: EMPTY_FS, home: "/no-home", env: {} };
     expect(a.name).toBe("wechat-pc");
     expect(a.extractMode).toBe("device-pull");
     expect(a.dataDisclosure.legalGate).toBe(true);
     const r = await a.authenticate({ readinessOnly: true });
     expect(r.ok).toBe(false);
-    expect(r.reason).toBe("DB_NOT_PULLED");
+    expect(r.reason).toBe("APP_NOT_INSTALLED");
+  });
+
+  it("auto-discovers an installed WeChat 4.x DB → DB_FOUND_NEEDS_KEY", async () => {
+    // Minimal synthetic 4.x layout: ~/Documents/xwechat_files/<wxid>_N/db_storage/message/message_0.db
+    const dirs = {
+      "/h/Documents/xwechat_files": [{ name: "wxid_abc_1", isDirectory: () => true, isFile: () => false }],
+      "/h/Documents/xwechat_files/wxid_abc_1/db_storage/message": [
+        { name: "message_0.db", isDirectory: () => false, isFile: () => true },
+      ],
+    };
+    const exist = new Set([
+      "/h/Documents/xwechat_files",
+      "/h/Documents/xwechat_files/wxid_abc_1/db_storage",
+      "/h/Documents/xwechat_files/wxid_abc_1/db_storage/contact/contact.db",
+    ]);
+    const fakeFs = {
+      existsSync: (p) => exist.has(p.replace(/\\/g, "/")),
+      readdirSync: (p) => dirs[p.replace(/\\/g, "/")] || [],
+      statSync: () => ({ size: 1234 }),
+      constants: { R_OK: 4 },
+    };
+    const a = new WeChatPcAdapter();
+    a._deps.discoveryDeps = { fs: fakeFs, home: "/h", env: {}, path: require("node:path").posix };
+    const r = await a.authenticate({ readinessOnly: true });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("DB_FOUND_NEEDS_KEY");
+    expect(r.discovered.installed).toBe(true);
+    expect(r.discovered.primaryDb).toContain("message_0.db");
   });
 
   it("readinessOnly with a configured dbPath reports configured (no DB open)", async () => {
@@ -203,5 +241,81 @@ describe("WeChatPcAdapter — options + edge cases", () => {
     expect(() => a.normalize({ kind: "weird", payload: { kind: "weird" } })).toThrow(
       /unknown kind/,
     );
+  });
+});
+
+describe("WeChatPcAdapter — WeChat 4.x sidecar path", () => {
+  function fakeCollector(result) {
+    return async (_opts) => result;
+  }
+
+  it("opts.mode='v4' routes through the injected collector and yields messages", async () => {
+    const a = new WeChatPcAdapter({
+      v4Collector: fakeCollector({
+        account: "wxid_me",
+        messageCount: 2,
+        dbs: [{ db: "message_0.db", messageCount: 2, hmacFailures: 0 }],
+        messages: [
+          {
+            conversation: "wxid_friend",
+            sender: "wxid_friend",
+            type: 1,
+            createTime: 1700000002,
+            text: "hello from 4.0",
+            originalId: "wechat-pc:wxid_friend:1001",
+          },
+          {
+            conversation: "39354004187@chatroom",
+            sender: "wxid_other",
+            type: 1,
+            createTime: 1700000003,
+            text: "group line",
+            originalId: "wechat-pc:39354004187@chatroom:1002",
+          },
+        ],
+      }),
+    });
+    const raws = await collect(a.sync({ mode: "v4" }));
+    expect(raws).toHaveLength(2);
+    expect(raws[0].originalId).toBe("wechat-pc:wxid_friend:1001");
+    expect(raws[0].payload.text).toBe("hello from 4.0");
+    expect(raws[0].payload.isGroup).toBe(false);
+    // group message: peer is the chatroom, sender preserved
+    expect(raws[1].payload.isGroup).toBe(true);
+    expect(raws[1].payload.senderWxid).toBe("wxid_other");
+
+    // normalize reuses the 3.x path → produces a valid message event
+    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    for (const r of raws) {
+      const n = a.normalize(r);
+      for (const k of Object.keys(merged)) if (Array.isArray(n[k])) merged[k].push(...n[k]);
+    }
+    const { valid } = partitionBatch(merged);
+    expect(valid.events.length).toBe(2);
+    const texts = valid.events.map((e) => e.content && e.content.text);
+    expect(texts).toContain("hello from 4.0");
+    expect(texts).toContain("group line");
+  });
+
+  it("v4 self-sent message marks isSend=1 when sender == account", async () => {
+    const a = new WeChatPcAdapter({
+      v4Collector: fakeCollector({
+        account: "wxid_me",
+        messages: [
+          { conversation: "wxid_friend", sender: "wxid_me", type: 1, createTime: 1700000004, text: "mine", originalId: "id-3" },
+        ],
+      }),
+    });
+    const raws = await collect(a.sync({ mode: "v4" }));
+    expect(raws[0].payload.isSend).toBe(1);
+  });
+
+  it("v4 respects limit", async () => {
+    const msgs = Array.from({ length: 5 }, (_v, i) => ({
+      conversation: "wxid_f", sender: "wxid_f", type: 1, createTime: 1700000000 + i, text: "m" + i, originalId: "id-" + i,
+    }));
+    const a = new WeChatPcAdapter({ v4Collector: fakeCollector({ account: "wxid_me", messages: msgs }) });
+    const raws = await collect(a.sync({ mode: "v4", limit: 3 }));
+    expect(raws).toHaveLength(3);
   });
 });

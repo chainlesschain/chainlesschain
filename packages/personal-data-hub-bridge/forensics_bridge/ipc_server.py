@@ -30,6 +30,8 @@ from .dispatcher import IpcError, METHODS, dispatch
 # Add new namespaces here as sub-phases land them (system, wechat, alipay, ios, ...).
 from .parsers import system as _system_parsers  # noqa: F401
 from .extractors import android as _android_extractor  # noqa: F401
+from .extractors import wechat_pc as _wechat_pc_extractor  # noqa: F401
+from .extractors import qq_nt as _qq_nt_extractor  # noqa: F401
 
 # Force UTF-8 on stdin/stdout — Windows defaults to cp936/GBK which mangles
 # Chinese app data (rule: .claude/rules/encoding.md).

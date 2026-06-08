@@ -81,21 +81,52 @@ class WeChatPcAdapter {
       fs,
       // DI seam: tests inject a fake SQLite driver class via dbDriverFactory.
       dbDriverFactory: opts.dbDriverFactory || null,
+      // DI seam: tests inject a fake WeChat 4.x collector; default lazy-loads
+      // the forensics-bridge sidecar invoker.
+      v4Collector: opts.v4Collector || null,
+      // DI seam for discovery (see _autoDiscover).
+      discoveryDeps: opts.discoveryDeps || undefined,
     };
+  }
+
+  // Auto-discover PC WeChat's local DB on the host (3.x + 4.x layouts) so the
+  // UI never needs a manually typed path. Lazy-required + cached per instance.
+  _autoDiscover() {
+    if (this._discovered !== undefined) return this._discovered;
+    try {
+      // eslint-disable-next-line global-require
+      const { discover } = require("../_pc-local-discovery");
+      this._discovered = discover("wechat-pc", this._deps.discoveryDeps || {});
+    } catch (_e) {
+      this._discovered = null;
+    }
+    return this._discovered;
   }
 
   async authenticate(ctx = {}) {
     // Cheap readiness probe — never opens / decrypts a DB.
     if (ctx && ctx.readinessOnly) {
       if (this._dbPath) return { ok: true, mode: "configured" };
+      const disc = this._autoDiscover();
+      if (disc && disc.installed) {
+        return {
+          ok: false,
+          reason: "DB_FOUND_NEEDS_KEY",
+          message: `已找到本机微信库（${disc.layout || ""} ${disc.accounts.length} 个账号，主库 ${disc.primaryDb}）`,
+          discovered: disc,
+        };
+      }
       return {
         ok: false,
-        reason: "DB_NOT_PULLED",
-        message:
-          "wechat-pc: 需提供 PC 微信本地数据库路径（MSG*.db / MicroMsg.db），加密库需先解密或提供 key",
+        reason: "APP_NOT_INSTALLED",
+        message: (disc && disc.note) || "未检测到本机微信数据（可能未安装或未登录）",
       };
     }
-    const dbPath = (ctx && ctx.inputPath) || (ctx && ctx.dbPath) || this._dbPath;
+    const dbPath =
+      (ctx && ctx.inputPath) ||
+      (ctx && ctx.dbPath) ||
+      this._dbPath ||
+      this._resolveDiscoveredDbPath();
     if (dbPath) {
       try {
         this._deps.fs.accessSync(dbPath, this._deps.fs.constants.R_OK);
@@ -108,11 +139,26 @@ class WeChatPcAdapter {
       }
       return { ok: true, mode: "sqlite" };
     }
+    const disc = this._autoDiscover();
+    if (disc && disc.installed) {
+      return {
+        ok: false,
+        reason: "DB_FOUND_NEEDS_KEY",
+        message: `已找到本机微信库（主库 ${disc.primaryDb}），需解密密钥`,
+        discovered: disc,
+      };
+    }
     return {
       ok: false,
-      reason: "DB_NOT_PULLED",
-      message: "wechat-pc.authenticate: needs opts.dbPath / inputPath (MSG*.db or MicroMsg.db)",
+      reason: "APP_NOT_INSTALLED",
+      message: "wechat-pc.authenticate: 未检测到本机微信库，也未提供 dbPath / inputPath",
     };
+  }
+
+  // Resolve the auto-discovered primary message DB path (null if none).
+  _resolveDiscoveredDbPath() {
+    const disc = this._autoDiscover();
+    return disc && disc.installed && disc.primaryDb ? disc.primaryDb : null;
   }
 
   async healthCheck() {
@@ -120,10 +166,27 @@ class WeChatPcAdapter {
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.dbPath || opts.inputPath || this._dbPath;
+    // WeChat 4.x path: encrypted SQLCipher-4 DBs whose key lives in Weixin.exe
+    // memory. Route through the Python sidecar (memory key + decrypt + parse)
+    // and yield the decrypted messages. Triggered when the user gives no
+    // explicit plaintext path AND discovery sees the 4.x layout, or opts.mode.
+    const disc = this._autoDiscover();
+    const noExplicitPath = !opts.dbPath && !opts.inputPath && !this._dbPath;
+    const useV4 =
+      opts.mode === "v4" ||
+      (noExplicitPath && disc && disc.installed && disc.layout === "4.x");
+    if (useV4) {
+      yield* this._syncV4(opts, disc);
+      return;
+    }
+
+    // One-click: when no explicit path is given, fall back to the
+    // auto-discovered primary message DB on this host (3.x plaintext/keyed).
+    const dbPath =
+      opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
     if (!dbPath) {
       throw new Error(
-        "wechat-pc.sync: needs opts.dbPath / opts.inputPath pointing to a PC WeChat DB (MSG*.db or MicroMsg.db)",
+        "wechat-pc.sync: 未找到本机微信库且未提供 opts.dbPath / opts.inputPath",
       );
     }
     if (!this._deps.fs.existsSync(dbPath)) return;
@@ -183,6 +246,83 @@ class WeChatPcAdapter {
         };
         emitted += 1;
       }
+    }
+  }
+
+  // WeChat 4.x: invoke the sidecar collector, then re-shape each decrypted
+  // message into the SAME payload the 3.x normalizeMessage() understands, so
+  // both layouts share one normalization path.
+  async *_syncV4(opts = {}, disc) {
+    let collect = this._deps.v4Collector;
+    if (!collect) {
+      // eslint-disable-next-line global-require
+      collect = require("./v4-sidecar").collectWeChatV4;
+    }
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
+    const result = await collect({
+      limit,
+      key: opts.key || this._key || undefined,
+      pythonExe: opts.pythonExe,
+      bridgeDir: opts.bridgeDir,
+      timeoutMs: opts.timeoutMs,
+      onProgress:
+        typeof opts.onProgress === "function"
+          ? (m) => {
+              try { opts.onProgress({ phase: "wechat-v4", adapter: NAME, ...m }); } catch (_e) { /* best-effort */ }
+            }
+          : undefined,
+      _supervisorFactory: opts._supervisorFactory,
+    });
+    if (typeof opts.onProgress === "function") {
+      try {
+        opts.onProgress({
+          phase: "wechat-v4-done",
+          adapter: NAME,
+          account: result && result.account,
+          messageCount: result && result.messageCount,
+          dbs: result && result.dbs,
+        });
+      } catch (_e) { /* best-effort */ }
+    }
+    const selfWxid =
+      (result && result.account) ||
+      (disc && disc.accounts && disc.accounts[0] && disc.accounts[0].id) ||
+      null;
+    const fallbackCapturedAt = Date.now();
+    const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
+    let emitted = 0;
+    const max = limit || Infinity;
+    for (const m of messages) {
+      if (emitted >= max) return;
+      if (!m || typeof m !== "object") continue;
+      const conv = typeof m.conversation === "string" ? m.conversation : null;
+      const isGroup = !!conv && conv.endsWith("@chatroom");
+      const createdTimeMs =
+        typeof m.createTime === "number" && m.createTime > 0 ? m.createTime * 1000 : null;
+      // Map → 3.x payload shape consumed by normalizeMessage().
+      const payload = {
+        kind: KIND_MESSAGE,
+        msgSvrId: m.originalId || null,
+        talker: conv,
+        isSend: selfWxid && m.sender && m.sender === selfWxid ? 1 : 0,
+        type: typeof m.type === "number" ? m.type : null,
+        createdTimeMs,
+        text: typeof m.text === "string" ? m.text : "",
+        senderWxid: isGroup ? (m.sender || null) : null,
+        isGroup,
+        contentBlob: typeof m.text === "string" ? m.text : null,
+      };
+      const idPart =
+        m.originalId ||
+        (conv && createdTimeMs ? `${conv}-${createdTimeMs}` : `v4-${emitted}`);
+      yield {
+        adapter: NAME,
+        kind: KIND_MESSAGE,
+        originalId: m.originalId || stableOriginalId(KIND_MESSAGE, idPart),
+        capturedAt: createdTimeMs || fallbackCapturedAt,
+        payload,
+      };
+      emitted += 1;
     }
   }
 

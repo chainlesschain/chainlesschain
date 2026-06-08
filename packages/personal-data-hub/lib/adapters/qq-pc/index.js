@@ -61,17 +61,46 @@ class QQPcAdapter {
     };
   }
 
+  _autoDiscover() {
+    if (this._discovered !== undefined) return this._discovered;
+    try {
+      // eslint-disable-next-line global-require
+      const { discover } = require("../_pc-local-discovery");
+      this._discovered = discover("qq-pc", this._deps.discoveryDeps || {});
+    } catch (_e) {
+      this._discovered = null;
+    }
+    return this._discovered;
+  }
+
+  _resolveDiscoveredDbPath() {
+    const disc = this._autoDiscover();
+    return disc && disc.installed && disc.primaryDb ? disc.primaryDb : null;
+  }
+
   async authenticate(ctx = {}) {
     if (ctx && ctx.readinessOnly) {
       if (this._dbPath) return { ok: true, mode: "configured" };
+      const disc = this._autoDiscover();
+      if (disc && disc.installed) {
+        return {
+          ok: false,
+          reason: "DB_FOUND_NEEDS_KEY",
+          message: `已找到本机 QQ 库（${disc.accounts.length} 个账号，主库 ${disc.primaryDb}）`,
+          discovered: disc,
+        };
+      }
       return {
         ok: false,
-        reason: "DB_NOT_PULLED",
-        message:
-          "qq-pc: 需提供电脑版 QQ 的 nt_msg.db 路径（加密库需先解密或提供 key）",
+        reason: "APP_NOT_INSTALLED",
+        message: (disc && disc.note) || "未检测到本机 QQ NT 数据（可能未安装或未登录）",
       };
     }
-    const dbPath = (ctx && ctx.inputPath) || (ctx && ctx.dbPath) || this._dbPath;
+    const dbPath =
+      (ctx && ctx.inputPath) ||
+      (ctx && ctx.dbPath) ||
+      this._dbPath ||
+      this._resolveDiscoveredDbPath();
     if (dbPath) {
       try {
         this._deps.fs.accessSync(dbPath, this._deps.fs.constants.R_OK);
@@ -84,10 +113,19 @@ class QQPcAdapter {
       }
       return { ok: true, mode: "sqlite" };
     }
+    const disc = this._autoDiscover();
+    if (disc && disc.installed) {
+      return {
+        ok: false,
+        reason: "DB_FOUND_NEEDS_KEY",
+        message: `已找到本机 QQ 库（主库 ${disc.primaryDb}），需解密密钥`,
+        discovered: disc,
+      };
+    }
     return {
       ok: false,
-      reason: "DB_NOT_PULLED",
-      message: "qq-pc.authenticate: needs opts.dbPath / inputPath (nt_msg.db)",
+      reason: "APP_NOT_INSTALLED",
+      message: "qq-pc.authenticate: 未检测到本机 QQ NT 库，也未提供 dbPath / inputPath",
     };
   }
 
@@ -96,9 +134,10 @@ class QQPcAdapter {
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.dbPath || opts.inputPath || this._dbPath;
+    const dbPath =
+      opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
     if (!dbPath) {
-      throw new Error("qq-pc.sync: needs opts.dbPath / opts.inputPath (nt_msg.db)");
+      throw new Error("qq-pc.sync: 未找到本机 QQ NT 库且未提供 opts.dbPath / opts.inputPath");
     }
     if (!this._deps.fs.existsSync(dbPath)) return;
 

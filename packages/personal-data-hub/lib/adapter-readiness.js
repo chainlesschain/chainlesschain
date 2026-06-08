@@ -86,6 +86,22 @@ const REASONS = Object.freeze({
     actionHint: "通过 ADB / 本地 DB 解密导出数据库后再同步",
     appendDetail: true,
   },
+  // 自动发现：已在本机找到 App 的加密数据库，只差解密密钥即可一键采集。
+  DB_FOUND_NEEDS_KEY: {
+    status: READINESS_STATUS.NEEDS_SETUP,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "已自动找到本机数据库（已加密），仅需解密密钥即可一键采集",
+    actionHint: "提取该 App 的数据库密钥后点「一键采集」（密钥可从运行中的 App 提取）",
+    appendDetail: true,
+  },
+  // 自动发现：未检测到 App 的本机数据（未安装 / 未登录 / 非默认目录）。
+  APP_NOT_INSTALLED: {
+    status: READINESS_STATUS.UNAVAILABLE,
+    category: READINESS_CATEGORY.DEVICE,
+    message: "未检测到该 App 的本机数据（可能未安装、未登录或装在非默认目录）",
+    actionHint: "在本机安装并登录该 App 后重试，或改用手机端采集",
+    appendDetail: true,
+  },
   NO_KEY_PROVIDER: {
     status: READINESS_STATUS.NEEDS_SETUP,
     category: READINESS_CATEGORY.DEVICE,

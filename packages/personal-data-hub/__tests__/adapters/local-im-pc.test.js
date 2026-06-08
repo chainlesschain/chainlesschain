@@ -107,12 +107,17 @@ describe.each([
   ["DingTalkPcAdapter", DingTalkPcAdapter, "dingtalk"],
   ["FeishuPcAdapter", FeishuPcAdapter, "feishu"],
 ])("%s (honest best-effort)", (_label, Cls, platform) => {
-  it("no-arg construct + DB_NOT_PULLED readiness + legalGate", async () => {
+  it("no-arg construct + APP_NOT_INSTALLED when nothing discoverable + legalGate", async () => {
     const a = new Cls();
+    a._deps.discoveryDeps = {
+      fs: { existsSync: () => false, readdirSync: () => [], statSync: () => ({ size: 0 }), constants: { R_OK: 4 } },
+      home: "/no-home",
+      env: {},
+    };
     expect(a.extractMode).toBe("device-pull");
     expect(a.dataDisclosure.legalGate).toBe(true);
     const r = await a.authenticate({ readinessOnly: true });
-    expect(r.reason).toBe("DB_NOT_PULLED");
+    expect(r.reason).toBe("APP_NOT_INSTALLED");
   });
 
   it("reads messages → valid events, platform tag, raw preserved", async () => {

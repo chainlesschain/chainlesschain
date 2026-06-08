@@ -58,12 +58,41 @@ function createLocalImPcAdapter(cfg) {
       this._deps = { fs, dbDriverFactory: opts.dbDriverFactory || null };
     }
 
+    _autoDiscover() {
+      if (this._discovered !== undefined) return this._discovered;
+      try {
+        // eslint-disable-next-line global-require
+        const { discover } = require("./_pc-local-discovery");
+        this._discovered = discover(NAME, this._deps.discoveryDeps || {});
+      } catch (_e) {
+        this._discovered = null;
+      }
+      return this._discovered;
+    }
+
+    _resolveDiscoveredDbPath() {
+      const disc = this._autoDiscover();
+      return disc && disc.installed && disc.primaryDb ? disc.primaryDb : null;
+    }
+
     async authenticate(ctx = {}) {
       if (ctx && ctx.readinessOnly) {
         if (this._dbPath) return { ok: true, mode: "configured" };
-        return { ok: false, reason: "DB_NOT_PULLED", message: cfg.needHint };
+        const disc = this._autoDiscover();
+        if (disc && disc.installed) {
+          // best-effort plaintext DB → one-click ready; encrypted → needs key
+          if (!disc.encrypted) return { ok: true, mode: "auto-discovered" };
+          return {
+            ok: false,
+            reason: "DB_FOUND_NEEDS_KEY",
+            message: `已找到本机 ${PLATFORM} 库（主库 ${disc.primaryDb}），可能需解密`,
+            discovered: disc,
+          };
+        }
+        return { ok: false, reason: "APP_NOT_INSTALLED", message: (disc && disc.note) || cfg.needHint };
       }
-      const dbPath = (ctx && ctx.inputPath) || (ctx && ctx.dbPath) || this._dbPath;
+      const dbPath =
+        (ctx && ctx.inputPath) || (ctx && ctx.dbPath) || this._dbPath || this._resolveDiscoveredDbPath();
       if (dbPath) {
         try {
           this._deps.fs.accessSync(dbPath, this._deps.fs.constants.R_OK);
@@ -72,7 +101,7 @@ function createLocalImPcAdapter(cfg) {
         }
         return { ok: true, mode: "sqlite" };
       }
-      return { ok: false, reason: "DB_NOT_PULLED", message: `${NAME}.authenticate: needs opts.dbPath / inputPath` };
+      return { ok: false, reason: "APP_NOT_INSTALLED", message: `${NAME}.authenticate: 未检测到本机 ${PLATFORM} 库，也未提供 dbPath / inputPath` };
     }
 
     async healthCheck() {
@@ -80,8 +109,8 @@ function createLocalImPcAdapter(cfg) {
     }
 
     async *sync(opts = {}) {
-      const dbPath = opts.dbPath || opts.inputPath || this._dbPath;
-      if (!dbPath) throw new Error(`${NAME}.sync: needs opts.dbPath / opts.inputPath`);
+      const dbPath = opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
+      if (!dbPath) throw new Error(`${NAME}.sync: 未找到本机 ${PLATFORM} 库且未提供 opts.dbPath / opts.inputPath`);
       if (!this._deps.fs.existsSync(dbPath)) return;
 
       // eslint-disable-next-line global-require

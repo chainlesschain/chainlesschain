@@ -105,12 +105,17 @@ async function collect(iter) {
 }
 
 describe("QQPcAdapter — readiness + construction", () => {
-  it("no-arg construct + DB_NOT_PULLED readiness", async () => {
+  it("no-arg construct + APP_NOT_INSTALLED when nothing discoverable", async () => {
     const a = new QQPcAdapter();
+    a._deps.discoveryDeps = {
+      fs: { existsSync: () => false, readdirSync: () => [], statSync: () => ({ size: 0 }), constants: { R_OK: 4 } },
+      home: "/no-home",
+      env: {},
+    };
     expect(a.name).toBe("qq-pc");
     expect(a.dataDisclosure.legalGate).toBe(true);
     const r = await a.authenticate({ readinessOnly: true });
-    expect(r.reason).toBe("DB_NOT_PULLED");
+    expect(r.reason).toBe("APP_NOT_INSTALLED");
   });
 });
 
