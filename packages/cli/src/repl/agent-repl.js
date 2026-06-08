@@ -66,6 +66,7 @@ import {
   formatToolArgs,
 } from "../runtime/agent-core.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
+import { composeSystemPrompt } from "../runtime/system-prompt.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -307,7 +308,15 @@ export async function startAgentRepl(options = {}) {
   const messages = [
     {
       role: "system",
-      content: buildSystemPrompt(process.cwd(), { additionalDirectories }),
+      // --system-prompt replaces the built-in prompt; --append-system-prompt
+      // extends it (parity with the headless runners).
+      content: composeSystemPrompt(
+        buildSystemPrompt(process.cwd(), { additionalDirectories }),
+        {
+          systemPrompt: options.systemPrompt,
+          appendSystemPrompt: options.appendSystemPrompt,
+        },
+      ),
     },
   ];
 

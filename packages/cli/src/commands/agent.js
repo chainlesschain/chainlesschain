@@ -131,11 +131,11 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--system-prompt <text>",
-      "Replace the built-in system prompt (literal text or @file) (headless)",
+      "Replace the built-in system prompt (literal text or @file)",
     )
     .option(
       "--append-system-prompt <text>",
-      "Append extra guidance to the system prompt (literal text or @file) (headless)",
+      "Append extra guidance to the system prompt (literal text or @file)",
     )
     .option(
       "--input-format <fmt>",
@@ -345,6 +345,14 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
+        // --system-prompt / --append-system-prompt (literal or @file) also
+        // apply to interactive sessions, composed in startAgentRepl.
+        systemPrompt: resolvePromptText(options.systemPrompt, {
+          cwd: process.cwd(),
+        }),
+        appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
+          cwd: process.cwd(),
+        }),
       });
       await runtime.startAgentSession();
     });

@@ -29,6 +29,8 @@ export function resolveAgentPolicy({
     additionalDirectories: Array.isArray(overrides.additionalDirectories)
       ? overrides.additionalDirectories
       : [],
+    systemPrompt: overrides.systemPrompt || null,
+    appendSystemPrompt: overrides.appendSystemPrompt || null,
   };
 }
 
