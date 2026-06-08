@@ -95,6 +95,34 @@ function localImPcGuide(platform) {
   };
 }
 
+// Shared guide for the social platforms that have a dedicated one-click ADB
+// sync (B站/微博/小红书/头条/快手) — root 手机 + USB → 界面一键按钮直接采集。
+function socialAdbGuide(platform, dataDesc) {
+  return {
+    summary: `采集${platform}的${dataDesc}。最快路径：插上已 root 的安卓手机（USB 调试）→ 在中台点该平台的「一键采集」按钮，自动从手机抓登录态并拉取数据入库——无需在网页端手动操作。`,
+    methods: [
+      {
+        label: `方式一：root 手机 + USB 一键采集（推荐）`,
+        recommended: true,
+        steps: [
+          "手机已 root，开启「开发者选项 → USB 调试」，用数据线连接电脑。",
+          "确保电脑能看到设备（命令行 `adb devices` 列出你的手机）。",
+          `手机上已登录${platform} App。`,
+          `在中台点该平台的「一键采集」按钮（或对应的 *AdbSync 操作），自动抓取登录态 + 拉取数据入库。`,
+        ],
+        note: "登录态 / cookie 仅在本地处理，不上传服务器。纯个人使用。",
+      },
+      {
+        label: "方式二：手机 App 内采集快照",
+        steps: [
+          "在手机 ChainlessChain App 内进入「数据源」，找到该平台点「采集」。",
+          "按提示在内置浏览器登录，App 采完生成快照并同步到中台。",
+        ],
+      },
+    ],
+  };
+}
+
 function displayName(name) {
   return DISPLAY_NAMES[name] || name;
 }
@@ -340,24 +368,23 @@ const ADAPTER_OVERRIDES = Object.freeze({
 
   "wechat-pc": {
     summary:
-      "采集电脑版微信的聊天记录 + 联系人（来自本地 MSG*.db 与 MicroMsg.db）。数据库经 SQLCipher 加密，需先解密成明文或提供 32 字节密钥再本地直读。",
+      "采集电脑版微信的聊天记录 + 公众号 + 朋友圈 + 收藏 + 联系人。微信 4.0（xwechat_files）已支持全自动一键采集：中台自动发现本机数据库、从运行中的微信进程提取密钥、解密入库——无需手动解密或装第三方工具。",
     methods: [
       {
-        label: "方式一：先解密成明文再直读（推荐，最可靠）",
+        label: "方式一：一键采集（微信 4.0，推荐，全自动）",
         recommended: true,
         steps: [
-          "在电脑登录微信 PC 版，定位数据目录（默认 文档\\WeChat Files\\<wxid>\\Msg\\）。",
-          "用工具（如 PyWxDump）从运行中的微信进程提取 32 字节密钥并解密 MSG0.db / MicroMsg.db 为明文 SQLite。",
-          "执行 `cc hub sync-adapter wechat-pc --input <解密后的 MSG0.db>` 采集聊天记录；再对 MicroMsg.db 跑一次采集联系人。",
-          "中台直接读取消息 + 联系人入库（明文 SQLite，无需再解密）。",
+          "在这台电脑上打开并登录微信（4.0 版，数据在 文档\\xwechat_files\\）。",
+          "回到中台，点 wechat-pc 这一行的「一键采集」（或 `cc hub sync-adapter wechat-pc`）。",
+          "中台自动定位各数据库 → 从微信进程内存按库取密钥 → 解密 → 聊天/公众号/朋友圈/收藏/联系人全部入库。",
         ],
-        note: "纯个人使用、全程本地。聊天记录敏感，首次会要求法律确认。多个 MSG*.db 逐个采集即可累积。",
+        note: "需要微信保持登录运行（密钥在内存里）。聊天记录含压缩消息与图片/文件/链接/引用等均会解析成可读文本。纯个人使用、全程本地，首次会要求法律确认。依赖随中台分发的 Python（含 cryptography）。",
       },
       {
-        label: "方式二：提供密钥让中台直接解密（试验性）",
+        label: "方式二：旧版微信 3.x / 手动解密",
         steps: [
-          "提取到 64 位十六进制密钥后，采集时附带 `--key <64位hex>`。",
-          "中台用 SQLCipher 配置尝试直接打开加密库；部分微信版本可直接读，失败则回退方式一。",
+          "微信 3.x（文档\\WeChat Files\\<wxid>\\Msg\\）用工具（如 PyWxDump）解密 MSG0.db / MicroMsg.db 为明文。",
+          "执行 `cc hub sync-adapter wechat-pc --input <解密后的 .db>`（或附 `--key <64位hex>` 让中台尝试直接解密）。",
         ],
       },
     ],
@@ -365,6 +392,12 @@ const ADAPTER_OVERRIDES = Object.freeze({
 
   "dingtalk-pc": localImPcGuide("钉钉"),
   "feishu-pc": localImPcGuide("飞书"),
+
+  "social-bilibili": socialAdbGuide("哔哩哔哩", "观看历史 / 收藏 / 动态 / 关注"),
+  "social-weibo": socialAdbGuide("微博", "微博 / 收藏 / 关注"),
+  "social-xiaohongshu": socialAdbGuide("小红书", "笔记 / 点赞收藏 / 关注"),
+  "social-toutiao": socialAdbGuide("今日头条", "阅读 feed / 收藏 / 搜索历史"),
+  "social-kuaishou": socialAdbGuide("快手", "作品 / 推荐 / 个人主页"),
 
   "social-douyin": {
     summary:
