@@ -89,12 +89,57 @@ function readPreviousHash() {
 }
 
 function runBuild() {
-  console.log("[build-web-panel] 安装依赖...");
+  // web-panel is NOT a workspace member of the monorepo root (see root
+  // package.json `workspaces`). In CI a bare `npm install` here gets absorbed by
+  // the parent workspace root and leaves NO packages/web-panel/node_modules — so
+  // vite's findNearestNodeModules() walks up to <root>/node_modules, writes its
+  // bundled-config temp file to <root>/node_modules/.vite-temp/, and the ESM
+  // import of `@vitejs/plugin-vue` (a web-panel devDependency that isn't at root)
+  // fails with ERR_MODULE_NOT_FOUND — breaking `npm publish` (prepublishOnly →
+  // build:web-panel). Force a self-contained LOCAL install so the full toolchain
+  // lands in packages/web-panel/node_modules and vite resolves it there:
+  //   - npm_config_workspaces=false → ignore the parent workspace root
+  //   - NODE_ENV=development        → never omit devDependencies (vite/plugin-vue)
+  const installEnv = {
+    ...process.env,
+    NODE_ENV: "development",
+    npm_config_workspaces: "false",
+  };
+  console.log("[build-web-panel] 安装依赖 (workspaces=false, dev)...");
   execSync("npm install --legacy-peer-deps", {
     cwd: WEB_PANEL_ROOT,
     stdio: "inherit",
     encoding: "utf-8",
+    env: installEnv,
   });
+
+  // Safety net: if the build toolchain still isn't in web-panel's own
+  // node_modules (older npm hoisting behavior), install it at the monorepo ROOT
+  // too, so vite resolves @vitejs/plugin-vue wherever it places .vite-temp.
+  // --no-save leaves root package.json / lockfile untouched (CI node_modules is
+  // ephemeral; a no-op locally once the local install above succeeds).
+  const localPlugin = path.join(
+    WEB_PANEL_ROOT,
+    "node_modules/@vitejs/plugin-vue/package.json",
+  );
+  if (!fs.existsSync(localPlugin)) {
+    const wp = JSON.parse(
+      fs.readFileSync(path.join(WEB_PANEL_ROOT, "package.json"), "utf-8"),
+    );
+    const dd = { ...wp.dependencies, ...wp.devDependencies };
+    const specs = `@vitejs/plugin-vue@${dd["@vitejs/plugin-vue"]} vite@${dd.vite}`;
+    const MONOREPO_ROOT = path.resolve(CLI_ROOT, "../..");
+    console.warn(
+      `[build-web-panel] @vitejs/plugin-vue 未落到 web-panel/node_modules，回退在仓库根安装构建工具链: ${specs}`,
+    );
+    execSync(`npm install --no-save --legacy-peer-deps ${specs}`, {
+      cwd: MONOREPO_ROOT,
+      stdio: "inherit",
+      encoding: "utf-8",
+      env: installEnv,
+    });
+  }
+
   console.log("[build-web-panel] 执行 vite build...");
   execSync("npm run build", {
     cwd: WEB_PANEL_ROOT,
