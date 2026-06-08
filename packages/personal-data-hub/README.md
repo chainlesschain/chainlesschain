@@ -4,25 +4,38 @@ Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
 LocalVault, and AdapterRegistry for the "data back to the individual"
 middleware.
 
-> **Phase 0 + Phase 1 + Phase 2 + Phase 3 + Phase 3.5 landed** of the 13-phase plan in
-> [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md).
-> Phase 0 covers schema + validation + ID generation.
-> Phase 1 adds SQLCipher LocalVault + pluggable key providers + migrations.
-> Phase 2 adds AdapterRegistry + KG/RAG derivation + MockAdapter (1000
-> events ingest in ~600ms — 50× under the 30s target).
-> Phase 3 adds the natural-language AnalysisEngine: query parser → vault
-> facts → prompt builder → LLM → citation validation, with a privacy gate
-> that refuses non-local LLMs unless caller opts in. **MockLLMClient**
-> for tests, **OllamaClient** for standalone use.
-> Phase 3.5 wires production bridges: **CcLLMAdapter** wraps the existing
-> cc llm-manager (Ollama / Volcengine / Anthropic / Gemini / DeepSeek)
-> via dependency injection; **CcKgSink** translates hub triples into the
-> existing knowledge-graph addEntity + addRelation; **CcRagSink** feeds
-> hub RagDocs into BM25 (Qdrant vector store wiring left as future work).
-> Hub package stays decoupled — bridges take cc functions as constructor
-> args rather than importing cc modules directly.
-> Sync engine UI, real KG/RAG wiring, and the actual adapters (Email,
-> Alipay, AI Chat × 8, WeChat, ...) come in later phases.
+> **v0.4.0 (ships with ChainlessChain v5.0.3.99, 2026-06-08).** Phase 0–13
+> of the 13-phase plan in
+> [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md)
+> have landed, plus the multi-platform collection layer. The foundation is
+> unchanged: schema + validation + UUID v7 (Phase 0); SQLCipher LocalVault +
+> pluggable key providers + migrations (Phase 1); AdapterRegistry + KG/RAG
+> derivation (Phase 2); the natural-language AnalysisEngine with a hard
+> privacy gate that refuses non-local LLMs unless the caller opts in
+> (Phase 3); and production bridges — **CcLLMAdapter** (wraps cc llm-manager:
+> Ollama / Volcengine / Anthropic / Gemini / DeepSeek), **CcKgSink**, **CcRagSink**
+> — injected at the desktop/CLI entry so this package stays decoupled (Phase 3.5).
+>
+> **51 adapters are now live** (no longer "later phases"): Email IMAP,
+> Alipay bill, 9 AI-chat vendors, WeChat / QQ / Weibo / Bilibili / Douyin /
+> Xiaohongshu / Toutiao / Kuaishou social, Telegram / WhatsApp messaging,
+> Taobao / JD / Meituan / Pinduoduo shopping, Amap / Baidu-map / Tencent-map /
+> Ctrip / 12306 travel, system-data (contacts / calls / sms / location),
+> and the developer-activity set (git / shell / vscode / browser-history /
+> local-files / win-recent).
+>
+> **New in v0.4.0 (v5.0.3.99):** adapter **readiness** — split out from the
+> loose `healthCheck` sync gate into a real ready/needs_setup/unavailable
+> judgment (`registry.readiness()`) with a one-line reason, so "config looks
+> fine but nothing collects" is no longer silent; an `adapter-guide.js`
+> single-source of import steps reused across web-shell / desktop / CLI /
+> Android; new local-direct-read sources (Douyin, WeChat PC, QQ-NT, DingTalk,
+> Feishu, WeRead, Apple Health, NetEase Music); email-bill LLM gap-fill
+> (Phase 5.5); and iOS encrypted-backup decryption (Phase 7.5b).
+>
+> Editing `lib/**` requires bumping the package version + `npm publish` +
+> the Android `USR_VERSION` sentinel, or real devices keep running stale code
+> (see hidden-risk-traps #27/#28).
 
 ## What's in here
 
@@ -40,6 +53,14 @@ lib/
 │                     typed put/get, queryEvents, watermarks, audit, key
 │                     rotation (WAL-safe), destroy
 ├── adapter-spec.js   PersonalDataAdapter contract + assertAdapter check
+├── adapter-readiness.js readiness() — ready/needs_setup/unavailable + reason,
+│                     split out from the loose healthCheck sync gate
+├── adapter-guide.js  category-driven import guides (single source of import
+│                     steps reused across web-shell / desktop / CLI / Android)
+├── adapters/         51 live adapters (email-imap, alipay-bill, ai-chat-history,
+│                     wechat / wechat-pc, qq-pc, dingtalk-pc, feishu-pc, weread,
+│                     apple-health, netease-music, social-*, shopping-*,
+│                     travel-*, system-data, git-activity, vscode, ...)
 ├── kg-derive.js      UnifiedSchema → KG triples (rdf:type / by / involves /
 │                     happened-at / etc.) — engine-agnostic
 ├── rag-derive.js     UnifiedSchema → RAG (text, metadata) docs for indexing
@@ -217,7 +238,7 @@ cd packages/personal-data-hub
 npm test
 ```
 
-**268 tests** across 17 files covering ID generation, all 5 entity validators,
+**2040 tests** across 121 files covering ID generation, all 5 entity validators,
 batch helpers, key providers, vault open/migrations, entity round-trips,
 transactional putBatch with rollback, raw_events archive, queryEvents
 filters + pagination, sync watermarks, audit log, key rotation (WAL-safe),
@@ -230,11 +251,10 @@ tolerance), and the 1k events <30s ingest perf gate.
 
 | Concern               | Lives in                                          |
 |-----------------------|---------------------------------------------------|
-| Platform KeyProviders (DPAPI/Keychain/Keystore) | Phase 1.5 — desktop-app-vue main process bridge |
-| AdapterRegistry       | Phase 2 — same package or sibling                  |
-| KG ingestor / RAG     | Phase 2/4 — wired into existing KG / RAG engines  |
-| Email/Alipay/AI/WeChat adapters | Phase 5-12 — separate sub-packages       |
-| AI analysis skills    | Phase 11 — `skills/personal-analysis-*/`          |
+| Platform KeyProviders (DPAPI/Keychain/Keystore) | desktop-app-vue main-process bridge (the package ships the contract + InMemory/File providers) |
+| Qdrant vector retrieval | wired into the existing RAG engine at the cc entry (BM25 derivation ships here) |
+| AI analysis skills    | `skills/personal-analysis-*/` (the 5 built-in analysis skills) |
+| Native SQLCipher build | `better-sqlite3-multiple-ciphers` — host/Electron ABI dual-load handled at the cc entry |
 
 ## License
 
