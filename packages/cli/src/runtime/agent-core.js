@@ -338,9 +338,12 @@ function _buildPersonaPrompt(persona, envLines, cwd) {
  *  4. Default hardcoded prompt → fallback when no persona
  *
  * @param {string} [cwd] - working directory
+ * @param {object} [opts]
+ * @param {string[]} [opts.additionalDirectories] - extra workspace roots
+ *   (absolute paths) the agent may read/search/edit beyond `cwd`.
  * @returns {string} complete system prompt
  */
-export function buildSystemPrompt(cwd) {
+export function buildSystemPrompt(cwd, opts = {}) {
   const dir = cwd || process.cwd();
 
   // Check for project persona
@@ -391,6 +394,19 @@ export function buildSystemPrompt(cwd) {
     }
   } catch {
     // Non-critical
+  }
+
+  // Advertise extra workspace roots (--add-dir) so the model knows it may
+  // reach beyond cwd and which absolute paths to use.
+  const extraDirs = Array.isArray(opts.additionalDirectories)
+    ? opts.additionalDirectories.filter(Boolean)
+    : [];
+  if (extraDirs.length > 0) {
+    prompt +=
+      `\n\n## Additional working directories\n` +
+      `Beyond the current working directory, you may read, search, and edit ` +
+      `files under these absolute roots. Pass absolute paths to access them:\n` +
+      extraDirs.map((d) => `- ${d}`).join("\n");
   }
 
   return prompt;
@@ -529,6 +545,7 @@ export async function executeTool(name, args, context = {}) {
       shellPolicyOverrides: context.shellPolicyOverrides || null,
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
+      additionalDirectories: context.additionalDirectories || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -598,6 +615,7 @@ async function executeToolInner(
     shellPolicyOverrides,
     approvalGate,
     shellConfirm,
+    additionalDirectories,
   },
 ) {
   const localToolDescriptor =
@@ -962,41 +980,52 @@ async function executeToolInner(
     }
 
     case "search_files": {
-      const dir = args.directory ? path.resolve(cwd, args.directory) : cwd;
-      try {
-        if (args.content_search) {
-          const cmd =
-            process.platform === "win32"
-              ? `findstr /s /i /n "${args.pattern}" *`
-              : `grep -r -l -i "${args.pattern}" . --include="*" 2>/dev/null | head -20`;
+      // An explicit directory scopes the search to one root; otherwise span
+      // cwd plus any --add-dir roots so cross-package searches find matches.
+      const extraRoots = Array.isArray(additionalDirectories)
+        ? additionalDirectories.filter(Boolean)
+        : [];
+      const roots = args.directory
+        ? [path.resolve(cwd, args.directory)]
+        : [cwd, ...extraRoots];
+      const isContent = Boolean(args.content_search);
+      const cmd = isContent
+        ? process.platform === "win32"
+          ? `findstr /s /i /n "${args.pattern}" *`
+          : `grep -r -l -i "${args.pattern}" . --include="*" 2>/dev/null | head -20`
+        : process.platform === "win32"
+          ? `dir /s /b *${args.pattern}* 2>NUL`
+          : `find . -name "*${args.pattern}*" -type f 2>/dev/null | head -20`;
+
+      const hits = [];
+      const seen = new Set();
+      for (const root of roots) {
+        if (hits.length >= 20) break;
+        try {
+          if (!fs.existsSync(root)) continue;
           const output = execSync(cmd, {
-            cwd: dir,
+            cwd: root,
             encoding: "utf8",
             timeout: 10000,
           });
-          return attachDescriptor({
-            matches: output.trim().split("\n").slice(0, 20),
-          });
-        } else {
-          const cmd =
-            process.platform === "win32"
-              ? `dir /s /b *${args.pattern}* 2>NUL`
-              : `find . -name "*${args.pattern}*" -type f 2>/dev/null | head -20`;
-          const output = execSync(cmd, {
-            cwd: dir,
-            encoding: "utf8",
-            timeout: 10000,
-          });
-          return attachDescriptor({
-            files: output.trim().split("\n").filter(Boolean).slice(0, 20),
-          });
+          for (const line of output.trim().split("\n")) {
+            const v = line.trim();
+            if (!v || seen.has(v)) continue;
+            // Qualify with the root so multi-root results stay unambiguous.
+            const labeled = roots.length > 1 ? `${root}: ${v}` : v;
+            seen.add(v);
+            hits.push(labeled);
+            if (hits.length >= 20) break;
+          }
+        } catch {
+          // No matches in this root — continue to the next.
         }
-      } catch {
-        return attachDescriptor({
-          files: [],
-          message: "No matches found",
-        });
       }
+
+      if (hits.length === 0) {
+        return attachDescriptor({ files: [], message: "No matches found" });
+      }
+      return attachDescriptor(isContent ? { matches: hits } : { files: hits });
     }
 
     case "list_dir": {
@@ -1849,6 +1878,7 @@ export async function* agentLoop(messages, options) {
     shellPolicyOverrides: options.shellPolicyOverrides || null,
     approvalGate: options.approvalGate || null,
     shellConfirm: options.shellConfirm || null,
+    additionalDirectories: options.additionalDirectories || null,
   };
 
   throwIfAborted(signal);

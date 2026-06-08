@@ -151,6 +151,11 @@ export async function startAgentRepl(options = {}) {
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
+  // Extra workspace roots (--add-dir): advertised in the system prompt and
+  // spanned by search_files.
+  const additionalDirectories = Array.isArray(options.additionalDirectories)
+    ? options.additionalDirectories
+    : [];
 
   // Bootstrap runtime (best-effort, DB not required)
   let db = null;
@@ -300,7 +305,10 @@ export async function startAgentRepl(options = {}) {
   }
 
   const messages = [
-    { role: "system", content: buildSystemPrompt(process.cwd()) },
+    {
+      role: "system",
+      content: buildSystemPrompt(process.cwd(), { additionalDirectories }),
+    },
   ];
 
   // Deep Agents Deploy Phase 1 — load agent bundle if --bundle provided.
@@ -1497,6 +1505,7 @@ export async function startAgentRepl(options = {}) {
         iterationBudget,
         sessionId,
         cwd: process.cwd(),
+        additionalDirectories,
         prepareCall: defaultPrepareCall,
         approvalGate: _approvalGate,
         mcpClient: _bundleMcpClient || undefined,

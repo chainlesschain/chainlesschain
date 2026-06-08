@@ -246,6 +246,26 @@ describe("headless-runner — tool list threading into the loop", () => {
     await runAgentHeadless({ prompt: "inspect", permissionMode: "plan" }, deps);
     expect(captured.options.enabledToolNames).toEqual([...READ_ONLY_TOOLS]);
   });
+
+  it("threads additionalDirectories into the loop and the system prompt", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    await runAgentHeadless(
+      {
+        prompt: "look across packages",
+        additionalDirectories: ["/abs/pkg-a", "/abs/pkg-b"],
+      },
+      deps,
+    );
+    expect(captured.options.additionalDirectories).toEqual([
+      "/abs/pkg-a",
+      "/abs/pkg-b",
+    ]);
+    const systemMsg = captured.messages.find((m) => m.role === "system");
+    expect(systemMsg.content).toContain("## Additional working directories");
+    expect(systemMsg.content).toContain("/abs/pkg-a");
+  });
 });
 
 describe("resolveHeadlessSession — pure resolution", () => {

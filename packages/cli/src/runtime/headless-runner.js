@@ -181,6 +181,9 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
  * @param {string[]} [options.disallowedTools]
  * @param {number} [options.maxTurns]          Cap on agent loop iterations.
  * @param {string} [options.cwd]
+ * @param {string[]} [options.additionalDirectories] Extra workspace roots
+ *                                             (--add-dir): absolute dirs the
+ *                                             agent may read/search/edit.
  * @param {string|boolean} [options.resume]    Resume a session: "<id>", or true
  *                                             (no id) → most-recent session.
  * @param {boolean} [options.continueSession]  Resume the most-recent session.
@@ -210,6 +213,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
+  // Extra workspace roots (--add-dir). Resolved/validated by the caller; we
+  // just normalize to a clean string[] here.
+  const additionalDirectories = Array.isArray(options.additionalDirectories)
+    ? options.additionalDirectories.filter(Boolean)
+    : [];
 
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
@@ -318,7 +326,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     : new IterationBudget();
 
   const messages = [
-    { role: "system", content: buildSystemPrompt(cwd) },
+    {
+      role: "system",
+      content: buildSystemPrompt(cwd, { additionalDirectories }),
+    },
     ...history,
     { role: "user", content: userContent },
   ];
@@ -349,6 +360,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     baseUrl,
     apiKey,
     cwd,
+    additionalDirectories,
     sessionId,
     hookDb: db,
     approvalGate,
@@ -381,6 +393,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     max_turns: budget.limit,
     resumed_from: resumeId,
     history_messages: history.length,
+    additional_directories: additionalDirectories,
   });
 
   try {

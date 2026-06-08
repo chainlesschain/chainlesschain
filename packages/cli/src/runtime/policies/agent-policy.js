@@ -26,6 +26,9 @@ export function resolveAgentPolicy({
     noStream: overrides.noStream === true,
     parkOnExit: overrides.parkOnExit === false ? false : true,
     bundlePath: overrides.bundlePath || null,
+    additionalDirectories: Array.isArray(overrides.additionalDirectories)
+      ? overrides.additionalDirectories
+      : [],
   };
 }
 

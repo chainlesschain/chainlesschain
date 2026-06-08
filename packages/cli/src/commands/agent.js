@@ -6,7 +6,34 @@
  * AI reads files, writes code, runs commands, and explains what it's doing.
  */
 
+import path from "node:path";
+import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+
+/**
+ * Resolve + validate `--add-dir` values into absolute, existing, de-duped
+ * directories. Invalid entries are skipped with a stderr warning rather than
+ * aborting the run. Relative paths resolve against the process cwd.
+ *
+ * @param {string[]} [rawDirs]
+ * @returns {string[]} absolute directory paths
+ */
+export function resolveAddDirs(rawDirs) {
+  const out = [];
+  for (const d of rawDirs || []) {
+    const abs = path.resolve(process.cwd(), d);
+    try {
+      if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
+        if (!out.includes(abs)) out.push(abs);
+      } else {
+        process.stderr.write(`--add-dir: skipping non-directory "${d}"\n`);
+      }
+    } catch {
+      process.stderr.write(`--add-dir: skipping unreadable "${d}"\n`);
+    }
+  }
+  return out;
+}
 
 /**
  * Read all of stdin as a UTF-8 string. Resolves "" immediately when stdin is a
@@ -54,6 +81,11 @@ export function registerAgentCommand(program) {
     .option(
       "--resume [id]",
       "Resume a session by id (no id → most recent — claude --resume parity)",
+    )
+    .option(
+      "--add-dir <dir>",
+      "Extra working directory the agent may read/search/edit (repeatable)",
+      (val, prev) => (prev || []).concat([val]),
     )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
@@ -106,18 +138,39 @@ export function registerAgentCommand(program) {
       }
       if ((options.continue || options.resume === true) && !options.session) {
         const { bootstrap } = await import("../runtime/bootstrap.js");
-        const { resolveMostRecentSessionId } =
-          await import("../lib/recent-session.js");
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        const recent = resolveMostRecentSessionId(ctx);
-        if (!recent) {
+        // Headless intent also means "no interactive picker is possible": -p,
+        // a positional task, an explicit --output-format, or a non-TTY stdin.
+        const headlessIntent =
+          options.print !== undefined ||
+          (Array.isArray(task) && task.length > 0) ||
+          options.outputFormat !== "text" ||
+          !process.stdin.isTTY;
+        if (headlessIntent) {
+          // Headless replays the JSONL store only, so resolve "most recent"
+          // from there — a DB-only id would resume into an empty transcript.
+          const { getLastSessionId } =
+            await import("../harness/jsonl-session-store.js");
+          options.session = getLastSessionId();
+        } else {
+          // Interactive: picker across both stores (agent REPL rebuilds either).
+          const { pickRecentSession } =
+            await import("../lib/session-picker.js");
+          const picked = await pickRecentSession(ctx, {
+            message: "Resume which agent session?",
+          });
+          options.session = picked.id;
+        }
+        if (!options.session) {
           process.stderr.write(
             "No previous session to continue. Start one with `cc agent`.\n",
           );
           process.exit(1);
         }
-        options.session = recent;
       }
+
+      // Extra workspace roots (--add-dir) — shared by headless + interactive.
+      const additionalDirectories = resolveAddDirs(options.addDir);
 
       // Resolve the headless prompt from: --print value, positional task, or
       // piped stdin (in that precedence). Any of them → headless mode.
@@ -141,6 +194,21 @@ export function registerAgentCommand(program) {
       }
 
       if (prompt) {
+        // Resume requested onto a session with no headless (JSONL) transcript?
+        // Warn instead of silently starting empty — headless resume rebuilds
+        // from the JSONL store only (DB-only sessions are not replayable here).
+        const resumeRequested =
+          Boolean(options.continue) || options.resume !== undefined;
+        if (resumeRequested && options.session) {
+          const { sessionExists } =
+            await import("../harness/jsonl-session-store.js");
+          if (!sessionExists(options.session)) {
+            process.stderr.write(
+              `Note: no headless transcript for session "${options.session}" — ` +
+                "starting fresh (headless resume reads JSONL sessions only).\n",
+            );
+          }
+        }
         const { runAgentHeadless, parseToolList } =
           await import("../runtime/headless-runner.js");
         const maxTurns = options.maxTurns
@@ -163,6 +231,7 @@ export function registerAgentCommand(program) {
             permissionMode: options.permissionMode,
             allowedTools: parseToolList(options.allowedTools),
             disallowedTools: parseToolList(options.disallowedTools),
+            additionalDirectories,
             maxTurns,
             // commander maps --no-file-refs → options.fileRefs === false
             expandFileRefs: options.fileRefs !== false,
@@ -188,6 +257,7 @@ export function registerAgentCommand(program) {
         noStream: options.stream === false, // true when --no-stream
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
+        additionalDirectories,
       });
       await runtime.startAgentSession();
     });

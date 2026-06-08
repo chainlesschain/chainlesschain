@@ -445,6 +445,24 @@ describe("buildSystemPrompt", () => {
 
     _mockSkills.pop();
   });
+
+  it("advertises --add-dir additional working directories", () => {
+    const prompt = buildSystemPrompt(tempDir, {
+      additionalDirectories: ["/abs/pkg-a", "/abs/pkg-b"],
+    });
+    expect(prompt).toContain("## Additional working directories");
+    expect(prompt).toContain("- /abs/pkg-a");
+    expect(prompt).toContain("- /abs/pkg-b");
+  });
+
+  it("omits the additional-directories block when none given", () => {
+    expect(buildSystemPrompt(tempDir)).not.toContain(
+      "## Additional working directories",
+    );
+    expect(
+      buildSystemPrompt(tempDir, { additionalDirectories: [] }),
+    ).not.toContain("## Additional working directories");
+  });
 });
 
 describe("formatToolArgs", () => {
@@ -600,6 +618,47 @@ describe("executeTool", () => {
       { cwd: tempDir },
     );
     expect(result.error).toContain("Directory not found");
+  });
+
+  it("search_files spans --add-dir roots when no directory is given", async () => {
+    // A second root, outside cwd, reachable only via additionalDirectories.
+    const extraDir = mkdtempSync(join(tmpdir(), "cc-agent-core-extra-"));
+    try {
+      writeFileSync(join(tempDir, "uniqalpha.txt"), "x", "utf8");
+      writeFileSync(join(extraDir, "uniqbeta.txt"), "y", "utf8");
+
+      const result = await executeTool(
+        "search_files",
+        { pattern: "uniq" },
+        { cwd: tempDir, additionalDirectories: [extraDir] },
+      );
+
+      const blob = JSON.stringify(result.files || []);
+      expect(blob).toContain("uniqalpha.txt"); // from cwd root
+      expect(blob).toContain("uniqbeta.txt"); // from --add-dir root
+    } finally {
+      rmSync(extraDir, { recursive: true, force: true });
+    }
+  });
+
+  it("search_files with an explicit directory ignores --add-dir roots", async () => {
+    const extraDir = mkdtempSync(join(tmpdir(), "cc-agent-core-extra2-"));
+    try {
+      writeFileSync(join(tempDir, "scopealpha.txt"), "x", "utf8");
+      writeFileSync(join(extraDir, "scopebeta.txt"), "y", "utf8");
+
+      const result = await executeTool(
+        "search_files",
+        { pattern: "scope", directory: "." },
+        { cwd: tempDir, additionalDirectories: [extraDir] },
+      );
+
+      const blob = JSON.stringify(result.files || []);
+      expect(blob).toContain("scopealpha.txt");
+      expect(blob).not.toContain("scopebeta.txt");
+    } finally {
+      rmSync(extraDir, { recursive: true, force: true });
+    }
   });
 
   it("run_shell returns stdout", async () => {
