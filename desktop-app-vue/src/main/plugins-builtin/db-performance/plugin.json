@@ -1,0 +1,31 @@
+{
+  "id": "db-performance",
+  "name": "数据库性能",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/db-performance 斜杠命令 + Home 页快捷卡片 — 本地 SQLite 查询统计 / 缓存命中 / 慢查询 / 索引建议与优化",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "db-performance",
+        "trigger": "/db-performance",
+        "handler": "builtin:openDbPerformancePanel",
+        "description": "打开数据库性能面板",
+        "icon": "DatabaseOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "db-performance-quick",
+        "component": "builtin:DatabasePerformanceWidget",
+        "size": "medium",
+        "order": 145,
+        "title": "数据库性能"
+      }
+    }
+  ]
+}

@@ -95,6 +95,10 @@
       v-model:open="terminalPanelOpen"
       :prefill-text="terminalPrefill"
     />
+    <DatabasePerformancePanel
+      v-model:open="dbPerformancePanelOpen"
+      :prefill-text="dbPerformancePrefill"
+    />
   </a-layout>
 </template>
 
@@ -129,6 +133,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
+import DatabasePerformancePanel from "./DatabasePerformancePanel.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 
 const sidebarCollapsed = ref(false);
@@ -169,6 +174,8 @@ const memoryBankPanelOpen = ref(false);
 const memoryBankPrefill = ref("");
 const terminalPanelOpen = ref(false);
 const terminalPrefill = ref("");
+const dbPerformancePanelOpen = ref(false);
+const dbPerformancePrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -214,6 +221,7 @@ let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
+let unregisterDbPerformanceHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -342,6 +350,13 @@ onMounted(async () => {
       terminalPanelOpen.value = true;
     },
   );
+  unregisterDbPerformanceHandler = registerSlashHandler(
+    "builtin:openDbPerformancePanel",
+    ({ args }) => {
+      dbPerformancePrefill.value = args ?? "";
+      dbPerformancePanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -386,6 +401,8 @@ onBeforeUnmount(() => {
   unregisterMemoryBankHandler = null;
   unregisterTerminalHandler?.();
   unregisterTerminalHandler = null;
+  unregisterDbPerformanceHandler?.();
+  unregisterDbPerformanceHandler = null;
 });
 </script>
 

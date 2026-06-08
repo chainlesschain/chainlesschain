@@ -22,6 +22,7 @@ import SettingsWidget from "./SettingsWidget.vue";
 import FriendsWidget from "./FriendsWidget.vue";
 import MemoryBankWidget from "./MemoryBankWidget.vue";
 import TerminalWidget from "./TerminalWidget.vue";
+import DatabasePerformanceWidget from "./DatabasePerformanceWidget.vue";
 
 registerWidgetComponent("builtin:AdminShortcut", AdminShortcut);
 registerWidgetComponent("builtin:AIPromptsWidget", AIPromptsWidget);
@@ -53,3 +54,7 @@ registerWidgetComponent("builtin:SettingsWidget", SettingsWidget);
 registerWidgetComponent("builtin:FriendsWidget", FriendsWidget);
 registerWidgetComponent("builtin:MemoryBankWidget", MemoryBankWidget);
 registerWidgetComponent("builtin:TerminalWidget", TerminalWidget);
+registerWidgetComponent(
+  "builtin:DatabasePerformanceWidget",
+  DatabasePerformanceWidget,
+);
