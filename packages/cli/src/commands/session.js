@@ -223,41 +223,19 @@ export function registerSessionCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         let sess = null;
 
-        // No id → interactive picker (TTY) or most-recent fallback (piped).
+        // No id → shared interactive picker (TTY + >1) or most-recent fallback
+        // (single / non-TTY / Ctrl-C). Same helper as `cc agent --resume`.
         if (!id) {
-          const { listRecentSessions } =
-            await import("../lib/recent-session.js");
-          const recent = listRecentSessions(ctx);
-          if (recent.length === 0) {
+          const { pickRecentSession } =
+            await import("../lib/session-picker.js");
+          const picked = await pickRecentSession(ctx);
+          if (!picked.id) {
             logger.error(
               "No saved sessions to resume. Use 'chat' or 'agent' to create one.",
             );
             process.exit(1);
           }
-
-          if (process.stdin.isTTY && recent.length > 1) {
-            try {
-              const { select } = await import("@inquirer/prompts");
-              id = await select({
-                message: "Resume which session?",
-                choices: recent.map((s) => ({
-                  name: `${(s.title || "Untitled").slice(0, 50).padEnd(50)} ${chalk.cyan(
-                    (s.message_count ?? 0) + " msgs",
-                  )}  ${chalk.gray(s.updated_at || "")}${
-                    s._store === "jsonl" ? " " + chalk.yellow("[JSONL]") : ""
-                  }`,
-                  value: s.id,
-                  short: s.id.slice(0, 12),
-                })),
-              });
-            } catch {
-              // Ctrl+C / non-interactive — fall back to most recent.
-              id = recent[0].id;
-            }
-          } else {
-            // Single session or no TTY → most recent (claude --continue parity).
-            id = recent[0].id;
-          }
+          id = picked.id;
         }
 
         // Try JSONL first
