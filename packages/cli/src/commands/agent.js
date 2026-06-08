@@ -9,6 +9,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { resolvePromptText } from "../runtime/system-prompt.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -127,6 +128,14 @@ export function registerAgentCommand(program) {
       "--no-file-refs",
       "Disable @path file-reference expansion in the prompt (headless)",
     )
+    .option(
+      "--system-prompt <text>",
+      "Replace the built-in system prompt (literal text or @file) (headless)",
+    )
+    .option(
+      "--append-system-prompt <text>",
+      "Append extra guidance to the system prompt (literal text or @file) (headless)",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -235,6 +244,13 @@ export function registerAgentCommand(program) {
             maxTurns,
             // commander maps --no-file-refs → options.fileRefs === false
             expandFileRefs: options.fileRefs !== false,
+            // --system-prompt / --append-system-prompt (literal or @file)
+            systemPrompt: resolvePromptText(options.systemPrompt, {
+              cwd: process.cwd(),
+            }),
+            appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
+              cwd: process.cwd(),
+            }),
           });
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
