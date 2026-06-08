@@ -32,6 +32,8 @@ const ENC_PREFIX = "dks:v1:";
 // `undefined` = not yet resolved, `null` = resolved-but-unavailable, object = real.
 let _safeStorage;
 let _warnedPlaintext = false;
+// Test seam for production detection. `undefined` = use real detection.
+let _isPackagedOverride;
 
 /**
  * Resolve Electron's safeStorage lazily. Returns null outside an Electron main
@@ -51,6 +53,42 @@ function _getSafeStorage() {
     _safeStorage = null;
   }
   return _safeStorage;
+}
+
+/**
+ * Whether we are running in a real production install — used to decide
+ * fail-closed vs fail-open when safeStorage is unavailable.
+ *
+ * A packaged Electron build sets neither NODE_ENV nor any dev marker, so
+ * relying on `NODE_ENV === "production"` alone misses packaged users entirely
+ * (it is `undefined` there). We therefore treat `app.isPackaged` as the primary
+ * signal and keep the NODE_ENV check as a fallback for headless/test harnesses
+ * that simulate production via the env var.
+ * @returns {boolean}
+ */
+function _isProductionEnv() {
+  if (_isPackagedOverride !== undefined) {
+    return !!_isPackagedOverride;
+  }
+  if (process.env.NODE_ENV === "production") {
+    return true;
+  }
+  try {
+    // eslint-disable-next-line global-require
+    const electron = require("electron");
+    return !!(electron && electron.app && electron.app.isPackaged);
+  } catch (_err) {
+    return false;
+  }
+}
+
+/**
+ * Test seam: override packaged-build detection. Pass `true`/`false` to force the
+ * production decision, or `undefined` to reset back to real detection.
+ * @param {boolean|undefined} v
+ */
+function _setIsPackagedForTesting(v) {
+  _isPackagedOverride = v;
 }
 
 /**
@@ -89,8 +127,9 @@ function isEncrypted(value) {
  * - safeStorage available → returns `dks:v1:<base64 ciphertext>`.
  * - already-encrypted input → returned unchanged (idempotent; guards against
  *   accidental double-encryption on re-save).
- * - safeStorage unavailable + NODE_ENV==='production' → throws (fail-closed:
- *   we never silently write plaintext private keys in a packaged app).
+ * - safeStorage unavailable + production (app.isPackaged or NODE_ENV==='production')
+ *   → throws (fail-closed: we never silently write plaintext private keys in a
+ *   packaged app).
  * - safeStorage unavailable otherwise (dev/test/headless) → returns plaintext
  *   with a one-time warning.
  *
@@ -109,7 +148,7 @@ function encrypt(plaintext) {
     const buf = ss.encryptString(plaintext);
     return ENC_PREFIX + Buffer.from(buf).toString("base64");
   }
-  if (process.env.NODE_ENV === "production") {
+  if (_isProductionEnv()) {
     throw new Error(
       "[did-keystore] safeStorage 不可用，拒绝以明文持久化 DID 私钥（fail-closed）",
     );
@@ -152,4 +191,5 @@ module.exports = {
   isEncrypted,
   isEncryptionAvailable,
   _setSafeStorageForTesting,
+  _setIsPackagedForTesting,
 };

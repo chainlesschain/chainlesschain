@@ -207,8 +207,17 @@ function registerCoreInitializers(factory) {
       const { DatabaseManager } = require("../database");
       const EncryptionConfigManager = require("../database/config-manager");
 
-      // 检查加密配置
-      const encryptionConfig = new EncryptionConfigManager(app);
+      // 检查加密配置。EncryptionConfigManager 的构造参数是配置文件路径（非 app
+      // 对象）；此前误传 app 导致 loadConfig 的 fs.existsSync(app) 抛错被吞、永远
+      // 回退默认配置。改为传 userData 下的真实路径（文件不存在时仍返回同一默认
+      // 配置，故生产行为不变），以兑现构造器契约并让配置可正常持久化。
+      const encryptionConfigPath = path.join(
+        app.getPath("userData"),
+        "encryption-config.json",
+      );
+      const encryptionConfig = new EncryptionConfigManager(
+        encryptionConfigPath,
+      );
       let encryptionEnabled = encryptionConfig.isEncryptionEnabled();
 
       // Phase 1（默认 OFF）：opt-in 时强制开启加密 + 明文→.encrypted 迁移 + fail-closed。

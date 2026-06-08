@@ -29,6 +29,7 @@ describe("did-keystore", () => {
 
   afterEach(() => {
     didKeystore._setSafeStorageForTesting(undefined);
+    didKeystore._setIsPackagedForTesting(undefined);
     process.env.NODE_ENV = ORIGINAL_ENV;
   });
 
@@ -82,6 +83,16 @@ describe("did-keystore", () => {
 
     it("fails closed in production rather than writing plaintext", () => {
       process.env.NODE_ENV = "production";
+      expect(() => didKeystore.encrypt("prod-secret")).toThrow(
+        /fail-closed|safeStorage/,
+      );
+    });
+
+    it("fails closed in a packaged build even when NODE_ENV is unset", () => {
+      // Packaged Electron installs leave NODE_ENV undefined — the old guard
+      // (NODE_ENV === 'production') missed them and silently wrote plaintext.
+      delete process.env.NODE_ENV;
+      didKeystore._setIsPackagedForTesting(true);
       expect(() => didKeystore.encrypt("prod-secret")).toThrow(
         /fail-closed|safeStorage/,
       );
