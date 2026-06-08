@@ -86,6 +86,85 @@ function resolveDbPassword(deps = {}) {
 }
 
 /**
+ * Build the U-Key escrow seam for the provider. Injected in tests via deps.uKey.
+ *
+ * In production the real adapter must be constructed from a U-Key/SIMKey driver
+ * (`createUKeyEscrowAdapter` over a UKeyManager). That construction is Windows +
+ * SIMKey hardware-coupled and only verifiable on a real device, so it is
+ * intentionally NOT wired here yet — this returns null by default. With a null
+ * seam the gated escrow path degrades SAFELY: dual-escrow falls back to the
+ * safeStorage-managed passphrase, hardware-only fails closed. See design §4.5
+ * (deferred items) and memory did_private_key_at_rest_encryption.
+ *
+ * @param {Object} deps
+ * @returns {object|null} uKey seam, or null when unavailable.
+ */
+function buildUKeyAdapter(deps = {}) {
+  if (deps.uKey !== undefined) {
+    return deps.uKey;
+  }
+  // Real U-Key adapter construction deferred to the real-device wiring step.
+  return null;
+}
+
+/**
+ * Phase 3 (gated): resolve the DB passphrase honoring the U-Key escrow mode.
+ *
+ * - safestorage-only (default / gate OFF) → byte-for-byte the existing
+ *   resolveDbPassword() path. Zero behavior change in production.
+ * - dual-escrow → prefer the U-Key-wrapped copy, fall back to the safeStorage
+ *   managed passphrase (same key, no lockout). The outer guard only catches the
+ *   case where safeStorage is ALSO unavailable.
+ * - hardware-only → U-Key (+ backup code) only, FAIL-CLOSED: no safeStorage
+ *   fallback. A throw leaves the DB closed (init is required:false → degraded),
+ *   which is the intended hardware-gating behavior.
+ *
+ * The returned passphrase is the SAME managed passphrase across modes, so the
+ * downstream DB key derivation never changes and no full-DB rekey is triggered.
+ *
+ * @param {Object} [deps] - seams (escrowMode, uKey, provider, backupCode,
+ *   createDbSecretProvider, userDataPath); with deps={} this is production.
+ * @returns {Promise<{password: string, source: string}>}
+ */
+async function resolveDbPasswordWithEscrow(deps = {}) {
+  const mode =
+    deps.escrowMode ||
+    require("../database/db-encryption-flag").getUKeyEscrowMode();
+
+  if (mode === "safestorage-only") {
+    return resolveDbPassword(deps); // unchanged legacy path
+  }
+
+  const createProvider =
+    deps.createDbSecretProvider ||
+    require("../database/db-secret-provider").createDbSecretProvider;
+  const userData = deps.userDataPath || app.getPath("userData");
+  const secretPath = path.join(userData, "db-secret.enc");
+  const uKey = buildUKeyAdapter(deps);
+  const provider = deps.provider || createProvider({ secretPath, uKey });
+  const backupCode = deps.backupCode;
+
+  if (mode === "hardware-only") {
+    // Fail-closed: intentionally NO safeStorage fallback.
+    const password = await provider.resolvePassphrase({ mode, backupCode });
+    return { password, source: "ukey-hardware-only" };
+  }
+
+  // dual-escrow — resolvePassphrase already prefers U-Key then falls back to
+  // safeStorage internally; the outer guard only catches safeStorage-also-down.
+  try {
+    const password = await provider.resolvePassphrase({ mode, backupCode });
+    return { password, source: "ukey-dual-escrow" };
+  } catch (err) {
+    logger.warn(
+      "[core-init] dual-escrow 解析失败，回退 safeStorage-only:",
+      err.message,
+    );
+    return resolveDbPassword(deps);
+  }
+}
+
+/**
  * Phase 2（默认 OFF，gated）：把 legacy `.encrypted("123456")` 库 rekey 到 safeStorage
  * 托管随机口令。仅当加密 opt-in **且** rekey opt-in 时运行；先做中断恢复，再在确有
  * legacy 库且尚无托管口令时执行 rekey。任何异常都吞掉并保持 legacy（不阻塞启动）。
@@ -242,8 +321,10 @@ function registerCoreInitializers(factory) {
       }
 
       // Phase 0: 去硬编码 "123456"，加密启用时改用 safeStorage 托管随机口令。
+      // Phase 3（gated，默认 OFF）：resolveDbPasswordWithEscrow 在 escrow gate
+      // 关闭时逐字节等同 resolveDbPassword；开启时走 U-Key 包裹（dual/hardware）。
       const { password: dbPassword, source: passwordSource } = encryptionEnabled
-        ? resolveDbPassword()
+        ? await resolveDbPasswordWithEscrow()
         : {
             password: process.env.DEFAULT_PASSWORD || "123456",
             source: "legacy-encryption-off",
@@ -733,5 +814,7 @@ function registerCoreInitializers(factory) {
 module.exports = {
   registerCoreInitializers,
   resolveDbPassword,
+  resolveDbPasswordWithEscrow,
+  buildUKeyAdapter,
   maybeRunLegacyRekey,
 };
