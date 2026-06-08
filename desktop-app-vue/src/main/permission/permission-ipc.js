@@ -10,9 +10,8 @@
  * @module permission/permission-ipc
  */
 
-const { app, ipcMain } = require("electron");
+const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
-const path = require("path");
 
 let databaseInitPromise = null;
 
@@ -31,18 +30,30 @@ async function ensureDatabase(database) {
   if (!databaseInitPromise) {
     databaseInitPromise = (async () => {
       const { DatabaseManager, setDatabase } = await import("../database.js");
-      const dbPath = path.join(
-        app.getPath("userData"),
-        "data",
-        "chainlesschain.db",
-      );
-      await require("fs").promises.mkdir(path.dirname(dbPath), {
-        recursive: true,
-      });
-      const manager = new DatabaseManager(dbPath, {
-        password: process.env.DEFAULT_PASSWORD || "123456",
-        encryptionEnabled: false,
-      });
+      // Mirror core-initializer's encryption decision instead of hard-coding a
+      // weak "123456" + encryptionEnabled:false (security audit 2026-06-08).
+      // A null path resolves identically to the canonical bootstrap init
+      // (incl. a custom-configured DB path), avoiding a split-brain DB file;
+      // with Phase 1.5 default-on encryption the old code would otherwise fail
+      // to open the now-encrypted DB.
+      const { isDbEncryptionOptIn } = require("../database/db-encryption-flag");
+      const {
+        resolveDbPasswordWithEscrow,
+      } = require("../bootstrap/core-initializer");
+      const encryptionOptIn = isDbEncryptionOptIn();
+      const dbOptions = encryptionOptIn
+        ? {
+            password: (await resolveDbPasswordWithEscrow()).password,
+            encryptionEnabled: true,
+            requireEncryption: true,
+          }
+        : {
+            // Encryption off (dev/test plaintext): password is unused by the
+            // plaintext adapter; mirrors core-initializer's legacy-off branch.
+            password: process.env.DEFAULT_PASSWORD || "123456",
+            encryptionEnabled: false,
+          };
+      const manager = new DatabaseManager(null, dbOptions);
       await manager.initialize();
       setDatabase(manager);
       return manager;
