@@ -8,12 +8,36 @@
 
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 
+/**
+ * Read all of stdin as a UTF-8 string. Resolves "" immediately when stdin is a
+ * TTY (nothing piped) so we never block an interactive invocation.
+ */
+function readStdin() {
+  return new Promise((resolve) => {
+    if (process.stdin.isTTY) {
+      resolve("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve(data));
+    process.stdin.on("error", () => resolve(data));
+  });
+}
+
 export function registerAgentCommand(program) {
   program
     .command("agent")
     .alias("a")
     .description(
       "Start an agentic AI session (reads/writes files, runs commands)",
+    )
+    .argument(
+      "[task...]",
+      "Headless task — when given (or with -p / piped stdin), runs non-interactively",
     )
     .option("--model <model>", "Model name")
     .option(
@@ -23,6 +47,14 @@ export function registerAgentCommand(program) {
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")
+    .option(
+      "-c, --continue",
+      "Resume the most recent session (no id needed — claude --continue parity)",
+    )
+    .option(
+      "--resume [id]",
+      "Resume a session by id (no id → most recent — claude --resume parity)",
+    )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
@@ -36,7 +68,113 @@ export function registerAgentCommand(program) {
       "--bundle <path>",
       "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
     )
-    .action(async (options) => {
+    // ── Headless / print mode (Claude-Code `claude -p` parity) ───────────
+    .option(
+      "-p, --print [prompt]",
+      "Headless: run one non-interactive turn and exit",
+    )
+    .option(
+      "--output-format <fmt>",
+      "Headless output: text | json | stream-json",
+      "text",
+    )
+    .option("--max-turns <n>", "Cap agent loop iterations (headless)")
+    .option(
+      "--allowed-tools <list>",
+      "Comma/space-separated tool allow-list (headless)",
+    )
+    .option(
+      "--disallowed-tools <list>",
+      "Comma/space-separated tool deny-list (headless)",
+    )
+    .option(
+      "--permission-mode <mode>",
+      "default | plan | acceptEdits | bypassPermissions (headless)",
+    )
+    .option(
+      "--no-file-refs",
+      "Disable @path file-reference expansion in the prompt (headless)",
+    )
+    .action(async (task, options) => {
+      // `--continue` / `--resume` resolve a session id so the user need not
+      // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
+      // a specific session; `--continue` or a bare `--resume` pick the most
+      // recent. All three funnel into `options.session`, which both the headless
+      // runner and the interactive runtime use to replay prior history.
+      if (typeof options.resume === "string" && !options.session) {
+        options.session = options.resume;
+      }
+      if ((options.continue || options.resume === true) && !options.session) {
+        const { bootstrap } = await import("../runtime/bootstrap.js");
+        const { resolveMostRecentSessionId } =
+          await import("../lib/recent-session.js");
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const recent = resolveMostRecentSessionId(ctx);
+        if (!recent) {
+          process.stderr.write(
+            "No previous session to continue. Start one with `cc agent`.\n",
+          );
+          process.exit(1);
+        }
+        options.session = recent;
+      }
+
+      // Resolve the headless prompt from: --print value, positional task, or
+      // piped stdin (in that precedence). Any of them → headless mode.
+      const positional =
+        Array.isArray(task) && task.length > 0 ? task.join(" ") : "";
+      let prompt = "";
+      if (typeof options.print === "string" && options.print.trim()) {
+        prompt = options.print.trim();
+      } else if (positional) {
+        prompt = positional;
+      }
+      // -p with no inline value, or an explicit --output-format, signals
+      // headless intent; pull the prompt from piped stdin when one is present.
+      const wantsHeadless =
+        options.print !== undefined ||
+        Boolean(positional) ||
+        options.outputFormat !== "text";
+      if (!prompt && (wantsHeadless || !process.stdin.isTTY)) {
+        const piped = (await readStdin()).trim();
+        if (piped) prompt = piped;
+      }
+
+      if (prompt) {
+        const { runAgentHeadless, parseToolList } =
+          await import("../runtime/headless-runner.js");
+        const maxTurns = options.maxTurns
+          ? parseInt(options.maxTurns, 10)
+          : undefined;
+        let outcome;
+        try {
+          outcome = await runAgentHeadless({
+            prompt,
+            model: options.model,
+            provider: options.provider,
+            baseUrl: options.baseUrl,
+            apiKey: options.apiKey,
+            sessionId: options.session,
+            // A resolved --session/--continue/--resume id means "replay this
+            // conversation and persist the new turns"; the runner loads prior
+            // history when the id already exists and creates it otherwise.
+            resume: options.session,
+            outputFormat: options.outputFormat,
+            permissionMode: options.permissionMode,
+            allowedTools: parseToolList(options.allowedTools),
+            disallowedTools: parseToolList(options.disallowedTools),
+            maxTurns,
+            // commander maps --no-file-refs → options.fileRefs === false
+            expandFileRefs: options.fileRefs !== false,
+          });
+        } catch (err) {
+          process.stderr.write(`Error: ${err.message}\n`);
+          process.exit(1);
+        }
+        process.exit(outcome.exitCode);
+        return;
+      }
+
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
         provider: options.provider,

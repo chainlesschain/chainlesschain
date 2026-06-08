@@ -1608,9 +1608,16 @@ export async function chatWithTools(rawMessages, options) {
   } = options;
 
   const persona = _loadProjectPersona(options.cwd);
+  // Merge the project-persona deny-list with any caller-supplied deny-list
+  // (e.g. headless `--disallowed-tools`). Without this merge the caller's
+  // deny-list is silently dropped and the tool stays callable.
+  const mergedDisabledTools = [
+    ...(Array.isArray(persona?.toolsDisabled) ? persona.toolsDisabled : []),
+    ...(Array.isArray(options.disabledTools) ? options.disabledTools : []),
+  ];
   const tools = getAgentToolDefinitions({
     names: options.enabledToolNames,
-    disabledTools: persona?.toolsDisabled,
+    disabledTools: mergedDisabledTools,
     extraTools: [
       ...(options.hostManagedToolPolicy?.toolDefinitions || []),
       ...(options.extraToolDefinitions || []),

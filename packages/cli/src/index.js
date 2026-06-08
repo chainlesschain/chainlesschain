@@ -56,6 +56,7 @@ import { registerMemoryCommand } from "./commands/memory.js";
 import { registerPermMemCommand } from "./commands/permmem.js";
 import { registerRCacheCommand } from "./commands/rcache.js";
 import { registerSessionCommand } from "./commands/session.js";
+import { registerCostCommand } from "./commands/cost.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerExportCommand } from "./commands/export.js";
@@ -448,6 +449,7 @@ export function createProgram(opts = {}) {
   registerPermMemCommand(program);
   registerRCacheCommand(program);
   registerSessionCommand(program);
+  registerCostCommand(program);
   registerConsolCommand(program);
 
   // Phase 2: Knowledge & content management

@@ -16,6 +16,23 @@ function run(args, options = {}) {
   });
 }
 
+/**
+ * Run a command expected to FAIL — returns { status, stdout, stderr } from the
+ * thrown execSync error instead of letting it propagate.
+ */
+function runFail(args, options = {}) {
+  try {
+    const stdout = run(args, options);
+    return { status: 0, stdout, stderr: "" };
+  } catch (err) {
+    return {
+      status: err.status ?? 1,
+      stdout: err.stdout?.toString() ?? "",
+      stderr: err.stderr?.toString() ?? "",
+    };
+  }
+}
+
 describe("E2E: headless CLI commands", () => {
   describe("--help for new commands", () => {
     it("skill --help shows subcommands", () => {
@@ -73,6 +90,32 @@ describe("E2E: headless CLI commands", () => {
       expect(result).toContain("--model");
       expect(result).toContain("--provider");
       expect(result).toContain("agentic AI session");
+    });
+
+    it("agent --help shows the headless (claude -p parity) flags", () => {
+      const result = run("agent --help");
+      expect(result).toContain("--print");
+      expect(result).toContain("--output-format");
+      expect(result).toContain("--max-turns");
+      expect(result).toContain("--allowed-tools");
+      expect(result).toContain("--disallowed-tools");
+      expect(result).toContain("--permission-mode");
+    });
+  });
+
+  // Headless validation fails closed BEFORE any provider/LLM call, so these are
+  // deterministic and need no Ollama/network.
+  describe("agent headless mode — fail-closed validation (no LLM)", () => {
+    it("rejects an invalid --output-format with a non-zero exit", () => {
+      const r = runFail('agent -p "hi" --output-format yaml');
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain("Invalid --output-format");
+    });
+
+    it("rejects an invalid --permission-mode with a non-zero exit", () => {
+      const r = runFail('agent -p "hi" --permission-mode yolo');
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain("Invalid --permission-mode");
     });
   });
 

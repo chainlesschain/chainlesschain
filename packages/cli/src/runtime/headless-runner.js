@@ -1,0 +1,552 @@
+/**
+ * Headless agent runner — Claude-Code `claude -p` parity for `cc agent`.
+ *
+ * Runs ONE non-interactive agentic turn (the agent may still take many internal
+ * tool-loop iterations) and emits the result in a machine-consumable format.
+ * Unlike startAgentRepl, there is no readline loop — input arrives via the
+ * `prompt` option (flag / positional / piped stdin) and the process exits when
+ * the loop completes.
+ *
+ * Output formats (mirrors `claude -p --output-format`):
+ *  - text         : final assistant text only → stdout; tool trace → stderr
+ *  - json         : a single result envelope (one JSON object) → stdout
+ *  - stream-json   : one JSON event per line (NDJSON) → stdout, as they happen
+ *
+ * Permission model: headless cannot show an interactive approval prompt, so the
+ * default is fail-closed (deny MEDIUM/HIGH-risk shell). --permission-mode opts
+ * into a looser tier:
+ *  - (default) / plan   → STRICT  + deny-confirmer  (plan also restricts tools)
+ *  - acceptEdits        → TRUSTED + deny-confirmer  (HIGH-risk shell still denied)
+ *  - bypassPermissions  → AUTOPILOT (everything allowed, no confirm)
+ */
+
+import { bootstrap } from "./bootstrap.js";
+import {
+  buildSystemPrompt,
+  agentLoop as coreAgentLoop,
+  formatToolArgs,
+} from "./agent-core.js";
+import { IterationBudget } from "../lib/iteration-budget.js";
+import {
+  startSession as jsonlStartSession,
+  appendUserMessage as jsonlAppendUserMessage,
+  appendAssistantMessage as jsonlAppendAssistantMessage,
+  appendTokenUsage as jsonlAppendTokenUsage,
+  rebuildMessages as jsonlRebuildMessages,
+  sessionExists as jsonlSessionExists,
+  getLastSessionId as jsonlGetLastSessionId,
+} from "../harness/jsonl-session-store.js";
+import { expandFileRefs } from "./file-ref-expander.js";
+
+/** Tools that cannot mutate the filesystem or run commands. */
+export const READ_ONLY_TOOLS = Object.freeze([
+  "read_file",
+  "search_files",
+  "list_dir",
+  "list_skills",
+  "search_sessions",
+]);
+
+const VALID_PERMISSION_MODES = Object.freeze([
+  "default",
+  "plan",
+  "acceptEdits",
+  "bypassPermissions",
+]);
+
+const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
+
+/**
+ * Resolve a --permission-mode string into the session-policy tier + a
+ * non-interactive confirmer + whether to clamp tools to the read-only set.
+ *
+ * @param {string} mode
+ * @returns {{ sessionPolicy: string, confirmer: (ctx:any)=>Promise<boolean>, readOnly: boolean }}
+ */
+export function resolvePermissionMode(mode = "default") {
+  const m = mode || "default";
+  if (!VALID_PERMISSION_MODES.includes(m)) {
+    throw new Error(
+      `Invalid --permission-mode "${m}". Expected one of: ${VALID_PERMISSION_MODES.join(", ")}`,
+    );
+  }
+  // Headless can't ask a human — deny when a confirm would be required.
+  const denyConfirmer = async () => false;
+  const allowConfirmer = async () => true;
+  switch (m) {
+    case "bypassPermissions":
+      return {
+        sessionPolicy: "autopilot",
+        confirmer: allowConfirmer,
+        readOnly: false,
+      };
+    case "acceptEdits":
+      return {
+        sessionPolicy: "trusted",
+        confirmer: denyConfirmer,
+        readOnly: false,
+      };
+    case "plan":
+      return {
+        sessionPolicy: "strict",
+        confirmer: denyConfirmer,
+        readOnly: true,
+      };
+    case "default":
+    default:
+      return {
+        sessionPolicy: "strict",
+        confirmer: denyConfirmer,
+        readOnly: false,
+      };
+  }
+}
+
+/**
+ * Compute the effective tool allow-list. --allowed-tools wins; when plan mode
+ * forces read-only we intersect with READ_ONLY_TOOLS so a user can't widen it.
+ *
+ * @returns {string[]|null} null = all tools (subject to disabledTools)
+ */
+export function resolveEnabledTools({ allowedTools, readOnly } = {}) {
+  let names =
+    Array.isArray(allowedTools) && allowedTools.length > 0
+      ? [...allowedTools]
+      : null;
+  if (readOnly) {
+    names = names
+      ? names.filter((n) => READ_ONLY_TOOLS.includes(n))
+      : [...READ_ONLY_TOOLS];
+  }
+  return names;
+}
+
+/** Normalize a comma/space separated CLI list into a string[] (or null). */
+export function parseToolList(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value.flatMap((v) => parseToolList(v) || []);
+  const out = String(value)
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return out.length > 0 ? out : null;
+}
+
+/**
+ * Resolve the working session id, the id to resume history from, and whether to
+ * persist this turn — mirroring `claude -p --resume <id>` / `--continue`.
+ *
+ *  - continueSession (or --resume with no id) → resume the most-recent session
+ *  - resume "<id>"                            → resume that specific session
+ *      (the id need not exist yet — it then doubles as "create + persist here",
+ *       so a later `--resume <id>` picks the conversation back up)
+ *
+ * Persistence is intentionally OFF unless a resume/continue/persist intent is
+ * present, so a plain one-shot `cc agent -p "..."` writes nothing to disk.
+ *
+ * @param {object} options { resume, continueSession, sessionId, persistSession }
+ * @param {object} store   { getLastSessionId }  (injection seam)
+ * @param {string} fallbackId  used when nothing is being resumed
+ * @returns {{ sessionId:string, resumeId:string|null, persist:boolean, wantLatest:boolean }}
+ */
+export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
+  const { resume, continueSession, sessionId, persistSession } = options;
+  const wantLatest = continueSession === true || resume === true;
+  let resumeId = null;
+  if (wantLatest) {
+    resumeId =
+      (typeof store.getLastSessionId === "function" &&
+        store.getLastSessionId()) ||
+      null;
+  } else if (typeof resume === "string" && resume.trim()) {
+    resumeId = resume.trim();
+  }
+  const persist = persistSession === true || resumeId != null || wantLatest;
+  const id = resumeId || sessionId || fallbackId;
+  return { sessionId: id, resumeId, persist, wantLatest };
+}
+
+/**
+ * Run a single headless agentic turn.
+ *
+ * @param {object} options
+ * @param {string} options.prompt              The task/prompt (required).
+ * @param {string} [options.model]
+ * @param {string} [options.provider]
+ * @param {string} [options.baseUrl]
+ * @param {string} [options.apiKey]
+ * @param {string} [options.outputFormat="text"]
+ * @param {string} [options.permissionMode="default"]
+ * @param {string[]} [options.allowedTools]
+ * @param {string[]} [options.disallowedTools]
+ * @param {number} [options.maxTurns]          Cap on agent loop iterations.
+ * @param {string} [options.cwd]
+ * @param {string|boolean} [options.resume]    Resume a session: "<id>", or true
+ *                                             (no id) → most-recent session.
+ * @param {boolean} [options.continueSession]  Resume the most-recent session.
+ * @param {boolean} [options.persistSession]   Force persistence without resume.
+ * @param {boolean} [options.expandFileRefs=true] Expand `@path` file references
+ *                                             in the prompt into context blocks.
+ * @param {object} [deps]                       Injection seam for tests.
+ * @returns {Promise<{ exitCode:number, result:string, isError:boolean }>}
+ */
+export async function runAgentHeadless(options = {}, deps = {}) {
+  const prompt = (options.prompt || "").trim();
+  if (!prompt) {
+    throw new Error(
+      "runAgentHeadless requires a non-empty prompt (use -p, a positional arg, or pipe stdin).",
+    );
+  }
+
+  const outputFormat = options.outputFormat || "text";
+  if (!VALID_OUTPUT_FORMATS.includes(outputFormat)) {
+    throw new Error(
+      `Invalid --output-format "${outputFormat}". Expected one of: ${VALID_OUTPUT_FORMATS.join(", ")}`,
+    );
+  }
+
+  const model = options.model || "qwen2.5:7b";
+  const provider = options.provider || "ollama";
+  const baseUrl = options.baseUrl || "http://localhost:11434";
+  const apiKey = options.apiKey || null;
+  const cwd = options.cwd || process.cwd();
+
+  const runLoop = deps.agentLoop || coreAgentLoop;
+  const doBootstrap = deps.bootstrap || bootstrap;
+  const getApprovalGate =
+    deps.getApprovalGate ||
+    (async () => {
+      const m = await import("../lib/session-core-singletons.js");
+      return m.getApprovalGate();
+    });
+  // stdout carries the machine-consumable payload; stderr carries the human
+  // trace so `cc agent -p ... > out.txt` keeps `out.txt` clean.
+  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
+  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  // Session persistence seam (file-based JSONL; DB-free, like the rest of
+  // headless). Defaults to the real store; tests inject fakes.
+  const store = {
+    sessionExists: deps.sessionExists || jsonlSessionExists,
+    rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
+    startSession: deps.startSession || jsonlStartSession,
+    appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
+    appendAssistantMessage:
+      deps.appendAssistantMessage || jsonlAppendAssistantMessage,
+    appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
+    getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+  };
+  const isStream = outputFormat === "stream-json";
+  const isJson = outputFormat === "json";
+  const isText = outputFormat === "text";
+
+  // ── Expand @file references in the prompt (Claude-Code parity) ─────────
+  // `@path/to/file` tokens are augmented with the referenced file contents (or
+  // a dir listing) so `cc agent -p "review @src/x.js"` works without a manual
+  // cat-pipe. Opt out with `--no-file-refs` (options.expandFileRefs === false).
+  let userContent = prompt;
+  if (options.expandFileRefs !== false) {
+    const doExpand = deps.expandFileRefs || expandFileRefs;
+    const expanded = doExpand(prompt, { cwd });
+    userContent = expanded.prompt;
+    // Warnings (typo'd paths, unreadable files) go to stderr in every output
+    // format so stdout stays a clean machine payload.
+    for (const w of expanded.warnings) {
+      writeErr(`  @ref: ${w}\n`);
+    }
+  }
+
+  // ── Permission + tool resolution ──────────────────────────────────────
+  const perm = resolvePermissionMode(options.permissionMode);
+  const enabledToolNames = resolveEnabledTools({
+    allowedTools: options.allowedTools,
+    readOnly: perm.readOnly,
+  });
+  const disabledTools = options.disallowedTools || [];
+
+  // ── Best-effort runtime bootstrap (DB optional, like startAgentRepl) ───
+  let db = null;
+  try {
+    const ctx = await doBootstrap({ verbose: false });
+    db = ctx.db || null;
+  } catch {
+    // Continue without DB — static-prompt fallback.
+  }
+
+  // ── Resolve session continuity (--resume / --continue) ─────────────────
+  const { sessionId, resumeId, persist } = resolveHeadlessSession(
+    options,
+    store,
+    `headless-${Date.now()}-${process.pid}`,
+  );
+  if (options.continueSession === true && !resumeId && isText) {
+    writeErr("No previous session to continue; starting a new one.\n");
+  }
+
+  // Load prior conversation when resuming an existing session. The fresh
+  // system prompt always leads; we drop any persisted system turns so it is
+  // never duplicated.
+  let history = [];
+  if (resumeId && store.sessionExists(resumeId)) {
+    try {
+      history = (store.rebuildMessages(resumeId) || []).filter(
+        (m) => m && m.role !== "system",
+      );
+    } catch {
+      history = [];
+    }
+  }
+
+  // ── Wire the persistent ApprovalGate with our non-interactive confirmer
+  // and force the session-policy tier dictated by --permission-mode. ──────
+  let approvalGate = null;
+  try {
+    approvalGate = await getApprovalGate();
+    if (approvalGate) {
+      if (typeof approvalGate.setSessionPolicy === "function") {
+        approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
+      }
+      if (typeof approvalGate.setConfirmer === "function") {
+        approvalGate.setConfirmer(perm.confirmer);
+      }
+    }
+  } catch {
+    approvalGate = null;
+  }
+
+  const budget = Number.isFinite(options.maxTurns)
+    ? new IterationBudget({ limit: Math.max(1, Math.floor(options.maxTurns)) })
+    : new IterationBudget();
+
+  const messages = [
+    { role: "system", content: buildSystemPrompt(cwd) },
+    ...history,
+    { role: "user", content: userContent },
+  ];
+
+  // Persist the user turn up front (best-effort) so a session is recoverable
+  // even if the run crashes mid-loop. startSession is append-safe: only seed
+  // the header when the file does not yet exist.
+  if (persist) {
+    try {
+      if (!store.sessionExists(sessionId)) {
+        store.startSession(sessionId, {
+          title: prompt.slice(0, 60),
+          provider,
+          model,
+        });
+      }
+      // Persist the expanded content so a resumed session faithfully replays
+      // what the model actually saw (the file snapshot, not just the @token).
+      store.appendUserMessage(sessionId, userContent);
+    } catch {
+      // Persistence is best-effort — never fail the run over it.
+    }
+  }
+
+  const loopOptions = {
+    model,
+    provider,
+    baseUrl,
+    apiKey,
+    cwd,
+    sessionId,
+    hookDb: db,
+    approvalGate,
+    enabledToolNames,
+    disabledTools,
+    iterationBudget: budget,
+    // chatFn passthrough lets tests drive the loop deterministically.
+    chatFn: deps.chatFn || options.chatFn || undefined,
+    signal: options.signal || undefined,
+  };
+
+  const startedAt = deps.now ? deps.now() : Date.now();
+  const toolCalls = [];
+  const usage = { input_tokens: 0, output_tokens: 0 };
+  let finalText = "";
+  let endReason = "complete";
+
+  const emitStream = (obj) => {
+    if (isStream) writeOut(JSON.stringify(obj) + "\n");
+  };
+
+  emitStream({
+    type: "system",
+    subtype: "init",
+    session_id: sessionId,
+    model,
+    provider,
+    permission_mode: options.permissionMode || "default",
+    tools: enabledToolNames,
+    max_turns: budget.limit,
+    resumed_from: resumeId,
+    history_messages: history.length,
+  });
+
+  try {
+    for await (const event of runLoop(messages, loopOptions)) {
+      switch (event.type) {
+        case "tool-executing": {
+          const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
+          if (isText) writeErr(line + "\n");
+          emitStream({
+            type: "tool_use",
+            tool: event.tool,
+            args: event.args,
+          });
+          toolCalls.push({ tool: event.tool, args: event.args });
+          break;
+        }
+        case "tool-result": {
+          const err = event.error || event.result?.error || null;
+          if (isText && err) writeErr(`  Error: ${err}\n`);
+          emitStream({
+            type: "tool_result",
+            tool: event.tool,
+            is_error: Boolean(err),
+            error: err,
+            result: event.result,
+          });
+          if (toolCalls.length > 0) {
+            toolCalls[toolCalls.length - 1].is_error = Boolean(err);
+          }
+          break;
+        }
+        case "token-usage": {
+          usage.input_tokens += event.usage?.input_tokens || 0;
+          usage.output_tokens += event.usage?.output_tokens || 0;
+          emitStream({ type: "token_usage", usage: event.usage });
+          break;
+        }
+        case "iteration-warning": {
+          if (isText) writeErr(`  ${event.message}\n`);
+          emitStream({ type: "iteration_warning", message: event.message });
+          break;
+        }
+        case "iteration-budget-exhausted": {
+          endReason = "max_turns";
+          emitStream({
+            type: "iteration_budget_exhausted",
+            budget: event.budget,
+          });
+          break;
+        }
+        case "response-complete": {
+          finalText = event.content || "";
+          break;
+        }
+        case "run-ended": {
+          if (event.reason) endReason = event.reason;
+          break;
+        }
+        default:
+          // slot-filling, run-started, etc. — surfaced only in stream mode.
+          if (isStream && event.type) emitStream(event);
+          break;
+      }
+    }
+  } catch (err) {
+    const message = err?.message || String(err);
+    if (isStream) {
+      emitStream({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        error: message,
+      });
+    } else if (isJson) {
+      writeOut(
+        JSON.stringify(
+          buildResultEnvelope({
+            subtype: "error",
+            isError: true,
+            result: message,
+            sessionId,
+            toolCalls,
+            usage,
+            numTurns: budget.consumed,
+            durationMs: (deps.now ? deps.now() : Date.now()) - startedAt,
+          }),
+        ) + "\n",
+      );
+    } else {
+      writeErr(`Error: ${message}\n`);
+    }
+    return { exitCode: 1, result: message, isError: true };
+  }
+
+  // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration
+  // cap is hit; treat that as the max-turns error surface.
+  const exhausted =
+    endReason === "budget-exhausted" || endReason === "max_turns";
+  const isError = exhausted || endReason === "no-response";
+  const subtype = exhausted ? "error_max_turns" : isError ? "error" : "success";
+  const durationMs = (deps.now ? deps.now() : Date.now()) - startedAt;
+
+  // Persist the assistant turn so a later --resume / --continue replays it.
+  // The user turn was already recorded up front; only append on a clean run.
+  if (persist && !isError) {
+    try {
+      if (finalText) store.appendAssistantMessage(sessionId, finalText);
+      store.appendTokenUsage(sessionId, usage);
+    } catch {
+      // Persistence is best-effort — never fail the run over it.
+    }
+  }
+
+  if (isStream) {
+    emitStream({
+      type: "result",
+      subtype,
+      is_error: isError,
+      result: finalText,
+      session_id: sessionId,
+      num_turns: budget.consumed,
+      duration_ms: durationMs,
+      usage,
+    });
+  } else if (isJson) {
+    writeOut(
+      JSON.stringify(
+        buildResultEnvelope({
+          subtype,
+          isError,
+          result: finalText,
+          sessionId,
+          toolCalls,
+          usage,
+          numTurns: budget.consumed,
+          durationMs,
+        }),
+      ) + "\n",
+    );
+  } else {
+    // text: just the final answer on stdout.
+    writeOut(finalText + (finalText.endsWith("\n") ? "" : "\n"));
+  }
+
+  return { exitCode: isError ? 1 : 0, result: finalText, isError };
+}
+
+function buildResultEnvelope({
+  subtype,
+  isError,
+  result,
+  sessionId,
+  toolCalls,
+  usage,
+  numTurns,
+  durationMs,
+}) {
+  return {
+    type: "result",
+    subtype,
+    is_error: isError,
+    result,
+    session_id: sessionId,
+    num_turns: numTurns,
+    duration_ms: durationMs,
+    tool_calls: toolCalls,
+    usage,
+  };
+}

@@ -1,0 +1,410 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  runAgentHeadless,
+  resolvePermissionMode,
+  resolveEnabledTools,
+  resolveHeadlessSession,
+  parseToolList,
+  READ_ONLY_TOOLS,
+} from "../../src/runtime/headless-runner.js";
+
+/** A capturing fake of the persistent ApprovalGate singleton. */
+function fakeGate() {
+  const calls = { policy: [], confirmer: 0 };
+  return {
+    calls,
+    setSessionPolicy: (sid, policy) => calls.policy.push({ sid, policy }),
+    setConfirmer: () => {
+      calls.confirmer++;
+    },
+    decide: async () => ({ decision: "allow", via: "test", policy: "test" }),
+  };
+}
+
+/** Build deps that capture output and avoid real DB / approval singletons. */
+function makeDeps(chatFn, gate = fakeGate()) {
+  const out = [];
+  const err = [];
+  return {
+    deps: {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => gate,
+      writeOut: (s) => out.push(s),
+      writeErr: (s) => err.push(s),
+      now: (() => {
+        let t = 1000;
+        return () => (t += 5);
+      })(),
+      chatFn,
+    },
+    out,
+    err,
+    gate,
+  };
+}
+
+const replyText = (content) =>
+  vi.fn(async () => ({
+    message: { role: "assistant", content },
+    usage: { input_tokens: 7, output_tokens: 3 },
+  }));
+
+describe("headless-runner — pure helpers", () => {
+  it("parseToolList splits comma/space and trims", () => {
+    expect(parseToolList("read_file, run_shell  list_dir")).toEqual([
+      "read_file",
+      "run_shell",
+      "list_dir",
+    ]);
+    expect(parseToolList("")).toBeNull();
+    expect(parseToolList(null)).toBeNull();
+    expect(parseToolList(["a,b", "c"])).toEqual(["a", "b", "c"]);
+  });
+
+  it("resolvePermissionMode maps tiers correctly", async () => {
+    expect(resolvePermissionMode("bypassPermissions").sessionPolicy).toBe(
+      "autopilot",
+    );
+    expect(resolvePermissionMode("acceptEdits").sessionPolicy).toBe("trusted");
+    expect(resolvePermissionMode("plan").sessionPolicy).toBe("strict");
+    expect(resolvePermissionMode("plan").readOnly).toBe(true);
+    expect(resolvePermissionMode("default").sessionPolicy).toBe("strict");
+    expect(resolvePermissionMode("default").readOnly).toBe(false);
+
+    // headless confirmer denies unless bypass
+    expect(await resolvePermissionMode("default").confirmer({})).toBe(false);
+    expect(await resolvePermissionMode("bypassPermissions").confirmer({})).toBe(
+      true,
+    );
+  });
+
+  it("resolvePermissionMode rejects unknown modes", () => {
+    expect(() => resolvePermissionMode("yolo")).toThrow(/Invalid/);
+  });
+
+  it("resolveEnabledTools intersects with read-only set under plan", () => {
+    expect(resolveEnabledTools({})).toBeNull();
+    expect(resolveEnabledTools({ allowedTools: ["read_file"] })).toEqual([
+      "read_file",
+    ]);
+    // plan clamps to read-only even with no explicit allow-list
+    expect(resolveEnabledTools({ readOnly: true })).toEqual([
+      ...READ_ONLY_TOOLS,
+    ]);
+    // plan + a list that includes a mutating tool drops the mutating one
+    expect(
+      resolveEnabledTools({
+        allowedTools: ["read_file", "run_shell"],
+        readOnly: true,
+      }),
+    ).toEqual(["read_file"]);
+  });
+});
+
+describe("headless-runner — output formats", () => {
+  it("text: final answer on stdout, exitCode 0", async () => {
+    const { deps, out } = makeDeps(replyText("hello world"));
+    const r = await runAgentHeadless(
+      { prompt: "hi", outputFormat: "text" },
+      deps,
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.isError).toBe(false);
+    expect(out.join("")).toBe("hello world\n");
+  });
+
+  it("json: single result envelope with usage + session_id", async () => {
+    const { deps, out } = makeDeps(replyText("done"));
+    const r = await runAgentHeadless(
+      { prompt: "hi", outputFormat: "json", sessionId: "s-1" },
+      deps,
+    );
+    expect(r.exitCode).toBe(0);
+    const lines = out.join("").trim().split("\n");
+    expect(lines).toHaveLength(1);
+    const env = JSON.parse(lines[0]);
+    expect(env.type).toBe("result");
+    expect(env.subtype).toBe("success");
+    expect(env.is_error).toBe(false);
+    expect(env.result).toBe("done");
+    expect(env.session_id).toBe("s-1");
+    expect(env.usage).toEqual({ input_tokens: 7, output_tokens: 3 });
+  });
+
+  it("stream-json: init envelope first, result envelope last (NDJSON)", async () => {
+    const { deps, out } = makeDeps(replyText("streamed"));
+    await runAgentHeadless({ prompt: "hi", outputFormat: "stream-json" }, deps);
+    const lines = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    expect(lines[0]).toMatchObject({ type: "system", subtype: "init" });
+    expect(lines[lines.length - 1]).toMatchObject({
+      type: "result",
+      subtype: "success",
+      result: "streamed",
+    });
+  });
+
+  it("rejects an invalid output format", async () => {
+    const { deps } = makeDeps(replyText("x"));
+    await expect(
+      runAgentHeadless({ prompt: "hi", outputFormat: "yaml" }, deps),
+    ).rejects.toThrow(/Invalid --output-format/);
+  });
+
+  it("requires a non-empty prompt", async () => {
+    const { deps } = makeDeps(replyText("x"));
+    await expect(runAgentHeadless({ prompt: "   " }, deps)).rejects.toThrow(
+      /non-empty prompt/,
+    );
+  });
+});
+
+describe("headless-runner — max-turns", () => {
+  it("exhausts the budget and reports error_max_turns", async () => {
+    // chatFn always asks for a tool call → loop never naturally completes.
+    const chatFn = vi.fn(async () => ({
+      message: {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "c1",
+            function: { name: "no_such_tool", arguments: "{}" },
+          },
+        ],
+      },
+    }));
+    const { deps, out } = makeDeps(chatFn);
+    const r = await runAgentHeadless(
+      { prompt: "loop forever", outputFormat: "json", maxTurns: 1 },
+      deps,
+    );
+    expect(r.exitCode).toBe(1);
+    expect(r.isError).toBe(true);
+    expect(chatFn).toHaveBeenCalledTimes(1); // capped at 1 iteration
+    const env = JSON.parse(out.join("").trim());
+    expect(env.subtype).toBe("error_max_turns");
+    expect(env.num_turns).toBe(1);
+  });
+});
+
+describe("headless-runner — permission wiring", () => {
+  it("forces the session policy tier on the approval gate", async () => {
+    const { deps, gate } = makeDeps(replyText("ok"));
+    await runAgentHeadless(
+      {
+        prompt: "hi",
+        permissionMode: "bypassPermissions",
+        sessionId: "s-perm",
+      },
+      deps,
+    );
+    expect(gate.calls.policy).toContainEqual({
+      sid: "s-perm",
+      policy: "autopilot",
+    });
+    expect(gate.calls.confirmer).toBeGreaterThan(0);
+  });
+});
+
+describe("headless-runner — tool list threading into the loop", () => {
+  /** A fake agentLoop that records the options it received, then completes. */
+  function capturingLoop(captured) {
+    return async function* (messages, options) {
+      captured.options = options;
+      captured.messages = messages;
+      yield { type: "response-complete", content: "captured" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+  }
+
+  it("passes allowedTools + disallowedTools straight to the loop", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    await runAgentHeadless(
+      {
+        prompt: "do it",
+        allowedTools: ["read_file", "run_shell"],
+        disallowedTools: ["run_shell"],
+      },
+      deps,
+    );
+    expect(captured.options.enabledToolNames).toEqual([
+      "read_file",
+      "run_shell",
+    ]);
+    expect(captured.options.disabledTools).toEqual(["run_shell"]);
+  });
+
+  it("plan mode clamps the loop's enabled tools to the read-only set", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    await runAgentHeadless({ prompt: "inspect", permissionMode: "plan" }, deps);
+    expect(captured.options.enabledToolNames).toEqual([...READ_ONLY_TOOLS]);
+  });
+});
+
+describe("resolveHeadlessSession — pure resolution", () => {
+  it("resumes a specific id and turns persistence on", () => {
+    const r = resolveHeadlessSession({ resume: "sess-A" }, {}, "fallback");
+    expect(r).toMatchObject({
+      sessionId: "sess-A",
+      resumeId: "sess-A",
+      persist: true,
+    });
+  });
+
+  it("--continue (or bare --resume) resolves the most-recent id", () => {
+    const store = { getLastSessionId: () => "latest-1" };
+    expect(
+      resolveHeadlessSession({ continueSession: true }, store, "fb"),
+    ).toMatchObject({ sessionId: "latest-1", resumeId: "latest-1" });
+    expect(resolveHeadlessSession({ resume: true }, store, "fb")).toMatchObject(
+      { sessionId: "latest-1", resumeId: "latest-1" },
+    );
+  });
+
+  it("continue with no prior session falls back, still persists", () => {
+    const store = { getLastSessionId: () => null };
+    const r = resolveHeadlessSession({ continueSession: true }, store, "fb-id");
+    expect(r).toMatchObject({
+      sessionId: "fb-id",
+      resumeId: null,
+      persist: true,
+    });
+  });
+
+  it("a plain one-shot does not resume or persist", () => {
+    const r = resolveHeadlessSession({ sessionId: "s-1" }, {}, "fb");
+    expect(r).toMatchObject({
+      sessionId: "s-1",
+      resumeId: null,
+      persist: false,
+    });
+  });
+});
+
+describe("headless-runner — session resume + persistence", () => {
+  /** A fake agentLoop that records messages, then completes with `content`. */
+  function capturingLoop(captured, content = "done") {
+    return async function* (messages) {
+      captured.messages = messages;
+      yield { type: "response-complete", content };
+      yield { type: "run-ended", reason: "complete" };
+    };
+  }
+
+  /** A capturing fake JSONL session store wired into deps. */
+  function makeStore(seed = {}) {
+    const events = { user: [], assistant: [], started: [] };
+    const existing = { ...seed }; // id -> rebuilt messages array
+    return {
+      events,
+      deps: {
+        getLastSessionId: () => "latest-x",
+        sessionExists: (id) =>
+          Object.prototype.hasOwnProperty.call(existing, id),
+        rebuildMessages: (id) => existing[id] || [],
+        startSession: (id, meta) => events.started.push({ id, meta }),
+        appendUserMessage: (id, c) => events.user.push({ id, content: c }),
+        appendAssistantMessage: (id, c) =>
+          events.assistant.push({ id, content: c }),
+        appendTokenUsage: () => {},
+      },
+    };
+  }
+
+  it("loads prior history into the message array on resume", async () => {
+    const captured = {};
+    const store = makeStore({
+      "sess-A": [
+        { role: "user", content: "first question" },
+        { role: "assistant", content: "first answer" },
+      ],
+    });
+    const { deps } = makeDeps(replyText("second answer"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = capturingLoop(captured, "second answer");
+
+    await runAgentHeadless({ prompt: "follow-up", resume: "sess-A" }, deps);
+
+    const roles = captured.messages.map((m) => m.role);
+    const contents = captured.messages.map((m) => m.content);
+    expect(roles).toEqual(["system", "user", "assistant", "user"]);
+    expect(contents).toContain("first question");
+    expect(contents).toContain("first answer");
+    expect(contents[contents.length - 1]).toBe("follow-up");
+  });
+
+  it("persists the user turn up front and the assistant turn on success", async () => {
+    const store = makeStore(); // sess-NEW does not exist yet
+    const { deps } = makeDeps(replyText("the answer"));
+    Object.assign(deps, store.deps);
+
+    await runAgentHeadless({ prompt: "new task", resume: "sess-NEW" }, deps);
+
+    expect(store.events.started).toContainEqual({
+      id: "sess-NEW",
+      meta: expect.objectContaining({ title: "new task" }),
+    });
+    expect(store.events.user).toContainEqual({
+      id: "sess-NEW",
+      content: "new task",
+    });
+    expect(store.events.assistant).toContainEqual({
+      id: "sess-NEW",
+      content: "the answer",
+    });
+  });
+
+  it("does not re-seed the header when resuming an existing session", async () => {
+    const store = makeStore({ "sess-A": [] });
+    const { deps } = makeDeps(replyText("ok"));
+    Object.assign(deps, store.deps);
+
+    await runAgentHeadless({ prompt: "more", resume: "sess-A" }, deps);
+
+    expect(store.events.started).toHaveLength(0); // already exists
+    expect(store.events.user).toContainEqual({
+      id: "sess-A",
+      content: "more",
+    });
+  });
+
+  it("a plain one-shot writes nothing to the store", async () => {
+    const store = makeStore();
+    const { deps } = makeDeps(replyText("hi"));
+    Object.assign(deps, store.deps);
+
+    await runAgentHeadless({ prompt: "one shot" }, deps);
+
+    expect(store.events.started).toHaveLength(0);
+    expect(store.events.user).toHaveLength(0);
+    expect(store.events.assistant).toHaveLength(0);
+  });
+
+  it("reports resumed_from + history_messages in the init envelope", async () => {
+    const store = makeStore({
+      "sess-A": [{ role: "user", content: "q" }],
+    });
+    const { deps, out } = makeDeps(replyText("a"));
+    Object.assign(deps, store.deps);
+
+    await runAgentHeadless(
+      { prompt: "again", resume: "sess-A", outputFormat: "stream-json" },
+      deps,
+    );
+
+    const init = JSON.parse(out.join("").trim().split("\n")[0]);
+    expect(init).toMatchObject({
+      type: "system",
+      subtype: "init",
+      resumed_from: "sess-A",
+      history_messages: 1,
+    });
+  });
+});
