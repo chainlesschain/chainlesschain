@@ -97,7 +97,10 @@ describe("E2E: open-agents parity Phases 2–5", () => {
       maxTokens: 100,
     });
     expect(merged.maxTokens).toBe(100);
-    expect(merged.anthropic.thinking.type).toBe("enabled");
+    // Note: extended thinking is intentionally NOT decided by mergeProviderOptions
+    // anymore — it's resolved model-aware by _anthropicThinkingParams (see the
+    // provider-options.js header). So we only assert the deep-merge of the
+    // call-level override here, not a stray anthropic.thinking block.
   });
 
   it("todo-manager + web-fetch modules load", async () => {
