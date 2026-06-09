@@ -1729,6 +1729,19 @@ export async function chatWithTools(rawMessages, options) {
         ? baseUrl
         : "https://api.anthropic.com/v1";
 
+    // Real token streaming (--include-partial-messages): stream the SSE response
+    // and forward text deltas live, assembling tool_use blocks back into the
+    // same {message, usage} shape the non-streaming path returns.
+    if (typeof options.onToken === "function") {
+      return await _chatAnthropicStreaming(
+        `${url}/messages`,
+        { ...body, stream: true },
+        { "x-api-key": key, "anthropic-version": "2023-06-01" },
+        options.onToken,
+        signal,
+      );
+    }
+
     const response = await fetch(`${url}/messages`, {
       method: "POST",
       headers: {
@@ -1797,6 +1810,27 @@ export async function chatWithTools(rawMessages, options) {
     gemini: "gemini-2.0-flash",
     volcengine: "doubao-seed-1-6-251015",
   };
+
+  // Real token streaming (--include-partial-messages) for every OpenAI-compatible
+  // provider (openai / deepseek / dashscope / mistral / gemini / volcengine):
+  // stream the SSE response, forward content deltas live, and reassemble the
+  // delta-fragmented tool_calls into the standard {message, usage} shape.
+  if (typeof options.onToken === "function") {
+    return await _chatOpenAIStreaming(
+      `${url}/chat/completions`,
+      {
+        model: model || defaultModels[provider] || "gpt-4o-mini",
+        messages,
+        tools,
+        stream: true,
+        stream_options: { include_usage: true },
+      },
+      key,
+      options.onToken,
+      signal,
+      provider,
+    );
+  }
 
   const response = await fetch(`${url}/chat/completions`, {
     method: "POST",
@@ -1932,6 +1966,225 @@ async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
   }
   if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
   return _ollamaFinalize(state);
+}
+
+// ─── Anthropic streaming (SSE → {message, usage}, tool_use reassembled) ──────
+//
+// Anthropic /messages with stream:true emits SSE: message_start (input usage),
+// content_block_start (text or tool_use header), content_block_delta
+// (text_delta → onToken, or input_json_delta accumulating a tool's JSON args),
+// message_delta (output usage). We reduce per `data:` line and finalize into
+// the same shape chatWithTools returns non-streamed.
+
+function _anthropicInitState() {
+  return { text: "", blocks: {}, inputTokens: 0, outputTokens: 0 };
+}
+
+function _anthropicReduceLine(state, raw, onToken) {
+  const line = (raw || "").trim();
+  if (!line.startsWith("data:")) return state;
+  const payload = line.slice(5).trim();
+  if (!payload) return state;
+  let obj;
+  try {
+    obj = JSON.parse(payload);
+  } catch {
+    return state;
+  }
+  if (obj.type === "message_start") {
+    state.inputTokens =
+      Number(obj.message?.usage?.input_tokens) || state.inputTokens;
+  } else if (obj.type === "content_block_start") {
+    const cb = obj.content_block || {};
+    state.blocks[obj.index] =
+      cb.type === "tool_use"
+        ? { type: "tool_use", id: cb.id, name: cb.name, json: "" }
+        : { type: "text" };
+  } else if (obj.type === "content_block_delta") {
+    const d = obj.delta || {};
+    if (d.type === "text_delta" && d.text) {
+      state.text += d.text;
+      if (typeof onToken === "function") {
+        try {
+          onToken(d.text);
+        } catch {
+          // a failing UI hook must never break the run
+        }
+      }
+    } else if (d.type === "input_json_delta" && state.blocks[obj.index]) {
+      state.blocks[obj.index].json += d.partial_json || "";
+    }
+  } else if (obj.type === "message_delta") {
+    state.outputTokens = Number(obj.usage?.output_tokens) || state.outputTokens;
+  }
+  return state;
+}
+
+function _anthropicFinalize(state) {
+  const toolCalls = [];
+  for (const k of Object.keys(state.blocks)) {
+    const b = state.blocks[k];
+    if (b.type === "tool_use") {
+      let input = {};
+      try {
+        input = b.json ? JSON.parse(b.json) : {};
+      } catch {
+        input = {};
+      }
+      toolCalls.push({
+        id: b.id,
+        type: "function",
+        function: { name: b.name, arguments: JSON.stringify(input) },
+      });
+    }
+  }
+  const message = { role: "assistant", content: state.text };
+  if (toolCalls.length) message.tool_calls = toolCalls;
+  const out = { message };
+  if (state.inputTokens || state.outputTokens) {
+    out.usage = {
+      input_tokens: state.inputTokens,
+      output_tokens: state.outputTokens,
+    };
+  }
+  return out;
+}
+
+/** Pure reducer over Anthropic SSE lines — exported for tests (no HTTP). */
+export function _accumulateAnthropicStream(lines, onToken) {
+  const state = _anthropicInitState();
+  for (const line of lines) _anthropicReduceLine(state, line, onToken);
+  return _anthropicFinalize(state);
+}
+
+async function _chatAnthropicStreaming(apiUrl, body, extraHeaders, onToken, signal) {
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...extraHeaders },
+    signal,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Anthropic error: ${response.status}`);
+  }
+  const state = _anthropicInitState();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() || "";
+    for (const line of lines) _anthropicReduceLine(state, line, onToken);
+  }
+  if (buf.trim()) _anthropicReduceLine(state, buf, onToken);
+  return _anthropicFinalize(state);
+}
+
+// ─── OpenAI-compatible streaming (SSE → {message, usage}) ────────────────────
+//
+// `data:` lines carry choices[0].delta.{content, tool_calls[]}; tool_calls
+// arrive fragmented and keyed by `index` (name in the first chunk, arguments
+// concatenated across chunks). usage rides the terminal chunk when
+// stream_options.include_usage was requested. Terminator: `data: [DONE]`.
+
+function _openaiInitState() {
+  return { text: "", tools: [], inputTokens: 0, outputTokens: 0 };
+}
+
+function _openaiReduceLine(state, raw, onToken) {
+  const line = (raw || "").trim();
+  if (!line.startsWith("data:")) return state;
+  const payload = line.slice(5).trim();
+  if (!payload || payload === "[DONE]") return state;
+  let obj;
+  try {
+    obj = JSON.parse(payload);
+  } catch {
+    return state;
+  }
+  const delta = obj.choices?.[0]?.delta;
+  if (delta?.content) {
+    state.text += delta.content;
+    if (typeof onToken === "function") {
+      try {
+        onToken(delta.content);
+      } catch {
+        // a failing UI hook must never break the run
+      }
+    }
+  }
+  if (Array.isArray(delta?.tool_calls)) {
+    for (const tc of delta.tool_calls) {
+      const idx = tc.index ?? 0;
+      if (!state.tools[idx]) state.tools[idx] = { id: undefined, name: "", args: "" };
+      if (tc.id) state.tools[idx].id = tc.id;
+      if (tc.function?.name) state.tools[idx].name = tc.function.name;
+      if (tc.function?.arguments) state.tools[idx].args += tc.function.arguments;
+    }
+  }
+  if (obj.usage) {
+    state.inputTokens = Number(obj.usage.prompt_tokens) || state.inputTokens;
+    state.outputTokens =
+      Number(obj.usage.completion_tokens) || state.outputTokens;
+  }
+  return state;
+}
+
+function _openaiFinalize(state) {
+  const toolCalls = state.tools.filter(Boolean).map((t) => ({
+    id: t.id || `call_${t.name || "tool"}`,
+    type: "function",
+    function: { name: t.name, arguments: t.args || "{}" },
+  }));
+  const message = { role: "assistant", content: state.text };
+  if (toolCalls.length) message.tool_calls = toolCalls;
+  const out = { message };
+  if (state.inputTokens || state.outputTokens) {
+    out.usage = {
+      input_tokens: state.inputTokens,
+      output_tokens: state.outputTokens,
+    };
+  }
+  return out;
+}
+
+/** Pure reducer over OpenAI-compatible SSE lines — exported for tests. */
+export function _accumulateOpenAIStream(lines, onToken) {
+  const state = _openaiInitState();
+  for (const line of lines) _openaiReduceLine(state, line, onToken);
+  return _openaiFinalize(state);
+}
+
+async function _chatOpenAIStreaming(apiUrl, body, apiKey, onToken, signal, provider) {
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`${provider} API error: ${response.status}`);
+  }
+  const state = _openaiInitState();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() || "";
+    for (const line of lines) _openaiReduceLine(state, line, onToken);
+  }
+  if (buf.trim()) _openaiReduceLine(state, buf, onToken);
+  return _openaiFinalize(state);
 }
 
 function _normalizeAnthropicResponse(data) {
