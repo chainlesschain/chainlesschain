@@ -3060,6 +3060,10 @@ export async function* agentLoop(messages, options) {
     sessionId: options.sessionId || null,
   };
 
+  // True once a Stop hook has forced a continuation — passed to the next Stop
+  // hook as `stop_hook_active` so a well-behaved hook won't block forever.
+  let stopHookActive = false;
+
   while (budget.hasRemaining()) {
     budget.consume();
     throwIfAborted(signal);
@@ -3104,11 +3108,14 @@ export async function* agentLoop(messages, options) {
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
-          // settings.json PreCompact hooks (observe-only — fires right before
-          // the history is compacted, e.g. to archive the full transcript).
+          // settings.json PreCompact hooks: a `block` decision SKIPS this
+          // compaction round (e.g. the hook archived / owns the history). Fires
+          // right before the history would be compacted.
+          let preCompactBlocked = false;
+          let preCompactReason = null;
           if (options.settingsHooks) {
             try {
-              runObserveHooks(
+              const pc = runObserveHooks(
                 options.settingsHooks,
                 "PreCompact",
                 {
@@ -3118,14 +3125,20 @@ export async function* agentLoop(messages, options) {
                 },
                 { cwd: options.cwd || process.cwd() },
               );
+              if (pc && pc.decision === "block") {
+                preCompactBlocked = true;
+                preCompactReason = pc.reason || null;
+              }
             } catch (_err) {
               // observe-only
             }
           }
-          const { messages: compacted, stats } = await compactor.compress(
-            messages,
-            { preserveToolPairs: true },
-          );
+          if (preCompactBlocked) {
+            yield { type: "compaction-skipped", runId, reason: preCompactReason };
+          }
+          const { messages: compacted, stats } = preCompactBlocked
+            ? { messages, stats: { saved: 0 } }
+            : await compactor.compress(messages, { preserveToolPairs: true });
           if (stats.saved > 0 && compacted.length < messages.length) {
             messages.splice(0, messages.length, ...compacted);
             // Persist the compaction so a later --resume rebuilds from the
@@ -3215,21 +3228,41 @@ export async function* agentLoop(messages, options) {
 
     if (!toolCalls || toolCalls.length === 0) {
       yield { type: "response-complete", content: msg.content || "" };
-      // settings.json Stop hooks (observe-only — the main agent has finished).
+      // settings.json Stop hooks: a `block` decision FORCES the agent to keep
+      // going instead of stopping — the reason is injected as a new instruction.
+      // `stop_hook_active` lets the hook avoid an infinite loop; the iteration
+      // budget is the hard backstop.
       if (options.settingsHooks) {
+        let stopOutcome = null;
         try {
-          runObserveHooks(
+          stopOutcome = runObserveHooks(
             options.settingsHooks,
             "Stop",
             {
-              stop_hook_active: true,
+              stop_hook_active: stopHookActive,
               final_response: String(msg.content || "").substring(0, 2000),
               session_id: options.sessionId || null,
             },
             { cwd: options.cwd || process.cwd() },
           );
         } catch (_err) {
-          // observe-only — never affect the run outcome
+          stopOutcome = null; // never affect the run outcome
+        }
+        if (stopOutcome && stopOutcome.decision === "block") {
+          stopHookActive = true;
+          messages.push({ role: "assistant", content: msg.content || "" });
+          messages.push({
+            role: "user",
+            content:
+              stopOutcome.reason ||
+              "A Stop hook requested that you keep working.",
+          });
+          yield {
+            type: "stop-hook-continue",
+            runId,
+            reason: stopOutcome.reason || null,
+          };
+          continue;
         }
       }
       yield { type: "run-ended", runId, reason: "complete" };

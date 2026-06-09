@@ -6,7 +6,7 @@
  * permission `deny` short-circuits before any hook process spawns. Hook
  * commands are real `node -e` invocations (deterministic, cross-platform).
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -151,5 +151,72 @@ describe("Stop hook (agentLoop completion)", () => {
       /* consume events */
     }
     expect(fs.existsSync(sentinel)).toBe(true);
+  });
+
+  it("a Stop hook block forces one continuation (stop_hook_active guards loop)", async () => {
+    // Blocks only on the first stop; honours stop_hook_active on the retry so
+    // the loop terminates (the budget is the backstop for misbehaving hooks).
+    const hookFile = path.join(tmp, "stophook.js");
+    fs.writeFileSync(
+      hookFile,
+      "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);if(!j.stop_hook_active)console.log(JSON.stringify({decision:'block',reason:'keep going'}))}catch(e){}})",
+    );
+    let calls = 0;
+    const chatFn = async () => {
+      calls++;
+      return { message: { role: "assistant", content: "done" }, usage: {} };
+    };
+    const events = [];
+    const gen = agentLoop([{ role: "user", content: "hi" }], {
+      chatFn,
+      cwd: tmp,
+      settingsHooks: {
+        Stop: [
+          { matcher: null, hooks: [{ type: "command", command: `node "${hookFile}"` }] },
+        ],
+      },
+      autoCompact: false,
+    });
+    for await (const ev of gen) events.push(ev.type);
+    expect(calls).toBe(2); // continued exactly once
+    expect(events).toContain("stop-hook-continue");
+  });
+});
+
+describe("PreCompact hook block", () => {
+  it("skips the auto-compaction when a PreCompact hook blocks", async () => {
+    const hookFile = path.join(tmp, "precompact.js");
+    fs.writeFileSync(
+      hookFile,
+      "console.log(JSON.stringify({decision:'block',reason:'owned'}))",
+    );
+    const compress = vi.fn(async () => ({ messages: [], stats: { saved: 100 } }));
+    const events = [];
+    const gen = agentLoop(
+      [
+        { role: "user", content: "a" },
+        { role: "assistant", content: "b" },
+        { role: "user", content: "c" },
+        { role: "assistant", content: "d" },
+        { role: "user", content: "e" },
+      ],
+      {
+        chatFn: async () => ({
+          message: { role: "assistant", content: "done" },
+          usage: {},
+        }),
+        cwd: tmp,
+        autoCompact: true,
+        _autoCompactor: { shouldAutoCompact: () => true, compress },
+        settingsHooks: {
+          PreCompact: [
+            { matcher: null, hooks: [{ type: "command", command: `node "${hookFile}"` }] },
+          ],
+        },
+      },
+    );
+    for await (const ev of gen) events.push(ev.type);
+    expect(compress).not.toHaveBeenCalled();
+    expect(events).toContain("compaction-skipped");
   });
 });
