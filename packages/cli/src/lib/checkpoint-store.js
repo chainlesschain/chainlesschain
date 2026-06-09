@@ -268,9 +268,32 @@ export function resolveCheckpoint(cwd, idOrRef, opts = {}) {
 }
 
 /**
- * Restore the working tree to a checkpoint. Creates a safety checkpoint first.
+ * Compute what differs between a checkpoint and the current working tree.
  *
- * @returns {{ restored, target, safetyId, modified, deleted }}
+ * @returns {{ modified:string[], added:string[], deleted:string[] }}
+ *   added   = exists now, not in the checkpoint (a rewind would delete it)
+ *   deleted = in the checkpoint, gone now (a rewind would recreate it)
+ */
+export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
+  const root = repoRoot(cwd);
+  const dir = gitDir(root);
+  const session = sanitizeSession(opts.session);
+  const commit = resolveCheckpoint(root, idOrRef, { session });
+  const targetTree = git(["rev-parse", `${commit}^{tree}`], { cwd: root });
+  const currentTree = snapshotTree(root, dir);
+  return {
+    modified: diffNames(root, targetTree, currentTree, "M"),
+    added: diffNames(root, targetTree, currentTree, "A"),
+    deleted: diffNames(root, targetTree, currentTree, "D"),
+  };
+}
+
+/**
+ * Restore the working tree to a checkpoint. Creates a safety checkpoint first
+ * (unless dryRun / skipSafety).
+ *
+ * @param {object} [opts] { session, dryRun, skipSafety, now }
+ * @returns {{ restored, dryRun, target, safetyId, modified, deleted, recreated }}
  */
 export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   const root = repoRoot(cwd);
@@ -281,20 +304,35 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     cwd: root,
   });
 
-  // 1) Safety net — snapshot the current state so this rewind is undoable.
-  const safety = createCheckpoint(root, {
-    session,
-    label: `auto: before rewind to ${idOrRef}`,
-    now: opts.now,
-  });
-  const currentTree = safety.tree;
+  // What will change, relative to a fresh snapshot of the current state.
+  const currentTree = snapshotTree(root, dir);
+  const modified = diffNames(root, targetTree, currentTree, "M");
+  const added = diffNames(root, targetTree, currentTree, "A"); // → delete
+  const recreated = diffNames(root, targetTree, currentTree, "D"); // → recreate
 
-  // 2) Count what will change, for the report.
-  const modified = diffNames(root, targetTree, currentTree, "M").length;
-  // Files present now but absent in the target = created since → delete them.
-  const added = diffNames(root, targetTree, currentTree, "A");
+  if (opts.dryRun) {
+    return {
+      restored: false,
+      dryRun: true,
+      target: targetCommit,
+      safetyId: null,
+      modified: modified.length,
+      deleted: added.length,
+      recreated: recreated.length,
+    };
+  }
 
-  // 3) Write the target tree over the working tree via a temp index.
+  // Safety net — snapshot the current state so this rewind is undoable.
+  let safetyId = null;
+  if (!opts.skipSafety) {
+    safetyId = createCheckpoint(root, {
+      session,
+      label: `auto: before rewind to ${idOrRef}`,
+      now: opts.now,
+    }).id;
+  }
+
+  // Write the target tree over the working tree via a temp index.
   const tmpIndex = tempIndexPath(dir);
   const env = { GIT_INDEX_FILE: tmpIndex };
   try {
@@ -304,17 +342,19 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     rmSync(tmpIndex, { force: true });
   }
 
-  // 4) Remove files that the target snapshot does not contain.
+  // Remove files the target snapshot does not contain (created since).
   for (const rel of added) {
     rmSync(path.resolve(root, rel), { force: true });
   }
 
   return {
     restored: true,
+    dryRun: false,
     target: targetCommit,
-    safetyId: safety.id,
-    modified,
+    safetyId,
+    modified: modified.length,
     deleted: added.length,
+    recreated: recreated.length,
   };
 }
 
@@ -345,27 +385,72 @@ export function diffCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
   const targetTree = git(["rev-parse", `${targetCommit}^{tree}`], {
     cwd: root,
   });
+  // Snapshot current state so untracked files are included in the diff.
+  const currentTree = snapshotTree(root, dir);
+  const args = [
+    "diff",
+    opts.stat ? "--stat" : null,
+    targetTree,
+    currentTree,
+  ].filter(Boolean);
+  return git(args, { cwd: root });
+}
 
-  // Snapshot current state to a throwaway tree so untracked files are included.
-  const tmpIndex = tempIndexPath(dir);
-  const env = { GIT_INDEX_FILE: tmpIndex };
+/**
+ * Inspect a checkpoint: metadata + the files it captured (with sizes).
+ *
+ * @returns {{ id, commit, createdAt, label, fileCount, files:Array<{rel,bytes}> }}
+ */
+export function showCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
+  const root = repoRoot(cwd);
+  const session = sanitizeSession(opts.session);
+  const commit = resolveCheckpoint(root, idOrRef, { session });
+  const tree = git(["rev-parse", `${commit}^{tree}`], { cwd: root });
+  const meta = listRefs(root, session).find((r) => r.commit === commit) || {};
+  const files = [];
   try {
-    try {
-      git(["read-tree", "HEAD"], { cwd: root, env });
-    } catch {
-      /* fresh repo */
+    // `-l` adds the blob size as the 4th whitespace-delimited field.
+    const out = git(["ls-tree", "-r", "-l", tree], { cwd: root });
+    for (const line of out.split("\n")) {
+      if (!line.trim()) continue;
+      const [head, rel] = line.split("\t"); // "<mode> <type> <sha> <size>\t<path>"
+      const bytes = parseInt(head.trim().split(/\s+/)[3], 10) || 0;
+      files.push({ rel, bytes });
     }
-    git(["add", "-A"], { cwd: root, env });
-    const currentTree = git(["write-tree"], { cwd: root, env });
-    const args = [
-      "diff",
-      opts.stat ? "--stat" : null,
-      targetTree,
-      currentTree,
-    ].filter(Boolean);
-    return git(args, { cwd: root });
-  } finally {
-    rmSync(tmpIndex, { force: true });
+  } catch {
+    /* non-critical */
+  }
+  return {
+    id: meta.id || idOrRef,
+    commit,
+    createdAt: meta.createdAt || null,
+    label: meta.label || "",
+    fileCount: files.length,
+    files,
+  };
+}
+
+/**
+ * Delete a single checkpoint ref.
+ *
+ * @returns {boolean} true if it existed and was removed
+ */
+export function deleteCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
+  const root = repoRoot(cwd);
+  const session = sanitizeSession(opts.session);
+  let commit;
+  try {
+    commit = resolveCheckpoint(root, idOrRef, { session });
+  } catch {
+    return false;
+  }
+  const row = listRefs(root, session).find((r) => r.commit === commit);
+  const ref = row ? row.ref : `${sessionPrefix(session)}/${idOrRef}`;
+  try {
+    git(["update-ref", "-d", ref], { cwd: root });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -394,4 +479,4 @@ export function clearCheckpoints(cwd = process.cwd(), opts = {}) {
 }
 
 // Exposed for unit tests / advanced callers.
-export const _internals = { git, repoRoot, sanitizeSession };
+export const _internals = { git, repoRoot, sanitizeSession, snapshotTree };
