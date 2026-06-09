@@ -110,9 +110,13 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
       );
     });
 
-    it("should have max_tokens: 8192 for Anthropic in agent-core", () => {
+    it("sets Anthropic max_tokens with an 8192 baseline", () => {
       coreContent = coreContent || readFileSync(agentCorePath, "utf8");
-      expect(coreContent).toContain("max_tokens: 8192");
+      // Matches both the flat and model-aware (anthropicMaxTokens || 8192)
+      // forms; the 8192 baseline is the invariant under test.
+      expect(coreContent).toMatch(
+        /max_tokens:\s*(?:anthropicMaxTokens \|\| )?8192/,
+      );
     });
   });
 

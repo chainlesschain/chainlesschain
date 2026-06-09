@@ -399,9 +399,12 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     expect(content).toMatch(/case "run_shell"[\s\S]*?substring\(0,\s*30000\)/);
   });
 
-  it("Anthropic max_tokens should be 8192", () => {
+  it("Anthropic max_tokens carries an 8192 baseline", () => {
     const content = readFileSync(agentCorePath, "utf8");
-    expect(content).toContain("max_tokens: 8192");
+    // Matches both the flat `max_tokens: 8192` and the model-aware
+    // `max_tokens: anthropicMaxTokens || 8192` (Opus 16384 / Haiku 4096 /
+    // else 8192) forms — the 8192 baseline is the invariant under test.
+    expect(content).toMatch(/max_tokens:\s*(?:anthropicMaxTokens \|\| )?8192/);
   });
 
   it("default ollama model should be qwen2.5:7b", () => {
