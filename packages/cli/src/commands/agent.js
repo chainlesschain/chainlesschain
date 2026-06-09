@@ -11,6 +11,7 @@ import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import { makeFallbackChatFn } from "../runtime/fallback-model.js";
+import { resolveImages } from "../lib/image-input.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -92,6 +93,11 @@ export function registerAgentCommand(program) {
     )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
+    .option(
+      "--image <path>",
+      "Attach an image to the prompt for vision (repeatable; png/jpg/jpeg/gif/webp)",
+      (val, prev) => (prev || []).concat([val]),
+    )
     .option(
       "--think [level]",
       "Enable Anthropic extended thinking (level: think | hard | ultra; Anthropic models only)",
@@ -308,6 +314,9 @@ export function registerAgentCommand(program) {
         : options.think === true
           ? true
           : options.think || undefined;
+      // --image <path>: read attached image files into {mediaType, base64 data}
+      // for vision-capable models. Empty array when no --image is given.
+      const images = resolveImages(options.image);
       // --thinking-budget <n>: legacy-model thinking budget (no-op without
       // --think/--ultrathink and on adaptive models). undefined → engine default.
       const thinkingBudget = resolveThinkingBudget(options.thinkingBudget);
@@ -426,6 +435,7 @@ export function registerAgentCommand(program) {
         try {
           outcome = await runAgentHeadless({
             prompt,
+            images,
             model: options.model,
             thinking,
             thinkingBudget,

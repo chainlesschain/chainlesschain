@@ -25,6 +25,10 @@ import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookRunner from "../lib/hook-runner.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
+import {
+  toOllamaMessages,
+  imageUrlBlockToAnthropic,
+} from "../lib/image-input.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -2150,6 +2154,9 @@ export async function chatWithTools(rawMessages, options) {
 
   if (provider === "ollama") {
     const apiUrl = `${baseUrl}/api/chat`;
+    // Multimodal: ollama wants images as a base64[] on the message, not as
+    // OpenAI image_url content blocks. No-op when there are no images.
+    const ollamaMessages = toOllamaMessages(messages);
     // Real-time token deltas (Claude-Code `--include-partial-messages`): when
     // the caller supplies an onToken hook, stream the response and forward each
     // content chunk as it arrives. Tool calls + usage are accumulated and the
@@ -2158,7 +2165,7 @@ export async function chatWithTools(rawMessages, options) {
     if (typeof options.onToken === "function") {
       return await _chatOllamaStreaming(
         apiUrl,
-        { model, messages, tools },
+        { model, messages: ollamaMessages, tools },
         options.onToken,
         signal,
       );
@@ -2169,7 +2176,7 @@ export async function chatWithTools(rawMessages, options) {
       signal,
       body: JSON.stringify({
         model,
-        messages,
+        messages: ollamaMessages,
         tools,
         stream: false,
       }),
@@ -2786,8 +2793,14 @@ export function _toAnthropicMessages(msgs) {
         content: blocks.length ? blocks : m.content || "",
       });
     } else {
-      // user turn: pass content through (string or already-block array)
-      out.push({ role: "user", content: m.content });
+      // user turn. Multimodal: convert OpenAI image_url blocks → Anthropic
+      // image blocks; pass strings / other blocks through unchanged.
+      out.push({
+        role: "user",
+        content: Array.isArray(m.content)
+          ? m.content.map((b) => imageUrlBlockToAnthropic(b) || b)
+          : m.content,
+      });
     }
   }
   flush();

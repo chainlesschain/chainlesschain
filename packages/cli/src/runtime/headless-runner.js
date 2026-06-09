@@ -44,6 +44,7 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
 } from "../harness/jsonl-session-store.js";
 import { expandFileRefs } from "./file-ref-expander.js";
+import { buildUserContent } from "../lib/image-input.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 
@@ -452,7 +453,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       ? [{ role: "system", content: sessionStartContext }]
       : []),
     ...history,
-    { role: "user", content: userContent },
+    // Multimodal: when --image is given, the user turn carries an OpenAI-style
+    // [{type:text},{type:image_url}…] array; otherwise a plain string.
+    { role: "user", content: buildUserContent(userContent, options.images) },
   ];
 
   // Persist the user turn up front (best-effort) so a session is recoverable
