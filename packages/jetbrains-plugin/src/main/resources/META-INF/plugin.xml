@@ -1,0 +1,36 @@
+<idea-plugin>
+    <id>com.chainlesschain.ide</id>
+    <name>ChainlessChain IDE Bridge</name>
+    <version>0.1.0</version>
+    <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
+
+    <description><![CDATA[
+        Bridges the ChainlessChain <code>cc</code> agent CLI to JetBrains IDEs.
+        Runs a localhost MCP server exposing the active selection, diagnostics,
+        open editors, and native diff review as tools the agent can call, and
+        injects the discovery env vars into integrated terminals so
+        <code>cc agent</code> auto-connects.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
+        <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+        <localTerminalCustomizer
+                implementation="com.chainlesschain.ide.intellij.IdeBridgeTerminalCustomizer"/>
+    </extensions>
+
+    <actions>
+        <action id="chainlesschain.ide.ShowStatus"
+                class="com.chainlesschain.ide.intellij.ShowStatusAction"
+                text="ChainlessChain IDE: Show Bridge Status"
+                description="Show the IDE bridge MCP server status">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
