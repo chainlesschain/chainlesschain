@@ -58,6 +58,7 @@ import { registerRCacheCommand } from "./commands/rcache.js";
 import { registerSessionCommand } from "./commands/session.js";
 import { registerCostCommand } from "./commands/cost.js";
 import { registerCheckpointCommand } from "./commands/checkpoint.js";
+import { registerCompactCommand } from "./commands/compact.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerExportCommand } from "./commands/export.js";
@@ -452,6 +453,7 @@ export function createProgram(opts = {}) {
   registerSessionCommand(program);
   registerCostCommand(program);
   registerCheckpointCommand(program);
+  registerCompactCommand(program);
   registerConsolCommand(program);
 
   // Phase 2: Knowledge & content management
