@@ -12,9 +12,38 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { runPack } from "../../src/lib/packer/index.js";
 
-describe("runPack – dry-run end-to-end", () => {
+// runPack resolves the web-panel dist from the real packages/cli and rejects a
+// dist with < 2 files. Only the placeholder index.html is committed; the built
+// assets come from `npm run build:web-panel` and aren't in git — so on a clean
+// checkout (CI integration shard) every case fails at the web-panel phase. Skip
+// when the panel isn't built; runs in full wherever it is (local, release CI).
+function countFilesRecursive(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  for (const e of entries) {
+    count += e.isDirectory()
+      ? countFilesRecursive(path.join(dir, e.name))
+      : 1;
+  }
+  return count;
+}
+const WEB_PANEL_BUILT =
+  countFilesRecursive(
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../src/assets/web-panel",
+    ),
+  ) >= 2;
+
+describe.skipIf(!WEB_PANEL_BUILT)("runPack – dry-run end-to-end", () => {
   it("completes phases 1-5 and stops before pkg invocation", async () => {
     const silent = { log: () => {}, info: () => {}, error: () => {} };
     const result = await runPack(
