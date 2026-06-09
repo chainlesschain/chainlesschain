@@ -39,6 +39,20 @@ intellijPlatform {
             untilBuild = provider { null } // no hard upper bound
         }
     }
+
+    // `./gradlew publishPlugin` uploads to the JetBrains Marketplace. The token
+    // comes from the CI secret JETBRAINS_PUBLISH_TOKEN (never commit it).
+    publishing {
+        token = providers.environmentVariable("JETBRAINS_PUBLISH_TOKEN")
+    }
+
+    // Marketplace requires signed plugins; supply the cert chain + key via env
+    // when releasing (CERTIFICATE_CHAIN / PRIVATE_KEY / PRIVATE_KEY_PASSWORD).
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
 }
 
 tasks {

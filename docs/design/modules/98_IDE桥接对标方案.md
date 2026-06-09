@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: 🚧 Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅ MVP（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 🚧（JetBrains:协议核纯 JDK 已落+跨语言 interop 实证,IntelliJ glue 待 SDK 构建）· Phase 4(发布) 待办 — v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 5 Phase 落地 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 🚧（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 待 SDK 构建）· Phase 4 ✅（发布基建:CI 管线+.vsix 实打包+版本治理,marketplace 上架待 secret）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -191,9 +191,23 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 类比 VS Code 扩展待 Extension Host);`getDiagnostics` markup 遍历 + `LocalTerminalCustomizer` 签名按目标
 平台版本微调;Marketplace 发布(Phase 4)。
 
-### Phase 4 — 发布与维护
+### Phase 4 — 发布与维护 ✅ 基建已落
 
-VS Code Marketplace(vsce)、版本治理、扩展测试宿主接 CI。
+发布管线 + 版本治理 + 维护文档全部落地(marketplace 实际上架待真实 publisher/secret)。
+- **CI** `.github/workflows/ide-extensions.yml`:VS Code job(`@vscode/vsce package` → `.vsix` 产物上传;
+  tag `ide-vscode-v*` + `VSCE_PAT` 才 `vsce publish`)+ JetBrains job(`./gradlew buildPlugin` → 插件 zip;
+  tag `ide-jetbrains-v*` + `JETBRAINS_PUBLISH_TOKEN` 才 `publishPlugin`)。**普通 push 只 build+上传产物,
+  publish 仅 tag+secret 双门控**;缺 secret 显式 fail-fast(不静默"成功");不建 GitHub Release(避开
+  immutable-release/tag-burn 陷阱);无 `continue-on-error` 假绿。
+- **VS Code 打包本机实证**:`npx @vscode/vsce package --no-dependencies` 真出 **13.3 KB `.vsix`**(11 文件:
+  manifest+LICENSE+CHANGELOG+README+5 src,无 node_modules/tests)。
+- **JetBrains**:vendored gradle wrapper(8.7,复用 android 仓的 jar)+ `build.gradle.kts` 加 publishing/signing
+  token(读 env secret);buildPlugin 需 IntelliJ SDK 故只在 CI runner 构建。
+- **版本治理 + 维护文档**:`docs/internal/ide-extensions-releasing.md`(版本/CHANGELOG/tag/secret/marketplace
+  注册/陷阱清单)+ 各扩展 LICENSE(MIT)+ CHANGELOG。
+
+**剩**:真实 marketplace publisher 注册 + 配 CI secret(`VSCE_PAT`/`JETBRAINS_PUBLISH_TOKEN`/签名证书)后
+打 tag 实际上架;JetBrains glue 层首次 SDK 构建跑通(见 Phase 3)。
 
 ---
 
