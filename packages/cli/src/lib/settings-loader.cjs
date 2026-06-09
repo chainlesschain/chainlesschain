@@ -194,8 +194,45 @@ function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
   return { file, added: true };
 }
 
+/**
+ * Native-config overrides from the same settings files loadSettings reads
+ * (user → project → local → explicit --settings, last-write-wins). Mirrors
+ * Claude-Code settings.json `model` + `env`. Permissions stay with
+ * loadSettings; this is the config-override half — a one-shot way to set the
+ * model / env vars for a run without editing .chainlesschain/config.json.
+ *
+ * @param {object} [opts] { cwd, settingsFile, onWarn }
+ * @returns {{ model: string|null, env: Record<string,string>, files: string[] }}
+ */
+function loadSettingsConfig(opts = {}) {
+  const cwd = opts.cwd || process.cwd();
+  let model = null;
+  const env = {};
+  const files = [];
+  for (const file of settingsPaths(cwd, opts.settingsFile)) {
+    const data = readSettingsFile(file, { onWarn: opts.onWarn });
+    if (!data) continue;
+    let contributed = false;
+    if (typeof data.model === "string" && data.model.trim()) {
+      model = data.model.trim();
+      contributed = true;
+    }
+    if (data.env && typeof data.env === "object" && !Array.isArray(data.env)) {
+      for (const [k, v] of Object.entries(data.env)) {
+        if (typeof v === "string") {
+          env[k] = v;
+          contributed = true;
+        }
+      }
+    }
+    if (contributed) files.push(file);
+  }
+  return { model, env, files };
+}
+
 module.exports = {
   loadSettings,
+  loadSettingsConfig,
   readSettingsFile,
   settingsPaths,
   parseEnvList,

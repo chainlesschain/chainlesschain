@@ -176,7 +176,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--settings <file>",
-      "Merge an extra .claude/settings.json-shaped file of permission rules (allow/ask/deny) for this run",
+      "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
@@ -241,6 +241,27 @@ export function registerAgentCommand(program) {
           "--permission-prompt-tool requires --mcp-config (the tool must come from a loaded MCP server).\n",
         );
         process.exit(1);
+      }
+
+      // --settings native config overrides: a .claude/settings.json-shaped file
+      // (and the discovered .claude settings) may set `model` + `env` for this
+      // run, without editing .chainlesschain/config.json. `--model` still wins
+      // over a settings model. Applied once here so every branch (headless +
+      // interactive, which all read options.model) picks it up; env vars are
+      // set on the process so the agent loop + child tools inherit them.
+      try {
+        const { loadSettingsConfig } =
+          await import("../lib/settings-loader.cjs");
+        const sc = loadSettingsConfig({
+          cwd: process.cwd(),
+          settingsFile: options.settings || null,
+        });
+        for (const [k, v] of Object.entries(sc.env || {})) {
+          process.env[k] = v;
+        }
+        if (!options.model && sc.model) options.model = sc.model;
+      } catch {
+        // settings overrides are best-effort — never block the run
       }
 
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
