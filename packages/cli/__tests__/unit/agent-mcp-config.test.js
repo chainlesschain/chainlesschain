@@ -15,6 +15,9 @@ import {
   mcpToolName,
   setupMcpFromConfig,
   loadMcpConfig,
+  resolvePermissionPromptTool,
+  parsePermissionDecision,
+  makePermissionPromptConfirmer,
 } from "../../src/runtime/mcp-config.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 
@@ -323,5 +326,191 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
     );
     expect(r.exitCode).toBe(1);
     expect(err.join("")).toMatch(/no servers found/);
+  });
+});
+
+describe("resolvePermissionPromptTool", () => {
+  const mcp = {
+    externalToolExecutors: {
+      mcp__auth__approve: { kind: "mcp", serverName: "auth", toolName: "approve" },
+    },
+  };
+  it("resolves a loaded mcp tool to {server, tool}", () => {
+    expect(resolvePermissionPromptTool(mcp, "mcp__auth__approve")).toEqual({
+      server: "auth",
+      tool: "approve",
+    });
+  });
+  it("throws when no mcp was loaded", () => {
+    expect(() => resolvePermissionPromptTool(null, "mcp__auth__approve")).toThrow(
+      /requires --mcp-config/,
+    );
+  });
+  it("throws (listing available) when the tool is not loaded", () => {
+    expect(() => resolvePermissionPromptTool(mcp, "mcp__auth__nope")).toThrow(
+      /not found among loaded MCP tools\. Available: mcp__auth__approve/,
+    );
+  });
+});
+
+describe("parsePermissionDecision", () => {
+  it("allows on JSON {behavior:'allow'} text content", () => {
+    const r = parsePermissionDecision({
+      content: [{ type: "text", text: '{"behavior":"allow","message":"ok"}' }],
+    });
+    expect(r).toMatchObject({ allow: true, reason: "ok" });
+  });
+  it("denies on {behavior:'deny'}", () => {
+    expect(
+      parsePermissionDecision({
+        content: [{ type: "text", text: '{"behavior":"deny"}' }],
+      }).allow,
+    ).toBe(false);
+  });
+  it("reads a top-level {allow:true} object", () => {
+    expect(parsePermissionDecision({ allow: true }).allow).toBe(true);
+  });
+  it("denies (fail-closed) on isError, empty, or unparseable", () => {
+    expect(parsePermissionDecision({ isError: true }).allow).toBe(false);
+    expect(parsePermissionDecision(null).allow).toBe(false);
+    expect(
+      parsePermissionDecision({ content: [{ type: "text", text: "maybe" }] })
+        .allow,
+    ).toBe(false);
+  });
+});
+
+describe("makePermissionPromptConfirmer", () => {
+  it("calls the MCP tool with {tool_name, input} and returns the verdict", async () => {
+    const callTool = vi.fn(async () => ({
+      content: [{ type: "text", text: '{"behavior":"allow"}' }],
+    }));
+    const confirm = makePermissionPromptConfirmer({
+      mcpClient: { callTool },
+      server: "auth",
+      tool: "approve",
+    });
+    const ok = await confirm({ tool: "run_shell", args: { cmd: "ls" } });
+    expect(ok).toBe(true);
+    expect(callTool).toHaveBeenCalledWith("auth", "approve", {
+      tool_name: "run_shell",
+      input: { cmd: "ls" },
+    });
+  });
+  it("denies on a deny verdict", async () => {
+    const confirm = makePermissionPromptConfirmer({
+      mcpClient: {
+        callTool: async () => ({ content: [{ type: "text", text: '{"behavior":"deny"}' }] }),
+      },
+      server: "auth",
+      tool: "approve",
+    });
+    expect(await confirm({ tool: "x", args: {} })).toBe(false);
+  });
+  it("fails closed when the tool throws", async () => {
+    const confirm = makePermissionPromptConfirmer({
+      mcpClient: {
+        callTool: async () => {
+          throw new Error("server down");
+        },
+      },
+      server: "auth",
+      tool: "approve",
+    });
+    expect(await confirm({ tool: "x", args: {} })).toBe(false);
+  });
+});
+
+describe("runAgentHeadless — --permission-prompt-tool wiring", () => {
+  const fakeMcpWithApprove = (callTool) => ({
+    mcpClient: { callTool, disconnectAll: async () => {} },
+    extraToolDefinitions: [],
+    externalToolExecutors: {
+      mcp__auth__approve: { kind: "mcp", serverName: "auth", toolName: "approve" },
+    },
+    externalToolDescriptors: {},
+    connected: [{ server: "auth", tools: 1 }],
+  });
+
+  // A gate that records the confirmer installed on it.
+  const recordingGate = () => {
+    const state = { confirmer: null };
+    return {
+      state,
+      setSessionPolicy() {},
+      setConfirmer(fn) {
+        state.confirmer = fn;
+      },
+      decide: async () => ({ decision: "allow", via: "t", policy: "t" }),
+    };
+  };
+
+  const deps = (over = {}) => {
+    const err = [];
+    return {
+      err,
+      d: {
+        bootstrap: async () => ({ db: null }),
+        writeOut: () => {},
+        writeErr: (s) => err.push(s),
+        sessionExists: () => false,
+        startSession: () => {},
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendTokenUsage: () => {},
+        getLastSessionId: () => null,
+        agentLoop: async function* () {
+          yield { type: "response-complete", content: "ok" };
+          yield { type: "run-ended", reason: "complete" };
+        },
+        ...over,
+      },
+    };
+  };
+
+  it("installs an MCP-backed confirmer that routes approvals to the tool", async () => {
+    const callTool = vi.fn(async () => ({
+      content: [{ type: "text", text: '{"behavior":"allow"}' }],
+    }));
+    const gate = recordingGate();
+    const { d } = deps({
+      getApprovalGate: async () => gate,
+      loadMcpConfig: async () => fakeMcpWithApprove(callTool),
+    });
+    await runAgentHeadless(
+      {
+        prompt: "hi",
+        mcpConfig: "x.json",
+        permissionPromptTool: "mcp__auth__approve",
+        sessionId: "s-ppt",
+      },
+      d,
+    );
+    // The confirmer installed last is the MCP-backed one: invoking it hits the tool.
+    expect(typeof gate.state.confirmer).toBe("function");
+    const verdict = await gate.state.confirmer({ tool: "run_shell", args: {} });
+    expect(verdict).toBe(true);
+    expect(callTool).toHaveBeenCalledWith("auth", "approve", {
+      tool_name: "run_shell",
+      input: {},
+    });
+  });
+
+  it("fails fast when the named tool was not loaded", async () => {
+    const { d, err } = deps({
+      getApprovalGate: async () => recordingGate(),
+      loadMcpConfig: async () => fakeMcpWithApprove(vi.fn()),
+    });
+    const r = await runAgentHeadless(
+      {
+        prompt: "hi",
+        mcpConfig: "x.json",
+        permissionPromptTool: "mcp__auth__missing",
+        sessionId: "s-ppt-bad",
+      },
+      d,
+    );
+    expect(r.exitCode).toBe(1);
+    expect(err.join("")).toMatch(/not found among loaded MCP tools/);
   });
 });

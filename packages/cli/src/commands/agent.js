@@ -166,6 +166,10 @@ export function registerAgentCommand(program) {
       "--mcp-config <file>",
       "Load ad-hoc MCP servers from a JSON file for this run (headless); their tools become callable (mcp__<server>__<tool>)",
     )
+    .option(
+      "--permission-prompt-tool <tool>",
+      "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -222,6 +226,15 @@ export function registerAgentCommand(program) {
         process.exit(1);
       }
 
+      // --permission-prompt-tool names an MCP tool, so it only works when MCP
+      // servers are loaded for the run.
+      if (options.permissionPromptTool && !options.mcpConfig) {
+        process.stderr.write(
+          "--permission-prompt-tool requires --mcp-config (the tool must come from a loaded MCP server).\n",
+        );
+        process.exit(1);
+      }
+
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
 
@@ -271,6 +284,7 @@ export function registerAgentCommand(program) {
             includePartialMessages: options.includePartialMessages === true,
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
+            permissionPromptTool: options.permissionPromptTool || null,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -366,6 +380,8 @@ export function registerAgentCommand(program) {
             goalAssess: options.goalAssess === true,
             // --mcp-config: connect ad-hoc MCP servers + expose their tools
             mcpConfig: options.mcpConfig || null,
+            // --permission-prompt-tool: defer approvals to an MCP tool
+            permissionPromptTool: options.permissionPromptTool || null,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });

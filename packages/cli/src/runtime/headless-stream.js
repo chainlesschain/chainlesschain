@@ -20,7 +20,11 @@ import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { expandFileRefs } from "./file-ref-expander.js";
-import { loadMcpConfig } from "./mcp-config.js";
+import {
+  loadMcpConfig,
+  resolvePermissionPromptTool,
+  makePermissionPromptConfirmer,
+} from "./mcp-config.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   resolvePermissionMode,
@@ -244,6 +248,33 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         error: err.message,
       });
       return { exitCode: 1, turns: 0 };
+    }
+  }
+
+  // --permission-prompt-tool: defer CONFIRM-tier approvals to an MCP tool
+  // (loaded via --mcp-config) instead of headless fail-closed.
+  if (options.permissionPromptTool) {
+    let ppt;
+    try {
+      ppt = resolvePermissionPromptTool(mcp, options.permissionPromptTool);
+    } catch (err) {
+      emit({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        error: err.message,
+      });
+      if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
+      return { exitCode: 1, turns: 0 };
+    }
+    if (approvalGate && typeof approvalGate.setConfirmer === "function") {
+      approvalGate.setConfirmer(
+        makePermissionPromptConfirmer({
+          mcpClient: mcp.mcpClient,
+          server: ppt.server,
+          tool: ppt.tool,
+        }),
+      );
     }
   }
 

@@ -26,7 +26,11 @@ import {
   agentLoop as coreAgentLoop,
   formatToolArgs,
 } from "./agent-core.js";
-import { loadMcpConfig } from "./mcp-config.js";
+import {
+  loadMcpConfig,
+  resolvePermissionPromptTool,
+  makePermissionPromptConfirmer,
+} from "./mcp-config.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   startSession as jsonlStartSession,
@@ -387,6 +391,31 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } catch (err) {
       writeErr(`Error: ${err.message}\n`);
       return { exitCode: 1, result: err.message, isError: true };
+    }
+  }
+
+  // --permission-prompt-tool: route every CONFIRM-tier approval to an MCP tool
+  // (loaded via --mcp-config) instead of headless fail-closed. Overrides the
+  // permission-mode confirmer on the gate for this session.
+  if (options.permissionPromptTool) {
+    let ppt;
+    try {
+      ppt = resolvePermissionPromptTool(mcp, options.permissionPromptTool);
+    } catch (err) {
+      writeErr(`Error: ${err.message}\n`);
+      if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
+      return { exitCode: 1, result: err.message, isError: true };
+    }
+    if (approvalGate && typeof approvalGate.setConfirmer === "function") {
+      approvalGate.setConfirmer(
+        makePermissionPromptConfirmer({
+          mcpClient: mcp.mcpClient,
+          server: ppt.server,
+          tool: ppt.tool,
+          writeErr,
+          isText,
+        }),
+      );
     }
   }
 

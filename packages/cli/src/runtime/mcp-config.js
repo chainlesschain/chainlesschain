@@ -137,3 +137,103 @@ export async function loadMcpConfig(filePath, deps = {}) {
   }
   return setupMcpFromConfig(servers, deps);
 }
+
+// ─── --permission-prompt-tool (programmable headless approval) ──────────────
+//
+// Claude-Code parity: instead of headless fail-closed (auto-deny risky tools),
+// route every CONFIRM-tier decision to an MCP tool that returns the verdict.
+// The named tool must come from a server loaded via --mcp-config.
+
+/**
+ * Resolve a `mcp__<server>__<tool>` permission-prompt-tool name to its server +
+ * tool, validating it was actually loaded. Throws (fail fast) otherwise.
+ */
+export function resolvePermissionPromptTool(mcp, toolName) {
+  if (!mcp || !mcp.externalToolExecutors) {
+    throw new Error(
+      `--permission-prompt-tool "${toolName}" requires --mcp-config ` +
+        `(the tool must come from a loaded MCP server).`,
+    );
+  }
+  const exec = mcp.externalToolExecutors[toolName];
+  if (!exec || exec.kind !== "mcp") {
+    const avail = Object.keys(mcp.externalToolExecutors).join(", ") || "(none)";
+    throw new Error(
+      `--permission-prompt-tool "${toolName}" not found among loaded MCP ` +
+        `tools. Available: ${avail}`,
+    );
+  }
+  return { server: exec.serverName, tool: exec.toolName };
+}
+
+/**
+ * Interpret an MCP `tools/call` result as an allow/deny verdict. Liberal: reads
+ * a JSON `{behavior:"allow"|"deny"}` (Claude-Code shape) from a text content
+ * block, or a top-level `behavior`/`decision`/`allow`. Anything not clearly an
+ * allow is treated as deny (fail-closed).
+ */
+export function parsePermissionDecision(result) {
+  if (!result || result.isError) {
+    return { allow: false, reason: "permission tool returned no/err result" };
+  }
+  let payload = result;
+  if (Array.isArray(result.content)) {
+    const textBlock = result.content.find(
+      (b) => b && b.type === "text" && typeof b.text === "string",
+    );
+    if (textBlock) {
+      try {
+        payload = JSON.parse(textBlock.text);
+      } catch {
+        payload = { behavior: textBlock.text.trim() };
+      }
+    }
+  }
+  const behavior =
+    payload?.behavior ??
+    payload?.decision ??
+    (payload?.allow === true ? "allow" : undefined);
+  const allow = behavior === "allow" || payload?.allow === true;
+  return {
+    allow,
+    reason: payload?.message || payload?.reason || null,
+    updatedInput: payload?.updatedInput,
+  };
+}
+
+/**
+ * Build an ApprovalGate confirmer that defers each CONFIRM-tier decision to the
+ * given MCP tool. Fail-closed: any tool error → deny.
+ *
+ * @param {object} args { mcpClient, server, tool, writeErr?, isText? }
+ * @returns {(ctx:{tool:string,args:object})=>Promise<boolean>}
+ */
+export function makePermissionPromptConfirmer({
+  mcpClient,
+  server,
+  tool,
+  writeErr = () => {},
+  isText = false,
+}) {
+  return async (ctx) => {
+    try {
+      const result = await mcpClient.callTool(server, tool, {
+        tool_name: ctx?.tool,
+        input: ctx?.args || {},
+      });
+      const { allow, reason } = parsePermissionDecision(result);
+      if (isText) {
+        writeErr(
+          `  permission(${ctx?.tool}): ${allow ? "allow" : "deny"}` +
+            `${reason ? " — " + reason : ""}\n`,
+        );
+      }
+      return allow;
+    } catch (err) {
+      if (isText) {
+        writeErr(`  permission(${ctx?.tool}): deny (tool error: ${err.message})\n`);
+      }
+      return false; // fail-closed
+    }
+  };
+}
