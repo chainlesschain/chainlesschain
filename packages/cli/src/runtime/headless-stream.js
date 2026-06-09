@@ -20,6 +20,7 @@ import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { expandFileRefs } from "./file-ref-expander.js";
+import { loadMcpConfig } from "./mcp-config.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   resolvePermissionMode,
@@ -227,6 +228,25 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // --mcp-config: connect ad-hoc MCP servers for the whole stream session and
+  // expose their tools to the LLM (Claude-Code parity). Best-effort connect; a
+  // missing/empty config fails the session up front.
+  let mcp = null;
+  if (options.mcpConfig) {
+    const doLoadMcp = deps.loadMcpConfig || loadMcpConfig;
+    try {
+      mcp = await doLoadMcp(options.mcpConfig, { writeErr });
+    } catch (err) {
+      emit({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        error: err.message,
+      });
+      return { exitCode: 1, turns: 0 };
+    }
+  }
+
   const loopOptionsBase = {
     model,
     provider,
@@ -240,6 +260,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     enabledToolNames,
     disabledTools,
     prepareCall: goalPrepareCallFn,
+    // --mcp-config wiring (tool defs + dispatch map + live client).
+    mcpClient: mcp?.mcpClient || null,
+    extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
+    externalToolExecutors: mcp?.externalToolExecutors || undefined,
+    externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as
@@ -329,6 +354,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       turn: turns,
       usage: outcome.usage,
     });
+  }
+
+  // Tear down ad-hoc MCP servers (--mcp-config) when stdin closes.
+  if (mcp?.mcpClient) {
+    try {
+      await mcp.mcpClient.disconnectAll();
+    } catch {
+      // ignore — disconnect is best-effort
+    }
   }
 
   emit({ type: "system", subtype: "end", session_id: sessionId, turns });
