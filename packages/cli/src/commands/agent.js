@@ -150,6 +150,10 @@ export function registerAgentCommand(program) {
       "Append extra guidance to the system prompt (literal text or @file)",
     )
     .option(
+      "--output-style <name>",
+      "Apply a named output-style persona (.claude/output-styles/<name>.md or a built-in: explanatory | learning)",
+    )
+    .option(
       "--input-format <fmt>",
       "Headless input: text | stream-json (NDJSON user events on stdin, multi-turn)",
       "text",
@@ -334,6 +338,7 @@ export function registerAgentCommand(program) {
             useRegisteredMcp: options.mcp !== false,
             permissionPromptTool: options.permissionPromptTool || null,
             settingsFile: options.settings || null,
+            outputStyle: options.outputStyle || null,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -436,6 +441,7 @@ export function registerAgentCommand(program) {
             permissionPromptTool: options.permissionPromptTool || null,
             // --settings: extra .claude/settings.json permission rules
             settingsFile: options.settings || null,
+            outputStyle: options.outputStyle || null,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });

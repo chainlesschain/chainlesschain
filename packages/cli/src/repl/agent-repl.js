@@ -444,20 +444,31 @@ export async function startAgentRepl(options = {}) {
     // Non-critical — SessionManager integration must not block startup
   }
 
-  const messages = [
+  // --system-prompt replaces the built-in prompt; --append-system-prompt
+  // extends it (parity with the headless runners). The base is kept so an
+  // output-style persona can be swapped in/out at runtime via /output-style.
+  const _replBaseSystem = composeSystemPrompt(
+    buildSystemPrompt(process.cwd(), { additionalDirectories }),
     {
-      role: "system",
-      // --system-prompt replaces the built-in prompt; --append-system-prompt
-      // extends it (parity with the headless runners).
-      content: composeSystemPrompt(
-        buildSystemPrompt(process.cwd(), { additionalDirectories }),
-        {
-          systemPrompt: options.systemPrompt,
-          appendSystemPrompt: options.appendSystemPrompt,
-        },
-      ),
+      systemPrompt: options.systemPrompt,
+      appendSystemPrompt: options.appendSystemPrompt,
     },
-  ];
+  );
+  let _activeOutputStyle = null; // { name, body }
+  const messages = [{ role: "system", content: _replBaseSystem }];
+  // Apply --output-style or the settings.json `outputStyle` default at startup.
+  try {
+    const { resolveOutputStyle } = await import("../lib/output-styles.js");
+    const st = resolveOutputStyle(options.outputStyle, process.cwd());
+    if (st && st.body) {
+      _activeOutputStyle = { name: st.name, body: st.body };
+      messages[0].content = `${_replBaseSystem}\n\n${st.body}`;
+    } else if (st && st.name && !st.missing) {
+      _activeOutputStyle = { name: st.name, body: "" };
+    }
+  } catch (_err) {
+    // best-effort — no output style
+  }
 
   // settings.json SessionStart hooks → inject session context (observe-only).
   if (_settingsHooks) {
@@ -908,6 +919,47 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/clear") {
       messages.length = 1; // Keep system prompt
       logger.info("Conversation cleared");
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/output-style" || trimmed.startsWith("/output-style ")) {
+      const arg = trimmed.slice("/output-style".length).trim();
+      try {
+        const { discoverOutputStyles, getOutputStyle } = await import(
+          "../lib/output-styles.js"
+        );
+        if (!arg) {
+          logger.log(chalk.bold("Output styles:"));
+          for (const s of discoverOutputStyles(process.cwd())) {
+            const cur =
+              _activeOutputStyle?.name === s.name ? chalk.green(" *") : "";
+            logger.log(
+              `  ${s.name.padEnd(16)}${cur}  ${chalk.gray(s.description || "")}`,
+            );
+          }
+          logger.log(
+            chalk.gray(`current: ${_activeOutputStyle?.name || "none"}`),
+          );
+        } else if (arg === "none" || arg === "default") {
+          _activeOutputStyle = null;
+          messages[0].content = _replBaseSystem;
+          logger.info("output style cleared");
+        } else {
+          const s = getOutputStyle(arg, process.cwd());
+          if (!s) {
+            logger.error(chalk.red(`no such output style: ${arg}`));
+          } else {
+            _activeOutputStyle = { name: s.name, body: s.body || "" };
+            messages[0].content = s.body
+              ? `${_replBaseSystem}\n\n${s.body}`
+              : _replBaseSystem;
+            logger.info(chalk.green(`output style → ${s.name}`));
+          }
+        }
+      } catch (err) {
+        logger.error(chalk.red(`/output-style failed: ${err.message}`));
+      }
       prompt();
       return;
     }

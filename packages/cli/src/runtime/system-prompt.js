@@ -51,10 +51,15 @@ export function resolvePromptText(value, opts = {}) {
  * @returns {string}
  */
 export function composeSystemPrompt(base, opts = {}) {
-  const { systemPrompt, appendSystemPrompt } = opts;
+  const { systemPrompt, appendSystemPrompt, outputStyle } = opts;
   let result = systemPrompt ? systemPrompt : base || "";
   if (appendSystemPrompt) {
     result = result ? `${result}\n\n${appendSystemPrompt}` : appendSystemPrompt;
+  }
+  // An output-style persona (Claude-Code `/output-style`) is appended last so it
+  // colours the final behaviour without losing the base coding instructions.
+  if (outputStyle) {
+    result = result ? `${result}\n\n${outputStyle}` : outputStyle;
   }
   return result;
 }

@@ -335,6 +335,33 @@ chainlesschain agent -p "..." --no-mcp          # 跳过注册的自动连接(--
 工具 fail-closed,本旗标把每个 CONFIRM 档审批交给一个 MCP 工具裁决——它收 `{tool_name, input}`,
 返回 `{behavior:"allow"|"deny"}`(任何非 allow / 出错都 fail-closed)。
 
+## Web Search — `web_search` 工具 + 可插拔搜索源
+
+agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文)。返回归一化
+`{ query, provider, count, results:[{title,url,snippet}], answer }`。搜索后端**可插拔**,
+经 `.chainlesschain/config.json:webSearch` 配置——搜索源是一个配置开关,不是一次性写死的代码决定。
+
+```jsonc
+// .chainlesschain/config.json
+{
+  "webSearch": {
+    "provider": "auto",   // auto | tavily | brave | bocha | duckduckgo | searxng
+    "apiKey": "",         // 通用 key;也可用 tavilyApiKey / braveApiKey / bochaApiKey 分别指定
+    "maxResults": 8,
+    "instanceUrl": ""     // 仅 searxng:自建实例地址(需开 json 输出格式)
+  }
+}
+```
+
+- **`provider: auto`(默认)**:按 `tavily > brave > bocha` 顺序选用**已配置 key** 的那个;
+  都没 key 时退回**免 key** 的 DuckDuckGo(HTML 端点解析,质量/稳定性较弱)。
+- **API key 来源**(优先级 options > config > env):`TAVILY_API_KEY` / `BRAVE_API_KEY`
+  (兼容 `BRAVE_SEARCH_API_KEY`)/ `BOCHA_API_KEY`。Bocha(博查)为国内可达的 AI 搜索源。
+- 单次调用可用工具入参 `provider` 覆盖配置后端;`web_search` 属 `readonly`,plan-mode 允许,
+  权限规则伞名 `WebSearch`(见上「Permissions」表)。
+- 已注册的 `brave-search` MCP(`cc mcp`)是另一条搜索路径,但需逐用户安装+配 key;
+  `web_search` 是内建、开箱即用的等价能力。
+
 ## Subagents — `cc agents` + spawn_sub_agent 委派
 
 `.chainlesschain/agents/*.md`(原生,优先)或 `.claude/agents/*.md`(Claude Code 可移植)
@@ -388,6 +415,7 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 | `Edit` | `edit_file` / `edit_file_hashed` | 路径 | `Edit(//etc/**)`(`//`=绝对) |
 | `Write` | `write_file` | 路径 | `Write(./build/**)` |
 | `WebFetch` | `web_fetch` | URL host | `WebFetch(domain:example.com)` |
+| `WebSearch` | `web_search` | — | `WebSearch` |
 | `Task` | `spawn_sub_agent` | — | `Task` |
 
 - **命令**:`prefix:*` 前缀语义(`Bash(git push:*)` 命中 `git push` 及其后任意参数);
@@ -529,6 +557,29 @@ chainlesschain hook list                                                # DB hoo
 UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`;block 在 headless 退出码 `2`、在 REPL 跳过本轮。SessionStart payload:`{ hook_event_name, source, cwd, session_id }`。Stop/PreCompact 由 `agentLoop` 中心触发(覆盖三入口);SessionEnd 在各入口收尾触发。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
 
 > **全事件已接入**:工具(PreToolUse/PostToolUse)+ prompt(UserPromptSubmit)+ 会话(SessionStart/SessionEnd)+ Stop(可 block→续跑)+ PreCompact(可 block→跳过压缩)。SessionEnd 为 observe-only。
+
+## Output Styles — `/output-style` 人格
+
+Claude Code `/output-style` 对标。给 agent 套一层**命名、可复用的人格**(persona),
+追加到系统提示之后——保留核心编码能力,但改变行为/语气。
+
+样式 = 带 frontmatter(`name`/`description`)的 markdown,**body 追加到系统提示**
+(在 base + `--append-system-prompt` 之后)。来源:`.chainlesschain/output-styles/`、
+`.claude/output-styles/`(项目)、`~/.claude/output-styles/`(个人);另含内置
+`default`(无叠加)/ `explanatory`(讲解 why+权衡)/ `learning`(留小块给用户写)。
+生效优先级:`--output-style` > `.claude/settings.json` 的 `outputStyle` 默认。
+
+```bash
+chainlesschain agent -p "..." --output-style explanatory   # headless 套人格
+chainlesschain output-style list [--json]                  # 内置 + 文件,标 * = settings 默认
+chainlesschain output-style show explanatory
+chainlesschain output-style new pirate --description "..."  # 脚手架到 .claude/output-styles/
+# .claude/settings.json: { "outputStyle": "learning" }      # 项目默认
+```
+
+REPL 内:`/output-style`(列出 + 当前)、`/output-style <name>`(切换,即时重算系统
+消息)、`/output-style none`(清除)。`--system-prompt` 仍可整体替换系统提示;output
+style 是其上的人格叠加层。
 
 ## Hosted Session API (Phase I)
 

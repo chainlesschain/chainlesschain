@@ -64,6 +64,7 @@ import { registerGoalCommand } from "./commands/goal.js";
 import { registerCommandCommand } from "./commands/command.js";
 import { registerCompactCommand } from "./commands/compact.js";
 import { registerPermissionsCommand } from "./commands/permissions.js";
+import { registerOutputStyleCommand } from "./commands/output-style.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerExportCommand } from "./commands/export.js";
@@ -464,6 +465,7 @@ export function createProgram(opts = {}) {
   registerCommandCommand(program);
   registerCompactCommand(program);
   registerPermissionsCommand(program);
+  registerOutputStyleCommand(program);
   registerConsolCommand(program);
 
   // Phase 2: Knowledge & content management

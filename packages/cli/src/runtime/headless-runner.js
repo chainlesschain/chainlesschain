@@ -376,11 +376,27 @@ export async function runAgentHeadless(options = {}, deps = {}) {
 
   // Effective system prompt: built-in base, optionally replaced by
   // --system-prompt and/or extended by --append-system-prompt.
+  // --output-style (or settings.json `outputStyle`) → a persona appended to the
+  // system prompt. Resolved best-effort; a missing style is ignored with a warn.
+  let outputStyleBody = null;
+  try {
+    const { resolveOutputStyle } = await import("../lib/output-styles.js");
+    const st = resolveOutputStyle(options.outputStyle, cwd);
+    if (st && st.missing && options.outputStyle) {
+      writeErr(`  output-style: unknown style "${options.outputStyle}"\n`);
+    } else if (st && st.body) {
+      outputStyleBody = st.body;
+    }
+  } catch {
+    outputStyleBody = null;
+  }
+
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
+      outputStyle: outputStyleBody,
     },
   );
 

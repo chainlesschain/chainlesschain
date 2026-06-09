@@ -223,11 +223,21 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     approvalGate = null;
   }
 
+  // --output-style (or settings.json `outputStyle`) persona, appended.
+  let outputStyleBody = null;
+  try {
+    const { resolveOutputStyle } = await import("../lib/output-styles.js");
+    const st = resolveOutputStyle(options.outputStyle, cwd);
+    if (st && st.body) outputStyleBody = st.body;
+  } catch {
+    outputStyleBody = null;
+  }
   const systemContent = composeSystemPrompt(
     buildSystemPrompt(cwd, { additionalDirectories }),
     {
       systemPrompt: options.systemPrompt,
       appendSystemPrompt: options.appendSystemPrompt,
+      outputStyle: outputStyleBody,
     },
   );
   const messages = [{ role: "system", content: systemContent }];
