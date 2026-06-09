@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-09 Release — **v5.0.3.101: CLI reaches Claude-Code parity + PDH one-click WeChat 4.0 / QQ-NT collection + security fail-closed bundle**
+
+> Formalizes the engineering mainline accumulated after v5.0.3.100 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **CLI reaches Claude-Code parity**: headless `agent -p` full set (`--output-format` / `--max-turns` / `--allowed-`/`--disallowed-tools` / `--permission-mode` / stdin / `--input-format stream-json` / `--system-prompt` / `--add-dir` / `--fallback-model`) + `@file` references in `ask`/`chat` + `cc cost` token-spend accounting (override via `llm.pricing`) + file-state `cc checkpoint`/rewind.
+- **PDH full WeChat 4.0 collection + one-click QQ-NT decrypt/parse**: WeChat 4.0 per-DB keys + zstd message bodies + official accounts/Moments/favorites + humanized non-text messages; QQ-NT end-to-end decryption + protobuf parsing (verified on a real `nt_msg.db`) + name enrichment (uin→nickname / group code→group name) + `pdh-im-collect` built-in skill.
+- **Security fail-closed bundle (audit follow-up)**: SAML signature + OAuth id_token + channel message signing + permission-ipc DB fallback all fail closed, hardcoded "123456" removed, renderer `days` input sanitized.
+- **U-Key passphrase escrow layer (Phase 3, default gated OFF)** + **desktop DB/LLM performance panels wired into V6 shell** (db-performance IPC was never registered before).
+- **npm packages**: `@chainlesschain/personal-data-hub` 0.4.2 → 0.4.3 + `chainlesschain` CLI 0.162.31 → 0.162.32 (to be published).
+- **Version surfaces**: productVersion v5.0.3.100 → v5.0.3.101 / desktop 5.0.3-alpha.101 / Android versionCode 503101 · USR_VERSION 19 → 20 / iOS CFBundleVersion 101.
+
+---
+
 ## 2026-06-08 Release — **v5.0.3.100: PDH collection major update + CLI publish channel fix**
 
 > v5.0.3.99 substantially expanded the Personal Data Hub (PDH) collection capability and went live on real devices; v5.0.3.100 formalizes the post-.99 packaging work as a release (all 18 platform artifacts shipped, GitHub Release v5.0.3.100 published). Full per-version detail in [CHANGELOG.md](CHANGELOG.md).

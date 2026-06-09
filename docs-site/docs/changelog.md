@@ -3,6 +3,56 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.101] - 2026-06-09 — feat: CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件 + U-Key 托管层（gated）
+
+> 本版把 v5.0.3.100 之后累积的工程主线固化为一次正式发版：①CLI 向 Claude-Code 平价收尾（headless `agent -p` 全家桶 + `cc cost` + 文件态 checkpoint）；②个人数据中台（PDH）微信 4.0 完整采集 + QQ-NT 一键解密/解析（真机 `nt_msg.db` 验证通过）；③一批安全 fail-closed 收口（SAML/OAuth/通道签名/permission-ipc）；④U-Key 口令托管层（Phase 3，默认 gated OFF）；⑤桌面数据库/LLM 性能面板 V6 端口接通。npm：pdh 0.4.2 → 0.4.3 + CLI 0.162.31 → 0.162.32，Android USR_VERSION 19 → 20 强制真机重抽 cc-cli.tgz。
+
+### Feat #1 —— CLI Claude-Code 平价收尾（headless agent + cost + checkpoint）
+
+- headless `agent -p` 全家桶：`--output-format` / `--max-turns` / `--allowed-tools` / `--disallowed-tools` / `--permission-mode` / stdin、`--input-format stream-json`（多轮）、`--system-prompt` / `--append-system-prompt`、`--add-dir` 多根工作区、`--fallback-model`
+- `@file` 引用在 `ask` + `chat` 非 agent 入口平价
+- `cc cost` token 计费 + 配置化价格覆盖 `llm.pricing`
+- 文件态 `cc checkpoint` / rewind（git plumbing 影子提交，零触工作区/真索引）
+- 共享交互式 session picker，`cc session resume` 复用
+- 修：headless stdout 不再混入 bootstrap 日志；`--disallowed-tools` 此前静默无效（现合并 persona + caller 两个 deny-list）
+
+### Feat #2 —— PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析
+
+- 微信 4.0 一键解密 + PC 本地 DB 自动发现 + QQ-NT 解密器内核
+- 微信 4.0 完整采集：每库独立密钥 + zstd 消息体解压 + 联系人；公众号 + 朋友圈 + 收藏；非文本消息人话化（链接/文件/图片…）
+- QQ-NT 端到端解密 + protobuf 消息解析（真机 `nt_msg.db` 验证）+ 名称补全（uin→昵称 / 群号→群名）+ `android.root_pull` + `pdh-im-collect` 内置技能
+- 社交平台 ADB 感知 readiness（root 真机一键）+ 真机采集漂移修（微博 cookie 目录 glob / 抖音 SQLCipher / 豆包诊断）
+
+### Feat #3 —— 安全 fail-closed 套件（审计跟进）
+
+- SAML 签名 + OAuth id_token 验证 fail-closed
+- 通道消息签名 fail-closed
+- permission-ipc DB 回退镜像受管加密、删硬编码 "123456"
+- 渲染层 `days` 入参净化 + 不再吞 sandbox 审计错误
+
+### Feat #4 —— U-Key 口令托管层（Phase 3，默认 gated OFF）
+
+- U-Key passphrase escrow provider 层 + 接入 bootstrap DB-key 解析（默认关）
+- PIN 解锁流程 + 备份码 UI 设计
+
+### Feat #5 —— 桌面性能面板 V6 端口 + 后端 IPC 接通
+
+- 数据库性能 / LLM 性能页 port 到 V6 shell（path M）
+- 数据库性能面板后端 IPC 此前从未注册 → 10 个 `db-performance:*` 通道静默空白；现接通 + DI 接缝 + 6 测试
+
+### Android UX（真机反馈）
+
+- 扫码加好友后跳对方资料页（之前只弹 Toast 无法加好友）+ AI 陪学空历史问候移到 UI 层 + 「本机角色」卡（设为孩子后 SOS/遥测/任务才生效）+ SOS 大红按钮接真触发
+
+### 版本同步
+
+- productVersion v5.0.3.100 → v5.0.3.101
+- desktop-app-vue 5.0.3-alpha.100 → 5.0.3-alpha.101
+- chainlesschain CLI 0.162.31 → 0.162.32（待发 npm）
+- @chainlesschain/personal-data-hub 0.4.2 → 0.4.3（待发 npm）
+- Android USR_VERSION 19 → 20 + versionCode 503100 → 503101
+- iOS CFBundleVersion 100 → 101
+
 ## [v5.0.3.100] - 2026-06-08 — chore(release): 版本对齐发布（CLI npm 发布通道修复 + PDH 0.4.1）
 
 > 把 v5.0.3.99 之后的打包工作固化为一次正式发版。**无桌面 / Android / iOS 应用源码改动** —— 本版产物与 v5.0.3.99 功能等同，仅版本号对齐 + 工程通道修复。

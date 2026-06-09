@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-09 发布 — **v5.0.3.101：CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件**
+
+> 把 v5.0.3.100 之后累积的工程主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **CLI 向 Claude-Code 平价收尾**：headless `agent -p` 全家桶（`--output-format` / `--max-turns` / `--allowed-`/`--disallowed-tools` / `--permission-mode` / stdin / `--input-format stream-json` / `--system-prompt` / `--add-dir` / `--fallback-model`）+ `@file` 引用在 `ask`/`chat` 平价 + `cc cost` token 计费（可 `llm.pricing` 覆盖）+ 文件态 `cc checkpoint`/rewind。
+- **PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析**：微信 4.0 每库独立密钥 + zstd 消息体 + 公众号/朋友圈/收藏 + 非文本人话化；QQ-NT 端到端解密 + protobuf 解析（真机 `nt_msg.db` 验证）+ 名称补全（uin→昵称 / 群号→群名）+ `pdh-im-collect` 内置技能。
+- **安全 fail-closed 套件（审计跟进）**：SAML 签名 + OAuth id_token + 通道消息签名 + permission-ipc DB 回退全部 fail-closed，删硬编码 "123456"，渲染层 `days` 入参净化。
+- **U-Key 口令托管层（Phase 3，默认 gated OFF）** + **桌面 DB/LLM 性能面板 V6 端口接通**（db-performance IPC 此前从未注册现接通）。
+- **npm 包**：`@chainlesschain/personal-data-hub` 0.4.2 → 0.4.3 + `chainlesschain` CLI 0.162.31 → 0.162.32（待发 npm）。
+- **版本面**：productVersion v5.0.3.100 → v5.0.3.101 / desktop 5.0.3-alpha.101 / Android versionCode 503101 · USR_VERSION 19 → 20 / iOS CFBundleVersion 101.
+
+---
+
 ## 2026-06-08 发布 — **v5.0.3.100：个人数据中台采集大更新 + CLI 发布通道修复**
 
 > v5.0.3.99 把个人数据中台（PDH）采集能力大幅扩容并真机生效；v5.0.3.100 把其后的打包工作固化为一次正式发版（全平台 18 产物已 ship，GitHub Release v5.0.3.100 已发布）。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
@@ -2391,7 +2404,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.73-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.101-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)

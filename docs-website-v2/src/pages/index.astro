@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.101 · 2026-06-09',
+    title: 'CLI 向 Claude-Code 平价收尾 + 个人数据中台微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件',
+    sub: '命令行这一版把和 Claude-Code 的能力差距基本补齐：无界面的 `agent -p` 模式支持输出格式 / 轮数上限 / 工具允许与禁用 / 权限模式 / 标准输入 / 多轮 stream-json 输入 / 系统提示 / 多根工作区 / 备用模型，`@file` 引用在 `ask` 和 `chat` 里也能用，新增 `cc cost` 按 token 估算花费、以及文件级的 `cc checkpoint` 快照 / 回退。',
+    desc: '个人数据中台补齐微信 4.0 完整采集（每个库独立密钥 + zstd 消息体解压 + 公众号/朋友圈/收藏 + 把链接/文件/图片等非文本消息转成人话）和 QQ-NT 一键解密 + 解析：在真机 nt_msg.db 上端到端验证通过，并能把 uin 还原成好友昵称、群号还原成群名。安全侧一批「拿不到凭证就拒绝」的收口：SAML 签名、OAuth id_token、通道消息签名、permission-ipc 数据库回退全部 fail-closed，并删掉硬编码口令。此外落地 U-Key 口令托管层（默认关闭）和桌面数据库 / LLM 性能面板的新外壳接通。版本面：productVersion v5.0.3.100 → v5.0.3.101 / 桌面 5.0.3-alpha.101 / CLI 0.162.31 → 0.162.32 / 个人数据中台 npm 包 0.4.2 → 0.4.3 / Android versionCode 503101 · USR_VERSION 19 → 20 / iOS build 101。',
+  },
+  {
     tag: 'v5.0.3.99 · 2026-06-08',
     title: '个人数据中台（PDH）采集大更新 + 真机生效 — 一键采集多家本地数据源 + 数据库静态加密默认开启',
     sub: '个人数据中台这一版补齐了「配置看起来正常、却一条数据都采不到」的长期断点：把「就绪」判定从宽松的健康检查里独立出来，再配上「一键采集 / 导入引导」的统一入口，普通用户不用再面对多步配置。本地可直读的数据源大幅扩容 — 抖音 / 微信电脑版 / QQ-NT / 钉钉 / 飞书 / 微信读书 / Apple 健康 / 网易云音乐都能把你自己的数据归集到本机金库。',
