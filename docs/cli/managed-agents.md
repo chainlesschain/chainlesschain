@@ -249,6 +249,58 @@ chainlesschain goal show <id>            # 能看到 agent 署名的进度 note 
 - `stream-json` 输出 `{ "type":"goal_assessment", "goal_id", "advanced", "progress", "note" }`。
 - best-effort:自评失败绝不改变运行本身的退出码 / 结果。
 
+## Compaction — 上下文自动压缩 + `cc compact`
+
+Claude Code `/compact` 对标。长会话(尤其 `--resume`)的消息历史会一直增长直到撞
+provider 的 context window。两条路:**运行中自动压缩**(headless 默认开)+ **手动压缩
+存档会话**(`cc compact`)。引擎是现成的 `PromptCompressor`(snip+dedup+collapse+
+truncate),**离线确定性**(不接 LLM 摘要,无网络调用)。`0.162.33+` 出。
+
+### 运行中自动压缩(`agent -p` / `--resume`)
+
+`agentLoop` 在每轮迭代顶部(LLM 调用**之前**、工具对完整的干净边界)检查历史是否超过
+压缩器阈值,超了就就地压缩。
+
+- **默认开**,由 `PROMPT_COMPRESSOR` 开关 + 大小阈值(按 `--model`/`--provider` 的
+  context window 自适应)守门——只对真正大的上下文触发。
+- **退出**:`options.autoCompact === false`。交互式 REPL 走这条(它按自己的节奏压缩)。
+- **工具对安全**:截断 / snip 绝不会留下孤儿 `tool` 结果或无应答的 `tool_calls`
+  (`compress(msgs, { preserveToolPairs:true })` → `sanitizeToolPairs()` 修复配对),
+  否则严格 API 会 400。
+- **`--resume` 持久化**:压缩后**自动写一条 `compact` 事件**到 JSONL 会话,下次
+  `--resume` 直接从压缩后的短历史重建。**仅当会话已落盘**(session 文件存在)才写——
+  一次性 `cc agent -p`(不建会话文件)什么都不写。
+- `stream-json` 输出 `{ "type":"compaction", "stats":{ strategy, originalMessages,
+  compressedMessages, originalTokens, compressedTokens, saved, ratio }, runId }`;
+  `text` 态打印 `⊟ compacted context: 54→6 msgs (saved 879 tokens, dedup)`;`json`
+  态只出最终 result 信封,看不到中间事件。
+
+```bash
+# 长会话续跑——历史超阈值时本轮自动压缩并写 compact 事件,LLM 拿到的是压缩后上下文
+chainlesschain agent -p "继续" --resume <id> --output-format stream-json
+#   → ...{"type":"compaction","stats":{"strategy":"dedup","originalMessages":54,
+#         "compressedMessages":6,"saved":879,...}}...
+```
+
+### `cc compact <session-id>` — 手动压缩存档会话
+
+不进 REPL 直接压缩一个已存会话(脚本化 / resume 前预压缩 / 批量维护)。重建会话 →
+跑压缩器 → 追加 `compact` 事件;`rebuildMessages()` 认最后一条 compact 事件,所以之后
+`cc agent --resume <id>` 自动拿短历史。
+
+```bash
+chainlesschain compact <session-id>                 # 压缩并持久化
+chainlesschain compact <session-id> --dry-run       # 只预览缩减量,不写
+chainlesschain compact <session-id> --json          # 机读
+chainlesschain compact <session-id> --model <m> --provider <p>   # 自适应阈值按指定模型
+chainlesschain compact <session-id> --max-tokens <n> --max-messages <n>  # 硬阈值覆盖
+```
+
+- 默认按会话**记录的** model/provider 给压缩器定 context-window 阈值;`--model`/
+  `--provider` 或硬 `--max-tokens`/`--max-messages` 覆盖。
+- 历史已在阈值内 → 报 `Nothing to compact` 且**不写**任何事件。
+- 区别于 `cc checkpoint`(文件状态)与 `cc workflow checkpoint`(执行状态)。
+
 ## Hosted Session API (Phase I)
 
 `cc serve` exposes session-core over WebSocket. Route types (dot-case)

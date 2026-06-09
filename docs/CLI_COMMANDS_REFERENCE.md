@@ -9,7 +9,7 @@
 
 | Group | File | Covers |
 |-------|------|--------|
-| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `goal` (跨会话目标/OKR), `stream`, WS routes (Phase D–I) |
+| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `compact` (会话压缩 + headless 自动压缩), `goal` (跨会话目标/OKR), `stream`, WS routes (Phase D–I) |
 | Core Phases 2–7 · Init · Cowork | [`cli/core-phases.md`](./cli/core-phases.md) | `import/export`, `mcp`, `did/encrypt/auth/audit`, `p2p/wallet/org/plugin`, `init/persona`, `cowork`, `hook/workflow/hmemory/a2a`, `sandbox/evolution/evomap/dao` |
 | Phase 8 · Blockchain & Enterprise | [`cli/blockchain-enterprise.md`](./cli/blockchain-enterprise.md) | `compliance/threat-intel`, `pqc`, `nostr/matrix/activitypub/scim/terraform`, `hardening/stress/reputation/sla/tech/dev/collab/marketplace/incentive/kg/tenant/governance/recommend/crosschain/privacy/inference/trust/social/fusion/infra` |
 | Observability & Code Intel | [`cli/observability.md`](./cli/observability.md) | `codegen` (Phase 86), `ops` (AIOps Phase 25), `perception` (Phase 84), `dbevo` (Phase 80), `federation` (Phase 58) |
@@ -106,16 +106,20 @@ chainlesschain session list                # 会话管理
 > For scoped-memory (`memory store/recall/consolidate`) and session lifecycle
 > (`session policy/tail/usage/park/unpark/end`), see [`cli/managed-agents.md`](./cli/managed-agents.md).
 
-## Cost & Checkpoint
+## Cost, Checkpoint & Compaction
 
 ```bash
 chainlesschain cost [<sessionId>] [--json] [--limit 500]   # 估算 $ 花费 (叠加在 session usage 上)
 chainlesschain checkpoint create <paths...> [--label <l>]  # 文件状态快照 / 回滚 (Claude Code rewind 对标)
 chainlesschain checkpoint list | show <id> [--diff] | restore <id> [--dry-run|--force] | delete <id>
+chainlesschain compact <session-id> [--dry-run] [--json]   # 手动压缩存档会话 (Claude Code /compact 对标)
+chainlesschain compact <session-id> [--model <m>|--max-tokens <n>|--max-messages <n>]  # 阈值覆盖
+chainlesschain agent -p "..." --resume <id>                # 长会话续跑：超阈值本轮自动压缩 + 写 compact 事件
 ```
 
 > 详见 [`cli/managed-agents.md`](./cli/managed-agents.md)：`cost` 的定价规则 / JSON 形状 /
-> `llm.pricing` 配置覆盖；`checkpoint` 的安全语义 / 磁盘布局（区别于 `cc workflow checkpoint`）。
+> `llm.pricing` 配置覆盖；`checkpoint` 的安全语义 / 磁盘布局（区别于 `cc workflow checkpoint`）；
+> `compact` + headless 自动压缩的工具对安全 / `--resume` 持久化 / stream-json `compaction` 事件。
 
 ## Goal — 跨会话持久目标 / OKR
 
