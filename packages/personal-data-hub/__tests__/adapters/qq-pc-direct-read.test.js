@@ -189,3 +189,39 @@ describe("QQPcAdapter — edge cases", () => {
     expect(() => a.normalize({ kind: "x", payload: { kind: "x" } })).toThrow(/unknown kind/);
   });
 });
+
+describe("QQPcAdapter — QQ NT sidecar path (passphrase)", () => {
+  const fakeCollector = (result) => async (_opts) => result;
+
+  it("opts.passphrase routes through the sidecar collector and yields messages", async () => {
+    const a = new QQPcAdapter({
+      qqCollector: fakeCollector({
+        account: "896075341",
+        messageCount: 2,
+        c2c: 1,
+        group: 1,
+        messages: [
+          { kind: "group", peer: 88966001, peerUid: "u_x", senderUin: 38181604, senderName: "疯子", type: 0, createTime: 1780941580, text: "保持高贵的沉默。", originalId: "qq-pc:group:88966001:1" },
+          { kind: "c2c", peer: 2747277822, peerUid: "u_y", senderUin: 12345, senderName: "张三", type: 0, createTime: 1780900000, text: "在吗", originalId: "qq-pc:c2c:2747277822:2" },
+        ],
+      }),
+    });
+    const raws = await collect(a.sync({ passphrase: "5{sww#,6aq=)8=A@" }));
+    expect(raws).toHaveLength(2);
+    expect(raws[0].payload.text).toBe("保持高贵的沉默。");
+    expect(raws[0].payload.isGroup).toBe(true);
+    expect(raws[0].payload.senderName).toBe("疯子");
+    expect(raws[1].payload.isGroup).toBe(false);
+
+    const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+    for (const r of raws) {
+      const n = a.normalize(r);
+      for (const k of Object.keys(merged)) if (Array.isArray(n[k])) merged[k].push(...n[k]);
+    }
+    const { valid } = partitionBatch(merged);
+    expect(valid.events.length).toBe(2);
+    const texts = valid.events.map((e) => e.content && e.content.text);
+    expect(texts).toContain("保持高贵的沉默。");
+    expect(valid.events.find((e) => e.content.text === "保持高贵的沉默。").extra.senderName).toBe("疯子");
+  });
+});

@@ -153,6 +153,138 @@ def find_accounts() -> List[Dict[str, Any]]:
     }]
 
 
+# ─── message parsing (decrypted nt_msg.db) ─────────────────────────────────
+#
+# QQ NT message tables use numeric-obfuscated column names + a protobuf body.
+# Verified against a real nt_msg.db:
+#   40050 = send time (unix seconds)   40030 = sender uin
+#   40033 = group code / c2c peer uin  40020 = peer uid (string "u_...")
+#   40093 / 40090 = sender display name 40040 = msg type (0 = normal)
+#   40800 = protobuf body (the text is a UTF-8 string element inside)
+
+_MSG_COLS = ("40050", "40030", "40033", "40020", "40093", "40090", "40040", "40800", "40003")
+
+
+def _varint(b, i):
+    shift = 0
+    res = 0
+    while i < len(b):
+        x = b[i]; i += 1
+        res |= (x & 0x7F) << shift
+        if not x & 0x80:
+            return res, i
+        shift += 7
+        if shift > 63:
+            return None, i
+    return None, i
+
+
+def _pb_collect_strings(buf, depth, acc):
+    """Walk protobuf wire-format, collecting length-delimited fields that decode
+    as printable UTF-8 (recursing into nested messages)."""
+    if depth > 6:
+        return
+    i = 0
+    n = len(buf)
+    while i < n:
+        key, i = _varint(buf, i)
+        if key is None:
+            break
+        wt = key & 7
+        if wt == 0:
+            _, i = _varint(buf, i)
+        elif wt == 2:
+            ln, i = _varint(buf, i)
+            if ln is None or ln < 0 or i + ln > n:
+                break
+            seg = buf[i:i + ln]; i += ln
+            try:
+                s = seg.decode("utf-8")
+                # Accept only as a leaf string if EVERY char is printable or
+                # ordinary whitespace. Nested protobuf messages decode with
+                # control/tag bytes (e.g. \x0b, \x12) and are rejected here —
+                # we still recurse into them below to reach their leaf strings.
+                if s and all(c.isprintable() or c in "\t\n\r" for c in s):
+                    acc.append(s)
+            except Exception:
+                pass
+            if len(seg) >= 2:
+                _pb_collect_strings(seg, depth + 1, acc)
+        elif wt == 5:
+            i += 4
+        elif wt == 1:
+            i += 8
+        else:
+            break
+
+
+def _extract_text(blob, sender_name):
+    """Pick the message text out of a QQ NT protobuf body (best-effort)."""
+    if not isinstance(blob, (bytes, bytearray)):
+        return None
+    acc = []
+    _pb_collect_strings(bytes(blob), 0, acc)
+    cands = [
+        s for s in acc
+        if s and not s.startswith("u_") and s != sender_name and not s.isdigit()
+        and any(ord(c) > 0x2E for c in s)
+    ]
+    return max(cands, key=len) if cands else None
+
+
+def parse_qq_messages(plain_path, limit=50000):
+    """Read c2c_msg_table + group_msg_table → readable messages."""
+    import sqlite3
+    con = sqlite3.connect(plain_path)
+    con.text_factory = bytes
+    cur = con.cursor()
+
+    def _S(v):
+        return v.decode("utf-8", "replace") if isinstance(v, (bytes, bytearray)) else v
+
+    messages = []
+    for table, kind in (("c2c_msg_table", "c2c"), ("group_msg_table", "group")):
+        try:
+            cur.execute(f"PRAGMA table_info('{table}')")
+        except sqlite3.Error:
+            continue
+        have = {(r[1].decode() if isinstance(r[1], bytes) else r[1]) for r in cur.fetchall()}
+        cols = [c for c in _MSG_COLS if c in have]
+        if "40800" not in cols or "40050" not in cols:
+            continue
+        sel = ", ".join(f"`{c}`" for c in cols)
+        try:
+            cur.execute(f"SELECT {sel} FROM `{table}` ORDER BY `40050` DESC")
+        except sqlite3.Error:
+            continue
+        idx = {c: i for i, c in enumerate(cols)}
+
+        def g(row, c):
+            return row[idx[c]] if c in idx else None
+
+        for row in cur.fetchall():
+            if len(messages) >= limit:
+                break
+            t = g(row, "40050")
+            name = _S(g(row, "40093")) or _S(g(row, "40090"))
+            text = _extract_text(g(row, "40800"), name)
+            peer = g(row, "40033")
+            msgid = g(row, "40003") or g(row, "40050")
+            messages.append({
+                "kind": kind,                       # c2c | group
+                "peer": peer,                       # group code / c2c peer uin
+                "peerUid": _S(g(row, "40020")),
+                "senderUin": g(row, "40030"),
+                "senderName": name,
+                "type": g(row, "40040"),
+                "createTime": t,                    # seconds
+                "text": text,
+                "originalId": f"qq-pc:{kind}:{peer}:{msgid}",
+            })
+    con.close()
+    return messages
+
+
 @register("qq_nt.find_account")
 def m_find_account(params, _progress, _chunk):
     return {"accounts": find_accounts()}
@@ -170,18 +302,7 @@ def m_decrypt(params, progress, _chunk):
         db_path:    optional — defaults to the auto-discovered nt_msg.db.
         staging_dir:optional — where to write the plaintext db.
     """
-    pp = params.get("passphrase")
-    key_str = params.get("key")
-    if isinstance(pp, str) and pp:
-        passphrase = pp.encode("utf-8")
-    elif isinstance(key_str, str) and key_str:
-        # Auto: even-length all-hex → decode hex; else treat the string as the
-        # ASCII passphrase (qq-win-db-key's output is an ASCII passphrase).
-        is_hex = len(key_str) % 2 == 0 and all(c in "0123456789abcdefABCDEF" for c in key_str)
-        passphrase = bytes.fromhex(key_str) if is_hex else key_str.encode("utf-8")
-    else:
-        raise IpcError("KEY_REQUIRED",
-                       "QQ NT key not provided — extract it with qq-win-db-key and pass params.passphrase (or params.key)")
+    passphrase = _resolve_passphrase(params)
 
     db_path = params.get("db_path")
     if not db_path:
@@ -217,6 +338,68 @@ def m_decrypt(params, progress, _chunk):
         tables.append({"name": name, "rows": cnt})
     con.close()
     return {"dbPath": db_path, "plain": out, "hmacVariant": variant, "tables": tables}
+
+
+def _resolve_passphrase(params):
+    """Resolve the QQ NT key from params.passphrase (ASCII) or params.key
+    (even-length hex → from_hex, otherwise ASCII). Returns bytes or raises."""
+    pp = params.get("passphrase")
+    key_str = params.get("key")
+    if isinstance(pp, str) and pp:
+        return pp.encode("utf-8")
+    if isinstance(key_str, str) and key_str:
+        is_hex = len(key_str) % 2 == 0 and all(c in "0123456789abcdefABCDEF" for c in key_str)
+        return bytes.fromhex(key_str) if is_hex else key_str.encode("utf-8")
+    raise IpcError("KEY_REQUIRED",
+                   "QQ NT key not provided — extract it with qq-win-db-key and pass params.passphrase (or params.key)")
+
+
+@register("qq_nt.collect")
+def m_collect(params, progress, _chunk):
+    """Decrypt nt_msg.db + parse c2c/group messages into readable records.
+
+    Params: passphrase | key (see _resolve_passphrase), db_path?, limit?
+    Returns: { account, messageCount, c2c, group, messages: [...] }
+    """
+    import tempfile
+    passphrase = _resolve_passphrase(params)
+    limit = int(params.get("limit") or 200000)
+    db_path = params.get("db_path")
+    account = None
+    if not db_path:
+        accts = find_accounts()
+        if not accts:
+            raise IpcError("APP_NOT_INSTALLED", "no QQ NT nt_msg.db found")
+        db_path = accts[0]["msgDb"]
+        account = accts[0]["uin"]
+    try:
+        progress(phase="decrypt", db="nt_msg.db")
+    except Exception:
+        pass
+    with open(db_path, "rb") as f:
+        raw = f.read()
+    plaintext, variant = decrypt_nt_msg(raw, passphrase)
+    staging = params.get("staging_dir") or tempfile.mkdtemp(prefix="qqnt_")
+    Path(staging).mkdir(parents=True, exist_ok=True)
+    out = os.path.join(staging, "nt_msg.plain.db")
+    with open(out, "wb") as f:
+        f.write(plaintext)
+    try:
+        messages = parse_qq_messages(out, limit=limit)
+    finally:
+        try:
+            os.remove(out)
+        except OSError:
+            pass
+    c2c = sum(1 for m in messages if m["kind"] == "c2c")
+    return {
+        "account": account,
+        "hmacVariant": variant,
+        "messageCount": len(messages),
+        "c2c": c2c,
+        "group": len(messages) - c2c,
+        "messages": messages,
+    }
 
 
 if __name__ == "__main__":

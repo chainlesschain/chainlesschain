@@ -129,3 +129,45 @@ def test_registered():
     from forensics_bridge.dispatcher import METHODS
     assert "qq_nt.decrypt" in METHODS
     assert "qq_nt.find_account" in METHODS
+
+
+def _pb_str_field(field_num, text):
+    # protobuf wire-type 2 (length-delimited) string field
+    key = (field_num << 3) | 2
+    body = text.encode("utf-8")
+    return bytes([key, len(body)]) + body
+
+
+def test_extract_text_from_protobuf_body():
+    # nested message containing the message text + a uid + the sender name
+    inner = _pb_str_field(1, "u_abcDEF123") + _pb_str_field(2, "保持高贵的沉默。")
+    blob = _pb_str_field(3, "疯子") + bytes([(5 << 3) | 2, len(inner)]) + inner
+    text = qq._extract_text(blob, "疯子")
+    assert text == "保持高贵的沉默。"          # longest non-uid, non-name string
+    assert qq._extract_text(b"", "x") is None
+    assert qq._extract_text(None, "x") is None
+
+
+def test_parse_qq_messages_reads_both_tables(tmp_path):
+    import sqlite3
+    p = tmp_path / "nt.plain.db"
+    con = sqlite3.connect(str(p)); cur = con.cursor()
+    for table in ("c2c_msg_table", "group_msg_table"):
+        cur.execute(
+            f"CREATE TABLE `{table}` (`40050` INTEGER, `40030` INTEGER, `40033` INTEGER, "
+            f"`40020` TEXT, `40093` TEXT, `40090` TEXT, `40040` INTEGER, `40800` BLOB, `40003` INTEGER)"
+        )
+    body = _pb_str_field(1, "u_peer") + _pb_str_field(2, "今天天气不错")
+    cur.execute("INSERT INTO group_msg_table VALUES (1700000100, 38181604, 88966001, 'u_peer', '疯子', '', 0, ?, 7)", (body,))
+    cur.execute("INSERT INTO c2c_msg_table VALUES (1700000000, 111, 222, 'u_x', '张三', '', 0, ?, 3)",
+                (_pb_str_field(2, "在吗"),))
+    con.commit(); con.close()
+    msgs = qq.parse_qq_messages(str(p))
+    assert len(msgs) == 2
+    g = next(m for m in msgs if m["kind"] == "group")
+    assert g["text"] == "今天天气不错"
+    assert g["senderName"] == "疯子"
+    assert g["peer"] == 88966001
+    assert g["originalId"] == "qq-pc:group:88966001:7"
+    c = next(m for m in msgs if m["kind"] == "c2c")
+    assert c["text"] == "在吗"

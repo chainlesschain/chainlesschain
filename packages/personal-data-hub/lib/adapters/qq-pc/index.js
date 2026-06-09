@@ -37,6 +37,9 @@ class QQPcAdapter {
   constructor(opts = {}) {
     this._dbPath = opts.dbPath || null;
     this._key = opts.key || null;
+    // QQ NT passphrase (16-char ASCII from qq-win-db-key). When present, sync
+    // routes through the Python sidecar (decrypt + protobuf parse).
+    this._passphrase = opts.passphrase || null;
 
     this.name = NAME;
     this.version = VERSION;
@@ -58,6 +61,10 @@ class QQPcAdapter {
     this._deps = {
       fs,
       dbDriverFactory: opts.dbDriverFactory || null,
+      // DI seam: tests inject a fake QQ sidecar collector; default lazy-loads
+      // the forensics-bridge invoker.
+      qqCollector: opts.qqCollector || null,
+      discoveryDeps: opts.discoveryDeps || undefined,
     };
   }
 
@@ -134,10 +141,18 @@ class QQPcAdapter {
   }
 
   async *sync(opts = {}) {
+    // Sidecar path: with a QQ NT passphrase (from qq-win-db-key), decrypt +
+    // parse the encrypted nt_msg.db in Python and yield readable messages.
+    const passphrase = opts.passphrase || this._passphrase || null;
+    if (passphrase || opts.mode === "sidecar") {
+      yield* this._syncViaSidecar(opts, passphrase);
+      return;
+    }
+
     const dbPath =
       opts.dbPath || opts.inputPath || this._dbPath || this._resolveDiscoveredDbPath();
     if (!dbPath) {
-      throw new Error("qq-pc.sync: 未找到本机 QQ NT 库且未提供 opts.dbPath / opts.inputPath");
+      throw new Error("qq-pc.sync: 未找到本机 QQ NT 库且未提供 opts.dbPath / opts.inputPath（或提供 opts.passphrase 走 sidecar 解密）");
     }
     if (!this._deps.fs.existsSync(dbPath)) return;
 
@@ -173,6 +188,59 @@ class QQPcAdapter {
         originalId: stableOriginalId(idPart),
         capturedAt,
         payload: { kind: KIND_MESSAGE, ...m },
+      };
+      emitted += 1;
+    }
+  }
+
+  // Sidecar path: forensics-bridge qq_nt.collect decrypts nt_msg.db (with the
+  // qq-win-db-key passphrase) + parses c2c/group protobuf bodies → readable
+  // messages, which we map into the same payload normalizeMessage consumes.
+  async *_syncViaSidecar(opts = {}, passphrase) {
+    let collect = this._deps.qqCollector;
+    if (!collect) {
+      // eslint-disable-next-line global-require
+      collect = require("./qqnt-sidecar").collectQqNt;
+    }
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : undefined;
+    const result = await collect({
+      passphrase,
+      key: opts.key || this._key || undefined,
+      dbPath: opts.dbPath || this._dbPath || this._resolveDiscoveredDbPath() || undefined,
+      limit,
+      pythonExe: opts.pythonExe,
+      bridgeDir: opts.bridgeDir,
+      timeoutMs: opts.timeoutMs,
+      onProgress:
+        typeof opts.onProgress === "function"
+          ? (m) => { try { opts.onProgress({ phase: "qq-nt", adapter: NAME, ...m }); } catch (_e) { /* best-effort */ } }
+          : undefined,
+      _supervisorFactory: opts._supervisorFactory,
+    });
+    const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
+    const fallbackCapturedAt = Date.now();
+    let emitted = 0;
+    for (const m of messages) {
+      if (!m || typeof m !== "object") continue;
+      const isGroup = m.kind === "group";
+      const createdTimeMs =
+        typeof m.createTime === "number" && m.createTime > 0 ? m.createTime * 1000 : null;
+      const payload = {
+        kind: KIND_MESSAGE,
+        text: typeof m.text === "string" ? m.text : "",
+        peerUin: m.peer != null ? String(m.peer) : null,
+        senderUin: m.senderUin != null ? String(m.senderUin) : null,
+        senderName: m.senderName || null,
+        isGroup,
+        type: typeof m.type === "number" ? m.type : null,
+        createdTimeMs,
+      };
+      yield {
+        adapter: NAME,
+        kind: KIND_MESSAGE,
+        originalId: m.originalId || stableOriginalId(`${m.peer}-${createdTimeMs}-${emitted}`),
+        capturedAt: createdTimeMs || fallbackCapturedAt,
+        payload,
       };
       emitted += 1;
     }
@@ -216,6 +284,7 @@ class QQPcAdapter {
           source: "pc-nt",
           peerUin: p.peerUin || null,
           senderUin: p.senderUin || null,
+          ...(p.senderName ? { senderName: p.senderName } : {}),
           isGroup: !!p.isGroup,
           qqMsgType: typeof p.type === "number" ? p.type : null,
           // Full raw row preserved — protobuf bodies + unknown columns — so a
