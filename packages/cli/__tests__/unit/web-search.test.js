@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
 import http from "http";
 import { EventEmitter } from "events";
 import {
@@ -110,7 +118,9 @@ describe("web-search — resolveApiKey()", () => {
   });
 
   it("prefers options.apiKey, then config, then env", () => {
-    expect(resolveApiKey("tavily", { apiKey: "opt" }, { tavilyApiKey: "cfg" })).toBe("opt");
+    expect(
+      resolveApiKey("tavily", { apiKey: "opt" }, { tavilyApiKey: "cfg" }),
+    ).toBe("opt");
     expect(resolveApiKey("tavily", {}, { tavilyApiKey: "cfg" })).toBe("cfg");
     process.env.TAVILY_API_KEY = "env";
     expect(resolveApiKey("tavily", {}, {})).toBe("env");
@@ -138,14 +148,24 @@ describe("web-search — resolveProvider()", () => {
   });
 
   it("auto-selects the first keyed provider with a key (tavily > brave > bocha)", () => {
-    expect(resolveProvider({ provider: "auto" }, { braveApiKey: "x" })).toBe("brave");
+    expect(resolveProvider({ provider: "auto" }, { braveApiKey: "x" })).toBe(
+      "brave",
+    );
     expect(
-      resolveProvider({ provider: "auto" }, { tavilyApiKey: "t", braveApiKey: "b" }),
+      resolveProvider(
+        { provider: "auto" },
+        { tavilyApiKey: "t", braveApiKey: "b" },
+      ),
     ).toBe("tavily");
   });
 
   it("falls back to keyless duckduckgo when no key is configured", () => {
-    for (const k of ["TAVILY_API_KEY", "BRAVE_API_KEY", "BRAVE_SEARCH_API_KEY", "BOCHA_API_KEY"]) {
+    for (const k of [
+      "TAVILY_API_KEY",
+      "BRAVE_API_KEY",
+      "BRAVE_SEARCH_API_KEY",
+      "BOCHA_API_KEY",
+    ]) {
       delete process.env[k];
     }
     expect(resolveProvider({}, {})).toBe("duckduckgo");
