@@ -65,6 +65,7 @@ import {
   executeTool as coreExecuteTool,
   agentLoop as coreAgentLoop,
   formatToolArgs,
+  killAllBackgroundShellTasks,
 } from "../runtime/agent-core.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
@@ -2003,6 +2004,14 @@ export async function startAgentRepl(options = {}) {
       } catch (_e) {
         // Non-critical
       }
+    }
+
+    // Kill any background run_shell tasks so a backgrounded command (e.g. a
+    // dev server) doesn't outlive the REPL session.
+    try {
+      killAllBackgroundShellTasks();
+    } catch (_e) {
+      // Non-critical
     }
 
     // Shutdown runtime

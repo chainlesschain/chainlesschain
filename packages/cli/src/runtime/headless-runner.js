@@ -25,6 +25,7 @@ import {
   buildSystemPrompt,
   agentLoop as coreAgentLoop,
   formatToolArgs,
+  killAllBackgroundShellTasks,
 } from "./agent-core.js";
 import {
   resolveAgentMcp,
@@ -703,6 +704,13 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       } catch {
         // ignore — disconnect is best-effort
       }
+    }
+    // Kill any background run_shell tasks this run spawned so a backgrounded
+    // command (e.g. a dev server) doesn't outlive the headless invocation.
+    try {
+      killAllBackgroundShellTasks();
+    } catch {
+      // best-effort — never mask the run's own outcome
     }
   }
 

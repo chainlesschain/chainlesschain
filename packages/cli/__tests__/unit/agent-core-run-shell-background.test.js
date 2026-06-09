@@ -183,3 +183,39 @@ describe("agent-core run_shell configurable foreground timeout", () => {
     expect(res.stdout).toContain("fast");
   });
 });
+
+// killAllBackgroundShellTasks is the disposer the REPL exit (rl.on('close'))
+// and headless completion (runAgentHeadless finally) call so a backgrounded
+// dev server can't outlive the agent. This is its contract.
+describe("agent-core killAllBackgroundShellTasks (REPL/headless teardown seam)", () => {
+  afterEach(() => {
+    killAllBackgroundShellTasks();
+  });
+
+  it("signals every running task and returns the count killed", async () => {
+    const ids = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await executeTool(
+        "run_shell",
+        {
+          command: `${NODE} -e "setTimeout(()=>{},10000)"`,
+          run_in_background: true,
+        },
+        {},
+      );
+      ids.push(r.task_id);
+    }
+    const killed = killAllBackgroundShellTasks();
+    expect(killed).toBeGreaterThanOrEqual(3);
+    // Each task eventually leaves the running state.
+    for (const id of ids) {
+      const done = await pollUntilDone(id);
+      expect(done.running).toBe(false);
+    }
+  });
+
+  it("is a no-op (returns 0) when nothing is running", async () => {
+    killAllBackgroundShellTasks(); // drain any leftovers
+    expect(killAllBackgroundShellTasks()).toBe(0);
+  });
+});
