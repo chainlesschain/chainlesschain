@@ -19,8 +19,11 @@ const DEFAULT_MAX_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RESULTS = 8;
 
-const KEYED_PROVIDERS = ["tavily", "brave", "bocha"];
+const KEYED_PROVIDERS = ["tavily", "brave", "bocha", "qianfan"];
 const KEYLESS_PROVIDERS = ["duckduckgo", "searxng", "baidu"];
+
+// Baidu Qianfan (千帆) AI Search — retrieval endpoint, overridable via config.
+const DEFAULT_QIANFAN_URL = "https://qianfan.baidubce.com/v2/ai_search";
 export const SUPPORTED_PROVIDERS = [...KEYED_PROVIDERS, ...KEYLESS_PROVIDERS];
 
 // A realistic desktop-Chrome UA — Baidu (and some others) serve a stripped /
@@ -49,6 +52,14 @@ export function resolveApiKey(provider, options = {}, config = {}) {
     case "bocha":
       return (
         options.apiKey || config.bochaApiKey || config.apiKey || env.BOCHA_API_KEY || ""
+      );
+    case "qianfan":
+      return (
+        options.apiKey ||
+        config.qianfanApiKey ||
+        config.apiKey ||
+        env.QIANFAN_API_KEY ||
+        ""
       );
     default:
       return "";
@@ -277,6 +288,51 @@ async function _searchDuckDuckGo(query, { maxResults, timeout, maxBytes }) {
   return { results, answer: "" };
 }
 
+async function _searchQianfan(
+  query,
+  { apiKey, endpoint, maxResults, timeout, maxBytes },
+) {
+  if (!apiKey) return { error: "qianfan: missing API key" };
+  const res = await _request(endpoint || DEFAULT_QIANFAN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: query }],
+      search_source: "baidu_search_v2",
+      resource_type_filter: [{ type: "web", top_k: maxResults }],
+    }),
+    timeout,
+    maxBytes,
+  });
+  if (res.statusCode >= 400) {
+    return {
+      error: `qianfan HTTP ${res.statusCode}: ${res.body.slice(0, 200)}`,
+    };
+  }
+  let json;
+  try {
+    json = JSON.parse(res.body);
+  } catch {
+    return { error: "qianfan: invalid JSON response" };
+  }
+  // AI Search retrieval returns `references`; the chat form may also carry an
+  // answer. Tolerate either shape.
+  const refs = json.references || json.data?.references || [];
+  const results = refs.slice(0, maxResults).map((r) => ({
+    title: _clean(r.title || r.web_anchor || ""),
+    url: r.url || "",
+    snippet: _clean(r.content || r.web_anchor || ""),
+  }));
+  const answer =
+    json.answer ||
+    json.choices?.[0]?.message?.content ||
+    "";
+  return { results, answer: typeof answer === "string" ? answer : "" };
+}
+
 async function _searchBaidu(query, { maxResults, timeout, maxBytes }) {
   const url = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}&rn=${Math.max(maxResults, 10)}`;
   const res = await _request(url, {
@@ -390,6 +446,12 @@ export async function webSearch(query, options = {}) {
         break;
       case "bocha":
         out = await _searchBocha(q, common);
+        break;
+      case "qianfan":
+        out = await _searchQianfan(q, {
+          ...common,
+          endpoint: options.qianfanUrl || config.qianfanUrl,
+        });
         break;
       case "searxng":
         out = await _searchSearxng(q, {

@@ -345,21 +345,38 @@ agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文
 // .chainlesschain/config.json
 {
   "webSearch": {
-    "provider": "auto",   // auto | tavily | brave | bocha | duckduckgo | searxng | baidu
-    "apiKey": "",         // 通用 key;也可用 tavilyApiKey / braveApiKey / bochaApiKey 分别指定
+    "provider": "auto",   // auto | tavily | brave | bocha | qianfan | duckduckgo | searxng | baidu
+    "apiKey": "",         // 通用 key;也可用 tavilyApiKey/braveApiKey/bochaApiKey/qianfanApiKey 分别指定
     "maxResults": 8,
-    "instanceUrl": ""     // 仅 searxng:自建实例地址(需开 json 输出格式)
+    "instanceUrl": "",    // 仅 searxng:自建实例地址(需开 json 输出格式)
+    "qianfanApiKey": "",  // 百度千帆 AI 搜索 Bearer token(见下)
+    "qianfanUrl": ""      // 可选:覆盖千帆 AI 搜索 endpoint,默认 https://qianfan.baidubce.com/v2/ai_search
   }
 }
 ```
 
-- **`provider: auto`(默认)**:按 `tavily > brave > bocha` 顺序选用**已配置 key** 的那个;
+- **`provider: auto`(默认)**:按 `tavily > brave > bocha > qianfan` 顺序选用**已配置 key** 的那个;
   都没 key 时退回**免 key** 的 DuckDuckGo(HTML 端点解析,质量/稳定性较弱)。
 - **API key 来源**(优先级 options > config > env):`TAVILY_API_KEY` / `BRAVE_API_KEY`
-  (兼容 `BRAVE_SEARCH_API_KEY`)/ `BOCHA_API_KEY`。Bocha(博查)为国内可达的 AI 搜索源。
+  (兼容 `BRAVE_SEARCH_API_KEY`)/ `BOCHA_API_KEY` / `QIANFAN_API_KEY`。Bocha(博查)为国内可达的 AI 搜索源。
 - **`baidu`(免 key,国内可达)**:抓 `www.baidu.com/s` HTML(浏览器 UA)。适合国内
   低频检索(DuckDuckGo 国内常被墙);但 Baidu 反爬激进,频繁请求会 302 跳验证码,此时
   返回明确的 `rate-limited / captcha` 错误而非静默失败。高频/稳定需求建议用 keyed 源。
+- **`qianfan`(百度千帆 AI 搜索,keyed,国内可达稳定)**:Baidu 官方检索增强 API,
+  比免 key 抓 HTML 稳定可靠(无验证码),适合 agent 高频检索。**配置**:把 Bearer token
+  填进 `webSearch.qianfanApiKey`(或环境变量 `QIANFAN_API_KEY`);需要换 endpoint 时填
+  `webSearch.qianfanUrl`。
+  - 取 token:[百度智能云千帆控制台](https://console.bce.baidu.com/qianfan/) → 开通「AI 搜索」→
+    创建 API Key / Bearer token(形如 `bce-v3/ALTAK-.../...`)。
+  - 请求体固定为 `{messages:[{role:"user",content:query}], search_source:"baidu_search_v2",
+    resource_type_filter:[{type:"web",top_k:maxResults}]}`,解析返回的 `references[]`
+    成 `{title,url,snippet}`(并捕获可能的 `answer`)。
+  - 用法:`webSearch(q,{provider:"qianfan"})` 或 config `"provider":"qianfan"`。
+    > ⚠️ RUNTIME-UNVERIFIED:仓库无千帆 key,适配器按官方文档 schema 实现,已单测解析逻辑;
+    > 真实 wire 形状需用真 key 跑下方 live 测试确认(`references` 字段名若有出入按响应调整)。
+- **keyed 后端 live 测试**:`__tests__/integration/web-search-live.test.js` 对 tavily/brave/
+  bocha/qianfan 各跑一条**真实查询**——**仅当对应 env key 存在时执行,否则自动 skip**(不失败)。
+  例:`BOCHA_API_KEY=sk-xxx npx vitest run __tests__/integration/web-search-live.test.js`。
 - 单次调用可用工具入参 `provider` 覆盖配置后端;`web_search` 属 `readonly`,plan-mode 允许,
   权限规则伞名 `WebSearch`(见上「Permissions」表)。
 - 已注册的 `brave-search` MCP(`cc mcp`)是另一条搜索路径,但需逐用户安装+配 key;

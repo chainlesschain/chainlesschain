@@ -59,6 +59,13 @@ const BOCHA_BODY = JSON.stringify({
     },
   },
 });
+const QIANFAN_BODY = JSON.stringify({
+  request_id: "r1",
+  references: [
+    { id: 1, title: "千帆 Q1", url: "https://q.com/1", content: "qianfan 摘要一", web_anchor: "Q1" },
+    { id: 2, title: "千帆 Q2", url: "https://q.com/2", web_anchor: "qianfan 锚二" },
+  ],
+});
 const DDG_BODY = `
   <div class="result">
     <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fpage&rut=x">Example <b>Title</b></a>
@@ -85,6 +92,8 @@ function defaultResponder({ hostname }) {
       return { statusCode: 200, body: BRAVE_BODY };
     case "api.bochaai.com":
       return { statusCode: 200, body: BOCHA_BODY };
+    case "qianfan.baidubce.com":
+      return { statusCode: 200, body: QIANFAN_BODY };
     case "html.duckduckgo.com":
       return { statusCode: 200, body: DDG_BODY };
     case "www.baidu.com":
@@ -203,6 +212,25 @@ describe("web-search — webSearch() provider parsing", () => {
     expect(r.results[0].url).toBe("https://example.com/page");
     expect(r.results[0].title).toBe("Example Title");
     expect(r.results[0].snippet).toBe("A snippet text");
+  });
+
+  it("parses Qianfan AI Search references", async () => {
+    const r = await webSearch("hi", { provider: "qianfan", apiKey: "k" });
+    expect(r.provider).toBe("qianfan");
+    expect(r.count).toBe(2);
+    expect(r.results[0]).toEqual({
+      title: "千帆 Q1",
+      url: "https://q.com/1",
+      snippet: "qianfan 摘要一",
+    });
+    // 2nd ref has no content → falls back to web_anchor for the snippet
+    expect(r.results[1].snippet).toBe("qianfan 锚二");
+  });
+
+  it("errors when qianfan has no key", async () => {
+    const r = await webSearch("hi", { provider: "qianfan" });
+    expect(r.error).toMatch(/missing API key/);
+    expect(r.provider).toBe("qianfan");
   });
 
   it("parses Baidu HTML (title/url/snippet) keyless", async () => {
