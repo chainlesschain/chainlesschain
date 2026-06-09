@@ -28,6 +28,34 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// `cc pack` always resolves the web-panel dist from the REAL packages/cli
+// (precheck derives cliRoot via import.meta.url, ignoring our temp cliRoot), and
+// the packer rejects a dist with < 2 files. Only the placeholder index.html is
+// committed; the built assets come from `npm run build:web-panel` and are not in
+// git — so on a clean checkout (CI integration shard) this suite cannot pack a
+// real panel. Skip when the panel isn't built; it runs in full wherever it is.
+function countFilesRecursive(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  for (const e of entries) {
+    count += e.isDirectory()
+      ? countFilesRecursive(path.join(dir, e.name))
+      : 1;
+  }
+  return count;
+}
+const REAL_WEB_PANEL_DIST = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/assets/web-panel",
+);
+const WEB_PANEL_BUILT = countFilesRecursive(REAL_WEB_PANEL_DIST) >= 2;
 
 // pkg-runner is swapped before the orchestrator imports it.
 vi.mock("../../src/lib/packer/pkg-runner.js", () => ({
@@ -52,7 +80,7 @@ vi.mock("../../src/lib/packer/pkg-runner.js", () => ({
 import { runPack } from "../../src/lib/packer/index.js";
 import { PackError, EXIT } from "../../src/lib/packer/errors.js";
 
-describe("cc pack — full pipeline integration", () => {
+describe.skipIf(!WEB_PANEL_BUILT)("cc pack — full pipeline integration", () => {
   let projectRoot;
   let cliRoot;
   let outputDir;
