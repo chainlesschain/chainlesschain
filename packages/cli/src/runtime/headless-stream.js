@@ -21,7 +21,7 @@ import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { expandFileRefs } from "./file-ref-expander.js";
 import {
-  loadMcpConfig,
+  resolveAgentMcp,
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
@@ -249,14 +249,26 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
-  // --mcp-config: connect ad-hoc MCP servers for the whole stream session and
-  // expose their tools to the LLM (Claude-Code parity). Best-effort connect; a
-  // missing/empty config fails the session up front.
+  // Combine the ad-hoc --mcp-config file with the registered (cc mcp add)
+  // auto-connect servers into one client for the whole stream session, exposing
+  // every tool to the LLM. A bad --mcp-config file fails up front; registered
+  // connects are best-effort. --no-mcp disables the registered set.
   let mcp = null;
-  if (options.mcpConfig) {
-    const doLoadMcp = deps.loadMcpConfig || loadMcpConfig;
+  {
+    const doResolve = deps.resolveAgentMcp || resolveAgentMcp;
     try {
-      mcp = await doLoadMcp(options.mcpConfig, { writeErr });
+      mcp = await doResolve(
+        {
+          mcpConfigPath: options.mcpConfig || null,
+          db: db?.getDatabase?.() || null,
+          includeRegistered: options.useRegisteredMcp !== false,
+        },
+        {
+          writeErr,
+          loadMcpConfig: deps.loadMcpConfig,
+          loadRegisteredMcp: deps.loadRegisteredMcp,
+        },
+      );
     } catch (err) {
       emit({
         type: "result",

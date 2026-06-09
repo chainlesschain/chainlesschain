@@ -514,3 +514,140 @@ describe("runAgentHeadless — --permission-prompt-tool wiring", () => {
     expect(err.join("")).toMatch(/not found among loaded MCP tools/);
   });
 });
+
+// ── Registered MCP servers (cc mcp add) → agent loop ────────────────────────
+
+import {
+  loadRegisteredMcp,
+  resolveAgentMcp,
+} from "../../src/runtime/mcp-config.js";
+
+// A fake MCP client that tracks connected servers (so skip-existing works) and
+// returns one tool per server.
+function regClient() {
+  const servers = new Map();
+  return {
+    servers,
+    async connect(name, cfg) {
+      servers.set(name, cfg);
+      return { tools: [{ name: "t", description: `tool on ${name}` }] };
+    },
+    async callTool() {
+      return {};
+    },
+    async disconnectAll() {},
+  };
+}
+
+describe("loadRegisteredMcp", () => {
+  it("returns null without a db", async () => {
+    expect(await loadRegisteredMcp(null)).toBeNull();
+  });
+
+  it("connects auto-connect servers and builds the channels", async () => {
+    const client = regClient();
+    const res = await loadRegisteredMcp(
+      {},
+      {
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: () => [
+            { name: "weather", command: "x", args: [], env: {} },
+          ],
+          list: () => [],
+        }),
+      },
+    );
+    expect(res.connected).toEqual([{ server: "weather", tools: 1 }]);
+    expect(res.externalToolExecutors["mcp__weather__t"]).toMatchObject({
+      kind: "mcp",
+      serverName: "weather",
+    });
+  });
+
+  it("uses list() (all servers) when all:true", async () => {
+    let used = null;
+    await loadRegisteredMcp(
+      {},
+      {
+        all: true,
+        createClient: () => regClient(),
+        makeServerConfig: () => ({
+          list: () => {
+            used = "list";
+            return [];
+          },
+          getAutoConnect: () => {
+            used = "auto";
+            return [];
+          },
+        }),
+      },
+    );
+    expect(used).toBe("list");
+  });
+
+  it("returns null when no servers are registered", async () => {
+    const res = await loadRegisteredMcp(
+      {},
+      { makeServerConfig: () => ({ getAutoConnect: () => [] }) },
+    );
+    expect(res).toBeNull();
+  });
+});
+
+describe("resolveAgentMcp", () => {
+  const fileDeps = (servers) => ({
+    readFile: () => JSON.stringify({ mcpServers: servers }),
+  });
+
+  it("merges --mcp-config + registered into ONE client", async () => {
+    const client = regClient();
+    const res = await resolveAgentMcp(
+      { mcpConfigPath: "x.json", db: {}, includeRegistered: true },
+      {
+        ...fileDeps({ adhoc: { command: "c" } }),
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: () => [{ name: "reg", command: "r", args: [], env: {} }],
+        }),
+      },
+    );
+    expect(res.mcpClient).toBe(client);
+    expect(res.connected.map((c) => c.server).sort()).toEqual(["adhoc", "reg"]);
+    expect(res.extraToolDefinitions).toHaveLength(2);
+  });
+
+  it("ad-hoc name wins over a registered clash (skip-existing)", async () => {
+    const client = regClient();
+    const res = await resolveAgentMcp(
+      { mcpConfigPath: "x.json", db: {} },
+      {
+        ...fileDeps({ dup: { command: "adhoc" } }),
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: () => [{ name: "dup", command: "reg", args: [], env: {} }],
+        }),
+      },
+    );
+    expect(res.connected).toEqual([{ server: "dup", tools: 1 }]); // connected once
+    expect(client.servers.get("dup").command).toBe("adhoc");
+  });
+
+  it("includeRegistered:false skips the registry (file only)", async () => {
+    const res = await resolveAgentMcp(
+      { db: {}, includeRegistered: false },
+      { makeServerConfig: () => ({ getAutoConnect: () => [{ name: "reg", command: "r" }] }) },
+    );
+    expect(res).toBeNull();
+  });
+
+  it("still fail-fasts on a bad --mcp-config file", async () => {
+    await expect(
+      resolveAgentMcp(
+        { mcpConfigPath: "x.json", db: {} },
+        { readFile: () => "{bad" },
+      ),
+    ).rejects.toThrow(/cannot read\/parse/);
+  });
+});

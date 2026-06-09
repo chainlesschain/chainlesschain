@@ -27,7 +27,7 @@ import {
   formatToolArgs,
 } from "./agent-core.js";
 import {
-  loadMcpConfig,
+  resolveAgentMcp,
   resolvePermissionPromptTool,
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
@@ -397,12 +397,27 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // tools to the LLM (Claude-Code parity). Connection is best-effort — a server
   // that fails to connect is logged to stderr and contributes no tools; a
   // missing/empty config file fails fast (the user explicitly asked for MCP).
+  // Combine the ad-hoc --mcp-config file with the servers registered via
+  // `cc mcp add` (their --auto-connect ones) into ONE client, exposing every
+  // tool to the LLM. A bad --mcp-config file fails fast; registered connects
+  // are best-effort. --no-mcp disables the registered set (ad-hoc still loads).
   let mcp = null;
-  if (options.mcpConfig) {
-    const doLoadMcp = deps.loadMcpConfig || loadMcpConfig;
+  {
+    const doResolve = deps.resolveAgentMcp || resolveAgentMcp;
     try {
-      mcp = await doLoadMcp(options.mcpConfig, { writeErr });
-      if (isText) {
+      mcp = await doResolve(
+        {
+          mcpConfigPath: options.mcpConfig || null,
+          db: db?.getDatabase?.() || null,
+          includeRegistered: options.useRegisteredMcp !== false,
+        },
+        {
+          writeErr,
+          loadMcpConfig: deps.loadMcpConfig,
+          loadRegisteredMcp: deps.loadRegisteredMcp,
+        },
+      );
+      if (mcp && isText) {
         for (const c of mcp.connected) {
           writeErr(`  mcp: ${c.server} (${c.tools} tools)\n`);
         }

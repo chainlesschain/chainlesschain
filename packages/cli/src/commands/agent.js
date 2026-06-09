@@ -167,6 +167,10 @@ export function registerAgentCommand(program) {
       "Load ad-hoc MCP servers from a JSON file for this run (headless); their tools become callable (mcp__<server>__<tool>)",
     )
     .option(
+      "--no-mcp",
+      "Don't auto-connect MCP servers registered with `cc mcp add --auto-connect` (--mcp-config still loads)",
+    )
+    .option(
       "--permission-prompt-tool <tool>",
       "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
     )
@@ -288,6 +292,7 @@ export function registerAgentCommand(program) {
             includePartialMessages: options.includePartialMessages === true,
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
+            useRegisteredMcp: options.mcp !== false,
             permissionPromptTool: options.permissionPromptTool || null,
             settingsFile: options.settings || null,
             chatFn: fallbackChatFn,
@@ -385,6 +390,8 @@ export function registerAgentCommand(program) {
             goalAssess: options.goalAssess === true,
             // --mcp-config: connect ad-hoc MCP servers + expose their tools
             mcpConfig: options.mcpConfig || null,
+            // --no-mcp: skip registered (cc mcp add) auto-connect servers
+            useRegisteredMcp: options.mcp !== false,
             // --permission-prompt-tool: defer approvals to an MCP tool
             permissionPromptTool: options.permissionPromptTool || null,
             // --settings: extra .claude/settings.json permission rules

@@ -61,21 +61,36 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
   const createClient = deps.createClient || (() => new MCPClient());
 
-  const mcpClient = createClient();
-  const extraToolDefinitions = [];
-  const externalToolExecutors = {};
-  const externalToolDescriptors = {};
-  const connected = [];
+  // `deps.into` lets a second batch (e.g. registered servers) accumulate into
+  // the SAME client + channel objects as a first batch (e.g. --mcp-config), so
+  // the agent loop sees one mcpClient with every server's tools.
+  const result = deps.into || {
+    mcpClient: createClient(),
+    extraToolDefinitions: [],
+    externalToolExecutors: {},
+    externalToolDescriptors: {},
+    connected: [],
+  };
+  const {
+    mcpClient,
+    extraToolDefinitions,
+    externalToolExecutors,
+    externalToolDescriptors,
+    connected,
+  } = result;
 
   for (const [name, cfg] of Object.entries(servers)) {
-    let result;
+    // Skip a name already connected — an earlier batch (ad-hoc --mcp-config)
+    // wins over a later one (registered) on a clash.
+    if (mcpClient.servers?.has?.(name)) continue;
+    let res;
     try {
-      result = await mcpClient.connect(name, cfg);
+      res = await mcpClient.connect(name, cfg);
     } catch (err) {
       writeErr(`  mcp: failed to connect "${name}": ${err.message}\n`);
       continue;
     }
-    const tools = Array.isArray(result?.tools) ? result.tools : [];
+    const tools = Array.isArray(res?.tools) ? res.tools : [];
     connected.push({ server: name, tools: tools.length });
     for (const t of tools) {
       if (!t || !t.name) continue;
@@ -102,13 +117,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     }
   }
 
-  return {
-    mcpClient,
-    extraToolDefinitions,
-    externalToolExecutors,
-    externalToolDescriptors,
-    connected,
-  };
+  return result;
 }
 
 /**
@@ -136,6 +145,72 @@ export async function loadMcpConfig(filePath, deps = {}) {
     );
   }
   return setupMcpFromConfig(servers, deps);
+}
+
+/**
+ * Connect MCP servers registered with `cc mcp add` (the persistent mcp_servers
+ * table). By default only `--auto-connect` servers are surfaced; pass
+ * `deps.all` for every registered server. Best-effort — returns `deps.into`
+ * (or null) on no db / no servers / any read error, never throws.
+ *
+ * @param {object} rawDb  better-sqlite3 handle (e.g. ctx.db.getDatabase())
+ * @param {object} [deps] { writeErr, all, into, makeServerConfig }
+ */
+export async function loadRegisteredMcp(rawDb, deps = {}) {
+  if (!rawDb) return deps.into || null;
+  let rows;
+  try {
+    let make = deps.makeServerConfig;
+    if (!make) {
+      const { MCPServerConfig } = await import("../harness/mcp-client.js");
+      make = (db) => new MCPServerConfig(db);
+    }
+    const cfg = make(rawDb);
+    rows = deps.all ? cfg.list() : cfg.getAutoConnect();
+  } catch {
+    return deps.into || null; // registry unavailable — non-fatal
+  }
+  const servers = {};
+  for (const r of rows || []) {
+    if (!r || !r.name) continue;
+    servers[r.name] = {
+      command: r.command,
+      args: r.args,
+      env: r.env,
+      url: r.url,
+      transport: r.transport,
+      headers: r.headers,
+    };
+  }
+  if (Object.keys(servers).length === 0) return deps.into || null;
+  return setupMcpFromConfig(servers, deps);
+}
+
+/**
+ * Resolve the full MCP tool surface for one agent run: the ad-hoc
+ * `--mcp-config` file (if any) PLUS registered auto-connect servers (unless
+ * disabled), connected into a single client. Returns the combined
+ * `{mcpClient, extraToolDefinitions, ...}` or null when there's nothing.
+ * Throws only on a bad `--mcp-config` file (that's an explicit user request).
+ *
+ * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false }
+ * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp }
+ */
+export async function resolveAgentMcp(args = {}, deps = {}) {
+  const doFile = deps.loadMcpConfig || loadMcpConfig;
+  const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
+  let result = null;
+  if (args.mcpConfigPath) {
+    result = await doFile(args.mcpConfigPath, deps); // fail-fast on bad file
+  }
+  if (args.includeRegistered !== false && args.db) {
+    result = await doReg(args.db, {
+      ...deps,
+      all: args.allRegistered === true,
+      into: result || undefined,
+    });
+  }
+  return result;
 }
 
 // ─── --permission-prompt-tool (programmable headless approval) ──────────────
