@@ -1,0 +1,119 @@
+name: Docs-Site Build Gate (truncated-render guard)
+
+# Builds the docs-site VitePress site and fails if the render produced too few
+# HTML pages — the silent failure mode where a sub-timeout build exits 0 with
+# hundreds of JS chunks under dist/assets/ but 0 actual HTML.
+#
+# Background (memory: vitepress-build-timeout-thresholds):
+#   docs-site renders ~487 HTML in ~433s (~7.2 min). A build killed by a
+#   sub-360s timeout stops after "building client+server bundles", writes 977
+#   JS + 1 CSS, exits 0, but emits 0 HTML. `assets/` file counts lie; only the
+#   HTML count proves the render actually ran.
+#   v5.0.3.43 once shipped a docs-site with 0 rendered pages this way.
+#
+# Threshold 400 (< actual 487) gives margin for page churn while still catching
+# a truncated render. timeout-minutes: 15 is well above the 7.2 min real cost
+# so this job never self-truncates.
+
+on:
+  pull_request:
+    paths:
+      - 'docs-site/**'
+      - 'docs/design/**' # source synced into docs-site at build time
+      - '.github/workflows/docs-site-build-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs-site/**'
+      - '.github/workflows/docs-site-build-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-site-build-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build docs-site & assert render
+    runs-on: ubuntu-latest
+    # docs-site VitePress render is ~7.2 min; a sub-360s budget would truncate
+    # to 0 HTML (the very bug this gate guards against), so give it room.
+    timeout-minutes: 15
+    env:
+      MIN_HTML: 400
+      MIN_CHANGELOG_BYTES: 2000
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs-site/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-docs-site-${{ hashFiles('docs-site/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-docs-site-
+
+      - name: Install docs-site deps
+        working-directory: docs-site
+        # docs-site has its own lockfile and is outside the root npm workspaces,
+        # so `npm ci` resolves standalone. Wrapped in the shared 3-attempt retry
+        # to ride out transient registry flakes.
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci
+
+      - name: Build docs-site (sync design copies + vitepress build)
+        working-directory: docs-site
+        run: npm run build
+
+      - name: Assert render produced enough HTML
+        working-directory: docs-site
+        run: |
+          set -euo pipefail
+          DIST="docs/.vitepress/dist"
+
+          if [ ! -d "$DIST" ]; then
+            echo "::error::dist/ missing — VitePress did not render any output"
+            exit 1
+          fi
+
+          # Count real HTML pages, NOT dist/assets/ (977 JS chunks can be
+          # present even when 0 pages rendered).
+          HTML=$(find "$DIST" -name '*.html' | wc -l)
+          echo "Rendered $HTML HTML page(s) (threshold: $MIN_HTML)"
+          if [ "$HTML" -lt "$MIN_HTML" ]; then
+            echo "::error::Only $HTML HTML pages (< $MIN_HTML) — truncated VitePress render. See memory vitepress-build-timeout-thresholds; a sub-timeout build exits 0 with 0 HTML."
+            exit 1
+          fi
+
+          # The changelog surface specifically must render and be non-trivial
+          # (it is a manually-maintained public changelog — release-changelog-inventory).
+          CL="$DIST/changelog.html"
+          if [ ! -s "$CL" ]; then
+            echo "::error::changelog.html missing or empty"
+            exit 1
+          fi
+          BYTES=$(wc -c < "$CL")
+          echo "changelog.html: $BYTES byte(s) (threshold: $MIN_CHANGELOG_BYTES)"
+          if [ "$BYTES" -lt "$MIN_CHANGELOG_BYTES" ]; then
+            echo "::error::changelog.html suspiciously small ($BYTES bytes) — likely a broken render"
+            exit 1
+          fi
+
+          {
+            echo "## ✅ Docs-Site Build Gate"
+            echo ""
+            echo "- Rendered **$HTML** HTML pages (≥ $MIN_HTML)"
+            echo "- \`changelog.html\`: **$BYTES** bytes (≥ $MIN_CHANGELOG_BYTES)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ docs-site render OK: $HTML HTML pages, changelog.html $BYTES bytes"
