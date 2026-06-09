@@ -384,6 +384,61 @@ REPL 里 `run_shell` 撞 ApprovalGate 风险确认时,提示是 **`[y]es once / 
 上面的 `allow` 短路)。显式 `ask` 规则保持 y/N(asking 是声明意图;且 deny>ask>allow 下
 allow 也盖不过 ask)。
 
+## Hooks — `.claude/settings.json` `hooks` 块 (Claude-Code 协议)
+
+Claude Code hooks 对标。两个来源,职责不同:
+
+- **DB hooks**(`cc hook add` → SQLite)—— **observe-only**,触发即记录,不参与决策(行为不变)。
+- **`.claude/settings.json` `hooks` 块** —— **决策型**:走 stdin-JSON + 退出码/JSON-stdout 协议,可**拦截**工具调用。本节讲后者。
+
+### Schema
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash",
+        "hooks": [ { "type": "command", "command": "./guard.sh", "timeout": 60 } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write", "hooks": [ { "type": "command", "command": "./fmt.sh" } ] }
+    ]
+  }
+}
+```
+
+- `matcher`:工具名匹配,支持精确 / `Edit|Write` 管道 / `*` 通配 / `/regex/`。对**伞名**(`Bash`)和**本 CLI 原名**(`run_shell`)都测——两种写法都命中。
+- hooks 数组**跨层级拼接**(user < project < .local < `--settings`),有序、不去重。
+- `timeout` 秒(默认 60)。
+
+### 协议(命令 hook)
+
+事件 payload 以 **JSON 写入命令 stdin**(`{ hook_event_name, tool_name, tool_input, cwd, session_id }`)。判定:
+
+| hook 返回 | 含义 |
+| --------- | ---- |
+| **exit 2** | **block**(reason = stderr)——标准"拒绝"路径 |
+| exit 0 + stdout `{"decision":"block"\|"approve"\|"ask","reason"}` | 按之 |
+| exit 0 + `{"hookSpecificOutput":{"permissionDecision":"deny"\|"allow"\|"ask"}}` | PreToolUse 专用 |
+| exit 0 + `{"continue":false,"stopReason"}` | block |
+| exit 0(无 JSON)| continue(放行;stdout 可作 `additionalContext`)|
+| 其它非零 / spawn 失败 / 超时 | **非阻塞**(surface,不拦——坏 hook 不卡 agent)|
+
+多个命中的 hook 按序跑,**首个 block/ask 短路**。
+
+### `cc hook test` — 干跑
+
+```bash
+chainlesschain hook test PreToolUse run_shell "git push origin main"   # 列出会触发的 hook(不执行)
+chainlesschain hook test PreToolUse run_shell "git push" --run         # 真执行 + 显示 decision/reason/exit
+chainlesschain hook test PreToolUse write_file "x" --json
+chainlesschain hook list                                                # DB hooks + settings.json hooks(标来源)
+```
+
+默认**只列命中**(安全,不执行用户脚本);`--run` 才真跑并显示判定。是调 hook 的杀手锏。
+
+> **状态**:loader + 协议 + `cc hook test` 已落地;在 `cc agent` 真实工具循环里**强制执行**(PreToolUse block 拦截 / PostToolUse 反馈回喂模型)是紧随其后的一步,接 executeTool seam(与权限规则同一处)。
+
 ## Hosted Session API (Phase I)
 
 `cc serve` exposes session-core over WebSocket. Route types (dot-case)

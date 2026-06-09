@@ -29,9 +29,10 @@ export function registerHookCommand(program) {
   // hook list
   hook
     .command("list", { isDefault: true })
-    .description("List all registered hooks")
+    .description("List registered hooks (DB) + .claude/settings.json hooks")
     .option("--event <name>", "Filter by event name")
     .option("--enabled", "Show only enabled hooks")
+    .option("--settings <file>", "Also merge an explicit settings file")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -46,43 +47,76 @@ export function registerHookCommand(program) {
           enabledOnly: options.enabled,
         });
 
+        // .claude/settings.json `hooks` block (Claude-Code parity, decision-
+        // capable; distinct from the DB registry above which is observe-only).
+        const { loadHooks } = await import("../lib/settings-hooks.cjs");
+        const { hooks: settingsHooks, files: settingsFiles } = loadHooks({
+          cwd: process.cwd(),
+          settingsFile: options.settings,
+        });
+
         if (options.json) {
           console.log(
             JSON.stringify(
-              hooks.map((h) => ({
-                id: h.id,
-                event: h.event,
-                name: h.name,
-                type: h.type,
-                priority: h.priority,
-                enabled: h.enabled === 1,
-                matcher: h.matcher,
-                description: h.description,
-              })),
+              {
+                hooks: hooks.map((h) => ({
+                  id: h.id,
+                  event: h.event,
+                  name: h.name,
+                  type: h.type,
+                  priority: h.priority,
+                  enabled: h.enabled === 1,
+                  matcher: h.matcher,
+                  description: h.description,
+                })),
+                settingsHooks,
+                settingsFiles,
+              },
               null,
               2,
             ),
           );
-        } else if (hooks.length === 0) {
-          logger.info(
-            'No hooks registered. Add one with "chainlesschain hook add <event> <name>"',
-          );
         } else {
-          logger.log(chalk.bold(`Hooks (${hooks.length}):\n`));
-          for (const h of hooks) {
-            const status = h.enabled
-              ? chalk.green("enabled")
-              : chalk.gray("disabled");
-            const pLabel = Object.entries(HookPriority).find(
-              ([, v]) => v === h.priority,
+          if (hooks.length === 0) {
+            logger.info(
+              'No DB hooks. Add one with "chainlesschain hook add <event> <name>"',
             );
-            const priorityStr = pLabel ? pLabel[0] : String(h.priority);
-            logger.log(
-              `  ${chalk.cyan(h.name)} [${h.event}] priority=${priorityStr} type=${h.type} [${status}]`,
+          } else {
+            logger.log(chalk.bold(`DB hooks (${hooks.length}):\n`));
+            for (const h of hooks) {
+              const status = h.enabled
+                ? chalk.green("enabled")
+                : chalk.gray("disabled");
+              const pLabel = Object.entries(HookPriority).find(
+                ([, v]) => v === h.priority,
+              );
+              const priorityStr = pLabel ? pLabel[0] : String(h.priority);
+              logger.log(
+                `  ${chalk.cyan(h.name)} [${h.event}] priority=${priorityStr} type=${h.type} [${status}]`,
+              );
+              if (h.description) logger.log(`    ${chalk.gray(h.description)}`);
+              if (h.matcher)
+                logger.log(`    matcher: ${chalk.yellow(h.matcher)}`);
+            }
+          }
+          const events = Object.keys(settingsHooks);
+          if (events.length > 0) {
+            const n = events.reduce(
+              (a, e) => a + settingsHooks[e].length,
+              0,
             );
-            if (h.description) logger.log(`    ${chalk.gray(h.description)}`);
-            if (h.matcher)
-              logger.log(`    matcher: ${chalk.yellow(h.matcher)}`);
+            logger.log(chalk.bold(`\n.claude/settings.json hooks (${n}):`));
+            for (const ev of events) {
+              if (options.event && ev !== options.event) continue;
+              for (const g of settingsHooks[ev]) {
+                for (const h of g.hooks) {
+                  logger.log(
+                    `  ${chalk.cyan(ev)} matcher=${chalk.yellow(g.matcher || "*")}  ${chalk.gray(h.command)}`,
+                  );
+                }
+              }
+            }
+            logger.log(chalk.dim(`  sources: ${settingsFiles.join(", ")}`));
           }
         }
 
@@ -90,6 +124,80 @@ export function registerHookCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  // hook test — dry-run .claude/settings.json hooks for an event + tool
+  hook
+    .command("test <event> <tool> [args...]")
+    .description(
+      'Show which settings.json hooks fire for an event+tool (e.g. hook test PreToolUse run_shell "git push"); --run executes them',
+    )
+    .option("--settings <file>", "Also merge an explicit settings file")
+    .option("--run", "Actually execute the matched hooks and show decisions")
+    .option("--json", "Output as JSON")
+    .action(async (event, tool, args, options) => {
+      try {
+        const { loadHooks, collectHooks } =
+          await import("../lib/settings-hooks.cjs");
+        const { hooks } = loadHooks({
+          cwd: process.cwd(),
+          settingsFile: options.settings,
+        });
+        const matched = collectHooks(hooks, event, tool);
+        const toolInput = args && args.length ? { command: args.join(" "), args } : {};
+        const payload = {
+          hook_event_name: event,
+          tool_name: tool,
+          tool_input: toolInput,
+          cwd: process.cwd(),
+          session_id: "test",
+        };
+
+        if (!options.run) {
+          if (options.json) {
+            console.log(JSON.stringify({ event, tool, matched, payload }, null, 2));
+          } else if (matched.length === 0) {
+            logger.log(
+              chalk.gray(`no settings.json hooks match ${event} / ${tool}`),
+            );
+          } else {
+            logger.log(
+              chalk.bold(`${matched.length} hook(s) would fire for ${event} / ${tool}:`),
+            );
+            for (const h of matched) logger.log(`  ${chalk.gray(h.command)}`);
+            logger.log(chalk.dim("  (use --run to execute and see decisions)"));
+          }
+          return;
+        }
+
+        const { runHooks } = await import("../lib/hook-runner.cjs");
+        const outcome = runHooks(matched, payload, {
+          cwd: process.cwd(),
+          event,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(outcome, null, 2));
+          return;
+        }
+        const color =
+          outcome.decision === "block"
+            ? chalk.red
+            : outcome.decision === "ask"
+              ? chalk.yellow
+              : chalk.green;
+        logger.log(`decision: ${color.bold(outcome.decision)}`);
+        if (outcome.reason) logger.log(`reason:   ${outcome.reason}`);
+        if (outcome.hook) logger.log(`from:     ${chalk.gray(outcome.hook)}`);
+        for (const r of outcome.results) {
+          logger.log(
+            `  ${chalk.gray(r.command)} → ${r.decision}` +
+              (r.exitCode != null ? ` (exit ${r.exitCode})` : ""),
+          );
+        }
+      } catch (err) {
+        logger.error(`hook test failed: ${err.message}`);
+        process.exitCode = 1;
       }
     });
 
