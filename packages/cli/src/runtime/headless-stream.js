@@ -391,6 +391,35 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       for (const w of expanded.warnings) writeErr(`  @ref: ${w}\n`);
     }
 
+    // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
+    if (settingsHooks) {
+      try {
+        const { runUserPromptSubmitHooks } = await import(
+          "../lib/settings-hook-events.cjs"
+        );
+        const ups = runUserPromptSubmitHooks(settingsHooks, {
+          prompt: userContent,
+          cwd,
+          sessionId,
+        });
+        if (ups.blocked) {
+          emit({
+            type: "result",
+            subtype: "blocked",
+            is_error: true,
+            result: ups.reason || "blocked by UserPromptSubmit hook",
+            session_id: sessionId,
+          });
+          continue;
+        }
+        if (ups.additionalContext) {
+          userContent += `\n\n[hook context]\n${ups.additionalContext}`;
+        }
+      } catch (_err) {
+        // settings hook dispatch is best-effort
+      }
+    }
+
     messages.push({ role: "user", content: userContent });
     turns += 1;
 

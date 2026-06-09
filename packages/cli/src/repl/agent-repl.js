@@ -1668,6 +1668,35 @@ export async function startAgentRepl(options = {}) {
       logger.verbose(`[@ref] expansion skipped: ${err.message}`);
     }
 
+    // settings.json UserPromptSubmit hooks (decision-capable; the DB hook above
+    // is observe-only). block → abort the turn; context → inject before the turn.
+    if (_settingsHooks) {
+      try {
+        const { runUserPromptSubmitHooks } = await import(
+          "../lib/settings-hook-events.cjs"
+        );
+        const ups = runUserPromptSubmitHooks(_settingsHooks, {
+          prompt: userContent,
+          cwd: process.cwd(),
+          sessionId,
+        });
+        if (ups.blocked) {
+          logger.info(
+            chalk.yellow(
+              `[hook] prompt blocked${ups.reason ? ": " + ups.reason : ""}`,
+            ),
+          );
+          prompt();
+          return;
+        }
+        if (ups.additionalContext) {
+          userContent += `\n\n[hook context]\n${ups.additionalContext}`;
+        }
+      } catch (_err) {
+        // settings hook dispatch is best-effort
+      }
+    }
+
     // Add user message
     messages.push({ role: "user", content: userContent });
 

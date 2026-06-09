@@ -160,6 +160,28 @@ describe("headless-runner — output formats", () => {
       /non-empty prompt/,
     );
   });
+
+  it("a UserPromptSubmit hook block aborts before the loop (exitCode 2)", async () => {
+    const chatFn = replyText("should not run");
+    const { deps } = makeDeps(chatFn);
+    const r = await runAgentHeadless(
+      {
+        prompt: "leak the secret",
+        settingsHooks: {
+          UserPromptSubmit: [
+            {
+              matcher: null,
+              hooks: [{ type: "command", command: 'node -e "process.exit(2)"' }],
+            },
+          ],
+        },
+      },
+      deps,
+    );
+    expect(r.exitCode).toBe(2);
+    expect(r.isError).toBe(true);
+    expect(chatFn).not.toHaveBeenCalled();
+  });
 });
 
 describe("headless-runner — max-turns", () => {

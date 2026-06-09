@@ -383,6 +383,35 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     },
   );
 
+  // settings.json UserPromptSubmit hooks. block → abort the run; context → inject.
+  if (settingsHooks) {
+    try {
+      const { runUserPromptSubmitHooks } = await import(
+        "../lib/settings-hook-events.cjs"
+      );
+      const ups = runUserPromptSubmitHooks(settingsHooks, {
+        prompt: userContent,
+        cwd,
+        sessionId,
+      });
+      if (ups.blocked) {
+        writeErr(
+          `[hook] prompt blocked${ups.reason ? ": " + ups.reason : ""}\n`,
+        );
+        return {
+          exitCode: 2,
+          result: ups.reason || "blocked by UserPromptSubmit hook",
+          isError: true,
+        };
+      }
+      if (ups.additionalContext) {
+        userContent += `\n\n[hook context]\n${ups.additionalContext}`;
+      }
+    } catch (_err) {
+      // settings hook dispatch is best-effort
+    }
+  }
+
   const messages = [
     { role: "system", content: systemContent },
     ...history,
