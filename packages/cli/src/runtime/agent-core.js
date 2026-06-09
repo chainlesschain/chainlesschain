@@ -2198,11 +2198,33 @@ export async function* agentLoop(messages, options) {
           );
           if (stats.saved > 0 && compacted.length < messages.length) {
             messages.splice(0, messages.length, ...compacted);
+            // Persist the compaction so a later --resume rebuilds from the
+            // shortened history. An explicit `onCompaction` hook (if a caller
+            // provides one) takes precedence; otherwise self-persist a `compact`
+            // event — but only when the session is already being persisted to
+            // disk (the JSONL file exists), so a one-shot `cc agent -p` (which
+            // never creates a session file) writes nothing. Opt out with
+            // `persistCompaction: false`. Best-effort throughout.
             if (typeof options.onCompaction === "function") {
               try {
                 options.onCompaction(stats, compacted);
               } catch {
                 // persistence is best-effort
+              }
+            } else if (
+              options.sessionId &&
+              options.persistCompaction !== false
+            ) {
+              try {
+                const store = await import("../harness/jsonl-session-store.js");
+                if (store.sessionExists(options.sessionId)) {
+                  store.appendCompactEvent(options.sessionId, {
+                    ...stats,
+                    messages: compacted,
+                  });
+                }
+              } catch {
+                // self-persist is best-effort
               }
             }
             yield { type: "compaction", stats, runId };
