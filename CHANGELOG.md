@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 扫码加好友后跳对方资料页（之前只弹 Toast 不跳转无法加好友）+ AI 陪学空历史问候移到 UI 层（不污染 LLM 上下文）+ 「本机角色」卡（设为孩子后 SOS/遥测/任务才生效）+ SOS 大红按钮接真触发（`87a378898` · `ac5e74394`）
 
+### 测试 / 质量（cowork skills 套件收口）
+
+- `pdh-im-collect` 内置技能单测 19 例：readiness 探测（array / keyed-object / 噪声 JSON 解析 + cc 缺失降级）、wechat/qq 指引、`--run` 选择性执行、口令脱敏（永不回显）、输入路由、错误处理；经 `_deps` 注入接缝 stub cc CLI，零真实子进程（`c979ccafb`）
+- 修 cowork skills 套件两处历史 fail：`skill-lazy-load` re-spy 陈旧调用计数误判（清 spy，实现未动，`d38777a18`）；`youtube-summarizer` 命中真 YouTube 网络 60s 超时 → 加 `_deps.fetchText` 接缝 + fixture stub 改 12 例确定性用例（`391bbe723`）
+- cowork skills 全量套件复跑：47 文件 / 815 测试全绿（0 fail）
+
 ### 版本同步
 
 - productVersion v5.0.3.100 → v5.0.3.101
