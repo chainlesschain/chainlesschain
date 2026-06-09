@@ -76,6 +76,10 @@ import { makeFallbackChatFn } from "../runtime/fallback-model.js";
 let _hookDb = null;
 let _compressor = null;
 let _approvalGate = null;
+// .claude/settings.json permission rules (deny > ask > allow) + an interactive
+// confirmer for `ask` matches. Loaded once at REPL startup; null = no file.
+let _permissionRules = null;
+let _permissionConfirm = null;
 
 /**
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
@@ -85,6 +89,8 @@ async function executeTool(name, args) {
     hookDb: _hookDb,
     cwd: process.cwd(),
     approvalGate: _approvalGate,
+    permissionRules: _permissionRules,
+    permissionConfirm: _permissionConfirm,
   });
 }
 
@@ -255,6 +261,46 @@ export async function startAgentRepl(options = {}) {
     }
   } catch (_err) {
     _approvalGate = null;
+  }
+
+  // Load .claude/settings.json permission rules + wire an interactive confirmer
+  // so `ask` rules prompt (rather than fall closed like headless does).
+  try {
+    const { loadSettings } = await import("../lib/settings-loader.cjs");
+    const loaded = loadSettings({ cwd: process.cwd() });
+    const total =
+      loaded.rules.allow.length +
+      loaded.rules.ask.length +
+      loaded.rules.deny.length;
+    _permissionRules = total > 0 ? loaded.rules : null;
+    if (_permissionRules) {
+      _permissionConfirm = async ({ tool, args, rule }) => {
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
+        const q = (p) => new Promise((res) => rl.question(p, res));
+        const detail = args?.command
+          ? ` ${args.command}`
+          : args?.path
+            ? ` ${args.path}`
+            : "";
+        const ans = (
+          await q(
+            chalk.yellow(
+              `\n[Permission] rule ${rule} asks before ${tool}:${detail}\n  Proceed? (y/N) `,
+            ),
+          )
+        )
+          .trim()
+          .toLowerCase();
+        rl.close();
+        return ans === "y" || ans === "yes";
+      };
+    }
+  } catch (_err) {
+    _permissionRules = null;
+    _permissionConfirm = null;
   }
 
   // Resume existing session or create new one
@@ -1594,6 +1640,8 @@ export async function startAgentRepl(options = {}) {
         checkpointSession: sessionId,
         prepareCall,
         approvalGate: _approvalGate,
+        permissionRules: _permissionRules,
+        permissionConfirm: _permissionConfirm,
         // MCP: --mcp-config (ad-hoc) wins; bundle MCP is the fallback. The 3
         // tool channels expose --mcp-config servers' tools to the LLM directly.
         mcpClient: _adhocMcp?.mcpClient || _bundleMcpClient || undefined,

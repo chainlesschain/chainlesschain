@@ -145,6 +145,23 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     ? options.additionalDirectories.filter(Boolean)
     : [];
 
+  // .claude/settings.json permission rules (deny > ask > allow); see
+  // runAgentHeadless for the full semantics. null = no file → unchanged.
+  let permissionRules = options.permissionRules || null;
+  if (!permissionRules) {
+    try {
+      const { loadSettings } = await import("../lib/settings-loader.cjs");
+      const loaded = loadSettings({ cwd, settingsFile: options.settingsFile });
+      const total =
+        loaded.rules.allow.length +
+        loaded.rules.ask.length +
+        loaded.rules.deny.length;
+      permissionRules = total > 0 ? loaded.rules : null;
+    } catch {
+      permissionRules = null; // fail-open
+    }
+  }
+
   const input = deps.input || process.stdin;
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
@@ -288,6 +305,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     sessionId,
     hookDb: db,
     approvalGate,
+    permissionRules,
     enabledToolNames,
     disabledTools,
     prepareCall: goalPrepareCallFn,

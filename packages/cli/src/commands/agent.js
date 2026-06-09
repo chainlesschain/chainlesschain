@@ -170,6 +170,10 @@ export function registerAgentCommand(program) {
       "--permission-prompt-tool <tool>",
       "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
     )
+    .option(
+      "--settings <file>",
+      "Merge an extra .claude/settings.json-shaped file of permission rules (allow/ask/deny) for this run",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -285,6 +289,7 @@ export function registerAgentCommand(program) {
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
             permissionPromptTool: options.permissionPromptTool || null,
+            settingsFile: options.settings || null,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -382,6 +387,8 @@ export function registerAgentCommand(program) {
             mcpConfig: options.mcpConfig || null,
             // --permission-prompt-tool: defer approvals to an MCP tool
             permissionPromptTool: options.permissionPromptTool || null,
+            // --settings: extra .claude/settings.json permission rules
+            settingsFile: options.settings || null,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });

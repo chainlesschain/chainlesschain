@@ -229,6 +229,25 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     ? options.additionalDirectories.filter(Boolean)
     : [];
 
+  // .claude/settings.json permission rules (deny > ask > allow). A `deny` hard-
+  // blocks, an `allow` pre-authorizes (so a safe op isn't fail-closed headless),
+  // an `ask` falls closed (no human to confirm in headless). No file → null →
+  // every existing risk-tier / shell-policy layer runs unchanged.
+  let permissionRules = options.permissionRules || null;
+  if (!permissionRules) {
+    try {
+      const { loadSettings } = await import("../lib/settings-loader.cjs");
+      const loaded = loadSettings({ cwd, settingsFile: options.settingsFile });
+      const total =
+        loaded.rules.allow.length +
+        loaded.rules.ask.length +
+        loaded.rules.deny.length;
+      permissionRules = total > 0 ? loaded.rules : null;
+    } catch {
+      permissionRules = null; // fail-open
+    }
+  }
+
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
   const getApprovalGate =
@@ -431,6 +450,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     checkpointSession: options.checkpointSession || sessionId,
     hookDb: db,
     approvalGate,
+    permissionRules,
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,

@@ -20,6 +20,7 @@ import { execSync } from "child_process";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
+import sharedPermissionRules from "../lib/permission-rules.cjs";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -62,6 +63,7 @@ export function getActiveMcpServers() {
 
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
+const { evaluatePermissionRules } = sharedPermissionRules;
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -451,6 +453,53 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
+  // .claude/settings.json permission rules (deny > ask > allow). Evaluated
+  // before host policy / plan-mode / shell-approval so an explicit rule can:
+  //   deny  → hard-block the call;
+  //   ask   → require a confirm (headless w/o confirmer falls closed);
+  //   allow → pre-authorize, short-circuiting the plan-mode block and the
+  //           run_shell ApprovalGate (the hard shell-policy denylist still
+  //           applies — an allow rule never re-enables an unsafe `rm -rf /`).
+  // No matching rule → ruleAllowed stays false and every existing layer runs
+  // unchanged, so the default (no settings.json) behaviour is byte-for-byte.
+  let ruleAllowed = false;
+  if (context.permissionRules) {
+    const verdict = evaluatePermissionRules({
+      tool: name,
+      args,
+      cwd,
+      rules: context.permissionRules,
+    });
+    if (verdict.decision === "deny") {
+      return {
+        error: `[Permission] Tool "${name}" denied by settings rule: ${verdict.rule}`,
+        policy: { decision: "deny", rule: verdict.rule, via: "settings" },
+      };
+    }
+    if (verdict.decision === "ask") {
+      const confirm = context.permissionConfirm || context.shellConfirm || null;
+      const ok =
+        typeof confirm === "function"
+          ? await confirm({
+              tool: name,
+              args,
+              rule: verdict.rule,
+              reason: `settings rule ${verdict.rule} requires confirmation`,
+            })
+          : false;
+      if (!ok) {
+        return {
+          error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${verdict.rule}) — denied.`,
+          policy: { decision: "ask", rule: verdict.rule, via: "settings" },
+        };
+      }
+      ruleAllowed = true; // confirmed → treat like allow downstream
+    }
+    if (verdict.decision === "allow") {
+      ruleAllowed = true;
+    }
+  }
+
   const toolPolicies =
     context.hostManagedToolPolicy?.tools ||
     context.hostManagedToolPolicy?.toolPolicies ||
@@ -487,9 +536,10 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
-  // Plan mode: check if tool is allowed
+  // Plan mode: check if tool is allowed (a settings `allow` rule pre-authorizes)
   if (
     planManager.isActive() &&
+    !ruleAllowed &&
     !(name === "git" && isReadOnlyGitCommand(args.command)) &&
     !planManager.isToolAllowed(name) &&
     !(isExternalHostTool && hostToolPolicy?.allowed === true) &&
@@ -546,6 +596,7 @@ export async function executeTool(name, args, context = {}) {
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
       additionalDirectories: context.additionalDirectories || null,
+      ruleAllowed,
     });
   } catch (err) {
     if (hookDb) {
@@ -616,6 +667,7 @@ async function executeToolInner(
     approvalGate,
     shellConfirm,
     additionalDirectories,
+    ruleAllowed = false,
   },
 ) {
   const localToolDescriptor =
@@ -760,7 +812,10 @@ async function executeToolInner(
       const override = getRuntimeToolDescriptorByCommand(args.command);
       let shellPolicy;
       let approvalOutcome = null;
-      if (approvalGate) {
+      // A settings `allow` rule (ruleAllowed) pre-authorizes: skip the
+      // ApprovalGate tier confirm, but still run the hard shell-policy denylist
+      // below so an allow rule can never re-enable a blocked unsafe command.
+      if (approvalGate && !ruleAllowed) {
         const { evaluateShellCommandWithApproval } =
           await import("../lib/shell-approval.js");
         const gated = await evaluateShellCommandWithApproval({
@@ -2328,6 +2383,8 @@ export async function* agentLoop(messages, options) {
     approvalGate: options.approvalGate || null,
     shellConfirm: options.shellConfirm || null,
     additionalDirectories: options.additionalDirectories || null,
+    permissionRules: options.permissionRules || null,
+    permissionConfirm: options.permissionConfirm || null,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",
