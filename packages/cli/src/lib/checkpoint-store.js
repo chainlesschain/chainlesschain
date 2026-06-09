@@ -92,6 +92,26 @@ function tempIndexPath(dir) {
 }
 
 /**
+ * Snapshot the current working tree to a git tree object WITHOUT creating a
+ * commit and WITHOUT touching the real index. Returns the tree sha.
+ */
+function snapshotTree(root, dir) {
+  const tmpIndex = tempIndexPath(dir);
+  const env = { GIT_INDEX_FILE: tmpIndex };
+  try {
+    try {
+      git(["read-tree", "HEAD"], { cwd: root, env });
+    } catch {
+      /* fresh repo — empty temp index is fine */
+    }
+    git(["add", "-A"], { cwd: root, env });
+    return git(["write-tree"], { cwd: root, env });
+  } finally {
+    rmSync(tmpIndex, { force: true });
+  }
+}
+
+/**
  * Capture the current working tree as a shadow commit.
  *
  * @param {string} cwd
