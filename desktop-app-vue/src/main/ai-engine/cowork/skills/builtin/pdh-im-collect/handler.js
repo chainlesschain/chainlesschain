@@ -14,6 +14,11 @@ const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
 
+// Injectable deps so tests can stub the CLI probe without spawning real
+// `cc` subprocesses (vi.mock("child_process") does not work for inlined
+// CJS — see .claude/rules/testing.md). Production uses the real bindings.
+const _deps = { execSync, fs };
+
 const VAULT_HINT =
   "%APPDATA%\\chainlesschain-desktop-vue\\.chainlesschain\\hub\\vault.db";
 
@@ -23,7 +28,7 @@ const VAULT_HINT =
 // is available (skill then degrades to guidance-only).
 function resolveCcPrefix(projectRoot) {
   try {
-    execSync("cc --version", { stdio: "pipe", timeout: 8000 });
+    _deps.execSync("cc --version", { stdio: "pipe", timeout: 8000 });
     return "cc";
   } catch {
     /* not on PATH — try the workspace CLI */
@@ -41,7 +46,7 @@ function resolveCcPrefix(projectRoot) {
 
   for (const c of candidates) {
     try {
-      if (fs.existsSync(c)) {
+      if (_deps.fs.existsSync(c)) {
         return `node "${c}"`;
       }
     } catch {
@@ -53,7 +58,7 @@ function resolveCcPrefix(projectRoot) {
 
 function runCc(ccPrefix, args, { timeout = 120000 } = {}) {
   const cmd = `${ccPrefix} ${args}`;
-  const stdout = execSync(cmd, {
+  const stdout = _deps.execSync(cmd, {
     encoding: "utf-8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout,
@@ -176,7 +181,12 @@ module.exports = {
   },
 
   async execute(task, context = {}, _skill) {
-    const input = (task?.params?.input || task?.action || "").trim();
+    const input = (
+      task?.params?.input ||
+      task?.input ||
+      task?.action ||
+      ""
+    ).trim();
     const projectRoot =
       context?.projectRoot || context?.workspaceRoot || process.cwd();
 
@@ -331,4 +341,7 @@ module.exports = {
       };
     }
   },
+
+  // Exposed for unit tests (CJS _deps injection — see .claude/rules/testing.md)
+  _deps,
 };
