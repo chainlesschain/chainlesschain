@@ -58,7 +58,7 @@ import {
 } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
-import { loadMcpConfig } from "../runtime/mcp-config.js";
+import { resolveAgentMcp } from "../runtime/mcp-config.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -538,22 +538,30 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
-  // --mcp-config: connect ad-hoc MCP servers for this interactive session and
-  // expose their tools to the LLM (Claude-Code parity with headless). Reuses the
-  // shared engine, so tools surface as mcp__<server>__<tool>. Best-effort: a bad
-  // config is reported but never aborts the REPL.
-  if (options.mcpConfig) {
+  // MCP for this interactive session: the ad-hoc --mcp-config file PLUS the
+  // servers registered with `cc mcp add --auto-connect`, combined into one
+  // client so their tools surface to the LLM as mcp__<server>__<tool>. Reuses
+  // the shared engine. Best-effort: a bad --mcp-config is reported but never
+  // aborts the REPL; --no-mcp skips the registered set.
+  {
     try {
-      _adhocMcp = await loadMcpConfig(options.mcpConfig, {
-        writeErr: (s) => process.stderr.write(s),
-      });
-      const toolCount = _adhocMcp.extraToolDefinitions.length;
-      logger.log(
-        chalk.gray(
-          `MCP: ${_adhocMcp.connected.length} server(s), ${toolCount} tool(s) ` +
-            `(mcp__<server>__<tool>)`,
-        ),
+      _adhocMcp = await resolveAgentMcp(
+        {
+          mcpConfigPath: options.mcpConfig || null,
+          db: db?.getDatabase?.() || null,
+          includeRegistered: options.useRegisteredMcp !== false,
+        },
+        { writeErr: (s) => process.stderr.write(s) },
       );
+      if (_adhocMcp) {
+        const toolCount = _adhocMcp.extraToolDefinitions.length;
+        logger.log(
+          chalk.gray(
+            `MCP: ${_adhocMcp.connected.length} server(s), ${toolCount} tool(s) ` +
+              `(mcp__<server>__<tool>)`,
+          ),
+        );
+      }
     } catch (mcpErr) {
       logger.log(chalk.yellow(`MCP: --mcp-config failed — ${mcpErr.message}`));
       _adhocMcp = null;

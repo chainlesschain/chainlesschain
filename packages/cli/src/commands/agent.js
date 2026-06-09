@@ -432,9 +432,10 @@ export function registerAgentCommand(program) {
         }),
         // --fallback-model also applies interactively (wrapper built in the REPL)
         fallbackModel: options.fallbackModel || null,
-        // --mcp-config: connect ad-hoc MCP servers for the interactive session
-        // too (the REPL loads them via the same mcp-config engine as headless).
+        // --mcp-config + registered (cc mcp add) servers also apply to the
+        // interactive session (the REPL resolves both via the mcp-config engine).
         mcpConfig: options.mcpConfig || null,
+        useRegisteredMcp: options.mcp !== false,
       });
       await runtime.startAgentSession();
     });

@@ -17,4 +17,11 @@ describe("resolveAgentPolicy — mcpConfig", () => {
   it("defaults to null when not provided", () => {
     expect(resolveAgentPolicy({}).mcpConfig).toBeNull();
   });
+  it("defaults useRegisteredMcp to true, false when --no-mcp", () => {
+    expect(resolveAgentPolicy({}).useRegisteredMcp).toBe(true);
+    expect(
+      resolveAgentPolicy({ overrides: { useRegisteredMcp: false } })
+        .useRegisteredMcp,
+    ).toBe(false);
+  });
 });
