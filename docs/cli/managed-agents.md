@@ -602,6 +602,25 @@ REPL 内:`/output-style`(列出 + 当前)、`/output-style <name>`(切换,即时
 消息)、`/output-style none`(清除)。`--system-prompt` 仍可整体替换系统提示;output
 style 是其上的人格叠加层。
 
+## Status Line — `statusLine` 自定义状态栏
+
+Claude Code `statusLine` 对标。REPL **每次提示前**渲染一行用户自定义命令的输出
+(模型 / 分支 / 花费 / 任意你想显示的)。配置在 `.claude/settings.json`:
+
+```jsonc
+{ "statusLine": { "type": "command", "command": "./status.sh", "padding": 0 } }
+// 也接受裸字符串:"statusLine": "./status.sh"
+```
+
+命令通过 **stdin 收到 JSON 上下文** `{ session_id, model:{id,display_name}, provider,
+workspace:{current_dir,project_dir}, cwd }`,其 **首行 stdout** 即状态栏。层级 last-wins;
+`false` 可在高层禁用。**best-effort**:命令缺失 / 报错 / 超时(默认 5s)→ 不显示,绝不卡 REPL。
+
+```bash
+chainlesschain statusline preview [--model <m>] [--json]   # 渲染一次预览
+chainlesschain statusline show [--json]                    # 显示解析后的配置
+```
+
 ## Hosted Session API (Phase I)
 
 `cc serve` exposes session-core over WebSocket. Route types (dot-case)

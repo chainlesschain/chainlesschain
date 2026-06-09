@@ -747,7 +747,36 @@ export async function startAgentRepl(options = {}) {
   );
   logger.log(chalk.gray("Type /exit to quit, /help for commands\n"));
 
+  // statusLine (Claude-Code parity): render a user-configured command above the
+  // prompt each turn (model / branch / cost / …). Config in .claude/settings.json
+  // `statusLine`. Loaded once; rendered (best-effort, sync) before each prompt.
+  let _renderStatus = null;
+  try {
+    const slm = await import("../lib/status-line.cjs");
+    const _sl = slm.default || slm;
+    const _slCfg = _sl.loadStatusLineConfig({ cwd: process.cwd() });
+    if (_slCfg) {
+      _renderStatus = () => {
+        try {
+          return _sl.renderStatusLine(
+            _slCfg,
+            _sl.buildContext({ sessionId, model, provider, cwd: process.cwd() }),
+            { cwd: process.cwd() },
+          );
+        } catch {
+          return null;
+        }
+      };
+    }
+  } catch {
+    _renderStatus = null;
+  }
+
   const prompt = () => {
+    if (_renderStatus) {
+      const line = _renderStatus();
+      if (line) process.stdout.write(line + "\n");
+    }
     rl.setPrompt(getPrompt());
     rl.prompt();
   };
