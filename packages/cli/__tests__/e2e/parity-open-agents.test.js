@@ -2,7 +2,7 @@
  * E2E tests for open-agents parity Phases 2–5.
  *
  * Verifies the new modules are wired into the CLI surface:
- *   - AGENT_TOOLS exports web_fetch / todo_write / ask_user_question (16 total)
+ *   - AGENT_TOOLS exports web_fetch / todo_write / ask_user_question (18 total)
  *   - spawn_sub_agent contract exposes the `profile` enum (Phase 3)
  *   - sub-agent-profiles module is importable + ships 3 built-ins
  *   - turn-context / provider-options / todo-manager / web-fetch modules load
@@ -36,11 +36,10 @@ describe("E2E: open-agents parity Phases 2–5", () => {
     expect(runCLI("--version").trim()).toBe(pkg.version);
   });
 
-  it("AGENT_TOOLS includes the new tools and totals 18", async () => {
+  it("AGENT_TOOLS includes the 3 new tools and totals 16", async () => {
     const { AGENT_TOOLS } = await import("../../src/runtime/agent-core.js");
     const names = AGENT_TOOLS.map((t) => t.function.name);
     expect(names).toContain("web_fetch");
-    expect(names).toContain("web_search");
     expect(names).toContain("todo_write");
     expect(names).toContain("ask_user_question");
     expect(names).toContain("spawn_sub_agent");
