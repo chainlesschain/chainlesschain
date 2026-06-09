@@ -58,6 +58,7 @@ import {
 } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
+import { loadMcpConfig } from "../runtime/mcp-config.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -354,6 +355,10 @@ export async function startAgentRepl(options = {}) {
   // and applies bundle manifest metadata (model/provider override, agentId).
   let _bundleResolved = null;
   let _bundleMcpClient = null;
+  // --mcp-config (interactive parity with headless): ad-hoc MCP servers loaded
+  // for this session via the shared mcp-config engine. Holds {mcpClient,
+  // extraToolDefinitions, externalToolExecutors, externalToolDescriptors}.
+  let _adhocMcp = null;
   if (options.bundlePath) {
     try {
       const { loadBundle } =
@@ -443,6 +448,28 @@ export async function startAgentRepl(options = {}) {
       );
     } catch (err) {
       logger.log(chalk.red(`Bundle: failed to load — ${err.message}`));
+    }
+  }
+
+  // --mcp-config: connect ad-hoc MCP servers for this interactive session and
+  // expose their tools to the LLM (Claude-Code parity with headless). Reuses the
+  // shared engine, so tools surface as mcp__<server>__<tool>. Best-effort: a bad
+  // config is reported but never aborts the REPL.
+  if (options.mcpConfig) {
+    try {
+      _adhocMcp = await loadMcpConfig(options.mcpConfig, {
+        writeErr: (s) => process.stderr.write(s),
+      });
+      const toolCount = _adhocMcp.extraToolDefinitions.length;
+      logger.log(
+        chalk.gray(
+          `MCP: ${_adhocMcp.connected.length} server(s), ${toolCount} tool(s) ` +
+            `(mcp__<server>__<tool>)`,
+        ),
+      );
+    } catch (mcpErr) {
+      logger.log(chalk.yellow(`MCP: --mcp-config failed — ${mcpErr.message}`));
+      _adhocMcp = null;
     }
   }
 
@@ -1567,7 +1594,12 @@ export async function startAgentRepl(options = {}) {
         checkpointSession: sessionId,
         prepareCall,
         approvalGate: _approvalGate,
-        mcpClient: _bundleMcpClient || undefined,
+        // MCP: --mcp-config (ad-hoc) wins; bundle MCP is the fallback. The 3
+        // tool channels expose --mcp-config servers' tools to the LLM directly.
+        mcpClient: _adhocMcp?.mcpClient || _bundleMcpClient || undefined,
+        extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
+        externalToolExecutors: _adhocMcp?.externalToolExecutors,
+        externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
         chatFn: _fallbackChatFn,
       });
 
@@ -1773,6 +1805,15 @@ export async function startAgentRepl(options = {}) {
     if (_bundleMcpClient) {
       try {
         await _bundleMcpClient.disconnectAll();
+      } catch (_e) {
+        // Non-critical
+      }
+    }
+
+    // Disconnect ad-hoc (--mcp-config) MCP servers
+    if (_adhocMcp?.mcpClient) {
+      try {
+        await _adhocMcp.mcpClient.disconnectAll();
       } catch (_e) {
         // Non-critical
       }
