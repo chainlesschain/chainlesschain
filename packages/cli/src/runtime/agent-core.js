@@ -2174,12 +2174,8 @@ export async function chatWithTools(rawMessages, options) {
     }));
 
     // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192) via
-    // provider-options, instead of a flat 8192 that silently capped Opus output.
-    // We read ONLY maxTokens here: the module's `temperature` and
-    // `thinking:{type:"enabled"}` defaults are deliberately NOT forwarded —
-    // both 400 on Opus 4.7/4.8, and extended thinking + tool use additionally
-    // needs thinking-block preservation the agent loop doesn't do yet
-    // (see the cli_claude_code_parity_landed memory note).
+    // provider-options. We read ONLY maxTokens: the module's `temperature`
+    // default is never forwarded (400s on Opus 4.7/4.8).
     const effModel = model || "claude-sonnet-4-20250514";
     const { maxTokens: anthropicMaxTokens } = mergeProviderOptions(
       "anthropic",
@@ -2188,9 +2184,24 @@ export async function chatWithTools(rawMessages, options) {
     const body = {
       model: effModel,
       max_tokens: anthropicMaxTokens || 8192,
-      messages: otherMsgs,
+      // Convert cc's internal OpenAI-shaped history (role:"tool" results,
+      // assistant tool_calls[]) into Anthropic content blocks. Without this,
+      // multi-turn tool use 400s on turn 2 (Anthropic rejects role:"tool" and
+      // assistant `tool_calls`). Also replays preserved thinking blocks.
+      messages: _toAnthropicMessages(otherMsgs),
       tools: anthropicTools,
     };
+    // Extended thinking — OPT-IN via options.thinking; off by default so the
+    // request is byte-identical to before. Model-aware (adaptive+effort on Opus
+    // 4.6+/Sonnet 4.6, legacy enabled+budget else; nothing on Haiku). temperature
+    // is never sent. RUNTIME-UNVERIFIED: no Anthropic key here to E2E the
+    // thinking-block signature replay (see cli_claude_code_parity_landed memory).
+    const thinkingParams = _anthropicThinkingParams(
+      effModel,
+      options,
+      body.max_tokens,
+    );
+    if (thinkingParams) Object.assign(body, thinkingParams);
     if (systemMsgs.length > 0) {
       body.system = systemMsgs.map((m) => m.content).join("\n");
     }
@@ -2470,7 +2481,11 @@ function _anthropicReduceLine(state, raw, onToken) {
     state.blocks[obj.index] =
       cb.type === "tool_use"
         ? { type: "tool_use", id: cb.id, name: cb.name, json: "" }
-        : { type: "text" };
+        : cb.type === "thinking"
+          ? { type: "thinking", thinking: "", signature: "" }
+          : cb.type === "redacted_thinking"
+            ? { type: "redacted_thinking", data: cb.data || "" }
+            : { type: "text" };
   } else if (obj.type === "content_block_delta") {
     const d = obj.delta || {};
     if (d.type === "text_delta" && d.text) {
@@ -2484,6 +2499,12 @@ function _anthropicReduceLine(state, raw, onToken) {
       }
     } else if (d.type === "input_json_delta" && state.blocks[obj.index]) {
       state.blocks[obj.index].json += d.partial_json || "";
+    } else if (d.type === "thinking_delta" && state.blocks[obj.index]) {
+      state.blocks[obj.index].thinking =
+        (state.blocks[obj.index].thinking || "") + (d.thinking || "");
+    } else if (d.type === "signature_delta" && state.blocks[obj.index]) {
+      state.blocks[obj.index].signature =
+        (state.blocks[obj.index].signature || "") + (d.signature || "");
     }
   } else if (obj.type === "message_delta") {
     state.outputTokens = Number(obj.usage?.output_tokens) || state.outputTokens;
@@ -2493,7 +2514,10 @@ function _anthropicReduceLine(state, raw, onToken) {
 
 function _anthropicFinalize(state) {
   const toolCalls = [];
-  for (const k of Object.keys(state.blocks)) {
+  const thinkingBlocks = [];
+  for (const k of Object.keys(state.blocks).sort(
+    (a, b) => Number(a) - Number(b),
+  )) {
     const b = state.blocks[k];
     if (b.type === "tool_use") {
       let input = {};
@@ -2507,10 +2531,21 @@ function _anthropicFinalize(state) {
         type: "function",
         function: { name: b.name, arguments: JSON.stringify(input) },
       });
+    } else if (b.type === "thinking") {
+      thinkingBlocks.push({
+        type: "thinking",
+        thinking: b.thinking || "",
+        signature: b.signature || "",
+      });
+    } else if (b.type === "redacted_thinking") {
+      thinkingBlocks.push({ type: "redacted_thinking", data: b.data || "" });
     }
   }
   const message = { role: "assistant", content: state.text };
   if (toolCalls.length) message.tool_calls = toolCalls;
+  // Preserve thinking blocks verbatim (incl. signature) for replay on the next
+  // tool turn — required by the API when extended thinking is on.
+  if (thinkingBlocks.length) message._thinkingBlocks = thinkingBlocks;
   const out = { message };
   if (state.inputTokens || state.outputTokens) {
     out.usage = {
@@ -2658,10 +2693,145 @@ async function _chatOpenAIStreaming(apiUrl, body, apiKey, onToken, signal, provi
   return _openaiFinalize(state);
 }
 
-function _normalizeAnthropicResponse(data) {
+/**
+ * Convert cc's internal OpenAI-shaped messages into Anthropic content-block
+ * messages. Internal shape: {role:"user"|"assistant"|"tool", content,
+ * tool_calls?, _thinkingBlocks?}. Anthropic shape: {role:"user"|"assistant",
+ * content: string | block[]} — assistant tool calls become {type:"tool_use"}
+ * blocks; tool results become {type:"tool_result"} blocks inside a USER turn,
+ * with consecutive results merged. Preserved thinking blocks (with signature)
+ * are replayed FIRST in the assistant turn (the API requires them ahead of
+ * tool_use when continuing a thinking+tool turn). Exported for tests.
+ */
+export function _toAnthropicMessages(msgs) {
+  const out = [];
+  let pendingResults = [];
+  const flush = () => {
+    if (pendingResults.length) {
+      out.push({ role: "user", content: pendingResults });
+      pendingResults = [];
+    }
+  };
+  for (const m of msgs || []) {
+    if (!m) continue;
+    if (m.role === "tool") {
+      pendingResults.push({
+        type: "tool_result",
+        tool_use_id: m.tool_call_id,
+        content:
+          typeof m.content === "string"
+            ? m.content
+            : JSON.stringify(m.content ?? ""),
+      });
+      continue;
+    }
+    flush();
+    if (m.role === "assistant") {
+      const blocks = [];
+      if (Array.isArray(m._thinkingBlocks)) {
+        for (const tb of m._thinkingBlocks) blocks.push(tb);
+      }
+      if (typeof m.content === "string" && m.content.trim()) {
+        blocks.push({ type: "text", text: m.content });
+      } else if (Array.isArray(m.content)) {
+        for (const b of m.content) blocks.push(b);
+      }
+      if (Array.isArray(m.tool_calls)) {
+        for (const tc of m.tool_calls) {
+          const raw = tc.function?.arguments;
+          let input = {};
+          try {
+            input =
+              typeof raw === "string" ? JSON.parse(raw || "{}") : raw || {};
+          } catch {
+            input = {};
+          }
+          blocks.push({
+            type: "tool_use",
+            id: tc.id,
+            name: tc.function?.name,
+            input,
+          });
+        }
+      }
+      out.push({
+        role: "assistant",
+        content: blocks.length ? blocks : m.content || "",
+      });
+    } else {
+      // user turn: pass content through (string or already-block array)
+      out.push({ role: "user", content: m.content });
+    }
+  }
+  flush();
+  return out;
+}
+
+/** Map a Claude-Code-style intensity to an Anthropic effort level. */
+function _intensityToEffort(want) {
+  switch (String(want)) {
+    case "ultra":
+    case "ultrathink":
+      return "xhigh";
+    case "hard":
+    case "think-hard":
+    case "harder":
+      return "high";
+    case "think":
+      return "medium";
+    default:
+      return "high"; // bare `true` → a sensible default for intelligence work
+  }
+}
+
+/**
+ * Decide the Anthropic `thinking` request params for a model. Returns null
+ * (off) unless the caller opts in via options.thinking (true | "think" |
+ * "hard" | "ultra"). Model-aware per the Claude API:
+ *   - Opus 4.6/4.7/4.8, Sonnet 4.6 → adaptive thinking + output_config.effort
+ *   - Sonnet 4.5 / Opus 4.0-4.5 / older → legacy enabled+budget (< max_tokens)
+ *   - anything else (e.g. Haiku) → null (no thinking)
+ * temperature is never added (it 400s on Opus 4.7/4.8). Note: `xhigh`/`max`
+ * effort are Opus-tier — on Sonnet they may error; left to the caller's intent.
+ * RUNTIME-UNVERIFIED — no Anthropic key to validate the wire shape live.
+ * Exported for tests.
+ */
+export function _anthropicThinkingParams(model, options = {}, maxTokens = 8192) {
+  const want = options?.thinking;
+  if (!want) return null; // off by default → request unchanged
+  const m = String(model || "").toLowerCase();
+  const adaptive = /opus-4-(6|7|8)/.test(m) || /sonnet-4-6/.test(m);
+  const legacy =
+    /sonnet-4-5/.test(m) ||
+    /opus-4-(0|1|5)/.test(m) ||
+    /sonnet-4-0/.test(m) ||
+    /sonnet-3/.test(m) ||
+    /opus-3/.test(m);
+  if (adaptive) {
+    const params = { thinking: { type: "adaptive" } };
+    const effort =
+      typeof options.thinkingEffort === "string"
+        ? options.thinkingEffort
+        : _intensityToEffort(want);
+    if (effort) params.output_config = { effort };
+    return params;
+  }
+  if (legacy) {
+    let budget = Number(options.thinkingBudget) || 8000;
+    // budget_tokens must be strictly < max_tokens (min 1024) on legacy models
+    if (budget >= maxTokens) budget = Math.max(1024, Math.floor(maxTokens / 2));
+    return { thinking: { type: "enabled", budget_tokens: budget } };
+  }
+  return null; // unknown / Haiku → no thinking
+}
+
+export function _normalizeAnthropicResponse(data) {
   const content = data.content || [];
   const textBlocks = content.filter((b) => b.type === "text");
   const toolBlocks = content.filter((b) => b.type === "tool_use");
+  const thinkingBlocks = content.filter(
+    (b) => b.type === "thinking" || b.type === "redacted_thinking",
+  );
 
   const message = {
     role: "assistant",
@@ -2677,6 +2847,13 @@ function _normalizeAnthropicResponse(data) {
         arguments: JSON.stringify(b.input),
       },
     }));
+  }
+
+  // Preserve thinking blocks VERBATIM (incl. signature) so the agent loop can
+  // replay them on the next tool turn — required when extended thinking is on,
+  // harmless (absent) otherwise. _toAnthropicMessages re-emits them first.
+  if (thinkingBlocks.length > 0) {
+    message._thinkingBlocks = thinkingBlocks;
   }
 
   return { message };
