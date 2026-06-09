@@ -11,7 +11,8 @@ import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import { makeFallbackChatFn } from "../runtime/fallback-model.js";
-import { resolveImages } from "../lib/image-input.js";
+import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
+import { loadConfig } from "../lib/config-manager.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -109,6 +110,10 @@ export function registerAgentCommand(program) {
       "--image <path>",
       "Attach an image (png/jpg/jpeg/gif/webp) to the prompt for a vision-capable model (headless; repeatable)",
       (val, prev) => (prev || []).concat([val]),
+    )
+    .option(
+      "--vision-model <id>",
+      "Model to use when an image is attached (default: config llm.visionModel or doubao-seed-1-6-vision-250815)",
     )
     .option("--session <id>", "Resume a previous agent session")
     .option(
@@ -319,6 +324,22 @@ export function registerAgentCommand(program) {
         }
       }
 
+      // When an image is attached, default the run to the configured vision LLM
+      // (config.llm provider/baseUrl/apiKey + llm.visionModel | --vision-model |
+      // doubao default) so `cc agent --image foo.png` works without extra flags.
+      // Explicit --provider/--model/etc. always win; no image → unchanged.
+      const visionLlm = resolveVisionLlm({
+        hasImage: images.length > 0,
+        flags: {
+          provider: options.provider,
+          model: options.model,
+          baseUrl: options.baseUrl,
+          apiKey: options.apiKey,
+          visionModel: options.visionModel,
+        },
+        llm: loadConfig().llm || {},
+      });
+
       // --think / --ultrathink → options.thinking for the agent loop (Anthropic
       // extended thinking; ignored by other providers). --think with no value →
       // true; --think <level> → that level; --ultrathink wins as "ultra".
@@ -446,12 +467,12 @@ export function registerAgentCommand(program) {
           outcome = await runAgentHeadless({
             prompt,
             images,
-            model: options.model,
+            model: visionLlm.model,
             thinking,
             thinkingBudget,
-            provider: options.provider,
-            baseUrl: options.baseUrl,
-            apiKey: options.apiKey,
+            provider: visionLlm.provider,
+            baseUrl: visionLlm.baseUrl,
+            apiKey: visionLlm.apiKey,
             sessionId: options.session,
             // A resolved --session/--continue/--resume id means "replay this
             // conversation and persist the new turns"; the runner loads prior
