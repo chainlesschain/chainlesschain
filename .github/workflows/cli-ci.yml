@@ -86,10 +86,11 @@ jobs:
       - name: Ensure web-panel dist exists (stub)
         working-directory: packages/cli
         run: |
-          mkdir -p src/assets/web-panel
-          if [ ! -f src/assets/web-panel/index.html ]; then
-            echo '<!doctype html><title>stub</title>' > src/assets/web-panel/index.html
-          fi
+          # packer's ensureWebPanel rejects a dist with < 2 files, so write
+          # index.html PLUS a stub asset (the real build is skipped here).
+          mkdir -p src/assets/web-panel/assets
+          echo '<!doctype html><title>stub</title>' > src/assets/web-panel/index.html
+          echo '/* stub */' > src/assets/web-panel/assets/stub.js
 
       - name: cc pack --dry-run for linux-x64
         working-directory: packages/cli
