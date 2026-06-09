@@ -591,7 +591,7 @@ chainlesschain services logs
 
 - `packages/cli/bin/chainlesschain.js` — npm bin 入口（`chainlesschain`、`cc`、`clc`、`clchain` 四个命令共享此入口）
 - `packages/cli/src/index.js` — Commander 命令注册（主入口）
-- `packages/cli/src/commands/` — 所有命令实现（137 个命令文件，144 个 user-facing 命令）
+- `packages/cli/src/commands/` — 所有命令实现（146 个命令文件，152 个 user-facing 命令）
 - `packages/cli/src/lib/` — 共享库（70+ 个模块）
 - `packages/cli/src/lib/cowork/` — 多智能体协作模块（5 个）
 - `packages/cli/src/repl/` — 交互式 REPL（chat/agent + /cowork）
