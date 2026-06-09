@@ -397,6 +397,21 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
   };
 
+  // --include-partial-messages: forward live assistant-text deltas as
+  // `stream_event` NDJSON lines (Claude-Code parity). Only meaningful for
+  // stream-json output, where the agent loop's onToken hook feeds chunks as
+  // they arrive from a streaming provider.
+  if (isStream && options.includePartialMessages) {
+    loopOptions.onToken = (text) =>
+      emitStream({
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          delta: { type: "text_delta", text },
+        },
+      });
+  }
+
   emitStream({
     type: "system",
     subtype: "init",

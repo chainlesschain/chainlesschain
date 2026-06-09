@@ -221,6 +221,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     disabledTools,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
+    // --include-partial-messages: stream live assistant-text deltas as
+    // `stream_event` lines. Output here is always NDJSON, so gating on the
+    // flag alone suffices.
+    onToken: options.includePartialMessages
+      ? (text) =>
+          emit({
+            type: "stream_event",
+            event: {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text },
+            },
+          })
+      : undefined,
   };
 
   let turns = 0;

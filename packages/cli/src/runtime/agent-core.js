@@ -1663,7 +1663,21 @@ export async function chatWithTools(rawMessages, options) {
   throwIfAborted(signal);
 
   if (provider === "ollama") {
-    const response = await fetch(`${baseUrl}/api/chat`, {
+    const apiUrl = `${baseUrl}/api/chat`;
+    // Real-time token deltas (Claude-Code `--include-partial-messages`): when
+    // the caller supplies an onToken hook, stream the response and forward each
+    // content chunk as it arrives. Tool calls + usage are accumulated and the
+    // same {message, usage} shape is returned, so the agent loop is unchanged.
+    // Without onToken we keep the cheaper single-shot non-streaming request.
+    if (typeof options.onToken === "function") {
+      return await _chatOllamaStreaming(
+        apiUrl,
+        { model, messages, tools },
+        options.onToken,
+        signal,
+      );
+    }
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal,
@@ -1815,6 +1829,109 @@ export async function chatWithTools(rawMessages, options) {
     };
   }
   return out;
+}
+
+// ─── Ollama streaming (token deltas for --include-partial-messages) ─────────
+//
+// Ollama `/api/chat` with `stream:true` returns NDJSON: one JSON object per
+// line, each carrying an incremental `message.content` chunk, optional
+// `message.tool_calls` (emitted whole, not byte-streamed), and a final line
+// with `done:true` + `prompt_eval_count`/`eval_count` token totals. We reduce
+// the stream line-by-line so onToken fires live, then finalize into the same
+// {message, usage} shape the non-streaming branch returns.
+
+function _ollamaInitState() {
+  return {
+    role: "assistant",
+    content: "",
+    toolCalls: null,
+    promptEval: 0,
+    evalCount: 0,
+  };
+}
+
+function _ollamaReduceLine(state, line, onToken) {
+  const s = (line || "").trim();
+  if (!s) return state;
+  let obj;
+  try {
+    obj = JSON.parse(s);
+  } catch {
+    return state; // tolerate partial/garbage lines mid-stream
+  }
+  const msg = obj.message;
+  if (msg) {
+    if (msg.role) state.role = msg.role;
+    if (typeof msg.content === "string" && msg.content) {
+      state.content += msg.content;
+      if (typeof onToken === "function") {
+        try {
+          onToken(msg.content);
+        } catch {
+          // A failing UI hook must never break the agent run.
+        }
+      }
+    }
+    if (Array.isArray(msg.tool_calls) && msg.tool_calls.length) {
+      state.toolCalls = (state.toolCalls || []).concat(msg.tool_calls);
+    }
+  }
+  if (obj.prompt_eval_count) state.promptEval = obj.prompt_eval_count;
+  if (obj.eval_count) state.evalCount = obj.eval_count;
+  return state;
+}
+
+function _ollamaFinalize(state) {
+  const message = { role: state.role, content: state.content };
+  if (state.toolCalls && state.toolCalls.length) {
+    message.tool_calls = state.toolCalls;
+  }
+  const data = { message };
+  if (state.promptEval || state.evalCount) {
+    data.usage = {
+      input_tokens: state.promptEval,
+      output_tokens: state.evalCount,
+    };
+  }
+  return data;
+}
+
+/**
+ * Pure reducer over an iterable of Ollama NDJSON lines. Exported for tests so
+ * the parse/accumulate logic can be exercised without a live HTTP stream.
+ */
+export function _accumulateOllamaStream(lines, onToken) {
+  const state = _ollamaInitState();
+  for (const line of lines) _ollamaReduceLine(state, line, onToken);
+  return _ollamaFinalize(state);
+}
+
+async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+    body: JSON.stringify({ ...body, stream: true }),
+  });
+  if (!response.ok) {
+    throw new Error(`Ollama error: ${response.status}`);
+  }
+  const state = _ollamaInitState();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n")) >= 0) {
+      _ollamaReduceLine(state, buf.slice(0, idx), onToken);
+      buf = buf.slice(idx + 1);
+    }
+  }
+  if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
+  return _ollamaFinalize(state);
 }
 
 function _normalizeAnthropicResponse(data) {

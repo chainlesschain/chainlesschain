@@ -150,6 +150,10 @@ export function registerAgentCommand(program) {
       "--fallback-model <model>",
       "Retry once on this model when the primary fails (overload/network)",
     )
+    .option(
+      "--include-partial-messages",
+      "Emit live assistant-text deltas as stream_event lines (requires --output-format stream-json)",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -190,6 +194,20 @@ export function registerAgentCommand(program) {
           );
           process.exit(1);
         }
+      }
+
+      // --include-partial-messages only makes sense for NDJSON output: the
+      // stream-input mode is always NDJSON, otherwise require stream-json
+      // explicitly (fail fast rather than silently dropping the deltas).
+      if (
+        options.includePartialMessages &&
+        options.inputFormat !== "stream-json" &&
+        options.outputFormat !== "stream-json"
+      ) {
+        process.stderr.write(
+          "--include-partial-messages requires --output-format stream-json.\n",
+        );
+        process.exit(1);
       }
 
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
@@ -238,6 +256,7 @@ export function registerAgentCommand(program) {
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd,
             }),
+            includePartialMessages: options.includePartialMessages === true,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -325,6 +344,8 @@ export function registerAgentCommand(program) {
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd: process.cwd(),
             }),
+            // --include-partial-messages: live token deltas as stream_event lines
+            includePartialMessages: options.includePartialMessages === true,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });
