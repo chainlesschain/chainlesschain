@@ -295,6 +295,9 @@ Detailed instructions here.
     expect(skill._bodyLoaded).toBe(true);
 
     const readSpy = vi.spyOn(fs.promises, "readFile");
+    // Re-spying returns the same spy with the first load's call history intact;
+    // clear it so the assertion measures only the second call.
+    readSpy.mockClear();
     await skill.ensureFullyLoaded();
 
     // Second call should not trigger another file read
