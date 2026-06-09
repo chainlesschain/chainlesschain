@@ -5,6 +5,11 @@
 const { logger } = require("../../../../../utils/logger.js");
 const https = require("https");
 
+// Injectable network boundary so tests can stub HTTP without real requests
+// (vi.mock("https") does not work for inlined CJS — see .claude/rules/testing.md).
+// Production uses the real fetchText below.
+const _deps = { fetchText };
+
 module.exports = {
   async init(skill) {
     logger.info("[YouTubeSummarizer] Initialized");
@@ -37,6 +42,9 @@ module.exports = {
       return { success: false, error: error.message };
     }
   },
+
+  // Exposed for unit tests (CJS _deps injection — see .claude/rules/testing.md)
+  _deps,
 };
 
 function parseInput(input) {
@@ -243,7 +251,9 @@ function formatTime(seconds) {
 async function fetchTranscript(videoId, lang) {
   try {
     // Fetch the video page to get caption track info
-    const html = await fetchText(`https://www.youtube.com/watch?v=${videoId}`);
+    const html = await _deps.fetchText(
+      `https://www.youtube.com/watch?v=${videoId}`,
+    );
     const captionMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
     if (!captionMatch) {
       return [];
@@ -255,7 +265,7 @@ async function fetchTranscript(videoId, lang) {
       return [];
     }
 
-    const xml = await fetchText(track.baseUrl);
+    const xml = await _deps.fetchText(track.baseUrl);
     return parseTranscriptXML(xml);
   } catch (error) {
     logger.warn("[YouTubeSummarizer] Transcript fetch failed:", error.message);
