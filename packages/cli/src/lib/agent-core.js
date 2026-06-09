@@ -24,4 +24,5 @@ export {
   agentLoop,
   formatToolArgs,
   getActiveMcpServers,
+  _accumulateOllamaStream,
 } from "../runtime/agent-core.js";
