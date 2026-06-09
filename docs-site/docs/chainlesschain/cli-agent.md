@@ -68,6 +68,57 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
 | `--api-key <key>` | API 密钥 | — |
 | `--session <id>` | 恢复历史会话 | — |
+| `--add-dir <dir>` | 额外工作根（可重复） | — |
+| `--mcp-config <file>` | 临时挂载 MCP server，工具 → `mcp__<server>__<tool>` | — |
+| `--no-mcp` | 不自动连 `cc mcp add --auto-connect` 的服务 | （默认连） |
+| `--settings <file>` | 一次性 `.claude/settings.json`：权限规则 + `model`/`env` 覆盖 | — |
+
+## Headless 模式 (`agent -p`) 与 Claude Code 平价旗标
+
+`cc agent -p` 是**单轮非交互**执行（`claude -p` 对标），进 CI / 管道 / 脚本；prompt 来自
+`-p` 值 / 位置参数 / stdin。完整旗标 + 输出格式 + 权限档表见
+[CLI_COMMANDS_REFERENCE → managed-agents](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/managed-agents.md)。
+
+```bash
+chainlesschain agent -p "fix the bug in x.js"                     # 单轮执行后退出
+chainlesschain agent -p "..." --output-format json|stream-json    # 机器可读 / 逐事件 NDJSON
+chainlesschain agent -p "..." --max-turns 5                       # 限制循环迭代上限
+chainlesschain agent -p "..." --allowed-tools / --disallowed-tools "read_file,git"
+chainlesschain agent -p "..." --permission-mode bypassPermissions # default|plan|acceptEdits|bypassPermissions
+chainlesschain agent -p "..." --resume <id> | --continue          # 会话恢复 + 自动压缩
+chainlesschain agent -p "..." --output-format stream-json --include-partial-messages  # 逐 token 增量
+chainlesschain agent -p "..." --input-format stream-json          # 持续从 stdin 喂多轮 NDJSON 用户事件
+chainlesschain agent -p "..." --mcp-config ./mcp.json             # 临时 MCP（{"mcpServers":{...}}）
+chainlesschain agent -p "..." --mcp-config m.json --permission-prompt-tool mcp__auth__approve  # 审批交 MCP 工具
+chainlesschain agent -p "..." --settings ./run.json               # 一次性 model/env + 权限覆盖
+```
+
+**逐 token 增量**（`--include-partial-messages`，仅 `--output-format stream-json`）额外 emit
+`stream_event`/`content_block_delta`；真增量覆盖 ollama + anthropic + OpenAI 兼容
+（openai/deepseek/dashscope/mistral/gemini/volcengine），含流式 tool-call 重组。
+
+### MCP — 把工具喂给 agent 循环
+
+两条路（**headless + 交互**都支持，合并进同一 client，同名 ad-hoc 优先）：`--mcp-config` 临时挂载，
+或 `cc mcp add --auto-connect` 注册后每次自动连（`--no-mcp` 跳过）。工具名 `mcp__<server>__<tool>`。
+
+### Subagents — `cc agents` 子代理
+
+`.chainlesschain/agents/*.md`（原生优先）或 `.claude/agents/*.md`（Claude Code 可移植）定义命名子代理：
+**正文 = system prompt**，frontmatter `tools`（白名单）/ `model`。
+
+```bash
+chainlesschain agents list | show <name> | run <name> "<task>" | new <name> [--tools ...] [--claude]
+```
+
+`cc agents run` 把子代理映射到 headless 运行；主 agent 经 `spawn_sub_agent({ agent: "review:security" })`
+委派——加载该子代理的 system prompt + 工具白名单 + `model:`（继承父 provider/key，只覆盖 model）。
+
+### Context — `cc context` 上下文窗口占用
+
+```bash
+chainlesschain context [<sessionId>] [--json] [--model <m>]   # 按角色拆 token + 占比 + 余量（/context 对标）
+```
 
 ## 内置工具
 
