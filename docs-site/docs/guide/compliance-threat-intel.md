@@ -265,7 +265,7 @@ cc compliance ─┬─ stixgov-*-v2   → stix-parser.js
 | STIX 2.1 | ✅ `stixgov` | ✅ 收费 | ✅ |
 | UEBA | ✅ `uebgov` | ✅ 收费 | ⚠️ 基础 |
 | SOC2 / ISO27001 报告 | ✅ `cmpmgov` | ✅ 模板 | ⚠️ |
-| CLI 可自动化 | ✅ 144 命令 | ⚠️ | ⚠️ |
+| CLI 可自动化 | ✅ 149 命令 | ⚠️ | ⚠️ |
 | 本地优先 / 可离线 | ✅ | ❌ | ✅ |
 | V2 治理生命周期 | ✅ | ❌ | ❌ |
 

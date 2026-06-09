@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.101 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.32 / 144 命令 / 30,000+ 测试 | Android 5.0.3.101 (versionCode 503101，与 productVersion 对齐 · USR_VERSION 20 · binariesVersion 待 cc-cli.tgz 重建) | iOS 5.0.3 (build 101，Hua Zhang 团队 ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.101 进化版 | 141 桌面技能 + 25 Android 技能 | CLI v0.162.32 / 149 命令 / 30,000+ 测试 | Android 5.0.3.101 (versionCode 503101，与 productVersion 对齐 · USR_VERSION 20 · binariesVersion 待 cc-cli.tgz 重建) | iOS 5.0.3 (build 101，Hua Zhang 团队 ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.101 CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件 + U-Key 托管层（2026-06-09）**：把 .100 之后累积的工程主线固化为一次正式发版。① **CLI 向 Claude-Code 平价收尾** —— headless `agent -p` 全家桶（`--output-format` / `--max-turns` / `--allowed-`/`--disallowed-tools` / `--permission-mode` / stdin / `--input-format stream-json` / `--system-prompt` / `--add-dir` / `--fallback-model`）+ `@file` 引用在 `ask`/`chat` 平价 + `cc cost` token 计费（可 `llm.pricing` 覆盖）+ 文件态 `cc checkpoint`/rewind。② **PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析** —— 微信 4.0 每库独立密钥 + zstd 消息体 + 公众号/朋友圈/收藏 + 非文本人话化；QQ-NT 端到端解密 + protobuf 解析（真机 `nt_msg.db` 验证）+ 名称补全（uin→昵称 / 群号→群名）+ `pdh-im-collect` 内置技能。③ **安全 fail-closed 套件** —— SAML/OAuth/通道签名/permission-ipc fail-closed + 删硬编码 "123456"。④ **U-Key 口令托管层（Phase 3，默认 gated OFF）**。⑤ **桌面 DB/LLM 性能面板 V6 端口接通**（db-performance IPC 此前从未注册）。npm：pdh 0.4.2 → 0.4.3 + CLI 0.162.31 → 0.162.32（待发）；Android USR_VERSION 19 → 20 强制真机重抽 cc-cli.tgz。
 >
@@ -1853,7 +1853,7 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 | ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`                                 | Skill-Embedded MCP mount/unmount（26 tests）    |
 | ✅ `packages/session-core/__tests__/quality-gate.test.js`                          | QualityGate 可插拔检查器注册表（39 tests）      |
 | ✅ `desktop-app-vue/tests/unit/cowork/debate-review.test.js`                       | Cowork debate-review 冲突仲裁（18 tests）       |
-| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 144 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
+| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 149 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
 
 **全项目合计**: 30,000+ tests（Desktop ~28k + CLI ~19k + web-panel ~2k + core packages ~2k）
 

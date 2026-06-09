@@ -265,7 +265,7 @@ ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（E
 ```
 desktop-app-vue/src/main/        # Electron 主进程
 desktop-app-vue/src/renderer/    # Vue3 渲染器（113 Pinia stores）
-packages/cli/                    # CLI（144 命令）
+packages/cli/                    # CLI（149 命令）
 backend/project-service/         # Java 后端
 backend/ai-service/              # Python AI 后端
 mobile-app/                      # Android
