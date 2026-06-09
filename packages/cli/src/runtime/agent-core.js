@@ -23,6 +23,7 @@ import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookRunner from "../lib/hook-runner.cjs";
+import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
@@ -69,6 +70,7 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
 const { runHooks: runCommandHooks } = sharedHookRunner;
+const { runObserveHooks } = sharedHookEvents;
 
 // ─── Background shell tasks ────────────────────────────────────────────────
 //
@@ -2894,6 +2896,24 @@ export async function* agentLoop(messages, options) {
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
+          // settings.json PreCompact hooks (observe-only — fires right before
+          // the history is compacted, e.g. to archive the full transcript).
+          if (options.settingsHooks) {
+            try {
+              runObserveHooks(
+                options.settingsHooks,
+                "PreCompact",
+                {
+                  trigger: "auto",
+                  message_count: messages.length,
+                  session_id: options.sessionId || null,
+                },
+                { cwd: options.cwd || process.cwd() },
+              );
+            } catch (_err) {
+              // observe-only
+            }
+          }
           const { messages: compacted, stats } = await compactor.compress(
             messages,
             { preserveToolPairs: true },
@@ -2987,6 +3007,23 @@ export async function* agentLoop(messages, options) {
 
     if (!toolCalls || toolCalls.length === 0) {
       yield { type: "response-complete", content: msg.content || "" };
+      // settings.json Stop hooks (observe-only — the main agent has finished).
+      if (options.settingsHooks) {
+        try {
+          runObserveHooks(
+            options.settingsHooks,
+            "Stop",
+            {
+              stop_hook_active: true,
+              final_response: String(msg.content || "").substring(0, 2000),
+              session_id: options.sessionId || null,
+            },
+            { cwd: options.cwd || process.cwd() },
+          );
+        } catch (_err) {
+          // observe-only — never affect the run outcome
+        }
+      }
       yield { type: "run-ended", runId, reason: "complete" };
       return;
     }

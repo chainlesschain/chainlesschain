@@ -488,6 +488,23 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // settings.json SessionEnd hooks (observe-only) when stdin closes.
+  if (settingsHooks) {
+    try {
+      const { runObserveHooks } = await import(
+        "../lib/settings-hook-events.cjs"
+      );
+      runObserveHooks(
+        settingsHooks,
+        "SessionEnd",
+        { reason: "stdin_closed", cwd, session_id: sessionId },
+        { cwd },
+      );
+    } catch {
+      // observe-only
+    }
+  }
+
   emit({ type: "system", subtype: "end", session_id: sessionId, turns });
   return { exitCode: sawError ? 1 : 0, turns };
 }

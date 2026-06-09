@@ -732,6 +732,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } catch {
       // best-effort — never mask the run's own outcome
     }
+    // settings.json SessionEnd hooks (observe-only) when the run finishes.
+    if (settingsHooks) {
+      try {
+        const { runObserveHooks } = await import(
+          "../lib/settings-hook-events.cjs"
+        );
+        runObserveHooks(
+          settingsHooks,
+          "SessionEnd",
+          { reason: "completed", cwd, session_id: sessionId },
+          { cwd },
+        );
+      } catch {
+        // observe-only
+      }
+    }
   }
 
   // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration

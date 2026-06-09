@@ -1945,6 +1945,22 @@ export async function startAgentRepl(options = {}) {
   });
 
   rl.on("close", async () => {
+    // settings.json SessionEnd hooks (observe-only) when the REPL exits.
+    if (_settingsHooks) {
+      try {
+        const { runObserveHooks } = await import(
+          "../lib/settings-hook-events.cjs"
+        );
+        runObserveHooks(
+          _settingsHooks,
+          "SessionEnd",
+          { reason: "exit", cwd: process.cwd(), session_id: sessionId },
+          { cwd: process.cwd() },
+        );
+      } catch (_err) {
+        // observe-only
+      }
+    }
     // Save session on exit
     if (sessionId) {
       try {

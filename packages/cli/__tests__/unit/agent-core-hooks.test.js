@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { executeTool } from "../../src/runtime/agent-core.js";
+import { executeTool, agentLoop } from "../../src/runtime/agent-core.js";
 
 let tmp, file;
 
@@ -126,5 +126,30 @@ describe("no settingsHooks → unchanged", () => {
   it("reads normally with no hooks", async () => {
     const res = await executeTool("read_file", { path: file }, { cwd: tmp });
     expect(res.error).toBeUndefined();
+  });
+});
+
+describe("Stop hook (agentLoop completion)", () => {
+  it("fires a Stop hook when the agent finishes (no tool calls)", async () => {
+    const sentinel = path.join(tmp, "STOPPED");
+    const cmd = `node -e "require('fs').writeFileSync('${sentinel.replace(/\\/g, "\\\\")}','x')"`;
+    const chatFn = async () => ({
+      message: { role: "assistant", content: "done" },
+      usage: {},
+    });
+    const gen = agentLoop([{ role: "user", content: "hi" }], {
+      chatFn,
+      cwd: tmp,
+      settingsHooks: {
+        Stop: [{ matcher: null, hooks: [{ type: "command", command: cmd }] }],
+      },
+      autoCompact: false,
+    });
+    // drain the generator
+    // eslint-disable-next-line no-unused-vars
+    for await (const _ev of gen) {
+      /* consume events */
+    }
+    expect(fs.existsSync(sentinel)).toBe(true);
   });
 });

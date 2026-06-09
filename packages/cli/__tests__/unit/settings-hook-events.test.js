@@ -8,7 +8,12 @@
 import { describe, it, expect } from "vitest";
 import ev from "../../src/lib/settings-hook-events.cjs";
 
-const { runUserPromptSubmitHooks, runSessionStartHooks, aggregateContext } = ev;
+const {
+  runUserPromptSubmitHooks,
+  runSessionStartHooks,
+  runObserveHooks,
+  aggregateContext,
+} = ev;
 
 const ups = (command) => ({
   UserPromptSubmit: [{ matcher: null, hooks: [{ type: "command", command }] }],
@@ -82,6 +87,33 @@ describe("runSessionStartHooks", () => {
       cwd: CWD,
     });
     expect(r.additionalContext).toBeNull();
+  });
+});
+
+describe("runObserveHooks (Stop / SessionEnd / PreCompact)", () => {
+  const obs = (event, command) => ({
+    [event]: [{ matcher: null, hooks: [{ type: "command", command }] }],
+  });
+
+  it("runs the event's hooks and returns continue when they exit 0", () => {
+    const r = runObserveHooks(obs("Stop", 'node -e ""'), "Stop", {}, { cwd: CWD });
+    expect(r.decision).toBe("continue");
+    expect(r.results).toHaveLength(1);
+  });
+
+  it("surfaces a block reason (observe — caller decides) ", () => {
+    const cmd =
+      "node -e \"console.log(JSON.stringify({decision:'block',reason:'stay'}))\"";
+    const r = runObserveHooks(obs("Stop", cmd), "Stop", {}, { cwd: CWD });
+    expect(r).toMatchObject({ decision: "block", reason: "stay" });
+  });
+
+  it("returns continue with no hooks / no settings", () => {
+    expect(runObserveHooks(null, "Stop", {}, {}).decision).toBe("continue");
+    expect(
+      runObserveHooks(obs("PreCompact", 'node -e ""'), "SessionEnd", {}, {})
+        .decision,
+    ).toBe("continue"); // event mismatch → no hooks
   });
 });
 
