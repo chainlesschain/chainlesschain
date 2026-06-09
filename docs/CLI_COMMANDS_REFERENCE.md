@@ -9,7 +9,7 @@
 
 | Group | File | Covers |
 |-------|------|--------|
-| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless) + 旗标 (`--mcp-config`/`--no-mcp`/`--permission-prompt-tool`/`--include-partial-messages`/`--input-format`/`--settings`), `agents` (子代理), `context` (上下文占用), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `compact`, `goal`, `stream`, WS routes (Phase D–I) |
+| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless) + 旗标 (`--mcp-config`/`--no-mcp`/`--permission-prompt-tool`/`--include-partial-messages`/`--input-format`/`--settings`), `agents` (子代理), `context` (上下文占用), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `compact`, `goal`, `stream`, `output-style` (人格), WS routes (Phase D–I) |
 | Core Phases 2–7 · Init · Cowork | [`cli/core-phases.md`](./cli/core-phases.md) | `import/export`, `mcp`, `did/encrypt/auth/audit`, `p2p/wallet/org/plugin`, `init/persona`, `cowork`, `hook/workflow/hmemory/a2a`, `sandbox/evolution/evomap/dao` |
 | Phase 8 · Blockchain & Enterprise | [`cli/blockchain-enterprise.md`](./cli/blockchain-enterprise.md) | `compliance/threat-intel`, `pqc`, `nostr/matrix/activitypub/scim/terraform`, `hardening/stress/reputation/sla/tech/dev/collab/marketplace/incentive/kg/tenant/governance/recommend/crosschain/privacy/inference/trust/social/fusion/infra` |
 | Observability & Code Intel | [`cli/observability.md`](./cli/observability.md) | `codegen` (Phase 86), `ops` (AIOps Phase 25), `perception` (Phase 84), `dbevo` (Phase 80), `federation` (Phase 58) |
@@ -88,6 +88,8 @@ chainlesschain agent -p "..." --mcp-config m.json # 临时挂 MCP server (工具
 chainlesschain agent -p "..." --no-mcp            # 不自动连 cc mcp add --auto-connect 的服务
 chainlesschain agent -p "..." --output-format stream-json --include-partial-messages  # 逐 token 增量
 chainlesschain agent -p "..." --settings run.json # 一次性 settings:权限 + model/env 覆盖
+chainlesschain agent -p "..." --output-style explanatory  # 套命名人格 (内置 explanatory/learning 或 .claude/output-styles/*.md) — 详见 chainlesschain/output-styles
+chainlesschain output-style list | show <name> | new <name>  # 列/查/脚手架人格 (cc agent --output-style / REPL /output-style)
 chainlesschain skill list                         # 列出全部技能 (四层: bundled/marketplace/managed/workspace)
 chainlesschain skill list --category cli-direct   # 列出 CLI 命令技能包
 chainlesschain skill run code-review "Review this code"
