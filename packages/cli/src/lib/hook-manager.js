@@ -40,6 +40,7 @@ export const HookEvents = {
   SessionEnd: "SessionEnd",
   PreCompact: "PreCompact",
   PostCompact: "PostCompact",
+  Notification: "Notification",
   UserPromptSubmit: "UserPromptSubmit",
   AssistantResponse: "AssistantResponse",
   AgentStart: "AgentStart",

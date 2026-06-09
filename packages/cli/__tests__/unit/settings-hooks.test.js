@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import sh from "../../src/lib/settings-hooks.cjs";
 
-const { loadHooks, collectHooks, _deps } = sh;
+const { loadHooks, collectHooks, HOOK_EVENTS, _deps } = sh;
 const isWin = process.platform === "win32";
 const HOME = isWin ? "C:\\home\\u" : "/home/u";
 const CWD = isWin ? "C:\\proj" : "/proj";
@@ -123,5 +123,20 @@ describe("collectHooks — matcher resolution", () => {
 
   it("returns [] for an event with no groups", () => {
     expect(collectHooks(block, "PostToolUse", "run_shell")).toEqual([]);
+  });
+});
+
+describe("Notification event", () => {
+  it("is a recognised hook event", () => {
+    expect(HOOK_EVENTS).toContain("Notification");
+  });
+  it("collectHooks fires non-tool Notification hooks (matcher null/*)", () => {
+    const b = {
+      Notification: [cmdGroup(null, "notify.sh"), cmdGroup("Bash", "x.sh")],
+    };
+    // no tool target → only the matcher-less hook fires
+    expect(collectHooks(b, "Notification", "").map((h) => h.command)).toEqual([
+      "notify.sh",
+    ]);
   });
 });

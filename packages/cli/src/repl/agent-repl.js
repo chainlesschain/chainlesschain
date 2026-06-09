@@ -86,6 +86,26 @@ let _permissionConfirm = null;
 let _settingsHooks = null;
 
 /**
+ * Fire settings.json Notification hooks (observe-only) — the agent needs the
+ * user's attention (e.g. waiting on a permission/risk confirmation). A hook can
+ * ring a bell / send a desktop notification. Best-effort, never blocks.
+ */
+async function _fireNotification(message) {
+  if (!_settingsHooks) return;
+  try {
+    const { runObserveHooks } = await import("../lib/settings-hook-events.cjs");
+    runObserveHooks(
+      _settingsHooks,
+      "Notification",
+      { message, cwd: process.cwd(), session_id: null },
+      { cwd: process.cwd() },
+    );
+  } catch (_err) {
+    // observe-only — never affect the prompt
+  }
+}
+
+/**
  * "Always allow" persistence: derive a sensible allow rule for a tool call,
  * append it to .claude/settings.local.json (personal, gitignored), and reflect
  * it in the in-memory ruleset so the rest of the session stops prompting. A
@@ -277,6 +297,9 @@ export async function startAgentRepl(options = {}) {
     _approvalGate = await getApprovalGate();
     if (typeof _approvalGate.setConfirmer === "function") {
       _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
+        await _fireNotification(
+          `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
+        );
         const rlConfirm = readline.createInterface({
           input: process.stdin,
           output: process.stdout,
@@ -325,6 +348,9 @@ export async function startAgentRepl(options = {}) {
     // Confirmer is shared by permission `ask` rules AND hook `ask` decisions,
     // so define it unconditionally (a `hook:` rule label flows through too).
     _permissionConfirm = async ({ tool, args, rule }) => {
+      await _fireNotification(
+        `Permission needed: ${tool}${rule ? " (" + rule + ")" : ""}`,
+      );
       const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,

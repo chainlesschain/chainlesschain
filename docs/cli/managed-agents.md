@@ -553,6 +553,7 @@ chainlesschain hook list                                                # DB hoo
 | **Stop** | agentLoop 收尾(agent 给出最终答复,无工具调用) | `block`→**强制续跑**(reason 作新指令注入,`stop_hook_active` 防死循环 + 迭代预算兜底);payload 含 `final_response`/`stop_hook_active` |
 | **PreCompact** | 自动压缩前(`shouldAutoCompact` 命中) | `block`→**跳过本轮压缩**(emit `compaction-skipped`);payload 含 `trigger`/`message_count` |
 | **SessionEnd** | 会话结束(headless run 收尾 / stdin 关闭 / REPL 退出) | observe-only;payload 含 `reason` |
+| **Notification** | agent 需要用户注意时(REPL 弹权限/风险确认前) | observe-only(响铃 / 桌面通知);payload 含 `message`。仅交互 REPL(headless 无人可通知) |
 
 UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`;block 在 headless 退出码 `2`、在 REPL 跳过本轮。SessionStart payload:`{ hook_event_name, source, cwd, session_id }`。Stop/PreCompact 由 `agentLoop` 中心触发(覆盖三入口);SessionEnd 在各入口收尾触发。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
 

@@ -40,6 +40,7 @@ const HOOK_EVENTS = Object.freeze([
   "SessionStart",
   "SessionEnd",
   "PreCompact",
+  "Notification",
 ]);
 
 /** Same hierarchy as settings-loader (user < project < .local < --settings). */
