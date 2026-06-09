@@ -21,30 +21,34 @@ import fsDefault from "node:fs";
 import pathDefault from "node:path";
 import { homedir } from "node:os";
 import { execSync as execSyncDefault } from "node:child_process";
-import yaml from "js-yaml";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 
 const _deps = { fs: fsDefault, path: pathDefault, execSync: execSyncDefault };
 
 /**
- * Split `--- ... ---` YAML frontmatter from the body and camelCase the keys
- * (so `argument-hint` → `argumentHint`). Self-contained (no skill-loader, whose
- * import chain drags in heavy native deps). Returns `{ data, body }`.
+ * Split `--- ... ---` frontmatter from the body and camelCase the keys (so
+ * `argument-hint` → `argumentHint`). A minimal `key: value` scalar parser —
+ * command frontmatter only carries simple scalars (description, argument-hint,
+ * allowed-tools, model). Deliberately NOT js-yaml (an undeclared CLI dep that
+ * only resolves via workspace hoisting) and NOT skill-loader's parseSkillMd
+ * (its import chain drags native deps that crash vitest). Returns `{ data, body }`.
  */
 function parseFrontmatter(content) {
   const text = String(content || "");
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) return { data: {}, body: text.trim() };
-  let raw = {};
-  try {
-    raw = yaml.load(m[1]) || {};
-  } catch {
-    raw = {};
-  }
   const data = {};
-  for (const [k, v] of Object.entries(raw)) {
-    const camel = k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    data[camel] = v;
+  for (const line of m[1].split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const colon = trimmed.indexOf(":");
+    if (colon <= 0) continue;
+    const key = trimmed.slice(0, colon).trim();
+    let value = trimmed.slice(colon + 1).trim();
+    // Strip one layer of surrounding quotes.
+    value = value.replace(/^(['"])([\s\S]*)\1$/, "$2");
+    const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    data[camel] = value;
   }
   return { data, body: (m[2] || "").trim() };
 }
