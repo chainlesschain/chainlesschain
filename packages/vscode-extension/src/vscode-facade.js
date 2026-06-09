@@ -3,6 +3,7 @@
  * consumes. Isolating the `vscode` surface here keeps the tool logic testable
  * with a fake facade. This file only runs inside the extension host.
  */
+const fs = require("fs");
 
 const SEVERITY = ["error", "warning", "information", "hint"];
 
@@ -70,6 +71,8 @@ function createVscodeEditorFacade(vscode) {
       } else {
         leftUri = fileUri; // diff against the file on disk
       }
+      // The right pane is a real (editable) document, so the user can tweak the
+      // proposal before accepting — we read its final text back on accept.
       const rightDoc = await vscode.workspace.openTextDocument({
         content: modifiedText,
       });
@@ -78,12 +81,47 @@ function createVscodeEditorFacade(vscode) {
         leftUri,
         rightDoc.uri,
         title || `Review: ${path}`,
+        { preview: false },
       );
-      // MVP: the diff is shown for manual review. Programmatic accept/reject
-      // round-trip is Phase 2 (design module 98, §2.5 / Phase 2).
-      return { shown: true, path };
+
+      // Phase 2: block the tool call until the user decides. Dismissing the
+      // prompt (undefined) is treated as Reject — fail-safe, never auto-apply.
+      const choice = await vscode.window.showInformationMessage(
+        `Apply proposed changes to ${path}?`,
+        { modal: false },
+        "Accept",
+        "Reject",
+      );
+      if (choice !== "Accept") {
+        return { outcome: "rejected", path };
+      }
+
+      const finalText = rightDoc.getText(); // includes any user edits
+      await applyTextToFile(vscode, fileUri, finalText);
+      return { outcome: "accepted", path, finalText };
     },
   };
+}
+
+/**
+ * Replace a file's whole content with `text` and save. Prefers a WorkspaceEdit
+ * (keeps VS Code's undo history); falls back to a direct write for files VS
+ * Code can't open as a text document (e.g. a brand-new path).
+ */
+async function applyTextToFile(vscode, fileUri, text) {
+  try {
+    const doc = await vscode.workspace.openTextDocument(fileUri);
+    const edit = new vscode.WorkspaceEdit();
+    const fullRange = new vscode.Range(
+      doc.positionAt(0),
+      doc.positionAt(doc.getText().length),
+    );
+    edit.replace(fileUri, fullRange, text);
+    await vscode.workspace.applyEdit(edit);
+    await doc.save();
+  } catch {
+    fs.writeFileSync(fileUri.fsPath, text, "utf8");
+  }
 }
 
 module.exports = { createVscodeEditorFacade };

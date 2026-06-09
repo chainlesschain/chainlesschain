@@ -43,11 +43,14 @@ editor.
 > `packages/cli/__tests__/unit/vscode-ext-ide-bridge.test.js`, which drives this
 > extension's MCP server with the real CLI MCP client.
 
-## Status (MVP)
+## Status
 
 - ✅ MCP server + lockfile + env injection + 4 tools, wired and tested.
-- ⏳ `openDiff` currently *shows* the diff; programmatic accept/reject
-  round-trip is Phase 2.
+- ✅ `openDiff` blocks for review and returns
+  `{ outcome: 'accepted' | 'rejected', path, finalText? }`. On accept the
+  (possibly user-edited) right-hand text is written to the file (Phase 2).
+- ⏳ Hunk-level partial accept + a close-the-diff = reject event hook are future
+  polish.
 - ⏳ JetBrains parity is Phase 3; Marketplace publish is Phase 4.
 
 ## Packaging

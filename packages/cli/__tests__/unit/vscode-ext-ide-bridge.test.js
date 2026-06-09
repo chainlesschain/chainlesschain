@@ -47,7 +47,11 @@ function fakeFacade() {
       { file: "/abs/ws/src/a.js", active: true, languageId: "javascript" },
       { file: "/abs/ws/src/b.js", active: false, languageId: "javascript" },
     ],
-    openDiff: vi.fn(async (args) => ({ shown: true, path: args.path })),
+    openDiff: vi.fn(async (args) => ({
+      outcome: "accepted",
+      path: args.path,
+      finalText: args.modifiedText,
+    })),
   };
 }
 
@@ -90,7 +94,7 @@ describe("buildIdeTools (fake facade)", () => {
     );
     expect(
       await byName.openDiff.handler({ path: "/x", modifiedText: "new" }),
-    ).toMatchObject({ shown: true });
+    ).toMatchObject({ outcome: "accepted", finalText: "new" });
   });
 });
 
@@ -142,7 +146,10 @@ describe("IdeMcpServer ↔ CLI MCPClient interop", () => {
       path: "/abs/ws/src/a.js",
       modifiedText: "bar()",
     });
-    expect(JSON.parse(res.content[0].text)).toMatchObject({ shown: true });
+    expect(JSON.parse(res.content[0].text)).toMatchObject({
+      outcome: "accepted",
+      finalText: "bar()",
+    });
   });
 
   it("surfaces a tool error as an isError result, not a transport failure", async () => {
@@ -164,6 +171,98 @@ describe("IdeMcpServer ↔ CLI MCPClient interop", () => {
         headers: { Authorization: "Bearer WRONG" },
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("openDiff blocking review round-trip (Phase 2)", () => {
+  let server;
+  let client;
+  const TOKEN = "review-secret";
+
+  // A facade whose openDiff resolves only AFTER a delay, simulating the user
+  // taking time to accept — the HTTP response stays open until they decide.
+  function deferredReviewFacade(delayMs, outcome) {
+    const base = fakeFacade();
+    base.openDiff = vi.fn(
+      (args) =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve(
+                outcome === "rejected"
+                  ? { outcome: "rejected", path: args.path }
+                  : {
+                      outcome: "accepted",
+                      path: args.path,
+                      finalText: args.modifiedText,
+                    },
+              ),
+            delayMs,
+          ),
+        ),
+    );
+    return base;
+  }
+
+  afterEach(async () => {
+    try {
+      await client?.disconnectAll();
+    } catch {
+      /* ignore */
+    }
+    await server?.stop();
+  });
+
+  it("disables Node request/socket timeouts so a long review is not cut", async () => {
+    server = new IdeMcpServer({ tools: [], token: TOKEN });
+    await server.start({ port: 0 });
+    expect(server._server.requestTimeout).toBe(0);
+    expect(server._server.timeout).toBe(0);
+  });
+
+  it("holds the call open until the user accepts, then returns finalText", async () => {
+    server = new IdeMcpServer({
+      tools: buildIdeTools(deferredReviewFacade(180, "accepted")),
+      token: TOKEN,
+    });
+    await server.start({ port: 0 });
+    client = new MCPClient();
+    await client.connect("ide", {
+      url: server.url(),
+      transport: "http",
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    const t0 = Date.now();
+    const res = await client.callTool("ide", "openDiff", {
+      path: "/abs/ws/src/a.js",
+      modifiedText: "applied()",
+    });
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(150); // actually waited
+    expect(JSON.parse(res.content[0].text)).toMatchObject({
+      outcome: "accepted",
+      finalText: "applied()",
+    });
+  });
+
+  it("returns outcome:rejected when the user declines", async () => {
+    server = new IdeMcpServer({
+      tools: buildIdeTools(deferredReviewFacade(20, "rejected")),
+      token: TOKEN,
+    });
+    await server.start({ port: 0 });
+    client = new MCPClient();
+    await client.connect("ide", {
+      url: server.url(),
+      transport: "http",
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    const res = await client.callTool("ide", "openDiff", {
+      path: "/abs/ws/src/a.js",
+      modifiedText: "nope()",
+    });
+    const out = JSON.parse(res.content[0].text);
+    expect(out.outcome).toBe("rejected");
+    expect(out.finalText).toBeUndefined();
   });
 });
 

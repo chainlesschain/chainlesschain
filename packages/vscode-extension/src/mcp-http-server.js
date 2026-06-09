@@ -43,6 +43,11 @@ class IdeMcpServer {
   async start({ host = "127.0.0.1", port = 0 } = {}) {
     this.host = host;
     this._server = http.createServer((req, res) => this._onRequest(req, res));
+    // A `tools/call` for `openDiff` blocks until the user accepts/rejects the
+    // review — potentially minutes. Disable Node's request/socket timeouts so
+    // the held-open response is never cut (localhost + bearer-gated, trusted).
+    this._server.requestTimeout = 0;
+    this._server.timeout = 0;
     await new Promise((resolve, reject) => {
       const onErr = (e) => reject(e);
       this._server.once("error", onErr);

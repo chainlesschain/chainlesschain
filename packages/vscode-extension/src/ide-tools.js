@@ -61,9 +61,12 @@ function buildIdeTools(editor) {
       name: "openDiff",
       description:
         "Open a native side-by-side diff in the editor for the user to review " +
-        "a proposed change. `path` is the target file; `modifiedText` is the " +
-        "proposed new content; `originalText` defaults to the file's current " +
-        "content. Returns once the diff is shown.",
+        "a proposed change, then BLOCK until they accept or reject it. `path` " +
+        "is the target file; `modifiedText` is the proposed new content; " +
+        "`originalText` defaults to the file's current content. On accept the " +
+        "(possibly user-edited) text is written to the file. Returns " +
+        "{ outcome: 'accepted'|'rejected', path, finalText? } — this call can " +
+        "take a while, that is expected.",
       inputSchema: {
         type: "object",
         properties: {
@@ -91,7 +94,8 @@ function buildIdeTools(editor) {
           originalText: args.originalText,
           title: args.title,
         });
-        return res || { shown: true };
+        // Fail-safe: a facade that returns nothing is treated as "not applied".
+        return res || { outcome: "rejected", path: args.path };
       },
     },
   ];
