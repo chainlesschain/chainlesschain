@@ -145,7 +145,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "shell",
     tier: "mvp",
     description:
-      "Execute a shell command and return the output. Use for running tests, linting, builds, and other non-git workspace commands.",
+      "Execute a shell command and return the output. Use for running tests, linting, builds, and other non-git workspace commands. For long-running commands (builds, full test suites, dev servers) pass run_in_background:true to return a task_id immediately and poll with check_shell instead of blocking.",
     inputSchema: {
       type: "object",
       properties: {
@@ -153,6 +153,16 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         cwd: {
           type: "string",
           description: "Working directory (optional)",
+        },
+        run_in_background: {
+          type: "boolean",
+          description:
+            "Run the command in the background and return a task_id immediately instead of blocking. Use for long-running commands (builds, test suites, dev servers). Poll output and completion with the check_shell tool.",
+        },
+        timeout: {
+          type: "number",
+          description:
+            "Foreground (synchronous) timeout in milliseconds. Default 60000, max 600000. Ignored when run_in_background is true.",
         },
       },
       required: ["command"],
@@ -166,6 +176,40 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     telemetry: {
       category: "shell",
       tags: ["tool:run_shell", "contract:coding-agent", "tier:mvp"],
+    },
+  },
+  {
+    name: "check_shell",
+    title: "Check Shell",
+    kind: "shell",
+    tier: "mvp",
+    description:
+      "Poll a background run_shell task: returns its status, exit code, and any new stdout/stderr since the last check. Omit task_id to list all background tasks. Pass kill:true to terminate a still-running task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: {
+          type: "string",
+          description:
+            "The task_id returned by run_shell { run_in_background: true }. Omit to list all known background tasks.",
+        },
+        kill: {
+          type: "boolean",
+          description:
+            "Terminate the task if it is still running (e.g. a dev server you no longer need).",
+        },
+      },
+      required: [],
+    },
+    ...TOOL_POLICY_METADATA.check_shell,
+    runtimeDescriptor: "shell",
+    permissions: {
+      level: "readonly",
+      scopes: ["process:read"],
+    },
+    telemetry: {
+      category: "shell",
+      tags: ["tool:check_shell", "contract:coding-agent", "tier:mvp"],
     },
   },
   {

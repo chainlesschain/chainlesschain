@@ -115,6 +115,20 @@ const TOOL_POLICY_METADATA = Object.freeze({
     isReadOnly: false,
     readOnlySubcommands: READ_ONLY_GIT_SUBCOMMANDS,
   },
+  // Polls a background run_shell task (output + completion). Read-only: it never
+  // starts new work — the spawn already happened, gated, under run_shell. The
+  // optional kill flag terminates a task the agent itself launched, so it stays
+  // low-risk and is allowed during plan mode.
+  check_shell: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.READ,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
   list_skills: {
     riskLevel: RISK_LEVELS.LOW,
     category: TOOL_CATEGORIES.SKILL,

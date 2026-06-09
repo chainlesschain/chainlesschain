@@ -85,8 +85,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 16 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(16);
+  it("has 17 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(17);
   });
 
   it("is derived from the canonical coding-agent contract", () => {
@@ -1083,7 +1083,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(14); // 16 - 2 disabled
+    expect(capturedBody.tools.length).toBe(15); // 17 - 2 disabled
   });
 
   it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
@@ -1199,7 +1199,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(16);
+    expect(capturedBody.tools.length).toBe(17);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 

@@ -1,0 +1,185 @@
+import { describe, it, expect, afterEach } from "vitest";
+import {
+  executeTool,
+  listBackgroundShellTasks,
+  killAllBackgroundShellTasks,
+} from "../../src/runtime/agent-core.js";
+
+// run_shell { run_in_background:true } + check_shell polling pair (Claude-Code
+// style run_in_background + BashOutput). These exercise the real spawn path, so
+// the commands are short, deterministic Node one-liners that work on any OS.
+
+const NODE = process.execPath; // absolute path to the running node binary
+
+// Poll check_shell until the task leaves the "running" state or we give up.
+// check_shell returns output incrementally (only what's new since the last
+// poll, like Claude Code's BashOutput), so accumulate stdout/stderr across
+// polls — the agent likewise retains earlier chunks in its message history.
+async function pollUntilDone(taskId, { tries = 100, intervalMs = 20 } = {}) {
+  let last;
+  let stdout = "";
+  let stderr = "";
+  for (let i = 0; i < tries; i++) {
+    last = await executeTool("check_shell", { task_id: taskId }, {});
+    stdout += last.stdout || "";
+    stderr += last.stderr || "";
+    if (last.status !== "running") break;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return { ...last, stdout, stderr };
+}
+
+describe("agent-core run_shell background + check_shell", () => {
+  afterEach(() => {
+    killAllBackgroundShellTasks();
+  });
+
+  it("run_in_background returns a task_id immediately without blocking", async () => {
+    const res = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},300)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    expect(res.background).toBe(true);
+    expect(typeof res.task_id).toBe("string");
+    expect(res.task_id).toMatch(/^bg_/);
+    expect(res.status).toBe("running");
+    expect(res.error).toBeUndefined();
+  });
+
+  it("check_shell streams stdout and reports exit code 0 on completion", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "process.stdout.write('bg-out-marker')"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const done = await pollUntilDone(start.task_id);
+    expect(done.status).toBe("exited");
+    expect(done.running).toBe(false);
+    expect(done.exitCode).toBe(0);
+    expect(done.stdout).toContain("bg-out-marker");
+  });
+
+  it("a non-zero exit is reported as status 'failed' with the exit code", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "process.exit(3)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const done = await pollUntilDone(start.task_id);
+    expect(done.status).toBe("failed");
+    expect(done.exitCode).toBe(3);
+  });
+
+  it("check_shell incremental reads do not re-return consumed output", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "process.stdout.write('first-chunk')"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const done = await pollUntilDone(start.task_id);
+    expect(done.stdout).toContain("first-chunk");
+    // A second poll after completion has already consumed the buffer.
+    const again = await executeTool(
+      "check_shell",
+      { task_id: start.task_id },
+      {},
+    );
+    expect(again.stdout).toBe("");
+    expect(again.status).toBe("exited");
+  });
+
+  it("check_shell with an unknown task_id returns an error + task list", async () => {
+    const res = await executeTool(
+      "check_shell",
+      { task_id: "bg_does_not_exist" },
+      {},
+    );
+    expect(res.error).toMatch(/No background shell task/);
+    expect(Array.isArray(res.tasks)).toBe(true);
+  });
+
+  it("check_shell with no task_id lists known background tasks", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},300)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const res = await executeTool("check_shell", {}, {});
+    expect(Array.isArray(res.tasks)).toBe(true);
+    expect(res.tasks.some((t) => t.id === start.task_id)).toBe(true);
+  });
+
+  it("check_shell { kill:true } terminates a running task", async () => {
+    const start = await executeTool(
+      "run_shell",
+      {
+        // Long sleep so the kill lands while it is still running.
+        command: `${NODE} -e "setTimeout(()=>{},10000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    const killRes = await executeTool(
+      "check_shell",
+      { task_id: start.task_id, kill: true },
+      {},
+    );
+    expect(killRes.killed).toBe(true);
+    const done = await pollUntilDone(start.task_id);
+    expect(done.running).toBe(false);
+  });
+
+  it("listBackgroundShellTasks reflects spawned tasks", async () => {
+    const before = listBackgroundShellTasks().length;
+    await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},300)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    expect(listBackgroundShellTasks().length).toBe(before + 1);
+  });
+});
+
+describe("agent-core run_shell configurable foreground timeout", () => {
+  it("a tiny timeout aborts a slow synchronous command", async () => {
+    const res = await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},2000)"`,
+        timeout: 100,
+      },
+      {},
+    );
+    expect(res.error).toBeTruthy();
+    expect(res.stdout).toBeUndefined();
+  });
+
+  it("default timeout still runs a fast synchronous command", async () => {
+    const res = await executeTool(
+      "run_shell",
+      { command: `${NODE} -e "process.stdout.write('fast')"` },
+      {},
+    );
+    expect(res.error).toBeUndefined();
+    expect(res.stdout).toContain("fast");
+  });
+});

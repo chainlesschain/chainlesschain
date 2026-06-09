@@ -16,7 +16,7 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, spawn } from "child_process";
 import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
@@ -68,6 +68,103 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
 const { runHooks: runCommandHooks } = sharedHookRunner;
+
+// ─── Background shell tasks ────────────────────────────────────────────────
+//
+// run_shell is synchronous (execSync) and capped at a foreground timeout, which
+// is the right default for quick commands but blocks the whole agent loop on
+// long-running ones (builds, full test suites, `npm run dev`). When the model
+// passes run_in_background:true the command is spawned instead, returns a
+// task_id immediately, and streams its output into this registry. The agent
+// then polls completion + incremental output via the check_shell tool — the
+// run_in_background + BashOutput pattern from Claude Code.
+//
+// In-memory, process-lifetime: a task_id is only valid within the agent process
+// that spawned it, which is exactly the polling window (one REPL session / one
+// headless run). Buffers are bounded (MAX_BG_BUFFER per stream, tail-retained)
+// so a chatty long task can't exhaust memory.
+const MAX_BG_BUFFER = 1024 * 1024; // 1 MB retained tail per stream
+const _backgroundShellTasks = new Map();
+let _backgroundTaskSeq = 0;
+
+function _newBgStream() {
+  return { buf: "", total: 0, dropped: 0, cursor: 0 };
+}
+
+function _appendBgStream(stream, text) {
+  stream.buf += text;
+  stream.total += text.length;
+  if (stream.buf.length > MAX_BG_BUFFER) {
+    const over = stream.buf.length - MAX_BG_BUFFER;
+    stream.buf = stream.buf.slice(over);
+    stream.dropped += over;
+  }
+}
+
+// Read everything produced since the last read and advance the cursor. When the
+// cursor points into a region already dropped from the retained tail, the gap
+// is reported so the caller knows output was lost to the buffer cap.
+function _readBgStream(stream) {
+  const bufStart = stream.total - stream.buf.length;
+  let from = stream.cursor;
+  let droppedGap = 0;
+  if (from < bufStart) {
+    droppedGap = bufStart - from;
+    from = bufStart;
+  }
+  const text = stream.buf.slice(from - bufStart);
+  stream.cursor = stream.total;
+  return { text, droppedGap };
+}
+
+/**
+ * Snapshot of background shell tasks (for REPL/host status surfaces).
+ * @returns {Array<{id:string,status:string,command:string,exitCode:number|null}>}
+ */
+export function listBackgroundShellTasks() {
+  return Array.from(_backgroundShellTasks.values()).map((t) => ({
+    id: t.id,
+    status: t.status,
+    command: t.command,
+    exitCode: t.exitCode,
+    startedAt: t.startedAt,
+    endedAt: t.endedAt,
+  }));
+}
+
+/**
+ * Kill every still-running background shell task. Callers (REPL exit, headless
+ * shutdown) invoke this so a backgrounded `npm run dev` doesn't outlive the
+ * agent. Best-effort: kill failures are swallowed.
+ * @returns {number} count of tasks signalled
+ */
+export function killAllBackgroundShellTasks() {
+  let killed = 0;
+  for (const task of _backgroundShellTasks.values()) {
+    if (task.status === "running" && task.child) {
+      try {
+        task.child.kill();
+        killed += 1;
+      } catch (_err) {
+        /* best-effort */
+      }
+    }
+  }
+  return killed;
+}
+
+// Foreground (synchronous) run_shell timeout. Configurable per-call via the
+// optional `timeout` arg; defaults to 60s and is hard-capped at 10 min so a
+// synchronous call can never wedge the loop indefinitely (use run_in_background
+// for genuinely long work).
+const DEFAULT_SHELL_TIMEOUT_MS = 60000;
+const MAX_SHELL_TIMEOUT_MS = 600000;
+function _resolveShellTimeout(raw) {
+  if (raw == null) return DEFAULT_SHELL_TIMEOUT_MS;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_SHELL_TIMEOUT_MS;
+  return Math.min(Math.floor(n), MAX_SHELL_TIMEOUT_MS);
+}
 
 /**
  * Run settings.json `PreToolUse` hooks (decision-capable). DB hooks are handled
@@ -271,6 +368,7 @@ Key behaviors:
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
 - When asked to run/test something, use run_shell to execute it
+- For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use read_file and search_files to find information
 - You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
@@ -967,11 +1065,82 @@ async function executeToolInner(
         }
       }
 
+      // Background: spawn, register, return a task_id immediately. The agent
+      // polls output + completion via check_shell. No timeout — that's the whole
+      // point of backgrounding (builds, test suites, dev servers).
+      if (args.run_in_background === true) {
+        const id = `bg_${++_backgroundTaskSeq}`;
+        const task = {
+          id,
+          command: args.command,
+          cwd: args.cwd || cwd,
+          status: "running",
+          exitCode: null,
+          signal: null,
+          error: null,
+          startedAt: new Date().toISOString(),
+          endedAt: null,
+          out: _newBgStream(),
+          err: _newBgStream(),
+          child: null,
+        };
+        try {
+          const child = spawn(args.command, {
+            cwd: task.cwd,
+            shell: true,
+            windowsHide: true,
+          });
+          task.child = child;
+          if (child.stdout) {
+            child.stdout.setEncoding("utf8");
+            child.stdout.on("data", (d) => _appendBgStream(task.out, d));
+          }
+          if (child.stderr) {
+            child.stderr.setEncoding("utf8");
+            child.stderr.on("data", (d) => _appendBgStream(task.err, d));
+          }
+          child.on("error", (err) => {
+            task.status = "error";
+            task.error = String(err?.message || err).substring(0, 2000);
+            task.endedAt = new Date().toISOString();
+          });
+          // 'close' (not 'exit') so stdout/stderr are fully drained before the
+          // status leaves "running" — otherwise a poll can observe completion
+          // with the final output chunk not yet buffered.
+          child.on("close", (code, signal) => {
+            // 'error' may have already set a terminal state; don't overwrite it.
+            if (task.status === "running") {
+              task.status = code === 0 ? "exited" : "failed";
+            }
+            task.exitCode = code;
+            task.signal = signal;
+            task.endedAt = new Date().toISOString();
+          });
+        } catch (err) {
+          task.status = "error";
+          task.error = String(err?.message || err).substring(0, 2000);
+          task.endedAt = new Date().toISOString();
+        }
+        _backgroundShellTasks.set(id, task);
+        return attachDescriptor(
+          {
+            background: true,
+            task_id: id,
+            status: task.status,
+            command: task.command,
+            hint: "Poll output and completion with the check_shell tool using this task_id. Kill long-lived servers with check_shell { task_id, kill: true } when done.",
+            shellCommandPolicy: shellPolicy,
+            approval: approvalOutcome,
+          },
+          override || runtimeDescriptor,
+        );
+      }
+
       try {
         const output = execSync(args.command, {
           cwd: args.cwd || cwd,
           encoding: "utf8",
-          timeout: 60000,
+          timeout: _resolveShellTimeout(args.timeout),
           maxBuffer: 1024 * 1024,
         });
         return attachDescriptor(
@@ -994,6 +1163,54 @@ async function executeToolInner(
           override || runtimeDescriptor,
         );
       }
+    }
+
+    case "check_shell": {
+      const taskId = args.task_id;
+      // No task_id → list known background tasks (lightweight status surface).
+      if (!taskId) {
+        return attachDescriptor({
+          tasks: listBackgroundShellTasks(),
+        });
+      }
+      const task = _backgroundShellTasks.get(taskId);
+      if (!task) {
+        return attachDescriptor({
+          error: `No background shell task with id "${taskId}".`,
+          tasks: listBackgroundShellTasks(),
+        });
+      }
+      let killed = false;
+      if (args.kill === true && task.status === "running" && task.child) {
+        try {
+          task.child.kill();
+          killed = true;
+        } catch (_err) {
+          /* best-effort; exit handler updates status */
+        }
+      }
+      const out = _readBgStream(task.out);
+      const err = _readBgStream(task.err);
+      return attachDescriptor({
+        task_id: task.id,
+        status: task.status,
+        running: task.status === "running",
+        command: task.command,
+        exitCode: task.exitCode,
+        signal: task.signal,
+        ...(task.error ? { error: task.error } : {}),
+        stdout: out.text.substring(0, 30000),
+        stderr: err.text.substring(0, 30000),
+        ...(out.droppedGap
+          ? { stdout_dropped_bytes: out.droppedGap }
+          : {}),
+        ...(err.droppedGap
+          ? { stderr_dropped_bytes: err.droppedGap }
+          : {}),
+        ...(killed ? { killed: true } : {}),
+        startedAt: task.startedAt,
+        endedAt: task.endedAt,
+      });
     }
 
     case "git": {
@@ -2845,7 +3062,11 @@ export function formatToolArgs(name, args) {
     case "edit_file_hashed":
       return `${args.path} @${args.anchor_hash}`;
     case "run_shell":
-      return args.command;
+      return args.run_in_background ? `${args.command} (background)` : args.command;
+    case "check_shell":
+      return args.task_id
+        ? `${args.task_id}${args.kill ? " (kill)" : ""}`
+        : "list";
     case "git":
       return args.command;
     case "search_files":
