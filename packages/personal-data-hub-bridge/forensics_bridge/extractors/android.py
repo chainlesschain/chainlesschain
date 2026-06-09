@@ -429,3 +429,111 @@ def adb_backup(
         "bytes": out_path.stat().st_size,
         "stderr": proc.stderr or "",
     }
+
+
+# ---------------------------------------------------------------------------
+# android.root_pull — pull an app-private file via root (su cp -> pull)
+# ---------------------------------------------------------------------------
+
+
+def _su_pull_one(adb_path, base_args, remote, local_dir, timeout_s):
+    """su -c cp <remote> /data/local/tmp -> adb pull -> rm tmp. Returns
+    local path or None (missing/denied)."""
+    name = Path(remote).name
+    tmp = "/data/local/tmp/_fb_" + name
+    cp = _run_adb(
+        adb_path,
+        [*base_args, "shell", "su", "-c", f"cp '{remote}' '{tmp}' 2>/dev/null && chmod 666 '{tmp}'"],
+        timeout_s=timeout_s,
+    )
+    # cp of a missing file fails silently; check by pulling.
+    local_dir_p = Path(local_dir)
+    local_dir_p.mkdir(parents=True, exist_ok=True)
+    local_path = local_dir_p / name
+    pull = _run_adb(adb_path, [*base_args, "pull", tmp, str(local_path)], timeout_s=timeout_s)
+    _run_adb(adb_path, [*base_args, "shell", "su", "-c", f"rm -f '{tmp}'"], timeout_s=10.0)
+    if pull.returncode != 0 or not local_path.exists():
+        return None
+    return local_path
+
+
+@register("android.root_pull")
+def root_pull(params, _progress, _chunk):
+    """Pull an app-private file (e.g. /data/data/<pkg>/databases/x.db) via root.
+
+    Plain `adb pull` cannot read /data/data; this does `su -c cp` to a
+    world-readable temp, pulls that, then removes the temp. Also pulls the
+    SQLite -wal / -shm siblings when present so the DB reads consistently.
+
+    Params: remote_path (req), local_dir (req), serial?, adb_path?, timeout_ms?
+    Returns: { remote, local, bytes, siblings: [...] }
+    Errors: ADB_NOT_INSTALLED, EXTRACT_PERMISSION_DENIED (no root / missing).
+    """
+    remote = params.get("remote_path")
+    local_dir = params.get("local_dir")
+    if not isinstance(remote, str) or not remote:
+        raise IpcError("INVALID_PARAMS", "params.remote_path required")
+    if not isinstance(local_dir, str) or not local_dir:
+        raise IpcError("INVALID_PARAMS", "params.local_dir required")
+    adb_path = _find_adb(params.get("adb_path"))
+    base = ["-s", str(params["serial"])] if params.get("serial") else []
+    timeout_s = float(params.get("timeout_ms") or 60_000) / 1000.0
+
+    main = _su_pull_one(adb_path, base, remote, local_dir, timeout_s)
+    if main is None:
+        raise IpcError(
+            "EXTRACT_PERMISSION_DENIED",
+            f"could not root-pull {remote} (no root, or file missing)",
+        )
+    siblings = []
+    for suffix in ("-wal", "-shm"):
+        sp = _su_pull_one(adb_path, base, remote + suffix, local_dir, timeout_s)
+        if sp is not None:
+            siblings.append(sp.name)
+    return {
+        "remote": remote,
+        "local": str(main.resolve()),
+        "bytes": main.stat().st_size,
+        "siblings": siblings,
+    }
+
+
+# System databases worth one-click collecting from a rooted device.
+_SYSTEM_DATA_TARGETS = {
+    "contacts2.db": "/data/data/com.android.providers.contacts/databases/contacts2.db",
+    "calllog.db": "/data/data/com.android.providers.contacts/databases/calllog.db",
+    "mmssms.db": "/data/data/com.android.providers.telephony/databases/mmssms.db",
+}
+
+
+@register("android.collect_system_data")
+def collect_system_data(params, progress, _chunk):
+    """Root-pull contacts / call log / SMS DBs into one staging dir, ready for
+    the system.parse_* parsers. Plaintext SQLite — no decryption needed.
+
+    Params: local_dir (req), serial?, adb_path?, timeout_ms?
+    Returns: { stagingDir, pulled: [name...], errors: [{db, reason}...] }
+    """
+    local_dir = params.get("local_dir")
+    if not isinstance(local_dir, str) or not local_dir:
+        raise IpcError("INVALID_PARAMS", "params.local_dir required")
+    pulled, errors = [], []
+    for i, (name, remote) in enumerate(_SYSTEM_DATA_TARGETS.items()):
+        try:
+            progress(i + 1, len(_SYSTEM_DATA_TARGETS), f"pulling {name}")
+        except Exception:
+            pass
+        try:
+            root_pull(
+                {"remote_path": remote, "local_dir": local_dir,
+                 "serial": params.get("serial"), "adb_path": params.get("adb_path"),
+                 "timeout_ms": params.get("timeout_ms")},
+                _progress=None, _chunk=None,
+            )
+            pulled.append(name)
+        except IpcError as e:
+            errors.append({"db": name, "reason": e.code})
+    if not pulled:
+        raise IpcError("EXTRACT_PERMISSION_DENIED",
+                       "no system DBs pulled — device not rooted or adb not connected")
+    return {"stagingDir": local_dir, "pulled": pulled, "errors": errors}

@@ -346,22 +346,24 @@ const ADAPTER_OVERRIDES = Object.freeze({
 
   "qq-pc": {
     summary:
-      "采集电脑版 QQ（NT 新版）的聊天记录（来自本地 nt_msg.db）。⚠️ v0.1 实验性：QQ NT 用数字化列名 + protobuf 消息体且 schema 随版本变化，文本解析为尽力而为，原始行会完整保留以便后续解析。",
+      "采集电脑版 QQ（NT 新版）的聊天记录（来自本地 nt_msg.db）。中台已支持自动解密 + 解析：取一次密钥后，自动解密 SQLCipher 库、解析 c2c/群消息的 protobuf 正文为可读文本（含发送者昵称、群号）。",
     methods: [
       {
-        label: "方式一：解密 nt_msg.db 后本地直读（推荐）",
+        label: "方式一：取密钥后一键采集（推荐）",
         recommended: true,
         steps: [
-          "登录电脑版 QQ，定位数据目录（默认 文档\\Tencent Files 或 %APPDATA%\\Tencent\\QQ\\nt_qq_*\\nt_db\\）。",
-          "用工具（如 QQNTDecrypt / PyQQ 等）解密 nt_msg.db 为明文 SQLite。",
-          "执行 `cc hub sync-adapter qq-pc --input <解密后的 nt_msg.db>`。",
-          "中台读取 c2c_msg_table / group_msg_table 入库（文本尽力解析，原始数据保留）。",
+          "在电脑上打开并登录 QQ（NT 新版，数据在 文档\\Tencent Files\\<QQ号>\\nt_qq\\nt_db\\nt_msg.db）。",
+          "下载并运行 qq-win-db-key（github.com/QQBackup/qq-win-db-key 的 windows_ntqq_get_key.ps1）。它会全关 QQ → 以调试器启动 QQ → 你登录后自动抓出 16 位密钥（形如 5{sww#,6aq=)8=A@）。",
+          "回到中台执行 `cc hub sync-adapter qq-pc --passphrase \"<那串密钥>\"`（或点该行「一键采集」并粘贴密钥）。",
+          "中台自动解密 + 解析 c2c_msg_table / group_msg_table → 可读消息入库（私聊 + 群聊，含昵称/群号）。",
         ],
-        note: "QQ NT 消息正文为 protobuf BLOB，部分类型文本可能需后续在真机上微调列/解码。诊断会显示找到了哪些表/列。",
+        note: "QQ 每次重启密钥会变，重采时重新跑 qq-win-db-key 取一次即可。纯个人使用、全程本地；首次会要求法律确认。依赖随中台分发的 Python（含 cryptography）。",
       },
       {
-        label: "方式二：提供密钥让中台尝试直接解密（试验性）",
-        steps: ["附带 `--key <hex>`，中台用 SQLCipher 尝试打开；失败则回退方式一。"],
+        label: "方式二：已解密为明文库则直接导入",
+        steps: [
+          "若已用工具把 nt_msg.db 解密为明文 SQLite，执行 `cc hub sync-adapter qq-pc --input <明文 nt_msg.db>`。",
+        ],
       },
     ],
   },

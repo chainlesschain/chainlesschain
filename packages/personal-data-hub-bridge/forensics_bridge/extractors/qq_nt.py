@@ -285,6 +285,51 @@ def parse_qq_messages(plain_path, limit=50000):
     return messages
 
 
+def _build_name_maps(nt_db_dir, passphrase):
+    """Decrypt profile_info.db + group_info.db (same passphrase) → name maps:
+    uin/uid → friend nickname, group code → group name. Best-effort."""
+    import sqlite3
+    uin2name = {}
+    group2name = {}
+    # profile_info_v6: 1002 = uin, 1000 = uid, 20002 = nickname
+    pf = os.path.join(nt_db_dir, "profile_info.db")
+    if os.path.exists(pf):
+        try:
+            plain, _ = decrypt_nt_msg(open(pf, "rb").read(), passphrase)
+            import tempfile
+            tp = os.path.join(tempfile.mkdtemp(), "p.db"); open(tp, "wb").write(plain)
+            con = sqlite3.connect(tp); con.text_factory = bytes; cur = con.cursor()
+            cur.execute("SELECT `1002`,`1000`,`20002` FROM profile_info_v6")
+            for uin, uid, name in cur.fetchall():
+                nm = name.decode("utf-8", "replace") if isinstance(name, bytes) else name
+                if not nm:
+                    continue
+                if uin is not None:
+                    uin2name[str(uin)] = nm
+                if isinstance(uid, bytes):
+                    uin2name[uid.decode("utf-8", "replace")] = nm
+            con.close(); os.remove(tp)
+        except Exception:
+            pass
+    # group_list: 60001 = group code, 60007 = group name
+    gf = os.path.join(nt_db_dir, "group_info.db")
+    if os.path.exists(gf):
+        try:
+            plain, _ = decrypt_nt_msg(open(gf, "rb").read(), passphrase)
+            import tempfile
+            tp = os.path.join(tempfile.mkdtemp(), "g.db"); open(tp, "wb").write(plain)
+            con = sqlite3.connect(tp); con.text_factory = bytes; cur = con.cursor()
+            cur.execute("SELECT `60001`,`60007` FROM group_list")
+            for code, name in cur.fetchall():
+                nm = name.decode("utf-8", "replace") if isinstance(name, bytes) else name
+                if code is not None and nm:
+                    group2name[str(code)] = nm
+            con.close(); os.remove(tp)
+        except Exception:
+            pass
+    return uin2name, group2name
+
+
 @register("qq_nt.find_account")
 def m_find_account(params, _progress, _chunk):
     return {"accounts": find_accounts()}
@@ -391,6 +436,20 @@ def m_collect(params, progress, _chunk):
             os.remove(out)
         except OSError:
             pass
+
+    # Enrich: group code → group name, uin → friend nickname (best-effort from
+    # the sibling profile_info.db / group_info.db); label non-text messages.
+    uin2name, group2name = _build_name_maps(os.path.dirname(db_path), passphrase)
+    for m in messages:
+        if m["kind"] == "group":
+            m["conversationName"] = group2name.get(str(m["peer"])) or (f"群{m['peer']}" if m["peer"] is not None else None)
+        else:
+            m["conversationName"] = uin2name.get(str(m["peer"])) or uin2name.get(m.get("peerUid") or "")
+        if not m.get("senderName"):
+            m["senderName"] = uin2name.get(str(m.get("senderUin")))
+        if not m.get("text"):
+            m["text"] = "[非文本/媒体消息]"
+
     c2c = sum(1 for m in messages if m["kind"] == "c2c")
     return {
         "account": account,

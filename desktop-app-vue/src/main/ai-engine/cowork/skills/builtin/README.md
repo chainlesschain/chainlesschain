@@ -2,9 +2,9 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (141)
+## 当前内置技能 (142)
 
-> 数量来源：filesystem 中 144 个 handler.js − 3 个示例模板（test-skill / my-custom-skill / handler-test-skill，见本表末尾）。
+> 数量来源：filesystem 中 145 个 handler.js − 3 个示例模板（test-skill / my-custom-skill / handler-test-skill，见本表末尾）。
 
 ### 原有技能 (15)
 
@@ -207,6 +207,12 @@
 | frontend-design      | design        | ✅      | 前端设计（组件设计/页面布局/响应式/可访问性/主题系统）      |
 | create-pr            | development   | ✅      | PR创建（PR生成/草稿/模板/Changelog生成）                    |
 | doc-coauthoring      | documentation | ✅      | 文档协作（初稿/扩展/审查/结构重组/术语表生成）              |
+
+### 个人数据中心 (PDH) 采集 (1)
+
+| 技能           | 类别 | Handler | 说明                                                                  |
+| -------------- | ---- | ------- | --------------------------------------------------------------------- |
+| pdh-im-collect | data | ✅      | 微信/QQ 聊天采集（就绪探测/密钥提取指引/解密入库 PDH 金库，Win 桌面） |
 
 ## 目录结构
 

@@ -229,6 +229,7 @@ class QQPcAdapter {
         kind: KIND_MESSAGE,
         text: typeof m.text === "string" ? m.text : "",
         peerUin: m.peer != null ? String(m.peer) : null,
+        peerName: m.conversationName || null,   // group name / c2c peer nickname (best-effort)
         senderUin: m.senderUin != null ? String(m.senderUin) : null,
         senderName: m.senderName || null,
         isGroup,
@@ -283,6 +284,7 @@ class QQPcAdapter {
           platform: "qq",
           source: "pc-nt",
           peerUin: p.peerUin || null,
+          ...(p.peerName ? { peerName: p.peerName } : {}),
           senderUin: p.senderUin || null,
           ...(p.senderName ? { senderName: p.senderName } : {}),
           isGroup: !!p.isGroup,

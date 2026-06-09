@@ -351,6 +351,9 @@ async function cmdSyncAdapter(name, options) {
     // sources (wechat-pc), --db-path as an explicit alias for the DB file.
     if (options.key) opts.key = String(options.key);
     if (options.dbPath) opts.dbPath = String(options.dbPath);
+    // QQ NT (qq-pc): the SQLCipher passphrase from qq-win-db-key (ASCII, e.g.
+    // "5{sww#,6aq=)8=A@"). Routes qq-pc through the decrypt+parse sidecar.
+    if (options.passphrase) opts.passphrase = String(options.passphrase);
     // Cookie-mode sources (weread): pass the login cookie through to the adapter.
     if (options.cookie) opts.cookie = String(options.cookie);
     const report = await hub.registry.syncAdapter(name, opts);
@@ -2136,6 +2139,10 @@ export function registerHubCommand(program) {
     .option(
       "--key <hex>",
       "SQLCipher key (64-hex) for encrypted local DBs (e.g. wechat-pc)",
+    )
+    .option(
+      "--passphrase <key>",
+      'QQ NT SQLCipher passphrase from qq-win-db-key (ASCII, e.g. "5{sww#,6aq=)8=A@") — decrypts + parses qq-pc',
     )
     .option(
       "--cookie <cookie>",
