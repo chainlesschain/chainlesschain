@@ -29,4 +29,7 @@ export {
   _accumulateOllamaStream,
   _accumulateOpenAIStream,
   _accumulateAnthropicStream,
+  _toAnthropicMessages,
+  _anthropicThinkingParams,
+  _normalizeAnthropicResponse,
 } from "../runtime/agent-core.js";
