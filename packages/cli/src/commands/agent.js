@@ -287,6 +287,11 @@ export function registerAgentCommand(program) {
         process.exit(1);
       }
 
+      // The explicit `--model` the user typed, captured BEFORE the --settings
+      // block below may default options.model — so vision input can tell an
+      // explicit model from a settings default.
+      const explicitCliModel = options.model;
+
       // --settings native config overrides: a .claude/settings.json-shaped file
       // (and the discovered .claude settings) may set `model` + `env` for this
       // run, without editing .chainlesschain/config.json. `--model` still wins
@@ -332,7 +337,7 @@ export function registerAgentCommand(program) {
         hasImage: images.length > 0,
         flags: {
           provider: options.provider,
-          model: options.model,
+          model: explicitCliModel,
           baseUrl: options.baseUrl,
           apiKey: options.apiKey,
           visionModel: options.visionModel,
@@ -467,12 +472,12 @@ export function registerAgentCommand(program) {
           outcome = await runAgentHeadless({
             prompt,
             images,
-            model: visionLlm.model,
+            model: visionLlm.model || options.model,
             thinking,
             thinkingBudget,
-            provider: visionLlm.provider,
-            baseUrl: visionLlm.baseUrl,
-            apiKey: visionLlm.apiKey,
+            provider: visionLlm.provider || options.provider,
+            baseUrl: visionLlm.baseUrl || options.baseUrl,
+            apiKey: visionLlm.apiKey || options.apiKey,
             sessionId: options.session,
             // A resolved --session/--continue/--resume id means "replay this
             // conversation and persist the new turns"; the runner loads prior

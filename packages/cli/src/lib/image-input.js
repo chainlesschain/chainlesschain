@@ -133,12 +133,24 @@ export const DEFAULT_VISION_MODEL = "doubao-seed-1-6-vision-250815";
  * @returns {{provider, model, baseUrl, apiKey}}
  */
 export function resolveVisionLlm({ hasImage, flags = {}, llm = {} } = {}) {
+  // No image → no vision override; the caller falls back to its normal LLM
+  // config (`visionLlm.x || options.x`).
+  if (!hasImage) {
+    return {
+      provider: undefined,
+      model: undefined,
+      baseUrl: undefined,
+      apiKey: undefined,
+    };
+  }
   const visionModel =
     flags.visionModel || llm.visionModel || DEFAULT_VISION_MODEL;
+  // `flags.model` must be the EXPLICIT `--model` (not a settings/default), so an
+  // attached image uses the vision model unless the user deliberately picked one.
   return {
-    provider: flags.provider || (hasImage ? llm.provider : undefined),
-    model: flags.model || (hasImage ? visionModel : undefined),
-    baseUrl: flags.baseUrl || (hasImage ? llm.baseUrl : undefined),
-    apiKey: flags.apiKey || (hasImage ? llm.apiKey : undefined),
+    provider: flags.provider || llm.provider,
+    model: flags.model || visionModel,
+    baseUrl: flags.baseUrl || llm.baseUrl,
+    apiKey: flags.apiKey || llm.apiKey,
   };
 }
