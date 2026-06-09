@@ -1528,6 +1528,23 @@ export async function startAgentRepl(options = {}) {
     try {
       process.stdout.write("\n");
       const iterationBudget = new IterationBudget({ owner: sessionId });
+      // Bind a cross-session goal (cc goal) into this run, if one resolves.
+      // Composes WITH defaultPrepareCall — never replaces it. Best-effort.
+      let prepareCall = defaultPrepareCall;
+      try {
+        const { resolveActiveGoal } = await import("../lib/goal-store.js");
+        const boundGoal = resolveActiveGoal({ sessionId });
+        if (boundGoal) {
+          const { goalPrepareCall, composePrepareCall } =
+            await import("../lib/goal-context.js");
+          prepareCall = composePrepareCall([
+            defaultPrepareCall,
+            goalPrepareCall(boundGoal),
+          ]);
+        }
+      } catch (_e) {
+        /* goal binding is best-effort — fall back to defaultPrepareCall */
+      }
       const { content: response, usageEvents } = await agentLoop(messages, {
         provider,
         model: activeModel,
@@ -1540,7 +1557,7 @@ export async function startAgentRepl(options = {}) {
         additionalDirectories,
         autoCheckpoint,
         checkpointSession: sessionId,
-        prepareCall: defaultPrepareCall,
+        prepareCall,
         approvalGate: _approvalGate,
         mcpClient: _bundleMcpClient || undefined,
         chatFn: _fallbackChatFn,

@@ -58,6 +58,7 @@ import { registerRCacheCommand } from "./commands/rcache.js";
 import { registerSessionCommand } from "./commands/session.js";
 import { registerCostCommand } from "./commands/cost.js";
 import { registerCheckpointCommand } from "./commands/checkpoint.js";
+import { registerGoalCommand } from "./commands/goal.js";
 import { registerCompactCommand } from "./commands/compact.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
@@ -453,6 +454,7 @@ export function createProgram(opts = {}) {
   registerSessionCommand(program);
   registerCostCommand(program);
   registerCheckpointCommand(program);
+  registerGoalCommand(program);
   registerCompactCommand(program);
   registerConsolCommand(program);
 
