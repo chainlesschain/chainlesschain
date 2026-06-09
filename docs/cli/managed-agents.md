@@ -79,6 +79,10 @@ chainlesschain agent -p "..." --no-mcp                    # 不自动连 cc mcp 
 chainlesschain agent -p "..." --mcp-config ./m.json --permission-prompt-tool mcp__auth__approve  # 审批交 MCP 工具
 chainlesschain agent -p "..." --settings ./run.json       # 一次性 settings:权限 + model/env 覆盖 (见 Permissions)
 chainlesschain agent -p "..." --input-format stream-json  # 持续从 stdin 喂多轮 NDJSON 用户事件
+chainlesschain agent -p "..." --think                     # Anthropic 扩展思考 (见下「扩展思考」)
+chainlesschain agent -p "..." --ultrathink                # = --think ultra (最高强度)
+chainlesschain agent -p "..." --think --thinking-budget 8000  # legacy Claude 的思考 token 预算
+chainlesschain agent --image shot.png -p "这张图里是什么?"     # 多模态 / 图像输入 (可重复 --image,见下)
 ```
 
 **输出格式**(`--output-format`):
@@ -106,6 +110,30 @@ mistral/gemini/volcengine)全部生效(含流式 tool-call 重组);其它 provid
 
 退出码:成功 `0`;`--max-turns` 耗尽(`error_max_turns`)或错误 `1`。
 会话恢复:`--resume <id>` / `--continue`(恢复最近一次)+ JSONL 持久化。
+
+### 扩展思考(`--think` / `--ultrathink` / `--thinking-budget`)
+
+Anthropic extended thinking 的 opt-in 开关(其它 provider 自动忽略;o-series /
+DeepSeek-reasoner 由模型自身决定)。强度从 `--think` 的可选值取:
+
+- `--think`(裸用)→ 默认强度;`--think hard` / `--think ultra` 指定强度;`--ultrathink` = `--think ultra`。
+- **自适应思考模型**(Opus 4.6/4.7/4.8、Sonnet 4.6)→ 走 `output_config.effort`(`--think` 的强度映射成 effort)。
+- **legacy 思考模型**(Sonnet 4.5、Opus 4.0–4.5 及更早)→ 走 `enabled + budget_tokens`;`--thinking-budget <n>` 设预算(clamp 到 `max_tokens` 之下)。自适应模型忽略 `--thinking-budget`。
+- 思考决策是单一真相源(agent-core `_anthropicThinkingParams`),按 model 自动选自适应 / legacy / 关闭(如 Haiku)。
+
+### 多模态 / 图像输入(`--image <path>`)
+
+给视觉模型附图(headless;可重复 `--image` 传多张):
+
+```bash
+chainlesschain agent --image a.png --image b.jpg -p "对比这两张图" --provider volcengine --model doubao-seed-1-6-251015
+```
+
+- 支持扩展名:`png` / `jpg` / `jpeg` / `gif` / `webp`;不支持的扩展名会**立刻报错**而非发出坏请求。
+- 内部统一成 OpenAI 形状的多模态消息(`image_url` data-URL),再按 provider 转换:
+  **OpenAI 兼容**(volcengine/doubao、openai、…)原样透传;**ollama** 转成 `{content, images:[base64]}`;
+  **anthropic** 转成 `image` content block(base64 source)。纯文本运行的请求形状**字节不变**。
+- 仅 headless 路径生效(`-p` / 位置参数 / stdin 管道);交互会话传 `--image` 会被忽略并给出提示。
 
 ## Cost — 估算 $ 花费
 
@@ -349,7 +377,7 @@ agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文
     "apiKey": "",         // 通用 key;也可用 tavilyApiKey/braveApiKey/bochaApiKey/qianfanApiKey 分别指定
     "maxResults": 8,
     "instanceUrl": "",    // 仅 searxng:自建实例地址(需开 json 输出格式)
-    "qianfanApiKey": "",  // 百度千帆 AI 搜索 Bearer token(见下)
+    "qianfanApiKey": "",  // 百度千帆 AI 搜索 Bearer token,完整 bce-v3/ALTAK-.../<secret> 形式(见下)
     "qianfanUrl": ""      // 可选:覆盖千帆 AI 搜索 endpoint,默认 https://qianfan.baidubce.com/v2/ai_search
   }
 }
@@ -367,13 +395,14 @@ agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文
   填进 `webSearch.qianfanApiKey`(或环境变量 `QIANFAN_API_KEY`);需要换 endpoint 时填
   `webSearch.qianfanUrl`。
   - 取 token:[百度智能云千帆控制台](https://console.bce.baidu.com/qianfan/) → 开通「AI 搜索」→
-    创建 API Key / Bearer token(形如 `bce-v3/ALTAK-.../...`)。
+    创建 Bearer token。**必须是完整 `bce-v3/ALTAK-.../<secret>` 形式**;只填短 API Key 片段
+    会 401 `InvalidHTTPAuthHeader: Fail to parse apikey authorization`。
   - 请求体固定为 `{messages:[{role:"user",content:query}], search_source:"baidu_search_v2",
     resource_type_filter:[{type:"web",top_k:maxResults}]}`,解析返回的 `references[]`
     成 `{title,url,snippet}`(并捕获可能的 `answer`)。
   - 用法:`webSearch(q,{provider:"qianfan"})` 或 config `"provider":"qianfan"`。
-    > ⚠️ RUNTIME-UNVERIFIED:仓库无千帆 key,适配器按官方文档 schema 实现,已单测解析逻辑;
-    > 真实 wire 形状需用真 key 跑下方 live 测试确认(`references` 字段名若有出入按响应调整)。
+    > ✅ RUNTIME-VERIFIED(2026-06-09):用真 `bce-v3/…` token 实测,"杭州亚运会举办时间" →
+    > 5 条正确结果(`references[]` schema 解析正确,百度百科/一带一路网等),live 测试通过。
 - **keyed 后端 live 测试**:`__tests__/integration/web-search-live.test.js` 对 tavily/brave/
   bocha/qianfan 各跑一条**真实查询**——**仅当对应 env key 存在时执行,否则自动 skip**(不失败)。
   例:`BOCHA_API_KEY=sk-xxx npx vitest run __tests__/integration/web-search-live.test.js`。

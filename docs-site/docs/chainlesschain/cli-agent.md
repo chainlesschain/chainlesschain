@@ -93,11 +93,24 @@ chainlesschain agent -p "..." --input-format stream-json          # 持续从 st
 chainlesschain agent -p "..." --mcp-config ./mcp.json             # 临时 MCP（{"mcpServers":{...}}）
 chainlesschain agent -p "..." --mcp-config m.json --permission-prompt-tool mcp__auth__approve  # 审批交 MCP 工具
 chainlesschain agent -p "..." --settings ./run.json               # 一次性 model/env + 权限覆盖
+chainlesschain agent -p "..." --think | --ultrathink              # Anthropic 扩展思考（其它 provider 自动忽略）
+chainlesschain agent -p "..." --think --thinking-budget 8000      # legacy Claude 的思考 token 预算
+chainlesschain agent --image shot.png -p "图里是什么?"             # 多模态图像输入（可重复 --image）
 ```
 
 **逐 token 增量**（`--include-partial-messages`，仅 `--output-format stream-json`）额外 emit
 `stream_event`/`content_block_delta`；真增量覆盖 ollama + anthropic + OpenAI 兼容
 （openai/deepseek/dashscope/mistral/gemini/volcengine），含流式 tool-call 重组。
+
+**扩展思考**（`--think` / `--ultrathink` / `--thinking-budget`）：Anthropic extended thinking 的
+opt-in 开关。`--think` 默认强度、`--think hard|ultra` 指定强度、`--ultrathink` = `--think ultra`。
+自适应思考模型（Opus 4.6/4.7/4.8、Sonnet 4.6）走 `output_config.effort`;legacy 模型（Sonnet 4.5、
+Opus 4.0–4.5）走 `enabled + budget_tokens`,由 `--thinking-budget` 设预算（自适应模型忽略它）。
+
+**多模态 / 图像输入**（`--image <path>`,可重复,仅 headless）：附图给视觉模型。支持
+png/jpg/jpeg/gif/webp（坏扩展名立刻报错）。内部统一成 OpenAI 形状的 `image_url`,再按 provider 转换——
+OpenAI 兼容（volcengine/doubao 等）原样透传、ollama 转 `{content, images:[base64]}`、anthropic 转
+`image` content block;纯文本运行请求形状不变。
 
 ### MCP — 把工具喂给 agent 循环
 

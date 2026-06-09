@@ -44,8 +44,8 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
 } from "../harness/jsonl-session-store.js";
 import { expandFileRefs } from "./file-ref-expander.js";
-import { buildUserContent } from "../lib/image-input.js";
 import { composeSystemPrompt } from "./system-prompt.js";
+import { buildUserContent } from "../lib/image-input.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 
 /** Tools that cannot mutate the filesystem or run commands. */
@@ -447,15 +447,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --image <path>: attach vision input to the user turn. buildUserContent
+  // returns the plain string when there are no images, so text-only runs are
+  // byte-for-byte unchanged; with images it builds an OpenAI-style multimodal
+  // content array (agent-core converts it per-provider for ollama/anthropic).
+  const userMessageContent = buildUserContent(userContent, options.images);
+
   const messages = [
     { role: "system", content: systemContent },
     ...(sessionStartContext
       ? [{ role: "system", content: sessionStartContext }]
       : []),
     ...history,
-    // Multimodal: when --image is given, the user turn carries an OpenAI-style
-    // [{type:text},{type:image_url}…] array; otherwise a plain string.
-    { role: "user", content: buildUserContent(userContent, options.images) },
+    { role: "user", content: userMessageContent },
   ];
 
   // Persist the user turn up front (best-effort) so a session is recoverable

@@ -7,6 +7,7 @@
 > 把 v5.0.3.100 之后累积的工程主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
 
 - **CLI 向 Claude-Code 平价收尾**：headless `agent -p` 全家桶（`--output-format` / `--max-turns` / `--allowed-`/`--disallowed-tools` / `--permission-mode` / stdin / `--input-format stream-json` / `--system-prompt` / `--add-dir` / `--fallback-model`）+ `@file` 引用在 `ask`/`chat` 平价 + `cc cost` token 计费（可 `llm.pricing` 覆盖）+ 文件态 `cc checkpoint`/rewind。
+- **CLI agent 能力扩展**：扩展思考 `--think` / `--ultrathink` / `--thinking-budget`（Anthropic，自适应 effort 与 legacy budget 自动择一）+ 多模态图像输入 `--image`（png/jpg/gif/webp，按 provider 转换：OpenAI 兼容透传 / ollama / anthropic）+ 内置 `web_search` 工具（可插拔搜索源：tavily/brave/bocha/千帆 + 免 key DuckDuckGo/百度）。
 - **PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析**：微信 4.0 每库独立密钥 + zstd 消息体 + 公众号/朋友圈/收藏 + 非文本人话化；QQ-NT 端到端解密 + protobuf 解析（真机 `nt_msg.db` 验证）+ 名称补全（uin→昵称 / 群号→群名）+ `pdh-im-collect` 内置技能。
 - **安全 fail-closed 套件（审计跟进）**：SAML 签名 + OAuth id_token + 通道消息签名 + permission-ipc DB 回退全部 fail-closed，删硬编码 "123456"，渲染层 `days` 入参净化。
 - **U-Key 口令托管层（Phase 3，默认 gated OFF）** + **桌面 DB/LLM 性能面板 V6 端口接通**（db-performance IPC 此前从未注册现接通）。

@@ -25,10 +25,6 @@ import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookRunner from "../lib/hook-runner.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.cjs";
 import { mergeProviderOptions } from "../lib/provider-options.js";
-import {
-  toOllamaMessages,
-  imageUrlBlockToAnthropic,
-} from "../lib/image-input.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -56,6 +52,11 @@ import {
   mountSkillMcpServers,
   unmountSkillMcpServers,
 } from "../lib/skill-mcp.js";
+import {
+  hasImageContent,
+  toOllamaMessages,
+  imageUrlBlockToAnthropic,
+} from "../lib/image-input.js";
 
 /**
  * Names of MCP servers currently mounted by an in-flight run_skill call.
@@ -2154,9 +2155,12 @@ export async function chatWithTools(rawMessages, options) {
 
   if (provider === "ollama") {
     const apiUrl = `${baseUrl}/api/chat`;
-    // Multimodal: ollama wants images as a base64[] on the message, not as
-    // OpenAI image_url content blocks. No-op when there are no images.
-    const ollamaMessages = toOllamaMessages(messages);
+    // Multimodal (`cc agent --image`): ollama wants `{content, images:[base64]}`
+    // not OpenAI-style `image_url` blocks. Convert only when an image part is
+    // present so text-only runs keep the identical request shape.
+    const ollamaMessages = hasImageContent(messages)
+      ? toOllamaMessages(messages)
+      : messages;
     // Real-time token deltas (Claude-Code `--include-partial-messages`): when
     // the caller supplies an onToken hook, stream the response and forward each
     // content chunk as it arrives. Tool calls + usage are accumulated and the
@@ -2793,14 +2797,17 @@ export function _toAnthropicMessages(msgs) {
         content: blocks.length ? blocks : m.content || "",
       });
     } else {
-      // user turn. Multimodal: convert OpenAI image_url blocks → Anthropic
-      // image blocks; pass strings / other blocks through unchanged.
-      out.push({
-        role: "user",
-        content: Array.isArray(m.content)
-          ? m.content.map((b) => imageUrlBlockToAnthropic(b) || b)
-          : m.content,
-      });
+      // user turn: pass content through (string or already-block array). When
+      // it carries OpenAI-style `image_url` parts (`cc agent --image`), convert
+      // them to Anthropic `image` blocks; text parts and any other blocks pass
+      // through unchanged.
+      let content = m.content;
+      if (Array.isArray(content)) {
+        content = content.map((b) =>
+          b?.type === "image_url" ? imageUrlBlockToAnthropic(b) || b : b,
+        );
+      }
+      out.push({ role: "user", content });
     }
   }
   flush();

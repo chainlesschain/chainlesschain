@@ -94,11 +94,6 @@ export function registerAgentCommand(program) {
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option(
-      "--image <path>",
-      "Attach an image to the prompt for vision (repeatable; png/jpg/jpeg/gif/webp)",
-      (val, prev) => (prev || []).concat([val]),
-    )
-    .option(
       "--think [level]",
       "Enable Anthropic extended thinking (level: think | hard | ultra; Anthropic models only)",
     )
@@ -109,6 +104,11 @@ export function registerAgentCommand(program) {
     .option(
       "--thinking-budget <n>",
       "Thinking token budget for legacy Claude models (Sonnet 4.5 / Opus 4.0-4.5 / older); clamped below max_tokens. Adaptive-thinking models ignore it (they use --think's effort). Requires --think/--ultrathink.",
+    )
+    .option(
+      "--image <path>",
+      "Attach an image (png/jpg/jpeg/gif/webp) to the prompt for a vision-capable model (headless; repeatable)",
+      (val, prev) => (prev || []).concat([val]),
     )
     .option("--session <id>", "Resume a previous agent session")
     .option(
@@ -306,6 +306,19 @@ export function registerAgentCommand(program) {
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
 
+      // --image <path> (repeatable): read into {mediaType, base64} for the
+      // headless prompt's vision input. A bad extension fails loudly here
+      // rather than sending a broken request.
+      let images = [];
+      if (Array.isArray(options.image) && options.image.length) {
+        try {
+          images = resolveImages(options.image);
+        } catch (err) {
+          process.stderr.write(`Error: ${err.message}\n`);
+          process.exit(1);
+        }
+      }
+
       // --think / --ultrathink → options.thinking for the agent loop (Anthropic
       // extended thinking; ignored by other providers). --think with no value →
       // true; --think <level> → that level; --ultrathink wins as "ultra".
@@ -314,9 +327,6 @@ export function registerAgentCommand(program) {
         : options.think === true
           ? true
           : options.think || undefined;
-      // --image <path>: read attached image files into {mediaType, base64 data}
-      // for vision-capable models. Empty array when no --image is given.
-      const images = resolveImages(options.image);
       // --thinking-budget <n>: legacy-model thinking budget (no-op without
       // --think/--ultrathink and on adaptive models). undefined → engine default.
       const thinkingBudget = resolveThinkingBudget(options.thinkingBudget);
@@ -487,6 +497,14 @@ export function registerAgentCommand(program) {
         }
         process.exit(outcome.exitCode);
         return;
+      }
+
+      // Reached only for an interactive session, where --image has no turn to
+      // attach to — warn instead of silently dropping the attachment.
+      if (images.length) {
+        process.stderr.write(
+          "--image is only used in headless mode (-p / a task / piped stdin); ignoring for the interactive session.\n",
+        );
       }
 
       const runtime = createAgentRuntimeFactory().createAgentRuntime({

@@ -217,7 +217,24 @@ chainlesschain skill run my-skill "arg1 arg2"   # $ARGUMENTS = "arg1 arg2", $1=a
 # Subagent 显式指定
 chainlesschain cowork analyze ./src --subagent explorer
 chainlesschain cowork debate ./foo.js --subagent design
+
+# 扩展思考（Anthropic；其它 provider 自动忽略）
+chainlesschain agent -p "..." --think                 # 默认强度（--think hard|ultra 指定强度）
+chainlesschain agent -p "..." --ultrathink            # = --think ultra
+chainlesschain agent -p "..." --think --thinking-budget 8000   # legacy Claude 思考 token 预算
+
+# 多模态 / 图像输入（headless；可重复 --image；png/jpg/jpeg/gif/webp）
+chainlesschain agent --image shot.png -p "图里是什么?" --provider volcengine --model doubao-seed-1-6-251015
+
+# web_search：agent 内置可插拔搜索工具（tavily/brave/bocha/千帆 keyed + 免 key DuckDuckGo/百度）
 ```
+
+> **扩展思考真相源**：思考决策集中在 agent-core `_anthropicThinkingParams`,按 model 自动择一——
+> 自适应思考模型（Opus 4.6/4.7/4.8、Sonnet 4.6）走 `output_config.effort`,legacy 模型（Sonnet 4.5、
+> Opus 4.0–4.5）走 `enabled + budget_tokens`(`--thinking-budget`),其余（如 Haiku）关闭。
+>
+> **多模态转换**：内部统一成 OpenAI 形状 `image_url`,再按 provider 转换——OpenAI 兼容
+> （volcengine/doubao 等）透传、ollama 转 `{content, images:[base64]}`、anthropic 转 `image` content block。
 
 ### 3.2 配置项
 

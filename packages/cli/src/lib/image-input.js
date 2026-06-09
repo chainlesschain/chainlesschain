@@ -114,3 +114,31 @@ export function imageUrlBlockToAnthropic(block) {
     source: { type: "base64", media_type: parsed.mediaType, data: parsed.data },
   };
 }
+
+/** Default vision model (Volcengine Ark Doubao-Seed-1.6 Vision) when none configured. */
+export const DEFAULT_VISION_MODEL = "doubao-seed-1-6-vision-250815";
+
+/**
+ * Resolve the effective LLM config for a run. When an image is attached, default
+ * the provider/model/baseUrl/apiKey to the configured vision LLM so
+ * `cc agent --image foo.png` works without extra flags — using `llm.visionModel`
+ * (a separate, configurable vision model) and falling back to DEFAULT_VISION_MODEL.
+ * Explicit flags always win; with no image, behaviour is unchanged (vision config
+ * is ignored). `--vision-model` overrides the configured/default vision model.
+ *
+ * @param {object} p
+ * @param {boolean} p.hasImage  true when the run carries an attached image
+ * @param {object}  p.flags     { provider, model, baseUrl, apiKey, visionModel }
+ * @param {object}  p.llm       config.llm ({ provider, model, baseUrl, apiKey, visionModel })
+ * @returns {{provider, model, baseUrl, apiKey}}
+ */
+export function resolveVisionLlm({ hasImage, flags = {}, llm = {} } = {}) {
+  const visionModel =
+    flags.visionModel || llm.visionModel || DEFAULT_VISION_MODEL;
+  return {
+    provider: flags.provider || (hasImage ? llm.provider : undefined),
+    model: flags.model || (hasImage ? visionModel : undefined),
+    baseUrl: flags.baseUrl || (hasImage ? llm.baseUrl : undefined),
+    apiKey: flags.apiKey || (hasImage ? llm.apiKey : undefined),
+  };
+}

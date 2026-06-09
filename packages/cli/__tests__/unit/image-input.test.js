@@ -11,6 +11,8 @@ import {
   hasImageContent,
   toOllamaMessages,
   imageUrlBlockToAnthropic,
+  resolveVisionLlm,
+  DEFAULT_VISION_MODEL,
 } from "../../src/lib/image-input.js";
 
 const fakeFs = {
@@ -121,5 +123,61 @@ describe("imageUrlBlockToAnthropic", () => {
   });
   it("returns null for non-image blocks", () => {
     expect(imageUrlBlockToAnthropic({ type: "text", text: "x" })).toBeNull();
+  });
+});
+
+describe("resolveVisionLlm", () => {
+  const llm = {
+    provider: "volcengine",
+    model: "doubao-text",
+    baseUrl: "https://ark/api",
+    apiKey: "K",
+    visionModel: "doubao-1-5-vision-pro-32k-250115",
+  };
+
+  it("with no image: ignores vision config (provider/model undefined unless flagged)", () => {
+    expect(resolveVisionLlm({ hasImage: false, flags: {}, llm })).toEqual({
+      provider: undefined,
+      model: undefined,
+      baseUrl: undefined,
+      apiKey: undefined,
+    });
+  });
+
+  it("with an image: switches to configured vision provider/model/baseUrl/apiKey", () => {
+    expect(resolveVisionLlm({ hasImage: true, flags: {}, llm })).toEqual({
+      provider: "volcengine",
+      model: "doubao-1-5-vision-pro-32k-250115",
+      baseUrl: "https://ark/api",
+      apiKey: "K",
+    });
+  });
+
+  it("explicit flags always win over vision config", () => {
+    const out = resolveVisionLlm({
+      hasImage: true,
+      flags: { provider: "openai", model: "gpt-4o", baseUrl: "u", apiKey: "k2" },
+      llm,
+    });
+    expect(out).toEqual({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "u",
+      apiKey: "k2",
+    });
+  });
+
+  it("--vision-model overrides the configured vision model", () => {
+    expect(
+      resolveVisionLlm({ hasImage: true, flags: { visionModel: "my-vlm" }, llm })
+        .model,
+    ).toBe("my-vlm");
+  });
+
+  it("falls back to DEFAULT_VISION_MODEL when none configured", () => {
+    expect(
+      resolveVisionLlm({ hasImage: true, flags: {}, llm: { provider: "volcengine" } })
+        .model,
+    ).toBe(DEFAULT_VISION_MODEL);
   });
 });
