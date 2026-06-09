@@ -680,6 +680,7 @@ async function executeToolInner(
     externalToolDescriptors,
     externalToolExecutors,
     mcpClient,
+    llmOptions,
     shellPolicyOverrides,
     approvalGate,
     shellConfirm,
@@ -946,6 +947,7 @@ async function executeToolInner(
           parentMessages,
           interaction,
           sessionId,
+          llmOptions,
         }),
       );
     }
@@ -1554,6 +1556,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   // load the agent's persona (its body = system prompt) + tool allow-list.
   // Explicit role/tools still win over the agent file's values.
   let mdProfile = null;
+  let mdModel = null;
   if (args.agent) {
     try {
       const { getAgent } = await import("../lib/agents.js");
@@ -1565,6 +1568,7 @@ async function _executeSpawnSubAgent(args, ctx) {
       }
       role = role || md.name;
       if (!explicitTools && Array.isArray(md.tools)) explicitTools = md.tools;
+      if (md.model) mdModel = md.model;
       if (md.systemPrompt) {
         mdProfile = { name: md.name, systemPrompt: md.systemPrompt };
       }
@@ -1624,6 +1628,14 @@ async function _executeSpawnSubAgent(args, ctx) {
   const parentSessionId = ctx.sessionId || null;
   const interaction = ctx.interaction || null;
 
+  // Inherit the parent's provider / base-url / key; a named subagent's `model:`
+  // frontmatter (mdModel) overrides just the model, else keep the parent's.
+  const parentLlm = ctx.llmOptions || {};
+  const subLlmOptions = {
+    ...parentLlm,
+    model: mdModel || parentLlm.model || undefined,
+  };
+
   const subCtx = SubAgentContext.create({
     role,
     task,
@@ -1632,6 +1644,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     allowedTools: allowedTools || null,
     cwd: ctx.cwd,
     profile: profile || null,
+    llmOptions: subLlmOptions,
   });
 
   const emit = (type, payload) => {
@@ -2425,6 +2438,14 @@ export async function* agentLoop(messages, options) {
     externalToolDescriptors: options.externalToolDescriptors || null,
     externalToolExecutors: options.externalToolExecutors || null,
     mcpClient: options.mcpClient || null,
+    // Parent LLM config — forwarded to spawn_sub_agent so a delegated subagent
+    // inherits the provider/key and can override just the model (cc agents `model:`).
+    llmOptions: {
+      provider: options.provider || null,
+      model: options.model || null,
+      baseUrl: options.baseUrl || null,
+      apiKey: options.apiKey || null,
+    },
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
     shellPolicyOverrides: options.shellPolicyOverrides || null,
