@@ -65,6 +65,98 @@ export function registerMcpCommand(program) {
     .command("mcp")
     .description("MCP server management and tool execution");
 
+  // mcp login — OAuth 2.0 (Auth Code + PKCE) for a remote MCP server.
+  mcp
+    .command("login <url>")
+    .description("Authorize a remote MCP server via OAuth (opens a browser); stores the token")
+    .option("--scope <scope>", "OAuth scope(s) to request")
+    .option("--client-id <id>", "Use a pre-registered client_id instead of dynamic registration")
+    .option("--port <n>", "Localhost callback port", (v) => parseInt(v, 10), 53682)
+    .option("--no-open", "Print the authorize URL instead of opening a browser")
+    .action(async (url, options) => {
+      try {
+        const oauth = await import("../lib/mcp-oauth.js");
+        if (options.open === false) {
+          oauth._deps.openBrowser = () => false; // commander maps --no-open → open:false
+        }
+        logger.log(chalk.gray(`Authorizing ${url} …`));
+        const rec = await oauth.authorizeInteractive(url, {
+          scope: options.scope,
+          clientId: options.clientId,
+          port: options.port,
+          writeOut: (s) => process.stdout.write(s),
+        });
+        logger.log(
+          chalk.green(`✓ authorized ${rec.server}`) +
+            chalk.gray(
+              rec.expires_at
+                ? `  (expires ${new Date(rec.expires_at).toISOString()})`
+                : "",
+            ),
+        );
+        logger.log(
+          chalk.gray("The token is injected as a Bearer header on connect."),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`mcp login failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  // mcp logout — forget a stored OAuth token.
+  mcp
+    .command("logout <url>")
+    .description("Delete the stored OAuth token for a remote MCP server")
+    .action(async (url) => {
+      try {
+        const { deleteStoredToken, serverKey } = await import("../lib/mcp-oauth.js");
+        const ok = deleteStoredToken(url);
+        logger.log(
+          ok
+            ? chalk.green(`✓ removed token for ${serverKey(url)}`)
+            : chalk.gray(`no stored token for ${serverKey(url)}`),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`mcp logout failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  // mcp auth — list stored OAuth tokens.
+  mcp
+    .command("auth")
+    .description("List stored MCP OAuth tokens")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { loadTokenStore, isTokenExpired } = await import("../lib/mcp-oauth.js");
+        const store = loadTokenStore();
+        const rows = Object.values(store).map((r) => ({
+          server: r.server,
+          expired: isTokenExpired(r),
+          expires_at: r.expires_at || null,
+          refresh: Boolean(r.refresh_token),
+        }));
+        if (options.json) {
+          console.log(JSON.stringify(rows, null, 2));
+          return;
+        }
+        if (rows.length === 0) {
+          logger.log(chalk.gray("No MCP OAuth tokens. Run: cc mcp login <url>"));
+          return;
+        }
+        for (const r of rows) {
+          const state = r.expired ? chalk.red("expired") : chalk.green("valid");
+          logger.log(
+            `  ${chalk.cyan(r.server)}  [${state}]${r.refresh ? chalk.gray(" +refresh") : ""}`,
+          );
+        }
+      } catch (err) {
+        logger.error(chalk.red(`mcp auth failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
   // mcp servers — list configured servers
   mcp
     .command("servers")

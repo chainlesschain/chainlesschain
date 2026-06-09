@@ -83,9 +83,31 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     // Skip a name already connected — an earlier batch (ad-hoc --mcp-config)
     // wins over a later one (registered) on a clash.
     if (mcpClient.servers?.has?.(name)) continue;
+    // Inject a stored OAuth bearer token for remote servers (`cc mcp login`),
+    // unless the config already supplies an Authorization header. Best-effort:
+    // no token / a refresh failure just connects unauthenticated.
+    let connectCfg = cfg;
+    if (
+      cfg.url &&
+      !cfg.headers?.Authorization &&
+      !cfg.headers?.authorization
+    ) {
+      try {
+        const { ensureValidToken } = await import("../lib/mcp-oauth.js");
+        const token = await ensureValidToken(cfg.url);
+        if (token) {
+          connectCfg = {
+            ...cfg,
+            headers: { ...cfg.headers, Authorization: `Bearer ${token}` },
+          };
+        }
+      } catch {
+        // OAuth wiring is best-effort
+      }
+    }
     let res;
     try {
-      res = await mcpClient.connect(name, cfg);
+      res = await mcpClient.connect(name, connectCfg);
     } catch (err) {
       writeErr(`  mcp: failed to connect "${name}": ${err.message}\n`);
       continue;

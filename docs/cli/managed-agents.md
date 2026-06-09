@@ -631,6 +631,27 @@ REPL 内:`/output-style`(列出 + 当前)、`/output-style <name>`(切换,即时
 消息)、`/output-style none`(清除)。`--system-prompt` 仍可整体替换系统提示;output
 style 是其上的人格叠加层。
 
+## MCP OAuth — 远程 MCP server 授权
+
+Claude Code 远程 MCP OAuth 对标。需要 OAuth 的远程 HTTP/SSE MCP server 用
+`cc mcp login <url>` 授权一次,token 存盘并在每次连接时注入 `Authorization: Bearer …`
+(过期自动 refresh)。已持有 token 的 server 仍可用静态 `-H "Authorization: Bearer …"`。
+
+流程(标准 OAuth 2.0):RFC 9728/8414 元数据发现 → RFC 7591 动态客户端注册(或 `--client-id`)
+→ RFC 7636 PKCE → 开浏览器授权 → localhost 回调接 code → 换 token → 落盘
+`~/.chainlesschain/mcp-oauth.json`(按 server origin 索引)。
+
+```bash
+chainlesschain mcp login https://mcp.example.com/mcp           # 开浏览器授权(动态注册客户端)
+chainlesschain mcp login <url> --scope "read write" --client-id <id>  # 预注册客户端 / 指定 scope
+chainlesschain mcp login <url> --no-open --port 53682          # 打印授权 URL(不开浏览器)/ 自定义回调端口
+chainlesschain mcp auth [--json]                               # 列出已存 token(valid/expired/+refresh)
+chainlesschain mcp logout <url>                                # 删除 token
+```
+
+连接时:`setupMcpFromConfig` 对带 `url` 的 server,若有已存 token → `ensureValidToken`
+(到期且有 refresh_token 则刷新)→ 注入 Bearer;**已显式给 `Authorization` 头则不覆盖**。
+
 ## Status Line — `statusLine` 自定义状态栏
 
 Claude Code `statusLine` 对标。REPL **每次提示前**渲染一行用户自定义命令的输出
