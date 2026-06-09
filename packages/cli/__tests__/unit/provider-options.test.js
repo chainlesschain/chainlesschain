@@ -42,10 +42,12 @@ describe("provider-options — inferModelOverrides", () => {
     expect(out.reasoning).toEqual({ effort: "medium" });
   });
 
-  it("enables thinking for claude-opus-*", () => {
+  it("bumps maxTokens for claude-opus-* (thinking is owned by the engine, not here)", () => {
     const out = inferModelOverrides("claude-opus-4-6");
-    expect(out.anthropic.thinking.type).toBe("enabled");
     expect(out.maxTokens).toBe(16384);
+    // provider-options no longer manages extended thinking — that is decided
+    // by _anthropicThinkingParams (agent-core) via the --thinking flag.
+    expect(out.anthropic).toBeUndefined();
   });
 
   it("uses smaller maxTokens for haiku", () => {
@@ -72,11 +74,9 @@ describe("provider-options — mergeProviderOptions", () => {
     });
     // call override wins at maxTokens
     expect(out.maxTokens).toBe(32768);
-    // thinking.type from model layer preserved, budgetTokens overridden
-    expect(out.anthropic.thinking).toEqual({
-      type: "enabled",
-      budgetTokens: 12000,
-    });
+    // model/default layers contribute no thinking anymore, so only the caller's
+    // explicit anthropic block survives — verbatim, nothing injected.
+    expect(out.anthropic.thinking).toEqual({ budgetTokens: 12000 });
   });
 
   it("call override can disable a default via explicit undefined", () => {
@@ -96,7 +96,7 @@ describe("provider-options — mergeProviderOptions", () => {
     const out = mergeProviderOptions("anthropic", "claude-sonnet-4-6");
     expect(out.maxTokens).toBe(PROVIDER_DEFAULTS.anthropic.maxTokens);
     expect(out.temperature).toBe(1.0);
-    // sonnet doesn't match any model-inference rule → thinking stays disabled
-    expect(out.anthropic.thinking.type).toBe("disabled");
+    // provider-options carries no thinking config at all now (engine-owned).
+    expect(out.anthropic).toBeUndefined();
   });
 });

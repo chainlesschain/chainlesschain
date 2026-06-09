@@ -38,6 +38,23 @@ export function resolveAddDirs(rawDirs) {
 }
 
 /**
+ * Parse `--thinking-budget <n>` into a positive integer (Anthropic legacy-model
+ * thinking `budget_tokens`), or undefined when unset/invalid. Pure; exported for
+ * tests. The companion `thinking` toggle comes from --think/--ultrathink; a
+ * budget without that toggle is a no-op (chatWithTools only reads it when
+ * thinking is on, and only for legacy models — adaptive models use effort).
+ *
+ * @param {string|number} [raw]
+ * @returns {number|undefined}
+ */
+export function resolveThinkingBudget(raw) {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.floor(n);
+}
+
+/**
  * Read all of stdin as a UTF-8 string. Resolves "" immediately when stdin is a
  * TTY (nothing piped) so we never block an interactive invocation.
  */
@@ -82,6 +99,10 @@ export function registerAgentCommand(program) {
     .option(
       "--ultrathink",
       "Maximum Anthropic extended thinking (= --think ultra)",
+    )
+    .option(
+      "--thinking-budget <n>",
+      "Thinking token budget for legacy Claude models (Sonnet 4.5 / Opus 4.0-4.5 / older); clamped below max_tokens. Adaptive-thinking models ignore it (they use --think's effort). Requires --think/--ultrathink.",
     )
     .option("--session <id>", "Resume a previous agent session")
     .option(
@@ -287,6 +308,9 @@ export function registerAgentCommand(program) {
         : options.think === true
           ? true
           : options.think || undefined;
+      // --thinking-budget <n>: legacy-model thinking budget (no-op without
+      // --think/--ultrathink and on adaptive models). undefined → engine default.
+      const thinkingBudget = resolveThinkingBudget(options.thinkingBudget);
 
       // --fallback-model: a chatFn that retries once on the backup model when
       // the primary errors out (overload / rate-limit / network). Passed into
@@ -316,6 +340,7 @@ export function registerAgentCommand(program) {
           outcome = await runAgentHeadlessStream({
             model: options.model,
             thinking,
+            thinkingBudget,
             provider: options.provider,
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
@@ -403,6 +428,7 @@ export function registerAgentCommand(program) {
             prompt,
             model: options.model,
             thinking,
+            thinkingBudget,
             provider: options.provider,
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
@@ -456,6 +482,7 @@ export function registerAgentCommand(program) {
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
         thinking,
+        thinkingBudget,
         provider: options.provider,
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,

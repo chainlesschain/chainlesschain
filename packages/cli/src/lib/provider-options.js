@@ -6,11 +6,18 @@
  *   1. PROVIDER_DEFAULTS[provider]      — hand-curated baseline per provider
  *   2. MODEL_INFERENCE(modelId)         — model-specific overrides (e.g. o1
  *                                         disables temperature, claude-opus
- *                                         enables extended thinking)
+ *                                         gets a larger maxTokens)
  *   3. callOverrides                    — whatever the caller passes
  *
  * Later layers win at leaf keys; objects are merged recursively, arrays are
  * replaced (not concatenated) to keep behavior predictable.
+ *
+ * NOTE: extended *thinking* is NOT decided here. It is opt-in via the agent's
+ * `--thinking` flag and resolved, model-aware, by `_anthropicThinkingParams`
+ * in agent-core.js — the single source of truth. This module contributes only
+ * `maxTokens` to the Anthropic request (chatWithTools destructures just that
+ * from the merge); a stray `anthropic.thinking` here was a second, divergent
+ * config that was never read, so it has been removed.
  *
  * @module provider-options
  */
@@ -21,7 +28,6 @@ export const PROVIDER_DEFAULTS = Object.freeze({
   anthropic: {
     maxTokens: 8192,
     temperature: 1.0,
-    anthropic: { thinking: { type: "disabled" } },
   },
   openai: {
     maxTokens: 4096,
@@ -66,12 +72,10 @@ export function inferModelOverrides(modelId) {
     return { temperature: undefined, reasoning: { effort: "medium" } };
   }
 
-  // Claude Opus — enable extended thinking by default (users can turn off).
+  // Claude Opus — larger default output budget. (Extended thinking is opt-in
+  // via `--thinking`, decided by `_anthropicThinkingParams`, not here.)
   if (id.includes("opus-4") || id.includes("opus-3")) {
-    return {
-      maxTokens: 16384,
-      anthropic: { thinking: { type: "enabled", budgetTokens: 8000 } },
-    };
+    return { maxTokens: 16384 };
   }
 
   // Claude Haiku — cheaper, smaller output by default.

@@ -223,8 +223,10 @@ export async function startAgentRepl(options = {}) {
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
-  // the runtime policy into the agent-loop options below.
+  // the runtime policy into the agent-loop options below. thinkingBudget
+  // (--thinking-budget) is the companion legacy-model budget_tokens override.
   const thinking = options.thinking || null;
+  const thinkingBudget = options.thinkingBudget || null;
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   // Extra workspace roots (--add-dir): advertised in the system prompt and
@@ -1865,6 +1867,7 @@ export async function startAgentRepl(options = {}) {
         provider,
         model: activeModel,
         thinking,
+        thinkingBudget,
         baseUrl,
         apiKey,
         contextEngine,

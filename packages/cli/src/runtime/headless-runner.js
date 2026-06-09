@@ -539,8 +539,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     model,
     provider,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink). null/off
-    // → chatWithTools sends no thinking field.
+    // → chatWithTools sends no thinking field. thinkingBudget (--thinking-budget)
+    // is the legacy-model budget_tokens override; ignored when thinking is off.
     thinking: options.thinking || null,
+    thinkingBudget: options.thinkingBudget || null,
     baseUrl,
     apiKey,
     cwd,

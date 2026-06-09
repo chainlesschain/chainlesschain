@@ -353,7 +353,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     model,
     provider,
     // Extended thinking (Anthropic; opt-in via --think/--ultrathink).
+    // thinkingBudget (--thinking-budget) = legacy-model budget_tokens override.
     thinking: options.thinking || null,
+    thinkingBudget: options.thinkingBudget || null,
     baseUrl,
     apiKey,
     cwd,

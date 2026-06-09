@@ -34,6 +34,7 @@ export function resolveAgentPolicy({
     appendSystemPrompt: overrides.appendSystemPrompt || null,
     fallbackModel: overrides.fallbackModel || null,
     thinking: overrides.thinking || null,
+    thinkingBudget: overrides.thinkingBudget || null,
     mcpConfig: overrides.mcpConfig || null,
     useRegisteredMcp: overrides.useRegisteredMcp !== false,
   };
