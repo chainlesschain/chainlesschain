@@ -753,6 +753,29 @@ export async function startAgentRepl(options = {}) {
       logger.log(
         "  Context engineering: instinct + memory + notes injection\n",
       );
+      // User-defined command macros (.claude/commands/*.md) become runnable
+      // slash commands here — list whatever is discovered so they're visible.
+      try {
+        const { discoverCommands } = await import("../lib/slash-commands.js");
+        const macros = discoverCommands(process.cwd());
+        if (macros.length > 0) {
+          logger.log(chalk.bold("Custom commands (.claude/commands):"));
+          for (const m of macros) {
+            const tag =
+              m.scope === "project"
+                ? chalk.cyan("[proj]")
+                : chalk.gray("[pers]");
+            logger.log(
+              `  ${chalk.cyan("/" + m.name)} ${tag}` +
+                (m.argumentHint ? chalk.dim(` ${m.argumentHint}`) : "") +
+                (m.description ? `  ${chalk.gray(m.description)}` : ""),
+            );
+          }
+          logger.log("");
+        }
+      } catch (_err) {
+        // Non-critical — macro discovery failure must not break /help
+      }
       prompt();
       return;
     }
@@ -1568,10 +1591,40 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // User-defined slash-command macros (.claude/commands/*.md) — Claude-Code
+    // parity. Anything starting with `/` that wasn't a built-in above reaches
+    // here. If the first token resolves to a command macro, expand its template
+    // ($ARGUMENTS/$1.. + !`bang` + @file) and run the result as the prompt. A
+    // non-matching `/...` falls through unchanged (treated as a literal prompt),
+    // so this never breaks asking the LLM about paths like "/etc/hosts".
+    let promptText = trimmed;
+    if (trimmed.startsWith("/")) {
+      try {
+        const [head, ...rest] = trimmed.slice(1).split(/\s+/);
+        const { getCommand, expandCommand } =
+          await import("../lib/slash-commands.js");
+        const macro = head ? getCommand(head, process.cwd()) : null;
+        if (macro) {
+          const { prompt: expanded, warnings } = expandCommand(
+            macro,
+            rest.filter(Boolean),
+            { cwd: process.cwd() },
+          );
+          for (const w of warnings) logger.info(chalk.yellow(`[@ref] ${w}`));
+          promptText = expanded;
+          logger.log(
+            chalk.gray(`[/${macro.name}] macro expanded (${macro.scope})`),
+          );
+        }
+      } catch (err) {
+        logger.verbose(`[slash-macro] expansion skipped: ${err.message}`);
+      }
+    }
+
     // Fire UserPromptSubmit hook with rewrite/abort support.
     // Hooks may emit {"rewrittenPrompt": "..."} or {"abort": true, "reason": "..."}
     // via stdout JSON. Failures fall through to the original prompt.
-    const promptDirective = await fireUserPromptSubmit(_hookDb, trimmed, {
+    const promptDirective = await fireUserPromptSubmit(_hookDb, promptText, {
       sessionId,
       messageCount: messages.length,
     });
@@ -1585,7 +1638,7 @@ export async function startAgentRepl(options = {}) {
       return;
     }
     const effectivePrompt = promptDirective.prompt;
-    if (effectivePrompt !== trimmed) {
+    if (effectivePrompt !== promptText) {
       logger.verbose(`[hook] prompt rewritten by UserPromptSubmit hook`);
     }
 
@@ -1615,7 +1668,7 @@ export async function startAgentRepl(options = {}) {
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
       const { CLISlotFiller } = await import("../lib/slot-filler.js");
-      const intent = CLISlotFiller.detectIntent(trimmed);
+      const intent = CLISlotFiller.detectIntent(promptText);
       if (intent) {
         const defs = CLISlotFiller.getSlotDefinitions(intent.type);
         const missing = defs.required.filter((s) => !intent.entities[s]);
@@ -1644,7 +1697,7 @@ export async function startAgentRepl(options = {}) {
 
     // Auto-select best model based on task type
     let activeModel = model;
-    const taskDetection = detectTaskType(trimmed);
+    const taskDetection = detectTaskType(promptText);
     if (taskDetection.confidence > 0.3) {
       const recommended = selectModelForTask(provider, taskDetection.taskType);
       if (recommended && recommended !== activeModel) {
@@ -1807,7 +1860,7 @@ export async function startAgentRepl(options = {}) {
       // Store as episodic memory
       if (db) {
         try {
-          storeMemory(db, trimmed, { importance: 0.3, type: "episodic" });
+          storeMemory(db, promptText, { importance: 0.3, type: "episodic" });
         } catch (_e) {
           // Non-critical
         }
