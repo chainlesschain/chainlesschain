@@ -70,17 +70,21 @@ describe("Integration: Sub-Agent Isolation", () => {
       expect(names).toContain("spawn_sub_agent");
     });
 
-    it("has correct parameter schema with role and task required", () => {
+    it("has correct parameter schema: task required, role-or-agent", () => {
       const tool = AGENT_TOOLS.find(
         (t) => t.function.name === "spawn_sub_agent",
       );
       expect(tool).toBeDefined();
+      expect(tool.function.parameters.properties).toHaveProperty("agent");
       expect(tool.function.parameters.properties).toHaveProperty("role");
       expect(tool.function.parameters.properties).toHaveProperty("task");
       expect(tool.function.parameters.properties).toHaveProperty("context");
       expect(tool.function.parameters.properties).toHaveProperty("tools");
-      expect(tool.function.parameters.required).toContain("role");
+      // Only `task` is schema-required. `role` is conditionally required
+      // (unless `agent` is given) and enforced at execution time, not in the
+      // JSON schema — see spawn_sub_agent delegation (commit c2b7f52ed).
       expect(tool.function.parameters.required).toContain("task");
+      expect(tool.function.parameters.required).not.toContain("role");
     });
 
     it("tools parameter is typed as array of strings", () => {
@@ -96,7 +100,7 @@ describe("Integration: Sub-Agent Isolation", () => {
   // ─── executeTool("spawn_sub_agent") ────────────────────
 
   describe("executeTool spawn_sub_agent", () => {
-    it("returns error when role is missing", async () => {
+    it("returns error when neither role nor agent is provided", async () => {
       const result = await executeTool(
         "spawn_sub_agent",
         { role: "", task: "do something" },
@@ -104,7 +108,7 @@ describe("Integration: Sub-Agent Isolation", () => {
       );
       expect(result).toBeDefined();
       expect(result.error).toBeDefined();
-      expect(result.error).toContain("required");
+      expect(result.error).toContain("either 'role' or 'agent'");
     });
 
     it("returns error when task is missing", async () => {
@@ -115,7 +119,7 @@ describe("Integration: Sub-Agent Isolation", () => {
       );
       expect(result).toBeDefined();
       expect(result.error).toBeDefined();
-      expect(result.error).toContain("required");
+      expect(result.error).toContain("requires 'task'");
     });
 
     it("creates and runs a sub-agent with mocked LLM returning simple response", async () => {

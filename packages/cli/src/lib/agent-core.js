@@ -24,5 +24,9 @@ export {
   agentLoop,
   formatToolArgs,
   getActiveMcpServers,
+  listBackgroundShellTasks,
+  killAllBackgroundShellTasks,
   _accumulateOllamaStream,
+  _accumulateOpenAIStream,
+  _accumulateAnthropicStream,
 } from "../runtime/agent-core.js";
