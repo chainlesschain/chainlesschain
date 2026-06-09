@@ -154,6 +154,10 @@ export function registerAgentCommand(program) {
       "--include-partial-messages",
       "Emit live assistant-text deltas as stream_event lines (requires --output-format stream-json)",
     )
+    .option(
+      "--goal [id]",
+      "Bind a cc goal into the run (id, or omit the value to auto-resolve the active goal)",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -257,6 +261,7 @@ export function registerAgentCommand(program) {
               cwd,
             }),
             includePartialMessages: options.includePartialMessages === true,
+            goal: options.goal,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -346,6 +351,8 @@ export function registerAgentCommand(program) {
             }),
             // --include-partial-messages: live token deltas as stream_event lines
             includePartialMessages: options.includePartialMessages === true,
+            // --goal [id]: bind a cc goal into the run (Phase 1)
+            goal: options.goal,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });

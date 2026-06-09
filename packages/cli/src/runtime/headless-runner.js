@@ -32,6 +32,7 @@ import {
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
   appendTokenUsage as jsonlAppendTokenUsage,
+  appendCompactEvent as jsonlAppendCompactEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
   getLastSessionId as jsonlGetLastSessionId,
@@ -245,6 +246,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
+    appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
   };
   const isStream = outputFormat === "stream-json";
@@ -387,6 +389,38 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     signal: options.signal || undefined,
   };
 
+  // Goal binding (cc goal, Phase 1). `--goal <id>` binds explicitly; `--goal`
+  // with no value (options.goal === true) auto-resolves from active/session.
+  // When omitted, headless stays goal-free (no behavior change). Best-effort:
+  // a failure here must never fail the run.
+  let boundGoalId = null;
+  if (options.goal !== undefined && options.goal !== false) {
+    try {
+      const explicitId = typeof options.goal === "string" ? options.goal : null;
+      const { resolveActiveGoal, linkSession } =
+        await import("../lib/goal-store.js");
+      const goal = (deps.resolveActiveGoal || resolveActiveGoal)({
+        explicitId,
+        sessionId,
+      });
+      if (goal) {
+        const { goalPrepareCall } = await import("../lib/goal-context.js");
+        loopOptions.prepareCall = goalPrepareCall(goal);
+        boundGoalId = goal.id;
+        // Link the session so a later `--continue`/`--resume` keeps this goal.
+        if (explicitId && persist !== false) {
+          try {
+            linkSession(goal.id, sessionId);
+          } catch {
+            /* linking is optional polish — never fatal */
+          }
+        }
+      }
+    } catch {
+      /* goal binding is best-effort — proceed without it */
+    }
+  }
+
   const startedAt = deps.now ? deps.now() : Date.now();
   const toolCalls = [];
   const usage = { input_tokens: 0, output_tokens: 0 };
@@ -424,6 +458,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     resumed_from: resumeId,
     history_messages: history.length,
     additional_directories: additionalDirectories,
+    goal_id: boundGoalId,
   });
 
   try {

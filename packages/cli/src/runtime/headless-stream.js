@@ -207,6 +207,26 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     additional_directories: additionalDirectories,
   });
 
+  // Goal binding (cc goal, Phase 1) — resolved once and injected on every turn.
+  // `--goal <id>` binds explicitly; `--goal` with no value auto-resolves.
+  let goalPrepareCallFn;
+  if (options.goal !== undefined && options.goal !== false) {
+    try {
+      const explicitId = typeof options.goal === "string" ? options.goal : null;
+      const { resolveActiveGoal } = await import("../lib/goal-store.js");
+      const goal = (deps.resolveActiveGoal || resolveActiveGoal)({
+        explicitId,
+        sessionId,
+      });
+      if (goal) {
+        const { goalPrepareCall } = await import("../lib/goal-context.js");
+        goalPrepareCallFn = goalPrepareCall(goal);
+      }
+    } catch {
+      /* goal binding is best-effort — proceed without it */
+    }
+  }
+
   const loopOptionsBase = {
     model,
     provider,
@@ -219,6 +239,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     approvalGate,
     enabledToolNames,
     disabledTools,
+    prepareCall: goalPrepareCallFn,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as
