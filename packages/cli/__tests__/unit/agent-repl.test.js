@@ -490,8 +490,11 @@ describe("agent-repl thin wrapper contracts", () => {
 
   it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {
     const content = readFileSync(agentReplPath, "utf8");
-    // agentLoop should call coreAgentLoop and handle events
-    expect(content).toContain("coreAgentLoop(messages, options)");
+    // agentLoop should call coreAgentLoop (opting out of the loop's in-built
+    // auto-compaction, since the REPL compacts on its own schedule) and handle
+    // its events.
+    expect(content).toContain("coreAgentLoop(messages, {");
+    expect(content).toContain("autoCompact: false");
     expect(content).toContain('event.type === "tool-executing"');
   });
 

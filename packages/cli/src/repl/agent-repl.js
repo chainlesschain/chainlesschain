@@ -92,7 +92,13 @@ async function executeTool(name, args) {
  */
 async function agentLoop(messages, options) {
   const usageEvents = [];
-  for await (const event of coreAgentLoop(messages, options)) {
+  // The REPL runs its own auto-compaction (after each turn, with metrics +
+  // persisted compact events), so opt out of the agent loop's in-loop
+  // compaction to avoid compacting the same history twice.
+  for await (const event of coreAgentLoop(messages, {
+    autoCompact: false,
+    ...options,
+  })) {
     if (event.type === "checkpoint") {
       process.stdout.write(
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
@@ -725,8 +731,10 @@ export async function startAgentRepl(options = {}) {
 
     if (trimmed === "/compact") {
       if (_compressor && messages.length > 3) {
-        const { messages: compacted, stats } =
-          await _compressor.compress(messages);
+        const { messages: compacted, stats } = await _compressor.compress(
+          messages,
+          { preserveToolPairs: true },
+        );
         messages.length = 0;
         messages.push(...compacted);
         recordCompressionMetric(stats, {
@@ -1639,8 +1647,10 @@ export async function startAgentRepl(options = {}) {
         _compressor.shouldAutoCompact(messages)
       ) {
         try {
-          const { messages: compacted, stats } =
-            await _compressor.compress(messages);
+          const { messages: compacted, stats } = await _compressor.compress(
+            messages,
+            { preserveToolPairs: true },
+          );
           messages.length = 0;
           messages.push(...compacted);
           recordCompressionMetric(stats, {

@@ -2019,6 +2019,38 @@ async function _autoCheckpointBeforeTool(toolContext, toolName, toolArgs) {
  * @param {Array} messages - mutable messages array (will be appended to)
  * @param {object} options - provider, model, baseUrl, apiKey, contextEngine, hookDb, skillLoader, cwd, slotFiller, interaction
  */
+/**
+ * Lazily build (and cache on `options`) the PromptCompressor used for in-loop
+ * auto-compaction. Returns null when the feature is off or the module can't be
+ * loaded — callers treat that as "don't compact". Cached (including null) so we
+ * import once per run, not once per iteration.
+ */
+async function _getAutoCompactor(options) {
+  if (Object.prototype.hasOwnProperty.call(options, "_autoCompactor")) {
+    return options._autoCompactor;
+  }
+  let compressor = null;
+  try {
+    const { feature } = await import("../lib/feature-flags.js");
+    if (feature("PROMPT_COMPRESSOR")) {
+      const { PromptCompressor } =
+        await import("../harness/prompt-compressor.js");
+      compressor = new PromptCompressor({
+        model: options.model,
+        provider: options.provider,
+      });
+    }
+  } catch {
+    compressor = null;
+  }
+  try {
+    options._autoCompactor = compressor;
+  } catch {
+    // options may be frozen — fine, we just re-import next iteration
+  }
+  return compressor;
+}
+
 export async function* agentLoop(messages, options) {
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
@@ -2144,6 +2176,42 @@ export async function* agentLoop(messages, options) {
         message: budget.toWarningMessage(),
         budget: budget.toSummary(),
       };
+    }
+
+    // Headless auto-compaction (Claude-Code `--print` parity). Keeps long
+    // `-p` / `--resume` runs under the model's context window instead of
+    // growing until the provider rejects the request. Opt-out with
+    // `autoCompact: false` (the interactive REPL does this — it compacts on its
+    // own schedule). Default-on, gated by the PROMPT_COMPRESSOR flag + a size
+    // threshold inside the compressor, so it only fires for genuinely large
+    // contexts. Safe to compact here: the previous iteration always finishes
+    // its full tool_call→tool_result cycle before we loop, so `messages` has no
+    // dangling call; `preserveToolPairs` then guarantees compaction never
+    // orphans a tool result. Best-effort — a failure never aborts the run.
+    if (options.autoCompact !== false && messages.length > 4) {
+      try {
+        const compactor = await _getAutoCompactor(options);
+        if (compactor && compactor.shouldAutoCompact(messages)) {
+          const { messages: compacted, stats } = await compactor.compress(
+            messages,
+            { preserveToolPairs: true },
+          );
+          if (stats.saved > 0 && compacted.length < messages.length) {
+            messages.splice(0, messages.length, ...compacted);
+            if (typeof options.onCompaction === "function") {
+              try {
+                options.onCompaction(stats, compacted);
+              } catch {
+                // persistence is best-effort
+              }
+            }
+            yield { type: "compaction", stats, runId };
+          }
+        }
+      } catch (_e) {
+        if (isAbortError(_e) || signal?.aborted) throw _e;
+        // Compaction is best-effort — proceed with the uncompacted messages.
+      }
     }
 
     // Turn-scoped context injection (open-agents prepareCall parity).

@@ -140,6 +140,70 @@ export function adaptiveThresholds(contextWindow) {
   return result;
 }
 
+/**
+ * Repair tool-call/tool-result pairing after lossy compaction.
+ *
+ * Strict chat APIs reject a `tool` message whose `tool_call_id` has no
+ * preceding assistant `tool_calls`, and (for Anthropic) an assistant
+ * `tool_calls` with no following result. Count-based truncation / per-message
+ * snipping can orphan either side. This pass drops assistant tool_calls that
+ * lost their result, then drops tool results whose call was removed — leaving a
+ * sequence every provider will accept. Assistant messages whose calls are all
+ * orphaned are kept as plain text (if any) or dropped.
+ *
+ * @param {Array<object>} messages
+ * @returns {Array<object>} a new, balanced array
+ */
+export function sanitizeToolPairs(messages) {
+  if (!Array.isArray(messages)) return messages;
+
+  const resultIds = new Set(
+    messages
+      .filter((m) => m && m.role === "tool" && m.tool_call_id)
+      .map((m) => m.tool_call_id),
+  );
+
+  // Pass 1 — drop assistant tool_calls that have no matching tool result.
+  const stage1 = [];
+  for (const m of messages) {
+    if (
+      m &&
+      m.role === "assistant" &&
+      Array.isArray(m.tool_calls) &&
+      m.tool_calls.length
+    ) {
+      const kept = m.tool_calls.filter((tc) => tc && resultIds.has(tc.id));
+      if (kept.length === m.tool_calls.length) {
+        stage1.push(m);
+      } else if (kept.length > 0) {
+        stage1.push({ ...m, tool_calls: kept });
+      } else {
+        // No surviving calls: keep the assistant text if any, else drop it.
+        const { tool_calls: _drop, ...rest } = m;
+        if (rest.content && String(rest.content).trim()) stage1.push(rest);
+      }
+    } else {
+      stage1.push(m);
+    }
+  }
+
+  // Pass 2 — drop tool results whose call was removed in pass 1.
+  const survivingCallIds = new Set(
+    stage1
+      .filter((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls))
+      .flatMap((m) => m.tool_calls.map((tc) => tc.id)),
+  );
+  return stage1.filter(
+    (m) =>
+      !(
+        m &&
+        m.role === "tool" &&
+        m.tool_call_id &&
+        !survivingCallIds.has(m.tool_call_id)
+      ),
+  );
+}
+
 export class PromptCompressor {
   constructor(options = {}) {
     if (
@@ -215,6 +279,13 @@ export class PromptCompressor {
       } catch (_err) {
         // Summarization failed — continue with what we have
       }
+    }
+
+    // Tool-pair repair (opt-in) — callers compacting tool-laden histories
+    // (e.g. the headless agent loop) pass this so truncation/snip never leaves
+    // an orphaned tool result or unanswered tool_call for a strict API.
+    if (options.preserveToolPairs) {
+      result = sanitizeToolPairs(result);
     }
 
     const compressedTokens = estimateMessagesTokens(result);
@@ -414,7 +485,6 @@ export class PromptCompressor {
     return result;
   }
 }
-
 
 // =====================================================================
 // Prompt Compressor V2 governance overlay
