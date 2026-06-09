@@ -158,6 +158,10 @@ export function registerAgentCommand(program) {
       "--goal [id]",
       "Bind a cc goal into the run (id, or omit the value to auto-resolve the active goal)",
     )
+    .option(
+      "--mcp-config <file>",
+      "Load ad-hoc MCP servers from a JSON file for this run (headless); their tools become callable (mcp__<server>__<tool>)",
+    )
     .action(async (task, options) => {
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
@@ -262,6 +266,7 @@ export function registerAgentCommand(program) {
             }),
             includePartialMessages: options.includePartialMessages === true,
             goal: options.goal,
+            mcpConfig: options.mcpConfig || null,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -353,6 +358,8 @@ export function registerAgentCommand(program) {
             includePartialMessages: options.includePartialMessages === true,
             // --goal [id]: bind a cc goal into the run (Phase 1)
             goal: options.goal,
+            // --mcp-config: connect ad-hoc MCP servers + expose their tools
+            mcpConfig: options.mcpConfig || null,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
           });

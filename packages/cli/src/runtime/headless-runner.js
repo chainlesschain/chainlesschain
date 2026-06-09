@@ -26,6 +26,7 @@ import {
   agentLoop as coreAgentLoop,
   formatToolArgs,
 } from "./agent-core.js";
+import { loadMcpConfig } from "./mcp-config.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   startSession as jsonlStartSession,
@@ -369,6 +370,26 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --mcp-config: connect ad-hoc MCP servers for this run and expose their
+  // tools to the LLM (Claude-Code parity). Connection is best-effort — a server
+  // that fails to connect is logged to stderr and contributes no tools; a
+  // missing/empty config file fails fast (the user explicitly asked for MCP).
+  let mcp = null;
+  if (options.mcpConfig) {
+    const doLoadMcp = deps.loadMcpConfig || loadMcpConfig;
+    try {
+      mcp = await doLoadMcp(options.mcpConfig, { writeErr });
+      if (isText) {
+        for (const c of mcp.connected) {
+          writeErr(`  mcp: ${c.server} (${c.tools} tools)\n`);
+        }
+      }
+    } catch (err) {
+      writeErr(`Error: ${err.message}\n`);
+      return { exitCode: 1, result: err.message, isError: true };
+    }
+  }
+
   const loopOptions = {
     model,
     provider,
@@ -384,6 +405,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,
+    // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
+    mcpClient: mcp?.mcpClient || null,
+    extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
+    externalToolExecutors: mcp?.externalToolExecutors || undefined,
+    externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
@@ -557,6 +583,17 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       writeErr(`Error: ${message}\n`);
     }
     return { exitCode: 1, result: message, isError: true };
+  } finally {
+    // Tear down ad-hoc MCP servers (--mcp-config) before returning, whether the
+    // loop completed or threw. Best-effort: a failed disconnect never masks the
+    // run's own outcome.
+    if (mcp?.mcpClient) {
+      try {
+        await mcp.mcpClient.disconnectAll();
+      } catch {
+        // ignore — disconnect is best-effort
+      }
+    }
   }
 
   // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration

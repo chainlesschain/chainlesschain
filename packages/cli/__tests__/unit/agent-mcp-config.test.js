@@ -1,0 +1,327 @@
+/**
+ * Unit + integration tests for `cc agent --mcp-config` (Claude-Code parity).
+ *
+ *   1. mcp-config.js  — parse/normalize config, build agent-loop wiring from a
+ *      connected (faked) MCP client, fail-fast on a bad/empty config file.
+ *   2. headless-runner — the loaded {mcpClient, extraToolDefinitions, ...} are
+ *      threaded into the loop options; servers are disconnected at the end.
+ *   3. real agent loop — an `mcp__<server>__<tool>` call from the model is
+ *      dispatched to mcpClient.callTool() and its result flows back.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import {
+  parseMcpServers,
+  mcpToolName,
+  setupMcpFromConfig,
+  loadMcpConfig,
+} from "../../src/runtime/mcp-config.js";
+import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+
+// A minimal fake MCP client whose connect() returns a fixed tool inventory.
+function fakeClient(toolsByServer = {}) {
+  const calls = { connect: [], callTool: [], disconnectAll: 0 };
+  return {
+    calls,
+    async connect(name, config) {
+      calls.connect.push({ name, config });
+      const tools = toolsByServer[name];
+      if (tools === "throw") throw new Error("connect boom");
+      return { name, state: "connected", tools: tools || [] };
+    },
+    async callTool(server, tool, args) {
+      calls.callTool.push({ server, tool, args });
+      return { content: `${server}/${tool}:${JSON.stringify(args)}` };
+    },
+    async disconnectAll() {
+      calls.disconnectAll++;
+    },
+  };
+}
+
+describe("parseMcpServers", () => {
+  it("accepts the Claude-Code {mcpServers} shape", () => {
+    const out = parseMcpServers({
+      mcpServers: { weather: { command: "npx", args: ["-y", "w"] } },
+    });
+    expect(out.weather).toMatchObject({ command: "npx", args: ["-y", "w"] });
+  });
+
+  it("accepts the {servers} bundle shape and a bare map", () => {
+    expect(parseMcpServers({ servers: { a: { url: "http://x" } } }).a).toEqual({
+      command: undefined,
+      args: [],
+      env: {},
+      url: "http://x",
+      transport: undefined,
+      headers: {},
+    });
+    expect(parseMcpServers({ b: { command: "c" } }).b.command).toBe("c");
+  });
+
+  it("skips non-object entries and defaults args/env/headers", () => {
+    const out = parseMcpServers({ mcpServers: { bad: 5, ok: { command: "x" } } });
+    expect(out.bad).toBeUndefined();
+    expect(out.ok).toEqual({
+      command: "x",
+      args: [],
+      env: {},
+      url: undefined,
+      transport: undefined,
+      headers: {},
+    });
+  });
+});
+
+describe("mcpToolName", () => {
+  it("namespaces server + tool", () => {
+    expect(mcpToolName("weather", "get")).toBe("mcp__weather__get");
+  });
+});
+
+describe("setupMcpFromConfig", () => {
+  it("builds tool defs + executor map from connected servers", async () => {
+    const client = fakeClient({
+      weather: [
+        {
+          name: "get",
+          description: "get weather",
+          inputSchema: { type: "object", properties: { city: {} } },
+        },
+      ],
+    });
+    const res = await setupMcpFromConfig(
+      { weather: { command: "npx" } },
+      { createClient: () => client },
+    );
+
+    expect(res.connected).toEqual([{ server: "weather", tools: 1 }]);
+    expect(res.extraToolDefinitions).toHaveLength(1);
+    expect(res.extraToolDefinitions[0].function).toMatchObject({
+      name: "mcp__weather__get",
+      description: "get weather",
+      parameters: { type: "object", properties: { city: {} } },
+    });
+    expect(res.externalToolExecutors["mcp__weather__get"]).toEqual({
+      kind: "mcp",
+      serverName: "weather",
+      toolName: "get",
+    });
+    expect(res.externalToolDescriptors["mcp__weather__get"]).toMatchObject({
+      kind: "mcp",
+      source: "weather",
+    });
+  });
+
+  it("defaults parameters when a tool has no inputSchema", async () => {
+    const client = fakeClient({ s: [{ name: "t" }] });
+    const res = await setupMcpFromConfig(
+      { s: { command: "x" } },
+      { createClient: () => client },
+    );
+    expect(res.extraToolDefinitions[0].function.parameters).toEqual({
+      type: "object",
+      properties: {},
+    });
+  });
+
+  it("logs and skips a server that fails to connect (best-effort)", async () => {
+    const client = fakeClient({ good: [{ name: "g" }], bad: "throw" });
+    const errs = [];
+    const res = await setupMcpFromConfig(
+      { bad: { command: "x" }, good: { command: "y" } },
+      { createClient: () => client, writeErr: (s) => errs.push(s) },
+    );
+    expect(errs.join("")).toMatch(/failed to connect "bad": connect boom/);
+    expect(res.connected).toEqual([{ server: "good", tools: 1 }]);
+    expect(res.extraToolDefinitions).toHaveLength(1);
+  });
+});
+
+describe("loadMcpConfig", () => {
+  it("throws on unreadable / invalid JSON", async () => {
+    await expect(
+      loadMcpConfig("x.json", {
+        readFile: () => "{not json",
+      }),
+    ).rejects.toThrow(/cannot read\/parse/);
+  });
+
+  it("throws when no servers are present", async () => {
+    await expect(
+      loadMcpConfig("x.json", { readFile: () => JSON.stringify({}) }),
+    ).rejects.toThrow(/no servers found/);
+  });
+
+  it("parses a file and connects via the injected client", async () => {
+    const client = fakeClient({ weather: [{ name: "get" }] });
+    const res = await loadMcpConfig("x.json", {
+      readFile: () =>
+        JSON.stringify({ mcpServers: { weather: { command: "npx" } } }),
+      createClient: () => client,
+    });
+    expect(client.calls.connect[0].name).toBe("weather");
+    expect(res.externalToolExecutors["mcp__weather__get"].serverName).toBe(
+      "weather",
+    );
+  });
+});
+
+describe("runAgentHeadless — --mcp-config wiring", () => {
+  const baseDeps = (over = {}) => {
+    const out = [];
+    const err = [];
+    return {
+      out,
+      err,
+      deps: {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => ({
+          setSessionPolicy() {},
+          setConfirmer() {},
+          decide: async () => ({ decision: "allow", via: "t", policy: "t" }),
+        }),
+        writeOut: (s) => out.push(s),
+        writeErr: (s) => err.push(s),
+        sessionExists: () => false,
+        startSession: () => {},
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendTokenUsage: () => {},
+        getLastSessionId: () => null,
+        ...over,
+      },
+    };
+  };
+
+  const fakeMcp = (mcpClient) => ({
+    mcpClient,
+    extraToolDefinitions: [
+      {
+        type: "function",
+        function: {
+          name: "mcp__weather__get",
+          description: "d",
+          parameters: { type: "object", properties: { city: { type: "string" } } },
+        },
+      },
+    ],
+    externalToolExecutors: {
+      mcp__weather__get: { kind: "mcp", serverName: "weather", toolName: "get" },
+    },
+    externalToolDescriptors: {
+      mcp__weather__get: {
+        name: "mcp__weather__get",
+        kind: "mcp",
+        category: "mcp",
+        source: "weather",
+      },
+    },
+    connected: [{ server: "weather", tools: 1 }],
+  });
+
+  it("threads mcp wiring into the loop options and disconnects at the end", async () => {
+    const captured = {};
+    const client = fakeClient();
+    const { deps } = baseDeps({
+      loadMcpConfig: async () => fakeMcp(client),
+      agentLoop: async function* (_messages, options) {
+        captured.options = options;
+        yield { type: "response-complete", content: "ok" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      chatFn: vi.fn(),
+    });
+    await runAgentHeadless(
+      { prompt: "weather?", mcpConfig: "x.json", sessionId: "s-w" },
+      deps,
+    );
+    expect(captured.options.mcpClient).toBe(client);
+    expect(captured.options.extraToolDefinitions[0].function.name).toBe(
+      "mcp__weather__get",
+    );
+    expect(captured.options.externalToolExecutors.mcp__weather__get).toEqual({
+      kind: "mcp",
+      serverName: "weather",
+      toolName: "get",
+    });
+    expect(client.calls.disconnectAll).toBe(1);
+  });
+
+  it("dispatches an mcp__server__tool call to mcpClient.callTool (real loop)", async () => {
+    const client = fakeClient();
+    let turn = 0;
+    const chatFn = vi.fn(async () => {
+      turn += 1;
+      if (turn === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "c1",
+                type: "function",
+                function: {
+                  name: "mcp__weather__get",
+                  arguments: JSON.stringify({ city: "NYC" }),
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "It is sunny in NYC." } };
+    });
+    const { deps, out } = baseDeps({
+      loadMcpConfig: async () => fakeMcp(client),
+      chatFn,
+    });
+
+    const r = await runAgentHeadless(
+      {
+        prompt: "weather in NYC?",
+        mcpConfig: "x.json",
+        outputFormat: "stream-json",
+        sessionId: "s-mcp",
+        permissionMode: "bypassPermissions",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    // The model's mcp tool call reached the MCP client.
+    expect(client.calls.callTool).toEqual([
+      { server: "weather", tool: "get", args: { city: "NYC" } },
+    ]);
+    expect(client.calls.disconnectAll).toBe(1);
+    expect(r.exitCode).toBe(0);
+
+    const events = out
+      .join("")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l));
+    expect(events.some((e) => e.type === "tool_use" && e.tool === "mcp__weather__get")).toBe(true);
+    expect(events.some((e) => e.type === "tool_result" && !e.is_error)).toBe(true);
+    expect(events.at(-1)).toMatchObject({
+      type: "result",
+      result: "It is sunny in NYC.",
+    });
+  });
+
+  it("fails fast when the config file is bad", async () => {
+    const { deps, err } = baseDeps({
+      loadMcpConfig: async () => {
+        throw new Error("--mcp-config: no servers found in \"x.json\".");
+      },
+    });
+    const r = await runAgentHeadless(
+      { prompt: "hi", mcpConfig: "x.json", sessionId: "s-bad" },
+      deps,
+    );
+    expect(r.exitCode).toBe(1);
+    expect(err.join("")).toMatch(/no servers found/);
+  });
+});
