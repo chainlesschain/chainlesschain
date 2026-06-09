@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.chainlesschain.android.feature.familyguard.presentation.family.FamilyMembersScreen
+import com.chainlesschain.android.feature.familyguard.presentation.role.RoleSelectorScreen
 
 /**
  * 家庭 tab 的内部导航 host.
@@ -58,12 +59,29 @@ fun FamilyGuardTab(
         composable(Route.SHELL) {
             FamilyShellScreen(
                 onSosTriggered = { showSosConfirm = true },
+                onNavigateToRole = { navController.navigate(Route.ROLE) },
                 onNavigateToFamilyMembers = { navController.navigate(Route.MEMBERS) },
                 onNavigateToAiStudy = onNavigateToAiStudy,
                 onNavigateToTasks = onNavigateToTasks,
                 onNavigateToRewards = onNavigateToRewards,
                 onNavigateToGentleness = onNavigateToGentleness,
             )
+        }
+        composable(Route.ROLE) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TextButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp),
+                ) {
+                    Text(text = "← 返回", style = MaterialTheme.typography.labelLarge)
+                }
+                // 选定/改定角色后回到壳子。角色=CHILD 后 ChildIdentityProvider 才放行
+                // childDid → SOS / 遥测 / 任务 才真正生效。
+                RoleSelectorScreen(
+                    modifier = Modifier.fillMaxWidth(),
+                    onRoleConfirmed = { navController.popBackStack() },
+                )
+            }
         }
         composable(Route.MEMBERS) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -138,4 +156,5 @@ fun FamilyGuardTab(
 private object Route {
     const val SHELL = "family_guard/shell"
     const val MEMBERS = "family_guard/members"
+    const val ROLE = "family_guard/role"
 }

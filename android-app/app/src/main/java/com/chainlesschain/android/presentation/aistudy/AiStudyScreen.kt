@@ -136,6 +136,12 @@ fun AiStudyScreen(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            // 空历史时给一条引导问候, 避免开屏空白 (真机反馈: 空列表看起来"无法滑动")。
+            if (messages.isEmpty() && !state.isSending) {
+                item(key = "empty-greeting") {
+                    AiStudyGreeting(tab = state.selectedTab)
+                }
+            }
             items(items = messages, key = { it.id }) { msg -> MessageBubble(message = msg) }
             if (state.isSending) {
                 item(key = "streaming") {
@@ -166,6 +172,29 @@ fun AiStudyScreen(
                 showProfileDialog = false
             },
             onDismiss = { showProfileDialog = false },
+        )
+    }
+}
+
+/** 空历史时的开场引导问候 (按 tab 区分文案)。不进入聊天历史, 不污染 LLM 上下文。 */
+@Composable
+private fun AiStudyGreeting(tab: AiStudyTab) {
+    val text = if (tab == AiStudyTab.LEARNING) {
+        "你好呀！我是你的 AI 学习老师 📚\n" +
+            "遇到不会的题，把题目打字发给我就行。我会一步步引导你想思路，" +
+            "而不是直接报答案——这样你才能真正学会。开始吧，今天想学点什么？"
+    } else {
+        "嗨～这里是只属于你的悄悄话空间 💛\n" +
+            "（本机加密保存，连家长也看不到）。开心或不开心的事都可以跟我说说，今天过得怎么样？"
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

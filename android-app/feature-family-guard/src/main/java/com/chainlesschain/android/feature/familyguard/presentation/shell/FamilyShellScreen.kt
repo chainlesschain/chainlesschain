@@ -52,6 +52,7 @@ import com.chainlesschain.android.feature.familyguard.presentation.usageaccess.U
 @Composable
 fun FamilyShellScreen(
     onSosTriggered: () -> Unit,
+    onNavigateToRole: () -> Unit,
     onNavigateToFamilyMembers: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
     onNavigateToTasks: () -> Unit,
@@ -79,6 +80,14 @@ fun FamilyShellScreen(
 
         // FAMILY-20: 仅 CHILD 端且未授 Usage Access 时显引导卡, 其余渲染空。
         UsageAccessCard()
+
+        SectionCard(
+            title = "本机角色",
+            description = "把这台手机设为「家长」或「孩子」。设为孩子后, SOS / 使用监督 / 任务才会真正启用",
+            enabled = true,
+            testTag = TestTag.SectionRole,
+            onClick = onNavigateToRole,
+        )
 
         SectionCard(
             title = "家人",
@@ -188,6 +197,7 @@ private fun SectionCard(
 
 object TestTag {
     const val Screen = "family_guard/shell/screen"
+    const val SectionRole = "family_guard/shell/section_role"
     const val SectionFamily = "family_guard/shell/section_family"
     const val SectionAi = "family_guard/shell/section_ai"
     const val SectionTasks = "family_guard/shell/section_tasks"

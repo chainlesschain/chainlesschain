@@ -684,9 +684,21 @@ fun NavGraph(
             QRCodeScannerScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onQRCodeScanned = { qrContent ->
-                    // 处理扫描结果：如果是好友添加链接，导航到添加好友页面
-                    android.widget.Toast.makeText(navController.context, navController.context.getString(R.string.nav_qr_scan_success, qrContent), android.widget.Toast.LENGTH_LONG).show()
+                    // 扫描成功后解析出对方 DID, 跳到其资料页 (含「添加好友」按钮)。
+                    // 之前这里只弹 Toast 不跳转 → 扫码后看似无反应, 无法加好友 (真机反馈)。
+                    // QRCodeScannerViewModel 已校验过格式/签名/有效期, 这里只取 did 跳转。
+                    val parsed = runCatching { android.net.Uri.parse(qrContent) }.getOrNull()
+                    val scannedDid = parsed?.getQueryParameter("did")
                     navController.popBackStack()
+                    if (parsed?.host == "add-friend" && !scannedDid.isNullOrBlank()) {
+                        navController.navigate(Screen.UserProfile.createRoute(scannedDid))
+                    } else {
+                        android.widget.Toast.makeText(
+                            navController.context,
+                            navController.context.getString(R.string.nav_qr_scan_success, qrContent),
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    }
                 }
             )
         }

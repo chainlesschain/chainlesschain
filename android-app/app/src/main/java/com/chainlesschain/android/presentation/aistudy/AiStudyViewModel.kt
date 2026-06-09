@@ -55,13 +55,7 @@ class AiStudyViewModel @Inject constructor(
     private val companionVault: CompanionVault,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        AiStudyUiState(
-            profile = profileStore.profile.value,
-            // 学习 tab 开屏即给一条引导问候, 避免空白屏 (真机反馈: 空列表看起来"无法滑动")。
-            learningMessages = listOf(greeting(CONV_LEARNING, LEARNING_GREETING)),
-        ),
-    )
+    private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
     val uiState: StateFlow<AiStudyUiState> = _uiState.asStateFlow()
 
     // 学情报告用的会话内计数 (退出即清；持久化属 follow-up)。
@@ -80,27 +74,13 @@ class AiStudyViewModel @Inject constructor(
             taskContext.activeTask.collect { t -> _uiState.update { it.copy(activeTask = t) } }
         }
         // 从 TEE 金库恢复陪伴聊天历史 (解密在 IO 线程；失败则空历史)。
-        // 无历史时也给一条问候, 同样避免空白屏。
         viewModelScope.launch {
             val history = companionVault.load().map { it.toMessage() }
-            _uiState.update {
-                it.copy(
-                    companionMessages = history.ifEmpty {
-                        listOf(greeting(CONV_COMPANION, COMPANION_GREETING))
-                    },
-                )
+            if (history.isNotEmpty()) {
+                _uiState.update { it.copy(companionMessages = history) }
             }
         }
     }
-
-    /** 构造一条 assistant 角色的开场问候消息 (不落盘, 仅展示)。 */
-    private fun greeting(conversationId: String, text: String): Message = Message(
-        id = UUID.randomUUID().toString(),
-        conversationId = conversationId,
-        role = MessageRole.ASSISTANT,
-        content = text,
-        createdAt = System.currentTimeMillis(),
-    )
 
     private fun CompanionChatRecord.toMessage(): Message = Message(
         id = UUID.randomUUID().toString(),
@@ -281,12 +261,5 @@ class AiStudyViewModel @Inject constructor(
     private companion object {
         const val CONV_LEARNING = "ai-study-learning"
         const val CONV_COMPANION = "ai-study-companion"
-        const val LEARNING_GREETING =
-            "你好呀！我是你的 AI 学习老师 📚\n" +
-                "遇到不会的题，把题目拍照或打字发给我就行。我会一步步引导你想思路，" +
-                "而不是直接报答案——这样你才能真正学会。开始吧，今天想学点什么？"
-        const val COMPANION_GREETING =
-            "嗨～这里是只属于你的悄悄话空间 💛\n" +
-                "（本机加密保存，连家长也看不到）。开心或不开心的事都可以跟我说说，今天过得怎么样？"
     }
 }
