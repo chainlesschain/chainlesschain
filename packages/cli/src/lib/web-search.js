@@ -20,8 +20,14 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RESULTS = 8;
 
 const KEYED_PROVIDERS = ["tavily", "brave", "bocha"];
-const KEYLESS_PROVIDERS = ["duckduckgo", "searxng"];
+const KEYLESS_PROVIDERS = ["duckduckgo", "searxng", "baidu"];
 export const SUPPORTED_PROVIDERS = [...KEYED_PROVIDERS, ...KEYLESS_PROVIDERS];
+
+// A realistic desktop-Chrome UA — Baidu (and some others) serve a stripped /
+// verification page to non-browser agents.
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 /** Resolve the API key for a keyed provider from options → config → env. */
 export function resolveApiKey(provider, options = {}, config = {}) {
@@ -271,6 +277,54 @@ async function _searchDuckDuckGo(query, { maxResults, timeout, maxBytes }) {
   return { results, answer: "" };
 }
 
+async function _searchBaidu(query, { maxResults, timeout, maxBytes }) {
+  const url = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}&rn=${Math.max(maxResults, 10)}`;
+  const res = await _request(url, {
+    method: "GET",
+    headers: { "User-Agent": BROWSER_UA, "Accept-Language": "zh-CN,zh;q=0.9" },
+    timeout,
+    maxBytes,
+  });
+  if (res.statusCode >= 400) return { error: `baidu HTTP ${res.statusCode}` };
+  const html = res.body;
+  // Baidu aggressively rate-limits non-browser traffic: it 302s to a captcha
+  // (wappass) or serves a verification page. Surface that distinctly so the
+  // caller can back off / switch provider rather than seeing "no results".
+  if (
+    (res.statusCode >= 300 && res.statusCode < 400) ||
+    /wappass|captcha|安全验证|请输入验证码|antirobot/.test(html)
+  ) {
+    return {
+      error:
+        "baidu: rate-limited / captcha challenge — retry later or use a keyed provider",
+    };
+  }
+  // Baidu shows a verification/security page (no result containers) to bots.
+  if (!/c-container|class="t"/.test(html)) {
+    return { error: "baidu: no results (blocked or markup changed)" };
+  }
+  // Markup-agnostic: anchor each result on its <h3 class="t|c-title"> heading,
+  // pull the URL from the anchor inside it (a baidu.com/link?url= redirect that
+  // web_fetch resolves), and take the text up to the next heading as snippet.
+  const h3re = /<h3[^>]*class="[^"]*\b(?:t|c-title)\b[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+  const marks = [];
+  let m;
+  while ((m = h3re.exec(html)) !== null) {
+    marks.push({ inner: m[1], start: m.index, end: h3re.lastIndex });
+  }
+  const results = [];
+  for (let i = 0; i < marks.length && results.length < maxResults; i++) {
+    const title = _clean(marks[i].inner);
+    if (!title) continue;
+    const href = (marks[i].inner.match(/href="([^"]+)"/) || [])[1] || "";
+    const segEnd =
+      i + 1 < marks.length ? marks[i + 1].start : marks[i].end + 2000;
+    const snippet = _clean(html.slice(marks[i].end, segEnd)).slice(0, 200);
+    results.push({ title, url: href, snippet });
+  }
+  return { results, answer: "" };
+}
+
 async function _searchSearxng(query, { instanceUrl, maxResults, timeout, maxBytes }) {
   if (!instanceUrl) return { error: "searxng: missing instanceUrl" };
   const base = instanceUrl.replace(/\/+$/, "");
@@ -344,6 +398,9 @@ export async function webSearch(query, options = {}) {
           timeout,
           maxBytes,
         });
+        break;
+      case "baidu":
+        out = await _searchBaidu(q, { maxResults, timeout, maxBytes });
         break;
       case "duckduckgo":
       default:

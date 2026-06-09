@@ -514,7 +514,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         },
         provider: {
           type: "string",
-          enum: ["auto", "tavily", "brave", "bocha", "duckduckgo", "searxng"],
+          enum: ["auto", "tavily", "brave", "bocha", "duckduckgo", "searxng", "baidu"],
           description:
             "Override the configured search backend for this call (default: from config / auto)",
         },

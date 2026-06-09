@@ -65,6 +65,18 @@ const DDG_BODY = `
     <a class="result__snippet" href="x">A <b>snippet</b> text</a>
   </div>`;
 
+const BAIDU_BODY = `
+  <div class="result c-container">
+    <h3 class="t"><a href="http://www.baidu.com/link?url=ABC">百度百科 <em>测试</em></a></h3>
+    <div class="c-abstract">这是第一条摘要文本。</div>
+  </div>
+  <div class="result c-container">
+    <h3 class="t"><a href="http://www.baidu.com/link?url=DEF">第二条标题</a></h3>
+    <div>第二条摘要。</div>
+  </div>`;
+const BAIDU_CAPTCHA_BODY =
+  '<a href="https://wappass.baidu.com/static/captcha/tuxing_v2.html?logid=1">跳转</a>';
+
 function defaultResponder({ hostname }) {
   switch (hostname) {
     case "api.tavily.com":
@@ -75,6 +87,8 @@ function defaultResponder({ hostname }) {
       return { statusCode: 200, body: BOCHA_BODY };
     case "html.duckduckgo.com":
       return { statusCode: 200, body: DDG_BODY };
+    case "www.baidu.com":
+      return { statusCode: 200, body: BAIDU_BODY };
     default:
       return { statusCode: 404, body: "" };
   }
@@ -189,6 +203,27 @@ describe("web-search — webSearch() provider parsing", () => {
     expect(r.results[0].url).toBe("https://example.com/page");
     expect(r.results[0].title).toBe("Example Title");
     expect(r.results[0].snippet).toBe("A snippet text");
+  });
+
+  it("parses Baidu HTML (title/url/snippet) keyless", async () => {
+    const r = await webSearch("测试", { provider: "baidu" });
+    expect(r.provider).toBe("baidu");
+    expect(r.count).toBe(2);
+    expect(r.results[0].title).toBe("百度百科 测试");
+    expect(r.results[0].url).toBe("http://www.baidu.com/link?url=ABC");
+    expect(r.results[0].snippet).toContain("第一条摘要");
+    expect(r.results[1].url).toBe("http://www.baidu.com/link?url=DEF");
+  });
+
+  it("reports a clear error when Baidu returns a captcha/redirect", async () => {
+    _deps.https = makeFakeLib(({ hostname }) =>
+      hostname === "www.baidu.com"
+        ? { statusCode: 302, body: BAIDU_CAPTCHA_BODY }
+        : { statusCode: 404, body: "" },
+    );
+    const r = await webSearch("测试", { provider: "baidu" });
+    expect(r.provider).toBe("baidu");
+    expect(r.error).toMatch(/rate-limited \/ captcha/);
   });
 
   it("respects maxResults", async () => {

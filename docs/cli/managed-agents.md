@@ -345,7 +345,7 @@ agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文
 // .chainlesschain/config.json
 {
   "webSearch": {
-    "provider": "auto",   // auto | tavily | brave | bocha | duckduckgo | searxng
+    "provider": "auto",   // auto | tavily | brave | bocha | duckduckgo | searxng | baidu
     "apiKey": "",         // 通用 key;也可用 tavilyApiKey / braveApiKey / bochaApiKey 分别指定
     "maxResults": 8,
     "instanceUrl": ""     // 仅 searxng:自建实例地址(需开 json 输出格式)
@@ -357,6 +357,9 @@ agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文
   都没 key 时退回**免 key** 的 DuckDuckGo(HTML 端点解析,质量/稳定性较弱)。
 - **API key 来源**(优先级 options > config > env):`TAVILY_API_KEY` / `BRAVE_API_KEY`
   (兼容 `BRAVE_SEARCH_API_KEY`)/ `BOCHA_API_KEY`。Bocha(博查)为国内可达的 AI 搜索源。
+- **`baidu`(免 key,国内可达)**:抓 `www.baidu.com/s` HTML(浏览器 UA)。适合国内
+  低频检索(DuckDuckGo 国内常被墙);但 Baidu 反爬激进,频繁请求会 302 跳验证码,此时
+  返回明确的 `rate-limited / captcha` 错误而非静默失败。高频/稳定需求建议用 keyed 源。
 - 单次调用可用工具入参 `provider` 覆盖配置后端;`web_search` 属 `readonly`,plan-mode 允许,
   权限规则伞名 `WebSearch`(见上「Permissions」表)。
 - 已注册的 `brave-search` MCP(`cc mcp`)是另一条搜索路径,但需逐用户安装+配 key;
