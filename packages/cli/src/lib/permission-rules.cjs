@@ -243,6 +243,66 @@ function evaluatePermissionRules({ tool, args = {}, cwd, rules } = {}) {
   return { decision: null, rule: null };
 }
 
+/** Concrete tool name → the umbrella token a suggested rule should be written
+ *  with (Claude-Code style; what users expect to see in settings.json). */
+const SUGGEST_UMBRELLA = Object.freeze({
+  run_shell: "Bash",
+  run_code: "Bash",
+  git: "git",
+  read_file: "Read",
+  list_dir: "Read",
+  search_files: "Grep",
+  write_file: "Write",
+  edit_file: "Edit",
+  edit_file_hashed: "Edit",
+  web_fetch: "WebFetch",
+  spawn_sub_agent: "Task",
+  run_skill: "Skill",
+  list_skills: "Skill",
+  todo_write: "TodoWrite",
+});
+
+/** Commands whose first token is a dispatcher — keep 2 tokens in the prefix. */
+const MULTI_VERB = new Set([
+  "git", "npm", "npx", "yarn", "pnpm", "docker", "kubectl", "cargo",
+  "go", "pip", "pip3", "python", "python3", "node", "dotnet", "gh", "brew",
+]);
+
+/**
+ * Suggest a sensible `allow` rule string for a tool call, for the interactive
+ * "always allow" / don't-ask-again flow. Commands → `Bash(<1-2 token prefix>:*)`;
+ * paths → `<Umbrella>(<dir>/**)`; urls → `WebFetch(domain:<host>)`; otherwise a
+ * bare tool umbrella. Returns null if nothing meaningful can be derived.
+ */
+function suggestAllowRule(tool, args = {}) {
+  const umbrella = SUGGEST_UMBRELLA[tool] || tool;
+  if (COMMAND_TOOLS.has(tool)) {
+    const cmd = String(args.command || "").trim();
+    if (!cmd) return umbrella;
+    const tokens = cmd.split(/\s+/);
+    const keep = MULTI_VERB.has(tokens[0]) && tokens.length > 1 ? 2 : 1;
+    const prefix = tokens.slice(0, keep).join(" ");
+    return `${umbrella}(${prefix}:*)`;
+  }
+  if (PATH_TOOLS.has(tool)) {
+    const raw = args.path || args.file_path || args.dir || args.directory || "";
+    if (!raw) return umbrella;
+    const slash = String(raw).replace(/\\/g, "/");
+    const dir = slash.includes("/") ? slash.slice(0, slash.lastIndexOf("/")) : ".";
+    const base = dir === "" ? "/" : dir;
+    const norm = /^(\.|\/|~)/.test(base) ? base : `./${base}`;
+    return `${umbrella}(${norm}/**)`;
+  }
+  if (URL_TOOLS.has(tool)) {
+    try {
+      return `${umbrella}(domain:${new URL(String(args.url || "")).host})`;
+    } catch {
+      return umbrella;
+    }
+  }
+  return umbrella;
+}
+
 module.exports = {
   DECISIONS,
   TOOL_GROUPS,
@@ -258,4 +318,6 @@ module.exports = {
   matchUrl,
   matchPattern,
   evaluatePermissionRules,
+  suggestAllowRule,
+  SUGGEST_UMBRELLA,
 };

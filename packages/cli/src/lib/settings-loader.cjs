@@ -151,12 +151,57 @@ function ruleSource(sources, kind, rule) {
   return (sources && sources[`${kind}:${rule}`]) || null;
 }
 
+/** Resolve a write target file for a scope (project | local | user). */
+function scopeFile(cwd, scope) {
+  if (scope === "user") {
+    return path.join(_deps.homedir(), ".claude", "settings.json");
+  }
+  if (scope === "local") {
+    return path.join(cwd, ".claude", "settings.local.json");
+  }
+  return path.join(cwd, ".claude", "settings.json"); // project (default)
+}
+
+/**
+ * Append a permission rule to a settings file (idempotent). Used by
+ * `cc permissions add` and the REPL "always allow" flow.
+ *
+ * @returns {{ file:string, added:boolean }} added=false → already present.
+ * @throws if the target file exists but is malformed JSON (refuse to clobber).
+ */
+function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
+  if (!KINDS.includes(kind)) {
+    throw new Error(`kind must be allow | ask | deny (got "${kind}")`);
+  }
+  const file = scopeFile(cwd, scope);
+  let data = {};
+  if (_deps.fs.existsSync(file)) {
+    const text = _deps.fs.readFileSync(file, "utf-8");
+    try {
+      data = JSON.parse(text) || {};
+    } catch (err) {
+      throw new Error(`refusing to overwrite malformed ${file} (${err.message})`);
+    }
+  }
+  if (!data.permissions || typeof data.permissions !== "object") {
+    data.permissions = {};
+  }
+  if (!Array.isArray(data.permissions[kind])) data.permissions[kind] = [];
+  if (data.permissions[kind].includes(rule)) return { file, added: false };
+  data.permissions[kind].push(rule);
+  _deps.fs.mkdirSync(path.dirname(file), { recursive: true });
+  _deps.fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  return { file, added: true };
+}
+
 module.exports = {
   loadSettings,
   readSettingsFile,
   settingsPaths,
   parseEnvList,
   ruleSource,
+  addRule,
+  scopeFile,
   KINDS,
   _deps,
 };

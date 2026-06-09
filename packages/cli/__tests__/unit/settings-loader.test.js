@@ -10,7 +10,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import loader from "../../src/lib/settings-loader.cjs";
 
-const { loadSettings, _deps } = loader;
+const { loadSettings, addRule, _deps } = loader;
 const isWin = process.platform === "win32";
 const HOME = isWin ? "C:\\home\\u" : "/home/u";
 const CWD = isWin ? "C:\\proj" : "/proj";
@@ -36,6 +36,10 @@ beforeEach(() => {
       if (!(p in files)) throw new Error("ENOENT");
       return files[p];
     },
+    writeFileSync: (p, content) => {
+      files[p] = String(content);
+    },
+    mkdirSync: () => {},
   };
 });
 
@@ -125,5 +129,53 @@ describe("loadSettings — robustness", () => {
     setFile(projFile, { permissions: "nope" });
     const { rules } = loadSettings({ cwd: CWD, env: {} });
     expect(rules).toEqual({ allow: [], ask: [], deny: [] });
+  });
+});
+
+describe("addRule (shared writer for cc permissions add + REPL always-allow)", () => {
+  it("creates settings.local.json and appends an allow rule (scope: local)", () => {
+    const { file, added } = addRule({
+      cwd: CWD,
+      kind: "allow",
+      rule: "Bash(git push:*)",
+      scope: "local",
+    });
+    expect(added).toBe(true);
+    expect(file).toBe(localFile);
+    expect(JSON.parse(files[localFile]).permissions.allow).toEqual([
+      "Bash(git push:*)",
+    ]);
+  });
+
+  it("is idempotent (added=false when the rule already exists)", () => {
+    setFile(localFile, { permissions: { allow: ["Read"] } });
+    const { added } = addRule({
+      cwd: CWD,
+      kind: "allow",
+      rule: "Read",
+      scope: "local",
+    });
+    expect(added).toBe(false);
+    expect(JSON.parse(files[localFile]).permissions.allow).toEqual(["Read"]);
+  });
+
+  it("writes to the project file by default and the user file for scope:user", () => {
+    addRule({ cwd: CWD, kind: "deny", rule: "Bash(rm:*)" });
+    expect(JSON.parse(files[projFile]).permissions.deny).toEqual(["Bash(rm:*)"]);
+    addRule({ cwd: CWD, kind: "allow", rule: "Read", scope: "user" });
+    expect(JSON.parse(files[userFile]).permissions.allow).toEqual(["Read"]);
+  });
+
+  it("rejects an invalid kind", () => {
+    expect(() =>
+      addRule({ cwd: CWD, kind: "maybe", rule: "Read" }),
+    ).toThrow(/allow \| ask \| deny/);
+  });
+
+  it("refuses to clobber a malformed target file", () => {
+    files[localFile] = "{ not json";
+    expect(() =>
+      addRule({ cwd: CWD, kind: "allow", rule: "Read", scope: "local" }),
+    ).toThrow(/malformed/);
   });
 });

@@ -188,44 +188,18 @@ export function registerPermissionsCommand(program) {
           return;
         }
 
-        const fs = await import("node:fs");
-        const path = await import("node:path");
-        const { homedir } = await import("node:os");
-        let file;
-        if (options.user) {
-          file = path.join(homedir(), ".claude", "settings.json");
-        } else if (options.local) {
-          file = path.join(process.cwd(), ".claude", "settings.local.json");
-        } else {
-          file = path.join(process.cwd(), ".claude", "settings.json");
-        }
-
-        let data = {};
-        if (fs.existsSync(file)) {
-          try {
-            data = JSON.parse(fs.readFileSync(file, "utf-8")) || {};
-          } catch (err) {
-            logger.error(
-              chalk.red(
-                `refusing to overwrite malformed ${file} (${err.message}) — fix it first`,
-              ),
-            );
-            process.exitCode = 1;
-            return;
-          }
-        }
-        if (!data.permissions || typeof data.permissions !== "object") {
-          data.permissions = {};
-        }
-        if (!Array.isArray(data.permissions[kind])) data.permissions[kind] = [];
-        if (data.permissions[kind].includes(rule)) {
+        const scope = options.user ? "user" : options.local ? "local" : "project";
+        const { addRule } = await import("../lib/settings-loader.cjs");
+        const { file, added } = addRule({
+          cwd: process.cwd(),
+          kind,
+          rule,
+          scope,
+        });
+        if (!added) {
           logger.log(chalk.gray(`already present in ${file}: ${kind} ${rule}`));
           return;
         }
-        data.permissions[kind].push(rule);
-
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n", "utf-8");
         logger.log(
           `${KIND_COLOR[kind].bold("✓ " + kind)} ${rule} ${chalk.gray("→ " + file)}`,
         );

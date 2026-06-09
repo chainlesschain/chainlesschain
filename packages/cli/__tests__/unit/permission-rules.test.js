@@ -16,6 +16,7 @@ const {
   matchCommand,
   matchPattern,
   evaluatePermissionRules,
+  suggestAllowRule,
 } = rules;
 
 describe("parseRule", () => {
@@ -206,5 +207,45 @@ describe("evaluatePermissionRules — precedence", () => {
     expect(
       evaluatePermissionRules({ tool: "run_shell", args: {} }).decision,
     ).toBeNull();
+  });
+});
+
+describe("suggestAllowRule (always-allow derivation)", () => {
+  it("keeps 2 tokens for a multi-verb command (git push)", () => {
+    expect(suggestAllowRule("run_shell", { command: "git push origin main" })).toBe(
+      "Bash(git push:*)",
+    );
+    expect(suggestAllowRule("run_shell", { command: "npm run test:unit" })).toBe(
+      "Bash(npm run:*)",
+    );
+  });
+  it("keeps 1 token for a plain command", () => {
+    expect(suggestAllowRule("run_shell", { command: "ls -la" })).toBe(
+      "Bash(ls:*)",
+    );
+  });
+  it("falls back to the bare umbrella for an empty command", () => {
+    expect(suggestAllowRule("run_shell", { command: "" })).toBe("Bash");
+  });
+  it("derives a directory glob for path tools", () => {
+    expect(suggestAllowRule("read_file", { path: "src/app.js" })).toBe(
+      "Read(./src/**)",
+    );
+    expect(suggestAllowRule("edit_file", { path: "a.txt" })).toBe("Edit(./**)");
+  });
+  it("derives a domain rule for web_fetch", () => {
+    expect(
+      suggestAllowRule("web_fetch", { url: "https://example.com/x" }),
+    ).toBe("WebFetch(domain:example.com)");
+  });
+  it("the suggested rule actually allows the originating call", () => {
+    const rule = suggestAllowRule("run_shell", { command: "git push origin main" });
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "git push origin main" },
+      cwd: "/",
+      rules: { allow: [rule] },
+    });
+    expect(r.decision).toBe("allow");
   });
 });

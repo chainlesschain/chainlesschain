@@ -82,6 +82,35 @@ let _permissionRules = null;
 let _permissionConfirm = null;
 
 /**
+ * "Always allow" persistence: derive a sensible allow rule for a tool call,
+ * append it to .claude/settings.local.json (personal, gitignored), and reflect
+ * it in the in-memory ruleset so the rest of the session stops prompting. A
+ * persisted `allow` short-circuits the ApprovalGate via agent-core's
+ * `ruleAllowed` path (see permission-rules wiring). Returns {rule,file} or null.
+ */
+async function _persistAlwaysAllow(tool, args) {
+  try {
+    const rulesMod = await import("../lib/permission-rules.cjs");
+    const { suggestAllowRule } = rulesMod.default || rulesMod;
+    const rule = suggestAllowRule(tool || "run_shell", args || {});
+    if (!rule) return null;
+    const { addRule } = await import("../lib/settings-loader.cjs");
+    const { file } = addRule({
+      cwd: process.cwd(),
+      kind: "allow",
+      rule,
+      scope: "local",
+    });
+    if (!_permissionRules) _permissionRules = { allow: [], ask: [], deny: [] };
+    if (!_permissionRules.allow.includes(rule)) _permissionRules.allow.push(rule);
+    return { rule, file };
+  } catch (err) {
+    process.stderr.write(`  always-allow persist failed: ${err.message}\n`);
+    return null;
+  }
+}
+
+/**
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
  */
 async function executeTool(name, args) {
@@ -239,7 +268,7 @@ export async function startAgentRepl(options = {}) {
       await import("../lib/session-core-singletons.js");
     _approvalGate = await getApprovalGate();
     if (typeof _approvalGate.setConfirmer === "function") {
-      _approvalGate.setConfirmer(async ({ args, riskLevel }) => {
+      _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
         const rlConfirm = readline.createInterface({
           input: process.stdin,
           output: process.stdout,
@@ -249,13 +278,25 @@ export async function startAgentRepl(options = {}) {
         const ans = (
           await q(
             chalk.yellow(
-              `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n  Proceed? (y/N) `,
+              `\n[ApprovalGate] ${riskLevel || "medium"} risk command:${cmd}\n` +
+                `  Proceed? [y]es once / [a]lways allow / [N]o: `,
             ),
           )
         )
           .trim()
           .toLowerCase();
         rlConfirm.close();
+        if (ans === "a" || ans === "always") {
+          const saved = await _persistAlwaysAllow(tool || "run_shell", args);
+          if (saved) {
+            process.stdout.write(
+              chalk.green(
+                `  ✓ always allow: added ${saved.rule} → ${saved.file}\n`,
+              ),
+            );
+          }
+          return true;
+        }
         return ans === "y" || ans === "yes";
       });
     }
