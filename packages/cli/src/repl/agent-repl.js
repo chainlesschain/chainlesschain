@@ -93,7 +93,11 @@ async function executeTool(name, args) {
 async function agentLoop(messages, options) {
   const usageEvents = [];
   for await (const event of coreAgentLoop(messages, options)) {
-    if (event.type === "tool-executing") {
+    if (event.type === "checkpoint") {
+      process.stdout.write(
+        chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
+      );
+    } else if (event.type === "tool-executing") {
       process.stdout.write(
         chalk.gray(
           `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}\n`,
@@ -158,6 +162,9 @@ export async function startAgentRepl(options = {}) {
   const additionalDirectories = Array.isArray(options.additionalDirectories)
     ? options.additionalDirectories
     : [];
+  // Snapshot the work tree before each mutating tool (git engine) so the user
+  // can `cc checkpoint restore` to just before any tool call.
+  const autoCheckpoint = options.autoCheckpoint === true;
 
   // --fallback-model: retry a turn's LLM call once on a backup model when the
   // primary errors out (overload / network). Built once; passed into every
@@ -1531,6 +1538,8 @@ export async function startAgentRepl(options = {}) {
         sessionId,
         cwd: process.cwd(),
         additionalDirectories,
+        autoCheckpoint,
+        checkpointSession: sessionId,
         prepareCall: defaultPrepareCall,
         approvalGate: _approvalGate,
         mcpClient: _bundleMcpClient || undefined,

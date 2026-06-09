@@ -89,6 +89,10 @@ export function registerAgentCommand(program) {
       "Extra working directory the agent may read/search/edit (repeatable)",
       (val, prev) => (prev || []).concat([val]),
     )
+    .option(
+      "--checkpoint",
+      "Auto-snapshot the work tree before each mutating tool (git repo; cc checkpoint restore to roll back)",
+    )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
@@ -310,6 +314,7 @@ export function registerAgentCommand(program) {
             allowedTools: parseToolList(options.allowedTools),
             disallowedTools: parseToolList(options.disallowedTools),
             additionalDirectories,
+            autoCheckpoint: options.checkpoint === true,
             maxTurns,
             // commander maps --no-file-refs → options.fileRefs === false
             expandFileRefs: options.fileRefs !== false,
@@ -345,6 +350,7 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
+        autoCheckpoint: options.checkpoint === true,
         // --system-prompt / --append-system-prompt (literal or @file) also
         // apply to interactive sessions, composed in startAgentRepl.
         systemPrompt: resolvePromptText(options.systemPrompt, {

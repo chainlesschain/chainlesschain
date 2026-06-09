@@ -1843,11 +1843,58 @@ function _normalizeAnthropicResponse(data) {
 
 // ─── Agent loop (async generator) ─────────────────────────────────────────
 
+// Tools that never mutate the workspace — auto-checkpoint skips these.
+const _CHECKPOINT_READ_ONLY = new Set([
+  "read_file",
+  "search_files",
+  "list_dir",
+  "list_skills",
+  "search_sessions",
+]);
+
+let _checkpointStoreP = null;
+function _loadCheckpointStore() {
+  if (!_checkpointStoreP) {
+    _checkpointStoreP = import("../lib/checkpoint-store.js");
+  }
+  return _checkpointStoreP;
+}
+
+/**
+ * Best-effort auto-checkpoint of the working tree BEFORE a mutating tool runs,
+ * so a later `cc checkpoint restore` can roll back to just before that tool.
+ * Enabled via toolContext.autoCheckpoint; uses the git engine only (no-op
+ * outside a git work tree). Never throws — checkpointing must not block a tool.
+ *
+ * @returns {Promise<string|null>} the checkpoint id, or null when skipped
+ */
+async function _autoCheckpointBeforeTool(toolContext, toolName, toolArgs) {
+  if (!toolContext?.autoCheckpoint) return null;
+  if (_CHECKPOINT_READ_ONLY.has(toolName)) return null;
+  const cwd = toolContext.cwd || process.cwd();
+  try {
+    const store = await _loadCheckpointStore();
+    if (!store.isCheckpointAvailable(cwd)) return null;
+    const res = store.createCheckpoint(cwd, {
+      session: toolContext.checkpointSession || "agent",
+      label: `before ${toolName}: ${formatToolArgs(toolName, toolArgs)}`.slice(
+        0,
+        120,
+      ),
+      skipIfUnchanged: true,
+    });
+    return res?.id || null;
+  } catch {
+    return null; // checkpoint failure must never block the tool
+  }
+}
+
 /**
  * Async generator that drives the agentic tool-use loop.
  *
  * Yields events:
  *   { type: "slot-filling", slot, question }  — when asking user for missing info
+ *   { type: "checkpoint", id, tool }          — auto-checkpoint before a mutating tool
  *   { type: "tool-executing", tool, args }
  *   { type: "tool-result", tool, result, error }
  *   { type: "response-complete", content }
@@ -1879,6 +1926,9 @@ export async function* agentLoop(messages, options) {
     approvalGate: options.approvalGate || null,
     shellConfirm: options.shellConfirm || null,
     additionalDirectories: options.additionalDirectories || null,
+    autoCheckpoint: options.autoCheckpoint || false,
+    checkpointSession:
+      options.checkpointSession || options.sessionId || "agent",
   };
 
   throwIfAborted(signal);
@@ -2049,6 +2099,15 @@ export async function* agentLoop(messages, options) {
       } catch {
         toolArgs = {};
       }
+
+      // Auto-checkpoint the work tree before a mutating tool (opt-in), so the
+      // user can `cc checkpoint restore` back to just before this call.
+      const cpId = await _autoCheckpointBeforeTool(
+        toolContext,
+        toolName,
+        toolArgs,
+      );
+      if (cpId) yield { type: "checkpoint", id: cpId, tool: toolName };
 
       yield { type: "tool-executing", tool: toolName, args: toolArgs };
 

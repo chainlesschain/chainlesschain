@@ -29,6 +29,7 @@ export function resolveAgentPolicy({
     additionalDirectories: Array.isArray(overrides.additionalDirectories)
       ? overrides.additionalDirectories
       : [],
+    autoCheckpoint: overrides.autoCheckpoint === true,
     systemPrompt: overrides.systemPrompt || null,
     appendSystemPrompt: overrides.appendSystemPrompt || null,
     fallbackModel: overrides.fallbackModel || null,

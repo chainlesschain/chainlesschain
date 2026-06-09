@@ -115,8 +115,11 @@ function snapshotTree(root, dir) {
  * Capture the current working tree as a shadow commit.
  *
  * @param {string} cwd
- * @param {object} [opts] { session, label, now }
- * @returns {{ id, ref, commit, tree, parent, label, session, createdAt, files }}
+ * @param {object} [opts] { session, label, now, skipIfUnchanged }
+ *   skipIfUnchanged: when the work tree is identical to the last checkpoint in
+ *   the session, reuse it instead of creating a duplicate ref (returns
+ *   `{ ...prior, reused: true }`). Matters for per-tool auto-checkpointing.
+ * @returns {{ id, ref, commit, tree, parent, label, session, createdAt, files, reused? }}
  */
 export function createCheckpoint(cwd = process.cwd(), opts = {}) {
   const root = repoRoot(cwd);
@@ -137,6 +140,44 @@ export function createCheckpoint(cwd = process.cwd(), opts = {}) {
     }
     git(["add", "-A"], { cwd: root, env });
     const tree = git(["write-tree"], { cwd: root, env });
+
+    // Dedup: when nothing changed since the last checkpoint, reuse it instead of
+    // piling up identical refs (per-tool auto-checkpointing relies on this).
+    if (opts.skipIfUnchanged) {
+      try {
+        const tip = git(
+          [
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            `${sessionPrefix(session)}/_tip`,
+          ],
+          { cwd: root },
+        );
+        if (
+          tip &&
+          git(["rev-parse", `${tip}^{tree}`], { cwd: root }) === tree
+        ) {
+          const row = listRefs(root, session).find((r) => r.commit === tip);
+          if (row) {
+            return {
+              id: row.id,
+              ref: row.ref,
+              commit: tip,
+              tree,
+              parent: null,
+              label: row.label,
+              session,
+              createdAt: row.createdAt,
+              files: 0,
+              reused: true,
+            };
+          }
+        }
+      } catch {
+        /* fall through to a normal checkpoint */
+      }
+    }
 
     // Chain onto the prior tip (or HEAD) so checkpoints form a readable history.
     let parent = null;

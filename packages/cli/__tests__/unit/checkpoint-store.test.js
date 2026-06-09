@@ -198,4 +198,20 @@ describe("checkpoint-store (git engine)", () => {
   it("resolveCheckpoint throws on an unknown id", () => {
     expect(() => resolveCheckpoint(repo, "cp9999")).toThrow(/not found/i);
   });
+
+  it("skipIfUnchanged reuses the prior checkpoint when nothing changed", () => {
+    const c1 = createCheckpoint(repo, { label: "base" });
+    // No edits since c1 → reuse it instead of making a duplicate ref.
+    const again = createCheckpoint(repo, { skipIfUnchanged: true });
+    expect(again.reused).toBe(true);
+    expect(again.id).toBe(c1.id);
+    expect(listCheckpoints(repo).length).toBe(1);
+
+    // After a real change, skipIfUnchanged makes a fresh checkpoint.
+    writeFileSync(join(repo, "a.txt"), "changed\n", "utf8");
+    const c2 = createCheckpoint(repo, { skipIfUnchanged: true });
+    expect(c2.reused).toBeFalsy();
+    expect(c2.id).not.toBe(c1.id);
+    expect(listCheckpoints(repo).length).toBe(2);
+  });
 });

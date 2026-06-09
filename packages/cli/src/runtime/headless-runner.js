@@ -190,6 +190,8 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
  *                                             (no id) → most-recent session.
  * @param {boolean} [options.continueSession]  Resume the most-recent session.
  * @param {boolean} [options.persistSession]   Force persistence without resume.
+ * @param {boolean} [options.autoCheckpoint]   Snapshot the work tree before each
+ *                                             mutating tool (git engine only).
  * @param {boolean} [options.expandFileRefs=true] Expand `@path` file references
  *                                             in the prompt into context blocks.
  * @param {object} [deps]                       Injection seam for tests.
@@ -373,6 +375,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     cwd,
     additionalDirectories,
     sessionId,
+    autoCheckpoint: options.autoCheckpoint || false,
+    checkpointSession: options.checkpointSession || sessionId,
     hookDb: db,
     approvalGate,
     enabledToolNames,
@@ -410,6 +414,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   try {
     for await (const event of runLoop(messages, loopOptions)) {
       switch (event.type) {
+        case "checkpoint": {
+          if (isText)
+            writeErr(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`);
+          emitStream({ type: "checkpoint", id: event.id, tool: event.tool });
+          break;
+        }
         case "tool-executing": {
           const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
           if (isText) writeErr(line + "\n");
