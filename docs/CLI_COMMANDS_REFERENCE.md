@@ -9,7 +9,7 @@
 
 | Group | File | Covers |
 |-------|------|--------|
-| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `stream`, WS routes (Phase D–I) |
+| Managed Agents & Hosted API | [`cli/managed-agents.md`](./cli/managed-agents.md) | `agent -p` (headless), `memory store/recall/consolidate`, `session policy/tail/usage/park/unpark/end`, `cost`, `checkpoint`, `goal` (跨会话目标/OKR), `stream`, WS routes (Phase D–I) |
 | Core Phases 2–7 · Init · Cowork | [`cli/core-phases.md`](./cli/core-phases.md) | `import/export`, `mcp`, `did/encrypt/auth/audit`, `p2p/wallet/org/plugin`, `init/persona`, `cowork`, `hook/workflow/hmemory/a2a`, `sandbox/evolution/evomap/dao` |
 | Phase 8 · Blockchain & Enterprise | [`cli/blockchain-enterprise.md`](./cli/blockchain-enterprise.md) | `compliance/threat-intel`, `pqc`, `nostr/matrix/activitypub/scim/terraform`, `hardening/stress/reputation/sla/tech/dev/collab/marketplace/incentive/kg/tenant/governance/recommend/crosschain/privacy/inference/trust/social/fusion/infra` |
 | Observability & Code Intel | [`cli/observability.md`](./cli/observability.md) | `codegen` (Phase 86), `ops` (AIOps Phase 25), `perception` (Phase 84), `dbevo` (Phase 80), `federation` (Phase 58) |
@@ -116,3 +116,17 @@ chainlesschain checkpoint list | show <id> [--diff] | restore <id> [--dry-run|--
 
 > 详见 [`cli/managed-agents.md`](./cli/managed-agents.md)：`cost` 的定价规则 / JSON 形状 /
 > `llm.pricing` 配置覆盖；`checkpoint` 的安全语义 / 磁盘布局（区别于 `cc workflow checkpoint`）。
+
+## Goal — 跨会话持久目标 / OKR
+
+```bash
+chainlesschain goal set "<objective>" [--kr "<KR>" ...]    # 建跨会话目标 (+关键结果)
+chainlesschain goal list | show <id> | progress <id> --pct <n> --note <t>
+chainlesschain goal kr add <id> "<KR>" [--target <n>] | set <id> <krId> --current <n> [--done]
+chainlesschain goal link <id> [sessionId] | pause|resume|close|abandon <id> | active | rm <id>
+chainlesschain agent -p "..." --goal [<id>] [--goal-assess]  # 绑定目标 (Phase 1) + 跑完自评 (Phase 2)
+```
+
+> 超出 Claude Code 的扩展。Phase 0 存储/命令 + Phase 1 `--goal` 注入每轮对照 + Phase 2
+> `--goal-assess` 跑完 LLM 自评进度。详见 [`cli/managed-agents.md`](./cli/managed-agents.md) 的 Goal 节
+> （解析优先级 / drift / stream-json 事件）。

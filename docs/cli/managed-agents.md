@@ -71,6 +71,8 @@ chainlesschain agent -p "..." --allowed-tools "read_file,git"     # 工具白名
 chainlesschain agent -p "..." --disallowed-tools "run_shell"      # 工具黑名单
 chainlesschain agent -p "..." --permission-mode bypassPermissions # 见下表
 chainlesschain agent -p "..." --add-dir ../lib            # 额外工作根 (可重复)
+chainlesschain agent -p "..." --goal <id>                 # 绑定 cc goal,每轮对照推进 (见 Goal 节)
+chainlesschain agent -p "..." --goal --goal-assess        # 自动选活跃目标 + 跑完自评进度
 ```
 
 **输出格式**(`--output-format`):
@@ -186,6 +188,66 @@ cc checkpoint restore cp0003           # 回到第 3 个工具调用之前（先
 - 快照落在 `refs/cc-checkpoints/<agent-sessionId>/`；连续工具未改文件时去重（不堆冗余 ref）。
 - best-effort：快照失败绝不阻塞工具；非 git 仓静默 no-op。
 - stream-json 输出对应事件：`{ "type":"checkpoint", "id":"cpNNNN", "tool":"write_file" }`。
+
+## Goal — 跨会话持久目标 / OKR
+
+`cc goal` 是**超出 Claude Code 的扩展**(Claude Code 无对应):一个长期目标,agent
+跨多个会话朝它推进,每轮把目标注入到 agent 循环里对照。**区别于**:`cc session`
+(短期上下文)、`cc memory`(事实)、`cc planmode`(单次运行的计划)、`cc workflow`
+(执行态)。落盘在 `~/.chainlesschain/goals/<id>.json`(home 目录 → 天然跨会话)。
+
+分三个 Phase 落地(`src/lib/goal-store.js` / `goal-context.js` / `goal-assess.js`):
+
+### Phase 0 — 存储 + 命令
+
+```bash
+chainlesschain goal set "上线 v2 API" --kr "写完测试" --kr "迁移文档"  # 建目标 (+关键结果)
+chainlesschain goal list [--status active] [--json]          # 列出 (含 >14 天无进展的 ⚠ stale 提示)
+chainlesschain goal show <id>                                # 详情
+chainlesschain goal kr add <id> "新 KR" --target 5           # 加关键结果 (可设数值目标)
+chainlesschain goal kr set <id> <krId> --current 5           # current≥target 自动标 done
+chainlesschain goal progress <id> --pct 60 --note "过半"      # 手动记进度
+chainlesschain goal link <id> [sessionId]                    # 把会话挂到目标 (省略=最近会话)
+chainlesschain goal pause|resume|close|abandon <id>          # 生命周期
+chainlesschain goal active [--session <id>]                  # 看哪个目标会绑定到运行
+chainlesschain goal rm <id> [--force]                        # 删除
+```
+
+进度自动从「已完成 KR / 总 KR」推导;手动 `--pct` 可覆盖。`done` 时进度补到 100%。
+
+### Phase 1 — 注入 headless 运行(`--goal`)
+
+`cc agent` 把解析到的活跃目标注入到 agent 循环,**每轮**追加一段简短的目标提醒
+(目标 + 未完成 KR + 进度%),不污染会话历史(经 `prepareCall` 临时 system 补充,
+**与默认 turn-context 合成而非替换**)。
+
+```bash
+chainlesschain agent -p "继续推进" --goal <id>      # 显式绑定某目标
+chainlesschain agent -p "继续推进" --goal           # 不带值=自动解析活跃目标
+```
+
+**解析优先级**(`resolveActiveGoal`):① 显式 `--goal <id>`(任意状态)> ② 挂到当前
+会话的活跃目标 > ③ 唯一一个活跃目标 > ④ 无(多个活跃且未挂会话时返回空,需显式指定)。
+显式 `--goal <id>` 还会把会话 link 到目标,使后续 `--continue`/`--resume` 仍带该目标。
+`stream-json` 的 init 信封含 `goal_id`。best-effort:绑定失败绝不影响运行。
+
+### Phase 2 — 跑完自评进度(`--goal-assess`,opt-in)
+
+`--goal-assess` 在一次 `--goal` 运行结束后,**额外**让模型从运行轨迹(任务 + 最终回答
++ 用到的工具)判断目标是否推进,并把结果落盘:进度、关键结果 current/done、一条
+agent 署名的进度 note、以及 drift 标记。**因为多花一次 completion 所以默认关闭**。
+
+```bash
+chainlesschain agent -p "实现登录接口" --goal <id> --goal-assess
+#   跑完后:◎ goal <id>: advanced (45%)   ← 自动写回目标
+chainlesschain goal show <id>            # 能看到 agent 署名的进度 note + KR 更新
+```
+
+- 解析宽容:模型把 JSON 裹在散文 / ``` 代码围栏里也能提取(取首个配平 `{...}`)。
+- 每个子更新独立 try/catch:坏的 KR id 不会连累进度 note 落盘。
+- drift:本次运行未推进 → 记 `no-progress` 标记;模型给的 concerns 一并记入。
+- `stream-json` 输出 `{ "type":"goal_assessment", "goal_id", "advanced", "progress", "note" }`。
+- best-effort:自评失败绝不改变运行本身的退出码 / 结果。
 
 ## Hosted Session API (Phase I)
 
