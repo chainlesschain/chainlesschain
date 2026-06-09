@@ -366,14 +366,19 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "agent",
     tier: "extension",
     description:
-      "Spawn an isolated sub-agent to handle a subtask. The sub-agent has its own context and message history, and only returns a summary result. Use this for tasks that benefit from focused, independent execution (e.g. code review, summarization, translation).",
+      "Spawn an isolated sub-agent to handle a subtask. The sub-agent has its own context and message history, and only returns a summary result. Use this for tasks that benefit from focused, independent execution (e.g. code review, summarization, translation). Pass `agent` to delegate to a named, pre-defined subagent (its persona + tool scope come from its .md file); otherwise give an ad-hoc `role`.",
     inputSchema: {
       type: "object",
       properties: {
+        agent: {
+          type: "string",
+          description:
+            'Optional name of a pre-defined subagent from .chainlesschain/agents/ or .claude/agents/ (e.g. "review:security"). Loads that file\'s system prompt + tool allow-list. Run `cc agents list` to see them. Explicit `role`/`tools` override the agent\'s values.',
+        },
         role: {
           type: "string",
           description:
-            "Sub-agent role (e.g. code-review, summarizer, translator, debugger)",
+            "Sub-agent role (e.g. code-review, summarizer, translator, debugger). Required unless `agent` is given.",
         },
         task: {
           type: "string",
@@ -397,7 +402,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
             "Optional declarative profile (from sub-agent-profiles). When set, seeds systemPrompt / tool allowlist / iteration cap. Explicit `tools` overrides the profile allowlist.",
         },
       },
-      required: ["role", "task"],
+      required: ["task"],
     },
     ...TOOL_POLICY_METADATA.spawn_sub_agent,
     permissions: {

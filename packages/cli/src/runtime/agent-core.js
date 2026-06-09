@@ -1542,7 +1542,7 @@ async function _executeRunCode(args, cwd) {
  * @returns {Promise<object>}
  */
 async function _executeSpawnSubAgent(args, ctx) {
-  const {
+  let {
     role,
     task,
     context: inheritedContext,
@@ -1550,8 +1550,35 @@ async function _executeSpawnSubAgent(args, ctx) {
     profile: profileName,
   } = args;
 
-  if (!role || !task) {
-    return { error: "Both 'role' and 'task' are required for spawn_sub_agent" };
+  // Named subagent delegation (cc agents / .chainlesschain|.claude/agents/*.md):
+  // load the agent's persona (its body = system prompt) + tool allow-list.
+  // Explicit role/tools still win over the agent file's values.
+  let mdProfile = null;
+  if (args.agent) {
+    try {
+      const { getAgent } = await import("../lib/agents.js");
+      const md = getAgent(args.agent, ctx.cwd);
+      if (!md) {
+        return {
+          error: `Unknown subagent "${args.agent}". List them with: cc agents list`,
+        };
+      }
+      role = role || md.name;
+      if (!explicitTools && Array.isArray(md.tools)) explicitTools = md.tools;
+      if (md.systemPrompt) {
+        mdProfile = { name: md.name, systemPrompt: md.systemPrompt };
+      }
+    } catch (err) {
+      return {
+        error: `Failed to load subagent "${args.agent}": ${err.message}`,
+      };
+    }
+  }
+
+  if (!task || (!role && !args.agent)) {
+    return {
+      error: "spawn_sub_agent requires 'task' and either 'role' or 'agent'",
+    };
   }
 
   // Phase 3: resolve declarative profile if requested. Explicit tools/context
@@ -1571,6 +1598,10 @@ async function _executeSpawnSubAgent(args, ctx) {
       // profile module optional — proceed without
     }
   }
+
+  // A named subagent's body becomes the sub-agent system prompt (via the
+  // profile.systemPrompt seam) when no declarative profile was requested.
+  if (!profile && mdProfile) profile = mdProfile;
 
   const allowedTools = Array.isArray(explicitTools)
     ? explicitTools
