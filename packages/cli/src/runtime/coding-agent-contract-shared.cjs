@@ -499,6 +499,47 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "web_search",
+    title: "Web Search",
+    kind: "network",
+    tier: "extension",
+    description:
+      "Search the web for a query and return ranked results (title, url, snippet) plus an optional synthesized answer. Use this to discover URLs, then web_fetch to read a page. Backend is configured via .chainlesschain/config.json:webSearch (default provider: auto — uses whichever API key is set, else keyless DuckDuckGo).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (natural-language keywords)",
+        },
+        provider: {
+          type: "string",
+          enum: ["auto", "tavily", "brave", "bocha", "duckduckgo", "searxng"],
+          description:
+            "Override the configured search backend for this call (default: from config / auto)",
+        },
+        maxResults: {
+          type: "number",
+          description: "Maximum number of results to return (default: 8)",
+        },
+        timeout: {
+          type: "number",
+          description: "Request timeout in ms (default: 15000)",
+        },
+      },
+      required: ["query"],
+    },
+    ...TOOL_POLICY_METADATA.web_search,
+    permissions: {
+      level: "readonly",
+      scopes: ["network:read"],
+    },
+    telemetry: {
+      category: "network",
+      tags: ["tool:web_search", "contract:coding-agent", "tier:extension"],
+    },
+  },
+  {
     name: "todo_write",
     title: "Todo Write",
     kind: "planning",

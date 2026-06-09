@@ -189,6 +189,16 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: true,
   },
+  web_search: {
+    riskLevel: RISK_LEVELS.MEDIUM,
+    category: TOOL_CATEGORIES.READ,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
   todo_write: {
     riskLevel: RISK_LEVELS.LOW,
     category: TOOL_CATEGORIES.WRITE,

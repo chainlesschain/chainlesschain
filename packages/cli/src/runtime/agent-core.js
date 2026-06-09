@@ -1322,6 +1322,33 @@ async function executeToolInner(
       }
     }
 
+    case "web_search": {
+      try {
+        const { webSearch } = await import("../lib/web-search.js");
+        let webSearchConfig = {};
+        try {
+          const { loadProjectConfig: _lpc, findProjectRoot: _fpr } =
+            await import("../lib/project-detector.js");
+          const projectRoot = _fpr(cwd);
+          if (projectRoot) {
+            const cfg = _lpc(projectRoot);
+            webSearchConfig = cfg?.webSearch || {};
+          }
+        } catch (_err) {
+          // Config optional — use defaults (auto provider / keyless fallback)
+        }
+        const result = await webSearch(args.query, {
+          provider: args.provider,
+          maxResults: args.maxResults,
+          timeout: args.timeout,
+          config: webSearchConfig,
+        });
+        return attachDescriptor(result);
+      } catch (err) {
+        return attachDescriptor({ error: `web_search failed: ${err.message}` });
+      }
+    }
+
     case "todo_write": {
       try {
         const { writeTodos } = await import("../lib/todo-manager.js");

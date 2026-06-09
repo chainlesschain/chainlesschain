@@ -21,6 +21,7 @@ const READONLY_TOOLS = Object.freeze([
   "search_files",
   "search_sessions",
   "web_fetch",
+  "web_search",
   "list_skills",
 ]);
 
@@ -38,6 +39,7 @@ const FULL_TOOLS = Object.freeze([
   "run_skill",
   "list_skills",
   "web_fetch",
+  "web_search",
   "todo_write",
   "ask_user_question",
 ]);
@@ -50,6 +52,7 @@ const DESIGN_TOOLS = Object.freeze([
   "list_dir",
   "search_files",
   "web_fetch",
+  "web_search",
   "run_skill",
   "list_skills",
   "todo_write",
