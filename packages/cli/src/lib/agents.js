@@ -57,7 +57,12 @@ export function normalizeTools(tools) {
 export function agentDirs(cwd = process.cwd(), opts = {}) {
   const path = opts.deps?.path || _deps.path;
   const home = opts.home || homedir();
+  // Project-native first (highest precedence), then the Claude-Code-portable
+  // location (so existing `.claude/agents/*.md` work unchanged), then personal.
+  // discoverAgents reverses + last-write-wins, so `.chainlesschain/agents/`
+  // shadows `.claude/agents/` shadows `~/.claude/agents/` on a name clash.
   return [
+    { dir: path.join(cwd, ".chainlesschain", "agents"), scope: "project" },
     { dir: path.join(cwd, ".claude", "agents"), scope: "project" },
     { dir: path.join(home, ".claude", "agents"), scope: "personal" },
   ];

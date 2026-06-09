@@ -105,14 +105,25 @@ describe("discoverAgents", () => {
     expect(discoverAgents("/cwd", o)[0].name).toBe("custom");
   });
 
-  it("project scope shadows personal on a name clash", () => {
+  it("precedence: .chainlesschain/agents > .claude/agents > ~/.claude/agents", () => {
     const o = opts({
       "/home/.claude/agents/dup.md": "personal",
-      "/cwd/.claude/agents/dup.md": "project",
+      "/cwd/.claude/agents/dup.md": "claude-portable",
+      "/cwd/.chainlesschain/agents/dup.md": "native",
     });
     const all = discoverAgents("/cwd", o);
     expect(all).toHaveLength(1);
-    expect(all[0]).toMatchObject({ scope: "project", systemPrompt: "project" });
+    expect(all[0]).toMatchObject({ scope: "project", systemPrompt: "native" });
+  });
+
+  it(".claude/agents (project) shadows ~/.claude/agents (personal)", () => {
+    const o = opts({
+      "/home/.claude/agents/dup.md": "personal",
+      "/cwd/.claude/agents/dup.md": "claude-portable",
+    });
+    const all = discoverAgents("/cwd", o);
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({ scope: "project", systemPrompt: "claude-portable" });
   });
 
   it("getAgent accepts ':' or '/' forms and a leading slash", () => {

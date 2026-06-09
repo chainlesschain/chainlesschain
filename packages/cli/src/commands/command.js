@@ -145,8 +145,9 @@ export function registerCommandCommand(program) {
   // ── new (scaffold) ────────────────────────────────────────────────────
   cmd
     .command("new <name>")
-    .description("Scaffold a new command file under .claude/commands/")
+    .description("Scaffold a new command file (project-native .chainlesschain/commands/)")
     .option("--description <d>", "Frontmatter description")
+    .option("--claude", "Create under .claude/commands (Claude-Code-portable)")
     .option("--personal", "Create under ~/.claude/commands instead of project")
     .action(async (name, options) => {
       try {
@@ -154,9 +155,13 @@ export function registerCommandCommand(program) {
         const path = await import("node:path");
         const { homedir } = await import("node:os");
         const safe = String(name).replace(/^\//, "").replace(/:/g, "/");
+        // Project commands go to the native `.chainlesschain/commands/`; use
+        // --claude for the portable `.claude/commands/`, --personal for home.
         const root = options.personal
           ? path.join(homedir(), ".claude", "commands")
-          : path.join(process.cwd(), ".claude", "commands");
+          : options.claude
+            ? path.join(process.cwd(), ".claude", "commands")
+            : path.join(process.cwd(), ".chainlesschain", "commands");
         const file = path.join(root, `${safe}.md`);
         if (fs.existsSync(file)) {
           logger.error(chalk.red(`already exists: ${file}`));

@@ -63,7 +63,11 @@ export const BANG_TIMEOUT_MS = 10_000;
 export function commandDirs(cwd = process.cwd(), opts = {}) {
   const path = opts.deps?.path || _deps.path;
   const home = opts.home || homedir();
+  // Project-native `.chainlesschain/commands/` takes precedence, then the
+  // Claude-Code-portable `.claude/commands/` (so existing definitions work
+  // unchanged), then personal. Both project dirs share the "project" scope.
   return [
+    { dir: path.join(cwd, ".chainlesschain", "commands"), scope: "project" },
     { dir: path.join(cwd, ".claude", "commands"), scope: "project" },
     { dir: path.join(home, ".claude", "commands"), scope: "personal" },
   ];

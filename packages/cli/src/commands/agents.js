@@ -147,9 +147,10 @@ export function registerAgentsCommand(program) {
   // ── new (scaffold) ────────────────────────────────────────────────────
   cmd
     .command("new <name>")
-    .description("Scaffold a new agent file under .claude/agents/")
+    .description("Scaffold a new agent file (project-native .chainlesschain/agents/)")
     .option("--description <d>", "Frontmatter description")
     .option("--tools <list>", "Comma-separated tool allow-list")
+    .option("--claude", "Create under .claude/agents (Claude-Code-portable)")
     .option("--personal", "Create under ~/.claude/agents instead of project")
     .action(async (name, options) => {
       try {
@@ -157,9 +158,14 @@ export function registerAgentsCommand(program) {
         const path = await import("node:path");
         const { homedir } = await import("node:os");
         const safe = String(name).replace(/^\//, "").replace(/:/g, "/");
+        // New project agents go to the native `.chainlesschain/agents/`; use
+        // --claude for the Claude-Code-portable `.claude/agents/`, or --personal
+        // for `~/.claude/agents/`. All three are read back by discoverAgents.
         const root = options.personal
           ? path.join(homedir(), ".claude", "agents")
-          : path.join(process.cwd(), ".claude", "agents");
+          : options.claude
+            ? path.join(process.cwd(), ".claude", "agents")
+            : path.join(process.cwd(), ".chainlesschain", "agents");
         const file = path.join(root, `${safe}.md`);
         if (fs.existsSync(file)) {
           logger.error(chalk.red(`already exists: ${file}`));
