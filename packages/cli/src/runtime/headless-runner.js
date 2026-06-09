@@ -615,6 +615,56 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // Run-end goal self-assessment (cc goal Phase 2, opt-in via --goal-assess).
+  // Spends one extra completion to judge whether the run advanced the bound
+  // goal, then persists progress / key-result / drift updates. Best-effort: it
+  // must never change the run's own outcome.
+  if (options.goalAssess && boundGoalId && !isError) {
+    try {
+      const { getGoal } = await import("../lib/goal-store.js");
+      const goal = (deps.getGoal || getGoal)(boundGoalId);
+      if (goal) {
+        const { assessGoalProgress } = await import("../lib/goal-assess.js");
+        const doAssess = deps.assessGoalProgress || assessGoalProgress;
+        const assessChat =
+          deps.assessChat ||
+          (async (assessPrompt) => {
+            const { chatWithTools } = await import("./agent-core.js");
+            const r = await chatWithTools(
+              [{ role: "user", content: assessPrompt }],
+              { model, provider, baseUrl, apiKey, enabledToolNames: [] },
+            );
+            return r?.message?.content || "";
+          });
+        const { assessment } = await doAssess({
+          goal,
+          transcript: { prompt: options.prompt, finalText, toolCalls },
+          chat: assessChat,
+        });
+        if (assessment) {
+          if (isText) {
+            writeErr(
+              `  ◎ goal ${boundGoalId}: ${assessment.advanced ? "advanced" : "no progress"}` +
+                (assessment.progress != null
+                  ? ` (${assessment.progress}%)`
+                  : "") +
+                "\n",
+            );
+          }
+          emitStream({
+            type: "goal_assessment",
+            goal_id: boundGoalId,
+            advanced: assessment.advanced,
+            progress: assessment.progress,
+            note: assessment.note,
+          });
+        }
+      }
+    } catch {
+      /* assessment is best-effort — never affect the run outcome */
+    }
+  }
+
   if (isStream) {
     emitStream({
       type: "result",

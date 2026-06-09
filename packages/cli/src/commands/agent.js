@@ -159,6 +159,10 @@ export function registerAgentCommand(program) {
       "Bind a cc goal into the run (id, or omit the value to auto-resolve the active goal)",
     )
     .option(
+      "--goal-assess",
+      "After the run, ask the model to assess goal progress and persist it (opt-in; costs one extra completion; requires --goal)",
+    )
+    .option(
       "--mcp-config <file>",
       "Load ad-hoc MCP servers from a JSON file for this run (headless); their tools become callable (mcp__<server>__<tool>)",
     )
@@ -358,6 +362,8 @@ export function registerAgentCommand(program) {
             includePartialMessages: options.includePartialMessages === true,
             // --goal [id]: bind a cc goal into the run (Phase 1)
             goal: options.goal,
+            // --goal-assess: run-end LLM progress assessment (Phase 2)
+            goalAssess: options.goalAssess === true,
             // --mcp-config: connect ad-hoc MCP servers + expose their tools
             mcpConfig: options.mcpConfig || null,
             // --fallback-model: retry once on a backup model on transient errors

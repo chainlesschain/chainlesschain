@@ -140,4 +140,61 @@ describe("headless goal binding (cc goal Phase 1)", () => {
     );
     expect(sys).toBeUndefined();
   });
+
+  it("--goal-assess runs the run-end assessment and emits goal_assessment", async () => {
+    const { deps, out } = makeDeps({ goal: { fn: () => GOAL } });
+    // Inject store + assessment seams so nothing touches the real goal store.
+    deps.getGoal = () => GOAL;
+    let assessArgs = null;
+    deps.assessGoalProgress = async (args) => {
+      assessArgs = args;
+      return {
+        assessment: { advanced: true, progress: 35, note: "moved forward" },
+        goal: GOAL,
+      };
+    };
+    await runAgentHeadless(
+      {
+        prompt: "do it",
+        outputFormat: "stream-json",
+        goal: "goal-x",
+        goalAssess: true,
+      },
+      deps,
+    );
+    // The transcript handed to the assessor reflects the run.
+    expect(assessArgs.transcript).toMatchObject({ prompt: "do it" });
+    const lines = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    const ev = lines.find((l) => l.type === "goal_assessment");
+    expect(ev).toMatchObject({
+      goal_id: "goal-x",
+      advanced: true,
+      progress: 35,
+    });
+  });
+
+  it("does NOT assess when --goal-assess is omitted", async () => {
+    const { deps, out } = makeDeps({ goal: { fn: () => GOAL } });
+    deps.getGoal = () => GOAL;
+    let called = false;
+    deps.assessGoalProgress = async () => {
+      called = true;
+      return { assessment: null, goal: GOAL };
+    };
+    await runAgentHeadless(
+      { prompt: "x", outputFormat: "stream-json", goal: "goal-x" }, // no goalAssess
+      deps,
+    );
+    expect(called).toBe(false);
+    const lines = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    expect(lines.find((l) => l.type === "goal_assessment")).toBeUndefined();
+  });
 });

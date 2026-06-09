@@ -270,6 +270,39 @@ export function setStatus(id, status, opts = {}) {
   );
 }
 
+/**
+ * Append drift flags to a goal's `drift.flags` list. Each flag is normalized to
+ * `{ at, kind, detail }`. Used by the run-end assessment (cc goal Phase 2) to
+ * record "no progress this run" / concern signals. Capped at 20 (newest kept).
+ * @param {string} id
+ * @param {Array<string|object>} flags
+ */
+export function addDriftFlags(id, flags, opts = {}) {
+  const list = (Array.isArray(flags) ? flags : [flags]).filter(Boolean);
+  if (list.length === 0) return getGoal(id, opts);
+  return mutate(
+    id,
+    (g) => {
+      for (const f of list) {
+        const flag =
+          typeof f === "string"
+            ? { at: nowIso(), kind: "concern", detail: f }
+            : {
+                at: nowIso(),
+                kind: f.kind || "concern",
+                detail: f.detail || "",
+              };
+        g.drift.flags.push(flag);
+      }
+      // Keep only the most recent 20 to bound the file size.
+      if (g.drift.flags.length > 20) {
+        g.drift.flags = g.drift.flags.slice(-20);
+      }
+    },
+    opts,
+  );
+}
+
 /** Delete a goal. Returns true if it existed. */
 export function deleteGoal(id, opts = {}) {
   const root = opts.root || defaultRoot();
