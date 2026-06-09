@@ -453,53 +453,44 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
-  // .claude/settings.json permission rules (deny > ask > allow). Evaluated
-  // before host policy / plan-mode / shell-approval so an explicit rule can:
-  //   deny  → hard-block the call;
-  //   ask   → require a confirm (headless w/o confirmer falls closed);
-  //   allow → pre-authorize, short-circuiting the plan-mode block and the
-  //           run_shell ApprovalGate (the hard shell-policy denylist still
-  //           applies — an allow rule never re-enables an unsafe `rm -rf /`).
-  // No matching rule → ruleAllowed stays false and every existing layer runs
-  // unchanged, so the default (no settings.json) behaviour is byte-for-byte.
-  let ruleAllowed = false;
-  if (context.permissionRules) {
-    const verdict = evaluatePermissionRules({
-      tool: name,
-      args,
-      cwd,
-      rules: context.permissionRules,
-    });
-    if (verdict.decision === "deny") {
-      return {
-        error: `[Permission] Tool "${name}" denied by settings rule: ${verdict.rule}`,
-        policy: { decision: "deny", rule: verdict.rule, via: "settings" },
-      };
-    }
-    if (verdict.decision === "ask") {
-      const confirm = context.permissionConfirm || context.shellConfirm || null;
-      const ok =
-        typeof confirm === "function"
-          ? await confirm({
-              tool: name,
-              args,
-              rule: verdict.rule,
-              reason: `settings rule ${verdict.rule} requires confirmation`,
-            })
-          : false;
-      if (!ok) {
-        return {
-          error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${verdict.rule}) — denied.`,
-          policy: { decision: "ask", rule: verdict.rule, via: "settings" },
-        };
-      }
-      ruleAllowed = true; // confirmed → treat like allow downstream
-    }
-    if (verdict.decision === "allow") {
-      ruleAllowed = true;
-    }
+  // ── Permission resolution (most-restrictive-wins; denies before prompts) ──
+  // Two policy sources gate a tool call: the user's .claude/settings.json rules
+  // (deny/ask/allow) and the desktop host's synced policy (hostManagedToolPolicy,
+  // usually null in CLI). Precedence, evaluated in this exact order:
+  //   1. settings `deny`  → block.
+  //   2. host  `deny`     → block. A settings `allow` NEVER relaxes a host deny
+  //                         (the desktop runtime authority outranks project
+  //                         config); symmetrically a settings `deny` (step 1)
+  //                         outranks a host `allow`. Net effect: any deny wins.
+  //   3. settings `ask`   → confirm (headless w/o confirmer falls closed).
+  //                         Reached only after BOTH denies clear, so a denied
+  //                         tool never wastes a confirmation round-trip.
+  //   4. settings `allow` → pre-authorize (ruleAllowed): short-circuit the
+  //                         plan-mode block + run_shell ApprovalGate. The hard
+  //                         shell-policy denylist still applies — allow never
+  //                         re-enables an unsafe `rm -rf /`.
+  // No matching rule + no host policy → every existing layer runs unchanged
+  // (default behaviour is byte-for-byte).
+  const settingsVerdict = context.permissionRules
+    ? evaluatePermissionRules({
+        tool: name,
+        args,
+        cwd,
+        rules: context.permissionRules,
+      })
+    : { decision: null, rule: null };
+
+  // 1. settings deny
+  if (settingsVerdict.decision === "deny") {
+    return {
+      error: `[Permission] Tool "${name}" denied by settings rule: ${settingsVerdict.rule}`,
+      policy: { decision: "deny", rule: settingsVerdict.rule, via: "settings" },
+    };
   }
 
+  // Resolve the host policy (needed for the host-deny check + the plan-mode
+  // block below). Computed once here so a host deny can short-circuit before
+  // any settings `ask` prompt.
   const toolPolicies =
     context.hostManagedToolPolicy?.tools ||
     context.hostManagedToolPolicy?.toolPolicies ||
@@ -520,6 +511,8 @@ export async function executeTool(name, args, context = {}) {
     isExternalLocalTool &&
     planManager.isActive() &&
     localToolDescriptor?.isReadOnly === true;
+
+  // 2. host deny (a settings `allow` does not relax this)
   if (
     hostToolPolicy &&
     hostToolPolicy.allowed === false &&
@@ -534,6 +527,30 @@ export async function executeTool(name, args, context = {}) {
         riskLevel: hostToolPolicy.riskLevel || null,
       },
     };
+  }
+
+  // 3 + 4. settings ask / allow (only reached when neither layer denied)
+  let ruleAllowed = false;
+  if (settingsVerdict.decision === "ask") {
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    const ok =
+      typeof confirm === "function"
+        ? await confirm({
+            tool: name,
+            args,
+            rule: settingsVerdict.rule,
+            reason: `settings rule ${settingsVerdict.rule} requires confirmation`,
+          })
+        : false;
+    if (!ok) {
+      return {
+        error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${settingsVerdict.rule}) — denied.`,
+        policy: { decision: "ask", rule: settingsVerdict.rule, via: "settings" },
+      };
+    }
+    ruleAllowed = true; // confirmed → treat like allow downstream
+  } else if (settingsVerdict.decision === "allow") {
+    ruleAllowed = true;
   }
 
   // Plan mode: check if tool is allowed (a settings `allow` rule pre-authorizes)

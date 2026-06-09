@@ -140,3 +140,53 @@ describe("no rules (default behaviour unchanged)", () => {
     expect(res.error).toMatch(/\[Plan Mode\]/);
   });
 });
+
+describe("host policy vs settings precedence (most-restrictive-wins)", () => {
+  const hostDeny = { tools: { read_file: { allowed: false, reason: "not synced" } } };
+  const hostAllow = { tools: { read_file: { allowed: true } } };
+
+  it("a settings allow does NOT relax a host deny", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        permissionRules: { allow: ["Read"] },
+        hostManagedToolPolicy: hostDeny,
+      },
+    );
+    expect(res.error).toMatch(/\[Host Policy\]/);
+  });
+
+  it("a settings deny outranks a host allow", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        permissionRules: { deny: ["Read"] },
+        hostManagedToolPolicy: hostAllow,
+      },
+    );
+    expect(res.error).toMatch(/\[Permission\].*denied by settings rule/);
+  });
+
+  it("a host deny short-circuits before a settings ask prompt (no wasted confirm)", async () => {
+    let confirmCalled = false;
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        permissionRules: { ask: ["Read"] },
+        hostManagedToolPolicy: hostDeny,
+        permissionConfirm: async () => {
+          confirmCalled = true;
+          return true;
+        },
+      },
+    );
+    expect(res.error).toMatch(/\[Host Policy\]/);
+    expect(confirmCalled).toBe(false);
+  });
+});
