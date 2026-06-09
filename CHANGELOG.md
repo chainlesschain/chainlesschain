@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cc cost` token 计费 + 配置化价格覆盖 `llm.pricing`（`7f294ab5d`）
 - 文件态 `cc checkpoint` / rewind（git plumbing 影子提交，零触工作区/真索引，`eb187d122`）
 - 共享交互式 session picker，`cc session resume` 复用（`6f3451eba` · `d9f116284`）
+- **跟进（CLI 0.162.33，单独 npm 发布）**：headless 上下文自动压缩 + 手动 `cc compact`（Claude-Code `/compact` 对标）——`agent -p` / `--resume` 长会话超阈值时本轮自动压缩（默认开，按模型 context window 自适应；`preserveToolPairs`/`sanitizeToolPairs` 保证截断/snip 不留孤儿 tool 结果或无应答 tool_calls），并写 `compact` 事件供 `--resume` 从短历史重建（self-persist gated `sessionExists`，一次性 `-p` 不写）；`cc compact <id>` 离线压缩存档会话；`stream-json` 出 `compaction` 事件（`95fac914d` · `0f50f7b6f` · `9671c7581` · `68f2dc3cc`）
 - 修：headless stdout 不再混入 bootstrap 日志（`26c95e0ee`）；`--disallowed-tools` 此前静默无效（`chatWithTools` 丢 caller deny-list，现合并 persona + caller 两个 deny-list + 回归测试）
 
 ### Feat #2 —— PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析

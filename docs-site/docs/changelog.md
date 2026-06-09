@@ -14,6 +14,7 @@
 - `cc cost` token 计费 + 配置化价格覆盖 `llm.pricing`
 - 文件态 `cc checkpoint` / rewind（git plumbing 影子提交，零触工作区/真索引）
 - 共享交互式 session picker，`cc session resume` 复用
+- **跟进（CLI 0.162.33，单独 npm 发布）**：headless 上下文自动压缩 + 手动 `cc compact`（Claude-Code `/compact` 对标）——`agent -p` / `--resume` 长会话超阈值时本轮自动压缩（默认开，按模型 context window 自适应阈值；截断/snip 保证工具对安全，不留孤儿 tool 结果），并写 `compact` 事件供 `--resume` 从压缩后的短历史重建；`cc compact <id>` 离线压缩存档会话（`--dry-run` / `--json`）；`stream-json` 输出 `compaction` 事件
 - 修：headless stdout 不再混入 bootstrap 日志；`--disallowed-tools` 此前静默无效（现合并 persona + caller 两个 deny-list）
 
 ### Feat #2 —— PDH 微信 4.0 完整采集 + QQ-NT 一键解密/解析
