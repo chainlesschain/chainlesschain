@@ -57,6 +57,7 @@ import { registerPermMemCommand } from "./commands/permmem.js";
 import { registerRCacheCommand } from "./commands/rcache.js";
 import { registerSessionCommand } from "./commands/session.js";
 import { registerCostCommand } from "./commands/cost.js";
+import { registerContextCommand } from "./commands/context.js";
 import { registerCheckpointCommand } from "./commands/checkpoint.js";
 import { registerGoalCommand } from "./commands/goal.js";
 import { registerCompactCommand } from "./commands/compact.js";
@@ -453,6 +454,7 @@ export function createProgram(opts = {}) {
   registerRCacheCommand(program);
   registerSessionCommand(program);
   registerCostCommand(program);
+  registerContextCommand(program);
   registerCheckpointCommand(program);
   registerGoalCommand(program);
   registerCompactCommand(program);
