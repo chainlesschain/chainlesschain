@@ -23,6 +23,7 @@ import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookRunner from "../lib/hook-runner.cjs";
+import { mergeProviderOptions } from "../lib/provider-options.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -2139,9 +2140,21 @@ export async function chatWithTools(rawMessages, options) {
       input_schema: t.function.parameters,
     }));
 
+    // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192) via
+    // provider-options, instead of a flat 8192 that silently capped Opus output.
+    // We read ONLY maxTokens here: the module's `temperature` and
+    // `thinking:{type:"enabled"}` defaults are deliberately NOT forwarded —
+    // both 400 on Opus 4.7/4.8, and extended thinking + tool use additionally
+    // needs thinking-block preservation the agent loop doesn't do yet
+    // (see the cli_claude_code_parity_landed memory note).
+    const effModel = model || "claude-sonnet-4-20250514";
+    const { maxTokens: anthropicMaxTokens } = mergeProviderOptions(
+      "anthropic",
+      effModel,
+    );
     const body = {
-      model: model || "claude-sonnet-4-20250514",
-      max_tokens: 8192,
+      model: effModel,
+      max_tokens: anthropicMaxTokens || 8192,
       messages: otherMsgs,
       tools: anthropicTools,
     };
