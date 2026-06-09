@@ -21,6 +21,8 @@ import os from "os";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
+import sharedSettingsHooks from "../lib/settings-hooks.cjs";
+import sharedHookRunner from "../lib/hook-runner.cjs";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
@@ -64,6 +66,53 @@ export function getActiveMcpServers() {
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
+const { collectHooks, umbrellaFor } = sharedSettingsHooks;
+const { runHooks: runCommandHooks } = sharedHookRunner;
+
+/**
+ * Run settings.json `PreToolUse` hooks (decision-capable). DB hooks are handled
+ * separately + stay observe-only. A `block` decision stops the tool; an `ask`
+ * routes to the confirmer (headless without one falls closed). spawnSync is
+ * synchronous but each hook is timeout-capped.
+ * @returns {Promise<{blocked:boolean, reason?:string, hook?:string}>}
+ */
+async function runSettingsPreToolUseHooks(name, args, context, cwd) {
+  const matched = collectHooks(context.settingsHooks, "PreToolUse", name);
+  if (!matched || matched.length === 0) return { blocked: false };
+  const payload = {
+    hook_event_name: "PreToolUse",
+    tool_name: umbrellaFor(name),
+    raw_tool_name: name,
+    tool_input: args,
+    cwd,
+    session_id: context.sessionId || null,
+  };
+  const outcome = runCommandHooks(matched, payload, { cwd, event: "PreToolUse" });
+  if (outcome.decision === "block") {
+    return { blocked: true, reason: outcome.reason, hook: outcome.hook };
+  }
+  if (outcome.decision === "ask") {
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    const ok =
+      typeof confirm === "function"
+        ? await confirm({
+            tool: name,
+            args,
+            rule: `hook:${outcome.hook}`,
+            reason:
+              outcome.reason || "a PreToolUse hook requests confirmation",
+          })
+        : false;
+    return ok
+      ? { blocked: false }
+      : {
+          blocked: true,
+          reason: outcome.reason || "PreToolUse hook ask denied",
+          hook: outcome.hook,
+        };
+  }
+  return { blocked: false };
+}
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -581,7 +630,11 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
-  // PreToolUse hook
+  // PreToolUse hooks. DB hooks (cc hook add) stay observe-only — a failure
+  // never blocks. settings.json hooks (context.settingsHooks) are decision-
+  // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
+  // `ask` routes to the confirmer. Runs after permission resolution so a
+  // settings deny / host deny short-circuits before any hook process spawns.
   if (hookDb) {
     try {
       await executeHooks(hookDb, HookEvents.PreToolUse, {
@@ -593,6 +646,15 @@ export async function executeTool(name, args, context = {}) {
       });
     } catch (_err) {
       // Hook failure should not block tool execution
+    }
+  }
+  if (context.settingsHooks) {
+    const pre = await runSettingsPreToolUseHooks(name, args, context, cwd);
+    if (pre.blocked) {
+      return {
+        error: `[Hook] PreToolUse blocked "${name}"${pre.reason ? ": " + pre.reason : ""}`,
+        policy: { decision: "block", via: "hook", hook: pre.hook || null },
+      };
     }
   }
 
@@ -658,6 +720,36 @@ export async function executeTool(name, args, context = {}) {
       });
     } catch (_err) {
       // Non-critical
+    }
+  }
+  // settings.json PostToolUse hooks: can't un-run the tool, but a `block`
+  // reason is attached as `hookFeedback` to be surfaced back to the model.
+  if (context.settingsHooks && toolResult && typeof toolResult === "object") {
+    try {
+      const matched = collectHooks(context.settingsHooks, "PostToolUse", name);
+      if (matched && matched.length > 0) {
+        const outcome = runCommandHooks(
+          matched,
+          {
+            hook_event_name: "PostToolUse",
+            tool_name: umbrellaFor(name),
+            raw_tool_name: name,
+            tool_input: args,
+            tool_response:
+              typeof toolResult === "object"
+                ? JSON.stringify(toolResult).substring(0, 2000)
+                : String(toolResult).substring(0, 2000),
+            cwd,
+            session_id: context.sessionId || null,
+          },
+          { cwd, event: "PostToolUse" },
+        );
+        if (outcome.decision === "block" && outcome.reason) {
+          toolResult.hookFeedback = outcome.reason;
+        }
+      }
+    } catch (_err) {
+      // PostToolUse hooks are best-effort
     }
   }
 
@@ -2454,6 +2546,7 @@ export async function* agentLoop(messages, options) {
     additionalDirectories: options.additionalDirectories || null,
     permissionRules: options.permissionRules || null,
     permissionConfirm: options.permissionConfirm || null,
+    settingsHooks: options.settingsHooks || null,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",

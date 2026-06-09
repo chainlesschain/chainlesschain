@@ -81,6 +81,8 @@ let _approvalGate = null;
 // confirmer for `ask` matches. Loaded once at REPL startup; null = no file.
 let _permissionRules = null;
 let _permissionConfirm = null;
+// .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
+let _settingsHooks = null;
 
 /**
  * "Always allow" persistence: derive a sensible allow rule for a tool call,
@@ -121,6 +123,7 @@ async function executeTool(name, args) {
     approvalGate: _approvalGate,
     permissionRules: _permissionRules,
     permissionConfirm: _permissionConfirm,
+    settingsHooks: _settingsHooks,
   });
 }
 
@@ -315,34 +318,48 @@ export async function startAgentRepl(options = {}) {
       loaded.rules.ask.length +
       loaded.rules.deny.length;
     _permissionRules = total > 0 ? loaded.rules : null;
-    if (_permissionRules) {
-      _permissionConfirm = async ({ tool, args, rule }) => {
-        const rl = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-        });
-        const q = (p) => new Promise((res) => rl.question(p, res));
-        const detail = args?.command
-          ? ` ${args.command}`
-          : args?.path
-            ? ` ${args.path}`
-            : "";
-        const ans = (
-          await q(
-            chalk.yellow(
-              `\n[Permission] rule ${rule} asks before ${tool}:${detail}\n  Proceed? (y/N) `,
-            ),
-          )
+    // Confirmer is shared by permission `ask` rules AND hook `ask` decisions,
+    // so define it unconditionally (a `hook:` rule label flows through too).
+    _permissionConfirm = async ({ tool, args, rule }) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      const q = (p) => new Promise((res) => rl.question(p, res));
+      const detail = args?.command
+        ? ` ${args.command}`
+        : args?.path
+          ? ` ${args.path}`
+          : "";
+      const ans = (
+        await q(
+          chalk.yellow(
+            `\n[Permission] ${rule} asks before ${tool}:${detail}\n  Proceed? (y/N) `,
+          ),
         )
-          .trim()
-          .toLowerCase();
-        rl.close();
-        return ans === "y" || ans === "yes";
-      };
-    }
+      )
+        .trim()
+        .toLowerCase();
+      rl.close();
+      return ans === "y" || ans === "yes";
+    };
   } catch (_err) {
     _permissionRules = null;
     _permissionConfirm = null;
+  }
+
+  // Load .claude/settings.json `hooks` block (decision-capable PreToolUse/
+  // PostToolUse). The interactive _permissionConfirm above doubles as the
+  // confirmer for a hook `ask` decision.
+  try {
+    const { loadHooks } = await import("../lib/settings-hooks.cjs");
+    const loaded = loadHooks({ cwd: process.cwd() });
+    _settingsHooks =
+      loaded.hooks && Object.keys(loaded.hooks).length > 0
+        ? loaded.hooks
+        : null;
+  } catch (_err) {
+    _settingsHooks = null;
   }
 
   // Resume existing session or create new one
@@ -1733,6 +1750,7 @@ export async function startAgentRepl(options = {}) {
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,
         permissionConfirm: _permissionConfirm,
+        settingsHooks: _settingsHooks,
         // MCP: --mcp-config (ad-hoc) wins; bundle MCP is the fallback. The 3
         // tool channels expose --mcp-config servers' tools to the LLM directly.
         mcpClient: _adhocMcp?.mcpClient || _bundleMcpClient || undefined,

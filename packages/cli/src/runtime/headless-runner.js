@@ -248,6 +248,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // .claude/settings.json `hooks` block — decision-capable PreToolUse/
+  // PostToolUse hooks (see settings-hooks/hook-runner). null = no hooks.
+  let settingsHooks = options.settingsHooks || null;
+  if (!settingsHooks) {
+    try {
+      const { loadHooks } = await import("../lib/settings-hooks.cjs");
+      const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
+      settingsHooks =
+        loaded.hooks && Object.keys(loaded.hooks).length > 0
+          ? loaded.hooks
+          : null;
+    } catch {
+      settingsHooks = null; // fail-open
+    }
+  }
+
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
   const getApprovalGate =
@@ -466,6 +482,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     hookDb: db,
     approvalGate,
     permissionRules,
+    settingsHooks,
     enabledToolNames,
     disabledTools,
     iterationBudget: budget,

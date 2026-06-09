@@ -162,6 +162,21 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
+  let settingsHooks = options.settingsHooks || null;
+  if (!settingsHooks) {
+    try {
+      const { loadHooks } = await import("../lib/settings-hooks.cjs");
+      const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
+      settingsHooks =
+        loaded.hooks && Object.keys(loaded.hooks).length > 0
+          ? loaded.hooks
+          : null;
+    } catch {
+      settingsHooks = null; // fail-open
+    }
+  }
+
   const input = deps.input || process.stdin;
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
@@ -318,6 +333,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     hookDb: db,
     approvalGate,
     permissionRules,
+    settingsHooks,
     enabledToolNames,
     disabledTools,
     prepareCall: goalPrepareCallFn,
