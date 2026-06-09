@@ -16,6 +16,7 @@
 - ⚠️ **DAG 执行 + 风险评估**: /plan execute 按依赖拓扑排序执行，/plan risk 显示风险评分
 - 🎯 **SlotFiller 意图检测**: 自动检测用户消息中的缺失参数，交互式补全后再调用 LLM
 - 🎭 **Persona 系统**: 项目级 AI 角色配置，自动替换默认编码助手，支持工具权限控制
+- 🎨 **输出风格**: 命名人格叠加系统提示（`--output-style`），保留编码能力改行为/语气，详见 [输出风格](./output-styles)
 
 ## 系统架构
 
@@ -72,6 +73,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | `--mcp-config <file>` | 临时挂载 MCP server，工具 → `mcp__<server>__<tool>` | — |
 | `--no-mcp` | 不自动连 `cc mcp add --auto-connect` 的服务 | （默认连） |
 | `--settings <file>` | 一次性 `.claude/settings.json`：权限规则 + `model`/`env` 覆盖 | — |
+| `--output-style <name>` | 套用命名人格（内置 `explanatory`/`learning` 或 `.claude/output-styles/<name>.md`），详见 [输出风格](./output-styles) | — |
 
 ## Headless 模式 (`agent -p`) 与 Claude Code 平价旗标
 
@@ -361,6 +363,7 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 | `/provider <p>`  | 切换/查看提供商，支持 8 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
 | `/clear`         | 清空对话历史                         |
 | `/compact`       | 智能压缩对话（基于重要性评分）       |
+| `/output-style [name]` | 列出 / 切换 [输出风格](./output-styles) 人格；`none` 清除 |
 
 ### Context Engineering 命令
 
