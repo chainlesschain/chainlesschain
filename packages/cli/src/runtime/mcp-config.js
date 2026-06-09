@@ -16,6 +16,11 @@
 
 import fs from "fs";
 import { MCPClient } from "../harness/mcp-client.js";
+import {
+  discoverIdeServer,
+  ideServerToMcpConfig,
+  isInIdeTerminal,
+} from "../lib/ide-bridge.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -209,18 +214,52 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
 }
 
 /**
+ * Discover a running IDE's MCP server (lockfile / env fast-path) and connect it
+ * as the reserved server `ide`. Best-effort: returns `deps.into` (or null) on
+ * no IDE found / bad config, never throws. An explicit user registration of a
+ * server named `ide` wins — IDE auto-discovery yields with a one-line warning.
+ *
+ * @param {object} opts  { cwd?, env?, force? }
+ * @param {object} [deps] { writeErr, into, discoverIdeServer, ideServerToMcpConfig }
+ */
+export async function loadIdeMcp(opts = {}, deps = {}) {
+  const discover = deps.discoverIdeServer || discoverIdeServer;
+  const toCfg = deps.ideServerToMcpConfig || ideServerToMcpConfig;
+  const lock = discover({
+    cwd: opts.cwd,
+    env: opts.env,
+    force: opts.force === true,
+  });
+  if (!lock) return deps.into || null;
+  if (deps.into?.mcpClient?.servers?.has?.("ide")) {
+    (deps.writeErr || (() => {}))(
+      `  ide: server "ide" already registered explicitly — ` +
+        `skipping IDE auto-discovery\n`,
+    );
+    return deps.into;
+  }
+  const cfg = toCfg(lock);
+  if (!cfg) return deps.into || null;
+  return setupMcpFromConfig({ ide: cfg }, deps);
+}
+
+/**
  * Resolve the full MCP tool surface for one agent run: the ad-hoc
  * `--mcp-config` file (if any) PLUS registered auto-connect servers (unless
- * disabled), connected into a single client. Returns the combined
- * `{mcpClient, extraToolDefinitions, ...}` or null when there's nothing.
- * Throws only on a bad `--mcp-config` file (that's an explicit user request).
+ * disabled) PLUS an auto-discovered IDE bridge, connected into a single client.
+ * Returns the combined `{mcpClient, extraToolDefinitions, ...}` or null when
+ * there's nothing. Throws only on a bad `--mcp-config` file (explicit request).
  *
- * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false }
- * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp }
+ * IDE discovery: default ON only inside an IDE integrated terminal; `ide:true`
+ * (`--ide`) forces it; `ide:false` (`--no-ide`) disables it.
+ *
+ * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false, ide?, cwd?, env? }
+ * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp, loadIdeMcp, isInIdeTerminal }
  */
 export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
+  const doIde = deps.loadIdeMcp || loadIdeMcp;
   let result = null;
   if (args.mcpConfigPath) {
     result = await doFile(args.mcpConfigPath, deps); // fail-fast on bad file
@@ -231,6 +270,16 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
       all: args.allRegistered === true,
       into: result || undefined,
     });
+  }
+  if (args.ide !== false) {
+    const env = args.env || process.env;
+    const inIde = (deps.isInIdeTerminal || isInIdeTerminal)(env);
+    if (args.ide === true || inIde) {
+      result = await doIde(
+        { cwd: args.cwd, env, force: args.ide === true },
+        { ...deps, into: result || undefined },
+      );
+    }
   }
   return result;
 }

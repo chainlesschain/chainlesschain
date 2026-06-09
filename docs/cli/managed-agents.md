@@ -363,6 +363,48 @@ chainlesschain agent -p "..." --no-mcp          # 跳过注册的自动连接(--
 工具 fail-closed,本旗标把每个 CONFIRM 档审批交给一个 MCP 工具裁决——它收 `{tool_name, input}`,
 返回 `{behavior:"allow"|"deny"}`(任何非 allow / 出错都 fail-closed)。
 
+## IDE Bridge — 自动连接编辑器的 MCP server (Phase 0)
+
+第三条 MCP 源:运行中的编辑器扩展(VS Code / JetBrains)可在内部跑一个本地 MCP server
+(暴露 `ide_getSelection`/`ide_getDiagnostics`/`ide_openDiff` 等"IDE 工具"),并把它的端点写进
+一个 **lockfile**。`cc agent` 自动发现并把它当保留名 `ide` 的 server 连上,工具即
+`mcp__ide__getSelection` 等,与 `--mcp-config` / 注册 server 合并进同一 client。设计见
+`docs/design/modules/98_IDE桥接对标方案.md`。**Phase 0 = 纯 CLI 发现层**(扩展为后续阶段)。
+
+**发现两条路径**(`src/lib/ide-bridge.js`):
+- **env 直连(主)**:扩展在它拥有的集成终端注入 `CHAINLESSCHAIN_IDE_PORT`(+ 可选
+  `CHAINLESSCHAIN_IDE_TOKEN`)→ CLI 直接锁定该 port 的锁,免扫描、免歧义。
+- **lockfile 扫描(兜底)**:扫 `~/.chainlesschain/ide/*.json`,按 `workspaceFolders[]` 与
+  `cwd` 的**最长前缀**匹配挑一条(多匹配取 `started_at` 最新)。
+
+**Lockfile**(`~/.chainlesschain/ide/<port>.json`,文件 `0600` / 目录 `0700`):
+```jsonc
+{ "ide":"vscode", "transport":"sse", "url":"http://127.0.0.1:53690/sse",
+  "port":53690, "workspaceFolders":["/abs/ws"], "token":"<bearer>",
+  "pid":12345, "started_at":1718000000000 }
+```
+约定:`url` 必须 `127.0.0.1`/`::1`;`transport` 仅 `sse`/`http`(client 当前不支持 `ws`);
+连接注入 `Authorization: Bearer <token>`;`pid` 不存活且文件超 30s 视为 stale 跳过。
+
+```bash
+chainlesschain agent -p "修下选区里的 bug"     # 在 IDE 集成终端内自动连接
+chainlesschain agent -p "..." --ide            # 强制启用(外部终端手动接)
+chainlesschain agent -p "..." --no-ide         # 禁用 IDE 自动连接
+
+chainlesschain ide list                        # 列出发现到的 IDE server(token 不显)
+chainlesschain ide status [--ide]              # 此刻会连哪台 + 它的 MCP config(token 脱敏)
+chainlesschain ide doctor [--ide]              # 解释发现为何成功/失败(无锁/stale/workspace 不匹配/…)
+```
+
+**保留名 `ide`**:若你已 `cc mcp add ide` 自建同名 server,**用户显式注册优先**,IDE 自动发现让位
+并打印一次 WARN。
+
+> 端到端自验(免扩展):`cc mcp scaffold` 生成一个 SSE MCP server 当"假 IDE",手写一条
+> `<port>.json` 锁指向它,跑 `cc agent --ide` 即可确认 `mcp__ide__*` 工具进 loop + Bearer 鉴权通。
+
+> 边界(Phase 0):连接在 agent 启动时**一次性解析**(中途重启 IDE 需重跑 `cc agent`,热重连留
+> Phase 2);交互 REPL 的 IDE 自动连接为 follow-up,当前 headless(`agent -p`)优先。
+
 ## Web Search — `web_search` 工具 + 可插拔搜索源
 
 agent 循环原生带 `web_search`(配合 `web_fetch`:先搜出 URL,再抓正文)。返回归一化

@@ -304,11 +304,14 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           mcpConfigPath: options.mcpConfig || null,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
+          ide: options.ide,
+          cwd: options.cwd || process.cwd(),
         },
         {
           writeErr,
           loadMcpConfig: deps.loadMcpConfig,
           loadRegisteredMcp: deps.loadRegisteredMcp,
+          loadIdeMcp: deps.loadIdeMcp,
         },
       );
     } catch (err) {

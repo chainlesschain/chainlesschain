@@ -215,6 +215,11 @@ export function registerAgentCommand(program) {
       "Don't auto-connect MCP servers registered with `cc mcp add --auto-connect` (--mcp-config still loads)",
     )
     .option(
+      "--ide",
+      "Force-enable IDE bridge auto-connect: discover a running editor's MCP server via ~/.chainlesschain/ide/*.json (default: auto inside an IDE integrated terminal)",
+    )
+    .option("--no-ide", "Disable IDE bridge auto-connect")
+    .option(
       "--permission-prompt-tool <tool>",
       "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
     )
@@ -406,6 +411,8 @@ export function registerAgentCommand(program) {
             goal: options.goal,
             mcpConfig: options.mcpConfig || null,
             useRegisteredMcp: options.mcp !== false,
+            ide: options.ide,
+            cwd,
             permissionPromptTool: options.permissionPromptTool || null,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
@@ -509,6 +516,9 @@ export function registerAgentCommand(program) {
             mcpConfig: options.mcpConfig || null,
             // --no-mcp: skip registered (cc mcp add) auto-connect servers
             useRegisteredMcp: options.mcp !== false,
+            // --ide / --no-ide: auto-connect a running editor's MCP bridge
+            ide: options.ide,
+            cwd: process.cwd(),
             // --permission-prompt-tool: defer approvals to an MCP tool
             permissionPromptTool: options.permissionPromptTool || null,
             // --settings: extra .claude/settings.json permission rules
@@ -564,6 +574,8 @@ export function registerAgentCommand(program) {
         // interactive session (the REPL resolves both via the mcp-config engine).
         mcpConfig: options.mcpConfig || null,
         useRegisteredMcp: options.mcp !== false,
+        // --ide / --no-ide: IDE bridge auto-connect for the interactive session
+        ide: options.ide,
       });
       await runtime.startAgentSession();
     });
