@@ -207,7 +207,9 @@ describe("cc audit mtc — CLI integration", () => {
       tmpHome,
     ]);
     expect(unknown.status).toBe(2);
-  });
+    // ~6 real CLI spawns (each boots the runtime); the default 60s global
+    // timeout is too tight on loaded CI runners — give it room.
+  }, 180000);
 
   it("set-interval validates and persists", () => {
     const ok = runCli([
