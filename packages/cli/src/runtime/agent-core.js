@@ -135,6 +135,41 @@ export function listBackgroundShellTasks() {
   }));
 }
 
+// Kill a background task's whole process tree. Because tasks are spawned with
+// shell:true, the child is a shell whose real command runs as a grandchild — a
+// plain child.kill() on POSIX only signals the shell (and often orphans the
+// command), so a backgrounded `npm run dev` would survive. POSIX: the task is
+// spawned detached (its own process group), so signal the group via the
+// negative pid. Windows: `taskkill /T` walks and kills the whole tree.
+// Returns true if a running task was signalled.
+function _killTask(task) {
+  const child = task?.child;
+  if (!child || child.killed || task?.status !== "running") return false;
+  try {
+    if (process.platform === "win32") {
+      if (child.pid) {
+        spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+          windowsHide: true,
+        });
+      } else {
+        child.kill();
+      }
+    } else if (child.pid) {
+      // Negative pid → signal the whole process group (requires detached spawn).
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch (_err) {
+        child.kill("SIGTERM");
+      }
+    } else {
+      child.kill("SIGTERM");
+    }
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
 /**
  * Kill every still-running background shell task. Callers (REPL exit, headless
  * shutdown) invoke this so a backgrounded `npm run dev` doesn't outlive the
@@ -144,13 +179,8 @@ export function listBackgroundShellTasks() {
 export function killAllBackgroundShellTasks() {
   let killed = 0;
   for (const task of _backgroundShellTasks.values()) {
-    if (task.status === "running" && task.child) {
-      try {
-        task.child.kill();
-        killed += 1;
-      } catch (_err) {
-        /* best-effort */
-      }
+    if (_killTask(task)) {
+      killed += 1;
     }
   }
   return killed;
@@ -1092,6 +1122,10 @@ async function executeToolInner(
             cwd: task.cwd,
             shell: true,
             windowsHide: true,
+            // POSIX: own process group so check_shell{kill}/teardown can signal
+            // the whole tree (shell + its grandchild command). No-op on Windows
+            // where the tree is killed via taskkill /T instead.
+            detached: process.platform !== "win32",
           });
           task.child = child;
           if (child.stdout) {
@@ -1184,13 +1218,10 @@ async function executeToolInner(
         });
       }
       let killed = false;
-      if (args.kill === true && task.status === "running" && task.child) {
-        try {
-          task.child.kill();
-          killed = true;
-        } catch (_err) {
-          /* best-effort; exit handler updates status */
-        }
+      if (args.kill === true) {
+        // _killTask signals the whole process tree (see its doc); the close
+        // handler flips status. Best-effort.
+        killed = _killTask(task);
       }
       const out = _readBgStream(task.out);
       const err = _readBgStream(task.err);

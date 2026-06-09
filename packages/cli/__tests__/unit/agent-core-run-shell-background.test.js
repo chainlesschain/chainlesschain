@@ -15,7 +15,7 @@ const NODE = process.execPath; // absolute path to the running node binary
 // check_shell returns output incrementally (only what's new since the last
 // poll, like Claude Code's BashOutput), so accumulate stdout/stderr across
 // polls — the agent likewise retains earlier chunks in its message history.
-async function pollUntilDone(taskId, { tries = 100, intervalMs = 20 } = {}) {
+async function pollUntilDone(taskId, { tries = 150, intervalMs = 20 } = {}) {
   let last;
   let stdout = "";
   let stderr = "";
@@ -29,9 +29,25 @@ async function pollUntilDone(taskId, { tries = 100, intervalMs = 20 } = {}) {
   return { ...last, stdout, stderr };
 }
 
+// Kill every background task and wait until none are still running. Killing is
+// async (the process tree dies, then its 'close' event flips status), so a
+// synchronous killAll alone leaves tasks transiently "running" — tests that
+// assert a clean registry must await this.
+async function drainAllTasks({ tries = 200, intervalMs = 20 } = {}) {
+  killAllBackgroundShellTasks();
+  for (let i = 0; i < tries; i++) {
+    const running = listBackgroundShellTasks().filter(
+      (t) => t.status === "running",
+    );
+    if (running.length === 0) return;
+    killAllBackgroundShellTasks(); // re-signal any that haven't died yet
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+}
+
 describe("agent-core run_shell background + check_shell", () => {
-  afterEach(() => {
-    killAllBackgroundShellTasks();
+  afterEach(async () => {
+    await drainAllTasks();
   });
 
   it("run_in_background returns a task_id immediately without blocking", async () => {
@@ -188,11 +204,11 @@ describe("agent-core run_shell configurable foreground timeout", () => {
 // and headless completion (runAgentHeadless finally) call so a backgrounded
 // dev server can't outlive the agent. This is its contract.
 describe("agent-core killAllBackgroundShellTasks (REPL/headless teardown seam)", () => {
-  afterEach(() => {
-    killAllBackgroundShellTasks();
+  afterEach(async () => {
+    await drainAllTasks();
   });
 
-  it("signals every running task and returns the count killed", async () => {
+  it("signals every running task and terminates the whole tree", async () => {
     const ids = [];
     for (let i = 0; i < 3; i++) {
       const r = await executeTool(
@@ -207,15 +223,24 @@ describe("agent-core killAllBackgroundShellTasks (REPL/headless teardown seam)",
     }
     const killed = killAllBackgroundShellTasks();
     expect(killed).toBeGreaterThanOrEqual(3);
-    // Each task eventually leaves the running state.
+    // Each task's process tree actually dies (close → status leaves running).
     for (const id of ids) {
       const done = await pollUntilDone(id);
       expect(done.running).toBe(false);
     }
   });
 
-  it("is a no-op (returns 0) when nothing is running", async () => {
-    killAllBackgroundShellTasks(); // drain any leftovers
+  it("is a no-op (returns 0) once tasks have drained", async () => {
+    // Spawn one, then drain it, then assert a second call signals nothing.
+    await executeTool(
+      "run_shell",
+      {
+        command: `${NODE} -e "setTimeout(()=>{},10000)"`,
+        run_in_background: true,
+      },
+      {},
+    );
+    await drainAllTasks();
     expect(killAllBackgroundShellTasks()).toBe(0);
   });
 });
