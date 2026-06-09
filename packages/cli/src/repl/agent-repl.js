@@ -69,6 +69,7 @@ import {
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import { makeFallbackChatFn } from "../runtime/fallback-model.js";
+import { resolveSlashMacro } from "./slash-macro.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -1591,34 +1592,22 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
-    // User-defined slash-command macros (.claude/commands/*.md) — Claude-Code
-    // parity. Anything starting with `/` that wasn't a built-in above reaches
-    // here. If the first token resolves to a command macro, expand its template
-    // ($ARGUMENTS/$1.. + !`bang` + @file) and run the result as the prompt. A
-    // non-matching `/...` falls through unchanged (treated as a literal prompt),
-    // so this never breaks asking the LLM about paths like "/etc/hosts".
+    // User-defined slash-command macros (.claude/commands/*.md), Claude-Code
+    // parity. resolveSlashMacro maps a leading /name to a command macro and
+    // expands its template; a non-match returns the line unchanged so a literal
+    // prompt like "/etc/hosts" still reaches the LLM. Wire is unit-tested.
     let promptText = trimmed;
-    if (trimmed.startsWith("/")) {
-      try {
-        const [head, ...rest] = trimmed.slice(1).split(/\s+/);
-        const { getCommand, expandCommand } =
-          await import("../lib/slash-commands.js");
-        const macro = head ? getCommand(head, process.cwd()) : null;
-        if (macro) {
-          const { prompt: expanded, warnings } = expandCommand(
-            macro,
-            rest.filter(Boolean),
-            { cwd: process.cwd() },
-          );
-          for (const w of warnings) logger.info(chalk.yellow(`[@ref] ${w}`));
-          promptText = expanded;
-          logger.log(
-            chalk.gray(`[/${macro.name}] macro expanded (${macro.scope})`),
-          );
-        }
-      } catch (err) {
-        logger.verbose(`[slash-macro] expansion skipped: ${err.message}`);
+    try {
+      const macro = await resolveSlashMacro(trimmed, { cwd: process.cwd() });
+      if (macro.matched) {
+        for (const w of macro.warnings) logger.info(chalk.yellow(`[@ref] ${w}`));
+        promptText = macro.promptText;
+        logger.log(
+          chalk.gray(`[/${macro.name}] macro expanded (${macro.scope})`),
+        );
       }
+    } catch (err) {
+      logger.verbose(`[slash-macro] expansion skipped: ${err.message}`);
     }
 
     // Fire UserPromptSubmit hook with rewrite/abort support.
