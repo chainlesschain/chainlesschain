@@ -523,6 +523,10 @@
     "97_桌面版UI_ClaudeDesktop重构计划.md": {
       "docs-site": "97-claude-desktop-refactor.md",
       "docs-site-design": "m97-claude-desktop-refactor.md"
+    },
+    "98_IDE桥接对标方案.md": {
+      "docs-site": "98-ide-bridge.md",
+      "docs-site-design": "m98-ide-bridge.md"
     }
   }
 }
