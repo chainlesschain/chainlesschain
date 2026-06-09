@@ -232,6 +232,23 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   );
   const messages = [{ role: "system", content: systemContent }];
 
+  // settings.json SessionStart hooks → inject session context once (observe-only).
+  if (settingsHooks) {
+    try {
+      const { runSessionStartHooks } = await import(
+        "../lib/settings-hook-events.cjs"
+      );
+      const ctx = runSessionStartHooks(settingsHooks, {
+        source: "startup",
+        cwd,
+        sessionId,
+      }).additionalContext;
+      if (ctx) messages.push({ role: "system", content: ctx });
+    } catch (_err) {
+      // best-effort
+    }
+  }
+
   emit({
     type: "system",
     subtype: "init",

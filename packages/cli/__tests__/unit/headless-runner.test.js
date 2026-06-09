@@ -182,6 +182,42 @@ describe("headless-runner — output formats", () => {
     expect(r.isError).toBe(true);
     expect(chatFn).not.toHaveBeenCalled();
   });
+
+  it("a SessionStart hook injects context as a system message", async () => {
+    let seen = null;
+    const chatFn = vi.fn(async (msgs) => {
+      seen = msgs;
+      return {
+        message: { role: "assistant", content: "ok" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    });
+    const { deps } = makeDeps(chatFn);
+    await runAgentHeadless(
+      {
+        prompt: "hello",
+        settingsHooks: {
+          SessionStart: [
+            {
+              matcher: null,
+              hooks: [
+                {
+                  type: "command",
+                  command: "node -e \"console.log('session ctx here')\"",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      deps,
+    );
+    const sys = (seen || [])
+      .filter((m) => m.role === "system")
+      .map((m) => m.content)
+      .join("\n");
+    expect(sys).toContain("session ctx here");
+  });
 });
 
 describe("headless-runner — max-turns", () => {

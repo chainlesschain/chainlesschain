@@ -521,10 +521,11 @@ chainlesschain hook list                                                # DB hoo
 | **PreToolUse** | 每个工具调用前(权限解析之后) | `block`→拦工具 / `ask`→确认 / context |
 | **PostToolUse** | 工具跑完后 | `block` 的 reason 作 `hookFeedback` 回喂模型 |
 | **UserPromptSubmit** | 每轮用户 prompt 提交前(headless + REPL) | `block`→中止本轮 / 非 block stdout(JSON `additionalContext` 或纯文本)→注入为上下文 |
+| **SessionStart** | 会话起点(headless + REPL) | 非 block stdout → 注入为一条 `system` 上下文消息(observe-only,无 block);`source`=startup/resume 即 matcher 目标 |
 
-UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`。block 在 headless 退出码 `2`、在 REPL 跳过本轮。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
+UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`;block 在 headless 退出码 `2`、在 REPL 跳过本轮。SessionStart payload:`{ hook_event_name, source, cwd, session_id }`。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
 
-> **剩余事件**:`SessionStart`(注入上下文)/ `SessionEnd` / `Stop` / `PreCompact` —— loader 与 dispatcher(`settings-hook-events.cjs`)已支持,但还未接到各自的 seam(会话起止 / agentLoop 收尾 / 压缩前)。
+> **剩余事件**:`SessionEnd` / `Stop` / `PreCompact` —— loader 与 dispatcher(`settings-hook-events.cjs` 的 `runObserveHooks`)已支持,但还未接到各自的 seam(agentLoop 收尾 / 会话结束 / 压缩前)。
 
 ## Hosted Session API (Phase I)
 

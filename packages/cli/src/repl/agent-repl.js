@@ -456,6 +456,22 @@ export async function startAgentRepl(options = {}) {
     },
   ];
 
+  // settings.json SessionStart hooks → inject session context (observe-only).
+  if (_settingsHooks) {
+    try {
+      const { runSessionStartHooks } = await import(
+        "../lib/settings-hook-events.cjs"
+      );
+      const ctx = runSessionStartHooks(_settingsHooks, {
+        source: "startup",
+        cwd: process.cwd(),
+      }).additionalContext;
+      if (ctx) messages.push({ role: "system", content: ctx });
+    } catch (_err) {
+      // best-effort
+    }
+  }
+
   // Deep Agents Deploy Phase 1 — load agent bundle if --bundle provided.
   // Injects AGENTS.md as system prompt, seeds USER.md into MemoryStore,
   // and applies bundle manifest metadata (model/provider override, agentId).

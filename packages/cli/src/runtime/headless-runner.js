@@ -413,8 +413,28 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // settings.json SessionStart hooks → inject session context (observe-only).
+  let sessionStartContext = null;
+  if (settingsHooks) {
+    try {
+      const { runSessionStartHooks } = await import(
+        "../lib/settings-hook-events.cjs"
+      );
+      sessionStartContext = runSessionStartHooks(settingsHooks, {
+        source: resumeId ? "resume" : "startup",
+        cwd,
+        sessionId,
+      }).additionalContext;
+    } catch (_err) {
+      sessionStartContext = null;
+    }
+  }
+
   const messages = [
     { role: "system", content: systemContent },
+    ...(sessionStartContext
+      ? [{ role: "system", content: sessionStartContext }]
+      : []),
     ...history,
     { role: "user", content: userContent },
   ];
