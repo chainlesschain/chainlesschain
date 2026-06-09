@@ -57,8 +57,25 @@ function loadStatusLineConfig({ cwd = process.cwd(), settingsFile } = {}) {
   return cfg && cfg.command ? cfg : null;
 }
 
-/** Build the JSON context handed to the status-line command on stdin. */
-function buildContext({ sessionId, model, provider, cwd, projectDir } = {}) {
+/**
+ * Build the JSON context handed to the status-line command on stdin (and used
+ * by the built-in renderer). Carries context-window usage so a custom command —
+ * or the built-in line — can show how full the window is. Additive: the prior
+ * fields are unchanged; `context` + `turn` are new.
+ */
+function buildContext({
+  sessionId,
+  model,
+  provider,
+  cwd,
+  projectDir,
+  usedTokens = 0,
+  contextWindow = 0,
+  turn = 0,
+} = {}) {
+  const used = Math.max(0, Number(usedTokens) || 0);
+  const window = Math.max(0, Number(contextWindow) || 0);
+  const pct = window > 0 ? Math.min(100, Math.round((used / window) * 100)) : 0;
   return {
     hook_event_name: "Status",
     session_id: sessionId || null,
@@ -69,7 +86,73 @@ function buildContext({ sessionId, model, provider, cwd, projectDir } = {}) {
       project_dir: projectDir || cwd || process.cwd(),
     },
     cwd: cwd || process.cwd(),
+    context: { used_tokens: used, window, pct },
+    turn: Math.max(0, Number(turn) || 0),
   };
+}
+
+/** Compact a token count: 950 → "950", 12345 → "12.3k", 1500000 → "1.5M". */
+function formatTokens(n) {
+  const v = Number(n) || 0;
+  if (v < 1000) return String(Math.max(0, Math.round(v)));
+  if (v < 1_000_000) {
+    const k = v / 1000;
+    return (k >= 100 ? Math.round(k) : Number(k.toFixed(1))) + "k";
+  }
+  return Number((v / 1_000_000).toFixed(1)) + "M";
+}
+
+/** Home-relative compact path: the home dir collapses to "~". */
+function shortenPath(p) {
+  const cwd = String(p || "");
+  let home = "";
+  try {
+    home = require("node:os").homedir() || "";
+  } catch {
+    home = "";
+  }
+  if (
+    home &&
+    (cwd === home || cwd.startsWith(home + "/") || cwd.startsWith(home + "\\"))
+  ) {
+    return "~" + cwd.slice(home.length);
+  }
+  return cwd;
+}
+
+/**
+ * Built-in context-usage line shown when no custom `statusLine` command is
+ * configured: "model · ⛁ used/window (pct%) · cwd · turn N". No color — the
+ * caller dims it. Returns "" when there's genuinely nothing to show.
+ */
+function renderDefaultStatusLine(context = {}) {
+  const c = context.context || {};
+  const parts = [];
+  if (context.model && context.model.id) parts.push(context.model.id);
+  if (c.window > 0) {
+    parts.push(
+      `⛁ ${formatTokens(c.used_tokens)}/${formatTokens(c.window)} (${c.pct}%)`,
+    );
+  } else if (c.used_tokens > 0) {
+    parts.push(`⛁ ${formatTokens(c.used_tokens)}`);
+  }
+  if (context.cwd) parts.push(shortenPath(context.cwd));
+  if (context.turn) parts.push(`turn ${context.turn}`);
+  return parts.join("  ·  ");
+}
+
+/**
+ * Whether the user explicitly disabled the status line via `statusLine: false`
+ * in the effective (last-layer-wins) settings. Lets the REPL suppress even the
+ * built-in line, while a mere absence of config still shows the built-in.
+ */
+function isStatusLineDisabled({ cwd = process.cwd(), settingsFile } = {}) {
+  let disabled = false;
+  for (const data of _deps.readSettings(cwd, settingsFile)) {
+    if (!data || !("statusLine" in data)) continue;
+    disabled = data.statusLine === false;
+  }
+  return disabled;
 }
 
 /**
@@ -113,5 +196,9 @@ module.exports = {
   buildContext,
   renderStatusLine,
   getStatusLine,
+  formatTokens,
+  shortenPath,
+  renderDefaultStatusLine,
+  isStatusLineDisabled,
   _deps,
 };

@@ -48,7 +48,10 @@ import {
 } from "../lib/task-model-selector.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
-import { PromptCompressor } from "../harness/prompt-compressor.js";
+import {
+  PromptCompressor,
+  getContextWindow,
+} from "../harness/prompt-compressor.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
 import {
@@ -747,35 +750,57 @@ export async function startAgentRepl(options = {}) {
   );
   logger.log(chalk.gray("Type /exit to quit, /help for commands\n"));
 
-  // statusLine (Claude-Code parity): render a user-configured command above the
-  // prompt each turn (model / branch / cost / …). Config in .claude/settings.json
-  // `statusLine`. Loaded once; rendered (best-effort, sync) before each prompt.
+  // statusLine (Claude-Code parity): a line above the prompt each turn.
+  //  - A user-configured `.claude/settings.json` `statusLine` command wins
+  //    (model / branch / cost / … — first stdout line; best-effort, sync).
+  //  - Otherwise a BUILT-IN context-usage line is shown: model · ⛁ used/window
+  //    (pct%) · cwd · turn N — the "上下文用量显示" half. Default-on.
+  //  - Suppressed entirely by `statusLine: false`, env CC_STATUSLINE=0, or
+  //    `/statusline off`. Token usage is fed in from each turn's usage events.
+  let _statusLineEnabled = process.env.CC_STATUSLINE !== "0";
+  let _customStatus = false; // true when a settings.json command is configured
+  let _curModel = model; // tracks the per-turn active model for the readout
+  let _ctxUsedTokens = 0;
+  let _turnCount = 0;
   let _renderStatus = null;
   try {
     const slm = await import("../lib/status-line.cjs");
     const _sl = slm.default || slm;
     const _slCfg = _sl.loadStatusLineConfig({ cwd: process.cwd() });
-    if (_slCfg) {
-      _renderStatus = () => {
-        try {
-          return _sl.renderStatusLine(
-            _slCfg,
-            _sl.buildContext({ sessionId, model, provider, cwd: process.cwd() }),
-            { cwd: process.cwd() },
-          );
-        } catch {
-          return null;
+    _customStatus = !!_slCfg;
+    const _slDisabled = _sl.isStatusLineDisabled({ cwd: process.cwd() });
+    if (_slDisabled) _statusLineEnabled = false;
+    _renderStatus = () => {
+      if (!_statusLineEnabled) return null;
+      try {
+        const context = _sl.buildContext({
+          sessionId,
+          model: _curModel,
+          provider,
+          cwd: process.cwd(),
+          usedTokens: _ctxUsedTokens,
+          contextWindow: getContextWindow(_curModel, provider),
+          turn: _turnCount,
+        });
+        // Custom command wins; otherwise the built-in context-usage render.
+        if (_slCfg) {
+          return _sl.renderStatusLine(_slCfg, context, { cwd: process.cwd() });
         }
-      };
-    }
+        const line = _sl.renderDefaultStatusLine(context);
+        return line && line.trim() ? line : null;
+      } catch {
+        return null; // never let the status line break the REPL
+      }
+    };
   } catch {
     _renderStatus = null;
   }
 
   const prompt = () => {
-    if (_renderStatus) {
+    if (_statusLineEnabled && _renderStatus) {
       const line = _renderStatus();
-      if (line) process.stdout.write(line + "\n");
+      // Built-in line is dimmed; a custom command may carry its own ANSI.
+      if (line) process.stdout.write((_customStatus ? line : chalk.dim(line)) + "\n");
     }
     rl.setPrompt(getPrompt());
     rl.prompt();
@@ -813,6 +838,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(`  ${chalk.cyan("/provider")}   Show/change provider`);
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
+      logger.log(
+        `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
+      );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
       );
@@ -932,6 +960,7 @@ export async function startAgentRepl(options = {}) {
       const arg = trimmed.slice(6).trim();
       if (arg) {
         model = arg;
+        _curModel = model; // keep the status-line readout in sync
         logger.info(`Model: ${chalk.cyan(model)}`);
       } else {
         logger.info(`Current model: ${chalk.cyan(model)}`);
@@ -976,6 +1005,35 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/clear") {
       messages.length = 1; // Keep system prompt
       logger.info("Conversation cleared");
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/statusline" || trimmed.startsWith("/statusline ")) {
+      const arg = trimmed.slice("/statusline".length).trim().toLowerCase();
+      if (arg === "off") {
+        _statusLineEnabled = false;
+        logger.info("Status line: off");
+      } else if (arg === "on") {
+        _statusLineEnabled = true;
+        logger.info("Status line: on");
+      } else {
+        // bare / "show" → report state + a one-off render
+        const line = _statusLineEnabled && _renderStatus ? _renderStatus() : null;
+        if (line) {
+          logger.info(
+            `Status line: ${_customStatus ? line : chalk.dim(line)}`,
+          );
+        } else {
+          logger.info(
+            `Status line: ${_statusLineEnabled ? "on (no content yet)" : "off"}` +
+              (_statusLineEnabled ? "" : ` — enable with ${chalk.cyan("/statusline on")}`),
+          );
+        }
+        if (_customStatus) {
+          logger.info(chalk.gray("  source: settings.json statusLine command"));
+        }
+      }
       prompt();
       return;
     }
@@ -1932,6 +1990,17 @@ export async function startAgentRepl(options = {}) {
             /* best-effort */
           }
         }
+      }
+
+      // Feed the status line: the last usage event's input+output ≈ the tokens
+      // now resident in the context window (what the next call resends). Track
+      // the active model too, so the built-in readout reflects auto-switches.
+      _curModel = activeModel;
+      _turnCount += 1;
+      if (usageEvents?.length) {
+        const last = usageEvents[usageEvents.length - 1]?.usage || {};
+        const used = (last.input_tokens || 0) + (last.output_tokens || 0);
+        if (used > 0) _ctxUsedTokens = used;
       }
 
       // Fire AssistantResponse hook with rewrite/suppress support
