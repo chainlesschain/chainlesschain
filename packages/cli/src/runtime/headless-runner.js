@@ -522,6 +522,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   const loopOptions = {
     model,
     provider,
+    // Extended thinking (Anthropic; opt-in via --think/--ultrathink). null/off
+    // → chatWithTools sends no thinking field.
+    thinking: options.thinking || null,
     baseUrl,
     apiKey,
     cwd,

@@ -342,6 +342,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const loopOptionsBase = {
     model,
     provider,
+    // Extended thinking (Anthropic; opt-in via --think/--ultrathink).
+    thinking: options.thinking || null,
     baseUrl,
     apiKey,
     cwd,

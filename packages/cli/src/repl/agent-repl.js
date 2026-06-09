@@ -202,6 +202,9 @@ async function agentLoop(messages, options) {
 export async function startAgentRepl(options = {}) {
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
+  // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
+  // the runtime policy into the agent-loop options below.
+  const thinking = options.thinking || null;
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   // Extra workspace roots (--add-dir): advertised in the system prompt and
@@ -1783,6 +1786,7 @@ export async function startAgentRepl(options = {}) {
       const { content: response, usageEvents } = await agentLoop(messages, {
         provider,
         model: activeModel,
+        thinking,
         baseUrl,
         apiKey,
         contextEngine,

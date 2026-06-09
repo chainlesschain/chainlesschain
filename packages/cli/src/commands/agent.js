@@ -75,6 +75,14 @@ export function registerAgentCommand(program) {
     )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
+    .option(
+      "--think [level]",
+      "Enable Anthropic extended thinking (level: think | hard | ultra; Anthropic models only)",
+    )
+    .option(
+      "--ultrathink",
+      "Maximum Anthropic extended thinking (= --think ultra)",
+    )
     .option("--session <id>", "Resume a previous agent session")
     .option(
       "-c, --continue",
@@ -267,6 +275,15 @@ export function registerAgentCommand(program) {
       // Extra workspace roots (--add-dir) — shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
 
+      // --think / --ultrathink → options.thinking for the agent loop (Anthropic
+      // extended thinking; ignored by other providers). --think with no value →
+      // true; --think <level> → that level; --ultrathink wins as "ultra".
+      const thinking = options.ultrathink
+        ? "ultra"
+        : options.think === true
+          ? true
+          : options.think || undefined;
+
       // --fallback-model: a chatFn that retries once on the backup model when
       // the primary errors out (overload / rate-limit / network). Passed into
       // the headless runners via options.chatFn (the agent loop's seam), so no
@@ -294,6 +311,7 @@ export function registerAgentCommand(program) {
         try {
           outcome = await runAgentHeadlessStream({
             model: options.model,
+            thinking,
             provider: options.provider,
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
@@ -379,6 +397,7 @@ export function registerAgentCommand(program) {
           outcome = await runAgentHeadless({
             prompt,
             model: options.model,
+            thinking,
             provider: options.provider,
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
@@ -430,6 +449,7 @@ export function registerAgentCommand(program) {
 
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
+        thinking,
         provider: options.provider,
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,
