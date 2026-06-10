@@ -84,7 +84,9 @@
     }
   },
   "scripts": {
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "publish:ovsx": "ovsx publish --no-dependencies",
+    "publish:vsce": "vsce publish --no-dependencies"
   },
   "repository": {
     "type": "git",

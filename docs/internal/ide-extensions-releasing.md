@@ -24,13 +24,38 @@ Bump → update CHANGELOG → commit → tag.
 
 ## Publishing
 
-### VS Code
-1. One-time: register a Marketplace **publisher** (`chainlesschain`) and create a
-   PAT; store it as repo secret `VSCE_PAT`.
-2. Bump `version`, update CHANGELOG, commit.
-3. Tag and push: `git tag ide-vscode-v0.1.0 && git push <remote> ide-vscode-v0.1.0`.
-4. CI packages + `vsce publish`es. (Local equivalent:
-   `cd packages/vscode-extension && npx @vscode/vsce package --no-dependencies`.)
+### VS Code — Open VSX (primary)
+
+We publish to the **Open VSX Registry** (open-vsx.org), which serves Cursor /
+VSCodium / Gitpod / etc. The official VS Code Marketplace is **blocked** for us:
+publishing there needs an Azure DevOps org, which now requires an Azure
+subscription we don't have (see "Notes"). Open VSX needs only a GitHub login + a
+token — no Azure, no card.
+
+- **Namespace**: `chainlesschain` (= the extension's `publisher`).
+- **Token**: sign in at open-vsx.org with GitHub → **sign the Eclipse Foundation
+  Open VSX Publisher Agreement** on the PROFILE page (required; otherwise token
+  creation is blocked) → /user-settings/tokens → generate `ovsxat_…`.
+  - Local: stored as the Windows User env var **`OVSX_PAT`** (so `ovsx publish`
+    auto-authenticates).
+  - CI: repo secret **`OVSX_PAT`**.
+
+Release:
+1. Bump `version` in `package.json` + CHANGELOG, commit.
+2. Local: `cd packages/vscode-extension && npm run publish:ovsx`
+   (= `ovsx publish --no-dependencies`; first time also
+   `npx ovsx create-namespace chainlesschain`).
+3. CI: `git tag ide-vscode-v0.2.2 && git push <remote> ide-vscode-v0.2.2` →
+   `ide-extensions.yml` publishes to Open VSX (and to the official Marketplace
+   too **iff** a `VSCE_PAT` secret is set — optional, skipped otherwise).
+4. Verify: `curl -s https://open-vsx.org/api/chainlesschain/chainlesschain-ide`
+   returns the version; page `https://open-vsx.org/extension/chainlesschain/chainlesschain-ide`.
+
+### VS Code — official Marketplace (optional, blocked)
+Needs a `VSCE_PAT` from an Azure DevOps org. Publisher `chainlesschain` exists,
+but creating the DevOps org requires an Azure subscription → not done. If a
+subscription is ever added: create the org → PAT (All accessible organizations +
+Marketplace: Manage) → secret `VSCE_PAT`; the same tag then also publishes there.
 
 ### JetBrains
 1. One-time: get a Marketplace **permanent token** → secret

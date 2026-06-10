@@ -51,14 +51,32 @@ jobs:
           path: packages/vscode-extension/chainlesschain-ide.vsix
           if-no-files-found: error
 
-      - name: Publish to VS Code Marketplace
+      # Open VSX is the primary channel (Cursor / VSCodium / Gitpod / ...). The
+      # namespace + token are 'chainlesschain' / OVSX_PAT (see
+      # docs/internal/ide-extensions-releasing.md).
+      - name: Publish to Open VSX
+        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::error::OVSX_PAT secret is not set — cannot publish to Open VSX."
+            exit 1
+          fi
+          npx --yes ovsx@latest create-namespace chainlesschain || true
+          npx --yes ovsx@latest publish chainlesschain-ide.vsix
+
+      # Official VS Code Marketplace — optional; only if a VSCE_PAT secret exists
+      # (requires an Azure DevOps org, which needs an Azure subscription). Skips
+      # gracefully when the secret is absent so the tag-publish still succeeds.
+      - name: Publish to VS Code Marketplace (optional)
         if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -z "$VSCE_PAT" ]; then
-            echo "::error::VSCE_PAT secret is not set — cannot publish."
-            exit 1
+            echo "::notice::VSCE_PAT not set — skipping official Marketplace (Open VSX already published)."
+            exit 0
           fi
           npx --yes @vscode/vsce@latest publish --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
 
