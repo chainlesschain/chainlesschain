@@ -210,6 +210,7 @@ export default defineConfig({
             { text: "钩子系统", link: "/chainlesschain/hooks" },
             { text: "权限系统", link: "/chainlesschain/permissions" },
             { text: "计划模式", link: "/chainlesschain/plan-mode" },
+            { text: "目标 / OKR (cc goal) ⭐NEW", link: "/chainlesschain/goal" },
             { text: "输出风格", link: "/chainlesschain/output-styles" },
             { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
