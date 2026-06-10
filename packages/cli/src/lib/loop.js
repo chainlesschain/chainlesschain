@@ -50,6 +50,30 @@ function trim(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
 }
 
+/**
+ * Parse the `--dynamic` control directives an iteration may print so it can
+ * self-pace. An iteration ends its output with at most one of:
+ *   [[loop:next <interval>]]   schedule the next run after <interval>
+ *   [[loop:stop]]              the task is done; stop looping
+ * Returns { done, nextDelayMs }. `stop` wins over `next` (done short-circuits
+ * before the next sleep). A malformed interval is ignored (falls back to the
+ * fixed `--every`). Lives here so the protocol is unit-testable in isolation.
+ */
+export function parseLoopDirectives(output) {
+  const text = String(output || "");
+  const result = { done: false, nextDelayMs: null };
+  if (/\[\[\s*loop:stop\s*\]\]/i.test(text)) result.done = true;
+  const m = text.match(/\[\[\s*loop:next\s+([0-9.]+\s*(?:ms|s|m|h)?)\s*\]\]/i);
+  if (m) {
+    try {
+      result.nextDelayMs = parseDuration(m[1]);
+    } catch {
+      /* malformed interval → leave null, caller falls back to --every */
+    }
+  }
+  return result;
+}
+
 /** Default abortable sleep — resolves early if the signal aborts. */
 export function makeSleep(signal) {
   return (ms) =>
@@ -75,7 +99,7 @@ export function makeSleep(signal) {
  *
  * @param {object}   opts
  * @param {(n:number)=>Promise<{exitCode?:number, output?:string}>} opts.runIteration
- * @param {number}   opts.intervalMs       delay between iterations (>= 0)
+ * @param {number}   opts.intervalMs       default delay between iterations (>= 0)
  * @param {number}  [opts.maxIterations]   stop after N rounds (>= 1)
  * @param {boolean} [opts.untilExitZero]   stop once a round exits with code 0
  * @param {RegExp}  [opts.untilRegex]      stop once a round's output matches
@@ -113,6 +137,11 @@ export async function runLoop({
 
     // Stop conditions, most-specific first. Evaluated after the round so the
     // work always runs at least once before any condition can end the loop.
+    // `res.done` is the iteration's own explicit stop (e.g. a --dynamic
+    // [[loop:stop]] directive) and wins over everything else.
+    if (res.done) {
+      return { iterations: i, stoppedBy: "done", results };
+    }
     if (untilExitZero && res.exitCode === 0) {
       return { iterations: i, stoppedBy: "exit-zero", results };
     }
@@ -126,6 +155,11 @@ export async function runLoop({
       return { iterations: i, stoppedBy: "signal", results };
     }
 
-    await delay(intervalMs);
+    // An iteration may set its own next interval (--dynamic [[loop:next]]);
+    // otherwise fall back to the fixed --every delay.
+    const nextMs = Number.isFinite(res.nextDelayMs)
+      ? res.nextDelayMs
+      : intervalMs;
+    await delay(nextMs);
   }
 }

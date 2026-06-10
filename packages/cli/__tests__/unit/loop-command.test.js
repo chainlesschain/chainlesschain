@@ -8,11 +8,22 @@
  */
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { Command } from "commander";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { registerLoopCommand } from "../../src/commands/loop.js";
 
 let logSpy;
 let errSpy;
 let exitCodeBefore;
+let tmpDir;
+
+/** Write a throwaway .js script (no shell-fragile embedded-space args). */
+function writeScript(body) {
+  const p = path.join(tmpDir, `s${Math.random().toString(36).slice(2)}.js`);
+  fs.writeFileSync(p, body, "utf-8");
+  return p;
+}
 
 function makeProgram() {
   const program = new Command();
@@ -33,6 +44,7 @@ async function run(...argv) {
 beforeEach(() => {
   exitCodeBefore = process.exitCode;
   process.exitCode = undefined;
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-loop-"));
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -41,6 +53,11 @@ afterEach(() => {
   logSpy.mockRestore();
   errSpy.mockRestore();
   process.exitCode = exitCodeBefore;
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch {
+    /* best-effort */
+  }
 });
 
 describe("cc loop — validation", () => {
@@ -141,5 +158,48 @@ describe("cc loop — exec mode", () => {
     const summary = JSON.parse(out.slice(out.indexOf("{")));
     expect(summary.iterations).toBe(1);
     expect(summary.stoppedBy).toBe("match");
+  });
+});
+
+describe("cc loop — dynamic mode (exec)", () => {
+  it("stops on a [[loop:stop]] directive printed by the command", async () => {
+    const script = writeScript("console.log('working [[loop:stop]]');");
+    const out = await run(
+      "--dynamic",
+      "--every",
+      "1ms",
+      "--max-iterations",
+      "10",
+      "--json",
+      "--",
+      "node",
+      script,
+    );
+    const summary = JSON.parse(out.slice(out.indexOf("{")));
+    expect(summary.iterations).toBe(1);
+    expect(summary.stoppedBy).toBe("done");
+  });
+
+  it("honors a [[loop:next]] directive (uses it, not the --every fallback)", async () => {
+    // Fallback is 9999ms; the directive sets 1ms. If the directive were ignored
+    // the two-iteration run would take ~10s — it completes near-instantly.
+    const script = writeScript("console.log('[[loop:next 1ms]]');");
+    const startedAt = Date.now();
+    const out = await run(
+      "--dynamic",
+      "--every",
+      "9999ms",
+      "--max-iterations",
+      "2",
+      "--json",
+      "--",
+      "node",
+      script,
+    );
+    const elapsedMs = Date.now() - startedAt;
+    const summary = JSON.parse(out.slice(out.indexOf("{")));
+    expect(summary.iterations).toBe(2);
+    expect(summary.stoppedBy).toBe("max-iterations");
+    expect(elapsedMs).toBeLessThan(5000); // proves the 1ms directive was honored
   });
 });

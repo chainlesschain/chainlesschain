@@ -10,6 +10,8 @@
  *   cc loop --every 1m --max-iterations 10 -- npm test
  *   cc loop --until-exit-zero --every 30s -- npm test  # stop when it passes
  *   cc loop --until "DONE" --every 1m "poll the deploy"
+ *   cc loop "review the diff" --think --provider openai # extra flags → cc agent
+ *   cc loop --dynamic "watch the deploy; stop when it's live" # agent self-paces
  *
  * Two modes, disambiguated by the literal `--` separator:
  *   - no `--`  → the single operand is a PROMPT, run via `cc agent -p <prompt>`
@@ -28,7 +30,20 @@ import {
   parseDuration,
   formatDuration,
   makeSleep,
+  parseLoopDirectives,
 } from "../lib/loop.js";
+
+/**
+ * Appended to the prompt under `--dynamic` so the model can self-pace: it ends
+ * its reply with at most one control directive the loop parses (parseLoopDirectives).
+ */
+const DYNAMIC_PROMPT_SUFFIX = `
+
+---
+You are running inside a \`cc loop --dynamic\` controller. After deciding what happens next, end your reply with EXACTLY ONE control directive alone on the final line:
+  [[loop:next <interval>]]   run me again after <interval> (e.g. 30s, 5m, 1h)
+  [[loop:stop]]              the task is complete — stop looping
+Emit neither and the loop falls back to its default --every interval.`;
 
 /** Absolute path to this CLI's bin entry, for self-spawning the prompt mode. */
 const BIN_PATH = fileURLToPath(
@@ -94,6 +109,10 @@ export function registerLoopCommand(program) {
     .option(
       "--until <regex>",
       "Stop once an iteration's output matches this JS regex",
+    )
+    .option(
+      "--dynamic",
+      "Let each iteration self-pace via [[loop:next <dur>]] / [[loop:stop]] directives (prompt mode augments the prompt)",
     )
     .option("--json", "Print a JSON summary when the loop ends")
     .allowUnknownOption(true) // pass-through flags for the wrapped agent/command
@@ -166,13 +185,23 @@ export function registerLoopCommand(program) {
           shell = true;
           label = cmd;
         } else {
-          // Prompt mode: re-invoke this CLI as `cc agent -p <prompt>`. Join the
-          // operands so an unquoted multi-word prompt still works.
-          const prompt = operands.join(" ");
+          // Prompt mode: re-invoke this CLI as `cc agent -p <prompt>`. Operands
+          // up to the first flag-looking token form the prompt; everything from
+          // the first `-…` token on is forwarded verbatim to `cc agent` (so
+          // `cc loop "review the diff" --think --provider openai` works). Loop's
+          // own flags are consumed by Commander before we ever see operands.
+          const flagIdx = operands.findIndex((p) => p.startsWith("-"));
+          const promptParts =
+            flagIdx === -1 ? operands : operands.slice(0, flagIdx);
+          const agentFlags = flagIdx === -1 ? [] : operands.slice(flagIdx);
+          let prompt = promptParts.join(" ");
+          if (options.dynamic) prompt += DYNAMIC_PROMPT_SUFFIX;
           cmd = process.execPath;
-          args = [BIN_PATH, "agent", "-p", prompt];
+          args = [BIN_PATH, "agent", "-p", prompt, ...agentFlags];
           shell = false;
-          label = `cc agent -p ${chalk.italic(prompt)}`;
+          label =
+            `cc agent -p ${chalk.italic(promptParts.join(" "))}` +
+            (agentFlags.length ? ` ${chalk.gray(agentFlags.join(" "))}` : "");
         }
 
         // --- SIGINT → graceful stop after the current iteration ---
@@ -193,13 +222,15 @@ export function registerLoopCommand(program) {
         };
         process.on("SIGINT", onSigint);
 
-        const capture = Boolean(untilRegex);
+        // Capture output when we need to read it: regex matching or --dynamic
+        // directive parsing.
+        const capture = Boolean(untilRegex) || Boolean(options.dynamic);
         logger.log(
           chalk.cyan(
             `↻ loop: ${label}  ${chalk.gray(
-              `(every ${formatDuration(intervalMs)}${
-                maxIterations ? `, max ${maxIterations}` : ""
-              })`,
+              `(${options.dynamic ? "dynamic, fallback " : "every "}${formatDuration(
+                intervalMs,
+              )}${maxIterations ? `, max ${maxIterations}` : ""})`,
             )}`,
           ),
         );
@@ -221,15 +252,32 @@ export function registerLoopCommand(program) {
                   : chalk.red(`exit ${res.exitCode}`);
               logger.log(chalk.gray(`  ↳ iteration ${n} done (${tag})`));
             },
-            runIteration: (n) => {
+            runIteration: async (n) => {
               logger.log(chalk.gray(`\n▸ iteration ${n} — ${label}`));
-              return spawnIteration(cmd, args, {
+              const res = await spawnIteration(cmd, args, {
                 shell,
                 capture,
                 onChild: (c) => {
                   activeChild = c;
                 },
               });
+              // --dynamic: read the iteration's [[loop:next]] / [[loop:stop]]
+              // directive and surface it to runLoop as done / nextDelayMs.
+              if (options.dynamic) {
+                const d = parseLoopDirectives(res.output);
+                res.done = d.done;
+                if (d.nextDelayMs != null) res.nextDelayMs = d.nextDelayMs;
+                if (d.done) {
+                  logger.log(chalk.gray(`     ↺ directive: stop`));
+                } else if (d.nextDelayMs != null) {
+                  logger.log(
+                    chalk.gray(
+                      `     ↺ directive: next in ${formatDuration(d.nextDelayMs)}`,
+                    ),
+                  );
+                }
+              }
+              return res;
             },
           });
         } finally {

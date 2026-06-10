@@ -12,6 +12,7 @@ import {
   parseDuration,
   formatDuration,
   makeSleep,
+  parseLoopDirectives,
 } from "../../src/lib/loop.js";
 
 const noSleep = vi.fn(async () => {});
@@ -121,6 +122,71 @@ describe("runLoop stop conditions", () => {
 
   it("rejects a missing runIteration", async () => {
     await expect(runLoop({ intervalMs: 0 })).rejects.toThrow(/runIteration/);
+  });
+});
+
+describe("parseLoopDirectives", () => {
+  it("reads a next-interval directive", () => {
+    expect(parseLoopDirectives("blah\n[[loop:next 5m]]")).toEqual({
+      done: false,
+      nextDelayMs: 300_000,
+    });
+  });
+
+  it("reads a stop directive (and stop wins over next)", () => {
+    expect(parseLoopDirectives("done.\n[[loop:stop]]").done).toBe(true);
+    const both = parseLoopDirectives("[[loop:next 1m]] [[loop:stop]]");
+    expect(both.done).toBe(true);
+  });
+
+  it("tolerates whitespace and is case-insensitive", () => {
+    expect(parseLoopDirectives("[[ LOOP:NEXT  30s ]]").nextDelayMs).toBe(
+      30_000,
+    );
+  });
+
+  it("ignores a malformed interval (falls back to default)", () => {
+    expect(parseLoopDirectives("[[loop:next soon]]").nextDelayMs).toBe(null);
+  });
+
+  it("returns no-op for output with no directive", () => {
+    expect(parseLoopDirectives("just some text")).toEqual({
+      done: false,
+      nextDelayMs: null,
+    });
+  });
+});
+
+describe("runLoop dynamic signals", () => {
+  it("stops when an iteration reports done", async () => {
+    const runIteration = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 0 })
+      .mockResolvedValueOnce({ exitCode: 0, done: true });
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 0,
+      sleep: noSleep,
+    });
+    expect(out.iterations).toBe(2);
+    expect(out.stoppedBy).toBe("done");
+  });
+
+  it("uses a per-iteration nextDelayMs over the fixed interval", async () => {
+    const sleep = vi.fn(async () => {});
+    const runIteration = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 0, nextDelayMs: 42 })
+      .mockResolvedValueOnce({ exitCode: 0 }); // no override → falls back
+    await runLoop({
+      runIteration,
+      intervalMs: 9999,
+      maxIterations: 2,
+      sleep,
+    });
+    // Only one inter-run sleep (between rounds 1 and 2), and it honored 42.
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledWith(42);
   });
 });
 
