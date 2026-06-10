@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.103 · 2026-06-10',
+    title: 'cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化',
+    sub: '这一版给命令行 `cc` 补上"循环跑"能力，并把 IDE 桥接从 VS Code 扩展到 JetBrains，配齐了扩展的发布流水线。',
+    desc: 'cc loop 对标 Claude-Code 的 /loop：按固定间隔反复执行一个 prompt 或 slash 命令，支持 --dynamic 自定步速（含 prompt 模式 agent 参数透传）、--save/--resume 会话持久化，并能在 headless（非 TTY）环境稳定运行。IDE 桥接 Phase 3 给 JetBrains 做了平价（纯 JDK 协议核 + IntelliJ glue，CLI 零改动双证 + 跨语言 interop 实跑验证），REPL 里的 IDE 自动连接也开始遵循 --ide/--no-ide；Phase 4 落地发布与维护流水线 ide-extensions.yml（vsce 打包/发布 + gradlew 构建/发布插件，tag + secret 双门控，不建 GitHub Release，缺 secret 直接失败）。VS Code 扩展新增 IDE 桥接可视化（状态栏 + 侧边栏 + 仪表板，0.2.0）并换上 ChainlessChain 品牌 logo 作为扩展与 Activity Bar 图标（0.2.1）。版本面：productVersion v5.0.3.102 → v5.0.3.103 / 桌面 5.0.3-alpha.103 / CLI 沿用 0.162.36 / 个人数据中台 0.4.3 不变 / Android versionCode 503103 / iOS build 103。',
+  },
+  {
     tag: 'v5.0.3.102 · 2026-06-10',
     title: 'IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行向 Claude-Code 平价收官 + cc agent --image 视觉输入',
     sub: '这一版把命令行 `cc` 与编辑器打通——新增 `cc ide` 命令和 VS Code 扩展，能发现并自动连接编辑器内的 MCP server，让 agent 直接在你的编辑器里读写文件、用 openDiff 弹出改动让你接受或拒绝；同时 cc 与 Claude-Code 的能力差距基本补齐。',

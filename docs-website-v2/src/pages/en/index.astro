@@ -74,6 +74,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.103 · 2026-06-10',
+    title: 'cc loop (/loop parity) + IDE bridge Phase 3/4 (JetBrains parity + release pipeline) + VS Code extension visualization & branding',
+    sub: 'This release gives the `cc` CLI a "run on a loop" capability and extends the IDE bridge from VS Code to JetBrains, with a full release pipeline for both extensions.',
+    desc: 'cc loop mirrors Claude-Code\'s /loop: repeatedly run a prompt or slash command on a fixed interval, with --dynamic self-pacing (including prompt-mode agent flag pass-through), --save/--resume session persistence, and stable operation in headless (non-TTY) environments. IDE bridge Phase 3 brings JetBrains to parity (a pure-JDK protocol core + IntelliJ glue, CLI zero-change double proof + a live cross-language interop run), and REPL IDE auto-connect now honors --ide/--no-ide; Phase 4 lands the release & maintenance pipeline ide-extensions.yml (vsce package/publish + gradlew build/publish plugin, tag + secret double-gated, no GitHub Release, fail-fast on missing secret). The VS Code extension adds IDE bridge visualization (status bar + sidebar + dashboard, 0.2.0) and ships the ChainlessChain brand logo as the extension & Activity Bar icon (0.2.1). Versions: productVersion v5.0.3.102 → v5.0.3.103 / desktop 5.0.3-alpha.103 / CLI stays at 0.162.36 / personal-data-hub 0.4.3 unchanged / Android versionCode 503103 / iOS build 103.',
+  },
+  {
     tag: 'v5.0.3.102 · 2026-06-10',
     title: 'IDE bridge (cc ide + VS Code extension) + cc CLI Claude-Code parity wrap-up + cc agent --image vision input',
     sub: 'This release wires the `cc` CLI into your editor — a new `cc ide` command and VS Code extension that discover and auto-connect the editor\'s MCP server, letting the agent read/write files in your editor and surface changes via openDiff for accept/reject; meanwhile cc reaches near-parity with Claude-Code.',
