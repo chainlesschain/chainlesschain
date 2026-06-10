@@ -245,9 +245,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // settings.json SessionStart hooks → inject session context once (observe-only).
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.cjs"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.cjs");
       const ctx = runSessionStartHooks(settingsHooks, {
         source: "startup",
         cwd,
@@ -428,9 +427,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
     if (settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } = await import(
-          "../lib/settings-hook-events.cjs"
-        );
+        const { runUserPromptSubmitHooks } =
+          await import("../lib/settings-hook-events.cjs");
         const ups = runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,
@@ -452,6 +450,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       } catch (_err) {
         // settings hook dispatch is best-effort
       }
+    }
+
+    // IDE live context (Claude-Code parity): re-shared on every turn while an
+    // IDE bridge is connected — the user's selection moves between prompts.
+    // Best-effort; CC_IDE_CONTEXT=0 disables.
+    try {
+      const { buildIdePromptContext } = await import("../lib/ide-context.js");
+      const ideCtx = await (
+        deps.buildIdePromptContext || buildIdePromptContext
+      )(mcp);
+      if (ideCtx) userContent += `\n\n${ideCtx}`;
+    } catch {
+      // optional polish — never fail the turn over it
     }
 
     messages.push({ role: "user", content: userContent });
@@ -508,9 +519,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // settings.json SessionEnd hooks (observe-only) when stdin closes.
   if (settingsHooks) {
     try {
-      const { runObserveHooks } = await import(
-        "../lib/settings-hook-events.cjs"
-      );
+      const { runObserveHooks } =
+        await import("../lib/settings-hook-events.cjs");
       runObserveHooks(
         settingsHooks,
         "SessionEnd",

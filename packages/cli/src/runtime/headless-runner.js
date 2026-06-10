@@ -546,6 +546,25 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // IDE live context (Claude-Code parity): when an IDE bridge is connected,
+  // share the editor's selection/active file/open tabs with this turn. Appended
+  // to the in-flight user message only — AFTER persistence — so a resumed
+  // session replays the prompt, not a stale editor snapshot. Best-effort with
+  // a short timeout; CC_IDE_CONTEXT=0 disables.
+  try {
+    const { buildIdePromptContext, appendTextToContent } =
+      await import("../lib/ide-context.js");
+    const ideCtx = await (deps.buildIdePromptContext || buildIdePromptContext)(
+      mcp,
+    );
+    if (ideCtx) {
+      const last = messages[messages.length - 1];
+      last.content = appendTextToContent(last.content, ideCtx);
+    }
+  } catch {
+    // IDE context is optional polish — never fail the run over it.
+  }
+
   // --permission-prompt-tool: route every CONFIRM-tier approval to an MCP tool
   // (loaded via --mcp-config) instead of headless fail-closed. Overrides the
   // permission-mode confirmer on the gate for this session.

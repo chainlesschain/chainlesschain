@@ -1922,6 +1922,18 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
+    // IDE live context (Claude-Code parity): re-shared on every prompt while
+    // an IDE bridge is connected — the user's selection moves between turns.
+    // Ephemeral: persistence stores effectivePrompt, not this snapshot.
+    // Best-effort; CC_IDE_CONTEXT=0 disables.
+    try {
+      const { buildIdePromptContext } = await import("../lib/ide-context.js");
+      const ideCtx = await buildIdePromptContext(_adhocMcp);
+      if (ideCtx) userContent += `\n\n${ideCtx}`;
+    } catch (_err) {
+      // optional polish — never fail the turn over it
+    }
+
     // Add user message
     messages.push({ role: "user", content: userContent });
 
