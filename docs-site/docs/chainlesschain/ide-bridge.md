@@ -56,6 +56,45 @@ VS Code 与 JetBrains 写**同一份 lockfile**、说**同一套 MCP 协议**，
 - 保留名 `ide`：若用户已 `cc mcp add ide` 自建同名 server，**用户显式注册优先**，IDE 自动发现让位并打印一次 WARN。
 - localhost 绑定 + 每实例随机 Bearer token + 锁文件 `0600` / 目录 `0700`，防同机其它进程/用户劫持。
 
+## 安装
+
+需要两样东西:**`cc` CLI**(命令行 agent) + **编辑器扩展**(桥接)。
+
+**1. 安装/升级 `cc` CLI**(含 `cc ide`,需 ≥ 0.162.36):
+
+```bash
+npm i -g chainlesschain
+cc --version          # ≥ 0.162.36
+cc ide --help         # 确认有 ide 子命令
+```
+
+**2. 安装编辑器扩展:**
+
+**VS Code**
+- *（发布后，推荐）* 扩展面板搜 **ChainlessChain IDE** 一键安装,或:
+  ```bash
+  code --install-extension chainlesschain.chainlesschain-ide
+  ```
+  Marketplace 负责自动更新与签名信任。
+- *（本地 / 离线开发）* 从源码打本地 `.vsix` 安装:
+  ```bash
+  cd packages/vscode-extension
+  npx @vscode/vsce package --no-dependencies
+  code --install-extension chainlesschain-ide-*.vsix
+  ```
+
+**JetBrains（IDEA / PyCharm / WebStorm …）**
+- 即将上架 JetBrains Marketplace。协议核已就绪并经跨语言 interop 验证;插件构建(`./gradlew buildPlugin`)需 IntelliJ SDK,详见 `packages/jetbrains-plugin/README.md`。
+
+**3. 验证:**
+
+```bash
+cc ide status         # 在编辑器集成终端里跑 → "In IDE terminal: yes" + 会连的端口
+cc ide doctor         # 发现失败时解释原因
+```
+
+装好后,扩展会自动起一个 localhost MCP server、写发现 lockfile、并给**新开**的集成终端注入连接信息——之后 `cc agent` 在编辑器里就自动连上了(用法见下「使用示例」)。
+
 ## 系统架构
 
 ### 整体架构图（IDE-as-MCP-server）
