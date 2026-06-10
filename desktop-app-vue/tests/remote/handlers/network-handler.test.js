@@ -103,6 +103,7 @@ vi.mock("https", () => ({
 
 const {
   NetworkHandler,
+  _deps: networkHandlerDeps,
 } = require("../../../src/main/remote/handlers/network-handler");
 
 describe("NetworkHandler", () => {
@@ -112,6 +113,10 @@ describe("NetworkHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockExecAsync.mockResolvedValue({ stdout: "", stderr: "" });
+    // vi.mock("dns") cannot intercept the built-in require() that backs
+    // dnsResolve in the forks pool, so inject a deterministic resolver via the
+    // handler's _deps seam — keeps the DNS test offline-safe and hermetic.
+    networkHandlerDeps.dnsResolve = vi.fn(async () => ["93.184.216.34"]);
     handler = new NetworkHandler();
   });
 

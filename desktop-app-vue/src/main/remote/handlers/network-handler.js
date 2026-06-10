@@ -27,6 +27,12 @@ const { logger } = require("../../utils/logger");
 const execAsync = promisify(exec);
 const dnsResolve = promisify(dns.resolve);
 
+// Injection seam: `dns`/`util` are Node built-ins, and vi.mock() does not
+// intercept require() for built-ins in the inlined-CJS forks pool (see
+// .claude/rules/testing.md). Route the DNS resolve through _deps so tests can
+// substitute a deterministic resolver instead of hitting the real network.
+const _deps = { dnsResolve };
+
 /**
  * 可取消的命令执行
  * @param {string} command - 要执行的命令
@@ -852,7 +858,7 @@ class NetworkHandler {
     logger.debug(`[NetworkHandler] DNS 解析: ${hostname} (${type})`);
 
     try {
-      const records = await dnsResolve(hostname, type);
+      const records = await _deps.dnsResolve(hostname, type);
 
       return {
         success: true,
@@ -1113,4 +1119,4 @@ class NetworkHandler {
   }
 }
 
-module.exports = { NetworkHandler };
+module.exports = { NetworkHandler, _deps };

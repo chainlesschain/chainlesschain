@@ -69,9 +69,9 @@ describe("AIEngineManager - Workflow Optimizations", () => {
   });
 
   describe("Configuration Loading", () => {
-    it("should load default workflow configuration when file does not exist", () => {
+    it("should load default workflow configuration when file does not exist", async () => {
       manager = new AIEngineManager();
-      const config = manager._loadWorkflowConfig();
+      const config = await manager._loadWorkflowConfigAsync();
 
       expect(config).toBeDefined();
       expect(config.enabled).toBe(true);
@@ -81,7 +81,7 @@ describe("AIEngineManager - Workflow Optimizations", () => {
       expect(config.phase3.agentPool).toBeDefined();
     });
 
-    it("should load workflow configuration from file if exists", () => {
+    it("should load workflow configuration from file if exists", async () => {
       // Create config file
       const configData = {
         workflow: {
@@ -112,7 +112,7 @@ describe("AIEngineManager - Workflow Optimizations", () => {
       fs.writeFileSync(tmpConfigPath, JSON.stringify(configData, null, 2));
 
       manager = new AIEngineManager();
-      const config = manager._loadWorkflowConfig();
+      const config = await manager._loadWorkflowConfigAsync();
 
       expect(config.phase3.llmDecision.highConfidenceThreshold).toBe(0.85);
       expect(config.phase3.llmDecision.contextLengthThreshold).toBe(8000);
@@ -120,11 +120,11 @@ describe("AIEngineManager - Workflow Optimizations", () => {
       expect(config.phase3.agentPool.minSize).toBe(2);
     });
 
-    it("should use default values when config file is corrupted", () => {
+    it("should use default values when config file is corrupted", async () => {
       fs.writeFileSync(tmpConfigPath, "invalid json");
 
       manager = new AIEngineManager();
-      const config = manager._loadWorkflowConfig();
+      const config = await manager._loadWorkflowConfigAsync();
 
       // Should fallback to default config when file is corrupted
       expect(config).toBeDefined();
