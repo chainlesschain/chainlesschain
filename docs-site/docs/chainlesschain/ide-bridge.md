@@ -65,6 +65,20 @@ VS Code 与 JetBrains 写**同一份 lockfile**、说**同一套 MCP 协议**，
 
 两者共用开关 `CC_IDE_CONTEXT=0`（IDE 工具本身仍可被模型显式调用）。
 
+### 7. 编辑审批走 IDE 原生 diff（ask → openDiff accept/reject）
+
+settings 权限规则对 `Write`/`Edit` 配了 `ask`、会话是**交互 REPL**（headless 保持
+fail-closed）、IDE 已连时，文件编辑的确认从终端 y/N 升级为**编辑器原生 diff 评审**：
+
+- **Accept** → IDE 自己把（可能被你在右侧顺手改过的）最终文本写盘，**工具自身的写入被跳
+  过**——审批替代执行，从机制上杜绝"IDE 写一次、工具又写一次"的双写冲突；结果带
+  `appliedVia:"ide-diff"`（你改过则再带 `userEdited:true`）。
+- **Reject / 关闭** → 拒绝执行，文件不动（fail-safe）。
+- **IDE 中途挂掉 / 拟议内容无法计算**（如 `old_string` 不命中）→ 自动回落终端确认，工具
+  照常产出自己的诊断。
+
+`CC_IDE_DIFF_APPROVAL=0` 关闭此路由。
+
 ## 安装
 
 需要两样东西:**`cc` CLI**(命令行 agent) + **编辑器扩展**(桥接)。
