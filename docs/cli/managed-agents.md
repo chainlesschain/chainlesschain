@@ -618,6 +618,34 @@ chainlesschain context <id> --model claude-sonnet-4-6   # 按指定窗口估
 默认从会话 `session_start` 头自动识别 model/provider(`--model`/`--provider` 覆盖)。复用自动压缩
 的 token 估算器 + 窗口表,不采新数据。补足 `cc cost`($)+ `cc session usage`(裸 token 数)。
 
+## Project Memory — `cc.md` 项目记忆自动加载 + `cc init` 盘点
+
+Claude Code CLAUDE.md 体系对标(主名用自家 `cc.md`,设计文档 `docs/design/modules/99_项目记忆与init对标方案.md`)。`cc agent` 启动时自动把文件式项目约定注入系统提示(`<project-instructions>` 块):
+
+| 范围 | 查找顺序(每位置取第一个存在的) |
+|---|---|
+| 用户级 | `~/.chainlesschain/cc.md` → `~/.claude/CLAUDE.md` |
+| 项目级(git root → cwd 逐目录) | `cc.md` → `CLAUDE.md` → `AGENTS.md` |
+| 本地伴随(每目录) | `cc.local.md` → `CLAUDE.local.md` |
+| 脚手架规则(每目录) | `.chainlesschain/rules.md` |
+
+- 文件内 `@相对路径` / `@~/路径` 递归 import(深度 ≤5,环保护,跳过代码围栏;npm scope/邮箱等解析不到文件的 token 静默忽略)
+- 预算:单文件 48KB / 总 192KB,超限截断标记;任何 I/O 错误 fail-open 不影响启动
+- 关闭:`CC_PROJECT_MEMORY=0`(全局)
+
+```bash
+chainlesschain init              # 默认:盘点当前文件夹 → 生成 cc.md + 最小 .chainlesschain/(config + skills/)
+chainlesschain init --force     # 覆盖已有 cc.md
+chainlesschain init -t <模板> -y # 显式模板:老脚手架流(persona/skills/rules)
+```
+
+盘点为纯离线 census(语言构成 / lockfile 包管理器 / scripts / workspaces / 工具链标记 / CI / README 摘要),不读源码内容。已有 CLAUDE.md/AGENTS.md 时自动在生成的 cc.md 里 `@import` 引回,不会遮蔽手工维护的内容。
+
+**REPL 配套前缀**:
+
+- `! <cmd>` — 直接跑 shell(不经 LLM),输出回灌对话上下文(`<bash-input>/<bash-output>`)
+- `# <note>` — 一键记到 git root 的 `cc.md`(`## Notes` 段,最新在上),本 session 立即生效、下 session 自动加载
+
 ## Permissions — `.claude/settings.json` 规则 (allow / ask / deny)
 
 Claude Code `permissions.{allow,ask,deny}` 对标。给 `cc agent`(headless + 交互
