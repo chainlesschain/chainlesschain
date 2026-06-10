@@ -732,11 +732,35 @@ export async function startAgentRepl(options = {}) {
     return chalk.green("> ");
   };
 
+  // `@` tab-completion (Claude-Code @-mention parity): filesystem paths +
+  // (when the IDE bridge is connected) the editor's open tabs ranked first.
+  const { makeAtCompleter } = await import("../lib/repl-completer.js");
+  const atCompleter = makeAtCompleter({
+    cwd: process.cwd(),
+    getIdeOpenFiles: async () => {
+      const exec = _adhocMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
+      if (!exec || exec.kind !== "mcp" || !_adhocMcp?.mcpClient?.callTool) {
+        return [];
+      }
+      const { parseToolResultJson } = await import("../lib/ide-context.js");
+      const res = await _adhocMcp.mcpClient.callTool(
+        exec.serverName,
+        exec.toolName,
+        {},
+      );
+      const data = parseToolResultJson(res);
+      return Array.isArray(data?.editors)
+        ? data.editors.map((e) => e?.file).filter(Boolean)
+        : [];
+    },
+  });
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: getPrompt(),
     terminal: true,
+    completer: atCompleter,
   });
 
   logger.log(chalk.bold("\nChainlessChain Agent"));
