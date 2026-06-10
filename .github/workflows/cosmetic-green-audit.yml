@@ -1,0 +1,142 @@
+name: Cosmetic-Green Audit (PR advisory)
+
+# Advisory gate for trap #30 (docs/internal/hidden-risk-traps.md).
+#
+# Detects "cosmetic-green" workflows: a job whose green ✓ does NOT mean the
+# substantive check passed, because a step's real failure is masked by
+# `continue-on-error: true` and then branched on via `if: steps.<id>.outcome`,
+# with nothing surfacing the real result to a human reading the run conclusion.
+#
+# Distinct from trap #8's ci-mask-audit.yml (which greps the diff for the mere
+# presence of continue-on-error / || true / xcpretty / hardcoded ✅). This gate
+# does light structural analysis (id → outcome-branch → compensating-surface)
+# and only fires on the harmful cosmetic-green shape, whole-file.
+#
+# Surfaces that make a masked-then-branched step benign (auto-suppressed):
+#   - writes to $GITHUB_STEP_SUMMARY
+#   - core.setFailed(...) / ::error
+#   - createComment / updateComment (advisory PR-comment gates)
+#   - a NON-continue-on-error step that re-fails the build (exit 1 / failure())
+# Intentional always-exit-0 probes opt out with a file-level marker comment:
+#   # cosmetic-green-ok: <reason>
+#
+# Advisory because the line-based parse can't model shell control flow; the
+# audit comments on the PR but does NOT block merge — reviewer applies judgment.
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**.yml'
+      - '.github/workflows/**.yaml'
+      - 'scripts/audit-cosmetic-green.js'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cosmetic-green-audit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run static audit
+        id: audit
+        continue-on-error: true
+        run: |
+          node scripts/audit-cosmetic-green.js --json > /tmp/findings.json
+          cat /tmp/findings.json | head -100
+
+      - name: Comment on PR with findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- cosmetic-green-audit-v1 -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/findings.json', 'utf-8'));
+            } catch {
+              return;
+            }
+            const findings = report.findings || [];
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.data.find(c => c.body && c.body.includes(marker));
+
+            if (findings.length === 0) {
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                });
+              }
+              return;
+            }
+
+            const body = [
+              marker,
+              '## ⚠️ Cosmetic-Green Audit — workflow whose ✓ may not mean pass',
+              '',
+              `Found **${findings.length}** masked-then-branched step(s) where the job stays green even when the substantive check fails (trap #30).`,
+              '',
+              '### Why this matters',
+              '',
+              '`continue-on-error: true` splits a step into `conclusion: success` (masked)',
+              'vs `outcome: failure` (real). When a downstream `if: steps.<id>.outcome`',
+              'branches on that masked outcome and nothing surfaces the real result, the',
+              'run shows a green ✓ that carries no pass/fail signal — the result lives in',
+              '*which conditional branch ran*. A reader trusting the ✓ gets a false all-clear.',
+              '',
+              '### Findings',
+              '',
+              findings.map(f => `- \`${f.file}:${f.line}\` [${f.severity}] ${f.message}`).join('\n'),
+              '',
+              '### How to resolve',
+              '',
+              '- **Surface the real result** so a human sees it without decoding step skips:',
+              '  write the verdict to `$GITHUB_STEP_SUMMARY`, add an `if: failure()` step,',
+              '  `core.setFailed(...)`, post a PR comment, or have a non-`continue-on-error`',
+              '  step `exit 1` on the bad branch.',
+              '- **Or**, if the workflow is an intentional always-exit-0 probe (e.g. a weekly',
+              '  upstream watcher), add a file-level marker acknowledging the design:',
+              '  `# cosmetic-green-ok: <reason>` — and point readers to trap #30.',
+              '',
+              `Run log: ${runUrl}`,
+              '',
+              '_Trap #30 in `docs/internal/hidden-risk-traps.md`. Auto-generated by `.github/workflows/cosmetic-green-audit.yml`._',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

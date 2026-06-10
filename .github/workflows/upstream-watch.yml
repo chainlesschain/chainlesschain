@@ -129,3 +129,33 @@ jobs:
           Write-Host "install outcome: ${{ steps.install.outcome }}"
           Write-Host "require outcome: ${{ steps.require_check.outcome }}"
           Write-Host "Workflow exits 0 by design; we only signal on green."
+
+      # This job ALWAYS exits 0 by design (a weekly probe must not red the build),
+      # so the run's ✓ is cosmetic — it does NOT mean Node 23 install passed (trap
+      # #30). This summary surfaces the substantive verdict to anyone reading the
+      # run, so nobody has to decode step skips. Keep this step (it is the
+      # compensating surface the cosmetic-green-audit gate looks for).
+      - name: Job summary — substantive Node 23 verdict (✓ ≠ pass)
+        if: always()
+        shell: pwsh
+        run: |
+          $install = "${{ steps.install.outcome }}"
+          $require = "${{ steps.require_check.outcome }}"
+          if ($install -eq "success" -and $require -eq "success") {
+            $verdict = "✅ PASS — Node 23 install + native require BOTH succeeded. Prebuild gap resolved; consider widening engines.node."
+          } else {
+            $verdict = "❌ FAIL — Node 23 trap still in effect (this is the expected steady state). The run's green check is cosmetic."
+          }
+          $md = @"
+          ## Substantive verdict (read this, not the ✓)
+
+          $verdict
+
+          | check | outcome |
+          | --- | --- |
+          | npm install on Node 23 | ``$install`` |
+          | require(better-sqlite3-multiple-ciphers) | ``$require`` |
+
+          > This job always exits 0 by design (weekly probe). Run conclusion = success carries no pass/fail signal — see trap #30 in docs/internal/hidden-risk-traps.md.
+          "@
+          $md | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
