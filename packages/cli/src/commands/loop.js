@@ -12,6 +12,8 @@
  *   cc loop --until "DONE" --every 1m "poll the deploy"
  *   cc loop "review the diff" --think --provider openai # extra flags → cc agent
  *   cc loop --dynamic "watch the deploy; stop when it's live" # agent self-paces
+ *   cc loop --save ci-watch --every 1m -- npm test      # persist a resumable loop
+ *   cc loop --resume ci-watch --max-iterations 20       # continue it (cumulative)
  *
  * Two modes, disambiguated by the literal `--` separator:
  *   - no `--`  → the single operand is a PROMPT, run via `cc agent -p <prompt>`
@@ -31,7 +33,14 @@ import {
   formatDuration,
   makeSleep,
   parseLoopDirectives,
+  summarizeLoopEvents,
 } from "../lib/loop.js";
+import {
+  startSession,
+  appendEvent,
+  readEvents,
+  sessionExists,
+} from "../harness/jsonl-session-store.js";
 
 /**
  * Appended to the prompt under `--dynamic` so the model can self-pace: it ends
@@ -90,6 +99,35 @@ function spawnIteration(cmd, args, { shell, onChild, capture }) {
   });
 }
 
+/**
+ * Build the concrete child invocation from the resolved operands + mode.
+ * Shared by fresh runs and `--resume` (which reconstructs it from saved config).
+ *   exec mode  → shell-run the joined operands (resolves Windows .cmd shims).
+ *   prompt mode → `cc agent -p <prompt>` with operands up to the first flag as
+ *                 the prompt and the rest forwarded verbatim to `cc agent`.
+ * Returns { cmd, args, shell, label }.
+ */
+function buildInvocation({ operands, execMode, dynamic }) {
+  if (execMode) {
+    const cmd = operands.join(" ");
+    return { cmd, args: [], shell: true, label: cmd };
+  }
+  const flagIdx = operands.findIndex((p) => p.startsWith("-"));
+  const promptParts = flagIdx === -1 ? operands : operands.slice(0, flagIdx);
+  const agentFlags = flagIdx === -1 ? [] : operands.slice(flagIdx);
+  let prompt = promptParts.join(" ");
+  if (dynamic) prompt += DYNAMIC_PROMPT_SUFFIX;
+  const label =
+    `cc agent -p ${chalk.italic(promptParts.join(" "))}` +
+    (agentFlags.length ? ` ${chalk.gray(agentFlags.join(" "))}` : "");
+  return {
+    cmd: process.execPath,
+    args: [BIN_PATH, "agent", "-p", prompt, ...agentFlags],
+    shell: false,
+    label,
+  };
+}
+
 export function registerLoopCommand(program) {
   program
     .command("loop [parts...]")
@@ -114,52 +152,67 @@ export function registerLoopCommand(program) {
       "--dynamic",
       "Let each iteration self-pace via [[loop:next <dur>]] / [[loop:stop]] directives (prompt mode augments the prompt)",
     )
+    .option(
+      "--save [id]",
+      "Persist this loop to a resumable session (auto-generates an id if omitted)",
+    )
+    .option("--resume <id>", "Continue a previously --save'd loop session")
     .option("--json", "Print a JSON summary when the loop ends")
     .allowUnknownOption(true) // pass-through flags for the wrapped agent/command
     .action(async (parts, options, command) => {
       try {
-        // --- resolve interval ---
-        let intervalMs;
-        try {
-          intervalMs = parseDuration(options.every);
-        } catch (e) {
-          logger.error(chalk.red(e.message));
-          process.exitCode = 1;
-          return;
-        }
+        // Was an option explicitly given on the command line (vs a default)?
+        // Used so --resume inherits the saved config but still honors flags the
+        // user re-passes (e.g. extend --max-iterations).
+        const fromCli = (name) =>
+          command?.getOptionValueSource?.(name) === "cli";
 
-        // --- resolve stop conditions ---
-        let maxIterations;
-        if (options.maxIterations != null) {
-          maxIterations = Number(options.maxIterations);
-          if (!Number.isInteger(maxIterations) || maxIterations < 1) {
+        // --- resolve session: --resume loads saved config; --save persists ---
+        let sessionId = null;
+        let persist = false;
+        let startIndex = 0;
+        let savedConfig = null;
+        if (options.resume) {
+          if (!sessionExists(options.resume)) {
+            logger.error(chalk.red(`no such loop session: ${options.resume}`));
+            logger.log(chalk.gray("  list sessions with: cc session list"));
+            process.exitCode = 1;
+            return;
+          }
+          const s = summarizeLoopEvents(readEvents(options.resume));
+          if (!s.config) {
             logger.error(
-              chalk.red("--max-iterations must be a positive integer"),
+              chalk.red(`session ${options.resume} has no loop to resume`),
             );
             process.exitCode = 1;
             return;
           }
-        }
-        let untilRegex = null;
-        if (options.until) {
-          try {
-            untilRegex = new RegExp(options.until);
-          } catch (e) {
-            logger.error(chalk.red(`invalid --until regex: ${e.message}`));
-            process.exitCode = 1;
-            return;
-          }
+          savedConfig = s.config;
+          startIndex = s.completedIterations;
+          sessionId = options.resume;
+          persist = true;
         }
 
-        // --- determine mode (external command vs agent prompt) ---
-        // `--` is the unambiguous signal for external-command mode. Commander
-        // folds the post-`--` operands into `parts`, so we sniff the parsed argv
-        // for the literal separator. `rawArgs` is what Commander actually parsed
-        // (process.argv in prod, the explicit array under test) — preferred over
-        // the global process.argv so detection holds in both.
-        const argv = command?.parent?.rawArgs || process.argv;
-        const execMode = argv.includes("--");
-        const operands = (parts || []).filter((p) => p !== "--");
+        // --- resolve mode / operands (saved config wins on resume) ---
+        let execMode;
+        let operands;
+        let dynamic;
+        if (savedConfig) {
+          execMode = Boolean(savedConfig.execMode);
+          operands = savedConfig.operands || [];
+          dynamic = fromCli("dynamic")
+            ? Boolean(options.dynamic)
+            : Boolean(savedConfig.dynamic);
+        } else {
+          // `--` is the unambiguous signal for external-command mode. Commander
+          // folds the post-`--` operands into `parts`, so we sniff the parsed
+          // argv for the literal separator. `rawArgs` is what Commander actually
+          // parsed (process.argv in prod, the explicit array under test).
+          const argv = command?.parent?.rawArgs || process.argv;
+          execMode = argv.includes("--");
+          operands = (parts || []).filter((p) => p !== "--");
+          dynamic = Boolean(options.dynamic);
+        }
 
         if (operands.length === 0) {
           logger.error(
@@ -173,35 +226,76 @@ export function registerLoopCommand(program) {
           return;
         }
 
-        let cmd;
-        let args;
-        let shell;
-        let label;
-        if (execMode) {
-          // External command: shell-resolved so Windows `.cmd` shims (npm, etc.)
-          // and shell builtins work cross-platform.
-          cmd = operands.join(" ");
-          args = [];
-          shell = true;
-          label = cmd;
-        } else {
-          // Prompt mode: re-invoke this CLI as `cc agent -p <prompt>`. Operands
-          // up to the first flag-looking token form the prompt; everything from
-          // the first `-…` token on is forwarded verbatim to `cc agent` (so
-          // `cc loop "review the diff" --think --provider openai` works). Loop's
-          // own flags are consumed by Commander before we ever see operands.
-          const flagIdx = operands.findIndex((p) => p.startsWith("-"));
-          const promptParts =
-            flagIdx === -1 ? operands : operands.slice(0, flagIdx);
-          const agentFlags = flagIdx === -1 ? [] : operands.slice(flagIdx);
-          let prompt = promptParts.join(" ");
-          if (options.dynamic) prompt += DYNAMIC_PROMPT_SUFFIX;
-          cmd = process.execPath;
-          args = [BIN_PATH, "agent", "-p", prompt, ...agentFlags];
-          shell = false;
-          label =
-            `cc agent -p ${chalk.italic(promptParts.join(" "))}` +
-            (agentFlags.length ? ` ${chalk.gray(agentFlags.join(" "))}` : "");
+        // --- resolve interval (CLI overrides saved on resume) ---
+        const everyRaw =
+          savedConfig && !fromCli("every") ? savedConfig.every : options.every;
+        let intervalMs;
+        try {
+          intervalMs = parseDuration(everyRaw);
+        } catch (e) {
+          logger.error(chalk.red(e.message));
+          process.exitCode = 1;
+          return;
+        }
+
+        // --- resolve stop conditions (CLI overrides saved on resume) ---
+        const maxRaw =
+          savedConfig && !fromCli("maxIterations")
+            ? savedConfig.maxIterations
+            : options.maxIterations;
+        let maxIterations;
+        if (maxRaw != null) {
+          maxIterations = Number(maxRaw);
+          if (!Number.isInteger(maxIterations) || maxIterations < 1) {
+            logger.error(
+              chalk.red("--max-iterations must be a positive integer"),
+            );
+            process.exitCode = 1;
+            return;
+          }
+        }
+        const untilRaw =
+          savedConfig && !fromCli("until") ? savedConfig.until : options.until;
+        let untilRegex = null;
+        if (untilRaw) {
+          try {
+            untilRegex = new RegExp(untilRaw);
+          } catch (e) {
+            logger.error(chalk.red(`invalid --until regex: ${e.message}`));
+            process.exitCode = 1;
+            return;
+          }
+        }
+        const untilExitZero =
+          savedConfig && !fromCli("untilExitZero")
+            ? Boolean(savedConfig.untilExitZero)
+            : Boolean(options.untilExitZero);
+
+        // --- build the child invocation (shared with resume) ---
+        const { cmd, args, shell, label } = buildInvocation({
+          operands,
+          execMode,
+          dynamic,
+        });
+
+        // --- --save creates a fresh session + writes the loop_config once ---
+        if (options.save != null && !options.resume) {
+          persist = true;
+          sessionId = startSession(
+            typeof options.save === "string" && options.save
+              ? options.save
+              : null,
+            { title: `loop: ${operands.join(" ")}`.slice(0, 80) },
+          );
+          appendEvent(sessionId, "loop_config", {
+            execMode,
+            operands,
+            dynamic,
+            every: everyRaw,
+            maxIterations: maxIterations ?? null,
+            untilExitZero,
+            until: untilRaw || null,
+          });
         }
 
         // --- SIGINT → graceful stop after the current iteration ---
@@ -224,13 +318,15 @@ export function registerLoopCommand(program) {
 
         // Capture output when we need to read it: regex matching or --dynamic
         // directive parsing.
-        const capture = Boolean(untilRegex) || Boolean(options.dynamic);
+        const capture = Boolean(untilRegex) || dynamic;
         logger.log(
           chalk.cyan(
             `↻ loop: ${label}  ${chalk.gray(
-              `(${options.dynamic ? "dynamic, fallback " : "every "}${formatDuration(
+              `(${dynamic ? "dynamic, fallback " : "every "}${formatDuration(
                 intervalMs,
-              )}${maxIterations ? `, max ${maxIterations}` : ""})`,
+              )}${maxIterations ? `, max ${maxIterations}` : ""}${
+                startIndex ? `, resuming from ${startIndex}` : ""
+              }${persist ? `, session ${sessionId}` : ""})`,
             )}`,
           ),
         );
@@ -241,8 +337,9 @@ export function registerLoopCommand(program) {
           summary = await runLoop({
             intervalMs,
             maxIterations,
-            untilExitZero: Boolean(options.untilExitZero),
+            untilExitZero,
             untilRegex,
+            startIndex,
             sleep: makeSleep(controller.signal),
             shouldStop: () => controller.signal.aborted,
             onIteration: (n, res) => {
@@ -251,9 +348,21 @@ export function registerLoopCommand(program) {
                   ? chalk.green(`exit 0`)
                   : chalk.red(`exit ${res.exitCode}`);
               logger.log(chalk.gray(`  ↳ iteration ${n} done (${tag})`));
+              // Persist a compact record per round (no output body — keeps the
+              // session small; resume only needs the count + config).
+              if (persist) {
+                appendEvent(sessionId, "loop_iteration", {
+                  n,
+                  exitCode: res.exitCode,
+                  durationMs: res.durationMs ?? null,
+                  done: Boolean(res.done),
+                  nextDelayMs: res.nextDelayMs ?? null,
+                });
+              }
             },
             runIteration: async (n) => {
               logger.log(chalk.gray(`\n▸ iteration ${n} — ${label}`));
+              const t0 = Date.now();
               const res = await spawnIteration(cmd, args, {
                 shell,
                 capture,
@@ -261,6 +370,7 @@ export function registerLoopCommand(program) {
                   activeChild = c;
                 },
               });
+              res.durationMs = Date.now() - t0;
               // --dynamic: read the iteration's [[loop:next]] / [[loop:stop]]
               // directive and surface it to runLoop as done / nextDelayMs.
               if (options.dynamic) {
@@ -289,29 +399,44 @@ export function registerLoopCommand(program) {
           summary.results.length > 0
             ? summary.results[summary.results.length - 1].exitCode
             : null;
+        const stoppedBy = interrupted ? "signal" : summary.stoppedBy;
+
+        if (persist) {
+          appendEvent(sessionId, "loop_end", {
+            stoppedBy,
+            iterations: summary.iterations,
+          });
+        }
 
         if (options.json) {
           logger.log(
             JSON.stringify(
               {
                 iterations: summary.iterations,
-                stoppedBy: interrupted ? "signal" : summary.stoppedBy,
+                stoppedBy,
                 lastExitCode: lastExit,
                 elapsed,
+                ...(persist ? { sessionId } : {}),
               },
               null,
               2,
             ),
           );
         } else {
-          const why = interrupted ? "interrupted" : summary.stoppedBy;
           logger.log(
             chalk.cyan(
               `\n✔ loop ended — ${summary.iterations} iteration(s), stopped by ${chalk.bold(
-                why,
+                stoppedBy,
               )} ${chalk.gray(`(${elapsed})`)}`,
             ),
           );
+          if (persist) {
+            logger.log(
+              chalk.gray(
+                `  session saved — resume with: cc loop --resume ${sessionId}`,
+              ),
+            );
+          }
         }
 
         // Exit code mirrors the last iteration when we stopped on a condition;

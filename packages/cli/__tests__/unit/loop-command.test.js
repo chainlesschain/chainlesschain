@@ -12,11 +12,16 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { registerLoopCommand } from "../../src/commands/loop.js";
+import {
+  sessionPath,
+  readEvents,
+} from "../../src/harness/jsonl-session-store.js";
 
 let logSpy;
 let errSpy;
 let exitCodeBefore;
 let tmpDir;
+const createdSessions = [];
 
 /** Write a throwaway .js script (no shell-fragile embedded-space args). */
 function writeScript(body) {
@@ -57,6 +62,14 @@ afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   } catch {
     /* best-effort */
+  }
+  // Remove any real session files the persistence tests created.
+  while (createdSessions.length) {
+    try {
+      fs.rmSync(sessionPath(createdSessions.pop()), { force: true });
+    } catch {
+      /* best-effort */
+    }
   }
 });
 
@@ -201,5 +214,62 @@ describe("cc loop — dynamic mode (exec)", () => {
     expect(summary.iterations).toBe(2);
     expect(summary.stoppedBy).toBe("max-iterations");
     expect(elapsedMs).toBeLessThan(5000); // proves the 1ms directive was honored
+  });
+});
+
+describe("cc loop — --save / --resume persistence", () => {
+  it("persists a loop then resumes it with cumulative iteration counting", async () => {
+    const id = `cc-loop-test-${Math.random().toString(36).slice(2)}`;
+    createdSessions.push(id);
+
+    // 1) Save a 2-iteration loop.
+    const out1 = await run(
+      "--save",
+      id,
+      "--every",
+      "1ms",
+      "--max-iterations",
+      "2",
+      "--json",
+      "--",
+      "node",
+      "-e",
+      "process.exit(0)",
+    );
+    const s1 = JSON.parse(out1.slice(out1.indexOf("{")));
+    expect(s1.iterations).toBe(2);
+    expect(s1.sessionId).toBe(id);
+
+    const events1 = readEvents(id);
+    expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    expect(events1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
+    expect(events1.filter((e) => e.type === "loop_end")).toHaveLength(1);
+
+    // 2) Resume with an extended budget — no command needed (comes from config).
+    const out2 = await run(
+      "--resume",
+      id,
+      "--max-iterations",
+      "4",
+      "--every",
+      "1ms",
+      "--json",
+    );
+    const s2 = JSON.parse(out2.slice(out2.indexOf("{")));
+    // 2 prior + 2 new = 4 cumulative.
+    expect(s2.iterations).toBe(4);
+    expect(s2.stoppedBy).toBe("max-iterations");
+
+    const events2 = readEvents(id);
+    expect(events2.filter((e) => e.type === "loop_iteration")).toHaveLength(4);
+  });
+
+  it("errors when resuming a non-existent session", async () => {
+    await run("--resume", "definitely-not-a-real-session-xyz");
+    const err = errSpy.mock.calls
+      .map((c) => c.map(String).join(" "))
+      .join("\n");
+    expect(err).toMatch(/no such loop session/);
+    expect(process.exitCode).toBe(1);
   });
 });

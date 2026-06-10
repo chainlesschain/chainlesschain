@@ -13,6 +13,7 @@ import {
   formatDuration,
   makeSleep,
   parseLoopDirectives,
+  summarizeLoopEvents,
 } from "../../src/lib/loop.js";
 
 const noSleep = vi.fn(async () => {});
@@ -187,6 +188,56 @@ describe("runLoop dynamic signals", () => {
     // Only one inter-run sleep (between rounds 1 and 2), and it honored 42.
     expect(sleep).toHaveBeenCalledTimes(1);
     expect(sleep).toHaveBeenCalledWith(42);
+  });
+});
+
+describe("runLoop startIndex (resume)", () => {
+  it("counts iterations cumulatively from startIndex", async () => {
+    const runIteration = vi.fn(async () => ({ exitCode: 1 }));
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 0,
+      maxIterations: 5,
+      startIndex: 3, // 3 already done in a prior run
+      sleep: noSleep,
+    });
+    // 3 prior + 2 new = 5 → hits the cumulative cap after 2 fresh rounds.
+    expect(runIteration).toHaveBeenCalledTimes(2);
+    expect(out.iterations).toBe(5);
+    expect(out.stoppedBy).toBe("max-iterations");
+  });
+});
+
+describe("summarizeLoopEvents", () => {
+  it("extracts config, completed count, and last exit code", () => {
+    const events = [
+      { type: "session_start", data: {} },
+      {
+        type: "loop_config",
+        data: { execMode: true, operands: ["npm", "test"] },
+      },
+      { type: "loop_iteration", data: { n: 1, exitCode: 1 } },
+      { type: "loop_iteration", data: { n: 2, exitCode: 0 } },
+      { type: "loop_end", data: { stoppedBy: "max-iterations" } },
+    ];
+    const s = summarizeLoopEvents(events);
+    expect(s.config).toEqual({ execMode: true, operands: ["npm", "test"] });
+    expect(s.completedIterations).toBe(2);
+    expect(s.lastExitCode).toBe(0);
+  });
+
+  it("uses the last loop_config when several exist", () => {
+    const events = [
+      { type: "loop_config", data: { every: "5m" } },
+      { type: "loop_config", data: { every: "1m" } },
+    ];
+    expect(summarizeLoopEvents(events).config).toEqual({ every: "1m" });
+  });
+
+  it("returns null config for a session with no loop", () => {
+    const s = summarizeLoopEvents([{ type: "user_message", data: {} }]);
+    expect(s.config).toBe(null);
+    expect(s.completedIterations).toBe(0);
   });
 });
 

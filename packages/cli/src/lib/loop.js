@@ -74,6 +74,29 @@ export function parseLoopDirectives(output) {
   return result;
 }
 
+/**
+ * Reduce a persisted loop session's events into the state needed to resume it:
+ * the original `loop_config`, how many iterations already completed, and the
+ * last recorded exit code. Pure (operates on the event array, no fs) so the
+ * resume reconstruction is unit-testable without the session store.
+ */
+export function summarizeLoopEvents(events) {
+  let config = null;
+  let completedIterations = 0;
+  let lastExitCode = null;
+  for (const e of events || []) {
+    if (e?.type === "loop_config") {
+      config = e.data || null;
+    } else if (e?.type === "loop_iteration") {
+      completedIterations += 1;
+      if (e.data && typeof e.data.exitCode !== "undefined") {
+        lastExitCode = e.data.exitCode;
+      }
+    }
+  }
+  return { config, completedIterations, lastExitCode };
+}
+
 /** Default abortable sleep — resolves early if the signal aborts. */
 export function makeSleep(signal) {
   return (ms) =>
@@ -106,7 +129,10 @@ export function makeSleep(signal) {
  * @param {(ms:number)=>Promise<void>} [opts.sleep]  injectable delay
  * @param {()=>boolean} [opts.shouldStop]  external stop probe (e.g. SIGINT)
  * @param {(n:number, res:object)=>void} [opts.onIteration] per-round hook
+ * @param {number}  [opts.startIndex]      iterations already done (resume)
  * @returns {Promise<{iterations:number, stoppedBy:string, results:object[]}>}
+ *          `iterations` is cumulative (startIndex + rounds run this call);
+ *          `results` holds only this call's rounds.
  */
 export async function runLoop({
   runIteration,
@@ -117,13 +143,17 @@ export async function runLoop({
   sleep,
   shouldStop,
   onIteration,
+  startIndex = 0,
 }) {
   if (typeof runIteration !== "function") {
     throw new Error("runLoop requires a runIteration function");
   }
   const delay = sleep || makeSleep();
   const results = [];
-  let i = 0;
+  // Iterations already completed in a prior (resumed) run. `i` continues from
+  // here so the displayed/persisted round numbers are cumulative and
+  // `maxIterations` counts across resume.
+  let i = startIndex;
 
   while (true) {
     if (shouldStop && shouldStop()) {
