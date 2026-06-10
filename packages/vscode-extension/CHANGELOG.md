@@ -4,7 +4,13 @@ All notable changes to this extension are documented here.
 
 ## [0.2.1] — 2026-06-10
 
-- Add the ChainlessChain brand logo as the extension icon (`media/logo.png`).
+- Add the ChainlessChain brand logo as the extension icon (`media/logo.png`),
+  and a monochrome version of the logo glyph for the Activity Bar
+  (`media/logo-mark.png`, since VS Code tints Activity Bar icons).
+- **First published release** — available on the
+  [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)
+  (`chainlesschain.chainlesschain-ide`), installable in VS Code-compatible
+  editors (VSCodium / Cursor / Gitpod / …).
 
 ## [0.2.0] — 2026-06-10
 
