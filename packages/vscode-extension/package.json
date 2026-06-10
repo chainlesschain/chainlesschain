@@ -6,11 +6,22 @@
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
-  "private": true,
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": ["Other", "AI"],
+  "keywords": [
+    "chainlesschain",
+    "cc",
+    "agent",
+    "mcp",
+    "ai",
+    "ide bridge"
+  ],
+  "homepage": "https://docs.chainlesschain.com/chainlesschain/ide-bridge.html",
+  "bugs": {
+    "url": "https://github.com/chainlesschain/chainlesschain/issues"
+  },
   "activationEvents": ["onStartupFinished"],
   "main": "./src/extension.js",
   "contributes": {
