@@ -5,7 +5,9 @@
  * (getSelection / getDiagnostics / getOpenEditors / openDiff), writes the
  * discovery lockfile, and injects CHAINLESSCHAIN_IDE_PORT/_TOKEN into the
  * integrated terminals of this window so `cc agent` auto-connects (env
- * fast-path). See docs/design/modules/98_IDE桥接对标方案.md.
+ * fast-path). It also surfaces live state through a status bar item, a sidebar
+ * tree view, and a webview dashboard — all fed by one activity log.
+ * See docs/design/modules/98_IDE桥接对标方案.md.
  *
  * This file is the only one that touches the `vscode` API directly; all logic
  * lives in vscode-free, unit-tested modules.
@@ -15,10 +17,18 @@ const { IdeMcpServer } = require("./mcp-http-server");
 const { buildIdeTools } = require("./ide-tools");
 const { createVscodeEditorFacade } = require("./vscode-facade");
 const { writeLock, removeLock, generateToken } = require("./lockfile");
+const { ActivityLog, summarizeArgs } = require("./activity-log");
+const { createStatusBar } = require("./ui/status-bar");
+const { IdeBridgeTreeProvider } = require("./ui/tree-view");
+const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 
 let _server = null;
 let _port = null;
 let _output = null;
+let _workspaceFolders = [];
+let _activityLog = null;
+let _statusBar = null;
+let _treeProvider = null;
 
 function log(msg) {
   try {
@@ -26,6 +36,21 @@ function log(msg) {
   } catch {
     /* ignore */
   }
+}
+
+/** Shared, non-sensitive view of the bridge for the UI (never the token). */
+function getState() {
+  return {
+    port: _port || 0,
+    workspaceFolders: _workspaceFolders,
+    toolCount: _activityLog ? _activityLog.counts().tool : 0,
+  };
+}
+
+function refreshUi() {
+  if (_statusBar) _statusBar.render(getState());
+  if (_treeProvider) _treeProvider.refresh();
+  if (_activityLog) refreshDashboard(getState, _activityLog);
 }
 
 async function stopBridge(context) {
@@ -46,6 +71,7 @@ async function stopBridge(context) {
   } catch {
     /* ignore */
   }
+  refreshUi();
 }
 
 async function startBridge(context) {
@@ -55,18 +81,28 @@ async function startBridge(context) {
     .get("enabled", true);
   if (!enabled) {
     log("bridge disabled via chainlesschain.ide.enabled");
+    refreshUi();
     return;
   }
   const token = generateToken();
   const facade = createVscodeEditorFacade(vscode);
   const tools = buildIdeTools(facade);
-  _server = new IdeMcpServer({ tools, token });
+  _server = new IdeMcpServer({
+    tools,
+    token,
+    onActivity: (e) => {
+      if (!_activityLog) return;
+      const argsSummary =
+        e && e.type === "tool" ? summarizeArgs(e.tool, e.args) : undefined;
+      _activityLog.record({ ...e, argsSummary });
+    },
+  });
   _port = await _server.start({ host: "127.0.0.1", port: 0 });
 
-  const folders = (vscode.workspace.workspaceFolders || []).map(
+  _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
     (f) => f.uri.fsPath,
   );
-  writeLock({ port: _port, token, workspaceFolders: folders });
+  writeLock({ port: _port, token, workspaceFolders: _workspaceFolders });
 
   // Env fast-path: terminals spawned by this window carry the port + token so
   // the CLI locks onto exactly this instance without scanning.
@@ -80,11 +116,37 @@ async function startBridge(context) {
   log(
     `bridge up on 127.0.0.1:${_port} as MCP server "ide" (${tools.length} tools)`,
   );
+  refreshUi();
 }
 
 function activate(context) {
   _output = vscode.window.createOutputChannel("ChainlessChain IDE");
   context.subscriptions.push(_output);
+  _activityLog = new ActivityLog({ max: 200 });
+
+  // Status bar (always visible; click opens the dashboard).
+  _statusBar = createStatusBar(vscode, "chainlesschain.ide.openDashboard");
+  context.subscriptions.push(_statusBar.item);
+  _statusBar.render(getState());
+
+  // Sidebar tree view.
+  _treeProvider = new IdeBridgeTreeProvider(vscode, getState, _activityLog);
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "chainlesschainIdeView",
+      _treeProvider,
+    ),
+  );
+
+  // Live UI updates on every logged event.
+  context.subscriptions.push({
+    dispose: _activityLog.onChange((e) => {
+      if (e && e.type === "tool" && _statusBar) {
+        _statusBar.flash(e.tool, getState());
+      }
+      if (_treeProvider) _treeProvider.refresh();
+    }),
+  });
 
   context.subscriptions.push(
     vscode.commands.registerCommand("chainlesschain.ide.showStatus", () => {
@@ -96,6 +158,9 @@ function activate(context) {
     }),
     vscode.commands.registerCommand("chainlesschain.ide.restart", () =>
       startBridge(context).catch((e) => log("restart failed: " + e.message)),
+    ),
+    vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
+      openDashboard(vscode, context, getState, _activityLog),
     ),
     { dispose: () => stopBridge(context) },
   );

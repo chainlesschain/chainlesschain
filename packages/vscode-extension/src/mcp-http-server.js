@@ -25,10 +25,13 @@ class IdeMcpServer {
    * @param {object} [opts.serverInfo] { name, version }
    * @param {string} [opts.path]       request path (default "/mcp")
    */
-  constructor({ tools = [], token = null, serverInfo, path = "/mcp" } = {}) {
+  constructor({ tools = [], token = null, serverInfo, path = "/mcp", onActivity } = {}) {
     this._tools = tools;
     this._token = token;
     this._path = path;
+    // Optional observer for the UI layer: fired on connect + every tool call.
+    // Best-effort; never affects request handling.
+    this._onActivity = typeof onActivity === "function" ? onActivity : null;
     this._serverInfo = serverInfo || {
       name: "chainlesschain-ide",
       version: "0.1.0",
@@ -145,9 +148,19 @@ class IdeMcpServer {
     });
   }
 
+  _emit(event) {
+    if (!this._onActivity) return;
+    try {
+      this._onActivity(event);
+    } catch {
+      /* observer errors never affect the server */
+    }
+  }
+
   async _dispatch(method, params) {
     switch (method) {
       case "initialize":
+        this._emit({ type: "connect", ts: Date.now() });
         return {
           protocolVersion: PROTOCOL_VERSION,
           capabilities: { tools: {} },
@@ -172,6 +185,14 @@ class IdeMcpServer {
         try {
           out = await tool.handler(params.arguments || {});
         } catch (err) {
+          this._emit({
+            type: "tool",
+            tool: params.name,
+            ok: false,
+            error: err.message,
+            args: params.arguments,
+            ts: Date.now(),
+          });
           // Surface tool errors as an MCP isError result, not a transport error
           // (Claude-Code convention: the LLM sees the message).
           return {
@@ -179,6 +200,13 @@ class IdeMcpServer {
             isError: true,
           };
         }
+        this._emit({
+          type: "tool",
+          tool: params.name,
+          ok: true,
+          args: params.arguments,
+          ts: Date.now(),
+        });
         if (out && Array.isArray(out.content)) return out;
         if (typeof out === "string") {
           return { content: [{ type: "text", text: out }] };

@@ -43,9 +43,24 @@ editor.
 > `packages/cli/__tests__/unit/vscode-ext-ide-bridge.test.js`, which drives this
 > extension's MCP server with the real CLI MCP client.
 
+## Visualization (0.2.0)
+
+The bridge surfaces live state three ways, all fed by one activity log
+(`onActivity` hook on the MCP server → status bar / tree / dashboard):
+
+- **Status bar** (bottom-right): `◉ IDE :<port> →N` — running + port + tool-call
+  count, flashes the active tool on each call. Click opens the dashboard.
+- **Sidebar** (Activity Bar → *ChainlessChain IDE*): a tree of status, workspace
+  folders, the 4 tools, and the recent tool-call log.
+- **Dashboard** (*ChainlessChain IDE: Open Dashboard*): status cards + a live
+  tool-call stream + a Restart button.
+
+The bearer token is never displayed in any of these.
+
 ## Status
 
 - ✅ MCP server + lockfile + env injection + 4 tools, wired and tested.
+- ✅ Status bar + sidebar tree + webview dashboard + live activity log (0.2.0).
 - ✅ `openDiff` blocks for review and returns
   `{ outcome: 'accepted' | 'rejected', path, finalText? }`. On accept the
   (possibly user-edited) right-hand text is written to the file (Phase 2).

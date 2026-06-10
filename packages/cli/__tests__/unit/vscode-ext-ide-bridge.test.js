@@ -174,6 +174,48 @@ describe("IdeMcpServer ↔ CLI MCPClient interop", () => {
   });
 });
 
+describe("IdeMcpServer onActivity hook (UI feed)", () => {
+  let server;
+  let client;
+  const TOKEN = "activity-secret";
+  let events;
+
+  beforeEach(async () => {
+    events = [];
+    server = new IdeMcpServer({
+      tools: buildIdeTools(fakeFacade()),
+      token: TOKEN,
+      onActivity: (e) => events.push(e),
+    });
+    await server.start({ port: 0 });
+    client = new MCPClient();
+  });
+
+  afterEach(async () => {
+    try {
+      await client.disconnectAll();
+    } catch {
+      /* ignore */
+    }
+    await server.stop();
+  });
+
+  it("emits a connect event on initialize and a tool event per call", async () => {
+    await client.connect("ide", {
+      url: server.url(),
+      transport: "http",
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    await client.callTool("ide", "getSelection", {});
+    await client.callTool("ide", "openDiff", { path: "/p" }); // missing modifiedText → tool error
+
+    expect(events.some((e) => e.type === "connect")).toBe(true);
+    const tools = events.filter((e) => e.type === "tool");
+    expect(tools.find((e) => e.tool === "getSelection")?.ok).toBe(true);
+    expect(tools.find((e) => e.tool === "openDiff")?.ok).toBe(false); // surfaced as activity
+  });
+});
+
 describe("openDiff blocking review round-trip (Phase 2)", () => {
   let server;
   let client;

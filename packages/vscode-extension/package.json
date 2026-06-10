@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "chainlesschain",
   "license": "MIT",
   "private": true,
@@ -20,9 +20,46 @@
       },
       {
         "command": "chainlesschain.ide.restart",
-        "title": "ChainlessChain IDE: Restart Bridge"
+        "title": "ChainlessChain IDE: Restart Bridge",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "chainlesschain.ide.openDashboard",
+        "title": "ChainlessChain IDE: Open Dashboard",
+        "icon": "$(dashboard)"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chainlesschainIde",
+          "title": "ChainlessChain IDE",
+          "icon": "media/ide-bridge.svg"
+        }
+      ]
+    },
+    "views": {
+      "chainlesschainIde": [
+        {
+          "id": "chainlesschainIdeView",
+          "name": "桥接状态"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "chainlesschain.ide.openDashboard",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "chainlesschain.ide.restart",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@2"
+        }
+      ]
+    },
     "configuration": {
       "title": "ChainlessChain IDE Bridge",
       "properties": {
