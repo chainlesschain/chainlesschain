@@ -9,21 +9,40 @@
  * - --json output flag works
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
 const bin = join(cliRoot, "bin", "chainlesschain.js");
 
+// Isolate the bootstrap DB to a per-file temp dir via CHAINLESSCHAIN_HOME (the
+// var getUserDataPath() honors first). Without it, every spawned `cc` opens the
+// real shared %APPDATA% DB; under concurrent suite runs that contends and a
+// recovery path leaks "[AppConfig]" onto stdout, breaking the --json parse.
+const testHome = mkdtempSync(join(tmpdir(), "cc-clia-e2e-"));
+afterAll(() => {
+  try {
+    rmSync(testHome, { recursive: true, force: true });
+  } catch {
+    /* best-effort */
+  }
+});
+
 function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
     encoding: "utf-8",
-    timeout: 15000,
+    // Generous: a fresh isolated DB pays a one-time bootstrap cost on first
+    // spawn, and every cc spawn is a cold node process — under full-suite load
+    // the old 15s tripped. Still under the 60s vitest testTimeout.
+    timeout: 40000,
     maxBuffer: 20 * 1024 * 1024,
     stdio: ["ignore", "pipe", "ignore"],
+    env: { ...process.env, CHAINLESSCHAIN_HOME: testHome },
     ...options,
   });
 }

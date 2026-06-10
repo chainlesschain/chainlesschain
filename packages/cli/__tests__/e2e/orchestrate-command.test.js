@@ -10,9 +10,11 @@
  *   - Webhook server startup
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execSync, spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
 
@@ -20,11 +22,33 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
 const bin = join(cliRoot, "bin", "chainlesschain.js");
 
+// Isolate the bootstrap DB to a per-file temp dir via CHAINLESSCHAIN_HOME (the
+// var getUserDataPath() honors first). Without it, every spawned `cc` opens the
+// real shared %APPDATA% DB; concurrent suite runs contend on it and a recovery
+// path leaks "[AppConfig]/[DatabaseManager]" lines onto stdout, breaking the
+// --json parse. HOME/USERPROFILE alone don't redirect it on Windows.
+const testHome = mkdtempSync(join(tmpdir(), "cc-orch-e2e-"));
+const childEnv = (extra = {}) => ({
+  ...process.env,
+  CHAINLESSCHAIN_HOME: testHome,
+  ...extra,
+});
+afterAll(() => {
+  try {
+    rmSync(testHome, { recursive: true, force: true });
+  } catch {
+    /* best-effort */
+  }
+});
+
 function run(args, opts = {}) {
   return execSync(`node "${bin}" ${args}`, {
     encoding: "utf-8",
-    timeout: 20000,
+    // Generous: fresh isolated DB cold-start + cold node spawn under full-suite
+    // load tripped the old 20s. Still under the 60s vitest testTimeout.
+    timeout: 40000,
     stdio: "pipe",
+    env: childEnv(),
     ...opts,
   });
 }
@@ -189,7 +213,7 @@ describe("E2E: orchestrate --webhook server", () => {
       [bin, "orchestrate", "--webhook", "--webhook-port", String(port)],
       {
         encoding: "utf8",
-        env: { ...process.env, FORCE_COLOR: "0" },
+        env: childEnv({ FORCE_COLOR: "0" }),
       },
     );
 
@@ -296,7 +320,7 @@ describe("E2E: orchestrate --webhook server", () => {
       [bin, "orchestrate", "--webhook", "--webhook-port", String(port)],
       {
         encoding: "utf8",
-        env: { ...process.env, FORCE_COLOR: "0" },
+        env: childEnv({ FORCE_COLOR: "0" }),
       },
     );
 
