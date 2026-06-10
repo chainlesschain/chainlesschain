@@ -129,8 +129,11 @@ class EmailLocalCollector @Inject constructor(
         if (records.isEmpty()) return@withContext SnapshotResult.Empty
 
         // Serialize to staging JSON. Shape mirrors packages/personal-data-hub
-        // /lib/adapters/email-imap (v0.2 桌面 adapter 待补；现 cc 接 path
-        // 暂报 "unknown adapter" — UI 给 v0.2 友好提示).
+        // /lib/adapters/email-imap snapshot mode (Phase 5.8 LANDED, verified
+        // 2026-06-11: adapter v0.7.0 has snapshotMode + CLI wiring registers
+        // an EmailAdapter({snapshotMode:true}) instance — `cc hub sync
+        // email-imap <path>` resolves; the old "unknown adapter" note is
+        // obsolete).
         val staging = File(context.filesDir, "staging").apply { mkdirs() }
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val outFile = File(staging, "email-$vendor-$stamp.json")
