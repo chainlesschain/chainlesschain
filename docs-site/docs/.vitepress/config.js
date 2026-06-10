@@ -615,6 +615,10 @@ export default defineConfig({
               text: "技能系统 (skill)",
               link: "/chainlesschain/cli-skill",
             },
+            {
+              text: "V2 治理命令族（开发者参考）⭐NEW",
+              link: "/chainlesschain/cli-v2-governance",
+            },
           ],
         },
         {
