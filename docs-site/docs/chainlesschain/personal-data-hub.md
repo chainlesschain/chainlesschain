@@ -1,10 +1,10 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.99（2026-06-08）— 采集大更新 + 真机生效** | 状态: ✅ 可用 — **51 个 Adapter 真接通**。本轮新增 adapter **readiness** 概念（从宽松的 `healthCheck` sync 闸门分离出真正的「就绪」判定，走 `registry.readiness()`，解决「配置看起来正常却采不到」的长期死角）+ 桌面/移动端「一键采集 / 导入引导」统一入口 + 多家本地直读源：抖音 / 微信（电脑版）/ QQ（电脑版 NT）/ 钉钉（电脑版）/ 飞书（电脑版）honest best-effort 本地 IM 采集 + 微信读书 weread cookie + Apple 健康 + 网易云音乐 + email 账单 LLM gap-fill（Phase 5.5，结构化字段缺失时由 LLM 补全）+ iOS 加密备份解密（Phase 7.5b）。**121 测试文件 / 2040 测试**。pdh npm 包 0.4.0 + CLI 0.162.29 已发；Android binariesVersion 20260608 + USR_VERSION 19 强制真机重抽。
->
-> **历史版本 v5.0.3.85**: (Phase 0–13 全部落地 + 14.1/14.2/14.3 + 10.3.6 CLI + 12.6.7-9 WeChat bootstrap + v0.2 大爆发：11 个 placeholder 卡接通 + WeChat 12.10 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 真接通 + **Vault Browser Phase 16 桌面 + Android 双端数据可视化（FTS5 trigram CJK + 7 buckets categories + 5 种 category-keyed renderers + JSON/NDJSON/CSV 导出）** + **HubAsk 4 档 LLM 路由统一选择器（LOCAL_DEVICE / CLOUD_ANDROID / PC_LOCAL / LAN_OLLAMA）** + **MediaPipe JNI abort 防 SIGABRT trap #22 + partial-index drift recovery trap #23 + cc hub rederive 救孤儿 raw_events**, 2026-05-24) | 状态: ✅ 可用 — **22 个 Adapter ✅ v0.2 真接通** (Email IMAP × 4 + Alipay + Taobao + SystemData + WeChat v0.5 SQLCipher 真解密 + QQ v0.2 XOR-IMEI + 4 Travel × 2 (高德/携程 v0.2 + 百度地图/腾讯地图 v0.2) + 5 Shopping (京东/美团/拼多多/淘宝/支付宝 v0.2) + 6 Social (Bilibili/微博 v0.2/抖音 v0.2/小红书 v0.2/头条 v0.2/快手 v0.2) + 3 Messaging (QQ/Telegram/WhatsApp) + 9 AIChat 厂商 v0.2) + Mobile Extraction Layer + EntityResolver + 5 Analysis Skill | **29 IPC + 29 WS** + Phase 14.1 Android + Phase 14.2 iOS 全 `PersonalDataHubCommands` 22 method typed wrapper | **70+ 测试文件 / 1370+ 测试**（含 v0.2 一轮新 snapshot tests: weibo 8 + douyin 8 + xiaohongshu 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13 = 93 新 snapshot tests + 27 QQ Android Kotlin unit tests）| 设计文档: 13-Phase 路线图 + 8 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口 + Phase 10.3 AIChat WebView 鉴权向导 + Phase 12.6.7-9 WeChat bootstrap + **Phase 12.10 WeChat in-app collector 4 sub-phase + Phase 13.5 QQ in-app collector**
+> **版本: v5.0.3.99（2026-06-08）| 状态: ✅ 可用 — 51 个 Adapter 真接通 | 121 测试文件 / 2040 测试**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
+
+> 版本演进与各 Adapter 落地节点见下文 [最新更新](#最新更新) 与 [系统架构 → Phase 历史](#phase-历史)。
 
 ## 概述
 
@@ -23,7 +23,11 @@
 
 > 完整设计与 13-Phase 路线图见设计文档：[`Personal_Data_Hub_Architecture.md`](https://design.chainlesschain.com/Personal_Data_Hub_Architecture.html)（"个人数据中台 专题"）。
 
-## Phase 17/18 — 本机开发者活动 Adapter（v5.0.3.83+）
+## 最新更新
+
+> 本节汇总近几个版本的采集能力更新；更细的逐 Phase 落地记录见 [系统架构 → Phase 历史](#phase-历史)。
+
+### 本机零配置开发者数据源（Phase 17/18，v5.0.3.83+）
 
 7 个零配置 / no-arg 即采集的本机数据源，对开发者尤其重要：你的本机操作流也是个人 RAG 语料。
 
@@ -39,7 +43,7 @@
 
 所有 7 个 adapter 走 `category=system` bucket 在 Vault Browser 侧栏可单独看；FTS5 全文检索同样有效。`cc hub sync browser-history-chrome` 单独触发某个 adapter，`cc hub stats --adapter <name>` 看分源覆盖。
 
-## v5.0.3.99 — 采集能力大更新（readiness + 一键采集 + 多家本地直读）
+### 采集能力大更新（v5.0.3.99）— readiness + 一键采集 + 多家本地直读
 
 这一版把个人数据中台的「采集」体验从「能跑但要手动多步配置 + 经常一条都采不到」推到「就绪可见 + 一键触发」：
 
@@ -269,7 +273,8 @@
 | 12.6.8 (+) | **WeChat register-wechat IPC + WS + privileged whitelist** | 4 IPC 通道 (`wechat-env-probe` / `register-wechat` / `unregister-wechat` / `list-wechat-accounts`) + WS 镜像；hub 暴露 `probeWechatEnv` / `registerWechatAdapter` / `unregisterWechatAdapter` / `listWechatAccounts` 四 method（desktop + cli 双 wiring 对称）；`wechat-accounts.json` 0600 + idempotent re-register + scrubbed list；register/unregister-wechat 加入 `approvalChannelsForMobile` 防 mobile peer 注入恶意 dbPath；whitelist 单测同步拓展 | +15 单测 |
 | 12.6.9 (+) | **WeChat cc hub wechat CLI** | `cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister <uin>` 4 个 verb 镜像 4 WS 主题；`--json` 全 verb 可机读；脚本/Plan A 手机内嵌终端可用，无需 Vue UI（同 `cc hub aichat` 模式） | +14 单测 |
 | 12.6.10 (+) | **WeChat Vue UI 鉴权向导 (web-panel)** | `WechatWizard.vue` 3-step drawer：Step 1 env-probe checklist（adb/root/frida/wechat 5 行）→ Step 2 uin + dbPath + wechatDataPath + forceProvider 表单 → Step 3 result + reasons 反馈；`usePersonalDataHub.js` 加 `probeWechatEnv` / `registerWechat` / `listWechatAccounts` / `unregisterWechat` 4 method 镜像 WS topics；`PersonalDataHub.vue` 顶部加「添加 WeChat」按钮 + `WechatOutlined` 图标 | +6 composable 单测 |
-| 当前合计 | — | — | **67 文件 / 1223 测试**（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-10 全套：KeyProvider + Frida agent + env-probe + Setup + 12.6.7 bootstrap + 12.6.8 IPC/WS wiring + 12.6.9 CLI + 12.6.10 Vue UI + 2026-05-21 Phase 10.3.1-10.3.6 全 land）|
+| 阶段性快照（v5.0.3.85 时） | — | — | 67 文件 / 1223 测试（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-10 全套：KeyProvider + Frida agent + env-probe + Setup + 12.6.7 bootstrap + 12.6.8 IPC/WS wiring + 12.6.9 CLI + 12.6.10 Vue UI + 2026-05-21 Phase 10.3.1-10.3.6 全 land）|
+| **当前合计（v5.0.3.99）** | — | — | **121 测试文件 / 2040 测试**（51 个 Adapter 真接通；详见 [最新更新](#最新更新)）|
 
 > 全部路线图 phase 已实施完成。剩余 follow-up：Phase 10.3+ (9 厂商 AIChat WebView UI 鉴权向导 + 真账号 smoke) — 全 land，剩真账号 smoke (blocked on accounts)；Phase 12.6+ (WeChat 8.0+ Android frida-dep libwcdb hook 路径) **§18.1-10 已全 land** (含 12.6.7 bootstrap + 12.6.8 IPC/WS + 12.6.9 CLI + 12.6.10 Vue UI)，剩 Phase 12.9 (rooted device 真机 E2E — 需真 Android 设备)。
 
