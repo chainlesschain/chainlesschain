@@ -918,6 +918,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
       );
       logger.log(
+        `  ${chalk.cyan("/context")}    Live context-window usage by role`,
+      );
+      logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
       );
       logger.log(
@@ -1150,6 +1153,52 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (err) {
         logger.error(chalk.red(`/output-style failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/context") {
+      // Live-session twin of `cc context` (Claude-Code /context parity):
+      // bucket the CURRENT in-memory conversation by role against the model
+      // window. Reuses the same categorizer + estimator as the archived view.
+      try {
+        const { categorizeContext } = await import("../commands/context.js");
+        const { estimateTokens } = await import(
+          "../harness/prompt-compressor.js"
+        );
+        const { buckets, counts, total } = categorizeContext(
+          messages,
+          estimateTokens,
+        );
+        const window = getContextWindow(model, provider) || 0;
+        logger.log(chalk.bold("\nContext usage (live session):"));
+        const rows = [
+          ["system", buckets.system, counts.system],
+          ["user", buckets.user, counts.user],
+          ["assistant", buckets.assistant, counts.assistant],
+          ["tool", buckets.tool, counts.tool],
+          ["tool_calls", buckets.toolCalls, null],
+        ];
+        for (const [label, tok, n] of rows) {
+          if (!tok) continue;
+          const share = total ? Math.round((tok / total) * 100) : 0;
+          logger.log(
+            `  ${label.padEnd(11)}${String(tok).padStart(9)} tok ${String(share).padStart(3)}%${
+              n != null ? chalk.gray(`  (${n} msgs)`) : ""
+            }`,
+          );
+        }
+        const pct = window ? Math.round((total / window) * 100) : null;
+        logger.log(
+          `  ${"total".padEnd(11)}${String(total).padStart(9)} tok${
+            window
+              ? `  ${pct}% of ${window} (${Math.max(0, window - total)} left)`
+              : ""
+          }`,
+        );
+      } catch (err) {
+        logger.error(`/context failed: ${err.message}`);
       }
       prompt();
       return;
