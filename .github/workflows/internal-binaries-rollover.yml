@@ -1,0 +1,115 @@
+name: Internal Binaries Rollover
+
+# Assembles a NEW `internal-binaries-android-v<new_version>` GitHub Release
+# server-side: copies all assets from the previous internal-binaries release,
+# replaces cc-cli.tgz with the freshly built one from a node-runtime-bundle.yml
+# run artifact, sha256-verifies everything, then publishes.
+#
+# Why this exists: internal-binaries releases are IMMUTABLE (clobber-upload
+# returns HTTP 422), so refreshing cc-cli.tgz requires creating a new dated
+# release carrying ALL 25 assets. Doing that from a dev machine means a
+# ~270 MB download + ~270 MB upload over a residential link; this workflow
+# does the same shuffle on a runner with datacenter pipes in ~2 minutes.
+# (This is the "heavier flow" follow-up noted in node-runtime-bundle.yml.)
+#
+# After a successful run, the maintainer (or the calling session) bumps:
+#   - android-app/gradle.properties           binariesVersion=<new_version>
+#   - android-app/binaries-manifest.txt       cc-cli.tgz sha256 line
+#   - feature-local-terminal/build.gradle.kts USR_VERSION (force re-extract)
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_version:
+        description: "Existing internal-binaries version to copy assets from (e.g. 20260608)"
+        required: true
+        type: string
+      new_version:
+        description: "New internal-binaries version to create (e.g. 20260610)"
+        required: true
+        type: string
+      bundle_run_id:
+        description: "node-runtime-bundle.yml run id whose cc-cli-tgz artifact replaces cc-cli.tgz"
+        required: true
+        type: string
+      cc_cli_sha256:
+        description: "Expected sha256 of the new cc-cli.tgz (from the bundle run log / local hash)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  rollover:
+    name: Copy ${{ inputs.from_version }} -> ${{ inputs.new_version }} (new cc-cli.tgz)
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FROM_TAG: internal-binaries-android-v${{ inputs.from_version }}
+      NEW_TAG: internal-binaries-android-v${{ inputs.new_version }}
+    steps:
+      - name: Checkout (manifest for sha verification)
+        uses: actions/checkout@v4
+
+      - name: Guard — new tag must not exist yet
+        run: |
+          set -euo pipefail
+          if gh release view "$NEW_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $NEW_TAG already exists (immutable tag namespace — pick a new version)"
+            exit 1
+          fi
+
+      - name: Download all assets from previous release
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "$FROM_TAG" --repo "$GITHUB_REPOSITORY" --dir assets
+          echo "Downloaded $(ls assets | wc -l) assets:"
+          ls -la assets
+
+      - name: Replace cc-cli.tgz with fresh bundle artifact
+        run: |
+          set -euo pipefail
+          rm -f assets/cc-cli.tgz
+          gh run download "${{ inputs.bundle_run_id }}" --repo "$GITHUB_REPOSITORY" \
+            --name cc-cli-tgz --dir cc-cli-artifact
+          mv cc-cli-artifact/cc-cli.tgz assets/cc-cli.tgz
+
+      - name: Verify sha256 of every asset
+        run: |
+          set -euo pipefail
+          # New cc-cli.tgz against the dispatcher-provided hash.
+          echo "${{ inputs.cc_cli_sha256 }}  assets/cc-cli.tgz" | sha256sum -c -
+          # Carried-over assets against binaries-manifest.txt (skip cc-cli.tgz:
+          # the checked-out manifest may be ahead of or behind this rollover).
+          fail=0
+          while read -r sha name _; do
+            case "$sha" in \#*|"") continue ;; esac
+            [ "$name" = "cc-cli.tgz" ] && continue
+            if [ ! -f "assets/$name" ]; then
+              echo "::error::manifest asset missing from previous release: $name"
+              fail=1
+              continue
+            fi
+            echo "$sha  assets/$name" | sha256sum -c - || fail=1
+          done < android-app/binaries-manifest.txt
+          [ "$fail" -eq 0 ] || exit 1
+
+      - name: Create draft release + upload + publish
+        run: |
+          set -euo pipefail
+          EXPECTED=$(ls assets | wc -l)
+          gh release create "$NEW_TAG" --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "$NEW_TAG" \
+            --notes "Internal Android binaries (gradle downloadBootstrapBinaries / downloadFridaBinaries). cc-cli.tgz rebuilt from node-runtime-bundle.yml run ${{ inputs.bundle_run_id }}; all other assets copied verbatim from $FROM_TAG (sha256-verified against binaries-manifest.txt). Not for end users."
+          gh release upload "$NEW_TAG" --repo "$GITHUB_REPOSITORY" assets/*
+          COUNT=$(gh release view "$NEW_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')
+          if [ "$COUNT" -ne "$EXPECTED" ]; then
+            echo "::error::asset count mismatch after upload: $COUNT != $EXPECTED (draft left in place for retry)"
+            exit 1
+          fi
+          gh release edit "$NEW_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          echo "Published $NEW_TAG with $COUNT assets" >> "$GITHUB_STEP_SUMMARY"
