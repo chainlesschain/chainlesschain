@@ -150,8 +150,15 @@ function normalizeTravelRecord(rec, ctx = {}) {
 
 function buildTitle(rec) {
   const vt = rec.vehicleType || "trip";
-  const from = rec.from ? (rec.from.station || rec.from.city || "?") : "";
-  const to = rec.to ? (rec.to.station || rec.to.city || "?") : "";
+  // station > city > name — name matters for Amap route/search records,
+  // which carry ONLY p.name (no station/city); without it every Amap trip
+  // event was titled "car: ? → ?".
+  const from = rec.from
+    ? (rec.from.station || rec.from.city || rec.from.name || "?")
+    : "";
+  const to = rec.to
+    ? (rec.to.station || rec.to.city || rec.to.name || "?")
+    : "";
   if (from && to) return `${vt}: ${from} → ${to}`;
   if (to) return `${vt}: → ${to}`;
   return `${vt}: ${rec.carrier || rec.recordId}`;
