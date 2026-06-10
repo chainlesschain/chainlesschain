@@ -2394,7 +2394,7 @@ export function registerInitCommand(program) {
   program
     .command("init")
     .description(
-      "Initialize a .chainlesschain/ project in the current directory",
+      "Inventory the current folder into a cc.md project-memory file (default); pass -t/--template to scaffold a .chainlesschain/ project instead",
     )
     .option(
       "-t, --template <name>",
@@ -2410,7 +2410,12 @@ export function registerInitCommand(program) {
       "--cwd <dir>",
       "Initialize in <dir> instead of the current working directory (used by web-panel folder picker)",
     )
-    .action(async (options) => {
+    .option(
+      "--memory",
+      "Force inventory mode even when a template flag is present (inventory is already the default without -t/--bare)",
+    )
+    .option("--force", "Overwrite an existing cc.md (inventory mode)")
+    .action(async (options, command) => {
       let cwd;
       if (options.cwd) {
         cwd = path.resolve(options.cwd);
@@ -2423,6 +2428,49 @@ export function registerInitCommand(program) {
       } else {
         cwd = process.cwd();
       }
+      // Inventory mode (Claude-Code /init parity) is the DEFAULT: scan the
+      // folder as-is and write a starter cc.md — no template, no
+      // .chainlesschain/. Template scaffolding only runs when the user
+      // explicitly asked for it (-t/--template or --bare); --memory forces
+      // inventory even alongside a template flag.
+      const templateRequested =
+        command?.getOptionValueSource?.("template") === "cli" ||
+        Boolean(options.bare);
+      if (options.memory || !templateRequested) {
+        const { inventoryProject, renderMemoryFile } = await import(
+          "../lib/project-inventory.js"
+        );
+        const target = path.join(cwd, "cc.md");
+        if (fs.existsSync(target) && !options.force) {
+          logger.error(
+            `cc.md already exists at ${target} — use --force to overwrite.`,
+          );
+          process.exit(1);
+        }
+        const inv = inventoryProject(cwd);
+        fs.writeFileSync(target, renderMemoryFile(inv), "utf-8");
+        logger.success(`Generated ${target}`);
+        const langs = inv.languages
+          .slice(0, 5)
+          .map(([l, n]) => `${l} (${n})`)
+          .join(", ");
+        if (langs) logger.info(`  Languages: ${langs}`);
+        if (inv.packageManager)
+          logger.info(`  Package manager: ${inv.packageManager}`);
+        if (inv.scripts.length)
+          logger.info(`  Scripts documented: ${inv.scripts.length}`);
+        const others = inv.existingMemory.filter((f) => f !== "cc.md");
+        if (others.length) {
+          logger.info(
+            `  Note: ${others.join(", ")} also present — cc.md takes precedence when both exist.`,
+          );
+        }
+        logger.info(
+          "  cc agent auto-loads cc.md as project context (CC_PROJECT_MEMORY=0 disables).",
+        );
+        return;
+      }
+
       const ccDir = path.join(cwd, ".chainlesschain");
 
       // Check if already initialized

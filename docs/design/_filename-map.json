@@ -527,6 +527,10 @@
     "98_IDE桥接对标方案.md": {
       "docs-site": "98-ide-bridge.md",
       "docs-site-design": "m98-ide-bridge.md"
+    },
+    "99_项目记忆与init对标方案.md": {
+      "docs-site": "99-project-memory-init.md",
+      "docs-site-design": "m99-project-memory-init.md"
     }
   }
 }
