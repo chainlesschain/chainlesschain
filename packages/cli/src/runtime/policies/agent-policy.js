@@ -35,6 +35,9 @@ export function resolveAgentPolicy({
     fallbackModel: overrides.fallbackModel || null,
     mcpConfig: overrides.mcpConfig || null,
     useRegisteredMcp: overrides.useRegisteredMcp !== false,
+    // IDE bridge tri-state (undefined=auto / true=--ide / false=--no-ide); the
+    // REPL forwards it to resolveAgentMcp so --ide/--no-ide work interactively.
+    ide: overrides.ide,
   };
 }
 

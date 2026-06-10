@@ -630,6 +630,11 @@ export async function startAgentRepl(options = {}) {
           mcpConfigPath: options.mcpConfig || null,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
+          // IDE bridge: auto-connect a running editor's MCP server when inside
+          // an IDE integrated terminal. --ide forces it, --no-ide disables it
+          // (parity with headless; auto-detect already works via process.env).
+          ide: options.ide,
+          cwd: process.cwd(),
         },
         { writeErr: (s) => process.stderr.write(s) },
       );

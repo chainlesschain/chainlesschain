@@ -24,4 +24,12 @@ describe("resolveAgentPolicy — mcpConfig", () => {
         .useRegisteredMcp,
     ).toBe(false);
   });
+
+  // IDE bridge: the tri-state --ide/--no-ide flag must survive onto the policy
+  // (undefined=auto), else the REPL can never honor it interactively.
+  it("carries the IDE tri-state onto the policy", () => {
+    expect(resolveAgentPolicy({}).ide).toBeUndefined(); // auto-detect
+    expect(resolveAgentPolicy({ overrides: { ide: true } }).ide).toBe(true); // --ide
+    expect(resolveAgentPolicy({ overrides: { ide: false } }).ide).toBe(false); // --no-ide
+  });
 });
