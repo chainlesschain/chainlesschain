@@ -168,6 +168,10 @@ export default defineConfig({
               text: "Android 本地终端（内置 cc CLI）⭐NEW",
               link: "/chainlesschain/android-local-terminal",
             },
+            {
+              text: "家庭守护 / AI 陪学 ⭐NEW",
+              link: "/chainlesschain/family-guard",
+            },
           ],
         },
         {
