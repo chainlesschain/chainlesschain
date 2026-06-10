@@ -68,15 +68,12 @@ cc --version          # ≥ 0.162.36
 cc ide --help         # 确认有 ide 子命令
 ```
 
-**2. 安装编辑器扩展:**
+**2. 安装编辑器扩展（已上架）:**
 
-**VS Code**
-- *（发布后，推荐）* 扩展面板搜 **ChainlessChain IDE** 一键安装,或:
-  ```bash
-  code --install-extension chainlesschain.chainlesschain-ide
-  ```
-  Marketplace 负责自动更新与签名信任。
-- *（本地 / 离线开发）* 从源码打本地 `.vsix` 安装:
+**VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
+- **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。在用 Open VSX 的编辑器里,扩展面板搜 **ChainlessChain IDE** 一键装。
+  > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
+- *（官方 VS Code / 离线）* 从源码打本地 `.vsix` 装:
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -84,7 +81,8 @@ cc ide --help         # 确认有 ide 子命令
   ```
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
-- 即将上架 JetBrains Marketplace。协议核已就绪并经跨语言 interop 验证;插件构建(`./gradlew buildPlugin`)需 IntelliJ SDK,详见 `packages/jetbrains-plugin/README.md`。
+- **已上传 JetBrains Marketplace**(`com.chainlesschain.ide`),**待官方审核**(首发 1–2 天);通过后在 IDE 的 *Settings → Plugins → Marketplace* 搜 **ChainlessChain IDE** 即可装。
+- 审核期间可本地装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → *Settings → Plugins → ⚙ → Install Plugin from Disk*。
 
 **3. 验证:**
 

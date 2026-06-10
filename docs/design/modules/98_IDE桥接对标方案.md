@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 5 Phase 落地 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 🚧（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 待 SDK 构建）· Phase 4 ✅（发布基建:CI 管线+.vsix 实打包+版本治理,marketplace 上架待 secret）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 5 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -191,9 +191,13 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 类比 VS Code 扩展待 Extension Host);`getDiagnostics` markup 遍历 + `LocalTerminalCustomizer` 签名按目标
 平台版本微调;Marketplace 发布(Phase 4)。
 
-### Phase 4 — 发布与维护 ✅ 基建已落
+### Phase 4 — 发布与维护 ✅ 已发布
 
-发布管线 + 版本治理 + 维护文档全部落地(marketplace 实际上架待真实 publisher/secret)。
+**两端均已上架**(2026-06-10):
+- **VS Code 扩展** → **Open VSX Registry**:[`chainlesschain.chainlesschain-ide`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) v0.2.1,VSCodium / Cursor / Gitpod / 通义灵码 等可直接搜装。**官方 VS Code Marketplace 被挡**(发布需 Azure DevOps org,而建 org 现强制要 Azure 订阅,无),故主渠道走 Open VSX。
+- **JetBrains 插件** → **JetBrains Marketplace**:`com.chainlesschain.ide` v0.1.0 已上传(`gradlew publishPlugin`,token 有效、无需签名),**待 JetBrains 人工审核**(首发 1–2 天)。
+
+发布管线 + 版本治理 + 维护文档:
 - **CI** `.github/workflows/ide-extensions.yml`:VS Code job(`@vscode/vsce package` → `.vsix` 产物上传;
   tag `ide-vscode-v*` + `VSCE_PAT` 才 `vsce publish`)+ JetBrains job(`./gradlew buildPlugin` → 插件 zip;
   tag `ide-jetbrains-v*` + `JETBRAINS_PUBLISH_TOKEN` 才 `publishPlugin`)。**普通 push 只 build+上传产物,
@@ -206,8 +210,10 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 - **版本治理 + 维护文档**:`docs/internal/ide-extensions-releasing.md`(版本/CHANGELOG/tag/secret/marketplace
   注册/陷阱清单)+ 各扩展 LICENSE(MIT)+ CHANGELOG。
 
-**剩**:真实 marketplace publisher 注册 + 配 CI secret(`VSCE_PAT`/`JETBRAINS_PUBLISH_TOKEN`/签名证书)后
-打 tag 实际上架;JetBrains glue 层首次 SDK 构建跑通(见 Phase 3)。
+**自动发布**:本机已存 `OVSX_PAT` + `JETBRAINS_PUBLISH_TOKEN` 用户环境变量(`npm run publish:ovsx` /
+`gradlew publishPlugin` 自动认证);CI `ide-extensions.yml` tag `ide-vscode-v*` 触发 Open VSX(+官方
+marketplace iff 有 `VSCE_PAT`)、`ide-jetbrains-v*` 触发 JetBrains。升级新版只需 bump version + CHANGELOG。
+**剩**:官方 VS Code Marketplace（需 Azure 订阅,见上,可选）;JetBrains 审核通过后公开。
 
 ---
 
