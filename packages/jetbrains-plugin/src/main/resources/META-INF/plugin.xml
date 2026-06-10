@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -10,6 +10,11 @@
         open editors, and native diff review as tools the agent can call, and
         injects the discovery env vars into integrated terminals so
         <code>cc agent</code> auto-connects.
+        <br/><br/>
+        With cc &ge; 0.162.39 the agent is also <b>automatically aware</b> of the
+        editor: your selection and open tabs ride along with every prompt, and
+        after the agent edits a file the IDE's fresh errors/warnings flow back
+        into the same run. Set <code>CC_IDE_CONTEXT=0</code> to opt out.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

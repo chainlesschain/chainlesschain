@@ -9,6 +9,21 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 speaks the *same* MCP protocol as the VS Code extension; only `ide` differs
 (`"jetbrains"`).
 
+## Automatic awareness (cc ≥ 0.162.39)
+
+With a current `cc` CLI the agent doesn't just *have* the bridge tools — it
+uses them on its own:
+
+- **Your selection rides along with every prompt** as an ephemeral
+  `<ide-context>` block (active file, open tabs, selected text); never written
+  into the saved session.
+- **Post-edit diagnostics feed back into the loop** — after the agent edits a
+  file, the IDE's fresh errors/warnings are attached to the tool result so the
+  model fixes what it just broke in the same run.
+- **REPL `@` tab-completion prefers your open tabs.**
+
+Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
+
 ## Architecture
 
 The code is split into two layers:
