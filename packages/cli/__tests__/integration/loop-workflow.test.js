@@ -158,12 +158,12 @@ describe("cc loop integration — persistence chain", () => {
     const id = uniqueId();
     createdSessions.push(id);
 
-    // Save with a huge interval but only 1 iteration (no inter-run sleep yet).
+    // Save with a 60s interval but only 1 iteration (no inter-run sleep yet).
     await run(
       "--save",
       id,
       "--every",
-      "9999ms",
+      "60000ms",
       "--max-iterations",
       "1",
       "--json",
@@ -173,8 +173,12 @@ describe("cc loop integration — persistence chain", () => {
       "process.exit(0)",
     );
 
-    // Resume extending to 3 and overriding --every to 1ms: if the saved 9999ms
-    // were used, the two inter-run sleeps would take ~20s. It finishes fast.
+    // Resume extending to 3 (runs iterations 2 & 3 → one inter-run sleep) and
+    // overriding --every to 1ms. If the saved 60s were used instead, that one
+    // sleep would blow the 60s test timeout. Honored, only subprocess overhead
+    // remains — a 30s budget tolerates a loaded full-suite run (observed ~8s
+    // under contention) while cleanly separating the 60s fallback. The interval
+    // override isn't persisted per-iteration, so wall-clock is the only signal.
     const started = Date.now();
     const out = summaryOf(
       await run(
@@ -190,7 +194,7 @@ describe("cc loop integration — persistence chain", () => {
     const elapsedMs = Date.now() - started;
     expect(out.iterations).toBe(3);
     expect(out.stoppedBy).toBe("max-iterations");
-    expect(elapsedMs).toBeLessThan(5000);
+    expect(elapsedMs).toBeLessThan(30000);
   });
 });
 

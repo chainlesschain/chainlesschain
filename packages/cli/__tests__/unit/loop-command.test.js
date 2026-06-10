@@ -193,15 +193,22 @@ describe("cc loop — dynamic mode (exec)", () => {
     expect(summary.stoppedBy).toBe("done");
   });
 
-  it("honors a [[loop:next]] directive (uses it, not the --every fallback)", async () => {
-    // Fallback is 9999ms; the directive sets 1ms. If the directive were ignored
-    // the two-iteration run would take ~10s — it completes near-instantly.
+  it("honors a [[loop:next]] directive (persists the directive interval)", async () => {
+    // Deterministic (no wall-clock): persist via --save and assert the parsed
+    // directive interval landed on the iteration record. The earlier wall-clock
+    // form (elapsed < 5s vs a 9999ms fallback) flaked under full-suite load,
+    // where subprocess spawn alone took ~8s. runLoop's use of nextDelayMs over
+    // the fixed interval is covered deterministically in loop-core. A tiny 1ms
+    // fallback keeps this fast whether or not the directive is honored.
+    const id = `cc-loop-test-${Math.random().toString(36).slice(2)}`;
+    createdSessions.push(id);
     const script = writeScript("console.log('[[loop:next 1ms]]');");
-    const startedAt = Date.now();
     const out = await run(
+      "--save",
+      id,
       "--dynamic",
       "--every",
-      "9999ms",
+      "1ms",
       "--max-iterations",
       "2",
       "--json",
@@ -209,11 +216,11 @@ describe("cc loop — dynamic mode (exec)", () => {
       "node",
       script,
     );
-    const elapsedMs = Date.now() - startedAt;
     const summary = JSON.parse(out.slice(out.indexOf("{")));
     expect(summary.iterations).toBe(2);
     expect(summary.stoppedBy).toBe("max-iterations");
-    expect(elapsedMs).toBeLessThan(5000); // proves the 1ms directive was honored
+    const iters = readEvents(id).filter((e) => e.type === "loop_iteration");
+    expect(iters[0].data.nextDelayMs).toBe(1); // directive parsed & recorded
   });
 });
 
