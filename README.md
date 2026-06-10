@@ -2,6 +2,25 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-10 发布 — **v5.0.3.105：cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新**
+
+> 把 v5.0.3.104 之后 2026-06-10 的 CLI 平价主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **cc CLI 0.162.38（Claude-Code 平价三连）**：MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL；`SubagentStop` settings.json hook；`cc agent --fork-session`（复制既有会话为新分支继续）。
+- **Android in-APK cc bundle 刷新**：`cc-cli.tgz` 重建（cli 0.162.38 + pdh 0.4.3）→ 新内部二进制 release（binariesVersion 20260610）+ `USR_VERSION 20 → 21`，补上 v5.0.3.101 以来 APK 内置 cc 跑旧代码的缺口。
+- **Tests / CI**：CLI e2e 共享 helper（testHome + freePort，Layer 2）+ e2e 隔离/重试 CI 加固 + 桌面端 10 个 stale 单测修复。
+- **Docs**：docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账（155 命令/145 技能/25 Android）。
+- **npm 包**：`chainlesschain` CLI 0.162.38 已发 npm + `@chainlesschain/personal-data-hub` 0.4.3（沿用）。
+- **版本面**：productVersion v5.0.3.104 → v5.0.3.105 / desktop 5.0.3-alpha.105 / Android versionCode 503105 · USR_VERSION 20 → 21 / iOS CFBundleVersion 105。
+
+---
+
+## 2026-06-10 发布 — **v5.0.3.104：CLI 0.162.37（IDE 桥接收官聚合版）+ 全平台版本对齐 + docs/品牌清扫**（补记）
+
+> （补记）本版主体：CLI 0.162.37 发 npm；iOS/Android/desktop 版本对齐；VS Code 扩展 Open VSX 自动发布 CI + 图标重绘；JetBrains buildPlugin 修复；docs-site 新增 8 个 CLI 用户文档页 + Family Guard 用户页；发布文档脱敏；桌面端 vitest-4 stub bug + 12 个 stale 测试修复。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+---
+
 ## 2026-06-10 发布 — **v5.0.3.103：cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化**
 
 > 把 v5.0.3.102 之后 2026-06-10 的工程主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

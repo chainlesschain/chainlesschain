@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.105] - 2026-06-10 — feat: cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新（终结 .101 stale 缺口）
+
+> 本版把 v5.0.3.104 之后 2026-06-10 的 CLI 平价主线固化为一次正式发版：①MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL（`3481e2595`）；②`SubagentStop` settings.json hook（Claude-Code 平价，`9c349cb9a`）；③`cc agent --fork-session`（Claude-Code 平价，`d97003d3c`）；④CLI 0.162.38 已发 npm；⑤Android in-APK cc bundle 重建 —— `internal-binaries-android-v20260610`（cli 0.162.38 + pdh 0.4.3）+ `USR_VERSION 20 → 21`，补上 v5.0.3.101 以来 APK 内置 cc 跑旧代码的缺口；⑥CLI e2e 共享 helper（testHome + freePort，Layer 2）+ e2e 隔离/重试 CI 加固；⑦docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账（155 命令/145 技能/25 Android）。
+
+### Feat —— cc CLI 0.162.38（Claude-Code 平价三连）
+
+- MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL（`3481e2595`）
+- `SubagentStop` settings.json hook（`9c349cb9a`）
+- `cc agent --fork-session`：复制既有会话为新分支继续（`d97003d3c`）
+
+### Android —— in-APK cc bundle 刷新
+
+- `node-runtime-bundle.yml` 重建 `cc-cli.tgz`（cli 0.162.38 + pdh 0.4.3）→ 新 release `internal-binaries-android-v20260610`，`binariesVersion` + manifest sha256 同步
+- `USR_VERSION 20 → 21`：真机升级后强制重新解包新 bundle（v5.0.3.101 的 USR_VERSION 20 因 bundle 未重建而空转，本版闭环）
+
+### Tests / CI
+
+- CLI e2e 共享 helper（testHome + freePort）+ 2 文件迁移（Layer 2，`5dfb2d92b`）
+- e2e 从并行池隔离 + e2e shard `--retry=2` CI 加固（`461ed1671`）；orchestrate/cli-anything e2e DB 经 `CHAINLESSCHAIN_HOME` 隔离（`78a1a89c2`）
+- 桌面端 10 个 stale 单测修复（`d191aff58` + `258a7d620`）；loop exec-mode 测试改脚本文件避 POSIX sh 内联坑（`1cb69df43`）
+
+### Docs
+
+- docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账：155 命令/145 技能/25 Android（`8801613dd`）
+
+## [v5.0.3.104] - 2026-06-10 — chore: CLI 0.162.37（IDE 桥接收官）+ 全平台版本对齐 + docs/品牌清扫（补记）
+
+> （补记条目 —— 发版当时未写 changelog）本版主体：①CLI 0.162.37 发 npm（IDE 桥接全 Phase 收官后的聚合版）；②iOS/Android/desktop 版本对齐 v5.0.3.104；③VS Code 扩展 Open VSX 自动发布 CI（`6fd4ffc2f`）+ 图标重绘三连；④JetBrains buildPlugin 修复（关 instrumentation，`3c2516ca0`）；⑤docs-site 新增 8 个 CLI 用户文档页（cc goal/cost/checkpoint/command/statusline/mcp OAuth/web_search/run_shell 后台）+ Family Guard 用户页 + V2 治理命令开发者参考；⑥发布文档脱敏（个人签名者信息清扫，`b83c80049`）；⑦桌面端 vitest-4 stub bug + 12 个 stale 测试修复。
+
 ## [v5.0.3.103] - 2026-06-10 — feat: cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化
 
 > 本版把 v5.0.3.102 之后 2026-06-10 的工程主线固化为一次正式发版：①`cc loop` —— Claude-Code `/loop` 平价：固定间隔循环 + `--dynamic` 自定步速 + `--save` / `--resume` 会话持久化 + headless（非 TTY）下稳定运行；②IDE 桥接 Phase 3 —— JetBrains 平价（纯 JDK 协议核 + IntelliJ glue，跨语言 interop 实跑验证）；③IDE 桥接 Phase 4 —— 发布与维护基建（`ide-extensions.yml`：vsce package/publish + gradlew buildPlugin，tag + secret 双门控）；④VS Code 扩展 —— IDE 桥接可视化（状态栏 + 侧边栏 + 仪表板）+ ChainlessChain 品牌 logo/图标（0.2.0 / 0.2.1）；⑤REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`。CLI 沿用 0.162.36、PDH 0.4.3（已发 npm）。

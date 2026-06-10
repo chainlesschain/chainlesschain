@@ -2,6 +2,25 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-10 Release — **v5.0.3.105: cc agent MCP prompts/resources + SubagentStop hook + --fork-session (CLI 0.162.38) + Android in-APK cc bundle refresh**
+
+> Formalizes the 2026-06-10 CLI-parity mainline after v5.0.3.104 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **cc CLI 0.162.38 (Claude-Code parity trio)**: MCP prompts as slash commands + MCP resources exposed to agent/REPL; `SubagentStop` settings.json hook; `cc agent --fork-session` (fork an existing session into a new branch).
+- **Android in-APK cc bundle refresh**: rebuilt `cc-cli.tgz` (cli 0.162.38 + pdh 0.4.3) → new internal-binaries release (binariesVersion 20260610) + `USR_VERSION 20 → 21`, closing the gap where the APK's embedded cc ran stale code since v5.0.3.101.
+- **Tests / CI**: shared CLI e2e helper (testHome + freePort, Layer 2) + e2e isolation/retry CI hardening + 10 stale desktop unit-test fixes.
+- **Docs**: 14 new CLI command user docs on docs-site + site-wide count reconciliation (155 commands / 145 skills / 25 Android).
+- **npm packages**: `chainlesschain` CLI 0.162.38 published + `@chainlesschain/personal-data-hub` 0.4.3 (unchanged).
+- **Version surfaces**: productVersion v5.0.3.104 → v5.0.3.105 / desktop 5.0.3-alpha.105 / Android versionCode 503105 · USR_VERSION 20 → 21 / iOS CFBundleVersion 105.
+
+---
+
+## 2026-06-10 Release — **v5.0.3.104: CLI 0.162.37 (IDE bridge wrap-up aggregate) + all-platform version alignment + docs/branding sweep** (backfilled)
+
+> (Backfilled entry) Highlights: CLI 0.162.37 published to npm; iOS/Android/desktop version alignment; VS Code extension Open VSX auto-publish CI + icon redraw; JetBrains buildPlugin fix; 8 new CLI user-doc pages + Family Guard user page on docs-site; published-docs PII scrub; desktop vitest-4 stub bug + 12 stale test fixes. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## 2026-06-10 Release — **v5.0.3.103: cc loop (/loop parity) + IDE bridge Phase 3/4 (JetBrains parity + release pipeline) + VS Code extension visualization & branding**
 
 > Formalizes the 2026-06-10 engineering mainline after v5.0.3.102 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
