@@ -190,6 +190,7 @@ export default defineConfig({
         {
           text: "自动化功能",
           items: [
+            { text: "联网搜索 (web_search) ⭐NEW", link: "/chainlesschain/web-search" },
             { text: "IDE 桥接", link: "/chainlesschain/ide-bridge" },
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
             { text: "计算机操控", link: "/chainlesschain/computer-use" },
