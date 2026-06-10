@@ -2,6 +2,10 @@
 
 All notable changes to this extension are documented here.
 
+## [0.2.1] — 2026-06-10
+
+- Add the ChainlessChain brand logo as the extension icon (`media/logo.png`).
+
 ## [0.2.0] — 2026-06-10
 
 Visualization — the bridge now has a UI instead of being terminal-only:

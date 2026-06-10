@@ -2,9 +2,10 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "chainlesschain",
   "license": "MIT",
+  "icon": "media/logo.png",
   "private": true,
   "engines": {
     "vscode": "^1.85.0"
