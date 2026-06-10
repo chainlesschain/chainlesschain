@@ -1,5 +1,7 @@
 .gradle/
 build/
 out/
+bin/
+.intellijPlatform/
 *.iml
 .idea/
