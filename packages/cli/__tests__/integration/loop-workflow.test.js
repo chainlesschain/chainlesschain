@@ -86,7 +86,10 @@ describe("cc loop integration — persistence chain", () => {
   it("save → resume → resume accumulates iterations and replays config", async () => {
     const id = uniqueId();
     createdSessions.push(id);
-    const exec = ["--", "node", "-e", "process.exit(0)"];
+    // Script file, not `node -e "process.exit(0)"`: exec mode is shell:true and
+    // the inline "()" is a POSIX /bin/sh (dash) syntax error. A path is portable.
+    const script = writeScript("process.exit(0);");
+    const exec = ["--", "node", script];
 
     // Save: 2 iterations.
     const a = summaryOf(
@@ -140,7 +143,7 @@ describe("cc loop integration — persistence chain", () => {
     // Config faithfully captured the exec invocation.
     const cfg = events.find((e) => e.type === "loop_config").data;
     expect(cfg.execMode).toBe(true);
-    expect(cfg.operands).toEqual(["node", "-e", "process.exit(0)"]);
+    expect(cfg.operands).toEqual(["node", script]);
     // Iteration numbers are cumulative across the three runs.
     const ns = events
       .filter((e) => e.type === "loop_iteration")
@@ -169,8 +172,7 @@ describe("cc loop integration — persistence chain", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(0)",
+      writeScript("process.exit(0);"),
     );
 
     // Resume extending to 3 (runs iterations 2 & 3 → one inter-run sleep) and

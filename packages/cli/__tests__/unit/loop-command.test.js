@@ -121,8 +121,10 @@ describe("cc loop — exec mode", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(2)",
+      // A script file, not `node -e "process.exit(2)"`: exec mode is shell:true,
+      // and under POSIX /bin/sh (dash) the "()" in an inline -e is a syntax
+      // error. A plain path has no shell metachars and works cross-platform.
+      writeScript("process.exit(2);"),
     );
     const summary = JSON.parse(out.slice(out.indexOf("{")));
     expect(summary.iterations).toBe(3);
@@ -133,9 +135,8 @@ describe("cc loop — exec mode", () => {
   });
 
   it("stops early on --until-exit-zero", async () => {
-    // Child exits 0 on the 2nd run by toggling a temp marker via env-free state:
-    // use a counter file is overkill — instead a command that always exits 0,
-    // with untilExitZero it must stop after iteration 1.
+    // A command that always exits 0; with untilExitZero the loop stops after
+    // iteration 1. Script file (not `node -e`) — see the exec-mode note above.
     const out = await run(
       "--every",
       "1ms",
@@ -145,8 +146,7 @@ describe("cc loop — exec mode", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(0)",
+      writeScript("process.exit(0);"),
     );
     const summary = JSON.parse(out.slice(out.indexOf("{")));
     expect(summary.iterations).toBe(1);
@@ -165,8 +165,7 @@ describe("cc loop — exec mode", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "console.log('READY')",
+      writeScript("console.log('READY');"),
     );
     const summary = JSON.parse(out.slice(out.indexOf("{")));
     expect(summary.iterations).toBe(1);
@@ -240,8 +239,7 @@ describe("cc loop — --save / --resume persistence", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(0)",
+      writeScript("process.exit(0);"),
     );
     const s1 = JSON.parse(out1.slice(out1.indexOf("{")));
     expect(s1.iterations).toBe(2);

@@ -10,8 +10,9 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import {
   sessionPath,
   readEvents,
@@ -20,6 +21,16 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const binScript = join(__dirname, "..", "..", "bin", "chainlesschain.js");
 const createdSessions = [];
+
+// Temp dir for throwaway scripts. Exec mode is shell:true, so an inline
+// `node -e "process.exit(0)"` hits a POSIX /bin/sh (dash) syntax error on the
+// "()" — a script-file path has no shell metachars and runs cross-platform.
+const scriptDir = mkdtempSync(join(tmpdir(), "cc-loop-e2e-"));
+function writeScript(body) {
+  const p = join(scriptDir, `s${Math.random().toString(36).slice(2)}.js`);
+  writeFileSync(p, body, "utf-8");
+  return p;
+}
 
 /** Run the real bin; never throws — returns { status, stdout, stderr }. */
 function runCli(args, timeout = 30000) {
@@ -43,6 +54,11 @@ afterAll(() => {
     } catch {
       /* best-effort */
     }
+  }
+  try {
+    rmSync(scriptDir, { recursive: true, force: true });
+  } catch {
+    /* best-effort */
   }
 });
 
@@ -90,8 +106,7 @@ describe("E2E: cc loop — exec mode", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(2)",
+      writeScript("process.exit(2);"),
     ]);
     const s = summaryOf(stdout);
     expect(s.iterations).toBe(3);
@@ -111,8 +126,7 @@ describe("E2E: cc loop — exec mode", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(0)",
+      writeScript("process.exit(0);"),
     ]);
     const s = summaryOf(stdout);
     expect(s.iterations).toBe(1);
@@ -165,8 +179,7 @@ describe("E2E: cc loop — save / resume", () => {
       "--json",
       "--",
       "node",
-      "-e",
-      "process.exit(0)",
+      writeScript("process.exit(0);"),
     ]);
     const s1 = summaryOf(save.stdout);
     expect(s1.iterations).toBe(2);
