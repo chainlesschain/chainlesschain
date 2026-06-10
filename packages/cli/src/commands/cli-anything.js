@@ -6,6 +6,7 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { withQuietStdout } from "../runtime/quiet-stdout.js";
 import {
   ensureCliAnythingTables,
   detectPython,
@@ -16,6 +17,13 @@ import {
   removeTool,
   listTools,
 } from "../lib/cli-anything-bridge.js";
+
+// bootstrap()/shutdown() log "[AppConfig] …" and "[DatabaseManager] …" via
+// console.info, which Node writes to stdout. That chatter corrupts the JSON
+// emitted by `--json` subcommands. Divert it to stderr (the diagnostic
+// channel) so stdout stays a pristine machine-readable payload.
+const quietBootstrap = (opts) => withQuietStdout(() => bootstrap(opts));
+const quietShutdown = () => withQuietStdout(() => shutdown());
 
 export function registerCliAnythingCommand(program) {
   const cliAny = program
@@ -135,7 +143,7 @@ export function registerCliAnythingCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (name, opts) => {
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const ctx = await quietBootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error(
             "Database not available. Run `chainlesschain setup` first.",
@@ -154,7 +162,7 @@ export function registerCliAnythingCommand(program) {
           force: opts.force,
         });
 
-        await shutdown();
+        await quietShutdown();
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -188,7 +196,7 @@ export function registerCliAnythingCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (opts) => {
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const ctx = await quietBootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available.");
           process.exit(1);
@@ -197,7 +205,7 @@ export function registerCliAnythingCommand(program) {
         ensureCliAnythingTables(db);
 
         const tools = listTools(db);
-        await shutdown();
+        await quietShutdown();
 
         if (opts.json) {
           console.log(JSON.stringify(tools, null, 2));
@@ -241,7 +249,7 @@ export function registerCliAnythingCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (name, opts) => {
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        const ctx = await quietBootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available.");
           process.exit(1);
@@ -250,7 +258,7 @@ export function registerCliAnythingCommand(program) {
         ensureCliAnythingTables(db);
 
         const result = removeTool(db, name);
-        await shutdown();
+        await quietShutdown();
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));

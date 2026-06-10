@@ -195,9 +195,13 @@ describe("E2E: orchestrate --webhook server", () => {
 
     // Wait for server to print its ready message
     await new Promise((resolve, reject) => {
+      // Cold start does chcp + AppConfig + DB bootstrap (~4s baseline, spikes
+      // higher under a loaded singleFork e2e batch). Give realistic headroom so
+      // this inner timer never preempts a slow-but-valid startup before the
+      // outer it() budget; 20s ≈ 5× the observed cold start.
       const timeout = setTimeout(
         () => reject(new Error("webhook server timeout")),
-        12000,
+        20000,
       );
       let buf = "";
       let resolved = false;
@@ -282,7 +286,7 @@ describe("E2E: orchestrate --webhook server", () => {
     const json = JSON.parse(response.body);
     expect(json.ok).toBe(true);
     expect(json.message).toContain("Fix auth bug");
-  }, 20000);
+  }, 30000);
 
   it("returns 200 with challenge for Feishu verification", async () => {
     const port = 19821;
@@ -297,7 +301,7 @@ describe("E2E: orchestrate --webhook server", () => {
     );
 
     await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("timeout")), 12000);
+      const timeout = setTimeout(() => reject(new Error("timeout")), 20000);
       let resolved = false;
       const done = () => {
         if (resolved) return;
@@ -375,5 +379,5 @@ describe("E2E: orchestrate --webhook server", () => {
     const json = JSON.parse(response.body);
     // Feishu challenge-response: { challenge: "test-challenge-token" }
     expect(json.challenge).toBe("test-challenge-token");
-  }, 20000);
+  }, 30000);
 });
