@@ -737,6 +737,30 @@ export async function startAgentRepl(options = {}) {
   const { makeAtCompleter } = await import("../lib/repl-completer.js");
   const atCompleter = makeAtCompleter({
     cwd: process.cwd(),
+    // Keep in sync with the rl.on("line") handlers + /help below.
+    slashCommands: [
+      "/auto",
+      "/clear",
+      "/compact",
+      "/context",
+      "/cowork",
+      "/exit",
+      "/help",
+      "/mcp",
+      "/model",
+      "/output-style",
+      "/plan",
+      "/profile",
+      "/provider",
+      "/quit",
+      "/reindex",
+      "/search",
+      "/session",
+      "/stats",
+      "/statusline",
+      "/sub-agents",
+      "/task",
+    ],
     getIdeOpenFiles: async () => {
       const exec = _adhocMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
       if (!exec || exec.kind !== "mcp" || !_adhocMcp?.mcpClient?.callTool) {

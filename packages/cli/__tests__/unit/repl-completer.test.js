@@ -149,3 +149,36 @@ describe("makeAtCompleter", () => {
     expect(hits).toEqual(["@app.js"]); // fs still works
   });
 });
+
+describe("slash-command completion", () => {
+  const CMDS = ["/help", "/health", "/exit", "/model"];
+
+  it("completes /prefix against the provided command list", () => {
+    const c = makeAtCompleter({ slashCommands: CMDS });
+    const [hits, replaced] = c("/he");
+    expect(hits).toEqual(["/health", "/help"]); // sorted
+    expect(replaced).toBe("/he");
+  });
+
+  it("bare / lists every command", () => {
+    const c = makeAtCompleter({ slashCommands: CMDS });
+    const [hits] = c("/");
+    expect(hits).toHaveLength(CMDS.length);
+  });
+
+  it("stops completing once args begin, and ignores mid-line slashes", () => {
+    const c = makeAtCompleter({ slashCommands: CMDS });
+    expect(c("/model qwen")[0]).toEqual([]); // space → args territory
+    expect(c("see /he")[0]).toEqual([]); // not at line start
+  });
+
+  it("is case-insensitive on the typed prefix", () => {
+    const c = makeAtCompleter({ slashCommands: CMDS });
+    expect(c("/HE")[0]).toEqual(["/health", "/help"]);
+  });
+
+  it("no slashCommands option → / lines complete to nothing (legacy)", () => {
+    const c = makeAtCompleter({});
+    expect(c("/he")[0]).toEqual([]);
+  });
+});

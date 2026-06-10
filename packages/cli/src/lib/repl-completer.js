@@ -78,9 +78,12 @@ export function fileCandidates(prefix, { cwd = process.cwd(), deps } = {}) {
 
 /**
  * Build a readline completer. Returns `completer(line)` → `[hits, replaced]`
- * per the readline contract; non-@ lines complete to nothing.
+ * per the readline contract. Completes `@path` tokens anywhere in the line
+ * and `/command` names at line start (while the command token is still being
+ * typed); everything else completes to nothing.
  *
- * @param {object} opts { cwd?, getIdeOpenFiles?: () => Promise<string[]>, deps? }
+ * @param {object} opts { cwd?, getIdeOpenFiles?: () => Promise<string[]>,
+ *                        slashCommands?: string[], deps? }
  */
 export function makeAtCompleter(opts = {}) {
   const cwd = opts.cwd || process.cwd();
@@ -118,7 +121,19 @@ export function makeAtCompleter(opts = {}) {
       });
   };
 
+  const slashCommands = Array.isArray(opts.slashCommands)
+    ? [...opts.slashCommands].sort()
+    : [];
+
   const completer = (line) => {
+    // `/command` completion (Claude-Code parity): only while typing the
+    // command token itself — once a space follows, args are the user's.
+    const slash = /^\/([A-Za-z_-]*)$/.exec(line);
+    if (slash && slashCommands.length) {
+      const pref = `/${slash[1].toLowerCase()}`;
+      const hits = slashCommands.filter((c) => c.toLowerCase().startsWith(pref));
+      return [hits, line];
+    }
     const at = extractAtPrefix(line);
     if (!at) return [[], line];
     refreshIde(); // async top-up for the NEXT tab; this one uses the cache
