@@ -34,6 +34,9 @@ const crypto = require("node:crypto");
 const {
   readChromiumCookies,
 } = require("../social-bilibili-adb/chromium-cookies-reader");
+const {
+  _internals: { apiPhDecodeCandidates },
+} = require("./api-client");
 
 const KUAISHOU_COOKIES_REMOTE_PATH =
   "/data/data/com.smile.gifmaker/app_webview/Default/Cookies";
@@ -137,22 +140,20 @@ function pickUidFromCookieMap(byName) {
   }
   const cpRaw = byName.get("kuaishou.web.cp.api_ph")?.value;
   if (cpRaw) {
-    let decoded;
-    try {
-      decoded = decodeURIComponent(cpRaw);
-    } catch {
-      decoded = cpRaw;
-    }
     // Try nested user_id / uid / userId regex (don't require strict JSON
-    // — api_ph format isn't documented and varies)
-    for (const pat of [
-      /"?user_id"?\s*:\s*"?(\d+)"?/,
-      /"?uid"?\s*:\s*"?(\d+)"?/,
-      /"?userId"?\s*:\s*"?(\d+)"?/,
-    ]) {
-      const m = pat.exec(decoded);
-      if (m && m[1] && m[1] !== "0") {
-        return m[1];
+    // — api_ph format isn't documented and varies). v0.3: candidates
+    // include the base64-decoded form for newer Kuaishou builds that
+    // write api_ph as base64(JSON).
+    for (const decoded of apiPhDecodeCandidates(cpRaw)) {
+      for (const pat of [
+        /"?user_id"?\s*:\s*"?(\d+)"?/,
+        /"?uid"?\s*:\s*"?(\d+)"?/,
+        /"?userId"?\s*:\s*"?(\d+)"?/,
+      ]) {
+        const m = pat.exec(decoded);
+        if (m && m[1] && m[1] !== "0") {
+          return m[1];
+        }
       }
     }
   }

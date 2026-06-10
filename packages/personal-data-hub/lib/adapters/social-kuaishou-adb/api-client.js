@@ -119,23 +119,19 @@ class KuaishouApiClient {
       );
       return null;
     }
-    let decoded;
-    try {
-      decoded = decodeURIComponent(cpMatch[1]);
-    } catch {
-      decoded = cpMatch[1];
-    }
-    const trimmed = decoded.trimStart();
-    if (!trimmed.startsWith("{")) {
+    const jsonText = apiPhDecodeCandidates(cpMatch[1]).find((c) =>
+      c.trimStart().startsWith("{"),
+    );
+    if (!jsonText) {
       this._setLastError(
         -9,
-        "kuaishou.web.cp.api_ph 解码后非 JSON (likely base64 — v0.3 加 fallback)",
+        "kuaishou.web.cp.api_ph 解码后非 JSON (urlencoded + base64 fallback 均失败)",
       );
       return null;
     }
     let obj;
     try {
-      obj = JSON.parse(decoded);
+      obj = JSON.parse(jsonText);
     } catch (e) {
       this._setLastError(-3, "parse: " + (e.message || String(e)));
       return null;
@@ -359,20 +355,43 @@ function extractPhotoList(feeds, limit, build) {
   return out;
 }
 
-function extractEmbeddedUid(cpRaw) {
+/**
+ * api_ph payload decode chain (v0.3): newer Kuaishou builds write the
+ * `kuaishou.web.cp.api_ph` cookie as base64(JSON) instead of urlencoded
+ * JSON. Yields the URI-decoded string first; when that doesn't look like
+ * JSON but matches the base64 charset (std or url-safe), also yields the
+ * base64-decoded form — gated on the result starting with `{` so lenient
+ * Buffer decoding of arbitrary text can't surface garbage.
+ */
+function apiPhDecodeCandidates(cpRaw) {
   let decoded;
   try {
     decoded = decodeURIComponent(cpRaw);
   } catch {
     decoded = cpRaw;
   }
-  for (const pat of [
-    /"?user_id"?\s*:\s*"?(\d+)"?/,
-    /"?uid"?\s*:\s*"?(\d+)"?/,
-    /"?userId"?\s*:\s*"?(\d+)"?/,
-  ]) {
-    const m = pat.exec(decoded);
-    if (m && m[1] && m[1] !== "0") return m[1];
+  const out = [decoded];
+  const trimmed = decoded.trim();
+  if (!trimmed.startsWith("{") && /^[A-Za-z0-9+/\-_]+={0,2}$/.test(trimmed)) {
+    const b64 = Buffer.from(
+      trimmed.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64",
+    ).toString("utf-8");
+    if (b64.trimStart().startsWith("{")) out.push(b64);
+  }
+  return out;
+}
+
+function extractEmbeddedUid(cpRaw) {
+  for (const decoded of apiPhDecodeCandidates(cpRaw)) {
+    for (const pat of [
+      /"?user_id"?\s*:\s*"?(\d+)"?/,
+      /"?uid"?\s*:\s*"?(\d+)"?/,
+      /"?userId"?\s*:\s*"?(\d+)"?/,
+    ]) {
+      const m = pat.exec(decoded);
+      if (m && m[1] && m[1] !== "0") return m[1];
+    }
   }
   return null;
 }
@@ -393,5 +412,6 @@ module.exports = {
     normalizeMs,
     extractPhotoList,
     extractEmbeddedUid,
+    apiPhDecodeCandidates,
   },
 };

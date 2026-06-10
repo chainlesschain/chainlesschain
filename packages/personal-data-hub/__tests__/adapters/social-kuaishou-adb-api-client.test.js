@@ -430,3 +430,67 @@ describe("normalizeMs", () => {
     expect(_internals.normalizeMs(-1)).toBe(0);
   });
 });
+
+describe("api_ph base64 fallback (v0.3)", () => {
+  const profileJson = JSON.stringify({
+    user_id: "424242",
+    user_name: "B64User",
+    kuaishou_id: "b64_ks",
+  });
+  const b64 = Buffer.from(profileJson, "utf-8").toString("base64");
+
+  it("apiPhDecodeCandidates yields base64-decoded JSON as 2nd candidate", () => {
+    const cands = _internals.apiPhDecodeCandidates(encodeURIComponent(b64));
+    expect(cands).toHaveLength(2);
+    expect(cands[1]).toBe(profileJson);
+  });
+
+  it("apiPhDecodeCandidates yields 1 candidate for plain JSON (no double decode)", () => {
+    const cands = _internals.apiPhDecodeCandidates(
+      encodeURIComponent(profileJson),
+    );
+    expect(cands).toEqual([profileJson]);
+  });
+
+  it("apiPhDecodeCandidates suppresses garbage base64 (decoded ≠ JSON)", () => {
+    expect(_internals.apiPhDecodeCandidates("base64junk")).toEqual([
+      "base64junk",
+    ]);
+  });
+
+  it("apiPhDecodeCandidates handles url-safe base64 (- _ alphabet)", () => {
+    const urlSafe = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const cands = _internals.apiPhDecodeCandidates(urlSafe);
+    expect(cands[1]).toBe(profileJson);
+  });
+
+  it("fetchProfile parses base64-encoded api_ph", async () => {
+    const c = new KuaishouApiClient({ fetch: () => {} });
+    const p = await c.fetchProfile(
+      `kuaishou.web.cp.api_ph=${encodeURIComponent(b64)}`,
+    );
+    expect(p).toMatchObject({
+      uid: "424242",
+      nickname: "B64User",
+      kuaishouId: "b64_ks",
+    });
+    expect(c.lastErrorCode).toBe(0);
+  });
+
+  it("fetchProfile still rejects non-JSON non-base64 payload with -9", async () => {
+    const c = new KuaishouApiClient({ fetch: () => {} });
+    expect(
+      await c.fetchProfile(
+        `kuaishou.web.cp.api_ph=${encodeURIComponent("%%not-b64%%")}`,
+      ),
+    ).toBe(null);
+    expect(c.lastErrorCode).toBe(-9);
+  });
+
+  it("extractUid falls back to base64 api_ph nested user_id", () => {
+    const c = new KuaishouApiClient({ fetch: () => {} });
+    expect(
+      c.extractUid(`kuaishou.web.cp.api_ph=${encodeURIComponent(b64)}`),
+    ).toBe("424242");
+  });
+});

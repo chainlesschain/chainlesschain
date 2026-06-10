@@ -70,6 +70,17 @@ describe("pickUidFromCookieMap", () => {
     const map = make([["did", "anonid"]]);
     expect(_internals.pickUidFromCookieMap(map)).toBe(null);
   });
+
+  it("falls back to base64-encoded api_ph (v0.3 newer Kuaishou builds)", () => {
+    const b64 = Buffer.from(
+      JSON.stringify({ user_id: "424242" }),
+      "utf-8",
+    ).toString("base64");
+    const map = make([
+      ["kuaishou.web.cp.api_ph", encodeURIComponent(b64)],
+    ]);
+    expect(_internals.pickUidFromCookieMap(map)).toBe("424242");
+  });
 });
 
 describe("assembleKuaishouCookieHeader", () => {
