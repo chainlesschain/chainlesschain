@@ -33,6 +33,11 @@ java {
 }
 
 intellijPlatform {
+    // Plain-Java plugin: no UI forms / no @NotNull bytecode instrumentation, so
+    // skip code instrumentation (avoids the InstrumentIdeaExtensions ant-task
+    // dependency the 2.x plugin otherwise needs).
+    instrumentCode = false
+
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "242"
