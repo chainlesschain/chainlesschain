@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.presentation.aistudy.GradeLevel
 import com.chainlesschain.android.presentation.aistudy.MistakeBook
 import com.chainlesschain.android.presentation.aistudy.MistakeEntry
+import com.chainlesschain.android.presentation.aistudy.PointsLedger
 import com.chainlesschain.android.presentation.aistudy.StudyTask
 import com.chainlesschain.android.presentation.aistudy.StudyTaskContext
 import com.chainlesschain.android.presentation.aistudy.StudyTaskStatus
@@ -30,6 +31,8 @@ data class FamilyTaskUiState(
     val showCreateForm: Boolean = false,
     /** 正在 AI 批改的任务 id (该卡显加载中)。 */
     val gradingTaskId: String? = null,
+    /** 完成任务后的积分入账反馈 (M5→M9 联动)；UI 弹 snackbar 后清。 */
+    val earnMessage: String? = null,
 )
 
 /**
@@ -46,6 +49,7 @@ class FamilyTaskViewModel @Inject constructor(
     private val studyTaskContext: StudyTaskContext,
     private val grader: HomeworkGrader,
     private val mistakeBook: MistakeBook,
+    private val pointsLedger: PointsLedger,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyTaskUiState())
@@ -162,8 +166,36 @@ class FamilyTaskViewModel @Inject constructor(
     }
 
     fun complete(task: FamilyTask) = viewModelScope.launch {
-        if (repo.transition(task.id, FamilyTaskStatus.DONE)) clearActiveIf(task.id)
+        if (!repo.transition(task.id, FamilyTaskStatus.DONE)) return@launch
+        clearActiveIf(task.id)
+        awardCompletionPoints(task.id)
     }
+
+    /**
+     * M5→M9 联动: DONE 后按批改分数 (作业分档) 或任务面值自动入账积分 (主文档 §3.9)。
+     * 重读持久层取最新 aiGrade/ai_call_log (UI 传入的 task 可能是旧快照)。
+     */
+    private suspend fun awardCompletionPoints(taskId: String) {
+        val task = repo.getById(taskId) ?: return
+        val decision = TaskCompletionEarn.earnOnDone(
+            task = task,
+            contextCalls = studyTaskContext.callLogFor(taskId),
+            ledger = pointsLedger,
+            eventId = UUID.randomUUID().toString(),
+            now = System.currentTimeMillis(),
+        ) ?: return
+        _uiState.update {
+            it.copy(
+                earnMessage = when {
+                    decision.rejected -> decision.notes.firstOrNull()
+                    decision.notes.isEmpty() -> "+${decision.approvedAmount} 积分"
+                    else -> "+${decision.approvedAmount} 积分（${decision.notes.joinToString("；")}）"
+                },
+            )
+        }
+    }
+
+    fun consumeEarnMessage() = _uiState.update { it.copy(earnMessage = null) }
 
     fun bounceBack(task: FamilyTask) = viewModelScope.launch {
         repo.transition(task.id, FamilyTaskStatus.IN_PROGRESS)

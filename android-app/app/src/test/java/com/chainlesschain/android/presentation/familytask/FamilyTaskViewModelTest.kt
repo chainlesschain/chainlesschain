@@ -4,9 +4,13 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyTa
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStatus
+import com.chainlesschain.android.presentation.aistudy.AiCallKind
 import com.chainlesschain.android.presentation.aistudy.InMemoryMistakeBook
+import com.chainlesschain.android.presentation.aistudy.InMemoryPointsLedger
 import com.chainlesschain.android.presentation.aistudy.InMemoryStudyTaskContext
+import com.chainlesschain.android.presentation.aistudy.PointsEventType
 import com.chainlesschain.android.presentation.aistudy.Subject
+import com.chainlesschain.android.presentation.aistudy.TaskAiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -81,6 +85,7 @@ class FamilyTaskViewModelTest {
     private lateinit var taskContext: InMemoryStudyTaskContext
     private lateinit var grader: FakeHomeworkGrader
     private lateinit var mistakeBook: InMemoryMistakeBook
+    private lateinit var ledger: InMemoryPointsLedger
 
     @Before
     fun setUp() {
@@ -89,12 +94,13 @@ class FamilyTaskViewModelTest {
         taskContext = InMemoryStudyTaskContext()
         grader = FakeHomeworkGrader()
         mistakeBook = InMemoryMistakeBook()
+        ledger = InMemoryPointsLedger()
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook)
+    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook, ledger)
 
     private fun firstTask(viewModel: FamilyTaskViewModel) = viewModel.uiState.value.tasks.first()
 
@@ -184,6 +190,43 @@ class FamilyTaskViewModelTest {
         viewModel.complete(firstTask(viewModel))
 
         assertNull(taskContext.activeTask.value)
+    }
+
+    @Test
+    fun `completing a graded homework auto-earns tiered points (M5 to M9)`() = runTest {
+        val viewModel = vm()
+        viewModel.createTask("数学", "math", "")
+        viewModel.enterStudy(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "ans")
+        viewModel.aiGrade(firstTask(viewModel)) // FakeHomeworkGrader → 85 分 → 80+ 档 = 20
+        viewModel.complete(firstTask(viewModel))
+
+        val events = ledger.events.value
+        assertEquals(1, events.size)
+        assertEquals(PointsEventType.EARN, events[0].type)
+        assertEquals(20, events[0].amount)
+        assertEquals(firstTask(viewModel).id, events[0].relatedTaskId)
+        assertEquals("+20 积分", viewModel.uiState.value.earnMessage)
+
+        viewModel.consumeEarnMessage()
+        assertNull(viewModel.uiState.value.earnMessage)
+    }
+
+    @Test
+    fun `answer seeking calls from the study tab halve a full-mark earn`() = runTest {
+        grader.result = GradingResult(100, "全对", emptyList())
+        val viewModel = vm()
+        viewModel.createTask("数学", "math", "")
+        val id = firstTask(viewModel).id
+        viewModel.enterStudy(firstTask(viewModel))
+        repeat(3) { taskContext.logAiCall(TaskAiCall(id, it.toLong(), AiCallKind.ANSWER_SEEKING)) }
+        viewModel.submit(firstTask(viewModel), "ans")
+        viewModel.aiGrade(firstTask(viewModel))
+        viewModel.complete(firstTask(viewModel))
+
+        // 满分 30 → answer-seeking ≥3 → 50% = 15
+        assertEquals(15, ledger.events.value.single().amount)
+        assertTrue(viewModel.uiState.value.earnMessage!!.contains("50%"))
     }
 
     @Test

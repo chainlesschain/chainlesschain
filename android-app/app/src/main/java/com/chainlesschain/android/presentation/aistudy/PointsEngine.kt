@@ -148,6 +148,12 @@ sealed interface Completion {
 
     /** 错题本复习，[count] 道。满 5 题给分 (不足不给)。 */
     data class MistakeReview(override val taskId: String, val count: Int) : Completion
+
+    /**
+     * 按布置时的面值发放 (family_task.rewardPoints)：非作业类任务 (chore/reading/...)，
+     * 以及作业批改失败无可解析分数时的兜底 (M5→M9 联动, [points] ≤ 0 不发)。
+     */
+    data class Fixed(override val taskId: String, val points: Int) : Completion
 }
 
 /** earn 计算的上下文聚合 (调用方按"今日 + 该任务"预聚合后传入)。 */
@@ -219,6 +225,7 @@ object PointsEngine {
         is Completion.Essay -> rules.essay
         is Completion.Running -> maxOf(0, completion.km) * rules.runningPerKm
         is Completion.MistakeReview -> if (completion.count >= 5) rules.mistakeReview5 else 0
+        is Completion.Fixed -> maxOf(0, completion.points)
     }
 
     /**

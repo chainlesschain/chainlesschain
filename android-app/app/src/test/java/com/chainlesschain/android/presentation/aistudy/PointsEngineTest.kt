@@ -77,6 +77,9 @@ class PointsEngineTest {
         assertEquals(0, PointsEngine.rawPoints(Completion.Running("t", km = -5), rules))
         assertEquals(8, PointsEngine.rawPoints(Completion.MistakeReview("t", count = 5), rules))
         assertEquals(0, PointsEngine.rawPoints(Completion.MistakeReview("t", count = 4), rules))
+        // 面值发放 (M5→M9: 非作业任务 / 批改失败兜底)
+        assertEquals(15, PointsEngine.rawPoints(Completion.Fixed("t", points = 15), rules))
+        assertEquals(0, PointsEngine.rawPoints(Completion.Fixed("t", points = -3), rules))
     }
 
     // ---- decideEarn happy path + anti-cheat ----

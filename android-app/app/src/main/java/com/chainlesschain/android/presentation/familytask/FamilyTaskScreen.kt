@@ -29,9 +29,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -61,61 +65,77 @@ fun FamilyTaskScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var submittingTask by remember { mutableStateOf<FamilyTask?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    // M5→M9 联动: 完成任务自动入账积分的反馈 (含被拒/截断原因)。
+    LaunchedEffect(state.earnMessage) {
+        state.earnMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.consumeEarnMessage()
+        }
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { inner ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
-            TextButton(onClick = onBack) { Text("← 返回") }
-            Text(
-                text = "任务 / 作业",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { viewModel.showCreateForm(!state.showCreateForm) }) {
-                Text(if (state.showCreateForm) "收起" else "+ 新建作业")
-            }
-        }
-        HorizontalDivider()
-
-        if (state.showCreateForm) {
-            CreateTaskForm(
-                onCreate = { title, subject, desc -> viewModel.createTask(title, subject, desc) },
-                onCancel = { viewModel.showCreateForm(false) },
-            )
-            HorizontalDivider()
-        }
-
-        if (state.tasks.isEmpty()) {
-            Text(
-                text = "还没有任务。点右上「+ 新建作业」给孩子布置一道作业试试。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
-        ) {
-            items(items = state.tasks, key = { it.id }) { task ->
-                TaskCard(
-                    task = task,
-                    isGrading = state.gradingTaskId == task.id,
-                    onEnterStudy = {
-                        viewModel.enterStudy(task)
-                        onOpenAiStudy()
-                    },
-                    onSubmit = { submittingTask = task },
-                    onAiGrade = { viewModel.aiGrade(task) },
-                    onComplete = { viewModel.complete(task) },
-                    onBounceBack = { viewModel.bounceBack(task) },
-                    onCancel = { viewModel.cancel(task) },
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onBack) { Text("← 返回") }
+                Text(
+                    text = "任务 / 作业",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = { viewModel.showCreateForm(!state.showCreateForm) }) {
+                    Text(if (state.showCreateForm) "收起" else "+ 新建作业")
+                }
+            }
+            HorizontalDivider()
+
+            if (state.showCreateForm) {
+                CreateTaskForm(
+                    onCreate = { title, subject, desc -> viewModel.createTask(title, subject, desc) },
+                    onCancel = { viewModel.showCreateForm(false) },
+                )
+                HorizontalDivider()
+            }
+
+            if (state.tasks.isEmpty()) {
+                Text(
+                    text = "还没有任务。点右上「+ 新建作业」给孩子布置一道作业试试。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+            ) {
+                items(items = state.tasks, key = { it.id }) { task ->
+                    TaskCard(
+                        task = task,
+                        isGrading = state.gradingTaskId == task.id,
+                        onEnterStudy = {
+                            viewModel.enterStudy(task)
+                            onOpenAiStudy()
+                        },
+                        onSubmit = { submittingTask = task },
+                        onAiGrade = { viewModel.aiGrade(task) },
+                        onComplete = { viewModel.complete(task) },
+                        onBounceBack = { viewModel.bounceBack(task) },
+                        onCancel = { viewModel.cancel(task) },
+                    )
+                }
             }
         }
     }
