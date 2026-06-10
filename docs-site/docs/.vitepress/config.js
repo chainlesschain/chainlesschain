@@ -622,6 +622,40 @@ export default defineConfig({
           ],
         },
         {
+          text: "CLI 命令文档补全 ⭐NEW",
+          items: [
+            { text: "会话压缩 (compact)", link: "/chainlesschain/cli-compact" },
+            { text: "循环执行 (loop)", link: "/chainlesschain/cli-loop" },
+            {
+              text: "权限规则 (permissions)",
+              link: "/chainlesschain/cli-permissions",
+            },
+            { text: "权限治理 V2 (perm)", link: "/chainlesschain/cli-perm" },
+            { text: "M-of-N 多签 (multisig)", link: "/chainlesschain/cli-multisig" },
+            { text: "信任与安全 (trust)", link: "/chainlesschain/cli-trust" },
+            { text: "协议融合 (fusion)", link: "/chainlesschain/cli-fusion" },
+            {
+              text: "去中心化推理 (inference)",
+              link: "/chainlesschain/cli-inference",
+            },
+            { text: "去中心化基础设施 (infra)", link: "/chainlesschain/cli-infra" },
+            {
+              text: "社交图谱分析治理 (sganal)",
+              link: "/chainlesschain/cli-sganal",
+            },
+            { text: "压缩遥测治理 (compt)", link: "/chainlesschain/cli-compt" },
+            {
+              text: "移动推送 (notification)",
+              link: "/chainlesschain/cli-notification",
+            },
+            { text: "项目管理 (project)", link: "/chainlesschain/cli-project" },
+            {
+              text: "同步提供方 (sync-providers)",
+              link: "/chainlesschain/cli-sync-providers",
+            },
+          ],
+        },
+        {
           text: "v5.0.1 Phase 1 AI智能层",
           items: [
             {

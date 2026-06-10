@@ -3611,7 +3611,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
 - 🎨 **Skills System**: 141 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.2.1
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 141 skills unified management ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 145 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -3777,7 +3777,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (141 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (145 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging

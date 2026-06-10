@@ -38,7 +38,15 @@ const categories = [
       ['agent --image', '多模态图像输入（视觉模型）'],
       ['agent web_search', '内置可插拔搜索工具（含免 key 源）'],
       ['cost', 'Token 花费统计'],
-      ['checkpoint', '文件态快照 / 回退'],
+      ['checkpoint', '文件态快照 / 回退（git-plumbing 双引擎）'],
+      ['compact', '会话上下文压缩（/compact 平价）'],
+      ['loop', '定时 / 自适应循环执行 prompt 或命令'],
+      ['goal', '跨 session 持久目标 / OKR'],
+      ['permissions', '.claude/settings.json 权限规则 allow/ask/deny'],
+      ['output-style list', '输出风格 persona（explanatory/learning）'],
+      ['statusline preview', '自定义 / 内置上下文用量状态栏'],
+      ['mcp login', '远程 MCP server OAuth 授权（PKCE）'],
+      ['ide list', 'IDE 桥接：发现并连接编辑器 MCP server'],
       ['skill list', '列出所有 Skills（4 层）'],
       ['skill run', '运行指定 Skill'],
       ['skill sync-cli', '生成 / 更新 9 CLI Skill Packs'],
@@ -387,8 +395,8 @@ const packs = [
 ];
 ---
 <BaseLayout
-  title="CLI 工具 — 152 命令 · 141 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
-  description="ChainlessChain CLI：152 条顶层命令、141 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers、MTC v0.11 联邦 + libp2p auto-discovery、Web Panel i18n 中英双语。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
+  title="CLI 工具 — 155 命令 · 145 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+  description="ChainlessChain CLI：155 条顶层命令、145 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers、MTC v0.11 联邦 + libp2p auto-discovery、Web Panel i18n 中英双语。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
   canonical="https://www.chainlesschain.com/cli"
 >
   <section class="relative overflow-hidden">
@@ -400,7 +408,7 @@ const packs = [
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
-          152 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+          155 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
 
         <!-- Install tabs -->
@@ -434,7 +442,7 @@ const packs = [
   <section class="py-16 md:py-24">
     <div class="container-wide">
       <div class="flex items-baseline justify-between mb-10">
-        <h2 class="text-4xl md:text-5xl">全部 152 条顶层命令</h2>
+        <h2 class="text-4xl md:text-5xl">全部 155 条顶层命令</h2>
         <span class="font-mono text-sm text-muted">{categories.length} 大类</span>
       </div>
       <div class="space-y-3">
