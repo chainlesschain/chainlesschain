@@ -232,9 +232,48 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v6 → v7 (M9).
+     *
+     * 加 points_event 积分流水表 (主文档 §3.9, append-only) + 3 索引。SQL 与 Room 自动
+     * 7.json schema 必对齐 (同 [MIGRATION_5_6] 的 trap 注意事项): 改前必跑 assembleDebug
+     * 重新导出 7.json 再 diff。
+     */
+    val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS points_event (
+                    id TEXT NOT NULL,
+                    child_did TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    reason TEXT NOT NULL,
+                    related_task_id TEXT,
+                    related_reward_id TEXT,
+                    granter_did TEXT,
+                    timestamp INTEGER NOT NULL,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_points_event_child_type " +
+                    "ON points_event(child_did, type)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_points_event_child_task " +
+                    "ON points_event(child_did, related_task_id)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_points_event_ts ON points_event(timestamp)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
     val ALL_MIGRATIONS: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

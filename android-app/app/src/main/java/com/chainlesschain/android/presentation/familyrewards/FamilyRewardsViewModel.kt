@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
@@ -74,7 +75,7 @@ class FamilyRewardsViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FamilyRewardsUiState())
 
     /** 演示: 模拟一次满分作业完成 → earn (经防作弊/单日上限引擎)。 */
-    fun simulateHomeworkEarn(scorePct: Int = 100) {
+    fun simulateHomeworkEarn(scorePct: Int = 100) = viewModelScope.launch {
         val now = System.currentTimeMillis()
         val (dayStart, dayEnd) = dayWindow(now)
         val decision = PointsEngine.decideEarn(
@@ -99,7 +100,7 @@ class FamilyRewardsViewModel @Inject constructor(
     }
 
     /** 兑换目录项 (经余额/上限引擎校验)。 */
-    fun redeem(item: RewardCatalogItem) {
+    fun redeem(item: RewardCatalogItem) = viewModelScope.launch {
         val now = System.currentTimeMillis()
         val (dayStart, dayEnd) = dayWindow(now)
         val balance = ledger.balanceOf(DEMO_CHILD_DID, now).balance

@@ -10,6 +10,7 @@ import com.chainlesschain.android.presentation.aistudy.Completion
 import com.chainlesschain.android.presentation.aistudy.InMemoryPointsLedger
 import com.chainlesschain.android.presentation.aistudy.PointsEventType
 import com.chainlesschain.android.presentation.aistudy.TaskAiCall
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -106,7 +107,7 @@ class TaskCompletionEarnTest {
     // ---- earnOnDone (端到端: 映射 → decideEarn → 入账) ----
 
     @Test
-    fun `full-mark homework earns full tier and lands in the ledger`() {
+    fun `full-mark homework earns full tier and lands in the ledger`() = runTest {
         val ledger = InMemoryPointsLedger()
         val decision = TaskCompletionEarn.earnOnDone(
             task = task(aiGrade = "100 分 — 全对"),
@@ -125,7 +126,7 @@ class TaskCompletionEarnTest {
     }
 
     @Test
-    fun `same task cannot earn twice`() {
+    fun `same task cannot earn twice`() = runTest {
         val ledger = InMemoryPointsLedger()
         val t = task(aiGrade = "100 分 — 全对")
         TaskCompletionEarn.earnOnDone(t, emptyList(), ledger, "e1", 1_000L)
@@ -135,7 +136,7 @@ class TaskCompletionEarnTest {
     }
 
     @Test
-    fun `full mark with repeated answer seeking is halved`() {
+    fun `full mark with repeated answer seeking is halved`() = runTest {
         val ledger = InMemoryPointsLedger()
         val contextCalls = (1..3).map { TaskAiCall("t1", it.toLong(), AiCallKind.ANSWER_SEEKING) }
         val decision = TaskCompletionEarn.earnOnDone(
@@ -150,7 +151,7 @@ class TaskCompletionEarnTest {
     }
 
     @Test
-    fun `chore completion earns face value via Fixed`() {
+    fun `chore completion earns face value via Fixed`() = runTest {
         val ledger = InMemoryPointsLedger()
         val decision = TaskCompletionEarn.earnOnDone(
             task = task(type = FamilyTaskType.CHORE, rewardPoints = 15),
@@ -164,7 +165,7 @@ class TaskCompletionEarnTest {
     }
 
     @Test
-    fun `task not participating returns null and touches nothing`() {
+    fun `task not participating returns null and touches nothing`() = runTest {
         val ledger = InMemoryPointsLedger()
         val decision = TaskCompletionEarn.earnOnDone(
             task = task(type = FamilyTaskType.CUSTOM, rewardPoints = 0),

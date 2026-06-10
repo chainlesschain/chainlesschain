@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.aistudy
 
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -282,7 +283,7 @@ class PointsEngineTest {
     // ---- InMemoryPointsLedger seam ----
 
     @Test
-    fun `ledger append updates balance and dedup`() {
+    fun `ledger append updates balance and dedup`() = runTest {
         val ledger = InMemoryPointsLedger()
         assertFalse(ledger.hasEarnedForTask(child, "task-1"))
 
@@ -301,7 +302,7 @@ class PointsEngineTest {
     }
 
     @Test
-    fun `ledger day-window aggregations`() {
+    fun `ledger day-window aggregations`() = runTest {
         val ledger = InMemoryPointsLedger()
         // day window [1000, 2000)
         ledger.append(ev(PointsEventType.EARN, 30, taskId = "a", ts = 1100))

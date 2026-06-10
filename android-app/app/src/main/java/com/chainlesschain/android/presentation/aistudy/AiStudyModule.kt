@@ -37,10 +37,10 @@ abstract class AiStudyModule {
     @Singleton
     abstract fun bindStudyTaskContext(impl: InMemoryStudyTaskContext): StudyTaskContext
 
-    // M9 奖励/积分账本 seam (内存态; SQLCipher 持久化 follow-up)。
+    // M9 奖励/积分账本: family_guard.db points_event 真持久 (InMemory 留测试/演示)。
     @Binds
     @Singleton
-    abstract fun bindPointsLedger(impl: InMemoryPointsLedger): PointsLedger
+    abstract fun bindPointsLedger(impl: RoomPointsLedger): PointsLedger
 
     @Binds
     @Singleton

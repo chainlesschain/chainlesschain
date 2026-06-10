@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.aistudy
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -368,28 +369,29 @@ object PointsEngine {
 /**
  * 积分账本 seam。aistudy 侧 VM / Repository 借此读余额、追加流水。
  *
- * v0.1 内存态 + 接口化 —— 真正的 SQLCipher 持久化 + P2P 同步是 follow-up；
- * 这一层纯逻辑、可单测，先把"流水 → 余额 + earn/spend/grant 决策落账"做透。
+ * suspend + Flow 接口：生产绑 [RoomPointsLedger] (family_guard.db points_event 表,
+ * SQLCipher 加密持久)；[InMemoryPointsLedger] 留测试/演示。P2P earn/spend 同步与
+ * 冲突解决仍是 follow-up。
  */
 interface PointsLedger {
-    val events: StateFlow<List<PointsEvent>>
+    val events: Flow<List<PointsEvent>>
 
-    fun balanceOf(childDid: String, now: Long): PointsBalance
+    suspend fun balanceOf(childDid: String, now: Long): PointsBalance
 
-    /** 追加一条流水 (来自 decide* 的 event)。 */
-    fun append(event: PointsEvent)
+    /** 追加一条流水 (来自 decide* 的 event)。重复 id (P2P 重放) 静默忽略。 */
+    suspend fun append(event: PointsEvent)
 
     /** 该 task 是否已 earn 过 (防重复)。 */
-    fun hasEarnedForTask(childDid: String, taskId: String): Boolean
+    suspend fun hasEarnedForTask(childDid: String, taskId: String): Boolean
 
     /** 某日 [dayStart, dayEnd) 区间内某 child 的 earn 累计。 */
-    fun earnedBetween(childDid: String, dayStart: Long, dayEnd: Long): Int
+    suspend fun earnedBetween(childDid: String, dayStart: Long, dayEnd: Long): Int
 
     /** 某日区间内某 guardian 对某 child 的 grant 累计。 */
-    fun grantedBetween(granterDid: String, childDid: String, dayStart: Long, dayEnd: Long): Int
+    suspend fun grantedBetween(granterDid: String, childDid: String, dayStart: Long, dayEnd: Long): Int
 
     /** 某日区间内某 reward 的兑换次数。 */
-    fun redeemCountBetween(childDid: String, rewardId: String, dayStart: Long, dayEnd: Long): Int
+    suspend fun redeemCountBetween(childDid: String, rewardId: String, dayStart: Long, dayEnd: Long): Int
 }
 
 @Singleton
@@ -397,21 +399,23 @@ class InMemoryPointsLedger @Inject constructor() : PointsLedger {
     private val _events = MutableStateFlow<List<PointsEvent>>(emptyList())
     override val events: StateFlow<List<PointsEvent>> = _events.asStateFlow()
 
-    override fun balanceOf(childDid: String, now: Long): PointsBalance =
+    override suspend fun balanceOf(childDid: String, now: Long): PointsBalance =
         PointsEngine.computeBalance(childDid, _events.value, now)
 
-    override fun append(event: PointsEvent) {
-        _events.update { it + event }
+    override suspend fun append(event: PointsEvent) {
+        _events.update { existing ->
+            if (existing.any { it.id == event.id }) existing else existing + event
+        }
     }
 
-    override fun hasEarnedForTask(childDid: String, taskId: String): Boolean =
+    override suspend fun hasEarnedForTask(childDid: String, taskId: String): Boolean =
         _events.value.any {
             it.childDid == childDid &&
                 it.type == PointsEventType.EARN &&
                 it.relatedTaskId == taskId
         }
 
-    override fun earnedBetween(childDid: String, dayStart: Long, dayEnd: Long): Int =
+    override suspend fun earnedBetween(childDid: String, dayStart: Long, dayEnd: Long): Int =
         _events.value
             .filter {
                 it.childDid == childDid && it.type == PointsEventType.EARN &&
@@ -419,7 +423,7 @@ class InMemoryPointsLedger @Inject constructor() : PointsLedger {
             }
             .sumOf { it.amount }
 
-    override fun grantedBetween(granterDid: String, childDid: String, dayStart: Long, dayEnd: Long): Int =
+    override suspend fun grantedBetween(granterDid: String, childDid: String, dayStart: Long, dayEnd: Long): Int =
         _events.value
             .filter {
                 it.granterDid == granterDid && it.childDid == childDid &&
@@ -428,7 +432,7 @@ class InMemoryPointsLedger @Inject constructor() : PointsLedger {
             }
             .sumOf { it.amount }
 
-    override fun redeemCountBetween(childDid: String, rewardId: String, dayStart: Long, dayEnd: Long): Int =
+    override suspend fun redeemCountBetween(childDid: String, rewardId: String, dayStart: Long, dayEnd: Long): Int =
         _events.value.count {
             it.childDid == childDid && it.type == PointsEventType.SPEND &&
                 it.relatedRewardId == rewardId &&

@@ -12,6 +12,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipD
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
+import com.chainlesschain.android.feature.familyguard.data.dao.PointsEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.entity.AnomalyEntity
@@ -24,6 +25,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembersh
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyRelationshipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.LocationPointEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.PointsEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RevivalCodeEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
 
@@ -58,6 +60,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         AuditLogEntity::class,
         // v6 (M5): 任务/作业 family_task (主文档 §3.5)
         FamilyTaskEntity::class,
+        // v7 (M9): 积分流水 points_event (主文档 §3.9, append-only)
+        PointsEventEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -76,9 +80,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun anomalyDao(): AnomalyDao
     abstract fun auditLogDao(): AuditLogDao
     abstract fun familyTaskDao(): FamilyTaskDao
+    abstract fun pointsEventDao(): PointsEventDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 6
+        const val SCHEMA_VERSION = 7
     }
 }

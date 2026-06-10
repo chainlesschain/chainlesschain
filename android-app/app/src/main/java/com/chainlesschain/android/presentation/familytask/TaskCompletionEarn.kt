@@ -60,7 +60,7 @@ object TaskCompletionEarn {
      * 完成时全流程：映射 Completion → 查账本聚合 (同 task 去重 / 今日累计) → decideEarn
      * → 批准则入账。返回 null = 该任务不参与积分。
      */
-    fun earnOnDone(
+    suspend fun earnOnDone(
         task: FamilyTask,
         contextCalls: List<TaskAiCall>,
         ledger: PointsLedger,
@@ -83,7 +83,7 @@ object TaskCompletionEarn {
             now = now,
             rules = rules,
         )
-        decision.event?.let(ledger::append)
+        decision.event?.let { ledger.append(it) }
         return decision
     }
 }
