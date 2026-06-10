@@ -98,6 +98,14 @@ fun GentlenessReportScreen(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
+        if (state.fromRealData) {
+            Text(
+                text = "取消率/延期率已按最近 30 天真实任务史计算，可继续滑动做假设分析",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
         MetricSlider("请求拒绝率", "${pct(metrics.rejectionRate)}%", metrics.rejectionRate.toFloat(), 0f..1f) {
             viewModel.setRejectionRate(it)
         }
