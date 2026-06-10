@@ -376,6 +376,8 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 
 ## 斜杠命令
 
+> **`@` 路径补全（v0.162.38+）**：交互 REPL 中输入 `@` 后按 TAB 补全文件/目录路径（目录带尾斜杠可继续下钻，自动排除 `node_modules`/`.git`，大小写不敏感）；IDE 桥接已连接时，编辑器打开的标签页混入候选并排最前（workspace 内转相对路径）。IDE 列表 5s TTL 后台刷新，补全本身同步零延迟。
+
 ### 基础命令
 
 | 命令             | 说明                                 |
@@ -691,7 +693,7 @@ Resumed session session-17... (8 messages)
 ## 关键文件
 
 - `packages/cli/src/commands/agent.js` — 命令入口（含 `--session` 选项）
-- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（9 工具 + 141 技能 + Plan Mode + Context Engineering）
+- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（9 工具 + 145 技能 + Plan Mode + Context Engineering）
 - `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（6 维注入 + 智能压缩）
 - `packages/cli/src/lib/plan-mode.js` — Plan Mode 实现
 - `packages/cli/src/lib/instinct-manager.js` — Instinct 学习引擎
