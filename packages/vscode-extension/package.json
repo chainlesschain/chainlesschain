@@ -85,7 +85,7 @@
   },
   "scripts": {
     "package": "vsce package --no-dependencies",
-    "publish:ovsx": "ovsx publish --no-dependencies",
+    "publish:ovsx": "npx --yes ovsx publish --no-dependencies",
     "publish:vsce": "vsce publish --no-dependencies"
   },
   "repository": {
