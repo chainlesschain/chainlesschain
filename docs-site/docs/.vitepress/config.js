@@ -214,6 +214,7 @@ export default defineConfig({
             { text: "自定义斜杠命令 (cc command) ⭐NEW", link: "/chainlesschain/slash-commands" },
             { text: "检查点 / 回滚 (cc checkpoint) ⭐NEW", link: "/chainlesschain/checkpoint" },
             { text: "输出风格", link: "/chainlesschain/output-styles" },
+            { text: "状态栏 (cc statusline) ⭐NEW", link: "/chainlesschain/status-line" },
             { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
             { text: "协作高级功能", link: "/chainlesschain/cowork-advanced" },
