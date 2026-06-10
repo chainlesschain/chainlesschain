@@ -102,8 +102,11 @@ export function makeSleep(signal) {
   return (ms) =>
     new Promise((resolve) => {
       if (signal?.aborted || ms <= 0) return resolve();
+      // NB: do NOT unref() — the pending interval timer is what keeps the
+      // process alive between rounds. Under a TTY the active stdin would mask
+      // an unref'd timer, but headless (piped stdin / CI / cron) the loop would
+      // exit after the first round. SIGINT aborts the wait via the signal.
       const t = setTimeout(resolve, ms);
-      if (t.unref) t.unref();
       signal?.addEventListener(
         "abort",
         () => {
