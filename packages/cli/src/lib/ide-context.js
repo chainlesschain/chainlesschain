@@ -186,3 +186,86 @@ export async function buildIdePromptContext(mcp, opts = {}) {
     return null;
   }
 }
+
+// ─── Post-edit diagnostics feedback (Claude-Code parity) ────────────────────
+//
+// After the agent mutates a file, the connected IDE's language servers see the
+// change and update their diagnostics. Pulling them right back into the tool
+// result lets the model fix what it just broke in the SAME loop instead of
+// discovering it turns later. The IDE needs a beat to re-lint, hence the
+// settle delay (CC_IDE_DIAG_SETTLE_MS overrides; 0 skips the wait).
+
+/** Give language servers this long to notice the disk change before asking. */
+const DIAG_SETTLE_MS = 600;
+/** At most this many diagnostics are surfaced per edit. */
+const DIAG_CAP = 10;
+/** Only these severities are worth interrupting the model for. */
+const DIAG_SEVERITIES = new Set(["error", "warning"]);
+
+/** Does this MCP surface expose the IDE bridge's diagnostics tool? */
+export function hasIdeDiagnosticsTool(mcp) {
+  return !!(
+    mcp?.mcpClient?.callTool &&
+    mcp.externalToolExecutors?.mcp__ide__getDiagnostics?.kind === "mcp"
+  );
+}
+
+/**
+ * Pull the IDE's current error/warning diagnostics for one file. `mcp` accepts
+ * either a resolveAgentMcp bundle or agent-core's tool context (both carry
+ * `mcpClient` + `externalToolExecutors`). Returns a non-empty array or null.
+ * Never throws.
+ *
+ * @param {object} mcp       { mcpClient, externalToolExecutors }
+ * @param {string} filePath  absolute path of the just-edited file
+ * @param {object} opts      { env?, settleMs?, timeoutMs? }
+ */
+export async function collectIdeDiagnostics(mcp, filePath, opts = {}) {
+  const env = opts.env || process.env;
+  if (!ideContextEnabled(env)) return null;
+  if (!filePath || !hasIdeDiagnosticsTool(mcp)) return null;
+  const settle =
+    opts.settleMs ??
+    (Number.isFinite(Number(env.CC_IDE_DIAG_SETTLE_MS))
+      ? Number(env.CC_IDE_DIAG_SETTLE_MS)
+      : DIAG_SETTLE_MS);
+  if (settle > 0) await new Promise((r) => setTimeout(r, settle));
+  const exec = mcp.externalToolExecutors.mcp__ide__getDiagnostics;
+  let p;
+  try {
+    p = mcp.mcpClient.callTool(exec.serverName, exec.toolName, {
+      path: filePath,
+    });
+  } catch {
+    return null;
+  }
+  const data = await withTimeout(
+    p.then(parseToolResultJson),
+    opts.timeoutMs || DEFAULT_TIMEOUT_MS,
+  );
+  const all = Array.isArray(data?.diagnostics) ? data.diagnostics : null;
+  if (!all) return null;
+  const relevant = all.filter(
+    (d) => d && DIAG_SEVERITIES.has(String(d.severity).toLowerCase()),
+  );
+  return relevant.length > 0 ? relevant : null;
+}
+
+/**
+ * Render pulled diagnostics as a compact feedback string for the tool result.
+ * Returns null when there is nothing to report.
+ */
+export function formatIdeDiagnostics(diags, { cap = DIAG_CAP } = {}) {
+  if (!Array.isArray(diags) || diags.length === 0) return null;
+  const shown = diags.slice(0, cap).map((d) => {
+    const loc = Number.isInteger(d.line) ? `:${d.line + 1}` : "";
+    const src = d.source ? ` (${d.source})` : "";
+    return `  [${d.severity}] ${d.file || ""}${loc} ${d.message || ""}${src}`.trimEnd();
+  });
+  const more = diags.length - shown.length;
+  return (
+    `IDE diagnostics after this edit (${diags.length} problem${diags.length === 1 ? "" : "s"}):\n` +
+    shown.join("\n") +
+    (more > 0 ? `\n  (+${more} more)` : "")
+  );
+}

@@ -6,7 +6,10 @@
  * open editors are appended to the in-flight user turn — and ONLY the
  * in-flight turn (persistence stays clean).
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import {
   ideContextEnabled,
   hasIdeContextTools,
@@ -15,8 +18,12 @@ import {
   formatIdeContext,
   appendTextToContent,
   buildIdePromptContext,
+  hasIdeDiagnosticsTool,
+  collectIdeDiagnostics,
+  formatIdeDiagnostics,
 } from "../../src/lib/ide-context.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 
 const txt = (data) => ({
   content: [{ type: "text", text: JSON.stringify(data) }],
@@ -316,5 +323,228 @@ describe("runAgentHeadless — IDE context wiring", () => {
     );
     const userMsg = seenMessages.find((m) => m.role === "user");
     expect(userMsg.content).toContain("STUB");
+  });
+});
+
+// ─── Post-edit diagnostics feedback ─────────────────────────────────────────
+
+const DIAGS = [
+  {
+    file: "C:/proj/src/app.js",
+    severity: "error",
+    message: "Unexpected token",
+    line: 4,
+    character: 2,
+    source: "ts",
+  },
+  {
+    file: "C:/proj/src/app.js",
+    severity: "warning",
+    message: "unused var",
+    line: 9,
+    character: 0,
+    source: "eslint",
+  },
+  {
+    file: "C:/proj/src/app.js",
+    severity: "info",
+    message: "ignore me",
+    line: 1,
+    character: 0,
+  },
+];
+
+function fakeDiagMcp({ diagnostics = DIAGS, callTool } = {}) {
+  const calls = [];
+  return {
+    mcpClient: {
+      callTool:
+        callTool ||
+        (async (server, tool, args) => {
+          calls.push({ server, tool, args });
+          return txt({ diagnostics });
+        }),
+    },
+    externalToolExecutors: {
+      mcp__ide__getDiagnostics: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getDiagnostics",
+      },
+    },
+    calls,
+  };
+}
+
+describe("hasIdeDiagnosticsTool", () => {
+  it("requires a client and the ide diagnostics executor", () => {
+    expect(hasIdeDiagnosticsTool(fakeDiagMcp())).toBe(true);
+    expect(hasIdeDiagnosticsTool(null)).toBe(false);
+    expect(hasIdeDiagnosticsTool(fakeIdeMcp())).toBe(false); // no diag tool
+  });
+});
+
+describe("collectIdeDiagnostics", () => {
+  it("scopes to the file and keeps only errors/warnings", async () => {
+    const mcp = fakeDiagMcp();
+    const out = await collectIdeDiagnostics(mcp, "C:/proj/src/app.js", {
+      env: {},
+      settleMs: 0,
+    });
+    expect(out).toHaveLength(2); // info dropped
+    expect(out[0].severity).toBe("error");
+    expect(mcp.calls[0]).toMatchObject({
+      server: "ide",
+      tool: "getDiagnostics",
+      args: { path: "C:/proj/src/app.js" },
+    });
+  });
+
+  it("returns null for clean files, missing tool, disabled, no path", async () => {
+    expect(
+      await collectIdeDiagnostics(fakeDiagMcp({ diagnostics: [] }), "f.js", {
+        env: {},
+        settleMs: 0,
+      }),
+    ).toBe(null);
+    expect(
+      await collectIdeDiagnostics(fakeIdeMcp(), "f.js", {
+        env: {},
+        settleMs: 0,
+      }),
+    ).toBe(null);
+    expect(
+      await collectIdeDiagnostics(fakeDiagMcp(), "f.js", {
+        env: { CC_IDE_CONTEXT: "0" },
+        settleMs: 0,
+      }),
+    ).toBe(null);
+    expect(
+      await collectIdeDiagnostics(fakeDiagMcp(), "", { env: {}, settleMs: 0 }),
+    ).toBe(null);
+  });
+
+  it("survives a hung or throwing IDE", async () => {
+    expect(
+      await collectIdeDiagnostics(
+        fakeDiagMcp({ callTool: () => new Promise(() => {}) }),
+        "f.js",
+        { env: {}, settleMs: 0, timeoutMs: 30 },
+      ),
+    ).toBe(null);
+    expect(
+      await collectIdeDiagnostics(
+        fakeDiagMcp({
+          callTool: () => {
+            throw new Error("boom");
+          },
+        }),
+        "f.js",
+        { env: {}, settleMs: 0 },
+      ),
+    ).toBe(null);
+  });
+
+  it("honors CC_IDE_DIAG_SETTLE_MS=0 from env", async () => {
+    const t0 = Date.now();
+    await collectIdeDiagnostics(fakeDiagMcp(), "f.js", {
+      env: { CC_IDE_DIAG_SETTLE_MS: "0" },
+    });
+    expect(Date.now() - t0).toBeLessThan(500);
+  });
+});
+
+describe("formatIdeDiagnostics", () => {
+  it("renders 1-based lines, source, and a cap", () => {
+    const s = formatIdeDiagnostics(DIAGS.slice(0, 2));
+    expect(s).toContain("2 problems");
+    expect(s).toContain("[error] C:/proj/src/app.js:5 Unexpected token (ts)");
+    expect(s).toContain("[warning] C:/proj/src/app.js:10 unused var (eslint)");
+    const capped = formatIdeDiagnostics(
+      Array.from({ length: 5 }, (_, i) => ({
+        severity: "error",
+        file: "f.js",
+        message: `m${i}`,
+        line: i,
+      })),
+      { cap: 2 },
+    );
+    expect(capped).toContain("(+3 more)");
+  });
+  it("returns null when empty", () => {
+    expect(formatIdeDiagnostics(null)).toBe(null);
+    expect(formatIdeDiagnostics([])).toBe(null);
+  });
+});
+
+describe("executeTool — post-edit diagnostics wiring", () => {
+  let tmp;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-idediag-"));
+    process.env.CC_IDE_DIAG_SETTLE_MS = "0";
+  });
+  afterEach(() => {
+    delete process.env.CC_IDE_DIAG_SETTLE_MS;
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+  });
+
+  it("attaches ideDiagnostics to a successful write_file", async () => {
+    const mcp = fakeDiagMcp();
+    const res = await executeTool(
+      "write_file",
+      { path: "out.js", content: "const x = ;" },
+      {
+        cwd: tmp,
+        mcpClient: mcp.mcpClient,
+        externalToolExecutors: mcp.externalToolExecutors,
+      },
+    );
+    expect(res.success).toBe(true);
+    expect(res.ideDiagnostics).toContain("IDE diagnostics after this edit");
+    expect(res.ideDiagnostics).toContain("Unexpected token");
+    // the IDE was asked about the file that was just written
+    expect(mcp.calls[0].args.path).toBe(path.resolve(tmp, "out.js"));
+  });
+
+  it("stays silent without an IDE bridge or on clean diagnostics", async () => {
+    const clean = fakeDiagMcp({ diagnostics: [] });
+    const res = await executeTool(
+      "write_file",
+      { path: "ok.js", content: "const x = 1;" },
+      {
+        cwd: tmp,
+        mcpClient: clean.mcpClient,
+        externalToolExecutors: clean.externalToolExecutors,
+      },
+    );
+    expect(res.success).toBe(true);
+    expect(res.ideDiagnostics).toBeUndefined();
+
+    const noIde = await executeTool(
+      "write_file",
+      { path: "ok2.js", content: "const x = 1;" },
+      { cwd: tmp },
+    );
+    expect(noIde.success).toBe(true);
+    expect(noIde.ideDiagnostics).toBeUndefined();
+  });
+
+  it("does not query the IDE for read-only tools", async () => {
+    fs.writeFileSync(path.join(tmp, "r.txt"), "hi", "utf-8");
+    const mcp = fakeDiagMcp();
+    await executeTool(
+      "read_file",
+      { path: "r.txt" },
+      {
+        cwd: tmp,
+        mcpClient: mcp.mcpClient,
+        externalToolExecutors: mcp.externalToolExecutors,
+      },
+    );
+    expect(mcp.calls).toHaveLength(0);
   });
 });

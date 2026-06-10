@@ -930,6 +930,39 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  // IDE post-edit diagnostics (Claude-Code parity): after a successful file
+  // mutation with an IDE bridge connected, pull the editor's fresh
+  // error/warning diagnostics for that file into the tool result so the model
+  // can fix what it just broke in the same loop. Best-effort, bounded;
+  // CC_IDE_CONTEXT=0 disables alongside prompt-time context.
+  if (
+    (name === "write_file" ||
+      name === "edit_file" ||
+      name === "edit_file_hashed") &&
+    toolResult &&
+    typeof toolResult === "object" &&
+    !toolResult.error &&
+    args?.path &&
+    context.mcpClient &&
+    context.externalToolExecutors
+  ) {
+    try {
+      const { collectIdeDiagnostics, formatIdeDiagnostics } =
+        await import("../lib/ide-context.js");
+      const diags = await collectIdeDiagnostics(
+        {
+          mcpClient: context.mcpClient,
+          externalToolExecutors: context.externalToolExecutors,
+        },
+        path.resolve(cwd, args.path),
+      );
+      const feedback = formatIdeDiagnostics(diags);
+      if (feedback) toolResult.ideDiagnostics = feedback;
+    } catch (_err) {
+      // diagnostics feedback is optional polish — never fail the tool
+    }
+  }
+
   return toolResult;
 }
 
