@@ -111,9 +111,13 @@ describe("PrivacyComputing", () => {
     await pc.initialize(db);
     const listener = vi.fn();
     pc.on("privacy:mpc-completed", listener);
-    await pc.mpcCompute("multiply", ["a", "b"], []);
+    // Use a supported operation (sum/average/max/min) with one input per party.
+    // Was mpcCompute("multiply", ["a","b"], []) — "multiply" is not a supported
+    // op (threw "Unknown MPC operation") and [] predates the per-party input
+    // validation, so the event never fired.
+    await pc.mpcCompute("sum", ["a", "b"], [3, 4]);
     expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ operation: "multiply" }),
+      expect.objectContaining({ operation: "sum" }),
     );
   });
 

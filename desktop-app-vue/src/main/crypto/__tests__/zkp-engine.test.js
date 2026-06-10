@@ -80,7 +80,10 @@ describe("ZKPEngine", () => {
     expect(circuit.name).toBe("multiply");
     expect(circuit.compiled).toBe(true);
     expect(circuit.inputs).toEqual(["a", "b"]);
-    expect(circuit.verificationKey).toMatch(/^vk-circuit-/);
+    // After the R1CS refactor the structured verification key is stored inside
+    // the engine keyed by circuit id; circuit.verificationKey holds that id
+    // reference (the old "vk-circuit-…" string format is gone).
+    expect(circuit.verificationKey).toBe(circuit.id);
   });
 
   it("should store circuit in internal map", async () => {

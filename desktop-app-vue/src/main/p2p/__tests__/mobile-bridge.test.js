@@ -167,7 +167,10 @@ describe("MobileBridge — Plan A.1 Phase 4 LRU dedup", () => {
 
       // Shrink the TTL so the test stays fast. The map and gc helper both
       // read this property each call, so mutation is safe post-construction.
-      bridge.RECENT_MOBILE_REQUEST_TTL_MS = 50;
+      // 200ms (was 50ms): a 50ms window flaked under load because the two
+      // awaited bridge calls below could themselves span >50ms, expiring the
+      // TTL before the dedup assertion and admitting the duplicate.
+      bridge.RECENT_MOBILE_REQUEST_TTL_MS = 200;
 
       await bridge.bridgeToLibp2p("mobile-A", commandRequestFrame("req-ttl"));
       expect(events).toHaveLength(1);
@@ -176,7 +179,8 @@ describe("MobileBridge — Plan A.1 Phase 4 LRU dedup", () => {
       await bridge.bridgeToLibp2p("mobile-A", commandRequestFrame("req-ttl"));
       expect(events).toHaveLength(1);
 
-      await new Promise((r) => setTimeout(r, 70));
+      // Wait past the TTL so the id is evicted and admissible again.
+      await new Promise((r) => setTimeout(r, 260));
 
       await bridge.bridgeToLibp2p("mobile-A", commandRequestFrame("req-ttl"));
       expect(events).toHaveLength(2);

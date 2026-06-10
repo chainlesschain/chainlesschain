@@ -152,8 +152,8 @@ function fakeMobileBridgeSync({ runOnce } = {}) {
 // 注册
 // ============================================================
 describe("mobile-ipc · registration", () => {
-  it("registers 6 handlers via injected ipcMain", () => {
-    // M4.5 加了 register-manual 后总数从 5 → 6
+  it("registers 7 handlers via injected ipcMain", () => {
+    // M4.5 加了 register-manual 后 5 → 6；后续加 send-pairing-confirmation 6 → 7
     const ipcMain = makeFakeIpcMain();
     registerMobileSyncIPC({
       database,
@@ -161,7 +161,7 @@ describe("mobile-ipc · registration", () => {
       app: fakeApp(),
       ipcMain,
     });
-    expect(ipcMain.handle).toHaveBeenCalledTimes(6);
+    expect(ipcMain.handle).toHaveBeenCalledTimes(7);
     const channels = [...ipcMain.handlers.keys()];
     expect(channels).toEqual(
       expect.arrayContaining([
@@ -171,6 +171,7 @@ describe("mobile-ipc · registration", () => {
         "sync:mobile:list-paired",
         "sync:mobile:unpair",
         "sync:mobile:register-manual",
+        "sync:mobile:send-pairing-confirmation",
       ]),
     );
   });

@@ -25,8 +25,9 @@ describe("CodingAgentToolAdapter", () => {
     const tools = adapter.listCoreTools();
 
     // mvp tier: read_file, write_file, edit_file, edit_file_hashed (Hashline
-    // pattern, v5.0.2.9), run_shell, git, search_files, list_dir
-    expect(tools).toHaveLength(8);
+    // pattern, v5.0.2.9), run_shell, check_shell (background-shell polling),
+    // git, search_files, list_dir
+    expect(tools).toHaveLength(9);
     expect(tools.map((tool) => tool.name)).toEqual(
       CORE_CODING_AGENT_TOOLS.map((tool) => tool.name),
     );
@@ -164,8 +165,9 @@ describe("CodingAgentToolAdapter", () => {
 
     const tools = await adapter.listAvailableTools();
 
-    // 8 core (mvp tier incl. edit_file_hashed) + 1 allowlisted managed tool
-    expect(tools).toHaveLength(9);
+    // 9 core (mvp tier incl. edit_file_hashed + check_shell) + 1 allowlisted
+    // managed tool
+    expect(tools).toHaveLength(10);
     expect(
       tools.find((tool) => tool.name === DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0]),
     ).toMatchObject({
