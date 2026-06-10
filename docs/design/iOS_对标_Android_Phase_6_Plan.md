@@ -180,7 +180,7 @@ framework 已就位 (`RemoteCommandClient` + `OfflineCommandQueue` + `LRUSet` + 
 
 #### 6.0.1 Mac + iPhone + 真桌面环境准备
 - 安装 v5.0.3.5x 桌面（dev box 编译或 release download）
-- iPhone 通过 Apple Developer 模式安装 ad-hoc .ipa（参考 `ios_signing_infra_state.md`：单 UDID `b9a7376832...`，Team `2GMR44F922`，bundle `com.chainlesschain.ChainlessChain`）
+- iPhone 通过 Apple Developer 模式安装 ad-hoc .ipa（参考 `ios_signing_infra_state.md`：单 UDID `b9a7376832...`，bundle `com.chainlesschain.ChainlessChain`）
 - Mac Xcode debug attach → iPhone（看 console log）
 
 #### 6.0.2 Phase 1.7 Pairing E2E（Flow A + B + 手输）

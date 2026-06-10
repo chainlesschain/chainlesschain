@@ -43,7 +43,7 @@ open ChainlessChain.xcodeproj
 
 ### 1.3 签名设置（首次）
 
-- Xcode → ChainlessChain target → Signing & Capabilities → Team = "Apple Development" 个人开发者 (free) 或团队 (`2GMR44F922`，见 memory `ios_signing_infra_state.md`)
+- Xcode → ChainlessChain target → Signing & Capabilities → Team = "Apple Development" 个人开发者 (free) 或团队证书（见 memory `ios_signing_infra_state.md`)
 - Bundle ID = `com.chainlesschain.ChainlessChain`
 - Capabilities：Push Notifications / Camera / Microphone / Photos （Phase 6.4 v0.3 必需）
 

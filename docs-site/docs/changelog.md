@@ -889,10 +889,10 @@ c8142e573  feat(pdh):         vault FTS5 search + facetCounts API (migration v3)
 
 ## [v5.0.3.61] - 2026-05-17 — iOS CI 真签名 .ipa 出包
 
-> v5.0.3.56 揭示 iOS app target 412 编译错后，build-ios 临时回退 SPM-only 不产 .ipa。app target 0 错 (`a8dc88b13`) 后，本版本恢复 xcodebuild archive + ExportArchive 路径，配 Hua Zhang Apple 账号 ad-hoc 证书（Team `2GMR44F922`），每次发版自动产签名 `.ipa`（7.4MB）随 GitHub Release。
+> v5.0.3.56 揭示 iOS app target 412 编译错后，build-ios 临时回退 SPM-only 不产 .ipa。app target 0 错 (`a8dc88b13`) 后，本版本恢复 xcodebuild archive + ExportArchive 路径，配 团队 Apple 账号 ad-hoc 证书，每次发版自动产签名 `.ipa`（7.4MB）随 GitHub Release。
 
 **已完成**：
-- 配 4 个 GitHub Secret (`IOS_CERTIFICATE_BASE64` / `IOS_CERTIFICATE_PASSWORD` / `IOS_PROVISIONING_PROFILE_BASE64` / `IOS_TEAM_ID`)，Hua Zhang Team `2GMR44F922` 的 `iPhone Distribution` 证书 + `adhoc` ad-hoc profile
+- 配 4 个 GitHub Secret (`IOS_CERTIFICATE_BASE64` / `IOS_CERTIFICATE_PASSWORD` / `IOS_PROVISIONING_PROFILE_BASE64` / `IOS_TEAM_ID`)，团队的 `iPhone Distribution` 证书 + `adhoc` ad-hoc profile
 - `release.yml` build-ios 从 SPM-only 回到 xcodebuild archive 路径（revert `faa8e267f`）
 - 4 iter 修通签名链路：(1) 加 `PROVISIONING_PROFILE_SPECIFIER` 暴露需求 → (2) 删 xcpretty 让 raw 错误显形 → (3) 看到 SPM target 全局污染真因 → (4) 把 signing setting 从 CLI 搬到 `ChainlessChain.xcodeproj` per-target，CLI 只留 `DEVELOPMENT_TEAM`
 - ExportOptions.plist 加 `signingStyle=manual` + `provisioningProfiles` map
@@ -902,7 +902,7 @@ c8142e573  feat(pdh):         vault FTS5 search + facetCounts API (migration v3)
 **已验证**：测试 run 25987829449 产 `ChainlessChain.ipa` 7,720,753 bytes，embedded.mobileprovision 匹配 adhoc profile，挂载 GitHub Release 同 17 个 desktop / Android asset 一起。整 release.yml 11 job 全绿。
 
 **已知限制**：
-- .ipa 仅可装 Hua Zhang 测试 iPhone (UDID `b9a7376832...`)。加新设备需 Apple Developer Portal 加 UDID + 重签 profile + 更新 secret
+- .ipa 仅可装 已登记的测试 iPhone (UDID `b9a7376832...`)。加新设备需 Apple Developer Portal 加 UDID + 重签 profile + 更新 secret
 - App Store distribution 不在本版本范围（需要 App Store method profile）
 
 ## [v5.0.3.57] - 2026-05-17 — Android FileTransferScreen 本机下载浏览面板

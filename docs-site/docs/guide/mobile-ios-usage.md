@@ -11,7 +11,7 @@
 :::
 
 ::: warning 当前发布形态
-iOS app 暂未上 App Store，发布走 Hua Zhang 团队 **ad-hoc 签名 .ipa**（Team `2GMR44F922`），只能装在事先登记 UDID 的设备上。如需上你的设备，请联系项目组。
+iOS app 暂未上 App Store，发布走团队 **ad-hoc 签名 .ipa**，只能装在事先登记 UDID 的设备上。如需上你的设备，请联系项目组。
 :::
 
 ## 概述
@@ -336,8 +336,8 @@ ad-hoc .ipa 不能直接装，必须走 sideload 渠道：
 
 ```
 iPhone 设置 → 通用 → VPN与设备管理
-  ↓ 找到「Hua Zhang」（Team 2GMR44F922）
-  ↓ 点「信任 "Hua Zhang"」 → 确认
+  ↓ 找到证书中显示的开发者名称
+  ↓ 点「信任该开发者证书」 → 确认
 ```
 
 ### 配对问题（同 Android）
@@ -431,7 +431,7 @@ xterm.js bundle resource 没打进 .ipa。Xcode 项目需 `Features/RemoteTermin
 3. Configurator 双击 iPhone → Apps → + → 选 ChainlessChain.ipa
 
 # iPhone:
-1. 设置 → 通用 → VPN与设备管理 → 信任 Hua Zhang
+1. 设置 → 通用 → VPN与设备管理 → 信任该开发者证书
 2. 启动 app → 设置 PIN 6 位
 3. 开启 Face ID / Touch ID (可选)
 4. 桌面 → V6 → 头像 → 我的二维码
