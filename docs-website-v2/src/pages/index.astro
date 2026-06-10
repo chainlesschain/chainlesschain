@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.102 · 2026-06-10',
+    title: 'IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行向 Claude-Code 平价收官 + cc agent --image 视觉输入',
+    sub: '这一版把命令行 `cc` 与编辑器打通——新增 `cc ide` 命令和 VS Code 扩展，能发现并自动连接编辑器内的 MCP server，让 agent 直接在你的编辑器里读写文件、用 openDiff 弹出改动让你接受或拒绝；同时 cc 与 Claude-Code 的能力差距基本补齐。',
+    desc: 'cc agent 这一版补齐 MCP OAuth 远程服务器授权、自定义+内置上下文用量状态栏、输出风格（命名 persona）、可插拔 web_search 搜索、扩展思考（--think/--ultrathink）、settings.json 全事件 hooks（PreToolUse 真拦截/UserPromptSubmit/SessionStart/Stop/PreCompact + block 语义）、headless `agent -p`、`/compact` 自动压缩、双引擎 checkpoint、权限规则（allow/ask/deny）。再加 `cc agent --image` 多模态视觉输入。版本面：productVersion v5.0.3.101 → v5.0.3.102 / 桌面 5.0.3-alpha.102 / CLI 0.162.35 → 0.162.36 已发 npm / Android versionCode 503102 / iOS build 102。（注：Android 内嵌 cc bundle 仍为旧代码，待 cc-cli.tgz 重建，与上版一致。）',
+  },
+  {
     tag: 'v5.0.3.101 · 2026-06-09',
     title: 'CLI 向 Claude-Code 平价收尾 + 个人数据中台微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件',
     sub: '命令行这一版把和 Claude-Code 的能力差距基本补齐：无界面的 `agent -p` 模式支持输出格式 / 轮数上限 / 工具允许与禁用 / 权限模式 / 标准输入 / 多轮 stream-json 输入 / 系统提示 / 多根工作区 / 备用模型，`@file` 引用在 `ask` 和 `chat` 里也能用，新增 `cc cost` 按 token 估算花费、以及文件级的 `cc checkpoint` 快照 / 回退。',

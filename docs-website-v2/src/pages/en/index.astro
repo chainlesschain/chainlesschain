@@ -74,6 +74,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.102 · 2026-06-10',
+    title: 'IDE bridge (cc ide + VS Code extension) + cc CLI Claude-Code parity wrap-up + cc agent --image vision input',
+    sub: 'This release wires the `cc` CLI into your editor — a new `cc ide` command and VS Code extension that discover and auto-connect the editor\'s MCP server, letting the agent read/write files in your editor and surface changes via openDiff for accept/reject; meanwhile cc reaches near-parity with Claude-Code.',
+    desc: 'cc agent gains MCP OAuth remote authorization, custom + built-in context-usage status line, output styles (named personas), pluggable web_search, extended thinking (--think/--ultrathink), settings.json full-event hooks (PreToolUse real blocking / UserPromptSubmit / SessionStart / Stop / PreCompact with block semantics), headless `agent -p`, `/compact` auto-compaction, dual-engine checkpoint, and permission rules (allow/ask/deny), plus `cc agent --image` multimodal vision input. Versions: productVersion v5.0.3.101 → v5.0.3.102 / desktop 5.0.3-alpha.102 / CLI 0.162.35 → 0.162.36 on npm / Android versionCode 503102 / iOS build 102. (Note: the Android in-app cc bundle still ships the prior code pending a cc-cli.tgz rebuild, same as last release.)',
+  },
+  {
     tag: 'v5.0.3.101 · 2026-06-09',
     title: 'CLI reaches Claude-Code parity + PDH one-click WeChat 4.0 / QQ-NT collection + security fail-closed bundle',
     sub: 'The CLI closes most of the gap with Claude-Code: headless `agent -p` now supports output format / max turns / allowed & disallowed tools / permission mode / stdin / multi-turn stream-json input / system prompt / multi-root workspace / fallback model, `@file` references work in `ask` and `chat`, plus a new `cc cost` token-spend estimator and file-level `cc checkpoint` snapshot / rewind.',

@@ -3,6 +3,40 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.102] - 2026-06-10 — feat: IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行 Claude-Code 平价收官 + cc agent 多模态视觉输入
+
+> 本版把 cc 命令行向 Claude Code 的平价能力收官，并新增 IDE 桥接与多模态视觉输入：①IDE 桥接 —— 新增 `cc ide` 命令 + VS Code 扩展，自动发现并连接编辑器内置的 MCP server，支持 `openDiff` 接受/拒绝往返（CLI 命令数 149 → 150）；②cc 命令行 Claude-Code 平价收官 —— MCP OAuth 远程授权、自定义及内置上下文用量状态栏、输出风格、web_search 可插拔搜索、扩展思考、`settings.json` 全事件 hooks 及 block 语义、headless `agent -p`、`/compact` 自动压缩、`cc checkpoint` 双引擎、权限规则；③`cc agent --image` 多模态视觉输入（自动使用配置的视觉模型）。CLI 0.162.36 已发 npm。
+
+### Feat #1 —— IDE 桥接（cc ide + VS Code 扩展）
+
+- 新增 `cc ide` 命令：自动发现并连接编辑器内置的 MCP server
+- VS Code 扩展：`openDiff` 接受/拒绝往返，编辑器内审阅 AI 改动
+- CLI 命令数 149 → 150
+
+### Feat #2 —— cc 命令行向 Claude-Code 平价收官
+
+- MCP OAuth 远程授权：`cc mcp login <url>` 走 Auth Code + PKCE，token 按 origin 持久化，connect 时注入 `Authorization: Bearer`（到期 refresh）
+- 状态栏：自定义 `statusLine` 命令 + 内置上下文用量行（模型 · 已用/窗口 · cwd · 轮次）
+- 输出风格 `/output-style`：命名 persona 叠加系统提示 + 内置 explanatory/learning
+- web_search 可插拔搜索源：tavily/brave/bocha/qianfan + keyless duckduckgo/searxng/baidu
+- 扩展思考：`--think` / `--ultrathink` / `--thinking-budget`（Anthropic opt-in）
+- `settings.json` 全事件 hooks + block 语义：PreToolUse/PostToolUse/UserPromptSubmit/SessionStart/SessionEnd/Stop/PreCompact
+- 权限规则：`.claude/settings.json` allow/ask/deny（deny > host-deny > ask > allow）+ 交互 always-allow 持久化
+- headless `agent -p` 全家桶 + `/compact` 自动压缩 + `cc checkpoint` 双引擎（git plumbing 影子提交 + copy fallback）
+
+### Feat #3 —— cc agent 多模态视觉输入
+
+- `cc agent --image`：自动使用配置的视觉模型读图
+
+### 版本同步
+
+- productVersion v5.0.3.101 → v5.0.3.102
+- desktop-app-vue 5.0.3-alpha.101 → 5.0.3-alpha.102
+- chainlesschain CLI 0.162.32 → 0.162.36（已发 npm）
+- @chainlesschain/personal-data-hub 0.4.3（不变）
+- Android USR_VERSION 20（不变）+ versionCode 503101 → 503102 + versionName 5.0.3.101 → 5.0.3.102；binariesVersion 待 cc-cli.tgz 重建（Android cc 内嵌 bundle 仍为旧代码）
+- iOS CFBundleVersion 101 → 102
+
 ## [v5.0.3.101] - 2026-06-09 — feat: CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件 + U-Key 托管层（gated）
 
 > 本版把 v5.0.3.100 之后累积的工程主线固化为一次正式发版：①CLI 向 Claude-Code 平价收尾（headless `agent -p` 全家桶 + `cc cost` + 文件态 checkpoint）；②个人数据中台（PDH）微信 4.0 完整采集 + QQ-NT 一键解密/解析（真机 `nt_msg.db` 验证通过）；③一批安全 fail-closed 收口（SAML/OAuth/通道签名/permission-ipc）；④U-Key 口令托管层（Phase 3，默认 gated OFF）；⑤桌面数据库/LLM 性能面板 V6 端口接通。npm：pdh 0.4.2 → 0.4.3 + CLI 0.162.31 → 0.162.32，Android USR_VERSION 19 → 20 强制真机重抽 cc-cli.tgz。
