@@ -548,3 +548,39 @@ describe("executeTool — post-edit diagnostics wiring", () => {
     expect(mcp.calls).toHaveLength(0);
   });
 });
+
+describe("runAgentHeadlessStream — IDE context wiring", () => {
+  it("re-shares <ide-context> on every turn's user message", async () => {
+    const { runAgentHeadlessStream } =
+      await import("../../src/runtime/headless-stream.js");
+    const seen = [];
+    const agentLoop = async function* (messages) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      seen.push(lastUser.content);
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    async function* input() {
+      yield JSON.stringify({ type: "user", text: "turn-A" }) + "\n";
+      yield JSON.stringify({ type: "user", text: "turn-B" }) + "\n";
+    }
+    await runAgentHeadlessStream(
+      { expandFileRefs: false },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: () => {},
+        writeErr: () => {},
+        agentLoop,
+        input: input(),
+        resolveAgentMcp: async () => fakeIdeMcp(),
+      },
+    );
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toContain("turn-A");
+    for (const content of seen) {
+      expect(content).toContain("<ide-context>");
+      expect(content).toContain("return a + b;");
+    }
+  });
+});
