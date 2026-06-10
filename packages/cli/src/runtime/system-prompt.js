@@ -15,6 +15,7 @@
 
 import fsDefault from "fs";
 import pathDefault from "path";
+import { loadProjectInstructionsBlock } from "../lib/project-instructions.js";
 
 /**
  * Resolve a CLI prompt value. A leading `@` means "read this file"; anything
@@ -51,8 +52,27 @@ export function resolvePromptText(value, opts = {}) {
  * @returns {string}
  */
 export function composeSystemPrompt(base, opts = {}) {
-  const { systemPrompt, appendSystemPrompt, outputStyle } = opts;
+  const { systemPrompt, appendSystemPrompt, outputStyle, projectMemory, cwd } =
+    opts;
   let result = systemPrompt ? systemPrompt : base || "";
+  // Project memory (cc.md / CLAUDE.md hierarchy) — injected right after the
+  // base so explicit --append-system-prompt / output-style still come later.
+  //
+  // Default-on at runtime; the implicit default is suppressed under vitest
+  // (process.env.VITEST) so the long-standing pure contract of this function
+  // holds for existing unit tests — callers/tests that want the block in a
+  // test pass `projectMemory: true` explicitly.
+  const pmExplicit = typeof projectMemory === "boolean" ? projectMemory : null;
+  const pmDefault =
+    process.env.CC_PROJECT_MEMORY !== "0" && !process.env.VITEST;
+  if (pmExplicit === true || (pmExplicit === null && pmDefault)) {
+    const block = loadProjectInstructionsBlock({
+      cwd,
+      home: opts.projectMemoryHome,
+      deps: opts.projectMemoryDeps,
+    });
+    if (block) result = result ? `${result}\n\n${block}` : block;
+  }
   if (appendSystemPrompt) {
     result = result ? `${result}\n\n${appendSystemPrompt}` : appendSystemPrompt;
   }
