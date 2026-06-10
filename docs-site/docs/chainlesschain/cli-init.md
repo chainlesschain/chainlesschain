@@ -40,8 +40,12 @@ CLI Phase 102 — 在当前目录初始化 `.chainlesschain/` 项目结构，用
 
 ## 命令参考
 
+> **v0.162.38+ 默认行为变更（Claude-Code `/init` 平价）**：不带 `-t/--template`、`--bare` 时，`cc init` 默认走**项目盘点（inventory）模式** —— 对当前目录做有界普查（按扩展名统计语言、lockfile 识别包管理器、scripts/workspaces、工具链标记、CI workflow 数、README 摘要、顶层目录），生成一份起步 `cc.md` 项目记忆文件，由 project-memory loader 在 agent 会话中自动注入。模板脚手架保留在显式 `-t/--template` 或 `--bare` 之后；web-panel 的 ProjectInit 始终传 `--template`，行为不变。
+
 ```bash
-chainlesschain init                              # 交互式初始化
+chainlesschain init                              # 默认：项目盘点 → 生成 cc.md（/init 平价）
+chainlesschain init --memory                     # 带模板旗标时也强制盘点模式
+chainlesschain init --force                      # 覆盖已存在的 cc.md（盘点模式）
 chainlesschain init --bare                       # 最小初始化（空项目模板）
 chainlesschain init --template code-project      # 使用代码项目模板
 chainlesschain init --template data-science --yes # 数据科学模板，跳过确认
@@ -57,9 +61,12 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 | 选项 | 说明 |
 |------|------|
-| `--template <name>` | 指定模板（code-project / data-science / devops / medical-triage / agriculture-expert / general-assistant / ai-media-creator / **ai-doc-creator** / empty） |
+| `--template <name>` | 指定模板（code-project / data-science / devops / medical-triage / agriculture-expert / general-assistant / ai-media-creator / **ai-doc-creator** / empty）；**不传时默认盘点模式生成 cc.md** |
 | `--yes` | 跳过交互确认，使用默认值 |
-| `--bare` | 最小初始化，等同于 `--template empty --yes` |
+| `--bare` | 最小初始化，等同于 `--template empty --yes`（跳过盘点） |
+| `--memory` | 即使带模板旗标也强制盘点模式 |
+| `--force` | 覆盖已存在的 `cc.md`（盘点模式） |
+| `--cwd <dir>` | 在指定目录初始化（web-panel 目录选择器使用） |
 
 ## 模板说明
 
