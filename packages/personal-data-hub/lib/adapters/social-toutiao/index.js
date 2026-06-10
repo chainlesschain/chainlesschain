@@ -57,10 +57,14 @@ const KIND_PROFILE = "profile";
 const KIND_READ = "read";
 const KIND_COLLECTION = "collection";
 const KIND_SEARCH = "search";
-// v0.2.1 — KIND_PROFILE added (mirrors Douyin); v0.3 will add read/collection
-// /search once _signature path is wired. SNAPSHOT_SCHEMA_VERSION stays at 1:
-// old (events-only) snapshots remain compatible; new profile events are an
-// additive extension.
+// v0.2.1 — KIND_PROFILE added (mirrors Douyin). The read/collection/search
+// producers LANDED since (verified 2026-06-11): Android ToutiaoLocalCollector
+// emits all 4 kinds via the _signature WebSignBridge path, ToutiaoRootDbExtractor
+// emits read/collection/search, and the PC ADB ToutiaoApiClient fetches
+// feed/collection/search through its injected signProvider. This adapter
+// normalizes whatever the snapshot carries. SNAPSHOT_SCHEMA_VERSION stays
+// at 1: old (events-only) snapshots remain compatible; profile events are
+// an additive extension.
 const VALID_SNAPSHOT_KINDS = Object.freeze([
   KIND_PROFILE,
   KIND_READ,

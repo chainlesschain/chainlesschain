@@ -54,8 +54,13 @@ const KIND_PROFILE = "profile";
 const KIND_WATCH = "watch";
 const KIND_COLLECT = "collect";
 const KIND_SEARCH = "search";
-// v0.2.1 — KIND_PROFILE added (mirrors Douyin/Toutiao); v0.3 will add watch/
-// collect/search via NS_sig3. SNAPSHOT_SCHEMA_VERSION stays at 1 — additive.
+// v0.2.1 — KIND_PROFILE added (mirrors Douyin/Toutiao). The watch/collect/
+// search producers LANDED since (verified 2026-06-11): Android
+// KuaishouLocalCollector emits all 4 kinds via the NS_sig3 WebSignBridge
+// path, KuaishouRootDbExtractor emits watch/collect/search, and the PC ADB
+// KuaishouApiClient fetches them through its injected signProvider (signed
+// GraphQL). This adapter normalizes whatever the snapshot carries.
+// SNAPSHOT_SCHEMA_VERSION stays at 1 — additive.
 const VALID_SNAPSHOT_KINDS = Object.freeze([
   KIND_PROFILE,
   KIND_WATCH,
