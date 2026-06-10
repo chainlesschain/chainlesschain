@@ -193,6 +193,19 @@ chainlesschain mcp registry categories [--json]
 | `install` | `--as <alias>` 自定义服务器名 · `--auto-connect` 安装后立即连接 |
 | `categories` | `--json` |
 
+### Prompts 与 Resources（v0.162.38+）
+
+MCP 支持从 tools-only 扩展到完整三件套 —— 连接时自动拉取 `prompts/list`，并把 resources 暴露给 agent/REPL：
+
+```bash
+cc mcp prompts [server]                    # 列出已连接 server 的 prompts
+cc mcp get-prompt <server> <name> [args]   # 渲染指定 prompt（参数 key=value）
+cc mcp resources [server]                  # 列出已连接 server 的 resources
+cc mcp read-resource <server> <uri>        # 读取指定 resource 内容
+```
+
+交互 REPL 中，MCP prompts 自动注册为斜杠命令 `/mcp__<server>__<prompt> [args]`（`/mcp` 总览所有已连接 server 的 prompts 与 resources）；headless/REPL 的 agent 循环可经 resources 读取 server 暴露的上下文数据。
+
 ## 配置参考
 
 ```bash

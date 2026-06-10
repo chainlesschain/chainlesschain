@@ -49,6 +49,7 @@ Hooks 系统提供 21 个钩子事件和 4 种钩子类型（同步/异步/Shell
 | `SessionEnd`      | 会话结束     | 清理、保存状态       |
 | `PreCompact`      | 上下文压缩前 | 保存重要信息         |
 | `PostCompact`     | 上下文压缩后 | 验证压缩结果         |
+| `SubagentStop`    | `spawn_sub_agent` 子代理结束后 | 子任务结果审计/通知（settings.json hooks，observe，best-effort） |
 | `FileModified`    | 文件修改后   | 自动格式化、触发构建 |
 | `FileCreated`     | 文件创建后   | 初始化模板           |
 | `FileDeleted`     | 文件删除后   | 清理相关资源         |

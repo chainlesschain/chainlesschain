@@ -6,7 +6,7 @@
 
 - 🤖 **Claude Code 风格**: 代理式 AI 会话，自主完成任务
 - 🔧 **9 个内置工具**: 读写文件、执行命令、搜索代码库、代码执行
-- 🎯 **138 个技能**: 集成全部内置技能
+- 🎯 **145 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
 - 🧠 **Context Engineering**: 6 维上下文注入（Instinct / Memory / BM25 Notes / Task / Permanent Memory / Compaction Summary）
@@ -43,7 +43,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 
 ## 概述
 
-启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 141 个内置技能。
+启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 145 个内置技能。
 支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
@@ -88,6 +88,7 @@ chainlesschain agent -p "..." --max-turns 5                       # 限制循环
 chainlesschain agent -p "..." --allowed-tools / --disallowed-tools "read_file,git"
 chainlesschain agent -p "..." --permission-mode bypassPermissions # default|plan|acceptEdits|bypassPermissions
 chainlesschain agent -p "..." --resume <id> | --continue          # 会话恢复 + 自动压缩
+chainlesschain agent -p "..." --resume <id> --fork-session        # 恢复时分叉到新会话 id，原会话不动（claude --fork-session 平价）
 chainlesschain agent -p "..." --output-format stream-json --include-partial-messages  # 逐 token 增量
 chainlesschain agent -p "..." --input-format stream-json          # 持续从 stdin 喂多轮 NDJSON 用户事件
 chainlesschain agent -p "..." --mcp-config ./mcp.json             # 临时 MCP（{"mcpServers":{...}}）
@@ -134,6 +135,15 @@ chainlesschain agents list | show <name> | run <name> "<task>" | new <name> [--t
 ```bash
 chainlesschain context [<sessionId>] [--json] [--model <m>]   # 按角色拆 token + 占比 + 余量（/context 对标）
 ```
+
+## IDE 桥接 — 自动连接编辑器 + 实时感知
+
+在 VS Code / JetBrains 集成终端里跑 `cc agent` 会**自动连接**编辑器的桥接 MCP server（保留名 `ide`，`--ide` 强制 / `--no-ide` 禁用），并获得两个自动行为：
+
+- **提交时共享选区/打开文件**：每条 prompt 自动附带 `<ide-context>` 块（活跃文件、打开 tab、选中代码），模型即时知道"你正看着什么"；只进在途消息，不写会话持久化。
+- **编辑后诊断回喂**：agent 改完文件，编辑器的 error/warning 自动回流到工具结果，同一循环内自修。
+
+`CC_IDE_CONTEXT=0` 关闭自动感知（4 个 `mcp__ide__*` 工具仍可显式调用）。完整安装/协议/排错见 [IDE 桥接](/chainlesschain/ide-bridge)。
 
 ## 内置工具
 
