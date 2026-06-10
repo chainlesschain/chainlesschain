@@ -854,6 +854,45 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // `!` bash passthrough (Claude-Code parity): run the command right here —
+    // no LLM round-trip — and fold the output into the conversation context.
+    if (trimmed.startsWith("!") && trimmed.slice(1).trim()) {
+      try {
+        const { runBangCommand } = await import("../lib/repl-bang-memorize.js");
+        const res = runBangCommand(trimmed, { cwd: process.cwd() });
+        logger.log(chalk.gray(`$ ${res.cmd}`));
+        if (res.stdout) process.stdout.write(res.stdout.endsWith("\n") ? res.stdout : `${res.stdout}\n`);
+        if (res.stderr) process.stderr.write(chalk.red(res.stderr.endsWith("\n") ? res.stderr : `${res.stderr}\n`));
+        if (res.error) logger.error(`shell error: ${res.error.message}`);
+        logger.log(chalk.gray(`(exit ${res.exitCode})`));
+        messages.push(res.contextMessage);
+      } catch (err) {
+        logger.error(`! command failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
+    // `#` quick-memorize (Claude-Code parity): append a note to the project
+    // cc.md (auto-loaded next session) and keep it active in this one.
+    if (trimmed.startsWith("#") && trimmed.slice(1).trim()) {
+      try {
+        const { appendMemoryNote } = await import("../lib/repl-bang-memorize.js");
+        const res = appendMemoryNote(trimmed, { cwd: process.cwd() });
+        messages.push({
+          role: "system",
+          content: `<memory-note source="${res.target}">${res.note}</memory-note>`,
+        });
+        logger.log(
+          chalk.green(`✔ remembered in ${res.target}${res.created ? " (created)" : ""}`),
+        );
+      } catch (err) {
+        logger.error(`# memorize failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
     // Slash commands
     if (trimmed === "/exit" || trimmed === "/quit") {
       logger.log(chalk.gray("\nGoodbye!"));
@@ -863,6 +902,12 @@ export async function startAgentRepl(options = {}) {
 
     if (trimmed === "/help") {
       logger.log(chalk.bold("\nCommands:"));
+      logger.log(
+        `  ${chalk.cyan("! <cmd>")}     Run a shell command directly (output joins context)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("# <note>")}    Remember a note in the project cc.md`,
+      );
       logger.log(`  ${chalk.cyan("/exit")}       Exit the agent`);
       logger.log(
         `  ${chalk.cyan("/model")}      Show/change model (/model <name>)`,
