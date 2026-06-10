@@ -641,8 +641,13 @@ describe("SQLCipherWrapper", () => {
         LocalMockDatabase,
       );
       wrapper.open();
-      localMockDb.pragma.mockImplementationOnce(() => {
-        throw new Error("unable to rekey database");
+      // rekey() now issues two pragmas: a best-effort `journal_mode = DELETE`
+      // (errors swallowed) followed by the actual `rekey` pragma. Throw only on
+      // the rekey pragma so the WAL-workaround call doesn't consume the mock.
+      localMockDb.pragma.mockImplementation((sql) => {
+        if (String(sql).includes("rekey")) {
+          throw new Error("unable to rekey database");
+        }
       });
 
       expect(() => wrapper.rekey(newKey)).toThrow("Rekey failed");

@@ -2724,10 +2724,10 @@ describe("Skill Handlers", () => {
   });
 
   // ============================================================
-  // SkillLoader - verify 144 builtin skills
+  // SkillLoader - verify 145 builtin skills
   // ============================================================
-  describe("SkillLoader - 144 builtin skills", () => {
-    it("should find 144 SKILL.md files in builtin directory", () => {
+  describe("SkillLoader - 145 builtin skills", () => {
+    it("should find 145 SKILL.md files in builtin directory", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -2741,10 +2741,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(skillMd);
       });
 
-      expect(skillDirs.length).toBe(144);
+      expect(skillDirs.length).toBe(145);
     });
 
-    it("should have 144 skills with handler.js (100% coverage)", () => {
+    it("should have 145 skills with handler.js (100% coverage)", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -2758,10 +2758,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(handlerJs);
       });
 
-      expect(handlerDirs.length).toBe(144);
+      expect(handlerDirs.length).toBe(145);
     });
 
-    it("should load all 144 handlers without errors", () => {
+    it("should load all 145 handlers without errors", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",

@@ -550,8 +550,10 @@ describe("DatabaseMigrator", () => {
         })),
       };
       const targetDb = {
+        // SQLCipherWrapper.get() returns a row OBJECT ({count: N}), not a value
+        // array — verifyMigration reads targetCount by the `count` alias.
         prepare: vi.fn(() => ({
-          get: vi.fn(() => [100]),
+          get: vi.fn(() => ({ count: 100 })),
           free: vi.fn(),
         })),
       };
@@ -573,7 +575,7 @@ describe("DatabaseMigrator", () => {
       };
       const targetDb = {
         prepare: vi.fn(() => ({
-          get: vi.fn(() => [50]),
+          get: vi.fn(() => ({ count: 50 })),
           free: vi.fn(),
         })),
       };
@@ -595,7 +597,7 @@ describe("DatabaseMigrator", () => {
       };
       const targetDb = {
         prepare: vi.fn(() => ({
-          get: vi.fn(() => [10]),
+          get: vi.fn(() => ({ count: 10 })),
           free: vi.fn(),
         })),
       };
