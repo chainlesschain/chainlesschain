@@ -217,6 +217,7 @@ export default defineConfig({
             { text: "检查点 / 回滚 (cc checkpoint) ⭐NEW", link: "/chainlesschain/checkpoint" },
             { text: "输出风格", link: "/chainlesschain/output-styles" },
             { text: "状态栏 (cc statusline) ⭐NEW", link: "/chainlesschain/status-line" },
+            { text: "成本估算 (cc cost) ⭐NEW", link: "/chainlesschain/cost" },
             { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
             { text: "协作高级功能", link: "/chainlesschain/cowork-advanced" },
