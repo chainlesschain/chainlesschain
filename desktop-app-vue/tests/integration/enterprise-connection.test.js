@@ -7,14 +7,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // 创建模拟的fetch API
 global.fetch = vi.fn();
-global.AbortController = class {
-  constructor() {
-    this.signal = { aborted: false };
-  }
-  abort() {
-    this.signal.aborted = true;
-  }
-};
+// NOTE: do not override global.AbortController here. The native one (Node/jsdom)
+// already supports everything these tests use (signal.aborted, abort()), and
+// vitest 4's per-test timeout machinery calls signal.addEventListener('abort',…)
+// — a hand-rolled stub whose signal lacks addEventListener throws
+// "signal.addEventListener is not a function" and fails every test in the file.
 
 describe("企业版服务器连接测试", () => {
   beforeEach(() => {
