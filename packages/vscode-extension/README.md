@@ -32,6 +32,27 @@ and the editor tools become callable by the model as `mcp__ide__*`:
 The token + `127.0.0.1` binding stop other local processes from driving your
 editor.
 
+## Automatic awareness (cc ≥ 0.162.39)
+
+With a current `cc` CLI the agent doesn't just *have* these tools — it uses
+them on its own:
+
+- **Your selection rides along with every prompt.** Each prompt you submit
+  (one-shot `-p`, stream, or the interactive REPL) automatically carries an
+  `<ide-context>` block: active file, open tabs, and the selected text. Ask
+  "what does this do?" without pasting anything. The block is ephemeral — it
+  is never written into the saved session, so `--resume` replays your words,
+  not a stale editor snapshot.
+- **Post-edit diagnostics feed back into the loop.** After the agent writes or
+  edits a file, the editor's fresh errors/warnings for that file are attached
+  to the tool result, so the model sees — and fixes — what it just broke in
+  the same run.
+- **`@` tab-completion prefers your open tabs.** In the REPL, typing `@<TAB>`
+  completes file references; files open in the editor rank first.
+
+Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off (the `mcp__ide__*`
+tools stay available for explicit calls).
+
 ## Try it
 
 1. Run the extension (F5 → Extension Development Host), open a folder.

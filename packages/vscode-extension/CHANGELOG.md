@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.2.2] — 2026-06-11
+
+- Document the CLI's new **automatic awareness** behaviors that pair with this
+  bridge (cc ≥ 0.162.39): the editor selection / open tabs are shared with
+  every prompt as an ephemeral `<ide-context>` block, post-edit diagnostics
+  flow back into the agent loop, and REPL `@` tab-completion ranks open tabs
+  first. `CC_IDE_CONTEXT=0` opts out. No functional change in the extension
+  itself — the existing `getSelection` / `getOpenEditors` / `getDiagnostics`
+  tools now get called automatically by the CLI.
+
 ## [0.2.1] — 2026-06-10
 
 - Add the ChainlessChain brand logo as the extension icon (`media/logo.png`),
