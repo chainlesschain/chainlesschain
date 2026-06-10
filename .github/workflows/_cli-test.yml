@@ -119,6 +119,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      # --retry=2: e2e files spawn real `cc` children and bind real ports. Even
+      # with singleFork (serial within a shard), the rare server-startup / port
+      # race is genuinely non-deterministic; vitest re-runs only the failed test.
+      # This is a bounded retry, NOT continue-on-error — a test that fails all 3
+      # attempts still fails the job.
       - name: vitest e2e shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --silent=passed-only __tests__/e2e/
+        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --retry=2 --reporter=default --silent=passed-only __tests__/e2e/
