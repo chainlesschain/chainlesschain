@@ -56,8 +56,8 @@ android {
         // local-terminal) can be revisited if a 26-baseline ship target appears.
         minSdk = 28  // Android 9 Pie
         targetSdk = 35  // Android 15
-        versionCode = 503102
-        versionName = "5.0.3.102"
+        versionCode = 503103
+        versionName = "5.0.3.103"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"

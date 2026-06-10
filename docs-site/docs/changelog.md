@@ -3,6 +3,28 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.103] - 2026-06-10 — feat: cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化
+
+> 本版把 v5.0.3.102 之后 2026-06-10 的工程主线固化为一次正式发版：①`cc loop` —— Claude-Code `/loop` 平价：固定间隔循环 + `--dynamic` 自定步速 + `--save` / `--resume` 会话持久化 + headless（非 TTY）下稳定运行；②IDE 桥接 Phase 3 —— JetBrains 平价（纯 JDK 协议核 + IntelliJ glue，跨语言 interop 实跑验证）；③IDE 桥接 Phase 4 —— 发布与维护基建（`ide-extensions.yml`：vsce package/publish + gradlew buildPlugin，tag + secret 双门控）；④VS Code 扩展 —— IDE 桥接可视化（状态栏 + 侧边栏 + 仪表板）+ ChainlessChain 品牌 logo/图标（0.2.0 / 0.2.1）；⑤REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`。CLI 沿用 0.162.36、PDH 0.4.3（已发 npm）。
+
+### Feat #1 —— cc loop（Claude-Code /loop 平价）
+
+- 固定间隔循环执行 prompt / slash 命令
+- `--dynamic` 自定步速 + prompt 模式 agent flag 透传
+- `--save` / `--resume` 会话持久化
+- headless（非 TTY）下稳定运行 + 集成/E2E 测试
+
+### Feat #2 —— IDE 桥接 Phase 3/4
+
+- Phase 3：JetBrains 平价 —— 纯 JDK 协议核 + IntelliJ glue，CLI 零改动双证 + 跨语言 interop 实跑验证
+- Phase 4：发布与维护基建 —— `ide-extensions.yml`（vsce package/publish + gradlew buildPlugin，tag + secret 双门控，缺 secret fail-fast）+ LICENSE/CHANGELOG + 发布文档
+- REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`
+
+### Feat #3 —— VS Code 扩展可视化与品牌化
+
+- IDE 桥接可视化：状态栏 + 侧边栏 + 仪表板（0.2.0）
+- ChainlessChain 品牌 logo 作为扩展图标 + Activity Bar 图标多轮打磨（0.2.1）
+
 ## [v5.0.3.102] - 2026-06-10 — feat: IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行 Claude-Code 平价收官 + cc agent 多模态视觉输入
 
 > 本版把 cc 命令行向 Claude Code 的平价能力收官，并新增 IDE 桥接与多模态视觉输入：①IDE 桥接 —— 新增 `cc ide` 命令 + VS Code 扩展，自动发现并连接编辑器内置的 MCP server，支持 `openDiff` 接受/拒绝往返（CLI 命令数 149 → 150）；②cc 命令行 Claude-Code 平价收官 —— MCP OAuth 远程授权、自定义及内置上下文用量状态栏、输出风格、web_search 可插拔搜索、扩展思考、`settings.json` 全事件 hooks 及 block 语义、headless `agent -p`、`/compact` 自动压缩、`cc checkpoint` 双引擎、权限规则；③`cc agent --image` 多模态视觉输入（自动使用配置的视觉模型）。CLI 0.162.36 已发 npm。

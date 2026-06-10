@@ -2,6 +2,31 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-10 发布 — **v5.0.3.103：cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化**
+
+> 把 v5.0.3.102 之后 2026-06-10 的工程主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **cc loop（Claude-Code `/loop` 平价）**：固定间隔循环执行 prompt / slash 命令 + `--dynamic` 自定步速（含 prompt 模式 agent flag 透传）+ `--save` / `--resume` 会话持久化 + headless（非 TTY）下稳定运行。
+- **IDE 桥接 Phase 3（JetBrains 平价）**：纯 JDK 协议核（MiniJson / McpServer / LockfileWriter / IdeTools）+ IntelliJ glue，CLI 零改动双证 + 跨语言 interop 实跑验证；REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`。
+- **IDE 桥接 Phase 4（发布与维护基建）**：`ide-extensions.yml`（vsce package/publish + gradlew buildPlugin/publishPlugin，tag + secret 双门控，不建 GitHub Release，缺 secret fail-fast）+ LICENSE/CHANGELOG + 发布文档。
+- **VS Code 扩展可视化与品牌化**：IDE 桥接可视化（状态栏 + 侧边栏 + 仪表板，0.2.0）+ ChainlessChain 品牌 logo 作为扩展图标与 Activity Bar 图标（0.2.1）。
+- **npm 包**：`chainlesschain` CLI 沿用 0.162.36 + `@chainlesschain/personal-data-hub` 0.4.3（已发 npm）。
+- **版本面**：productVersion v5.0.3.102 → v5.0.3.103 / desktop 5.0.3-alpha.103 / Android versionCode 503103 / iOS CFBundleVersion 103。
+
+---
+
+## 2026-06-10 发布 — **v5.0.3.102：IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行 Claude-Code 平价收官 + cc agent 多模态视觉输入**
+
+> 把 cc 命令行向 Claude Code 的平价能力收官，并新增 IDE 桥接与多模态视觉输入。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **IDE 桥接落地**：新增 `cc ide` 命令 + VS Code 扩展，自动发现并连接编辑器内置的 MCP server，支持 `openDiff` 接受/拒绝往返（CLI 命令数 149 → 150）。
+- **cc 命令行 Claude-Code 平价收官**：MCP OAuth 远程授权、自定义及内置上下文用量状态栏、输出风格、`web_search` 可插拔搜索、扩展思考、`settings.json` 全事件 hooks 及 block 语义、headless `agent -p`、`/compact` 自动压缩、`cc checkpoint` 双引擎、权限规则。
+- **cc agent 多模态视觉输入**：`cc agent --image`（自动使用配置的视觉模型）。
+- **npm 包**：`chainlesschain` CLI 0.162.36 已发 npm。
+- **版本面**：productVersion v5.0.3.101 → v5.0.3.102 / desktop 5.0.3-alpha.102 / Android versionCode 503102 / iOS CFBundleVersion 102。
+
+---
+
 ## 2026-06-09 发布 — **v5.0.3.101：CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件**
 
 > 把 v5.0.3.100 之后累积的工程主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

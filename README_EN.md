@@ -2,6 +2,31 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-10 Release — **v5.0.3.103: cc loop (/loop parity) + IDE bridge Phase 3/4 (JetBrains parity + release pipeline) + VS Code extension visualization & branding**
+
+> Formalizes the 2026-06-10 engineering mainline after v5.0.3.102 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **cc loop (Claude-Code `/loop` parity)**: fixed-interval loop running a prompt / slash command + `--dynamic` self-pacing (with prompt-mode agent flag pass-through) + `--save` / `--resume` session persistence + survives headless (non-TTY) runs.
+- **IDE bridge Phase 3 (JetBrains parity)**: pure-JDK protocol core (MiniJson / McpServer / LockfileWriter / IdeTools) + IntelliJ glue, CLI zero-change double proof + cross-language interop live run; REPL IDE auto-connect honors `--ide` / `--no-ide`.
+- **IDE bridge Phase 4 (release & maintenance pipeline)**: `ide-extensions.yml` (vsce package/publish + gradlew buildPlugin/publishPlugin, tag + secret double-gated, no GitHub Release, fail-fast on missing secret) + LICENSE/CHANGELOG + release docs.
+- **VS Code extension visualization & branding**: IDE bridge visualization (status bar + sidebar + dashboard, 0.2.0) + ChainlessChain brand logo as the extension & Activity Bar icon (0.2.1).
+- **npm packages**: `chainlesschain` CLI stays at 0.162.36 + `@chainlesschain/personal-data-hub` 0.4.3 (already published).
+- **Version surfaces**: productVersion v5.0.3.102 → v5.0.3.103 / desktop 5.0.3-alpha.103 / Android versionCode 503103 / iOS CFBundleVersion 103.
+
+---
+
+## 2026-06-10 Release — **v5.0.3.102: IDE bridge lands (cc ide + VS Code extension) + cc CLI Claude-Code parity finalized + cc agent multimodal vision input**
+
+> Finalizes the cc CLI's parity with Claude Code and adds the IDE bridge plus multimodal vision input. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **IDE bridge lands**: new `cc ide` command + VS Code extension that auto-discovers and connects to the editor's built-in MCP server, with `openDiff` accept/reject round-trip (CLI command count 149 → 150).
+- **cc CLI Claude-Code parity finalized**: MCP OAuth remote authorization, custom & built-in context-usage status line, output styles, pluggable `web_search`, extended thinking, full-event `settings.json` hooks with block semantics, headless `agent -p`, `/compact` auto-compaction, dual-engine `cc checkpoint`, permission rules.
+- **cc agent multimodal vision input**: `cc agent --image` (auto-selects the configured vision model).
+- **npm packages**: `chainlesschain` CLI 0.162.36 published.
+- **Version surfaces**: productVersion v5.0.3.101 → v5.0.3.102 / desktop 5.0.3-alpha.102 / Android versionCode 503102 / iOS CFBundleVersion 102.
+
+---
+
 ## 2026-06-09 Release — **v5.0.3.101: CLI reaches Claude-Code parity + PDH one-click WeChat 4.0 / QQ-NT collection + security fail-closed bundle**
 
 > Formalizes the engineering mainline accumulated after v5.0.3.100 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).

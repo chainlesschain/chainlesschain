@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.103] - 2026-06-10 — feat: cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化
+
+> 本版把 v5.0.3.102 之后 2026-06-10 的工程主线固化为一次正式发版：①`cc loop` —— Claude-Code `/loop` 平价：固定间隔循环 + `--dynamic` 自定步速 + `--save` / `--resume` 会话持久化 + headless（非 TTY）下稳定运行；②IDE 桥接 Phase 3 —— JetBrains 平价（纯 JDK 协议核 + IntelliJ glue，跨语言 interop 实跑验证）；③IDE 桥接 Phase 4 —— 发布与维护基建（`ide-extensions.yml`：vsce package/publish + gradlew buildPlugin，tag + secret 双门控）；④VS Code 扩展 —— IDE 桥接可视化（状态栏 + 侧边栏 + 仪表板）+ ChainlessChain 品牌 logo/图标（0.2.0 / 0.2.1）；⑤REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`。CLI 沿用 0.162.36、PDH 0.4.3（已发 npm）。
+
+### Feat #1 —— cc loop（Claude-Code /loop 平价）
+
+- 固定间隔循环执行 prompt / slash 命令（`89816b144`）
+- `--dynamic` 自定步速 + prompt 模式 agent flag 透传（`5a58745c6`）
+- `--save` / `--resume` 会话持久化（`dec00fd43`）
+- headless（非 TTY）下稳定运行 + 集成/E2E 测试（`332fcdafa`）
+
+### Feat #2 —— IDE 桥接 Phase 3/4
+
+- Phase 3：JetBrains 平价 —— 纯 JDK 协议核（MiniJson / McpServer / LockfileWriter / IdeTools）+ IntelliJ glue，CLI 零改动双证 + 跨语言 interop 实跑（`507b45c7d`）
+- Phase 4：发布与维护基建 —— `ide-extensions.yml`（vsce package/publish + gradlew buildPlugin/publishPlugin，tag + secret 双门控，不建 GitHub Release，缺 secret fail-fast）+ LICENSE/CHANGELOG + 发布文档（`ab70095a7`）
+- REPL 中 IDE 自动连接遵循 `--ide` / `--no-ide`（`635b0ae0c`）
+
+### Feat #3 —— VS Code 扩展可视化与品牌化
+
+- IDE 桥接可视化：状态栏 + 侧边栏 + 仪表板（0.2.0，`9f877245f`）
+- ChainlessChain 品牌 logo 作为扩展图标 + Activity Bar 图标多轮打磨（0.2.1，`32682648c` 等）
+
+### Fixes
+
+- `crosschain-multisig-e2e` 通过 `CHAINLESSCHAIN_HOME` 隔离 bootstrap DB（`5800068e8`）
+
+## [v5.0.3.102] - 2026-06-10 — feat: IDE 桥接落地（cc ide + VS Code 扩展）+ cc 命令行 Claude-Code 平价收官 + cc agent 多模态视觉输入
+
+> 本版把 cc 命令行向 Claude Code 的平价能力收官，并新增 IDE 桥接与多模态视觉输入：①IDE 桥接 —— 新增 `cc ide` 命令 + VS Code 扩展，自动发现并连接编辑器内置的 MCP server，支持 `openDiff` 接受/拒绝往返（CLI 命令数 149 → 150）；②cc 命令行 Claude-Code 平价收官 —— MCP OAuth 远程授权、自定义及内置上下文用量状态栏、输出风格、`web_search` 可插拔搜索、扩展思考、`settings.json` 全事件 hooks 及 block 语义、headless `agent -p`、`/compact` 自动压缩、`cc checkpoint` 双引擎、权限规则；③`cc agent --image` 多模态视觉输入（自动使用配置的视觉模型）。CLI 0.162.36 已发 npm。
+
 ## [v5.0.3.101] - 2026-06-09 — feat: CLI Claude-Code 平价收尾 + PDH 微信4.0/QQ-NT 一键采集 + 安全 fail-closed 套件 + U-Key 托管层（gated）
 
 > 本版把 v5.0.3.100 之后累积的工程主线固化为一次正式发版：①CLI 向 Claude-Code 平价收尾（headless `agent -p` 全家桶 + `cc cost` + 文件态 checkpoint）；②个人数据中台（PDH）微信 4.0 完整采集 + QQ-NT 一键解密/解析（真机 `nt_msg.db` 验证通过）；③一批安全 fail-closed 收口（SAML/OAuth/通道签名/permission-ipc）；④U-Key 口令托管层（Phase 3，默认 gated OFF）；⑤桌面数据库/LLM 性能面板 V6 端口接通。npm：pdh 0.4.2 → 0.4.3 + CLI 0.162.31 → 0.162.32，Android USR_VERSION 19 → 20 强制真机重抽 cc-cli.tgz。
