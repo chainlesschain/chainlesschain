@@ -12,34 +12,14 @@
 
 import { describe, it, expect, afterAll } from "vitest";
 import { execSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import http from "node:http";
+import { testHome, freePort, CLI_BIN as bin } from "./_helpers/cli-e2e.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const cliRoot = join(__dirname, "..", "..");
-const bin = join(cliRoot, "bin", "chainlesschain.js");
-
-// Isolate the bootstrap DB to a per-file temp dir via CHAINLESSCHAIN_HOME (the
-// var getUserDataPath() honors first). Without it, every spawned `cc` opens the
-// real shared %APPDATA% DB; concurrent suite runs contend on it and a recovery
-// path leaks "[AppConfig]/[DatabaseManager]" lines onto stdout, breaking the
-// --json parse. HOME/USERPROFILE alone don't redirect it on Windows.
-const testHome = mkdtempSync(join(tmpdir(), "cc-orch-e2e-"));
-const childEnv = (extra = {}) => ({
-  ...process.env,
-  CHAINLESSCHAIN_HOME: testHome,
-  ...extra,
-});
-afterAll(() => {
-  try {
-    rmSync(testHome, { recursive: true, force: true });
-  } catch {
-    /* best-effort */
-  }
-});
+// Per-file DB isolation (see _helpers/cli-e2e.js). childEnv() injects
+// CHAINLESSCHAIN_HOME so each spawned cc opens an isolated bootstrap DB.
+const t = testHome("orch-e2e");
+const childEnv = t.env;
+afterAll(() => t.cleanup());
 
 function run(args, opts = {}) {
   return execSync(`node "${bin}" ${args}`, {
@@ -206,7 +186,7 @@ describe("E2E: orchestrate --no-ci --provider ollama", () => {
 
 describe("E2E: orchestrate --webhook server", () => {
   it("starts HTTP webhook server and responds to POST /dingtalk", async () => {
-    const port = 19820;
+    const port = await freePort();
 
     const proc = spawn(
       "node",
@@ -313,7 +293,7 @@ describe("E2E: orchestrate --webhook server", () => {
   }, 30000);
 
   it("returns 200 with challenge for Feishu verification", async () => {
-    const port = 19821;
+    const port = await freePort();
 
     const proc = spawn(
       "node",

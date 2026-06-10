@@ -11,27 +11,13 @@
 
 import { describe, it, expect, afterAll } from "vitest";
 import { execSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { testHome, CLI_BIN as bin } from "./_helpers/cli-e2e.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const cliRoot = join(__dirname, "..", "..");
-const bin = join(cliRoot, "bin", "chainlesschain.js");
-
-// Isolate the bootstrap DB to a per-file temp dir via CHAINLESSCHAIN_HOME (the
-// var getUserDataPath() honors first). Without it, every spawned `cc` opens the
-// real shared %APPDATA% DB; under concurrent suite runs that contends and a
-// recovery path leaks "[AppConfig]" onto stdout, breaking the --json parse.
-const testHome = mkdtempSync(join(tmpdir(), "cc-clia-e2e-"));
-afterAll(() => {
-  try {
-    rmSync(testHome, { recursive: true, force: true });
-  } catch {
-    /* best-effort */
-  }
-});
+// Per-file DB isolation (see _helpers/cli-e2e.js): isolates the bootstrap DB so
+// concurrent runs don't contend on the real shared %APPDATA% DB and leak
+// "[AppConfig]" onto stdout (which breaks the --json parse).
+const t = testHome("clia-e2e");
+afterAll(() => t.cleanup());
 
 function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
@@ -42,7 +28,7 @@ function run(args, options = {}) {
     timeout: 40000,
     maxBuffer: 20 * 1024 * 1024,
     stdio: ["ignore", "pipe", "ignore"],
-    env: { ...process.env, CHAINLESSCHAIN_HOME: testHome },
+    env: t.env(),
     ...options,
   });
 }
