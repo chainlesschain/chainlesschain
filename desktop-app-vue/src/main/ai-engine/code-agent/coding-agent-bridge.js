@@ -137,7 +137,13 @@ class CodingAgentBridge extends EventEmitter {
   async _connectWebSocket() {
     let lastError = null;
 
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    // The CLI `serve` cold-start (chcp + AppConfig + DB bootstrap + WS server)
+    // is ~4s baseline and spikes well past that on a loaded machine, so the
+    // socket may not be bound yet when we first dial. Retry on ECONNREFUSED
+    // with a generous budget — 60 × 250ms ≈ 15s — so a slow cold-start under
+    // load doesn't surface as a spurious "Failed to connect" (previously only
+    // 20 × 250ms ≈ 5s, which lost the race under heavy load).
+    for (let attempt = 0; attempt < 60; attempt += 1) {
       try {
         await new Promise((resolve, reject) => {
           const ws = new _deps.WebSocket(`ws://${this.host}:${this.port}`);
