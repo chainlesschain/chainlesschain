@@ -93,7 +93,7 @@ export function findProjectRoot(cwd, opts = {}) {
  * local companion right after its project file). Only existing files are
  * returned. Deduped by absolute path (covers cwd == home corner cases).
  *
- * @returns {Array<{path:string, scope:"user"|"project"|"local"}>}
+ * @returns {Array<{path:string, scope:"user"|"project"|"local"|"rules"}>}
  */
 export function findInstructionFiles(opts = {}) {
   const { fs, path, os } = resolveDeps(opts);
@@ -133,6 +133,9 @@ export function findInstructionFiles(opts = {}) {
   for (const d of chain) {
     push(firstExisting(fs, path, d, PROJECT_FILE_NAMES), "project");
     push(firstExisting(fs, path, d, LOCAL_FILE_NAMES), "local");
+    // Template-scaffolded project rules (`cc init -t` writes these) join the
+    // chain too, so scaffold-flow and memory-flow projects both feed the agent.
+    push(path.join(d, ".chainlesschain", "rules.md"), "rules");
   }
   return out;
 }

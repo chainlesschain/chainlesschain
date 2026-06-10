@@ -2450,6 +2450,35 @@ export function registerInitCommand(program) {
         const inv = inventoryProject(cwd);
         fs.writeFileSync(target, renderMemoryFile(inv), "utf-8");
         logger.success(`Generated ${target}`);
+
+        // Still create a minimal .chainlesschain/ (config + skills home) so
+        // inventory-initialized folders are real cc projects — project skills
+        // live in .chainlesschain/skills/ and `cc skill sync-cli` needs the
+        // workspace layer. Existing config is left untouched.
+        const memCcDir = path.join(cwd, ".chainlesschain");
+        const memConfigPath = path.join(memCcDir, "config.json");
+        if (!fs.existsSync(memConfigPath)) {
+          fs.mkdirSync(path.join(memCcDir, "skills"), { recursive: true });
+          fs.writeFileSync(
+            memConfigPath,
+            JSON.stringify(
+              {
+                name: path.basename(cwd),
+                template: "none",
+                version: "1.0.0",
+                createdAt: new Date().toISOString(),
+                memoryFile: "cc.md",
+                skills: { workspace: "./skills" },
+              },
+              null,
+              2,
+            ),
+            "utf-8",
+          );
+          logger.info(
+            "  Created .chainlesschain/ (config + skills/ workspace for project skills).",
+          );
+        }
         const langs = inv.languages
           .slice(0, 5)
           .map(([l, n]) => `${l} (${n})`)
@@ -2462,12 +2491,17 @@ export function registerInitCommand(program) {
         const others = inv.existingMemory.filter((f) => f !== "cc.md");
         if (others.length) {
           logger.info(
-            `  Note: ${others.join(", ")} also present — cc.md takes precedence when both exist.`,
+            `  Note: ${others.join(", ")} also present — imported into cc.md via @-references (nothing is shadowed).`,
           );
         }
         logger.info(
           "  cc agent auto-loads cc.md as project context (CC_PROJECT_MEMORY=0 disables).",
         );
+        if (options.yes && !options.memory) {
+          logger.info(
+            "  Heads-up: `cc init` now inventories by default — use `--bare` or `-t <template>` for the old scaffold flow.",
+          );
+        }
         return;
       }
 

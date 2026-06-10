@@ -1,7 +1,7 @@
 # 99 — 项目记忆(cc.md)与 `cc init` 对标方案
 
 > 对标 Claude Code 的 CLAUDE.md 项目记忆体系与 `/init` 命令。
-> 版本:v1.0(2026-06-11)。状态:Phase 0 ✅ 已落地 / Phase 1 ✅ 已落地 / Phase 2 规划中。
+> 版本:v1.1(2026-06-11,自审修订)。状态:Phase 0 ✅ / Phase 1 ✅ / Phase 1.5 审核修复 ✅ / Phase 2 规划中。
 
 ## 1. 背景与缺口
 
@@ -39,12 +39,14 @@ Claude Code 的核心机制之一是**文件式项目记忆**:启动时自动加
 **UX 决策(用户拍板,类 vue init):默认 = 不选模板、盘点当前文件夹;模板创建退为显式选项。**
 
 ```
-cc init                    # 默认:盘点已有资源 → 生成 cc.md(不建 .chainlesschain/)
+cc init                    # 默认:盘点已有资源 → 生成 cc.md + 最小 .chainlesschain/
 cc init --force            # 覆盖已有 cc.md
 cc init -t code-project -y # 显式模板:老的 .chainlesschain/ 脚手架流(原样保留)
 cc init --bare             # = -t empty -y
 cc init --memory -t x      # --memory 强制盘点模式(优先于模板 flag)
 ```
+
+**`.chainlesschain/` 仍然创建(用户拍板)**:"不选模板"只意味着不套用模板的 persona/skills/rules 内容,项目级基建照建——`config.json`(`template: "none"`、`memoryFile: "cc.md"`)+ `skills/` 工作区(项目级 skills 的家,`cc skill sync-cli` 的 workspace 层)。已有 `config.json` 时原样保留只补 cc.md。盘点模式不写 `rules.md`(记忆职责归 cc.md;模板流的 rules.md 仍被加载链识别,见 Phase 1.5-2)。
 
 - **判别**:`command.getOptionValueSource("template") === "cli"` 或 `--bare` 才算"显式要模板"(`-t` 有默认值 `empty`,不能用值判断)。
 - **盘点引擎**:`packages/cli/src/lib/project-inventory.js`,纯离线无 LLM:语言构成(扩展名 census,有界遍历 depth≤4 / 20k entries,跳 node_modules 等重目录)、包管理器(lockfile 探测)、package.json scripts/workspaces、工具链标记(tsconfig/vite/gradle/docker/CI workflows 数)、README 首段摘要、顶层目录文件数。`renderMemoryFile` 渲染成带 Overview/Stack/Commands/Layout/Conventions 段的 starter cc.md。
@@ -52,12 +54,23 @@ cc init --memory -t x      # --memory 强制盘点模式(优先于模板 flag)
 - **兼容面**:web-panel(显式 `-t`)零破坏;`cc init -y`(无 `-t`)语义从"快速空模板"变为"盘点"——**有意的 breaking change**,用户拍板默认反转。
 - **测试**:11 个单测(lib census/synopsis/render + commander 实跑默认盘点/--force/--memory 优先/显式模板与 --bare 走老流)。
 
-## 5. Phase 2 — 后续(规划)
+## 4.5 Phase 1.5 — 自审发现与修复(✅ 已落地)
 
-1. **REPL `#` 快捷记忆**(对标 Claude Code `#` memorize):REPL 内 `# 内容` 一键追加到选定的 cc.md(项目/local/用户级三选),下一 session 自动生效。
-2. **`--ai` 增强盘点**:`cc init --ai` 在离线盘点产出的骨架上,跑一轮 headless agent 深读 README/核心入口,把 Conventions 段填实(对标 claude /init 的 agent 驱动形态;离线盘点仍是默认,保确定性与零依赖)。
-3. **path-scoped rules**:`.claude/rules/*.md`(或 `.chainlesschain/rules/`)frontmatter 声明 glob,按触达路径动态注入(本仓 desktop 侧已有同名机制,CLI 侧补齐)。
-4. **`cc memory edit` / REPL `/memory`**:打开当前生效的记忆文件清单并编辑(`$EDITOR`)。
+对 v1.0 的设计自审发现三个实质问题,均已修:
+
+1. **遮蔽 bug(最重要)**:cc.md 在发现链中优先于 CLAUDE.md/AGENTS.md(每目录只取第一个)。仓库已有手工维护的 CLAUDE.md 时,`cc init` 生成的盘点骨架会**遮蔽**它——精心维护的约定反而失效。**修复**:`renderMemoryFile` 检测到既有记忆文件时,在 cc.md 顶部生成 `## Existing project memory (imported)` 段,逐个 `@CLAUDE.md` import——加载器的 import 机制把既有内容原样带回,nothing is shadowed(roundtrip 测试实证:生成后 loader 同时载到 cc.md 骨架与 CLAUDE.md 原文)。
+2. **`.chainlesschain/rules.md` 断链**:模板流(`cc init -t`)生成的项目规则文件,加载器原本不读——两条流割裂。**修复**:发现链每目录追加 `<dir>/.chainlesschain/rules.md`(scope `rules`),脚手架项目与记忆流项目都能喂给 agent。
+3. **`-y` 语义变更无迁移提示**:`cc init -y`(无 `-t`)从"快速空模板"变为"盘点"。**修复**:该形态下输出一行 heads-up 指引 `--bare`/`-t`。
+
+审核确认无需改的点:盘点不读源码内容(只数扩展名),`.env` 等敏感文件只出现在工具链标记不读值;README 摘要截断 400 字符;Windows 上文件名大小写不敏感(`cc.md`/`CC.md` 均命中),Linux 严格小写——文档约定统一小写 `cc.md`。
+
+## 5. Phase 2 — 后续(规划,细化)
+
+1. **REPL `#` 快捷记忆**(对标 Claude Code `#` memorize):REPL 内 `# 内容` 一键追加。目标文件三选(项目 cc.md / cc.local.md / 用户级 `~/.chainlesschain/cc.md`),默认项目级;追加格式 `- <内容>`(归入文件尾部 `## Notes` 段,无则创建);写后提示下一 turn 生效(系统提示在 session 内已组装,重载时机=下次 compose)。
+2. **`--ai` 增强盘点**:`cc init --ai` 在离线骨架上跑一轮 headless agent(深读 README/入口文件,填实 Conventions 段)。要点:子 agent 运行时设 `CC_PROJECT_MEMORY=0`,防止半成品 cc.md 被注入造成自指污染;`--max-turns` 限额;离线盘点仍是默认(确定性、零 LLM 依赖)。
+3. **path-scoped rules**:`.claude/rules/*.md` frontmatter 声明 glob,按工具触达路径动态注入(对齐本仓 desktop 侧机制);同机制可扩展到"嵌套子目录 cc.md 按需加载"(当前只加载 root→cwd 链,deeper 子目录的记忆文件在工具读到该路径时再注入)。
+4. **`cc memory files` / REPL `/memory`**:列出当前生效的记忆文件链(路径+scope+字节数,即 `findInstructionFiles` 输出)并可 `$EDITOR` 打开;`cc doctor` 增加同样一节(可观测性:用户能看到 agent 到底吃了哪些约定)。
+5. **加载可观测性**:headless `--output-format stream-json` 的 `system(init)` 事件附 `projectMemory: {files, bytes}`;text 态 stderr 一行摘要。(需动 headless-runner,等并行 session settle。)
 
 ## 6. 风险与陷阱
 

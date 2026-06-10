@@ -110,6 +110,17 @@ describe("findInstructionFiles", () => {
     expect(found).toEqual([{ path: legacy, scope: "user" }]);
   });
 
+  it("includes .chainlesschain/rules.md (template-scaffold rules) in the chain", () => {
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/cc.md", "memory");
+    write("repo/.chainlesschain/rules.md", "scaffold rules");
+    const found = findInstructionFiles({ cwd: path.join(tmp, "repo"), home });
+    expect(found.map((f) => [path.basename(f.path), f.scope])).toEqual([
+      ["cc.md", "project"],
+      ["rules.md", "rules"],
+    ]);
+  });
+
   it("returns [] when nothing exists", () => {
     fs.mkdirSync(path.join(tmp, "empty"), { recursive: true });
     expect(findInstructionFiles({ cwd: path.join(tmp, "empty"), home })).toEqual(

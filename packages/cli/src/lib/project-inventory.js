@@ -288,6 +288,16 @@ export function renderMemoryFile(inv, opts = {}) {
   );
   L.push("");
 
+  // cc.md outranks CLAUDE.md/AGENTS.md in discovery — import any existing
+  // memory file so generating cc.md never shadows hand-maintained content.
+  const existing = (inv.existingMemory || []).filter((f) => f !== "cc.md");
+  if (existing.length) {
+    L.push("## Existing project memory (imported)");
+    L.push("");
+    for (const f of existing) L.push(`@${f}`);
+    L.push("");
+  }
+
   if (inv.synopsis || inv.description) {
     L.push("## Overview");
     L.push("");
