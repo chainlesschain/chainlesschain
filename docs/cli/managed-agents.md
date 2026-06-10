@@ -517,8 +517,24 @@ chainlesschain ide doctor [--ide]              # 解释发现为何成功/失败
 > 端到端自验(免扩展):`cc mcp scaffold` 生成一个 SSE MCP server 当"假 IDE",手写一条
 > `<port>.json` 锁指向它,跑 `cc agent --ide` 即可确认 `mcp__ide__*` 工具进 loop + Bearer 鉴权通。
 
-> 边界(Phase 0):连接在 agent 启动时**一次性解析**(中途重启 IDE 需重跑 `cc agent`,热重连留
-> Phase 2);交互 REPL 的 IDE 自动连接为 follow-up,当前 headless(`agent -p`)优先。
+> 边界:连接在 agent 启动时**一次性解析**(中途重启 IDE 需重跑 `cc agent`,热重连留
+> 后续阶段)。headless(`agent -p`)、stream、交互 REPL 三个入口均已接 IDE 自动连接。
+
+### IDE 实时上下文 + 编辑后诊断回喂(Claude-Code 平价)
+
+IDE 桥连上后,agent 不再只是"有 IDE 工具可调",还会**主动感知编辑器状态**:
+
+- **提交时自动共享选区/打开文件**:每次提交 prompt(headless 单轮、stream 每轮、REPL 每条),
+  CLI 自动调一次 `getSelection` + `getOpenEditors`,把活跃文件、打开的 tab、当前选中代码
+  (截断到 2000 字符)作为 `<ide-context>` 块附进**本轮用户消息**——模型无须自己决定调工具。
+  该块是**短暂的**:只进在途消息,不写入会话持久化(resume 回放的是你的原话,不是过期的
+  编辑器快照)。IDE 无响应时 1.5s 超时放弃,绝不阻塞回合。
+- **编辑后诊断自动回喂**:`write_file`/`edit_file`/`edit_file_hashed` 成功后,CLI 等
+  语言服务器消化变更(默认 600ms,`CC_IDE_DIAG_SETTLE_MS` 可调,`0` 跳过),拉取该文件的
+  **error/warning 诊断**(info/hint 不打扰),作为 `ideDiagnostics` 附在工具结果里——模型
+  在**同一个循环**里就能看到自己刚引入的报错并修掉,而不是若干轮后才发现。最多列 10 条。
+
+两者共用开关:`CC_IDE_CONTEXT=0` 一并禁用(IDE 工具本身仍可被模型显式调用)。
 
 ## Web Search — `web_search` 工具 + 可插拔搜索源
 
