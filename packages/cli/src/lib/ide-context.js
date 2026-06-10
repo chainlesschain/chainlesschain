@@ -251,6 +251,68 @@ export async function collectIdeDiagnostics(mcp, filePath, opts = {}) {
   return relevant.length > 0 ? relevant : null;
 }
 
+// ─── IDE-native diff approval (Claude-Code parity) ──────────────────────────
+//
+// When a permission `ask` fires for a file edit and an IDE bridge is up, the
+// confirmation can be the editor's own openDiff review instead of a terminal
+// y/N. The openDiff contract (extension P2): it BLOCKS until the user decides;
+// on Accept the IDE itself writes the (possibly user-edited) right-hand text
+// to the file — so an accepted review REPLACES the tool's own write, it does
+// not precede it. The caller must skip normal execution on "accepted".
+
+/** Env kill-switch for diff-approval routing: CC_IDE_DIFF_APPROVAL=0 disables. */
+export function ideDiffApprovalEnabled(env = process.env) {
+  const v = String(env?.CC_IDE_DIFF_APPROVAL ?? "").toLowerCase();
+  return !(v === "0" || v === "false" || v === "off");
+}
+
+/** Does this MCP surface expose the IDE bridge's openDiff tool? */
+export function hasIdeOpenDiff(mcp) {
+  return !!(
+    mcp?.mcpClient?.callTool &&
+    mcp.externalToolExecutors?.mcp__ide__openDiff?.kind === "mcp"
+  );
+}
+
+/**
+ * Run one blocking openDiff review in the connected IDE. Returns
+ *   { outcome:"accepted", finalText|null }  — the IDE wrote the file itself
+ *   { outcome:"rejected" }                  — nothing was written
+ *   null                                    — IDE unavailable / transport
+ *                                             error / malformed reply → the
+ *                                             caller falls back to its normal
+ *                                             confirmation path.
+ * Deliberately NO timeout: a review takes as long as the user takes (the MCP
+ * HTTP client has no request timeout; the extension holds the response open).
+ */
+export async function requestIdeDiffApproval(mcp, req = {}) {
+  if (!hasIdeOpenDiff(mcp)) return null;
+  if (!req.path || typeof req.modifiedText !== "string") return null;
+  const exec = mcp.externalToolExecutors.mcp__ide__openDiff;
+  let result;
+  try {
+    result = await mcp.mcpClient.callTool(exec.serverName, exec.toolName, {
+      path: req.path,
+      modifiedText: req.modifiedText,
+      ...(typeof req.originalText === "string"
+        ? { originalText: req.originalText }
+        : {}),
+      ...(req.title ? { title: req.title } : {}),
+    });
+  } catch {
+    return null;
+  }
+  const data = parseToolResultJson(result);
+  if (data?.outcome === "accepted") {
+    return {
+      outcome: "accepted",
+      finalText: typeof data.finalText === "string" ? data.finalText : null,
+    };
+  }
+  if (data?.outcome === "rejected") return { outcome: "rejected" };
+  return null; // anything else is not a verdict — fail safe to fallback
+}
+
 /**
  * Render pulled diagnostics as a compact feedback string for the tool result.
  * Returns null when there is nothing to report.

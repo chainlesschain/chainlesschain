@@ -603,6 +603,67 @@ export function buildSystemPrompt(cwd, opts = {}) {
 
 // ─── Tool execution ──────────────────────────────────────────────────────
 
+/** The file-mutating tools whose `ask` can be reviewed as an IDE diff. */
+const IDE_DIFF_EDIT_TOOLS = new Set([
+  "write_file",
+  "edit_file",
+  "edit_file_hashed",
+]);
+
+/**
+ * Compute the content an edit tool WOULD write, without writing it — the
+ * left/right sides for an IDE diff review. Mirrors the corresponding
+ * executeToolInner cases exactly (write_file / edit_file / edit_file_hashed,
+ * the latter via the same pure replaceByHash). Returns
+ * `{ filePath, newContent, originalText|null }` or null when the edit cannot
+ * be computed (missing file, anchor/old_string miss, bad args) — the caller
+ * then falls back to the normal confirmation path so the tool can produce its
+ * own diagnostics.
+ */
+export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
+  try {
+    if (!args.path) return null;
+    const filePath = path.resolve(cwd, args.path);
+    if (name === "write_file") {
+      if (typeof args.content !== "string") return null;
+      const originalText = fs.existsSync(filePath)
+        ? fs.readFileSync(filePath, "utf8")
+        : "";
+      return { filePath, newContent: args.content, originalText };
+    }
+    if (name === "edit_file") {
+      if (!fs.existsSync(filePath)) return null;
+      const content = fs.readFileSync(filePath, "utf8");
+      if (
+        typeof args.old_string !== "string" ||
+        !content.includes(args.old_string)
+      ) {
+        return null;
+      }
+      return {
+        filePath,
+        newContent: content.replace(args.old_string, args.new_string),
+        originalText: content,
+      };
+    }
+    if (name === "edit_file_hashed") {
+      if (!fs.existsSync(filePath)) return null;
+      if (!args.anchor_hash || typeof args.new_line !== "string") return null;
+      const original = fs.readFileSync(filePath, "utf8");
+      const result = replaceByHash(original, {
+        anchorHash: args.anchor_hash,
+        expectedLine: args.expected_line,
+        newLine: args.new_line,
+      });
+      if (!result.success) return null;
+      return { filePath, newContent: result.content, originalText: original };
+    }
+  } catch {
+    // unreadable file etc. → no proposal, normal path handles it
+  }
+  return null;
+}
+
 /**
  * Execute a single tool call with plan-mode filtering and hook pipeline.
  *
@@ -719,6 +780,73 @@ export async function executeTool(name, args, context = {}) {
   // 3 + 4. settings ask / allow (only reached when neither layer denied)
   let ruleAllowed = false;
   if (settingsVerdict.decision === "ask") {
+    // IDE-native diff approval (Claude-Code parity): when the ask is about a
+    // file edit, the session is interactive (permissionConfirm is only set by
+    // the REPL — headless stays fail-closed), and an IDE bridge with openDiff
+    // is connected, review the edit in the editor instead of a terminal y/N.
+    // CONTRACT: on Accept the IDE has already written the (possibly
+    // user-edited) text to the file, so the approval REPLACES execution —
+    // we return a synthetic success and never run the tool's own write. On
+    // Reject nothing was written. On null (IDE died / no proposal computable)
+    // we fall through to the normal confirm below. CC_IDE_DIFF_APPROVAL=0
+    // disables the routing.
+    if (
+      IDE_DIFF_EDIT_TOOLS.has(name) &&
+      typeof context.permissionConfirm === "function" &&
+      context.mcpClient &&
+      context.externalToolExecutors
+    ) {
+      try {
+        const {
+          ideDiffApprovalEnabled,
+          hasIdeOpenDiff,
+          requestIdeDiffApproval,
+        } = await import("../lib/ide-context.js");
+        const mcpLike = {
+          mcpClient: context.mcpClient,
+          externalToolExecutors: context.externalToolExecutors,
+        };
+        if (ideDiffApprovalEnabled() && hasIdeOpenDiff(mcpLike)) {
+          const proposal = computeProposedEdit(name, args, cwd);
+          if (proposal) {
+            const verdict = await requestIdeDiffApproval(mcpLike, {
+              path: proposal.filePath,
+              modifiedText: proposal.newContent,
+              originalText: proposal.originalText,
+              title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
+            });
+            if (verdict?.outcome === "accepted") {
+              return {
+                success: true,
+                path: proposal.filePath,
+                appliedVia: "ide-diff",
+                ...(verdict.finalText != null &&
+                verdict.finalText !== proposal.newContent
+                  ? { userEdited: true }
+                  : {}),
+                policy: {
+                  decision: "allow",
+                  rule: settingsVerdict.rule,
+                  via: "ide-diff",
+                },
+              };
+            }
+            if (verdict?.outcome === "rejected") {
+              return {
+                error: `[Permission] "${name}" was rejected in the IDE diff review (settings rule: ${settingsVerdict.rule}).`,
+                policy: {
+                  decision: "deny",
+                  rule: settingsVerdict.rule,
+                  via: "ide-diff",
+                },
+              };
+            }
+          }
+        }
+      } catch (_err) {
+        // diff-approval routing is best-effort — fall back to terminal confirm
+      }
+    }
     const confirm = context.permissionConfirm || context.shellConfirm || null;
     const ok =
       typeof confirm === "function"

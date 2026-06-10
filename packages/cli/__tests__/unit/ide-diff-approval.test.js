@@ -1,0 +1,331 @@
+/**
+ * IDE-native diff approval (gap #4, Claude-Code parity) — when a settings
+ * `ask` fires for a file edit in an INTERACTIVE session with an IDE bridge
+ * connected, the confirmation is the editor's blocking openDiff review:
+ *   accepted → the IDE already wrote the (possibly user-edited) text, the
+ *              tool's own write is SKIPPED (approval replaces execution)
+ *   rejected → denied, file untouched
+ *   IDE dead / no proposal → fall back to the terminal confirm
+ * Headless (no permissionConfirm) never routes to the IDE (fail-closed).
+ */
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import {
+  ideDiffApprovalEnabled,
+  hasIdeOpenDiff,
+  requestIdeDiffApproval,
+} from "../../src/lib/ide-context.js";
+import {
+  computeProposedEdit,
+  executeTool,
+} from "../../src/runtime/agent-core.js";
+
+const txt = (data) => ({
+  content: [{ type: "text", text: JSON.stringify(data) }],
+});
+
+function fakeDiffMcp({ callTool } = {}) {
+  const calls = [];
+  return {
+    mcpClient: {
+      callTool:
+        callTool ||
+        (async (server, tool, args) => {
+          calls.push({ server, tool, args });
+          return txt({ outcome: "accepted", finalText: args.modifiedText });
+        }),
+    },
+    externalToolExecutors: {
+      mcp__ide__openDiff: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "openDiff",
+      },
+    },
+    calls,
+  };
+}
+
+/** An mcp surface WITHOUT openDiff (selection tools only). */
+function selectionOnlyMcp() {
+  return {
+    mcpClient: { callTool: async () => txt(null) },
+    externalToolExecutors: {
+      mcp__ide__getSelection: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getSelection",
+      },
+    },
+  };
+}
+
+describe("ideDiffApprovalEnabled / hasIdeOpenDiff", () => {
+  it("defaults on; 0/false/off disable", () => {
+    expect(ideDiffApprovalEnabled({})).toBe(true);
+    expect(ideDiffApprovalEnabled({ CC_IDE_DIFF_APPROVAL: "0" })).toBe(false);
+    expect(ideDiffApprovalEnabled({ CC_IDE_DIFF_APPROVAL: "off" })).toBe(false);
+  });
+  it("detects the openDiff executor", () => {
+    expect(hasIdeOpenDiff(fakeDiffMcp())).toBe(true);
+    expect(hasIdeOpenDiff(selectionOnlyMcp())).toBe(false);
+    expect(hasIdeOpenDiff(null)).toBe(false);
+  });
+});
+
+describe("requestIdeDiffApproval", () => {
+  it("returns accepted with finalText and forwards the request", async () => {
+    const mcp = fakeDiffMcp();
+    const v = await requestIdeDiffApproval(mcp, {
+      path: "C:/x/a.js",
+      modifiedText: "new",
+      originalText: "old",
+      title: "t",
+    });
+    expect(v).toEqual({ outcome: "accepted", finalText: "new" });
+    expect(mcp.calls[0]).toMatchObject({
+      server: "ide",
+      tool: "openDiff",
+      args: { path: "C:/x/a.js", modifiedText: "new", originalText: "old" },
+    });
+  });
+
+  it("returns rejected", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async () => txt({ outcome: "rejected" }),
+    });
+    expect(
+      await requestIdeDiffApproval(mcp, { path: "p", modifiedText: "m" }),
+    ).toEqual({ outcome: "rejected" });
+  });
+
+  it("returns null on transport error, malformed verdict, or bad request", async () => {
+    const dead = fakeDiffMcp({
+      callTool: async () => {
+        throw new Error("dead");
+      },
+    });
+    expect(
+      await requestIdeDiffApproval(dead, { path: "p", modifiedText: "m" }),
+    ).toBe(null);
+    const weird = fakeDiffMcp({ callTool: async () => txt({ shown: true }) });
+    expect(
+      await requestIdeDiffApproval(weird, { path: "p", modifiedText: "m" }),
+    ).toBe(null);
+    expect(await requestIdeDiffApproval(fakeDiffMcp(), { path: "p" })).toBe(
+      null,
+    );
+    expect(
+      await requestIdeDiffApproval(selectionOnlyMcp(), {
+        path: "p",
+        modifiedText: "m",
+      }),
+    ).toBe(null);
+  });
+});
+
+describe("computeProposedEdit", () => {
+  let tmp;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-proposed-"));
+    fs.writeFileSync(path.join(tmp, "a.js"), "const x = 1;\n", "utf-8");
+  });
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("write_file: proposes content with the on-disk original (or empty)", () => {
+    const p1 = computeProposedEdit(
+      "write_file",
+      { path: "a.js", content: "Z" },
+      tmp,
+    );
+    expect(p1).toMatchObject({
+      newContent: "Z",
+      originalText: "const x = 1;\n",
+    });
+    const p2 = computeProposedEdit(
+      "write_file",
+      { path: "new.js", content: "Z" },
+      tmp,
+    );
+    expect(p2).toMatchObject({ newContent: "Z", originalText: "" });
+  });
+
+  it("edit_file: applies the replacement without writing", () => {
+    const p = computeProposedEdit(
+      "edit_file",
+      { path: "a.js", old_string: "x = 1", new_string: "x = 2" },
+      tmp,
+    );
+    expect(p.newContent).toBe("const x = 2;\n");
+    expect(fs.readFileSync(path.join(tmp, "a.js"), "utf-8")).toBe(
+      "const x = 1;\n",
+    );
+  });
+
+  it("returns null when the edit cannot be computed", () => {
+    expect(
+      computeProposedEdit(
+        "edit_file",
+        { path: "a.js", old_string: "nope", new_string: "x" },
+        tmp,
+      ),
+    ).toBe(null);
+    expect(
+      computeProposedEdit(
+        "edit_file",
+        { path: "missing.js", old_string: "a", new_string: "b" },
+        tmp,
+      ),
+    ).toBe(null);
+    expect(
+      computeProposedEdit(
+        "edit_file_hashed",
+        { path: "a.js", anchor_hash: "zzzzzz", new_line: "x" },
+        tmp,
+      ),
+    ).toBe(null);
+    expect(computeProposedEdit("run_shell", { command: "ls" }, tmp)).toBe(null);
+  });
+});
+
+describe("executeTool — IDE diff approval wiring (settings ask)", () => {
+  const ASK_RULES = { allow: [], ask: ["Write", "Edit"], deny: [] };
+  let tmp;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-diffappr-"));
+    process.env.CC_IDE_DIAG_SETTLE_MS = "0";
+  });
+  afterEach(() => {
+    delete process.env.CC_IDE_DIAG_SETTLE_MS;
+    delete process.env.CC_IDE_DIFF_APPROVAL;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const ctx = (mcp, over = {}) => ({
+    cwd: tmp,
+    permissionRules: ASK_RULES,
+    permissionConfirm: vi.fn(async () => true),
+    mcpClient: mcp ? mcp.mcpClient : undefined,
+    externalToolExecutors: mcp ? mcp.externalToolExecutors : undefined,
+    ...over,
+  });
+
+  it("accepted review replaces execution (IDE wrote; tool write skipped)", async () => {
+    const mcp = fakeDiffMcp();
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "write_file",
+      { path: "out.js", content: "const a = 1;" },
+      context,
+    );
+    expect(res).toMatchObject({
+      success: true,
+      appliedVia: "ide-diff",
+      policy: { decision: "allow", via: "ide-diff" },
+    });
+    expect(res.userEdited).toBeUndefined();
+    expect(fs.existsSync(path.join(tmp, "out.js"))).toBe(false);
+    expect(context.permissionConfirm).not.toHaveBeenCalled();
+    expect(mcp.calls[0].args.title).toContain("write_file");
+  });
+
+  it("flags userEdited when the IDE returns different finalText", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async (_s, _t, args) =>
+        txt({
+          outcome: "accepted",
+          finalText: args.modifiedText + "// tweaked",
+        }),
+    });
+    const res = await executeTool(
+      "write_file",
+      { path: "o.js", content: "x" },
+      ctx(mcp),
+    );
+    expect(res.userEdited).toBe(true);
+  });
+
+  it("rejected review denies without touching the file", async () => {
+    fs.writeFileSync(path.join(tmp, "a.js"), "const x = 1;\n", "utf-8");
+    const mcp = fakeDiffMcp({
+      callTool: async () => txt({ outcome: "rejected" }),
+    });
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "edit_file",
+      { path: "a.js", old_string: "x = 1", new_string: "x = 2" },
+      context,
+    );
+    expect(res.error).toMatch(/rejected in the IDE diff review/);
+    expect(res.policy).toMatchObject({ decision: "deny", via: "ide-diff" });
+    expect(fs.readFileSync(path.join(tmp, "a.js"), "utf-8")).toBe(
+      "const x = 1;\n",
+    );
+    expect(context.permissionConfirm).not.toHaveBeenCalled();
+  });
+
+  it("falls back to terminal confirm when the IDE dies mid-review", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async () => {
+        throw new Error("ide gone");
+      },
+    });
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "write_file",
+      { path: "fb.js", content: "ok" },
+      context,
+    );
+    expect(context.permissionConfirm).toHaveBeenCalled();
+    expect(res.success).toBe(true);
+    expect(fs.readFileSync(path.join(tmp, "fb.js"), "utf-8")).toBe("ok");
+  });
+
+  it("falls back to terminal confirm when no proposal is computable", async () => {
+    const mcp = fakeDiffMcp();
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "edit_file",
+      { path: "ghost.js", old_string: "a", new_string: "b" },
+      context,
+    );
+    expect(mcp.calls).toHaveLength(0); // no diff without a proposal
+    expect(context.permissionConfirm).toHaveBeenCalled();
+    expect(res.error).toMatch(/File not found/); // tool produced its own error
+  });
+
+  it("stays out of headless (no permissionConfirm → fail-closed, no diff)", async () => {
+    const mcp = fakeDiffMcp();
+    const res = await executeTool(
+      "write_file",
+      { path: "h.js", content: "x" },
+      ctx(mcp, { permissionConfirm: undefined }),
+    );
+    expect(res.error).toMatch(/requires confirmation/);
+    expect(mcp.calls).toHaveLength(0);
+  });
+
+  it("CC_IDE_DIFF_APPROVAL=0 routes back to terminal confirm", async () => {
+    process.env.CC_IDE_DIFF_APPROVAL = "0";
+    const mcp = fakeDiffMcp();
+    const context = ctx(mcp);
+    await executeTool("write_file", { path: "k.js", content: "x" }, context);
+    expect(mcp.calls).toHaveLength(0);
+    expect(context.permissionConfirm).toHaveBeenCalled();
+  });
+
+  it("non-edit tools never route to the IDE diff", async () => {
+    const mcp = fakeDiffMcp();
+    const context = ctx(mcp, {
+      permissionRules: { allow: [], ask: ["Read"], deny: [] },
+    });
+    fs.writeFileSync(path.join(tmp, "r.txt"), "hi", "utf-8");
+    await executeTool("read_file", { path: "r.txt" }, context);
+    expect(mcp.calls).toHaveLength(0);
+    expect(context.permissionConfirm).toHaveBeenCalled();
+  });
+});

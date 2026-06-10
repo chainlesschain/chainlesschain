@@ -136,3 +136,92 @@ describe("IDE context over the real extension MCP server", () => {
     expect(block).toBe(null);
   });
 });
+
+describe("IDE diff approval over the real extension MCP server", () => {
+  let server;
+  let mcp;
+  let tmp;
+  let mode = "accept";
+
+  beforeEach(async () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-diffint-"));
+    // A facade whose openDiff behaves like the real VS Code one: on accept it
+    // WRITES the proposed text to the file itself, then reports accepted.
+    const diffFacade = {
+      getSelection: async () => null,
+      getDiagnostics: async () => [],
+      getOpenEditors: async () => [],
+      openDiff: async (args) => {
+        if (mode === "accept") {
+          const finalText = args.modifiedText + "\n// user tweak";
+          fs.writeFileSync(args.path, finalText, "utf-8");
+          return { outcome: "accepted", path: args.path, finalText };
+        }
+        return { outcome: "rejected", path: args.path };
+      },
+    };
+    server = new IdeMcpServer({
+      tools: buildIdeTools(diffFacade),
+      token: TOKEN,
+    });
+    await server.start({ port: 0 });
+    mcp = await setupMcpFromConfig(
+      {
+        ide: {
+          url: server.url(),
+          transport: "http",
+          headers: { Authorization: `Bearer ${TOKEN}` },
+        },
+      },
+      { writeErr: () => {} },
+    );
+  });
+
+  afterEach(async () => {
+    try {
+      await mcp?.mcpClient?.disconnectAll();
+    } catch {
+      /* ignore */
+    }
+    await server.stop();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const ctx = () => ({
+    cwd: tmp,
+    permissionRules: { allow: [], ask: ["Write", "Edit"], deny: [] },
+    permissionConfirm: async () => {
+      throw new Error("terminal confirm must not be reached");
+    },
+    mcpClient: mcp.mcpClient,
+    externalToolExecutors: mcp.externalToolExecutors,
+  });
+
+  it("accept: the IDE writes the (user-edited) file; tool write is skipped", async () => {
+    mode = "accept";
+    const res = await executeTool(
+      "write_file",
+      { path: "approved.js", content: "const ok = true;" },
+      ctx(),
+    );
+    expect(res).toMatchObject({
+      success: true,
+      appliedVia: "ide-diff",
+      userEdited: true,
+    });
+    expect(fs.readFileSync(path.join(tmp, "approved.js"), "utf-8")).toBe(
+      "const ok = true;\n// user tweak", // what the IDE wrote, not the proposal
+    );
+  });
+
+  it("reject: nothing is written and the tool is denied", async () => {
+    mode = "reject";
+    const res = await executeTool(
+      "write_file",
+      { path: "denied.js", content: "nope" },
+      ctx(),
+    );
+    expect(res.error).toMatch(/rejected in the IDE diff review/);
+    expect(fs.existsSync(path.join(tmp, "denied.js"))).toBe(false);
+  });
+});
