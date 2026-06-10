@@ -746,11 +746,12 @@ chainlesschain hook list                                                # DB hoo
 | **UserPromptSubmit** | 每轮用户 prompt 提交前(headless + REPL) | `block`→中止本轮 / 非 block stdout(JSON `additionalContext` 或纯文本)→注入为上下文 |
 | **SessionStart** | 会话起点(headless + REPL) | 非 block stdout → 注入为一条 `system` 上下文消息(observe-only,无 block);`source`=startup/resume 即 matcher 目标 |
 | **Stop** | agentLoop 收尾(agent 给出最终答复,无工具调用) | `block`→**强制续跑**(reason 作新指令注入,`stop_hook_active` 防死循环 + 迭代预算兜底);payload 含 `final_response`/`stop_hook_active` |
+| **SubagentStop** | `spawn_sub_agent` 工具完成后(子 agent 已返回摘要) | observe + feedback:子 agent 已结束故不"强制续跑",`block` 的 reason 作 `hookFeedback` 回喂**父** agent;payload 含 `subagent_response`/`session_id` |
 | **PreCompact** | 自动压缩前(`shouldAutoCompact` 命中) | `block`→**跳过本轮压缩**(emit `compaction-skipped`);payload 含 `trigger`/`message_count` |
 | **SessionEnd** | 会话结束(headless run 收尾 / stdin 关闭 / REPL 退出) | observe-only;payload 含 `reason` |
 | **Notification** | agent 需要用户注意时(REPL 弹权限/风险确认前) | observe-only(响铃 / 桌面通知);payload 含 `message`。仅交互 REPL(headless 无人可通知) |
 
-UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`;block 在 headless 退出码 `2`、在 REPL 跳过本轮。SessionStart payload:`{ hook_event_name, source, cwd, session_id }`。Stop/PreCompact 由 `agentLoop` 中心触发(覆盖三入口);SessionEnd 在各入口收尾触发。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
+UserPromptSubmit payload:`{ hook_event_name, prompt, cwd, session_id }`;block 在 headless 退出码 `2`、在 REPL 跳过本轮。SessionStart payload:`{ hook_event_name, source, cwd, session_id }`。Stop/PreCompact 由 `agentLoop` 中心触发(覆盖三入口);SessionEnd 在各入口收尾触发;SubagentStop 与 PostToolUse 同在 `executeTool` 里触发(仅当工具名为 `spawn_sub_agent`)。settings/host `deny`(权限规则)先于 hook 短路,被拒的工具调用不会 spawn hook 进程。
 
 > **全事件已接入**:工具(PreToolUse/PostToolUse)+ prompt(UserPromptSubmit)+ 会话(SessionStart/SessionEnd)+ Stop(可 block→续跑)+ PreCompact(可 block→跳过压缩)。SessionEnd 为 observe-only。
 

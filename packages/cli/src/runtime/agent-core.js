@@ -895,6 +895,41 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  // settings.json SubagentStop hooks: fire when a `spawn_sub_agent` tool call
+  // finishes (Claude-Code SubagentStop parity). The subagent has already
+  // returned its summary, so this is observe + feedback rather than force-
+  // continue: a `block` reason is surfaced to the PARENT agent as hookFeedback
+  // so it can react (e.g. re-spawn or adjust), mirroring PostToolUse.
+  if (
+    name === "spawn_sub_agent" &&
+    context.settingsHooks &&
+    toolResult &&
+    typeof toolResult === "object"
+  ) {
+    try {
+      const outcome = runObserveHooks(
+        context.settingsHooks,
+        "SubagentStop",
+        {
+          stop_hook_active: false,
+          session_id: context.sessionId || null,
+          subagent_response:
+            typeof toolResult === "object"
+              ? JSON.stringify(toolResult).substring(0, 2000)
+              : String(toolResult).substring(0, 2000),
+        },
+        { cwd },
+      );
+      if (outcome.decision === "block" && outcome.reason) {
+        toolResult.hookFeedback = toolResult.hookFeedback
+          ? `${toolResult.hookFeedback}\n${outcome.reason}`
+          : outcome.reason;
+      }
+    } catch (_err) {
+      // SubagentStop hooks are best-effort
+    }
+  }
+
   return toolResult;
 }
 

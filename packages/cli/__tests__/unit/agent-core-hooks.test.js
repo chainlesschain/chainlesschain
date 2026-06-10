@@ -77,7 +77,11 @@ describe("PreToolUse ask → confirmer", () => {
     const res = await executeTool(
       "read_file",
       { path: file },
-      { cwd: tmp, settingsHooks: pre(HOOK_ASK), permissionConfirm: async () => false },
+      {
+        cwd: tmp,
+        settingsHooks: pre(HOOK_ASK),
+        permissionConfirm: async () => false,
+      },
     );
     expect(res.error).toMatch(/\[Hook\] PreToolUse blocked/);
   });
@@ -86,7 +90,11 @@ describe("PreToolUse ask → confirmer", () => {
     const res = await executeTool(
       "read_file",
       { path: file },
-      { cwd: tmp, settingsHooks: pre(HOOK_ASK), permissionConfirm: async () => true },
+      {
+        cwd: tmp,
+        settingsHooks: pre(HOOK_ASK),
+        permissionConfirm: async () => true,
+      },
     );
     expect(res.error).toBeUndefined();
   });
@@ -172,7 +180,10 @@ describe("Stop hook (agentLoop completion)", () => {
       cwd: tmp,
       settingsHooks: {
         Stop: [
-          { matcher: null, hooks: [{ type: "command", command: `node "${hookFile}"` }] },
+          {
+            matcher: null,
+            hooks: [{ type: "command", command: `node "${hookFile}"` }],
+          },
         ],
       },
       autoCompact: false,
@@ -183,6 +194,71 @@ describe("Stop hook (agentLoop completion)", () => {
   });
 });
 
+describe("SubagentStop hook (spawn_sub_agent completion)", () => {
+  // spawn_sub_agent with empty args returns an error object WITHOUT spinning up
+  // a real LLM subagent — enough to prove the SubagentStop seam fires on the
+  // tool's completion.
+  it("fires after a spawn_sub_agent call returns", async () => {
+    const sentinel = path.join(tmp, "SUBSTOPPED");
+    const cmd = `node -e "require('fs').writeFileSync('${sentinel.replace(/\\/g, "\\\\")}','x')"`;
+    await executeTool(
+      "spawn_sub_agent",
+      {},
+      {
+        cwd: tmp,
+        settingsHooks: {
+          SubagentStop: [
+            { matcher: null, hooks: [{ type: "command", command: cmd }] },
+          ],
+        },
+      },
+    );
+    expect(fs.existsSync(sentinel)).toBe(true);
+  });
+
+  it("does NOT fire for a non-subagent tool", async () => {
+    const sentinel = path.join(tmp, "SHOULD_NOT_RUN");
+    const cmd = `node -e "require('fs').writeFileSync('${sentinel.replace(/\\/g, "\\\\")}','x')"`;
+    await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: {
+          SubagentStop: [
+            { matcher: null, hooks: [{ type: "command", command: cmd }] },
+          ],
+        },
+      },
+    );
+    expect(fs.existsSync(sentinel)).toBe(false);
+  });
+
+  it("attaches hookFeedback to the result when it blocks", async () => {
+    const hookFile = path.join(tmp, "substop.js");
+    fs.writeFileSync(
+      hookFile,
+      "console.log(JSON.stringify({decision:'block',reason:'subagent drifted'}))",
+    );
+    const res = await executeTool(
+      "spawn_sub_agent",
+      {},
+      {
+        cwd: tmp,
+        settingsHooks: {
+          SubagentStop: [
+            {
+              matcher: null,
+              hooks: [{ type: "command", command: `node "${hookFile}"` }],
+            },
+          ],
+        },
+      },
+    );
+    expect(res.hookFeedback).toBe("subagent drifted");
+  });
+});
+
 describe("PreCompact hook block", () => {
   it("skips the auto-compaction when a PreCompact hook blocks", async () => {
     const hookFile = path.join(tmp, "precompact.js");
@@ -190,7 +266,10 @@ describe("PreCompact hook block", () => {
       hookFile,
       "console.log(JSON.stringify({decision:'block',reason:'owned'}))",
     );
-    const compress = vi.fn(async () => ({ messages: [], stats: { saved: 100 } }));
+    const compress = vi.fn(async () => ({
+      messages: [],
+      stats: { saved: 100 },
+    }));
     const events = [];
     const gen = agentLoop(
       [
@@ -210,7 +289,10 @@ describe("PreCompact hook block", () => {
         _autoCompactor: { shouldAutoCompact: () => true, compress },
         settingsHooks: {
           PreCompact: [
-            { matcher: null, hooks: [{ type: "command", command: `node "${hookFile}"` }] },
+            {
+              matcher: null,
+              hooks: [{ type: "command", command: `node "${hookFile}"` }],
+            },
           ],
         },
       },
