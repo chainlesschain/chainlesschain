@@ -1,0 +1,131 @@
+/**
+ * cc loop — core driver (pure, dependency-injected) for the fixed-interval
+ * loop runner. The command layer (src/commands/loop.js) supplies a concrete
+ * `runIteration` (spawns a child process) plus a real clock; everything here
+ * is side-effect-free and clock-injected so the loop semantics — iteration
+ * counting, stop conditions, between-run delay — are deterministically
+ * testable without timers or subprocesses.
+ *
+ * Claude-Code `/loop` parity (fixed-interval MVP): run a command or agent
+ * prompt repeatedly until a stop condition fires (max iterations / exit 0 /
+ * output match) or the caller aborts (Ctrl-C).
+ */
+
+/** Multipliers for the duration suffixes we accept. */
+const DURATION_UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000 };
+
+/**
+ * Parse a human interval ("30s", "5m", "1.5h", "500ms") into milliseconds.
+ * A bare number is interpreted as SECONDS (the natural unit for an interval),
+ * so `--every 30` === `--every 30s`. Throws on anything unparseable.
+ */
+export function parseDuration(input) {
+  if (typeof input === "number" && Number.isFinite(input)) {
+    return Math.max(0, Math.round(input));
+  }
+  const s = String(input ?? "")
+    .trim()
+    .toLowerCase();
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h)?$/);
+  if (!m) {
+    throw new Error(
+      `invalid duration: "${input}" (use 30s, 5m, 1.5h, or 500ms)`,
+    );
+  }
+  const value = parseFloat(m[1]);
+  const unit = m[2] || "s"; // bare number → seconds
+  return Math.round(value * DURATION_UNITS[unit]);
+}
+
+/** Render a millisecond duration back to a compact human string. */
+export function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${trim(ms / 1000)}s`;
+  if (ms < 3600000) return `${trim(ms / 60000)}m`;
+  return `${trim(ms / 3600000)}h`;
+}
+
+function trim(n) {
+  // Strip trailing ".0" so 5.0 → "5" but 1.5 stays "1.5".
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+/** Default abortable sleep — resolves early if the signal aborts. */
+export function makeSleep(signal) {
+  return (ms) =>
+    new Promise((resolve) => {
+      if (signal?.aborted || ms <= 0) return resolve();
+      const t = setTimeout(resolve, ms);
+      if (t.unref) t.unref();
+      signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(t);
+          resolve();
+        },
+        { once: true },
+      );
+    });
+}
+
+/**
+ * Drive the loop. Calls `runIteration(n)` once per round (1-based), evaluates
+ * the stop conditions AFTER each round, and sleeps `intervalMs` between rounds
+ * (never after the final round). Returns a summary describing why it stopped.
+ *
+ * @param {object}   opts
+ * @param {(n:number)=>Promise<{exitCode?:number, output?:string}>} opts.runIteration
+ * @param {number}   opts.intervalMs       delay between iterations (>= 0)
+ * @param {number}  [opts.maxIterations]   stop after N rounds (>= 1)
+ * @param {boolean} [opts.untilExitZero]   stop once a round exits with code 0
+ * @param {RegExp}  [opts.untilRegex]      stop once a round's output matches
+ * @param {(ms:number)=>Promise<void>} [opts.sleep]  injectable delay
+ * @param {()=>boolean} [opts.shouldStop]  external stop probe (e.g. SIGINT)
+ * @param {(n:number, res:object)=>void} [opts.onIteration] per-round hook
+ * @returns {Promise<{iterations:number, stoppedBy:string, results:object[]}>}
+ */
+export async function runLoop({
+  runIteration,
+  intervalMs,
+  maxIterations,
+  untilExitZero = false,
+  untilRegex = null,
+  sleep,
+  shouldStop,
+  onIteration,
+}) {
+  if (typeof runIteration !== "function") {
+    throw new Error("runLoop requires a runIteration function");
+  }
+  const delay = sleep || makeSleep();
+  const results = [];
+  let i = 0;
+
+  while (true) {
+    if (shouldStop && shouldStop()) {
+      return { iterations: i, stoppedBy: "signal", results };
+    }
+
+    i += 1;
+    const res = (await runIteration(i)) || {};
+    results.push(res);
+    if (onIteration) onIteration(i, res);
+
+    // Stop conditions, most-specific first. Evaluated after the round so the
+    // work always runs at least once before any condition can end the loop.
+    if (untilExitZero && res.exitCode === 0) {
+      return { iterations: i, stoppedBy: "exit-zero", results };
+    }
+    if (untilRegex && untilRegex.test(res.output || "")) {
+      return { iterations: i, stoppedBy: "match", results };
+    }
+    if (maxIterations && i >= maxIterations) {
+      return { iterations: i, stoppedBy: "max-iterations", results };
+    }
+    if (shouldStop && shouldStop()) {
+      return { iterations: i, stoppedBy: "signal", results };
+    }
+
+    await delay(intervalMs);
+  }
+}

@@ -62,6 +62,7 @@ import { registerCheckpointCommand } from "./commands/checkpoint.js";
 import { registerGoalCommand } from "./commands/goal.js";
 import { registerCommandCommand } from "./commands/command.js";
 import { registerCompactCommand } from "./commands/compact.js";
+import { registerLoopCommand } from "./commands/loop.js";
 import { registerPermissionsCommand } from "./commands/permissions.js";
 import { registerOutputStyleCommand } from "./commands/output-style.js";
 import { registerStatuslineCommand } from "./commands/statusline.js";
@@ -464,6 +465,7 @@ export function createProgram(opts = {}) {
   registerGoalCommand(program);
   registerCommandCommand(program);
   registerCompactCommand(program);
+  registerLoopCommand(program);
   registerPermissionsCommand(program);
   registerOutputStyleCommand(program);
   registerStatuslineCommand(program);

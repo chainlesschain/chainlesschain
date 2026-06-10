@@ -1,0 +1,139 @@
+/**
+ * cc loop — core driver (src/lib/loop.js).
+ *
+ * Drives runLoop with a fake (no-op) sleep and a canned runIteration so the
+ * loop semantics — iteration counting, the four stop conditions, run-at-least-
+ * once, and the "no trailing sleep" guarantee — are exercised without timers
+ * or subprocesses. parseDuration/formatDuration get their own table cases.
+ */
+import { describe, expect, it, vi } from "vitest";
+import {
+  runLoop,
+  parseDuration,
+  formatDuration,
+  makeSleep,
+} from "../../src/lib/loop.js";
+
+const noSleep = vi.fn(async () => {});
+
+describe("parseDuration", () => {
+  it("parses suffixed durations to ms", () => {
+    expect(parseDuration("500ms")).toBe(500);
+    expect(parseDuration("30s")).toBe(30_000);
+    expect(parseDuration("5m")).toBe(300_000);
+    expect(parseDuration("1.5h")).toBe(5_400_000);
+  });
+
+  it("treats a bare number as seconds", () => {
+    expect(parseDuration("30")).toBe(30_000);
+    expect(parseDuration(45)).toBe(45); // numeric input is already ms
+  });
+
+  it("throws on garbage", () => {
+    expect(() => parseDuration("soon")).toThrow(/invalid duration/);
+    expect(() => parseDuration("5x")).toThrow(/invalid duration/);
+  });
+});
+
+describe("formatDuration", () => {
+  it("renders compact human strings", () => {
+    expect(formatDuration(500)).toBe("500ms");
+    expect(formatDuration(30_000)).toBe("30s");
+    expect(formatDuration(300_000)).toBe("5m");
+    expect(formatDuration(5_400_000)).toBe("1.5h");
+  });
+});
+
+describe("runLoop stop conditions", () => {
+  it("stops after maxIterations and sleeps between but not after", async () => {
+    const sleep = vi.fn(async () => {});
+    const runIteration = vi.fn(async () => ({ exitCode: 1 }));
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 1000,
+      maxIterations: 3,
+      sleep,
+    });
+    expect(out.iterations).toBe(3);
+    expect(out.stoppedBy).toBe("max-iterations");
+    expect(runIteration).toHaveBeenCalledTimes(3);
+    // 3 runs → 2 inter-run sleeps, never a trailing one.
+    expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops on the first exit-0 when untilExitZero is set", async () => {
+    const runIteration = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 1 })
+      .mockResolvedValueOnce({ exitCode: 1 })
+      .mockResolvedValueOnce({ exitCode: 0 });
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 0,
+      untilExitZero: true,
+      sleep: noSleep,
+    });
+    expect(out.iterations).toBe(3);
+    expect(out.stoppedBy).toBe("exit-zero");
+  });
+
+  it("stops when output matches untilRegex", async () => {
+    const runIteration = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 0, output: "working..." })
+      .mockResolvedValueOnce({ exitCode: 0, output: "status: DONE" });
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 0,
+      untilRegex: /DONE/,
+      sleep: noSleep,
+    });
+    expect(out.iterations).toBe(2);
+    expect(out.stoppedBy).toBe("match");
+  });
+
+  it("runs at least once even if shouldStop is already true after round 1", async () => {
+    let stop = false;
+    const runIteration = vi.fn(async () => {
+      stop = true; // request stop during the first round
+      return { exitCode: 0 };
+    });
+    const out = await runLoop({
+      runIteration,
+      intervalMs: 0,
+      shouldStop: () => stop,
+      sleep: noSleep,
+    });
+    expect(out.iterations).toBe(1);
+    expect(out.stoppedBy).toBe("signal");
+  });
+
+  it("exit-0 takes precedence over a lower-priority max-iterations on the same round", async () => {
+    const out = await runLoop({
+      runIteration: async () => ({ exitCode: 0 }),
+      intervalMs: 0,
+      untilExitZero: true,
+      maxIterations: 1,
+      sleep: noSleep,
+    });
+    expect(out.stoppedBy).toBe("exit-zero");
+  });
+
+  it("rejects a missing runIteration", async () => {
+    await expect(runLoop({ intervalMs: 0 })).rejects.toThrow(/runIteration/);
+  });
+});
+
+describe("makeSleep", () => {
+  it("resolves immediately when the signal is already aborted", async () => {
+    const ac = new AbortController();
+    ac.abort();
+    const sleep = makeSleep(ac.signal);
+    await expect(sleep(10_000)).resolves.toBeUndefined();
+  });
+
+  it("resolves immediately for a zero delay", async () => {
+    const sleep = makeSleep();
+    await expect(sleep(0)).resolves.toBeUndefined();
+  });
+});
