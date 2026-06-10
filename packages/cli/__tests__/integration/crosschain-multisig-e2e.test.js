@@ -12,9 +12,12 @@
  *   - bridge-consume wrong-domain proposal → wrong_domain
  *   - bridge-consume of nonexistent → proposal_not_found
  *
- * HOME override: spawnSync env passes HOME + USERPROFILE = tmpDir so
- * `getHomeDir()` lands the crosschain bootstrap DB inside tmpDir, isolating
- * the test from real ~/.chainlesschain/ state.
+ * Data-dir override: spawnSync env passes CHAINLESSCHAIN_HOME (+ HOME +
+ * USERPROFILE) = tmpDir so the crosschain bootstrap DB lands inside tmpDir.
+ * CHAINLESSCHAIN_HOME is the one getUserDataPath() actually honors first — on
+ * Windows the bootstrap DB otherwise falls through to %APPDATA%, NOT HOME, so
+ * without it bridgeAsset opens the real shared DB and a corrupt local copy
+ * fails every consume with "database disk image is malformed".
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
@@ -71,6 +74,9 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
       timeout: 30_000,
       env: {
         ...process.env,
+        // CHAINLESSCHAIN_HOME is what getUserDataPath() honors first; HOME /
+        // USERPROFILE alone don't redirect the bootstrap DB on Windows.
+        CHAINLESSCHAIN_HOME: tmpDir,
         HOME: tmpDir,
         USERPROFILE: tmpDir,
       },
