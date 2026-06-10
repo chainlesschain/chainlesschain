@@ -212,6 +212,7 @@ export default defineConfig({
             { text: "计划模式", link: "/chainlesschain/plan-mode" },
             { text: "目标 / OKR (cc goal) ⭐NEW", link: "/chainlesschain/goal" },
             { text: "自定义斜杠命令 (cc command) ⭐NEW", link: "/chainlesschain/slash-commands" },
+            { text: "检查点 / 回滚 (cc checkpoint) ⭐NEW", link: "/chainlesschain/checkpoint" },
             { text: "输出风格", link: "/chainlesschain/output-styles" },
             { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
