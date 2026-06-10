@@ -74,6 +74,7 @@ import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import { makeFallbackChatFn } from "../runtime/fallback-model.js";
 import { resolveSlashMacro } from "./slash-macro.js";
+import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -129,7 +130,8 @@ async function _persistAlwaysAllow(tool, args) {
       scope: "local",
     });
     if (!_permissionRules) _permissionRules = { allow: [], ask: [], deny: [] };
-    if (!_permissionRules.allow.includes(rule)) _permissionRules.allow.push(rule);
+    if (!_permissionRules.allow.includes(rule))
+      _permissionRules.allow.push(rule);
     return { rule, file };
   } catch (err) {
     process.stderr.write(`  always-allow persist failed: ${err.message}\n`);
@@ -504,9 +506,8 @@ export async function startAgentRepl(options = {}) {
   // settings.json SessionStart hooks → inject session context (observe-only).
   if (_settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.cjs"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.cjs");
       const ctx = runSessionStartHooks(_settingsHooks, {
         source: "startup",
         cwd: process.cwd(),
@@ -805,7 +806,8 @@ export async function startAgentRepl(options = {}) {
     if (_statusLineEnabled && _renderStatus) {
       const line = _renderStatus();
       // Built-in line is dimmed; a custom command may carry its own ANSI.
-      if (line) process.stdout.write((_customStatus ? line : chalk.dim(line)) + "\n");
+      if (line)
+        process.stdout.write((_customStatus ? line : chalk.dim(line)) + "\n");
     }
     rl.setPrompt(getPrompt());
     rl.prompt();
@@ -1024,15 +1026,16 @@ export async function startAgentRepl(options = {}) {
         logger.info("Status line: on");
       } else {
         // bare / "show" → report state + a one-off render
-        const line = _statusLineEnabled && _renderStatus ? _renderStatus() : null;
+        const line =
+          _statusLineEnabled && _renderStatus ? _renderStatus() : null;
         if (line) {
-          logger.info(
-            `Status line: ${_customStatus ? line : chalk.dim(line)}`,
-          );
+          logger.info(`Status line: ${_customStatus ? line : chalk.dim(line)}`);
         } else {
           logger.info(
             `Status line: ${_statusLineEnabled ? "on (no content yet)" : "off"}` +
-              (_statusLineEnabled ? "" : ` — enable with ${chalk.cyan("/statusline on")}`),
+              (_statusLineEnabled
+                ? ""
+                : ` — enable with ${chalk.cyan("/statusline on")}`),
           );
         }
         if (_customStatus) {
@@ -1046,9 +1049,8 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/output-style" || trimmed.startsWith("/output-style ")) {
       const arg = trimmed.slice("/output-style".length).trim();
       try {
-        const { discoverOutputStyles, getOutputStyle } = await import(
-          "../lib/output-styles.js"
-        );
+        const { discoverOutputStyles, getOutputStyle } =
+          await import("../lib/output-styles.js");
         if (!arg) {
           logger.log(chalk.bold("Output styles:"));
           for (const s of discoverOutputStyles(process.cwd())) {
@@ -1801,15 +1803,47 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // `/mcp` — overview of connected MCP servers' resources + prompts.
+    if (trimmed === "/mcp" || trimmed === "/mcp ") {
+      const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
+      logger.log(renderMcpSurface(mcpClient));
+      prompt();
+      return;
+    }
+
     // User-defined slash-command macros (.claude/commands/*.md), Claude-Code
     // parity. resolveSlashMacro maps a leading /name to a command macro and
     // expands its template; a non-match returns the line unchanged so a literal
     // prompt like "/etc/hosts" still reaches the LLM. Wire is unit-tested.
     let promptText = trimmed;
+
+    // MCP server-provided prompts (Claude-Code parity): `/mcp__<server>__<name>
+    // [json-args]` fetches a rendered prompt template from the connected MCP
+    // server and uses its text as this turn's input. Falls through unchanged
+    // when the line isn't an MCP prompt command.
+    if (promptText.startsWith("/mcp__")) {
+      try {
+        const expanded = await expandMcpPrompt(
+          promptText,
+          _adhocMcp?.mcpClient || _bundleMcpClient,
+        );
+        if (expanded != null) {
+          promptText = expanded;
+          logger.log(chalk.gray(`[mcp] prompt expanded`));
+        }
+      } catch (err) {
+        logger.info(
+          chalk.yellow(`[mcp] prompt expansion failed: ${err.message}`),
+        );
+        prompt();
+        return;
+      }
+    }
     try {
       const macro = await resolveSlashMacro(trimmed, { cwd: process.cwd() });
       if (macro.matched) {
-        for (const w of macro.warnings) logger.info(chalk.yellow(`[@ref] ${w}`));
+        for (const w of macro.warnings)
+          logger.info(chalk.yellow(`[@ref] ${w}`));
         promptText = macro.promptText;
         logger.log(
           chalk.gray(`[/${macro.name}] macro expanded (${macro.scope})`),
@@ -1864,9 +1898,8 @@ export async function startAgentRepl(options = {}) {
     // is observe-only). block → abort the turn; context → inject before the turn.
     if (_settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } = await import(
-          "../lib/settings-hook-events.cjs"
-        );
+        const { runUserPromptSubmitHooks } =
+          await import("../lib/settings-hook-events.cjs");
         const ups = runUserPromptSubmitHooks(_settingsHooks, {
           prompt: userContent,
           cwd: process.cwd(),
@@ -2136,9 +2169,8 @@ export async function startAgentRepl(options = {}) {
     // settings.json SessionEnd hooks (observe-only) when the REPL exits.
     if (_settingsHooks) {
       try {
-        const { runObserveHooks } = await import(
-          "../lib/settings-hook-events.cjs"
-        );
+        const { runObserveHooks } =
+          await import("../lib/settings-hook-events.cjs");
         runObserveHooks(
           _settingsHooks,
           "SessionEnd",

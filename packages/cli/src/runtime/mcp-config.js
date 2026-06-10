@@ -41,7 +41,8 @@ export function parseMcpServers(raw) {
       env: cfg.env && typeof cfg.env === "object" ? cfg.env : {},
       url: cfg.url,
       transport: cfg.transport,
-      headers: cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
+      headers:
+        cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
     };
   }
   return out;
@@ -75,7 +76,13 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     externalToolExecutors: {},
     externalToolDescriptors: {},
     connected: [],
+    resources: [],
+    prompts: [],
   };
+  // Back-fill the resource/prompt accumulators when an older `deps.into` object
+  // (created before this field existed) is passed in.
+  if (!Array.isArray(result.resources)) result.resources = [];
+  if (!Array.isArray(result.prompts)) result.prompts = [];
   const {
     mcpClient,
     extraToolDefinitions,
@@ -92,11 +99,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     // unless the config already supplies an Authorization header. Best-effort:
     // no token / a refresh failure just connects unauthenticated.
     let connectCfg = cfg;
-    if (
-      cfg.url &&
-      !cfg.headers?.Authorization &&
-      !cfg.headers?.authorization
-    ) {
+    if (cfg.url && !cfg.headers?.Authorization && !cfg.headers?.authorization) {
       try {
         const { ensureValidToken } = await import("../lib/mcp-oauth.js");
         const token = await ensureValidToken(cfg.url);
@@ -118,7 +121,22 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       continue;
     }
     const tools = Array.isArray(res?.tools) ? res.tools : [];
-    connected.push({ server: name, tools: tools.length });
+    const resources = Array.isArray(res?.resources) ? res.resources : [];
+    const prompts = Array.isArray(res?.prompts) ? res.prompts : [];
+    connected.push({
+      server: name,
+      tools: tools.length,
+      resources: resources.length,
+      prompts: prompts.length,
+    });
+    for (const r of resources) {
+      if (!r || !r.uri) continue;
+      result.resources.push({ ...r, server: name });
+    }
+    for (const p of prompts) {
+      if (!p || !p.name) continue;
+      result.prompts.push({ ...p, server: name });
+    }
     for (const t of tools) {
       if (!t || !t.name) continue;
       const full = mcpToolName(name, t.name);
@@ -126,7 +144,8 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         type: "function",
         function: {
           name: full,
-          description: t.description || `MCP tool "${t.name}" on server "${name}"`,
+          description:
+            t.description || `MCP tool "${t.name}" on server "${name}"`,
           parameters: t.inputSchema || { type: "object", properties: {} },
         },
       });
@@ -144,7 +163,95 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     }
   }
 
+  // Expose MCP resources to the LLM as two generic tools (Claude-Code parity:
+  // ListMcpResourcesTool / ReadMcpResourceTool). Registered once, only when at
+  // least one connected server advertises a resource, and re-entrant safe for
+  // accumulating `deps.into` batches.
+  if (result.resources.length > 0) {
+    registerMcpResourceTools(result);
+  }
+
   return result;
+}
+
+/**
+ * Register the `list_mcp_resources` + `read_mcp_resource` generic tools on the
+ * agent wiring object, unless already present. Their executors are dispatched
+ * by agent-core via `kind: "mcp-resource"`.
+ */
+export function registerMcpResourceTools(result) {
+  const {
+    extraToolDefinitions,
+    externalToolExecutors,
+    externalToolDescriptors,
+  } = result;
+  if (externalToolExecutors.read_mcp_resource) return; // already registered
+
+  extraToolDefinitions.push(
+    {
+      type: "function",
+      function: {
+        name: "list_mcp_resources",
+        description:
+          "List resources exposed by connected MCP servers (documents, files, " +
+          "or data the server makes available). Optionally filter by server.",
+        parameters: {
+          type: "object",
+          properties: {
+            server: {
+              type: "string",
+              description: "Optional MCP server name to filter by.",
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "read_mcp_resource",
+        description:
+          "Read the contents of an MCP resource by its URI. Use " +
+          "list_mcp_resources first to discover available URIs.",
+        parameters: {
+          type: "object",
+          properties: {
+            server: {
+              type: "string",
+              description:
+                "MCP server name that owns the resource (from list_mcp_resources).",
+            },
+            uri: {
+              type: "string",
+              description: "Resource URI to read.",
+            },
+          },
+          required: ["uri"],
+        },
+      },
+    },
+  );
+
+  externalToolExecutors.list_mcp_resources = {
+    kind: "mcp-resource",
+    op: "list",
+  };
+  externalToolExecutors.read_mcp_resource = {
+    kind: "mcp-resource",
+    op: "read",
+  };
+  externalToolDescriptors.list_mcp_resources = {
+    name: "list_mcp_resources",
+    kind: "mcp-resource",
+    category: "mcp",
+    source: "mcp",
+  };
+  externalToolDescriptors.read_mcp_resource = {
+    name: "read_mcp_resource",
+    kind: "mcp-resource",
+    category: "mcp",
+    source: "mcp",
+  };
 }
 
 /**
@@ -377,7 +484,9 @@ export function makePermissionPromptConfirmer({
       return allow;
     } catch (err) {
       if (isText) {
-        writeErr(`  permission(${ctx?.tool}): deny (tool error: ${err.message})\n`);
+        writeErr(
+          `  permission(${ctx?.tool}): deny (tool error: ${err.message})\n`,
+        );
       }
       return false; // fail-closed
     }

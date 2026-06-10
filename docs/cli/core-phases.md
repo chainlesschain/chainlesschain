@@ -22,6 +22,12 @@ chainlesschain mcp add weather -u https://mcp.example.com/weather            # S
 chainlesschain mcp add weather -u https://mcp.example.com/weather -t http    # 显式传输类型 (http|sse|stdio)
 chainlesschain mcp add weather -u https://... -H Authorization=Bearer+xyz    # 自定义请求头 (可重复)
 chainlesschain mcp tools               # 列出可用工具
+chainlesschain mcp call <tool> -a '{"city":"NYC"}'           # 调用某个工具
+chainlesschain mcp resources                                 # 列出服务器暴露的资源 (文档/文件/数据)
+chainlesschain mcp resources -s fs --json                    # 仅某服务器, JSON 输出
+chainlesschain mcp read-resource file:///etc/hosts           # 按 URI 读取资源内容 (未指定 -s 时自动定位归属服务器)
+chainlesschain mcp prompts                                   # 列出服务器提供的 prompt (即 /mcp__<server>__<name> 斜杠命令)
+chainlesschain mcp get-prompt summarize -a '{"len":"short"}' # 取回某个已渲染的 prompt
 chainlesschain mcp scaffold weather                          # 在 ./weather 中生成 stdio MCP 服务器
 chainlesschain mcp scaffold weather -t http -p 4001          # Streamable HTTP + SSE 于端口 4001
 chainlesschain mcp scaffold weather --dry-run --json         # 预览文件集合, 不落盘

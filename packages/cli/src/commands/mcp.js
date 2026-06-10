@@ -38,6 +38,49 @@ function getClient() {
   return mcpClient;
 }
 
+/**
+ * Connect MCP server(s) for a one-shot query (resources / prompts). Connects
+ * the named server, or every registered server when `serverName` is omitted.
+ * Returns `{ client, connected }`; the caller must `await shutdown()`.
+ */
+async function connectForQuery(program, serverName) {
+  const ctx = await bootstrap({ verbose: program.opts().verbose });
+  if (!ctx.db) {
+    logger.error("Database not available");
+    process.exit(1);
+  }
+  const db = ctx.db.getDatabase();
+  const config = new MCPServerConfig(db);
+  let rows;
+  if (serverName) {
+    const row = config.get(serverName);
+    if (!row) {
+      logger.error(
+        `Server "${serverName}" not configured. Use 'mcp add' first.`,
+      );
+      await shutdown();
+      process.exit(1);
+    }
+    rows = [row];
+  } else {
+    rows = config.list();
+  }
+  const client = new MCPClient();
+  const connected = [];
+  for (const row of rows) {
+    if (!row) continue;
+    try {
+      await client.connect(row.name, row);
+      connected.push(row.name);
+    } catch (err) {
+      logger.log(
+        chalk.yellow(`  Failed to connect "${row.name}": ${err.message}`),
+      );
+    }
+  }
+  return { client, connected };
+}
+
 // Phase 3 (Hosted MCP Policy): resolve runtime mode from --mode > env > local.
 function resolveMode(options) {
   return (
@@ -68,10 +111,20 @@ export function registerMcpCommand(program) {
   // mcp login — OAuth 2.0 (Auth Code + PKCE) for a remote MCP server.
   mcp
     .command("login <url>")
-    .description("Authorize a remote MCP server via OAuth (opens a browser); stores the token")
+    .description(
+      "Authorize a remote MCP server via OAuth (opens a browser); stores the token",
+    )
     .option("--scope <scope>", "OAuth scope(s) to request")
-    .option("--client-id <id>", "Use a pre-registered client_id instead of dynamic registration")
-    .option("--port <n>", "Localhost callback port", (v) => parseInt(v, 10), 53682)
+    .option(
+      "--client-id <id>",
+      "Use a pre-registered client_id instead of dynamic registration",
+    )
+    .option(
+      "--port <n>",
+      "Localhost callback port",
+      (v) => parseInt(v, 10),
+      53682,
+    )
     .option("--no-open", "Print the authorize URL instead of opening a browser")
     .action(async (url, options) => {
       try {
@@ -109,7 +162,8 @@ export function registerMcpCommand(program) {
     .description("Delete the stored OAuth token for a remote MCP server")
     .action(async (url) => {
       try {
-        const { deleteStoredToken, serverKey } = await import("../lib/mcp-oauth.js");
+        const { deleteStoredToken, serverKey } =
+          await import("../lib/mcp-oauth.js");
         const ok = deleteStoredToken(url);
         logger.log(
           ok
@@ -129,7 +183,8 @@ export function registerMcpCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { loadTokenStore, isTokenExpired } = await import("../lib/mcp-oauth.js");
+        const { loadTokenStore, isTokenExpired } =
+          await import("../lib/mcp-oauth.js");
         const store = loadTokenStore();
         const rows = Object.values(store).map((r) => ({
           server: r.server,
@@ -142,7 +197,9 @@ export function registerMcpCommand(program) {
           return;
         }
         if (rows.length === 0) {
-          logger.log(chalk.gray("No MCP OAuth tokens. Run: cc mcp login <url>"));
+          logger.log(
+            chalk.gray("No MCP OAuth tokens. Run: cc mcp login <url>"),
+          );
           return;
         }
         for (const r of rows) {
@@ -562,6 +619,179 @@ export function registerMcpCommand(program) {
         }
       } catch (err) {
         logger.error(`Tool call failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mcp resources — list resources exposed by configured servers
+  mcp
+    .command("resources")
+    .description("List resources exposed by MCP servers")
+    .option("-s, --server <name>", "Filter by / connect only this server")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { client } = await connectForQuery(program, options.server);
+        const resources = client.listResources(options.server);
+        if (options.json) {
+          console.log(JSON.stringify(resources, null, 2));
+        } else if (resources.length === 0) {
+          logger.info("No resources available.");
+        } else {
+          logger.log(chalk.bold(`MCP Resources (${resources.length}):\n`));
+          for (const r of resources) {
+            logger.log(`  ${chalk.cyan(r.uri)} ${chalk.gray(`[${r.server}]`)}`);
+            if (r.name) logger.log(`    ${chalk.gray(r.name)}`);
+            if (r.description) logger.log(`    ${chalk.gray(r.description)}`);
+          }
+        }
+        await client.disconnectAll();
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mcp read-resource — read a resource's contents by URI
+  mcp
+    .command("read-resource")
+    .description("Read an MCP resource by URI")
+    .argument("<uri>", "Resource URI")
+    .option("-s, --server <name>", "Server that owns the resource")
+    .option("--json", "Output as JSON")
+    .action(async (uri, options) => {
+      try {
+        const { client } = await connectForQuery(program, options.server);
+        let server = options.server;
+        if (!server) {
+          const match = client.listResources().find((r) => r.uri === uri);
+          if (!match) {
+            logger.error(
+              `Resource "${uri}" not found. Run 'mcp resources' to list URIs.`,
+            );
+            await client.disconnectAll();
+            await shutdown();
+            process.exit(1);
+          }
+          server = match.server;
+        }
+        const result = await client.readResource(server, uri);
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else if (Array.isArray(result?.contents)) {
+          for (const c of result.contents) {
+            if (typeof c.text === "string") {
+              logger.log(c.text);
+            } else if (c.blob) {
+              logger.log(
+                chalk.gray(
+                  `[Binary: ${c.mimeType || "application/octet-stream"}]`,
+                ),
+              );
+            } else {
+              logger.log(JSON.stringify(c, null, 2));
+            }
+          }
+        } else {
+          logger.log(JSON.stringify(result, null, 2));
+        }
+        await client.disconnectAll();
+        await shutdown();
+      } catch (err) {
+        logger.error(`Read failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mcp prompts — list prompts (server-provided slash commands)
+  mcp
+    .command("prompts")
+    .description("List prompts exposed by MCP servers")
+    .option("-s, --server <name>", "Filter by / connect only this server")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { client } = await connectForQuery(program, options.server);
+        const prompts = client.listPrompts(options.server);
+        if (options.json) {
+          console.log(JSON.stringify(prompts, null, 2));
+        } else if (prompts.length === 0) {
+          logger.info("No prompts available.");
+        } else {
+          logger.log(chalk.bold(`MCP Prompts (${prompts.length}):\n`));
+          for (const p of prompts) {
+            logger.log(
+              `  ${chalk.cyan(`/mcp__${p.server}__${p.name}`)} ${chalk.gray(`[${p.server}]`)}`,
+            );
+            if (p.description) logger.log(`    ${chalk.gray(p.description)}`);
+            if (Array.isArray(p.arguments) && p.arguments.length > 0) {
+              const argNames = p.arguments
+                .map((a) => (a.required ? `${a.name}*` : a.name))
+                .join(", ");
+              logger.log(`    ${chalk.gray(`args: ${argNames}`)}`);
+            }
+          }
+        }
+        await client.disconnectAll();
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mcp get-prompt — fetch a rendered prompt by name
+  mcp
+    .command("get-prompt")
+    .description("Fetch a rendered MCP prompt by name")
+    .argument("<name>", "Prompt name")
+    .option("-s, --server <name>", "Server that owns the prompt")
+    .option("-a, --args <json>", "Prompt arguments as JSON")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const { client } = await connectForQuery(program, options.server);
+        let server = options.server;
+        if (!server) {
+          const match = client.listPrompts().find((p) => p.name === name);
+          if (!match) {
+            logger.error(
+              `Prompt "${name}" not found. Run 'mcp prompts' to list prompts.`,
+            );
+            await client.disconnectAll();
+            await shutdown();
+            process.exit(1);
+          }
+          server = match.server;
+        }
+        const args = options.args ? JSON.parse(options.args) : {};
+        const result = await client.getPrompt(server, name, args);
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          if (result?.description) {
+            logger.log(chalk.gray(result.description) + "\n");
+          }
+          for (const msg of result?.messages || []) {
+            const blocks = Array.isArray(msg.content)
+              ? msg.content
+              : [msg.content];
+            for (const b of blocks) {
+              if (b && b.type === "text") {
+                logger.log(`${chalk.gray(`[${msg.role}]`)} ${b.text}`);
+              } else {
+                logger.log(
+                  `${chalk.gray(`[${msg.role}]`)} ${JSON.stringify(b)}`,
+                );
+              }
+            }
+          }
+        }
+        await client.disconnectAll();
+        await shutdown();
+      } catch (err) {
+        logger.error(`Get prompt failed: ${err.message}`);
         process.exit(1);
       }
     });

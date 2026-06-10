@@ -222,7 +222,10 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
     cwd,
     session_id: context.sessionId || null,
   };
-  const outcome = runCommandHooks(matched, payload, { cwd, event: "PreToolUse" });
+  const outcome = runCommandHooks(matched, payload, {
+    cwd,
+    event: "PreToolUse",
+  });
   if (outcome.decision === "block") {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
   }
@@ -234,8 +237,7 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
             tool: name,
             args,
             rule: `hook:${outcome.hook}`,
-            reason:
-              outcome.reason || "a PreToolUse hook requests confirmation",
+            reason: outcome.reason || "a PreToolUse hook requests confirmation",
           })
         : false;
     return ok
@@ -730,7 +732,11 @@ export async function executeTool(name, args, context = {}) {
     if (!ok) {
       return {
         error: `[Permission] Tool "${name}" requires confirmation (settings rule: ${settingsVerdict.rule}) — denied.`,
-        policy: { decision: "ask", rule: settingsVerdict.rule, via: "settings" },
+        policy: {
+          decision: "ask",
+          rule: settingsVerdict.rule,
+          via: "settings",
+        },
       };
     }
     ruleAllowed = true; // confirmed → treat like allow downstream
@@ -1240,12 +1246,8 @@ async function executeToolInner(
         ...(task.error ? { error: task.error } : {}),
         stdout: out.text.substring(0, 30000),
         stderr: err.text.substring(0, 30000),
-        ...(out.droppedGap
-          ? { stdout_dropped_bytes: out.droppedGap }
-          : {}),
-        ...(err.droppedGap
-          ? { stderr_dropped_bytes: err.droppedGap }
-          : {}),
+        ...(out.droppedGap ? { stdout_dropped_bytes: out.droppedGap } : {}),
+        ...(err.droppedGap ? { stderr_dropped_bytes: err.droppedGap } : {}),
         ...(killed ? { killed: true } : {}),
         startedAt: task.startedAt,
         endedAt: task.endedAt,
@@ -1635,6 +1637,50 @@ async function executeToolInner(
     }
 
     default:
+      if (localToolExecutor?.kind === "mcp-resource") {
+        if (!mcpClient) {
+          return attachDescriptor({
+            error: `MCP client is unavailable for tool: ${name}`,
+          });
+        }
+        try {
+          if (localToolExecutor.op === "list") {
+            const resources =
+              typeof mcpClient.listResources === "function"
+                ? mcpClient.listResources(args?.server || undefined)
+                : [];
+            return attachDescriptor({ count: resources.length, resources });
+          }
+          // op === "read"
+          const uri = args?.uri;
+          if (!uri || typeof uri !== "string") {
+            return attachDescriptor({
+              error: "read_mcp_resource requires a string 'uri' argument.",
+            });
+          }
+          let server = args?.server;
+          if (!server && typeof mcpClient.listResources === "function") {
+            const match = mcpClient
+              .listResources()
+              .find((r) => r && r.uri === uri);
+            server = match?.server;
+          }
+          if (!server) {
+            return attachDescriptor({
+              error: `Could not resolve which MCP server owns resource "${uri}". Pass 'server' explicitly.`,
+            });
+          }
+          const result = await mcpClient.readResource(server, uri);
+          return attachDescriptor(
+            result && typeof result === "object" ? result : { result },
+          );
+        } catch (err) {
+          return attachDescriptor({
+            error: `MCP resource access failed: ${err.message}`,
+          });
+        }
+      }
+
       if (localToolExecutor?.kind === "mcp") {
         if (!mcpClient || typeof mcpClient.callTool !== "function") {
           return attachDescriptor({
@@ -2601,7 +2647,13 @@ export function _accumulateAnthropicStream(lines, onToken) {
   return _anthropicFinalize(state);
 }
 
-async function _chatAnthropicStreaming(apiUrl, body, extraHeaders, onToken, signal) {
+async function _chatAnthropicStreaming(
+  apiUrl,
+  body,
+  extraHeaders,
+  onToken,
+  signal,
+) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...extraHeaders },
@@ -2663,10 +2715,12 @@ function _openaiReduceLine(state, raw, onToken) {
   if (Array.isArray(delta?.tool_calls)) {
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
-      if (!state.tools[idx]) state.tools[idx] = { id: undefined, name: "", args: "" };
+      if (!state.tools[idx])
+        state.tools[idx] = { id: undefined, name: "", args: "" };
       if (tc.id) state.tools[idx].id = tc.id;
       if (tc.function?.name) state.tools[idx].name = tc.function.name;
-      if (tc.function?.arguments) state.tools[idx].args += tc.function.arguments;
+      if (tc.function?.arguments)
+        state.tools[idx].args += tc.function.arguments;
     }
   }
   if (obj.usage) {
@@ -2702,7 +2756,14 @@ export function _accumulateOpenAIStream(lines, onToken) {
   return _openaiFinalize(state);
 }
 
-async function _chatOpenAIStreaming(apiUrl, body, apiKey, onToken, signal, provider) {
+async function _chatOpenAIStreaming(
+  apiUrl,
+  body,
+  apiKey,
+  onToken,
+  signal,
+  provider,
+) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
@@ -2843,7 +2904,11 @@ function _intensityToEffort(want) {
  * RUNTIME-UNVERIFIED — no Anthropic key to validate the wire shape live.
  * Exported for tests.
  */
-export function _anthropicThinkingParams(model, options = {}, maxTokens = 8192) {
+export function _anthropicThinkingParams(
+  model,
+  options = {},
+  maxTokens = 8192,
+) {
   const want = options?.thinking;
   if (!want) return null; // off by default → request unchanged
   const m = String(model || "").toLowerCase();
@@ -3181,7 +3246,11 @@ export async function* agentLoop(messages, options) {
             }
           }
           if (preCompactBlocked) {
-            yield { type: "compaction-skipped", runId, reason: preCompactReason };
+            yield {
+              type: "compaction-skipped",
+              runId,
+              reason: preCompactReason,
+            };
           }
           const { messages: compacted, stats } = preCompactBlocked
             ? { messages, stats: { saved: 0 } }
@@ -3400,7 +3469,9 @@ export function formatToolArgs(name, args) {
     case "edit_file_hashed":
       return `${args.path} @${args.anchor_hash}`;
     case "run_shell":
-      return args.run_in_background ? `${args.command} (background)` : args.command;
+      return args.run_in_background
+        ? `${args.command} (background)`
+        : args.command;
     case "check_shell":
       return args.task_id
         ? `${args.task_id}${args.kill ? " (kill)" : ""}`

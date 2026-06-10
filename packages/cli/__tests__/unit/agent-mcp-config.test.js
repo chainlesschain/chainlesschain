@@ -63,7 +63,9 @@ describe("parseMcpServers", () => {
   });
 
   it("skips non-object entries and defaults args/env/headers", () => {
-    const out = parseMcpServers({ mcpServers: { bad: 5, ok: { command: "x" } } });
+    const out = parseMcpServers({
+      mcpServers: { bad: 5, ok: { command: "x" } },
+    });
     expect(out.bad).toBeUndefined();
     expect(out.ok).toEqual({
       command: "x",
@@ -98,7 +100,7 @@ describe("setupMcpFromConfig", () => {
       { createClient: () => client },
     );
 
-    expect(res.connected).toEqual([{ server: "weather", tools: 1 }]);
+    expect(res.connected).toMatchObject([{ server: "weather", tools: 1 }]);
     expect(res.extraToolDefinitions).toHaveLength(1);
     expect(res.extraToolDefinitions[0].function).toMatchObject({
       name: "mcp__weather__get",
@@ -136,7 +138,7 @@ describe("setupMcpFromConfig", () => {
       { createClient: () => client, writeErr: (s) => errs.push(s) },
     );
     expect(errs.join("")).toMatch(/failed to connect "bad": connect boom/);
-    expect(res.connected).toEqual([{ server: "good", tools: 1 }]);
+    expect(res.connected).toMatchObject([{ server: "good", tools: 1 }]);
     expect(res.extraToolDefinitions).toHaveLength(1);
   });
 });
@@ -205,12 +207,19 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
         function: {
           name: "mcp__weather__get",
           description: "d",
-          parameters: { type: "object", properties: { city: { type: "string" } } },
+          parameters: {
+            type: "object",
+            properties: { city: { type: "string" } },
+          },
         },
       },
     ],
     externalToolExecutors: {
-      mcp__weather__get: { kind: "mcp", serverName: "weather", toolName: "get" },
+      mcp__weather__get: {
+        kind: "mcp",
+        serverName: "weather",
+        toolName: "get",
+      },
     },
     externalToolDescriptors: {
       mcp__weather__get: {
@@ -306,8 +315,14 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l));
-    expect(events.some((e) => e.type === "tool_use" && e.tool === "mcp__weather__get")).toBe(true);
-    expect(events.some((e) => e.type === "tool_result" && !e.is_error)).toBe(true);
+    expect(
+      events.some(
+        (e) => e.type === "tool_use" && e.tool === "mcp__weather__get",
+      ),
+    ).toBe(true);
+    expect(events.some((e) => e.type === "tool_result" && !e.is_error)).toBe(
+      true,
+    );
     expect(events.at(-1)).toMatchObject({
       type: "result",
       result: "It is sunny in NYC.",
@@ -317,7 +332,7 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
   it("fails fast when the config file is bad", async () => {
     const { deps, err } = baseDeps({
       loadMcpConfig: async () => {
-        throw new Error("--mcp-config: no servers found in \"x.json\".");
+        throw new Error('--mcp-config: no servers found in "x.json".');
       },
     });
     const r = await runAgentHeadless(
@@ -332,7 +347,11 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
 describe("resolvePermissionPromptTool", () => {
   const mcp = {
     externalToolExecutors: {
-      mcp__auth__approve: { kind: "mcp", serverName: "auth", toolName: "approve" },
+      mcp__auth__approve: {
+        kind: "mcp",
+        serverName: "auth",
+        toolName: "approve",
+      },
     },
   };
   it("resolves a loaded mcp tool to {server, tool}", () => {
@@ -342,9 +361,9 @@ describe("resolvePermissionPromptTool", () => {
     });
   });
   it("throws when no mcp was loaded", () => {
-    expect(() => resolvePermissionPromptTool(null, "mcp__auth__approve")).toThrow(
-      /requires --mcp-config/,
-    );
+    expect(() =>
+      resolvePermissionPromptTool(null, "mcp__auth__approve"),
+    ).toThrow(/requires --mcp-config/);
   });
   it("throws (listing available) when the tool is not loaded", () => {
     expect(() => resolvePermissionPromptTool(mcp, "mcp__auth__nope")).toThrow(
@@ -400,7 +419,9 @@ describe("makePermissionPromptConfirmer", () => {
   it("denies on a deny verdict", async () => {
     const confirm = makePermissionPromptConfirmer({
       mcpClient: {
-        callTool: async () => ({ content: [{ type: "text", text: '{"behavior":"deny"}' }] }),
+        callTool: async () => ({
+          content: [{ type: "text", text: '{"behavior":"deny"}' }],
+        }),
       },
       server: "auth",
       tool: "approve",
@@ -426,7 +447,11 @@ describe("runAgentHeadless — --permission-prompt-tool wiring", () => {
     mcpClient: { callTool, disconnectAll: async () => {} },
     extraToolDefinitions: [],
     externalToolExecutors: {
-      mcp__auth__approve: { kind: "mcp", serverName: "auth", toolName: "approve" },
+      mcp__auth__approve: {
+        kind: "mcp",
+        serverName: "auth",
+        toolName: "approve",
+      },
     },
     externalToolDescriptors: {},
     connected: [{ server: "auth", tools: 1 }],
@@ -558,7 +583,7 @@ describe("loadRegisteredMcp", () => {
         }),
       },
     );
-    expect(res.connected).toEqual([{ server: "weather", tools: 1 }]);
+    expect(res.connected).toMatchObject([{ server: "weather", tools: 1 }]);
     expect(res.externalToolExecutors["mcp__weather__t"]).toMatchObject({
       kind: "mcp",
       serverName: "weather",
@@ -609,7 +634,9 @@ describe("resolveAgentMcp", () => {
         ...fileDeps({ adhoc: { command: "c" } }),
         createClient: () => client,
         makeServerConfig: () => ({
-          getAutoConnect: () => [{ name: "reg", command: "r", args: [], env: {} }],
+          getAutoConnect: () => [
+            { name: "reg", command: "r", args: [], env: {} },
+          ],
         }),
       },
     );
@@ -626,18 +653,24 @@ describe("resolveAgentMcp", () => {
         ...fileDeps({ dup: { command: "adhoc" } }),
         createClient: () => client,
         makeServerConfig: () => ({
-          getAutoConnect: () => [{ name: "dup", command: "reg", args: [], env: {} }],
+          getAutoConnect: () => [
+            { name: "dup", command: "reg", args: [], env: {} },
+          ],
         }),
       },
     );
-    expect(res.connected).toEqual([{ server: "dup", tools: 1 }]); // connected once
+    expect(res.connected).toMatchObject([{ server: "dup", tools: 1 }]); // connected once
     expect(client.servers.get("dup").command).toBe("adhoc");
   });
 
   it("includeRegistered:false skips the registry (file only)", async () => {
     const res = await resolveAgentMcp(
       { db: {}, includeRegistered: false },
-      { makeServerConfig: () => ({ getAutoConnect: () => [{ name: "reg", command: "r" }] }) },
+      {
+        makeServerConfig: () => ({
+          getAutoConnect: () => [{ name: "reg", command: "r" }],
+        }),
+      },
     );
     expect(res).toBeNull();
   });

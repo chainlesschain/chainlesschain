@@ -156,7 +156,7 @@ export class MCPClient extends EventEmitter {
       // Initialize MCP protocol
       const initResult = await this._sendRequest(name, "initialize", {
         protocolVersion: "2024-11-05",
-        capabilities: { tools: {}, resources: {} },
+        capabilities: { tools: {}, resources: {}, prompts: {} },
         clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
       });
 
@@ -187,12 +187,21 @@ export class MCPClient extends EventEmitter {
         // Server may not support resources
       }
 
+      // Fetch available prompts (server-provided slash commands)
+      try {
+        const promptsResult = await this._sendRequest(name, "prompts/list", {});
+        entry.prompts = promptsResult?.prompts || [];
+      } catch {
+        // Server may not support prompts
+      }
+
       this.emit("server-connected", { name, tools: entry.tools.length });
       return {
         name,
         state: entry.state,
         tools: entry.tools,
         resources: entry.resources,
+        prompts: entry.prompts,
         serverInfo: entry.serverInfo,
       };
     } catch (err) {
@@ -250,6 +259,7 @@ export class MCPClient extends EventEmitter {
         state: entry.state,
         tools: entry.tools.length,
         resources: entry.resources.length,
+        prompts: (entry.prompts || []).length,
         serverInfo: entry.serverInfo || {},
       });
     }
@@ -297,6 +307,26 @@ export class MCPClient extends EventEmitter {
   }
 
   /**
+   * List resources from a specific server or all servers. Each resource is
+   * annotated with its owning `server` (mirrors `listTools`).
+   */
+  listResources(serverName) {
+    if (serverName) {
+      const entry = this.servers.get(serverName);
+      if (!entry) throw new Error(`Server "${serverName}" not found`);
+      return (entry.resources || []).map((r) => ({ ...r, server: serverName }));
+    }
+
+    const all = [];
+    for (const [name, entry] of this.servers) {
+      for (const r of entry.resources || []) {
+        all.push({ ...r, server: name });
+      }
+    }
+    return all;
+  }
+
+  /**
    * Read a resource from a server.
    */
   async readResource(serverName, uri) {
@@ -305,6 +335,45 @@ export class MCPClient extends EventEmitter {
 
     const result = await this._sendRequest(serverName, "resources/read", {
       uri,
+    });
+    return result;
+  }
+
+  /**
+   * List prompts from a specific server or all servers. Each prompt is
+   * annotated with its owning `server` (mirrors `listTools`).
+   */
+  listPrompts(serverName) {
+    if (serverName) {
+      const entry = this.servers.get(serverName);
+      if (!entry) throw new Error(`Server "${serverName}" not found`);
+      return (entry.prompts || []).map((p) => ({ ...p, server: serverName }));
+    }
+
+    const all = [];
+    for (const [name, entry] of this.servers) {
+      for (const p of entry.prompts || []) {
+        all.push({ ...p, server: name });
+      }
+    }
+    return all;
+  }
+
+  /**
+   * Fetch a rendered prompt (`prompts/get`) from a server. `args` is a map of
+   * the prompt's named arguments to string values. Returns the server's result
+   * `{ description?, messages: [...] }`.
+   */
+  async getPrompt(serverName, promptName, args = {}) {
+    const entry = this.servers.get(serverName);
+    if (!entry) throw new Error(`Server "${serverName}" not found`);
+    if (entry.state !== ServerState.CONNECTED) {
+      throw new Error(`Server "${serverName}" is not connected`);
+    }
+
+    const result = await this._sendRequest(serverName, "prompts/get", {
+      name: promptName,
+      arguments: args || {},
     });
     return result;
   }

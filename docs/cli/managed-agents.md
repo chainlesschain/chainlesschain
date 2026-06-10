@@ -442,6 +442,31 @@ chainlesschain agent -p "..." --no-mcp          # 跳过注册的自动连接(--
 工具 fail-closed,本旗标把每个 CONFIRM 档审批交给一个 MCP 工具裁决——它收 `{tool_name, input}`,
 返回 `{behavior:"allow"|"deny"}`(任何非 allow / 出错都 fail-closed)。
 
+### Resources — 把 MCP 资源喂给 agent
+
+MCP 不止 tools。当任一连上的 server 暴露 **resource**(文档 / 文件 / 数据)时,agent
+循环自动多两个通用工具(对标 Claude Code 的 `ListMcpResourcesTool` / `ReadMcpResourceTool`):
+
+- `list_mcp_resources {server?}` → 列出所有(或某 server 的)资源 `{server, uri, name, ...}`
+- `read_mcp_resource {uri, server?}` → 按 URI 读取内容;省略 `server` 时按 uri 自动定位归属
+
+只有"存在资源"才注册这两个工具(无资源的纯工具 server 不会污染工具表);多批合并(`--mcp-config`
++ 注册 + IDE)只注册一次。CLI 侧对应 `cc mcp resources` / `cc mcp read-resource <uri>`(见
+`docs/cli/core-phases.md`)。
+
+### Prompts — server 提供的斜杠命令(交互 REPL)
+
+MCP server 还可暴露 **prompt**(参数化的 prompt 模板)。交互 REPL 里它们就是斜杠命令
+`/mcp__<server>__<prompt>`(对标 Claude Code):
+
+```text
+/mcp                              # 总览:列出所有已连 server 的资源 + prompt
+/mcp__docs__summarize {"len":"short"}   # 取回该 server 渲染好的 prompt,作为本轮输入喂给 LLM
+/mcp__docs__greet 直接跟一段文本         # 非 JSON 尾巴 → 作为 { input: "..." } 传入
+```
+
+CLI 侧对应 `cc mcp prompts` / `cc mcp get-prompt <name>`。
+
 ## IDE Bridge — 自动连接编辑器的 MCP server (Phase 0)
 
 第三条 MCP 源:运行中的编辑器扩展(VS Code / JetBrains)可在内部跑一个本地 MCP server
