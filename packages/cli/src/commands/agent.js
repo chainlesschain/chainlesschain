@@ -125,6 +125,10 @@ export function registerAgentCommand(program) {
       "Resume a session by id (no id → most recent — claude --resume parity)",
     )
     .option(
+      "--fork-session",
+      "When resuming, branch into a NEW session id and leave the original untouched (claude --fork-session parity)",
+    )
+    .option(
       "--add-dir <dir>",
       "Extra working directory the agent may read/search/edit (repeatable)",
       (val, prev) => (prev || []).concat([val]),
@@ -266,6 +270,33 @@ export function registerAgentCommand(program) {
             "No previous session to continue. Start one with `cc agent`.\n",
           );
           process.exit(1);
+        }
+      }
+
+      // --fork-session: branch the resolved session into a NEW id so the
+      // ORIGINAL transcript is preserved (Claude-Code parity). One chokepoint
+      // before headless / stream / interactive dispatch — all read
+      // `options.session`. The copy carries the full history, so the branch
+      // replays end-to-end on a later --resume. Only meaningful when resuming;
+      // a no-op (silent) for a fresh run.
+      if (options.forkSession && options.session) {
+        const store = await import("../harness/jsonl-session-store.js");
+        const { applyForkSession } =
+          await import("../runtime/headless-runner.js");
+        const fork = applyForkSession(
+          { forkSession: true, sessionId: options.session },
+          store,
+        );
+        if (fork.missing) {
+          process.stderr.write(
+            `--fork-session: no headless transcript for "${options.session}" — ` +
+              "nothing to fork; continuing on it.\n",
+          );
+        } else if (fork.forkedFrom) {
+          process.stderr.write(
+            `Forked session ${fork.forkedFrom} → ${fork.sessionId} (original preserved)\n`,
+          );
+          options.session = fork.sessionId;
         }
       }
 

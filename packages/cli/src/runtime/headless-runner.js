@@ -177,6 +177,34 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
 }
 
 /**
+ * Apply `--fork-session`: when a session has been resolved (resume/continue) and
+ * a fork is requested, branch its JSONL transcript into a NEW id so the original
+ * stays untouched (Claude-Code `--fork-session` parity). The copy carries the
+ * full prior history, so a later `--resume <newId>` replays the whole branch.
+ *
+ * Returns the id to use downstream + the source (`forkedFrom`), or the original
+ * id unchanged with `missing:true` when there is no transcript to fork. Pure
+ * apart from the injected store's side effect; both `sessionExists`/`forkSession`
+ * are injection seams so this is unit-testable without disk.
+ *
+ * @param {{forkSession?:boolean, sessionId?:string|null}} opts
+ * @param {{sessionExists?:Function, forkSession?:Function}} store
+ * @returns {{ sessionId:string|null, forkedFrom:string|null, missing:boolean }}
+ */
+export function applyForkSession(opts = {}, store = {}) {
+  const want = opts.forkSession === true;
+  const id = opts.sessionId || null;
+  if (!want || !id) return { sessionId: id, forkedFrom: null, missing: false };
+  if (typeof store.sessionExists === "function" && !store.sessionExists(id)) {
+    return { sessionId: id, forkedFrom: null, missing: true };
+  }
+  const newId =
+    typeof store.forkSession === "function" ? store.forkSession(id) : null;
+  if (!newId) return { sessionId: id, forkedFrom: null, missing: false };
+  return { sessionId: newId, forkedFrom: id, missing: false };
+}
+
+/**
  * Run a single headless agentic turn.
  *
  * @param {object} options
@@ -404,9 +432,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // settings.json UserPromptSubmit hooks. block → abort the run; context → inject.
   if (settingsHooks) {
     try {
-      const { runUserPromptSubmitHooks } = await import(
-        "../lib/settings-hook-events.cjs"
-      );
+      const { runUserPromptSubmitHooks } =
+        await import("../lib/settings-hook-events.cjs");
       const ups = runUserPromptSubmitHooks(settingsHooks, {
         prompt: userContent,
         cwd,
@@ -434,9 +461,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   let sessionStartContext = null;
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.cjs"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.cjs");
       sessionStartContext = runSessionStartHooks(settingsHooks, {
         source: resumeId ? "resume" : "startup",
         cwd,
@@ -766,9 +792,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // settings.json SessionEnd hooks (observe-only) when the run finishes.
     if (settingsHooks) {
       try {
-        const { runObserveHooks } = await import(
-          "../lib/settings-hook-events.cjs"
-        );
+        const { runObserveHooks } =
+          await import("../lib/settings-hook-events.cjs");
         runObserveHooks(
           settingsHooks,
           "SessionEnd",

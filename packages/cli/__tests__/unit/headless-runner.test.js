@@ -4,6 +4,7 @@ import {
   resolvePermissionMode,
   resolveEnabledTools,
   resolveHeadlessSession,
+  applyForkSession,
   parseToolList,
   READ_ONLY_TOOLS,
 } from "../../src/runtime/headless-runner.js";
@@ -171,7 +172,9 @@ describe("headless-runner — output formats", () => {
           UserPromptSubmit: [
             {
               matcher: null,
-              hooks: [{ type: "command", command: 'node -e "process.exit(2)"' }],
+              hooks: [
+                { type: "command", command: 'node -e "process.exit(2)"' },
+              ],
             },
           ],
         },
@@ -363,6 +366,51 @@ describe("resolveHeadlessSession — pure resolution", () => {
       resumeId: null,
       persist: false,
     });
+  });
+});
+
+describe("applyForkSession — --fork-session", () => {
+  const store = {
+    sessionExists: (id) => id === "src",
+    forkSession: (id) => (id === "src" ? "src-fork-1" : null),
+  };
+
+  it("forks an existing session to a new id (original preserved)", () => {
+    const r = applyForkSession({ forkSession: true, sessionId: "src" }, store);
+    expect(r).toEqual({
+      sessionId: "src-fork-1",
+      forkedFrom: "src",
+      missing: false,
+    });
+  });
+
+  it("reports missing when the source has no transcript", () => {
+    const r = applyForkSession(
+      { forkSession: true, sessionId: "ghost" },
+      store,
+    );
+    expect(r).toEqual({ sessionId: "ghost", forkedFrom: null, missing: true });
+  });
+
+  it("is a no-op without the flag or without a session", () => {
+    expect(applyForkSession({ sessionId: "src" }, store)).toEqual({
+      sessionId: "src",
+      forkedFrom: null,
+      missing: false,
+    });
+    expect(applyForkSession({ forkSession: true }, store)).toEqual({
+      sessionId: null,
+      forkedFrom: null,
+      missing: false,
+    });
+  });
+
+  it("keeps the original id when the store returns no fork", () => {
+    const r = applyForkSession(
+      { forkSession: true, sessionId: "src" },
+      { sessionExists: () => true, forkSession: () => null },
+    );
+    expect(r).toEqual({ sessionId: "src", forkedFrom: null, missing: false });
   });
 });
 

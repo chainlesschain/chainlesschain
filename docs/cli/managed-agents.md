@@ -111,6 +111,17 @@ mistral/gemini/volcengine)全部生效(含流式 tool-call 重组);其它 provid
 退出码:成功 `0`;`--max-turns` 耗尽(`error_max_turns`)或错误 `1`。
 会话恢复:`--resume <id>` / `--continue`(恢复最近一次)+ JSONL 持久化。
 
+**`--fork-session`**(配 `--resume`/`--continue`):把被恢复的会话**分叉成一个新 id**,原
+transcript 原封不动保留,本轮起所有新 turn 写进分叉副本(Claude-Code `--fork-session` 对标)。
+分叉副本带完整历史 + 一条 `[Forked from session <id>]` 标记,故 `--resume <新id>` 能端到端重放
+整条分支。stderr 打印 `Forked session <id> → <新id>`。一个 chokepoint 覆盖 headless / stream-json /
+交互三入口(都读 `options.session`);仅对 JSONL transcript 有效,源会话无落盘记录时打印提示并继续
+原会话(不分叉)。无 `--resume` 时为静默 no-op(新跑本身就是新会话)。
+
+```bash
+chainlesschain agent -p "走另一种方案" --resume <id> --fork-session   # 不污染原会话,开新分支
+```
+
 ### 扩展思考(`--think` / `--ultrathink` / `--thinking-budget`)
 
 Anthropic extended thinking 的 opt-in 开关(其它 provider 自动忽略;o-series /
