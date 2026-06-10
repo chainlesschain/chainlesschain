@@ -30,7 +30,7 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
-> **144 top-level commands** are registered (as of CLI v0.162.x). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+> **155 top-level commands** are registered (as of CLI v0.162.38). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
 
 ### `chainlesschain setup`
 
@@ -1352,6 +1352,373 @@ The numbers below are an approximate, pre-iter16 snapshot of the unit/integratio
 | Core packages (external)  | —        | 118        | All passing     |
 | V2 Governance (iter16–28) | 136      | ~5,984     | All passing     |
 | **CLI Total (approx.)**   | **280+** | **~9,000** | **All passing** |
+
+## Agent Power & Claude-Code Parity
+
+Headless-agent companions: session economics, file checkpoints, permission rules, prompt macros, IDE bridging. All work without the desktop GUI.
+
+### `chainlesschain checkpoint <action>`
+
+Snapshot / rewind file state. Uses a git-plumbing engine (shadow commits, zero impact on your real index/worktree) inside git repos, with a copy-based fallback elsewhere. Also auto-snapshots before file-modifying tools when running `cc agent --checkpoint`.
+
+```bash
+chainlesschain checkpoint create src/ --label "before refactor"   # Snapshot paths
+chainlesschain checkpoint list                                    # List checkpoints (newest first)
+chainlesschain checkpoint show <id> --diff                        # Diff snapshot vs current files
+chainlesschain checkpoint restore <id>                            # Rewind (alias: rewind; --dry-run, --force)
+chainlesschain checkpoint delete <id>                             # Delete one checkpoint
+chainlesschain checkpoint clear                                   # Delete all (per --session)
+```
+
+Common options: `-d, --dir <dir>` target directory, `-s, --session <id>` checkpoint session (git engine), `--json`.
+
+### `chainlesschain compact <session-id>`
+
+Compact a stored session's history offline (no LLM call) — deduplicates and compresses old messages, persisting a `compact` event so `cc agent --resume` rebuilds from the smaller context. The agent loop also auto-compacts oversized histories by default (`autoCompact: false` opts out).
+
+```bash
+chainlesschain compact <session-id>                  # Compress and persist
+chainlesschain compact <session-id> --dry-run        # Preview the reduction without writing
+chainlesschain compact <session-id> --max-tokens 4000 --max-messages 30
+chainlesschain compact <session-id> --json
+```
+
+### `chainlesschain cost [id]`
+
+Estimated $ cost from recorded token usage — per-session, or a global rollup when the ID is omitted. Prices are configurable via `llm.pricing` in `~/.chainlesschain/config.json`.
+
+```bash
+chainlesschain cost                       # Global rollup across sessions
+chainlesschain cost <session-id>          # One session
+chainlesschain cost --limit 200 --json    # Cap rollup size, JSON output
+```
+
+### `chainlesschain context [id]`
+
+Context-window token breakdown for a session (Claude-Code `/context` parity). Defaults to the most-recent headless session.
+
+```bash
+chainlesschain context                            # Most recent session
+chainlesschain context <session-id> --model gpt-4o --provider openai
+chainlesschain context --json
+```
+
+### `chainlesschain loop [parts...]`
+
+Repeatedly run an agent prompt or a `-- <command>` on a fixed interval — a self-driving retry/watch loop.
+
+```bash
+chainlesschain loop "fix failing tests" --every 5m --until-exit-zero
+chainlesschain loop --every 30s -- npm run test:unit       # Command mode
+chainlesschain loop "check deploy" -n 10 --until "DONE"    # Stop on regex match
+chainlesschain loop "triage" --dynamic                     # Self-paced via [[loop:next]] / [[loop:stop]]
+chainlesschain loop "nightly sweep" --save nightly         # Persist; later: --resume nightly
+```
+
+Options: `--every <dur>` (30s / 5m / 1.5h), `-n, --max-iterations <n>`, `--until-exit-zero`, `--until <regex>`, `--dynamic`, `--save [id]`, `--resume <id>`, `--json`. Unknown flags pass through to the wrapped agent/command.
+
+### `chainlesschain goal <action>`
+
+Cross-session persistent goals / OKRs. Bind a goal into headless runs with `cc agent -p --goal <id>` (add `--goal-assess` for a run-end LLM progress assessment).
+
+```bash
+chainlesschain goal set "Ship the v2 importer" --title importer   # Create (alias: add)
+chainlesschain goal list --status active                          # List goals
+chainlesschain goal show <id>                                     # Full detail
+chainlesschain goal kr add <id> "100 tests green" --target 100    # Add key result
+chainlesschain goal kr set <id> <krId> --current 80               # Update key result
+chainlesschain goal progress <id> --pct 60 --note "parser done"   # Record progress
+chainlesschain goal link <id> [sessionId]                         # Attach a session
+chainlesschain goal pause|resume|close|abandon <id>               # Lifecycle
+chainlesschain goal rm <id>                                       # Delete (alias: delete)
+```
+
+### `chainlesschain permissions <action>` (alias: `perms`)
+
+Inspect / dry-run / edit `.claude/settings.json` permission rules (`allow` / `ask` / `deny`, `Tool(glob)` syntax, deny > ask > allow). Used by `cc agent --settings`.
+
+```bash
+chainlesschain permissions list                            # Merged rules + their source files
+chainlesschain permissions test Bash "git push origin"     # Dry-run: which rule matches?
+chainlesschain permissions add deny "Read(./.env*)"        # Append a rule
+chainlesschain permissions add allow "Bash(npm test:*)" --local   # .claude/settings.local.json
+chainlesschain permissions add ask "WebFetch(domain:*)" --user    # ~/.claude/settings.json
+```
+
+Options: `--json`, `--settings <file>` to merge an explicit settings file.
+
+### `chainlesschain output-style <action>`
+
+List / show agent output-style personas (`.claude/output-styles/*.md` + built-ins) layered onto the system prompt. Select with `cc agent --output-style <name>` or `outputStyle` in settings.json.
+
+```bash
+chainlesschain output-style list                 # Default action (alias: ls)
+chainlesschain output-style show explanatory     # Metadata + body
+chainlesschain output-style new my-style --description "Terse reviewer"
+chainlesschain output-style new my-style --personal   # ~/.claude/output-styles
+```
+
+### `chainlesschain statusline <action>`
+
+Preview / show the `.claude/settings.json` `statusLine` command (REPL renders it before each prompt; a built-in context-usage line is shown when no custom command is configured).
+
+```bash
+chainlesschain statusline preview            # Render once (default action)
+chainlesschain statusline preview --model opus
+chainlesschain statusline show               # Resolved statusLine config
+```
+
+### `chainlesschain command <action>` (alias: `cmd`)
+
+User-defined slash-command macros (`.claude/commands/*.md` and `.chainlesschain/commands/`) — reusable prompt templates with `$ARGUMENTS`/`$1-9`, `` !`bash` `` and `@file` expansion.
+
+```bash
+chainlesschain command list                        # Discovered macros (alias: ls)
+chainlesschain command show <name>                 # Metadata + template body
+chainlesschain command run <name> [args...]        # Expand + run headlessly
+chainlesschain command run <name> --print-prompt   # Show expanded prompt only
+chainlesschain command new <name> --description "Review a PR"
+chainlesschain command new <name> --claude         # Claude-Code-portable location
+```
+
+`run` options: `--no-bang`, `--output-format text|json|stream-json`, `--model`, `--permission-mode`.
+
+### `chainlesschain ide <action>`
+
+Inspect IDE bridge discovery — how `cc agent` auto-connects to an editor MCP server (VS Code / JetBrains extensions) via `CHAINLESSCHAIN_IDE_PORT` or `~/.chainlesschain/ide/*.json` lockfiles. Force / disable with `cc agent --ide` / `--no-ide`.
+
+```bash
+chainlesschain ide list       # Live IDE lockfiles (advertised editor MCP servers)
+chainlesschain ide status     # Server `cc agent` would connect to right now
+chainlesschain ide doctor     # Explain why discovery did / didn't pick a server
+```
+
+All subcommands accept `--json` (tokens redacted); `status`/`doctor` accept `--ide` to force selection outside an IDE terminal.
+
+### `chainlesschain decrypt <action>`
+
+Decrypt files encrypted by `chainlesschain encrypt` (AES-256-GCM), and disable database encryption tracking.
+
+```bash
+chainlesschain decrypt file secret.txt.enc -o secret.txt   # -p/--password to skip prompt
+chainlesschain decrypt db --force                          # Disable DB encryption tracking
+```
+
+### `chainlesschain stream <prompt>`
+
+Stream a single prompt through the session-core StreamRouter, emitting NDJSON events on stdout — useful for piping LLM output into other tools.
+
+```bash
+chainlesschain stream "Summarize this repo"                # NDJSON events
+chainlesschain stream "Hello" --text                       # Concatenated final text only
+chainlesschain stream "Hi" --provider openai --model gpt-4o --api-key sk-...
+```
+
+Options: `--model`, `--provider` (default `ollama`), `--base-url`, `--api-key`, `--text`.
+
+---
+
+## Device & Data
+
+Personal Data Hub, mobile pairing, and on-device bridges.
+
+### `chainlesschain hub <action>`
+
+Personal Data Hub — local vault + adapters + AnalysisEngine on this machine. Ingest your own platform data, then query it in natural language.
+
+```bash
+chainlesschain hub ask "How much did I spend on travel?"   # NL question over the vault
+chainlesschain hub retrieve-context "topic"                # RAG context retrieval
+chainlesschain hub stats                                   # Row counts + adapters + paths
+chainlesschain hub health                                  # vault / llm / kgSink / ragSink
+chainlesschain hub readiness                               # Adapter readiness report
+chainlesschain hub sync-adapter <name>                     # Run one adapter's ingest
+chainlesschain hub sync-all                                # Run all adapters in series
+chainlesschain hub bilibili-adb-sync                       # Per-platform PC-ADB collectors
+chainlesschain hub search "keyword"                        # FTS5 vault search + facets
+chainlesschain hub query-events                            # Filtered event query
+chainlesschain hub export                                  # Export vault data
+chainlesschain hub aichat list                             # AIChat vendor sub-group (login/probe/register/health)
+```
+
+Other ADB collectors: `weibo-adb-sync`, `kuaishou-adb-sync`, `toutiao-adb-sync`, `xhs-adb-sync`, `douyin-adb-sync`. Also: `list-adapters`, `facet-counts`, `recent-audit`, `event-detail <id>`, `rederive`, `run-skill <name>`, `register-mock`, `destroy`.
+
+### `chainlesschain pair <action>`
+
+LAN pairing utilities — preflight diagnostics plus 6-digit pairing-token issuance for mobile devices.
+
+```bash
+chainlesschain pair preflight                  # Network / port diagnostics
+chainlesschain pair token generate --name "My iPhone"   # Issue token (+ QR data with --json)
+chainlesschain pair token list --did <did>     # List tokens
+chainlesschain pair token show <code>          # Inspect one token
+chainlesschain pair token revoke <code>        # Revoke a pending token
+```
+
+### `chainlesschain notification send` (alias: `notif`)
+
+Push notifications to paired mobile devices (iPhone/Android).
+
+```bash
+chainlesschain notification send --target <device-did> --title "Build done"
+chainlesschain notification send --target <did> --title "Quiet test" --body "..." --silenced
+```
+
+Options: `--type <type>` (default `app`), `--timeout <ms>` (default 10000), `--json`.
+
+### `chainlesschain android <action>`
+
+Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root. Runs against a connected device's in-app bridge.
+
+```bash
+chainlesschain android caps                    # Probe available bridge capabilities
+chainlesschain android contacts pull --since <ms>   # Contacts (runtime permission required)
+chainlesschain android sms pull                # SMS
+chainlesschain android calls pull              # Call log
+chainlesschain android app list --system       # Installed packages
+chainlesschain android app launch <pkg>        # Launch app
+chainlesschain android app intent <pkg> <action>
+chainlesschain android fs read <target>        # SAF / sandbox file read
+chainlesschain android fs list <target>        # Directory listing
+chainlesschain android a11y query --filter <css>    # Accessibility node tree
+chainlesschain android a11y click <nodeId>     # Click a node
+```
+
+### `chainlesschain project <action>`
+
+Manage desktop projects (shared SQLite database, syncs to mobile).
+
+```bash
+chainlesschain project init <name> --description "..."   # Create project
+chainlesschain project list                              # List projects
+chainlesschain project show <id>                         # Details
+chainlesschain project delete <id>                       # Soft delete (--hard to remove)
+```
+
+### `chainlesschain video <action>`
+
+Video editing agent — long footage + music → montage (CutClaw-inspired): deconstruct, plan shots with an LLM, assemble via a ReAct editor loop, render with ffmpeg.
+
+```bash
+chainlesschain video edit --audio music.mp3 --instruction "fast-paced travel cut" --output out.mp4
+chainlesschain video deconstruct --fps 2       # Frames + ASR + beat analysis (cached)
+chainlesschain video plan --instruction "..."  # Generate shot_plan
+chainlesschain video assemble --parallel --review   # Editor loop (+ VLM quality gate)
+```
+
+Notable `edit` options: `--srt` (skip ASR), `--character`, `--snap-beats`, `--ducking`, `--use-madmom`, `--concurrency <n>`, `--stream` (NDJSON progress), `--json`.
+
+### `chainlesschain mtc <action>`
+
+Merkle Tree Certificates — batch issuance & verification, plus Phase 3 federation MTCA (M-of-N member registry).
+
+```bash
+chainlesschain mtc batch                       # Tree + landmark + envelopes from leaves
+chainlesschain mtc verify                      # Verify an envelope against a landmark
+chainlesschain mtc landmark inspect            # Pretty-print a landmark file
+chainlesschain mtc batch-dids                  # Batch from local DB DIDs
+chainlesschain mtc batch-skills                # Batch from local CLI skills
+chainlesschain mtc publish-skills              # Publish a skills batch
+chainlesschain mtc serve                       # Serve landmarks/envelopes
+chainlesschain mtc federation join <federation-id>
+chainlesschain mtc federation status           # Registered federations + members
+chainlesschain mtc federation invite <fed-id> <member-id>   # + vote / propose-revoke / rotate-key / fork / merge
+```
+
+### `chainlesschain multisig <action>`
+
+M-of-N multi-signature proposals beyond MTC publisher_signature — per-domain policies, signature collection, finalization.
+
+```bash
+chainlesschain multisig propose <domain>       # Create proposal + sign as initiator
+chainlesschain multisig sign <proposalId>      # Add a signature
+chainlesschain multisig finalize <proposalId>  # Finalize once threshold reached
+chainlesschain multisig list                   # List proposals
+chainlesschain multisig show <proposalId>      # Detail with all signatures
+chainlesschain multisig sweep                  # Expire past-deadline proposals
+chainlesschain multisig policy show <domain>   # Per-domain M-of-N policy
+chainlesschain multisig policy set <domain>
+```
+
+---
+
+## Full Command Index
+
+Every remaining top-level command not documented above, with its built-in description. Run `chainlesschain <command> --help` for subcommands and options.
+
+| Command                        | What it does                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `activitypub` (alias `ap`)     | ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce                              |
+| `agent-network` (alias `anet`) | Decentralized Agent Network — DID / registry / credentials / task routing (Phase 24)                    |
+| `auto`                         | Alias root of `automation` (same workflow automation engine)                                            |
+| `automation`                   | Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)                                   |
+| `codegen`                      | Code generation agent (Phase 86)                                                                        |
+| `collab`                       | Collaboration governance — decisions, voting, autonomy levels, task assignment                          |
+| `crosschain`                   | Cross-chain interoperability (Phase 89)                                                                 |
+| `dbevo`                        | Database evolution & migration framework (Phase 80)                                                     |
+| `dev`                          | Autonomous developer — dev sessions, ADRs, code review, refactor catalog                                |
+| `did-v2` (alias `didv2`)       | Decentralized Identity 2.0 — W3C DID v2.0 + VP + social recovery + roaming (Phase 55)                   |
+| `ecosystem` (alias `eco`)      | Plugin Ecosystem 2.0 — registry + deps + install + AI review + publish + revenue + recommend (Phase 64) |
+| `federation`                   | Federation hardening system (Phase 58)                                                                  |
+| `fusion`                       | Protocol fusion & AI social (Phase 72-73)                                                               |
+| `governance`                   | Community governance — proposals, voting, impact analysis, prediction                                   |
+| `incentive`                    | Token incentive — ledger accounts, transfers, contributions, leaderboard                                |
+| `inference`                    | Decentralized inference network (Phase 67)                                                              |
+| `infra`                        | Decentralized infrastructure (Phase 74-75)                                                              |
+| `ipfs`                         | IPFS decentralized storage (Phase 17)                                                                   |
+| `kg`                           | Knowledge graph — entities, relations, multi-hop reasoning, stats                                       |
+| `marketplace`                  | Skill marketplace — publish skill services, record invocations, view stats                              |
+| `multimodal` (alias `mm`)      | Multimodal collaboration (Phase 27)                                                                     |
+| `nlprog`                       | Natural language programming system (Phase 28)                                                          |
+| `ops`                          | Autonomous operations / AIOps                                                                           |
+| `perception`                   | Multimodal perception engine (Phase 84)                                                                 |
+| `perf`                         | Performance monitoring & auto-tuning (Phase 22)                                                         |
+| `pipeline` (alias `pipe`)      | Development Pipeline Orchestration — 7-stage AI dev pipeline + gates + deploys (Phase 26)               |
+| `privacy`                      | Privacy computing (Phase 91)                                                                            |
+| `quantize`                     | Model quantization system (Phase 20)                                                                    |
+| `recommend`                    | Smart content recommendation (Phase 48)                                                                 |
+| `reputation` (alias `rep`)     | Reputation optimizer — observations, decay, anomaly detection, Bayesian optimization                    |
+| `runtime`                      | Universal application runtime (Phase 63)                                                                |
+| `sla`                          | Cross-org SLA management — contracts, metrics, violations, compensation                                 |
+| `sso`                          | SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)                                         |
+| `stress`                       | Federation stress testing — load simulation, bottleneck & capacity planning                             |
+| `tech`                         | Tech Learning Engine — stack analysis, anti-pattern detection, practice store                           |
+| `tenant`                       | Multi-tenant SaaS — tenants, usage metering, subscriptions, quotas                                      |
+| `trust`                        | Trust & security (Phase 68-71)                                                                          |
+| `autoagent`                    | Autonomous agent V2 governance (V2 governance, developer surface)                                       |
+| `bm25`                         | BM25 Search V2 governance (V2 governance, developer surface)                                            |
+| `ccron`                        | Cowork Cron V2 governance (V2 governance, developer surface)                                            |
+| `compt`                        | Compression Telemetry V2 governance (V2 governance, developer surface)                                  |
+| `consol`                       | Session Consolidator V2 governance (V2 governance, developer surface)                                   |
+| `execbe`                       | Execution backend V2 governance (V2 governance, developer surface)                                      |
+| `fflag`                        | Feature Flags V2 governance (V2 governance, developer surface)                                          |
+| `itbudget`                     | Iteration Budget V2 governance (V2 governance, developer surface)                                       |
+| `mcpscaf`                      | MCP Scaffold V2 governance (V2 governance, developer surface)                                           |
+| `meminj`                       | Memory Injection V2 governance (V2 governance, developer surface)                                       |
+| `orchgov`                      | Orchestrator V2 governance (V2 governance, developer surface)                                           |
+| `pdfp`                         | PDF Parser V2 governance (V2 governance, developer surface)                                             |
+| `perm`                         | Permission Engine V2 governance (V2 governance, developer surface)                                      |
+| `permmem`                      | Permanent memory V2 — pin maturity + retention jobs (V2 governance, developer surface)                  |
+| `planmode`                     | Plan Mode V2 governance (V2 governance, developer surface)                                              |
+| `promcomp`                     | Prompt Compressor V2 governance (V2 governance, developer surface)                                      |
+| `rcache`                       | Response cache V2 — profile maturity + refresh jobs (V2 governance, developer surface)                  |
+| `router`                       | Agent router V2 governance (V2 governance, developer surface)                                           |
+| `seshhook`                     | Session Hooks V2 governance (V2 governance, developer surface)                                          |
+| `seshsearch`                   | Session Search V2 governance (V2 governance, developer surface)                                         |
+| `seshtail`                     | Session Tail V2 governance (V2 governance, developer surface)                                           |
+| `seshu`                        | Session Usage V2 governance (V2 governance, developer surface)                                          |
+| `sganal`                       | Social Graph Analytics V2 governance (V2 governance, developer surface)                                 |
+| `slotfill`                     | Slot Filler V2 governance (V2 governance, developer surface)                                            |
+| `subagent`                     | Sub-agent registry V2 governance (V2 governance, developer surface)                                     |
+| `svccont`                      | Service Container V2 governance (V2 governance, developer surface)                                      |
+| `tms`                          | Task Model Selector V2 governance (V2 governance, developer surface)                                    |
+| `todo`                         | Todo manager V2 governance (V2 governance, developer surface)                                           |
+| `topiccls`                     | Topic Classifier V2 governance (V2 governance, developer surface)                                       |
+| `uprof`                        | User Profile V2 governance (V2 governance, developer surface)                                           |
+| `vcheck`                       | Version Checker V2 governance (V2 governance, developer surface)                                        |
+| `webfetch`                     | Web Fetch V2 governance (V2 governance, developer surface)                                              |
+
+Full reference: https://docs.chainlesschain.com/chainlesschain/cli.html
 
 ## License
 
