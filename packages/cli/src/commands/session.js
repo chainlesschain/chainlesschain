@@ -285,25 +285,49 @@ export function registerSessionCommand(program) {
   // session export
   session
     .command("export")
-    .description("Export a session as Markdown")
-    .argument("<id>", "Session ID (or prefix)")
+    .description(
+      "Export a session as Markdown (chat-DB session, or JSONL agent session fallback)",
+    )
+    .argument("<id>", "Session ID (or prefix; `last` = most recent agent session)")
     .option("-o, --output <file>", "Output file path")
     .action(async (id, options) => {
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
-        }
-        const db = ctx.db.getDatabase();
-        const sess = getSession(db, id);
+        let markdown = null;
+        let bootstrapped = false;
 
-        if (!sess) {
+        // Primary source: chat-DB sessions (legacy behaviour, unchanged).
+        if (id !== "last") {
+          try {
+            const ctx = await bootstrap({ verbose: program.opts().verbose });
+            bootstrapped = true;
+            if (ctx.db) {
+              const sess = getSession(ctx.db.getDatabase(), id);
+              if (sess) markdown = exportSessionMarkdown(sess);
+            }
+          } catch {
+            // DB unavailable — fall through to the JSONL agent store.
+          }
+        }
+
+        // Fallback: JSONL agent sessions (`cc agent --resume` store) —
+        // Claude-Code /export parity for agent transcripts.
+        if (!markdown) {
+          const store = await import("../harness/jsonl-session-store.js");
+          const sid = id === "last" ? store.getLastSessionId() : id;
+          if (sid && store.sessionExists(sid)) {
+            const { renderAgentSessionMarkdown } = await import(
+              "../lib/agent-session-export.js"
+            );
+            markdown = renderAgentSessionMarkdown(sid, store.readEvents(sid), {
+              exportedAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (!markdown) {
           logger.error(`Session not found: ${id}`);
           process.exit(1);
         }
-
-        const markdown = exportSessionMarkdown(sess);
 
         if (options.output) {
           fs.writeFileSync(options.output, markdown, "utf8");
@@ -312,7 +336,7 @@ export function registerSessionCommand(program) {
           console.log(markdown);
         }
 
-        await shutdown();
+        if (bootstrapped) await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
