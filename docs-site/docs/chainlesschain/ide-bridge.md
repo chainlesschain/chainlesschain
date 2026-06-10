@@ -56,6 +56,15 @@ VS Code 与 JetBrains 写**同一份 lockfile**、说**同一套 MCP 协议**，
 - 保留名 `ide`：若用户已 `cc mcp add ide` 自建同名 server，**用户显式注册优先**，IDE 自动发现让位并打印一次 WARN。
 - localhost 绑定 + 每实例随机 Bearer token + 锁文件 `0600` / 目录 `0700`，防同机其它进程/用户劫持。
 
+### 6. IDE 实时上下文 + 编辑后诊断回喂（自动感知）
+
+桥接连上后 agent 不只是"有工具可调"，还会**主动感知编辑器**（对标 Claude Code 的 at-submit selection sharing 与 diagnostics sharing）：
+
+- **提交时自动共享选区/打开文件**：每次提交 prompt（headless 单轮、stream 每轮、REPL 每条），CLI 自动取一次当前选区 + 打开的标签页，作为 `<ide-context>` 块附进**本轮**用户消息——模型无须自己决定调 `getSelection`。该块**短暂存在**：只进在途消息、不写会话持久化（`--resume` 回放的是你的原话，不是过期的编辑器快照）；IDE 无响应 1.5s 超时放弃，绝不阻塞回合。
+- **编辑后诊断自动回喂**：`write_file`/`edit_file` 成功后，CLI 等语言服务器消化变更（默认 600ms），拉取该文件的 **error/warning** 诊断附在工具结果里——模型在**同一循环**内看到自己刚引入的报错并修掉。
+
+两者共用开关 `CC_IDE_CONTEXT=0`（IDE 工具本身仍可被模型显式调用）。
+
 ## 安装
 
 需要两样东西:**`cc` CLI**(命令行 agent) + **编辑器扩展**(桥接)。
@@ -168,6 +177,8 @@ VS Code 扩展同理：`mcp-http-server.js` / `lockfile.js` / `ide-tools.js` 纯
 | `CHAINLESSCHAIN_IDE_PORT` | 编辑器扩展（注入集成终端） | env 直连发现的端口 |
 | `CHAINLESSCHAIN_IDE_TOKEN` | 编辑器扩展（可选） | Bearer token（也可从 lockfile 读） |
 | `CHAINLESSCHAIN_IDE` | 用户 | 手动标记"在 IDE 终端内" |
+| `CC_IDE_CONTEXT` | 用户 | `0`/`false`/`off` 关闭实时上下文注入 + 诊断回喂（工具仍可用） |
+| `CC_IDE_DIAG_SETTLE_MS` | 用户 | 编辑后等语言服务器重新 lint 的延迟，默认 `600`，`0` 跳过等待 |
 
 ### 终端检测信号（`isInIdeTerminal`）
 
@@ -208,6 +219,9 @@ IDE 桥接共 **58+ 专项测试**，全部可在**无编辑器宿主**下运行
 | `vscode-ext-ide-bridge.test.js` | 13 | **真 CLI MCPClient 驱动扩展 server**（initialize→tools/list→tools/call 全 4 工具 + 鉴权拒绝 + openDiff 阻塞回传）+ lockfile↔Phase-0 reader 往返 |
 | `ide-bridge-jetbrains.test.js` | 4 | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明） |
 | `agent-policy-mcp-config.test.js` | +1 | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL |
+| `ide-context.test.js` | 31 | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线 |
+| `ide-context-interop.test.js` | 4 | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级 |
+| `ide-context-e2e.test.js` | 2 | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求 |
 
 ### 跨语言 interop 实证（JetBrains）
 

@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 5 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 6 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -214,6 +214,30 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 `gradlew publishPlugin` 自动认证);CI `ide-extensions.yml` tag `ide-vscode-v*` 触发 Open VSX(+官方
 marketplace iff 有 `VSCE_PAT`)、`ide-jetbrains-v*` 触发 JetBrains。升级新版只需 bump version + CHANGELOG。
 **剩**:官方 VS Code Marketplace（需 Azure 订阅,见上,可选）;JetBrains 审核通过后公开。
+
+### Phase 5 — IDE 实时感知(自动上下文 + 诊断回喂)✅ 已落 (2026-06-10)
+
+桥接从"被动工具箱"升级为"主动感知"(对标 Claude Code 的 at-submit selection sharing 与
+automatic diagnostics sharing),纯 CLI 侧增量、扩展零改动:
+
+- **提交时 `<ide-context>` 注入**(`391a24767`):`src/lib/ide-context.js` 新模块;三入口
+  (headless-runner / headless-stream / agent-repl)在 UserPromptSubmit hook 注入点之后、
+  user 消息入列之前调 `buildIdePromptContext(mcp)` —— 自动取 `getSelection` + `getOpenEditors`
+  拼为 `<ide-context>` 块(选区截断 2000 字符 / 最多列 10 个 tab)。**Ephemeral 设计**:
+  只进在途消息,持久化存的是用户原话(headless persist 在 MCP 解析之前;REPL 持久化
+  `effectivePrompt` 而非 `userContent`),`--resume` 不回放过期编辑器快照。1.5s 超时、
+  全程 never-throw,IDE 死掉绝不拖垮回合。多模态兼容(`appendTextToContent` 对 `--image`
+  的 content 数组追加 text part)。
+- **编辑后诊断回喂**(`2fbb03b1a`):agent-core `executeTool` wrapper 在
+  `write_file`/`edit_file`/`edit_file_hashed` 成功后,等语言服务器消化(默认 600ms,
+  `CC_IDE_DIAG_SETTLE_MS` 覆盖)再拉该文件 **error/warning**(info/hint 过滤,cap 10)
+  → `toolResult.ideDiagnostics`,与 PostToolUse `hookFeedback` 同通道回喂模型 ——
+  同一循环内自修刚引入的报错。
+- **开关**:`CC_IDE_CONTEXT=0` 一并禁用两者(`mcp__ide__*` 工具仍可显式调用)。
+- **测试 37**(`7c6b6266a`):单测 31(模块 + headless/stream/executeTool 接线)+ 集成 4
+  (真扩展 MCP server ⇆ 真 MCPClient 全链路)+ e2e 2(**真 spawn `cc agent -p`** + lockfile
+  发现 + 捕获式假 ollama 证明选区抵达模型请求;教训:假 server 在 vitest 进程内时必须
+  **异步 spawn**,`spawnSync` 阻塞事件循环 → 死锁)。
 
 ---
 

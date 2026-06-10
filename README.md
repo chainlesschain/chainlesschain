@@ -2,6 +2,14 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-11 主线 — **IDE 实时感知：选区/打开文件随 prompt 自动注入 + 编辑后诊断自动回喂**（待并入下一发版）
+
+- **提交时自动共享编辑器状态**：IDE 桥接连上后，每条 prompt（headless / stream / REPL）自动附带 `<ide-context>` 块——活跃文件、打开标签页、当前选中代码，模型即时知道"你正看着什么"，无须手动粘贴；只进在途消息、不写会话持久化（`--resume` 回放原话）。
+- **编辑后诊断自动回喂**：agent 改完文件，编辑器语言服务器的 error/warning 自动回流到工具结果，模型在同一循环内看到并修掉刚引入的报错。
+- **开关与测试**：`CC_IDE_CONTEXT=0` 一键关闭；新增 37 项测试（31 单测 + 4 集成 + 2 真进程 e2e，全部免编辑器宿主可跑）。
+
+---
+
 ## 2026-06-10 发布 — **v5.0.3.105：cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新**
 
 > 把 v5.0.3.104 之后 2026-06-10 的 CLI 平价主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

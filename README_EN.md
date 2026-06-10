@@ -2,6 +2,14 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-11 Mainline — **IDE live awareness: selection/open files auto-shared per prompt + post-edit diagnostics fed back** (rolls into the next release)
+
+- **Editor state shared at submit time**: with the IDE bridge connected, every prompt (headless / stream / REPL) automatically carries an `<ide-context>` block — active file, open tabs, current selection — so the model knows what you are looking at without copy-paste; in-flight only, never persisted (`--resume` replays your words).
+- **Post-edit diagnostics feedback**: after the agent edits a file, the editor's language-server errors/warnings flow back into the tool result, so the model fixes what it just broke within the same loop.
+- **Switch & tests**: `CC_IDE_CONTEXT=0` disables; 37 new tests (31 unit + 4 integration + 2 real-process e2e, all runnable without an editor host).
+
+---
+
 ## 2026-06-10 Release — **v5.0.3.105: cc agent MCP prompts/resources + SubagentStop hook + --fork-session (CLI 0.162.38) + Android in-APK cc bundle refresh**
 
 > Formalizes the 2026-06-10 CLI-parity mainline after v5.0.3.104 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
