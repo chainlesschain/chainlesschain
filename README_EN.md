@@ -2,6 +2,15 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-11 Mainline — **cc CLI 0.162.41: Claude-Code parity finale — project memory (cc.md) + REPL steering + structured output** (published to npm, rolls into the next release)
+
+- **Project memory (claude CLAUDE.md parity, own primary name `cc.md`)**: `cc agent` auto-loads the `cc.md` > `CLAUDE.md` > `AGENTS.md` hierarchy (user scope / project chain / local companions / `.chainlesschain/rules.md` / path-scoped `.claude/rules`, recursive `@path` imports, 48K/192K budgets, fail-open); `cc init` now defaults to an **offline inventory** that generates cc.md (`/init` parity, templates behind `-t`, `--ai` refines conventions with a bounded agent), existing CLAUDE.md auto-`@import`ed so nothing is shadowed; `cc memory files` shows the effective chain.
+- **REPL steering trio + shortcuts**: input typed mid-turn queues FIFO (fixing a concurrent-turn race), Esc interrupts instantly (reusing agentLoop's AbortSignal), `/rewind` + idle double-Esc conversation rewind (original text prefilled to edit-and-resend); plus `! <cmd>` bash passthrough (output folded into context), `# <note>` one-key memorize into cc.md, `/` command TAB completion, `/context` live window usage, offline resume recap.
+- **Structured output & ecosystem exits**: `cc agent -p --json-schema <file>` (reply validated against a JSON Schema with auto-retry; stdout prints only conforming JSON); `cc mcp serve` (expose local file tools as an MCP server, root-confined + Bearer); `cc session export` (agent transcripts as Markdown) / `cc session search` (full-text across sessions); passive startup update notice (cache + detached background refresh, zero network on the hot path).
+- **npm**: `chainlesschain` CLI 0.162.40 → 0.162.41 published (global-install smoke verified: init inventory / memory chain / json-schema / mcp serve all pass).
+
+---
+
 ## 2026-06-11 Mainline — **IDE live awareness: selection/open files auto-shared per prompt + post-edit diagnostics fed back** (rolls into the next release)
 
 - **Editor state shared at submit time**: with the IDE bridge connected, every prompt (headless / stream / REPL) automatically carries an `<ide-context>` block — active file, open tabs, current selection — so the model knows what you are looking at without copy-paste; in-flight only, never persisted (`--resume` replays your words).
