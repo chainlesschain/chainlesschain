@@ -754,6 +754,7 @@ export async function startAgentRepl(options = {}) {
       "/provider",
       "/quit",
       "/reindex",
+      "/rewind",
       "/search",
       "/session",
       "/stats",
@@ -793,9 +794,11 @@ export async function startAgentRepl(options = {}) {
   // Idle Esc presses (no active turn) are ignored, and escape-prefixed key
   // sequences (arrows etc.) never reach here as bare "escape".
   let _turnAbort = null;
+  let _lastIdleEscAt = 0;
   if (process.stdin.isTTY) {
     process.stdin.on("keypress", (_str, key) => {
-      if (key && key.name === "escape" && !key.meta && _turnAbort) {
+      if (!key || key.name !== "escape" || key.meta) return;
+      if (_turnAbort) {
         process.stdout.write(chalk.yellow("\n⎋ interrupting…\n"));
         try {
           _turnAbort.abort();
@@ -803,6 +806,31 @@ export async function startAgentRepl(options = {}) {
           /* already aborted */
         }
         _turnAbort = null;
+        return;
+      }
+      // Double-Esc while idle → rewind picker shortcut (Claude-Code parity);
+      // the actual rewind is `/rewind <n>` so stdin stays readline-owned.
+      const nowTs = Date.now();
+      if (nowTs - _lastIdleEscAt < 600) {
+        _lastIdleEscAt = 0;
+        import("../lib/repl-rewind.js")
+          .then(({ listUserTurns, renderTurnList }) => {
+            process.stdout.write(
+              chalk.bold("\nRewind — pick a user turn (newest first):\n"),
+            );
+            process.stdout.write(
+              `${renderTurnList(listUserTurns(messages))}\n`,
+            );
+            process.stdout.write(
+              chalk.gray(
+                "Run /rewind <n> to rewind the conversation (files: cc checkpoint restore).\n",
+              ),
+            );
+            prompt();
+          })
+          .catch(() => {});
+      } else {
+        _lastIdleEscAt = nowTs;
       }
     });
   }
@@ -968,6 +996,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/rewind")}     Rewind conversation to an earlier turn (double-Esc lists)`,
       );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
@@ -1202,6 +1233,44 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (err) {
         logger.error(chalk.red(`/output-style failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/rewind" || trimmed.startsWith("/rewind ")) {
+      try {
+        const { listUserTurns, rewindToTurn, renderTurnList } = await import(
+          "../lib/repl-rewind.js"
+        );
+        const arg = trimmed.slice("/rewind".length).trim();
+        if (!arg) {
+          logger.log(
+            chalk.bold("\nRewind — pick a user turn (newest first):"),
+          );
+          logger.log(renderTurnList(listUserTurns(messages)));
+          logger.log(
+            chalk.gray(
+              "Usage: /rewind <n>  (conversation only — restore files with `cc checkpoint restore`)",
+            ),
+          );
+        } else {
+          const res = rewindToTurn(messages, arg);
+          if (!res) {
+            logger.error(`No such turn: ${arg} — run /rewind to list.`);
+          } else {
+            logger.log(
+              chalk.yellow(
+                `⎌ rewound — dropped ${res.removed} message(s); edit and resend below`,
+              ),
+            );
+            prompt();
+            if (res.text) rl.write(res.text);
+            return;
+          }
+        }
+      } catch (err) {
+        logger.error(`/rewind failed: ${err.message}`);
       }
       prompt();
       return;
