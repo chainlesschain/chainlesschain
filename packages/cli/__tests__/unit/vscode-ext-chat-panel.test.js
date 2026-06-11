@@ -333,3 +333,54 @@ describe("plan-mode UI plumbing (P1)", async () => {
     expect(page).toContain('case "plan"');
   });
 });
+
+describe("approval routing plumbing (P1)", async () => {
+  const { mapAgentEvent: mapA, createTurnState: mkA } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
+  it("maps approval_request and approval_resolved", () => {
+    const st = mkA();
+    expect(
+      mapA(
+        {
+          type: "approval_request",
+          id: "appr-1",
+          tool: "run_shell",
+          command: "npm test",
+          risk: "medium",
+        },
+        st,
+      ),
+    ).toMatchObject({
+      kind: "approval",
+      id: "appr-1",
+      tool: "run_shell",
+      command: "npm test",
+      risk: "medium",
+    });
+    expect(
+      mapA(
+        {
+          type: "approval_resolved",
+          id: "appr-1",
+          approved: true,
+          via: "user-approve",
+        },
+        st,
+      ),
+    ).toEqual({
+      kind: "approval_done",
+      id: "appr-1",
+      approved: true,
+      via: "user-approve",
+    });
+  });
+
+  it("chat html renders approval cards and the panel forwards verdicts", async () => {
+    const { buildChatHtml: htmlA } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlA({ cspSource: "x:", nonce: "N" });
+    expect(page).toContain('case "approval"');
+    expect(page).toContain('case "approval_done"');
+    expect(page).toContain("Approve");
+  });
+});

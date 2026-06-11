@@ -32,6 +32,12 @@ function buildChatHtml({ cspSource, nonce }) {
   #plan .impact-high { color: var(--vscode-errorForeground); }
   #plan .impact-medium { color: var(--vscode-editorWarning-foreground, orange); }
   #plan .actions { display:flex; gap:6px; }
+  .approval { margin:6px 0; padding:8px; border:1px solid var(--vscode-editorWarning-foreground, orange);
+              border-radius:4px; }
+  .approval .q { margin-bottom:6px; font-family: var(--vscode-editor-font-family); font-size:.92em; }
+  .approval .risk-high { color: var(--vscode-errorForeground); font-weight:bold; }
+  .approval .buttons { display:flex; gap:6px; }
+  .approval.done { opacity:.65; border-color: var(--vscode-panel-border); }
   #bar { display:flex; gap:4px; padding:6px; border-top:1px solid var(--vscode-panel-border); }
   #input { flex:1; resize:none; min-height:34px; max-height:120px;
            background: var(--vscode-input-background); color: var(--vscode-input-foreground);
@@ -184,6 +190,49 @@ function buildChatHtml({ cspSource, nonce }) {
         // tool trace / logs — keep the panel calm, only surface real errors
         if (/error/i.test(m.text)) add("info", m.text);
         break;
+      case "approval": {
+        streamEl = null;
+        const card = document.createElement("div");
+        card.className = "approval";
+        card.id = "appr-" + m.id;
+        const q = document.createElement("div");
+        q.className = "q" + (m.risk === "high" ? " risk-high" : "");
+        q.textContent = "⚠ " + (m.tool || "tool") +
+          (m.command ? ": " + m.command : "") +
+          (m.risk ? "  [" + m.risk + "]" : "") +
+          (m.reason ? "\n" + m.reason : "");
+        const btns = document.createElement("div");
+        btns.className = "buttons";
+        const yes = document.createElement("button");
+        yes.textContent = "Approve";
+        const no = document.createElement("button");
+        no.textContent = "Deny";
+        no.className = "secondary";
+        const answer = (approve) => {
+          vscode.postMessage({ type: "approval", id: m.id, approve });
+          yes.disabled = no.disabled = true;
+        };
+        yes.addEventListener("click", () => answer(true));
+        no.addEventListener("click", () => answer(false));
+        btns.appendChild(yes); btns.appendChild(no);
+        card.appendChild(q); card.appendChild(btns);
+        log.appendChild(card);
+        log.scrollTop = log.scrollHeight;
+        break;
+      }
+      case "approval_done": {
+        const card = document.getElementById("appr-" + m.id);
+        if (card) {
+          card.className = "approval done";
+          const note = document.createElement("div");
+          note.className = "info";
+          note.textContent = (m.approved ? "✓ approved" : "✗ denied") +
+            (m.via && m.via.indexOf("user") !== 0 ? " (" + m.via + ")" : "");
+          card.appendChild(note);
+          for (const b of card.querySelectorAll("button")) b.disabled = true;
+        }
+        break;
+      }
       case "plan":
         renderPlan(m);
         break;

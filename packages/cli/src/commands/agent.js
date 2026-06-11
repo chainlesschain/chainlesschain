@@ -228,6 +228,10 @@ export function registerAgentCommand(program) {
     )
     .option("--no-ide", "Disable IDE bridge auto-connect")
     .option(
+      "--interactive-approvals",
+      "Stream mode: confirm-tier approvals become approval_request/approval stdin-stdout events instead of failing closed (chat-panel UX)",
+    )
+    .option(
       "--permission-prompt-tool <tool>",
       "Defer tool approvals to an MCP tool (mcp__<server>__<tool>; requires --mcp-config) instead of headless fail-closed",
     )
@@ -465,6 +469,7 @@ export function registerAgentCommand(program) {
             ide: options.ide,
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
+            interactiveApprovals: options.interactiveApprovals === true,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
             chatFn: fallbackChatFn,

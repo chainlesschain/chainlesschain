@@ -89,6 +89,12 @@ export function parseInputEvent(line) {
   if (obj && typeof obj === "object" && obj.type === "interrupt") {
     return { interrupt: true };
   }
+  // Approval verdicts (panel Approve/Deny for --interactive-approvals):
+  //   {"type":"approval","id":"appr-1","approve":true|false}
+  if (obj && typeof obj === "object" && obj.type === "approval") {
+    if (!obj.id) return null;
+    return { approval: { id: String(obj.id), approve: obj.approve === true } };
+  }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
   let content = msg.content ?? obj.text ?? obj.prompt;
   if (Array.isArray(content)) {
@@ -272,12 +278,64 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   };
   const persist = Boolean(options.sessionId);
 
+  // ── Interactive approvals (--interactive-approvals; chat-panel UX) ────────
+  // CONFIRM-tier decisions (risky shell via the ApprovalGate, settings/hook
+  // `ask`) normally fail closed in headless. With this opt-in they become a
+  // structured round-trip instead: emit `approval_request`, BLOCK the tool
+  // until a {"type":"approval",id,approve} arrives on stdin (handled by the
+  // concurrent pump below, so the wait never deadlocks), fail closed on
+  // timeout (CC_APPROVAL_TIMEOUT_MS, default 120s) or stdin close. The
+  // resolution is echoed as `approval_resolved` so UIs can settle their cards.
+  const interactive = options.interactiveApprovals === true;
+  const pendingApprovals = new Map();
+  let approvalSeq = 0;
+  const approvalTimeoutMs =
+    Number(process.env.CC_APPROVAL_TIMEOUT_MS) > 0
+      ? Number(process.env.CC_APPROVAL_TIMEOUT_MS)
+      : 120000;
+  const settleApproval = (id, approve, via) => {
+    const p = pendingApprovals.get(id);
+    if (!p) return;
+    pendingApprovals.delete(id);
+    clearTimeout(p.timer);
+    emit({
+      type: "approval_resolved",
+      id,
+      approved: approve === true,
+      via,
+      session_id: sessionId,
+    });
+    p.resolve(approve === true);
+  };
+  const interactiveConfirm = (ctx = {}) =>
+    new Promise((resolve) => {
+      const id = `appr-${++approvalSeq}`;
+      const timer = setTimeout(
+        () => settleApproval(id, false, "timeout"),
+        approvalTimeoutMs,
+      );
+      timer.unref?.();
+      pendingApprovals.set(id, { resolve, timer });
+      emit({
+        type: "approval_request",
+        id,
+        session_id: sessionId,
+        tool: ctx.tool || ctx.toolName || null,
+        command: ctx.command || ctx.args?.command || null,
+        risk: ctx.riskLevel || ctx.risk || null,
+        rule: ctx.rule || null,
+        reason: ctx.reason || null,
+      });
+    });
+
   let approvalGate = null;
   try {
     approvalGate = await getApprovalGate();
     if (approvalGate) {
       approvalGate.setSessionPolicy?.(sessionId, perm.sessionPolicy);
-      approvalGate.setConfirmer?.(perm.confirmer);
+      approvalGate.setConfirmer?.(
+        interactive ? interactiveConfirm : perm.confirmer,
+      );
     }
   } catch {
     approvalGate = null;
@@ -453,6 +511,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     settingsHooks,
     enabledToolNames,
     disabledTools,
+    // --interactive-approvals: settings/hook `ask` (and, with an IDE bridge,
+    // edit reviews via openDiff) route to the structured approval round-trip
+    // instead of failing closed. Absent in CI/pipes → unchanged fail-closed.
+    permissionConfirm: interactive ? interactiveConfirm : undefined,
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
@@ -498,6 +560,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           currentAbort?.abort();
           continue;
         }
+        if (parsed.approval) {
+          // Approval verdicts settle a BLOCKED tool — never queued.
+          settleApproval(
+            parsed.approval.id,
+            parsed.approval.approve,
+            parsed.approval.approve ? "user-approve" : "user-deny",
+          );
+          continue;
+        }
         queue.push(parsed);
         if (wakeQueue) wakeQueue();
       }
@@ -505,6 +576,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       /* input stream error → treat as EOF */
     }
     inputDone = true;
+    // stdin closed while approvals were pending → fail closed so the blocked
+    // turn can finish and the process can exit.
+    for (const id of [...pendingApprovals.keys()]) {
+      settleApproval(id, false, "stdin-closed");
+    }
     if (wakeQueue) wakeQueue();
   })();
   const nextEvent = async () => {

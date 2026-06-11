@@ -68,13 +68,18 @@ class ChatViewProvider {
     );
     this.session = new AgentChatSession({
       command: this._cliCommand(),
-      args: buildSessionArgs({
-        model: chatCfg.get("model"),
-        provider: chatCfg.get("provider"),
-        // Continue this workspace's last conversation across panel/child
-        // restarts; "New" clears the stored id for a fresh session.
-        resume: this._storedSessionId(),
-      }),
+      args: [
+        ...buildSessionArgs({
+          model: chatCfg.get("model"),
+          provider: chatCfg.get("provider"),
+          // Continue this workspace's last conversation across panel/child
+          // restarts; "New" clears the stored id for a fresh session.
+          resume: this._storedSessionId(),
+        }),
+        // Confirm-tier approvals become Approve/Deny cards in the panel
+        // instead of failing closed (needs cc >= 0.162.45).
+        "--interactive-approvals",
+      ],
       cwd,
       env: { ...process.env, ...bridgeEnv },
       onEvent: (evt) => {
@@ -127,6 +132,12 @@ class ChatViewProvider {
         } else {
           this.session?.sendEvent({ type: "plan", action });
         }
+      } else if (m.type === "approval") {
+        this.session?.sendEvent({
+          type: "approval",
+          id: String(m.id || ""),
+          approve: m.approve === true,
+        });
       } else if (m.type === "interrupt") {
         // Abort the in-flight turn only — the conversation/child stays alive.
         this.session?.sendEvent({ type: "interrupt" });

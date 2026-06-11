@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.9.0] — 2026-06-11
+
+- **Approve/Deny cards for risky actions** (cc >= 0.162.45): with the new
+  `--interactive-approvals` the agent no longer silently denies confirm-tier
+  actions (risky shell commands, settings `ask` rules) — the panel shows an
+  inline approval card (tool + command + risk level) and the blocked tool
+  waits for your verdict. Times out fail-closed after 120s
+  (CC_APPROVAL_TIMEOUT_MS). With the IDE bridge connected, file-edit asks
+  still prefer the native diff review.
+
 ## [0.8.0] — 2026-06-11
 
 - **Project memory commands** (pairs with cc ≥ 0.162.41): palette

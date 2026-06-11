@@ -94,6 +94,23 @@ function mapAgentEvent(evt, state) {
         usage: evt.usage || null,
       };
     }
+    case "approval_request":
+      return {
+        kind: "approval",
+        id: evt.id,
+        tool: evt.tool || null,
+        command: evt.command || null,
+        risk: evt.risk || null,
+        rule: evt.rule || null,
+        reason: evt.reason || null,
+      };
+    case "approval_resolved":
+      return {
+        kind: "approval_done",
+        id: evt.id,
+        approved: evt.approved === true,
+        via: evt.via || null,
+      };
     case "plan_update":
       return {
         kind: "plan",
