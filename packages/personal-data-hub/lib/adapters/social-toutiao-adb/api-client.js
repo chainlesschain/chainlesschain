@@ -154,6 +154,17 @@ class ToutiaoApiClient {
         this._setLastError(-3, "parse: " + (e.message || String(e)));
         return null;
       }
+      // Toutiao web endpoints signal failure via `err_no != 0` + `message`
+      // while still returning HTTP 200 and an empty `data:[]` — without this
+      // check that error is silently masked as "0 results" (real-device
+      // 2026-06-11: tab_comments → {err_no:1,"message":"params illegal"}).
+      if (typeof obj.err_no === "number" && obj.err_no !== 0) {
+        this._setLastError(
+          obj.err_no,
+          String(obj.message || obj.err_tips || `err_no=${obj.err_no}`),
+        );
+        return null;
+      }
       this._clearLastError();
       return obj;
     } catch (e) {

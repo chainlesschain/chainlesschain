@@ -585,3 +585,42 @@ describe("normalizeMs", () => {
     expect(_internals.normalizeMs(NaN)).toBe(0);
   });
 });
+
+describe("err_no surfacing (HTTP 200 + err_no!=0 must NOT mask as empty)", () => {
+  it("fetchCollection: {err_no:1,'params illegal',data:[]} → [] + lastErrorCode 1", async () => {
+    // Real-device 2026-06-11: tab_comments returned this; the old code saw
+    // data:[] and reported 0 results with errCode 0, hiding the real failure.
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "article/v2/tab_comments",
+        { body: JSON.stringify({ message: "params illegal", err_no: 1, data: [] }) },
+      ],
+    ]);
+    const sign = {
+      signUrl: vi.fn(async (url) => {
+        const u = new URL(String(url));
+        u.searchParams.set("_signature", "X");
+        return u;
+      }),
+    };
+    const c = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
+    const items = await c.fetchCollection("sessionid=abc");
+    expect(items).toEqual([]);
+    expect(c.lastErrorCode).toBe(1);
+    expect(c.lastErrorMessage).toBe("params illegal");
+  });
+
+  it("err_no:0 is treated as success (not masked)", async () => {
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "article/v2/tab_comments",
+        { body: JSON.stringify({ err_no: 0, data: [{ group_id: "C1", title: "Saved", behot_time: 1700000000 }] }) },
+      ],
+    ]);
+    const sign = { signUrl: vi.fn(async (url) => { const u = new URL(String(url)); u.searchParams.set("_signature", "X"); return u; }) };
+    const c = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
+    const items = await c.fetchCollection("sessionid=abc");
+    expect(items).toHaveLength(1);
+    expect(items[0].itemId).toBe("C1");
+  });
+});
