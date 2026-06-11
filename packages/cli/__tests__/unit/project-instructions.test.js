@@ -17,6 +17,8 @@ import {
   loadProjectInstructions,
   renderProjectInstructionsBlock,
   loadProjectInstructionsBlock,
+  parseRuleFrontmatter,
+  ruleApplies,
 } from "../../src/lib/project-instructions.js";
 import { composeSystemPrompt } from "../../src/runtime/system-prompt.js";
 
@@ -201,6 +203,63 @@ describe("loadProjectInstructions", () => {
     });
     expect(loaded.files).toHaveLength(1);
     expect(loaded.warnings.join(" ")).toMatch(/budget/);
+  });
+});
+
+describe("path-scoped rules (.claude/rules)", () => {
+  it("parseRuleFrontmatter handles dash-lists, inline values and no frontmatter", () => {
+    const fm = parseRuleFrontmatter(
+      '---\npaths:\n  - "desktop-app-vue/**"\n  - packages/cli/**\n---\n# Body here',
+    );
+    expect(fm.globs).toEqual(["desktop-app-vue/**", "packages/cli/**"]);
+    expect(fm.body).toBe("# Body here");
+    expect(parseRuleFrontmatter('---\nglobs: "backend/**"\n---\nX').globs).toEqual(
+      ["backend/**"],
+    );
+    expect(parseRuleFrontmatter("plain body").globs).toEqual([]);
+  });
+
+  it("ruleApplies uses prefix-overlap semantics", () => {
+    expect(ruleApplies([], "anything")).toBe(true);
+    expect(ruleApplies(["packages/cli/**"], "")).toBe(true); // at root
+    expect(ruleApplies(["packages/cli/**"], "packages/cli")).toBe(true);
+    expect(ruleApplies(["packages/cli/**"], "packages/cli/src")).toBe(true);
+    expect(ruleApplies(["packages/cli/**"], "packages")).toBe(true); // above
+    expect(ruleApplies(["packages/cli/**"], "desktop-app-vue")).toBe(false);
+    expect(ruleApplies(["**/*.test.js"], "anywhere/deep")).toBe(true); // prefixless
+  });
+
+  it("loads matching rules with frontmatter stripped, skips out-of-scope ones", () => {
+    fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
+    write("repo/cc.md", "root memory");
+    write(
+      "repo/.claude/rules/cli.md",
+      '---\npaths:\n  - "packages/cli/**"\n---\nCLI RULE BODY',
+    );
+    write(
+      "repo/.claude/rules/desktop.md",
+      '---\npaths:\n  - "desktop-app-vue/**"\n---\nDESKTOP RULE BODY',
+    );
+    write("repo/.claude/rules/always.md", "ALWAYS RULE");
+    fs.mkdirSync(path.join(tmp, "repo", "packages", "cli"), {
+      recursive: true,
+    });
+
+    const loaded = loadProjectInstructions({
+      cwd: path.join(tmp, "repo", "packages", "cli"),
+      home,
+    });
+    const all = loaded.files.map((f) => f.content).join("\n");
+    expect(all).toContain("CLI RULE BODY");
+    expect(all).not.toContain("paths:"); // frontmatter stripped
+    expect(all).toContain("ALWAYS RULE");
+    expect(all).not.toContain("DESKTOP RULE BODY");
+
+    // at the project root, every rule is in play
+    const atRoot = loadProjectInstructions({ cwd: path.join(tmp, "repo"), home });
+    expect(atRoot.files.map((f) => f.content).join("\n")).toContain(
+      "DESKTOP RULE BODY",
+    );
   });
 });
 

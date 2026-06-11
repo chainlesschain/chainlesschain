@@ -343,6 +343,76 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // session search — full-text search across agent transcripts (JSONL store)
+  session
+    .command("search")
+    .description(
+      "Full-text search across agent session transcripts (JSONL --resume store)",
+    )
+    .argument("<query>", "Text to find (case-insensitive)")
+    .option("-n, --limit <n>", "Max matches", "20")
+    .option("--sessions <n>", "Max recent sessions to scan", "200")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      try {
+        const store = await import("../harness/jsonl-session-store.js");
+        const q = String(query).toLowerCase();
+        const limit = Number(options.limit) || 20;
+        const sessions = store.listJsonlSessions({
+          limit: Number(options.sessions) || 200,
+        });
+        const matches = [];
+        for (const s of sessions) {
+          if (matches.length >= limit) break;
+          for (const ev of store.readEvents(s.id)) {
+            if (matches.length >= limit) break;
+            if (ev.type !== "user_message" && ev.type !== "assistant_message")
+              continue;
+            const text =
+              typeof ev.data?.content === "string"
+                ? ev.data.content
+                : JSON.stringify(ev.data?.content || "");
+            const idx = text.toLowerCase().indexOf(q);
+            if (idx === -1) continue;
+            const from = Math.max(0, idx - 30);
+            matches.push({
+              session: s.id,
+              title: s.title,
+              role: ev.type === "user_message" ? "user" : "assistant",
+              when: ev.timestamp ? new Date(ev.timestamp).toISOString() : "",
+              preview: text
+                .slice(from, idx + q.length + 50)
+                .replace(/\s+/g, " ")
+                .trim(),
+            });
+          }
+        }
+        if (options.json) {
+          console.log(JSON.stringify({ query, matches }, null, 2));
+          return;
+        }
+        if (!matches.length) {
+          logger.log(`No matches for "${query}".`);
+          return;
+        }
+        logger.log(chalk.bold(`Matches for "${query}":`));
+        for (const m of matches) {
+          logger.log(
+            `  ${chalk.cyan(m.session)} ${chalk.gray(`[${m.role}${m.when ? ` ${m.when.slice(0, 16)}` : ""}]`)}`,
+          );
+          logger.log(`    …${m.preview}…`);
+        }
+        logger.log(
+          chalk.gray(
+            `\n${matches.length} match(es) · resume one with: cc agent --resume <session>`,
+          ),
+        );
+      } catch (err) {
+        logger.error(`session search failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   // session delete
   session
     .command("delete")

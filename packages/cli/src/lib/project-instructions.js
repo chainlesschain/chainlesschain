@@ -136,8 +136,86 @@ export function findInstructionFiles(opts = {}) {
     // Template-scaffolded project rules (`cc init -t` writes these) join the
     // chain too, so scaffold-flow and memory-flow projects both feed the agent.
     push(path.join(d, ".chainlesschain", "rules.md"), "rules");
+    // Path-scoped rule files (`.claude/rules/*.md`, YAML frontmatter `paths:`
+    // globs). Glob filtering happens at LOAD time where content is available.
+    try {
+      const rulesDir = path.join(d, ".claude", "rules");
+      for (const f of fs
+        .readdirSync(rulesDir)
+        .filter((n) => n.endsWith(".md"))
+        .sort()) {
+        push(path.join(rulesDir, f), "rule");
+      }
+    } catch {
+      /* no rules dir */
+    }
   }
   return out;
+}
+
+/**
+ * Parse a rule file's YAML-ish frontmatter (zero-dep): `paths:`/`globs:` as a
+ * dash-list or inline value. Returns { globs, body } with frontmatter
+ * stripped from body; files without frontmatter pass through unchanged.
+ */
+export function parseRuleFrontmatter(text) {
+  const str = String(text);
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(str);
+  if (!m) return { globs: [], body: str };
+  const globs = [];
+  let inPaths = false;
+  const take = (raw) => {
+    const v = raw.trim().replace(/^["']|["']$/g, "");
+    if (v) globs.push(v);
+  };
+  for (const rawLine of m[1].split(/\r?\n/)) {
+    const line = rawLine.trim();
+    const key = /^(paths|globs)\s*:\s*(.*)$/.exec(line);
+    if (key) {
+      inPaths = true;
+      const inline = key[2].trim();
+      if (inline) {
+        for (const g of inline.startsWith("[")
+          ? inline.replace(/^\[|\]$/g, "").split(",")
+          : [inline]) {
+          take(g);
+        }
+      }
+      continue;
+    }
+    if (inPaths) {
+      const item = /^-\s*(.+)$/.exec(line);
+      if (item) take(item[1]);
+      else if (line) inPaths = false;
+    }
+  }
+  return { globs, body: str.slice(m[0].length) };
+}
+
+/**
+ * Does a path-scoped rule apply when the agent runs at `relCwd` (cwd relative
+ * to the dir holding `.claude/`)? v1 prefix-overlap semantics: the glob's
+ * literal prefix and the cwd must sit on the same path line — running at the
+ * project root loads every rule; running inside packages/cli loads rules
+ * whose glob prefix is packages/cli plus prefixless globs (star-star
+ * patterns). Finer tool-time injection is a later phase (module 99 §5.3).
+ */
+export function ruleApplies(globs, relCwd) {
+  if (!globs || globs.length === 0) return true;
+  const cwd = String(relCwd || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\/?/, "");
+  if (!cwd) return true; // at the project root every rule is in play
+  for (const glob of globs) {
+    const g = String(glob).replace(/\\/g, "/");
+    const star = g.search(/[*?[]/);
+    const prefix = (star === -1 ? g : g.slice(0, star)).replace(/\/+$/, "");
+    if (!prefix) return true; // "**/*.js" — applies everywhere
+    if (cwd === prefix || cwd.startsWith(`${prefix}/`) || prefix.startsWith(`${cwd}/`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -211,6 +289,17 @@ export function loadProjectInstructions(opts = {}) {
     } catch (err) {
       warnings.push(`${abs} — cannot read: ${err.message}`);
       continue;
+    }
+    if (scope === "rule") {
+      // <base>/.claude/rules/<file>.md → base is three dirs up.
+      const base = path.dirname(path.dirname(path.dirname(abs)));
+      const relCwd = path.relative(
+        base,
+        path.resolve(opts.cwd || process.cwd()),
+      );
+      const { globs, body } = parseRuleFrontmatter(entry.content);
+      if (!ruleApplies(globs, relCwd)) continue; // out of scope for this cwd
+      entry = { ...entry, content: body };
     }
     total += Math.min(entry.bytes, maxFileBytes);
     out.push({ path: abs, scope, ...entry });

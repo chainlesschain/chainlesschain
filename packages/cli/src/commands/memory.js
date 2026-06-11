@@ -53,6 +53,68 @@ export function registerMemoryCommand(program) {
     .command("memory")
     .description("Persistent memory and daily notes");
 
+  // memory files — observability for the cc.md project-memory loader
+  memory
+    .command("files")
+    .description(
+      "List the project-memory files cc agent auto-loads here (cc.md hierarchy + imports + path-scoped rules)",
+    )
+    .option("--cwd <dir>", "Inspect from this directory instead of cwd")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { loadProjectInstructions } = await import(
+          "../lib/project-instructions.js"
+        );
+        const cwd = options.cwd || process.cwd();
+        const loaded = loadProjectInstructions({ cwd });
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                cwd,
+                files: loaded.files.map((f) => ({
+                  path: f.path,
+                  scope: f.scope,
+                  bytes: f.bytes,
+                  truncated: f.truncated,
+                })),
+                warnings: loaded.warnings,
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        if (!loaded.files.length) {
+          logger.log(
+            "No project-memory files found — run `cc init` to generate a cc.md.",
+          );
+          return;
+        }
+        logger.log(chalk.bold("Project memory loaded by cc agent:"));
+        for (const f of loaded.files) {
+          logger.log(
+            `  [${f.scope.padEnd(7)}] ${f.path}  ${chalk.gray(
+              `${f.bytes} bytes${f.truncated ? " (truncated)" : ""}`,
+            )}`,
+          );
+        }
+        for (const w of loaded.warnings) {
+          logger.log(chalk.yellow(`  ⚠ ${w}`));
+        }
+        logger.log(
+          chalk.gray(
+            "Disable with CC_PROJECT_MEMORY=0 · file precedence: cc.md > CLAUDE.md > AGENTS.md",
+          ),
+        );
+      } catch (err) {
+        logger.error(`memory files failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   // memory show
   memory
     .command("show", { isDefault: true })
