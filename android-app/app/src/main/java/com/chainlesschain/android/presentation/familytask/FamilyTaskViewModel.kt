@@ -74,7 +74,8 @@ class FamilyTaskViewModel @Inject constructor(
 
     fun showCreateForm(show: Boolean) = _uiState.update { it.copy(showCreateForm = show) }
 
-    fun createTask(title: String, subjectCode: String?, description: String) {
+    /** [dueInDays]: null=无截止, 0=今天, 1=明天, 2=后天 (与群导入解析同口径)。 */
+    fun createTask(title: String, subjectCode: String?, description: String, dueInDays: Int? = null) {
         val name = title.trim()
         if (name.isBlank()) return
         val now = System.currentTimeMillis()
@@ -88,6 +89,7 @@ class FamilyTaskViewModel @Inject constructor(
             title = name,
             description = description.trim(),
             subject = subjectCode,
+            dueAtMs = dueInDays?.let { now + it * DAY_MS },
             rewardPoints = DEFAULT_REWARD,
             status = FamilyTaskStatus.ASSIGNED,
             createdAtMs = now,

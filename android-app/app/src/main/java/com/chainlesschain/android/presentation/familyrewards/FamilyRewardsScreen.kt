@@ -89,14 +89,6 @@ fun FamilyRewardsScreen(
 
             BalanceCard(state)
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(onClick = { viewModel.simulateHomeworkEarn(100) }) { Text("模拟满分作业 +30") }
-                OutlinedButton(onClick = { viewModel.simulateHomeworkEarn(75) }) { Text("75 分 +10") }
-            }
-
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -134,7 +126,7 @@ fun FamilyRewardsScreen(
                     SectionHeader("积分历史")
                     if (state.history.isEmpty()) {
                         Text(
-                            text = "还没有积分记录。点上方按钮模拟一次作业完成试试。",
+                            text = "还没有积分记录。完成任务、复习错题即可自动赚取积分。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

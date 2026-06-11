@@ -142,6 +142,21 @@ class FamilyTaskViewModelTest {
     }
 
     @Test
+    fun `createTask with dueInDays persists a due timestamp`() = runTest {
+        val before = System.currentTimeMillis()
+        val viewModel = vm()
+        viewModel.createTask("数学第3页", "math", "", dueInDays = 1)
+        val after = System.currentTimeMillis()
+
+        val due = firstTask(viewModel).dueAtMs!!
+        val dayMs = 86_400_000L
+        assertTrue(due >= before + dayMs && due <= after + dayMs)
+        // 默认无截止
+        viewModel.createTask("无截止任务", null, "")
+        assertNull(viewModel.uiState.value.tasks.first { it.title == "无截止任务" }.dueAtMs)
+    }
+
+    @Test
     fun `blank title is ignored`() = runTest {
         val viewModel = vm()
         viewModel.createTask("   ", null, "")

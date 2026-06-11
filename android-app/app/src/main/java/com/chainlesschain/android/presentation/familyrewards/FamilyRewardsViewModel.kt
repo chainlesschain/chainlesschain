@@ -7,10 +7,8 @@ import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
 import com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RewardCatalogEntity
 import com.chainlesschain.android.feature.familyguard.domain.enforce.RewardTempException
-import com.chainlesschain.android.presentation.aistudy.Completion
 import com.chainlesschain.android.presentation.aistudy.Deliverable
 import com.chainlesschain.android.presentation.aistudy.DeliverableKind
-import com.chainlesschain.android.presentation.aistudy.EarnContext
 import com.chainlesschain.android.presentation.aistudy.PointsEngine
 import com.chainlesschain.android.presentation.aistudy.PointsEvent
 import com.chainlesschain.android.presentation.aistudy.PointsEventType
@@ -169,30 +167,8 @@ class FamilyRewardsViewModel @Inject constructor(
         _message.update { "已下架「${item.name}」" }
     }
 
-    /** 演示: 模拟一次满分作业完成 → earn (经防作弊/单日上限引擎)。 */
-    fun simulateHomeworkEarn(scorePct: Int = 100) = viewModelScope.launch {
-        val now = System.currentTimeMillis()
-        val (dayStart, dayEnd) = dayWindow(now)
-        val decision = PointsEngine.decideEarn(
-            childDid = DEMO_CHILD_DID,
-            completion = Completion.Homework(taskId = UUID.randomUUID().toString(), scorePct = scorePct),
-            reason = "完成作业（$scorePct 分）",
-            context = EarnContext(
-                taskAlreadyEarned = false, // 每次模拟用新 taskId
-                earnedToday = ledger.earnedBetween(DEMO_CHILD_DID, dayStart, dayEnd),
-            ),
-            eventId = UUID.randomUUID().toString(),
-            now = now,
-        )
-        decision.event?.let { ledger.append(it) }
-        _message.update {
-            when {
-                decision.rejected -> decision.notes.firstOrNull() ?: "本次未获积分"
-                decision.notes.isEmpty() -> "+${decision.approvedAmount} 积分"
-                else -> "+${decision.approvedAmount} 积分（${decision.notes.joinToString("；")}）"
-            }
-        }
-    }
+    // 「模拟满分作业」演示 earn 已删除: 真 earn 闭环 (任务完成自动触发 + 错题本复习)
+    // 落地后, 无去重的演示按钮成了孩子无限刷分口 (仅日上限挡), 属作弊漏洞。
 
     /** 兑换目录项 (经余额/上限引擎校验)。 */
     fun redeem(item: RewardCatalogItem) = viewModelScope.launch {

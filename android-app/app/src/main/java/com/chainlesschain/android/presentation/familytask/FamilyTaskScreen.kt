@@ -104,7 +104,9 @@ fun FamilyTaskScreen(
 
             if (state.showCreateForm) {
                 CreateTaskForm(
-                    onCreate = { title, subject, desc -> viewModel.createTask(title, subject, desc) },
+                    onCreate = { title, subject, desc, dueInDays ->
+                        viewModel.createTask(title, subject, desc, dueInDays)
+                    },
                     onCancel = { viewModel.showCreateForm(false) },
                 )
                 HorizontalDivider()
@@ -264,13 +266,14 @@ private fun SubmitDialog(
 
 @Composable
 private fun CreateTaskForm(
-    onCreate: (title: String, subjectCode: String?, description: String) -> Unit,
+    onCreate: (title: String, subjectCode: String?, description: String, dueInDays: Int?) -> Unit,
     onCancel: () -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf(Subject.MATH) }
     var subjectMenu by remember { mutableStateOf(false) }
+    var dueInDays by remember { mutableStateOf<Int?>(null) }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -301,8 +304,22 @@ private fun CreateTaskForm(
             label = { Text("说明（可选）") },
             modifier = Modifier.fillMaxWidth(),
         )
+        // 截止时间: 延期率 (M10)/准时 streak/过期标记都吃这个字段。
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("截止：", style = MaterialTheme.typography.bodyMedium)
+            listOf(null to "无", 0 to "今天", 1 to "明天", 2 to "后天").forEach { (days, label) ->
+                if (dueInDays == days) {
+                    Button(onClick = { dueInDays = days }) { Text(label) }
+                } else {
+                    OutlinedButton(onClick = { dueInDays = days }) { Text(label) }
+                }
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { onCreate(title, subject.code, description) }) { Text("布置") }
+            Button(onClick = { onCreate(title, subject.code, description, dueInDays) }) { Text("布置") }
             OutlinedButton(onClick = onCancel) { Text("取消") }
         }
     }
@@ -340,6 +357,16 @@ private fun TaskCard(
                     text = "学科：${subjectLabel(it)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            task.dueAtMs?.let { due ->
+                val overdue = System.currentTimeMillis() > due &&
+                    task.status != FamilyTaskStatus.DONE &&
+                    task.status != FamilyTaskStatus.CANCELLED
+                Text(
+                    text = "截止：${dueFormat.format(java.util.Date(due))}" + if (overdue) "（已过期）" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (task.description.isNotBlank()) {
@@ -407,6 +434,8 @@ private fun TaskCard(
         }
     }
 }
+
+private val dueFormat = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
 
 private fun statusLabel(status: FamilyTaskStatus): String = when (status) {
     FamilyTaskStatus.SUGGESTED -> "待确认"
