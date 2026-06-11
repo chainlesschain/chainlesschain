@@ -271,9 +271,28 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v7 → v8 (M9→M4 临时白名单).
+     *
+     * enforce_rules 加 expires_at (NULL = 永久) + (active, expires_at) 复合索引
+     * (索引名必须与 Room 默认 `index_enforce_rules_active_expires_at` 一致)。
+     * 改前必跑 assembleDebug 重新导出 8.json 再 diff (同 [MIGRATION_5_6] trap)。
+     */
+    val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE enforce_rules ADD COLUMN expires_at INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_enforce_rules_active_expires_at " +
+                    "ON enforce_rules(active, expires_at)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
-    val ALL_MIGRATIONS: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+        MIGRATION_6_7, MIGRATION_7_8,
+    )
 
     /**
      * 数据库 PRAGMA 应用 + open 后自检。

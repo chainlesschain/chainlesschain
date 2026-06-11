@@ -2,6 +2,8 @@ package com.chainlesschain.android.presentation.familyrewards
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
+import com.chainlesschain.android.feature.familyguard.domain.enforce.RewardTempException
 import com.chainlesschain.android.presentation.aistudy.Completion
 import com.chainlesschain.android.presentation.aistudy.Deliverable
 import com.chainlesschain.android.presentation.aistudy.DeliverableKind
@@ -52,6 +54,7 @@ data class FamilyRewardsUiState(
 @HiltViewModel
 class FamilyRewardsViewModel @Inject constructor(
     private val ledger: PointsLedger,
+    private val enforceRuleDao: EnforceRuleDao,
 ) : ViewModel() {
 
     private val catalog: List<RewardCatalogItem> = defaultCatalog()
@@ -113,7 +116,28 @@ class FamilyRewardsViewModel @Inject constructor(
             now = now,
         )
         decision.event?.let { ledger.append(it) }
-        _message.update { decision.reason }
+        val delivered = if (decision.approved) deliverTempException(item, now) else 0
+        _message.update {
+            if (delivered > 0) "${decision.reason}，临时白名单已生效" else decision.reason
+        }
+    }
+
+    /**
+     * M9→M4 联动: 兑换批准后把 deliverable 折算成 enforce_rules `temp_exception` 行
+     * (带 expires_at, 由 [RewardTempException] 纯函数生成)。返回下发行数;
+     * 家长执行类 (全家活动/实物/零花钱) 为 0。
+     */
+    private suspend fun deliverTempException(item: RewardCatalogItem, now: Long): Int {
+        val rows = RewardTempException.fromRedemption(
+            kind = item.deliverable.kind.name,
+            valueMinutes = item.deliverable.value,
+            targetApps = item.deliverable.targetApps,
+            childDid = DEMO_CHILD_DID,
+            rewardId = item.id,
+            now = now,
+        )
+        rows.forEach { enforceRuleDao.upsert(it) }
+        return rows.size
     }
 
     fun consumeMessage() = _message.update { null }

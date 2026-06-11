@@ -61,8 +61,8 @@ class FamilyGuardSchemaTest {
     }
 
     @Test
-    fun `schema version constant is 7 (M9 points_event bumped from 6)`() {
-        assertEquals(7, FamilyGuardDatabase.SCHEMA_VERSION)
+    fun `schema version constant is 8 (M9-M4 enforce_rules expires_at bumped from 7)`() {
+        assertEquals(8, FamilyGuardDatabase.SCHEMA_VERSION)
     }
 
     @Test

@@ -84,6 +84,6 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 7
+        const val SCHEMA_VERSION = 8
     }
 }
