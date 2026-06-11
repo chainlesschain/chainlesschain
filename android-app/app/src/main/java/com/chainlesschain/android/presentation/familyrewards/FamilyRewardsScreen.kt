@@ -102,6 +102,15 @@ fun FamilyRewardsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
+                if (state.activeRewards.isNotEmpty()) {
+                    item {
+                        SectionHeader("生效中的奖励")
+                    }
+                    items(items = state.activeRewards, key = { "active-${it.id}" }) { active ->
+                        ActiveRewardCard(active)
+                    }
+                    item { Spacer(Modifier.height(8.dp)) }
+                }
                 item {
                     SectionHeader("兑换目录")
                 }
@@ -160,6 +169,35 @@ private fun BalanceCard(state: FamilyRewardsUiState) {
         }
     }
 }
+
+@Composable
+private fun ActiveRewardCard(active: ActiveRewardRow) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = active.label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            active.expiresAt?.let {
+                Text(
+                    text = "至 ${timeFormat.format(java.util.Date(it))}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
 
 @Composable
 private fun SectionHeader(text: String) {

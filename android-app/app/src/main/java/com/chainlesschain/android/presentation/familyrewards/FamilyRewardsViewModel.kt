@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
+import com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RewardCatalogEntity
 import com.chainlesschain.android.feature.familyguard.domain.enforce.RewardTempException
 import com.chainlesschain.android.presentation.aistudy.Completion
@@ -35,12 +36,22 @@ data class RewardHistoryRow(
     val timestamp: Long,
 )
 
+/** 一条生效中的临时奖励 (M9→M4 temp_exception) 的 UI 投影。 */
+data class ActiveRewardRow(
+    val id: Long,
+    val label: String,
+    /** 到期时刻 (ms); null 不显示期限。 */
+    val expiresAt: Long?,
+)
+
 data class FamilyRewardsUiState(
     val balance: Int = 0,
     val lifetimeEarned: Int = 0,
     val lifetimeSpent: Int = 0,
     val catalog: List<RewardCatalogItem> = emptyList(),
     val history: List<RewardHistoryRow> = emptyList(),
+    /** 生效中的临时奖励 (兑换下发的 temp_exception, 未到期)。 */
+    val activeRewards: List<ActiveRewardRow> = emptyList(),
     /** 上一次操作的反馈 (earn/兑换成功或被拒原因)；UI 弹 snackbar 后清。 */
     val message: String? = null,
 )
@@ -64,6 +75,12 @@ class FamilyRewardsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { seedDefaultCatalogIfEmpty() }
+        viewModelScope.launch { cleanupExpired() }
+    }
+
+    /** 进屏时下线已到期临时奖励 (deactivateExpired 幂等; Epic D 定时清理是 follow-up)。 */
+    internal suspend fun cleanupExpired() {
+        enforceRuleDao.deactivateExpired(System.currentTimeMillis())
     }
 
     /** 首跑种默认目录。固定 id + upsert ⇒ 并发/重复调用幂等; 家长下架后不复活 (count>0 跳过)。 */
@@ -77,8 +94,9 @@ class FamilyRewardsViewModel @Inject constructor(
         combine(
             ledger.events,
             catalogDao.observeActiveForGroup(DEMO_GROUP_ID),
+            enforceRuleDao.observeActiveNonExpired(System.currentTimeMillis()),
             _message,
-        ) { events, catalogRows, message ->
+        ) { events, catalogRows, ruleRows, message ->
             val now = System.currentTimeMillis()
             val balance = PointsEngine.computeBalance(DEMO_CHILD_DID, events, now)
             FamilyRewardsUiState(
@@ -90,9 +108,32 @@ class FamilyRewardsViewModel @Inject constructor(
                     .filter { it.childDid == DEMO_CHILD_DID }
                     .sortedByDescending { it.timestamp }
                     .map { it.toRow() },
+                activeRewards = activeRewardRows(ruleRows, now),
                 message = message,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FamilyRewardsUiState())
+
+    /** temp_exception 行 → 「生效中的奖励」UI 行 (纯映射, 过期/外类型/坏 config 过滤)。 */
+    internal fun activeRewardRows(rules: List<EnforceRuleEntity>, now: Long): List<ActiveRewardRow> =
+        rules
+            .filter {
+                it.ruleType == RewardTempException.RULE_TYPE &&
+                    it.active && (it.expiresAt == null || it.expiresAt!! > now)
+            }
+            .mapNotNull { rule ->
+                val config = RewardTempException.decodeConfig(rule.config) ?: return@mapNotNull null
+                val label = when (config.kind) {
+                    RewardTempException.KIND_SCREEN_TIME_MIN ->
+                        "额外屏幕时间 ${config.valueMinutes} 分钟"
+                    RewardTempException.KIND_APP_UNLOCK ->
+                        "解锁 ${rule.target} ${config.valueMinutes} 分钟"
+                    RewardTempException.KIND_DELAYED_BEDTIME_MIN ->
+                        "今晚就寝推迟 ${config.valueMinutes} 分钟"
+                    else -> return@mapNotNull null
+                }
+                ActiveRewardRow(id = rule.id, label = label, expiresAt = rule.expiresAt)
+            }
+            .sortedBy { it.expiresAt ?: Long.MAX_VALUE }
 
     /** 家长新增目录项 (CRUD 的 C; 改走同 id 再 upsert)。返回 Job 便于测试 join。 */
     fun addCatalogItem(

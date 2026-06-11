@@ -149,6 +149,45 @@ class FamilyRewardsViewModelTest {
         assertEquals(6, db.rewardCatalogDao().countForGroup("local-family"))
     }
 
+    // ---- 生效中的奖励 + 到期清理 (M9→M4 消费侧) ----
+
+    @Test
+    fun `redeemed exception maps to an active reward row`() = runTest {
+        fund(100)
+        val viewModel = vm()
+        viewModel.redeem(item(DeliverableKind.APP_UNLOCK, 60, listOf("tv.danmaku.bili"))).join()
+
+        val now = System.currentTimeMillis()
+        val rows = viewModel.activeRewardRows(
+            db.enforceRuleDao().observeActiveNonExpired(now).first(),
+            now,
+        )
+        assertEquals(1, rows.size)
+        assertTrue(rows[0].label.contains("tv.danmaku.bili"))
+        assertTrue(rows[0].label.contains("60 分钟"))
+        assertTrue(rows[0].expiresAt!! > now)
+    }
+
+    @Test
+    fun `cleanupExpired flips expired rows on screen entry`() = runTest {
+        val past = System.currentTimeMillis() - 60_000L
+        db.enforceRuleDao().upsert(
+            com.chainlesschain.android.feature.familyguard.data.entity.EnforceRuleEntity(
+                ruleType = RewardTempException.RULE_TYPE,
+                target = "screen_time",
+                config = "{}",
+                enforceLevel = 2,
+                sourceDid = "did:chain:local-child",
+                createdAt = past,
+                expiresAt = past,
+            ),
+        )
+        vm().cleanupExpired()
+        assertTrue(
+            db.enforceRuleDao().observeActiveNonExpired(System.currentTimeMillis()).first().isEmpty(),
+        )
+    }
+
     @Test
     fun `blank name or zero cost is rejected`() = runTest {
         val viewModel = vm()
