@@ -639,6 +639,17 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   stderr 打一行灰字(仅 TTY,不污染管道/JSON);缓存 >24h 由 detached 子进程后台刷新供下次启动,
   热路径零网络。`CC_UPDATE_NOTICE=0` 关闭;完整检查仍走 `cc update`。
 
+## Structured Output — `--json-schema <file>`(headless)
+
+```bash
+cc agent -p "列出本目录的语言构成" --json-schema schema.json
+```
+
+最终回答必须是通过该 JSON Schema(子集:type/properties/required/items/enum/const/
+additionalProperties)校验的 JSON:模型回复自动提取(裸/围栏/嵌入三种形态),校验失败带错误
+清单纠错重跑(共 3 次),stdout **只打印校验通过的 JSON**(中间过程进 stderr),耗尽返回退出码 1。
+与 `--output-format stream-json` 互斥。脚本消费 `cc agent -p` 从此不用 parse 自由文本。
+
 ## REPL Steering — 排队输入 / Esc 中断 / rewind(Claude-Code 平价)
 
 agent REPL 运行 turn 期间的三件交互能力:
