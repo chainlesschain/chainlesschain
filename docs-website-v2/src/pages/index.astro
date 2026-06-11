@@ -6,7 +6,11 @@ import cliPkg from '../../../packages/cli/package.json';
 import releaseSizes from '../data/release-sizes.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
-const CLI_VERSION = cliPkg.version;
+// Published npm CLI version (release-sizes.json, pinned at build by
+// fetch-release-sizes.mjs from npm's `latest` dist-tag). Falls back to the
+// in-repo package.json only if the registry fetch + cache both failed — that
+// fallback can drift ahead of npm during dev, so the pinned value is the norm.
+const CLI_VERSION = releaseSizes.cliVersion || cliPkg.version;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const ANDROID_VERSION = ANDROID_TAG;
 const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;

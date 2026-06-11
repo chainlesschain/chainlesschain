@@ -15,6 +15,12 @@ const REPO = 'chainlesschain/chainlesschain';
 // assets → empty sizes shipped to homepage. We now walk `/releases?per_page=30`
 // and pick the first non-internal release with at least one classifiable asset.
 const LIST_URL = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
+// The homepage header shows "CLI v<X>". Source it from the PUBLISHED npm
+// `latest` dist-tag (what `npm i -g chainlesschain` actually gives) rather than
+// the in-repo packages/cli/package.json — that working-tree value drifts ahead
+// during active CLI development (parallel sessions bump it before publish), so
+// the public site would otherwise advertise an unpublished/uninstallable version.
+const NPM_LATEST_URL = 'https://registry.npmjs.org/chainlesschain/latest';
 
 function fmtSize(bytes) {
   const mb = bytes / 1024 / 1024;
@@ -40,6 +46,23 @@ function classify(name) {
 async function readCache() {
   try { return JSON.parse(await fs.readFile(OUT, 'utf-8')); }
   catch { return null; }
+}
+
+// Resolve the published CLI version from the npm registry's `latest` dist-tag.
+// Returns null on any failure so the caller can fall back to the cached value
+// (then ultimately to packages/cli/package.json in index.astro).
+async function fetchPublishedCliVersion() {
+  try {
+    const res = await fetch(NPM_LATEST_URL, {
+      headers: { 'User-Agent': 'chainlesschain-website-build', Accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const j = await res.json();
+    return typeof j.version === 'string' && j.version ? j.version : null;
+  } catch (err) {
+    console.warn(`[fetch-release-sizes] npm CLI version fetch failed: ${err.message}`);
+    return null;
+  }
 }
 
 function pickDesktopRelease(releases) {
@@ -117,7 +140,7 @@ async function main() {
     }
     console.warn(`[fetch-release-sizes] no usable cache; writing empty placeholder`);
     await fs.mkdir(path.dirname(OUT), { recursive: true });
-    await fs.writeFile(OUT, JSON.stringify({ tag: null, fetchedAt: null, sizes: {} }, null, 2) + '\n');
+    await fs.writeFile(OUT, JSON.stringify({ tag: null, fetchedAt: null, cliVersion: null, sizes: {} }, null, 2) + '\n');
     return;
   }
 
@@ -129,14 +152,24 @@ async function main() {
     }
   }
 
+  // Published npm CLI version for the homepage header. Fall back to the prior
+  // cached value if npm is unreachable, so a transient registry blip doesn't
+  // blank the chip.
+  let cliVersion = await fetchPublishedCliVersion();
+  if (!cliVersion) {
+    const prev = await readCache();
+    cliVersion = (prev && prev.cliVersion) || null;
+  }
+
   const out = {
     tag: data.tag_name,
     fetchedAt: new Date().toISOString(),
+    cliVersion,
     sizes,
   };
   await fs.mkdir(path.dirname(OUT), { recursive: true });
   await fs.writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
-  console.log(`[fetch-release-sizes] wrote ${Object.keys(sizes).length} sizes for ${data.tag_name}`);
+  console.log(`[fetch-release-sizes] wrote ${Object.keys(sizes).length} sizes for ${data.tag_name} (cli ${cliVersion || 'n/a'})`);
   for (const [k, v] of Object.entries(sizes)) {
     console.log(`  ${k.padEnd(18)} ${v.label.padStart(9)}  ${v.name}`);
   }
