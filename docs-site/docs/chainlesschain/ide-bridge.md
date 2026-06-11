@@ -1,6 +1,6 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本: v0.1 (Design Module 98, 2026-06-10) | 状态: ✅ 五 Phase 全落地（marketplace 上架待 secret）| VS Code + JetBrains 双编辑器 | 4 IDE 工具 | 58+ 专项测试 | 跨语言 interop 实证**
+> **版本: v0.4 (Design Module 98, 更新 2026-06-11) | 状态: ✅ 七 Phase 全落地 + 双 marketplace 上架 | VS Code + JetBrains 双编辑器 | 5 IDE 工具 + Chat 面板 + 实时感知 | 140+ 专项测试 | 跨语言 interop 实证**
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 
@@ -11,7 +11,7 @@ ChainlessChain 是独立应用，此前在编辑器里"零存在"。对照 Claud
 - **编辑器侧首方扩展**：在 VS Code / JetBrains 内跑一个本地 MCP server，暴露 IDE 工具。
 - **CLI 侧发现层**：自动发现运行中的编辑器 server 并连接。
 
-整套方案分五个阶段落地（Design Module 98）：
+整套方案分七个阶段落地（Design Module 98）：
 
 | Phase | 内容 | 提交 |
 |---|---|---|
@@ -19,7 +19,9 @@ ChainlessChain 是独立应用，此前在编辑器里"零存在"。对照 Claud
 | **1** | VS Code 扩展 MVP（MCP server + 4 工具 + 终端 env 注入） | `3c36b2a79` |
 | **2** | `openDiff` 阻塞评审 + accept/reject 回传 | `b737e88ec` |
 | **3** | JetBrains 平价（纯 JDK 协议核 + IntelliJ glue） | `507b45c7d` |
-| **4** | 发布与维护基建（CI 管线 + 版本治理） | `ab70095a7` |
+| **4** | 发布与维护基建（CI 管线 + 版本治理）+ 双 marketplace 上架 | `ab70095a7` |
+| **5** | IDE 实时感知（选区随 prompt 注入 + 编辑后诊断回喂 + @ 补全 + diff 审批） | `391a24767` 等 |
+| **6** | Chat 面板（webview 驱动长驻 stream-json 双工 agent 子进程） | `d412f9e8f` |
 | — | 交互 REPL `--ide`/`--no-ide` 一致性 | `635b0ae0c` |
 
 ## 核心特性
@@ -95,11 +97,11 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 
 需要两样东西:**`cc` CLI**(命令行 agent) + **编辑器扩展**(桥接)。
 
-**1. 安装/升级 `cc` CLI**(含 `cc ide`,需 ≥ 0.162.36):
+**1. 安装/升级 `cc` CLI**(实时感知/diff 审批需 ≥ 0.162.39):
 
 ```bash
 npm i -g chainlesschain
-cc --version          # ≥ 0.162.36
+cc --version          # ≥ 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -116,8 +118,8 @@ cc ide --help         # 确认有 ide 子命令
   ```
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
-- **已上传 JetBrains Marketplace**(`com.chainlesschain.ide`),**待官方审核**(首发 1–2 天);通过后在 IDE 的 *Settings → Plugins → Marketplace* 搜 **ChainlessChain IDE** 即可装。
-- 审核期间可本地装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → *Settings → Plugins → ⚙ → Install Plugin from Disk*。
+- **已过审上架 JetBrains Marketplace**(`com.chainlesschain.ide`,v0.1.1):IDE 的 *Settings → Plugins → Marketplace* 搜 **ChainlessChain IDE** 一键装(2024.2+),或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → *Settings → Plugins → ⚙ → Install Plugin from Disk*。
 
 **3. 验证:**
 
