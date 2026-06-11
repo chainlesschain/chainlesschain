@@ -38,7 +38,7 @@
 - **cc CLI 0.162.38 (Claude-Code parity trio)**: MCP prompts as slash commands + MCP resources exposed to agent/REPL; `SubagentStop` settings.json hook; `cc agent --fork-session` (fork an existing session into a new branch).
 - **Android in-APK cc bundle refresh**: rebuilt `cc-cli.tgz` (cli 0.162.38 + pdh 0.4.3) → new internal-binaries release (binariesVersion 20260610) + `USR_VERSION 20 → 21`, closing the gap where the APK's embedded cc ran stale code since v5.0.3.101.
 - **Tests / CI**: shared CLI e2e helper (testHome + freePort, Layer 2) + e2e isolation/retry CI hardening + 10 stale desktop unit-test fixes.
-- **Docs**: 14 new CLI command user docs on docs-site + site-wide count reconciliation (155 commands / 145 skills / 25 Android).
+- **Docs**: 14 new CLI command user docs on docs-site + site-wide count reconciliation (155 commands / 146 skills / 25 Android).
 - **npm packages**: `chainlesschain` CLI 0.162.38 published + `@chainlesschain/personal-data-hub` 0.4.3 (unchanged).
 - **Version surfaces**: productVersion v5.0.3.104 → v5.0.3.105 / desktop 5.0.3-alpha.105 / Android versionCode 503105 · USR_VERSION 20 → 21 / iOS CFBundleVersion 105.
 
@@ -3659,7 +3659,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
 - 🎨 **Skills System**: 141 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.2.1
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 145 skills unified management ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 146 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -3825,7 +3825,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (145 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (146 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging
