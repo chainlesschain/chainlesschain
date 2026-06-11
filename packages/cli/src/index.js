@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { VERSION } from "./constants.js";
+import { maybeNotifyUpdate } from "./lib/update-notice.js";
 import { registerSetupCommand } from "./commands/setup.js";
 import { registerStartCommand } from "./commands/start.js";
 import { registerStopCommand } from "./commands/stop.js";
@@ -395,6 +396,15 @@ export function createProgram(opts = {}) {
     .version(VERSION, "-v, --version")
     .option("--verbose", "Enable verbose output")
     .option("--quiet", "Suppress non-essential output");
+
+  // Passive update nudge (Claude-Code parity): one sync cache read + gray
+  // stderr line when a newer npm version is known; stale cache refreshes in a
+  // detached child for the NEXT run. TTY-only, CC_UPDATE_NOTICE=0 disables.
+  // Synchronous call (never throws, fail-open) so fast exits like `-v` still
+  // touch the cache and arm the refresher. Suppressed under vitest —
+  // command-registration tests build programs and must not spawn children or
+  // touch the real home dir.
+  if (!process.env.VITEST) maybeNotifyUpdate();
 
   // Project initialization & persona
   registerInitCommand(program);
