@@ -66,6 +66,8 @@ cc command new <name>                    # 新建一个命令模板文件
 ```
 
 > **相邻命名空间（v0.162.38+）**：交互 REPL 中，已连接 MCP server 的 prompts 会自动注册为 `/mcp__<server>__<prompt> [args]` 斜杠命令（`/mcp` 总览），与用户自定义宏经前缀天然隔离；内置 REPL 命令（`/auto`、`/plan`、`/compact` 等）优先级高于同名宏。详见 [MCP 服务器](./cli-mcp.md)。
+>
+> **Tab 补全（v0.162.38+）**：REPL 中输入 `/` 前缀按 TAB 即可补全全部斜杠命令（内置 + 用户宏 + MCP prompts，Claude-Code 平价）；`@` 前缀同样支持文件路径补全。
 
 ## 配置参考
 
