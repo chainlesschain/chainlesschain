@@ -45,6 +45,8 @@ class FamilyGuardSchemaTest {
         "points_event",
         // M9 (v9) 兑换目录
         "reward_catalog",
+        // M6 (v10) 错题本
+        "mistake_book",
     )
 
     @Before
@@ -63,12 +65,12 @@ class FamilyGuardSchemaTest {
     }
 
     @Test
-    fun `schema version constant is 9 (M9 reward_catalog bumped from 8)`() {
-        assertEquals(9, FamilyGuardDatabase.SCHEMA_VERSION)
+    fun `schema version constant is 10 (M6 mistake_book bumped from 9)`() {
+        assertEquals(10, FamilyGuardDatabase.SCHEMA_VERSION)
     }
 
     @Test
-    fun `all 14 tables exist in schema`() {
+    fun `all 15 tables exist in schema`() {
         val cursor = db.openHelper.readableDatabase.query(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%' AND name NOT LIKE 'android_metadata'"
         )

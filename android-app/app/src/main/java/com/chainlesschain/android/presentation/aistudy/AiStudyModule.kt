@@ -21,9 +21,10 @@ abstract class AiStudyModule {
     @Singleton
     abstract fun bindAiStudyLlm(impl: DefaultAiStudyLlm): AiStudyLlm
 
+    // M6 错题本: family_guard.db mistake_book 真持久 (InMemory 留测试)。
     @Binds
     @Singleton
-    abstract fun bindMistakeBook(impl: InMemoryMistakeBook): MistakeBook
+    abstract fun bindMistakeBook(impl: RoomMistakeBook): MistakeBook
 
     @Binds
     @Singleton

@@ -12,6 +12,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipD
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
+import com.chainlesschain.android.feature.familyguard.data.dao.MistakeBookDao
 import com.chainlesschain.android.feature.familyguard.data.dao.PointsEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
@@ -26,6 +27,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembersh
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyRelationshipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.LocationPointEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.MistakeEntryEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.PointsEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RevivalCodeEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RewardCatalogEntity
@@ -66,6 +68,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         PointsEventEntity::class,
         // v9 (M9): 兑换目录 reward_catalog (主文档 §3.9, 家长 CRUD)
         RewardCatalogEntity::class,
+        // v10 (M6): 错题本 mistake_book (主文档 §3.6, 学习资产落主库)
+        MistakeEntryEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -86,9 +90,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun familyTaskDao(): FamilyTaskDao
     abstract fun pointsEventDao(): PointsEventDao
     abstract fun rewardCatalogDao(): RewardCatalogDao
+    abstract fun mistakeBookDao(): MistakeBookDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 9
+        const val SCHEMA_VERSION = 10
     }
 }

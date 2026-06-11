@@ -325,10 +325,46 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v9 → v10 (M6 错题本).
+     *
+     * 加 mistake_book 表 (主文档 §3.6) + 2 命名索引。SQL 与 Room 自动 10.json
+     * schema 必对齐: 改前必跑 assembleDebug 重新导出 10.json 再 diff。
+     */
+    val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS mistake_book (
+                    id TEXT NOT NULL,
+                    grade TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    knowledge_node TEXT NOT NULL,
+                    question TEXT NOT NULL,
+                    wrong_answer TEXT NOT NULL,
+                    correct_answer TEXT NOT NULL,
+                    note TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    review_count INTEGER NOT NULL,
+                    last_reviewed_at INTEGER,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_mistake_book_grade_subject " +
+                    "ON mistake_book(grade, subject)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_mistake_book_node ON mistake_book(knowledge_node)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
     val ALL_MIGRATIONS: Array<Migration> = arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
     )
 
     /**
