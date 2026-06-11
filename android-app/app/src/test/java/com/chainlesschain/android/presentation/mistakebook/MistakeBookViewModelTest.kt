@@ -83,6 +83,15 @@ class MistakeBookViewModelTest {
     }
 
     @Test
+    fun `remove deletes the entry (user-only deletion per data lifecycle)`() = runTest {
+        val ids = seed(2)
+        val viewModel = vm()
+        viewModel.remove(ids[0])
+        assertEquals(1, book.snapshot().size)
+        assertEquals(ids[1], book.snapshot().single().id)
+    }
+
+    @Test
     fun `reviewing the same entry repeatedly counts once toward the daily target`() = runTest {
         val ids = seed(1)
         val viewModel = vm()

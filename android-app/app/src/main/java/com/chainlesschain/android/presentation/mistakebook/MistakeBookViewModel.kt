@@ -67,6 +67,12 @@ class MistakeBookViewModel @Inject constructor(
         }
     }
 
+    /** §4.6: 错题本永久保留、仅用户主动删 — 这是那个"主动删"入口。 */
+    fun remove(id: String) {
+        mistakeBook.remove(id)
+        _message.update { "已删除" }
+    }
+
     fun consumeMessage() = _message.update { null }
 
     private suspend fun awardReviewPoints(count: Int, now: Long) {

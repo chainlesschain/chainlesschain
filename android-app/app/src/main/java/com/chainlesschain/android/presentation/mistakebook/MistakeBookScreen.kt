@@ -107,7 +107,11 @@ fun MistakeBookScreen(
                 contentPadding = PaddingValues(vertical = 12.dp),
             ) {
                 items(items = state.entries, key = { it.id }) { entry ->
-                    MistakeCard(entry = entry, onReview = { viewModel.review(entry.id) })
+                    MistakeCard(
+                        entry = entry,
+                        onReview = { viewModel.review(entry.id) },
+                        onRemove = { viewModel.remove(entry.id) },
+                    )
                 }
             }
         }
@@ -115,7 +119,7 @@ fun MistakeBookScreen(
 }
 
 @Composable
-private fun MistakeCard(entry: MistakeEntry, onReview: () -> Unit) {
+private fun MistakeCard(entry: MistakeEntry, onReview: () -> Unit, onRemove: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -157,6 +161,7 @@ private fun MistakeCard(entry: MistakeEntry, onReview: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = onRemove) { Text("删除") }
                 OutlinedButton(onClick = onReview) { Text("复习一遍") }
             }
         }

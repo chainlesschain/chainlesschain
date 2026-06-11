@@ -9,6 +9,7 @@ import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStat
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskType
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.presentation.aistudy.GradeLevel
+import com.chainlesschain.android.presentation.aistudy.FamilyDataLifecycle
 import com.chainlesschain.android.presentation.aistudy.MistakeBook
 import com.chainlesschain.android.presentation.aistudy.MistakeEntry
 import com.chainlesschain.android.presentation.aistudy.PointsLedger
@@ -50,6 +51,7 @@ class FamilyTaskViewModel @Inject constructor(
     private val grader: HomeworkGrader,
     private val mistakeBook: MistakeBook,
     private val pointsLedger: PointsLedger,
+    private val dataLifecycle: FamilyDataLifecycle,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyTaskUiState())
@@ -61,6 +63,8 @@ class FamilyTaskViewModel @Inject constructor(
                 _uiState.update { it.copy(tasks = tasks) }
             }
         }
+        // §4.6 数据生命周期: 家庭任务屏是高频入口, 顺路触发 (24h 节流, best-effort)。
+        viewModelScope.launch { dataLifecycle.runIfDue(System.currentTimeMillis()) }
     }
 
     fun showCreateForm(show: Boolean) = _uiState.update { it.copy(showCreateForm = show) }

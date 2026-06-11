@@ -6,6 +6,9 @@ import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskSource
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStatus
 import com.chainlesschain.android.presentation.aistudy.AiCallKind
+import com.chainlesschain.android.presentation.aistudy.CompanionChatRecord
+import com.chainlesschain.android.presentation.aistudy.CompanionVault
+import com.chainlesschain.android.presentation.aistudy.FamilyDataLifecycle
 import com.chainlesschain.android.presentation.aistudy.InMemoryMistakeBook
 import com.chainlesschain.android.presentation.aistudy.InMemoryPointsLedger
 import com.chainlesschain.android.presentation.aistudy.InMemoryStudyTaskContext
@@ -82,11 +85,27 @@ class FamilyTaskViewModelTest {
         }
     }
 
+    /** lifecycle 用的最小 fakes (本测试不关心清理行为, 只为构造 VM)。 */
+    private class NoopGuardrailDao : com.chainlesschain.android.feature.familyguard.data.dao.GuardrailEventDao {
+        override suspend fun insert(entity: com.chainlesschain.android.feature.familyguard.data.entity.GuardrailEventEntity): Long = 0
+        override suspend fun getAll(): List<com.chainlesschain.android.feature.familyguard.data.entity.GuardrailEventEntity> = emptyList()
+        override suspend fun count(): Int = 0
+        override suspend fun deleteOlderThan(cutoffMs: Long): Int = 0
+    }
+
+    private class NoopVault : CompanionVault {
+        override suspend fun load(): List<CompanionChatRecord> = emptyList()
+        override suspend fun append(record: CompanionChatRecord) = Unit
+        override suspend fun clear() = Unit
+        override suspend fun pruneOlderThan(cutoffMs: Long): Int = 0
+    }
+
     private lateinit var repo: FakeFamilyTaskRepository
     private lateinit var taskContext: InMemoryStudyTaskContext
     private lateinit var grader: FakeHomeworkGrader
     private lateinit var mistakeBook: InMemoryMistakeBook
     private lateinit var ledger: InMemoryPointsLedger
+    private lateinit var lifecycle: FamilyDataLifecycle
 
     @Before
     fun setUp() {
@@ -96,12 +115,13 @@ class FamilyTaskViewModelTest {
         grader = FakeHomeworkGrader()
         mistakeBook = InMemoryMistakeBook()
         ledger = InMemoryPointsLedger()
+        lifecycle = FamilyDataLifecycle(repo, NoopGuardrailDao(), NoopVault())
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook, ledger)
+    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook, ledger, lifecycle)
 
     private fun firstTask(viewModel: FamilyTaskViewModel) = viewModel.uiState.value.tasks.first()
 

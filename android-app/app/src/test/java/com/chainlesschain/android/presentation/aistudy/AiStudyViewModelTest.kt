@@ -50,6 +50,11 @@ class AiStudyViewModelTest {
         override suspend fun load(): List<CompanionChatRecord> = records.toList()
         override suspend fun append(record: CompanionChatRecord) { records += record }
         override suspend fun clear() { records.clear() }
+        override suspend fun pruneOlderThan(cutoffMs: Long): Int {
+            val before = records.size
+            records.retainAll { it.timestamp >= cutoffMs }
+            return before - records.size
+        }
     }
 
     private lateinit var llm: FakeAiStudyLlm

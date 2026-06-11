@@ -39,6 +39,9 @@ interface CompanionVault {
     suspend fun append(record: CompanionChatRecord)
     suspend fun clear()
 
+    /** §4.6 数据生命周期: 删除早于 [cutoffMs] 的记录 (陪伴对话 30d 自动删)。返回删除条数。 */
+    suspend fun pruneOlderThan(cutoffMs: Long): Int
+
     companion object {
         /** 金库所在子目录名；Sync engine 见此目录直接跳过 (TEE-only)。 */
         const val SYNC_EXCLUDE_DIR_NAME = "companion_vault"
@@ -137,6 +140,15 @@ class EncryptedCompanionVault @Inject constructor(
 
     override suspend fun clear() = withContext(Dispatchers.IO) {
         mutex.withLock { storage.delete() }
+    }
+
+    override suspend fun pruneOlderThan(cutoffMs: Long): Int = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val current = readDecrypt()
+            val kept = current.filter { it.timestamp >= cutoffMs }
+            if (kept.size != current.size) writeEncrypt(kept)
+            current.size - kept.size
+        }
     }
 
     private fun readDecrypt(): List<CompanionChatRecord> {
