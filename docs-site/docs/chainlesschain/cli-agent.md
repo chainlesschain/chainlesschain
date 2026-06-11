@@ -97,7 +97,13 @@ chainlesschain agent -p "..." --settings ./run.json               # 一次性 mo
 chainlesschain agent -p "..." --think | --ultrathink              # Anthropic 扩展思考（其它 provider 自动忽略）
 chainlesschain agent -p "..." --think --thinking-budget 8000      # legacy Claude 的思考 token 预算
 chainlesschain agent --image shot.png -p "图里是什么?"             # 多模态图像输入（可重复 --image）
+chainlesschain agent -p "..." --json-schema schema.json           # 结构化输出：最终回答必须通过 JSON Schema 校验
 ```
+
+**结构化输出**（`--json-schema <file>`）：最终回答必须是通过该 JSON Schema（子集:
+type/properties/required/items/enum/const/additionalProperties）校验的 JSON——回复自动提取
+（裸 / 围栏 / 嵌入三形态），校验失败带错误清单纠错重跑（共 3 次），stdout 只打印校验通过的
+JSON，耗尽返回退出码 1。与 `--output-format stream-json` 互斥。脚本消费 agent 输出不再 parse 自由文本。
 
 **逐 token 增量**（`--include-partial-messages`，仅 `--output-format stream-json`）额外 emit
 `stream_event`/`content_block_delta`；真增量覆盖 ollama + anthropic + OpenAI 兼容
@@ -385,6 +391,12 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 > **会话回退 `/rewind`（v0.162.40+，steering 三件套收口）**：`/rewind` 列出历史用户轮次（新→旧编号 + 预览），`/rewind <n>` 把对话截回该轮之前并把原文预填到输入行（改完重发）；空闲时**双击 Esc** 调出同一选择器。注意这只回退**对话**，文件状态回退用 `cc checkpoint restore`。
 >
 > **恢复摘要（v0.162.40+）**：`--resume` 重建对话后，REPL 自动打印一段**离线提取式**回顾（轮次统计 + 最后提问/回复预览，零 LLM 调用）—— 秒级回想"刚才聊到哪了"。
+>
+> **`!` bash 直通（v0.162.41+）**：`! <cmd>` 直接跑 shell（不经 LLM），输出回灌对话上下文（`<bash-input>/<bash-output>` 块），模型下一轮可见；Windows 走 `chcp 65001` 防乱码，120s 超时 / 30K 输出截断。
+>
+> **`#` 快捷记忆（v0.162.41+）**：`# <备注>` 一键追加到 git 根的 `cc.md`（`## Notes` 段、最新在上），本会话立即生效、之后的会话经[项目记忆](./cli-init#项目记忆)自动加载。
+>
+> **`/` 命令补全（v0.162.41+）**：行首输入 `/he<TAB>` 补全 REPL 命令（命令 token 输入期间生效，空格后不打扰参数）。
 
 ### 基础命令
 
@@ -397,6 +409,8 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 | `/clear`         | 清空对话历史                         |
 | `/compact`       | 智能压缩对话（基于重要性评分）       |
 | `/rewind [n]`    | 列出/回退到历史用户轮次（双击 Esc 同效；文件回退用 `cc checkpoint`） |
+| `! <cmd>`        | bash 直通：直接跑 shell，输出进对话上下文 |
+| `# <note>`       | 快捷记忆：追加到项目 `cc.md` 的 `## Notes` |
 | `/output-style [name]` | 列出 / 切换 [输出风格](./output-styles) 人格；`none` 清除 |
 
 ### Context Engineering 命令
