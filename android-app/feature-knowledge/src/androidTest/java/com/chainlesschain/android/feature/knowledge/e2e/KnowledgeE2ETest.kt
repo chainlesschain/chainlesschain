@@ -21,7 +21,6 @@ import com.chainlesschain.android.test.clickOnText
 import com.chainlesschain.android.test.scrollListToText
 import com.chainlesschain.android.test.typeTextInField
 import com.chainlesschain.android.test.waitForText
-import com.chainlesschain.android.test.waitUntilCondition
 import com.chainlesschain.android.test.waitUntilNodeDoesNotExist
 import com.chainlesschain.android.test.withKnowledgeItems
 import kotlinx.coroutines.delay
@@ -200,7 +199,15 @@ class KnowledgeE2ETest {
             tags = listOf("kb-02", "markdown")
         )
 
-        composeTestRule.waitUntilCondition(timeoutMillis = 5000) { navHandled }
+        // Compose's built-in waitUntil (member fn), NOT the shared
+        // waitUntilCondition helper: the helper spins the test thread with
+        // runBlocking+delay and never advances the compose frame clock, so a
+        // plain-boolean condition that depends on recomposition
+        // (LaunchedEffect(operationSuccess) → onNavigateBack) can never flip
+        // — CI run 27335192075 timed out exactly here. waitUntil pumps
+        // composition between polls. (waitForText-style helpers get away
+        // with it because fetchSemanticsNodes() forces a compose sync.)
+        composeTestRule.waitUntil(timeoutMillis = 5000) { navHandled }
         assertTrue("onNavigateBack should fire after operationSuccess", navHandled)
 
         // DB-level sanity: the markdown body persisted intact (no editor-side

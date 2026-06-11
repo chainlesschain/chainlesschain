@@ -32,16 +32,24 @@ class KnowledgeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(KnowledgeUiState())
     val uiState: StateFlow<KnowledgeUiState> = _uiState.asStateFlow()
 
-    // 知识库列表（分页）
+    // 知识库列表（分页）。
+    // filterMode/selectedFolderId 必须作为上游流参与 combine —— 旧实现只由
+    // _searchQuery 驱动、在 lambda 里读 _uiState.value.filterMode，
+    // setFilterMode() 后 flatMapLatest 不会重新执行（其"触发刷新"写的
+    // `_searchQuery.value = _searchQuery.value` 被 StateFlow 等值去重吞掉），
+    // 收藏/文件夹筛选点了没反应（KnowledgeE2ETest KB-06 CI 实锤）。
     private val _searchQuery = MutableStateFlow("")
-    val knowledgeItems: Flow<PagingData<KnowledgeItem>> = _searchQuery
-        .flatMapLatest { query ->
+    val knowledgeItems: Flow<PagingData<KnowledgeItem>> = combine(
+        _searchQuery,
+        _uiState.map { it.filterMode to it.selectedFolderId }.distinctUntilChanged()
+    ) { query, filter -> query to filter }
+        .flatMapLatest { (query, filter) ->
+            val (mode, folderId) = filter
             if (query.isEmpty()) {
-                when (_uiState.value.filterMode) {
+                when (mode) {
                     FilterMode.ALL -> repository.getItems()
                     FilterMode.FAVORITE -> repository.getFavoriteItems()
                     FilterMode.FOLDER -> {
-                        val folderId = _uiState.value.selectedFolderId
                         if (folderId != null) {
                             repository.getItemsByFolder(folderId)
                         } else {
@@ -79,14 +87,14 @@ class KnowledgeViewModel @Inject constructor(
      * 切换筛选模式
      */
     fun setFilterMode(mode: FilterMode, folderId: String? = null) {
+        // knowledgeItems 通过 combine 观察 filterMode/selectedFolderId，
+        // 这里更新 uiState 即触发列表切换（旧的自赋值"刷新"是 no-op，已删）。
         _uiState.update {
             it.copy(
                 filterMode = mode,
                 selectedFolderId = folderId
             )
         }
-        // 触发刷新
-        _searchQuery.value = _searchQuery.value
     }
 
     /**
