@@ -1,0 +1,102 @@
+# cc Agent Mention — claude-code-action parity, v1 (read-only respond).
+#
+# Comment `@cc <question>` on an issue or PR and a headless `cc agent` answers
+# as a comment. Guardrails:
+#   - only OWNER/MEMBER/COLLABORATOR comments trigger (prompt-injection from
+#     strangers never reaches the agent);
+#   - the agent gets READ-ONLY tools (read_file/list_dir/search_files) — v1
+#     answers questions about the code, it does not push changes;
+#   - the LLM key comes from the `CC_LLM_API_KEY` secret (provider/model from
+#     `CC_LLM_PROVIDER` / `CC_LLM_MODEL` repo variables, default volcengine).
+#     A missing secret posts an explanatory comment AND fails the job — never
+#     a silent green (handbook trap #30).
+name: cc Agent Mention
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: cc-mention-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  respond:
+    if: >-
+      contains(github.event.comment.body, '@cc ') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+        github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (PR head when the comment is on a PR)
+        uses: actions/checkout@v4
+
+      - name: Switch to the PR branch
+        if: github.event.issue.pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr checkout "${{ github.event.issue.number }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install cc CLI
+        run: npm install -g chainlesschain@latest
+
+      - name: Run cc agent (read-only) and reply
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CC_LLM_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          CC_LLM_PROVIDER: ${{ vars.CC_LLM_PROVIDER }}
+          CC_LLM_MODEL: ${{ vars.CC_LLM_MODEL }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          CC_UPDATE_NOTICE: "0"
+        run: |
+          set -u
+          if [ -z "${CC_LLM_API_KEY}" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body \
+              "⚠️ \`@cc\` is not configured: the \`CC_LLM_API_KEY\` repo secret is missing (set \`CC_LLM_PROVIDER\`/\`CC_LLM_MODEL\` variables too if not volcengine)."
+            echo "::error::CC_LLM_API_KEY secret is not set."
+            exit 1
+          fi
+          PROVIDER="${CC_LLM_PROVIDER:-volcengine}"
+          MODEL="${CC_LLM_MODEL:-doubao-seed-1-6-251015}"
+          # Everything after the FIRST '@cc ' is the task; env var (not shell
+          # interpolation) keeps the comment body out of the command line.
+          PROMPT="${COMMENT_BODY#*@cc }"
+          echo "Running cc agent ($PROVIDER/$MODEL, read-only tools)…"
+          set +e
+          cc agent -p "$PROMPT" \
+            --provider "$PROVIDER" --model "$MODEL" --api-key "$CC_LLM_API_KEY" \
+            --allowed-tools "read_file,list_dir,search_files" \
+            --no-checkpoint --no-ide --no-mcp \
+            --max-turns 15 > /tmp/cc-reply.txt 2> /tmp/cc-err.txt
+          STATUS=$?
+          set -e
+          {
+            echo "🤖 **cc agent** (\`$PROVIDER/$MODEL\`, read-only):"
+            echo
+            if [ -s /tmp/cc-reply.txt ]; then
+              cat /tmp/cc-reply.txt
+            else
+              echo "_(no output)_"
+            fi
+            if [ "$STATUS" -ne 0 ]; then
+              echo
+              echo "⚠️ exit code $STATUS"
+              echo '```'
+              tail -c 1500 /tmp/cc-err.txt || true
+              echo '```'
+            fi
+          } > /tmp/cc-comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/cc-comment.md
+          exit "$STATUS"
