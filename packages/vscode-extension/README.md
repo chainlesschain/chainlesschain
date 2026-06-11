@@ -63,7 +63,9 @@ replies token by token, with a live tool-call trace. Because the child runs
 inside this window's bridge, the agent automatically knows your selection and
 open tabs, pulls diagnostics after its edits, and can review edits as native
 diffs. Needs the `cc` CLI installed (`npm i -g chainlesschain`); point
-`chainlesschain.cli.path` at a custom binary if it is not on PATH.
+`chainlesschain.cli.path` at a custom binary if it is not on PATH. The **New**
+button starts a fresh conversation; `chainlesschain.chat.provider` /
+`chainlesschain.chat.model` pick the panel LLM (empty = the CLI default).
 
 ## Try it
 
