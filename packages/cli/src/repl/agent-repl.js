@@ -718,6 +718,18 @@ export async function startAgentRepl(options = {}) {
     } catch (_err) {
       // Non-critical
     }
+    // Resume recap (offline, extractive — no LLM): a quick "where were we"
+    // so the user doesn't have to scroll the old transcript.
+    try {
+      const { buildResumeRecap } = await import("../lib/repl-rewind.js");
+      const recap = buildResumeRecap(messages);
+      if (recap) {
+        logger.log(chalk.bold("Recap:"));
+        for (const line of recap) logger.log(chalk.gray(`  ${line}`));
+      }
+    } catch (_err) {
+      /* non-critical */
+    }
   }
 
   const getPrompt = () => {

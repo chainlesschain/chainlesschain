@@ -68,6 +68,36 @@ export function rewindToTurn(messages, n) {
   };
 }
 
+/**
+ * Offline extractive recap for a resumed conversation ("where were we") —
+ * no LLM call: turn counts + last ask + last reply previews.
+ * @returns {string[]|null} lines to print, or null when nothing to recap.
+ */
+export function buildResumeRecap(messages, { previewChars = 160 } = {}) {
+  const list = messages || [];
+  const flat = (c) =>
+    (typeof c === "string" ? c : JSON.stringify(c || ""))
+      .replace(/\s+/g, " ")
+      .trim();
+  const cap = (s) =>
+    s.length > previewChars ? `${s.slice(0, previewChars)}…` : s;
+  const lastOf = (role) => {
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i]?.role === role) return list[i].content;
+    }
+    return null;
+  };
+  const users = list.filter((m) => m?.role === "user").length;
+  const assistants = list.filter((m) => m?.role === "assistant").length;
+  if (!users && !assistants) return null;
+  const lines = [`${users} user / ${assistants} assistant turns`];
+  const lu = lastOf("user");
+  if (lu) lines.push(`last ask  : ${cap(flat(lu))}`);
+  const la = lastOf("assistant");
+  if (la) lines.push(`last reply: ${cap(flat(la))}`);
+  return lines;
+}
+
 /** Render the picker list (shared by /rewind and double-Esc). */
 export function renderTurnList(turns) {
   if (!turns.length) return "  (no user turns yet)";

@@ -4,6 +4,7 @@ import {
   listUserTurns,
   rewindToTurn,
   renderTurnList,
+  buildResumeRecap,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
 
@@ -59,6 +60,27 @@ describe("rewindToTurn", () => {
     expect(rewindToTurn(messages, 0)).toBeNull();
     expect(rewindToTurn(messages, "x")).toBeNull();
     expect(messages).toHaveLength(7);
+  });
+});
+
+describe("buildResumeRecap", () => {
+  it("summarizes counts + last ask/reply", () => {
+    const lines = buildResumeRecap(conv());
+    expect(lines[0]).toBe("3 user / 3 assistant turns");
+    expect(lines.find((l) => l.startsWith("last ask"))).toContain("multimodal");
+    expect(lines.find((l) => l.startsWith("last reply"))).toContain(
+      "answer three",
+    );
+  });
+
+  it("caps previews and returns null for empty conversations", () => {
+    const long = [{ role: "user", content: "y".repeat(500) }];
+    const lines = buildResumeRecap(long, { previewChars: 50 });
+    expect(lines.find((l) => l.startsWith("last ask")).endsWith("…")).toBe(
+      true,
+    );
+    expect(buildResumeRecap([])).toBeNull();
+    expect(buildResumeRecap([{ role: "system", content: "s" }])).toBeNull();
   });
 });
 
