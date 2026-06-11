@@ -1,6 +1,7 @@
 /**
- * The four IDE tools exposed to the agent (server `ide` → mcp__ide__*):
+ * The IDE tools exposed to the agent (server `ide` → mcp__ide__*):
  *   getSelection / getDiagnostics / getOpenEditors / openDiff
+ *   (+ executeCode, only when the host editor can run notebook code)
  *
  * Each tool delegates to an injected `editor` facade so this module stays free
  * of any `vscode` dependency and is unit-testable with a fake facade. The real
@@ -12,6 +13,10 @@
  *   getDiagnostics({ path? })           -> [{ file, severity, message, line, character, source? }]
  *   getOpenEditors()                    -> [{ file, active, languageId? }]
  *   openDiff({ path, originalText?, modifiedText, title? }) -> { shown, ... }
+ *   executeCode?({ code, timeoutMs? })  -> { success, outputs:[{mime,text}] }
+ *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
+ *     without notebook support) the executeCode tool is simply not exposed,
+ *     so every existing 4-tool consumer keeps working unchanged.
  */
 
 function buildIdeTools(editor) {
@@ -98,6 +103,45 @@ function buildIdeTools(editor) {
         return res || { outcome: "rejected", path: args.path };
       },
     },
+    // Conditional 5th tool: notebook code execution (Claude-Code
+    // mcp__ide__executeCode parity). Only exposed when the facade supports it.
+    ...(typeof editor.executeCode === "function"
+      ? [
+          {
+            name: "executeCode",
+            description:
+              "Execute code in the kernel of the ACTIVE Jupyter notebook " +
+              "and return its outputs. Kernel state persists across calls " +
+              "(variables stay defined). Requires an open notebook with a " +
+              "running kernel; fails with a clear error otherwise.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                code: {
+                  type: "string",
+                  description: "The code to execute in the notebook kernel.",
+                },
+                timeout_ms: {
+                  type: "number",
+                  description:
+                    "Cancel the execution after this many ms (default 120000).",
+                },
+              },
+              required: ["code"],
+            },
+            handler: async (args = {}) => {
+              if (typeof args.code !== "string" || !args.code.length) {
+                throw new Error("executeCode requires `code`");
+              }
+              const res = await editor.executeCode({
+                code: args.code,
+                timeoutMs: args.timeout_ms,
+              });
+              return res || { success: false, outputs: [] };
+            },
+          },
+        ]
+      : []),
   ];
 }
 

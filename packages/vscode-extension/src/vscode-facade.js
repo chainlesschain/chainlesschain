@@ -100,6 +100,69 @@ function createVscodeEditorFacade(vscode) {
       await applyTextToFile(vscode, fileUri, finalText);
       return { outcome: "accepted", path, finalText };
     },
+
+    // Notebook code execution via the Jupyter extension's Kernel API
+    // (https://github.com/microsoft/vscode-jupyter/wiki/Kernel-API). The API
+    // may require one-time user consent for third-party extensions; every
+    // failure mode surfaces as a clear error the agent can act on.
+    async executeCode({ code, timeoutMs }) {
+      const jupyter = vscode.extensions.getExtension("ms-toolsai.jupyter");
+      if (!jupyter) {
+        throw new Error(
+          "Jupyter extension (ms-toolsai.jupyter) is not installed",
+        );
+      }
+      const api = jupyter.isActive ? jupyter.exports : await jupyter.activate();
+      const notebook = vscode.window.activeNotebookEditor?.notebook;
+      if (!notebook) {
+        throw new Error(
+          "No active notebook — open a notebook and start its kernel first",
+        );
+      }
+      if (typeof api?.kernels?.getKernel !== "function") {
+        throw new Error(
+          "This Jupyter extension version does not expose the Kernel API",
+        );
+      }
+      const kernel = await api.kernels.getKernel(notebook.uri);
+      if (!kernel) {
+        throw new Error(
+          "No running kernel for the active notebook (start it, and grant " +
+            "kernel access to this extension if prompted)",
+        );
+      }
+      const tokenSource = new vscode.CancellationTokenSource();
+      const budget = timeoutMs > 0 ? timeoutMs : 120000;
+      const timer = setTimeout(() => tokenSource.cancel(), budget);
+      const outputs = [];
+      const decoder = new TextDecoder();
+      try {
+        for await (const items of kernel.executeCode(code, tokenSource.token)) {
+          for (const item of items) {
+            // OutputItem = { mime, data: Uint8Array }. Inline text-ish mimes;
+            // anything else (images, widgets) is reported by mime only.
+            const mime = item.mime || "unknown";
+            const textual =
+              mime.startsWith("text/") ||
+              mime.includes("stdout") ||
+              mime.includes("stderr") ||
+              mime.includes("error") ||
+              mime === "application/json";
+            outputs.push({
+              mime,
+              text: textual
+                ? decoder.decode(item.data).slice(0, 10000)
+                : `(${item.data?.length ?? 0} bytes)`,
+            });
+          }
+        }
+      } finally {
+        clearTimeout(timer);
+        tokenSource.dispose();
+      }
+      const cancelled = tokenSource.token.isCancellationRequested;
+      return { success: !cancelled, cancelled, outputs };
+    },
   };
 }
 

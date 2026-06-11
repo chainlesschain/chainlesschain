@@ -39,6 +39,7 @@ ChainlessChain 是独立应用，此前在编辑器里"零存在"。对照 Claud
 | `getDiagnostics` | lint / 类型错（可按文件 `path` 过滤） |
 | `getOpenEditors` | 打开的标签页，标记当前活动文件 |
 | `openDiff` | 打开原生并排 diff 供评审，**阻塞**到用户 accept/reject |
+| `executeCode` | 在活跃 Jupyter notebook 的 **kernel** 里执行代码并取回输出（变量跨调用保持）。仅 VS Code 端、需 `ms-toolsai.jupyter` + 运行中 kernel；**条件暴露**——不支持 notebook 的宿主（如 JetBrains 插件）保持 4 工具不变 |
 
 ### 3. openDiff 阻塞评审 + accept/reject 回传
 

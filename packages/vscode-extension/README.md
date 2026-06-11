@@ -28,6 +28,7 @@ and the editor tools become callable by the model as `mcp__ide__*`:
 | `getDiagnostics` | errors/warnings (optionally scoped to a file) |
 | `getOpenEditors` | open tabs, active one flagged |
 | `openDiff` | open a native side-by-side diff for review |
+| `executeCode` | run code in the active Jupyter notebook's kernel (needs `ms-toolsai.jupyter` + a running kernel; state persists across calls) |
 
 The token + `127.0.0.1` binding stop other local processes from driving your
 editor.

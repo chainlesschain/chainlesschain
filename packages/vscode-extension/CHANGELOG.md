@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.3.0] — 2026-06-11
+
+- New tool **`executeCode`** (Claude-Code `mcp__ide__executeCode` parity):
+  execute code in the ACTIVE Jupyter notebook's kernel via the Jupyter
+  extension's Kernel API and stream the outputs back to the agent. Kernel
+  state persists across calls. Requires `ms-toolsai.jupyter` + a running
+  kernel (and one-time kernel-access consent if prompted); fails with clear,
+  actionable errors otherwise. Cancellable via `timeout_ms` (default 120s).
+  The tool is exposed conditionally — hosts without notebook support (e.g.
+  the JetBrains plugin) keep the classic 4-tool surface unchanged.
+
 ## [0.2.2] — 2026-06-11
 
 - Document the CLI's new **automatic awareness** behaviors that pair with this
