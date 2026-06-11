@@ -147,6 +147,20 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
+            # 2026-06-11: uninstall any stale app/test packages before install.
+            # The AVD cache persists the userdata image across runs (snapshot
+            # flags only skip snapshots, not userdata writes), so packages
+            # installed by an earlier run survive — signed with THAT runner's
+            # auto-generated ~/.android/debug.keystore. A later run on a
+            # different runner machine then dies at install time with
+            # INSTALL_FAILED_UPDATE_INCOMPATIBLE "signatures do not match
+            # previously installed version" (runs 27346396004 / 27346704101).
+            # Each line is its own `sh -c` (see NOTE below) — independent adb
+            # calls with `|| true` are fine here.
+            adb uninstall com.chainlesschain.android.debug || true
+            adb uninstall com.chainlesschain.android.debug.test || true
+            adb uninstall com.chainlesschain.android.feature.knowledge.test || true
+            adb uninstall com.chainlesschain.android.feature.ai.test || true
             cd android-app && (./gradlew :app:connectedDebugAndroidTest :feature-knowledge:connectedDebugAndroidTest :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon --continue; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
             # 2026-05-27 (follow-up): added `--continue` so a failure in
             # :app:connectedDebugAndroidTest (currently flaky TaskPlanCardTest
