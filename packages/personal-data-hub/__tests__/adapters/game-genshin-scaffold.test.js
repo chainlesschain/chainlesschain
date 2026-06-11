@@ -25,10 +25,11 @@ describe("GenshinAdapter — FAMILY-23 v0.1 cookie-scrape placeholder", () => {
     const a = new GenshinAdapter();
     expect(assertAdapter(a).ok).toBe(true);
     expect(a.name).toBe("game-genshin");
-    expect(a.version).toBe("0.1.0");
+    expect(a.version).toBe("0.2.0");
     expect(a.extractMode).toBe("web-api");
     expect(a.dataDisclosure.sensitivity).toBe("medium");
     expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:cookie");
   });
 
   it("extractUid parses HoYoLAB cookie keys (priority + null)", () => {
@@ -45,11 +46,11 @@ describe("GenshinAdapter — FAMILY-23 v0.1 cookie-scrape placeholder", () => {
     expect(c.lastError.code).toBe(-1);
   });
 
-  it("sync throws NO_INPUT without inputPath (v0.1 no live HTTP)", async () => {
+  it("sync throws without inputPath or cookie", async () => {
     const a = new GenshinAdapter();
     await expect(async () => {
       for await (const _ of a.sync({})) void _;
-    }).rejects.toThrow(/inputPath/);
+    }).rejects.toThrow(/inputPath.*cookie|cookie.*inputPath/);
   });
 
   it("sync via snapshot yields profile + play raws", async () => {

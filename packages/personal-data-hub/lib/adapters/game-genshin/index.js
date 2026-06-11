@@ -1,10 +1,14 @@
 /**
- * FAMILY-23 v0.1 — Genshin Impact (原神 / 米哈游) adapter, snapshot mode.
+ * FAMILY-23 — Genshin Impact (原神 / 米哈游) adapter.
  *
- * 家庭守护 telemetry：家长想看孩子玩什么游戏 / 玩多久。v0.1 cookie-scrape 占位 —
- * [GenshinApiClient.extractUid] 从米游社 cookie 抽 uid；snapshot 模式消费手机端
- * collector 产的快照 JSON（profile + play-session 事件）。HTTP fetcher（takumi/hk4e
- * 战绩 + DS 签名）留 v0.2，故无 inputPath 时 sync 抛 NO_INPUT（同 social-kuaishou）。
+ * 家庭守护 telemetry：家长想看孩子玩什么游戏 / 玩多久。两路互补：
+ *   - snapshot 模式（inputPath）：消费手机端 collector 产的快照 JSON
+ *     （profile + play-session 事件，含精确游戏时长）。
+ *   - **live 模式（cookie，v0.2 接通）**：[GenshinApiClient.fetchProfiles] 经
+ *     米游社 takumi 接口 + DS v1 签名拉取角色档案（nickname / level / region /
+ *     活跃天数）。web game-record API 不暴露单次时长，故 live 仅出 profile；
+ *     "玩多久" 仍依赖 snapshot。
+ * 无 inputPath 且无 cookie 时 sync 抛错。
  *
  * Snapshot schema (v1):
  *   {
@@ -34,7 +38,7 @@ const {
 const { GenshinApiClient } = require("./api-client");
 
 const NAME = "game-genshin";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PROFILE = "profile";
@@ -69,6 +73,7 @@ class GenshinAdapter {
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:cookie",
       "parse:genshin-profile",
       "parse:genshin-play-session",
     ];
@@ -83,7 +88,10 @@ class GenshinAdapter {
       legalGate: false,
       defaultInclude: { profile: true, play: true },
     };
-    this.apiClient = new GenshinApiClient();
+    this.apiClient = new GenshinApiClient(opts);
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this._deps = { fs };
   }
 
@@ -100,11 +108,22 @@ class GenshinAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+      const uid = this.apiClient.extractUid(ctx.cookie);
+      if (!uid) {
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          message: `game-genshin.authenticate: ${this.apiClient.lastError.message}`,
+        };
+      }
+      return { ok: true, mode: "cookie" };
+    }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "game-genshin.authenticate: v0.1 needs opts.inputPath (snapshot mode); live HTTP fetcher 待 v0.2",
+        "game-genshin.authenticate: needs opts.inputPath (snapshot mode) or opts.cookie (live HoYoLAB fetch)",
     };
   }
 
@@ -117,9 +136,66 @@ class GenshinAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
+    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+      yield* this._syncViaLive(opts);
+      return;
+    }
     throw new Error(
-      "game-genshin.sync: v0.1 needs opts.inputPath (snapshot mode, Android in-APK cc); live HTTP fetcher (takumi/hk4e + DS 签名) 待 v0.2",
+      "game-genshin.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) or opts.cookie (live HoYoLAB fetch via takumi + DS 签名)",
     );
+  }
+
+  async *_syncViaLive(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new GenshinApiClient({
+          fetch: opts.fetch,
+          now: opts.now,
+          rand: opts.rand,
+          appVersion: opts.appVersion,
+          salt: opts.salt,
+          takumiApi: opts.takumiApi,
+          recordApi: opts.recordApi,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const profiles = await client.fetchProfiles(opts.cookie, {
+      fetchStats: opts.fetchStats !== false,
+      limit: opts.limit,
+    });
+    if (profiles === null) {
+      const e = client.lastError;
+      throw new Error(
+        `game-genshin.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
+    }
+    emit("roles", { count: profiles.length });
+    const capturedAt = Date.now();
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    let emitted = 0;
+    for (const prof of profiles) {
+      if (emitted >= limit) return;
+      yield {
+        adapter: NAME,
+        kind: KIND_PROFILE,
+        originalId: stableOriginalId(KIND_PROFILE, prof.uid),
+        capturedAt,
+        payload: {
+          kind: KIND_PROFILE,
+          ...prof,
+          account: { uid: prof.uid, displayName: prof.nickname },
+        },
+      };
+      emitted += 1;
+    }
   }
 
   async *_syncViaSnapshot(opts) {
@@ -220,6 +296,11 @@ function normalizeProfile(p, raw, ingestedAt) {
           platform: "genshin",
           level: p.level != null ? p.level : null,
           avatarUrl: p.avatarUrl || null,
+          region: p.region || null,
+          regionName: p.regionName || null,
+          activeDayNumber: Number.isFinite(p.activeDayNumber)
+            ? p.activeDayNumber
+            : null,
           snapshottedAt: occurredAt,
         },
       },
