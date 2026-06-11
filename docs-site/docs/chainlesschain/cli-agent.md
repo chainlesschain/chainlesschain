@@ -52,13 +52,15 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 ## 命令参考
 
 ```bash
-chainlesschain agent                    # 默认: Ollama qwen2.5:7b
+chainlesschain agent                    # 默认读 ~/.chainlesschain/config.json 的 llm 配置；无配置时 Ollama qwen2.5:7b
 chainlesschain a --model llama3         # 短别名
 chainlesschain agent --provider openai --api-key sk-...
 chainlesschain agent --session <id>     # 恢复历史会话
 ```
 
 > `agent` 命令的短别名为 `a`，两者完全等价。
+>
+> **配置默认（v0.162.43+）**：不带 `--provider/--model` 的裸 `cc agent` 会读取 `config.json` 的 `llm` 段作为默认（provider/model/apiKey/baseUrl），与 `cc chat`/桌面端一致；显式 flag 仍然优先。
 
 ### 命令选项
 
