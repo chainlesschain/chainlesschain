@@ -125,6 +125,9 @@ class FamilyTaskViewModelTest {
 
     private fun firstTask(viewModel: FamilyTaskViewModel) = viewModel.uiState.value.tasks.first()
 
+    private fun firstTaskNamed(viewModel: FamilyTaskViewModel, title: String) =
+        viewModel.uiState.value.tasks.first { it.title == title }
+
     @Test
     fun `createTask adds an ASSIGNED task visible in state`() = runTest {
         val viewModel = vm()
@@ -283,6 +286,46 @@ class FamilyTaskViewModelTest {
             FamilyTaskStatus.CANCELLED,
             viewModel.uiState.value.tasks.first { it.id == second.id }.status,
         )
+    }
+
+    @Test
+    fun `seventh consecutive on-time day adds the streak bonus once`() = runTest {
+        val now = System.currentTimeMillis()
+        val dayMs = 86_400_000L
+        // 史: 前 6 天每天一个准时 DONE
+        (1..6).forEach { d ->
+            repo.all.value = repo.all.value + FamilyTask(
+                id = "hist-$d",
+                familyGroupId = "g1",
+                assignerDid = "did:chain:local-parent",
+                childDid = "did:chain:local-child",
+                title = "历史任务 $d",
+                status = FamilyTaskStatus.DONE,
+                createdAtMs = now - d * dayMs - 1_000L,
+                updatedAtMs = now - d * dayMs,
+            )
+        }
+        val viewModel = vm()
+        viewModel.createTask("今日数学", "math", "")
+        viewModel.enterStudy(firstTaskNamed(viewModel, "今日数学"))
+        viewModel.submit(firstTaskNamed(viewModel, "今日数学"), "ans")
+        viewModel.aiGrade(firstTaskNamed(viewModel, "今日数学"))
+        viewModel.complete(firstTaskNamed(viewModel, "今日数学"))
+
+        val earns = ledger.events.value
+        assertEquals(2, earns.size) // 作业分档 +20 与 streak +50
+        val streak = earns.first { it.relatedTaskId!!.startsWith("streak-") }
+        assertEquals(70, earns.sumOf { it.amount })
+        assertTrue(streak.reason.contains("连续 7 天"))
+        assertTrue(viewModel.uiState.value.message!!.contains("连续 7 天准时 +50"))
+
+        // 同日再完成一单: streak bonus 按日去重不重复发
+        viewModel.createTask("今日英语", "english", "")
+        viewModel.enterStudy(firstTaskNamed(viewModel, "今日英语"))
+        viewModel.submit(firstTaskNamed(viewModel, "今日英语"), "ans")
+        viewModel.aiGrade(firstTaskNamed(viewModel, "今日英语"))
+        viewModel.complete(firstTaskNamed(viewModel, "今日英语"))
+        assertEquals(1, ledger.events.value.count { it.relatedTaskId!!.startsWith("streak-") })
     }
 
     @Test

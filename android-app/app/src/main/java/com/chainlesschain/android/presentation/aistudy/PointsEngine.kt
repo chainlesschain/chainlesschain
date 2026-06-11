@@ -155,6 +155,12 @@ sealed interface Completion {
      * 以及作业批改失败无可解析分数时的兜底 (M5→M9 联动, [points] ≤ 0 不发)。
      */
     data class Fixed(override val taskId: String, val points: Int) : Completion
+
+    /**
+     * 连续准时完成 streak bonus (§3.9: 连续 7 天 +50)。[taskId] 用 "streak-<日起点>"
+     * 形式按日去重; 金额由 [PointsEngine.streakBonus] 按 7 的整数倍判定。
+     */
+    data class Streak(override val taskId: String, val consecutiveOnTimeDays: Int) : Completion
 }
 
 /** earn 计算的上下文聚合 (调用方按"今日 + 该任务"预聚合后传入)。 */
@@ -227,6 +233,7 @@ object PointsEngine {
         is Completion.Running -> maxOf(0, completion.km) * rules.runningPerKm
         is Completion.MistakeReview -> if (completion.count >= 5) rules.mistakeReview5 else 0
         is Completion.Fixed -> maxOf(0, completion.points)
+        is Completion.Streak -> streakBonus(completion.consecutiveOnTimeDays, rules)
     }
 
     /**

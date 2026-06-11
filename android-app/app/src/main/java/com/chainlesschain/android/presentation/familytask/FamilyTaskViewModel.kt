@@ -9,9 +9,13 @@ import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStat
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskType
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.presentation.aistudy.GradeLevel
+import com.chainlesschain.android.presentation.aistudy.Completion
+import com.chainlesschain.android.presentation.aistudy.EarnContext
+import com.chainlesschain.android.presentation.aistudy.EarnRules
 import com.chainlesschain.android.presentation.aistudy.FamilyDataLifecycle
 import com.chainlesschain.android.presentation.aistudy.MistakeBook
 import com.chainlesschain.android.presentation.aistudy.MistakeEntry
+import com.chainlesschain.android.presentation.aistudy.PointsEngine
 import com.chainlesschain.android.presentation.aistudy.PointsLedger
 import com.chainlesschain.android.presentation.aistudy.StudyTask
 import com.chainlesschain.android.presentation.aistudy.StudyTaskContext
@@ -22,6 +26,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -180,23 +185,52 @@ class FamilyTaskViewModel @Inject constructor(
      * 重读持久层取最新 aiGrade/ai_call_log (UI 传入的 task 可能是旧快照)。
      */
     private suspend fun awardCompletionPoints(taskId: String) {
+        val now = System.currentTimeMillis()
         val task = repo.getById(taskId) ?: return
         val decision = TaskCompletionEarn.earnOnDone(
             task = task,
             contextCalls = studyTaskContext.callLogFor(taskId),
             ledger = pointsLedger,
             eventId = UUID.randomUUID().toString(),
-            now = System.currentTimeMillis(),
+            now = now,
         ) ?: return
+        val streakNote = awardStreakBonus(now)
         _uiState.update {
             it.copy(
                 message = when {
                     decision.rejected -> decision.notes.firstOrNull()
-                    decision.notes.isEmpty() -> "+${decision.approvedAmount} 积分"
-                    else -> "+${decision.approvedAmount} 积分（${decision.notes.joinToString("；")}）"
+                    decision.notes.isEmpty() -> "+${decision.approvedAmount} 积分$streakNote"
+                    else -> "+${decision.approvedAmount} 积分（${decision.notes.joinToString("；")}）$streakNote"
                 },
             )
         }
+    }
+
+    /**
+     * §3.9 streak bonus: 连续 7 天准时完成 → +50 (引擎 dormant 接通)。
+     * taskId = "streak-<日起点>" 按日去重 (账本 hasEarnedForTask), 重复完成不重复发。
+     * 返回 snackbar 后缀; 未触发为空串。
+     */
+    private suspend fun awardStreakBonus(now: Long): String {
+        val tasks = repo.observeForChild(DEMO_CHILD_DID).first()
+        val days = StreakCalculator.consecutiveOnTimeDays(tasks, now)
+        if (PointsEngine.streakBonus(days, EarnRules()) <= 0) return ""
+
+        val dayStart = now - (now % DAY_MS)
+        val streakTaskId = "streak-$dayStart"
+        val decision = PointsEngine.decideEarn(
+            childDid = DEMO_CHILD_DID,
+            completion = Completion.Streak(taskId = streakTaskId, consecutiveOnTimeDays = days),
+            reason = "连续 $days 天准时完成任务",
+            context = EarnContext(
+                taskAlreadyEarned = pointsLedger.hasEarnedForTask(DEMO_CHILD_DID, streakTaskId),
+                earnedToday = pointsLedger.earnedBetween(DEMO_CHILD_DID, dayStart, dayStart + DAY_MS),
+            ),
+            eventId = UUID.randomUUID().toString(),
+            now = now,
+        )
+        decision.event?.let { pointsLedger.append(it) }
+        return if (decision.rejected) "" else "，连续 $days 天准时 +${decision.approvedAmount}🔥"
     }
 
     fun consumeMessage() = _uiState.update { it.copy(message = null) }
@@ -270,5 +304,6 @@ class FamilyTaskViewModel @Inject constructor(
         const val DEMO_GROUP_ID = "local-family"
         const val DEMO_PARENT_DID = "did:chain:local-parent"
         const val DEFAULT_REWARD = 20
+        const val DAY_MS = 86_400_000L
     }
 }

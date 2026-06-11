@@ -81,6 +81,9 @@ class PointsEngineTest {
         // 面值发放 (M5→M9: 非作业任务 / 批改失败兜底)
         assertEquals(15, PointsEngine.rawPoints(Completion.Fixed("t", points = 15), rules))
         assertEquals(0, PointsEngine.rawPoints(Completion.Fixed("t", points = -3), rules))
+        // streak bonus (连续 7 天准时 +50, 仅 7 的整数倍)
+        assertEquals(50, PointsEngine.rawPoints(Completion.Streak("s", consecutiveOnTimeDays = 7), rules))
+        assertEquals(0, PointsEngine.rawPoints(Completion.Streak("s", consecutiveOnTimeDays = 6), rules))
     }
 
     // ---- decideEarn happy path + anti-cheat ----
