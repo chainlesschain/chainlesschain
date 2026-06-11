@@ -48,6 +48,7 @@ ChainlessChain 是独立应用，此前在编辑器里"零存在"。对照 Claud
 `openDiff` 打开编辑器原生 diff（左=原文只读 / 右=提案**可编辑**），**阻塞到用户裁决**再返回：
 
 - **Accept** → 读右侧最终文本（含用户改动）→ 写回目标文件 → 返回 `{ outcome:"accepted", path, finalText }`。
+- **Pick hunks…**(0.12.0)→ 原生多选 QuickPick 列出改动块,勾选的应用、未勾选的保留原文,Esc/全不选=不写(fail-safe);超大 diff 自动退化为整体接受/拒绝。
 - **Reject / 关闭提示** → 不改文件，返回 `{ outcome:"rejected", path }`（**fail-safe，绝不自动应用**）。
 
 ### 4. 双编辑器，CLI 零改动

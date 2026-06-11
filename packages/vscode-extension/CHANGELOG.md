@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.12.0] — 2026-06-11
+
+- **Hunk-level partial accept** — the last roadmap item: the openDiff review
+  prompt gains **Pick hunks…**, a native multi-select QuickPick of the
+  change blocks (computed against the possibly user-edited right pane).
+  Checked blocks are applied, unchecked ones keep the original text; Esc or
+  an empty selection applies nothing (fail-safe). Pathologically large
+  diffs collapse to a single all-or-nothing block instead of hanging.
+
 ## [0.11.1] — 2026-06-11
 
 - Discoverability: a **⚙ gear button on the Chat panel title bar** opens the

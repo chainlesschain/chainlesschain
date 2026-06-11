@@ -90,15 +90,59 @@ function createVscodeEditorFacade(vscode) {
         `Apply proposed changes to ${path}?`,
         { modal: false },
         "Accept",
+        "Pick hunks…",
         "Reject",
       );
-      if (choice !== "Accept") {
-        return { outcome: "rejected", path };
+      if (choice === "Accept") {
+        const finalText = rightDoc.getText(); // includes any user edits
+        await applyTextToFile(vscode, fileUri, finalText);
+        return { outcome: "accepted", path, finalText };
       }
-
-      const finalText = rightDoc.getText(); // includes any user edits
-      await applyTextToFile(vscode, fileUri, finalText);
-      return { outcome: "accepted", path, finalText };
+      if (choice === "Pick hunks…") {
+        // Hunk-level partial accept: diff the (possibly user-edited) right
+        // pane against the original and let the reviewer pick blocks with a
+        // native multi-select QuickPick. Unpicked blocks keep the original.
+        const { computeHunks, applyHunks } = require("./diff-hunks");
+        const baseline =
+          typeof originalText === "string"
+            ? originalText
+            : safeReadFile(path);
+        const hunks = computeHunks(baseline, rightDoc.getText());
+        if (hunks.length === 0) {
+          return { outcome: "rejected", path }; // nothing to apply
+        }
+        const picks = await vscode.window.showQuickPick(
+          hunks.map((h) => ({
+            label: `Hunk ${h.index + 1}/${hunks.length} · ${h.header}`,
+            description: h.preview,
+            picked: true,
+            hunk: h,
+          })),
+          {
+            canPickMany: true,
+            placeHolder:
+              "勾选要应用的改动块(未勾选的保留原文);Esc 取消 = 不应用",
+          },
+        );
+        // Esc / empty selection → fail-safe: nothing is written.
+        if (!picks || picks.length === 0) {
+          return { outcome: "rejected", path };
+        }
+        const finalText = applyHunks(
+          baseline,
+          hunks,
+          picks.map((p) => p.hunk.index),
+        );
+        await applyTextToFile(vscode, fileUri, finalText);
+        return {
+          outcome: "accepted",
+          path,
+          finalText,
+          appliedHunks: picks.length,
+          totalHunks: hunks.length,
+        };
+      }
+      return { outcome: "rejected", path };
     },
 
     // Notebook code execution via the Jupyter extension's Kernel API
@@ -164,6 +208,15 @@ function createVscodeEditorFacade(vscode) {
       return { success: !cancelled, cancelled, outputs };
     },
   };
+}
+
+/** Best-effort disk read for the hunk baseline (new files → empty). */
+function safeReadFile(path) {
+  try {
+    return fs.readFileSync(path, "utf8");
+  } catch {
+    return "";
+  }
 }
 
 /**

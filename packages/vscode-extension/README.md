@@ -140,7 +140,7 @@ The bearer token is never displayed in any of these.
 - ✅ Plan mode in the chat panel: Plan → live plan card → Approve & run (0.6.0).
 - ✅ Turn interrupt: Stop/Esc aborts the in-flight turn, conversation survives (0.7.0).
 - ✅ Approve/Deny cards for risky actions (0.9.0, cc ≥ 0.162.45) — no more silent fail-closed in the panel.
-- ⏳ Future polish: hunk-level partial accept.
+- ✅ Hunk-level partial accept: "Pick hunks…" multi-select on diff review (0.12.0).
 
 ## Packaging
 
