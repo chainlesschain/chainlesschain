@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.4.2] — 2026-06-11
+
+- Docs-only: refresh the marketplace README — the Status section had gone
+  stale (JetBrains parity + marketplace publish shipped long ago; 5 tools,
+  live awareness, diff approvals, and the chat panel are all ✅ now).
+
 ## [0.4.1] — 2026-06-11
 
 - Chat panel polish: **New** button starts a fresh conversation (drops the

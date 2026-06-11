@@ -4,9 +4,10 @@ Bridges the ChainlessChain **`cc` agent CLI** to VS Code. When this extension is
 active, running `cc agent` inside the editor's integrated terminal lets the
 agent read your editor context and propose changes as native diffs.
 
-It implements **Phase 1** of the IDE bridge design
-(`docs/design/modules/98_IDE桥接对标方案.md`). The CLI-side discovery layer is
-Phase 0 (already shipped in `packages/cli`).
+All seven phases of the IDE bridge design
+(`docs/design/modules/98_IDE桥接对标方案.md`) have shipped: discovery, the
+VS Code + JetBrains extensions, blocking diff review, marketplace releases,
+live awareness, and the chat panel.
 
 ## How it works
 
@@ -86,7 +87,7 @@ The bridge surfaces live state three ways, all fed by one activity log
 - **Status bar** (bottom-right): `◉ IDE :<port> →N` — running + port + tool-call
   count, flashes the active tool on each call. Click opens the dashboard.
 - **Sidebar** (Activity Bar → *ChainlessChain IDE*): a tree of status, workspace
-  folders, the 4 tools, and the recent tool-call log.
+  folders, the bridge tools, and the recent tool-call log.
 - **Dashboard** (*ChainlessChain IDE: Open Dashboard*): status cards + a live
   tool-call stream + a Restart button.
 
@@ -94,14 +95,18 @@ The bearer token is never displayed in any of these.
 
 ## Status
 
-- ✅ MCP server + lockfile + env injection + 4 tools, wired and tested.
-- ✅ Status bar + sidebar tree + webview dashboard + live activity log (0.2.0).
-- ✅ `openDiff` blocks for review and returns
-  `{ outcome: 'accepted' | 'rejected', path, finalText? }`. On accept the
-  (possibly user-edited) right-hand text is written to the file (Phase 2).
-- ⏳ Hunk-level partial accept + a close-the-diff = reject event hook are future
-  polish.
-- ⏳ JetBrains parity is Phase 3; Marketplace publish is Phase 4.
+- ✅ MCP server + lockfile + env injection + 5 tools (incl. `executeCode`),
+  wired and tested.
+- ✅ `openDiff` blocking review with accept/reject + user-edited `finalText`.
+- ✅ Live awareness with cc ≥ 0.162.39: selection shared per prompt,
+  post-edit diagnostics fed back, edit approvals as native diffs.
+- ✅ **Chat panel** (0.4.x): sidebar conversation over a persistent
+  `cc agent` stream-json child.
+- ✅ Status bar + sidebar tree + dashboard fed by one activity log.
+- ✅ Published on [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide);
+  the JetBrains sibling plugin is live on the
+  [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
+- ⏳ Future polish: hunk-level partial accept, chat session resume, plan-mode UI.
 
 ## Packaging
 
