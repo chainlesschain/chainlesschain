@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.6.0] — 2026-06-11
+
+- **Plan mode in the chat panel** (cc >= 0.162.43): the **Plan** button puts
+  the agent in read-only planning — its blocked write/execute attempts
+  collect into a live plan card (items colored by impact, risk level shown).
+  **Approve & run** unlocks the tools and the agent executes immediately;
+  **Reject** discards the plan. Mirrors the REPL /plan verbs over the same
+  stream protocol.
+- Panel LLM now follows the CLI config defaults: with cc >= 0.162.43 a bare
+  panel session uses your configured provider (e.g. volcengine/doubao)
+  instead of assuming local ollama — fixes "fetch failed" on cloud setups.
+
 ## [0.5.0] — 2026-06-11
 
 - **Chat session resume** (needs cc >= 0.162.40): the panel remembers this

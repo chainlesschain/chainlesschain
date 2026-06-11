@@ -108,7 +108,8 @@ The bearer token is never displayed in any of these.
   the JetBrains sibling plugin is live on the
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
 - ✅ Chat session resume across panel/editor restarts (0.5.0, cc ≥ 0.162.40).
-- ⏳ Future polish: hunk-level partial accept, plan-mode UI.
+- ✅ Plan mode in the chat panel: Plan → live plan card → Approve & run (0.6.0).
+- ⏳ Future polish: hunk-level partial accept.
 
 ## Packaging
 
