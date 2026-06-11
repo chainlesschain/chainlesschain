@@ -162,6 +162,10 @@ export function registerAgentCommand(program) {
     )
     .option("--max-turns <n>", "Cap agent loop iterations (headless)")
     .option(
+      "--json-schema <file>",
+      "Headless structured output: final reply must be JSON validating against this schema (invalid replies retried)",
+    )
+    .option(
       "--allowed-tools <list>",
       "Comma/space-separated tool allow-list (headless)",
     )
@@ -505,9 +509,7 @@ export function registerAgentCommand(program) {
         const maxTurns = options.maxTurns
           ? parseInt(options.maxTurns, 10)
           : undefined;
-        let outcome;
-        try {
-          outcome = await runAgentHeadless({
+        const headlessOptions = {
             prompt,
             images,
             model: visionLlm.model || options.model,
@@ -557,7 +559,39 @@ export function registerAgentCommand(program) {
             outputStyle: options.outputStyle || null,
             // --fallback-model: retry once on a backup model on transient errors
             chatFn: fallbackChatFn,
-          });
+        };
+
+        // --json-schema: structured output — wrap the runner with capture +
+        // validate + retry (json-schema-output.js); prints only the
+        // validated JSON. Incompatible with stream-json (event stream and a
+        // single JSON contract don't mix).
+        if (options.jsonSchema) {
+          if (options.outputFormat === "stream-json") {
+            process.stderr.write(
+              "--json-schema is incompatible with --output-format stream-json.\n",
+            );
+            process.exit(1);
+          }
+          try {
+            const { runJsonSchemaConstrained } = await import(
+              "../lib/json-schema-output.js"
+            );
+            const code = await runJsonSchemaConstrained({
+              schemaFile: options.jsonSchema,
+              baseOptions: headlessOptions,
+              runHeadless: runAgentHeadless,
+            });
+            process.exit(code);
+          } catch (err) {
+            process.stderr.write(`Error: ${err.message}\n`);
+            process.exit(1);
+          }
+          return;
+        }
+
+        let outcome;
+        try {
+          outcome = await runAgentHeadless(headlessOptions);
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
           process.exit(1);
