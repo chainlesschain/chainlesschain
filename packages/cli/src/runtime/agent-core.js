@@ -230,6 +230,25 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
   }
   if (outcome.decision === "ask") {
+    // File edits in an interactive session with an IDE bridge: route the ask
+    // through the editor's openDiff review (same machinery as settings ask —
+    // accepted means the IDE wrote the file, so the caller must skip
+    // execution; see tryIdeDiffApprovalForEdit).
+    const ide = await tryIdeDiffApprovalForEdit(name, args, context, cwd, {
+      rule: `hook:${outcome.hook}`,
+      source: "PreToolUse hook",
+    });
+    if (ide?.outcome === "accepted") {
+      return { blocked: false, ideApplied: ide.result };
+    }
+    if (ide?.outcome === "rejected") {
+      return {
+        blocked: true,
+        reason: ide.result.error,
+        hook: outcome.hook,
+        ideResult: ide.result,
+      };
+    }
     const confirm = context.permissionConfirm || context.shellConfirm || null;
     const ok =
       typeof confirm === "function"
@@ -665,6 +684,72 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
 }
 
 /**
+ * Shared IDE-diff approval routing for an `ask` decision about a file edit
+ * (used by BOTH the settings-rules ask and the PreToolUse-hook ask). Returns
+ *   { outcome:"accepted", result }  — the IDE wrote the file; the caller MUST
+ *                                     return `result` and skip execution
+ *   { outcome:"rejected", result }  — deny with `result`, file untouched
+ *   null                            — not applicable (non-edit tool, headless,
+ *                                     no IDE, disabled, no proposal, IDE died)
+ *                                     → caller falls back to its own confirm.
+ */
+async function tryIdeDiffApprovalForEdit(
+  name,
+  args,
+  context,
+  cwd,
+  { rule, source } = {},
+) {
+  if (!IDE_DIFF_EDIT_TOOLS.has(name)) return null;
+  if (typeof context.permissionConfirm !== "function") return null; // interactive only
+  if (!context.mcpClient || !context.externalToolExecutors) return null;
+  try {
+    const { ideDiffApprovalEnabled, hasIdeOpenDiff, requestIdeDiffApproval } =
+      await import("../lib/ide-context.js");
+    const mcpLike = {
+      mcpClient: context.mcpClient,
+      externalToolExecutors: context.externalToolExecutors,
+    };
+    if (!ideDiffApprovalEnabled() || !hasIdeOpenDiff(mcpLike)) return null;
+    const proposal = computeProposedEdit(name, args, cwd);
+    if (!proposal) return null;
+    const verdict = await requestIdeDiffApproval(mcpLike, {
+      path: proposal.filePath,
+      modifiedText: proposal.newContent,
+      originalText: proposal.originalText,
+      title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
+    });
+    if (verdict?.outcome === "accepted") {
+      return {
+        outcome: "accepted",
+        result: {
+          success: true,
+          path: proposal.filePath,
+          appliedVia: "ide-diff",
+          ...(verdict.finalText != null &&
+          verdict.finalText !== proposal.newContent
+            ? { userEdited: true }
+            : {}),
+          policy: { decision: "allow", rule, via: "ide-diff" },
+        },
+      };
+    }
+    if (verdict?.outcome === "rejected") {
+      return {
+        outcome: "rejected",
+        result: {
+          error: `[Permission] "${name}" was rejected in the IDE diff review (${source}: ${rule}).`,
+          policy: { decision: "deny", rule, via: "ide-diff" },
+        },
+      };
+    }
+  } catch (_err) {
+    // diff-approval routing is best-effort — fall back to the normal confirm
+  }
+  return null;
+}
+
+/**
  * Execute a single tool call with plan-mode filtering and hook pipeline.
  *
  * @param {string} name - tool name
@@ -780,73 +865,17 @@ export async function executeTool(name, args, context = {}) {
   // 3 + 4. settings ask / allow (only reached when neither layer denied)
   let ruleAllowed = false;
   if (settingsVerdict.decision === "ask") {
-    // IDE-native diff approval (Claude-Code parity): when the ask is about a
-    // file edit, the session is interactive (permissionConfirm is only set by
-    // the REPL — headless stays fail-closed), and an IDE bridge with openDiff
-    // is connected, review the edit in the editor instead of a terminal y/N.
-    // CONTRACT: on Accept the IDE has already written the (possibly
-    // user-edited) text to the file, so the approval REPLACES execution —
-    // we return a synthetic success and never run the tool's own write. On
-    // Reject nothing was written. On null (IDE died / no proposal computable)
-    // we fall through to the normal confirm below. CC_IDE_DIFF_APPROVAL=0
-    // disables the routing.
-    if (
-      IDE_DIFF_EDIT_TOOLS.has(name) &&
-      typeof context.permissionConfirm === "function" &&
-      context.mcpClient &&
-      context.externalToolExecutors
-    ) {
-      try {
-        const {
-          ideDiffApprovalEnabled,
-          hasIdeOpenDiff,
-          requestIdeDiffApproval,
-        } = await import("../lib/ide-context.js");
-        const mcpLike = {
-          mcpClient: context.mcpClient,
-          externalToolExecutors: context.externalToolExecutors,
-        };
-        if (ideDiffApprovalEnabled() && hasIdeOpenDiff(mcpLike)) {
-          const proposal = computeProposedEdit(name, args, cwd);
-          if (proposal) {
-            const verdict = await requestIdeDiffApproval(mcpLike, {
-              path: proposal.filePath,
-              modifiedText: proposal.newContent,
-              originalText: proposal.originalText,
-              title: `cc agent: ${name} ${path.basename(proposal.filePath)}`,
-            });
-            if (verdict?.outcome === "accepted") {
-              return {
-                success: true,
-                path: proposal.filePath,
-                appliedVia: "ide-diff",
-                ...(verdict.finalText != null &&
-                verdict.finalText !== proposal.newContent
-                  ? { userEdited: true }
-                  : {}),
-                policy: {
-                  decision: "allow",
-                  rule: settingsVerdict.rule,
-                  via: "ide-diff",
-                },
-              };
-            }
-            if (verdict?.outcome === "rejected") {
-              return {
-                error: `[Permission] "${name}" was rejected in the IDE diff review (settings rule: ${settingsVerdict.rule}).`,
-                policy: {
-                  decision: "deny",
-                  rule: settingsVerdict.rule,
-                  via: "ide-diff",
-                },
-              };
-            }
-          }
-        }
-      } catch (_err) {
-        // diff-approval routing is best-effort — fall back to terminal confirm
-      }
-    }
+    // IDE-native diff approval (Claude-Code parity): for file edits in an
+    // interactive session with an IDE bridge connected, review the edit in
+    // the editor instead of a terminal y/N. Accepted = the IDE wrote the
+    // file → return the synthetic result and SKIP execution; rejected =
+    // deny; null = fall through to the normal confirm below. Shared with the
+    // PreToolUse-hook ask path (tryIdeDiffApprovalForEdit).
+    const ide = await tryIdeDiffApprovalForEdit(name, args, context, cwd, {
+      rule: settingsVerdict.rule,
+      source: "settings rule",
+    });
+    if (ide) return ide.result;
     const confirm = context.permissionConfirm || context.shellConfirm || null;
     const ok =
       typeof confirm === "function"
@@ -920,7 +949,12 @@ export async function executeTool(name, args, context = {}) {
   }
   if (context.settingsHooks) {
     const pre = await runSettingsPreToolUseHooks(name, args, context, cwd);
+    // A hook `ask` resolved by the IDE diff review: accepted → the IDE
+    // already wrote the file, return the synthetic result and skip the tool;
+    // rejected → the ide-diff deny shape (via:"ide-diff", not via:"hook").
+    if (pre.ideApplied) return pre.ideApplied;
     if (pre.blocked) {
+      if (pre.ideResult) return pre.ideResult;
       return {
         error: `[Hook] PreToolUse blocked "${name}"${pre.reason ? ": " + pre.reason : ""}`,
         policy: { decision: "block", via: "hook", hook: pre.hook || null },

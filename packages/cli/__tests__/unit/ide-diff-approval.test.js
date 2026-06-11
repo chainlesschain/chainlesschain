@@ -329,3 +329,70 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
     expect(context.permissionConfirm).toHaveBeenCalled();
   });
 });
+
+describe("executeTool — IDE diff approval wiring (PreToolUse hook ask)", () => {
+  const HOOK_ASK =
+    "node -e \"console.log(JSON.stringify({hookSpecificOutput:{permissionDecision:'ask'}}))\"";
+  const askHooks = (matcher = "*") => ({
+    PreToolUse: [{ matcher, hooks: [{ type: "command", command: HOOK_ASK }] }],
+  });
+  let tmp;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-hookdiff-"));
+    process.env.CC_IDE_DIAG_SETTLE_MS = "0";
+  });
+  afterEach(() => {
+    delete process.env.CC_IDE_DIAG_SETTLE_MS;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const ctx = (mcp, over = {}) => ({
+    cwd: tmp,
+    settingsHooks: askHooks(),
+    permissionConfirm: vi.fn(async () => true),
+    mcpClient: mcp ? mcp.mcpClient : undefined,
+    externalToolExecutors: mcp ? mcp.externalToolExecutors : undefined,
+    ...over,
+  });
+
+  it("hook ask + accepted diff replaces execution", async () => {
+    const mcp = fakeDiffMcp();
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "write_file",
+      { path: "h-ok.js", content: "x" },
+      context,
+    );
+    expect(res).toMatchObject({ success: true, appliedVia: "ide-diff" });
+    expect(res.policy.rule).toMatch(/^hook:/);
+    expect(fs.existsSync(path.join(tmp, "h-ok.js"))).toBe(false);
+    expect(context.permissionConfirm).not.toHaveBeenCalled();
+  });
+
+  it("hook ask + rejected diff denies with via ide-diff (not via hook)", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async () => txt({ outcome: "rejected" }),
+    });
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "write_file",
+      { path: "h-no.js", content: "x" },
+      context,
+    );
+    expect(res.error).toMatch(/rejected in the IDE diff review/);
+    expect(res.policy).toMatchObject({ decision: "deny", via: "ide-diff" });
+    expect(fs.existsSync(path.join(tmp, "h-no.js"))).toBe(false);
+  });
+
+  it("hook ask without an IDE still uses the terminal confirm", async () => {
+    const context = ctx(null);
+    const res = await executeTool(
+      "write_file",
+      { path: "h-fb.js", content: "ok" },
+      context,
+    );
+    expect(context.permissionConfirm).toHaveBeenCalled();
+    expect(res.success).toBe(true);
+    expect(fs.readFileSync(path.join(tmp, "h-fb.js"), "utf-8")).toBe("ok");
+  });
+});
