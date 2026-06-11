@@ -1,13 +1,16 @@
 "use strict";
 
 /**
- * 网易云音乐 (NetEase Cloud Music) adapter — snapshot mode.
+ * 网易云音乐 (NetEase Cloud Music) adapter — snapshot + live cookie modes.
  *
- * Mirrors the social snapshot adapters (bilibili/douyin): a device-side
- * collector (Android in-app, or a desktop helper hitting the cookie web API
- * `/user/record` `/user/playlist`) writes a snapshot JSON; this adapter
- * ingests it. Schema is OUR contract, so normalize is fully testable and the
- * vault path is reliable regardless of how the bytes were captured.
+ * 两路互补：
+ *   - snapshot 模式（inputPath）：device-side collector（Android in-app）写
+ *     的快照 JSON；schema 是 OUR contract，normalize 全可测、vault 路径稳定。
+ *   - **live 模式（cookie，v0.2 接通）**：[NeteaseMusicApiClient.fetchSnapshot]
+ *     经标准 weapi 加密拉 `/weapi/v1/play/record`（听歌排行）+ `/weapi/user/playlist`
+ *     （歌单），输出形状对齐 snapshot 故 normalize 不变。favorite（喜欢的歌）
+ *     需额外解 likelist+歌曲详情，留 snapshot 模式，live 暂不出。
+ * Schema 是 OUR contract，无论字节怎么采到 normalize 都一致。
  *
  * Snapshot schema (schemaVersion 1):
  *   {
@@ -35,7 +38,7 @@ const {
 } = require("../../constants");
 
 const NAME = "netease-music";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_PLAY = "play";
@@ -63,10 +66,15 @@ function stableOriginalId(kind, id) {
 class NeteaseMusicAdapter {
   constructor(opts = {}) {
     this._dataPath = opts.inputPath || null;
+    this._cookie = opts.cookie || null;
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:cookie",
       "parse:netease-play",
       "parse:netease-favorite",
       "parse:netease-playlist",
@@ -102,7 +110,17 @@ class NeteaseMusicAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
-    return { ok: false, reason: "NO_INPUT", message: "netease-music.authenticate: needs opts.inputPath" };
+    const cookie = (ctx && ctx.cookie) || this._cookie;
+    if (cookie) {
+      return /MUSIC_U=/.test(cookie)
+        ? { ok: true, mode: "cookie" }
+        : { ok: false, reason: "INVALID_COOKIE", message: "netease-music.authenticate: cookie 缺 MUSIC_U（未登录）" };
+    }
+    return {
+      ok: false,
+      reason: "NO_INPUT",
+      message: "netease-music.authenticate: needs opts.inputPath (snapshot) or opts.cookie (live weapi)",
+    };
   }
 
   async healthCheck() {
@@ -111,7 +129,16 @@ class NeteaseMusicAdapter {
 
   async *sync(opts = {}) {
     const inputPath = opts.inputPath || this._dataPath;
-    if (!inputPath) throw new Error("netease-music.sync: needs opts.inputPath (snapshot JSON)");
+    if (!inputPath) {
+      const cookie = opts.cookie || this._cookie;
+      if (cookie) {
+        yield* this._syncViaCookie({ ...opts, cookie });
+        return;
+      }
+      throw new Error(
+        "netease-music.sync: needs opts.inputPath (snapshot JSON) or opts.cookie (live weapi fetch)",
+      );
+    }
     if (!this._deps.fs.existsSync(inputPath)) return;
     const snapshot = JSON.parse(this._deps.fs.readFileSync(inputPath, "utf-8"));
     if (!snapshot || snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
@@ -139,6 +166,55 @@ class NeteaseMusicAdapter {
         originalId: stableOriginalId(ev.kind, id),
         capturedAt: parseTime(ev.capturedAt) || fallback,
         payload: { ...ev, account },
+      };
+      emitted += 1;
+    }
+  }
+
+  async *_syncViaCookie(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new (require("./api-client").NeteaseMusicApiClient)({
+          fetch: opts.fetch,
+          rand: opts.rand,
+          secKey: opts.secKey,
+          baseUrl: opts.baseUrl,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const result = await client.fetchSnapshot(opts.cookie, {
+      include: opts.include || {},
+      recordType: opts.recordType,
+      playlistLimit: opts.playlistLimit,
+    });
+    if (result === null) {
+      const e = client.lastError;
+      throw new Error(`netease-music.sync (live): ${e.message || "fetch failed"} (code ${e.code})`);
+    }
+    const account = result.account || null;
+    emit("fetched", { count: result.events.length });
+    const capturedAt = Date.now();
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const include = opts.include || {};
+    let emitted = 0;
+    for (const ev of result.events) {
+      if (emitted >= limit) return;
+      if (!ev || !VALID_KINDS.includes(ev.kind)) continue;
+      if (include[ev.kind] === false) continue;
+      const id = (typeof ev.id === "string" && ev.id) || ev.songId || ev.playlistId || null;
+      yield {
+        adapter: NAME,
+        kind: ev.kind,
+        originalId: stableOriginalId(ev.kind, id),
+        capturedAt,
+        payload: { ...ev, capturedAt, account },
       };
       emitted += 1;
     }
