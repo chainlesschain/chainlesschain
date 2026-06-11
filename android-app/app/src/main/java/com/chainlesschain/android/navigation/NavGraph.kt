@@ -35,6 +35,7 @@ import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.presentation.aistudy.AiStudyScreen
 import com.chainlesschain.android.presentation.familytask.FamilyTaskScreen
 import com.chainlesschain.android.presentation.familyrewards.FamilyRewardsScreen
+import com.chainlesschain.android.presentation.mistakebook.MistakeBookScreen
 import com.chainlesschain.android.presentation.parentedu.GentlenessReportScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
@@ -161,6 +162,7 @@ fun NavGraph(
                 onNavigateToTasks = { navController.navigate(Screen.FamilyTask.route) },
                 onNavigateToRewards = { navController.navigate(Screen.FamilyRewards.route) },
                 onNavigateToGentleness = { navController.navigate(Screen.GentlenessReport.route) },
+                onNavigateToMistakeBook = { navController.navigate(Screen.MistakeBook.route) },
                 onNavigateToAIChatWithMessage = { msg ->
                     // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
                     // 情况下 NewConversationScreen 自动选默认模型 + 自动创建 → Chat
@@ -332,6 +334,11 @@ fun NavGraph(
         // M10 监管温和度月报 — 家庭 tab "家长成长" 卡导航至此。
         composable(Screen.GentlenessReport.route) {
             GentlenessReportScreen(onBack = { navController.popBackStack() })
+        }
+
+        // M6 错题本 — 家庭 tab "错题本" 卡导航至此 (间隔复习 + 满 5 题赚积分)。
+        composable(Screen.MistakeBook.route) {
+            MistakeBookScreen(onBack = { navController.popBackStack() })
         }
 
         composable(
@@ -1061,6 +1068,7 @@ sealed class Screen(val route: String) {
 
     /** M9 奖励/积分 — 家庭 tab「积分」入口。 */
     data object FamilyRewards : Screen("family_rewards")
+    data object MistakeBook : Screen("mistake_book")
 
     /** M10 监管温和度月报 — 家庭 tab「家长成长」入口。 */
     data object GentlenessReport : Screen("gentleness_report")

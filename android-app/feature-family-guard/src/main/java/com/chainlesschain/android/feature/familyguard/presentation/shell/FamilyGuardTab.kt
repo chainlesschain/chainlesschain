@@ -44,6 +44,7 @@ fun FamilyGuardTab(
     onNavigateToTasks: () -> Unit,
     onNavigateToRewards: () -> Unit,
     onNavigateToGentleness: () -> Unit,
+    onNavigateToMistakeBook: () -> Unit,
     modifier: Modifier = Modifier,
     sosViewModel: SosShellViewModel = hiltViewModel(),
 ) {
@@ -65,6 +66,7 @@ fun FamilyGuardTab(
                 onNavigateToTasks = onNavigateToTasks,
                 onNavigateToRewards = onNavigateToRewards,
                 onNavigateToGentleness = onNavigateToGentleness,
+                onNavigateToMistakeBook = onNavigateToMistakeBook,
             )
         }
         composable(Route.ROLE) {

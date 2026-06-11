@@ -58,6 +58,7 @@ fun FamilyShellScreen(
     onNavigateToTasks: () -> Unit,
     onNavigateToRewards: () -> Unit,
     onNavigateToGentleness: () -> Unit,
+    onNavigateToMistakeBook: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -119,6 +120,14 @@ fun FamilyShellScreen(
             enabled = true,
             testTag = TestTag.SectionRewards,
             onClick = onNavigateToRewards,
+        )
+
+        SectionCard(
+            title = "错题本",
+            description = "AI 批改自动收集错题 (M6); 间隔复习, 满 5 题赚积分",
+            enabled = true,
+            testTag = TestTag.SectionMistakeBook,
+            onClick = onNavigateToMistakeBook,
         )
 
         SectionCard(
@@ -203,4 +212,5 @@ object TestTag {
     const val SectionTasks = "family_guard/shell/section_tasks"
     const val SectionRewards = "family_guard/shell/section_rewards"
     const val SectionGentleness = "family_guard/shell/section_gentleness"
+    const val SectionMistakeBook = "family_guard/shell/section_mistake_book"
 }
