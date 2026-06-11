@@ -71,9 +71,19 @@ const HAPPY_RESPONSES = [
   ],
 ];
 
-function makeBridge(invokeResult) {
+function makeBridge(invokeResult, accountResult) {
   return {
-    invoke: vi.fn(async (method, params) => invokeResult),
+    invoke: vi.fn(async (method) => {
+      if (method === "toutiao.account") {
+        // Mirror real wiring: a separate extension. Tests that don't wire it
+        // get a throw (collector falls through gracefully).
+        if (accountResult === undefined) {
+          throw new Error("toutiao.account not wired in this test");
+        }
+        return accountResult;
+      }
+      return invokeResult;
+    }),
   };
 }
 
@@ -224,6 +234,46 @@ describe("collect — profile fetch fails", () => {
     expect(r.eventCounts.collection).toBe(1);
     expect(r.eventCounts.search).toBe(1);
     expect(r.eventCounts.total).toBe(3);
+  });
+
+  it("profile error_code 16 + NO cookie uid → recovers uid from local account_db, collects signed endpoints", async () => {
+    // Real-device 2026-06-11: web profile permission-denied AND the WebView
+    // cookie jar has no numeric uid. The collector asks the bridge for
+    // 'toutiao.account' (local account_db) and proceeds with that uid.
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "passport/account/info/v2",
+        { body: JSON.stringify({ message: "error", data: { error_code: 16, description: "该应用无权限" } }) },
+      ],
+      ...HAPPY_RESPONSES.slice(1),
+    ]);
+    const sign = {
+      warmUp: vi.fn(async () => {}),
+      signUrl: vi.fn(async (url) => {
+        const u = new URL(String(url));
+        u.searchParams.set("_signature", "BRIDGE_SIG");
+        return u;
+      }),
+      shutdown: vi.fn(async () => {}),
+    };
+    const bridge = {
+      invoke: vi.fn(async (m) => {
+        if (m === "toutiao.cookies") return { cookie: "sessionid=abc", uid: null, diagnostic: {} };
+        if (m === "toutiao.account") return { uid: "92585279158", nickname: "小明", secUid: "MS4w" };
+        throw new Error("unknown " + m);
+      }),
+    };
+    const client = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
+    const r = await collect(bridge, { apiClient: client, signProvider: sign, stagingDir: os.tmpdir() });
+    expect(r.profileFetchFailed).toBe(true);
+    expect(r.profileSource).toBe("local-account-db");
+    expect(r.uid).toBe("92585279158");
+    expect(r.nickname).toBe("小明");
+    expect(r.lastErrorCode).toBe(16); // headline web error preserved
+    expect(r.eventCounts.profile).toBe(1); // profile event from local account
+    expect(r.eventCounts.feed).toBe(1);
+    expect(r.eventCounts.collection).toBe(1);
+    expect(r.eventCounts.search).toBe(1);
   });
 });
 

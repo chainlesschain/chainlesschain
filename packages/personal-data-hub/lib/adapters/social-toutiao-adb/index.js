@@ -34,9 +34,15 @@ const {
   SNAPSHOT_SCHEMA_VERSION,
 } = require("./snapshot-builder");
 const { collect, collectAndSync } = require("./collector");
+const {
+  createToutiaoAccountExtension,
+  ACCOUNT_DB_REMOTE_PATH,
+} = require("./account-reader");
 
 module.exports = {
   createToutiaoCookiesExtension,
+  createToutiaoAccountExtension,
+  ACCOUNT_DB_REMOTE_PATH,
   TOUTIAO_COOKIES_REMOTE_PATH,
   TOUTIAO_COOKIE_HOST_DOMAIN,
   TOUTIAO_SESSION_COOKIES,

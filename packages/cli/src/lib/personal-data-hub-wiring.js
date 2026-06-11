@@ -377,7 +377,7 @@ async function initHub() {
       // C-path collector (www.toutiao.com cookies + 4 endpoints, 3 of
       // which need _signature signing — CLI context falls back to -99
       // short-circuit, desktop wiring upgrades via ToutiaoSignBridge).
-      const { createToutiaoCookiesExtension } =
+      const { createToutiaoCookiesExtension, createToutiaoAccountExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
       // Phase 6d: register `kuaishou.cookies` extension. Profile from
       // cookie's api_ph payload (no HTTP); 3 GraphQL POST endpoints need
@@ -392,6 +392,7 @@ async function initHub() {
           "weibo.cookies": createWeiboCookiesExtension(),
           "xhs.cookies": createXhsCookiesExtension(),
           "toutiao.cookies": createToutiaoCookiesExtension(),
+          "toutiao.account": createToutiaoAccountExtension(),
           "kuaishou.cookies": createKuaishouCookiesExtension(),
         },
       });

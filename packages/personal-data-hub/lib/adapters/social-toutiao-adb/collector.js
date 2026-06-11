@@ -72,7 +72,7 @@ async function collect(bridge, opts = {}) {
 
   try {
     // fetchProfile — passport endpoint, no _signature required.
-    const profile = await client.fetchProfile(cookie);
+    let profile = await client.fetchProfile(cookie);
     const profileFailed = !profile;
     // Capture the profile error BEFORE the signed fetches overwrite lastError —
     // when profile is permission-denied (real-device 2026-06-11: passport
@@ -80,6 +80,25 @@ async function collect(bridge, opts = {}) {
     // a downstream -99 short-circuit.
     const profileErrCode = profileFailed ? client.lastErrorCode : null;
     const profileErrMsg = profileFailed ? client.lastErrorMessage : null;
+
+    // Local account_db fallback: the web profile endpoint is often
+    // permission-denied (error_code 16) AND the WebView cookie jar carries no
+    // numeric uid — but the app's local account_db has uid+nickname in
+    // plaintext. Recover it so the signed collection/search endpoints (which
+    // need a uid) can still run. Best-effort: the bridge may not expose
+    // "toutiao.account" (older wiring) — that's fine, we fall through.
+    let profileSource = profile ? "web" : null;
+    if (profileFailed && bridge && typeof bridge.invoke === "function") {
+      try {
+        const acct = await bridge.invoke("toutiao.account");
+        if (acct && acct.uid && /^\d+$/.test(String(acct.uid))) {
+          profile = { uid: String(acct.uid), nickname: acct.nickname || null };
+          profileSource = "local-account-db";
+        }
+      } catch (_e) {
+        // account extension unavailable / logged out — keep web error.
+      }
+    }
 
     // The signed feed endpoint is cookie-identified and collection/search can
     // use a cookie-derived uid, so a profile failure should NOT abort the whole
@@ -103,6 +122,7 @@ async function collect(bridge, opts = {}) {
         lastErrorMessage: profileErrMsg,
         cookieDiagnostic: cookieDiagnostic || null,
         profileFetchFailed: true,
+        profileSource,
         signProviderUsed: signProvider
           ? signProvider.constructor.name
           : "none",
@@ -156,6 +176,7 @@ async function collect(bridge, opts = {}) {
       lastErrorMessage: profileFailed ? profileErrMsg : client.lastErrorMessage,
       cookieDiagnostic: cookieDiagnostic || null,
       profileFetchFailed: profileFailed,
+      profileSource,
       signProviderUsed: signProvider ? signProvider.constructor.name : "none",
       signProviderHits: client._bridgeHits,
       signProviderFallbacks: client._fallbackHits,

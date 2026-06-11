@@ -411,6 +411,7 @@ async function initHub() {
     // Phase 6c: register `toutiao.cookies` extension (mirror of cli wiring).
     const {
       createToutiaoCookiesExtension,
+      createToutiaoAccountExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
     // Phase 6d: register `kuaishou.cookies` extension (mirror of cli wiring).
     const {
@@ -423,6 +424,7 @@ async function initHub() {
         "weibo.cookies": createWeiboCookiesExtension(),
         "xhs.cookies": createXhsCookiesExtension(),
         "toutiao.cookies": createToutiaoCookiesExtension(),
+        "toutiao.account": createToutiaoAccountExtension(),
         "kuaishou.cookies": createKuaishouCookiesExtension(),
       },
     });
