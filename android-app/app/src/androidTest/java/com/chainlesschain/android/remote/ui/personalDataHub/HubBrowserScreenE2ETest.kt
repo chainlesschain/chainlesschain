@@ -67,10 +67,12 @@ class HubBrowserScreenE2ETest {
                 onRefresh = {},
             )
         }
-        // emptyHintFor() at HubBrowserScreen.kt:535 returns 一句话 hint when
-        // there are no rows AND state is otherwise default. The exact string
-        // is "暂无…" prefix in the prod implementation.
-        composeTestRule.onNodeWithText("暂无", substring = true).assertIsDisplayed()
+        // emptyHintFor() returns 一句话 hint when there are no rows AND state
+        // is otherwise default: "Vault 里还没数据 — 去本机数据 tab 同步任意
+        // adapter". The original assertion guessed a "暂无…" prefix that was
+        // never in the prod implementation (git log -S '暂无' on the screen
+        // file is empty) — "还没数据" also covers the category-scoped variant.
+        composeTestRule.onNodeWithText("还没数据", substring = true).assertIsDisplayed()
     }
 
     @Test
