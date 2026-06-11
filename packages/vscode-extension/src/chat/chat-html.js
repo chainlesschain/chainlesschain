@@ -222,10 +222,13 @@ function buildChatHtml({ cspSource, nonce }) {
         card.id = "appr-" + m.id;
         const q = document.createElement("div");
         q.className = "q" + (m.risk === "high" ? " risk-high" : "");
+        // NOTE: this whole page is built inside a template literal — escape
+        // sequences like \\n must be DOUBLE-escaped or they break the
+        // generated script (a raw newline inside a string literal).
         q.textContent = "⚠ " + (m.tool || "tool") +
           (m.command ? ": " + m.command : "") +
           (m.risk ? "  [" + m.risk + "]" : "") +
-          (m.reason ? "\n" + m.reason : "");
+          (m.reason ? "\\n" + m.reason : "");
         const btns = document.createElement("div");
         btns.className = "buttons";
         const yes = document.createElement("button");

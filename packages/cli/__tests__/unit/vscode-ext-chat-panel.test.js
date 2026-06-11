@@ -448,3 +448,18 @@ describe("session picker (P1)", async () => {
     expect(page).toContain("pickSession");
   });
 });
+
+describe("webview script integrity (regression: template-literal escapes)", async () => {
+  it("the generated inline script PARSES — listeners can actually attach", async () => {
+    // 0.9.0/0.10.0 shipped a dead panel: a "\n" inside the page's template
+    // literal became a REAL newline in the generated script, breaking a
+    // string literal → load-time SyntaxError → Send did nothing. Substring
+    // smoke tests can't catch that; parsing the extracted script does.
+    const { buildChatHtml: htmlI } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlI({ cspSource: "x:", nonce: "N" });
+    const m = /<script nonce="N">([\s\S]*?)<\/script>/.exec(page);
+    expect(m).toBeTruthy();
+    expect(() => new Function(m[1])).not.toThrow();
+  });
+});

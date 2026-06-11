@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.10.1] — 2026-06-11
+
+- **Hotfix: the chat panel was dead in 0.9.0/0.10.0** (Send did nothing,
+  no message rendered). A 
+ inside the page template became a real
+  newline in the generated webview script — a load-time SyntaxError, so no
+  event listener ever attached. Fixed; now guarded by a regression test
+  that PARSES the generated script (substring smoke tests cannot catch
+  this class of bug).
+
 ## [0.10.0] — 2026-06-11
 
 - **Session picker**: `/sessions` (or `/resume`) opens a native QuickPick of
