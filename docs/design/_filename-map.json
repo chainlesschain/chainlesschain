@@ -531,6 +531,10 @@
     "99_项目记忆与init对标方案.md": {
       "docs-site": "99-project-memory-init.md",
       "docs-site-design": "m99-project-memory-init.md"
+    },
+    "100_自定义斜杠命令与宏系统.md": {
+      "docs-site": "100-slash-commands-macros.md",
+      "docs-site-design": "m100-slash-commands-macros.md"
     }
   }
 }

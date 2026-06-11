@@ -500,6 +500,28 @@ const packs = [
     </div>
   </section>
 
+  <!-- Custom slash commands -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Custom slash commands · cc command</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          Write your go-to prompts as files,<br/><span class="italic text-ember">summon them with a slash</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          Every Markdown file in <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">.claude/commands/*.md</code> (project)
+          or <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">~/.claude/commands/</code> (personal) becomes a
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">/command</code> — file-format compatible with Claude Code.
+          Supports <code class="font-mono text-sm">$ARGUMENTS</code> / <code class="font-mono text-sm">$1-$9</code> parameters,
+          inline <code class="font-mono text-sm">!`bash`</code> execution and <code class="font-mono text-sm">@file</code> expansion;
+          prompts from connected MCP servers auto-register as <code class="font-mono text-sm">/mcp__server__prompt</code> too.
+          Run headless via <code class="font-mono text-sm">cc command run &lt;name&gt;</code>. Unlike AI-triggered Skills,
+          these are deterministic prompt macros invoked explicitly by you.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="py-24 text-center">
     <div class="container-wide">
       <h2 class="text-4xl md:text-5xl mb-6">Full API reference</h2>

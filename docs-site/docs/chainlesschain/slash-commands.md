@@ -65,6 +65,8 @@ cc command run <name> [args] --no-bang   # 运行但禁用 !`cmd` shell 拼接
 cc command new <name>                    # 新建一个命令模板文件
 ```
 
+> **相邻命名空间（v0.162.38+）**：交互 REPL 中，已连接 MCP server 的 prompts 会自动注册为 `/mcp__<server>__<prompt> [args]` 斜杠命令（`/mcp` 总览），与用户自定义宏经前缀天然隔离；内置 REPL 命令（`/auto`、`/plan`、`/compact` 等）优先级高于同名宏。详见 [MCP 服务器](./cli-mcp.md)。
+
 ## 配置参考
 
 ### 命令文件 frontmatter（全部可选）

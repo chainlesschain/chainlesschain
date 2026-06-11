@@ -499,6 +499,27 @@ const packs = [
     </div>
   </section>
 
+  <!-- Custom slash commands -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">自定义斜杠命令 · cc command</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          把常用 prompt 写成文件，<br/><span class="italic text-ember">一个斜杠调出来</span>。
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">.claude/commands/*.md</code>（项目级）或
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">~/.claude/commands/</code>（个人级）里的每个 Markdown 文件就是一条
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">/命令</code> —— 与 Claude Code 文件格式互通。
+          支持 <code class="font-mono text-sm">$ARGUMENTS</code> / <code class="font-mono text-sm">$1-$9</code> 参数、
+          <code class="font-mono text-sm">!`bash`</code> 命令内联、<code class="font-mono text-sm">@文件</code> 内容展开；
+          MCP server 的 prompts 也会自动注册为 <code class="font-mono text-sm">/mcp__server__prompt</code> 斜杠命令。
+          headless 用 <code class="font-mono text-sm">cc command run &lt;name&gt;</code>，区别于 AI 自主触发的 Skills —— 这是用户显式调用的确定性 prompt 宏。
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="py-24 text-center">
     <div class="container-wide">
       <h2 class="text-4xl md:text-5xl mb-6">完整 API 参考</h2>
