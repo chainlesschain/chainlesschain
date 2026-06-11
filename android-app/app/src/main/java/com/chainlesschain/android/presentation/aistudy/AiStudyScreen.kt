@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,6 +58,7 @@ fun AiStudyScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showProfileDialog by remember { mutableStateOf(false) }
+    var reportText by remember { mutableStateOf<String?>(null) }
     var input by remember { mutableStateOf("") }
 
     val messages = state.messagesFor(state.selectedTab)
@@ -80,10 +83,31 @@ fun AiStudyScreen(
                 modifier = Modifier.weight(1f),
             )
             if (state.selectedTab == AiStudyTab.LEARNING) {
+                // M6 学情报告: 本次会话学习活动简报 (AI 借力/错题本/需要关注)。
+                TextButton(onClick = { reportText = viewModel.generateReport().render() }) {
+                    Text("学情")
+                }
                 TextButton(onClick = { showProfileDialog = true }) {
                     Text("${state.profile.grade.code} · ${state.profile.subject.label}")
                 }
             }
+        }
+
+        reportText?.let { text ->
+            AlertDialog(
+                onDismissRequest = { reportText = null },
+                title = { Text("学情简报") },
+                text = {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { reportText = null }) { Text("知道了") }
+                },
+            )
         }
 
         TabRow(selectedTabIndex = if (state.selectedTab == AiStudyTab.LEARNING) 0 else 1) {
