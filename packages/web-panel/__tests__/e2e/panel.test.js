@@ -113,6 +113,35 @@ function startUiServer({ httpPort, wsPort, cwd, extraArgs = [] } = {}) {
   })
 }
 
+/**
+ * Block until the server actually accepts TCP connections. The banner can
+ * print before listen() completes, and startUiServer's 12s fallback can
+ * resolve before the server is up at all (slow cold start under load) —
+ * either way, firing requests immediately yields ECONNREFUSED storms
+ * (2026-06-11: suite 1 failed all 50 routes this way). Polling here makes
+ * beforeAll the readiness gate, so tests never race server startup.
+ */
+async function waitForListening(port, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs
+  let lastErr
+  while (Date.now() < deadline) {
+    try {
+      await new Promise((resolve, reject) => {
+        const sock = net.connect({ port, host: '127.0.0.1' }, () => {
+          sock.destroy()
+          resolve()
+        })
+        sock.on('error', reject)
+      })
+      return
+    } catch (e) {
+      lastErr = e
+      await new Promise(r => setTimeout(r, 250))
+    }
+  }
+  throw new Error(`server on 127.0.0.1:${port} not accepting after ${timeoutMs}ms: ${lastErr?.message}`)
+}
+
 function killProc(proc) {
   return new Promise(resolve => {
     if (!proc || proc.exitCode !== null) { resolve(); return }
@@ -155,7 +184,8 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     const r = await startUiServer({ httpPort, wsPort })
     proc = r.proc
     actualHttpPort = r.port
-  }, 30000)
+    await waitForListening(actualHttpPort)
+  }, 60000)
 
   afterAll(() => killProc(proc))
 
@@ -225,7 +255,8 @@ describe('chainlesschain ui — global mode config injection', () => {
     proc = r.proc
     actualHttpPort = r.port
     actualWsPort = r.actualWsPort
-  }, 30000)
+    await waitForListening(actualHttpPort)
+  }, 60000)
 
   afterAll(() => killProc(proc))
 
@@ -269,7 +300,8 @@ describe('chainlesschain ui — project mode from project directory', () => {
     const r = await startUiServer({ httpPort, wsPort, cwd: projectDir })
     proc = r.proc
     actualHttpPort = r.port
-  }, 30000)
+    await waitForListening(actualHttpPort)
+  }, 60000)
 
   afterAll(async () => {
     await killProc(proc)
@@ -320,7 +352,8 @@ describe('chainlesschain ui — --web-panel-dir option', () => {
     })
     proc = r.proc
     actualHttpPort = r.port
-  }, 30000)
+    await waitForListening(actualHttpPort)
+  }, 60000)
 
   afterAll(async () => {
     await killProc(proc)
@@ -355,8 +388,7 @@ describe('chainlesschain ui — --web-panel-dir option', () => {
 
 describe('chainlesschain ui — built Vue3 panel assets', () => {
   let proc, assetFiles
-  const HTTP_PORT = 19240
-  const WS_PORT   = 19241
+  let actualHttpPort
 
   beforeAll(async () => {
     // Discover built assets
@@ -366,12 +398,21 @@ describe('chainlesschain ui — built Vue3 panel assets', () => {
       assetFiles = []
     }
 
-    ;({ proc } = await startUiServer({
-      httpPort: HTTP_PORT,
-      wsPort: WS_PORT,
+    // Kernel-allocated free ports + banner-parsed actual port. The old
+    // hardcoded 19240 ignored startUiServer's parsed port, so when 19240
+    // was busy cc ui silently rebound elsewhere and every httpGet here
+    // ECONNREFUSED'd against the stale constant.
+    const httpPort = await findFreePort()
+    const wsPort = await findFreePort()
+    const r = await startUiServer({
+      httpPort,
+      wsPort,
       extraArgs: ['--web-panel-dir', builtPanelDir],
-    }))
-  }, 30000)
+    })
+    proc = r.proc
+    actualHttpPort = r.port
+    await waitForListening(actualHttpPort)
+  }, 60000)
 
   afterAll(() => killProc(proc))
 
@@ -382,21 +423,21 @@ describe('chainlesschain ui — built Vue3 panel assets', () => {
   it('vendor JS chunk is served', async () => {
     const vendorJs = assetFiles.find(f => f.startsWith('vendor') && f.endsWith('.js'))
     if (!vendorJs) return
-    const r = await httpGet(HTTP_PORT, `/assets/${vendorJs}`)
+    const r = await httpGet(actualHttpPort, `/assets/${vendorJs}`)
     expect(r.status).toBe(200)
   })
 
   it('antd JS chunk is served', async () => {
     const antdJs = assetFiles.find(f => f.startsWith('antd') && f.endsWith('.js'))
     if (!antdJs) return
-    const r = await httpGet(HTTP_PORT, `/assets/${antdJs}`)
+    const r = await httpGet(actualHttpPort, `/assets/${antdJs}`)
     expect(r.status).toBe(200)
   })
 
   it('index CSS is served', async () => {
     const indexCss = assetFiles.find(f => f.startsWith('index') && f.endsWith('.css'))
     if (!indexCss) return
-    const r = await httpGet(HTTP_PORT, `/assets/${indexCss}`)
+    const r = await httpGet(actualHttpPort, `/assets/${indexCss}`)
     expect(r.status).toBe(200)
     expect(r.headers['content-type']).toMatch(/css/)
   })
@@ -404,7 +445,7 @@ describe('chainlesschain ui — built Vue3 panel assets', () => {
   it('Dashboard chunk JS is served', async () => {
     const dashJs = assetFiles.find(f => f.startsWith('Dashboard') && f.endsWith('.js'))
     if (!dashJs) return
-    const r = await httpGet(HTTP_PORT, `/assets/${dashJs}`)
+    const r = await httpGet(actualHttpPort, `/assets/${dashJs}`)
     expect(r.status).toBe(200)
   })
 

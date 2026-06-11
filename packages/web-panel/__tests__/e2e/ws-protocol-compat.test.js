@@ -82,7 +82,9 @@ function connectWs(port) {
  * Send a JSON message and wait for a response correlated by the same id.
  * Handles v1.0 envelope: the response uses `requestId` (not `id`) for correlation.
  */
-function sendAndWait(ws, payload, timeoutMs = 15000) {
+// 30s default: the first execute under full-suite parallel-fork load took
+// >15s on 2026-06-11 (passes solo in <1s) — generous ceiling beats a flake.
+function sendAndWait(ws, payload, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const id = payload.id || genId()
     const msg = { ...payload, id }
@@ -175,7 +177,7 @@ describe('WS protocol compatibility — v1.0 Coding Agent Envelope', () => {
     const correlationId = response.requestId || response.id
     expect(correlationId).toBe(id)
     expect(response).toBeDefined()
-  })
+  }, 45000)
 
   it('execute "skill list" returns parseable output', async () => {
     const response = await sendAndWait(ws, {
