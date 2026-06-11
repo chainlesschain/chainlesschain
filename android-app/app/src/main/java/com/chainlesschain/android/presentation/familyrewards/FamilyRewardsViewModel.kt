@@ -81,11 +81,14 @@ class FamilyRewardsViewModel @Inject constructor(
         enforceRuleDao.deactivateExpired(System.currentTimeMillis())
     }
 
-    /** 首跑种默认目录。固定 id + upsert ⇒ 并发/重复调用幂等; 家长下架后不复活 (count>0 跳过)。 */
+    /**
+     * 首跑种默认目录。固定 id + upsert ⇒ 重复调用幂等; 家长下架后不复活
+     * (count>0 跳过)。判空+整批插入走 DAO @Transaction 原子化 — 此前
+     * check-then-act 在这层做, init 协程与显式调用并发时后者会看到
+     * 部分插入的 count 而跳过, 读者数到 2/5 行 (CI run 27346704144)。
+     */
     internal suspend fun seedDefaultCatalogIfEmpty() {
-        if (catalogDao.countForGroup(DEMO_GROUP_ID) == 0) {
-            defaultCatalog().forEach { catalogDao.upsert(it.toEntity()) }
-        }
+        catalogDao.seedIfEmpty(DEMO_GROUP_ID, defaultCatalog().map { it.toEntity() })
     }
 
     val uiState: StateFlow<FamilyRewardsUiState> =
