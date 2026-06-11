@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### cc CLI 0.162.41 — Claude-Code 平价终章：项目记忆（cc.md）+ REPL steering + 结构化输出（2026-06-11，已单独发 npm）
+
+> 对照 Claude Code 的 CLI 平价 backlog（P0×3 + P1×7 + Phase 2 配套）一日清空并发版；发布产物经全局安装实测（init 盘点 / 记忆链 / json-schema / mcp serve 全通）。文档四面（docs/cli、docs-site、官网 zh+en、README zh+en）+ 设计文档 module 99 已同步，docs+www 已部署上线。
+
+#### Feat — 项目记忆体系（claude CLAUDE.md 平价，自有主名 cc.md）
+
+- `cc agent` 自动加载 `cc.md` > `CLAUDE.md` > `AGENTS.md` 层级（用户级/项目链/local 伴随，`@path` 递归 import，48K/192K 预算 fail-open，`CC_PROJECT_MEMORY=0` 关）（`0718e3ab6`）
+- `cc init` 默认改为项目盘点生成 cc.md（`/init` 平价，模板退 `-t/--bare`，web-panel 零破坏）+ 最小 `.chainlesschain/`（config + skills/ 工作区）（`137e0f519` · `052e4ec1d`）
+- 防遮蔽：已有 CLAUDE.md/AGENTS.md 自动 `@import` 进生成的 cc.md；`.chainlesschain/rules.md` 入加载链（`052e4ec1d`）
+- 路径作用域规则：`.claude/rules/*.md` frontmatter `paths:` 按 cwd 前缀重叠过滤入链 + `cc memory files` 加载链可观测 + `cc session search` 转录全文搜索（`5dedc7718`）
+- `cc init --ai`：盘点后有界 headless agent 精炼 Conventions（自指防护 `CC_PROJECT_MEMORY=0`，throw-safe）（`5d3724449`）
+
+#### Feat — REPL steering 三件套 + 快捷键
+
+- 排队输入：回合中输入 FIFO 排队自动续跑，顺带修掉并发回合 race（`27d318e99`）；Esc 即时中断（复用 agentLoop AbortSignal seam，零改 agent-core）（`bf62aeca8`）；`/rewind` + 空闲双 Esc 会话回退（原文回填改完重发）（`f718e1003`）
+- `! <cmd>` bash 直通（输出回灌上下文）+ `# <note>` 快捷记忆入 cc.md（`6d1f8b5a5`）；`/context` 实时窗口占用（`94d685737`）；`/` 命令 TAB 补全（`127da0aab`）；`--resume` 离线恢复摘要（`1066396d1`）
+
+#### Feat — 结构化输出与生态出口
+
+- `cc agent -p --json-schema <file>`：回答经 JSON Schema 子集校验 + 纠错重试 3 次，stdout 只出合规 JSON；经 runner `deps.writeOut` 捕获 seam 实现，零碰并行占用文件（`fe9d61dd0`）
+- `cc mcp serve`：本机文件工具反向暴露为 Streamable-HTTP MCP server（root 限域 + Bearer，`--read-only`/`--no-auth`）（`b291381e0`）
+- `cc session export <id|last>`：agent JSONL 会话转录导出 Markdown 回退源（`6d2421610`）；启动被动版本提醒（缓存 + detached 后台刷新，`CC_UPDATE_NOTICE=0` 关）（`dc639c546`）
+
+#### Release
+
+- `chainlesschain` CLI 0.162.40 → 0.162.41 已发 npm（`dba66708b`，workflow run 27329836460，~120 新增单测随包）
+
 ## [v5.0.3.106] - 2026-06-11 — fix: PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 出行/社交全适配器测试收口（pdh 0.4.4 / cli 0.162.40）+ Android cc bundle v20260611（真机实证重提取）
 
 > 本版以 PDH 个人数据中台采集层为主线：①修复新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON) 后 profile 采集失败（`apiPhDecodeCandidates` 解码链，pdh 0.4.4）；②修复 travel-base `buildTitle` 不认 `name` 字段导致所有高德路线/搜索事件标题为 `car: ? → ?`（测试先红后绿抓到）；③订正头条/快手/邮箱适配器 3 处过时注释（行为事件采集链路早已全 land）。④测试矩阵全收口 +180：小红书 ADB 三件套 58 + 出行 6 模块从零 74 + whatsapp/shopping-base 24 + 快手 base64 9 —— 全仓 55 适配器测试覆盖 100%。⑤pdh 0.4.3→0.4.4 + cli 0.162.39→0.162.40 已发 npm；⑥Android in-APK cc bundle 重建 `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`。⑦**真机（Xiaomi amethyst）实证**：装新 APK 触发 `LocalFilesystemBootstrapper` sentinel 17→22 重提取，设备上 pdh=0.4.4 + 快手/高德两处修复 grep 命中。
