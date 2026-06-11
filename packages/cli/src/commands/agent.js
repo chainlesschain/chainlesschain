@@ -385,6 +385,22 @@ export function registerAgentCommand(program) {
         llm: loadConfig().llm || {},
       });
 
+      // Config-default LLM (parity with cc ask/chat): a bare `cc agent` honors
+      // config.json `llm` (provider/model/baseUrl/apiKey) instead of silently
+      // assuming local ollama — this is what makes the editor chat panel work
+      // against a cloud-configured setup. Explicit --provider wins outright;
+      // the vision resolution above still overrides for --image runs. Applied
+      // AFTER resolveVisionLlm so config defaults don't masquerade as explicit
+      // flags there, and BEFORE every dispatch (headless/stream/REPL) since
+      // they all read options.provider/model/baseUrl/apiKey.
+      {
+        const { applyConfigLlmDefaults } =
+          await import("../lib/llm-config-defaults.js");
+        applyConfigLlmDefaults(options, loadConfig().llm || {}, {
+          explicitModel: explicitCliModel, // settings-file model must not ride
+        });
+      }
+
       // --think / --ultrathink → options.thinking for the agent loop (Anthropic
       // extended thinking; ignored by other providers). --think with no value →
       // true; --think <level> → that level; --ultrathink wins as "ultra".
@@ -510,55 +526,55 @@ export function registerAgentCommand(program) {
           ? parseInt(options.maxTurns, 10)
           : undefined;
         const headlessOptions = {
-            prompt,
-            images,
-            model: visionLlm.model || options.model,
-            thinking,
-            thinkingBudget,
-            provider: visionLlm.provider || options.provider,
-            baseUrl: visionLlm.baseUrl || options.baseUrl,
-            apiKey: visionLlm.apiKey || options.apiKey,
-            sessionId: options.session,
-            // A resolved --session/--continue/--resume id means "replay this
-            // conversation and persist the new turns"; the runner loads prior
-            // history when the id already exists and creates it otherwise.
-            resume: options.session,
-            outputFormat: options.outputFormat,
-            permissionMode: options.permissionMode,
-            allowedTools: parseToolList(options.allowedTools),
-            disallowedTools: parseToolList(options.disallowedTools),
-            additionalDirectories,
-            autoCheckpoint: options.checkpoint === true,
-            maxTurns,
-            // commander maps --no-file-refs → options.fileRefs === false
-            expandFileRefs: options.fileRefs !== false,
-            // --system-prompt / --append-system-prompt (literal or @file)
-            systemPrompt: resolvePromptText(options.systemPrompt, {
-              cwd: process.cwd(),
-            }),
-            appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
-              cwd: process.cwd(),
-            }),
-            // --include-partial-messages: live token deltas as stream_event lines
-            includePartialMessages: options.includePartialMessages === true,
-            // --goal [id]: bind a cc goal into the run (Phase 1)
-            goal: options.goal,
-            // --goal-assess: run-end LLM progress assessment (Phase 2)
-            goalAssess: options.goalAssess === true,
-            // --mcp-config: connect ad-hoc MCP servers + expose their tools
-            mcpConfig: options.mcpConfig || null,
-            // --no-mcp: skip registered (cc mcp add) auto-connect servers
-            useRegisteredMcp: options.mcp !== false,
-            // --ide / --no-ide: auto-connect a running editor's MCP bridge
-            ide: options.ide,
+          prompt,
+          images,
+          model: visionLlm.model || options.model,
+          thinking,
+          thinkingBudget,
+          provider: visionLlm.provider || options.provider,
+          baseUrl: visionLlm.baseUrl || options.baseUrl,
+          apiKey: visionLlm.apiKey || options.apiKey,
+          sessionId: options.session,
+          // A resolved --session/--continue/--resume id means "replay this
+          // conversation and persist the new turns"; the runner loads prior
+          // history when the id already exists and creates it otherwise.
+          resume: options.session,
+          outputFormat: options.outputFormat,
+          permissionMode: options.permissionMode,
+          allowedTools: parseToolList(options.allowedTools),
+          disallowedTools: parseToolList(options.disallowedTools),
+          additionalDirectories,
+          autoCheckpoint: options.checkpoint === true,
+          maxTurns,
+          // commander maps --no-file-refs → options.fileRefs === false
+          expandFileRefs: options.fileRefs !== false,
+          // --system-prompt / --append-system-prompt (literal or @file)
+          systemPrompt: resolvePromptText(options.systemPrompt, {
             cwd: process.cwd(),
-            // --permission-prompt-tool: defer approvals to an MCP tool
-            permissionPromptTool: options.permissionPromptTool || null,
-            // --settings: extra .claude/settings.json permission rules
-            settingsFile: options.settings || null,
-            outputStyle: options.outputStyle || null,
-            // --fallback-model: retry once on a backup model on transient errors
-            chatFn: fallbackChatFn,
+          }),
+          appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
+            cwd: process.cwd(),
+          }),
+          // --include-partial-messages: live token deltas as stream_event lines
+          includePartialMessages: options.includePartialMessages === true,
+          // --goal [id]: bind a cc goal into the run (Phase 1)
+          goal: options.goal,
+          // --goal-assess: run-end LLM progress assessment (Phase 2)
+          goalAssess: options.goalAssess === true,
+          // --mcp-config: connect ad-hoc MCP servers + expose their tools
+          mcpConfig: options.mcpConfig || null,
+          // --no-mcp: skip registered (cc mcp add) auto-connect servers
+          useRegisteredMcp: options.mcp !== false,
+          // --ide / --no-ide: auto-connect a running editor's MCP bridge
+          ide: options.ide,
+          cwd: process.cwd(),
+          // --permission-prompt-tool: defer approvals to an MCP tool
+          permissionPromptTool: options.permissionPromptTool || null,
+          // --settings: extra .claude/settings.json permission rules
+          settingsFile: options.settings || null,
+          outputStyle: options.outputStyle || null,
+          // --fallback-model: retry once on a backup model on transient errors
+          chatFn: fallbackChatFn,
         };
 
         // --json-schema: structured output — wrap the runner with capture +
@@ -573,9 +589,8 @@ export function registerAgentCommand(program) {
             process.exit(1);
           }
           try {
-            const { runJsonSchemaConstrained } = await import(
-              "../lib/json-schema-output.js"
-            );
+            const { runJsonSchemaConstrained } =
+              await import("../lib/json-schema-output.js");
             const code = await runJsonSchemaConstrained({
               schemaFile: options.jsonSchema,
               baseOptions: headlessOptions,
