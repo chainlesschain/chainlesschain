@@ -192,6 +192,35 @@ async function collectWatchHistory(bridge, opts = {}) {
       enterFrom: r.enterFrom || null,
     });
   }
+
+  // Optional title enrichment: resolve aweme ids → desc/author/duration via the
+  // web detail endpoint (plain HTTP, no signing) so events show WHAT was watched.
+  // Capped + dedup'd + fail-soft; an unresolved id just keeps "(no title)".
+  let titlesResolved = 0;
+  if (opts.resolveTitles && events.length > 0) {
+    const client =
+      opts._detailClient ||
+      new (require("./aweme-detail-client").AwemeDetailClient)({
+        fetch: opts.fetch,
+        delayMs: opts.titleDelayMs,
+      });
+    // Resolve most-recent first (events come back DESC by view time).
+    const titles = await client.resolveMany(
+      events.map((e) => e.awemeId),
+      { limit: Number.isInteger(opts.titleLimit) && opts.titleLimit > 0 ? opts.titleLimit : 60 },
+    );
+    for (const e of events) {
+      const t = titles.get(e.awemeId);
+      if (t) {
+        // normalizeHistory reads title/author/duration off the snapshot event.
+        e.title = t.desc;
+        e.author = t.author;
+        e.duration = t.durationMs;
+        titlesResolved += 1;
+      }
+    }
+  }
+
   const snapshot = {
     schemaVersion: DOUYIN_SNAPSHOT_SCHEMA_VERSION,
     snapshottedAt: now(),
@@ -206,6 +235,7 @@ async function collectWatchHistory(bridge, opts = {}) {
     snapshotPath,
     uid,
     eventCounts: { history: events.length, total: events.length },
+    titlesResolved,
   };
 }
 
@@ -234,6 +264,7 @@ async function collectWatchHistoryAndSync(bridge, registry, opts = {}) {
     douyin: {
       uid: collectResult.uid,
       eventCounts: collectResult.eventCounts,
+      titlesResolved: collectResult.titlesResolved || 0,
       mode: "watch-history",
       cleanupFailed,
     },

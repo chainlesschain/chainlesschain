@@ -1740,6 +1740,8 @@ async function cmdDouyinWatchSync(options) {
       stagingDir: options.stagingDir,
       displayName: options.displayName,
       limit: parsePositiveInt(options.limit),
+      resolveTitles: !!options.resolveTitles,
+      titleLimit: parsePositiveInt(options.titleLimit),
     });
     if (options.json) {
       printJson(result);
@@ -1776,6 +1778,9 @@ async function cmdDouyinWatchSync(options) {
     logger.log(chalk.green(`✓ douyin-watch-sync succeeded`));
     logger.log(`  uid:        ${chalk.cyan(dy.uid || "?")}`);
     logger.log(`  watched:    ${counts.history || 0}`);
+    if (options.resolveTitles) {
+      logger.log(`  titles:     ${dy.titlesResolved || 0} resolved`);
+    }
     logger.log(`  status:     ${report.status || "?"}`);
     logger.log(`  rawCount:   ${report.rawCount || 0}`);
     if (dy.cleanupFailed) {
@@ -2367,13 +2372,21 @@ export function registerHubCommand(program) {
   hub
     .command("douyin-watch-sync")
     .description(
-      "Douyin 观看历史 C 路径: pull video_record.db via ADB from the user's Android Douyin App (com.ss.android.ugc.aweme), read record_<uid> (aid + view_time_timestamp + enter_from), ingest as `history` (BROWSE) events. Plaintext — no X-Bogus signing, no SQLCipher. Needs rooted Android + Douyin App with watch history. Titles need a separate lookup; the value is which aweme + when + from which surface.",
+      "Douyin 观看历史 C 路径: pull video_record.db via ADB from the user's Android Douyin App (com.ss.android.ugc.aweme), read record_<uid> (aid + view_time_timestamp + enter_from), ingest as `history` (BROWSE) events. Plaintext — no X-Bogus signing, no SQLCipher. Needs rooted Android + Douyin App with watch history. Add --resolve-titles to enrich each event with the video's desc/author/duration via the web detail endpoint (also no signing).",
     )
     .option(
       "--uid <id>",
       "Douyin uid to disambiguate multiple accounts (default: largest record_<uid> table)",
     )
     .option("--limit <n>", "Cap watch records (default 2000)")
+    .option(
+      "--resolve-titles",
+      "Resolve aweme ids → desc/author/duration via the web detail endpoint (no signing) so events show WHAT was watched",
+    )
+    .option(
+      "--title-limit <n>",
+      "Cap unique videos to title-resolve (default 60; dedup'd, ~200ms/call)",
+    )
     .option("--display-name <s>", "Account displayName for the snapshot")
     .option(
       "--staging-dir <path>",

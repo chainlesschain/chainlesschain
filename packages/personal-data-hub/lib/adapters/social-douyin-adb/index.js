@@ -48,6 +48,7 @@ const {
   createDouyinWatchExtension,
   VIDEO_RECORD_DB_REMOTE_PATH,
 } = require("./watch-history-reader");
+const { AwemeDetailClient } = require("./aweme-detail-client");
 
 module.exports = {
   // Extension factory (wiring registers this on the bridge)
@@ -59,6 +60,8 @@ module.exports = {
   VIDEO_RECORD_DB_REMOTE_PATH,
   collectWatchHistory,
   collectWatchHistoryAndSync,
+  // Aweme title resolver (web detail endpoint, no signing)
+  AwemeDetailClient,
   // Parser + builder (also exposed for advanced callers / tests)
   parseImDb,
   buildSnapshot,
