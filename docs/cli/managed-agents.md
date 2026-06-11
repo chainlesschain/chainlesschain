@@ -639,6 +639,18 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   stderr 打一行灰字(仅 TTY,不污染管道/JSON);缓存 >24h 由 detached 子进程后台刷新供下次启动,
   热路径零网络。`CC_UPDATE_NOTICE=0` 关闭;完整检查仍走 `cc update`。
 
+## REPL Steering — 排队输入 / Esc 中断 / rewind(Claude-Code 平价)
+
+agent REPL 运行 turn 期间的三件交互能力:
+
+- **排队输入**:turn 进行中继续打字回车,不再并发触发第二个 turn(旧行为是个 race),而是
+  FIFO 排队(灰字 `⏸ queued (N)` 提示),当前 turn 结束自动逐条续跑。
+- **Esc 中断**:turn 进行中按 Esc 立即中止本轮(走 agentLoop 既有 AbortSignal seam,每迭代
+  检查),黄字提示、partial 对话保留、排队的输入照常 drain。方向键等转义序列不会误触。
+- **`/rewind` + 双 Esc**:`/rewind` 列出最近 user 轮次(新在前带预览),`/rewind <n>` 把对话
+  截断回该轮之前并把原文回填到输入行(改完重发);**空闲时双击 Esc** 是同款列表的快捷键。
+  只回滚对话态;文件态用 `cc checkpoint restore`(配 `cc agent --checkpoint` 自动快照)。
+
 ## Project Memory — `cc.md` 项目记忆自动加载 + `cc init` 盘点
 
 Claude Code CLAUDE.md 体系对标(主名用自家 `cc.md`,设计文档 `docs/design/modules/99_项目记忆与init对标方案.md`)。`cc agent` 启动时自动把文件式项目约定注入系统提示(`<project-instructions>` 块):
