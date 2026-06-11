@@ -1,10 +1,15 @@
 /**
- * FAMILY-23 v0.1 — 王者荣耀 (Honor of Kings) adapter, snapshot mode.
+ * FAMILY-23 — 王者荣耀 (Honor of Kings) adapter.
  *
- * 家庭守护 telemetry：家长看孩子玩什么游戏/玩多久。v0.1 cookie-scrape 占位 —
- * [HonorOfKingsApiClient.extractUid] 抽 openid/uin；snapshot 模式消费手机端 collector
- * 快照 (profile + play-session)。战绩 HTTP fetcher（营地接口 + 腾讯签名）留 v0.2，
- * 故无 inputPath 时 sync 抛 NO_INPUT（同 social-kuaishou snapshot 先例）。
+ * 家庭守护 telemetry：家长看孩子玩什么游戏/玩多久。两路互补：
+ *   - snapshot 模式（inputPath）：手机端 collector 快照 (profile + play-session)。
+ *   - **live 模式（credential，v0.2 接通）**：[HonorOfKingsApiClient.fetchSnapshot]
+ *     经 王者营地 (Camp) 接口拉个人资料 + 最近对局（含对局时长 → "玩多久"）。
+ *     ⚠️ 营地走 QQ/微信 OAuth，需 credential={accessToken,openid,acctype,areaId,
+ *     roleId,...}（手机端登录态取得后回传），不是 web cookie。营地端点/字段无公开
+ *     稳定文档，按社区逆向常见形态实现且做了多字段名兼容，**未实地验证**，漂移
+ *     时按 api-client 常量/pick 列表调整。
+ * 无 inputPath 且无 credential 时 sync 抛错。
  *
  * Snapshot schema (v1):
  *   { schemaVersion:1, snapshottedAt, account:{uid,displayName}, events:[
@@ -26,7 +31,7 @@ const {
 const { HonorOfKingsApiClient } = require("./api-client");
 
 const NAME = "game-honor-of-kings";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_PROFILE = "profile";
 const KIND_PLAY = "play";
@@ -60,6 +65,7 @@ class HonorOfKingsAdapter {
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:camp-token",
       "parse:hok-profile",
       "parse:hok-play-session",
     ];
@@ -74,7 +80,10 @@ class HonorOfKingsAdapter {
       legalGate: false,
       defaultInclude: { profile: true, play: true },
     };
-    this.apiClient = new HonorOfKingsApiClient();
+    this.apiClient = new HonorOfKingsApiClient(opts);
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this._deps = { fs };
   }
 
@@ -91,11 +100,15 @@ class HonorOfKingsAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    const cred = ctx && ctx.credential;
+    if (cred && typeof cred === "object" && cred.accessToken && cred.openid) {
+      return { ok: true, mode: "camp-token" };
+    }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "game-honor-of-kings.authenticate: v0.1 needs opts.inputPath (snapshot mode); live HTTP fetcher 待 v0.2",
+        "game-honor-of-kings.authenticate: needs opts.inputPath (snapshot) or opts.credential {accessToken,openid,...} (营地 live)",
     };
   }
 
@@ -108,9 +121,67 @@ class HonorOfKingsAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
+    if (opts.credential && typeof opts.credential === "object") {
+      yield* this._syncViaLive(opts);
+      return;
+    }
     throw new Error(
-      "game-honor-of-kings.sync: v0.1 needs opts.inputPath (snapshot mode); 营地战绩 HTTP fetcher 待 v0.2",
+      "game-honor-of-kings.sync: needs opts.inputPath (snapshot mode) or opts.credential {accessToken,openid,...} (营地战绩 live)",
     );
+  }
+
+  async *_syncViaLive(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new HonorOfKingsApiClient({
+          fetch: opts.fetch,
+          now: opts.now,
+          baseUrl: opts.baseUrl,
+          profilePath: opts.profilePath,
+          battleListPath: opts.battleListPath,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const result = await client.fetchSnapshot(opts.credential, {
+      include: opts.include || {},
+      limit: opts.limit,
+      offset: opts.offset,
+    });
+    if (result === null) {
+      const e = client.lastError;
+      throw new Error(
+        `game-honor-of-kings.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
+    }
+    const account = result.account || null;
+    emit("fetched", { count: result.events.length });
+    const capturedAt = Date.now();
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const include = opts.include || {};
+    let emitted = 0;
+    for (const ev of result.events) {
+      if (emitted >= limit) return;
+      if (!ev || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (include[ev.kind] === false) continue;
+      const id =
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.uid || null;
+      yield {
+        adapter: NAME,
+        kind: ev.kind,
+        originalId: stableOriginalId(ev.kind, id),
+        capturedAt,
+        payload: { ...ev, capturedAt, account },
+      };
+      emitted += 1;
+    }
   }
 
   async *_syncViaSnapshot(opts) {

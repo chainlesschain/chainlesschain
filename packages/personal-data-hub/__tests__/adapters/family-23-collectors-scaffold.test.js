@@ -36,6 +36,7 @@ const PLATFORMS = [
     label: "王者荣耀",
     Adapter: lib.HonorOfKingsAdapter,
     name: "game-honor-of-kings",
+    version: "0.2.0", // live 营地 fetcher landed (see game-honor-of-kings-live.test.js)
     sensitivity: "medium",
     eventKind: "play",
     eventSubtype: "media",
@@ -80,7 +81,7 @@ for (const P of PLATFORMS) {
       const a = new P.Adapter();
       expect(assertAdapter(a).ok).toBe(true);
       expect(a.name).toBe(P.name);
-      expect(a.version).toBe("0.1.0");
+      expect(a.version).toBe(P.version || "0.1.0");
       expect(a.dataDisclosure.sensitivity).toBe(P.sensitivity);
       expect(a.capabilities).toContain("sync:snapshot");
     });
