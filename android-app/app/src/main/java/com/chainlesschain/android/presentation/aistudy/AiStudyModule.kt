@@ -30,9 +30,10 @@ abstract class AiStudyModule {
     @Singleton
     abstract fun bindGuardrailClassifier(impl: KeywordGuardrailClassifier): GuardrailClassifier
 
+    // M6 护栏事件: family_guard.db guardrail_event 真持久 (只类别+时间, InMemory 留测试)。
     @Binds
     @Singleton
-    abstract fun bindGuardrailEventSink(impl: InMemoryGuardrailEventSink): GuardrailEventSink
+    abstract fun bindGuardrailEventSink(impl: RoomGuardrailEventSink): GuardrailEventSink
 
     @Binds
     @Singleton

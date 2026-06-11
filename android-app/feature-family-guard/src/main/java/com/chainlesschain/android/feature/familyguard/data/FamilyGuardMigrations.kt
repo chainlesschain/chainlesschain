@@ -361,10 +361,34 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v10 → v11 (M6 护栏事件).
+     *
+     * 加 guardrail_event 表 (主文档 §3.6, 只类别+tab+时间无原文) + 1 命名索引。
+     * SQL 与 Room 自动 11.json schema 必对齐: 改前必跑 assembleDebug 再 diff。
+     */
+    val MIGRATION_10_11: Migration = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS guardrail_event (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    category TEXT NOT NULL,
+                    tab TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_guardrail_event_ts ON guardrail_event(timestamp)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
     val ALL_MIGRATIONS: Array<Migration> = arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
     )
 
     /**

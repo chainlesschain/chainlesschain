@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.FamilyTaskDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyMembershipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.FamilyRelationshipDao
 import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
+import com.chainlesschain.android.feature.familyguard.data.dao.GuardrailEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
 import com.chainlesschain.android.feature.familyguard.data.dao.MistakeBookDao
 import com.chainlesschain.android.feature.familyguard.data.dao.PointsEventDao
@@ -26,6 +27,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.FamilyTaskEnti
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembershipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyRelationshipEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.GuardrailEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.LocationPointEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.MistakeEntryEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.PointsEventEntity
@@ -70,6 +72,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         RewardCatalogEntity::class,
         // v10 (M6): 错题本 mistake_book (主文档 §3.6, 学习资产落主库)
         MistakeEntryEntity::class,
+        // v11 (M6): 第 2 层护栏命中事件 (主文档 §3.6, 只类别+时间无原文)
+        GuardrailEventEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -91,9 +95,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun pointsEventDao(): PointsEventDao
     abstract fun rewardCatalogDao(): RewardCatalogDao
     abstract fun mistakeBookDao(): MistakeBookDao
+    abstract fun guardrailEventDao(): GuardrailEventDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 10
+        const val SCHEMA_VERSION = 11
     }
 }
