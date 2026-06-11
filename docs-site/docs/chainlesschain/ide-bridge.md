@@ -101,6 +101,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 **危险操作审批卡**(cc ≥ 0.162.45):confirm 级动作(危险 shell、settings `ask` 规则)不再
 静默拒绝——面板弹 Approve/Deny 卡片(工具+命令+风险等级),工具阻塞等你裁决,120s 超时
 回落拒绝(`CC_APPROVAL_TIMEOUT_MS` 可调);IDE 已连时文件编辑的 ask 仍优先走原生 diff。
+**面板斜杠命令**(扩展 0.9.0+):输入框支持 `/new`(新会话)、`/plan`(进出 Plan 模式)、
+`/approve` / `/reject`(裁决当前 plan 或审批卡)、`/stop`(中断回合)、`/help`,与按钮等价、键盘流不离手。
 面板的 LLM 可经 `chainlesschain.chat.provider` / `chainlesschain.chat.model` 设置单独指定
 (留空 = 跟随 CLI 自身配置)。
 
