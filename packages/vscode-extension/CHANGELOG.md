@@ -11,6 +11,8 @@ All notable changes to this extension are documented here.
   waits for your verdict. Times out fail-closed after 120s
   (CC_APPROVAL_TIMEOUT_MS). With the IDE bridge connected, file-edit asks
   still prefer the native diff review.
+- Panel slash commands: `/new` `/plan` `/approve` `/reject` `/stop` `/help`
+  in the input box map to the existing controls.
 
 ## [0.8.0] — 2026-06-11
 

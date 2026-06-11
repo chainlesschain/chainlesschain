@@ -87,9 +87,32 @@ function buildChatHtml({ cspSource, nonce }) {
     return streamEl;
   }
 
+  // Panel slash commands — local sugar over the existing controls.
+  const SLASH = {
+    "/new": () => vscode.postMessage({ type: "new" }),
+    "/plan": () => vscode.postMessage({ type: "plan", action: "enter" }),
+    "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
+    "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
+    "/stop": () => vscode.postMessage({ type: "interrupt" }),
+  };
   function send() {
     const text = input.value.trim();
     if (!text) return;
+    if (text.startsWith("/")) {
+      const cmd = text.split(/\s+/)[0].toLowerCase();
+      input.value = "";
+      if (cmd === "/help") {
+        add("info", "panel commands: /new · /plan · /approve · /reject · /stop · /help");
+        return;
+      }
+      if (SLASH[cmd]) {
+        add("info", cmd);
+        SLASH[cmd]();
+        return;
+      }
+      add("info", "unknown command " + cmd + " — try /help");
+      return;
+    }
     add("user", text);
     streamEl = null;
     vscode.postMessage({ type: "send", text });

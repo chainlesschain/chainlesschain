@@ -384,3 +384,21 @@ describe("approval routing plumbing (P1)", async () => {
     expect(page).toContain("Approve");
   });
 });
+
+describe("panel slash commands (P1)", async () => {
+  it("the webview maps /commands to the existing controls", async () => {
+    const { buildChatHtml: htmlS } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlS({ cspSource: "x:", nonce: "N" });
+    for (const cmd of [
+      '"/new"',
+      '"/plan"',
+      '"/approve"',
+      '"/reject"',
+      '"/stop"',
+    ]) {
+      expect(page).toContain(cmd);
+    }
+    expect(page).toContain("/help");
+  });
+});
