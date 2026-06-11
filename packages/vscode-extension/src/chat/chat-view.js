@@ -103,6 +103,37 @@ class ChatViewProvider {
     return this.session;
   }
 
+  /** /sessions — native QuickPick over `cc session list`, then resume. */
+  async _pickSession() {
+    const { listSessions } = require("./session-list");
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const items = await listSessions({
+      command: this._cliCommand(),
+      cwd: folders[0]?.uri?.fsPath,
+    });
+    if (!items.length) {
+      this._post({ kind: "info", text: "no saved sessions found" });
+      return;
+    }
+    const pick = await this.vscode.window.showQuickPick(
+      items.map((s) => ({
+        label: s.id,
+        description: s.store + (s.updatedAt ? " · " + s.updatedAt : ""),
+        detail: s.title || undefined,
+      })),
+      { placeHolder: "Resume which session in the chat panel?" },
+    );
+    if (!pick) return;
+    this._rememberSessionId(pick.label);
+    this.session?.stop();
+    this.session = null;
+    this._post({ kind: "reset" });
+    this._post({
+      kind: "info",
+      text: `will resume ${pick.label} — send a message to continue it`,
+    });
+  }
+
   resolveWebviewView(view) {
     this.view = view;
     view.webview.options = { enableScripts: true };
@@ -132,6 +163,8 @@ class ChatViewProvider {
         } else {
           this.session?.sendEvent({ type: "plan", action });
         }
+      } else if (m.type === "pickSession") {
+        this._pickSession().catch(() => {});
       } else if (m.type === "approval") {
         this.session?.sendEvent({
           type: "approval",

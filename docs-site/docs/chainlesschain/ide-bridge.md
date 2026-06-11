@@ -98,6 +98,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 (impact 着色+风险),Approve & run 解锁并立即执行,Reject 丢弃。
 **中断单轮**(cc ≥ 0.162.44):Stop 按钮/Esc 键只中断进行中的回合(取消 LLM 调用,显示
 ⏹ interrupted),会话与子进程存活,下条消息继续;杀进程移到 New。
+**会话选择器**(0.10.0):`/sessions` 弹原生 QuickPick 列出已存会话(`cc session list`),
+选中即切换续接。
 **危险操作审批卡**(cc ≥ 0.162.45):confirm 级动作(危险 shell、settings `ask` 规则)不再
 静默拒绝——面板弹 Approve/Deny 卡片(工具+命令+风险等级),工具阻塞等你裁决,120s 超时
 回落拒绝(`CC_APPROVAL_TIMEOUT_MS` 可调);IDE 已连时文件编辑的 ask 仍优先走原生 diff。

@@ -89,6 +89,8 @@ function buildChatHtml({ cspSource, nonce }) {
 
   // Panel slash commands — local sugar over the existing controls.
   const SLASH = {
+    "/sessions": () => vscode.postMessage({ type: "pickSession" }),
+    "/resume": () => vscode.postMessage({ type: "pickSession" }),
     "/new": () => vscode.postMessage({ type: "new" }),
     "/plan": () => vscode.postMessage({ type: "plan", action: "enter" }),
     "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
@@ -102,7 +104,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /plan · /approve · /reject · /stop · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /help");
         return;
       }
       if (SLASH[cmd]) {

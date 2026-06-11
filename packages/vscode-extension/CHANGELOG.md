@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.10.0] — 2026-06-11
+
+- **Session picker**: `/sessions` (or `/resume`) opens a native QuickPick of
+  saved conversations (`cc session list`) — pick one and the panel resumes
+  it with full history on your next message. Complements the automatic
+  per-workspace resume.
+
 ## [0.9.0] — 2026-06-11
 
 - **Approve/Deny cards for risky actions** (cc >= 0.162.45): with the new

@@ -402,3 +402,49 @@ describe("panel slash commands (P1)", async () => {
     expect(page).toContain("/help");
   });
 });
+
+describe("session picker (P1)", async () => {
+  const { parseSessionList, listSessions } =
+    await import("../../../vscode-extension/src/chat/session-list.js");
+  it("parses cc session list --json tolerantly", () => {
+    const out = JSON.stringify([
+      { id: "s1", title: "fix bug", updated_at: "2026-06-11", _store: "jsonl" },
+      { id: "s2", _store: "db" },
+      { title: "no id — dropped" },
+    ]);
+    expect(parseSessionList(out)).toEqual([
+      { id: "s1", title: "fix bug", updatedAt: "2026-06-11", store: "agent" },
+      { id: "s2", title: "", updatedAt: null, store: "chat" },
+    ]);
+    expect(parseSessionList("not json")).toEqual([]);
+    expect(parseSessionList(JSON.stringify({ nope: 1 }))).toEqual([]);
+  });
+
+  it("listSessions spawns the CLI and resolves [] on failure", async () => {
+    const calls = [];
+    const fakeExec = (cmd, args, opts, cb) => {
+      calls.push({ cmd, args });
+      cb(null, JSON.stringify([{ id: "s9", _store: "jsonl" }]));
+    };
+    const items = await listSessions({
+      command: "cc",
+      limit: 5,
+      deps: { execFile: fakeExec },
+    });
+    expect(calls[0].args).toEqual(["session", "list", "--json", "-n", "5"]);
+    expect(items[0].id).toBe("s9");
+    const failed = await listSessions({
+      deps: { execFile: (c, a, o, cb) => cb(new Error("no cc")) },
+    });
+    expect(failed).toEqual([]);
+  });
+
+  it("webview wires /sessions and /resume to the picker", async () => {
+    const { buildChatHtml: htmlP } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlP({ cspSource: "x:", nonce: "N" });
+    expect(page).toContain('"/sessions"');
+    expect(page).toContain('"/resume"');
+    expect(page).toContain("pickSession");
+  });
+});
