@@ -3,6 +3,7 @@ package com.chainlesschain.android.presentation.familytask
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyTaskRepository
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
+import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskSource
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTaskStatus
 import com.chainlesschain.android.presentation.aistudy.AiCallKind
 import com.chainlesschain.android.presentation.aistudy.InMemoryMistakeBook
@@ -206,10 +207,10 @@ class FamilyTaskViewModelTest {
         assertEquals(PointsEventType.EARN, events[0].type)
         assertEquals(20, events[0].amount)
         assertEquals(firstTask(viewModel).id, events[0].relatedTaskId)
-        assertEquals("+20 积分", viewModel.uiState.value.earnMessage)
+        assertEquals("+20 积分", viewModel.uiState.value.message)
 
-        viewModel.consumeEarnMessage()
-        assertNull(viewModel.uiState.value.earnMessage)
+        viewModel.consumeMessage()
+        assertNull(viewModel.uiState.value.message)
     }
 
     @Test
@@ -226,7 +227,50 @@ class FamilyTaskViewModelTest {
 
         // 满分 30 → answer-seeking ≥3 → 50% = 15
         assertEquals(15, ledger.events.value.single().amount)
-        assertTrue(viewModel.uiState.value.earnMessage!!.contains("50%"))
+        assertTrue(viewModel.uiState.value.message!!.contains("50%"))
+    }
+
+    @Test
+    fun `group import lands SUGGESTED candidates pending parent confirmation`() = runTest {
+        val viewModel = vm()
+        viewModel.importFromGroupText(
+            "今日作业：\n1. 数学课本第32页 1-10 题\n2. 语文背诵《静夜思》明天检查",
+        ).join()
+
+        val tasks = viewModel.uiState.value.tasks
+        assertEquals(2, tasks.size)
+        assertTrue(tasks.all { it.status == FamilyTaskStatus.SUGGESTED })
+        assertTrue(tasks.all { it.source == FamilyTaskSource.SCHOOL_WECHAT_GROUP })
+        val math = tasks.first { it.subject == "math" }
+        assertTrue(math.title.contains("第32页"))
+        assertTrue(viewModel.uiState.value.message!!.contains("2 条"))
+    }
+
+    @Test
+    fun `confirm promotes SUGGESTED to ASSIGNED and ignore cancels`() = runTest {
+        val viewModel = vm()
+        viewModel.importFromGroupText("作业：\n1. 数学口算\n2. 英语听写").join()
+        val (first, second) = viewModel.uiState.value.tasks
+
+        viewModel.confirmSuggested(first)
+        assertEquals(
+            FamilyTaskStatus.ASSIGNED,
+            viewModel.uiState.value.tasks.first { it.id == first.id }.status,
+        )
+
+        viewModel.cancel(second)
+        assertEquals(
+            FamilyTaskStatus.CANCELLED,
+            viewModel.uiState.value.tasks.first { it.id == second.id }.status,
+        )
+    }
+
+    @Test
+    fun `import with no recognizable homework only sets a hint message`() = runTest {
+        val viewModel = vm()
+        viewModel.importFromGroupText("明天上午九点开家长会").join()
+        assertTrue(viewModel.uiState.value.tasks.isEmpty())
+        assertTrue(viewModel.uiState.value.message!!.contains("没识别出"))
     }
 
     @Test

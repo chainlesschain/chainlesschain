@@ -65,13 +65,14 @@ fun FamilyTaskScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var submittingTask by remember { mutableStateOf<FamilyTask?>(null) }
+    var showImportDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // M5→M9 联动: 完成任务自动入账积分的反馈 (含被拒/截断原因)。
-    LaunchedEffect(state.earnMessage) {
-        state.earnMessage?.let {
+    // snackbar 反馈: 完成任务自动入账积分 / 群导入结果。
+    LaunchedEffect(state.message) {
+        state.message?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.consumeEarnMessage()
+            viewModel.consumeMessage()
         }
     }
 
@@ -93,6 +94,7 @@ fun FamilyTaskScreen(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = { showImportDialog = true }) { Text("群导入") }
                 TextButton(onClick = { viewModel.showCreateForm(!state.showCreateForm) }) {
                     Text(if (state.showCreateForm) "收起" else "+ 新建作业")
                 }
@@ -134,6 +136,7 @@ fun FamilyTaskScreen(
                         onComplete = { viewModel.complete(task) },
                         onBounceBack = { viewModel.bounceBack(task) },
                         onCancel = { viewModel.cancel(task) },
+                        onConfirmSuggested = { viewModel.confirmSuggested(task) },
                     )
                 }
             }
@@ -150,6 +153,50 @@ fun FamilyTaskScreen(
             onDismiss = { submittingTask = null },
         )
     }
+
+    if (showImportDialog) {
+        GroupImportDialog(
+            onImport = { text ->
+                viewModel.importFromGroupText(text)
+                showImportDialog = false
+            },
+            onDismiss = { showImportDialog = false },
+        )
+    }
+}
+
+/** M5 群作业导入: 家长粘贴班级群通知 → 解析为 SUGGESTED 候选, 逐条确认。 */
+@Composable
+private fun GroupImportDialog(
+    onImport: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("从群消息导入作业") },
+        text = {
+            Column {
+                Text(
+                    text = "把班级群里的作业通知粘贴进来，识别出的候选需逐条确认后才布置。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("群消息原文") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onImport(text) }, enabled = text.isNotBlank()) { Text("解析导入") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 @Composable
@@ -234,6 +281,7 @@ private fun TaskCard(
     onComplete: () -> Unit,
     onBounceBack: () -> Unit,
     onCancel: () -> Unit,
+    onConfirmSuggested: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -302,6 +350,11 @@ private fun TaskCard(
                     FamilyTaskStatus.GRADED -> {
                         Button(onClick = onComplete) { Text("完成") }
                         OutlinedButton(onClick = onBounceBack) { Text("打回重做") }
+                    }
+                    // 群导入候选: 家长确认才正式布置, 误抽可忽略 (CANCELLED)。
+                    FamilyTaskStatus.SUGGESTED -> {
+                        Button(onClick = onConfirmSuggested) { Text("确认布置") }
+                        OutlinedButton(onClick = onCancel) { Text("忽略") }
                     }
                     else -> Unit
                 }

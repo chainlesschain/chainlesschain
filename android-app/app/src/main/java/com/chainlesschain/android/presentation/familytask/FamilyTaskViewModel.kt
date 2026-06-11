@@ -31,8 +31,8 @@ data class FamilyTaskUiState(
     val showCreateForm: Boolean = false,
     /** 正在 AI 批改的任务 id (该卡显加载中)。 */
     val gradingTaskId: String? = null,
-    /** 完成任务后的积分入账反馈 (M5→M9 联动)；UI 弹 snackbar 后清。 */
-    val earnMessage: String? = null,
+    /** snackbar 反馈 (积分入账 / 群导入结果)；UI 弹后清。 */
+    val message: String? = null,
 )
 
 /**
@@ -186,7 +186,7 @@ class FamilyTaskViewModel @Inject constructor(
         ) ?: return
         _uiState.update {
             it.copy(
-                earnMessage = when {
+                message = when {
                     decision.rejected -> decision.notes.firstOrNull()
                     decision.notes.isEmpty() -> "+${decision.approvedAmount} 积分"
                     else -> "+${decision.approvedAmount} 积分（${decision.notes.joinToString("；")}）"
@@ -195,7 +195,48 @@ class FamilyTaskViewModel @Inject constructor(
         }
     }
 
-    fun consumeEarnMessage() = _uiState.update { it.copy(earnMessage = null) }
+    fun consumeMessage() = _uiState.update { it.copy(message = null) }
+
+    /**
+     * M5 群作业导入 (主文档 §3.5): 家长粘贴班级群通知 → 解析候选 → 全部落
+     * SUGGESTED 待确认 (误抽可忽略)。返回 Job 便于测试 join。
+     */
+    fun importFromGroupText(
+        text: String,
+        source: FamilyTaskSource = FamilyTaskSource.SCHOOL_WECHAT_GROUP,
+    ) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        val candidates = GroupHomeworkParser.parse(text, now)
+        if (candidates.isEmpty()) {
+            _uiState.update { it.copy(message = "没识别出作业，可手动「+ 新建作业」") }
+            return@launch
+        }
+        candidates.forEach { c ->
+            repo.upsert(
+                FamilyTask(
+                    id = UUID.randomUUID().toString(),
+                    familyGroupId = DEMO_GROUP_ID,
+                    assignerDid = DEMO_PARENT_DID,
+                    childDid = DEMO_CHILD_DID,
+                    source = source,
+                    type = FamilyTaskType.HOMEWORK,
+                    title = c.title,
+                    subject = c.subjectCode,
+                    dueAtMs = c.dueAtMs,
+                    rewardPoints = DEFAULT_REWARD,
+                    status = FamilyTaskStatus.SUGGESTED,
+                    createdAtMs = now,
+                    updatedAtMs = now,
+                ),
+            )
+        }
+        _uiState.update { it.copy(message = "识别出 ${candidates.size} 条候选作业，请逐条确认") }
+    }
+
+    /** 家长确认群导入候选 → 正式布置 (SUGGESTED→ASSIGNED)。 */
+    fun confirmSuggested(task: FamilyTask) = viewModelScope.launch {
+        repo.transition(task.id, FamilyTaskStatus.ASSIGNED)
+    }
 
     fun bounceBack(task: FamilyTask) = viewModelScope.launch {
         repo.transition(task.id, FamilyTaskStatus.IN_PROGRESS)
