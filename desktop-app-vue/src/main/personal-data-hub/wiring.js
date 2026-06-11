@@ -399,6 +399,7 @@ async function initHub() {
     // Phase 2a: register `douyin.pull-im-db` extension (mirror of cli wiring).
     const {
       createDouyinDbExtension,
+      createDouyinWatchExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
     // Phase 3a: register `weibo.cookies` extension (mirror of cli wiring).
     const {
@@ -421,6 +422,7 @@ async function initHub() {
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
         "douyin.pull-im-db": createDouyinDbExtension(),
+        "douyin.watch-history": createDouyinWatchExtension(),
         "weibo.cookies": createWeiboCookiesExtension(),
         "xhs.cookies": createXhsCookiesExtension(),
         "toutiao.cookies": createToutiaoCookiesExtension(),

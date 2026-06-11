@@ -363,7 +363,7 @@ async function initHub() {
       // Phase 2a: register `douyin.pull-im-db` extension so the
       // douyinAdbSync hub method can pull <uid>_im.db cohort from the
       // user's Android Douyin App.
-      const { createDouyinDbExtension } =
+      const { createDouyinDbExtension, createDouyinWatchExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
       // Phase 3a: register `weibo.cookies` extension for the Weibo
       // C-path collector (m.weibo.cn cookies + 4 HTTP endpoints).
@@ -389,6 +389,7 @@ async function initHub() {
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
           "douyin.pull-im-db": createDouyinDbExtension(),
+          "douyin.watch-history": createDouyinWatchExtension(),
           "weibo.cookies": createWeiboCookiesExtension(),
           "xhs.cookies": createXhsCookiesExtension(),
           "toutiao.cookies": createToutiaoCookiesExtension(),
@@ -1035,6 +1036,46 @@ async function initHub() {
           reason: m ? m[1] : "SYNC_FAILED",
           message: msg,
         };
+      }
+    },
+
+    // ─── Douyin watch-history (video_record.db, plaintext, no X-Bogus) ───
+    // Pulls video_record.db via the douyin.watch-history extension → reads
+    // record_<uid> (aid + view_time_timestamp + enter_from) → history events
+    // → syncAdapter("social-douyin") snapshot mode. Distinct from
+    // douyinAdbSync (IM db). No SQLCipher, no signing.
+    async douyinWatchSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectWatchHistoryAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(DOUYIN_[A-Z_]+)/);
+        return { ok: false, reason: m ? m[1] : "SYNC_FAILED", message: msg };
       }
     },
 

@@ -38,13 +38,27 @@ const {
   cleanupSnapshotJson,
   SNAPSHOT_SCHEMA_VERSION,
 } = require("./snapshot-builder");
-const { collect, collectAndSync } = require("./collector");
+const {
+  collect,
+  collectAndSync,
+  collectWatchHistory,
+  collectWatchHistoryAndSync,
+} = require("./collector");
+const {
+  createDouyinWatchExtension,
+  VIDEO_RECORD_DB_REMOTE_PATH,
+} = require("./watch-history-reader");
 
 module.exports = {
   // Extension factory (wiring registers this on the bridge)
   createDouyinDbExtension,
   DOUYIN_DB_REMOTE_DIR,
   IM_DB_PATTERN,
+  // Watch-history (video_record.db) extension + path
+  createDouyinWatchExtension,
+  VIDEO_RECORD_DB_REMOTE_PATH,
+  collectWatchHistory,
+  collectWatchHistoryAndSync,
   // Parser + builder (also exposed for advanced callers / tests)
   parseImDb,
   buildSnapshot,

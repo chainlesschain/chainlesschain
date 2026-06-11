@@ -537,6 +537,8 @@ function normalizeHistory(p, raw, ingestedAt) {
         awemeId,
         author,
         duration,
+        // Source surface from the local video_record.db (homepage_hot / etc.).
+        enterFrom: row.enterFrom || row.enter_from || p.enterFrom || null,
       },
     }],
     persons: [], places: [], items: [], topics: [],

@@ -159,7 +159,90 @@ async function collectAndSync(bridge, registry, opts = {}) {
   };
 }
 
+// ── Watch-history (video_record.db) path ─────────────────────────────────
+// Distinct from the IM-db path above: pulls the plaintext video_record.db and
+// emits `history` events (KIND_HISTORY → BROWSE) the social-douyin adapter
+// already normalizes. No X-Bogus, no SQLCipher — the durable "what/when the
+// user watched" signal. See watch-history-reader.js.
+const DOUYIN_SNAPSHOT_SCHEMA_VERSION = 1;
+
+async function collectWatchHistory(bridge, opts = {}) {
+  if (!bridge || typeof bridge.invoke !== "function") {
+    throw new TypeError(
+      "DouyinAdbCollector.collectWatchHistory: bridge must expose invoke(method, params)",
+    );
+  }
+  const now = opts.now || Date.now;
+  const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 2000;
+  const res = await bridge.invoke("douyin.watch-history", { limit });
+  if (!res || !Array.isArray(res.records)) {
+    throw new Error(
+      "DouyinAdbCollector.collectWatchHistory: bridge.invoke('douyin.watch-history') returned malformed payload",
+    );
+  }
+  const uid = res.uid || opts.uid || null;
+  const events = [];
+  for (const r of res.records) {
+    if (!r || !r.awemeId) continue;
+    events.push({
+      kind: "history",
+      id: `history-${r.awemeId}-${r.capturedAt || ""}`,
+      capturedAt: r.capturedAt || now(),
+      awemeId: r.awemeId,
+      enterFrom: r.enterFrom || null,
+    });
+  }
+  const snapshot = {
+    schemaVersion: DOUYIN_SNAPSHOT_SCHEMA_VERSION,
+    snapshottedAt: now(),
+    account: {
+      ...(uid ? { shortId: String(uid) } : {}),
+      displayName: opts.displayName,
+    },
+    events,
+  };
+  const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+  return {
+    snapshotPath,
+    uid,
+    eventCounts: { history: events.length, total: events.length },
+  };
+}
+
+async function collectWatchHistoryAndSync(bridge, registry, opts = {}) {
+  if (!registry || typeof registry.syncAdapter !== "function") {
+    throw new TypeError(
+      "DouyinAdbCollector.collectWatchHistoryAndSync: registry must expose syncAdapter(name, options)",
+    );
+  }
+  const collectResult = await collectWatchHistory(bridge, opts);
+  let syncReport = null;
+  let cleanupFailed = false;
+  try {
+    syncReport = await registry.syncAdapter("social-douyin", {
+      inputPath: collectResult.snapshotPath,
+    });
+  } finally {
+    try {
+      cleanupSnapshotJson(collectResult.snapshotPath);
+    } catch (_e) {
+      cleanupFailed = true;
+    }
+  }
+  return {
+    ...syncReport,
+    douyin: {
+      uid: collectResult.uid,
+      eventCounts: collectResult.eventCounts,
+      mode: "watch-history",
+      cleanupFailed,
+    },
+  };
+}
+
 module.exports = {
   collect,
   collectAndSync,
+  collectWatchHistory,
+  collectWatchHistoryAndSync,
 };

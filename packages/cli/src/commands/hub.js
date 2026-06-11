@@ -1732,6 +1732,60 @@ async function cmdDouyinAdbSync(options) {
   }
 }
 
+async function cmdDouyinWatchSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.douyinWatchSync({
+      uid: options.uid,
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limit: parsePositiveInt(options.limit),
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ douyin-watch-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "DOUYIN_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Douyin release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "DOUYIN_VIDEO_RECORD_MISSING") {
+        logger.log(
+          chalk.gray(
+            "  Open Douyin + watch a few videos to populate video_record.db, then retry",
+          ),
+        );
+      } else if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const dy = report.douyin || {};
+    const counts = dy.eventCounts || {};
+    logger.log(chalk.green(`✓ douyin-watch-sync succeeded`));
+    logger.log(`  uid:        ${chalk.cyan(dy.uid || "?")}`);
+    logger.log(`  watched:    ${counts.history || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    if (dy.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 /**
  * Phase 1e — `cc hub bilibili-adb-doctor`
  *
@@ -2309,6 +2363,25 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdDouyinAdbSync);
 
+  // Douyin watch-history (video_record.db, plaintext — no X-Bogus / no SQLCipher)
+  hub
+    .command("douyin-watch-sync")
+    .description(
+      "Douyin 观看历史 C 路径: pull video_record.db via ADB from the user's Android Douyin App (com.ss.android.ugc.aweme), read record_<uid> (aid + view_time_timestamp + enter_from), ingest as `history` (BROWSE) events. Plaintext — no X-Bogus signing, no SQLCipher. Needs rooted Android + Douyin App with watch history. Titles need a separate lookup; the value is which aweme + when + from which surface.",
+    )
+    .option(
+      "--uid <id>",
+      "Douyin uid to disambiguate multiple accounts (default: largest record_<uid> table)",
+    )
+    .option("--limit <n>", "Cap watch records (default 2000)")
+    .option("--display-name <s>", "Account displayName for the snapshot")
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdDouyinWatchSync);
+
   hub
     .command("rederive")
     .description(
@@ -2555,6 +2628,7 @@ export const _internal = {
   cmdBilibiliAdbSync,
   cmdBilibiliAdbDoctor,
   cmdDouyinAdbSync,
+  cmdDouyinWatchSync,
   cmdWeiboAdbSync,
   cmdXhsAdbSync,
   cmdToutiaoAdbSync,
