@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
@@ -29,12 +33,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.presentation.aistudy.DeliverableKind
 import com.chainlesschain.android.presentation.aistudy.RewardCatalogItem
 
 /**
@@ -99,9 +106,19 @@ fun FamilyRewardsScreen(
                     SectionHeader("兑换目录")
                 }
                 items(items = state.catalog, key = { it.id }) { reward ->
-                    RewardCard(reward = reward, affordable = state.balance >= reward.cost) {
-                        viewModel.redeem(reward)
-                    }
+                    RewardCard(
+                        reward = reward,
+                        affordable = state.balance >= reward.cost,
+                        onRedeem = { viewModel.redeem(reward) },
+                        onDeactivate = { viewModel.deactivateCatalogItem(reward) },
+                    )
+                }
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    SectionHeader("家长管理")
+                    AddRewardForm(onAdd = { name, cost, kind, value ->
+                        viewModel.addCatalogItem(name, cost, kind, value)
+                    })
                 }
                 item {
                     Spacer(Modifier.height(8.dp))
@@ -155,7 +172,12 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun RewardCard(reward: RewardCatalogItem, affordable: Boolean, onRedeem: () -> Unit) {
+private fun RewardCard(
+    reward: RewardCatalogItem,
+    affordable: Boolean,
+    onRedeem: () -> Unit,
+    onDeactivate: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -172,9 +194,78 @@ private fun RewardCard(reward: RewardCatalogItem, affordable: Boolean, onRedeem:
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            TextButton(onClick = onDeactivate) { Text("下架") }
             Button(onClick = onRedeem, enabled = affordable) { Text(if (affordable) "兑换" else "积分不足") }
         }
     }
+}
+
+/** 家长新增目录项 (M9 catalog CRUD 的最小表单: 名称 + 价格 + 类型 + 分钟数)。 */
+@Composable
+private fun AddRewardForm(onAdd: (String, Int, DeliverableKind, Int) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var cost by remember { mutableStateOf("50") }
+    var minutes by remember { mutableStateOf("30") }
+    var kind by remember { mutableStateOf(DeliverableKind.SCREEN_TIME_MIN) }
+    var kindMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("奖励名称（如：额外 30 分钟游戏）") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = cost,
+                    onValueChange = { cost = it.filter(Char::isDigit).take(5) },
+                    label = { Text("积分价") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = minutes,
+                    onValueChange = { minutes = it.filter(Char::isDigit).take(5) },
+                    label = { Text("分钟数") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                Column {
+                    AssistChip(onClick = { kindMenu = true }, label = { Text(kind.label()) })
+                    DropdownMenu(expanded = kindMenu, onDismissRequest = { kindMenu = false }) {
+                        DeliverableKind.entries.forEach { k ->
+                            DropdownMenuItem(
+                                text = { Text(k.label()) },
+                                onClick = {
+                                    kind = k
+                                    kindMenu = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+            Button(
+                onClick = { onAdd(name, cost.toIntOrNull() ?: 0, kind, minutes.toIntOrNull() ?: 0) },
+                enabled = name.isNotBlank() && (cost.toIntOrNull() ?: 0) > 0,
+            ) { Text("上架奖励") }
+        }
+    }
+}
+
+private fun DeliverableKind.label(): String = when (this) {
+    DeliverableKind.SCREEN_TIME_MIN -> "屏幕时间"
+    DeliverableKind.APP_UNLOCK -> "解锁应用"
+    DeliverableKind.DELAYED_BEDTIME_MIN -> "推迟就寝"
+    DeliverableKind.FAMILY_ACTIVITY -> "全家活动"
+    DeliverableKind.REAL_WORLD_VOUCHER -> "实物奖励"
+    DeliverableKind.CASH -> "零花钱"
 }
 
 @Composable

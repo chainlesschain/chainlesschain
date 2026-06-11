@@ -3,6 +3,8 @@ package com.chainlesschain.android.presentation.familyrewards
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.feature.familyguard.data.dao.EnforceRuleDao
+import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
+import com.chainlesschain.android.feature.familyguard.data.entity.RewardCatalogEntity
 import com.chainlesschain.android.feature.familyguard.domain.enforce.RewardTempException
 import com.chainlesschain.android.presentation.aistudy.Completion
 import com.chainlesschain.android.presentation.aistudy.Deliverable
@@ -44,31 +46,46 @@ data class FamilyRewardsUiState(
 )
 
 /**
- * M9 奖励 / 积分屏的 ViewModel。把 [PointsEngine] 纯逻辑 + [PointsLedger] (内存账本 seam)
- * 接到界面 (主文档 §3.9)。
+ * M9 奖励 / 积分屏的 ViewModel。把 [PointsEngine] 纯逻辑 + [PointsLedger] (Room 真持久账本)
+ * + reward_catalog (家长 CRUD, Room 真持久) 接到界面 (主文档 §3.9)。
  *
- * v0.1 演示: child DID 固定、catalog 用默认模板、earn 由"模拟完成作业"按钮触发。
- * 真实接线 (设备/后端阻塞 follow-up): earn 由 M5 任务完成自动触发、spend → M4 临时白名单
- * 实际下发、catalog 家长 CRUD、SQLCipher 持久化 + P2P 同步。
+ * v0.3: catalog 从 family_guard.db reward_catalog 读 (首跑空表自动种默认 5 项, 固定 id
+ * 幂等); 家长可 [addCatalogItem]/[deactivateCatalogItem]。剩 follow-up: 配对真 child DID、
+ * earn/spend P2P 同步、目录项编辑 UI 细化。
  */
 @HiltViewModel
 class FamilyRewardsViewModel @Inject constructor(
     private val ledger: PointsLedger,
     private val enforceRuleDao: EnforceRuleDao,
+    private val catalogDao: RewardCatalogDao,
 ) : ViewModel() {
 
-    private val catalog: List<RewardCatalogItem> = defaultCatalog()
     private val _message = MutableStateFlow<String?>(null)
 
+    init {
+        viewModelScope.launch { seedDefaultCatalogIfEmpty() }
+    }
+
+    /** 首跑种默认目录。固定 id + upsert ⇒ 并发/重复调用幂等; 家长下架后不复活 (count>0 跳过)。 */
+    internal suspend fun seedDefaultCatalogIfEmpty() {
+        if (catalogDao.countForGroup(DEMO_GROUP_ID) == 0) {
+            defaultCatalog().forEach { catalogDao.upsert(it.toEntity()) }
+        }
+    }
+
     val uiState: StateFlow<FamilyRewardsUiState> =
-        combine(ledger.events, _message) { events, message ->
+        combine(
+            ledger.events,
+            catalogDao.observeActiveForGroup(DEMO_GROUP_ID),
+            _message,
+        ) { events, catalogRows, message ->
             val now = System.currentTimeMillis()
             val balance = PointsEngine.computeBalance(DEMO_CHILD_DID, events, now)
             FamilyRewardsUiState(
                 balance = balance.balance,
                 lifetimeEarned = balance.lifetimeEarned,
                 lifetimeSpent = balance.lifetimeSpent,
-                catalog = catalog,
+                catalog = catalogRows.mapNotNull { it.toDomain() },
                 history = events
                     .filter { it.childDid == DEMO_CHILD_DID }
                     .sortedByDescending { it.timestamp }
@@ -76,6 +93,40 @@ class FamilyRewardsViewModel @Inject constructor(
                 message = message,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FamilyRewardsUiState())
+
+    /** 家长新增目录项 (CRUD 的 C; 改走同 id 再 upsert)。返回 Job 便于测试 join。 */
+    fun addCatalogItem(
+        name: String,
+        cost: Int,
+        kind: DeliverableKind,
+        valueMinutes: Int,
+        targetApps: List<String> = emptyList(),
+        maxPerDay: Int = 0,
+    ) = viewModelScope.launch {
+        val trimmed = name.trim()
+        if (trimmed.isBlank() || cost <= 0) {
+            _message.update { "名称与积分价格不能为空" }
+            return@launch
+        }
+        val item = RewardCatalogItem(
+            id = "r-${UUID.randomUUID()}",
+            familyGroupId = DEMO_GROUP_ID,
+            name = trimmed,
+            cost = cost,
+            deliverable = Deliverable(kind, valueMinutes, targetApps),
+            maxPerDay = maxPerDay,
+            createdBy = DEMO_PARENT_DID,
+            createdAt = System.currentTimeMillis(),
+        )
+        catalogDao.upsert(item.toEntity())
+        _message.update { "已上架「$trimmed」" }
+    }
+
+    /** 家长下架目录项 (软删; 历史流水仍可回查)。 */
+    fun deactivateCatalogItem(item: RewardCatalogItem) = viewModelScope.launch {
+        catalogDao.setActive(item.id, false)
+        _message.update { "已下架「${item.name}」" }
+    }
 
     /** 演示: 模拟一次满分作业完成 → earn (经防作弊/单日上限引擎)。 */
     fun simulateHomeworkEarn(scorePct: Int = 100) = viewModelScope.launch {
@@ -162,6 +213,42 @@ class FamilyRewardsViewModel @Inject constructor(
     private fun dayWindow(now: Long): Pair<Long, Long> {
         val dayStart = now - (now % DAY_MS)
         return dayStart to (dayStart + DAY_MS)
+    }
+
+    private fun RewardCatalogItem.toEntity() = RewardCatalogEntity(
+        id = id,
+        familyGroupId = familyGroupId,
+        name = name,
+        description = description,
+        cost = cost,
+        deliverableKind = deliverable.kind.name,
+        deliverableValue = deliverable.value,
+        targetApps = deliverable.targetApps.joinToString(","),
+        maxPerDay = maxPerDay,
+        active = active,
+        createdBy = createdBy,
+        createdAt = createdAt,
+    )
+
+    /** 未知 kind (未来版本 P2P 同步来的新枚举) 丢弃不崩。 */
+    private fun RewardCatalogEntity.toDomain(): RewardCatalogItem? {
+        val kind = DeliverableKind.entries.firstOrNull { it.name == deliverableKind } ?: return null
+        return RewardCatalogItem(
+            id = id,
+            familyGroupId = familyGroupId,
+            name = name,
+            description = description,
+            cost = cost,
+            deliverable = Deliverable(
+                kind = kind,
+                value = deliverableValue,
+                targetApps = targetApps.split(',').filter { it.isNotBlank() },
+            ),
+            maxPerDay = maxPerDay,
+            active = active,
+            createdBy = createdBy,
+            createdAt = createdAt,
+        )
     }
 
     private fun defaultCatalog(): List<RewardCatalogItem> {

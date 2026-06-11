@@ -14,6 +14,7 @@ import com.chainlesschain.android.feature.familyguard.data.dao.GeofenceDao
 import com.chainlesschain.android.feature.familyguard.data.dao.LocationPointDao
 import com.chainlesschain.android.feature.familyguard.data.dao.PointsEventDao
 import com.chainlesschain.android.feature.familyguard.data.dao.RevivalCodeDao
+import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
 import com.chainlesschain.android.feature.familyguard.data.dao.SosEventDao
 import com.chainlesschain.android.feature.familyguard.data.entity.AnomalyEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.AuditLogEntity
@@ -27,6 +28,7 @@ import com.chainlesschain.android.feature.familyguard.data.entity.GeofenceEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.LocationPointEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.PointsEventEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.RevivalCodeEntity
+import com.chainlesschain.android.feature.familyguard.data.entity.RewardCatalogEntity
 import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
 
 /**
@@ -62,6 +64,8 @@ import com.chainlesschain.android.feature.familyguard.data.entity.SosEventEntity
         FamilyTaskEntity::class,
         // v7 (M9): 积分流水 points_event (主文档 §3.9, append-only)
         PointsEventEntity::class,
+        // v9 (M9): 兑换目录 reward_catalog (主文档 §3.9, 家长 CRUD)
+        RewardCatalogEntity::class,
     ],
     version = FamilyGuardDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -81,9 +85,10 @@ abstract class FamilyGuardDatabase : RoomDatabase() {
     abstract fun auditLogDao(): AuditLogDao
     abstract fun familyTaskDao(): FamilyTaskDao
     abstract fun pointsEventDao(): PointsEventDao
+    abstract fun rewardCatalogDao(): RewardCatalogDao
 
     companion object {
         const val DATABASE_NAME = "family_guard.db"
-        const val SCHEMA_VERSION = 8
+        const val SCHEMA_VERSION = 9
     }
 }

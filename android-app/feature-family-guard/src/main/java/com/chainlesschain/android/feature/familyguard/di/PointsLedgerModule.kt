@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.familyguard.di
 
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardDatabase
 import com.chainlesschain.android.feature.familyguard.data.dao.PointsEventDao
+import com.chainlesschain.android.feature.familyguard.data.dao.RewardCatalogDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,4 +23,8 @@ object PointsLedgerModule {
     @Provides
     @Singleton
     fun providePointsEventDao(db: FamilyGuardDatabase): PointsEventDao = db.pointsEventDao()
+
+    @Provides
+    @Singleton
+    fun provideRewardCatalogDao(db: FamilyGuardDatabase): RewardCatalogDao = db.rewardCatalogDao()
 }

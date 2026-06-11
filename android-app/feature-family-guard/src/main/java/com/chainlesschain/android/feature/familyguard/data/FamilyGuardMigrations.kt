@@ -288,10 +288,47 @@ object FamilyGuardMigrations {
         }
     }
 
+    /**
+     * v8 → v9 (M9 家长 CRUD).
+     *
+     * 加 reward_catalog 兑换目录表 (主文档 §3.9) + 2 命名索引。SQL 与 Room 自动
+     * 9.json schema 必对齐: 改前必跑 assembleDebug 重新导出 9.json 再 diff。
+     */
+    val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS reward_catalog (
+                    id TEXT NOT NULL,
+                    family_group_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    cost INTEGER NOT NULL,
+                    deliverable_kind TEXT NOT NULL,
+                    deliverable_value INTEGER NOT NULL,
+                    target_apps TEXT NOT NULL,
+                    max_per_day INTEGER NOT NULL,
+                    active INTEGER NOT NULL,
+                    created_by TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_reward_catalog_group " +
+                    "ON reward_catalog(family_group_id)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_reward_catalog_active ON reward_catalog(active)",
+            )
+        }
+    }
+
     @Suppress("VariableNaming")
     val ALL_MIGRATIONS: Array<Migration> = arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-        MIGRATION_6_7, MIGRATION_7_8,
+        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
     )
 
     /**
