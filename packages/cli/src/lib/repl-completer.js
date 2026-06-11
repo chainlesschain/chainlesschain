@@ -107,8 +107,12 @@ export function makeAtCompleter(opts = {}) {
               .map((f) => {
                 const rel = path.relative(cwd, f);
                 // Keep workspace files relative (the natural @ref form);
-                // out-of-workspace files keep their absolute path.
-                return rel && !rel.startsWith("..") ? fwd(rel) : fwd(f);
+                // out-of-workspace files keep their absolute path. On
+                // Windows a cross-drive relative() returns an *absolute*
+                // path (no ".." prefix), so isAbsolute must also gate it.
+                return rel && !rel.startsWith("..") && !path.isAbsolute(rel)
+                  ? fwd(rel)
+                  : fwd(f);
               })
           : [];
         ideFetchedAt = now();
@@ -131,7 +135,9 @@ export function makeAtCompleter(opts = {}) {
     const slash = /^\/([A-Za-z_-]*)$/.exec(line);
     if (slash && slashCommands.length) {
       const pref = `/${slash[1].toLowerCase()}`;
-      const hits = slashCommands.filter((c) => c.toLowerCase().startsWith(pref));
+      const hits = slashCommands.filter((c) =>
+        c.toLowerCase().startsWith(pref),
+      );
       return [hits, line];
     }
     const at = extractAtPrefix(line);

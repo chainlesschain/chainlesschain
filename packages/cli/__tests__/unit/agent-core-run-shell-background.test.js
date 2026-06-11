@@ -157,7 +157,10 @@ describe("agent-core run_shell background + check_shell", () => {
       {},
     );
     expect(killRes.killed).toBe(true);
-    const done = await pollUntilDone(start.task_id);
+    // SIGTERM→'close' on a node child can exceed the default 3s poll
+    // budget on a loaded CI runner (ubuntu shard 3/4, 2026-06-11) — give
+    // the kill path a 10s ceiling; it resolves in ~100ms when unloaded.
+    const done = await pollUntilDone(start.task_id, { tries: 500 });
     expect(done.running).toBe(false);
   });
 
