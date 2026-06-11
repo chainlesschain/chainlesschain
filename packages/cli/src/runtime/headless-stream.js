@@ -37,6 +37,33 @@ import {
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
+import { getPlanModeManager } from "../lib/plan-mode.js";
+
+/**
+ * Structured view of the global plan-mode state for `plan_update` events
+ * (the chat panel renders its plan card from this). Pure read; never throws.
+ */
+export function planSnapshot(pm) {
+  let items = [];
+  let risk = null;
+  try {
+    const plan = pm.currentPlan;
+    items = (plan?.items || []).map((i) => ({
+      id: i.id,
+      title: i.title,
+      tool: i.tool,
+      impact: i.estimatedImpact || "low",
+      status: i.status,
+    }));
+    if (items.length > 0) {
+      const r = pm.getRiskAssessment();
+      if (r) risk = { level: r.level, totalScore: r.totalScore };
+    }
+  } catch {
+    /* snapshot is best-effort */
+  }
+  return { active: pm.isActive(), state: pm.state || null, items, risk };
+}
 import { withQuietStdout } from "./quiet-stdout.js";
 
 /**
@@ -50,6 +77,12 @@ export function parseInputEvent(line) {
     obj = JSON.parse(trimmed);
   } catch {
     return { error: `invalid JSON line: ${trimmed.slice(0, 80)}` };
+  }
+  // Plan-mode control events (chat-panel plan UI):
+  //   {"type":"plan","action":"enter"|"approve"|"reject"}
+  if (obj && typeof obj === "object" && obj.type === "plan") {
+    const action = String(obj.action || "").toLowerCase();
+    return action ? { plan: action } : null;
   }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
   let content = msg.content ?? obj.text ?? obj.prompt;
@@ -455,6 +488,69 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       continue;
     }
 
+    // Plan-mode control events (chat-panel plan UI). Mirrors the REPL's
+    // /plan verbs: enter blocks write tools (blocked calls become plan items),
+    // approve unlocks them and IMMEDIATELY runs a continuation turn, reject
+    // exits plan mode. Every control answers with a `plan_update` event.
+    if (parsed.plan) {
+      const pm = getPlanModeManager();
+      if (parsed.plan === "enter") {
+        if (!pm.isActive()) {
+          pm.enterPlanMode({ title: "Agent Plan" });
+          messages.push({
+            role: "system",
+            content:
+              "[PLAN MODE ACTIVE] You are now in plan mode. You can read " +
+              "files, search, and analyze — but write/execute tools are " +
+              "blocked. Any blocked tool calls will be recorded as plan " +
+              "items. Analyze the task thoroughly, then the user will " +
+              "approve your plan.",
+          });
+        }
+        emit({
+          type: "plan_update",
+          ...planSnapshot(pm),
+          session_id: sessionId,
+        });
+        continue;
+      }
+      if (parsed.plan === "reject") {
+        if (pm.isActive()) pm.rejectPlan("User rejected");
+        emit({
+          type: "plan_update",
+          ...planSnapshot(pm),
+          session_id: sessionId,
+        });
+        continue;
+      }
+      if (parsed.plan === "approve") {
+        if (!pm.isActive() || !(pm.currentPlan?.items?.length > 0)) {
+          emit({
+            type: "plan_update",
+            ...planSnapshot(pm),
+            session_id: sessionId,
+            note: "nothing to approve",
+          });
+          continue;
+        }
+        pm.approvePlan();
+        messages.push({
+          role: "system",
+          content: `[PLAN APPROVED] The user has approved your plan with ${pm.currentPlan.items.length} items. You can now use all tools including write_file, edit_file, run_shell, and run_skill. Execute the plan items in order.`,
+        });
+        emit({
+          type: "plan_update",
+          ...planSnapshot(pm),
+          session_id: sessionId,
+        });
+        // Fall through into the normal turn machinery with a continuation
+        // prompt — the agent starts executing without an extra user message.
+        parsed.text = "Proceed with the approved plan.";
+      } else if (!parsed.text) {
+        continue; // unknown plan action — ignored
+      }
+    }
+
     // Per-turn iteration budget so one turn can't starve the rest.
     const budget = Number.isFinite(options.maxTurns)
       ? new IterationBudget({
@@ -565,6 +661,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       turn: turns,
       usage: outcome.usage,
     });
+
+    // While planning, blocked tool calls grew the plan during this turn —
+    // push the fresh snapshot so the panel's plan card stays live.
+    {
+      const pm = getPlanModeManager();
+      if (pm.isActive()) {
+        emit({
+          type: "plan_update",
+          ...planSnapshot(pm),
+          session_id: sessionId,
+        });
+      }
+    }
   }
 
   // Tear down ad-hoc MCP servers (--mcp-config) when stdin closes.

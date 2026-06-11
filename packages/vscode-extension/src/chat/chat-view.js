@@ -118,6 +118,15 @@ class ChatViewProvider {
               "chainlesschain.cli.path)",
           });
         }
+      } else if (m.type === "plan") {
+        // Plan controls ride the same stdin protocol; entering plan mode may
+        // need to spawn the child first (e.g. Plan clicked before any turn).
+        const action = String(m.action || "");
+        if (action === "enter") {
+          this._ensureSession().sendEvent({ type: "plan", action });
+        } else {
+          this.session?.sendEvent({ type: "plan", action });
+        }
       } else if (m.type === "stop") {
         this.session?.stop();
       } else if (m.type === "new") {

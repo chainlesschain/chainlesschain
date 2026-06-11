@@ -24,6 +24,14 @@ function buildChatHtml({ cspSource, nonce }) {
   .tool.err { color: var(--vscode-errorForeground); }
   .info { opacity:.6; font-style:italic; font-size:.92em; }
   .error { color: var(--vscode-errorForeground); }
+  #plan { display:none; margin:6px; padding:8px; border:1px solid var(--vscode-panel-border);
+          border-radius:4px; background: var(--vscode-editorWidget-background); }
+  #plan h4 { margin:0 0 6px 0; font-size:.95em; }
+  #plan ul { margin:0 0 8px 0; padding-left:18px; }
+  #plan li { margin:2px 0; font-size:.92em; }
+  #plan .impact-high { color: var(--vscode-errorForeground); }
+  #plan .impact-medium { color: var(--vscode-editorWarning-foreground, orange); }
+  #plan .actions { display:flex; gap:6px; }
   #bar { display:flex; gap:4px; padding:6px; border-top:1px solid var(--vscode-panel-border); }
   #input { flex:1; resize:none; min-height:34px; max-height:120px;
            background: var(--vscode-input-background); color: var(--vscode-input-foreground);
@@ -37,10 +45,19 @@ function buildChatHtml({ cspSource, nonce }) {
 </head>
 <body>
   <div id="log"></div>
+  <div id="plan">
+    <h4>Plan <span id="planState"></span></h4>
+    <ul id="planItems"></ul>
+    <div class="actions">
+      <button id="planApprove">Approve &amp; run</button>
+      <button id="planReject" class="secondary">Reject</button>
+    </div>
+  </div>
   <div id="status">not started — send a message to launch cc agent</div>
   <div id="bar">
     <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
     <button id="send">Send</button>
+    <button id="plan-toggle" class="secondary" title="Plan first: write tools blocked until you approve">Plan</button>
     <button id="stop" class="secondary" title="Kill the agent process">Stop</button>
     <button id="new" class="secondary" title="Start a fresh conversation">New</button>
   </div>
@@ -80,6 +97,46 @@ function buildChatHtml({ cspSource, nonce }) {
   document.getElementById("new").addEventListener("click", () => {
     vscode.postMessage({ type: "new" });
   });
+  const planBox = document.getElementById("plan");
+  const planItems = document.getElementById("planItems");
+  const planState = document.getElementById("planState");
+  document.getElementById("plan-toggle").addEventListener("click", () => {
+    vscode.postMessage({ type: "plan", action: "enter" });
+    add("info", "plan mode: write tools blocked — describe the task, then Approve");
+  });
+  document.getElementById("planApprove").addEventListener("click", () => {
+    vscode.postMessage({ type: "plan", action: "approve" });
+  });
+  document.getElementById("planReject").addEventListener("click", () => {
+    vscode.postMessage({ type: "plan", action: "reject" });
+  });
+  function renderPlan(m) {
+    if (!m.active) {
+      planBox.style.display = "none";
+      if (m.state === "rejected") add("info", "plan rejected — plan mode off");
+      return;
+    }
+    planBox.style.display = "block";
+    planState.textContent = "· " + (m.state || "analyzing") +
+      (m.risk ? " · risk " + m.risk.level : "");
+    planItems.textContent = "";
+    if (!m.items.length) {
+      const li = document.createElement("li");
+      li.className = "info";
+      li.textContent = "(no items yet — the agent's blocked actions appear here)";
+      planItems.appendChild(li);
+    }
+    for (const it of m.items) {
+      const li = document.createElement("li");
+      li.className = "impact-" + (it.impact || "low");
+      li.textContent = (it.tool ? it.tool + ": " : "") + (it.title || "");
+      planItems.appendChild(li);
+    }
+    if (m.state === "approved") {
+      planBox.style.display = "none";
+      add("info", "plan approved — executing " + m.items.length + " items");
+    }
+  }
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
@@ -124,9 +181,13 @@ function buildChatHtml({ cspSource, nonce }) {
         // tool trace / logs — keep the panel calm, only surface real errors
         if (/error/i.test(m.text)) add("info", m.text);
         break;
+      case "plan":
+        renderPlan(m);
+        break;
       case "reset":
         log.textContent = "";
         streamEl = null;
+        planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
         break;
     }

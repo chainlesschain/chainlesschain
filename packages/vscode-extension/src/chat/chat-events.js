@@ -91,6 +91,15 @@ function mapAgentEvent(evt, state) {
         usage: evt.usage || null,
       };
     }
+    case "plan_update":
+      return {
+        kind: "plan",
+        active: evt.active === true,
+        state: evt.state || null,
+        items: Array.isArray(evt.items) ? evt.items : [],
+        risk: evt.risk || null,
+        note: evt.note || null,
+      };
     case "session_error":
       return { kind: "error", text: evt.error || "agent session error" };
     case "raw":

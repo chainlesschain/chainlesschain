@@ -122,17 +122,21 @@ class AgentChatSession {
     }
   }
 
-  /** Send one user turn. Returns false when the session is not running. */
-  send(text) {
-    if (!this.running || typeof text !== "string" || !text.trim()) {
-      return false;
-    }
+  /** Send one raw NDJSON event (user turn / plan control / …). */
+  sendEvent(obj) {
+    if (!this.running || !obj || typeof obj !== "object") return false;
     try {
-      this.child.stdin.write(JSON.stringify({ type: "user", text }) + "\n");
+      this.child.stdin.write(JSON.stringify(obj) + "\n");
       return true;
     } catch {
       return false;
     }
+  }
+
+  /** Send one user turn. Returns false when the session is not running. */
+  send(text) {
+    if (typeof text !== "string" || !text.trim()) return false;
+    return this.sendEvent({ type: "user", text });
   }
 
   /** End the conversation gracefully (close stdin → CLI tears down + exits). */

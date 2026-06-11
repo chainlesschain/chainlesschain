@@ -283,3 +283,53 @@ describe("buildSessionArgs resume (P1: session resume)", async () => {
     ]);
   });
 });
+
+describe("plan-mode UI plumbing (P1)", async () => {
+  const { mapAgentEvent: mapEvt, createTurnState: mkState } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
+  it("maps plan_update to the plan card message", () => {
+    const st = mkState();
+    const m = mapEvt(
+      {
+        type: "plan_update",
+        active: true,
+        state: "analyzing",
+        items: [
+          { title: "write_file: a.js", tool: "write_file", impact: "medium" },
+        ],
+        risk: { level: "medium", totalScore: 3 },
+      },
+      st,
+    );
+    expect(m).toMatchObject({
+      kind: "plan",
+      active: true,
+      state: "analyzing",
+      risk: { level: "medium" },
+    });
+    expect(m.items).toHaveLength(1);
+    expect(
+      mapEvt({ type: "plan_update", active: false, items: [] }, st),
+    ).toMatchObject({ kind: "plan", active: false });
+  });
+
+  it("sendEvent writes arbitrary NDJSON controls (plan approve)", () => {
+    const child = fakeChild();
+    const s = new AgentChatSession({ deps: { spawn: () => child } }).start();
+    expect(s.sendEvent({ type: "plan", action: "approve" })).toBe(true);
+    expect(child.stdin.written).toBe(
+      JSON.stringify({ type: "plan", action: "approve" }) + "\n",
+    );
+    s.stop();
+    expect(s.sendEvent({ type: "plan", action: "enter" })).toBe(false);
+  });
+
+  it("chat html carries the plan card + controls", async () => {
+    const { buildChatHtml: html } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = html({ cspSource: "x:", nonce: "N" });
+    expect(page).toContain('id="plan-toggle"');
+    expect(page).toContain('id="planApprove"');
+    expect(page).toContain('case "plan"');
+  });
+});
