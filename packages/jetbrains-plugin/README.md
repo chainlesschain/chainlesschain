@@ -24,6 +24,23 @@ uses them on its own:
 
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
 
+## Project memory & REPL steering (cc ≥ 0.162.41)
+
+The bridge injects `CHAINLESSCHAIN_IDE_PORT/TOKEN` into the IDE terminal, so
+the CLI's 0.162.41 batch works there with zero plugin changes:
+
+- **Project memory**: `chainlesschain init` inventories the project into a
+  `cc.md` that every `chainlesschain agent` run auto-loads (`cc.md` >
+  `CLAUDE.md` > `AGENTS.md` + path-scoped `.claude/rules`); inspect the chain
+  with `chainlesschain memory files`.
+- **REPL steering**: queued input while a turn runs, Esc interrupt,
+  `/rewind` + idle double-Esc conversation rewind, `! <cmd>` bash
+  passthrough, `# <note>` quick-memorize into cc.md, `/` command TAB
+  completion, offline resume recap.
+- **Scripted runs**: `chainlesschain agent -p --json-schema <file>` returns
+  schema-validated JSON only; `chainlesschain mcp serve` exposes local file
+  tools to other MCP clients.
+
 ## Architecture
 
 The code is split into two layers:

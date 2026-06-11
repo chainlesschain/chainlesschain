@@ -188,6 +188,30 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
+    // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
+    // files` in the shared terminal — cc.md is then auto-loaded by cc agent.
+    vscode.commands.registerCommand("chainlesschain.memory.init", async () => {
+      const {
+        buildInitCommand,
+        initQuickPickItems,
+        runInTerminal,
+      } = require("./project-memory-commands.js");
+      const pick = await vscode.window.showQuickPick(initQuickPickItems(), {
+        placeHolder:
+          "Generate project memory (cc.md) — auto-loaded by chainlesschain agent",
+      });
+      if (!pick) return;
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+      runInTerminal(vscode, buildInitCommand(pick.args), cwd);
+    }),
+    vscode.commands.registerCommand("chainlesschain.memory.files", () => {
+      const {
+        buildMemoryFilesCommand,
+        runInTerminal,
+      } = require("./project-memory-commands.js");
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+      runInTerminal(vscode, buildMemoryFilesCommand(), cwd);
+    }),
     { dispose: () => stopBridge(context) },
   );
 

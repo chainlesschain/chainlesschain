@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.1.2] — 2026-06-11
+
+- Document the CLI 0.162.41 batch available in the IDE terminal through the
+  bridge's injected env, with zero plugin changes: **project memory**
+  (`chainlesschain init` → cc.md auto-loaded by every agent run,
+  `memory files` to inspect the chain), **REPL steering** (queued input, Esc
+  interrupt, `/rewind` double-Esc, `!` bash passthrough, `#` quick-memorize,
+  `/` TAB completion, resume recap) and **scripted runs** (`--json-schema`
+  structured output, `mcp serve`).
+
 ## [0.1.1] — 2026-06-11
 
 - Document the CLI's new **automatic awareness** behaviors that pair with this

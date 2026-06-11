@@ -55,6 +55,24 @@ them on its own:
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off (the `mcp__ide__*`
 tools stay available for explicit calls).
 
+## Project memory (cc ≥ 0.162.41)
+
+The CLI auto-loads file-based project memory — `cc.md` > `CLAUDE.md` >
+`AGENTS.md` per directory, plus path-scoped `.claude/rules` — into every agent
+run, so agents started from this workspace already know your conventions. Two
+palette commands drive it without leaving the editor:
+
+- **ChainlessChain: Generate Project Memory (cc.md)** — runs
+  `chainlesschain init` in the shared terminal (offline folder inventory, or
+  pick *AI refine* to let a bounded agent fill the Conventions section).
+- **ChainlessChain: Show Project Memory Files** — runs
+  `chainlesschain memory files` to list exactly what the agent will load.
+
+Everything else from the 0.162.41 batch works in the integrated terminal
+as-is: REPL steering (queued input, Esc interrupt, `/rewind` double-Esc),
+`! <cmd>` bash passthrough, `# <note>` quick-memorize into cc.md, `/` command
+TAB completion, and `--json-schema` structured output for scripted runs.
+
 ## Chat panel
 
 Activity Bar → **ChainlessChain IDE → Chat**: a sidebar conversation with the

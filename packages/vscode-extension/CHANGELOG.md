@@ -2,6 +2,19 @@
 
 All notable changes to this extension are documented here.
 
+## [0.8.0] — 2026-06-11
+
+- **Project memory commands** (pairs with cc ≥ 0.162.41): palette
+  **"ChainlessChain: Generate Project Memory (cc.md)"** runs
+  `chainlesschain init` in the shared terminal (offline inventory, optional
+  `--ai` refine via QuickPick), and **"ChainlessChain: Show Project Memory
+  Files"** runs `chainlesschain memory files` — the chain (`cc.md` >
+  `CLAUDE.md` > `AGENTS.md` + path-scoped rules) the agent auto-loads.
+- README documents the 0.162.41 batch usable in the integrated terminal
+  as-is: REPL steering (queued input / Esc interrupt / `/rewind` double-Esc),
+  `!` bash passthrough, `#` quick-memorize, `/` TAB completion,
+  `--json-schema` structured output.
+
 ## [0.7.0] — 2026-06-11
 
 - **Interrupt the current turn** (cc >= 0.162.44): the **Stop** button (and
