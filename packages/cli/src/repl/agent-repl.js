@@ -787,6 +787,26 @@ export async function startAgentRepl(options = {}) {
     completer: atCompleter,
   });
 
+  // Esc interrupt (Claude-Code parity): pressing Esc while a turn is in
+  // flight aborts the in-flight agentLoop through its existing AbortSignal
+  // seam (throwIfAborted at each iteration); partial conversation is kept.
+  // Idle Esc presses (no active turn) are ignored, and escape-prefixed key
+  // sequences (arrows etc.) never reach here as bare "escape".
+  let _turnAbort = null;
+  if (process.stdin.isTTY) {
+    process.stdin.on("keypress", (_str, key) => {
+      if (key && key.name === "escape" && !key.meta && _turnAbort) {
+        process.stdout.write(chalk.yellow("\n⎋ interrupting…\n"));
+        try {
+          _turnAbort.abort();
+        } catch {
+          /* already aborted */
+        }
+        _turnAbort = null;
+      }
+    });
+  }
+
   logger.log(chalk.bold("\nChainlessChain Agent"));
   logger.log(
     chalk.gray(`Model: ${model}  Provider: ${provider}  CWD: ${process.cwd()}`),
@@ -2147,7 +2167,9 @@ export async function startAgentRepl(options = {}) {
       } catch (_e) {
         /* goal binding is best-effort — fall back to defaultPrepareCall */
       }
+      _turnAbort = new AbortController();
       const { content: response, usageEvents } = await agentLoop(messages, {
+        signal: _turnAbort.signal,
         provider,
         model: activeModel,
         thinking,
@@ -2174,6 +2196,7 @@ export async function startAgentRepl(options = {}) {
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
         chatFn: _fallbackChatFn,
       });
+      _turnAbort = null;
 
       if (sessionId && usageEvents?.length) {
         for (const ue of usageEvents) {
@@ -2299,6 +2322,16 @@ export async function startAgentRepl(options = {}) {
         }
       }
     } catch (err) {
+      _turnAbort = null;
+      // Esc interrupt: an aborted turn is normal flow, not an error — the
+      // partial conversation stays usable and queued lines still drain.
+      if (err?.name === "AbortError" || /abort/i.test(err?.message || "")) {
+        logger.log(
+          chalk.yellow("⎋ turn interrupted — partial progress kept"),
+        );
+        prompt();
+        return;
+      }
       logger.error(`Error: ${err.message}`);
 
       // Record error for context injection
