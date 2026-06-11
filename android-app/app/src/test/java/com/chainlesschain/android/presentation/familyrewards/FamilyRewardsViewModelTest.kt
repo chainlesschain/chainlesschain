@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.familyrewards
 
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -13,6 +14,7 @@ import com.chainlesschain.android.presentation.aistudy.PointsEventType
 import com.chainlesschain.android.presentation.aistudy.RewardCatalogItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -38,6 +40,7 @@ class FamilyRewardsViewModelTest {
 
     private lateinit var db: FamilyGuardDatabase
     private lateinit var ledger: InMemoryPointsLedger
+    private val createdVms = mutableListOf<FamilyRewardsViewModel>()
 
     @Before
     fun setUp() {
@@ -53,11 +56,19 @@ class FamilyRewardsViewModelTest {
 
     @After
     fun tearDown() {
+        // VM init 启动的 viewModelScope 协程 (seedDefaultCatalogIfEmpty /
+        // cleanupExpired / stateIn) 不归 runTest 管 — 先 cancel 再 close db,
+        // 否则残活协程碰到已关闭的 DB 抛异常, 被 kotlinx-coroutines-test 记成
+        // 下一个测试的 UncaughtExceptionsBeforeTest (CI 上受害用例随时序漂移:
+        // run 27338006124 砸中 blank-name, 27343510719 砸中 cleanupExpired)。
+        createdVms.forEach { it.viewModelScope.cancel() }
+        createdVms.clear()
         db.close()
         Dispatchers.resetMain()
     }
 
     private fun vm() = FamilyRewardsViewModel(ledger, db.enforceRuleDao(), db.rewardCatalogDao())
+        .also { createdVms.add(it) }
 
     private suspend fun fund(amount: Int) = ledger.append(
         PointsEvent(
