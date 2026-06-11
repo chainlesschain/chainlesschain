@@ -72,6 +72,17 @@ class TaskCompletionEarnTest {
         assertEquals(0, TaskCompletionEarn.answerSeekingCount(null, emptyList()))
     }
 
+    @Test
+    fun `write-through duplicates (same timestamp in both sources) count once`() {
+        // PersistingStudyTaskContext 把同一事件写进持久层 → 两源同 timestamp
+        val persisted = AiCallLogCodec.append(null, AiCallLogEntry(5_000L, "answer_seeking"))
+        val contextCalls = listOf(
+            TaskAiCall("t1", 5_000L, AiCallKind.ANSWER_SEEKING), // 同一事件
+            TaskAiCall("t1", 6_000L, AiCallKind.ANSWER_SEEKING), // 未落盘新事件
+        )
+        assertEquals(2, TaskCompletionEarn.answerSeekingCount(persisted, contextCalls))
+    }
+
     // ---- completionFor ----
 
     @Test

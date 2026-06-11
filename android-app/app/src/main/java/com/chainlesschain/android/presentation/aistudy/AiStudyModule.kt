@@ -35,9 +35,12 @@ abstract class AiStudyModule {
     @Singleton
     abstract fun bindGuardrailEventSink(impl: RoomGuardrailEventSink): GuardrailEventSink
 
+    // M5 防作弊 log 写穿 family_task.ai_call_log (重启不丢; InMemory 留测试)。
     @Binds
     @Singleton
-    abstract fun bindStudyTaskContext(impl: InMemoryStudyTaskContext): StudyTaskContext
+    abstract fun bindStudyTaskContext(
+        impl: com.chainlesschain.android.presentation.familytask.PersistingStudyTaskContext,
+    ): StudyTaskContext
 
     // M9 奖励/积分账本: family_guard.db points_event 真持久 (InMemory 留测试/演示)。
     @Binds

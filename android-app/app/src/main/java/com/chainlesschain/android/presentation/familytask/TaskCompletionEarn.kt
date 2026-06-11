@@ -32,10 +32,20 @@ object TaskCompletionEarn {
         ?.let { SCORE_PREFIX.find(it)?.groupValues?.get(1)?.toIntOrNull() }
         ?.coerceIn(0, 100)
 
-    /** answer-seeking 总次数 = 持久 ai_call_log + StudyTaskContext 内存 log (未落盘部分)。 */
-    fun answerSeekingCount(persistedLog: String?, contextCalls: List<TaskAiCall>): Int =
-        AiCallLogCodec.decode(persistedLog).count { it.kind == ANSWER_SEEKING_KIND } +
-            contextCalls.count { it.kind == AiCallKind.ANSWER_SEEKING }
+    /**
+     * answer-seeking 总次数 = 持久 ai_call_log ∪ StudyTaskContext 内存 log,
+     * **按时间戳去重** —— PersistingStudyTaskContext 把每条调用写穿持久层后,
+     * 同一事件会出现在两源 (同 timestamp); 重启后内存空、持久全, 并集都对。
+     */
+    fun answerSeekingCount(persistedLog: String?, contextCalls: List<TaskAiCall>): Int {
+        val persistedTs = AiCallLogCodec.decode(persistedLog)
+            .filter { it.kind == ANSWER_SEEKING_KIND }
+            .map { it.timestampMs }
+        val contextTs = contextCalls
+            .filter { it.kind == AiCallKind.ANSWER_SEEKING }
+            .map { it.timestamp }
+        return (persistedTs + contextTs).toSet().size
+    }
 
     /**
      * 任务 → [Completion] 映射：HOMEWORK 走批改分档 (§3.9 earn 表)；批改失败解析不到分数、
