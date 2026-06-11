@@ -84,6 +84,11 @@ export function parseInputEvent(line) {
     const action = String(obj.action || "").toLowerCase();
     return action ? { plan: action } : null;
   }
+  // Turn interrupt (panel Stop / Claude-Code Esc parity): aborts the
+  // in-flight turn without ending the conversation. {"type":"interrupt"}
+  if (obj && typeof obj === "object" && obj.type === "interrupt") {
+    return { interrupt: true };
+  }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
   let content = msg.content ?? obj.text ?? obj.prompt;
   if (Array.isArray(content)) {
@@ -474,9 +479,48 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let turns = 0;
   let sawError = false;
 
-  for await (const line of readJsonLines(input)) {
-    const parsed = parseInputEvent(line);
-    if (parsed == null) continue; // blank line
+  // ── Concurrent stdin pump (turn-interrupt support) ────────────────────────
+  // Input is consumed AS IT ARRIVES — not between turns — so an
+  // {"type":"interrupt"} can abort the IN-FLIGHT turn immediately (chat-panel
+  // Stop / Claude-Code Esc parity) instead of waiting in line behind it.
+  // Normal events queue for the serial turn loop below; interrupts act on the
+  // live per-turn AbortController and are never queued.
+  const queue = [];
+  let wakeQueue = null;
+  let inputDone = false;
+  let currentAbort = null;
+  (async () => {
+    try {
+      for await (const line of readJsonLines(input)) {
+        const parsed = parseInputEvent(line);
+        if (parsed == null) continue;
+        if (parsed.interrupt) {
+          currentAbort?.abort();
+          continue;
+        }
+        queue.push(parsed);
+        if (wakeQueue) wakeQueue();
+      }
+    } catch {
+      /* input stream error → treat as EOF */
+    }
+    inputDone = true;
+    if (wakeQueue) wakeQueue();
+  })();
+  const nextEvent = async () => {
+    for (;;) {
+      if (queue.length > 0) return queue.shift();
+      if (inputDone) return null;
+      await new Promise((r) => {
+        wakeQueue = r;
+      });
+      wakeQueue = null;
+    }
+  };
+
+  for (;;) {
+    const parsed = await nextEvent();
+    if (parsed == null) break; // stdin closed
     if (parsed.error) {
       emit({
         type: "result",
@@ -617,14 +661,39 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
     turns += 1;
 
+    // Per-turn abort scope: an {"type":"interrupt"} from the pump above
+    // aborts THIS turn (LLM fetch included — the signal reaches chatWithTools)
+    // while the conversation/process stays alive for the next message.
+    currentAbort = new AbortController();
+    const turnSignal = options.signal
+      ? AbortSignal.any([options.signal, currentAbort.signal])
+      : currentAbort.signal;
+
     let outcome;
     try {
       outcome = await runTurn(
         messages,
-        { ...loopOptionsBase, iterationBudget: budget },
+        { ...loopOptionsBase, iterationBudget: budget, signal: turnSignal },
         { runLoop, emit },
       );
     } catch (err) {
+      currentAbort = null;
+      const isAbort =
+        err?.name === "AbortError" || /abort/i.test(err?.message || "");
+      if (isAbort && !options.signal?.aborted) {
+        // User-initiated turn interrupt — not an error; no assistant message
+        // is recorded (the dangling user turn is fine for the next exchange).
+        emit({
+          type: "result",
+          subtype: "interrupted",
+          is_error: false,
+          interrupted: true,
+          session_id: sessionId,
+          turn: turns,
+        });
+        continue;
+      }
+      if (isAbort) break; // outer options.signal — caller is shutting down
       emit({
         type: "result",
         subtype: "error",
@@ -635,6 +704,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       sawError = true;
       continue;
     }
+    currentAbort = null;
 
     // Grow the conversation so the next turn has context.
     messages.push({ role: "assistant", content: outcome.finalText });

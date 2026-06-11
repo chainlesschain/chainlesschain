@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.7.0] — 2026-06-11
+
+- **Interrupt the current turn** (cc >= 0.162.44): the **Stop** button (and
+  the Esc key) now aborts the in-flight turn only — the LLM call is
+  cancelled, a "⏹ interrupted" marker is shown, and the SAME conversation
+  keeps going with your next message. Killing the whole agent process moved
+  to **New**. Claude-Code Esc parity.
+
 ## [0.6.0] — 2026-06-11
 
 - **Plan mode in the chat panel** (cc >= 0.162.43): the **Plan** button puts

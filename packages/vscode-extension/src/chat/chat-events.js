@@ -79,6 +79,9 @@ function mapAgentEvent(evt, state) {
     case "result": {
       const sawDelta = state.sawDelta;
       state.sawDelta = false; // reset for the next turn
+      if (evt.subtype === "interrupted" || evt.interrupted === true) {
+        return { kind: "turn_end", isError: false, text: "⏹ interrupted", usage: null };
+      }
       return {
         kind: "turn_end",
         isError: evt.is_error === true,

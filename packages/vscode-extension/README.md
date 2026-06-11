@@ -109,6 +109,7 @@ The bearer token is never displayed in any of these.
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
 - ✅ Chat session resume across panel/editor restarts (0.5.0, cc ≥ 0.162.40).
 - ✅ Plan mode in the chat panel: Plan → live plan card → Approve & run (0.6.0).
+- ✅ Turn interrupt: Stop/Esc aborts the in-flight turn, conversation survives (0.7.0).
 - ⏳ Future polish: hunk-level partial accept.
 
 ## Packaging

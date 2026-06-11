@@ -58,8 +58,8 @@ function buildChatHtml({ cspSource, nonce }) {
     <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
     <button id="send">Send</button>
     <button id="plan-toggle" class="secondary" title="Plan first: write tools blocked until you approve">Plan</button>
-    <button id="stop" class="secondary" title="Kill the agent process">Stop</button>
-    <button id="new" class="secondary" title="Start a fresh conversation">New</button>
+    <button id="stop" class="secondary" title="Interrupt the current turn (conversation keeps going; Esc works too)">Stop</button>
+    <button id="new" class="secondary" title="Start a fresh conversation (kills the agent process)">New</button>
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
@@ -92,7 +92,10 @@ function buildChatHtml({ cspSource, nonce }) {
   }
   document.getElementById("send").addEventListener("click", send);
   document.getElementById("stop").addEventListener("click", () => {
-    vscode.postMessage({ type: "stop" });
+    vscode.postMessage({ type: "interrupt" });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") vscode.postMessage({ type: "interrupt" });
   });
   document.getElementById("new").addEventListener("click", () => {
     vscode.postMessage({ type: "new" });

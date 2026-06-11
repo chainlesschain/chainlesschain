@@ -94,6 +94,10 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 首条消息才启动子进程,Stop 杀进程,下条消息自动重启;**New** 按钮开全新会话。
 **会话跨重启续接**(cc ≥ 0.162.40):面板记住本 workspace 的会话,重载窗口/子进程退出后
 自动 `--resume` 续上(面板提示 "resumed previous conversation (N messages)")。
+**Plan 模式**(cc ≥ 0.162.43):Plan 按钮进入只读规划,被拦截的写操作聚成实时 plan 卡片
+(impact 着色+风险),Approve & run 解锁并立即执行,Reject 丢弃。
+**中断单轮**(cc ≥ 0.162.44):Stop 按钮/Esc 键只中断进行中的回合(取消 LLM 调用,显示
+⏹ interrupted),会话与子进程存活,下条消息继续;杀进程移到 New。
 面板的 LLM 可经 `chainlesschain.chat.provider` / `chainlesschain.chat.model` 设置单独指定
 (留空 = 跟随 CLI 自身配置)。
 

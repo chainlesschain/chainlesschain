@@ -127,6 +127,9 @@ class ChatViewProvider {
         } else {
           this.session?.sendEvent({ type: "plan", action });
         }
+      } else if (m.type === "interrupt") {
+        // Abort the in-flight turn only — the conversation/child stays alive.
+        this.session?.sendEvent({ type: "interrupt" });
       } else if (m.type === "stop") {
         this.session?.stop();
       } else if (m.type === "new") {

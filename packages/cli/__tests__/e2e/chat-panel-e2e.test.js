@@ -29,29 +29,48 @@ beforeAll(async () => {
     req.on("data", (c) => (body += c));
     req.on("end", () => {
       llmCalls += 1;
+      let parsedBody = null;
       try {
-        llmBodies.push(JSON.parse(body));
+        parsedBody = JSON.parse(body);
       } catch {
-        llmBodies.push(null);
+        /* keep null */
       }
+      llmBodies.push(parsedBody);
       res.writeHead(200, { "Content-Type": "application/x-ndjson" });
       const part = (content, done) =>
         JSON.stringify({
           message: { role: "assistant", content },
           done,
         }) + "\n";
-      res.write(part("reply-", false));
-      res.write(part(`turn${llmCalls}`, false));
-      res.end(
-        JSON.stringify({ done: true, prompt_eval_count: 5, eval_count: 2 }) +
-          "\n",
-      );
+      const finish = () => {
+        res.write(part("reply-", false));
+        res.write(part(`turn${llmCalls}`, false));
+        res.end(
+          JSON.stringify({ done: true, prompt_eval_count: 5, eval_count: 2 }) +
+            "\n",
+        );
+      };
+      // SLOW marker: hold the response open (interrupt e2e aborts the fetch).
+      // Only the LAST user message counts — history carries the marker into
+      // every later request of the same conversation.
+      const lastUser = [...(parsedBody?.messages || [])]
+        .reverse()
+        .find((m) => m && m.role === "user");
+      const wantsSlow = String(lastUser?.content || "").includes("SLOW-REPLY");
+      if (wantsSlow) {
+        const t = setTimeout(finish, 60000);
+        req.on("close", () => clearTimeout(t));
+        res.on("close", () => clearTimeout(t));
+      } else {
+        finish();
+      }
     });
   });
   await new Promise((r) => llmServer.listen(llmPort, "127.0.0.1", r));
 });
 
 afterAll(async () => {
+  llmServer.closeAllConnections?.(); // drop any held SLOW sockets
   await new Promise((r) => llmServer.close(r));
   t.cleanup();
 });
@@ -206,5 +225,75 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
     c2.end();
     await expect.poll(() => s2.exited !== null, { timeout: 60000 }).toBe(true);
     expect(s2.exited.code).toBe(0);
+  }, 240000);
+
+  it("interrupt aborts the in-flight turn; the SAME child answers the next one", async () => {
+    const sink = { events: [], exited: null };
+    const session = new AgentChatSession({
+      args: [
+        "--no-ide",
+        "--no-mcp",
+        "--provider",
+        "ollama",
+        "--model",
+        "fake-model",
+        "--base-url",
+        `http://127.0.0.1:${llmPort}`,
+      ],
+      cwd: t.home,
+      env: t.env(),
+      onEvent: (e) => sink.events.push(e),
+      onExit: (e) => (sink.exited = e),
+      deps: {
+        spawn: (_cmd, args, opts) =>
+          spawn(process.execPath, [CLI_BIN, ...args], {
+            ...opts,
+            shell: false,
+          }),
+      },
+    }).start();
+
+    await expect
+      .poll(() => sink.events.some((e) => e.subtype === "init"), {
+        timeout: 60000,
+      })
+      .toBe(true);
+
+    // a turn whose LLM response hangs for 60s on the fake server
+    const callsBefore = llmCalls;
+    expect(session.send("please SLOW-REPLY now")).toBe(true);
+    await expect
+      .poll(() => llmCalls > callsBefore, { timeout: 60000 })
+      .toBe(true);
+    // interrupt while the fetch is in flight → interrupted result, fast
+    expect(session.sendEvent({ type: "interrupt" })).toBe(true);
+    await expect
+      .poll(
+        () => sink.events.some((e) => e.type === "result" && e.interrupted),
+        { timeout: 30000 },
+      )
+      .toBe(true);
+    const interrupted = sink.events.find(
+      (e) => e.type === "result" && e.interrupted,
+    );
+    expect(interrupted.is_error).toBe(false);
+
+    // the conversation (same child) keeps working
+    expect(session.send("quick one")).toBe(true);
+    await expect
+      .poll(
+        () =>
+          sink.events.filter(
+            (e) => e.type === "result" && e.subtype === "success",
+          ).length,
+        { timeout: 60000 },
+      )
+      .toBeGreaterThanOrEqual(1);
+
+    session.end();
+    await expect
+      .poll(() => sink.exited !== null, { timeout: 60000 })
+      .toBe(true);
+    expect(sink.exited.code).toBe(0);
   }, 240000);
 });
