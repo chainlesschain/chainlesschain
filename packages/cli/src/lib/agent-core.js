@@ -18,6 +18,7 @@ export {
   getBaseSystemPrompt,
   buildSystemPrompt,
   executeTool,
+  computeProposedEdit,
   classifyError,
   isValidPackageName,
   chatWithTools,
