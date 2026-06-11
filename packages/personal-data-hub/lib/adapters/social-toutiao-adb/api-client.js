@@ -180,27 +180,40 @@ class ToutiaoApiClient {
     url.searchParams.set("aid", AID_TOUTIAO_WEB);
     const obj = await this._doGetJson(url, cookie, false, "profile");
     if (!obj) return null;
+    // Two envelope shapes seen in the wild (real-device 2026-06-11):
+    //   legacy:      { status_code: 0, data: {...} }
+    //   passport v2: { message: "success", data: {...} }
+    //                { message: "error", data: { error_code, description } }
+    // The old code only understood status_code and mis-reported the v2
+    // envelope as "missing status_code" — masking the real error (e.g.
+    // error_code 16 "该应用无权限"). Parse both, surface the specific error.
     const statusCode =
       typeof obj.status_code === "number" ? obj.status_code : null;
-    if (statusCode == null) {
-      this._setLastError(
-        -5,
-        `passport/info/v2 missing status_code (keys=[${Object.keys(obj).join(",")}])`,
-      );
+    const message = typeof obj.message === "string" ? obj.message : null;
+    const data = obj.data && typeof obj.data === "object" ? obj.data : null;
+    const ok = statusCode === 0 || (statusCode == null && message === "success");
+    if (!ok) {
+      if (data && Number.isFinite(data.error_code)) {
+        // passport v2 error envelope — the actionable code + 中文 description.
+        this._setLastError(
+          data.error_code,
+          String(data.description || data.error_description || `error_code=${data.error_code}`),
+        );
+      } else if (statusCode != null) {
+        this._setLastError(
+          statusCode,
+          String(obj.status_msg || message || obj.error_description || `status_code=${statusCode}`),
+        );
+      } else {
+        this._setLastError(
+          -5,
+          `passport/info/v2 unrecognized envelope (message=${message}, keys=[${Object.keys(obj).join(",")}])`,
+        );
+      }
       return null;
     }
-    if (statusCode !== 0) {
-      const msg =
-        obj.status_msg ||
-        obj.message ||
-        obj.error_description ||
-        `status_code=${statusCode}`;
-      this._setLastError(statusCode, String(msg));
-      return null;
-    }
-    const data = obj.data;
-    if (!data || typeof data !== "object") {
-      this._setLastError(-6, "status_code=0 but no `data` object");
+    if (!data) {
+      this._setLastError(-6, "profile ok but no `data` object");
       return null;
     }
     const rawUid =

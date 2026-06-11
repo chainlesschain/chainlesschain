@@ -280,6 +280,56 @@ describe("ToutiaoApiClient — fetchProfile", () => {
     expect(await c.fetchProfile("sessionid=abc")).toBe(null);
     expect(c.lastErrorCode).toBe(-4);
   });
+
+  // ── passport v2 envelope (real-device 2026-06-11, no status_code) ──
+  it("parses passport-v2 success envelope { message:'success', data } (no status_code)", async () => {
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "passport/account/info/v2",
+        {
+          body: JSON.stringify({
+            message: "success",
+            data: { user_id: "555", screen_name: "v2user" },
+          }),
+        },
+      ],
+    ]);
+    const c = new ToutiaoApiClient({ fetch: fakeFetch });
+    const p = await c.fetchProfile("sessionid=abc");
+    expect(p).not.toBe(null);
+    expect(p.uid).toBe("555");
+    expect(p.nickname).toBe("v2user");
+  });
+
+  it("surfaces passport-v2 error envelope error_code + 中文 description (error_code 16 该应用无权限)", async () => {
+    // Verified on device 5lhyaqu8lbwstc6x with a fully logged-in Toutiao:
+    // the endpoint now returns this even with valid sessionid cookies. The
+    // old code mis-reported it as "missing status_code".
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "passport/account/info/v2",
+        {
+          body: JSON.stringify({
+            message: "error",
+            data: { error_code: 16, description: "该应用无权限", captcha: "" },
+          }),
+        },
+      ],
+    ]);
+    const c = new ToutiaoApiClient({ fetch: fakeFetch });
+    expect(await c.fetchProfile("sessionid=abc")).toBe(null);
+    expect(c.lastErrorCode).toBe(16);
+    expect(c.lastErrorMessage).toBe("该应用无权限");
+  });
+
+  it("unrecognized envelope (no status_code, no message) → -5 with key list", async () => {
+    const { fakeFetch } = makeFakeFetch([
+      ["passport/account/info/v2", { body: JSON.stringify({ foo: "bar" }) }],
+    ]);
+    const c = new ToutiaoApiClient({ fetch: fakeFetch });
+    expect(await c.fetchProfile("sessionid=abc")).toBe(null);
+    expect(c.lastErrorCode).toBe(-5);
+  });
 });
 
 describe("ToutiaoApiClient — fetchFeed", () => {
