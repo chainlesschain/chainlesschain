@@ -3,6 +3,25 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.106] - 2026-06-11 — fix: PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 出行/社交全适配器测试收口（pdh 0.4.4 / cli 0.162.40）+ Android cc bundle v20260611（真机实证重提取）
+
+> 本版以 PDH 个人数据中台采集层为主线：①修复新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON) 后 profile 采集失败（`apiPhDecodeCandidates` 解码链，pdh 0.4.4）；②修复 travel-base `buildTitle` 不认 `name` 字段导致所有高德路线/搜索事件标题为 `car: ? → ?`；③订正头条/快手/邮箱适配器 3 处过时注释。④测试矩阵全收口 +180，全仓 55 适配器测试覆盖 100%。⑤pdh 0.4.3→0.4.4 + cli 0.162.39→0.162.40 已发 npm；⑥Android in-APK cc bundle 重建 `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`。⑦**真机（Xiaomi amethyst）实证**：装新 APK 触发 sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。
+
+### Fix —— PDH 采集层（pdh 0.4.4）
+
+- 快手 `api_ph` base64(JSON) cookie 解码 fallback（新版快手 profile 采集恢复）
+- travel-base `buildTitle` 加 `name` 三级回退（修高德所有行程事件标题）
+- 订正头条/快手/邮箱 3 处过时注释
+
+### Test —— 适配器测试矩阵全收口（+180，全仓 55 适配器 100% 覆盖）
+
+- 小红书 ADB 三件套 58 + 出行 6 模块 74 + whatsapp/shopping-base 24 + 快手 base64 9
+
+### Android —— in-APK cc bundle 刷新 + 真机验证
+
+- `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 22`
+- 真机实证 sentinel 17→22 重提取 + 设备上 pdh 0.4.4 代码落地
+
 ## [v5.0.3.105] - 2026-06-10 — feat: cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新
 
 > 本版把 v5.0.3.104 之后 2026-06-10 的 CLI 平价主线固化为一次正式发版：①MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL；②`SubagentStop` settings.json hook（Claude-Code 平价）；③`cc agent --fork-session`（Claude-Code 平价）；④CLI 0.162.38 已发 npm；⑤Android in-APK cc bundle 重建（cli 0.162.38 + pdh 0.4.3）+ `USR_VERSION 20 → 21`，补上 v5.0.3.101 以来 APK 内置 cc 跑旧代码的缺口；⑥CLI e2e 共享 helper + e2e 隔离/重试 CI 加固；⑦docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账（155 命令/145 技能/25 Android）。

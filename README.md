@@ -10,6 +10,18 @@
 
 ---
 
+## 2026-06-11 发布 — **v5.0.3.106：PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 全适配器测试收口（pdh 0.4.4 / cli 0.162.40）+ Android cc bundle v20260611（真机实证重提取）**
+
+> 本版以 PDH 个人数据中台采集层为主线。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **PDH 采集修复（pdh 0.4.4）**：新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON)，加 `apiPhDecodeCandidates` 解码链恢复 profile 采集；travel-base `buildTitle` 加 `name` 三级回退修高德所有行程事件标题 `car: ? → ?`；订正头条/快手/邮箱 3 处过时注释。
+- **测试矩阵全收口（+180）**：小红书 ADB 三件套 58 + 出行 6 模块 74 + whatsapp/shopping-base 24 + 快手 base64 9 → **全仓 55 适配器测试覆盖 100%**。
+- **Android in-APK cc bundle 刷新 + 真机验证**：`internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`；真机（Xiaomi amethyst）实证装新 APK 触发 `LocalFilesystemBootstrapper` sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。
+- **npm 包**：`chainlesschain` CLI 0.162.39 → 0.162.40 + `@chainlesschain/personal-data-hub` 0.4.3 → 0.4.4 已发 npm。
+- **版本面**：productVersion v5.0.3.105 → v5.0.3.106 / desktop 5.0.3-alpha.106 / Android versionCode 503106 · USR_VERSION 21 → 22 / iOS CFBundleVersion 106。
+
+---
+
 ## 2026-06-10 发布 — **v5.0.3.105：cc agent MCP prompts/resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新**
 
 > 把 v5.0.3.104 之后 2026-06-10 的 CLI 平价主线固化为一次正式发版。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

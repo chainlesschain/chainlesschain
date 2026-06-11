@@ -10,6 +10,18 @@
 
 ---
 
+## 2026-06-11 Release — **v5.0.3.106: PDH Kuaishou api_ph base64 collection fix + Amap title bug + full adapter test coverage (pdh 0.4.4 / cli 0.162.40) + Android cc bundle v20260611 (real-device re-extraction verified)**
+
+> PDH (personal data hub) collection layer is the mainline of this release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **PDH collection fixes (pdh 0.4.4)**: newer Kuaishou writes `kuaishou.web.cp.api_ph` as base64(JSON) — added `apiPhDecodeCandidates` decode chain to restore profile collection; travel-base `buildTitle` now falls back to `name`, fixing every Amap trip-event title showing `car: ? → ?`; corrected 3 stale comments (Toutiao/Kuaishou/email adapters).
+- **Adapter test matrix fully closed (+180)**: Xiaohongshu ADB trio 58 + 6 travel modules 74 + whatsapp/shopping-base 24 + Kuaishou base64 9 → **100% test coverage across all 55 adapters**.
+- **Android in-APK cc bundle refresh + real-device verification**: `internal-binaries-android-v20260611` (pdh 0.4.4 + cli 0.162.40) + `USR_VERSION 21 → 22`; verified on a real device (Xiaomi amethyst) — installing the new APK triggers `LocalFilesystemBootstrapper` sentinel 17→22 re-extraction, on-device pdh=0.4.4 with both fixes grep-confirmed present.
+- **npm packages**: `chainlesschain` CLI 0.162.39 → 0.162.40 + `@chainlesschain/personal-data-hub` 0.4.3 → 0.4.4 published.
+- **Version surfaces**: productVersion v5.0.3.105 → v5.0.3.106 / desktop 5.0.3-alpha.106 / Android versionCode 503106 · USR_VERSION 21 → 22 / iOS CFBundleVersion 106.
+
+---
+
 ## 2026-06-10 Release — **v5.0.3.105: cc agent MCP prompts/resources + SubagentStop hook + --fork-session (CLI 0.162.38) + Android in-APK cc bundle refresh**
 
 > Formalizes the 2026-06-10 CLI-parity mainline after v5.0.3.104 as a release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
