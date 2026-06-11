@@ -625,6 +625,20 @@ chainlesschain context <id> --model claude-sonnet-4-6   # 按指定窗口估
 默认从会话 `session_start` 头自动识别 model/provider(`--model`/`--provider` 覆盖)。复用自动压缩
 的 token 估算器 + 窗口表,不采新数据。补足 `cc cost`($)+ `cc session usage`(裸 token 数)。
 
+REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages)实时分桶,不用先存档。
+
+## Session Export / REPL 补全 / 版本提醒(小件平价)
+
+- **`cc session export <id|last> [-o file]`** — 会话导出 Markdown。主源仍是聊天 DB 会话;
+  查不到时自动回退 **JSONL agent 会话**(`cc agent --resume` 那套):user/assistant/system 轮次 +
+  tool_call/tool_result 围栏块(4K 截断,内嵌 ``` 自动升级围栏)+ compact 标记 + token 汇总。
+  `last` 直接导最近一次 agent 会话(不碰 DB)。
+- **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
+  空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
+- **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
+  stderr 打一行灰字(仅 TTY,不污染管道/JSON);缓存 >24h 由 detached 子进程后台刷新供下次启动,
+  热路径零网络。`CC_UPDATE_NOTICE=0` 关闭;完整检查仍走 `cc update`。
+
 ## Project Memory — `cc.md` 项目记忆自动加载 + `cc init` 盘点
 
 Claude Code CLAUDE.md 体系对标(主名用自家 `cc.md`,设计文档 `docs/design/modules/99_项目记忆与init对标方案.md`)。`cc agent` 启动时自动把文件式项目约定注入系统提示(`<project-instructions>` 块):
