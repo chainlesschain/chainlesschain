@@ -1,0 +1,259 @@
+/**
+ * `cc mcp serve` — expose cc's local file tools as an MCP server so OTHER
+ * MCP clients (Claude Desktop, another cc, any Streamable-HTTP client) can
+ * use this machine's workspace. Claude-Code `claude mcp serve` parity.
+ *
+ * Protocol: Streamable-HTTP MCP, same shape the IDE-bridge work verified
+ * against the real CLI MCPClient — every request is POST JSON-RPC answered
+ * with application/json (no persistent SSE GET needed): `initialize`,
+ * `notifications/initialized`, `tools/list`, `tools/call`; tool failures are
+ * `isError` results, transport failures JSON-RPC errors.
+ *
+ * Security: tools are CONFINED to the serve root (path resolves inside root
+ * or the call fails), Bearer-token auth is on by default (random token,
+ * printed once), `--read-only` drops write_file. Zero npm deps (node http).
+ */
+
+import http from "http";
+import fsDefault from "fs";
+import pathDefault from "path";
+import { randomBytes } from "crypto";
+
+export const MAX_READ_BYTES = 200 * 1024;
+export const MAX_LIST_ENTRIES = 500;
+export const MAX_SEARCH_RESULTS = 200;
+export const MAX_SEARCH_ENTRIES = 50_000;
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
+
+export const _deps = { fs: fsDefault, path: pathDefault };
+
+/** Resolve `rel` inside `root`; throws on escape (.. traversal, abs paths out). */
+export function confine(root, rel, deps = _deps) {
+  const abs = deps.path.resolve(root, rel || ".");
+  const normRoot = deps.path.resolve(root);
+  if (abs !== normRoot && !abs.startsWith(normRoot + deps.path.sep)) {
+    throw new Error(`path escapes serve root: ${rel}`);
+  }
+  return abs;
+}
+
+function ok(text) {
+  return { content: [{ type: "text", text: String(text) }] };
+}
+function fail(message) {
+  return { content: [{ type: "text", text: String(message) }], isError: true };
+}
+
+/** Build the tool table (name → {description, inputSchema, handler}). */
+export function buildTools({ root, readOnly = false, deps = _deps }) {
+  const fs = deps.fs;
+  const tools = {
+    read_file: {
+      description: `Read a UTF-8 file under the serve root (${MAX_READ_BYTES} byte cap)`,
+      inputSchema: {
+        type: "object",
+        properties: { path: { type: "string" } },
+        required: ["path"],
+      },
+      handler: ({ path: rel }) => {
+        const abs = confine(root, rel, deps);
+        const buf = fs.readFileSync(abs);
+        const truncated = buf.length > MAX_READ_BYTES;
+        const text = (truncated ? buf.slice(0, MAX_READ_BYTES) : buf).toString(
+          "utf-8",
+        );
+        return ok(truncated ? `${text}\n… [truncated ${buf.length} bytes]` : text);
+      },
+    },
+    list_dir: {
+      description: "List a directory under the serve root (dirs get trailing /)",
+      inputSchema: {
+        type: "object",
+        properties: { path: { type: "string" } },
+      },
+      handler: ({ path: rel } = {}) => {
+        const abs = confine(root, rel || ".", deps);
+        const entries = fs
+          .readdirSync(abs, { withFileTypes: true })
+          .slice(0, MAX_LIST_ENTRIES)
+          .map((e) => (e.isDirectory() ? `${e.name}/` : e.name));
+        return ok(entries.join("\n"));
+      },
+    },
+    search_files: {
+      description:
+        "Find files under the serve root whose RELATIVE PATH contains the query (case-insensitive, bounded walk)",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          dir: { type: "string" },
+        },
+        required: ["query"],
+      },
+      handler: ({ query, dir } = {}) => {
+        const base = confine(root, dir || ".", deps);
+        const q = String(query).toLowerCase();
+        const hits = [];
+        let seen = 0;
+        const walk = (d) => {
+          if (hits.length >= MAX_SEARCH_RESULTS || seen >= MAX_SEARCH_ENTRIES)
+            return;
+          let list;
+          try {
+            list = fs.readdirSync(d, { withFileTypes: true });
+          } catch {
+            return;
+          }
+          for (const e of list) {
+            if (hits.length >= MAX_SEARCH_RESULTS || ++seen >= MAX_SEARCH_ENTRIES)
+              return;
+            const abs = deps.path.join(d, e.name);
+            if (e.isDirectory()) {
+              if (!SKIP_DIRS.has(e.name) && !e.name.startsWith("."))
+                walk(abs);
+            } else {
+              const rel = deps.path.relative(root, abs).replace(/\\/g, "/");
+              if (rel.toLowerCase().includes(q)) hits.push(rel);
+            }
+          }
+        };
+        walk(base);
+        return ok(hits.join("\n") || "(no matches)");
+      },
+    },
+  };
+  if (!readOnly) {
+    tools.write_file = {
+      description: "Write a UTF-8 file under the serve root (creates parent dirs)",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["path", "content"],
+      },
+      handler: ({ path: rel, content }) => {
+        const abs = confine(root, rel, deps);
+        fs.mkdirSync(deps.path.dirname(abs), { recursive: true });
+        fs.writeFileSync(abs, String(content), "utf-8");
+        return ok(`wrote ${Buffer.byteLength(String(content))} bytes to ${rel}`);
+      },
+    };
+  }
+  return tools;
+}
+
+function rpcResult(id, result) {
+  return JSON.stringify({ jsonrpc: "2.0", id, result });
+}
+function rpcError(id, code, message) {
+  return JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } });
+}
+
+/**
+ * Start the server. Returns { server, port, token, url, close() }.
+ *
+ * @param {object} opts { root, port=0, token (null → random, false → no auth),
+ *                        readOnly, deps }
+ */
+export function startMcpServe(opts = {}) {
+  const deps = { ..._deps, ...(opts.deps || {}) };
+  const root = deps.path.resolve(opts.root || process.cwd());
+  const readOnly = Boolean(opts.readOnly);
+  const token =
+    opts.token === false
+      ? null
+      : opts.token || randomBytes(16).toString("hex");
+  const tools = buildTools({ root, readOnly, deps });
+
+  const server = http.createServer((req, res) => {
+    const send = (status, body) => {
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(body);
+    };
+    if (req.method !== "POST") {
+      return send(405, rpcError(null, -32600, "POST only"));
+    }
+    if (token) {
+      const auth = req.headers.authorization || "";
+      if (auth !== `Bearer ${token}`) {
+        return send(401, rpcError(null, -32001, "unauthorized"));
+      }
+    }
+    let raw = "";
+    req.on("data", (c) => {
+      raw += c;
+    });
+    req.on("end", () => {
+      let msg;
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return send(400, rpcError(null, -32700, "parse error"));
+      }
+      const { id, method, params } = msg || {};
+      try {
+        if (method === "initialize") {
+          return send(
+            200,
+            rpcResult(id, {
+              protocolVersion: params?.protocolVersion || "2025-03-26",
+              capabilities: { tools: {} },
+              serverInfo: { name: "cc-mcp-serve", version: "1.0.0" },
+            }),
+          );
+        }
+        if (method === "notifications/initialized") {
+          res.writeHead(202);
+          return res.end();
+        }
+        if (method === "tools/list") {
+          return send(
+            200,
+            rpcResult(id, {
+              tools: Object.entries(tools).map(([name, t]) => ({
+                name,
+                description: t.description,
+                inputSchema: t.inputSchema,
+              })),
+            }),
+          );
+        }
+        if (method === "tools/call") {
+          const tool = tools[params?.name];
+          if (!tool) {
+            return send(200, rpcResult(id, fail(`unknown tool: ${params?.name}`)));
+          }
+          let result;
+          try {
+            result = tool.handler(params?.arguments || {});
+          } catch (err) {
+            result = fail(err.message);
+          }
+          return send(200, rpcResult(id, result));
+        }
+        return send(200, rpcError(id, -32601, `method not found: ${method}`));
+      } catch (err) {
+        return send(500, rpcError(id, -32603, err.message));
+      }
+    });
+  });
+
+  return new Promise((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(opts.port || 0, "127.0.0.1", () => {
+      const port = server.address().port;
+      resolve({
+        server,
+        port,
+        token,
+        root,
+        readOnly,
+        url: `http://127.0.0.1:${port}/mcp`,
+        close: () => new Promise((r) => server.close(r)),
+      });
+    });
+  });
+}

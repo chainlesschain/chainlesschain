@@ -214,6 +214,63 @@ export function registerMcpCommand(program) {
       }
     });
 
+  // mcp serve — expose THIS machine's files as an MCP server
+  mcp
+    .command("serve")
+    .description(
+      "Expose local file tools (read/list/search/write, root-confined) as a Streamable-HTTP MCP server for other clients",
+    )
+    .option("--port <n>", "Port to listen on (default: random free port)", "0")
+    .option("--root <dir>", "Serve root directory (default: cwd)")
+    .option("--read-only", "Disable the write_file tool")
+    .option("--token <token>", "Fixed Bearer token (default: random)")
+    .option("--no-auth", "Disable Bearer auth (server binds 127.0.0.1 only)")
+    .action(async (options) => {
+      try {
+        const { startMcpServe } = await import("../lib/mcp-serve.js");
+        const handle = await startMcpServe({
+          root: options.root,
+          port: Number(options.port) || 0,
+          readOnly: Boolean(options.readOnly),
+          token: options.auth === false ? false : options.token || null,
+        });
+        logger.log(chalk.bold("MCP server ready (Streamable-HTTP)"));
+        logger.log(`  URL:   ${chalk.cyan(handle.url)}`);
+        logger.log(`  Root:  ${handle.root}${handle.readOnly ? "  (read-only)" : ""}`);
+        if (handle.token) {
+          logger.log(`  Auth:  Bearer ${handle.token}`);
+        } else {
+          logger.log(chalk.yellow("  Auth:  disabled (--no-auth)"));
+        }
+        logger.log(chalk.gray("\nConnect from another cc via --mcp-config:"));
+        logger.log(
+          chalk.gray(
+            JSON.stringify(
+              {
+                mcpServers: {
+                  ccfiles: {
+                    transport: "http",
+                    url: handle.url,
+                    ...(handle.token
+                      ? { headers: { Authorization: `Bearer ${handle.token}` } }
+                      : {}),
+                  },
+                },
+              },
+              null,
+              2,
+            ),
+          ),
+        );
+        logger.log(chalk.gray("\nCtrl+C to stop."));
+        // keep the process alive until killed
+        await new Promise(() => {});
+      } catch (err) {
+        logger.error(chalk.red(`mcp serve failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
   // mcp servers — list configured servers
   mcp
     .command("servers")
