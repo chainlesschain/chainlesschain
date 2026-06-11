@@ -379,6 +379,10 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 > **`@` 路径补全（v0.162.38+）**：交互 REPL 中输入 `@` 后按 TAB 补全文件/目录路径（目录带尾斜杠可继续下钻，自动排除 `node_modules`/`.git`，大小写不敏感）；IDE 桥接已连接时，编辑器打开的标签页混入候选并排最前（workspace 内转相对路径）。IDE 列表 5s TTL 后台刷新，补全本身同步零延迟。
 >
 > **输入排队（v0.162.40+）**：agent 回合进行中继续打字不再触发并发回合 —— 多余输入按 FIFO 排队（灰色 `queued (N)` 提示），当前回合结束后自动依次执行。
+>
+> **Esc 打断（v0.162.40+）**：回合进行中按 `Esc` 立即中止当前回合（黄色 "turn interrupted" 提示，非报错）——已产出的部分对话保留，排队中的输入照常继续执行。
+>
+> **会话回退 `/rewind`（v0.162.40+，steering 三件套收口）**：`/rewind` 列出历史用户轮次（新→旧编号 + 预览），`/rewind <n>` 把对话截回该轮之前并把原文预填到输入行（改完重发）；空闲时**双击 Esc** 调出同一选择器。注意这只回退**对话**，文件状态回退用 `cc checkpoint restore`。
 
 ### 基础命令
 
@@ -390,6 +394,7 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 | `/provider <p>`  | 切换/查看提供商，支持 8 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
 | `/clear`         | 清空对话历史                         |
 | `/compact`       | 智能压缩对话（基于重要性评分）       |
+| `/rewind [n]`    | 列出/回退到历史用户轮次（双击 Esc 同效；文件回退用 `cc checkpoint`） |
 | `/output-style [name]` | 列出 / 切换 [输出风格](./output-styles) 人格；`none` 清除 |
 
 ### Context Engineering 命令
