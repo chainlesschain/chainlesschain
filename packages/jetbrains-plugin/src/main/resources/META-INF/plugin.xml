@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -35,6 +35,12 @@
                 class="com.chainlesschain.ide.intellij.ShowStatusAction"
                 text="ChainlessChain IDE: Show Bridge Status"
                 description="Show the IDE bridge MCP server status">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.ide.ConfigureLlm"
+                class="com.chainlesschain.ide.intellij.ConfigureLlmAction"
+                text="ChainlessChain: Configure LLM (配置大模型)"
+                description="Guided LLM setup via cc config set + cc llm test">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>

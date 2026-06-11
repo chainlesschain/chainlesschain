@@ -1,0 +1,186 @@
+package com.chainlesschain.ide;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+/**
+ * Guided LLM configuration — the plugin is only a thin wizard: all
+ * reads/writes/tests go through the CLI ({@code cc config get/set},
+ * {@code cc llm test}), so there is exactly one source of truth
+ * (~/.chainlesschain/config.json, shared with the CLI and the VS Code
+ * extension) and zero home-dir resolution here. Pure JDK (Java 8) — part of
+ * the SDK-free protocol core, locally compilable and testable.
+ */
+public final class LlmConfig {
+    private LlmConfig() {}
+
+    /** One provider preset; ids must match the CLI's BUILT_IN_PROVIDERS. */
+    public static final class Preset {
+        public final String id;
+        public final String label;
+        public final String baseUrl;
+        public final String defaultModel;
+        public final boolean needsKey;
+
+        Preset(String id, String label, String baseUrl, String defaultModel, boolean needsKey) {
+            this.id = id;
+            this.label = label;
+            this.baseUrl = baseUrl;
+            this.defaultModel = defaultModel;
+            this.needsKey = needsKey;
+        }
+    }
+
+    public static final Preset[] PRESETS = {
+        new Preset("volcengine", "火山引擎 / 豆包 (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-1-6-251015", true),
+        new Preset("ollama", "Ollama (本地, 免 key)", "http://localhost:11434", "qwen2.5:7b", false),
+        new Preset("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1", "claude-sonnet-4-6", true),
+        new Preset("openai", "OpenAI", "https://api.openai.com/v1", "gpt-4o", true),
+        new Preset("deepseek", "DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat", true),
+        new Preset("dashscope", "阿里云百炼 / 通义 (dashscope)", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-max", true),
+        new Preset("kimi", "Moonshot Kimi", "https://api.moonshot.cn/v1", "moonshot-v1-auto", true),
+        new Preset("gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta", "gemini-2.0-flash", true),
+        new Preset("mistral", "Mistral", "https://api.mistral.ai/v1", "mistral-large-latest", true),
+        new Preset("minimax", "MiniMax", "https://api.minimax.chat/v1", "abab6.5s-chat", true),
+    };
+
+    private static final Pattern UNSAFE = Pattern.compile("[\\s&|<>^\"'`%]");
+
+    /**
+     * Values reach {@code cc config set} through a Windows {@code cmd /c}
+     * (the npm shim is a .cmd), where metacharacters cannot be quoted
+     * reliably — reject them up front instead of corrupting the config.
+     */
+    public static boolean hasUnsafeShellChars(String value) {
+        return value != null && UNSAFE.matcher(value).find();
+    }
+
+    /** The {@code cc config set} invocations for the wizard's answers. */
+    public static List<List<String>> buildConfigSetArgs(
+            String provider, String model, String apiKey, String baseUrl) {
+        List<List<String>> sets = new ArrayList<List<String>>();
+        if (notBlank(provider)) sets.add(args("config", "set", "llm.provider", provider));
+        if (notBlank(model)) sets.add(args("config", "set", "llm.model", model));
+        if (notBlank(baseUrl)) sets.add(args("config", "set", "llm.baseUrl", baseUrl));
+        if (notBlank(apiKey)) sets.add(args("config", "set", "llm.apiKey", apiKey));
+        return sets;
+    }
+
+    /** Outcome of one CLI run. */
+    public static final class CliResult {
+        public final boolean ok;
+        public final String output;
+
+        CliResult(boolean ok, String output) {
+            this.ok = ok;
+            this.output = output;
+        }
+    }
+
+    /** Run `cc <args…>` (via cmd /c on Windows — npm shims are .cmd files). */
+    public static CliResult runCli(List<String> ccArgs) {
+        List<String> cmd = new ArrayList<String>();
+        boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        if (windows) {
+            cmd.add("cmd");
+            cmd.add("/c");
+        }
+        cmd.add("cc");
+        cmd.addAll(ccArgs);
+        try {
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            String out = readAll(p.getInputStream());
+            boolean finished = p.waitFor(60, TimeUnit.SECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                return new CliResult(false, "cc timed out");
+            }
+            return new CliResult(p.exitValue() == 0, out);
+        } catch (Exception e) {
+            return new CliResult(false, String.valueOf(e.getMessage()));
+        }
+    }
+
+    /** Currently configured provider, or null when unset / CLI missing. */
+    public static String getConfiguredProvider() {
+        CliResult r = runCli(args("config", "get", "llm.provider"));
+        if (!r.ok) return null;
+        return parseConfigGet(r.output);
+    }
+
+    /** Pure parse of `cc config get` output (both `k = v` and bare-value). */
+    public static String parseConfigGet(String stdout) {
+        if (stdout == null) return null;
+        String raw = stdout.trim();
+        int eq = raw.lastIndexOf('=');
+        if (eq >= 0) raw = raw.substring(eq + 1).trim();
+        if (raw.isEmpty() || "undefined".equalsIgnoreCase(raw) || "null".equalsIgnoreCase(raw)) {
+            return null;
+        }
+        return raw;
+    }
+
+    /**
+     * Apply the wizard's answers (sequential, fail-fast).
+     * @return null on success, otherwise a user-facing error message
+     */
+    public static String applyConfig(String provider, String model, String apiKey, String baseUrl) {
+        String[][] fields = {
+            {"provider", provider}, {"model", model}, {"apiKey", apiKey}, {"baseUrl", baseUrl},
+        };
+        for (String[] f : fields) {
+            if (notBlank(f[1]) && hasUnsafeShellChars(f[1])) {
+                return "值含不安全字符 (" + f[0] + ") — 请去掉空格/引号/& 等再试";
+            }
+        }
+        for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl)) {
+            CliResult r = runCli(set);
+            if (!r.ok) return tail(r.output, 200);
+        }
+        return null;
+    }
+
+    /** Connectivity check via `cc llm test`; returns a short summary. */
+    public static CliResult testLlm() {
+        CliResult r = runCli(args("llm", "test"));
+        return new CliResult(r.ok, tail(r.output, 300));
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.trim().isEmpty();
+    }
+
+    private static List<String> args(String... a) {
+        List<String> list = new ArrayList<String>();
+        for (String s : a) list.add(s);
+        return list;
+    }
+
+    private static String tail(String s, int max) {
+        if (s == null) return "";
+        String t = s.trim();
+        String[] lines = t.split("\n");
+        StringBuilder b = new StringBuilder();
+        for (int i = Math.max(0, lines.length - 3); i < lines.length; i++) {
+            if (b.length() > 0) b.append(' ');
+            b.append(lines[i].trim());
+        }
+        String joined = b.toString();
+        return joined.length() > max ? joined.substring(0, max) : joined;
+    }
+
+    private static String readAll(InputStream in) throws Exception {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        byte[] chunk = new byte[4096];
+        int n;
+        while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+        return new String(buf.toByteArray(), StandardCharsets.UTF_8);
+    }
+}

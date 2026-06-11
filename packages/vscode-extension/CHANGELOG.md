@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.11.1] — 2026-06-11
+
+- Discoverability: a **⚙ gear button on the Chat panel title bar** opens the
+  Configure-LLM wizard (it was command-palette-only, and easy to miss from
+  the Settings page, which only lists plain settings).
+
 ## [0.11.0] — 2026-06-11
 
 - **Guided LLM setup** — the missing onboarding: command

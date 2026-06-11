@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.2.0] — 2026-06-11
+
+- **Guided LLM setup**: Tools → **ChainlessChain: Configure LLM** walks
+  provider → model → API key → base URL (10 presets: volcengine/doubao,
+  Ollama, Anthropic, OpenAI, DeepSeek, DashScope, Kimi, Gemini, Mistral,
+  MiniMax), writes through `cc config set` (single source of truth:
+  ~/.chainlesschain/config.json, shared with the CLI and the VS Code
+  extension — the key never enters IDE settings) and verifies with
+  `cc llm test`. Pure-JDK core (LlmConfig) + thin SDK dialog glue.
+
 ## [0.1.2] — 2026-06-11
 
 - Document the CLI 0.162.41 batch available in the IDE terminal through the

@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -50,7 +50,8 @@
       },
       {
         "command": "chainlesschain.llm.configure",
-        "title": "ChainlessChain: Configure LLM (配置大模型)"
+        "title": "ChainlessChain: Configure LLM (配置大模型)",
+        "icon": "$(gear)"
       }
     ],
     "viewsContainers": {
@@ -77,6 +78,11 @@
     },
     "menus": {
       "view/title": [
+        {
+          "command": "chainlesschain.llm.configure",
+          "when": "view == chainlesschainIdeChat",
+          "group": "navigation@1"
+        },
         {
           "command": "chainlesschain.ide.openDashboard",
           "when": "view == chainlesschainIdeView",

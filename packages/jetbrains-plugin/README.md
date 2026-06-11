@@ -41,6 +41,14 @@ the CLI's 0.162.41 batch works there with zero plugin changes:
   schema-validated JSON only; `chainlesschain mcp serve` exposes local file
   tools to other MCP clients.
 
+## Configure the LLM (first run)
+
+Tools → **ChainlessChain: Configure LLM** — pick a provider (10 presets),
+enter model/API key/base URL (defaults prefilled); the wizard writes
+`~/.chainlesschain/config.json` via `cc config set` and verifies with
+`cc llm test`. One config shared by the CLI, this plugin, and the VS Code
+extension; the key never enters IDE settings.
+
 ## Architecture
 
 The code is split into two layers:
