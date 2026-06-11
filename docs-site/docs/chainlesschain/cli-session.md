@@ -56,6 +56,7 @@ chainlesschain session policy <id>
 chainlesschain session policy <id> --set strict
 chainlesschain session policy <id> --set trusted
 chainlesschain session policy <id> --set autopilot
+chainlesschain session search <query>   # v0.162.40+：跨 JSONL agent 会话全文检索（大小写不敏感、有界扫描，返回角色+时间戳+预览+resume 提示）
 ```
 
 ## 传统会话管理

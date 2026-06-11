@@ -42,8 +42,13 @@ CLI Phase 102 — 在当前目录初始化 `.chainlesschain/` 项目结构，用
 
 > **v0.162.38+ 默认行为变更（Claude-Code `/init` 平价）**：不带 `-t/--template`、`--bare` 时，`cc init` 默认走**项目盘点（inventory）模式** —— 对当前目录做有界普查（按扩展名统计语言、lockfile 识别包管理器、scripts/workspaces、工具链标记、CI workflow 数、README 摘要、顶层目录），生成一份起步 `cc.md` 项目记忆文件，由 project-memory loader 在 agent 会话中自动注入。模板脚手架保留在显式 `-t/--template` 或 `--bare` 之后；web-panel 的 ProjectInit 始终传 `--template`，行为不变。
 
+> **`--ai` 增强盘点（v0.162.40+，module 99 Phase 2）**：离线普查后可选追加一轮**有界 headless agent** 精炼（acceptEdits、仅 read/list/search/write 四工具、12 轮上限）——读 README/入口文件，把 cc.md 的 Conventions 占位改写为实际观察到的约定。自引用防护：子 agent 以 `CC_PROJECT_MEMORY=0` 运行（半成品 cc.md 不会注入给正在精炼它的 agent）；失败时保留离线普查结果。
+>
+> **路径作用域规则（同期）**：`.claude/rules/*.md` 加入项目记忆链 —— frontmatter 写 `paths:`/`globs:`（列表或行内），按 cwd 前缀重叠过滤加载（根目录全加载；`packages/cli` 下只载匹配 `packages/cli/**` 与无前缀的规则），注入时剥离 frontmatter。用 `cc memory files` 观察实际加载了什么。
+
 ```bash
 chainlesschain init                              # 默认：项目盘点 → 生成 cc.md（/init 平价）
+chainlesschain init --ai                         # 盘点后用有界 agent 精炼 cc.md（opt-in）
 chainlesschain init --memory                     # 带模板旗标时也强制盘点模式
 chainlesschain init --force                      # 覆盖已存在的 cc.md（盘点模式）
 chainlesschain init --bare                       # 最小初始化（空项目模板）

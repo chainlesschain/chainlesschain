@@ -59,6 +59,7 @@ chainlesschain memory daily --append "今天完成了回归测试"
 chainlesschain memory file --edit
 chainlesschain memory store "偏好 TypeScript" --scope global --category preference --tags ts,style
 chainlesschain memory recall "TypeScript" --scope global
+chainlesschain memory files [--json]   # v0.162.40+：项目记忆加载器可观测 — 列出实际加载的 cc.md/.claude/rules 文件（path/scope/bytes/截断 + 警告）
 ```
 
 ## 传统记忆命令
