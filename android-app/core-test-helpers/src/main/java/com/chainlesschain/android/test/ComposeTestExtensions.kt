@@ -2,12 +2,14 @@ package com.chainlesschain.android.test
 
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -114,6 +116,23 @@ fun ComposeTestRule.scrollToText(
     substring: Boolean = false
 ) {
     onNode(hasText(text, substring = substring)).performScrollTo()
+}
+
+/**
+ * 在惰性列表（LazyColumn/LazyRow）中滚动到指定文本。
+ *
+ * [scrollToText] 的 `performScrollTo()` 要求节点已存在于语义树——但 LazyColumn
+ * 只组合视口内的条目，视口外的目标根本没有节点，`performScrollTo` 直接失败。
+ * 这里改为对滚动容器本身 `performScrollToNode(matcher)`，由列表负责把目标
+ * 条目滚进来（同时天然驱动 Paging3 加载后续页）。要求屏幕上只有一个支持
+ * scroll-to-node 的容器，多于一个时 onNode 会因歧义报错。
+ */
+fun ComposeTestRule.scrollListToText(
+    text: String,
+    substring: Boolean = false
+) {
+    onNode(hasScrollToNodeAction())
+        .performScrollToNode(hasText(text, substring = substring))
 }
 
 /**

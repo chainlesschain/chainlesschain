@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.knowledge.e2e
 
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.core.app.ApplicationProvider
@@ -17,10 +18,11 @@ import com.chainlesschain.android.test.DatabaseFixture
 import com.chainlesschain.android.test.assertTextDoesNotExist
 import com.chainlesschain.android.test.assertTextExists
 import com.chainlesschain.android.test.clickOnText
-import com.chainlesschain.android.test.scrollToText
+import com.chainlesschain.android.test.scrollListToText
 import com.chainlesschain.android.test.typeTextInField
 import com.chainlesschain.android.test.waitForText
 import com.chainlesschain.android.test.waitUntilCondition
+import com.chainlesschain.android.test.waitUntilNodeDoesNotExist
 import com.chainlesschain.android.test.withKnowledgeItems
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -175,12 +177,15 @@ class KnowledgeE2ETest {
             )
         }
 
-        // 1) Editor renders — title field label, Markdown placeholder, and
-        //    save button must all be present. RichTextEditor shows its
-        //    placeholder as semantic text until the user types.
+        // 1) Editor renders — title field label and save button must be
+        //    present. The Markdown placeholder ("开始输入Markdown内容...") is
+        //    deliberately NOT asserted: RichTextEditor's edit pane is an
+        //    AndroidView-wrapped Markwon EditText whose placeholder is the
+        //    View-world `hint` — it never appears in the Compose semantics
+        //    tree, so hasText() can not match it (CI runs 27328157081+
+        //    failed exactly here).
         composeTestRule.assertTextExists("新建知识库")
         composeTestRule.assertTextExists("标题 *")
-        composeTestRule.assertTextExists("开始输入Markdown内容...")
         composeTestRule.onNodeWithContentDescription("保存").assertIsDisplayed()
 
         // 2) Save round-trip — typeTextInField against OutlinedTextField label
@@ -272,34 +277,43 @@ class KnowledgeE2ETest {
         // contents use ASCII tokens — SQLite FTS4 default tokenizer is
         // `simple`, which splits on whitespace/punctuation; CJK tokens would
         // be a single blob and harder to assert against.
+        // Explicit descending updatedAt: the list orders by
+        // `isPinned DESC, updatedAt DESC` (KnowledgeItemDao.getItems), and
+        // same-millisecond inserts make that ordering nondeterministic —
+        // a→b→c→d top-down is what the viewport assertions below rely on.
+        val kb04Base = System.currentTimeMillis()
         databaseFixture.insertKnowledgeItems(
             KnowledgeItemEntity(
                 id = "kb04-a",
                 title = "Kotlin coroutines guide",
                 content = "structured concurrency basics",
                 type = "note",
-                deviceId = "kb04-device"
+                deviceId = "kb04-device",
+                updatedAt = kb04Base
             ),
             KnowledgeItemEntity(
                 id = "kb04-b",
                 title = "Compose layout primer",
                 content = "Modifier chains and slot APIs",
                 type = "note",
-                deviceId = "kb04-device"
+                deviceId = "kb04-device",
+                updatedAt = kb04Base - 1_000
             ),
             KnowledgeItemEntity(
                 id = "kb04-c",
                 title = "Room database tutorial",
                 content = "SQLite FTS virtual table walkthrough",
                 type = "note",
-                deviceId = "kb04-device"
+                deviceId = "kb04-device",
+                updatedAt = kb04Base - 2_000
             ),
             KnowledgeItemEntity(
                 id = "kb04-d",
                 title = "Network calls with Retrofit",
                 content = "OkHttp interceptor patterns",
                 type = "note",
-                deviceId = "kb04-device"
+                deviceId = "kb04-device",
+                updatedAt = kb04Base - 3_000
             )
         )
 
@@ -325,10 +339,16 @@ class KnowledgeE2ETest {
             )
         }
 
-        // 1) Empty query — all 4 items render (ALL filter mode).
+        // 1) Empty query — all 4 items reachable (ALL filter mode). LazyColumn
+        //    only composes viewport items — on the CI emulator ~3 cards fit,
+        //    so the lower items must be scrolled to before asserting (the
+        //    plain assertTextExists on item d was the historical failure).
         composeTestRule.waitForText("Kotlin coroutines guide", timeoutMillis = 5000)
+        composeTestRule.scrollListToText("Compose layout primer")
         composeTestRule.assertTextExists("Compose layout primer")
+        composeTestRule.scrollListToText("Room database tutorial")
         composeTestRule.assertTextExists("Room database tutorial")
+        composeTestRule.scrollListToText("Network calls with Retrofit")
         composeTestRule.assertTextExists("Network calls with Retrofit")
 
         // 2) Search by title token — FTS MATCH "Kotlin" returns only item a.
@@ -350,9 +370,11 @@ class KnowledgeE2ETest {
         composeTestRule.waitForText("Network calls with Retrofit", timeoutMillis = 3000)
         composeTestRule.assertTextDoesNotExist("Room database tutorial")
 
-        // 5) Clear search → all 4 return.
+        // 5) Clear search → all 4 return (scroll-aware for the same viewport
+        //    reason as step 1).
         viewModel.clearSearch()
         composeTestRule.waitForText("Kotlin coroutines guide", timeoutMillis = 3000)
+        composeTestRule.scrollListToText("Room database tutorial")
         composeTestRule.assertTextExists("Room database tutorial")
     }
 
@@ -363,6 +385,13 @@ class KnowledgeE2ETest {
         // would race the Compose first composition). Titles are zero-padded so
         // lexical ordering matches numeric ordering when scrolling. PAGE_SIZE
         // in KnowledgeRepository is 20, so 50 items = 3 pages.
+        // Explicit strictly-decreasing updatedAt: the list orders by
+        // `isPinned DESC, updatedAt DESC`, and the original same-millisecond
+        // seeding left the order undefined (SQLite tie-break) — and even with
+        // distinct auto timestamps, DESC would put item 049 first while the
+        // assertions below expect 000 on top. base - idx*1000 makes item 000
+        // the newest → first row, restoring the intended 000..049 order.
+        val kb05Base = System.currentTimeMillis()
         databaseFixture.withKnowledgeItems(50) { idx ->
             val padded = idx.toString().padStart(3, '0')
             KnowledgeItemEntity(
@@ -370,7 +399,8 @@ class KnowledgeE2ETest {
                 title = "分页测试条目 $padded",
                 content = "内容 $padded",
                 type = "note",
-                deviceId = "kb05-device"
+                deviceId = "kb05-device",
+                updatedAt = kb05Base - idx * 1_000L
             )
         }
 
@@ -383,20 +413,27 @@ class KnowledgeE2ETest {
             )
         }
 
-        // 1) First page (0..19) renders without scrolling.
-        composeTestRule.waitForText("分页测试条目 000", timeoutMillis = 5000)
+        // 1) Top of page 1 renders; deeper page-1 items need scrolling — the
+        //    LazyColumn composes only the ~3-4 viewport cards, not the whole
+        //    20-item page (the plain assertTextExists on 005/019 was part of
+        //    the historical failure).
+        composeTestRule.waitForText("分页测试条目 000", timeoutMillis = 10000)
+        composeTestRule.scrollListToText("分页测试条目 005")
         composeTestRule.assertTextExists("分页测试条目 005")
+        composeTestRule.scrollListToText("分页测试条目 019")
         composeTestRule.assertTextExists("分页测试条目 019")
 
-        // 2) Scroll to an item on page 2 (20..39). scrollToText drives the
+        // 2) Scroll to an item on page 2 (20..39). scrollListToText drives the
         //    LazyColumn far enough to materialize the item — which also
         //    triggers Paging3 to load the next page (PagingSource.load is
-        //    invoked when the prefetch window is reached).
-        composeTestRule.scrollToText("分页测试条目 025")
+        //    invoked when the prefetch window is reached). The old scrollToText
+        //    (performScrollTo) required the target node to already exist —
+        //    impossible for a not-yet-composed lazy item.
+        composeTestRule.scrollListToText("分页测试条目 025")
         composeTestRule.assertTextExists("分页测试条目 025")
 
         // 3) Scroll to page 3 (40..49) — full range loadable.
-        composeTestRule.scrollToText("分页测试条目 045")
+        composeTestRule.scrollListToText("分页测试条目 045")
         composeTestRule.assertTextExists("分页测试条目 045")
 
         // DB-level sanity: all 50 rows are persisted (no insertAll dropped).
@@ -466,7 +503,13 @@ class KnowledgeE2ETest {
 
         // The flatMapLatest re-emission swaps repository.getItems() →
         // repository.getFavoriteItems(), so the LazyColumn should drop B.
-        composeTestRule.waitForText("可收藏笔记 A", timeoutMillis = 3000)
+        // That swap is asynchronous — waitForText("可收藏笔记 A") returns
+        // immediately because A is ALREADY on screen from the ALL list, so an
+        // immediate assertDoesNotExist(B) races the re-emission (historical
+        // CI failure: "found '1' node ... 普通笔记 B"). Poll for B's
+        // disappearance instead.
+        composeTestRule.waitUntilNodeDoesNotExist(hasText("普通笔记 B"), timeoutMillis = 5000)
+        composeTestRule.assertTextExists("可收藏笔记 A")
         composeTestRule.assertTextDoesNotExist("普通笔记 B")
 
         // 4) Switch back to ALL — both items reappear.
