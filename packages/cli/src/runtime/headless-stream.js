@@ -30,6 +30,13 @@ import {
   resolvePermissionMode,
   resolveEnabledTools,
 } from "./headless-runner.js";
+import {
+  startSession as jsonlStartSession,
+  appendUserMessage as jsonlAppendUserMessage,
+  appendAssistantMessage as jsonlAppendAssistantMessage,
+  rebuildMessages as jsonlRebuildMessages,
+  sessionExists as jsonlSessionExists,
+} from "../harness/jsonl-session-store.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 
 /**
@@ -212,6 +219,21 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const sessionId =
     options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
 
+  // Session persistence + resume (chat-panel "session resume" / --resume):
+  // an EXPLICIT session id (--session / --resume) opts into JSONL persistence —
+  // prior history is rebuilt into the conversation and every new turn is
+  // appended, so a later run with the same id picks up where this one left
+  // off. Anonymous runs (no id) stay persistence-free, exactly as before.
+  const store = {
+    sessionExists: deps.sessionExists || jsonlSessionExists,
+    startSession: deps.startSession || jsonlStartSession,
+    appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
+    appendAssistantMessage:
+      deps.appendAssistantMessage || jsonlAppendAssistantMessage,
+    rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
+  };
+  const persist = Boolean(options.sessionId);
+
   let approvalGate = null;
   try {
     approvalGate = await getApprovalGate();
@@ -258,6 +280,29 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
   }
 
+  // Resume: replay the persisted conversation (fresh system prompt always
+  // leads; persisted system turns are dropped, mirroring runAgentHeadless).
+  let resumedMessages = 0;
+  if (persist) {
+    try {
+      if (store.sessionExists(sessionId)) {
+        const history = (store.rebuildMessages(sessionId) || []).filter(
+          (m) => m && m.role !== "system",
+        );
+        messages.push(...history);
+        resumedMessages = history.length;
+      } else {
+        store.startSession(sessionId, {
+          title: "stream session",
+          provider,
+          model,
+        });
+      }
+    } catch {
+      // persistence is best-effort — never fail the stream over it
+    }
+  }
+
   emit({
     type: "system",
     subtype: "init",
@@ -268,6 +313,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     tools: enabledToolNames,
     input_format: "stream-json",
     additional_directories: additionalDirectories,
+    resumed_messages: resumedMessages,
   });
 
   // Goal binding (cc goal, Phase 1) — resolved once and injected on every turn.
@@ -466,6 +512,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     }
 
     messages.push({ role: "user", content: userContent });
+    if (persist) {
+      try {
+        store.appendUserMessage(sessionId, userContent);
+      } catch {
+        /* best-effort */
+      }
+    }
     turns += 1;
 
     let outcome;
@@ -489,6 +542,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
     // Grow the conversation so the next turn has context.
     messages.push({ role: "assistant", content: outcome.finalText });
+    if (persist) {
+      try {
+        store.appendAssistantMessage(sessionId, outcome.finalText);
+      } catch {
+        /* best-effort */
+      }
+    }
 
     const exhausted =
       outcome.endReason === "budget-exhausted" ||

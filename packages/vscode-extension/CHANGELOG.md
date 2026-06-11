@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.5.0] — 2026-06-11
+
+- **Chat session resume** (needs cc >= 0.162.40): the panel remembers this
+  workspace's conversation and continues it across panel reloads, child
+  exits, and editor restarts — the agent child is spawned with --resume and
+  the CLI replays the persisted history. A small "resumed previous
+  conversation (N messages)" note shows what came back. **New** still starts
+  a clean session (and forgets the stored one).
+
 ## [0.4.2] — 2026-06-11
 
 - Docs-only: refresh the marketplace README — the Status section had gone

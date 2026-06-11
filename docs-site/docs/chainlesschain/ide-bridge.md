@@ -92,6 +92,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 子进程继承本窗口桥接的 env,因此**实时感知/诊断回喂/IDE diff 审批在面板里自动全部生效**。
 需要 `cc` CLI 在 PATH(`npm i -g chainlesschain`,或设 `chainlesschain.cli.path`);
 首条消息才启动子进程,Stop 杀进程,下条消息自动重启;**New** 按钮开全新会话。
+**会话跨重启续接**(cc ≥ 0.162.40):面板记住本 workspace 的会话,重载窗口/子进程退出后
+自动 `--resume` 续上(面板提示 "resumed previous conversation (N messages)")。
 面板的 LLM 可经 `chainlesschain.chat.provider` / `chainlesschain.chat.model` 设置单独指定
 (留空 = 跟随 CLI 自身配置)。
 

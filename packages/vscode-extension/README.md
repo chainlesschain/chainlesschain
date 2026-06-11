@@ -64,7 +64,8 @@ replies token by token, with a live tool-call trace. Because the child runs
 inside this window's bridge, the agent automatically knows your selection and
 open tabs, pulls diagnostics after its edits, and can review edits as native
 diffs. Needs the `cc` CLI installed (`npm i -g chainlesschain`); point
-`chainlesschain.cli.path` at a custom binary if it is not on PATH. The **New**
+`chainlesschain.cli.path` at a custom binary if it is not on PATH. Conversations **survive restarts** (cc ≥ 0.162.40): the panel resumes this
+workspace's last session automatically. The **New**
 button starts a fresh conversation; `chainlesschain.chat.provider` /
 `chainlesschain.chat.model` pick the panel LLM (empty = the CLI default).
 
@@ -106,7 +107,8 @@ The bearer token is never displayed in any of these.
 - ✅ Published on [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide);
   the JetBrains sibling plugin is live on the
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
-- ⏳ Future polish: hunk-level partial accept, chat session resume, plan-mode UI.
+- ✅ Chat session resume across panel/editor restarts (0.5.0, cc ≥ 0.162.40).
+- ⏳ Future polish: hunk-level partial accept, plan-mode UI.
 
 ## Packaging
 

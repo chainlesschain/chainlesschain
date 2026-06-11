@@ -19,6 +19,7 @@ const t = testHome("chatpanel");
 let llmServer;
 let llmPort;
 let llmCalls = 0;
+const llmBodies = [];
 
 beforeAll(async () => {
   llmPort = await freePort();
@@ -28,6 +29,11 @@ beforeAll(async () => {
     req.on("data", (c) => (body += c));
     req.on("end", () => {
       llmCalls += 1;
+      try {
+        llmBodies.push(JSON.parse(body));
+      } catch {
+        llmBodies.push(null);
+      }
       res.writeHead(200, { "Content-Type": "application/x-ndjson" });
       const part = (content, done) =>
         JSON.stringify({
@@ -119,4 +125,86 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
     await expect.poll(() => exited !== null, { timeout: 60000 }).toBe(true);
     expect(exited.code).toBe(0);
   }, 180000);
+
+  it("--resume continues the conversation across a child restart", async () => {
+    const RESUME_ID = "chat-e2e-resume";
+    const mkSession = (sink) =>
+      new AgentChatSession({
+        args: [
+          "--no-ide",
+          "--no-mcp",
+          "--provider",
+          "ollama",
+          "--model",
+          "fake-model",
+          "--base-url",
+          `http://127.0.0.1:${llmPort}`,
+          "--resume",
+          RESUME_ID,
+        ],
+        cwd: t.home,
+        env: t.env(),
+        onEvent: (e) => sink.events.push(e),
+        onExit: (e) => (sink.exited = e),
+        deps: {
+          spawn: (_cmd, args, opts) =>
+            spawn(process.execPath, [CLI_BIN, ...args], {
+              ...opts,
+              shell: false,
+            }),
+        },
+      }).start();
+
+    // ── child #1: one persisted turn, then exit ──
+    const s1 = { events: [], exited: null };
+    const c1 = mkSession(s1);
+    await expect
+      .poll(() => s1.events.some((e) => e.subtype === "init"), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    expect(c1.send("remember the magic word: zebra")).toBe(true);
+    await expect
+      .poll(() => s1.events.some((e) => e.type === "result"), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    c1.end();
+    await expect.poll(() => s1.exited !== null, { timeout: 60000 }).toBe(true);
+
+    // ── child #2: SAME id — history must replay into the conversation ──
+    const beforeBodies = llmBodies.length;
+    const s2 = { events: [], exited: null };
+    const c2 = mkSession(s2);
+    await expect
+      .poll(() => s2.events.some((e) => e.subtype === "init"), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    const init2 = s2.events.find((e) => e.subtype === "init");
+    expect(init2.session_id).toBe(RESUME_ID);
+    expect(init2.resumed_messages).toBeGreaterThanOrEqual(2); // user+assistant
+
+    expect(c2.send("what was the magic word?")).toBe(true);
+    await expect
+      .poll(() => s2.events.some((e) => e.type === "result"), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    // The LLM request from child #2 carries child #1's turn — resume is real.
+    const body2 = llmBodies
+      .slice(beforeBodies)
+      .find((b) => b && Array.isArray(b.messages));
+    const userTexts = body2.messages
+      .filter((m) => m.role === "user")
+      .map((m) => String(m.content));
+    expect(userTexts.some((c) => c.includes("magic word: zebra"))).toBe(true);
+    expect(userTexts.some((c) => c.includes("what was the magic word?"))).toBe(
+      true,
+    );
+
+    c2.end();
+    await expect.poll(() => s2.exited !== null, { timeout: 60000 }).toBe(true);
+    expect(s2.exited.code).toBe(0);
+  }, 240000);
 });

@@ -153,6 +153,7 @@ function activate(context) {
             CHAINLESSCHAIN_IDE_TOKEN: _token,
           }
         : {},
+    state: context.workspaceState, // per-workspace chat session resume
     log,
   });
   context.subscriptions.push(

@@ -264,3 +264,22 @@ describe("buildSessionArgs (P1: model/provider settings)", async () => {
     expect(buildSessionArgs()).toEqual([]);
   });
 });
+
+describe("buildSessionArgs resume (P1: session resume)", async () => {
+  const { buildSessionArgs } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
+  it("adds --resume for a stored session id, skips blanks/null", () => {
+    expect(buildSessionArgs({ resume: "chat-ws-1" })).toEqual([
+      "--resume",
+      "chat-ws-1",
+    ]);
+    expect(buildSessionArgs({ resume: "" })).toEqual([]);
+    expect(buildSessionArgs({ resume: null })).toEqual([]);
+    expect(buildSessionArgs({ provider: "ollama", resume: "s1" })).toEqual([
+      "--provider",
+      "ollama",
+      "--resume",
+      "s1",
+    ]);
+  });
+});

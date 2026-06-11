@@ -101,16 +101,22 @@ function mapAgentEvent(evt, state) {
 }
 
 /**
- * Extra CLI args for the chat child from user settings. Empty/missing values
- * fall through to the CLI's own config defaults (pure; vscode-free).
+ * Extra CLI args for the chat child from user settings + stored session.
+ * Empty/missing values fall through to the CLI's own config defaults
+ * (pure; vscode-free). `resume` is the workspace's last chat session id —
+ * passing it makes the CLI rebuild that conversation and keep appending to
+ * it, so the panel survives restarts/reloads with full context.
  */
-function buildSessionArgs({ model, provider } = {}) {
+function buildSessionArgs({ model, provider, resume } = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
     args.push("--provider", provider.trim());
   }
   if (typeof model === "string" && model.trim()) {
     args.push("--model", model.trim());
+  }
+  if (typeof resume === "string" && resume.trim()) {
+    args.push("--resume", resume.trim());
   }
   return args;
 }
