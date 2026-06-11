@@ -73,6 +73,17 @@ as-is: REPL steering (queued input, Esc interrupt, `/rewind` double-Esc),
 `! <cmd>` bash passthrough, `# <note>` quick-memorize into cc.md, `/` command
 TAB completion, and `--json-schema` structured output for scripted runs.
 
+## Configure the LLM (first run)
+
+Run **ChainlessChain: Configure LLM** from the command palette — pick a
+provider (volcengine/doubao, Ollama, Anthropic, OpenAI, DeepSeek, DashScope,
+Kimi, Gemini, Mistral, MiniMax), enter the model/API key/base URL (sane
+defaults prefilled), and the wizard writes `~/.chainlesschain/config.json`
+via `cc config set` and verifies connectivity with `cc llm test`. The chat
+panel also offers this wizard automatically when nothing is configured or a
+turn fails to reach the LLM. The API key stays in the local config file —
+never in VS Code settings.
+
 ## Chat panel
 
 Activity Bar → **ChainlessChain IDE → Chat**: a sidebar conversation with the

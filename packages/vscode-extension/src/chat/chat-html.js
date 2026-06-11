@@ -264,6 +264,30 @@ function buildChatHtml({ cspSource, nonce }) {
       case "plan":
         renderPlan(m);
         break;
+      case "setup": {
+        if (document.getElementById("setup-card")) break; // one card is enough
+        const card = document.createElement("div");
+        card.className = "approval";
+        card.id = "setup-card";
+        const q = document.createElement("div");
+        q.className = "q";
+        q.textContent = m.reason
+          ? "LLM 连接失败:" + m.reason + " — 先完成大模型配置"
+          : "还没有配置大模型 — 一分钟引导即可开聊(写入本机 config.json,CLI 与面板共用)";
+        const btns = document.createElement("div");
+        btns.className = "buttons";
+        const go = document.createElement("button");
+        go.textContent = "Configure LLM / 配置大模型";
+        go.addEventListener("click", () => {
+          vscode.postMessage({ type: "configureLlm" });
+          card.remove();
+        });
+        btns.appendChild(go);
+        card.appendChild(q); card.appendChild(btns);
+        log.appendChild(card);
+        log.scrollTop = log.scrollHeight;
+        break;
+      }
       case "reset":
         log.textContent = "";
         streamEl = null;

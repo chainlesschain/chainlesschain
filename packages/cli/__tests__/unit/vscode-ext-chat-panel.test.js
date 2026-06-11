@@ -463,3 +463,126 @@ describe("webview script integrity (regression: template-literal escapes)", asyn
     expect(() => new Function(m[1])).not.toThrow();
   });
 });
+
+describe("LLM config wizard plumbing (onboarding)", async () => {
+  const llmCfg = await import("../../../vscode-extension/src/llm-config.js");
+
+  it("presets cover the CLI's built-in providers with sane defaults", () => {
+    const ids = llmCfg.PROVIDER_PRESETS.map((p) => p.id);
+    for (const id of [
+      "ollama",
+      "volcengine",
+      "anthropic",
+      "openai",
+      "deepseek",
+      "dashscope",
+      "kimi",
+      "gemini",
+      "mistral",
+      "minimax",
+    ]) {
+      expect(ids).toContain(id);
+    }
+    for (const p of llmCfg.PROVIDER_PRESETS) {
+      expect(p.baseUrl).toMatch(/^https?:\/\//);
+      expect(p.defaultModel.length).toBeGreaterThan(0);
+    }
+    expect(
+      llmCfg.PROVIDER_PRESETS.find((p) => p.id === "ollama").needsKey,
+    ).toBe(false);
+  });
+
+  it("buildConfigSetArgs emits one cc config set per answered field", () => {
+    expect(
+      llmCfg.buildConfigSetArgs({
+        provider: "volcengine",
+        model: "m",
+        apiKey: "k",
+        baseUrl: "https://x",
+      }),
+    ).toEqual([
+      ["config", "set", "llm.provider", "volcengine"],
+      ["config", "set", "llm.model", "m"],
+      ["config", "set", "llm.baseUrl", "https://x"],
+      ["config", "set", "llm.apiKey", "k"],
+    ]);
+    expect(llmCfg.buildConfigSetArgs({ provider: "ollama" })).toEqual([
+      ["config", "set", "llm.provider", "ollama"],
+    ]);
+  });
+
+  it("rejects shell-unsafe values before writing", async () => {
+    expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
+    expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);
+    expect(llmCfg.hasUnsafeShellChars("a&b")).toBe(true);
+    const r = await llmCfg.applyLlmConfig({
+      answers: { apiKey: "bad key" },
+      deps: {
+        execFile: () => {
+          throw new Error("must not spawn");
+        },
+      },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/不安全字符/);
+  });
+
+  it("getConfiguredProvider parses both output styles and maps unset to null", async () => {
+    const mk = (out, err) => ({
+      execFile: (c, a, o, cb) => cb(err || null, out || ""),
+    });
+    expect(
+      await llmCfg.getConfiguredProvider({
+        deps: mk("llm.provider = volcengine\n"),
+      }),
+    ).toBe("volcengine");
+    expect(await llmCfg.getConfiguredProvider({ deps: mk("ollama\n") })).toBe(
+      "ollama",
+    );
+    expect(
+      await llmCfg.getConfiguredProvider({ deps: mk("undefined\n") }),
+    ).toBe(null);
+    expect(
+      await llmCfg.getConfiguredProvider({ deps: mk("", new Error("no cc")) }),
+    ).toBe(null);
+  });
+
+  it("applyLlmConfig runs the set sequence and fail-fasts; testLlm summarizes", async () => {
+    const calls = [];
+    const ok = await llmCfg.applyLlmConfig({
+      answers: { provider: "deepseek", model: "deepseek-chat" },
+      deps: {
+        execFile: (c, a, o, cb) => {
+          calls.push(a.join(" "));
+          cb(null, "Set");
+        },
+      },
+    });
+    expect(ok.ok).toBe(true);
+    expect(calls).toEqual([
+      "config set llm.provider deepseek",
+      "config set llm.model deepseek-chat",
+    ]);
+    const failed = await llmCfg.applyLlmConfig({
+      answers: { provider: "x" },
+      deps: { execFile: (c, a, o, cb) => cb(new Error("boom")) },
+    });
+    expect(failed.ok).toBe(false);
+    const t = await llmCfg.testLlm({
+      deps: { execFile: (c, a, o, cb) => cb(null, "line1\nconnect ok\n") },
+    });
+    expect(t).toMatchObject({ ok: true });
+    expect(t.detail).toContain("connect ok");
+  });
+
+  it("webview renders the setup card and wires the configure button", async () => {
+    const { buildChatHtml: htmlC } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
+    const page = htmlC({ cspSource: "x:", nonce: "N" });
+    expect(page).toContain('case "setup"');
+    expect(page).toContain("configureLlm");
+    // integrity: the script must still PARSE after this addition
+    const m = /<script nonce="N">([\s\S]*?)<\/script>/.exec(page);
+    expect(() => new Function(m[1])).not.toThrow();
+  });
+});

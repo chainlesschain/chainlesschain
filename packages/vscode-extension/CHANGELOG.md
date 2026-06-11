@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.11.0] — 2026-06-11
+
+- **Guided LLM setup** — the missing onboarding: command
+  `ChainlessChain: Configure LLM` walks provider → model → API key →
+  base URL (10 presets: volcengine/doubao, Ollama, Anthropic, OpenAI,
+  DeepSeek, DashScope, Kimi, Gemini, Mistral, MiniMax), writes through
+  `cc config set` (single source of truth: ~/.chainlesschain/config.json,
+  shared by CLI and panel; the key never enters VS Code settings) and
+  verifies with `cc llm test`. The chat panel shows a setup card on first
+  run when nothing is configured and whenever a turn fails with a
+  connection error — one click opens the wizard.
+
 ## [0.10.1] — 2026-06-11
 
 - **Hotfix: the chat panel was dead in 0.9.0/0.10.0** (Send did nothing,

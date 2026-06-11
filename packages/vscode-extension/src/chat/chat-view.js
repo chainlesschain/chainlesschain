@@ -92,6 +92,17 @@ class ChatViewProvider {
             });
           }
         }
+        // An LLM connection failure usually means "nothing configured yet" —
+        // surface the guided-setup card instead of a bare error.
+        if (
+          evt?.type === "result" &&
+          evt.is_error &&
+          /fetch failed|ECONNREFUSED|ENOTFOUND|api.?key/i.test(
+            String(evt.error || evt.result || ""),
+          )
+        ) {
+          this._post({ kind: "setup", reason: String(evt.error || "") });
+        }
         this._post(mapAgentEvent(evt, this.turnState));
       },
       onStderr: (line) => this._post({ kind: "stderr", text: line }),
@@ -134,6 +145,16 @@ class ChatViewProvider {
     });
   }
 
+  /** Called after the Configure-LLM wizard: fresh child picks up the config. */
+  onLlmConfigured() {
+    this.session?.stop();
+    this.session = null;
+    this._post({
+      kind: "info",
+      text: "LLM 配置已更新 — 下一条消息用新配置启动",
+    });
+  }
+
   resolveWebviewView(view) {
     this.view = view;
     view.webview.options = { enableScripts: true };
@@ -141,6 +162,18 @@ class ChatViewProvider {
       cspSource: view.webview.cspSource,
       nonce: crypto.randomBytes(16).toString("hex"),
     });
+    // First-run onboarding: no llm.provider configured → show the setup card.
+    (async () => {
+      try {
+        const { getConfiguredProvider } = require("../llm-config");
+        const provider = await getConfiguredProvider({
+          command: this._cliCommand(),
+        });
+        if (!provider) this._post({ kind: "setup", reason: "" });
+      } catch {
+        /* onboarding check is best-effort */
+      }
+    })();
     view.webview.onDidReceiveMessage((m) => {
       if (!m || typeof m !== "object") return;
       if (m.type === "send") {
@@ -165,6 +198,8 @@ class ChatViewProvider {
         }
       } else if (m.type === "pickSession") {
         this._pickSession().catch(() => {});
+      } else if (m.type === "configureLlm") {
+        this.vscode.commands.executeCommand("chainlesschain.llm.configure");
       } else if (m.type === "approval") {
         this.session?.sendEvent({
           type: "approval",

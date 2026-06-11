@@ -136,7 +136,13 @@ cc ide --help         # 确认有 ide 子命令
 - **已过审上架 JetBrains Marketplace**(`com.chainlesschain.ide`,v0.1.1):IDE 的 *Settings → Plugins → Marketplace* 搜 **ChainlessChain IDE** 一键装(2024.2+),或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → *Settings → Plugins → ⚙ → Install Plugin from Disk*。
 
-**3. 验证:**
+**3. 配置大模型(首次)**:命令面板跑 **ChainlessChain: Configure LLM** —— 选提供商
+(火山引擎/Ollama/Anthropic/OpenAI/DeepSeek/百炼/Kimi/Gemini/Mistral/MiniMax 十预设)
+→ 模型/API key/Base URL(预填默认),向导经 `cc config set` 写入
+`~/.chainlesschain/config.json`(CLI 与面板共用,key 不进 VS Code 设置)并用
+`cc llm test` 验证连通。Chat 面板在未配置或连接失败时也会自动弹引导卡。
+
+**4. 验证:**
 
 ```bash
 cc ide status         # 在编辑器集成终端里跑 → "In IDE terminal: yes" + 会连的端口

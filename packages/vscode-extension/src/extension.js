@@ -204,6 +204,87 @@ function activate(context) {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
       runInTerminal(vscode, buildInitCommand(pick.args), cwd);
     }),
+    // Guided LLM setup — thin wizard over `cc config set` + `cc llm test`
+    // (one source of truth: ~/.chainlesschain/config.json).
+    vscode.commands.registerCommand(
+      "chainlesschain.llm.configure",
+      async () => {
+        const {
+          PROVIDER_PRESETS,
+          applyLlmConfig,
+          testLlm,
+        } = require("./llm-config.js");
+        const cliCmd =
+          vscode.workspace
+            .getConfiguration("chainlesschain.cli")
+            .get("path") || "cc";
+        const pick = await vscode.window.showQuickPick(
+          PROVIDER_PRESETS.map((p) => ({
+            label: p.label,
+            description: p.id,
+            detail: `默认模型 ${p.defaultModel} · ${p.needsKey ? "需要 API key" : "免 key"}`,
+            preset: p,
+          })),
+          { placeHolder: "选择 LLM 提供商(写入 ~/.chainlesschain/config.json,CLI 与 Chat 面板共用)" },
+        );
+        if (!pick) return;
+        const preset = pick.preset;
+        const model = await vscode.window.showInputBox({
+          prompt: `模型名(${preset.id})`,
+          value: preset.defaultModel,
+          ignoreFocusOut: true,
+        });
+        if (model === undefined) return;
+        let apiKey = "";
+        if (preset.needsKey) {
+          apiKey =
+            (await vscode.window.showInputBox({
+              prompt: `${preset.label} 的 API key(只写入本机 config.json,不进 VS Code 设置)`,
+              password: true,
+              ignoreFocusOut: true,
+            })) || "";
+          if (!apiKey) {
+            vscode.window.showWarningMessage(
+              "未输入 API key — 配置已取消(该提供商必须有 key)。",
+            );
+            return;
+          }
+        }
+        const baseUrl = await vscode.window.showInputBox({
+          prompt: "Base URL(回车用默认)",
+          value: preset.baseUrl,
+          ignoreFocusOut: true,
+        });
+        if (baseUrl === undefined) return;
+        const applied = await applyLlmConfig({
+          command: cliCmd,
+          answers: { provider: preset.id, model, apiKey, baseUrl },
+        });
+        if (!applied.ok) {
+          vscode.window.showErrorMessage(`LLM 配置写入失败:${applied.error}`);
+          return;
+        }
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: `已写入 ${preset.id} 配置,正在用 cc llm test 验证连通…`,
+          },
+          async () => {
+            const t = await testLlm({ command: cliCmd });
+            if (t.ok) {
+              vscode.window.showInformationMessage(
+                `LLM 配置完成并连通 ✓ (${preset.id} · ${model})。Chat 面板的下一条消息即生效。`,
+              );
+            } else {
+              vscode.window.showWarningMessage(
+                `配置已写入,但连通性测试未通过:${t.detail || "见输出"} — 检查 key/网络后可重跑 ChainlessChain: Configure LLM。`,
+              );
+            }
+          },
+        );
+        chatProvider.onLlmConfigured?.();
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {
       const {
         buildMemoryFilesCommand,
