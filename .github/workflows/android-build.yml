@@ -10,6 +10,11 @@ on:
     branches: [main, develop]
     paths:
       - "android-app/**"
+  # 2026-06-12: manual trigger — push-triggered runs were being cancelled
+  # 49/50 by the high push cadence before this long pipeline could finish;
+  # workflow_dispatch lets a verification run be launched (and finish) on
+  # demand without waiting for the next android-app/** push.
+  workflow_dispatch:
   # Note: Release builds are handled by the main release.yml workflow
   # This workflow focuses on testing and quality checks
 
