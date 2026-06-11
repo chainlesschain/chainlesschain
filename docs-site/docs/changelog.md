@@ -3,6 +3,10 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [cc CLI 0.162.41] - 2026-06-11 — feat: Claude-Code 平价终章——项目记忆（cc.md）+ REPL steering + 结构化输出（npm 单独发布，待并入下一发版）
+
+> 对照 Claude Code 的 CLI 平价 backlog 一日清空并发版：①**项目记忆体系**——`cc agent` 自动加载 `cc.md` > `CLAUDE.md` > `AGENTS.md` 层级（`@path` 递归 import + 路径作用域 `.claude/rules` + `.chainlesschain/rules.md`，预算 fail-open，`CC_PROJECT_MEMORY=0` 关）；`cc init` 默认改为项目盘点生成 cc.md（`/init` 平价，模板退 `-t`，`--ai` 用有界 agent 精炼约定，已有 CLAUDE.md 自动 `@import` 防遮蔽）；`cc memory files` 查看实际加载链。②**REPL steering 三件套**——回合中输入 FIFO 排队（修并发回合 race）、Esc 即时中断、`/rewind` + 空闲双 Esc 会话回退（原文回填改完重发）；外加 `! <cmd>` bash 直通、`# <note>` 快捷记忆、`/` 命令 TAB 补全、`/context` 实时窗口占用、`--resume` 离线恢复摘要。③**结构化输出与生态出口**——`cc agent -p --json-schema`（回答经 JSON Schema 校验 + 自动纠错重试，stdout 只出合规 JSON）、`cc mcp serve`（本机文件工具反向暴露为 MCP server，root 限域 + Bearer）、`cc session export`（agent 转录 Markdown）/ `cc session search`（跨会话全文检索）、启动被动版本提醒（`CC_UPDATE_NOTICE=0` 关）。④`chainlesschain` CLI 0.162.40 → 0.162.41 已发 npm（发布产物全局安装实测通过，~120 新增单测随包）。
+
 ## [v5.0.3.106] - 2026-06-11 — fix: PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 出行/社交全适配器测试收口（pdh 0.4.4 / cli 0.162.40）+ Android cc bundle v20260611（真机实证重提取）
 
 > 本版以 PDH 个人数据中台采集层为主线：①修复新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON) 后 profile 采集失败（`apiPhDecodeCandidates` 解码链，pdh 0.4.4）；②修复 travel-base `buildTitle` 不认 `name` 字段导致所有高德路线/搜索事件标题为 `car: ? → ?`；③订正头条/快手/邮箱适配器 3 处过时注释。④测试矩阵全收口 +180，全仓 55 适配器测试覆盖 100%。⑤pdh 0.4.3→0.4.4 + cli 0.162.39→0.162.40 已发 npm；⑥Android in-APK cc bundle 重建 `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`。⑦**真机（Xiaomi amethyst）实证**：装新 APK 触发 sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。
