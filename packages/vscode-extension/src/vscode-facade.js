@@ -120,6 +120,11 @@ function createVscodeEditorFacade(vscode) {
           })),
           {
             canPickMany: true,
+            // Reviewers alt-tab to compare things mid-pick (or screenshot the
+            // list) — focus loss must NOT silently cancel the review. Only an
+            // explicit OK or Esc ends it. (Found live: a WeChat screenshot
+            // killed the pick three demos in a row.)
+            ignoreFocusOut: true,
             placeHolder:
               "勾选要应用的改动块(未勾选的保留原文);Esc 取消 = 不应用",
           },

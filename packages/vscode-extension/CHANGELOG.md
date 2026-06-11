@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.12.1] — 2026-06-11
+
+- Fix: the **Pick hunks…** list no longer cancels when the window loses
+  focus (alt-tab to compare code, screenshots). Found live — a screenshot
+  killed the pick. Only OK or Esc ends the review now (ignoreFocusOut).
+
 ## [0.12.0] — 2026-06-11
 
 - **Hunk-level partial accept** — the last roadmap item: the openDiff review
