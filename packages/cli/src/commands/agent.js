@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Agentic AI assistant - Claude Code style
  * chainlesschain agent [--model] [--provider]
  *
@@ -44,7 +44,7 @@ export function resolveAddDirs(rawDirs) {
  * thinking `budget_tokens`), or undefined when unset/invalid. Pure; exported for
  * tests. The companion `thinking` toggle comes from --think/--ultrathink; a
  * budget without that toggle is a no-op (chatWithTools only reads it when
- * thinking is on, and only for legacy models — adaptive models use effort).
+ * thinking is on, and only for legacy models 鈥?adaptive models use effort).
  *
  * @param {string|number} [raw]
  * @returns {number|undefined}
@@ -85,7 +85,7 @@ export function registerAgentCommand(program) {
     )
     .argument(
       "[task...]",
-      "Headless task — when given (or with -p / piped stdin), runs non-interactively",
+      "Headless task 鈥?when given (or with -p / piped stdin), runs non-interactively",
     )
     .option("--model <model>", "Model name")
     .option(
@@ -118,11 +118,11 @@ export function registerAgentCommand(program) {
     .option("--session <id>", "Resume a previous agent session")
     .option(
       "-c, --continue",
-      "Resume the most recent session (no id needed — claude --continue parity)",
+      "Resume the most recent session (no id needed 鈥?claude --continue parity)",
     )
     .option(
       "--resume [id]",
-      "Resume a session by id (no id → most recent — claude --resume parity)",
+      "Resume a session by id (no id 鈫?most recent 鈥?claude --resume parity)",
     )
     .option(
       "--fork-session",
@@ -135,7 +135,11 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--checkpoint",
-      "Auto-snapshot the work tree before each mutating tool (git repo; cc checkpoint restore to roll back)",
+      "Auto-snapshot the work tree before each mutating tool (DEFAULT inside a git repo; cc checkpoint restore to roll back)",
+    )
+    .option(
+      "--no-checkpoint",
+      "Disable auto-checkpointing (it is on by default inside git repos)",
     )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
@@ -150,7 +154,7 @@ export function registerAgentCommand(program) {
       "--bundle <path>",
       "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
     )
-    // ── Headless / print mode (Claude-Code `claude -p` parity) ───────────
+    // 鈹€鈹€ Headless / print mode (Claude-Code `claude -p` parity) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     .option(
       "-p, --print [prompt]",
       "Headless: run one non-interactive turn and exit",
@@ -239,7 +243,18 @@ export function registerAgentCommand(program) {
       "--settings <file>",
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
-    .action(async (task, options) => {
+    .action(async (task, options, command) => {
+      // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
+      // (shadow-commit engine, zero working-tree touch); explicit
+      // --checkpoint / --no-checkpoint always wins.
+      const { resolveAutoCheckpoint } = await import(
+        "../lib/auto-checkpoint-default.js"
+      );
+      const autoCheckpoint = resolveAutoCheckpoint({
+        flagValue: options.checkpoint,
+        flagSource: command?.getOptionValueSource?.("checkpoint"),
+        cwd: process.cwd(),
+      });
       // `--continue` / `--resume` resolve a session id so the user need not
       // copy it. Explicit `--session <id>` always wins. `--resume <id>` targets
       // a specific session; `--continue` or a bare `--resume` pick the most
@@ -260,7 +275,7 @@ export function registerAgentCommand(program) {
           !process.stdin.isTTY;
         if (headlessIntent) {
           // Headless replays the JSONL store only, so resolve "most recent"
-          // from there — a DB-only id would resume into an empty transcript.
+          // from there 鈥?a DB-only id would resume into an empty transcript.
           const { getLastSessionId } =
             await import("../harness/jsonl-session-store.js");
           options.session = getLastSessionId();
@@ -283,7 +298,7 @@ export function registerAgentCommand(program) {
 
       // --fork-session: branch the resolved session into a NEW id so the
       // ORIGINAL transcript is preserved (Claude-Code parity). One chokepoint
-      // before headless / stream / interactive dispatch — all read
+      // before headless / stream / interactive dispatch 鈥?all read
       // `options.session`. The copy carries the full history, so the branch
       // replays end-to-end on a later --resume. Only meaningful when resuming;
       // a no-op (silent) for a fresh run.
@@ -297,12 +312,12 @@ export function registerAgentCommand(program) {
         );
         if (fork.missing) {
           process.stderr.write(
-            `--fork-session: no headless transcript for "${options.session}" — ` +
+            `--fork-session: no headless transcript for "${options.session}" 鈥?` +
               "nothing to fork; continuing on it.\n",
           );
         } else if (fork.forkedFrom) {
           process.stderr.write(
-            `Forked session ${fork.forkedFrom} → ${fork.sessionId} (original preserved)\n`,
+            `Forked session ${fork.forkedFrom} 鈫?${fork.sessionId} (original preserved)\n`,
           );
           options.session = fork.sessionId;
         }
@@ -332,7 +347,7 @@ export function registerAgentCommand(program) {
       }
 
       // The explicit `--model` the user typed, captured BEFORE the --settings
-      // block below may default options.model — so vision input can tell an
+      // block below may default options.model 鈥?so vision input can tell an
       // explicit model from a settings default.
       const explicitCliModel = options.model;
 
@@ -354,10 +369,10 @@ export function registerAgentCommand(program) {
         }
         if (!options.model && sc.model) options.model = sc.model;
       } catch {
-        // settings overrides are best-effort — never block the run
+        // settings overrides are best-effort 鈥?never block the run
       }
 
-      // Extra workspace roots (--add-dir) — shared by headless + interactive.
+      // Extra workspace roots (--add-dir) 鈥?shared by headless + interactive.
       const additionalDirectories = resolveAddDirs(options.addDir);
 
       // --image <path> (repeatable): read into {mediaType, base64} for the
@@ -376,7 +391,7 @@ export function registerAgentCommand(program) {
       // When an image is attached, default the run to the configured vision LLM
       // (config.llm provider/baseUrl/apiKey + llm.visionModel | --vision-model |
       // doubao default) so `cc agent --image foo.png` works without extra flags.
-      // Explicit --provider/--model/etc. always win; no image → unchanged.
+      // Explicit --provider/--model/etc. always win; no image 鈫?unchanged.
       const visionLlm = resolveVisionLlm({
         hasImage: images.length > 0,
         flags: {
@@ -391,7 +406,7 @@ export function registerAgentCommand(program) {
 
       // Config-default LLM (parity with cc ask/chat): a bare `cc agent` honors
       // config.json `llm` (provider/model/baseUrl/apiKey) instead of silently
-      // assuming local ollama — this is what makes the editor chat panel work
+      // assuming local ollama 鈥?this is what makes the editor chat panel work
       // against a cloud-configured setup. Explicit --provider wins outright;
       // the vision resolution above still overrides for --image runs. Applied
       // AFTER resolveVisionLlm so config defaults don't masquerade as explicit
@@ -405,16 +420,15 @@ export function registerAgentCommand(program) {
         });
       }
 
-      // --think / --ultrathink → options.thinking for the agent loop (Anthropic
-      // extended thinking; ignored by other providers). --think with no value →
-      // true; --think <level> → that level; --ultrathink wins as "ultra".
+      // --think / --ultrathink 鈫?options.thinking for the agent loop (Anthropic
+      // extended thinking; ignored by other providers). --think with no value 鈫?      // true; --think <level> 鈫?that level; --ultrathink wins as "ultra".
       const thinking = options.ultrathink
         ? "ultra"
         : options.think === true
           ? true
           : options.think || undefined;
       // --thinking-budget <n>: legacy-model thinking budget (no-op without
-      // --think/--ultrathink and on adaptive models). undefined → engine default.
+      // --think/--ultrathink and on adaptive models). undefined 鈫?engine default.
       const thinkingBudget = resolveThinkingBudget(options.thinkingBudget);
 
       // --fallback-model: a chatFn that retries once on the backup model when
@@ -431,7 +445,7 @@ export function registerAgentCommand(program) {
           })
         : undefined;
 
-      // ── Streaming-input mode (--input-format stream-json) ────────────────
+      // 鈹€鈹€ Streaming-input mode (--input-format stream-json) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
       // A persistent multi-turn conversation driven by NDJSON user events on
       // stdin; output is always NDJSON. Routed before single-prompt handling
       // so stdin is consumed as events, not as one prompt.
@@ -489,7 +503,7 @@ export function registerAgentCommand(program) {
       }
 
       // Resolve the headless prompt from: --print value, positional task, or
-      // piped stdin (in that precedence). Any of them → headless mode.
+      // piped stdin (in that precedence). Any of them 鈫?headless mode.
       const positional =
         Array.isArray(task) && task.length > 0 ? task.join(" ") : "";
       let prompt = "";
@@ -511,7 +525,7 @@ export function registerAgentCommand(program) {
 
       if (prompt) {
         // Resume requested onto a session with no headless (JSONL) transcript?
-        // Warn instead of silently starting empty — headless resume rebuilds
+        // Warn instead of silently starting empty 鈥?headless resume rebuilds
         // from the JSONL store only (DB-only sessions are not replayable here).
         const resumeRequested =
           Boolean(options.continue) || options.resume !== undefined;
@@ -520,7 +534,7 @@ export function registerAgentCommand(program) {
             await import("../harness/jsonl-session-store.js");
           if (!sessionExists(options.session)) {
             process.stderr.write(
-              `Note: no headless transcript for session "${options.session}" — ` +
+              `Note: no headless transcript for session "${options.session}" 鈥?` +
                 "starting fresh (headless resume reads JSONL sessions only).\n",
             );
           }
@@ -549,9 +563,9 @@ export function registerAgentCommand(program) {
           allowedTools: parseToolList(options.allowedTools),
           disallowedTools: parseToolList(options.disallowedTools),
           additionalDirectories,
-          autoCheckpoint: options.checkpoint === true,
+          autoCheckpoint,
           maxTurns,
-          // commander maps --no-file-refs → options.fileRefs === false
+          // commander maps --no-file-refs 鈫?options.fileRefs === false
           expandFileRefs: options.fileRefs !== false,
           // --system-prompt / --append-system-prompt (literal or @file)
           systemPrompt: resolvePromptText(options.systemPrompt, {
@@ -582,7 +596,7 @@ export function registerAgentCommand(program) {
           chatFn: fallbackChatFn,
         };
 
-        // --json-schema: structured output — wrap the runner with capture +
+        // --json-schema: structured output 鈥?wrap the runner with capture +
         // validate + retry (json-schema-output.js); prints only the
         // validated JSON. Incompatible with stream-json (event stream and a
         // single JSON contract don't mix).
@@ -621,7 +635,7 @@ export function registerAgentCommand(program) {
       }
 
       // Reached only for an interactive session, where --image has no turn to
-      // attach to — warn instead of silently dropping the attachment.
+      // attach to 鈥?warn instead of silently dropping the attachment.
       if (images.length) {
         process.stderr.write(
           "--image is only used in headless mode (-p / a task / piped stdin); ignoring for the interactive session.\n",
@@ -644,7 +658,7 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
-        autoCheckpoint: options.checkpoint === true,
+        autoCheckpoint,
         // --system-prompt / --append-system-prompt (literal or @file) also
         // apply to interactive sessions, composed in startAgentRepl.
         systemPrompt: resolvePromptText(options.systemPrompt, {

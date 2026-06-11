@@ -225,11 +225,15 @@ ref 命名空间，默认 `default`）、`--json`。
 
 ### 自动快照（agent 工具循环）
 
-`cc agent --checkpoint`（git 仓内）在**每个会改文件的工具调用前**自动快照工作树，
-出问题用 `cc checkpoint restore <id>` 回滚到该工具调用之前：
+**git 仓内默认开启**（Claude-Code 同款默认；shadow-commit 引擎零触工作区/真索引）：
+在**每个会改文件的工具调用前**自动快照工作树，出问题用 `cc checkpoint restore <id>`
+回滚到该工具调用之前。`--no-checkpoint` 关闭；非 git 目录默认关（copy 引擎写真实文件,
+不做静默默认），显式 `--checkpoint` 可强制开：
 
 ```bash
-cc agent --checkpoint -p "重构 auth 模块"
+cc agent -p "重构 auth 模块"                 # git 仓内默认就有自动快照
+cc agent --no-checkpoint -p "..."           # 本次关闭
+cc agent --checkpoint -p "..."              # 非 git 目录强制开（copy 引擎）
 #   每个 write_file/edit_file/run_shell/run_code 前打印  ⎌ checkpoint cpNNNN (before <tool>)
 cc checkpoint list
 cc checkpoint restore cp0003           # 回到第 3 个工具调用之前（先自动拍 safety）
