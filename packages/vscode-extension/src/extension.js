@@ -21,9 +21,11 @@ const { ActivityLog, summarizeArgs } = require("./activity-log");
 const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
+const { ChatViewProvider } = require("./chat/chat-view");
 
 let _server = null;
 let _port = null;
+let _token = null;
 let _output = null;
 let _workspaceFolders = [];
 let _activityLog = null;
@@ -58,6 +60,7 @@ async function stopBridge(context) {
     removeLock(_port);
     _port = null;
   }
+  _token = null;
   if (_server) {
     try {
       await _server.stop();
@@ -85,6 +88,7 @@ async function startBridge(context) {
     return;
   }
   const token = generateToken();
+  _token = token;
   const facade = createVscodeEditorFacade(vscode);
   const tools = buildIdeTools(facade);
   _server = new IdeMcpServer({
@@ -136,6 +140,27 @@ function activate(context) {
       "chainlesschainIdeView",
       _treeProvider,
     ),
+  );
+
+  // Chat panel: a webview that drives a persistent `cc agent` duplex child.
+  // The child env carries this window's bridge port/token, so the agent gets
+  // selection context, diagnostics feedback, and native diff reviews here.
+  const chatProvider = new ChatViewProvider(vscode, {
+    getBridgeEnv: () =>
+      _port && _token
+        ? {
+            CHAINLESSCHAIN_IDE_PORT: String(_port),
+            CHAINLESSCHAIN_IDE_TOKEN: _token,
+          }
+        : {},
+    log,
+  });
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "chainlesschainIdeChat",
+      chatProvider,
+    ),
+    chatProvider,
   );
 
   // Live UI updates on every logged event.

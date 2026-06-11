@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.4.0] — 2026-06-11
+
+- **Chat panel** (sidebar → ChainlessChain IDE → Chat): talk to the agent
+  without leaving the editor. The panel drives ONE persistent
+  `cc agent --input/output-format stream-json --include-partial-messages`
+  child over its pipes — streaming token-by-token replies, a live tool-call
+  trace, and multi-turn conversation state in the same process. The child
+  inherits this window's bridge port/token, so the agent automatically sees
+  your selection/open tabs, feeds diagnostics back after edits, and (with
+  `ask` permission rules) reviews edits as native diffs — the full live-
+  awareness stack, now one sidebar away. Requires the `cc` CLI on PATH
+  (`npm i -g chainlesschain`; override via `chainlesschain.cli.path`).
+  Lazy spawn on first message; Stop kills the child; the next message
+  restarts it.
+
 ## [0.3.0] — 2026-06-11
 
 - New tool **`executeCode`** (Claude-Code `mcp__ide__executeCode` parity):

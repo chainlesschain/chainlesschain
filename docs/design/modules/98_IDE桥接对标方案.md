@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 6 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -214,6 +214,35 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 `gradlew publishPlugin` 自动认证);CI `ide-extensions.yml` tag `ide-vscode-v*` 触发 Open VSX(+官方
 marketplace iff 有 `VSCE_PAT`)、`ide-jetbrains-v*` 触发 JetBrains。升级新版只需 bump version + CHANGELOG。
 **剩**:官方 VS Code Marketplace（需 Azure 订阅,见上,可选）;JetBrains 审核通过后公开。
+
+### Phase 6 — Chat Panel(编辑器内原生对话面板)✅ P0 已落 (2026-06-11)
+
+对标 Claude Code 当前主形态(VS Code sidebar 对话面板)。**核心洞察:CLI 已有完整的
+SDK 式双工**(`--input-format stream-json` 多轮 stdin + `--output-format stream-json
+--include-partial-messages` 逐 token NDJSON)——面板不需要任何新协议,就是一个 webview
+驱动一个长驻 `cc agent` 子进程;且子进程 env 注入本窗口的
+`CHAINLESSCHAIN_IDE_PORT/_TOKEN` 后,**Phase 5 的全部实时感知(选区注入/诊断回喂)与
+gap #4 的 IDE diff 审批自动点亮**——三个 feature 在面板里零额外代码组合生效。
+
+**P0 实现**(`packages/vscode-extension/src/chat/`,0.4.0):
+- `agent-session.js`(纯 Node,`deps.spawn` 注入):长驻子进程生命周期 + NDJSON 双向
+  marshal(chunk 边界拼接、非 JSON 行降级 raw 事件、stderr 行回调、spawn 失败 →
+  `session_error` 事件);`send()` 写一行 user 事件,`end()` 关 stdin 优雅收场,
+  `stop()` 硬杀。Win 上 `shell:true`(npm 全局 shim 是 .cmd)。
+- `chat-events.js`(纯函数):NDJSON 事件 → UI 消息小词表(init/delta/tool/tool_done/
+  info/turn_end/error);**delta 去重**——本轮流过 delta 则 final result 文本置 null,
+  防止答案渲染两遍。
+- `chat-html.js`:自包含 webview HTML(严格 CSP+nonce、零外部资源、VS Code CSS 变量
+  主题适配);`chat-view.js`(唯一碰 vscode 的 glue):WebviewViewProvider,**懒生成**
+  (首条消息才 spawn,退出后下条消息自动重启),dispose 杀子进程。
+- 接线:Activity Bar 容器新增 `Chat` webview view;`chainlesschain.cli.path` 配置
+  (默认 PATH 上的 `cc`)。
+- **测试 11**:`vscode-ext-chat-panel.test.js` 10(事件映射全词表 + 假子进程
+  chunk-split/stderr/exit/spawn-fail + **真 node 子进程**管道往返 + HTML CSP smoke)
+  + `chat-panel-e2e.test.js` 1(**真 cc bin** ⇆ 流式假 ollama:init → 逐 token
+  delta → 双轮 result → `end()` 退出码 0)。
+- **剩(P1+)**:会话恢复选择器、面板内 slash 命令、plan mode UI、模型/provider 切换、
+  diff 按钮内联化、停止单轮(目前 Stop=杀进程)。
 
 ### Phase 5 — IDE 实时感知(自动上下文 + 诊断回喂)✅ 已落 (2026-06-10)
 

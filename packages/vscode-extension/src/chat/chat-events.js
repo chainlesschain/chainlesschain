@@ -1,0 +1,103 @@
+/**
+ * Map the CLI's stream-json NDJSON events onto the small message vocabulary
+ * the chat webview renders. Pure + stateful-per-turn (the reducer tracks
+ * whether text deltas streamed this turn so the final `result` text is not
+ * rendered twice). No `vscode`, fully unit-testable.
+ *
+ * UI message kinds:
+ *   init       { model, provider, sessionId }
+ *   delta      { text }                    streaming assistant text
+ *   tool       { tool, summary }           a tool call started
+ *   tool_done  { tool, isError }           …finished
+ *   info       { text }                    compaction / misc one-liners
+ *   turn_end   { isError, text|null, usage } text only when nothing streamed
+ *   error      { text }                    session-level failure
+ */
+
+/** One-line argument summary for the tool trace (mirrors the CLI's trace). */
+function summarizeToolArgs(args) {
+  if (!args || typeof args !== "object") return "";
+  const s =
+    args.path ||
+    args.command ||
+    args.pattern ||
+    args.query ||
+    args.url ||
+    args.code ||
+    "";
+  const str = String(s);
+  return str.length > 80 ? str.slice(0, 80) + "…" : str;
+}
+
+function createTurnState() {
+  return { sawDelta: false };
+}
+
+/**
+ * @param {object} evt    one parsed NDJSON event from the agent child
+ * @param {object} state  per-conversation state from createTurnState()
+ * @returns {object|null} a UI message, or null when the event is UI-silent
+ */
+function mapAgentEvent(evt, state) {
+  if (!evt || typeof evt !== "object") return null;
+  switch (evt.type) {
+    case "system":
+      if (evt.subtype === "init") {
+        return {
+          kind: "init",
+          model: evt.model || "",
+          provider: evt.provider || "",
+          sessionId: evt.session_id || "",
+        };
+      }
+      return null;
+    case "stream_event": {
+      const delta = evt.event?.delta;
+      if (delta?.type === "text_delta" && typeof delta.text === "string") {
+        state.sawDelta = true;
+        return { kind: "delta", text: delta.text };
+      }
+      return null;
+    }
+    case "tool_use":
+      return {
+        kind: "tool",
+        tool: evt.tool || "?",
+        summary: summarizeToolArgs(evt.args),
+      };
+    case "tool_result":
+      return {
+        kind: "tool_done",
+        tool: evt.tool || "?",
+        isError: evt.is_error === true,
+      };
+    case "compaction":
+      return {
+        kind: "info",
+        text: `compacted: saved ${evt.stats?.saved ?? "?"} tokens`,
+      };
+    case "result": {
+      const sawDelta = state.sawDelta;
+      state.sawDelta = false; // reset for the next turn
+      return {
+        kind: "turn_end",
+        isError: evt.is_error === true,
+        // If text streamed via deltas, the final result repeats it — drop it.
+        text: evt.is_error
+          ? evt.error || evt.result || "turn failed"
+          : sawDelta
+            ? null
+            : evt.result || null,
+        usage: evt.usage || null,
+      };
+    }
+    case "session_error":
+      return { kind: "error", text: evt.error || "agent session error" };
+    case "raw":
+      return { kind: "info", text: evt.text };
+    default:
+      return null; // token_usage, iteration_warning, … — UI-silent for now
+  }
+}
+
+module.exports = { mapAgentEvent, createTurnState, summarizeToolArgs };

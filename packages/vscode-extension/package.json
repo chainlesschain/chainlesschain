@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -55,6 +55,11 @@
         {
           "id": "chainlesschainIdeView",
           "name": "桥接状态"
+        },
+        {
+          "id": "chainlesschainIdeChat",
+          "name": "Chat",
+          "type": "webview"
         }
       ]
     },
@@ -79,6 +84,11 @@
           "type": "boolean",
           "default": true,
           "description": "Run the IDE bridge MCP server so `cc agent` can auto-connect."
+        },
+        "chainlesschain.cli.path": {
+          "type": "string",
+          "default": "cc",
+          "description": "Path to the ChainlessChain CLI executable the chat panel spawns (default: `cc` from PATH; install with `npm i -g chainlesschain`)."
         }
       }
     }
