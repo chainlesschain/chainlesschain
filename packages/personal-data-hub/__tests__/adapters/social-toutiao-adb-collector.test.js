@@ -182,6 +182,49 @@ describe("collect — profile fetch fails", () => {
     expect(r.uid).toBe(null);
     expect(r.profileFetchFailed).toBe(true);
   });
+
+  it("profile permission-denied (error_code 16) BUT cookie uid + signer → feed/collection/search still collect", async () => {
+    // Real-device 2026-06-11: logged-in Toutiao returns passport error_code 16
+    // 该应用无权限. We must NOT abort — feed is cookie-identified, so with a
+    // SignBridge the signed endpoints still flow. Profile event is skipped, but
+    // the headline error (16) is surfaced and feed/collection/search collect.
+    const { fakeFetch } = makeFakeFetch([
+      [
+        "passport/account/info/v2",
+        {
+          body: JSON.stringify({
+            message: "error",
+            data: { error_code: 16, description: "该应用无权限" },
+          }),
+        },
+      ],
+      ...HAPPY_RESPONSES.slice(1), // feed / comments / search responses
+    ]);
+    const sign = {
+      warmUp: vi.fn(async () => {}),
+      signUrl: vi.fn(async (url) => {
+        const u = new URL(String(url));
+        u.searchParams.set("_signature", "BRIDGE_SIG");
+        return u;
+      }),
+      shutdown: vi.fn(async () => {}),
+    };
+    const client = new ToutiaoApiClient({ fetch: fakeFetch, signProvider: sign });
+    const r = await collect(makeBridge(COOKIE_PAYLOAD), {
+      apiClient: client,
+      signProvider: sign,
+      stagingDir: os.tmpdir(),
+    });
+    expect(r.profileFetchFailed).toBe(true);
+    expect(r.uid).toBe("12345"); // cookie-derived
+    expect(r.lastErrorCode).toBe(16); // headline profile error preserved
+    expect(r.lastErrorMessage).toBe("该应用无权限");
+    expect(r.eventCounts.profile).toBe(0); // no profile event
+    expect(r.eventCounts.feed).toBe(1); // ← previously 0 (aborted before signing)
+    expect(r.eventCounts.collection).toBe(1);
+    expect(r.eventCounts.search).toBe(1);
+    expect(r.eventCounts.total).toBe(3);
+  });
 });
 
 describe("collect — bridge warmUp failure", () => {

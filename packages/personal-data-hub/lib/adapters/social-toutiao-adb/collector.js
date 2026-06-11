@@ -73,23 +73,34 @@ async function collect(bridge, opts = {}) {
   try {
     // fetchProfile — passport endpoint, no _signature required.
     const profile = await client.fetchProfile(cookie);
-    if (!profile) {
-      // Cookie expired or sessionid missing — emit empty snapshot using
-      // best-effort cookie-derived uid (or sentinel if also absent).
-      const uid = cookieUid || "unknown-user";
+    const profileFailed = !profile;
+    // Capture the profile error BEFORE the signed fetches overwrite lastError —
+    // when profile is permission-denied (real-device 2026-06-11: passport
+    // error_code 16 该应用无权限) it's the headline diagnostic, more useful than
+    // a downstream -99 short-circuit.
+    const profileErrCode = profileFailed ? client.lastErrorCode : null;
+    const profileErrMsg = profileFailed ? client.lastErrorMessage : null;
+
+    // The signed feed endpoint is cookie-identified and collection/search can
+    // use a cookie-derived uid, so a profile failure should NOT abort the whole
+    // sync when we still have a usable uid — only bail when there is no uid at
+    // all. (Previously any profile failure returned an empty snapshot, so the
+    // SignBridge feed/collection/search were never even attempted.)
+    const effectiveUid = (profile && profile.uid) || cookieUid || null;
+    if (!effectiveUid) {
       const snapshot = buildSnapshot({
-        uid,
+        uid: "unknown-user",
         displayName: opts.displayName,
         snapshottedAt: now(),
       });
       const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
       return {
         snapshotPath,
-        uid: cookieUid,
+        uid: null,
         nickname: null,
         eventCounts: { profile: 0, feed: 0, collection: 0, search: 0, total: 0 },
-        lastErrorCode: client.lastErrorCode,
-        lastErrorMessage: client.lastErrorMessage,
+        lastErrorCode: profileErrCode,
+        lastErrorMessage: profileErrMsg,
         cookieDiagnostic: cookieDiagnostic || null,
         profileFetchFailed: true,
         signProviderUsed: signProvider
@@ -100,7 +111,9 @@ async function collect(bridge, opts = {}) {
       };
     }
 
-    // Parallel 3 signed endpoints — partial failure tolerated.
+    // Parallel 3 signed endpoints — partial failure tolerated. Attempted even
+    // when profile failed (as long as we have a uid), so feed can still flow
+    // through a SignBridge despite a permission-denied profile endpoint.
     const [feed, collection, search] = await Promise.all([
       client.fetchFeed(cookie, {
         limit: Number.isInteger(limits.feed) ? limits.feed : undefined,
@@ -116,9 +129,9 @@ async function collect(bridge, opts = {}) {
     ]);
 
     const snapshot = buildSnapshot({
-      uid: profile.uid,
-      displayName: opts.displayName || profile.nickname,
-      profile,
+      uid: effectiveUid,
+      displayName: opts.displayName || (profile && profile.nickname),
+      profile: profile || undefined,
       feed,
       collection,
       search,
@@ -128,19 +141,21 @@ async function collect(bridge, opts = {}) {
 
     return {
       snapshotPath,
-      uid: profile.uid,
-      nickname: profile.nickname,
+      uid: effectiveUid,
+      nickname: profile ? profile.nickname : null,
       eventCounts: {
-        profile: 1,
+        profile: profile ? 1 : 0,
         feed: feed.length,
         collection: collection.length,
         search: search.length,
         total: snapshot.events.length,
       },
-      lastErrorCode: client.lastErrorCode,
-      lastErrorMessage: client.lastErrorMessage,
+      // On profile failure surface the profile error (the headline issue), not
+      // the last signed-endpoint status.
+      lastErrorCode: profileFailed ? profileErrCode : client.lastErrorCode,
+      lastErrorMessage: profileFailed ? profileErrMsg : client.lastErrorMessage,
       cookieDiagnostic: cookieDiagnostic || null,
-      profileFetchFailed: false,
+      profileFetchFailed: profileFailed,
       signProviderUsed: signProvider ? signProvider.constructor.name : "none",
       signProviderHits: client._bridgeHits,
       signProviderFallbacks: client._fallbackHits,
