@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.105 进化版 | 145 桌面技能 + 25 Android 技能 | CLI v0.162.38 / 155 命令 / 30,000+ 测试 | Android 5.0.3.105 (versionCode 503105，与 productVersion 对齐 · USR_VERSION 21 · binariesVersion 20260610) | iOS 5.0.3 (build 105，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.106 进化版 | 145 桌面技能 + 25 Android 技能 | CLI v0.162.40 / 155 命令 / 30,000+ 测试 | Android 5.0.3.106 (versionCode 503106，与 productVersion 对齐 · USR_VERSION 22 · binariesVersion 20260611) | iOS 5.0.3 (build 106，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.106 PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 全适配器测试收口 + Android cc bundle v20260611（2026-06-11）**：① **PDH 采集修复（pdh 0.4.4）** —— 新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON)，加 `apiPhDecodeCandidates` 解码链恢复 profile 采集；travel-base `buildTitle` 加 `name` 三级回退修高德所有行程事件标题 `car: ? → ?`；订正头条/快手/邮箱 3 处过时注释。② **测试矩阵全收口（+180）** —— 小红书 ADB 三件套 58 + 出行 6 模块 74 + whatsapp/shopping-base 24 + 快手 base64 9 → 全仓 55 适配器测试覆盖 100%。③ **Android in-APK cc bundle 刷新 + 真机验证** —— `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`；真机（Xiaomi amethyst）实证装新 APK 触发 `LocalFilesystemBootstrapper` sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。npm：CLI 0.162.40 + PDH 0.4.4 已发。
 >
 > **v5.0.3.105 cc agent MCP prompts/resources + SubagentStop hook + --fork-session + Android cc 内嵌 bundle 刷新（2026-06-10）**：① **cc CLI 0.162.38（Claude-Code 平价三连）** —— MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent/REPL；`SubagentStop` settings.json hook；`cc agent --fork-session`（复制既有会话为新分支继续）。② **Android in-APK cc bundle 刷新** —— `cc-cli.tgz` 重建（cli 0.162.38 + pdh 0.4.3）→ `internal-binaries-android-v20260610` + `USR_VERSION 20 → 21`，补上 v5.0.3.101 以来 APK 内嵌 cc 跑旧代码的缺口。③ **Tests/CI** —— CLI e2e 共享 helper（testHome + freePort）+ e2e 隔离/重试加固 + 桌面端 10 个 stale 单测修复。④ **Docs** —— docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账（155 命令/145 技能/25 Android）。npm：CLI 0.162.38 已发；PDH 0.4.3 不变。
 >
