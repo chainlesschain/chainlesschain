@@ -871,7 +871,12 @@ export async function startAgentRepl(options = {}) {
 
   prompt();
 
-  rl.on("line", async (input) => {
+  // Steering (Claude-Code parity): typing while a turn is running QUEUES the
+  // line instead of racing a second concurrent turn; the queue drains FIFO
+  // when the current turn finishes.
+  let _processingLine = false;
+  const _pendingLines = [];
+  const handleLine = async (input) => {
     const trimmed = input.trim();
     if (!trimmed) {
       prompt();
@@ -2317,6 +2322,31 @@ export async function startAgentRepl(options = {}) {
     }
 
     prompt();
+  };
+
+  rl.on("line", async (input) => {
+    if (_processingLine) {
+      if (input.trim()) {
+        _pendingLines.push(input);
+        logger.log(
+          chalk.gray(
+            `⏸ queued (${_pendingLines.length}) — runs after the current turn`,
+          ),
+        );
+      }
+      return;
+    }
+    _processingLine = true;
+    try {
+      await handleLine(input);
+      while (_pendingLines.length) {
+        const next = _pendingLines.shift();
+        logger.log(chalk.cyan(`▶ running queued input: ${next}`));
+        await handleLine(next);
+      }
+    } finally {
+      _processingLine = false;
+    }
   });
 
   rl.on("close", async () => {
