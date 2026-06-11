@@ -10,7 +10,11 @@
  */
 const crypto = require("crypto");
 const { AgentChatSession } = require("./agent-session");
-const { mapAgentEvent, createTurnState } = require("./chat-events");
+const {
+  mapAgentEvent,
+  createTurnState,
+  buildSessionArgs,
+} = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
 
 class ChatViewProvider {
@@ -49,8 +53,15 @@ class ChatViewProvider {
         ? this.opts.getBridgeEnv()
         : {};
     this.turnState = createTurnState();
+    const chatCfg = this.vscode.workspace.getConfiguration(
+      "chainlesschain.chat",
+    );
     this.session = new AgentChatSession({
       command: this._cliCommand(),
+      args: buildSessionArgs({
+        model: chatCfg.get("model"),
+        provider: chatCfg.get("provider"),
+      }),
       cwd,
       env: { ...process.env, ...bridgeEnv },
       onEvent: (evt) => this._post(mapAgentEvent(evt, this.turnState)),
@@ -85,6 +96,12 @@ class ChatViewProvider {
         }
       } else if (m.type === "stop") {
         this.session?.stop();
+      } else if (m.type === "new") {
+        // New chat: drop the child (and its conversation state); the next
+        // message spawns a fresh one. The webview clears itself on "reset".
+        this.session?.stop();
+        this.session = null;
+        this._post({ kind: "reset" });
       }
     });
     view.onDidDispose(() => {

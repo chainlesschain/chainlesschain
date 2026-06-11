@@ -251,3 +251,16 @@ describe("buildChatHtml", () => {
     }
   });
 });
+
+describe("buildSessionArgs (P1: model/provider settings)", async () => {
+  const { buildSessionArgs } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
+  it("maps non-empty settings to CLI flags, skips blanks", () => {
+    expect(
+      buildSessionArgs({ provider: "volcengine", model: "doubao-x" }),
+    ).toEqual(["--provider", "volcengine", "--model", "doubao-x"]);
+    expect(buildSessionArgs({ provider: " ", model: "" })).toEqual([]);
+    expect(buildSessionArgs({})).toEqual([]);
+    expect(buildSessionArgs()).toEqual([]);
+  });
+});

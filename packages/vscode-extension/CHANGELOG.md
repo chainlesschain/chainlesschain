@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.4.1] — 2026-06-11
+
+- Chat panel polish: **New** button starts a fresh conversation (drops the
+  agent child + clears the log); `chainlesschain.chat.provider` /
+  `chainlesschain.chat.model` settings pick the panel's LLM (empty = the
+  CLI's configured default).
+
 ## [0.4.0] — 2026-06-11
 
 - **Chat panel** (sidebar → ChainlessChain IDE → Chat): talk to the agent

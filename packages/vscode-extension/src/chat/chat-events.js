@@ -100,4 +100,24 @@ function mapAgentEvent(evt, state) {
   }
 }
 
-module.exports = { mapAgentEvent, createTurnState, summarizeToolArgs };
+/**
+ * Extra CLI args for the chat child from user settings. Empty/missing values
+ * fall through to the CLI's own config defaults (pure; vscode-free).
+ */
+function buildSessionArgs({ model, provider } = {}) {
+  const args = [];
+  if (typeof provider === "string" && provider.trim()) {
+    args.push("--provider", provider.trim());
+  }
+  if (typeof model === "string" && model.trim()) {
+    args.push("--model", model.trim());
+  }
+  return args;
+}
+
+module.exports = {
+  mapAgentEvent,
+  createTurnState,
+  summarizeToolArgs,
+  buildSessionArgs,
+};

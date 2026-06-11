@@ -42,6 +42,7 @@ function buildChatHtml({ cspSource, nonce }) {
     <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
     <button id="send">Send</button>
     <button id="stop" class="secondary" title="Kill the agent process">Stop</button>
+    <button id="new" class="secondary" title="Start a fresh conversation">New</button>
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
@@ -75,6 +76,9 @@ function buildChatHtml({ cspSource, nonce }) {
   document.getElementById("send").addEventListener("click", send);
   document.getElementById("stop").addEventListener("click", () => {
     vscode.postMessage({ type: "stop" });
+  });
+  document.getElementById("new").addEventListener("click", () => {
+    vscode.postMessage({ type: "new" });
   });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
@@ -119,6 +123,11 @@ function buildChatHtml({ cspSource, nonce }) {
       case "stderr":
         // tool trace / logs — keep the panel calm, only surface real errors
         if (/error/i.test(m.text)) add("info", m.text);
+        break;
+      case "reset":
+        log.textContent = "";
+        streamEl = null;
+        status.textContent = "new conversation — send a message to start";
         break;
     }
   });
