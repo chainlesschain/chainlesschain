@@ -193,6 +193,21 @@ chainlesschain mcp registry categories [--json]
 | `install` | `--as <alias>` 自定义服务器名 · `--auto-connect` 安装后立即连接 |
 | `categories` | `--json` |
 
+### MCP Server 模式（`cc mcp serve`，v0.162.40+）
+
+把**本机文件工具**反向暴露成一个 Streamable-HTTP MCP server（`claude mcp serve` 平价），供其它 MCP 客户端（包括另一台机器上的 cc）调用：
+
+```bash
+cc mcp serve                       # 随机端口 + 随机 Bearer token，打印可直接用的 --mcp-config 片段
+cc mcp serve --port 18900 --root ./project   # 固定端口 + 限定服务根目录（默认 cwd）
+cc mcp serve --read-only           # 去掉 write_file，只读三件套
+cc mcp serve --token <t> | --no-auth         # 固定 token / 关闭鉴权（仅绑定 127.0.0.1）
+```
+
+- 工具集：`read_file` / `list_dir` / `search_files` / `write_file`，全部**root-confined**（越界路径返回 isError 而非泄漏）
+- 零依赖 node http 实现，POST JSON-RPC + `application/json`，与 CLI MCPClient 协议形状一致（IDE 桥接同款验证）
+- 默认开 Bearer 鉴权（随机 token 打印在启动输出），`--read-only` 适合给只读 agent 喂上下文
+
 ### Prompts 与 Resources（v0.162.38+）
 
 MCP 支持从 tools-only 扩展到完整三件套 —— 连接时自动拉取 `prompts/list`，并把 resources 暴露给 agent/REPL：
