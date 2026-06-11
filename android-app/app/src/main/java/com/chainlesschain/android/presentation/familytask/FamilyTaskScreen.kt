@@ -65,6 +65,7 @@ fun FamilyTaskScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var submittingTask by remember { mutableStateOf<FamilyTask?>(null) }
+    var bouncingTask by remember { mutableStateOf<FamilyTask?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -134,7 +135,7 @@ fun FamilyTaskScreen(
                         onSubmit = { submittingTask = task },
                         onAiGrade = { viewModel.aiGrade(task) },
                         onComplete = { viewModel.complete(task) },
-                        onBounceBack = { viewModel.bounceBack(task) },
+                        onBounceBack = { bouncingTask = task },
                         onCancel = { viewModel.cancel(task) },
                         onConfirmSuggested = { viewModel.confirmSuggested(task) },
                     )
@@ -154,6 +155,17 @@ fun FamilyTaskScreen(
         )
     }
 
+    bouncingTask?.let { task ->
+        BounceBackDialog(
+            task = task,
+            onConfirm = { review ->
+                viewModel.bounceBack(task, review)
+                bouncingTask = null
+            },
+            onDismiss = { bouncingTask = null },
+        )
+    }
+
     if (showImportDialog) {
         GroupImportDialog(
             onImport = { text ->
@@ -163,6 +175,32 @@ fun FamilyTaskScreen(
             onDismiss = { showImportDialog = false },
         )
     }
+}
+
+/** 家长打回重做, 可附评语 (写 parent_review)。 */
+@Composable
+private fun BounceBackDialog(
+    task: FamilyTask,
+    onConfirm: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var review by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("打回：${task.title}") },
+        text = {
+            OutlinedTextField(
+                value = review,
+                onValueChange = { review = it },
+                label = { Text("给孩子的评语（可选）") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(review.ifBlank { null }) }) { Text("打回重做") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 /** M5 群作业导入: 家长粘贴班级群通知 → 解析为 SUGGESTED 候选, 逐条确认。 */
@@ -319,6 +357,13 @@ private fun TaskCard(
                     text = "🤖 $it",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            task.parentReview?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "👪 家长：$it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
             }
             Spacer(Modifier.height(8.dp))

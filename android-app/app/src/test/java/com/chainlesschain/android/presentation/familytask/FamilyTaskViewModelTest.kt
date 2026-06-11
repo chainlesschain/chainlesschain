@@ -266,6 +266,26 @@ class FamilyTaskViewModelTest {
     }
 
     @Test
+    fun `bounce back with a review writes parent_review and reverts to in progress`() = runTest {
+        val viewModel = vm()
+        viewModel.createTask("数学", "math", "")
+        viewModel.enterStudy(firstTask(viewModel))
+        viewModel.submit(firstTask(viewModel), "ans")
+        viewModel.aiGrade(firstTask(viewModel))
+
+        viewModel.bounceBack(firstTask(viewModel), review = "第 3 题再想想")
+        val task = firstTask(viewModel)
+        assertEquals(FamilyTaskStatus.IN_PROGRESS, task.status)
+        assertEquals("第 3 题再想想", task.parentReview)
+
+        // 无评语打回不覆盖已有评语
+        viewModel.submit(firstTask(viewModel), "ans2")
+        viewModel.aiGrade(firstTask(viewModel))
+        viewModel.bounceBack(firstTask(viewModel), review = "   ")
+        assertEquals("第 3 题再想想", firstTask(viewModel).parentReview)
+    }
+
+    @Test
     fun `import with no recognizable homework only sets a hint message`() = runTest {
         val viewModel = vm()
         viewModel.importFromGroupText("明天上午九点开家长会").join()

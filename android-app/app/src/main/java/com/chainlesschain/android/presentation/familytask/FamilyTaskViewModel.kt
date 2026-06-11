@@ -238,7 +238,9 @@ class FamilyTaskViewModel @Inject constructor(
         repo.transition(task.id, FamilyTaskStatus.ASSIGNED)
     }
 
-    fun bounceBack(task: FamilyTask) = viewModelScope.launch {
+    /** 家长打回重做, 可附评语 (写 parent_review, §3.5 此前从未有 UI 入口)。 */
+    fun bounceBack(task: FamilyTask, review: String? = null) = viewModelScope.launch {
+        review?.trim()?.takeIf { it.isNotBlank() }?.let { repo.recordParentReview(task.id, it) }
         repo.transition(task.id, FamilyTaskStatus.IN_PROGRESS)
     }
 
