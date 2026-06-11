@@ -36,6 +36,7 @@ const {
   readChromiumCookies,
 } = require("../social-bilibili-adb/chromium-cookies-reader");
 
+const XHS_PACKAGE = "com.xingin.xhs";
 const XHS_COOKIES_REMOTE_PATH =
   "/data/data/com.xingin.xhs/app_webview/Default/Cookies";
 
@@ -56,10 +57,27 @@ async function pullCookiesViaSu(adb, serial, opts) {
   );
   const lsLine = lsOut.replace(/\r+$/gm, "").trim();
   if (lsLine === "NOT_FOUND" || lsLine === "") {
+    // Distinguish "app not installed" from "installed but no webview cookie
+    // store yet" (logged out / never opened an in-app WebView). Both leave the
+    // Cookies file absent, but the user action differs — so probe pm.
+    const pmOut = await adb(
+      ["shell", "su", "-c", `pm list packages ${XHS_PACKAGE}`],
+      adbOpts,
+    );
+    const installed = pmOut.replace(/\r/g, "").includes(`package:${XHS_PACKAGE}`);
+    if (installed) {
+      throw new Error(
+        "XHS_NO_WEBVIEW_COOKIES: Xiaohongshu App 已安装但无 WebView cookie 库 (" +
+          XHS_COOKIES_REMOTE_PATH +
+          " 不存在)。请在 App 内登录，并打开任意笔记/网页（触发内置 WebView 写 cookie）后重试。",
+      );
+    }
     throw new Error(
       "XHS_NOT_INSTALLED: " +
         XHS_COOKIES_REMOTE_PATH +
-        " not found. Install Xiaohongshu App + log in once on the phone, then retry.",
+        " not found and package " +
+        XHS_PACKAGE +
+        " is not installed. Install Xiaohongshu App + log in once on the phone, then retry.",
     );
   }
   const idOut = await adb(["shell", "su", "-c", "id -u"], adbOpts);

@@ -161,3 +161,33 @@ describe("createToutiaoCookiesExtension", () => {
     ).rejects.toThrow(/ctx must provide/);
   });
 });
+
+describe("pullCookiesViaSu — installed-vs-not-installed diagnosis", () => {
+  function makeAdb({ ls, pm }) {
+    return async (args) => {
+      const cmd = args.join(" ");
+      if (cmd.includes("pm list packages")) return pm || "";
+      if (cmd.includes("ls ")) return ls;
+      throw new Error("fake adb: unexpected command " + cmd);
+    };
+  }
+
+  it("throws TOUTIAO_NOT_INSTALLED when cookies absent AND package not installed", async () => {
+    const adb = makeAdb({ ls: "NOT_FOUND\r\n", pm: "" });
+    await expect(
+      _internals.pullCookiesViaSu(adb, "serial", {}),
+    ).rejects.toThrow(/TOUTIAO_NOT_INSTALLED/);
+  });
+
+  it("throws TOUTIAO_NO_WEBVIEW_COOKIES when cookies absent but package installed (real-device 2026-06-11)", async () => {
+    // Verified on device 5lhyaqu8lbwstc6x: com.ss.android.article.news
+    // installed but no webview cookie store → must NOT say NOT_INSTALLED.
+    const adb = makeAdb({
+      ls: "NOT_FOUND\r\n",
+      pm: "package:com.ss.android.article.news\r\n",
+    });
+    await expect(
+      _internals.pullCookiesViaSu(adb, "serial", {}),
+    ).rejects.toThrow(/TOUTIAO_NO_WEBVIEW_COOKIES/);
+  });
+});

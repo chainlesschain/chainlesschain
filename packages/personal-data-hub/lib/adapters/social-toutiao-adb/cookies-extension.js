@@ -41,6 +41,7 @@ const {
   readChromiumCookies,
 } = require("../social-bilibili-adb/chromium-cookies-reader");
 
+const TOUTIAO_PACKAGE = "com.ss.android.article.news";
 const TOUTIAO_COOKIES_REMOTE_PATH =
   "/data/data/com.ss.android.article.news/app_webview/Default/Cookies";
 
@@ -72,10 +73,29 @@ async function pullCookiesViaSu(adb, serial, opts) {
   );
   const lsLine = lsOut.replace(/\r+$/gm, "").trim();
   if (lsLine === "NOT_FOUND" || lsLine === "") {
+    // Distinguish "app not installed" from "installed but no webview cookie
+    // store yet" (logged out / never opened an in-app WebView). Both leave the
+    // Cookies file absent, but the user action differs — so probe pm.
+    const pmOut = await adb(
+      ["shell", "su", "-c", `pm list packages ${TOUTIAO_PACKAGE}`],
+      adbOpts,
+    );
+    const installed = pmOut
+      .replace(/\r/g, "")
+      .includes(`package:${TOUTIAO_PACKAGE}`);
+    if (installed) {
+      throw new Error(
+        "TOUTIAO_NO_WEBVIEW_COOKIES: 今日头条 App 已安装但无 WebView cookie 库 (" +
+          TOUTIAO_COOKIES_REMOTE_PATH +
+          " 不存在)。请在 App 内登录，并打开任意文章/网页（触发内置 WebView 写 cookie）后重试。注意：极速版 (.lite) 是另一个包，不支持。",
+      );
+    }
     throw new Error(
       "TOUTIAO_NOT_INSTALLED: " +
         TOUTIAO_COOKIES_REMOTE_PATH +
-        " not found. Install Toutiao App (今日头条 com.ss.android.article.news) + log in once, then retry. Note: 极速版 (.lite) uses a different package — only the standard app is supported.",
+        " not found and package " +
+        TOUTIAO_PACKAGE +
+        " is not installed. Install Toutiao App (今日头条 com.ss.android.article.news) + log in once, then retry. Note: 极速版 (.lite) uses a different package — only the standard app is supported.",
     );
   }
   const idOut = await adb(["shell", "su", "-c", "id -u"], adbOpts);
