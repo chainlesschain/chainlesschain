@@ -3,7 +3,7 @@
 # rollback trio (bak-20260611-153957). Prints a delete plan (du each) first,
 # then deletes, with df before/after.
 set -u
-KEEP=bak-20260611-153957
+KEEP=bak-20260611-162859
 SITES="docs.chainlesschain.com design.chainlesschain.com www.chainlesschain.com"
 
 echo "=== BEFORE: df / ==="
