@@ -2415,6 +2415,12 @@ export function registerInitCommand(program) {
       "Force inventory mode even when a template flag is present (inventory is already the default without -t/--bare)",
     )
     .option("--force", "Overwrite an existing cc.md (inventory mode)")
+    .option(
+      "--ai",
+      "After the offline census, run a bounded headless agent to fill cc.md's Conventions with observed facts (needs a reachable LLM; --provider/--model to override)",
+    )
+    .option("--provider <name>", "LLM provider for --ai")
+    .option("--model <name>", "LLM model for --ai")
     .action(async (options, command) => {
       let cwd;
       if (options.cwd) {
@@ -2501,6 +2507,31 @@ export function registerInitCommand(program) {
           logger.info(
             "  Heads-up: `cc init` now inventories by default — use `--bare` or `-t <template>` for the old scaffold flow.",
           );
+        }
+        // --ai: agent-enhanced pass over the freshly written cc.md.
+        if (options.ai) {
+          logger.info("  Running AI refine pass (bounded headless agent)…");
+          try {
+            const { aiRefineMemoryFile } = await import(
+              "../lib/init-ai-refine.js"
+            );
+            const res = await aiRefineMemoryFile({
+              cwd,
+              provider: options.provider,
+              model: options.model,
+            });
+            if (res.isError) {
+              logger.error(
+                `  AI refine failed (cc.md keeps the offline census): ${String(res.result).slice(0, 200)}`,
+              );
+            } else {
+              logger.success("  cc.md refined by agent — review the diff.");
+            }
+          } catch (err) {
+            logger.error(
+              `  AI refine failed (cc.md keeps the offline census): ${err.message}`,
+            );
+          }
         }
         return;
       }
