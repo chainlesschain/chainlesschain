@@ -102,8 +102,19 @@ export function parseInputEvent(line) {
       .map((b) => (typeof b === "string" ? b : b?.text || ""))
       .join("");
   }
-  if (typeof content !== "string" || !content.trim()) return null;
-  return { text: content };
+  // Vision input (chat-panel image paste): {"type":"user","text":…,
+  // "images":["/abs/file.png", …]} — file paths, resolved at turn build via
+  // the same image-input pipeline as `cc agent --image`.
+  const rawImages = obj && typeof obj === "object" ? obj.images || msg.images : null;
+  const images = Array.isArray(rawImages)
+    ? rawImages.filter((p) => typeof p === "string" && p.trim()).slice(0, 8)
+    : [];
+  if (typeof content !== "string" || !content.trim()) {
+    // An image-only turn is valid — give the model something to act on.
+    if (images.length) return { text: "Please look at the attached image(s).", images };
+    return null;
+  }
+  return images.length ? { text: content, images } : { text: content };
 }
 
 /**
@@ -727,10 +738,31 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       // optional polish — never fail the turn over it
     }
 
-    messages.push({ role: "user", content: userContent });
+    // Attach pasted/added images (panel parity with `--image`): file paths →
+    // data URLs → OpenAI-style multimodal content. buildUserContent returns
+    // the plain string when there are no images, so text turns are unchanged.
+    let turnContent = userContent;
+    if (parsed.images && parsed.images.length) {
+      try {
+        const { resolveImages, buildUserContent } =
+          await import("../lib/image-input.js");
+        turnContent = buildUserContent(userContent, resolveImages(parsed.images));
+      } catch (err) {
+        emit({
+          type: "result",
+          subtype: "error",
+          is_error: true,
+          result: `image attach failed: ${err.message}`,
+          session_id: sessionId,
+        });
+        continue; // bad attachment kills the turn, not the session
+      }
+    }
+
+    messages.push({ role: "user", content: turnContent });
     if (persist) {
       try {
-        store.appendUserMessage(sessionId, userContent);
+        store.appendUserMessage(sessionId, turnContent);
       } catch {
         /* best-effort */
       }

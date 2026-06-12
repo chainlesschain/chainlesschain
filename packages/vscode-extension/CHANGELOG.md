@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.16.0] — 2026-06-12 (unreleased — needs cc > 0.162.46)
+
+- **Paste images into the chat** (vision input): paste a screenshot into the
+  input box — it shows as a removable 📷 chip and rides the next message.
+  The extension writes attachments to temp files and the CLI feeds them
+  through the same pipeline as `cc agent --image` (up to 4 per message;
+  data-URL whitelist, junk is dropped). Requires a vision-capable chat model
+  (`chainlesschain.chat.model` or `cc config set llm.visionModel …`) AND a
+  cc release newer than 0.162.46 (stream-json `images` support) — publish
+  gate: hold this extension version until that CLI ships, or pasted images
+  are silently dropped by older CLIs.
+
 ## [0.15.0] — 2026-06-12
 
 - **@file mentions in the chat input**: typing `@` (at start of a word) pops

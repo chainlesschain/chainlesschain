@@ -146,6 +146,37 @@ class ChatViewProvider {
   }
 
   /**
+   * Pasted images arrive from the webview as data URLs; the CLI's stream
+   * protocol takes file PATHS (same pipeline as `cc agent --image`), so each
+   * one is written to a temp file. Returns the paths (cap 4 per message;
+   * non-image/malformed data is skipped — never trust webview input).
+   */
+  _writeImageTemps(images) {
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const out = [];
+    for (const img of (images || []).slice(0, 4)) {
+      const m = /^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$/.exec(
+        String((img && img.data) || ""),
+      );
+      if (!m) continue;
+      const ext = m[1] === "jpeg" ? "jpg" : m[1];
+      const file = path.join(
+        os.tmpdir(),
+        `cc-chat-img-${Date.now()}-${this._imgSeq = (this._imgSeq || 0) + 1}.${ext}`,
+      );
+      try {
+        fs.writeFileSync(file, Buffer.from(m[2], "base64"));
+        out.push(file);
+      } catch {
+        // unwritable tmp — skip this attachment, keep the message going
+      }
+    }
+    return out;
+  }
+
+  /**
    * Workspace files for @-mention completion. The full listing is fetched
    * once per provider (5k cap, heavy dirs excluded) and filtered per
    * keystroke in-process; "New" invalidates it so fresh files show up.
@@ -208,7 +239,17 @@ class ChatViewProvider {
     view.webview.onDidReceiveMessage((m) => {
       if (!m || typeof m !== "object") return;
       if (m.type === "send") {
-        const ok = this._ensureSession().send(m.text);
+        const images = Array.isArray(m.images)
+          ? this._writeImageTemps(m.images)
+          : [];
+        const session = this._ensureSession();
+        const ok = images.length
+          ? session.sendEvent({
+              type: "user",
+              text: String(m.text || ""),
+              images,
+            })
+          : session.send(m.text);
         if (!ok) {
           this._post({
             kind: "error",

@@ -72,6 +72,11 @@ function buildChatHtml({ cspSource, nonce }) {
                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #suggest .item.sel { background: var(--vscode-list-activeSelectionBackground);
                        color: var(--vscode-list-activeSelectionForeground); }
+  #attach { display:none; padding:2px 8px; font-size:.85em; }
+  #attach .chip { display:inline-block; margin-right:6px; padding:1px 8px;
+                  border:1px solid var(--vscode-panel-border); border-radius:10px; }
+  #attach .chip button { background:none; border:none; color:inherit; padding:0 0 0 4px;
+                         cursor:pointer; }
 </style>
 </head>
 <body>
@@ -87,6 +92,7 @@ function buildChatHtml({ cspSource, nonce }) {
     </div>
   </div>
   <div id="status">not started — send a message to launch cc agent</div>
+  <div id="attach"></div>
   <div id="suggest"></div>
   <div id="bar">
     <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
@@ -129,9 +135,43 @@ function buildChatHtml({ cspSource, nonce }) {
     "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
     "/stop": () => vscode.postMessage({ type: "interrupt" }),
   };
+  // Pasted screenshots ride the message as data URLs; the host writes them
+  // to temp files and the CLI attaches them like --image (vision model
+  // required — configure llm.visionModel / chainlesschain.chat.model).
+  const attach = document.getElementById("attach");
+  let pendingImages = [];
+  function renderAttach() {
+    attach.textContent = "";
+    if (!pendingImages.length) { attach.style.display = "none"; return; }
+    pendingImages.forEach((img, i) => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = "📷 image " + (i + 1);
+      const x = document.createElement("button");
+      x.textContent = "×";
+      x.title = "remove attachment";
+      x.addEventListener("click", () => { pendingImages.splice(i, 1); renderAttach(); });
+      chip.appendChild(x);
+      attach.appendChild(chip);
+    });
+    attach.style.display = "block";
+  }
+  input.addEventListener("paste", (e) => {
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    for (const it of items) {
+      if (it.type && it.type.indexOf("image/") === 0 && pendingImages.length < 4) {
+        e.preventDefault();
+        const blob = it.getAsFile();
+        if (!blob) continue;
+        const fr = new FileReader();
+        fr.onload = () => { pendingImages.push({ data: fr.result }); renderAttach(); };
+        fr.readAsDataURL(blob);
+      }
+    }
+  });
   function send() {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !pendingImages.length) return;
     if (text.startsWith("/")) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
@@ -147,9 +187,14 @@ function buildChatHtml({ cspSource, nonce }) {
       add("info", "unknown command " + cmd + " — try /help");
       return;
     }
-    add("user", text);
+    const images = pendingImages;
+    pendingImages = [];
+    renderAttach();
+    add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
     streamEl = null;
-    vscode.postMessage({ type: "send", text });
+    vscode.postMessage(
+      images.length ? { type: "send", text, images } : { type: "send", text },
+    );
     input.value = "";
     status.textContent = "thinking…";
   }
@@ -400,6 +445,8 @@ function buildChatHtml({ cspSource, nonce }) {
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
         hideSug();
+        pendingImages = [];
+        renderAttach();
         break;
     }
   });
