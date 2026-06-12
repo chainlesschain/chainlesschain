@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.13.0] — 2026-06-12
+
+- **Markdown rendering in the chat panel**: assistant replies now render
+  fenced code blocks, inline code, bold/italic and headings (md-lite, a
+  built-in whitelist renderer — escape-first, attribute-less tags only, so
+  it is XSS-safe by construction under the panel's strict CSP). Streaming
+  re-renders live; user messages, tool traces and errors stay plain text.
+
 ## [0.12.1] — 2026-06-11
 
 - Fix: the **Pick hunks…** list no longer cancels when the window loses

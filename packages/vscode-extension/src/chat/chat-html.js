@@ -3,7 +3,18 @@
  * external resources (strict CSP, everything inline with a nonce). Renders
  * the UI-message vocabulary produced by chat-events.js and posts
  * {type:"send"|"stop"|"restart"} back to the extension.
+ *
+ * Assistant replies render through md-lite (whitelist markdown, XSS-safe by
+ * construction); its source is embedded as a second nonce'd script — it is
+ * written WITHOUT backticks so the template literal below stays intact.
  */
+const fs = require("fs");
+const path = require("path");
+const MD_LITE_SOURCE = fs.readFileSync(
+  path.join(__dirname, "md-lite.js"),
+  "utf8",
+);
+
 function buildChatHtml({ cspSource, nonce }) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -20,6 +31,9 @@ function buildChatHtml({ cspSource, nonce }) {
   .user { color: var(--vscode-textLink-foreground); }
   .user::before { content:"❯ "; opacity:.7; }
   .assistant { }
+  .assistant pre { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15));
+                   padding:6px 8px; border-radius:4px; overflow-x:auto; margin:4px 0; }
+  .assistant code { font-family: var(--vscode-editor-font-family); font-size:.95em; }
   .tool { opacity:.75; font-family: var(--vscode-editor-font-family); font-size:.92em; }
   .tool.err { color: var(--vscode-errorForeground); }
   .info { opacity:.6; font-style:italic; font-size:.92em; }
@@ -50,6 +64,7 @@ function buildChatHtml({ cspSource, nonce }) {
 </style>
 </head>
 <body>
+<script nonce="${nonce}">${MD_LITE_SOURCE}</script>
   <div id="log"></div>
   <div id="plan">
     <h4>Plan <span id="planState"></span></h4>
@@ -73,6 +88,7 @@ function buildChatHtml({ cspSource, nonce }) {
   const input = document.getElementById("input");
   const status = document.getElementById("status");
   let streamEl = null; // the assistant block currently receiving deltas
+  let streamRaw = ""; // its raw markdown, re-rendered on every delta
 
   function add(cls, text) {
     const el = document.createElement("div");
@@ -83,7 +99,10 @@ function buildChatHtml({ cspSource, nonce }) {
     return el;
   }
   function ensureStream() {
-    if (!streamEl) streamEl = add("assistant", "");
+    if (!streamEl) {
+      streamEl = add("assistant", "");
+      streamRaw = "";
+    }
     return streamEl;
   }
 
@@ -181,10 +200,13 @@ function buildChatHtml({ cspSource, nonce }) {
       case "init":
         status.textContent = m.model ? (m.provider + " · " + m.model) : "connected";
         break;
-      case "delta":
-        ensureStream().textContent += m.text;
+      case "delta": {
+        const el = ensureStream();
+        streamRaw += m.text;
+        el.innerHTML = mdLite(streamRaw); // whitelist renderer, XSS-safe
         log.scrollTop = log.scrollHeight;
         break;
+      }
       case "tool":
         streamEl = null;
         add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
@@ -196,7 +218,13 @@ function buildChatHtml({ cspSource, nonce }) {
         add("info", m.text);
         break;
       case "turn_end":
-        if (m.text) add(m.isError ? "error" : "assistant", m.text);
+        if (m.text) {
+          if (m.isError) {
+            add("error", m.text); // errors stay plain text
+          } else {
+            add("assistant", "").innerHTML = mdLite(m.text);
+          }
+        }
         streamEl = null;
         status.textContent = m.usage
           ? "ready · " + (m.usage.input_tokens||0) + "→" + (m.usage.output_tokens||0) + " tokens"
