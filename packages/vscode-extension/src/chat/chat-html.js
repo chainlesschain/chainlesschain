@@ -14,6 +14,10 @@ const MD_LITE_SOURCE = fs.readFileSync(
   path.join(__dirname, "md-lite.js"),
   "utf8",
 );
+const AT_MENTION_SOURCE = fs.readFileSync(
+  path.join(__dirname, "at-mention.js"),
+  "utf8",
+);
 
 function buildChatHtml({ cspSource, nonce }) {
   return `<!DOCTYPE html>
@@ -61,10 +65,18 @@ function buildChatHtml({ cspSource, nonce }) {
   button.secondary { background: var(--vscode-button-secondaryBackground);
                      color: var(--vscode-button-secondaryForeground); }
   #status { padding:2px 8px; font-size:.85em; opacity:.6; }
+  #suggest { display:none; margin:0 6px; border:1px solid var(--vscode-panel-border);
+             border-bottom:none; border-radius:4px 4px 0 0; max-height:160px; overflow-y:auto;
+             background: var(--vscode-editorWidget-background); font-size:.92em; }
+  #suggest .item { padding:3px 8px; cursor:pointer; font-family: var(--vscode-editor-font-family);
+                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #suggest .item.sel { background: var(--vscode-list-activeSelectionBackground);
+                       color: var(--vscode-list-activeSelectionForeground); }
 </style>
 </head>
 <body>
 <script nonce="${nonce}">${MD_LITE_SOURCE}</script>
+<script nonce="${nonce}">${AT_MENTION_SOURCE}</script>
   <div id="log"></div>
   <div id="plan">
     <h4>Plan <span id="planState"></span></h4>
@@ -75,6 +87,7 @@ function buildChatHtml({ cspSource, nonce }) {
     </div>
   </div>
   <div id="status">not started — send a message to launch cc agent</div>
+  <div id="suggest"></div>
   <div id="bar">
     <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
     <button id="send">Send</button>
@@ -190,7 +203,62 @@ function buildChatHtml({ cspSource, nonce }) {
       add("info", "plan approved — executing " + m.items.length + " items");
     }
   }
+  // @file mention completion — the CLI expands @path refs server-side; this
+  // dropdown only helps type them. State: sug.at is the active "@" token.
+  const suggest = document.getElementById("suggest");
+  let sug = { at: null, items: [], sel: 0 };
+  function hideSug() {
+    sug = { at: null, items: [], sel: 0 };
+    suggest.style.display = "none";
+    suggest.textContent = "";
+  }
+  function renderSug() {
+    suggest.textContent = "";
+    if (!sug.at || !sug.items.length) { suggest.style.display = "none"; return; }
+    sug.items.forEach((f, i) => {
+      const row = document.createElement("div");
+      row.className = "item" + (i === sug.sel ? " sel" : "");
+      row.textContent = f;
+      row.addEventListener("mousedown", (e) => { e.preventDefault(); acceptSug(i); });
+      suggest.appendChild(row);
+    });
+    suggest.style.display = "block";
+  }
+  function acceptSug(i) {
+    const item = sug.items[i == null ? sug.sel : i];
+    if (!item || !sug.at) { hideSug(); return; }
+    const r = ccAtMention.applyMention(input.value, sug.at, item, input.selectionStart);
+    input.value = r.text;
+    input.setSelectionRange(r.caret, r.caret);
+    hideSug();
+    input.focus();
+  }
+  input.addEventListener("input", () => {
+    const at = ccAtMention.detectAtToken(input.value.slice(0, input.selectionStart));
+    if (at) {
+      sug.at = at;
+      vscode.postMessage({ type: "files", prefix: at.prefix });
+    } else {
+      hideSug();
+    }
+  });
   input.addEventListener("keydown", (e) => {
+    if (sug.at && sug.items.length) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault(); sug.sel = (sug.sel + 1) % sug.items.length; renderSug(); return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault(); sug.sel = (sug.sel - 1 + sug.items.length) % sug.items.length; renderSug(); return;
+      }
+      if (e.key === "Tab" || e.key === "Enter") {
+        e.preventDefault(); acceptSug(); return;
+      }
+      if (e.key === "Escape") {
+        // Close the dropdown only — must NOT fall through to the document
+        // listener that interrupts the in-flight turn.
+        e.preventDefault(); e.stopPropagation(); hideSug(); return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
 
@@ -316,11 +384,22 @@ function buildChatHtml({ cspSource, nonce }) {
         log.scrollTop = log.scrollHeight;
         break;
       }
+      case "files": {
+        // Stale replies (user kept typing / closed the token) are dropped.
+        const at = ccAtMention.detectAtToken(input.value.slice(0, input.selectionStart));
+        if (!at || at.prefix !== m.prefix) break;
+        sug.at = at;
+        sug.items = Array.isArray(m.items) ? m.items : [];
+        sug.sel = 0;
+        renderSug();
+        break;
+      }
       case "reset":
         log.textContent = "";
         streamEl = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
+        hideSug();
         break;
     }
   });

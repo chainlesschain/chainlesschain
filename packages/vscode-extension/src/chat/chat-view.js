@@ -145,6 +145,37 @@ class ChatViewProvider {
     });
   }
 
+  /**
+   * Workspace files for @-mention completion. The full listing is fetched
+   * once per provider (5k cap, heavy dirs excluded) and filtered per
+   * keystroke in-process; "New" invalidates it so fresh files show up.
+   */
+  async _listWorkspaceFiles(prefix) {
+    const { filterFiles } = require("./at-mention");
+    if (!this._fileCache) {
+      this._fileCache = Promise.resolve()
+        .then(() =>
+          this.vscode.workspace.findFiles(
+            "**/*",
+            "**/{node_modules,.git,dist,build,out,coverage}/**",
+            5000,
+          ),
+        )
+        .then((uris) => {
+          const folders = this.vscode.workspace.workspaceFolders || [];
+          const root = folders[0]?.uri?.fsPath || "";
+          return (uris || []).map((u) => {
+            let p = u.fsPath || "";
+            if (root && p.startsWith(root)) p = p.slice(root.length + 1);
+            return p.replace(/\\/g, "/");
+          });
+        })
+        .catch(() => []);
+    }
+    const all = await this._fileCache;
+    return filterFiles(all, prefix, 20);
+  }
+
   /** Called after the Configure-LLM wizard: fresh child picks up the config. */
   onLlmConfigured() {
     this.session?.stop();
@@ -196,6 +227,13 @@ class ChatViewProvider {
         } else {
           this.session?.sendEvent({ type: "plan", action });
         }
+      } else if (m.type === "files") {
+        // @-mention completion: reply with ranked workspace-relative paths.
+        const prefix = String(m.prefix || "");
+        this._listWorkspaceFiles(prefix).then(
+          (items) => this._post({ kind: "files", prefix, items }),
+          () => {},
+        );
       } else if (m.type === "pickSession") {
         this._pickSession().catch(() => {});
       } else if (m.type === "configureLlm") {
@@ -217,6 +255,7 @@ class ChatViewProvider {
         this.session?.stop();
         this.session = null;
         this._rememberSessionId(null);
+        this._fileCache = null; // pick up files created since the last scan
         this._post({ kind: "reset" });
       }
     });

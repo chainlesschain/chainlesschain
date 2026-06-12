@@ -110,15 +110,16 @@ describe("embedding constraints", () => {
     expect(src.toLowerCase().includes("</script")).toBe(false);
   });
 
-  it("BOTH embedded webview scripts parse (md-lite + main)", () => {
+  it("ALL embedded webview scripts parse (md-lite + at-mention + main)", () => {
     const page = buildChatHtml({ cspSource: "x:", nonce: "N" });
     const scripts = [
       ...page.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g),
     ];
-    expect(scripts.length).toBe(2);
+    expect(scripts.length).toBe(3);
     for (const [, body] of scripts) {
       expect(() => new Function(body)).not.toThrow();
     }
     expect(scripts[0][1]).toContain("mdLite"); // renderer loads first
+    expect(scripts[1][1]).toContain("ccAtMention"); // helpers before main
   });
 });

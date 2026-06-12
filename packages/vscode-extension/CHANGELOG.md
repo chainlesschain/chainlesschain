@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.15.0] — 2026-06-12
+
+- **@file mentions in the chat input**: typing `@` (at start of a word) pops
+  a ranked dropdown of workspace files — basename-prefix hits first, then
+  path-prefix, then substring. Arrow keys navigate, Tab/Enter accepts
+  (inserting `@relative/path `), Esc closes the dropdown without
+  interrupting the running turn. The CLI already expands `@path` references
+  in stream-json turns server-side, so the inserted mention pulls the file's
+  content into the conversation with zero protocol changes. The workspace is
+  scanned once per session (5k files cap, heavy dirs excluded) and filtered
+  per keystroke; **New** rescans.
+
 ## [0.14.0] — 2026-06-12
 
 - **Closing the diff tab now rejects the review immediately.** Closing the
