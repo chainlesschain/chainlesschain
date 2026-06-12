@@ -73,6 +73,7 @@ export class SubAgentContext {
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools || null; // null = all
+    this.depth = options.depth || 1; // nesting level (parent main loop = 0)
     this.cwd = options.cwd || process.cwd();
     this.status = "active";
     this.result = null;
@@ -249,6 +250,8 @@ export class SubAgentContext {
       ...this._llmOptions,
       contextEngine: this.contextEngine,
       cwd: this.cwd,
+      // Nesting level: lets a nested spawn_sub_agent see — and cap — its depth.
+      subAgentDepth: this.depth,
       ...loopOptions,
     };
     if (this.iterationBudget) {

@@ -1014,6 +1014,7 @@ export async function executeTool(name, args, context = {}) {
       shellConfirm: context.shellConfirm || null,
       additionalDirectories: context.additionalDirectories || null,
       ruleAllowed,
+      subAgentDepth: context.subAgentDepth || 0,
     });
   } catch (err) {
     if (hookDb) {
@@ -1184,6 +1185,7 @@ async function executeToolInner(
     shellConfirm,
     additionalDirectories,
     ruleAllowed = false,
+    subAgentDepth = 0,
   },
 ) {
   const localToolDescriptor =
@@ -1562,6 +1564,7 @@ async function executeToolInner(
           interaction,
           sessionId,
           llmOptions,
+          subAgentDepth,
         }),
       );
     }
@@ -2221,6 +2224,13 @@ async function _executeRunCode(args, cwd) {
 // ─── spawn_sub_agent implementation ──────────────────────────────────────
 
 /**
+ * Max sub-agent nesting depth (Claude-Code 2.1.172 parity: sub-agents may
+ * spawn their own sub-agents, capped at 5 levels so a runaway model cannot
+ * recurse forever). Main loop = depth 0, its children = 1, …
+ */
+export const MAX_SUB_AGENT_DEPTH = 5;
+
+/**
  * Execute a spawn_sub_agent tool call.
  * Creates an isolated SubAgentContext, runs it, and returns only the summary.
  *
@@ -2229,6 +2239,13 @@ async function _executeRunCode(args, cwd) {
  * @returns {Promise<object>}
  */
 async function _executeSpawnSubAgent(args, ctx) {
+  // Nesting cap: refuse before any context/registry work.
+  const currentDepth = ctx.subAgentDepth || 0;
+  if (currentDepth >= MAX_SUB_AGENT_DEPTH) {
+    return {
+      error: `spawn_sub_agent: max nesting depth (${MAX_SUB_AGENT_DEPTH}) reached — complete the task directly instead of delegating further.`,
+    };
+  }
   let {
     role,
     task,
@@ -2330,6 +2347,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     cwd: ctx.cwd,
     profile: profile || null,
     llmOptions: subLlmOptions,
+    depth: currentDepth + 1, // nested spawns see their own level
   });
 
   const emit = (type, payload) => {
@@ -3366,6 +3384,9 @@ export async function* agentLoop(messages, options) {
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",
+    // Sub-agent nesting level (0 = main loop); spawn_sub_agent caps at
+    // MAX_SUB_AGENT_DEPTH using this.
+    subAgentDepth: options.subAgentDepth || 0,
   };
 
   throwIfAborted(signal);
