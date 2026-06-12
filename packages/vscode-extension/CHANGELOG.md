@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.17.0] — 2026-06-12
+
+- **Markdown tables & task lists in chat** (md-lite GFM extensions):
+  `| a | b |` tables render as bordered grids (cells keep inline formatting
+  and escaping), and `- [ ]` / `- [x]` task items render as ☐ / ☑. The
+  whitelist invariant is unchanged — output is still attribute-less tags
+  over escaped text, so the panel stays XSS-safe by construction.
+
 ## [0.16.0] — 2026-06-12 (requires cc ≥ 0.162.47)
 
 - **Paste images into the chat** (vision input): paste a screenshot into the

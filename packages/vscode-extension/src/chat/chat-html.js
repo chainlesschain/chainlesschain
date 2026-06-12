@@ -38,6 +38,10 @@ function buildChatHtml({ cspSource, nonce }) {
   .assistant pre { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15));
                    padding:6px 8px; border-radius:4px; overflow-x:auto; margin:4px 0; }
   .assistant code { font-family: var(--vscode-editor-font-family); font-size:.95em; }
+  .assistant table { border-collapse:collapse; margin:4px 0; }
+  .assistant th, .assistant td { border:1px solid var(--vscode-panel-border);
+                                 padding:2px 8px; font-size:.95em; }
+  .assistant th { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15)); }
   .tool { opacity:.75; font-family: var(--vscode-editor-font-family); font-size:.92em; }
   .tool.err { color: var(--vscode-errorForeground); }
   .info { opacity:.6; font-style:italic; font-size:.92em; }
