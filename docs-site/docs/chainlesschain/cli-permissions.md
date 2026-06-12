@@ -128,6 +128,7 @@ npx vitest run __tests__/unit/permission-rules.test.js __tests__/unit/settings-l
 - **加载 fail-open、不破坏可用性**：坏 settings 文件只警告并跳过——损坏的配置文件绝不让 agent 卡死，回落到默认风险逻辑（仍然有保护）。
 - **写入拒绝践踏坏文件**：`addRule` 发现目标文件是非法 JSON 时抛错拒写，防止把用户手写配置静默清空。
 - **显式 UTF-8 读写**，规避 Windows GBK 编码陷阱。
+- **敏感文件写入守卫（v0.162.46+）**：`write_file`/`edit_file` 指向 shell 启动文件（`.bashrc`/`.zshenv` 族、PowerShell profile、fish 配置）或 `.git/hooks`、`.husky` 钩子（`.husky/_` 除外）时，即使其它流程已放行也**强制确认** —— 防植入代码在下次开 shell / 提交时执行。唯一旁路是显式 settings `allow` 规则；headless 无确认器时 fail-closed。模式集刻意保守（`Makefile`/`package.json` 等日常文件不拦）。
 
 ## 故障排除
 
