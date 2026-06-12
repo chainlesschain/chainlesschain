@@ -901,6 +901,40 @@ export async function executeTool(name, args, context = {}) {
     ruleAllowed = true;
   }
 
+  // Sensitive-file write guard (Claude-Code 2.1.160 parity): shell startup
+  // files / PowerShell profiles / git+husky hooks execute code on the user's
+  // next shell or commit — even otherwise-permitted edit flows confirm first.
+  // An explicit settings `allow` rule is the only bypass (exact user
+  // pre-authorization); headless without a confirmer fails closed.
+  if (
+    (name === "write_file" || name === "edit_file") &&
+    settingsVerdict.decision !== "allow" &&
+    args?.path
+  ) {
+    const { sensitiveFileReason } = await import(
+      "../lib/sensitive-file-guard.js"
+    );
+    const sensReason = sensitiveFileReason(args.path);
+    if (sensReason) {
+      const confirm = context.permissionConfirm || context.shellConfirm || null;
+      const ok =
+        typeof confirm === "function"
+          ? await confirm({
+              tool: name,
+              args,
+              rule: null,
+              reason: `sensitive file: ${sensReason}`,
+            })
+          : false;
+      if (!ok) {
+        return {
+          error: `[Sensitive File] Writing "${args.path}" requires confirmation (${sensReason}) — denied. Add a settings allow rule to pre-authorize.`,
+          policy: { decision: "ask", via: "sensitive-file" },
+        };
+      }
+    }
+  }
+
   // Plan mode: check if tool is allowed (a settings `allow` rule pre-authorizes)
   if (
     planManager.isActive() &&
