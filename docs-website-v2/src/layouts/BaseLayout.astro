@@ -133,6 +133,11 @@ const ogLocale = isEn ? 'en_US' : 'zh_CN';
     })} />
 
     {jsonLd && <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />}
+
+    <!-- Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017) -->
+    <script is:inline defer src="https://www.chainlesschain.com/u/script.js"
+      data-website-id="651b051b-b376-4dc1-8a64-7e56c4ab7ca7"
+      data-host-url="https://www.chainlesschain.com/u"></script>
   </head>
   <body>
     <!-- Page Loader (full replica of legacy loading.css) -->

@@ -8,6 +8,13 @@ export default defineConfig({
 
   head: [
     ["meta", { charset: "utf-8" }],
+    // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
+    ["script", {
+      defer: "",
+      src: "https://www.chainlesschain.com/u/script.js",
+      "data-website-id": "e2103676-c36a-4c78-8094-62bb68be27e3",
+      "data-host-url": "https://www.chainlesschain.com/u",
+    }],
     ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" }],
     ["link", { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" }],
     ["link", { rel: "icon", type: "image/png", sizes: "128x128", href: "/logo-128.png" }],

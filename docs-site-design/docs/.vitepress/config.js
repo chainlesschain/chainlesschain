@@ -7,6 +7,13 @@ export default defineConfig({
   ignoreDeadLinks: true,
 
   head: [
+    // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
+    ["script", {
+      defer: "",
+      src: "https://www.chainlesschain.com/u/script.js",
+      "data-website-id": "a2896710-c627-4621-bf90-af1b33f74a89",
+      "data-host-url": "https://www.chainlesschain.com/u",
+    }],
     ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/logo-32.png" }],
     ["link", { rel: "icon", type: "image/png", sizes: "64x64", href: "/logo-64.png" }],
     ["link", { rel: "icon", type: "image/png", sizes: "128x128", href: "/logo-128.png" }],
