@@ -136,11 +136,13 @@ tags:
   // ─── LAYER_NAMES ──────────────────────────────────────
 
   describe("LAYER_NAMES", () => {
-    it("has 4 layers in correct priority order", () => {
+    it("has 6 layers in correct priority order (claude-* portability between managed and workspace)", () => {
       expect(LAYER_NAMES).toEqual([
         "bundled",
         "marketplace",
         "managed",
+        "claude-user",
+        "claude-project",
         "workspace",
       ]);
     });
@@ -155,16 +157,57 @@ tags:
     });
 
     describe("getLayerPaths", () => {
-      it("returns 4 layer entries", () => {
+      it("returns 6 layer entries", () => {
         const loader = new CLISkillLoader();
         const layers = loader.getLayerPaths();
-        expect(layers).toHaveLength(4);
+        expect(layers).toHaveLength(6);
         expect(layers.map((l) => l.layer)).toEqual([
           "bundled",
           "marketplace",
           "managed",
+          "claude-user",
+          "claude-project",
           "workspace",
         ]);
+      });
+
+      it("loads .claude/skills (claude-project) with workspace overriding on collision", async () => {
+        const fs = await import("fs");
+        const os = await import("os");
+        const path = await import("path");
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-claude-skills-"));
+        const prev = process.cwd();
+        try {
+          fs.mkdirSync(path.join(tmp, ".git"), { recursive: true });
+          const write = (rel, name, desc) => {
+            const dir = path.join(tmp, rel, name);
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(
+              path.join(dir, "SKILL.md"),
+              `---\nname: ${name}\ndescription: ${desc}\n---\nbody`,
+              "utf-8",
+            );
+          };
+          write(".claude/skills", "portable-only", "from claude layer");
+          write(".claude/skills", "shared", "claude version");
+          write(".chainlesschain/skills", "shared", "workspace version");
+          fs.writeFileSync(
+            path.join(tmp, ".chainlesschain", "config.json"),
+            "{}",
+            "utf-8",
+          );
+          process.chdir(tmp);
+          const loader = new CLISkillLoader();
+          const skills = loader.loadAll();
+          const portable = skills.find((s) => s.id === "portable-only");
+          expect(portable).toBeDefined();
+          expect(portable.source).toBe("claude-project");
+          const shared = skills.find((s) => s.id === "shared");
+          expect(shared.description).toBe("workspace version"); // native wins
+        } finally {
+          process.chdir(prev);
+          fs.rmSync(tmp, { recursive: true, force: true });
+        }
       });
 
       it("each layer has path and exists fields", () => {

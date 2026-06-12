@@ -1,24 +1,40 @@
 /**
  * Multi-layer skill loader for CLI
  *
- * 4-layer priority system (highest wins on name collision):
- *   0 (lowest)  bundled     — desktop-app-vue/.../skills/builtin/
- *   1           marketplace — <userData>/marketplace/skills/
- *   2           managed     — <userData>/skills/
- *   3 (highest) workspace   — <projectRoot>/.chainlesschain/skills/
+ * 6-layer priority system (highest wins on name collision):
+ *   0 (lowest)  bundled        — desktop-app-vue/.../skills/builtin/
+ *   1           marketplace    — <userData>/marketplace/skills/
+ *   2           managed        — <userData>/skills/
+ *   3           claude-user    — ~/.claude/skills/            (Claude-Code 可移植)
+ *   4           claude-project — <projectRoot>/.claude/skills/ (Claude-Code 可移植)
+ *   5 (highest) workspace      — <projectRoot>/.chainlesschain/skills/
+ *
+ * The two `claude-*` layers are Claude-Code portability (its 2.1.157
+ * ".claude/skills auto-load" behavior): a repo carrying Claude-Code skills
+ * works in cc unchanged — same SKILL.md format — while native
+ * `.chainlesschain/skills` still wins on name collisions.
  */
 
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getElectronUserDataDir } from "./paths.js";
 import { findProjectRoot } from "./project-detector.js";
+import { findProjectRoot as findGitRoot } from "./project-instructions.js";
 import { parseSkillMcpServers } from "./skill-mcp.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** Layer names in priority order (lowest → highest) */
-export const LAYER_NAMES = ["bundled", "marketplace", "managed", "workspace"];
+export const LAYER_NAMES = [
+  "bundled",
+  "marketplace",
+  "managed",
+  "claude-user",
+  "claude-project",
+  "workspace",
+];
 
 /**
  * Simple YAML frontmatter parser (no dependencies)
@@ -230,7 +246,27 @@ export class CLISkillLoader {
       exists: fs.existsSync(managedPath),
     });
 
-    // Layer 3: workspace — <projectRoot>/.chainlesschain/skills/
+    // Layers 3+4: Claude-Code portability — ~/.claude/skills + <root>/.claude/skills
+    const home = os.homedir() || "";
+    const claudeUserPath = home ? path.join(home, ".claude", "skills") : null;
+    layers.push({
+      layer: "claude-user",
+      path: claudeUserPath,
+      exists: Boolean(claudeUserPath && fs.existsSync(claudeUserPath)),
+    });
+    // Project base: .chainlesschain marker first, git root as fallback so a
+    // pure Claude-Code repo (no .chainlesschain/) still gets its skills.
+    const claudeBase = findProjectRoot() || findGitRoot(process.cwd());
+    const claudeProjectPath = claudeBase
+      ? path.join(claudeBase, ".claude", "skills")
+      : null;
+    layers.push({
+      layer: "claude-project",
+      path: claudeProjectPath,
+      exists: Boolean(claudeProjectPath && fs.existsSync(claudeProjectPath)),
+    });
+
+    // Layer 5 (highest): workspace — <projectRoot>/.chainlesschain/skills/
     const projectRoot = findProjectRoot();
     if (projectRoot) {
       const workspacePath = path.join(projectRoot, ".chainlesschain", "skills");
