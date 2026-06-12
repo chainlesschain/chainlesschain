@@ -1,10 +1,13 @@
 /**
- * FAMILY-23 v0.1 — 华为学习中心 (Huawei Learning Center) adapter, snapshot mode.
+ * FAMILY-23 — 华为学习中心 (Huawei Learning Center) adapter.
  *
- * 家庭守护 telemetry：家长看孩子的课程/学习时长。v0.1 cookie-scrape 占位 —
- * [HuaweiLearningApiClient.extractUid] 抽 uid；snapshot 模式消费手机端 collector
- * 快照 (profile + study-session)。课程历史 HTTP fetcher 留 v0.2，故无 inputPath 时
- * sync 抛 NO_INPUT。
+ * 家庭守护 telemetry：家长看孩子的课程/学习时长。两路互补：
+ *   - snapshot 模式（inputPath）：手机端 collector 快照 (profile + study-session)。
+ *   - **live 模式（cookie，v0.2 接通）**：[HuaweiLearningApiClient.fetchSnapshot]
+ *     经学习中心接口（华为账号 web 会话 cookie）拉 用户信息 + 课程学习记录。
+ *     端点/字段无公开稳定文档，按 hicloud 教育服务常见形态实现 + 多字段名兼容，
+ *     **未实地验证**，漂移时按 api-client 常量/pick 列表调整。
+ * 无 inputPath 且无 cookie 时 sync 抛错。
  *
  * Snapshot schema (v1):
  *   { schemaVersion:1, snapshottedAt, account:{uid,displayName}, events:[
@@ -26,7 +29,7 @@ const {
 const { HuaweiLearningApiClient } = require("./api-client");
 
 const NAME = "edu-huawei-learning";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_PROFILE = "profile";
 const KIND_STUDY = "study";
@@ -60,6 +63,7 @@ class HuaweiLearningAdapter {
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:cookie",
       "parse:huawei-learning-profile",
       "parse:huawei-learning-study-session",
     ];
@@ -74,7 +78,10 @@ class HuaweiLearningAdapter {
       legalGate: false,
       defaultInclude: { profile: true, study: true },
     };
-    this.apiClient = new HuaweiLearningApiClient();
+    this.apiClient = new HuaweiLearningApiClient(opts);
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this._deps = { fs };
   }
 
@@ -91,11 +98,21 @@ class HuaweiLearningAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+      if (!this.apiClient.hasSession(ctx.cookie)) {
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          message: `edu-huawei-learning.authenticate: ${this.apiClient.lastError.message}`,
+        };
+      }
+      return { ok: true, mode: "cookie" };
+    }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "edu-huawei-learning.authenticate: v0.1 needs opts.inputPath (snapshot mode); live HTTP fetcher 待 v0.2",
+        "edu-huawei-learning.authenticate: needs opts.inputPath (snapshot mode) or opts.cookie (华为账号会话, live fetch)",
     };
   }
 
@@ -108,9 +125,66 @@ class HuaweiLearningAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
+    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+      yield* this._syncViaLive(opts);
+      return;
+    }
     throw new Error(
-      "edu-huawei-learning.sync: v0.1 needs opts.inputPath (snapshot mode); 课程历史 HTTP fetcher 待 v0.2",
+      "edu-huawei-learning.sync: needs opts.inputPath (snapshot mode) or opts.cookie (华为账号会话, 课程学习记录 live fetch)",
     );
+  }
+
+  async *_syncViaLive(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new HuaweiLearningApiClient({
+          fetch: opts.fetch,
+          baseUrl: opts.baseUrl,
+          userInfoPath: opts.userInfoPath,
+          studyRecordsPath: opts.studyRecordsPath,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const result = await client.fetchSnapshot(opts.cookie, {
+      include: opts.include || {},
+      limit: opts.limit,
+      offset: opts.offset,
+    });
+    if (result === null) {
+      const e = client.lastError;
+      throw new Error(
+        `edu-huawei-learning.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
+    }
+    const account = result.account || null;
+    emit("fetched", { count: result.events.length });
+    const capturedAt = Date.now();
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const include = opts.include || {};
+    let emitted = 0;
+    for (const ev of result.events) {
+      if (emitted >= limit) return;
+      if (!ev || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (include[ev.kind] === false) continue;
+      const id =
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.uid || null;
+      yield {
+        adapter: NAME,
+        kind: ev.kind,
+        originalId: stableOriginalId(ev.kind, id),
+        capturedAt,
+        payload: { ...ev, capturedAt, account },
+      };
+      emitted += 1;
+    }
   }
 
   async *_syncViaSnapshot(opts) {

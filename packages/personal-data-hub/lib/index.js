@@ -53,7 +53,7 @@ const { DouyinAdapter } = require("./adapters/social-douyin");
 const { XiaohongshuAdapter } = require("./adapters/social-xiaohongshu");
 const { ToutiaoAdapter } = require("./adapters/social-toutiao");
 const { KuaishouAdapter } = require("./adapters/social-kuaishou");
-// FAMILY-23 v0.1 — 家庭守护 telemetry collectors (cookie-scrape placeholder).
+// FAMILY-23 v0.2 — 家庭守护 telemetry collectors (snapshot + live fetcher 双路).
 const { GenshinAdapter } = require("./adapters/game-genshin");
 const { HonorOfKingsAdapter } = require("./adapters/game-honor-of-kings");
 const { ZuoyebangAdapter } = require("./adapters/edu-zuoyebang");

@@ -47,6 +47,7 @@ const PLATFORMS = [
     label: "作业帮",
     Adapter: lib.ZuoyebangAdapter,
     name: "edu-zuoyebang",
+    version: "0.2.0", // live web fetcher landed (see edu-zuoyebang-live.test.js)
     sensitivity: "medium",
     eventKind: "study",
     eventSubtype: "other",
@@ -57,6 +58,7 @@ const PLATFORMS = [
     label: "支付宝",
     Adapter: lib.AlipayAdapter,
     name: "finance-alipay",
+    version: "0.2.0", // live mobilegw fetcher landed (see finance-alipay-live.test.js)
     sensitivity: "high",
     eventKind: "order",
     eventSubtype: "payment",
@@ -67,6 +69,7 @@ const PLATFORMS = [
     label: "华为学习中心",
     Adapter: lib.HuaweiLearningAdapter,
     name: "edu-huawei-learning",
+    version: "0.2.0", // live web fetcher landed (see edu-huawei-learning-live.test.js)
     sensitivity: "medium",
     eventKind: "study",
     eventSubtype: "other",

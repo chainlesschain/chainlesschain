@@ -1,11 +1,15 @@
 /**
- * FAMILY-23 v0.1 — 支付宝 (Alipay) adapter, snapshot mode.
+ * FAMILY-23 — 支付宝 (Alipay) adapter.
  *
  * 家庭守护 telemetry：家长看孩子的消费情况。**高敏感**（涉资金）— 上行受
- * telemetry level + quiet hours 闸（FAMILY-24/25）。v0.1 cookie-scrape 占位 —
- * [AlipayApiClient.extractUid] 抽 uid；snapshot 模式消费手机端 collector 快照
- * (profile + order)。账单 HTTP fetcher（mobilegw + 签名）留 v0.2，故无 inputPath
- * 时 sync 抛 NO_INPUT。
+ * telemetry level + quiet hours 闸（FAMILY-24/25）。两路互补：
+ *   - snapshot 模式（inputPath）：手机端 collector 快照 (profile + order)。
+ *   - **live 模式（cookie，v0.2 接通）**：[AlipayApiClient.fetchSnapshot] 经
+ *     mobilegw（mgw.htm）拉账单/交易明细；多数 operationType 需 app 级签名 —
+ *     opts.signProvider seam 注入，未注入发未签名请求（服务端可能拒）。端点/
+ *     字段无公开稳定文档，按社区逆向常见形态实现 + 多字段名兼容，**未实地
+ *     验证**，漂移时按 api-client 常量/pick 列表调整。
+ * 无 inputPath 且无 cookie 时 sync 抛错。
  *
  * Snapshot schema (v1):
  *   { schemaVersion:1, snapshottedAt, account:{uid,displayName}, events:[
@@ -28,7 +32,7 @@ const {
 const { AlipayApiClient } = require("./api-client");
 
 const NAME = "finance-alipay";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_PROFILE = "profile";
 const KIND_ORDER = "order";
@@ -62,6 +66,7 @@ class AlipayAdapter {
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:cookie",
       "parse:alipay-profile",
       "parse:alipay-order",
     ];
@@ -76,7 +81,10 @@ class AlipayAdapter {
       legalGate: false,
       defaultInclude: { profile: true, order: true },
     };
-    this.apiClient = new AlipayApiClient();
+    this.apiClient = new AlipayApiClient(opts);
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this._deps = { fs };
   }
 
@@ -93,11 +101,21 @@ class AlipayAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+      if (!this.apiClient.hasSession(ctx.cookie)) {
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          message: `finance-alipay.authenticate: ${this.apiClient.lastError.message}`,
+        };
+      }
+      return { ok: true, mode: "cookie" };
+    }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "finance-alipay.authenticate: v0.1 needs opts.inputPath (snapshot mode); live HTTP fetcher 待 v0.2",
+        "finance-alipay.authenticate: needs opts.inputPath (snapshot mode) or opts.cookie (支付宝会话, mobilegw live fetch)",
     };
   }
 
@@ -110,9 +128,67 @@ class AlipayAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
+    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+      yield* this._syncViaLive(opts);
+      return;
+    }
     throw new Error(
-      "finance-alipay.sync: v0.1 needs opts.inputPath (snapshot mode); 账单 HTTP fetcher (mobilegw + 签名) 待 v0.2",
+      "finance-alipay.sync: needs opts.inputPath (snapshot mode) or opts.cookie (支付宝会话, 账单 mobilegw live fetch)",
     );
+  }
+
+  async *_syncViaLive(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new AlipayApiClient({
+          fetch: opts.fetch,
+          baseUrl: opts.baseUrl,
+          mgwPath: opts.mgwPath,
+          billListOp: opts.billListOp,
+          signProvider: opts.signProvider,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const result = await client.fetchSnapshot(opts.cookie, {
+      include: opts.include || {},
+      limit: opts.limit,
+      offset: opts.offset,
+    });
+    if (result === null) {
+      const e = client.lastError;
+      throw new Error(
+        `finance-alipay.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
+    }
+    const account = result.account || null;
+    emit("fetched", { count: result.events.length });
+    const capturedAt = Date.now();
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const include = opts.include || {};
+    let emitted = 0;
+    for (const ev of result.events) {
+      if (emitted >= limit) return;
+      if (!ev || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (include[ev.kind] === false) continue;
+      const id =
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.uid || null;
+      yield {
+        adapter: NAME,
+        kind: ev.kind,
+        originalId: stableOriginalId(ev.kind, id),
+        capturedAt,
+        payload: { ...ev, capturedAt, account },
+      };
+      emitted += 1;
+    }
   }
 
   async *_syncViaSnapshot(opts) {

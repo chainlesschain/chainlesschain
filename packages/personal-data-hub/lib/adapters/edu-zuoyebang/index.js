@@ -1,10 +1,13 @@
 /**
- * FAMILY-23 v0.1 — 作业帮 (Zuoyebang) adapter, snapshot mode.
+ * FAMILY-23 — 作业帮 (Zuoyebang) adapter.
  *
- * 家庭守护 telemetry：家长看孩子的学习/搜题情况。v0.1 cookie-scrape 占位 —
- * [ZuoyebangApiClient.extractUid] 抽 uid；snapshot 模式消费手机端 collector 快照
- * (profile + study-session)。搜题/作业历史 HTTP fetcher 留 v0.2，故无 inputPath 时
- * sync 抛 NO_INPUT。
+ * 家庭守护 telemetry：家长看孩子的学习/搜题情况。两路互补：
+ *   - snapshot 模式（inputPath）：手机端 collector 快照 (profile + study-session)。
+ *   - **live 模式（cookie，v0.2 接通）**：[ZuoyebangApiClient.fetchSnapshot] 经
+ *     作业帮 web 接口（ZYBUSS 会话 cookie）拉 用户信息 + 学习/搜题记录。端点/
+ *     字段无公开稳定文档，按 web 端常见形态实现 + 多字段名兼容，**未实地验证**，
+ *     漂移时按 api-client 常量/pick 列表调整。
+ * 无 inputPath 且无 cookie 时 sync 抛错。
  *
  * Snapshot schema (v1):
  *   { schemaVersion:1, snapshottedAt, account:{uid,displayName}, events:[
@@ -26,7 +29,7 @@ const {
 const { ZuoyebangApiClient } = require("./api-client");
 
 const NAME = "edu-zuoyebang";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_PROFILE = "profile";
 const KIND_STUDY = "study";
@@ -60,6 +63,7 @@ class ZuoyebangAdapter {
     this.version = VERSION;
     this.capabilities = [
       "sync:snapshot",
+      "sync:cookie",
       "parse:zuoyebang-profile",
       "parse:zuoyebang-study-session",
     ];
@@ -74,7 +78,10 @@ class ZuoyebangAdapter {
       legalGate: false,
       defaultInclude: { profile: true, study: true },
     };
-    this.apiClient = new ZuoyebangApiClient();
+    this.apiClient = new ZuoyebangApiClient(opts);
+    // Test seam: override how the live client is built per-sync (inject fetch).
+    this._apiClientFactory =
+      typeof opts.apiClientFactory === "function" ? opts.apiClientFactory : null;
     this._deps = { fs };
   }
 
@@ -91,11 +98,21 @@ class ZuoyebangAdapter {
       }
       return { ok: true, mode: "snapshot-file" };
     }
+    if (ctx && typeof ctx.cookie === "string" && ctx.cookie.length > 0) {
+      if (!this.apiClient.hasSession(ctx.cookie)) {
+        return {
+          ok: false,
+          reason: "INVALID_COOKIE",
+          message: `edu-zuoyebang.authenticate: ${this.apiClient.lastError.message}`,
+        };
+      }
+      return { ok: true, mode: "cookie" };
+    }
     return {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "edu-zuoyebang.authenticate: v0.1 needs opts.inputPath (snapshot mode); live HTTP fetcher 待 v0.2",
+        "edu-zuoyebang.authenticate: needs opts.inputPath (snapshot mode) or opts.cookie (ZYBUSS 会话, live fetch)",
     };
   }
 
@@ -108,9 +125,66 @@ class ZuoyebangAdapter {
       yield* this._syncViaSnapshot(opts);
       return;
     }
+    if (typeof opts.cookie === "string" && opts.cookie.length > 0) {
+      yield* this._syncViaLive(opts);
+      return;
+    }
     throw new Error(
-      "edu-zuoyebang.sync: v0.1 needs opts.inputPath (snapshot mode); 搜题/作业历史 HTTP fetcher 待 v0.2",
+      "edu-zuoyebang.sync: needs opts.inputPath (snapshot mode) or opts.cookie (ZYBUSS 会话, 学习/搜题记录 live fetch)",
     );
+  }
+
+  async *_syncViaLive(opts) {
+    const client = this._apiClientFactory
+      ? this._apiClientFactory(opts)
+      : new ZuoyebangApiClient({
+          fetch: opts.fetch,
+          baseUrl: opts.baseUrl,
+          userInfoPath: opts.userInfoPath,
+          studyRecordsPath: opts.studyRecordsPath,
+        });
+    const emit = (phase, extra) => {
+      if (typeof opts.onProgress === "function") {
+        try {
+          opts.onProgress({ phase, adapter: NAME, ...extra });
+        } catch (_e) {
+          /* progress callback errors are best-effort */
+        }
+      }
+    };
+    const result = await client.fetchSnapshot(opts.cookie, {
+      include: opts.include || {},
+      limit: opts.limit,
+      offset: opts.offset,
+    });
+    if (result === null) {
+      const e = client.lastError;
+      throw new Error(
+        `edu-zuoyebang.sync (live): ${e.message || "fetch failed"} (code ${e.code})`,
+      );
+    }
+    const account = result.account || null;
+    emit("fetched", { count: result.events.length });
+    const capturedAt = Date.now();
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    const include = opts.include || {};
+    let emitted = 0;
+    for (const ev of result.events) {
+      if (emitted >= limit) return;
+      if (!ev || !VALID_SNAPSHOT_KINDS.includes(ev.kind)) continue;
+      if (include[ev.kind] === false) continue;
+      const id =
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) || ev.uid || null;
+      yield {
+        adapter: NAME,
+        kind: ev.kind,
+        originalId: stableOriginalId(ev.kind, id),
+        capturedAt,
+        payload: { ...ev, capturedAt, account },
+      };
+      emitted += 1;
+    }
   }
 
   async *_syncViaSnapshot(opts) {
