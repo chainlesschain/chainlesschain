@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.17.1] — 2026-06-12
+
+- Docs only: the marketplace README now covers everything shipped today —
+  markdown replies + GFM tables/task lists, diff-tab-close = reject,
+  `@` file mentions, screenshot paste (vision), and mid-session IDE
+  hot-reconnect. No code changes.
+
 ## [0.17.0] — 2026-06-12
 
 - **Markdown tables & task lists in chat** (md-lite GFM extensions):

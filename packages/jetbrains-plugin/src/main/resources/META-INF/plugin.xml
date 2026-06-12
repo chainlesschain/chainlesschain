@@ -15,6 +15,13 @@
         editor: your selection and open tabs ride along with every prompt, and
         after the agent edits a file the IDE's fresh errors/warnings flow back
         into the same run. Set <code>CC_IDE_CONTEXT=0</code> to opt out.
+        <br/><br/>
+        <b>Chat tool window</b> (right dock, "ChainlessChain"): talk to the
+        agent without leaving the IDE — streaming replies, tool-call trace,
+        Stop interrupts the in-flight turn, and conversations resume across
+        IDE restarts. The chat child runs inside this window's bridge, so
+        selection context, diagnostics feedback and native diff review all
+        apply automatically.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

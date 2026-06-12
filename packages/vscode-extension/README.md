@@ -98,6 +98,14 @@ workspace's last session automatically. The **New**
 button starts a fresh conversation (also `/new`, `/sessions`, `/plan`, `/stop`… — type `/help`); `chainlesschain.chat.provider` /
 `chainlesschain.chat.model` pick the panel LLM (empty = the CLI default).
 
+In the input box, **`@` mentions workspace files** (ranked dropdown — Tab/Enter
+inserts `@relative/path`, and the CLI pulls that file into the conversation),
+and you can **paste screenshots** straight from the clipboard (📷 chips, up to
+4 per message; needs cc ≥ 0.162.47 and a vision-capable model). Replies render
+**markdown**: code blocks, inline code, bold/italic, headings, bordered tables
+and ☐/☑ task lists — through an escape-first whitelist renderer, so the panel
+stays XSS-safe by construction.
+
 ## Try it
 
 1. Run the extension (F5 → Extension Development Host), open a folder.
@@ -141,6 +149,12 @@ The bearer token is never displayed in any of these.
 - ✅ Turn interrupt: Stop/Esc aborts the in-flight turn, conversation survives (0.7.0).
 - ✅ Approve/Deny cards for risky actions (0.9.0, cc ≥ 0.162.45) — no more silent fail-closed in the panel.
 - ✅ Hunk-level partial accept: "Pick hunks…" multi-select on diff review (0.12.0).
+- ✅ Markdown replies (md-lite, 0.13.0) + GFM tables and ☐/☑ task lists (0.17.0).
+- ✅ Closing the diff tab rejects the review immediately (0.14.0).
+- ✅ `@` file mentions with a ranked completion dropdown (0.15.0).
+- ✅ Paste screenshots as vision input (0.16.0, cc ≥ 0.162.47).
+- ✅ Mid-session IDE restart hot-reconnect (cc ≥ 0.162.47): a window reload no
+  longer kills the agent's IDE tools — the next call re-finds the new instance.
 
 ## Packaging
 
