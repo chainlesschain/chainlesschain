@@ -15,6 +15,11 @@
   per-project (PropertiesComponent) and passed back as `--resume`, so
   reopening the IDE continues the same conversation (a resume note shows the
   restored message count). **New** clears the stored id for a fresh start.
+- Verification status: the protocol core is headless-tested (14 checks
+  against a live NDJSON child); the Swing tool window itself is
+  compile-verified against the 2024.2 SDK but not yet hand-tested in a
+  sandbox IDE — if the panel misbehaves, the bridge/terminal features above
+  are unaffected. Please report issues on GitHub.
 
 ## [0.2.0] — 2026-06-11
 
