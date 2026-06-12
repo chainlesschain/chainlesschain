@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.3.3] — 2026-06-12
+
+- Tool window icon is now **pixel-exact** with the VS Code extension's
+  activity-bar mark (`media/logo-mark.png` embedded directly; the dark-theme
+  variant is the same pixels recolored to light gray with alpha preserved) —
+  0.3.2's hand-traced vector approximation didn't match. Verified live on a
+  real 2024.2 install (user-confirmed screenshot).
+
 ## [0.3.2] — 2026-06-12
 
 - **Tool window icon**: the right-dock "ChainlessChain" stripe button now
