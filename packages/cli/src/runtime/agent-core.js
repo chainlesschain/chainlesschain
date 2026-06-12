@@ -334,6 +334,16 @@ export function getAgentToolDescriptors(options = {}) {
 
 const _defaultSkillLoader = new CLISkillLoader();
 
+/**
+ * Re-scan all skill layers (Claude-Code `/reload-skills` parity): drops the
+ * default loader's cache so newly added/edited SKILL.md dirs are picked up
+ * without restarting the session. Returns the resolved skill count.
+ */
+export function reloadSkills() {
+  _defaultSkillLoader.clearCache();
+  return _defaultSkillLoader.loadAll().length;
+}
+
 // ─── Cached environment detection ────────────────────────────────────────
 
 let _cachedPython = null;

@@ -769,6 +769,7 @@ export async function startAgentRepl(options = {}) {
       "/provider",
       "/quit",
       "/reindex",
+      "/reload-skills",
       "/rewind",
       "/search",
       "/session",
@@ -1017,6 +1018,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/reload-skills")} Re-scan skill layers without restarting`,
       );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
@@ -1462,6 +1466,22 @@ export async function startAgentRepl(options = {}) {
     }
 
     // Reindex notes
+    // `/reload-skills` (Claude-Code 2.1.152 parity): re-scan the 6 skill
+    // layers (incl. .claude/skills) without restarting the session.
+    if (trimmed === "/reload-skills") {
+      try {
+        const { reloadSkills } = await import("../runtime/agent-core.js");
+        const n = reloadSkills();
+        logger.log(
+          chalk.green(`✔ skills reloaded — ${n} available (6 layers re-scanned)`),
+        );
+      } catch (err) {
+        logger.error(`/reload-skills failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
     if (trimmed === "/reindex") {
       if (contextEngine) {
         contextEngine.reindexNotes();
