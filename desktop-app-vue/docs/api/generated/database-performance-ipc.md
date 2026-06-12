@@ -16,14 +16,17 @@ const
 
 ---
 
-## function registerDatabasePerformanceIPC(optimizer)
+## function registerDatabasePerformanceIPC(optimizer, deps =
 
 ```javascript
-function registerDatabasePerformanceIPC(optimizer)
+function registerDatabasePerformanceIPC(optimizer, deps =
 ```
 
 * 注册数据库性能监控 IPC 处理器
  * @param {DatabaseOptimizer} optimizer - 数据库优化器实例
+ * @param {object} [deps] - 注入接缝（测试用）。deps.ipcMain 可注入 mock；
+ *   省略时回退到 require("electron").ipcMain。CJS 源文件无法被 vi.mock
+ *   拦截 require("electron")，故沿用 analytics-ipc 的 DI 约定。
 
 ---
 
