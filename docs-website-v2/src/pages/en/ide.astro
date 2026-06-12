@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
+  description="ChainlessChain IDE bridge: VS Code (on Open VSX) + JetBrains (on Marketplace) extensions. Selection shared with every prompt, diagnostics fed back automatically, edits reviewed in the editor's native diff (hunk-level picking), Jupyter kernel execution, sidebar Chat panel (Plan mode + approval cards + session resume)."
+  canonical="https://www.chainlesschain.com/en/ide"
+  locale="en"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">IDE Integration · VS Code + JetBrains extensions shipped</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          The agent in your editor:<br/><span class="italic text-ember">sees what you see, changes what you approve</span>.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          The extension runs a local MCP server inside your editor; <code class="font-mono text-base bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> in the integrated terminal connects automatically —
+          editor capabilities become agent tools, and agent edits go through the editor's native diff under your judgment.
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" rel="noopener" target="_blank" class="btn-ember">Install from Open VSX ↗</a>
+          <a href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge" rel="noopener" target="_blank" class="btn-ghost">JetBrains Marketplace ↗</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Six things, all automatic.</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
+          ['Self-fix', 'Diagnostics fed back', 'After the agent edits a file, language-server errors/warnings flow back into the tool result — it sees and fixes its own breakage within the same loop.'],
+          ['Review', 'Native diff approval', 'File-edit confirmation upgrades to the editor’s side-by-side diff: edit the right side, Accept replaces execution, hunk-level "Pick hunks…" partial accept, Reject never writes.'],
+          ['Execute', 'Jupyter kernel', 'executeCode runs code in the active notebook’s kernel and returns output, variables persist across calls (VS Code).'],
+          ['Chat', 'Sidebar Chat panel', 'Talk to the agent without a terminal: streaming replies + tool traces + Plan-mode cards + dangerous-op Approve/Deny cards + session resume + /sessions switcher.'],
+          ['Complete', '@ files / slash commands', '@-path TAB completion ranks editor-open files first; the panel supports /new /plan /approve /reject /stop.'],
+        ].map(([tag, title, desc]) => (
+          <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-3">{tag}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-muted leading-relaxed text-sm">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
+        <ol class="space-y-4 text-muted leading-relaxed">
+          <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (≥ 0.162.39; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
+          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (2024.2+). Official VS Code Marketplace listing pending — build a local .vsix from source meanwhile.</li>
+        </ol>
+        <p class="mt-6 text-sm text-muted">
+          Safe defaults: server binds localhost only + per-instance random Bearer token + 0600 lockfile; on the CLI side <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> switch each behavior off.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 text-center">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-6">Protocol, troubleshooting, architecture</h2>
+      <p class="text-muted mb-8">Discovery protocol (lockfile + env), Streamable HTTP, editor-agnostic design — all in the docs.</p>
+      <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ember">Read the IDE bridge docs ↗</a>
+    </div>
+  </section>
+</BaseLayout>

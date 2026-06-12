@@ -13,6 +13,7 @@ const t = isEn ? {
   companyH: 'Company',
   cli: 'CLI',
   desktop: 'Desktop',
+  ide: 'IDE',
   security: 'Hardware Encryption',
   enterprise: 'Enterprise',
   docs: 'Docs ↗',
@@ -31,6 +32,7 @@ const t = isEn ? {
   companyH: '公司',
   cli: 'CLI 工具',
   desktop: '桌面版',
+  ide: 'IDE 集成',
   security: '硬件加密',
   enterprise: '企业版',
   docs: '开发文档 ↗',
@@ -73,6 +75,7 @@ const p = (path) => isEn ? `/en${path}` : path;
       <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">{t.productH}</h4>
       <ul class="space-y-2 text-sm">
         <li><a href={p('/cli')} class="hover:text-ember transition-colors">{t.cli}</a></li>
+        <li><a href={p('/ide')} class="hover:text-ember transition-colors">{t.ide}</a></li>
         <li><a href={p('/desktop')} class="hover:text-ember transition-colors">{t.desktop}</a></li>
         <li><a href={p('/security')} class="hover:text-ember transition-colors">{t.security}</a></li>
         <li><a href={p('/enterprise')} class="hover:text-ember transition-colors">{t.enterprise}</a></li>

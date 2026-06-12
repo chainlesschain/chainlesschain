@@ -193,7 +193,7 @@ export default defineConfig({
             { text: "联网搜索 (web_search) ⭐NEW", link: "/chainlesschain/web-search" },
             { text: "后台 Shell (run_shell/check_shell) ⭐NEW", link: "/chainlesschain/run-shell-background" },
             { text: "远程 MCP 授权 (cc mcp OAuth) ⭐NEW", link: "/chainlesschain/mcp-oauth" },
-            { text: "IDE 桥接", link: "/chainlesschain/ide-bridge" },
+            { text: "IDE 桥接 (VS Code / JetBrains) ⭐NEW", link: "/chainlesschain/ide-bridge" },
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
             { text: "计算机操控", link: "/chainlesschain/computer-use" },
             {

@@ -1,0 +1,74 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
+  description="ChainlessChain IDE 桥接：VS Code（Open VSX 已上架）+ JetBrains（Marketplace 已上架）双扩展。选区随 prompt 注入、诊断自动回喂、编辑审批走编辑器原生 diff（hunk 级挑块）、Jupyter kernel 执行、侧边栏 Chat 面板（Plan 模式 + 审批卡 + 会话续接）。"
+  canonical="https://www.chainlesschain.com/ide"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code + JetBrains 双扩展已上架</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          agent 进编辑器：<br/><span class="italic text-ember">看你所看，改你所审</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          编辑器扩展内置一个本地 MCP server，在集成终端里跑 <code class="font-mono text-base bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连接 ——
+          编辑器能力变成 agent 工具，agent 的改动经编辑器原生 diff 受你裁决。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" rel="noopener" target="_blank" class="btn-ember">Open VSX 安装 ↗</a>
+          <a href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge" rel="noopener" target="_blank" class="btn-ghost">JetBrains Marketplace ↗</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">六件事，全部自动发生。</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          ['感知', '选区随 prompt 注入', '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。'],
+          ['自修', '诊断自动回喂', 'agent 改完文件，语言服务器的 error/warning 自动附回工具结果——同一循环内看到自己引入的报错并修掉。'],
+          ['审批', '原生 diff 评审', '文件编辑确认升级为编辑器原生并排 diff：右侧可顺手改、Accept 替代执行、支持 hunk 级"Pick hunks…"部分接受，Reject 永不写盘。'],
+          ['执行', 'Jupyter kernel', 'executeCode 在活跃 notebook 的 kernel 里执行代码并取回输出，变量跨调用保持（VS Code 端）。'],
+          ['对话', '侧边栏 Chat 面板', '不开终端直接对话：流式回复 + 工具轨迹 + Plan 模式卡片 + 危险操作 Approve/Deny 审批卡 + 会话跨重启续接 + /sessions 切换。'],
+          ['补全', '@ 文件 / 斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板支持 /new /plan /approve /reject /stop。'],
+        ].map(([tag, title, desc]) => (
+          <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-3">{tag}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-muted leading-relaxed text-sm">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <h2 class="text-3xl md:text-4xl mb-6 font-display">两步装好</h2>
+        <ol class="space-y-4 text-muted leading-relaxed">
+          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（≥ 0.162.39，<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
+          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从源码打 .vsix 本地装。</li>
+        </ol>
+        <p class="mt-6 text-sm text-muted">
+          安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件 0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> 随时关闭对应行为。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 text-center">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-6">协议、排错、架构细节</h2>
+      <p class="text-muted mb-8">发现协议（lockfile + env 直连）、Streamable HTTP、双编辑器零改动设计 —— 都在文档站。</p>
+      <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ember">阅读 IDE 桥接文档 ↗</a>
+    </div>
+  </section>
+</BaseLayout>

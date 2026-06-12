@@ -902,6 +902,18 @@ export default defineConfig({
               text: "97 桌面版 UI · Claude-Desktop 重构 ⭐NEW",
               link: "/modules/m97-claude-desktop-refactor",
             },
+            {
+              text: "98 IDE 桥接对标方案 ⭐NEW",
+              link: "/modules/m98-ide-bridge",
+            },
+            {
+              text: "99 项目记忆与 init 对标方案 ⭐NEW",
+              link: "/modules/m99-project-memory-init",
+            },
+            {
+              text: "100 自定义斜杠命令与宏系统 ⭐NEW",
+              link: "/modules/m100-slash-commands-macros",
+            },
           ],
         },
         {
