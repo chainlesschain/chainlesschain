@@ -99,14 +99,17 @@ jobs:
       - name: Run Unit Tests
         working-directory: android-app
         run: |
-          # Run unit tests excluding E2EE tests that require Android runtime (android.util.Log)
-          # and core-p2p which hangs under aggregate `test` (covered separately in android-tests.yml).
-          ./gradlew test \
-            -x :core-e2ee:testDebugUnitTest \
-            -x :core-e2ee:testReleaseUnitTest \
-            -x :core-p2p:testDebugUnitTest \
-            -x :core-p2p:testReleaseUnitTest \
-            --continue
+          # 2026-06-12: scope to :app:testDebugUnitTest. The aggregate
+          # `gradlew test` (debug+release of every module, even after the
+          # core-e2ee/core-p2p excludes) structurally exceeds the 60-min job
+          # timeout — Unit Tests hit exactly 60min in runs 27351549502 /
+          # 27374665952 / 27391603306 (GitHub reports job timeout as
+          # "cancelled"), which is why this pipeline has never gone green.
+          # Per-module suites (incl. core-p2p with its own 15-min cap) are
+          # already exercised on every push by android-tests.yml; :app debug
+          # is the highest-value aggregate (~1.9k tests, ~10 min) kept here
+          # as the pipeline's unit gate.
+          ./gradlew :app:testDebugUnitTest --continue
 
       - name: Upload test reports
         if: always()
