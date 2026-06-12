@@ -1409,6 +1409,11 @@ async function executeToolInner(
             cwd: task.cwd,
             shell: true,
             windowsHide: true,
+            // Same CC_SESSION_ID correlation as the foreground path.
+            env: {
+              ...process.env,
+              ...(sessionId ? { CC_SESSION_ID: String(sessionId) } : {}),
+            },
             // POSIX: own process group so check_shell{kill}/teardown can signal
             // the whole tree (shell + its grandchild command). No-op on Windows
             // where the tree is killed via taskkill /T instead.
@@ -1466,6 +1471,12 @@ async function executeToolInner(
           encoding: "utf8",
           timeout: _resolveShellTimeout(args.timeout),
           maxBuffer: 1024 * 1024,
+          // CC_SESSION_ID (Claude-Code CLAUDE_CODE_SESSION_ID parity,
+          // 2.1.132): lets scripts/hooks correlate work to the agent session.
+          env: {
+            ...process.env,
+            ...(sessionId ? { CC_SESSION_ID: String(sessionId) } : {}),
+          },
         });
         return attachDescriptor(
           {
