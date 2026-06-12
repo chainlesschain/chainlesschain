@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -23,6 +23,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
+        <toolWindow id="ChainlessChain" anchor="right" secondary="true"
+                    factoryClass="com.chainlesschain.ide.intellij.ChatToolWindowFactory"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">

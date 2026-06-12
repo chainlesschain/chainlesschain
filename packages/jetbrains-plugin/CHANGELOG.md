@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.3.0] — 2026-06-12
+
+- **In-IDE chat tool window** ("ChainlessChain", right dock) — first slice of
+  parity with the VS Code extension's chat panel. Chat with the `cc` agent
+  without leaving the IDE: streaming replies (token deltas), tool-call trace,
+  Stop (interrupts the in-flight turn, session survives), New (fresh session).
+  The agent child inherits this window's bridge port/token, so selection
+  context, diagnostics feedback and native diff review light up automatically.
+  Protocol core (`AgentChatSession`/`ChatEvents`, the Java twin of the VS Code
+  panel's session/event modules — same stream-json duplex, same delta-dedup)
+  is pure JDK and headless-smoked against a fake NDJSON agent (14 checks).
+
 ## [0.2.0] — 2026-06-11
 
 - **Guided LLM setup**: Tools → **ChainlessChain: Configure LLM** walks
