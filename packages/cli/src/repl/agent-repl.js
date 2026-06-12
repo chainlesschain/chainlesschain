@@ -20,6 +20,7 @@
 import readline from "readline";
 import chalk from "chalk";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
@@ -748,10 +749,12 @@ export async function startAgentRepl(options = {}) {
   // (when the IDE bridge is connected) the editor's open tabs ranked first.
   const { makeAtCompleter } = await import("../lib/repl-completer.js");
   const atCompleter = makeAtCompleter({
-    cwd: process.cwd(),
+    // cwd left unset on purpose: the completer resolves process.cwd() lazily
+    // so it follows `/cd` mid-session.
     // Keep in sync with the rl.on("line") handlers + /help below.
     slashCommands: [
       "/auto",
+      "/cd",
       "/clear",
       "/compact",
       "/context",
@@ -1013,6 +1016,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/rewind")}     Rewind conversation to an earlier turn (double-Esc lists)`,
       );
       logger.log(
+        `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
       );
       logger.log(
@@ -1245,6 +1251,26 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (err) {
         logger.error(chalk.red(`/output-style failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/cd` (Claude-Code 2.1.163 parity): relocate the session's working
+    // directory mid-conversation. Everything that reads process.cwd() per
+    // call follows automatically (agent cwd, @-completion, project memory).
+    if (trimmed === "/cd" || trimmed.startsWith("/cd ")) {
+      const target = trimmed.slice(3).trim();
+      if (!target) {
+        logger.info(`cwd: ${process.cwd()}`);
+      } else {
+        try {
+          const expanded = target.replace(/^~(?=$|[\\/])/, os.homedir());
+          process.chdir(path.resolve(process.cwd(), expanded));
+          logger.log(chalk.green(`cwd → ${process.cwd()}`));
+        } catch (err) {
+          logger.error(`/cd failed: ${err.message}`);
+        }
       }
       prompt();
       return;

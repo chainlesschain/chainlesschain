@@ -86,7 +86,10 @@ export function fileCandidates(prefix, { cwd = process.cwd(), deps } = {}) {
  *                        slashCommands?: string[], deps? }
  */
 export function makeAtCompleter(opts = {}) {
-  const cwd = opts.cwd || process.cwd();
+  // Lazy when not pinned: `/cd` mid-session moves process.cwd() and the
+  // completer must follow (explicit opts.cwd stays static for tests).
+  const baseCwd = opts.cwd || null;
+  const getCwd = () => baseCwd || process.cwd();
   const getIde = opts.getIdeOpenFiles || null;
   const now = opts.deps?.now || Date.now;
   let ideFiles = [];
@@ -105,7 +108,7 @@ export function makeAtCompleter(opts = {}) {
           ? files
               .filter((f) => typeof f === "string" && f.length > 0)
               .map((f) => {
-                const rel = path.relative(cwd, f);
+                const rel = path.relative(getCwd(), f);
                 // Keep workspace files relative (the natural @ref form);
                 // out-of-workspace files keep their absolute path. On
                 // Windows a cross-drive relative() returns an *absolute*
@@ -145,7 +148,7 @@ export function makeAtCompleter(opts = {}) {
     refreshIde(); // async top-up for the NEXT tab; this one uses the cache
     const norm = fwd(at.prefix).toLowerCase();
     const fromIde = ideFiles.filter((f) => f.toLowerCase().startsWith(norm));
-    const fromFs = fileCandidates(at.prefix, { cwd, deps: opts.deps });
+    const fromFs = fileCandidates(at.prefix, { cwd: getCwd(), deps: opts.deps });
     const merged = [...new Set([...fromIde, ...fromFs])].slice(
       0,
       MAX_CANDIDATES,

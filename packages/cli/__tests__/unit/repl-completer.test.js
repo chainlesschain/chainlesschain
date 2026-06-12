@@ -150,6 +150,28 @@ describe("makeAtCompleter", () => {
   });
 });
 
+describe("lazy cwd (follows /cd)", () => {
+  it("resolves process.cwd() per keystroke when cwd is not pinned", () => {
+    const a = fs.mkdtempSync(path.join(os.tmpdir(), "cc-lazy-a-"));
+    const b = fs.mkdtempSync(path.join(os.tmpdir(), "cc-lazy-b-"));
+    fs.writeFileSync(path.join(a, "alpha.txt"), "", "utf-8");
+    fs.writeFileSync(path.join(b, "bravo.txt"), "", "utf-8");
+    const prev = process.cwd();
+    try {
+      const c = makeAtCompleter({}); // no cwd pinned
+      process.chdir(a);
+      expect(c("@al")[0]).toEqual(["@alpha.txt"]);
+      process.chdir(b); // simulates /cd mid-session
+      expect(c("@br")[0]).toEqual(["@bravo.txt"]);
+      expect(c("@al")[0]).toEqual([]);
+    } finally {
+      process.chdir(prev);
+      fs.rmSync(a, { recursive: true, force: true });
+      fs.rmSync(b, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("slash-command completion", () => {
   const CMDS = ["/help", "/health", "/exit", "/model"];
 
