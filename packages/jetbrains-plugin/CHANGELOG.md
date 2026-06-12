@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.3.1] — 2026-06-12
+
+- **Marketplace icon**: same logo as the VS Code extension (the silver
+  ChainlessChain mark) via `META-INF/pluginIcon.svg` (+ dark variant).
+- Chat tool window now **verified live** in a sandbox IDE (streaming reply,
+  editor-context awareness — the agent knew the open file — and CJK text
+  all confirmed on a real machine), upgrading 0.3.0's compile-only caveat.
+
 ## [0.3.0] — 2026-06-12
 
 - **In-IDE chat tool window** ("ChainlessChain", right dock) — first slice of
