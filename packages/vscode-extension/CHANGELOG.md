@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.14.0] — 2026-06-12
+
+- **Closing the diff tab now rejects the review immediately.** Closing the
+  openDiff review tab is how most reviewers say no — the blocked tool call
+  now unblocks at once as `rejected` (with `closedDiff: true`) instead of
+  waiting for the lingering notification toast to also be dismissed. A late
+  click on that stale toast is ignored (single-settle, fail-safe: nothing is
+  ever applied after a close). Hosts older than VS Code 1.67 (no `tabGroups`
+  API) keep the previous button-only behavior.
+
 ## [0.13.0] — 2026-06-12
 
 - **Markdown rendering in the chat panel**: assistant replies now render

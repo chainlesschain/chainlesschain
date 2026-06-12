@@ -86,13 +86,50 @@ function createVscodeEditorFacade(vscode) {
 
       // Phase 2: block the tool call until the user decides. Dismissing the
       // prompt (undefined) is treated as Reject — fail-safe, never auto-apply.
-      const choice = await vscode.window.showInformationMessage(
-        `Apply proposed changes to ${path}?`,
-        { modal: false },
-        "Accept",
-        "Pick hunks…",
-        "Reject",
-      );
+      // Closing the diff tab IS the decision for most reviewers — race the
+      // buttons against a tab-close watcher so the agent unblocks immediately
+      // instead of waiting for someone to also dismiss the lingering toast.
+      const CLOSED = Symbol("diff-tab-closed");
+      const choice = await new Promise((resolve) => {
+        let settled = false;
+        let sub = null;
+        const settle = (v) => {
+          if (settled) return;
+          settled = true;
+          try {
+            sub?.dispose();
+          } catch {
+            /* best-effort */
+          }
+          resolve(v);
+        };
+        const rightKey = rightDoc.uri.toString();
+        // tabGroups landed in VS Code 1.67 — older hosts just keep the
+        // button-only behavior (undefined → reject stays the fail-safe).
+        if (vscode.window.tabGroups?.onDidChangeTabs) {
+          sub = vscode.window.tabGroups.onDidChangeTabs((e) => {
+            for (const tab of e?.closed || []) {
+              const modified = tab?.input?.modified;
+              if (modified && modified.toString() === rightKey) {
+                settle(CLOSED);
+                return;
+              }
+            }
+          });
+        }
+        vscode.window
+          .showInformationMessage(
+            `Apply proposed changes to ${path}?`,
+            { modal: false },
+            "Accept",
+            "Pick hunks…",
+            "Reject",
+          )
+          .then(settle, () => settle(undefined));
+      });
+      if (choice === CLOSED) {
+        return { outcome: "rejected", path, closedDiff: true };
+      }
       if (choice === "Accept") {
         const finalText = rightDoc.getText(); // includes any user edits
         await applyTextToFile(vscode, fileUri, finalText);
