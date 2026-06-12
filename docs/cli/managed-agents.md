@@ -521,8 +521,10 @@ chainlesschain ide doctor [--ide]              # 解释发现为何成功/失败
 > 端到端自验(免扩展):`cc mcp scaffold` 生成一个 SSE MCP server 当"假 IDE",手写一条
 > `<port>.json` 锁指向它,跑 `cc agent --ide` 即可确认 `mcp__ide__*` 工具进 loop + Bearer 鉴权通。
 
-> 边界:连接在 agent 启动时**一次性解析**(中途重启 IDE 需重跑 `cc agent`,热重连留
-> 后续阶段)。headless(`agent -p`)、stream、交互 REPL 三个入口均已接 IDE 自动连接。
+> **热重连**:窗口 reload / 扩展升级让 IDE 的 MCP server 换新端口+新 token 重启时,**不需要**
+> 重跑 `cc agent`——下一次 `mcp__ide__*` 调用失败会自动重扫 lockfile、连上新实例并重试一次
+> (选区/诊断自动注入同样恢复);IDE 彻底关掉则该次调用报错,工具级错误不会触发重连。
+> headless(`agent -p`)、stream、交互 REPL 三个入口均已接 IDE 自动连接。
 
 ### IDE 实时上下文 + 编辑后诊断回喂(Claude-Code 平价)
 

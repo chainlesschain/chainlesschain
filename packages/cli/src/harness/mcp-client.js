@@ -71,6 +71,23 @@ export function isHttpTransport(transportKind) {
 }
 
 /**
+ * Heuristic: does this error look like the server went away (vs. the tool
+ * itself failing)? Used to gate reconnect-and-retry for servers that have a
+ * registered reconnector (e.g. the IDE bridge after a window reload, which
+ * comes back on a NEW port with a NEW token).
+ *
+ * Covers: fetch-level network failures, auth rejection after a token
+ * rotation (401/403), an unknown session on a restarted server (404), and
+ * this client's own "server gone" states.
+ */
+export function isLikelyConnectionError(err) {
+  const msg = String((err && err.message) || err || "");
+  return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|HTTP 40[134]\b|not connected|not found|not available/i.test(
+    msg,
+  );
+}
+
+/**
  * MCP Client — manages connections to MCP servers.
  */
 export class MCPClient extends EventEmitter {
@@ -78,6 +95,23 @@ export class MCPClient extends EventEmitter {
     super();
     this.servers = new Map(); // name → { process, state, tools, resources, config }
     this._nextId = 1;
+    this._reconnectors = new Map(); // name → async () => config|null
+    this._reconnecting = new Map(); // name → in-flight reconnect promise
+  }
+
+  /**
+   * Register a reconnector for a server: an async function that returns a
+   * FRESH connection config (or null when the server can't be found anymore).
+   * When a `callTool` on that server fails with a connection-shaped error,
+   * the client re-resolves the config, reconnects, and retries the call once.
+   *
+   * Used by the IDE bridge: a window reload / extension update restarts the
+   * editor's MCP server on a new port with a new token, so the original
+   * config is permanently dead but a lockfile re-scan finds the new one.
+   */
+  setReconnector(name, fn) {
+    if (typeof fn === "function") this._reconnectors.set(name, fn);
+    else this._reconnectors.delete(name);
   }
 
   /**
@@ -286,12 +320,31 @@ export class MCPClient extends EventEmitter {
   }
 
   /**
-   * Call a tool on a specific server.
+   * Call a tool on a specific server. If the server has a registered
+   * reconnector and the call fails with a connection-shaped error (server
+   * restarted / token rotated / entry dropped), re-resolve the config,
+   * reconnect, and retry the call exactly once.
    * @param {string} serverName - Server name
    * @param {string} toolName - Tool name
    * @param {object} args - Tool arguments
    */
   async callTool(serverName, toolName, args = {}) {
+    try {
+      return await this._callToolOnce(serverName, toolName, args);
+    } catch (err) {
+      if (
+        !this._reconnectors.has(serverName) ||
+        !isLikelyConnectionError(err)
+      ) {
+        throw err;
+      }
+      const reconnected = await this._tryReconnect(serverName);
+      if (!reconnected) throw err;
+      return await this._callToolOnce(serverName, toolName, args);
+    }
+  }
+
+  async _callToolOnce(serverName, toolName, args) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
     if (entry.state !== ServerState.CONNECTED) {
@@ -304,6 +357,38 @@ export class MCPClient extends EventEmitter {
     });
 
     return result;
+  }
+
+  /**
+   * Re-resolve a server's config via its reconnector and reconnect.
+   * Single-flight per server: concurrent failing calls share one attempt
+   * (the IDE context injector fires getSelection + getOpenEditors in
+   * parallel — a double connect would throw "already connected").
+   * Resolves true on success, false on any failure (original error wins).
+   */
+  _tryReconnect(name) {
+    const inFlight = this._reconnecting.get(name);
+    if (inFlight) return inFlight;
+    const p = (async () => {
+      try {
+        const fresh = await this._reconnectors.get(name)();
+        if (!fresh) return false;
+        try {
+          await this.disconnect(name);
+        } catch {
+          // entry may already be gone — connect() below is what matters
+        }
+        await this.connect(name, fresh);
+        this.emit("server-reconnected", { name, url: fresh.url || null });
+        return true;
+      } catch {
+        return false;
+      } finally {
+        this._reconnecting.delete(name);
+      }
+    })();
+    this._reconnecting.set(name, p);
+    return p;
   }
 
   /**

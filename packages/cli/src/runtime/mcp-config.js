@@ -347,7 +347,25 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
   }
   const cfg = toCfg(lock);
   if (!cfg) return deps.into || null;
-  return setupMcpFromConfig({ ide: cfg }, deps);
+  const out = await setupMcpFromConfig({ ide: cfg }, deps);
+  // Hot reconnect: a window reload / extension update restarts the editor's
+  // MCP server on a NEW port with a NEW token. Register a reconnector so a
+  // failed mcp__ide__* call re-scans the lockfiles mid-session and retries,
+  // instead of the IDE tools (and selection/diagnostics injection) silently
+  // dying for the rest of the run. Note the stale CHAINLESSCHAIN_IDE_PORT in
+  // our env no longer matches any live lock, so discovery falls through to
+  // the workspace scan — exactly the path that finds the restarted instance.
+  if (out?.mcpClient?.setReconnector) {
+    out.mcpClient.setReconnector("ide", () => {
+      const fresh = discover({
+        cwd: opts.cwd,
+        env: opts.env,
+        force: opts.force === true,
+      });
+      return fresh ? toCfg(fresh) : null;
+    });
+  }
+  return out;
 }
 
 /**
