@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### cc CLI 0.162.41 — Claude-Code 平价终章：项目记忆（cc.md）+ REPL steering + 结构化输出（2026-06-11，已单独发 npm）
+## [v5.0.3.107] - 2026-06-12 — feat: 个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612（cli 0.162.46 / pdh 0.4.5）
+
+> 本版收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力，并把更新随 Android in-APK cc bundle 下发；同时一并随产物发布前期已单独发 npm 的 cc CLI 0.162.41 Claude-Code 平价工作。
+
+#### Feat — FAMILY-23 家庭守护采集器 v0.2（snapshot + live 双路）
+
+- **作业帮 `edu-zuoyebang`**：ZYBUSS 会话 cookie → 用户信息 + 学习/搜题记录（`fetchSnapshot`，envelope `{errNo,errstr,data}`）
+- **华为学习中心 `edu-huawei-learning`**：华为账号会话 cookie → 用户信息 + 课程学习记录
+- **支付宝 `finance-alipay`**：会话 cookie → mobilegw（mgw.htm）账单/交易明细（`signProvider` 签名 seam；金额元→分 + 收支方向推导；高敏感闸不变）
+- 三者均补齐 `sync:cookie` capability + `authenticate` cookie 路 + `_syncViaLive`（产出 snapshot-shaped events，normalize 路径不变）；新增共享 `_live-json-helpers.js`（pick / toDurationMs / toEpochMs）
+- 端点按各平台 web 端常见形态实现 + 多字段名兼容（best-effort，未经真实登录态实地验证，漂移时改 api-client 常量）
+- 测试 +39（3 套 live 测试，钉请求构造 + 解析契约）；PDH 全套 128 文件 2083 tests 全绿
+
+#### Release — 发版链全闭环
+
+- `@chainlesschain/personal-data-hub` 0.4.4 → 0.4.5 + `chainlesschain` CLI 0.162.45 → 0.162.46 已发 npm（`77ceb7e69`，run 27387691645）
+- Android in-APK cc bundle 重建 `internal-binaries-android-v20260612`（cc-cli.tgz 携 cli 0.162.46 + pdh 0.4.5，内核实测）+ `USR_VERSION 23 → 24`（`f9793343a`，rollover run 27388413407）；真机装新 APK 时 `LocalFilesystemBootstrapper` sentinel 23→24 触发重提取
+- 已过 trap #27/#28 staleness gate（pdh ver bump + cli pin sync + USR_VERSION bump + lockfile 同步）
+
+---
+
+### cc CLI 0.162.41 — Claude-Code 平价终章：项目记忆（cc.md）+ REPL steering + 结构化输出（2026-06-11，已单独发 npm，随本版产物一并发布）
 
 > 对照 Claude Code 的 CLI 平价 backlog（P0×3 + P1×7 + Phase 2 配套）一日清空并发版；发布产物经全局安装实测（init 盘点 / 记忆链 / json-schema / mcp serve 全通）。文档四面（docs/cli、docs-site、官网 zh+en、README zh+en）+ 设计文档 module 99 已同步，docs+www 已部署上线。
 

@@ -3,7 +3,24 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [cc CLI 0.162.41] - 2026-06-11 — feat: Claude-Code 平价终章——项目记忆（cc.md）+ REPL steering + 结构化输出（npm 单独发布，待并入下一发版）
+## [v5.0.3.107] - 2026-06-12 — feat: 个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612
+
+> 本版收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力，并随 Android in-APK cc bundle 下发；同时一并随产物发布前期已单独发 npm 的 cc CLI 0.162.41 Claude-Code 平价工作。
+
+### Feat —— FAMILY-23 家庭守护采集器 v0.2（snapshot + live 双路）
+
+- **作业帮 `edu-zuoyebang`**：ZYBUSS 会话 cookie → 用户信息 + 学习/搜题记录
+- **华为学习中心 `edu-huawei-learning`**：华为账号会话 cookie → 用户信息 + 课程学习记录
+- **支付宝 `finance-alipay`**：会话 cookie → mobilegw 账单/交易明细（签名 seam；金额元→分 + 收支方向推导；高敏感闸不变）
+- 三者补齐 `sync:cookie` + `_syncViaLive`（normalize 路径不变）；新增共享 `_live-json-helpers.js`
+- 端点 best-effort（多字段名兼容，未实地验证）；测试 +39，PDH 全套 2083 tests 全绿
+
+### Release —— 发版链全闭环
+
+- `personal-data-hub` 0.4.4→0.4.5 + CLI 0.162.45→0.162.46 已发 npm（run 27387691645）
+- Android cc bundle 重建 `internal-binaries-android-v20260612`（cli 0.162.46 + pdh 0.4.5）+ `USR_VERSION 23 → 24`（真机装新 APK 触发 sentinel 重提取）
+
+## [cc CLI 0.162.41] - 2026-06-11 — feat: Claude-Code 平价终章——项目记忆（cc.md）+ REPL steering + 结构化输出（npm 单独发布，随 v5.0.3.107 产物一并发布）
 
 > 对照 Claude Code 的 CLI 平价 backlog 一日清空并发版：①**项目记忆体系**——`cc agent` 自动加载 `cc.md` > `CLAUDE.md` > `AGENTS.md` 层级（`@path` 递归 import + 路径作用域 `.claude/rules` + `.chainlesschain/rules.md`，预算 fail-open，`CC_PROJECT_MEMORY=0` 关）；`cc init` 默认改为项目盘点生成 cc.md（`/init` 平价，模板退 `-t`，`--ai` 用有界 agent 精炼约定，已有 CLAUDE.md 自动 `@import` 防遮蔽）；`cc memory files` 查看实际加载链。②**REPL steering 三件套**——回合中输入 FIFO 排队（修并发回合 race）、Esc 即时中断、`/rewind` + 空闲双 Esc 会话回退（原文回填改完重发）；外加 `! <cmd>` bash 直通、`# <note>` 快捷记忆、`/` 命令 TAB 补全、`/context` 实时窗口占用、`--resume` 离线恢复摘要。③**结构化输出与生态出口**——`cc agent -p --json-schema`（回答经 JSON Schema 校验 + 自动纠错重试，stdout 只出合规 JSON）、`cc mcp serve`（本机文件工具反向暴露为 MCP server，root 限域 + Bearer）、`cc session export`（agent 转录 Markdown）/ `cc session search`（跨会话全文检索）、启动被动版本提醒（`CC_UPDATE_NOTICE=0` 关）。④`chainlesschain` CLI 0.162.40 → 0.162.41 已发 npm（发布产物全局安装实测通过，~120 新增单测随包）。
 

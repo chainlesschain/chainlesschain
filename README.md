@@ -19,6 +19,18 @@
 
 ---
 
+## 2026-06-12 发布 — **v5.0.3.107：个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612（cli 0.162.46 / pdh 0.4.5）**
+
+> 本版收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **FAMILY-23 采集器 v0.2（snapshot + live 双路）**：作业帮 `edu-zuoyebang`（ZYBUSS cookie → 学习/搜题记录）、华为学习中心 `edu-huawei-learning`（华为账号 cookie → 课程学习记录）、支付宝 `finance-alipay`（会话 cookie → mobilegw 账单明细，签名 seam + 金额元→分 + 收支方向推导，高敏感闸不变）。三者补齐 `sync:cookie` + `_syncViaLive`（normalize 不变），新增共享 `_live-json-helpers.js`。
+- **测试**：+39（3 套 live 测试钉请求构造+解析契约），PDH 全套 128 文件 2083 tests 全绿。端点 best-effort（多字段名兼容，未实地验证，漂移时改 api-client 常量）。
+- **Android in-APK cc bundle 刷新**：`internal-binaries-android-v20260612`（cli 0.162.46 + pdh 0.4.5，内核实测）+ `USR_VERSION 23 → 24`；真机装新 APK 触发 `LocalFilesystemBootstrapper` sentinel 23→24 重提取。
+- **npm 包**：`chainlesschain` CLI 0.162.45 → 0.162.46 + `@chainlesschain/personal-data-hub` 0.4.4 → 0.4.5 已发 npm。
+- **版本面**：productVersion v5.0.3.106 → v5.0.3.107 / desktop 5.0.3-alpha.107 / Android versionCode 503107 · USR_VERSION 23 → 24 / iOS CFBundleVersion 107。
+
+---
+
 ## 2026-06-11 发布 — **v5.0.3.106：PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 全适配器测试收口（pdh 0.4.4 / cli 0.162.40）+ Android cc bundle v20260611（真机实证重提取）**
 
 > 本版以 PDH 个人数据中台采集层为主线。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

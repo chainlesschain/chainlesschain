@@ -19,6 +19,18 @@
 
 ---
 
+## 2026-06-12 Release — **v5.0.3.107: Personal Data Hub FAMILY-23 family-guard collectors v0.2 live fetcher fully closed (Zuoyebang / Huawei Learning / Alipay) + Android cc bundle v20260612 (cli 0.162.46 / pdh 0.4.5)**
+
+> This release closes out the last 3 snapshot-only placeholder collectors in the Personal Data Hub "family-guard telemetry" layer, giving them active live-collection capability. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **FAMILY-23 collectors v0.2 (snapshot + live dual-path)**: Zuoyebang `edu-zuoyebang` (ZYBUSS cookie → study/search records), Huawei Learning `edu-huawei-learning` (Huawei-account cookie → course study records), Alipay `finance-alipay` (session cookie → mobilegw bill/transaction details, with a signing seam + yuan→cents + in/out direction derivation, high-sensitivity gate unchanged). All three add `sync:cookie` + `_syncViaLive` (normalize path unchanged); new shared `_live-json-helpers.js`.
+- **Tests**: +39 (3 live suites pinning request-construction + parsing contracts), full PDH suite 128 files / 2083 tests all green. Endpoints are best-effort (multi-field-name tolerant, not field-verified against a live login; adjust api-client constants on drift).
+- **Android in-APK cc bundle refresh**: `internal-binaries-android-v20260612` (cli 0.162.46 + pdh 0.4.5, kernel verified) + `USR_VERSION 23 → 24`; installing the new APK triggers `LocalFilesystemBootstrapper` sentinel 23→24 re-extraction.
+- **npm packages**: `chainlesschain` CLI 0.162.45 → 0.162.46 + `@chainlesschain/personal-data-hub` 0.4.4 → 0.4.5 published.
+- **Version surfaces**: productVersion v5.0.3.106 → v5.0.3.107 / desktop 5.0.3-alpha.107 / Android versionCode 503107 · USR_VERSION 23 → 24 / iOS CFBundleVersion 107.
+
+---
+
 ## 2026-06-11 Release — **v5.0.3.106: PDH Kuaishou api_ph base64 collection fix + Amap title bug + full adapter test coverage (pdh 0.4.4 / cli 0.162.40) + Android cc bundle v20260611 (real-device re-extraction verified)**
 
 > PDH (personal data hub) collection layer is the mainline of this release. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).

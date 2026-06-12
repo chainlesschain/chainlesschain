@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.106 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.40 / 155 命令 / 30,000+ 测试 | Android 5.0.3.106 (versionCode 503106，与 productVersion 对齐 · USR_VERSION 22 · binariesVersion 20260611) | iOS 5.0.3 (build 106，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.107 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.46 / 155 命令 / 30,000+ 测试 | Android 5.0.3.107 (versionCode 503107，与 productVersion 对齐 · USR_VERSION 24 · binariesVersion 20260612) | iOS 5.0.3 (build 107，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.107 个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口 + Android cc bundle v20260612（2026-06-12）**：收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力。① **FAMILY-23 采集器 v0.2（snapshot + live 双路）** —— 作业帮 `edu-zuoyebang`（ZYBUSS 会话 cookie → 学习/搜题记录）、华为学习中心 `edu-huawei-learning`（华为账号 cookie → 课程学习记录）、支付宝 `finance-alipay`（会话 cookie → mobilegw 账单/交易明细，签名 seam + 金额元→分 + 收支方向推导，高敏感闸不变）；三者补齐 `sync:cookie` + `_syncViaLive`（normalize 路径不变），新增共享 `_live-json-helpers.js`。端点 best-effort（多字段名兼容，未经真实登录态实地验证）。② **测试** —— +39（3 套 live 测试钉请求构造+解析契约），PDH 全套 128 文件 2083 tests 全绿。③ **Android in-APK cc bundle 刷新** —— `internal-binaries-android-v20260612`（cli 0.162.46 + pdh 0.4.5，内核实测）+ `USR_VERSION 23 → 24`。npm：CLI 0.162.46 + PDH 0.4.5 已发。
 >
 > **v5.0.3.106 PDH 快手 api_ph base64 采集修复 + 高德标题 bug + 全适配器测试收口 + Android cc bundle v20260611（2026-06-11）**：① **PDH 采集修复（pdh 0.4.4）** —— 新版快手 `kuaishou.web.cp.api_ph` cookie 改为 base64(JSON)，加 `apiPhDecodeCandidates` 解码链恢复 profile 采集；travel-base `buildTitle` 加 `name` 三级回退修高德所有行程事件标题 `car: ? → ?`；订正头条/快手/邮箱 3 处过时注释。② **测试矩阵全收口（+180）** —— 小红书 ADB 三件套 58 + 出行 6 模块 74 + whatsapp/shopping-base 24 + 快手 base64 9 → 全仓 55 适配器测试覆盖 100%。③ **Android in-APK cc bundle 刷新 + 真机验证** —— `internal-binaries-android-v20260611`（pdh 0.4.4 + cli 0.162.40）+ `USR_VERSION 21 → 22`；真机（Xiaomi amethyst）实证装新 APK 触发 `LocalFilesystemBootstrapper` sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。npm：CLI 0.162.40 + PDH 0.4.4 已发。
 >
