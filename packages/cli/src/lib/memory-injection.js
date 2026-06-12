@@ -25,6 +25,8 @@ export function recallStartupMemories({
   limit = DEFAULT_LIMIT,
   memoryStore = null,
 } = {}) {
+  // Safe-mode kill switch (`cc agent --safe-mode` sets CC_MEMORY_INJECT=0).
+  if (process.env.CC_MEMORY_INJECT === "0") return [];
   const store = memoryStore || getMemoryStore();
   if (!store || typeof store.recall !== "function") return [];
 

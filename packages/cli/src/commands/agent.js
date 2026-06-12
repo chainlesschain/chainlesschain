@@ -141,6 +141,10 @@ export function registerAgentCommand(program) {
       "--no-checkpoint",
       "Disable auto-checkpointing (it is on by default inside git repos)",
     )
+    .option(
+      "--safe-mode",
+      "Run bare: disable project memory, settings hooks, memory recall, IDE context, status line and update notice (permission rules STAY active)",
+    )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
@@ -244,6 +248,15 @@ export function registerAgentCommand(program) {
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
     .action(async (task, options, command) => {
+      // --safe-mode (Claude-Code 2.1.169 parity): flip every customization
+      // kill-switch BEFORE anything loads. Permission rules stay active.
+      if (options.safeMode) {
+        const { applySafeMode } = await import("../lib/safe-mode.js");
+        const applied = applySafeMode();
+        process.stderr.write(
+          `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
+        );
+      }
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.

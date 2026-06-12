@@ -76,6 +76,11 @@ function readJson(file, onWarn) {
 function loadHooks({ cwd = process.cwd(), settingsFile, onWarn } = {}) {
   const merged = {};
   const files = [];
+  // Safe-mode kill switch (`cc agent --safe-mode` sets CC_SETTINGS_HOOKS=0):
+  // run with NO settings hooks so a broken hook can be diagnosed.
+  if (process.env.CC_SETTINGS_HOOKS === "0") {
+    return { hooks: merged, files };
+  }
   for (const file of settingsFiles(cwd, settingsFile)) {
     const data = readJson(file, onWarn);
     const block =
