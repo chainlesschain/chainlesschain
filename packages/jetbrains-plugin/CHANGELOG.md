@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.3.2] — 2026-06-12
+
+- **Tool window icon**: the right-dock "ChainlessChain" stripe button now
+  shows the same double-T mark as the VS Code extension's Activity Bar icon
+  (13×13 SVG, light + dark variants) instead of the default placeholder.
+
 ## [0.3.1] — 2026-06-12
 
 - **Marketplace icon**: same logo as the VS Code extension (the silver
