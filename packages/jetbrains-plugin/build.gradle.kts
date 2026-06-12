@@ -32,6 +32,12 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+// Windows javac defaults to the platform codepage (GBK) — non-ASCII UI
+// strings (✓ ⚠ ℹ …) would be miscompiled into mojibake without this.
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+}
+
 intellijPlatform {
     // Plain-Java plugin: no UI forms / no @NotNull bytecode instrumentation, so
     // skip code instrumentation (avoids the InstrumentIdeaExtensions ant-task

@@ -11,6 +11,10 @@
   Protocol core (`AgentChatSession`/`ChatEvents`, the Java twin of the VS Code
   panel's session/event modules — same stream-json duplex, same delta-dedup)
   is pure JDK and headless-smoked against a fake NDJSON agent (14 checks).
+- **Conversation resume across restarts**: the chat session id is stored
+  per-project (PropertiesComponent) and passed back as `--resume`, so
+  reopening the IDE continues the same conversation (a resume note shows the
+  restored message count). **New** clears the stored id for a fresh start.
 
 ## [0.2.0] — 2026-06-11
 

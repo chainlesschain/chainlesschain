@@ -93,6 +93,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     resetSession();
+                    rememberSessionId(null); // fresh conversation, not a resume
                     transcript.setText("");
                 }
             });
@@ -120,12 +121,30 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             }
         }
 
+        /** Per-project key for the resumable chat session id (parity with the
+         *  VS Code panel's workspaceState persistence — survives IDE restarts). */
+        private static final String SESSION_ID_KEY = "chainlesschain.chat.sessionId";
+
+        private String storedSessionId() {
+            String v = com.intellij.ide.util.PropertiesComponent
+                    .getInstance(project).getValue(SESSION_ID_KEY);
+            return v == null || v.trim().isEmpty() ? null : v;
+        }
+
+        private void rememberSessionId(String id) {
+            com.intellij.ide.util.PropertiesComponent
+                    .getInstance(project).setValue(SESSION_ID_KEY, id);
+        }
+
         /** Lazy spawn: first message starts the child; New restarts it. */
         private void ensureSession() throws IOException {
             if (session != null && session.isRunning()) return;
             AgentChatSession.Options o = new AgentChatSession.Options();
             String basePath = project.getBasePath();
             if (basePath != null) o.cwd = new File(basePath);
+            // Resume this project's last conversation across child/IDE
+            // restarts; "New" clears the stored id for a fresh session.
+            o.extraArgs = ChatEvents.buildSessionArgs(null, null, storedSessionId());
             IdeBridgeService bridge = IdeBridgeService.getInstance(project);
             if (bridge != null && bridge.getPort() > 0) {
                 o.extraEnv.put("CHAINLESSCHAIN_IDE_PORT",
@@ -137,6 +156,25 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             o.onEvent = new AgentChatSession.EventListener() {
                 @Override
                 public void onEvent(Map<String, Object> event) {
+                    if (event != null && "system".equals(event.get("type"))
+                            && "init".equals(event.get("subtype"))) {
+                        Object sid = event.get("session_id");
+                        if (sid != null && !String.valueOf(sid).isEmpty()) {
+                            rememberSessionId(String.valueOf(sid));
+                        }
+                        Object resumed = event.get("resumed_messages");
+                        if (resumed instanceof Number
+                                && ((Number) resumed).intValue() > 0) {
+                            final String note = "ℹ resumed previous conversation ("
+                                    + ((Number) resumed).intValue() + " messages)\n";
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    append(note);
+                                }
+                            });
+                        }
+                    }
                     final Map<String, Object> ui =
                             ChatEvents.mapAgentEvent(event, turnState);
                     if (ui == null) return;
