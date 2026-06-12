@@ -145,6 +145,10 @@ export function registerAgentCommand(program) {
       "--safe-mode",
       "Run bare: disable project memory, settings hooks, memory recall, IDE context, status line and update notice (permission rules STAY active)",
     )
+    .option(
+      "--worktree",
+      "Run this session in a fresh git worktree (isolated branch; auto-removed when the session changes nothing)",
+    )
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
@@ -257,6 +261,43 @@ export function registerAgentCommand(program) {
           `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
         );
       }
+      // --worktree (Claude-Code 2.1.171 parity): run THIS session in a fresh
+      // git worktree — edits land on an isolated branch, the main working
+      // tree (and parallel sessions) stay untouched. chdir BEFORE everything
+      // else so project memory / checkpoint / completion all follow.
+      let _worktree = null;
+      if (options.worktree) {
+        try {
+          const { setupAgentWorktree } = await import(
+            "../lib/agent-worktree.js"
+          );
+          _worktree = setupAgentWorktree({ cwd: process.cwd() });
+          process.chdir(_worktree.path);
+          process.stderr.write(
+            `worktree: ${_worktree.path} (branch ${_worktree.branch})\n`,
+          );
+        } catch (err) {
+          process.stderr.write(`--worktree failed: ${err.message}\n`);
+          process.exit(1);
+        }
+      }
+      const _finishWorktree = async () => {
+        if (!_worktree) return;
+        try {
+          const { finishAgentWorktree } = await import(
+            "../lib/agent-worktree.js"
+          );
+          process.chdir(_worktree.repoRoot); // release the dir before removal
+          const fin = finishAgentWorktree(_worktree);
+          process.stderr.write(
+            fin.removed
+              ? `worktree removed (${fin.reason}).\n`
+              : `worktree kept (${fin.reason}): ${_worktree.path}\n${fin.mergeHint ? `  merge: ${fin.mergeHint}\n` : ""}`,
+          );
+        } catch {
+          /* keep silently — never block exit */
+        }
+      };
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.
@@ -503,8 +544,10 @@ export function registerAgentCommand(program) {
           });
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
+          await _finishWorktree();
           process.exit(1);
         }
+        await _finishWorktree();
         process.exit(outcome.exitCode);
         return;
       }
@@ -628,9 +671,11 @@ export function registerAgentCommand(program) {
               baseOptions: headlessOptions,
               runHeadless: runAgentHeadless,
             });
+            await _finishWorktree();
             process.exit(code);
           } catch (err) {
             process.stderr.write(`Error: ${err.message}\n`);
+            await _finishWorktree();
             process.exit(1);
           }
           return;
@@ -641,8 +686,10 @@ export function registerAgentCommand(program) {
           outcome = await runAgentHeadless(headlessOptions);
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
+          await _finishWorktree();
           process.exit(1);
         }
+        await _finishWorktree();
         process.exit(outcome.exitCode);
         return;
       }
@@ -690,6 +737,8 @@ export function registerAgentCommand(program) {
         ide: options.ide,
       });
       await runtime.startAgentSession();
+      // Interactive session ended (REPL closed) — settle the worktree.
+      await _finishWorktree();
     });
 }
 
