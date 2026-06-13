@@ -515,6 +515,8 @@ chainlesschain ide status [--ide]              # 此刻会连哪台 + 它的 MCP
 chainlesschain ide doctor [--ide]              # 解释发现为何成功/失败(无锁/stale/workspace 不匹配/…)
 ```
 
+**交互 REPL `/ide`**(Claude-Code 平价):在 `chainlesschain agent` 交互会话里输入 `/ide` 查看**本会话**的桥接状态——已连则显示编辑器/端口/工作区 + 可用 `mcp__ide__*` 工具;未连则给发现诊断(几个锁、为何不匹配)+ 怎么连(从 IDE 集成终端跑、或 `--ide`)。等价于 `cc ide doctor` 的会话内即时版。
+
 **保留名 `ide`**:若你已 `cc mcp add ide` 自建同名 server,**用户显式注册优先**,IDE 自动发现让位
 并打印一次 WARN。
 

@@ -761,6 +761,7 @@ export async function startAgentRepl(options = {}) {
       "/cowork",
       "/exit",
       "/help",
+      "/ide",
       "/mcp",
       "/model",
       "/output-style",
@@ -1069,6 +1070,9 @@ export async function startAgentRepl(options = {}) {
       logger.log(`  ${chalk.cyan("/plan reject")}  Reject the plan`);
       logger.log(
         `  ${chalk.cyan("/sub-agents")}  Show active/completed sub-agents`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/ide")}        IDE bridge status (connected editor, tools, or why not)`,
       );
       logger.log(chalk.bold("\nCapabilities:"));
       logger.log("  Read, write, and edit files");
@@ -2110,6 +2114,22 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/mcp" || trimmed === "/mcp ") {
       const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
       logger.log(renderMcpSurface(mcpClient));
+      prompt();
+      return;
+    }
+
+    // `/ide` — IDE bridge connection status (Claude-Code parity): which editor
+    // is connected, its tools, or why discovery came up empty.
+    if (trimmed === "/ide" || trimmed === "/ide ") {
+      let diag = null;
+      try {
+        const { diagnoseIde } = await import("../lib/ide-bridge.js");
+        diag = diagnoseIde({ cwd: process.cwd(), env: process.env });
+      } catch (_err) {
+        // discovery is best-effort — fall back to in-session tools only
+      }
+      const { renderIdeStatus } = await import("./ide-status.js");
+      logger.log(renderIdeStatus(_adhocMcp, diag));
       prompt();
       return;
     }
