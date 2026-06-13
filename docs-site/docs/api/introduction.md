@@ -741,3 +741,96 @@ const results = await Promise.all(
 ---
 
 如有API问题，请查看 [Swagger文档](http://localhost:8080/api/swagger-ui.html) 或联系技术支持。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「API概述」。RESTful API v1.0，所有路径以 `/api` 为前缀，统一响应 `{code, message, data}`，JWT 认证，覆盖**厂家管理系统**与 **ChainlessChain 系统**两套服务。
+
+### 2. 核心特性
+
+- REST + JWT 认证；统一响应结构 + 业务状态码
+- 分页规范、限流配额、文件上传、批量操作
+- WebSocket 实时通知
+- 多语言 SDK（JS/TS、Python、Java）
+
+### 3. 系统架构
+
+```
+客户端 / SDK ──Bearer JWT──► REST /api/*
+   ├─ 厂家管理系统  http://localhost:8080/api（生产 https://api.chainlesschain.com/api）
+   └─ ChainlessChain 系统  http://localhost:3000/api
+```
+
+### 4. 系统定位
+
+两套服务的**统一 API 契约入口**，规定认证、请求 / 响应格式、状态码、限流、SDK 等横切约定。
+
+### 5. 核心功能
+
+见正文：认证授权、请求格式（Path/Query/Body/分页）、响应格式（统一结构 + 状态码）、限流配额、文件上传、批量操作、WebSocket、API 测试工具、SDK、最佳实践。
+
+### 6. 技术架构
+
+REST + JWT；统一响应 `{code, message, data}`；厂家系统 Spring Boot 3.2.1，ChainlessChain 系统本地服务（知识库 / 社交 / 交易）；契约由 Swagger/OpenAPI 3.0 描述。
+
+### 7. 系统特点
+
+- 统一响应结构 + 业务状态码（1001–8007）
+- 分页 `page/pageSize`（≤100）
+- 限流响应头 `X-RateLimit-*`
+
+### 8. 应用场景
+
+第三方系统集成、自动化运维脚本、SDK 应用接入、客户端对接。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 无规范裸接口 |
+|---|---|---|
+| 统一响应 / 状态码 | ✅ | ❌ |
+| 分页 / 限流约定 | ✅ | ⚠️ |
+| 多语言 SDK | ✅ | ❌ |
+
+### 10. 配置参考
+
+见正文「Base URL」「通用请求头」「分页请求」：`Authorization: Bearer <token>`、`Content-Type: application/json`、`page/pageSize`。
+
+### 11. 性能指标
+
+见正文「限流和配额」：登录 5/分、查询 100/分、修改 30/分、上传 10/小时；超限返回 `429` + `X-RateLimit-Limit/Remaining/Reset` 头。
+
+### 12. 测试覆盖
+
+见正文「API测试工具」：Swagger UI、Postman Collection、curl 示例；端点契约由 OpenAPI 3.0 描述。
+
+### 13. 安全考虑
+
+- JWT Bearer 认证（详见 [认证授权](/api/authentication)）
+- 限流防滥用；生产强制 HTTPS
+- 统一错误不泄露内部细节
+
+### 14. 故障排除
+
+见正文「状态码说明」：HTTP 200/201/400/401/403/404/500 + 业务状态码 + 「最佳实践 — 错误处理 / 请求重试」。
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| Base URL | 厂家 `:8080/api` · ChainlessChain `:3000/api` |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+| SDK | JS/TS · Python · Java（见正文「SDK和客户端库」） |
+
+### 16. 使用示例
+
+见正文「API测试工具 — curl示例」与「SDK和客户端库」（JS/Python/Java 调用示例）。
+
+### 17. 相关文档
+
+- [认证授权](/api/authentication)
+- [厂家管理系统 API](/api/manufacturer/devices)
+- [知识库 API](/api/chainlesschain/knowledge) · [社交 API](/api/chainlesschain/social) · [交易 API](/api/chainlesschain/trading)

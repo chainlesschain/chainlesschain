@@ -398,3 +398,104 @@ chainlesschain import pdf document.pdf
 chainlesschain import evernote backup.enex
 chainlesschain export site -o ./site
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。知识库 API 提供笔记 CRUD、混合搜索（BM25 + 向量）与导入导出，是 ChainlessChain 个人第二大脑系统的核心接口。
+
+### 2. 核心特性
+
+- 笔记 CRUD（标题 / 内容 / 标签，≤20 标签）
+- 混合搜索（BM25/TF-IDF + 向量）
+- 导入 Markdown / PDF / Evernote（≤50MB）
+- 导出静态站点 / Markdown
+
+### 3. 系统架构
+
+```
+客户端 / CLI ──Bearer JWT──► REST /api/notes|search|import|export
+                                （ChainlessChain 系统 http://localhost:3000/api）
+                                   ▼
+                  本地加密存储（SQLCipher）+ 向量检索（Qdrant）
+```
+
+### 4. 系统定位
+
+ChainlessChain **个人知识库（RAG 增强）的 API 侧**，对应 CLI `chainlesschain note/search/import/export`（见正文「CLI对应命令」）。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST/GET /api/notes`、`GET/PUT/DELETE /api/notes/{id}`、`GET /api/notes/search`（BM25+向量）、`POST /api/import/{format}`、`POST /api/export/{format}`。
+
+### 6. 技术架构
+
+REST + JWT；检索 BM25/TF-IDF（natural）+ 向量（Qdrant）；本地存储 SQLite/SQLCipher（AES-256）；统一响应 `{code, message, data}`。
+
+### 7. 系统特点
+
+- 混合搜索兼顾关键词与语义
+- 本地优先 + 加密存储
+- 多格式导入导出，便于迁移
+
+### 8. 应用场景
+
+个人笔记自动化、RAG 问答检索、从 Evernote/Markdown 迁移、导出静态知识站点。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 云笔记 SaaS |
+|---|---|---|
+| 本地加密 | ✅ SQLCipher | ❌ |
+| 混合搜索 | ✅ BM25+向量 | ⚠️ |
+| 多格式导入导出 | ✅ | ⚠️ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:3000/api`（ChainlessChain 系统）；`Authorization: Bearer <token>`；导入文件 ≤50MB；标签 ≤20 个。
+
+### 11. 性能指标
+
+混合搜索 BM25 + 向量召回；列表分页；导入文件上限 50MB；本地检索无网络往返。
+
+### 12. 测试覆盖
+
+端点契约 + CLI 对应命令（`chainlesschain note/search/import/export`）；搜索 / 导入格式 / 标签限制由后端测试覆盖。
+
+### 13. 安全考虑
+
+- 接口需 JWT
+- 笔记本地 SQLCipher 加密存储
+- 导出内容含个人数据——注意外发安全
+- 错误码 4001–4007
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| 标题为空 | 4001 | 填写标题 |
+| 内容 / 标签超限 | 4002 / 4003 | 缩减内容 / ≤20 标签 |
+| 笔记不存在 | 4004 | 核对笔记 ID |
+| 搜索词为空 | 4005 | 提供关键词 |
+| 导入格式 / 大小 | 4006 / 4007 | 用支持格式 / ≤50MB |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `/api/notes*` `/api/import` `/api/export` | 知识库 REST API |
+| CLI `chainlesschain note/search` | 对应命令 |
+| 本地 SQLCipher + Qdrant | 存储 / 向量检索 |
+
+### 16. 使用示例
+
+见正文各端点请求示例与「CLI对应命令」（`chainlesschain note add` / `search` / `import` / `export`）。
+
+### 17. 相关文档
+
+- [社交 API](/api/chainlesschain/social)
+- [交易 API](/api/chainlesschain/trading)
+- [API 简介](/api/introduction)

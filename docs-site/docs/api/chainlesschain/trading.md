@@ -421,3 +421,106 @@ chainlesschain economy pay <from> <to> 100
 chainlesschain economy market list
 chainlesschain economy nft mint <agent>
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。交易 API 提供数字资产管理、钱包操作、资产转账与代理经济（微支付 / 资源市场 / 贡献 NFT）功能。
+
+### 2. 核心特性
+
+- 钱包创建 / 资产查询 / 转账 / 交易历史
+- 代理经济：代理间微支付、资源市场
+- 贡献 NFT 铸造 / 查询
+- 交易记录可追溯
+
+### 3. 系统架构
+
+```
+客户端 / CLI ──Bearer JWT──► REST /api/wallet|economy
+                                （ChainlessChain 系统 http://localhost:3000/api）
+                                   ▼
+                  钱包 / 数字资产 + 代理经济 + NFT（智能合约）
+```
+
+### 4. 系统定位
+
+ChainlessChain **去中心化交易的 API 侧**，对应 CLI `chainlesschain wallet/economy`（见正文「CLI对应命令」）。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST /api/wallet/create`、`GET /api/wallet/assets`、`POST /api/wallet/transfer`、`GET /api/wallet/transactions`、`POST /api/economy/pay`、`GET /api/economy/market`、`POST /api/economy/nft/mint`、`GET /api/economy/nft/list`。
+
+### 6. 技术架构
+
+REST + JWT；钱包 / 数字资产管理；代理经济微支付；贡献 NFT（智能合约）；统一响应 `{code, message, data}`。
+
+### 7. 系统特点
+
+- 资产转账需地址校验 + 余额校验
+- 代理经济支持 agent 间微支付
+- NFT 铸造记录贡献
+
+### 8. 应用场景
+
+数字资产管理自动化、代理间微支付结算、资源市场对接、贡献 NFT 发行。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 中心化钱包 |
+|---|---|---|
+| 自主资产 | ✅ | ⚠️ 托管 |
+| 代理经济微支付 | ✅ | ❌ |
+| 贡献 NFT | ✅ | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:3000/api`（ChainlessChain 系统）；`Authorization: Bearer <token>`；转账需有效地址 + 充足余额。
+
+### 11. 性能指标
+
+钱包 / 资产查询毫秒级；转账受链上确认时延影响（可能超时，错误码 6005）；交易历史分页。
+
+### 12. 测试覆盖
+
+端点契约 + CLI 对应命令；转账校验、余额、NFT 铸造、代理支付由后端测试覆盖。
+
+### 13. 安全考虑
+
+- 接口需 JWT；钱包私钥本地 / 硬件密钥内
+- 转账地址 + 余额校验防误转
+- 交易操作可追溯
+- 错误码 6001–6007
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| 钱包不存在 | 6001 | 先创建钱包 |
+| 余额不足 | 6002 | 充值 / 减少转账额 |
+| 无效转账地址 | 6003 | 校正地址 |
+| 资产不存在 | 6004 | 核对资产 |
+| 交易确认超时 | 6005 | 稍后查交易历史 |
+| 代理未注册 | 6006 | 先注册代理 |
+| NFT 铸造失败 | 6007 | 重试 / 检查贡献参数 |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `/api/wallet*` `/api/economy*` | 交易 REST API |
+| CLI `chainlesschain wallet/economy` | 对应命令 |
+| 钱包 + 智能合约 | 资产 / NFT |
+
+### 16. 使用示例
+
+见正文各端点请求示例与「CLI对应命令」（`chainlesschain wallet create/transfer`、`economy pay/market/nft mint`）。
+
+### 17. 相关文档
+
+- [知识库 API](/api/chainlesschain/knowledge)
+- [社交 API](/api/chainlesschain/social)
+- [API 简介](/api/introduction)

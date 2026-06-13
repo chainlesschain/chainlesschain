@@ -497,3 +497,105 @@ curl -X POST "https://api.chainlesschain.com/api/v1/devices/register" \
 ### 忘记Token怎么办？
 
 Token不可找回，只能重新生成。建议妥善保管。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「认证方式」。认证授权模块提供 API Token（推荐）/ OAuth 2.0 / 用户名密码三种认证，配合 JWT 结构、权限 Scope、Token 刷新与速率限制。
+
+### 2. 核心特性
+
+- 三种认证：API Token / OAuth 2.0（授权码 + PKCE）/ 用户名密码
+- JWT 结构（Header / Payload / Signature）
+- 权限 Scope（设备 / APP / 用户 / 系统管理）
+- Token 刷新 + 自动刷新机制
+
+### 3. 系统架构
+
+```
+客户端 ──认证──► 获取 Token（API Token / OAuth / 登录）
+            ▼
+请求携带 Authorization: Bearer <JWT>
+            ▼
+后端校验签名 + 过期 + Scope（每请求）→ 放行 / 401 / 403
+```
+
+### 4. 系统定位
+
+所有 API 的**统一认证授权关口**，是 [API 简介](/api/introduction) 的安全基座。
+
+### 5. 核心功能
+
+见正文：获取 / 使用 Token、OAuth 2.0 授权码流程、JWT 结构、Scope 体系、Token 刷新与自动刷新。
+
+### 6. 技术架构
+
+JWT（HS256/RS256）+ Bearer；OAuth 2.0 授权码 + PKCE；Scope 粒度鉴权；Token 经 refresh token 续期。
+
+### 7. 系统特点
+
+- API Token 一应用一 Token，不可分享
+- Scope 最小授权
+- Token 不可找回，只能重新生成
+
+### 8. 应用场景
+
+服务端集成用 API Token；第三方应用用 OAuth 2.0；用户登录用密码换 JWT。
+
+### 9. 竞品对比
+
+| 维度 | 本模块 | 仅密码认证 |
+|---|---|---|
+| API Token | ✅ | ❌ |
+| OAuth 2.0 | ✅ PKCE | ❌ |
+| Scope 粒度 | ✅ | ❌ |
+| Token 轮换 | ✅ | ⚠️ |
+
+### 10. 配置参考
+
+见正文：`Authorization: Bearer <token>`；OAuth 授权码流程参数；Scope 列表；IP 白名单（见正文「安全最佳实践」）。
+
+### 11. 性能指标
+
+见正文「速率限制」：API Token 1000 次/小时、OAuth Token 500 次/小时、用户登录 100 次/小时；超限 `429` + `Retry-After` + `X-RateLimit-*` 头。
+
+### 12. 测试覆盖
+
+见正文「测试工具」：Postman 配置、cURL 示例；签名校验 / 过期 / Scope / 刷新由后端集成测试覆盖。
+
+### 13. 安全考虑
+
+见正文「安全最佳实践」：Token 安全存储、Token 轮换、最小权限 Scope、IP 白名单。认证错误码 401001–429001（见正文「认证错误码」）。
+
+### 14. 故障排除
+
+见正文「认证错误码」表：
+
+| 错误码 | 处理 |
+|---|---|
+| 401001 / 401002 | 提供 / 更换有效 Token |
+| 401003 | 刷新 Token |
+| 401004 | 检查 Token 完整性 |
+| 403001 / 403002 | 申请权限 / 扩展 Scope |
+| 429001 | 降低请求频率（看 `Retry-After`） |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `/api/auth/*` | 登录 / Token / 刷新接口 |
+| Scope 定义 | 设备 / APP / 用户 / 系统管理 |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文「示例代码」（JS/Node.js、Python）与「测试工具 — cURL示例」。
+
+### 17. 相关文档
+
+- [API 简介](/api/introduction)
+- [用户管理 API](/api/manufacturer/users)
+- [权限管理（功能页）](/manufacturer/permissions)

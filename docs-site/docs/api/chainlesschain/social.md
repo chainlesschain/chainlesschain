@@ -461,3 +461,106 @@ chainlesschain social post publish "Hello"
 chainlesschain social chat send <user> "msg"
 chainlesschain social stats
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。社交 API 提供去中心化身份（DID）、P2P 加密消息、联系人管理与社交互动，是 ChainlessChain 去中心化社交的核心接口。
+
+### 2. 核心特性
+
+- DID 身份（创建 / 列表 / 签名 / 验证）
+- P2P 加密消息（libp2p + Signal Protocol）
+- 联系人 / 好友请求管理
+- 社交动态发布 + 统计
+
+### 3. 系统架构
+
+```
+客户端 / CLI ──Bearer JWT──► REST /api/did|social|p2p
+                                （ChainlessChain 系统 http://localhost:3000/api）
+                                   ▼
+                  DID（Ed25519）+ libp2p/WebRTC mesh + Signal Protocol E2E
+```
+
+### 4. 系统定位
+
+ChainlessChain **去中心化社交的 API 侧**，对应 CLI `chainlesschain did/p2p/social`（见正文「CLI对应命令」）。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST /api/did/create`、`GET /api/did/list`、`POST /api/did/sign|verify`、`POST/GET /api/social/contacts`、`POST /api/p2p/send`、`POST /api/social/friend/add`、`POST /api/social/posts`、`GET /api/social/stats`。
+
+### 6. 技术架构
+
+REST + JWT；DID（W3C + Ed25519）；P2P libp2p + WebRTC；消息 Signal Protocol 端到端加密；统一响应 `{code, message, data}`。
+
+### 7. 系统特点
+
+- 去中心化身份，自主可控
+- P2P 无中心消息，E2E 加密
+- DID 签名 / 验签可用于可验证凭证
+
+### 8. 应用场景
+
+去中心化社交集成、DID 身份签名验证、P2P 加密通讯、社区动态发布。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 中心化社交 |
+|---|---|---|
+| 去中心化身份 | ✅ DID | ❌ |
+| P2P E2E 消息 | ✅ Signal | ⚠️ |
+| 无中心服务器 | ✅ libp2p | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:3000/api`（ChainlessChain 系统）；`Authorization: Bearer <token>`；P2P 需本地节点在线（见 CLI `chainlesschain p2p peers`）。
+
+### 11. 性能指标
+
+DID 签名 / 验签为本地密码学运算；P2P 消息延迟取决于 mesh / 中继；联系人 / 动态查询分页。
+
+### 12. 测试覆盖
+
+端点契约 + CLI 对应命令；DID 签名验签、P2P 投递、好友请求由后端测试覆盖。
+
+### 13. 安全考虑
+
+- 接口需 JWT；DID 私钥仅本地 / 硬件密钥内
+- P2P 消息 Signal Protocol 端到端加密
+- 签名验证防伪造
+- 错误码 5001–5007
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| DID 创建失败 | 5001 | 重试 / 检查密钥环境 |
+| DID 不存在 | 5002 | 核对 DID |
+| 签名验证失败 | 5003 | 检查消息 / 公钥 |
+| 联系人不存在 | 5004 | 先添加联系人 |
+| 好友请求已存在 | 5005 | 勿重复发送 |
+| P2P 节点不可达 | 5006 | 确认对端在线（`p2p peers`） |
+| 消息加密失败 | 5007 | 检查会话密钥 |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `/api/did*` `/api/social*` `/api/p2p/send` | 社交 REST API |
+| CLI `chainlesschain did/p2p/social` | 对应命令 |
+| libp2p + Signal Protocol | P2P / E2E |
+
+### 16. 使用示例
+
+见正文各端点请求示例与「CLI对应命令」（`chainlesschain did create/sign`、`p2p send`、`social contact/friend/post`）。
+
+### 17. 相关文档
+
+- [知识库 API](/api/chainlesschain/knowledge)
+- [交易 API](/api/chainlesschain/trading)
+- [API 简介](/api/introduction)
