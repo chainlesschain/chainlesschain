@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
+
+> v5.0.3.108 真机验证发现**发布的 APK 不含 `cc-cli.tgz`**（local-terminal/cc 在设备上不可用，pdh/拼多多采集不下发）。根因:`release.yml` build-android 只跑 `assembleRelease`,而 `downloadInternalBinaries` 仅靠 `preBuild` 的 lazy `dependsOn` 触发,在 CI 不生效。本版纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。
+
+#### Fix — Android release APK bundle 打包
+
+- `release.yml` build-android:assemble 前新增独立步骤 `./gradlew downloadInternalBinaries`(单独 invocation 保证 `cc-cli.tgz` 落盘后再被 `mergeReleaseAssets` 快照)。
+- 新增**硬验证 gate**:build 后 `unzip -l <apk> | grep assets/local-terminal/cc-cli.tgz`,任一 APK 缺则 `exit 1`——杜绝再次静默发出无 bundle 的 APK。
+- **版本面**:productVersion v5.0.3.108 → v5.0.3.109 / desktop 5.0.3-alpha.109 / Android versionCode 503109 / iOS CFBundleVersion 109（USR_VERSION 25、binariesVersion 20260613 不变,bundle 同 v108）。
+
 ## [v5.0.3.108] - 2026-06-13 — feat: 个人数据中台拼多多采集补全（snapshot-only → cookie-api）+ Android cc bundle v20260613（pdh 0.4.6 / cli 0.162.48）
 
 > 拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价，并随 Android in-APK cc bundle v20260613 下发。

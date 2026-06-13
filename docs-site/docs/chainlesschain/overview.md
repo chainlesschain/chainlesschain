@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.108 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.48 / 155 命令 / 30,000+ 测试 | Android 5.0.3.108 (versionCode 503108，与 productVersion 对齐 · USR_VERSION 25 · binariesVersion 20260613) | iOS 5.0.3 (build 108，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.109 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.48 / 155 命令 / 30,000+ 测试 | Android 5.0.3.109 (versionCode 503109，与 productVersion 对齐 · USR_VERSION 25 · binariesVersion 20260613) | iOS 5.0.3 (build 109，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.109 修复 Android 发布 APK 缺 cc bundle（2026-06-14）**：v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用、pdh/拼多多采集不下发）。根因——`release.yml` build-android 只跑 `assembleRelease`，而 `downloadInternalBinaries` 仅靠 `preBuild` 的 lazy `dependsOn` 触发、在 CI 不生效。修：assemble 前独立步骤跑 `downloadInternalBinaries`（保证 `cc-cli.tgz` 落盘后再被 `mergeReleaseAssets` 快照）+ build 后硬验证 gate（`unzip -l apk | grep cc-cli.tgz`，任一 APK 缺则 fail）。纯打包修复，bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。
 >
 > **v5.0.3.108 个人数据中台拼多多采集补全（snapshot-only → cookie-api）+ Android cc bundle v20260613（2026-06-13）**：拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器，本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价。① **拼多多 `shopping-pinduoduo` cookie-api（v0.2.0）** —— `_syncViaCookie` 经注入 `fetchFn` 拉 `mobile.yangkeduo.com/.../transaction_list`；**anti_token 签名经 `signProvider` seam 注入**（纯 Node 扛不住签名轮换，Android 端由 in-APK WebView JS VM 产出），无 provider 时 best-effort null；`orderToRecord` 映射字段（snake/camel 双兼容）+ 分→元 + 数字/文本状态映射；`extractOrders` 容错嵌套；分页命中 watermark 提前停。capabilities 升 `sync:snapshot` + `sync:cookie-api`，version 0.1.0 → 0.2.0。② **测试** —— +13 cookie-api，PDH 全套 128 文件 2094 tests 通过 / 9 跳过。③ **发版链** —— pdh 0.4.5 → 0.4.6 + CLI 0.162.47 → 0.162.48 已发 npm（pin pdh 0.4.6）；Android cc bundle `internal-binaries-android-v20260613`（pdh 0.4.6）+ `USR_VERSION 24 → 25` + `binariesVersion 20260612 → 20260613`。
 >

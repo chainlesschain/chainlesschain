@@ -1129,6 +1129,20 @@ jobs:
           sed -i 's/android.enableR8.fullMode=true/android.enableR8.fullMode=false/' gradle.properties
           echo "✅ Gradle properties tuned for CI"
 
+      - name: Stage internal binaries (cc-cli.tgz bundle)
+        working-directory: android-app
+        run: |
+          # Fetch the in-APK cc bundle (cc-cli.tgz + native libs) pinned by
+          # binaries-manifest.txt BEFORE assembleRelease. The lazy preBuild
+          # `dependsOn(downloadInternalBinaries)` wiring does NOT reliably stage
+          # the asset in CI — through v5.0.3.108 this silently shipped APKs with
+          # no cc-cli.tgz (the local-terminal/cc feature dead on device). Running
+          # the task as its own invocation guarantees the asset is on disk before
+          # the next invocation's mergeReleaseAssets snapshots it.
+          ./gradlew downloadInternalBinaries --no-daemon
+          echo "--- staged bundle asset ---"
+          ls -lh feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+
       - name: Build release APK
         working-directory: android-app
         run: ./gradlew assembleRelease --no-daemon
@@ -1136,6 +1150,25 @@ jobs:
       - name: Build App Bundle
         working-directory: android-app
         run: ./gradlew bundleRelease --no-daemon
+
+      - name: Verify cc bundle packed into APKs (hard gate)
+        working-directory: android-app
+        run: |
+          # Fail the build if any release APK is missing the cc bundle asset.
+          # Prevents silently shipping bundle-less APKs (the v5.0.3.108 defect).
+          fail=0
+          for apk in app/build/outputs/apk/release/*.apk; do
+            if unzip -l "$apk" 2>/dev/null | grep -q 'assets/local-terminal/cc-cli.tgz'; then
+              echo "✅ $(basename "$apk"): cc-cli.tgz present"
+            else
+              echo "❌ $(basename "$apk"): cc-cli.tgz MISSING"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::One or more release APKs are missing the cc bundle (assets/local-terminal/cc-cli.tgz). The downloadInternalBinaries staging step did not take effect."
+            exit 1
+          fi
 
       - name: List build outputs
         if: always()

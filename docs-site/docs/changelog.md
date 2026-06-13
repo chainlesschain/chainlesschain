@@ -3,6 +3,16 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
+
+> v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用）。根因:`release.yml` build-android 只跑 `assembleRelease`,`downloadInternalBinaries` 的 `preBuild` lazy `dependsOn` 在 CI 不触发。纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。
+
+### Fix —— Android release APK bundle 打包
+
+- assemble 前独立步骤跑 `./gradlew downloadInternalBinaries`(保证 `cc-cli.tgz` 落盘后再被 `mergeReleaseAssets` 快照)。
+- build 后硬验证 gate:`unzip -l <apk> | grep assets/local-terminal/cc-cli.tgz`,任一 APK 缺则 `exit 1`。
+- **版本面**:productVersion v5.0.3.108 → v5.0.3.109 / desktop 5.0.3-alpha.109 / Android versionCode 503109 / iOS CFBundleVersion 109（USR_VERSION 25、binariesVersion 20260613 不变）。
+
 ## [v5.0.3.108] - 2026-06-13 — feat: 个人数据中台拼多多采集补全（snapshot-only → cookie-api）+ Android cc bundle v20260613（pdh 0.4.6 / cli 0.162.48）
 
 > 拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价，并随 Android in-APK cc bundle v20260613 下发。

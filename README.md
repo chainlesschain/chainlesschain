@@ -19,6 +19,16 @@
 
 ---
 
+## 2026-06-14 发布 — **v5.0.3.109：修复 Android 发布 APK 缺 cc bundle（release.yml 补 downloadInternalBinaries + 硬验证 gate）**
+
+> v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用）。根因:release.yml 只跑 `assembleRelease`,`downloadInternalBinaries` 的 preBuild dependsOn 在 CI 不触发。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **修复**:build-android 在 assemble 前独立跑 `downloadInternalBinaries`(保证 cc-cli.tgz 落盘),build 后加硬 gate(`unzip -l apk | grep cc-cli.tgz` 缺则 fail),杜绝再发无 bundle 的 APK。
+- **纯打包修复**:bundle 内容不变(pdh 0.4.6 / internal-binaries-android-v20260613 / USR_VERSION 25)。
+- **版本面**:productVersion v5.0.3.108 → v5.0.3.109 / desktop 5.0.3-alpha.109 / Android versionCode 503109 / iOS CFBundleVersion 109。
+
+---
+
 ## 2026-06-13 发布 — **v5.0.3.108：个人数据中台拼多多采集补全（snapshot-only → cookie-api，anti_token signProvider seam）+ Android cc bundle v20260613（pdh 0.4.6 / cli 0.162.48）**
 
 > 拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

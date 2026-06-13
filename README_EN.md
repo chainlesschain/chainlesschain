@@ -19,6 +19,16 @@
 
 ---
 
+## 2026-06-14 Release — **v5.0.3.109: fix Android release APK missing the cc bundle (release.yml adds downloadInternalBinaries staging + a hard verify gate)**
+
+> v5.0.3.108 real-device verification found the published APKs contained no `cc-cli.tgz` (on-device local-terminal/cc unavailable). Root cause: release.yml ran only `assembleRelease`, and the `downloadInternalBinaries` preBuild `dependsOn` doesn't fire in CI. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **Fix**: build-android now runs `downloadInternalBinaries` as its own step before assemble (so `cc-cli.tgz` is on disk before asset merge), plus a hard gate after build (`unzip -l apk | grep cc-cli.tgz`, fail if absent) so a bundle-less APK can never silently ship again.
+- **Packaging-only**: bundle content unchanged (pdh 0.4.6 / internal-binaries-android-v20260613 / USR_VERSION 25).
+- **Version surfaces**: productVersion v5.0.3.108 → v5.0.3.109 / desktop 5.0.3-alpha.109 / Android versionCode 503109 / iOS CFBundleVersion 109.
+
+---
+
 ## 2026-06-13 Release — **v5.0.3.108: Personal Data Hub Pinduoduo collection completed (snapshot-only → cookie-api, anti_token signProvider seam) + Android cc bundle v20260613 (pdh 0.4.6 / cli 0.162.48)**
 
 > Pinduoduo was the last shopping adapter still user-export snapshot-only with no automated path; this release adds active cookie-api collection, reaching parity with taobao/jd/meituan. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
