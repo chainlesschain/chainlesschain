@@ -298,3 +298,106 @@ Authorization: Bearer <token>
 | 2005 | 备份正在进行中，请稍后 |
 | 2006 | 存储空间不足 |
 | 2007 | 目标设备状态不允许恢复 |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。数据备份 API 提供设备数据的加密备份创建 / 查询 / 恢复 / 删除 / 统计，基于 REST + JWT。
+
+### 2. 核心特性
+
+- 6 接口：创建 / 列表 / 详情 / 恢复 / 删除 / 统计
+- AES-256-GCM 加密备份（密码验证）
+- 完整 / 增量备份类型
+- 恢复需密码校验，删除需权限
+
+### 3. 系统架构
+
+```
+客户端 ──Bearer JWT──► REST /api/backups[/{id}[/restore]|/stats]
+                          ▼
+              后端（Spring Boot）→ AES-256-GCM 加解密
+                          ▼
+              MySQL（key_backups）+ 备份文件存储
+```
+
+### 4. 系统定位
+
+厂家管理系统的**加密备份 / 恢复接口**，是 [数据备份](/manufacturer/data-backup) / [数据恢复](/manufacturer/data-restore) 功能页的 API 侧。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST /api/backups`、`GET /api/backups`、`GET /api/backups/{id}`、`POST /api/backups/{id}/restore`、`DELETE /api/backups/{id}`、`GET /api/backups/stats`。
+
+### 6. 技术架构
+
+Spring Boot REST + JWT；加密 AES-256-GCM + PBKDF2；备份元数据存 `key_backups`；统一响应 `{code, message, data}`。
+
+### 7. 系统特点
+
+- 备份 / 恢复全程密码校验，系统不存明文密码
+- 增量备份依赖基础完整备份
+- 恢复目标设备须为「已激活」
+
+### 8. 应用场景
+
+售后数据迁移自动化、定时备份脚本、容灾恢复集成。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 手工拷贝 |
+|---|---|---|
+| 加密 | ✅ AES-256-GCM | ❌ |
+| 密码校验恢复 | ✅ | ❌ |
+| 增量 / 统计 | ✅ | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:8080/api`（生产 `https://api.chainlesschain.com/api`）；`Authorization: Bearer <token>`；备份默认有效期 730 天（功能页可配）。
+
+### 11. 性能指标
+
+备份 / 恢复随数据量线性增长（加解密 I/O 密集）；修改类接口限流 30 次/分钟；建议业务低峰执行。
+
+### 12. 测试覆盖
+
+加解密往返、密码校验、增量依赖、恢复目标状态校验由后端集成测试覆盖；端点契约由 Swagger 描述。
+
+### 13. 安全考虑
+
+- AES-256-GCM + 密码验证；密码遗失则数据不可恢复
+- 删除 / 恢复需对应权限（ADMIN / DEALER）+ JWT
+- 操作写 `device_logs` 审计
+- 错误码 2001–2007 + HTTP 401/403/429
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| 设备 / 备份不存在 | 2001 / 2002 | 核对 ID |
+| 密码验证失败 | 2003 | 用正确备份密码 |
+| 备份已过期 | 2004 | 延长有效期或重建 |
+| 备份进行中 | 2005 | 稍后重试 |
+| 存储不足 | 2006 | 清理过期备份 |
+| 目标设备状态不允许 | 2007 | 确认设备「已激活」 |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `key_backups` 表 | 备份元数据 |
+| `/api/backups*` | 备份 REST API（6 接口） |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文各端点请求示例。恢复：`POST /api/backups/{id}/restore`（带密码）。
+
+### 17. 相关文档
+
+- [数据备份（功能页）](/manufacturer/data-backup)
+- [数据恢复（功能页）](/manufacturer/data-restore)
+- [API 简介](/api/introduction)

@@ -72,6 +72,7 @@ const ALLOWED_FILES = [
   "ai-models.md",
   "did-v2.md",
   "installation.md", // manufacturer 部署指南：docker-compose 示例占位密码（root123456 等，非真实凭证）
+  "devices.md", // manufacturer 设备管理 API 参考：登录示例含默认演示密码 admin123456（非真实凭证）
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）

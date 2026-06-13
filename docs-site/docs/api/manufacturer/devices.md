@@ -840,3 +840,106 @@ downloadCSV(csv.join('\n'), 'activation-codes.csv')
 ---
 
 如有问题，请查看 [Swagger文档](http://localhost:8080/api/swagger-ui.html) 或联系技术支持。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。设备管理 API 提供设备注册（单个 / 批量）、激活、锁定 / 解锁、注销与查询，基于 REST + JWT，是设备全生命周期的接口层。
+
+### 2. 核心特性
+
+- 设备注册 / 批量注册（导出激活码 CSV）
+- 激活 / 锁定 / 解锁 / 注销 状态流转
+- 列表 / 详情查询
+- 批量并行 + 结果统计
+
+### 3. 系统架构
+
+```
+客户端 ──Bearer JWT──► REST /api/devices[/batch|/{id}/{activate|lock|unlock|deactivate}]
+                          ▼
+              后端（Spring Boot 3.2.1 + MyBatis Plus）
+                          ▼
+              MySQL（devices / activation_codes / device_logs）
+```
+
+### 4. 系统定位
+
+厂家管理系统的**设备全生命周期接口**，是 [设备注册](/manufacturer/device-register) / [设备激活](/manufacturer/device-activate) / [设备管理](/manufacturer/device-manage) 功能页的 API 侧。
+
+### 5. 核心功能
+
+见正文「接口列表」：注册 `POST /api/devices`、批量 `POST /api/devices/batch`、激活 `POST /{id}/activate`、锁定 `POST /{id}/lock`、解锁 `POST /{id}/unlock`、注销 `POST /{id}/deactivate`、列表 / 详情查询。
+
+### 6. 技术架构
+
+Spring Boot REST + JWT；设备存 `devices`、激活码存 `activation_codes`、操作存 `device_logs`；统一响应 `{code, message, data}`；批量导入逐行校验。
+
+### 7. 系统特点
+
+- 状态机：未激活 / 已激活 / 已锁定 / 已注销
+- 序列号唯一性约束
+- 批量注册返回逐条结果 + 激活码
+
+### 8. 应用场景
+
+产线批量注册自动化、ERP 对接设备分发、售后锁定 / 注销集成。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 手工台账 |
+|---|---|---|
+| 批量注册 | ✅ + 激活码导出 | ⚠️ |
+| 状态流转 | ✅ | ❌ |
+| 审计 | ✅ device_logs | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:8080/api`（生产 `https://api.chainlesschain.com/api`）；`Authorization: Bearer <token>`；序列号规则见 [设备注册](/manufacturer/device-register)。
+
+### 11. 性能指标
+
+单设备操作毫秒级；批量注册按行处理；查询接口限流 100 次/分钟、修改类 30 次/分钟。
+
+### 12. 测试覆盖
+
+注册 / 批量 / 激活 / 状态流转、序列号唯一性、激活码生成由后端集成测试覆盖；端点契约由 Swagger 描述。
+
+### 13. 安全考虑
+
+- 注册 / 状态变更需 ADMIN / DEALER 权限 + JWT
+- 注销不可逆——需二次确认
+- 操作写 `device_logs` 审计
+- 业务状态码 2001–2004（设备不存在 / 已激活 / 激活码无效 / 已锁定，见 [API 简介](/api/introduction)）+ HTTP 401/403/429
+
+### 14. 故障排除
+
+| 现象 | 状态码 | 处理 |
+|---|---|---|
+| 设备不存在 | 2001 | 核对设备 ID / 序列号 |
+| 设备已激活 | 2002 | 先解绑再操作 |
+| 激活码无效 | 2003 | 重新生成激活码 |
+| 设备已锁定 | 2004 | 先解锁 |
+| 401 / 403 / 429 | — | 刷新 Token / 确认权限 / 退避重试 |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `devices` / `activation_codes` / `device_logs` 表 | 设备 / 激活码 / 审计 |
+| `/api/devices*` | 设备管理 REST API |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文各端点 `curl` / JavaScript 示例（含批量注册 + 导出激活码 CSV）。
+
+### 17. 相关文档
+
+- [设备注册（功能页）](/manufacturer/device-register)
+- [设备激活（功能页）](/manufacturer/device-activate)
+- [设备管理（功能页）](/manufacturer/device-manage)
+- [API 简介](/api/introduction)

@@ -339,3 +339,106 @@ Authorization: Bearer <token>
 | 3004 | 不支持的平台类型 |
 | 3005 | 安装包文件未上传 |
 | 3006 | 版本号格式无效 |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。应用版本管理 API 提供多平台 APP 版本的创建 / 发布 / 更新 / 查询、客户端检查更新与下载统计，基于 REST + JWT。
+
+### 2. 核心特性
+
+- 7 接口：创建 / 列表 / 详情 / 更新状态 / 删除 / 检查更新 / 下载统计
+- 5 平台版本管理（DRAFT → TESTING → PUBLISHED → DEPRECATED）
+- 客户端 check-update 拉最新版
+- 下载量统计
+
+### 3. 系统架构
+
+```
+客户端 ──Bearer JWT──► REST /api/app-versions[/{id}[/status|/stats]|/check-update]
+                          ▼
+              后端（Spring Boot）
+                          ▼
+              MySQL（app_versions / app_downloads）+ 安装包存储 + Nginx
+```
+
+### 4. 系统定位
+
+厂家管理系统的**多平台版本下发接口**，是 [应用发布](/manufacturer/app-publish) / [应用更新](/manufacturer/app-update) 功能页的 API 侧。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST/GET /api/app-versions`、`GET /{id}`、`PUT /{id}/status`、`DELETE /{id}`、`GET /check-update`、`GET /{id}/stats`。
+
+### 6. 技术架构
+
+Spring Boot REST + JWT；版本元数据存 `app_versions`，下载记录存 `app_downloads`；统一响应 `{code, message, data}`；安装包上传见 [应用上传](/manufacturer/app-upload)。
+
+### 7. 系统特点
+
+- 版本状态机防误发；已发布版本不可改包
+- check-update 支持灰度 / 强更字段
+- 单平台单版本唯一安装包
+
+### 8. 应用场景
+
+客户端自动更新对接、CI 发布脚本调用、下载量监控集成。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 手工分发 |
+|---|---|---|
+| 多平台统一 | ✅ 5 平台 | ⚠️ |
+| 客户端 check-update | ✅ | ❌ |
+| 下载统计 | ✅ | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:8080/api`（生产 `https://api.chainlesschain.com/api`）；`Authorization: Bearer <token>`；强更 / 灰度在版本状态更新时配置。
+
+### 11. 性能指标
+
+版本元数据接口毫秒级；check-update 可经 Redis 缓存最新版；上传接口限流 10 次/小时；下载吞吐取决于 Nginx。
+
+### 12. 测试覆盖
+
+版本状态机流转、check-update 路由、下载统计、删除限制（仅草稿）由后端集成测试覆盖；端点契约由 Swagger 描述。
+
+### 13. 安全考虑
+
+- 创建 / 发布 / 删除需 ADMIN 权限 + JWT（见 [权限](/manufacturer/permissions)）
+- 安装包 SHA-256 完整性校验
+- 操作写 `device_logs` 审计
+- 错误码 3001–3006 + HTTP 401/403/429
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| 版本号已存在 | 3001 | 换版本号（SemVer） |
+| 版本不存在 | 3002 | 核对版本 ID |
+| 状态不允许操作 | 3003 | 确认当前状态可流转 |
+| 不支持平台 | 3004 | 用 5 平台之一 |
+| 安装包未上传 | 3005 | 先上传安装包 |
+| 版本号格式无效 | 3006 | 遵循 SemVer |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `app_versions` / `app_downloads` 表 | 版本 / 下载数据 |
+| `/api/app-versions*` | 版本管理 REST API（7 接口） |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文各端点请求示例。客户端检查更新：`GET /api/app-versions/check-update?platform=windows`。
+
+### 17. 相关文档
+
+- [应用发布（功能页）](/manufacturer/app-publish)
+- [应用更新（功能页）](/manufacturer/app-update)
+- [API 简介](/api/introduction)

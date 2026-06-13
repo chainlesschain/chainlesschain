@@ -235,3 +235,103 @@ Content-Disposition: attachment; filename="logs-2024-12.csv"
 | 7002 | 日期范围无效 |
 | 7003 | 导出数据量过大（最大10万条） |
 | 7004 | 不支持的导出格式 |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。日志查询 API 提供操作日志的分页查询 / 详情 / 统计 / 导出，基于 REST + JWT，用于安全审计与问题排查。
+
+### 2. 核心特性
+
+- 4 接口：查询列表 / 详情 / 统计 / 导出
+- 多维过滤（操作类型 / 级别 / 操作人 / 时间 / 关键词）
+- 统计聚合（按级别 / 类型 / 活跃用户 / 每日趋势）
+- 导出 CSV / xlsx（≤10 万条）
+
+### 3. 系统架构
+
+```
+客户端 ──Bearer JWT──► REST /api/logs[/{id}|/stats|/export]
+                          ▼
+              后端（Spring Boot 3.2.1 + MyBatis Plus）
+                          ▼
+              MySQL（device_logs）
+```
+
+### 4. 系统定位
+
+厂家管理系统的**审计日志只读查询接口**，是 [操作日志](/manufacturer/operation-logs) 功能页的 API 侧。
+
+### 5. 核心功能
+
+见正文「接口列表」：`GET /api/logs`（分页）、`GET /api/logs/{id}`（详情）、`GET /api/logs/stats`（统计）、`POST /api/logs/export`（导出）。操作类型枚举见正文「操作类型列表」。
+
+### 6. 技术架构
+
+Spring Boot REST + JWT 鉴权；统一响应 `{code, message, data}`；分页 `page/pageSize`（≤100）；时间 ISO 8601。
+
+### 7. 系统特点
+
+- 日志只读（不可改 / 删）
+- 多维过滤 + 聚合统计
+- 导出限 10 万条 / 次
+
+### 8. 应用场景
+
+第三方审计 / SIEM 系统拉取日志、合规导出归档、运营监控集成。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 直连数据库查日志 |
+|---|---|---|
+| 鉴权 / 权限 | ✅ JWT + RBAC | ❌ |
+| 统一分页 / 过滤 | ✅ | ⚠️ 手写 SQL |
+| 统计聚合 | ✅ 内置 | ⚠️ |
+
+### 10. 配置参考
+
+Base URL：开发 `http://localhost:8080/api`、生产 `https://api.chainlesschain.com/api`；请求头 `Authorization: Bearer <token>`；分页 `pageSize` 最大 100。
+
+### 11. 性能指标
+
+查询接口限流 100 次/分钟；导出 ≤10 万条；分页 + 时间 / 级别索引；超限返回 `429`（含 `X-RateLimit-*` 头）。
+
+### 12. 测试覆盖
+
+端点契约由 Swagger / OpenAPI 描述；过滤 / 分页 / 统计 / 导出限制由后端集成测试覆盖。
+
+### 13. 安全考虑
+
+- 所有接口需 JWT；RBAC（ADMIN 全量、DEALER 仅查看）
+- 导出文件可能含敏感信息——注意外发安全
+- 错误码 7001–7004 + HTTP 401/403/429
+
+### 14. 故障排除
+
+| 现象 | 错误码 / 状态 | 处理 |
+|---|---|---|
+| 日志不存在 | 7001 | 核对日志 ID |
+| 日期范围无效 | 7002 | 用 ISO 8601 且 start ≤ end |
+| 导出失败 | 7003 / 7004 | 缩小范围 ≤10 万条；用 csv/xlsx |
+| 401 / 403 | Token 过期 / 无权限 | 刷新 Token / 确认角色 |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `device_logs` 表 | 日志数据源 |
+| `/api/logs*` | 日志查询 REST API（4 接口） |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文各端点 `curl` / 请求示例。统计：`GET /api/logs/stats?startDate=2024-12-01&endDate=2024-12-31`。
+
+### 17. 相关文档
+
+- [操作日志（功能页）](/manufacturer/operation-logs)
+- [API 简介](/api/introduction)
+- [认证授权](/api/authentication)

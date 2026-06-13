@@ -360,3 +360,107 @@ Content-Type: application/json
 | 8005 | 用户已被锁定 |
 | 8006 | 邮箱格式无效 |
 | 8007 | 权限不足 |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「接口列表」。用户管理 API 提供用户账号的创建 / 查询 / 编辑 / 锁定解锁 / 删除 / 重置密码与角色权限管理，基于 REST + JWT。
+
+### 2. 核心特性
+
+- 8 接口：创建 / 列表 / 详情 / 更新 / 锁定 / 解锁 / 删除 / 重置密码
+- 三角色 RBAC（ADMIN / DEALER / USER）
+- 用户名唯一 + 密码强度校验
+- 锁定即时失效会话
+
+### 3. 系统架构
+
+```
+客户端 ──Bearer JWT──► REST /api/users[/{id}[/lock|/unlock|/reset-password]]
+                          ▼
+              后端（Spring Boot + Spring Security）
+                          ▼
+              MySQL（users：角色 / 状态 / 哈希密码）
+```
+
+### 4. 系统定位
+
+厂家管理系统的**账号与权限接口**，是 [用户管理](/manufacturer/user-management) / [权限管理](/manufacturer/permissions) 功能页的 API 侧。
+
+### 5. 核心功能
+
+见正文「接口列表」：`POST/GET /api/users`、`GET/PUT /{id}`、`POST /{id}/lock`、`POST /{id}/unlock`、`DELETE /{id}`、`POST /{id}/reset-password`。角色见正文「角色说明」。
+
+### 6. 技术架构
+
+Spring Boot + Spring Security；账号存 `users`；密码哈希存储；统一响应 `{code, message, data}`；RBAC 逐请求鉴权。
+
+### 7. 系统特点
+
+- 用户名创建后不可改
+- 删除受保护（最后管理员 / 自己）
+- 重置后临时密码首登强制改
+
+### 8. 应用场景
+
+经销商账号批量开通自动化、HR 系统对接离职锁定、权限审计集成。
+
+### 9. 竞品对比
+
+| 维度 | 本 API | 共享账号 |
+|---|---|---|
+| 一人一号 + 角色 | ✅ | ❌ |
+| 状态管理 | ✅ | ❌ |
+| 审计 | ✅ device_logs | ❌ |
+
+### 10. 配置参考
+
+Base URL：`http://localhost:8080/api`（生产 `https://api.chainlesschain.com/api`）；`Authorization: Bearer <token>`；角色枚举 ADMIN / DEALER / USER。
+
+### 11. 性能指标
+
+用户接口毫秒级；列表分页查询；修改类接口限流 30 次/分钟；登录相关 5 次/分钟。
+
+### 12. 测试覆盖
+
+用户名唯一 / 密码强度、状态流转、删除保护、角色权限矩阵由后端集成测试覆盖；端点契约由 Swagger 描述。
+
+### 13. 安全考虑
+
+- 用户管理需 ADMIN 权限 + JWT
+- 删除需二次确认（功能页）；建议停用而非删除
+- 密码哈希存储；重置后强制改
+- 错误码 8001–8007 + HTTP 401/403/429
+
+### 14. 故障排除
+
+| 现象 | 错误码 | 处理 |
+|---|---|---|
+| 用户名已存在 | 8001 | 换用户名 |
+| 用户不存在 | 8002 | 核对用户 ID |
+| 密码强度不足 | 8003 | 满足复杂度要求 |
+| 不能删管理员 | 8004 | 保留至少一个管理员 |
+| 用户已锁定 | 8005 | 先解锁 |
+| 邮箱格式无效 | 8006 | 校正邮箱 |
+| 权限不足 | 8007 | 需 ADMIN |
+
+### 15. 关键文件
+
+| 资源 | 说明 |
+|---|---|
+| `users` 表 | 账号 / 角色 / 状态 |
+| `/api/users*` | 用户管理 REST API（8 接口） |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+
+### 16. 使用示例
+
+见正文各端点请求示例。重置密码：`POST /api/users/{id}/reset-password`。
+
+### 17. 相关文档
+
+- [用户管理（功能页）](/manufacturer/user-management)
+- [权限管理（功能页）](/manufacturer/permissions)
+- [认证授权](/api/authentication)
