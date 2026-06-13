@@ -768,6 +768,7 @@ export async function startAgentRepl(options = {}) {
       "/help",
       "/ide",
       "/mcp",
+      "/memory",
       "/model",
       "/output-style",
       "/permissions",
@@ -780,6 +781,7 @@ export async function startAgentRepl(options = {}) {
       "/rewind",
       "/search",
       "/session",
+      "/sessions",
       "/stats",
       "/statusline",
       "/sub-agents",
@@ -1036,6 +1038,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
       );
       logger.log(
+        `  ${chalk.cyan("/memory")}     Project-memory files loaded (cc.md hierarchy + rules)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
       );
       logger.log(
@@ -1064,6 +1069,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(`  ${chalk.cyan("/task clear")} Clear current task`);
       logger.log(`  ${chalk.cyan("/session")}    Show current session info`);
+      logger.log(
+        `  ${chalk.cyan("/sessions")}   List recent resumable sessions (/session resume <id> to switch)`,
+      );
       logger.log(
         `  ${chalk.cyan("/reindex")}    Reindex notes for BM25 search`,
       );
@@ -1454,7 +1462,7 @@ export async function startAgentRepl(options = {}) {
     }
 
     // Session info
-    if (trimmed.startsWith("/session")) {
+    if (trimmed === "/session" || trimmed.startsWith("/session ")) {
       const sessionArg = trimmed.slice(8).trim();
       if (sessionArg.startsWith("resume ")) {
         const resumeId = sessionArg.slice(7).trim();
@@ -2128,6 +2136,42 @@ export async function startAgentRepl(options = {}) {
         );
       }
 
+      prompt();
+      return;
+    }
+
+    // `/sessions` — list recent RESUMABLE conversations (read-only; the ids
+    // work with `cc agent --resume <id>`). `/session` shows the current one.
+    if (trimmed === "/sessions" || trimmed === "/sessions ") {
+      try {
+        const { listRecentSessions } = await import("../lib/recent-session.js");
+        const { renderRecentSessions } = await import("./recent-sessions.js");
+        const sessions = listRecentSessions({ db: _hookDb }, { scan: 20 });
+        logger.log(renderRecentSessions(sessions, { currentId: sessionId }));
+      } catch (err) {
+        logger.error(chalk.red(`/sessions failed: ${err.message}`));
+      }
+      prompt();
+      return;
+    }
+
+    // `/memory` — project-memory files auto-loaded into the system prompt
+    // (cc.md hierarchy + imports + path-scoped rules). Distinct from `#` (add
+    // a note) and `cc memory recall` (scoped store).
+    if (trimmed === "/memory" || trimmed === "/memory ") {
+      try {
+        const { loadProjectInstructions } =
+          await import("../lib/project-instructions.js");
+        const { renderMemoryFiles } = await import("./memory-status.js");
+        const loaded = loadProjectInstructions({ cwd: process.cwd() });
+        logger.log(
+          renderMemoryFiles(loaded, {
+            enabled: process.env.CC_PROJECT_MEMORY !== "0",
+          }),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`/memory failed: ${err.message}`));
+      }
       prompt();
       return;
     }

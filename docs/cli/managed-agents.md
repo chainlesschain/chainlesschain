@@ -664,6 +664,14 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   API key 是否设置、IDE 桥接、MCP 服务器、权限规则数、settings.json hooks 汇成一个
   ✓/⚠/· 列表,并标记最常见的"聊天没反应"成因(未配 provider、云 provider 缺 key)。
   比逐个 `/config`·`/ide`·`/mcp`·`/permissions` 更快定位 setup 问题。
+- **交互 REPL `/sessions`**(Claude-Code `/resume` 平价的发现半边) — 列出**可恢复的历史会话**
+  (跨 DB + JSONL 两库, 经 `listRecentSessions`):短 id / 来源 / 消息数 / 时间 / 标题, 标注当前会话。
+  配合既有 `/session resume <id>`(会话内原地切换:重建消息+换 sessionId)= 完整 resume 体验。
+  `/session`(单数)= 当前会话信息;`/sessions`(复数)= 列表。
+- **交互 REPL `/memory`**(Claude-Code 平价) — 列出 agent **自动载入系统提示**的项目记忆文件
+  (cc.md > CLAUDE.md > AGENTS.md 层级 + @import + 命中的 path-scoped rules),每个显
+  scope/路径/字节 + 总计。`CC_PROJECT_MEMORY=0` 时标注"已禁用"。等价 `cc memory files` 的
+  会话内即时版;区别于 `#`(往 cc.md 追加笔记)与 `cc memory recall`(scoped 记忆库)。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
