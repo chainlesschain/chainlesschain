@@ -39,6 +39,7 @@ describe("cc hub command surface", () => {
         "bilibili-adb-sync", // Phase 1c (Bilibili C 路径) — PC + ADB chrome cookies
         "destroy",
         "douyin-adb-sync", // Phase 2a (Douyin C 路径) — PC + ADB <uid>_im.db
+        "douyin-watch-sync", // Douyin 观看历史 C 路径 — ADB video_record.db → history (BROWSE) events
         "event-detail", // §A6 citation chip — opens raw event for "出处" link
         "export", // §A8 v0.2 export staged snapshot rows
         "facet-counts", // Phase 16 Vault Browser — per-category counts

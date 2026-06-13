@@ -11,6 +11,8 @@
 export {
   AGENT_TOOLS,
   AGENT_TOOL_REGISTRY,
+  MAX_SUB_AGENT_DEPTH,
+  reloadSkills,
   getAgentToolDefinitions,
   getAgentToolDescriptors,
   getCachedPython,
