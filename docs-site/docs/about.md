@@ -299,3 +299,78 @@ Made with ❤️ by ChainlessChain Team
 [官网](https://www.chainlesschain.com) | [GitHub](https://github.com/chainlesschain) | [论坛](https://community.chainlesschain.com)
 
 </div>
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。本页为「关于我们」叙事页，技术性章节多以 `见上文` 或跨文档指引方式呈现。
+
+### 1. 概述
+
+见正文「我们的使命」。ChainlessChain 是去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交与交易辅助三大功能，以 U盾 / SIMKey 提供硬件级安全。
+
+### 2. 核心特性
+
+见正文「我们的价值观」与「技术优势」：隐私第一（端到端加密 / 不收集数据）、去中心化（数据存用户设备 / 自管密钥 / P2P）、开源透明（MIT / 可审计）、用户至上。
+
+### 3. 系统架构
+
+「三端 + 双后端 + P2P」分层：桌面（Electron+Vue3）/ CLI / 移动并列前端，Java Spring Boot + Python FastAPI 后端，libp2p + WebRTC + Signal 贯穿。详见 [系统架构](/guide/architecture)。
+
+### 4. 系统定位
+
+**本地优先 + 硬件安全 + 用户掌控数据**——个人第二大脑，也是企业可整包交付的平台（见正文「愿景」）。
+
+### 5. 核心功能
+
+知识库管理（RAG 增强）/ 去中心化社交（DID + P2P）/ 交易辅助（数字资产）。详见 [系统概述](/chainlesschain/overview)。
+
+### 6. 技术架构
+
+Electron 39 + Vue 3 + TypeScript；Spring Boot 3.1.11 + Java 17 + FastAPI；libp2p + WebRTC + Signal Protocol；SQLCipher（AES-256）。详见 [技术栈](/guide/tech-stack)。
+
+### 7. 系统特点
+
+见正文「技术优势」：安全性（硬件密钥 / 多层加密 / FIPS 140-2 / 安全审计）、性能（本地优先 / 向量检索 / 低占用）、创新性（本地 AI / DID / P2P 社交 / 去中心化交易）。
+
+### 8. 应用场景
+
+个人 AI 工作站、小团队去中心化协作、企业桌面分发、移动端协同（见正文「使命 / 愿景」）。
+
+### 9. 竞品对比
+
+详见 [常见问题 — 与其他产品的区别](/faq)（vs Notion / Obsidian / Evernote：去中心化 / 端到端加密 / 本地 AI / 开源 / 社交 / 交易）。
+
+### 10. 配置参考
+
+安装与配置见 [快速开始](/guide/getting-started) 与 [桌面版安装指南](/guide/installation)。
+
+### 11. 性能指标
+
+见正文「技术优势 — 性能」：本地优先架构、高效向量检索、异步处理、低资源占用。具体硬件 / 模型需求见 [常见问题 — 技术相关](/faq)。
+
+### 12. 测试覆盖
+
+项目累计 30,000+ 测试；通过安全审计（见正文「技术优势 — 安全性 / 通过安全审计」）。
+
+### 13. 安全考虑
+
+见正文「价值观 — 隐私第一」与「技术优势 — 安全性」：硬件级密钥（U盾/SIMKey）、AES-256 多层加密、端到端加密、FIPS 140-2、开源可审计、无后门 / 无主密钥（见 [常见问题 — 安全相关](/faq)）。
+
+### 14. 故障排除
+
+详见 [常见问题 — 故障排查](/faq)（无法启动 / U盾识别 / 同步失败 / AI 无结果）。
+
+### 15. 关键文件
+
+模块路径与数据目录见 [系统架构](/guide/architecture)；配置目录 `.chainlesschain/`。
+
+### 16. 使用示例
+
+上手流程见 [快速开始](/guide/getting-started)；桌面版安装见 [安装指南](/guide/installation)。
+
+### 17. 相关文档
+
+- [系统概述](/chainlesschain/overview)
+- [系统架构](/guide/architecture)
+- [常见问题](/faq)
+- [快速开始](/guide/getting-started)
