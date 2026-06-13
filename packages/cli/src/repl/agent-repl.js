@@ -762,6 +762,7 @@ export async function startAgentRepl(options = {}) {
       "/context",
       "/cost",
       "/cowork",
+      "/doctor",
       "/exit",
       "/export",
       "/help",
@@ -1030,6 +1031,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/config")}     Effective config (provider/model, keys masked)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
@@ -2153,6 +2157,30 @@ export async function startAgentRepl(options = {}) {
       } catch (err) {
         logger.error(chalk.red(`/config failed: ${err.message}`));
       }
+      prompt();
+      return;
+    }
+
+    // `/doctor` — consolidated session-health readout (Claude-Code parity):
+    // provider/key/IDE/MCP/permissions/hooks in one pass-or-warn view.
+    if (trimmed === "/doctor" || trimmed === "/doctor ") {
+      let config = {};
+      try {
+        config = (await import("../lib/config-manager.js")).loadConfig() || {};
+      } catch (_err) {
+        // config read is best-effort; checks degrade gracefully
+      }
+      const { buildDoctorChecks, renderDoctor } =
+        await import("./doctor-status.js");
+      const { ideToolNames } = await import("./ide-status.js");
+      const checks = buildDoctorChecks({
+        config,
+        ideTools: ideToolNames(_adhocMcp),
+        mcpServers: _adhocMcp?.connected,
+        permissionRules: _permissionRules,
+        settingsHooks: _settingsHooks,
+      });
+      logger.log(renderDoctor(checks));
       prompt();
       return;
     }

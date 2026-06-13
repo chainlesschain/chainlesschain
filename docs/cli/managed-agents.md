@@ -660,6 +660,10 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   provider/model/baseUrl、key 是否设置(只显 `set (…后4位)`/`not set`,绝不打印明文)、
   web-search 后端、config 文件路径,以及本会话**实际生效**的 provider/model(经 `--provider`/
   settings 覆盖时标 `(overrides config)`)。读 `~/.chainlesschain/config.json`。
+- **交互 REPL `/doctor`**(Claude-Code 平价) — 一屏**会话健康检查**:把 LLM provider/model、
+  API key 是否设置、IDE 桥接、MCP 服务器、权限规则数、settings.json hooks 汇成一个
+  ✓/⚠/· 列表,并标记最常见的"聊天没反应"成因(未配 provider、云 provider 缺 key)。
+  比逐个 `/config`·`/ide`·`/mcp`·`/permissions` 更快定位 setup 问题。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
