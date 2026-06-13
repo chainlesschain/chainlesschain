@@ -312,3 +312,87 @@ chmod +x start.sh
 ---
 
 **功能完整 · 易于使用 · 安全可靠**
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文开篇与「系统定位」。U盾 / SIMKey 厂家管理系统是面向硬件设备厂家 / 经销商 / 服务商的一体化平台，提供设备全生命周期、多平台 APP 版本、数据备份恢复、用户权限、统计监控与操作审计。
+
+### 2. 核心特性
+
+见正文「核心功能」与「系统特点」：6 大功能模块、快速部署、安全可靠（JWT + RBAC + 审计 + 加密）、界面友好（Element Plus + ECharts）、易于扩展（RESTful + 模块化 + MIT）。
+
+### 3. 系统架构
+
+见正文「技术架构」：
+
+```
+前端 Vue3 + Element Plus + Vite5 + Pinia + ECharts
+   │  REST（35+ 接口）
+后端 Spring Boot 3.2.1 + Spring Security/JWT + MyBatis Plus
+   │
+MySQL 8.0（8 张核心表）+ Redis 7.0      部署：Docker Compose + Nginx
+```
+
+### 4. 系统定位
+
+见正文「系统定位」。面向 U盾 / SIMKey 硬件设备的生产厂家、经销商、服务提供商与企业 IT 部门。
+
+### 5. 核心功能
+
+见正文「核心功能」6 模块：设备全生命周期 / 多平台 APP 版本 / 数据备份恢复 / 用户权限 / 统计监控 / 操作日志审计。
+
+### 6. 技术架构
+
+见正文「技术架构」。后端 Spring Boot 3.2.1 + MySQL 8.0 + Redis 7.0 + MyBatis Plus + Spring Security + JWT + Swagger；前端 Vue 3 + Element Plus + Vite 5 + Pinia + Axios + ECharts 5。
+
+### 7. 系统特点
+
+见正文「系统特点」：快速部署 / 安全可靠 / 界面友好 / 易于扩展。
+
+### 8. 应用场景
+
+见正文「应用场景」：设备厂家 / 经销商 / 服务提供商 / 企业 IT 部门。
+
+### 9. 竞品对比
+
+见正文「核心优势」：vs 手工管理（效率 / 准确性 / 可追溯 / 统计 / 扩展性）、vs 自建系统（开发成本 / 部署时间 / 维护 / 完整性 / 文档）。
+
+### 10. 配置参考
+
+默认前端 `http://localhost`、API 文档 `http://localhost:8080/api/swagger-ui.html`、账号 `admin / admin123456`；自定义配置见 [安装部署](/manufacturer/installation)。
+
+### 11. 性能指标
+
+一键部署 5 分钟可用；列表分页 + 索引查询 + Redis 缓存；统计图表 ECharts 渲染。35+ REST 接口（设备 10 / APP 8 / 备份 6 / 用户 7 / 日志 4）。
+
+### 12. 测试覆盖
+
+后端各模块 Controller / Service 由单测 + 集成测试覆盖；API 经 Swagger 契约描述。各模块详细测试见对应子文档附录。
+
+### 13. 安全考虑
+
+见正文「系统特点 — 安全可靠」：JWT 认证、RBAC 细粒度权限、完整操作审计、敏感数据加密（备份 AES-256-GCM）。生产部署改默认密码 / `JWT_SECRET`。
+
+### 14. 故障排除
+
+| 症状 | 可能原因 | 处理 |
+|---|---|---|
+| 服务起不来 | 端口冲突 / Docker 未运行 | 见 [安装部署](/manufacturer/installation) 排查 |
+| 登录失败 | 默认账号 / 数据库未初始化 | `admin / admin123456`，确认 initdb |
+| 图表空白 | 无数据 | 先注册设备 / 产生操作 |
+
+### 15. 关键文件
+
+见正文「数据库设计」（8 表：devices / users / device_logs / key_backups / activation_codes / app_versions / app_downloads / password_recovery）与「API 接口」（35+ 接口）。部署文件见 [安装部署](/manufacturer/installation)。
+
+### 16. 使用示例
+
+见正文「快速开始 — 5 分钟部署」（`start.bat` / `start.sh`）与「访问系统」。
+
+### 17. 相关文档
+
+见正文「下一步」：[快速开始](/manufacturer/quick-start) · [安装部署](/manufacturer/installation) · [设备管理](/manufacturer/device-manage) · [APP 管理](/manufacturer/app-publish)。

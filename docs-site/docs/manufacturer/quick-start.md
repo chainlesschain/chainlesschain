@@ -705,3 +705,109 @@ tar -xzf uploads_backup_20241202.tar.gz
 **祝您使用愉快! 🎉**
 
 有任何问题欢迎随时联系我们！
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「5 分钟快速部署」「系统页面导航」。快速开始指南带你 5 分钟一键部署并走通 Dashboard / 设备管理 / 注册 / APP 版本 / 上传 / 备份六大页面。
+
+### 2. 核心特性
+
+- 一键部署（`start.bat` / `start.sh`），30 秒后可访问
+- 六大功能页导航导览
+- 单个 + 批量设备注册操作步骤
+- APP 上传 4 步 + 备份 / 恢复操作步骤
+
+### 3. 系统架构
+
+```
+start.bat / start.sh ──► Docker Compose（MySQL + Redis + 后端 + 前端）
+   ▼
+前端 http://localhost  ·  API http://localhost:8080  ·  admin / admin123456
+```
+
+### 4. 系统定位
+
+厂家管理系统的**新手上手入口**，是 [概述](/manufacturer/overview) 与 [安装部署](/manufacturer/installation) 之间的实操速通。
+
+### 5. 核心功能
+
+| 页面 | 速通内容 |
+|---|---|
+| Dashboard | 核心指标 / 统计图表 |
+| 设备管理 | 列表 / 筛选 / 操作 |
+| 注册设备 | 单个 / 批量 |
+| APP 版本管理 | 版本列表 / 状态 |
+| 上传 APP | 4 步向导 |
+| 备份管理 | 创建 / 恢复 |
+
+### 6. 技术架构
+
+部署同 [安装部署](/manufacturer/installation)：Docker Compose 四容器（Spring Boot 3.2.1 + MySQL 8.0 + Redis 7.0 + Vue3/Nginx）。
+
+### 7. 系统特点
+
+- 5 分钟从零到可用
+- 默认管理员开箱即用
+- 页面导航循序渐进
+
+### 8. 应用场景
+
+首次部署验证、演示环境、新成员上手培训。
+
+### 9. 竞品对比
+
+| 维度 | 本系统 | 自建上手 |
+|---|---|---|
+| 上手时间 | ✅ 5 分钟 | ⚠️ 数天 |
+| 引导文档 | ✅ 分页导览 | ⚠️ |
+| 默认数据 | ✅ 开箱即用 | ❌ |
+
+### 10. 配置参考
+
+默认端口 / 账号见正文「等待 30 秒后访问」；自定义配置见 [安装部署](/manufacturer/installation) 的 `docker-compose.yml`。
+
+### 11. 性能指标
+
+一键启动到可访问约 5 分钟（含镜像拉取）；首次访问前等待 ~30 秒服务就绪。
+
+### 12. 测试覆盖
+
+上手路径（部署 → 登录 → 注册 → 上传 → 备份）可作部署后冒烟用例；各功能详细测试见对应模块文档。
+
+### 13. 安全考虑
+
+首次登录后**立即修改默认密码 `admin123456`**；生产部署改 `JWT_SECRET` 与数据库密码（见 [安装部署](/manufacturer/installation) 附录「13. 安全考虑」）。
+
+### 14. 故障排除
+
+| 症状 | 可能原因 | 处理 |
+|---|---|---|
+| 访问空白 | 服务未就绪 | 再等 30 秒 / 看容器日志 |
+| 登录失败 | 用了非默认账号 | `admin / admin123456` |
+| 端口冲突 | 端口被占 | 见 [安装部署](/manufacturer/installation) 改端口 |
+
+### 15. 关键文件
+
+| 文件 | 说明 |
+|---|---|
+| `start.bat` / `start.sh` | 一键启动 |
+| `frontend/src/views/` | 前端页面（业务流程） |
+| `backend/.../controller/` | 后端 API 实现 |
+
+### 16. 使用示例
+
+```bash
+cd manufacturer-system && ./start.sh   # Linux/Mac（Windows 用 start.bat）
+# 浏览器打开 http://localhost，用 admin / admin123456 登录
+```
+
+### 17. 相关文档
+
+- [厂家管理系统概述](/manufacturer/overview)
+- [安装部署](/manufacturer/installation)
+- [设备管理](/manufacturer/device-manage)
+- [APP 发布](/manufacturer/app-publish)
