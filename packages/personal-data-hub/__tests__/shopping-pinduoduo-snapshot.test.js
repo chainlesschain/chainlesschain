@@ -10,7 +10,10 @@ const {
   PinduoduoAdapter,
   SNAPSHOT_SCHEMA_VERSION,
   VALID_SNAPSHOT_KINDS,
+  orderToRecord,
+  extractOrders,
 } = require("../lib/adapters/shopping-pinduoduo");
+const { assertAdapter } = require("../lib/adapter-spec");
 const { validateBatch } = require("../lib/batch");
 
 // §2.4c v0.2 — Pinduoduo snapshot-only adapter. Pinduoduo's web API requires
@@ -274,6 +277,13 @@ describe("PinduoduoAdapter snapshot mode", () => {
     expect(raws[0].capturedAt).toBe(ts);
   });
 
+  it("advertises both snapshot and cookie-api capabilities", () => {
+    const a = new PinduoduoAdapter();
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:cookie-api");
+    expect(assertAdapter(a).ok).toBe(true);
+  });
+
   it("snapshotEventToRecord handles snake_case goods_name/goods_price fallback", async () => {
     // Pinduoduo's internal field names use snake_case (goods_name, goods_price,
     // goods_count); the normalizer falls back to those if camelCase is absent.
@@ -298,5 +308,177 @@ describe("PinduoduoAdapter snapshot mode", () => {
     for await (const r of a.sync({ inputPath: p })) raws.push(r);
     const batch = a.normalize(raws[0]);
     expect(JSON.stringify(batch)).toContain("纸巾");
+  });
+});
+
+// §2.4c v0.3 — Pinduoduo cookie-api mode. The actual HTTP + anti_token signing
+// is injected (fetchFn / signProvider) so the adapter stays pure-Node.
+describe("PinduoduoAdapter cookie-api mode", () => {
+  it("authenticate(cookie) ok when uid + cookies present", async () => {
+    const a = new PinduoduoAdapter({ account: { uid: "u-1", cookies: "PDDAccessToken=ok" } });
+    const res = await a.authenticate();
+    expect(res.ok).toBe(true);
+    expect(res.mode).toBe("cookie");
+    expect(res.account).toBe("u-1");
+  });
+
+  it("authenticate(cookie) requires account.uid", async () => {
+    const a = new PinduoduoAdapter({ account: { cookies: "PDDAccessToken=ok" } });
+    const res = await a.authenticate();
+    expect(res.ok).toBe(false);
+    expect(res.reason).toBe("NO_ACCOUNT_UID");
+  });
+
+  it("sync yields normalized records from fetchFn fixture (cents → 元)", async () => {
+    const fetchFn = async () => ({
+      orders: [
+        {
+          order_sn: "PDD-COOKIE-1",
+          mall_name: "拼多多旗舰店",
+          order_status_prompt: "已发货",
+          order_amount: 6200, // 分 → 62.00 元
+          order_time: 1700000000, // sec
+          pay_time: 1700000010,
+          receive_name: "李四",
+          address: "广州市天河区...",
+          goods_list: [
+            { goods_name: "纸巾100抽", goods_number: 5, goods_price: 990, sku_id: "sk1" },
+          ],
+        },
+      ],
+    });
+    const a = new PinduoduoAdapter({
+      account: { uid: "u-1", cookies: "PDDAccessToken=ok" },
+      fetchFn,
+    });
+    const raws = [];
+    for await (const r of a.sync({ sinceWatermark: 0 })) raws.push(r);
+    expect(raws.length).toBe(1);
+    expect(raws[0].originalId).toBe("PDD-COOKIE-1");
+    expect(raws[0].payload.record.totalAmount.value).toBe(62);
+    expect(raws[0].payload.record.items[0].unitPrice).toBe(9.9);
+    expect(raws[0].payload.record.status).toBe("shipped");
+
+    const batch = a.normalize(raws[0]);
+    expect(validateBatch(batch).valid).toBe(true);
+    expect(JSON.stringify(batch)).toContain("纸巾100抽");
+    expect(JSON.stringify(batch)).toContain("李四");
+  });
+
+  it("invokes signProvider and passes antiToken to fetchFn", async () => {
+    let seenAntiToken = null;
+    const signProvider = async () => "ANTI-TOKEN-XYZ";
+    const fetchFn = async (opts) => {
+      seenAntiToken = opts.antiToken;
+      return { orders: [] };
+    };
+    const a = new PinduoduoAdapter({
+      account: { uid: "u-1", cookies: "PDDAccessToken=ok" },
+      fetchFn,
+      signProvider,
+    });
+    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    expect(seenAntiToken).toBe("ANTI-TOKEN-XYZ");
+  });
+
+  it("passes antiToken: null when no signProvider configured", async () => {
+    let seen = "unset";
+    const fetchFn = async (opts) => {
+      seen = opts.antiToken;
+      return { orders: [] };
+    };
+    const a = new PinduoduoAdapter({
+      account: { uid: "u-1", cookies: "PDDAccessToken=ok" },
+      fetchFn,
+    });
+    for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    expect(seen).toBe(null);
+  });
+
+  it("paginates and stops at sinceWatermark", async () => {
+    const pages = {
+      1: [
+        { order_sn: "p1-a", mall_name: "m", order_time: 1700000000, order_amount: 100,
+          goods_list: [] },
+        { order_sn: "p1-b", mall_name: "m", order_time: 1699000000, order_amount: 100,
+          goods_list: [] },
+      ],
+      2: [
+        { order_sn: "p2-a", mall_name: "m", order_time: 1698000000, order_amount: 100,
+          goods_list: [] },
+      ],
+    };
+    const seenPages = [];
+    const fetchFn = async (opts) => {
+      seenPages.push(opts.query.pageNumber);
+      return { orders: pages[opts.query.pageNumber] || [] };
+    };
+    const a = new PinduoduoAdapter({
+      account: { uid: "u-1", cookies: "PDDAccessToken=ok" },
+      fetchFn,
+    });
+    const raws = [];
+    // watermark between 1699000000s and 1700000000s → stops on the older order
+    for await (const r of a.sync({ sinceWatermark: 1699500000 * 1000, pageSize: 2 })) {
+      raws.push(r);
+    }
+    expect(raws.map((r) => r.originalId)).toEqual(["p1-a"]);
+    // stopped inside page 1 — never fetched page 2
+    expect(seenPages).toEqual([1]);
+  });
+
+  it("respects per-kind include opt-out in cookie mode", async () => {
+    let called = false;
+    const fetchFn = async () => {
+      called = true;
+      return { orders: [] };
+    };
+    const a = new PinduoduoAdapter({
+      account: { uid: "u-1", cookies: "PDDAccessToken=ok" },
+      fetchFn,
+    });
+    const raws = [];
+    for await (const r of a.sync({ include: { order: false } })) raws.push(r);
+    expect(raws.length).toBe(0);
+    expect(called).toBe(false);
+  });
+
+  it("orderToRecord maps snake_case PDD fields with cents conversion", () => {
+    const rec = orderToRecord({
+      order_sn: "PDD-9",
+      mall_name: "店铺B",
+      order_status: 4, // numeric → 已完成 → delivered
+      order_amount: 1650,
+      order_time: 1700000000,
+      goods_list: [{ goods_name: "牙刷", goods_number: 2, goods_price: 825 }],
+    });
+    expect(rec.orderId).toBe("PDD-9");
+    expect(rec.merchantName).toBe("店铺B");
+    expect(rec.status).toBe("delivered");
+    expect(rec.totalAmount.value).toBe(16.5);
+    expect(rec.items[0].unitPrice).toBe(8.25);
+    expect(rec.extras.capturedBy).toBe("cookie-api");
+  });
+
+  it("extractOrders tolerates nested response shapes", () => {
+    expect(extractOrders({ orders: [1] })).toEqual([1]);
+    expect(extractOrders({ order_list: [2] })).toEqual([2]);
+    expect(extractOrders({ list: [3] })).toEqual([3]);
+    expect(extractOrders({ result: { order_list: [4] } })).toEqual([4]);
+    expect(extractOrders({ result: { list: [5] } })).toEqual([5]);
+    expect(extractOrders({})).toEqual([]);
+    expect(extractOrders(null)).toEqual([]);
+  });
+
+  it("default fetchFn throws a legible error when cookie mode used without injection", async () => {
+    const a = new PinduoduoAdapter({ account: { uid: "u-1", cookies: "PDDAccessToken=ok" } });
+    let threw = null;
+    try {
+      for await (const _r of a.sync({ sinceWatermark: 0 })) { /* drain */ }
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeTruthy();
+    expect(String(threw.message)).toMatch(/no fetchFn configured/);
   });
 });
