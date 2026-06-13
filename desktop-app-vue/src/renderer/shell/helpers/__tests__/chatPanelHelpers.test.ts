@@ -10,6 +10,8 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  ACTIVE_FILE_CONTENT_CAP,
+  buildActiveFileContext,
   buildExportMarkdown,
   buildExportText,
   chatErrorMessage,
@@ -171,6 +173,41 @@ describe("buildExportMarkdown", () => {
     ).not.toThrow();
     const out = buildExportMarkdown([{ role: "tool", content: "r" }]);
     expect(out).toContain("## tool");
+  });
+});
+
+describe("buildActiveFileContext", () => {
+  it("wraps file content in an <active-file> block with the path", () => {
+    const out = buildActiveFileContext({
+      file_name: "app.ts",
+      file_path: "src/app.ts",
+      content: "export const x = 1;",
+    });
+    expect(out).toBe(
+      '<active-file path="src/app.ts">\nexport const x = 1;\n</active-file>',
+    );
+  });
+
+  it("falls back to file_name when path is absent, and escapes quotes", () => {
+    expect(
+      buildActiveFileContext({ file_name: 'a"b.ts', content: "z" }),
+    ).toContain('path="a&quot;b.ts"');
+  });
+
+  it("returns null when there is no file or no content", () => {
+    expect(buildActiveFileContext(null)).toBeNull();
+    expect(buildActiveFileContext(undefined)).toBeNull();
+    expect(buildActiveFileContext({ file_path: "x.ts" })).toBeNull();
+    expect(
+      buildActiveFileContext({ file_path: "x.ts", content: "   " }),
+    ).toBeNull();
+  });
+
+  it("caps oversized content with a truncation marker", () => {
+    const big = "y".repeat(ACTIVE_FILE_CONTENT_CAP + 500);
+    const out = buildActiveFileContext({ file_path: "big.ts", content: big })!;
+    expect(out).toContain("…(truncated)");
+    expect(out.length).toBeLessThan(big.length);
   });
 });
 

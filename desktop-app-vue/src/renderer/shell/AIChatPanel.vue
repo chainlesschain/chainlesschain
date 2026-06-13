@@ -311,6 +311,7 @@ import {
 import MarkdownIt from "markdown-it";
 import { useLLMStore } from "../stores/llm";
 import { useConversationStore } from "../stores/conversation";
+import { useProjectStore } from "../stores/project";
 import type { ConversationMessage } from "../stores/conversation";
 import ConversationHistory from "../components/ConversationHistory.vue";
 import VirtualMessageList from "../components/projects/VirtualMessageList.vue";
@@ -320,6 +321,7 @@ import {
   createIntentConfirmationMessage,
 } from "../utils/messageTypes";
 import {
+  buildActiveFileContext,
   buildExportMarkdown,
   chatErrorMessage,
   extractRagContext,
@@ -339,6 +341,7 @@ const emit = defineEmits<{
 const router = useRouter();
 const llmStore = useLLMStore();
 const conversationStore = useConversationStore();
+const projectStore = useProjectStore();
 
 // MarkdownIt configured with html:false → auto-escapes HTML to prevent XSS
 const md = new MarkdownIt({
@@ -719,6 +722,30 @@ async function dispatchToLLM(text: string): Promise<void> {
     // RAG failure does not break the send path
   }
 
+  // Active-file context (Claude-Code-style "the agent sees what you're looking
+  // at"): when the user picks "file" context mode and a project file is open,
+  // inline its content into the LLM prompt only — ephemeral, the stored user
+  // message stays the original text. Surfaced as a reference so the inclusion
+  // is visible. No-op when no file is open; never breaks the send path.
+  if (contextMode.value === "file") {
+    try {
+      const file = projectStore.currentFile;
+      const block = file ? buildActiveFileContext(file) : null;
+      if (block && file) {
+        prompt = `${block}\n\n${prompt}`;
+        retrievedDocs = [
+          {
+            id: file.file_path || file.file_name || "active-file",
+            title: `📄 ${file.file_name || file.file_path || "current file"}`,
+          },
+          ...retrievedDocs,
+        ];
+      }
+    } catch {
+      // active-file context is best-effort
+    }
+  }
+
   try {
     if (streamEnabled) {
       isStreaming.value = true;
@@ -839,12 +866,11 @@ function onExport(): void {
     antMessage.warning("没有可导出的对话");
     return;
   }
-  const meta = conv.metadata ?? {};
   const md = buildExportMarkdown(currentMessages.value, {
     title: conv.title,
-    model: meta.model,
-    provider: meta.provider,
-    totalTokens: meta.totalTokens,
+    model: conv.metadata?.model,
+    provider: conv.metadata?.provider,
+    totalTokens: conv.metadata?.totalTokens,
     exportedAt: new Date().toISOString(),
   });
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });

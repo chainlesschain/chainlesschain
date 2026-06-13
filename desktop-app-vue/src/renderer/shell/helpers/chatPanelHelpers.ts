@@ -90,6 +90,38 @@ export function buildExportText(
   return `${header}${body}`;
 }
 
+export interface ActiveFileContext {
+  file_name?: string;
+  file_path?: string;
+  content?: string;
+}
+
+/** Hard cap on inlined active-file content (chars) — keep the prompt bounded. */
+export const ACTIVE_FILE_CONTENT_CAP = 12000;
+
+/**
+ * Build an `<active-file>` context block for the LLM prompt from the currently
+ * open project file — the desktop analogue of Claude Code's "the agent sees
+ * what you're looking at" (IDE selection sharing). Returns null when there is
+ * no file or it has no content, so the caller injects nothing. Content is
+ * capped and the path attribute is escaped. Pure; the caller decides where to
+ * splice it (ephemeral — into the LLM-bound prompt, not the stored message).
+ */
+export function buildActiveFileContext(
+  file: ActiveFileContext | null | undefined,
+): string | null {
+  if (!file || typeof file.content !== "string" || file.content.trim() === "") {
+    return null;
+  }
+  const label = file.file_path || file.file_name || "current file";
+  const safeLabel = label.replace(/"/g, "&quot;");
+  const content =
+    file.content.length > ACTIVE_FILE_CONTENT_CAP
+      ? `${file.content.slice(0, ACTIVE_FILE_CONTENT_CAP)}\n…(truncated)`
+      : file.content;
+  return `<active-file path="${safeLabel}">\n${content}\n</active-file>`;
+}
+
 export interface ChatExportMeta {
   title?: string;
   model?: string;
