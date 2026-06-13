@@ -19,6 +19,16 @@
 
 ---
 
+## 2026-06-13 发布 — **v5.0.3.108：个人数据中台拼多多采集补全（snapshot-only → cookie-api，anti_token signProvider seam）+ Android cc bundle v20260613（pdh 0.4.6 / cli 0.162.48）**
+
+> 拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **拼多多 `shopping-pinduoduo` cookie-api（v0.2.0）**：`_syncViaCookie` 经注入 `fetchFn` 拉 `transaction_list`；anti_token 签名经 `signProvider` seam 注入（Android 端 WebView JS VM 产出）；`orderToRecord` 映射字段（snake/camel 双兼容）+ 分→元 + 状态映射；`extractOrders` 容错嵌套；分页 watermark 提前停。capabilities 升 `sync:cookie-api`；+13 测试，PDH 全套 2094 通过 / 9 跳过。
+- **发版链**：pdh 0.4.5 → 0.4.6 + CLI 0.162.47 → 0.162.48 已发 npm；Android cc bundle `internal-binaries-android-v20260613`（pdh 0.4.6）+ `USR_VERSION 24 → 25` + `binariesVersion 20260612 → 20260613`。
+- **版本面**：productVersion v5.0.3.107 → v5.0.3.108 / desktop 5.0.3-alpha.108 / Android versionCode 503108 · USR_VERSION 24 → 25 / iOS CFBundleVersion 108。
+
+---
+
 ## 2026-06-12 发布 — **v5.0.3.107：个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612（cli 0.162.46 / pdh 0.4.5）**
 
 > 本版收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。

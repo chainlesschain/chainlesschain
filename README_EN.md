@@ -19,6 +19,16 @@
 
 ---
 
+## 2026-06-13 Release — **v5.0.3.108: Personal Data Hub Pinduoduo collection completed (snapshot-only → cookie-api, anti_token signProvider seam) + Android cc bundle v20260613 (pdh 0.4.6 / cli 0.162.48)**
+
+> Pinduoduo was the last shopping adapter still user-export snapshot-only with no automated path; this release adds active cookie-api collection, reaching parity with taobao/jd/meituan. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **Pinduoduo `shopping-pinduoduo` cookie-api (v0.2.0)**: `_syncViaCookie` fetches `transaction_list` via an injected `fetchFn`; anti_token signing is injected via a `signProvider` seam (produced by the in-APK WebView JS VM on Android); `orderToRecord` maps fields (snake/camel tolerant) + cents→yuan + status mapping; `extractOrders` tolerates nested shapes; pagination stops early on watermark. capabilities add `sync:cookie-api`; +13 tests, full PDH suite 2094 pass / 9 skipped.
+- **Release chain**: pdh 0.4.5 → 0.4.6 + CLI 0.162.47 → 0.162.48 published to npm; Android cc bundle `internal-binaries-android-v20260613` (pdh 0.4.6) + `USR_VERSION 24 → 25` + `binariesVersion 20260612 → 20260613`.
+- **Version surfaces**: productVersion v5.0.3.107 → v5.0.3.108 / desktop 5.0.3-alpha.108 / Android versionCode 503108 · USR_VERSION 24 → 25 / iOS CFBundleVersion 108.
+
+---
+
 ## 2026-06-12 Release — **v5.0.3.107: Personal Data Hub FAMILY-23 family-guard collectors v0.2 live fetcher fully closed (Zuoyebang / Huawei Learning / Alipay) + Android cc bundle v20260612 (cli 0.162.46 / pdh 0.4.5)**
 
 > This release closes out the last 3 snapshot-only placeholder collectors in the Personal Data Hub "family-guard telemetry" layer, giving them active live-collection capability. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.108] - 2026-06-13 — feat: 个人数据中台拼多多采集补全（snapshot-only → cookie-api）+ Android cc bundle v20260613（pdh 0.4.6 / cli 0.162.48）
+
+> 拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与 taobao/jd/meituan 平价，并随 Android in-APK cc bundle v20260613 下发。
+
+#### Feat — 拼多多 `shopping-pinduoduo` cookie-api 采集（v0.2.0）
+
+- 新增 `_syncViaCookie`：经注入的 `fetchFn` 拉取 `mobile.yangkeduo.com/.../transaction_list`（Node 保持纯解析/编排，与 taobao/jd/meituan 同 seam）。
+- **anti_token 签名经 `signProvider` seam 注入**（纯 Node 扛不住拼多多签名轮换；Android 端由 in-APK WebView JS VM 产出），传给 fetchFn 作 `antiToken`，无 provider 时为 null（best-effort）。
+- `orderToRecord` 映射 transaction_list 字段（snake/camel 双兼容）+ 分→元换算 + 数字/文本状态映射；`extractOrders` 容错嵌套返回；分页命中 watermark 提前停（比兄弟少一次无用翻页）。
+- capabilities 升 `sync:snapshot` + `sync:cookie-api`；version 0.1.0 → 0.2.0。+13 cookie-api 测试，PDH 全套 128 文件 2094 tests 通过 / 9 跳过（native-only）。
+
+#### Chore — 发版链
+
+- `@chainlesschain/personal-data-hub` 0.4.5 → 0.4.6 已发 npm；`chainlesschain` CLI 0.162.47 → 0.162.48 已发 npm（pin pdh 0.4.6，补全局 npm 平价——immutable 的 0.162.47 仍 pin 0.4.5）。
+- Android in-APK cc bundle 刷新：`internal-binaries-android-v20260613`（cc-cli.tgz 重打，pack CLI HEAD + 从 registry 装 pdh 0.4.6）+ `USR_VERSION 24 → 25` + `binariesVersion 20260612 → 20260613`。
+- **版本面**：productVersion v5.0.3.107 → v5.0.3.108 / desktop 5.0.3-alpha.108 / Android versionCode 503108 · USR_VERSION 24 → 25 / iOS CFBundleVersion 108。
+
 ## [v5.0.3.107] - 2026-06-12 — feat: 个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）+ Android cc bundle v20260612（cli 0.162.46 / pdh 0.4.5）
 
 > 本版收口个人数据中台「家庭守护 telemetry」最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力，并把更新随 Android in-APK cc bundle 下发；同时一并随产物发布前期已单独发 npm 的 cc CLI 0.162.41 Claude-Code 平价工作。
