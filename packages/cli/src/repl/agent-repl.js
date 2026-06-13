@@ -758,6 +758,7 @@ export async function startAgentRepl(options = {}) {
       "/cd",
       "/clear",
       "/compact",
+      "/config",
       "/context",
       "/cost",
       "/cowork",
@@ -1026,6 +1027,9 @@ export async function startAgentRepl(options = {}) {
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/config")}     Effective config (provider/model, keys masked)`,
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
@@ -2128,6 +2132,27 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/mcp" || trimmed === "/mcp ") {
       const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
       logger.log(renderMcpSurface(mcpClient));
+      prompt();
+      return;
+    }
+
+    // `/config` — effective configuration (secret-safe): the LLM provider/model
+    // in effect, whether keys are set, web-search backend, config path.
+    if (trimmed === "/config" || trimmed === "/config ") {
+      try {
+        const { loadConfig } = await import("../lib/config-manager.js");
+        const { getConfigPath } = await import("../lib/paths.js");
+        const { renderConfigSummary } = await import("./config-summary.js");
+        logger.log(
+          renderConfigSummary(loadConfig(), {
+            path: getConfigPath(),
+            activeProvider: provider,
+            activeModel: _curModel || model,
+          }),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`/config failed: ${err.message}`));
+      }
       prompt();
       return;
     }

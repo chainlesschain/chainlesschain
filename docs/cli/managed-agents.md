@@ -656,6 +656,10 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   多模态图片标 `[image]`)。区别于 `cc session export`(读持久化 JSONL)与 `cc export`(知识库导出):
   `/export` 抓的是此刻 context 里的内容,持久化与否都能导。省略路径时落
   `./chainlesschain-export-<时间戳>.md`。
+- **交互 REPL `/config`**(Claude-Code 平价) — 显示**生效配置**(密钥安全):当前 LLM
+  provider/model/baseUrl、key 是否设置(只显 `set (…后4位)`/`not set`,绝不打印明文)、
+  web-search 后端、config 文件路径,以及本会话**实际生效**的 provider/model(经 `--provider`/
+  settings 覆盖时标 `(overrides config)`)。读 `~/.chainlesschain/config.json`。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
