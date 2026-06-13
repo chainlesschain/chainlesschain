@@ -954,8 +954,16 @@ export async function startAgentRepl(options = {}) {
         const { runBangCommand } = await import("../lib/repl-bang-memorize.js");
         const res = runBangCommand(trimmed, { cwd: process.cwd() });
         logger.log(chalk.gray(`$ ${res.cmd}`));
-        if (res.stdout) process.stdout.write(res.stdout.endsWith("\n") ? res.stdout : `${res.stdout}\n`);
-        if (res.stderr) process.stderr.write(chalk.red(res.stderr.endsWith("\n") ? res.stderr : `${res.stderr}\n`));
+        if (res.stdout)
+          process.stdout.write(
+            res.stdout.endsWith("\n") ? res.stdout : `${res.stdout}\n`,
+          );
+        if (res.stderr)
+          process.stderr.write(
+            chalk.red(
+              res.stderr.endsWith("\n") ? res.stderr : `${res.stderr}\n`,
+            ),
+          );
         if (res.error) logger.error(`shell error: ${res.error.message}`);
         logger.log(chalk.gray(`(exit ${res.exitCode})`));
         messages.push(res.contextMessage);
@@ -970,14 +978,17 @@ export async function startAgentRepl(options = {}) {
     // cc.md (auto-loaded next session) and keep it active in this one.
     if (trimmed.startsWith("#") && trimmed.slice(1).trim()) {
       try {
-        const { appendMemoryNote } = await import("../lib/repl-bang-memorize.js");
+        const { appendMemoryNote } =
+          await import("../lib/repl-bang-memorize.js");
         const res = appendMemoryNote(trimmed, { cwd: process.cwd() });
         messages.push({
           role: "system",
           content: `<memory-note source="${res.target}">${res.note}</memory-note>`,
         });
         logger.log(
-          chalk.green(`✔ remembered in ${res.target}${res.created ? " (created)" : ""}`),
+          chalk.green(
+            `✔ remembered in ${res.target}${res.created ? " (created)" : ""}`,
+          ),
         );
       } catch (err) {
         logger.error(`# memorize failed: ${err.message}`);
@@ -1282,14 +1293,11 @@ export async function startAgentRepl(options = {}) {
 
     if (trimmed === "/rewind" || trimmed.startsWith("/rewind ")) {
       try {
-        const { listUserTurns, rewindToTurn, renderTurnList } = await import(
-          "../lib/repl-rewind.js"
-        );
+        const { listUserTurns, rewindToTurn, renderTurnList } =
+          await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
         if (!arg) {
-          logger.log(
-            chalk.bold("\nRewind — pick a user turn (newest first):"),
-          );
+          logger.log(chalk.bold("\nRewind — pick a user turn (newest first):"));
           logger.log(renderTurnList(listUserTurns(messages)));
           logger.log(
             chalk.gray(
@@ -1324,9 +1332,8 @@ export async function startAgentRepl(options = {}) {
       // window. Reuses the same categorizer + estimator as the archived view.
       try {
         const { categorizeContext } = await import("../commands/context.js");
-        const { estimateTokens } = await import(
-          "../harness/prompt-compressor.js"
-        );
+        const { estimateTokens } =
+          await import("../harness/prompt-compressor.js");
         const { buckets, counts, total } = categorizeContext(
           messages,
           estimateTokens,
@@ -1473,7 +1480,9 @@ export async function startAgentRepl(options = {}) {
         const { reloadSkills } = await import("../runtime/agent-core.js");
         const n = reloadSkills();
         logger.log(
-          chalk.green(`✔ skills reloaded — ${n} available (6 layers re-scanned)`),
+          chalk.green(
+            `✔ skills reloaded — ${n} available (6 layers re-scanned)`,
+          ),
         );
       } catch (err) {
         logger.error(`/reload-skills failed: ${err.message}`);
@@ -2221,9 +2230,17 @@ export async function startAgentRepl(options = {}) {
     // Ephemeral: persistence stores effectivePrompt, not this snapshot.
     // Best-effort; CC_IDE_CONTEXT=0 disables.
     try {
-      const { buildIdePromptContext } = await import("../lib/ide-context.js");
+      const { buildIdePromptContext, expandIdeMentions } =
+        await import("../lib/ide-context.js");
       const ideCtx = await buildIdePromptContext(_adhocMcp);
       if (ideCtx) userContent += `\n\n${ideCtx}`;
+      // Explicit @selection / @diagnostics mentions (Claude-Code parity);
+      // scan the user's original prompt, append the expansion ephemerally.
+      const mentioned = await expandIdeMentions(effectivePrompt, _adhocMcp);
+      for (const w of mentioned.warnings) {
+        logger.info(chalk.yellow(`[@ide] ${w}`));
+      }
+      if (mentioned.block) userContent += `\n\n${mentioned.block}`;
     } catch (_err) {
       // optional polish — never fail the turn over it
     }
@@ -2453,9 +2470,7 @@ export async function startAgentRepl(options = {}) {
       // Esc interrupt: an aborted turn is normal flow, not an error — the
       // partial conversation stays usable and queued lines still drain.
       if (err?.name === "AbortError" || /abort/i.test(err?.message || "")) {
-        logger.log(
-          chalk.yellow("⎋ turn interrupted — partial progress kept"),
-        );
+        logger.log(chalk.yellow("⎋ turn interrupted — partial progress kept"));
         prompt();
         return;
       }

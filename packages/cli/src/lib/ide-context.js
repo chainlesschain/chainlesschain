@@ -313,6 +313,174 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
   return null; // anything else is not a verdict — fail safe to fallback
 }
 
+// ─── Explicit @selection / @diagnostics at-mentions (Claude-Code parity) ────
+//
+// The ambient `<ide-context>` block above shares the selection on every turn.
+// These at-mentions are the *explicit* counterpart: when the user writes
+// `@selection` or `@diagnostics` in their prompt, expand it against the
+// connected IDE — the same surface Claude Code exposes as an at-mention.
+// `@diagnostics` adds value the ambient block never had: the WHOLE workspace's
+// current problems on demand (ambient diagnostics are only post-edit, one file).
+//
+// Deliberately NOT gated on CC_IDE_CONTEXT: that kill-switch silences ambient
+// sharing, but an explicit `@mention` is a direct user request and should still
+// work. It still requires the IDE tools to be connected; without them the
+// mention is left in the prose and a warning is surfaced.
+
+/** Workspace-wide diagnostics can be large; cap what we inline. */
+const WORKSPACE_DIAG_CAP = 50;
+
+// `@selection` / `@diagnostics` preceded by start / whitespace / opening
+// bracket-quote (so `foo@selection` and email-like text never match), each
+// taken as a whole word.
+const IDE_MENTION_RE = /(^|[\s("'`[{])@(selection|diagnostics)\b/gi;
+
+/**
+ * Unique IDE pseudo-mentions in the text, in first-seen order. Returns a
+ * subset of `["selection", "diagnostics"]`.
+ */
+export function findIdeMentions(text) {
+  const src = typeof text === "string" ? text : "";
+  const seen = new Set();
+  const out = [];
+  let m;
+  IDE_MENTION_RE.lastIndex = 0;
+  while ((m = IDE_MENTION_RE.exec(src)) !== null) {
+    const kind = m[2].toLowerCase();
+    if (!seen.has(kind)) {
+      seen.add(kind);
+      out.push(kind);
+    }
+  }
+  return out;
+}
+
+/** Call one IDE MCP tool with args, returning its parsed JSON or null. */
+async function callIdeToolJson(mcp, name, args, timeoutMs) {
+  const exec = mcp?.externalToolExecutors?.[name];
+  if (!exec || exec.kind !== "mcp" || !mcp.mcpClient?.callTool) return null;
+  let p;
+  try {
+    p = mcp.mcpClient.callTool(exec.serverName, exec.toolName, args || {});
+  } catch {
+    return null;
+  }
+  return withTimeout(p.then(parseToolResultJson), timeoutMs);
+}
+
+/** Render a getSelection result as a tagged `@selection` block, or null. */
+export function formatSelectionMention(sel) {
+  if (!sel || typeof sel.text !== "string" || sel.text.length === 0) {
+    return null;
+  }
+  const start = sel.selection?.start?.line;
+  const end = sel.selection?.end?.line;
+  const range =
+    Number.isInteger(start) && Number.isInteger(end)
+      ? `:${start + 1}-${end + 1}` // editor lines are 0-based
+      : "";
+  const text =
+    sel.text.length > SELECTION_TEXT_CAP
+      ? sel.text.slice(0, SELECTION_TEXT_CAP) + "\n...(selection truncated)"
+      : sel.text;
+  return (
+    '<ide-selection note="referenced via @selection">\n' +
+    `${sel.file || "the active editor"}${range}:\n` +
+    text +
+    "\n</ide-selection>"
+  );
+}
+
+/** Render a getDiagnostics result as a tagged `@diagnostics` block, or null. */
+export function formatDiagnosticsMention(data) {
+  const all = Array.isArray(data?.diagnostics) ? data.diagnostics : null;
+  if (!all) return null;
+  const relevant = all.filter(
+    (d) => d && DIAG_SEVERITIES.has(String(d.severity).toLowerCase()),
+  );
+  if (relevant.length === 0) return null;
+  const shown = relevant.slice(0, WORKSPACE_DIAG_CAP).map((d) => {
+    const loc = Number.isInteger(d.line) ? `:${d.line + 1}` : "";
+    const src = d.source ? ` (${d.source})` : "";
+    return `  [${d.severity}] ${d.file || ""}${loc} ${d.message || ""}${src}`.trimEnd();
+  });
+  const more = relevant.length - shown.length;
+  return (
+    '<ide-diagnostics note="referenced via @diagnostics — current workspace problems">\n' +
+    shown.join("\n") +
+    (more > 0 ? `\n  (+${more} more)` : "") +
+    "\n</ide-diagnostics>"
+  );
+}
+
+/**
+ * Expand `@selection` / `@diagnostics` mentions found in `text` against the
+ * connected IDE. Returns
+ *   { block: string|null, expanded: string[], warnings: string[] }
+ * where `block` is the concatenated context block(s) to APPEND to the user
+ * turn (it never includes the original prose — the caller already has that),
+ * `expanded` lists the mentions that produced content, and `warnings` explains
+ * any that did not (no IDE, empty selection, no problems). Never throws.
+ */
+export async function expandIdeMentions(text, mcp, opts = {}) {
+  const out = { block: null, expanded: [], warnings: [] };
+  const src = typeof text === "string" ? text : "";
+  if (!src.includes("@")) return out;
+  const mentions = findIdeMentions(src);
+  if (mentions.length === 0) return out;
+  const timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
+  const blocks = [];
+  for (const kind of mentions) {
+    try {
+      if (kind === "selection") {
+        if (!hasIdeContextTools(mcp)) {
+          out.warnings.push(
+            "@selection — no IDE bridge connected (left as-is)",
+          );
+          continue;
+        }
+        const sel = await callIdeToolJson(
+          mcp,
+          "mcp__ide__getSelection",
+          {},
+          timeoutMs,
+        );
+        const b = formatSelectionMention(sel);
+        if (b) {
+          blocks.push(b);
+          out.expanded.push("selection");
+        } else {
+          out.warnings.push("@selection — no active selection (left as-is)");
+        }
+      } else if (kind === "diagnostics") {
+        if (!hasIdeDiagnosticsTool(mcp)) {
+          out.warnings.push(
+            "@diagnostics — no IDE bridge connected (left as-is)",
+          );
+          continue;
+        }
+        const data = await callIdeToolJson(
+          mcp,
+          "mcp__ide__getDiagnostics",
+          {},
+          timeoutMs,
+        );
+        const b = formatDiagnosticsMention(data);
+        if (b) {
+          blocks.push(b);
+          out.expanded.push("diagnostics");
+        } else {
+          out.warnings.push("@diagnostics — no problems reported (left as-is)");
+        }
+      }
+    } catch {
+      // best-effort: a single failed mention never blocks the turn
+    }
+  }
+  if (blocks.length > 0) out.block = blocks.join("\n\n");
+  return out;
+}
+
 /**
  * Render pulled diagnostics as a compact feedback string for the tool result.
  * Returns null when there is nothing to report.

@@ -105,13 +105,15 @@ export function parseInputEvent(line) {
   // Vision input (chat-panel image paste): {"type":"user","text":…,
   // "images":["/abs/file.png", …]} — file paths, resolved at turn build via
   // the same image-input pipeline as `cc agent --image`.
-  const rawImages = obj && typeof obj === "object" ? obj.images || msg.images : null;
+  const rawImages =
+    obj && typeof obj === "object" ? obj.images || msg.images : null;
   const images = Array.isArray(rawImages)
     ? rawImages.filter((p) => typeof p === "string" && p.trim()).slice(0, 8)
     : [];
   if (typeof content !== "string" || !content.trim()) {
     // An image-only turn is valid — give the model something to act on.
-    if (images.length) return { text: "Please look at the attached image(s).", images };
+    if (images.length)
+      return { text: "Please look at the attached image(s).", images };
     return null;
   }
   return images.length ? { text: content, images } : { text: content };
@@ -729,11 +731,17 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // IDE bridge is connected — the user's selection moves between prompts.
     // Best-effort; CC_IDE_CONTEXT=0 disables.
     try {
-      const { buildIdePromptContext } = await import("../lib/ide-context.js");
+      const { buildIdePromptContext, expandIdeMentions } =
+        await import("../lib/ide-context.js");
       const ideCtx = await (
         deps.buildIdePromptContext || buildIdePromptContext
       )(mcp);
       if (ideCtx) userContent += `\n\n${ideCtx}`;
+      // Explicit @selection / @diagnostics mentions (Claude-Code parity);
+      // scan the original user event text, append the expansion ephemerally.
+      const mentioned = await expandIdeMentions(parsed.text, mcp);
+      for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
+      if (mentioned.block) userContent += `\n\n${mentioned.block}`;
     } catch {
       // optional polish — never fail the turn over it
     }
@@ -746,7 +754,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       try {
         const { resolveImages, buildUserContent } =
           await import("../lib/image-input.js");
-        turnContent = buildUserContent(userContent, resolveImages(parsed.images));
+        turnContent = buildUserContent(
+          userContent,
+          resolveImages(parsed.images),
+        );
       } catch (err) {
         emit({
           type: "result",

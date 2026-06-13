@@ -552,14 +552,23 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // session replays the prompt, not a stale editor snapshot. Best-effort with
   // a short timeout; CC_IDE_CONTEXT=0 disables.
   try {
-    const { buildIdePromptContext, appendTextToContent } =
+    const { buildIdePromptContext, appendTextToContent, expandIdeMentions } =
       await import("../lib/ide-context.js");
+    const last = messages[messages.length - 1];
     const ideCtx = await (deps.buildIdePromptContext || buildIdePromptContext)(
       mcp,
     );
     if (ideCtx) {
-      const last = messages[messages.length - 1];
       last.content = appendTextToContent(last.content, ideCtx);
+    }
+    // Explicit @selection / @diagnostics mentions in the user's prompt
+    // (Claude-Code parity). Scan the ORIGINAL prompt so injected file-ref
+    // blocks can't spoof a mention; append the expansion to the in-flight
+    // message only (ephemeral, like the ambient block above).
+    const mentioned = await expandIdeMentions(prompt, mcp);
+    for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
+    if (mentioned.block) {
+      last.content = appendTextToContent(last.content, mentioned.block);
     }
   } catch {
     // IDE context is optional polish — never fail the run over it.
