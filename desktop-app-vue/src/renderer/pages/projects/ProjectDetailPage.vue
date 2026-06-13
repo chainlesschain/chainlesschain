@@ -512,6 +512,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { useProjectStore } from "@/stores/project";
+import { useActiveContextStore } from "@/stores/activeContext";
 import {
   FolderOpenOutlined,
   FolderOutlined,
@@ -606,6 +607,7 @@ import { useProjectGit } from "@/composables/useProjectGit";
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const activeContextStore = useActiveContextStore();
 
 // 响应式状态
 const loading = ref(true);
@@ -705,6 +707,26 @@ const projectFiles = computed(() => {
   return newRef;
 });
 const currentFile = computed(() => projectStore.currentFile);
+
+// Publish the open file as the "currently visible document" while this page is
+// mounted, so the AI chat's "file" context mode reflects what's on screen now.
+// Cleared on unmount (below) so navigating away stops sharing a stale file.
+watch(
+  currentFile,
+  (file) => {
+    if (file && typeof file.content === "string") {
+      activeContextStore.setActiveDocument({
+        source: "project-file",
+        name: file.file_name,
+        path: file.file_path,
+        content: file.content,
+      });
+    } else {
+      activeContextStore.clearActiveDocument();
+    }
+  },
+  { immediate: true },
+);
 
 // 文件类型信息（使用LRU缓存优化）
 const fileTypeInfo = computed(() => {
@@ -1868,6 +1890,8 @@ onMounted(async () => {
 onUnmounted(async () => {
   // 清理快捷键
   cleanupShortcuts();
+  // Stop sharing this page's file as the chat's "currently visible" document.
+  activeContextStore.clearActiveDocument();
   // gitStatusInterval cleanup is owned by useProjectGit's onUnmounted
 
   // 停止项目统计收集

@@ -311,7 +311,7 @@ import {
 import MarkdownIt from "markdown-it";
 import { useLLMStore } from "../stores/llm";
 import { useConversationStore } from "../stores/conversation";
-import { useProjectStore } from "../stores/project";
+import { useActiveContextStore } from "../stores/activeContext";
 import type { ConversationMessage } from "../stores/conversation";
 import ConversationHistory from "../components/ConversationHistory.vue";
 import VirtualMessageList from "../components/projects/VirtualMessageList.vue";
@@ -341,7 +341,7 @@ const emit = defineEmits<{
 const router = useRouter();
 const llmStore = useLLMStore();
 const conversationStore = useConversationStore();
-const projectStore = useProjectStore();
+const activeContextStore = useActiveContextStore();
 
 // MarkdownIt configured with html:false → auto-escapes HTML to prevent XSS
 const md = new MarkdownIt({
@@ -729,14 +729,20 @@ async function dispatchToLLM(text: string): Promise<void> {
   // is visible. No-op when no file is open; never breaks the send path.
   if (contextMode.value === "file") {
     try {
-      const file = projectStore.currentFile;
-      const block = file ? buildActiveFileContext(file) : null;
-      if (block && file) {
+      const doc = activeContextStore.document;
+      const block = doc
+        ? buildActiveFileContext({
+            file_name: doc.name,
+            file_path: doc.path,
+            content: doc.content,
+          })
+        : null;
+      if (block && doc) {
         prompt = `${block}\n\n${prompt}`;
         retrievedDocs = [
           {
-            id: file.file_path || file.file_name || "active-file",
-            title: `📄 ${file.file_name || file.file_path || "current file"}`,
+            id: doc.path || doc.name || "active-file",
+            title: `📄 ${doc.name || doc.path || "current file"}`,
           },
           ...retrievedDocs,
         ];
