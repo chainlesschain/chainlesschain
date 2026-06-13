@@ -285,6 +285,25 @@ function activate(context) {
         chatProvider.onLlmConfigured?.();
       },
     ),
+    // Insert File Reference (Cmd/Ctrl+Alt+K — Claude Code parity): take the
+    // active editor's workspace-relative path and drop it into the chat input
+    // as an `@<path>` reference (the CLI expands it server-side).
+    vscode.commands.registerCommand(
+      "chainlesschain.chat.insertReference",
+      () => {
+        const { formatInsertReference } = require("./chat/insert-reference.js");
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showInformationMessage(
+            "ChainlessChain: open a file in the editor first, then insert it as an @reference.",
+          );
+          return;
+        }
+        const rel = vscode.workspace.asRelativePath(editor.document.uri, false);
+        const ref = formatInsertReference(rel);
+        if (ref) chatProvider.insertReference(ref);
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {
       const {
         buildMemoryFilesCommand,

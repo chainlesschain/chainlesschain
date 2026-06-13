@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -52,6 +52,23 @@
         "command": "chainlesschain.llm.configure",
         "title": "ChainlessChain: Configure LLM (配置大模型)",
         "icon": "$(gear)"
+      },
+      {
+        "command": "chainlesschain.chat.insertReference",
+        "title": "ChainlessChain: Insert File Reference into Chat (@file)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "chainlesschainIdeChat.focus",
+        "key": "ctrl+escape",
+        "mac": "cmd+escape"
+      },
+      {
+        "command": "chainlesschain.chat.insertReference",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus"
       }
     ],
     "viewsContainers": {
@@ -77,6 +94,12 @@
       ]
     },
     "menus": {
+      "editor/context": [
+        {
+          "command": "chainlesschain.chat.insertReference",
+          "group": "navigation@9"
+        }
+      ],
       "view/title": [
         {
           "command": "chainlesschain.llm.configure",

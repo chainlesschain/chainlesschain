@@ -47,6 +47,23 @@
     return baseHits.concat(pathHits, subHits).slice(0, max);
   }
 
+  // IDE pseudo-mentions the CLI expands server-side (lib/ide-context.js):
+  // @selection = the active editor selection, @diagnostics = the whole
+  // workspace's current problems. Offered as completions so the feature is
+  // discoverable, not just typeable from memory.
+  var IDE_MENTIONS = ["selection", "diagnostics"];
+
+  /**
+   * IDE keyword mentions whose name starts with the typed prefix (empty prefix
+   * matches all). Returned ahead of file paths so "@s" → selection ranks first.
+   */
+  function ideMentionMatches(prefix) {
+    var q = String(prefix == null ? "" : prefix).toLowerCase();
+    return IDE_MENTIONS.filter(function (m) {
+      return m.indexOf(q) === 0;
+    });
+  }
+
   /**
    * Splice an accepted suggestion into the input text.
    * Returns { text, caret } with a trailing space after the mention.
@@ -64,11 +81,13 @@
       detectAtToken: detectAtToken,
       filterFiles: filterFiles,
       applyMention: applyMention,
+      ideMentionMatches: ideMentionMatches,
     };
   }
   global.ccAtMention = {
     detectAtToken: detectAtToken,
     filterFiles: filterFiles,
     applyMention: applyMention,
+    ideMentionMatches: ideMentionMatches,
   };
 })(typeof window !== "undefined" ? window : globalThis);

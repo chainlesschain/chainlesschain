@@ -443,6 +443,19 @@ function buildChatHtml({ cspSource, nonce }) {
         renderSug();
         break;
       }
+      case "insertText": {
+        // "Insert File Reference" (Cmd/Ctrl+Alt+K): splice the @ref at the
+        // caret and focus the input so the user can keep typing.
+        const t = String(m.text || "");
+        if (!t) break;
+        const a = input.selectionStart != null ? input.selectionStart : input.value.length;
+        const b = input.selectionEnd != null ? input.selectionEnd : a;
+        input.value = input.value.slice(0, a) + t + input.value.slice(b);
+        const caret = a + t.length;
+        input.setSelectionRange(caret, caret);
+        input.focus();
+        break;
+      }
       case "reset":
         log.textContent = "";
         streamEl = null;
@@ -454,6 +467,8 @@ function buildChatHtml({ cspSource, nonce }) {
         break;
     }
   });
+  // Signal the host the script is live so it can flush a queued insertText.
+  vscode.postMessage({ type: "ready" });
 </script>
 </body>
 </html>`;

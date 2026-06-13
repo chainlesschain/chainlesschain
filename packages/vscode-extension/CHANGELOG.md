@@ -2,6 +2,23 @@
 
 All notable changes to this extension are documented here.
 
+## [0.18.0] — 2026-06-13
+
+- **Keyboard shortcuts (Claude Code parity)**: `Ctrl/Cmd+Esc` focuses the chat
+  panel from anywhere, and `Ctrl/Cmd+Alt+K` (with the editor focused) inserts
+  the active file as an `@<path>` reference into the chat input — the CLI then
+  expands it server-side. New command **ChainlessChain: Insert File Reference
+  into Chat (@file)** is also available from the command palette. The webview
+  now posts a `ready` signal so a reference inserted before the panel finishes
+  loading is queued and flushed (no first-open race).
+- **`@selection` / `@diagnostics` completions in the chat input**: typing `@`
+  now suggests the two IDE pseudo-mentions (ranked ahead of files) — the CLI
+  expands `@selection` to the active selection and `@diagnostics` to the whole
+  workspace's problems — so the feature is discoverable, not just typeable.
+- **Editor right-click → Insert File Reference into Chat**: the
+  insert-reference command is now also on the editor context menu (mouse parity
+  with the keybinding).
+
 ## [0.17.1] — 2026-06-12
 
 - Docs only: the marketplace README now covers everything shipped today —

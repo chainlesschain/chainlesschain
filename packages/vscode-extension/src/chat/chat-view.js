@@ -30,6 +30,35 @@ class ChatViewProvider {
     this.view = null;
     this.session = null;
     this.turnState = createTurnState();
+    // "Insert File Reference" (Cmd/Ctrl+Alt+K): text queued here until the
+    // webview signals it is live, then flushed into the input.
+    this._pendingInsert = "";
+    this._webviewReady = false;
+  }
+
+  /**
+   * Insert an `@<file>` reference into the chat input. Reveals the panel first;
+   * if the webview is not live yet (lazy), the text is queued and flushed when
+   * the webview posts "ready" (avoids a postMessage race on first open).
+   */
+  insertReference(text) {
+    if (!text) return;
+    this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+    if (this._webviewReady && this.view) {
+      this._post({ kind: "insertText", text });
+    } else {
+      this._pendingInsert += text;
+    }
+  }
+
+  /** Webview script is live — flush any reference queued before it loaded. */
+  _onWebviewReady() {
+    this._webviewReady = true;
+    if (this._pendingInsert) {
+      const t = this._pendingInsert;
+      this._pendingInsert = "";
+      this._post({ kind: "insertText", text: t });
+    }
   }
 
   _storedSessionId() {
@@ -219,6 +248,7 @@ class ChatViewProvider {
 
   resolveWebviewView(view) {
     this.view = view;
+    this._webviewReady = false;
     view.webview.options = { enableScripts: true };
     view.webview.html = buildChatHtml({
       cspSource: view.webview.cspSource,
@@ -269,10 +299,17 @@ class ChatViewProvider {
           this.session?.sendEvent({ type: "plan", action });
         }
       } else if (m.type === "files") {
-        // @-mention completion: reply with ranked workspace-relative paths.
+        // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
+        // first, then ranked workspace-relative paths.
         const prefix = String(m.prefix || "");
+        const { ideMentionMatches } = require("./at-mention");
         this._listWorkspaceFiles(prefix).then(
-          (items) => this._post({ kind: "files", prefix, items }),
+          (items) =>
+            this._post({
+              kind: "files",
+              prefix,
+              items: ideMentionMatches(prefix).concat(items),
+            }),
           () => {},
         );
       } else if (m.type === "pickSession") {
@@ -290,6 +327,8 @@ class ChatViewProvider {
         this.session?.sendEvent({ type: "interrupt" });
       } else if (m.type === "stop") {
         this.session?.stop();
+      } else if (m.type === "ready") {
+        this._onWebviewReady();
       } else if (m.type === "new") {
         // New chat: drop the child AND the stored session id; the next
         // message spawns a fresh conversation. Webview clears on "reset".
@@ -303,6 +342,7 @@ class ChatViewProvider {
     view.onDidDispose(() => {
       this.session?.stop();
       this.view = null;
+      this._webviewReady = false;
     });
   }
 

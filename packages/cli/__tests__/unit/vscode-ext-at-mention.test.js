@@ -14,6 +14,7 @@ import {
   detectAtToken,
   filterFiles,
   applyMention,
+  ideMentionMatches,
 } from "../../../vscode-extension/src/chat/at-mention.js";
 import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
@@ -99,6 +100,24 @@ describe("applyMention", () => {
   });
 });
 
+describe("ideMentionMatches", () => {
+  it("offers both IDE pseudo-mentions for an empty prefix", () => {
+    expect(ideMentionMatches("")).toEqual(["selection", "diagnostics"]);
+    expect(ideMentionMatches(null)).toEqual(["selection", "diagnostics"]);
+  });
+
+  it("filters by prefix, case-insensitively", () => {
+    expect(ideMentionMatches("s")).toEqual(["selection"]);
+    expect(ideMentionMatches("DIAG")).toEqual(["diagnostics"]);
+    expect(ideMentionMatches("sel")).toEqual(["selection"]);
+  });
+
+  it("returns nothing when the prefix can't start either keyword", () => {
+    expect(ideMentionMatches("src")).toEqual([]);
+    expect(ideMentionMatches("x")).toEqual([]);
+  });
+});
+
 describe("ChatViewProvider._listWorkspaceFiles", () => {
   function makeProvider() {
     const findFiles = vi.fn(async () => [
@@ -155,7 +174,9 @@ describe("chat HTML embeds the completion (parse gate)", () => {
     const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
     expect(html).toContain('id="suggest"');
     expect(html).toContain("ccAtMention");
-    const scripts = [...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g)];
+    const scripts = [
+      ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
+    ];
     expect(scripts.length).toBeGreaterThanOrEqual(3); // md-lite + at-mention + panel
     for (const [, body] of scripts) {
       // Throws on a syntax error — the 0.10.1 dead-panel regression gate.
