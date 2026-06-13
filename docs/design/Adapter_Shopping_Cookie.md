@@ -464,3 +464,75 @@ KG ingestor 后处理：
 | iOS | ❌ | v3 |
 
 **Phase 7 完工标志**：三家在真实 Redmi 24115RA8EC 上跑通 30 天 sync，KG 内可查"上个月在淘宝 + 京东 + 美团总消费 = X" 数字与 Alipay 总流水**一致 ± 5%**。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 7 Shopping Cookie adapter 经 cookie + Web API 采集淘宝 / 京东 / 美团订单，是 Personal Data Hub「消费图谱」主力 adapter，紧随 Phase 6 AlipayBill。
+
+### 2. 核心特性
+
+三家电商（taobao / jingdong / meituan）cookie + Web API；结构化订单（SKU / 数量 / 收货地址 / 物流 / 评价）；与 AlipayBill 经 merchantOrderNumber 跨源 link。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` §12 Phase 7；复用 cookie + WebView 鉴权范式（同 `Adapter_AIChat_History.md`）。
+
+### 4. 系统定位
+
+Personal Data Hub 的**电商消费数据采集 adapter**（Phase 7）。
+
+### 5. 核心功能
+
+三家订单抓取 → normalize → LocalVault → KG 跨源 link。详见正文各节。
+
+### 6. 技术架构
+
+cookie + WebView 桌面登录 + Web API；与 Phase 6 Alipay / Phase 9 Travel 共享 cookie 基类。
+
+### 7. 系统特点
+
+三家鉴权范式同构（一次工程多家收益）；v0.1 桌面 Electron 专属（见正文「12. 兼容性矩阵」）。
+
+### 8. 应用场景
+
+「买了什么」消费明细归集，与 Alipay「钱去哪了」互补，构建完整消费故事。
+
+### 9. 竞品对比
+
+见正文「12. 兼容性矩阵」（桌面 / Web shell / Android / iOS 支持差异）。
+
+### 10. 配置参考
+
+各家 cookie / 账号配置见正文 adapter 配置节。
+
+### 11. 性能指标
+
+见正文「完工标志」：30 天 sync 后三家合计消费与 Alipay 总流水一致 ± 5%。
+
+### 12. 测试覆盖
+
+真机 Redmi 24115RA8EC 30 天 sync 验收（见正文「完工标志」）。
+
+### 13. 安全考虑
+
+cookie 高敏感；WebView 登录桌面专属；落盘经 LocalVault 加密。
+
+### 14. 故障排除
+
+cookie 失效 / Web API 端点漂移 → 重新登录 / 更新 api-client 常量。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/`（shopping cookie adapters）。
+
+### 16. 使用示例
+
+见正文 adapter 调用与跨源 link 示例。
+
+### 17. 相关文档
+
+见正文头部关联：`Personal_Data_Hub_Architecture.md` §12、`Adapter_Alipay_Bill.md`（Phase 6 前置）、`Adapter_AIChat_History.md`（同范式）、`Adapter_Travel_LBS.md`（姐妹 Phase 9）。

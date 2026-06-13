@@ -273,3 +273,75 @@ const adapter = new WhatsAppAdapter({
   keyProvider: null,                              // Phase 13.7b 实施后改用 keyProvider
 });
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 范围与归类」。Phase 13 集中处理纯本机 / 移动端加密 SQLite 类数据源（7 个 adapter，全部移植自 sjqz Python parser），与走 Web API 的 Phase 5/6/7/9 采集链路完全不同。
+
+### 2. 核心特性
+
+7 adapter：Bilibili / Weibo / Douyin / Xiaohongshu / QQ / Telegram / WhatsApp；本机加密 SQLite device-pull 模式。
+
+### 3. 系统架构
+
+见正文与父文档 `Personal_Data_Hub_Architecture.md` §12 phase plan、`Personal_Data_Hub_sjqz_Comparison.md` §3 移植清单。
+
+### 4. 系统定位
+
+Personal Data Hub 的**本机加密消息 / 社交 SQLite 采集层**（Phase 13）。
+
+### 5. 核心功能
+
+各平台加密 DB 解密 → parse → normalize → LocalVault。详见正文子 phase 表。
+
+### 6. 技术架构
+
+加密 SQLite（含 SQLCipher / crypt14 等）+ keyProvider；实现包 `@chainlesschain/personal-data-hub/adapters/messaging-*`。
+
+### 7. 系统特点
+
+device-pull（非 Web API），需外部 / keyProvider 提供解密密钥；与 cookie 模式互补。
+
+### 8. 应用场景
+
+本机即时通讯 / 社交记录归集进个人知识图谱。
+
+### 9. 竞品对比
+
+见正文 Phase 13 与 Phase 5/6/7/9（Web API）链路差异说明。
+
+### 10. 配置参考
+
+各 adapter 的 `dbPath` / `keyProvider` / `account` 配置见正文示例。
+
+### 11. 性能指标
+
+解密 + 解析为本机 I/O；随消息库大小线性增长。
+
+### 12. 测试覆盖
+
+各 adapter 移植自 sjqz parser，带对应单测（见 `Personal_Data_Hub_sjqz_Comparison.md`）。
+
+### 13. 安全考虑
+
+涉及加密消息库与解密密钥；密钥不落盘，仅本机使用；输出经 LocalVault 加密。
+
+### 14. 故障排除
+
+crypt14 / SQLCipher 解密失败 → 检查 keyProvider / 外部解密产物（见正文 WhatsApp 示例）。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/messaging-*`（含 `messaging-whatsapp`）。
+
+### 16. 使用示例
+
+见正文 `WhatsAppAdapter` 等调用示例。
+
+### 17. 相关文档
+
+见正文头部关联：`Personal_Data_Hub_Architecture.md` §12、`Personal_Data_Hub_sjqz_Comparison.md` §3、`Adapter_Social_Cookie.md`（cookie 模式互补）。

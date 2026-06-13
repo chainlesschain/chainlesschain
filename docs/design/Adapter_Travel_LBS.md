@@ -488,3 +488,75 @@ function maybeMerge(p1, p2) {
 | iOS | ❌ | v3 |
 
 **Phase 9 完工标志**：四家在真实 Redmi 24115RA8EC 上跑通 90 天 sync，KG 内可查 "今年和妈妈一起去过 N 个城市，其中 X 次坐火车"，答案与用户记忆 / 12306 历史 / 携程历史**全部一致**。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 9 Travel & LBS adapter 经 cookie 采集高德 / 百度地图 / 携程 / 12306 的足迹与行程，是 Personal Data Hub「足迹 + 行程图谱」主力 adapter，紧随 Phase 8 EntityResolver。
+
+### 2. 核心特性
+
+四家（autonavi / baidu / ctrip / 12306）；足迹 + 搜索 + 行程 + 同行人；强时空结构化；强依赖 EntityResolver 做 Place 消歧。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` §12 Phase 9；与 Phase 7 Shopping 共享 cookie + WebView 基类；隐式依赖 Phase 8 EntityResolver。
+
+### 4. 系统定位
+
+Personal Data Hub 的**出行 / LBS 足迹采集 adapter**（Phase 9）。
+
+### 5. 核心功能
+
+四家行程 / 足迹抓取 → Place 消歧 → normalize → KG。详见正文各节。
+
+### 6. 技术架构
+
+cookie + WebView 桌面登录；Place 实体经 EntityResolver 消歧；v0.1 全走桌面 cookie。
+
+### 7. 系统特点
+
+Place 实体爆炸（年 1k+ 地点）依赖消歧；行程强时空 + 同行人，KG 价值密度高。
+
+### 8. 应用场景
+
+与 Phase 7 电商 / Phase 6 Alipay 形成「在哪里花了钱」完整故事；行程 / 同行人查询。
+
+### 9. 竞品对比
+
+见正文「12. 兼容性矩阵」（桌面 / Web shell / Android / iOS 支持差异）。
+
+### 10. 配置参考
+
+各家 cookie / 账号配置见正文 adapter 配置节。
+
+### 11. 性能指标
+
+见正文「完工标志」：90 天 sync 后行程 / 同行人查询与 12306 / 携程历史全部一致。
+
+### 12. 测试覆盖
+
+真机 Redmi 24115RA8EC 90 天 sync 验收（见正文「完工标志」）。
+
+### 13. 安全考虑
+
+cookie + 位置数据高敏感；落盘经 LocalVault 加密；仅本机使用。
+
+### 14. 故障排除
+
+cookie 失效 / Place 消歧错误 → 重新登录 / 校正 EntityResolver 别名。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/`（travel cookie adapters）。
+
+### 16. 使用示例
+
+见正文 adapter 调用示例。
+
+### 17. 相关文档
+
+见正文头部关联：`Personal_Data_Hub_Architecture.md` §12、`Adapter_Shopping_Cookie.md`（Phase 7 共享基类）、`Personal_Data_Hub_EntityResolver.md`（Phase 8 依赖）、`Adapter_AIChat_History.md`（同 cookie 范式）。

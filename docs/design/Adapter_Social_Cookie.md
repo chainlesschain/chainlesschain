@@ -277,3 +277,75 @@ suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
 ## 11. CHANGELOG
 
 - v0.1 (2026-05-22) — Bilibili 端到端落地 + 微博/抖音/小红书 UI 占位
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。A8 Social Cookie 模式把 4 个社交平台（Bilibili / 微博 / 抖音 / 小红书）经 cookie + HTTP 接到 Android 完全独立的采集路径（in-APK cc → 本机 SQLCipher LocalVault），不依赖桌面。
+
+### 2. 核心特性
+
+cookie + HTTP 采集；Android 离桌面独立路径；Bilibili 端到端 ✅ + 3 平台占位卡片；与 Phase 7.5 device-pull 互补。
+
+### 3. 系统架构
+
+见正文与 `Personal_Data_Hub_Architecture.md`（PDH 整体架构）、`Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A v0.1 主架构）。
+
+### 4. 系统定位
+
+Personal Data Hub 的**社交平台 cookie 模式采集 adapter**（A8）。
+
+### 5. 核心功能
+
+4 平台 adapter（B站已端到端，其余占位）→ normalize → 本机 LocalVault → KG。详见正文各节。
+
+### 6. 技术架构
+
+cookie + 平台签名 + HTTP API；实现包 `@chainlesschain/personal-data-hub/adapters/*`；签名随平台升级常变。
+
+### 7. 系统特点
+
+离桌面独立、零桌面依赖；签名稳定性是工期主因（见正文「9. 工期」）。
+
+### 8. 应用场景
+
+个人社交足迹 / 收藏 / 互动数据归集进个人知识图谱。
+
+### 9. 竞品对比
+
+见正文「A8 与 Phase 7.5 对比表」（cookie+HTTP vs device-pull）。
+
+### 10. 配置参考
+
+各 adapter 的 cookie / 账号配置见正文对应节。
+
+### 11. 性能指标
+
+见正文「9. 工期」：实际工期取决于签名算法稳定性（平台升级时签名常变）。
+
+### 12. 测试覆盖
+
+见 `A8_Bilibili_E2E_Plan.md`（8 场景真机测试计划）。
+
+### 13. 安全考虑
+
+cookie 属高敏感凭证；落盘经本机 SQLCipher 加密；仅本机独立路径，不外发。
+
+### 14. 故障排除
+
+平台升级导致签名失效 → 更新对应平台签名常量后重试（见正文）。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/`（social cookie adapters）。
+
+### 16. 使用示例
+
+见正文各 adapter 调用示例。
+
+### 17. 相关文档
+
+见正文「10. 关联」：`Personal_Data_Hub_Architecture.md`、`Personal_Data_Hub_Android_Standalone_Cc.md`、`A8_Bilibili_E2E_Plan.md`、`Adapter_Social_Messaging.md`。
