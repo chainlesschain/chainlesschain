@@ -76,6 +76,7 @@ import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import { makeFallbackChatFn } from "../runtime/fallback-model.js";
 import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
+import { newCostStore, addUsage } from "./session-cost.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -758,6 +759,7 @@ export async function startAgentRepl(options = {}) {
       "/clear",
       "/compact",
       "/context",
+      "/cost",
       "/cowork",
       "/exit",
       "/help",
@@ -765,6 +767,7 @@ export async function startAgentRepl(options = {}) {
       "/mcp",
       "/model",
       "/output-style",
+      "/permissions",
       "/plan",
       "/profile",
       "/provider",
@@ -881,6 +884,7 @@ export async function startAgentRepl(options = {}) {
   let _curModel = model; // tracks the per-turn active model for the readout
   let _ctxUsedTokens = 0;
   let _turnCount = 0;
+  const _costStore = newCostStore(); // running token spend for `/cost`
   let _renderStatus = null;
   try {
     const slm = await import("../lib/status-line.cjs");
@@ -1024,6 +1028,12 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (so far)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules in effect this session`,
       );
       logger.log(
         `  ${chalk.cyan("/rewind")}     Rewind conversation to an earlier turn (double-Esc lists)`,
@@ -2118,6 +2128,40 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // `/permissions` — allow/ask/deny rules in effect this session (Claude-Code
+    // parity): what the agent runs unprompted, asks about, or is blocked from.
+    if (trimmed === "/permissions" || trimmed === "/permissions ") {
+      let files = [];
+      try {
+        const { loadSettings } = await import("../lib/settings-loader.cjs");
+        files = loadSettings({ cwd: process.cwd() }).files || [];
+      } catch (_err) {
+        // source listing is best-effort — still show the live rules
+      }
+      const { renderPermissions } = await import("./permissions-status.js");
+      logger.log(renderPermissions(_permissionRules, { files }));
+      prompt();
+      return;
+    }
+
+    // `/cost` — running token spend + estimated $ for this session (Claude-Code
+    // parity). In-memory accumulation, so it works without session persistence.
+    if (trimmed === "/cost" || trimmed === "/cost ") {
+      let overrides;
+      try {
+        const { loadConfig } = await import("../lib/config-manager.js");
+        overrides = loadConfig()?.llm?.pricing;
+      } catch (_err) {
+        // pricing overrides are optional — fall back to the built-in table
+      }
+      const { renderSessionCost } = await import("./session-cost.js");
+      logger.log(
+        renderSessionCost(_costStore, { pricingOverrides: overrides }),
+      );
+      prompt();
+      return;
+    }
+
     // `/ide` — IDE bridge connection status (Claude-Code parity): which editor
     // is connected, its tools, or why discovery came up empty.
     if (trimmed === "/ide" || trimmed === "/ide ") {
@@ -2361,6 +2405,9 @@ export async function startAgentRepl(options = {}) {
         chatFn: _fallbackChatFn,
       });
       _turnAbort = null;
+
+      // Running spend for `/cost` (in-memory, works without persistence).
+      if (usageEvents?.length) addUsage(_costStore, usageEvents);
 
       if (sessionId && usageEvents?.length) {
         for (const ue of usageEvents) {
