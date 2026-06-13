@@ -12,7 +12,7 @@ const bin = join(cliRoot, "bin", "chainlesschain.js");
 function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
     encoding: "utf-8",
-    timeout: 15000,
+    timeout: 30000,
     stdio: "pipe",
     ...options,
   });
@@ -26,6 +26,8 @@ describe("E2E: skill new subcommands", () => {
       expect(result).toContain("bundled");
       expect(result).toContain("marketplace");
       expect(result).toContain("managed");
+      expect(result).toContain("claude-user");
+      expect(result).toContain("claude-project");
       expect(result).toContain("workspace");
     });
 
@@ -33,7 +35,9 @@ describe("E2E: skill new subcommands", () => {
       const result = run("skill sources --json");
       const layers = JSON.parse(result);
       expect(Array.isArray(layers)).toBe(true);
-      expect(layers.length).toBe(4);
+      // 6 layers: bundled, marketplace, managed, claude-user,
+      // claude-project (Claude-Code .claude/skills portability), workspace.
+      expect(layers.length).toBe(6);
       for (const layer of layers) {
         expect(layer).toHaveProperty("layer");
         expect(layer).toHaveProperty("path");

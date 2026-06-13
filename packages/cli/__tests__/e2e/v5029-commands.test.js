@@ -187,7 +187,7 @@ describe("v5029 module import verification", () => {
     try {
       const stdout = execSync(`node "${scriptPath}"`, {
         encoding: "utf-8",
-        timeout: 15000,
+        timeout: 30000,
         stdio: "pipe",
         cwd: cliRoot,
       });

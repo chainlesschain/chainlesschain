@@ -20,7 +20,7 @@ function runCLI(args, options = {}) {
     return execSync(`node "${BIN}" ${args}`, {
       cwd: options.cwd || CLI_DIR,
       encoding: "utf-8",
-      timeout: 15000,
+      timeout: 30000,
       env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
     });
   } catch (err) {

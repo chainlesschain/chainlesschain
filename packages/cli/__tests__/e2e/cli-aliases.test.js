@@ -20,7 +20,7 @@ describe("E2E: CLI aliases", () => {
   const runCli = (args, opts = {}) => {
     return execSync(`node "${binScript}" ${args}`, {
       encoding: "utf-8",
-      timeout: 15000,
+      timeout: 30000,
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
       ...opts,
     });

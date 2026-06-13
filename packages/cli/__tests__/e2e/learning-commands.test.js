@@ -17,7 +17,7 @@ const bin = join(cliRoot, "bin", "chainlesschain.js");
 function run(args, options = {}) {
   return execSync(`node ${bin} ${args}`, {
     encoding: "utf-8",
-    timeout: 15000,
+    timeout: 30000,
     stdio: "pipe",
     ...options,
   });

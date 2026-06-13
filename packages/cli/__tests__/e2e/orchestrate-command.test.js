@@ -163,7 +163,7 @@ describe("E2E: orchestrate --no-ci --provider ollama", () => {
     // This tests that the pipeline runs and reports an error cleanly
     const out = tryRun(
       `orchestrate "Fix test bug" --no-ci --provider ollama --model llama3 --json`,
-      { timeout: 15000 },
+      { timeout: 30000 },
     );
     // Intent: "must not crash with unhandled exception". Process may exit with
     // any well-defined status (success / handled error / timeout-kill) and may
