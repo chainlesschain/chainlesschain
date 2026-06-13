@@ -768,3 +768,148 @@ const result = verify(envelope, cache);
 ```
 
 完整 API 参考详见 [设计文档站 MTC 数据格式规范](/design/mtc-data-format-v1)。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「1. 这是什么 / 为什么」。MTC（默克尔树证书）把一批条目（DID 身份 / Marketplace 技能 / 审计事件等）聚合进默克尔树，签 `tree_head` 后分发 envelope；验证方只需可信的 landmark（tree_head）即可离线校验任一条目的包含证明，无需逐条信任签发方。
+
+### 2. 核心特性
+
+- 批量签发（DID DB / Marketplace 技能 / 审计事件三种来源）
+- 经典 Ed25519（默认，64 B/sig）+ 后量子 SLH-DSA-SHA2-128F（opt-in，17 KB/sig）
+- 守护进程 verifier（订阅 + 持久化 + 重启恢复）
+- Federation MTCA：M-of-N 多签 + 服务发现（filesystem drop-zone / libp2p gossipsub）
+- 联邦治理（提案 / 投票 / quorum-gated threshold / 密钥轮换 / governance.log 跨成员同步）
+- 跨链桥集成、多跳桥、gas-aware、SLA、跨联邦互信、离线审计（v0.11）
+
+### 3. 系统架构
+
+见正文「3. 核心概念」与「4. 命令速查」。
+
+```
+签发：DID DB / 技能 / 事件 → leafHash(jcs(item)) → MerkleTree → sign(tree_head)
+   → envelope（含 root + proof + 签名）
+分发：filesystem drop-zone / libp2p direct / gossipsub
+验证：LandmarkCache.ingest(landmark) → verify(envelope, cache)
+```
+
+### 4. 系统定位
+
+**去中心化的"批量可验证凭证"基础设施**。介于 CT（Certificate Transparency）与 DID VC 之间：用默克尔聚合把"信任 N 个签发方"压缩成"信任 1 个 landmark"，服务身份 / 技能 / 审计三类可信清单的分发与离线核验。
+
+### 5. 核心功能
+
+| 功能 | 命令 | 说明 |
+|---|---|---|
+| 签发批次 | `cc mtc publish` | DID / 技能 / 事件三来源 |
+| 验证 envelope | `cc mtc verify` | 离线校验包含证明 |
+| 守护 verifier | `cc mtc verifier` | 订阅 + 持久化 |
+| Federation 多签 | `cc mtc federation publish` | M-of-N |
+| 联邦治理 | `cc mtc gov …` | 提案 / 投票 / threshold |
+| 审计双轨 | `cc mtc audit …` | off-by-default，待法务出函 |
+
+（命令以 `cc mtc --help` 实际输出为准。）
+
+### 6. 技术架构
+
+`@chainlesschain/core-mtc`：`MerkleTree` / `leafHash` / `jcs`（JSON Canonicalization）/ `sha256` / `LandmarkCache` / `verify` / `ed25519` + `TREE_HEAD_SIG_PREFIX`。后量子走 FIPS 205 SLH-DSA。服务发现走 libp2p gossipsub / filesystem drop-zone。详见正文「14. 进阶：核心库直接调用」。
+
+### 7. 系统特点
+
+- JCS 规范化保证跨语言一致 leaf hash
+- landmark 信任锚 + 包含证明 → 离线、无需在线 CA
+- 算法可选（经典最快 / 后量子抗量子），同 envelope 格式
+- 治理 threshold 变更 quorum-gated（confirm 默认 pre-flight 校验匹配 propose-threshold）
+
+### 8. 应用场景
+
+见正文「2. 适用场景」：可信 DID 名册分发、Marketplace 技能批次签发与校验、企业审计事件不可篡改归档、跨组织联邦成员名单治理。
+
+### 9. 竞品对比
+
+| 维度 | MTC | Certificate Transparency | 单条 DID VC |
+|---|---|---|---|
+| 批量聚合 | ✅ 默克尔树 | ✅ | ❌ 逐条 |
+| 离线验证 | ✅ landmark + proof | ⚠️ 需 log | ⚠️ 需签发方公钥 |
+| 后量子 | ✅ SLH-DSA opt-in | ❌ | ⚠️ |
+| 去中心化多签治理 | ✅ Federation MTCA | ❌ | ❌ |
+
+### 10. 配置参考
+
+- federation 注册表：`~/.chainlesschain/federation/members.json`
+- 算法选择：`--pq` 切 SLH-DSA（默认经典 Ed25519）
+- 多签阈值：`--threshold M-of-N`（如 `2-of-3` 容许一节点离线）
+- 审计双轨：namespace + 批次周期可配，默认 off（见正文「12.1」）
+- gossipsub bootstrap 多址：`/ip4/.../tcp/<port>/p2p/12D3KooW...`
+
+### 11. 性能指标
+
+- 经典 Ed25519 签名 **64 B/sig**（全网最快）；后量子 SLH-DSA-SHA2-128F **17 KB/sig**
+- 包含证明 size ∝ log₂(N)（默克尔路径）
+- LandmarkCache 验证为本地纯计算，无网络
+- 守护 publisher 默认 10 分钟一批（CI / cron 用 `--once`）
+
+### 12. 测试覆盖
+
+MTC 共 **476 测试 across 6 层**（含 Phases 0–4 + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker）。core-mtc 库单测覆盖 MerkleTree / proof / verify / 算法切换 / 治理 replay。运行：
+
+```bash
+cd packages/core-mtc && npx vitest run
+```
+
+### 13. 安全考虑
+
+- 签名前缀域分隔 `TREE_HEAD_SIG_PREFIX` 防跨上下文重放
+- 多签 M-of-N 防单点签发方作恶
+- governance.log `--verify` 校验每事件签名（actor 公钥须在本地 members 注册表）
+- 治理 threshold 变更 quorum-gated；`--no-quorum-check` 仅供测试，不推荐生产
+- 审计双轨默认关闭，启用需法务出函（合规护栏）
+
+### 14. 故障排除
+
+| 症状 | 可能原因 | 处理 |
+|---|---|---|
+| `verify` 失败 | landmark 未 ingest / 算法不匹配 | 先 `cache.ingest(landmark)`，确认签发算法 |
+| confirm-threshold 非零退出 | 无匹配 propose-threshold | 先发对应 propose，或 `--no-quorum-check`（不推荐） |
+| gossipsub 节点互相发现不到 | bootstrap 多址错 | 用启动时打印的真实多址连接 |
+| 联邦 publish 签名不够 | M-of-N 未达 M | 等更多节点签或降 threshold |
+
+更多见正文「11. 常见问题」。
+
+### 15. 关键文件
+
+| 路径 | 说明 |
+|---|---|
+| `packages/core-mtc/` | 核心库（MerkleTree / verify / ed25519 / LandmarkCache） |
+| `~/.chainlesschain/federation/members.json` | 本地 federation 注册表 |
+| `governance.log` | 联邦治理事件日志（replay 得 effective state） |
+| `cc mtc …` | CLI 入口（`cc mtc --help`） |
+
+### 16. 使用示例
+
+见正文大量实操（§5–§13）。最小核心库调用见正文「14. 进阶」。命令速查示例：
+
+```bash
+# 签发 DID 批次（默认经典 Ed25519）
+cc mtc publish --source did-db --key-file key.json
+
+# 后量子签发
+cc mtc publish --source did-db --pq
+
+# 验证 envelope
+cc mtc verify envelope.json --landmark landmark.json
+
+# Federation 2-of-3 多签发布
+cc mtc federation publish --threshold 2-of-3
+```
+
+### 17. 相关文档
+
+- [MTC 数据格式规范](/design/mtc-data-format-v1)
+- [跨链桥设计 v1](/design/)（MTC 集成 opt-in via `--mtc`）
+- [联邦治理 v1](/design/)
+- [去中心化社交协议](/guide/social-protocols)

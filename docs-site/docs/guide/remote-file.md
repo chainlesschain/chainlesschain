@@ -88,3 +88,127 @@ ChainlessChain Android 端在 RemoteOperate 路径下提供完整的远程文件
 详细架构、协议接口、修复的 6 个 bug、测试覆盖、真机 E2E 8 场景：
 
 → [Android Remote File Skill 设计文档](/design/Android_Remote_File_Skill)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见上文「1. 概述」。一句话：Android 配对桌面后，经 `SignalingRpcClient` 把 `file.*` 命令转发给桌面 `AndroidFileHandler`，在主用户身份下读写真实文件系统，实现浏览 / 上传 / 下载 / app 内打开。
+
+### 2. 核心特性
+
+见上文「2. 核心特性」表。要点：浏览 PC 任意目录、公共 Download 落点（`MediaStore.Downloads`，免存储权限）、防覆盖上传、64KB chunk + base64 协议、app 内 viewer 打开、复制 PC 路径。
+
+### 3. 系统架构
+
+```
+Android（Compose 文件传输屏）
+   │  file.list / file.read / file.write …
+   ▼
+SignalingRpcClient ──（复用 #21 Remote Operate signaling 通道，4 跳中继）──►
+   ▼
+Desktop AndroidFileHandler（主用户身份，非 sandbox）
+   ▼
+真实文件系统（~ 展开 / C:/ / Unix /）
+```
+
+下行下载经 `MediaStore.Downloads` 写入手机公共 Download 目录。
+
+### 4. 系统定位
+
+**复用现有 signaling、零新增基础设施的轻量文件桥**。不引入独立服务端口、不依赖局域网发现，直接搭车 Remote Operate 已建立的配对信道，适合「手机临时取 PC 上一个文件」这类高频小场景。
+
+### 5. 核心功能
+
+| 功能 | 入口 | 协议 |
+|---|---|---|
+| 浏览远程目录 | 📁 | `file.list` |
+| 上传到 PC | ☁️↑ | chunk `file.write` |
+| 下载到手机 | ☁️↓ / 点文件 | chunk `file.read` |
+| app 内打开 | Snackbar「打开」/ 📱 | `Intent.ACTION_VIEW` |
+| 清理历史 | 🧹 | 本地清理 30 天前传输记录 |
+
+### 6. 技术架构
+
+- **chunk 协议**：64KB / chunk + base64 编码 + `transferId` 状态机，为断点续传预留扩展点
+- **落盘**：`MediaStore.Downloads`（API 29+）→ 公共 Download 目录，原生文件管理器 / 相册 / 阅读器可直接访问
+- **打开**：`content://` URI + `Intent.ACTION_VIEW`，系统按 MIME 拉对应 app
+
+### 7. 系统特点
+
+- 免 `WRITE_EXTERNAL_STORAGE`（走 MediaStore）
+- 防覆盖：PC 端同名自动加 `(1)` `(2)` 后缀
+- 桌面侧在主用户身份执行（非 sandbox），可访问任意路径
+- 不跳出 app：下载后 Snackbar / 本机面板直接 viewer
+
+### 8. 应用场景
+
+- 手机临时下载 PC 上的 PDF / 图片就地查看
+- 把手机里的照片 / 文档上传到 PC `~/Downloads`
+- 远程浏览 PC 项目目录确认文件是否存在
+
+### 9. 竞品对比
+
+| 维度 | 本功能 | AirDroid | KDE Connect | 微信文件传输 |
+|---|---|---|---|---|
+| 去中心化 P2P | ✅ 配对信道 | ❌ 云中转 | ✅ 局域网 | ❌ 云 |
+| 免额外服务 | ✅ 复用 signaling | ❌ | ⚠️ 需同网 | ❌ |
+| app 内 viewer | ✅ | ⚠️ | ❌ | ⚠️ |
+| 浏览任意 PC 目录 | ✅ | ✅ | ⚠️ | ❌ |
+
+### 10. 配置参考
+
+无独立配置项——复用配对信任关系。下载落点固定为手机公共 Download 目录，上传落点固定为 PC `~/Downloads`。trust 由已配对 peer 决定。
+
+### 11. 性能指标
+
+- 单 chunk 64KB；小文件秒级
+- **> 10MB 可能 timeout**（当前走 signaling 4 跳 + base64），等 Plan A.1 WebRTC DataChannel 稳定后切 DC 路径提速
+- 见上文「5. 已知限制」
+
+### 12. 测试覆盖
+
+详见设计文档：协议接口、修复的 6 个 bug、单元测试与真机 E2E 8 场景。→ [Android Remote File Skill 设计文档](/design/Android_Remote_File_Skill)
+
+### 13. 安全考虑
+
+- 仅 **trusted paired peer** 可发起 `file.*`
+- 桌面 `AndroidFileHandler` 在主用户身份执行（**不在 sandbox 内**），可访问任意路径——配对信任是唯一闸门
+- **已知约束**：`delete` / `writeFile` 当前由 trusted peer 自动执行，无二次审批；未来接 mobile-approval-channel
+- 无 checksum 验证（靠 chunk 1:1 对应），如需可补全量 MD5
+
+### 14. 故障排除
+
+| 症状 | 可能原因 | 处理 |
+|---|---|---|
+| 浏览目录空白 | 路径不存在 / 无权限 | 换 `~` 或确认 PC 端目录可读 |
+| 下载文件找不到 | API < 29 落 app-private 路径 | 老设备限制，见「5. 已知限制」 |
+| 大文件下载中断 | > 10MB signaling timeout | 暂分卷，等 DC 路径 |
+| 「打开」无反应 | 无对应 MIME 的 app | 装对应查看器 |
+
+### 15. 关键文件
+
+| 组件 | 说明 |
+|---|---|
+| Android `SignalingRpcClient` | 把 `file.*` 命令经 signaling 转发桌面 |
+| 桌面 `AndroidFileHandler` | 主用户身份下读写真实文件系统 |
+| Android 文件传输 Compose 屏 | 5 图标 UI（浏览 / 上传 / 下载 / 本机 / 清理）|
+
+完整文件树见设计文档。
+
+### 16. 使用示例
+
+```text
+# 浏览：点 📁 → 路径栏输入 C:/Users/<你>/Documents → 进入
+# 上传：点 ☁️↑ → 选本机文件 → Snackbar 显示 PC: C:/Users/<你>/Downloads/<名>
+# 下载：浏览面板点文件 → Snackbar「打开」→ 系统 viewer
+# 本机：点 📱 → 列出手机 Download 目录 → 点行打开
+```
+
+### 17. 相关文档
+
+- [远程终端（Android 操控桌面 PTY）](/guide/remote-terminal)
+- [Android 用户操作手册](/guide/mobile-android-usage)
+- [Android Remote File Skill 设计文档](/design/Android_Remote_File_Skill)

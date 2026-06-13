@@ -167,3 +167,120 @@ NSIS 进度条在文件批次切换时会停滞数十秒。判断真假卡死的
 - [系统架构](/guide/architecture) — 整体技术栈说明
 - [更新日志](/changelog) — 各版本变更
 - [常见问题](/faq) — 综合 FAQ
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+本页解释桌面版（Windows / macOS / Linux）安装与首次启动的关键时间点和行为，帮助判断「正在工作」还是「卡住了」。核心结论见正文「太长不看」。
+
+### 2. 核心特性
+
+- 散文件部署（`asar:false`，~110,000 个 node_modules 文件 / ~2.4 GB）
+- 点 **X** 默认最小化到系统托盘（保持 P2P 在线、避免重复首启）
+- better-sqlite3 native 模块缺失时自动 fallback 到 sql.js
+- 卸载默认保留用户数据目录
+
+### 3. 系统架构
+
+```
+Setup.exe（NSIS）
+   │  单文件解压 + 写盘 + Defender 扫描（×110k）
+   ▼
+C:\Program Files\ChainlessChain\（散文件，asar:false）
+   ▼
+首次启动：splash → 加载 158 Skill → 初始化 P2P → 连接本地 DB → 主窗口
+```
+
+### 4. 系统定位
+
+桌面客户端的**安装与生命周期层**——把 Electron 主进程、本地 SQLCipher 数据、158 内置 Skill 一次性落到用户机器，之后常驻托盘后台运行。
+
+### 5. 核心功能
+
+| 阶段 | 说明 |
+|---|---|
+| 安装 | NSIS 覆盖装，含卸载旧版 |
+| 首次启动 | splash → Skill 加载 → P2P → DB → 主窗口 |
+| 托盘最小化 | 点 X 隐藏到托盘，后台保活 |
+| 卸载 | 控制面板 / `Uninstall ChainlessChain.exe`（支持 `/S` 静默） |
+
+### 6. 技术架构
+
+Electron 39.2.6 + NSIS 安装器 + better-sqlite3（fallback sql.js）。当前 `asar:false` 散文件部署是安装慢的结构性原因；提速路径为 post-pack asar surgery（[issue #6](https://github.com/chainlesschain/chainlesschain/issues/6) 已证伪 electron-builder walker glob 方案）。
+
+### 7. 系统特点
+
+- 散文件部署：免运行时解 asar，但装/卸载慢
+- 首启 30–60s（Skill + P2P + DB 冷加载）
+- X 即托盘（v1.1.0+ 变更），完整退出走托盘菜单或 `Ctrl+Q`
+
+### 8. 应用场景
+
+- 个人桌面长期常驻（托盘保活，随用随起）
+- 企业 MDM 批量分发（配 `.ccprofile`）
+
+### 9. 竞品对比
+
+| 维度 | 本安装器 | 普通 Electron app |
+|---|---|---|
+| 硬件密钥集成 | ✅ U-Key | ❌ |
+| 本地数据默认加密 | ✅ SQLCipher | ⚠️ |
+| 托盘保活 P2P | ✅ | ⚠️ |
+| 安装速度 | ⚠️ 散文件慢 | ✅ asar 快 |
+
+### 10. 配置参考
+
+数据目录见正文「四、卸载 — 卸载后保留的数据」：
+
+```
+%APPDATA%\chainlesschain-desktop-vue\
+  ├── data\     SQLite 数据库（笔记 / 对话 / DID）
+  ├── logs\     运行日志
+  ├── skills\   自定义 SKILL.md
+  ├── plugins\  用户插件
+  └── config\   应用配置
+```
+
+### 11. 性能指标
+
+见正文实测表：安装 **15–25 分钟**、首次启动到主窗口 **30–60 秒**、卸载 **~2 分钟**。慢的根因是散文件 × ~10ms/文件（解压 + 写盘 + Defender 扫描）。
+
+### 12. 测试覆盖
+
+安装 / 升级迁移 / 断电中断属人工 GUI 场景，由手动 runbook 覆盖（参见 DB 加密升级迁移 runbook）。冷启动 / 端口占用 / native fallback 由桌面单测与启动日志断言间接覆盖。
+
+### 13. 安全考虑
+
+- 下载 `Setup.exe` 后建议校验 sha256（防安装包损坏 / 篡改）
+- 数据默认 SQLCipher 本地加密；IPFS / 云同步为可选显式行为
+- 托盘菜单「退出」触发完整 cleanup；任务管理器强 kill 会跳过刷盘
+
+### 14. 故障排除
+
+见正文「二、首次启动 — 启动失败排查」表（`Cannot find package` / `EADDRINUSE` / better-sqlite3 fallback）与「三、关闭按钮 X 行为 — 我的窗口怎么消失了」。
+
+### 15. 关键文件
+
+| 文件 / 路径 | 说明 |
+|---|---|
+| `Setup.exe` | NSIS 安装器 |
+| `C:\Program Files\ChainlessChain\Uninstall ChainlessChain.exe` | 卸载器（`/S` 静默） |
+| `%APPDATA%\chainlesschain-desktop-vue\logs\` | 运行日志 |
+| `%APPDATA%\chainlesschain-desktop-vue\logs\error-logs\` | 启动失败错误日志 |
+
+### 16. 使用示例
+
+```powershell
+# 静默卸载（仍需 UAC）
+& "C:\Program Files\ChainlessChain\Uninstall ChainlessChain.exe" /S
+
+# 查看今日启动日志（判断是否还在加载）
+Get-Content "$env:APPDATA\chainlesschain-desktop-vue\logs\chainlesschain-$(Get-Date -Format yyyy-MM-dd).log" -Tail 50
+```
+
+### 17. 相关文档
+
+见正文「六、相关文档」：[快速开始](/guide/getting-started)、[桌面版 V6 Shell](/guide/desktop-v6-shell)、[系统架构](/guide/architecture)、[更新日志](/changelog)、[常见问题](/faq)。
