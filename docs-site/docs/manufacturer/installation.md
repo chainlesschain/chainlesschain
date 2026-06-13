@@ -806,3 +806,124 @@ sudo systemctl restart nginx
 ---
 
 如有部署问题，请联系技术支持：zhanglongfa@chainlesschain.com
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
+
+### 1. 概述
+
+见正文「部署方式选择」。安装部署模块覆盖厂家管理系统的两种部署：Docker Compose 一键部署（推荐）与手动部署，含环境要求、自定义配置与安全配置。
+
+### 2. 核心特性
+
+- Docker Compose 一键部署（MySQL + Redis + 后端 + 前端 + Nginx）
+- 跨平台安装脚本（Windows `start.bat` / Linux `start.sh`）
+- 自定义端口 / 密码 / JWT 密钥（`docker-compose.yml`）
+- 手动部署路径（无 Docker 环境）
+
+### 3. 系统架构
+
+```
+docker compose up
+   ├─ manufacturer-mysql     (MySQL 8.0, 3306)
+   ├─ manufacturer-redis     (Redis 7.0-alpine, 6379)
+   ├─ manufacturer-backend   (Spring Boot, 8080)
+   └─ manufacturer-frontend  (Vue3 + Nginx, 80)
+```
+
+### 4. 系统定位
+
+厂家管理系统的**部署与运维层**，把四服务容器化一键拉起，5 分钟从零到可用。
+
+### 5. 核心功能
+
+| 部署方式 | 说明 |
+|---|---|
+| Docker 部署 | `start.bat` / `start.sh` 一键起 4 容器 |
+| 手动部署 | 分别部署 MySQL / Redis / 后端 / 前端 |
+| 自定义配置 | 改 `docker-compose.yml` 端口 / 密码 / JWT |
+
+### 6. 技术架构
+
+容器化 Docker + Docker Compose + Nginx；后端 Spring Boot 3.2.1 + MySQL 8.0 + Redis 7.0；前端 Vue 3 + Element Plus + Vite 5（Nginx 静态托管）。数据库初始化脚本经 `docker-entrypoint-initdb.d` 自动执行。
+
+### 7. 系统特点
+
+- 开箱即用：预配置数据库 + 默认管理员 `admin / admin123456`
+- 零依赖：免手装 Java / Node.js
+- 数据卷持久化（mysql-data / redis-data / uploads）
+
+### 8. 应用场景
+
+厂家本地 / 私有云部署管理系统；测试环境快速拉起；生产环境改密钥 + 端口加固后部署。
+
+### 9. 竞品对比
+
+| 维度 | Docker 一键 | 手动部署 |
+|---|---|---|
+| 部署时间 | ✅ 5 分钟 | ⚠️ 数小时 |
+| 环境依赖 | ✅ 零依赖 | ❌ 手装 JDK/Node |
+| 一致性 | ✅ 容器化 | ⚠️ 环境差异 |
+
+### 10. 配置参考
+
+见正文「自定义配置」`docker-compose.yml`：
+
+| 项 | 默认 | 说明 |
+|---|---|---|
+| MySQL 端口 / 密码 | 3306 / root123456 | 生产必改 |
+| Redis 端口 | 6379 | |
+| 后端端口 | 8080 | |
+| 前端端口 | 80 | |
+| `JWT_SECRET` | 占位值 | **生产必须改** |
+
+### 11. 性能指标
+
+一键部署到可访问约 5 分钟（含镜像拉取）；启动后等待 ~30 秒数据库初始化。资源占用取决于宿主机。
+
+### 12. 测试覆盖
+
+部署产物（API 健康 / 前端可访问 / 默认账号登录）由部署后冒烟验证；后端单测 / 集成测试在镜像构建阶段运行。
+
+### 13. 安全考虑
+
+- **生产必改**：MySQL 密码、`JWT_SECRET`、默认管理员密码 `admin123456`
+- 端口按需暴露 + 反向代理 / 防火墙收敛
+- uploads 数据卷与备份目录的访问控制
+- 见正文「安全配置」节
+
+### 14. 故障排除
+
+| 症状 | 可能原因 | 处理 |
+|---|---|---|
+| 端口冲突 | 80/3306/6379/8080 被占 | 改 `docker-compose.yml` 映射端口 |
+| 前端打不开 | 后端未就绪 | 等数据库初始化 / 看 `docker compose logs` |
+| 登录失败 | 数据库未初始化 | 确认 initdb 脚本执行 |
+| 后端连不上 DB | 密码不一致 | 后端 `SPRING_DATASOURCE_PASSWORD` 与 MySQL 一致 |
+
+### 15. 关键文件
+
+| 文件 | 说明 |
+|---|---|
+| `docker-compose.yml` | 四服务编排 |
+| `start.bat` / `start.sh` | 一键启动脚本 |
+| `backend/src/main/resources/db/` | 数据库初始化脚本 |
+| `data/uploads/` | 安装包上传持久化卷 |
+
+### 16. 使用示例
+
+```bash
+# Windows
+cd manufacturer-system && start.bat
+# Linux / Mac
+cd manufacturer-system && chmod +x start.sh && ./start.sh
+# 访问：前端 http://localhost  ·  API http://localhost:8080/api/swagger-ui.html
+# 默认账号：admin / admin123456
+```
+
+### 17. 相关文档
+
+- [快速开始](/manufacturer/quick-start)
+- [厂家管理系统概述](/manufacturer/overview)
+- [系统架构](/guide/architecture)
