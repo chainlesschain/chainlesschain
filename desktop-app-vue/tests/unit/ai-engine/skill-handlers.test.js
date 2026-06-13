@@ -2724,10 +2724,16 @@ describe("Skill Handlers", () => {
   });
 
   // ============================================================
-  // SkillLoader - verify 145 builtin skills
+  // SkillLoader - verify 146 builtin skills
   // ============================================================
-  describe("SkillLoader - 145 builtin skills", () => {
-    it("should find 145 SKILL.md files in builtin directory", () => {
+  // Skills that intentionally ship as guidance/runbook only (SKILL.md with
+  // no executable handler.js) — the loader injects their content as context
+  // rather than invoking code. Keep this list in sync when adding doc-only
+  // skills so the handler-coverage assertion below stays meaningful.
+  const DOC_ONLY_SKILLS = ["pdh-android-collector"];
+
+  describe("SkillLoader - 146 builtin skills", () => {
+    it("should find 146 SKILL.md files in builtin directory", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -2741,27 +2747,38 @@ describe("Skill Handlers", () => {
         return fs.existsSync(skillMd);
       });
 
-      expect(skillDirs.length).toBe(145);
+      expect(skillDirs.length).toBe(146);
     });
 
-    it("should have 145 skills with handler.js (100% coverage)", () => {
+    it("should have handler.js for every skill except documented doc-only skills", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
       );
       const dirs = fs
         .readdirSync(builtinDir, { withFileTypes: true })
-        .filter((d) => d.isDirectory());
+        .filter((d) => d.isDirectory())
+        .filter((d) =>
+          fs.existsSync(path.join(builtinDir, d.name, "SKILL.md")),
+        );
 
-      const handlerDirs = dirs.filter((d) => {
-        const handlerJs = path.join(builtinDir, d.name, "handler.js");
-        return fs.existsSync(handlerJs);
-      });
+      const missingHandler = dirs
+        .filter(
+          (d) => !fs.existsSync(path.join(builtinDir, d.name, "handler.js")),
+        )
+        .map((d) => d.name)
+        .sort();
 
-      expect(handlerDirs.length).toBe(145);
+      // Only the documented guidance-only skills may lack a handler.
+      expect(missingHandler).toEqual([...DOC_ONLY_SKILLS].sort());
+
+      const handlerDirs = dirs.filter((d) =>
+        fs.existsSync(path.join(builtinDir, d.name, "handler.js")),
+      );
+      expect(handlerDirs.length).toBe(dirs.length - DOC_ONLY_SKILLS.length);
     });
 
-    it("should load all 145 handlers without errors", () => {
+    it("should load all handlers without errors", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
