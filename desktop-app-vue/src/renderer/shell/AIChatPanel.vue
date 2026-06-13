@@ -320,7 +320,7 @@ import {
   createIntentConfirmationMessage,
 } from "../utils/messageTypes";
 import {
-  buildExportText,
+  buildExportMarkdown,
   chatErrorMessage,
   extractRagContext,
   formatChatTime,
@@ -839,13 +839,20 @@ function onExport(): void {
     antMessage.warning("没有可导出的对话");
     return;
   }
-  const text = buildExportText(currentMessages.value, conv.title);
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const meta = conv.metadata ?? {};
+  const md = buildExportMarkdown(currentMessages.value, {
+    title: conv.title,
+    model: meta.model,
+    provider: meta.provider,
+    totalTokens: meta.totalTokens,
+    exportedAt: new Date().toISOString(),
+  });
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   const safeTitle = (conv.title ?? "对话").replace(/[\\/:*?"<>|]/g, "_");
-  a.download = `对话_${safeTitle}_${Date.now()}.txt`;
+  a.download = `对话_${safeTitle}_${Date.now()}.md`;
   a.click();
   URL.revokeObjectURL(url);
   antMessage.success("对话已导出");

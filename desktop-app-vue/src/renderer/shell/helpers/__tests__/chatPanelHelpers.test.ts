@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  buildExportMarkdown,
   buildExportText,
   chatErrorMessage,
   extractRagContext,
@@ -118,6 +119,58 @@ describe("buildExportText", () => {
     expect(() =>
       buildExportText([{ role: "user", timestamp: 1700000000000 }]),
     ).not.toThrow();
+  });
+});
+
+describe("buildExportMarkdown", () => {
+  it("renders an (empty) marker with the title header when no messages", () => {
+    expect(buildExportMarkdown([], { title: "Plain" })).toContain("# Plain");
+    expect(buildExportMarkdown([])).toContain("(empty)");
+  });
+
+  it("renders role-headed sections + meta header + summary footer", () => {
+    const out = buildExportMarkdown(
+      [
+        { role: "user", content: "hi", timestamp: 1700000000000 },
+        { role: "assistant", content: "hello!", timestamp: 1700000010000 },
+        { role: "system", content: "ctx" },
+      ],
+      {
+        title: "T",
+        provider: "anthropic",
+        model: "claude-opus",
+        totalTokens: 1234,
+      },
+    );
+    expect(out).toContain("# T");
+    expect(out).toContain(
+      "> provider: anthropic · model: claude-opus · tokens: 1234",
+    );
+    expect(out).toContain("## 👤 User");
+    expect(out).toContain("## 🤖 Assistant");
+    expect(out).toContain("## ⚙ System");
+    expect(out).toContain("hi");
+    expect(out).toContain("hello!");
+    expect(out).toContain("_1 user / 1 assistant turns · 1234 tokens_");
+  });
+
+  it("captures per-message model + token metadata the flat export drops", () => {
+    const out = buildExportMarkdown([
+      { role: "assistant", content: "x", model: "gpt-4o", tokens: 42 },
+    ]);
+    expect(out).toContain("_gpt-4o · 42 tok");
+  });
+
+  it("handles missing content / unknown role without crashing", () => {
+    expect(() =>
+      buildExportMarkdown([
+        { role: "user" },
+        { role: "tool", content: "r" },
+        null as unknown as { role: string },
+      ]),
+    ).not.toThrow();
+    const out = buildExportMarkdown([{ role: "tool", content: "r" }]);
+    expect(out).toContain("## tool");
   });
 });
 

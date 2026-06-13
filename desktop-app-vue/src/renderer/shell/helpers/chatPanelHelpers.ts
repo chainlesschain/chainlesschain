@@ -90,6 +90,83 @@ export function buildExportText(
   return `${header}${body}`;
 }
 
+export interface ChatExportMeta {
+  title?: string;
+  model?: string;
+  provider?: string;
+  totalTokens?: number;
+  exportedAt?: string;
+}
+
+export interface ChatMarkdownMessage {
+  role?: string;
+  content?: string;
+  timestamp?: number | string;
+  tokens?: number;
+  model?: string;
+}
+
+/**
+ * Serialize a conversation to a structured Markdown transcript — parity with
+ * the `cc` CLI `/export`. Richer than buildExportText: role-headed sections
+ * (👤/🤖/⚙), per-message model + token counts (which the flat text export
+ * drops), a meta header, and a turn/token summary footer. Pure; the caller
+ * does the file I/O.
+ */
+export function buildExportMarkdown(
+  messages: ChatMarkdownMessage[],
+  meta: ChatExportMeta = {},
+): string {
+  const L: string[] = [`# ${meta.title || "ChainlessChain 对话导出"}`, ""];
+  const bits: string[] = [];
+  if (meta.provider) bits.push(`provider: ${meta.provider}`);
+  if (meta.model) bits.push(`model: ${meta.model}`);
+  if (typeof meta.totalTokens === "number" && meta.totalTokens > 0) {
+    bits.push(`tokens: ${meta.totalTokens}`);
+  }
+  if (meta.exportedAt) bits.push(`exported: ${meta.exportedAt}`);
+  if (bits.length) L.push(`> ${bits.join(" · ")}`, "");
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    L.push("(empty)", "");
+    return L.join("\n");
+  }
+
+  let users = 0;
+  let assistants = 0;
+  for (const m of messages) {
+    if (!m || typeof m !== "object") continue;
+    const role = m.role;
+    if (role === "user") users += 1;
+    else if (role === "assistant") assistants += 1;
+    const heading =
+      role === "user"
+        ? "## 👤 User"
+        : role === "assistant"
+          ? "## 🤖 Assistant"
+          : role === "system"
+            ? "## ⚙ System"
+            : `## ${role || "?"}`;
+    L.push(heading);
+    const mbits: string[] = [];
+    if (m.model) mbits.push(m.model);
+    if (typeof m.tokens === "number" && m.tokens > 0) {
+      mbits.push(`${m.tokens} tok`);
+    }
+    const t = formatChatTime(m.timestamp);
+    if (t) mbits.push(t);
+    if (mbits.length) L.push(`_${mbits.join(" · ")}_`);
+    L.push("", m.content ?? "", "");
+  }
+
+  const footer = [`${users} user / ${assistants} assistant turns`];
+  if (typeof meta.totalTokens === "number" && meta.totalTokens > 0) {
+    footer.push(`${meta.totalTokens} tokens`);
+  }
+  L.push("---", `_${footer.join(" · ")}_`, "");
+  return L.join("\n");
+}
+
 export interface RagEnhanceResult {
   context?: string;
   retrievedDocs?: Array<{ id: string; title?: string; score?: number }>;
