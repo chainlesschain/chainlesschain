@@ -651,6 +651,11 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   查不到时自动回退 **JSONL agent 会话**(`cc agent --resume` 那套):user/assistant/system 轮次 +
   tool_call/tool_result 围栏块(4K 截断,内嵌 ``` 自动升级围栏)+ compact 标记 + token 汇总。
   `last` 直接导最近一次 agent 会话(不碰 DB)。
+- **交互 REPL `/export [path]`**(Claude-Code 平价) — 把**当前内存里的对话**导出为 Markdown
+  (user/assistant/system 轮次 + tool_call 的 JSON 参数美化 + tool_result 围栏块 4K 截断 +
+  多模态图片标 `[image]`)。区别于 `cc session export`(读持久化 JSONL)与 `cc export`(知识库导出):
+  `/export` 抓的是此刻 context 里的内容,持久化与否都能导。省略路径时落
+  `./chainlesschain-export-<时间戳>.md`。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时

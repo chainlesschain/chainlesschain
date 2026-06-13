@@ -762,6 +762,7 @@ export async function startAgentRepl(options = {}) {
       "/cost",
       "/cowork",
       "/exit",
+      "/export",
       "/help",
       "/ide",
       "/mcp",
@@ -1034,6 +1035,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/permissions")} Allow/ask/deny rules in effect this session`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
       );
       logger.log(
         `  ${chalk.cyan("/rewind")}     Rewind conversation to an earlier turn (double-Esc lists)`,
@@ -2124,6 +2128,36 @@ export async function startAgentRepl(options = {}) {
     if (trimmed === "/mcp" || trimmed === "/mcp ") {
       const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
       logger.log(renderMcpSurface(mcpClient));
+      prompt();
+      return;
+    }
+
+    // `/export [path]` — dump the live conversation to a Markdown transcript
+    // (Claude-Code parity). Distinct from `cc export` (knowledge base). Captures
+    // exactly what's in context now, persisted or not.
+    if (trimmed === "/export" || trimmed.startsWith("/export ")) {
+      const arg = trimmed.slice("/export".length).trim();
+      try {
+        const { renderConversationMarkdown, defaultExportFilename } =
+          await import("./conversation-export.js");
+        const fs = await import("fs");
+        const path = await import("path");
+        const md = renderConversationMarkdown(messages, {
+          provider,
+          model: _curModel || model,
+          sessionId,
+          exportedAt: new Date().toISOString(),
+        });
+        const file = arg
+          ? path.resolve(process.cwd(), arg)
+          : path.resolve(process.cwd(), defaultExportFilename(new Date()));
+        fs.writeFileSync(file, md, "utf-8");
+        logger.log(
+          chalk.green(`Exported ${messages.length} messages → ${file}`),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`/export failed: ${err.message}`));
+      }
       prompt();
       return;
     }
