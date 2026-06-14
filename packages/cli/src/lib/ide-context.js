@@ -278,6 +278,13 @@ export function hasIdeOpenDiff(mcp) {
  * Run one blocking openDiff review in the connected IDE. Returns
  *   { outcome:"accepted", finalText|null }  — the IDE wrote the file itself
  *   { outcome:"rejected" }                  — nothing was written
+ *   { outcome:"changes-requested", comments, reviewedText }
+ *                                           — the user annotated the diff with
+ *                                             revision notes instead of
+ *                                             accepting/rejecting; nothing was
+ *                                             written and the caller should
+ *                                             feed `comments` back to the agent
+ *                                             so it revises and re-proposes.
  *   null                                    — IDE unavailable / transport
  *                                             error / malformed reply → the
  *                                             caller falls back to its normal
@@ -309,8 +316,51 @@ export async function requestIdeDiffApproval(mcp, req = {}) {
       finalText: typeof data.finalText === "string" ? data.finalText : null,
     };
   }
+  if (data?.outcome === "changes-requested") {
+    return {
+      outcome: "changes-requested",
+      comments: Array.isArray(data.comments) ? data.comments : [],
+      reviewedText:
+        typeof data.reviewedText === "string" ? data.reviewedText : null,
+    };
+  }
   if (data?.outcome === "rejected") return { outcome: "rejected" };
   return null; // anything else is not a verdict — fail safe to fallback
+}
+
+/**
+ * Render line-anchored review comments (from an openDiff "changes-requested"
+ * verdict) into a compact feedback block the agent can act on. Each comment is
+ * `{ line?, endLine?, lineText?, note }` with 0-based editor lines. Returns
+ * null when there is no actionable note. Pure — safe to unit-test.
+ */
+export function formatReviewComments(comments, { path: filePath } = {}) {
+  if (!Array.isArray(comments) || comments.length === 0) return null;
+  const lines = comments
+    .map((c) => {
+      if (!c || typeof c.note !== "string" || c.note.trim().length === 0) {
+        return null;
+      }
+      const start = Number.isInteger(c.line) ? c.line + 1 : null; // 0→1-based
+      const end = Number.isInteger(c.endLine) ? c.endLine + 1 : start;
+      const where =
+        start != null
+          ? end != null && end !== start
+            ? `lines ${start}-${end}`
+            : `line ${start}`
+          : "(general)";
+      const anchor =
+        typeof c.lineText === "string" && c.lineText.trim().length > 0
+          ? `  ⟪${c.lineText.trim().slice(0, 120)}⟫`
+          : "";
+      return `  • ${where}: ${c.note.trim()}${anchor}`;
+    })
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  const header = filePath
+    ? `Review comments on ${filePath}:`
+    : "Review comments:";
+  return `${header}\n${lines.join("\n")}`;
 }
 
 // ─── Explicit @selection / @diagnostics at-mentions (Claude-Code parity) ────

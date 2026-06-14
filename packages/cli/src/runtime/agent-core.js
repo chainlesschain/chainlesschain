@@ -241,7 +241,9 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
     if (ide?.outcome === "accepted") {
       return { blocked: false, ideApplied: ide.result };
     }
-    if (ide?.outcome === "rejected") {
+    // Both rejected and changes-requested mean "not applied + feed the
+    // verdict's message back" — same control flow, different message body.
+    if (ide?.outcome === "rejected" || ide?.outcome === "changes-requested") {
       return {
         blocked: true,
         reason: ide.result.error,
@@ -714,8 +716,12 @@ async function tryIdeDiffApprovalForEdit(
   if (typeof context.permissionConfirm !== "function") return null; // interactive only
   if (!context.mcpClient || !context.externalToolExecutors) return null;
   try {
-    const { ideDiffApprovalEnabled, hasIdeOpenDiff, requestIdeDiffApproval } =
-      await import("../lib/ide-context.js");
+    const {
+      ideDiffApprovalEnabled,
+      hasIdeOpenDiff,
+      requestIdeDiffApproval,
+      formatReviewComments,
+    } = await import("../lib/ide-context.js");
     const mcpLike = {
       mcpClient: context.mcpClient,
       externalToolExecutors: context.externalToolExecutors,
@@ -750,6 +756,25 @@ async function tryIdeDiffApprovalForEdit(
         result: {
           error: `[Permission] "${name}" was rejected in the IDE diff review (${source}: ${rule}).`,
           policy: { decision: "deny", rule, via: "ide-diff" },
+        },
+      };
+    }
+    if (verdict?.outcome === "changes-requested") {
+      // The reviewer annotated the diff instead of accepting/rejecting: the
+      // file is untouched and the notes flow back as the tool result, so the
+      // agent revises and re-proposes (Claude-Code inline-review parity).
+      const feedback =
+        formatReviewComments(verdict.comments, { path: proposal.filePath }) ||
+        "The user requested changes in the IDE diff review (no specific notes).";
+      return {
+        outcome: "changes-requested",
+        result: {
+          error:
+            `[IDE review] "${name}" was NOT applied — the user requested changes:\n` +
+            `${feedback}\n` +
+            "Revise the edit to address this feedback, then propose it again.",
+          policy: { decision: "deny", rule, via: "ide-diff-review" },
+          reviewComments: verdict.comments,
         },
       };
     }

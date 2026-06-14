@@ -66,12 +66,15 @@ function buildIdeTools(editor) {
       name: "openDiff",
       description:
         "Open a native side-by-side diff in the editor for the user to review " +
-        "a proposed change, then BLOCK until they accept or reject it. `path` " +
-        "is the target file; `modifiedText` is the proposed new content; " +
-        "`originalText` defaults to the file's current content. On accept the " +
-        "(possibly user-edited) text is written to the file. Returns " +
-        "{ outcome: 'accepted'|'rejected', path, finalText? } — this call can " +
-        "take a while, that is expected.",
+        "a proposed change, then BLOCK until they decide. `path` is the target " +
+        "file; `modifiedText` is the proposed new content; `originalText` " +
+        "defaults to the file's current content. The user can accept (the " +
+        "possibly-edited text is written to the file), reject, or request " +
+        "changes by annotating specific lines. Returns " +
+        "{ outcome: 'accepted'|'rejected'|'changes-requested', path, " +
+        "finalText?, comments? } — on 'changes-requested' the file is NOT " +
+        "written and `comments` carries the reviewer's line-anchored revision " +
+        "notes to act on. This call can take a while, that is expected.",
       inputSchema: {
         type: "object",
         properties: {

@@ -122,6 +122,7 @@ function createVscodeEditorFacade(vscode) {
             `Apply proposed changes to ${path}?`,
             { modal: false },
             "Accept",
+            "Request changes…",
             "Pick hunks…",
             "Reject",
           )
@@ -129,6 +130,21 @@ function createVscodeEditorFacade(vscode) {
       });
       if (choice === CLOSED) {
         return { outcome: "rejected", path, closedDiff: true };
+      }
+      if (choice === "Request changes…") {
+        // Inline review (Claude-Code parity): the reviewer annotates the diff
+        // with revision notes instead of accept/reject. Nothing is written —
+        // the notes ride back to the agent so it revises and re-proposes.
+        const comments = await collectReviewComments(vscode, rightDoc);
+        if (!comments || comments.length === 0) {
+          return { outcome: "rejected", path }; // no actionable feedback
+        }
+        return {
+          outcome: "changes-requested",
+          path,
+          comments,
+          reviewedText: rightDoc.getText(),
+        };
       }
       if (choice === "Accept") {
         const finalText = rightDoc.getText(); // includes any user edits
@@ -250,6 +266,52 @@ function createVscodeEditorFacade(vscode) {
       return { success: !cancelled, cancelled, outputs };
     },
   };
+}
+
+/**
+ * Collect line-anchored review comments for a "Request changes…" verdict.
+ * Each note is anchored to the reviewer's current selection in the modified
+ * (right) pane when available, so the agent learns WHICH lines to revise. An
+ * empty input ends the review. Bounded loop so a stuck reviewer can't spin.
+ * Returns `[{ line?, endLine?, lineText?, note }]` with 0-based editor lines.
+ */
+async function collectReviewComments(vscode, rightDoc) {
+  const comments = [];
+  const rightKey = rightDoc.uri.toString();
+  for (let i = 0; i < 50; i++) {
+    // Best-effort anchor: the visible right-pane editor's current selection.
+    let anchor = {};
+    try {
+      const ed = (vscode.window.visibleTextEditors || []).find(
+        (e) => e?.document?.uri?.toString() === rightKey,
+      );
+      if (ed && ed.selection) {
+        const s = ed.selection;
+        anchor = {
+          line: s.start.line,
+          endLine: s.end.line,
+          lineText: ed.document.lineAt(s.start.line).text,
+        };
+      }
+    } catch {
+      /* anchor is optional — a general comment is still useful */
+    }
+    const where = Number.isInteger(anchor.line)
+      ? anchor.endLine != null && anchor.endLine !== anchor.line
+        ? `行 ${anchor.line + 1}-${anchor.endLine + 1}`
+        : `行 ${anchor.line + 1}`
+      : "整体";
+    const note = await vscode.window.showInputBox({
+      prompt: `评审意见 #${comments.length + 1}(锚定 ${where};留空结束评审)`,
+      placeHolder: "描述希望 agent 如何修改这处改动…",
+      // Reviewers alt-tab to inspect the diff while typing — focus loss must
+      // not silently end the review (same lesson as the hunk-pick QuickPick).
+      ignoreFocusOut: true,
+    });
+    if (!note || !note.trim()) break;
+    comments.push({ ...anchor, note: note.trim() });
+  }
+  return comments;
 }
 
 /** Best-effort disk read for the hunk baseline (new files → empty). */

@@ -16,6 +16,7 @@ import {
   ideDiffApprovalEnabled,
   hasIdeOpenDiff,
   requestIdeDiffApproval,
+  formatReviewComments,
 } from "../../src/lib/ide-context.js";
 import {
   computeProposedEdit,
@@ -101,6 +102,36 @@ describe("requestIdeDiffApproval", () => {
     ).toEqual({ outcome: "rejected" });
   });
 
+  it("returns changes-requested with comments and reviewedText", async () => {
+    const comments = [
+      { line: 4, endLine: 4, lineText: "let x", note: "use const" },
+    ];
+    const mcp = fakeDiffMcp({
+      callTool: async () =>
+        txt({ outcome: "changes-requested", comments, reviewedText: "edited" }),
+    });
+    expect(
+      await requestIdeDiffApproval(mcp, { path: "p", modifiedText: "m" }),
+    ).toEqual({
+      outcome: "changes-requested",
+      comments,
+      reviewedText: "edited",
+    });
+  });
+
+  it("changes-requested coerces missing comments/reviewedText to []/null", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async () => txt({ outcome: "changes-requested" }),
+    });
+    expect(
+      await requestIdeDiffApproval(mcp, { path: "p", modifiedText: "m" }),
+    ).toEqual({
+      outcome: "changes-requested",
+      comments: [],
+      reviewedText: null,
+    });
+  });
+
   it("returns null on transport error, malformed verdict, or bad request", async () => {
     const dead = fakeDiffMcp({
       callTool: async () => {
@@ -123,6 +154,29 @@ describe("requestIdeDiffApproval", () => {
         modifiedText: "m",
       }),
     ).toBe(null);
+  });
+});
+
+describe("formatReviewComments", () => {
+  it("renders line-anchored notes with 1-based lines and a file header", () => {
+    const out = formatReviewComments(
+      [
+        { line: 4, endLine: 4, lineText: "let x = 1", note: "use const" },
+        { line: 9, endLine: 11, note: "extract a helper" },
+        { note: "general nit" },
+      ],
+      { path: "C:/x/a.js" },
+    );
+    expect(out).toContain("Review comments on C:/x/a.js:");
+    expect(out).toContain("• line 5: use const  ⟪let x = 1⟫");
+    expect(out).toContain("• lines 10-12: extract a helper");
+    expect(out).toContain("• (general): general nit");
+  });
+
+  it("returns null when there is no actionable note", () => {
+    expect(formatReviewComments([])).toBe(null);
+    expect(formatReviewComments(null)).toBe(null);
+    expect(formatReviewComments([{ line: 1 }, { note: "   " }])).toBe(null);
   });
 });
 
@@ -268,6 +322,38 @@ describe("executeTool — IDE diff approval wiring (settings ask)", () => {
     expect(context.permissionConfirm).not.toHaveBeenCalled();
   });
 
+  it("changes-requested feeds review notes back without touching the file", async () => {
+    fs.writeFileSync(path.join(tmp, "a.js"), "const x = 1;\n", "utf-8");
+    const mcp = fakeDiffMcp({
+      callTool: async () =>
+        txt({
+          outcome: "changes-requested",
+          comments: [{ line: 0, note: "rename x to count" }],
+          reviewedText: "const x = 2;\n",
+        }),
+    });
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "edit_file",
+      { path: "a.js", old_string: "x = 1", new_string: "x = 2" },
+      context,
+    );
+    expect(res.error).toMatch(/the user requested changes/);
+    expect(res.error).toMatch(/rename x to count/);
+    expect(res.error).toMatch(/propose it again/);
+    expect(res.policy).toMatchObject({
+      decision: "deny",
+      via: "ide-diff-review",
+    });
+    expect(res.reviewComments).toEqual([
+      { line: 0, note: "rename x to count" },
+    ]);
+    expect(fs.readFileSync(path.join(tmp, "a.js"), "utf-8")).toBe(
+      "const x = 1;\n",
+    );
+    expect(context.permissionConfirm).not.toHaveBeenCalled();
+  });
+
   it("falls back to terminal confirm when the IDE dies mid-review", async () => {
     const mcp = fakeDiffMcp({
       callTool: async () => {
@@ -382,6 +468,27 @@ describe("executeTool — IDE diff approval wiring (PreToolUse hook ask)", () =>
     expect(res.error).toMatch(/rejected in the IDE diff review/);
     expect(res.policy).toMatchObject({ decision: "deny", via: "ide-diff" });
     expect(fs.existsSync(path.join(tmp, "h-no.js"))).toBe(false);
+  });
+
+  it("hook ask + changes-requested denies with review notes (via ide-diff-review)", async () => {
+    const mcp = fakeDiffMcp({
+      callTool: async () =>
+        txt({
+          outcome: "changes-requested",
+          comments: [{ line: 2, note: "add a null check" }],
+        }),
+    });
+    const context = ctx(mcp);
+    const res = await executeTool(
+      "write_file",
+      { path: "h-cr.js", content: "x" },
+      context,
+    );
+    expect(res.error).toMatch(/the user requested changes/);
+    expect(res.error).toMatch(/add a null check/);
+    expect(res.policy).toMatchObject({ via: "ide-diff-review" });
+    expect(fs.existsSync(path.join(tmp, "h-cr.js"))).toBe(false);
+    expect(context.permissionConfirm).not.toHaveBeenCalled();
   });
 
   it("hook ask without an IDE still uses the terminal confirm", async () => {
