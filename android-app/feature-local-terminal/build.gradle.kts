@@ -29,7 +29,7 @@ android {
         // / mkshrc / motd content changes. LocalFilesystemBootstrapper compares
         // this against the on-disk .bootstrap_version sentinel and re-extracts
         // when they differ.
-        buildConfigField("String", "USR_VERSION", "\"25\"")
+        buildConfigField("String", "USR_VERSION", "\"26\"")
 
         // Phase 0.1 baseline ABIs. arm64-v8a is primary (modern devices),
         // armeabi-v7a kept for compatibility, x86_64 for emulator testing only.

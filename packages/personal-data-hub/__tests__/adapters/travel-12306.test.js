@@ -9,6 +9,11 @@ const crypto = require("node:crypto");
 const {
   Train12306Adapter,
   parseRecords,
+  ticketsFromOrder,
+  extractCompletedOrders,
+  extractPendingOrders,
+  parse12306DateTime,
+  parseYyyymmdd,
   NAME,
   VERSION,
   SNAPSHOT_SCHEMA_VERSION,
@@ -62,7 +67,7 @@ function makeSnapshot(events, extra = {}) {
 describe("constants", () => {
   it("exposes name/version/schema", () => {
     expect(NAME).toBe("travel-12306");
-    expect(VERSION).toBe("0.6.0");
+    expect(VERSION).toBe("0.7.0");
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
     expect([...VALID_SNAPSHOT_KINDS]).toEqual(["ticket"]);
   });
@@ -275,5 +280,233 @@ describe("sync + parseRecords — file-import mode", () => {
   it("sync throws when neither inputPath nor dataPath", async () => {
     const a = new Train12306Adapter();
     await expect(collect(a.sync({}))).rejects.toThrow(/needs opts\.inputPath/);
+  });
+});
+
+// ─── §2.5 v0.3 cookie-api live fetch ────────────────────────────────────────
+
+// One raw 12306 order object (queryMyOrder shape) carrying a single ticket.
+function rawOrder(seq, overrides = {}) {
+  return {
+    sequence_no: seq,
+    order_date: "20240315",
+    ticket_total_price: "553.5",
+    tickets: [
+      {
+        ticket_no: "E123456789",
+        passenger_name: "张三",
+        passenger_id_no: "310101199001011234", // last6 = 011234
+        train_code: "G35",
+        from_station_name: "上海虹桥",
+        to_station_name: "北京南",
+        start_train_date_page: "2024-03-20 09:00",
+        arrive_train_date_page: "2024-03-20 14:00",
+        seat_type_name: "二等座",
+        coach_no: "05",
+        seat_no: "12A",
+        ticket_price: "553.5",
+        ...overrides,
+      },
+    ],
+  };
+}
+
+const COOKIE = "tk=abc; JSESSIONID=xyz; RAIL_DEVICEID=dev";
+
+describe("cookie-api helpers", () => {
+  it("extractCompletedOrders tolerates shape variants + junk", () => {
+    expect(extractCompletedOrders({ data: { OrderDTODataList: [1, 2] } })).toEqual([1, 2]);
+    expect(extractCompletedOrders({ data: { orderDTODataList: [3] } })).toEqual([3]);
+    expect(extractCompletedOrders(null)).toEqual([]);
+    expect(extractCompletedOrders({ data: {} })).toEqual([]);
+    expect(extractCompletedOrders("nope")).toEqual([]);
+  });
+
+  it("extractPendingOrders tolerates shape variants + junk", () => {
+    expect(extractPendingOrders({ data: { orderDBList: [1] } })).toEqual([1]);
+    expect(extractPendingOrders({ data: { orderDbList: [2] } })).toEqual([2]);
+    expect(extractPendingOrders({})).toEqual([]);
+  });
+
+  it("ticketsFromOrder flattens tickets with snake/camel fallbacks", () => {
+    const evs = ticketsFromOrder(rawOrder("SEQ1"), true);
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      kind: "ticket",
+      id: "ticket-SEQ1:0",
+      orderSequenceNo: "SEQ1",
+      ticketNumber: "E123456789",
+      passengerName: "张三",
+      passengerIdLast6: "011234",
+      trainNumber: "G35",
+      fromStation: "上海虹桥",
+      toStation: "北京南",
+      seatTypeName: "二等座",
+      coachNo: "05",
+      seatNo: "12A",
+      ticketPrice: 553.5,
+      isCompleted: true,
+      capturedVia: "cookie-api",
+    });
+    // camelCase + *_page fallbacks
+    const camel = ticketsFromOrder(
+      {
+        sequenceNo: "SEQ2",
+        tickets: [
+          {
+            stationTrainCode: "D7",
+            passengerName: "李四",
+            from_station_name_page: "杭州东",
+            to_station_name_page: "南京南",
+            ticketPrice: "100",
+          },
+        ],
+      },
+      false,
+    );
+    expect(camel[0]).toMatchObject({
+      trainNumber: "D7",
+      fromStation: "杭州东",
+      toStation: "南京南",
+      ticketPrice: 100,
+      isCompleted: false,
+    });
+  });
+
+  it("ticketsFromOrder drops incomplete tickets + bad orders", () => {
+    expect(ticketsFromOrder(null, true)).toEqual([]);
+    expect(ticketsFromOrder({ tickets: [] }, true)).toEqual([]); // no sequence_no
+    // ticket missing passenger / train / stations → dropped
+    const evs = ticketsFromOrder(
+      { sequence_no: "S", tickets: [{ passenger_name: "x" }] },
+      true,
+    );
+    expect(evs).toEqual([]);
+  });
+
+  it("parse12306DateTime handles date / date-time / Chinese / blank", () => {
+    // 2024-03-20 09:00 Shanghai = 2024-03-20 01:00 UTC
+    expect(parse12306DateTime("2024-03-20 09:00")).toBe(Date.UTC(2024, 2, 20, 1, 0));
+    expect(parse12306DateTime("2024-03-20")).toBe(Date.UTC(2024, 2, 19, 16, 0));
+    expect(parse12306DateTime("")).toBeNull();
+    expect(parse12306DateTime(null)).toBeNull();
+    expect(parse12306DateTime("garbage")).toBeNull();
+  });
+
+  it("parseYyyymmdd parses compact dates", () => {
+    expect(parseYyyymmdd("20240315")).toBe(Date.UTC(2024, 2, 14, 16, 0));
+    expect(parseYyyymmdd("2024-03-15")).toBeNull();
+    expect(parseYyyymmdd(null)).toBeNull();
+  });
+});
+
+describe("authenticate — cookie-api mode", () => {
+  it("ok when account.cookies present (username optional)", async () => {
+    const a = new Train12306Adapter({ account: { cookies: COOKIE } });
+    expect(await a.authenticate({})).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
+  });
+
+  it("carries username when supplied alongside cookies", async () => {
+    const a = new Train12306Adapter({
+      account: { cookies: COOKIE, username: "alice" },
+    });
+    expect((await a.authenticate({})).account).toBe("alice");
+  });
+
+  it("cookie mode takes precedence over file-import", async () => {
+    const a = new Train12306Adapter({
+      account: { cookies: COOKIE },
+      dataPath: "x.json",
+    });
+    expect((await a.authenticate({})).mode).toBe("cookie");
+  });
+});
+
+describe("sync — cookie-api mode", () => {
+  it("yields flattened ticket events from completed + pending", async () => {
+    const calls = [];
+    const fetchFn = async ({ url, cookies, form }) => {
+      calls.push({ url, cookies, form });
+      if (url.includes("NoComplete")) {
+        return { data: { orderDBList: [rawOrder("PEND1")] } };
+      }
+      // single completed page (< PAGE_SIZE → stops)
+      return { data: { OrderDTODataList: [rawOrder("SEQ1")] } };
+    };
+    const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
+    const items = await collect(a.sync({}));
+    expect(items.map((i) => i.originalId)).toEqual([
+      "12306:ticket:ticket-SEQ1:0",
+      "12306:ticket:ticket-PEND1:0",
+    ]);
+    expect(items[0].payload.snapshot).toBe(true);
+    expect(items[0].payload.capturedVia).toBe("cookie-api");
+    expect(items[1].payload.isCompleted).toBe(false);
+    // cookie header forwarded + completed form carries pagination params
+    expect(calls[0].cookies).toBe(COOKIE);
+    expect(calls[0].form).toMatchObject({
+      come_from_flag: "my_order",
+      pageSize: "50",
+      pageIndex: "1",
+    });
+  });
+
+  it("paginates completed orders until a short page", async () => {
+    const fetchFn = async ({ url, form }) => {
+      if (url.includes("NoComplete")) return { data: { orderDBList: [] } };
+      const page = parseInt(form.pageIndex, 10);
+      if (page === 1) {
+        // exactly PAGE_SIZE (50) → triggers page 2
+        const orders = Array.from({ length: 50 }, (_, i) => rawOrder(`P1-${i}`));
+        return { data: { OrderDTODataList: orders } };
+      }
+      if (page === 2) return { data: { OrderDTODataList: [rawOrder("P2-0")] } };
+      return { data: { OrderDTODataList: [] } };
+    };
+    const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
+    const items = await collect(a.sync({}));
+    expect(items).toHaveLength(51); // 50 + 1, then short page stops
+  });
+
+  it("honors limit + include gate", async () => {
+    const fetchFn = async ({ url }) =>
+      url.includes("NoComplete")
+        ? { data: { orderDBList: [] } }
+        : { data: { OrderDTODataList: [rawOrder("A"), rawOrder("B")] } };
+    const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
+    expect(await collect(a.sync({ limit: 1 }))).toHaveLength(1);
+    expect(await collect(a.sync({ include: { ticket: false } }))).toHaveLength(0);
+  });
+
+  it("empty responses yield nothing (expired cookie / no orders)", async () => {
+    const fetchFn = async () => ({});
+    const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
+    expect(await collect(a.sync({}))).toHaveLength(0);
+  });
+
+  it("throws when cookie mode active but no fetchFn injected", async () => {
+    const a = new Train12306Adapter({ account: { cookies: COOKIE } });
+    await expect(collect(a.sync({}))).rejects.toThrow(/no fetchFn configured/);
+  });
+
+  it("normalize maps a cookie ticket event → trip with capturedVia", async () => {
+    const fetchFn = async ({ url }) =>
+      url.includes("NoComplete")
+        ? { data: { orderDBList: [] } }
+        : { data: { OrderDTODataList: [rawOrder("SEQ1")] } };
+    const a = new Train12306Adapter({ account: { cookies: COOKIE }, fetchFn });
+    const [item] = await collect(a.sync({}));
+    const batch = a.normalize(item);
+    const ev = batch.events[0];
+    expect(ev.subtype).toBe("trip");
+    expect(ev.content.title).toBe("train: 上海虹桥 → 北京南");
+    expect(ev.extra.vendorExtras).toMatchObject({
+      capturedVia: "cookie-api",
+      idLast6: "011234",
+    });
   });
 });
