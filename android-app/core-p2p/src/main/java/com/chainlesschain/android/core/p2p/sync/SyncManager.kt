@@ -698,7 +698,9 @@ enum class ResourceType {
     PROJECT,
     // 家庭守护 telemetry 事件（FAMILY-26）：孩子端前台 app / PDH / snapshot 等采集事件
     // 上行到家长桌面端。append-only CREATE; 冲突走默认 LAST_WRITE_WINS（无真实冲突）。
-    TELEMETRY
+    TELEMETRY,
+    // 家庭守护 family_group（FAMILY-26 双向同步）：配对建立的家庭组在两端收敛。
+    FAMILY_GROUP
 }
 
 /**

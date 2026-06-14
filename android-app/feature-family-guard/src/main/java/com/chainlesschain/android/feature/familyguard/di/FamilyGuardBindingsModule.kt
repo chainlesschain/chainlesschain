@@ -111,12 +111,9 @@ abstract class FamilyGuardBindingsModule {
         impl: InvitePairingServiceImpl,
     ): InvitePairingService
 
-    /** FAMILY-26 family_group 上行 outbox 默认 no-op; :app 层 SyncManager 适配器覆盖。 */
-    @Binds
-    @Singleton
-    abstract fun bindFamilyGroupOutbox(
-        impl: NoOpFamilyGroupOutbox,
-    ): FamilyGroupOutbox
+    // FAMILY-26: FamilyGroupOutbox **不在此绑定** —— :feature-family-guard 不依赖 :core-p2p。
+    // 真实 SyncManager 适配器 (SyncManagerFamilyGroupOutbox) 在 :app FamilyGuardSyncModule 绑定
+    // (同 TelemetryOutbox 模式)。NoOpFamilyGroupOutbox 类保留, 供无 sync 宿主可选 fallback。
 
     @Binds
     @Singleton

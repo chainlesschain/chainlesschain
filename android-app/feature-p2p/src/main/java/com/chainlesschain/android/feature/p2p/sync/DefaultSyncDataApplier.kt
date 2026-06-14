@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.sync
 
 import timber.log.Timber
+import com.chainlesschain.android.core.p2p.sync.FamilyGuardSyncApplier
 import com.chainlesschain.android.core.p2p.sync.KnowledgeSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ProjectSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ResourceType
@@ -30,6 +31,7 @@ class DefaultSyncDataApplier @Inject constructor(
     private val notificationRepository: NotificationRepository,
     private val knowledgeSyncApplier: KnowledgeSyncApplier,
     private val projectSyncApplier: ProjectSyncApplier,
+    private val familyGuardSyncApplier: FamilyGuardSyncApplier,
 ) : SyncDataApplier {
 
     override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {
@@ -42,6 +44,7 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.POST -> postRepository.savePostFromSync(resourceId, data)
             ResourceType.POST_COMMENT -> postRepository.saveCommentFromSync(resourceId, data)
             ResourceType.NOTIFICATION -> notificationRepository.saveNotificationFromSync(resourceId, data)
+            ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.saveFamilyGroupFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for create: $resourceType")
         }
     }
@@ -56,6 +59,7 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.POST -> postRepository.updatePostFromSync(resourceId, data)
             ResourceType.POST_COMMENT -> postRepository.updateCommentFromSync(resourceId, data)
             ResourceType.NOTIFICATION -> notificationRepository.updateNotificationFromSync(resourceId, data)
+            ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.updateFamilyGroupFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for update: $resourceType")
         }
     }
