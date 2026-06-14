@@ -144,3 +144,58 @@ Listener 路由：构造 ACTION_START_VOICE_MODE Intent，加 EXTRA_TRIGGER_SOUR
 - 2026-05-15 v0.3：**PR3 landed — C.1 主体闭环** — wear-side `WearVoiceSender` (异步发 `/cc/voice/start` json，三态结果 OK/NO_PHONE/SEND_FAIL) + `VoiceForwardActivity` invisible trampoline (vibration 50ms 入场，失败 100ms 双震) + `VoiceComplicationService` SHORT_TEXT 静态 "语音/对话" tap-to-trampoline + `VoiceShortcutTileService` 全屏 tile "语音 / 对话 / tap → 手机" 三行 LaunchAction-to-trampoline + wear manifest 注册 1 activity + 2 services。**长按非 Wear 原生**改用独立 Voice complication 与现 PendingApprovals 共存。7 unit tests（PATH 锁、snake_case JSON 往返、status enum 3 变体、result 字段），Wearable Data Layer IO 不可 JVM 测留 instrumented PR4。
 - 2026-05-15 v0.2：**PR2 landed** — `CcPhoneVoiceListener` WearableListenerService 接收 wear→phone `/cc/voice/start` Data Layer messages → `VoiceForwardWire` 解析 → `startVoiceActivity` 走 PR1 的 VoiceLaunchActions.buildIntent → `startActivity`。manifest exact-path 与现 decision listener prefix `/cc/` 共存不互扰；payload trigger_source field 不可信，源固定 WEAR_FORWARD 防 forge。11 Robolectric tests。phone-side 链路收口；PR3 wear UI 是下一步。
 - 2026-05-15 v0.1：C.1 准入条件 audit + 重新拆 3 PR + PR1 phone-side intent 同 commit 落地。`cc.voice.start` framing 不准确（实际是从零建立），spike doc 记录真实状态。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文头部。C.1 watch face → VoiceMode spike（v0.3）：表盘触发语音模式可行性。
+
+### 2. 核心特性
+watch face / VoiceMode / spike。
+
+### 3. 系统架构
+见正文架构 / 设计章节。
+
+### 4. 系统定位
+ChainlessChain 的「WatchFace VoiceMode spike」。
+
+### 5. 核心功能
+见正文功能 / 设计章节。
+
+### 6. 技术架构
+见正文实现 / 技术章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比 / 借鉴（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节。
+
+### 12. 测试覆盖
+见正文测试 / E2E 章节。
+
+### 13. 安全考虑
+见正文安全 / 权限章节。
+
+### 14. 故障排除
+见正文故障 / trap / 已知限制章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文使用 / 命令 / API 示例。
+
+### 17. 相关文档
+[系统设计主文档](./系统设计_主文档.md)、相关设计文档。

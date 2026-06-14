@@ -146,3 +146,58 @@ cc multisig sign <proposalId> --signer <did> --ukey      # 走硬件 (Win only)
 - 2026-05-15 v0.3：**PR2b landed** — `buildUkeyManagerSigner` adapter + `web-shell-bootstrap.js` 注入 `signerFactory` + `SignProposalModal.vue` (payload hash 短码 / danger 按钮 / source picker) + `Multisig.vue` "签名" 按钮 (list/detail) 加 `onSignFromList` / `onSignFromDetail` / `onSigned` 流程。架构 pivot：renderer 走 WS topic 而非 electronAPI（与 web-panel embedded 设计一致），ukeySigner 在 **main 进程** boot 时 wire。10 PR2b unit tests + 75/75 全过 + web-panel build green。
 - 2026-05-15 v0.2：**PR2a landed** — `core-multisig.signWithExternal(...)` async API（caller 提供 `signCallback` 代替 secretKey）+ `MultisigSigner` source='ukey' 真 wiring。10 core-multisig + 5 MultisigSigner 新 unit tests + 0 regression (86 core-multisig + 65 desktop multisig)。PR2 拆 PR2a (backend，已落) + PR2b (UI 端 SignProposalModal + ukey IPC factory，下一步)。
 - 2026-05-15 v0.1：A.2 baseline 后即开 B.1 PR1。重评 Unified KeyStore 准入条件（infra 已 ready）+ 落地 MultisigSigner middleware + multisig.sign WS topic + 31 tests + 0 regression。PR2/3 列入下一步。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文头部。B.1 web-shell private key signing spike（v0.4）：web-shell 私钥签名可行性。
+
+### 2. 核心特性
+web-shell 签名 / 私钥 / spike。
+
+### 3. 系统架构
+见正文架构 / 设计章节。
+
+### 4. 系统定位
+ChainlessChain 的「web-shell 私钥签名 spike」。
+
+### 5. 核心功能
+见正文功能 / 设计章节。
+
+### 6. 技术架构
+见正文实现 / 技术章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比 / 借鉴（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节。
+
+### 12. 测试覆盖
+见正文测试 / E2E 章节。
+
+### 13. 安全考虑
+见正文安全 / 权限章节。
+
+### 14. 故障排除
+见正文故障 / trap / 已知限制章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文使用 / 命令 / API 示例。
+
+### 17. 相关文档
+[系统设计主文档](./系统设计_主文档.md)、相关设计文档。
