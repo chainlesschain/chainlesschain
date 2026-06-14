@@ -148,6 +148,7 @@ fun FamilyPairingScreen(
                             },
                             onDismissKyc = viewModel::dismissKyc,
                             onBack = viewModel::backToMenu,
+                            onGenerateReturnInvite = viewModel::startGenerate,
                         )
                     }
                 }
@@ -281,6 +282,7 @@ private fun AcceptPane(
     onConfirmKyc: (String, String, String) -> Unit,
     onDismissKyc: () -> Unit,
     onBack: () -> Unit,
+    onGenerateReturnInvite: () -> Unit,
 ) {
     val other = if (asChild) "家长" else "孩子"
     val clipboard = LocalClipboardManager.current
@@ -298,6 +300,16 @@ private fun AcceptPane(
 
     if (state.revivalCode != null) {
         RevivalCodeCard(state.revivalCode)
+        Spacer(Modifier.height(8.dp))
+        // 当前只是单向: 对方能看到我了, 但我(及对方家人页双向)还需对方也接受我的回邀请。
+        Text(
+            text = "想让$other 的「家人」页也能看到你？再生成一个回邀请让 $other 接受即可双向可见。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(onClick = onGenerateReturnInvite, modifier = Modifier.fillMaxWidth()) {
+            Text("↩ 生成回邀请（让$other 也能看到我）")
+        }
         return
     }
 

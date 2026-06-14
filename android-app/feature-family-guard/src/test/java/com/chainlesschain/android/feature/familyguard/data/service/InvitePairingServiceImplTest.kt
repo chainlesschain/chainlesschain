@@ -269,6 +269,41 @@ class InvitePairingServiceImplTest {
             assertEquals("陈家", materialized.name)
         }
 
+    @Test
+    fun `parent accepting a child-generated invite writes parent-to-child relationship (bidirectional)`(): Unit =
+        runBlocking {
+            val groupId = seedGroup()
+            // 对称配对反向: 孩子端生成"邀请家长"的邀请。
+            val invite = service.createInvite(
+                familyGroupId = groupId,
+                inviterDid = "did:chain:kid",
+                inviterRole = MemberRole.CHILD,
+                inviterTier = GuardianTier.SECONDARY,
+                inviteeRole = MemberRole.PARENT,
+                inviteeTier = GuardianTier.PRIMARY,
+                proposedPermissions = PermissionTemplates.forChildToParent(),
+                expectedChildAge = null,
+            )
+            val qr = InviteTokenCodec.encode(invite.signedInvite)
+            // 家长接受 (成年年龄, 不触发 KYC)。
+            val result = service.acceptInvite(
+                qrPayload = qr,
+                acceptanceCode = invite.acceptanceCode,
+                accepteeDid = "did:chain:dad",
+                accepteeDeviceId = "dev-dad",
+                reportedChildAge = 40,
+                childPermissions = PermissionTemplates.forParentToChild(),
+            )
+            val success = assertIs<PairingResult.Success>(result)
+            assertEquals("did:chain:kid", success.relationship.friendDid)
+            assertEquals("parent", success.relationship.roleSelf)
+            assertEquals("child", success.relationship.roleOther)
+            // 家长端写入了自己的 membership(parent) → 家长「家人」页据此 + relationship 看到孩子。
+            val members = db.familyMembershipDao().listByGroup(groupId)
+            assertEquals("did:chain:dad", members.single().memberDid)
+            assertEquals("parent", members.single().role)
+        }
+
     // ─── Failure paths ───
 
     @Test

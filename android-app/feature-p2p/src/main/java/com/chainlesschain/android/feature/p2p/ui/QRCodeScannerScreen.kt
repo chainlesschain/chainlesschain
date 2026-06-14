@@ -138,6 +138,7 @@ fun QRCodeScannerScreen(
 /**
  * 相机预览
  */
+@androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 @Composable
 fun CameraPreview(
     onQRCodeScanned: (String) -> Unit
@@ -156,8 +157,15 @@ fun CameraPreview(
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
 
-                // Preview
-                val preview = Preview.Builder().build().also {
+                // Preview — 用 Camera2Interop 在拍摄请求层强制连续自动对焦 (CONTINUOUS_PICTURE),
+                // 比 FocusMeteringAction 可靠 (不依赖布局时机)。屏对屏小码必需。
+                val previewBuilder = Preview.Builder()
+                androidx.camera.camera2.interop.Camera2Interop.Extender(previewBuilder)
+                    .setCaptureRequestOption(
+                        android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE,
+                        android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE,
+                    )
+                val preview = previewBuilder.build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 

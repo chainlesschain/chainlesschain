@@ -178,6 +178,7 @@ fun QRCodeScannerScreen(
 /**
  * 相机预览组件
  */
+@androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 @Composable
 private fun CameraPreview(
     onQRCodeDetected: (String) -> Unit,
@@ -196,8 +197,14 @@ private fun CameraPreview(
                 try {
                     val cameraProvider = cameraProviderFuture.get()
 
-                    // 预览
-                    val preview = Preview.Builder()
+                    // 预览 — Camera2Interop 强制连续自动对焦 (拍摄请求层, 不依赖布局时机)
+                    val previewBuilder = Preview.Builder()
+                    androidx.camera.camera2.interop.Camera2Interop.Extender(previewBuilder)
+                        .setCaptureRequestOption(
+                            android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE,
+                            android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE,
+                        )
+                    val preview = previewBuilder
                         .build()
                         .also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
