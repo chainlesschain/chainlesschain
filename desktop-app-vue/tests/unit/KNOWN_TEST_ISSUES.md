@@ -350,9 +350,26 @@ skip reasons were found to be inaccurate or brittle:
   through `this._fs`. Backward-compatible — the sole production caller
   (`chat-skill-bridge.js`) uses the 1-arg form. **36 pass, 0 skipped.**
 
+- **`llm/secure-config-storage.test.js`** — 6 tests across 4 blocks (default
+  storagePath, `_getDefaultStoragePath`, `_getBackupDir`, 3× singleton) were
+  skipped because Electron's `app.getPath` / `safeStorage` were undefined under
+  test (vi.mock("electron") doesn't reach the source's CJS `require("electron")`
+  destructure in the forks pool). Injected `{ app, safeStorage }` into the
+  `SecureConfigStorage` constructor and forwarded options through
+  `getSecureConfigStorage()` on first creation. Backward-compatible — all
+  production callers use the no-arg/no-option form. **108 pass, 0 skipped.**
+
+- **`enterprise/organization-ipc.test.js`** — 3 handler tests (copy-invitation
+  clipboard, download-qrcode save, export-activities JSON) were skipped because
+  `clipboard`/`fs.promises` were require'd inside the handlers, beyond the reach
+  of vi.mock in the forks pool. Extended the existing `registerOrganizationIPC`
+  DI seam with optional `clipboard`/`fs` deps (defaulting to `electron.clipboard`
+  / module `fs.promises`). Backward-compatible — the production caller
+  (`phase-3-4-social.js`) passes neither. **154 pass, 0 skipped.**
+
 > Still intentionally skipped (genuine gates, not debt): hardware/native
 > (U-Key, Sharp, Whisper server, pkcs11), Python-env integration scenarios, and
-> Electron clipboard / `fs.promises` ESM-mock limitations.
+> Electron `fs.promises` ESM-dynamic-import cases not yet routed through a DI seam.
 
 ---
 
