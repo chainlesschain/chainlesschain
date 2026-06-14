@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.20.0] — 2026-06-14
+
+- **Explain / Refactor selection (Claude Code parity)**: select code and
+  right-click → **Explain Selection** or **Refactor Selection** seeds the chat
+  panel with a request referencing `@selection` (the CLI expands it to the live
+  editor selection through the bridge) plus a pointer to the file and lines.
+  Explain is ready to send; Refactor leaves the caret ready for you to describe
+  the change. Both also appear in the command palette; the context-menu items
+  show only when there is a selection.
+- **`/cost` and `/context` panel commands (REPL parity)**: type `/cost` for this
+  conversation's estimated token spend + cost, or `/context` for its
+  context-window usage. Both defer to the CLI (`cc cost <id>` / `cc context
+  <id>`) for this panel's session — the same source of truth the REPL uses —
+  and render in a monospaced block. `/help` now lists them.
+
 ## [0.19.0] — 2026-06-14
 
 - **Fix with ChainlessChain (Claude Code parity)**: a QuickFix lightbulb now

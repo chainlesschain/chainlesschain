@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -60,6 +60,14 @@
       {
         "command": "chainlesschain.chat.fixDiagnostics",
         "title": "ChainlessChain: Fix with ChainlessChain (diagnostics)"
+      },
+      {
+        "command": "chainlesschain.chat.explainSelection",
+        "title": "ChainlessChain: Explain Selection"
+      },
+      {
+        "command": "chainlesschain.chat.refactorSelection",
+        "title": "ChainlessChain: Refactor Selection"
       }
     ],
     "keybindings": [
@@ -106,6 +114,16 @@
         {
           "command": "chainlesschain.chat.fixDiagnostics",
           "group": "navigation@10"
+        },
+        {
+          "command": "chainlesschain.chat.explainSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@11"
+        },
+        {
+          "command": "chainlesschain.chat.refactorSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@12"
         }
       ],
       "view/title": [

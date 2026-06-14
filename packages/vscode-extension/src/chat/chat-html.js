@@ -45,6 +45,7 @@ function buildChatHtml({ cspSource, nonce }) {
   .tool { opacity:.75; font-family: var(--vscode-editor-font-family); font-size:.92em; }
   .tool.err { color: var(--vscode-errorForeground); }
   .info { opacity:.6; font-style:italic; font-size:.92em; }
+  .mono { font-family: var(--vscode-editor-font-family); font-size:.88em; opacity:.85; }
   .error { color: var(--vscode-errorForeground); }
   #plan { display:none; margin:6px; padding:8px; border:1px solid var(--vscode-panel-border);
           border-radius:4px; background: var(--vscode-editorWidget-background); }
@@ -138,6 +139,8 @@ function buildChatHtml({ cspSource, nonce }) {
     "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
     "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
     "/stop": () => vscode.postMessage({ type: "interrupt" }),
+    "/cost": () => vscode.postMessage({ type: "cost" }),
+    "/context": () => vscode.postMessage({ type: "context" }),
   };
   // Pasted screenshots ride the message as data URLs; the host writes them
   // to temp files and the CLI attaches them like --image (vision model
@@ -180,7 +183,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /help");
         return;
       }
       if (SLASH[cmd]) {
@@ -456,6 +459,10 @@ function buildChatHtml({ cspSource, nonce }) {
         input.focus();
         break;
       }
+      case "pre":
+        // Monospaced block for /cost + /context output (.msg keeps newlines).
+        add("mono", String(m.text || ""));
+        break;
       case "reset":
         log.textContent = "";
         streamEl = null;

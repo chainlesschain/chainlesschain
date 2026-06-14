@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）· Phase 7 ✅（Fix with ChainlessChain:诊断 QuickFix 灯泡 → 种入作用域修复 prompt,VS Code 0.19.0,2026-06-14）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）· Phase 7 ✅（Fix with ChainlessChain 诊断 QuickFix 灯泡 0.19.0 + Explain/Refactor 选区右键 + `/cost`·`/context` 面板命令 0.20.0,2026-06-14）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -353,6 +353,23 @@ vscode"的纪律):
 - **测试 20**(`vscode-ext-fix-with-cc.test.js`):格式化全分支 + provider 载荷
   JSON round-trip + 无诊断不出动作 + 无参兜底的 选区/光标行/全文 scoping +
   `seedInput` reveal/queue/即时 post。
+
+**Phase 7 续 — 选区动作 + 面板内省命令 ✅ (VS Code 0.20.0,2026-06-14)**:补面板剩余的
+两类原生入口。
+- **Explain / Refactor selection**(右键选区 → 种入 `@selection` 请求 + 文件/行号指针):
+  `src/chat/selection-actions.js` 纯 `formatSelectionPrompt`(explain 收尾 `\n` 即可发送;
+  refactor 收尾 `: ` 留光标让用户描述);extension.js `seedSelectionAction` 读活动编辑器
+  选区(空选区给提示)+ 两命令 + 编辑器右键菜单(`when: editorHasSelection`)。`@selection`
+  由 headless-stream `expandIdeMentions` 在发送时展开为实时选区(无需嵌入代码、无时序耦合)。
+- **`/cost` + `/context` 面板命令**(对标 REPL):不在 webview 里重算定价/上下文窗口,而是
+  `src/chat/introspect-commands.js`(`buildIntrospectArgs` + 永不 reject 的 `runCliText`)
+  defer 到 CLI 真相源 `cc cost <id>` / `cc context <id>`(本面板 session id),与 `/sessions`
+  defer `cc session list` 同构;chat-view `_runIntrospect`(`_deps.runCliText` 可注入)→
+  新 `pre` 消息种类(`.mono` 等宽块,`.msg` 已 `white-space:pre-wrap` 保留对齐);无 session
+  先提示发消息。
+- **测试 +21**(`vscode-ext-selection-actions.test.js` 9 + `vscode-ext-introspect-commands.test.js`
+  12,含 args 构造/runner stdout·stderr·失败回退/`_runIntrospect` 无 session·成功·空回退/
+  webview parse gate)。
 
 ---
 

@@ -245,6 +245,45 @@ class ChatViewProvider {
     return filterFiles(all, prefix, 20);
   }
 
+  /**
+   * `/cost` + `/context` — run the CLI introspection command for THIS panel's
+   * session and render its text (mirrors `/sessions` deferring to the CLI;
+   * avoids duplicating pricing / context-window math in the webview). Needs a
+   * persisted session id, so it's a no-op with a hint before the first turn.
+   */
+  async _runIntrospect(kind) {
+    const id = this._storedSessionId();
+    if (!id) {
+      this._post({
+        kind: "info",
+        text: `/${kind}: send a message first — no session yet.`,
+      });
+      return;
+    }
+    const introspect = require("./introspect-commands");
+    const runText = this.opts.deps?.runCliText || introspect.runCliText;
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const cwd = folders[0]?.uri?.fsPath || process.cwd();
+    const chatCfg = this.vscode.workspace.getConfiguration(
+      "chainlesschain.chat",
+    );
+    const bridgeEnv =
+      typeof this.opts.getBridgeEnv === "function"
+        ? this.opts.getBridgeEnv()
+        : {};
+    const args = introspect.buildIntrospectArgs(kind, id, {
+      model: chatCfg.get("model"),
+      provider: chatCfg.get("provider"),
+    });
+    const text = await runText({
+      command: this._cliCommand(),
+      args,
+      cwd,
+      env: { ...process.env, ...bridgeEnv },
+    });
+    this._post({ kind: "pre", text: text || `/${kind}: (no output)` });
+  }
+
   /** Called after the Configure-LLM wizard: fresh child picks up the config. */
   onLlmConfigured() {
     this.session?.stop();
@@ -323,6 +362,8 @@ class ChatViewProvider {
         );
       } else if (m.type === "pickSession") {
         this._pickSession().catch(() => {});
+      } else if (m.type === "cost" || m.type === "context") {
+        this._runIntrospect(m.type).catch(() => {});
       } else if (m.type === "configureLlm") {
         this.vscode.commands.executeCommand("chainlesschain.llm.configure");
       } else if (m.type === "approval") {

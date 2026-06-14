@@ -176,6 +176,29 @@ function activate(context) {
     ),
   );
 
+  // "Explain / Refactor selection" (Claude Code parity): right-click a
+  // selection → seed the chat panel with a request referencing @selection
+  // (the CLI expands it to the live selection via the bridge).
+  const seedSelectionAction = (action) => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !editor.selection || editor.selection.isEmpty) {
+      vscode.window.showInformationMessage(
+        "ChainlessChain: select some code first, then Explain / Refactor with ChainlessChain.",
+      );
+      return;
+    }
+    const { formatSelectionPrompt } = require("./chat/selection-actions.js");
+    const rel = vscode.workspace.asRelativePath(editor.document.uri, false);
+    const sel = editor.selection;
+    chatProvider.seedInput(
+      formatSelectionPrompt(action, {
+        relPath: rel,
+        startLine: sel.start.line,
+        endLine: sel.end.line,
+      }),
+    );
+  };
+
   // Live UI updates on every logged event.
   context.subscriptions.push({
     dispose: _activityLog.onChange((e) => {
@@ -349,6 +372,13 @@ function activate(context) {
         const prompt = formatFixPrompt({ relPath: rel, diagnostics });
         if (prompt) chatProvider.seedInput(prompt);
       },
+    ),
+    vscode.commands.registerCommand("chainlesschain.chat.explainSelection", () =>
+      seedSelectionAction("explain"),
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.chat.refactorSelection",
+      () => seedSelectionAction("refactor"),
     ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {
       const {
