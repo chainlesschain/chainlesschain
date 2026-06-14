@@ -508,3 +508,75 @@ cc nl "我妈生日那周买了啥送哪儿"
 ---
 
 > **下一步**：(1) A1 ✅ done；(2) B.1 路径 ✅ verify；(3) 启 Sub-Phase A2 落 workflow 改动（task #7）。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。PDH Android Standalone（Plan A）让 Android 完全脱离桌面进程也能用 PDH：vault / Ollama / adapter pipeline 全在手机本地跑，由 APK 内 bundled `cc` CLI 驱动；与 Plan B（手机 RPC 桌面）互补。
+
+### 2. 核心特性
+
+in-APK cc CLI 驱动；手机本地 vault / Ollama / adapter；跨 App 数据访问 5 路径矩阵；Android-specific cc 命令。
+
+### 3. 系统架构
+
+见正文「4. 架构」+「5. 跨 App 数据访问 5 路径矩阵」。
+
+### 4. 系统定位
+
+PDH 的**Android 完全本地（脱桌面）方案**（Plan A，与 Plan B 并行互补）。
+
+### 5. 核心功能
+
+见正文「6. cc 命令矩阵」+「7. Sub-Phase 拆分」。
+
+### 6. 技术架构
+
+APK bundled `cc` CLI（Termux Node 24.x）；本机 SQLCipher vault；端侧 LLM（1.5–3B 摘要）。
+
+### 7. 系统特点
+
+端侧 LLM 仅适合 1.5–3B（重型分析回 Plan B / 远程 API）；Node 24.x 锁定（better-sqlite3-multiple-ciphers engines.node max 24）。
+
+### 8. 应用场景
+
+无桌面环境下手机本地跑 PDH 采集 + 查询。
+
+### 9. 竞品对比
+
+Plan A（本地）vs Plan B（`Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`，RPC 桌面）。
+
+### 10. 配置参考
+
+bundled cc bundle（见 `Android_Local_Terminal_CI_Bundle.md`）；Node 24.x prebuild 矩阵。
+
+### 11. 性能指标
+
+端侧 LLM 受 1.5–3B 模型限制；重型分析回 Plan B。
+
+### 12. 测试覆盖
+
+A1 ✅ / B.1 路径 ✅ verify（见正文下一步）。
+
+### 13. 安全考虑
+
+本机 SQLCipher vault；cc 在 $PREFIX 沙箱内不触发 root（见 `Android_Local_Terminal.md`）。
+
+### 14. 故障排除
+
+Node prebuild / better-sqlite3 ABI、端侧 LLM OOM → 见正文 OQ 与 `Android_Local_Terminal.md` traps。
+
+### 15. 关键文件
+
+APK bundled `cc`；`packages/personal-data-hub/lib/**`；Termux Node runtime。
+
+### 16. 使用示例
+
+见正文「6. cc 命令矩阵」Android-specific 命令。
+
+### 17. 相关文档
+
+见正文头部：`Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`（Plan B）、`Personal_Data_Hub_Architecture.md`、`Android_Local_Terminal_CI_Bundle.md`。

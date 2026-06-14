@@ -672,3 +672,75 @@ Android P2PClient._events.emit(EventNotification)
 ```
 
 > **本文档为 Phase 14 首个完整设计稿**。后续 implementation 将依本稿落地；任何偏差通过 PR 回填本稿 `## Open Questions` 或 `## Traps` 章节。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。Phase 14 移动端原生入口（Android + iOS）：为 PDH 建立完整移动端入口设计（HubAskScreen 端到端）。14.0（Android SeedRegistry 21 method）已落地，14.1/14.2/14.3 待实施；与 Plan A（`Android_Standalone_Cc`）互补。
+
+### 2. 核心特性
+
+HubAskScreen 端到端；Android + iOS 原生入口；6 sub-phase；双端审计 + 同步进度推送（14.3）。
+
+### 3. 系统架构
+
+见正文「4. 架构」+「5. 详细流：HubAskScreen 端到端」。
+
+### 4. 系统定位
+
+PDH 的**移动端原生入口设计（Plan B：手机 RPC 桌面）**。
+
+### 5. 核心功能
+
+见正文「6. 6 个 sub-phase 拆分」：14.0 元数据 / 14.1 Android UI / 14.2 iOS / 14.3 审计+同步进度 / 14.5 流式。
+
+### 6. 技术架构
+
+Android SeedRegistry（21 method）+ HubAdaptersViewModel；远程操控 RPC 调桌面 hub；HubSyncEvent 进度。
+
+### 7. 系统特点
+
+Plan B（RPC 桌面）vs Plan A（本地 `Personal_Data_Hub_Android_Standalone_Cc.md`）；此前路线图仅内联在 `personal-data-hub.md`。
+
+### 8. 应用场景
+
+移动端经原生入口查询 / 同步 PDH（HubAskScreen）。
+
+### 9. 竞品对比
+
+Plan B（RPC 桌面）vs Plan A（手机本地）。
+
+### 10. 配置参考
+
+SeedRegistry 元数据（21 method）；HubAskScreen 配置。
+
+### 11. 性能指标
+
+同步进度推送（见 `Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md`）；ask 流式（14.5）。
+
+### 12. 测试覆盖
+
+见正文「7. Traps & 风险」；14.0 已落地（v5.0.3.72）。
+
+### 13. 安全考虑
+
+经远程操控配对信任信道；数据在桌面 vault（加密）。
+
+### 14. 故障排除
+
+见正文「7. Traps & 风险」与「3. Open Questions」。
+
+### 15. 关键文件
+
+`SeedRegistry.kt:386-555`（21 method）；`HubAskScreen.kt`；`HubAdaptersViewModel`；`PersonalDataHubCommands.kt`。
+
+### 16. 使用示例
+
+见正文「5. 详细流：HubAskScreen 端到端」（连接中 → 拉取中 → 归一化 → 完成）。
+
+### 17. 相关文档
+
+见正文链接：`Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A）、`Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md`、`Personal_Data_Hub_Phase_14_5_Streaming_Ask.md`、`personal-data-hub.md`。

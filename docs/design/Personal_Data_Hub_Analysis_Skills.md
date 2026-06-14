@@ -331,3 +331,75 @@ type RunSkillResponse = SkillResult | { error: string };
 - [E2E Runbook](./Personal_Data_Hub_E2E_Runbook.md) — 真账号端到端验收（含 skill 跑通路径）
 - [Adapter — Alipay 账单](./Adapter_Alipay_Bill.md) — spending 主要事实源
 - [Adapter — 电商 Cookie](./Adapter_Shopping_Cookie.md) — order 子类（Phase 7 后扩 spending 覆盖）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 & 目标」。Phase 11 Analysis Skills：5 个内置分析 skill + base 类 + registry（`packages/personal-data-hub/lib/analysis-skills/`），含输入/输出 schema、隐私边界、新增第 6 个 skill 的 checklist。
+
+### 2. 核心特性
+
+5 内置 skill + base + registry；输入/输出 schema 契约；隐私 Gate + LLM 调用；IPC/WS 接口。
+
+### 3. 系统架构
+
+见正文「2. 总体设计」（skill registry → 隐私 Gate → LLM → 结果）。
+
+### 4. 系统定位
+
+PDH 的**AI 分析 skill 层**（Phase 11），LocalVault 数据上的分析能力。
+
+### 5. 核心功能
+
+见正文「3. 5 个 Skill 详细契约」+「5. IPC / WS 接口」。
+
+### 6. 技术架构
+
+base skill 类 + registry；隐私 Gate（敏感字段脱敏后才调 LLM）；Ollama / 远程 LLM。
+
+### 7. 系统特点
+
+回溯成形契约（已实现为底稿）；新增 skill 有 checklist（见正文）；forward-looking traps（§7）。
+
+### 8. 应用场景
+
+消费 / 关系 / 足迹等结构化分析（spending 来自 Alipay / 电商，relations 依赖 EntityResolver）。
+
+### 9. 竞品对比
+
+—（内部 skill 层）。
+
+### 10. 配置参考
+
+skill registry 注册；隐私 Gate 配置（见正文 §4）。
+
+### 11. 性能指标
+
+LLM 调用时延为主；本地 Ollama vs 远程 API。
+
+### 12. 测试覆盖
+
+见正文「6. 测试策略」；5 skill 各带契约测试。
+
+### 13. 安全考虑
+
+见正文「4. 隐私 Gate 与 LLM 调用」：敏感字段脱敏后才出本机调 LLM。
+
+### 14. 故障排除
+
+skill 输出异常 / LLM 不可用 → 见正文 §7 forward-looking traps。
+
+### 15. 关键文件
+
+`packages/personal-data-hub/lib/analysis-skills/`（5 skill + base + registry）。
+
+### 16. 使用示例
+
+见正文 §3 各 skill 契约与 §5 IPC/WS 调用。
+
+### 17. 相关文档
+
+见正文「9. 相关文档」：`Personal_Data_Hub_Architecture.md` §12、`Personal_Data_Hub_EntityResolver.md`、`Personal_Data_Hub_E2E_Runbook.md`、`Adapter_Alipay_Bill.md`、`Adapter_Shopping_Cookie.md`。

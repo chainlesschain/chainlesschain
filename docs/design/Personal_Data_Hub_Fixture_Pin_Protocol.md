@@ -287,3 +287,75 @@ $ cc hub query-events --adapter <name> --subtype browse
   - personal-data-hub.md 总览表
   - CHANGELOG + MEMORY.md
 - 真账号 smoke 命令模板放在 [`Personal_Data_Hub_E2E_Runbook.md`](./Personal_Data_Hub_E2E_Runbook.md) 配套维护
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为方法论 / 协议文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 & 范围」。Fixture Pin Protocol 把 v0.1 scaffold 升级为 v1 pinned fixture 的方法论，覆盖 Doubao / Toutiao / Kuaishou 三个待 pin scaffold 及任意新 v0.1 scaffold。
+
+### 2. 核心特性
+
+三类 scaffold 分类；通用 fixture pin 流程；field-rename-map 模板；真账号 smoke 模板。
+
+### 3. 系统架构
+
+见正文「3. 通用 fixture pin 流程」（抓真响应 → 对齐 schema → pin fixture → 标 v1）。
+
+### 4. 系统定位
+
+PDH adapter 的**scaffold → v1 fixture pin 方法论**。
+
+### 5. 核心功能
+
+见正文 2–4：scaffold 分类 / pin 流程 / field-rename-map 模板。
+
+### 6. 技术架构
+
+真账号抓 conversations/messages endpoint 响应 → field-rename-map → fixture pin。
+
+### 7. 系统特点
+
+通用方法论（任意新 v0.1 scaffold 可复用）；v1 完成时同步更新状态标签 / 总览表 / CHANGELOG / MEMORY。
+
+### 8. 应用场景
+
+新 adapter scaffold 升级到 production fixture。
+
+### 9. 竞品对比
+
+—（方法论文档）。
+
+### 10. 配置参考
+
+见正文「field-rename-map.md 模板」与 endpoint response 模板。
+
+### 11. 性能指标
+
+rate limit observation（见正文模板）。
+
+### 12. 测试覆盖
+
+pinned fixture 作为 adapter 单测基线；真账号 smoke 见 `Personal_Data_Hub_E2E_Runbook.md`。
+
+### 13. 安全考虑
+
+真账号抓包含敏感数据；fixture 脱敏后入库。
+
+### 14. 故障排除
+
+schema 漂移 → 按本协议 pin 新 fixture。
+
+### 15. 关键文件
+
+各 scaffold adapter fixture；field-rename-map.md。
+
+### 16. 使用示例
+
+见正文「3. 通用 fixture pin 流程」步骤。
+
+### 17. 相关文档
+
+见正文链接：`Adapter_Social_Messaging.md` §11/§12、`Adapter_WeChat_SQLCipher.md` §18、`Personal_Data_Hub_E2E_Runbook.md`。

@@ -514,3 +514,75 @@ type AuditRow = {
 | iOS `Modules/CoreP2P/Sources/RemoteSkills/AIChat/AIChatEventDispatcher.swift` | iOS dispatcher 模板 |
 
 > Phase 14.3 实施者应**先**读 Phase 5 dispatcher（Android + iOS 两侧），再读本稿 §3.2 + §3.3 模板 —— 几乎是 copy + 改 filter + 改 state model 的工作量。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为详细设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 目标 & 非目标」。Phase 14.3 双端流式同步进度 + 审计回查：给实施者提供 wire schema + dispatcher 模板 + UI 模式三块可直接落地内容（父稿 §6 已列 sub-phase）。
+
+### 2. 核心特性
+
+`personal-data-hub.sync.progress` wire schema；fan-out 第 4 子流；流式进度 UI；审计回查 UI（非流式）。
+
+### 3. 系统架构
+
+见正文「3. Fan-out task — 加第 4 子流」；复用 Phase 5 dispatcher（Android + iOS）。
+
+### 4. 系统定位
+
+PDH Phase 14.3 的**双端流式同步进度 + 审计回查详细设计**。
+
+### 5. 核心功能
+
+见正文 2–6：wire schema / fan-out / UI 模式 / 审计回查 / sub-phase 拆分。
+
+### 6. 技术架构
+
+WS `personal-data-hub.sync.progress`；dispatcher（LRU + state，仿 Phase 5 AIChatEventDispatcher）；Android + iOS 双端。
+
+### 7. 系统特点
+
+几乎是 copy Phase 5 dispatcher + 改 filter + 改 state model 的工作量（见正文末）。
+
+### 8. 应用场景
+
+移动端实时看采集同步进度 + 回查审计。
+
+### 9. 竞品对比
+
+复用 Phase 5 dispatcher 祖本（零新范式）。
+
+### 10. 配置参考
+
+见正文 2「Wire schema」+ 3「fan-out 第 4 子流」。
+
+### 11. 性能指标
+
+流式增量推送（token/事件级）；审计回查为分页查询。
+
+### 12. 测试覆盖
+
+见正文 7「Traps & 风险」；dispatcher edge（fan-out 订流）测试。
+
+### 13. 安全考虑
+
+同步进度 / 审计含数据元信息；走配对信任信道。
+
+### 14. 故障排除
+
+dispatcher 未订流（如 `PersonalDataHubCommands.kt:106` syncAdapterStream wrapper 缺订）→ 见正文关键文件表。
+
+### 15. 关键文件
+
+`registry.js:syncAdapterStream`；`PersonalDataHubCommands.kt`；`NotificationEventDispatcher.kt`/`AIChatEventDispatcher.kt`（模板）；iOS `AIChatEventDispatcher.swift`。
+
+### 16. 使用示例
+
+见正文 §3.2/§3.3 dispatcher 模板。
+
+### 17. 相关文档
+
+父稿 `Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md` §6；姊妹 `Personal_Data_Hub_Phase_14_5_Streaming_Ask.md`。

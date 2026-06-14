@@ -879,3 +879,75 @@ last_error TEXT
 - 既有 `数据同步方案.md` — P2P + DID 同步
 - 既有 `13_多代理系统.md` — Cowork agent 框架（PersonalAnalysisAgent 基础）
 - 上游 fork 源：[`sjqz`](file://C:/code/sjqz) — Python mobile-forensics toolkit，17 parser + Android/iOS extraction + WeChat 解密（MIT License）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为个人数据中台主架构文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 & 愿景」。Personal Data Hub（个人数据中台）把 ChainlessChain 从"个人 AI 工具集"升级为"用户全数据的本地中台 + AI 分析引擎"，兑现"数据回归个人"。v0.5：Phase 0–13 + 多平台采集均已落地，51 adapter / 121 测试文件 / 2040 测试，pdh npm 0.4.0。
+
+### 2. 核心特性
+
+UnifiedSchema 统一数据模型；EntityResolver 跨源实体消歧；LocalVault（SQLCipher）安全存储；51 adapter 多源采集；AI 分析引擎（hub.ask）。
+
+### 3. 系统架构
+
+见正文「4. 整体架构」（adapter → UnifiedSchema → EntityResolver → LocalVault → AnalysisEngine）。
+
+### 4. 系统定位
+
+ChainlessChain 的**个人全数据本地中台 + AI 分析引擎**。
+
+### 5. 核心功能
+
+见正文 5–7：UnifiedSchema / EntityResolver / LocalVault；多平台 adapter（邮件 / 支付宝 / 电商 / 出行 / 社交 / 微信 等）。
+
+### 6. 技术架构
+
+Node + better-sqlite3-multiple-ciphers（SQLCipher）；Python sidecar（forensics-bridge）；Ollama 本地 LLM + RAG；上游 fork sjqz（17 parser）。
+
+### 7. 系统特点
+
+本地优先 + 加密；adapter 可插拔（AdapterRegistry）；跨源 KG（EntityResolver）；端侧 / 远程混合分析。
+
+### 8. 应用场景
+
+跨源个人数据问答（"上个月在哪花了钱"）、消费 / 足迹 / 社交图谱、数据主权回归。
+
+### 9. 竞品对比
+
+vs 各 app 封闭生态：本地中台把分散数据取回统一 KG（见正文愿景 + `Personal_Data_Hub_sjqz_Comparison.md`）。
+
+### 10. 配置参考
+
+LocalVault SQLCipher 密钥；adapter cookie / 账号配置；Ollama / sidecar 依赖（见 `Personal_Data_Hub_Python_Sidecar.md`）。
+
+### 11. 性能指标
+
+2040 测试；同步 / 查询性能见 `Personal_Data_Hub_E2E_Runbook.md` 性能基准。
+
+### 12. 测试覆盖
+
+121 测试文件 / 2040 测试（pdh npm 0.4.0）；真机 E2E 见各 Runbook。
+
+### 13. 安全考虑
+
+见正文「7. LocalVault 安全模型」：SQLCipher（AES-256）+ U-Key/SIMKey；高敏感数据本地不外发；隐私 Gate（见 `Personal_Data_Hub_Analysis_Skills.md` §4）。
+
+### 14. 故障排除
+
+adapter cookie / 端点漂移、SQLCipher 解密、sidecar 依赖缺失 → 见各 adapter / sidecar 文档。
+
+### 15. 关键文件
+
+`packages/personal-data-hub/lib/**`（adapters / analysis-skills / vault）；UnifiedSchema；EntityResolver；上游 sjqz。
+
+### 16. 使用示例
+
+见正文各 adapter 与 `hub.ask` 自然语言查询示例（§7.1 5 类问题）。
+
+### 17. 相关文档
+
+见正文末尾关联：各 `Adapter_*.md`、`Personal_Data_Hub_EntityResolver.md`、`Personal_Data_Hub_Python_Sidecar.md`、`Personal_Data_Hub_Analysis_Skills.md`、`Personal_Data_Hub_E2E_Runbook.md`、`Personal_Data_Hub_sjqz_Comparison.md`。

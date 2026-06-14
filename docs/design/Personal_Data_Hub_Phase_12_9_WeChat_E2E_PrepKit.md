@@ -357,3 +357,75 @@ echo "Artifacts: $ART"
 - **用户文档（功能在哪用 / 怎么启动）** → [`../WeChat_数据采集_快速开始.md`](../WeChat_数据采集_快速开始.md)
 - **frida-server setup 完整指南** → [`Adapter_WeChat_SQLCipher_Frida_Setup.md`](./Adapter_WeChat_SQLCipher_Frida_Setup.md)
 - **adapter 架构** → [`Adapter_WeChat_SQLCipher.md`](./Adapter_WeChat_SQLCipher.md)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 E2E 准备包（Prep Kit）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。Phase 12.9 WeChat 真机 E2E Prep Kit：配套 Runbook 的启动前检查单 + 一键采证脚本 + 11 场景失败 SOP 卡片 + 通过判据汇总。
+
+### 2. 核心特性
+
+启动前 30 分钟检查单；每场景一键采证脚本；11 场景 SOP 卡片速查；通过/不通过判据。
+
+### 3. 系统架构
+
+见配套 `Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`（场景定义）。
+
+### 4. 系统定位
+
+Phase 12.9 WeChat 真机 E2E 的**执行准备包 / 速查卡**。
+
+### 5. 核心功能
+
+见正文 A–E：检查单 / 采证脚本 / artifacts / 失败 SOP 卡片 / 判据 / 可跳章节。
+
+### 6. 技术架构
+
+adb 采证脚本；frida-server（见 `Adapter_WeChat_SQLCipher_Frida_Setup.md`）。
+
+### 7. 系统特点
+
+降低 Runbook 执行门槛；失败时直接查 SOP 卡片。
+
+### 8. 应用场景
+
+Phase 12.9 真机 E2E 执行前准备 + 失败速查。
+
+### 9. 竞品对比
+
+—（执行配套）；完整场景见 Runbook。
+
+### 10. 配置参考
+
+见正文 A「启动前 30 分钟检查单」。
+
+### 11. 性能指标
+
+见 Runbook 性能基准合集。
+
+### 12. 测试覆盖
+
+11 场景（见 Runbook）；本文提供采证 + 判据。
+
+### 13. 安全考虑
+
+微信数据 + frida 提权高敏感；采证 artifacts 注意外发安全。
+
+### 14. 故障排除
+
+见正文 C「11 个场景失败 SOP 卡片速查」。
+
+### 15. 关键文件
+
+采证脚本；`Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`；`../WeChat_数据采集_快速开始.md`（用户文档）。
+
+### 16. 使用示例
+
+见正文 B「每场景一键采证脚本」。
+
+### 17. 相关文档
+
+见正文「G. 相关」：Runbook、`Adapter_WeChat_SQLCipher_Frida_Setup.md`、`Adapter_WeChat_SQLCipher.md`、`../WeChat_数据采集_快速开始.md`。

@@ -220,3 +220,75 @@ c8142e573 feat(pdh): vault FTS5 search + facetCounts API (migration v3)
 ```
 
 每个 commit 独立可 revert + 自带测试。详见各 commit message。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。Vault Browser（Phase 16，v1.0 已 land）是桌面 + Android 双端的"采集数据可视化展示入口"——用户首次能主动浏览 vault 里所有 events，而非只能通过"问 AI"间接看 RAG 召回片段。
+
+### 2. 核心特性
+
+桌面 + Android 双端；vault events 浏览；FTS5 全文搜索 + facetCounts；adapter→category taxonomy；sidebar/filter/renderer。
+
+### 3. 系统架构
+
+见正文「4. 实现总览」；Pinia store + WS search-events/facet-counts topics + PDH FTS5（migration v3）。
+
+### 4. 系统定位
+
+PDH 的**vault 数据可视化浏览入口**（Phase 16）。
+
+### 5. 核心功能
+
+见正文：events 列表 / 过滤 / 全文搜索 / facet 计数 / category 分类。
+
+### 6. 技术架构
+
+桌面 Vue + Pinia store；WS `personal-data-hub.search-events` / `facet-counts`；vault FTS5 search + facetCounts API。
+
+### 7. 系统特点
+
+7 独立 commit（各自可 revert + 自带测试）；双端一致 taxonomy。
+
+### 8. 应用场景
+
+用户主动浏览 / 搜索 vault 中所有采集 events。
+
+### 9. 竞品对比
+
+vs 仅"问 AI"间接看 RAG 片段——本功能让用户直接浏览全量 events（见正文背景）。
+
+### 10. 配置参考
+
+adapter→category taxonomy（shared）；FTS5 migration v3。
+
+### 11. 性能指标
+
+FTS5 全文搜索 + facetCounts（索引查询）。
+
+### 12. 测试覆盖
+
+每个 commit 自带测试（见正文 Commit 链 `801a95969..839e534c5`）。
+
+### 13. 安全考虑
+
+vault events 高敏感；本地浏览不外发；SQLCipher 加密存储。
+
+### 14. 故障排除
+
+搜索无结果 / facet 不准 → 检查 FTS5 索引（migration v3）。
+
+### 15. 关键文件
+
+桌面 Vault Browser view + Pinia store；WS search-events/facet-counts；PDH vault FTS5 + facetCounts API。
+
+### 16. 使用示例
+
+见正文实现总览（浏览 / 搜索 / 过滤）。
+
+### 17. 相关文档
+
+`Personal_Data_Hub_Architecture.md`；各 `Adapter_*.md`（数据源）。

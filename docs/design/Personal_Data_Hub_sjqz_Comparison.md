@@ -235,3 +235,75 @@ PDH/packages/personal-data-hub/lib/adapters/wechat/legacy-key-extractor.js
 - PDH 父文档: `docs/design/Personal_Data_Hub_Architecture.md`
 - PDH Phase 8: `docs/design/Personal_Data_Hub_EntityResolver.md`
 - PDH Phase 12: `docs/design/Adapter_WeChat_SQLCipher.md` (含 §17 addendum)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为研究 / 对比稿。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 两个项目的定位差异」。本研究稿基于阅读 sjqz（Python 手机取证工具）后，输出"如何用 sjqz 优化 ChainlessChain PDH 实施"的借鉴建议。
+
+### 2. 核心特性
+
+定位差异对比；sjqz 已实现 PDH 缺失功能；PDH 已实现 sjqz 缺失能力；借鉴实施路径；提取/分析方法。
+
+### 3. 系统架构
+
+见正文对比；sjqz（取证工具）vs PDH（个人数据中台 + AI 分析）。
+
+### 4. 系统定位
+
+PDH 与 sjqz 的**借鉴 / 对比研究稿**。
+
+### 5. 核心功能
+
+见正文 2–6：能力差异 / 借鉴路径 / 提取分析方法 / next action。
+
+### 6. 技术架构
+
+sjqz：17 parser + Android/iOS extraction + WeChat 解密（Python）；PDH：UnifiedSchema + EntityResolver + AI 分析（Node）。
+
+### 7. 系统特点
+
+sjqz = 一次性取证；PDH = 持续中台 + AI（见正文 1 一句话总结）。
+
+### 8. 应用场景
+
+指导 PDH 借鉴 sjqz 的 parser / extraction / 解密能力。
+
+### 9. 竞品对比
+
+本文即 PDH vs sjqz 对比（见正文 2/3 双向缺失能力表）。
+
+### 10. 配置参考
+
+sjqz 关键路径（wechat_decrypt.py / android extractor / ios extractor，见正文 7 参考）。
+
+### 11. 性能指标
+
+—（研究稿）。
+
+### 12. 测试覆盖
+
+借鉴的 parser 复用 sjqz 既有测试（见 `Personal_Data_Hub_Python_Sidecar.md`）。
+
+### 13. 安全考虑
+
+取证能力涉及高敏感本机数据；PDH 经 LocalVault 加密 + 隐私 Gate。
+
+### 14. 故障排除
+
+—（研究稿）。
+
+### 15. 关键文件
+
+sjqz `parsers/wechat_decrypt.py` / `android/extractor.py` / `ios/extractor.py`；PDH 父文档。
+
+### 16. 使用示例
+
+见正文「5. 如何提取 / 分析 / AI 个人数据」。
+
+### 17. 相关文档
+
+见正文「7. 参考」：`Personal_Data_Hub_Architecture.md`、`Personal_Data_Hub_EntityResolver.md`、`Adapter_WeChat_SQLCipher.md`、上游 sjqz。

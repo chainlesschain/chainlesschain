@@ -615,3 +615,75 @@ audit_log {
 - [`Adapter_System_Data.md`](./Adapter_System_Data.md) — Phase 4.5 首个 sidecar 落地 adapter
 - 既有 `backend/ai-service/` — Python 服务部署先例
 - `pymobiledevice3`、`pysqlcipher3` — sidecar 关键依赖
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 为什么是 sidecar」。Personal Data Hub Python Sidecar（forensics-bridge）把 sjqz 的 17 个 parser + iOS/Android extraction 以独立 Python 进程供 Hub 调用，配套 Architecture v0.3。
+
+### 2. 核心特性
+
+17 parser × Phase 映射；IPC 协议；sjqz fork 改造；Hub 侧 Supervisor；打包策略。
+
+### 3. 系统架构
+
+见正文「2. 架构」（Hub Node ↔ IPC ↔ Python sidecar ↔ sjqz parser）。
+
+### 4. 系统定位
+
+PDH 的**Python 取证桥（forensics-bridge）sidecar**。
+
+### 5. 核心功能
+
+见正文 3–7：IPC 协议 / 17 parser 映射 / fork 改造点 / Supervisor / 打包。
+
+### 6. 技术架构
+
+Python sidecar；`pymobiledevice3`（iOS）+ `pysqlcipher3`（SQLCipher）；复用 `backend/ai-service/` 部署先例。
+
+### 7. 系统特点
+
+进程隔离（Python 取证库不污染 Node）；首个落地 adapter = `Adapter_System_Data.md`（Phase 4.5）。
+
+### 8. 应用场景
+
+需要 Python-only 取证能力（iOS 备份解析 / WeChat 解密等）的 adapter。
+
+### 9. 竞品对比
+
+sidecar（进程隔离）vs 纯 Node 实现（见正文 1 为什么是 sidecar）。
+
+### 10. 配置参考
+
+sidecar method 列表见正文 §3.2；关键依赖 `pymobiledevice3` / `pysqlcipher3`。
+
+### 11. 性能指标
+
+IPC 往返 + Python 解析时延；随数据量线性。
+
+### 12. 测试覆盖
+
+各 parser 复用 sjqz 既有测试；Hub 侧 Supervisor 集成测试。
+
+### 13. 安全考虑
+
+取证库处理高敏感本机数据；sidecar 仅本机；输出经 LocalVault 加密。
+
+### 14. 故障排除
+
+Python 依赖缺失 / sidecar 启动失败 → 见正文 6 Supervisor + 7 打包策略。
+
+### 15. 关键文件
+
+forensics-bridge sidecar；sjqz `parsers/*`；`backend/ai-service/`（部署先例）。
+
+### 16. 使用示例
+
+见正文 §3 IPC 协议与 §3.2 sidecar method 调用。
+
+### 17. 相关文档
+
+见正文「12. 参考」：`Personal_Data_Hub_Architecture.md`、`Adapter_System_Data.md`、上游 sjqz。

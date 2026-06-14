@@ -553,3 +553,75 @@ CI 门：`recall < 80` 或 `accuracy < 90` 都失败。
 - nomic-embed-text: https://ollama.com/library/nomic-embed-text
 - Phase 5 `EmailAdapter` `person-email-<addr>` 命名规则: `packages/personal-data-hub/lib/adapters/email-imap/email-adapter.js`
 - Phase 6 `AlipayBillAdapter` `needsResolve:true` hook: `packages/personal-data-hub/lib/adapters/alipay-bill/alipay-bill-adapter.js` `normalize()`
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 & 目标」。EntityResolver（Phase 8）对跨源数据做实体消歧——把"金沙湾家乐福"与"家乐福金沙湾店"、同一人的多个电话/邮箱归并为权威实体主键，紧随 Phase 5/6/7 真实跨源数据落地。
+
+### 2. 核心特性
+
+跨源实体消歧（Person / Place / Org）；三段 pipeline；向量 embedding（BGE-M3 / nomic-embed-text）；needsResolve hook。
+
+### 3. 系统架构
+
+见正文「3. 整体架构」+「4. 三段 pipeline 详细」。
+
+### 4. 系统定位
+
+PDH 的**跨源实体消歧引擎**（Phase 8），为 KG 提供权威实体主键。
+
+### 5. 核心功能
+
+见正文「4. 三段 pipeline」+「5. 数据模型」+「6. 实现拆分」。
+
+### 6. 技术架构
+
+embedding（BGE-M3 / nomic-embed-text via Ollama）+ 候选生成 + 消歧；adapter `needsResolve:true` hook（normalize 阶段）。
+
+### 7. 系统特点
+
+种子源 = `Adapter_System_Data.md`（通讯录权威主键）；各 adapter 通过 needsResolve hook 接入。
+
+### 8. 应用场景
+
+跨源问答的人物 / 地点 / 机构归并（"和妈妈一起去过的城市"）。
+
+### 9. 竞品对比
+
+—（内部引擎）；评估方法见正文「7. 评估方法 (G7)」。
+
+### 10. 配置参考
+
+embedding 模型（BGE-M3 / nomic-embed-text）；各 adapter needsResolve 配置。
+
+### 11. 性能指标
+
+embedding + 消歧随实体数线性；评估指标见正文 §7。
+
+### 12. 测试覆盖
+
+见正文「7. 评估方法 (G7)」；各 adapter needsResolve hook 单测。
+
+### 13. 安全考虑
+
+实体数据高敏感；消歧本地进行；输出入 LocalVault。
+
+### 14. 故障排除
+
+消歧错误（误并 / 漏并）→ 校正别名 / 调阈值（见正文评估方法）。
+
+### 15. 关键文件
+
+EntityResolver 实现；各 adapter `normalize()` needsResolve hook（email-adapter / alipay-bill-adapter）。
+
+### 16. 使用示例
+
+见正文三段 pipeline 与 adapter hook 示例。
+
+### 17. 相关文档
+
+见正文「13. 参考」：`Personal_Data_Hub_Architecture.md` §6/§12、`Adapter_System_Data.md`（种子源）、BGE-M3 / nomic-embed-text。

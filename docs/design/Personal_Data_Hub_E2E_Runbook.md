@@ -368,3 +368,75 @@ Body:
 | md5 path register（不含 adb pull） | sec | ≤ 10 | |
 | frida path register（含 attach + 等 sqlite3_key） | sec | ≤ 60 | |
 | unregister + remove row | ms | ≤ 500 | |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 E2E 真机验收 runbook。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部（Phase 5.7 deliverable，配套 `Adapter_Email_IMAP.md`）。PDH E2E 真机验收 runbook，覆盖邮箱授权配置、拉年邮件、银行 PDF 解密、自然语言查询、增量同步等场景。
+
+### 2. 核心特性
+
+多场景真账号验收（QQ/189/163 邮箱、银行 PDF 加密附件、NL 查询、增量同步）；性能基准表。
+
+### 3. 系统架构
+
+见 `Personal_Data_Hub_Architecture.md`（adapter → vault → AnalysisEngine）。
+
+### 4. 系统定位
+
+PDH 的**真账号端到端验收 runbook**（首批 Email + 银行账单）。
+
+### 5. 核心功能
+
+见正文场景 0–6：授权码配置 / 拉年邮件 / 银行 PDF 解密 / NL 查询 / 增量同步。
+
+### 6. 技术架构
+
+IMAP adapter；PDF 解密；vault FTS + RAG；env-probe / register（含 §11 frida path）。
+
+### 7. 系统特点
+
+真账号验收（非 mock）；性能基准（env-probe ≤5s / register ≤10–60s）。
+
+### 8. 应用场景
+
+PDH 首批 adapter 发版前真账号端到端验收。
+
+### 9. 竞品对比
+
+—（验收文档）。
+
+### 10. 配置参考
+
+见正文场景 1/2「邮箱授权码配置」；frida path 见 §11。
+
+### 11. 性能指标
+
+见正文性能基准表：env-probe ≤5s、md5 register ≤10s、frida register ≤60s、unregister ≤500ms。
+
+### 12. 测试覆盖
+
+本文即真机验收 runbook（多场景 + 性能基准）。
+
+### 13. 安全考虑
+
+邮箱授权码 / 银行 PDF 密码高敏感；落盘经 LocalVault 加密。
+
+### 14. 故障排除
+
+授权码错 / PDF 解密失败 / 进度条卡死（场景 3）→ 见各场景验收步骤。
+
+### 15. 关键文件
+
+`Adapter_Email_IMAP.md`；vault；真账号 smoke 命令模板（本 runbook 配套维护）。
+
+### 16. 使用示例
+
+见正文各场景执行步骤（邮箱授权 → 拉邮件 → NL 查询）。
+
+### 17. 相关文档
+
+`Adapter_Email_IMAP.md`、`Personal_Data_Hub_Architecture.md` §7.1、`Personal_Data_Hub_Fixture_Pin_Protocol.md`。

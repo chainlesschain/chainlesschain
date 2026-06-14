@@ -296,3 +296,75 @@ iPhone → P2P DC RPC "aichat.openLogin" → 桌面 mobile-bridge
 - 姐妹 [`Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`](./Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md) — 移动端经由远程操控调用本 Wizard
 - Electron [`session.cookies.get`](https://www.electronjs.org/docs/latest/api/cookies) / [`BrowserView`](https://www.electronjs.org/docs/latest/api/browser-view)
 - Memory: `desktop_web_shell_strategy.md` — 桌面 vs cc ui 策略决策来源（A 起步，按需引入 B）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「0. 设计动机」。Phase 10.3 AIChat WebView 鉴权向导（`AIChatWizard.vue`）为 9 家 AI 厂商提供统一 cookie 鉴权 UI，配套 `Adapter_AIChat_History.md`（Phase 10）。
+
+### 2. 核心特性
+
+9 家 vendor cookie matrix；WebView 登录向导；4 新 IPC/WS 通道；重登流（cookie 过期）。
+
+### 3. 系统架构
+
+见正文「2. 顶层架构」；Electron BrowserView/session.cookies + Vue `AIChatWizard.vue` + IPC/WS。
+
+### 4. 系统定位
+
+PDH AI 对话采集（Phase 10）的**WebView 鉴权向导**。
+
+### 5. 核心功能
+
+见正文 3–6：Vendor Cookie Matrix（9 家）/ IPC/WS 4 通道 / UI 流 / 重登流。
+
+### 6. 技术架构
+
+Electron `session.cookies.get` + `BrowserView`；Vue `AIChatWizard.vue`；4 新 IPC/WS 通道。
+
+### 7. 系统特点
+
+桌面 A 起步、按需引入 cc ui B（见 memory `desktop_web_shell_strategy.md`）；移动端经远程操控调用本 Wizard。
+
+### 8. 应用场景
+
+用户为 9 家 AI app 完成 cookie 鉴权，供 Phase 10 采集对话史。
+
+### 9. 竞品对比
+
+统一向导 vs 各家独立登录（9 家一处搞定）。
+
+### 10. 配置参考
+
+见正文「3. Vendor Cookie Matrix（9 家）」与「4. IPC/WS 接口」。
+
+### 11. 性能指标
+
+WebView 登录交互时延；cookie 抓取即时。
+
+### 12. 测试覆盖
+
+IPC/WS 通道测试；fixture 落地复用 `Personal_Data_Hub_Fixture_Pin_Protocol.md`（10.3.6）。
+
+### 13. 安全考虑
+
+cookie 高敏感；WebView 桌面登录；落盘经 LocalVault 加密。
+
+### 14. 故障排除
+
+见正文「6. 重登流（Cookie 过期）」；vendor 登录页变更 → 更新 matrix。
+
+### 15. 关键文件
+
+`AIChatWizard.vue`；4 新 IPC/WS 通道；Electron BrowserView/session。
+
+### 16. 使用示例
+
+见正文「5. UI 流」向导步骤。
+
+### 17. 相关文档
+
+见正文父/姐妹文档：`Personal_Data_Hub_Architecture.md` Phase 10、`Adapter_AIChat_History.md`、`Personal_Data_Hub_Fixture_Pin_Protocol.md`、`Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`。

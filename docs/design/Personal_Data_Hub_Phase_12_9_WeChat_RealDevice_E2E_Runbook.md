@@ -543,3 +543,75 @@ PASS 后该做的：
 - [`Personal_Data_Hub_E2E_Runbook.md`](./Personal_Data_Hub_E2E_Runbook.md) §11 env-probe + register 流程（本文档前置）
 - [`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md) §12 Phase 12 路线图
 - [`Personal_Data_Hub_Fixture_Pin_Protocol.md`](./Personal_Data_Hub_Fixture_Pin_Protocol.md) 如果你跑出来发现 schema 与既有 fixture 偏差，按本协议 pin 新 fixture
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E runbook（frida-dep path）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。Phase 12.9 WeChat 真机 E2E（frida-dep path）验收：注册完之后的 ingest / 解密 / 查询 / 长期稳定性怎么验（setup 见 Frida Setup、注册见 E2E Runbook §11）。
+
+### 2. 核心特性
+
+验收门禁 + 环境矩阵 + 全场景；性能基准合集；设备 vs 桌面机能力分布；已知 traps。
+
+### 3. 系统架构
+
+见 `Adapter_WeChat_SQLCipher.md` §18 frida-dep 桥接设计。
+
+### 4. 系统定位
+
+Phase 12.9 WeChat 桌面侧的**真机 E2E 验收 runbook**（11 场景）。
+
+### 5. 核心功能
+
+见正文 0–5：验收门禁 / 环境矩阵 / 场景一览 / 详细场景 / 性能基准 / 已知 traps。
+
+### 6. 技术架构
+
+frida-server（桌面侧 ssh）+ SQLCipher 解密；env-probe + register（E2E Runbook §11 前置）。
+
+### 7. 系统特点
+
+前置 = Frida Setup（server）+ E2E Runbook §11（注册）；本文专注 ingest 之后验收。
+
+### 8. 应用场景
+
+WeChat 桌面采集发版前真机验收。
+
+### 9. 竞品对比
+
+桌面侧（frida-server）vs Android 侧（frida-inject，`Android_WeChat_Phase_12_10_6_...`）。
+
+### 10. 配置参考
+
+见正文 1「测试机环境矩阵」。
+
+### 11. 性能指标
+
+见正文 4「性能基准合集」+ 4.4 设备 vs 桌面机能力分布。
+
+### 12. 测试覆盖
+
+11 场景（见正文 2/3）；schema 偏差按 Fixture Pin Protocol 处理。
+
+### 13. 安全考虑
+
+微信语料极高敏感；frida 解密本机自用；SQLCipher 加密。
+
+### 14. 故障排除
+
+见正文 5「已知 traps」（与 `Adapter_WeChat_SQLCipher.md` §13/§18.9 重叠不重述）。
+
+### 15. 关键文件
+
+`Adapter_WeChat_SQLCipher.md` §18；frida-server；vault。
+
+### 16. 使用示例
+
+见正文 3「详细场景」执行步骤。
+
+### 17. 相关文档
+
+见正文「8. 相关」：`Adapter_WeChat_SQLCipher.md`、`Adapter_WeChat_SQLCipher_Frida_Setup.md`、`Personal_Data_Hub_E2E_Runbook.md` §11、`Personal_Data_Hub_Fixture_Pin_Protocol.md`。
