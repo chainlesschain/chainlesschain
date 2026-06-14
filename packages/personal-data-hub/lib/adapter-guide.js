@@ -49,6 +49,7 @@ const DISPLAY_NAMES = Object.freeze({
   "qq-pc": "QQ（电脑版 NT）",
   "dingtalk-pc": "钉钉（电脑版）",
   "feishu-pc": "飞书（电脑版）",
+  "wework-pc": "企业微信（电脑版）",
   "email-imap": "邮箱（IMAP）",
   "finance-alipay": "支付宝",
   "alipay-bill": "支付宝账单",
@@ -91,7 +92,8 @@ const DISPLAY_NAMES = Object.freeze({
 
 // Shared guide for honest best-effort desktop IM local-DB sources (钉钉/飞书).
 function localImPcGuide(platform) {
-  const adapterName = platform === "钉钉" ? "dingtalk-pc" : "feishu-pc";
+  const adapterName =
+    platform === "钉钉" ? "dingtalk-pc" : platform === "企业微信" ? "wework-pc" : "feishu-pc";
   return {
     summary: `采集${platform}电脑版的聊天记录（来自本地数据库）。⚠️ v0.1 实验性：${platform}桌面库为私有结构、可能加密、随版本变化，文本解析为尽力而为，原始行会完整保留以便后续解析。`,
     methods: [
@@ -409,6 +411,7 @@ const ADAPTER_OVERRIDES = Object.freeze({
 
   "dingtalk-pc": localImPcGuide("钉钉"),
   "feishu-pc": localImPcGuide("飞书"),
+  "wework-pc": localImPcGuide("企业微信"),
 
   "social-bilibili": socialAdbGuide("哔哩哔哩", "观看历史 / 收藏 / 动态 / 关注"),
   "social-weibo": socialAdbGuide("微博", "微博 / 收藏 / 关注"),
@@ -550,7 +553,7 @@ function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
   if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-dongchedi|biz-tianyancha)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
-  if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|travel-amap)$/.test(name))
+  if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|wework-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;
   if (
     /^(browser-history-|vscode|win-recent|git-activity|shell-history|local-files|apple-health)/.test(

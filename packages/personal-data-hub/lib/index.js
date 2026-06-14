@@ -82,6 +82,7 @@ const { BaiduNetdiskAdapter } = require("./adapters/doc-baidu-netdisk");
 const { CamScannerDocAdapter } = require("./adapters/doc-camscanner");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
+const { WeWorkPcAdapter } = require("./adapters/wework-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
 const entityResolver = require("./entity-resolver");
@@ -326,6 +327,7 @@ module.exports = {
   CamScannerDocAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
+  WeWorkPcAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
 
