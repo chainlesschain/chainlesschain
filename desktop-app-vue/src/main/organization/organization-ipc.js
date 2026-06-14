@@ -27,12 +27,18 @@ function registerOrganizationIPC({
   ipcMain: injectedIpcMain,
   dialog: injectedDialog,
   app: injectedApp,
+  clipboard: injectedClipboard,
+  fs: injectedFs,
 }) {
   // 支持依赖注入，用于测试
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dialog = injectedDialog || electron.dialog;
   const electronApp = injectedApp || electron.app;
+  const clipboard = injectedClipboard || electron.clipboard;
+  // fs.promises (injectable for tests; vi.mock("fs") is unreliable for CJS in
+  // Vitest's forks pool). Defaults to the module-level require("fs").promises.
+  const fsp = injectedFs || fs;
 
   logger.info("[Organization IPC] Registering Organization IPC handlers...");
   logger.info("[Organization IPC] organizationManager初始化状态:", {
@@ -46,7 +52,11 @@ function registerOrganizationIPC({
   const safeHandle = (channel, handler) => {
     try {
       // 先移除已有handler，支持热重载场景
-      try { ipcMain.removeHandler(channel); } catch (_e) { /* ignore */ }
+      try {
+        ipcMain.removeHandler(channel);
+      } catch (_e) {
+        /* ignore */
+      }
       ipcMain.handle(channel, handler);
       registeredCount++;
     } catch (err) {
@@ -730,7 +740,6 @@ function registerOrganizationIPC({
    */
   safeHandle("org:copy-invitation-link", async (_event, invitationUrl) => {
     try {
-      const { clipboard } = require("electron");
       clipboard.writeText(invitationUrl);
       return { success: true };
     } catch (error) {
@@ -869,7 +878,7 @@ function registerOrganizationIPC({
         const buffer = Buffer.from(base64Data, "base64");
 
         // 保存文件
-        await fs.writeFile(result.filePath, buffer);
+        await fsp.writeFile(result.filePath, buffer);
 
         return { success: true, filePath: result.filePath };
       } catch (error) {
@@ -1062,7 +1071,7 @@ function registerOrganizationIPC({
 
       if (ext === ".json") {
         // 导出为JSON
-        await fs.writeFile(
+        await fsp.writeFile(
           filePath,
           JSON.stringify(activities, null, 2),
           "utf-8",
@@ -1091,7 +1100,7 @@ function registerOrganizationIPC({
           ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
         ].join("\n");
 
-        await fs.writeFile(filePath, csv, "utf-8");
+        await fsp.writeFile(filePath, csv, "utf-8");
       }
 
       return { success: true, filePath };

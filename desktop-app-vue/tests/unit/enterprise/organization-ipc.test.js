@@ -25,6 +25,7 @@ describe("Organization IPC 处理器", () => {
   let mockDialog;
   let mockApp;
   let mockClipboard;
+  let mockFs;
   let registerOrganizationIPC;
 
   beforeEach(async () => {
@@ -145,6 +146,12 @@ describe("Organization IPC 处理器", () => {
       await import("../../../src/main/organization/organization-ipc.js");
     registerOrganizationIPC = module.registerOrganizationIPC;
 
+    // fs.promises mock injected via DI (reliable in the forks pool, unlike
+    // vi.mock("fs") for CommonJS).
+    mockFs = {
+      writeFile: vi.fn().mockResolvedValue(undefined),
+    };
+
     // 注册 Organization IPC 并注入 mocks
     registerOrganizationIPC({
       organizationManager: mockOrganizationManager,
@@ -153,6 +160,8 @@ describe("Organization IPC 处理器", () => {
       ipcMain: mockIpcMain,
       dialog: mockDialog,
       app: mockApp,
+      clipboard: mockClipboard,
+      fs: mockFs,
     });
   });
 
@@ -1691,8 +1700,8 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:copy-invitation-link"]).toBeDefined();
       });
 
-      // Skip: Electron clipboard mock doesn't work with CommonJS require inside handler
-      it.skip("should copy invitation URL to clipboard on success", async () => {
+      // Enabled via DI: clipboard is injected through registerOrganizationIPC.
+      it("should copy invitation URL to clipboard on success", async () => {
         const mockUrl = "https://example.com/invite/token123";
 
         const result = await handlers["org:copy-invitation-link"]({}, mockUrl);
@@ -1985,8 +1994,8 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:download-qrcode"]).toBeDefined();
       });
 
-      // Skip: fs.promises mock doesn't work correctly with ESM dynamic imports
-      it.skip("should save QR code to file on success", async () => {
+      // Enabled via DI: fs.promises is injected through registerOrganizationIPC.
+      it("should save QR code to file on success", async () => {
         const mockQRDataURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...";
         const mockFilename = "invitation-qrcode.png";
         const mockFilePath = "C:/Users/Test/Downloads/invitation-qrcode.png";
@@ -2376,8 +2385,8 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:export-activities"]).toBeDefined();
       });
 
-      // Skip: fs.promises mock doesn't work correctly with ESM dynamic imports
-      it.skip("should export activities to JSON file on success", async () => {
+      // Enabled via DI: fs.promises is injected through registerOrganizationIPC.
+      it("should export activities to JSON file on success", async () => {
         const mockOptions = {
           orgId: "org_123",
           activities: [{ action: "create_knowledge", timestamp: Date.now() }],
