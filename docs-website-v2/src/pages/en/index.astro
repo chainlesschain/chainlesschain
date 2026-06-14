@@ -78,6 +78,42 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.109 · 2026-06-14',
+    title: 'Fix: Android release APK missing cc bundle — release.yml adds downloadInternalBinaries staging + a hard verification gate',
+    sub: 'Real-device testing of v5.0.3.108 found the released APK did not contain cc-cli.tgz (local-terminal / cc unusable on device, PDH collection scripts not delivered). This is a pure packaging fix; bundle contents are unchanged.',
+    desc: 'Root cause: release.yml build-android only ran assembleRelease, while downloadInternalBinaries relied solely on preBuild\'s lazy dependsOn, which does not fire in CI. Fix: a dedicated ./gradlew downloadInternalBinaries step before assemble ensures cc-cli.tgz lands on disk before mergeReleaseAssets snapshots it; a new hard verification gate after build (unzip-lists the APK and greps assets/local-terminal/cc-cli.tgz, exit 1 if any APK is missing it) prevents ever silently shipping a bundle-less APK again. Versions: productVersion v5.0.3.108 → v5.0.3.109 / desktop 5.0.3-alpha.109 / Android versionCode 503109 / iOS build 109 (USR_VERSION 25, binariesVersion 20260613 unchanged, bundle same as .108).',
+  },
+  {
+    tag: 'v5.0.3.108 · 2026-06-13',
+    title: 'PDH Pinduoduo collection completed (user-export snapshot → cookie-api active collection) + Android cc bundle v20260613',
+    sub: 'Pinduoduo was the last of the shopping trio with only a user-export snapshot and no automatic collection path; this release adds cookie-api active collection, reaching parity with Taobao / JD / Meituan.',
+    desc: 'New _syncViaCookie pulls mobile.yangkeduo transaction_list via an injected fetchFn (Node stays pure parse / orchestration, same seam as the sibling adapters). The anti_token signature is injected via the signProvider seam (pure Node cannot keep up with Pinduoduo signature rotation; the Android in-APK WebView JS VM produces it), best-effort null when no provider. orderToRecord maps fields with snake / camel dual compatibility + fen→yuan + numeric / textual status mapping; pagination stops early at the watermark. capabilities upgraded to sync:cookie-api, version 0.1.0 → 0.2.0. PDH full suite 128 files, 2094 tests pass. Release chain: @chainlesschain/personal-data-hub 0.4.5 → 0.4.6 + CLI 0.162.47 → 0.162.48 on npm; Android in-APK cc bundle refreshed to internal-binaries-android-v20260613 + USR_VERSION 24 → 25. Versions: productVersion v5.0.3.107 → v5.0.3.108 / desktop 5.0.3-alpha.108 / Android versionCode 503108 / iOS build 108.',
+  },
+  {
+    tag: 'v5.0.3.107 · 2026-06-12',
+    title: 'PDH FAMILY-23 family-guard collectors v0.2 live fetchers wrapped up (Zuoyebang / Huawei Learning / Alipay)',
+    sub: 'Wraps up the last 3 snapshot-only placeholder collectors in family-guard telemetry, giving them active live collection, delivered with Android in-APK cc bundle v20260612.',
+    desc: 'Zuoyebang edu-zuoyebang: ZYBUSS session cookie → study / search-question records; Huawei Learning edu-huawei-learning: Huawei account cookie → course study records; Alipay finance-alipay: session cookie → mobilegw bills / transaction details (signProvider signing seam + fen→yuan + income/expense direction inference, high-sensitivity gate unchanged). All three add sync:cookie + _syncViaLive (emit snapshot-shaped events, normalize path unchanged) + a shared _live-json-helpers. Endpoints follow each platform\'s common web shape + multi-field-name tolerance (best-effort, not field-verified against a real session). +39 tests, PDH full suite 128 files, 2083 tests green. This release also ships the cc CLI 0.162.41 Claude-Code parity work that was published to npm earlier (project memory cc.md hierarchy + REPL steering + structured output --json-schema + cc mcp serve). Versions: productVersion v5.0.3.106 → v5.0.3.107 / Android versionCode 503107 / iOS build 107.',
+  },
+  {
+    tag: 'v5.0.3.106 · 2026-06-11',
+    title: 'PDH Kuaishou api_ph base64 collection fix + Amap trip-title bug + travel / social adapter test wrap-up (all 55 repo adapters at 100%)',
+    sub: 'Driven by the PDH collection layer: fixes profile-collection failure caused by Kuaishou\'s new cookie format, the bug where all Amap trip events had missing titles, and completes the adapter test matrix.',
+    desc: 'Fixes Kuaishou kuaishou.web.cp.api_ph profile collection failing after the cookie changed to base64(JSON) (apiPhDecodeCandidates decode chain, pdh 0.4.4); fixes travel-base buildTitle not recognizing the name field, which left Amap route / search event titles missing (caught red-then-green); corrects 3 stale comments in the Toutiao / Kuaishou / email adapters. Test matrix wrap-up +180: Xiaohongshu ADB trio 58 + travel 6 modules from scratch 74 + whatsapp / shopping-base 24 + Kuaishou base64 9 — all 55 repo adapters at 100% test coverage. pdh 0.4.3 → 0.4.4 + CLI 0.162.39 → 0.162.40 on npm; Android in-APK cc bundle rebuilt to internal-binaries-android-v20260611 + USR_VERSION 21 → 22. Real-device (Xiaomi amethyst) proof: installing the new APK triggers LocalFilesystemBootstrapper sentinel 17→22 re-extraction, with pdh=0.4.4 + both fixes grep-confirmed on device. Versions: productVersion v5.0.3.105 → v5.0.3.106 / Android versionCode 503106 / iOS build 106.',
+  },
+  {
+    tag: 'v5.0.3.105 · 2026-06-10',
+    title: 'cc agent MCP prompts / resources + SubagentStop hook + --fork-session (CLI 0.162.38) + Android in-app cc bundle refresh',
+    sub: 'Solidifies the 2026-06-10 CLI parity work into a formal release and rebuilds the Android in-app cc bundle, closing the gap where the in-APK cc had run stale code since v5.0.3.101.',
+    desc: 'MCP prompts as slash commands + MCP resources exposed to agent / REPL; SubagentStop settings.json hook (Claude-Code parity); cc agent --fork-session clones an existing session into a new branch to continue; CLI 0.162.38 on npm. Android in-APK cc bundle rebuilt to internal-binaries-android-v20260610 (cli 0.162.38 + pdh 0.4.3) + USR_VERSION 20 → 21 (v5.0.3.101\'s USR_VERSION 20 had spun idle because the bundle was not rebuilt; this release closes the loop). CLI e2e shared helper (testHome + freePort) + e2e isolation / retry CI hardening. docs-site adds 14 CLI command user docs + a site-wide number reconciliation (155 commands / 145 skills / 25 Android). Versions: productVersion v5.0.3.104 → v5.0.3.105 / Android versionCode 503105 / iOS build 105.',
+  },
+  {
+    tag: 'v5.0.3.104 · 2026-06-10',
+    title: 'CLI 0.162.37 (IDE bridge finalization) + all-platform version alignment + docs / branding cleanup',
+    sub: '(Backfilled entry) The aggregate release after the IDE bridge phases finalized: CLI 0.162.37 on npm, all-platform version alignment, VS Code extension Open VSX auto-publish CI + icon redraw.',
+    desc: 'CLI 0.162.37 on npm (aggregate of the finalized IDE bridge phases); iOS / Android / desktop aligned to v5.0.3.104; VS Code extension Open VSX auto-publish CI + an icon redraw trio; JetBrains buildPlugin fix (instrumentation disabled); docs-site adds 8 CLI user-doc pages (cc goal / cost / checkpoint / command / statusline / mcp OAuth / web_search / run_shell background) + a Family Guard user page + a V2 governance command developer reference; release-doc redaction (personal signer info cleanup); desktop vitest-4 stub bug + 12 stale test fixes. Versions: productVersion v5.0.3.103 → v5.0.3.104 / desktop 5.0.3-alpha.104 / CLI 0.162.36 → 0.162.37 / Android versionCode 503104 / iOS build 104.',
+  },
+  {
     tag: 'v5.0.3.103 · 2026-06-10',
     title: 'cc loop (/loop parity) + IDE bridge Phase 3/4 (JetBrains parity + release pipeline) + VS Code extension visualization & branding',
     sub: 'This release gives the `cc` CLI a "run on a loop" capability and extends the IDE bridge from VS Code to JetBrains, with a full release pipeline for both extensions.',

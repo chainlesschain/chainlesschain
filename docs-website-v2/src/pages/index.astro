@@ -81,6 +81,42 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.109 · 2026-06-14',
+    title: '修复 Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate',
+    sub: 'v5.0.3.108 真机验证发现发布的 APK 不含 cc-cli.tgz（设备上 local-terminal / cc 不可用、PDH 采集脚本不下发）。本版纯打包修复，bundle 内容不变。',
+    desc: '根因：release.yml build-android 只跑 assembleRelease，而 downloadInternalBinaries 仅靠 preBuild 的 lazy dependsOn 触发、在 CI 不生效。修复：assemble 前新增独立步骤 ./gradlew downloadInternalBinaries，保证 cc-cli.tgz 落盘后再被 mergeReleaseAssets 快照；build 后新增硬验证 gate（unzip 列出 APK 内容 grep assets/local-terminal/cc-cli.tgz，任一 APK 缺则 exit 1），杜绝再次静默发出无 bundle 的 APK。版本面：productVersion v5.0.3.108 → v5.0.3.109 / 桌面 5.0.3-alpha.109 / Android versionCode 503109 / iOS build 109（USR_VERSION 25、binariesVersion 20260613 不变，bundle 同 .108）。',
+  },
+  {
+    tag: 'v5.0.3.108 · 2026-06-13',
+    title: '个人数据中台拼多多采集补全（user-export 快照 → cookie-api 主动采集）+ Android cc bundle v20260613',
+    sub: '拼多多是购物三联里最后一个仅 user-export 快照、无自动采集路径的适配器；本版补齐 cookie-api 主动采集，与淘宝 / 京东 / 美团平价。',
+    desc: '新增 _syncViaCookie：经注入的 fetchFn 拉取 mobile.yangkeduo 的 transaction_list（Node 端保持纯解析 / 编排，与兄弟适配器同一 seam）。anti_token 签名经 signProvider seam 注入（纯 Node 扛不住拼多多签名轮换，Android 端由 in-APK WebView JS VM 产出），无 provider 时 best-effort 为 null。orderToRecord 字段 snake / camel 双兼容 + 分→元换算 + 数字 / 文本状态映射；分页命中 watermark 提前停。capabilities 升 sync:cookie-api，version 0.1.0 → 0.2.0。PDH 全套 128 文件 2094 测试通过。发版链：@chainlesschain/personal-data-hub 0.4.5 → 0.4.6 + CLI 0.162.47 → 0.162.48 已发 npm；Android in-APK cc bundle 刷新 internal-binaries-android-v20260613 + USR_VERSION 24 → 25。版本面：productVersion v5.0.3.107 → v5.0.3.108 / 桌面 5.0.3-alpha.108 / Android versionCode 503108 / iOS build 108。',
+  },
+  {
+    tag: 'v5.0.3.107 · 2026-06-12',
+    title: '个人数据中台 FAMILY-23 家庭守护采集器 v0.2 live fetcher 全收口（作业帮 / 华为学习中心 / 支付宝）',
+    sub: '收口家庭守护 telemetry 最后 3 个仅快照占位的采集器，使其具备主动 live 采集能力，并随 Android in-APK cc bundle v20260612 下发。',
+    desc: '作业帮 edu-zuoyebang：ZYBUSS 会话 cookie → 学习 / 搜题记录；华为学习中心 edu-huawei-learning：华为账号 cookie → 课程学习记录；支付宝 finance-alipay：会话 cookie → mobilegw 账单 / 交易明细（signProvider 签名 seam + 金额元→分 + 收支方向推导，高敏感闸不变）。三者均补齐 sync:cookie + _syncViaLive（产出 snapshot-shaped events，normalize 路径不变）+ 共享 _live-json-helpers。端点按各平台 web 端常见形态实现 + 多字段名兼容（best-effort，未经真实登录态实地验证）。测试 +39，PDH 全套 128 文件 2083 测试全绿。发版链：pdh 0.4.4 → 0.4.5 + CLI 0.162.45 → 0.162.46 已发 npm；Android cc bundle 重建 v20260612 + USR_VERSION 23 → 24。本版同时随产物一并发布前期已单独发 npm 的 cc CLI 0.162.41 Claude-Code 平价工作（项目记忆 cc.md 层级 + REPL steering + 结构化输出 --json-schema + cc mcp serve）。版本面：productVersion v5.0.3.106 → v5.0.3.107 / Android versionCode 503107 / iOS build 107。',
+  },
+  {
+    tag: 'v5.0.3.106 · 2026-06-11',
+    title: 'PDH 快手 api_ph base64 采集修复 + 高德地图行程标题 bug + 出行 / 社交全适配器测试收口（全仓 55 适配器 100%）',
+    sub: '以个人数据中台采集层为主线：修复新版快手 cookie 格式变更导致的 profile 采集失败、高德所有行程事件标题缺失的 bug，并把适配器测试矩阵全部补齐。',
+    desc: '修复快手 kuaishou.web.cp.api_ph cookie 改为 base64(JSON) 后 profile 采集失败（apiPhDecodeCandidates 解码链，pdh 0.4.4）；修复 travel-base buildTitle 不认 name 字段导致高德路线 / 搜索事件标题缺失（测试先红后绿抓到）；订正头条 / 快手 / 邮箱适配器 3 处过时注释。测试矩阵全收口 +180：小红书 ADB 三件套 58 + 出行 6 模块从零 74 + whatsapp / shopping-base 24 + 快手 base64 9 —— 全仓 55 适配器测试覆盖 100%。pdh 0.4.3 → 0.4.4 + CLI 0.162.39 → 0.162.40 已发 npm；Android in-APK cc bundle 重建 internal-binaries-android-v20260611 + USR_VERSION 21 → 22。真机（Xiaomi amethyst）实证：装新 APK 触发 LocalFilesystemBootstrapper sentinel 17→22 重提取，设备上 pdh=0.4.4 + 两处修复 grep 命中。版本面：productVersion v5.0.3.105 → v5.0.3.106 / Android versionCode 503106 / iOS build 106。',
+  },
+  {
+    tag: 'v5.0.3.105 · 2026-06-10',
+    title: 'cc agent MCP prompts / resources + SubagentStop hook + --fork-session（CLI 0.162.38）+ Android cc 内置 bundle 刷新',
+    sub: '把 2026-06-10 的 CLI 平价主线固化为一次正式发版，并重建 Android 内置 cc bundle，补上 v5.0.3.101 以来 APK 内置 cc 跑旧代码的缺口。',
+    desc: 'MCP prompts 作为 slash 命令 + MCP resources 暴露给 agent / REPL；SubagentStop settings.json hook（Claude-Code 平价）；cc agent --fork-session 复制既有会话为新分支继续；CLI 0.162.38 已发 npm。Android in-APK cc bundle 重建 internal-binaries-android-v20260610（cli 0.162.38 + pdh 0.4.3）+ USR_VERSION 20 → 21（v5.0.3.101 的 USR_VERSION 20 因 bundle 未重建而空转，本版闭环）。CLI e2e 共享 helper（testHome + freePort）+ e2e 隔离 / 重试 CI 加固。docs-site 补全 14 个 CLI 命令用户文档 + 全站数字对账（155 命令 / 145 技能 / 25 Android）。版本面：productVersion v5.0.3.104 → v5.0.3.105 / Android versionCode 503105 / iOS build 105。',
+  },
+  {
+    tag: 'v5.0.3.104 · 2026-06-10',
+    title: 'CLI 0.162.37（IDE 桥接收官）+ 全平台版本对齐 + docs / 品牌清扫',
+    sub: '（补记条目）IDE 桥接全 Phase 收官后的聚合版：CLI 0.162.37 发 npm、全平台版本对齐、VS Code 扩展 Open VSX 自动发布 CI + 图标重绘。',
+    desc: 'CLI 0.162.37 发 npm（IDE 桥接全 Phase 收官聚合版）；iOS / Android / desktop 版本对齐 v5.0.3.104；VS Code 扩展 Open VSX 自动发布 CI + 图标重绘三连；JetBrains buildPlugin 修复（关 instrumentation）；docs-site 新增 8 个 CLI 用户文档页（cc goal / cost / checkpoint / command / statusline / mcp OAuth / web_search / run_shell 后台）+ Family Guard 用户页 + V2 治理命令开发者参考；发布文档脱敏（个人签名者信息清扫）；桌面端 vitest-4 stub bug + 12 个 stale 测试修复。版本面：productVersion v5.0.3.103 → v5.0.3.104 / 桌面 5.0.3-alpha.104 / CLI 0.162.36 → 0.162.37 / Android versionCode 503104 / iOS build 104。',
+  },
+  {
     tag: 'v5.0.3.103 · 2026-06-10',
     title: 'cc loop（/loop 平价）+ IDE 桥接 Phase 3/4（JetBrains 平价 + 发布基建）+ VS Code 扩展可视化与品牌化',
     sub: '这一版给命令行 `cc` 补上"循环跑"能力，并把 IDE 桥接从 VS Code 扩展到 JetBrains，配齐了扩展的发布流水线。',
