@@ -47,6 +47,7 @@ import { expandFileRefs } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
 import { withQuietStdout } from "./quiet-stdout.js";
+import { CostBudget } from "../lib/cost-budget.js";
 
 /** Tools that cannot mutate the filesystem or run commands. */
 export const READ_ONLY_TOOLS = Object.freeze([
@@ -525,6 +526,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           mcpConfigPath: options.mcpConfig || null,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
+          // --strict-mcp-config: use ONLY the --mcp-config servers, ignoring
+          // registered (cc mcp add) + IDE bridge auto-discovery.
+          strict: options.strictMcpConfig === true,
           ide: options.ide,
           cwd: options.cwd || process.cwd(),
           // advertise the session id to spawned stdio MCP servers
@@ -665,11 +669,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     }
   }
 
+  // --max-budget-usd: a hard USD spend cap (Claude-Code parity). Accumulates
+  // per-call cost from token-usage events and stops the loop before the next
+  // paid call once the cap is reached. null → no cap (unchanged behavior).
+  const costBudget = options.maxCostUsd
+    ? new CostBudget({ limitUsd: options.maxCostUsd, table: options.priceTable })
+    : null;
+
   const startedAt = deps.now ? deps.now() : Date.now();
   const toolCalls = [];
   const usage = { input_tokens: 0, output_tokens: 0 };
   let finalText = "";
   let endReason = "complete";
+  let stopForCost = false;
 
   const emitStream = (obj) => {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
@@ -744,6 +756,31 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           usage.input_tokens += event.usage?.input_tokens || 0;
           usage.output_tokens += event.usage?.output_tokens || 0;
           emitStream({ type: "token_usage", usage: event.usage });
+          if (costBudget) {
+            costBudget.add({
+              provider: event.provider,
+              model: event.model,
+              usage: event.usage,
+            });
+            if (costBudget.shouldWarnInactive()) {
+              const m = `cost cap $${options.maxCostUsd} set but model "${event.model}" is unpriced/free — cap inactive`;
+              if (isText) writeErr(`  ${m}\n`);
+              emitStream({ type: "cost_warning", message: m });
+            }
+            if (costBudget.exceeded()) {
+              endReason = "cost-budget-exhausted";
+              stopForCost = true;
+              if (isText)
+                writeErr(
+                  `  ⛔ cost budget $${options.maxCostUsd} reached (spent ≈$${costBudget.spentUsd}) — stopping\n`,
+                );
+              emitStream({
+                type: "cost_budget_exhausted",
+                limit_usd: options.maxCostUsd,
+                spent_usd: costBudget.spentUsd,
+              });
+            }
+          }
           break;
         }
         case "iteration-warning": {
@@ -772,6 +809,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           if (isStream && event.type) emitStream(event);
           break;
       }
+      // Hard cost cap reached: stop consuming the loop so no further paid LLM
+      // call is made (break out of the for-await, not just the switch).
+      if (stopForCost) break;
     }
   } catch (err) {
     const message = err?.message || String(err);
@@ -837,11 +877,19 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   }
 
   // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration
-  // cap is hit; treat that as the max-turns error surface.
+  // cap is hit; treat that as the max-turns error surface. A cost-budget stop
+  // (--max-budget-usd) is its own error surface so callers can tell them apart.
   const exhausted =
     endReason === "budget-exhausted" || endReason === "max_turns";
-  const isError = exhausted || endReason === "no-response";
-  const subtype = exhausted ? "error_max_turns" : isError ? "error" : "success";
+  const costStopped = endReason === "cost-budget-exhausted";
+  const isError = exhausted || costStopped || endReason === "no-response";
+  const subtype = exhausted
+    ? "error_max_turns"
+    : costStopped
+      ? "error_max_budget"
+      : isError
+        ? "error"
+        : "success";
   const durationMs = (deps.now ? deps.now() : Date.now()) - startedAt;
 
   // Persist the assistant turn so a later --resume / --continue replays it.

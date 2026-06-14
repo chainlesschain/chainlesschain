@@ -252,7 +252,7 @@ function collectUntracked(cwd, git) {
       continue;
     }
     // Skip files that look binary (NUL byte in the first chunk).
-    if (content.includes(" ")) {
+    if (content.includes("\u0000")) {
       skipped.push(rel);
       continue;
     }

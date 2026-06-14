@@ -400,6 +400,12 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   if (args.mcpConfigPath) {
     result = await doFile(args.mcpConfigPath, fwd); // fail-fast on bad file
   }
+  // --strict-mcp-config: use ONLY the explicit --mcp-config servers; ignore the
+  // registered (cc mcp add) set and IDE-bridge auto-discovery so the run's MCP
+  // surface is fully reproducible (Claude-Code parity).
+  if (args.strict) {
+    return result;
+  }
   if (args.includeRegistered !== false && args.db) {
     result = await doReg(args.db, {
       ...fwd,

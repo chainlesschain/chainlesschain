@@ -278,6 +278,18 @@ export function registerAgentCommand(program) {
       "--settings <file>",
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
+    .option(
+      "--max-budget-usd <amount>",
+      "Hard USD spend cap: stop the run before the next paid LLM call once the estimated cost reaches this (headless; uses the cc cost price table)",
+    )
+    .option(
+      "--strict-mcp-config",
+      "Use ONLY --mcp-config servers; ignore registered (cc mcp add) and IDE-bridge MCP for a reproducible tool surface",
+    )
+    .option(
+      "--replay-user-messages",
+      "Stream-input mode: echo each accepted stdin user message back as a `user` event (transcript/correlation)",
+    )
     .action(async (task, options, command) => {
       // --safe-mode flag OR CC_SAFE_MODE / CLAUDE_CODE_SAFE_MODE env (Claude-Code
       // 2.1.169 parity): flip every customization kill-switch BEFORE anything
@@ -534,6 +546,24 @@ export function registerAgentCommand(program) {
           })
         : undefined;
 
+      // --max-budget-usd: parse the cap + build the price table (config llm.pricing
+      // overrides merged onto the built-in cc cost table) once, so both the
+      // single-prompt and stream-input dispatch paths enforce the same cap.
+      let maxCostUsd = null;
+      let priceTable;
+      try {
+        const { parseBudgetUsd } = await import("../lib/cost-budget.js");
+        maxCostUsd = parseBudgetUsd(options.maxBudgetUsd);
+      } catch (err) {
+        process.stderr.write(`${err.message}\n`);
+        await _finishWorktree();
+        process.exit(1);
+      }
+      if (maxCostUsd) {
+        const { mergePricing } = await import("../lib/llm-pricing.js");
+        priceTable = mergePricing(loadConfig().llm?.pricing);
+      }
+
       // 鈹€鈹€ Streaming-input mode (--input-format stream-json) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
       // A persistent multi-turn conversation driven by NDJSON user events on
       // stdin; output is always NDJSON. Routed before single-prompt handling
@@ -575,6 +605,10 @@ export function registerAgentCommand(program) {
             interactiveApprovals: options.interactiveApprovals === true,
             settingsFile: options.settings || null,
             outputStyle: options.outputStyle || null,
+            strictMcpConfig: options.strictMcpConfig === true,
+            replayUserMessages: options.replayUserMessages === true,
+            maxCostUsd,
+            priceTable,
             chatFn: fallbackChatFn,
           });
         } catch (err) {
@@ -680,9 +714,14 @@ export function registerAgentCommand(program) {
           cwd: process.cwd(),
           // --permission-prompt-tool: defer approvals to an MCP tool
           permissionPromptTool: options.permissionPromptTool || null,
+          // --strict-mcp-config: only --mcp-config servers (ignore registered + IDE)
+          strictMcpConfig: options.strictMcpConfig === true,
           // --settings: extra .claude/settings.json permission rules
           settingsFile: options.settings || null,
           outputStyle: options.outputStyle || null,
+          // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
+          maxCostUsd,
+          priceTable,
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
         };

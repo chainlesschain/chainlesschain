@@ -26,6 +26,7 @@ import {
   makePermissionPromptConfirmer,
 } from "./mcp-config.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
+import { CostBudget } from "../lib/cost-budget.js";
 import {
   resolvePermissionMode,
   resolveEnabledTools,
@@ -140,11 +141,12 @@ export async function* readJsonLines(input) {
  * Run a single turn through the core agent loop, emitting NDJSON events.
  * Returns the turn outcome so the caller can grow history + the result line.
  */
-async function runTurn(messages, loopOptions, { runLoop, emit }) {
+async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
   const usage = { input_tokens: 0, output_tokens: 0 };
   const toolCalls = [];
   let finalText = "";
   let endReason = "complete";
+  let stopForCost = false;
 
   for await (const event of runLoop(messages, loopOptions)) {
     switch (event.type) {
@@ -169,6 +171,17 @@ async function runTurn(messages, loopOptions, { runLoop, emit }) {
         usage.input_tokens += event.usage?.input_tokens || 0;
         usage.output_tokens += event.usage?.output_tokens || 0;
         emit({ type: "token_usage", usage: event.usage });
+        if (costBudget) {
+          costBudget.add({
+            provider: event.provider,
+            model: event.model,
+            usage: event.usage,
+          });
+          if (costBudget.exceeded()) {
+            endReason = "cost-budget-exhausted";
+            stopForCost = true;
+          }
+        }
         break;
       case "iteration-warning":
         emit({ type: "iteration_warning", message: event.message });
@@ -187,6 +200,9 @@ async function runTurn(messages, loopOptions, { runLoop, emit }) {
         if (event.type) emit(event);
         break;
     }
+    // Hard cost cap reached — stop consuming the loop (break the for-await, not
+    // just the switch) so no further paid LLM call is made.
+    if (stopForCost) break;
   }
   return { finalText, endReason, usage, toolCalls };
 }
@@ -458,6 +474,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           mcpConfigPath: options.mcpConfig || null,
           db: db?.getDatabase?.() || null,
           includeRegistered: options.useRegisteredMcp !== false,
+          // --strict-mcp-config: only the --mcp-config servers (ignore
+          // registered + IDE bridge) for a reproducible MCP surface.
+          strict: options.strictMcpConfig === true,
           ide: options.ide,
           cwd: options.cwd || process.cwd(),
           // advertise the session id to spawned stdio MCP servers
@@ -552,6 +571,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           })
       : undefined,
   };
+
+  // --max-budget-usd: a SESSION-WIDE USD spend cap across all turns. Folded
+  // from token-usage in runTurn; once reached the session ends before the next
+  // paid call. null → no cap (unchanged behavior).
+  const costBudget = options.maxCostUsd
+    ? new CostBudget({ limitUsd: options.maxCostUsd, table: options.priceTable })
+    : null;
 
   let turns = 0;
   let sawError = false;
@@ -686,6 +712,18 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       }
     }
 
+    // --replay-user-messages: echo each accepted user message back on the
+    // output stream (Claude-Code parity) so a consumer can correlate replies to
+    // inputs / log the transcript. Echoes the raw user text, before @file or
+    // IDE-context expansion.
+    if (options.replayUserMessages && parsed.text) {
+      emit({
+        type: "user",
+        message: { role: "user", content: parsed.text },
+        session_id: sessionId,
+      });
+    }
+
     // Per-turn iteration budget so one turn can't starve the rest.
     const budget = Number.isFinite(options.maxTurns)
       ? new IterationBudget({
@@ -795,7 +833,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       outcome = await runTurn(
         messages,
         { ...loopOptionsBase, iterationBudget: budget, signal: turnSignal },
-        { runLoop, emit },
+        { runLoop, emit, costBudget },
       );
     } catch (err) {
       currentAbort = null;
@@ -840,18 +878,38 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     const exhausted =
       outcome.endReason === "budget-exhausted" ||
       outcome.endReason === "max_turns";
-    const isError = exhausted || outcome.endReason === "no-response";
+    const costStopped = outcome.endReason === "cost-budget-exhausted";
+    const isError = exhausted || costStopped || outcome.endReason === "no-response";
     if (isError) sawError = true;
+
+    if (costStopped) {
+      emit({
+        type: "cost_budget_exhausted",
+        limit_usd: options.maxCostUsd,
+        spent_usd: costBudget?.spentUsd,
+        session_id: sessionId,
+        turn: turns,
+      });
+    }
 
     emit({
       type: "result",
-      subtype: exhausted ? "error_max_turns" : isError ? "error" : "success",
+      subtype: exhausted
+        ? "error_max_turns"
+        : costStopped
+          ? "error_max_budget"
+          : isError
+            ? "error"
+            : "success",
       is_error: isError,
       result: outcome.finalText,
       session_id: sessionId,
       turn: turns,
       usage: outcome.usage,
     });
+
+    // Session-wide cost cap reached → stop accepting further turns.
+    if (costStopped) break;
 
     // While planning, blocked tool calls grew the plan during this turn —
     // push the fresh snapshot so the panel's plan card stays live.
