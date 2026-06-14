@@ -833,6 +833,7 @@ export async function startAgentRepl(options = {}) {
       "/statusline",
       "/sub-agents",
       "/task",
+      "/terminal-setup",
       "/vim",
     ],
     getIdeOpenFiles: async () => {
@@ -1177,6 +1178,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/vim")}        Toggle vim-mode line editing (/vim [on|off]; Esc → NORMAL)`,
       );
       logger.log(
+        `  ${chalk.cyan("/terminal-setup")} Bind Shift+Enter → newline (--apply for VS Code)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
       );
       logger.log(
@@ -1380,6 +1384,23 @@ export async function startAgentRepl(options = {}) {
       messages.length = 1; // Keep system prompt
       _checkpointMarks.length = 0; // checkpoint marks no longer map to anything
       logger.info("Conversation cleared");
+      prompt();
+      return;
+    }
+
+    if (
+      trimmed === "/terminal-setup" ||
+      trimmed.startsWith("/terminal-setup ")
+    ) {
+      try {
+        const arg = trimmed.slice("/terminal-setup".length).trim();
+        const { runTerminalSetup } =
+          await import("../commands/terminal-setup.js");
+        const res = runTerminalSetup({ apply: arg === "--apply" });
+        for (const l of res.lines) logger.log(l);
+      } catch (err) {
+        logger.error(`/terminal-setup failed: ${err.message}`);
+      }
       prompt();
       return;
     }

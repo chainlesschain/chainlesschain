@@ -67,6 +67,7 @@ import { registerLoopCommand } from "./commands/loop.js";
 import { registerPermissionsCommand } from "./commands/permissions.js";
 import { registerOutputStyleCommand } from "./commands/output-style.js";
 import { registerStatuslineCommand } from "./commands/statusline.js";
+import { registerTerminalSetupCommand } from "./commands/terminal-setup.js";
 import { registerIdeCommand } from "./commands/ide.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
@@ -479,6 +480,7 @@ export function createProgram(opts = {}) {
   registerPermissionsCommand(program);
   registerOutputStyleCommand(program);
   registerStatuslineCommand(program);
+  registerTerminalSetupCommand(program);
   registerIdeCommand(program);
   registerConsolCommand(program);
 
