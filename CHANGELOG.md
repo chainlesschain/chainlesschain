@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **project-service ZIP 导出 UTF-8 编码 bug**：项目导出写 ZIP 条目时使用平台默认编码（在 GBK 默认的 JVM 上即 GBK），导致导出含中文内容的项目后，UTF-8 的导入端读取时抛 `MalformedInputException`，无法回环重导入。改为始终以 UTF-8 写入，并对文件内容为 null 时写空条目兜底（不再 NPE）。
+
+### Tests / QA hardening
+全栈测试普查并修复全部真实失败（仅余环境受限项：需 Ollama/Qdrant 服务或带 GPU 的本地推理）。
+
+- **CLI**：恢复 deprecated-shim 导出平价（`agent-core` 缺 `reloadSkills`/`MAX_SUB_AGENT_DEPTH`、`mcp-client` 缺 `isLikelyConnectionError`）；补 `hub` 子命令清单 `douyin-watch-sync`；`skill sources` 断言 4→6 层（新增 `claude-user`/`claude-project` 可移植层）；24 个 e2e 文件的 15s 子进程超时放宽到 30s，消除 Windows 冷启动负载下的 `spawnSync ETIMEDOUT` 抖动。
+- **桌面**：内置技能计数 145→146（新增纯文档型技能 `pdh-android-collector`）+ 引入 `DOC_ONLY_SKILLS` 白名单使"缺 handler"显式失败。
+- **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
+- **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
+
 ## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
 
 > v5.0.3.108 真机验证发现**发布的 APK 不含 `cc-cli.tgz`**（local-terminal/cc 在设备上不可用，pdh/拼多多采集不下发）。根因:`release.yml` build-android 只跑 `assembleRelease`,而 `downloadInternalBinaries` 仅靠 `preBuild` 的 lazy `dependsOn` 触发,在 CI 不生效。本版纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。

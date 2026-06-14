@@ -2,6 +2,14 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-14 Mainline — **Full-stack test-suite sweep + project-service export UTF-8 encoding bug** (rolls into the next release)
+
+- **Real bug fix**: `project-service` wrote ZIP export entries using the platform default charset (GBK on a GBK-default JVM), so a project containing Chinese content could not be re-imported by the UTF-8 import side (`MalformedInputException`). Now always UTF-8, with a null file body written as an empty entry instead of an NPE.
+- **Test-suite sweep**: ran CLI (unit/integration/e2e), desktop (stores/integration/full unit), Web Panel, core packages, and backend **Java** (`mvn test`) + **Python** (`pytest`); fixed every real failure, leaving only environment-gated cases (need Ollama/Qdrant services or GPU local inference).
+- **Key fixes**: CLI deprecated-shim export parity + `hub` subcommand list + `skill sources` 4→6 layers + 24 e2e files' subprocess timeout 15s→30s (kills Windows cold-start flakes); desktop builtin skill count 145→146 + doc-only-skill allowlist; backend Java `mvn test` 32 failures→0; backend Python `git_manager`/`code_generator` stale-assertion alignment (pytest 15→41+ passing).
+
+---
+
 ## 2026-06-11 Mainline — **cc CLI 0.162.41: Claude-Code parity finale — project memory (cc.md) + REPL steering + structured output** (published to npm, rolls into the next release)
 
 - **Project memory (claude CLAUDE.md parity, own primary name `cc.md`)**: `cc agent` auto-loads the `cc.md` > `CLAUDE.md` > `AGENTS.md` hierarchy (user scope / project chain / local companions / `.chainlesschain/rules.md` / path-scoped `.claude/rules`, recursive `@path` imports, 48K/192K budgets, fail-open); `cc init` now defaults to an **offline inventory** that generates cc.md (`/init` parity, templates behind `-t`, `--ai` refines conventions with a bounded agent), existing CLAUDE.md auto-`@import`ed so nothing is shadowed; `cc memory files` shows the effective chain.

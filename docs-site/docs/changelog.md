@@ -3,6 +3,19 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] — 测试套件普查修复 + project-service 导出 UTF-8 bug
+
+> 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
+
+#### Fixed
+- **project-service ZIP 导出 UTF-8 编码 bug**：导出写 ZIP 条目用平台默认编码（GBK 默认 JVM），导出含中文项目后 UTF-8 导入端抛 `MalformedInputException` 无法回环重导入。改为始终 UTF-8 + null 内容写空条目兜底。
+
+#### Tests / QA hardening
+- **CLI**：恢复 deprecated-shim 导出平价（`agent-core`/`mcp-client`）+ 补 `hub` 子命令 `douyin-watch-sync` + `skill sources` 4→6 层 + 24 个 e2e 文件子进程超时 15s→30s（消除 Windows 冷启动 `spawnSync ETIMEDOUT` 抖动）。
+- **桌面**：内置技能计数 145→146（新增纯文档型 `pdh-android-collector`）+ `DOC_ONLY_SKILLS` 白名单校验。
+- **后端 Java（project-service）**：`mvn test` 32 失败 → 0（补 `@Mock UserMapper`、宽松 stubbing、对齐过期断言/调用计数、导入测试 UTF-8 + ObjectMapper stub）。
+- **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言 + 修 `code_generator` 过期返回键（`refactored_code`）；pytest 15 → 41+ 通过。
+
 ## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
 
 > v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用）。根因:`release.yml` build-android 只跑 `assembleRelease`,`downloadInternalBinaries` 的 `preBuild` lazy `dependsOn` 在 CI 不触发。纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。

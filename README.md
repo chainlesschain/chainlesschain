@@ -2,6 +2,14 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-14 主线 — **全栈测试普查修复 + project-service 项目导出 UTF-8 编码 bug**（待并入下一发版）
+
+- **真实 bug 修复**：`project-service` 项目导出写 ZIP 条目时用平台默认编码（GBK 默认 JVM），导出含中文内容的项目后，UTF-8 的导入端读取时抛 `MalformedInputException`、无法回环重导入；改为始终 UTF-8 写入 + 文件内容为 null 时写空条目兜底。
+- **测试套件普查**：跑通 CLI（单元/集成/e2e）、桌面（store/集成/全量单元）、Web Panel、core 包、后端 **Java**（`mvn test`）与 **Python**（`pytest`）全栈，修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
+- **关键修复**：CLI deprecated-shim 导出平价 + `hub` 子命令清单 + `skill sources` 4→6 层 + 24 个 e2e 文件子进程超时 15s→30s（消除 Windows 冷启动抖动）；桌面内置技能计数 145→146 + 纯文档型技能白名单；后端 Java `mvn test` 32 失败→0；后端 Python `git_manager`/`code_generator` 过期断言对齐（pytest 15→41+ 通过）。
+
+---
+
 ## 2026-06-11 主线 — **cc CLI 0.162.41：Claude-Code 平价终章——项目记忆（cc.md）+ REPL steering + 结构化输出**（已发 npm，待并入下一发版）
 
 - **项目记忆体系（claude CLAUDE.md 平价，自有主名 `cc.md`）**：`cc agent` 启动自动加载 `cc.md` > `CLAUDE.md` > `AGENTS.md` 层级（用户级/项目链/local 伴随/`.chainlesschain/rules.md`/路径作用域 `.claude/rules`，`@path` 递归 import，48K/192K 预算 fail-open）；`cc init` 默认改为**项目盘点**生成 cc.md（`/init` 平价，模板退 `-t`，`--ai` 用有界 agent 精炼约定），已有 CLAUDE.md 自动 `@import` 防遮蔽；`cc memory files` 查看实际加载链。
