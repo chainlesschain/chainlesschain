@@ -64,6 +64,7 @@ import { registerGoalCommand } from "./commands/goal.js";
 import { registerCommandCommand } from "./commands/command.js";
 import { registerCompactCommand } from "./commands/compact.js";
 import { registerLoopCommand } from "./commands/loop.js";
+import { registerReviewCommand } from "./commands/review.js";
 import { registerPermissionsCommand } from "./commands/permissions.js";
 import { registerOutputStyleCommand } from "./commands/output-style.js";
 import { registerStatuslineCommand } from "./commands/statusline.js";
@@ -477,6 +478,7 @@ export function createProgram(opts = {}) {
   registerCommandCommand(program);
   registerCompactCommand(program);
   registerLoopCommand(program);
+  registerReviewCommand(program);
   registerPermissionsCommand(program);
   registerOutputStyleCommand(program);
   registerStatuslineCommand(program);
