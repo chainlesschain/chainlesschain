@@ -560,3 +560,75 @@ function classifyCounterparty(name: string): "merchant" | "contact" | "unknown" 
 - 父文档 [`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md)
 - 姐妹 [`Adapter_Email_IMAP.md`](./Adapter_Email_IMAP.md) — Phase 5 前置
 - 支付宝官方"开具交易流水证明"帮助页（用户引导文案参考）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 6 Alipay Bill adapter 经支付宝官方导出 CSV 采集账单全量（转账 / 余额宝 / 公积金 / 共享单车 / 公交地铁 / 缴费），覆盖邮箱看不到的封闭金融场景。
+
+### 2. 核心特性
+
+官方 CSV 导出（唯一干净全量源）；结构化金融数据；与电商 / 邮箱跨源 link。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` §12 Phase 6；紧随 Phase 5 EmailAdapter，验证 UnifiedSchema 对金融数据拟合度。
+
+### 4. 系统定位
+
+Personal Data Hub 的**支付宝账单采集 adapter**（Phase 6）。
+
+### 5. 核心功能
+
+CSV 解析 → normalize → LocalVault → KG。详见正文各节。
+
+### 6. 技术架构
+
+官方导出 CSV 解析；目标 app `com.eg.android.AlipayGphone`；实现包 `@chainlesschain/personal-data-hub/adapters/`。
+
+### 7. 系统特点
+
+CSV 源干净结构化（非反爬）；约 3 天工期验证 schema 拟合度。
+
+### 8. 应用场景
+
+「钱去哪了」金融流水归集，与电商「买了什么」互补。
+
+### 9. 竞品对比
+
+邮箱 / app 内抓取看不到的封闭金融场景，CSV 是唯一全量源（见正文头部）。
+
+### 10. 配置参考
+
+CSV 导出引导见正文（参考支付宝官方"开具交易流水证明"帮助页）。
+
+### 11. 性能指标
+
+CSV 解析随账单条数线性；本地处理无网络。
+
+### 12. 测试覆盖
+
+CSV 样本解析单测（见正文测试节）。
+
+### 13. 安全考虑
+
+账单含高敏感金融数据；落盘经 LocalVault 加密，仅本机使用。
+
+### 14. 故障排除
+
+CSV 格式 / 字段变更 → 更新解析映射（见正文）。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/`（alipay bill adapter）。
+
+### 16. 使用示例
+
+见正文 CSV 导入 / 解析示例。
+
+### 17. 相关文档
+
+见正文「14. 参考」：`Personal_Data_Hub_Architecture.md`、`Adapter_Email_IMAP.md`（Phase 5 前置）。

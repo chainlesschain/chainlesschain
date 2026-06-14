@@ -240,3 +240,75 @@ Magisk → DenyList → 取消 `com.tencent.mm` 勾选（可选 — DenyList 留
 - [`Personal_Data_Hub_Fixture_Pin_Protocol.md`](./Personal_Data_Hub_Fixture_Pin_Protocol.md) — schema pin 方法论（如果你想为非 8.0.50 版本贡献 fixture）
 - frida 官方文档：<https://frida.re/docs/android/>
 - Magisk 官方文档：<https://topjohnwu.github.io/Magisk/>
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为用户端 setup runbook（Frida hook 路径）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文步骤。
+
+### 1. 概述
+
+见正文头部说明。本文是 `Adapter_WeChat_SQLCipher.md §18` 的实施配套手册——讲「rooted Android + WeChat 8.0+ 用户怎么把 Frida hook 跑起来」拉回自己 5 年聊天记录；7.x 用户走 §3 Quick Path B（不需要 Frida）。
+
+### 2. 核心特性
+
+frida-dep setup 步骤；8.0+ Frida hook 路径 + 7.x quick path 分流；rooted 设备前置。
+
+### 3. 系统架构
+
+见 `Adapter_WeChat_SQLCipher.md §18`（架构）；本文为其用户端实施配套。
+
+### 4. 系统定位
+
+WeChat adapter（Phase 12.6+）的**用户端 Frida setup runbook**。
+
+### 5. 核心功能
+
+环境准备 → frida-server 部署 → hook 拉 SQLCipher key → 解密同步。详见正文步骤。
+
+### 6. 技术架构
+
+Frida（frida-server / hook）+ Magisk（root）；目标 WeChat 8.0+。
+
+### 7. 系统特点
+
+仅面向 rooted 设备 + WeChat 8.0+；7.x 走免 Frida 的 Quick Path B。
+
+### 8. 应用场景
+
+最终用户取回自己 5 年微信聊天记录。
+
+### 9. 竞品对比
+
+见 `Adapter_WeChat_SQLCipher.md`（封闭生态唯一取回路径）。
+
+### 10. 配置参考
+
+frida-server 版本 / Magisk / 设备 root 配置见正文步骤。
+
+### 11. 性能指标
+
+setup 为一次性；解密同步性能见主设计文档。
+
+### 12. 测试覆盖
+
+非 8.0.50 版本贡献 fixture 见 `Personal_Data_Hub_Fixture_Pin_Protocol.md`。
+
+### 13. 安全考虑
+
+root + Frida 提权操作仅本机自用；聊天语料极高敏感；落盘经 LocalVault 加密。
+
+### 14. 故障排除
+
+遇诡异现象先翻 `Adapter_WeChat_SQLCipher.md §13` trap 登记；frida attach 失败见主文档 T26–T28。
+
+### 15. 关键文件
+
+frida-server；Magisk；FridaKeyProvider（见主设计文档）。
+
+### 16. 使用示例
+
+见正文各步骤命令（frida-server 部署 / hook 启动）。
+
+### 17. 相关文档
+
+见正文「8. 相关」：`Adapter_WeChat_SQLCipher.md`、`Personal_Data_Hub_Architecture.md` §12、`Personal_Data_Hub_Fixture_Pin_Protocol.md`、frida / Magisk 官方文档。

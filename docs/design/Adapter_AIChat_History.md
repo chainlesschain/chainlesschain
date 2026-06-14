@@ -751,3 +751,75 @@ ChatPanel 加入跨家历史搜索框：
 - 姐妹 [`Adapter_Alipay_Bill.md`](./Adapter_Alipay_Bill.md) (Phase 6)
 - iOS Phase 5 [`iOS_Phase_5_AI_Chat_Skill.md`](./iOS_Phase_5_AI_Chat_Skill.md) — 既有 conversation/message 模型可对齐
 - 各厂商官方 API 文档（多数无公开 spec，须真机抓包；写代码前必须重新验证）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 10 AI Chat History adapter 把 8 个厂商的跨平台 AI 对话史合一采集到本地 vault，是 Personal Data Hub 的旗舰差异化能力（任何单厂商都做不到）。
+
+### 2. 核心特性
+
+8 厂商对话史（DeepSeek / Kimi / 通义千问 等）；统一 conversation/message 模型；cookie + 真机抓包采集。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` §12 Phase 10；复用 cookie + WebView 鉴权范式；对齐 iOS Phase 5 既有 conversation/message 模型。
+
+### 4. 系统定位
+
+Personal Data Hub 的**跨厂商 AI 对话史采集 adapter**（Phase 10）。
+
+### 5. 核心功能
+
+各厂商对话拉取 → 统一 schema → LocalVault → KG。详见正文各节。
+
+### 6. 技术架构
+
+cookie + 抓包（多数厂商无公开 spec）；实现包 `@chainlesschain/personal-data-hub/adapters/aichat-*`。
+
+### 7. 系统特点
+
+旗舰差异化（独家价值）；厂商端点多无公开 spec，写代码前必真机重验。
+
+### 8. 应用场景
+
+把分散在多个 AI app 的对话史归集，构建个人 AI 交互全景与 KG。
+
+### 9. 竞品对比
+
+任何单厂商无法跨厂商合一——本 adapter 的独家价值（见正文头部）。
+
+### 10. 配置参考
+
+各厂商 cookie / 账号配置见正文 adapter 配置节。
+
+### 11. 性能指标
+
+采集随对话量线性增长；端点漂移需重抓包（见正文）。
+
+### 12. 测试覆盖
+
+各厂商抓包样本 + adapter 单测（见正文测试节）。
+
+### 13. 安全考虑
+
+AI 对话含高敏感个人内容；cookie 高敏感；落盘经 LocalVault 加密，仅本机。
+
+### 14. 故障排除
+
+厂商端点 / 鉴权漂移 → 重新真机抓包并更新常量。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/aichat-*`。
+
+### 16. 使用示例
+
+见正文各厂商 adapter 调用示例。
+
+### 17. 相关文档
+
+见正文「14. 参考」：`Personal_Data_Hub_Architecture.md`、`Adapter_Email_IMAP.md`、`Adapter_Alipay_Bill.md`、`iOS_Phase_5_AI_Chat_Skill.md`。

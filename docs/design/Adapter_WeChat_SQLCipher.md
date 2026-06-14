@@ -1417,4 +1417,76 @@ if (!r.ok) {
 | T27 | probe.device.serial 在 Frida fan-out 时拿到 null（probe 跑过但 device unplugged） | FridaKeyProvider 的 `_getDevice` fallback 到 `getUsbDevice()`；bootstrap 不再校验 serial 非 null |
 | T28 | 用户在 PDH UI 切换 vendor 时残留旧 adapter 实例 | bootstrap 是无状态工厂；caller（IPC 层）负责 dedupe / cleanup，bootstrap 不持单例 |
 
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格，难度 ⭐⭐⭐⭐⭐）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 12 WeChat adapter 把微信聊天 + 朋友圈 + 公众号全量解密同步到本地 vault，是 Personal Data Hub 的终极价值兑现（取回 5+ 年最完整数字社交语料库），难度为其它 11 个 adapter 难度之和。
+
+### 2. 核心特性
+
+微信聊天 / 朋友圈 / 公众号全量；SQLCipher 解密；frida-dep 路径（8.0+）与 7.x quick path；vendor 多版本 fixture pin。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` §12 Phase 12；正文 §18 讲 bootstrap / keyProvider 架构；目标 app `com.tencent.mm`。
+
+### 4. 系统定位
+
+Personal Data Hub 的**微信全量解密采集 adapter**（Phase 12，v1 压轴）。
+
+### 5. 核心功能
+
+SQLCipher key 获取（Frida / 7.x 路径）→ 解密 DB → parse → normalize → LocalVault。详见正文各节。
+
+### 6. 技术架构
+
+SQLCipher + Frida hook（FridaKeyProvider）；bootstrap 无状态工厂；schema fixture pin（见 `Personal_Data_Hub_Fixture_Pin_Protocol.md`）。
+
+### 7. 系统特点
+
+难度顶 / 工期最长；frida 运行时 attach 风险由 keyProvider 自抛错（见正文「Trap T26–T28」）。
+
+### 8. 应用场景
+
+取回用户最长最完整的社交语料库，构建个人社交 KG 与 RAG 语料。
+
+### 9. 竞品对比
+
+微信封闭生态无导出；本 adapter 是把 5+ 年语料取回本地的唯一路径（见正文头部）。
+
+### 10. 配置参考
+
+vendor / keyProviderOverride / frida 配置见正文 §18；用户端 setup 见 `Adapter_WeChat_SQLCipher_Frida_Setup.md`。
+
+### 11. 性能指标
+
+解密 + 解析随 5+ 年消息库规模线性，工期最长；见正文工期评估。
+
+### 12. 测试覆盖
+
+schema fixture pin + bootstrap trap 登记（正文 §13 / §18.9 T21–T28）。
+
+### 13. 安全考虑
+
+微信全量语料极高敏感；SQLCipher 密钥经 Frida 运行时获取不落盘；落盘经 LocalVault 加密，仅本机。
+
+### 14. 故障排除
+
+见正文 §13 trap 登记与 §18.9 T21–T28（frida attach fail / serial null / 实例残留等）。
+
+### 15. 关键文件
+
+`@chainlesschain/personal-data-hub/adapters/`（wechat）；FridaKeyProvider；bootstrap 工厂。
+
+### 16. 使用示例
+
+见正文 adapter / bootstrap 调用示例；用户端 runbook 见 Frida Setup 文档。
+
+### 17. 相关文档
+
+见正文「关联」：`Personal_Data_Hub_Architecture.md` §12、`Adapter_WeChat_SQLCipher_Frida_Setup.md`、`Personal_Data_Hub_Fixture_Pin_Protocol.md`、`Adapter_Email_IMAP.md` / `Adapter_Alipay_Bill.md` / `Adapter_AIChat_History.md`。
+
 

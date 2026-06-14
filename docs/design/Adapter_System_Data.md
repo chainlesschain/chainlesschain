@@ -514,3 +514,75 @@ def phone_match(a, b):
 - [`Personal_Data_Hub_EntityResolver.md`](./Personal_Data_Hub_EntityResolver.md) — Phase 8 设计，本 adapter 是种子数据源
 - Android contacts schema 参考：[Android 官方文档 ContactsContract](https://developer.android.com/reference/android/provider/ContactsContract)
 - iOS AddressBook schema：[apple AddressBook framework](https://developer.apple.com/documentation/addressbook)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（Adapter 规格）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部说明。Phase 4.5 System Data adapter 采集系统层数据（通讯录 / 通话记录 / 短信 / WiFi），是 EntityResolver Phase 8 的种子集——通讯录里的电话 / 邮箱 / 备注名是后续所有 adapter 的 Person 实体权威主键。
+
+### 2. 核心特性
+
+系统层数据（非单 app）：Android contacts/telephony providers + WiFi、iOS AddressBook + CallHistory + SMS；EntityResolver 种子源。
+
+### 3. 系统架构
+
+见父文档 `Personal_Data_Hub_Architecture.md` v0.3 §12 Phase 4.5 + `Personal_Data_Hub_Python_Sidecar.md` §3.2；经 sidecar `system.parse_*` 4 method。
+
+### 4. 系统定位
+
+Personal Data Hub 的**系统层数据采集 adapter**（Phase 4.5），EntityResolver 种子数据源。
+
+### 5. 核心功能
+
+contacts / call log / sms / wifi 解析 → normalize → LocalVault → Person 主键。详见正文各节。
+
+### 6. 技术架构
+
+Python sidecar（复用 sjqz `parsers/system.py` 964 行：ContactsParser / CallLogParser / SmsParser / WifiParser）；sidecar method 见 sidecar 文档 §3.2。
+
+### 7. 系统特点
+
+非 app 数据而是系统层；为 EntityResolver 提供权威 Person 主键种子。
+
+### 8. 应用场景
+
+为后续所有 adapter 的人物实体消歧提供权威主键（电话 / 邮箱 / 备注名）。
+
+### 9. 竞品对比
+
+系统层权威主键源，单 app adapter 无法提供（见正文「特殊地位」）。
+
+### 10. 配置参考
+
+sidecar `system.parse_*` 调用参数见 `Personal_Data_Hub_Python_Sidecar.md` §3.2。
+
+### 11. 性能指标
+
+解析随通讯录 / 通话 / 短信条数线性；本地处理。
+
+### 12. 测试覆盖
+
+复用 sjqz `parsers/system.py` 既有解析与样本（见正文参考）。
+
+### 13. 安全考虑
+
+通讯录 / 通话 / 短信极高敏感；落盘经 LocalVault 加密，仅本机；需系统级读取权限。
+
+### 14. 故障排除
+
+provider 读取权限 / root 缺失 → 检查权限与 sidecar 环境（见正文）。
+
+### 15. 关键文件
+
+sjqz `parsers/system.py`；sidecar `system.parse_*`；KG 实体见 `Personal_Data_Hub_EntityResolver.md`。
+
+### 16. 使用示例
+
+见正文 sidecar method 调用示例。
+
+### 17. 相关文档
+
+见正文「10. 参考」：`Personal_Data_Hub_Architecture.md` §12、`Personal_Data_Hub_Python_Sidecar.md` §3.2、`Personal_Data_Hub_EntityResolver.md`。
