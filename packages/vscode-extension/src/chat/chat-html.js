@@ -270,7 +270,7 @@ function buildChatHtml({ cspSource, nonce }) {
     sug.items.forEach((f, i) => {
       const row = document.createElement("div");
       row.className = "item" + (i === sug.sel ? " sel" : "");
-      row.textContent = f;
+      row.textContent = ccAtMention.mentionLabel(f);
       row.addEventListener("mousedown", (e) => { e.preventDefault(); acceptSug(i); });
       suggest.appendChild(row);
     });
@@ -278,8 +278,9 @@ function buildChatHtml({ cspSource, nonce }) {
   }
   function acceptSug(i) {
     const item = sug.items[i == null ? sug.sel : i];
-    if (!item || !sug.at) { hideSug(); return; }
-    const r = ccAtMention.applyMention(input.value, sug.at, item, input.selectionStart);
+    const value = ccAtMention.mentionValue(item);
+    if (!value || !sug.at) { hideSug(); return; }
+    const r = ccAtMention.applyMention(input.value, sug.at, value, input.selectionStart);
     input.value = r.text;
     input.setSelectionRange(r.caret, r.caret);
     hideSug();

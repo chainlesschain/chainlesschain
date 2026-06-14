@@ -65,6 +65,22 @@
   }
 
   /**
+   * Completion items are either plain path strings (files / @selection /
+   * @diagnostics) or { label, value } objects (workspace symbols, whose shown
+   * name differs from the inserted @path). These read the two faces uniformly.
+   */
+  function mentionLabel(item) {
+    if (item && typeof item === "object") {
+      return String(item.label || item.value || "");
+    }
+    return String(item == null ? "" : item);
+  }
+  function mentionValue(item) {
+    if (item && typeof item === "object") return String(item.value || "");
+    return String(item == null ? "" : item);
+  }
+
+  /**
    * Splice an accepted suggestion into the input text.
    * Returns { text, caret } with a trailing space after the mention.
    */
@@ -82,6 +98,8 @@
       filterFiles: filterFiles,
       applyMention: applyMention,
       ideMentionMatches: ideMentionMatches,
+      mentionLabel: mentionLabel,
+      mentionValue: mentionValue,
     };
   }
   global.ccAtMention = {
@@ -89,5 +107,7 @@
     filterFiles: filterFiles,
     applyMention: applyMention,
     ideMentionMatches: ideMentionMatches,
+    mentionLabel: mentionLabel,
+    mentionValue: mentionValue,
   };
 })(typeof window !== "undefined" ? window : globalThis);

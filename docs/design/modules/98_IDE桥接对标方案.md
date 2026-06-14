@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）· Phase 7 ✅（Fix with ChainlessChain 诊断 QuickFix 灯泡 0.19.0 + Explain/Refactor 选区右键 + `/cost`·`/context` 面板命令 0.20.0,2026-06-14）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）· Phase 7 ✅（Fix with ChainlessChain 诊断 QuickFix 灯泡 0.19.0 + Explain/Refactor 选区右键 + `/cost`·`/context` 面板命令 0.20.0 + workspace symbol @-mention 0.21.0,2026-06-14;面板 `@` 三类来源齐全,gap D 收口）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -370,6 +370,20 @@ vscode"的纪律):
 - **测试 +21**(`vscode-ext-selection-actions.test.js` 9 + `vscode-ext-introspect-commands.test.js`
   12,含 args 构造/runner stdout·stderr·失败回退/`_runIntrospect` 无 session·成功·空回退/
   webview parse gate)。
+
+**Phase 7 末 — workspace symbol @-mention ✅ (VS Code 0.21.0,2026-06-14,gap D)**:补面板 `@`-补全
+最后一类来源——**按符号名找文件**(对标 Claude Code 不止文件、也能 @ 函数/类)。CLI 的 `@`
+展开只认 `@<path>`(无 `@file:line` 语法,已核 file-ref-expander `TOKEN_RE`),故选中符号
+**插入其所在文件**为 `@<path>`(零 CLI 改动);搜索按符号名命中文件名不同的文件即价值所在。
+- `src/chat/symbol-mentions.js`(纯,host-only):`formatSymbolItems`(SymbolInformation →
+  `{label:"<kind> <name> · <relpath>",value:relpath}`,SymbolKind 数字枚举映射,root 相对 +
+  反斜杠归一 + cap)+ `dedupeMentionItems`(按 value 去重保序——符号文件已被路径搜索命中则不重复出行)。
+- `at-mention.js`(webview+node):`mentionLabel`/`mentionValue` 统一读"字符串项 | `{label,value}`
+  对象项",`applyMention` 仍插 value;chat-html `renderSug` 显 label、`acceptSug` 插 value。
+- `chat-view.js`:`_listWorkspaceSymbols`(≥2 字符才查,经 `vscode.executeWorkspaceSymbolProvider`,
+  never-throw)+ `files` 处理改 `Promise.all([files,symbols])` 合并去重(ideMentions→files→symbols)。
+- **测试 +20**(`vscode-ext-symbol-mentions.test.js`)。**gap D 收口** → 面板 `@` 三类来源(IDE 伪
+  mention / 文件 / 符号)齐全;ws transport 仍有意 defer。
 
 ---
 

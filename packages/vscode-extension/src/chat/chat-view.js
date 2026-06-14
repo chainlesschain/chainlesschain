@@ -246,6 +246,29 @@ class ChatViewProvider {
   }
 
   /**
+   * Workspace symbols (functions/classes/…) matching the typed prefix, as
+   * `{label, value}` items whose value is the symbol's file (the CLI expands
+   * `@<path>`). Gated at >=2 chars to avoid the unfiltered symbol dump; never
+   * throws (no provider / no results → []).
+   */
+  async _listWorkspaceSymbols(prefix) {
+    const q = String(prefix || "").trim();
+    if (q.length < 2) return [];
+    try {
+      const syms = await this.vscode.commands.executeCommand(
+        "vscode.executeWorkspaceSymbolProvider",
+        q,
+      );
+      const { formatSymbolItems } = require("./symbol-mentions");
+      const folders = this.vscode.workspace.workspaceFolders || [];
+      const root = folders[0]?.uri?.fsPath || "";
+      return formatSymbolItems(syms, root, 8);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * `/cost` + `/context` — run the CLI introspection command for THIS panel's
    * session and render its text (mirrors `/sessions` deferring to the CLI;
    * avoids duplicating pricing / context-window math in the webview). Needs a
@@ -348,15 +371,23 @@ class ChatViewProvider {
         }
       } else if (m.type === "files") {
         // @-mention completion: IDE pseudo-mentions (@selection/@diagnostics)
-        // first, then ranked workspace-relative paths.
+        // first, then ranked workspace-relative paths, then workspace symbols
+        // (find a file by a function/class name). Deduped by inserted value so
+        // a symbol whose file already matched by path doesn't show twice.
         const prefix = String(m.prefix || "");
         const { ideMentionMatches } = require("./at-mention");
-        this._listWorkspaceFiles(prefix).then(
-          (items) =>
+        const { dedupeMentionItems } = require("./symbol-mentions");
+        Promise.all([
+          this._listWorkspaceFiles(prefix),
+          this._listWorkspaceSymbols(prefix),
+        ]).then(
+          ([files, symbols]) =>
             this._post({
               kind: "files",
               prefix,
-              items: ideMentionMatches(prefix).concat(items),
+              items: dedupeMentionItems(
+                ideMentionMatches(prefix).concat(files, symbols),
+              ),
             }),
           () => {},
         );

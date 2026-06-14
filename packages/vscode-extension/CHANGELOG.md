@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.21.0] — 2026-06-14
+
+- **Workspace symbol @-mentions (Claude Code parity)**: typing `@` in the chat
+  input now also suggests workspace symbols (functions, classes, methods, …),
+  not just files — so you can find the right file by a symbol's name even when
+  the filename differs. Picking a symbol inserts the file that contains it as an
+  `@<path>` reference (the CLI expands `@path` server-side), labelled
+  `<kind> <name> · <path>` in the dropdown. Suggestions are gated to ≥2 typed
+  characters and deduped by the inserted path, so a symbol whose file already
+  matched by path search doesn't show twice.
+
 ## [0.20.0] — 2026-06-14
 
 - **Explain / Refactor selection (Claude Code parity)**: select code and
