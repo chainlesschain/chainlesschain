@@ -176,6 +176,16 @@ function _killTask(task) {
 }
 
 /**
+ * Kill one background shell task by id (for the user-facing `/tasks kill <id>`).
+ * @returns {boolean} true if a running task with that id was signalled
+ */
+export function killBackgroundShellTask(id) {
+  const task = _backgroundShellTasks.get(id);
+  if (!task) return false;
+  return _killTask(task);
+}
+
+/**
  * Kill every still-running background shell task. Callers (REPL exit, headless
  * shutdown) invoke this so a backgrounded `npm run dev` doesn't outlive the
  * agent. Best-effort: kill failures are swallowed.

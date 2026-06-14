@@ -75,7 +75,10 @@ import {
   agentLoop as coreAgentLoop,
   formatToolArgs,
   killAllBackgroundShellTasks,
+  killBackgroundShellTask,
+  listBackgroundShellTasks,
 } from "../runtime/agent-core.js";
+import { formatBackgroundTasks } from "./tasks-status.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import {
@@ -833,6 +836,7 @@ export async function startAgentRepl(options = {}) {
       "/statusline",
       "/sub-agents",
       "/task",
+      "/tasks",
       "/terminal-setup",
       "/vim",
     ],
@@ -1254,6 +1258,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/sub-agents")}  Show active/completed sub-agents`,
       );
       logger.log(
+        `  ${chalk.cyan("/tasks")}      Show background shell tasks (kill <id> · kill-all)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/ide")}        IDE bridge status (connected editor, tools, or why not)`,
       );
       logger.log(chalk.bold("\nCapabilities:"));
@@ -1287,6 +1294,35 @@ export async function startAgentRepl(options = {}) {
         }
       } catch (_err) {
         // Non-critical — macro discovery failure must not break /help
+      }
+      prompt();
+      return;
+    }
+
+    // `/tasks` — user-facing view of the agent's background shell tasks
+    // (run_shell run_in_background). Must precede the `/task` handler below,
+    // which matches with startsWith("/task") and would otherwise swallow it.
+    if (trimmed === "/tasks" || trimmed.startsWith("/tasks ")) {
+      const rest = trimmed.slice("/tasks".length).trim();
+      if (rest === "kill-all") {
+        const n = killAllBackgroundShellTasks();
+        logger.log(chalk.dim(`Killed ${n} background shell task(s).`));
+      } else if (rest.startsWith("kill ")) {
+        const id = rest.slice("kill ".length).trim();
+        const ok = id ? killBackgroundShellTask(id) : false;
+        logger.log(
+          ok
+            ? chalk.dim(`Killed background shell task ${id}.`)
+            : chalk.dim(`No running background shell task with id "${id}".`),
+        );
+      } else if (rest === "kill") {
+        logger.log(chalk.dim("Usage: /tasks kill <id> · /tasks kill-all"));
+      } else {
+        logger.log(
+          "
+" + formatBackgroundTasks(listBackgroundShellTasks()) + "
+",
+        );
       }
       prompt();
       return;
