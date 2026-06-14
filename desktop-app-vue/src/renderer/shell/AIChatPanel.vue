@@ -44,7 +44,15 @@
             <FolderOutlined />
             项目
           </a-radio-button>
-          <a-radio-button value="file" disabled>
+          <a-radio-button
+            value="file"
+            :disabled="!activeContextStore.hasDocument"
+            :title="
+              activeContextStore.hasDocument
+                ? '把当前打开的文件作为上下文'
+                : '打开一个项目文件后可用'
+            "
+          >
             <FileTextOutlined />
             文件
           </a-radio-button>
