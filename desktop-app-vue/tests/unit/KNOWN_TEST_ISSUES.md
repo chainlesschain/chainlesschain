@@ -342,6 +342,14 @@ skip reasons were found to be inaccurate or brittle:
     contract (LLM failure still yields a usable, non-throwing plan).
   - **45 pass, 0 skipped.**
 
+- **`tools/tool-runner.test.js`** — `should read file successfully` was skipped
+  because `vi.mock("fs")` is unreliable for CommonJS built-ins in Vitest's forks
+  pool, so the test couldn't control `readFile`. Applied the codebase's sanctioned
+  `_deps`-injection pattern: `ToolRunner` now takes an optional second constructor
+  arg `{ fs }` (defaulting to the real `fs.promises`) and routes all 11 file ops
+  through `this._fs`. Backward-compatible — the sole production caller
+  (`chat-skill-bridge.js`) uses the 1-arg form. **36 pass, 0 skipped.**
+
 > Still intentionally skipped (genuine gates, not debt): hardware/native
 > (U-Key, Sharp, Whisper server, pkcs11), Python-env integration scenarios, and
 > Electron clipboard / `fs.promises` ESM-mock limitations.
