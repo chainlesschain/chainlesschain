@@ -10,6 +10,7 @@
  * `model`. Body is the prompt template, with substitutions applied at run time:
  *   $ARGUMENTS   → all args joined by space
  *   $1 $2 … $9   → positional args (missing → empty string)
+ *   \$ARGUMENTS \$1 → escaped: kept literal (the backslash is dropped)
  *   !`<cmd>`     → run <cmd> in a shell, splice in its stdout (bang exec)
  *   @path        → splice in file/dir contents (via file-ref-expander)
  *
@@ -148,11 +149,20 @@ export function getCommand(name, cwd = process.cwd(), opts = {}) {
   return discoverCommands(cwd, opts).find((c) => c.name === wanted) || null;
 }
 
-/** Substitute $ARGUMENTS and $1..$9 in `text`. */
+/**
+ * Substitute $ARGUMENTS and $1..$9 in `text`. A backslash escapes the `$` so a
+ * literal token survives (Claude-Code 2.1.163 `\$` escape): `\$5` → `$5`,
+ * `\$ARGUMENTS` → `$ARGUMENTS`. The negative lookbehind skips an escaped `$`
+ * during substitution; a final pass strips the escaping backslash.
+ */
 export function substituteArgs(text, args = []) {
   const list = Array.isArray(args) ? args : [];
-  let out = text.replace(/\$ARGUMENTS/g, list.join(" "));
-  out = out.replace(/\$([1-9])/g, (_, d) => list[Number(d) - 1] ?? "");
+  let out = text.replace(/(?<!\\)\$ARGUMENTS/g, list.join(" "));
+  out = out.replace(/(?<!\\)\$([1-9])/g, (_, d) => list[Number(d) - 1] ?? "");
+  // Unescape: a backslash immediately before $ARGUMENTS or $<digit> was an
+  // explicit "keep literal" marker — drop the backslash now that substitution
+  // has skipped it. Other backslashes are left untouched.
+  out = out.replace(/\\(\$(?:ARGUMENTS|[1-9]))/g, "$1");
   return out;
 }
 

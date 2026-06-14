@@ -78,6 +78,24 @@ describe("slash-commands", () => {
     it("missing positionals become empty", () => {
       expect(substituteArgs("[$1][$3]", ["only"])).toBe("[only][]");
     });
+
+    // Claude-Code 2.1.163: \$ escapes a literal token (backslash is dropped).
+    it("escapes a literal \\$<digit> while still substituting unescaped ones", () => {
+      // raw body: "price \$5 then $1"  →  "price $5 then X"
+      expect(substituteArgs("price \\$5 then $1", ["X"])).toBe(
+        "price $5 then X",
+      );
+    });
+    it("escapes a literal \\$ARGUMENTS", () => {
+      // raw body: "keep \$ARGUMENTS got $ARGUMENTS"
+      expect(
+        substituteArgs("keep \\$ARGUMENTS got $ARGUMENTS", ["P", "Q"]),
+      ).toBe("keep $ARGUMENTS got P Q");
+    });
+    it("only the escaping backslash is dropped; others survive", () => {
+      // raw body: "C:\\path \$1"  →  "C:\\path $1" (the \$1 stays literal)
+      expect(substituteArgs("C:\\path \\$1", ["Z"])).toBe("C:\\path $1");
+    });
   });
 
   describe("expandCommand", () => {
