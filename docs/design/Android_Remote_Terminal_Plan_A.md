@@ -357,3 +357,75 @@ ws.send(JSON.stringify({ type:"terminal.stdin", payload:{
 | 待回填 | feat(remote-terminal): plan A phase 2 — cross-shell UI |
 | 待回填 | feat(remote-terminal): plan A phase 3 — Android xterm.js WebView |
 | 待回填 | feat(remote-terminal): plan A phase 4 — 韧性 + 真机 e2e |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景与目标」。Plan A 用托管 PTY 复用 #21 signaling 通道实现 Android 远程操控桌面终端，Phase 1–4 全部落地。
+
+### 2. 核心特性
+
+托管 PTY；复用 #21 通道；envelope v1.0（dot-case + requestId）；三壳 Cross-Shell UI + Android xterm.js WebView。
+
+### 3. 系统架构
+
+见正文「2. 数据流与组件」（Desktop PtyManager / Android 组件 / Cross-Shell UI）。
+
+### 4. 系统定位
+
+Android 远程终端的**托管 PTY 方案**（Plan A，A.1 为 WebRTC DC 直连升级）。
+
+### 5. 核心功能
+
+见正文「3. 协议」：`terminal.create` / `terminal.list` / `terminal.stdin` / `terminal.stdout`。
+
+### 6. 技术架构
+
+PtyManager + WS topics；signaling 转发；Android xterm.js WebView；统一 envelope v1.0。
+
+### 7. 系统特点
+
+复用既有 #21 通道、零新基础设施；A.1 在真机暴露 signaling 路径 4+1 bug（见 `Android_Remote_Terminal_Plan_A1.md`）。
+
+### 8. 应用场景
+
+Android 远程操控桌面终端（跑命令 / 多 session）。
+
+### 9. 竞品对比
+
+见 `Android_Remote_Terminal_Plan_A1.md`（WebRTC DC 直连，低延迟升级路径）。
+
+### 10. 配置参考
+
+envelope v1.0 dot-case 协议见正文 §3；feature flag 见 A.1。
+
+### 11. 性能指标
+
+signaling 转发多跳；A.1 DC 直连降延迟（见 A.1 §5.3 矩阵）。
+
+### 12. 测试覆盖
+
+99 测试（desktop 61 + cli 21 + web-panel 17 + android 10 待真机）；见正文 §8。
+
+### 13. 安全考虑
+
+PTY 高危命令需拦截（见远程终端高危关键字拦截）；走配对信任信道。
+
+### 14. 故障排除
+
+stdout 卡住 / 重连历史丢失 → 见远程终端故障排查（guide `/guide/remote-terminal`）。
+
+### 15. 关键文件
+
+PtyManager；Android xterm.js WebView；envelope v1.0 handler。
+
+### 16. 使用示例
+
+见正文 §3 各 `terminal.*` 协议 req/res 示例。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_Remote_Operate_Plan_C.md`、`Android_Remote_Operate_Plan_AB.md`、`Android_Remote_Terminal_Plan_A1.md`。

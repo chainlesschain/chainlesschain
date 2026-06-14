@@ -215,3 +215,75 @@ android-app/app/src/test/java/com/chainlesschain/android/
 - 上层 Plan C 架构：[Android_Remote_Operate_Plan_C.md](Android_Remote_Operate_Plan_C.md)
 - 上一阶段 Plan A.1 终端：[Android_Remote_Terminal_Plan_A1.md](Android_Remote_Terminal_Plan_A1.md)
 - Approval channel (未来 destructive action 接入参考)：参见 `mobile-approval-channel.js` 文件头
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 三层定位」。Android Remote File Skill 在 remote-operate Plan C 路径下提供「浏览 PC 远程目录 / 上传到 PC / 下载到手机」三大能力，v1.0 已真机端到端验证。
+
+### 2. 核心特性
+
+浏览 PC 任意目录 / 上传 / 下载 / app 内打开；公共 Download 落点（MediaStore）；防覆盖上传；chunk + base64 协议。
+
+### 3. 系统架构
+
+见正文「3. 架构图」：Android `SignalingRpcClient` → 桌面 `AndroidFileHandler`（主用户身份）。用户指南见 `/guide/remote-file`。
+
+### 4. 系统定位
+
+Android 远程操控的**文件浏览 / 传输 skill**（Plan C 路径，复用 #21 signaling 通道）。
+
+### 5. 核心功能
+
+见正文「2. 协议接口」：`file.list` / `file.read` / `file.write`。
+
+### 6. 技术架构
+
+signaling 转发 `file.*`；64KB chunk + base64；MediaStore.Downloads 落盘；Intent.ACTION_VIEW 打开。
+
+### 7. 系统特点
+
+真机验证 ✅（Xiaomi 24115RA8EC + Windows）；修复 4 互锁雷 + 2 UX 坑（见正文 §4/§5）。
+
+### 8. 应用场景
+
+手机临时取 PC 文件 / 上传照片到 PC / 远程浏览项目目录。
+
+### 9. 竞品对比
+
+见用户指南 `/guide/remote-file` 附录竞品对比（vs AirDroid / KDE Connect / 微信文件传输）。
+
+### 10. 配置参考
+
+无独立配置，复用配对信任；下载落手机公共 Download、上传落 PC `~/Downloads`。
+
+### 11. 性能指标
+
+64KB chunk；>10MB 可能 timeout（待 WebRTC DC 路径提速）。
+
+### 12. 测试覆盖
+
+真机 E2E 8 场景；修复 6 个 bug（见正文 §4/§5 与用户指南附录）。
+
+### 13. 安全考虑
+
+仅 trusted paired peer；`AndroidFileHandler` 主用户身份（非 sandbox）；destructive `delete`/`writeFile` 待接 approval channel；无 checksum（见正文 §5 Bug 5 checksum 不匹配修复）。
+
+### 14. 故障排除
+
+见正文「§4 修复的 4 个互锁雷」+「§5 修复的 2 个 UX 坑」（skip guard / connectionState / checksum 自删等）。
+
+### 15. 关键文件
+
+Android `SignalingRpcClient`；桌面 `AndroidFileHandler` / `FileTransferHandler`；`P2PClient.kt`。
+
+### 16. 使用示例
+
+见用户指南 `/guide/remote-file`（5 图标 UI：浏览 / 上传 / 下载 / 本机 / 清理）。
+
+### 17. 相关文档
+
+见正文「10. 相关文档」：`Android_Remote_Operate_Plan_C.md`、`Android_Remote_Terminal_Plan_A1.md`、`mobile-approval-channel.js`。

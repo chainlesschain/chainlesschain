@@ -176,3 +176,75 @@ graph TD
 ```
 
 `local-terminal-bundle.yml` 提供 toybox 这一脚（已 done）。下一步 A1 是工作的关键节点。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「0. 为什么需要这份 doc」。本文规划 Android Local Terminal 的 CI 构建 + Bundle 后续：把 Node.js + chainlesschain CLI 交叉编译并随 APK 打包，由 Bootstrapper 解压运行。
+
+### 2. 核心特性
+
+`local-terminal-bundle.yml`（toybox 已 done）；Node.js Android 交叉编译（A1/A2/A3 三方案）；cc npm pack 集成；Bootstrapper 解压。
+
+### 3. 系统架构
+
+见正文流程图（CI build → bundle → Bootstrapper.bootstrapCcCli → 真机 cc -v 验证）；关联 `Android_Local_Terminal.md` Phase 5。
+
+### 4. 系统定位
+
+Android 本地终端的**CI 构建与运行时 bundle 设计**（Phase 5 CI 任务）。
+
+### 5. 核心功能
+
+见正文：子任务 A（Node.js 交叉编译）/ B（cc npm pack 集成）/ C（Bootstrapper 解压）。
+
+### 6. 技术架构
+
+GitHub Actions `local-terminal-bundle.yml`；toybox + Node.js（vendor Termux / nodejs-mobile / official cross-compile）；cc CLI tarball。
+
+### 7. 系统特点
+
+Phase 0–4 已落地（Phase 4 真机 verified `ebf27fc9c`）；A1（vendor Termux nodejs.deb）是关键节点。
+
+### 8. 应用场景
+
+Android 端内置本地终端 + cc CLI 运行环境。
+
+### 9. 竞品对比
+
+见正文 A1/A2/A3 三方案权衡（vendor 现成 vs 官方 cross-compile）。
+
+### 10. 配置参考
+
+见 `.github/workflows/local-terminal-bundle.yml`；bundle 解压路径见 Bootstrapper。
+
+### 11. 性能指标
+
+bundle 体积 / 解压时长为关键约束（见正文子任务 C / 大件包 Phase 5.4）。
+
+### 12. 测试覆盖
+
+真机 `cc -v` 验证（见正文流程图）；Phase 4 真机 verified。
+
+### 13. 安全考虑
+
+随 APK 打包二进制，需 W^X / extractNativeLibs 适配（见 `Android_Local_Terminal.md`）。
+
+### 14. 故障排除
+
+Node 交叉编译 / W^X execve 失败 → 见 `Android_Local_Terminal.md` 8 traps。
+
+### 15. 关键文件
+
+`.github/workflows/local-terminal-bundle.yml`；Bootstrapper.bootstrapCcCli。
+
+### 16. 使用示例
+
+见正文 CI 任务与 Bootstrapper 解压步骤。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_Local_Terminal.md`（Phase 5）、`local-terminal-bundle.yml`。

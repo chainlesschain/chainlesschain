@@ -197,3 +197,75 @@ private fun resolveIceServersFor(pcPeerId: String): List<PeerConnection.IceServe
 - 中继: `/opt/cc-signaling-relay/` on 47.111.5.128 → wss://signaling.chainlesschain.com
 - coturn: `/opt/cc-turn/` on 47.111.5.128 → turn.chainlesschain.com（3478 UDP/TCP + 5349 TLS）
 - nginx vhost + cert via acme.sh @gitee（GitHub 大陆访问受限）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. Plan C 之后」。Plan A+B 在 Plan C 信令转发之上加 WebRTC P2P 直连（Plan A signaling 透传中继）+ STUN/TURN 部署（Plan B coturn），构成远程操控三段位。
+
+### 2. 核心特性
+
+WebRTC signaling 透传中继；coturn STUN/TURN；iceServers 凭证签发；三段位（LAN / 中继 / P2P）完整图景。
+
+### 3. 系统架构
+
+见正文「2. 三段位完整图景」+「3. Plan A 中继」+「4. Plan B STUN/TURN」。
+
+### 4. 系统定位
+
+Android 远程操控的**WebRTC P2P + STUN/TURN 基础设施层**（Plan A+B）。
+
+### 5. 核心功能
+
+见正文：中继 server（signaling-relay）、桌面 main iceServers push、coturn 凭证签发、Android 客户端接入。
+
+### 6. 技术架构
+
+`backend/signaling-relay-service`；coturn（`/opt/cc-turn/`）；WebRTC ICE；nginx + acme.sh 证书。
+
+### 7. 系统特点
+
+基础设施落地 v5.0.3.51，WebRTC 端到端实测待补；证书走 gitee（GitHub 大陆访问受限）。
+
+### 8. 应用场景
+
+跨网络（非同 LAN）远程操控经 TURN 中继 / P2P 直连。
+
+### 9. 竞品对比
+
+见 `Android_Remote_Operate_Plan_C.md`（signaling-forward 前置，无 WebRTC）。
+
+### 10. 配置参考
+
+见正文「9. 部署位置」：signaling-relay `/opt/cc-signaling-relay/`、coturn `/opt/cc-turn/`（3478/5349）。
+
+### 11. 性能指标
+
+P2P 直连 < 中继延迟；TURN relay 兜底跨 NAT。
+
+### 12. 测试覆盖
+
+见正文「3.3 验证」；WebRTC 端到端实测待补。
+
+### 13. 安全考虑
+
+TURN 凭证短期签发（桌面端）；5349 TLS；信道基于配对信任。
+
+### 14. 故障排除
+
+ICE 失败 / TURN 连不上 → 检查 coturn 凭证与端口（见正文 §4）。
+
+### 15. 关键文件
+
+`backend/signaling-relay-service/server.js`；`desktop-app-vue/src/main/index.js`（iceServers push）；coturn 配置。
+
+### 16. 使用示例
+
+见正文 §3.3 验证步骤与 §4.3 Android 接入。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_Remote_Operate_Plan_C.md`（前置）。

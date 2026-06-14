@@ -459,3 +459,75 @@ Android 端：
 | v0.1 | 2026-05-14 | 设计调研初稿，含 Plan A 真机 e2e 发现的 4+1 bug 列表，5 phase 划分待评审 |
 | v0.2 | 2026-05-14 | 对齐真实代码后第二轮：(1) 加 §1.2 三个现有架构 trap（含 setOnForwardedMessageReceived 单 listener bug），(2) §3.2 谓词改用 WebRTCClient.connectionState==READY（更精确），(3) §3.4 fallback 状态覆盖 PeerConnection+DC 双层 + 复用 P2PClient 重连，(4) §3.5 反向去重才是必需（出向单发），(5) §3.6 feature flag 落点，(6) §3.7 不复用 :core-p2p DataChannelTransport 的决定，(7) Phase 1 改为治 Trap 1 + 暴露 dataChannelReady helper，(8) Phase 3 估算 0.5→1.0d 含真机，(9) §5.3 step 4 改"模拟 DC 失效"非"杀 WS"，(10) §9 加 Trap 1 回归 + path=dc/signaling telemetry 验收。 |
 | v1.0 | 2026-05-14 | Phase 1-5 全部 land（7 commits 一日完成）。设计在落地过程中两处偏离 v0.2：(a) Phase 1 没等真"加 derived dataChannelReady"才发 Phase 2，并行 session `d22b7ac8a` 同时把 dataChannelReady + forwardedMessages SharedFlow 都加了，本会话 close 收 listener migration + Trap 1 回归测试；(b) Phase 5 实施反思发现 fallback + 重建已是 Phase 2 + P2PClient 既有 wiring 的免费副产物，零新代码。其余按 v0.2 跑通。真机 e2e §5.3 矩阵移交用户。 |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 — 为什么需要 A.1」。Plan A.1 把远程终端从 signaling 转发升级为 WebRTC DataChannel 直连（失败回退 signaling），Phase 1–5 全部落地。
+
+### 2. 核心特性
+
+WebRTC DC 直连；DC 失效自动 fallback signaling；治 Plan A 真机暴露的 4+1 bug；feature flag 控制。
+
+### 3. 系统架构
+
+见正文「2. 数据流改造」（改造前 Plan A vs 改造后 DC 直连 + fallback）。
+
+### 4. 系统定位
+
+Android 远程终端的**WebRTC DataChannel 直连升级**（Plan A.1）。
+
+### 5. 核心功能
+
+DC 优先发送 + signaling fallback；dataChannelReady 派生信号；P2PClient 重连复用。详见正文各节。
+
+### 6. 技术架构
+
+WebRTC PeerConnection + DataChannel；`WebRTCClient.connectionState==READY` 谓词；forwardedMessages SharedFlow。
+
+### 7. 系统特点
+
+见正文「1.2 现有架构关键 trap」：setOnForwardedMessageReceived 单 listener（Trap 1）等动手前必看。
+
+### 8. 应用场景
+
+低延迟远程终端直连（LAN 同 WiFi DC 握手 ≤2s）。
+
+### 9. 竞品对比
+
+相较 Plan A（signaling 多跳），A.1 DC 直连显著降延迟。
+
+### 10. 配置参考
+
+feature flag 落点见正文 §3.6；不复用 :core-p2p DataChannelTransport（§3.7 决定）。
+
+### 11. 性能指标
+
+DC 直连降 RTT；真机 e2e §5.3 矩阵（含模拟 DC 失效 fallback）。
+
+### 12. 测试覆盖
+
+Trap 1 回归 + path=dc/signaling telemetry 验收（见正文 §9）；真机 e2e 移交用户。
+
+### 13. 安全考虑
+
+DC 走 DTLS-SRTP 加密；信道基于配对信任。
+
+### 14. 故障排除
+
+见正文「1.1 Plan A 链路 bug 列表」+「1.2 三个现有架构 trap」（动手前必看）。
+
+### 15. 关键文件
+
+WebRTCClient；P2PClient；dataChannelReady helper；forwardedMessages SharedFlow。
+
+### 16. 使用示例
+
+见正文 §2 数据流改造示例与 §5.3 真机 e2e 矩阵。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_Remote_Terminal_Plan_A.md`、`Android_Remote_Operate_Plan_AB.md`、`Android_Remote_Operate_Plan_C.md`。
