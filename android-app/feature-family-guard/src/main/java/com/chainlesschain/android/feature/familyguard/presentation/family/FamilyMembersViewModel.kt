@@ -17,11 +17,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 /**
  * FAMILY-18 ViewModel. 三源聚合:
@@ -42,40 +41,35 @@ class FamilyMembersViewModel @Inject constructor(
     private val sosEventDao: SosEventDao,
 ) : ViewModel() {
 
-    // v0.1: hard-coded group id; FAMILY-XX 接 SavedStateHandle
-    // 真实场景从首页 / 配对完成跳转时携带
-    private val familyGroupId: String = "default-group-id"
-
+    /**
+     * group id 动态解析 (此前硬编码 "default-group-id" → 配对建的真实 ULID 组查不到,
+     * 家人页恒空)。本机一个家庭, 取 observeAll 第一组; 其 membership/relationship/name
+     * 随之响应式刷新。无任何组 → 空态。
+     */
     val uiState: StateFlow<FamilyMembersUiState> =
-        combine(
-            familyMembershipRepository.observeByGroup(familyGroupId),
-            familyRelationshipRepository.observeActiveByGroup(familyGroupId),
-            sosEventDao.observePending(),
-            groupNameFlow(),
-        ) { memberships, relationships, sosEvents, groupName ->
-            buildState(
-                memberships = memberships,
-                relationships = relationships,
-                sosEvents = sosEvents,
-                groupName = groupName,
-            )
+        familyGroupRepository.observeAll().flatMapLatest { groups ->
+            val group = groups.firstOrNull()
+            if (group == null) {
+                flowOf(FamilyMembersUiState(isLoading = false))
+            } else {
+                combine(
+                    familyMembershipRepository.observeByGroup(group.id),
+                    familyRelationshipRepository.observeActiveByGroup(group.id),
+                    sosEventDao.observePending(),
+                ) { memberships, relationships, sosEvents ->
+                    buildState(
+                        memberships = memberships,
+                        relationships = relationships,
+                        sosEvents = sosEvents,
+                        groupName = group.name,
+                    )
+                }
+            }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = FamilyMembersUiState(isLoading = true),
         )
-
-    /** 异步取 group name; 一次性, 不订阅. */
-    private fun groupNameFlow() = flow {
-        emit(
-            try {
-                familyGroupRepository.findById(familyGroupId)?.name
-            } catch (e: Exception) {
-                Timber.w(e, "Failed to load family group")
-                null
-            },
-        )
-    }
 
     /** 内部 pure 函数, 单测可直接调; 主路径 buildState 在 lambda 内部. */
     internal fun buildState(
@@ -87,21 +81,37 @@ class FamilyMembersViewModel @Inject constructor(
         val byDid = relationships.associateBy { it.friendDid }
         val sosByChildDid = sosEvents.associateBy { it.childDid }
 
-        val items = memberships.map { membership ->
+        // 保序去重: 先 membership, 再补"仅有 relationship 的对端"(对端 membership 尚未
+        // P2P 同步过来时, 让已绑定的家人也能在家人页显示, 否则配对成功却看不到对方)。
+        val items = LinkedHashMap<String, FamilyMemberUiModel>()
+        memberships.forEach { membership ->
             val rel = byDid[membership.memberDid]
             val role = MemberRole.fromStorage(membership.role) ?: MemberRole.CHILD
             val tier = GuardianTier.fromStorage(membership.guardianTier)
-            val status = computeStatus(membership, rel)
-            val hasActiveSos = role == MemberRole.CHILD &&
-                sosByChildDid[membership.memberDid] != null
-            FamilyMemberUiModel(
+            items[membership.memberDid] = FamilyMemberUiModel(
                 memberDid = membership.memberDid,
                 role = role,
                 tier = tier,
                 displayLabel = buildLabel(role, tier),
-                status = status,
-                hasActiveSos = hasActiveSos,
+                status = computeStatus(membership, rel),
+                hasActiveSos = role == MemberRole.CHILD &&
+                    sosByChildDid[membership.memberDid] != null,
             )
+        }
+        relationships.forEach { rel ->
+            if (!items.containsKey(rel.friendDid)) {
+                val role = MemberRole.fromStorage(rel.roleOther) ?: MemberRole.PARENT
+                val tier = GuardianTier.fromStorage(rel.guardianTierOther)
+                items[rel.friendDid] = FamilyMemberUiModel(
+                    memberDid = rel.friendDid,
+                    role = role,
+                    tier = tier,
+                    displayLabel = buildLabel(role, tier),
+                    status = statusFromRelationship(rel),
+                    hasActiveSos = role == MemberRole.CHILD &&
+                        sosByChildDid[rel.friendDid] != null,
+                )
+            }
         }
 
         val unbindPendingCount = relationships.count { it.status == "unbind_pending" }
@@ -110,27 +120,28 @@ class FamilyMembersViewModel @Inject constructor(
         return FamilyMembersUiState(
             isLoading = false,
             familyGroupName = groupName,
-            members = items,
+            members = items.values.toList(),
             unbindPendingCount = unbindPendingCount,
             emergencyUnbindActive = emergencyUnbindActive,
             errorMessage = null,
         )
     }
 
+    private fun statusFromRelationship(rel: FamilyRelationshipEntity): FamilyMemberUiModel.MemberStatus =
+        when (rel.status) {
+            "unbind_pending" -> FamilyMemberUiModel.MemberStatus.UNBIND_PENDING
+            "emergency_unbound" -> FamilyMemberUiModel.MemberStatus.EMERGENCY_UNBOUND
+            "frozen" -> FamilyMemberUiModel.MemberStatus.FROZEN
+            "active" -> FamilyMemberUiModel.MemberStatus.ACTIVE
+            else -> FamilyMemberUiModel.MemberStatus.INACTIVE
+        }
+
     private fun computeStatus(
         membership: FamilyMembershipEntity,
         rel: FamilyRelationshipEntity?,
     ): FamilyMemberUiModel.MemberStatus {
         // relationship.status 优先 (能体现解绑等 family-level 状态)
-        if (rel != null) {
-            return when (rel.status) {
-                "unbind_pending" -> FamilyMemberUiModel.MemberStatus.UNBIND_PENDING
-                "emergency_unbound" -> FamilyMemberUiModel.MemberStatus.EMERGENCY_UNBOUND
-                "frozen" -> FamilyMemberUiModel.MemberStatus.FROZEN
-                "active" -> FamilyMemberUiModel.MemberStatus.ACTIVE
-                else -> FamilyMemberUiModel.MemberStatus.INACTIVE
-            }
-        }
+        if (rel != null) return statusFromRelationship(rel)
         // 没 relationship — 仅 membership; 用 membership.status
         return if (membership.status == "active") {
             FamilyMemberUiModel.MemberStatus.ACTIVE

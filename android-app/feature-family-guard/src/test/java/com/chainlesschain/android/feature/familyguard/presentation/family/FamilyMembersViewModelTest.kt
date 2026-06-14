@@ -259,6 +259,28 @@ class FamilyMembersViewModelTest {
     }
 
     @Test
+    fun `buildState surfaces a bound relationship friend even without a membership row`() {
+        // 孩子端配对后: 只有自己的 membership + 到家长的 relationship (家长 membership 尚未同步)。
+        val kid = FamilyFixtures.fakeChild(memberDid = "did:kid")
+        val relToParent = FamilyFixtures.fakeRelationship(
+            friendDid = "did:dad",
+            roleSelf = "child",
+            roleOther = "parent",
+            status = "active",
+        )
+        val state = vm.buildState(
+            memberships = listOf(kid),
+            relationships = listOf(relToParent),
+            sosEvents = emptyList(),
+            groupName = "陈家",
+        )
+        assertEquals(2, state.members.size)
+        val parent = state.members.first { it.memberDid == "did:dad" }
+        assertEquals(MemberRole.PARENT, parent.role)
+        assertEquals(FamilyMemberUiModel.MemberStatus.ACTIVE, parent.status)
+    }
+
+    @Test
     fun `buildState empty memberships toempty member list + not loading`() {
         val state = vm.buildState(
             memberships = emptyList(),
