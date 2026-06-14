@@ -103,6 +103,12 @@ const API_KEY_PATTERNS = {
  */
 class SecureConfigStorage {
   constructor(options = {}) {
+    // Injectable Electron app / safeStorage (dependency injection) so unit tests
+    // can supply mocks. vi.mock("electron") does not reach this module's
+    // CommonJS `require("electron")` destructure in Vitest's forks pool, leaving
+    // `app`/`safeStorage` undefined there. Defaults to the real Electron exports.
+    this._app = options.app || app;
+    this._safeStorage = options.safeStorage || safeStorage;
     this.storagePath = options.storagePath || this._getDefaultStoragePath();
     this.safeStorageAvailable = this._checkSafeStorageAvailability();
     this.machineKey = null;
@@ -118,10 +124,10 @@ class SecureConfigStorage {
   _checkSafeStorageAvailability() {
     try {
       if (
-        safeStorage &&
-        typeof safeStorage.isEncryptionAvailable === "function"
+        this._safeStorage &&
+        typeof this._safeStorage.isEncryptionAvailable === "function"
       ) {
-        const available = safeStorage.isEncryptionAvailable();
+        const available = this._safeStorage.isEncryptionAvailable();
         logger.info(`[SecureConfigStorage] safeStorage 可用性: ${available}`);
         return available;
       }
@@ -136,7 +142,7 @@ class SecureConfigStorage {
    * @private
    */
   _getDefaultStoragePath() {
-    const userDataPath = app.getPath("userData");
+    const userDataPath = this._app.getPath("userData");
     return path.join(userDataPath, "secure-config.enc");
   }
 
@@ -145,7 +151,7 @@ class SecureConfigStorage {
    * @private
    */
   _getBackupDir() {
-    const userDataPath = app.getPath("userData");
+    const userDataPath = this._app.getPath("userData");
     return path.join(userDataPath, "secure-backups");
   }
 
@@ -189,7 +195,7 @@ class SecureConfigStorage {
       data: data,
       timestamp: Date.now(),
     });
-    const encrypted = safeStorage.encryptString(jsonData);
+    const encrypted = this._safeStorage.encryptString(jsonData);
 
     // 添加标记头以识别加密方式
     const header = Buffer.from([0x53, 0x53, STORAGE_VERSION]); // 'SS' + version
@@ -203,7 +209,7 @@ class SecureConfigStorage {
   _decryptWithSafeStorage(encryptedData) {
     // 跳过标记头
     const encrypted = encryptedData.subarray(3);
-    const decrypted = safeStorage.decryptString(encrypted);
+    const decrypted = this._safeStorage.decryptString(encrypted);
     const parsed = JSON.parse(decrypted);
     return parsed.data;
   }
@@ -947,11 +953,14 @@ let instance = null;
 
 /**
  * 获取安全配置存储单例
+ * @param {Object} [options] - Options forwarded to the constructor on first
+ *   creation only (e.g. injectable { app, safeStorage, storagePath } for tests).
+ *   Ignored once the singleton already exists.
  * @returns {SecureConfigStorage}
  */
-function getSecureConfigStorage() {
+function getSecureConfigStorage(options = {}) {
   if (!instance) {
-    instance = new SecureConfigStorage();
+    instance = new SecureConfigStorage(options);
   }
   return instance;
 }

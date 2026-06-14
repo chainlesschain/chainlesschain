@@ -567,9 +567,13 @@ describe("SecureConfigStorage", () => {
       expect(typeof storage.safeStorageAvailable).toBe("boolean");
     });
 
-    it.skip("应该使用默认storagePath", () => {
-      // Skipped: requires app.getPath which is not properly mocked in test environment
-      const storage = new SecureConfigStorage();
+    it("应该使用默认storagePath", () => {
+      // Inject the Electron `app` via DI so _getDefaultStoragePath resolves
+      // without a real Electron app (vi.mock("electron") does not reach the
+      // source's CommonJS require destructure in the forks pool).
+      const storage = new SecureConfigStorage({
+        app: { getPath: () => "/mock/userData" },
+      });
 
       expect(storage.storagePath).toBeDefined();
       expect(storage.storagePath).toContain("secure-config.enc");
@@ -727,31 +731,35 @@ describe("SecureConfigStorage", () => {
     });
   });
 
-  describe.skip("单例管理", () => {
-    // Skipped: singleton requires default path which needs app.getPath
+  describe("单例管理", () => {
+    // getSecureConfigStorage forwards options to the constructor on first
+    // creation, so inject the Electron `app` to resolve the default path
+    // without a real Electron app.
+    const diOpts = { app: { getPath: () => "/mock/userData" } };
+
     it("应该返回单例实例", () => {
-      const instance1 = getSecureConfigStorage();
-      const instance2 = getSecureConfigStorage();
+      const instance1 = getSecureConfigStorage(diOpts);
+      const instance2 = getSecureConfigStorage(diOpts);
 
       expect(instance1).toBe(instance2);
     });
 
     it("应该重置单例", () => {
-      const instance1 = getSecureConfigStorage();
+      const instance1 = getSecureConfigStorage(diOpts);
 
       resetInstance();
 
-      const instance2 = getSecureConfigStorage();
+      const instance2 = getSecureConfigStorage(diOpts);
 
       expect(instance1).not.toBe(instance2);
     });
 
     it("应该在重置后创建新实例", () => {
-      getSecureConfigStorage();
+      getSecureConfigStorage(diOpts);
 
       resetInstance();
 
-      const newInstance = getSecureConfigStorage();
+      const newInstance = getSecureConfigStorage(diOpts);
 
       expect(newInstance).toBeDefined();
       expect(newInstance).toBeInstanceOf(SecureConfigStorage);
@@ -783,11 +791,11 @@ describe("SecureConfigStorage", () => {
     });
   });
 
-  describe.skip("_getDefaultStoragePath", () => {
-    // Skipped: requires app.getPath which is not properly mocked
+  describe("_getDefaultStoragePath", () => {
     it("应该返回默认存储路径", () => {
       const storage = new SecureConfigStorage({
         storagePath: "/tmp/test-config.enc",
+        app: { getPath: () => "/mock/userData" },
       });
 
       const path = storage._getDefaultStoragePath();
@@ -797,11 +805,11 @@ describe("SecureConfigStorage", () => {
     });
   });
 
-  describe.skip("_getBackupDir", () => {
-    // Skipped: requires app.getPath which is not properly mocked
+  describe("_getBackupDir", () => {
     it("应该返回备份目录路径", () => {
       const storage = new SecureConfigStorage({
         storagePath: "/tmp/test-config.enc",
+        app: { getPath: () => "/mock/userData" },
       });
 
       const backupDir = storage._getBackupDir();
