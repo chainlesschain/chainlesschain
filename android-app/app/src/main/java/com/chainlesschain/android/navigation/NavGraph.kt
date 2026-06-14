@@ -35,6 +35,7 @@ import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.presentation.aistudy.AiStudyScreen
 import com.chainlesschain.android.presentation.familytask.FamilyTaskScreen
 import com.chainlesschain.android.presentation.familyrewards.FamilyRewardsScreen
+import com.chainlesschain.android.presentation.familypairing.FamilyPairingScreen
 import com.chainlesschain.android.presentation.mistakebook.MistakeBookScreen
 import com.chainlesschain.android.presentation.parentedu.GentlenessReportScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
@@ -162,6 +163,7 @@ fun NavGraph(
                 onNavigateToTasks = { navController.navigate(Screen.FamilyTask.route) },
                 onNavigateToRewards = { navController.navigate(Screen.FamilyRewards.route) },
                 onNavigateToGentleness = { navController.navigate(Screen.GentlenessReport.route) },
+                onNavigateToPairing = { navController.navigate(Screen.FamilyPairing.route) },
                 onNavigateToMistakeBook = { navController.navigate(Screen.MistakeBook.route) },
                 onNavigateToAIChatWithMessage = { msg ->
                     // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
@@ -329,6 +331,11 @@ fun NavGraph(
         // M9 奖励/积分 — 家庭 tab "积分" 卡导航至此。
         composable(Screen.FamilyRewards.route) {
             FamilyRewardsScreen(onBack = { navController.popBackStack() })
+        }
+
+        // FAMILY-13 配对绑定 — 家庭 tab "配对绑定" 卡导航至此 (家长生成邀请 / 孩子接受)。
+        composable(Screen.FamilyPairing.route) {
+            FamilyPairingScreen(onBack = { navController.popBackStack() })
         }
 
         // M10 监管温和度月报 — 家庭 tab "家长成长" 卡导航至此。
@@ -1068,6 +1075,9 @@ sealed class Screen(val route: String) {
 
     /** M9 奖励/积分 — 家庭 tab「积分」入口。 */
     data object FamilyRewards : Screen("family_rewards")
+
+    /** FAMILY-13 配对绑定 — 家庭 tab「配对绑定」入口 (家长生成邀请 / 孩子接受)。 */
+    data object FamilyPairing : Screen("family_pairing")
     data object MistakeBook : Screen("mistake_book")
 
     /** M10 监管温和度月报 — 家庭 tab「家长成长」入口。 */

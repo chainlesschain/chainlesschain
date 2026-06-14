@@ -54,6 +54,7 @@ fun FamilyShellScreen(
     onSosTriggered: () -> Unit,
     onNavigateToRole: () -> Unit,
     onNavigateToFamilyMembers: () -> Unit,
+    onNavigateToPairing: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToRewards: () -> Unit,
@@ -91,8 +92,16 @@ fun FamilyShellScreen(
         )
 
         SectionCard(
+            title = "配对绑定",
+            description = "家长生成邀请二维码 + 接受码, 孩子扫码绑定 (FAMILY-13); 含监护人实名门槛",
+            enabled = true,
+            testTag = TestTag.SectionPairing,
+            onClick = onNavigateToPairing,
+        )
+
+        SectionCard(
             title = "家人",
-            description = "查看家长 / 孩子绑定关系, 配对邀请, 解绑流程",
+            description = "查看家长 / 孩子绑定关系, 解绑流程",
             enabled = true,
             testTag = TestTag.SectionFamily,
             onClick = onNavigateToFamilyMembers,
@@ -207,6 +216,7 @@ private fun SectionCard(
 object TestTag {
     const val Screen = "family_guard/shell/screen"
     const val SectionRole = "family_guard/shell/section_role"
+    const val SectionPairing = "family_guard/shell/section_pairing"
     const val SectionFamily = "family_guard/shell/section_family"
     const val SectionAi = "family_guard/shell/section_ai"
     const val SectionTasks = "family_guard/shell/section_tasks"

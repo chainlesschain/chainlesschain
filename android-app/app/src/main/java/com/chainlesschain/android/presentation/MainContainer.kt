@@ -35,6 +35,7 @@ fun MainContainer(
     onNavigateToTasks: () -> Unit = {},
     onNavigateToRewards: () -> Unit = {},
     onNavigateToGentleness: () -> Unit = {},
+    onNavigateToPairing: () -> Unit = {},
     onNavigateToMistakeBook: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToConversation: (String) -> Unit = {},
@@ -174,6 +175,7 @@ fun MainContainer(
                 // snackbar 占位; FAMILY-40 接通真触发流程 (sos_event upsert + 录音 + broadcast call)。
                 3 -> key("family_guard") {
                     FamilyGuardTab(
+                        onNavigateToPairing = onNavigateToPairing,
                         onNavigateToAiStudy = onNavigateToAiStudy,
                         onNavigateToTasks = onNavigateToTasks,
                         onNavigateToRewards = onNavigateToRewards,

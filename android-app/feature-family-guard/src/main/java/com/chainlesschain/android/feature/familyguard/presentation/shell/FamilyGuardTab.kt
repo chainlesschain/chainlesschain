@@ -40,6 +40,7 @@ import com.chainlesschain.android.feature.familyguard.presentation.role.RoleSele
 @Composable
 fun FamilyGuardTab(
     onSosTriggered: () -> Unit,
+    onNavigateToPairing: () -> Unit,
     onNavigateToAiStudy: () -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToRewards: () -> Unit,
@@ -62,6 +63,7 @@ fun FamilyGuardTab(
                 onSosTriggered = { showSosConfirm = true },
                 onNavigateToRole = { navController.navigate(Route.ROLE) },
                 onNavigateToFamilyMembers = { navController.navigate(Route.MEMBERS) },
+                onNavigateToPairing = onNavigateToPairing,
                 onNavigateToAiStudy = onNavigateToAiStudy,
                 onNavigateToTasks = onNavigateToTasks,
                 onNavigateToRewards = onNavigateToRewards,
