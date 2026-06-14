@@ -57,7 +57,9 @@ describe("ToolRunner", () => {
     vi.clearAllMocks();
 
     mockToolMgr = createMockToolManager();
-    runner = new ToolRunner(mockToolMgr);
+    // Inject the fs.promises mock via the constructor (dependency injection),
+    // which is reliable in Vitest's forks pool unlike vi.mock("fs") for CJS.
+    runner = new ToolRunner(mockToolMgr, { fs: mockFs });
   });
 
   describe("构造函数", () => {
@@ -276,17 +278,16 @@ describe("ToolRunner", () => {
       expect(typeof fileReader).toBe("function");
     });
 
-    // Skip: Vitest cannot properly mock Node.js built-in fs module for CommonJS require
-    // See: tests/reports/DEPENDENCY_INJECTION_COMPLETE_REPORT.md
-    it.skip("should read file successfully", async () => {
-      vi.clearAllMocks();
+    // Enabled via constructor DI (runner = new ToolRunner(mgr, { fs: mockFs })),
+    // which sidesteps the Vitest forks-pool limitation on vi.mock("fs") for CJS.
+    it("should read file successfully", async () => {
       mockFs.readFile.mockResolvedValueOnce("test content");
 
       const fileReader = runner.toolImplementations.file_reader;
       const result = await fileReader({ filePath: "test.txt" });
 
       expect(result.success).toBe(true);
-      expect(result.content).toBeDefined();
+      expect(result.content).toBe("test content");
     });
   });
 

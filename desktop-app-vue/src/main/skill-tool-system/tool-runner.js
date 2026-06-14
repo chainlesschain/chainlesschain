@@ -8,8 +8,12 @@ const fs = require("fs").promises;
 const path = require("path");
 
 class ToolRunner {
-  constructor(toolManager) {
+  constructor(toolManager, options = {}) {
     this.toolManager = toolManager;
+    // Injectable fs.promises (dependency injection) so unit tests can supply a
+    // mock without relying on vi.mock("fs"), which is unreliable for CommonJS
+    // built-ins in Vitest's forks pool. Defaults to the real fs.promises.
+    this._fs = options.fs || fs;
     this.toolImplementations = this.initializeToolImplementations();
   }
 
@@ -171,7 +175,7 @@ class ToolRunner {
         throw new Error("非法路径");
       }
 
-      const content = await fs.readFile(safePath, "utf8");
+      const content = await this._fs.readFile(safePath, "utf8");
 
       return {
         success: true,
@@ -206,13 +210,13 @@ class ToolRunner {
 
       // 确保目录存在
       const dir = path.dirname(safePath);
-      await fs.mkdir(dir, { recursive: true });
+      await this._fs.mkdir(dir, { recursive: true });
 
       // 根据模式写入
       if (mode === "append") {
-        await fs.appendFile(safePath, content, "utf8");
+        await this._fs.appendFile(safePath, content, "utf8");
       } else {
-        await fs.writeFile(safePath, content, "utf8");
+        await this._fs.writeFile(safePath, content, "utf8");
       }
 
       logger.info(
@@ -245,7 +249,7 @@ class ToolRunner {
       }
 
       const safePath = path.normalize(resolvedPath);
-      const content = await fs.readFile(safePath, "utf8");
+      const content = await this._fs.readFile(safePath, "utf8");
 
       let newContent;
       if (mode === "all") {
@@ -256,7 +260,7 @@ class ToolRunner {
         newContent = content.replace(search, replace);
       }
 
-      await fs.writeFile(safePath, newContent, "utf8");
+      await this._fs.writeFile(safePath, newContent, "utf8");
 
       return {
         success: true,
@@ -486,17 +490,17 @@ var ${moduleName} = (function() {
       ];
 
       for (const dir of dirs) {
-        await fs.mkdir(path.join(safePath, dir), { recursive: true });
+        await this._fs.mkdir(path.join(safePath, dir), { recursive: true });
       }
 
       // 创建基础文件
-      await fs.writeFile(
+      await this._fs.writeFile(
         path.join(safePath, "README.md"),
         `# ${path.basename(safePath)}\n\n项目描述\n`,
         "utf8",
       );
 
-      await fs.writeFile(
+      await this._fs.writeFile(
         path.join(safePath, ".gitignore"),
         `node_modules/\ndist/\n.env\n`,
         "utf8",
@@ -524,7 +528,7 @@ var ${moduleName} = (function() {
 
       // 检查是否已是Git仓库
       try {
-        await fs.access(gitDir);
+        await this._fs.access(gitDir);
         return {
           success: false,
           error: "已经是Git仓库",
@@ -534,7 +538,7 @@ var ${moduleName} = (function() {
       }
 
       // 创建.git目录（简化版）
-      await fs.mkdir(gitDir, { recursive: true });
+      await this._fs.mkdir(gitDir, { recursive: true });
 
       return {
         success: true,
