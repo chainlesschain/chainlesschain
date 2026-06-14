@@ -36,6 +36,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
 
+## [v5.0.3.111] - 2026-06-15 — 个人数据中台采集器再扩面 + Android cc bundle 滚到 v20260615（pdh 0.4.23 / cli 0.162.65）
+
+> 继 v5.0.3.110 之后再补一轮 PDH 采集长尾：新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信（wework-pc）等 adapter，并由并行支线补上 个税（gov-tax scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.18→0.4.23、CLI `chainlesschain` 0.162.60→0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`（携全部新 adapter），`USR_VERSION` → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税/民生·中行·交行银行/数字人民币/12123，故意 defer）外的消费级平台已全部接通。
+
+### Added — 本轮新采集 adapter
+- **西瓜视频**（`video-xigua`）：复用 `_video-base` 工厂，观看历史 + 收藏（snapshot + cookie-api 双模）。
+- **天眼查**（`biz-tianyancha`）：监控 / 搜索行为事件采集。
+- **懂车帝**（`social-dongchedi`）：收藏 / 关注采集。
+- **企业微信电脑版**（`wework-pc`）：复用 `_local-im-pc-adapter` 本地工作 IM DB 读取（legalGate）。
+- **个税 APP**（`gov-tax`，scaffold）：收入 + 雇主 + 申报骨架（强实名认证，best-effort，需真机验证）。
+
+### Changed
+- VS Code 扩展「ChainlessChain IDE Bridge」补齐会话 tabs / App Preview / diff 行内批注 / 批量多文件 diff（详见 [Unreleased] 段，已发 Open VSX 0.22.0）。
+- project-service ZIP 导出改为始终 UTF-8 写入，修复含中文项目导出后无法回环重导入（`MalformedInputException`）。
+
 ## [v5.0.3.110] - 2026-06-14 — 个人数据中台采集器扩面：13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）
 
 > 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段（Phase 5–12）所有 ≥⭐⭐⭐ 平台 + 可行的 Phase 13+ 长尾全部落地。`@chainlesschain/personal-data-hub` 0.4.7→0.4.18、CLI `chainlesschain` 0.162.49→0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`（携全部新 adapter），`USR_VERSION` → 37。
