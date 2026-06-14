@@ -54,6 +54,7 @@ const {
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
+  BossZhipinAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
   ToutiaoAdapter,
@@ -579,6 +580,7 @@ async function initHub() {
   for (const Cls of [
     WeiboAdapter,
     ZhihuAdapter,
+    BossZhipinAdapter,
     DouyinAdapter,
     XiaohongshuAdapter,
     ToutiaoAdapter,

@@ -53,6 +53,7 @@ const { DianpingAdapter } = require("./adapters/shopping-dianping");
 const { BilibiliAdapter } = require("./adapters/social-bilibili");
 const { WeiboAdapter } = require("./adapters/social-weibo");
 const { ZhihuAdapter } = require("./adapters/social-zhihu");
+const { BossZhipinAdapter } = require("./adapters/recruit-boss");
 const { DouyinAdapter } = require("./adapters/social-douyin");
 const { XiaohongshuAdapter } = require("./adapters/social-xiaohongshu");
 const { ToutiaoAdapter } = require("./adapters/social-toutiao");
@@ -289,6 +290,7 @@ module.exports = {
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
+  BossZhipinAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
   ToutiaoAdapter,
