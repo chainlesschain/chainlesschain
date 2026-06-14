@@ -164,6 +164,18 @@ function activate(context) {
     chatProvider,
   );
 
+  // "Fix with ChainlessChain" (Claude Code parity): a QuickFix lightbulb on any
+  // diagnostic seeds the chat panel with a fix request scoped to that file +
+  // those problems. Glue is vscode-free in code-actions.js / chat/fix-with-cc.js.
+  const { createFixCodeActionProvider } = require("./code-actions.js");
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      { scheme: "file" },
+      createFixCodeActionProvider(vscode),
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
+    ),
+  );
+
   // Live UI updates on every logged event.
   context.subscriptions.push({
     dispose: _activityLog.onChange((e) => {
@@ -302,6 +314,40 @@ function activate(context) {
         const rel = vscode.workspace.asRelativePath(editor.document.uri, false);
         const ref = formatInsertReference(rel);
         if (ref) chatProvider.insertReference(ref);
+      },
+    ),
+    // Fix with ChainlessChain: invoked by the QuickFix lightbulb (with a
+    // {uri, diagnostics} payload) OR from the command palette / editor context
+    // menu (no args → gather the active editor's problems near the cursor).
+    vscode.commands.registerCommand(
+      "chainlesschain.chat.fixDiagnostics",
+      (payload) => {
+        const {
+          collectActiveDiagnostics,
+        } = require("./code-actions.js");
+        const { formatFixPrompt } = require("./chat/fix-with-cc.js");
+        let uri = payload && payload.uri;
+        let diagnostics =
+          payload && Array.isArray(payload.diagnostics)
+            ? payload.diagnostics
+            : null;
+        if (!diagnostics) {
+          const active = collectActiveDiagnostics(vscode);
+          if (!active) {
+            vscode.window.showInformationMessage(
+              "ChainlessChain: no problems here — put the cursor on an error or warning, then run Fix with ChainlessChain.",
+            );
+            return;
+          }
+          uri = active.uri;
+          diagnostics = active.diagnostics;
+        }
+        if (!diagnostics.length) return;
+        const rel = uri
+          ? vscode.workspace.asRelativePath(uri, false)
+          : "";
+        const prompt = formatFixPrompt({ relPath: rel, diagnostics });
+        if (prompt) chatProvider.seedInput(prompt);
       },
     ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {

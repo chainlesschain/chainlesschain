@@ -51,6 +51,15 @@ class ChatViewProvider {
     }
   }
 
+  /**
+   * Seed the chat input with prompt text (e.g. a "Fix with ChainlessChain"
+   * request) and reveal the panel — same reveal + queue/flush path as
+   * insertReference, named for intent. The user reviews/edits, then hits Send.
+   */
+  seedInput(text) {
+    return this.insertReference(text);
+  }
+
   /** Webview script is live — flush any reference queued before it loaded. */
   _onWebviewReady() {
     this._webviewReady = true;

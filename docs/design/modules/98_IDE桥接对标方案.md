@@ -1,6 +1,6 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
+> **状态**: ✅ 全 7 Phase 落地 + 双端已上架 — Phase 0 ✅（CLI 发现层 `abe6c561d`）· Phase 1 ✅（VS Code 扩展 `3c36b2a79`）· Phase 2 ✅（openDiff accept/reject `b737e88ec`）· Phase 3 ✅（JetBrains:协议核+interop 实证 `507b45c7d`,IntelliJ glue 已 against 真 SDK 构建出 `.zip`）· Phase 4 ✅（已发布:**VS Code 扩展上架 Open VSX** `chainlesschain.chainlesschain-ide`;**JetBrains 插件上传 Marketplace** v0.1.0 待审）· Phase 6 ✅（Chat Panel P0:webview 驱动长驻 stream-json 双工子进程,实时感知/diff 审批自动组合生效)· Phase 5 ✅（IDE 实时感知:提交时 `<ide-context>` 选区/打开文件自动注入 + 编辑后诊断回喂 `391a24767`+`2fbb03b1a`）· Phase 7 ✅（Fix with ChainlessChain:诊断 QuickFix 灯泡 → 种入作用域修复 prompt,VS Code 0.19.0,2026-06-14）— v1.1 细化:env 直连发现 / 多根 workspace / transport 实况(无 ws) / openDiff 阻塞 / 生命周期 / 端到端自验 / 安全权限
 > **日期**: 2026-06-10
 > **作用范围**: `packages/cli`（Phase 0，CLI 发现层）+ 未来独立 VS Code / JetBrains 扩展包（Phase 1+）
 > **对标对象**: Claude Code IDE Integration（VS Code / JetBrains 扩展 + `~/.claude/ide/<port>.lock` 发现协议 + IDE-as-MCP-server）
@@ -326,6 +326,33 @@ automatic diagnostics sharing),纯 CLI 侧增量、扩展零改动:
   (真扩展 MCP server ⇆ 真 MCPClient 全链路)+ e2e 2(**真 spawn `cc agent -p`** + lockfile
   发现 + 捕获式假 ollama 证明选区抵达模型请求;教训:假 server 在 vitest 进程内时必须
   **异步 spawn**,`spawnSync` 阻塞事件循环 → 死锁)。
+
+---
+
+### Phase 7 — Fix with ChainlessChain(诊断快速修复)✅ 已落 (2026-06-14)
+
+对标 Claude Code IDE 的"灯泡/快速修复"affordance:任意 error/warning 上出现 QuickFix
+灯泡,选 **Fix with ChainlessChain** → 唤起 Chat 面板并把输入框种入一条**作用域限定**
+的修复请求(文件以 `@<path>` 引用让 CLI 附带内容 + 该处的诊断列表,severity 标签、
+1-based 行号、上限 10 条),用户审阅/编辑后 Send。补上的是面板此前唯一缺的 IDE 原生
+入口(选区/诊断已能注入,但没有"从问题直接发起修复"的一键路径)。
+
+**实现**(VS Code 0.19.0,纯 vscode-free + 薄 glue,延续本模块"只有 extension.js 碰
+vscode"的纪律):
+- `src/chat/fix-with-cc.js`(纯函数,可单测):`formatFixPrompt`(`@ref` 头 + 诊断
+  bullet,多行消息折叠/截断、cap 10 + "…and N more")、`buildFixActionTitle`(单数 vs
+  计数)、`formatDiagnosticLine`(`- [Error] line 13: <msg> (ts 2304)`,`{value}` code
+  归一)。
+- `src/code-actions.js`(经注入 `vscode` 句柄,假 vscode 可测):
+  `createFixCodeActionProvider` 仅在 range 携诊断时给一个 QuickFix,命令载荷
+  `{uri, diagnostics}` 走 JSON 边界(无 vscode 对象穿过);`collectActiveDiagnostics`
+  为命令面板/右键路径(无灯泡参数)按 选区→光标行→全文 兜底收集活动编辑器的问题。
+- `chat-view.js` 加 `seedInput(text)`(复用 insertReference 的 reveal+queue/flush
+  路径,命名表意);`extension.js` 注册 provider + `chainlesschain.chat.fixDiagnostics`
+  命令;`package.json` 加命令 + 编辑器右键菜单条目 + 灯泡。
+- **测试 20**(`vscode-ext-fix-with-cc.test.js`):格式化全分支 + provider 载荷
+  JSON round-trip + 无诊断不出动作 + 无参兜底的 选区/光标行/全文 scoping +
+  `seedInput` reveal/queue/即时 post。
 
 ---
 

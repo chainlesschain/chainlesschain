@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.19.0] — 2026-06-14
+
+- **Fix with ChainlessChain (Claude Code parity)**: a QuickFix lightbulb now
+  appears on any error or warning. Choosing **Fix with ChainlessChain** reveals
+  the chat panel and seeds the input with a fix request scoped to that file
+  (referenced as `@<path>`, so the CLI attaches its contents) and those exact
+  problems (severity-labelled, 1-based line numbers, capped at 10). The same
+  command is on the editor right-click menu and the command palette — with no
+  lightbulb args it gathers the active editor's problems near the cursor or
+  selection. You review/edit the seeded prompt, then hit Send.
+
 ## [0.18.0] — 2026-06-13
 
 - **Keyboard shortcuts (Claude Code parity)**: `Ctrl/Cmd+Esc` focuses the chat
