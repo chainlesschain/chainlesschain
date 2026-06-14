@@ -24,6 +24,7 @@ import os from "os";
 import path from "path";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
+import { createVimState, feedNormalKey } from "../lib/repl-vim.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createSession,
@@ -761,16 +762,31 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
+  // Vim mode (Claude-Code `/vim` parity): opt-in modal line editing. `_vim`
+  // holds the NORMAL-mode engine state while normal mode is active (readline's
+  // own key handling is suspended then); it is null in INSERT mode (readline
+  // owns editing). Default off — toggled by `/vim`, or on at startup via
+  // --vim / CC_VIM=1.
+  let _vimEnabled =
+    options.vimMode === true || process.env.CC_VIM === "1" ? true : false;
+  let _vim = null;
+
   const getPrompt = () => {
+    // Mode indicator first so it survives the plan-mode prompt variants.
+    const vim = _vimEnabled
+      ? _vim
+        ? chalk.cyan("[N] ")
+        : chalk.dim("[I] ")
+      : "";
     const planManager = getPlanModeManager();
     if (planManager.isActive()) {
       const state = planManager.state;
       if (state === PlanState.APPROVED || state === PlanState.EXECUTING) {
-        return chalk.green("[plan:exec] > ");
+        return vim + chalk.green("[plan:exec] > ");
       }
-      return chalk.yellow("[plan] > ");
+      return vim + chalk.yellow("[plan] > ");
     }
-    return chalk.green("> ");
+    return vim + chalk.green("> ");
   };
 
   // `@` tab-completion (Claude-Code @-mention parity): filesystem paths +
@@ -813,6 +829,7 @@ export async function startAgentRepl(options = {}) {
       "/statusline",
       "/sub-agents",
       "/task",
+      "/vim",
     ],
     getIdeOpenFiles: async () => {
       const exec = _adhocMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
@@ -840,6 +857,54 @@ export async function startAgentRepl(options = {}) {
     completer: atCompleter,
   });
 
+  // Vim-mode plumbing: capture readline's OWN keypress listeners now so we can
+  // suspend them while in NORMAL mode (the engine drives editing then) and
+  // reattach them for INSERT mode (readline's rich editing/history/completion).
+  const _rlKeypressListeners = process.stdin.isTTY
+    ? process.stdin.listeners("keypress").slice()
+    : [];
+  const _suspendReadlineKeys = () => {
+    for (const l of _rlKeypressListeners)
+      process.stdin.removeListener("keypress", l);
+  };
+  const _resumeReadlineKeys = () => {
+    const cur = process.stdin.listeners("keypress");
+    for (const l of _rlKeypressListeners)
+      if (!cur.includes(l)) process.stdin.on("keypress", l);
+  };
+  // Push the engine's line/cursor onto readline and redraw the current line.
+  const _vimSync = (vstate) => {
+    try {
+      rl.line = vstate.line;
+      rl.cursor = Math.max(0, Math.min(vstate.cursor, vstate.line.length));
+      if (typeof rl._refreshLine === "function") rl._refreshLine();
+    } catch {
+      /* redraw is best-effort */
+    }
+  };
+  const _vimEnterNormal = () => {
+    const cur = Math.max(
+      0,
+      Math.min(rl.cursor, Math.max(0, rl.line.length - 1)),
+    );
+    _vim = { ...createVimState(rl.line, cur), mode: "normal" };
+    _suspendReadlineKeys();
+    rl.setPrompt(getPrompt());
+    _vimSync(_vim);
+  };
+  const _vimEnterInsert = (vstate) => {
+    _resumeReadlineKeys();
+    _vim = null;
+    rl.setPrompt(getPrompt());
+    _vimSync(vstate);
+  };
+  // Exposed so /vim can leave normal mode cleanly when disabling.
+  const _vimDisable = () => {
+    if (_vim) _resumeReadlineKeys();
+    _vim = null;
+    _vimEnabled = false;
+  };
+
   // Esc interrupt (Claude-Code parity): pressing Esc while a turn is in
   // flight aborts the in-flight agentLoop through its existing AbortSignal
   // seam (throwIfAborted at each iteration); partial conversation is kept.
@@ -849,8 +914,9 @@ export async function startAgentRepl(options = {}) {
   let _lastIdleEscAt = 0;
   if (process.stdin.isTTY) {
     process.stdin.on("keypress", (_str, key) => {
-      if (!key || key.name !== "escape" || key.meta) return;
-      if (_turnAbort) {
+      const k = key || {};
+      // 1) Turn abort always wins, regardless of vim mode.
+      if (k.name === "escape" && !k.meta && _turnAbort) {
         process.stdout.write(chalk.yellow("\n⎋ interrupting…\n"));
         try {
           _turnAbort.abort();
@@ -860,8 +926,34 @@ export async function startAgentRepl(options = {}) {
         _turnAbort = null;
         return;
       }
-      // Double-Esc while idle → rewind picker shortcut (Claude-Code parity);
-      // the actual rewind is `/rewind <n>` so stdin stays readline-owned.
+
+      // 2) Vim mode: modal editing on the current input line.
+      if (_vimEnabled && !_turnAbort) {
+        if (!_vim) {
+          // INSERT mode — readline owns the keys; Esc switches to NORMAL.
+          if (k.name === "escape" && !k.meta) _vimEnterNormal();
+          return;
+        }
+        // NORMAL mode — readline suspended; the engine interprets every key.
+        const res = feedNormalKey(_vim, _str || "", k);
+        if (res.submit) {
+          // Hand the line to readline as a normal Enter (fires 'line', clears).
+          _vimEnterInsert({ ...res, cursor: res.line.length });
+          process.stdin.emit("keypress", "\r", { name: "return" });
+          return;
+        }
+        if (res.mode === "insert") {
+          _vimEnterInsert(res);
+          return;
+        }
+        _vim = res;
+        if (res.message === "bell") process.stdout.write("\x07");
+        _vimSync(res);
+        return;
+      }
+
+      // 3) Non-vim: double-Esc while idle → rewind picker shortcut.
+      if (k.name !== "escape" || k.meta) return;
       const nowTs = Date.now();
       if (nowTs - _lastIdleEscAt < 600) {
         _lastIdleEscAt = 0;
@@ -1057,6 +1149,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(`  ${chalk.cyan("/provider")}   Show/change provider`);
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
+      logger.log(
+        `  ${chalk.cyan("/vim")}        Toggle vim-mode line editing (/vim [on|off]; Esc → NORMAL)`,
+      );
       logger.log(
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
       );
@@ -1261,6 +1356,24 @@ export async function startAgentRepl(options = {}) {
       messages.length = 1; // Keep system prompt
       _checkpointMarks.length = 0; // checkpoint marks no longer map to anything
       logger.info("Conversation cleared");
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/vim" || trimmed.startsWith("/vim ")) {
+      const arg = trimmed.slice("/vim".length).trim().toLowerCase();
+      const turnOn = arg === "on" || (arg === "" && !_vimEnabled);
+      if (turnOn) {
+        _vimEnabled = true;
+        logger.info(
+          chalk.gray(
+            "Vim mode: on — Esc → NORMAL (hjkl/w/b/e, x/dd/dw, i/a/A, etc.), i to insert.",
+          ),
+        );
+      } else {
+        _vimDisable();
+        logger.info(chalk.gray("Vim mode: off"));
+      }
       prompt();
       return;
     }

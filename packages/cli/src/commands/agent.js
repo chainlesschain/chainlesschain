@@ -175,6 +175,10 @@ export function registerAgentCommand(program) {
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
     .option("--no-recall-memory", "Disable startup memory recall")
+    .option(
+      "--vim",
+      "Start the interactive REPL in vim-mode line editing (toggle later with /vim; or CC_VIM=1)",
+    )
     .option("--no-stream", "Disable streamed response rendering")
     .option(
       "--no-park-on-exit",
@@ -750,6 +754,8 @@ export function registerAgentCommand(program) {
         bundlePath: options.bundle || null,
         additionalDirectories,
         autoCheckpoint,
+        // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
+        vimMode: options.vim === true,
         // --system-prompt / --append-system-prompt (literal or @file) also
         // apply to interactive sessions, composed in startAgentRepl.
         systemPrompt: resolvePromptText(options.systemPrompt, {
