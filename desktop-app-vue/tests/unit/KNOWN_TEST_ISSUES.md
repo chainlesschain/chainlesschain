@@ -314,9 +314,39 @@ npx vitest run tests/unit/ai-engine/tool-masking.test.js
 
 ---
 
+## Re-enabled Skipped Tests
+
+### 2026-06-14 — bridge-manager `集成场景` + task-planner EventEmitter
+
+Two long-standing `describe.skip` / `it.skip` blocks were re-enabled after the
+skip reasons were found to be inaccurate or brittle:
+
+- **`blockchain/bridge-manager.test.js`** — the `集成场景` block was skipped with
+  the note _"database mock incomplete (missing exec method)"_. The actual cause
+  was that `BridgeManager.initialize()` delegates table setup to its
+  `securityManager` / `relayer` collaborators (which reach for
+  `database.db.exec(...)` and the adapter's `getSupportedChains()`), not a
+  missing top-level `exec`. Fixed by stubbing the collaborators' `initialize()`
+  so the test isolates `BridgeManager`'s own orchestration. **16/16 pass, 0 skipped.**
+
+- **`planning/task-planner-enhanced.test.js`** — `should be an instance of
+EventEmitter` was skipped citing _"instanceof may fail in some environments"_
+  (the dual-`events`-module hazard under Vitest's inlined CJS/ESM interop).
+  Replaced the brittle `instanceof` with a behavioral assertion (on/emit/once
+  present + a real `emit` round-trips), which is environment-independent. **44 pass.**
+
+> Still intentionally skipped (genuine gates, not debt): hardware/native
+> (U-Key, Sharp, Whisper server, pkcs11), Python-env integration scenarios,
+> Electron clipboard / `fs.promises` ESM-mock limitations, and the
+> `task-planner` LLM-fallback test (needs comprehensive network-blocking mocks).
+
+---
+
 **Document Created:** 2026-01-25
-**Last Updated:** 2026-02-10
-**Status:** ✅ All Resolved
+**Last Updated:** 2026-06-14
+**Status:** ✅ All Resolved (reorg) · skip-debt being paid down opportunistically
 **Owner:** Development Team
 
-**Note:** All previously documented test issues have been resolved. Both database-adapter.test.js (68 tests) and tool-masking.test.js (54 tests) are now fully passing.
+**Note:** All previously documented reorganization test issues remain resolved.
+Skipped-test debt is now tracked in the "Re-enabled Skipped Tests" section above
+as it is paid down.
