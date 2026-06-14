@@ -74,6 +74,7 @@ const ALLOWED_FILES = [
   "installation.md", // manufacturer 部署指南：docker-compose 示例占位密码（root123456 等，非真实凭证）
   "devices.md", // manufacturer 设备管理 API 参考：登录示例含默认演示密码 admin123456（非真实凭证）
   "authentication.md", // API 认证文档：含示例 JWT/access_token（eyJhbGci... 占位，非真实凭证）
+  "QUICK_START.md", // 快速开始指南：含占位示例密码 your-secure-password（非真实凭证）
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）
