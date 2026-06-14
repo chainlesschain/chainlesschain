@@ -42,26 +42,29 @@ class FamilyMembersViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * group id 动态解析 (此前硬编码 "default-group-id" → 配对建的真实 ULID 组查不到,
-     * 家人页恒空)。本机一个家庭, 取 observeAll 第一组; 其 membership/relationship/name
-     * 随之响应式刷新。无任何组 → 空态。
+     * 跨**所有** family_group 聚合 (此前只取 observeAll 第一组 → 多次配对/重装后产生多个组时,
+     * 关系可能落在非"第一组", 家长端家人页恒空)。relationship 用不带 group 过滤的
+     * [FamilyRelationshipRepository.observeAllActive], membership 跨全部组合并, 保证已绑定
+     * 关系无论在哪个组都能显示。无任何组 → 空态。
      */
     val uiState: StateFlow<FamilyMembersUiState> =
         familyGroupRepository.observeAll().flatMapLatest { groups ->
-            val group = groups.firstOrNull()
-            if (group == null) {
+            if (groups.isEmpty()) {
                 flowOf(FamilyMembersUiState(isLoading = false))
             } else {
+                val membershipsAcrossGroups = combine(
+                    groups.map { familyMembershipRepository.observeByGroup(it.id) },
+                ) { perGroup -> perGroup.toList().flatten() }
                 combine(
-                    familyMembershipRepository.observeByGroup(group.id),
-                    familyRelationshipRepository.observeActiveByGroup(group.id),
+                    membershipsAcrossGroups,
+                    familyRelationshipRepository.observeAllActive(),
                     sosEventDao.observePending(),
                 ) { memberships, relationships, sosEvents ->
                     buildState(
                         memberships = memberships,
                         relationships = relationships,
                         sosEvents = sosEvents,
-                        groupName = group.name,
+                        groupName = groups.first().name,
                     )
                 }
             }
