@@ -77,6 +77,7 @@ const { WeReadAdapter } = require("./adapters/weread");
 const { WpsDocAdapter } = require("./adapters/doc-wps");
 const { TencentDocsAdapter } = require("./adapters/doc-tencent-docs");
 const { BaiduNetdiskAdapter } = require("./adapters/doc-baidu-netdisk");
+const { CamScannerDocAdapter } = require("./adapters/doc-camscanner");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
@@ -318,6 +319,7 @@ module.exports = {
   WpsDocAdapter,
   TencentDocsAdapter,
   BaiduNetdiskAdapter,
+  CamScannerDocAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   TelegramAdapter,
