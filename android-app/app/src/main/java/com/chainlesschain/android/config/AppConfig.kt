@@ -106,11 +106,14 @@ class AppConfigManager @Inject constructor(
                     DEFAULT_ENABLE_P2P
                 ),
 
-                // P2P/信令服务器配置
-                signalingServerUrl = sharedPreferences.getString(
+                // P2P/信令服务器配置 (迁移: 旧版默认是不可路由的 LAN 占位 ws://192.168.1.1:9001,
+                // 视同未配置, 回退到真实公网 relay, 否则历史 pref 卡死旧值 P2P 永连不上)。
+                signalingServerUrl = (sharedPreferences.getString(
                     KEY_SIGNALING_SERVER_URL,
-                    DEFAULT_SIGNALING_SERVER_URL
-                ) ?: DEFAULT_SIGNALING_SERVER_URL,
+                    DEFAULT_SIGNALING_SERVER_URL,
+                ) ?: DEFAULT_SIGNALING_SERVER_URL).let { stored ->
+                    if (stored.isBlank() || stored == LEGACY_LAN_SIGNALING_URL) DEFAULT_SIGNALING_SERVER_URL else stored
+                },
 
                 // 性能配置
                 imageCacheSize = sharedPreferences.getLong(
@@ -208,8 +211,10 @@ class AppConfigManager @Inject constructor(
         private const val DEFAULT_ENABLE_CRASH_REPORTING = true
         private const val DEFAULT_ENABLE_ANALYTICS = true
         private const val DEFAULT_ENABLE_P2P = true
-        // P2P默认值 - 使用局域网广播发现或用户配置
-        private const val DEFAULT_SIGNALING_SERVER_URL = "ws://192.168.1.1:9001"
+        // P2P默认值 - 公网信令 relay (cc-signaling-relay, wss → 127.0.0.1:9001)
+        private const val DEFAULT_SIGNALING_SERVER_URL = "wss://signaling.chainlesschain.com"
+        // 旧版不可路由占位; 读取时视同未配置, 迁移到上面的真实 relay。
+        private const val LEGACY_LAN_SIGNALING_URL = "ws://192.168.1.1:9001"
         private const val DEFAULT_IMAGE_CACHE_SIZE = 100L * 1024 * 1024 // 100MB
         private const val DEFAULT_DATABASE_CACHE_SIZE = 2000 // 2000条记录
     }
@@ -254,7 +259,7 @@ data class AppConfig(
             enableCrashReporting = true,
             enableAnalytics = true,
             enableP2P = true,
-            signalingServerUrl = "ws://192.168.1.1:9001",
+            signalingServerUrl = "wss://signaling.chainlesschain.com",
             imageCacheSize = 100L * 1024 * 1024,
             databaseCacheSize = 2000
         )
