@@ -9,6 +9,8 @@ const crypto = require("node:crypto");
 const {
   CtripAdapter,
   parseRecords,
+  orderToRecord,
+  extractOrders,
   TYPE_MAP,
   NAME,
   VERSION,
@@ -43,7 +45,7 @@ const FLIGHT_ORDER = {
 describe("constants + TYPE_MAP", () => {
   it("exposes name/version", () => {
     expect(NAME).toBe("travel-ctrip");
-    expect(VERSION).toBe("0.6.0");
+    expect(VERSION).toBe("0.7.0");
   });
 
   it("maps ctrip order types to vehicleType", () => {
@@ -199,5 +201,177 @@ describe("CtripAdapter", () => {
     expect(() => a.normalize({ payload: {} })).toThrow(
       /payload\.record missing/,
     );
+  });
+});
+
+describe("orderToRecord web-API aliases (cookie-api mode)", () => {
+  it("maps web order field names (bizType / amount / orderDate / departCity)", () => {
+    const rec = orderToRecord(
+      {
+        orderId: "W1",
+        bizType: "Flight",
+        departCity: "广州",
+        arriveCity: "成都",
+        amount: "899.5",
+        departureDate: 1716383021000,
+        contactName: "王五",
+        orderDate: "2026-04-01",
+      },
+      { capturedVia: "cookie-api" },
+    );
+    expect(rec).toMatchObject({
+      vendorId: "ctrip",
+      recordId: "W1",
+      vehicleType: "flight",
+      from: { city: "广州" },
+      to: { city: "成都" },
+      departureMs: 1716383021000,
+      traveler: "王五",
+    });
+    expect(rec.totalCost).toEqual({ value: 899.5, currency: "CNY" });
+    expect(rec.extras.capturedVia).toBe("cookie-api");
+  });
+
+  it("file-import rows keep priority + no capturedVia by default", () => {
+    const rec = orderToRecord({ orderId: "F1", type: "hotel", price: "300" });
+    expect(rec.vehicleType).toBe("hotel");
+    expect(rec.totalCost).toEqual({ value: 300, currency: "CNY" });
+    expect(rec.extras.capturedVia).toBeUndefined();
+  });
+});
+
+describe("extractOrders", () => {
+  it("pulls the list from common Ctrip response shapes", () => {
+    expect(extractOrders({ orders: [{ orderId: "A" }] })).toHaveLength(1);
+    expect(extractOrders({ data: { orderList: [{ orderId: "B" }] } })).toHaveLength(1);
+    expect(extractOrders({ result: { list: [{ orderId: "C" }] } })).toHaveLength(1);
+    expect(extractOrders({})).toEqual([]);
+    expect(extractOrders(null)).toEqual([]);
+  });
+});
+
+describe("CtripAdapter cookie-api mode", () => {
+  const COOKIES = "_bfa=abc; cticket=xyz; UUID=u1";
+
+  it("authenticate returns cookie mode (account OPTIONAL)", async () => {
+    const a = new CtripAdapter({ account: { cookies: COOKIES } });
+    expect(await a.authenticate()).toEqual({
+      ok: true,
+      account: null,
+      mode: "cookie",
+    });
+  });
+
+  it("authenticate fails on empty cookies", async () => {
+    const a = new CtripAdapter({ account: { cookies: "" } });
+    // empty cookies → no cookieAuth → falls through to ready (not cookie mode)
+    expect((await a.authenticate()).mode).toBe("ready");
+  });
+
+  it("sync fetches, paginates, maps + normalizes end-to-end", async () => {
+    const pages = [
+      {
+        orderList: [
+          {
+            orderId: "CK1",
+            bizType: "flight",
+            departCity: "上海",
+            arriveCity: "北京",
+            amount: "1200",
+            orderDate: 1716383021000,
+            flightNumber: "MU500",
+          },
+        ],
+      },
+      { orderList: [] }, // page 2 empty → stop
+    ];
+    const calls = [];
+    const fetchFn = async ({ url, cookies, query, sign }) => {
+      calls.push({ url, cookies, pageIndex: query.pageIndex, sign });
+      return pages[query.pageIndex - 1] || { orderList: [] };
+    };
+    const a = new CtripAdapter({
+      account: { cookies: COOKIES },
+      fetchFn,
+      // no signProvider → sign should be null (best-effort unsigned)
+    });
+    const items = await collect(a.sync({ sinceWatermark: 0 }));
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ adapter: NAME, originalId: "CK1" });
+    expect(calls[0].cookies).toBe(COOKIES);
+    expect(calls[0].sign).toBe(null);
+    const batch = a.normalize(items[0]);
+    expect(batch.events[0].content.title).toBe("flight: 上海 → 北京");
+    expect(batch.events[0].content.amount).toMatchObject({ value: 1200 });
+  });
+
+  it("invokes signProvider when configured", async () => {
+    const fetchFn = async ({ query }) =>
+      query.pageIndex === 1 ? { orders: [{ orderId: "S1", type: "hotel" }] } : { orders: [] };
+    const signCalls = [];
+    const signProvider = async (ctx) => {
+      signCalls.push(ctx);
+      return "SIGNED-TOKEN";
+    };
+    const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn, signProvider });
+    const items = await collect(a.sync({ sinceWatermark: 0 }));
+    expect(items).toHaveLength(1);
+    expect(signCalls).toHaveLength(1);
+    expect(signCalls[0].cookies).toBe(COOKIES);
+  });
+
+  it("stops at sinceWatermark (older orders dropped)", async () => {
+    const fetchFn = async () => ({
+      orderList: [
+        { orderId: "NEW", type: "flight", orderDate: 2_000_000_000_000 },
+        { orderId: "OLD", type: "flight", orderDate: 1_000_000_000_000 },
+      ],
+    });
+    const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
+    const items = await collect(a.sync({ sinceWatermark: 1_500_000_000_000, maxPages: 1 }));
+    expect(items.map((x) => x.originalId)).toEqual(["NEW"]);
+  });
+
+  it("respects opts.limit", async () => {
+    const fetchFn = async () => ({
+      orderList: [
+        { orderId: "L1", type: "flight", orderDate: 2_000_000_000_000 },
+        { orderId: "L2", type: "flight", orderDate: 2_000_000_000_001 },
+      ],
+    });
+    const a = new CtripAdapter({ account: { cookies: COOKIES }, fetchFn });
+    const items = await collect(a.sync({ sinceWatermark: 0, limit: 1, maxPages: 1 }));
+    expect(items).toHaveLength(1);
+  });
+
+  it("empty/login-redirect response yields zero (no crash)", async () => {
+    const a = new CtripAdapter({
+      account: { cookies: COOKIES },
+      fetchFn: async () => "<html>login</html>",
+    });
+    expect(await collect(a.sync({ sinceWatermark: 0 }))).toEqual([]);
+  });
+
+  it("default fetch throws when no fetchFn (wiring bug)", async () => {
+    const a = new CtripAdapter({ account: { cookies: COOKIES } });
+    await expect(collect(a.sync({ sinceWatermark: 0 }))).rejects.toThrow(
+      /no fetchFn configured/,
+    );
+  });
+
+  it("snapshot/file path takes priority over cookie mode", async () => {
+    const p = writeTmp(JSON.stringify([FLIGHT_ORDER]));
+    try {
+      const a = new CtripAdapter({
+        account: { cookies: COOKIES },
+        fetchFn: async () => {
+          throw new Error("fetchFn should NOT be called in file mode");
+        },
+      });
+      const items = await collect(a.sync({ inputPath: p }));
+      expect(items.map((x) => x.originalId)).toEqual(["CT1"]);
+    } finally {
+      fs.unlinkSync(p);
+    }
   });
 });
