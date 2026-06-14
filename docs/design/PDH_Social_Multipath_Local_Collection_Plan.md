@@ -500,3 +500,75 @@ QQ 10 trap：
 - [ ] **是否启动 Phase B0 共享脚手架实施**
 
 审核通过后我才开始写代码。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为采集方案（待审核）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH 社交平台多路径本地数据采集方案（v0.1 待审核）：规划社交平台「多路径」（cookie/HTTP C 路径 + 本机 DB Mode B + frida）本地采集的统一方案与共享脚手架（Phase B0）。
+
+### 2. 核心特性
+
+多路径采集（C 路径 / Mode B / frida）；共享脚手架（Phase B0）；DevicePicker UI；companion APK 策略。
+
+### 3. 系统架构
+
+见正文架构；各平台多路径写同一 adapter（schemaVersion + 跨路径 dedup）。
+
+### 4. 系统定位
+
+PDH 社交多平台本地采集的**总方案 / 上游设计**（Mode B Phase 7 等的上游）。
+
+### 5. 核心功能
+
+见正文：多路径定义 / 共享脚手架 / DevicePicker / 各平台路径优先级。
+
+### 6. 技术架构
+
+C 路径（cookie/HTTP）+ Mode B（root 本机 DB）+ frida（v2.0）；共享 adb su sqlite3 流程。
+
+### 7. 系统特点
+
+Open Questions 待拍板（DevicePicker UI / companion APK / 抖音 B 优先级 / root 真机型号 / Phase B0 启动）；审核通过才写代码。
+
+### 8. 应用场景
+
+社交多平台本地采集的统一规划与脚手架。
+
+### 9. 竞品对比
+
+多路径（C / Mode B / frida）覆盖度 vs 单路径。
+
+### 10. 配置参考
+
+DevicePicker UI 位置；companion APK 策略；root 真机型号 / Android / ROM（见 Open Questions）。
+
+### 11. 性能指标
+
+各路径覆盖率 / 成功率（按平台）。
+
+### 12. 测试覆盖
+
+下游 Mode B Phase 7 各平台 E2E（`PDH_Mode_B_*`）。
+
+### 13. 安全考虑
+
+cookie / 本机 DB / frida 均高敏感；root 依赖；SQLCipher 加密。
+
+### 14. 故障排除
+
+各路径失败 → 见下游各平台 E2E doc。
+
+### 15. 关键文件
+
+共享脚手架（Phase B0，`pdh/social/common/`）；各平台 adapter。
+
+### 16. 使用示例
+
+见正文多路径采集流程与 DevicePicker。
+
+### 17. 相关文档
+
+下游：`PDH_Mode_B_Phase_7_Plan.md`、`PDH_Mode_B_Phase_7_Complete.md`、各 `PDH_*_Real_Device_E2E.md`；memory `pdh_multipath_phase_b0_scaffold.md`。

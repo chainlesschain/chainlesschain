@@ -249,3 +249,75 @@ window.acrawler = undefined
 - [ ] 场景 8 acrawler rotation drill 不 crash + 正确短路
 
 完工后回归 `pdh_sign_provider_phase_6a.md` 把 P6c 标 "real-device verified"。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Toutiao C 路径真机 E2E checklist（Phase 6c.5，Win 优先），完工后把 P6c 标 "real-device verified"。
+
+### 2. 核心特性
+
+C 路径（cookie + _signature acrawler.js）；8 场景含 acrawler rotation drill；Win 优先。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md` + `Personal_Data_Hub_Architecture.md`；profile passport（unsigned）+ feed _signature。
+
+### 4. 系统定位
+
+PDH Toutiao C 路径的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文 8 场景：profile fetch / _signature 签名 / web-shell warning banner / acrawler rotation drill。
+
+### 6. 技术架构
+
+cookie + `_signature`（acrawler.js）；`cc hub` Toutiao adapter；SignProvider。
+
+### 7. 系统特点
+
+acrawler rotation drill 不 crash + 正确短路（场景 8）；profile fetch fail 不全失败（场景 6）。
+
+### 8. 应用场景
+
+Toutiao C 路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+C 路径 vs Mode B（`PDH_Mode_B_Toutiao_Douyin_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+cookie / SignProvider；Win-first。
+
+### 11. 性能指标
+
+采集随数据量线性；命中率 0% → ~100%（见 Kuaishou 共享）。
+
+### 12. 测试覆盖
+
+本文即 8 场景 E2E checklist；完工标 "real-device verified"。
+
+### 13. 安全考虑
+
+cookie + 签名高敏感；SQLCipher 加密。
+
+### 14. 故障排除
+
+_signature 失效 / acrawler rotation → 见场景 8 rotation drill。
+
+### 15. 关键文件
+
+`cc hub` Toutiao adapter（ToutiaoSignBridge）；vault；memory `pdh_sign_provider_phase_6a.md`。
+
+### 16. 使用示例
+
+见正文 8 场景执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`PDH_Kuaishou_C_Path_Real_Device_E2E.md`（共享）、memory `pdh_sign_provider_phase_6a.md`。

@@ -226,3 +226,75 @@ done
 ---
 
 跑完 E2E 后，**Phase 1 完整收口**，可以进 Phase 2 (Douyin B+C 双路径 — 明星案例 abrignoni DFIR 参考)。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Bilibili C 路径（cookie + HTTP）真机 E2E checklist（Phase 1e），跑通后 Phase 1 完整收口。
+
+### 2. 核心特性
+
+C 路径（cookie + 签名 + HTTP）；Win 优先；真机场景逐项勾选；trap 收口 memory。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用）+ `Personal_Data_Hub_Architecture.md`。
+
+### 4. 系统定位
+
+PDH Bilibili C 路径的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景：登录 / cookie 采集 / 同步 / vault 落地。
+
+### 6. 技术架构
+
+cookie + HTTP；`cc hub` Bilibili adapter；本机 SQLCipher vault。
+
+### 7. 系统特点
+
+Win 优先；剩 Bilibili 卡 detail panel（last-sync / event 总数）推 Phase 1f。
+
+### 8. 应用场景
+
+Bilibili C 路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+C 路径 vs Mode B（`PDH_Bilibili_Mode_B_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+cookie / 账号；Win-first 真机环境。
+
+### 11. 性能指标
+
+采集随数据量线性（见正文场景）。
+
+### 12. 测试覆盖
+
+本文即 E2E checklist；trap 收口 memory。
+
+### 13. 安全考虑
+
+cookie 高敏感；落盘经 SQLCipher 加密。
+
+### 14. 故障排除
+
+cookie 过期 / 签名漂移 → 见正文场景与 trap。
+
+### 15. 关键文件
+
+`cc hub` Bilibili adapter；PDH vault。
+
+### 16. 使用示例
+
+见正文真机执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`Personal_Data_Hub_Architecture.md`、`PDH_Douyin_Real_Device_E2E.md`（Phase 2）。

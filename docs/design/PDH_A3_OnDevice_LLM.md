@@ -291,3 +291,75 @@ val effectiveRoute: LlmRoute get() = when {
 - [[android-native-lib-extract-w-x]] — useLegacyPackaging trap
 - [[android-cc-subprocess-execve-via-mksh]] — LocalCcRunner spawn pattern
 - `docs/marketing/pdh-公众号推文-厦门场景.md` — 推文承诺源（§大白话提问/无网/拒云）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH A3 Android 端侧 LLM 设计：兑现推文承诺（大白话提问 + 给出处 / 无网可用 / 拒云），是 Plan A（Android Standalone）的 feature 层扩展。
+
+### 2. 核心特性
+
+端侧 LLM 推理；无网可用；拒云（数据不出端）；大白话提问 + 给出处（RAG）。
+
+### 3. 系统架构
+
+见正文架构；`Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A 主架构）+ 端侧 LLM（MediaPipe / 1.5–3B）。
+
+### 4. 系统定位
+
+PDH Plan A 的**Android 端侧 LLM feature 层**（A3）。
+
+### 5. 核心功能
+
+见正文：端侧推理 / RAG 给出处 / 无网模式。
+
+### 6. 技术架构
+
+端侧 LLM（1.5–3B，摘要 query）；LocalCcRunner spawn（mksh symlink）；useLegacyPackaging（W^X）。
+
+### 7. 系统特点
+
+端侧仅适合 1.5–3B（重型回 Plan B / 云）；SELinux cc subprocess 路径 OK。
+
+### 8. 应用场景
+
+无网 / 拒云场景下本机 AI 问答（推文厦门场景）。
+
+### 9. 竞品对比
+
+端侧（隐私 / 无网）vs 云 LLM（能力强但出端）。
+
+### 10. 配置参考
+
+端侧模型选型；useLegacyPackaging；LocalCcRunner。
+
+### 11. 性能指标
+
+端侧 1.5–3B 推理时延 / 内存（受设备限制）。
+
+### 12. 测试覆盖
+
+SELinux 验证（android-runas-loopback-selinux-split）；native lib W^X。
+
+### 13. 安全考虑
+
+拒云（数据不出端）；端侧加密；W^X / SELinux 约束。
+
+### 14. 故障排除
+
+native lib W^X execve 失败 → useLegacyPackaging（见 memory android-native-lib-extract-w-x）。
+
+### 15. 关键文件
+
+端侧 LLM 引擎；LocalCcRunner；`Personal_Data_Hub_Android_Standalone_Cc.md`。
+
+### 16. 使用示例
+
+见正文端侧问答流程（推文厦门场景）。
+
+### 17. 相关文档
+
+见正文「8. 关联」：`Personal_Data_Hub_Android_Standalone_Cc.md`、memory android-runas-loopback-selinux-split / android-native-lib-extract-w-x / android-cc-subprocess-execve-via-mksh、推文源。

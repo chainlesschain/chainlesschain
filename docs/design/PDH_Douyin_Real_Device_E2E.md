@@ -238,3 +238,75 @@ cc hub query-events --adapter social-douyin --subtype message --limit 100 `
 ---
 
 跑完 E2E 后 + 找到的 trap 都收口到 memory，**Phase 2 完整收口**，下一段 Phase 3 (Weibo C + Xhs A 加固) 或 Phase 6 (defer Weibo/Xhs/Toutiao/Kuaishou B 路径)。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Douyin 双路径（B+C）真机 E2E checklist（Phase 2c，Win 优先），跑通后 Phase 2 完整收口。
+
+### 2. 核心特性
+
+双路径（Mode B 本机 DB + C cookie/HTTP）；Win 优先；defensive column picker（防 db schema 漂移）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md` + `Personal_Data_Hub_Architecture.md`；IM_DB_PATTERN 正则定位本机 db。
+
+### 4. 系统定位
+
+PDH Douyin 双路径的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景：登录 / cookie / 本机 db 解析 / 同步 / vault。
+
+### 6. 技术架构
+
+Mode B 本机 `<uid>_im.db`（defensive column picker）+ C cookie/HTTP；`cc hub` Douyin adapter。
+
+### 7. 系统特点
+
+明星案例 abrignoni DFIR 参考；抖音改 db 文件名需更新 IM_DB_PATTERN。
+
+### 8. 应用场景
+
+Douyin 双路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+双路径（B+C）覆盖更全。
+
+### 10. 配置参考
+
+cookie / IM_DB_PATTERN 正则；Win-first。
+
+### 11. 性能指标
+
+采集随数据量线性。
+
+### 12. 测试覆盖
+
+本文即 E2E checklist；trap 收口 memory。
+
+### 13. 安全考虑
+
+cookie + 本机 db 高敏感；SQLCipher 加密落盘。
+
+### 14. 故障排除
+
+抖音 db schema 漂移（db 文件名变）→ 更新 IM_DB_PATTERN 正则（见正文）。
+
+### 15. 关键文件
+
+`cc hub` Douyin adapter（IM_DB_PATTERN / column picker）；vault。
+
+### 16. 使用示例
+
+见正文真机执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`Personal_Data_Hub_Architecture.md`、`PDH_Weibo_Real_Device_E2E.md`（Phase 3）。

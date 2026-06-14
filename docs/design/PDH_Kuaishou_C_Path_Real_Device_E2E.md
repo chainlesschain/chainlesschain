@@ -239,3 +239,75 @@ v0.2 升级:
 Phase 6e 真机 E2E 实跑应**同步** 4 平台 (Xhs upgrade / Toutiao + Kuaishou
 new / Bilibili-Douyin-Weibo 已 ship 不动)。命中率监测 Xhs 升级前 60% → 后
 ~100%；Toutiao + Kuaishou 0% → ~100%。同模板 Win-first。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Kuaishou C 路径真机 E2E checklist（Phase 6d.5，Win 优先），与 Toutiao P6c.5 共享后续；4 平台同步实跑。
+
+### 2. 核心特性
+
+C 路径（cookie api_ph + NS_sig3 GraphQL 签名）；Win 优先；命中率监测（升级前后）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md` + `Personal_Data_Hub_Architecture.md`；profile cookie-parse + 列表 GraphQL 签名。
+
+### 4. 系统定位
+
+PDH Kuaishou C 路径的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景：cookie api_ph / NS_sig3 签名 / 同步 / vault。
+
+### 6. 技术架构
+
+cookie `api_ph` + `__NS_sig3` GraphQL；`cc hub` Kuaishou adapter；SignProvider。
+
+### 7. 系统特点
+
+与 Toutiao P6c.5 共享后续；4 平台同步实跑（Xhs upgrade / Toutiao+Kuaishou new / 已 ship 不动）。
+
+### 8. 应用场景
+
+Kuaishou C 路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+C 路径 vs Mode B（`PDH_Kuaishou_Mode_B_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+cookie / SignProvider；Win-first。
+
+### 11. 性能指标
+
+命中率：升级前 60% → 后 ~100%（见正文）。
+
+### 12. 测试覆盖
+
+本文即 E2E checklist；命中率监测。
+
+### 13. 安全考虑
+
+cookie + 签名高敏感；SQLCipher 加密。
+
+### 14. 故障排除
+
+NS_sig3 签名失效 / cookie 过期 → 更新签名常量（见正文）。
+
+### 15. 关键文件
+
+`cc hub` Kuaishou adapter（KuaishouSignBridge）；vault。
+
+### 16. 使用示例
+
+见正文真机执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`PDH_Toutiao_C_Path_Real_Device_E2E.md`（共享后续）、memory `pdh_sign_provider_phase_6a.md`。

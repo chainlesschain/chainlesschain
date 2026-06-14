@@ -254,3 +254,75 @@ for ($i=1; $i -le 10; $i++) {
 ---
 
 跑完 E2E + 找到的 trap 都收口到 memory，**Phase 3c/3d Xhs C 路径完整收口**。下一段 Phase 4/5 复用同模板做 Toutiao + Kuaishou C 路径（都需要 SignProvider，跟 Xhs X-S 模式同）。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Xhs（小红书）C 路径真机 E2E checklist（Phase 3d，Win 优先），含 X-S 签名；跑通后 Phase 3c/3d Xhs C 路径完整收口。
+
+### 2. 核心特性
+
+C 路径（cookie + X-S 签名）；Win 优先；doctor dry-run 入口（Phase 4 加 `cc hub xhs-adb-doctor`）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md` + `Personal_Data_Hub_Architecture.md`；X-S 签名（SignProvider）。
+
+### 4. 系统定位
+
+PDH Xhs C 路径的**真机 E2E 验收 checklist**（X-S 签名模板原型）。
+
+### 5. 核心功能
+
+见正文场景：cookie / X-S 签名 / endpoint fetch / 同步 / vault。
+
+### 6. 技术架构
+
+cookie + X-S 签名（SignProvider）；`cc hub` Xhs adapter；Toutiao/Kuaishou C 路径复用同模板。
+
+### 7. 系统特点
+
+X-S 模式是 Toutiao/Kuaishou C 路径的祖本（都需 SignProvider）；doctor dry-run 推 Phase 4。
+
+### 8. 应用场景
+
+Xhs C 路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+C 路径 vs Mode B（`PDH_Xhs_Mode_B_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+cookie / X-S SignProvider；Win-first。
+
+### 11. 性能指标
+
+采集随数据量线性。
+
+### 12. 测试覆盖
+
+本文即 E2E checklist；trap 收口 memory。
+
+### 13. 安全考虑
+
+cookie + X-S 签名高敏感；SQLCipher 加密。
+
+### 14. 故障排除
+
+X-S 签名失效（code 461）/ cookie 过期 → Phase 4 加 `cc hub xhs-adb-doctor` probe。
+
+### 15. 关键文件
+
+`cc hub` Xhs adapter（X-S SignProvider）；vault。
+
+### 16. 使用示例
+
+见正文真机执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`PDH_Toutiao_C_Path_Real_Device_E2E.md` / `PDH_Kuaishou_C_Path_Real_Device_E2E.md`（复用模板）。

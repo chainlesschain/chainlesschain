@@ -179,3 +179,75 @@ adb shell su -c "for f in /data/data/com.sina.weibolite/databases/*.db; do echo 
 - **Weibo Mode B v0.2** — 加极速/国际/Lite 包名 + 各自 db schema 探测（如果场景 W-5 实际有人触发）
 - **Weibo Mode B v2.0** — SQLCipher key 解出后加 `WeiboFridaInjector` (mirror WeChat Phase 12.10) — 仅 v0.2 走情况 B 时必要
 - **跟 P7.1.0 / P7.2.0 共享**: Toutiao + Douyin + Bilibili + Weibo 四个平台的 schema 探测可以一次跑完（共享 adb su shell sqlite3 .schema dump 流程）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 Mode B 真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角。
+
+### 1. 概述
+
+见正文头部。PDH Weibo Mode B（本机 root SQLite fallback）真机 E2E checklist（Phase 7.4.3，Win-first）；含三分支决策（A 加固 / B frida / defer）。
+
+### 2. 核心特性
+
+本机 root DB 采集；5 Weibo-specific 三分支决策；Win-first。
+
+### 3. 系统架构
+
+adb su sqlite3 → 本机 DB → `social-weibo` adapter → vault；schema 探测见 `PDH_Weibo_DB_Schema_Probe.md`。
+
+### 4. 系统定位
+
+PDH Weibo Mode B 的**本机 DB 真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景 W-1~W-5：root 探测 / DB 解析 / 三分支决策 / vault。
+
+### 6. 技术架构
+
+root + adb su sqlite3；DB_FILENAME_CANDIDATES；v2.0 `WeiboFridaInjector`（mirror WeChat Phase 12.10，情况 B）。
+
+### 7. 系统特点
+
+三分支决策（path A 加固 / v2.0 frida / defer）；schema 探测 P7.3 fill-in。
+
+### 8. 应用场景
+
+无 cookie/网络时离线本机采集 fallback。
+
+### 9. 竞品对比
+
+Mode B vs C 路径（`PDH_Weibo_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+root；DB_FILENAME_CANDIDATES + column-candidate（P7.3 §4 探测）。
+
+### 11. 性能指标
+
+本机解析随 DB 规模线性。
+
+### 12. 测试覆盖
+
+本文即 Mode B E2E checklist；schema 探测见 `PDH_Weibo_DB_Schema_Probe.md`。
+
+### 13. 安全考虑
+
+需 root；本机 DB 高敏感；SQLCipher；v2.0 frida 解 SQLCipher key。
+
+### 14. 故障排除
+
+走情况 B（DB SQLCipher 加密）→ v2.0 `WeiboFridaInjector`（mirror WeChat 12.10）。
+
+### 15. 关键文件
+
+`social-weibo` adapter（Mode B 三件套）；`PDH_Weibo_DB_Schema_Probe.md`；vault。
+
+### 16. 使用示例
+
+见正文 W-1~W-5 场景步骤。
+
+### 17. 相关文档
+
+`PDH_Weibo_Real_Device_E2E.md`、`PDH_Weibo_DB_Schema_Probe.md`、`PDH_Mode_B_RealDevice_Master_Checklist.md`。

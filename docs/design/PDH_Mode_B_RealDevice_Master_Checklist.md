@@ -186,3 +186,75 @@ adb shell run-as com.chainlesschain.android sqlite3 files/.chainlesschain/hub/va
 - `PDH_Weibo_Mode_B_Real_Device_E2E.md` — 5 Weibo-specific 三分支决策
 - `PDH_Xhs_Mode_B_Real_Device_E2E.md` — 5 Xhs-specific defer-recommended framing
 - `PDH_Kuaishou_Mode_B_Real_Device_E2E.md` — 5 Kuaishou-specific dual-role libmsaoaidsec caveat
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 6-platform Mode B 回归 master checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角。
+
+### 1. 概述
+
+见正文头部。PDH Mode B 6-platform 真机回归 master checklist（Phase 7 closure）：汇总 Toutiao / Douyin / Bilibili / Weibo / Xhs / Kuaishou 六平台 Mode B E2E 的统一回归入口。
+
+### 2. 核心特性
+
+6 平台统一回归；各平台 E2E doc 链接；schema 探测共享流程。
+
+### 3. 系统架构
+
+各平台 Mode B adapter（root + 本机 DB）→ vault；统一回归 checklist。
+
+### 4. 系统定位
+
+PDH Mode B 的**6-platform 真机回归 master checklist**（Phase 7 closure）。
+
+### 5. 核心功能
+
+见正文：6 平台 E2E doc 索引 + 统一回归项。
+
+### 6. 技术架构
+
+root + adb su sqlite3（共享 .schema dump 流程）；各平台 anti-frida caveat（libshield / libmsaoaidsec）。
+
+### 7. 系统特点
+
+Phase 7 closure 汇总；各平台特定 caveat（Xhs libshield / Kuaishou libmsaoaidsec dual-role）。
+
+### 8. 应用场景
+
+Phase 7 收口后 6 平台 Mode B 统一回归验收。
+
+### 9. 竞品对比
+
+Mode B（本机 DB）vs C 路径（各平台 C-path E2E）。
+
+### 10. 配置参考
+
+各平台 DB_FILENAME_CANDIDATES；root 环境。
+
+### 11. 性能指标
+
+各平台本机解析随 DB 规模线性。
+
+### 12. 测试覆盖
+
+6 平台 Mode B E2E 统一回归（见正文各平台链接）。
+
+### 13. 安全考虑
+
+需 root；各平台本机 DB 高敏感；SQLCipher + anti-frida（libshield/libmsaoaidsec）。
+
+### 14. 故障排除
+
+见各平台 E2E doc 的 caveat（Xhs/Kuaishou 走 v2.0 frida）。
+
+### 15. 关键文件
+
+各平台 Mode B adapter；`PDH_Mode_B_Phase_7_Plan.md` / `_Complete.md`。
+
+### 16. 使用示例
+
+见正文 6 平台回归索引。
+
+### 17. 相关文档
+
+见正文：`PDH_Mode_B_Phase_7_Plan.md`、`PDH_Mode_B_Phase_7_Complete.md`、各平台 `PDH_*_Mode_B_Real_Device_E2E.md`。

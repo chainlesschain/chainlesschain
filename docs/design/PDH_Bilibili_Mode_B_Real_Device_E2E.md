@@ -150,3 +150,75 @@ adb shell su -c "for f in /data/data/tv.danmaku.bilibilihd/databases/*.db; do ec
 - **P7.2.0** — 真机 schema 探测 (上文场景 5 触发的逻辑) → 更新 `DB_FILENAME_CANDIDATES` + column-candidate lists 反映真机实际
 - **Bilibili Mode B v0.2** — 加 HD/国际/Lite/极简版包名 + 各自 db schema 探测 (如果有需求)
 - **跟 P7.1.0 共享**: Toutiao + Douyin + Bilibili 三个平台的 schema 探测可以一次跑完（共享 adb su shell sqlite3 .schema dump 流程）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 Mode B 真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见上文` / `见正文` 指引或简述方式补齐若干视角。
+
+### 1. 概述
+
+见正文头部。PDH Bilibili Mode B（本机 root SQLite 离线 fallback）真机 E2E checklist（Phase 7.2.3，Win-first）。Mode B 是 path A（C 路径 cookie/HTTP）的离线 fallback，不是替代品。
+
+### 2. 核心特性
+
+本机 root DB 采集；与 C 路径写同一 `social-bilibili` adapter（schemaVersion=1，events.id 跨路径 dedup）；Win-first。
+
+### 3. 系统架构
+
+adb su shell sqlite3 → 本机 DB → `social-bilibili` adapter → vault；DB_FILENAME_CANDIDATES + column-candidate。
+
+### 4. 系统定位
+
+PDH Bilibili Mode B 的**本机 DB 真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景：root 探测 / DB 解析 / 跨路径 dedup / vault。
+
+### 6. 技术架构
+
+root + adb su sqlite3；DB_FILENAME_CANDIDATES 探测；与 C 路径共享 adapter。
+
+### 7. 系统特点
+
+Mode B = 离线 fallback；与 Toutiao/Douyin schema 探测共享 dump 流程（P7.1.0）。
+
+### 8. 应用场景
+
+无 cookie/网络时的离线本机采集 fallback。
+
+### 9. 竞品对比
+
+Mode B（本机 DB）vs C 路径（`PDH_Bilibili_C_Path_Real_Device_E2E.md`，主路径）。
+
+### 10. 配置参考
+
+root；DB_FILENAME_CANDIDATES + column-candidate lists。
+
+### 11. 性能指标
+
+本机解析随 DB 规模线性。
+
+### 12. 测试覆盖
+
+本文即 Mode B E2E checklist；schema 探测 P7.2.0 fill-in。
+
+### 13. 安全考虑
+
+需 root；本机 DB 高敏感；SQLCipher 加密落盘。
+
+### 14. 故障排除
+
+DB 文件名 / schema 变 → 更新 DB_FILENAME_CANDIDATES（P7.2.0 schema 探测）。
+
+### 15. 关键文件
+
+`social-bilibili` adapter（Mode B 三件套）；vault。
+
+### 16. 使用示例
+
+见正文 adb su sqlite3 dump 与场景步骤。
+
+### 17. 相关文档
+
+`PDH_Bilibili_C_Path_Real_Device_E2E.md`（主路径）、`PDH_Mode_B_Phase_7_Plan.md`、`PDH_Mode_B_RealDevice_Master_Checklist.md`。

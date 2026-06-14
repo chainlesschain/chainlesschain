@@ -229,3 +229,75 @@ android-app/app/src/main/java/com/chainlesschain/android/
 
 剩 ~7-8d → Mac/Linux + 真机方能交付。本文档是续接 session 唯一入口，先读本文
 + memory 两份 → 再读 13d Plan + A3 Design → 然后逐 §推进。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 hand-off 续接文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH 推文承诺真接通 — Mac/Linux + 真机 hand-off：Win session 终态（11 commits UI 100%），剩 ~7–8d 需 Mac/Linux + 真机方能交付；本文是续接 session 唯一入口。
+
+### 2. 核心特性
+
+推文承诺接通状态表（大白话提问 / 无网 / iPhone / root）；Win 已做 vs 剩余阻塞；续接入口指引。
+
+### 3. 系统架构
+
+见 `Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A）+ `PDH_A3_OnDevice_LLM.md`（A3 端侧 LLM）。
+
+### 4. 系统定位
+
+PDH 推文承诺交付的**Mac/Linux 真机 hand-off 续接文档**。
+
+### 5. 核心功能
+
+见正文：接通状态表 + 剩余 7–8d 工作 + 续接读法（本文 + memory + 13d Plan + A3 Design）。
+
+### 6. 技术架构
+
+Win session UI 100%；剩端侧 LLM 真机（§2.1 真 LLM）+ §2.2 端侧护栏。
+
+### 7. 系统特点
+
+续接 session 唯一入口；剩余阻塞需 Mac/Linux + 真机（Win 不可跑）。
+
+### 8. 应用场景
+
+跨 session / 跨平台交接 PDH 推文承诺交付。
+
+### 9. 竞品对比
+
+见正文接通状态表（Win 已做 vs §2.1/§2.2 剩余）。
+
+### 10. 配置参考
+
+Mac/Linux + root 真机；读 13d Plan + A3 Design。
+
+### 11. 性能指标
+
+剩 ~7–8d 工期（见正文）。
+
+### 12. 测试覆盖
+
+真机交付待 Mac/Linux；UI 100% 已 land（Win）。
+
+### 13. 安全考虑
+
+无网 / 数据加密 / 销毁（推文承诺）；拒云。
+
+### 14. 故障排除
+
+—（hand-off 文档）；逐 § 推进见正文。
+
+### 15. 关键文件
+
+`PDH_Article_Implementation_Plan.md`（13d Plan）；`PDH_A3_OnDevice_LLM.md`；推文源。
+
+### 16. 使用示例
+
+见正文续接读法（本文 → memory → 13d Plan → A3 → 逐 §）。
+
+### 17. 相关文档
+
+`PDH_Article_Implementation_Plan.md`、`PDH_A3_OnDevice_LLM.md`、`Personal_Data_Hub_Android_Standalone_Cc.md`、推文源。

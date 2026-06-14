@@ -238,3 +238,75 @@ Same pattern as WeChat 12.10 — see `wechat_frida_hook_audit_traps.md` for libW
 ---
 
 related: [[pdh-mode-b-phase-7]] [[android-wechat-collector-phase-12-10]] [[wechat-frida-hook-audit-traps]]
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 schema 探测文档（user-driven exploration）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH Weibo Mode B schema 探测（P7.3，user-driven）：通过 adb su shell sqlite3 .schema dump 探测微博本机 DB 表结构，决定 Mode B 是否可行。
+
+### 2. 核心特性
+
+本机 DB schema dump；表结构分析；Mode B 可行性决策。
+
+### 3. 系统架构
+
+adb su shell sqlite3 .schema → 表结构 → Mode B 采集决策。
+
+### 4. 系统定位
+
+PDH Weibo Mode B 的**本机 DB schema 探测文档**（P7.3）。
+
+### 5. 核心功能
+
+见正文：schema dump / 表结构 / 决策（继续 Mode B vs defer path A 加固）。
+
+### 6. 技术架构
+
+adb su shell sqlite3 .schema dump（与其它平台共享流程）。
+
+### 7. 系统特点
+
+user-driven exploration；与 P7.1.0/P7.2.0 schema 探测共享流程。
+
+### 8. 应用场景
+
+决定微博走 Mode B（本机 DB）还是 path A 加固（HTTP SignProvider）。
+
+### 9. 竞品对比
+
+Mode B（本机 DB）vs C 路径（cookie/HTTP，`PDH_Weibo_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+root + adb su；sqlite3 .schema 命令。
+
+### 11. 性能指标
+
+—（探测文档）。
+
+### 12. 测试覆盖
+
+schema dump 实测；决策输出。
+
+### 13. 安全考虑
+
+微博本机 DB 高敏感；需 root。
+
+### 14. 故障排除
+
+DB 加密 / 表结构变 → 重新 .schema dump（见正文）。
+
+### 15. 关键文件
+
+adb su sqlite3；微博本机 DB；memory `pdh-mode-b-phase-7`。
+
+### 16. 使用示例
+
+见正文 schema dump 命令与决策路径。
+
+### 17. 相关文档
+
+见正文 related：`PDH_Mode_B_Phase_7_Plan.md`、`Android_WeChat_Phase_12_10_6_RealDevice_E2E_Runbook.md`、`PDH_Weibo_Mode_B_Real_Device_E2E.md`。

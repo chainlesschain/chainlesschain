@@ -254,3 +254,75 @@ Win dev box cannot exercise these; need rooted Android + adb access (and frida-s
 3. **Parallel session steals my commit** (P7.6.2): parallel ran `git add -A` while my P7.6.2 edits were unstaged → their `cac364435` NSIS commit bundled 412 lines of my Kuaishou Mode B wiring. **Lesson**: stage immediately after edits during multi-session work, no race window.
 4. **Plan doc silently deleted** (this closure): `docs/design/PDH_Mode_B_Phase_7_Plan.md` created `90e7f659c` but missing in HEAD with no delete commit (force-push or rename race). Restored from git history. **Lesson**: critical design docs should have CI integrity check.
 5. **`cc commit` 子进程 epoll_wait dead-wait** (pre-existing, encountered during testing) — see [[pdh_cc_subprocess_exit_and_vault_upsert]].
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 plan + 可行性审计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH Mode B Phase 7 Plan & 5-Platform Feasibility Audit（Phase 7.0）：规划 6 内容平台 Mode B（本机 root SQLite fallback）+ 各平台可行性审计（含 anti-frida 评估）。
+
+### 2. 核心特性
+
+5/6 平台可行性审计；Mode B 路线规划；P7.x sub-phase 拆分；§8 shipped state。
+
+### 3. 系统架构
+
+各平台 Mode B adapter（root 三件套 + onSyncRoot wire）；上游多路径采集方案。
+
+### 4. 系统定位
+
+PDH Mode B Phase 7 的**规划 + 可行性审计文档**。
+
+### 5. 核心功能
+
+见正文 P7.x：P7.1 schema 探测 / P7.2 Bilibili / P7.3 Weibo schema / P7.4 Weibo / P7.5 Xhs / P7.6 Kuaishou。
+
+### 6. 技术架构
+
+root + adb su sqlite3；各平台 DB filename + table schema；anti-frida（libshield / libmsaoaidsec）评估。
+
+### 7. 系统特点
+
+P7.5 Xhs / P7.6 Kuaishou defer v2.0+（anti-frida）；5 traps surfaced（含并行 session race + plan doc silently deleted）。
+
+### 8. 应用场景
+
+Mode B 6 平台落地排期与可行性决策。
+
+### 9. 竞品对比
+
+各平台可行性差异（cookie-able vs anti-frida）。
+
+### 10. 配置参考
+
+各平台 DB_FILENAME_CANDIDATES；root 环境。
+
+### 11. 性能指标
+
+各平台覆盖率预估（见 §8 shipped state）。
+
+### 12. 测试覆盖
+
+各平台 E2E（见 `PDH_Mode_B_RealDevice_Master_Checklist.md`）。
+
+### 13. 安全考虑
+
+需 root；anti-frida（libshield/libmsaoaidsec）；本机 DB 高敏感。
+
+### 14. 故障排除
+
+5 traps（并行 session WIP rip-out / backup-restore 丢提交 / 抢 commit / plan doc 静默删 / cc commit epoll_wait dead-wait，见正文 + memory）。
+
+### 15. 关键文件
+
+各平台 Mode B adapter；`PDH_Social_Multipath_Local_Collection_Plan.md`（上游）。
+
+### 16. 使用示例
+
+见正文 P7.x sub-phase 规划。
+
+### 17. 相关文档
+
+`PDH_Social_Multipath_Local_Collection_Plan.md`、`PDH_Mode_B_Phase_7_Complete.md`、`PDH_Mode_B_RealDevice_Master_Checklist.md`、memory `pdh_mode_b_phase_7.md`。

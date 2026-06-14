@@ -248,3 +248,75 @@ for ($i=1; $i -le 10; $i++) {
 ---
 
 跑完 E2E + 找到的 trap 都收口到 memory，**Phase 3a/3b/3d Weibo C 路径完整收口**。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。PDH Weibo C 路径真机 E2E checklist（Phase 3d，Win 优先），跑通后 Phase 3a/3b/3d Weibo C 路径完整收口。
+
+### 2. 核心特性
+
+C 路径（m.weibo.cn cookie + HTTP）；Win 优先；doctor dry-run 入口（Phase 4 加 `cc hub weibo-adb-doctor`）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md` + `Personal_Data_Hub_Architecture.md`。
+
+### 4. 系统定位
+
+PDH Weibo C 路径的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景：cookie 采集 / 4 endpoint fetch / 同步 / vault。
+
+### 6. 技术架构
+
+m.weibo.cn cookie + HTTP；`cc hub` Weibo adapter。
+
+### 7. 系统特点
+
+Win 优先；doctor dry-run 入口缺失推 Phase 4（仿 Bilibili 1e）。
+
+### 8. 应用场景
+
+Weibo C 路径采集器发版前真机验收。
+
+### 9. 竞品对比
+
+C 路径 vs Mode B（`PDH_Weibo_Mode_B_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+cookie / 账号；Win-first。
+
+### 11. 性能指标
+
+采集随数据量线性。
+
+### 12. 测试覆盖
+
+本文即 E2E checklist；trap 收口 memory。
+
+### 13. 安全考虑
+
+cookie 高敏感；SQLCipher 加密。
+
+### 14. 故障排除
+
+cookie 过期 / endpoint 漂移 → Phase 4 加 `cc hub weibo-adb-doctor` 单独 probe。
+
+### 15. 关键文件
+
+`cc hub` Weibo adapter；vault。
+
+### 16. 使用示例
+
+见正文真机执行步骤。
+
+### 17. 相关文档
+
+`Adapter_Social_Cookie.md`、`PDH_Weibo_Mode_B_Real_Device_E2E.md`、`PDH_Xhs_Real_Device_E2E.md`（同 Phase 3）。

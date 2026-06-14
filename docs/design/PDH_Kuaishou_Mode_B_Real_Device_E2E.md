@@ -182,3 +182,75 @@ adb shell su -c "ls /data/data/com.kuaishou.nebula/databases/"
 - **Kuaishou Mode B v2.0** — frida + libmsaoaidsec neuter + SQLCipher key 派生 hook (走情况 B 时唯一可行路径)。预计 4-6 周，需 root 快手真机持续访问 + frida-trace + 不误伤 NS_sig3 签名功能 (这是 Kuaishou 比 Xhs 更复杂的地方)
 - **跟 P7.1.0 / P7.2.0 / P7.3 / P7.5.0 共享**: 5 平台 schema 探测可一次跑完 (共享 adb su shell sqlite3 .schema dump 流程)
 - **Phase 7 完工标记**: Kuaishou Mode B v0.1 ship 后, **5 内容平台 Mode B 全有 button + E2E doc** (Toutiao + Douyin + Bilibili + Weibo + Xhs + Kuaishou = 6 platforms). Phase 7 主线 complete; 剩 user-driven 真机 fill-in (P7.1.0 / P7.2.0 / P7.3 §4 / P7.5.0 / P7.6.0) + v2.0 frida 路径 (Xhs / Kuaishou)。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 Mode B 真机 E2E checklist。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角。
+
+### 1. 概述
+
+见正文头部。PDH Kuaishou Mode B（本机 root SQLite fallback）真机 E2E checklist（Phase 7.6.3，Win-first）；v0.1 ship 后 6 内容平台 Mode B 全有 button + E2E doc，Phase 7 主线 complete。
+
+### 2. 核心特性
+
+本机 root DB 采集；Win-first；libmsaoaidsec dual-role caveat（v2.0 frida 路径预留）。
+
+### 3. 系统架构
+
+adb su sqlite3 → 本机 DB → `social-kuaishou` adapter → vault。
+
+### 4. 系统定位
+
+PDH Kuaishou Mode B 的**本机 DB 真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文场景 K-1~K-5：root 探测 / DB 解析 / vault。
+
+### 6. 技术架构
+
+root + adb su sqlite3；DB_FILENAME_CANDIDATES；v2.0 frida + libmsaoaidsec neuter + SQLCipher key hook（情况 B）。
+
+### 7. 系统特点
+
+libmsaoaidsec 既反 frida 又承 NS_sig3 签名（dual-role，比 Xhs 更复杂）；v2.0 frida 4–6 周。
+
+### 8. 应用场景
+
+无 cookie/网络时离线本机采集 fallback。
+
+### 9. 竞品对比
+
+Mode B vs C 路径（`PDH_Kuaishou_C_Path_Real_Device_E2E.md`）。
+
+### 10. 配置参考
+
+root；DB_FILENAME_CANDIDATES + column-candidate（P7.6.0 schema 探测）。
+
+### 11. 性能指标
+
+本机解析随 DB 规模线性。
+
+### 12. 测试覆盖
+
+本文即 Mode B E2E checklist；schema 探测 P7.6.0 fill-in。
+
+### 13. 安全考虑
+
+需 root；本机 DB 高敏感；SQLCipher；libmsaoaidsec 反 frida。
+
+### 14. 故障排除
+
+走情况 B（DB 加密 / 反 frida）→ v2.0 frida + libmsaoaidsec neuter（不误伤 NS_sig3）。
+
+### 15. 关键文件
+
+`social-kuaishou` adapter（Mode B 三件套）；vault。
+
+### 16. 使用示例
+
+见正文 K-1~K-5 场景步骤。
+
+### 17. 相关文档
+
+`PDH_Kuaishou_C_Path_Real_Device_E2E.md`、`PDH_Mode_B_RealDevice_Master_Checklist.md`、memory `pdh_mode_b_phase_7.md`。

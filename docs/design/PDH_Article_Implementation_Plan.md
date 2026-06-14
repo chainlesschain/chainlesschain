@@ -155,3 +155,75 @@ Session C (Security & polish):  D5 part2 → D11 export → D12 audit → D13 E2
 - memory `pdh_plan_a_android_standalone_design.md` — Plan A v0.1 ship 状态
 - memory `pdh_a8_social_adapters_landing.md` — A8 v0.1 ship 状态
 - memory `personal_data_hub_phase_status.md` — PDH 总进度
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为实现落地计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH 推文承诺 → 实现落地 13 天计划：把公众号推文（厦门场景）承诺的能力（大白话提问 + 出处 / 无网 / 拒云）拆成 13 天落地路线。
+
+### 2. 核心特性
+
+13 天落地路线；推文承诺 → 需求规格映射；Plan A + A3 端侧 LLM 接通。
+
+### 3. 系统架构
+
+见 `Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A）+ `PDH_A3_OnDevice_LLM.md`（A3）。
+
+### 4. 系统定位
+
+PDH 推文承诺的**13 天实现落地计划**。
+
+### 5. 核心功能
+
+见正文 13 天分解；A8 social adapters + A3 端侧 LLM + UI。
+
+### 6. 技术架构
+
+Plan A（Android Standalone）+ A3 端侧 LLM + A8 social adapters。
+
+### 7. 系统特点
+
+推文（需求规格）驱动；分 13 天逐项交付。
+
+### 8. 应用场景
+
+按计划交付推文承诺的端侧 PDH 能力。
+
+### 9. 竞品对比
+
+—（计划文档）。
+
+### 10. 配置参考
+
+见 Plan A / A3 设计；推文源需求。
+
+### 11. 性能指标
+
+13 天工期；端侧 LLM 性能见 A3。
+
+### 12. 测试覆盖
+
+各阶段验收；真机交付见 `PDH_Article_HandOff_Mac.md`。
+
+### 13. 安全考虑
+
+无网 / 拒云 / 加密销毁（推文承诺）。
+
+### 14. 故障排除
+
+—（计划文档）；阻塞见 hand-off 文档。
+
+### 15. 关键文件
+
+推文源（需求规格）；`PDH_A3_OnDevice_LLM.md`；`Personal_Data_Hub_Android_Standalone_Cc.md`。
+
+### 16. 使用示例
+
+见正文 13 天分解。
+
+### 17. 相关文档
+
+见正文链接：推文源、`PDH_A3_OnDevice_LLM.md`、`Personal_Data_Hub_Android_Standalone_Cc.md`、memory `personal_data_hub_phase_status.md`、`PDH_Article_HandOff_Mac.md`。

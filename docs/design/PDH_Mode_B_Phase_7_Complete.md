@@ -144,3 +144,75 @@ Win dev box cannot exercise these; need rooted Android + adb (and frida-server f
 - 真机 master checklist: `docs/design/PDH_Mode_B_RealDevice_Master_Checklist.md`
 - 5 E2E docs: `docs/design/PDH_{Mode_B_Toutiao_Douyin,Bilibili,Weibo,Xhs,Kuaishou}_Mode_B?_Real_Device_E2E.md`
 - Memory: `pdh_mode_b_phase_7.md` (项目级 progress + 5 traps)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为完工报告。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。PDH Mode B Phase 7 完工报告（main-line complete）：6 内容平台 Mode B（本机 root SQLite fallback）主线收口的总结，含 risk distribution + remaining。
+
+### 2. 核心特性
+
+6 平台 Mode B 主线 complete；risk distribution；remaining（user-driven 真机 fill-in + v2.0 frida）。
+
+### 3. 系统架构
+
+各平台 Mode B adapter（root + 本机 DB）；上游 `PDH_Social_Multipath_Local_Collection_Plan.md`。
+
+### 4. 系统定位
+
+PDH Mode B Phase 7 的**完工报告**。
+
+### 5. 核心功能
+
+见正文：shipped state / risk distribution / remaining。
+
+### 6. 技术架构
+
+root + adb su sqlite3；各平台 anti-frida（libshield / libmsaoaidsec）。
+
+### 7. 系统特点
+
+main-line complete；剩 user-driven 真机 fill-in + v2.0 frida（Xhs / Kuaishou）。
+
+### 8. 应用场景
+
+Phase 7 收口总结与后续排期输入。
+
+### 9. 竞品对比
+
+Mode B vs C 路径（各平台）。
+
+### 10. 配置参考
+
+见 `PDH_Mode_B_Phase_7_Plan.md` §8 shipped state。
+
+### 11. 性能指标
+
+各平台命中率 / 覆盖率（见正文 risk distribution）。
+
+### 12. 测试覆盖
+
+6 平台 Mode B E2E doc（见 `PDH_Mode_B_RealDevice_Master_Checklist.md`）。
+
+### 13. 安全考虑
+
+需 root；本机 DB 高敏感；anti-frida caveat。
+
+### 14. 故障排除
+
+5 traps（见 memory `pdh_mode_b_phase_7.md`）。
+
+### 15. 关键文件
+
+各平台 Mode B adapter；`PDH_Mode_B_Phase_7_Plan.md`。
+
+### 16. 使用示例
+
+见 `PDH_Mode_B_RealDevice_Master_Checklist.md` 回归索引。
+
+### 17. 相关文档
+
+见正文「7. 关联文档」：`PDH_Social_Multipath_Local_Collection_Plan.md`、`PDH_Mode_B_Phase_7_Plan.md`、`PDH_Mode_B_RealDevice_Master_Checklist.md`、5 E2E docs、memory `pdh_mode_b_phase_7.md`。
