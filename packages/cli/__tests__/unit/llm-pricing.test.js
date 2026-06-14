@@ -29,6 +29,21 @@ describe("llm-pricing — lookupRate", () => {
     expect(lookupRate("Anthropic", "Claude-3-OPUS").pattern).toBe("opus");
   });
 
+  it("resolves the GPT-5 family without shadowing (5.5 not caught by 5)", () => {
+    expect(lookupRate("openai", "gpt-5.5-pro").pattern).toBe("gpt-5.5-pro");
+    expect(lookupRate("openai", "gpt-5.5-instant").pattern).toBe("gpt-5.5");
+    expect(lookupRate("openai", "gpt-5.5-2026-04-23")).toMatchObject({
+      in: 5,
+      out: 30,
+    });
+    expect(lookupRate("openai", "gpt-5-mini").pattern).toBe("gpt-5-mini");
+    expect(lookupRate("openai", "gpt-5-nano")).toMatchObject({
+      in: 0.05,
+      out: 0.4,
+    });
+    expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
+  });
+
   it("returns null for an unknown provider or model", () => {
     expect(lookupRate("mystery", "x")).toBeNull();
     expect(lookupRate("openai", "totally-unknown")).toBeNull();

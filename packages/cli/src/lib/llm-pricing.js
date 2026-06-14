@@ -35,6 +35,15 @@ export const PRICE_TABLE = Object.freeze({
     { match: "haiku", in: 1, out: 5 },
   ],
   openai: [
+    // GPT-5 family (2026). Matching is longest-pattern-first, so dated/variant
+    // ids (gpt-5.5, gpt-5.5-pro, gpt-5.5-instant, …) resolve to the most
+    // specific rate; bare "gpt-5" is the catch-all base rate.
+    { match: "gpt-5.5-pro", in: 30, out: 180 },
+    { match: "gpt-5.5", in: 5, out: 30 },
+    { match: "gpt-5.4", in: 2.5, out: 15 },
+    { match: "gpt-5-mini", in: 0.25, out: 2 },
+    { match: "gpt-5-nano", in: 0.05, out: 0.4 },
+    { match: "gpt-5", in: 1.25, out: 10 },
     { match: "gpt-4o-mini", in: 0.15, out: 0.6 },
     { match: "gpt-4o", in: 2.5, out: 10 },
     { match: "gpt-4-turbo", in: 10, out: 30 },
