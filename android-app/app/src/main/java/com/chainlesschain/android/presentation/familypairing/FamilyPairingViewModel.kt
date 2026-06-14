@@ -20,11 +20,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** 配对屏的三种界面态：先选角色 → 家长生成邀请 / 孩子接受邀请。 */
+/** 本机角色：先选「我是家长 / 我是孩子」。 */
 enum class PairingMode { CHOOSE, PARENT, CHILD }
+
+/** 选定角色后的动作：菜单 / 生成邀请给对方 / 接受对方邀请。两侧对称, 双向各做一次即互相可见。 */
+enum class PairingAction { MENU, GENERATE, ACCEPT }
 
 data class FamilyPairingUiState(
     val mode: PairingMode = PairingMode.CHOOSE,
+    val action: PairingAction = PairingAction.MENU,
     val busy: Boolean = false,
     // ─── 家长端生成的邀请 (一次性给 UI 展示) ───
     /** [InviteTokenCodec] 编码后的 SignedInvite, 渲染成二维码 / 可复制文本。 */
@@ -64,8 +68,19 @@ class FamilyPairingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FamilyPairingUiState())
     val uiState: StateFlow<FamilyPairingUiState> = _uiState.asStateFlow()
 
-    fun chooseParent() = _uiState.update { it.copy(mode = PairingMode.PARENT) }
-    fun chooseChild() = _uiState.update { it.copy(mode = PairingMode.CHILD) }
+    fun chooseParent() = _uiState.update { it.copy(mode = PairingMode.PARENT, action = PairingAction.MENU) }
+    fun chooseChild() = _uiState.update { it.copy(mode = PairingMode.CHILD, action = PairingAction.MENU) }
+
+    /** 进入「生成邀请给对方」(清上一轮 token)。 */
+    fun startGenerate() =
+        _uiState.update { it.copy(action = PairingAction.GENERATE, inviteToken = null, acceptanceCode = null) }
+
+    /** 进入「接受对方的邀请」(清上一轮结果)。 */
+    fun startAccept() =
+        _uiState.update { it.copy(action = PairingAction.ACCEPT, revivalCode = null, pairedRelationshipId = null) }
+
+    /** 返回该角色的动作菜单。 */
+    fun backToMenu() = _uiState.update { it.copy(action = PairingAction.MENU) }
 
     /** 返回角色选择，清掉上一轮生成/接受的敏感态 (token/接受码/复活码)。 */
     fun reset() {
@@ -76,24 +91,28 @@ class FamilyPairingViewModel @Inject constructor(
 
     fun dismissKyc() = _uiState.update { it.copy(kycPending = false) }
 
-    /** 家长端：生成邀请二维码 + 明文接受码。 */
+    /**
+     * 生成邀请二维码 + 明文接受码。角色对称：本机是家长则邀请孩子, 是孩子则邀请家长。
+     * 双向各生成+接受一次, 两端 family_relationship 互建, 家人页即互相可见。
+     */
     fun createInvite(expectedChildAge: Int? = null) = viewModelScope.launch {
         val inviterDid = localDidProvider.currentDid()
         if (inviterDid.isNullOrBlank()) {
-            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设为家长以创建 DID") }
+            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设置角色以创建 DID") }
             return@launch
         }
+        val asChild = _uiState.value.mode == PairingMode.CHILD
         _uiState.update { it.copy(busy = true) }
         runCatching {
             val groupId = ensureLocalGroup(inviterDid)
             pairingService.createInvite(
                 familyGroupId = groupId,
                 inviterDid = inviterDid,
-                inviterRole = MemberRole.PARENT,
-                inviterTier = GuardianTier.PRIMARY,
-                inviteeRole = MemberRole.CHILD,
-                inviteeTier = null,
-                proposedPermissions = parentGuardianPermissions(),
+                inviterRole = if (asChild) MemberRole.CHILD else MemberRole.PARENT,
+                inviterTier = if (asChild) GuardianTier.SECONDARY else GuardianTier.PRIMARY,
+                inviteeRole = if (asChild) MemberRole.PARENT else MemberRole.CHILD,
+                inviteeTier = if (asChild) GuardianTier.PRIMARY else null,
+                proposedPermissions = if (asChild) childToParentPermissions() else parentGuardianPermissions(),
                 expectedChildAge = expectedChildAge,
             )
         }.onSuccess { result ->

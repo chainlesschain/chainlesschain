@@ -61,6 +61,8 @@ class FamilyPairingViewModelTest {
         var acceptResult: PairingResult = PairingResult.WrongAcceptanceCode
         var acceptCalls = 0
         var lastForceKyc: Boolean? = null
+        var lastInviterRole: MemberRole? = null
+        var lastInviteeRole: MemberRole? = null
 
         override suspend fun createInvite(
             familyGroupId: String,
@@ -71,7 +73,11 @@ class FamilyPairingViewModelTest {
             inviteeTier: GuardianTier?,
             proposedPermissions: FamilyPermissions,
             expectedChildAge: Int?,
-        ): InvitePairingService.CreateInviteResult = createResult
+        ): InvitePairingService.CreateInviteResult {
+            lastInviterRole = inviterRole
+            lastInviteeRole = inviteeRole
+            return createResult
+        }
 
         override suspend fun acceptInvite(
             qrPayload: String,
@@ -146,6 +152,24 @@ class FamilyPairingViewModelTest {
         // token 必须是 InviteTokenCodec 编码后的 SignedInvite
         assertEquals(InviteTokenCodec.encode(service.createResult.signedInvite), s.inviteToken)
         assertFalse(s.busy)
+    }
+
+    @Test
+    fun `createInvite as parent invites a child`() = runTest {
+        val vm = vm()
+        vm.chooseParent()
+        vm.createInvite()
+        assertEquals(MemberRole.PARENT, service.lastInviterRole)
+        assertEquals(MemberRole.CHILD, service.lastInviteeRole)
+    }
+
+    @Test
+    fun `createInvite as child invites a parent (symmetric, enables parent-side visibility)`() = runTest {
+        val vm = vm()
+        vm.chooseChild()
+        vm.createInvite()
+        assertEquals(MemberRole.CHILD, service.lastInviterRole)
+        assertEquals(MemberRole.PARENT, service.lastInviteeRole)
     }
 
     @Test

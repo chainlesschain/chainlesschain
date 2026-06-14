@@ -37,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,7 +78,7 @@ fun FamilyPairingScreen(
 
     if (scanning) {
         QRCodeScannerScreen(
-            peerId = "家长邀请",
+            peerId = "对方邀请",
             onQRCodeScanned = { scannedToken = it.trim(); scanning = false },
             onBack = { scanning = false },
         )
@@ -115,26 +117,39 @@ fun FamilyPairingScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                when (state.mode) {
-                    PairingMode.CHOOSE -> ChooseRole(
+                if (state.mode == PairingMode.CHOOSE) {
+                    ChooseRole(
                         onParent = viewModel::chooseParent,
                         onChild = viewModel::chooseChild,
                     )
-                    PairingMode.PARENT -> ParentPane(
-                        state = state,
-                        onGenerate = { viewModel.createInvite() },
-                    )
-                    PairingMode.CHILD -> ChildPane(
-                        state = state,
-                        scannedToken = scannedToken,
-                        onScanConsumed = { scannedToken = null },
-                        onScan = { scanning = true },
-                        onAccept = { token, code, age -> viewModel.acceptInvite(token, code, age) },
-                        onConfirmKyc = { token, code, age ->
-                            viewModel.acceptInvite(token, code, age, forceKycAck = true)
-                        },
-                        onDismissKyc = viewModel::dismissKyc,
-                    )
+                } else {
+                    val asChild = state.mode == PairingMode.CHILD
+                    when (state.action) {
+                        PairingAction.MENU -> ActionMenu(
+                            asChild = asChild,
+                            onGenerate = viewModel::startGenerate,
+                            onAccept = viewModel::startAccept,
+                        )
+                        PairingAction.GENERATE -> GeneratePane(
+                            state = state,
+                            asChild = asChild,
+                            onGenerate = { viewModel.createInvite() },
+                            onBack = viewModel::backToMenu,
+                        )
+                        PairingAction.ACCEPT -> AcceptPane(
+                            state = state,
+                            asChild = asChild,
+                            scannedToken = scannedToken,
+                            onScanConsumed = { scannedToken = null },
+                            onScan = { scanning = true },
+                            onAccept = { token, code, age -> viewModel.acceptInvite(token, code, age) },
+                            onConfirmKyc = { token, code, age ->
+                                viewModel.acceptInvite(token, code, age, forceKycAck = true)
+                            },
+                            onDismissKyc = viewModel::dismissKyc,
+                            onBack = viewModel::backToMenu,
+                        )
+                    }
                 }
             }
         }
@@ -153,8 +168,8 @@ private fun ChooseRole(onParent: () -> Unit, onChild: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onParent, modifier = Modifier.fillMaxWidth()) { Text("我是家长（生成邀请）") }
-            OutlinedButton(onClick = onChild, modifier = Modifier.fillMaxWidth()) { Text("我是孩子（接受邀请）") }
+            Button(onClick = onParent, modifier = Modifier.fillMaxWidth()) { Text("我是家长") }
+            OutlinedButton(onClick = onChild, modifier = Modifier.fillMaxWidth()) { Text("我是孩子") }
             Text(
                 text = "绑定经二维码 + 6 位接受码二次确认，防误扫；孩子端的「陪伴」聊天家长永远看不到。",
                 style = MaterialTheme.typography.bodySmall,
@@ -164,17 +179,52 @@ private fun ChooseRole(onParent: () -> Unit, onChild: () -> Unit) {
     }
 }
 
+/** 选定角色后的动作菜单。要双向可见 (各自家人页都能看到对方), 两台手机都需「生成 + 接受」各一次。 */
 @Composable
-private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
+private fun ActionMenu(asChild: Boolean, onGenerate: () -> Unit, onAccept: () -> Unit) {
+    val other = if (asChild) "家长" else "孩子"
+    Text(
+        text = if (asChild) "我是孩子" else "我是家长",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) { Text("生成邀请（让$other 扫/粘贴）") }
+            OutlinedButton(onClick = onAccept, modifier = Modifier.fillMaxWidth()) { Text("接受$other 的邀请") }
+            Text(
+                text = "想互相在「家人」页看到对方：两台手机各做一次「生成」+ 一次「接受」即可双向绑定。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GeneratePane(
+    state: FamilyPairingUiState,
+    asChild: Boolean,
+    onGenerate: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val other = if (asChild) "家长" else "孩子"
+    val clipboard = LocalClipboardManager.current
+
     if (state.inviteToken == null) {
-        Text("生成一个邀请，让孩子的手机扫码绑定。", style = MaterialTheme.typography.bodyMedium)
+        TextButton(onClick = onBack) { Text("← 返回") }
+        Text("生成一个邀请，让$other 的手机扫码 / 粘贴绑定。", style = MaterialTheme.typography.bodyMedium)
         Button(onClick = onGenerate, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
             if (state.busy) BusyDots() else Text("生成邀请")
         }
         return
     }
 
-    Text("让孩子扫描二维码", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    TextButton(onClick = onBack) { Text("← 返回") }
+    Text("让$other 扫描二维码", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -187,7 +237,7 @@ private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
             // ECC-L + 大尺寸: 屏对屏扫描无物理损伤, 低容错=更少模块=更易对焦扫中。
             QrCodeImage(text = state.inviteToken, size = 300.dp, eccLevel = ErrorCorrectionLevel.L)
             state.acceptanceCode?.let { code ->
-                Text("接受码（口头/IM 告诉孩子）", style = MaterialTheme.typography.labelMedium)
+                Text("接受码（口头/IM 告诉$other ）", style = MaterialTheme.typography.labelMedium)
                 Text(
                     text = code,
                     style = MaterialTheme.typography.headlineMedium,
@@ -195,7 +245,7 @@ private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
                 )
             }
             Text(
-                text = "10 分钟内有效。若孩子无法扫码，可把下面这段邀请内容复制发给孩子手动粘贴。",
+                text = "10 分钟内有效。扫码不便就点下面「复制邀请内容」发给$other 手动粘贴。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -211,21 +261,29 @@ private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
         minLines = 2,
         maxLines = 4,
     )
-    Button(onClick = onGenerate, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+    Button(
+        onClick = { clipboard.setText(AnnotatedString(state.inviteToken)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text("📋 复制邀请内容") }
+    OutlinedButton(onClick = onGenerate, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
         Text("重新生成")
     }
 }
 
 @Composable
-private fun ChildPane(
+private fun AcceptPane(
     state: FamilyPairingUiState,
+    asChild: Boolean,
     scannedToken: String?,
     onScanConsumed: () -> Unit,
     onScan: () -> Unit,
     onAccept: (String, String, String) -> Unit,
     onConfirmKyc: (String, String, String) -> Unit,
     onDismissKyc: () -> Unit,
+    onBack: () -> Unit,
 ) {
+    val other = if (asChild) "家长" else "孩子"
+    val clipboard = LocalClipboardManager.current
     var token by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
@@ -243,17 +301,22 @@ private fun ChildPane(
         return
     }
 
-    Text("接受家长的邀请", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-    Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("📷 扫码家长的二维码") }
+    TextButton(onClick = onBack) { Text("← 返回") }
+    Text("接受$other 的邀请", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("📷 扫码$other 的二维码") }
+    OutlinedButton(
+        onClick = { clipboard.getText()?.text?.let { token = it.trim() } },
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text("📋 粘贴剪贴板里的邀请内容") }
     Text(
-        text = "—— 或手动粘贴邀请内容 ——",
+        text = "—— 或手动粘贴到下面 ——",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     OutlinedTextField(
         value = token,
         onValueChange = { token = it },
-        label = { Text("邀请内容（扫码或粘贴家长发来的内容）") },
+        label = { Text("邀请内容（扫码 / 粘贴$other 发来的内容）") },
         modifier = Modifier.fillMaxWidth(),
         minLines = 2,
         maxLines = 4,
@@ -280,7 +343,7 @@ private fun ChildPane(
         if (state.busy) BusyDots() else Text("接受并绑定")
     }
     Text(
-        text = "扫码或手动粘贴均可；接受码请向家长当面/IM 确认。",
+        text = "扫码 / 粘贴均可；接受码请向$other 当面/IM 确认。",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
