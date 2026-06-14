@@ -40,12 +40,13 @@
           button-style="solid"
           @update:value="setContextMode"
         >
-          <a-radio-button value="project">
+          <a-radio-button value="project" data-testid="context-mode-project">
             <FolderOutlined />
             项目
           </a-radio-button>
           <a-radio-button
             value="file"
+            data-testid="context-mode-file"
             :disabled="!activeContextStore.hasDocument"
             :title="
               activeContextStore.hasDocument
@@ -56,7 +57,7 @@
             <FileTextOutlined />
             文件
           </a-radio-button>
-          <a-radio-button value="global">
+          <a-radio-button value="global" data-testid="context-mode-global">
             <GlobalOutlined />
             全局
           </a-radio-button>

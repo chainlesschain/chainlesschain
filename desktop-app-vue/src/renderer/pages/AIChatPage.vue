@@ -634,6 +634,16 @@
               </a-button>
             </div>
           </div>
+          <div
+            v-if="currentFileName"
+            class="file-context-toggle"
+            data-testid="file-context-toggle"
+          >
+            <a-checkbox v-model:checked="includeFileContext">
+              <FileTextOutlined />
+              包含当前文件：{{ currentFileName }}
+            </a-checkbox>
+          </div>
           <ConversationInput
             ref="inputRef"
             :placeholder="inputPlaceholder"
@@ -1165,7 +1175,10 @@ import {
   BookOutlined,
   SaveOutlined,
   CheckOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons-vue";
+import { useProjectStore } from "@/stores/project";
+import { buildActiveFileContext } from "@/shell/helpers/chatPanelHelpers";
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
@@ -1189,6 +1202,29 @@ import { useAgentApprovals } from "./useAgentApprovals";
 const authStore = useAuthStore();
 const codingAgentStore = useCodingAgentStore();
 const sessionCoreStore = useSessionCoreStore();
+const projectStore = useProjectStore();
+
+// "Include current file" context (Claude-Code-style "agent sees what you're
+// working on"). Sources the last-opened project file (projectStore.currentFile,
+// which persists across navigation — the chat is a separate page from the
+// project view). The toggle only shows when a file is available; when on, the
+// file's content is inlined into the LLM message (ephemeral — the stored user
+// message stays the original text).
+const includeFileContext = ref(false);
+const currentFileName = computed(
+  () => projectStore.currentFile?.file_name ?? null,
+);
+function withFileContext(raw) {
+  if (!includeFileContext.value) {
+    return raw;
+  }
+  const f = projectStore.currentFile;
+  if (!f?.content) {
+    return raw;
+  }
+  const block = buildActiveFileContext(f);
+  return block ? `${block}\n\n${raw}` : raw;
+}
 const agentLogger = createLogger("AIChatPageCodingAgent");
 
 // 响应式状态
@@ -1942,7 +1978,7 @@ const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
 
     const response = await window.electronAPI.llm.chat({
       conversationId: activeConversationId.value,
-      message: text,
+      message: withFileContext(text),
       attachments: attachments,
     });
 
