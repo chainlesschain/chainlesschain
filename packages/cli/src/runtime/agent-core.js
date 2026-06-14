@@ -921,9 +921,8 @@ export async function executeTool(name, args, context = {}) {
     settingsVerdict.decision !== "allow" &&
     args?.path
   ) {
-    const { sensitiveFileReason } = await import(
-      "../lib/sensitive-file-guard.js"
-    );
+    const { sensitiveFileReason } =
+      await import("../lib/sensitive-file-guard.js");
     const sensReason = sensitiveFileReason(args.path);
     if (sensReason) {
       const confirm = context.permissionConfirm || context.shellConfirm || null;
