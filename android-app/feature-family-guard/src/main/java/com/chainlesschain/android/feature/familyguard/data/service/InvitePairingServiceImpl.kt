@@ -67,6 +67,9 @@ class InvitePairingServiceImpl @Inject constructor(
         val permissionsHash = sha256Hex(FamilyPermissions.encode(proposedPermissions))
 
         val now = clock.millis()
+        // FAMILY-26: 把 family_group 快照内嵌进 (随后签名的) payload, 让对端扫码即可物化组,
+        // 免单独 P2P 信道。组不存在时为 null (调用方错误, acceptInvite 仍会 UnknownFamilyGroup)。
+        val group = familyGroupRepository.findById(familyGroupId)
         val payload = InvitePayload(
             familyGroupId = familyGroupId,
             inviterDid = inviterDid,
@@ -80,15 +83,16 @@ class InvitePairingServiceImpl @Inject constructor(
             expiresAtMs = now + InvitePayload.DEFAULT_TTL_MS,
             acceptanceCodeHash = acceptanceHash,
             acceptanceCodeSalt = acceptanceSalt,
+            groupSnapshot = group?.toSyncRecord(),
         )
         val payloadJson = InvitePayload.encode(payload)
         val sigBytes = inviteSigner.sign(payloadJson.toByteArray(Charsets.UTF_8))
         val signatureB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(sigBytes)
 
-        // FAMILY-26: 把 family_group 排入同步 outbox, 让对端 acceptInvite 能查到组
-        // (否则对端 UnknownFamilyGroup)。默认 NoOp 不上行; :app SyncManager 适配器覆盖。
-        familyGroupRepository.findById(familyGroupId)?.let { group ->
-            familyGroupOutbox.enqueue(group.toSyncRecord(), targetDids = listOf(group.primaryDid))
+        // FAMILY-26: 同时把 family_group 排入同步 outbox (双通道: 内嵌快照走 QR 即时,
+        // outbox 走 P2P 持续同步)。默认 NoOp 不上行; :app SyncManager 适配器覆盖。
+        group?.let {
+            familyGroupOutbox.enqueue(it.toSyncRecord(), targetDids = listOf(it.primaryDid))
         }
 
         return InvitePairingService.CreateInviteResult(
@@ -138,9 +142,14 @@ class InvitePairingServiceImpl @Inject constructor(
             )
         }
 
-        // ─── family_group 存在 ───
-        val groupExists = familyGroupRepository.findById(payload.familyGroupId) != null
-        if (!groupExists) return PairingResult.UnknownFamilyGroup
+        // ─── family_group 存在 (本地无则从邀请内嵌快照物化, FAMILY-26) ───
+        if (familyGroupRepository.findById(payload.familyGroupId) == null) {
+            val snapshot = payload.groupSnapshot ?: return PairingResult.UnknownFamilyGroup
+            // 快照 id 必须与 payload 声明的组一致 (sig 已覆盖, 此处双保险防错配)。
+            if (snapshot.id != payload.familyGroupId) return PairingResult.UnknownFamilyGroup
+            runCatching { familyGroupRepository.upsertReplica(snapshot) }
+                .getOrElse { return PairingResult.Failed(it::class.simpleName ?: "GroupMaterializeFailed") }
+        }
 
         // ─── 已配对 ───
         val existing = familyRelationshipRepository.findByFriendDid(payload.inviterDid)

@@ -12,6 +12,8 @@ import com.chainlesschain.android.feature.familyguard.domain.model.pairing.Signe
 import com.chainlesschain.android.feature.familyguard.domain.model.permissions.FamilyPermissions
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
+import com.chainlesschain.android.feature.familyguard.domain.sync.toEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +44,9 @@ class FamilyPairingViewModelTest {
             return e
         }
         override suspend fun findById(id: String): FamilyGroupEntity? = groups.value.firstOrNull { it.id == id }
+        override suspend fun upsertReplica(record: FamilyGroupSyncRecord) {
+            groups.value = groups.value.filterNot { it.id == record.id } + record.toEntity()
+        }
         override fun observeAll(): Flow<List<FamilyGroupEntity>> = groups
         override suspend fun rename(id: String, newName: String): Boolean = false
         override suspend fun updateMetadata(id: String, newMetadataJson: String?): Boolean = false

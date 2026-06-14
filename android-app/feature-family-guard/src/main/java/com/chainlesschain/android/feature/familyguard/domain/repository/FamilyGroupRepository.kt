@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.familyguard.domain.repository
 
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyGroupEntity
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -25,6 +26,13 @@ interface FamilyGroupRepository {
     ): FamilyGroupEntity
 
     suspend fun findById(id: String): FamilyGroupEntity?
+
+    /**
+     * FAMILY-26: 据同步/内嵌快照按**原始 id** 物化一个 family_group 副本 (insert-or-replace)。
+     * 用于孩子端 acceptInvite 时从邀请内嵌快照物化组、或入站同步落库; 与自生成 id 的
+     * [create] 区别在于保留来源 id 让两端 family_group 收敛。校验同 create。
+     */
+    suspend fun upsertReplica(record: FamilyGroupSyncRecord)
 
     fun observeAll(): Flow<List<FamilyGroupEntity>>
 

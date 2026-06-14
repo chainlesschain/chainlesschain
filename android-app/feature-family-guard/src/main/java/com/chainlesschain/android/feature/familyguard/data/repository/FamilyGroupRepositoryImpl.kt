@@ -7,6 +7,8 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGr
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository.Companion.DID_PREFIX
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository.Companion.NAME_MAX_LEN
 import com.chainlesschain.android.feature.familyguard.domain.repository.InvalidFamilyGroupException
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
+import com.chainlesschain.android.feature.familyguard.domain.sync.toEntity
 import java.security.SecureRandom
 import java.time.Clock
 import javax.inject.Inject
@@ -60,6 +62,14 @@ class FamilyGroupRepositoryImpl @Inject constructor(
 
     override suspend fun findById(id: String): FamilyGroupEntity? =
         familyGroupDao.findById(id)
+
+    override suspend fun upsertReplica(record: FamilyGroupSyncRecord) {
+        validateName(record.name.trim())
+        validateDid(record.primaryDid)
+        validateMetadata(record.metadataJson)
+        // 保留来源 id (非自生成); REPLACE 让重放/再同步幂等。
+        familyGroupDao.upsert(record.toEntity().copy(name = record.name.trim()))
+    }
 
     override fun observeAll(): Flow<List<FamilyGroupEntity>> =
         familyGroupDao.observeAll()

@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.familyguard.domain.model.pairing
 
 import com.chainlesschain.android.feature.familyguard.domain.model.GuardianTier
 import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -68,6 +69,14 @@ data class InvitePayload(
 
     @SerialName("acceptance_code_salt")
     val acceptanceCodeSalt: String,
+
+    /**
+     * FAMILY-26: 内嵌的 family_group 快照 (append-only, 末位)。家长端生成邀请时把组
+     * 一并装进 (随 QR 经签名 → 防篡改) 携给孩子端; 孩子 acceptInvite 时若本地无此组,
+     * 直接据此物化, 免去单独 P2P 信道, 让两机扫码即可绑定。null = 旧版/无快照。
+     */
+    @SerialName("group_snapshot")
+    val groupSnapshot: FamilyGroupSyncRecord? = null,
 ) {
     companion object {
         const val DEFAULT_TTL_MS: Long = 10L * 60L * 1000L // 10 min

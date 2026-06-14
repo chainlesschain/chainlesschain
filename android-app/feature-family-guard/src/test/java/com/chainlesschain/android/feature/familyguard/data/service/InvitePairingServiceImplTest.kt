@@ -33,6 +33,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -226,6 +227,46 @@ class InvitePairingServiceImplTest {
                 success.relationship.id,
                 db.revivalCodeDao().listAvailable()[0].familyRelationshipId,
             )
+        }
+
+    // ─── FAMILY-26: 内嵌 family_group 快照 (双机扫码即绑定) ───
+
+    @Test
+    fun `createInvite embeds family group snapshot in payload`(): Unit = runBlocking {
+        val groupId = seedGroup()
+        val invite = mintInvite(groupId)
+        val snap = invite.signedInvite.decodePayload().groupSnapshot
+        assertNotNull(snap)
+        assertEquals(groupId, snap.id)
+        assertEquals("陈家", snap.name)
+        assertEquals("did:chain:dad-primary", snap.primaryDid)
+    }
+
+    @Test
+    fun `acceptInvite materializes embedded group snapshot when local group absent`(): Unit =
+        runBlocking {
+            val groupId = seedGroup()
+            val invite = mintInvite(groupId, expectedChildAge = 15)
+            val qr = InviteTokenCodec.encode(invite.signedInvite)
+
+            // 模拟孩子端: 本地无此 family_group, 但邀请内嵌了快照。
+            db.familyGroupDao().deleteById(groupId)
+            assertNull(db.familyGroupDao().findById(groupId))
+
+            val result = service.acceptInvite(
+                qrPayload = qr,
+                acceptanceCode = invite.acceptanceCode,
+                accepteeDid = "did:chain:kid",
+                accepteeDeviceId = "dev-kid",
+                reportedChildAge = 15,
+                childPermissions = PermissionTemplates.forChildToParent(),
+            )
+
+            assertIs<PairingResult.Success>(result)
+            // 组据内嵌快照物化, 原 id 保留 → 两端 family_group 收敛。
+            val materialized = db.familyGroupDao().findById(groupId)
+            assertNotNull(materialized)
+            assertEquals("陈家", materialized.name)
         }
 
     // ─── Failure paths ───
