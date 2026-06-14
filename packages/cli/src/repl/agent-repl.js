@@ -25,6 +25,10 @@ import path from "path";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
 import { createVimState, feedNormalKey } from "../lib/repl-vim.js";
+import {
+  analyzeContinuation,
+  joinContinuation,
+} from "../lib/repl-multiline.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   createSession,
@@ -1071,7 +1075,24 @@ export async function startAgentRepl(options = {}) {
   // when the current turn finishes.
   let _processingLine = false;
   const _pendingLines = [];
+  // Multiline input (Claude-Code parity): a physical line ending in a
+  // continuation backslash keeps the prompt open; `_mlBuffer` accumulates the
+  // pieces and the whole block submits when a line does not continue.
+  const _mlBuffer = [];
   const handleLine = async (input) => {
+    // Backslash continuation — accumulate and re-prompt without firing a turn.
+    const _cont = analyzeContinuation(input);
+    if (_cont.continued) {
+      _mlBuffer.push(_cont.text);
+      rl.setPrompt(chalk.dim("... "));
+      rl.prompt();
+      return;
+    }
+    if (_mlBuffer.length) {
+      input = joinContinuation(_mlBuffer, input);
+      _mlBuffer.length = 0;
+    }
+
     const trimmed = input.trim();
     if (!trimmed) {
       prompt();
@@ -1142,6 +1163,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("# <note>")}    Remember a note in the project cc.md`,
+      );
+      logger.log(
+        `  ${chalk.cyan("… \\")}         End a line with \\ to continue input onto the next line`,
       );
       logger.log(`  ${chalk.cyan("/exit")}       Exit the agent`);
       logger.log(
