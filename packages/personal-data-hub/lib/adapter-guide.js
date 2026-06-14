@@ -54,6 +54,7 @@ const DISPLAY_NAMES = Object.freeze({
   "shopping-dianping": "大众点评",
   "travel-12306": "12306 铁路",
   "travel-ctrip": "携程",
+  "travel-tongcheng": "同程旅行",
   "travel-amap": "高德地图",
   "travel-baidu-map": "百度地图",
   "travel-tencent-map": "腾讯地图",

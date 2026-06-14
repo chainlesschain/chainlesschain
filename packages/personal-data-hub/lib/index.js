@@ -39,6 +39,7 @@ const wechatAdapter = require("./adapters/wechat");
 const travelBase = require("./adapters/travel-base");
 const { Train12306Adapter } = require("./adapters/travel-12306");
 const { CtripAdapter } = require("./adapters/travel-ctrip");
+const { TongchengAdapter } = require("./adapters/travel-tongcheng");
 const { AmapAdapter } = require("./adapters/travel-amap");
 const { BaiduMapAdapter } = require("./adapters/travel-baidu-map");
 const { TencentMapAdapter } = require("./adapters/travel-tencent-map");
@@ -265,6 +266,7 @@ module.exports = {
   parseChineseDateTime: travelBase.parseChineseDateTime,
   Train12306Adapter,
   CtripAdapter,
+  TongchengAdapter,
   AmapAdapter,
   BaiduMapAdapter,
   TencentMapAdapter,
