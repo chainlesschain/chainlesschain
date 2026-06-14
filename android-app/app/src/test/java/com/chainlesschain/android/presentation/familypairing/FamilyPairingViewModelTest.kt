@@ -103,20 +103,26 @@ class FamilyPairingViewModelTest {
         revivalCode = RevivalCode("654321"),
     )
 
+    private class FakeLocalDidProvider(var did: String? = "did:key:zParent") : LocalDidProvider {
+        override fun currentDid(): String? = did
+    }
+
     private lateinit var repo: FakeGroupRepo
     private lateinit var service: FakePairingService
+    private lateinit var didProvider: FakeLocalDidProvider
 
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repo = FakeGroupRepo()
         service = FakePairingService()
+        didProvider = FakeLocalDidProvider()
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyPairingViewModel(service, repo)
+    private fun vm() = FamilyPairingViewModel(service, repo, didProvider)
 
     @Test
     fun `role selection transitions and reset returns to choose`() {
@@ -149,6 +155,25 @@ class FamilyPairingViewModelTest {
         vm.createInvite()
         assertEquals(0, repo.createCount)
         assertNotNull(vm.uiState.value.inviteToken)
+    }
+
+    @Test
+    fun `createInvite without a local identity shows guidance and does nothing`() = runTest {
+        didProvider.did = null
+        val vm = vm()
+        vm.createInvite()
+        assertEquals(0, repo.createCount)
+        assertNull(vm.uiState.value.inviteToken)
+        assertNotNull(vm.uiState.value.message)
+    }
+
+    @Test
+    fun `acceptInvite without a local identity shows guidance and does not call service`() = runTest {
+        didProvider.did = null
+        val vm = vm()
+        vm.acceptInvite(token = "tok", code = "123456", ageText = "15")
+        assertEquals(0, service.acceptCalls)
+        assertNotNull(vm.uiState.value.message)
     }
 
     @Test

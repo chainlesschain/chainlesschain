@@ -58,6 +58,7 @@ data class FamilyPairingUiState(
 class FamilyPairingViewModel @Inject constructor(
     private val pairingService: InvitePairingService,
     private val familyGroupRepository: FamilyGroupRepository,
+    private val localDidProvider: LocalDidProvider,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyPairingUiState())
@@ -77,12 +78,17 @@ class FamilyPairingViewModel @Inject constructor(
 
     /** 家长端：生成邀请二维码 + 明文接受码。 */
     fun createInvite(expectedChildAge: Int? = null) = viewModelScope.launch {
+        val inviterDid = localDidProvider.currentDid()
+        if (inviterDid.isNullOrBlank()) {
+            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设为家长以创建 DID") }
+            return@launch
+        }
         _uiState.update { it.copy(busy = true) }
         runCatching {
-            val groupId = ensureLocalGroup()
+            val groupId = ensureLocalGroup(inviterDid)
             pairingService.createInvite(
                 familyGroupId = groupId,
-                inviterDid = DEMO_PARENT_DID,
+                inviterDid = inviterDid,
                 inviterRole = MemberRole.PARENT,
                 inviterTier = GuardianTier.PRIMARY,
                 inviteeRole = MemberRole.CHILD,
@@ -106,11 +112,11 @@ class FamilyPairingViewModel @Inject constructor(
         }
     }
 
-    /** 已存在 family_group 则复用第一个，否则建一个本机家庭组 (demo)。 */
-    private suspend fun ensureLocalGroup(): String {
+    /** 已存在 family_group 则复用第一个，否则用本机真实 DID 建一个家庭组。 */
+    private suspend fun ensureLocalGroup(primaryDid: String): String {
         val existing = familyGroupRepository.observeAll().first()
         return existing.firstOrNull()?.id
-            ?: familyGroupRepository.create(name = "我的家庭", primaryDid = DEMO_PARENT_DID).id
+            ?: familyGroupRepository.create(name = "我的家庭", primaryDid = primaryDid).id
     }
 
     /**
@@ -139,13 +145,18 @@ class FamilyPairingViewModel @Inject constructor(
             _uiState.update { it.copy(message = "请输入有效年龄") }
             return@launch
         }
+        val accepteeDid = localDidProvider.currentDid()
+        if (accepteeDid.isNullOrBlank()) {
+            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设为孩子以创建 DID") }
+            return@launch
+        }
 
         _uiState.update { it.copy(busy = true) }
         val result = runCatching {
             pairingService.acceptInvite(
                 qrPayload = trimmedToken,
                 acceptanceCode = acceptance,
-                accepteeDid = DEMO_CHILD_DID,
+                accepteeDid = accepteeDid,
                 accepteeDeviceId = DEMO_CHILD_DEVICE,
                 reportedChildAge = age,
                 childPermissions = childToParentPermissions(),
@@ -201,8 +212,6 @@ class FamilyPairingViewModel @Inject constructor(
     )
 
     private companion object {
-        const val DEMO_PARENT_DID = "did:chain:local-parent"
-        const val DEMO_CHILD_DID = "did:chain:local-child"
         const val DEMO_CHILD_DEVICE = "local-child-device"
     }
 }
