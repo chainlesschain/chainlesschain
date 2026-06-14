@@ -3,8 +3,18 @@ package com.chainlesschain.android.presentation.aistudy
 /**
  * 学情报告输入快照 (主文档 §3.6 学情报告 / 家长端日报)。
  *
- * v0.1 取**端侧可得**的几块：AI 借力、错题、护栏信号 (只计数/类别，不含内容)。
- * M9 积分 / M8 围栏 / M10 温和度等块依赖其它子系统，留 follow-up。
+ * §3.6 的家长端日报为 **6 块结构**：正向激励(M9) / 围栏异常(M8) / AI 借力 / 错题本 /
+ * 需要关注(护栏) / 监管温和度(M10)。
+ *
+ * 端侧直接可得的几块 (AI 借力、错题、护栏信号——只计数/类别，不含内容) 始终生成；
+ * M9 积分 / M8 围栏 / M10 温和度三块是 **v0.2 扩展**：M9 引擎 ([PointsEngine]) 与
+ * M10 引擎 ([ParentEducationEngine]) 已是同模块内的纯逻辑，故这里直接消费其产出；
+ * M8 围栏采集仍设备阻塞，但**异常计数**可由调用方预聚合后传入 (同 [guardrailCategories]
+ * 的契约)。三块对应字段缺省 (null / 0) 时该块不出现，保证 v0.1 调用方零破坏。
+ *
+ * 设计取向同 [PointsEngine] / [ParentEducationEngine]：生成器纯函数，所有聚合 (今日积分、
+ * 围栏异常次数、温和度分值与同类档位) 由调用方 (VM/Repository) 预聚合后传入，生成器本身
+ * 确定性、可单测、零设备。
  */
 data class StudyActivitySnapshot(
     val learningTurns: Int,
@@ -18,6 +28,15 @@ data class StudyActivitySnapshot(
     val mistakeBookTotal: Int,
     /** 护栏命中类别 (只类别，绝不含原文)。 */
     val guardrailCategories: List<RiskCategory>,
+    // ---- v0.2 §3.6 6 块扩展 (调用方按"今日"预聚合后传入；缺省时对应块不出现) ----
+    /** M9 当日赚取积分；> 0 才进入正向激励块。 */
+    val pointsEarnedToday: Int = 0,
+    /** M9 当前积分余额；null = 积分子系统数据不可得 → 跳过正向激励块。 */
+    val pointsBalance: Int? = null,
+    /** M8 联动：今日围栏违规 (应到未到 / 异常停留) 次数；> 0 才出现围栏异常块。 */
+    val geofenceViolationsToday: Int = 0,
+    /** M10 监管温和度月报 (来自 [ParentEducationEngine.generateReport])；null = 跳过温和度块。 */
+    val gentleness: GentlenessReport? = null,
 )
 
 /** 报告中的一块。 */
@@ -73,13 +92,51 @@ object StudyReportGenerator {
             },
         )
 
-        // 3) 关注信号 (护栏)
+        // 3) 正向激励 (M9 积分；数据不可得时跳过)
+        snap.pointsBalance?.let { balance ->
+            sections += StudyReportSection(
+                title = "正向激励",
+                lines = buildList {
+                    if (snap.pointsEarnedToday > 0) {
+                        add("今日完成任务赚 ${snap.pointsEarnedToday} 分，给 $name 一句具体的肯定吧")
+                    } else {
+                        add("今日暂未赚到积分，可一起看看哪个任务适合开始")
+                    }
+                    add("当前积分余额 $balance 分")
+                },
+            )
+        }
+
+        // 4) 围栏异常 (M8 联动；今日无异常时不出现)
+        if (snap.geofenceViolationsToday > 0) {
+            sections += StudyReportSection(
+                title = "围栏异常",
+                lines = listOf(
+                    "今日围栏异常 ${snap.geofenceViolationsToday} 次 (应到未到 / 异常停留)，" +
+                        "建议温和确认 $name 的行程，不必直接质问",
+                ),
+            )
+        }
+
+        // 5) 关注信号 (护栏)
         if (snap.guardrailCategories.isNotEmpty()) {
             val byCat = snap.guardrailCategories.groupingBy { it }.eachCount()
             sections += StudyReportSection(
                 title = "需要关注",
                 lines = byCat.entries.map { (cat, n) ->
                     "出现 $n 次「${cat.label}」类信号，建议找机会温和关心 $name (内容仍为 ta 的隐私)"
+                },
+            )
+        }
+
+        // 6) 监管温和度 (M10；月报不可得时跳过)
+        snap.gentleness?.let { g ->
+            sections += StudyReportSection(
+                title = "您的监管温和度",
+                lines = buildList {
+                    val peer = g.peerBand.percentile?.let { "（同类家长中${g.peerBand.label}）" } ?: ""
+                    add("本月监管温和度 ${g.score} 分$peer")
+                    g.recommendedCourses.firstOrNull()?.let { add("推荐：${it.title}") }
                 },
             )
         }
