@@ -80,6 +80,7 @@ const ALLOWED_FILES = [
   "MONITORING_QUICK_START.md",
   "PRE_COMMIT_HOOKS.md", // 文档化 pre-commit 安全检查本身，含示例 secret 模式
   "BUGFIX_REPORT.md",
+  "MOBILE_GIT_COMPLETE_REPORT.md", // 含占位示例 github_token_here（非真实凭证）
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）
