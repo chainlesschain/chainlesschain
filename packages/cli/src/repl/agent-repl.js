@@ -171,6 +171,17 @@ async function agentLoop(messages, options) {
     ...options,
   })) {
     if (event.type === "checkpoint") {
+      // Remember which file snapshot lines up with the live conversation so
+      // `/rewind <n>` can restore code + conversation together (Claude-Code
+      // parity). atMessageCount = messages.length at snapshot time; see
+      // repl-rewind.js for how a turn is matched back to its checkpoint.
+      if (Array.isArray(options.checkpointMarks)) {
+        options.checkpointMarks.push({
+          atMessageCount: messages.length,
+          id: event.id,
+          tool: event.tool,
+        });
+      }
       process.stdout.write(
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
       );
@@ -501,6 +512,10 @@ export async function startAgentRepl(options = {}) {
   );
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
+  // Checkpoint marks ({ atMessageCount, id, tool }) recorded as the agent loop
+  // emits `checkpoint` events, so `/rewind <n>` can also restore files to the
+  // snapshot taken before that turn (Claude-Code rewind = code + conversation).
+  const _checkpointMarks = [];
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
     const { resolveOutputStyle } = await import("../lib/output-styles.js");
@@ -860,7 +875,9 @@ export async function startAgentRepl(options = {}) {
             );
             process.stdout.write(
               chalk.gray(
-                "Run /rewind <n> to rewind the conversation (files: cc checkpoint restore).\n",
+                _checkpointMarks.length
+                  ? "Run /rewind <n> to rewind the conversation (and optionally its files).\n"
+                  : "Run /rewind <n> to rewind the conversation.\n",
               ),
             );
             prompt();
@@ -1065,7 +1082,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
       );
       logger.log(
-        `  ${chalk.cyan("/rewind")}     Rewind conversation to an earlier turn (double-Esc lists)`,
+        `  ${chalk.cyan("/rewind")}     Rewind conversation + files to an earlier turn (double-Esc lists)`,
       );
       logger.log(
         `  ${chalk.cyan("/cd <dir>")}   Change working directory mid-session (completion/memory follow)`,
@@ -1242,6 +1259,7 @@ export async function startAgentRepl(options = {}) {
 
     if (trimmed === "/clear") {
       messages.length = 1; // Keep system prompt
+      _checkpointMarks.length = 0; // checkpoint marks no longer map to anything
       logger.info("Conversation cleared");
       prompt();
       return;
@@ -1339,17 +1357,21 @@ export async function startAgentRepl(options = {}) {
 
     if (trimmed === "/rewind" || trimmed.startsWith("/rewind ")) {
       try {
-        const { listUserTurns, rewindToTurn, renderTurnList } =
-          await import("../lib/repl-rewind.js");
+        const {
+          listUserTurns,
+          rewindToTurn,
+          renderTurnList,
+          pickCheckpointForTurn,
+          pruneMarksAfter,
+        } = await import("../lib/repl-rewind.js");
         const arg = trimmed.slice("/rewind".length).trim();
         if (!arg) {
           logger.log(chalk.bold("\nRewind — pick a user turn (newest first):"));
           logger.log(renderTurnList(listUserTurns(messages)));
-          logger.log(
-            chalk.gray(
-              "Usage: /rewind <n>  (conversation only — restore files with `cc checkpoint restore`)",
-            ),
-          );
+          const fileHint = _checkpointMarks.length
+            ? "  (restores files to that point too — checkpoints are on)"
+            : "  (conversation only — start with --checkpoint / git to also rewind files)";
+          logger.log(chalk.gray(`Usage: /rewind <n>${fileHint}`));
         } else {
           const res = rewindToTurn(messages, arg);
           if (!res) {
@@ -1360,6 +1382,48 @@ export async function startAgentRepl(options = {}) {
                 `⎌ rewound — dropped ${res.removed} message(s); edit and resend below`,
               ),
             );
+            // Claude-Code parity: rewind restores files too. Match the dropped
+            // turn to the snapshot taken just before it first mutated the tree,
+            // then offer to roll the working tree back to it (undoable — the
+            // restore takes its own safety checkpoint first).
+            const cp = pickCheckpointForTurn(_checkpointMarks, res.index);
+            pruneMarksAfter(_checkpointMarks, res.index);
+            if (cp) {
+              const q = (p) => new Promise((r) => rl.question(p, r));
+              const ans = (
+                await q(
+                  chalk.yellow(
+                    `  Also restore files to before this turn? (checkpoint ${cp.id}) [Y/n] `,
+                  ),
+                )
+              )
+                .trim()
+                .toLowerCase();
+              if (ans === "" || ans === "y" || ans === "yes") {
+                try {
+                  const { rewindTo } =
+                    await import("../lib/checkpoint-store.js");
+                  const r = rewindTo(process.cwd(), cp.id, {
+                    session: sessionId,
+                  });
+                  logger.log(
+                    chalk.green(
+                      `  ⎌ files restored to ${cp.id} (${r.modified} changed, ${r.deleted} removed, ${r.recreated} recreated; undo: cc checkpoint restore ${r.safetyId})`,
+                    ),
+                  );
+                } catch (e) {
+                  logger.error(
+                    `  file restore skipped: ${e.message} (conversation already rewound)`,
+                  );
+                }
+              } else {
+                logger.log(
+                  chalk.gray(
+                    `  files left as-is — restore later with  cc checkpoint restore ${cp.id}`,
+                  ),
+                );
+              }
+            }
             prompt();
             if (res.text) rl.write(res.text);
             return;
@@ -2534,6 +2598,7 @@ export async function startAgentRepl(options = {}) {
         additionalDirectories,
         autoCheckpoint,
         checkpointSession: sessionId,
+        checkpointMarks: _checkpointMarks,
         prepareCall,
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,

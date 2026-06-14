@@ -1,6 +1,8 @@
 /**
- * REPL conversation rewind — Claude-Code double-Esc parity (v1: conversation
- * state; file state stays on `cc checkpoint restore`, hinted alongside).
+ * REPL conversation rewind — Claude-Code double-Esc parity. Conversation state
+ * AND, when auto-checkpointing is on (git work tree), the file tree are rewound
+ * together — matching Claude Code's rewind, which restores code + conversation
+ * in one step instead of leaving files on a separate `cc checkpoint restore`.
  *
  * Pure helpers over the REPL's live `messages` array so the picker logic is
  * unit-testable without readline:
@@ -8,9 +10,19 @@
  *  - rewindToTurn(): truncate the conversation BACK TO BEFORE turn #n and
  *    return the original text so the caller can prefill the input line
  *    (edit-and-resend, like Claude Code's rewind).
+ *  - pickCheckpointForTurn(): map a rewound turn to the file checkpoint that
+ *    captured the work tree just before that turn first mutated it.
+ *  - pruneMarksAfter(): drop checkpoint marks for the turns that were dropped.
  *
  * Trigger surfaces (wired in agent-repl): `/rewind` lists, `/rewind <n>`
  * rewinds, and a double-Esc while idle prints the same list as a shortcut.
+ *
+ * Checkpoint marks: the REPL records `{ atMessageCount, id, tool }` for every
+ * `checkpoint` event the agent loop emits — `atMessageCount` is `messages.length`
+ * at the instant the snapshot was taken (always just AFTER the turn's user
+ * message was appended, so it is strictly greater than that turn's message
+ * index, and not-greater than any later turn's). That ordering is what lets a
+ * turn be matched to its pre-mutation snapshot purely from the count.
  */
 
 export const DEFAULT_LIST_LIMIT = 10;
@@ -64,8 +76,59 @@ export function rewindToTurn(messages, n) {
   messages.splice(turn.index);
   return {
     removed,
+    index: turn.index,
     text: typeof turn.content === "string" ? turn.content : null,
   };
+}
+
+/**
+ * Map a rewound turn to the checkpoint that captured the work tree right BEFORE
+ * that turn first changed a file.
+ *
+ * A turn's auto-checkpoints are all taken with `atMessageCount` strictly greater
+ * than the turn's message index (the user message is appended first), while the
+ * previous turn's checkpoints have `atMessageCount <= turnIndex`. So the snapshot
+ * representing "state before turn N" is the one with the SMALLEST atMessageCount
+ * still greater than turnIndex.
+ *
+ * @param {Array<{atMessageCount:number,id:string,tool?:string}>} marks
+ * @param {number} turnIndex  message index returned by rewindToTurn
+ * @returns {{atMessageCount:number,id:string,tool?:string}|null}
+ */
+export function pickCheckpointForTurn(marks, turnIndex) {
+  if (!Array.isArray(marks) || marks.length === 0) return null;
+  const idx = Number(turnIndex);
+  if (!Number.isFinite(idx)) return null;
+  let best = null;
+  for (const m of marks) {
+    if (!m || typeof m.id !== "string") continue;
+    const c = Number(m.atMessageCount);
+    if (!Number.isFinite(c) || c <= idx) continue;
+    if (best === null || c < Number(best.atMessageCount)) best = m;
+  }
+  return best;
+}
+
+/**
+ * Drop checkpoint marks belonging to turns that were just rewound away (those
+ * with `atMessageCount` greater than the surviving message count). Mutates the
+ * array in place so the REPL's `const` marks array keeps its identity.
+ *
+ * @returns {number} how many marks were removed
+ */
+export function pruneMarksAfter(marks, turnIndex) {
+  if (!Array.isArray(marks)) return 0;
+  const idx = Number(turnIndex);
+  if (!Number.isFinite(idx)) return 0;
+  let removed = 0;
+  for (let i = marks.length - 1; i >= 0; i--) {
+    const c = Number(marks[i]?.atMessageCount);
+    if (!Number.isFinite(c) || c > idx) {
+      marks.splice(i, 1);
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 /**

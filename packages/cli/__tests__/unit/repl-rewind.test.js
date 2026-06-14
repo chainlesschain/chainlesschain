@@ -5,6 +5,8 @@ import {
   rewindToTurn,
   renderTurnList,
   buildResumeRecap,
+  pickCheckpointForTurn,
+  pruneMarksAfter,
   PREVIEW_CHARS,
 } from "../../src/lib/repl-rewind.js";
 
@@ -13,7 +15,11 @@ function conv() {
     { role: "system", content: "SYS" },
     { role: "user", content: "first question" },
     { role: "assistant", content: "answer one" },
-    { role: "user", content: "second question with quite a lot of extra words to overflow the preview cap maybe" },
+    {
+      role: "user",
+      content:
+        "second question with quite a lot of extra words to overflow the preview cap maybe",
+    },
     { role: "assistant", content: "answer two" },
     { role: "user", content: [{ type: "text", text: "multimodal" }] },
     { role: "assistant", content: "answer three" },
@@ -60,6 +66,59 @@ describe("rewindToTurn", () => {
     expect(rewindToTurn(messages, 0)).toBeNull();
     expect(rewindToTurn(messages, "x")).toBeNull();
     expect(messages).toHaveLength(7);
+  });
+});
+
+describe("rewindToTurn → index", () => {
+  it("returns the surviving message index for checkpoint matching", () => {
+    const messages = conv();
+    expect(rewindToTurn(messages, 2).index).toBe(3); // "second question" at idx 3
+  });
+});
+
+describe("pickCheckpointForTurn", () => {
+  // Marks as the REPL would record them: atMessageCount = messages.length at the
+  // instant the snapshot was taken (just after the turn's user msg was appended).
+  // conv() user turns sit at indices 1, 3, 5.
+  const marks = [
+    { atMessageCount: 2, id: "cp0001", tool: "write_file" }, // pre-edit of turn @1
+    { atMessageCount: 4, id: "cp0002", tool: "edit_file" }, // pre-edit of turn @3
+  ];
+
+  it("matches a turn to the snapshot taken just before it mutated files", () => {
+    // rewind to "second question" (index 3) → state before it = cp0002
+    expect(pickCheckpointForTurn(marks, 3).id).toBe("cp0002");
+    // rewind to "first question" (index 1) → earliest snapshot = cp0001
+    expect(pickCheckpointForTurn(marks, 1).id).toBe("cp0001");
+  });
+
+  it("returns null when the rewound turn changed nothing (no later snapshot)", () => {
+    expect(pickCheckpointForTurn(marks, 5)).toBeNull();
+  });
+
+  it("is null-safe for empty / bad input", () => {
+    expect(pickCheckpointForTurn([], 1)).toBeNull();
+    expect(pickCheckpointForTurn(null, 1)).toBeNull();
+    expect(pickCheckpointForTurn(marks, "x")).toBeNull();
+    expect(pickCheckpointForTurn([{ atMessageCount: 2 }], 1)).toBeNull(); // no id
+  });
+});
+
+describe("pruneMarksAfter", () => {
+  it("drops marks for rewound turns and mutates in place", () => {
+    const marks = [
+      { atMessageCount: 2, id: "cp0001" },
+      { atMessageCount: 4, id: "cp0002" },
+      { atMessageCount: 6, id: "cp0003" },
+    ];
+    const removed = pruneMarksAfter(marks, 3);
+    expect(removed).toBe(2);
+    expect(marks.map((m) => m.id)).toEqual(["cp0001"]);
+  });
+
+  it("is a no-op for bad input", () => {
+    expect(pruneMarksAfter(null, 1)).toBe(0);
+    expect(pruneMarksAfter([{ atMessageCount: 2, id: "a" }], "x")).toBe(0);
   });
 });
 
