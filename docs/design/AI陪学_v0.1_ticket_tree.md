@@ -534,3 +534,75 @@ v0.1 MVP ship 必须满足：
 > 文档版本：v1.0（2026-05-28）
 > 评审：待 PM 拍板 + Dev 估时复核
 > 与 [[AI陪学_主文档.md]] §4 路线图保持同步
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 ticket 树 / 项目计划文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文 ticket。
+
+### 1. 概述
+
+见正文头部。AI 陪学 v0.1 MVP Ticket 树：7 epic / 58 ticket / 7–9 周（2–3 人并行），对应 `AI陪学_主文档.md` §4 路线图 v0.1。
+
+### 2. 核心特性
+
+7 epic（A Foundation / B FamilyFriend / C Telemetry / D Live Comm / E SOS / F Geofence / G Cross-cutting）；关键路径 + 并行规划。
+
+### 3. 系统架构
+
+见 `AI陪学_主文档.md` §2 总体架构；ticket 映射 `:feature-family-guard` + `:app/aistudy` 模块。
+
+### 4. 系统定位
+
+AI 陪学 v0.1 MVP 的**实施 ticket 树 / 排期计划**。
+
+### 5. 核心功能
+
+见正文 Epic A–G 各 ticket（脚手架 / 配对 / telemetry / 通话 / SOS / 围栏 / 跨切面）。
+
+### 6. 技术架构
+
+Android Compose + Room；纯逻辑层优先（可单测，零设备）；device/UI/真机 ticket 标注阻塞。
+
+### 7. 系统特点
+
+7–9 周 2–3 人并行；高风险项 FAMILY-23 / FAMILY-35 / FAMILY-19 每周复盘。
+
+### 8. 应用场景
+
+团队按 ticket 树并行推进 AI 陪学 MVP。
+
+### 9. 竞品对比
+
+—（ticket 树）。
+
+### 10. 配置参考
+
+并行规划建议（见正文「并行规划」）。
+
+### 11. 性能指标
+
+burndown 跟踪（每周 standup）。
+
+### 12. 测试覆盖
+
+各 ticket 纯逻辑层单测优先；真机 E2E ticket 标注阻塞。
+
+### 13. 安全考虑
+
+SOS / 围栏 / telemetry ticket 涉及隐私，端侧护栏（见主文档）。
+
+### 14. 故障排除
+
+高风险 ticket（FAMILY-23/35/19）每周复盘（见正文关键路径）。
+
+### 15. 关键文件
+
+`:feature-family-guard` / `:app/aistudy`（各 Epic 实现）；memory `family_aistudy_m6_mvp.md`。
+
+### 16. 使用示例
+
+见正文 Epic 索引 + 关键路径排期。
+
+### 17. 相关文档
+
+`AI陪学_主文档.md` §4 路线图 v0.1、memory `family_aistudy_m6_mvp.md`。

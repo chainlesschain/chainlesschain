@@ -1427,3 +1427,75 @@ v0.2 新增 trap 候选：
 > v0.1 → v0.2 变更：见文档头部 TL;DR 上方变更摘要
 > 评审：待
 > 实施：待
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为产品 / 架构主设计文档（草案 v0.2）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「0. TL;DR」「1. 背景与定位」。AI 陪学是家庭守护（family-guard）下的 AI 陪学 / 陪伴产品，目标版本 v5.1.0：双轨（学习引导 + 情感陪伴）chat、错题本 RAG、端侧护栏、学情报告、任务联动、积分奖励、家长教育月报。
+
+### 2. 核心特性
+
+学习/陪伴双 tab；错题本 RAG；第 2 层端侧护栏（命中只记类别+时间不存原文）；学情报告；M5 任务联动防作弊；M9 积分引擎；M10 家长教育月报（含 12355 公益热线）。
+
+### 3. 系统架构
+
+见正文「2. 总体架构」「3. 模块详设」；`:app/aistudy`（陪学，复用全局 AI 配置）+ `:feature-family-guard`（任务持久层）。
+
+### 4. 系统定位
+
+家庭守护的**AI 陪学 / 陪伴子产品**（v5.1.0）。
+
+### 5. 核心功能
+
+见正文「3. 模块详设」：学习引导（不直接给答案）/ 陪伴（TEE 加密金库落盘）/ 任务（StudyTask）/ 积分（PointsEngine）/ 家长月报（ParentEducationEngine）。
+
+### 6. 技术架构
+
+Android Compose + Room（family_task v6→v11 迁移）；端侧 LLM（MediaPipe）+ 云 AI；陪伴经 Keystore（StrongBox）AES-GCM 加密落盘；纯函数核（可单测、零设备）。
+
+### 7. 系统特点
+
+纯逻辑层全做透（可单测）；剩余 device/UI/真机/PM 阻塞；陪伴 chat TEE 加密（家长 dump 也只得密文）。
+
+### 8. 应用场景
+
+家长为孩子提供 AI 学习引导 + 情感陪伴，配合任务 / 积分 / 温和度月报。
+
+### 9. 竞品对比
+
+见正文「1. 背景与定位」差异化（学习引导不给答案 + 端侧隐私护栏 + 家长温和度监管）。
+
+### 10. 配置参考
+
+复用全局 AI 配置；订阅 ¥19.9/家庭/月（见正文商业模型）。
+
+### 11. 性能指标
+
+见正文「5. 风险」与商业模型（毛利 ¥6.4/家庭/月，32%）。
+
+### 12. 测试覆盖
+
+纯逻辑层大量单测（PointsEngine 23 / ParentEducationEngine 18 等）；DB 迁移 6.json–11.json diff 对齐；真机 E2E 阻塞。
+
+### 13. 安全考虑
+
+端侧护栏（命中只记类别+时间不存原文）；陪伴 Keystore/StrongBox AES-GCM 加密落盘；防作弊 log 只记 taskId+时间+类别。
+
+### 14. 故障排除
+
+见正文「5. 风险」「8. 与现有 trap / memory 的关联」（family_guard.db WAL PRAGMA / 主线程 keystore ANR 等）。
+
+### 15. 关键文件
+
+`:app/aistudy`（AiStudyScreen/VM/PointsEngine/ParentEducationEngine/MistakeBook/GuardrailClassifier）；`:feature-family-guard`（FamilyTaskRepository + Room）。
+
+### 16. 使用示例
+
+见正文「3. 模块详设」各模块流程（学习引导 / 陪伴 / 任务 / 积分 / 月报）。
+
+### 17. 相关文档
+
+`AI陪学_v0.1_ticket_tree.md`（§4 路线图 ticket 树）、memory `family_aistudy_m6_mvp.md` / `family_clock_skew_detection.md`。
