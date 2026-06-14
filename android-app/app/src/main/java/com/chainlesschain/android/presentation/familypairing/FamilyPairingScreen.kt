@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.feature.p2p.ui.QrCodeImage
+import com.chainlesschain.android.feature.p2p.ui.QRCodeScannerScreen
 
 /**
  * 家长↔孩子配对绑定屏 (FAMILY-13 协议接 UI)。家庭 tab「配对绑定」卡导航至此。
@@ -61,11 +62,24 @@ fun FamilyPairingScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // 孩子端「扫码」: 拉起摄像头扫描器 (复用 :feature-p2p), 扫到的内容回填到邀请框。
+    var scanning by remember { mutableStateOf(false) }
+    var scannedToken by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.consumeMessage()
         }
+    }
+
+    if (scanning) {
+        QRCodeScannerScreen(
+            peerId = "家长邀请",
+            onQRCodeScanned = { scannedToken = it.trim(); scanning = false },
+            onBack = { scanning = false },
+        )
+        return
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { inner ->
@@ -111,6 +125,9 @@ fun FamilyPairingScreen(
                     )
                     PairingMode.CHILD -> ChildPane(
                         state = state,
+                        scannedToken = scannedToken,
+                        onScanConsumed = { scannedToken = null },
+                        onScan = { scanning = true },
                         onAccept = { token, code, age -> viewModel.acceptInvite(token, code, age) },
                         onConfirmKyc = { token, code, age ->
                             viewModel.acceptInvite(token, code, age, forceKycAck = true)
@@ -200,6 +217,9 @@ private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
 @Composable
 private fun ChildPane(
     state: FamilyPairingUiState,
+    scannedToken: String?,
+    onScanConsumed: () -> Unit,
+    onScan: () -> Unit,
     onAccept: (String, String, String) -> Unit,
     onConfirmKyc: (String, String, String) -> Unit,
     onDismissKyc: () -> Unit,
@@ -208,12 +228,26 @@ private fun ChildPane(
     var code by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
 
+    // 扫码结果回填到邀请框 (消费一次)。
+    LaunchedEffect(scannedToken) {
+        scannedToken?.let {
+            token = it
+            onScanConsumed()
+        }
+    }
+
     if (state.revivalCode != null) {
         RevivalCodeCard(state.revivalCode)
         return
     }
 
     Text("接受家长的邀请", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("📷 扫码家长的二维码") }
+    Text(
+        text = "—— 或手动粘贴邀请内容 ——",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     OutlinedTextField(
         value = token,
         onValueChange = { token = it },
@@ -244,7 +278,7 @@ private fun ChildPane(
         if (state.busy) BusyDots() else Text("接受并绑定")
     }
     Text(
-        text = "扫描二维码（摄像头）将在后续版本接入；当前可手动粘贴邀请内容完成绑定。",
+        text = "扫码或手动粘贴均可；接受码请向家长当面/IM 确认。",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
