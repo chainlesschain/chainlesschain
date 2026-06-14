@@ -70,6 +70,21 @@ function buildChatHtml({ cspSource, nonce }) {
   button.secondary { background: var(--vscode-button-secondaryBackground);
                      color: var(--vscode-button-secondaryForeground); }
   #status { padding:2px 8px; font-size:.85em; opacity:.6; }
+  #tabs { display:flex; align-items:center; gap:2px; padding:2px 4px; overflow-x:auto;
+          border-bottom:1px solid var(--vscode-panel-border); }
+  #tabs:empty { display:none; }
+  #tabs .tab { display:flex; align-items:center; gap:4px; padding:2px 6px; max-width:160px;
+               border:1px solid transparent; border-radius:4px 4px 0 0; cursor:pointer;
+               white-space:nowrap; font-size:.88em; }
+  #tabs .tab .t { overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+  #tabs .tab.active { background: var(--vscode-tab-activeBackground, var(--vscode-editorWidget-background));
+                      border-color: var(--vscode-panel-border); }
+  #tabs .tab .x { opacity:.55; border:none; background:none; color:inherit; cursor:pointer;
+                  padding:0 2px; font-size:1em; line-height:1; }
+  #tabs .tab .x:hover { opacity:1; }
+  #tabs .newtab { border:none; background:none; color:inherit; cursor:pointer; padding:2px 6px;
+                  font-size:1.15em; line-height:1; opacity:.7; }
+  #tabs .newtab:hover { opacity:1; }
   #suggest { display:none; margin:0 6px; border:1px solid var(--vscode-panel-border);
              border-bottom:none; border-radius:4px 4px 0 0; max-height:160px; overflow-y:auto;
              background: var(--vscode-editorWidget-background); font-size:.92em; }
@@ -87,6 +102,7 @@ function buildChatHtml({ cspSource, nonce }) {
 <body>
 <script nonce="${nonce}">${MD_LITE_SOURCE}</script>
 <script nonce="${nonce}">${AT_MENTION_SOURCE}</script>
+  <div id="tabs"></div>
   <div id="log"></div>
   <div id="plan">
     <h4>Plan <span id="planState"></span></h4>
@@ -111,8 +127,49 @@ function buildChatHtml({ cspSource, nonce }) {
   const log = document.getElementById("log");
   const input = document.getElementById("input");
   const status = document.getElementById("status");
+  const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
+
+  // Conversation tabs: each tab's transcript is buffered here (tabId ->
+  // log.innerHTML) so switching tabs restores what was there. The host gates
+  // background-tab streaming, so a buffer only changes while its tab is active.
+  const tabHtml = {};
+  let activeTabId = null;
+
+  function renderTabBar(tabs, activeId) {
+    tabsEl.textContent = "";
+    if (!Array.isArray(tabs) || tabs.length === 0) return;
+    for (const t of tabs) {
+      const tab = document.createElement("span");
+      tab.className = "tab" + (t.id === activeId ? " active" : "");
+      const label = document.createElement("span");
+      label.className = "t";
+      label.textContent = t.title || t.id;
+      tab.appendChild(label);
+      tab.addEventListener("click", () => {
+        if (t.id !== activeId) vscode.postMessage({ type: "switchTab", id: t.id });
+      });
+      if (tabs.length > 1) {
+        const x = document.createElement("button");
+        x.className = "x";
+        x.textContent = "×"; // ×
+        x.title = "Close tab";
+        x.addEventListener("click", (e) => {
+          e.stopPropagation();
+          vscode.postMessage({ type: "closeTab", id: t.id });
+        });
+        tab.appendChild(x);
+      }
+      tabsEl.appendChild(tab);
+    }
+    const plus = document.createElement("button");
+    plus.className = "newtab";
+    plus.textContent = "+";
+    plus.title = "New conversation tab";
+    plus.addEventListener("click", () => vscode.postMessage({ type: "newTab" }));
+    tabsEl.appendChild(plus);
+  }
 
   function add(cls, text) {
     const el = document.createElement("div");
@@ -466,6 +523,7 @@ function buildChatHtml({ cspSource, nonce }) {
         break;
       case "reset":
         log.textContent = "";
+        if (activeTabId) tabHtml[activeTabId] = ""; // forget this tab's transcript
         streamEl = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
@@ -473,6 +531,25 @@ function buildChatHtml({ cspSource, nonce }) {
         pendingImages = [];
         renderAttach();
         break;
+      case "tabs": {
+        renderTabBar(m.tabs, m.activeId);
+        if (m.activeId !== activeTabId) {
+          // Save the outgoing tab's transcript, restore the incoming one.
+          if (activeTabId) tabHtml[activeTabId] = log.innerHTML;
+          activeTabId = m.activeId;
+          log.innerHTML = tabHtml[activeTabId] || "";
+          streamEl = null;
+          streamRaw = "";
+          planBox.style.display = "none";
+          log.scrollTop = log.scrollHeight;
+        }
+        // Drop buffers for tabs that were closed.
+        const live = new Set((m.tabs || []).map((t) => t.id));
+        for (const k of Object.keys(tabHtml)) {
+          if (!live.has(k)) delete tabHtml[k];
+        }
+        break;
+      }
     }
   });
   // Signal the host the script is live so it can flush a queued insertText.

@@ -483,6 +483,10 @@ class ChatViewProvider {
         this.session?.stop();
       } else if (m.type === "ready") {
         this._onWebviewReady();
+        // Show the tab bar from the first paint (bootstraps one conversation
+        // record — no child spawn until the first message).
+        this._activeConv();
+        this._postTabs();
       } else if (m.type === "new") {
         // New chat: reset the ACTIVE conversation — drop its child AND resume
         // id so the next message spawns fresh. Webview clears on "reset".
@@ -495,20 +499,20 @@ class ChatViewProvider {
         this._post({ kind: "reset" });
       } else if (m.type === "newTab") {
         // Open a fresh conversation tab (becomes active). Its child spawns on
-        // the first message; the transcript starts empty.
+        // the first message. `tabs` tells the webview to swap to the new
+        // (empty) tab — no `reset`, so the previous tab's transcript is kept
+        // buffered for when the user switches back.
         this._activeConv(); // ensure at least the bootstrap exists first
         this._convs.create({});
         this._rememberSessionId(null);
         this._fileCache = null;
-        this._post({ kind: "reset" });
         this._postTabs();
       } else if (m.type === "switchTab") {
-        // Switch the visible conversation. The transcript clears; restoring a
-        // tab's prior messages on switch is slice 3 (per-tab transcript).
+        // Switch the visible conversation; the webview restores that tab's
+        // buffered transcript on the `tabs` message (no reset).
         const conv = this._convs.switchTo(String(m.id || ""));
         if (conv) {
           this._rememberSessionId(conv.sessionId);
-          this._post({ kind: "reset" });
           this._postTabs();
         }
       } else if (m.type === "closeTab") {
@@ -517,7 +521,6 @@ class ChatViewProvider {
           res.conv?.session?.stop?.();
           if (this._convs.count() === 0) this._convs.create({}); // never empty
           this._rememberSessionId(this._convs.active()?.sessionId || null);
-          this._post({ kind: "reset" });
           this._postTabs();
         }
       }

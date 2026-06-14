@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
+import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 
 function makeMemento() {
   const m = new Map();
@@ -136,7 +137,7 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
     expect(posted).toEqual([{ kind: "delta", text: "live" }]);
   });
 
-  it("switchTab re-activates a tab and re-broadcasts the tab set", () => {
+  it("switchTab re-activates a tab and re-broadcasts the tab set (no reset — webview restores)", () => {
     const { provider, posted } = makeProvider();
     provider._handleMessage({ type: "send", text: "one" });
     const firstId = provider._convs.activeId();
@@ -144,7 +145,17 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
     posted.length = 0;
     provider._handleMessage({ type: "switchTab", id: firstId });
     expect(provider._convs.activeId()).toBe(firstId);
-    expect(postedKinds(posted)).toEqual(["reset", "tabs"]);
+    expect(postedKinds(posted)).toEqual(["tabs"]); // no reset — buffer restores
+  });
+
+  it("the webview 'ready' signal bootstraps one tab and broadcasts the tab bar", () => {
+    const { provider, posted } = makeProvider();
+    provider._handleMessage({ type: "ready" });
+    expect(provider._convs.count()).toBe(1);
+    const tabsMsg = posted.find((m) => m.kind === "tabs");
+    expect(tabsMsg).toBeTruthy();
+    expect(tabsMsg.tabs).toHaveLength(1);
+    expect(tabsMsg.activeId).toBe(provider._convs.activeId());
   });
 
   it("closeTab stops the child and activates a neighbor; never goes empty", () => {
@@ -174,5 +185,22 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
     expect(factory.sessions).toHaveLength(2);
     provider.dispose();
     expect(factory.sessions.every((s) => s.stopped)).toBe(true);
+  });
+});
+
+describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
+  it("renders #tabs, handles the tabs message, posts the tab verbs, and parses", () => {
+    const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
+    expect(html).toContain('id="tabs"');
+    expect(html).toContain('case "tabs"');
+    expect(html).toContain("renderTabBar");
+    expect(html).toContain('type: "newTab"');
+    expect(html).toContain('type: "switchTab"');
+    expect(html).toContain('type: "closeTab"');
+    // Every inline script must still parse (dead-panel regression gate).
+    const scripts = [
+      ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
+    ];
+    for (const [, body] of scripts) new Function(body);
   });
 });
