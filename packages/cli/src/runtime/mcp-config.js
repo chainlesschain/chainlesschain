@@ -91,6 +91,13 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     connected,
   } = result;
 
+  // Advertise the agent session id to stdio MCP servers spawned below
+  // (CC_SESSION_ID / CLAUDE_CODE_SESSION_ID + CLAUDECODE marker). Idempotent —
+  // safe when an accumulating `into` client was already given one.
+  if (deps.sessionId != null && typeof mcpClient.setSessionId === "function") {
+    mcpClient.setSessionId(deps.sessionId);
+  }
+
   for (const [name, cfg] of Object.entries(servers)) {
     // Skip a name already connected — an earlier batch (ad-hoc --mcp-config)
     // wins over a later one (registered) on a clash.
@@ -385,13 +392,17 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
   const doIde = deps.loadIdeMcp || loadIdeMcp;
+  // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
+  // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
+  const fwd =
+    args.sessionId != null ? { ...deps, sessionId: args.sessionId } : deps;
   let result = null;
   if (args.mcpConfigPath) {
-    result = await doFile(args.mcpConfigPath, deps); // fail-fast on bad file
+    result = await doFile(args.mcpConfigPath, fwd); // fail-fast on bad file
   }
   if (args.includeRegistered !== false && args.db) {
     result = await doReg(args.db, {
-      ...deps,
+      ...fwd,
       all: args.allRegistered === true,
       into: result || undefined,
     });
@@ -402,7 +413,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     if (args.ide === true || inIde) {
       result = await doIde(
         { cwd: args.cwd, env, force: args.ide === true },
-        { ...deps, into: result || undefined },
+        { ...fwd, into: result || undefined },
       );
     }
   }

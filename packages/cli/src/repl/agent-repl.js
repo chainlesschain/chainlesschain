@@ -648,6 +648,8 @@ export async function startAgentRepl(options = {}) {
           // (parity with headless; auto-detect already works via process.env).
           ide: options.ide,
           cwd: process.cwd(),
+          // advertise the session id to spawned stdio MCP servers
+          sessionId,
         },
         { writeErr: (s) => process.stderr.write(s) },
       );

@@ -91,12 +91,52 @@ export function isLikelyConnectionError(err) {
  * MCP Client — manages connections to MCP servers.
  */
 export class MCPClient extends EventEmitter {
-  constructor() {
+  /**
+   * @param {object} [options]
+   * @param {string|null} [options.sessionId] agent session id advertised to
+   *   spawned stdio MCP servers (CC_SESSION_ID / CLAUDE_CODE_SESSION_ID env).
+   */
+  constructor(options = {}) {
     super();
     this.servers = new Map(); // name → { process, state, tools, resources, config }
     this._nextId = 1;
     this._reconnectors = new Map(); // name → async () => config|null
     this._reconnecting = new Map(); // name → in-flight reconnect promise
+    this._sessionId =
+      options && options.sessionId != null ? String(options.sessionId) : null;
+  }
+
+  /**
+   * Set (or clear) the agent session id advertised to stdio MCP servers. Only
+   * servers connected *after* this call see the new value; already-spawned
+   * processes keep the env they were launched with.
+   * @param {string|null|undefined} id
+   */
+  setSessionId(id) {
+    this._sessionId = id != null && id !== "" ? String(id) : null;
+  }
+
+  /**
+   * Environment a spawned stdio MCP server inherits to identify the agent it
+   * runs under (Claude-Code 2.1.154 / 2.1.163 parity). `CLAUDECODE` (parity)
+   * and `CHAINLESSCHAIN` (native) mark "launched by the agent"; the session id —
+   * from the configured value or an ambient `CC_SESSION_ID` — lets a server
+   * correlate its work to the run. `CLAUDE_CODE_SESSION_ID` mirrors
+   * `CC_SESSION_ID` so servers written for Claude Code work unchanged.
+   * @returns {Record<string,string>}
+   */
+  _agentIdentityEnv() {
+    const env = { CLAUDECODE: "1", CHAINLESSCHAIN: "1" };
+    const sid =
+      this._sessionId ||
+      process.env.CC_SESSION_ID ||
+      process.env.CLAUDE_CODE_SESSION_ID ||
+      null;
+    if (sid) {
+      env.CC_SESSION_ID = String(sid);
+      env.CLAUDE_CODE_SESSION_ID = String(sid);
+    }
+    return env;
   }
 
   /**
@@ -159,7 +199,13 @@ export class MCPClient extends EventEmitter {
         }
         const proc = _deps.spawn(config.command, config.args || [], {
           stdio: ["pipe", "pipe", "pipe"],
-          env: { ...process.env, ...(config.env || {}) },
+          // process.env < agent identity (CLAUDECODE / session id) < the
+          // server's own config.env, so an explicit per-server override wins.
+          env: {
+            ...process.env,
+            ...this._agentIdentityEnv(),
+            ...(config.env || {}),
+          },
         });
 
         entry.process = proc;

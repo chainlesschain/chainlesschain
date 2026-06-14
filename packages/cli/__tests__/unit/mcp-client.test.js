@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   MCPClient,
@@ -158,6 +158,69 @@ describe("MCP Client", () => {
 
       client._handleData("test", '{"incomplete":');
       expect(client.servers.get("test")._buffer).toBe('{"incomplete":');
+    });
+  });
+
+  // ─── agent identity env for stdio MCP servers ─────────────────
+
+  describe("MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity)", () => {
+    // Both ambient vars are saved/restored: this suite may itself run under an
+    // agent that has CLAUDE_CODE_SESSION_ID set, which the fallback would pick up.
+    const SAVED_CC = process.env.CC_SESSION_ID;
+    const SAVED_CLAUDE = process.env.CLAUDE_CODE_SESSION_ID;
+    const clearAmbient = () => {
+      delete process.env.CC_SESSION_ID;
+      delete process.env.CLAUDE_CODE_SESSION_ID;
+    };
+    const restore = (key, val) => {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    };
+    afterEach(() => {
+      restore("CC_SESSION_ID", SAVED_CC);
+      restore("CLAUDE_CODE_SESSION_ID", SAVED_CLAUDE);
+    });
+
+    it("always marks CLAUDECODE + CHAINLESSCHAIN, no session id when none known", () => {
+      clearAmbient();
+      const env = new MCPClient()._agentIdentityEnv();
+      expect(env.CLAUDECODE).toBe("1");
+      expect(env.CHAINLESSCHAIN).toBe("1");
+      expect(env.CC_SESSION_ID).toBeUndefined();
+      expect(env.CLAUDE_CODE_SESSION_ID).toBeUndefined();
+    });
+
+    it("constructor sessionId → CC_SESSION_ID + CLAUDE_CODE_SESSION_ID mirror", () => {
+      clearAmbient();
+      const env = new MCPClient({ sessionId: "sess-42" })._agentIdentityEnv();
+      expect(env.CC_SESSION_ID).toBe("sess-42");
+      expect(env.CLAUDE_CODE_SESSION_ID).toBe("sess-42");
+    });
+
+    it("setSessionId sets then clears", () => {
+      clearAmbient();
+      const c = new MCPClient();
+      c.setSessionId("abc");
+      expect(c._agentIdentityEnv().CC_SESSION_ID).toBe("abc");
+      c.setSessionId(null);
+      expect(c._agentIdentityEnv().CC_SESSION_ID).toBeUndefined();
+    });
+
+    it("falls back to ambient process.env.CC_SESSION_ID", () => {
+      clearAmbient();
+      process.env.CC_SESSION_ID = "ambient-7";
+      const env = new MCPClient()._agentIdentityEnv();
+      expect(env.CC_SESSION_ID).toBe("ambient-7");
+      expect(env.CLAUDE_CODE_SESSION_ID).toBe("ambient-7");
+    });
+
+    it("explicit sessionId wins over ambient env", () => {
+      clearAmbient();
+      process.env.CC_SESSION_ID = "ambient-7";
+      const env = new MCPClient({
+        sessionId: "explicit-9",
+      })._agentIdentityEnv();
+      expect(env.CC_SESSION_ID).toBe("explicit-9");
     });
   });
 

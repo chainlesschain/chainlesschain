@@ -527,6 +527,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           includeRegistered: options.useRegisteredMcp !== false,
           ide: options.ide,
           cwd: options.cwd || process.cwd(),
+          // advertise the session id to spawned stdio MCP servers
+          sessionId,
         },
         {
           writeErr,

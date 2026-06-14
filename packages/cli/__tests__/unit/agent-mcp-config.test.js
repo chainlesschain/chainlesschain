@@ -23,9 +23,14 @@ import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 
 // A minimal fake MCP client whose connect() returns a fixed tool inventory.
 function fakeClient(toolsByServer = {}) {
-  const calls = { connect: [], callTool: [], disconnectAll: 0 };
+  const calls = { connect: [], callTool: [], disconnectAll: 0, sessionId: [] };
   return {
     calls,
+    sessionId: null,
+    setSessionId(id) {
+      this.sessionId = id;
+      calls.sessionId.push(id);
+    },
     async connect(name, config) {
       calls.connect.push({ name, config });
       const tools = toolsByServer[name];
@@ -140,6 +145,25 @@ describe("setupMcpFromConfig", () => {
     expect(errs.join("")).toMatch(/failed to connect "bad": connect boom/);
     expect(res.connected).toMatchObject([{ server: "good", tools: 1 }]);
     expect(res.extraToolDefinitions).toHaveLength(1);
+  });
+
+  it("passes deps.sessionId to the client (stdio MCP identity env)", async () => {
+    const client = fakeClient({ s: [{ name: "t" }] });
+    await setupMcpFromConfig(
+      { s: { command: "x" } },
+      { createClient: () => client, sessionId: "sess-77" },
+    );
+    expect(client.sessionId).toBe("sess-77");
+    expect(client.calls.sessionId).toEqual(["sess-77"]);
+  });
+
+  it("does not call setSessionId when no sessionId is given", async () => {
+    const client = fakeClient({ s: [{ name: "t" }] });
+    await setupMcpFromConfig(
+      { s: { command: "x" } },
+      { createClient: () => client },
+    );
+    expect(client.calls.sessionId).toEqual([]);
   });
 });
 
@@ -643,6 +667,15 @@ describe("resolveAgentMcp", () => {
     expect(res.mcpClient).toBe(client);
     expect(res.connected.map((c) => c.server).sort()).toEqual(["adhoc", "reg"]);
     expect(res.extraToolDefinitions).toHaveLength(2);
+  });
+
+  it("forwards args.sessionId down to the client (stdio MCP identity env)", async () => {
+    const client = fakeClient({ adhoc: [{ name: "t" }] });
+    await resolveAgentMcp(
+      { mcpConfigPath: "x.json", sessionId: "sess-99" },
+      { ...fileDeps({ adhoc: { command: "c" } }), createClient: () => client },
+    );
+    expect(client.calls.sessionId).toEqual(["sess-99"]);
   });
 
   it("ad-hoc name wins over a registered clash (skip-existing)", async () => {
