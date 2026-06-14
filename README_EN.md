@@ -27,6 +27,17 @@
 
 ---
 
+## 2026-06-14 Release — **v5.0.3.110: Personal Data Hub collector expansion — 13 new platform adapters (travel / shopping / social / docs / music / video / recruiting)**
+
+> One `/loop` filled the PDH collection gaps: every completed-phase ≥⭐⭐⭐ platform plus the feasible long-tail. Full per-item detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **13 new collector adapters**: Tongcheng / Didi Enterprise / Dianping / Zhihu / CSDN / WPS Docs / Tencent Docs / Baidu Netdisk / Kugou Music / iQiyi / Tencent Video / BOSS Zhipin (each snapshot + cookie-api dual-mode).
+- **3 shared platform-family factories**: `_document-base` (docs/cloud-drive), `_video-base` (watch history), reusing the existing shopping/travel/im base pattern.
+- **Published**: `@chainlesschain/personal-data-hub` 0.4.18 + CLI 0.162.60 (npm); Android cc bundle → `internal-binaries-android-v20260614b` (carries all new adapters).
+- **Version surfaces**: productVersion v5.0.3.109 → v5.0.3.110 / desktop 5.0.3-alpha.110 / Android versionCode 503110 · USR_VERSION 36 → 37 / iOS CFBundleVersion 110.
+
+---
+
 ## 2026-06-14 Release — **v5.0.3.109: fix Android release APK missing the cc bundle (release.yml adds downloadInternalBinaries staging + a hard verify gate)**
 
 > v5.0.3.108 real-device verification found the published APKs contained no `cc-cli.tgz` (on-device local-terminal/cc unavailable). Root cause: release.yml ran only `assembleRelease`, and the `downloadInternalBinaries` preBuild `dependsOn` doesn't fire in CI. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).

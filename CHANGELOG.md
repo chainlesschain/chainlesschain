@@ -27,6 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
 
+## [v5.0.3.110] - 2026-06-14 — 个人数据中台采集器扩面：13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）
+
+> 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段（Phase 5–12）所有 ≥⭐⭐⭐ 平台 + 可行的 Phase 13+ 长尾全部落地。`@chainlesschain/personal-data-hub` 0.4.7→0.4.18、CLI `chainlesschain` 0.162.49→0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`（携全部新 adapter），`USR_VERSION` → 37。
+
+### Added — 13 个新采集 adapter
+- **出行**：`travel-tongcheng`（同程旅行）、`travel-didi`（滴滴企业版）。
+- **购物**：`shopping-dianping`（大众点评）—— 补 Phase 7 ⭐⭐⭐⭐ 漏建（订单 / 团购）。
+- **社交 / 内容**：`social-zhihu`（知乎）、`social-csdn`（CSDN）—— 收藏 / 关注 / 自己回答 / 技术阅读。
+- **文档 / 云盘**：`doc-wps`（WPS 云文档）、`doc-tencent-docs`（腾讯文档）、`doc-baidu-netdisk`（百度网盘）。
+- **音乐**：`music-kugou`（酷狗音乐）—— 听歌 / 收藏 / 歌单。
+- **视频**：`video-iqiyi`（爱奇艺）、`video-tencent`（腾讯视频）—— 观看历史 / 追剧。
+- **招聘**：`recruit-boss`（BOSS 直聘）—— 沟通职位 + 投递简历。
+- 每个 adapter 均双模：snapshot（设备快照）+ cookie-api（注入 `fetchFn` + `signProvider` seam，端点 best-effort 可经 opts 覆盖）。
+
+### Changed
+- 新增 3 个同形平台共享工厂：`_document-base`（文档 / 云盘列表）、`_video-base`（视频观看史），与既有 `shopping-base` / `travel-base` / `_local-im-pc-adapter` 一致。
+- pdh / cli 已发 npm；Android `binariesVersion` → `20260614b`，bundle 内核实测携带 pdh 0.4.18 + cli 0.162.60。
+
 ## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
 
 > v5.0.3.108 真机验证发现**发布的 APK 不含 `cc-cli.tgz`**（local-terminal/cc 在设备上不可用，pdh/拼多多采集不下发）。根因:`release.yml` build-android 只跑 `assembleRelease`,而 `downloadInternalBinaries` 仅靠 `preBuild` 的 lazy `dependsOn` 触发,在 CI 不生效。本版纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。

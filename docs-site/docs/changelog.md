@@ -25,6 +25,24 @@
 - **后端 Java（project-service）**：`mvn test` 32 失败 → 0（补 `@Mock UserMapper`、宽松 stubbing、对齐过期断言/调用计数、导入测试 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言 + 修 `code_generator` 过期返回键（`refactored_code`）；pytest 15 → 41+ 通过。
 
+## [v5.0.3.110] - 2026-06-14 — 个人数据中台采集器扩面：13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）
+
+> 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段（Phase 5–12）所有 ≥⭐⭐⭐ 平台 + 可行的 Phase 13+ 长尾全部落地。`@chainlesschain/personal-data-hub` 0.4.7→0.4.18、CLI `chainlesschain` 0.162.49→0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`，`USR_VERSION` → 37。
+
+#### Added — 13 个新采集 adapter
+- **出行**：`travel-tongcheng`（同程旅行）、`travel-didi`（滴滴企业版）。
+- **购物**：`shopping-dianping`（大众点评）—— 补 Phase 7 ⭐⭐⭐⭐ 漏建（订单 / 团购）。
+- **社交 / 内容**：`social-zhihu`（知乎）、`social-csdn`（CSDN）。
+- **文档 / 云盘**：`doc-wps`（WPS 云文档）、`doc-tencent-docs`（腾讯文档）、`doc-baidu-netdisk`（百度网盘）。
+- **音乐**：`music-kugou`（酷狗音乐）。
+- **视频**：`video-iqiyi`（爱奇艺）、`video-tencent`（腾讯视频）。
+- **招聘**：`recruit-boss`（BOSS 直聘）。
+- 每个 adapter 双模：snapshot（设备快照）+ cookie-api（注入 `fetchFn` + `signProvider` seam，端点 best-effort 可覆盖）。
+
+#### Changed
+- 新增 3 个同形平台共享工厂：`_document-base`、`_video-base`（与既有 `shopping-base` / `travel-base` 一致）。
+- pdh / cli 已发 npm；Android `binariesVersion` → `20260614b`（bundle 内核实测携带 pdh 0.4.18 + cli 0.162.60）。
+
 ## [v5.0.3.109] - 2026-06-14 — fix: Android 发布 APK 缺 cc bundle — release.yml 补 downloadInternalBinaries staging + 硬验证 gate
 
 > v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用）。根因:`release.yml` build-android 只跑 `assembleRelease`,`downloadInternalBinaries` 的 `preBuild` lazy `dependsOn` 在 CI 不触发。纯打包修复——bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。

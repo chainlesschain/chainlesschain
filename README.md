@@ -27,6 +27,17 @@
 
 ---
 
+## 2026-06-14 发布 — **v5.0.3.110：个人数据中台采集器扩面 — 13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）**
+
+> 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段所有 ≥⭐⭐⭐ 平台 + 可行的长尾全部落地。逐项明细见 [CHANGELOG.md](CHANGELOG.md)。
+
+- **新增 13 个采集 adapter**：同程旅行 / 滴滴企业版 / 大众点评 / 知乎 / CSDN / WPS 云文档 / 腾讯文档 / 百度网盘 / 酷狗音乐 / 爱奇艺 / 腾讯视频 / BOSS 直聘（每个均 snapshot + cookie-api 双模）。
+- **3 个同形平台共享工厂**：`_document-base`（文档/云盘）、`_video-base`（视频观看史），复用既有 shopping/travel/im base 模式。
+- **已发布**：`@chainlesschain/personal-data-hub` 0.4.18 + CLI 0.162.60（npm）；Android cc bundle → `internal-binaries-android-v20260614b`（携全部新 adapter）。
+- **版本面**：productVersion v5.0.3.109 → v5.0.3.110 / desktop 5.0.3-alpha.110 / Android versionCode 503110 · USR_VERSION 36 → 37 / iOS CFBundleVersion 110。
+
+---
+
 ## 2026-06-14 发布 — **v5.0.3.109：修复 Android 发布 APK 缺 cc bundle（release.yml 补 downloadInternalBinaries + 硬验证 gate）**
 
 > v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用）。根因:release.yml 只跑 `assembleRelease`,`downloadInternalBinaries` 的 preBuild dependsOn 在 CI 不触发。逐版完整明细见 [CHANGELOG.md](CHANGELOG.md)。
