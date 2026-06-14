@@ -71,6 +71,7 @@ const DISPLAY_NAMES = Object.freeze({
   "weread": "微信读书",
   "doc-wps": "WPS 云文档",
   "doc-tencent-docs": "腾讯文档",
+  "doc-baidu-netdisk": "百度网盘",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
   "vscode": "VS Code",
@@ -540,7 +541,7 @@ function getAdapterGuide(name, category) {
 // usable standalone, e.g. CLI without a live readiness probe).
 function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
-  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|recruit-boss)$/.test(name))
+  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|recruit-boss)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
   if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;

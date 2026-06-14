@@ -72,6 +72,7 @@ const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { WeReadAdapter } = require("./adapters/weread");
 const { WpsDocAdapter } = require("./adapters/doc-wps");
 const { TencentDocsAdapter } = require("./adapters/doc-tencent-docs");
+const { BaiduNetdiskAdapter } = require("./adapters/doc-baidu-netdisk");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
@@ -308,6 +309,7 @@ module.exports = {
   WeReadAdapter,
   WpsDocAdapter,
   TencentDocsAdapter,
+  BaiduNetdiskAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   TelegramAdapter,
