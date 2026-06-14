@@ -705,3 +705,75 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
   - 加 §8.3 (23 commands 散落) §8.4 (resource type 错位) §8.6 (mobile-app-uniapp 说明)
   - 加 Q5 待决问题
 - 2026-05-10 v0.1：初稿，三层定位 + 8 ADR + 10 天 M1-M7 路线（部分事实声明经 v0.2 核实有误）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 Android 客户端主设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文开篇。把 ChainlessChain Android 从「对桌面 skill 数量的弱化追赶」重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop/Mobile 二端分工，转向场景独占价值。v1.0.0 GA 已发布。
+
+### 2. 核心特性
+
+三层定位（DID 钱包 / L2 捕获 / REMOTE 遥控器）；8 ADR；M1–M7 路线；ApprovalUI 4 类 category + ProgressViewer。
+
+### 3. 系统架构
+
+见正文「5. 架构与模块设计」。
+
+### 4. 系统定位
+
+Android 客户端的**总设计文档 / 三层重定位主文档**（v1.0.0 GA）。
+
+### 5. 核心功能
+
+见正文「6. 待实施 M1–M7」：M1 现状 / M2 / M3 L2 捕获 / M4 D1+D2 跨端审批 / M5 / M6 性能 / M7 GA flip。
+
+### 6. 技术架构
+
+DID 钱包 + 移动捕获（语音/相机/定位/分享/推送）+ REMOTE（23 commands）；桌面对标 v5.0.3.48。
+
+### 7. 系统特点
+
+停止以 skill 数量对标桌面，转向场景独占；M7 GA flip 已 tag `v1.0.0` + Release published。
+
+### 8. 应用场景
+
+DID 钱包 / 现场捕获 / 远程遥控桌面（三层场景）。
+
+### 9. 竞品对比
+
+对齐 Claude Desktop/Mobile 二端分工（见正文 1 立项动机）。
+
+### 10. 配置参考
+
+见正文 §5 模块设计；ADR 决策见 §4（重评估见 `Android_ADR_重评估_v2.0.md`）。
+
+### 11. 性能指标
+
+见正文 §7.2 性能预算（详见 `Android_M6_Performance_Validation.md`）。
+
+### 12. 测试覆盖
+
+单测目标 258+，E2E 12；M3 99 单测；M4 D2 桌面 10/10；真机 E2E 见 M3/M4/M6 测试计划。
+
+### 13. 安全考虑
+
+DID 私钥硬件密钥内；M4 ApprovalUI + BiometricPrompt + StrongBox；REMOTE 风险三闸（ADR-3）。
+
+### 14. 故障排除
+
+见各 M 测试计划 troubleshoot（M3/M4/M6）。
+
+### 15. 关键文件
+
+`android-app/**`；`SeedRegistry.kt`（REMOTE）；各 M 模块。
+
+### 16. 使用示例
+
+见正文 §7.1 demo 路径与各 M 测试计划。
+
+### 17. 相关文档
+
+`Android_ADR_重评估_v2.0.md`、`Android_REMOTE_commands_inventory.md`、`Android_M3_Real_Device_Test_Plan.md`、`Android_M4_D2_E2E.md`、`Android_M6_Performance_Validation.md`、`Android_Remote_Operate_Plan_C.md`。

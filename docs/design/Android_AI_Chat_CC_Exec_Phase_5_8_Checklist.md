@@ -129,3 +129,75 @@ Low:        __ 个
 ---
 
 **预估耗时**：~1-1.5h  ·  **Sign-off**：__________  ·  **下次回归**：v1.1 写命令前重跑 E5/E7
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E checklist（打印版）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文清单。
+
+### 1. 概述
+
+见正文头部。Phase 5.8 Android AI Chat × cc-exec 真机 E2E 打印版 checklist（设备 Xiaomi 24115RA8EC），完整 SOP 见 `Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md`。
+
+### 2. 核心特性
+
+打印版逐项勾选；9 场景 + 性能基线 + Fail 分级 + 已知 v1 不足；~1–1.5h 一轮。
+
+### 3. 系统架构
+
+见 `Android_AI_Chat_CC_Exec_Tool.md`（NL → cc CLI 白名单 gate → Termux Node 执行）。
+
+### 4. 系统定位
+
+Android AI Chat × cc-exec 的**真机 E2E 验收 checklist**。
+
+### 5. 核心功能
+
+见正文 A–H：准备 / 安装配置 / 三窗口监控 / 9 场景 / 性能基线 / Fail 分级 / 已知不足 / 汇总。
+
+### 6. 技术架构
+
+adb 三窗口 logcat 监控；debug APK；真 API key。
+
+### 7. 系统特点
+
+打印执行；v1.1 写命令前重跑 E5/E7。
+
+### 8. 应用场景
+
+发版前真机 E2E 手动验收勾选。
+
+### 9. 竞品对比
+
+配套完整 SOP（`..._E2E_SOP.md`）；本文为精简打印版。
+
+### 10. 配置参考
+
+见正文 B「安装 + 配置」（API key 等）。
+
+### 11. 性能指标
+
+见正文 E「性能基线（跑完后从 logcat 抓）」。
+
+### 12. 测试覆盖
+
+9 场景（D 节）；本文即验收清单。
+
+### 13. 安全考虑
+
+cc 执行经白名单 gate（见 Tool 设计）；API key 本地配置。
+
+### 14. 故障排除
+
+见正文 F「Fail 分级」与排查表（输入框转圈 / logcat 无 Cc* 行等）。
+
+### 15. 关键文件
+
+`Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md`（完整 SOP）。
+
+### 16. 使用示例
+
+见正文 C「三窗口监控」与 D「9 场景」命令。
+
+### 17. 相关文档
+
+`Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md`、`Android_AI_Chat_CC_Exec_Tool.md`。

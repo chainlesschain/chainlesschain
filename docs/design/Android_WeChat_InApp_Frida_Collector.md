@@ -345,3 +345,75 @@ scaffold + UI swap 这次 land 后，**v0.1 PASS = 满足下列**：
 - **桌面侧 E2E 准备包** → [`Personal_Data_Hub_Phase_12_9_WeChat_E2E_PrepKit.md`](./Personal_Data_Hub_Phase_12_9_WeChat_E2E_PrepKit.md)
 - **Bilibili Android pattern (参考实现)** → [`packages/personal-data-hub/lib/adapters/social-bilibili/`](../../packages/personal-data-hub/lib/adapters/social-bilibili/) + [`android-app/.../pdh/social/bilibili/`](../../android-app/app/src/main/java/com/chainlesschain/android/pdh/social/bilibili/)
 - **PDH Android Standalone (架构上下文)** → [`Personal_Data_Hub_Android_Standalone_Cc.md`](./Personal_Data_Hub_Android_Standalone_Cc.md)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（采集器）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「0. 为什么需要这个」。Android 端 WeChat 8.0+ 本机采集采用 frida-in-app 方案，scaffold 已 land，frida 真注入 + 真机 E2E 待做（5–7d），用于完成 `HubLocalScreen.kt` 微信卡。
+
+### 2. 核心特性
+
+frida-in-app 注入；SQLCipher 解密；接通微信卡；反检测风险评估。
+
+### 3. 系统架构
+
+见正文「2. 总体架构」；与桌面侧 `Adapter_WeChat_SQLCipher.md` 对应（复用 SQLCipher PRAGMA / KDF profile）。
+
+### 4. 系统定位
+
+Personal Data Hub 的**Android 端微信 frida-in-app 采集器**（Phase 12.10）。
+
+### 5. 核心功能
+
+见正文「3. 关键模块」+「4. UI/UX 流程」（frida 注入 → key → 解密 → vault）。
+
+### 6. 技术架构
+
+frida-inject（in-app）hook 取 SQLCipher key；微信 8.0+；Bilibili Android pattern 参考实现。
+
+### 7. 系统特点
+
+frida 真注入待做（5–7d）；Play Store 上架 / 反检测风险高（见正文 6）。
+
+### 8. 应用场景
+
+完成 HubLocalScreen 微信 placeholder 卡，取回本机微信语料。
+
+### 9. 竞品对比
+
+与 QQ XOR 方案同形（`Android_QQ_InApp_XorDecrypt_Collector.md`）；桌面走 frida-server。
+
+### 10. 配置参考
+
+桌面 adapter `Adapter_WeChat_SQLCipher.md`；frida setup 见 `Adapter_WeChat_SQLCipher_Frida_Setup.md`。
+
+### 11. 性能指标
+
+解密随 5+ 年消息库线性；注入耗时见真机 runbook。
+
+### 12. 测试覆盖
+
+真机 E2E 见 `Android_WeChat_Phase_12_10_6_RealDevice_E2E_Runbook.md`（8 场景）；v0.1 验收门禁见正文 7。
+
+### 13. 安全考虑
+
+微信语料极高敏感；frida 注入触发微信反检测——见 `Android_WeChat_Phase_12_10_7_AntiDetection.md`；需 root。
+
+### 14. 故障排除
+
+反检测 fail（环境异常 / 自杀进程）→ `Android_WeChat_Phase_12_10_7_AntiDetection.md`；hook traps → memory `wechat_frida_hook_audit_traps.md`。
+
+### 15. 关键文件
+
+`WeChatFridaInjector.kt`；frida-inject 二进制；桌面 `Adapter_WeChat_SQLCipher.md`。
+
+### 16. 使用示例
+
+见正文 UI/UX 流程与真机 runbook 8 场景。
+
+### 17. 相关文档
+
+见正文头部链接：`Adapter_WeChat_SQLCipher.md`、`Adapter_WeChat_SQLCipher_Frida_Setup.md`、`Android_WeChat_Phase_12_10_6_RealDevice_E2E_Runbook.md`、`Personal_Data_Hub_Android_Standalone_Cc.md`。

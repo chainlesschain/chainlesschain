@@ -752,3 +752,75 @@ v1 上线后，下面 4 件事任一发生就启动对应 vN 设计：
 4. 跨源问答（"妈妈相关的"）成为运营关键卖点 → 启动 v4 KG ingestor + cc entity namespace 设计。
 
 **不要预防性铺**：v1 在 §0.4 5 项约束基础上保证 forward-compat，但 v2+ 不在 v1 实施 PR 内做。每个 vN 单独设计 doc + 单独评审。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「范围」。Android AI Chat × cc-exec Tool 让 AI Chat 内用自然语言调用本地 `cc` CLI：LLM tool-call → 白名单 gate → 本地 Termux Node 执行 → 输出回 chat。前置 Phase 2.5 cc bundle 真机闭环（`cc -v → 0.162.2`）。
+
+### 2. 核心特性
+
+NL → LLM tool-call → 白名单 gate → 本地执行；forward-compat 5 项约束（§0.4）；v1 只读类命令。
+
+### 3. 系统架构
+
+见正文架构节；AI Chat → tool-call → 白名单 → Termux Node `cc` → 结果回 chat。
+
+### 4. 系统定位
+
+Android AI Chat 的**本地 cc CLI 执行工具**（v1 草案）。
+
+### 5. 核心功能
+
+见正文：tool-call 解析、白名单 gate、Termux Node 执行、输出回填。
+
+### 6. 技术架构
+
+LLM tool-call；命令白名单；本地 Termux Node 运行 cc CLI bundle。
+
+### 7. 系统特点
+
+v1 forward-compat（§0.4 5 约束）；v2+（写命令 / cc hub / MediaStore / KG）单独设计不预防性铺（见正文末）。
+
+### 8. 应用场景
+
+chat 内自然语言跑 cc 命令（查笔记 / 搜索等只读场景）。
+
+### 9. 竞品对比
+
+桌面 cc agent tool-call 平价（移动端落地）。
+
+### 10. 配置参考
+
+见正文 §0.4 约束与白名单配置。
+
+### 11. 性能指标
+
+Termux Node 冷启动 + cc 执行时延；真机基线见 `..._E2E_SOP.md` §8.4。
+
+### 12. 测试覆盖
+
+真机 E2E 9 场景（见 `Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md`）。
+
+### 13. 安全考虑
+
+白名单 gate 限制可执行命令；v1 只读；写命令 / 二次确认推迟 v1.1。
+
+### 14. 故障排除
+
+见 `..._Checklist.md` 排查表（输入框转圈 / Hilt DI / logcat 无 Cc* 行）。
+
+### 15. 关键文件
+
+Termux Node bundle（见 `Android_Local_Terminal_CI_Bundle.md`）；白名单 gate；tool-call handler。
+
+### 16. 使用示例
+
+见正文 tool-call 示例与 `..._E2E_SOP.md` 9 场景。
+
+### 17. 相关文档
+
+`Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md`、`Android_AI_Chat_CC_Exec_Phase_5_8_Checklist.md`、`Android_Local_Terminal_CI_Bundle.md`。

@@ -315,3 +315,75 @@ ANR/Tombstone 计数: ____
 - 9 场景执行：~30-45 min（取决于网络抖动）
 - 汇总 + 整理：~15 min
 - **合计：~1-1.5h**
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E SOP。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文步骤。
+
+### 1. 概述
+
+见正文「目标」。Phase 5.8 真机 E2E SOP：Xiaomi 24115RA8EC 跑通 §8.3 的 9 个场景（E1–E9）收口 v1，前置 Phase 5.0–5.7 绿 + cc bundle 已真机验证（`cc -v → 0.162.2`）。
+
+### 2. 核心特性
+
+9 场景执行表；adb 三窗口监控；性能基线快查；Fail 分级 + 决策。
+
+### 3. 系统架构
+
+见 `Android_AI_Chat_CC_Exec_Tool.md`（NL → LLM tool-call → 白名单 gate → Termux Node cc 执行 → 回 chat）。
+
+### 4. 系统定位
+
+Android AI Chat × cc-exec 的**真机 E2E 标准作业程序**。
+
+### 5. 核心功能
+
+见正文 0–7：准备检查 / APK 安装 / 配 API key / adb 监控 / 9 场景执行 / 性能基线 / 结果汇总 / Fail 分级。
+
+### 6. 技术架构
+
+adb（authorized）+ debug APK + OpenAI/Doubao/Anthropic 真 API key；三窗口并行 logcat。
+
+### 7. 系统特点
+
+~1–1.5h 一轮；打印版 checklist 见 `..._Checklist.md`。
+
+### 8. 应用场景
+
+v1 收口前真机 E2E 验收。
+
+### 9. 竞品对比
+
+打印版精简 checklist 为本 SOP 的执行配套。
+
+### 10. 配置参考
+
+见正文 2「配 API key」与 0「准备检查」。
+
+### 11. 性能指标
+
+见正文 5「性能基线快查（§8.4 验证）」。
+
+### 12. 测试覆盖
+
+9 场景 E1–E9（§8.3）；本文即测试执行 SOP。
+
+### 13. 安全考虑
+
+cc 执行经白名单 gate；API key 本地；adb authorized。
+
+### 14. 故障排除
+
+见正文 7「Fail 分级 + 决策」。
+
+### 15. 关键文件
+
+debug APK；`Android_AI_Chat_CC_Exec_Tool.md`；`..._Checklist.md`。
+
+### 16. 使用示例
+
+见正文 3「adb 监控（三窗口并行）」与 4「9 场景执行表」。
+
+### 17. 相关文档
+
+`Android_AI_Chat_CC_Exec_Phase_5_8_Checklist.md`、`Android_AI_Chat_CC_Exec_Tool.md`。

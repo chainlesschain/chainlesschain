@@ -749,3 +749,75 @@ mobile 端默认开机展示一段 motd 说明这些差异（避免用户跑 `cc
 ---
 
 **Status**: 📐 设计完成，**Phase 0.1 已落地** (2026-05-18) — `feature-local-terminal` module skeleton + Gradle externalNativeBuild + 3 ABI × `libpty_jni.so` placeholder + Kotlin LocalTerminalNative JNI 桥 + Hilt 接入 + unit tests 全过。建议在 [iOS Phase 1.7 / 2.7 / 3.7 真机 E2E 完成后启 Phase 0.2](../../C--code-chainlesschain/memory/MEMORY.md)，避免框架级 bug 回锅。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「0. TL;DR」「1. 背景」。Android 本地终端 = Termux 同等设计：Android 设备上跑自己的 shell，不依赖配对桌面（与「远程终端」是两条独立链路）。设计完成，Phase 0.1 已落地。
+
+### 2. 核心特性
+
+本机 PTY（libpty_jni）；Termux 同等 shell；不依赖桌面；6 phase × sub-phase 实施计划；12 forward-looking traps。
+
+### 3. 系统架构
+
+见正文「3. 整体架构」；`feature-local-terminal` module + JNI 桥 + 3 ABI native lib。
+
+### 4. 系统定位
+
+Android 端**独立本地终端**（区别于远程终端控桌面；iOS 沙箱原理不支持）。
+
+### 5. 核心功能
+
+见正文「4. 实施计划 6 phase」：PTY + Node + cc bundle + UI；CI bundle 见 `Android_Local_Terminal_CI_Bundle.md`。
+
+### 6. 技术架构
+
+libpty_jni.so（3 ABI）+ Kotlin LocalTerminalNative JNI + Hilt；Node + cc CLI 全在 $PREFIX 沙箱内。
+
+### 7. 系统特点
+
+见正文「5. 12 个 Forward-Looking Traps」；cc CLI 不自我升级触发 root / 系统写入（$PREFIX 沙箱受限）。
+
+### 8. 应用场景
+
+Android 设备上独立跑 shell + cc CLI，不需配对桌面。
+
+### 9. 竞品对比
+
+对标 Termux（本机 shell）；区别于 `Android_Remote_Terminal_Plan_A1.md`（控桌面）。
+
+### 10. 配置参考
+
+$PREFIX 沙箱；用户自定义 registry（如 npmmirror）由用户负责信任（见正文末）。
+
+### 11. 性能指标
+
+见正文「6. Phase 6 真机 E2E」与 `Android_M6_Performance_Validation.md`。
+
+### 12. 测试覆盖
+
+见正文「7. 测试策略汇总」；Phase 0.1 unit tests 全过。
+
+### 13. 安全考虑
+
+native lib W^X / extractNativeLibs；$PREFIX 沙箱限制；不触发 root（见正文 2 决策 + 末尾约束）。
+
+### 14. 故障排除
+
+见正文「5. 12 Forward-Looking Traps」（W^X execve / JNI / ABI 等）。
+
+### 15. 关键文件
+
+`feature-local-terminal` module；`libpty_jni.so`；LocalTerminalNative（JNI）；`local-terminal-bundle.yml`。
+
+### 16. 使用示例
+
+见正文实施计划各 phase 与 CI bundle 文档。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_Remote_Terminal_Plan_A1.md`、`iOS_Phase_2_Remote_Terminal.md`、`Android_Remote_Operate_Plan_AB.md`、`Android_Local_Terminal_CI_Bundle.md`。

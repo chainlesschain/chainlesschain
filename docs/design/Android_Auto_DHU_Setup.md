@@ -158,3 +158,75 @@ adb logcat -s CarAppService:V VoiceModeScreen:V AutoPushBus:V NotificationCenter
 ./gradlew :app:installDebug
 adb shell am force-stop com.chainlesschain.android
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为测试 / setup 指南。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文步骤。
+
+### 1. 概述
+
+见正文头部。Android Auto DHU 测试指南（v1.2 #20 P0.1 Phase 3）：DHU（Desktop Head Unit）emulator setup + 行车场景安全 disclaimer + Phase 0–2 测试验证。
+
+### 2. 核心特性
+
+DHU emulator setup；Phase 0–2 行为测试 checklist；行车合规 disclaimer。
+
+### 3. 系统架构
+
+代码 `android-app/app/src/main/java/com/chainlesschain/android/auto/**`；DHU 连接真机投屏车机界面。
+
+### 4. 系统定位
+
+Android Auto 车机适配的**DHU 测试 setup 指南**（v1.2）。
+
+### 5. 核心功能
+
+见正文 1–8：DHU 介绍 / 环境准备 / Phase 0–2 测试 / 安全 disclaimer / 已知限制 / 测试现状。
+
+### 6. 技术架构
+
+`desktop-head-unit` interactive console + adb logcat（CarAppService / VoiceModeScreen / AutoPushBus）。
+
+### 7. 系统特点
+
+行车场景合规优先；已知限制不在 v1.2 #20 范围。
+
+### 8. 应用场景
+
+Android Auto 车机界面功能验证（语音 / 推送 / 通知）。
+
+### 9. 竞品对比
+
+DHU 模拟器 vs 真车机（见正文已知限制）。
+
+### 10. 配置参考
+
+见正文 2「一次性环境准备」（DHU 安装 / adb 投屏）。
+
+### 11. 性能指标
+
+车机投屏交互延迟（见正文测试现状）。
+
+### 12. 测试覆盖
+
+Phase 0–2 行为测试 checklist（见正文 3）。
+
+### 13. 安全考虑
+
+见正文 4「安全 disclaimer（行车场景合规）」——行车不分散驾驶注意力。
+
+### 14. 故障排除
+
+CarApp 不投屏 / logcat 无输出 → 重装 debug APK + force-stop（见正文命令）。
+
+### 15. 关键文件
+
+`android-app/.../auto/**`；DHU（desktop-head-unit）。
+
+### 16. 使用示例
+
+见正文 DHU 启动 + adb logcat + installDebug 命令。
+
+### 17. 相关文档
+
+见正文 7「与其它文档的关系」。

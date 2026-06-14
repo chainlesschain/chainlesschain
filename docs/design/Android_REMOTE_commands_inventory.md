@@ -207,3 +207,75 @@ SkillMetadata(
 
 - 2026-05-11 v0.2：M4 D1 method-level 元数据状态（ai + knowledge 共 20 method seed） + §8.3 alias 兼容窗口落地说明（commit f5...）。
 - 2026-05-11 v0.1：M1 现状梳理初稿。精确 fun 计数验证（795/789）、桌面 24 handlers + browser-extension/ 子系统映射、9 项 M4 设计前必决项。Method-level 元数据延后到 M4。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为清单 / inventory 文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文清单。
+
+### 1. 概述
+
+见正文头部。Android REMOTE Commands Inventory（M1 现状梳理）为 RemoteSkillRegistry（M4）提供消费源：23 个 `*Commands.kt` 的 fun 计数、命名空间、桌面对端 handler 映射、风险分类。
+
+### 2. 核心特性
+
+23 命令文件 file-level 盘点；fun 计数；命名空间 + 桌面 handler 映射；风险三分类（用于 ADR-3 三道闸）。
+
+### 3. 系统架构
+
+`android-app/.../remote/commands/*Commands.kt` → 桌面对端 handler（24 handlers + browser-extension 子系统）。
+
+### 4. 系统定位
+
+Android REMOTE 能力的**命令清单 / M4 RemoteSkillRegistry 消费源**。
+
+### 5. 核心功能
+
+见正文：File-by-file 清单（按 fun 数降序）、风险分类定义、桌面映射特殊情况、M4 设计前必决项。
+
+### 6. 技术架构
+
+23 `*Commands.kt`；alias 兼容窗口（§8.3）；method-level 元数据延后 M4。
+
+### 7. 系统特点
+
+M1 只做 file-level 盘点；method-level（参数 / 返回 / 是否需审批）由 M4 per-file 深读补全。
+
+### 8. 应用场景
+
+M4 RemoteSkillRegistry 设计输入；风险闸映射。
+
+### 9. 竞品对比
+
+文件级 vs 方法级元数据粒度（见正文「不在本 inventory 范围」）。
+
+### 10. 配置参考
+
+alias 全局唯一约束（见正文 §8.3：多 namespace 同 alias 后注册覆盖）。
+
+### 11. 性能指标
+
+—（清单文档，无性能维度）；fun 计数 795/789 见正文。
+
+### 12. 测试覆盖
+
+精确 fun 计数验证（795/789）；M4 D1 method-level seed（ai+knowledge 20 method）。
+
+### 13. 安全考虑
+
+风险三分类（Safe / Mutating / Privileged）用于 ADR-3 三道闸；privileged 命令需审批（M4）。
+
+### 14. 故障排除
+
+alias 冲突（无显式报错，后注册覆盖）→ 保证 alias 全局唯一（见正文 §8.3）。
+
+### 15. 关键文件
+
+`android-app/.../remote/commands/*Commands.kt`（23）；桌面 24 handlers；`SeedRegistry.kt`（M4）。
+
+### 16. 使用示例
+
+见正文 File-by-file 清单与桌面映射表。
+
+### 17. 相关文档
+
+见正文头部关联：`Android_重新定位_设计文档.md` §ADR-5 / M4 / §8.3。

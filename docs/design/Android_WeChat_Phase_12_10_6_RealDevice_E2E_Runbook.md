@@ -304,3 +304,75 @@ adb shell run-as com.chainlesschain.android cat files/.chainlesschain/staging/we
 - Memory `android_wechat_collector_phase_12_10.md` — 8 trap，跑前必看
 - Memory `wechat_frida_hook_audit_traps.md` — JS hook 3 audit trap (libWCDB 大小写 / args index / hex format)
 - Phase 12.10.7 anti-detection 文档 — 长稳验证 §12.10.6.8 fail 时跳这去查
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E runbook。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。Phase 12.10.6 Android WeChat In-App Collector 真机 E2E runbook：从安装 APK 到 vault 真有 WeChat 数据的 8 场景手动验收剧本（Phase 12.10.4 frida-inject 接通后启用）。
+
+### 2. 核心特性
+
+8 场景手动验收；测试机环境矩阵；性能基准 + 监控；失败诊断材料；记录模板。
+
+### 3. 系统架构
+
+见 `Android_WeChat_InApp_Frida_Collector.md`（总设计）；复用 `Adapter_WeChat_SQLCipher.md` SQLCipher PRAGMA / KDF profile。
+
+### 4. 系统定位
+
+Android 微信采集器的**真机 E2E 验收 runbook**（Phase 12.10.6）。
+
+### 5. 核心功能
+
+见正文 0–6：验收门禁 / 环境矩阵 / 全场景一览 / 详细场景 / 性能基准 / 失败诊断 / 记录模板。
+
+### 6. 技术架构
+
+frida-inject（WeChatFridaInjector）+ SQLCipher 解密；adb 监控。
+
+### 7. 系统特点
+
+12.10.4 实施后即可启用；长稳 §12.10.6.8 fail 跳 Phase 12.10.7 反检测。
+
+### 8. 应用场景
+
+微信采集器发版前 8 场景真机验收。
+
+### 9. 竞品对比
+
+桌面侧等同 runbook（`Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`，11 场景参考）。
+
+### 10. 配置参考
+
+见正文 1「测试机环境矩阵」（root / 微信版本 / 设备）。
+
+### 11. 性能指标
+
+见正文 4「性能基准 + 监控指标」。
+
+### 12. 测试覆盖
+
+8 场景（见正文 2/3）；本文即真机验收剧本。
+
+### 13. 安全考虑
+
+微信语料极高敏感；frida 注入触发反检测（§12.10.6.8 长稳）；见 Phase 12.10.7。
+
+### 14. 故障排除
+
+见正文 5「失败诊断材料」；反检测 fail → `Android_WeChat_Phase_12_10_7_AntiDetection.md`；hook traps → memory。
+
+### 15. 关键文件
+
+`WeChatFridaInjector.kt`；`Android_WeChat_InApp_Frida_Collector.md`；`Adapter_WeChat_SQLCipher.md`。
+
+### 16. 使用示例
+
+见正文 3「详细场景」与 6「记录模板」。
+
+### 17. 相关文档
+
+见正文相关链接：`Android_WeChat_InApp_Frida_Collector.md`、`Adapter_WeChat_SQLCipher.md`、`Android_WeChat_Phase_12_10_7_AntiDetection.md`。

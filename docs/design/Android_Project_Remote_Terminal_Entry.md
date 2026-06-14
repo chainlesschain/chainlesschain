@@ -20,7 +20,7 @@
 `feature-project/` 78 个 Kotlin 文件 ~30,680 行主代码，但其中 `FileEditorScreen` (671) / `GitStatusDialog` (570) / `GitHistoryScreen` (459) / `EnhancedCodeEditor` + `SyntaxHighlightedEditor` + `CodeCompletionEngine` 共 ~3,000 行 "手机 IDE 子集"，在 V2 对话式 UX (`ProjectDetailScreenV2.kt` 836) 下进不到。App 实际 wire 的是 `app/.../presentation/screens/` 下另起一套（详见现状分析）。
 
 **观察 2：Android 端缺 CLI 是结构性的**
-桌面有 `cc` CLI（144 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
+桌面有 `cc` CLI（155 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
 
 **观察 3：基础设施全齐**
 - `ProjectEntity.rootPath` 字段已存在（sync 协议字段 `root_path` 镜像）
@@ -1251,3 +1251,75 @@ _pullProgress.value = null
 ---
 
 **Status legend**：☐ 未开始 ☒ 进行中 ✓ 已完成
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。Android 项目管理远程终端入口（Project ↔ PC Bridge）：在项目内打开远程终端 + 项目文件操作 + Git 感知，复用 Plan A.1 WebRTC DC 终端 + `FileCommands.kt` 全套 method。
+
+### 2. 核心特性
+
+项目内远程终端入口；文件操作（upload/download/listDirectory）；Git 感知；`terminal.create(cwd=)` 支持。
+
+### 3. 系统架构
+
+见正文「4. 架构」+「5. Module / 文件 placement」；依赖 Phase 3d 双向 sync + Plan A.1 终端 + ProjectEntity.rootPath。
+
+### 4. 系统定位
+
+Android 项目管理的**远程终端 + 文件 + Git 桥**（Project ↔ PC）。
+
+### 5. 核心功能
+
+见正文「6. Sub-phases」：终端入口 / 文件操作 / Git 感知。
+
+### 6. 技术架构
+
+复用 `TerminalRpcClient`（cwd）+ `FileCommands.kt`（1116 LOC）+ `FileTransferScreen.kt`（1129 LOC）；ProjectEntity.rootPath。
+
+### 7. 系统特点
+
+见正文「7. 实施 Traps」（14 + 8 = 22 个 forward-looking）；web-shell rootPath 默认 null 是根因之一（v0.3 跟进）。
+
+### 8. 应用场景
+
+在 Android 项目内直接对 PC 项目目录跑终端 / 传文件 / 看 Git 状态。
+
+### 9. 竞品对比
+
+复用既有远程终端 + 文件 skill，零重复造轮（见正文依赖）。
+
+### 10. 配置参考
+
+`terminal.create(cwd=)`；ProjectEntity.rootPath（core-database）。
+
+### 11. 性能指标
+
+复用 Plan A.1 DC 性能；文件传输见 `Android_Remote_File_Skill.md`。
+
+### 12. 测试覆盖
+
+见正文「8. Test Strategy」；真机 E2E §12.3 8 场景需双机配对环境。
+
+### 13. 安全考虑
+
+文件 / 终端走配对信任；destructive 操作需 approval（见 `mobile-approval-channel.js`）。
+
+### 14. 故障排除
+
+见正文「7. 实施 Traps」（22 个）；rootPath null 致 dead row。
+
+### 15. 关键文件
+
+`TerminalRpcClient.kt`；`FileCommands.kt`；`FileTransferScreen.kt`；ProjectEntity（core-database）。
+
+### 16. 使用示例
+
+见正文 Sub-phases 与架构图。
+
+### 17. 相关文档
+
+见正文依赖：`Android_Remote_Terminal_Plan_A1.md`、`Android_Remote_File_Skill.md`、memory `phase_3d_mobile_sync_landing.md`。

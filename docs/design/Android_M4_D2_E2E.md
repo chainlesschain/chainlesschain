@@ -181,3 +181,75 @@ E2E：
 
 `m4-d2-cross-end-approval.test.js` 10/10 绿可以视为 **"差最后一公里"** —
 本文档的真机验收是该最后一公里。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 验收清单。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。Android v1.0 M4 D2 跨端审批真机 E2E 验收清单，关联 `Android_重新定位_设计文档` §6 M4 / §7.1 demo 路径 5+6，桌面侧 JVM 集成已绿（10 scenarios）。
+
+### 2. 核心特性
+
+7 大 demo 场景；跨端协议契约断言；ApprovalUI 跨端审批；失败 troubleshoot。
+
+### 3. 系统架构
+
+见正文「5. 跨端协议契约」：RemoteCommandClient → ApprovalCommandRouter → AndroidApprovalGate。
+
+### 4. 系统定位
+
+Android v1.0 M4 D2 **跨端审批的真机 E2E 验收**。
+
+### 5. 核心功能
+
+见正文 1–8：范围 / 环境 / 准备 / 7 demo 场景 / 协议契约 / 边角 / troubleshoot / JVM 集成。
+
+### 6. 技术架构
+
+command-router gate + channel 状态机 + transport JSON-RPC envelope；真 WebRTC DC / Compose Dialog / BiometricPrompt / StrongBox 由真机覆盖。
+
+### 7. 系统特点
+
+JVM 集成 10/10 绿 = 差最后一公里；本文真机验收即最后一公里。
+
+### 8. 应用场景
+
+跨端（Android↔桌面）审批 demo 真机验收。
+
+### 9. 竞品对比
+
+JVM 集成覆盖 vs 真机覆盖差异见正文 E2E 覆盖 / 不覆盖列表。
+
+### 10. 配置参考
+
+见正文 2「测试环境」与 3「准备步骤」。
+
+### 11. 性能指标
+
+审批往返时延（真机回填）；跨 NAT 见 `Android_M6_Performance_Validation.md`。
+
+### 12. 测试覆盖
+
+桌面侧 `m4-d2-cross-end-approval.test.js` 10/10 绿；真机 7 场景待验（见正文 8）。
+
+### 13. 安全考虑
+
+审批经 AndroidApprovalGate + BiometricPrompt + StrongBox 签名（真机）。
+
+### 14. 故障排除
+
+见正文 7「失败 troubleshoot」。
+
+### 15. 关键文件
+
+`m4-d2-cross-end-approval.test.js`；RemoteCommandClient / ApprovalCommandRouter / AndroidApprovalGate。
+
+### 16. 使用示例
+
+见正文 4「七大 demo 场景验收」与 adb logcat 监控命令。
+
+### 17. 相关文档
+
+`Android_重新定位_设计文档.md` §6 M4 / §7.1。

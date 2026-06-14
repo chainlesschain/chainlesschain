@@ -197,3 +197,75 @@ PASS 标准: 2h 内 0 弹窗 + 0 自杀。
 - [`Adapter_WeChat_SQLCipher.md`](./Adapter_WeChat_SQLCipher.md) §18.6 — 桌面侧等同反检测设计 (frida-server 而非 frida-inject — 用户侧 ssh)
 - Memory `android_wechat_collector_phase_12_10.md` Trap 7 — 反检测 P0+P1 提要
 - Memory `wechat_frida_hook_audit_traps.md` — JS hook 3 audit trap (与本文档 §5 hook 隐藏正交)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为反检测加固设计（猫鼠游戏文档）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「范围」。Phase 12.10.7 Android WeChat 反检测加固：当 §12.10.6.8 长稳跑反检测 fail（微信弹"环境异常" / 自杀进程 / 静默拒密钥写入）时，按本文加固；首推 Magisk DenyList + frida-inject 改名/进程隐藏双管齐下。
+
+### 2. 核心特性
+
+已知反检测向量梳理；按命中可能性排序的应对；P0 Magisk DenyList + frida-inject 改名 + P1 agent hook page 隐藏。
+
+### 3. 系统架构
+
+见正文「2. 应对总览」；与 `Adapter_WeChat_SQLCipher.md` §18.6 桌面侧反检测对应（frida-server vs frida-inject）。
+
+### 4. 系统定位
+
+Android 微信采集的**反检测加固设计**（Phase 12.10.7，fail 时按表加固）。
+
+### 5. 核心功能
+
+见正文 1–6：已知向量 / 应对总览 / Magisk DenyList / frida-inject 改名路径随机 / agent hook page 隐藏 / 验证。
+
+### 6. 技术架构
+
+Magisk DenyList（用户侧）；frida-inject 二进制改名 + 路径随机；frida agent hook page 隐藏。
+
+### 7. 系统特点
+
+猫鼠游戏文档——微信每大版本可能加新反检测，每次失效追一次；设计 only，真验需 fail 触发后才知命中项。
+
+### 8. 应用场景
+
+长稳反检测 fail 后的加固应对。
+
+### 9. 竞品对比
+
+桌面侧 frida-server + ssh 路径（`Adapter_WeChat_SQLCipher.md` §18.6）vs 移动端 frida-inject。
+
+### 10. 配置参考
+
+见正文 3「Magisk DenyList 配置」与 4「frida-inject 改名 + 路径随机」。
+
+### 11. 性能指标
+
+加固对采集成功率的影响（长稳验证）。
+
+### 12. 测试覆盖
+
+见正文 6「验证」；触发条件为 Phase 12.10.6.8 长稳 fail。
+
+### 13. 安全考虑
+
+加固本身是绕过微信环境检测；仅本机自用；见正文 7「风险 + 限制」。
+
+### 14. 故障排除
+
+本文即 §12.10.6.8 fail 的排查指南（按命中向量对应表项加固）。
+
+### 15. 关键文件
+
+frida-inject 二进制；Magisk DenyList 配置；frida agent。
+
+### 16. 使用示例
+
+见正文 3/4 P0 加固配置步骤。
+
+### 17. 相关文档
+
+见正文「8. 相关」：`Android_WeChat_InApp_Frida_Collector.md` §6.2、`Android_WeChat_Phase_12_10_6_RealDevice_E2E_Runbook.md` §12.10.6.8、`Adapter_WeChat_SQLCipher.md` §18.6。

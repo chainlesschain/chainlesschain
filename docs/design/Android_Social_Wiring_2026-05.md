@@ -276,3 +276,75 @@ class FriendViewModel @Inject constructor(
     repository/social/PostRepository, ui/social/BlockedUsersScreen,
     ui/social/FriendListScreen, viewmodel/social/FriendViewModel}.kt
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。Android 社交功能产线化：把 v0.30~v0.36 期间建好但只是 demo 占位的 ~10K LOC 社交骨架（14 屏 + 9 VM + 4 Repository）真正接通（Friends/Timeline/BlockedUsers/reportPost/searchUserByDid 等）。
+
+### 2. 核心特性
+
+7 路由从 placeholder 真接通；Friends/Timeline tab 实数据；BlockedUsers / reportPost / searchUserByDid 入库；39 新单测。
+
+### 3. 系统架构
+
+作用范围 `android-app/{app, core-p2p, core-database, feature-p2p}`；见正文「6. 文件清单」。
+
+### 4. 系统定位
+
+Android 社交功能的**产线化（demo → 真接通）设计**（2026-05-13）。
+
+### 5. 核心功能
+
+见正文「3. 实现详情」：好友 / 时间线 / 屏蔽 / 举报 / DID 搜索。
+
+### 6. 技术架构
+
+Compose 屏 + ViewModel + Repository + Room（core-database）+ P2P（core-p2p）。
+
+### 7. 系统特点
+
+已实现 + 测试 + 编译验证（39 新测试 + 1 race-fix 学习全绿）。
+
+### 8. 应用场景
+
+Android 端去中心化社交（好友 / 动态 / 屏蔽 / 举报）真功能。
+
+### 9. 竞品对比
+
+修复前「外观是 demo」（固定字串 / 空列表 / 不入库）→ 修复后真数据（见正文 1 问题清单）。
+
+### 10. 配置参考
+
+见正文「6. 文件清单」涉及模块。
+
+### 11. 性能指标
+
+列表 / 时间线分页查询（Room）。
+
+### 12. 测试覆盖
+
+见正文「4. 测试矩阵」：39 个新测试 + 1 race-fix 学习；路由结构性回归全绿。
+
+### 13. 安全考虑
+
+DID 搜索 / 好友 / 举报涉及社交隐私；P2P E2E 加密（core-p2p）。
+
+### 14. 故障排除
+
+并发 race（见正文 4 race-fix 学习）；placeholder 残留排查见问题清单。
+
+### 15. 关键文件
+
+见正文「6. 文件清单」：FriendRepository / PostRepository / BlockedUsersScreen / FriendListScreen / FriendViewModel 等。
+
+### 16. 使用示例
+
+见正文「3. 实现详情」各屏接通示例。
+
+### 17. 相关文档
+
+`Android_重新定位_设计文档.md`（社交在三层定位中的位置）、`Android_W3_Pairing_E2E.md`（配对前置）。

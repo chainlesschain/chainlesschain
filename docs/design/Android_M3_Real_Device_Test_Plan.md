@@ -195,3 +195,75 @@ adb logcat -s "ChainlessChainFCMService:*" "PushNotifier:*"
 # 跨端协议 (M4 D2)
 adb logcat -s "RemoteCommandClient:*" "ApprovalCommandRouter:*" "AndroidApprovalGate:*"
 ```
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。Android v1.0 M3 L2 捕获层真机测试计划（D-share / D-loc / D-voice / D-camera / D-push），关联 `Android_重新定位_设计文档` §6 M3；Manifest 就位、JVM 单测 31 绿，待真机验收。
+
+### 2. 核心特性
+
+5 个捕获子项（分享 / 定位 / 语音 / 相机 OCR / 推送）真机验收；权限弹窗 + Manifest 合规。
+
+### 3. 系统架构
+
+见 `Android_重新定位_设计文档` §6 M3（L2 捕获层）。
+
+### 4. 系统定位
+
+Android v1.0 L2 现场捕获层的**真机测试计划**（M3）。
+
+### 5. 核心功能
+
+见正文 3–7：D-share / D-loc / D-voice / D-camera / D-push 真机验收。
+
+### 6. 技术架构
+
+adb logcat 按 tag 监控（Camera/OCRPipeline/FCMService/PushNotifier 等）；D-loc 真 Play Services 推 M3.1。
+
+### 7. 系统特点
+
+M3 v0.1 scope：权限弹窗 + Manifest 合规；D-push v1.0 GA 前还需补；真 Play Services 集成 M3.1/v1.1。
+
+### 8. 应用场景
+
+L2 捕获层发版前真机验收。
+
+### 9. 竞品对比
+
+JVM 单测（31 绿）vs 真机验收差异（见正文各子项）。
+
+### 10. 配置参考
+
+见正文 2「通用真机准备」。
+
+### 11. 性能指标
+
+ASR / OCR 时延等见 `Android_M6_Performance_Validation.md`。
+
+### 12. 测试覆盖
+
+JVM 单测 31 绿；真机 5 子项待验（见正文 8 最终验收清单）。
+
+### 13. 安全考虑
+
+捕获涉及定位 / 语音 / 相机权限，需权限弹窗合规（见正文 4 D-loc scope）。
+
+### 14. 故障排除
+
+见正文各子项验收（按 adb logcat tag 排查）。
+
+### 15. 关键文件
+
+各捕获组件（VoiceMode / CameraOCR / LocationTagger / ShareReceiver / PushNotifier）；`Android_重新定位_设计文档.md` §6。
+
+### 16. 使用示例
+
+见正文 adb logcat 监控命令（按 tag）。
+
+### 17. 相关文档
+
+`Android_重新定位_设计文档.md` §6 M3、`Android_M4_D2_E2E.md`、`Android_M6_Performance_Validation.md`。

@@ -327,3 +327,75 @@ ngrok http 9001
 - `SignalingConfig.kt` 优先级 SharedPreferences > env > debug fallback > production default
 - 用户在 app Settings 改 `custom_signaling_url` 即可热切换信令地址，不用重打包
 - production default `DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"` 是占位 — 真生产前替换或保留占位让 prefs 强制覆写
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文头部。Android W3 Mobile↔Desktop QR Pairing E2E 测试计划：验证完整 Flow A 配对链路（mobile 显 QR → desktop 扫 → mobile 收 `pairing:confirmation`）。W3.1–W3.6 落地，待真机验收。
+
+### 2. 核心特性
+
+Flow A QR 配对 E2E；signaling 切配（SharedPreferences > env > debug > production default）；跨网生产部署规划。
+
+### 3. 系统架构
+
+见正文「3. 测试场景」；mobile QR ↔ desktop 扫 ↔ signaling 转发 ↔ `DesktopPairingViewModel`。
+
+### 4. 系统定位
+
+Android W3 配对的**真机 E2E 验收计划**。
+
+### 5. 核心功能
+
+见正文 1–8：前置 / setup / 测试场景 / 验收标准 / 已知限制 / 调试技巧 / 完成后 / 跨网部署。
+
+### 6. 技术架构
+
+`SignalingConfig.kt` 优先级热切换；`DesktopPairingViewModel`；Ed25519 签名 confirmation。
+
+### 7. 系统特点
+
+`DEFAULT_SIGNALING_URL` 占位（真生产前替换或 prefs 强制覆写）；用户可在 Settings 改 `custom_signaling_url` 热切换。
+
+### 8. 应用场景
+
+配对功能发版前真机验收 + 跨网生产部署。
+
+### 9. 竞品对比
+
+跨网部署演进：单机 → 多区域信令 + 负载均衡 + 容灾（v1.2+，见正文 8）。
+
+### 10. 配置参考
+
+见正文「Android 端切配适配代码」：`SignalingConfig.kt` 优先级、`custom_signaling_url`、`DEFAULT_SIGNALING_URL`。
+
+### 11. 性能指标
+
+配对链路时延（真机验收）；跨网信令 RTT。
+
+### 12. 测试覆盖
+
+见正文 3「测试场景」+ 4「验收标准」；W3.1–W3.6 落地待真机验收。
+
+### 13. 安全考虑
+
+配对 confirmation Ed25519 签名；signaling wss（TLS）。
+
+### 14. 故障排除
+
+见正文 6「调试技巧」；signaling 地址错 → 改 `custom_signaling_url` 热切换。
+
+### 15. 关键文件
+
+`SignalingConfig.kt`；`DesktopPairingViewModel`；signaling relay。
+
+### 16. 使用示例
+
+见正文 2「Setup 步骤」与 3「测试场景」。
+
+### 17. 相关文档
+
+`Android_Remote_Operate_Plan_C.md`、`Android_Remote_Operate_Plan_AB.md`（signaling 部署）。
