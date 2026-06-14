@@ -15,6 +15,8 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalC
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService.Companion.KYC_REQUIRED_AGE
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupOutbox
+import com.chainlesschain.android.feature.familyguard.domain.sync.toSyncRecord
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
@@ -44,6 +46,7 @@ class InvitePairingServiceImpl @Inject constructor(
     private val familyRelationshipRepository: FamilyRelationshipRepository,
     private val revivalCodeRepository: RevivalCodeRepository,
     private val inviteSigner: InviteSigner,
+    private val familyGroupOutbox: FamilyGroupOutbox,
     private val clock: Clock,
     private val secureRandom: SecureRandom = SecureRandom(),
 ) : InvitePairingService {
@@ -81,6 +84,12 @@ class InvitePairingServiceImpl @Inject constructor(
         val payloadJson = InvitePayload.encode(payload)
         val sigBytes = inviteSigner.sign(payloadJson.toByteArray(Charsets.UTF_8))
         val signatureB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(sigBytes)
+
+        // FAMILY-26: 把 family_group 排入同步 outbox, 让对端 acceptInvite 能查到组
+        // (否则对端 UnknownFamilyGroup)。默认 NoOp 不上行; :app SyncManager 适配器覆盖。
+        familyGroupRepository.findById(familyGroupId)?.let { group ->
+            familyGroupOutbox.enqueue(group.toSyncRecord(), targetDids = listOf(group.primaryDid))
+        }
 
         return InvitePairingService.CreateInviteResult(
             signedInvite = SignedInvite(payloadJson = payloadJson, signatureB64 = signatureB64),

@@ -14,6 +14,7 @@ import com.chainlesschain.android.feature.familyguard.data.repository.RolePrefer
 import com.chainlesschain.android.feature.familyguard.data.service.FamilyGuardServiceControllerImpl
 import com.chainlesschain.android.feature.familyguard.data.service.InvitePairingServiceImpl
 import com.chainlesschain.android.feature.familyguard.data.signer.DidManagerInviteSigner
+import com.chainlesschain.android.feature.familyguard.data.sync.NoOpFamilyGroupOutbox
 import com.chainlesschain.android.feature.familyguard.data.telemetry.ForegroundAppTelemetrySource
 import com.chainlesschain.android.feature.familyguard.data.telemetry.RelationshipTelemetryUploadGate
 import com.chainlesschain.android.feature.familyguard.data.telemetry.RoleAwareChildIdentityProvider
@@ -33,6 +34,7 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.RevivalC
 import com.chainlesschain.android.feature.familyguard.domain.repository.RolePreferencesRepository
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupOutbox
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppQuery
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetrySource
@@ -108,6 +110,13 @@ abstract class FamilyGuardBindingsModule {
     abstract fun bindInvitePairingService(
         impl: InvitePairingServiceImpl,
     ): InvitePairingService
+
+    /** FAMILY-26 family_group 上行 outbox 默认 no-op; :app 层 SyncManager 适配器覆盖。 */
+    @Binds
+    @Singleton
+    abstract fun bindFamilyGroupOutbox(
+        impl: NoOpFamilyGroupOutbox,
+    ): FamilyGroupOutbox
 
     @Binds
     @Singleton

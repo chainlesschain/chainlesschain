@@ -16,6 +16,8 @@ import com.chainlesschain.android.feature.familyguard.domain.model.pairing.Invit
 import com.chainlesschain.android.feature.familyguard.domain.model.pairing.PairingResult
 import com.chainlesschain.android.feature.familyguard.domain.model.permissions.PermissionTemplates
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupOutbox
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
 import com.chainlesschain.android.feature.familyguard.fixtures.FakeInviteSigner
 import com.chainlesschain.android.feature.familyguard.fixtures.FamilyFixtures
 import java.security.SecureRandom
@@ -56,6 +58,16 @@ class InvitePairingServiceImplTest {
     private val signer = FakeInviteSigner()
     private val baseClockMs = FamilyFixtures.FIXTURE_TIME_MS
 
+    /** 记录 enqueue 调用的 fake outbox (验 createInvite 排同步)。 */
+    private class RecordingFamilyGroupOutbox : FamilyGroupOutbox {
+        val enqueued = mutableListOf<Pair<FamilyGroupSyncRecord, List<String>>>()
+        override suspend fun enqueue(record: FamilyGroupSyncRecord, targetDids: List<String>) {
+            enqueued += record to targetDids
+        }
+    }
+
+    private lateinit var groupOutbox: RecordingFamilyGroupOutbox
+
     private fun clockAt(ms: Long): Clock =
         Clock.fixed(Instant.ofEpochMilli(ms), ZoneOffset.UTC)
 
@@ -65,6 +77,7 @@ class InvitePairingServiceImplTest {
     private fun rebuildService(clockMs: Long = baseClockMs) {
         val clock = clockAt(clockMs)
         groupRepo = FamilyGroupRepositoryImpl(db.familyGroupDao(), clock, seededRandom(1L))
+        groupOutbox = RecordingFamilyGroupOutbox()
         service = InvitePairingServiceImpl(
             familyGroupRepository = groupRepo,
             familyMembershipRepository = FamilyMembershipRepositoryImpl(
@@ -81,6 +94,7 @@ class InvitePairingServiceImplTest {
                 secureRandom = seededRandom(99L),
             ),
             inviteSigner = signer,
+            familyGroupOutbox = groupOutbox,
             clock = clock,
             secureRandom = seededRandom(),
         )
@@ -153,6 +167,26 @@ class InvitePairingServiceImplTest {
         val sigBytes = java.util.Base64.getUrlDecoder().decode(invite.signatureB64)
         val payloadBytes = invite.payloadJson.toByteArray(Charsets.UTF_8)
         assertTrue(signer.verify("did:chain:dad", payloadBytes, sigBytes))
+    }
+
+    @Test
+    fun `createInvite enqueues family group to sync outbox`(): Unit = runBlocking {
+        val groupId = seedGroup()
+        mintInvite(groupId)
+
+        assertEquals(1, groupOutbox.enqueued.size)
+        val (record, targets) = groupOutbox.enqueued.first()
+        assertEquals(groupId, record.id)
+        assertEquals("陈家", record.name)
+        assertEquals("did:chain:dad-primary", record.primaryDid)
+        assertEquals(listOf("did:chain:dad-primary"), targets)
+    }
+
+    @Test
+    fun `createInvite does not enqueue when family group missing`(): Unit = runBlocking {
+        // 组不存在时不排同步 (findById 为 null)。
+        mintInvite("group-does-not-exist")
+        assertTrue(groupOutbox.enqueued.isEmpty())
     }
 
     // ─── acceptInvite happy path ───
