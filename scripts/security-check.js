@@ -81,6 +81,13 @@ const ALLOWED_FILES = [
   "PRE_COMMIT_HOOKS.md", // 文档化 pre-commit 安全检查本身，含示例 secret 模式
   "BUGFIX_REPORT.md",
   "MOBILE_GIT_COMPLETE_REPORT.md", // 含占位示例 github_token_here（非真实凭证）
+  // docs/reports 状态报告：含占位示例凭证（非真实）
+  "COMPLETION_REPORT_v0.21.0.md",
+  "CROSS_CHAIN_BRIDGE_IMPLEMENTATION.md",
+  "STAGE4_COMPLETION_SUMMARY.md",
+  "STAGE5_COMPLETION_SUMMARY.md",
+  "STAGE7_COMPLETION_SUMMARY.md",
+  "STAGE8_COMPLETION_SUMMARY.md",
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）
