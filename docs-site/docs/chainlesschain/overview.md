@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.109 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.49 / 155 命令 / 30,000+ 测试 | Android 5.0.3.109 (versionCode 503109，与 productVersion 对齐 · USR_VERSION 25 · binariesVersion 20260613) | iOS 5.0.3 (build 109，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.110 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.60 / 155 命令 / 30,000+ 测试 | Android 5.0.3.110 (versionCode 503110 · USR_VERSION 37 · binariesVersion 20260614b) | iOS 5.0.3 (build 110，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.110 个人数据中台采集器扩面（2026-06-14）**：一轮 `/loop` 把 PDH 采集覆盖补齐——完成阶段所有 ≥⭐⭐⭐ 平台 + 可行长尾全部落地，新增 13 个采集 adapter：同程旅行 / 滴滴企业版 / 大众点评 / 知乎 / CSDN / WPS 云文档 / 腾讯文档 / 百度网盘 / 酷狗音乐 / 爱奇艺 / 腾讯视频 / BOSS 直聘（每个均 snapshot + cookie-api 双模），并抽出 3 个同形平台共享工厂 `_document-base` / `_video-base`。`@chainlesschain/personal-data-hub` 0.4.18 + CLI 0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`、USR_VERSION → 37。
 >
 > **v5.0.3.109 修复 Android 发布 APK 缺 cc bundle（2026-06-14）**：v5.0.3.108 真机验证发现发布的 APK 不含 `cc-cli.tgz`（设备上 local-terminal/cc 不可用、pdh/拼多多采集不下发）。根因——`release.yml` build-android 只跑 `assembleRelease`，而 `downloadInternalBinaries` 仅靠 `preBuild` 的 lazy `dependsOn` 触发、在 CI 不生效。修：assemble 前独立步骤跑 `downloadInternalBinaries`（保证 `cc-cli.tgz` 落盘后再被 `mergeReleaseAssets` 快照）+ build 后硬验证 gate（`unzip -l apk | grep cc-cli.tgz`，任一 APK 缺则 fail）。纯打包修复，bundle 内容不变（pdh 0.4.6 / `internal-binaries-android-v20260613` / USR_VERSION 25）。
 >
