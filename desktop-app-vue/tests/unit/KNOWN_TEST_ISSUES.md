@@ -329,16 +329,22 @@ skip reasons were found to be inaccurate or brittle:
   missing top-level `exec`. Fixed by stubbing the collaborators' `initialize()`
   so the test isolates `BridgeManager`'s own orchestration. **16/16 pass, 0 skipped.**
 
-- **`planning/task-planner-enhanced.test.js`** — `should be an instance of
-EventEmitter` was skipped citing _"instanceof may fail in some environments"_
-  (the dual-`events`-module hazard under Vitest's inlined CJS/ESM interop).
-  Replaced the brittle `instanceof` with a behavioral assertion (on/emit/once
-  present + a real `emit` round-trips), which is environment-independent. **44 pass.**
+- **`planning/task-planner-enhanced.test.js`** — two skips removed:
+  - `should be an instance of EventEmitter` was skipped citing _"instanceof may
+    fail in some environments"_ (the dual-`events`-module hazard under Vitest's
+    inlined CJS/ESM interop). Replaced the brittle `instanceof` with a behavioral
+    assertion (on/emit/once present + a real `emit` round-trips).
+  - `should use fallback plan when LLM fails` was skipped claiming `queryBackendAI`
+    hits a real backend and times out — provably unreachable: an LLM rejection with
+    no response text falls through to the pure-local `ruleBasedDecompose`, and
+    `planCache` runs offline (no `llmManager` → local TF-IDF embedding). Its stale
+    assertions (1 subtask / tool `web-engine`) were rewritten to the real resilience
+    contract (LLM failure still yields a usable, non-throwing plan).
+  - **45 pass, 0 skipped.**
 
 > Still intentionally skipped (genuine gates, not debt): hardware/native
-> (U-Key, Sharp, Whisper server, pkcs11), Python-env integration scenarios,
-> Electron clipboard / `fs.promises` ESM-mock limitations, and the
-> `task-planner` LLM-fallback test (needs comprehensive network-blocking mocks).
+> (U-Key, Sharp, Whisper server, pkcs11), Python-env integration scenarios, and
+> Electron clipboard / `fs.promises` ESM-mock limitations.
 
 ---
 
