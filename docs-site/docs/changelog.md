@@ -7,13 +7,14 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
-#### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.19.0 + 0.20.0（已发 Open VSX）
-> 独立版本轨（同 CLI npm）；`open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.20.0**。补齐对标 Claude Code IDE 的最后三个面板原生入口（设计文档 module 98 Phase 7）。
+#### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.19.0 + 0.20.0 + 0.21.0（已发 Open VSX）
+> 独立版本轨（同 CLI npm）；`open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.21.0**。补齐对标 Claude Code IDE 的最后四个面板原生入口（设计文档 module 98 Phase 7）。
 
 - **Fix with ChainlessChain（0.19.0）**：诊断（error/warning）上 QuickFix 灯泡 → 唤起聊天面板并种入**作用域修复请求**（文件以 `@<path>` 引用 + severity 标签 + 1-based 行号，上限 10 条）；命令面板/右键亦可，无灯泡参数时按 选区→光标行→全文 兜底收集问题。
 - **Explain / Refactor 选区右键（0.20.0）**：选中代码右键 → 种入引用 `@selection` 的请求（CLI 发送时展开为实时选区，不嵌码无时序耦合）+ 文件/行号指针；右键项仅 `editorHasSelection` 显示。
 - **`/cost`、`/context` 面板命令（0.20.0）**：转交 CLI 真相源 `cc cost <id>` / `cc context <id>`（本面板 session），等宽块渲染，不在 webview 重算定价/上下文。
-- **发布**：tag `ide-vscode-v0.20.0` → `ide-extensions.yml` 清洁室构建（287 扩展/IDE 测试绿 + 干净 `.vsix`）发 Open VSX；官方 Marketplace 跳过（无 `VSCE_PAT`，Azure 受限），不建 GitHub Release。
+- **workspace symbol @-mention（0.21.0，gap D）**：`@`-补全新增按符号名（函数/类/方法）搜索 → 选中符号插入其**所在文件**为 `@<path>`（CLI 只认 `@<path>`），按符号名找文件名不同的文件;标签 `<kind> <name> · <path>`,≥2 字符触发、按路径去重。面板 `@` 三类来源（IDE 伪 mention / 文件 / 符号）齐全。
+- **发布**：tag `ide-vscode-v0.20.0`（0.19+0.20）与 `ide-vscode-v0.21.0`（gap D）→ `ide-extensions.yml` 清洁室构建（扩展/IDE 测试全绿 + 干净 `.vsix`）发 Open VSX；官方 Marketplace 跳过（无 `VSCE_PAT`，Azure 受限），不建 GitHub Release。ws transport 仍有意 defer。
 
 #### Fixed
 - **project-service ZIP 导出 UTF-8 编码 bug**：导出写 ZIP 条目用平台默认编码（GBK 默认 JVM），导出含中文项目后 UTF-8 导入端抛 `MalformedInputException` 无法回环重导入。改为始终 UTF-8 + null 内容写空条目兜底。
