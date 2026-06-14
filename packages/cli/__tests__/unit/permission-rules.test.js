@@ -42,6 +42,9 @@ describe("parseRule", () => {
     expect(parseRule("   ")).toBeNull();
     expect(parseRule("(no-tool)")).toBeNull();
   });
+  it("parses a bare `*` deny-all rule (Claude-Code idiom)", () => {
+    expect(parseRule("*")).toEqual({ raw: "*", tool: "*", pattern: null });
+  });
 });
 
 describe("toolMatches — bidirectional aliasing", () => {
@@ -210,14 +213,87 @@ describe("evaluatePermissionRules — precedence", () => {
   });
 });
 
+describe("wildcard `*` deny-all (Claude-Code 2.1.166 parity)", () => {
+  const cwd = process.platform === "win32" ? "C:\\proj" : "/proj";
+
+  it("bare `*` deny matches every tool", () => {
+    for (const [tool, args] of [
+      ["run_shell", { command: "git push" }],
+      ["read_file", { path: "secret.txt" }],
+      ["web_fetch", { url: "https://example.com" }],
+      ["spawn_sub_agent", { task: "x" }],
+    ]) {
+      const r = evaluatePermissionRules({
+        tool,
+        args,
+        cwd,
+        rules: { deny: ["*"] },
+      });
+      expect(r.decision).toBe("deny");
+      expect(r.rule).toBe("*");
+    }
+  });
+
+  it("bare `*` deny still loses to nothing but wins over allow", () => {
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "ls" },
+      cwd,
+      rules: { allow: ["Bash"], deny: ["*"] },
+    });
+    expect(r.decision).toBe("deny");
+  });
+
+  it("`Bash(*)` denies commands even when they contain a slash", () => {
+    // Regression: globToRegExp's `*` → `[^/]*` used to let `/`-bearing commands
+    // slip past a `Bash(*)` deny.
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "cat /etc/passwd" },
+      cwd,
+      rules: { deny: ["Bash(*)"] },
+    });
+    expect(r.decision).toBe("deny");
+  });
+
+  it("`Read(**)` matches a nested path; `WebFetch(*)` matches any url", () => {
+    expect(
+      evaluatePermissionRules({
+        tool: "read_file",
+        args: { path: "a/b/c/deep.txt" },
+        cwd,
+        rules: { deny: ["Read(**)"] },
+      }).decision,
+    ).toBe("deny");
+    expect(
+      evaluatePermissionRules({
+        tool: "web_fetch",
+        args: { url: "https://any.example.org/path?q=1" },
+        cwd,
+        rules: { ask: ["WebFetch(*)"] },
+      }).decision,
+    ).toBe("ask");
+  });
+
+  it("a real (non-`*`) rule is unaffected — narrow patterns still scope", () => {
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "npm run build" },
+      cwd,
+      rules: { deny: ["Bash(rm:*)"] },
+    });
+    expect(r.decision).toBeNull();
+  });
+});
+
 describe("suggestAllowRule (always-allow derivation)", () => {
   it("keeps 2 tokens for a multi-verb command (git push)", () => {
-    expect(suggestAllowRule("run_shell", { command: "git push origin main" })).toBe(
-      "Bash(git push:*)",
-    );
-    expect(suggestAllowRule("run_shell", { command: "npm run test:unit" })).toBe(
-      "Bash(npm run:*)",
-    );
+    expect(
+      suggestAllowRule("run_shell", { command: "git push origin main" }),
+    ).toBe("Bash(git push:*)");
+    expect(
+      suggestAllowRule("run_shell", { command: "npm run test:unit" }),
+    ).toBe("Bash(npm run:*)");
   });
   it("keeps 1 token for a plain command", () => {
     expect(suggestAllowRule("run_shell", { command: "ls -la" })).toBe(
@@ -239,7 +315,9 @@ describe("suggestAllowRule (always-allow derivation)", () => {
     ).toBe("WebFetch(domain:example.com)");
   });
   it("the suggested rule actually allows the originating call", () => {
-    const rule = suggestAllowRule("run_shell", { command: "git push origin main" });
+    const rule = suggestAllowRule("run_shell", {
+      command: "git push origin main",
+    });
     const r = evaluatePermissionRules({
       tool: "run_shell",
       args: { command: "git push origin main" },

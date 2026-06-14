@@ -14,6 +14,8 @@
  *   Edit(//etc/**)        → edit_file on an absolute path under /etc
  *   WebFetch(domain:example.com) → web_fetch of https://example.com/…
  *   Bash                  → every run_shell call
+ *   *                     → every tool call (Claude-Code deny-all idiom)
+ *   Bash(*)               → every run_shell call (lone-`*` pattern = match-all)
  *
  * Pure + self-contained (no glob dependency — `globToRegExp` is built in, the
  * repo avoids pulling minimatch/picomatch). Decision precedence is
@@ -75,6 +77,8 @@ const URL_TOOLS = new Set(["web_fetch"]);
 function toolMatches(ruleTool, actualTool) {
   const r = String(ruleTool || "").toLowerCase();
   const a = String(actualTool || "");
+  // Claude-Code `*` deny-all: a bare-`*` tool token matches every tool.
+  if (r === "*") return true;
   if (Object.prototype.hasOwnProperty.call(TOOL_GROUPS, r)) {
     return TOOL_GROUPS[r].includes(a);
   }
@@ -88,7 +92,8 @@ function toolMatches(ruleTool, actualTool) {
 function parseRule(rule) {
   const raw = String(rule || "").trim();
   if (!raw) return null;
-  const m = raw.match(/^([A-Za-z_][\w-]*)\s*(?:\(([\s\S]*)\))?$/);
+  // Tool token is an umbrella/CLI name OR a bare `*` (Claude-Code deny-all).
+  const m = raw.match(/^(\*|[A-Za-z_][\w-]*)\s*(?:\(([\s\S]*)\))?$/);
   if (!m) return null;
   const tool = m[1];
   const pattern = m[2] === undefined ? null : m[2].trim();
@@ -198,6 +203,11 @@ function matchUrl(pattern, url) {
  */
 function matchPattern(pattern, actualTool, args, cwd) {
   if (pattern === null) return true;
+  // A lone `*` / `**` pattern matches any target regardless of slashes — covers
+  // `Bash(*)`, `Read(**)`, `WebFetch(*)`, etc. Done before the glob path so a
+  // command/url/path containing `/` can't slip past a deny-all (globToRegExp's
+  // `*` → `[^/]*` otherwise excludes slashes).
+  if (pattern === "*" || pattern === "**") return true;
   const target = extractTarget(actualTool, args, cwd);
   if (target.kind === "command") {
     return target.value ? matchCommand(pattern, target.value) : false;
