@@ -21,6 +21,11 @@ const {
   buildReviewPrompt,
   runReview,
   registerReviewCommand,
+  parseFindings,
+  buildCommentBody,
+  buildReviewPayload,
+  postReviewComments,
+  runReviewComment,
 } = await import("../../src/commands/review.js");
 
 describe("resolveDiffArgs", () => {
@@ -202,6 +207,152 @@ describe("runReview", () => {
   });
 });
 
+describe("buildReviewPrompt — comment mode", () => {
+  it("asks for a JSON findings array and forbids prose", () => {
+    const p = buildReviewPrompt({ diff: "x", comment: true });
+    expect(p).toMatch(/ONLY a JSON array/i);
+    expect(p).toMatch(/"severity"/);
+    expect(p).toMatch(/output exactly \[\]/i);
+    expect(p).not.toMatch(/Markdown report/i);
+  });
+});
+
+describe("parseFindings", () => {
+  it("parses a bare JSON array", () => {
+    const f = parseFindings(
+      '[{"path":"a.js","line":3,"severity":"High","title":"bug","body":"fix it"}]',
+    );
+    expect(f).toEqual([
+      { path: "a.js", line: 3, severity: "High", title: "bug", body: "fix it" },
+    ]);
+  });
+  it("strips a ```json fence and surrounding prose", () => {
+    const f = parseFindings(
+      'Here are findings:\n```json\n[{"path":"b.ts","line":10,"body":"x"}]\n```\nThanks',
+    );
+    expect(f).toHaveLength(1);
+    expect(f[0].path).toBe("b.ts");
+    expect(f[0].severity).toBe("Note"); // default when missing
+  });
+  it("returns [] for empty / no-array / invalid", () => {
+    expect(parseFindings("")).toEqual([]);
+    expect(parseFindings("no json here")).toEqual([]);
+    expect(parseFindings("[not valid")).toEqual([]);
+    expect(parseFindings("[]")).toEqual([]);
+  });
+  it("drops findings without a valid path/line", () => {
+    const f = parseFindings(
+      '[{"path":"a","line":1,"body":"ok"},{"line":2,"body":"no path"},{"path":"b","line":0,"body":"bad line"}]',
+    );
+    expect(f).toHaveLength(1);
+    expect(f[0].path).toBe("a");
+  });
+});
+
+describe("buildCommentBody / buildReviewPayload", () => {
+  it("formats a comment body with severity + title", () => {
+    expect(
+      buildCommentBody({ severity: "High", title: "T", body: "B" }),
+    ).toBe("**[High]** T\n\nB");
+  });
+  it("builds a GitHub review payload with inline comments", () => {
+    const payload = buildReviewPayload(
+      [{ path: "a.js", line: 5, severity: "Low", title: "t", body: "b" }],
+      { commitId: "abc123" },
+    );
+    expect(payload.event).toBe("COMMENT");
+    expect(payload.commit_id).toBe("abc123");
+    expect(payload.comments).toEqual([
+      { path: "a.js", line: 5, side: "RIGHT", body: "**[Low]** t\n\nb" },
+    ]);
+  });
+});
+
+describe("postReviewComments", () => {
+  it("POSTs the review payload to the PR via gh api", () => {
+    const gh = vi.fn(() => '{"id":1}');
+    const r = postReviewComments(
+      { repo: "o/r", number: 7 },
+      [{ path: "a", line: 1, severity: "Low", title: "t", body: "b" }],
+      { gh, cwd: "/repo", commitId: "sha1" },
+    );
+    expect(r).toEqual({ id: 1 });
+    const [args, opts] = gh.mock.calls[0];
+    expect(args).toEqual([
+      "api",
+      "--method",
+      "POST",
+      "repos/o/r/pulls/7/reviews",
+      "--input",
+      "-",
+    ]);
+    const sent = JSON.parse(opts.input);
+    expect(sent.commit_id).toBe("sha1");
+    expect(sent.comments[0].path).toBe("a");
+  });
+  it("throws when the PR isn't resolved", () => {
+    expect(() => postReviewComments({}, [], { gh: vi.fn() })).toThrow(
+      /not resolved/,
+    );
+  });
+});
+
+describe("runReviewComment", () => {
+  const prJson = JSON.stringify({
+    number: 12,
+    baseRefName: "main",
+    headRefName: "feat",
+    headRefOid: "deadbeef",
+    url: "https://gh/pr/12",
+  });
+  const commentDeps = (over = {}) => ({
+    git: makeGit(),
+    isGitRepo: () => true,
+    loadConfig: () => ({ llm: {} }),
+    applyConfigLlmDefaults: vi.fn(),
+    gh: vi.fn((args) => (args[1] === "view" ? prJson : '{"nameWithOwner":"o/r"}')),
+    runAgentHeadless: vi.fn(async () => ({
+      result:
+        '[{"path":"a.js","line":2,"severity":"High","title":"bug","body":"fix"}]',
+      isError: false,
+    })),
+    ...over,
+  });
+
+  it("resolves the PR, defaults scope to PR base, returns findings", async () => {
+    const deps = commentDeps();
+    const res = await runReviewComment({ cwd: "/repo" }, deps);
+    expect(res.pr.number).toBe(12);
+    expect(res.findings).toHaveLength(1);
+    expect(res.findings[0].path).toBe("a.js");
+    // diff requested against the PR base (main...HEAD)
+    const diffCall = deps.git.mock.calls.find(
+      (c) => c[0][0] === "diff" && !c[0].includes("--stat"),
+    );
+    expect(diffCall[0]).toEqual(["diff", "main...HEAD"]);
+    // ran read-only (plan mode)
+    expect(deps.runAgentHeadless.mock.calls[0][0].permissionMode).toBe("plan");
+  });
+
+  it("propagates a missing-PR error", async () => {
+    const deps = commentDeps({
+      gh: vi.fn(() => {
+        throw new Error("no pull requests found");
+      }),
+    });
+    await expect(runReviewComment({ cwd: "/repo" }, deps)).rejects.toThrow(
+      /no open PR/,
+    );
+  });
+
+  it("returns empty when the PR diff is empty", async () => {
+    const deps = commentDeps({ git: makeGit({ diff: "", stat: "" }) });
+    const res = await runReviewComment({ cwd: "/repo" }, deps);
+    expect(res.empty).toBe(true);
+    expect(deps.runAgentHeadless).not.toHaveBeenCalled();
+  });
+});
+
 describe("registerReviewCommand", () => {
   it("registers a `review` command with the key options", () => {
     const program = new Command();
@@ -217,6 +368,8 @@ describe("registerReviewCommand", () => {
         "--security",
         "--simplify",
         "--no-checkpoint",
+        "--comment",
+        "--dry-run",
       ]),
     );
   });
