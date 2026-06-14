@@ -69,6 +69,7 @@ const DISPLAY_NAMES = Object.freeze({
   "ai-chat-history": "AI 对话历史",
   "apple-health": "Apple 健康",
   "netease-music": "网易云音乐",
+  "music-kugou": "酷狗音乐",
   "weread": "微信读书",
   "doc-wps": "WPS 云文档",
   "doc-tencent-docs": "腾讯文档",
