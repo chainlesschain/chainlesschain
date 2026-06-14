@@ -20,6 +20,7 @@ import {
 import {
   createAndOpenProject,
   createTestFile,
+  refreshFileList,
   selectFileInTree,
 } from "../helpers/project-detail";
 
@@ -56,11 +57,17 @@ test.describe("生产 AI 对话页 - 当前文件上下文门控", () => {
         content: "# Active file body for context",
         fileType: "markdown",
       });
-      await selectFileInTree(window, "active-note.md");
+      // The tree is loaded at project-open; refresh so the new file shows up.
+      await refreshFileList(window);
+      const opened = await selectFileInTree(window, "active-note.md");
+      expect(opened).toBe(true);
       await window.waitForTimeout(800);
 
       // 3) 回到 /ai/chat → 「包含当前文件」开关出现
       await gotoAiChat(window);
+      // Wait for AIChatPage to mount (its input) before asserting the toggle,
+      // so the assertion doesn't race the route/render.
+      await window.waitForSelector("textarea", { timeout: 15000 });
       await window.waitForSelector('[data-testid="file-context-toggle"]', {
         timeout: 10000,
       });
