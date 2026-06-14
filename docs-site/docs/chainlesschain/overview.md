@@ -1867,7 +1867,7 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 | ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`                                 | Skill-Embedded MCP mount/unmount（26 tests）    |
 | ✅ `packages/session-core/__tests__/quality-gate.test.js`                          | QualityGate 可插拔检查器注册表（39 tests）      |
 | ✅ `desktop-app-vue/tests/unit/cowork/debate-review.test.js`                       | Cowork debate-review 冲突仲裁（18 tests）       |
-| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 149 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
+| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 155 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
 
 **全项目合计**: 30,000+ tests（Desktop ~28k + CLI ~19k + web-panel ~2k + core packages ~2k）
 

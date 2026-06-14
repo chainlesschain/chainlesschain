@@ -7,7 +7,7 @@ ensureUtf8();
 // Force blocking stdio when piped, so process.exit() flushes the full output
 // before the process tears down. Without this, macOS (and occasionally Linux)
 // can drop tail bytes from large outputs like `chainlesschain --help` (~13KB
-// across 138 commands) when consumed via execSync/spawnSync `stdio: pipe`.
+// across 155 commands) when consumed via execSync/spawnSync `stdio: pipe`.
 // No-op on TTY — terminals are already line-buffered. Idiomatic for Node
 // CLIs (npm, yarn, eslint all do the equivalent).
 if (!process.stdout.isTTY && process.stdout._handle?.setBlocking) {
