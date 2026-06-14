@@ -68,6 +68,8 @@ const { QQPcAdapter } = require("./adapters/qq-pc");
 const { AppleHealthAdapter } = require("./adapters/apple-health");
 const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { WeReadAdapter } = require("./adapters/weread");
+const { WpsDocAdapter } = require("./adapters/doc-wps");
+const { TencentDocsAdapter } = require("./adapters/doc-tencent-docs");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
@@ -300,6 +302,8 @@ module.exports = {
   AppleHealthAdapter,
   NeteaseMusicAdapter,
   WeReadAdapter,
+  WpsDocAdapter,
+  TencentDocsAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   TelegramAdapter,
