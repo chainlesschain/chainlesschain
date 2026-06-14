@@ -169,3 +169,58 @@ AIChatPage.vue → ipcRenderer.invoke("conversation:agent-chat", chatData)
 | `desktop-app-vue/src/main/ai-engine/function-caller.js` | 桌面版 Agent FunctionCaller |
 | `desktop-app-vue/src/main/conversation/conversation-ipc.js` | 桌面版 conversation:agent-chat handler |
 | `desktop-app-vue/src/renderer/pages/AIChatPage.vue` | 桌面版 Agent 模式 UI |
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为系统设计子文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文「模块概述 / 功能描述」。Agent 智能增强系统：Agent 能力智能增强。
+
+### 2. 核心特性
+Agent 增强 / 上下文注入 / 工具 / 记忆。
+
+### 3. 系统架构
+见正文「架构设计」。
+
+### 4. 系统定位
+ChainlessChain 的「Agent 智能增强系统」。
+
+### 5. 核心功能
+见正文模块概述与各节。
+
+### 6. 技术架构
+见正文实现章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节。
+
+### 12. 测试覆盖
+见正文测试章节。
+
+### 13. 安全考虑
+见正文安全 / 权限章节。
+
+### 14. 故障排除
+见正文故障 / 已知限制章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文使用 / API 示例。
+
+### 17. 相关文档
+[系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。

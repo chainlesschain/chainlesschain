@@ -264,3 +264,58 @@ SSO Manager V2、Workflow Engine V2、Crypto Manager V2。
 
 - 第十一批预计覆盖：`llm-provider-registry`（rate-limit / fallback-chain 子治理）、`did-v2-manager`（与 did-manager V2 合并到统一 governance pattern）、`agent-federation-hub`、运行态告警 / 审计日志 / Dashboards 的 V2 signal / rule 对抽象。
 - 工具链：补齐 V2 治理表面的 REST 映射（`/v2/:module/:entity`、`/v2/:module/:record`）与 OpenAPI 生成；`cc gov-stats-v2 --all` 汇总器将枚举所有 lib 级治理表面。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为系统设计子文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文「模块概述 / 功能描述」。V2 规范层（Governance Layer）设计说明：V2 治理规范层。
+
+### 2. 核心特性
+V2 治理 / 规范层 / governance。
+
+### 3. 系统架构
+见正文「架构设计」。
+
+### 4. 系统定位
+ChainlessChain 的「V2 规范层（Governance Layer）」。
+
+### 5. 核心功能
+见正文模块概述与各节。
+
+### 6. 技术架构
+见正文实现章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节。
+
+### 12. 测试覆盖
+见正文测试章节。
+
+### 13. 安全考虑
+见正文安全 / 权限章节。
+
+### 14. 故障排除
+见正文故障 / 已知限制章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文使用 / API 示例。
+
+### 17. 相关文档
+[系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。
