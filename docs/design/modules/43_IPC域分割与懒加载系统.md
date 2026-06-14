@@ -354,3 +354,58 @@ const { app, database, mainWindow, llmManager, aiEngineManager } =
 `registerAllIPC()` 内部某些 phase 通过 `aiEngineManager.initialize()` 触发的 `getProjectConfig()` 调用是 M2（启动期同步 IO 异步化）任务的最后一块。v0.45.58 把 `project-config.js` 增加 `getProjectConfigAsync()` 工厂，并把 `ai-engine-manager.js` / `ai-engine-manager-p1.js` / `ai-engine-manager-optimized.js` 三个变体的 `initialize()` 方法改用 `await getProjectConfigAsync()`，从而消除了 IPC 注册路径上最后一处启动期 `existsSync` + `readFileSync` 调用。
 
 详见 `M2 启动期同步 IO 异步化` 任务（任务 #7）的总览，覆盖 11 个模块（unified-config-manager / ai-engine-config / tool-skill-mapper-config / mcp-config-loader / database-config / logger / git-auto-commit / project-config + 3 个 ai-engine-manager 变体）。所有改造均使用 `_deps` 注入模式以保持单元测试可 mock，同步 API 作为运行时快路径保留。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为系统设计子文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文「模块概述 / 功能描述」。Phase 78 IPC 域分割与懒加载系统：主进程 IPC 按域分割 + 懒加载。
+
+### 2. 核心特性
+IPC Domain Split / 懒加载 / 启动提速。
+
+### 3. 系统架构
+见正文「架构设计」。
+
+### 4. 系统定位
+ChainlessChain 的「IPC 域分割与懒加载系统」。
+
+### 5. 核心功能
+见正文模块概述与各节。
+
+### 6. 技术架构
+见正文实现章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节。
+
+### 12. 测试覆盖
+见正文测试章节。
+
+### 13. 安全考虑
+见正文安全 / 权限章节。
+
+### 14. 故障排除
+见正文故障 / 已知限制章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文使用 / API 示例。
+
+### 17. 相关文档
+[系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。
