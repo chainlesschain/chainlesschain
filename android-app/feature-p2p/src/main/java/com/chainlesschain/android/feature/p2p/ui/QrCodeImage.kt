@@ -36,11 +36,12 @@ fun QrCodeImage(
     text: String,
     size: Dp = 240.dp,
     modifier: Modifier = Modifier,
+    eccLevel: ErrorCorrectionLevel = ErrorCorrectionLevel.H,
 ) {
     if (text.isEmpty()) return
 
     // remember on text 让相同 payload 不重复 encode，state 变化时自动刷新。
-    val bitmap = remember(text) { encodeQrBitmap(text) } ?: return
+    val bitmap = remember(text, eccLevel) { encodeQrBitmap(text, eccLevel = eccLevel) } ?: return
     Image(
         painter = BitmapPainter(bitmap.asImageBitmap()),
         contentDescription = "QR 配对码",
@@ -57,6 +58,7 @@ fun QrCodeImage(
 internal fun encodeBitMatrix(
     text: String,
     sizePx: Int = QR_BITMAP_SIZE_PX,
+    eccLevel: ErrorCorrectionLevel = ErrorCorrectionLevel.H,
 ): BitMatrix? {
     if (text.isEmpty()) {
         Timber.w("[QrCodeImage] encodeBitMatrix: empty text, skipping")
@@ -64,7 +66,7 @@ internal fun encodeBitMatrix(
     }
     return try {
         val hints = mapOf(
-            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H,
+            EncodeHintType.ERROR_CORRECTION to eccLevel,
             EncodeHintType.MARGIN to 1, // ECC 自带余量，margin=1 更紧凑
             EncodeHintType.CHARACTER_SET to "UTF-8",
         )
@@ -107,7 +109,8 @@ internal fun bitMatrixToBitmap(matrix: BitMatrix): Bitmap {
 internal fun encodeQrBitmap(
     text: String,
     sizePx: Int = QR_BITMAP_SIZE_PX,
-): Bitmap? = encodeBitMatrix(text, sizePx)?.let(::bitMatrixToBitmap)
+    eccLevel: ErrorCorrectionLevel = ErrorCorrectionLevel.H,
+): Bitmap? = encodeBitMatrix(text, sizePx, eccLevel)?.let(::bitMatrixToBitmap)
 
 private const val QR_BITMAP_SIZE_PX = 512 // device 上 displayed 自动 scale 到 size Dp
 private const val COLOR_BLACK = 0xFF000000.toInt()

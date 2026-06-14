@@ -203,7 +203,17 @@ class QRCodeAnalyzer(
     private val onQRCodeScanned: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
-    private val reader = MultiFormatReader()
+    // TRY_HARDER + 限定 QR_CODE: 屏对屏/远距/反光下显著提升识别率 (默认 decode 太弱)。
+    private val reader = MultiFormatReader().apply {
+        setHints(
+            mapOf(
+                com.google.zxing.DecodeHintType.TRY_HARDER to true,
+                com.google.zxing.DecodeHintType.POSSIBLE_FORMATS to
+                    listOf(com.google.zxing.BarcodeFormat.QR_CODE),
+                com.google.zxing.DecodeHintType.CHARACTER_SET to "UTF-8",
+            ),
+        )
+    }
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
@@ -227,10 +237,13 @@ class QRCodeAnalyzer(
             val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
 
             try {
-                val result = reader.decode(binaryBitmap)
+                // decodeWithState 复用上面 setHints 的 TRY_HARDER 配置 (decode() 会忽略它)。
+                val result = reader.decodeWithState(binaryBitmap)
                 onQRCodeScanned(result.text)
             } catch (e: Exception) {
                 // No QR code found
+            } finally {
+                reader.reset()
             }
         }
 

@@ -275,16 +275,13 @@ private class QRCodeAnalyzer(
 
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
+                    // 不按 valueType 过滤: DID/JSON/base64 等常被 ML Kit 归为 TYPE_UNKNOWN,
+                    // 之前只收 TEXT/URL 会把有效配对/好友码静默丢弃 → 表现为"扫不上"。
                     for (barcode in barcodes) {
-                        when (barcode.valueType) {
-                            Barcode.TYPE_TEXT,
-                            Barcode.TYPE_URL -> {
-                                barcode.rawValue?.let { qrCode ->
-                                    lastScanTime = currentTime
-                                    onQRCodeDetected(qrCode)
-                                    Timber.d("QR code detected: $qrCode")
-                                }
-                            }
+                        barcode.rawValue?.let { qrCode ->
+                            lastScanTime = currentTime
+                            onQRCodeDetected(qrCode)
+                            Timber.d("QR code detected: $qrCode")
                         }
                     }
                 }

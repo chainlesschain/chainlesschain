@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.feature.p2p.ui.QrCodeImage
 import com.chainlesschain.android.feature.p2p.ui.QRCodeScannerScreen
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 
 /**
  * 家长↔孩子配对绑定屏 (FAMILY-13 协议接 UI)。家庭 tab「配对绑定」卡导航至此。
@@ -183,7 +184,8 @@ private fun ParentPane(state: FamilyPairingUiState, onGenerate: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            QrCodeImage(text = state.inviteToken, size = 240.dp)
+            // ECC-L + 大尺寸: 屏对屏扫描无物理损伤, 低容错=更少模块=更易对焦扫中。
+            QrCodeImage(text = state.inviteToken, size = 300.dp, eccLevel = ErrorCorrectionLevel.L)
             state.acceptanceCode?.let { code ->
                 Text("接受码（口头/IM 告诉孩子）", style = MaterialTheme.typography.labelMedium)
                 Text(
