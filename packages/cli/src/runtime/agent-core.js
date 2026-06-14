@@ -1409,10 +1409,18 @@ async function executeToolInner(
             cwd: task.cwd,
             shell: true,
             windowsHide: true,
-            // Same CC_SESSION_ID correlation as the foreground path.
+            // Same agent-identity env as the foreground path: CLAUDECODE marks
+            // "running under the agent"; the session id correlates work to the
+            // run (CC_SESSION_ID + CLAUDE_CODE_SESSION_ID for Claude-Code parity).
             env: {
               ...process.env,
-              ...(sessionId ? { CC_SESSION_ID: String(sessionId) } : {}),
+              CLAUDECODE: "1",
+              ...(sessionId
+                ? {
+                    CC_SESSION_ID: String(sessionId),
+                    CLAUDE_CODE_SESSION_ID: String(sessionId),
+                  }
+                : {}),
             },
             // POSIX: own process group so check_shell{kill}/teardown can signal
             // the whole tree (shell + its grandchild command). No-op on Windows
@@ -1471,11 +1479,19 @@ async function executeToolInner(
           encoding: "utf8",
           timeout: _resolveShellTimeout(args.timeout),
           maxBuffer: 1024 * 1024,
-          // CC_SESSION_ID (Claude-Code CLAUDE_CODE_SESSION_ID parity,
-          // 2.1.132): lets scripts/hooks correlate work to the agent session.
+          // Agent-identity env for shell subprocesses (Claude-Code 2.1.132
+          // parity): CLAUDECODE=1 marks "running under the agent"; CC_SESSION_ID
+          // + its CLAUDE_CODE_SESSION_ID mirror let scripts/hooks correlate work
+          // to the agent session (the mirror is what CC-targeting tools expect).
           env: {
             ...process.env,
-            ...(sessionId ? { CC_SESSION_ID: String(sessionId) } : {}),
+            CLAUDECODE: "1",
+            ...(sessionId
+              ? {
+                  CC_SESSION_ID: String(sessionId),
+                  CLAUDE_CODE_SESSION_ID: String(sessionId),
+                }
+              : {}),
           },
         });
         return attachDescriptor(
