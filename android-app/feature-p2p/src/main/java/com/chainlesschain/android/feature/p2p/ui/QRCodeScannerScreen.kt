@@ -250,13 +250,17 @@ class QRCodeAnalyzer(
     override fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
-            val buffer = mediaImage.planes[0].buffer
+            val plane = mediaImage.planes[0]
+            val buffer = plane.buffer
             val bytes = ByteArray(buffer.remaining())
             buffer.get(bytes)
 
+            // 关键修复: YUV plane 每行有 padding (rowStride 通常 > width), 必须用 rowStride
+            // 作 dataWidth, 否则逐行错位→需"完全对齐"才偶尔扫中。crop 区仍是真实 width×height。
+            val rowStride = plane.rowStride
             val source = PlanarYUVLuminanceSource(
                 bytes,
-                mediaImage.width,
+                rowStride,
                 mediaImage.height,
                 0,
                 0,
