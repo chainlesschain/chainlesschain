@@ -129,20 +129,23 @@ class UserProfileViewModel @Inject constructor(
      * 发送好友请求
      */
     fun sendFriendRequest() = launchSafely {
+        // 离线互加模型 (无 P2P 信令服务器/不同网段时也能用): 你是通过对方**已验证的 DID 二维码**
+        // 找到 ta 的, 等于面对面确认身份 → 本地直接记为 ACCEPTED 好友。双方各扫一次对方的码即互为好友,
+        // 不依赖好友请求经 P2P 送达对端。realtime 通知仍 best-effort 发出, 有 P2P 时对端会同步到。
         val friend = FriendEntity(
             did = userDid,
             nickname = uiState.value.userInfo?.nickname ?: "用户 ${userDid.take(8)}",
             avatar = uiState.value.userInfo?.avatar,
             bio = uiState.value.userInfo?.bio,
-            status = FriendStatus.PENDING,
+            status = FriendStatus.ACCEPTED,
             addedAt = System.currentTimeMillis()
         )
 
         friendRepository.addFriend(friend)
             .onSuccess {
-                realtimeEventManager.sendFriendRequest(userDid, null)
-                updateState { copy(relationship = FriendshipStatus.PENDING_SENT) }
-                sendEvent(UserProfileEvent.ShowToast("好友请求已发送"))
+                realtimeEventManager.sendFriendRequest(userDid, null) // best-effort: 有 P2P 时对端同步
+                updateState { copy(relationship = FriendshipStatus.FRIEND) }
+                sendEvent(UserProfileEvent.ShowToast("已添加为好友"))
             }.onError { error ->
                 handleError(error)
             }
