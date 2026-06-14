@@ -70,6 +70,8 @@ const DISPLAY_NAMES = Object.freeze({
   "apple-health": "Apple 健康",
   "netease-music": "网易云音乐",
   "music-kugou": "酷狗音乐",
+  "video-iqiyi": "爱奇艺",
+  "video-tencent": "腾讯视频",
   "weread": "微信读书",
   "doc-wps": "WPS 云文档",
   "doc-tencent-docs": "腾讯文档",
