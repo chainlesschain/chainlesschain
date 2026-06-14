@@ -179,12 +179,13 @@ fun CameraPreview(
 
                 try {
                     cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
+                    val camera = cameraProvider.bindToLifecycle(
                         lifecycleOwner,
                         cameraSelector,
                         preview,
                         imageAnalyzer
                     )
+                    enableContinuousAndTapFocus(previewView, camera)
                 } catch (e: Exception) {
                     // Handle camera binding error
                 }
@@ -194,6 +195,36 @@ fun CameraPreview(
         },
         modifier = Modifier.fillMaxSize()
     )
+}
+
+/**
+ * 屏对屏小二维码必须主动对焦: 布局后对中心点持续触发 AF + 点按对焦。默认 3A 在密集
+ * QR / 反光屏上常对不上, 表现为"需完全对齐才扫得到"。
+ */
+private fun enableContinuousAndTapFocus(previewView: PreviewView, camera: androidx.camera.core.Camera) {
+    previewView.post {
+        val w = previewView.width.toFloat()
+        val h = previewView.height.toFloat()
+        if (w > 0f && h > 0f) {
+            val center = previewView.meteringPointFactory.createPoint(w / 2f, h / 2f)
+            val action = androidx.camera.core.FocusMeteringAction
+                .Builder(center, androidx.camera.core.FocusMeteringAction.FLAG_AF)
+                .setAutoCancelDuration(2, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            runCatching { camera.cameraControl.startFocusAndMetering(action) }
+        }
+    }
+    previewView.setOnTouchListener { v, event ->
+        if (event.action == android.view.MotionEvent.ACTION_UP) {
+            val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)
+            val action = androidx.camera.core.FocusMeteringAction
+                .Builder(pt, androidx.camera.core.FocusMeteringAction.FLAG_AF)
+                .build()
+            runCatching { camera.cameraControl.startFocusAndMetering(action) }
+            v.performClick()
+        }
+        true
+    }
 }
 
 /**

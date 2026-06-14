@@ -222,12 +222,36 @@ private fun CameraPreview(
 
                     // 绑定到生命周期
                     cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
+                    val camera = cameraProvider.bindToLifecycle(
                         lifecycleOwner,
                         cameraSelector,
                         preview,
                         imageAnalysis
                     )
+                    // 屏对屏二维码必须主动对焦 (默认 3A 常对不上); 中心持续 AF + 点按对焦。
+                    previewView.post {
+                        val w = previewView.width.toFloat()
+                        val h = previewView.height.toFloat()
+                        if (w > 0f && h > 0f) {
+                            val center = previewView.meteringPointFactory.createPoint(w / 2f, h / 2f)
+                            val act = androidx.camera.core.FocusMeteringAction
+                                .Builder(center, androidx.camera.core.FocusMeteringAction.FLAG_AF)
+                                .setAutoCancelDuration(2, java.util.concurrent.TimeUnit.SECONDS)
+                                .build()
+                            runCatching { camera.cameraControl.startFocusAndMetering(act) }
+                        }
+                    }
+                    previewView.setOnTouchListener { v, event ->
+                        if (event.action == android.view.MotionEvent.ACTION_UP) {
+                            val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)
+                            val act = androidx.camera.core.FocusMeteringAction
+                                .Builder(pt, androidx.camera.core.FocusMeteringAction.FLAG_AF)
+                                .build()
+                            runCatching { camera.cameraControl.startFocusAndMetering(act) }
+                            v.performClick()
+                        }
+                        true
+                    }
                 } catch (e: Exception) {
                     Timber.e(e, "Camera bind failed")
                 }
