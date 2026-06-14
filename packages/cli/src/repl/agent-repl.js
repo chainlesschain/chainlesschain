@@ -73,7 +73,10 @@ import {
 } from "../runtime/agent-core.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
-import { makeFallbackChatFn } from "../runtime/fallback-model.js";
+import {
+  makeFallbackChatFn,
+  normalizeFallbackModels,
+} from "../runtime/fallback-model.js";
 import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
@@ -245,12 +248,19 @@ export async function startAgentRepl(options = {}) {
   // can `cc checkpoint restore` to just before any tool call.
   const autoCheckpoint = options.autoCheckpoint === true;
 
-  // --fallback-model: retry a turn's LLM call once on a backup model when the
-  // primary errors out (overload / network). Built once; passed into every
-  // agentLoop call via chatFn. Undefined when no fallback configured.
-  const _fallbackChatFn = options.fallbackModel
+  // --fallback-model: walk an ordered backup-model chain when a turn's LLM
+  // call fails (transient error or model-not-found). Built once; passed into
+  // every agentLoop call via chatFn. Accepts the resolved chain
+  // (options.fallbackModels) or a legacy single model (options.fallbackModel).
+  // Undefined when no fallback configured.
+  const _fallbackModels = normalizeFallbackModels(
+    options.fallbackModels != null
+      ? options.fallbackModels
+      : options.fallbackModel,
+  );
+  const _fallbackChatFn = _fallbackModels.length
     ? makeFallbackChatFn({
-        fallbackModel: options.fallbackModel,
+        fallbackModels: _fallbackModels,
         onFallback: ({ from, to, error }) =>
           logger.info(
             chalk.yellow(

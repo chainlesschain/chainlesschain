@@ -6,8 +6,11 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   isRetryableModelError,
+  isModelNotFoundError,
+  normalizeFallbackModels,
   makeFallbackChatFn,
 } from "../../src/runtime/fallback-model.js";
+import { resolveFallbackModels } from "../../src/commands/agent.js";
 
 describe("isRetryableModelError", () => {
   it("is true for overload / rate-limit / transient status codes", () => {
@@ -105,5 +108,148 @@ describe("makeFallbackChatFn", () => {
       "backup also 503",
     );
     expect(baseChatFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("walks an ordered chain until one model succeeds", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("overloaded")) // primary
+      .mockRejectedValueOnce(new Error("503")) // backup-1
+      .mockResolvedValueOnce({ message: { content: "from-2" } }); // backup-2
+    const onFallback = vi.fn();
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["backup-1", "backup-2"],
+      baseChatFn,
+      onFallback,
+    });
+
+    const r = await fn([], { model: "primary", provider: "ollama" });
+
+    expect(r.message.content).toBe("from-2");
+    expect(baseChatFn).toHaveBeenCalledTimes(3);
+    expect(baseChatFn.mock.calls[1][1]).toMatchObject({ model: "backup-1" });
+    expect(baseChatFn.mock.calls[2][1]).toMatchObject({
+      model: "backup-2",
+      provider: "ollama",
+    });
+    expect(onFallback).toHaveBeenNthCalledWith(1, {
+      from: "primary",
+      to: "backup-1",
+      error: "overloaded",
+    });
+    expect(onFallback).toHaveBeenNthCalledWith(2, {
+      from: "backup-1",
+      to: "backup-2",
+      error: "503",
+    });
+  });
+
+  it("throws the last error when the whole chain is exhausted", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("overloaded"))
+      .mockRejectedValueOnce(new Error("b1 503"))
+      .mockRejectedValueOnce(new Error("b2 timeout"));
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["b1", "b2"],
+      baseChatFn,
+    });
+    await expect(fn([], { model: "primary" })).rejects.toThrow("b2 timeout");
+    expect(baseChatFn).toHaveBeenCalledTimes(3);
+  });
+
+  it("falls back when the primary model is not found (non-transient)", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("model not found: gpt-old"))
+      .mockResolvedValueOnce({ message: { content: "recovered" } });
+    const fn = makeFallbackChatFn({ fallbackModel: "backup", baseChatFn });
+    const r = await fn([], { model: "gpt-old" });
+    expect(r.message.content).toBe("recovered");
+    expect(baseChatFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips a fallback identical to the model just tried", async () => {
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("overloaded"))
+      .mockResolvedValueOnce({ message: { content: "ok" } });
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["primary", "backup"], // first dup of primary is skipped
+      baseChatFn,
+    });
+    const r = await fn([], { model: "primary" });
+    expect(r.message.content).toBe("ok");
+    // primary (fail) → skip "primary" dup → "backup" (ok) = 2 calls, not 3
+    expect(baseChatFn).toHaveBeenCalledTimes(2);
+    expect(baseChatFn.mock.calls[1][1]).toMatchObject({ model: "backup" });
+  });
+});
+
+describe("isModelNotFoundError", () => {
+  it("is true for 404 and not-found / unknown-model phrasings", () => {
+    expect(isModelNotFoundError({ status: 404 })).toBe(true);
+    expect(isModelNotFoundError(new Error("model not found"))).toBe(true);
+    expect(isModelNotFoundError(new Error("model_not_found"))).toBe(true);
+    expect(isModelNotFoundError(new Error("Unknown model: foo"))).toBe(true);
+    expect(
+      isModelNotFoundError(new Error("The model abc does not exist")),
+    ).toBe(true);
+    expect(isModelNotFoundError(new Error("invalid model id"))).toBe(true);
+  });
+
+  it("is false for transient, auth, and nullish errors", () => {
+    expect(isModelNotFoundError(null)).toBe(false);
+    expect(isModelNotFoundError(new Error("overloaded"))).toBe(false);
+    expect(isModelNotFoundError({ status: 429 })).toBe(false);
+    expect(isModelNotFoundError({ status: 401 })).toBe(false);
+    expect(isModelNotFoundError(new Error("invalid prompt"))).toBe(false);
+  });
+});
+
+describe("normalizeFallbackModels", () => {
+  it("returns [] for nullish / non-string input", () => {
+    expect(normalizeFallbackModels(null)).toEqual([]);
+    expect(normalizeFallbackModels(undefined)).toEqual([]);
+    expect(normalizeFallbackModels([42, {}])).toEqual([]);
+  });
+
+  it("splits comma lists, trims, drops empties, and dedupes", () => {
+    expect(normalizeFallbackModels("a, b ,,a, c")).toEqual(["a", "b", "c"]);
+    expect(normalizeFallbackModels(["a", "b,c", "b"])).toEqual(["a", "b", "c"]);
+  });
+
+  it("caps the chain at 3 models", () => {
+    expect(normalizeFallbackModels("a,b,c,d,e")).toEqual(["a", "b", "c"]);
+    expect(normalizeFallbackModels(["a", "b", "c", "d"])).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+});
+
+describe("resolveFallbackModels (flag > config)", () => {
+  it("prefers the flag array over config", () => {
+    expect(
+      resolveFallbackModels(["x", "y"], { fallbackModels: ["a", "b"] }),
+    ).toEqual(["x", "y"]);
+  });
+
+  it("falls back to config llm.fallbackModels when no flag", () => {
+    expect(resolveFallbackModels(undefined, { fallbackModels: "a,b" })).toEqual(
+      ["a", "b"],
+    );
+  });
+
+  it("supports legacy config llm.fallbackModel (single)", () => {
+    expect(resolveFallbackModels(undefined, { fallbackModel: "solo" })).toEqual(
+      ["solo"],
+    );
+  });
+
+  it("returns [] when neither flag nor config provides a chain", () => {
+    expect(resolveFallbackModels(undefined, {})).toEqual([]);
+    expect(resolveFallbackModels([], undefined)).toEqual([]);
   });
 });

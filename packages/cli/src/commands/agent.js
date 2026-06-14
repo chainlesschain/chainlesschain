@@ -10,7 +10,10 @@ import path from "node:path";
 import fs from "node:fs";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
-import { makeFallbackChatFn } from "../runtime/fallback-model.js";
+import {
+  makeFallbackChatFn,
+  normalizeFallbackModels,
+} from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
 
@@ -54,6 +57,25 @@ export function resolveThinkingBudget(raw) {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return undefined;
   return Math.floor(n);
+}
+
+/**
+ * Resolve the ordered fallback-model chain for a run. The `--fallback-model`
+ * flag (repeatable / comma-separated → array) takes precedence; otherwise the
+ * configured `llm.fallbackModels` (array or comma string) or legacy
+ * `llm.fallbackModel` (single) seeds the chain so unattended runs need no flag.
+ * Pure; exported for tests. Normalization (trim / dedupe / cap-at-3) is applied.
+ *
+ * @param {string[]|string|undefined} flagValue  raw --fallback-model value
+ * @param {object} [llm]                          config.llm block
+ * @returns {string[]}
+ */
+export function resolveFallbackModels(flagValue, llm = {}) {
+  const fromFlag = normalizeFallbackModels(flagValue);
+  if (fromFlag.length) return fromFlag;
+  const configured =
+    llm && llm.fallbackModels != null ? llm.fallbackModels : llm?.fallbackModel;
+  return normalizeFallbackModels(configured);
 }
 
 /**
@@ -212,7 +234,8 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--fallback-model <model>",
-      "Retry once on this model when the primary fails (overload/network)",
+      "Backup model(s) to try in order when the primary fails (transient error or model-not-found). Repeatable or comma-separated; up to 3. Defaults to config llm.fallbackModels. claude-code parity.",
+      (val, prev) => (prev || []).concat([val]),
     )
     .option(
       "--include-partial-messages",
@@ -268,9 +291,8 @@ export function registerAgentCommand(program) {
       let _worktree = null;
       if (options.worktree) {
         try {
-          const { setupAgentWorktree } = await import(
-            "../lib/agent-worktree.js"
-          );
+          const { setupAgentWorktree } =
+            await import("../lib/agent-worktree.js");
           _worktree = setupAgentWorktree({ cwd: process.cwd() });
           process.chdir(_worktree.path);
           process.stderr.write(
@@ -284,9 +306,8 @@ export function registerAgentCommand(program) {
       const _finishWorktree = async () => {
         if (!_worktree) return;
         try {
-          const { finishAgentWorktree } = await import(
-            "../lib/agent-worktree.js"
-          );
+          const { finishAgentWorktree } =
+            await import("../lib/agent-worktree.js");
           process.chdir(_worktree.repoRoot); // release the dir before removal
           const fin = finishAgentWorktree(_worktree);
           process.stderr.write(
@@ -301,9 +322,8 @@ export function registerAgentCommand(program) {
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.
-      const { resolveAutoCheckpoint } = await import(
-        "../lib/auto-checkpoint-default.js"
-      );
+      const { resolveAutoCheckpoint } =
+        await import("../lib/auto-checkpoint-default.js");
       const autoCheckpoint = resolveAutoCheckpoint({
         flagValue: options.checkpoint,
         flagSource: command?.getOptionValueSource?.("checkpoint"),
@@ -485,16 +505,23 @@ export function registerAgentCommand(program) {
       // --think/--ultrathink and on adaptive models). undefined 鈫?engine default.
       const thinkingBudget = resolveThinkingBudget(options.thinkingBudget);
 
-      // --fallback-model: a chatFn that retries once on the backup model when
-      // the primary errors out (overload / rate-limit / network). Passed into
-      // the headless runners via options.chatFn (the agent loop's seam), so no
-      // runner changes are needed. Notice goes to stderr to keep stdout clean.
-      const fallbackChatFn = options.fallbackModel
+      // --fallback-model: an ordered chain of backup models tried in turn when
+      // the primary errors out (transient overload / rate-limit / network) or
+      // the primary model id is not found. The flag (repeatable / comma-list)
+      // wins; otherwise config llm.fallbackModels (or llm.fallbackModel) seeds
+      // the chain so unattended runs need no flag. Passed into the headless
+      // runners via options.chatFn (the agent loop's seam), so no runner
+      // changes are needed. Notice goes to stderr to keep stdout clean.
+      const fallbackModels = resolveFallbackModels(
+        options.fallbackModel,
+        loadConfig().llm || {},
+      );
+      const fallbackChatFn = fallbackModels.length
         ? makeFallbackChatFn({
-            fallbackModel: options.fallbackModel,
+            fallbackModels,
             onFallback: ({ from, to, error }) =>
               process.stderr.write(
-                `Note: model "${from}" failed (${error}); retrying with --fallback-model "${to}".\n`,
+                `Note: model "${from}" failed (${error}); retrying with fallback model "${to}".\n`,
               ),
           })
         : undefined;
@@ -727,8 +754,9 @@ export function registerAgentCommand(program) {
         appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
           cwd: process.cwd(),
         }),
-        // --fallback-model also applies interactively (wrapper built in the REPL)
-        fallbackModel: options.fallbackModel || null,
+        // --fallback-model also applies interactively (wrapper built in the
+        // REPL). Pass the fully resolved chain (flag + config default).
+        fallbackModels: fallbackModels.length ? fallbackModels : null,
         // --mcp-config + registered (cc mcp add) servers also apply to the
         // interactive session (the REPL resolves both via the mcp-config engine).
         mcpConfig: options.mcpConfig || null,

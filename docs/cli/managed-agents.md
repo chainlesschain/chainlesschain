@@ -146,6 +146,23 @@ chainlesschain agent --image a.png --image b.jpg -p "对比这两张图" --provi
   **anthropic** 转成 `image` content block(base64 source)。纯文本运行的请求形状**字节不变**。
 - 仅 headless 路径生效(`-p` / 位置参数 / stdin 管道);交互会话传 `--image` 会被忽略并给出提示。
 
+### 备用模型链(`--fallback-model`)
+
+无人值守运行时,当主模型调用失败就按顺序切到备用模型重试(Claude-Code 2.1.166/2.1.152 平价):
+
+```bash
+# 可重复传,或逗号分隔;最多 3 个,按序尝试
+chainlesschain agent -p "..." --fallback-model backup-a --fallback-model backup-b
+chainlesschain agent -p "..." --fallback-model "backup-a,backup-b,backup-c"
+```
+
+- **触发条件**:① 瞬时错误(overload / rate-limit / 5xx / 网络抖动 `isRetryableModelError`);② **主模型 not-found**(404 / "model not found" / "unknown model" / "does not exist" `isModelNotFoundError`)——配置的模型 id 被下线或拼错时也能自动切。普通 4xx(认证 / 配额 / 坏请求)**不**重试,直接抛出。
+- **同 provider**:每跳只换 `model`,保留 provider / baseUrl / apiKey(跨 provider fallback 是更大的特性,未做)。
+- **链式**:主 → 备1 → 备2 → 备3,逐个尝试直到成功或链耗尽(抛最后一个错误)。与刚试过的模型相同的备用项会被跳过(不浪费一次往返)。
+- **默认链**:不传 flag 时读 `config.llm.fallbackModels`(数组或逗号串)/ 旧式 `config.llm.fallbackModel`(单个),无人值守运行无需带 flag。flag 永远优先于 config。
+- **交互 REPL 也生效**:会话内 LLM 调用失败时同样按链重试,黄字提示每一跳。
+- 实现:纯模块 `src/runtime/fallback-model.js`(挂在 agentLoop 的 `options.chatFn` seam 上,runner 零改动);提示走 stderr 保持 stdout 干净。
+
 ## Cost — 估算 $ 花费
 
 在 `session usage`（token 计数）之上叠加价格层（`src/lib/llm-pricing.js`）。读取
@@ -1006,3 +1023,58 @@ Lifecycle values forwarded by `sessions.subscribe`: `created`, `adopted`,
 Cancel a streaming request by sending `{type:"cancel", id}` — the server
 calls `AbortController.abort()` which detaches listeners (`sessions.subscribe`)
 or aborts the in-flight fetch (`stream.run`).
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目用户文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文头部。CLI Managed Agents & Hosted Session API：托管 agent + headless 命令。
+
+### 2. 核心特性
+cc agent headless / cost / checkpoint / loop / hooks / 权限。
+
+### 3. 系统架构
+见正文 / [系统架构](../design/系统设计_主文档.md)（三端 + 双后端 + P2P）。
+
+### 4. 系统定位
+ChainlessChain 的「CLI 托管 Agent」。
+
+### 5. 核心功能
+见正文各节。
+
+### 6. 技术架构
+Electron + Vue3 / Spring Boot + FastAPI / libp2p + Signal / SQLCipher（按需）。
+
+### 7. 系统特点
+见正文（步骤 / 版本 / 注意事项）。
+
+### 8. 应用场景
+见正文使用场景。
+
+### 9. 竞品对比
+见正文对比（如有）。
+
+### 10. 配置参考
+见正文配置 / 环境变量章节；`.chainlesschain/config.json`。
+
+### 11. 性能指标
+见正文性能 / 资源要求（如有）。
+
+### 12. 测试覆盖
+见正文验证步骤（如有）。
+
+### 13. 安全考虑
+见正文安全 / 密钥章节；本地加密 + U盾/SIMKey（如适用）。
+
+### 14. 故障排除
+见正文故障排查 / 常见问题章节。
+
+### 15. 关键文件
+见正文涉及的文件 / 目录。
+
+### 16. 使用示例
+见正文命令 / 操作示例。
+
+### 17. 相关文档
+[快速开始](./QUICK_START.md)、[安装指南](./INSTALLATION.md)、其它用户文档。
