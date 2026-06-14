@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
-  description="ChainlessChain IDE bridge: VS Code (on Open VSX) + JetBrains (on Marketplace) extensions. Selection shared with every prompt, diagnostics fed back automatically, edits reviewed in the editor's native diff (hunk-level picking), Jupyter kernel execution, sidebar Chat panel (Plan mode + approval cards + session resume)."
+  description="ChainlessChain IDE bridge: VS Code (on Open VSX) + JetBrains (on Marketplace) extensions. Selection shared with every prompt, diagnostics fed back automatically, edits reviewed in the editor's native diff (hunk-level picking + Request-changes inline notes + openMultiDiff multi-file batch review), Jupyter kernel execution, sidebar Chat panel (Plan mode + approval cards + conversation tabs + session resume), in-editor app preview."
   canonical="https://www.chainlesschain.com/en/ide"
   locale="en"
 >
@@ -30,14 +30,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Six things, all automatic.</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Seven things, the moment you open the editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
           ['Self-fix', 'Diagnostics fed back', 'After the agent edits a file, language-server errors/warnings flow back into the tool result — it sees and fixes its own breakage within the same loop.'],
-          ['Review', 'Native diff approval', 'File-edit confirmation upgrades to the editor’s side-by-side diff: edit the right side, Accept replaces execution, hunk-level "Pick hunks…" partial accept, Reject never writes.'],
+          ['Review', 'Native diff approval', 'File-edit confirmation upgrades to the editor’s side-by-side diff: edit the right side, Accept replaces execution, hunk-level "Pick hunks…" partial accept, "Request changes…" inline notes that the agent revises against; a cross-file change can go through openMultiDiff for one batched multi-file review. Reject never writes.'],
           ['Execute', 'Jupyter kernel', 'executeCode runs code in the active notebook’s kernel and returns output, variables persist across calls (VS Code).'],
-          ['Chat', 'Sidebar Chat panel', 'Talk to the agent without a terminal: streaming replies + tool traces + Plan-mode cards + dangerous-op Approve/Deny cards + session resume + /sessions switcher.'],
+          ['Chat', 'Sidebar Chat panel', 'Talk to the agent without a terminal: streaming replies + tool traces + Plan-mode cards + Approve/Deny cards + multiple conversation tabs (each its own agent process, switching restores the transcript) + session resume + /sessions switcher.'],
+          ['Preview', 'In-editor app preview', 'Start App Preview finds your dev script → runs the dev server → detects the served URL → opens it in VS Code’s built-in Simple Browser; the dev server’s HMR handles live reload on edits.'],
           ['Complete', '@ files / slash commands', '@-path TAB completion ranks editor-open files first; the panel supports /new /plan /approve /reject /stop.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

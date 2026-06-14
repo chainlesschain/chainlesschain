@@ -7,8 +7,17 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.22.0（已发 Open VSX）
+> `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
+
+- **会话 tabs（Claude Code 平价）**：聊天面板支持多会话——标题栏每个 tab 显标题 + `×` 关闭，`+` 新建。每个 tab 独立持有自己的 `cc agent` 进程与 resume id；切换 tab 恢复该会话的 transcript，后台 tab 的输出不会串入当前可见会话；关闭一个 tab 激活相邻 tab，面板永不为空。
+- **App Preview（预览面板平价）**：「Start App Preview」自动识别项目的 dev 脚本（`dev` / `start` / `serve` … 或跑 vite/next/cra/webpack/astro 的脚本）→ 拉起 → 解析它打印的本地 URL → 用 VS Code 内置 Simple Browser 内嵌打开；dev server 自带 HMR 负责改文件即时热重载。「Stop App Preview」杀掉它。
+- **diff 行内批注（Request changes…）**：原生 diff 评审在 Accept / Reject 之外新增第三个选择「Request changes…」——对具体改动行写修改意见,文件不落盘,行锚意见回喂 agent 让其修订后重新提案。
+- **批量多文件 diff（`openMultiDiff`）**：agent 可把跨多个文件的整个 changeset 一次性放进原生多文件 diff 评审——Accept all / 勾选子集应用 / Reject——而非逐文件一次次确认。
+- **发布**：tag `ide-vscode-v0.22.0` → `ide-extensions.yml` 清洁室构建（vscode-ext 241 测试全绿 + 干净 38 文件 `.vsix`）发 Open VSX；本地 `vsce package` 实证产物一致。官方 Marketplace 仍跳过（无 `VSCE_PAT`，Azure 受限）。
+
 #### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.19.0 + 0.20.0 + 0.21.0（已发 Open VSX）
-> 独立版本轨（同 CLI npm）；`open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.21.0**。补齐对标 Claude Code IDE 的最后四个面板原生入口（设计文档 module 98 Phase 7）。
+> 独立版本轨（同 CLI npm）；`open-vsx.org/extension/chainlesschain/chainlesschain-ide` 早前 latest = **0.21.0**。补齐对标 Claude Code IDE 的最后四个面板原生入口（设计文档 module 98 Phase 7）。
 
 - **Fix with ChainlessChain（0.19.0）**：诊断（error/warning）上 QuickFix 灯泡 → 唤起聊天面板并种入**作用域修复请求**（文件以 `@<path>` 引用 + severity 标签 + 1-based 行号，上限 10 条）；命令面板/右键亦可，无灯泡参数时按 选区→光标行→全文 兜底收集问题。
 - **Explain / Refactor 选区右键（0.20.0）**：选中代码右键 → 种入引用 `@selection` 的请求（CLI 发送时展开为实时选区，不嵌码无时序耦合）+ 文件/行号指针；右键项仅 `editorHasSelection` 显示。
