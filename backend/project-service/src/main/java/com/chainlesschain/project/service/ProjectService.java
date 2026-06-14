@@ -334,7 +334,7 @@ public class ProjectService {
                 } else if (fileType.equals("word") || fileType.equals("pdf") || fileType.equals("excel") || fileType.equals("image")) {
                     // 二进制文件 - 假设content是base64或bytes
                     // 这里简化处理，实际需要根据具体情况解码
-                    Files.write(fullPath, content.getBytes());
+                    Files.write(fullPath, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 } else {
                     // 文本文件
                     Files.writeString(fullPath, content);
@@ -591,7 +591,10 @@ public class ProjectService {
 
     private void addZipEntry(java.util.zip.ZipOutputStream zos, String entryName, String content) throws Exception {
         zos.putNextEntry(new java.util.zip.ZipEntry(entryName));
-        zos.write(content.getBytes());
+        // Always UTF-8 so export/import round-trips on GBK-default JVMs (the
+        // import side reads with Files.readString which is UTF-8); a null body
+        // (e.g. a file row with no content) becomes an empty entry, not an NPE.
+        zos.write((content == null ? "" : content).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         zos.closeEntry();
     }
 

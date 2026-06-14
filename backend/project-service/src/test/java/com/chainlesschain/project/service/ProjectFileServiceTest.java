@@ -169,7 +169,9 @@ class ProjectFileServiceTest {
         assertEquals(request.getFileName(), result.getFileName());
 
         // 验证调用
-        verify(projectMapper, times(1)).selectById(testProjectId);
+        // createFile selects the project once to validate, then updateProjectStats
+        // selects it again before saving stats -> two selectById calls.
+        verify(projectMapper, times(2)).selectById(testProjectId);
         verify(projectFileMapper, times(1)).insert(any(ProjectFile.class));
         verify(projectMapper, times(1)).updateById(any(Project.class));
     }

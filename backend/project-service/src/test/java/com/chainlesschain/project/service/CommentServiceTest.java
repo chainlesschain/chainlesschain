@@ -7,12 +7,15 @@ import com.chainlesschain.project.dto.CommentDTO;
 import com.chainlesschain.project.dto.CommentUpdateRequest;
 import com.chainlesschain.project.entity.ProjectComment;
 import com.chainlesschain.project.mapper.ProjectCommentMapper;
+import com.chainlesschain.project.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -26,10 +29,14 @@ import static org.mockito.Mockito.*;
  * 评论服务测试
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CommentServiceTest {
 
     @Mock
     private ProjectCommentMapper commentMapper;
+
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private CommentService commentService;

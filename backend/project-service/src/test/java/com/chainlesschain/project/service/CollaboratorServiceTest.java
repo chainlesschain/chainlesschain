@@ -6,6 +6,7 @@ import com.chainlesschain.project.dto.CollaboratorDTO;
 import com.chainlesschain.project.dto.PermissionUpdateRequest;
 import com.chainlesschain.project.entity.ProjectCollaborator;
 import com.chainlesschain.project.mapper.ProjectCollaboratorMapper;
+import com.chainlesschain.project.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,9 @@ class CollaboratorServiceTest {
 
     @Mock
     private ProjectCollaboratorMapper collaboratorMapper;
+
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private CollaboratorService collaboratorService;
