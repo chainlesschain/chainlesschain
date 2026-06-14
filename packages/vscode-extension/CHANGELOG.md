@@ -2,6 +2,27 @@
 
 All notable changes to this extension are documented here.
 
+## [0.22.0] — 2026-06-14
+
+- **Conversation tabs (Claude Code parity)**: the chat panel now holds multiple
+  conversations at once. A tab bar shows each one with a title and a close (×);
+  `+` opens a fresh tab. Each tab owns its own `cc agent` process and resume id,
+  switching tabs restores that conversation's transcript, and a background tab's
+  output never bleeds into the visible one. Closing a tab activates a neighbor
+  and the panel is never left empty.
+- **App Preview (Claude Code preview-pane parity)**: **Start App Preview** finds
+  your project's dev script (`dev` / `start` / `serve` … or any script running
+  vite/next/cra/webpack/astro/…), runs it, detects the served URL, and opens it
+  in VS Code's built-in Simple Browser — the dev server's own HMR handles live
+  reload on edits. **Stop App Preview** kills it.
+- **Inline diff comments (Claude Code parity)**: the native diff review now has a
+  third choice beyond Accept/Reject — **Request changes…** — to annotate specific
+  lines with revision notes. The file isn't written; your line-anchored notes go
+  back to the agent so it revises and re-proposes.
+- **Batch multi-file diff (`openMultiDiff`)**: the agent can now present a whole
+  changeset spanning several files in one native multi-file diff for review —
+  **Accept all**, pick a subset, or reject — instead of one file at a time.
+
 ## [0.21.0] — 2026-06-14
 
 - **Workspace symbol @-mentions (Claude Code parity)**: typing `@` in the chat
