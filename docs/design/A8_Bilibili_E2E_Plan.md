@@ -174,3 +174,75 @@ UI 显示 "已同步 N 条"
 - `docs/design/Personal_Data_Hub_Android_Standalone_Cc.md` — Plan A v0.1 主架构
 - `docs/design/Adapter_Social_Cookie.md` — A8 通用设计
 - memory `pdh_a8_social_adapters_landing.md` — implementation 落地记录 + 7 traps
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 Bilibili v0.1 真机 E2E 测试计划，覆盖 cookie adapter 完整路径（登录 → 同步 4 类数据 → 异常 → 幂等 → keystore → 重登），共 8 个场景。
+
+### 2. 核心特性
+
+8 个 E2E 场景；真机 + 真账号验收；stub `A8BilibiliE2ETest.kt` 已落（@Ignore 占位）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）+ `Personal_Data_Hub_Android_Standalone_Cc.md`（Plan A v0.1 主架构）。
+
+### 4. 系统定位
+
+A8 Bilibili adapter 的**真机 E2E 验收计划**。
+
+### 5. 核心功能
+
+见正文「8 个 E2E 场景」（登录 / 同步 / cookie 过期 / WebView 取消 / 部分 API 失败 / 幂等 / keystore corruption / 退登重登）。
+
+### 6. 技术架构
+
+cookie 采集 + 4 类数据 fetcher；androidTest stub `A8BilibiliE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 无法跑真机 E2E（需 Mac/Linux + Android 真机 + 真账号）。
+
+### 8. 应用场景
+
+adapter 上线前真机验收，确保完整路径稳定。
+
+### 9. 竞品对比
+
+各平台 plan 同套蓝图（见姐妹 `A8_Weibo_E2E_Plan.md` / `A8_Xhs_E2E_Plan.md`）。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」（真机 / 真账号 / 环境准备）。
+
+### 11. 性能指标
+
+性能（同步时长 / 内存）由单独 perf plan 覆盖（见正文「不在本 plan 范围」）。
+
+### 12. 测试覆盖
+
+本文即测试覆盖说明：8 个 E2E 场景；stub 8 方法 @Ignore 占位，待真机执行。
+
+### 13. 安全考虑
+
+场景 7 覆盖 EncryptedSharedPreferences keystore corruption；cookie 属高敏感凭证。
+
+### 14. 故障排除
+
+见正文异常场景：cookie 过期（场景 3）、WebView 取消（场景 4）、部分 API 5xx（场景 5）。
+
+### 15. 关键文件
+
+androidTest `A8BilibiliE2ETest.kt`；`Adapter_Social_Cookie.md`。
+
+### 16. 使用示例
+
+见正文「执行方式」（真机 androidTest 运行步骤）。
+
+### 17. 相关文档
+
+见正文「关联文档」：`Personal_Data_Hub_Android_Standalone_Cc.md`、`Adapter_Social_Cookie.md`、memory `pdh_a8_social_adapters_landing.md`。

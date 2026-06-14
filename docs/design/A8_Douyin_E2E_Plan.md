@@ -200,3 +200,75 @@ UI 显示 "已同步账号 profile (v0.2)。历史/收藏/点赞需 v0.3 X-Bogus
 - `docs/design/A8_Xhs_E2E_Plan.md` — 同 v0.2 但 surface 更宽 (3 fetcher + X-S)
 - memory `pdh_social_collector_test_gap_audit.md` — 4-platform JVM 已落，E2E stub-only
 - memory `pdh_social_webview_deeplink_cookie_capture.md` — WebView 一键登录 deep-link 协议
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 抖音 v0.3 真机 E2E 测试计划，覆盖 profile + history/favourite/like 采集路径（需 `X-Bogus` + `_signature` 签名），共 8 个场景。
+
+### 2. 核心特性
+
+8 个 E2E 场景；`DouyinSignBridge`（hidden WebView 跑 acrawler.js 取 X-Bogus + _signature）；JVM 单测已通，真机 E2E 待跑。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）+ `A8_Bilibili_E2E_Plan.md`（8 场景模板基线）。
+
+### 4. 系统定位
+
+A8 抖音 adapter 的**真机 E2E 验收计划**（v0.3 加签名 surface）。
+
+### 5. 核心功能
+
+见正文「8 个 E2E 场景」（登录 / 同步 profile / cookie 过期 / 反爬 412 / WebView 取消 / 幂等 / keystore / 退登重登）。
+
+### 6. 技术架构
+
+cookie + X-Bogus/_signature 签名（acrawler.js）；ApiClient 3 endpoint（history/favourite/like）；androidTest stub `A8DouyinE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 跑 JVM 单测 ✅（`DouyinApiClientV03Test` 等），真机 E2E 需 Mac/Linux + 真机 + 真账号。
+
+### 8. 应用场景
+
+adapter 上线前真机验收（含签名接通后的 history/favourite/like）。
+
+### 9. 竞品对比
+
+与 `A8_Xhs_E2E_Plan.md`（surface 更宽 + X-S）、`A8_Toutiao_E2E_Plan.md`（同 v0.3 模板）同套蓝图。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」与「v0.3 待补（X-Bogus 签名接通后）」。
+
+### 11. 性能指标
+
+见正文「反爬 caveats」（412 反爬、签名稳定性）；性能单独 perf plan。
+
+### 12. 测试覆盖
+
+本文即测试覆盖：8 个 E2E 场景 + JVM 单测（已通）；E2E stub @Ignore 占位。
+
+### 13. 安全考虑
+
+场景 7 EncryptedSharedPreferences keystore corruption；cookie + 签名高敏感。
+
+### 14. 故障排除
+
+见正文异常场景：cookie 过期 status_code≠0（场景 3）、反爬 412（场景 4）、WebView 取消（场景 5）。
+
+### 15. 关键文件
+
+androidTest `A8DouyinE2ETest.kt`；`DouyinSignBridge` / `DouyinApiClient`。
+
+### 16. 使用示例
+
+见正文「执行方式」。
+
+### 17. 相关文档
+
+见正文「关联文档」：`A8_Bilibili_E2E_Plan.md`、`A8_Xhs_E2E_Plan.md`、memory `pdh_social_collector_test_gap_audit.md`、`pdh_social_webview_deeplink_cookie_capture.md`。

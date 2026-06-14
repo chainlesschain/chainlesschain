@@ -200,3 +200,75 @@ UI 显示 "已同步 N 条 (笔记 + 点赞 + 关注)"
 - `docs/design/Adapter_Social_Cookie.md` — A8 通用设计
 - memory `pdh_social_collector_test_gap_audit.md` — 4-platform / 33 JVM 案例已落，E2E 仍 stub
 - memory `pdh_social_webview_deeplink_cookie_capture.md` — WebView 一键登录 deep-link 协议
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 小红书 v0.2 真机 E2E 测试计划，覆盖 Xiaohongshu 完整路径（含 `X-S` 签名），同步 3 类数据，共 9 个场景。
+
+### 2. 核心特性
+
+9 个 E2E 场景（比其它平台多 X-S 签名失败场景）；3 类数据 fetcher；stub `A8XhsE2ETest.kt` 已落（@Ignore 占位）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）+ `A8_Bilibili_E2E_Plan.md`（同 v0.1 模板，差异在 X-S 签名层）。
+
+### 4. 系统定位
+
+A8 小红书 adapter 的**真机 E2E 验收计划**（带 X-S 签名复杂度）。
+
+### 5. 核心功能
+
+见正文「9 个 E2E 场景」（登录 / 同步 3 类 / X-S 签名失败 / cookie 过期 / WebView 取消 / 部分 fetcher 失败 / 幂等 / keystore / 退登重登）。
+
+### 6. 技术架构
+
+cookie + `X-S` 签名（code 461/-461 失败）；3 类 fetcher（surface 较宽）；stub `A8XhsE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 无法跑真机 E2E（需 Mac/Linux + 真机 + 真账号）；X-S 签名是最大复杂度来源。
+
+### 8. 应用场景
+
+adapter 上线前真机验收（重点验 X-S 签名稳定性）。
+
+### 9. 竞品对比
+
+是其它 A8 平台 plan 的「签名复杂度上限」参照（见 `A8_Douyin_E2E_Plan.md` / `A8_Weibo_E2E_Plan.md` 互引）。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」。
+
+### 11. 性能指标
+
+见正文「反爬 caveats」；性能 perf 测试单独 plan。
+
+### 12. 测试覆盖
+
+本文即测试覆盖：9 个 E2E 场景；4-platform / 33 JVM 案例已落，E2E 仍 stub @Ignore。
+
+### 13. 安全考虑
+
+场景 8 EncryptedSharedPreferences keystore corruption；cookie + X-S 签名高敏感。
+
+### 14. 故障排除
+
+见正文异常场景：X-S 签名失败 461/-461（场景 3）、cookie 过期（场景 4）、WebView 取消（场景 5）、部分 fetcher 5xx（场景 6）。
+
+### 15. 关键文件
+
+androidTest `A8XhsE2ETest.kt`；`Adapter_Social_Cookie.md`。
+
+### 16. 使用示例
+
+见正文「执行方式」。
+
+### 17. 相关文档
+
+见正文「关联文档」：`A8_Bilibili_E2E_Plan.md`、`Adapter_Social_Cookie.md`、memory `pdh_social_collector_test_gap_audit.md`、`pdh_social_webview_deeplink_cookie_capture.md`。

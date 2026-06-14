@@ -203,3 +203,75 @@ UI 显示 "已同步账号 profile (v0.2)。推荐/收藏/搜索需 v0.3 NS_sig3
 - `docs/design/A8_Toutiao_E2E_Plan.md` — 同 v0.2 profile-only 通过 HTTP passport endpoint
 - memory `pdh_social_collector_test_gap_audit.md` — 6 platform 测试覆盖审计
 - memory `pdh_social_webview_deeplink_cookie_capture.md` — WebView 一键登录 deep-link 协议（快手 banner 必须推一键而非扫码）
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 快手 v0.3 真机 E2E 测试计划，覆盖 profile（cookie-parse `api_ph`）+ watch/visionProfile/search 采集（GraphQL，需 `__NS_sig3` + kpf/kpn），共 8 个场景。
+
+### 2. 核心特性
+
+8 个 E2E 场景；`KuaishouSignBridge`（hidden WebView 跑 NS_sig3 + kpf/kpn）；GraphQL POST 3 endpoint；JVM 单测已通。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）；profile 走 cookie-parse、列表走 GraphQL 签名路径。
+
+### 4. 系统定位
+
+A8 快手 adapter 的**真机 E2E 验收计划**（v0.3 GraphQL 签名 surface）。
+
+### 5. 核心功能
+
+见正文「8 个 E2E 场景」（登录 / profile cookie-parse / 缺 api_ph / api_ph 非 JSON / WebView 取消 / 幂等 / keystore / 退登重登）。
+
+### 6. 技术架构
+
+cookie `api_ph` 解析 + `__NS_sig3` GraphQL 签名；ApiClient GraphQL POST（visionFeedRecommend / visionProfilePhotoList / visionSearchPhoto）；stub `A8KuaishouE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 跑 JVM 单测 ✅，真机 E2E 需 Mac/Linux + 真机 + 真账号；登录 banner 必须推一键而非扫码。
+
+### 8. 应用场景
+
+adapter 上线前真机验收（含 NS_sig3 接通后的 watch/search）。
+
+### 9. 竞品对比
+
+与 `A8_Douyin_E2E_Plan.md` / `A8_Toutiao_E2E_Plan.md`（HTTP passport profile）同套蓝图，签名路径各异。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」与「v0.3 待补（NS_sig3 接通后）」。
+
+### 11. 性能指标
+
+见正文「反爬 caveats（v0.3 用）」；性能单独 perf plan。
+
+### 12. 测试覆盖
+
+本文即测试覆盖：8 个 E2E 场景 + JVM 单测（已通）；E2E stub @Ignore 占位。
+
+### 13. 安全考虑
+
+场景 7 EncryptedSharedPreferences keystore corruption；cookie + 签名高敏感。
+
+### 14. 故障排除
+
+见正文异常场景：缺 api_ph（-8，场景 3）、api_ph 非 JSON（-9，场景 4）、WebView 取消（场景 5）。
+
+### 15. 关键文件
+
+androidTest `A8KuaishouE2ETest.kt`；`KuaishouSignBridge` / `KuaishouApiClient`。
+
+### 16. 使用示例
+
+见正文「执行方式」。
+
+### 17. 相关文档
+
+见正文「关联文档」：`A8_Douyin_E2E_Plan.md`、`A8_Toutiao_E2E_Plan.md`、memory `pdh_social_collector_test_gap_audit.md`、`pdh_social_webview_deeplink_cookie_capture.md`。

@@ -189,3 +189,75 @@ UI 显示 "已同步账号 profile (v0.2)。历史/收藏/搜索需 v0.3 _signat
 - `docs/design/A8_Douyin_E2E_Plan.md` — 同 v0.2 profile-only 模板基线 (aid=2906 vs aid=24 差异)
 - memory `pdh_social_collector_test_gap_audit.md` — 6 platform 测试覆盖审计
 - memory `pdh_social_webview_deeplink_cookie_capture.md` — WebView 一键登录 deep-link 协议
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 今日头条 v0.3 真机 E2E 测试计划，覆盖 profile（passport `aid=24`）+ feed 采集（需 `_signature`），共 8 个场景。
+
+### 2. 核心特性
+
+8 个 E2E 场景；`ToutiaoSignBridge`（hidden WebView 跑 acrawler.js 取 _signature）；ApiClient 3 endpoint；JVM 单测已通。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）；profile 走 unsigned passport endpoint、feed 走 _signature 签名。
+
+### 4. 系统定位
+
+A8 今日头条 adapter 的**真机 E2E 验收计划**（v0.3 签名 surface，三家 v0.3 模板）。
+
+### 5. 核心功能
+
+见正文「8 个 E2E 场景」（登录 / 同步 profile / cookie 过期 / 反爬 412 / WebView 取消 / 幂等 / keystore / 退登重登）。
+
+### 6. 技术架构
+
+cookie + `_signature`（acrawler.js）；profile `/passport/account/info/v2/?aid=24`、feed `/api/news/feed/v90/`；stub `A8ToutiaoE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 跑 JVM 单测 ✅（`ToutiaoApiClientV03Test` 等），真机 E2E 需 Mac/Linux + 真机 + 真账号。
+
+### 8. 应用场景
+
+adapter 上线前真机验收（含 _signature 接通后的 feed）。
+
+### 9. 竞品对比
+
+与 `A8_Douyin_E2E_Plan.md`（aid=2906 vs aid=24 差异）、`A8_Kuaishou_E2E_Plan.md` 同套 v0.3 模板。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」与「v0.3 待补（_signature 签名接通后）」。
+
+### 11. 性能指标
+
+见正文「反爬 caveats」（412 反爬、签名稳定性）；性能单独 perf plan。
+
+### 12. 测试覆盖
+
+本文即测试覆盖：8 个 E2E 场景 + JVM 单测（已通）；E2E stub @Ignore 占位。
+
+### 13. 安全考虑
+
+场景 7 EncryptedSharedPreferences keystore corruption；cookie + 签名高敏感。
+
+### 14. 故障排除
+
+见正文异常场景：cookie 过期 status_code≠0（场景 3）、反爬 412（场景 4）、WebView 取消（场景 5）。
+
+### 15. 关键文件
+
+androidTest `A8ToutiaoE2ETest.kt`；`ToutiaoSignBridge` / `ToutiaoApiClient`。
+
+### 16. 使用示例
+
+见正文「执行方式」。
+
+### 17. 相关文档
+
+见正文「关联文档」：`A8_Douyin_E2E_Plan.md`、memory `pdh_social_collector_test_gap_audit.md`、`pdh_social_webview_deeplink_cookie_capture.md`。

@@ -186,3 +186,75 @@ UI 显示 "已同步 N 条 (微博 + 收藏 + 关注)"
 - `docs/design/A8_Xhs_E2E_Plan.md` — 同 v0.2 但带 X-S 签名复杂度
 - memory `pdh_social_collector_test_gap_audit.md` — 6 platform 测试覆盖审计
 - memory `pdh_social_webview_deeplink_cookie_capture.md` — WebView 一键登录 deep-link 协议
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E 测试计划。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「范围」。A8 微博 v0.2 真机 E2E 测试计划，覆盖 m.weibo.cn（移动端）完整路径，同步 3 类数据，共 8 个场景。
+
+### 2. 核心特性
+
+8 个 E2E 场景；m.weibo.cn 移动端 cookie 路径；3 类数据 fetcher；stub `A8WeiboE2ETest.kt` 已落（@Ignore，含 TODO 链接本计划章节）。
+
+### 3. 系统架构
+
+见 `Adapter_Social_Cookie.md`（A8 通用设计）+ `A8_Bilibili_E2E_Plan.md`（同套蓝图）。
+
+### 4. 系统定位
+
+A8 微博 adapter 的**真机 E2E 验收计划**。
+
+### 5. 核心功能
+
+见正文「8 个 E2E 场景」（登录 / 同步 3 类 / cookie 过期 -100 / WebView 取消 / 部分 fetcher 失败 / 反爬 burst / 幂等 / keystore）。
+
+### 6. 技术架构
+
+m.weibo.cn cookie 采集 + 3 类 fetcher；androidTest stub `A8WeiboE2ETest.kt`。
+
+### 7. 系统特点
+
+Win dev box 无法跑真机 E2E（需 Mac/Linux + Android 真机 + 真账号）。
+
+### 8. 应用场景
+
+adapter 上线前真机验收。
+
+### 9. 竞品对比
+
+与 `A8_Bilibili_E2E_Plan.md`（4-fetcher 模板）、`A8_Xhs_E2E_Plan.md`（X-S 签名复杂度）同套蓝图。
+
+### 10. 配置参考
+
+见正文「前置（一次性）」。
+
+### 11. 性能指标
+
+见正文「反爬 caveats」（anti-cookie-hijack burst）；性能单独 perf plan。
+
+### 12. 测试覆盖
+
+本文即测试覆盖：8 个 E2E 场景；stub 8 方法 @Ignore 占位。
+
+### 13. 安全考虑
+
+场景 8 EncryptedSharedPreferences keystore corruption；cookie 高敏感。
+
+### 14. 故障排除
+
+见正文异常场景：cookie 过期 -100 silentband（场景 3）、WebView 取消（场景 4）、部分 fetcher 5xx（场景 5）、反爬 burst（场景 6）。
+
+### 15. 关键文件
+
+androidTest `A8WeiboE2ETest.kt`；`Adapter_Social_Cookie.md`。
+
+### 16. 使用示例
+
+见正文「执行方式」。
+
+### 17. 相关文档
+
+见正文「关联文档」：`A8_Bilibili_E2E_Plan.md`、`A8_Xhs_E2E_Plan.md`、memory `pdh_social_collector_test_gap_audit.md`、`pdh_social_webview_deeplink_cookie_capture.md`。
