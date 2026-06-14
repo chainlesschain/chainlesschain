@@ -68,6 +68,15 @@
       {
         "command": "chainlesschain.chat.refactorSelection",
         "title": "ChainlessChain: Refactor Selection"
+      },
+      {
+        "command": "chainlesschain.preview.start",
+        "title": "ChainlessChain: Start App Preview",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "chainlesschain.preview.stop",
+        "title": "ChainlessChain: Stop App Preview"
       }
     ],
     "keybindings": [

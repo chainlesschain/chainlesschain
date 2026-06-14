@@ -31,6 +31,7 @@ let _workspaceFolders = [];
 let _activityLog = null;
 let _statusBar = null;
 let _treeProvider = null;
+let _preview = null;
 
 function log(msg) {
   try {
@@ -223,6 +224,35 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.ide.openDashboard", () =>
       openDashboard(vscode, context, getState, _activityLog),
     ),
+    // App Preview (Claude-Code preview-pane parity): spawn the project's dev
+    // server and open the served URL in Simple Browser; the dev server's own
+    // HMR handles live reload on edits.
+    vscode.commands.registerCommand("chainlesschain.preview.start", () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+      if (!cwd) {
+        vscode.window.showWarningMessage("Open a folder to preview its app.");
+        return;
+      }
+      if (!_preview) {
+        const { createPreviewController } = require("./preview.js");
+        _preview = createPreviewController(vscode, { log });
+      }
+      const res = _preview.start(cwd);
+      if (res?.error === "no-dev-script") {
+        vscode.window.showWarningMessage(
+          "No dev script (dev / start / serve …) found in package.json.",
+        );
+      } else if (res?.started) {
+        vscode.window.setStatusBarMessage(
+          `$(globe) Starting app preview (npm run ${res.script})…`,
+          5000,
+        );
+      }
+    }),
+    vscode.commands.registerCommand("chainlesschain.preview.stop", () => {
+      _preview?.stop();
+      vscode.window.setStatusBarMessage("$(primitive-square) App preview stopped", 3000);
+    }),
     // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
     // files` in the shared terminal — cc.md is then auto-loaded by cc agent.
     vscode.commands.registerCommand("chainlesschain.memory.init", async () => {
@@ -395,6 +425,12 @@ function activate(context) {
 }
 
 function deactivate() {
+  try {
+    _preview?.dispose();
+  } catch {
+    /* best-effort */
+  }
+  _preview = null;
   return stopBridge();
 }
 
