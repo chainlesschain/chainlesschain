@@ -55,6 +55,20 @@ class FamilyTwoDeviceBindingTest {
     private val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1_700_000_000_000L), ZoneOffset.UTC)
     private val signer = FakeInviteSigner() // 同 secret = 跨"设备"验签通过
 
+    /** DID → 设备, 让"出站 outbox"能把记录投递到目标设备 (模拟 P2P 送达)。 */
+    private val devicesByDid = mutableMapOf<String, Device>()
+
+    /** 跨设备 membership outbox: enqueue 即把记录写到 targetDid 对应设备的本地库 (模拟 P2P)。 */
+    private inner class CrossDeviceMembershipOutbox :
+        com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipOutbox {
+        override suspend fun enqueue(
+            record: com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord,
+            targetDids: List<String>,
+        ) {
+            targetDids.forEach { did -> devicesByDid[did]?.membershipRepo?.upsertReplica(record) }
+        }
+    }
+
     /** 一台"设备": 独立 DB + 全套 repo + service。 */
     private inner class Device(seed: Long) {
         val db: FamilyGuardDatabase = Room.inMemoryDatabaseBuilder(
@@ -74,6 +88,7 @@ class FamilyTwoDeviceBindingTest {
             revivalCodeRepository = RevivalCodeRepositoryImpl(db.revivalCodeDao(), clock, rnd(seed + 1)),
             inviteSigner = signer,
             familyGroupOutbox = NoOpFamilyGroupOutbox(),
+            familyMembershipOutbox = CrossDeviceMembershipOutbox(),
             clock = clock,
             secureRandom = rnd(seed + 2),
         )
@@ -109,9 +124,47 @@ class FamilyTwoDeviceBindingTest {
     }
 
     @Test
+    fun `child membership auto-syncs to parent so parent sees child without reverse invite`() = runBlocking {
+        parent = Device(seed = 1L)
+        child = Device(seed = 100L)
+        devicesByDid[parentDid] = parent
+        devicesByDid[childDid] = child
+
+        val groupId = parent.groupRepo.create(name = "陈家", primaryDid = parentDid).id
+        val invite = parent.service.createInvite(
+            familyGroupId = groupId,
+            inviterDid = parentDid,
+            inviterRole = MemberRole.PARENT,
+            inviterTier = GuardianTier.PRIMARY,
+            inviteeRole = MemberRole.CHILD,
+            inviteeTier = null,
+            proposedPermissions = PermissionTemplates.forParentToChild(),
+            expectedChildAge = 15,
+        )
+        // 孩子单向接受 (无反向邀请)。acceptInvite 内 enqueue 孩子 membership → 经 CrossDevice
+        // outbox 投递到家长设备 → 家长库写入孩子 membership。
+        val accept = child.service.acceptInvite(
+            qrPayload = InviteTokenCodec.encode(invite.signedInvite),
+            acceptanceCode = invite.acceptanceCode,
+            accepteeDid = childDid,
+            accepteeDeviceId = "child-device",
+            reportedChildAge = 15,
+            childPermissions = PermissionTemplates.forChildToParent(),
+        )
+        assertIs<PairingResult.Success>(accept)
+        // 仅靠 membership 同步 (无反向邀请), 家长端家人页已显示孩子。
+        assertTrue(
+            parent.visibleMemberDids(groupId).contains(childDid),
+            "parent should see child via membership sync (no reverse invite)",
+        )
+    }
+
+    @Test
     fun `two devices bind bidirectionally and each sees the other in family list`() = runBlocking {
         parent = Device(seed = 1L)
         child = Device(seed = 100L)
+        devicesByDid[parentDid] = parent
+        devicesByDid[childDid] = child
 
         // 家长建组 (只在家长 DB)。
         val groupId = parent.groupRepo.create(name = "陈家", primaryDid = parentDid).id

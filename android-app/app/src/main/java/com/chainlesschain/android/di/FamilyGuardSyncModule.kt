@@ -3,7 +3,9 @@ package com.chainlesschain.android.di
 import com.chainlesschain.android.core.p2p.sync.FamilyGuardSyncApplier
 import com.chainlesschain.android.familyguard.sync.FamilyGuardSyncApplierImpl
 import com.chainlesschain.android.familyguard.sync.SyncManagerFamilyGroupOutbox
+import com.chainlesschain.android.familyguard.sync.SyncManagerFamilyMembershipOutbox
 import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupOutbox
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipOutbox
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -28,6 +30,10 @@ abstract class FamilyGuardSyncModule {
     @Binds
     @Singleton
     abstract fun bindFamilyGroupOutbox(impl: SyncManagerFamilyGroupOutbox): FamilyGroupOutbox
+
+    @Binds
+    @Singleton
+    abstract fun bindFamilyMembershipOutbox(impl: SyncManagerFamilyMembershipOutbox): FamilyMembershipOutbox
 
     @Binds
     @Singleton

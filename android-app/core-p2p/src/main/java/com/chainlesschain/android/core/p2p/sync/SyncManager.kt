@@ -700,7 +700,9 @@ enum class ResourceType {
     // 上行到家长桌面端。append-only CREATE; 冲突走默认 LAST_WRITE_WINS（无真实冲突）。
     TELEMETRY,
     // 家庭守护 family_group（FAMILY-26 双向同步）：配对建立的家庭组在两端收敛。
-    FAMILY_GROUP
+    FAMILY_GROUP,
+    // 家庭守护 family_membership（FAMILY-26）：成员行双向同步, 让对端家人页显示本成员。
+    FAMILY_MEMBERSHIP
 }
 
 /**

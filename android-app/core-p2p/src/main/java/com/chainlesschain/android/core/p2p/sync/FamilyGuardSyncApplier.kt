@@ -19,4 +19,10 @@ interface FamilyGuardSyncApplier {
 
     /** family_group 更新 (同 save 语义: upsert + merge)。 */
     suspend fun updateFamilyGroupFromSync(resourceId: String, data: String)
+
+    /** 入站 family_membership: 按自然键 (group, member, device) upsert。 */
+    suspend fun saveFamilyMembershipFromSync(resourceId: String, data: String)
+
+    /** family_membership 更新 (同 save 语义)。 */
+    suspend fun updateFamilyMembershipFromSync(resourceId: String, data: String)
 }

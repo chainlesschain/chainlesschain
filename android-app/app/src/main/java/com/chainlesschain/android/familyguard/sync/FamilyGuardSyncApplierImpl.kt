@@ -2,8 +2,10 @@ package com.chainlesschain.android.familyguard.sync
 
 import com.chainlesschain.android.core.p2p.sync.FamilyGuardSyncApplier
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository
 import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncApplier
 import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupSyncRecord
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord
 import com.chainlesschain.android.feature.familyguard.domain.sync.toSyncRecord
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,11 +22,25 @@ import timber.log.Timber
 @Singleton
 class FamilyGuardSyncApplierImpl @Inject constructor(
     private val familyGroupRepository: FamilyGroupRepository,
+    private val familyMembershipRepository: FamilyMembershipRepository,
 ) : FamilyGuardSyncApplier {
 
     override suspend fun saveFamilyGroupFromSync(resourceId: String, data: String) = apply(data)
 
     override suspend fun updateFamilyGroupFromSync(resourceId: String, data: String) = apply(data)
+
+    override suspend fun saveFamilyMembershipFromSync(resourceId: String, data: String) = applyMembership(data)
+
+    override suspend fun updateFamilyMembershipFromSync(resourceId: String, data: String) = applyMembership(data)
+
+    private suspend fun applyMembership(data: String) {
+        val record = runCatching { FamilyMembershipSyncRecord.decode(data) }.getOrElse {
+            Timber.w(it, "[FamilyGuardSync] bad family_membership sync data")
+            return
+        }
+        runCatching { familyMembershipRepository.upsertReplica(record) }
+            .onFailure { Timber.e(it, "[FamilyGuardSync] membership upsertReplica failed ${record.memberDid}") }
+    }
 
     private suspend fun apply(data: String) {
         val incoming = runCatching { FamilyGroupSyncRecord.decode(data) }.getOrElse {

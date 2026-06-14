@@ -67,7 +67,20 @@ class InvitePairingServiceImplTest {
         }
     }
 
+    private class RecordingFamilyMembershipOutbox :
+        com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipOutbox {
+        val enqueued =
+            mutableListOf<Pair<com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord, List<String>>>()
+        override suspend fun enqueue(
+            record: com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord,
+            targetDids: List<String>,
+        ) {
+            enqueued += record to targetDids
+        }
+    }
+
     private lateinit var groupOutbox: RecordingFamilyGroupOutbox
+    private lateinit var membershipOutbox: RecordingFamilyMembershipOutbox
 
     private fun clockAt(ms: Long): Clock =
         Clock.fixed(Instant.ofEpochMilli(ms), ZoneOffset.UTC)
@@ -79,6 +92,7 @@ class InvitePairingServiceImplTest {
         val clock = clockAt(clockMs)
         groupRepo = FamilyGroupRepositoryImpl(db.familyGroupDao(), clock, seededRandom(1L))
         groupOutbox = RecordingFamilyGroupOutbox()
+        membershipOutbox = RecordingFamilyMembershipOutbox()
         service = InvitePairingServiceImpl(
             familyGroupRepository = groupRepo,
             familyMembershipRepository = FamilyMembershipRepositoryImpl(
@@ -96,6 +110,7 @@ class InvitePairingServiceImplTest {
             ),
             inviteSigner = signer,
             familyGroupOutbox = groupOutbox,
+            familyMembershipOutbox = membershipOutbox,
             clock = clock,
             secureRandom = seededRandom(),
         )

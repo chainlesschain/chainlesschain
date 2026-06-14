@@ -45,6 +45,7 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.POST_COMMENT -> postRepository.saveCommentFromSync(resourceId, data)
             ResourceType.NOTIFICATION -> notificationRepository.saveNotificationFromSync(resourceId, data)
             ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.saveFamilyGroupFromSync(resourceId, data)
+            ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.saveFamilyMembershipFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for create: $resourceType")
         }
     }
@@ -60,6 +61,7 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.POST_COMMENT -> postRepository.updateCommentFromSync(resourceId, data)
             ResourceType.NOTIFICATION -> notificationRepository.updateNotificationFromSync(resourceId, data)
             ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.updateFamilyGroupFromSync(resourceId, data)
+            ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.updateFamilyMembershipFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for update: $resourceType")
         }
     }

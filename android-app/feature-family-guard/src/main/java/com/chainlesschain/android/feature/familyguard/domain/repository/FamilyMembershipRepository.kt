@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.familyguard.domain.repository
 import com.chainlesschain.android.feature.familyguard.data.entity.FamilyMembershipEntity
 import com.chainlesschain.android.feature.familyguard.domain.model.GuardianTier
 import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -32,6 +33,13 @@ interface FamilyMembershipRepository {
         guardianTier: GuardianTier?,
         deviceId: String,
     ): FamilyMembershipEntity
+
+    /**
+     * FAMILY-26: 据同步记录按**自然键 (group, member, device)** upsert 一个 membership 副本
+     * (入站同步落库)。与 [addMember] 区别: 幂等覆盖 (REPLACE) 而非重复即 ABORT, 且不自生成
+     * joinedAt (用记录里的)。
+     */
+    suspend fun upsertReplica(record: FamilyMembershipSyncRecord)
 
     /** UI 用; 通常订阅 group 内全 active 成员变化。 */
     fun observeByGroup(familyGroupId: String): Flow<List<FamilyMembershipEntity>>

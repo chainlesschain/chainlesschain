@@ -16,6 +16,7 @@ import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairi
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService.Companion.KYC_REQUIRED_AGE
 import com.chainlesschain.android.feature.familyguard.domain.signer.InviteSigner
 import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyGroupOutbox
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipOutbox
 import com.chainlesschain.android.feature.familyguard.domain.sync.toSyncRecord
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -47,6 +48,7 @@ class InvitePairingServiceImpl @Inject constructor(
     private val revivalCodeRepository: RevivalCodeRepository,
     private val inviteSigner: InviteSigner,
     private val familyGroupOutbox: FamilyGroupOutbox,
+    private val familyMembershipOutbox: FamilyMembershipOutbox,
     private val clock: Clock,
     private val secureRandom: SecureRandom = SecureRandom(),
 ) : InvitePairingService {
@@ -158,13 +160,15 @@ class InvitePairingServiceImpl @Inject constructor(
         // ─── 端到端写库 ───
         return runCatching {
             // 1. invitee 成 family_membership 一员
-            familyMembershipRepository.addMember(
+            val membership = familyMembershipRepository.addMember(
                 familyGroupId = payload.familyGroupId,
                 memberDid = accepteeDid,
                 role = payload.inviteeRole,
                 guardianTier = payload.inviteeTier,
                 deviceId = accepteeDeviceId,
             )
+            // FAMILY-26: 把本端 membership 推给 inviter → 对端家人页显示本成员 (双向可见关键)。
+            familyMembershipOutbox.enqueue(membership.toSyncRecord(), targetDids = listOf(payload.inviterDid))
 
             // 2. 创建 invitee → inviter 关系
             val relationship = familyRelationshipRepository.create(

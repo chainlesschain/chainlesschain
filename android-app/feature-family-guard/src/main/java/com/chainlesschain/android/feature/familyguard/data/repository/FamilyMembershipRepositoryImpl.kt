@@ -8,6 +8,8 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMe
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository.Companion.DID_MIN_LEN
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository.Companion.DID_PREFIX
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository.Companion.INACTIVE_STATUS
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyMembershipSyncRecord
+import com.chainlesschain.android.feature.familyguard.domain.sync.toEntity
 import com.chainlesschain.android.feature.familyguard.domain.repository.InvalidFamilyMembershipException
 import java.time.Clock
 import javax.inject.Inject
@@ -56,6 +58,18 @@ class FamilyMembershipRepositoryImpl @Inject constructor(
         )
         val id = familyMembershipDao.insert(entity)
         return entity.copy(id = id)
+    }
+
+    override suspend fun upsertReplica(record: FamilyMembershipSyncRecord) {
+        val deviceId = record.deviceId.trim()
+        validateGroupId(record.familyGroupId)
+        validateDid(record.memberDid)
+        validateDeviceId(deviceId)
+        val role = MemberRole.fromStorage(record.role) ?: MemberRole.CHILD
+        validateRoleTier(role, GuardianTier.fromStorage(record.guardianTier))
+        // 自然键 (group, member, device) 存在 → 复用其 id 做 update; 否则 id=0 自增插入。
+        val existing = familyMembershipDao.findInGroup(record.familyGroupId, record.memberDid, deviceId)
+        familyMembershipDao.upsert(record.toEntity().copy(id = existing?.id ?: 0L, deviceId = deviceId))
     }
 
     override fun observeByGroup(familyGroupId: String): Flow<List<FamilyMembershipEntity>> =
