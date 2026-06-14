@@ -229,7 +229,8 @@ def find_duplicates(arr):
         result = await code_refactorer.optimize(code, "python")
 
         assert result is not None
-        assert "optimized_code" in result
+        # refactor()/optimize() return the result under "refactored_code"
+        assert "refactored_code" in result
 
     @pytest.mark.asyncio
     async def test_refactor_with_target(self, code_refactorer):
