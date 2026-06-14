@@ -135,7 +135,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--vision-model <id>",
-      "Model to use when an image is attached (default: config llm.visionModel or doubao-seed-1-6-vision-250815)",
+      "Model to use when an image is attached (default: config llm.visionModel or doubao-seed-2-0-lite-260215)",
     )
     .option("--session <id>", "Resume a previous agent session")
     .option(

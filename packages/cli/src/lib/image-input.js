@@ -115,8 +115,14 @@ export function imageUrlBlockToAnthropic(block) {
   };
 }
 
-/** Default vision model (Volcengine Ark Doubao-Seed-1.6 Vision) when none configured. */
-export const DEFAULT_VISION_MODEL = "doubao-seed-1-6-vision-250815";
+/**
+ * Default vision model when none is configured — Volcengine Ark
+ * Doubao-Seed-2.0-lite (id `doubao-seed-2-0-lite-260215`, dated YYMMDD =
+ * 2026-02-15), a natively multimodal model (text/image/video; 2.0 has no
+ * separate "-vision-" SKU). Override via --vision-model or config.llm.visionModel
+ * to pin a different snapshot.
+ */
+export const DEFAULT_VISION_MODEL = "doubao-seed-2-0-lite-260215";
 
 /**
  * Resolve the effective LLM config for a run. When an image is attached, default

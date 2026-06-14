@@ -58,6 +58,12 @@ export const PRICE_TABLE = Object.freeze({
   ],
   // Volcengine Doubao — rough USD conversion of public RMB list pricing.
   volcengine: [
+    // Doubao Seed 2.0 family (2026, e.g. doubao-seed-2-0-lite-260215) is
+    // natively multimodal. Rates ≈ official CNY ÷ ~7.2 (lite ≤32k is 0.6/3.6
+    // CNY → $0.08/$0.50); the generic "seed" rate below underprices 2.0 output.
+    { match: "seed-2-0-pro", in: 0.5, out: 2.5 },
+    { match: "seed-2-0-lite", in: 0.08, out: 0.5 },
+    { match: "seed-2-0-mini", in: 0.03, out: 0.3 },
     { match: "seed-1-6", in: 0.11, out: 0.28 },
     { match: "seed", in: 0.11, out: 0.28 },
     { match: "pro", in: 0.11, out: 0.28 },

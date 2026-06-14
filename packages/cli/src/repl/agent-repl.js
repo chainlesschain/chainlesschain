@@ -2507,7 +2507,7 @@ export async function startAgentRepl(options = {}) {
       const roles = {
         mainProvider: provider,
         mainModel: _curModel || model,
-        visionModel: visionModel || "doubao-seed-1-6-vision-250815",
+        visionModel: visionModel || "doubao-seed-2-0-lite-260215",
         fallbackModels: _fallbackModels || [],
       };
       const { renderSessionCost } = await import("./session-cost.js");

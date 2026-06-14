@@ -44,6 +44,24 @@ describe("llm-pricing — lookupRate", () => {
     expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
   });
 
+  it("prices Doubao Seed 2.0 above the generic seed fallback", () => {
+    // doubao-seed-2-0-lite-260215 must hit the 2.0 lite rate (out 0.5), not the
+    // generic "seed" 0.28 that underprices 2.0 output by ~2x.
+    expect(
+      lookupRate("volcengine", "doubao-seed-2-0-lite-260215"),
+    ).toMatchObject({ in: 0.08, out: 0.5 });
+    expect(
+      lookupRate("volcengine", "doubao-seed-2-0-mini-260215"),
+    ).toMatchObject({ in: 0.03, out: 0.3 });
+    expect(
+      lookupRate("volcengine", "doubao-seed-2-0-pro-260215"),
+    ).toMatchObject({ in: 0.5, out: 2.5 });
+    // older 1.6 vision id still resolves to its own rate
+    expect(
+      lookupRate("volcengine", "doubao-seed-1-6-vision-250815").pattern,
+    ).toBe("seed-1-6");
+  });
+
   it("returns null for an unknown provider or model", () => {
     expect(lookupRate("mystery", "x")).toBeNull();
     expect(lookupRate("openai", "totally-unknown")).toBeNull();
