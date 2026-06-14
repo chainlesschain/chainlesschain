@@ -3,8 +3,12 @@
  * 提供Electron应用启动、窗口管理等工具函数
  */
 
-import { _electron as electron, ElectronApplication, Page } from '@playwright/test';
-import path from 'path';
+import {
+  _electron as electron,
+  ElectronApplication,
+  Page,
+} from "@playwright/test";
+import path from "path";
 
 export interface ElectronTestContext {
   app: ElectronApplication;
@@ -16,45 +20,113 @@ export interface ElectronTestContext {
  */
 export async function launchElectronApp(): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径 (从项目根目录的 dist/main/index.js)
-  const mainPath = path.join(__dirname, '../../../dist/main/index.js');
+  const mainPath = path.join(__dirname, "../../../dist/main/index.js");
 
-  // 设置固定的 userData 路径，确保配置文件能被读取
-  const os = require('os');
-  let userDataPath;
-
-  // 根据操作系统选择正确的路径
-  if (process.platform === 'win32') {
-    userDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'chainlesschain-desktop-vue');
-  } else if (process.platform === 'darwin') {
-    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain-desktop-vue');
+  // The real per-OS userData holds the user's config (LLM keys, auth, ui).
+  const os = require("os");
+  const fs = require("fs");
+  let realUserData: string;
+  if (process.platform === "win32") {
+    realUserData = path.join(
+      os.homedir(),
+      "AppData",
+      "Roaming",
+      "chainlesschain-desktop-vue",
+    );
+  } else if (process.platform === "darwin") {
+    realUserData = path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "chainlesschain-desktop-vue",
+    );
   } else {
-    // Linux
-    userDataPath = path.join(os.homedir(), '.config', 'chainlesschain-desktop-vue');
+    realUserData = path.join(
+      os.homedir(),
+      ".config",
+      "chainlesschain-desktop-vue",
+    );
+  }
+
+  // Run against an ISOLATED userData seeded from the real config but with the
+  // web-shell experiment forced OFF. The real userData has
+  // `ui.useWebShellExperimental: true` persisted (in app-config.json), which
+  // makes web-shell-bootstrap.shouldRunWebShell return true regardless of
+  // env/argv — and the web-shell uses a MINIMAL preload that does NOT expose
+  // `window.electronAPI`, breaking every IPC-dependent e2e (callIPC /
+  // createAndOpenProject). Forcing it false → V5/V6 desktop renderer (full
+  // electronAPI preload). Isolated so we never mutate the user's real config.
+  const userDataPath = path.join(os.tmpdir(), "chainlesschain-e2e-userdata");
+  try {
+    fs.mkdirSync(userDataPath, { recursive: true });
+    // Carry the .chainlesschain config dir (LLM/auth) so the app behaves the
+    // same; the in-memory sql.js DB (CHAINLESSCHAIN_DISABLE_NATIVE_DB) is fresh.
+    const srcCc = path.join(realUserData, ".chainlesschain");
+    if (fs.existsSync(srcCc)) {
+      fs.cpSync(srcCc, path.join(userDataPath, ".chainlesschain"), {
+        recursive: true,
+      });
+    }
+    for (const f of ["settings.json"]) {
+      try {
+        fs.copyFileSync(path.join(realUserData, f), path.join(userDataPath, f));
+      } catch {
+        /* optional */
+      }
+    }
+    // app-config.json holds ui.* (read by readSettingsSync's overlay) — patch
+    // web-shell off, preserving the rest of the real config.
+    let appConfig: Record<string, any> = {};
+    try {
+      appConfig = JSON.parse(
+        fs.readFileSync(path.join(realUserData, "app-config.json"), "utf8"),
+      );
+    } catch {
+      /* fresh */
+    }
+    appConfig.ui = { ...(appConfig.ui || {}), useWebShellExperimental: false };
+    fs.writeFileSync(
+      path.join(userDataPath, "app-config.json"),
+      JSON.stringify(appConfig, null, 2),
+      "utf8",
+    );
+  } catch (e) {
+    console.warn(
+      "[Test Helper] could not seed isolated userData, falling back to real:",
+      (e as Error).message,
+    );
   }
 
   // 查找Electron可执行文件路径（优先使用根目录的node_modules）
-  const electronPath = require('electron') as string;
+  const electronPath = require("electron") as string;
 
-  console.log('[Test Helper] Electron path:', electronPath);
-  console.log('[Test Helper] Main path:', mainPath);
-  console.log('[Test Helper] User data path:', userDataPath);
+  console.log("[Test Helper] Electron path:", electronPath);
+  console.log("[Test Helper] Main path:", mainPath);
+  console.log("[Test Helper] User data path:", userDataPath);
 
   // 启动Electron（增加超时时间，指定 userData 路径）
   const app = await electron.launch({
     executablePath: electronPath,
-    args: [mainPath, `--user-data-dir=${userDataPath}`],
+    // `--no-web-shell` forces the V5/V6 desktop renderer. Since the Phase 1.6
+    // hard-flip, web-shell is the DEFAULT (web-shell-bootstrap shouldRunWebShell
+    // returns true when the persisted setting is unset), and the web-shell uses
+    // a MINIMAL preload that does NOT expose `window.electronAPI` — which breaks
+    // every IPC-dependent e2e (callIPC / createAndOpenProject). Force desktop.
+    args: [mainPath, `--user-data-dir=${userDataPath}`, "--no-web-shell"],
     env: {
       ...process.env,
-      NODE_ENV: 'test',
-      ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      NODE_ENV: "test",
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
       // 测试模式：跳过慢速初始化
-      SKIP_SLOW_INIT: 'true',
+      SKIP_SLOW_INIT: "true",
       // Mock硬件设备（U-Key等）
-      MOCK_HARDWARE: 'true',
+      MOCK_HARDWARE: "true",
       // Mock LLM服务
-      MOCK_LLM: 'true',
+      MOCK_LLM: "true",
       // 禁用原生数据库（加速启动）
-      CHAINLESSCHAIN_DISABLE_NATIVE_DB: '1',
+      CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
+      // Force the V5/V6 desktop renderer (full electronAPI preload) — see args.
+      CHAINLESSCHAIN_WEB_SHELL: "0",
     },
     timeout: 180000, // 180秒启动超时（增加到3分钟）
   });
@@ -65,7 +137,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   });
 
   // 等待加载完成
-  await window.waitForLoadState('domcontentloaded', {
+  await window.waitForLoadState("domcontentloaded", {
     timeout: 30000,
   });
 
@@ -74,15 +146,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     await window.waitForFunction(
       () => {
         return (
-          typeof (window as any).electronAPI !== 'undefined' ||
-          typeof (window as any).electron !== 'undefined' ||
-          typeof (window as any).api !== 'undefined'
+          typeof (window as any).electronAPI !== "undefined" ||
+          typeof (window as any).electron !== "undefined" ||
+          typeof (window as any).api !== "undefined"
         );
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
   } catch (error) {
-    console.warn('Warning: electronAPI not found, but continuing anyway');
+    console.warn("Warning: electronAPI not found, but continuing anyway");
   }
 
   return { app, window };
@@ -93,16 +165,19 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
  */
 export async function closeElectronApp(
   app: ElectronApplication,
-  options?: { delay?: number }
+  options?: { delay?: number },
 ): Promise<void> {
   try {
     await app.close();
   } catch (error) {
-    console.warn('[closeElectronApp] Error during close (ignoring):', (error as Error).message);
+    console.warn(
+      "[closeElectronApp] Error during close (ignoring):",
+      (error as Error).message,
+    );
   }
   const delay = options?.delay ?? 0;
   if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 }
 
@@ -120,11 +195,17 @@ export async function callIPC<T>(
     async ({ channel, args }) => {
       // 通过window.electron对象调用IPC（如果可用）
       if ((window as any).electron && (window as any).electron.ipcRenderer) {
-        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
+        return await (window as any).electron.ipcRenderer.invoke(
+          channel,
+          ...args,
+        );
       }
 
       // 或者通过preload暴露的API
-      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
+      if (
+        (window as any).api &&
+        typeof (window as any).api.invoke === "function"
+      ) {
         return await (window as any).api.invoke(channel, ...args);
       }
 
@@ -133,34 +214,38 @@ export async function callIPC<T>(
       if ((window as any).electronAPI) {
         // 如果是IPC通道格式（如 'project:get-all'），转换为对象路径
         let apiPath = channel;
-        if (channel.includes(':')) {
+        if (channel.includes(":")) {
           // 将 'project:get-all' 转换为 'project.getAll'
-          const [module, method] = channel.split(':');
+          const [module, method] = channel.split(":");
           // 将 kebab-case 转换为 camelCase
-          const camelMethod = method.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          const camelMethod = method.replace(/-([a-z])/g, (g) =>
+            g[1].toUpperCase(),
+          );
           apiPath = `${module}.${camelMethod}`;
         }
 
-        const pathParts = apiPath.split('.');
+        const pathParts = apiPath.split(".");
         let api: any = (window as any).electronAPI;
 
         for (const part of pathParts) {
           api = api[part];
           if (!api) {
-            throw new Error(`API path not found: ${apiPath} (original: ${channel})`);
+            throw new Error(
+              `API path not found: ${apiPath} (original: ${channel})`,
+            );
           }
         }
 
-        if (typeof api !== 'function') {
+        if (typeof api !== "function") {
           throw new Error(`API is not a function: ${apiPath}`);
         }
 
         return await api(...args);
       }
 
-      throw new Error('No IPC interface found in window object');
+      throw new Error("No IPC interface found in window object");
     },
-    { channel, args }
+    { channel, args },
   );
 }
 
@@ -169,7 +254,7 @@ export async function callIPC<T>(
  */
 export async function waitForIPC(
   window: Page,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<void> {
   await window.waitForTimeout(timeout);
 }
@@ -179,7 +264,7 @@ export async function waitForIPC(
  */
 export async function takeScreenshot(
   window: Page,
-  name: string
+  name: string,
 ): Promise<void> {
   try {
     await window.screenshot({
@@ -206,56 +291,60 @@ export async function login(
     password?: string;
     pin?: string;
     timeout?: number;
-  } = {}
+  } = {},
 ): Promise<void> {
   const {
-    username = 'admin',
-    password = '123456',
-    pin = '123456',
-    timeout = 10000
+    username = "admin",
+    password = "123456",
+    pin = "123456",
+    timeout = 10000,
   } = options;
 
-  console.log('[Test Helper] 开始登录流程...');
+  console.log("[Test Helper] 开始登录流程...");
 
   try {
     // 等待页面完全加载
-    await window.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {
-      console.log('[Test Helper] networkidle超时，继续...');
-    });
+    await window
+      .waitForLoadState("networkidle", { timeout: 15000 })
+      .catch(() => {
+        console.log("[Test Helper] networkidle超时，继续...");
+      });
     await window.waitForTimeout(2000); // 额外等待Vue渲染
 
     // 等待登录页面加载
     const isLoginPage = await window.evaluate(() => {
-      return window.location.hash.includes('/login');
+      return window.location.hash.includes("/login");
     });
 
     if (!isLoginPage) {
-      console.log('[Test Helper] 当前不在登录页面，跳过登录');
+      console.log("[Test Helper] 当前不在登录页面，跳过登录");
       return;
     }
 
-    console.log('[Test Helper] 当前在登录页面，等待登录容器...');
+    console.log("[Test Helper] 当前在登录页面，等待登录容器...");
 
     // 等待登录容器出现（增加超时时间）
-    await window.waitForSelector('[data-testid="login-container"]', { timeout: 20000 });
-    console.log('[Test Helper] 登录页面已加载');
+    await window.waitForSelector('[data-testid="login-container"]', {
+      timeout: 20000,
+    });
+    console.log("[Test Helper] 登录页面已加载");
 
     // 检查是否是U盾登录模式
     const pinInput = await window.$('[data-testid="pin-input"]');
 
     if (pinInput) {
       // U盾登录模式
-      console.log('[Test Helper] 检测到U盾登录模式，使用PIN码登录');
+      console.log("[Test Helper] 检测到U盾登录模式，使用PIN码登录");
       await pinInput.fill(pin);
       await window.waitForTimeout(300);
     } else {
       // 密码登录模式
-      console.log('[Test Helper] 使用用户名密码登录');
+      console.log("[Test Helper] 使用用户名密码登录");
 
       // 填写用户名
       const usernameInput = await window.$('[data-testid="username-input"]');
       if (!usernameInput) {
-        throw new Error('未找到用户名输入框');
+        throw new Error("未找到用户名输入框");
       }
       await usernameInput.fill(username);
       await window.waitForTimeout(300);
@@ -263,32 +352,32 @@ export async function login(
       // 填写密码
       const passwordInput = await window.$('[data-testid="password-input"]');
       if (!passwordInput) {
-        throw new Error('未找到密码输入框');
+        throw new Error("未找到密码输入框");
       }
       await passwordInput.fill(password);
       await window.waitForTimeout(300);
     }
 
     // 点击登录按钮或按Enter键登录
-    console.log('[Test Helper] 触发登录...');
+    console.log("[Test Helper] 触发登录...");
 
     // 尝试按Enter键（更可靠）
     try {
       if (pinInput) {
-        await pinInput.press('Enter');
+        await pinInput.press("Enter");
       } else {
         const passwordInput = await window.$('[data-testid="password-input"]');
         if (passwordInput) {
-          await passwordInput.press('Enter');
+          await passwordInput.press("Enter");
         }
       }
     } catch (error) {
-      console.log('[Test Helper] Enter键登录失败，尝试点击按钮');
+      console.log("[Test Helper] Enter键登录失败，尝试点击按钮");
 
       // 如果Enter键失败，尝试force点击按钮
       const loginButton = await window.$('[data-testid="login-button"]');
       if (!loginButton) {
-        throw new Error('未找到登录按钮');
+        throw new Error("未找到登录按钮");
       }
       await loginButton.click({ force: true });
     }
@@ -299,20 +388,20 @@ export async function login(
     // 检查是否登录成功（不再是登录页面）
     const currentUrl = await window.evaluate(() => window.location.hash);
 
-    if (currentUrl.includes('/login')) {
+    if (currentUrl.includes("/login")) {
       // 可能登录失败，检查错误提示
-      const errorMessage = await window.$('.ant-message-error');
+      const errorMessage = await window.$(".ant-message-error");
       if (errorMessage) {
         const errorText = await errorMessage.textContent();
         throw new Error(`登录失败: ${errorText}`);
       }
-      throw new Error('登录未成功，仍在登录页面');
+      throw new Error("登录未成功，仍在登录页面");
     }
 
-    console.log('[Test Helper] ✅ 登录成功！当前URL:', currentUrl);
+    console.log("[Test Helper] ✅ 登录成功！当前URL:", currentUrl);
   } catch (error) {
-    console.error('[Test Helper] ❌ 登录失败:', error);
-    await takeScreenshot(window, 'login-error');
+    console.error("[Test Helper] ❌ 登录失败:", error);
+    await takeScreenshot(window, "login-error");
     throw error;
   }
 }
@@ -328,13 +417,13 @@ export async function retryOperation<T>(
     initialDelay?: number;
     maxDelay?: number;
     exponentialBackoff?: boolean;
-  } = {}
+  } = {},
 ): Promise<T> {
   const {
     maxRetries = 3,
     initialDelay = 1000,
     maxDelay = 5000,
-    exponentialBackoff = true
+    exponentialBackoff = true,
   } = options;
 
   let lastError: Error | undefined;
@@ -354,12 +443,14 @@ export async function retryOperation<T>(
         ? Math.min(initialDelay * Math.pow(2, attempt), maxDelay)
         : initialDelay;
 
-      console.warn(`[RetryOperation] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      console.warn(
+        `[RetryOperation] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
-  throw lastError || new Error('Operation failed');
+  throw lastError || new Error("Operation failed");
 }
 
 /**
@@ -369,20 +460,20 @@ export async function retryOperation<T>(
 export async function screenshotOnFailure(
   window: Page,
   testName: string,
-  testInfo: any
+  testInfo: any,
 ): Promise<void> {
   if (testInfo.status !== testInfo.expectedStatus) {
     try {
       const screenshot = await window.screenshot({
         fullPage: true,
-        timeout: 5000
+        timeout: 5000,
       });
 
-      const fileName = `failure-${testName.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.png`;
+      const fileName = `failure-${testName.replace(/[^a-z0-9]/gi, "-")}-${Date.now()}.png`;
 
       await testInfo.attach(fileName, {
         body: screenshot,
-        contentType: 'image/png'
+        contentType: "image/png",
       });
 
       console.log(`[Screenshot] Saved failure screenshot: ${fileName}`);
@@ -397,12 +488,14 @@ export async function screenshotOnFailure(
  */
 export async function waitForNetworkIdle(
   window: Page,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<void> {
   try {
-    await window.waitForLoadState('networkidle', { timeout });
+    await window.waitForLoadState("networkidle", { timeout });
   } catch (error) {
-    console.warn('[NetworkIdle] Timeout waiting for network idle, continuing...');
+    console.warn(
+      "[NetworkIdle] Timeout waiting for network idle, continuing...",
+    );
   }
 }
 
@@ -410,28 +503,32 @@ export async function waitForNetworkIdle(
  * Force close all modals (can be called independently)
  */
 export async function forceCloseAllModals(window: Page): Promise<void> {
-  console.log('[Helper] Forcing modal closure...');
+  console.log("[Helper] Forcing modal closure...");
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const hasModal = await window.evaluate(() => {
-        const modals = document.querySelectorAll('.ant-modal-wrap, .ant-drawer-open');
+        const modals = document.querySelectorAll(
+          ".ant-modal-wrap, .ant-drawer-open",
+        );
         return Array.from(modals).some((m) => {
           const el = m as HTMLElement;
-          return el.style.display !== 'none' && el.offsetParent !== null;
+          return el.style.display !== "none" && el.offsetParent !== null;
         });
       });
 
       if (!hasModal) {
         if (attempt > 0) {
-          console.log('[Helper] ✅ All modals closed');
+          console.log("[Helper] ✅ All modals closed");
         }
         break;
       }
 
       // Method 1: Click close buttons
       await window.evaluate(() => {
-        const closeBtns = document.querySelectorAll('.ant-modal-close, .ant-drawer-close');
+        const closeBtns = document.querySelectorAll(
+          ".ant-modal-close, .ant-drawer-close",
+        );
         closeBtns.forEach((btn) => {
           const el = btn as HTMLElement;
           if (el.offsetParent !== null) el.click();
@@ -441,17 +538,19 @@ export async function forceCloseAllModals(window: Page): Promise<void> {
       await window.waitForTimeout(300);
 
       // Method 2: Press Escape
-      await window.keyboard.press('Escape');
+      await window.keyboard.press("Escape");
       await window.waitForTimeout(300);
 
       // Method 3: Force hide (last resort)
       if (attempt >= 1) {
         await window.evaluate(() => {
-          const modals = document.querySelectorAll('.ant-modal-wrap, .ant-drawer-open');
+          const modals = document.querySelectorAll(
+            ".ant-modal-wrap, .ant-drawer-open",
+          );
           modals.forEach((modal) => {
             const el = modal as HTMLElement;
-            el.style.display = 'none';
-            el.style.pointerEvents = 'none';
+            el.style.display = "none";
+            el.style.pointerEvents = "none";
           });
         });
         await window.waitForTimeout(300);
@@ -468,12 +567,15 @@ export async function forceCloseAllModals(window: Page): Promise<void> {
 export async function expectElementVisible(
   window: Page,
   selector: string,
-  options?: { timeout?: number }
+  options?: { timeout?: number },
 ): Promise<void> {
   const timeout = options?.timeout || 5000;
 
   try {
-    const element = await window.waitForSelector(selector, { timeout, state: 'visible' });
+    const element = await window.waitForSelector(selector, {
+      timeout,
+      state: "visible",
+    });
 
     if (!element) {
       throw new Error(`Element ${selector} not found`);
@@ -485,7 +587,9 @@ export async function expectElementVisible(
       throw new Error(`Element ${selector} is not visible`);
     }
   } catch (error) {
-    console.error(`[Assertion] Element visibility check failed for: ${selector}`);
+    console.error(
+      `[Assertion] Element visibility check failed for: ${selector}`,
+    );
     throw error;
   }
 }
@@ -497,7 +601,7 @@ export async function expectTextContent(
   window: Page,
   selector: string,
   expectedText: string | RegExp,
-  options?: { timeout?: number }
+  options?: { timeout?: number },
 ): Promise<void> {
   const timeout = options?.timeout || 5000;
 
@@ -510,16 +614,16 @@ export async function expectTextContent(
 
     const actualText = await element.textContent();
 
-    if (typeof expectedText === 'string') {
+    if (typeof expectedText === "string") {
       if (!actualText?.includes(expectedText)) {
         throw new Error(
-          `Expected text "${expectedText}" not found. Actual: "${actualText}"`
+          `Expected text "${expectedText}" not found. Actual: "${actualText}"`,
         );
       }
     } else {
-      if (!expectedText.test(actualText || '')) {
+      if (!expectedText.test(actualText || "")) {
         throw new Error(
-          `Text does not match pattern ${expectedText}. Actual: "${actualText}"`
+          `Text does not match pattern ${expectedText}. Actual: "${actualText}"`,
         );
       }
     }
