@@ -1192,7 +1192,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
       );
       logger.log(
-        `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (so far)`,
+        `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
       );
       logger.log(
         `  ${chalk.cyan("/permissions")} Allow/ask/deny rules in effect this session`,
@@ -2492,15 +2492,27 @@ export async function startAgentRepl(options = {}) {
     // parity). In-memory accumulation, so it works without session persistence.
     if (trimmed === "/cost" || trimmed === "/cost ") {
       let overrides;
+      let visionModel;
       try {
         const { loadConfig } = await import("../lib/config-manager.js");
-        overrides = loadConfig()?.llm?.pricing;
+        const cfg = loadConfig();
+        overrides = cfg?.llm?.pricing;
+        visionModel = cfg?.llm?.visionModel;
       } catch (_err) {
-        // pricing overrides are optional — fall back to the built-in table
+        // config is optional — fall back to the built-in pricing table
       }
+      // Category breakdown (Claude-Code parity): classify spend by model role —
+      // the live model is "main", the vision model "vision", the fallback chain
+      // "fallback", a switched-to model "other". Shown only when >1 was used.
+      const roles = {
+        mainProvider: provider,
+        mainModel: _curModel || model,
+        visionModel: visionModel || "doubao-seed-1-6-vision-250815",
+        fallbackModels: _fallbackModels || [],
+      };
       const { renderSessionCost } = await import("./session-cost.js");
       logger.log(
-        renderSessionCost(_costStore, { pricingOverrides: overrides }),
+        renderSessionCost(_costStore, { pricingOverrides: overrides, roles }),
       );
       prompt();
       return;

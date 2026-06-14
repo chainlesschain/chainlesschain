@@ -69,6 +69,81 @@ export function addUsage(store, events) {
   return s;
 }
 
+/**
+ * Classify a priced model row into a cost CATEGORY by its role in the session
+ * (Claude-Code `/cost` breakdown parity). Roles are derived from config + the
+ * live session: the active model is "main", the configured vision model is
+ * "vision", any model in the fallback chain is "fallback", anything else (e.g.
+ * a model switched to mid-session) is "other".
+ *
+ * The active model wins over vision/fallback when names collide, so a session
+ * that never used vision shows everything as "main".
+ *
+ * @param {string} provider
+ * @param {string} model
+ * @param {{mainProvider?:string, mainModel?:string, visionModel?:string, fallbackModels?:string[]}} roles
+ * @returns {"main"|"vision"|"fallback"|"other"}
+ */
+export function classifyModelRole(provider, model, roles = {}) {
+  const lc = (x) => String(x || "").toLowerCase();
+  const p = lc(provider);
+  const m = lc(model);
+  if (
+    roles.mainModel &&
+    m === lc(roles.mainModel) &&
+    (!roles.mainProvider || p === lc(roles.mainProvider))
+  ) {
+    return "main";
+  }
+  if (roles.visionModel && m === lc(roles.visionModel)) return "vision";
+  if (
+    Array.isArray(roles.fallbackModels) &&
+    roles.fallbackModels.some((fm) => lc(fm) === m)
+  ) {
+    return "fallback";
+  }
+  return "other";
+}
+
+/**
+ * Group a priced rollup's per-model rows into categories. Operates on the output
+ * of priceRollup (rows carry cost/matched/free), so dollar sums are accurate and
+ * unpriced models are flagged rather than silently counted as $0.
+ *
+ * @returns {Array<{category,inputTokens,outputTokens,totalTokens,calls,cost,models,anyUnpriced}>}
+ *          sorted by cost (then tokens) descending.
+ */
+export function categorizeByRole(pricedResult, roles = {}) {
+  const cats = new Map();
+  for (const row of pricedResult?.byModel || []) {
+    const category = classifyModelRole(row.provider, row.model, roles);
+    let c = cats.get(category);
+    if (!c) {
+      c = {
+        category,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        calls: 0,
+        cost: 0,
+        models: [],
+        anyUnpriced: false,
+      };
+      cats.set(category, c);
+    }
+    c.inputTokens += num(row.inputTokens);
+    c.outputTokens += num(row.outputTokens);
+    c.totalTokens += num(row.totalTokens);
+    c.calls += num(row.calls);
+    if (row.matched && !row.free) c.cost += num(row.cost);
+    if (!row.matched && !row.free) c.anyUnpriced = true;
+    if (row.model && !c.models.includes(row.model)) c.models.push(row.model);
+  }
+  return Array.from(cats.values()).sort(
+    (a, b) => b.cost - a.cost || b.totalTokens - a.totalTokens,
+  );
+}
+
 /** Snapshot the store as the `{ total, byModel[] }` aggregate priceRollup wants. */
 export function costAggregate(store) {
   const s = store || newCostStore();
@@ -84,7 +159,7 @@ export function costAggregate(store) {
  * Render the live session cost. `pricingOverrides` is typically
  * `config.llm.pricing`. Returns plain text (the REPL does the I/O).
  */
-export function renderSessionCost(store, { pricingOverrides } = {}) {
+export function renderSessionCost(store, { pricingOverrides, roles } = {}) {
   const agg = costAggregate(store);
   if (agg.total.calls === 0) {
     return "Session cost: no LLM calls yet this session.";
@@ -108,6 +183,28 @@ export function renderSessionCost(store, { pricingOverrides } = {}) {
         : "unpriced";
     lines.push(`  ${provider} ${model} ${price}  ${tokens}`);
   }
+
+  // Category breakdown (main / vision / fallback / other) — only worth showing
+  // when more than one category was actually used; a single-model session is
+  // already fully described by the per-model rows above.
+  if (roles) {
+    const cats = categorizeByRole(result, roles);
+    if (cats.length >= 2) {
+      const totalCost = num(result.cost.totalCost);
+      lines.push("  by category:");
+      for (const c of cats) {
+        const label = c.category.padEnd(9);
+        const price =
+          c.anyUnpriced && c.cost === 0 ? "unpriced" : fmtUsd(c.cost);
+        const pct =
+          totalCost > 0 ? ` (${Math.round((c.cost / totalCost) * 100)}%)` : "";
+        lines.push(
+          `    ${label} ${price}${pct}  in=${c.inputTokens} out=${c.outputTokens} ${c.calls} calls`,
+        );
+      }
+    }
+  }
+
   if (result.unpriced.length > 0) {
     lines.push(
       `  note: ${result.unpriced.length} model(s) have no rate — ` +
