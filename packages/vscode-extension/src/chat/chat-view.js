@@ -16,6 +16,7 @@ const {
   buildSessionArgs,
 } = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
+const { ConversationManager } = require("./conversation-manager");
 
 class ChatViewProvider {
   /**
@@ -28,12 +29,37 @@ class ChatViewProvider {
     this.vscode = vscode;
     this.opts = opts;
     this.view = null;
-    this.session = null;
-    this.turnState = createTurnState();
+    // Multi-tab model: N conversations, each owning its own agent child +
+    // resume id + per-turn reducer state. One is bootstrapped on demand so
+    // single-tab behavior (and every existing flow) is preserved.
+    this._convs = new ConversationManager({ createTurnState });
+    // Injectable for tests: returns a STARTED session for the given config.
+    this._createSession =
+      opts.deps?.createSession ||
+      ((cfg) => new AgentChatSession(cfg).start());
     // "Insert File Reference" (Cmd/Ctrl+Alt+K): text queued here until the
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
     this._webviewReady = false;
+  }
+
+  /** The active conversation, creating the first one (lazily) if none exist. */
+  _activeConv() {
+    if (this._convs.count() === 0) {
+      this._convs.create({ sessionId: this._storedSessionId() });
+    }
+    return this._convs.active();
+  }
+
+  /** Back-compat accessor: the active conversation's live session (or null). */
+  get session() {
+    return this._convs.active()?.session || null;
+  }
+
+  /** Back-compat setter: drops/sets the active conversation's session handle. */
+  set session(handle) {
+    const c = this._convs.active();
+    if (c) this._convs.setSession(c.id, handle);
   }
 
   /**
@@ -92,27 +118,80 @@ class ChatViewProvider {
     );
   }
 
+  /** Post a webview message only when it belongs to the ACTIVE tab — so a
+   * background tab's stream never bleeds into the visible transcript. */
+  _postFrom(convId, msg) {
+    if (this._convs.activeId() === convId) this._post(msg);
+  }
+
+  /** Push the current tab set to the webview (the tab bar renders from this). */
+  _postTabs() {
+    this._post({
+      kind: "tabs",
+      tabs: this._convs.list(),
+      activeId: this._convs.activeId(),
+    });
+  }
+
+  /** Event handler bound to one conversation: routes to ITS reducer state and
+   * only surfaces when that conversation is the active tab. */
+  _makeOnEvent(convId) {
+    return (evt) => {
+      const conv = this._convs.get(convId);
+      if (!conv) return;
+      if (evt?.type === "system" && evt.subtype === "init") {
+        if (evt.session_id) {
+          this._convs.setSessionId(convId, evt.session_id);
+          if (this._convs.activeId() === convId) {
+            this._rememberSessionId(evt.session_id);
+          }
+        }
+        if (evt.resumed_messages > 0) {
+          this._postFrom(convId, {
+            kind: "info",
+            text: `resumed previous conversation (${evt.resumed_messages} messages)`,
+          });
+        }
+      }
+      // An LLM connection failure usually means "nothing configured yet" —
+      // surface the guided-setup card instead of a bare error.
+      if (
+        evt?.type === "result" &&
+        evt.is_error &&
+        /fetch failed|ECONNREFUSED|ENOTFOUND|api.?key/i.test(
+          String(evt.error || evt.result || ""),
+        )
+      ) {
+        this._postFrom(convId, { kind: "setup", reason: String(evt.error || "") });
+      }
+      this._postFrom(convId, mapAgentEvent(evt, conv.turnState));
+    };
+  }
+
+  /** Ensure the ACTIVE conversation has a running agent child; spawn one
+   * (resuming its own session id) if not. Returns the live session. */
   _ensureSession() {
-    if (this.session?.running) return this.session;
+    const conv = this._activeConv();
+    if (conv.session?.running) return conv.session;
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
     const bridgeEnv =
       typeof this.opts.getBridgeEnv === "function"
         ? this.opts.getBridgeEnv()
         : {};
-    this.turnState = createTurnState();
+    this._convs.resetTurnState(conv.id);
     const chatCfg = this.vscode.workspace.getConfiguration(
       "chainlesschain.chat",
     );
-    this.session = new AgentChatSession({
+    const session = this._createSession({
       command: this._cliCommand(),
       args: [
         ...buildSessionArgs({
           model: chatCfg.get("model"),
           provider: chatCfg.get("provider"),
-          // Continue this workspace's last conversation across panel/child
-          // restarts; "New" clears the stored id for a fresh session.
-          resume: this._storedSessionId(),
+          // Continue THIS tab's conversation across child restarts; a new tab
+          // (or "New") starts with no resume id for a fresh session.
+          resume: conv.sessionId,
         }),
         // Confirm-tier approvals become Approve/Deny cards in the panel
         // instead of failing closed (needs cc >= 0.162.45).
@@ -120,36 +199,15 @@ class ChatViewProvider {
       ],
       cwd,
       env: { ...process.env, ...bridgeEnv },
-      onEvent: (evt) => {
-        if (evt?.type === "system" && evt.subtype === "init") {
-          if (evt.session_id) this._rememberSessionId(evt.session_id);
-          if (evt.resumed_messages > 0) {
-            this._post({
-              kind: "info",
-              text: `resumed previous conversation (${evt.resumed_messages} messages)`,
-            });
-          }
-        }
-        // An LLM connection failure usually means "nothing configured yet" —
-        // surface the guided-setup card instead of a bare error.
-        if (
-          evt?.type === "result" &&
-          evt.is_error &&
-          /fetch failed|ECONNREFUSED|ENOTFOUND|api.?key/i.test(
-            String(evt.error || evt.result || ""),
-          )
-        ) {
-          this._post({ kind: "setup", reason: String(evt.error || "") });
-        }
-        this._post(mapAgentEvent(evt, this.turnState));
-      },
-      onStderr: (line) => this._post({ kind: "stderr", text: line }),
-      onExit: ({ code }) => this._post({ kind: "exited", code }),
-    }).start();
+      onEvent: this._makeOnEvent(conv.id),
+      onStderr: (line) => this._postFrom(conv.id, { kind: "stderr", text: line }),
+      onExit: ({ code }) => this._postFrom(conv.id, { kind: "exited", code }),
+    });
+    this._convs.setSession(conv.id, session);
     if (typeof this.opts.log === "function") {
       this.opts.log(`chat: spawned ${this._cliCommand()} agent (cwd ${cwd})`);
     }
-    return this.session;
+    return session;
   }
 
   /** /sessions — native QuickPick over `cc session list`, then resume. */
@@ -173,9 +231,11 @@ class ChatViewProvider {
       { placeHolder: "Resume which session in the chat panel?" },
     );
     if (!pick) return;
+    const conv = this._activeConv();
+    conv.session?.stop();
+    this._convs.setSession(conv.id, null);
+    this._convs.setSessionId(conv.id, pick.label);
     this._rememberSessionId(pick.label);
-    this.session?.stop();
-    this.session = null;
     this._post({ kind: "reset" });
     this._post({
       kind: "info",
@@ -337,9 +397,22 @@ class ChatViewProvider {
         /* onboarding check is best-effort */
       }
     })();
-    view.webview.onDidReceiveMessage((m) => {
-      if (!m || typeof m !== "object") return;
-      if (m.type === "send") {
+    view.webview.onDidReceiveMessage((m) => this._handleMessage(m));
+    view.onDidDispose(() => {
+      for (const s of this._convs.allSessions()) s.stop?.();
+      this.view = null;
+      this._webviewReady = false;
+    });
+  }
+
+  /**
+   * Handle one inbound webview message (send / tabs / plan / approval / …).
+   * Extracted from resolveWebviewView so the whole message flow is unit-testable
+   * without a live webview host.
+   */
+  _handleMessage(m) {
+    if (!m || typeof m !== "object") return;
+    if (m.type === "send") {
         const images = Array.isArray(m.images)
           ? this._writeImageTemps(m.images)
           : [];
@@ -411,24 +484,47 @@ class ChatViewProvider {
       } else if (m.type === "ready") {
         this._onWebviewReady();
       } else if (m.type === "new") {
-        // New chat: drop the child AND the stored session id; the next
-        // message spawns a fresh conversation. Webview clears on "reset".
-        this.session?.stop();
-        this.session = null;
+        // New chat: reset the ACTIVE conversation — drop its child AND resume
+        // id so the next message spawns fresh. Webview clears on "reset".
+        const conv = this._activeConv();
+        conv.session?.stop();
+        this._convs.setSession(conv.id, null);
+        this._convs.setSessionId(conv.id, null);
         this._rememberSessionId(null);
         this._fileCache = null; // pick up files created since the last scan
         this._post({ kind: "reset" });
+      } else if (m.type === "newTab") {
+        // Open a fresh conversation tab (becomes active). Its child spawns on
+        // the first message; the transcript starts empty.
+        this._activeConv(); // ensure at least the bootstrap exists first
+        this._convs.create({});
+        this._rememberSessionId(null);
+        this._fileCache = null;
+        this._post({ kind: "reset" });
+        this._postTabs();
+      } else if (m.type === "switchTab") {
+        // Switch the visible conversation. The transcript clears; restoring a
+        // tab's prior messages on switch is slice 3 (per-tab transcript).
+        const conv = this._convs.switchTo(String(m.id || ""));
+        if (conv) {
+          this._rememberSessionId(conv.sessionId);
+          this._post({ kind: "reset" });
+          this._postTabs();
+        }
+      } else if (m.type === "closeTab") {
+        const res = this._convs.close(String(m.id || ""));
+        if (res.closed) {
+          res.conv?.session?.stop?.();
+          if (this._convs.count() === 0) this._convs.create({}); // never empty
+          this._rememberSessionId(this._convs.active()?.sessionId || null);
+          this._post({ kind: "reset" });
+          this._postTabs();
+        }
       }
-    });
-    view.onDidDispose(() => {
-      this.session?.stop();
-      this.view = null;
-      this._webviewReady = false;
-    });
   }
 
   dispose() {
-    this.session?.stop();
+    for (const s of this._convs.allSessions()) s.stop?.();
   }
 }
 
