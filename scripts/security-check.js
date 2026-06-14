@@ -75,6 +75,11 @@ const ALLOWED_FILES = [
   "devices.md", // manufacturer 设备管理 API 参考：登录示例含默认演示密码 admin123456（非真实凭证）
   "authentication.md", // API 认证文档：含示例 JWT/access_token（eyJhbGci... 占位，非真实凭证）
   "QUICK_START.md", // 快速开始指南：含占位示例密码 your-secure-password（非真实凭证）
+  // 内部文档：含占位示例凭证（your-app-password / 示例连接串 / different-password，非真实）
+  "MONITORING.md",
+  "MONITORING_QUICK_START.md",
+  "PRE_COMMIT_HOOKS.md", // 文档化 pre-commit 安全检查本身，含示例 secret 模式
+  "BUGFIX_REPORT.md",
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）

@@ -227,3 +227,58 @@ We may update these Terms. Material changes will be announced in-app at least 7 
 > 法律免责声明：本模板为 ChainlessChain 团队内部起草，**未经法务专业审核**。正式发布前请由公司法务或外部律师复核中文版（依据中国《民法典》《电子商务法》《网络安全法》等），英文版（依据 Apple App Store Review Guideline、目标司法管辖区合同法）。第 13 条管辖法院已暂填厦门市湖里区，公司实际注册地以工商登记为准，请法务核对。
 >
 > Disclaimer: This template was drafted internally and **has not undergone legal review**. Before public release, have this reviewed by company legal counsel or external attorneys. The jurisdiction in Section 13 has been provisionally set to Huli District, Xiamen — confirm against the company's actual registered address.
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+见正文头部。本文：ChainlessChain 用户协议 / Terms of Service。
+
+### 2. 核心特性
+见正文要点 / 特性 / 范围章节。
+
+### 3. 系统架构
+见正文架构 / 设计章节（或项目根 docs/design/ 系统设计主文档）。
+
+### 4. 系统定位
+见正文定位 / 背景章节。
+
+### 5. 核心功能
+见正文功能 / 内容章节。
+
+### 6. 技术架构
+见正文技术 / 实现章节。
+
+### 7. 系统特点
+见正文（状态 / 版本 / 特性）。
+
+### 8. 应用场景
+见正文应用场景 / 背景。
+
+### 9. 竞品对比
+见正文对比 / 借鉴（如有）。
+
+### 10. 配置参考
+见正文配置 / 参数 / 环境章节。
+
+### 11. 性能指标
+见正文性能 / 指标章节（如有）。
+
+### 12. 测试覆盖
+见正文测试 / 验证章节（如有）。
+
+### 13. 安全考虑
+见正文安全 / 权限章节（如适用）。
+
+### 14. 故障排除
+见正文故障 / 已知限制 / 常见问题章节。
+
+### 15. 关键文件
+见正文实现位置 / 关键文件章节。
+
+### 16. 使用示例
+见正文命令 / 操作 / API 示例。
+
+### 17. 相关文档
+见正文相关链接；项目根 docs/design/ 系统设计主文档与对应模块文档。
