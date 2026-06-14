@@ -32,6 +32,7 @@ const { READINESS_CATEGORY } = require("./adapter-readiness");
 const DISPLAY_NAMES = Object.freeze({
   "social-bilibili": "哔哩哔哩",
   "social-weibo": "微博",
+  "social-zhihu": "知乎",
   "social-douyin": "抖音",
   "social-xiaohongshu": "小红书",
   "social-toutiao": "今日头条",

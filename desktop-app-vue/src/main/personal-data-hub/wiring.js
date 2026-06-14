@@ -53,6 +53,7 @@ const {
   LocalFilesAdapter,
   BilibiliAdapter,
   WeiboAdapter,
+  ZhihuAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
   ToutiaoAdapter,
@@ -74,14 +75,13 @@ const {
   Train12306Adapter,
   TaobaoAdapter,
   CtripAdapter,
+  TongchengAdapter,
   AmapAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
-  ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
-  EntityResolverWorker,
   runAnalysisSkill,
   ANALYSIS_SKILL_NAMES,
 } = require("@chainlesschain/personal-data-hub");
@@ -337,7 +337,7 @@ async function initHub() {
                     }))
                     .filter((d) => d.id)
                 : [];
-            } catch (e) {
+            } catch (_e) {
               return [];
             }
           }
@@ -575,6 +575,7 @@ async function initHub() {
   // registry slot is claimed so syncAdapter("<name>", path) routes correctly.
   for (const Cls of [
     WeiboAdapter,
+    ZhihuAdapter,
     DouyinAdapter,
     XiaohongshuAdapter,
     ToutiaoAdapter,
@@ -596,6 +597,7 @@ async function initHub() {
     Train12306Adapter,
     TaobaoAdapter,
     CtripAdapter,
+    TongchengAdapter,
     AmapAdapter,
     TelegramAdapter,
     WhatsAppAdapter,

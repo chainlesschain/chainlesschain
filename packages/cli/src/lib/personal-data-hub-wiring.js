@@ -54,6 +54,7 @@ const {
   LocalFilesAdapter,
   BilibiliAdapter,
   WeiboAdapter,
+  ZhihuAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
   ToutiaoAdapter,
@@ -516,6 +517,7 @@ async function initHub() {
   // accurate.
   for (const Cls of [
     WeiboAdapter,
+    ZhihuAdapter,
     DouyinAdapter,
     XiaohongshuAdapter,
     ToutiaoAdapter,
