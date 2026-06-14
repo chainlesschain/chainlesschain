@@ -63,7 +63,9 @@ function gitCli(args, { cwd } = {}) {
 
 function isGitRepo(cwd, git = gitCli) {
   try {
-    return git(["rev-parse", "--is-inside-work-tree"], { cwd }).trim() === "true";
+    return (
+      git(["rev-parse", "--is-inside-work-tree"], { cwd }).trim() === "true"
+    );
   } catch {
     return false;
   }
@@ -174,26 +176,43 @@ export function buildReviewPrompt(o = {}) {
     effort = "medium",
     mode = "default",
     fix = false,
+    comment = false,
     label = "working tree vs HEAD",
     untrackedBlocks = "",
     truncated = false,
   } = o;
 
-  const tail = fix
-    ? "First identify the issues as above. Then APPLY the fixes directly with " +
-      "your edit tools — make the smallest change that resolves each issue and " +
-      "match the surrounding code's style. Every file edit is automatically " +
-      "checkpointed and reversible, so edit confidently. Stay within the " +
-      "reviewed change and its immediate dependencies — do not refactor " +
-      "unrelated code. Do NOT run destructive shell commands. When done, output " +
-      "a Markdown summary: what you changed (with `path:line`) and any issue you " +
-      "deliberately did NOT fix, each with a one-line reason."
-    : "Output a Markdown report. For each finding give: a severity " +
-      "(Critical / High / Medium / Low), the `path:line`, a one-line title, " +
-      "why it matters, and a concrete suggested fix (a short code snippet when " +
-      "it helps). Group findings by severity, most severe first. If nothing is " +
-      "worth raising, say so plainly. Do NOT modify any files — this is a " +
-      "review only.";
+  // comment mode → machine-readable findings so each maps to a PR inline comment.
+  const commentTail =
+    "Output ONLY a JSON array of findings and nothing else — no prose, no " +
+    "markdown fence. Each element: " +
+    '{"path": "<repo-relative file path exactly as in the diff>", ' +
+    '"line": <integer line number in the NEW version of the file, which MUST ' +
+    "appear in the diff>, " +
+    '"severity": "Critical"|"High"|"Medium"|"Low", ' +
+    '"title": "<one-line summary>", ' +
+    '"body": "<why it matters + a concrete suggested fix>"}. ' +
+    "Only report lines that are present in the diff (added/context lines on the " +
+    "new side). Do NOT modify any files. If there is nothing worth raising, " +
+    "output exactly [].";
+
+  const tail = comment
+    ? commentTail
+    : fix
+      ? "First identify the issues as above. Then APPLY the fixes directly with " +
+        "your edit tools — make the smallest change that resolves each issue and " +
+        "match the surrounding code's style. Every file edit is automatically " +
+        "checkpointed and reversible, so edit confidently. Stay within the " +
+        "reviewed change and its immediate dependencies — do not refactor " +
+        "unrelated code. Do NOT run destructive shell commands. When done, output " +
+        "a Markdown summary: what you changed (with `path:line`) and any issue you " +
+        "deliberately did NOT fix, each with a one-line reason."
+      : "Output a Markdown report. For each finding give: a severity " +
+        "(Critical / High / Medium / Low), the `path:line`, a one-line title, " +
+        "why it matters, and a concrete suggested fix (a short code snippet when " +
+        "it helps). Group findings by severity, most severe first. If nothing is " +
+        "worth raising, say so plainly. Do NOT modify any files — this is a " +
+        "review only.";
 
   return [
     `You are an expert code reviewer. ${LENS[mode]}`,
@@ -208,7 +227,8 @@ export function buildReviewPrompt(o = {}) {
     "Unified diff:",
     "```diff",
     truncated
-      ? diff + "\n\n[... diff truncated — review what is shown; note the cutoff]"
+      ? diff +
+        "\n\n[... diff truncated — review what is shown; note the cutoff]"
       : diff,
     "```",
     untrackedBlocks ? "\n" + untrackedBlocks : "",
@@ -272,6 +292,273 @@ function collectUntracked(cwd, git) {
 }
 
 /**
+ * Collect the diff (+ untracked new files) for a review scope. Shared by
+ * runReview and runReviewComment. Returns the (possibly truncated) diff.
+ */
+function collectReviewDiff(scopeOpts, { cwd, git, includeUntracked }) {
+  const { args: diffArgs, scope, label } = resolveDiffArgs(scopeOpts, false);
+  const { args: statArgs } = resolveDiffArgs(scopeOpts, true);
+  let diff = "";
+  let summary = "";
+  try {
+    diff = git(diffArgs, { cwd });
+    summary = git(statArgs, { cwd });
+  } catch (err) {
+    throw new Error(`git diff failed: ${err.message}`);
+  }
+  // Untracked new files only matter for the default working scope; staged /
+  // base / range are already fully described by git.
+  let untracked = { blocks: "", files: [], skipped: [] };
+  if (scope === "working" && includeUntracked) {
+    untracked = collectUntracked(cwd, git);
+  }
+  const hasDiff = Boolean(diff.trim());
+  const hasUntracked = Boolean(untracked.blocks);
+  const truncated = diff.length > MAX_DIFF_CHARS;
+  if (truncated) diff = diff.slice(0, MAX_DIFF_CHARS);
+  return {
+    diff,
+    summary,
+    scope,
+    label,
+    untracked,
+    hasDiff,
+    hasUntracked,
+    truncated,
+  };
+}
+
+/** Run `gh` with an argv array (no shell). UTF-8 in/out; throws on failure. */
+function ghCli(args, { cwd, input } = {}) {
+  const res = spawnSync("gh", args, {
+    cwd,
+    input,
+    encoding: "utf-8",
+    windowsHide: true,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (res.error) throw res.error;
+  if (res.status !== 0) {
+    const msg = (res.stderr || res.stdout || "").toString().trim();
+    throw new Error(msg || `gh ${args.join(" ")} failed (exit ${res.status})`);
+  }
+  return (res.stdout || "").toString();
+}
+
+/** Resolve the PR for the current branch via gh (read-only). Throws if none. */
+function resolvePr(cwd, gh) {
+  let out;
+  try {
+    out = gh(
+      ["pr", "view", "--json", "number,baseRefName,headRefName,headRefOid,url"],
+      { cwd },
+    );
+  } catch (err) {
+    throw new Error(
+      `no open PR for the current branch (gh: ${err.message}). ` +
+        "Push the branch and open a PR first, or use `cc review` without --comment.",
+    );
+  }
+  let pr;
+  try {
+    pr = JSON.parse(out);
+  } catch {
+    throw new Error("could not parse `gh pr view` output.");
+  }
+  let repo = null;
+  try {
+    repo = JSON.parse(gh(["repo", "view", "--json", "nameWithOwner"], { cwd }))
+      .nameWithOwner;
+  } catch {
+    repo = null;
+  }
+  return { ...pr, repo };
+}
+
+/**
+ * Parse the agent's findings JSON (lenient). Strips a code fence, extracts the
+ * first JSON array, and keeps only well-formed findings. Pure.
+ *
+ * @returns {{path:string,line:number,severity:string,title:string,body:string}[]}
+ */
+export function parseFindings(text) {
+  if (!text) return [];
+  let s = String(text).trim();
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) s = fence[1].trim();
+  const start = s.indexOf("[");
+  const end = s.lastIndexOf("]");
+  if (start === -1 || end === -1 || end < start) return [];
+  let arr;
+  try {
+    arr = JSON.parse(s.slice(start, end + 1));
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter(
+      (f) =>
+        f &&
+        typeof f === "object" &&
+        f.path &&
+        Number.isFinite(Number(f.line)) &&
+        Number(f.line) > 0,
+    )
+    .map((f) => ({
+      path: String(f.path),
+      line: Math.floor(Number(f.line)),
+      severity: f.severity ? String(f.severity) : "Note",
+      title: f.title ? String(f.title) : "",
+      body: f.body ? String(f.body) : f.title ? String(f.title) : "finding",
+    }));
+}
+
+/** Format one finding into a PR comment body. Pure. */
+export function buildCommentBody(f) {
+  const sev = f.severity ? `**[${f.severity}]** ` : "";
+  const title = f.title ? `${f.title}\n\n` : "";
+  return `${sev}${title}${f.body}`.trim();
+}
+
+/** Build the GitHub "create review" API payload from findings. Pure. */
+export function buildReviewPayload(findings, { commitId } = {}) {
+  const comments = (findings || []).map((f) => ({
+    path: f.path,
+    line: f.line,
+    side: "RIGHT",
+    body: buildCommentBody(f),
+  }));
+  const payload = {
+    event: "COMMENT",
+    body: `cc review — ${comments.length} finding(s).`,
+    comments,
+  };
+  if (commitId) payload.commit_id = commitId;
+  return payload;
+}
+
+/**
+ * Post the findings to the PR as a single review with inline comments
+ * (outward-facing — callers gate this behind --dry-run / confirmation).
+ */
+export function postReviewComments(pr, findings, { gh = ghCli, cwd, commitId } = {}) {
+  if (!pr || !pr.repo || !pr.number) {
+    throw new Error("cannot post: PR repo/number not resolved.");
+  }
+  const payload = buildReviewPayload(findings, { commitId });
+  const out = gh(
+    [
+      "api",
+      "--method",
+      "POST",
+      `repos/${pr.repo}/pulls/${pr.number}/reviews`,
+      "--input",
+      "-",
+    ],
+    { cwd, input: JSON.stringify(payload) },
+  );
+  try {
+    return JSON.parse(out);
+  } catch {
+    return { raw: out };
+  }
+}
+
+/**
+ * Comment-mode review: resolve the PR, collect its diff, get machine-readable
+ * findings from one read-only agent turn. Side-effect-free (PR resolution is a
+ * read); the caller posts after confirmation. Deps injected for tests.
+ *
+ * @returns {Promise<{empty:boolean, pr:object, findings:object[], scope?:string,
+ *                     label?:string, isError?:boolean}>}
+ */
+export async function runReviewComment(options = {}, deps = {}) {
+  const cwd = options.cwd || process.cwd();
+  const git = deps.git || gitCli;
+  const gh = deps.gh || ghCli;
+  const repoCheck = deps.isGitRepo || isGitRepo;
+  if (!repoCheck(cwd, git)) {
+    throw new Error("cc review needs a git work tree.");
+  }
+
+  const pr = (deps.resolvePr || resolvePr)(cwd, gh);
+
+  // Default the scope to the PR's base branch (review the PR's changes) unless
+  // the user gave an explicit scope.
+  const explicitScope =
+    options.staged || options.base || options.range || (options.paths || []).length;
+  const scopeOpts = {
+    staged: options.staged === true,
+    base: options.base || (explicitScope ? null : pr.baseRefName),
+    range: options.range || null,
+    paths: options.paths || [],
+  };
+
+  const collected = collectReviewDiff(scopeOpts, {
+    cwd,
+    git,
+    includeUntracked: false,
+  });
+  if (!collected.hasDiff && !collected.hasUntracked) {
+    return { empty: true, pr, findings: [] };
+  }
+
+  // LLM config defaults (parity with runReview).
+  try {
+    const loadConfig =
+      deps.loadConfig || (await import("../lib/config-manager.js")).loadConfig;
+    const { applyConfigLlmDefaults } = deps.applyConfigLlmDefaults
+      ? { applyConfigLlmDefaults: deps.applyConfigLlmDefaults }
+      : await import("../lib/llm-config-defaults.js");
+    applyConfigLlmDefaults(options, loadConfig().llm || {}, {
+      explicitModel: options.model,
+    });
+  } catch {
+    /* fall back to runner defaults */
+  }
+
+  const prompt = buildReviewPrompt({
+    diff: collected.hasDiff ? collected.diff : "(no tracked changes)",
+    summary: collected.summary,
+    effort: normalizeEffort(options.effort),
+    mode: resolveReviewMode(options),
+    comment: true,
+    label: collected.label,
+    truncated: collected.truncated,
+  });
+
+  const run =
+    deps.runAgentHeadless ||
+    (await import("../runtime/headless-runner.js")).runAgentHeadless;
+  // Suppress the runner's own stdout/stderr — we only want the structured result.
+  const outcome = await run(
+    {
+      prompt,
+      model: options.model,
+      provider: options.provider,
+      baseUrl: options.baseUrl,
+      apiKey: options.apiKey,
+      outputFormat: "text",
+      permissionMode: "plan",
+      maxTurns: Number.isFinite(options.maxTurns) ? options.maxTurns : 20,
+      cwd,
+      expandFileRefs: false,
+    },
+    { writeOut: () => {}, writeErr: () => {} },
+  );
+
+  return {
+    empty: false,
+    pr,
+    scope: collected.scope,
+    label: collected.label,
+    findings: parseFindings(outcome.result || ""),
+    isError: outcome.isError === true,
+  };
+}
+
+/**
  * Core review run — collects the diff and dispatches one headless agent turn.
  * Deps are injected for tests (git / runAgentHeadless / config helpers).
  *
@@ -299,33 +586,15 @@ export async function runReview(options = {}, deps = {}) {
     paths: options.paths || [],
   };
 
-  const { args: diffArgs, scope, label } = resolveDiffArgs(scopeOpts, false);
-  const { args: statArgs } = resolveDiffArgs(scopeOpts, true);
-
-  let diff = "";
-  let summary = "";
-  try {
-    diff = git(diffArgs, { cwd });
-    summary = git(statArgs, { cwd });
-  } catch (err) {
-    throw new Error(`git diff failed: ${err.message}`);
-  }
-
-  // Untracked new files only matter for the default working scope; staged /
-  // base / range are already fully described by git.
-  let untracked = { blocks: "", files: [], skipped: [] };
-  if (scope === "working" && options.untracked !== false) {
-    untracked = collectUntracked(cwd, git);
-  }
-
-  const hasDiff = Boolean(diff.trim());
-  const hasUntracked = Boolean(untracked.blocks);
+  const { diff, summary, scope, label, untracked, hasDiff, hasUntracked, truncated } =
+    collectReviewDiff(scopeOpts, {
+      cwd,
+      git,
+      includeUntracked: options.untracked !== false,
+    });
   if (!hasDiff && !hasUntracked) {
     return { exitCode: 0, isError: false, scope, empty: true };
   }
-
-  const truncated = diff.length > MAX_DIFF_CHARS;
-  if (truncated) diff = diff.slice(0, MAX_DIFF_CHARS);
 
   const prompt = buildReviewPrompt({
     diff: hasDiff ? diff : "(no tracked changes)",
@@ -341,11 +610,11 @@ export async function runReview(options = {}, deps = {}) {
   // LLM defaults: honor .chainlesschain/config.json `llm` like cc agent/ask.
   // Explicit flags win. Best-effort — never block the review.
   try {
-    const loadConfig = deps.loadConfig || (await import("../lib/config-manager.js")).loadConfig;
-    const { applyConfigLlmDefaults } =
-      deps.applyConfigLlmDefaults
-        ? { applyConfigLlmDefaults: deps.applyConfigLlmDefaults }
-        : await import("../lib/llm-config-defaults.js");
+    const loadConfig =
+      deps.loadConfig || (await import("../lib/config-manager.js")).loadConfig;
+    const { applyConfigLlmDefaults } = deps.applyConfigLlmDefaults
+      ? { applyConfigLlmDefaults: deps.applyConfigLlmDefaults }
+      : await import("../lib/llm-config-defaults.js");
     applyConfigLlmDefaults(options, loadConfig().llm || {}, {
       explicitModel: options.model,
     });
@@ -362,7 +631,8 @@ export async function runReview(options = {}, deps = {}) {
     ? options.maxTurns
     : defaultMaxTurns;
 
-  const run = deps.runAgentHeadless ||
+  const run =
+    deps.runAgentHeadless ||
     (await import("../runtime/headless-runner.js")).runAgentHeadless;
 
   const outcome = await run({
@@ -403,12 +673,23 @@ export function registerReviewCommand(program) {
     .option("--security", "Security-focused review (/security-review parity)")
     .option("--simplify", "Cleanup-only review, no bug hunt (/simplify parity)")
     .option("--no-untracked", "Skip untracked new files (working scope)")
-    .option("--no-checkpoint", "With --fix: do not auto-checkpoint before edits")
+    .option(
+      "--no-checkpoint",
+      "With --fix: do not auto-checkpoint before edits",
+    )
     .option("--model <model>", "Override the review model")
     .option("--provider <provider>", "Override the LLM provider")
     .option("--base-url <url>", "Override the API base URL")
     .option("--api-key <key>", "Override the API key")
     .option("--max-turns <n>", "Cap agent loop iterations")
+    .option(
+      "--comment",
+      "Post findings as inline comments on the current branch's PR (via gh); defaults the scope to the PR base",
+    )
+    .option(
+      "--dry-run",
+      "With --comment: show what would be posted without posting",
+    )
     .option("--json", "Emit the agent result envelope as JSON")
     .action(async (effortArg, options) => {
       try {
@@ -439,6 +720,69 @@ export function registerReviewCommand(program) {
             : mode === "simplify"
               ? "cleanup-only"
               : "bugs + cleanup";
+
+        // ── --comment: review the PR's diff and post inline comments ────────
+        if (merged.comment) {
+          logger.info(
+            chalk.gray(
+              `Reviewing PR diff · ${effort} effort · ${modeLabel} · ` +
+                (merged.dryRun ? "dry-run" : "will post comments"),
+            ),
+          );
+          const res = await runReviewComment(merged, {});
+          if (res.empty) {
+            logger.log(chalk.gray("No changes to review on this PR."));
+            return;
+          }
+          logger.log(
+            chalk.bold(
+              `${res.findings.length} finding(s) for PR #${res.pr.number}`,
+            ) + chalk.gray(`  ${res.pr.url || ""}`),
+          );
+          for (const f of res.findings) {
+            logger.log(
+              `  ${chalk.yellow(`[${f.severity}]`)} ${chalk.cyan(`${f.path}:${f.line}`)} ${f.title}`,
+            );
+          }
+          if (res.findings.length === 0) {
+            logger.log(chalk.gray("Nothing to post."));
+            return;
+          }
+          if (merged.dryRun) {
+            logger.log(
+              chalk.gray("(--dry-run: not posting; re-run without --dry-run)"),
+            );
+            return;
+          }
+          // Outward-facing: confirm before posting when interactive.
+          if (process.stdin.isTTY) {
+            const { confirm } = await import("@inquirer/prompts");
+            const ok = await confirm({
+              message: `Post ${res.findings.length} comment(s) to PR #${res.pr.number}?`,
+              default: false,
+            }).catch(() => false);
+            if (!ok) {
+              logger.log(chalk.gray("Aborted — nothing posted."));
+              return;
+            }
+          }
+          try {
+            postReviewComments(res.pr, res.findings, {
+              cwd: merged.cwd,
+              commitId: res.pr.headRefOid,
+            });
+            logger.log(
+              chalk.green(
+                `✓ posted ${res.findings.length} comment(s) to PR #${res.pr.number}`,
+              ),
+            );
+          } catch (err) {
+            logger.error(chalk.red(`failed to post review: ${err.message}`));
+            process.exitCode = 1;
+          }
+          return;
+        }
+
         logger.info(
           chalk.gray(
             `Reviewing ${label} · ${effort} effort · ${modeLabel}` +

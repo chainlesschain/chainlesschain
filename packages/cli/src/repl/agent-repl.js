@@ -1319,9 +1319,7 @@ export async function startAgentRepl(options = {}) {
         logger.log(chalk.dim("Usage: /tasks kill <id> · /tasks kill-all"));
       } else {
         logger.log(
-          "
-" + formatBackgroundTasks(listBackgroundShellTasks()) + "
-",
+          "\n" + formatBackgroundTasks(listBackgroundShellTasks()) + "\n",
         );
       }
       prompt();
