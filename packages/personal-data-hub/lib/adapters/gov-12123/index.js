@@ -41,8 +41,20 @@ const SNAPSHOT_SCHEMA_VERSION = 1;
 const KIND_VIOLATION = "violation";
 const KIND_LICENSE = "license";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_VIOLATION, KIND_LICENSE]);
-const VIOLATION_URL = "https://gab.122.gov.cn/api/v1/violation/list";
-const LICENSE_URL = "https://gab.122.gov.cn/api/v1/license/info";
+
+// Real backend base VERIFIED from a connected device (2026-06-15): the 12123
+// APK's assets/prov.json maps every province to `https://<province>.122.gov.cn/app`
+// (ah/bj/cq/fj/gd/... — province two-letter code). So the host is
+// province-prefixed `.122.gov.cn` with an `/app` base, NOT a single national
+// host. The user's registered-province code must be supplied via opts.province
+// (defaults to "bj"); the sub-paths below remain best-effort (the dex is
+// protected by libNetHTProtect, so the exact API paths weren't statically
+// recoverable — override via opts.violationUrl / opts.licenseUrl when known).
+const DEFAULT_PROVINCE = "bj";
+function provinceBase(province) {
+  const p = /^[a-z]{2}$/.test(String(province || "")) ? province : DEFAULT_PROVINCE;
+  return `https://${p}.122.gov.cn/app`;
+}
 const PAGE_SIZE = 30;
 
 function parseTime(v) {
@@ -130,9 +142,12 @@ class Tmri12123Adapter {
       opts.account && opts.account.cookies ? new CookieAuth({ platform: "12123", cookies: opts.account.cookies }) : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
     this._signProvider = typeof opts.signProvider === "function" ? opts.signProvider : null;
+    // Host VERIFIED province-prefixed `.122.gov.cn/app`; sub-paths best-effort.
+    this.province = /^[a-z]{2}$/.test(String(opts.province || "")) ? opts.province : DEFAULT_PROVINCE;
+    const base = provinceBase(this.province);
     this._urls = {
-      violation: opts.violationUrl || opts.listUrl || VIOLATION_URL,
-      license: opts.licenseUrl || LICENSE_URL,
+      violation: opts.violationUrl || opts.listUrl || `${base}/violation/list`,
+      license: opts.licenseUrl || `${base}/license/info`,
     };
 
     this.name = NAME;

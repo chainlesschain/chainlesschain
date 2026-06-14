@@ -82,6 +82,18 @@ describe("gov-12123", () => {
     expect(items.map((i) => i.originalId).sort()).toEqual(["12123:license:L9", "12123:violation:V9"]);
   });
 
+  it("province base host (verified .122.gov.cn/app); override + default", () => {
+    // default province bj
+    const a = new g.Tmri12123Adapter({ province: "fj" });
+    expect(a.province).toBe("fj");
+    expect(a._urls.violation).toBe("https://fj.122.gov.cn/app/violation/list");
+    expect(a._urls.license).toBe("https://fj.122.gov.cn/app/license/info");
+    // bad province → default bj
+    expect(new g.Tmri12123Adapter({ province: "XX" })._urls.violation).toBe("https://bj.122.gov.cn/app/violation/list");
+    // explicit url override still wins
+    expect(new g.Tmri12123Adapter({ violationUrl: "https://x/y" })._urls.violation).toBe("https://x/y");
+  });
+
   it("high sensitivity + legalGate; default fetch / no input throw", async () => {
     expect(new g.Tmri12123Adapter().dataDisclosure.sensitivity).toBe("high");
     expect(new g.Tmri12123Adapter().dataDisclosure.legalGate).toBe(true);
