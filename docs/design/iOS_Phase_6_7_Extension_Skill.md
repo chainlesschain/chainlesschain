@@ -345,3 +345,75 @@ vs Plan §8.1 estimate 7d：**节省 2d**（Trap T4 解决后 wire 简单）。
 - `Modules/CoreP2P/Sources/RemoteSkills/Extension/` 2 swift (Models + Commands)
 - `Features/RemoteOperate/Views/SystemToolsView.swift` 加 ExtensionToolView 子 view
 - `Tests/CoreP2PTests/ExtensionCommandsTests.swift`
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档（草案，需 OQ 拍板）。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景 & 架构审计」。iOS Phase 6.7 Extension Skill：经远程操控 Chrome 扩展控制浏览器；v0.1 草案，需 OQ 1–5 拍板后开 sub-phase 6.7.1。
+
+### 2. 核心特性
+
+Chrome 扩展浏览器控制；Extension typed commands；SystemToolsView 加 ExtensionToolView。
+
+### 3. 系统架构
+
+见正文「4. 协议设计」；ExtensionCommands ↔ 桌面 Chrome 扩展 bridge。
+
+### 4. 系统定位
+
+iOS 端**Chrome 扩展浏览器控制 skill**（Phase 6.7）。
+
+### 5. 核心功能
+
+见正文「5. 子阶段」：Extension Models + Commands + ExtensionToolView。
+
+### 6. 技术架构
+
+`Modules/CoreP2P/Sources/RemoteSkills/Extension/`（Models + Commands）；`SystemToolsView.swift` 加 ExtensionToolView 子 view。
+
+### 7. 系统特点
+
+需 OQ 1–5 拍板；复用 browser-extension 子系统（桌面侧）。
+
+### 8. 应用场景
+
+iPhone 远程控制桌面 Chrome 扩展（浏览器自动化）。
+
+### 9. 竞品对比
+
+对标 Android REMOTE 浏览器控制（见 `iOS_对标_Android_Phase_6_Plan.md`）。
+
+### 10. 配置参考
+
+Extension command 协议（OQ 决策）；桌面 Chrome 扩展前置。
+
+### 11. 性能指标
+
+命令往返时延（浏览器控制）。
+
+### 12. 测试覆盖
+
+见正文「6. 测试」：`ExtensionCommandsTests.swift`。
+
+### 13. 安全考虑
+
+浏览器控制高风险；走配对信任；命令白名单。
+
+### 14. 故障排除
+
+扩展未连 / 命令失败 → 见实施后 memory `ios_remote_extension_phase6_7.md`。
+
+### 15. 关键文件
+
+`RemoteSkills/Extension/`（Models + Commands）；`SystemToolsView.swift`（ExtensionToolView）。
+
+### 16. 使用示例
+
+见正文「4. 协议设计」。
+
+### 17. 相关文档
+
+`iOS_Phase_6_6_Desktop_Skill.md`、`iOS_对标_Android_Phase_6_Plan.md`、`iOS_Phase_6_0_RealDevice_E2E_Plan.md`。

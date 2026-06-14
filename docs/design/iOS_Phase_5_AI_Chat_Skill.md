@@ -574,3 +574,75 @@ Phase 6 候选 (按用户价值排):
 6. **APNs 真后台 push** — Phase 4 v0.2
 
 具体 Phase 6 选哪个，等 Phase 5 落地后再 ask。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。iOS Phase 5 AI Chat Skill：远程 LLM 对话 + 流式响应 + 对话管理，不创建新框架——接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out（加第 3 子流 buffer 512）+ 既有 iOS LLM 模型协议，45 unit tests。
+
+### 2. 核心特性
+
+远程 LLM 对话；token 流式响应；多对话管理 + stream 隔离；cancel 顺序保障；offline drain。
+
+### 3. 系统架构
+
+见正文「4. 架构」；接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out（第 3 子流）。
+
+### 4. 系统定位
+
+iOS 端**远程 AI 对话 skill**（Phase 5），桌面 LLM 经 RPC 回 iPhone。
+
+### 5. 核心功能
+
+见正文「5. 数据模型」：chat.send/list/history/cancel；流式累积（LRU 复合 key）。
+
+### 6. 技术架构
+
+复用 Phase 3 invoke 池 + Phase 4 fan-out（buffer 512）；既有 iOS LLM 模型协议；stream 累积模式。
+
+### 7. 系统特点
+
+Phase 5.7 静态审计修 4 真实 bug（fan-out / cancel 顺序 / offline drain / 多对话 stream 隔离）；本模式被 PDH Phase 14.5 复用为祖本。
+
+### 8. 应用场景
+
+iPhone 经桌面 LLM 做 AI 对话（流式）。
+
+### 9. 竞品对比
+
+复用 Phase 3/4 框架零新范式；多对话 stream 隔离。
+
+### 10. 配置参考
+
+LLM provider / model（既有 iOS 模型协议）；fan-out buffer 512。
+
+### 11. 性能指标
+
+首 token 时延 + token 速率（远程 LLM）。
+
+### 12. 测试覆盖
+
+45 unit tests（41→45）+ 4 集成测试（fan-out / cancel 顺序 / offline drain / 多对话隔离）；真机 E2E Phase 5.8 待跑。
+
+### 13. 安全考虑
+
+对话含个人内容；走配对信任信道；offline enqueue 本地。
+
+### 14. 故障排除
+
+多对话 stream 串流 / cancel 后仍收 token → 见 memory `ios_remote_ai_chat_phase5.md` 6 trap。
+
+### 15. 关键文件
+
+`Modules/CoreP2P/.../RemoteSkills/AIChat/`（含 AIChatEventDispatcher.swift，PDH 14.5 祖本）。
+
+### 16. 使用示例
+
+见正文数据模型与 chat.send 流式调用。
+
+### 17. 相关文档
+
+`iOS_Phase_3_Remote_Operate_Framework.md`、`iOS_Phase_4_Notification_Skill.md`、`Personal_Data_Hub_Phase_14_5_Streaming_Ask.md`（复用本模式）、memory `ios_remote_ai_chat_phase5.md`。

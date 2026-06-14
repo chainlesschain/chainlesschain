@@ -482,3 +482,75 @@ memory（强烈建议读完再开工）：
 - `docs-site-design/scripts/sync-docs.js` ROOT_FILE_MAP 加同样 entry
 - 跑 `node docs-site/scripts/sync-design-docs.js && node docs-site-design/scripts/sync-docs.js`
 - 验 `docs-site/docs/design/mobile/ios/phase-1-pairing.md` 与 `docs-site-design/docs/mobile/ios/phase-1-pairing.md` 都有内容、不是 `unknown-unmapped.md`
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。iOS Phase 1 桌面配对：Flow B（iPhone 扫桌面 QR，主）+ Flow A（桌面扫 iPhone QR，Signal e2ee）+ 手输 6 位 code 三流齐落，含持久化 + 已配对列表 live 订阅 + DI。71 unit tests。
+
+### 2. 核心特性
+
+三流配对共存；与桌面/Android 严格对齐字段（禁改字段名）；PairedDesktopsStore 持久化 + live publisher。
+
+### 3. 系统架构
+
+见正文「3. 三流共存架构」+「4. 数据契约」。
+
+### 4. 系统定位
+
+iOS 端**桌面配对（三流）设计**（Phase 1）。
+
+### 5. 核心功能
+
+见正文 5「模块拆分」：Pairing 三流 + 已配对列表 + DI。
+
+### 6. 技术架构
+
+QR 扫描 + signaling；Flow A Signal e2ee + Ed25519；手输 code → `pairing-code:<code>` 别名 register。
+
+### 7. 系统特点
+
+镜像 Android 已验证布局（字段顺序对齐）；UI 偏离限白名单。
+
+### 8. 应用场景
+
+iPhone 与桌面首次配对（三种方式）。
+
+### 9. 竞品对比
+
+镜像 Android `DesktopPairingScreen` / `ScanDesktopPairingScreen`（已真机 E2E 验证）。
+
+### 10. 配置参考
+
+数据契约字段（与桌面+Android 对齐）；signaling URL。
+
+### 11. 性能指标
+
+配对链路时延（真机 Phase 1.7 待验）。
+
+### 12. 测试覆盖
+
+71 unit tests across 7 suites；真机 E2E Phase 1.7 待跑（Mac+iPhone）。
+
+### 13. 安全考虑
+
+Flow A Signal Protocol e2ee + Ed25519 双向 mutual sign；配对私钥本地。
+
+### 14. 故障排除
+
+扫码无反应（摄像头权限）/ 桌面无 toast（signaling 未注册）→ 见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 A。
+
+### 15. 关键文件
+
+`Modules/CoreP2P/Pairing/`；`Features/Pairing/`；PairedDesktopsStore。
+
+### 16. 使用示例
+
+见正文三流配对流程（扫桌面 QR / 显我的 QR / 手输 code）。
+
+### 17. 相关文档
+
+`iOS_Phase_2_Remote_Terminal.md`、`iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 A、memory `ios_qr_pairing_three_flows.md`。

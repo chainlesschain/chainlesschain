@@ -199,3 +199,75 @@ iOS 端价值低：
 - Android: `feature-local-terminal/` Phase 0.5+ (mksh R59c + toybox 0.8.11 cross-build)
 - iOS Phase 2 `RemoteTerminal/` — 远程终端 ✅ 已 land 覆盖用户主场景
 - 外部参考: [a-Shell](https://github.com/holzschu/a-shell) / [Blink Shell](https://blink.sh) / [iSH](https://github.com/ish-app/ish) / [ios_system](https://github.com/holzschu/ios_system)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 spike 决策文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。iOS Local Terminal Spike（Phase 6.8 决策输出，非实施计划）：评估 iOS 沙盒约束下做本地终端的可行性，结论是放弃 Plan C（远程终端已覆盖用户主场景）。
+
+### 2. 核心特性
+
+iOS 沙盒约束分析；终端 app 生态调研；4 plan 重评估；Plan 决策表。
+
+### 3. 系统架构
+
+—（决策文档）；iOS 沙盒不支持 fork/exec 任意二进制（见正文 1）。
+
+### 4. 系统定位
+
+iOS 本地终端可行性的**spike 决策文档**（结论：放弃）。
+
+### 5. 核心功能
+
+见正文 1–6：沙盒约束 / 生态调研 / 4 plan 评估 / 用户场景 / 推荐 / 决策表。
+
+### 6. 技术架构
+
+iOS 沙盒（无 fork/exec）；外部参考 a-Shell / Blink / iSH / ios_system。
+
+### 7. 系统特点
+
+Plan C 放弃（with documentation）；远程终端（iOS Phase 2）已覆盖主场景。
+
+### 8. 应用场景
+
+—（决策）；用户主场景由远程终端满足。
+
+### 9. 竞品对比
+
+见正文 2「iOS 终端 app 生态调研」（a-Shell / Blink / iSH）与 6「Plan 决策表」。
+
+### 10. 配置参考
+
+—（决策文档）。
+
+### 11. 性能指标
+
+—（决策文档）。
+
+### 12. 测试覆盖
+
+—（决策文档）。
+
+### 13. 安全考虑
+
+iOS 沙盒限制即安全边界（无法跑任意二进制）。
+
+### 14. 故障排除
+
+—（决策文档）。
+
+### 15. 关键文件
+
+—；远程终端实现见 `iOS_Phase_2_Remote_Terminal.md`。
+
+### 16. 使用示例
+
+—；用户用远程终端（Phase 2）。
+
+### 17. 相关文档
+
+见正文「7. 关联」：`iOS_对标_Android_Phase_6_Plan.md` §5.6 OQ-5、`iOS_Phase_2_Remote_Terminal.md`、Android `feature-local-terminal/`。

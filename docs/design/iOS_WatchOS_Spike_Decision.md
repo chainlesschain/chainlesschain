@@ -167,3 +167,75 @@ Android `wear-app/` 目录存在但是基本骨架（看 commit 历史无深度 
 - Android: `wear-app/` (基本骨架，无深度 feature)
 - iOS Phase 4 Notification skill ✅ 已 wire UNUserNotificationCenter (自动 Apple Watch mirror)
 - 外部参考: [WatchConnectivity Framework](https://developer.apple.com/documentation/watchconnectivity) / [WidgetKit (Complications)](https://developer.apple.com/documentation/widgetkit)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为 spike 决策文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文头部。iOS watchOS Companion Spike（Phase 6.9 决策输出）：评估是否加 watchOS target，结论 Option 1+（不加，依靠 Phase 4 Notification 自动 Apple Watch mirror）。
+
+### 2. 核心特性
+
+Apple Watch 现状评估；3 option 重评估；推荐 Option 1+（零 watchOS target）。
+
+### 3. 系统架构
+
+—（决策）；Phase 4 已 wire UNUserNotificationCenter → 自动 Apple Watch mirror。
+
+### 4. 系统定位
+
+iOS watchOS companion 可行性的**spike 决策文档**（结论：不加 target）。
+
+### 5. 核心功能
+
+见正文 1–6：Watch 现状 / 3 option / 用户场景 / 推荐 / 决策表 / 关联。
+
+### 6. 技术架构
+
+UNUserNotificationCenter 自动 mirror 到 Apple Watch；外部参考 WatchConnectivity / WidgetKit。
+
+### 7. 系统特点
+
+Option 1+ 零成本（复用 Phase 4 通知自动 mirror）；无独立 watchOS feature。
+
+### 8. 应用场景
+
+Apple Watch 上看 ChainlessChain 推送通知（自动 mirror）。
+
+### 9. 竞品对比
+
+见正文 2「3 option 重新评估」与 5「Option 决策表」；Android `wear-app/`（基本骨架）。
+
+### 10. 配置参考
+
+—（决策）；依赖 Phase 4 通知授权。
+
+### 11. 性能指标
+
+—（决策）。
+
+### 12. 测试覆盖
+
+—（决策）；Phase 4 通知 mirror 由 Phase 4 测试覆盖。
+
+### 13. 安全考虑
+
+通知 mirror 经系统 UN center（无新攻击面）。
+
+### 14. 故障排除
+
+Watch 收不到通知 → 检查 iPhone Phase 4 通知授权与 Watch 镜像设置。
+
+### 15. 关键文件
+
+Phase 4 Notification skill（UNUserNotificationCenter wire）。
+
+### 16. 使用示例
+
+—；通知自动出现在配对 Apple Watch。
+
+### 17. 相关文档
+
+见正文「6. 关联」：`iOS_对标_Android_Phase_6_Plan.md` §5.6 OQ-6、`iOS_Phase_4_Notification_Skill.md`、Android `wear-app/`。

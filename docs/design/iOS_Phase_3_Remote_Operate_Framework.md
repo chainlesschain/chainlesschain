@@ -597,3 +597,75 @@ Phase 1 (✅ c30b415a8 + a411b1887)
 ```
 
 Phase 3 落地后 iOS 端用户体验：扫描配对 → 进 Settings → 桌面配对 → 已配对桌面 → 进 RemoteOperateView → segmented control 切 5 tab（Terminal | Clipboard | File | Screenshot | System），每个 tab 都能跑通 happy path。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。iOS Phase 3 远程操控 Framework + 4 typed skill（Clipboard / File / Screenshot / SystemInfo）：RemoteCommandClient + RemoteSkillRegistry（23 SeedRegistry）+ OfflineCommandQueue + 5-tab shell，~264 unit tests。
+
+### 2. 核心特性
+
+通用 RemoteCommandClient（单 invoke 池）；4 typed skill；OfflineCommandQueue + drainer；5-tab RemoteOperateView。
+
+### 3. 系统架构
+
+见正文「3. 架构」+「5. 关键组件设计」；RemoteCommandClient 从 Phase 2 抽出，DC/signaling 双路径。
+
+### 4. 系统定位
+
+iOS 端**远程操控框架 + 4 skill**（Phase 3）。
+
+### 5. 核心功能
+
+见正文「4. 模块拆分」：Clipboard / File / Screenshot / SystemInfo（各 typed wire 协议）。
+
+### 6. 技术架构
+
+RemoteCommandClient（DC 优先 + LRU dedup + continuation timeout 清理）；RemoteSkillRegistry 23 SeedRegistry；NoOpManifestVerifier（Marketplace M0 seam）。
+
+### 7. 系统特点
+
+单消费者 inboundMessages（收口 commandClient）；offline queue 崩溃恢复（sending→pending）。
+
+### 8. 应用场景
+
+iPhone 远程操控桌面：剪贴板 / 文件浏览 / 截屏 / 系统信息。
+
+### 9. 竞品对比
+
+镜像 Android 23 SeedRegistry（methodCount 795）。
+
+### 10. 配置参考
+
+RemoteSkillRegistry 白名单（文件 + 方法双粒度）；risk tag（Safe/Mutating/Privileged）。
+
+### 11. 性能指标
+
+DC 直连低延迟（见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 C）。
+
+### 12. 测试覆盖
+
+~264 unit tests across 20+ suites；真机 E2E Phase 3.7 待跑（4 skill 各一次）。
+
+### 13. 安全考虑
+
+skill 白名单 + risk tag；截屏 PHPhotoLibrary 显式 prompt；走配对信任。
+
+### 14. 故障排除
+
+Clipboard skill timeout（单消费者 fan-out 真因）/ 截屏保存失败（照片权限）→ 见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 C。
+
+### 15. 关键文件
+
+`Modules/CoreP2P/RemoteSkills/`（RemoteCommandClient / Registry / OfflineQueue / 4 skill）；`Features/RemoteOperate/`。
+
+### 16. 使用示例
+
+见正文末用户体验（5-tab RemoteOperateView 切换）。
+
+### 17. 相关文档
+
+`iOS_Phase_2_Remote_Terminal.md`、`iOS_Phase_4_Notification_Skill.md`、`iOS_Phase_5_AI_Chat_Skill.md`。

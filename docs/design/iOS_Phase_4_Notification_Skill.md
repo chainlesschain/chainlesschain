@@ -552,3 +552,75 @@ Phase 5 候选（按用户价值 / scope 排）：
 5. **Notification rich content** — UNNotificationContentExtension + image/action — Phase 4 v0.2
 
 具体 Phase 5 选哪个，等 Phase 4 落地后再 ask。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。iOS Phase 4 Notification Skill：远程通知同步 + 系统级 push（11 method + LRU dedup + UN center push + 乐观更新 + offline gate），RemoteOperateView 第 6 tab + 未读 badge，41 新 unit tests。
+
+### 2. 核心特性
+
+11 method typed wrapper；server-push 触发 iOS UN center banner；乐观更新 + offline gate 三分支；6-tab horizontal scroll picker。
+
+### 3. 系统架构
+
+见正文「4. 架构」；NotificationEventDispatcher 订 commandClient.events + LRU dedup → PushNotificationManager。
+
+### 4. 系统定位
+
+iOS 端**远程通知同步 + 系统 push skill**（Phase 4）。
+
+### 5. 核心功能
+
+见正文「5. 数据模型」+ 11 method（send/history/markAsRead/getSettings 等）。
+
+### 6. 技术架构
+
+复用 Phase 3 RemoteCommandClient；events fan-out（修多订阅冲突 trap）；既有 PushNotificationManager 0 改动（仅加 extension）。
+
+### 7. 系统特点
+
+events fan-out trap（§7 未覆盖，Phase 4 暴露并修）；5-tab→6-tab 改 ScrollView+Capsule badge。
+
+### 8. 应用场景
+
+桌面 push 通知到 iPhone（banner + 未读 badge + 收件箱）。
+
+### 9. 竞品对比
+
+镜像 Android `NotificationCommands.kt`（343 LOC，11 method）。
+
+### 10. 配置参考
+
+quiet hours / sound / vibration（getSettings/updateSettings）；UN center 授权。
+
+### 11. 性能指标
+
+push banner ≤2s（见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md`）。
+
+### 12. 测试覆盖
+
+41 新 unit tests across 4 suites（iOS 累计 ~313）；真机 E2E Phase 4.7 待跑（8 场景）。
+
+### 13. 安全考虑
+
+通知内容经配对信任信道；authorization denied 不崩（in-app banner 降级）。
+
+### 14. 故障排除
+
+quiet hours 内不弹 banner（仅入历史）/ 授权拒绝 → 见正文 Phase 4.7 场景 6/7。
+
+### 15. 关键文件
+
+`Modules/CoreP2P/RemoteSkills/Notification/`（NotificationCommands / EventDispatcher / ViewModel）；NotificationsView。
+
+### 16. 使用示例
+
+见正文数据模型与 11 method 调用。
+
+### 17. 相关文档
+
+`iOS_Phase_3_Remote_Operate_Framework.md`、`iOS_Phase_5_AI_Chat_Skill.md`、`iOS_Phase_6_0_RealDevice_E2E_Plan.md`。

@@ -222,3 +222,75 @@ Plan §9 T10 = "A 策略 (iOS 只 impl 桌面已支持子集，桌面 debt 留 P
 - `Desktop_Mobile_Bridge_Namespace_Coverage.md` §1.4 (knowledge / ai 真实数据)
 - 桌面端: `desktop-app-vue/src/main/remote/handlers/knowledge-handler.js` (9 case) / `ai-handler.js` (10 case) — **本 doc Action 1+2+3 触发 case 扩展**
 - Android: `KnowledgeCommands.kt` (55 invoke) / `AICommands.kt` (52 invoke)
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为评估 / 策略设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 共同背景 & 任务」。Phase 6.3（knowledge skill）+ 6.4（ai 余 method）合并 design：两者共享"iOS 写了但桌面端没 wire"的桌面 debt 困境；含 Phase 5 AI Chat 重大审计发现（§2.2）。
+
+### 2. 核心特性
+
+桌面 debt 评估；knowledge/ai 协作策略选择；Phase 5 紧急 bug + 选择性桌面协作推荐。
+
+### 3. 系统架构
+
+iOS skill ↔ 桌面 handler（`knowledge-handler.js` 9 case / `ai-handler.js` 10 case）wire gap。
+
+### 4. 系统定位
+
+iOS Phase 6.3+6.4 的**桌面 debt 评估与协作策略文档**。
+
+### 5. 核心功能
+
+见正文 2–5：审计发现 / 策略选择 OQ / 推荐综合 / 决策记录。
+
+### 6. 技术架构
+
+桌面 handler case 扩展（Action 1+2+3 触发）；与 T10 "A 策略" 决策关系。
+
+### 7. 系统特点
+
+合并 doc（6.3+6.4 共享困境）；含 Phase 5 重大审计发现。
+
+### 8. 应用场景
+
+决定 iOS knowledge/ai method 与桌面端的 wire 策略。
+
+### 9. 竞品对比
+
+iOS 写了 vs 桌面没 wire（knowledge 7% / ai 7%，见 `iOS_对标_Android_Phase_6_Plan.md` §1.3）；Android `KnowledgeCommands`(55)/`AICommands`(52)。
+
+### 10. 配置参考
+
+桌面 handler case（knowledge 9 / ai 10）；coverage doc §1.4。
+
+### 11. 性能指标
+
+—（策略文档）。
+
+### 12. 测试覆盖
+
+Phase 5 审计修 bug（commit `dd9a44a45` 等）；桌面 handler case 扩展测试。
+
+### 13. 安全考虑
+
+knowledge/ai method 经配对信任；桌面 handler 鉴权。
+
+### 14. 故障排除
+
+iOS 调用桌面未 wire 的 method → 桌面 handler 缺 case（见正文 Action 1+2+3）。
+
+### 15. 关键文件
+
+`knowledge-handler.js` / `ai-handler.js`（桌面）；Android `KnowledgeCommands.kt` / `AICommands.kt`。
+
+### 16. 使用示例
+
+见正文 4「推荐综合」决策路径。
+
+### 17. 相关文档
+
+见正文链接：`iOS_对标_Android_Phase_6_Plan.md` §1.3/§7、`iOS_Phase_5_AI_Chat_Skill.md`、`iOS_Phase_6_6_Desktop_Skill.md`、`iOS_Phase_6_7_Extension_Skill.md`。

@@ -335,3 +335,75 @@ cc notification send --target did:cc:iphone-7890 --title x --body y --json
   `ios_remote_ai_chat_phase5.md` / `ios_remote_desktop_phase6_6.md` /
   `ios_remote_extension_phase6_7.md` / `phase_6_knowledge_ai_hybrid_complete.md` /
   `ios_ci_only_verify_path_on_win.md`
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为真机 E2E plan。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文场景。
+
+### 1. 概述
+
+见正文「0. TL;DR」。iOS Phase 6.0 真机 E2E Plan（Mac + iPhone + 真桌面）：Phase 6 sprint 收口最后一项，硬件在场跑通 15 main tab × ~75 method 真链路。
+
+### 2. 核心特性
+
+15 tab 场景矩阵；分段 A–F（Pairing / Terminal / Operate / Notification / AIChat / Desktop+Extension）；Win-side reproducer audit。
+
+### 3. 系统架构
+
+见各 Phase 设计（1–6.7）；本 plan 为真机收口验收。
+
+### 4. 系统定位
+
+iOS Phase 6 的**真机 E2E 总验收 plan**（Mac+iPhone+真桌面）。
+
+### 5. 核心功能
+
+见正文 1–N：Pre-flight / 场景矩阵 / 段 A Pairing / 段 B Terminal / 段 C Operate / 后续段。
+
+### 6. 技术架构
+
+Mac Xcode + iPhone 真机 + 真桌面；adb 等价的 iOS 真机调试；`cc notification send` / `cc llm models` 等桌面侧命令。
+
+### 7. 系统特点
+
+Win dev box 无法跑（需 Mac+iPhone+真桌面）；v1.1 已修 D2/D3/D6 stale gap + B3 force-quit + §7 命令名。
+
+### 8. 应用场景
+
+iOS Phase 6 sprint 全功能真机收口验收。
+
+### 9. 竞品对比
+
+—（验收 plan）。
+
+### 10. 配置参考
+
+见正文 1「Pre-flight 准备（Mac 上 30 min）」。
+
+### 11. 性能指标
+
+各段性能基准（DC 握手 / push banner / 截屏等，见各段）。
+
+### 12. 测试覆盖
+
+15 main tab × ~75 method 真链路；本 plan 即真机验收脚本。
+
+### 13. 安全考虑
+
+配对信任 + 各 skill 权限（截屏 / 通知授权等）。
+
+### 14. 故障排除
+
+见各段场景的通过标准 + reproducer（Win-side audit 已修指令错误）。
+
+### 15. 关键文件
+
+各 Phase 实现模块；桌面侧 `cc` 命令；memory `ios_ci_only_verify_path_on_win.md`。
+
+### 16. 使用示例
+
+见正文各段执行步骤（段 A–F）。
+
+### 17. 相关文档
+
+见正文关联：`iOS_Phase_1`~`iOS_Phase_6_7` 各设计、`iOS_Local_Terminal_Spike_Decision.md`、`iOS_WatchOS_Spike_Decision.md`。

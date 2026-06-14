@@ -599,3 +599,75 @@ Phase 1 (✅ c30b415a8 + a411b1887, 2026-05-15)
 ```
 
 Phase 2 落地后 iOS 端用户体验：扫描配对 → 进 Settings → 桌面配对 → 列表选已配对桌面 → 进远程终端 → 键入命令 → 看输出。完整 mobile↔desktop 控制闭环。
+
+## 附录：规范章节补全（v5.0.3.108）
+
+> 本文为设计文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
+
+### 1. 概述
+
+见正文「1. 背景」。iOS Phase 2 远程桌面终端（Plan A.1 移植）：RemoteWebRTCClient + TerminalRpcClient + xterm.js WKWebView + 终端 UI 全套，163 unit tests，达成完整 mobile↔desktop 控制闭环。
+
+### 2. 核心特性
+
+WebRTC DataChannel 直连终端；xterm.js WKWebView；多 session + history 补帧；软键盘补键。
+
+### 3. 系统架构
+
+见正文「3. 架构」+「5. 关键组件设计」（RemoteWebRTCClient 5 步握手 + TerminalRpcClient）。
+
+### 4. 系统定位
+
+iOS 端**远程桌面终端**（Plan A.1 移植）。
+
+### 5. 核心功能
+
+见正文「4. 模块拆分」：WebRTC client / Terminal RPC / xterm.js WKWebView / TerminalListView+SessionView。
+
+### 6. 技术架构
+
+Google WebRTC SDK；DC 优先 + signaling fallback + LRU dedup；vendored xterm.js v5.5.0；`ToolbarItemGroup(.keyboard)` 软键盘。
+
+### 7. 系统特点
+
+镜像 Android Plan A.1（已真机 E2E + 8 bug 修）；continuation 超时清理（P0 fix）。
+
+### 8. 应用场景
+
+iPhone 远程操控桌面终端（跑命令 / 多 session）。
+
+### 9. 竞品对比
+
+镜像 Android Plan A.1；iOS 沙盒不支持本地终端（见 `iOS_Local_Terminal_Spike_Decision.md`）。
+
+### 10. 配置参考
+
+ICE servers（PairedDesktopsStore）；xterm.js bundle 必 "Create folder references"。
+
+### 11. 性能指标
+
+DC 握手 ≤2s / RTT ≤200ms（LAN，见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 B）。
+
+### 12. 测试覆盖
+
+163 unit tests across 12 suites；真机 E2E Phase 2.7 待跑（§8.3 4 场景）。
+
+### 13. 安全考虑
+
+WebRTC DTLS-SRTP 加密；终端走配对信任；高危命令拦截（桌面 PTY 侧）。
+
+### 14. 故障排除
+
+终端黑屏（xterm.js 资源未打包，需 "Create folder references"）→ 见 `iOS_Phase_6_0_RealDevice_E2E_Plan.md` 段 B。
+
+### 15. 关键文件
+
+`Modules/CoreP2P/RemoteTerminal/`（RemoteWebRTCClient / TerminalRpcClient）；`Features/RemoteTerminal/`；xterm.js bundle。
+
+### 16. 使用示例
+
+见正文末用户体验闭环（配对 → 远程终端 → 键入命令）。
+
+### 17. 相关文档
+
+`iOS_Phase_1_Pairing_Flow_B.md`、`iOS_Phase_3_Remote_Operate_Framework.md`、`Android_Remote_Terminal_Plan_A1.md`。
