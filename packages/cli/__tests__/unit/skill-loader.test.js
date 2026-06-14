@@ -137,9 +137,10 @@ tags:
   // ─── LAYER_NAMES ──────────────────────────────────────
 
   describe("LAYER_NAMES", () => {
-    it("has 6 layers in correct priority order (claude-* portability between managed and workspace)", () => {
+    it("has 7 layers in correct priority order (cli-bundled after bundled; claude-* portability between managed and workspace)", () => {
       expect(LAYER_NAMES).toEqual([
         "bundled",
+        "cli-bundled",
         "marketplace",
         "managed",
         "claude-user",
@@ -158,18 +159,33 @@ tags:
     });
 
     describe("getLayerPaths", () => {
-      it("returns 6 layer entries", () => {
+      it("returns 7 layer entries", () => {
         const loader = new CLISkillLoader();
         const layers = loader.getLayerPaths();
-        expect(layers).toHaveLength(6);
+        expect(layers).toHaveLength(7);
         expect(layers.map((l) => l.layer)).toEqual([
           "bundled",
+          "cli-bundled",
           "marketplace",
           "managed",
           "claude-user",
           "claude-project",
           "workspace",
         ]);
+      });
+
+      it("ships run + verify as cli-bundled global skills", () => {
+        const loader = new CLISkillLoader();
+        const cli = loader
+          .getLayerPaths()
+          .find((l) => l.layer === "cli-bundled");
+        expect(cli).toBeTruthy();
+        expect(cli.exists).toBe(true);
+        const skills = loader.loadAll();
+        const run = skills.find((s) => s.id === "run");
+        const verify = skills.find((s) => s.id === "verify");
+        expect(run?.source).toBe("cli-bundled");
+        expect(verify?.source).toBe("cli-bundled");
       });
 
       it("loads .claude/skills (claude-project) with workspace overriding on collision", async () => {

@@ -1,8 +1,9 @@
 /**
  * Multi-layer skill loader for CLI
  *
- * 6-layer priority system (highest wins on name collision):
- *   0 (lowest)  bundled        — desktop-app-vue/.../skills/builtin/
+ * 7-layer priority system (highest wins on name collision):
+ *   0 (lowest)  bundled        — desktop-app-vue/.../skills/builtin/ (monorepo only)
+ *   0b          cli-bundled    — packages/cli/src/skills-bundled/ (ships with cc)
  *   1           marketplace    — <userData>/marketplace/skills/
  *   2           managed        — <userData>/skills/
  *   3           claude-user    — ~/.claude/skills/            (Claude-Code 可移植)
@@ -69,6 +70,7 @@ export function bundledSkillsDisabled(opts = {}) {
 /** Layer names in priority order (lowest → highest) */
 export const LAYER_NAMES = [
   "bundled",
+  "cli-bundled",
   "marketplace",
   "managed",
   "claude-user",
@@ -269,6 +271,18 @@ export class CLISkillLoader {
       exists: bundledPath !== null,
     });
 
+    // Layer 0b: cli-bundled — skills shipped INSIDE the cc package
+    // (packages/cli/src/skills-bundled). Unlike the desktop `bundled` layer
+    // above (absent in a published cc install), this is always present, so
+    // CLI-owned global skills (run / verify) work everywhere cc runs without
+    // touching the desktop app's version-counted skill set.
+    const cliBundledPath = path.resolve(__dirname, "../skills-bundled");
+    layers.push({
+      layer: "cli-bundled",
+      path: cliBundledPath,
+      exists: fs.existsSync(cliBundledPath),
+    });
+
     // Layer 1: marketplace — <userData>/marketplace/skills/
     const userData = getElectronUserDataDir();
     const marketplacePath = path.join(userData, "marketplace", "skills");
@@ -399,7 +413,8 @@ export class CLISkillLoader {
     // Process in priority order (lowest first, so higher layers overwrite)
     for (const { layer, path: layerPath, exists } of layers) {
       if (!exists) continue;
-      if (dropBundled && layer === "bundled") continue;
+      if (dropBundled && (layer === "bundled" || layer === "cli-bundled"))
+        continue;
       const skills = this._loadFromDir(layerPath, layer);
       for (const skill of skills) {
         skillMap.set(skill.id, skill);
