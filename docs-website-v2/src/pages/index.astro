@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.111 · 2026-06-15',
+    title: '个人数据中台采集器再扩面 + Android cc bundle v20260615（pdh 0.4.23 / cli 0.162.65）',
+    sub: '继 v5.0.3.110 再补一轮 PDH 长尾：西瓜视频 / 天眼查 / 懂车帝 / 企业微信电脑版，并由并行支线补上 个税(scaffold) / 扫描全能王 / 美柚 / i 厦门。pdh 0.4.23 + CLI 0.162.65 已发 npm；Android cc bundle 滚到 v20260615。',
+    desc: '本轮新增采集 adapter：西瓜视频（复用 _video-base，观看史 + 收藏）、天眼查（监控 / 搜索行为）、懂车帝（收藏 / 关注）、企业微信电脑版（复用 _local-im-pc-adapter 本地工作 IM 读取，legalGate），并由并行支线补上 个税 APP（gov-tax scaffold，强实名认证，best-effort）、扫描全能王、美柚、i 厦门。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税 / 民生·中行·交行银行 / 数字人民币 / 12123，故意 defer）外的消费级平台已全部接通。版本面：productVersion v5.0.3.110 → v5.0.3.111 / 桌面 5.0.3-alpha.111 / Android versionCode 503111 · USR_VERSION 42 · binariesVersion 20260615 / iOS build 111。',
+  },
+  {
     tag: 'v5.0.3.110 · 2026-06-14',
     title: '个人数据中台采集器扩面 — 13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）',
     sub: '一轮 /loop 把 PDH 采集覆盖补齐：完成阶段所有 ≥三星平台 + 可行的长尾全部落地。pdh 0.4.18 + CLI 0.162.60 已发 npm；Android cc bundle 滚到 v20260614b。',

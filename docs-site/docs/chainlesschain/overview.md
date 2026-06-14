@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.110 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.60 / 155 命令 / 30,000+ 测试 | Android 5.0.3.110 (versionCode 503110 · USR_VERSION 37 · binariesVersion 20260614b) | iOS 5.0.3 (build 110，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.111 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.65 / 155 命令 / 30,000+ 测试 | Android 5.0.3.111 (versionCode 503111 · USR_VERSION 42 · binariesVersion 20260615) | iOS 5.0.3 (build 111，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.111 个人数据中台采集器再扩面（2026-06-15）**：继 v5.0.3.110 之后再补一轮 PDH 长尾——新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信电脑版 adapter，并由并行支线补上 个税（gov-tax scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.23 + CLI 0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`、USR_VERSION → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税/民生·中行·交行银行/数字人民币/12123，故意 defer）外的消费级平台已全部接通。
 >
 > **v5.0.3.110 个人数据中台采集器扩面（2026-06-14）**：一轮 `/loop` 把 PDH 采集覆盖补齐——完成阶段所有 ≥⭐⭐⭐ 平台 + 可行长尾全部落地，新增 13 个采集 adapter：同程旅行 / 滴滴企业版 / 大众点评 / 知乎 / CSDN / WPS 云文档 / 腾讯文档 / 百度网盘 / 酷狗音乐 / 爱奇艺 / 腾讯视频 / BOSS 直聘（每个均 snapshot + cookie-api 双模），并抽出 3 个同形平台共享工厂 `_document-base` / `_video-base`。`@chainlesschain/personal-data-hub` 0.4.18 + CLI 0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`、USR_VERSION → 37。
 >
