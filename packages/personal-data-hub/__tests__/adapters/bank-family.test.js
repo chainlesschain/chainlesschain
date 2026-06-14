@@ -10,6 +10,7 @@ const base = require("../../lib/adapters/_bank-base");
 const cmbc = require("../../lib/adapters/bank-cmbc");
 const boc = require("../../lib/adapters/bank-boc");
 const bankcomm = require("../../lib/adapters/bank-bankcomm");
+const icbc = require("../../lib/adapters/bank-icbc");
 
 function writeTmp(content) {
   const p = path.join(os.tmpdir(), `cc-bank-${crypto.randomUUID()}.json`);
@@ -50,12 +51,14 @@ describe("bank wrappers identity", () => {
     expect(cmbc.NAME).toBe("bank-cmbc");
     expect(boc.NAME).toBe("bank-boc");
     expect(bankcomm.NAME).toBe("bank-bankcomm");
+    expect(icbc.NAME).toBe("bank-icbc");
     expect(new cmbc.CmbcBankAdapter().name).toBe("bank-cmbc");
     expect(new boc.BocBankAdapter().name).toBe("bank-boc");
     expect(new bankcomm.BankcommBankAdapter().name).toBe("bank-bankcomm");
+    expect(new icbc.IcbcBankAdapter().name).toBe("bank-icbc");
   });
   it("all gated high sensitivity + legalGate", () => {
-    for (const A of [new cmbc.CmbcBankAdapter(), new boc.BocBankAdapter(), new bankcomm.BankcommBankAdapter()]) {
+    for (const A of [new cmbc.CmbcBankAdapter(), new boc.BocBankAdapter(), new bankcomm.BankcommBankAdapter(), new icbc.IcbcBankAdapter()]) {
       expect(A.dataDisclosure.sensitivity).toBe("high");
       expect(A.dataDisclosure.legalGate).toBe(true);
     }

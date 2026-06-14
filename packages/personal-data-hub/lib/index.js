@@ -73,6 +73,7 @@ const { QQPcAdapter } = require("./adapters/qq-pc");
 const { AppleHealthAdapter } = require("./adapters/apple-health");
 const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { KugouMusicAdapter } = require("./adapters/music-kugou");
+const { QQMusicAdapter } = require("./adapters/music-qq");
 const { IqiyiVideoAdapter } = require("./adapters/video-iqiyi");
 const { TencentVideoAdapter } = require("./adapters/video-tencent");
 const { XiguaVideoAdapter } = require("./adapters/video-xigua");
@@ -87,6 +88,7 @@ const { TaxAdapter } = require("./adapters/gov-tax");
 const { CmbcBankAdapter } = require("./adapters/bank-cmbc");
 const { BocBankAdapter } = require("./adapters/bank-boc");
 const { BankcommBankAdapter } = require("./adapters/bank-bankcomm");
+const { IcbcBankAdapter } = require("./adapters/bank-icbc");
 const { DcepAdapter } = require("./adapters/finance-dcep");
 const { Tmri12123Adapter } = require("./adapters/gov-12123");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
@@ -327,6 +329,7 @@ module.exports = {
   AppleHealthAdapter,
   NeteaseMusicAdapter,
   KugouMusicAdapter,
+  QQMusicAdapter,
   IqiyiVideoAdapter,
   TencentVideoAdapter,
   XiguaVideoAdapter,
@@ -341,6 +344,7 @@ module.exports = {
   CmbcBankAdapter,
   BocBankAdapter,
   BankcommBankAdapter,
+  IcbcBankAdapter,
   DcepAdapter,
   Tmri12123Adapter,
   DingTalkPcAdapter,
