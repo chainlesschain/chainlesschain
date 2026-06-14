@@ -83,6 +83,7 @@ const { BaiduNetdiskAdapter } = require("./adapters/doc-baidu-netdisk");
 const { CamScannerDocAdapter } = require("./adapters/doc-camscanner");
 const { IXiamenAdapter } = require("./adapters/gov-ixiamen");
 const { MeiyouAdapter } = require("./adapters/health-meiyou");
+const { TaxAdapter } = require("./adapters/gov-tax");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { WeWorkPcAdapter } = require("./adapters/wework-pc");
@@ -331,6 +332,7 @@ module.exports = {
   CamScannerDocAdapter,
   IXiamenAdapter,
   MeiyouAdapter,
+  TaxAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   WeWorkPcAdapter,
