@@ -275,14 +275,18 @@ export function registerAgentCommand(program) {
       "Merge an extra .claude/settings.json-shaped file for this run: permission rules (allow/ask/deny) + native config overrides (model, env)",
     )
     .action(async (task, options, command) => {
-      // --safe-mode (Claude-Code 2.1.169 parity): flip every customization
-      // kill-switch BEFORE anything loads. Permission rules stay active.
-      if (options.safeMode) {
-        const { applySafeMode } = await import("../lib/safe-mode.js");
-        const applied = applySafeMode();
-        process.stderr.write(
-          `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
-        );
+      // --safe-mode flag OR CC_SAFE_MODE / CLAUDE_CODE_SAFE_MODE env (Claude-Code
+      // 2.1.169 parity): flip every customization kill-switch BEFORE anything
+      // loads. Permission rules stay active.
+      {
+        const { applySafeMode, safeModeRequested } =
+          await import("../lib/safe-mode.js");
+        if (safeModeRequested(options)) {
+          const applied = applySafeMode();
+          process.stderr.write(
+            `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
+          );
+        }
       }
       // --worktree (Claude-Code 2.1.171 parity): run THIS session in a fresh
       // git worktree — edits land on an isolated branch, the main working

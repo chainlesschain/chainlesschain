@@ -4,7 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "module";
-import { applySafeMode, SAFE_MODE_SWITCHES } from "../../src/lib/safe-mode.js";
+import {
+  applySafeMode,
+  safeModeRequested,
+  SAFE_MODE_SWITCHES,
+} from "../../src/lib/safe-mode.js";
 import { recallStartupMemories } from "../../src/lib/memory-injection.js";
 
 const require_ = createRequire(import.meta.url);
@@ -26,6 +30,25 @@ describe("applySafeMode", () => {
   });
 });
 
+describe("safeModeRequested (flag OR env, Claude-Code 2.1.169)", () => {
+  it("true for the explicit --safe-mode flag", () => {
+    expect(safeModeRequested({ safeMode: true }, {})).toBe(true);
+  });
+  it("true for CC_SAFE_MODE or CLAUDE_CODE_SAFE_MODE env (1/true/yes/on)", () => {
+    for (const v of ["1", "true", "TRUE", "yes", "on"]) {
+      expect(safeModeRequested({}, { CC_SAFE_MODE: v })).toBe(true);
+      expect(safeModeRequested({}, { CLAUDE_CODE_SAFE_MODE: v })).toBe(true);
+    }
+  });
+  it("false with no flag and no/false env", () => {
+    expect(safeModeRequested({}, {})).toBe(false);
+    expect(safeModeRequested({ safeMode: false }, { CC_SAFE_MODE: "0" })).toBe(
+      false,
+    );
+    expect(safeModeRequested({}, { CC_SAFE_MODE: "off" })).toBe(false);
+  });
+});
+
 describe("CC_SETTINGS_HOOKS gate", () => {
   it("loadHooks returns no hooks when the switch is set", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-safemode-"));
@@ -34,7 +57,9 @@ describe("CC_SETTINGS_HOOKS gate", () => {
       fs.writeFileSync(
         path.join(tmp, ".claude", "settings.json"),
         JSON.stringify({
-          hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "x" }] }] },
+          hooks: {
+            PreToolUse: [{ hooks: [{ type: "command", command: "x" }] }],
+          },
         }),
         "utf-8",
       );

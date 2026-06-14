@@ -1,8 +1,8 @@
 /**
  * `cc agent --safe-mode` — Claude-Code 2.1.169 parity ("--safe-mode flag
- * disables customizations"): one flag flips every customization kill-switch
- * so a misbehaving hook / memory file / persona can be isolated by running
- * the agent bare.
+ * AND CLAUDE_CODE_SAFE_MODE env var disable customizations"): one flag (or an
+ * ambient env var) flips every customization kill-switch so a misbehaving
+ * hook / memory file / persona can be isolated by running the agent bare.
  *
  * Deliberate divergence from Claude Code: settings PERMISSION RULES stay
  * active — deny rules are a safety surface, and "debug my customizations"
@@ -28,4 +28,18 @@ export function applySafeMode(env = process.env) {
     env[k] = v;
   }
   return Object.keys(SAFE_MODE_SWITCHES);
+}
+
+/**
+ * Whether safe mode is requested — via the explicit `--safe-mode` flag OR an
+ * ambient env var: `CC_SAFE_MODE` (native) or `CLAUDE_CODE_SAFE_MODE`
+ * (Claude-Code 2.1.169 portability). Truthy env values: 1 / true / yes / on.
+ * @param {{ safeMode?: boolean }} [opts]
+ * @param {object} [env=process.env]
+ * @returns {boolean}
+ */
+export function safeModeRequested(opts = {}, env = process.env) {
+  if (opts && opts.safeMode === true) return true;
+  const raw = env.CC_SAFE_MODE || env.CLAUDE_CODE_SAFE_MODE;
+  return raw != null && /^(1|true|yes|on)$/i.test(String(raw).trim());
 }
