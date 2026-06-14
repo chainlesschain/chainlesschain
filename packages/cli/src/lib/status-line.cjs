@@ -102,6 +102,22 @@ function formatTokens(n) {
   return Number((v / 1_000_000).toFixed(1)) + "M";
 }
 
+/**
+ * Resolve the terminal size to advertise to the status-line command, as
+ * positive integers or null. Explicit `columns`/`rows` options win (testing /
+ * non-REPL callers); otherwise the live `process.stdout` dimensions are used.
+ * Non-TTY (piped) stdout has no dimensions → null (env var simply omitted).
+ */
+function terminalSize({ columns, rows } = {}) {
+  const out = process.stdout || {};
+  const cols = Number.isFinite(columns) ? columns : out.columns;
+  const rws = Number.isFinite(rows) ? rows : out.rows;
+  return {
+    columns: Number.isFinite(cols) && cols > 0 ? Math.floor(cols) : null,
+    rows: Number.isFinite(rws) && rws > 0 ? Math.floor(rws) : null,
+  };
+}
+
 /** Home-relative compact path: the home dir collapses to "~". */
 function shortenPath(p) {
   const cwd = String(p || "");
@@ -159,13 +175,26 @@ function isStatusLineDisabled({ cwd = process.cwd(), settingsFile } = {}) {
  * Render the status line by running the command with the JSON context on stdin.
  * Returns the first stdout line (trimmed, ANSI preserved) or null.
  */
-function renderStatusLine(config, context = {}, { cwd, timeout = 5000 } = {}) {
+function renderStatusLine(
+  config,
+  context = {},
+  { cwd, timeout = 5000, columns, rows } = {},
+) {
   if (!config || !config.command) return null;
+  // Claude-Code parity (2.1.153): hand the command the terminal width/height so
+  // a script can right-size its output. process.env is spread first so the
+  // command (run via shell) keeps PATH etc.; COLUMNS/LINES are only added when
+  // a real size is known (TTY) so a non-TTY run doesn't fake a width.
+  const { columns: cols, rows: rws } = terminalSize({ columns, rows });
+  const env = { ...process.env };
+  if (cols != null) env.COLUMNS = String(cols);
+  if (rws != null) env.LINES = String(rws);
   let res;
   try {
     res = _deps.spawnSync(config.command, {
       input: JSON.stringify(context),
       cwd: cwd || process.cwd(),
+      env,
       encoding: "utf-8",
       timeout,
       shell: true,
@@ -184,11 +213,11 @@ function renderStatusLine(config, context = {}, { cwd, timeout = 5000 } = {}) {
 }
 
 /** Convenience: load + render in one call (used by the REPL each turn). */
-function getStatusLine({ cwd, settingsFile, sessionId, model, provider, projectDir, timeout } = {}) {
+function getStatusLine({ cwd, settingsFile, sessionId, model, provider, projectDir, timeout, columns, rows } = {}) {
   const config = loadStatusLineConfig({ cwd, settingsFile });
   if (!config) return null;
   const context = buildContext({ sessionId, model, provider, cwd, projectDir });
-  return renderStatusLine(config, context, { cwd, timeout });
+  return renderStatusLine(config, context, { cwd, timeout, columns, rows });
 }
 
 module.exports = {
@@ -200,5 +229,6 @@ module.exports = {
   shortenPath,
   renderDefaultStatusLine,
   isStatusLineDisabled,
+  terminalSize,
   _deps,
 };

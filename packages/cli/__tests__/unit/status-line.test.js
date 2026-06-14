@@ -55,7 +55,11 @@ describe("renderStatusLine", () => {
       seen = opts.input;
       return { status: 0, stdout: "ok", stderr: "" };
     });
-    renderStatusLine({ command: "s.sh" }, buildContext({ sessionId: "S", model: "opus" }), {});
+    renderStatusLine(
+      { command: "s.sh" },
+      buildContext({ sessionId: "S", model: "opus" }),
+      {},
+    );
     expect(JSON.parse(seen)).toMatchObject({
       session_id: "S",
       model: { id: "opus" },
@@ -66,11 +70,55 @@ describe("renderStatusLine", () => {
     expect(renderStatusLine({ command: "s.sh" }, {}, {})).toBeNull();
   });
   it("spawn error → null", () => {
-    _deps.spawnSync = vi.fn(() => ({ error: new Error("ENOENT"), status: null }));
+    _deps.spawnSync = vi.fn(() => ({
+      error: new Error("ENOENT"),
+      status: null,
+    }));
     expect(renderStatusLine({ command: "missing" }, {}, {})).toBeNull();
   });
   it("applies padding", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "hi", stderr: "" }));
     expect(renderStatusLine({ command: "s", padding: 2 }, {}, {})).toBe("  hi");
+  });
+
+  it("passes COLUMNS/LINES env from explicit size and inherits process.env (2.1.153)", () => {
+    let opts = null;
+    _deps.spawnSync = vi.fn((cmd, o) => {
+      opts = o;
+      return { status: 0, stdout: "ok", stderr: "" };
+    });
+    renderStatusLine({ command: "s.sh" }, {}, { columns: 120, rows: 40 });
+    expect(opts.env.COLUMNS).toBe("120");
+    expect(opts.env.LINES).toBe("40");
+    // process.env is inherited so the shell command keeps PATH etc.
+    expect(opts.env.PATH || opts.env.Path).toBe(
+      process.env.PATH || process.env.Path,
+    );
+  });
+
+  it("omits COLUMNS/LINES when no terminal size is known (non-TTY)", () => {
+    let opts = null;
+    _deps.spawnSync = vi.fn((cmd, o) => {
+      opts = o;
+      return { status: 0, stdout: "ok", stderr: "" };
+    });
+    const realCols = Object.getOwnPropertyDescriptor(process.stdout, "columns");
+    const realRows = Object.getOwnPropertyDescriptor(process.stdout, "rows");
+    Object.defineProperty(process.stdout, "columns", {
+      value: undefined,
+      configurable: true,
+    });
+    Object.defineProperty(process.stdout, "rows", {
+      value: undefined,
+      configurable: true,
+    });
+    try {
+      renderStatusLine({ command: "s.sh" }, {}, {});
+      expect("COLUMNS" in opts.env).toBe(false);
+      expect("LINES" in opts.env).toBe(false);
+    } finally {
+      if (realCols) Object.defineProperty(process.stdout, "columns", realCols);
+      if (realRows) Object.defineProperty(process.stdout, "rows", realRows);
+    }
   });
 });
