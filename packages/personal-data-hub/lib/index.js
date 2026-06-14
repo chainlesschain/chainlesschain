@@ -84,6 +84,11 @@ const { CamScannerDocAdapter } = require("./adapters/doc-camscanner");
 const { IXiamenAdapter } = require("./adapters/gov-ixiamen");
 const { MeiyouAdapter } = require("./adapters/health-meiyou");
 const { TaxAdapter } = require("./adapters/gov-tax");
+const { CmbcBankAdapter } = require("./adapters/bank-cmbc");
+const { BocBankAdapter } = require("./adapters/bank-boc");
+const { BankcommBankAdapter } = require("./adapters/bank-bankcomm");
+const { DcepAdapter } = require("./adapters/finance-dcep");
+const { Tmri12123Adapter } = require("./adapters/gov-12123");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { WeWorkPcAdapter } = require("./adapters/wework-pc");
@@ -333,6 +338,11 @@ module.exports = {
   IXiamenAdapter,
   MeiyouAdapter,
   TaxAdapter,
+  CmbcBankAdapter,
+  BocBankAdapter,
+  BankcommBankAdapter,
+  DcepAdapter,
+  Tmri12123Adapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   WeWorkPcAdapter,
