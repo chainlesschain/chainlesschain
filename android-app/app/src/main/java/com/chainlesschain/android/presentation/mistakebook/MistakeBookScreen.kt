@@ -94,7 +94,11 @@ fun MistakeBookScreen(
                 )
             } else {
                 Text(
-                    text = "按薄弱程度排序；每天复习 $REVIEW_DAILY_TARGET 题可得积分",
+                    text = buildString {
+                        if (state.dueCount > 0) append("今日待复习 ${state.dueCount} 题（到期优先）；")
+                        else append("暂无到期错题，已按间隔重复排序；")
+                        append("每天复习 $REVIEW_DAILY_TARGET 题可得积分")
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

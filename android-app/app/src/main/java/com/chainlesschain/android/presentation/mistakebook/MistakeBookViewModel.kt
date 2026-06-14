@@ -6,6 +6,7 @@ import com.chainlesschain.android.presentation.aistudy.Completion
 import com.chainlesschain.android.presentation.aistudy.EarnContext
 import com.chainlesschain.android.presentation.aistudy.MistakeBook
 import com.chainlesschain.android.presentation.aistudy.MistakeEntry
+import com.chainlesschain.android.presentation.aistudy.MistakeReviewScheduler
 import com.chainlesschain.android.presentation.aistudy.PointsEngine
 import com.chainlesschain.android.presentation.aistudy.PointsLedger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,8 @@ data class MistakeBookUiState(
     val entries: List<MistakeEntry> = emptyList(),
     /** 今日已复习条数 (同一条当日多次只计一次)。 */
     val reviewedToday: Int = 0,
+    /** 当前到期待复习条数 (间隔重复, [MistakeReviewScheduler.dueForReview])。 */
+    val dueCount: Int = 0,
     val message: String? = null,
 )
 
@@ -47,10 +50,12 @@ class MistakeBookViewModel @Inject constructor(
 
     val uiState: StateFlow<MistakeBookUiState> =
         combine(mistakeBook.entries, _message) { entries, message ->
+            val now = System.currentTimeMillis()
             MistakeBookUiState(
-                // 间隔重复排序: 复习少的在前, 同次数老错题在前。
-                entries = entries.sortedWith(compareBy({ it.reviewCount }, { it.createdAt })),
-                reviewedToday = countReviewedToday(entries, System.currentTimeMillis()),
+                // 间隔重复排序: 到期(最逾期)在前, 未到期按将到期顺序 (MistakeReviewScheduler)。
+                entries = MistakeReviewScheduler.orderForReview(entries, now),
+                reviewedToday = countReviewedToday(entries, now),
+                dueCount = MistakeReviewScheduler.dueForReview(entries, now).size,
                 message = message,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MistakeBookUiState())
