@@ -150,21 +150,21 @@ class AddFriendViewModel @Inject constructor(
                 return@onSuccess
             }
 
-            // 创建好友请求记录
+            // 离线互加 (同 UserProfileViewModel): 通过 DID/扫码找到对方即本地确认为好友 (ACCEPTED),
+            // 双方各加一次即互为好友, 不依赖好友请求经 P2P 送达 (无信令/不同网段也能用)。
             val friend = FriendEntity(
                 did = targetDid,
                 nickname = "用户 ${targetDid.take(8)}", // 临时昵称，后续会更新
                 avatar = null,
                 bio = message,
-                status = FriendStatus.PENDING,
+                status = FriendStatus.ACCEPTED,
                 addedAt = System.currentTimeMillis()
             )
 
             friendRepository.addFriend(friend)
                 .onSuccess {
-                    // 发送实时好友请求
-                    realtimeEventManager.sendFriendRequest(targetDid, message)
-                    sendEvent(AddFriendEvent.ShowToast("好友请求已发送"))
+                    realtimeEventManager.sendFriendRequest(targetDid, message) // best-effort: 有 P2P 时对端同步
+                    sendEvent(AddFriendEvent.ShowToast("已添加为好友"))
                     sendEvent(AddFriendEvent.FriendRequestSent(targetDid))
                 }.onError { error ->
                     handleError(error)
