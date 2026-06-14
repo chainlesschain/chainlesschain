@@ -106,6 +106,67 @@ function buildIdeTools(editor) {
         return res || { outcome: "rejected", path: args.path };
       },
     },
+    // Conditional: batch multi-file diff review. Only exposed when the facade
+    // supports it (VS Code; the JetBrains plugin reviews one file at a time).
+    ...(typeof editor.openMultiDiff === "function"
+      ? [
+          {
+            name: "openMultiDiff",
+            description:
+              "Review MULTIPLE proposed file changes together in one native " +
+              "multi-file diff, then BLOCK until the user decides. Prefer this " +
+              "over several openDiff calls when a change spans several files — " +
+              "the user sees the whole changeset at once and can Accept all, " +
+              "pick a subset, or Reject. `files` is a list of " +
+              "{ path, modifiedText, originalText? } (originalText defaults to " +
+              "the file on disk). Accepted files are written for you. Returns " +
+              "{ outcome:'accepted'|'rejected', applied?, total?, files? }.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                files: {
+                  type: "array",
+                  description: "The proposed file changes to review together.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      path: {
+                        type: "string",
+                        description: "Absolute path of the file.",
+                      },
+                      modifiedText: {
+                        type: "string",
+                        description: "Proposed new content for this file.",
+                      },
+                      originalText: {
+                        type: "string",
+                        description:
+                          "Original content; defaults to the file on disk.",
+                      },
+                    },
+                    required: ["path", "modifiedText"],
+                  },
+                },
+                title: {
+                  type: "string",
+                  description: "Multi-diff tab title (optional).",
+                },
+              },
+              required: ["files"],
+            },
+            handler: async (args = {}) => {
+              if (!Array.isArray(args.files) || args.files.length === 0) {
+                throw new Error("openMultiDiff requires a non-empty `files` array");
+              }
+              const res = await editor.openMultiDiff({
+                files: args.files,
+                title: args.title,
+              });
+              return res || { outcome: "rejected" };
+            },
+          },
+        ]
+      : []),
     // Conditional 5th tool: notebook code execution (Claude-Code
     // mcp__ide__executeCode parity). Only exposed when the facade supports it.
     ...(typeof editor.executeCode === "function"

@@ -203,6 +203,117 @@ function createVscodeEditorFacade(vscode) {
       return { outcome: "rejected", path };
     },
 
+    // Batch review of a whole changeset (openMultiDiff): open VS Code's native
+    // multi-file diff for several proposed changes at once, then BLOCK on a
+    // decision (Accept all / Pick files… / Reject). Unlike openDiff the panes
+    // are read-only — this is accept/reject of the proposal set, not in-place
+    // editing — so on accept we write the proposed text for the chosen files.
+    async openMultiDiff({ files, title }) {
+      const {
+        normalizeMultiDiffFiles,
+        changesetSummary,
+        fileLabel,
+        selectWrites,
+      } = require("./multi-diff");
+      const norm = normalizeMultiDiffFiles(files);
+      const changed = norm.filter(
+        (f) => (f.originalText || "") !== f.modifiedText,
+      );
+      if (changed.length === 0) {
+        return { outcome: "rejected", reason: "no changes" };
+      }
+      // Build the [resourceUri, leftUri, rightUri] list for vscode.changes.
+      const resources = [];
+      for (const f of changed) {
+        const fileUri = vscode.Uri.file(f.path);
+        let leftUri;
+        if (typeof f.originalText === "string") {
+          const leftDoc = await vscode.workspace.openTextDocument({
+            content: f.originalText,
+          });
+          leftUri = leftDoc.uri;
+        } else {
+          leftUri = fileUri; // diff against the file on disk
+        }
+        const rightDoc = await vscode.workspace.openTextDocument({
+          content: f.modifiedText,
+        });
+        resources.push([fileUri, leftUri, rightDoc.uri]);
+      }
+      try {
+        await vscode.commands.executeCommand(
+          "vscode.changes",
+          title || `Review ${changed.length} changes`,
+          resources,
+        );
+      } catch {
+        // Multi-diff command unavailable (older host) — still prompt to decide.
+      }
+      const summary = changesetSummary(changed);
+      const choice = await vscode.window
+        .showInformationMessage(
+          `Apply ${summary.count} proposed change(s)? (+${summary.totalAdded} -${summary.totalRemoved})`,
+          { modal: false },
+          "Accept all",
+          "Pick files…",
+          "Reject",
+        )
+        .then(
+          (v) => v,
+          () => undefined,
+        );
+
+      if (choice === "Accept all") {
+        const writes = selectWrites(changed, null);
+        for (const w of writes) {
+          await applyTextToFile(
+            vscode,
+            vscode.Uri.file(w.path),
+            w.modifiedText,
+          );
+        }
+        return {
+          outcome: "accepted",
+          applied: writes.length,
+          total: changed.length,
+        };
+      }
+      if (choice === "Pick files…") {
+        const picks = await vscode.window.showQuickPick(
+          summary.files
+            .filter((s) => !s.unchanged)
+            .map((s) => ({ label: fileLabel(s), picked: true, path: s.path })),
+          {
+            canPickMany: true,
+            ignoreFocusOut: true,
+            placeHolder:
+              "勾选要应用的文件(未勾选保留原样);Esc 取消 = 不应用",
+          },
+        );
+        if (!picks || picks.length === 0) {
+          return { outcome: "rejected" };
+        }
+        const writes = selectWrites(
+          changed,
+          picks.map((p) => p.path),
+        );
+        for (const w of writes) {
+          await applyTextToFile(
+            vscode,
+            vscode.Uri.file(w.path),
+            w.modifiedText,
+          );
+        }
+        return {
+          outcome: "accepted",
+          applied: writes.length,
+          total: changed.length,
+          files: writes.map((w) => w.path),
+        };
+      }
+      return { outcome: "rejected" };
+    },
+
     // Notebook code execution via the Jupyter extension's Kernel API
     // (https://github.com/microsoft/vscode-jupyter/wiki/Kernel-API). The API
     // may require one-time user consent for third-party extensions; every
