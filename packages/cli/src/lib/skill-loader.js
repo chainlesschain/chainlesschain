@@ -13,6 +13,10 @@
  * ".claude/skills auto-load" behavior): a repo carrying Claude-Code skills
  * works in cc unchanged — same SKILL.md format — while native
  * `.chainlesschain/skills` still wins on name collisions.
+ *
+ * The bundled (layer 0) built-ins can be hidden via Claude-Code 2.1.169's
+ * `disableBundledSkills` (settings.json) or the `CC_DISABLE_BUNDLED_SKILLS`
+ * env var — see {@link bundledSkillsDisabled}.
  */
 
 import fs from "fs";
@@ -23,8 +27,44 @@ import { getElectronUserDataDir } from "./paths.js";
 import { findProjectRoot } from "./project-detector.js";
 import { findProjectRoot as findGitRoot } from "./project-instructions.js";
 import { parseSkillMcpServers } from "./skill-mcp.js";
+import settingsLoader from "./settings-loader.cjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Whether the bundled (built-in) skill layer should be hidden — Claude-Code
+ * 2.1.169 `disableBundledSkills` parity. Precedence: explicit option >
+ * `CC_DISABLE_BUNDLED_SKILLS` env > `.claude/settings.json` `disableBundledSkills`
+ * (last layer wins). Best-effort: any read failure leaves bundled skills visible.
+ *
+ * @param {{ disableBundledSkills?: boolean, env?: object, cwd?: string,
+ *           settingsFile?: string }} [opts]
+ * @returns {boolean}
+ */
+export function bundledSkillsDisabled(opts = {}) {
+  if (typeof opts.disableBundledSkills === "boolean") {
+    return opts.disableBundledSkills;
+  }
+  const env = (opts.env || process.env).CC_DISABLE_BUNDLED_SKILLS;
+  if (env != null && String(env).trim() !== "") {
+    return /^(1|true|yes|on)$/i.test(String(env).trim());
+  }
+  try {
+    let disabled = false;
+    for (const file of settingsLoader.settingsPaths(
+      opts.cwd || process.cwd(),
+      opts.settingsFile,
+    )) {
+      const data = settingsLoader.readSettingsFile(file);
+      if (data && typeof data.disableBundledSkills === "boolean") {
+        disabled = data.disableBundledSkills; // last (highest) layer wins
+      }
+    }
+    return disabled;
+  } catch {
+    return false; // never fail skill loading over a settings read
+  }
+}
 
 /** Layer names in priority order (lowest → highest) */
 export const LAYER_NAMES = [
@@ -349,13 +389,17 @@ export class CLISkillLoader {
    * Higher-priority layers override same-name skills from lower layers.
    * @returns {object[]} Resolved skill list
    */
-  loadAll() {
+  loadAll(options = {}) {
     const layers = this.getLayerPaths();
     const skillMap = new Map();
+    // Claude-Code `disableBundledSkills`: hide the built-in layer so only
+    // user/workspace/Claude-Code-portable skills load.
+    const dropBundled = bundledSkillsDisabled(options);
 
     // Process in priority order (lowest first, so higher layers overwrite)
     for (const { layer, path: layerPath, exists } of layers) {
       if (!exists) continue;
+      if (dropBundled && layer === "bundled") continue;
       const skills = this._loadFromDir(layerPath, layer);
       for (const skill of skills) {
         skillMap.set(skill.id, skill);

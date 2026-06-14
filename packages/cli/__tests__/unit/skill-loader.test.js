@@ -6,6 +6,7 @@ import {
   parseSkillMd,
   CLISkillLoader,
   LAYER_NAMES,
+  bundledSkillsDisabled,
 } from "../../src/lib/skill-loader.js";
 
 describe("skill-loader", () => {
@@ -248,6 +249,30 @@ tags:
         const sources = new Set(skills.map((s) => s.source));
         // At minimum, bundled skills should be present
         expect(sources.has("bundled")).toBe(true);
+      });
+    });
+
+    describe("disableBundledSkills (Claude-Code 2.1.169 parity)", () => {
+      it("loadAll({disableBundledSkills:true}) drops the bundled layer", () => {
+        const loader = new CLISkillLoader();
+        const withBundled = loader.loadAll();
+        // sanity: bundled present by default in this repo (desktop-app-vue)
+        expect(withBundled.some((s) => s.source === "bundled")).toBe(true);
+        loader.clearCache();
+        const without = loader.loadAll({ disableBundledSkills: true });
+        expect(without.some((s) => s.source === "bundled")).toBe(false);
+      });
+
+      it("CC_DISABLE_BUNDLED_SKILLS env drops the bundled layer", () => {
+        const saved = process.env.CC_DISABLE_BUNDLED_SKILLS;
+        process.env.CC_DISABLE_BUNDLED_SKILLS = "1";
+        try {
+          const skills = new CLISkillLoader().loadAll();
+          expect(skills.some((s) => s.source === "bundled")).toBe(false);
+        } finally {
+          if (saved === undefined) delete process.env.CC_DISABLE_BUNDLED_SKILLS;
+          else process.env.CC_DISABLE_BUNDLED_SKILLS = saved;
+        }
       });
     });
 
@@ -962,6 +987,54 @@ describe("Skill Loader V2", () => {
       _resetStateSkillLoaderV2();
       expect(listSkillsV2()).toHaveLength(0);
       expect(getMaxActiveSkillsPerOwnerV2()).toBe(30);
+    });
+  });
+
+  // ─── bundledSkillsDisabled (option > env > settings.json) ─────
+  describe("bundledSkillsDisabled (Claude-Code 2.1.169 parity)", () => {
+    it("explicit option wins over env", () => {
+      expect(bundledSkillsDisabled({ disableBundledSkills: true })).toBe(true);
+      expect(
+        bundledSkillsDisabled({
+          disableBundledSkills: false,
+          env: { CC_DISABLE_BUNDLED_SKILLS: "1" },
+        }),
+      ).toBe(false);
+    });
+
+    it("env accepts 1/true/yes/on; other values are not disabling", () => {
+      for (const v of ["1", "true", "TRUE", "yes", "on"]) {
+        expect(
+          bundledSkillsDisabled({ env: { CC_DISABLE_BUNDLED_SKILLS: v } }),
+        ).toBe(true);
+      }
+      for (const v of ["0", "false", "", "no"]) {
+        expect(
+          bundledSkillsDisabled({
+            env: { CC_DISABLE_BUNDLED_SKILLS: v },
+            cwd: tmpdir(),
+          }),
+        ).toBe(false);
+      }
+    });
+
+    it("reads .claude/settings.json disableBundledSkills (project layer)", () => {
+      const dir = mkdtempSync(join(tmpdir(), "cc-disablebundled-"));
+      try {
+        mkdirSync(join(dir, ".claude"), { recursive: true });
+        writeFileSync(
+          join(dir, ".claude", "settings.json"),
+          JSON.stringify({ disableBundledSkills: true }),
+          "utf-8",
+        );
+        expect(bundledSkillsDisabled({ env: {}, cwd: dir })).toBe(true);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("defaults to false with no option/env/settings", () => {
+      expect(bundledSkillsDisabled({ env: {}, cwd: tmpdir() })).toBe(false);
     });
   });
 });
