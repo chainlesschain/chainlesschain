@@ -56,6 +56,7 @@ const { ZhihuAdapter } = require("./adapters/social-zhihu");
 const { BossZhipinAdapter } = require("./adapters/recruit-boss");
 const { CsdnAdapter } = require("./adapters/social-csdn");
 const { DongchediAdapter } = require("./adapters/social-dongchedi");
+const { TianyanchaAdapter } = require("./adapters/biz-tianyancha");
 const { DouyinAdapter } = require("./adapters/social-douyin");
 const { XiaohongshuAdapter } = require("./adapters/social-xiaohongshu");
 const { ToutiaoAdapter } = require("./adapters/social-toutiao");
@@ -79,7 +80,6 @@ const { WpsDocAdapter } = require("./adapters/doc-wps");
 const { TencentDocsAdapter } = require("./adapters/doc-tencent-docs");
 const { BaiduNetdiskAdapter } = require("./adapters/doc-baidu-netdisk");
 const { CamScannerDocAdapter } = require("./adapters/doc-camscanner");
-const { IXiamenAdapter } = require("./adapters/gov-ixiamen");
 const { DingTalkPcAdapter } = require("./adapters/dingtalk-pc");
 const { FeishuPcAdapter } = require("./adapters/feishu-pc");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
@@ -301,6 +301,7 @@ module.exports = {
   BossZhipinAdapter,
   CsdnAdapter,
   DongchediAdapter,
+  TianyanchaAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
   ToutiaoAdapter,
@@ -323,7 +324,6 @@ module.exports = {
   TencentDocsAdapter,
   BaiduNetdiskAdapter,
   CamScannerDocAdapter,
-  IXiamenAdapter,
   DingTalkPcAdapter,
   FeishuPcAdapter,
   TelegramAdapter,

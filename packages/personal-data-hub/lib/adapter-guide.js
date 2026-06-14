@@ -36,6 +36,7 @@ const DISPLAY_NAMES = Object.freeze({
   "recruit-boss": "BOSS 直聘",
   "social-csdn": "CSDN",
   "social-dongchedi": "懂车帝",
+  "biz-tianyancha": "天眼查",
   "social-douyin": "抖音",
   "social-xiaohongshu": "小红书",
   "social-toutiao": "今日头条",
@@ -78,7 +79,6 @@ const DISPLAY_NAMES = Object.freeze({
   "doc-tencent-docs": "腾讯文档",
   "doc-baidu-netdisk": "百度网盘",
   "doc-camscanner": "扫描全能王",
-  "gov-ixiamen": "i厦门",
   "browser-history-chrome": "Chrome 浏览历史",
   "browser-history-edge": "Edge 浏览历史",
   "vscode": "VS Code",
@@ -548,7 +548,7 @@ function getAdapterGuide(name, category) {
 // usable standalone, e.g. CLI without a live readiness probe).
 function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
-  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-dongchedi|gov-ixiamen)$/.test(name))
+  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-dongchedi|biz-tianyancha)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
   if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;
