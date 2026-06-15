@@ -315,10 +315,7 @@ chainlesschain agent -p "继续推进" --goal           # 不带值=自动解析
 
 ### Phase 2 — 跑完自评进度(`--goal-assess`,opt-in)
 
-`--goal-assess` 在一次 `--goal` 运行结束后,**额外**让模型从运行轨迹(任务 + 最终回答
-
-- 用到的工具)判断目标是否推进,并把结果落盘:进度、关键结果 current/done、一条
-  agent 署名的进度 note、以及 drift 标记。**因为多花一次 completion 所以默认关闭**。
+`--goal-assess` 在一次 `--goal` 运行结束后,**额外**让模型从运行轨迹(任务 + 最终回答 + 用到的工具)判断目标是否推进,并把结果落盘:进度、关键结果 current/done、一条 agent 署名的进度 note、以及 drift 标记。**因为多花一次 completion 所以默认关闭**。
 
 ```bash
 chainlesschain agent -p "实现登录接口" --goal <id> --goal-assess
@@ -493,10 +490,7 @@ MCP 不止 tools。当任一连上的 server 暴露 **resource**(文档 / 文件
 - `list_mcp_resources {server?}` → 列出所有(或某 server 的)资源 `{server, uri, name, ...}`
 - `read_mcp_resource {uri, server?}` → 按 URI 读取内容;省略 `server` 时按 uri 自动定位归属
 
-只有"存在资源"才注册这两个工具(无资源的纯工具 server 不会污染工具表);多批合并(`--mcp-config`
-
-- 注册 + IDE)只注册一次。CLI 侧对应 `cc mcp resources` / `cc mcp read-resource <uri>`(见
-  `docs/cli/core-phases.md`)。
+只有"存在资源"才注册这两个工具(无资源的纯工具 server 不会污染工具表);多批合并(`--mcp-config` + 注册 + IDE)只注册一次。CLI 侧对应 `cc mcp resources` / `cc mcp read-resource <uri>`(见 `docs/cli/core-phases.md`)。
 
 ### Prompts — server 提供的斜杠命令(交互 REPL)
 
