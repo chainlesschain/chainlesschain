@@ -109,8 +109,15 @@ class FamilyPairingViewModelTest {
         revivalCode = RevivalCode("654321"),
     )
 
-    private class FakeLocalDidProvider(var did: String? = "did:key:zParent") : LocalDidProvider {
+    private class FakeLocalDidProvider(
+        var did: String? = "did:key:zParent",
+        var canCreate: Boolean = true,
+    ) : LocalDidProvider {
         override fun currentDid(): String? = did
+        override suspend fun ensureDid(): String? {
+            if (did.isNullOrBlank() && canCreate) did = "did:key:zAutoCreated"
+            return did
+        }
     }
 
     private lateinit var repo: FakeGroupRepo
@@ -196,8 +203,22 @@ class FamilyPairingViewModelTest {
     }
 
     @Test
-    fun `createInvite without a local identity shows guidance and does nothing`() = runTest {
+    fun `createInvite auto-creates a DID when missing then proceeds (#3 fix)`() = runTest {
+        // 没身份但能创建 → ensureDid 现场补建 → 配对继续 (不再卡死)。
         didProvider.did = null
+        didProvider.canCreate = true
+        val vm = vm()
+        vm.createInvite()
+        assertEquals(1, repo.createCount)
+        assertNotNull(vm.uiState.value.inviteToken)
+        // 新建的组用自动补建的真实 DID 作 primaryDid。
+        assertEquals("did:key:zAutoCreated", repo.groups.value.first().primaryDid)
+    }
+
+    @Test
+    fun `createInvite shows guidance when identity is missing and cannot be created`() = runTest {
+        didProvider.did = null
+        didProvider.canCreate = false
         val vm = vm()
         vm.createInvite()
         assertEquals(0, repo.createCount)
@@ -206,12 +227,23 @@ class FamilyPairingViewModelTest {
     }
 
     @Test
-    fun `acceptInvite without a local identity shows guidance and does not call service`() = runTest {
+    fun `acceptInvite shows guidance when identity missing and cannot be created`() = runTest {
         didProvider.did = null
+        didProvider.canCreate = false
         val vm = vm()
         vm.acceptInvite(token = "tok", code = "123456", ageText = "15")
         assertEquals(0, service.acceptCalls)
         assertNotNull(vm.uiState.value.message)
+    }
+
+    @Test
+    fun `acceptInvite auto-creates a DID when missing then calls service (#3 fix)`() = runTest {
+        didProvider.did = null
+        didProvider.canCreate = true
+        service.acceptResult = successResult()
+        val vm = vm()
+        vm.acceptInvite(token = "tok", code = "123456", ageText = "15")
+        assertEquals(1, service.acceptCalls)
     }
 
     @Test

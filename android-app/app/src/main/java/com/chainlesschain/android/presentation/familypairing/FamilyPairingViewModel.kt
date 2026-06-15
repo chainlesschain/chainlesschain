@@ -96,9 +96,10 @@ class FamilyPairingViewModel @Inject constructor(
      * 双向各生成+接受一次, 两端 family_relationship 互建, 家人页即互相可见。
      */
     fun createInvite(expectedChildAge: Int? = null) = viewModelScope.launch {
-        val inviterDid = localDidProvider.currentDid()
+        // 缺身份即自动补建 (RoleSelector 不建 DID, 见 LocalDidProvider.ensureDid 注释)。
+        val inviterDid = localDidProvider.ensureDid()
         if (inviterDid.isNullOrBlank()) {
-            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设置角色以创建 DID") }
+            _uiState.update { it.copy(message = "创建本机身份失败，请到「密钥管理」手动创建 DID 后重试") }
             return@launch
         }
         val asChild = _uiState.value.mode == PairingMode.CHILD
@@ -171,9 +172,9 @@ class FamilyPairingViewModel @Inject constructor(
             _uiState.update { it.copy(message = "请输入有效年龄") }
             return@launch
         }
-        val accepteeDid = localDidProvider.currentDid()
+        val accepteeDid = localDidProvider.ensureDid()
         if (accepteeDid.isNullOrBlank()) {
-            _uiState.update { it.copy(message = "本机还没有身份，请先在「本机角色」里设为孩子以创建 DID") }
+            _uiState.update { it.copy(message = "创建本机身份失败，请到「密钥管理」手动创建 DID 后重试") }
             return@launch
         }
 
