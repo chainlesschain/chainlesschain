@@ -41,6 +41,7 @@ public final class PureLogicSmokeMain {
         conversationManager();
         previewDetect();
         multiDiff();
+        mentions();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -195,5 +196,65 @@ public final class PureLogicSmokeMain {
         eq(sub.size(), 1, "selectWrites subset drops no-op");
         eq(sub.get(0).path, "a.js", "selectWrites subset content");
         eq(MultiDiff.selectWrites(files, new HashSet<String>()).size(), 0, "empty selection writes nothing");
+    }
+
+    private static void mentions() {
+        System.out.println("Mentions:");
+        // detectAtToken: at start / after space / bracket; glued @ is NOT a mention.
+        Mentions.AtToken t = Mentions.detectAtToken("see @src/ap");
+        check(t != null && t.prefix.equals("src/ap") && t.start == 4, "detectAtToken after space");
+        Mentions.AtToken t2 = Mentions.detectAtToken("@a");
+        check(t2 != null && t2.prefix.equals("a") && t2.start == 0, "detectAtToken at start");
+        check(Mentions.detectAtToken("user@host") == null, "glued @ is not a mention");
+        check(Mentions.detectAtToken("done @x ") == null, "no token when not at caret");
+
+        // filterFiles: basename-prefix first, then path-prefix, then substring; case-insensitive.
+        List<String> files = Arrays.asList(
+                "src/app.js", "src/chat/at-mention.js", "lib/app-helper.js", "README.md");
+        List<String> hits = Mentions.filterFiles(files, "app", 20);
+        eq(hits.get(0), "src/app.js", "basename-prefix ranks first");
+        check(hits.contains("lib/app-helper.js"), "basename-prefix includes app-helper");
+        check(!hits.contains("src/chat/at-mention.js"), "no 'app' substring -> excluded");
+        // substring match works on a real case:
+        check(Mentions.filterFiles(files, "mention", 20).contains("src/chat/at-mention.js"),
+                "substring match");
+        eq(Mentions.filterFiles(files, "", 2).size(), 2, "empty prefix -> first N");
+        check(Mentions.filterFiles(files, "SRC/APP", 20).contains("src/app.js"),
+                "case-insensitive path-prefix");
+
+        // ideMentionMatches
+        eq(Mentions.ideMentionMatches("").size(), 2, "empty -> both ide mentions");
+        eq(Mentions.ideMentionMatches("s"), Arrays.asList("selection"), "@s -> selection");
+        eq(Mentions.ideMentionMatches("d"), Arrays.asList("diagnostics"), "@d -> diagnostics");
+
+        // applyMention: splice with trailing space
+        Mentions.AtToken at = Mentions.detectAtToken("look @ap");
+        Mentions.ApplyResult ap = Mentions.applyMention("look @ap", at, "src/app.js", 8);
+        eq(ap.text, "look @src/app.js ", "applyMention text");
+        eq(ap.caret, "look @src/app.js ".length(), "applyMention caret");
+
+        // symbolKindLabel + formatSymbolItems + dedupe
+        eq(Mentions.symbolKindLabel(11), "function", "kind 11 -> function");
+        eq(Mentions.symbolKindLabel(4), "class", "kind 4 -> class");
+        eq(Mentions.symbolKindLabel(999), "symbol", "unknown kind -> symbol");
+        List<Mentions.Symbol> syms = Arrays.asList(
+                new Mentions.Symbol("handleClick", 11, "C:\\ws\\src\\ui\\button.ts"),
+                new Mentions.Symbol("", 4, "C:\\ws\\x.ts"),         // nameless -> skipped
+                new Mentions.Symbol("Widget", 4, "C:\\ws\\src\\widget.ts"));
+        List<Mentions.MentionItem> items = Mentions.formatSymbolItems(syms, "C:\\ws", 8);
+        eq(items.size(), 2, "formatSymbolItems skips nameless");
+        eq(items.get(0).label, "function handleClick · src/ui/button.ts", "symbol label + relpath");
+        eq(items.get(0).value, "src/ui/button.ts", "symbol value = relpath");
+
+        // dedupeMentionItems: keep first per value
+        List<Mentions.MentionItem> mixed = Arrays.asList(
+                Mentions.MentionItem.path("src/app.js"),
+                Mentions.MentionItem.symbol("function foo · src/app.js", "src/app.js"), // dup value
+                Mentions.MentionItem.symbol("class Bar · src/bar.js", "src/bar.js"));
+        List<Mentions.MentionItem> deduped = Mentions.dedupeMentionItems(mixed);
+        eq(deduped.size(), 2, "dedupe by inserted value");
+        eq(deduped.get(0).value, "src/app.js", "dedupe keeps first");
+        eq(Mentions.mentionLabel(deduped.get(1)), "class Bar · src/bar.js", "mentionLabel");
+        eq(Mentions.mentionValue(deduped.get(1)), "src/bar.js", "mentionValue");
     }
 }

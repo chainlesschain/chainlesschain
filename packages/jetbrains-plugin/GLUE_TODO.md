@@ -72,16 +72,22 @@ New tool; `MultiDiff` model is ready.
       like VS Code) → becomes `mcp__ide__openMultiDiff` for the agent.
 
 ## 5. Older backlog (pre-0.22.0, separate)
-Event **mapping** already exists in `ChatEvents` (`plan_update`→"plan",
-`approval_request/_resolved`→"approval"/"approval_done"); `ChatToolWindowFactory`
-already branches on those kinds — needs the **rendering/interaction**:
+**Pure layers already ported** (no glue): event **mapping** is a complete twin in
+`ChatEvents.java` (all 11 kinds incl. `plan_update`→"plan",
+`approval_request/_resolved`→"approval"/"approval_done"); the `@`-mention
+completion logic (detect token, rank files, IDE pseudo-mentions, format/dedupe
+workspace symbols) is in `Mentions.java` (`1ef021c5x`). What remains is the IntelliJ
+**rendering/interaction** glue:
 
 - [ ] Plan card (items + Approve/Reject) rendered from the "plan" UI event.
 - [ ] Approval cards (confirm-tier → Approve/Deny) — finish the `approval` handling.
 - [ ] Panel slash commands: `/new /plan /approve /reject /stop /cost /context`.
 - [ ] Selection actions: **Explain** / **Refactor** (editor right-click → seed chat
       with `@selection`).
-- [ ] `@`-mention completion: files + workspace symbols (PSI `GotoSymbolModel`-style).
+- [ ] `@`-mention completion **glue**: feed `Mentions.filterFiles` from project files
+      and `Mentions.formatSymbolItems` from a PSI symbol search
+      (`GotoSymbolModel`/`ChooseByNameContributor`); wire `detectAtToken`/`applyMention`
+      to the input field's completion popup. (Pure logic done — just wire it.)
 - [ ] Keybindings: quick-launch tool window + insert `@file` reference.
 
 ## Build / verify / publish
