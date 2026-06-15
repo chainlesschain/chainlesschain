@@ -93,16 +93,20 @@ describe("PreviewController.start", () => {
     ]);
   });
 
-  it("exit clears running state", () => {
+  it("an unsolicited exit is reported as a crash (with code + script)", () => {
     const { ctrl, statuses, child } = makeController({
       scripts: { dev: "vite" },
     });
     ctrl.start("/ws");
     expect(ctrl.running).toBe(true);
-    child._emitExit(0);
+    child._emitExit(1); // dev server died on its own
     expect(ctrl.running).toBe(false);
     expect(ctrl.child).toBe(null);
-    expect(statuses.at(-1)).toMatchObject({ state: "stopped", code: 0 });
+    expect(statuses.at(-1)).toMatchObject({
+      state: "crashed",
+      code: 1,
+      script: "dev",
+    });
   });
 });
 
@@ -116,6 +120,17 @@ describe("PreviewController.stop", () => {
     expect(child.killed).toBe(true);
     expect(ctrl.running).toBe(false);
     expect(ctrl.url).toBe(null);
+    expect(statuses.at(-1)).toMatchObject({ state: "stopped" });
+  });
+
+  it("a stop()-triggered exit stays 'stopped' (no spurious crash)", () => {
+    const { ctrl, child, statuses } = makeController({
+      scripts: { dev: "vite" },
+    });
+    ctrl.start("/ws");
+    ctrl.stop(); // emits "stopped"
+    child._emitExit(0); // the kill makes the child exit afterwards
+    expect(statuses.filter((s) => s.state === "crashed")).toHaveLength(0);
     expect(statuses.at(-1)).toMatchObject({ state: "stopped" });
   });
 

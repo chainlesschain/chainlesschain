@@ -27,6 +27,8 @@ class PreviewController {
     this.url = null;
     this.running = false;
     this.script = null;
+    this._cwd = null; // remembered for restart-after-crash
+    this._stopping = false; // distinguishes a user stop() from a crash
   }
 
   /**
@@ -46,6 +48,8 @@ class PreviewController {
     }
     this.script = dev.script;
     this.url = null;
+    this._cwd = cwd;
+    this._stopping = false;
     this._onStatus({ state: "starting", script: dev.script });
     const child = this._spawn(dev.script, cwd);
     this.child = child;
@@ -67,15 +71,23 @@ class PreviewController {
     child?.stdout?.on?.("data", onData);
     child?.stderr?.on?.("data", onData); // some servers print the URL on stderr
     child?.on?.("exit", (code) => {
+      const intentional = this._stopping;
       this.running = false;
       this.child = null;
-      this._onStatus({ state: "stopped", code });
+      this._stopping = false;
+      // A dev server is meant to run until you stop it — any exit we didn't
+      // ask for is a crash. stop() already emitted "stopped", so stay quiet
+      // for an intentional exit (avoids a double status).
+      if (!intentional) {
+        this._onStatus({ state: "crashed", code, script: this.script });
+      }
     });
     return { started: true, script: dev.script };
   }
 
   stop() {
     const child = this.child;
+    this._stopping = true; // tell the exit handler this was on purpose
     this.running = false;
     this.url = null;
     this.child = null;
@@ -103,7 +115,8 @@ function createPreviewController(vscode, { log } = {}) {
   const cp = require("child_process");
   const fs = require("fs");
   const path = require("path");
-  return new PreviewController({
+  let controller;
+  controller = new PreviewController({
     spawn: (script, cwd) =>
       cp.spawn("npm", ["run", script], {
         cwd,
@@ -135,8 +148,21 @@ function createPreviewController(vscode, { log } = {}) {
             (s.message ? ` — ${s.message}` : ""),
         );
       }
+      // Dev server crashed (exited without us asking) — offer to restart it.
+      if (s.state === "crashed") {
+        const msg =
+          `App preview (npm run ${s.script || "dev"}) exited` +
+          (s.code != null ? ` (code ${s.code})` : "") +
+          ".";
+        vscode.window.showWarningMessage(msg, "Restart").then((pick) => {
+          if (pick === "Restart" && controller._cwd) {
+            controller.start(controller._cwd);
+          }
+        }, () => {});
+      }
     },
   });
+  return controller;
 }
 
 module.exports = { PreviewController, createPreviewController };
