@@ -130,13 +130,24 @@ function mapAgentEvent(evt, state) {
 }
 
 /**
+ * Permission modes the panel can pass through to `cc agent --permission-mode`
+ * (the panel's auto-accept / bypass selector — Claude-Code parity). "default"
+ * (and anything unknown) emits NO flag, so the agent keeps its normal approval
+ * flow. `plan` is accepted here for completeness, but the panel drives plan
+ * mode live over the stdin protocol (the `plan` event), not at spawn time.
+ */
+const PERMISSION_MODES = new Set(["plan", "acceptEdits", "bypassPermissions"]);
+
+/**
  * Extra CLI args for the chat child from user settings + stored session.
  * Empty/missing values fall through to the CLI's own config defaults
  * (pure; vscode-free). `resume` is the workspace's last chat session id —
  * passing it makes the CLI rebuild that conversation and keep appending to
- * it, so the panel survives restarts/reloads with full context.
+ * it, so the panel survives restarts/reloads with full context. `mode` is the
+ * conversation's approval mode (acceptEdits / bypassPermissions); "default"
+ * or unset adds nothing.
  */
-function buildSessionArgs({ model, provider, resume } = {}) {
+function buildSessionArgs({ model, provider, resume, mode } = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
     args.push("--provider", provider.trim());
@@ -147,6 +158,9 @@ function buildSessionArgs({ model, provider, resume } = {}) {
   if (typeof resume === "string" && resume.trim()) {
     args.push("--resume", resume.trim());
   }
+  if (typeof mode === "string" && PERMISSION_MODES.has(mode.trim())) {
+    args.push("--permission-mode", mode.trim());
+  }
   return args;
 }
 
@@ -155,4 +169,5 @@ module.exports = {
   createTurnState,
   summarizeToolArgs,
   buildSessionArgs,
+  PERMISSION_MODES,
 };

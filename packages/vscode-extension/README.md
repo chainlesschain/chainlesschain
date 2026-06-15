@@ -212,6 +212,10 @@ The bearer token is never displayed in any of these.
   a hover Copy button that copies the block to the clipboard.
 - ✅ **`/retry` regenerate** (0.29.0): re-send your last prompt as a fresh turn
   without retyping it.
+- ✅ **Approval-mode selector** (0.30.0): `/auto` auto-accepts file edits, `/bypass`
+  skips all approvals, `/normal` restores the default per-action prompts. Per
+  conversation; switching restarts the agent child with the new
+  `--permission-mode` and resumes the same session so context carries over.
 
 ## Packaging
 

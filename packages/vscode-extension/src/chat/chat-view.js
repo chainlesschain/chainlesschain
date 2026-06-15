@@ -236,6 +236,9 @@ class ChatViewProvider {
           // Continue THIS tab's conversation across child restarts; a new tab
           // (or "New") starts with no resume id for a fresh session.
           resume: conv.sessionId,
+          // Approval mode (/auto, /bypass, /normal) — flag is spawn-time, so a
+          // mode change stops the child and the next turn respawns with it.
+          mode: conv.mode,
         }),
         // Confirm-tier approvals become Approve/Deny cards in the panel
         // instead of failing closed (needs cc >= 0.162.45).
@@ -284,6 +287,38 @@ class ChatViewProvider {
     this._post({
       kind: "info",
       text: `will resume ${pick.label} — send a message to continue it`,
+    });
+  }
+
+  /**
+   * /auto · /bypass · /normal — switch the ACTIVE conversation's approval mode
+   * (Claude-Code auto-accept/bypass parity). The `--permission-mode` flag is
+   * spawn-time, so a live child is stopped here; the next message respawns it
+   * with the new mode, resuming this conversation's session id so context
+   * carries over. Unknown modes are reported and ignored (no flag = default).
+   */
+  _setMode(mode) {
+    const LABELS = {
+      default: "normal approvals",
+      acceptEdits: "auto-accept edits",
+      bypassPermissions: "bypass all approvals",
+    };
+    if (!Object.prototype.hasOwnProperty.call(LABELS, mode)) {
+      this._post({ kind: "info", text: `unknown mode "${mode}"` });
+      return;
+    }
+    const conv = this._activeConv();
+    this._convs.setMode(conv.id, mode);
+    const restarted = !!conv.session?.running;
+    if (restarted) {
+      conv.session.stop();
+      this._convs.setSession(conv.id, null);
+    }
+    this._post({
+      kind: "info",
+      text:
+        `approval mode → ${LABELS[mode]}` +
+        (restarted ? " (applies on your next message)" : ""),
     });
   }
 
@@ -584,6 +619,8 @@ class ChatViewProvider {
         this._runIntrospect(m.type).catch(() => {});
       } else if (m.type === "rewind") {
         this._rewind().catch(() => {});
+      } else if (m.type === "mode") {
+        this._setMode(String(m.mode || "default"));
       } else if (m.type === "configureLlm") {
         this.vscode.commands.executeCommand("chainlesschain.llm.configure");
       } else if (m.type === "approval") {

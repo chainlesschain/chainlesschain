@@ -268,6 +268,9 @@ function buildChatHtml({ cspSource, nonce }) {
     "/plan": () => vscode.postMessage({ type: "plan", action: "enter" }),
     "/approve": () => vscode.postMessage({ type: "plan", action: "approve" }),
     "/reject": () => vscode.postMessage({ type: "plan", action: "reject" }),
+    "/auto": () => vscode.postMessage({ type: "mode", mode: "acceptEdits" }),
+    "/bypass": () => vscode.postMessage({ type: "mode", mode: "bypassPermissions" }),
+    "/normal": () => vscode.postMessage({ type: "mode", mode: "default" }),
     "/stop": () => vscode.postMessage({ type: "interrupt" }),
     "/cost": () => vscode.postMessage({ type: "cost" }),
     "/context": () => vscode.postMessage({ type: "context" }),
@@ -319,7 +322,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /rewind · /retry · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /stop · /cost · /context · /rewind · /retry · /help");
         return;
       }
       if (SLASH[cmd]) {

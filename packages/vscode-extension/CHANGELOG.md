@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.30.0] — 2026-06-15
+
+- **Approval-mode selector — `/auto`, `/bypass`, `/normal` (Claude-Code parity).**
+  The chat panel can now run the agent hands-off. `/auto` auto-accepts file edits
+  (`--permission-mode acceptEdits`), `/bypass` skips all approvals
+  (`--permission-mode bypassPermissions`), and `/normal` returns to the default
+  per-action approval flow. The mode is per-conversation; because the flag is set
+  at spawn time, switching mode stops the live agent child and the next message
+  respawns it with the new mode — resuming the same session so context carries
+  over. Plan mode is unchanged (`/plan` still drives it live). All three are in
+  the `/` autocomplete and `/help`.
+
 ## [0.29.0] — 2026-06-15
 
 - **`/retry` — regenerate the last prompt.** A `/retry` panel command (in the

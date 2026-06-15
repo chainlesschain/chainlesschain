@@ -46,6 +46,7 @@ class ConversationManager {
       session: null, // opaque AgentChatSession handle (set by chat-view)
       turnState: this._createTurnState(),
       unread: false, // a turn finished while this tab was in the background
+      mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
     };
     this._conversations.set(id, conv);
     this._order.push(id);
@@ -84,6 +85,7 @@ class ConversationManager {
         active: c.id === this._activeId,
         hasSession: !!c.session,
         unread: !!c.unread,
+        mode: c.mode || "default",
       };
     });
   }
@@ -135,6 +137,13 @@ class ConversationManager {
   setSessionId(id, sessionId) {
     const c = this.get(id);
     if (c) c.sessionId = sessionId || null;
+    return c;
+  }
+
+  /** Set a conversation's approval mode (takes effect on its next child spawn). */
+  setMode(id, mode) {
+    const c = this.get(id);
+    if (c) c.mode = mode || "default";
     return c;
   }
 
