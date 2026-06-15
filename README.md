@@ -2,6 +2,17 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-06-15 发布 — **cc CLI 0.162.66：Claude-Code 编码闭环补齐——`cc review`（diff-first + `--fix`/`--comment`）+ headless 硬化 + `cc insights` + 全局 run/verify 技能**（已发 npm）
+
+> 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
+
+- **`cc review` — diff-first 代码审查（`/code-review` 平价）**：默认审工作区 vs HEAD，可 `--staged` / `--base <ref>`（PR 式 `base...HEAD`）/ `--range A..B` / `--paths`，并内联未跟踪新文件；`low|medium|high` 力度档；`--security`（/security-review）与 `--simplify`（/simplify，只清理不抓 bug）两种视角。只读模式走 plan 权限（不可改文件）出 Markdown 报告；`--fix` 走 acceptEdits + 自动 checkpoint 直接落地修复（每次编辑可 `cc checkpoint restore` 回滚）；`--comment` 解析机读 JSON findings → 经 `gh` 在当前分支 PR 上发行内评论（`--dry-run` 预览 + 交互确认）。
+- **headless 无人值守硬化**：`--max-budget-usd <amount>` 硬花费上限（按 cc cost 价格表累计每次调用成本，到顶前停下，免跑飞）；`--strict-mcp-config`（只用 `--mcp-config` 服务器，忽略已注册 + IDE 桥，工具面可复现）；`--replay-user-messages`（stream 输入模式回显用户消息便于转录/对账）。
+- **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用与错误率 / 时长 / token 用量 + 估算 $ 成本，纯 JSONL 复盘；比 `cc cost` 更强——从 `session_start` 回填模型为 headless 会话定价。
+- **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布），`run`（按项目类型拉起并实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；放 CLI 自有层而非桌面 builtin，**不动桌面端「144 技能」计数**。
+
+---
+
 ## 2026-06-14 主线 — **全栈测试普查修复 + project-service 项目导出 UTF-8 编码 bug**（待并入下一发版）
 
 - **真实 bug 修复**：`project-service` 项目导出写 ZIP 条目时用平台默认编码（GBK 默认 JVM），导出含中文内容的项目后，UTF-8 的导入端读取时抛 `MalformedInputException`、无法回环重导入；改为始终 UTF-8 写入 + 文件内容为 null 时写空条目兜底。
