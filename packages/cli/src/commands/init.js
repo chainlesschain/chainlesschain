@@ -113,9 +113,10 @@ function httpRequest(urlStr, options = {}, body = null) {
       headers: options.headers || {},
     };
     const req = lib.request(reqOpts, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk.toString("utf8")));
+      const dataChunks = [];
+      res.on("data", (chunk) => dataChunks.push(chunk));
       res.on("end", () => {
+        const data = Buffer.concat(dataChunks).toString("utf8");
         try {
           resolve({ status: res.statusCode, body: JSON.parse(data) });
         } catch {
@@ -387,9 +388,10 @@ function httpRequest(urlStr, options = {}, body = null) {
       headers: options.headers || {},
     };
     const req = lib.request(reqOpts, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk.toString("utf8")));
+      const dataChunks = [];
+      res.on("data", (chunk) => dataChunks.push(chunk));
       res.on("end", () => {
+        const data = Buffer.concat(dataChunks).toString("utf8");
         try {
           resolve({ status: res.statusCode, body: JSON.parse(data) });
         } catch {
@@ -2443,9 +2445,8 @@ export function registerInitCommand(program) {
         command?.getOptionValueSource?.("template") === "cli" ||
         Boolean(options.bare);
       if (options.memory || !templateRequested) {
-        const { inventoryProject, renderMemoryFile } = await import(
-          "../lib/project-inventory.js"
-        );
+        const { inventoryProject, renderMemoryFile } =
+          await import("../lib/project-inventory.js");
         const target = path.join(cwd, "cc.md");
         if (fs.existsSync(target) && !options.force) {
           logger.error(
@@ -2512,9 +2513,8 @@ export function registerInitCommand(program) {
         if (options.ai) {
           logger.info("  Running AI refine pass (bounded headless agent)…");
           try {
-            const { aiRefineMemoryFile } = await import(
-              "../lib/init-ai-refine.js"
-            );
+            const { aiRefineMemoryFile } =
+              await import("../lib/init-ai-refine.js");
             const res = await aiRefineMemoryFile({
               cwd,
               provider: options.provider,

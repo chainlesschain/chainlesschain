@@ -521,9 +521,12 @@ async function _webhookMode(cwd, options) {
       return;
     }
 
-    let body = "";
-    req.on("data", (chunk) => (body += chunk.toString("utf8")));
+    const bodyChunks = [];
+    req.on("data", (chunk) => bodyChunks.push(chunk));
     req.on("end", async () => {
+      // Decode once: per-chunk toString() would corrupt a multi-byte UTF-8
+      // char (e.g. Chinese IM webhook text) split across a chunk boundary.
+      const body = Buffer.concat(bodyChunks).toString("utf-8");
       let taskText = null;
       let source = TASK_SOURCE.CLI;
 
