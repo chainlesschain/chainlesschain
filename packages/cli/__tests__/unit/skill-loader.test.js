@@ -370,6 +370,56 @@ category: custom
         expect(skills).toEqual([]);
       });
 
+      it("_loadFromDir loads skills nested under a grouping folder (CC 2.1.178)", () => {
+        // tempDir/category/nested-skill/SKILL.md — `category` has no SKILL.md
+        const nestedDir = join(tempDir, "category", "nested-skill");
+        mkdirSync(nestedDir, { recursive: true });
+        writeFileSync(
+          join(nestedDir, "SKILL.md"),
+          `---\nname: nested-skill\ndescription: A nested skill\n---\n# Nested`,
+          "utf-8",
+        );
+        // a top-level flat skill, to confirm both layouts coexist
+        const flatDir = join(tempDir, "flat-skill");
+        mkdirSync(flatDir, { recursive: true });
+        writeFileSync(
+          join(flatDir, "SKILL.md"),
+          `---\nname: flat-skill\ndescription: A flat skill\n---\n# Flat`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        const skills = loader._loadFromDir(tempDir, "claude-project");
+        expect(skills.map((s) => s.id).sort()).toEqual([
+          "flat-skill",
+          "nested-skill",
+        ]);
+        const nested = skills.find((s) => s.id === "nested-skill");
+        expect(nested.source).toBe("claude-project");
+        expect(nested.dirName).toBe("nested-skill");
+      });
+
+      it("_loadFromDir treats a SKILL.md dir as a leaf (no descent into its subdirs)", () => {
+        const outer = join(tempDir, "outer");
+        const inner = join(outer, "inner");
+        mkdirSync(inner, { recursive: true });
+        writeFileSync(
+          join(outer, "SKILL.md"),
+          `---\nname: outer\ndescription: outer\n---\n#`,
+          "utf-8",
+        );
+        writeFileSync(
+          join(inner, "SKILL.md"),
+          `---\nname: inner\ndescription: inner\n---\n#`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        const skills = loader._loadFromDir(tempDir, "test");
+        // `outer` owns SKILL.md → leaf; `inner` is not scanned
+        expect(skills.map((s) => s.id)).toEqual(["outer"]);
+      });
+
       it("_loadFromDir detects hasHandler=false when no handler.js", () => {
         const skillDir = join(tempDir, "doc-skill");
         mkdirSync(skillDir, { recursive: true });

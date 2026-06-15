@@ -78,6 +78,10 @@ export const LAYER_NAMES = [
   "workspace",
 ];
 
+/** Max directory depth to descend when scanning a skill layer for nested
+ *  `<group>/<skill>/SKILL.md` layouts (infinite-recursion / deep-tree guard). */
+export const MAX_SKILL_NEST_DEPTH = 5;
+
 /**
  * Simple YAML frontmatter parser (no dependencies)
  * Shared utility extracted from skill.js
@@ -348,54 +352,69 @@ export class CLISkillLoader {
    */
   _loadFromDir(dir, layer) {
     const skills = [];
-    if (!dir || !fs.existsSync(dir)) return skills;
-
-    try {
-      const dirs = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of dirs) {
-        if (!entry.isDirectory()) continue;
-
-        const skillMd = path.join(dir, entry.name, "SKILL.md");
-        if (!fs.existsSync(skillMd)) continue;
-
-        try {
-          const content = fs.readFileSync(skillMd, "utf-8");
-          const { data, body } = parseSkillMd(content);
-
-          skills.push({
-            id: data.name || entry.name,
-            displayName: data.displayName || entry.name,
-            description: data.description || "",
-            version: data.version || "1.0.0",
-            category: data.category || "uncategorized",
-            activation: data.activation || "manual",
-            tags: data.tags || [],
-            userInvocable: data.userInvocable !== false,
-            handler: data.handler || null,
-            capabilities: data.capabilities || [],
-            os: data.os || [],
-            // CLI pack extended fields
-            executionMode: data.executionMode || null,
-            cliDomain: data.cliDomain || null,
-            cliVersionHash: data.cliVersionHash || null,
-            dirName: entry.name,
-            hasHandler: fs.existsSync(path.join(dir, entry.name, "handler.js")),
-            body,
-            // Skill-Embedded MCP: inline server declarations in a
-            // ```mcp-servers fenced code block. Empty array if absent.
-            mcpServers: parseSkillMcpServers(body),
-            source: layer,
-            skillDir: path.join(dir, entry.name),
-          });
-        } catch {
-          // Skip malformed skill files
-        }
-      }
-    } catch {
-      // Directory unreadable
-    }
-
+    this._collectSkills(dir, layer, skills, 0);
     return skills;
+  }
+
+  /**
+   * Recursively collect skills under `dir`. A directory containing a SKILL.md
+   * is a skill (a leaf — we do NOT descend into its asset/script subdirs); a
+   * directory WITHOUT one is treated as a grouping/category folder and is
+   * descended into, so nested layouts like `.claude/skills/<group>/<skill>/`
+   * load too (Claude-Code 2.1.178 nested-skills parity). Depth-capped.
+   */
+  _collectSkills(dir, layer, out, depth) {
+    if (!dir || !fs.existsSync(dir)) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return; // Directory unreadable
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const skillDir = path.join(dir, entry.name);
+      const skillMd = path.join(skillDir, "SKILL.md");
+      if (!fs.existsSync(skillMd)) {
+        // Grouping folder → descend (bounded) to find nested skills.
+        if (depth < MAX_SKILL_NEST_DEPTH) {
+          this._collectSkills(skillDir, layer, out, depth + 1);
+        }
+        continue;
+      }
+      try {
+        const content = fs.readFileSync(skillMd, "utf-8");
+        const { data, body } = parseSkillMd(content);
+
+        out.push({
+          id: data.name || entry.name,
+          displayName: data.displayName || entry.name,
+          description: data.description || "",
+          version: data.version || "1.0.0",
+          category: data.category || "uncategorized",
+          activation: data.activation || "manual",
+          tags: data.tags || [],
+          userInvocable: data.userInvocable !== false,
+          handler: data.handler || null,
+          capabilities: data.capabilities || [],
+          os: data.os || [],
+          // CLI pack extended fields
+          executionMode: data.executionMode || null,
+          cliDomain: data.cliDomain || null,
+          cliVersionHash: data.cliVersionHash || null,
+          dirName: entry.name,
+          hasHandler: fs.existsSync(path.join(skillDir, "handler.js")),
+          body,
+          // Skill-Embedded MCP: inline server declarations in a
+          // ```mcp-servers fenced code block. Empty array if absent.
+          mcpServers: parseSkillMcpServers(body),
+          source: layer,
+          skillDir,
+        });
+      } catch {
+        // Skip malformed skill files
+      }
+    }
   }
 
   /**
