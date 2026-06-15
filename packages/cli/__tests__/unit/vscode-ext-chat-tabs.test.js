@@ -308,6 +308,12 @@ describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
     // Background-tab completion signal: the tab bar renders an unread dot.
     expect(html).toContain("t.unread");
     expect(html).toContain('"dot"');
+    // Code-block copy buttons: decorate at the DOM level after mdLite renders
+    // (renderer stays a pure string whitelist), wired into both render paths.
+    expect(html).toContain("decorateCodeBlocks");
+    expect(html).toContain("decorateCodeBlocks(el)"); // called on the rendered block
+    expect(html).toContain("copy-btn");
+    expect(html).toContain("clipboard");
     // Every inline script must still parse (dead-panel regression gate).
     const scripts = [
       ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),

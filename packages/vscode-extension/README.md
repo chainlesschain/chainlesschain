@@ -208,6 +208,8 @@ The bearer token is never displayed in any of these.
 - ✅ **`/` slash-command autocomplete** (0.29.0): typing `/` opens a dropdown of the
   panel commands (with descriptions), filtered as you type — Tab/Enter to fill,
   ↑/↓ to move, Esc to dismiss. Same dropdown as `@`-mentions.
+- ✅ **Copy button on code blocks** (0.29.0): each fenced code block in a reply shows
+  a hover Copy button that copies the block to the clipboard.
 
 ## Packaging
 

@@ -4,6 +4,10 @@ All notable changes to this extension are documented here.
 
 ## [0.29.0] — 2026-06-15
 
+- **Copy button on code blocks (Claude-Code panel parity).** Every fenced code
+  block in an assistant reply now shows a hover **Copy** button (top-right) that
+  copies the block's text to the clipboard. Added at the DOM level after rendering,
+  so the markdown renderer stays a pure escape-first whitelist (XSS-safe).
 - **`/` slash-command autocomplete in the chat panel.** Typing `/` now opens a
   completion dropdown of the panel commands (`/new`, `/sessions`, `/plan`,
   `/approve`, `/reject`, `/stop`, `/cost`, `/context`, `/rewind`, `/help`) with a

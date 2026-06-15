@@ -40,8 +40,15 @@ function buildChatHtml({ cspSource, nonce }) {
   .user::before { content:"❯ "; opacity:.7; }
   .assistant { }
   .assistant pre { background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.15));
-                   padding:6px 8px; border-radius:4px; overflow-x:auto; margin:4px 0; }
+                   padding:6px 8px; border-radius:4px; overflow-x:auto; margin:4px 0; position:relative; }
   .assistant code { font-family: var(--vscode-editor-font-family); font-size:.95em; }
+  .assistant pre .copy-btn { position:absolute; top:4px; right:4px; font-size:.78em;
+                   padding:1px 6px; line-height:1.4; cursor:pointer; opacity:0; transition:opacity .12s;
+                   border:1px solid var(--vscode-panel-border); border-radius:3px;
+                   background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
+                   color: var(--vscode-button-secondaryForeground, inherit); }
+  .assistant pre:hover .copy-btn, .assistant pre .copy-btn:focus { opacity:.85; }
+  .assistant pre .copy-btn:hover { opacity:1; }
   .assistant table { border-collapse:collapse; margin:4px 0; }
   .assistant th, .assistant td { border:1px solid var(--vscode-panel-border);
                                  padding:2px 8px; font-size:.95em; }
@@ -215,6 +222,41 @@ function buildChatHtml({ cspSource, nonce }) {
       streamRaw = "";
     }
     return streamEl;
+  }
+  // Add a Copy button to each fenced code block (Claude-Code panel parity).
+  // Runs at the DOM level after mdLite renders, so md-lite stays a pure
+  // escape-first string renderer (no button markup in its whitelist). Idempotent
+  // — re-decorating a streaming block skips <pre>s already given a button.
+  function decorateCodeBlocks(container) {
+    if (!container || !container.querySelectorAll) return;
+    const pres = container.querySelectorAll("pre");
+    for (const pre of pres) {
+      if (pre.dataset && pre.dataset.cc) continue; // already decorated
+      if (pre.dataset) pre.dataset.cc = "1";
+      const btn = document.createElement("button");
+      btn.className = "copy-btn";
+      btn.type = "button";
+      btn.textContent = "Copy";
+      btn.title = "Copy code";
+      btn.addEventListener("click", () => {
+        const code = pre.querySelector("code");
+        // read the <code> child so the button's own text is never included
+        const text = (code ? code.textContent : pre.textContent) || "";
+        const flash = (label) => {
+          btn.textContent = label;
+          setTimeout(() => { btn.textContent = "Copy"; }, 1200);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => flash("Copied"),
+            () => flash("Failed"),
+          );
+        } else {
+          flash("Copied"); // best-effort in restricted webviews
+        }
+      });
+      pre.appendChild(btn);
+    }
   }
 
   // Panel slash commands — local sugar over the existing controls.
@@ -445,6 +487,7 @@ function buildChatHtml({ cspSource, nonce }) {
         const el = ensureStream();
         streamRaw += m.text;
         el.innerHTML = mdLite(streamRaw); // whitelist renderer, XSS-safe
+        decorateCodeBlocks(el); // Copy buttons on fenced blocks (DOM-level)
         log.scrollTop = log.scrollHeight;
         break;
       }
@@ -463,7 +506,9 @@ function buildChatHtml({ cspSource, nonce }) {
           if (m.isError) {
             add("error", m.text); // errors stay plain text
           } else {
-            add("assistant", "").innerHTML = mdLite(m.text);
+            const el = add("assistant", "");
+            el.innerHTML = mdLite(m.text);
+            decorateCodeBlocks(el);
           }
         }
         streamEl = null;
