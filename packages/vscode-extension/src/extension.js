@@ -422,6 +422,13 @@ function activate(context) {
       "chainlesschain.chat.refactorSelection",
       () => seedSelectionAction("refactor"),
     ),
+    vscode.commands.registerCommand("chainlesschain.chat.newConversation", () =>
+      chatProvider.newConversation(),
+    ),
+    vscode.commands.registerCommand(
+      "chainlesschain.chat.reopenClosedSession",
+      () => chatProvider.reopenClosedSession(),
+    ),
     vscode.commands.registerCommand("chainlesschain.memory.files", () => {
       const {
         buildMemoryFilesCommand,

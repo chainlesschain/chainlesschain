@@ -13,6 +13,13 @@ All notable changes to this extension are documented here.
   respawns it with the new mode — resuming the same session so context carries
   over. Plan mode is unchanged (`/plan` still drives it live). All three are in
   the `/` autocomplete and `/help`.
+- **New-conversation & reopen-closed keyboard shortcuts (Claude-Code parity).**
+  `Cmd/Ctrl+Alt+N` reveals the panel and opens a fresh conversation tab from
+  anywhere; `Cmd/Ctrl+Shift+T` (when the chat view is focused) reopens the most
+  recently closed tab, **resuming its session** so you can pick the conversation
+  back up. Both are also in the command palette, and a **＋** button now sits in
+  the chat view's title bar. (`Ctrl+Shift+Esc` was avoided on Windows — the OS
+  reserves it for Task Manager.)
 
 ## [0.29.0] — 2026-06-15
 

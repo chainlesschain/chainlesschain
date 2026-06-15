@@ -70,6 +70,15 @@
         "title": "ChainlessChain: Refactor Selection"
       },
       {
+        "command": "chainlesschain.chat.newConversation",
+        "title": "ChainlessChain: New Chat Conversation",
+        "icon": "$(add)"
+      },
+      {
+        "command": "chainlesschain.chat.reopenClosedSession",
+        "title": "ChainlessChain: Reopen Closed Chat"
+      },
+      {
         "command": "chainlesschain.preview.start",
         "title": "ChainlessChain: Start App Preview",
         "icon": "$(globe)"
@@ -95,6 +104,17 @@
         "key": "ctrl+alt+k",
         "mac": "cmd+alt+k",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "chainlesschain.chat.newConversation",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      },
+      {
+        "command": "chainlesschain.chat.reopenClosedSession",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "focusedView == chainlesschainIdeChat"
       }
     ],
     "viewsContainers": {
@@ -141,6 +161,11 @@
         }
       ],
       "view/title": [
+        {
+          "command": "chainlesschain.chat.newConversation",
+          "when": "view == chainlesschainIdeChat",
+          "group": "navigation@0"
+        },
         {
           "command": "chainlesschain.llm.configure",
           "when": "view == chainlesschainIdeChat",

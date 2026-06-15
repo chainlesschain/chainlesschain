@@ -216,6 +216,9 @@ The bearer token is never displayed in any of these.
   skips all approvals, `/normal` restores the default per-action prompts. Per
   conversation; switching restarts the agent child with the new
   `--permission-mode` and resumes the same session so context carries over.
+- ✅ **New-conversation & reopen-closed shortcuts** (0.30.0): `Cmd/Ctrl+Alt+N`
+  opens a fresh chat tab from anywhere; `Cmd/Ctrl+Shift+T` (chat focused) reopens
+  the last-closed tab, resuming its session. Also a ＋ button in the view title.
 
 ## Packaging
 

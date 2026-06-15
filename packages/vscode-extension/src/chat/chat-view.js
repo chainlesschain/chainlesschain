@@ -41,6 +41,12 @@ class ChatViewProvider {
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
     this._webviewReady = false;
+    // Keyboard actions that may fire before the webview is live (reveal races
+    // the "ready" message) — queued here and flushed in _onWebviewReady.
+    this._pendingNewTab = false; // Cmd/Ctrl+Shift+Esc
+    this._pendingReopen = null; // Cmd/Ctrl+Shift+T → { sessionId }
+    // Most recently closed tab (for reopen-closed), captured on closeTab.
+    this._lastClosed = null;
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -86,13 +92,22 @@ class ChatViewProvider {
     return this.insertReference(text);
   }
 
-  /** Webview script is live — flush any reference queued before it loaded. */
+  /** Webview script is live — flush any action queued before it loaded. */
   _onWebviewReady() {
     this._webviewReady = true;
     if (this._pendingInsert) {
       const t = this._pendingInsert;
       this._pendingInsert = "";
       this._post({ kind: "insertText", text: t });
+    }
+    if (this._pendingReopen) {
+      const { sessionId } = this._pendingReopen;
+      this._pendingReopen = null;
+      this._pendingNewTab = false; // reopen subsumes a plain new tab
+      this._reopenInto(sessionId);
+    } else if (this._pendingNewTab) {
+      this._pendingNewTab = false;
+      this._openNewTab();
     }
   }
 
@@ -320,6 +335,53 @@ class ChatViewProvider {
         `approval mode → ${LABELS[mode]}` +
         (restarted ? " (applies on your next message)" : ""),
     });
+  }
+
+  /** Open a fresh conversation tab (becomes active); its child spawns on the
+   * first message. `sessionId` resumes an existing session (reopen-closed);
+   * null starts blank. No "reset" is posted, so other tabs stay buffered. */
+  _openNewTab(sessionId = null) {
+    this._activeConv(); // ensure at least the bootstrap exists first
+    this._convs.create({ sessionId: sessionId || null });
+    this._rememberSessionId(sessionId || null);
+    this._fileCache = null; // pick up files created since the last scan
+    this._postTabs();
+  }
+
+  /** Reopen the most recently closed chat as a new tab, resuming its session. */
+  _reopenInto(sessionId) {
+    this._openNewTab(sessionId);
+    this._post({
+      kind: "info",
+      text: sessionId
+        ? `reopened closed chat — send a message to continue ${sessionId}`
+        : "reopened a fresh chat",
+    });
+  }
+
+  /** Cmd/Ctrl+Shift+Esc — reveal the panel and open a fresh conversation tab.
+   * If the webview is not live yet (reveal races "ready"), the action is
+   * queued and flushed in _onWebviewReady. */
+  newConversation() {
+    this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+    if (this._webviewReady && this.view) this._openNewTab();
+    else this._pendingNewTab = true;
+  }
+
+  /** Cmd/Ctrl+Shift+T — reveal the panel and reopen the most recently closed
+   * chat (resuming its session). No-op with a hint when none was closed. */
+  reopenClosedSession() {
+    if (!this._lastClosed) {
+      this.vscode.window.showInformationMessage?.(
+        "ChainlessChain: no recently-closed chat to reopen.",
+      );
+      return;
+    }
+    const sessionId = this._lastClosed.sessionId || null;
+    this._lastClosed = null;
+    this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+    if (this._webviewReady && this.view) this._reopenInto(sessionId);
+    else this._pendingReopen = { sessionId };
   }
 
   /**
@@ -655,11 +717,7 @@ class ChatViewProvider {
         // the first message. `tabs` tells the webview to swap to the new
         // (empty) tab — no `reset`, so the previous tab's transcript is kept
         // buffered for when the user switches back.
-        this._activeConv(); // ensure at least the bootstrap exists first
-        this._convs.create({});
-        this._rememberSessionId(null);
-        this._fileCache = null;
-        this._postTabs();
+        this._openNewTab();
       } else if (m.type === "switchTab") {
         // Switch the visible conversation; the webview restores that tab's
         // buffered transcript on the `tabs` message (no reset).
@@ -671,6 +729,13 @@ class ChatViewProvider {
       } else if (m.type === "closeTab") {
         const res = this._convs.close(String(m.id || ""));
         if (res.closed) {
+          // Remember it so Cmd/Ctrl+Shift+T can reopen+resume the last close.
+          if (res.conv) {
+            this._lastClosed = {
+              sessionId: res.conv.sessionId || null,
+              title: res.conv.title,
+            };
+          }
           res.conv?.session?.stop?.();
           if (this._convs.count() === 0) this._convs.create({}); // never empty
           this._rememberSessionId(this._convs.active()?.sessionId || null);
