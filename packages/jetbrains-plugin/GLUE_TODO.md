@@ -20,6 +20,18 @@ The pure logic for VS Code extension 0.22.0's four features (+ the older-backlog
 
 ---
 
+## ✅ Done — pure logic layers (committed, tested)
+These are finished and `javac --release 8`-tested (81 assertions in
+`PureLogicSmokeMain`); the glue below builds on them.
+
+- [x] `ConversationManager.java` — conversation-tabs model (`1ef021c52`)
+- [x] `PreviewDetect.java` — App Preview dev-script + URL detection (`1ef021c52`)
+- [x] `MultiDiff.java` — multi-file diff changeset model (`1ef021c52`)
+- [x] `Mentions.java` — @-mention completion logic (`84a562149`)
+- [x] `ChatEvents.java` — stream-event mapping (already complete, all 11 kinds — verified)
+
+## ⏳ Remaining — IntelliJ glue (SDK-gated; what's below is NOT done)
+
 ## 1. Conversation tabs — wire `ConversationManager`
 Today `ChatToolWindowFactory` is single-session (one child, `stopBtn`/`newBtn`).
 
@@ -97,16 +109,21 @@ workspace symbols) is in `Mentions.java` (`84a562149`). What remains is the Inte
       to the input field's completion popup. (Pure logic done — just wire it.)
 - [ ] Keybindings: quick-launch tool window + insert `@file` reference.
 
-## Build / verify / publish — 🚫 HELD until the glue above lands
-**Release is on hold** (decided 2026-06-15): do not run the publish step until the
-sections 1–5 glue is implemented AND sandbox-verified. The pure layers alone change
-nothing for users, and the plugin can't even be built on the current Windows box.
+## Build / verify / publish — 🚫 HELD now, but ⚠️ MUST publish once glue lands
+**Release is on hold** (decided 2026-06-15) — but **held ≠ cancelled.** Once the
+sections 1–5 glue is implemented AND `runIde`-verified, **publishing the JetBrains
+version is the required final deliverable** (user re-emphasized 2026-06-15: "glue
+上线后记得发 JetBrains 版本"). Don't finish the glue and forget to ship it.
+(Currently live on JetBrains Marketplace: **0.3.3**, no 0.22 features.)
 
 - [ ] (gate) Sections 1–5 glue implemented + manually verified in `./gradlew runIde`.
 - [ ] `./gradlew buildPlugin` (needs Mac/Linux + IntelliJ SDK) → `./gradlew runIde` sandbox,
       manually exercise each feature (mandatory per `feedback_full_test_pyramid_before_publish`).
-- [ ] **Only then**: bump plugin version + publish via `.github/workflows/ide-extensions.yml`
-      JetBrains job — tag `ide-jetbrains-v*` + `JETBRAINS_PUBLISH_TOKEN` secret.
+- [ ] **Then publish (required, not optional)**: bump plugin version + tag
+      `ide-jetbrains-v*` → CI `.github/workflows/ide-extensions.yml` JetBrains job
+      `publishPlugin` with `JETBRAINS_PUBLISH_TOKEN` to JetBrains Marketplace.
+- [ ] Sync the JetBrains changelog/README + 官网 ide page to the shipped features
+      (mirror the VS Code 0.22.x copy).
 
 ---
 
