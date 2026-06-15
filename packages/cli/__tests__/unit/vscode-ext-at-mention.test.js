@@ -102,16 +102,8 @@ describe("applyMention", () => {
 
 describe("ideMentionMatches", () => {
   it("offers all IDE pseudo-mentions for an empty prefix", () => {
-    expect(ideMentionMatches("")).toEqual([
-      "selection",
-      "diagnostics",
-      "terminal",
-    ]);
-    expect(ideMentionMatches(null)).toEqual([
-      "selection",
-      "diagnostics",
-      "terminal",
-    ]);
+    expect(ideMentionMatches("")).toEqual(["selection", "diagnostics", "terminal"]);
+    expect(ideMentionMatches(null)).toEqual(["selection", "diagnostics", "terminal"]);
   });
 
   it("filters by prefix, case-insensitively", () => {

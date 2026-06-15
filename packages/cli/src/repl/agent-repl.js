@@ -778,34 +778,6 @@ export async function startAgentRepl(options = {}) {
     options.vimMode === true || process.env.CC_VIM === "1" ? true : false;
   let _vim = null;
 
-  // Color theme (Claude-Code `/theme` parity). Capture chalk's auto-detected
-  // level BEFORE any theme touches it so `mono`→level 0 stays reversible, then
-  // apply the persisted theme (config `cli.theme`). `mono` strips all color;
-  // `light` uses a blue prompt accent. Switchable at runtime via `/theme`.
-  const {
-    DEFAULT_THEME,
-    resolveTheme,
-    promptAccent,
-    applyThemeChalk,
-    renderThemeList,
-    listThemeNames,
-  } = await import("./repl-theme.js");
-  const _chalkBaselineLevel = chalk.level;
-  let _theme = DEFAULT_THEME;
-  try {
-    const { getConfigValue } = await import("../lib/config-manager.js");
-    _theme = resolveTheme(getConfigValue("cli.theme")) || DEFAULT_THEME;
-  } catch (_e) {
-    /* config optional — keep default */
-  }
-  applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
-  const themedPrompt = (text) => {
-    const a = promptAccent(_theme);
-    if (a === "blue") return chalk.blue(text);
-    if (a === "green") return chalk.green(text);
-    return text;
-  };
-
   const getPrompt = () => {
     // Mode indicator first so it survives the plan-mode prompt variants.
     const vim = _vimEnabled
@@ -821,7 +793,7 @@ export async function startAgentRepl(options = {}) {
       }
       return vim + chalk.yellow("[plan] > ");
     }
-    return vim + themedPrompt("> ");
+    return vim + chalk.green("> ");
   };
 
   // `@` tab-completion (Claude-Code @-mention parity): filesystem paths +
@@ -838,7 +810,6 @@ export async function startAgentRepl(options = {}) {
       "/compact",
       "/config",
       "/context",
-      "/copy",
       "/cost",
       "/cowork",
       "/doctor",
@@ -868,7 +839,6 @@ export async function startAgentRepl(options = {}) {
       "/task",
       "/tasks",
       "/terminal-setup",
-      "/theme",
       "/vim",
     ],
     getIdeOpenFiles: async () => {
@@ -1219,9 +1189,6 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
       );
       logger.log(
-        `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
-      );
-      logger.log(
         `  ${chalk.cyan("/config")}     Effective config (provider/model, keys masked)`,
       );
       logger.log(
@@ -1232,9 +1199,6 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
-      );
-      logger.log(
-        `  ${chalk.cyan("/copy")}       Copy last response to clipboard (/copy code → last code block)`,
       );
       logger.log(
         `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
@@ -1475,39 +1439,6 @@ export async function startAgentRepl(options = {}) {
       } catch (err) {
         logger.error(`/terminal-setup failed: ${err.message}`);
       }
-      prompt();
-      return;
-    }
-
-    // `/theme` — color theme (Claude-Code parity). `mono` strips all color;
-    // `light` uses a blue prompt accent. Persisted to config `cli.theme`.
-    if (trimmed === "/theme" || trimmed.startsWith("/theme ")) {
-      const arg = trimmed.slice("/theme".length).trim();
-      if (!arg) {
-        logger.log("\n" + renderThemeList(_theme) + "\n");
-        prompt();
-        return;
-      }
-      const next = resolveTheme(arg);
-      if (!next) {
-        logger.error(
-          chalk.red(
-            `Unknown theme "${arg}". Available: ${listThemeNames().join(", ")}`,
-          ),
-        );
-        prompt();
-        return;
-      }
-      _theme = next;
-      applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
-      try {
-        const { setConfigValue } = await import("../lib/config-manager.js");
-        setConfigValue("cli.theme", _theme);
-      } catch (_e) {
-        /* persistence is best-effort */
-      }
-      rl.setPrompt(getPrompt());
-      logger.log(chalk.gray(`Theme set to ${_theme}.`));
       prompt();
       return;
     }
@@ -1873,8 +1804,9 @@ export async function startAgentRepl(options = {}) {
     // cwd so it follows `/cd`, using this session's provider/model.
     if (trimmed === "/review" || trimmed.startsWith("/review ")) {
       const rest = trimmed.slice("/review".length).trim();
-      const { parseReviewReplArgs, describeReviewArgs } =
-        await import("./review-args.js");
+      const { parseReviewReplArgs, describeReviewArgs } = await import(
+        "./review-args.js"
+      );
       const { opts: reviewOpts, errors } = parseReviewReplArgs(rest);
       if (errors.length) {
         for (const e of errors) logger.error(chalk.red(`/review: ${e}`));
@@ -2686,55 +2618,6 @@ export async function startAgentRepl(options = {}) {
       logger.log(
         renderSessionCost(_costStore, { pricingOverrides: overrides, roles }),
       );
-      prompt();
-      return;
-    }
-
-    // `/copy` — copy the last assistant response to the system clipboard
-    // (Claude-Code /copy parity). `/copy code` copies the last fenced code block.
-    if (trimmed === "/copy" || trimmed.startsWith("/copy ")) {
-      const arg = trimmed.slice("/copy".length).trim().toLowerCase();
-      const { lastAssistantText, lastCodeBlock, copyToClipboard } =
-        await import("./clipboard-copy.js");
-      const full = lastAssistantText(messages);
-      if (!full) {
-        logger.log(
-          chalk.gray(
-            "Nothing to copy yet — no assistant response in this session.",
-          ),
-        );
-        prompt();
-        return;
-      }
-      let payload = full;
-      let what = "last response";
-      if (arg === "code") {
-        const block = lastCodeBlock(full);
-        if (!block) {
-          logger.log(
-            chalk.gray("No fenced code block in the last response."),
-          );
-          prompt();
-          return;
-        }
-        payload = block;
-        what = "last code block";
-      }
-      const res = copyToClipboard(payload);
-      if (res.ok) {
-        logger.log(
-          chalk.gray(
-            `Copied ${what} to clipboard (${payload.length} chars, ${res.tool}).`,
-          ),
-        );
-      } else {
-        logger.error(chalk.red(`/copy failed: ${res.error}`));
-        logger.log(
-          chalk.gray(
-            "Install a clipboard tool (Linux: wl-copy / xclip / xsel).",
-          ),
-        );
-      }
       prompt();
       return;
     }

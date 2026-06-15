@@ -591,20 +591,11 @@ describe("runAgentHeadlessStream — IDE context wiring", () => {
 
 const TERMINALS = [
   { command: "npm test", exitCode: 0, output: "12 passed\n", terminal: "bash" },
-  {
-    command: "npm run build",
-    exitCode: 1,
-    output: "TS2322 boom",
-    terminal: "bash",
-  },
+  { command: "npm run build", exitCode: 1, output: "TS2322 boom", terminal: "bash" },
 ];
 
 /** A bridge bundle that also exposes the terminal tool. */
-function fakeIdeMcpTerm({
-  terminals = TERMINALS,
-  selection = null,
-  editors = [],
-} = {}) {
+function fakeIdeMcpTerm({ terminals = TERMINALS, selection = null, editors = [] } = {}) {
   const calls = [];
   return {
     mcpClient: {
@@ -617,21 +608,9 @@ function fakeIdeMcpTerm({
       },
     },
     externalToolExecutors: {
-      mcp__ide__getSelection: {
-        kind: "mcp",
-        serverName: "ide",
-        toolName: "getSelection",
-      },
-      mcp__ide__getOpenEditors: {
-        kind: "mcp",
-        serverName: "ide",
-        toolName: "getOpenEditors",
-      },
-      mcp__ide__getTerminalOutput: {
-        kind: "mcp",
-        serverName: "ide",
-        toolName: "getTerminalOutput",
-      },
+      mcp__ide__getSelection: { kind: "mcp", serverName: "ide", toolName: "getSelection" },
+      mcp__ide__getOpenEditors: { kind: "mcp", serverName: "ide", toolName: "getOpenEditors" },
+      mcp__ide__getTerminalOutput: { kind: "mcp", serverName: "ide", toolName: "getTerminalOutput" },
     },
     calls,
   };
@@ -655,10 +634,7 @@ describe("collectIdeContext — terminal output", () => {
     const mcp = fakeIdeMcpTerm({ editors: EDITORS });
     const ctx = await collectIdeContext(mcp, { env: {} });
     expect(ctx.terminals).toHaveLength(2);
-    expect(ctx.terminals[1]).toMatchObject({
-      command: "npm run build",
-      exitCode: 1,
-    });
+    expect(ctx.terminals[1]).toMatchObject({ command: "npm run build", exitCode: 1 });
     const termCall = mcp.calls.find((c) => c.tool === "getTerminalOutput");
     expect(termCall.args).toEqual({ limit: 2 });
   });
@@ -681,11 +657,7 @@ describe("collectIdeContext — terminal output", () => {
 
 describe("formatIdeContext — terminal block", () => {
   it("renders recent commands with exit code and output", () => {
-    const out = formatIdeContext({
-      selection: null,
-      openEditors: null,
-      terminals: TERMINALS,
-    });
+    const out = formatIdeContext({ selection: null, openEditors: null, terminals: TERMINALS });
     expect(out).toContain("Recent terminal commands:");
     expect(out).toContain("$ npm test (exit 0)");
     expect(out).toContain("12 passed");
@@ -696,13 +668,7 @@ describe("formatIdeContext — terminal block", () => {
   it("truncates long output to the tail", () => {
     const big = "X".repeat(50) + "ERR_AT_END";
     const out = formatIdeContext({
-      terminals: [
-        {
-          command: "noisy",
-          exitCode: 1,
-          output: "A".repeat(2000) + "ERR_AT_END",
-        },
-      ],
+      terminals: [{ command: "noisy", exitCode: 1, output: "A".repeat(2000) + "ERR_AT_END" }],
     });
     expect(out).toContain("ERR_AT_END"); // tail kept
     expect(out).toContain("...(output truncated)");

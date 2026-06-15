@@ -7,14 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
-> 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
-
-- **`cc review` — diff-first 代码审查（`/code-review` 平价）**：默认审工作区 vs HEAD，可 `--staged` / `--base <ref>`（PR 式 `base...HEAD`）/ `--range A..B` / `--paths`，并内联未跟踪新文件；`low|medium|high` 力度档；`--security`（/security-review）+ `--simplify`（/simplify，只清理不抓 bug）两视角。只读走 plan 权限出 Markdown 报告；`--fix` 走 acceptEdits + 自动 checkpoint 直接落地（每次编辑可 `cc checkpoint restore` 回滚）；`--comment` 解析机读 JSON findings → 经 `gh` 在当前分支 PR 发行内评论（`--dry-run` 预览 + 交互确认）。
-- **headless 无人值守硬化**：`--max-budget-usd <amount>`（按 cc cost 价格表累计成本，到顶前停，免跑飞）；`--strict-mcp-config`（只用 `--mcp-config` 服务器，忽略已注册 + IDE 桥，工具面可复现）；`--replay-user-messages`（stream 输入回显用户消息便于转录/对账）。
-- **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用 + 错误率 / 时长 / token + 估算 $ 成本，纯 JSONL 复盘；从 `session_start` 回填模型给 headless 会话定价（强于 `cc cost`）。
-- **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。
-
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.22.0（已发 Open VSX）
 > `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
 
@@ -43,20 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **桌面**：内置技能计数 145→146（新增纯文档型技能 `pdh-android-collector`）+ 引入 `DOC_ONLY_SKILLS` 白名单使"缺 handler"显式失败。
 - **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
-
-## [v5.0.3.112] - 2026-06-15 — 个人数据中台采集器补 6 个跨平台平台 + Android cc bundle 滚到 v20260615b（pdh 0.4.24 / cli 0.162.67）
-
-> 补齐路线图/参考机之外、但高个人数据价值的 6 个主流平台采集器。`@chainlesschain/personal-data-hub` 0.4.23→0.4.24、CLI `chainlesschain` 0.162.66→0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`（携全部新 adapter），`USR_VERSION` → 43。桌面端 / CLI 即装即用；Android 端随本 APK 携带。
-
-### Added — 本轮新采集 adapter（6 个）
-- **饿了么**（`shopping-eleme`）：外卖订单（snapshot + cookie-api，镜像美团 外卖结构）。
-- **闲鱼**（`shopping-xianyu`）：二手买卖记录，买/卖双向（对手方角色随 side 翻转）。
-- **唯品会**（`shopping-vipshop`）：品牌特卖订单（品牌 → 商家）。
-- **豆瓣**（`social-douban`）：书影音兴趣图谱——标记（看过/想看/在看）→ 媒体事件 + 条目、影评 → 帖子、关注 → 联系人。
-- **喜马拉雅**（`audio-ximalaya`）：听书/播客收听历史——收听 / 收藏 / 订阅专辑（新 `audio-` 类目）。
-- **Keep**（`fitness-keep`）：运动训练记录，多类型（跑步/骑行/瑜伽/力量 …）。
-
-> 全部 snapshot 主路径 + cookie-api（注入式 fetch + signProvider seam，端点 best-effort 可覆盖、未实地验证）。各 adapter 全单元测试通过，接 桌面 / CLI 双壳。
 
 ## [v5.0.3.111] - 2026-06-15 — 个人数据中台采集器再扩面 + Android cc bundle 滚到 v20260615（pdh 0.4.23 / cli 0.162.65）
 
