@@ -2,6 +2,15 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+> **📦 CLI 安装**：`npm i -g chainlesschain`（别名 `cc` / `clc` / `clchain`）。
+> **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
+>
+> ```bash
+> npm i -g chainlesschain --registry https://registry.npmjs.org
+> ```
+>
+> 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
+
 ## 2026-06-15 发布 — **cc CLI 0.162.66：Claude-Code 编码闭环补齐——`cc review`（diff-first + `--fix`/`--comment`）+ headless 硬化 + `cc insights` + 全局 run/verify 技能**（已发 npm）
 
 > 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。

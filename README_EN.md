@@ -2,6 +2,15 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+> **📦 CLI install**: `npm i -g chainlesschain` (aliases `cc` / `clc` / `clchain`).
+> **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
+>
+> ```bash
+> npm i -g chainlesschain --registry https://registry.npmjs.org
+> ```
+>
+> The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
+
 ## 2026-06-15 Release — **cc CLI 0.162.66: Claude-Code coding-loop parity — `cc review` (diff-first + `--fix`/`--comment`) + headless hardening + `cc insights` + global run/verify skills** (published to npm)
 
 > Closes the remaining high-value gaps vs the Claude Code CLI in one pass. `chainlesschain` 0.162.65 → 0.162.66 published to npm (global-install smoke: `cc review` / `cc insights` / new `cc agent` flags all pass).
