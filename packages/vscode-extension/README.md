@@ -9,6 +9,24 @@ All seven phases of the IDE bridge design
 VS Code + JetBrains extensions, blocking diff review, marketplace releases,
 live awareness, and the chat panel.
 
+## Install — Open VSX only (NOT the Microsoft VS Code Marketplace)
+
+> ⚠️ This extension is published to **[Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**
+> only. It is **not** on the official Microsoft VS Code Marketplace, so a search
+> inside stock Microsoft VS Code will **not** find it.
+
+- **VSCodium / Cursor / Windsurf / Gitpod** (and anything that uses Open VSX):
+  search **"ChainlessChain IDE"** in the Extensions panel.
+- **Stock Microsoft VS Code**: download the `.vsix` from the Open VSX page above
+  (or the direct link below) → Command Palette → **Extensions: Install from VSIX…**.
+  Direct: `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/<version>/file/chainlesschain.chainlesschain-ide-<version>.vsix`
+- The **JetBrains** sibling is on the
+  [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
+
+_(Why not the Microsoft Marketplace? Publishing there requires an Azure-backed
+publisher subscription the project doesn't maintain; Open VSX is the open registry
+used by VSCodium/Cursor/etc.)_
+
 ## How it works
 
 The extension runs a tiny **MCP server** (Model Context Protocol) on
@@ -133,8 +151,8 @@ The bearer token is never displayed in any of these.
 
 ## Status
 
-- ✅ MCP server + lockfile + env injection + 5 tools (incl. `executeCode`),
-  wired and tested.
+- ✅ MCP server + lockfile + env injection + 6 tools (incl. `executeCode`,
+  `openMultiDiff`), wired and tested.
 - ✅ `openDiff` blocking review with accept/reject + user-edited `finalText`.
 - ✅ Live awareness with cc ≥ 0.162.39: selection shared per prompt,
   post-edit diagnostics fed back, edit approvals as native diffs.
@@ -155,6 +173,20 @@ The bearer token is never displayed in any of these.
 - ✅ Paste screenshots as vision input (0.16.0, cc ≥ 0.162.47).
 - ✅ Mid-session IDE restart hot-reconnect (cc ≥ 0.162.47): a window reload no
   longer kills the agent's IDE tools — the next call re-finds the new instance.
+- ✅ Keybindings + Insert File Reference + `@selection`/`@diagnostics` hints (0.18.0).
+- ✅ **Fix with ChainlessChain**: QuickFix lightbulb on diagnostics seeds a scoped
+  fix request (0.19.0).
+- ✅ **Explain / Refactor** selection (right-click) + `/cost` and `/context` panel
+  commands (0.20.0).
+- ✅ Workspace-symbol `@`-mention: find a file by a function/class name (0.21.0).
+- ✅ **Conversation tabs** (0.22.0): multiple chats, each its own `cc agent` process;
+  switching restores that tab's transcript.
+- ✅ **App Preview** (0.22.0): run the project's dev server and open it in the built-in
+  Simple Browser; the dev server's HMR live-reloads on edits.
+- ✅ **Inline diff comments — "Request changes…"** (0.22.0): annotate diff lines with
+  revision notes that the agent revises against.
+- ✅ **Batch multi-file diff — `openMultiDiff`** (0.22.0): review a whole changeset in
+  one native multi-file diff (Accept all / pick a subset / Reject).
 
 ## Packaging
 
