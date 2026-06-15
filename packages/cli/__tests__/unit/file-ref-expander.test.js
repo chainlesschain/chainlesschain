@@ -11,6 +11,7 @@ import path from "path";
 import {
   expandFileRefs,
   findFileRefTokens,
+  parseLineRange,
   DEFAULT_MAX_BYTES,
 } from "../../src/runtime/file-ref-expander.js";
 
@@ -165,5 +166,84 @@ describe("expandFileRefs", () => {
 
   it("exposes a sane default truncation threshold", () => {
     expect(DEFAULT_MAX_BYTES).toBe(100 * 1024);
+  });
+});
+
+describe("parseLineRange", () => {
+  it("parses #L5-10, #5-10, #L5, #5", () => {
+    expect(parseLineRange("src/x.js#L5-10")).toEqual({
+      path: "src/x.js",
+      start: 5,
+      end: 10,
+    });
+    expect(parseLineRange("src/x.js#5-10")).toEqual({
+      path: "src/x.js",
+      start: 5,
+      end: 10,
+    });
+    expect(parseLineRange("a.ts#L7")).toEqual({ path: "a.ts", start: 7, end: 7 });
+    expect(parseLineRange("a.ts#7")).toEqual({ path: "a.ts", start: 7, end: 7 });
+  });
+
+  it("returns null for no range / invalid / non-positive", () => {
+    expect(parseLineRange("src/x.js")).toBe(null);
+    expect(parseLineRange("notes#section")).toBe(null);
+    expect(parseLineRange("a.ts#0")).toBe(null);
+  });
+
+  it("normalizes an inverted range to a single line", () => {
+    expect(parseLineRange("a.ts#L10-5")).toEqual({
+      path: "a.ts",
+      start: 10,
+      end: 10,
+    });
+  });
+});
+
+describe("expandFileRefs — @file#Lstart-end line ranges", () => {
+  const SRC = "L1\nL2\nL3\nL4\nL5\nL6\n";
+
+  it("injects only the requested lines with a lines= attribute", () => {
+    const r = run("see @src/x.js#L2-4", { "src/x.js": SRC });
+    expect(r.refs).toHaveLength(1);
+    expect(r.refs[0]).toMatchObject({ rel: "src/x.js", lineStart: 2, lineEnd: 4 });
+    expect(r.prompt).toContain('<file path="src/x.js" bytes="');
+    expect(r.prompt).toContain('lines="2-4"');
+    expect(r.prompt).toContain("L2\nL3\nL4");
+    expect(r.prompt).not.toContain("L1");
+    expect(r.prompt).not.toContain("L5");
+    // the @token (with range) stays in the prose
+    expect(r.prompt).toContain("see @src/x.js#L2-4");
+  });
+
+  it("supports a single line (#L3) and the no-L form (#2-3)", () => {
+    const one = run("@src/x.js#L3", { "src/x.js": SRC });
+    expect(one.refs[0]).toMatchObject({ lineStart: 3, lineEnd: 3 });
+    expect(one.prompt).toContain('lines="3-3"');
+    expect(one.prompt).toContain("L3");
+
+    const noL = run("@src/x.js#2-3", { "src/x.js": SRC });
+    expect(noL.prompt).toContain('lines="2-3"');
+    expect(noL.prompt).toContain("L2\nL3");
+  });
+
+  it("clamps a range past EOF to the last line", () => {
+    const r = run("@src/x.js#L5-99", { "src/x.js": "a\nb\nc\n" });
+    // file has 4 lines (trailing newline → ['a','b','c','']) → clamp to 4
+    expect(r.refs[0].lineEnd).toBeLessThanOrEqual(4);
+    expect(r.refs[0].lineStart).toBeLessThanOrEqual(r.refs[0].lineEnd);
+  });
+
+  it("whole-file and ranged refs to the same path are distinct blocks", () => {
+    const r = run("@src/x.js and @src/x.js#L2-2", { "src/x.js": SRC });
+    expect(r.refs).toHaveLength(2);
+    expect(r.prompt.match(/<file /g)).toHaveLength(2);
+  });
+
+  it("warns when the ranged path does not exist", () => {
+    const r = run("@nope/missing.ts#L1-2", {});
+    expect(r.refs).toEqual([]);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toContain("missing.ts");
   });
 });

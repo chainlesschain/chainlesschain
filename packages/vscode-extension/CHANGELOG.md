@@ -33,6 +33,11 @@ All notable changes to this extension are documented here.
   message (the agent child respawns with `--think`/`--ultrathink`, resuming the
   same session). Non-Anthropic providers ignore it. In the `/` autocomplete and
   `/help`.
+- **`@file#L5-10` line-range references (Claude-Code parity).** Insert File
+  Reference (`Ctrl/Cmd+Alt+K`) now appends the selected line range — e.g.
+  `@src/app.ts#L5-10` (or `#L7` for one line) — when you have a selection, and
+  the CLI expands **just those lines** into the prompt instead of the whole file
+  (needs cc ≥ 0.162.71). Plain `@file` (no selection) still pulls the full file.
 
 ## [0.29.0] — 2026-06-15
 

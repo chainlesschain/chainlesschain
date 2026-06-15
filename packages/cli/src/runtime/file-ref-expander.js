@@ -44,6 +44,41 @@ function trimTrailingPunct(raw) {
 }
 
 /**
+ * Split a token into its path and an optional trailing line range — Claude-Code
+ * `@file#L5-10` parity. Accepts `#L5-10`, `#5-10`, `#L5`, `#5` (1-based,
+ * inclusive). Returns `{ path, start, end }`, or null when there is no valid
+ * range suffix (so plain `@path` falls through to whole-file expansion).
+ */
+export function parseLineRange(raw) {
+  const m = /^(.+?)#[Ll]?(\d+)(?:-(\d+))?$/.exec(String(raw || ""));
+  if (!m) return null;
+  const start = parseInt(m[2], 10);
+  if (!Number.isFinite(start) || start < 1) return null;
+  let end = m[3] != null ? parseInt(m[3], 10) : start;
+  if (!Number.isFinite(end) || end < start) end = start;
+  return { path: m[1], start, end };
+}
+
+/**
+ * Take lines [start, end] (1-based, inclusive) from `content`, clamped to the
+ * file, then cap the slice at `maxBytes`. Returns the text plus the actual
+ * (clamped) line bounds and whether the byte cap truncated it.
+ */
+function sliceLines(content, start, end, maxBytes) {
+  const lines = content.split("\n");
+  const total = lines.length;
+  const s = Math.max(1, Math.min(start, total));
+  const e = Math.min(Math.max(end, s), total);
+  let text = lines.slice(s - 1, e).join("\n");
+  let truncated = false;
+  if (Buffer.byteLength(text, "utf-8") > maxBytes) {
+    text = text.slice(0, maxBytes);
+    truncated = true;
+  }
+  return { text, start: s, end: e, truncated };
+}
+
+/**
  * Find unique `@path` candidates in the text, in first-seen order.
  * @returns {Array<{raw:string}>}
  */
@@ -81,7 +116,10 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
   if (trimmed && trimmed !== raw) candidates.push(trimmed);
 
   for (const cand of candidates) {
-    const abs = path.resolve(cwd, cand);
+    // `@path#L5-10` → resolve the bare path, slice the lines below.
+    const range = parseLineRange(cand);
+    const fsPath = range ? range.path : cand;
+    const abs = path.resolve(cwd, fsPath);
     let stat;
     try {
       stat = fs.statSync(abs);
@@ -89,6 +127,7 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       continue; // not this candidate
     }
     if (stat.isDirectory()) {
+      // A line range on a directory is meaningless — ignore it and list the dir.
       let entries;
       try {
         entries = fs.readdirSync(abs, { withFileTypes: true });
@@ -96,7 +135,7 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
         return {
           kind: "error",
           raw: cand,
-          rel: cand,
+          rel: fsPath,
           message: `cannot read directory: ${err.message}`,
         };
       }
@@ -108,7 +147,7 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       return {
         kind: "dir",
         raw: cand,
-        rel: cand,
+        rel: fsPath,
         entries: names,
         total: entries.length,
         truncated,
@@ -122,7 +161,7 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
         return {
           kind: "error",
           raw: cand,
-          rel: cand,
+          rel: fsPath,
           message: `cannot read file: ${err.message}`,
         };
       }
@@ -130,8 +169,22 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
         return {
           kind: "binary",
           raw: cand,
-          rel: cand,
+          rel: fsPath,
           bytes: stat.size,
+        };
+      }
+      if (range) {
+        // Slice the requested lines (clamped to the file), then byte-cap them.
+        const sl = sliceLines(buf.toString("utf-8"), range.start, range.end, maxBytes);
+        return {
+          kind: "file",
+          raw: cand,
+          rel: fsPath,
+          bytes: stat.size,
+          content: sl.text,
+          truncated: sl.truncated,
+          lineStart: sl.start,
+          lineEnd: sl.end,
         };
       }
       const truncated = buf.length > maxBytes;
@@ -141,7 +194,7 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       return {
         kind: "file",
         raw: cand,
-        rel: cand,
+        rel: fsPath,
         bytes: stat.size,
         content,
         truncated,
@@ -164,15 +217,23 @@ function renderBlock(refs) {
   ];
   for (const ref of refs) {
     if (ref.kind === "file") {
+      const lineAttr = ref.lineStart
+        ? ` lines="${ref.lineStart}-${ref.lineEnd}"`
+        : "";
       const attrs =
         `path="${escapeAttr(ref.rel)}" bytes="${ref.bytes}"` +
+        lineAttr +
         (ref.truncated
           ? ` truncated="true" shown-bytes="${DEFAULT_MAX_BYTES}"`
           : "");
       parts.push(`<file ${attrs}>`);
       parts.push(ref.content);
       if (ref.truncated) {
-        parts.push(`\n… [truncated — file is ${ref.bytes} bytes]`);
+        parts.push(
+          ref.lineStart
+            ? `\n… [truncated — line range exceeds ${DEFAULT_MAX_BYTES} bytes]`
+            : `\n… [truncated — file is ${ref.bytes} bytes]`,
+        );
       }
       parts.push("</file>");
     } else if (ref.kind === "dir") {

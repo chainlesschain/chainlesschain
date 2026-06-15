@@ -226,6 +226,9 @@ The bearer token is never displayed in any of these.
 - ✅ **Extended-thinking toggle** (0.30.0): `/think` on, `/ultrathink` max budget,
   `/think-off` off. Per conversation; respawns the agent with `--think`/
   `--ultrathink` (Anthropic only — other providers ignore it).
+- ✅ **`@file#L5-10` line ranges** (0.30.0): Insert File Reference with a selection
+  appends the line range (`@src/app.ts#L5-10`); the CLI expands only those lines
+  (needs cc ≥ 0.162.71). No selection → whole file as before.
 
 ## Packaging
 

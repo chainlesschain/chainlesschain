@@ -114,6 +114,12 @@ workspace symbols) is in `Mentions.java` (`84a562149`). What remains is the Inte
       (`GotoSymbolModel`/`ChooseByNameContributor`); wire `detectAtToken`/`applyMention`
       to the input field's completion popup. (Pure logic done — just wire it.)
 - [ ] Keybindings: quick-launch tool window + insert `@file` reference.
+      **Line ranges**: when a selection is active, the insert-reference action
+      should emit `@<path>#L<start>-<end>` (single line `#L<n>`) so the CLI
+      expands only those lines — the shared `cc` expander already handles the
+      `#L5-10` suffix (VS Code: `insert-reference.js`
+      `formatInsertReference`/`selectionToLineRange`). 1-based inclusive; drop a
+      trailing line the selection only touches at column 0.
 
 ## 6. VS Code 0.30.0 parity (pure layers ported; glue pending)
 Mirrors the three features that shipped in VS Code extension 0.30.0. The pure

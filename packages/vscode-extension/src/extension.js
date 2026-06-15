@@ -368,7 +368,10 @@ function activate(context) {
     vscode.commands.registerCommand(
       "chainlesschain.chat.insertReference",
       () => {
-        const { formatInsertReference } = require("./chat/insert-reference.js");
+        const {
+          formatInsertReference,
+          selectionToLineRange,
+        } = require("./chat/insert-reference.js");
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           vscode.window.showInformationMessage(
@@ -377,7 +380,9 @@ function activate(context) {
           return;
         }
         const rel = vscode.workspace.asRelativePath(editor.document.uri, false);
-        const ref = formatInsertReference(rel);
+        // A non-empty selection → @path#Lstart-end so the CLI slices those lines.
+        const range = selectionToLineRange(editor.selection);
+        const ref = formatInsertReference(rel, range);
         if (ref) chatProvider.insertReference(ref);
       },
     ),
