@@ -89,6 +89,7 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand } from "./think-command.js";
+import { parsePermissionTier, describeTier } from "./permission-tier.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -1248,7 +1249,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
       );
       logger.log(
-        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules in effect this session`,
+        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set tier (/permissions <strict|trusted|autopilot>)`,
       );
       logger.log(
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
@@ -2669,7 +2670,38 @@ export async function startAgentRepl(options = {}) {
 
     // `/permissions` — allow/ask/deny rules in effect this session (Claude-Code
     // parity): what the agent runs unprompted, asks about, or is blocked from.
-    if (trimmed === "/permissions" || trimmed === "/permissions ") {
+    if (trimmed === "/permissions" || trimmed.startsWith("/permissions ")) {
+      const arg = trimmed.slice("/permissions".length).trim();
+      if (arg) {
+        // Set this session's approval tier mid-session (Claude-Code
+        // permission-mode / Shift+Tab parity; mirrors `cc session policy --set`).
+        const tier = parsePermissionTier(arg);
+        if (!tier) {
+          logger.info(
+            "Usage: /permissions [strict|trusted|autopilot]  " +
+              "(aliases: default · accept-edits · bypass). No arg = show rules.",
+          );
+        } else if (
+          !_approvalGate ||
+          !sessionId ||
+          typeof _approvalGate.setSessionPolicy !== "function"
+        ) {
+          logger.info(
+            "Approval gate not available this session — can't change the tier.",
+          );
+        } else {
+          try {
+            _approvalGate.setSessionPolicy(sessionId, tier);
+            logger.info(
+              `Approval policy → ${chalk.cyan(tier)} ${chalk.gray(`(${describeTier(tier)})`)}`,
+            );
+          } catch (_err) {
+            logger.info("Could not set the approval policy.");
+          }
+        }
+        prompt();
+        return;
+      }
       let files = [];
       try {
         const { loadSettings } = await import("../lib/settings-loader.cjs");
@@ -2679,6 +2711,11 @@ export async function startAgentRepl(options = {}) {
       }
       const { renderPermissions } = await import("./permissions-status.js");
       logger.log(renderPermissions(_permissionRules, { files }));
+      logger.log(
+        chalk.gray(
+          "  Set tier mid-session: /permissions <strict|trusted|autopilot>",
+        ),
+      );
       prompt();
       return;
     }
