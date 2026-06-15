@@ -4,6 +4,12 @@ All notable changes to this extension are documented here.
 
 ## [0.29.0] — 2026-06-15
 
+- **`/` slash-command autocomplete in the chat panel.** Typing `/` now opens a
+  completion dropdown of the panel commands (`/new`, `/sessions`, `/plan`,
+  `/approve`, `/reject`, `/stop`, `/cost`, `/context`, `/rewind`, `/help`) with a
+  one-line description each — filtered as you type, ↑/↓ to move, Tab/Enter to fill,
+  Esc to dismiss. Reuses the same dropdown as `@`-mentions; the slash commands were
+  previously invisible until you ran `/help`.
 - **`/rewind` — roll back to an agent checkpoint (Claude-Code parity).** The chat
   panel now snapshots the work tree before each file-mutating tool (auto-checkpoint,
   needs **cc ≥ 0.162.70**) and a new `/rewind` command lists this session's

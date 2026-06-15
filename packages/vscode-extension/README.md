@@ -205,6 +205,9 @@ The bearer token is never displayed in any of these.
   auto-snapshots the work tree before each file edit; `/rewind` lists this session's
   checkpoints in a QuickPick and restores the one you pick (the current state is
   snapshotted first, so the rewind is itself undoable).
+- ✅ **`/` slash-command autocomplete** (0.29.0): typing `/` opens a dropdown of the
+  panel commands (with descriptions), filtered as you type — Tab/Enter to fill,
+  ↑/↓ to move, Esc to dismiss. Same dropdown as `@`-mentions.
 
 ## Packaging
 

@@ -18,6 +18,10 @@ const AT_MENTION_SOURCE = fs.readFileSync(
   path.join(__dirname, "at-mention.js"),
   "utf8",
 );
+const SLASH_SOURCE = fs.readFileSync(
+  path.join(__dirname, "slash-commands.js"),
+  "utf8",
+);
 
 function buildChatHtml({ cspSource, nonce }) {
   return `<!DOCTYPE html>
@@ -94,6 +98,7 @@ function buildChatHtml({ cspSource, nonce }) {
                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #suggest .item.sel { background: var(--vscode-list-activeSelectionBackground);
                        color: var(--vscode-list-activeSelectionForeground); }
+  #suggest .item .desc { opacity:.65; font-size:.92em; }
   #attach { display:none; padding:2px 8px; font-size:.85em; }
   #attach .chip { display:inline-block; margin-right:6px; padding:1px 8px;
                   border:1px solid var(--vscode-panel-border); border-radius:10px; }
@@ -104,6 +109,7 @@ function buildChatHtml({ cspSource, nonce }) {
 <body>
 <script nonce="${nonce}">${MD_LITE_SOURCE}</script>
 <script nonce="${nonce}">${AT_MENTION_SOURCE}</script>
+<script nonce="${nonce}">${SLASH_SOURCE}</script>
   <div id="tabs"></div>
   <div id="log"></div>
   <div id="plan">
@@ -340,26 +346,54 @@ function buildChatHtml({ cspSource, nonce }) {
   // @file mention completion — the CLI expands @path refs server-side; this
   // dropdown only helps type them. State: sug.at is the active "@" token.
   const suggest = document.getElementById("suggest");
-  let sug = { at: null, items: [], sel: 0 };
+  // Shared completion dropdown. mode "file" → @-mention items (from the host);
+  // mode "slash" → local /command items [label, desc]. sug.at holds the active
+  // @-token (file mode only).
+  let sug = { mode: null, at: null, items: [], sel: 0 };
   function hideSug() {
-    sug = { at: null, items: [], sel: 0 };
+    sug = { mode: null, at: null, items: [], sel: 0 };
     suggest.style.display = "none";
     suggest.textContent = "";
   }
   function renderSug() {
     suggest.textContent = "";
-    if (!sug.at || !sug.items.length) { suggest.style.display = "none"; return; }
+    if (!sug.mode || !sug.items.length) { suggest.style.display = "none"; return; }
     sug.items.forEach((f, i) => {
       const row = document.createElement("div");
       row.className = "item" + (i === sug.sel ? " sel" : "");
-      row.textContent = ccAtMention.mentionLabel(f);
+      if (sug.mode === "slash") {
+        const name = document.createElement("span");
+        name.textContent = f[0];
+        const desc = document.createElement("span");
+        desc.className = "desc";
+        desc.textContent = " — " + f[1];
+        row.appendChild(name);
+        row.appendChild(desc);
+      } else {
+        row.textContent = ccAtMention.mentionLabel(f);
+      }
       row.addEventListener("mousedown", (e) => { e.preventDefault(); acceptSug(i); });
       suggest.appendChild(row);
     });
     suggest.style.display = "block";
   }
+  function showSlashSug(prefix) {
+    const items = ccSlash.filterSlashCommands(prefix);
+    if (!items.length) { hideSug(); return; }
+    sug = { mode: "slash", at: null, items, sel: 0 };
+    renderSug();
+  }
   function acceptSug(i) {
-    const item = sug.items[i == null ? sug.sel : i];
+    const idx = i == null ? sug.sel : i;
+    if (sug.mode === "slash") {
+      // Fill the command text (no auto-send — Enter runs it, like typing it).
+      const cmd = sug.items[idx] && sug.items[idx][0];
+      if (cmd) { input.value = cmd; input.setSelectionRange(cmd.length, cmd.length); }
+      hideSug();
+      input.focus();
+      return;
+    }
+    const item = sug.items[idx];
     const value = ccAtMention.mentionValue(item);
     if (!value || !sug.at) { hideSug(); return; }
     const r = ccAtMention.applyMention(input.value, sug.at, value, input.selectionStart);
@@ -369,16 +403,20 @@ function buildChatHtml({ cspSource, nonce }) {
     input.focus();
   }
   input.addEventListener("input", () => {
-    const at = ccAtMention.detectAtToken(input.value.slice(0, input.selectionStart));
+    const before = input.value.slice(0, input.selectionStart);
+    const at = ccAtMention.detectAtToken(before);
     if (at) {
+      sug.mode = "file";
       sug.at = at;
       vscode.postMessage({ type: "files", prefix: at.prefix });
-    } else {
-      hideSug();
+      return;
     }
+    const sl = ccSlash.detectSlashToken(before);
+    if (sl) { showSlashSug(sl.prefix); return; }
+    hideSug();
   });
   input.addEventListener("keydown", (e) => {
-    if (sug.at && sug.items.length) {
+    if (sug.mode && sug.items.length) {
       if (e.key === "ArrowDown") {
         e.preventDefault(); sug.sel = (sug.sel + 1) % sug.items.length; renderSug(); return;
       }
@@ -523,6 +561,7 @@ function buildChatHtml({ cspSource, nonce }) {
         // Stale replies (user kept typing / closed the token) are dropped.
         const at = ccAtMention.detectAtToken(input.value.slice(0, input.selectionStart));
         if (!at || at.prefix !== m.prefix) break;
+        sug.mode = "file";
         sug.at = at;
         sug.items = Array.isArray(m.items) ? m.items : [];
         sug.sel = 0;
