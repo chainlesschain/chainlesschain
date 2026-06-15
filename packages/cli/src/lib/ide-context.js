@@ -436,15 +436,19 @@ export function formatReviewComments(comments, { path: filePath } = {}) {
 
 /** Workspace-wide diagnostics can be large; cap what we inline. */
 const WORKSPACE_DIAG_CAP = 50;
+/** Explicit `@terminal` pulls more history than the ambient block (2). */
+const TERMINAL_MENTION_LIMIT = 5;
+/** And a roomier per-command output cap, since the user asked for it. */
+const TERMINAL_MENTION_OUTPUT_CAP = 2000;
 
-// `@selection` / `@diagnostics` preceded by start / whitespace / opening
-// bracket-quote (so `foo@selection` and email-like text never match), each
-// taken as a whole word.
-const IDE_MENTION_RE = /(^|[\s("'`[{])@(selection|diagnostics)\b/gi;
+// `@selection` / `@diagnostics` / `@terminal` preceded by start / whitespace /
+// opening bracket-quote (so `foo@selection` and email-like text never match),
+// each taken as a whole word.
+const IDE_MENTION_RE = /(^|[\s("'`[{])@(selection|diagnostics|terminal)\b/gi;
 
 /**
  * Unique IDE pseudo-mentions in the text, in first-seen order. Returns a
- * subset of `["selection", "diagnostics"]`.
+ * subset of `["selection", "diagnostics", "terminal"]`.
  */
 export function findIdeMentions(text) {
   const src = typeof text === "string" ? text : "";
@@ -520,9 +524,38 @@ export function formatDiagnosticsMention(data) {
   );
 }
 
+/** Render a getTerminalOutput result as a tagged `@terminal` block, or null. */
+export function formatTerminalMention(data) {
+  const all = Array.isArray(data?.terminals) ? data.terminals : null;
+  if (!all || all.length === 0) return null;
+  const shown = all
+    .slice(-TERMINAL_MENTION_LIMIT)
+    .filter((t) => t && typeof t.command === "string");
+  if (shown.length === 0) return null;
+  const lines = [];
+  for (const t of shown) {
+    const code = t.exitCode == null ? "" : ` (exit ${t.exitCode})`;
+    let outp = typeof t.output === "string" ? t.output : "";
+    const truncated =
+      outp.length > TERMINAL_MENTION_OUTPUT_CAP || t.outputTruncated;
+    if (outp.length > TERMINAL_MENTION_OUTPUT_CAP) {
+      outp = outp.slice(-TERMINAL_MENTION_OUTPUT_CAP);
+    }
+    lines.push(`  $ ${t.command}${code}`);
+    if (outp.trim().length > 0) {
+      lines.push(outp + (truncated ? "\n  …(output truncated)" : ""));
+    }
+  }
+  return (
+    '<ide-terminal note="referenced via @terminal — recent integrated-terminal commands">\n' +
+    lines.join("\n") +
+    "\n</ide-terminal>"
+  );
+}
+
 /**
- * Expand `@selection` / `@diagnostics` mentions found in `text` against the
- * connected IDE. Returns
+ * Expand `@selection` / `@diagnostics` / `@terminal` mentions found in `text`
+ * against the connected IDE. Returns
  *   { block: string|null, expanded: string[], warnings: string[] }
  * where `block` is the concatenated context block(s) to APPEND to the user
  * turn (it never includes the original prose — the caller already has that),
@@ -578,6 +611,26 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           out.expanded.push("diagnostics");
         } else {
           out.warnings.push("@diagnostics — no problems reported (left as-is)");
+        }
+      } else if (kind === "terminal") {
+        if (!hasIdeTerminalTool(mcp)) {
+          out.warnings.push(
+            "@terminal — no IDE bridge / terminal support (left as-is)",
+          );
+          continue;
+        }
+        const data = await callIdeToolJson(
+          mcp,
+          "mcp__ide__getTerminalOutput",
+          { limit: TERMINAL_MENTION_LIMIT },
+          timeoutMs,
+        );
+        const b = formatTerminalMention(data);
+        if (b) {
+          blocks.push(b);
+          out.expanded.push("terminal");
+        } else {
+          out.warnings.push("@terminal — no recent commands (left as-is)");
         }
       }
     } catch {

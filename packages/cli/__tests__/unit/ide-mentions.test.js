@@ -9,6 +9,7 @@ import {
   findIdeMentions,
   formatSelectionMention,
   formatDiagnosticsMention,
+  formatTerminalMention,
   expandIdeMentions,
 } from "../../src/lib/ide-context.js";
 
@@ -224,5 +225,78 @@ describe("expandIdeMentions", () => {
     const r = await expandIdeMentions("explain @selection", mcp);
     expect(r.block).toBeNull();
     expect(r.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── @terminal ──────────────────────────────────────────────────────────────
+
+const TERMINALS = [
+  { command: "npm test", exitCode: 0, output: "12 passed\n", terminal: "bash" },
+  {
+    command: "npm run build",
+    exitCode: 1,
+    output: "TS2322 boom",
+    terminal: "bash",
+  },
+];
+
+/** Bridge bundle that exposes the terminal-output tool. */
+function fakeIdeMcpTerm({ terminals = TERMINALS } = {}) {
+  const calls = [];
+  return {
+    mcpClient: {
+      callTool: async (server, tool, args) => {
+        calls.push({ tool, args });
+        if (tool === "getTerminalOutput") return txt({ terminals });
+        return txt(null);
+      },
+    },
+    externalToolExecutors: {
+      mcp__ide__getTerminalOutput: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getTerminalOutput",
+      },
+    },
+    calls,
+  };
+}
+
+describe("@terminal mention", () => {
+  it("findIdeMentions recognizes @terminal at word boundaries", () => {
+    expect(findIdeMentions("what failed? @terminal")).toEqual(["terminal"]);
+    expect(findIdeMentions("@selection and @terminal")).toEqual([
+      "selection",
+      "terminal",
+    ]);
+    expect(findIdeMentions("user@terminal.com")).toEqual([]); // glued → no match
+  });
+
+  it("formatTerminalMention renders recent commands; null when empty", () => {
+    const b = formatTerminalMention({ terminals: TERMINALS });
+    expect(b).toContain("<ide-terminal");
+    expect(b).toContain("$ npm test (exit 0)");
+    expect(b).toContain("12 passed");
+    expect(b).toContain("$ npm run build (exit 1)");
+    expect(b).toContain("</ide-terminal>");
+    expect(formatTerminalMention({ terminals: [] })).toBe(null);
+    expect(formatTerminalMention(null)).toBe(null);
+  });
+
+  it("expandIdeMentions expands @terminal and requests more history (limit 5)", async () => {
+    const mcp = fakeIdeMcpTerm();
+    const r = await expandIdeMentions("what went wrong? @terminal", mcp);
+    expect(r.expanded).toContain("terminal");
+    expect(r.block).toContain("<ide-terminal");
+    const call = mcp.calls.find((c) => c.tool === "getTerminalOutput");
+    expect(call.args).toEqual({ limit: 5 });
+  });
+
+  it("warns (leaves as-is) when no terminal tool is connected", async () => {
+    const noTermMcp = fakeIdeMcp(); // selection+diagnostics only
+    const r = await expandIdeMentions("show @terminal", noTermMcp);
+    expect(r.block).toBeNull();
+    expect(r.expanded).not.toContain("terminal");
+    expect(r.warnings.some((w) => w.includes("@terminal"))).toBe(true);
   });
 });

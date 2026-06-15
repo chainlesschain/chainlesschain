@@ -101,15 +101,24 @@ describe("applyMention", () => {
 });
 
 describe("ideMentionMatches", () => {
-  it("offers both IDE pseudo-mentions for an empty prefix", () => {
-    expect(ideMentionMatches("")).toEqual(["selection", "diagnostics"]);
-    expect(ideMentionMatches(null)).toEqual(["selection", "diagnostics"]);
+  it("offers all IDE pseudo-mentions for an empty prefix", () => {
+    expect(ideMentionMatches("")).toEqual([
+      "selection",
+      "diagnostics",
+      "terminal",
+    ]);
+    expect(ideMentionMatches(null)).toEqual([
+      "selection",
+      "diagnostics",
+      "terminal",
+    ]);
   });
 
   it("filters by prefix, case-insensitively", () => {
     expect(ideMentionMatches("s")).toEqual(["selection"]);
     expect(ideMentionMatches("DIAG")).toEqual(["diagnostics"]);
     expect(ideMentionMatches("sel")).toEqual(["selection"]);
+    expect(ideMentionMatches("t")).toEqual(["terminal"]);
   });
 
   it("returns nothing when the prefix can't start either keyword", () => {

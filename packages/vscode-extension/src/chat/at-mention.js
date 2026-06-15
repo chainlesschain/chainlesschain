@@ -51,7 +51,7 @@
   // @selection = the active editor selection, @diagnostics = the whole
   // workspace's current problems. Offered as completions so the feature is
   // discoverable, not just typeable from memory.
-  var IDE_MENTIONS = ["selection", "diagnostics"];
+  var IDE_MENTIONS = ["selection", "diagnostics", "terminal"];
 
   /**
    * IDE keyword mentions whose name starts with the typed prefix (empty prefix
