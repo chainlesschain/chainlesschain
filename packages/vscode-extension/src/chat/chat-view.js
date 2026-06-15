@@ -257,6 +257,9 @@ class ChatViewProvider {
           // Approval mode (/auto, /bypass, /normal) — flag is spawn-time, so a
           // mode change stops the child and the next turn respawns with it.
           mode: conv.mode,
+          // Extended thinking (/think, /ultrathink) — same spawn-time story;
+          // "off" adds nothing, Anthropic-only (other providers ignore it).
+          think: conv.thinking,
         }),
         // Confirm-tier approvals become Approve/Deny cards in the panel
         // instead of failing closed (needs cc >= 0.162.45).
@@ -336,6 +339,37 @@ class ChatViewProvider {
       kind: "info",
       text:
         `approval mode → ${LABELS[mode]}` +
+        (restarted ? " (applies on your next message)" : ""),
+    });
+  }
+
+  /**
+   * /think · /ultrathink · /think-off — toggle Anthropic extended thinking for
+   * the ACTIVE conversation. Like the approval mode, the flag is spawn-time, so
+   * a live child is stopped and the next message respawns with it (session id
+   * preserved). Non-Anthropic providers ignore the flag.
+   */
+  _setThinking(level) {
+    const LABELS = {
+      off: "off",
+      on: "on",
+      ultra: "ultra (max budget)",
+    };
+    if (!Object.prototype.hasOwnProperty.call(LABELS, level)) {
+      this._post({ kind: "info", text: `unknown thinking level "${level}"` });
+      return;
+    }
+    const conv = this._activeConv();
+    this._convs.setThinking(conv.id, level);
+    const restarted = !!conv.session?.running;
+    if (restarted) {
+      conv.session.stop();
+      this._convs.setSession(conv.id, null);
+    }
+    this._post({
+      kind: "info",
+      text:
+        `extended thinking → ${LABELS[level]}` +
         (restarted ? " (applies on your next message)" : ""),
     });
   }
@@ -731,6 +765,8 @@ class ChatViewProvider {
         this._rewind().catch(() => {});
       } else if (m.type === "mode") {
         this._setMode(String(m.mode || "default"));
+      } else if (m.type === "think") {
+        this._setThinking(String(m.level || "off"));
       } else if (m.type === "configureLlm") {
         this.vscode.commands.executeCommand("chainlesschain.llm.configure");
       } else if (m.type === "approval") {

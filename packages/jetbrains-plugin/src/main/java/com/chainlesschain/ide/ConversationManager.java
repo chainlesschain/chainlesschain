@@ -29,6 +29,7 @@ public final class ConversationManager {
         public Object session;     // opaque AgentChatSession handle (nullable)
         public Object turnState;
         public String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
+        public String thinking = "off"; // extended thinking (off|on|ultra)
 
         Conversation(String id, String title, String sessionId, Object turnState) {
             this.id = id;
@@ -182,6 +183,13 @@ public final class ConversationManager {
     public Conversation setMode(String id, String mode) {
         Conversation c = get(id);
         if (c != null) c.mode = (mode == null || mode.trim().isEmpty()) ? "default" : mode;
+        return c;
+    }
+
+    /** Set a conversation's extended-thinking level (next child spawn). */
+    public Conversation setThinking(String id, String thinking) {
+        Conversation c = get(id);
+        if (c != null) c.thinking = (thinking == null || thinking.trim().isEmpty()) ? "off" : thinking;
         return c;
     }
 

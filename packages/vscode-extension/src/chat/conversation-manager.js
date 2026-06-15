@@ -47,6 +47,7 @@ class ConversationManager {
       turnState: this._createTurnState(),
       unread: false, // a turn finished while this tab was in the background
       mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
+      thinking: "off", // extended thinking (off | on | ultra)
     };
     this._conversations.set(id, conv);
     this._order.push(id);
@@ -144,6 +145,13 @@ class ConversationManager {
   setMode(id, mode) {
     const c = this.get(id);
     if (c) c.mode = mode || "default";
+    return c;
+  }
+
+  /** Set a conversation's extended-thinking level (next child spawn). */
+  setThinking(id, thinking) {
+    const c = this.get(id);
+    if (c) c.thinking = thinking || "off";
     return c;
   }
 

@@ -223,6 +223,9 @@ The bearer token is never displayed in any of these.
   200k (6%)` line under the chat, refreshed after each turn from `cc context
   --json` (authoritative window math). Turns red on overflow; disable with
   `chainlesschain.chat.contextIndicator: false`.
+- ✅ **Extended-thinking toggle** (0.30.0): `/think` on, `/ultrathink` max budget,
+  `/think-off` off. Per conversation; respawns the agent with `--think`/
+  `--ultrathink` (Anthropic only — other providers ignore it).
 
 ## Packaging
 

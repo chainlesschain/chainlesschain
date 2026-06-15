@@ -31,9 +31,10 @@ These are finished and `javac --release 8`-tested (81 assertions in
 - [x] `ChatEvents.java` — stream-event mapping (already complete, all 11 kinds — verified)
 - [x] `SessionArgs.java` — `--permission-mode` selector arg builder (VS Code 0.30.0 #1)
 - [x] `IntrospectArgs.java` — cost/context args (`--json`) + context-window parser (0.30.0 #2)
-- [x] `ConversationManager` — per-conversation `mode` field + `setMode` (0.30.0 #1)
+- [x] `ConversationManager` — per-conversation `mode` + `thinking` fields + setters (0.30.0)
+- [x] `SessionArgs` — extended-thinking toggle (`--think`/`--ultrathink`) 5-arg overload
 
-(0.30.0 pure layers tested in `PureLogicSmokeMain` — now **102 assertions**, `javac --release 8`.)
+(0.30.0 pure layers tested in `PureLogicSmokeMain` — now **111 assertions**, `javac --release 8`.)
 
 ## ⏳ Remaining — IntelliJ glue (SDK-gated; what's below is NOT done)
 
@@ -138,6 +139,11 @@ remains is IntelliJ glue in the chat tool window.
       the last `close().conv` and re-`create(title, sessionId, true)` to resume).
       Register keymap defaults (avoid `Ctrl+Shift+Esc` — OS-reserved on Windows;
       VS Code used `Ctrl/Cmd+Alt+N` and `Ctrl/Cmd+Shift+T`).
+- [ ] **Extended-thinking toggle** (`/think`=on, `/ultrathink`=max, `/think-off`):
+      a control (slash commands or toolbar) → `ConversationManager.setThinking(id,
+      level)`; spawn carries `SessionArgs.build(..., conv.thinking)` →
+      `--think`/`--ultrathink`. Same spawn-time restart story as the approval
+      mode. Anthropic-only (other providers ignore the flag). Depends on §1.
 
 ## Build / verify / publish — 🚫 HELD now, but ⚠️ MUST publish once glue lands
 **Release is on hold** (decided 2026-06-15) — but **held ≠ cancelled.** Once the

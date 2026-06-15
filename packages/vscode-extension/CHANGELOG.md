@@ -26,6 +26,13 @@ All notable changes to this extension are documented here.
   CLI's authoritative window math (`cc context --json`, same as `/context`), so
   it never diverges, and turns red with an "over, compaction needed" note on
   overflow. Disable with `chainlesschain.chat.contextIndicator: false`.
+- **Extended-thinking toggle — `/think`, `/ultrathink`, `/think-off` (Claude-Code
+  parity).** Turn on Anthropic extended thinking for the conversation: `/think`
+  enables it, `/ultrathink` uses the maximum budget, `/think-off` turns it back
+  off. Per-conversation; like the approval mode it takes effect on the next
+  message (the agent child respawns with `--think`/`--ultrathink`, resuming the
+  same session). Non-Anthropic providers ignore it. In the `/` autocomplete and
+  `/help`.
 
 ## [0.29.0] — 2026-06-15
 

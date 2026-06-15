@@ -145,9 +145,11 @@ const PERMISSION_MODES = new Set(["plan", "acceptEdits", "bypassPermissions"]);
  * passing it makes the CLI rebuild that conversation and keep appending to
  * it, so the panel survives restarts/reloads with full context. `mode` is the
  * conversation's approval mode (acceptEdits / bypassPermissions); "default"
- * or unset adds nothing.
+ * or unset adds nothing. `think` toggles Anthropic extended thinking:
+ * "on" → --think, "ultra" → --ultrathink (ignored by non-Anthropic providers);
+ * "off"/unset adds nothing.
  */
-function buildSessionArgs({ model, provider, resume, mode } = {}) {
+function buildSessionArgs({ model, provider, resume, mode, think } = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
     args.push("--provider", provider.trim());
@@ -161,6 +163,9 @@ function buildSessionArgs({ model, provider, resume, mode } = {}) {
   if (typeof mode === "string" && PERMISSION_MODES.has(mode.trim())) {
     args.push("--permission-mode", mode.trim());
   }
+  const t = typeof think === "string" ? think.trim() : "";
+  if (t === "ultra") args.push("--ultrathink");
+  else if (t === "on") args.push("--think");
   return args;
 }
 

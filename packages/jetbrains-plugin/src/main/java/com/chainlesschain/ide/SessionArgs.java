@@ -31,6 +31,15 @@ public final class SessionArgs {
 
     /** Build the extra-args list (provider/model/resume/mode), omitting blanks. */
     public static List<String> build(String provider, String model, String resume, String mode) {
+        return build(provider, model, resume, mode, null);
+    }
+
+    /**
+     * Build the extra-args list including the extended-thinking toggle.
+     * {@code think}: "on" → --think, "ultra" → --ultrathink (Anthropic only;
+     * other providers ignore it); "off"/null/unknown adds nothing.
+     */
+    public static List<String> build(String provider, String model, String resume, String mode, String think) {
         List<String> args = new ArrayList<String>();
         if (notBlank(provider)) {
             args.add("--provider");
@@ -47,6 +56,12 @@ public final class SessionArgs {
         if (mode != null && PERMISSION_MODES.contains(mode.trim())) {
             args.add("--permission-mode");
             args.add(mode.trim());
+        }
+        String t = think == null ? "" : think.trim();
+        if ("ultra".equals(t)) {
+            args.add("--ultrathink");
+        } else if ("on".equals(t)) {
+            args.add("--think");
         }
         return args;
     }

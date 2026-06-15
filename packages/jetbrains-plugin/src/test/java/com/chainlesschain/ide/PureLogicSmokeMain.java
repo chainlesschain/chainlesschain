@@ -116,6 +116,11 @@ public final class PureLogicSmokeMain {
         eq(x.mode, "default", "conversation mode defaults to 'default'");
         eq(m2.setMode(x.id, "acceptEdits").mode, "acceptEdits", "setMode");
         eq(m2.setMode(x.id, "").mode, "default", "empty mode -> default");
+
+        // extended thinking (default + setThinking)
+        eq(x.thinking, "off", "conversation thinking defaults to 'off'");
+        eq(m2.setThinking(x.id, "ultra").thinking, "ultra", "setThinking");
+        eq(m2.setThinking(x.id, "").thinking, "off", "empty thinking -> off");
     }
 
     private static void previewDetect() {
@@ -288,6 +293,21 @@ public final class PureLogicSmokeMain {
         check(SessionArgs.PERMISSION_MODES.contains("acceptEdits")
                 && !SessionArgs.PERMISSION_MODES.contains("default"),
                 "PERMISSION_MODES allow-list (no 'default')");
+        // extended thinking flag (on -> --think, ultra -> --ultrathink, else none)
+        eq(SessionArgs.build(null, null, null, "default", "on"),
+                Arrays.asList("--think"), "think on -> --think");
+        eq(SessionArgs.build(null, null, null, "default", "ultra"),
+                Arrays.asList("--ultrathink"), "think ultra -> --ultrathink");
+        eq(SessionArgs.build(null, null, null, "default", "off"),
+                new ArrayList<String>(), "think off -> no flag");
+        eq(SessionArgs.build(null, null, null, "default", null),
+                new ArrayList<String>(), "think null -> no flag");
+        eq(SessionArgs.build("anthropic", null, "s1", "acceptEdits", "ultra"),
+                Arrays.asList("--provider", "anthropic", "--resume", "s1",
+                        "--permission-mode", "acceptEdits", "--ultrathink"),
+                "mode + think composed");
+        eq(SessionArgs.build(null, null, null, "default"),
+                new ArrayList<String>(), "4-arg overload still works");
     }
 
     private static void introspectArgs() {
