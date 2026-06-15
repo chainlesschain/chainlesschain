@@ -810,6 +810,7 @@ export async function startAgentRepl(options = {}) {
       "/compact",
       "/config",
       "/context",
+      "/copy",
       "/cost",
       "/cowork",
       "/doctor",
@@ -1199,6 +1200,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/context")}    Live context-window usage by role`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/copy")}       Copy last response to clipboard (/copy code → last code block)`,
       );
       logger.log(
         `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
@@ -2617,6 +2621,55 @@ export async function startAgentRepl(options = {}) {
       logger.log(
         renderSessionCost(_costStore, { pricingOverrides: overrides, roles }),
       );
+      prompt();
+      return;
+    }
+
+    // `/copy` — copy the last assistant response to the system clipboard
+    // (Claude-Code /copy parity). `/copy code` copies the last fenced code block.
+    if (trimmed === "/copy" || trimmed.startsWith("/copy ")) {
+      const arg = trimmed.slice("/copy".length).trim().toLowerCase();
+      const { lastAssistantText, lastCodeBlock, copyToClipboard } =
+        await import("./clipboard-copy.js");
+      const full = lastAssistantText(messages);
+      if (!full) {
+        logger.log(
+          chalk.gray(
+            "Nothing to copy yet — no assistant response in this session.",
+          ),
+        );
+        prompt();
+        return;
+      }
+      let payload = full;
+      let what = "last response";
+      if (arg === "code") {
+        const block = lastCodeBlock(full);
+        if (!block) {
+          logger.log(
+            chalk.gray("No fenced code block in the last response."),
+          );
+          prompt();
+          return;
+        }
+        payload = block;
+        what = "last code block";
+      }
+      const res = copyToClipboard(payload);
+      if (res.ok) {
+        logger.log(
+          chalk.gray(
+            `Copied ${what} to clipboard (${payload.length} chars, ${res.tool}).`,
+          ),
+        );
+      } else {
+        logger.error(chalk.red(`/copy failed: ${res.error}`));
+        logger.log(
+          chalk.gray(
+            "Install a clipboard tool (Linux: wl-copy / xclip / xsel).",
+          ),
+        );
+      }
       prompt();
       return;
     }

@@ -708,6 +708,10 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   内联参数:`/review [low|medium|high]` 力度 · `--security`(安全专项)/`--simplify`(只清理不挑 bug)·
   `--fix`(直接改工作区,自动 checkpoint 可 `cc checkpoint restore` 撤销)· 范围 `--staged`/
   `--base <ref>`/`--range <A..B>`。跑在当前 `cwd`(跟随 `/cd`)+ 复用本会话 provider/model。
+- **交互 REPL `/copy`**(Claude-Code `/copy` 平价) — 把**最后一条 assistant 回复**复制到系统剪贴板,
+  无需鼠标选中。`/copy code` 只复制最后一个**围栏代码块**。跨平台:Windows 走 PowerShell
+  `Set-Clipboard`(强制 UTF-8 输入解码,非 ASCII 不乱码;`clip` 兜底)、macOS `pbcopy`、Linux 依次
+  尝试 `wl-copy`/`xclip`/`xsel`。无可用工具时给出安装提示。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
