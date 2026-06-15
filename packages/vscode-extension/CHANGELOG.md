@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.29.0] — 2026-06-15
+
+- **`/rewind` — roll back to an agent checkpoint (Claude-Code parity).** The chat
+  panel now snapshots the work tree before each file-mutating tool (auto-checkpoint,
+  needs **cc ≥ 0.162.70**) and a new `/rewind` command lists this session's
+  checkpoints in a native QuickPick — pick one and the work tree is restored
+  (`cc checkpoint restore`, which auto-snapshots the current state first, so a
+  rewind is itself undoable). Scoped to the panel's own session, so it only offers
+  this conversation's checkpoints. Uses the git shadow-commit engine (zero
+  working-tree pollution; a no-op outside a git repo).
+  - CLI side (cc 0.162.70): the streaming runner (`--input/output-format
+    stream-json`, which the panel drives) now threads `autoCheckpoint` through —
+    previously only the one-shot `-p` and REPL paths checkpointed, so panel
+    sessions never had restore points.
+
 ## [0.28.0] — 2026-06-15
 
 - **Background-tab completion signal** — now that each conversation tab owns its

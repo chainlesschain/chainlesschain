@@ -539,6 +539,14 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     cwd,
     additionalDirectories,
     sessionId,
+    // Auto-checkpoint (Claude-Code parity): snapshot the work tree before each
+    // mutating tool so a stream consumer (e.g. the IDE chat panel) can rewind.
+    // Keyed by this run's sessionId — agent-core falls back to it — so the panel
+    // lists/restores with `cc checkpoint list|restore -s <sessionId>`. Off by
+    // default (no behavior change for callers that don't opt in); git engine
+    // only, a no-op outside a git repo.
+    autoCheckpoint: options.autoCheckpoint || false,
+    checkpointSession: options.checkpointSession || sessionId,
     hookDb: db,
     approvalGate,
     permissionRules,
@@ -576,7 +584,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   // from token-usage in runTurn; once reached the session ends before the next
   // paid call. null → no cap (unchanged behavior).
   const costBudget = options.maxCostUsd
-    ? new CostBudget({ limitUsd: options.maxCostUsd, table: options.priceTable })
+    ? new CostBudget({
+        limitUsd: options.maxCostUsd,
+        table: options.priceTable,
+      })
     : null;
 
   let turns = 0;
@@ -879,7 +890,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       outcome.endReason === "budget-exhausted" ||
       outcome.endReason === "max_turns";
     const costStopped = outcome.endReason === "cost-budget-exhausted";
-    const isError = exhausted || costStopped || outcome.endReason === "no-response";
+    const isError =
+      exhausted || costStopped || outcome.endReason === "no-response";
     if (isError) sawError = true;
 
     if (costStopped) {

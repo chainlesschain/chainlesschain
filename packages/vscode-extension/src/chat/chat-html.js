@@ -222,6 +222,7 @@ function buildChatHtml({ cspSource, nonce }) {
     "/stop": () => vscode.postMessage({ type: "interrupt" }),
     "/cost": () => vscode.postMessage({ type: "cost" }),
     "/context": () => vscode.postMessage({ type: "context" }),
+    "/rewind": () => vscode.postMessage({ type: "rewind" }),
   };
   // Pasted screenshots ride the message as data URLs; the host writes them
   // to temp files and the CLI attaches them like --image (vision model
@@ -264,7 +265,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /rewind · /help");
         return;
       }
       if (SLASH[cmd]) {

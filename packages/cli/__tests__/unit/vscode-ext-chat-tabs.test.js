@@ -296,6 +296,7 @@ describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
     expect(html).toContain('type: "newTab"');
     expect(html).toContain('type: "switchTab"');
     expect(html).toContain('type: "closeTab"');
+    expect(html).toContain('type: "rewind"'); // /rewind slash command
     // Per-tab transcript must use DETACHED DOM NODES, not innerHTML strings —
     // detaching/re-appending real nodes preserves event listeners so approval
     // cards stay clickable after a tab switch. A regression to innerHTML would

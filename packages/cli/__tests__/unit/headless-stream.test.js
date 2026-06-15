@@ -142,6 +142,41 @@ describe("runAgentHeadlessStream", () => {
     expect(outcome).toEqual({ exitCode: 0, turns: 2 });
   });
 
+  it("threads autoCheckpoint into the loop options, keyed by sessionId", async () => {
+    const captured = [];
+    const agentLoop = async function* (_messages, loopOptions) {
+      captured.push(loopOptions);
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, autoCheckpoint: true, sessionId: "sess-x" },
+      deps,
+    );
+    expect(captured[0].autoCheckpoint).toBe(true);
+    // agent-core falls back to sessionId, so the panel can `cc checkpoint
+    // list -s <sessionId>` to find these snapshots.
+    expect(captured[0].checkpointSession).toBe("sess-x");
+  });
+
+  it("auto-checkpoint stays OFF when not requested (no behavior change)", async () => {
+    const captured = [];
+    const agentLoop = async function* (_messages, loopOptions) {
+      captured.push(loopOptions);
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    expect(captured[0].autoCheckpoint).toBe(false);
+  });
+
   it("carries conversation history across turns", async () => {
     const seen = [];
     const agentLoop = async function* (messages) {

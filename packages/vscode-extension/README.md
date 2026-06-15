@@ -201,6 +201,10 @@ The bearer token is never displayed in any of these.
 - ✅ **Background-tab completion signal** (0.28.0): a turn finishing in a conversation
   tab you're not looking at flags the tab with a green ● dot and offers a "Show" toast
   to jump to it — no more silently-finished background chats.
+- ✅ **`/rewind` to an agent checkpoint** (0.29.0, needs cc ≥ 0.162.70): the panel
+  auto-snapshots the work tree before each file edit; `/rewind` lists this session's
+  checkpoints in a QuickPick and restores the one you pick (the current state is
+  snapshotted first, so the rewind is itself undoable).
 
 ## Packaging
 

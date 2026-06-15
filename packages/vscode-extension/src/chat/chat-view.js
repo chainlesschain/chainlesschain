@@ -411,6 +411,76 @@ class ChatViewProvider {
     this._post({ kind: "pre", text: text || `/${kind}: (no output)` });
   }
 
+  /**
+   * `/rewind` — list this session's auto-checkpoints (the agent snapshots the
+   * work tree before each mutating tool, cc >= 0.162.70), let the user pick one
+   * in a native QuickPick, and `cc checkpoint restore` it (current state is
+   * auto-snapshotted first). Scoped to the panel's session id so it only offers
+   * THIS conversation's checkpoints. No-op with a hint before the first turn.
+   */
+  async _rewind() {
+    const id = this._storedSessionId();
+    if (!id) {
+      this._post({
+        kind: "info",
+        text: "/rewind: send a message first — no session yet.",
+      });
+      return;
+    }
+    const rewind = this.opts.deps?.rewind || require("./rewind-commands");
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const cwd = folders[0]?.uri?.fsPath || process.cwd();
+    const bridgeEnv =
+      typeof this.opts.getBridgeEnv === "function"
+        ? this.opts.getBridgeEnv()
+        : {};
+    const env = { ...process.env, ...bridgeEnv };
+    const command = this._cliCommand();
+    const listed = await rewind.runCliJson({
+      command,
+      args: rewind.buildListArgs(id),
+      cwd,
+      env,
+    });
+    if (!listed.ok || !Array.isArray(listed.data) || listed.data.length === 0) {
+      this._post({
+        kind: "info",
+        text:
+          "/rewind: no checkpoints for this session yet — they're created " +
+          "automatically before file edits (needs cc >= 0.162.70).",
+      });
+      return;
+    }
+    const pick = await this.vscode.window.showQuickPick(
+      listed.data.map(rewind.toQuickPickItem),
+      {
+        placeHolder:
+          "Rewind the work tree to which checkpoint? (current state is snapshotted first)",
+      },
+    );
+    if (!pick) return;
+    const restored = await rewind.runCliJson({
+      command,
+      args: rewind.buildRestoreArgs(id, pick.id || pick.label),
+      cwd,
+      env,
+    });
+    if (restored.ok) {
+      const n = rewind.restoredCount(restored.data);
+      this._post({
+        kind: "info",
+        text:
+          `↩ rewound to ${pick.label}` +
+          (typeof n === "number" ? ` — ${n} file(s) restored` : ""),
+      });
+    } else {
+      this._post({
+        kind: "error",
+        text: `/rewind failed: ${restored.error || "unknown error"}`,
+      });
+    }
+  }
+
   /** Called after the Configure-LLM wizard: fresh child picks up the config. */
   onLlmConfigured() {
     this.session?.stop();
@@ -512,6 +582,8 @@ class ChatViewProvider {
         this._pickSession().catch(() => {});
       } else if (m.type === "cost" || m.type === "context") {
         this._runIntrospect(m.type).catch(() => {});
+      } else if (m.type === "rewind") {
+        this._rewind().catch(() => {});
       } else if (m.type === "configureLlm") {
         this.vscode.commands.executeCommand("chainlesschain.llm.configure");
       } else if (m.type === "approval") {

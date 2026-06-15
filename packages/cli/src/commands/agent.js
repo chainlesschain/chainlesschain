@@ -583,6 +583,10 @@ export function registerAgentCommand(program) {
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
             sessionId: options.session,
+            // Auto-checkpoint follows the same resolution as the headless/REPL
+            // paths (default ON in a git repo) so panel/stream sessions snapshot
+            // before mutating tools and can be rewound via `cc checkpoint`.
+            autoCheckpoint,
             permissionMode: options.permissionMode,
             allowedTools: parseToolList(options.allowedTools),
             disallowedTools: parseToolList(options.disallowedTools),
