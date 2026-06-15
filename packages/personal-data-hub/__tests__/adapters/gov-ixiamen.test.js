@@ -24,7 +24,7 @@ const COOKIES = "XMGOV_SSO=abc; tgc=xyz";
 describe("gov-ixiamen mappers", () => {
   it("name/version/capabilities", () => {
     expect(ix.NAME).toBe("gov-ixiamen");
-    expect(ix.VERSION).toBe("0.1.0");
+    expect(ix.VERSION).toBe("0.2.0");
   });
   it("inferCategory: explicit wins, else keyword, else fallback", () => {
     expect(ix.inferCategory("随便", "医保")).toBe("医保");
@@ -138,7 +138,7 @@ describe("IXiamenAdapter (snapshot + cookie-api)", () => {
     const items = await collect(a.sync({ sinceWatermark: 1716000000000 }));
     expect(items).toHaveLength(1); // old one below watermark stops iteration
     expect(items[0].originalId).toBe("ixiamen:service:new");
-    expect(seen.url).toContain("ixm.gov.cn");
+    expect(seen.url).toContain("buss.ixiamen.org.cn");
   });
 
   it("default fetch throws; no input throws", async () => {

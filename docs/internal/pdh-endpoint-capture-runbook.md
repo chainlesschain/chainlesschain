@@ -77,6 +77,20 @@ adb shell "su -c 'pkill frida-server'"
 | **中国银行** | `com.chinamworld.bocmbci` | DexHelper 壳 + 银行反篡改。大概率**检测到 Frida/代理/root 后退出或白屏**。**建议跳过 live 抓包，仅用 snapshot 模式**。|
 | 个税 `cn.gov.tax.its` / 民生 `com.cmbc.newmbank` / 交行 `com.bankcomm.Bankcomm` / 数字人民币 `cn.gov.pbc.dcep` / 美柚 `com.lingan.seeyou` | — | 设备上**未安装**，需先装。美柚最软（消费类，pinning 弱）；其余 gov/bank 同上行为。|
 
+## 3.1 静态分析已确认结论（2026-06-16，rooted chopin，无 live 抓包）
+
+只做只读 APK 二进制分析（解包 + dex/assets 字符串 grep），未碰任何账号登录态。
+设备上已装 4 个目标 App，结论如下：
+
+| App | 静态结论 | 采集器动作 |
+|---|---|---|
+| **i厦门** `com.xmgov.xmapp` | **真实后端域名确认** = `*.ixiamen.org.cn`；业务网关 `https://buss.ixiamen.org.cn/pbc/`（usercenter 鉴权在 `/pbc/usercenter/`；市民卡/社保在 `https://smk.ixiamen.org.cn/smk/`）。原 `gov-ixiamen` 占位 `app.ixm.gov.cn` 域名是**错的**。但请求/响应 **body 被 `libzxprotect` 加密**，确切 `办事记录` 子路径静态不可见。 | ✅ 已把 host 改成真实网关（`buss.ixiamen.org.cn/pbc/`，`opts.listUrl` 可覆盖），`/handle/list` 尾段仍 best-effort，`unverified:true` 保留。VERSION 0.1.0→0.2.0。|
+| **工行** `com.icbc` | 移动银行网关 host = `https://wapb-btt-dmz-gnc.dccnet.com.cn`（dex 引用 20 次）+ `srs/epass/mims.icbc.com.cn`。但 body 经 `libicbcencryption`/`libnetsecsdk`/`libEncrypt` 加密+签名，且 DexHelper(SecNeo) 壳。 | ⛔ 银行仍只走 snapshot（host 仅供参考，cookie-api 无法在无原生签名下调用）。采集器不改。|
+| **中行** `com.chinamworld.bocmbci` | dex 明文里**只有推送 SDK host**（xiaomi/meizu/getui/weixin），无任何银行端点 —— SecNeo 壳全加密。**符合 §0 预判。** | ⛔ 放弃 live 抓包，仅 snapshot。采集器不改。|
+| **交管12123** `com.tmri.app.main` | host 早已确认 `https://{省}.122.gov.cn/app`（`assets/prov.json`，已提交 `ed42e398c`）。仅 1 个 dex、几乎无明文 URL，请求由 `libNetHTProtect.so` 原生构造 —— 违章/驾驶证子路径静态拿不到。 | host 已对，子路径需 live 抓包或原生 RE。采集器不改。|
+
+**教训：静态分析能确认/纠正 host 域名（i厦门/工行/12123），但凡是 body 经原生库加密（i厦门 libzxprotect / 工行 libicbcencryption / 12123 libNetHTProtect / 中行 SecNeo）的 App，确切子路径 + 字段名仍需 live hook。银行类一律 snapshot，不因拿到 host 就标 verified。**
+
 ## 4. 回填给我什么（**只要结构，脱敏**）
 
 每个抓到的请求，贴回：

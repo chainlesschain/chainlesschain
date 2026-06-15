@@ -4,12 +4,14 @@
  * ⚠️ BEST-EFFORT SCAFFOLD (user-requested). i 厦门 is a local-government
  * super-app (社保 / 公积金 / 医保 / 政务办事 / 预约) behind real-name gov SSO.
  * Unlike the document / shopping / travel adapters it has **no verifiable
- * public API** — the cookie-api endpoint below is a FABRICATED placeholder
- * (FAMILY-23 playbook: best-effort, overridable via opts.listUrl, NOT
- * field-verified) and cannot actually authenticate without gov real-name
- * login. The reliable path is therefore **snapshot mode** (the app / a manual
- * export produces a JSON of the user's 办事记录). The cookie path is kept as a
- * seam so it can be wired once a real device confirms the endpoint + sign.
+ * public API**. Static APK analysis (com.xmgov.xmapp, 2026-06-16) CONFIRMED the
+ * real backend host (see IXIAMEN_LIST_URL), but the exact 办事记录 list sub-path
+ * and request/response body stay UNVERIFIED — bodies are encrypted by
+ * libzxprotect/libijmDataEncryption, so the endpoint cannot be fully derived
+ * statically and cannot authenticate without gov real-name login. The reliable
+ * path is therefore **snapshot mode** (the app / a manual export produces a JSON
+ * of the user's 办事记录). The cookie path is kept as a seam (overridable via
+ * opts.listUrl) so it can be wired once a live capture confirms path + sign.
  *
  * Personal footprint modelled: 政务办事记录 (government-service handling). Each
  * record → an INTERACTION event ("办理: <服务名>") + a Topic for the service
@@ -42,15 +44,20 @@ const { ENTITY_TYPES, EVENT_SUBTYPES, CAPTURED_BY } = require("../../constants")
 const { CookieAuth } = require("../shopping-base");
 
 const NAME = "gov-ixiamen";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_SERVICE = "service";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_SERVICE]);
 
-// FABRICATED best-effort handle-list endpoint — NOT field-verified.
-// Overridable via opts.listUrl once a real device confirms the gov gateway.
-const IXIAMEN_LIST_URL = "https://app.ixm.gov.cn/api/v1/handle/list";
+// Host CONFIRMED via static APK analysis (com.xmgov.xmapp, 2026-06-16): the real
+// i厦门 backend domain is *.ixiamen.org.cn — production business gateway is
+// https://buss.ixiamen.org.cn/pbc/ (usercenter auth under /pbc/usercenter/;
+// 市民卡/社保 under https://smk.ixiamen.org.cn/smk/). The host + /pbc/ business
+// prefix are confirmed; the "/handle/list" tail is still BEST-EFFORT and the
+// request/response body is UNVERIFIED (encrypted by libzxprotect — opaque to
+// static analysis). Overridable via opts.listUrl once a live capture confirms it.
+const IXIAMEN_LIST_URL = "https://buss.ixiamen.org.cn/pbc/handle/list";
 const PAGE_SIZE = 20;
 
 // Coarse service-category keyword map → grouping Topic name. Best-effort; the
