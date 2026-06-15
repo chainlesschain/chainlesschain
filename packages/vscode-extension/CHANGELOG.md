@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.25.0] — 2026-06-15
+
+- **Fix: conversation tabs keep interactive cards alive across switches.** Each
+  inactive tab's transcript is now retained as detached DOM nodes instead of an
+  `innerHTML` string, so a pending approval card's Approve/Deny (and other in-place
+  buttons) still work after you switch tabs and come back.
+
 ## [0.24.0] — 2026-06-15
 
 - **CLI version-sync** — the extension and the `chainlesschain` CLI ship on
