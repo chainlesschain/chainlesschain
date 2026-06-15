@@ -88,9 +88,56 @@ describe("workflow-state-reader", () => {
     expect(data.mode.stage).toBe("plan");
   });
 
-  it("rejects unsafe sessionId", () => {
-    expect(() => readWorkflowSession(projectRoot, "../evil")).toThrow(
+  it("rejects unsafe sessionId (separators, dot-traversal, empty, non-string)", () => {
+    for (const bad of [
+      "../evil",
+      "..\\evil",
+      "a/b",
+      "a\\b",
+      "..", // single-component parent traversal
+      ".", // current-dir
+      "",
+      "  ",
+      "x y", // space not in charset
+    ]) {
+      expect(() => readWorkflowSession(projectRoot, bad)).toThrow(/sessionId/);
+    }
+    // non-string inputs
+    expect(() => readWorkflowSession(projectRoot, null)).toThrow(/sessionId/);
+    expect(() => readWorkflowSession(projectRoot, undefined)).toThrow(
       /sessionId/,
     );
+    expect(() => readWorkflowSession(projectRoot, 42)).toThrow(/sessionId/);
+  });
+
+  it("does not let `..` escape the sessions dir to read sibling files", () => {
+    // A file one level up from the sessions root — reachable only if `..`
+    // traversal were allowed. The guard must reject it instead of reading it.
+    const chainlessDir = path.join(projectRoot, ".chainlesschain");
+    fs.mkdirSync(chainlessDir, { recursive: true });
+    fs.writeFileSync(path.join(chainlessDir, "intent.md"), "SECRET", "utf-8");
+    expect(() => readWorkflowSession(projectRoot, "..")).toThrow(/sessionId/);
+  });
+
+  it("accepts dotted-but-safe ids (e.g. v1.2.3, my.session)", () => {
+    writeSession(projectRoot, "v1.2.3", { "intent.md": "ok" });
+    expect(readWorkflowSession(projectRoot, "v1.2.3").intent).toBe("ok");
+  });
+
+  it("treats a corrupt mode.json as null (does not throw)", () => {
+    writeSession(projectRoot, "broken", {
+      "intent.md": "# Intent",
+      "mode.json": "{ not valid json",
+    });
+    const data = readWorkflowSession(projectRoot, "broken");
+    expect(data.mode).toBe(null);
+    expect(listWorkflowSessions(projectRoot)[0].stage).toBe(null);
+  });
+
+  it("planApproved is false when plan.md has no frontmatter, null when absent", () => {
+    writeSession(projectRoot, "no-fm", { "plan.md": "# Plan without frontmatter" });
+    expect(readWorkflowSession(projectRoot, "no-fm").planApproved).toBe(false);
+    writeSession(projectRoot, "no-plan", { "intent.md": "x" });
+    expect(readWorkflowSession(projectRoot, "no-plan").planApproved).toBe(null);
   });
 });

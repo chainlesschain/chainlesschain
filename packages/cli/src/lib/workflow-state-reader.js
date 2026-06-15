@@ -19,7 +19,16 @@ import fs from "fs";
 import path from "path";
 
 function safeId(id) {
-  if (!id || typeof id !== "string" || !/^[A-Za-z0-9._-]+$/.test(id)) {
+  // Charset blocks path separators; the explicit "."/".." check closes the
+  // remaining single-component traversal (e.g. `..` would join to the parent
+  // of the sessions dir and read files outside it).
+  if (
+    !id ||
+    typeof id !== "string" ||
+    !/^[A-Za-z0-9._-]+$/.test(id) ||
+    id === "." ||
+    id === ".."
+  ) {
     throw new Error(`Invalid sessionId: "${id}"`);
   }
   return id;
