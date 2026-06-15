@@ -8,6 +8,9 @@ import com.chainlesschain.android.core.common.onError
 import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -35,14 +38,56 @@ class DebugVerifyActivity : ComponentActivity() {
     @Inject
     lateinit var friendRepository: FriendRepository
 
+    @Inject
+    lateinit var familyGroupRepository: FamilyGroupRepository
+
+    @Inject
+    lateinit var familyMembershipRepository: FamilyMembershipRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         when (val op = intent.getStringExtra("op")) {
             "add_friend" -> addFriend(intent.getStringExtra("did"))
             "check_friend" -> checkFriend(intent.getStringExtra("did"))
+            "family_selftest" -> familySelfTest()
             else -> {
                 log("unknown op: $op")
                 toast("[debug] unknown op: $op")
+                finish()
+            }
+        }
+    }
+
+    /**
+     * #3「家长端看不到家人」数据层的真机验证: 在真实 Room 里建组 + 落一个孩子 membership
+     * (这正是 P2P 同步到家长端后该发生的), 再 listAllByGroup 重读, 证孩子 membership 在真机
+     * 数据库持久且可被家人页查询取到。家人页的可见性合并 (buildState) 是 module 内 internal,
+     * 已由 FamilyMembersViewModelTest / FamilyTwoDeviceBindingTest 单测覆盖; 跨设备 P2P 投递
+     * 那一半需两台机。验完删测试组, 不污染真实家庭数据。
+     */
+    private fun familySelfTest() {
+        lifecycleScope.launch {
+            val parentDid = "did:key:zDbgParentSelf"
+            val childDid = "did:key:zDbgChildSelf"
+            val groupId = familyGroupRepository.create(name = "[debug]测试家庭", primaryDid = parentDid).id
+            try {
+                familyMembershipRepository.addMember(
+                    familyGroupId = groupId,
+                    memberDid = childDid,
+                    role = MemberRole.CHILD,
+                    guardianTier = null,
+                    deviceId = "dbg-child",
+                )
+                val memberships = familyMembershipRepository.listAllByGroup(groupId)
+                val dids = memberships.map { it.memberDid }
+                val childPersisted = dids.contains(childDid)
+                log("family_selftest group=$groupId memberships=${memberships.size} dids=$dids childPersisted=$childPersisted")
+                toast("[debug] 家庭成员落库 childPersisted=$childPersisted (n=${memberships.size})")
+            } catch (e: Exception) {
+                log("family_selftest failed: ${e.message}")
+                toast("[debug] family_selftest failed: ${e.message}")
+            } finally {
+                runCatching { familyGroupRepository.delete(groupId) }
                 finish()
             }
         }
