@@ -190,6 +190,9 @@ The bearer token is never displayed in any of these.
 - ✅ **Terminal-context sharing — `getTerminalOutput`** (0.23.0): the agent sees recent
   integrated-terminal commands + their output + exit code (VS Code 1.93+ shell
   integration), so it knows what you just ran and how it failed.
+- ✅ **CLI version-sync** (0.24.0): on activation, checks `cc --version` and offers a
+  one-click upgrade if your `chainlesschain` CLI is older than the extension needs —
+  keeps the extension and the npm CLI in step.
 
 ## Packaging
 

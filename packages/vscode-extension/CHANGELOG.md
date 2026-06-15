@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.24.0] — 2026-06-15
+
+- **CLI version-sync** — the extension and the `chainlesschain` CLI ship on
+  separate tracks (Open VSX vs npm), and newer panel features need a recent
+  enough `cc`. On activation the extension now checks `cc --version`; if it's
+  older than the extension needs, it offers a one-click **Upgrade cc** (runs
+  `npm i -g chainlesschain@latest` in a terminal) or **Don't show again**.
+  Best-effort and quiet when `cc` is up to date, missing, or unreadable.
+
 ## [0.23.0] — 2026-06-15
 
 - **Terminal-context sharing (Claude Code parity)** — a new `getTerminalOutput`
