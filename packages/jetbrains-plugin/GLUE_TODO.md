@@ -1,9 +1,16 @@
 # JetBrains glue TODO — wire the 0.22.0 pure layers into IntelliJ
 
-The pure logic for VS Code extension 0.22.0's four features is ported and tested
-(`com.chainlesschain.ide.{ConversationManager,PreviewDetect,MultiDiff}`,
-`PureLogicSmokeMain` — 56 assertions, `javac --release 8`). What's left is the
+The pure logic for VS Code extension 0.22.0's four features (+ the older-backlog
+@-mention completion) is ported and tested
+(`com.chainlesschain.ide.{ConversationManager,PreviewDetect,MultiDiff,Mentions}`,
+`PureLogicSmokeMain` — 81 assertions, `javac --release 8`). What's left is the
 **IntelliJ-SDK glue** in `com.chainlesschain.ide.intellij.*`.
+
+> 🚫 **RELEASE HELD (decided 2026-06-15).** Do NOT publish a JetBrains release for
+> these pure layers alone — they are internal logic with **no user-facing change**
+> until the glue below is wired. Bumping/tagging now would ship users nothing new.
+> **Cut the next `ide-jetbrains-v*` release only after the glue lands and is
+> sandbox-verified.** (The VS Code 0.22.0 features are already live on Open VSX.)
 
 > ⚠️ All of this is **SDK-gated**: it needs a Mac/Linux + IntelliJ Platform SDK
 > to `./gradlew buildPlugin` and `runIde` (can't build/verify on the current
@@ -76,7 +83,7 @@ New tool; `MultiDiff` model is ready.
 `ChatEvents.java` (all 11 kinds incl. `plan_update`→"plan",
 `approval_request/_resolved`→"approval"/"approval_done"); the `@`-mention
 completion logic (detect token, rank files, IDE pseudo-mentions, format/dedupe
-workspace symbols) is in `Mentions.java` (`1ef021c5x`). What remains is the IntelliJ
+workspace symbols) is in `Mentions.java` (`84a562149`). What remains is the IntelliJ
 **rendering/interaction** glue:
 
 - [ ] Plan card (items + Approve/Reject) rendered from the "plan" UI event.
@@ -90,15 +97,20 @@ workspace symbols) is in `Mentions.java` (`1ef021c5x`). What remains is the Inte
       to the input field's completion popup. (Pure logic done — just wire it.)
 - [ ] Keybindings: quick-launch tool window + insert `@file` reference.
 
-## Build / verify / publish
-- [ ] `./gradlew buildPlugin` (needs IntelliJ SDK) → `./gradlew runIde` sandbox, manually
-      exercise each feature (mandatory per `feedback_full_test_pyramid_before_publish`).
-- [ ] Bump plugin version; publish via `.github/workflows/ide-extensions.yml` JetBrains
-      job — tag `ide-jetbrains-v*` + `JETBRAINS_PUBLISH_TOKEN` secret.
+## Build / verify / publish — 🚫 HELD until the glue above lands
+**Release is on hold** (decided 2026-06-15): do not run the publish step until the
+sections 1–5 glue is implemented AND sandbox-verified. The pure layers alone change
+nothing for users, and the plugin can't even be built on the current Windows box.
+
+- [ ] (gate) Sections 1–5 glue implemented + manually verified in `./gradlew runIde`.
+- [ ] `./gradlew buildPlugin` (needs Mac/Linux + IntelliJ SDK) → `./gradlew runIde` sandbox,
+      manually exercise each feature (mandatory per `feedback_full_test_pyramid_before_publish`).
+- [ ] **Only then**: bump plugin version + publish via `.github/workflows/ide-extensions.yml`
+      JetBrains job — tag `ide-jetbrains-v*` + `JETBRAINS_PUBLISH_TOKEN` secret.
 
 ---
 
-_Pure layers landed `1ef021c52` (2026-06-15). VS Code reference: the same four
+_Pure layers landed `1ef021c52` + `84a562149` (2026-06-15). VS Code reference: the same four
 features shipped in extension 0.22.0 (see `packages/vscode-extension/src/`
 `chat/conversation-manager.js`, `preview.js`/`preview-detect.js`, `multi-diff.js`,
 `vscode-facade.js` `openMultiDiff`, and the `changes-requested` path in
