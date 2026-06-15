@@ -36,8 +36,13 @@ function buildChatHtml({ cspSource, nonce }) {
          display:flex; flex-direction:column; height:100vh; }
   #log { flex:1; overflow-y:auto; padding:8px; }
   .msg { margin:6px 0; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
-  .thinking { opacity:.55; font-style:italic; font-size:.92em;
+  .thinking { opacity:.6; font-size:.92em;
               border-left:2px solid var(--vscode-panel-border); padding-left:8px; }
+  .thinking > summary { cursor:pointer; font-style:italic; list-style:none; user-select:none; }
+  .thinking > summary::-webkit-details-marker { display:none; }
+  .thinking > summary::before { content:"💭 ▸ "; }
+  .thinking[open] > summary::before { content:"💭 ▾ "; }
+  .thinking .tbody { font-style:italic; white-space:pre-wrap; margin-top:2px; }
   .user { color: var(--vscode-textLink-foreground); }
   .user::before { content:"❯ "; opacity:.7; }
   .assistant { }
@@ -154,7 +159,8 @@ function buildChatHtml({ cspSource, nonce }) {
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
-  let thinkingEl = null; // dimmed reasoning block for this turn (extended thinking)
+  let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
+  let thinkingBody = null; // the body inside it where deltas are appended
   let lastSentText = ""; // last user prompt, for /retry (regenerate)
 
   // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
@@ -241,10 +247,34 @@ function buildChatHtml({ cspSource, nonce }) {
     }
     return streamEl;
   }
-  // Dimmed reasoning block for extended thinking (one per turn, above the answer).
+  // Collapsible reasoning block for extended thinking. A native <details> —
+  // expanded while it streams, click the summary to collapse; auto-collapsed
+  // when the action/answer arrives (see the tool/turn_end cases). Returns the
+  // body element where deltas are appended.
   function ensureThinking() {
-    if (!thinkingEl) thinkingEl = add("thinking", "💭 ");
-    return thinkingEl;
+    if (!thinkingBody) {
+      const details = document.createElement("details");
+      details.className = "msg thinking";
+      details.open = true;
+      const summary = document.createElement("summary");
+      summary.textContent = "thinking";
+      details.appendChild(summary);
+      const body = document.createElement("div");
+      body.className = "tbody";
+      details.appendChild(body);
+      log.appendChild(details);
+      log.scrollTop = log.scrollHeight;
+      thinkingEl = details;
+      thinkingBody = body;
+    }
+    return thinkingBody;
+  }
+  // Tuck a finished reasoning block away (collapse) and drop the refs so the
+  // next reasoning starts a fresh block.
+  function closeThinking() {
+    if (thinkingEl) thinkingEl.open = false;
+    thinkingEl = null;
+    thinkingBody = null;
   }
   // Add a Copy button to each fenced code block (Claude-Code panel parity).
   // Runs at the DOM level after mdLite renders, so md-lite stays a pure
@@ -536,6 +566,7 @@ function buildChatHtml({ cspSource, nonce }) {
       }
       case "tool":
         streamEl = null;
+        closeThinking(); // collapse the reasoning that led to this action
         add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
         break;
       case "tool_done":
@@ -555,7 +586,7 @@ function buildChatHtml({ cspSource, nonce }) {
           }
         }
         streamEl = null;
-        thinkingEl = null; // next turn starts a fresh reasoning block
+        closeThinking(); // tuck the reasoning away now that the answer is in
         status.textContent = m.usage
           ? "ready · " + (m.usage.input_tokens||0) + "→" + (m.usage.output_tokens||0) + " tokens"
           : "ready";
@@ -690,6 +721,7 @@ function buildChatHtml({ cspSource, nonce }) {
         if (activeTabId) tabNodes[activeTabId] = []; // forget this tab's transcript
         streamEl = null;
         thinkingEl = null;
+        thinkingBody = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
         ctxbar.textContent = ""; // drop the previous conversation's context line

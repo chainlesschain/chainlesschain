@@ -226,7 +226,8 @@ The bearer token is never displayed in any of these.
 - ✅ **Extended-thinking toggle + live reasoning** (0.30.0): `/think` on,
   `/ultrathink` max budget, `/think-off` off. Per conversation; respawns the
   agent with `--think`/`--ultrathink` (Anthropic only). When on, the model's
-  reasoning streams into a dimmed block above the answer.
+  reasoning streams into a dimmed, collapsible block above the answer
+  (auto-collapses once answered; click to re-open).
 - ✅ **Pending-approval tab dot** (0.30.0): an approval awaiting you in a background
   tab shows a blue dot (vs the green "done" dot) + a toast; switching to the tab
   re-surfaces the approval card.
