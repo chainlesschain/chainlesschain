@@ -2,6 +2,17 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-06-15 Release — **cc CLI 0.162.66: Claude-Code coding-loop parity — `cc review` (diff-first + `--fix`/`--comment`) + headless hardening + `cc insights` + global run/verify skills** (published to npm)
+
+> Closes the remaining high-value gaps vs the Claude Code CLI in one pass. `chainlesschain` 0.162.65 → 0.162.66 published to npm (global-install smoke: `cc review` / `cc insights` / new `cc agent` flags all pass).
+
+- **`cc review` — diff-first code review (`/code-review` parity)**: reviews working tree vs HEAD by default; `--staged` / `--base <ref>` (PR-style `base...HEAD`) / `--range A..B` / `--paths`, and inlines untracked new files; `low|medium|high` effort tiers; `--security` (/security-review) and `--simplify` (/simplify, cleanup-only) lenses. Read-only mode runs in plan permission (cannot edit) and emits a Markdown report; `--fix` runs acceptEdits + auto-checkpoint to apply fixes directly (each edit reversible via `cc checkpoint restore`); `--comment` parses machine-readable JSON findings and posts them as inline comments on the branch's PR via `gh` (`--dry-run` preview + interactive confirm).
+- **Headless hardening (unattended runs)**: `--max-budget-usd <amount>` hard spend cap (accumulates per-call cost from the cc cost price table and stops before the next paid call); `--strict-mcp-config` (use only `--mcp-config` servers, ignoring registered + IDE bridge — reproducible tool surface); `--replay-user-messages` (stream-input mode echoes user messages for transcript/correlation).
+- **`cc insights [id]` — session analysis report (`/insights` parity)**: turns / tool-call breakdown + error rate / duration / token usage + estimated $ cost, a pure JSONL review; better than `cc cost` — backfills the model from `session_start` to price headless sessions.
+- **Global `run` / `verify` skills**: a new `cli-bundled` skill layer (ships with the cc package), `run` (launch + drive the app per project type) + `verify` (observe real behavior → VERIFIED / NOT VERIFIED / BLOCKED verdict); placed in a CLI-owned layer rather than the desktop builtin, **leaving the desktop "144 skills" count untouched**.
+
+---
+
 ## 2026-06-14 Mainline — **Full-stack test-suite sweep + project-service export UTF-8 encoding bug** (rolls into the next release)
 
 - **Real bug fix**: `project-service` wrote ZIP export entries using the platform default charset (GBK on a GBK-default JVM), so a project containing Chinese content could not be re-imported by the UTF-8 import side (`MalformedInputException`). Now always UTF-8, with a null file body written as an empty entry instead of an NPE.
