@@ -895,6 +895,7 @@ export async function startAgentRepl(options = {}) {
       "/ide",
       "/mcp",
       "/memory",
+      "/microcompact",
       "/model",
       "/output-style",
       "/permissions",
@@ -1343,6 +1344,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/microcompact")} Trim large OLD tool results in place (keeps recent + flow)`,
       );
       logger.log(
         `  ${chalk.cyan("/task")}       Set task objective (/task <objective>)`,
@@ -1874,6 +1878,27 @@ export async function startAgentRepl(options = {}) {
         messages.length = 0;
         messages.push(systemMsg, ...recent);
         logger.info("Compacted to last 4 messages");
+      }
+      prompt();
+      return;
+    }
+
+    // Micro-compaction: surgically trim large OLD tool results in place (keeps
+    // recent messages + the conversation flow). Safe (never orphans a tool
+    // pair); cheaper + less lossy than a full /compact.
+    if (trimmed === "/microcompact") {
+      const { microCompact } = await import("../lib/micro-compact.js");
+      const { messages: mc, stats } = microCompact(messages);
+      if (stats.trimmed > 0) {
+        messages.length = 0;
+        messages.push(...mc);
+        logger.info(
+          `Micro-compacted: trimmed ${stats.trimmed} old tool result(s), ~${stats.saved} chars freed (recent messages kept).`,
+        );
+      } else {
+        logger.info(
+          "Nothing to micro-compact — no large old tool results in context.",
+        );
       }
       prompt();
       return;
