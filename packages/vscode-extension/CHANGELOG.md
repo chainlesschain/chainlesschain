@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.26.0] — 2026-06-15
+
+- **`ChainlessChain: Upgrade CLI` command** — a command-palette action that runs
+  `npm i -g chainlesschain@latest` in a terminal, so you can update the `cc` CLI
+  from the IDE **on demand** — any time, not only when the version-sync check
+  detects you're below the minimum.
+
 ## [0.25.0] — 2026-06-15
 
 - **Fix: conversation tabs keep interactive cards alive across switches.** Each

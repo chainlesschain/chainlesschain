@@ -193,6 +193,8 @@ The bearer token is never displayed in any of these.
 - ✅ **CLI version-sync** (0.24.0): on activation, checks `cc --version` and offers a
   one-click upgrade if your `chainlesschain` CLI is older than the extension needs —
   keeps the extension and the npm CLI in step.
+- ✅ **`ChainlessChain: Upgrade CLI` command** (0.26.0): command-palette action to run
+  `npm i -g chainlesschain@latest` on demand — update `cc` from the IDE any time.
 
 ## Packaging
 
