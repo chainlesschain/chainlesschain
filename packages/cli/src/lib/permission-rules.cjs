@@ -13,6 +13,11 @@
  *   Read(./src/**)        → read_file/list_dir on a path under <cwd>/src
  *   Edit(//etc/**)        → edit_file on an absolute path under /etc
  *   WebFetch(domain:example.com) → web_fetch of https://example.com/…
+ *   Bash(command:rm*)     → run_shell whose `command` arg matches `rm*` (CC
+ *                           2.1.178 `Tool(param:value)` — matches any named
+ *                           input parameter, incl. arbitrary MCP tool args;
+ *                           `*` crosses `/` here, unlike path globs)
+ *   mcp__db__query(table:users) → that MCP tool whose `table` arg is "users"
  *   Bash                  → every run_shell call
  *   *                     → every tool call (Claude-Code deny-all idiom)
  *   Bash(*)               → every run_shell call (lone-`*` pattern = match-all)
@@ -197,6 +202,30 @@ function matchUrl(pattern, url) {
   return globToRegExp(pattern).test(u);
 }
 
+/** Match a single named-parameter value — `Tool(param:value)`. `prefix:*` →
+ *  starts-with; otherwise glob/exact. Unlike path globs, `*` here crosses `/`
+ *  because param values are arbitrary strings (commands often embed paths),
+ *  not filesystem path segments. */
+function matchParamValue(pattern, value) {
+  const v = value == null ? "" : String(value);
+  if (pattern === "*" || pattern === "**") return true;
+  if (pattern.endsWith(":*")) {
+    const prefix = pattern.slice(0, -2).trim();
+    return v === prefix || v.startsWith(prefix);
+  }
+  if (pattern.includes("*") || pattern.includes("?")) {
+    const re =
+      "^" +
+      pattern
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*")
+        .replace(/\?/g, ".") +
+      "$";
+    return new RegExp(re).test(v);
+  }
+  return v === pattern;
+}
+
 /**
  * Does `pattern` (the inside of `Tool(...)`, or null for a bare rule) match the
  * given tool call? `null` pattern always matches.
@@ -208,6 +237,15 @@ function matchPattern(pattern, actualTool, args, cwd) {
   // command/url/path containing `/` can't slip past a deny-all (globToRegExp's
   // `*` → `[^/]*` otherwise excludes slashes).
   if (pattern === "*" || pattern === "**") return true;
+  // Claude-Code 2.1.178: `Tool(param:value)` matches a NAMED input parameter,
+  // generalizing the positional command/path/url targets below. Treated as a
+  // param rule only when `param` is a bare identifier AND an actual key in the
+  // tool's args — so command idioms (`git push:*`) and `domain:host` (whose
+  // prefix is not an arg key) correctly fall through to the matching below.
+  const pv = pattern.match(/^([A-Za-z_]\w*):([\s\S]*)$/);
+  if (pv && Object.prototype.hasOwnProperty.call(args || {}, pv[1])) {
+    return matchParamValue(pv[2].trim(), (args || {})[pv[1]]);
+  }
   const target = extractTarget(actualTool, args, cwd);
   if (target.kind === "command") {
     return target.value ? matchCommand(pattern, target.value) : false;
@@ -328,6 +366,7 @@ module.exports = {
   extractTarget,
   matchCommand,
   matchUrl,
+  matchParamValue,
   matchPattern,
   evaluatePermissionRules,
   suggestAllowRule,

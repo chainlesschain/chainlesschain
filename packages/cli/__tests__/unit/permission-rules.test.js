@@ -14,6 +14,7 @@ const {
   toolMatches,
   globToRegExp,
   matchCommand,
+  matchParamValue,
   matchPattern,
   evaluatePermissionRules,
   suggestAllowRule,
@@ -325,5 +326,76 @@ describe("suggestAllowRule (always-allow derivation)", () => {
       rules: { allow: [rule] },
     });
     expect(r.decision).toBe("allow");
+  });
+});
+
+describe("Tool(param:value) — named input-parameter matching (CC 2.1.178)", () => {
+  it("matches a named param by exact value", () => {
+    expect(
+      matchPattern("command:git status", "run_shell", {
+        command: "git status",
+      }),
+    ).toBe(true);
+    expect(
+      matchPattern("command:git status", "run_shell", { command: "git log" }),
+    ).toBe(false);
+  });
+
+  it("matches a named param with a glob and prefix:* form", () => {
+    expect(
+      matchPattern("command:git*", "run_shell", { command: "git push" }),
+    ).toBe(true);
+    expect(
+      matchPattern("command:npm:*", "run_shell", { command: "npm run build" }),
+    ).toBe(true);
+    expect(
+      matchPattern("command:git*", "run_shell", { command: "npm test" }),
+    ).toBe(false);
+  });
+
+  it("works on arbitrary tools / MCP params (not just command/path/url)", () => {
+    expect(
+      matchPattern("table:users", "mcp__db__query", { table: "users" }),
+    ).toBe(true);
+    expect(
+      matchPattern("table:users", "mcp__db__query", { table: "orders" }),
+    ).toBe(false);
+  });
+
+  it("falls through to command matching when prefix is NOT an arg key", () => {
+    // `git push:*` — "git" then a space, so not a `param:` token at all
+    expect(
+      matchPattern("git push:*", "run_shell", { command: "git push origin" }),
+    ).toBe(true);
+  });
+
+  it("does not hijack WebFetch domain: (domain is not an arg key)", () => {
+    expect(
+      matchPattern("domain:example.com", "web_fetch", {
+        url: "https://example.com/x",
+      }),
+    ).toBe(true);
+    expect(
+      matchPattern("domain:example.com", "web_fetch", {
+        url: "https://evil.test/x",
+      }),
+    ).toBe(false);
+  });
+
+  it("end-to-end via evaluatePermissionRules (deny a specific param value)", () => {
+    const r = evaluatePermissionRules({
+      tool: "run_shell",
+      args: { command: "rm -rf /tmp/x" },
+      rules: { deny: ["Bash(command:rm*)"], allow: ["Bash"] },
+    });
+    expect(r.decision).toBe("deny");
+    expect(r.rule).toBe("Bash(command:rm*)");
+  });
+
+  it("matchParamValue handles null/glob/exact", () => {
+    expect(matchParamValue("*", null)).toBe(true);
+    expect(matchParamValue("a*", "abc")).toBe(true);
+    expect(matchParamValue("abc", "abc")).toBe(true);
+    expect(matchParamValue("abc", "abd")).toBe(false);
   });
 });
