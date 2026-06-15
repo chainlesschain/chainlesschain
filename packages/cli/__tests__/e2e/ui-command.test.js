@@ -92,13 +92,16 @@ function startUiServer({ httpPort, wsPort, cwd } = {}) {
       reject(err);
     });
 
-    // Fallback timeout — cleared once the server signals readiness
+    // Fallback timeout — cleared once the server signals readiness.
+    // Sized well under the 30s hookTimeout: a cold `cc ui` start (full CLI
+    // bundle + DB init) is ~3s standalone but can balloon past 10s under the
+    // singleFork e2e load, so give it generous headroom before giving up.
     fallbackTimer = setTimeout(() => {
       fallbackTimer = null;
       if (!proc.killed) {
         resolve({ proc, port: httpPort, output });
       }
-    }, 8000);
+    }, 25000);
   });
 }
 

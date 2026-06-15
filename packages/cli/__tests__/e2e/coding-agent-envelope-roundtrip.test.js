@@ -38,7 +38,9 @@ function startServer(port) {
   });
 }
 
-async function waitForReady(port, timeoutMs = 10000) {
+// Default sized for cold WS-server start under the singleFork e2e load, which
+// can exceed 10s on Windows; stays well within the 60s per-test timeout.
+async function waitForReady(port, timeoutMs = 25000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {

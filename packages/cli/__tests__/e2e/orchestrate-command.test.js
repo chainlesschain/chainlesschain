@@ -179,7 +179,10 @@ describe("E2E: orchestrate --no-ci --provider ollama", () => {
     expect(out.stderr).not.toMatch(
       /UnhandledPromiseRejection|Segmentation fault|FATAL ERROR/i,
     );
-  }, 20000);
+    // Test budget must exceed the child command's own 30s timeout above —
+    // otherwise vitest kills the test before the child's timeout-kill path can
+    // run, especially when cold-start is slow under the singleFork e2e load.
+  }, 40000);
 });
 
 // ─── Webhook server startup ───────────────────────────────────────

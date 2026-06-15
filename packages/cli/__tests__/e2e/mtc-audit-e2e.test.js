@@ -175,7 +175,10 @@ describe("E2E: cc audit mtc — full crypto chain across processes", () => {
     expect(check.found).toBe(true);
     expect(check.batchId).toBe("000001");
     expect(check.treeHeadId).toBe(rec.treeHeadId);
-  });
+    // Heavy multi-process flow: 6 sequential CLI cold-starts (enable + 3 emit +
+    // reconcile + reconcile-check), each ~3s standalone but far slower under the
+    // singleFork e2e load — allow ample headroom over the 60s global timeout.
+  }, 120000);
 
   it("disabled emit fails fast (no staging file written)", () => {
     // No `enable` call — config defaults to enabled=false

@@ -60,9 +60,11 @@ function startUiServer({ httpPort, wsPort, cwd, extraArgs = [] } = {}) {
     proc.on("error", reject);
 
     setTimeout(() => {
-      // Fallback: resolve even if URL line not seen yet
+      // Fallback: resolve even if URL line not seen yet. Sized well under the
+      // 30s hookTimeout — a cold `cc ui` start can exceed 10s under the
+      // singleFork e2e load, so allow generous headroom before giving up.
       resolve({ proc, port: httpPort, output });
-    }, 10000);
+    }, 25000);
   });
 }
 
