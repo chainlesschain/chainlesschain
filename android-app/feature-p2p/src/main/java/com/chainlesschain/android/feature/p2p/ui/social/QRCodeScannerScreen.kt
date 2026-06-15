@@ -235,19 +235,52 @@ private fun CameraPreview(
                         preview,
                         imageAnalysis
                     )
+                    android.util.Log.i(
+                        "CC_SCAN_DIAG",
+                        "camera bound: hasFlash=${camera.cameraInfo.hasFlashUnit()} " +
+                            "sensorRotation=${camera.cameraInfo.sensorRotationDegrees}",
+                    )
                     // 屏对屏二维码必须主动对焦 (默认 3A 常对不上); 中心持续 AF + 点按对焦。
-                    previewView.post {
-                        val w = previewView.width.toFloat()
-                        val h = previewView.height.toFloat()
-                        if (w > 0f && h > 0f) {
-                            val center = previewView.meteringPointFactory.createPoint(w / 2f, h / 2f)
-                            val act = androidx.camera.core.FocusMeteringAction
-                                .Builder(center, androidx.camera.core.FocusMeteringAction.FLAG_AF)
-                                .setAutoCancelDuration(2, java.util.concurrent.TimeUnit.SECONDS)
-                                .build()
-                            runCatching { camera.cameraControl.startFocusAndMetering(act) }
+                    // 用 SurfaceOrientedMeteringPointFactory (分辨率无关, 不依赖 PreviewView 布局时机),
+                    // 取消 autoCancel (让对焦保持), 并把 AF 结果打到 logcat 诊断真机为何不对焦。
+                    val mpFactory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(1f, 1f)
+                    fun triggerCenterFocus() {
+                        val center = mpFactory.createPoint(0.5f, 0.5f)
+                        val act = androidx.camera.core.FocusMeteringAction
+                            .Builder(center, androidx.camera.core.FocusMeteringAction.FLAG_AF)
+                            .build()
+                        runCatching {
+                            val future = camera.cameraControl.startFocusAndMetering(act)
+                            future.addListener({
+                                runCatching {
+                                    val r = future.get()
+                                    android.util.Log.i("CC_SCAN_DIAG", "AF result focusSuccessful=${r.isFocusSuccessful}")
+                                }.onFailure {
+                                    android.util.Log.w("CC_SCAN_DIAG", "AF future failed: ${it.message}")
+                                }
+                            }, ContextCompat.getMainExecutor(ctx))
+                        }.onFailure {
+                            android.util.Log.w("CC_SCAN_DIAG", "startFocusAndMetering threw: ${it.message}")
                         }
                     }
+                    previewView.post { triggerCenterFocus() }
+                    // 周期性强制重新对焦: 部分设备 (尤其 MIUI) 即便设了 CONTINUOUS_PICTURE 也不会
+                    // 持续刷新焦点; 每 2s 主动扫一次中心 AF, 视图移除即停止, 不泄漏。
+                    val focusHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                    val periodicFocus = object : Runnable {
+                        override fun run() {
+                            if (!previewView.isAttachedToWindow) return
+                            triggerCenterFocus()
+                            focusHandler.postDelayed(this, 2000L)
+                        }
+                    }
+                    focusHandler.postDelayed(periodicFocus, 2000L)
+                    previewView.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+                        override fun onViewAttachedToWindow(v: android.view.View) {}
+                        override fun onViewDetachedFromWindow(v: android.view.View) {
+                            focusHandler.removeCallbacks(periodicFocus)
+                        }
+                    })
                     previewView.setOnTouchListener { v, event ->
                         if (event.action == android.view.MotionEvent.ACTION_UP) {
                             val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)
@@ -286,6 +319,7 @@ private class QRCodeAnalyzer(
     private val scanner = BarcodeScanning.getClient()
     private var lastScanTime = 0L
     private val scanThrottle = 1000L // 1秒扫描一次，避免重复
+    private var frameCount = 0
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
@@ -299,6 +333,16 @@ private class QRCodeAnalyzer(
                 return
             }
 
+            frameCount++
+            // 每 ~15 帧打一次诊断: 证明帧确实在到达分析器 + 尺寸。扫不上时看 logcat 区分
+            // "没帧到" / "帧到但 ML Kit 识不出 (多半是没对焦/模糊)"。
+            if (frameCount % 15 == 1) {
+                android.util.Log.i(
+                    "CC_SCAN_DIAG",
+                    "analyze frame#$frameCount size=${mediaImage.width}x${mediaImage.height} rot=${imageProxy.imageInfo.rotationDegrees}",
+                )
+            }
+
             val image = InputImage.fromMediaImage(
                 mediaImage,
                 imageProxy.imageInfo.rotationDegrees
@@ -306,18 +350,21 @@ private class QRCodeAnalyzer(
 
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
+                    if (barcodes.isNotEmpty()) {
+                        android.util.Log.i("CC_SCAN_DIAG", "ML Kit detected ${barcodes.size} barcode(s)")
+                    }
                     // 不按 valueType 过滤: DID/JSON/base64 等常被 ML Kit 归为 TYPE_UNKNOWN,
                     // 之前只收 TEXT/URL 会把有效配对/好友码静默丢弃 → 表现为"扫不上"。
                     for (barcode in barcodes) {
                         barcode.rawValue?.let { qrCode ->
                             lastScanTime = currentTime
                             onQRCodeDetected(qrCode)
-                            Timber.d("QR code detected: $qrCode")
+                            android.util.Log.i("CC_SCAN_DIAG", "QR decoded len=${qrCode.length}")
                         }
                     }
                 }
                 .addOnFailureListener { e ->
-                    Timber.e(e, "Barcode scanning failed")
+                    android.util.Log.w("CC_SCAN_DIAG", "ML Kit process failed: ${e.message}")
                 }
                 .addOnCompleteListener {
                     imageProxy.close()

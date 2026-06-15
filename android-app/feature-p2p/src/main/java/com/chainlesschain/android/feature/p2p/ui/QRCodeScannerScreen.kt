@@ -210,7 +210,7 @@ fun CameraPreview(
  * QR / 反光屏上常对不上, 表现为"需完全对齐才扫得到"。
  */
 private fun enableContinuousAndTapFocus(previewView: PreviewView, camera: androidx.camera.core.Camera) {
-    previewView.post {
+    fun triggerCenterFocus() {
         val w = previewView.width.toFloat()
         val h = previewView.height.toFloat()
         if (w > 0f && h > 0f) {
@@ -222,6 +222,25 @@ private fun enableContinuousAndTapFocus(previewView: PreviewView, camera: androi
             runCatching { camera.cameraControl.startFocusAndMetering(action) }
         }
     }
+    previewView.post { triggerCenterFocus() }
+    // 周期性强制重新对焦: 部分设备 (尤其 MIUI) 即便设了 CONTINUOUS_PICTURE 也不会在屏对屏
+    // 小二维码场景持续刷新焦点, 表现为"对不上 / 需完全对齐"。每 2s 主动扫一次中心 AF;
+    // 视图从窗口移除即停止 (随扫描页销毁), 不泄漏。
+    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    val periodicFocus = object : Runnable {
+        override fun run() {
+            if (!previewView.isAttachedToWindow) return
+            triggerCenterFocus()
+            handler.postDelayed(this, 2000L)
+        }
+    }
+    handler.postDelayed(periodicFocus, 2000L)
+    previewView.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: android.view.View) {}
+        override fun onViewDetachedFromWindow(v: android.view.View) {
+            handler.removeCallbacks(periodicFocus)
+        }
+    })
     previewView.setOnTouchListener { v, event ->
         if (event.action == android.view.MotionEvent.ACTION_UP) {
             val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)
@@ -265,32 +284,42 @@ class QRCodeAnalyzer(
 
             // 关键修复: YUV plane 每行有 padding (rowStride 通常 > width), 必须用 rowStride
             // 作 dataWidth, 否则逐行错位→需"完全对齐"才偶尔扫中。crop 区仍是真实 width×height。
-            val rowStride = plane.rowStride
-            val source = PlanarYUVLuminanceSource(
-                bytes,
-                rowStride,
-                mediaImage.height,
-                0,
-                0,
-                mediaImage.width,
-                mediaImage.height,
-                false
+            val text = decodeQrLuminance(
+                reader = reader,
+                luminance = bytes,
+                rowStride = plane.rowStride,
+                width = mediaImage.width,
+                height = mediaImage.height,
             )
-
-            val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
-
-            try {
-                // decodeWithState 复用上面 setHints 的 TRY_HARDER 配置 (decode() 会忽略它)。
-                val result = reader.decodeWithState(binaryBitmap)
-                onQRCodeScanned(result.text)
-            } catch (e: Exception) {
-                // No QR code found
-            } finally {
-                reader.reset()
-            }
+            if (text != null) onQRCodeScanned(text)
         }
 
         imageProxy.close()
+    }
+}
+
+/**
+ * 纯解码 helper: 从单通道亮度字节 (Y plane, 每行 [rowStride] 字节含 padding) 解 QR。
+ *
+ * 抽出来便于单元测试 #2 的 rowStride 修复 (无需 android.media.Image)。**dataWidth 必须传
+ * [rowStride] (含 padding), 否则逐行错位→需"完全对齐"才偶尔扫中**; crop 区仍是真实
+ * [width]×[height]。[reader] 复用其 setHints 的 TRY_HARDER 配置 (decode() 会忽略 hints)。
+ */
+internal fun decodeQrLuminance(
+    reader: MultiFormatReader,
+    luminance: ByteArray,
+    rowStride: Int,
+    width: Int,
+    height: Int,
+): String? {
+    val source = PlanarYUVLuminanceSource(luminance, rowStride, height, 0, 0, width, height, false)
+    val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+    return try {
+        reader.decodeWithState(binaryBitmap).text
+    } catch (e: Exception) {
+        null
+    } finally {
+        reader.reset()
     }
 }
 
