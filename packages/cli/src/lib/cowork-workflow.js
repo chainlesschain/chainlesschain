@@ -36,6 +36,9 @@ import { evaluate as evalExpr, resolveReference } from "./workflow-expr.js";
 /** Maximum number of items a single forEach step can expand into. */
 export const MAX_FAN_OUT = 500;
 
+/** Absolute ceiling on a single loop step's iterations (infinite-loop guard). */
+export const MAX_LOOP_ITERATIONS = 100;
+
 export const _deps = {
   existsSync,
   mkdirSync,
@@ -140,6 +143,28 @@ export function validateWorkflow(wf) {
         errors.push(
           `steps[${i}].retryBackoff must be "fixed" or "exponential"`,
         );
+      }
+      const hasWhile = s.loopWhile !== undefined;
+      const hasUntil = s.loopUntil !== undefined;
+      if (hasWhile && typeof s.loopWhile !== "string") {
+        errors.push(`steps[${i}].loopWhile must be a string expression`);
+      }
+      if (hasUntil && typeof s.loopUntil !== "string") {
+        errors.push(`steps[${i}].loopUntil must be a string expression`);
+      }
+      if (hasWhile && hasUntil) {
+        errors.push(`steps[${i}] cannot set both loopWhile and loopUntil`);
+      }
+      if ((hasWhile || hasUntil) && s.forEach !== undefined) {
+        errors.push(`steps[${i}] cannot combine a loop with forEach`);
+      }
+      if (
+        s.maxIterations !== undefined &&
+        (typeof s.maxIterations !== "number" ||
+          !Number.isInteger(s.maxIterations) ||
+          s.maxIterations <= 0)
+      ) {
+        errors.push(`steps[${i}].maxIterations must be a positive integer`);
       }
     }
     // Check dependsOn references exist
@@ -457,6 +482,149 @@ function _withAttempts(result, attempts) {
   return result;
 }
 
+/** Build a single-step outcome object from a `runStepWithRetry` result. */
+function outcomeFromRetry(recordId, r) {
+  if (r.ok || r.entry) {
+    return {
+      id: recordId,
+      status: r.entry.status,
+      taskId: r.entry.taskId,
+      result: _withAttempts(r.entry.result, r.attempts),
+    };
+  }
+  return {
+    id: recordId,
+    status: "failed",
+    taskId: null,
+    result: _withAttempts(
+      { summary: `Step threw: ${r.error.message}` },
+      r.attempts,
+    ),
+  };
+}
+
+// ─── while / until loop nodes ──────────────────────────────────────────────────
+
+/** True when a step is a loop node (`loopWhile` or `loopUntil`). */
+export function isLoopStep(step) {
+  return step.loopWhile !== undefined || step.loopUntil !== undefined;
+}
+
+/** Resolve a loop step's iteration cap, clamped to MAX_LOOP_ITERATIONS. */
+export function loopIterationCap(step) {
+  const m = Number(step.maxIterations);
+  if (Number.isFinite(m) && m > 0) {
+    return Math.min(Math.floor(m), MAX_LOOP_ITERATIONS);
+  }
+  return MAX_LOOP_ITERATIONS;
+}
+
+/**
+ * Substitute loop-local tokens in a message template: `${iter}` → the 1-based
+ * iteration number, `${self.<field>}` → the step's own most-recent iteration
+ * result (empty on the first iteration). Other `${step.<id>.<field>}` tokens
+ * are left for `substitutePlaceholders`.
+ */
+export function substituteLoopVars(template, { stepId, iter, resultsById }) {
+  if (typeof template !== "string") return template;
+  let out = template.replace(/\$\{iter\}/g, String(iter));
+  out = out.replace(/\$\{self\.([\w-]+)\}/g, (_, field) => {
+    const entry = resultsById?.get?.(stepId);
+    if (!entry) return "";
+    if (field === "summary") return entry.result?.summary ?? "";
+    if (field === "status") return entry.status ?? "";
+    if (field === "taskId") return entry.taskId ?? "";
+    if (field === "iterations") return String(entry.result?.iterations ?? 0);
+    if (field === "tokenCount") return String(entry.result?.tokenCount ?? 0);
+    const v = entry.result?.[field];
+    return v == null ? "" : String(v);
+  });
+  return out;
+}
+
+/**
+ * Evaluate whether a loop step should run another iteration (post-test). The
+ * condition may reference `${self.<field>}` (the just-stored iteration result)
+ * and `${iter}`. `loopWhile` continues while the expression is true; `loopUntil`
+ * continues until it becomes true. Throws on a malformed expression.
+ */
+export function evalLoopContinue(step, { stepId, iter, resultsById }) {
+  const isWhile = step.loopWhile !== undefined;
+  const expr = isWhile ? step.loopWhile : step.loopUntil;
+  const subst = String(expr)
+    .replace(/\$\{iter\}/g, String(iter))
+    .replace(/\$\{self\.([\w-]+)\}/g, (_, f) => `\${step.${stepId}.${f}}`);
+  const val = evalExpr(subst, { step: resultsById });
+  return isWhile ? val === true : val !== true;
+}
+
+/**
+ * Run a loop step: repeat its task until the `loopWhile`/`loopUntil` condition
+ * says to stop, a failing iteration aborts it, or the iteration cap is hit.
+ * Each iteration inherits the step's retry/timeout config. The final result
+ * carries `iterations`, `loopExhausted`, and `loopStop` (`condition`|`cap`|
+ * `failed`|`bad-condition`).
+ */
+export async function runLoopStep({
+  step,
+  recordId,
+  cwd,
+  llmOptions,
+  resultsById,
+}) {
+  const cap = loopIterationCap(step);
+  let last = null;
+  let iterations = 0;
+  let stopReason = "cap";
+  for (let iter = 1; iter <= cap; iter++) {
+    iterations = iter;
+    const withSelf = substituteLoopVars(step.message, {
+      stepId: recordId,
+      iter,
+      resultsById,
+    });
+    const message = substitutePlaceholders(withSelf, resultsById);
+    const r = await runStepWithRetry({ step, message, cwd, llmOptions });
+    last = outcomeFromRetry(recordId, r);
+    resultsById.set(recordId, last);
+    if (last.status === "failed") {
+      stopReason = "failed";
+      break;
+    }
+    let cont;
+    try {
+      cont = evalLoopContinue(step, { stepId: recordId, iter, resultsById });
+    } catch (err) {
+      last = {
+        id: recordId,
+        status: "failed",
+        taskId: null,
+        result: {
+          summary: `invalid loop condition on '${recordId}': ${err.message}`,
+        },
+      };
+      resultsById.set(recordId, last);
+      stopReason = "bad-condition";
+      break;
+    }
+    if (!cont) {
+      stopReason = "condition";
+      break;
+    }
+  }
+  return {
+    id: recordId,
+    status: last ? last.status : "skipped",
+    taskId: last?.taskId ?? null,
+    result: {
+      ...(last?.result || {}),
+      iterations,
+      loopExhausted: stopReason === "cap",
+      loopStop: stopReason,
+    },
+  };
+}
+
 // ─── Execution ───────────────────────────────────────────────────────────────
 
 /**
@@ -467,6 +635,13 @@ function _withAttempts(result, attempts) {
  * the first; non-negative integer), `timeoutMs` (per-attempt timeout, positive
  * number), `retryDelayMs` (base delay before each retry, non-negative number),
  * `retryBackoff` (`"fixed"` (default) or `"exponential"`).
+ *
+ * Loop nodes (optional, mutually exclusive with `forEach`): `loopWhile` /
+ * `loopUntil` (a `workflow-expr` condition that may reference `${self.<field>}`
+ * — the step's own latest iteration result — and `${iter}`) repeat the step's
+ * task (post-test) until the condition stops it, an iteration fails, or
+ * `maxIterations` (≤ MAX_LOOP_ITERATIONS) is hit. Each iteration inherits the
+ * step's retry/timeout config.
  *
  * @param {object} options
  * @param {object} options.workflow - Workflow definition
@@ -559,6 +734,18 @@ export async function executeWorkflow(options = {}) {
           preOutcomes.push(outcome);
           continue;
         }
+        // loop node — runs its body repeatedly; per-iteration substitution
+        // happens inside runLoopStep, so push the raw template.
+        if (isLoopStep(step)) {
+          runnable.push({
+            step,
+            message: step.message,
+            recordId: step.id,
+            parentId: null,
+            isLoop: true,
+          });
+          continue;
+        }
         // forEach-expansion
         if (step.forEach !== undefined) {
           let items;
@@ -604,43 +791,33 @@ export async function executeWorkflow(options = {}) {
         runnable.push({ step, message, recordId: step.id, parentId: null });
       }
 
-      const promises = runnable.map(async ({ step, message, recordId }) => {
-        if (onStepStart) onStepStart({ stepId: recordId, message });
-        const r = await runStepWithRetry({ step, message, cwd, llmOptions });
-        let outcome;
-        if (r.ok) {
-          outcome = {
-            id: recordId,
-            status: r.entry.status,
-            taskId: r.entry.taskId,
-            result: _withAttempts(r.entry.result, r.attempts),
-          };
-        } else if (r.entry) {
-          // Ran but never reached "completed" across all attempts.
-          anyFailure = true;
-          outcome = {
-            id: recordId,
-            status: r.entry.status,
-            taskId: r.entry.taskId,
-            result: _withAttempts(r.entry.result, r.attempts),
-          };
-        } else {
-          // Threw or timed out on every attempt.
-          anyFailure = true;
-          outcome = {
-            id: recordId,
-            status: "failed",
-            taskId: null,
-            result: _withAttempts(
-              { summary: `Step threw: ${r.error.message}` },
-              r.attempts,
-            ),
-          };
-        }
-        resultsById.set(recordId, outcome);
-        if (onStepComplete) onStepComplete(outcome);
-        return outcome;
-      });
+      const promises = runnable.map(
+        async ({ step, message, recordId, isLoop }) => {
+          if (onStepStart) onStepStart({ stepId: recordId, message });
+          let outcome;
+          if (isLoop) {
+            outcome = await runLoopStep({
+              step,
+              recordId,
+              cwd,
+              llmOptions,
+              resultsById,
+            });
+          } else {
+            const r = await runStepWithRetry({
+              step,
+              message,
+              cwd,
+              llmOptions,
+            });
+            outcome = outcomeFromRetry(recordId, r);
+          }
+          if (outcome.status !== "completed") anyFailure = true;
+          resultsById.set(recordId, outcome);
+          if (onStepComplete) onStepComplete(outcome);
+          return outcome;
+        },
+      );
 
       const results = await Promise.all(promises);
       stepOutcomes.push(...preOutcomes, ...results);

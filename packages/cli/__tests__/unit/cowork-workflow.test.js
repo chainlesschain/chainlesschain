@@ -16,7 +16,13 @@ import {
   retryDelayFor,
   withTimeout,
   runStepWithRetry,
+  isLoopStep,
+  loopIterationCap,
+  substituteLoopVars,
+  evalLoopContinue,
+  runLoopStep,
   MAX_FAN_OUT,
+  MAX_LOOP_ITERATIONS,
   _deps,
 } from "../../src/lib/cowork-workflow.js";
 
@@ -831,5 +837,270 @@ describe("executeWorkflow retry/timeout integration", () => {
     } finally {
       _deps.setTimeout = origSetTimeout;
     }
+  });
+});
+
+// ─── while / until loop nodes ─────────────────────────────────────────────────
+
+describe("validateWorkflow accepts loop fields", () => {
+  const wfWith = (extra) => ({
+    id: "w",
+    name: "W",
+    steps: [{ id: "a", message: "x", ...extra }],
+  });
+  it("accepts loopUntil + maxIterations", () => {
+    expect(
+      validateWorkflow(
+        wfWith({
+          loopUntil: "${self.status} == 'completed'",
+          maxIterations: 5,
+        }),
+      ).valid,
+    ).toBe(true);
+  });
+  it("accepts loopWhile", () => {
+    expect(validateWorkflow(wfWith({ loopWhile: "${iter} < 3" })).valid).toBe(
+      true,
+    );
+  });
+  it("rejects setting both loopWhile and loopUntil", () => {
+    expect(
+      validateWorkflow(
+        wfWith({ loopWhile: "a", loopUntil: "b" }),
+      ).errors.join(),
+    ).toMatch(/cannot set both loopWhile and loopUntil/);
+  });
+  it("rejects combining a loop with forEach", () => {
+    expect(
+      validateWorkflow(
+        wfWith({ loopUntil: "${iter} >= 2", forEach: [1, 2] }),
+      ).errors.join(),
+    ).toMatch(/cannot combine a loop with forEach/);
+  });
+  it("rejects non-positive/non-integer maxIterations", () => {
+    expect(validateWorkflow(wfWith({ maxIterations: 0 })).valid).toBe(false);
+    expect(validateWorkflow(wfWith({ maxIterations: 2.5 })).valid).toBe(false);
+  });
+  it("rejects non-string loopWhile", () => {
+    expect(validateWorkflow(wfWith({ loopWhile: 5 })).valid).toBe(false);
+  });
+});
+
+describe("isLoopStep / loopIterationCap", () => {
+  it("detects loop steps", () => {
+    expect(isLoopStep({ loopWhile: "x" })).toBe(true);
+    expect(isLoopStep({ loopUntil: "x" })).toBe(true);
+    expect(isLoopStep({ message: "x" })).toBe(false);
+  });
+  it("defaults to MAX_LOOP_ITERATIONS and clamps", () => {
+    expect(loopIterationCap({})).toBe(MAX_LOOP_ITERATIONS);
+    expect(loopIterationCap({ maxIterations: 5 })).toBe(5);
+    expect(loopIterationCap({ maxIterations: 9999 })).toBe(MAX_LOOP_ITERATIONS);
+  });
+});
+
+describe("substituteLoopVars", () => {
+  it("substitutes ${iter} and ${self.<field>}", () => {
+    const resultsById = new Map([
+      ["a", { status: "completed", result: { summary: "prev" } }],
+    ]);
+    const out = substituteLoopVars("try ${iter}: ${self.summary}", {
+      stepId: "a",
+      iter: 2,
+      resultsById,
+    });
+    expect(out).toBe("try 2: prev");
+  });
+  it("renders empty self on the first iteration", () => {
+    const out = substituteLoopVars("[${self.summary}]", {
+      stepId: "a",
+      iter: 1,
+      resultsById: new Map(),
+    });
+    expect(out).toBe("[]");
+  });
+});
+
+describe("evalLoopContinue", () => {
+  const results = (status) =>
+    new Map([["a", { status, result: { summary: status } }]]);
+  it("loopWhile continues while true", () => {
+    expect(
+      evalLoopContinue(
+        { loopWhile: "${iter} < 3" },
+        { stepId: "a", iter: 2, resultsById: results("completed") },
+      ),
+    ).toBe(true);
+    expect(
+      evalLoopContinue(
+        { loopWhile: "${iter} < 3" },
+        { stepId: "a", iter: 3, resultsById: results("completed") },
+      ),
+    ).toBe(false);
+  });
+  it("loopUntil stops when the expression becomes true", () => {
+    expect(
+      evalLoopContinue(
+        { loopUntil: "${self.status} == 'completed'" },
+        { stepId: "a", iter: 1, resultsById: results("failed") },
+      ),
+    ).toBe(true); // not yet completed → keep going
+    expect(
+      evalLoopContinue(
+        { loopUntil: "${self.status} == 'completed'" },
+        { stepId: "a", iter: 1, resultsById: results("completed") },
+      ),
+    ).toBe(false); // completed → stop
+  });
+});
+
+describe("runLoopStep", () => {
+  beforeEach(() => {
+    _deps.sleep = vi.fn(async () => {});
+  });
+
+  it("loops until ${iter} reaches the bound, reporting iterations", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "ok" },
+    }));
+    const out = await runLoopStep({
+      step: { id: "a", message: "poll ${iter}", loopWhile: "${iter} < 3" },
+      recordId: "a",
+      resultsById: new Map(),
+    });
+    expect(out.status).toBe("completed");
+    expect(out.result.iterations).toBe(3);
+    expect(out.result.loopStop).toBe("condition");
+    expect(out.result.loopExhausted).toBe(false);
+    expect(_deps.runTask).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops on loopUntil once the task result satisfies it", async () => {
+    let n = 0;
+    _deps.runTask = vi.fn(async () => {
+      n++;
+      return {
+        taskId: "t",
+        status: "completed",
+        result: { summary: n >= 2 ? "SUCCESS" : "pending" },
+      };
+    });
+    const out = await runLoopStep({
+      step: {
+        id: "a",
+        message: "check",
+        loopUntil: "${self.summary} contains 'SUCCESS'",
+      },
+      recordId: "a",
+      resultsById: new Map(),
+    });
+    expect(out.result.iterations).toBe(2);
+    expect(out.result.loopStop).toBe("condition");
+  });
+
+  it("marks loopExhausted when the cap is hit before the condition", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "never-done" },
+    }));
+    const out = await runLoopStep({
+      step: {
+        id: "a",
+        message: "x",
+        loopUntil: "${self.summary} == 'done'",
+        maxIterations: 3,
+      },
+      recordId: "a",
+      resultsById: new Map(),
+    });
+    expect(out.result.iterations).toBe(3);
+    expect(out.result.loopExhausted).toBe(true);
+    expect(out.result.loopStop).toBe("cap");
+    expect(_deps.runTask).toHaveBeenCalledTimes(3);
+  });
+
+  it("aborts the loop when an iteration fails", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "failed",
+      result: { summary: "boom" },
+    }));
+    const out = await runLoopStep({
+      step: { id: "a", message: "x", loopWhile: "${iter} < 9" },
+      recordId: "a",
+      resultsById: new Map(),
+    });
+    expect(out.status).toBe("failed");
+    expect(out.result.iterations).toBe(1);
+    expect(out.result.loopStop).toBe("failed");
+    expect(_deps.runTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails on a malformed loop condition", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "ok" },
+    }));
+    const out = await runLoopStep({
+      step: { id: "a", message: "x", loopWhile: "${bogus.ref}" },
+      recordId: "a",
+      resultsById: new Map(),
+    });
+    expect(out.status).toBe("failed");
+    expect(out.result.loopStop).toBe("bad-condition");
+    expect(out.result.summary).toMatch(/invalid loop condition/);
+  });
+});
+
+describe("executeWorkflow loop integration", () => {
+  beforeEach(() => {
+    installFakeFs();
+    _deps.sleep = vi.fn(async () => {});
+  });
+
+  it("runs a loop node end-to-end and feeds its result downstream", async () => {
+    let polls = 0;
+    _deps.runTask = vi.fn(async ({ userMessage }) => {
+      if (userMessage.startsWith("poll")) {
+        polls++;
+        return {
+          taskId: "t",
+          status: "completed",
+          result: { summary: polls >= 3 ? "READY" : "waiting" },
+        };
+      }
+      return { taskId: "t", status: "completed", result: { summary: "done" } };
+    });
+    const wf = {
+      id: "loop-wf",
+      name: "Loop",
+      steps: [
+        {
+          id: "wait",
+          message: "poll attempt ${iter}",
+          loopUntil: "${self.summary} contains 'READY'",
+          maxIterations: 10,
+        },
+        {
+          id: "after",
+          message: "Proceed because ${step.wait.summary}",
+          dependsOn: ["wait"],
+        },
+      ],
+    };
+    const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    expect(out.status).toBe("completed");
+    const wait = out.steps.find((s) => s.id === "wait");
+    expect(wait.result.iterations).toBe(3);
+    expect(wait.result.loopStop).toBe("condition");
+    // downstream step saw the loop's final summary
+    const afterCall = _deps.runTask.mock.calls.find((c) =>
+      c[0].userMessage.startsWith("Proceed"),
+    );
+    expect(afterCall[0].userMessage).toBe("Proceed because READY");
   });
 });
