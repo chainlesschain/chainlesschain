@@ -12,7 +12,7 @@
 
 - **ui-command / web-panel**：服务器就绪 fallback 8s/10s → **25s**（旧逻辑到期后静默返回空输出，把"启动慢"翻成 `expected '' to contain URL` 的误导断言并级联砸了 13 个测试）。
 - **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**。
-- **mtc-audit-e2e**：6 连串行子进程冷启动的重活测试给**显式 120s** 预算（旧时撞 60s 全局默认）。
+- **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连冷启动）**120s**、"both code paths" 等价性测试（4 连冷启动）**90s**（旧时均撞 60s 全局默认）。
 - **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s 比内部子命令自身 30s 超时还短，提到 **40s**。
 
 #### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
