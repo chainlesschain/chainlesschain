@@ -676,4 +676,63 @@ describe("cc crosschain mtc-* — CLI integration", () => {
       expect(extractJson(v.stdout).ok).toBe(true);
     });
   });
+
+  describe("input file error handling", () => {
+    const STACK = /\n\s+at\s/; // a raw Node stack-trace frame
+
+    it("mtc-envelope: missing --input file → clean error, exit 2, no stack", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-envelope",
+        "-i",
+        path.join(tmpHome, "nope.json"),
+        "--src-chain",
+        "eth",
+        "--dst-chain",
+        "bsc",
+        "--batch-seq",
+        "1",
+        "--config-dir",
+        tmpHome,
+      ]);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain("cannot read input file");
+      expect(r.stderr).toContain("no such file");
+      expect(r.stderr).not.toMatch(STACK);
+    });
+
+    it("mtc-envelope: malformed JSON --input → 'not valid JSON', exit 2", () => {
+      const bad = path.join(tmpHome, "bad.json");
+      fs.writeFileSync(bad, "{ this is not json", "utf-8");
+      const r = runCli([
+        "crosschain",
+        "mtc-envelope",
+        "-i",
+        bad,
+        "--src-chain",
+        "eth",
+        "--dst-chain",
+        "bsc",
+        "--batch-seq",
+        "1",
+        "--config-dir",
+        tmpHome,
+      ]);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain("is not valid JSON");
+      expect(r.stderr).not.toMatch(STACK);
+    });
+
+    it("mtc-verify: missing envelope path → clean error, exit 2", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-verify",
+        path.join(tmpHome, "nope-env.json"),
+        path.join(tmpHome, "nope-lm.json"),
+      ]);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain("cannot read envelope file");
+      expect(r.stderr).not.toMatch(STACK);
+    });
+  });
 });

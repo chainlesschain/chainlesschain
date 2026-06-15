@@ -1143,6 +1143,34 @@ function _resolveBridgeMtcDir(opts) {
   return getCrossChainMtcDir(home);
 }
 
+/**
+ * Read + JSON.parse a user-supplied file path with clean, specific errors
+ * instead of a raw Node stack trace. Distinguishes "cannot read file" (e.g.
+ * missing path) from "invalid JSON", and exits 2 (matching the other input
+ * errors in this command group).
+ */
+function _readJsonFileArg(filePath, label) {
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "utf-8");
+  } catch (err) {
+    console.error(
+      `Error: cannot read ${label} file '${filePath}': ${
+        err.code === "ENOENT" ? "no such file" : err.message
+      }`,
+    );
+    process.exit(2);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error(
+      `Error: ${label} file '${filePath}' is not valid JSON: ${err.message}`,
+    );
+    process.exit(2);
+  }
+}
+
 function registerCrossChainMtcSubcommands(cc) {
   cc.command("mtc-status")
     .description("Show cross-chain bridge MTC config + trust anchors + batches")
@@ -1275,7 +1303,7 @@ function registerCrossChainMtcSubcommands(cc) {
     .action((opts) => {
       const dir = _resolveBridgeMtcDir(opts);
       const cfg = loadCrossChainMtcConfig(dir);
-      const ops = JSON.parse(fs.readFileSync(opts.input, "utf-8"));
+      const ops = _readJsonFileArg(opts.input, "input");
       if (!Array.isArray(ops)) {
         console.error("Input file must contain a JSON array of bridge ops.");
         process.exit(2);
@@ -1302,8 +1330,8 @@ function registerCrossChainMtcSubcommands(cc) {
     .description("Verify a bridge MTC envelope against a landmark file")
     .option("--json", "JSON output")
     .action((envPath, lmPath, opts) => {
-      const envelope = JSON.parse(fs.readFileSync(envPath, "utf-8"));
-      const landmark = JSON.parse(fs.readFileSync(lmPath, "utf-8"));
+      const envelope = _readJsonFileArg(envPath, "envelope");
+      const landmark = _readJsonFileArg(lmPath, "landmark");
       const cache = new mtcLib.LandmarkCache({
         signatureVerifier: mtcLib.alwaysAcceptSignatureVerifier,
       });
@@ -1489,7 +1517,7 @@ function registerCrossChainMtcSubcommands(cc) {
       const dir = _resolveBridgeMtcDir(opts);
       let pubkeyJwk = null;
       if (opts.jwk) {
-        pubkeyJwk = JSON.parse(fs.readFileSync(opts.jwk, "utf-8"));
+        pubkeyJwk = _readJsonFileArg(opts.jwk, "jwk");
       }
       const r = addTrustAnchor(dir, chain, {
         pubkey_id: pubkeyId,
