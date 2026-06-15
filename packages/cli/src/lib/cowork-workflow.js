@@ -625,6 +625,206 @@ export async function runLoopStep({
   };
 }
 
+// ─── Step node + no-barrier pipeline ──────────────────────────────────────────
+
+/**
+ * Run a single step to completion, resolving its when-gate / loop / forEach /
+ * plain task exactly as the batch executor does, and storing results (including
+ * a forEach parent aggregate) in `resultsById`. Returns `{ outcomes, failed }`:
+ * `outcomes` are the entries to add to the run's step list (forEach contributes
+ * its children, not the parent); `failed` is true when any non-skipped outcome
+ * is not "completed". Used by the no-barrier pipeline scheduler.
+ */
+export async function runStepNode(step, ctx) {
+  const { resultsById, cwd, llmOptions, onStepStart, onStepComplete } = ctx;
+  const recordId = step.id;
+  const single = (status, summary) => {
+    const o = { id: recordId, status, taskId: null, result: { summary } };
+    resultsById.set(recordId, o);
+    return {
+      outcomes: [o],
+      failed: status !== "completed" && status !== "skipped",
+    };
+  };
+
+  let runThis;
+  try {
+    runThis = shouldRunStep(step, resultsById);
+  } catch (err) {
+    return single("failed", err.message);
+  }
+  if (!runThis) return single("skipped", "when-condition false");
+
+  if (isLoopStep(step)) {
+    if (onStepStart) onStepStart({ stepId: recordId, message: step.message });
+    const o = await runLoopStep({
+      step,
+      recordId,
+      cwd,
+      llmOptions,
+      resultsById,
+    });
+    resultsById.set(recordId, o);
+    if (onStepComplete) onStepComplete(o);
+    return {
+      outcomes: [o],
+      failed: o.status !== "completed" && o.status !== "skipped",
+    };
+  }
+
+  if (step.forEach !== undefined) {
+    let items;
+    try {
+      items = resolveForEachItems(step.forEach, resultsById);
+    } catch (err) {
+      return single("failed", err.message);
+    }
+    if (items.length === 0) return single("skipped", "forEach items empty");
+    const children = await Promise.all(
+      items.map(async (item, k) => {
+        const childId = `${recordId}[${k}]`;
+        const withItem = substituteItem(step.message, item);
+        const msg = substitutePlaceholders(withItem, resultsById);
+        if (onStepStart) onStepStart({ stepId: childId, message: msg });
+        const r = await runStepWithRetry({
+          step,
+          message: msg,
+          cwd,
+          llmOptions,
+        });
+        const co = outcomeFromRetry(childId, r);
+        resultsById.set(childId, co);
+        if (onStepComplete) onStepComplete(co);
+        return co;
+      }),
+    );
+    const allOk = children.every((c) => c.status === "completed");
+    const anyOk = children.some((c) => c.status === "completed");
+    resultsById.set(recordId, {
+      id: recordId,
+      status: allOk ? "completed" : anyOk ? "partial" : "failed",
+      taskId: null,
+      result: {
+        summary: children.map((c) => c.result?.summary ?? "").join("\n"),
+        children: children.length,
+      },
+    });
+    return {
+      outcomes: children,
+      failed: children.some((c) => c.status !== "completed"),
+    };
+  }
+
+  const message = substitutePlaceholders(step.message, resultsById);
+  if (onStepStart) onStepStart({ stepId: recordId, message });
+  const r = await runStepWithRetry({ step, message, cwd, llmOptions });
+  const o = outcomeFromRetry(recordId, r);
+  resultsById.set(recordId, o);
+  if (onStepComplete) onStepComplete(o);
+  return { outcomes: [o], failed: o.status !== "completed" };
+}
+
+/**
+ * No-barrier pipeline scheduler: start each step the instant *its own*
+ * dependencies finish, rather than waiting for the whole dependency level.
+ * Up to `maxParallel` step nodes run concurrently. On failure with
+ * `continueOnError` off, no new steps are scheduled (in-flight ones finish) and
+ * the rest are marked skipped. Produces the same outcome set as the batch
+ * executor — only the wall-clock idle between levels is removed.
+ */
+export async function runPipeline({
+  steps,
+  resultsById,
+  maxParallel = 4,
+  continueOnError = false,
+  cwd,
+  llmOptions = {},
+  onStepStart,
+  onStepComplete,
+}) {
+  const limit = Math.max(1, Math.floor(maxParallel) || 1);
+  const remainingDeps = new Map(
+    steps.map((s) => [s.id, new Set(s.dependsOn || [])]),
+  );
+  const dependents = new Map(steps.map((s) => [s.id, []]));
+  for (const s of steps) {
+    for (const d of s.dependsOn || []) {
+      if (dependents.has(d)) dependents.get(d).push(s.id);
+    }
+  }
+  const scheduled = new Set();
+  const stepOutcomes = [];
+  let anyFailure = false;
+  let halted = false;
+  let active = 0;
+
+  await new Promise((resolve) => {
+    function pump() {
+      if (!halted) {
+        for (const s of steps) {
+          if (active >= limit) break;
+          if (scheduled.has(s.id)) continue;
+          if (remainingDeps.get(s.id).size !== 0) continue;
+          scheduled.add(s.id);
+          active++;
+          launch(s);
+        }
+      }
+      if (active === 0 && (halted || scheduled.size === steps.length)) {
+        for (const s of steps) {
+          if (scheduled.has(s.id)) continue;
+          const o = {
+            id: s.id,
+            status: "skipped",
+            taskId: null,
+            result: { summary: "skipped due to earlier failure" },
+          };
+          resultsById.set(s.id, o);
+          stepOutcomes.push(o);
+          scheduled.add(s.id);
+        }
+        resolve();
+      }
+    }
+
+    async function launch(step) {
+      let res;
+      try {
+        res = await runStepNode(step, {
+          resultsById,
+          cwd,
+          llmOptions,
+          onStepStart,
+          onStepComplete,
+        });
+      } catch (err) {
+        const o = {
+          id: step.id,
+          status: "failed",
+          taskId: null,
+          result: { summary: `Step threw: ${err.message}` },
+        };
+        resultsById.set(step.id, o);
+        res = { outcomes: [o], failed: true };
+      }
+      stepOutcomes.push(...res.outcomes);
+      active--;
+      if (res.failed) {
+        anyFailure = true;
+        if (!continueOnError) halted = true;
+      }
+      for (const depId of dependents.get(step.id) || []) {
+        remainingDeps.get(depId).delete(step.id);
+      }
+      pump();
+    }
+
+    pump();
+  });
+
+  return { stepOutcomes, anyFailure };
+}
+
 // ─── Execution ───────────────────────────────────────────────────────────────
 
 /**
@@ -646,8 +846,12 @@ export async function runLoopStep({
  * @param {object} options
  * @param {object} options.workflow - Workflow definition
  * @param {string} [options.cwd] - Working directory for history
- * @param {number} [options.maxParallel] - Max parallel steps per batch
+ * @param {number} [options.maxParallel] - Max parallel steps (per batch, or
+ *   concurrent step nodes in pipeline mode)
  * @param {boolean} [options.continueOnError] - Keep running after a failure
+ * @param {boolean} [options.pipeline] - No-barrier scheduling: start each step
+ *   as soon as its own deps finish instead of waiting for the dependency level.
+ *   Defaults to `workflow.pipeline ?? false`. Same outcomes, less idle wait.
  * @param {object} [options.llmOptions] - Forwarded to each task
  * @param {function} [options.onStepStart]
  * @param {function} [options.onStepComplete]
@@ -668,6 +872,7 @@ export async function executeWorkflow(options = {}) {
     llmOptions = {},
     onStepStart,
     onStepComplete,
+    pipeline,
   } = options;
 
   const { valid, errors } = validateWorkflow(workflow);
@@ -678,79 +883,54 @@ export async function executeWorkflow(options = {}) {
     );
   }
 
-  const batches = planBatches(workflow.steps);
+  const usePipeline = pipeline ?? workflow.pipeline ?? false;
   const resultsById = new Map();
-  const stepOutcomes = [];
   const startedAt = new Date(_deps.now()).toISOString();
-  let anyFailure = false;
+  let stepOutcomes;
+  let anyFailure;
 
-  for (const batch of batches) {
-    // Respect maxParallel by slicing batch into chunks
-    const chunks = [];
-    for (let i = 0; i < batch.length; i += maxParallel) {
-      chunks.push(batch.slice(i, i + maxParallel));
-    }
+  if (usePipeline) {
+    ({ stepOutcomes, anyFailure } = await runPipeline({
+      steps: workflow.steps,
+      resultsById,
+      maxParallel,
+      continueOnError,
+      cwd,
+      llmOptions,
+      onStepStart,
+      onStepComplete,
+    }));
+  } else {
+    stepOutcomes = [];
+    anyFailure = false;
+    const batches = planBatches(workflow.steps);
+    for (const batch of batches) {
+      // Respect maxParallel by slicing batch into chunks
+      const chunks = [];
+      for (let i = 0; i < batch.length; i += maxParallel) {
+        chunks.push(batch.slice(i, i + maxParallel));
+      }
 
-    for (const chunk of chunks) {
-      // Expand forEach / when into concrete tasks for this chunk
-      const runnable = []; // { step, message, recordId, parentId }
-      const preOutcomes = []; // outcomes produced synchronously (skipped)
-      for (const step of chunk) {
-        if (anyFailure && !continueOnError) {
-          const outcome = {
-            id: step.id,
-            status: "skipped",
-            taskId: null,
-            result: { summary: "skipped due to earlier failure" },
-          };
-          resultsById.set(step.id, outcome);
-          preOutcomes.push(outcome);
-          continue;
-        }
-        // when-gate
-        let runThis = true;
-        try {
-          runThis = shouldRunStep(step, resultsById);
-        } catch (err) {
-          anyFailure = true;
-          const outcome = {
-            id: step.id,
-            status: "failed",
-            taskId: null,
-            result: { summary: err.message },
-          };
-          resultsById.set(step.id, outcome);
-          preOutcomes.push(outcome);
-          continue;
-        }
-        if (!runThis) {
-          const outcome = {
-            id: step.id,
-            status: "skipped",
-            taskId: null,
-            result: { summary: "when-condition false" },
-          };
-          resultsById.set(step.id, outcome);
-          preOutcomes.push(outcome);
-          continue;
-        }
-        // loop node — runs its body repeatedly; per-iteration substitution
-        // happens inside runLoopStep, so push the raw template.
-        if (isLoopStep(step)) {
-          runnable.push({
-            step,
-            message: step.message,
-            recordId: step.id,
-            parentId: null,
-            isLoop: true,
-          });
-          continue;
-        }
-        // forEach-expansion
-        if (step.forEach !== undefined) {
-          let items;
+      for (const chunk of chunks) {
+        // Expand forEach / when into concrete tasks for this chunk
+        const runnable = []; // { step, message, recordId, parentId }
+        const preOutcomes = []; // outcomes produced synchronously (skipped)
+        for (const step of chunk) {
+          if (anyFailure && !continueOnError) {
+            const outcome = {
+              id: step.id,
+              status: "skipped",
+              taskId: null,
+              result: { summary: "skipped due to earlier failure" },
+            };
+            resultsById.set(step.id, outcome);
+            preOutcomes.push(outcome);
+            continue;
+          }
+          // when-gate
+          let runThis = true;
           try {
-            items = resolveForEachItems(step.forEach, resultsById);
+            runThis = shouldRunStep(step, resultsById);
           } catch (err) {
             anyFailure = true;
             const outcome = {
@@ -763,91 +943,132 @@ export async function executeWorkflow(options = {}) {
             preOutcomes.push(outcome);
             continue;
           }
-          if (items.length === 0) {
+          if (!runThis) {
             const outcome = {
               id: step.id,
               status: "skipped",
               taskId: null,
-              result: { summary: "forEach items empty" },
+              result: { summary: "when-condition false" },
             };
             resultsById.set(step.id, outcome);
             preOutcomes.push(outcome);
             continue;
           }
-          for (let k = 0; k < items.length; k++) {
-            const childId = `${step.id}[${k}]`;
-            const withItem = substituteItem(step.message, items[k]);
-            const msg = substitutePlaceholders(withItem, resultsById);
+          // loop node — runs its body repeatedly; per-iteration substitution
+          // happens inside runLoopStep, so push the raw template.
+          if (isLoopStep(step)) {
             runnable.push({
               step,
-              message: msg,
-              recordId: childId,
-              parentId: step.id,
+              message: step.message,
+              recordId: step.id,
+              parentId: null,
+              isLoop: true,
             });
+            continue;
           }
-          continue;
+          // forEach-expansion
+          if (step.forEach !== undefined) {
+            let items;
+            try {
+              items = resolveForEachItems(step.forEach, resultsById);
+            } catch (err) {
+              anyFailure = true;
+              const outcome = {
+                id: step.id,
+                status: "failed",
+                taskId: null,
+                result: { summary: err.message },
+              };
+              resultsById.set(step.id, outcome);
+              preOutcomes.push(outcome);
+              continue;
+            }
+            if (items.length === 0) {
+              const outcome = {
+                id: step.id,
+                status: "skipped",
+                taskId: null,
+                result: { summary: "forEach items empty" },
+              };
+              resultsById.set(step.id, outcome);
+              preOutcomes.push(outcome);
+              continue;
+            }
+            for (let k = 0; k < items.length; k++) {
+              const childId = `${step.id}[${k}]`;
+              const withItem = substituteItem(step.message, items[k]);
+              const msg = substitutePlaceholders(withItem, resultsById);
+              runnable.push({
+                step,
+                message: msg,
+                recordId: childId,
+                parentId: step.id,
+              });
+            }
+            continue;
+          }
+          const message = substitutePlaceholders(step.message, resultsById);
+          runnable.push({ step, message, recordId: step.id, parentId: null });
         }
-        const message = substitutePlaceholders(step.message, resultsById);
-        runnable.push({ step, message, recordId: step.id, parentId: null });
-      }
 
-      const promises = runnable.map(
-        async ({ step, message, recordId, isLoop }) => {
-          if (onStepStart) onStepStart({ stepId: recordId, message });
-          let outcome;
-          if (isLoop) {
-            outcome = await runLoopStep({
-              step,
-              recordId,
-              cwd,
-              llmOptions,
-              resultsById,
-            });
-          } else {
-            const r = await runStepWithRetry({
-              step,
-              message,
-              cwd,
-              llmOptions,
-            });
-            outcome = outcomeFromRetry(recordId, r);
-          }
-          if (outcome.status !== "completed") anyFailure = true;
-          resultsById.set(recordId, outcome);
-          if (onStepComplete) onStepComplete(outcome);
-          return outcome;
-        },
-      );
-
-      const results = await Promise.all(promises);
-      stepOutcomes.push(...preOutcomes, ...results);
-
-      // Aggregate forEach children into a parent entry so downstream
-      // `${step.<parent>.summary}` references still work.
-      const byParent = new Map();
-      for (let k = 0; k < runnable.length; k++) {
-        const r = runnable[k];
-        if (!r.parentId) continue;
-        if (!byParent.has(r.parentId)) byParent.set(r.parentId, []);
-        byParent.get(r.parentId).push(results[k]);
-      }
-      for (const [parentId, children] of byParent) {
-        const allOk = children.every((c) => c.status === "completed");
-        const anyOk = children.some((c) => c.status === "completed");
-        const status = allOk ? "completed" : anyOk ? "partial" : "failed";
-        resultsById.set(parentId, {
-          id: parentId,
-          status,
-          taskId: null,
-          result: {
-            summary: children.map((c) => c.result?.summary ?? "").join("\n"),
-            children: children.length,
+        const promises = runnable.map(
+          async ({ step, message, recordId, isLoop }) => {
+            if (onStepStart) onStepStart({ stepId: recordId, message });
+            let outcome;
+            if (isLoop) {
+              outcome = await runLoopStep({
+                step,
+                recordId,
+                cwd,
+                llmOptions,
+                resultsById,
+              });
+            } else {
+              const r = await runStepWithRetry({
+                step,
+                message,
+                cwd,
+                llmOptions,
+              });
+              outcome = outcomeFromRetry(recordId, r);
+            }
+            if (outcome.status !== "completed") anyFailure = true;
+            resultsById.set(recordId, outcome);
+            if (onStepComplete) onStepComplete(outcome);
+            return outcome;
           },
-        });
-      }
-    }
+        );
 
-    if (anyFailure && !continueOnError) break;
+        const results = await Promise.all(promises);
+        stepOutcomes.push(...preOutcomes, ...results);
+
+        // Aggregate forEach children into a parent entry so downstream
+        // `${step.<parent>.summary}` references still work.
+        const byParent = new Map();
+        for (let k = 0; k < runnable.length; k++) {
+          const r = runnable[k];
+          if (!r.parentId) continue;
+          if (!byParent.has(r.parentId)) byParent.set(r.parentId, []);
+          byParent.get(r.parentId).push(results[k]);
+        }
+        for (const [parentId, children] of byParent) {
+          const allOk = children.every((c) => c.status === "completed");
+          const anyOk = children.some((c) => c.status === "completed");
+          const status = allOk ? "completed" : anyOk ? "partial" : "failed";
+          resultsById.set(parentId, {
+            id: parentId,
+            status,
+            taskId: null,
+            result: {
+              summary: children.map((c) => c.result?.summary ?? "").join("\n"),
+              children: children.length,
+            },
+          });
+        }
+      }
+
+      if (anyFailure && !continueOnError) break;
+    }
   }
 
   const finishedAt = new Date(_deps.now()).toISOString();

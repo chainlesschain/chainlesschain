@@ -817,6 +817,11 @@ export function registerCoworkCommand(program) {
     .description("Execute a saved workflow end-to-end")
     .option("--continue-on-error", "Keep running after a step fails", false)
     .option("--max-parallel <n>", "Max parallel steps per batch", "4")
+    .option(
+      "--pipeline",
+      "No-barrier scheduling: start each step as soon as its own deps finish",
+      false,
+    )
     .action(async (id, options) => {
       const [
         { getWorkflow, executeWorkflow, _deps: wfDeps },
@@ -843,6 +848,9 @@ export function registerCoworkCommand(program) {
           cwd: process.cwd(),
           maxParallel: parseInt(options.maxParallel, 10) || 4,
           continueOnError: !!options.continueOnError,
+          // undefined (not false) when the flag is absent, so a workflow-level
+          // `pipeline: true` in the JSON definition still takes effect.
+          pipeline: options.pipeline ? true : undefined,
           onStepStart: ({ stepId }) =>
             logger.log(chalk.gray(`  → step ${stepId} ...`)),
           onStepComplete: (out) => {

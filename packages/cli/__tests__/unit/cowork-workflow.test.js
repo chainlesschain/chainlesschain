@@ -21,6 +21,7 @@ import {
   substituteLoopVars,
   evalLoopContinue,
   runLoopStep,
+  runPipeline,
   MAX_FAN_OUT,
   MAX_LOOP_ITERATIONS,
   _deps,
@@ -1102,5 +1103,220 @@ describe("executeWorkflow loop integration", () => {
       c[0].userMessage.startsWith("Proceed"),
     );
     expect(afterCall[0].userMessage).toBe("Proceed because READY");
+  });
+});
+
+// ─── No-barrier pipeline scheduling ───────────────────────────────────────────
+
+describe("pipeline mode (no-barrier scheduling)", () => {
+  beforeEach(() => installFakeFs());
+
+  it("starts a dependent before a slow independent sibling finishes", async () => {
+    // Batch mode would block C (level 1) until BOTH A and slow B (level 0)
+    // finish. Pipeline mode starts C as soon as its only dep A completes.
+    let cRanWhileBPending = false;
+    let bResolved = false;
+    let releaseB;
+    const bGate = new Promise((r) => {
+      releaseB = r;
+    });
+    _deps.runTask = vi.fn(async ({ userMessage }) => {
+      if (userMessage === "A") {
+        return { taskId: "a", status: "completed", result: { summary: "a" } };
+      }
+      if (userMessage === "B") {
+        await bGate;
+        bResolved = true;
+        return { taskId: "b", status: "completed", result: { summary: "b" } };
+      }
+      // C
+      cRanWhileBPending = !bResolved;
+      return { taskId: "c", status: "completed", result: { summary: "c" } };
+    });
+    const wf = {
+      id: "pipe",
+      name: "Pipe",
+      pipeline: true,
+      steps: [
+        { id: "A", message: "A" },
+        { id: "B", message: "B" },
+        { id: "C", message: "C", dependsOn: ["A"] },
+      ],
+    };
+    const run = executeWorkflow({ workflow: wf, cwd: "/project" });
+    await new Promise((r) => setTimeout(r, 15)); // let A settle + C launch
+    expect(cRanWhileBPending).toBe(true);
+    releaseB();
+    const out = await run;
+    expect(out.status).toBe("completed");
+    expect(out.steps.map((s) => s.id).sort()).toEqual(["A", "B", "C"]);
+  });
+
+  it("produces the same outcome set as batch mode for a DAG", async () => {
+    const mkRun = () =>
+      vi.fn(async ({ userMessage }) => ({
+        taskId: "t",
+        status: "completed",
+        result: { summary: `out:${userMessage}` },
+      }));
+    const wf = {
+      id: "dag",
+      name: "DAG",
+      steps: [
+        { id: "a", message: "a" },
+        { id: "b", message: "b" },
+        { id: "c", message: "use ${step.a.summary}", dependsOn: ["a"] },
+        { id: "d", message: "use ${step.b.summary}", dependsOn: ["b", "c"] },
+      ],
+    };
+    _deps.runTask = mkRun();
+    const batch = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    _deps.runTask = mkRun();
+    const pipe = await executeWorkflow({
+      workflow: wf,
+      cwd: "/project",
+      pipeline: true,
+    });
+    expect(pipe.status).toBe(batch.status);
+    const norm = (rec) =>
+      rec.steps
+        .map((s) => `${s.id}:${s.status}`)
+        .sort()
+        .join(",");
+    expect(norm(pipe)).toBe(norm(batch));
+  });
+
+  it("respects maxParallel as a concurrency cap", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    _deps.runTask = vi.fn(async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return { taskId: "t", status: "completed", result: { summary: "ok" } };
+    });
+    const wf = {
+      id: "p",
+      name: "P",
+      pipeline: true,
+      steps: [
+        { id: "a", message: "a" },
+        { id: "b", message: "b" },
+        { id: "c", message: "c" },
+        { id: "d", message: "d" },
+      ],
+    };
+    await executeWorkflow({ workflow: wf, cwd: "/project", maxParallel: 2 });
+    expect(maxInFlight).toBe(2);
+  });
+
+  it("halts scheduling on failure and skips the rest (continueOnError off)", async () => {
+    _deps.runTask = vi.fn(async ({ userMessage }) => {
+      if (userMessage === "a") {
+        return { taskId: "t", status: "failed", result: { summary: "boom" } };
+      }
+      return { taskId: "t", status: "completed", result: { summary: "ok" } };
+    });
+    const wf = {
+      id: "chain",
+      name: "Chain",
+      pipeline: true,
+      steps: [
+        { id: "a", message: "a" },
+        { id: "b", message: "b", dependsOn: ["a"] },
+        { id: "c", message: "c", dependsOn: ["b"] },
+      ],
+    };
+    const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    expect(out.status).toBe("failed");
+    const byId = Object.fromEntries(out.steps.map((s) => [s.id, s.status]));
+    expect(byId.a).toBe("failed");
+    expect(byId.b).toBe("skipped");
+    expect(byId.c).toBe("skipped");
+    expect(_deps.runTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("continues past failure when continueOnError is set", async () => {
+    _deps.runTask = vi.fn(async ({ userMessage }) => {
+      if (userMessage === "trigger") {
+        return { taskId: "t", status: "failed", result: { summary: "boom" } };
+      }
+      return { taskId: "t", status: "completed", result: { summary: "ok" } };
+    });
+    const wf = {
+      id: "coe",
+      name: "COE",
+      pipeline: true,
+      steps: [
+        { id: "a", message: "trigger" },
+        { id: "b", message: "after a=${step.a.status}", dependsOn: ["a"] },
+      ],
+    };
+    const out = await executeWorkflow({
+      workflow: wf,
+      cwd: "/project",
+      continueOnError: true,
+    });
+    expect(out.status).toBe("partial");
+    expect(_deps.runTask).toHaveBeenCalledTimes(2);
+    // downstream ran even though its dep failed, and saw the failed status
+    const after = _deps.runTask.mock.calls.find((c) =>
+      c[0].userMessage.startsWith("after"),
+    );
+    expect(after[0].userMessage).toBe("after a=failed");
+  });
+
+  it("expands a forEach step and feeds its parent aggregate downstream", async () => {
+    _deps.runTask = vi.fn(async ({ userMessage }) => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: userMessage },
+    }));
+    const wf = {
+      id: "fe",
+      name: "FE",
+      pipeline: true,
+      steps: [
+        { id: "src", message: "src" },
+        { id: "fan", message: "do ${item}", forEach: ["x", "y"] },
+        {
+          id: "join",
+          message: "joined: ${step.fan.summary}",
+          dependsOn: ["fan"],
+        },
+      ],
+    };
+    const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    expect(out.status).toBe("completed");
+    // forEach children appear in the step list (not the parent)
+    const ids = out.steps.map((s) => s.id);
+    expect(ids).toContain("fan[0]");
+    expect(ids).toContain("fan[1]");
+    expect(ids).not.toContain("fan");
+    // downstream join saw the aggregated parent summary
+    const joinCall = _deps.runTask.mock.calls.find((c) =>
+      c[0].userMessage.startsWith("joined"),
+    );
+    expect(joinCall[0].userMessage).toBe("joined: do x\ndo y");
+  });
+
+  it("runPipeline runs an independent set with no deps", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "ok" },
+    }));
+    const resultsById = new Map();
+    const { stepOutcomes, anyFailure } = await runPipeline({
+      steps: [
+        { id: "a", message: "a" },
+        { id: "b", message: "b" },
+      ],
+      resultsById,
+      maxParallel: 4,
+    });
+    expect(anyFailure).toBe(false);
+    expect(stepOutcomes.map((s) => s.id).sort()).toEqual(["a", "b"]);
   });
 });
