@@ -702,6 +702,12 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   工具看得见):状态徽章(`● running`/`✓ exited (0)`/`✗ failed (code)`/`✗ error`)+ 运行时长 +
   命令。管理子命令:`/tasks kill <id>` 杀单个(POSIX 杀进程组 / Win `taskkill /T`)、
   `/tasks kill-all` 全杀。sub-agent 委派仍走 `/sub-agents`(另一注册表)。
+- **交互 REPL `/review`**(Claude-Code `/code-review` 平价) — 在 `chainlesschain agent`
+  会话里**对当前改动做 diff-first 代码评审**,无需退出 REPL 单独跑 `cc review`。复用同一套机制:
+  收集 git diff 后跑**一轮聚焦 agent**,默认 plan 模式(只读、不改文件)输出 Markdown 报告。
+  内联参数:`/review [low|medium|high]` 力度 · `--security`(安全专项)/`--simplify`(只清理不挑 bug)·
+  `--fix`(直接改工作区,自动 checkpoint 可 `cc checkpoint restore` 撤销)· 范围 `--staged`/
+  `--base <ref>`/`--range <A..B>`。跑在当前 `cwd`(跟随 `/cd`)+ 复用本会话 provider/model。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时

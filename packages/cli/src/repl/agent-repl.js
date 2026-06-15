@@ -828,6 +828,7 @@ export async function startAgentRepl(options = {}) {
       "/quit",
       "/reindex",
       "/reload-skills",
+      "/review",
       "/rewind",
       "/search",
       "/session",
@@ -1216,6 +1217,9 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/reload-skills")} Re-scan skill layers without restarting`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/review")}     Diff-first code review (/review [high] [--security|--simplify] [--fix])`,
       );
       logger.log(
         `  ${chalk.cyan("/compact")}    Smart compact (importance-based)`,
@@ -1788,6 +1792,50 @@ export async function startAgentRepl(options = {}) {
         );
       } catch (err) {
         logger.error(`/reload-skills failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
+    // `/review` — diff-first code review of your changes (Claude-Code
+    // /code-review parity). Reuses the `cc review` machinery: collects the git
+    // diff and runs ONE focused agent turn. Read-only by default; `--fix`
+    // applies reversible (auto-checkpointed) edits. Runs against the current
+    // cwd so it follows `/cd`, using this session's provider/model.
+    if (trimmed === "/review" || trimmed.startsWith("/review ")) {
+      const rest = trimmed.slice("/review".length).trim();
+      const { parseReviewReplArgs, describeReviewArgs } =
+        await import("./review-args.js");
+      const { opts: reviewOpts, errors } = parseReviewReplArgs(rest);
+      if (errors.length) {
+        for (const e of errors) logger.error(chalk.red(`/review: ${e}`));
+        logger.log(
+          chalk.gray(
+            "Usage: /review [low|medium|high] [--security|--simplify] " +
+              "[--fix] [--staged|--base <ref>|--range <A..B>]",
+          ),
+        );
+        prompt();
+        return;
+      }
+      try {
+        const { runReview } = await import("../commands/review.js");
+        logger.info(chalk.gray(`Reviewing ${describeReviewArgs(reviewOpts)}`));
+        const result = await runReview(
+          {
+            ...reviewOpts,
+            provider,
+            model,
+            cwd: process.cwd(),
+            outputFormat: "text",
+          },
+          {},
+        );
+        if (result && result.empty) {
+          logger.log(chalk.gray("No changes to review."));
+        }
+      } catch (err) {
+        logger.error(chalk.red(`/review failed: ${err.message}`));
       }
       prompt();
       return;
