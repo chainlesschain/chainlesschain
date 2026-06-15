@@ -13,6 +13,9 @@ import {
   resolveForEachItems,
   substituteItem,
   shouldRunStep,
+  retryDelayFor,
+  withTimeout,
+  runStepWithRetry,
   MAX_FAN_OUT,
   _deps,
 } from "../../src/lib/cowork-workflow.js";
@@ -606,5 +609,227 @@ describe("N3: executeWorkflow with forEach", () => {
     });
     const each = rec.steps.find((s) => s.id === "each");
     expect(each.status).toBe("failed");
+  });
+});
+
+// ─── Per-step retry / timeout ─────────────────────────────────────────────────
+
+describe("validateWorkflow accepts retry/timeout fields", () => {
+  it("accepts valid retries/timeoutMs/retryDelayMs/retryBackoff", () => {
+    const wf = {
+      id: "w",
+      name: "W",
+      steps: [
+        {
+          id: "a",
+          message: "x",
+          retries: 2,
+          timeoutMs: 1000,
+          retryDelayMs: 50,
+          retryBackoff: "exponential",
+        },
+      ],
+    };
+    expect(validateWorkflow(wf).valid).toBe(true);
+  });
+
+  it("rejects negative/non-integer retries", () => {
+    expect(
+      validateWorkflow({
+        id: "w",
+        name: "W",
+        steps: [{ id: "a", message: "x", retries: -1 }],
+      }).errors.join(),
+    ).toMatch(/retries must be a non-negative integer/);
+    expect(
+      validateWorkflow({
+        id: "w",
+        name: "W",
+        steps: [{ id: "a", message: "x", retries: 1.5 }],
+      }).valid,
+    ).toBe(false);
+  });
+
+  it("rejects non-positive timeoutMs", () => {
+    expect(
+      validateWorkflow({
+        id: "w",
+        name: "W",
+        steps: [{ id: "a", message: "x", timeoutMs: 0 }],
+      }).errors.join(),
+    ).toMatch(/timeoutMs must be a positive number/);
+  });
+
+  it("rejects unknown retryBackoff", () => {
+    expect(
+      validateWorkflow({
+        id: "w",
+        name: "W",
+        steps: [{ id: "a", message: "x", retryBackoff: "linear" }],
+      }).errors.join(),
+    ).toMatch(/retryBackoff must be/);
+  });
+});
+
+describe("retryDelayFor", () => {
+  it("returns 0 when no base delay", () => {
+    expect(retryDelayFor({}, 1)).toBe(0);
+  });
+  it("fixed backoff returns base verbatim", () => {
+    expect(retryDelayFor({ retryDelayMs: 100 }, 1)).toBe(100);
+    expect(retryDelayFor({ retryDelayMs: 100 }, 3)).toBe(100);
+  });
+  it("exponential backoff doubles per prior attempt", () => {
+    const step = { retryDelayMs: 100, retryBackoff: "exponential" };
+    expect(retryDelayFor(step, 1)).toBe(100);
+    expect(retryDelayFor(step, 2)).toBe(200);
+    expect(retryDelayFor(step, 3)).toBe(400);
+  });
+});
+
+describe("withTimeout", () => {
+  it("passes through when no timeout set", async () => {
+    await expect(withTimeout(async () => 42, 0)).resolves.toBe(42);
+  });
+  it("resolves when the task wins the race", async () => {
+    await expect(withTimeout(async () => "ok", 1000)).resolves.toBe("ok");
+  });
+  it("rejects with a timeout error when the timer fires first", async () => {
+    const orig = _deps.setTimeout;
+    // Fire the timeout immediately, deterministically.
+    _deps.setTimeout = (fn) => {
+      fn();
+      return 0;
+    };
+    try {
+      await expect(
+        withTimeout(() => new Promise(() => {}), 10),
+      ).rejects.toThrow(/timed out after 10ms/);
+    } finally {
+      _deps.setTimeout = orig;
+    }
+  });
+});
+
+describe("runStepWithRetry", () => {
+  beforeEach(() => {
+    _deps.sleep = vi.fn(async () => {}); // no real waiting
+  });
+
+  it("succeeds on first try without retrying", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "ok" },
+    }));
+    const r = await runStepWithRetry({
+      step: { id: "a", retries: 3 },
+      message: "go",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.attempts).toBe(1);
+    expect(_deps.runTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a thrown task up to retries+1 times then fails", async () => {
+    _deps.runTask = vi.fn(async () => {
+      throw new Error("boom");
+    });
+    const r = await runStepWithRetry({
+      step: { id: "a", retries: 2, retryDelayMs: 10 },
+      message: "go",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.attempts).toBe(3);
+    expect(_deps.runTask).toHaveBeenCalledTimes(3);
+    expect(_deps.sleep).toHaveBeenCalledTimes(2); // one sleep between each retry
+    expect(r.error.message).toBe("boom");
+  });
+
+  it("retries a non-completed status and succeeds on a later attempt", async () => {
+    let n = 0;
+    _deps.runTask = vi.fn(async () => {
+      n++;
+      return n < 3
+        ? { taskId: "t", status: "failed", result: { summary: "nope" } }
+        : { taskId: "t", status: "completed", result: { summary: "yes" } };
+    });
+    const r = await runStepWithRetry({
+      step: { id: "a", retries: 5 },
+      message: "go",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.attempts).toBe(3);
+    expect(r.entry.result.summary).toBe("yes");
+  });
+});
+
+describe("executeWorkflow retry/timeout integration", () => {
+  beforeEach(() => {
+    installFakeFs();
+    _deps.sleep = vi.fn(async () => {});
+  });
+
+  it("recovers a flaky step via retries and reports attempts", async () => {
+    let n = 0;
+    _deps.runTask = vi.fn(async () => {
+      n++;
+      return n < 2
+        ? { taskId: "t", status: "failed", result: { summary: "flaky" } }
+        : { taskId: "t", status: "completed", result: { summary: "ok" } };
+    });
+    const wf = {
+      id: "retry-wf",
+      name: "Retry",
+      steps: [{ id: "a", message: "do a", retries: 3 }],
+    };
+    const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    expect(out.status).toBe("completed");
+    const a = out.steps.find((s) => s.id === "a");
+    expect(a.status).toBe("completed");
+    expect(a.result.attempts).toBe(2);
+    expect(_deps.runTask).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves single-attempt result shape unchanged (no attempts field)", async () => {
+    _deps.runTask = vi.fn(async () => ({
+      taskId: "t",
+      status: "completed",
+      result: { summary: "ok" },
+    }));
+    const wf = {
+      id: "plain-wf",
+      name: "Plain",
+      steps: [{ id: "a", message: "do a" }],
+    };
+    const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+    const a = out.steps.find((s) => s.id === "a");
+    expect(a.result).toEqual({ summary: "ok" });
+    expect(a.result.attempts).toBeUndefined();
+  });
+
+  it("fails a step that times out on every attempt", async () => {
+    _deps.runTask = vi.fn(() => new Promise(() => {})); // never resolves
+    const origSetTimeout = _deps.setTimeout;
+    _deps.setTimeout = (fn) => {
+      fn();
+      return 0;
+    };
+    try {
+      const wf = {
+        id: "to-wf",
+        name: "Timeout",
+        steps: [{ id: "a", message: "do a", timeoutMs: 10, retries: 1 }],
+      };
+      const out = await executeWorkflow({ workflow: wf, cwd: "/project" });
+      expect(out.status).toBe("failed");
+      const a = out.steps.find((s) => s.id === "a");
+      expect(a.status).toBe("failed");
+      expect(a.result.summary).toMatch(/timed out after 10ms/);
+      expect(a.result.attempts).toBe(2);
+      expect(_deps.runTask).toHaveBeenCalledTimes(2);
+    } finally {
+      _deps.setTimeout = origSetTimeout;
+    }
   });
 });

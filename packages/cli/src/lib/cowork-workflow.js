@@ -46,6 +46,10 @@ export const _deps = {
   appendFileSync,
   now: () => Date.now(),
   runTask: null, // injected by CLI
+  // Timer seams (injectable for deterministic retry/timeout tests).
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (t) => clearTimeout(t),
 };
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
@@ -103,6 +107,39 @@ export function validateWorkflow(wf) {
             `steps[${i}].forEach must be an array or reference string`,
           );
         }
+      }
+      if (
+        s.retries !== undefined &&
+        (typeof s.retries !== "number" ||
+          !Number.isInteger(s.retries) ||
+          s.retries < 0)
+      ) {
+        errors.push(`steps[${i}].retries must be a non-negative integer`);
+      }
+      if (
+        s.timeoutMs !== undefined &&
+        (typeof s.timeoutMs !== "number" ||
+          !Number.isFinite(s.timeoutMs) ||
+          s.timeoutMs <= 0)
+      ) {
+        errors.push(`steps[${i}].timeoutMs must be a positive number`);
+      }
+      if (
+        s.retryDelayMs !== undefined &&
+        (typeof s.retryDelayMs !== "number" ||
+          !Number.isFinite(s.retryDelayMs) ||
+          s.retryDelayMs < 0)
+      ) {
+        errors.push(`steps[${i}].retryDelayMs must be a non-negative number`);
+      }
+      if (
+        s.retryBackoff !== undefined &&
+        s.retryBackoff !== "fixed" &&
+        s.retryBackoff !== "exponential"
+      ) {
+        errors.push(
+          `steps[${i}].retryBackoff must be "fixed" or "exponential"`,
+        );
       }
     }
     // Check dependsOn references exist
@@ -329,11 +366,107 @@ export function removeWorkflow(cwd, id) {
   return true;
 }
 
+// ─── Per-step retry / timeout ─────────────────────────────────────────────────
+
+/**
+ * Compute the delay (ms) to wait BEFORE a retry, given the just-failed attempt
+ * number (1-based). `fixed` returns `retryDelayMs` verbatim; `exponential`
+ * doubles it per prior attempt (delay = base · 2^(attempt-1)).
+ */
+export function retryDelayFor(step, attempt) {
+  const base = Number(step.retryDelayMs) || 0;
+  if (base <= 0) return 0;
+  if (step.retryBackoff === "exponential") {
+    return base * Math.pow(2, attempt - 1);
+  }
+  return base;
+}
+
+/**
+ * Race a promise (produced by `factory`) against a per-attempt timeout.
+ * Resolves/rejects with the promise when it settles first; rejects with a
+ * "timed out" error if the timer fires first. The timer is always cleared, and
+ * a late rejection from the losing promise is swallowed to avoid an unhandled
+ * rejection (the underlying task is best-effort abandoned — runTask has no
+ * cancellation contract).
+ */
+export async function withTimeout(factory, timeoutMs) {
+  if (!timeoutMs || timeoutMs <= 0) return factory();
+  const p = Promise.resolve().then(factory);
+  let timer = null;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = _deps.setTimeout(() => {
+      reject(new Error(`step timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([p, timeout]);
+  } finally {
+    if (timer != null) _deps.clearTimeout(timer);
+    p.catch(() => {}); // guard a late rejection from the abandoned task
+  }
+}
+
+/**
+ * Run one step's task with optional `timeoutMs` and `retries` (with `fixed` or
+ * `exponential` `retryDelayMs` backoff). An attempt counts as a failure if the
+ * task throws, times out, or returns a non-`completed` status. Returns
+ * `{ ok, entry?, error?, attempts }`. `attempts` is the total number of tries.
+ */
+export async function runStepWithRetry({ step, message, cwd, llmOptions }) {
+  const maxRetries = Math.max(0, Math.floor(Number(step.retries) || 0));
+  const timeoutMs = Number(step.timeoutMs) || 0;
+  let lastEntry = null;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      const entry = await withTimeout(
+        () =>
+          _deps.runTask({
+            templateId: step.templateId || null,
+            userMessage: message,
+            files: step.files || [],
+            cwd,
+            llmOptions,
+          }),
+        timeoutMs,
+      );
+      if (entry && entry.status === "completed") {
+        return { ok: true, entry, attempts: attempt };
+      }
+      lastEntry = entry; // ran but not completed → retry-eligible
+      lastErr = null;
+    } catch (err) {
+      lastErr = err; // threw or timed out → retry-eligible
+      lastEntry = null;
+    }
+    if (attempt <= maxRetries) {
+      const delay = retryDelayFor(step, attempt);
+      if (delay > 0) await _deps.sleep(delay);
+    }
+  }
+  const attempts = maxRetries + 1;
+  if (lastEntry) return { ok: false, entry: lastEntry, attempts };
+  return { ok: false, error: lastErr, attempts };
+}
+
+/** Attach an `attempts` field only when more than one try occurred (keeps the
+ * single-attempt result shape byte-identical to the pre-retry behavior). */
+function _withAttempts(result, attempts) {
+  if (attempts > 1) return { ...(result || {}), attempts };
+  return result;
+}
+
 // ─── Execution ───────────────────────────────────────────────────────────────
 
 /**
  * Execute a workflow. The runner for individual tasks must be injected via
  * `_deps.runTask` (signature matches `runCoworkTask`).
+ *
+ * Per-step robustness fields (all optional): `retries` (extra attempts after
+ * the first; non-negative integer), `timeoutMs` (per-attempt timeout, positive
+ * number), `retryDelayMs` (base delay before each retry, non-negative number),
+ * `retryBackoff` (`"fixed"` (default) or `"exponential"`).
  *
  * @param {object} options
  * @param {object} options.workflow - Workflow definition
@@ -473,36 +606,40 @@ export async function executeWorkflow(options = {}) {
 
       const promises = runnable.map(async ({ step, message, recordId }) => {
         if (onStepStart) onStepStart({ stepId: recordId, message });
-        try {
-          const entry = await _deps.runTask({
-            templateId: step.templateId || null,
-            userMessage: message,
-            files: step.files || [],
-            cwd,
-            llmOptions,
-          });
-          const outcome = {
+        const r = await runStepWithRetry({ step, message, cwd, llmOptions });
+        let outcome;
+        if (r.ok) {
+          outcome = {
             id: recordId,
-            status: entry.status,
-            taskId: entry.taskId,
-            result: entry.result,
+            status: r.entry.status,
+            taskId: r.entry.taskId,
+            result: _withAttempts(r.entry.result, r.attempts),
           };
-          resultsById.set(recordId, outcome);
-          if (entry.status !== "completed") anyFailure = true;
-          if (onStepComplete) onStepComplete(outcome);
-          return outcome;
-        } catch (err) {
+        } else if (r.entry) {
+          // Ran but never reached "completed" across all attempts.
           anyFailure = true;
-          const outcome = {
+          outcome = {
+            id: recordId,
+            status: r.entry.status,
+            taskId: r.entry.taskId,
+            result: _withAttempts(r.entry.result, r.attempts),
+          };
+        } else {
+          // Threw or timed out on every attempt.
+          anyFailure = true;
+          outcome = {
             id: recordId,
             status: "failed",
             taskId: null,
-            result: { summary: `Step threw: ${err.message}` },
+            result: _withAttempts(
+              { summary: `Step threw: ${r.error.message}` },
+              r.attempts,
+            ),
           };
-          resultsById.set(recordId, outcome);
-          if (onStepComplete) onStepComplete(outcome);
-          return outcome;
         }
+        resultsById.set(recordId, outcome);
+        if (onStepComplete) onStepComplete(outcome);
+        return outcome;
       });
 
       const results = await Promise.all(promises);
