@@ -34,6 +34,12 @@ All notable changes to this extension are documented here.
   same session). Non-Anthropic providers ignore it. In the `/` autocomplete and
   `/help`. **The reasoning now renders** as a dimmed, italic block above the
   answer (streamed live) when thinking is on — the visible half of the toggle.
+- **Pending-approval tab indicator (Claude-Code parity).** When an approval
+  request lands in a chat tab you're not looking at — the agent is blocked
+  waiting on you — that tab now shows a **blue** dot (distinct from the green
+  "finished in the background" dot) plus a toast. Switching to the tab
+  re-surfaces the approval card (background-tab events were otherwise gated out),
+  so you can actually act on it.
 - **`@file#L5-10` line-range references (Claude-Code parity).** Insert File
   Reference (`Ctrl/Cmd+Alt+K`) now appends the selected line range — e.g.
   `@src/app.ts#L5-10` (or `#L7` for one line) — when you have a selection, and

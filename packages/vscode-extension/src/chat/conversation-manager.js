@@ -46,6 +46,8 @@ class ConversationManager {
       session: null, // opaque AgentChatSession handle (set by chat-view)
       turnState: this._createTurnState(),
       unread: false, // a turn finished while this tab was in the background
+      needsApproval: false, // an approval is pending in this background tab
+      pendingApproval: null, // the approval card payload (to re-surface on switch)
       mode: "default", // approval mode (default | acceptEdits | bypassPermissions)
       thinking: "off", // extended thinking (off | on | ultra)
     };
@@ -86,6 +88,7 @@ class ConversationManager {
         active: c.id === this._activeId,
         hasSession: !!c.session,
         unread: !!c.unread,
+        needsApproval: !!c.needsApproval,
         mode: c.mode || "default",
       };
     });
@@ -97,7 +100,11 @@ class ConversationManager {
     if (!this._conversations.has(id)) return null;
     this._activeId = id;
     const c = this.get(id);
-    if (c) c.unread = false;
+    if (c) {
+      c.unread = false;
+      c.needsApproval = false; // you're now looking at it (pendingApproval kept
+      // so chat-view can re-surface the card; cleared when the approval resolves)
+    }
     return c;
   }
 
@@ -112,6 +119,35 @@ class ConversationManager {
     const c = this.get(id);
     if (c) c.unread = true;
     return c || null;
+  }
+
+  /**
+   * Flag a background conversation as awaiting an approval the user must act on
+   * (distinct from the "done" unread dot; the agent is blocked on it). No-op for
+   * the active tab. Returns the record, or null if unknown / it was active.
+   */
+  markNeedsApproval(id) {
+    if (id === this._activeId) return null;
+    const c = this.get(id);
+    if (c) c.needsApproval = true;
+    return c || null;
+  }
+
+  /** Remember the approval card payload so a tab switch can re-surface it. */
+  setPendingApproval(id, payload) {
+    const c = this.get(id);
+    if (c) c.pendingApproval = payload || null;
+    return c || null;
+  }
+
+  /** The approval resolved (or was acted on) — clear both flag and payload. */
+  clearApproval(id) {
+    const c = this.get(id);
+    if (!c) return null;
+    const had = c.needsApproval || c.pendingApproval;
+    c.needsApproval = false;
+    c.pendingApproval = null;
+    return had ? c : null;
   }
 
   /**

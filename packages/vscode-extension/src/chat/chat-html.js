@@ -95,6 +95,7 @@ function buildChatHtml({ cspSource, nonce }) {
                white-space:nowrap; font-size:.88em; }
   #tabs .tab .t { overflow:hidden; text-overflow:ellipsis; max-width:120px; }
   #tabs .tab .dot { color: var(--vscode-charts-green, #3fb950); font-size:.7em; line-height:1; }
+  #tabs .tab .dot.approval { color: var(--vscode-charts-blue, #3794ff); }
   #tabs .tab.unread .t { font-weight:600; }
   #tabs .tab.active { background: var(--vscode-tab-activeBackground, var(--vscode-editorWidget-background));
                       border-color: var(--vscode-panel-border); }
@@ -181,13 +182,20 @@ function buildChatHtml({ cspSource, nonce }) {
     if (!Array.isArray(tabs) || tabs.length === 0) return;
     for (const t of tabs) {
       const tab = document.createElement("span");
+      const flagged = t.needsApproval || t.unread;
       tab.className =
-        "tab" + (t.id === activeId ? " active" : "") + (t.unread ? " unread" : "");
-      if (t.unread && t.id !== activeId) {
+        "tab" +
+        (t.id === activeId ? " active" : "") +
+        (flagged ? " unread" : "");
+      if (flagged && t.id !== activeId) {
+        // Blue dot = an approval is pending (agent blocked on you); green dot =
+        // a turn just finished in the background. Approval takes precedence.
         const dot = document.createElement("span");
-        dot.className = "dot";
-        dot.textContent = "●"; // ● finished while in the background
-        dot.title = "a turn finished in this tab while it was in the background";
+        dot.className = "dot" + (t.needsApproval ? " approval" : "");
+        dot.textContent = "●";
+        dot.title = t.needsApproval
+          ? "this tab is waiting for your approval"
+          : "a turn finished in this tab while it was in the background";
         tab.appendChild(dot);
       }
       const label = document.createElement("span");

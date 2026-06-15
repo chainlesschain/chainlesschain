@@ -179,7 +179,20 @@ class ChatViewProvider {
       ) {
         this._postFrom(convId, { kind: "setup", reason: String(evt.error || "") });
       }
-      this._postFrom(convId, mapAgentEvent(evt, conv.turnState));
+      const ui = mapAgentEvent(evt, conv.turnState);
+      this._postFrom(convId, ui);
+      // Pending-approval signal: an approval landed in a tab you are NOT looking
+      // at — the agent is BLOCKED on you. Flag it (a distinct dot from the green
+      // "done" one) and remember the card so switching to the tab re-surfaces it.
+      if (ui?.kind === "approval") {
+        this._convs.setPendingApproval(convId, ui);
+        if (this._convs.markNeedsApproval(convId)) {
+          this._postTabs();
+          this._notifyApprovalPending(conv);
+        }
+      } else if (ui?.kind === "approval_done") {
+        if (this._convs.clearApproval(convId)) this._postTabs();
+      }
       if (evt?.type === "result") {
         // Refresh the persistent context-window indicator for the active tab
         // (best-effort; reuses the CLI's authoritative window math).
@@ -214,6 +227,28 @@ class ChatViewProvider {
       }
     } catch {
       /* notification is best-effort — never break the agent loop over a toast */
+    }
+  }
+
+  /** Toast for an approval awaiting the user in a background tab (agent blocked). */
+  _notifyApprovalPending(conv) {
+    const win = this.vscode && this.vscode.window;
+    const show = win && win.showWarningMessage;
+    if (typeof show !== "function") return;
+    const title = (conv && conv.title) || "Chat";
+    try {
+      const p = show.call(
+        win,
+        `ChainlessChain · "${title}" needs your approval`,
+        "Show",
+      );
+      if (p && typeof p.then === "function") {
+        p.then((pick) => {
+          if (pick === "Show") this._revealConversation(conv && conv.id);
+        }, () => {});
+      }
+    } catch {
+      /* best-effort — never break the agent loop over a toast */
     }
   }
 
@@ -809,6 +844,12 @@ class ChatViewProvider {
         if (conv) {
           this._rememberSessionId(conv.sessionId);
           this._postTabs();
+          // A pending approval was gated out while this tab was backgrounded —
+          // re-post the card now (once; it then lives in the tab's buffer).
+          if (conv.pendingApproval) {
+            this._post(conv.pendingApproval);
+            this._convs.setPendingApproval(conv.id, null);
+          }
         }
       } else if (m.type === "closeTab") {
         const res = this._convs.close(String(m.id || ""));
