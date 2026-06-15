@@ -82,6 +82,7 @@ const DISPLAY_NAMES = Object.freeze({
   "reading-fanqie": "番茄小说",
   "reading-qimao": "七猫小说",
   "fitness-joyrun": "悦跑圈",
+  "fitness-keep": "Keep",
   "travel-didi-consumer": "滴滴出行",
   "car-mercedesme": "奔驰 Mercedes me",
   "video-iqiyi": "爱奇艺",

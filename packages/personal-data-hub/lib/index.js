@@ -82,6 +82,7 @@ const { XimalayaAdapter } = require("./adapters/audio-ximalaya");
 const { FanqieReadingAdapter } = require("./adapters/reading-fanqie");
 const { QimaoReadingAdapter } = require("./adapters/reading-qimao");
 const { JoyrunAdapter } = require("./adapters/fitness-joyrun");
+const { KeepAdapter } = require("./adapters/fitness-keep");
 const { DidiConsumerAdapter } = require("./adapters/travel-didi-consumer");
 const { MercedesMeAdapter } = require("./adapters/car-mercedesme");
 const { IqiyiVideoAdapter } = require("./adapters/video-iqiyi");
@@ -348,6 +349,7 @@ module.exports = {
   FanqieReadingAdapter,
   QimaoReadingAdapter,
   JoyrunAdapter,
+  KeepAdapter,
   DidiConsumerAdapter,
   MercedesMeAdapter,
   IqiyiVideoAdapter,
