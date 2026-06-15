@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.p2p.sync.KnowledgeSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ProjectSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncDataApplier
+import com.chainlesschain.android.core.p2p.sync.TelemetrySyncApplier
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import com.chainlesschain.android.feature.p2p.repository.social.NotificationRepository
@@ -32,6 +33,7 @@ class DefaultSyncDataApplier @Inject constructor(
     private val knowledgeSyncApplier: KnowledgeSyncApplier,
     private val projectSyncApplier: ProjectSyncApplier,
     private val familyGuardSyncApplier: FamilyGuardSyncApplier,
+    private val telemetrySyncApplier: TelemetrySyncApplier,
 ) : SyncDataApplier {
 
     override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {
@@ -46,6 +48,7 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.NOTIFICATION -> notificationRepository.saveNotificationFromSync(resourceId, data)
             ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.saveFamilyGroupFromSync(resourceId, data)
             ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.saveFamilyMembershipFromSync(resourceId, data)
+            ResourceType.TELEMETRY -> telemetrySyncApplier.saveTelemetryFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for create: $resourceType")
         }
     }
@@ -62,6 +65,8 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.NOTIFICATION -> notificationRepository.updateNotificationFromSync(resourceId, data)
             ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.updateFamilyGroupFromSync(resourceId, data)
             ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.updateFamilyMembershipFromSync(resourceId, data)
+            // telemetry append-only：UPDATE 复用保存（幂等），无独立更新语义
+            ResourceType.TELEMETRY -> telemetrySyncApplier.saveTelemetryFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for update: $resourceType")
         }
     }
