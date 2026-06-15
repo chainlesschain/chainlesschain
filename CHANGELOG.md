@@ -44,6 +44,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
 
+## [v5.0.3.112] - 2026-06-15 — 个人数据中台采集器补 6 个跨平台平台 + Android cc bundle 滚到 v20260615b（pdh 0.4.24 / cli 0.162.67）
+
+> 补齐路线图/参考机之外、但高个人数据价值的 6 个主流平台采集器。`@chainlesschain/personal-data-hub` 0.4.23→0.4.24、CLI `chainlesschain` 0.162.66→0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`（携全部新 adapter），`USR_VERSION` → 43。桌面端 / CLI 即装即用；Android 端随本 APK 携带。
+
+### Added — 本轮新采集 adapter（6 个）
+- **饿了么**（`shopping-eleme`）：外卖订单（snapshot + cookie-api，镜像美团 外卖结构）。
+- **闲鱼**（`shopping-xianyu`）：二手买卖记录，买/卖双向（对手方角色随 side 翻转）。
+- **唯品会**（`shopping-vipshop`）：品牌特卖订单（品牌 → 商家）。
+- **豆瓣**（`social-douban`）：书影音兴趣图谱——标记（看过/想看/在看）→ 媒体事件 + 条目、影评 → 帖子、关注 → 联系人。
+- **喜马拉雅**（`audio-ximalaya`）：听书/播客收听历史——收听 / 收藏 / 订阅专辑（新 `audio-` 类目）。
+- **Keep**（`fitness-keep`）：运动训练记录，多类型（跑步/骑行/瑜伽/力量 …）。
+
+> 全部 snapshot 主路径 + cookie-api（注入式 fetch + signProvider seam，端点 best-effort 可覆盖、未实地验证）。各 adapter 全单元测试通过，接 桌面 / CLI 双壳。
+
 ## [v5.0.3.111] - 2026-06-15 — 个人数据中台采集器再扩面 + Android cc bundle 滚到 v20260615（pdh 0.4.23 / cli 0.162.65）
 
 > 继 v5.0.3.110 之后再补一轮 PDH 采集长尾：新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信（wework-pc）等 adapter，并由并行支线补上 个税（gov-tax scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.18→0.4.23、CLI `chainlesschain` 0.162.60→0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`（携全部新 adapter），`USR_VERSION` → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税/民生·中行·交行银行/数字人民币/12123，故意 defer）外的消费级平台已全部接通。
