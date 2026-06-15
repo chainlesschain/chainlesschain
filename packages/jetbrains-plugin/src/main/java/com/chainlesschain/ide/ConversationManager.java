@@ -28,6 +28,7 @@ public final class ConversationManager {
         public String sessionId;   // resume id (nullable)
         public Object session;     // opaque AgentChatSession handle (nullable)
         public Object turnState;
+        public String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
 
         Conversation(String id, String title, String sessionId, Object turnState) {
             this.id = id;
@@ -174,6 +175,13 @@ public final class ConversationManager {
     public Conversation setSession(String id, Object handle) {
         Conversation c = get(id);
         if (c != null) c.session = handle;
+        return c;
+    }
+
+    /** Set a conversation's approval mode (takes effect on its next child spawn). */
+    public Conversation setMode(String id, String mode) {
+        Conversation c = get(id);
+        if (c != null) c.mode = (mode == null || mode.trim().isEmpty()) ? "default" : mode;
         return c;
     }
 

@@ -29,6 +29,11 @@ These are finished and `javac --release 8`-tested (81 assertions in
 - [x] `MultiDiff.java` — multi-file diff changeset model (`1ef021c52`)
 - [x] `Mentions.java` — @-mention completion logic (`84a562149`)
 - [x] `ChatEvents.java` — stream-event mapping (already complete, all 11 kinds — verified)
+- [x] `SessionArgs.java` — `--permission-mode` selector arg builder (VS Code 0.30.0 #1)
+- [x] `IntrospectArgs.java` — cost/context args (`--json`) + context-window parser (0.30.0 #2)
+- [x] `ConversationManager` — per-conversation `mode` field + `setMode` (0.30.0 #1)
+
+(0.30.0 pure layers tested in `PureLogicSmokeMain` — now **102 assertions**, `javac --release 8`.)
 
 ## ⏳ Remaining — IntelliJ glue (SDK-gated; what's below is NOT done)
 
@@ -109,14 +114,39 @@ workspace symbols) is in `Mentions.java` (`84a562149`). What remains is the Inte
       to the input field's completion popup. (Pure logic done — just wire it.)
 - [ ] Keybindings: quick-launch tool window + insert `@file` reference.
 
+## 6. VS Code 0.30.0 parity (pure layers ported; glue pending)
+Mirrors the three features that shipped in VS Code extension 0.30.0. The pure
+logic is done (`SessionArgs`, `IntrospectArgs`, `ConversationManager.mode`); what
+remains is IntelliJ glue in the chat tool window.
+
+- [ ] **Approval-mode selector** (`/auto`=acceptEdits, `/bypass`=bypassPermissions,
+      `/normal`=default): a mode control (toolbar combo or slash commands) →
+      `ConversationManager.setMode(id, mode)`; spawn the per-tab `AgentChatSession`
+      with `SessionArgs.build(provider, model, resume, conv.mode)` as `extraArgs`.
+      Since `--permission-mode` is spawn-time, a mode change must stop the live
+      child so the next message respawns with the new flag (resume id preserved).
+      Depends on section 1 (per-tab sessions).
+- [ ] **Persistent context-window indicator**: after each turn (result event),
+      best-effort run `cc context <id> --json` (build args via
+      `IntrospectArgs.build("context", id, model, provider, true)`), parse with
+      `IntrospectArgs.parseContextStatus`, and render a subtle status line
+      (`⊟ context 12.3k / 200k (6%)`, red on overflow) under the chat — e.g. a
+      `JBLabel` in the tool-window south bar. Gate behind a setting + active tab.
+- [ ] **New-conversation / reopen-closed actions + keybindings**: action
+      `chainlesschain.chat.newConversation` (→ `ConversationManager.create()`,
+      reveal tool window) and `chainlesschain.chat.reopenClosedSession` (remember
+      the last `close().conv` and re-`create(title, sessionId, true)` to resume).
+      Register keymap defaults (avoid `Ctrl+Shift+Esc` — OS-reserved on Windows;
+      VS Code used `Ctrl/Cmd+Alt+N` and `Ctrl/Cmd+Shift+T`).
+
 ## Build / verify / publish — 🚫 HELD now, but ⚠️ MUST publish once glue lands
 **Release is on hold** (decided 2026-06-15) — but **held ≠ cancelled.** Once the
-sections 1–5 glue is implemented AND `runIde`-verified, **publishing the JetBrains
+sections 1–6 glue is implemented AND `runIde`-verified, **publishing the JetBrains
 version is the required final deliverable** (user re-emphasized 2026-06-15: "glue
 上线后记得发 JetBrains 版本"). Don't finish the glue and forget to ship it.
 (Currently live on JetBrains Marketplace: **0.3.3**, no 0.22 features.)
 
-- [ ] (gate) Sections 1–5 glue implemented + manually verified in `./gradlew runIde`.
+- [ ] (gate) Sections 1–6 glue implemented + manually verified in `./gradlew runIde`.
 - [ ] `./gradlew buildPlugin` (needs Mac/Linux + IntelliJ SDK) → `./gradlew runIde` sandbox,
       manually exercise each feature (mandatory per `feedback_full_test_pyramid_before_publish`).
 - [ ] **Then publish (required, not optional)**: bump plugin version + tag

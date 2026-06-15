@@ -10,16 +10,16 @@ import java.util.Set;
 
 /**
  * Headless smoke for the pure logic layers ported from the VS Code extension:
- * ConversationManager (tabs), PreviewDetect (App Preview), MultiDiff (batch
- * diff). No IntelliJ SDK, no cc, no LLM — just plain {@code javac} + {@code java}.
+ * ConversationManager (tabs + approval mode), PreviewDetect (App Preview),
+ * MultiDiff (batch diff), Mentions (@-completion), SessionArgs (--permission-mode
+ * selector), IntrospectArgs (cost/context args + context-window parser). No
+ * IntelliJ SDK, no cc, no LLM — just plain {@code javac} + {@code java}.
  *
  * Repro (from packages/jetbrains-plugin):
- *   javac --release 8 -encoding UTF-8 -d /tmp/cc-pure \
- *     src/main/java/com/chainlesschain/ide/ConversationManager.java \
- *     src/main/java/com/chainlesschain/ide/PreviewDetect.java \
- *     src/main/java/com/chainlesschain/ide/MultiDiff.java \
+ *   javac --release 8 -encoding UTF-8 -d .smoke-out \
+ *     src/main/java/com/chainlesschain/ide/*.java \
  *     src/test/java/com/chainlesschain/ide/PureLogicSmokeMain.java
- *   java -cp /tmp/cc-pure com.chainlesschain.ide.PureLogicSmokeMain
+ *   java -cp .smoke-out com.chainlesschain.ide.PureLogicSmokeMain
  */
 public final class PureLogicSmokeMain {
 
@@ -42,6 +42,8 @@ public final class PureLogicSmokeMain {
         previewDetect();
         multiDiff();
         mentions();
+        sessionArgs();
+        introspectArgs();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -109,6 +111,11 @@ public final class PureLogicSmokeMain {
         eq(m2.allSessions(), Arrays.asList(hx, hz), "allSessions only live, in order");
         eq(m2.setTitle(x.id, "Renamed").title, "Renamed", "setTitle");
         eq(m2.setTitle(x.id, "").title, "Renamed", "empty title ignored");
+
+        // approval mode (default + setMode, mirrors VS Code per-conversation mode)
+        eq(x.mode, "default", "conversation mode defaults to 'default'");
+        eq(m2.setMode(x.id, "acceptEdits").mode, "acceptEdits", "setMode");
+        eq(m2.setMode(x.id, "").mode, "default", "empty mode -> default");
     }
 
     private static void previewDetect() {
@@ -256,5 +263,61 @@ public final class PureLogicSmokeMain {
         eq(deduped.get(0).value, "src/app.js", "dedupe keeps first");
         eq(Mentions.mentionLabel(deduped.get(1)), "class Bar · src/bar.js", "mentionLabel");
         eq(Mentions.mentionValue(deduped.get(1)), "src/bar.js", "mentionValue");
+    }
+
+    private static void sessionArgs() {
+        System.out.println("SessionArgs:");
+        // permission mode → --permission-mode for the hands-off modes only
+        eq(SessionArgs.build(null, null, null, "acceptEdits"),
+                Arrays.asList("--permission-mode", "acceptEdits"), "mode acceptEdits");
+        eq(SessionArgs.build(null, null, null, "bypassPermissions"),
+                Arrays.asList("--permission-mode", "bypassPermissions"), "mode bypassPermissions");
+        eq(SessionArgs.build(null, null, null, "default"),
+                new ArrayList<String>(), "mode default -> no flag");
+        eq(SessionArgs.build(null, null, null, "nonsense"),
+                new ArrayList<String>(), "unknown mode -> no flag");
+        eq(SessionArgs.build(null, null, null, null),
+                new ArrayList<String>(), "null mode -> no flag");
+        // composed after provider/model/resume, blanks omitted
+        eq(SessionArgs.build("ollama", "qwen2.5:7b", "sess-1", "acceptEdits"),
+                Arrays.asList("--provider", "ollama", "--model", "qwen2.5:7b",
+                        "--resume", "sess-1", "--permission-mode", "acceptEdits"),
+                "composed args order");
+        eq(SessionArgs.build("  ", "", null, "default"),
+                new ArrayList<String>(), "all blank -> empty");
+        check(SessionArgs.PERMISSION_MODES.contains("acceptEdits")
+                && !SessionArgs.PERMISSION_MODES.contains("default"),
+                "PERMISSION_MODES allow-list (no 'default')");
+    }
+
+    private static void introspectArgs() {
+        System.out.println("IntrospectArgs:");
+        // --json only for context, never for cost
+        eq(IntrospectArgs.build("context", "s1", null, null, true),
+                Arrays.asList("context", "s1", "--json"), "context --json");
+        eq(IntrospectArgs.build("context", "s1", "m", "p", true),
+                Arrays.asList("context", "s1", "--model", "m", "--provider", "p", "--json"),
+                "context with model/provider/json");
+        eq(IntrospectArgs.build("cost", "s1", null, null, true),
+                Arrays.asList("cost", "s1"), "cost ignores json");
+
+        // parseContextStatus: derive total/window/pct/overflow from cc context --json
+        IntrospectArgs.ContextStatus ok = IntrospectArgs.parseContextStatus(
+                "{\"contextWindow\":200000,\"totalTokens\":12000}");
+        check(ok != null && ok.total == 12000 && ok.window == 200000
+                && ok.pct == 6 && !ok.overflow, "parse ok -> 6% no overflow");
+        IntrospectArgs.ContextStatus over = IntrospectArgs.parseContextStatus(
+                "{\"contextWindow\":1000,\"totalTokens\":1500}");
+        check(over != null && over.pct == 150 && over.overflow, "overflow by ratio");
+        IntrospectArgs.ContextStatus flag = IntrospectArgs.parseContextStatus(
+                "{\"contextWindow\":1000,\"totalTokens\":10,\"overflows\":true}");
+        check(flag != null && flag.overflow, "overflow by 'overflows' field");
+        // null cases
+        check(IntrospectArgs.parseContextStatus("not json") == null, "bad JSON -> null");
+        check(IntrospectArgs.parseContextStatus("") == null, "empty -> null");
+        check(IntrospectArgs.parseContextStatus("{\"totalTokens\":5}") == null,
+                "missing window -> null");
+        check(IntrospectArgs.parseContextStatus(
+                "{\"contextWindow\":0,\"totalTokens\":5}") == null, "zero window -> null");
     }
 }
