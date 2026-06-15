@@ -21,6 +21,7 @@
     ["/cost", "token cost for this session"],
     ["/context", "context-window usage"],
     ["/rewind", "restore a checkpoint"],
+    ["/retry", "regenerate the last prompt"],
     ["/help", "list panel commands"],
   ];
 

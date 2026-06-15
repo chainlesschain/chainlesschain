@@ -31,9 +31,13 @@ describe("slash-commands (panel / autocomplete)", () => {
     expect(slash.filterSlashCommands("re").map((r) => r[0])).toEqual([
       "/reject",
       "/rewind",
+      "/retry",
     ]);
     expect(slash.filterSlashCommands("rew").map((r) => r[0])).toEqual([
       "/rewind",
+    ]);
+    expect(slash.filterSlashCommands("ret").map((r) => r[0])).toEqual([
+      "/retry",
     ]);
     expect(slash.filterSlashCommands("zzz")).toEqual([]);
   });

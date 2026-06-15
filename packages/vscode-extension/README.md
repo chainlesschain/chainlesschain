@@ -210,6 +210,8 @@ The bearer token is never displayed in any of these.
   ↑/↓ to move, Esc to dismiss. Same dropdown as `@`-mentions.
 - ✅ **Copy button on code blocks** (0.29.0): each fenced code block in a reply shows
   a hover Copy button that copies the block to the clipboard.
+- ✅ **`/retry` regenerate** (0.29.0): re-send your last prompt as a fresh turn
+  without retyping it.
 
 ## Packaging
 

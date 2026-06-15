@@ -4,6 +4,9 @@ All notable changes to this extension are documented here.
 
 ## [0.29.0] — 2026-06-15
 
+- **`/retry` — regenerate the last prompt.** A `/retry` panel command (in the
+  slash menu) re-sends your last message as a fresh turn, so you can get another
+  answer without retyping it.
 - **Copy button on code blocks (Claude-Code panel parity).** Every fenced code
   block in an assistant reply now shows a hover **Copy** button (top-right) that
   copies the block's text to the clipboard. Added at the DOM level after rendering,

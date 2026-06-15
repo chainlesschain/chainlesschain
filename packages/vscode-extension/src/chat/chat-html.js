@@ -145,6 +145,7 @@ function buildChatHtml({ cspSource, nonce }) {
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
+  let lastSentText = ""; // last user prompt, for /retry (regenerate)
 
   // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
   // nodes (tabId -> Node[]), not an innerHTML string — detaching/re-appending
@@ -271,6 +272,11 @@ function buildChatHtml({ cspSource, nonce }) {
     "/cost": () => vscode.postMessage({ type: "cost" }),
     "/context": () => vscode.postMessage({ type: "context" }),
     "/rewind": () => vscode.postMessage({ type: "rewind" }),
+    "/retry": () => {
+      // Regenerate: re-send the last user prompt as a fresh turn.
+      if (lastSentText) { input.value = lastSentText; send(); }
+      else { add("info", "nothing to retry yet — send a message first"); }
+    },
   };
   // Pasted screenshots ride the message as data URLs; the host writes them
   // to temp files and the CLI attaches them like --image (vision model
@@ -313,7 +319,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /rewind · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /stop · /cost · /context · /rewind · /retry · /help");
         return;
       }
       if (SLASH[cmd]) {
@@ -327,6 +333,7 @@ function buildChatHtml({ cspSource, nonce }) {
     const images = pendingImages;
     pendingImages = [];
     renderAttach();
+    lastSentText = text; // remember for /retry (regenerate the same prompt)
     add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
     streamEl = null;
     vscode.postMessage(
