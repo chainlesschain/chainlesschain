@@ -21,12 +21,27 @@
 const SELECTION_TEXT_CAP = 2000;
 /** At most this many open-editor entries are listed. */
 const OPEN_EDITORS_CAP = 10;
+/** Recent terminal commands pulled into the ambient block. */
+const TERMINAL_LIMIT = 2;
+/** Per-command output cap inside the ambient block (tighter than the tool's). */
+const TERMINAL_OUTPUT_CAP = 800;
 /** Per-tool-call budget; the IDE answers from memory, so this is generous. */
 const DEFAULT_TIMEOUT_MS = 1500;
 
 /** Env kill-switch: CC_IDE_CONTEXT=0|false|off disables injection. */
 export function ideContextEnabled(env = process.env) {
   const v = String(env?.CC_IDE_CONTEXT ?? "").toLowerCase();
+  return !(v === "0" || v === "false" || v === "off");
+}
+
+/**
+ * Sub-switch for terminal output in the ambient block: CC_IDE_TERMINAL=0|false|off
+ * drops it while keeping selection/editors (terminal output can be noisy or
+ * sensitive). Implies off whenever CC_IDE_CONTEXT is off.
+ */
+export function ideTerminalEnabled(env = process.env) {
+  if (!ideContextEnabled(env)) return false;
+  const v = String(env?.CC_IDE_TERMINAL ?? "").toLowerCase();
   return !(v === "0" || v === "false" || v === "off");
 }
 
@@ -39,6 +54,14 @@ export function hasIdeContextTools(mcp) {
   return !!(
     mcp?.mcpClient?.callTool &&
     mcp.externalToolExecutors?.mcp__ide__getSelection?.kind === "mcp"
+  );
+}
+
+/** Does this MCP surface expose the IDE bridge's terminal-output tool? */
+export function hasIdeTerminalTool(mcp) {
+  return !!(
+    mcp?.mcpClient?.callTool &&
+    mcp.externalToolExecutors?.mcp__ide__getTerminalOutput?.kind === "mcp"
   );
 }
 
@@ -92,24 +115,38 @@ export async function collectIdeContext(mcp, opts = {}) {
   if (!hasIdeContextTools(mcp)) return null;
   const timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
   const executors = mcp.externalToolExecutors;
-  const call = (name) => {
+  const call = (name, args = {}) => {
     const exec = executors[name];
     if (!exec || exec.kind !== "mcp") return Promise.resolve(null);
     let p;
     try {
-      p = mcp.mcpClient.callTool(exec.serverName, exec.toolName, {});
+      p = mcp.mcpClient.callTool(exec.serverName, exec.toolName, args);
     } catch {
       return Promise.resolve(null);
     }
     return withTimeout(p.then(parseToolResultJson), timeoutMs);
   };
-  const [selection, editors] = await Promise.all([
+  const wantTerminal =
+    ideTerminalEnabled(opts.env || process.env) && hasIdeTerminalTool(mcp);
+  const [selection, editors, terminalData] = await Promise.all([
     call("mcp__ide__getSelection"),
     call("mcp__ide__getOpenEditors"),
+    wantTerminal
+      ? call("mcp__ide__getTerminalOutput", { limit: TERMINAL_LIMIT })
+      : Promise.resolve(null),
   ]);
   const openEditors = Array.isArray(editors?.editors) ? editors.editors : null;
-  if (!selection && !(openEditors && openEditors.length > 0)) return null;
-  return { selection: selection || null, openEditors };
+  const terminals = Array.isArray(terminalData?.terminals)
+    ? terminalData.terminals
+    : null;
+  if (
+    !selection &&
+    !(openEditors && openEditors.length > 0) &&
+    !(terminals && terminals.length > 0)
+  ) {
+    return null;
+  }
+  return { selection: selection || null, openEditors, terminals };
 }
 
 /**
@@ -148,6 +185,26 @@ export function formatIdeContext(ctx) {
     lines.push(text);
   } else if (sel?.file && !active) {
     lines.push(`Active file: ${sel.file}`);
+  }
+  const terms = Array.isArray(ctx.terminals) ? ctx.terminals : [];
+  if (terms.length > 0) {
+    const shown = terms
+      .slice(-TERMINAL_LIMIT)
+      .filter((t) => t && typeof t.command === "string");
+    if (shown.length > 0) {
+      lines.push("Recent terminal commands:");
+      for (const t of shown) {
+        const code = t.exitCode == null ? "" : ` (exit ${t.exitCode})`;
+        let out = typeof t.output === "string" ? t.output : "";
+        const truncated = out.length > TERMINAL_OUTPUT_CAP || t.outputTruncated;
+        if (out.length > TERMINAL_OUTPUT_CAP)
+          out = out.slice(-TERMINAL_OUTPUT_CAP);
+        lines.push(`$ ${t.command}${code}`);
+        if (out.trim().length > 0) {
+          lines.push(out + (truncated ? "\n...(output truncated)" : ""));
+        }
+      }
+    }
   }
   if (lines.length === 0) return null;
   return (

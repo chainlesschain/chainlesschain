@@ -12,7 +12,9 @@ import path from "node:path";
 import os from "node:os";
 import {
   ideContextEnabled,
+  ideTerminalEnabled,
   hasIdeContextTools,
+  hasIdeTerminalTool,
   parseToolResultJson,
   collectIdeContext,
   formatIdeContext,
@@ -582,5 +584,128 @@ describe("runAgentHeadlessStream — IDE context wiring", () => {
       expect(content).toContain("<ide-context>");
       expect(content).toContain("return a + b;");
     }
+  });
+});
+
+// ─── at-submit terminal-context auto-injection ──────────────────────────────
+
+const TERMINALS = [
+  { command: "npm test", exitCode: 0, output: "12 passed\n", terminal: "bash" },
+  {
+    command: "npm run build",
+    exitCode: 1,
+    output: "TS2322 boom",
+    terminal: "bash",
+  },
+];
+
+/** A bridge bundle that also exposes the terminal tool. */
+function fakeIdeMcpTerm({
+  terminals = TERMINALS,
+  selection = null,
+  editors = [],
+} = {}) {
+  const calls = [];
+  return {
+    mcpClient: {
+      callTool: async (server, tool, args) => {
+        calls.push({ tool, args });
+        if (tool === "getSelection") return txt(selection);
+        if (tool === "getOpenEditors") return txt({ editors });
+        if (tool === "getTerminalOutput") return txt({ terminals });
+        return txt(null);
+      },
+    },
+    externalToolExecutors: {
+      mcp__ide__getSelection: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getSelection",
+      },
+      mcp__ide__getOpenEditors: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getOpenEditors",
+      },
+      mcp__ide__getTerminalOutput: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getTerminalOutput",
+      },
+    },
+    calls,
+  };
+}
+
+describe("ideTerminalEnabled / hasIdeTerminalTool", () => {
+  it("defaults on; off by 0/false/off; off when CC_IDE_CONTEXT is off", () => {
+    expect(ideTerminalEnabled({})).toBe(true);
+    expect(ideTerminalEnabled({ CC_IDE_TERMINAL: "0" })).toBe(false);
+    expect(ideTerminalEnabled({ CC_IDE_TERMINAL: "off" })).toBe(false);
+    expect(ideTerminalEnabled({ CC_IDE_CONTEXT: "0" })).toBe(false); // implied
+  });
+  it("detects the terminal executor", () => {
+    expect(hasIdeTerminalTool(fakeIdeMcpTerm())).toBe(true);
+    expect(hasIdeTerminalTool(fakeIdeMcp())).toBe(false); // no terminal tool
+  });
+});
+
+describe("collectIdeContext — terminal output", () => {
+  it("includes recent terminals and passes the limit when the tool is present", async () => {
+    const mcp = fakeIdeMcpTerm({ editors: EDITORS });
+    const ctx = await collectIdeContext(mcp, { env: {} });
+    expect(ctx.terminals).toHaveLength(2);
+    expect(ctx.terminals[1]).toMatchObject({
+      command: "npm run build",
+      exitCode: 1,
+    });
+    const termCall = mcp.calls.find((c) => c.tool === "getTerminalOutput");
+    expect(termCall.args).toEqual({ limit: 2 });
+  });
+
+  it("returns a terminal-only context (no selection/editors) without null-ing out", async () => {
+    const ctx = await collectIdeContext(fakeIdeMcpTerm(), { env: {} });
+    expect(ctx).not.toBe(null);
+    expect(ctx.selection).toBe(null);
+    expect(ctx.terminals).toHaveLength(2);
+  });
+
+  it("CC_IDE_TERMINAL=0 drops terminals but keeps editors", async () => {
+    const mcp = fakeIdeMcpTerm({ editors: EDITORS });
+    const ctx = await collectIdeContext(mcp, { env: { CC_IDE_TERMINAL: "0" } });
+    expect(ctx.terminals).toBe(null);
+    expect(ctx.openEditors).toHaveLength(2);
+    expect(mcp.calls.some((c) => c.tool === "getTerminalOutput")).toBe(false);
+  });
+});
+
+describe("formatIdeContext — terminal block", () => {
+  it("renders recent commands with exit code and output", () => {
+    const out = formatIdeContext({
+      selection: null,
+      openEditors: null,
+      terminals: TERMINALS,
+    });
+    expect(out).toContain("Recent terminal commands:");
+    expect(out).toContain("$ npm test (exit 0)");
+    expect(out).toContain("12 passed");
+    expect(out).toContain("$ npm run build (exit 1)");
+    expect(out).toContain("TS2322 boom");
+  });
+
+  it("truncates long output to the tail", () => {
+    const big = "X".repeat(50) + "ERR_AT_END";
+    const out = formatIdeContext({
+      terminals: [
+        {
+          command: "noisy",
+          exitCode: 1,
+          output: "A".repeat(2000) + "ERR_AT_END",
+        },
+      ],
+    });
+    expect(out).toContain("ERR_AT_END"); // tail kept
+    expect(out).toContain("...(output truncated)");
+    expect(big).toBeTruthy();
   });
 });

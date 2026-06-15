@@ -551,11 +551,14 @@ chainlesschain ide doctor [--ide]              # 解释发现为何成功/失败
 
 IDE 桥连上后,agent 不再只是"有 IDE 工具可调",还会**主动感知编辑器状态**:
 
-- **提交时自动共享选区/打开文件**:每次提交 prompt(headless 单轮、stream 每轮、REPL 每条),
-  CLI 自动调一次 `getSelection` + `getOpenEditors`,把活跃文件、打开的 tab、当前选中代码
-  (截断到 2000 字符)作为 `<ide-context>` 块附进**本轮用户消息**——模型无须自己决定调工具。
-  该块是**短暂的**:只进在途消息,不写入会话持久化(resume 回放的是你的原话,不是过期的
-  编辑器快照)。IDE 无响应时 1.5s 超时放弃,绝不阻塞回合。
+- **提交时自动共享选区/打开文件/终端输出**:每次提交 prompt(headless 单轮、stream 每轮、
+  REPL 每条),CLI 自动调一次 `getSelection` + `getOpenEditors`(+ 连了终端工具时 `getTerminalOutput`),
+  把活跃文件、打开的 tab、当前选中代码(截断到 2000 字符)、**最近 2 条终端命令 + 输出**
+  (每条输出截断到 800 字符、保留末尾)作为 `<ide-context>` 块附进**本轮用户消息**——模型无须
+  自己决定调工具(对标 Claude Code「把终端输出带进 prompt」)。该块是**短暂的**:只进在途消息,
+  不写入会话持久化(resume 回放的是你的原话,不是过期的编辑器快照)。IDE 无响应时 1.5s 超时
+  放弃,绝不阻塞回合。**终端输出可单独关**:`CC_IDE_TERMINAL=0` 只去掉终端(选区/编辑器仍注入),
+  适合终端噪声大或含敏感信息时。
 - **编辑后诊断自动回喂**:`write_file`/`edit_file`/`edit_file_hashed` 成功后,CLI 等
   语言服务器消化变更(默认 600ms,`CC_IDE_DIAG_SETTLE_MS` 可调,`0` 跳过),拉取该文件的
   **error/warning 诊断**(info/hint 不打扰),作为 `ideDiagnostics` 附在工具结果里——模型
