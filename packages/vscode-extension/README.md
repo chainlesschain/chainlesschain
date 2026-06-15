@@ -151,8 +151,8 @@ The bearer token is never displayed in any of these.
 
 ## Status
 
-- ✅ MCP server + lockfile + env injection + 6 tools (incl. `executeCode`,
-  `openMultiDiff`), wired and tested.
+- ✅ MCP server + lockfile + env injection + 7 tools (incl. `executeCode`,
+  `openMultiDiff`, `getTerminalOutput`), wired and tested.
 - ✅ `openDiff` blocking review with accept/reject + user-edited `finalText`.
 - ✅ Live awareness with cc ≥ 0.162.39: selection shared per prompt,
   post-edit diagnostics fed back, edit approvals as native diffs.
@@ -187,6 +187,9 @@ The bearer token is never displayed in any of these.
   revision notes that the agent revises against.
 - ✅ **Batch multi-file diff — `openMultiDiff`** (0.22.0): review a whole changeset in
   one native multi-file diff (Accept all / pick a subset / Reject).
+- ✅ **Terminal-context sharing — `getTerminalOutput`** (0.23.0): the agent sees recent
+  integrated-terminal commands + their output + exit code (VS Code 1.93+ shell
+  integration), so it knows what you just ran and how it failed.
 
 ## Packaging
 

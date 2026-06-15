@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.23.0] — 2026-06-15
+
+- **Terminal-context sharing (Claude Code parity)** — a new `getTerminalOutput`
+  IDE tool (`mcp__ide__getTerminalOutput`). The agent can see the recent commands
+  you ran in the integrated terminal — their output and exit code — so it knows
+  what just happened (and how it failed) without you pasting it. Backed by VS
+  Code's shell-integration API (VS Code 1.93+; on older hosts the tool simply
+  returns nothing). Output is capped to the most recent chars per command (errors
+  live at the end), keeping the last few commands.
+
 ## [0.22.1] — 2026-06-15
 
 - **Docs only (no code change)** — refreshes the Open VSX listing:
