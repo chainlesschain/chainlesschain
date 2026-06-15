@@ -53,7 +53,8 @@ describe("lastAssistantText", () => {
 
 describe("lastCodeBlock", () => {
   it("extracts the last fenced block body (sans language + trailing newline)", () => {
-    const text = "intro\n```js\nconst a = 1;\n```\nmid\n```\nplain block\n```\nend";
+    const text =
+      "intro\n```js\nconst a = 1;\n```\nmid\n```\nplain block\n```\nend";
     expect(lastCodeBlock(text)).toBe("plain block");
   });
   it("returns null when there is no fenced block", () => {
