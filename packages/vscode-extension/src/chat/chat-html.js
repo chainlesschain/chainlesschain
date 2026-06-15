@@ -131,11 +131,25 @@ function buildChatHtml({ cspSource, nonce }) {
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
 
-  // Conversation tabs: each tab's transcript is buffered here (tabId ->
-  // log.innerHTML) so switching tabs restores what was there. The host gates
-  // background-tab streaming, so a buffer only changes while its tab is active.
-  const tabHtml = {};
+  // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
+  // nodes (tabId -> Node[]), not an innerHTML string — detaching/re-appending
+  // real nodes preserves their event listeners, so a pending approval card's
+  // Approve/Deny buttons still work after you switch away and back. The host
+  // gates background-tab streaming, so a buffer only changes while its tab is
+  // active.
+  const tabNodes = {};
   let activeTabId = null;
+
+  // Move all of #log's children out into an array (detached, listeners intact).
+  function detachLogNodes() {
+    const nodes = [];
+    while (log.firstChild) nodes.push(log.removeChild(log.firstChild));
+    return nodes;
+  }
+  // Re-append previously-detached nodes back into #log.
+  function attachLogNodes(nodes) {
+    for (const n of nodes || []) log.appendChild(n);
+  }
 
   function renderTabBar(tabs, activeId) {
     tabsEl.textContent = "";
@@ -523,7 +537,7 @@ function buildChatHtml({ cspSource, nonce }) {
         break;
       case "reset":
         log.textContent = "";
-        if (activeTabId) tabHtml[activeTabId] = ""; // forget this tab's transcript
+        if (activeTabId) tabNodes[activeTabId] = []; // forget this tab's transcript
         streamEl = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
@@ -534,10 +548,13 @@ function buildChatHtml({ cspSource, nonce }) {
       case "tabs": {
         renderTabBar(m.tabs, m.activeId);
         if (m.activeId !== activeTabId) {
-          // Save the outgoing tab's transcript, restore the incoming one.
-          if (activeTabId) tabHtml[activeTabId] = log.innerHTML;
+          // Save the outgoing tab's nodes (detached, listeners intact), restore
+          // the incoming one's. Real DOM nodes (vs innerHTML) keep approval-card
+          // button handlers alive across tab switches.
+          if (activeTabId) tabNodes[activeTabId] = detachLogNodes();
+          else detachLogNodes(); // no owner yet → drop the bootstrap nodes
           activeTabId = m.activeId;
-          log.innerHTML = tabHtml[activeTabId] || "";
+          attachLogNodes(tabNodes[activeTabId]);
           streamEl = null;
           streamRaw = "";
           planBox.style.display = "none";
@@ -545,8 +562,8 @@ function buildChatHtml({ cspSource, nonce }) {
         }
         // Drop buffers for tabs that were closed.
         const live = new Set((m.tabs || []).map((t) => t.id));
-        for (const k of Object.keys(tabHtml)) {
-          if (!live.has(k)) delete tabHtml[k];
+        for (const k of Object.keys(tabNodes)) {
+          if (!live.has(k)) delete tabNodes[k];
         }
         break;
       }

@@ -197,6 +197,14 @@ describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
     expect(html).toContain('type: "newTab"');
     expect(html).toContain('type: "switchTab"');
     expect(html).toContain('type: "closeTab"');
+    // Per-tab transcript must use DETACHED DOM NODES, not innerHTML strings —
+    // detaching/re-appending real nodes preserves event listeners so approval
+    // cards stay clickable after a tab switch. A regression to innerHTML would
+    // silently break those buttons.
+    expect(html).toContain("detachLogNodes");
+    expect(html).toContain("attachLogNodes");
+    expect(html).toContain("tabNodes");
+    expect(html).not.toContain("tabHtml");
     // Every inline script must still parse (dead-panel regression gate).
     const scripts = [
       ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
