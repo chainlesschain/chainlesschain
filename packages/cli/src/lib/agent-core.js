@@ -28,6 +28,7 @@ export {
   formatToolArgs,
   getActiveMcpServers,
   listBackgroundShellTasks,
+  killBackgroundShellTask,
   killAllBackgroundShellTasks,
   _accumulateOllamaStream,
   _accumulateOpenAIStream,
