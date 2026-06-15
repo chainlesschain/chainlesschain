@@ -77,6 +77,11 @@
       {
         "command": "chainlesschain.preview.stop",
         "title": "ChainlessChain: Stop App Preview"
+      },
+      {
+        "command": "chainlesschain.cli.upgrade",
+        "title": "ChainlessChain: Upgrade CLI (npm i -g chainlesschain@latest)",
+        "icon": "$(cloud-download)"
       }
     ],
     "keybindings": [

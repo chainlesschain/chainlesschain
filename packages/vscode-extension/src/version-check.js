@@ -15,6 +15,9 @@
  */
 const MIN_CLI_VERSION = "0.162.47";
 
+/** The shell command that upgrades the global CLI to the latest published npm. */
+const UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
+
 /** Pull an x.y.z(-prerelease) version out of `cc --version` output, or null. */
 function parseCliVersion(stdout) {
   if (typeof stdout !== "string") return null;
@@ -61,7 +64,7 @@ function upgradeNotice(check) {
     message:
       `ChainlessChain IDE: your cc CLI (${check.installed}) is older than this ` +
       `extension needs (${check.minimum}). Some features may not work until you upgrade.`,
-    upgradeCommand: "npm i -g chainlesschain@latest",
+    upgradeCommand: UPGRADE_COMMAND,
   };
 }
 
@@ -101,6 +104,7 @@ async function runCliVersionSync(deps, minimum = MIN_CLI_VERSION) {
 
 module.exports = {
   MIN_CLI_VERSION,
+  UPGRADE_COMMAND,
   parseCliVersion,
   compareVersions,
   checkCliVersion,

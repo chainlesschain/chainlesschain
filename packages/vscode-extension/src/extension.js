@@ -260,6 +260,11 @@ function activate(context) {
       _preview?.stop();
       vscode.window.setStatusBarMessage("$(primitive-square) App preview stopped", 3000);
     }),
+    // On-demand: upgrade the `cc` CLI to the latest npm — works any time, not
+    // just when the version-sync floor check nags. Runs npm i -g in a terminal.
+    vscode.commands.registerCommand("chainlesschain.cli.upgrade", () => {
+      upgradeCliInTerminal(vscode);
+    }),
     // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
     // files` in the shared terminal — cc.md is then auto-loaded by cc agent.
     vscode.commands.registerCommand("chainlesschain.memory.init", async () => {
@@ -496,12 +501,16 @@ function checkCliVersionAndNotify(vscode, context) {
       if (pick === "Don't show again") return "dismiss";
       return null;
     },
-    upgrade: (command) => {
-      const term = vscode.window.createTerminal("ChainlessChain CLI upgrade");
-      term.show();
-      term.sendText(command);
-    },
+    upgrade: (command) => upgradeCliInTerminal(vscode, command),
   });
+}
+
+/** Run the cc upgrade command in a visible terminal. */
+function upgradeCliInTerminal(vscode, command) {
+  const { UPGRADE_COMMAND } = require("./version-check");
+  const term = vscode.window.createTerminal("ChainlessChain CLI upgrade");
+  term.show();
+  term.sendText(command || UPGRADE_COMMAND);
 }
 
 module.exports = { activate, deactivate };

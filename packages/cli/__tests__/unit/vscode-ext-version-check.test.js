@@ -6,12 +6,22 @@
 import { describe, it, expect } from "vitest";
 import {
   MIN_CLI_VERSION,
+  UPGRADE_COMMAND,
   parseCliVersion,
   compareVersions,
   checkCliVersion,
   upgradeNotice,
   runCliVersionSync,
 } from "../../../vscode-extension/src/version-check.js";
+
+describe("UPGRADE_COMMAND", () => {
+  it("is the canonical global-latest npm install (shared by prompt + command)", () => {
+    expect(UPGRADE_COMMAND).toBe("npm i -g chainlesschain@latest");
+    expect(upgradeNotice(checkCliVersion("0.162.40")).upgradeCommand).toBe(
+      UPGRADE_COMMAND,
+    );
+  });
+});
 
 describe("parseCliVersion", () => {
   it("extracts x.y.z from varied `cc --version` output", () => {
