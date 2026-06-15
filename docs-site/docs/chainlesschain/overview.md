@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.113 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.70 / 155 命令 / 30,000+ 测试 | Android 5.0.3.113 (versionCode 503113 · USR_VERSION 43 · binariesVersion 20260615b) | iOS 5.0.3 (build 113，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.113 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.70 / 158 命令 / 30,000+ 测试 | Android 5.0.3.113 (versionCode 503113 · USR_VERSION 43 · binariesVersion 20260615b) | iOS 5.0.3 (build 113，ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.113 npm 发布/安装链路加固（2026-06-15）**：修复中国大陆镜像装机失败——`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存致 `npm install` E404（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）；手动触发镜像 sync API 修复线上（tarball 404→200），`npm-publish.yml` 新增发版后自动 PUT 镜像 sync API（best-effort，不阻断发版），README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」。新增 `npm-deprecate.yml` 参数化弃用 workflow（已弃用误从陈旧 tag 发布、漏 8 个 PDH adapter wiring（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）的 `0.162.68` → `0.162.69` 修复版）。VS Code 扩展 0.28/0.29（后台 tab 完成信号 + 面板 slash 命令/@ 补全/rewind）。CLI npm `latest` 0.162.70。
 >
@@ -72,7 +72,7 @@
 
 ## 概述
 
-ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、155 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
+ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、158 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
 
 **v5.0.2.x新增**: CLI进化版 — Hashline哈希锚定行编辑（内容哈希替代行号，抗格式化漂移）、Hooks三件套（SessionStart/UserPromptSubmit/SessionEnd会话级钩子触发）、Skill-Embedded MCP（技能内联MCP服务器按需mount/unmount）、Category Routing类别路由（5类别quick/deep/reasoning/vision/creative自动匹配provider）、Canonical Tool Descriptor工具描述规范统一（inputSchema为真源，parameters只读镜像）、Coding Agent Envelope Protocol（统一WS信封协议，dot-case类型，requestId关联）、Sub-Runtime Pool子运行时池（Electron主进程子进程spawn，sessionId分片）、Web UI管理面板（HTTP 18810端口，项目/全局双模式）、AI Orchestration编排层（Claude Code/Codex/多Agent路由，5种策略）、AI Doc Creator模板（doc-generate/libre-convert/doc-edit三技能）、CLI Skill Packs（9个领域技能包，sync-cli命令自动生成）。**v0.46.0–v0.47.0（2026-04-15）增量**: Cowork Evolution F1–F9 全部落地（共享学习 / 决策回放 / 11 类任务模板 / Cron 调度 / DAG 工作流 / 历史学习 / 签名 P2P 共享）+ Open-Agents 对标 Phase 1–5（AGENT_TOOLS 13→16，新增 web_fetch / todo_write / ask_user_question；Skill `$ARGUMENTS` 占位符；Sub-Agent Profiles explorer/executor/design；prepareCall 转瞬即逝的 turn-context 注入；provider-options 三层深合并）。
 
@@ -1875,7 +1875,7 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 | ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`                                 | Skill-Embedded MCP mount/unmount（26 tests）    |
 | ✅ `packages/session-core/__tests__/quality-gate.test.js`                          | QualityGate 可插拔检查器注册表（39 tests）      |
 | ✅ `desktop-app-vue/tests/unit/cowork/debate-review.test.js`                       | Cowork debate-review 冲突仲裁（18 tests）       |
-| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 155 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
+| ✅ `packages/cli/__tests__/` (全量)                                                | CLI 158 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests）|
 
 **全项目合计**: 30,000+ tests（Desktop ~28k + CLI ~19k + web-panel ~2k + core packages ~2k）
 
