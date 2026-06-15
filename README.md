@@ -13,7 +13,7 @@
 
 ## 2026-06-15 发布 — **v5.0.3.113：npm 发布/安装链路加固（修复中国大陆镜像装机 E404 + 版本弃用 workflow）+ VS Code 扩展 0.28/0.29 + CLI 0.162.70**
 
-> 桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）；Android cc bundle 仍为 `v20260615b`（本版不滚动）。
+> 桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）；Android cc bundle 滚到 `v20260615c`（携 cli 0.162.70 + pdh 0.4.24，`USR_VERSION` → 44）。
 
 - **修复中国大陆镜像 `npm install` E404**（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）：`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存 → 默认走淘宝镜像的用户装机硬失败。已手动触发镜像 sync API 修复线上（tarball 404→200）；`npm-publish.yml` 新增「发版后自动 PUT 镜像 sync API」步（best-effort，不阻断发版），后续发版自动补齐；README 中英补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」说明。
 - **`npm-deprecate.yml`**：参数化 workflow，用 CI 的 `NPM_TOKEN` secret 弃用/取消弃用已发布版本（本地 token 已过期）。已弃用误从陈旧 tag 发布、漏 8 个 PDH adapter wiring（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）的 `chainlesschain@0.162.68`；`0.162.69` 为完整修复版，`0.162.70` 为当前 npm `latest`。

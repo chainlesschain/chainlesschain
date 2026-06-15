@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.113 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.70 / 158 命令 / 30,000+ 测试 | Android 5.0.3.113 (versionCode 503113 · USR_VERSION 43 · binariesVersion 20260615b) | iOS 5.0.3 (build 113，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.113 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.70 / 158 命令 / 30,000+ 测试 | Android 5.0.3.113 (versionCode 503113 · USR_VERSION 44 · binariesVersion 20260615c) | iOS 5.0.3 (build 113，ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.113 npm 发布/安装链路加固（2026-06-15）**：修复中国大陆镜像装机失败——`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存致 `npm install` E404（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）；手动触发镜像 sync API 修复线上（tarball 404→200），`npm-publish.yml` 新增发版后自动 PUT 镜像 sync API（best-effort，不阻断发版），README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」。新增 `npm-deprecate.yml` 参数化弃用 workflow（已弃用误从陈旧 tag 发布、漏 8 个 PDH adapter wiring（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）的 `0.162.68` → `0.162.69` 修复版）。VS Code 扩展 0.28/0.29（后台 tab 完成信号 + 面板 slash 命令/@ 补全/rewind）。CLI npm `latest` 0.162.70。
 >

@@ -54,7 +54,7 @@
 
 ## [v5.0.3.113] - 2026-06-15 — npm 发布/安装链路加固（npmmirror 自动同步 + 版本弃用 workflow）+ VS Code 扩展 0.28/0.29 + CLI 0.162.70
 
-> 修复中国大陆镜像装机失败、加固 npm 发布链路，并继续推进 IDE / CLI 体验。桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）。Android cc bundle 仍为 `v20260615b`（本版不滚动）。
+> 修复中国大陆镜像装机失败、加固 npm 发布链路，并继续推进 IDE / CLI 体验。桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）。Android cc bundle 滚到 `internal-binaries-android-v20260615c`（携 cli 0.162.70 + pdh 0.4.24），`USR_VERSION` → 44。
 
 #### Fixed — npm 安装可靠性（中国大陆镜像）
 - **npmmirror tarball 懒同步导致 `npm install` E404**（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）：`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存 → 默认走淘宝镜像的用户装机硬失败。修：① 手动触发镜像 sync API 修复线上（tarball 404→200，镜像装机恢复）；② `npm-publish.yml` 新增「发版后自动 PUT 镜像 sync API」步（best-effort，结果进 job summary，不阻断发版），后续每次发版自动补齐；③ README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」说明。
