@@ -30,8 +30,10 @@ import javax.inject.Inject
  * （不产生输出），"silent" 仍输出供审计区分。dedupKey 按 围栏/触发/本地日 分桶，边界抖动
  * （反复 ENTER/EXIT）当天只下发一次。
  *
- * "应到却未到"（child 截止时间前从未 ENTER 学校）需定时器轮询，属 FAMILY-52 真机范畴，
- * 本纯逻辑引擎只覆盖"已进入但迟到"。
+ * "应到却未到"（child 截止时间前从未 ENTER 学校）由 [resolveOverdueArrival] 覆盖：**判定本身是
+ * 纯函数**（截止已过 + 当天适用 + 当天未进入 → on_late），只有"周期性地拿当天最近 ENTER 喂进来"
+ * 的定时器轮询属 FAMILY-52 真机范畴。它与 ENTER 路径的"已进入但迟到"互补，复用同一 ON_LATE
+ * dedupKey，故同一天最多一条迟到/未到通知。
  */
 class GeofenceActionEngine @Inject constructor(
     private val zoneId: ZoneId,
@@ -67,6 +69,41 @@ class GeofenceActionEngine @Inject constructor(
                 ?.let { out += it }
         }
         return out
+    }
+
+    /**
+     * "应到却未到"纯判定 (主文档 §3.8)：当天截止时间已过、且 child 当天从未进入该围栏 → 产出
+     * on_late 动作（摘要为"应到未到"，区别于 ENTER 路径的"迟到到达"）。
+     *
+     * 与 [resolve] 的 ENTER→on_late 互补：那条在 child **真的到了**（迟）时触发；本条在
+     * **该到没到**（截止已过仍无 ENTER）时触发。两者共用同一 ON_LATE dedupKey
+     * (`<id>:ON_LATE:<本地日>`)，故同一天最多一条通知 —— child 先未到（本条）、后迟到进校
+     * （ENTER 条）下游去重后只下发一次。
+     *
+     * **纯函数**：由调用方（设备阻塞的 WorkManager 周期轮询，属 FAMILY-52 真机范畴）备好
+     * [lastEnterMs]（该 child 在该围栏最近一次 ENTER 的 epoch ms，从未进入则 null）+ nowMs 驱动。
+     * 非 active / 无 expected_arrival / 当天非适用 weekday / 截止未到 / 当天已进入 → null。
+     */
+    fun resolveOverdueArrival(
+        geofence: GeofenceEntity,
+        childDid: String,
+        lastEnterMs: Long?,
+        nowMs: Long,
+    ): ResolvedGeofenceAction? {
+        if (!geofence.active) return null
+        if (!isLateArrival(geofence, nowMs)) return null
+        if (enteredOn(lastEnterMs, nowMs)) return null
+        return resolved(geofence, GeofenceTrigger.ON_LATE, geofence.onLateAction, childDid, nowMs)
+            ?.copy(summary = overdueSummary(geofence))
+    }
+
+    /** [lastEnterMs] 落在 [nowMs] 的同一本地日 → 视为"当天已进入"。null（从未进入）→ false。 */
+    private fun enteredOn(lastEnterMs: Long?, nowMs: Long): Boolean =
+        lastEnterMs != null && localDate(lastEnterMs) == localDate(nowMs)
+
+    private fun overdueSummary(geofence: GeofenceEntity): String {
+        val kindLabel = GeofenceKind.fromStorage(geofence.kind)?.let { kindLabel(it) } ?: geofence.name
+        return "应到未到「${geofence.name}」($kindLabel)"
     }
 
     /** 本次进入是否迟于 expected_arrival（含 grace）；无 / 非法 schedule、当天非适用 weekday → false。 */

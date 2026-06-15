@@ -147,6 +147,92 @@ class GeofenceActionEngineTest {
         assertEquals(GeofenceTrigger.ON_ENTER, out[0].trigger)
     }
 
+    // ─── 应到却未到 (resolveOverdueArrival) ───
+
+    @Test
+    fun `overdue fires on_late when deadline passed and never entered today`() {
+        val gf = geofence(
+            onLate = "notify_parent",
+            expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""",
+        )
+        // 截止 08:10 已过，当天从未进入 (lastEnterMs = null)
+        val out = engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = ms("2026-06-01", "09:00"))
+        assertEquals(GeofenceTrigger.ON_LATE, out?.trigger)
+        assertEquals(GeofenceAction.NotifyParent, out?.action)
+        assertTrue(out!!.summary.startsWith("应到未到"))
+    }
+
+    @Test
+    fun `overdue shares ON_LATE dedupKey with late-entry path`() {
+        val gf = geofence(expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        val now = ms("2026-06-01", "09:00")
+        val overdue = engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = now)
+        val lateEntry = engine.resolve(gf, GeofenceBoundary.ENTER, child, now)
+            .first { it.trigger == GeofenceTrigger.ON_LATE }
+        // 同围栏同本地日 → 同 dedupKey，下游去重后未到+迟到进校只下发一次
+        assertEquals(lateEntry.dedupKey, overdue?.dedupKey)
+        assertEquals("g1:ON_LATE:2026-06-01", overdue?.dedupKey)
+    }
+
+    @Test
+    fun `not overdue when already entered today`() {
+        val gf = geofence(expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        // 当天 07:55 已进入 → 截止虽已过也不算未到
+        val out = engine.resolveOverdueArrival(
+            gf, child,
+            lastEnterMs = ms("2026-06-01", "07:55"),
+            nowMs = ms("2026-06-01", "09:00"),
+        )
+        assertNull(out)
+    }
+
+    @Test
+    fun `enter on a previous day does not count as entered today`() {
+        val gf = geofence(expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        // 昨天进过，今天截止已过仍未进 → 未到
+        val out = engine.resolveOverdueArrival(
+            gf, child,
+            lastEnterMs = ms("2026-05-31", "07:55"),
+            nowMs = ms("2026-06-01", "09:00"),
+        )
+        assertEquals(GeofenceTrigger.ON_LATE, out?.trigger)
+    }
+
+    @Test
+    fun `not overdue before deadline`() {
+        val gf = geofence(expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        // 07:30 < 08:10 截止 → 还没到点，不算未到
+        assertNull(engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = ms("2026-06-01", "07:30")))
+    }
+
+    @Test
+    fun `not overdue on non-applicable weekday`() {
+        val now = ms("2026-06-01", "09:00")
+        val isoDay = Instant.ofEpochMilli(now).atZone(zone).dayOfWeek.value
+        val otherDay = if (isoDay == 7) 1 else isoDay + 1
+        val gf = geofence(expectedArrival = """{"days":[$otherDay],"time":"08:00","grace_minutes":0}""")
+        assertNull(engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = now))
+    }
+
+    @Test
+    fun `not overdue without expected_arrival`() {
+        assertNull(
+            engine.resolveOverdueArrival(geofence(expectedArrival = null), child, lastEnterMs = null, nowMs = ms("2026-06-01", "09:00")),
+        )
+    }
+
+    @Test
+    fun `inactive geofence is never overdue`() {
+        val gf = geofence(active = false, expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        assertNull(engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = ms("2026-06-01", "09:00")))
+    }
+
+    @Test
+    fun `overdue with unparseable on_late action is skipped`() {
+        val gf = geofence(onLate = "bogus_action", expectedArrival = """{"days":[],"time":"08:00","grace_minutes":10}""")
+        assertNull(engine.resolveOverdueArrival(gf, child, lastEnterMs = null, nowMs = ms("2026-06-01", "09:00")))
+    }
+
     // ─── 解析跳过 + dedupKey ───
 
     @Test
