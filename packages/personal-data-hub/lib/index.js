@@ -48,6 +48,7 @@ const shoppingBase = require("./adapters/shopping-base");
 const { TaobaoAdapter } = require("./adapters/shopping-taobao");
 const { JdAdapter } = require("./adapters/shopping-jd");
 const { MeituanAdapter } = require("./adapters/shopping-meituan");
+const { ElemeAdapter } = require("./adapters/shopping-eleme");
 const { PinduoduoAdapter } = require("./adapters/shopping-pinduoduo");
 const { DianpingAdapter } = require("./adapters/shopping-dianping");
 const { BilibiliAdapter } = require("./adapters/social-bilibili");
@@ -308,6 +309,7 @@ module.exports = {
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
+  ElemeAdapter,
   PinduoduoAdapter,
   DianpingAdapter,
 

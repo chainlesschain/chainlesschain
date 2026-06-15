@@ -56,6 +56,7 @@ const DISPLAY_NAMES = Object.freeze({
   "shopping-taobao": "淘宝",
   "shopping-jd": "京东",
   "shopping-meituan": "美团",
+  "shopping-eleme": "饿了么",
   "shopping-pinduoduo": "拼多多",
   "shopping-dianping": "大众点评",
   "travel-12306": "12306 铁路",
