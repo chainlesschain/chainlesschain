@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import { execSync } from "child_process";
 
 /**
  * Hook priority levels — lower values run first.
@@ -256,8 +257,8 @@ export async function executeHook(hook, context = {}) {
     const type = hook.type || HookType.SYNC;
 
     if (type === HookType.COMMAND || type === HookType.SCRIPT) {
-      // Command/script hooks execute a shell command
-      const { execSync } = await import("child_process");
+      // Command/script hooks execute a shell command (execSync hoisted to a
+      // top-level import — this runs per hook on the tool-use hot path).
       const cmd = hook.handler || "";
       if (!cmd) {
         return {
