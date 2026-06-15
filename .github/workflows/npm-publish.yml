@@ -286,3 +286,58 @@ jobs:
             echo "| @chainlesschain/session-core | $V_SC |"
             echo "| chainlesschain | $VERSION |"
           } >> $GITHUB_STEP_SUMMARY
+
+      # Trigger npmmirror (cnpmcore) to sync each published package so its
+      # tarball is cached on cdn.npmmirror.com right away. The mirror lists
+      # new versions in metadata but lazily mirrors tarballs, so without an
+      # explicit sync mainland-China users (whose npm defaults to
+      # registry.npmmirror.com) hit E404 on tarball download — see issue #33
+      # (@chainlesschain/core-infra@0.1.0 tarball missing on the mirror).
+      #
+      # Best-effort by design: npmjs.org is the source of truth, so a slow or
+      # unreachable mirror must NOT fail the publish. Per-package outcomes are
+      # surfaced to the job summary (no continue-on-error masking — trap #30).
+      # cosmetic-green-ok: intentional best-effort, each result written to
+      # GITHUB_STEP_SUMMARY below.
+      - name: "Sync published packages to npmmirror"
+        if: ${{ inputs.dry-run != true }}
+        run: |
+          set +e
+          PKGS=(
+            "@chainlesschain/core-env"
+            "@chainlesschain/core-mtc"
+            "@chainlesschain/shared-logger"
+            "@chainlesschain/core-config"
+            "@chainlesschain/core-db"
+            "@chainlesschain/core-infra"
+            "@chainlesschain/core-multisig"
+            "@chainlesschain/session-core"
+            "@chainlesschain/personal-data-hub"
+            "chainlesschain"
+          )
+          {
+            echo "## npmmirror sync"
+            echo ""
+            echo "| Package | Sync request |"
+            echo "|---------|--------------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          fail=0
+          for pkg in "${PKGS[@]}"; do
+            enc="${pkg//@/%40}"; enc="${enc//\//%2F}"
+            code=$(curl -s -o /tmp/mirror-sync.json -w "%{http_code}" -X PUT \
+              "https://registry.npmmirror.com/-/package/${enc}/syncs" \
+              -H "content-type: application/json" --max-time 30)
+            if [ "$code" = "201" ] || [ "$code" = "200" ]; then
+              echo "  OK   $pkg (HTTP $code) -> $(cat /tmp/mirror-sync.json)"
+              echo "| \`$pkg\` | ✅ queued (HTTP $code) |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "  WARN $pkg sync request returned HTTP $code (mirror will lazy-sync on first install)"
+              echo "| \`$pkg\` | ⚠️ HTTP $code |" >> "$GITHUB_STEP_SUMMARY"
+              fail=1
+            fi
+          done
+          if [ "$fail" = "1" ]; then
+            echo "::warning::One or more npmmirror sync requests did not return 2xx (best-effort; npmjs.org is authoritative)."
+          fi
+          # Best-effort: never fail the publish on mirror issues.
+          exit 0
