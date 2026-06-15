@@ -20,6 +20,12 @@ All notable changes to this extension are documented here.
   back up. Both are also in the command palette, and a **＋** button now sits in
   the chat view's title bar. (`Ctrl+Shift+Esc` was avoided on Windows — the OS
   reserves it for Task Manager.)
+- **Persistent context-window indicator (Claude-Code parity).** A subtle line
+  under the chat now shows how full the model's context window is —
+  `⊟ context 12.3k / 200k (6%)` — refreshed after every turn. It reuses the
+  CLI's authoritative window math (`cc context --json`, same as `/context`), so
+  it never diverges, and turns red with an "over, compaction needed" note on
+  overflow. Disable with `chainlesschain.chat.contextIndicator: false`.
 
 ## [0.29.0] — 2026-06-15
 

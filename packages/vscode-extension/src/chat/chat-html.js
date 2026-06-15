@@ -81,6 +81,10 @@ function buildChatHtml({ cspSource, nonce }) {
   button.secondary { background: var(--vscode-button-secondaryBackground);
                      color: var(--vscode-button-secondaryForeground); }
   #status { padding:2px 8px; font-size:.85em; opacity:.6; }
+  #ctxbar { padding:1px 8px 3px; font-size:.78em; opacity:.5;
+            font-family: var(--vscode-editor-font-family); }
+  #ctxbar:empty { display:none; }
+  #ctxbar.warn { opacity:.95; color: var(--vscode-errorForeground); }
   #tabs { display:flex; align-items:center; gap:2px; padding:2px 4px; overflow-x:auto;
           border-bottom:1px solid var(--vscode-panel-border); }
   #tabs:empty { display:none; }
@@ -128,6 +132,7 @@ function buildChatHtml({ cspSource, nonce }) {
     </div>
   </div>
   <div id="status">not started — send a message to launch cc agent</div>
+  <div id="ctxbar"></div>
   <div id="attach"></div>
   <div id="suggest"></div>
   <div id="bar">
@@ -142,6 +147,7 @@ function buildChatHtml({ cspSource, nonce }) {
   const log = document.getElementById("log");
   const input = document.getElementById("input");
   const status = document.getElementById("status");
+  const ctxbar = document.getElementById("ctxbar");
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
@@ -526,6 +532,17 @@ function buildChatHtml({ cspSource, nonce }) {
           ? "ready · " + (m.usage.input_tokens||0) + "→" + (m.usage.output_tokens||0) + " tokens"
           : "ready";
         break;
+      case "ctxStatus": {
+        // Persistent context-window indicator (Claude-Code parity); refreshed
+        // after each turn from cc context --json (authoritative window math).
+        const kfmt = (n) =>
+          n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n);
+        ctxbar.textContent =
+          "⊟ context " + kfmt(m.total) + " / " + kfmt(m.window) +
+          " (" + m.pct + "%)" + (m.overflow ? " — over, compaction needed" : "");
+        ctxbar.className = m.overflow ? "warn" : "";
+        break;
+      }
       case "error":
         add("error", m.text);
         status.textContent = "error";
@@ -646,6 +663,7 @@ function buildChatHtml({ cspSource, nonce }) {
         streamEl = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
+        ctxbar.textContent = ""; // drop the previous conversation's context line
         hideSug();
         pendingImages = [];
         renderAttach();

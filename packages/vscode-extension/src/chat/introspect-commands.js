@@ -12,7 +12,7 @@ const { execFile } = require("child_process");
  * `cost`    → `cost <id>` (estimated $ + token rollup)
  * `context` → `context <id> [--model m] [--provider p]` (window usage)
  */
-function buildIntrospectArgs(kind, sessionId, { model, provider } = {}) {
+function buildIntrospectArgs(kind, sessionId, { model, provider, json } = {}) {
   const id = String(sessionId || "").trim();
   if (kind === "cost") return ["cost", id];
   const args = ["context", id];
@@ -20,7 +20,31 @@ function buildIntrospectArgs(kind, sessionId, { model, provider } = {}) {
   if (provider && String(provider).trim()) {
     args.push("--provider", String(provider).trim());
   }
+  if (json) args.push("--json");
   return args;
+}
+
+/**
+ * Parse `cc context --json` stdout into the compact status the persistent panel
+ * indicator renders. Returns null when the text is not the expected JSON or is
+ * missing the window/total fields (caller then leaves the indicator unchanged).
+ * Shape from the CLI: { contextWindow, totalTokens, overflows, … }.
+ */
+function parseContextStatus(text) {
+  let data;
+  try {
+    data = JSON.parse(String(text || ""));
+  } catch {
+    return null;
+  }
+  if (!data || typeof data !== "object") return null;
+  const total = Number(data.totalTokens);
+  const window = Number(data.contextWindow);
+  if (!Number.isFinite(total) || !Number.isFinite(window) || window <= 0) {
+    return null;
+  }
+  const pct = Math.round((total / window) * 100);
+  return { total, window, pct, overflow: data.overflows === true || total > window };
 }
 
 /**
@@ -60,4 +84,4 @@ function runCliText({
   });
 }
 
-module.exports = { buildIntrospectArgs, runCliText };
+module.exports = { buildIntrospectArgs, runCliText, parseContextStatus };

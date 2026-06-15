@@ -219,6 +219,10 @@ The bearer token is never displayed in any of these.
 - ✅ **New-conversation & reopen-closed shortcuts** (0.30.0): `Cmd/Ctrl+Alt+N`
   opens a fresh chat tab from anywhere; `Cmd/Ctrl+Shift+T` (chat focused) reopens
   the last-closed tab, resuming its session. Also a ＋ button in the view title.
+- ✅ **Persistent context-window indicator** (0.30.0): a subtle `⊟ context 12.3k /
+  200k (6%)` line under the chat, refreshed after each turn from `cc context
+  --json` (authoritative window math). Turns red on overflow; disable with
+  `chainlesschain.chat.contextIndicator: false`.
 
 ## Packaging
 

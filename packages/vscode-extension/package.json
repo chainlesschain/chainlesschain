@@ -205,6 +205,11 @@
           "type": "string",
           "default": "",
           "description": "Model for the chat panel (e.g. qwen2.5:7b). Empty = the CLI's configured default."
+        },
+        "chainlesschain.chat.contextIndicator": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a persistent context-window usage line (tokens used / window) under the chat, refreshed after each turn."
         }
       }
     }

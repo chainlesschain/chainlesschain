@@ -180,11 +180,14 @@ class ChatViewProvider {
         this._postFrom(convId, { kind: "setup", reason: String(evt.error || "") });
       }
       this._postFrom(convId, mapAgentEvent(evt, conv.turnState));
-      // Background-tab completion signal: a turn just finished in a tab you are
-      // NOT looking at (its stream was gated out of the visible transcript).
-      // Flag it so the tab bar shows a dot, and offer a jump-to toast.
-      if (evt?.type === "result" && this._convs.activeId() !== convId) {
-        if (this._convs.markUnread(convId)) {
+      if (evt?.type === "result") {
+        // Refresh the persistent context-window indicator for the active tab
+        // (best-effort; reuses the CLI's authoritative window math).
+        if (this._convs.activeId() === convId) this._refreshContextStatus(convId);
+        // Background-tab completion signal: a turn just finished in a tab you are
+        // NOT looking at (its stream was gated out of the visible transcript).
+        // Flag it so the tab bar shows a dot, and offer a jump-to toast.
+        else if (this._convs.markUnread(convId)) {
           this._postTabs();
           this._notifyBackgroundDone(conv);
         }
@@ -506,6 +509,51 @@ class ChatViewProvider {
       env: { ...process.env, ...bridgeEnv },
     });
     this._post({ kind: "pre", text: text || `/${kind}: (no output)` });
+  }
+
+  /**
+   * Refresh the persistent context-window indicator for a conversation by
+   * asking the CLI (`cc context <id> --json` — the same window math as
+   * `/context`) and posting a compact { total, window, pct } to the webview.
+   * Best-effort: never throws, silently skips when there's no session id, when
+   * disabled via `chainlesschain.chat.contextIndicator`, or when the
+   * conversation stops being the active tab before the result lands.
+   */
+  _refreshContextStatus(convId) {
+    const conv = this._convs.get(convId);
+    const id = conv?.sessionId;
+    if (!id) return;
+    const chatCfg = this.vscode.workspace.getConfiguration(
+      "chainlesschain.chat",
+    );
+    if (chatCfg.get("contextIndicator") === false) return;
+    const introspect = require("./introspect-commands");
+    const runText = this.opts.deps?.runCliText || introspect.runCliText;
+    const folders = this.vscode.workspace.workspaceFolders || [];
+    const cwd = folders[0]?.uri?.fsPath || process.cwd();
+    const bridgeEnv =
+      typeof this.opts.getBridgeEnv === "function"
+        ? this.opts.getBridgeEnv()
+        : {};
+    const args = introspect.buildIntrospectArgs("context", id, {
+      model: chatCfg.get("model"),
+      provider: chatCfg.get("provider"),
+      json: true,
+    });
+    Promise.resolve(
+      runText({
+        command: this._cliCommand(),
+        args,
+        cwd,
+        env: { ...process.env, ...bridgeEnv },
+        timeoutMs: 10000,
+      }),
+    ).then((text) => {
+      const status = introspect.parseContextStatus(text);
+      if (status && this._convs.activeId() === convId) {
+        this._post({ kind: "ctxStatus", ...status });
+      }
+    }, () => {});
   }
 
   /**
