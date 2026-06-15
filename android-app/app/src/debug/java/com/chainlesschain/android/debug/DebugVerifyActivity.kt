@@ -6,12 +6,19 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.chainlesschain.android.core.common.onError
 import com.chainlesschain.android.core.common.onSuccess
+import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.feature.familyguard.data.codec.InviteTokenCodec
+import com.chainlesschain.android.feature.familyguard.domain.model.GuardianTier
 import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
+import com.chainlesschain.android.feature.familyguard.domain.model.pairing.AcceptanceCode
+import com.chainlesschain.android.feature.familyguard.domain.model.permissions.PermissionTemplates
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository
+import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
+import com.chainlesschain.android.presentation.familypairing.LocalDidProvider
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -45,14 +52,30 @@ class DebugVerifyActivity : ComponentActivity() {
     @Inject
     lateinit var familyMembershipRepository: FamilyMembershipRepository
 
+    @Inject
+    lateinit var invitePairingService: InvitePairingService
+
+    @Inject
+    lateinit var localDidProvider: LocalDidProvider
+
+    @Inject
+    lateinit var didManager: DIDManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         when (val op = intent.getStringExtra("op")) {
+            "ensure_did" -> ensureDid()
             "add_friend" -> addFriend(intent.getStringExtra("did"))
             "check_friend" -> checkFriend(intent.getStringExtra("did"))
             "family_selftest" -> familySelfTest()
             "family_dump" -> familyDump()
             "family_inject_child" -> familyInjectChild(intent.getStringExtra("did"))
+            "create_invite" -> createInvite(intent.getStringExtra("role") == "child")
+            "accept_invite" -> acceptInvite(
+                intent.getStringExtra("token"),
+                intent.getStringExtra("code"),
+                intent.getStringExtra("age")?.toIntOrNull() ?: 40,
+            )
             else -> {
                 log("unknown op: $op")
                 toast("[debug] unknown op: $op")
@@ -193,6 +216,114 @@ class DebugVerifyActivity : ComponentActivity() {
             } catch (e: Exception) {
                 log("family_inject_child failed: ${e.message}")
                 toast("[debug] inject failed: ${e.message}")
+            } finally {
+                finish()
+            }
+        }
+    }
+
+    /**
+     * #3 端到端 (对称配对): 本机生成邀请 (角色由 [asChild] 定)。用本机真实 did:key + 只复用
+     * primaryDid 匹配的组 (同 ensureLocalGroup 修复)。把 token + 接受码打到 logcat, 供对端 accept。
+     */
+    private fun createInvite(asChild: Boolean) {
+        lifecycleScope.launch {
+            try {
+                val did = localDidProvider.currentDid()
+                if (did.isNullOrBlank()) {
+                    log("create_invite no local DID (先在「本机角色」建身份)")
+                    toast("[debug] 本机无 DID, 先设角色")
+                    finish()
+                    return@launch
+                }
+                val groups = familyGroupRepository.observeAll().first()
+                val groupId = groups.firstOrNull { it.primaryDid == did }?.id
+                    ?: familyGroupRepository.create(name = "我的家庭", primaryDid = did).id
+                val result = invitePairingService.createInvite(
+                    familyGroupId = groupId,
+                    inviterDid = did,
+                    inviterRole = if (asChild) MemberRole.CHILD else MemberRole.PARENT,
+                    inviterTier = if (asChild) GuardianTier.SECONDARY else GuardianTier.PRIMARY,
+                    inviteeRole = if (asChild) MemberRole.PARENT else MemberRole.CHILD,
+                    inviteeTier = if (asChild) GuardianTier.PRIMARY else null,
+                    proposedPermissions = if (asChild) PermissionTemplates.forChildToParent() else PermissionTemplates.forParentToChild(),
+                    expectedChildAge = if (asChild) null else 15,
+                )
+                val token = InviteTokenCodec.encode(result.signedInvite)
+                log("create_invite asChild=$asChild inviterDid=$did group=$groupId code=${result.acceptanceCode.value}")
+                log("create_invite TOKEN=$token")
+                toast("[debug] 邀请已生成 code=${result.acceptanceCode.value}")
+            } catch (e: Exception) {
+                log("create_invite failed: ${e.message}")
+                toast("[debug] create_invite failed: ${e.message}")
+            } finally {
+                finish()
+            }
+        }
+    }
+
+    /**
+     * #3 端到端: 本机接受对端邀请。本机用真实 did:key。accept 成功后对端 (inviter) 会被写为
+     * 本机的家人 (membership + relationship) → 家人页即可见对方 (无需 P2P, 走对称配对)。
+     */
+    private fun acceptInvite(token: String?, code: String?, age: Int) {
+        lifecycleScope.launch {
+            try {
+                val did = localDidProvider.currentDid()
+                if (did.isNullOrBlank()) { log("accept_invite no local DID"); finish(); return@launch }
+                if (token.isNullOrBlank() || code.isNullOrBlank()) {
+                    log("accept_invite missing token/code")
+                    finish()
+                    return@launch
+                }
+                val result = invitePairingService.acceptInvite(
+                    qrPayload = token,
+                    acceptanceCode = AcceptanceCode(code),
+                    accepteeDid = did,
+                    accepteeDeviceId = "debug-accept-device",
+                    reportedChildAge = age,
+                    childPermissions = PermissionTemplates.forParentToChild(),
+                    forceKycAck = true,
+                )
+                log("accept_invite accepteeDid=$did result=${result::class.simpleName}")
+                // 接受后 dump 各组成员, 看对端是否已成为本机家人。
+                val groups = familyGroupRepository.observeAll().first()
+                groups.forEach { g ->
+                    val members = familyMembershipRepository.listAllByGroup(g.id)
+                    log("accept_invite after: group=${g.id} primaryDid=${g.primaryDid} members=${members.map { it.memberDid }}")
+                }
+                toast("[debug] accept_invite -> ${result::class.simpleName}")
+            } catch (e: Exception) {
+                log("accept_invite failed: ${e.message}")
+                toast("[debug] accept_invite failed: ${e.message}")
+            } finally {
+                finish()
+            }
+        }
+    }
+
+    /**
+     * 若本机还没有 DID 身份, 创建一个真实 did:key (off-main 避免 keystore ANR)。家长设备此前
+     * 只设了「本机角色」却没建 DID (RoleSelector 不创建身份) → 配对/同步都失败。供真机 E2E 补身份。
+     */
+    private fun ensureDid() {
+        lifecycleScope.launch {
+            try {
+                val existing = didManager.getCurrentDID()
+                if (existing != null) {
+                    log("ensure_did already=$existing")
+                    toast("[debug] DID=$existing")
+                    finish()
+                    return@launch
+                }
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    didManager.createIdentity("debug-parent-device")
+                }
+                log("ensure_did created=${didManager.getCurrentDID()}")
+                toast("[debug] DID created=${didManager.getCurrentDID()}")
+            } catch (e: Exception) {
+                log("ensure_did failed: ${e.message}")
+                toast("[debug] ensure_did failed: ${e.message}")
             } finally {
                 finish()
             }
