@@ -1,0 +1,66 @@
+name: Deprecate npm version
+
+# One-off / maintenance tool: mark a published npm version (or range) as
+# deprecated so installs surface a warning. npm versions are immutable and
+# cannot be unpublished after 72h, so deprecation is the supported way to
+# steer users off a broken release.
+#
+# Example: deprecate chainlesschain@0.162.68 (shipped from a stale tag,
+# missing 8 PDH adapter wirings).
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package name (e.g. chainlesschain or @chainlesschain/personal-data-hub)"
+        required: true
+        type: string
+        default: "chainlesschain"
+      version_range:
+        description: "Version or semver range to deprecate (e.g. 0.162.68)"
+        required: true
+        type: string
+      message:
+        description: "Deprecation message shown on install"
+        required: true
+        type: string
+      undeprecate:
+        description: "Set true to UN-deprecate (clears the message)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Show target (pre-state)
+        run: |
+          echo "Package : ${{ inputs.package }}"
+          echo "Range   : ${{ inputs.version_range }}"
+          echo "Current deprecation status:"
+          npm view "${{ inputs.package }}@${{ inputs.version_range }}" deprecated || echo "(version not found / not deprecated)"
+
+      - name: Deprecate
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -e
+          if [ "${{ inputs.undeprecate }}" == "true" ]; then
+            echo "UN-deprecating ${{ inputs.package }}@${{ inputs.version_range }}"
+            npm deprecate "${{ inputs.package }}@${{ inputs.version_range }}" ""
+          else
+            echo "Deprecating ${{ inputs.package }}@${{ inputs.version_range }}"
+            npm deprecate "${{ inputs.package }}@${{ inputs.version_range }}" "${{ inputs.message }}"
+          fi
+
+      - name: Verify (post-state)
+        run: |
+          echo "Deprecation message now on npm:"
+          npm view "${{ inputs.package }}@${{ inputs.version_range }}" deprecated || echo "(none)"
