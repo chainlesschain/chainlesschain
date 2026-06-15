@@ -24,6 +24,7 @@ describe("E2E: skill new subcommands", () => {
       const result = run("skill sources");
       expect(result).toContain("Skill Source Layers");
       expect(result).toContain("bundled");
+      expect(result).toContain("cli-bundled");
       expect(result).toContain("marketplace");
       expect(result).toContain("managed");
       expect(result).toContain("claude-user");
@@ -35,9 +36,10 @@ describe("E2E: skill new subcommands", () => {
       const result = run("skill sources --json");
       const layers = JSON.parse(result);
       expect(Array.isArray(layers)).toBe(true);
-      // 6 layers: bundled, marketplace, managed, claude-user,
+      // 7 layers: bundled, cli-bundled (global CLI run/verify skills),
+      // marketplace, managed, claude-user,
       // claude-project (Claude-Code .claude/skills portability), workspace.
-      expect(layers.length).toBe(6);
+      expect(layers.length).toBe(7);
       for (const layer of layers) {
         expect(layer).toHaveProperty("layer");
         expect(layer).toHaveProperty("path");
