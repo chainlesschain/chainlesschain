@@ -24,6 +24,18 @@ const TIER_ALIASES = {
   yolo: "autopilot",
 };
 
+/** Cycle order for Shift+Tab mode cycling (Claude-Code parity). */
+export const TIER_CYCLE = Object.freeze(["strict", "trusted", "autopilot"]);
+
+/**
+ * Next tier in the Shift+Tab cycle: strict → trusted → autopilot → strict.
+ * An unrecognized current tier resets to the first (strict).
+ */
+export function nextTier(current) {
+  const i = TIER_CYCLE.indexOf(current);
+  return TIER_CYCLE[(i + 1) % TIER_CYCLE.length];
+}
+
 export function parsePermissionTier(arg) {
   const a = String(arg == null ? "" : arg)
     .trim()

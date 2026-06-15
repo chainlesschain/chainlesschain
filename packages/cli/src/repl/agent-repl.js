@@ -89,7 +89,11 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand } from "./think-command.js";
-import { parsePermissionTier, describeTier } from "./permission-tier.js";
+import {
+  parsePermissionTier,
+  describeTier,
+  nextTier,
+} from "./permission-tier.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -260,6 +264,10 @@ export async function startAgentRepl(options = {}) {
   // (--thinking-budget) is the companion legacy-model budget_tokens override.
   let thinking = options.thinking || null;
   const thinkingBudget = options.thinkingBudget || null;
+  // Current ApprovalGate session tier (strict|trusted|autopilot), mirrored here
+  // so Shift+Tab can cycle it and `/permissions <tier>` can set it. Kept in sync
+  // with _approvalGate.setSessionPolicy below.
+  let _sessionTier = "strict";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   // Extra workspace roots (--add-dir): advertised in the system prompt and
@@ -702,6 +710,9 @@ export async function startAgentRepl(options = {}) {
         sessionId,
         _bundleResolved.approvalPolicy.default,
       );
+      // Mirror it so Shift+Tab cycling starts from the real tier.
+      const applied = parsePermissionTier(_bundleResolved.approvalPolicy.default);
+      if (applied) _sessionTier = applied;
     } catch (_err) {
       // Non-critical — invalid policy value is silently ignored
     }
@@ -970,6 +981,38 @@ export async function startAgentRepl(options = {}) {
           /* already aborted */
         }
         _turnAbort = null;
+        return;
+      }
+
+      // 1.5) Shift+Tab cycles the session approval tier (Claude-Code mode
+      // cycling): strict → trusted → autopilot → strict. Drives the existing
+      // ApprovalGate.setSessionPolicy seam; intercepted before vim/completion.
+      const isShiftTab =
+        (k.name === "tab" && k.shift) || k.sequence === "\u001b[Z";
+      if (isShiftTab) {
+        if (
+          _approvalGate &&
+          sessionId &&
+          typeof _approvalGate.setSessionPolicy === "function"
+        ) {
+          const next = nextTier(_sessionTier);
+          try {
+            _approvalGate.setSessionPolicy(sessionId, next);
+            _sessionTier = next;
+            process.stdout.write(
+              "\n" +
+                chalk.cyan(`⇥ approval: ${next}`) +
+                " " +
+                chalk.gray(`(${describeTier(next)})`) +
+                "\n",
+            );
+            if (!_turnAbort) prompt();
+          } catch {
+            process.stdout.write("\x07"); // bell on failure
+          }
+        } else {
+          process.stdout.write("\x07"); // no gate this session
+        }
         return;
       }
 
@@ -1249,7 +1292,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/cost")}       Session token spend + estimated $ (per model & category)`,
       );
       logger.log(
-        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set tier (/permissions <strict|trusted|autopilot>)`,
+        `  ${chalk.cyan("/permissions")} Allow/ask/deny rules; set/cycle tier (/permissions <tier> · Shift+Tab cycles)`,
       );
       logger.log(
         `  ${chalk.cyan("/export")}     Save this conversation to a Markdown file (/export [path])`,
@@ -2692,6 +2735,7 @@ export async function startAgentRepl(options = {}) {
         } else {
           try {
             _approvalGate.setSessionPolicy(sessionId, tier);
+            _sessionTier = tier;
             logger.info(
               `Approval policy → ${chalk.cyan(tier)} ${chalk.gray(`(${describeTier(tier)})`)}`,
             );

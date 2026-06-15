@@ -6,6 +6,8 @@ import { describe, it, expect } from "vitest";
 import {
   parsePermissionTier,
   describeTier,
+  nextTier,
+  TIER_CYCLE,
 } from "../../src/repl/permission-tier.js";
 
 describe("parsePermissionTier", () => {
@@ -41,5 +43,24 @@ describe("describeTier", () => {
     expect(describeTier("trusted")).toContain("high-risk still asks");
     expect(describeTier("strict")).toContain("asks");
     expect(describeTier("bogus")).toBe("");
+  });
+});
+
+describe("nextTier (Shift+Tab cycle)", () => {
+  it("cycles strict → trusted → autopilot → strict", () => {
+    expect(nextTier("strict")).toBe("trusted");
+    expect(nextTier("trusted")).toBe("autopilot");
+    expect(nextTier("autopilot")).toBe("strict");
+  });
+
+  it("resets an unknown current tier to the first", () => {
+    expect(nextTier("bogus")).toBe("strict");
+    expect(nextTier(undefined)).toBe("strict");
+  });
+
+  it("a full cycle returns to the start", () => {
+    let t = "strict";
+    for (let i = 0; i < TIER_CYCLE.length; i++) t = nextTier(t);
+    expect(t).toBe("strict");
   });
 });
