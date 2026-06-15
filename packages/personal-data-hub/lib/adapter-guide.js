@@ -33,6 +33,7 @@ const DISPLAY_NAMES = Object.freeze({
   "social-bilibili": "哔哩哔哩",
   "social-weibo": "微博",
   "social-zhihu": "知乎",
+  "social-douban": "豆瓣",
   "recruit-boss": "BOSS 直聘",
   "social-csdn": "CSDN",
   "social-dongchedi": "懂车帝",
@@ -56,8 +57,11 @@ const DISPLAY_NAMES = Object.freeze({
   "shopping-taobao": "淘宝",
   "shopping-jd": "京东",
   "shopping-meituan": "美团",
+  "shopping-eleme": "饿了么",
   "shopping-pinduoduo": "拼多多",
   "shopping-dianping": "大众点评",
+  "shopping-xianyu": "闲鱼",
+  "shopping-vipshop": "唯品会",
   "travel-12306": "12306 铁路",
   "travel-ctrip": "携程",
   "travel-tongcheng": "同程旅行",
@@ -74,9 +78,13 @@ const DISPLAY_NAMES = Object.freeze({
   "netease-music": "网易云音乐",
   "music-kugou": "酷狗音乐",
   "music-qq": "QQ音乐",
+  "audio-ximalaya": "喜马拉雅",
   "reading-fanqie": "番茄小说",
   "reading-qimao": "七猫小说",
   "fitness-joyrun": "悦跑圈",
+  "fitness-keep": "Keep",
+  "travel-didi-consumer": "滴滴出行",
+  "car-mercedesme": "奔驰 Mercedes me",
   "video-iqiyi": "爱奇艺",
   "video-tencent": "腾讯视频",
   "video-xigua": "西瓜视频",
@@ -565,7 +573,7 @@ function getAdapterGuide(name, category) {
 // usable standalone, e.g. CLI without a live readiness probe).
 function _inferCategory(name) {
   if (ADAPTER_OVERRIDES[name] && name === "wechat") return READINESS_CATEGORY.DEVICE;
-  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(name))
+  if (/^(email-imap|finance-alipay|alipay-bill|ai-chat-history|weread|doc-wps|doc-tencent-docs|doc-baidu-netdisk|doc-camscanner|recruit-boss|social-csdn|social-douban|social-dongchedi|biz-tianyancha|gov-ixiamen|health-meiyou|gov-tax|bank-cmbc|bank-boc|bank-bankcomm|finance-dcep|gov-12123|bank-icbc)$/.test(name))
     return READINESS_CATEGORY.CREDENTIAL;
   if (/^(messaging-(telegram|whatsapp)|wechat|wechat-pc|messaging-qq|qq-pc|dingtalk-pc|feishu-pc|wework-pc|travel-amap)$/.test(name))
     return READINESS_CATEGORY.DEVICE;

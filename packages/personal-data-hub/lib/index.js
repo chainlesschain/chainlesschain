@@ -48,11 +48,15 @@ const shoppingBase = require("./adapters/shopping-base");
 const { TaobaoAdapter } = require("./adapters/shopping-taobao");
 const { JdAdapter } = require("./adapters/shopping-jd");
 const { MeituanAdapter } = require("./adapters/shopping-meituan");
+const { ElemeAdapter } = require("./adapters/shopping-eleme");
 const { PinduoduoAdapter } = require("./adapters/shopping-pinduoduo");
 const { DianpingAdapter } = require("./adapters/shopping-dianping");
+const { XianyuAdapter } = require("./adapters/shopping-xianyu");
+const { VipshopAdapter } = require("./adapters/shopping-vipshop");
 const { BilibiliAdapter } = require("./adapters/social-bilibili");
 const { WeiboAdapter } = require("./adapters/social-weibo");
 const { ZhihuAdapter } = require("./adapters/social-zhihu");
+const { DoubanAdapter } = require("./adapters/social-douban");
 const { BossZhipinAdapter } = require("./adapters/recruit-boss");
 const { CsdnAdapter } = require("./adapters/social-csdn");
 const { DongchediAdapter } = require("./adapters/social-dongchedi");
@@ -74,9 +78,13 @@ const { AppleHealthAdapter } = require("./adapters/apple-health");
 const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { KugouMusicAdapter } = require("./adapters/music-kugou");
 const { QQMusicAdapter } = require("./adapters/music-qq");
+const { XimalayaAdapter } = require("./adapters/audio-ximalaya");
 const { FanqieReadingAdapter } = require("./adapters/reading-fanqie");
 const { QimaoReadingAdapter } = require("./adapters/reading-qimao");
 const { JoyrunAdapter } = require("./adapters/fitness-joyrun");
+const { KeepAdapter } = require("./adapters/fitness-keep");
+const { DidiConsumerAdapter } = require("./adapters/travel-didi-consumer");
+const { MercedesMeAdapter } = require("./adapters/car-mercedesme");
 const { IqiyiVideoAdapter } = require("./adapters/video-iqiyi");
 const { TencentVideoAdapter } = require("./adapters/video-tencent");
 const { XiguaVideoAdapter } = require("./adapters/video-xigua");
@@ -306,13 +314,17 @@ module.exports = {
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
+  ElemeAdapter,
   PinduoduoAdapter,
   DianpingAdapter,
+  XianyuAdapter,
+  VipshopAdapter,
 
   // Phase 13+ — long-tail social + messaging (借 sjqz parsers)
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
+  DoubanAdapter,
   BossZhipinAdapter,
   CsdnAdapter,
   DongchediAdapter,
@@ -333,9 +345,13 @@ module.exports = {
   NeteaseMusicAdapter,
   KugouMusicAdapter,
   QQMusicAdapter,
+  XimalayaAdapter,
   FanqieReadingAdapter,
   QimaoReadingAdapter,
   JoyrunAdapter,
+  KeepAdapter,
+  DidiConsumerAdapter,
+  MercedesMeAdapter,
   IqiyiVideoAdapter,
   TencentVideoAdapter,
   XiguaVideoAdapter,
