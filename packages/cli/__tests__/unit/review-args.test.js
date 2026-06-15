@@ -43,7 +43,9 @@ describe("parseReviewReplArgs", () => {
   });
 
   it("flags missing scope values", () => {
-    expect(parseReviewReplArgs("--base").errors[0]).toMatch(/--base needs a ref/);
+    expect(parseReviewReplArgs("--base").errors[0]).toMatch(
+      /--base needs a ref/,
+    );
     expect(parseReviewReplArgs("--range").errors[0]).toMatch(/--range needs/);
   });
 
@@ -81,7 +83,12 @@ describe("describeReviewArgs", () => {
 
   it("reflects lens, scope, effort and action", () => {
     expect(
-      describeReviewArgs({ security: true, base: "main", effort: "high", fix: true }),
+      describeReviewArgs({
+        security: true,
+        base: "main",
+        effort: "high",
+        fix: true,
+      }),
     ).toBe("main...HEAD · high effort · security · applying fixes");
   });
 

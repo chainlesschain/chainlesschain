@@ -12,12 +12,28 @@ import {
 describe("TerminalCapture", () => {
   it("records executions and returns them oldest→newest", () => {
     const c = new TerminalCapture();
-    c.record({ command: "npm test", exitCode: 0, output: "ok", terminal: "bash", endedAt: 1 });
-    c.record({ command: "npm run build", exitCode: 1, output: "boom", terminal: "bash", endedAt: 2 });
+    c.record({
+      command: "npm test",
+      exitCode: 0,
+      output: "ok",
+      terminal: "bash",
+      endedAt: 1,
+    });
+    c.record({
+      command: "npm run build",
+      exitCode: 1,
+      output: "boom",
+      terminal: "bash",
+      endedAt: 2,
+    });
     expect(c.size()).toBe(2);
     const r = c.recent();
     expect(r.map((e) => e.command)).toEqual(["npm test", "npm run build"]);
-    expect(r[1]).toMatchObject({ exitCode: 1, output: "boom", terminal: "bash" });
+    expect(r[1]).toMatchObject({
+      exitCode: 1,
+      output: "boom",
+      terminal: "bash",
+    });
   });
 
   it("ignores entries without a string command; coerces missing fields", () => {
@@ -62,16 +78,30 @@ describe("TerminalCapture", () => {
 describe("formatTerminalOutput", () => {
   it("renders command + exit + terminal + output per block", () => {
     const out = formatTerminalOutput([
-      { command: "npm test", exitCode: 0, output: "12 passed", terminal: "bash" },
-      { command: "git push", exitCode: 1, output: "rejected", terminal: "", outputTruncated: true },
+      {
+        command: "npm test",
+        exitCode: 0,
+        output: "12 passed",
+        terminal: "bash",
+      },
+      {
+        command: "git push",
+        exitCode: 1,
+        output: "rejected",
+        terminal: "",
+        outputTruncated: true,
+      },
     ]);
     expect(out).toContain("$ npm test (exit 0) [bash]\n12 passed");
     expect(out).toContain("$ git push (exit 1)\nrejected\n…(output truncated)");
   });
 
   it("handles no-output and unknown exit code; null for empty", () => {
-    expect(formatTerminalOutput([{ command: "sleep 1", exitCode: null, output: "" }]))
-      .toBe("$ sleep 1\n(no captured output)");
+    expect(
+      formatTerminalOutput([
+        { command: "sleep 1", exitCode: null, output: "" },
+      ]),
+    ).toBe("$ sleep 1\n(no captured output)");
     expect(formatTerminalOutput([])).toBe(null);
     expect(formatTerminalOutput(null)).toBe(null);
   });

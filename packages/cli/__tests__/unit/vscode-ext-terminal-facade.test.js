@@ -35,7 +35,11 @@ function fakeVscode({ shellIntegration = true } = {}) {
         },
       };
       // start handler reads the whole stream — await it before firing end.
-      await Promise.all(startCbs.map((cb) => cb({ execution: exec, terminal: { name: terminal } })));
+      await Promise.all(
+        startCbs.map((cb) =>
+          cb({ execution: exec, terminal: { name: terminal } }),
+        ),
+      );
       endCbs.forEach((cb) => cb({ execution: exec, exitCode }));
     },
   };
@@ -45,7 +49,11 @@ describe("facade getTerminalOutput", () => {
   it("captures a finished command's text, exit code, and terminal name", async () => {
     const fx = fakeVscode();
     const facade = createVscodeEditorFacade(fx.vscode);
-    await fx.runCommand({ command: "npm test", chunks: ["12 ", "passed\n"], exitCode: 0 });
+    await fx.runCommand({
+      command: "npm test",
+      chunks: ["12 ", "passed\n"],
+      exitCode: 0,
+    });
     const res = await facade.getTerminalOutput();
     expect(res.terminals).toHaveLength(1);
     expect(res.terminals[0]).toMatchObject({
@@ -62,10 +70,14 @@ describe("facade getTerminalOutput", () => {
     for (const c of ["c1", "c2", "c3", "c4"]) {
       await fx.runCommand({ command: c, exitCode: 0 });
     }
-    expect((await facade.getTerminalOutput()).terminals.map((e) => e.command))
-      .toEqual(["c2", "c3", "c4"]); // default limit 3
-    expect((await facade.getTerminalOutput({ limit: 1 })).terminals.map((e) => e.command))
-      .toEqual(["c4"]);
+    expect(
+      (await facade.getTerminalOutput()).terminals.map((e) => e.command),
+    ).toEqual(["c2", "c3", "c4"]); // default limit 3
+    expect(
+      (await facade.getTerminalOutput({ limit: 1 })).terminals.map(
+        (e) => e.command,
+      ),
+    ).toEqual(["c4"]);
   });
 
   it("is empty before any command runs", async () => {
@@ -97,8 +109,13 @@ describe("buildIdeTools exposes getTerminalOutput conditionally", () => {
     openDiff: () => ({}),
   };
   it("present when the facade supports it; absent otherwise", () => {
-    const withIt = buildIdeTools({ ...base, getTerminalOutput: () => ({ terminals: [] }) });
+    const withIt = buildIdeTools({
+      ...base,
+      getTerminalOutput: () => ({ terminals: [] }),
+    });
     expect(withIt.map((t) => t.name)).toContain("getTerminalOutput");
-    expect(buildIdeTools(base).map((t) => t.name)).not.toContain("getTerminalOutput");
+    expect(buildIdeTools(base).map((t) => t.name)).not.toContain(
+      "getTerminalOutput",
+    );
   });
 });

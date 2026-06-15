@@ -232,7 +232,12 @@ describe("expandIdeMentions", () => {
 
 const TERMINALS = [
   { command: "npm test", exitCode: 0, output: "12 passed\n", terminal: "bash" },
-  { command: "npm run build", exitCode: 1, output: "TS2322 boom", terminal: "bash" },
+  {
+    command: "npm run build",
+    exitCode: 1,
+    output: "TS2322 boom",
+    terminal: "bash",
+  },
 ];
 
 /** Bridge bundle that exposes the terminal-output tool. */
