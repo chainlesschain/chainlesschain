@@ -90,6 +90,9 @@ async function startBridge(context) {
   }
   const token = generateToken();
   _token = token;
+  // CLI version-sync: if the installed `cc` is older than this extension's
+  // features need, nudge the user to upgrade it (fire-and-forget, best-effort).
+  checkCliVersionAndNotify(vscode, context).catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
   // Clean up the terminal shell-integration subscriptions on deactivate.
   context.subscriptions.push({
@@ -436,6 +439,69 @@ function deactivate() {
   }
   _preview = null;
   return stopBridge();
+}
+
+/** Run `<cliPath> --version`, returning stdout (or null on failure/timeout). */
+function runCliVersion(cliPath) {
+  const cp = require("child_process");
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const child = cp.spawn(cliPath, ["--version"], {
+        shell: true,
+        windowsHide: true,
+      });
+      let out = "";
+      child.stdout?.on("data", (d) => {
+        out += d.toString();
+      });
+      child.on("error", () => finish(null));
+      child.on("close", () => finish(out.trim() || null));
+      setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          /* best-effort */
+        }
+        finish(null);
+      }, 5000);
+    } catch {
+      finish(null);
+    }
+  });
+}
+
+/** Version-sync: nudge to upgrade `cc` if it's older than the extension needs. */
+function checkCliVersionAndNotify(vscode, context) {
+  const { runCliVersionSync } = require("./version-check");
+  const cliPath =
+    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+  return runCliVersionSync({
+    getVersion: () => runCliVersion(cliPath),
+    isDismissed: (k) => !!context.globalState.get(k),
+    setDismissed: (k) => context.globalState.update(k, true),
+    prompt: async (message) => {
+      const pick = await vscode.window.showWarningMessage(
+        message,
+        "Upgrade cc",
+        "Don't show again",
+      );
+      if (pick === "Upgrade cc") return "upgrade";
+      if (pick === "Don't show again") return "dismiss";
+      return null;
+    },
+    upgrade: (command) => {
+      const term = vscode.window.createTerminal("ChainlessChain CLI upgrade");
+      term.show();
+      term.sendText(command);
+    },
+  });
 }
 
 module.exports = { activate, deactivate };
