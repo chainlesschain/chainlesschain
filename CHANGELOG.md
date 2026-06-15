@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）
+> 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑 ~3.3s 即打印 URL，姊妹测试全过）。已合并 `26a811874`，验证 89/89。详见内部手册 trap #31。
+
+- **ui-command / web-panel**：`startUiServer` readiness fallback 8s/10s → **25s**（旧逻辑到期后静默 `resolve` 出空 output，把"启动慢"翻译成 `expected '' to contain URL` 的误导性断言，并级联砸了同块 13 个测试）。
+- **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**（均远小于 30s `hookTimeout`，又足够扛冷启动）。
+- **mtc-audit-e2e**：6 连串行子进程冷启动的重活测试给**显式 120s** 预算（旧时撞 60s 全局默认超时）。
+- **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s < 内部子命令自身 30s 超时，vitest 在子命令超时处理跑之前就杀了测试；提到 **40s**。
+- 注：与 README `2026-06-14` 的"24 个 e2e 文件**子进程** timeout 15s→30s"正交——那条调 `execSync` 子命令超时，本次调的是 **server-readiness 等待器 + per-test 预算**。
+
 ### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
 > 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
 

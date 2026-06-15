@@ -7,6 +7,14 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）
+> 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑约 3.3s 即打印 URL，姊妹测试全过）。
+
+- **ui-command / web-panel**：服务器就绪 fallback 8s/10s → **25s**（旧逻辑到期后静默返回空输出，把"启动慢"翻成 `expected '' to contain URL` 的误导断言并级联砸了 13 个测试）。
+- **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**。
+- **mtc-audit-e2e**：6 连串行子进程冷启动的重活测试给**显式 120s** 预算（旧时撞 60s 全局默认）。
+- **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s 比内部子命令自身 30s 超时还短，提到 **40s**。
+
 #### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
 > 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
 

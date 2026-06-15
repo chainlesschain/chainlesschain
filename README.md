@@ -37,6 +37,7 @@
 - **真实 bug 修复**：`project-service` 项目导出写 ZIP 条目时用平台默认编码（GBK 默认 JVM），导出含中文内容的项目后，UTF-8 的导入端读取时抛 `MalformedInputException`、无法回环重导入；改为始终 UTF-8 写入 + 文件内容为 null 时写空条目兜底。
 - **测试套件普查**：跑通 CLI（单元/集成/e2e）、桌面（store/集成/全量单元）、Web Panel、core 包、后端 **Java**（`mvn test`）与 **Python**（`pytest`）全栈，修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 - **关键修复**：CLI deprecated-shim 导出平价 + `hub` 子命令清单 + `skill sources` 4→6 层 + 24 个 e2e 文件子进程超时 15s→30s（消除 Windows 冷启动抖动）；桌面内置技能计数 145→146 + 纯文档型技能白名单；后端 Java `mvn test` 32 失败→0；后端 Python `git_manager`/`code_generator` 过期断言对齐（pytest 15→41+ 通过）。
+- **e2e server-readiness 二次硬化**（上一条的正交轴，commit `26a811874`）：4 个 e2e 文件 16 个失败全部根因于 singleFork 满负载下子服务器冷启动慢、**就绪等待器/per-test 预算**太紧（非产品 bug——`cc ui` 独立跑约 3.3s 即就绪）。ui-command/web-panel 就绪 fallback 8s/10s→25s（旧逻辑到期静默返回空输出，级联砸 13 个测试）、coding-agent `waitForReady` 10s→25s、mtc-audit 给显式 120s、orchestrate 修 timeout 倒挂 20s→40s（旧值比子命令自身 30s 超时还短）。验证 89/89。详见内部手册 trap #31。
 
 ---
 
