@@ -54,6 +54,7 @@ const {
   BilibiliAdapter,
   WeiboAdapter,
   ZhihuAdapter,
+  DoubanAdapter,
   BossZhipinAdapter,
   CsdnAdapter,
   DongchediAdapter,
@@ -608,6 +609,7 @@ async function initHub() {
   for (const Cls of [
     WeiboAdapter,
     ZhihuAdapter,
+    DoubanAdapter,
     BossZhipinAdapter,
     CsdnAdapter,
     DongchediAdapter,
