@@ -63,9 +63,8 @@ export function registerMemoryCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { loadProjectInstructions } = await import(
-          "../lib/project-instructions.js"
-        );
+        const { loadProjectInstructions } =
+          await import("../lib/project-instructions.js");
         const cwd = options.cwd || process.cwd();
         const loaded = loadProjectInstructions({ cwd });
         if (options.json) {
@@ -519,7 +518,10 @@ export function registerMemoryCommand(program) {
 
         if (options.edit) {
           const { execSync } = await import("child_process");
-          const editor = process.env.EDITOR || process.env.VISUAL || "nano";
+          const editor =
+            process.env.EDITOR ||
+            process.env.VISUAL ||
+            (process.platform === "win32" ? "notepad" : "nano");
           const filePath = `${memoryDir}/MEMORY.md`;
           try {
             execSync(`${editor} "${filePath}"`, { stdio: "inherit" });

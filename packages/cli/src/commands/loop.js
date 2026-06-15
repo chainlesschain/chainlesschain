@@ -73,20 +73,26 @@ function spawnIteration(cmd, args, { shell, onChild, capture }) {
     });
     if (onChild) onChild(child);
 
-    let output = "";
+    const outChunks = [];
     if (capture) {
       child.stdout?.on("data", (d) => {
-        output += d;
+        outChunks.push(d);
         process.stdout.write(d);
       });
       child.stderr?.on("data", (d) => {
-        output += d;
+        outChunks.push(d);
         process.stderr.write(d);
       });
     }
 
     // `close` (not `exit`) so piped stdio is fully drained before we resolve.
     child.on("close", (code, signal) => {
+      // Decode the captured bytes once, at the end. Accumulating with
+      // `output += chunk` would decode each stdout chunk independently, so a
+      // multi-byte UTF-8 character split across a chunk boundary corrupts the
+      // captured string that `--until <regex>` / `--dynamic` directive parsing
+      // reads. (The raw passthrough writes above are unaffected.)
+      const output = Buffer.concat(outChunks).toString("utf-8");
       resolve({ exitCode: code == null ? null : code, output, signal });
     });
     child.on("error", (err) => {
