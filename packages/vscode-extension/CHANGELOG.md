@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.27.0] — 2026-06-15
+
+- **`@terminal` mention** — the chat panel's `@`-completion now offers `@terminal`
+  alongside `@selection`/`@diagnostics`. It pulls the recent integrated-terminal
+  commands + output into your prompt on demand (needs cc ≥ 0.162.67).
+- **App Preview crash recovery** — if the dev server exits on its own, the preview
+  now reports it as a crash and offers a one-click **Restart** (instead of silently
+  going quiet).
+
 ## [0.26.0] — 2026-06-15
 
 - **`ChainlessChain: Upgrade CLI` command** — a command-palette action that runs

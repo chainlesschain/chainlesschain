@@ -195,6 +195,9 @@ The bearer token is never displayed in any of these.
   keeps the extension and the npm CLI in step.
 - ✅ **`ChainlessChain: Upgrade CLI` command** (0.26.0): command-palette action to run
   `npm i -g chainlesschain@latest` on demand — update `cc` from the IDE any time.
+- ✅ **`@terminal` mention + App Preview crash recovery** (0.27.0): `@`-completion offers
+  `@terminal` (pulls recent terminal commands/output into the prompt); a crashed dev
+  server now offers a one-click Restart.
 
 ## Packaging
 
