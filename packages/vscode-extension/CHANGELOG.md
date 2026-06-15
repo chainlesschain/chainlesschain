@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.22.1] — 2026-06-15
+
+- **Docs only (no code change)** — refreshes the Open VSX listing:
+  - Clarify the extension is published to **Open VSX only**, **not** the Microsoft
+    VS Code Marketplace, with install instructions (VSCodium/Cursor/… search, or
+    install the `.vsix` in stock VS Code).
+  - Bring the README feature list up to date with 0.22.0 (conversation tabs, App
+    Preview, "Request changes…" inline diff comments, `openMultiDiff` multi-file
+    diff, plus the 0.18–0.21 additions) and fix the tool count (6, incl.
+    `openMultiDiff`).
+
 ## [0.22.0] — 2026-06-14
 
 - **Conversation tabs (Claude Code parity)**: the chat panel now holds multiple
