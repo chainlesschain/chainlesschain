@@ -89,6 +89,7 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand } from "./think-command.js";
+import { shouldStreamLive } from "./stream-decision.js";
 import {
   parsePermissionTier,
   describeTier,
@@ -343,6 +344,30 @@ export async function startAgentRepl(options = {}) {
 
   // Set hook DB reference for tool pipeline
   _hookDb = db;
+
+  // Live token streaming (Claude-Code parity): stream the answer (and reasoning)
+  // token-by-token as the LLM produces it, instead of replaying the finished
+  // text with a typewriter. ONLY safe when no AssistantResponse hook is
+  // registered — such a hook can rewrite/suppress the final answer, which is
+  // impossible once it's already on screen. CC_REPL_STREAM=0 forces the replay.
+  let _arHookCount = 0;
+  if (_hookDb) {
+    try {
+      const { listHooks } = await import("../lib/hook-manager.js");
+      _arHookCount = (
+        listHooks(_hookDb, {
+          event: "AssistantResponse",
+          enabledOnly: true,
+        }) || []
+      ).length;
+    } catch {
+      _arHookCount = -1; // unknown → shouldStreamLive treats as unsafe
+    }
+  }
+  const _streamLive = shouldStreamLive({
+    streamEnv: process.env.CC_REPL_STREAM,
+    arHookCount: _arHookCount,
+  });
 
   // Wire the persistent ApprovalGate singleton (approval-policies.json) with
   // a readline confirm prompt. agent-core's run_shell branch gates
@@ -3064,11 +3089,35 @@ export async function startAgentRepl(options = {}) {
         /* goal binding is best-effort — fall back to defaultPrepareCall */
       }
       _turnAbort = new AbortController();
+      // Live streaming hooks: write the answer token-by-token, and stream the
+      // reasoning dimmed before it. Skipped (left undefined) in replay mode.
+      let _liveStreamed = false;
+      let _liveThinkStarted = false;
+      const liveOpts = _streamLive
+        ? {
+            onToken: (t) => {
+              // Separate the answer from the dimmed reasoning above it (once).
+              if (!_liveStreamed && _liveThinkStarted) process.stdout.write("\n");
+              _liveStreamed = true;
+              process.stdout.write(t);
+            },
+            onThinking: (t) => {
+              if (process.env.CC_REPL_THINKING === "0") return;
+              if (!_liveThinkStarted) {
+                process.stdout.write(chalk.dim("💭 "));
+                _liveThinkStarted = true;
+              }
+              process.stdout.write(chalk.dim(t));
+            },
+          }
+        : {};
+      if (_streamLive) process.stdout.write("\n");
       const {
         content: response,
         usageEvents,
         thinking: reasoning,
       } = await agentLoop(messages, {
+        ...liveOpts,
         signal: _turnAbort.signal,
         provider,
         model: activeModel,
@@ -3152,25 +3201,33 @@ export async function startAgentRepl(options = {}) {
       // Extended-thinking reasoning (Anthropic, when /think is on): shown dimmed
       // BEFORE the answer. Not subject to the AssistantResponse rewrite/suppress
       // hook (that governs the answer text only). CC_REPL_THINKING=0 hides it.
-      if (reasoning && process.env.CC_REPL_THINKING !== "0") {
+      // In live mode it already streamed via onThinking, so skip the replay.
+      if (reasoning && !_streamLive && process.env.CC_REPL_THINKING !== "0") {
         process.stdout.write(
           "\n" + chalk.dim("💭 " + reasoning.replace(/\n/g, "\n   ")) + "\n",
         );
       }
 
       if (effectiveResponse) {
-        // Phase G #2 — route through StreamRouter so REPL / WS / future
-        // streaming providers share one StreamEvent protocol.
-        const { streamAgentResponse } = await import("../lib/agent-stream.js");
-        process.stdout.write("\n");
-        const noStream = options.noStream === true;
-        const streamResult = await streamAgentResponse(effectiveResponse, {
-          noStream,
-          writer: noStream ? null : (chunk) => process.stdout.write(chunk),
-        });
-        if (noStream) process.stdout.write(streamResult.text);
-        process.stdout.write("\n\n");
-        messages.push({ role: "assistant", content: streamResult.text });
+        if (_streamLive && _liveStreamed) {
+          // Already streamed live token-by-token during the turn (no
+          // AssistantResponse hook to rewrite it) — just terminate + record.
+          process.stdout.write("\n\n");
+          messages.push({ role: "assistant", content: effectiveResponse });
+        } else {
+          // Phase G #2 — route through StreamRouter so REPL / WS / future
+          // streaming providers share one StreamEvent protocol.
+          const { streamAgentResponse } = await import("../lib/agent-stream.js");
+          process.stdout.write("\n");
+          const noStream = options.noStream === true;
+          const streamResult = await streamAgentResponse(effectiveResponse, {
+            noStream,
+            writer: noStream ? null : (chunk) => process.stdout.write(chunk),
+          });
+          if (noStream) process.stdout.write(streamResult.text);
+          process.stdout.write("\n\n");
+          messages.push({ role: "assistant", content: streamResult.text });
+        }
       } else if (!responseDirective.suppress) {
         process.stdout.write("\n");
       }
