@@ -173,12 +173,26 @@ class FamilyPairingViewModelTest {
     }
 
     @Test
-    fun `createInvite reuses an existing family group`() = runTest {
-        repo.groups.value = listOf(FamilyGroupEntity("g-existing", "我的家庭", "did:chain:local-parent", 0L))
+    fun `createInvite reuses an existing group whose primaryDid matches local real DID`() = runTest {
+        // didProvider 默认 did = "did:key:zParent"; 同 primaryDid 的组才复用。
+        repo.groups.value = listOf(FamilyGroupEntity("g-existing", "我的家庭", "did:key:zParent", 0L))
         val vm = vm()
         vm.createInvite()
         assertEquals(0, repo.createCount)
         assertNotNull(vm.uiState.value.inviteToken)
+    }
+
+    @Test
+    fun `createInvite does NOT reuse a stale demo-DID group, creates a fresh real-DID group (#3 fix)`() = runTest {
+        // 旧 demo 组 (did:chain:local-parent) 不能被复用, 否则家长身份是 demo DID →
+        // 跨设备验签失败 → 孩子绑定同步不过来 → 家人页恒空。应另建 primaryDid=本机真实 DID 的组。
+        repo.groups.value = listOf(FamilyGroupEntity("g-demo", "我的家庭", "did:chain:local-parent", 0L))
+        val vm = vm()
+        vm.createInvite()
+        assertEquals(1, repo.createCount)
+        val created = repo.groups.value.firstOrNull { it.id != "g-demo" }
+        assertNotNull(created)
+        assertEquals("did:key:zParent", created!!.primaryDid)
     }
 
     @Test

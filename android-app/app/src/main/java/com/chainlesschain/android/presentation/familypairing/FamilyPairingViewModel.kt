@@ -131,10 +131,17 @@ class FamilyPairingViewModel @Inject constructor(
         }
     }
 
-    /** 已存在 family_group 则复用第一个，否则用本机真实 DID 建一个家庭组。 */
+    /**
+     * 复用 primaryDid == 本机真实 DID 的家庭组；否则用本机真实 DID 新建一个。
+     *
+     * **关键 (#3 家长端看不到家人)**：不能无脑复用"第一个"组。旧版本 / AI 陪学奖励·任务的
+     * demo 流可能先建过 primaryDid=`did:chain:local-parent` 的占位组；若复用它，家长在组里的
+     * 身份就是 demo DID，对端无法 extractPublicKey 验签 → 孩子绑定的 membership 永远同步不过来，
+     * 家人页恒空。只认 primaryDid 与本机真实 did:key 一致的组，stale demo 组一律跳过另建。
+     */
     private suspend fun ensureLocalGroup(primaryDid: String): String {
         val existing = familyGroupRepository.observeAll().first()
-        return existing.firstOrNull()?.id
+        return existing.firstOrNull { it.primaryDid == primaryDid }?.id
             ?: familyGroupRepository.create(name = "我的家庭", primaryDid = primaryDid).id
     }
 
