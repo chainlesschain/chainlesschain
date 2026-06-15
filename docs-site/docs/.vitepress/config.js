@@ -215,6 +215,7 @@ export default defineConfig({
           text: "企业版功能",
           items: [
             { text: "多智能体协作", link: "/chainlesschain/cowork" },
+            { text: "动态工作流引擎 ⭐NEW", link: "/chainlesschain/cowork-workflow" },
             { text: "日常任务协作", link: "/chainlesschain/web-cowork" },
             { text: "会话管理器", link: "/chainlesschain/session-manager" },
             { text: "钩子系统", link: "/chainlesschain/hooks" },
@@ -1099,6 +1100,10 @@ export default defineConfig({
             {
               text: "多智能体协作 (cowork)",
               link: "/chainlesschain/cowork",
+            },
+            {
+              text: "动态工作流引擎",
+              link: "/chainlesschain/cowork-workflow",
             },
             {
               text: "协作高级功能",
