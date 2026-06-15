@@ -245,7 +245,7 @@ async function agentLoop(messages, options) {
         chalk.red(`\n  [Budget Exhausted] ${event.budget}\n`),
       );
     } else if (event.type === "response-complete") {
-      return { content: event.content, usageEvents };
+      return { content: event.content, usageEvents, thinking: event.thinking };
     }
   }
   return { content: "", usageEvents };
@@ -3055,7 +3055,11 @@ export async function startAgentRepl(options = {}) {
         /* goal binding is best-effort — fall back to defaultPrepareCall */
       }
       _turnAbort = new AbortController();
-      const { content: response, usageEvents } = await agentLoop(messages, {
+      const {
+        content: response,
+        usageEvents,
+        thinking: reasoning,
+      } = await agentLoop(messages, {
         signal: _turnAbort.signal,
         provider,
         model: activeModel,
@@ -3134,6 +3138,15 @@ export async function startAgentRepl(options = {}) {
         effectiveResponse = "";
       } else if (responseDirective.response !== (response || "")) {
         effectiveResponse = responseDirective.response;
+      }
+
+      // Extended-thinking reasoning (Anthropic, when /think is on): shown dimmed
+      // BEFORE the answer. Not subject to the AssistantResponse rewrite/suppress
+      // hook (that governs the answer text only). CC_REPL_THINKING=0 hides it.
+      if (reasoning && process.env.CC_REPL_THINKING !== "0") {
+        process.stdout.write(
+          "\n" + chalk.dim("💭 " + reasoning.replace(/\n/g, "\n   ")) + "\n",
+        );
       }
 
       if (effectiveResponse) {

@@ -3710,7 +3710,20 @@ export async function* agentLoop(messages, options) {
     const toolCalls = msg.tool_calls;
 
     if (!toolCalls || toolCalls.length === 0) {
-      yield { type: "response-complete", content: msg.content || "" };
+      // Surface the final answer's extended-thinking reasoning (Anthropic, when
+      // --think is on) so non-streaming consumers (the REPL) can show it. The
+      // streaming path forwards reasoning live via onThinking instead.
+      const _thinking = Array.isArray(msg._thinkingBlocks)
+        ? msg._thinkingBlocks
+            .map((b) => b.thinking || "")
+            .join("")
+            .trim()
+        : "";
+      yield {
+        type: "response-complete",
+        content: msg.content || "",
+        ...(_thinking ? { thinking: _thinking } : {}),
+      };
       // settings.json Stop hooks: a `block` decision FORCES the agent to keep
       // going instead of stopping — the reason is injected as a new instruction.
       // `stop_hook_active` lets the hook avoid an infinite loop; the iteration

@@ -522,7 +522,9 @@ describe("agent-repl thin wrapper contracts", () => {
   it("agentLoop wrapper returns structured result on response-complete", () => {
     const content = readFileSync(agentReplPath, "utf8");
     expect(content).toContain('event.type === "response-complete"');
-    expect(content).toContain("return { content: event.content, usageEvents }");
+    expect(content).toContain(
+      "return { content: event.content, usageEvents, thinking: event.thinking }",
+    );
   });
 });
 
