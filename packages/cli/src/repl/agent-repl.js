@@ -88,6 +88,7 @@ import {
 import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
+import { parseThinkCommand } from "./think-command.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -252,9 +253,11 @@ export async function startAgentRepl(options = {}) {
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
-  // the runtime policy into the agent-loop options below. thinkingBudget
+  // the runtime policy into the agent-loop options below. Mutable so the
+  // `/think` · `/ultrathink` slash commands can toggle it mid-session (the
+  // per-turn agentLoop call below reads the current value). thinkingBudget
   // (--thinking-budget) is the companion legacy-model budget_tokens override.
-  const thinking = options.thinking || null;
+  let thinking = options.thinking || null;
   const thinkingBudget = options.thinkingBudget || null;
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
@@ -869,6 +872,8 @@ export async function startAgentRepl(options = {}) {
       "/tasks",
       "/terminal-setup",
       "/theme",
+      "/think",
+      "/ultrathink",
       "/vim",
     ],
     getIdeOpenFiles: async () => {
@@ -1208,6 +1213,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/model")}      Show/change model (/model <name>)`,
       );
       logger.log(`  ${chalk.cyan("/provider")}   Show/change provider`);
+      logger.log(
+        `  ${chalk.cyan("/think")}      Extended thinking on/off (/think [on|off|ultra]; /ultrathink = max; Anthropic)`,
+      );
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(
         `  ${chalk.cyan("/vim")}        Toggle vim-mode line editing (/vim [on|off]; Esc → NORMAL)`,
@@ -1452,6 +1460,21 @@ export async function startAgentRepl(options = {}) {
       }
       prompt();
       return;
+    }
+
+    // Extended-thinking toggle (Anthropic extended thinking; ignored by other
+    // providers). Mutates `thinking`, read by the next turn's agentLoop call.
+    {
+      const think = parseThinkCommand(trimmed);
+      if (think) {
+        thinking = think.thinking;
+        const note = think.anthropic
+          ? " " + chalk.gray("(Anthropic only; applies next turn)")
+          : "";
+        logger.info(`Extended thinking: ${chalk.cyan(think.label)}${note}`);
+        prompt();
+        return;
+      }
     }
 
     if (trimmed === "/clear") {
