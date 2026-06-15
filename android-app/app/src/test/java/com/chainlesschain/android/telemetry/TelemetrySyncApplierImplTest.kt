@@ -31,6 +31,7 @@ class TelemetrySyncApplierImplTest {
         override suspend fun saveEvent(event: ChildEventEntity): Long = 0L
         override suspend fun querySince(childDid: String, sinceMs: Long): List<ChildEventEntity> = emptyList()
         override fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>> = flowOf(emptyList())
+        override fun observeRecentAnyChild(limit: Int): Flow<List<ChildEventEntity>> = flowOf(emptyList())
         override suspend fun deleteOlderThan(cutoffMs: Long): Int = 0
     }
 
