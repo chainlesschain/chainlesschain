@@ -3765,6 +3765,18 @@ export async function* agentLoop(messages, options) {
       return;
     }
 
+    // Intermediate-step reasoning (Anthropic, --think): the model's reasoning
+    // before it chose these tool calls. Streaming consumers already get it live
+    // via onThinking, so only surface it as an event for non-streaming consumers
+    // (the REPL) — keeps it out of the --include-partial-messages stream.
+    if (!options.onThinking && Array.isArray(msg._thinkingBlocks)) {
+      const _stepThinking = msg._thinkingBlocks
+        .map((b) => b.thinking || "")
+        .join("")
+        .trim();
+      if (_stepThinking) yield { type: "thinking", text: _stepThinking };
+    }
+
     // Add assistant message with tool calls
     messages.push(msg);
 

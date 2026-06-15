@@ -43,4 +43,47 @@ describe("agentLoop response-complete — extended-thinking reasoning", () => {
     expect(done.content).toBe("plain");
     expect(done.thinking).toBeUndefined();
   });
+
+  // A two-step turn: the model reasons, calls a tool, then answers.
+  const twoStepChatFn = () => {
+    let call = 0;
+    return vi.fn(async () => {
+      call += 1;
+      if (call === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            _thinkingBlocks: [
+              { type: "thinking", thinking: "I should read the file", signature: "s" },
+            ],
+            tool_calls: [
+              { id: "t1", type: "function", function: { name: "noop", arguments: "{}" } },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    });
+  };
+
+  it("yields an intermediate thinking event before a tool call (non-streaming)", async () => {
+    const events = await drain(
+      agentLoop([{ role: "user", content: "u" }], { chatFn: twoStepChatFn() }),
+    );
+    expect(events.find((e) => e.type === "thinking")).toMatchObject({
+      type: "thinking",
+      text: "I should read the file",
+    });
+  });
+
+  it("suppresses the intermediate event when onThinking is set (streaming gets it live)", async () => {
+    const events = await drain(
+      agentLoop([{ role: "user", content: "u" }], {
+        chatFn: twoStepChatFn(),
+        onThinking: () => {},
+      }),
+    );
+    expect(events.find((e) => e.type === "thinking")).toBeUndefined();
+  });
 });

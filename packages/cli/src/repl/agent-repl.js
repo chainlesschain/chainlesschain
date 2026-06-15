@@ -236,6 +236,13 @@ async function agentLoop(messages, options) {
       } else if (event.result?.success) {
         process.stdout.write(chalk.green(`  Done\n`));
       }
+    } else if (event.type === "thinking") {
+      // Intermediate-step reasoning (before a tool call) — dimmed, inline.
+      if (process.env.CC_REPL_THINKING !== "0" && event.text) {
+        process.stdout.write(
+          "\n" + chalk.dim("💭 " + event.text.replace(/\n/g, "\n   ")) + "\n",
+        );
+      }
     } else if (event.type === "token-usage") {
       usageEvents.push(event);
     } else if (event.type === "iteration-warning") {
