@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.114 · 2026-06-15',
+    title: 'PDH gov-ixiamen endpoint static-verify on a real device + Android cc bundle v20260615d (pdh 0.4.25 / cli 0.162.71)',
+    sub: "Ran the PDH endpoint-capture runbook's static-analysis tier (read-only APK, no login) on a rooted device and corrected i-Xiamen's fabricated placeholder host to the real gateway. Desktop / Android / iOS surfaces aligned to .114; Android cc bundle rolled to v20260615d (carries pdh 0.4.25, USR_VERSION → 45).",
+    desc: "gov-ixiamen collector host correction: the old cookie-api placeholder app.ixm.gov.cn does not exist. Running the PDH endpoint-capture runbook's static-analysis tier (read-only APK binary analysis, no login/account interaction) on a rooted device, dex analysis confirmed i-Xiamen's real backend is *.ixiamen.org.cn (gateway https://buss.ixiamen.org.cn/pbc/), now wired (overridable via opts.listUrl); the /handle/list sub-path + body stay unverified (bodies encrypted by libzxprotect, opaque to static analysis). Bank/gov findings recorded in runbook §3.1: BOC (SecNeo shell, only push-SDK hosts in plaintext) / ICBC (gateway host visible but encrypted+signed bodies) stay snapshot — a host alone is not 'verified'; 12123 host was already correct, sub-paths built natively by libNetHTProtect. @chainlesschain/personal-data-hub 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 published to npm. Versions: productVersion v5.0.3.113 → v5.0.3.114 / desktop 5.0.3-alpha.114 / Android versionCode 503114 · USR_VERSION 45 · binariesVersion 20260615d / iOS build 114.",
+  },
+  {
     tag: 'v5.0.3.113 · 2026-06-15',
     title: 'npm publish/install hardening: fix China-mirror install E404 + deprecate workflow + VS Code ext 0.28/0.29 + CLI 0.162.70',
     sub: 'Fixes the hard npm install failure for users defaulting to the Taobao mirror (#33) and hardens the npm publish pipeline. Desktop / Android / iOS version surfaces aligned to .113; Android cc bundle rolled to v20260615c (carries cli 0.162.70, USR_VERSION → 44).',

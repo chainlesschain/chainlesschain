@@ -11,6 +11,10 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-06-15 Release — **v5.0.3.114: PDH gov-ixiamen endpoint static-verify on a real device + Android cc bundle v20260615d (pdh 0.4.25 / cli 0.162.71)**
+
+> Ran the PDH endpoint-capture runbook's **static-analysis tier** (read-only APK binary analysis, no login/account interaction) on a rooted device. Corrected the `gov-ixiamen` collector's fabricated placeholder host — the old `app.ixm.gov.cn` does not exist; static dex analysis confirmed i-Xiamen's real backend is `*.ixiamen.org.cn` (gateway `https://buss.ixiamen.org.cn/pbc/`), now wired (overridable via `opts.listUrl`); the list sub-path + body stay `unverified` (bodies encrypted by `libzxprotect`, opaque to static analysis). BOC (SecNeo shell) / ICBC (encrypted+signed bodies) stay snapshot; 12123 host was already correct. `@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 published to npm; Android cc bundle rolled to `v20260615d`, `USR_VERSION` → 45. Desktop / Android / iOS surfaces aligned to .114 (check-version-sync green).
+
 ## 2026-06-15 Release — **v5.0.3.113: npm publish/install hardening (fix China-mirror install E404 + deprecate workflow) + VS Code ext 0.28/0.29 + CLI 0.162.70**
 
 > Desktop / Android / iOS version surfaces aligned to .113 (check-version-sync green); Android cc bundle rolled to `v20260615c` (carries cli 0.162.70 + pdh 0.4.24, `USR_VERSION` → 44).

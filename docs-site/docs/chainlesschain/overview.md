@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.113 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.70 / 158 命令 / 30,000+ 测试 | Android 5.0.3.113 (versionCode 503113 · USR_VERSION 44 · binariesVersion 20260615c) | iOS 5.0.3 (build 113，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.114 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.71 / 158 命令 / 30,000+ 测试 | Android 5.0.3.114 (versionCode 503114 · USR_VERSION 45 · binariesVersion 20260615d) | iOS 5.0.3 (build 114，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.114 个人数据中台 gov-ixiamen 端点真机静态校验（2026-06-15）**：用已 root 真机对 PDH「端点抓包」runbook 跑**静态分析层**（只读 APK 二进制，无任何登录态/账号介入）。修正 `gov-ixiamen` 采集器的虚构占位主机——旧 `app.ixm.gov.cn` 实为不存在域名；真机 dex 静态分析确认 i 厦门真实后端为 `*.ixiamen.org.cn`（业务网关 `https://buss.ixiamen.org.cn/pbc/`），已改为真实网关（`opts.listUrl` 可覆盖），子路径 + 请求体仍 `unverified`（body 经 `libzxprotect` 加密静态不可见）。中行（SecNeo 壳）/工行（请求体加密+签名）维持 snapshot，不因拿到域名就标 verified；12123 域名早已正确。`@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615d`、USR_VERSION → 45。
 >
 > **v5.0.3.113 npm 发布/安装链路加固（2026-06-15）**：修复中国大陆镜像装机失败——`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存致 `npm install` E404（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）；手动触发镜像 sync API 修复线上（tarball 404→200），`npm-publish.yml` 新增发版后自动 PUT 镜像 sync API（best-effort，不阻断发版），README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」。新增 `npm-deprecate.yml` 参数化弃用 workflow（已弃用误从陈旧 tag 发布、漏 8 个 PDH adapter wiring（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）的 `0.162.68` → `0.162.69` 修复版）。VS Code 扩展 0.28/0.29（后台 tab 完成信号 + 面板 slash 命令/@ 补全/rewind）。CLI npm `latest` 0.162.70。
 >

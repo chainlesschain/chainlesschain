@@ -11,6 +11,10 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-06-15 发布 — **v5.0.3.114：个人数据中台 gov-ixiamen 端点真机静态校验 + Android cc bundle v20260615d（pdh 0.4.25 / cli 0.162.71）**
+
+> 用已 root 真机对 PDH「端点抓包」runbook 跑**静态分析层**（只读 APK 二进制，无任何登录态/账号介入）。修正 `gov-ixiamen` 采集器的虚构占位主机——旧 `app.ixm.gov.cn` 实为不存在域名；真机 dex 静态分析确认 i 厦门真实后端为 `*.ixiamen.org.cn`（业务网关 `https://buss.ixiamen.org.cn/pbc/`），已改为真实网关（`opts.listUrl` 可覆盖），子路径 + 请求体仍 `unverified`（body 经 `libzxprotect` 加密静态不可见）。中行（SecNeo 壳）/工行（请求体加密+签名）维持 snapshot；12123 域名早已正确。`@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 已发 npm；Android cc bundle 滚到 `v20260615d`、`USR_VERSION` → 45。桌面 / Android / iOS 全 surface 对齐 .114（check-version-sync 绿）。
+
 ## 2026-06-15 发布 — **v5.0.3.113：npm 发布/安装链路加固（修复中国大陆镜像装机 E404 + 版本弃用 workflow）+ VS Code 扩展 0.28/0.29 + CLI 0.162.70**
 
 > 桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）；Android cc bundle 滚到 `v20260615c`（携 cli 0.162.70 + pdh 0.4.24，`USR_VERSION` → 44）。

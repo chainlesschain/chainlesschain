@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.114 · 2026-06-15',
+    title: '个人数据中台 gov-ixiamen 端点真机静态校验 + Android cc bundle v20260615d（pdh 0.4.25 / cli 0.162.71）',
+    sub: '用已 root 真机对 PDH「端点抓包」runbook 跑静态分析层（只读 APK，无登录态），修正 i 厦门虚构占位主机为真实网关。桌面 / Android / iOS 全 surface 对齐 .114；Android cc bundle 滚到 v20260615d（携 pdh 0.4.25，USR_VERSION → 45）。',
+    desc: 'gov-ixiamen 采集器主机域名纠正：旧 cookie-api 占位 app.ixm.gov.cn 实为虚构域名；用已 root 真机对 PDH 端点抓包 runbook 跑静态分析层（只读 APK 二进制，无任何登录态/账号介入），dex 静态分析确认 i 厦门真实后端为 *.ixiamen.org.cn（业务网关 https://buss.ixiamen.org.cn/pbc/），已改为真实网关（opts.listUrl 可覆盖），/handle/list 尾段 + 请求体仍 unverified（body 经 libzxprotect 加密，静态不可见）。银行/政务结论记入 runbook §3.1：中行（SecNeo 壳，明文仅推送 SDK 域）/工行（网关域可见但请求体加密+签名）维持 snapshot，不因拿到域名就标 verified；12123 域名早已正确，子路径由 libNetHTProtect 原生构造。@chainlesschain/personal-data-hub 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 已发 npm。版本面：productVersion v5.0.3.113 → v5.0.3.114 / 桌面 5.0.3-alpha.114 / Android versionCode 503114 · USR_VERSION 45 · binariesVersion 20260615d / iOS build 114。',
+  },
+  {
     tag: 'v5.0.3.113 · 2026-06-15',
     title: 'npm 发布/安装链路加固：修复中国大陆镜像装机 E404 + 版本弃用 workflow + VS Code 扩展 0.28/0.29 + CLI 0.162.70',
     sub: '修复默认走淘宝镜像的用户 npm install 硬失败（#33），并加固 npm 发布链路。桌面 / Android / iOS 全 surface 对齐 .113；Android cc bundle 滚到 v20260615c（携 cli 0.162.70，USR_VERSION → 44）。',
