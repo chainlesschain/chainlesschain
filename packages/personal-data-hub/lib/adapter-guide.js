@@ -78,6 +78,7 @@ const DISPLAY_NAMES = Object.freeze({
   "netease-music": "网易云音乐",
   "music-kugou": "酷狗音乐",
   "music-qq": "QQ音乐",
+  "audio-ximalaya": "喜马拉雅",
   "reading-fanqie": "番茄小说",
   "reading-qimao": "七猫小说",
   "fitness-joyrun": "悦跑圈",

@@ -78,6 +78,7 @@ const { AppleHealthAdapter } = require("./adapters/apple-health");
 const { NeteaseMusicAdapter } = require("./adapters/netease-music");
 const { KugouMusicAdapter } = require("./adapters/music-kugou");
 const { QQMusicAdapter } = require("./adapters/music-qq");
+const { XimalayaAdapter } = require("./adapters/audio-ximalaya");
 const { FanqieReadingAdapter } = require("./adapters/reading-fanqie");
 const { QimaoReadingAdapter } = require("./adapters/reading-qimao");
 const { JoyrunAdapter } = require("./adapters/fitness-joyrun");
@@ -343,6 +344,7 @@ module.exports = {
   NeteaseMusicAdapter,
   KugouMusicAdapter,
   QQMusicAdapter,
+  XimalayaAdapter,
   FanqieReadingAdapter,
   QimaoReadingAdapter,
   JoyrunAdapter,
