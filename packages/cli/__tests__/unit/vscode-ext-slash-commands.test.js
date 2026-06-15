@@ -44,7 +44,8 @@ describe("slash-commands (panel / autocomplete)", () => {
 
   it("every menu row is [/command, non-empty description]", () => {
     for (const row of slash.SLASH_COMMANDS) {
-      expect(row[0]).toMatch(/^\/[a-z]+$/);
+      // allow hyphen-separated commands like /think-off (no leading/trailing/double hyphen)
+      expect(row[0]).toMatch(/^\/[a-z]+(-[a-z]+)*$/);
       expect(typeof row[1]).toBe("string");
       expect(row[1].length).toBeGreaterThan(0);
     }
