@@ -778,6 +778,34 @@ export async function startAgentRepl(options = {}) {
     options.vimMode === true || process.env.CC_VIM === "1" ? true : false;
   let _vim = null;
 
+  // Color theme (Claude-Code `/theme` parity). Capture chalk's auto-detected
+  // level BEFORE any theme touches it so `mono`→level 0 stays reversible, then
+  // apply the persisted theme (config `cli.theme`). `mono` strips all color;
+  // `light` uses a blue prompt accent. Switchable at runtime via `/theme`.
+  const {
+    DEFAULT_THEME,
+    resolveTheme,
+    promptAccent,
+    applyThemeChalk,
+    renderThemeList,
+    listThemeNames,
+  } = await import("./repl-theme.js");
+  const _chalkBaselineLevel = chalk.level;
+  let _theme = DEFAULT_THEME;
+  try {
+    const { getConfigValue } = await import("../lib/config-manager.js");
+    _theme = resolveTheme(getConfigValue("cli.theme")) || DEFAULT_THEME;
+  } catch (_e) {
+    /* config optional — keep default */
+  }
+  applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
+  const themedPrompt = (text) => {
+    const a = promptAccent(_theme);
+    if (a === "blue") return chalk.blue(text);
+    if (a === "green") return chalk.green(text);
+    return text;
+  };
+
   const getPrompt = () => {
     // Mode indicator first so it survives the plan-mode prompt variants.
     const vim = _vimEnabled
@@ -793,7 +821,7 @@ export async function startAgentRepl(options = {}) {
       }
       return vim + chalk.yellow("[plan] > ");
     }
-    return vim + chalk.green("> ");
+    return vim + themedPrompt("> ");
   };
 
   // `@` tab-completion (Claude-Code @-mention parity): filesystem paths +
@@ -840,6 +868,7 @@ export async function startAgentRepl(options = {}) {
       "/task",
       "/tasks",
       "/terminal-setup",
+      "/theme",
       "/vim",
     ],
     getIdeOpenFiles: async () => {
@@ -1190,6 +1219,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/statusline")} Context-usage line on/off (/statusline [on|off])`,
       );
       logger.log(
+        `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/config")}     Effective config (provider/model, keys masked)`,
       );
       logger.log(
@@ -1443,6 +1475,39 @@ export async function startAgentRepl(options = {}) {
       } catch (err) {
         logger.error(`/terminal-setup failed: ${err.message}`);
       }
+      prompt();
+      return;
+    }
+
+    // `/theme` — color theme (Claude-Code parity). `mono` strips all color;
+    // `light` uses a blue prompt accent. Persisted to config `cli.theme`.
+    if (trimmed === "/theme" || trimmed.startsWith("/theme ")) {
+      const arg = trimmed.slice("/theme".length).trim();
+      if (!arg) {
+        logger.log("\n" + renderThemeList(_theme) + "\n");
+        prompt();
+        return;
+      }
+      const next = resolveTheme(arg);
+      if (!next) {
+        logger.error(
+          chalk.red(
+            `Unknown theme "${arg}". Available: ${listThemeNames().join(", ")}`,
+          ),
+        );
+        prompt();
+        return;
+      }
+      _theme = next;
+      applyThemeChalk(_theme, chalk, _chalkBaselineLevel);
+      try {
+        const { setConfigValue } = await import("../lib/config-manager.js");
+        setConfigValue("cli.theme", _theme);
+      } catch (_e) {
+        /* persistence is best-effort */
+      }
+      rl.setPrompt(getPrompt());
+      logger.log(chalk.gray(`Theme set to ${_theme}.`));
       prompt();
       return;
     }

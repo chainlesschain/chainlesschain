@@ -712,6 +712,11 @@ REPL 内有同款 **`/context`**:对**当前活跃会话**(内存中的 messages
   无需鼠标选中。`/copy code` 只复制最后一个**围栏代码块**。跨平台:Windows 走 PowerShell
   `Set-Clipboard`(强制 UTF-8 输入解码,非 ASCII 不乱码;`clip` 兜底)、macOS `pbcopy`、Linux 依次
   尝试 `wl-copy`/`xclip`/`xsel`。无可用工具时给出安装提示。
+- **交互 REPL `/theme`**(Claude-Code `/theme` 平价) — 切换 REPL 配色:`/theme` 列出可选项 +
+  当前项,`/theme <auto|dark|light|mono>` 切换并持久化(config `cli.theme`,下次启动沿用)。cc REPL
+  是 chalk-on-readline 而非全屏 TUI,故主题控制两件可见的事:`mono` 把 `chalk.level` 置 0**完全去色**
+  (适合配色不可读的终端或纯文本抓取),`light` 用**蓝色提示符**(绿色在浅底不易读)、`dark`/`auto`
+  用绿色。启动时先存基线色深再应用主题,`mono→auto` 可逆。
 - **REPL `/` 命令 tab 补全** — 行首输入 `/he<TAB>` 补全注册的 REPL 命令(命令 token 期间生效,
   空格后不打扰参数);与 `@` 文件补全共存于同一 completer。
 - **启动版本提醒** — 每次启动一次性同步读缓存(`~/.chainlesschain/update-check.json`),有新版时
