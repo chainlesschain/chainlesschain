@@ -7,14 +7,6 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
-#### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
-> 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
-
-- **`cc review` — diff-first 代码审查（`/code-review` 平价）**：默认审工作区 vs HEAD，可 `--staged` / `--base <ref>`（PR 式 `base...HEAD`）/ `--range A..B` / `--paths`，并内联未跟踪新文件；`low|medium|high` 力度档；`--security`（/security-review）+ `--simplify`（/simplify，只清理不抓 bug）两视角。只读走 plan 权限出 Markdown 报告；`--fix` 走 acceptEdits + 自动 checkpoint 直接落地（每次编辑可 `cc checkpoint restore` 回滚）；`--comment` 解析机读 JSON findings → 经 `gh` 在当前分支 PR 发行内评论（`--dry-run` 预览 + 交互确认）。
-- **headless 无人值守硬化**：`--max-budget-usd <amount>`（按 cc cost 价格表累计成本，到顶前停，免跑飞）；`--strict-mcp-config`（只用 `--mcp-config` 服务器，忽略已注册 + IDE 桥，工具面可复现）；`--replay-user-messages`（stream 输入回显用户消息便于转录/对账）。
-- **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用 + 错误率 / 时长 / token + 估算 $ 成本，纯 JSONL 复盘；从 `session_start` 回填模型给 headless 会话定价（强于 `cc cost`）。
-- **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。
-
 #### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.22.0（已发 Open VSX）
 > `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
 
@@ -41,27 +33,6 @@
 - **桌面**：内置技能计数 145→146（新增纯文档型 `pdh-android-collector`）+ `DOC_ONLY_SKILLS` 白名单校验。
 - **后端 Java（project-service）**：`mvn test` 32 失败 → 0（补 `@Mock UserMapper`、宽松 stubbing、对齐过期断言/调用计数、导入测试 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言 + 修 `code_generator` 过期返回键（`refactored_code`）；pytest 15 → 41+ 通过。
-
-## [v5.0.3.112] - 2026-06-15 — 个人数据中台补 6 个跨平台采集器 + Android cc bundle v20260615b（pdh 0.4.24 / cli 0.162.67）
-
-> 补齐路线图 / 参考机之外、但高个人数据价值的 6 个主流平台采集器。`@chainlesschain/personal-data-hub` 0.4.23→0.4.24、CLI `chainlesschain` 0.162.66→0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`（携全部新 adapter），`USR_VERSION` → 43。桌面端 / CLI 即装即用，Android 端随 v5.0.3.112 APK 携带。
-
-#### Added — 6 个新采集 adapter
-- **饿了么**（`shopping-eleme`）：外卖订单（snapshot + cookie-api，镜像美团外卖结构）。
-- **闲鱼**（`shopping-xianyu`）：二手买卖记录，买 / 卖双向（对手方角色随 side 翻转）。
-- **唯品会**（`shopping-vipshop`）：品牌特卖订单（品牌 → 商家）。
-- **豆瓣**（`social-douban`）：书影音兴趣图谱——标记（看过 / 想看 / 在看）→ 媒体事件 + 条目、影评 → 帖子、关注 → 联系人。
-- **喜马拉雅**（`audio-ximalaya`）：听书 / 播客收听历史——收听 / 收藏 / 订阅专辑（新 `audio-` 类目）。
-- **Keep**（`fitness-keep`）：运动训练记录，多类型（跑步 / 骑行 / 瑜伽 / 力量 …）。
-
-> 全部 snapshot 主路径 + cookie-api（注入式 fetch + `signProvider` seam，端点 best-effort 可覆盖、未实地验证）；各 adapter 全单元测试通过，接桌面 / CLI 双壳。adapter 总数 83 → 89。
-
-## [v5.0.3.111] - 2026-06-15 — 个人数据中台采集器再扩面 + Android cc bundle 滚到 v20260615（pdh 0.4.23 / cli 0.162.65）
-
-> 继 v5.0.3.110 之后再补一轮 PDH 采集长尾：新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信（`wework-pc`）等 adapter，并由并行支线补上 个税（`gov-tax` scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.18→0.4.23、CLI `chainlesschain` 0.162.60→0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`，`USR_VERSION` → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（故意 defer）外的消费级平台已全部接通。
-
-#### Added — 本轮新采集 adapter
-- **西瓜视频**（`video-xigua`）、**天眼查**（`biz-tianyancha`）、**懂车帝**（`social-dongchedi`）、**企业微信电脑版**（`wework-pc`）、**个税 APP**（`gov-tax`，scaffold）。
 
 ## [v5.0.3.110] - 2026-06-14 — 个人数据中台采集器扩面：13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）
 

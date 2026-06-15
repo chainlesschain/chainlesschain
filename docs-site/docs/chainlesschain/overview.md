@@ -1,8 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.112 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.67 / 155 命令 / 30,000+ 测试 | Android 5.0.3.112 (versionCode 503112 · USR_VERSION 43 · binariesVersion 20260615b) | iOS 5.0.3 (build 112，ad-hoc 签名 .ipa)**
->
-> **v5.0.3.112 个人数据中台补 6 个跨平台采集器（2026-06-15）**：补齐路线图 / 参考机之外、但高个人数据价值的 6 个主流平台——饿了么（外卖订单）/ 闲鱼（二手买卖，买卖双向）/ 唯品会（品牌特卖订单）/ 豆瓣（书影音兴趣图谱）/ 喜马拉雅（听书播客收听历史）/ Keep（运动训练记录）。全部 snapshot 主路径 + cookie-api（注入式 fetch + `signProvider` seam，端点 best-effort 未实地验证）。`@chainlesschain/personal-data-hub` 0.4.24 + CLI 0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`、USR_VERSION → 43。adapter 总数 83 → 89。
+> **当前版本: v5.0.3.111 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.65 / 155 命令 / 30,000+ 测试 | Android 5.0.3.111 (versionCode 503111 · USR_VERSION 42 · binariesVersion 20260615) | iOS 5.0.3 (build 111，ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.111 个人数据中台采集器再扩面（2026-06-15）**：继 v5.0.3.110 之后再补一轮 PDH 长尾——新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信电脑版 adapter，并由并行支线补上 个税（gov-tax scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.23 + CLI 0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`、USR_VERSION → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税/民生·中行·交行银行/数字人民币/12123，故意 defer）外的消费级平台已全部接通。
 >

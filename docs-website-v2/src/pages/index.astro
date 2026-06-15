@@ -81,12 +81,6 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
-    tag: 'v5.0.3.112 · 2026-06-15',
-    title: '个人数据中台补 6 个跨平台采集器 + Android cc bundle v20260615b（pdh 0.4.24 / cli 0.162.67）',
-    sub: '补齐路线图 / 参考机之外、但高个人数据价值的 6 个主流平台：饿了么 / 闲鱼 / 唯品会 / 豆瓣 / 喜马拉雅 / Keep。pdh 0.4.24 + CLI 0.162.67 已发 npm；Android cc bundle 滚到 v20260615b。',
-    desc: '本轮新增 6 个采集 adapter：饿了么（外卖订单）、闲鱼（二手买卖，买卖双向，对手方角色随 side 翻转）、唯品会（品牌特卖订单）、豆瓣（书影音兴趣图谱——标记 → 媒体事件 + 条目 / 影评 → 帖子 / 关注 → 联系人）、喜马拉雅（听书播客，新 audio- 类目）、Keep（运动训练，多类型）。全部 snapshot 主路径 + cookie-api（注入式 fetch + signProvider seam，端点 best-effort 未实地验证），各 adapter 全单元测试通过，接桌面 / CLI 双壳；adapter 总数 83 → 89。版本面：productVersion v5.0.3.111 → v5.0.3.112 / 桌面 5.0.3-alpha.112 / Android versionCode 503112 · USR_VERSION 43 · binariesVersion 20260615b / iOS build 112。',
-  },
-  {
     tag: 'v5.0.3.111 · 2026-06-15',
     title: '个人数据中台采集器再扩面 + Android cc bundle v20260615（pdh 0.4.23 / cli 0.162.65）',
     sub: '继 v5.0.3.110 再补一轮 PDH 长尾：西瓜视频 / 天眼查 / 懂车帝 / 企业微信电脑版，并由并行支线补上 个税(scaffold) / 扫描全能王 / 美柚 / i 厦门。pdh 0.4.23 + CLI 0.162.65 已发 npm；Android cc bundle 滚到 v20260615。',
