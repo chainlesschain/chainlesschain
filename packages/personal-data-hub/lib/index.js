@@ -52,6 +52,7 @@ const { ElemeAdapter } = require("./adapters/shopping-eleme");
 const { PinduoduoAdapter } = require("./adapters/shopping-pinduoduo");
 const { DianpingAdapter } = require("./adapters/shopping-dianping");
 const { XianyuAdapter } = require("./adapters/shopping-xianyu");
+const { VipshopAdapter } = require("./adapters/shopping-vipshop");
 const { BilibiliAdapter } = require("./adapters/social-bilibili");
 const { WeiboAdapter } = require("./adapters/social-weibo");
 const { ZhihuAdapter } = require("./adapters/social-zhihu");
@@ -314,6 +315,7 @@ module.exports = {
   PinduoduoAdapter,
   DianpingAdapter,
   XianyuAdapter,
+  VipshopAdapter,
 
   // Phase 13+ — long-tail social + messaging (借 sjqz parsers)
   BilibiliAdapter,
