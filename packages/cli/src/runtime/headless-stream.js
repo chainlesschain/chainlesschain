@@ -578,6 +578,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
             },
           })
       : undefined,
+    // Extended-thinking reasoning deltas (Anthropic; only when thinking is on).
+    // Surfaced as a thinking_delta so consumers can render a dimmed/collapsed
+    // reasoning block — the visible half of the /think toggle.
+    onThinking: options.includePartialMessages
+      ? (thinking) =>
+          emit({
+            type: "stream_event",
+            event: {
+              type: "content_block_delta",
+              delta: { type: "thinking_delta", thinking },
+            },
+          })
+      : undefined,
   };
 
   // --max-budget-usd: a SESSION-WIDE USD spend cap across all turns. Folded

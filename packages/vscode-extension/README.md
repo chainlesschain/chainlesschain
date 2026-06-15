@@ -223,9 +223,10 @@ The bearer token is never displayed in any of these.
   200k (6%)` line under the chat, refreshed after each turn from `cc context
   --json` (authoritative window math). Turns red on overflow; disable with
   `chainlesschain.chat.contextIndicator: false`.
-- ✅ **Extended-thinking toggle** (0.30.0): `/think` on, `/ultrathink` max budget,
-  `/think-off` off. Per conversation; respawns the agent with `--think`/
-  `--ultrathink` (Anthropic only — other providers ignore it).
+- ✅ **Extended-thinking toggle + live reasoning** (0.30.0): `/think` on,
+  `/ultrathink` max budget, `/think-off` off. Per conversation; respawns the
+  agent with `--think`/`--ultrathink` (Anthropic only). When on, the model's
+  reasoning streams into a dimmed block above the answer.
 - ✅ **`@file#L5-10` line ranges** (0.30.0): Insert File Reference with a selection
   appends the line range (`@src/app.ts#L5-10`); the CLI expands only those lines
   (needs cc ≥ 0.162.71). No selection → whole file as before.

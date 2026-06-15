@@ -36,6 +36,8 @@ function buildChatHtml({ cspSource, nonce }) {
          display:flex; flex-direction:column; height:100vh; }
   #log { flex:1; overflow-y:auto; padding:8px; }
   .msg { margin:6px 0; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+  .thinking { opacity:.55; font-style:italic; font-size:.92em;
+              border-left:2px solid var(--vscode-panel-border); padding-left:8px; }
   .user { color: var(--vscode-textLink-foreground); }
   .user::before { content:"❯ "; opacity:.7; }
   .assistant { }
@@ -151,6 +153,7 @@ function buildChatHtml({ cspSource, nonce }) {
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered on every delta
+  let thinkingEl = null; // dimmed reasoning block for this turn (extended thinking)
   let lastSentText = ""; // last user prompt, for /retry (regenerate)
 
   // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
@@ -229,6 +232,11 @@ function buildChatHtml({ cspSource, nonce }) {
       streamRaw = "";
     }
     return streamEl;
+  }
+  // Dimmed reasoning block for extended thinking (one per turn, above the answer).
+  function ensureThinking() {
+    if (!thinkingEl) thinkingEl = add("thinking", "💭 ");
+    return thinkingEl;
   }
   // Add a Copy button to each fenced code block (Claude-Code panel parity).
   // Runs at the DOM level after mdLite renders, so md-lite stays a pure
@@ -510,6 +518,14 @@ function buildChatHtml({ cspSource, nonce }) {
         log.scrollTop = log.scrollHeight;
         break;
       }
+      case "thinking": {
+        // Extended-thinking reasoning (when /think is on) — plain dimmed text,
+        // separate from the answer; not run through the markdown renderer.
+        const el = ensureThinking();
+        el.textContent += m.text;
+        log.scrollTop = log.scrollHeight;
+        break;
+      }
       case "tool":
         streamEl = null;
         add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
@@ -531,6 +547,7 @@ function buildChatHtml({ cspSource, nonce }) {
           }
         }
         streamEl = null;
+        thinkingEl = null; // next turn starts a fresh reasoning block
         status.textContent = m.usage
           ? "ready · " + (m.usage.input_tokens||0) + "→" + (m.usage.output_tokens||0) + " tokens"
           : "ready";
@@ -664,6 +681,7 @@ function buildChatHtml({ cspSource, nonce }) {
         log.textContent = "";
         if (activeTabId) tabNodes[activeTabId] = []; // forget this tab's transcript
         streamEl = null;
+        thinkingEl = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
         ctxbar.textContent = ""; // drop the previous conversation's context line

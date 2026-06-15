@@ -2658,6 +2658,7 @@ export async function chatWithTools(rawMessages, options) {
         { "x-api-key": key, "anthropic-version": "2023-06-01" },
         options.onToken,
         signal,
+        options.onThinking,
       );
     }
 
@@ -2899,7 +2900,7 @@ function _anthropicInitState() {
   return { text: "", blocks: {}, inputTokens: 0, outputTokens: 0 };
 }
 
-function _anthropicReduceLine(state, raw, onToken) {
+function _anthropicReduceLine(state, raw, onToken, onThinking) {
   const line = (raw || "").trim();
   if (!line.startsWith("data:")) return state;
   const payload = line.slice(5).trim();
@@ -2939,6 +2940,13 @@ function _anthropicReduceLine(state, raw, onToken) {
     } else if (d.type === "thinking_delta" && state.blocks[obj.index]) {
       state.blocks[obj.index].thinking =
         (state.blocks[obj.index].thinking || "") + (d.thinking || "");
+      if (typeof onThinking === "function" && d.thinking) {
+        try {
+          onThinking(d.thinking);
+        } catch {
+          // a failing UI hook must never break the run
+        }
+      }
     } else if (d.type === "signature_delta" && state.blocks[obj.index]) {
       state.blocks[obj.index].signature =
         (state.blocks[obj.index].signature || "") + (d.signature || "");
@@ -2994,9 +3002,10 @@ function _anthropicFinalize(state) {
 }
 
 /** Pure reducer over Anthropic SSE lines — exported for tests (no HTTP). */
-export function _accumulateAnthropicStream(lines, onToken) {
+export function _accumulateAnthropicStream(lines, onToken, onThinking) {
   const state = _anthropicInitState();
-  for (const line of lines) _anthropicReduceLine(state, line, onToken);
+  for (const line of lines)
+    _anthropicReduceLine(state, line, onToken, onThinking);
   return _anthropicFinalize(state);
 }
 
@@ -3006,6 +3015,7 @@ async function _chatAnthropicStreaming(
   extraHeaders,
   onToken,
   signal,
+  onThinking,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3026,9 +3036,10 @@ async function _chatAnthropicStreaming(
     buf += decoder.decode(value, { stream: true });
     const lines = buf.split("\n");
     buf = lines.pop() || "";
-    for (const line of lines) _anthropicReduceLine(state, line, onToken);
+    for (const line of lines)
+      _anthropicReduceLine(state, line, onToken, onThinking);
   }
-  if (buf.trim()) _anthropicReduceLine(state, buf, onToken);
+  if (buf.trim()) _anthropicReduceLine(state, buf, onToken, onThinking);
   return _anthropicFinalize(state);
 }
 

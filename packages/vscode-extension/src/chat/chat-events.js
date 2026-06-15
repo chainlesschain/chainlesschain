@@ -7,6 +7,7 @@
  * UI message kinds:
  *   init       { model, provider, sessionId }
  *   delta      { text }                    streaming assistant text
+ *   thinking   { text }                    streaming extended-thinking reasoning
  *   tool       { tool, summary }           a tool call started
  *   tool_done  { tool, isError }           …finished
  *   info       { text }                    compaction / misc one-liners
@@ -56,6 +57,14 @@ function mapAgentEvent(evt, state) {
       if (delta?.type === "text_delta" && typeof delta.text === "string") {
         state.sawDelta = true;
         return { kind: "delta", text: delta.text };
+      }
+      // Extended-thinking reasoning (Anthropic, when /think is on) — rendered
+      // as a dimmed/collapsed block, separate from the answer text.
+      if (
+        delta?.type === "thinking_delta" &&
+        typeof delta.thinking === "string"
+      ) {
+        return { kind: "thinking", text: delta.thinking };
       }
       return null;
     }

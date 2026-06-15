@@ -32,7 +32,8 @@ All notable changes to this extension are documented here.
   off. Per-conversation; like the approval mode it takes effect on the next
   message (the agent child respawns with `--think`/`--ultrathink`, resuming the
   same session). Non-Anthropic providers ignore it. In the `/` autocomplete and
-  `/help`.
+  `/help`. **The reasoning now renders** as a dimmed, italic block above the
+  answer (streamed live) when thinking is on — the visible half of the toggle.
 - **`@file#L5-10` line-range references (Claude-Code parity).** Insert File
   Reference (`Ctrl/Cmd+Alt+K`) now appends the selected line range — e.g.
   `@src/app.ts#L5-10` (or `#L7` for one line) — when you have a selection, and

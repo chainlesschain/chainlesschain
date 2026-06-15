@@ -43,6 +43,19 @@ describe("mapAgentEvent", () => {
         st,
       ),
     ).toEqual({ kind: "delta", text: "hi" });
+    // Extended-thinking reasoning delta → a separate "thinking" UI message.
+    expect(
+      mapAgentEvent(
+        {
+          type: "stream_event",
+          event: {
+            type: "content_block_delta",
+            delta: { type: "thinking_delta", thinking: "let me reason…" },
+          },
+        },
+        st,
+      ),
+    ).toEqual({ kind: "thinking", text: "let me reason…" });
     expect(
       mapAgentEvent(
         { type: "tool_use", tool: "read_file", args: { path: "a.js" } },

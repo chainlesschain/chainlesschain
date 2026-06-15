@@ -202,4 +202,20 @@ describe("_accumulateAnthropicStream — captures thinking blocks from SSE", () 
     ]);
     expect(message.tool_calls[0].function.name).toBe("ls");
   });
+
+  it("forwards each thinking delta to the onThinking hook (live reasoning)", () => {
+    const lines = [
+      'data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking"}}',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"step1 "}}',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"step2"}}',
+      'data: {"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}',
+      'data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"answer"}}',
+    ];
+    const thinks = [];
+    const texts = [];
+    _accumulateAnthropicStream(lines, (t) => texts.push(t), (t) => thinks.push(t));
+    // reasoning deltas reach onThinking; answer text stays on onToken (separate)
+    expect(thinks).toEqual(["step1 ", "step2"]);
+    expect(texts).toEqual(["answer"]);
+  });
 });
