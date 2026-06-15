@@ -236,7 +236,7 @@ private fun CameraPreview(
                         imageAnalysis
                     )
                     // 屏对屏二维码必须主动对焦 (默认 3A 常对不上); 中心持续 AF + 点按对焦。
-                    previewView.post {
+                    fun triggerCenterFocus() {
                         val w = previewView.width.toFloat()
                         val h = previewView.height.toFloat()
                         if (w > 0f && h > 0f) {
@@ -248,6 +248,24 @@ private fun CameraPreview(
                             runCatching { camera.cameraControl.startFocusAndMetering(act) }
                         }
                     }
+                    previewView.post { triggerCenterFocus() }
+                    // 周期性强制重新对焦: 部分设备 (尤其 MIUI) 即便设了 CONTINUOUS_PICTURE 也不会
+                    // 持续刷新焦点; 每 2s 主动扫一次中心 AF, 视图移除即停止, 不泄漏。
+                    val focusHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                    val periodicFocus = object : Runnable {
+                        override fun run() {
+                            if (!previewView.isAttachedToWindow) return
+                            triggerCenterFocus()
+                            focusHandler.postDelayed(this, 2000L)
+                        }
+                    }
+                    focusHandler.postDelayed(periodicFocus, 2000L)
+                    previewView.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+                        override fun onViewAttachedToWindow(v: android.view.View) {}
+                        override fun onViewDetachedFromWindow(v: android.view.View) {
+                            focusHandler.removeCallbacks(periodicFocus)
+                        }
+                    })
                     previewView.setOnTouchListener { v, event ->
                         if (event.action == android.view.MotionEvent.ACTION_UP) {
                             val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)

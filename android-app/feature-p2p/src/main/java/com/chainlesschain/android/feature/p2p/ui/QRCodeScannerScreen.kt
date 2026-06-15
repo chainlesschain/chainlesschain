@@ -210,7 +210,7 @@ fun CameraPreview(
  * QR / 反光屏上常对不上, 表现为"需完全对齐才扫得到"。
  */
 private fun enableContinuousAndTapFocus(previewView: PreviewView, camera: androidx.camera.core.Camera) {
-    previewView.post {
+    fun triggerCenterFocus() {
         val w = previewView.width.toFloat()
         val h = previewView.height.toFloat()
         if (w > 0f && h > 0f) {
@@ -222,6 +222,25 @@ private fun enableContinuousAndTapFocus(previewView: PreviewView, camera: androi
             runCatching { camera.cameraControl.startFocusAndMetering(action) }
         }
     }
+    previewView.post { triggerCenterFocus() }
+    // 周期性强制重新对焦: 部分设备 (尤其 MIUI) 即便设了 CONTINUOUS_PICTURE 也不会在屏对屏
+    // 小二维码场景持续刷新焦点, 表现为"对不上 / 需完全对齐"。每 2s 主动扫一次中心 AF;
+    // 视图从窗口移除即停止 (随扫描页销毁), 不泄漏。
+    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    val periodicFocus = object : Runnable {
+        override fun run() {
+            if (!previewView.isAttachedToWindow) return
+            triggerCenterFocus()
+            handler.postDelayed(this, 2000L)
+        }
+    }
+    handler.postDelayed(periodicFocus, 2000L)
+    previewView.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: android.view.View) {}
+        override fun onViewDetachedFromWindow(v: android.view.View) {
+            handler.removeCallbacks(periodicFocus)
+        }
+    })
     previewView.setOnTouchListener { v, event ->
         if (event.action == android.view.MotionEvent.ACTION_UP) {
             val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)
