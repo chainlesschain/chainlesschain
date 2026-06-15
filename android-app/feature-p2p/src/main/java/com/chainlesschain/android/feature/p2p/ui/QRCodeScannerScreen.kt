@@ -284,32 +284,42 @@ class QRCodeAnalyzer(
 
             // 关键修复: YUV plane 每行有 padding (rowStride 通常 > width), 必须用 rowStride
             // 作 dataWidth, 否则逐行错位→需"完全对齐"才偶尔扫中。crop 区仍是真实 width×height。
-            val rowStride = plane.rowStride
-            val source = PlanarYUVLuminanceSource(
-                bytes,
-                rowStride,
-                mediaImage.height,
-                0,
-                0,
-                mediaImage.width,
-                mediaImage.height,
-                false
+            val text = decodeQrLuminance(
+                reader = reader,
+                luminance = bytes,
+                rowStride = plane.rowStride,
+                width = mediaImage.width,
+                height = mediaImage.height,
             )
-
-            val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
-
-            try {
-                // decodeWithState 复用上面 setHints 的 TRY_HARDER 配置 (decode() 会忽略它)。
-                val result = reader.decodeWithState(binaryBitmap)
-                onQRCodeScanned(result.text)
-            } catch (e: Exception) {
-                // No QR code found
-            } finally {
-                reader.reset()
-            }
+            if (text != null) onQRCodeScanned(text)
         }
 
         imageProxy.close()
+    }
+}
+
+/**
+ * 纯解码 helper: 从单通道亮度字节 (Y plane, 每行 [rowStride] 字节含 padding) 解 QR。
+ *
+ * 抽出来便于单元测试 #2 的 rowStride 修复 (无需 android.media.Image)。**dataWidth 必须传
+ * [rowStride] (含 padding), 否则逐行错位→需"完全对齐"才偶尔扫中**; crop 区仍是真实
+ * [width]×[height]。[reader] 复用其 setHints 的 TRY_HARDER 配置 (decode() 会忽略 hints)。
+ */
+internal fun decodeQrLuminance(
+    reader: MultiFormatReader,
+    luminance: ByteArray,
+    rowStride: Int,
+    width: Int,
+    height: Int,
+): String? {
+    val source = PlanarYUVLuminanceSource(luminance, rowStride, height, 0, 0, width, height, false)
+    val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+    return try {
+        reader.decodeWithState(binaryBitmap).text
+    } catch (e: Exception) {
+        null
+    } finally {
+        reader.reset()
     }
 }
 
