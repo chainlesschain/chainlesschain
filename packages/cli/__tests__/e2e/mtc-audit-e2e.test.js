@@ -421,5 +421,8 @@ describe("E2E: lifted assembleBatch — cc mtc batch and audit produce equivalen
     expect(envA.inclusion_proof).toBeTruthy();
     expect(envB.inclusion_proof).toBeTruthy();
     expect(landmarkA.schema).toBe(landmarkB.schema);
-  });
+    // 4 sequential CLI cold-starts (mtc batch + audit enable/emit/reconcile);
+    // its 60s default is tight under the singleFork e2e load — give it headroom
+    // like its heavier sibling at line ~78. See internal handbook trap #31.
+  }, 90000);
 });
