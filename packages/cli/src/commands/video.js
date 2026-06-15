@@ -281,6 +281,7 @@ export function registerVideoCommand(program) {
     .action(async (action, options) => {
       const { promises: fs } = await import("fs");
       const pathMod = await import("path");
+      const osMod = await import("os");
 
       const base = process.env.APPDATA
         ? pathMod.join(
@@ -290,7 +291,10 @@ export function registerVideoCommand(program) {
             "video-editing",
           )
         : pathMod.join(
-            process.env.HOME || "~",
+            // os.homedir() resolves the real home on every platform; the old
+            // `process.env.HOME || "~"` left a literal "~" on Windows (HOME
+            // often unset there) which fs can't resolve.
+            osMod.homedir(),
             ".chainlesschain",
             "video-editing",
           );
