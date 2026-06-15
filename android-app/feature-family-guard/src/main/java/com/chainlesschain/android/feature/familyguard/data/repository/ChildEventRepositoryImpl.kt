@@ -47,6 +47,9 @@ class ChildEventRepositoryImpl @Inject constructor(
     override fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>> =
         childEventDao.observeRecent(childDid, limit)
 
+    override fun observeRecentAnyChild(limit: Int): Flow<List<ChildEventEntity>> =
+        childEventDao.observeRecentAnyChild(limit)
+
     override suspend fun deleteOlderThan(cutoffMs: Long): Int =
         childEventDao.deleteOlderThan(cutoffMs)
 

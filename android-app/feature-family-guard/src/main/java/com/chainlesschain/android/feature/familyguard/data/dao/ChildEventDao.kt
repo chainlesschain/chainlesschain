@@ -55,6 +55,20 @@ interface ChildEventDao {
     )
     fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>>
 
+    /**
+     * UI Flow: 观察**全部 child** 最近 N 条事件 (不按 child_did 过滤)。
+     * 家长端「孩子活动看板」用：家长可能配对多个孩子，由调用方按 child_did 分组聚合
+     * (ChildActivityDashboard)，不必先知道有哪些孩子 DID。
+     */
+    @Query(
+        """
+        SELECT * FROM child_event
+         ORDER BY timestamp DESC
+         LIMIT :limit
+        """,
+    )
+    fun observeRecentAnyChild(limit: Int): Flow<List<ChildEventEntity>>
+
     @Query("DELETE FROM child_event WHERE timestamp < :cutoffMs")
     suspend fun deleteOlderThan(cutoffMs: Long): Int
 

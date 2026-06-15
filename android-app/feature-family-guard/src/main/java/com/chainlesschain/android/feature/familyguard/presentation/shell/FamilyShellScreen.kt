@@ -60,6 +60,7 @@ fun FamilyShellScreen(
     onNavigateToRewards: () -> Unit,
     onNavigateToGentleness: () -> Unit,
     onNavigateToMistakeBook: () -> Unit,
+    onNavigateToChildActivity: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -129,6 +130,14 @@ fun FamilyShellScreen(
             enabled = true,
             testTag = TestTag.SectionRewards,
             onClick = onNavigateToRewards,
+        )
+
+        SectionCard(
+            title = "孩子活动",
+            description = "近 24h 每个 app 用了多久 / 总屏幕时长 (FAMILY-67); 数据来自孩子端采集→同步",
+            enabled = true,
+            testTag = TestTag.SectionChildActivity,
+            onClick = onNavigateToChildActivity,
         )
 
         SectionCard(
@@ -223,4 +232,5 @@ object TestTag {
     const val SectionRewards = "family_guard/shell/section_rewards"
     const val SectionGentleness = "family_guard/shell/section_gentleness"
     const val SectionMistakeBook = "family_guard/shell/section_mistake_book"
+    const val SectionChildActivity = "family_guard/shell/section_child_activity"
 }

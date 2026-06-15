@@ -36,6 +36,7 @@ import com.chainlesschain.android.presentation.aistudy.AiStudyScreen
 import com.chainlesschain.android.presentation.familytask.FamilyTaskScreen
 import com.chainlesschain.android.presentation.familyrewards.FamilyRewardsScreen
 import com.chainlesschain.android.presentation.familypairing.FamilyPairingScreen
+import com.chainlesschain.android.presentation.childactivity.ChildActivityDashboardScreen
 import com.chainlesschain.android.presentation.mistakebook.MistakeBookScreen
 import com.chainlesschain.android.presentation.parentedu.GentlenessReportScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
@@ -165,6 +166,7 @@ fun NavGraph(
                 onNavigateToGentleness = { navController.navigate(Screen.GentlenessReport.route) },
                 onNavigateToPairing = { navController.navigate(Screen.FamilyPairing.route) },
                 onNavigateToMistakeBook = { navController.navigate(Screen.MistakeBook.route) },
+                onNavigateToChildActivity = { navController.navigate(Screen.ChildActivity.route) },
                 onNavigateToAIChatWithMessage = { msg ->
                     // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
                     // 情况下 NewConversationScreen 自动选默认模型 + 自动创建 → Chat
@@ -346,6 +348,11 @@ fun NavGraph(
         // M6 错题本 — 家庭 tab "错题本" 卡导航至此 (间隔复习 + 满 5 题赚积分)。
         composable(Screen.MistakeBook.route) {
             MistakeBookScreen(onBack = { navController.popBackStack() })
+        }
+
+        // FAMILY-67 孩子活动看板 — 家庭 tab "孩子活动" 卡导航至此 (每 app 用量 / 总屏幕时长)。
+        composable(Screen.ChildActivity.route) {
+            ChildActivityDashboardScreen(onBack = { navController.popBackStack() })
         }
 
         composable(
@@ -1082,6 +1089,9 @@ sealed class Screen(val route: String) {
 
     /** M10 监管温和度月报 — 家庭 tab「家长成长」入口。 */
     data object GentlenessReport : Screen("gentleness_report")
+
+    /** FAMILY-67 孩子活动看板 — 家庭 tab「孩子活动」入口 (每 app 用量 / 总屏幕时长)。 */
+    data object ChildActivity : Screen("child_activity")
     data object ProjectDetail : Screen("project_detail") {
         fun createRoute(projectId: String) = "project_detail/$projectId"
     }

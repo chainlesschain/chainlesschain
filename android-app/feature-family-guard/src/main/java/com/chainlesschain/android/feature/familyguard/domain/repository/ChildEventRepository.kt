@@ -37,6 +37,12 @@ interface ChildEventRepository {
     /** UI 观察最近 N 条事件. */
     fun observeRecent(childDid: String, limit: Int = 50): Flow<List<ChildEventEntity>>
 
+    /**
+     * UI 观察**全部 child** 最近 N 条事件 (不按 child_did 过滤)。家长端「孩子活动看板」用：
+     * 家长可能配对多个孩子，调用方按 child_did 分组聚合，不必先知道孩子 DID。
+     */
+    fun observeRecentAnyChild(limit: Int = 500): Flow<List<ChildEventEntity>>
+
     /** 数据生命周期清理 (主文档 §4.6); 默认 90d 前的删. */
     suspend fun deleteOlderThan(cutoffMs: Long): Int
 }
