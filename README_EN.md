@@ -11,6 +11,16 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-06-15 Release — **v5.0.3.113: npm publish/install hardening (fix China-mirror install E404 + deprecate workflow) + VS Code ext 0.28/0.29 + CLI 0.162.70**
+
+> Desktop / Android / iOS version surfaces aligned to .113 (check-version-sync green); Android cc bundle stays at `v20260615b` (not rolled this release).
+
+- **Fix China-mirror `npm install` E404** ([#33](https://github.com/chainlesschain/chainlesschain/issues/33)): `@chainlesschain/core-infra@0.1.0` had metadata but no cached tarball on `registry.npmmirror.com` → hard install failure for users defaulting to the Taobao mirror. Fixed live via a manual mirror sync (tarball 404→200); `npm-publish.yml` now PUTs the mirror sync API after each publish (best-effort, never fails the publish); README (zh+en) documents the `npm i -g chainlesschain --registry https://registry.npmjs.org` fallback.
+- **`npm-deprecate.yml`**: parameterized workflow to deprecate/un-deprecate a published version via CI's `NPM_TOKEN` secret (local token is expired). Deprecated `chainlesschain@0.162.68` (published from a stale tag, missing 8 PDH adapter wirings: douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop); `0.162.69` is the complete fix and `0.162.70` is the current npm `latest`.
+- **VS Code extension 0.28.0 / 0.29.0 (Open VSX)**: background-tab completion signal; chat-panel `/` slash commands + `@` autocomplete + `/rewind` to agent checkpoints.
+
+---
+
 ## 2026-06-15 Release — **cc CLI 0.162.66: Claude-Code coding-loop parity — `cc review` (diff-first + `--fix`/`--comment`) + headless hardening + `cc insights` + global run/verify skills** (published to npm)
 
 > Closes the remaining high-value gaps vs the Claude Code CLI in one pass. `chainlesschain` 0.162.65 → 0.162.66 published to npm (global-install smoke: `cc review` / `cc insights` / new `cc agent` flags all pass).

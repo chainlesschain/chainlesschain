@@ -54,6 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **后端 Java（project-service）**：`mvn test` 从 32 失败 → 0（补缺失的 `@Mock UserMapper`、宽松 Mockito stubbing、对齐过期的状态串/调用计数断言、导入测试改 UTF-8 + ObjectMapper stub）。
 - **后端 Python（ai-service）**：对齐 `git_manager` 过期 API 断言（`commit_hash`/`hash`/无 `success`/无 `add_files`、push/pull 抛错语义）；修 `code_generator` 过期返回键（`optimized_code`→`refactored_code`）；pytest 通过数 15 → 41+。
 
+## [v5.0.3.113] - 2026-06-15 — npm 发布/安装链路加固（npmmirror 自动同步 + 版本弃用 workflow）+ VS Code 扩展 0.28/0.29 + CLI 0.162.70
+
+> 修复中国大陆镜像装机失败、加固 npm 发布链路，并继续推进 IDE / CLI 体验。桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）。Android cc bundle 仍为 `v20260615b`（本版不滚动）。
+
+### Fixed — npm 安装可靠性（中国大陆镜像）
+- **npmmirror tarball 懒同步导致 `npm install` E404**（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）：`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存 → 默认走淘宝镜像的用户装机硬失败。修：① 手动触发镜像 sync API 修复线上（tarball 404→200，镜像装机恢复）；② `npm-publish.yml` 新增「发版后自动 PUT 镜像 sync API」步（best-effort，结果进 job summary，不阻断发版），后续每次发版自动补齐；③ README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」说明。
+
+### Added — npm 发布链路工具
+- **`npm-deprecate.yml`**：参数化 workflow，用 `NPM_TOKEN` secret 弃用/取消弃用已发布的 npm 版本（本地 token 已过期，发布权限只在 CI）。
+- **CLI 0.162.68 → 0.162.70 收口**：`0.162.68` 误从陈旧 tag 发布、`personal-data-hub-wiring.js` 漏接 8 个 PDH adapter（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）→ 已 deprecate；`0.162.69` 为修复版（从 main 重发，含完整 adapter wiring）；`0.162.70` 续推 REPL 增强（已发 npm，npm `latest`）。
+
+### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.28.0 / 0.29.0（已发 Open VSX）
+- **后台 tab 完成信号（0.28.0）**：非当前可见会话 tab 跑完时给出完成提示。
+- **面板 `/` slash 命令 + `@` 补全 + `/rewind`（0.29.0）**：聊天面板内联 slash 命令与 at-mention 自动补全；`/rewind` 回到 agent checkpoint。
+
 ## [v5.0.3.112] - 2026-06-15 — 个人数据中台采集器补 6 个跨平台平台 + Android cc bundle 滚到 v20260615b（pdh 0.4.24 / cli 0.162.67）
 
 > 补齐路线图/参考机之外、但高个人数据价值的 6 个主流平台采集器。`@chainlesschain/personal-data-hub` 0.4.23→0.4.24、CLI `chainlesschain` 0.162.66→0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`（携全部新 adapter），`USR_VERSION` → 43。桌面端 / CLI 即装即用；Android 端随本 APK 携带。

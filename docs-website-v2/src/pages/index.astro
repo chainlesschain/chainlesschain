@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.113 · 2026-06-15',
+    title: 'npm 发布/安装链路加固：修复中国大陆镜像装机 E404 + 版本弃用 workflow + VS Code 扩展 0.28/0.29 + CLI 0.162.70',
+    sub: '修复默认走淘宝镜像的用户 npm install 硬失败（#33），并加固 npm 发布链路。桌面 / Android / iOS 全 surface 对齐 .113；Android cc bundle 仍为 v20260615b（本版不滚动）。',
+    desc: '中国大陆镜像装机修复：@chainlesschain/core-infra@0.1.0 在 registry.npmmirror.com 仅有元数据、tarball 未缓存，导致默认走淘宝镜像的用户 npm install 报 E404 硬失败（#33）。修复三件套——① 手动触发镜像 sync API 修复线上（tarball 404→200，镜像装机恢复）；② npm-publish.yml 新增「发版后自动 PUT 镜像 sync API」步（best-effort，结果进 job summary，不阻断发版），后续每次发版自动补齐；③ README（中英）补「改用官方源 npm i -g chainlesschain --registry https://registry.npmjs.org」说明。新增 npm-deprecate.yml 参数化弃用 workflow（用 CI 的 NPM_TOKEN 弃用/取消弃用已发布版本）——已弃用误从陈旧 tag 发布、漏接 8 个 PDH adapter wiring（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）的 0.162.68；0.162.69 为完整修复版，0.162.70 为当前 npm latest。VS Code 扩展 0.28.0/0.29.0（Open VSX）：后台 tab 完成信号 + 聊天面板 slash 命令 / @ 补全 / /rewind 回到 checkpoint。版本面：productVersion v5.0.3.112 → v5.0.3.113 / 桌面 5.0.3-alpha.113 / Android versionCode 503113 · USR_VERSION 43 · binariesVersion 20260615b / iOS build 113。',
+  },
+  {
     tag: 'v5.0.3.112 · 2026-06-15',
     title: '个人数据中台补 6 个跨平台采集器 + Android cc bundle v20260615b（pdh 0.4.24 / cli 0.162.67）',
     sub: '补齐路线图 / 参考机之外、但高个人数据价值的 6 个主流平台：饿了么 / 闲鱼 / 唯品会 / 豆瓣 / 喜马拉雅 / Keep。pdh 0.4.24 + CLI 0.162.67 已发 npm；Android cc bundle 滚到 v20260615b。',
