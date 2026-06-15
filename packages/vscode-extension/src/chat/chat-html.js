@@ -77,6 +77,8 @@ function buildChatHtml({ cspSource, nonce }) {
                border:1px solid transparent; border-radius:4px 4px 0 0; cursor:pointer;
                white-space:nowrap; font-size:.88em; }
   #tabs .tab .t { overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+  #tabs .tab .dot { color: var(--vscode-charts-green, #3fb950); font-size:.7em; line-height:1; }
+  #tabs .tab.unread .t { font-weight:600; }
   #tabs .tab.active { background: var(--vscode-tab-activeBackground, var(--vscode-editorWidget-background));
                       border-color: var(--vscode-panel-border); }
   #tabs .tab .x { opacity:.55; border:none; background:none; color:inherit; cursor:pointer;
@@ -156,7 +158,15 @@ function buildChatHtml({ cspSource, nonce }) {
     if (!Array.isArray(tabs) || tabs.length === 0) return;
     for (const t of tabs) {
       const tab = document.createElement("span");
-      tab.className = "tab" + (t.id === activeId ? " active" : "");
+      tab.className =
+        "tab" + (t.id === activeId ? " active" : "") + (t.unread ? " unread" : "");
+      if (t.unread && t.id !== activeId) {
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.textContent = "●"; // ● finished while in the background
+        dot.title = "a turn finished in this tab while it was in the background";
+        tab.appendChild(dot);
+      }
       const label = document.createElement("span");
       label.className = "t";
       label.textContent = t.title || t.id;

@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.28.0] — 2026-06-15
+
+- **Background-tab completion signal** — now that each conversation tab owns its
+  own `cc agent` process, a turn finishing in a tab you are **not** looking at is
+  no longer silent. The tab grows a green **● dot** (and its title goes bold), and
+  a dismissible toast — `ChainlessChain · "<title>" finished` — offers a **Show**
+  action that switches to that tab and reveals the panel. The dot clears the moment
+  you switch to the tab. The active tab never flags itself (you're already watching
+  it), and the toast is best-effort (never blocks the agent loop).
+
 ## [0.27.0] — 2026-06-15
 
 - **`@terminal` mention** — the chat panel's `@`-completion now offers `@terminal`

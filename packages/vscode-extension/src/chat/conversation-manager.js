@@ -45,6 +45,7 @@ class ConversationManager {
       sessionId: sessionId || null,
       session: null, // opaque AgentChatSession handle (set by chat-view)
       turnState: this._createTurnState(),
+      unread: false, // a turn finished while this tab was in the background
     };
     this._conversations.set(id, conv);
     this._order.push(id);
@@ -82,15 +83,32 @@ class ConversationManager {
         sessionId: c.sessionId,
         active: c.id === this._activeId,
         hasSession: !!c.session,
+        unread: !!c.unread,
       };
     });
   }
 
-  /** Activate a tab. Returns its record, or null if the id is unknown. */
+  /** Activate a tab. Clears its unread flag (you're now looking at it).
+   * Returns its record, or null if the id is unknown. */
   switchTo(id) {
     if (!this._conversations.has(id)) return null;
     this._activeId = id;
-    return this.get(id);
+    const c = this.get(id);
+    if (c) c.unread = false;
+    return c;
+  }
+
+  /**
+   * Flag a conversation as having a freshly-completed turn the user hasn't seen
+   * yet — the tab bar renders a dot for it (background-tab completion signal).
+   * No-op for the active tab (you're already watching it). Returns the record,
+   * or null if the id is unknown or it was the active tab (left unflagged).
+   */
+  markUnread(id) {
+    if (id === this._activeId) return null;
+    const c = this.get(id);
+    if (c) c.unread = true;
+    return c || null;
   }
 
   /**

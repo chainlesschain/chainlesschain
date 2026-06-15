@@ -188,6 +188,105 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
   });
 });
 
+describe("chat tabs — background completion signal", () => {
+  // Provider whose fake host captures toasts and lets the test choose the pick.
+  function makeProviderWithToast() {
+    const posted = [];
+    const factory = makeSessionFactory();
+    const toasts = [];
+    const commands = [];
+    const win = {
+      _nextPick: undefined,
+      showInformationMessage: (msg, ...actions) => {
+        toasts.push({ msg, actions });
+        return Promise.resolve(win._nextPick);
+      },
+    };
+    const vscode = {
+      commands: { executeCommand: (...a) => commands.push(a) },
+      window: win,
+      workspace: {
+        workspaceFolders: [{ uri: { fsPath: "/ws" } }],
+        getConfiguration: () => ({ get: () => undefined }),
+      },
+    };
+    const provider = new ChatViewProvider(vscode, {
+      deps: { createSession: factory },
+      state: makeMemento(),
+    });
+    provider.view = {
+      webview: { postMessage: (m) => (posted.push(m), Promise.resolve()) },
+    };
+    return { provider, posted, factory, toasts, commands, win };
+  }
+
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  it("a turn finishing in a BACKGROUND tab flags it unread, re-broadcasts tabs, and toasts", () => {
+    const { provider, posted, factory, toasts } = makeProviderWithToast();
+    provider._handleMessage({ type: "send", text: "one" }); // conv-1 active
+    const bgId = provider._convs.activeId();
+    provider._handleMessage({ type: "newTab" }); // conv-2 active; conv-1 background
+    posted.length = 0;
+    // conv-1 (background) finishes a turn.
+    factory.sessions[0].emit({
+      type: "result",
+      is_error: false,
+      result: "done",
+    });
+    // tab bar re-broadcast with conv-1 flagged unread; transcript stays gated.
+    const tabsMsg = posted.find((m) => m.kind === "tabs");
+    expect(tabsMsg).toBeTruthy();
+    expect(tabsMsg.tabs.find((t) => t.id === bgId).unread).toBe(true);
+    expect(posted.some((m) => m.kind === "turn_end")).toBe(false); // not surfaced
+    // a toast fired with a "Show" action.
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].actions).toContain("Show");
+  });
+
+  it("a turn finishing in the ACTIVE tab does NOT flag unread and does NOT toast", () => {
+    const { provider, factory, toasts } = makeProviderWithToast();
+    provider._handleMessage({ type: "send", text: "one" }); // conv-1 active
+    factory.sessions[0].emit({ type: "result", is_error: false, result: "ok" });
+    expect(provider._convs.active().unread).toBe(false);
+    expect(toasts).toHaveLength(0);
+  });
+
+  it("the 'Show' toast switches to the background tab and focuses the panel", async () => {
+    const { provider, factory, commands, win } = makeProviderWithToast();
+    provider._handleMessage({ type: "send", text: "one" }); // conv-1
+    const bgId = provider._convs.activeId();
+    provider._handleMessage({ type: "newTab" }); // conv-2 active
+    win._nextPick = "Show"; // the user clicks Show on the next toast
+    factory.sessions[0].emit({
+      type: "result",
+      is_error: false,
+      result: "done",
+    });
+    await flush(); // let the toast's .then run
+    expect(provider._convs.activeId()).toBe(bgId); // switched back
+    expect(provider._convs.get(bgId).unread).toBe(false); // cleared on switch
+    expect(commands.some((c) => c[0] === "chainlesschainIdeChat.focus")).toBe(
+      true,
+    );
+  });
+
+  it("switching to a flagged tab clears its dot", () => {
+    const { provider, factory } = makeProviderWithToast();
+    provider._handleMessage({ type: "send", text: "one" });
+    const bgId = provider._convs.activeId();
+    provider._handleMessage({ type: "newTab" });
+    factory.sessions[0].emit({
+      type: "result",
+      is_error: false,
+      result: "done",
+    });
+    expect(provider._convs.get(bgId).unread).toBe(true);
+    provider._handleMessage({ type: "switchTab", id: bgId });
+    expect(provider._convs.get(bgId).unread).toBe(false);
+  });
+});
+
 describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
   it("renders #tabs, handles the tabs message, posts the tab verbs, and parses", () => {
     const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
@@ -205,6 +304,9 @@ describe("chat HTML ships the tab bar (slice 3, parse gate)", () => {
     expect(html).toContain("attachLogNodes");
     expect(html).toContain("tabNodes");
     expect(html).not.toContain("tabHtml");
+    // Background-tab completion signal: the tab bar renders an unread dot.
+    expect(html).toContain("t.unread");
+    expect(html).toContain('"dot"');
     // Every inline script must still parse (dead-panel regression gate).
     const scripts = [
       ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),

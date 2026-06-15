@@ -165,7 +165,51 @@ class ChatViewProvider {
         this._postFrom(convId, { kind: "setup", reason: String(evt.error || "") });
       }
       this._postFrom(convId, mapAgentEvent(evt, conv.turnState));
+      // Background-tab completion signal: a turn just finished in a tab you are
+      // NOT looking at (its stream was gated out of the visible transcript).
+      // Flag it so the tab bar shows a dot, and offer a jump-to toast.
+      if (evt?.type === "result" && this._convs.activeId() !== convId) {
+        if (this._convs.markUnread(convId)) {
+          this._postTabs();
+          this._notifyBackgroundDone(conv);
+        }
+      }
     };
+  }
+
+  /**
+   * Best-effort toast when a background tab's turn completes; the "Show" action
+   * reveals the panel and switches to that tab. `window.showInformationMessage`
+   * is read off the live host (and may be absent in tests) so this never throws.
+   */
+  _notifyBackgroundDone(conv) {
+    const win = this.vscode && this.vscode.window;
+    const show = win && win.showInformationMessage;
+    if (typeof show !== "function") return;
+    const title = (conv && conv.title) || "Chat";
+    try {
+      const p = show.call(win, `ChainlessChain · "${title}" finished`, "Show");
+      if (p && typeof p.then === "function") {
+        p.then((pick) => {
+          if (pick === "Show") this._revealConversation(conv && conv.id);
+        }, () => {});
+      }
+    } catch {
+      /* notification is best-effort — never break the agent loop over a toast */
+    }
+  }
+
+  /** Switch to a conversation and reveal the panel (used by the "Show" toast). */
+  _revealConversation(id) {
+    const conv = this._convs.switchTo(String(id || ""));
+    if (!conv) return;
+    this._rememberSessionId(conv.sessionId);
+    try {
+      this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+    } catch {
+      /* focus is best-effort */
+    }
+    this._postTabs();
   }
 
   /** Ensure the ACTIVE conversation has a running agent child; spawn one

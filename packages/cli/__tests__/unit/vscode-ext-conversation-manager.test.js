@@ -123,6 +123,29 @@ describe("ConversationManager", () => {
     expect(m.setSession("nope", handle)).toBe(null);
   });
 
+  it("markUnread flags a background tab, surfaces in list(), and switchTo clears it", () => {
+    const m = new ConversationManager();
+    const a = m.create(); // conv-1 active
+    const b = m.create({ activate: false }); // conv-2 background
+    // background tab → flagged
+    expect(m.markUnread(b.id)).toBe(b);
+    expect(b.unread).toBe(true);
+    expect(m.list().find((r) => r.id === b.id).unread).toBe(true);
+    expect(m.list().find((r) => r.id === a.id).unread).toBe(false);
+    // switching to it clears the flag (you're now looking at it)
+    m.switchTo(b.id);
+    expect(b.unread).toBe(false);
+    expect(m.list().find((r) => r.id === b.id).unread).toBe(false);
+  });
+
+  it("markUnread is a no-op for the active tab and for unknown ids", () => {
+    const m = new ConversationManager();
+    const a = m.create(); // active
+    expect(m.markUnread(a.id)).toBe(null); // active → not flagged
+    expect(a.unread).toBe(false);
+    expect(m.markUnread("ghost")).toBe(null); // unknown → null, no throw
+  });
+
   it("allSessions returns only live handles, in tab order", () => {
     const m = new ConversationManager();
     const a = m.create();

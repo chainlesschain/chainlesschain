@@ -198,6 +198,9 @@ The bearer token is never displayed in any of these.
 - ✅ **`@terminal` mention + App Preview crash recovery** (0.27.0): `@`-completion offers
   `@terminal` (pulls recent terminal commands/output into the prompt); a crashed dev
   server now offers a one-click Restart.
+- ✅ **Background-tab completion signal** (0.28.0): a turn finishing in a conversation
+  tab you're not looking at flags the tab with a green ● dot and offers a "Show" toast
+  to jump to it — no more silently-finished background chats.
 
 ## Packaging
 
