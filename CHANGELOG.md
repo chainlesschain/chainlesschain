@@ -15,8 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用 + 错误率 / 时长 / token + 估算 $ 成本，纯 JSONL 复盘；从 `session_start` 回填模型给 headless 会话定价（强于 `cc cost`）。
 - **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。
 
+### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.23.0 → 0.27.0（已发 Open VSX）
+> `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.27.0**（2026-06-15）。继 0.22.x 之后,继续对标 Claude Code IDE：终端上下文、版本对齐、稳定性。
+
+- **终端上下文共享（0.23.0，Claude Code 平价）**：新增 `getTerminalOutput` IDE 工具（`mcp__ide__getTerminalOutput`）——agent 能看你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）。配套 CLI（cc 0.162.67）：每轮提交自动把最近终端输出注入 `<ide-context>` + 显式 `@terminal` at-mention。
+- **CLI 版本对齐 version-sync（0.24.0）**：激活时检测 `cc --version`,低于扩展所需最低版本时一键提示升级（`npm i -g chainlesschain@latest`）——扩展（Open VSX）与 CLI（npm）独立发版轨,这条让它们对齐。
+- **会话 tabs 交互卡修复（0.25.0）**：切 tab 改用分离 DOM 节点（而非 innerHTML 字符串）保存/恢复 transcript——未决审批卡的 Approve/Deny 按钮在切走再切回后仍可点（之前会失效）。
+- **`Upgrade CLI` 命令（0.26.0）**：命令面板 `ChainlessChain: Upgrade CLI` 随时从 IDE 升级 cc,不止在低于最低版本被提示时。
+- **`@terminal` 补全 + App Preview 崩溃重启（0.27.0）**：面板 `@` 补全新增 `@terminal`（把最近终端命令/输出按需拼进 prompt）；dev server 意外退出时报崩溃并一键 Restart（而非默默停掉）。
+- **发布**：0.23–0.27 各 tag `ide-vscode-v*` → `ide-extensions.yml` 清洁室构建发 Open VSX,逐版对 registry 实证 latest。0.22.1 为纯文档刷新（Open VSX listing：标注「仅 Open VSX,非微软商店」+ 功能列表对齐）。
+
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.22.0（已发 Open VSX）
-> `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
+> `open-vsx.org/extension/chainlesschain/chainlesschain-ide` 早前 latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
 
 - **会话 tabs（Claude Code 平价）**：聊天面板支持多会话——标题栏每个 tab 显标题 + `×` 关闭、`+` 新建；每个 tab 独立持有自己的 `cc agent` 进程与 resume id，切换 tab 恢复该会话 transcript，后台 tab 输出不串入当前可见会话，关闭一个 tab 激活相邻 tab 且永不为空。
 - **App Preview（预览面板平价）**：「Start App Preview」自动识别项目 dev 脚本（`dev`/`start`/`serve` … 或跑 vite/next/cra/webpack/astro 的脚本）→ 拉起 → 解析它打印的本地 URL → VS Code 内置 Simple Browser 内嵌打开；dev server 自带 HMR 负责改文件即时热重载。「Stop App Preview」杀掉它。
