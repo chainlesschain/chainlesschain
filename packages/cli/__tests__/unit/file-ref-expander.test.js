@@ -6,10 +6,11 @@
  * the fake matches whatever the expander resolves (Windows/posix agnostic).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import path from "path";
 import {
   expandFileRefs,
+  expandFileRefsAsync,
   findFileRefTokens,
   parseLineRange,
   DEFAULT_MAX_BYTES,
@@ -245,5 +246,59 @@ describe("expandFileRefs — @file#Lstart-end line ranges", () => {
     expect(r.refs).toEqual([]);
     expect(r.warnings).toHaveLength(1);
     expect(r.warnings[0]).toContain("missing.ts");
+  });
+});
+
+describe("expandFileRefsAsync — @file.pdf page extraction", () => {
+  const runAsync = (prompt, files, deps = {}) =>
+    expandFileRefsAsync(prompt, { cwd, deps: { fs: makeFs(files), ...deps } });
+
+  it("extracts a page range via the injected extractor, with a pages= attr", async () => {
+    const extractPdfPages = vi.fn(async (_buf, { firstPage, lastPage }) => ({
+      text: `pages ${firstPage}-${lastPage} text`,
+      truncated: false,
+    }));
+    const r = await runAsync("read @doc.pdf#2-3", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    expect(extractPdfPages).toHaveBeenCalledTimes(1);
+    expect(extractPdfPages.mock.calls[0][1]).toMatchObject({ firstPage: 2, lastPage: 3 });
+    expect(r.prompt).toContain('<file path="doc.pdf"');
+    expect(r.prompt).toContain('type="pdf"');
+    expect(r.prompt).toContain('pages="2-3"');
+    expect(r.prompt).toContain("pages 2-3 text");
+  });
+
+  it("extracts the whole PDF (null range) when no #pages given", async () => {
+    const extractPdfPages = vi.fn(async () => ({ text: "all pages", truncated: false }));
+    const r = await runAsync("@doc.pdf", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    expect(extractPdfPages.mock.calls[0][1]).toMatchObject({
+      firstPage: null,
+      lastPage: null,
+    });
+    expect(r.prompt).toContain("all pages");
+    expect(r.prompt).not.toContain("pages="); // no page attr for a whole-file ref
+  });
+
+  it("degrades to a note + warning when pdf-parse is missing", async () => {
+    const extractPdfPages = async () => {
+      const e = new Error("nope");
+      e.code = "PDF_LIB_MISSING";
+      throw e;
+    };
+    const r = await runAsync("@doc.pdf#1", { "doc.pdf": "%PDF-1.4" }, { extractPdfPages });
+    expect(r.prompt).toContain('type="pdf"');
+    expect(r.prompt).toContain("install the optional");
+    expect(r.warnings.some((w) => /pdf-parse/.test(w))).toBe(true);
+  });
+
+  it("still expands plain text files (non-PDF) like the sync path", async () => {
+    const r = await runAsync("@a.js", { "a.js": "const x = 1;" });
+    expect(r.prompt).toContain('<file path="a.js"');
+    expect(r.prompt).toContain("const x = 1;");
+  });
+
+  it("sync expandFileRefs leaves a PDF un-extracted (a note, no page text)", () => {
+    const r = run("@doc.pdf", { "doc.pdf": "%PDF-1.4" });
+    expect(r.prompt).toContain('type="pdf"');
+    expect(r.prompt).toContain("not extracted in this context");
   });
 });

@@ -79,7 +79,7 @@ import {
   listBackgroundShellTasks,
 } from "../runtime/agent-core.js";
 import { formatBackgroundTasks } from "./tasks-status.js";
-import { expandFileRefs } from "../runtime/file-ref-expander.js";
+import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -2932,7 +2932,9 @@ export async function startAgentRepl(options = {}) {
     // about and left as-is.
     let userContent = effectivePrompt;
     try {
-      const fileRefs = expandFileRefs(effectivePrompt, { cwd: process.cwd() });
+      const fileRefs = await expandFileRefsAsync(effectivePrompt, {
+        cwd: process.cwd(),
+      });
       userContent = fileRefs.prompt;
       for (const w of fileRefs.warnings) {
         logger.info(chalk.yellow(`[@ref] ${w}`));

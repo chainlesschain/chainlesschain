@@ -38,6 +38,11 @@ function looksPathLike(raw) {
   return /[\\/]/.test(raw) || /\.[A-Za-z0-9]+$/.test(raw);
 }
 
+/** Whether a resolved path is a PDF (text extraction is async, opt-in). */
+function isPdf(p) {
+  return /\.pdf$/i.test(String(p || ""));
+}
+
 /** Strip trailing sentence punctuation that is unlikely to be part of a path. */
 function trimTrailingPunct(raw) {
   return raw.replace(/[),;:!?'".]+$/g, "");
@@ -165,6 +170,20 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
           message: `cannot read file: ${err.message}`,
         };
       }
+      if (isPdf(fsPath)) {
+        // PDF text extraction is async (pdf-parse). Return a deferred marker
+        // carrying the bytes + requested page range; expandFileRefsAsync fills
+        // in `content`. The sync path renders it as a note (no extraction).
+        return {
+          kind: "pdf",
+          raw: cand,
+          rel: fsPath,
+          buf,
+          bytes: stat.size,
+          pageStart: range ? range.start : null,
+          pageEnd: range ? range.end : null,
+        };
+      }
       if (looksBinary(buf)) {
         return {
           kind: "binary",
@@ -246,6 +265,30 @@ function renderBlock(refs) {
         parts.push(`… [truncated — ${ref.total} entries total]`);
       }
       parts.push("</dir>");
+    } else if (ref.kind === "pdf") {
+      if (typeof ref.content === "string") {
+        const pageAttr =
+          ref.pageStart != null ? ` pages="${ref.pageStart}-${ref.pageEnd}"` : "";
+        const attrs =
+          `path="${escapeAttr(ref.rel)}" bytes="${ref.bytes}" type="pdf"` +
+          pageAttr +
+          (ref.truncated
+            ? ` truncated="true" shown-bytes="${DEFAULT_MAX_BYTES}"`
+            : "");
+        parts.push(`<file ${attrs}>`);
+        parts.push(ref.content);
+        if (ref.truncated) {
+          parts.push(`\n… [truncated — PDF text exceeds ${DEFAULT_MAX_BYTES} bytes]`);
+        }
+        parts.push("</file>");
+      } else {
+        // Sync context (or extraction failed): no page text inlined.
+        const note =
+          ref.pdfNote || "PDF — page text not extracted in this context";
+        parts.push(
+          `<file path="${escapeAttr(ref.rel)}" bytes="${ref.bytes}" type="pdf" note="${escapeAttr(note)}" />`,
+        );
+      }
     } else if (ref.kind === "binary") {
       parts.push(
         `<file path="${escapeAttr(ref.rel)}" bytes="${ref.bytes}" binary="true" note="binary file — contents omitted" />`,
@@ -269,11 +312,8 @@ function renderBlock(refs) {
  *          `prompt` is unchanged when nothing resolved; otherwise it is the
  *          original text + a trailing `<referenced-files>` block.
  */
-export function expandFileRefs(prompt, opts = {}) {
-  const text = typeof prompt === "string" ? prompt : "";
-  if (!text || !text.includes("@")) {
-    return { prompt: text, refs: [], warnings: [] };
-  }
+/** Resolve every @token to a ref (no rendering). Shared by sync + async. */
+function _resolveAllRefs(text, opts) {
   const fs = opts.deps?.fs || fsDefault;
   const path = opts.deps?.path || pathDefault;
   const cwd = opts.cwd || process.cwd();
@@ -303,17 +343,107 @@ export function expandFileRefs(prompt, opts = {}) {
     }
     refs.push(ref);
   }
+  return { refs, warnings, maxBytes };
+}
+
+export function expandFileRefs(prompt, opts = {}) {
+  const text = typeof prompt === "string" ? prompt : "";
+  if (!text || !text.includes("@")) {
+    return { prompt: text, refs: [], warnings: [] };
+  }
+  const { refs, warnings } = _resolveAllRefs(text, opts);
+  if (refs.length === 0) {
+    return { prompt: text, refs: [], warnings };
+  }
+  return { prompt: `${text}\n\n${renderBlock(refs)}`, refs, warnings };
+}
+
+/**
+ * Async superset of {@link expandFileRefs} that ALSO extracts text from
+ * `@file.pdf` (optionally a page range, e.g. `@doc.pdf#1-3`). Needs the optional
+ * `pdf-parse` dependency; when it's absent each PDF ref degrades to a note and a
+ * warning (never throws). Used by the agent / REPL paths; the sync expandFileRefs
+ * leaves PDFs un-extracted.
+ */
+export async function expandFileRefsAsync(prompt, opts = {}) {
+  const text = typeof prompt === "string" ? prompt : "";
+  if (!text || !text.includes("@")) {
+    return { prompt: text, refs: [], warnings: [] };
+  }
+  const { refs, warnings, maxBytes } = _resolveAllRefs(text, opts);
+  const extractPdf = opts.deps?.extractPdfPages || _extractPdfPages;
+
+  for (const ref of refs) {
+    if (ref.kind !== "pdf" || !ref.buf) continue;
+    try {
+      const out = await extractPdf(ref.buf, {
+        firstPage: ref.pageStart,
+        lastPage: ref.pageEnd,
+        maxBytes,
+      });
+      ref.content = String(out?.text || "");
+      ref.truncated = !!out?.truncated;
+    } catch (err) {
+      if (err && err.code === "PDF_LIB_MISSING") {
+        ref.pdfNote =
+          "PDF — install the optional `pdf-parse` dependency to extract page text";
+        warnings.push(
+          `@${ref.raw} — PDF extraction needs the optional \`pdf-parse\` dep (left as a reference)`,
+        );
+      } else {
+        ref.pdfNote = `PDF — could not extract text (${err?.message || "error"})`;
+        warnings.push(
+          `@${ref.raw} — PDF extraction failed: ${err?.message || "error"} (left as a reference)`,
+        );
+      }
+    }
+    delete ref.buf; // don't keep the raw bytes around once consumed
+  }
 
   if (refs.length === 0) {
     return { prompt: text, refs: [], warnings };
   }
+  return { prompt: `${text}\n\n${renderBlock(refs)}`, refs, warnings };
+}
 
-  const block = renderBlock(refs);
-  return {
-    prompt: `${text}\n\n${block}`,
-    refs,
-    warnings,
-  };
+/**
+ * Default PDF text extractor (optional `pdf-parse`). Returns
+ * `{ text, numpages, truncated }` for pages [firstPage, lastPage] (all pages
+ * when those are null), byte-capped at maxBytes. Throws code `PDF_LIB_MISSING`
+ * when the optional dependency is not installed.
+ */
+async function _extractPdfPages(buffer, { firstPage, lastPage, maxBytes } = {}) {
+  let pdfParse;
+  try {
+    // pdf-parse's index.js runs debug code under ESM (no module.parent), so
+    // import the lib entry directly to avoid it.
+    const mod = await import("pdf-parse/lib/pdf-parse.js");
+    pdfParse = mod.default || mod;
+  } catch {
+    const e = new Error("pdf-parse not installed");
+    e.code = "PDF_LIB_MISSING";
+    throw e;
+  }
+  const data = await pdfParse(buffer, {
+    pagerender: (pageData) => {
+      const n = pageData && pageData.pageNumber;
+      if (typeof n === "number") {
+        if (firstPage && n < firstPage) return "";
+        if (lastPage && n > lastPage) return "";
+      }
+      return pageData.getTextContent().then((tc) =>
+        (tc.items || []).map((it) => it.str).join(" "),
+      );
+    },
+  });
+  let out = String(data?.text || "").trim();
+  let truncated = false;
+  const cap = Number.isFinite(maxBytes) ? maxBytes : DEFAULT_MAX_BYTES;
+  if (Buffer.byteLength(out, "utf-8") > cap) {
+    out = out.slice(0, cap);
+    truncated = true;
+  }
+  return { text: out, numpages: data?.numpages || 0, truncated };
 }
 
 export const _deps = { fs: fsDefault, path: pathDefault };

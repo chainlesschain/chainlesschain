@@ -78,6 +78,7 @@
     "vitest": "^4.1.5"
   },
   "optionalDependencies": {
-    "node-pty": "^1.0.0"
+    "node-pty": "^1.0.0",
+    "pdf-parse": "^1.1.1"
   }
 }

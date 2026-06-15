@@ -43,7 +43,7 @@ import {
   sessionExists as jsonlSessionExists,
   getLastSessionId as jsonlGetLastSessionId,
 } from "../harness/jsonl-session-store.js";
-import { expandFileRefs } from "./file-ref-expander.js";
+import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
 import { withQuietStdout } from "./quiet-stdout.js";
@@ -330,8 +330,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // cat-pipe. Opt out with `--no-file-refs` (options.expandFileRefs === false).
   let userContent = prompt;
   if (options.expandFileRefs !== false) {
-    const doExpand = deps.expandFileRefs || expandFileRefs;
-    const expanded = doExpand(prompt, { cwd });
+    const doExpand = deps.expandFileRefs || expandFileRefsAsync;
+    const expanded = await doExpand(prompt, { cwd });
     userContent = expanded.prompt;
     // Warnings (typo'd paths, unreadable files) go to stderr in every output
     // format so stdout stays a clean machine payload.

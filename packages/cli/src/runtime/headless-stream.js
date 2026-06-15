@@ -19,7 +19,7 @@
 import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
-import { expandFileRefs } from "./file-ref-expander.js";
+import { expandFileRefsAsync } from "./file-ref-expander.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -260,7 +260,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const input = deps.input || process.stdin;
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
-  const doExpand = deps.expandFileRefs || expandFileRefs;
+  const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
   const emit = (obj) => writeOut(JSON.stringify(obj) + "\n");
@@ -758,7 +758,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // @file expansion per user event (parity with single-turn headless).
     let userContent = parsed.text;
     if (options.expandFileRefs !== false) {
-      const expanded = doExpand(parsed.text, { cwd });
+      const expanded = await doExpand(parsed.text, { cwd });
       userContent = expanded.prompt;
       for (const w of expanded.warnings) writeErr(`  @ref: ${w}\n`);
     }
