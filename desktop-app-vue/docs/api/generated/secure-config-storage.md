@@ -435,13 +435,16 @@ function getProviderSensitiveFields(provider)
 
 ---
 
-## function getSecureConfigStorage()
+## function getSecureConfigStorage(options =
 
 ```javascript
-function getSecureConfigStorage()
+function getSecureConfigStorage(options =
 ```
 
 * 获取安全配置存储单例
+ * @param {Object} [options] - Options forwarded to the constructor on first
+ *   creation only (e.g. injectable { app, safeStorage, storagePath } for tests).
+ *   Ignored once the singleton already exists.
  * @returns {SecureConfigStorage}
 
 ---
