@@ -13,6 +13,7 @@ import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGr
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyMembershipRepository
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,6 +51,8 @@ class DebugVerifyActivity : ComponentActivity() {
             "add_friend" -> addFriend(intent.getStringExtra("did"))
             "check_friend" -> checkFriend(intent.getStringExtra("did"))
             "family_selftest" -> familySelfTest()
+            "family_dump" -> familyDump()
+            "family_inject_child" -> familyInjectChild(intent.getStringExtra("did"))
             else -> {
                 log("unknown op: $op")
                 toast("[debug] unknown op: $op")
@@ -141,6 +144,58 @@ class DebugVerifyActivity : ComponentActivity() {
                 }
                 .onError { log("check_friend failed: ${it.message}") }
             finish()
+        }
+    }
+
+    /** 诊断: 打印本机所有 family group + 每组成员数, 看家人页为空到底是没数据还是没显示。 */
+    private fun familyDump() {
+        lifecycleScope.launch {
+            try {
+                val groups = familyGroupRepository.observeAll().first()
+                log("family_dump groups=${groups.size}")
+                groups.forEach { g ->
+                    val members = familyMembershipRepository.listAllByGroup(g.id)
+                    log("family_dump group id=${g.id} name=${g.name} primaryDid=${g.primaryDid} members=${members.size} dids=${members.map { it.memberDid }}")
+                }
+                toast("[debug] groups=${groups.size}")
+            } catch (e: Exception) {
+                log("family_dump failed: ${e.message}")
+            } finally {
+                finish()
+            }
+        }
+    }
+
+    /**
+     * 把一个孩子 membership 注入本机第一个 (或新建的) family group —— **模拟 P2P 把孩子绑定
+     * 投递到家长端后该有的状态**。注入后家长「家人」页应能显示该孩子 (验证显示侧修复在真机生效;
+     * 真实的跨设备投递是另一半, 需 live P2P)。不清理, 以便随后截图。
+     */
+    private fun familyInjectChild(childDid: String?) {
+        val did = childDid?.takeIf { it.isNotBlank() } ?: "did:key:zChildDemo0001"
+        lifecycleScope.launch {
+            try {
+                val groups = familyGroupRepository.observeAll().first()
+                val groupId = groups.firstOrNull()?.id
+                    ?: familyGroupRepository.create(name = "我的家庭", primaryDid = "did:key:zParentDemo0001").id
+                runCatching {
+                    familyMembershipRepository.addMember(
+                        familyGroupId = groupId,
+                        memberDid = did,
+                        role = MemberRole.CHILD,
+                        guardianTier = null,
+                        deviceId = "child-demo-device",
+                    )
+                }
+                val members = familyMembershipRepository.listAllByGroup(groupId)
+                log("family_inject_child group=$groupId child=$did members=${members.size} dids=${members.map { it.memberDid }}")
+                toast("[debug] 已注入孩子, 组内成员=${members.size}")
+            } catch (e: Exception) {
+                log("family_inject_child failed: ${e.message}")
+                toast("[debug] inject failed: ${e.message}")
+            } finally {
+                finish()
+            }
         }
     }
 
