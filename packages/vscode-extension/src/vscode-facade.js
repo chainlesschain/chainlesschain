@@ -8,6 +8,58 @@ const fs = require("fs");
 const SEVERITY = ["error", "warning", "information", "hint"];
 
 function createVscodeEditorFacade(vscode) {
+  // Terminal-context capture (Claude-Code "terminal output in prompts" parity).
+  // Feature-detected: shell-integration execution events are stable since VS
+  // Code 1.93; on older hosts (engines is ^1.85) the buffer just stays empty.
+  const { TerminalCapture } = require("./terminal-capture");
+  const _terminalCapture = new TerminalCapture();
+  const _terminalDisposables = [];
+  if (
+    vscode.window.onDidStartTerminalShellExecution &&
+    vscode.window.onDidEndTerminalShellExecution
+  ) {
+    const reading = new Map(); // execution -> { command, terminal, output }
+    const MAX_READ = 16000; // hard read cap before TerminalCapture re-caps
+    _terminalDisposables.push(
+      vscode.window.onDidStartTerminalShellExecution(async (e) => {
+        const exec = e?.execution;
+        if (!exec || typeof exec.read !== "function") return;
+        const entry = {
+          command: exec.commandLine?.value || "",
+          terminal: e.terminal?.name || "",
+          output: "",
+        };
+        reading.set(exec, entry);
+        try {
+          for await (const chunk of exec.read()) {
+            entry.output += chunk;
+            if (entry.output.length > MAX_READ) {
+              entry.output = entry.output.slice(-MAX_READ);
+            }
+          }
+        } catch {
+          /* best-effort: a terminal that won't stream just yields no output */
+        }
+      }),
+    );
+    _terminalDisposables.push(
+      vscode.window.onDidEndTerminalShellExecution((e) => {
+        const exec = e?.execution;
+        const entry = reading.get(exec);
+        reading.delete(exec);
+        if (entry) {
+          _terminalCapture.record({
+            command: entry.command,
+            exitCode: typeof e.exitCode === "number" ? e.exitCode : null,
+            output: entry.output,
+            terminal: entry.terminal,
+            endedAt: Date.now(),
+          });
+        }
+      }),
+    );
+  }
+
   return {
     async getSelection() {
       const ed = vscode.window.activeTextEditor;
@@ -375,6 +427,27 @@ function createVscodeEditorFacade(vscode) {
       }
       const cancelled = tokenSource.token.isCancellationRequested;
       return { success: !cancelled, cancelled, outputs };
+    },
+
+    // Recent terminal commands + their output (shell integration). Lets the
+    // agent see what you just ran and how it failed — Claude-Code parity for
+    // "include terminal output in prompts". Empty on hosts without shell
+    // integration (older VS Code) or before any command has run.
+    async getTerminalOutput({ limit } = {}) {
+      const n = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 3;
+      return { terminals: _terminalCapture.recent(n) };
+    },
+
+    /** Dispose the shell-integration subscriptions (called on deactivate). */
+    disposeTerminalCapture() {
+      for (const d of _terminalDisposables) {
+        try {
+          d.dispose?.();
+        } catch {
+          /* best-effort */
+        }
+      }
+      _terminalDisposables.length = 0;
     },
   };
 }

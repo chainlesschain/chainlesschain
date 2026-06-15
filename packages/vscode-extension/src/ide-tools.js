@@ -167,6 +167,38 @@ function buildIdeTools(editor) {
           },
         ]
       : []),
+    // Conditional: recent terminal commands + output (shell integration).
+    // Only exposed when the facade supports it (VS Code 1.93+ host).
+    ...(typeof editor.getTerminalOutput === "function"
+      ? [
+          {
+            name: "getTerminalOutput",
+            description:
+              "Return the most recent shell commands run in the editor's " +
+              "integrated terminal and their output (and exit code) — so you " +
+              "can see what the user just ran and how it failed, without " +
+              "asking them to paste it. `limit` caps how many recent commands " +
+              "(default 3). Empty if the host has no shell integration or no " +
+              "command has run yet.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                limit: {
+                  type: "number",
+                  description:
+                    "How many recent terminal commands to return (default 3).",
+                },
+              },
+            },
+            handler: async (args = {}) => {
+              const res = await editor.getTerminalOutput({ limit: args.limit });
+              return res && Array.isArray(res.terminals)
+                ? res
+                : { terminals: [] };
+            },
+          },
+        ]
+      : []),
     // Conditional 5th tool: notebook code execution (Claude-Code
     // mcp__ide__executeCode parity). Only exposed when the facade supports it.
     ...(typeof editor.executeCode === "function"

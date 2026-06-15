@@ -91,6 +91,10 @@ async function startBridge(context) {
   const token = generateToken();
   _token = token;
   const facade = createVscodeEditorFacade(vscode);
+  // Clean up the terminal shell-integration subscriptions on deactivate.
+  context.subscriptions.push({
+    dispose: () => facade.disposeTerminalCapture?.(),
+  });
   const tools = buildIdeTools(facade);
   _server = new IdeMcpServer({
     tools,
