@@ -1494,6 +1494,35 @@ const Database = loadDatabase();
 - #12（Node 23 native-dep prebuild gap）—— 机制相邻，都是 "Node 版本 vs prebuild ABI 错配"。本 #23 把同样问题推到 Electron vs Node 跨进程维度
 - #15（better-sqlite3 Number→TEXT `"1.0"` trap）—— 同样是 bs3/bs3mc 家族的 silent surprise，但层次不同：#15 是 binding 写入语义，#23 是 binding 能不能加载
 
+**增订 — desktop-app-vue vitest 套件被 `npm run dev` 留下的 Electron-ABI binary 整片打挂（2026-06-15 实战）**：
+
+跑全量 `cd desktop-app-vue && npx vitest run` 时若先前跑过 `npm run dev`（或任何 `electron-rebuild`），`desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node` 会停在 **Electron ABI 140**，而 vitest 用 **Node 22 = ABI 127** 跑 → 所有走 SQLite 的测试文件整片红。2026-06-15 一次全量跑 **238 failed**，全部集中在 11 个 `src/main/remote/__tests__/*-handler-*.test.js` + `tests/remote/handlers/storage-handler.test.js`，根因只有一条：
+
+```
+Error: The module 'better_sqlite3.node' was compiled against a different
+Node.js version using NODE_MODULE_VERSION 140. This version of Node.js
+requires NODE_MODULE_VERSION 127.
+```
+
+**判它不是 bug 的关键**：失败文件 100% 是 SQLite-backed，且报错全是 `new Database()` 抛 ABI error 后的**级联次生信号** —— `TypeError: Cannot read properties of undefined (reading 'close')`（`db` 没初始化，`afterEach` 的 `db.close()` 炸）、`AggregateError`、`Test timed out in 30000ms`（DB 没起来 stream test 挂死）。换正确 ABI 后这 11 个文件 254 全绿（实测）。CI 在 Electron ABI 下跑，所以这套永远不会在 CI 红。
+
+**恢复配方（不需要 Visual Studio —— 直接拉 prebuilt，不走 source 编译）**：
+
+```bash
+cd desktop-app-vue/node_modules/better-sqlite3-multiple-ciphers
+# 1) 拉 Node-ABI 的 prebuilt（v127）→ 让 vitest 能跑 SQLite 测试
+../.bin/prebuild-install --runtime=node --target=$(node -p process.versions.node)
+# 2) 跑那 11 个文件 / 全量套件
+cd ../.. && npx vitest run src/main/remote/__tests__/
+# 3) **必须**还原成 Electron ABI（v140），否则桌面 app / 并行 session 的 npm run dev 启动崩
+cd node_modules/better-sqlite3-multiple-ciphers
+../.bin/prebuild-install --runtime=electron --target=$(node -p "require('electron/package.json').version")
+```
+
+- ❌ 别 `npm rebuild`：本机常无 MSVC（node-gyp `Could not find any Visual Studio installation`），且会编 root copy 不是 desktop copy；用 `prebuild-install` 拉预编包直接绕开 toolchain。
+- ❌ 别在并行 session 跑着 Electron app 时切 ABI：会让对方 app 当场崩。验证完务必跑第 3 步还原（验收：`node -e "new (require('./lib/database.js'))(':memory:')"` 在还原后**应当**抛 ABI error，说明已是 Electron 二进制）。
+- 与 [[bs3mc_electron_abi_sandbox_workaround]] 同根（测试侧 ABI 错配），但那条的修法是给测试装独立 sandbox bs3mc；本增订是临时跑桌面 SQLite 测试的 in-place 翻 ABI + 还原配方，适合只想确认"这堆红是不是真 bug"的场景。
+
 ---
 
 ## 24. Android Bootstrap race —— `@Singleton` + instance Mutex 仍并发, half-half extract（隐性风险）
