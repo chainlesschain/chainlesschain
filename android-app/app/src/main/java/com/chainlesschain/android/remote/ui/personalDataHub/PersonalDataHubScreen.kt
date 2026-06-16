@@ -68,7 +68,7 @@ fun PersonalDataHubScreen(
             2 -> HubAuditScreen()
             3 -> HubLocalScreen()
             4 -> HubLocalAskScreen(askPrefill = askPrefill)
-            5 -> HubBrowserScreen()
+            5 -> HubBrowserScreen(onGoCollect = { tab = 3 }) // 空库 → 跳「本机数据」采集
             else -> Text("?", color = MaterialTheme.colorScheme.error)
         }
     }

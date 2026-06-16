@@ -34,6 +34,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -72,6 +73,9 @@ import java.util.Locale
 fun HubBrowserScreen(
     modifier: Modifier = Modifier,
     viewModel: HubBrowserViewModel = hiltViewModel(),
+    // B (2026-06-16): when the vault is empty, the empty-state offers a CTA that
+    // jumps to the 本机数据 tab to collect+ingest first. Null = no CTA (e.g. tests).
+    onGoCollect: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
     // Re-run search on every (re-)entry to the tab. ViewModel's `init { search() }`
@@ -91,6 +95,7 @@ fun HubBrowserScreen(
         onLoadMore = viewModel::loadMore,
         onReset = viewModel::resetFilters,
         onRefresh = viewModel::search,
+        onGoCollect = onGoCollect,
     )
 }
 
@@ -114,6 +119,7 @@ fun HubBrowserScreenContent(
     onLoadMore: () -> Unit,
     onReset: () -> Unit,
     onRefresh: () -> Unit,
+    onGoCollect: (() -> Unit)? = null,
 ) {
     var selectedEvent by remember { mutableStateOf<EventRow?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -216,11 +222,32 @@ fun HubBrowserScreenContent(
             }
         } else if (state.rows.isEmpty() && state.errorMessage == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = emptyHintFor(state),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (isVaultEmpty(state) && onGoCollect != null) {
+                    // 真·空库（无任何筛选 + total 0）→ 引导去采集，而不是只显示"没数据"
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp),
+                    ) {
+                        Text(
+                            text = "还没有采集任何数据",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "「数据浏览」只显示已入库的数据。先去「本机数据」采集一次（应用列表+联系人，无需登录），再回来浏览。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onGoCollect) { Text("去「本机数据」采集") }
+                    }
+                } else {
+                    Text(
+                        text = emptyHintFor(state),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         } else {
             LazyColumn(
@@ -531,6 +558,18 @@ private fun categoryLabelFor(id: String?): String = when (id) {
     "other" -> "其他"
     else -> id ?: "未知"
 }
+
+/**
+ * True when the vault is genuinely empty (no events at all) rather than just
+ * "no results for the current filter". Drives the collect-CTA empty-state vs
+ * the plain "change your filter" hint. Pure → unit-tested.
+ */
+internal fun isVaultEmpty(state: HubBrowserUiState): Boolean =
+    state.rows.isEmpty() &&
+        state.facets.total == 0 &&
+        state.q.isEmpty() &&
+        state.category == null &&
+        state.adapter == null
 
 private fun emptyHintFor(state: HubBrowserUiState): String = when {
     state.q.isNotEmpty() ->

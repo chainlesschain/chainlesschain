@@ -81,4 +81,22 @@ class HubBrowserRenderersTest {
         assertEquals("other", categoryFor(null))
         assertEquals("other", categoryFor(""))
     }
+
+    // ─── isVaultEmpty (B: collect-CTA empty-state) ──────────────────────
+    @Test
+    fun `isVaultEmpty true when no events and no filters`() {
+        assertEquals(true, isVaultEmpty(HubBrowserUiState()))
+    }
+
+    @Test
+    fun `isVaultEmpty false when vault has events`() {
+        assertEquals(false, isVaultEmpty(HubBrowserUiState(facets = BrowserFacets(total = 5))))
+    }
+
+    @Test
+    fun `isVaultEmpty false when a filter is active (no results is not empty vault)`() {
+        assertEquals(false, isVaultEmpty(HubBrowserUiState(q = "x")))
+        assertEquals(false, isVaultEmpty(HubBrowserUiState(category = "chat")))
+        assertEquals(false, isVaultEmpty(HubBrowserUiState(adapter = "wechat-pc")))
+    }
 }
