@@ -39,7 +39,7 @@ class FamilyGuardSyncConnectorTest {
     // ---- matchPeersToConnect ----
 
     @Test
-    fun `offerer picks the matching online guardian peer`() {
+    fun `smaller-did side connects as offerer (initiator)`() {
         val me = "did:key:aaa"          // smaller → I offer
         val guardian = "did:key:zzz"
         val targets = FamilyGuardSyncConnector.matchPeersToConnect(
@@ -48,20 +48,22 @@ class FamilyGuardSyncConnectorTest {
             discovered = listOf(peer(guardian, peerId = "p-zzz")),
         )
         assertEquals(1, targets.size)
-        assertEquals("p-zzz", targets[0].peerId)
         assertEquals(guardian, targets[0].did)
+        assertTrue(targets[0].isInitiator)   // offerer
     }
 
     @Test
-    fun `non-offerer side dials nobody (waits for incoming offer)`() {
-        val me = "did:key:zzz"          // larger → I wait, not dial
+    fun `larger-did side connects as responder (non-initiator)`() {
+        val me = "did:key:zzz"          // larger → I respond
         val guardian = "did:key:aaa"
         val targets = FamilyGuardSyncConnector.matchPeersToConnect(
             myDid = me,
             peerDids = listOf(guardian),
             discovered = listOf(peer(guardian)),
         )
-        assertTrue(targets.isEmpty())
+        assertEquals(1, targets.size)
+        assertEquals(guardian, targets[0].did)
+        assertFalse(targets[0].isInitiator)  // responder — still connects, just waits for offer
     }
 
     @Test

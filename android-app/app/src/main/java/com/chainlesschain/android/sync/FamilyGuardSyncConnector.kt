@@ -98,7 +98,7 @@ class FamilyGuardSyncConnector @Inject constructor(
     /** 配对成功后调；确保循环在跑（首次配对前 ensureConnected 可能因无 DID 早退）。 */
     override fun onPairingEstablished() = ensureConnected()
 
-    /** 单趟：发现 + 拨号尚未连上的监护人/孩子 peer。 */
+    /** 单趟：发现 + 与尚未连上的已配对 peer 建连（按选举角色 offerer/responder）。 */
     private suspend fun connectOnce(myDid: String) {
         val peerDids = relationshipRepository.observeAllActive().first()
             .map { it.friendDid }
@@ -113,13 +113,16 @@ class FamilyGuardSyncConnector @Inject constructor(
             alreadyConnected = alreadyConnected,
         )
         for (t in targets) {
-            Timber.i("[FamilyGuardSyncConnector] dialing guardian peer did=${t.did.take(20)}… peerId=${t.peerId}")
-            runCatching { p2pClient.connect(t.peerId, t.did) }
-                .onFailure { Timber.w(it, "[FamilyGuardSyncConnector] connect to ${t.peerId} failed") }
+            Timber.i(
+                "[FamilyGuardSyncConnector] connecting family peer did=${t.did.take(20)}… " +
+                    "role=${if (t.isInitiator) "offerer" else "responder"}",
+            )
+            runCatching { p2pClient.connectFamilyPeer(t.did, myDid, t.isInitiator) }
+                .onFailure { Timber.w(it, "[FamilyGuardSyncConnector] connect to ${t.did} failed") }
         }
     }
 
-    data class ConnectTarget(val peerId: String, val did: String)
+    data class ConnectTarget(val peerId: String, val did: String, val isInitiator: Boolean)
 
     companion object {
         /** 重连/重发现间隔；与 SyncCoordinator 推送节奏 (30s) 同量级。 */
@@ -132,10 +135,12 @@ class FamilyGuardSyncConnector @Inject constructor(
         fun electOfferer(myDid: String, peerDid: String): Boolean = myDid < peerDid
 
         /**
-         * 纯函数：从信令发现的 peer 列表里，挑出「该由本机主动拨号」且尚未连上的目标。
+         * 纯函数：从信令发现的 peer 列表里，挑出尚未连上的已配对 peer 作为建连目标，
+         * 并按 [electOfferer] 标注本机在该连接中是 offerer 还是 responder。
          *
-         * 过滤条件：在线 + DID 属于已配对集合 + 非本机自身 + peerId 非空 + 尚未连上 +
-         * 本机应做 offerer ([electOfferer])。按 DID 去重（同一 DID 多 peerId 取首个）。
+         * 过滤条件：在线 + DID 属于已配对集合 + 非本机自身 + peerId 非空 + 尚未连上。
+         * 按 DID 去重（同一 DID 多 peerId 取首个）。**双方都会发现对方并各自建连**，
+         * 由 [electOfferer] 保证一方 offer、另一方 answer，规避 glare。
          */
         fun matchPeersToConnect(
             myDid: String,
@@ -152,9 +157,14 @@ class FamilyGuardSyncConnector @Inject constructor(
                 if (p.did == myDid) continue
                 if (p.did !in wanted) continue
                 if (p.did in alreadyConnected) continue
-                if (!electOfferer(myDid, p.did)) continue
                 if (!seen.add(p.did)) continue
-                out.add(ConnectTarget(peerId = p.peerId, did = p.did))
+                out.add(
+                    ConnectTarget(
+                        peerId = p.peerId,
+                        did = p.did,
+                        isInitiator = electOfferer(myDid, p.did),
+                    ),
+                )
             }
             return out
         }

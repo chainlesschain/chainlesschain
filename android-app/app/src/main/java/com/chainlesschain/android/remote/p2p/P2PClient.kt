@@ -207,6 +207,54 @@ class P2PClient @Inject constructor(
     }
 
     /**
+     * FAMILY-67: 与已配对家庭 peer 建连。用本机真实 DID 作 stable localPeerId（对端经信令
+     * 按 DID 发现本机），并按 glare 选举
+     * ([com.chainlesschain.android.sync.FamilyGuardSyncConnector.electOfferer]) 决定 [isInitiator]：
+     * true 主动发 offer，false 等对端 offer 并回 answer（answerer dance 复用
+     * [WebRTCClient.connect] isInitiator=false 路径）。成功即进 [connectedPeers]，
+     * SyncCoordinator 随后把排队的遥测/家庭变更推过去。
+     *
+     * 与 [connect]（PC 远程控制路径）并行；底层 WebRTCClient 当前单连接，家庭 1:1 场景够用；
+     * 已连同一 peerDID 则幂等早返。失败不抛，调用方（连接器循环）下轮重试。
+     */
+    suspend fun connectFamilyPeer(
+        peerDID: String,
+        localDID: String,
+        isInitiator: Boolean,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (_connectedPeers.value.containsKey(peerDID)) {
+                return@withContext Result.success(Unit)
+            }
+            Timber.i(
+                "[P2PClient] connectFamilyPeer peerDID=${peerDID.take(20)}… isInitiator=$isInitiator",
+            )
+            val result = webRTCClient.connect(
+                targetPeerId = peerDID,
+                localPeerId = localDID,
+                isInitiator = isInitiator,
+            )
+            if (result.isFailure) {
+                return@withContext Result.failure(
+                    result.exceptionOrNull() ?: Exception("family connect failed"),
+                )
+            }
+            val peer = PeerInfo(
+                peerId = peerDID,
+                did = peerDID,
+                connectedAt = System.currentTimeMillis(),
+            )
+            _connectedPeers.update { it + (peerDID to peer) }
+            deviceActivityManager.setConnected(true)
+            deviceActivityManager.recordActivity("family-connected")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "[P2PClient] connectFamilyPeer failed")
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Enable or disable automatic reconnection
      */
     fun setAutoReconnect(enabled: Boolean) {
