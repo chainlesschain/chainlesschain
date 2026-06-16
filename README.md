@@ -11,6 +11,21 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-06-16 主线 — **JetBrains IDE 插件 0.4.0：对齐 VS Code 扩展功能（已发 JetBrains Marketplace）**
+
+> `packages/jetbrains-plugin/` 一次性补齐与 VS Code 扩展（0.22–0.30）的功能差距，经 `./gradlew runIde` 沙箱逐特性人工验证后发版（tag `ide-jetbrains-v0.4.0` → CI `publishPlugin`）。
+
+- **多会话 tab**：Chat 工具窗变多会话——每个 tab 独立 `cc agent` 子进程、`+ 新建` / 单 tab `×` 关闭 / 即时切换 / 每 tab resume id 跨 IDE 重启保留。
+- **审批模式 + 扩展思考**：面板斜杠命令 `/auto`·`/bypass`·`/normal` + `/think`·`/ultrathink`·`/think-off`（spawn-time 标志，切换即以新标志重启子进程）；面板斜杠 `/new`·`/stop`·`/cost`·`/context`·`/plan`·`/approve`·`/reject`。
+- **上下文用量行 + 新建/重开快捷键**：每轮后刷新 `⊟ context …/…（n%）`；`Ctrl/Cmd+Alt+N` 新会话、`Ctrl/Cmd+Shift+T` 重开最近关闭（续接）。
+- **选区动作 + @文件引用**：编辑器右键 Explain / Refactor（注入 `@selection`）；`Ctrl/Cmd+Alt+K` 插入 `@<path>#L<起>-<止>` 选区行范围；输入 `@` 弹出补全（`@selection`/`@diagnostics` + 项目文件）。
+- **原生 diff 评审**：openDiff 升级为 Accept / Request changes…（行内批注回喂）/ Reject；`openMultiDiff` 多文件批量评审（全接受 / 挑选文件 / 拒绝）→ `mcp__ide__openMultiDiff`。
+- **交互 Plan / 审批卡**：plan 与工具审批以带 Approve/Deny（Approve/Reject）按钮的卡片呈现，按钮回喂同 VS Code 的 stdin 协议。
+- **App 内嵌预览**：Start App Preview 拉起 dev 脚本 → 解析 URL → JCEF 内嵌（不支持时回退外部浏览器）；Stop 杀进程树。
+- **修复（runIde 验证中发现，编译查不出）**：多会话重构曾让回复被静默丢弃（turnState 类型错→首个流事件 CCE 杀掉读线程）；New-UI 工具窗图标空白（栅格内嵌 SVG → 真 PNG）；输入框过窄（改为独占整行）。
+
+---
+
 ## 2026-06-15 发布 — **v5.0.3.114：个人数据中台 gov-ixiamen 端点真机静态校验 + Android cc bundle v20260615d（pdh 0.4.25 / cli 0.162.71）**
 
 > 用已 root 真机对 PDH「端点抓包」runbook 跑**静态分析层**（只读 APK 二进制，无任何登录态/账号介入）。修正 `gov-ixiamen` 采集器的虚构占位主机——旧 `app.ixm.gov.cn` 实为不存在域名；真机 dex 静态分析确认 i 厦门真实后端为 `*.ixiamen.org.cn`（业务网关 `https://buss.ixiamen.org.cn/pbc/`），已改为真实网关（`opts.listUrl` 可覆盖），子路径 + 请求体仍 `unverified`（body 经 `libzxprotect` 加密静态不可见）。中行（SecNeo 壳）/工行（请求体加密+签名）维持 snapshot；12123 域名早已正确。`@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 已发 npm；Android cc bundle 滚到 `v20260615d`、`USR_VERSION` → 45。桌面 / Android / iOS 全 surface 对齐 .114（check-version-sync 绿）。

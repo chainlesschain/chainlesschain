@@ -11,6 +11,21 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-06-16 Mainline — **JetBrains IDE plugin 0.4.0: VS Code feature parity (published to the JetBrains Marketplace)**
+
+> `packages/jetbrains-plugin/` closes the feature gap with the VS Code extension (0.22–0.30) in one pass, verified feature-by-feature in a `./gradlew runIde` sandbox before shipping (tag `ide-jetbrains-v0.4.0` → CI `publishPlugin`).
+
+- **Conversation tabs**: the chat tool window is now multi-conversation — one live `cc agent` child per tab, `+ New chat` / per-tab `×` close / instant switch / per-tab resume ids persisted across IDE restarts.
+- **Approval mode + extended thinking**: panel slash commands `/auto`·`/bypass`·`/normal` + `/think`·`/ultrathink`·`/think-off` (spawn-time flags — a change restarts the child with the new flag); plus `/new`·`/stop`·`/cost`·`/context`·`/plan`·`/approve`·`/reject`.
+- **Context-window line + new/reopen shortcuts**: `⊟ context …/… (n%)` refreshes after each turn; `Ctrl/Cmd+Alt+N` new conversation, `Ctrl/Cmd+Shift+T` reopen the last-closed (resumes it).
+- **Selection actions + @file refs**: editor right-click Explain / Refactor (seed `@selection`); `Ctrl/Cmd+Alt+K` inserts `@<path>#L<start>-<end>` for the selection; typing `@` pops a completion chooser (`@selection`/`@diagnostics` + project files).
+- **Native diff review**: openDiff is now Accept / Request changes… (inline notes fed back) / Reject; `openMultiDiff` multi-file batch review (accept all / pick files / reject) → `mcp__ide__openMultiDiff`.
+- **Interactive plan / approval cards**: plans and tool approvals render as cards with Approve/Deny (Approve/Reject) buttons, replying over the same stdin protocol as VS Code.
+- **In-editor app preview**: Start App Preview runs the dev script → detects the URL → embeds it via JCEF (external-browser fallback); Stop kills the process tree.
+- **Fixes found during the runIde GUI pass (invisible to compilation)**: the multi-conversation refactor could silently drop replies (wrong turn-state type → CCE on the first stream event killed the reply reader); blank New-UI tool-window icon (raster-in-SVG → real PNG); cramped input (now its own full-width line).
+
+---
+
 ## 2026-06-15 Release — **v5.0.3.114: PDH gov-ixiamen endpoint static-verify on a real device + Android cc bundle v20260615d (pdh 0.4.25 / cli 0.162.71)**
 
 > Ran the PDH endpoint-capture runbook's **static-analysis tier** (read-only APK binary analysis, no login/account interaction) on a rooted device. Corrected the `gov-ixiamen` collector's fabricated placeholder host — the old `app.ixm.gov.cn` does not exist; static dex analysis confirmed i-Xiamen's real backend is `*.ixiamen.org.cn` (gateway `https://buss.ixiamen.org.cn/pbc/`), now wired (overridable via `opts.listUrl`); the list sub-path + body stay `unverified` (bodies encrypted by `libzxprotect`, opaque to static analysis). BOC (SecNeo shell) / ICBC (encrypted+signed bodies) stay snapshot; 12123 host was already correct. `@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 published to npm; Android cc bundle rolled to `v20260615d`, `USR_VERSION` → 45. Desktop / Android / iOS surfaces aligned to .114 (check-version-sync green).

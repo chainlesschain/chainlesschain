@@ -37,7 +37,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           ['审批', '原生 diff 评审', '文件编辑确认升级为编辑器原生并排 diff：右侧可顺手改、Accept 替代执行、hunk 级"Pick hunks…"部分接受、"Request changes…"行内批注回喂 agent 修订；跨多文件改动走 openMultiDiff 整 changeset 一屏批量评审。Reject 永不写盘。'],
           ['执行', 'Jupyter kernel', 'executeCode 在活跃 notebook 的 kernel 里执行代码并取回输出，变量跨调用保持（VS Code 端）。'],
           ['对话', '侧边栏 Chat 面板', '不开终端直接对话：流式回复 + 工具轨迹 + Plan 模式卡片 + Approve/Deny 审批卡 + 多会话 tab（各自独立 agent 进程、切换恢复 transcript）+ 会话跨重启续接 + /sessions 切换。'],
-          ['预览', 'App 内嵌预览', 'Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → VS Code 内置 Simple Browser 内嵌打开；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。'],
+          ['预览', 'App 内嵌预览', 'Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → 编辑器内嵌打开（VS Code 内置 Simple Browser / JetBrains JCEF 浏览器，不支持时回退外部浏览器）；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。'],
           ['终端', '终端上下文共享', 'getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。'],
           ['同步', 'CLI 版本对齐', '激活时检测 cc --version，低于扩展所需最低版本一键提示升级；命令面板「Upgrade CLI」随时从 IDE 跑 npm i -g chainlesschain@latest——扩展（Open VSX）与 CLI（npm）独立发版轨,这条让它们对齐。'],
           ['补全', '@ 文件 / 斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；支持 /new /plan /approve /reject /stop。'],
