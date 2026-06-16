@@ -9,6 +9,14 @@
 
 ## 0. 两条路线（按 App 加密形态选）
 
+> **🟢 已 root 手机 = 一律优先方法 B（`/proc/<pid>/mem` 免密钥内存扫描）。**
+> 理由：① 免密钥（不用逆 SQLCipher key 也不用逆 metasec）② 引擎无关（标准
+> SQLCipher / WCDB2 专有 cipher 都吃，因为 App 自己已经把页解密进内存）③ 用
+> `/proc/mem` 读、不 ptrace → 绕过 App 反调试（frida attach 会被拦，`/proc/mem`
+> 读不会）。方法 A（frida hook key）只在你**特别想拿到 key 做离线解密**时才用。
+> 脚本：`scripts/android/pdh-mem-sqlite-scan.sh`（见 §2）。**已在 Douyin 实测拉出
+> 数十个解密库（含 2 万+ 页的大库）。**
+
 | App | DB 引擎 | 密钥位置 | 推荐方法 |
 |---|---|---|---|
 | WeChat `com.tencent.mm` | 标准 SQLCipher（`libWCDB.so` 导出 `sqlite3_key`）| 进程内运行时（登录后才存在）| **方法 A：frida hook `sqlite3_key`** → 拿 key → `better-sqlite3-multiple-ciphers` 离线解密 `EnMicroMsg.db` |
@@ -65,6 +73,7 @@ sqlite3 dumps/<x>.db .tables       # 读明文表
 
 | 坑 | 现象 | 解 |
 |---|---|---|
+| **64 位地址溢出（最坑）** | toybox sh `$(())` 是 32 位；`$((0x66xxxxxxxx/4096))` 算成**负数** → `dd` seek 到错偏移 → 扫描永远 0 命中（低地址 dalvik 段碰巧 <4GB 能读，误以为脚本没问题）| 地址换算用 `printf "%d" 0x..`（64 位）+ `bc` 大数运算 + `dd iflag=skip_bytes`（脚本已修）|
 | anti-debug | frida `-p` → `Unable to access process with pid X`（EPERM）| 用方法 B（`/proc/mem`，不 ptrace）；或 attach 自然热进程（别 force-restart）|
 | force-restart 触发反调试 | 冷启动进程秒置不可 ptrace；热进程（用户自然启动、跑了一阵）可 attach | **别 `am force-stop` 后再 attach**；用现有热进程 |
 | 库没打开 | 内存扫描 0 命中 | 先把 App 用起来（刷/进消息）再扫 |
