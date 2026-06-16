@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
@@ -69,6 +71,15 @@ class P2PClient @Inject constructor(
     @Volatile private var familyConnection: Boolean = false
     @Volatile private var reconnectJob: Job? = null
     @Volatile private var heartbeatTimeoutJob: Job? = null
+
+    // FAMILY-67: 单连接拨号串行化 + 离线 peer 失败退避。家庭/好友两个连接器共用同一条单连接
+    // WebRTC，若并发拨号会互相 disconnect 打断 offer/answer/ICE；且反复连不上的离线旧绑定会
+    // 霸占拨号窗口饿死在线好友。connectDialMutex 串行化拨号；peerBackoffUntilMs 让失败 peer 退避。
+    private val connectDialMutex = Mutex()
+    private val peerFailCount = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val peerBackoffUntilMs = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val basePeerBackoffMs = 5_000L
+    private val maxPeerBackoffMs = 60_000L
 
     private val config = P2PClientConfig()
     private val gson = Gson()
@@ -231,36 +242,84 @@ class P2PClient @Inject constructor(
         isInitiator: Boolean,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            // 已与此 peer 连上 → 幂等成功（顺带清退避状态）。
             if (_connectedPeers.value.containsKey(peerDID)) {
+                peerFailCount.remove(peerDID)
+                peerBackoffUntilMs.remove(peerDID)
                 return@withContext Result.success(Unit)
             }
-            Timber.i(
-                "[P2PClient] connectFamilyPeer peerDID=${peerDID.take(20)}… isInitiator=$isInitiator",
-            )
-            val result = webRTCClient.connect(
-                targetPeerId = peerDID,
-                localPeerId = localDID,
-                isInitiator = isInitiator,
-                relaySignaling = true, // FAMILY-67: 手机↔手机经生产信令服务器，须包 type:"message" 中继
-            )
-            if (result.isFailure) {
-                return@withContext Result.failure(
-                    result.exceptionOrNull() ?: Exception("family connect failed"),
+            // FAMILY-67 单连接保护：已持有到「其他」peer 的活动连接时，绝不为拨号新 peer 而拆掉它。
+            // 否则家庭连接器每轮都拨离线旧绑定 → 把刚建好的好友连接拆了（反之亦然）。
+            if (_connectedPeers.value.isNotEmpty()) {
+                Timber.d(
+                    "[P2PClient] connectFamilyPeer skip ${peerDID.take(12)}… — already holding another connection (single-connection)",
                 )
+                return@withContext Result.failure(IllegalStateException("busy: holding another P2P connection"))
             }
-            val peer = PeerInfo(
-                peerId = peerDID,
-                did = peerDID,
-                connectedAt = System.currentTimeMillis(),
-            )
-            _connectedPeers.update { it + (peerDID to peer) }
-            // FAMILY-67 (第8层): sendCommand 要求 _connectionState==CONNECTED 才发 RPC。
-            // connect() 会设，connectFamilyPeer 之前漏设 → sync.push 立刻 "Not connected" 失败。
-            _connectionState.value = ConnectionState.CONNECTED
-            familyConnection = true // FAMILY-67 (第10层): auth 用 core-did did:key
-            deviceActivityManager.setConnected(true)
-            deviceActivityManager.recordActivity("family-connected")
-            Result.success(Unit)
+            // FAMILY-67 失败退避：反复连不上的离线 peer（旧家庭绑定）会霸占单连接拨号窗口、饿死
+            // 在线好友。退避期内直接跳过，把拨号机会让给其他可达 peer。
+            val nowMs = System.currentTimeMillis()
+            val backoffUntil = peerBackoffUntilMs[peerDID] ?: 0L
+            if (nowMs < backoffUntil) {
+                Timber.d(
+                    "[P2PClient] connectFamilyPeer skip ${peerDID.take(12)}… — failure backoff ${(backoffUntil - nowMs) / 1000}s",
+                )
+                return@withContext Result.failure(IllegalStateException("peer in failure backoff"))
+            }
+            // 串行化拨号：家庭/好友连接器共用单条 WebRTC 连接，并发 connect 会互相 disconnect 打断
+            // offer/answer/ICE。mutex 保证任一时刻只有一个拨号在跑。
+            connectDialMutex.withLock {
+                // 等锁期间状态可能变化 → 重检幂等 + 单连接保护。
+                if (_connectedPeers.value.containsKey(peerDID)) {
+                    peerFailCount.remove(peerDID)
+                    peerBackoffUntilMs.remove(peerDID)
+                    return@withContext Result.success(Unit)
+                }
+                if (_connectedPeers.value.isNotEmpty()) {
+                    return@withContext Result.failure(IllegalStateException("busy: holding another P2P connection"))
+                }
+                Timber.i(
+                    "[P2PClient] connectFamilyPeer peerDID=${peerDID.take(20)}… isInitiator=$isInitiator",
+                )
+                val result = webRTCClient.connect(
+                    targetPeerId = peerDID,
+                    localPeerId = localDID,
+                    isInitiator = isInitiator,
+                    relaySignaling = true, // FAMILY-67: 手机↔手机经生产信令服务器，须包 type:"message" 中继
+                )
+                if (result.isFailure) {
+                    // 记一次失败并指数退避（5s,10s,20s,40s,封顶 60s），避免离线 peer 持续抢占。
+                    val fails = (peerFailCount[peerDID] ?: 0) + 1
+                    peerFailCount[peerDID] = fails
+                    val backoffMs = minOf(
+                        maxPeerBackoffMs,
+                        basePeerBackoffMs * (1L shl (fails - 1).coerceIn(0, 5)),
+                    )
+                    peerBackoffUntilMs[peerDID] = System.currentTimeMillis() + backoffMs
+                    Timber.w(
+                        "[P2PClient] family connect to ${peerDID.take(12)}… failed (#$fails) → backoff ${backoffMs / 1000}s",
+                    )
+                    return@withContext Result.failure(
+                        result.exceptionOrNull() ?: Exception("family connect failed"),
+                    )
+                }
+                // 成功 → 清退避状态。
+                peerFailCount.remove(peerDID)
+                peerBackoffUntilMs.remove(peerDID)
+                val peer = PeerInfo(
+                    peerId = peerDID,
+                    did = peerDID,
+                    connectedAt = System.currentTimeMillis(),
+                )
+                _connectedPeers.update { it + (peerDID to peer) }
+                // FAMILY-67 (第8层): sendCommand 要求 _connectionState==CONNECTED 才发 RPC。
+                // connect() 会设，connectFamilyPeer 之前漏设 → sync.push 立刻 "Not connected" 失败。
+                _connectionState.value = ConnectionState.CONNECTED
+                familyConnection = true // FAMILY-67 (第10层): auth 用 core-did did:key
+                deviceActivityManager.setConnected(true)
+                deviceActivityManager.recordActivity("family-connected")
+                Result.success(Unit)
+            }
         } catch (e: Exception) {
             Timber.e(e, "[P2PClient] connectFamilyPeer failed")
             Result.failure(e)

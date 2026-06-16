@@ -166,6 +166,9 @@ class WebRTCClient @Inject constructor(
 
     companion object {
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
+
+        /** FAMILY-67: connect() 在发完 offer/answer 后等 DataChannel OPEN 的上限（ICE+DC 协商）。 */
+        private const val DATA_CHANNEL_OPEN_TIMEOUT_MS = 15000L
     }
 
     fun initialize() {
@@ -296,9 +299,23 @@ class WebRTCClient @Inject constructor(
             }
 
             _connectionState.value = P2PConnectionState.ICE_CONNECTING
-            Timber.i("========================================")
-            Timber.i("✓ P2P connection initiated, ICE negotiation in progress")
-            Timber.i("========================================")
+            Timber.i("✓ P2P connection initiated — waiting for data channel to open...")
+            // FAMILY-67: 必须等 DataChannel 真正 OPEN 再返回成功。此前 connect 一发完 offer/answer
+            // 就返回 success，调用方 (connectFamilyPeer → FriendSessionHandshake / sync.push) 立刻
+            // sendMessage 会撞 "Data channel not open"（真机实测：ICE 已 CONNECTED 但 DC 尚未 open，
+            // 握手首个 e2ee.getBundle 失败 → 会话建不起来 → 聊天恒"设备未连接/未验证"）。
+            // 轮询 DC 状态直到 OPEN / 连接 FAILED / 超时。
+            val opened = withTimeoutOrNull(DATA_CHANNEL_OPEN_TIMEOUT_MS) {
+                while (dataChannel?.state() != DataChannel.State.OPEN) {
+                    if (_connectionState.value == P2PConnectionState.FAILED) return@withTimeoutOrNull false
+                    delay(100)
+                }
+                true
+            }
+            if (opened != true) {
+                throw Exception("data channel not open within ${DATA_CHANNEL_OPEN_TIMEOUT_MS}ms (state=${dataChannel?.state()})")
+            }
+            Timber.i("✓ Data channel OPEN — connection READY")
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e("========================================")
