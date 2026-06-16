@@ -43,15 +43,17 @@ implemented and build-verified** (0.4.0).
       context-window indicator (`IntrospectArgs` + `AgentChatSession.runCapture`),
       new (`Ctrl/Cmd+Alt+N`) / reopen-closed (`Ctrl/Cmd+Shift+T`) actions.
 
-## ⏳ Remaining polish (lower-value, not blocking 0.4.0)
+## ✅ Polish (also landed)
 
-- [ ] **@-mention completion popup** — `Mentions.filterFiles` /
-      `formatSymbolItems` are ported; still need to wire a completion popup on the
-      input field + a PSI symbol search (`GotoSymbolModel`/`ChooseByNameContributor`).
-      Today you type `@path` manually (or use Insert File Reference).
-- [ ] **Interactive plan / approval cards** — plan + approval events currently
-      render as text lines (`📋 plan …`, `ℹ approval …`); VS Code shows
-      Approve/Reject buttons. Functional as-is; buttons are an enhancement.
+- [x] **@-mention completion popup** — typing `@` pops a `JBPopup` chooser of
+      `@selection`/`@diagnostics` + project content files (lazy, bounded to 3000,
+      speed-search filtered); choosing splices via `Mentions.detectAtToken` +
+      `applyMention`. (Workspace-symbol entries via PSI search remain a future add;
+      file + IDE-mention completion is wired.)
+- [x] **Interactive plan / approval cards** — approval (`Approve`/`Deny` →
+      `{type:approval,id,approve}`) and plan (`Approve`/`Reject` →
+      `{type:plan,action}`) cards above the input, same stdin protocol as VS Code;
+      `/plan` `/approve` `/reject` slash commands too.
 
 ## Publish — ⚠️ the required final step (held on runIde verification)
 

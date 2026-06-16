@@ -28,6 +28,13 @@ are smoke-tested (`PureLogicSmokeMain`, 116 assertions).
 - **App Preview** (§2): **Start App Preview** runs the project's dev script, detects
   the server URL, and embeds it (JCEF) in a new preview tool window (external-browser
   fallback when JCEF is unavailable); **Stop App Preview** kills the process tree.
+- **Interactive plan / approval cards** (§5): tool-permission approvals and plans
+  now render as cards with **Approve / Deny** (resp. **Approve / Reject**) buttons
+  above the input (same stdin protocol as VS Code); `/plan` `/approve` `/reject`
+  panel commands too.
+- **@-mention completion** (§5): typing `@` pops a chooser of `@selection` /
+  `@diagnostics` + project files (speed-search filtered); choosing splices the
+  reference into the input.
 
 ## [0.3.3] — 2026-06-12
 
