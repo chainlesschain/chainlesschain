@@ -31,7 +31,9 @@ function startServer(args = []) {
 }
 
 /** Wait until the server is ready by polling for WS connection */
-async function waitForReady(port, timeoutMs = 10000) {
+// Default sized for cold server start under the singleFork e2e load, which can
+// exceed 10s on Windows; mirrors coding-agent-envelope-roundtrip. See trap #31.
+async function waitForReady(port, timeoutMs = 25000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
