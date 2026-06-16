@@ -15,7 +15,9 @@
  */
 
 import fs from "fs";
+import path from "path";
 import { MCPClient } from "../harness/mcp-client.js";
+import { projectRootBase } from "../lib/project-root.cjs";
 import {
   discoverIdeServer,
   ideServerToMcpConfig,
@@ -376,9 +378,67 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
 }
 
 /**
+ * Discover + connect a project-scoped `.mcp.json` (Claude-Code parity). Reads a
+ * `.mcp.json` from the git project root (walked up from cwd, same as the
+ * `.claude` config layers) and from cwd itself, merging their `mcpServers`
+ * (cwd wins on a name clash — closest wins). Best-effort: a missing / empty /
+ * malformed file contributes nothing and never throws.
+ *
+ * SECURITY: a checked-in `.mcp.json` can spawn arbitrary commands, so the
+ * servers it loads are announced via writeErr and the whole layer is skippable
+ * with `--no-project-mcp` / `CC_PROJECT_MCP=0`. Connected into `deps.into`, so
+ * an explicit `--mcp-config` server or a registered (`cc mcp add`) server WINS
+ * on a name clash (the first batch wins in setupMcpFromConfig).
+ *
+ * @param {object} opts  { cwd?, env? }
+ * @param {object} [deps] { writeErr, into, readFile, fileExists, createClient }
+ */
+export async function loadProjectMcp(opts = {}, deps = {}) {
+  const env = opts.env || process.env;
+  if (env.CC_PROJECT_MCP === "0") return deps.into || null;
+  const cwd = opts.cwd || process.cwd();
+  const readFile = deps.readFile || ((p) => fs.readFileSync(p, "utf-8"));
+  const fileExists = deps.fileExists || ((p) => fs.existsSync(p));
+  const writeErr = deps.writeErr || (() => {});
+
+  // Project-root `.mcp.json` (below cwd's), then cwd's own — so a cwd-local file
+  // overrides the root on a name clash. projectRootBase() is null when cwd IS
+  // the root (its own file already covers it) or there is no git project.
+  const files = [];
+  const root = projectRootBase(cwd, { fs, path });
+  if (root) files.push(path.join(root, ".mcp.json"));
+  files.push(path.join(cwd, ".mcp.json"));
+
+  const servers = {};
+  const seenFiles = [];
+  for (const file of files) {
+    if (!fileExists(file)) continue;
+    let raw;
+    try {
+      raw = JSON.parse(readFile(file));
+    } catch (err) {
+      writeErr(`  mcp: ignoring malformed ${file} (${err.message})\n`);
+      continue;
+    }
+    const parsed = parseMcpServers(raw);
+    if (Object.keys(parsed).length > 0) {
+      Object.assign(servers, parsed); // later file (cwd) overrides earlier (root)
+      seenFiles.push(file);
+    }
+  }
+  if (Object.keys(servers).length === 0) return deps.into || null;
+  writeErr(
+    `  mcp: ${Object.keys(servers).length} server(s) from project .mcp.json ` +
+      `(${seenFiles.join(", ")}) — disable with --no-project-mcp\n`,
+  );
+  return setupMcpFromConfig(servers, deps);
+}
+
+/**
  * Resolve the full MCP tool surface for one agent run: the ad-hoc
  * `--mcp-config` file (if any) PLUS registered auto-connect servers (unless
- * disabled) PLUS an auto-discovered IDE bridge, connected into a single client.
+ * disabled) PLUS a project-scoped `.mcp.json` PLUS an auto-discovered IDE
+ * bridge, connected into a single client.
  * Returns the combined `{mcpClient, extraToolDefinitions, ...}` or null when
  * there's nothing. Throws only on a bad `--mcp-config` file (explicit request).
  *
@@ -391,6 +451,7 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
 export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
+  const doProject = deps.loadProjectMcp || loadProjectMcp;
   const doIde = deps.loadIdeMcp || loadIdeMcp;
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
@@ -412,6 +473,15 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
       all: args.allRegistered === true,
       into: result || undefined,
     });
+  }
+  // Project-scoped `.mcp.json` (Claude-Code parity). After --mcp-config +
+  // registered (those win on a name clash), before IDE auto-discovery. Skipped
+  // under --strict-mcp-config (returned above) and via CC_PROJECT_MCP=0.
+  if (args.projectMcp !== false) {
+    result = await doProject(
+      { cwd: args.cwd, env: args.env || process.env },
+      { ...fwd, into: result || undefined },
+    );
   }
   if (args.ide !== false) {
     const env = args.env || process.env;

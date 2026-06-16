@@ -11,13 +11,16 @@ describe("resolveAgentMcp --strict-mcp-config", () => {
   function deps() {
     return {
       loadMcpConfig: vi.fn(async () => fileResult),
-      loadRegisteredMcp: vi.fn(async () => ({ connected: [{ server: "reg" }] })),
+      loadRegisteredMcp: vi.fn(async () => ({
+        connected: [{ server: "reg" }],
+      })),
+      loadProjectMcp: vi.fn(async (_o, d) => d.into || null),
       loadIdeMcp: vi.fn(async () => ({ connected: [{ server: "ide" }] })),
       isInIdeTerminal: () => true,
     };
   }
 
-  it("strict: loads only the --mcp-config file, skips registered + IDE", async () => {
+  it("strict: loads only the --mcp-config file, skips registered + project + IDE", async () => {
     const d = deps();
     const res = await resolveAgentMcp(
       { mcpConfigPath: "/x.json", db: {}, ide: true, strict: true },
@@ -25,11 +28,12 @@ describe("resolveAgentMcp --strict-mcp-config", () => {
     );
     expect(d.loadMcpConfig).toHaveBeenCalledTimes(1);
     expect(d.loadRegisteredMcp).not.toHaveBeenCalled();
+    expect(d.loadProjectMcp).not.toHaveBeenCalled();
     expect(d.loadIdeMcp).not.toHaveBeenCalled();
     expect(res).toBe(fileResult);
   });
 
-  it("non-strict: also loads registered + IDE", async () => {
+  it("non-strict: also loads registered + project .mcp.json + IDE", async () => {
     const d = deps();
     await resolveAgentMcp(
       { mcpConfigPath: "/x.json", db: {}, ide: true, strict: false },
@@ -37,6 +41,18 @@ describe("resolveAgentMcp --strict-mcp-config", () => {
     );
     expect(d.loadMcpConfig).toHaveBeenCalledTimes(1);
     expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(1);
+    expect(d.loadProjectMcp).toHaveBeenCalledTimes(1);
+    expect(d.loadIdeMcp).toHaveBeenCalledTimes(1);
+  });
+
+  it("projectMcp:false skips the project .mcp.json layer", async () => {
+    const d = deps();
+    await resolveAgentMcp(
+      { mcpConfigPath: "/x.json", db: {}, ide: true, projectMcp: false },
+      d,
+    );
+    expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(1);
+    expect(d.loadProjectMcp).not.toHaveBeenCalled();
     expect(d.loadIdeMcp).toHaveBeenCalledTimes(1);
   });
 
