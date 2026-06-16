@@ -14,6 +14,7 @@ const { RelationsSkill } = require("./relations");
 const { FootprintSkill } = require("./footprint");
 const { InterestsSkill } = require("./interests");
 const { TimelineSkill } = require("./timeline");
+const { OverviewSkill } = require("./overview");
 
 const SKILL_REGISTRY = Object.freeze({
   "analysis.spending": SpendingSkill,
@@ -21,6 +22,7 @@ const SKILL_REGISTRY = Object.freeze({
   "analysis.footprint": FootprintSkill,
   "analysis.interests": InterestsSkill,
   "analysis.timeline": TimelineSkill,
+  "analysis.overview": OverviewSkill,
 });
 
 const SKILL_NAMES = Object.freeze(Object.keys(SKILL_REGISTRY));
@@ -50,6 +52,7 @@ module.exports = {
   FootprintSkill,
   InterestsSkill,
   TimelineSkill,
+  OverviewSkill,
   SKILL_REGISTRY,
   SKILL_NAMES,
   ANALYSIS_SKILL_NAMES: SKILL_NAMES,

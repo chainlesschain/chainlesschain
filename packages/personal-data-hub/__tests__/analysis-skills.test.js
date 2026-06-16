@@ -14,6 +14,7 @@ const {
   FootprintSkill,
   InterestsSkill,
   TimelineSkill,
+  OverviewSkill,
   runAnalysisSkill,
   ANALYSIS_SKILL_NAMES,
 } = require("../lib/analysis-skills");
@@ -105,13 +106,14 @@ describe("AnalysisSkill base", () => {
     expect(skill.resolveTimeWindow({}).since).toBeNull();
   });
 
-  it("ANALYSIS_SKILL_NAMES lists exactly 5", () => {
-    expect(ANALYSIS_SKILL_NAMES).toHaveLength(5);
+  it("ANALYSIS_SKILL_NAMES lists exactly 6", () => {
+    expect(ANALYSIS_SKILL_NAMES).toHaveLength(6);
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.spending");
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.relations");
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.footprint");
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.interests");
     expect(ANALYSIS_SKILL_NAMES).toContain("analysis.timeline");
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.overview");
   });
 
   it("base.run() throws (subclasses must override)", async () => {
@@ -552,5 +554,72 @@ describe("runAnalysisSkill", () => {
 
   it("requires vault in deps", async () => {
     await expect(runAnalysisSkill({}, "analysis.spending", {})).rejects.toThrow(/vault/);
+  });
+});
+
+// ─── OverviewSkill (cross-app de-silo aggregation) ──────────────────────
+describe("OverviewSkill — cross-app unified snapshot", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  function makeMsg(vault, opts) {
+    vault.putEvent({
+      id: opts.id, type: "event", subtype: opts.subtype || "message",
+      occurredAt: opts.occurredAt, actor: opts.actor || "person-self",
+      participants: opts.participants || [],
+      content: { title: opts.title || "msg" },
+      ingestedAt: Date.now(), source: defaultSource(opts.adapter || "test"),
+    });
+  }
+
+  it("aggregates events/spend/contacts across multiple apps", async () => {
+    const { vault } = rig;
+    makePerson(vault, "p-friend", ["小明"], {}, { adapter: "wechat" });
+    // payments from 2 finance/shopping apps
+    makePayment(vault, { id: "e1", amount: 30, occurredAt: ts(2026, 5, 1), adapter: "alipay-bill", subtype: "payment" });
+    makePayment(vault, { id: "e2", amount: 70, occurredAt: ts(2026, 5, 2), adapter: "shopping-taobao", subtype: "order" });
+    // messages from 2 social/im apps, same friend
+    makeMsg(vault, { id: "e3", occurredAt: ts(2026, 5, 3), adapter: "wechat", participants: ["p-friend"] });
+    makeMsg(vault, { id: "e4", occurredAt: ts(2026, 5, 4), adapter: "social-douyin", participants: ["p-friend"] });
+    makeMsg(vault, { id: "e5", occurredAt: ts(2026, 6, 1), adapter: "social-douyin", subtype: "post", participants: [] });
+
+    const skill = new OverviewSkill({ vault });
+    const r = await skill.run({ commentary: false });
+
+    expect(r.summary.totalEvents).toBe(5);
+    expect(r.summary.appsActive).toBe(4); // alipay-bill, shopping-taobao, wechat, social-douyin
+  });
+
+  it("counts 4 distinct apps + sums cross-app spend + top contact merged", async () => {
+    const { vault } = rig;
+    makePerson(vault, "p-friend", ["小明"], {}, { adapter: "wechat" });
+    makePayment(vault, { id: "a", amount: 30, occurredAt: ts(2026, 5, 1), adapter: "alipay-bill", subtype: "payment" });
+    makePayment(vault, { id: "b", amount: 70, occurredAt: ts(2026, 5, 2), adapter: "shopping-taobao", subtype: "order" });
+    makeMsg(vault, { id: "c", occurredAt: ts(2026, 5, 3), adapter: "wechat", participants: ["p-friend"] });
+    makeMsg(vault, { id: "d", occurredAt: ts(2026, 5, 4), adapter: "social-douyin", participants: ["p-friend"] });
+
+    const r = await new OverviewSkill({ vault }).run({ commentary: false });
+    const apps = r.byApp.map((x) => x.app).sort();
+    expect(apps).toContain("wechat");
+    expect(apps).toContain("social-douyin");
+    expect(apps).toContain("alipay-bill");
+    expect(apps).toContain("shopping-taobao");
+    expect(r.summary.appsActive).toBe(4);
+    expect(r.spending.total).toBe(100); // 30 + 70 across two apps
+    // the friend appears in wechat + douyin → one merged top contact w/ byApp breakdown
+    const friend = r.topContacts.find((c) => c.personId === "p-friend");
+    expect(friend).toBeTruthy();
+    expect(friend.interactions).toBe(2);
+    expect(Object.keys(friend.byApp).sort()).toEqual(["social-douyin", "wechat"]);
+    // byType has payment/order/message
+    const types = r.byType.map((t) => t.type);
+    expect(types).toContain("message");
+  });
+
+  it("is registered + runnable via runAnalysisSkill", async () => {
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.overview");
+    const r = await runAnalysisSkill({ vault: rig.vault }, "analysis.overview", { commentary: false });
+    expect(r.skill).toBe("analysis.overview");
   });
 });
