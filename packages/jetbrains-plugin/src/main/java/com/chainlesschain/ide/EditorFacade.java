@@ -39,16 +39,4 @@ public interface EditorFacade {
         r.put("count", 0);
         return r;
     }
-
-    /**
-     * Recent integrated-terminal text (best-effort). JetBrains has no VS Code-style
-     * shell integration, so this returns the visible terminal screen text rather
-     * than structured per-command output. Default impl returns no terminals.
-     * @return { terminals: [ { name, text } … ] }
-     */
-    default Map<String, Object> getTerminalOutput(int limit) {
-        Map<String, Object> r = new java.util.LinkedHashMap<String, Object>();
-        r.put("terminals", new java.util.ArrayList<Object>());
-        return r;
-    }
 }

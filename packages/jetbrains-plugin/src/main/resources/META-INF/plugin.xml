@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.4</version>
+    <version>0.4.5</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -26,9 +26,8 @@
               (<code>Ctrl/Cmd+Shift+T</code>).</li>
           <li><b>Editor-aware out of the box</b> — your selection and open tabs ride
               along with every prompt; after the agent edits a file, the IDE's fresh
-              errors/warnings flow back into the same run so it fixes what it broke;
-              the agent can also read the integrated terminal's recent output to see
-              what you just ran. (<code>CC_IDE_CONTEXT=0</code> to opt out.)</li>
+              errors/warnings flow back into the same run so it fixes what it broke.
+              (<code>CC_IDE_CONTEXT=0</code> to opt out.)</li>
           <li><b>Native diff review</b> — file edits become a side-by-side IDE diff:
               <em>Accept</em>, <em>Request changes…</em> (inline notes go back to the
               agent), or <em>Reject</em> (never writes). Multi-file changes open as a
@@ -62,9 +61,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-        <b>0.4.4</b> — new <code>getTerminalOutput</code> tool: the agent can read
-        the integrated terminal's recent text to see what you just ran (best-effort
-        screen text — JetBrains has no per-command shell integration).
+        <b>0.4.5</b> — reverted the experimental 0.4.4 <code>getTerminalOutput</code>
+        tool: the terminal API it used is not stable across IDE versions and caused
+        errors on some builds. Everything else is unchanged from 0.4.3.
         <br/><br/>
         <b>0.4.3</b> — the <code>@</code>-mention symbol completion now covers
         <b>methods/functions</b> too (not just classes) — type a method name to

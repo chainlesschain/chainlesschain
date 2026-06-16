@@ -1,6 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.4] — 2026-06-16 — getTerminalOutput tool
+## [0.4.5] — 2026-06-16 — revert getTerminalOutput (cross-version stability)
+
+- **Reverted the 0.4.4 `getTerminalOutput` tool.** The JetBrains terminal API it
+  relied on (`TerminalToolWindowManager.getWidgets()` → `JBTerminalWidget.
+  getTerminalTextBuffer()` / jediterm) is **not stable across IDE versions** (the
+  2024.3+ "reworked terminal" changed it), which caused errors on some builds.
+  0.4.5 is functionally identical to 0.4.3 (5 IDE tools: getSelection /
+  getDiagnostics / getOpenEditors / openDiff / openMultiDiff). A robust
+  cross-version terminal read may return later behind reflection + version guards.
+
+## [0.4.4] — 2026-06-16 — getTerminalOutput tool (reverted in 0.4.5)
 
 - New `getTerminalOutput` tool (`mcp__ide__getTerminalOutput`): the agent can read
   the integrated terminal's recent text — so it can see what you just ran and how

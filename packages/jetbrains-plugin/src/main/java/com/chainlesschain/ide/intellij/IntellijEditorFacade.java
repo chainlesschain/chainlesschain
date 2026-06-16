@@ -24,10 +24,6 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.terminal.JBTerminalWidget;
-import com.jediterm.terminal.model.TerminalLine;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import org.jetbrains.plugins.terminal.TerminalToolWindowManager;
 
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -293,79 +289,6 @@ public final class IntellijEditorFacade implements EditorFacade {
             }
         }
         return picked;
-    }
-
-    /**
-     * Best-effort terminal read: the visible screen text of each integrated
-     * terminal. JetBrains exposes no shell-integration command structure, so this
-     * is raw text (no per-command output/exit-code). Read on the EDT; the jediterm
-     * buffer is additionally locked. Any API variance → empty terminals.
-     */
-    @Override
-    public Map<String, Object> getTerminalOutput(int limit) {
-        final List<Map<String, Object>> terminals = new ArrayList<>();
-        ApplicationManager.getApplication().invokeAndWait(() -> {
-            try {
-                int idx = 0;
-                for (JBTerminalWidget w : TerminalToolWindowManager.getInstance(project).getWidgets()) {
-                    String text = readTerminalText(w);
-                    if (text != null && !text.isEmpty()) {
-                        Map<String, Object> t = new LinkedHashMap<>();
-                        t.put("name", "Terminal " + (++idx));
-                        t.put("text", text);
-                        terminals.add(t);
-                    }
-                }
-            } catch (Throwable ignored) {
-                // no terminal tool window / API variance → no terminals
-            }
-        });
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("terminals", terminals);
-        return out;
-    }
-
-    private static String readTerminalText(JBTerminalWidget w) {
-        try {
-            TerminalTextBuffer buf = w.getTerminalTextBuffer();
-            if (buf == null) return null;
-            StringBuilder sb = new StringBuilder();
-            buf.lock();
-            try {
-                int h = buf.getHeight();
-                for (int i = 0; i < h; i++) {
-                    TerminalLine line = buf.getLine(i);
-                    if (line == null) continue;
-                    String t = line.getText();
-                    sb.append(t == null ? "" : stripTrailingSpaces(t)).append('\n');
-                }
-            } finally {
-                buf.unlock();
-            }
-            // Drop leading/trailing blank lines; keep the meaningful middle.
-            return trimBlankEdges(sb.toString());
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    private static String stripTrailingSpaces(String s) {
-        int end = s.length();
-        while (end > 0 && (s.charAt(end - 1) == ' ' || s.charAt(end - 1) == '\t')) end--;
-        return s.substring(0, end);
-    }
-
-    private static String trimBlankEdges(String s) {
-        String[] lines = s.split("\n", -1);
-        int start = 0, end = lines.length;
-        while (start < end && lines[start].isEmpty()) start++;
-        while (end > start && lines[end - 1].isEmpty()) end--;
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < end; i++) {
-            if (i > start) sb.append('\n');
-            sb.append(lines[i]);
-        }
-        return sb.toString();
     }
 
     /** Resolve a path → VirtualFile and write text (refreshes VFS if needed). */
