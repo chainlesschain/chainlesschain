@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.6"
+version = "0.4.7"
 
 repositories {
     mavenCentral()
@@ -23,9 +23,14 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        // Community is enough — the bridge uses only platform + terminal APIs.
         intellijIdeaCommunity("2024.2")
-        bundledPlugin("org.jetbrains.plugins.terminal")
+        // Java PSI (PsiShortNamesCache etc.) for @-mention class/method symbols.
+        // Compile-time only: plugin.xml does NOT depend on com.intellij.java, so the
+        // plugin still loads on non-Java IDEs — the symbol lookup is try/catch-guarded
+        // and simply yields no symbols when the Java PSI classes are absent.
+        // (The terminal customizer was dropped in 0.4.7 — deprecated API; the
+        // discovery lockfile covers the "cc in a terminal auto-connects" case.)
+        bundledPlugin("com.intellij.java")
         pluginVerifier() // for ./gradlew verifyPlugin
     }
 }
@@ -59,6 +64,9 @@ intellijPlatform {
     // before they break on those versions.
     pluginVerification {
         ides {
+            // 2025.2 is the newest build resolvable via the Gradle repos here;
+            // 2026.x artifacts aren't published to the dependency repo yet, so they
+            // can only be checked by the Marketplace verifier post-publish.
             ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
         }
     }

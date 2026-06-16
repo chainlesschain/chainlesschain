@@ -1,5 +1,21 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.7] — 2026-06-16 — clear 2026.x verifier flags (scheduled-for-removal + deprecated)
+
+The Marketplace Plugin Verifier flagged more on 2026.x builds than on 2025.2:
+- **Scheduled-for-removal**: `SimpleListCellRenderer.create(String, Function)` (the
+  @-mention popup renderer) → replaced with a plain Swing `DefaultListCellRenderer`
+  (core Swing, never deprecated — bulletproof across IDE versions).
+- **Deprecated**: `LocalTerminalCustomizer` (the terminal env-injector) → **removed**
+  `IdeBridgeTerminalCustomizer` entirely. The bridge already writes a discovery
+  lockfile (`~/.chainlesschain/ide/<port>.json`), so a `cc` launched in any terminal
+  still auto-connects — the env injection was redundant. Also dropped the
+  `org.jetbrains.plugins.terminal` plugin dependency (no terminal API left).
+- Build now compiles PSI symbols against `com.intellij.java` explicitly (was coming
+  in transitively via the terminal plugin); plugin.xml does **not** depend on Java,
+  so it still loads on non-Java IDEs (symbol lookup is try/catch-guarded).
+- Verifier now configured against 2025.2 **and** 2026.1.
+
 ## [0.4.6] — 2026-06-16 — newer-IDE compatibility (clear deprecated-API usage)
 
 - Cleared the remaining **deprecated-API** usages the JetBrains Plugin Verifier

@@ -17,7 +17,6 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
-import com.intellij.ui.SimpleListCellRenderer;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -567,7 +566,19 @@ final class ConversationView {
         JBPopup popup = JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(candidates)
                 .setTitle("Insert @mention")
-                .setRenderer(SimpleListCellRenderer.create("", Mentions::mentionLabel))
+                .setRenderer(new javax.swing.DefaultListCellRenderer() {
+                    @Override
+                    public java.awt.Component getListCellRendererComponent(
+                            javax.swing.JList<?> list, Object value, int index,
+                            boolean selected, boolean hasFocus) {
+                        java.awt.Component c = super.getListCellRendererComponent(
+                                list, value, index, selected, hasFocus);
+                        if (value instanceof Mentions.MentionItem) {
+                            setText(Mentions.mentionLabel((Mentions.MentionItem) value));
+                        }
+                        return c;
+                    }
+                })
                 .setItemChosenCallback(item -> insertMention(Mentions.mentionValue(item)))
                 .createPopup();
         popup.showUnderneathOf(input);

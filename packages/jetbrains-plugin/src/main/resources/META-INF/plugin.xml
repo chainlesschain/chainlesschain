@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.6</version>
+    <version>0.4.7</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -11,9 +11,9 @@
         your app, without leaving the IDE.
         <br/><br/>
         It runs a localhost MCP server exposing your active selection, diagnostics,
-        open editors and native diff review as tools the agent can call, and injects
-        the discovery env vars into integrated terminals so a <code>cc agent</code>
-        you launch there auto-connects too.
+        open editors and native diff review as tools the agent can call, and writes a
+        discovery lockfile so a <code>cc agent</code> you run in any terminal
+        auto-connects to this project's bridge.
         <br/><br/>
         <b>What you get</b>
         <ul>
@@ -61,6 +61,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.7</b> — cleared the remaining API-compatibility flags the Plugin
+        Verifier reported on 2026.x: the @-mention list renderer no longer uses a
+        scheduled-for-removal helper, and the deprecated terminal customizer was
+        removed (a <code>cc</code> you run in a terminal still auto-connects via the
+        bridge's discovery lockfile).
+        <br/><br/>
         <b>0.4.6</b> — newer-IDE compatibility: removed the last deprecated-API
         usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
         reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
@@ -98,7 +104,6 @@
     ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends>org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
@@ -110,11 +115,6 @@
         <toolWindow id="ChainlessChain Preview" anchor="bottom" secondary="true"
                     icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.PreviewToolWindowFactory"/>
-    </extensions>
-
-    <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
-        <localTerminalCustomizer
-                implementation="com.chainlesschain.ide.intellij.IdeBridgeTerminalCustomizer"/>
     </extensions>
 
     <actions>
