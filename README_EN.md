@@ -2276,14 +2276,15 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.73-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.114-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.162.9-blue.svg)
+![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
+![Skills](https://img.shields.io/badge/skills-146-blue.svg)
+![Commands](https://img.shields.io/badge/CLI%20commands-158-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
