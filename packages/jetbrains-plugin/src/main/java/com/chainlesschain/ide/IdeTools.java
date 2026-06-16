@@ -86,7 +86,68 @@ public final class IdeTools {
             }
         });
 
+        tools.add(new BaseTool(
+                "openMultiDiff",
+                "Open a native multi-file diff for a whole changeset and BLOCK until the "
+                        + "user accepts all, picks a subset, or rejects. `files` is a list of "
+                        + "{ path, modifiedText, originalText? }; chosen files are written. "
+                        + "Returns { outcome:'accepted'|'partial'|'rejected', written:[path…], "
+                        + "count } — this call can take a while, that is expected.",
+                openMultiDiffSchema()) {
+            @Override public Object call(Map<String, Object> args) {
+                if (args == null) args = new LinkedHashMap<>();
+                Object filesObj = args.get("files");
+                List<MultiDiff.FileChange> changes = new ArrayList<>();
+                if (filesObj instanceof List) {
+                    for (Object o : (List<?>) filesObj) {
+                        if (!(o instanceof Map)) continue;
+                        Map<?, ?> m = (Map<?, ?>) o;
+                        Object p = m.get("path");
+                        Object mod = m.get("modifiedText");
+                        if (!(p instanceof String) || !(mod instanceof String)) continue;
+                        Object orig = m.get("originalText");
+                        changes.add(new MultiDiff.FileChange((String) p, (String) mod,
+                                orig instanceof String ? (String) orig : null));
+                    }
+                }
+                if (changes.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "openMultiDiff requires a non-empty `files` array of { path, modifiedText }");
+                }
+                Map<String, Object> res = editor.openMultiDiff(changes, (String) args.get("title"));
+                if (res != null) return res;
+                Map<String, Object> fallback = new LinkedHashMap<>();
+                fallback.put("outcome", "rejected");
+                return fallback;
+            }
+        });
+
         return tools;
+    }
+
+    private static Map<String, Object> openMultiDiffSchema() {
+        Map<String, Object> fileProps = new LinkedHashMap<>();
+        fileProps.put("path", strProp("Absolute path of the file."));
+        fileProps.put("modifiedText", strProp("Proposed new content for this file."));
+        fileProps.put("originalText", strProp("Original content; defaults to the file on disk."));
+        Map<String, Object> fileItem = new LinkedHashMap<>();
+        fileItem.put("type", "object");
+        fileItem.put("properties", fileProps);
+        fileItem.put("required", new ArrayList<>(Arrays.asList("path", "modifiedText")));
+
+        Map<String, Object> filesProp = new LinkedHashMap<>();
+        filesProp.put("type", "array");
+        filesProp.put("items", fileItem);
+        filesProp.put("description", "The changeset: one entry per file.");
+
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("files", filesProp);
+        props.put("title", strProp("Review dialog title (optional)."));
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("type", "object");
+        s.put("properties", props);
+        s.put("required", new ArrayList<>(Arrays.asList("files")));
+        return s;
     }
 
     private static Map<String, Object> emptyObjectSchema() {

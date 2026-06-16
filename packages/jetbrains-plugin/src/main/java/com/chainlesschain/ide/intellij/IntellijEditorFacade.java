@@ -1,9 +1,13 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.EditorFacade;
+import com.chainlesschain.ide.MultiDiff;
 import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffDialogHints;
 import com.intellij.diff.DiffManager;
+import com.intellij.diff.chains.SimpleDiffRequestChain;
 import com.intellij.diff.contents.DocumentContent;
+import com.intellij.diff.requests.DiffRequest;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -16,14 +20,22 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.editor.impl.DocumentMarkupModel;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
 
+import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -180,6 +192,110 @@ public final class IntellijEditorFacade implements EditorFacade {
             comments.add(c);
         }
         return comments;
+    }
+
+    @Override
+    public Map<String, Object> openMultiDiff(List<MultiDiff.FileChange> files, String title) {
+        final List<MultiDiff.FileChange> norm = MultiDiff.normalizeMultiDiffFiles(files);
+        final AtomicReference<Map<String, Object>> result = new AtomicReference<>();
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            Map<String, Object> r = new LinkedHashMap<>();
+            if (norm.isEmpty()) {
+                r.put("outcome", "rejected");
+                r.put("written", new ArrayList<String>());
+                r.put("count", 0);
+                result.set(r);
+                return;
+            }
+            DiffContentFactory factory = DiffContentFactory.getInstance();
+            List<DiffRequest> requests = new ArrayList<>();
+            for (MultiDiff.FileChange f : norm) {
+                String left = f.originalText;
+                if (left == null) {
+                    VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(f.path);
+                    if (vf != null) {
+                        Document d = FileDocumentManager.getInstance().getDocument(vf);
+                        left = d == null ? "" : d.getText();
+                    }
+                }
+                DocumentContent l = factory.create(left == null ? "" : left);
+                DocumentContent rt = factory.create(f.modifiedText == null ? "" : f.modifiedText);
+                requests.add(new SimpleDiffRequest(f.path, l, rt, "Current", "Proposed"));
+            }
+            SimpleDiffRequestChain chain = new SimpleDiffRequestChain(requests);
+            DiffManager.getInstance().showDiff(project, chain, DiffDialogHints.DEFAULT);
+
+            MultiDiff.Summary summary = MultiDiff.changesetSummary(norm);
+            int choice = Messages.showYesNoCancelDialog(project,
+                    "Apply " + summary.count + " file change(s)?  (+" + summary.totalAdded
+                            + " / -" + summary.totalRemoved + ")",
+                    title != null ? title : "ChainlessChain Multi-file Review",
+                    "Accept all", "Choose files…", "Reject", null);
+
+            List<String> written = new ArrayList<>();
+            String outcome;
+            if (choice == Messages.YES) {
+                for (MultiDiff.FileChange f : norm) {
+                    applyToPath(f.path, f.modifiedText);
+                    written.add(f.path);
+                }
+                outcome = "accepted";
+            } else if (choice == Messages.NO) {
+                Set<String> picked = pickFiles(summary);
+                if (picked.isEmpty()) {
+                    outcome = "rejected";
+                } else {
+                    for (MultiDiff.FileChange f : MultiDiff.selectWrites(norm, picked)) {
+                        applyToPath(f.path, f.modifiedText);
+                        written.add(f.path);
+                    }
+                    outcome = written.size() == norm.size() ? "accepted" : "partial";
+                }
+            } else {
+                outcome = "rejected";
+            }
+            r.put("outcome", outcome);
+            r.put("written", written);
+            r.put("count", written.size());
+            result.set(r);
+        });
+        return result.get();
+    }
+
+    /** §4: checkbox picker (all pre-checked) → chosen paths, or empty if cancelled. */
+    private Set<String> pickFiles(MultiDiff.Summary summary) {
+        final Map<JCheckBox, String> boxes = new LinkedHashMap<>();
+        final JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        for (MultiDiff.FileStat st : summary.files) {
+            JCheckBox cb = new JCheckBox(MultiDiff.fileLabel(st), true);
+            boxes.put(cb, st.path);
+            panel.add(cb);
+        }
+        DialogWrapper dlg = new DialogWrapper(project, true) {
+            {
+                setTitle("Choose files to apply");
+                init();
+            }
+            @Override
+            protected JComponent createCenterPanel() {
+                return new JScrollPane(panel);
+            }
+        };
+        Set<String> picked = new LinkedHashSet<>();
+        if (dlg.showAndGet()) {
+            for (Map.Entry<JCheckBox, String> e : boxes.entrySet()) {
+                if (e.getKey().isSelected()) picked.add(e.getValue());
+            }
+        }
+        return picked;
+    }
+
+    /** Resolve a path → VirtualFile and write text (refreshes VFS if needed). */
+    private void applyToPath(String path, String text) {
+        VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(path);
+        if (vf == null) vf = LocalFileSystem.getInstance().refreshAndFindFileByPath(path);
+        applyToFile(vf, text);
     }
 
     private void applyToFile(VirtualFile vf, String text) {

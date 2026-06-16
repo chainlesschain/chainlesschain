@@ -25,4 +25,18 @@ public interface EditorFacade {
      * @return { outcome:"accepted"|"rejected", path, finalText? }
      */
     Map<String, Object> openDiff(String path, String modifiedText, String originalText, String title);
+
+    /**
+     * §4: open a native multi-file diff for a changeset and BLOCK until the user
+     * decides — accept all, pick a subset, or reject. Chosen files are written.
+     * Default impl rejects (so non-IntelliJ fakes need not implement it).
+     * @return { outcome:"accepted"|"partial"|"rejected", written:[path…], count }
+     */
+    default Map<String, Object> openMultiDiff(List<MultiDiff.FileChange> files, String title) {
+        Map<String, Object> r = new java.util.LinkedHashMap<String, Object>();
+        r.put("outcome", "rejected");
+        r.put("written", new java.util.ArrayList<String>());
+        r.put("count", 0);
+        return r;
+    }
 }
