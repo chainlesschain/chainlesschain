@@ -55,17 +55,21 @@ implemented and build-verified** (0.4.0).
       `{type:plan,action}`) cards above the input, same stdin protocol as VS Code;
       `/plan` `/approve` `/reject` slash commands too.
 
-## Publish — ⚠️ the required final step (held on runIde verification)
+## Publish — ✅ DONE (0.4.0 published 2026-06-16)
 
-The glue is implemented + build-verified, version bumped to **0.4.0**, CHANGELOG
-written. **Before publishing**, in an environment that can drive a GUI:
-
-- [ ] `./gradlew runIde` → exercise each feature (tabs, slash commands, selection
-      actions, diff review, multi-file diff, preview) in the sandbox IDE.
-- [ ] Then **publish (required, not optional)**: tag `ide-jetbrains-v0.4.0` →
-      CI `.github/workflows/ide-extensions.yml` JetBrains job `publishPlugin` with
-      `JETBRAINS_PUBLISH_TOKEN` (currently live on the Marketplace: **0.3.3**).
+- [x] `./gradlew runIde` GUI pass — exercised in the sandbox; **caught + fixed 3
+      real bugs** compilation missed: silent reply-drop (TurnState CCE), blank
+      stripe icon (raster-in-SVG → real PNG), cramped input (own full-width line).
+      User-confirmed: chat replies, icon shows, input on its own line.
+- [x] **Published**: tag `ide-jetbrains-v0.4.0` → CI `ide-extensions.yml` JetBrains
+      job `publishPlugin` ✓ (run 27604136165). Uploaded to the Marketplace; in
+      JetBrains' auto-validation queue (updates API lists it minutes–hours later;
+      was 0.3.3).
 - [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
+
+## ⏳ Future add (not blocking)
+- [ ] @-mention **workspace-symbol** entries via PSI search (file + IDE-mention
+      completion already wired).
 
 ---
 
