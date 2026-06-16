@@ -31,7 +31,7 @@ const { partitionBatch } = require("../lib/batch");
  */
 
 // Fake better-sqlite3-style driver answering the parser's PRAGMA + SELECTs.
-function makeFakeDb({ msgRows, userRows, msgCols, userCols }) {
+function makeFakeDb({ msgRows, userRows, msgCols, userCols, partCols, partRows }) {
   class FakeStmt {
     constructor(sql) {
       this.sql = sql;
@@ -40,8 +40,10 @@ function makeFakeDb({ msgRows, userRows, msgCols, userCols }) {
       const s = this.sql;
       if (/PRAGMA table_info\(msg\)/.test(s)) return msgCols;
       if (/FROM msg/.test(s)) return msgRows;
-      if (/PRAGMA table_info\(SIMPLE_USER\)/.test(s)) return userCols;
-      if (/FROM SIMPLE_USER/.test(s)) return userRows;
+      if (/PRAGMA table_info\(SIMPLE_USER\)/.test(s)) return userCols || [];
+      if (/FROM SIMPLE_USER/.test(s)) return userRows || [];
+      if (/PRAGMA table_info\(participant\)/.test(s)) return partCols || [];
+      if (/FROM participant/.test(s)) return partRows || [];
       return [];
     }
   }
@@ -260,6 +262,41 @@ describe("DouyinAdapter — 本地直读 <uid>_im.db", () => {
     const a = freshAdapter(DEFAULT_FAKE, { existsSync: () => false });
     const raws = await collect(a.sync({ imDbPath: "/does/not/exist_im.db" }));
     expect(raws).toHaveLength(0);
+  });
+
+  // device-verified 2026-06-16: real Douyin IM schema uses `participant`
+  // (conversation_id, user_id), not SIMPLE_USER → contacts must come from it.
+  it("extracts contacts from `participant` when SIMPLE_USER absent (real schema)", async () => {
+    const spec = {
+      msgCols: DEFAULT_FAKE.msgCols,
+      msgRows: DEFAULT_FAKE.msgRows,
+      userCols: [], // no SIMPLE_USER table on a real device
+      userRows: [],
+      partCols: [{ name: "conversation_id" }, { name: "user_id" }, { name: "sort_order" }],
+      partRows: [{ uid: 111 }, { uid: 222 }, { uid: 222 }], // dup 222 → deduped
+    };
+    const a = freshAdapter(spec);
+    const raws = await collect(a.sync({ imDbPath: "/fake/123_im.db" }));
+    const contacts = raws.filter((r) => r.kind === "contact");
+    expect(contacts.map((r) => r.payload.uid).sort()).toEqual(["111", "222"]);
+    // each participant uid → a CONTACT person keyed by douyin-uid
+    const n = a.normalize(contacts[0]);
+    expect(n.persons[0].identifiers["douyin-uid"]).toEqual([contacts[0].payload.uid]);
+  });
+
+  it("participant dedups against SIMPLE_USER contacts (no double-count)", async () => {
+    const spec = {
+      msgCols: DEFAULT_FAKE.msgCols,
+      msgRows: DEFAULT_FAKE.msgRows,
+      userCols: DEFAULT_FAKE.userCols,
+      userRows: DEFAULT_FAKE.userRows, // uid 222 from SIMPLE_USER
+      partCols: [{ name: "conversation_id" }, { name: "user_id" }],
+      partRows: [{ uid: 222 }, { uid: 333 }], // 222 already seen, only 333 is new
+    };
+    const a = freshAdapter(spec);
+    const raws = await collect(a.sync({ imDbPath: "/fake/123_im.db" }));
+    const uids = raws.filter((r) => r.kind === "contact").map((r) => r.payload.uid).sort();
+    expect(uids).toEqual(["222", "333"]); // 222 not duplicated
   });
 });
 

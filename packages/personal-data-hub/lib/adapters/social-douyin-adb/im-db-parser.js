@@ -138,6 +138,7 @@ function parseImDb(dbPath, opts = {}) {
       contactCount: 0,
       hadMsgTable: false,
       hadSimpleUserTable: false,
+      hadParticipantTable: false,
     },
   };
   try {
@@ -225,6 +226,43 @@ function parseImDb(dbPath, opts = {}) {
             avatarUrl: r.avatarUrl || null,
             followStatus:
               typeof r.followStatus === "number" ? r.followStatus : null,
+          });
+        }
+        out.diagnostic.contactCount = out.contacts.length;
+      }
+    }
+
+    // ─── participant table (device-verified 2026-06-16) ──────────────────
+    // Real Douyin IM schema keeps conversation members in `participant`
+    // (conversation_id, user_id, sort_order; UNIQUE(conversation_id,user_id)),
+    // NOT SIMPLE_USER (which is older/other builds). Pull distinct member uids
+    // as contacts — uid-only (nickname/avatar live in a separate user table),
+    // so a PERSON gets created keyed by douyin-uid even without a name.
+    // Dedup against contacts already harvested from SIMPLE_USER.
+    const partTableInfo = trySelect(db, "PRAGMA table_info(participant)");
+    if (Array.isArray(partTableInfo) && partTableInfo.length > 0) {
+      out.diagnostic.hadParticipantTable = true;
+      const columns = new Set(partTableInfo.map((r) => r.name));
+      const uidCol = pickCol(columns, ["user_id", "uid", "UID"]);
+      if (uidCol) {
+        const seen = new Set(
+          out.contacts.map((c) => c.uid).filter(Boolean),
+        );
+        const sql =
+          `SELECT DISTINCT ${uidCol} AS uid FROM participant ` +
+          `WHERE ${uidCol} IS NOT NULL LIMIT ${limitContacts}`;
+        const rows = trySelect(db, sql) || [];
+        for (const r of rows) {
+          const uid = r.uid != null ? String(r.uid) : null;
+          if (!uid || seen.has(uid)) continue;
+          seen.add(uid);
+          out.contacts.push({
+            uid,
+            shortId: null,
+            name: null,
+            avatarUrl: null,
+            followStatus: null,
+            fromParticipant: true,
           });
         }
         out.diagnostic.contactCount = out.contacts.length;
