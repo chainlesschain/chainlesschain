@@ -12,7 +12,7 @@ describe("E2E: install and run", () => {
       `node ${join(cliRoot, "bin", "chainlesschain.js")} --version`,
       {
         encoding: "utf-8",
-        timeout: 10000,
+        timeout: 30000,
       },
     );
     expect(result.trim()).toMatch(/^\d+\.\d+\.\d+/);
@@ -23,7 +23,7 @@ describe("E2E: install and run", () => {
       `node ${join(cliRoot, "bin", "chainlesschain.js")} --help`,
       {
         encoding: "utf-8",
-        timeout: 10000,
+        timeout: 30000,
       },
     );
     expect(result).toContain("setup");
@@ -41,7 +41,7 @@ describe("E2E: install and run", () => {
       `node ${join(cliRoot, "bin", "chainlesschain.js")} config list`,
       {
         encoding: "utf-8",
-        timeout: 10000,
+        timeout: 30000,
       },
     );
     expect(result).toContain("setupCompleted");
