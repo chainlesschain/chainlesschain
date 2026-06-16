@@ -412,10 +412,12 @@ describe("chainlesschain ui – --token option", () => {
       };
       proc.stdout.on("data", onData);
       proc.stderr.on("data", onData);
+      // Match the shared startUiServer fallback: cold `cc ui` start can exceed
+      // 8s under the singleFork e2e load. See internal handbook trap #31.
       fallbackTimer = setTimeout(() => {
         fallbackTimer = null;
         resolve();
-      }, 8000);
+      }, 25000);
     });
 
     const res = await httpGet(HTTP_PORT, "/");
@@ -512,10 +514,12 @@ describe("chainlesschain ui – --web-panel-dir (Vue3 SPA mode)", () => {
         }
         reject(err);
       });
+      // Match the shared startUiServer fallback: cold `cc ui` start can exceed
+      // 8s under the singleFork e2e load. See internal handbook trap #31.
       fallbackTimer = setTimeout(() => {
         fallbackTimer = null;
         resolve(p);
-      }, 8000);
+      }, 25000);
     });
   });
 
