@@ -83,9 +83,11 @@ class FamilyGuardSyncConnector @Inject constructor(
                 .onFailure { Timber.w(it, "[FamilyGuardSyncConnector] ensureRegistered failed (will retry)") }
 
             while (isActive) {
-                runCatching { connectOnce(myDid) }
+                // 有待连 peer 时快速重试（加速 offer/answer rendezvous）；全连上后慢轮询省电。
+                val pending = runCatching { connectOnce(myDid) }
                     .onFailure { Timber.w(it, "[FamilyGuardSyncConnector] connect pass failed") }
-                delay(RECONNECT_INTERVAL_MS)
+                    .getOrDefault(0)
+                delay(if (pending > 0) RETRY_INTERVAL_MS else IDLE_INTERVAL_MS)
             }
         }
     }
@@ -93,13 +95,23 @@ class FamilyGuardSyncConnector @Inject constructor(
     /** 配对成功后调；确保循环在跑（首次配对前 ensureConnected 可能因无 DID 早退）。 */
     override fun onPairingEstablished() = ensureConnected()
 
-    /** 单趟：对尚未连上的已配对 peer 直接按 DID 建连（按选举角色 offerer/responder）。 */
-    private suspend fun connectOnce(myDid: String) {
+    /**
+     * 单趟：对尚未连上的已配对 peer 直接按 DID 建连（按选举角色 offerer/responder）。返回本趟
+     * 仍待连的目标数（>0 表示该快速重试）。
+     *
+     * **单连接约束**：底层 WebRTCClient 当前只持一条连接，[P2PClient.connectFamilyPeer] 内部
+     * connect 会先 disconnect 既有连接。故：① 若已与任一已配对 peer 连上，本趟直接跳过（否则
+     * 拨另一个 peer（如已离线的旧绑定）会把好连接拆掉）；② 一旦本趟某个 connect 成功即停，
+     * 不再拨后续 peer。1:1 家庭场景下这让连接稳定保持。
+     */
+    private suspend fun connectOnce(myDid: String): Int {
         val peerDids = relationshipRepository.observeAllActive().first()
             .map { it.friendDid }
             .distinct()
-        val alreadyConnected = p2pClient.connectedPeers.value.values.map { it.did }.toSet()
-        val targets = targetsFor(myDid = myDid, peerDids = peerDids, alreadyConnected = alreadyConnected)
+        val connected = p2pClient.connectedPeers.value.values.map { it.did }.toSet()
+        // 已持一条家庭连接 → 不再拨号（避免单连接被拆）。
+        if (peerDids.any { it in connected }) return 0
+        val targets = targetsFor(myDid = myDid, peerDids = peerDids, alreadyConnected = connected)
         for (t in targets) {
             Timber.i(
                 "[FamilyGuardSyncConnector] connecting family peer did=${t.did.take(20)}… " +
@@ -107,14 +119,20 @@ class FamilyGuardSyncConnector @Inject constructor(
             )
             runCatching { p2pClient.connectFamilyPeer(t.did, myDid, t.isInitiator) }
                 .onFailure { Timber.w(it, "[FamilyGuardSyncConnector] connect to ${t.did} failed") }
+            // 连上即停（单连接）：避免继续拨别的 peer 把刚建好的连接拆掉。
+            if (p2pClient.connectedPeers.value.values.any { it.did in peerDids }) break
         }
+        return targets.size
     }
 
     data class ConnectTarget(val did: String, val isInitiator: Boolean)
 
     companion object {
-        /** 重连/重发现间隔；与 SyncCoordinator 推送节奏 (30s) 同量级。 */
-        const val RECONNECT_INTERVAL_MS = 30_000L
+        /** 有待连 peer 时的快速重试间隔（加速 WebRTC offer/answer rendezvous）。 */
+        const val RETRY_INTERVAL_MS = 3_000L
+
+        /** 全部已连上后的慢轮询间隔（省电；连上后 connectOnce 直接早返，几乎零开销）。 */
+        const val IDLE_INTERVAL_MS = 30_000L
 
         /**
          * Glare 规避：DID 字典序较小的一方做 offerer（主动发 offer），另一方做 responder
