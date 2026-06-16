@@ -596,7 +596,18 @@ class P2PClient @Inject constructor(
         if (raw.contains("\"type\":\"chainlesschain:command:request\"") ||
             raw.contains("\"type\": \"chainlesschain:command:request\"")
         ) {
-            return
+            // FAMILY-67 (第9层): 两类 command:request 共用本 SharedFlow，需区分：
+            //   - SignalingRpc/TerminalRpc：payload 是 **JSONObject**（"payload":{...}），
+            //     盲解 P2PMessage 会 crash，交给它们的订阅者 → 跳过。
+            //   - P2PClient.sendCommand（sync.push / file.* 等入向请求）：payload 是
+            //     **stringified JSON**（"payload":"..."），应落到下面 P2PMessage 解码 →
+            //     handleIncomingCommandRequest → CommandRouter（sync.* → SyncCommandRouter）。
+            //     旧守卫无脑跳过全部 → 家庭/桌面入向 sync.push 永不被处理（跨设备同步不通的一层）。
+            val payloadIsObject = Regex("\"payload\"\\s*:\\s*\\{").containsMatchIn(raw)
+            if (payloadIsObject) {
+                return
+            }
+            // payload 是 string → 是 P2PMessage 包的入向命令请求，继续往下走 P2PMessage 解码分发。
         }
         try {
             val message = raw.fromJson<P2PMessage>()
