@@ -69,13 +69,14 @@
 
 ---
 
-## 微信 WeChat（`com.tencent.mm`）— `reference`（公开 DFIR；字段名级，未导出任何真实内容）
+## 微信 WeChat（`com.tencent.mm`）— `schema-accurate`（完整 258 表 schema 已入库：`docs/internal/reference/wechat_schema.sql`，源自 sjqz 取证项目）
 
 > 主库 `/data/data/com.tencent.mm/MicroMsg/<md5(uin)>/EnMicroMsg.db`（标准 SQLCipher）。
-> 解密：① Method B 免密钥内存打捞（已真机验证可行，登录态下解密页在内存）② Method A frida
-> 抓 key 离线解密。下表为**公开 DFIR 已知字段名**（abrignoni 等），本会话**未导出真实内容**；
-> 真机实测列序后改标 `device-verified`。⚠️ 微信 8.x 为多库/分表，下列以经典 `EnMicroMsg.db`
-> 结构为准，8.x 部分消息可能在分库（见库清单末尾）。
+> 解密：① Method B 免密钥内存打捞（已真机验证，登录态下解密页在内存）② Method A frida 抓 key
+> 离线解密（sjqz `tools/wechat/capture_key_*.py` + `libWCDB.so` hook）。
+> **下列列定义为 sjqz `wechat_schema.sql` 实测 schema 的精确字段**（字段名级，未导出任何真实内容）。
+> 258 张表里绝大多数是缓存/配置；个人数据核心是下面 5 张（message/rcontact/chatroom/conversation/userinfo）。
+> 完整 258 表清单与解析逻辑见 sjqz `sql/wechat_schema.sql` + `docs/wechat_parser_module.md`。
 
 ### `message`（聊天消息）→ PDH **EVENT**(subtype `MESSAGE`/`INTERACTION`)
 
@@ -114,6 +115,24 @@
 | `displayname` | 与 memberlist 对应的群昵称（分号分隔）| |
 | `roomowner` | 群主 wxid | |
 | `roomdata` | 成员详情（protobuf BLOB）| |
+| `memberCount` | 群成员数 | |
+| `chatroomnotice` | 群公告（文本）| → TOPIC.extra |
+| `roomowner` | 群主 wxid | |
+| `modifytime`/`addtime` | 修改/入群时间(LONG) | |
+
+### `conversation`（会话列表 / 最近聊天）→ PDH **TOPIC**(会话摘要)
+
+> sjqz 实测列：`conversation(unReadCount INTEGER, status INT, isSend INT, createTime LONG, username VARCHAR(40), content TEXT, reserved TEXT)`
+
+| 列 | 含义 |
+|---|---|
+| `username` | 会话对端（wxid 或 `@chatroom`）→ 关联 message.talker / rcontact / chatroom |
+| `unReadCount` | 未读数 → 关注度信号 |
+| `content` | 最后一条消息摘要 |
+| `createTime` | 最后活跃时间(LONG) → 会话排序 |
+| `isSend`/`status` | 最后消息方向/状态 |
+
+→ 直接给「会话列表 UI」用；AI 判断**活跃联系人/未读积压**的首选表（比全表扫 message 快）。
 
 ### 其它表 / 同账号其它库
 
