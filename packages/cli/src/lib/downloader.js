@@ -7,7 +7,6 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
-import { Readable } from "node:stream";
 import { execSync } from "node:child_process";
 import ora from "ora";
 import { GITHUB_RELEASES_URL } from "../constants.js";
@@ -59,25 +58,24 @@ export async function downloadRelease(version, options = {}) {
     );
     let downloadedBytes = 0;
 
+    // Stream the fetch body to disk via an async generator (stable APIs only —
+    // avoids the experimental stream.Readable.fromWeb); `pipeline` keeps the
+    // backpressure + error handling. Progress is tracked as chunks flow through.
     const reader = response.body.getReader();
-    const stream = new ReadableStream({
-      async pull(controller) {
+    async function* trackProgress() {
+      while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          controller.close();
-          return;
-        }
+        if (done) return;
         downloadedBytes += value.byteLength;
         if (totalBytes > 0) {
           const pct = ((downloadedBytes / totalBytes) * 100).toFixed(1);
           spinner.text = `Downloading ${assetName}... ${pct}% (${formatBytes(downloadedBytes)}/${formatBytes(totalBytes)})`;
         }
-        controller.enqueue(value);
-      },
-    });
+        yield value;
+      }
+    }
 
-    const nodeStream = Readable.fromWeb(stream);
-    await pipeline(nodeStream, createWriteStream(destPath));
+    await pipeline(trackProgress(), createWriteStream(destPath));
 
     spinner.succeed(
       `Downloaded ${assetName} (${formatBytes(downloadedBytes)})`,

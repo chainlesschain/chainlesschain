@@ -95,7 +95,6 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const url = require("url");
 
 const COMFYUI_URL = process.env.COMFYUI_URL || "http://localhost:8188";
 const POLL_INTERVAL_MS = 2000;
@@ -103,12 +102,12 @@ const POLL_TIMEOUT_MS = 120000;
 
 function httpRequest(urlStr, options = {}, body = null) {
   return new Promise((resolve, reject) => {
-    const parsed = url.parse(urlStr);
+    const parsed = new URL(urlStr);
     const lib = parsed.protocol === "https:" ? https : http;
     const reqOpts = {
       hostname: parsed.hostname,
       port: parsed.port,
-      path: parsed.path,
+      path: parsed.pathname + parsed.search,
       method: options.method || "GET",
       headers: options.headers || {},
     };
@@ -370,7 +369,6 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const url = require("url");
 
 const COMFYUI_URL = process.env.COMFYUI_URL || "http://localhost:8188";
 const POLL_INTERVAL_MS = 3000;
@@ -378,12 +376,12 @@ const POLL_TIMEOUT_MS = 300000; // 5 min for video
 
 function httpRequest(urlStr, options = {}, body = null) {
   return new Promise((resolve, reject) => {
-    const parsed = url.parse(urlStr);
+    const parsed = new URL(urlStr);
     const lib = parsed.protocol === "https:" ? https : http;
     const reqOpts = {
       hostname: parsed.hostname,
       port: parsed.port,
-      path: parsed.path,
+      path: parsed.pathname + parsed.search,
       method: options.method || "GET",
       headers: options.headers || {},
     };
