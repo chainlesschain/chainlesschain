@@ -469,7 +469,7 @@ cc -v
 # → 0.162.2
 
 cc --help
-# → 列出全部 ~109 个子命令
+# → 列出全部 ~158 个命令
 
 ls $PREFIX/bin/ | wc -l
 # → 250+ toybox 命令 + cc / node / npm 等

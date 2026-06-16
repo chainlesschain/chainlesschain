@@ -209,7 +209,7 @@ chainlesschain-portable-win-x64.exe
 ├── bin/
 │   └── cli.js                         # 入口（沿用 bin/chainlesschain.js）
 ├── src/                               # CLI 源码（去除 dev-only）
-│   ├── commands/                      # 109 个命令
+│   ├── commands/                      # 153 个命令文件（158 user-facing 命令）
 │   ├── gateways/ws/                   # WS 服务器
 │   ├── lib/                           # 核心库
 │   │   ├── web-ui-server.js           # 增强为支持 full 模式
