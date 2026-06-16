@@ -477,6 +477,33 @@ describe("webview script integrity (regression: template-literal escapes)", asyn
   });
 });
 
+describe("IME composition guard (CJK Esc/Enter regression)", async () => {
+  it("Esc dismissing an IME candidate window does not interrupt the turn", async () => {
+    // Claude Code 2.1.178 fixed the same bug for VS Code: a CJK user pressing
+    // Esc to close the IME candidate window also cancelled the running turn.
+    // We guard the document-level Esc→interrupt with a composition flag +
+    // event.isComposing/keyCode 229; Enter confirming a candidate must not send.
+    const { buildChatHtml: htmlIme } = await import(
+      "../../../vscode-extension/src/chat/chat-html.js"
+    );
+    const page = htmlIme({ cspSource: "x:", nonce: "N" });
+    // The page has several nonce'd <script> blocks (md-lite, at-mention, …);
+    // the handler markers live only in the main one — assert against the page.
+    expect(page).toContain("compositionstart");
+    expect(page).toContain("compositionend");
+    expect(page).toContain("imeComposing");
+    // the interrupt path bails while composing
+    expect(page).toMatch(/imeComposing\s*\|\|\s*e\.isComposing\s*\|\|\s*e\.keyCode === 229/);
+    // Enter submit is likewise gated on not-composing
+    expect(page).toMatch(/!imeComposing\s*&&\s*!e\.isComposing\s*&&\s*e\.keyCode !== 229/);
+    // and the main handler script still parses (regression: template escapes)
+    const blocks = [...page.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g)];
+    const main = blocks.map((b) => b[1]).find((s) => s.includes("imeComposing"));
+    expect(main).toBeTruthy();
+    expect(() => new Function(main)).not.toThrow();
+  });
+});
+
 describe("LLM config wizard plumbing (onboarding)", async () => {
   const llmCfg = await import("../../../vscode-extension/src/llm-config.js");
 

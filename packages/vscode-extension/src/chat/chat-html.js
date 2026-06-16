@@ -404,8 +404,18 @@ function buildChatHtml({ cspSource, nonce }) {
   document.getElementById("stop").addEventListener("click", () => {
     vscode.postMessage({ type: "interrupt" });
   });
+  // Track IME composition so Esc dismissing a CJK candidate window does NOT
+  // also cancel the running turn (Claude Code 2.1.178 fixed the same bug).
+  // event.isComposing / keyCode 229 on the cancelling keydown is unreliable
+  // across Electron builds, so we also keep our own flag from composition events.
+  let imeComposing = false;
+  input.addEventListener("compositionstart", () => { imeComposing = true; });
+  input.addEventListener("compositionend", () => { imeComposing = false; });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") vscode.postMessage({ type: "interrupt" });
+    if (e.key !== "Escape") return;
+    // Esc while composing belongs to the IME (closes the candidate window).
+    if (imeComposing || e.isComposing || e.keyCode === 229) return;
+    vscode.postMessage({ type: "interrupt" });
   });
   document.getElementById("new").addEventListener("click", () => {
     vscode.postMessage({ type: "new" });
@@ -539,7 +549,11 @@ function buildChatHtml({ cspSource, nonce }) {
         e.preventDefault(); e.stopPropagation(); hideSug(); return;
       }
     }
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    // Enter confirming an IME candidate must NOT submit a half-composed message.
+    if (
+      e.key === "Enter" && !e.shiftKey &&
+      !imeComposing && !e.isComposing && e.keyCode !== 229
+    ) { e.preventDefault(); send(); }
   });
 
   window.addEventListener("message", (e) => {
