@@ -51,6 +51,7 @@ class FamilyTimeRpcClientTest {
         override suspend fun sendAnswer(peerId: String, answer: SessionDescription) {}
         override suspend fun waitForOffer(peerId: String, timeout: Long): SessionDescription =
             error("unused")
+        override fun setRelaySignaling(enabled: Boolean) {}
         override fun disconnect() {}
         override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {}
     }

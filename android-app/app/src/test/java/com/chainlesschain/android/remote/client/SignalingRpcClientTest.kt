@@ -86,6 +86,7 @@ class SignalingRpcClientTest {
             toPeerId: String,
             payload: org.json.JSONObject,
         ): Result<Unit> = Result.success(Unit)
+        override fun setRelaySignaling(enabled: Boolean) {}
         override fun disconnect() {}
         override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {
             setCallbackCount++

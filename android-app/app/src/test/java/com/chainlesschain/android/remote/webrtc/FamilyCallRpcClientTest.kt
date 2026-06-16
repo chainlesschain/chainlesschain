@@ -61,6 +61,7 @@ class FamilyCallRpcClientTest {
             lastPayload = payload
             return Result.success(Unit)
         }
+        override fun setRelaySignaling(enabled: Boolean) {}
         override fun disconnect() {}
         override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {}
     }

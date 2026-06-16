@@ -233,6 +233,7 @@ class P2PClient @Inject constructor(
                 targetPeerId = peerDID,
                 localPeerId = localDID,
                 isInitiator = isInitiator,
+                relaySignaling = true, // FAMILY-67: 手机↔手机经生产信令服务器，须包 type:"message" 中继
             )
             if (result.isFailure) {
                 return@withContext Result.failure(

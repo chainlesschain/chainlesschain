@@ -219,12 +219,16 @@ class WebRTCClient @Inject constructor(
         targetPeerId: String,
         localPeerId: String,
         isInitiator: Boolean = true,
+        relaySignaling: Boolean = false,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             Timber.i("========================================")
-            Timber.i("Starting P2P connection to peer: $targetPeerId (isInitiator=$isInitiator)")
+            Timber.i("Starting P2P connection to peer: $targetPeerId (isInitiator=$isInitiator, relay=$relaySignaling)")
             Timber.i("Local peer ID: $localPeerId")
             Timber.i("========================================")
+
+            // FAMILY-67: 手机↔手机走中继时把 WebRTC 信令包进 type:"message"；手机↔PC 保持裸类型。
+            signalClient.setRelaySignaling(relaySignaling)
 
             // 1. Connect to signaling server
             Timber.i("[Step 1/5] Connecting to signaling server...")
@@ -649,6 +653,14 @@ interface SignalClient {
      */
     suspend fun sendForwardedMessage(toPeerId: String, payload: org.json.JSONObject): Result<Unit>
 
+    /**
+     * FAMILY-67: relay 模式开关。生产信令服务器只转发 type:"message" 信封，**丢弃裸
+     * type:"offer"/"answer"/"ice-candidate"**（实测）。手机↔手机走中继时需把 WebRTC 信令
+     * 包进 type:"message"（[sendForwardedMessage]）发送，接收侧从 "message" 信封解包重派发。
+     * 手机↔PC 路径保持裸类型不变（PC 端自己跑信令、收裸类型）。默认 false。
+     */
+    fun setRelaySignaling(enabled: Boolean)
+
     fun disconnect()
 
     /**
@@ -677,6 +689,12 @@ class WebSocketSignalClient @Inject constructor(
 
     @Volatile
     private var webSocket: okhttp3.WebSocket? = null
+
+    // FAMILY-67: true → WebRTC 信令包进 type:"message" 中继信封发送（手机↔手机经生产信令
+    // 服务器，其不转发裸 offer/answer/ice）。false（默认，手机↔PC）走裸类型不变。
+    @Volatile
+    private var relaySignaling: Boolean = false
+
     private val answerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
     // FAMILY-30 responder path — 收到对方 offer 时投递给 waitForOffer。
     private val offerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
@@ -965,7 +983,16 @@ class WebSocketSignalClient @Inject constructor(
                         // 非 pairing payload 仍走 onForwardedMessageCallback（WebRTC
                         // DataChannel 回退路径）。
                         val payloadObj = payload as? org.json.JSONObject
+                        val innerType = payloadObj?.optString("type") ?: ""
                         if (payloadObj != null &&
+                            (innerType == "offer" || innerType == "answer" ||
+                                innerType == "ice-candidate" || innerType == "ice-candidates")
+                        ) {
+                            // FAMILY-67: 中继的 WebRTC 信令（手机↔手机经生产信令服务器只转发
+                            // type:"message"）— 解包内层 payload 重派发到裸类型处理器。
+                            Timber.d("Unwrapping relayed WebRTC signaling: $innerType")
+                            handleSignalingMessage(payloadObj.toString())
+                        } else if (payloadObj != null &&
                             payloadObj.optString("type") == "pairing:confirmation"
                         ) {
                             handlePairingConfirmation(payloadObj)
@@ -1076,17 +1103,32 @@ class WebSocketSignalClient @Inject constructor(
         // to itself = echo loop, desktop never saw `terminal.create` →
         // 「打不开」symptom. currentPeerId is exclusively owned by register().
 
-        val json = org.json.JSONObject().apply {
+        val inner = org.json.JSONObject().apply {
             put("type", "offer")
-            put("to", peerId)
             put("offer", org.json.JSONObject().apply {
                 put("type", "offer")
                 put("sdp", offer.description)
             })
         }
+        sendSignaling(peerId, inner)
+        Timber.i("[SignalClient] ✓ Offer 消息已发送到 $peerId (relay=$relaySignaling)")
+    }
 
-        sendWebSocketMessage(json.toString())
-        Timber.i("[SignalClient] ✓ Offer 消息已发送到 $peerId")
+    override fun setRelaySignaling(enabled: Boolean) {
+        relaySignaling = enabled
+    }
+
+    /**
+     * FAMILY-67: 统一 WebRTC 信令发送出口。relay 模式包进 type:"message" 中继信封
+     * ([sendForwardedMessage])；否则裸发（加 to 字段，手机↔PC 原样）。
+     */
+    private suspend fun sendSignaling(toPeerId: String, inner: org.json.JSONObject) {
+        if (relaySignaling) {
+            sendForwardedMessage(toPeerId, inner)
+        } else {
+            inner.put("to", toPeerId)
+            sendWebSocketMessage(inner.toString())
+        }
     }
 
     /**
@@ -1117,19 +1159,17 @@ class WebSocketSignalClient @Inject constructor(
     }
 
     override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {
-        Timber.d("Send ICE candidate to $peerId")
+        Timber.d("Send ICE candidate to $peerId (relay=$relaySignaling)")
 
-        val json = org.json.JSONObject().apply {
+        val inner = org.json.JSONObject().apply {
             put("type", "ice-candidate")
-            put("to", peerId)
             put("candidate", org.json.JSONObject().apply {
                 put("candidate", candidate.sdp)
                 put("sdpMid", candidate.sdpMid)
                 put("sdpMLineIndex", candidate.sdpMLineIndex)
             })
         }
-
-        sendWebSocketMessage(json.toString())
+        sendSignaling(peerId, inner)
     }
 
     override suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription {
@@ -1142,16 +1182,15 @@ class WebSocketSignalClient @Inject constructor(
     // FAMILY-30 responder path — 镜像 sendOffer / waitForAnswer。peerId 是 TARGET（同
     // sendOffer 注释：勿碰 currentPeerId，那是 self）。
     override suspend fun sendAnswer(peerId: String, answer: org.webrtc.SessionDescription) {
-        Timber.i("[SignalClient] 发送 Answer → 目标 peerId: $peerId (SDP ${answer.description.length})")
-        val json = org.json.JSONObject().apply {
+        Timber.i("[SignalClient] 发送 Answer → 目标 peerId: $peerId (SDP ${answer.description.length}, relay=$relaySignaling)")
+        val inner = org.json.JSONObject().apply {
             put("type", "answer")
-            put("to", peerId)
             put("answer", org.json.JSONObject().apply {
                 put("type", "answer")
                 put("sdp", answer.description)
             })
         }
-        sendWebSocketMessage(json.toString())
+        sendSignaling(peerId, inner)
         Timber.i("[SignalClient] ✓ Answer 消息已发送到 $peerId")
     }
 

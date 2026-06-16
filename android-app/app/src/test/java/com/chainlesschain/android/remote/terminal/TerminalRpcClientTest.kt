@@ -68,6 +68,7 @@ class TerminalRpcClientTest {
             toPeerId: String,
             payload: JSONObject,
         ): Result<Unit> = Result.success(Unit)
+        override fun setRelaySignaling(enabled: Boolean) {}
         override fun disconnect() {}
         override fun setOnForwardedMessageReceived(cb: ((String) -> Unit)?) { callback = cb }
     }
