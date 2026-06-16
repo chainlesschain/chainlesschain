@@ -143,6 +143,11 @@ final class ConversationView {
     }
 
     private ChatEvents.TurnState turnState() {
+        // Defensive: a conversation minted without the TurnState factory holds a
+        // HashMap — casting it would CCE on the reader thread and kill all replies.
+        if (!(conv.turnState instanceof ChatEvents.TurnState)) {
+            conv.turnState = new ChatEvents.TurnState();
+        }
         return (ChatEvents.TurnState) conv.turnState;
     }
 

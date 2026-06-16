@@ -1,5 +1,6 @@
 package com.chainlesschain.ide.intellij;
 
+import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ConversationManager;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
@@ -80,7 +81,11 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         private String lastClosedTitle;
         private final JPanel root = new JPanel(new BorderLayout(0, 2));
         private final JBTabbedPane tabs = new JBTabbedPane();
-        private final ConversationManager conversations = new ConversationManager();
+        // Factory MUST mint a real ChatEvents.TurnState — ConversationView casts
+        // conv.turnState to it; the default (HashMap) would CCE on the first event
+        // and silently kill the reply reader thread (message echoes, no answer).
+        private final ConversationManager conversations =
+                new ConversationManager(ChatEvents.TurnState::new);
         private final Map<String, ConversationView> views = new LinkedHashMap<String, ConversationView>();
         private final List<String> tabIds = new ArrayList<String>(); // mirrors tab index order
         private boolean syncing = false; // guard re-entrant ChangeListener during structural edits
