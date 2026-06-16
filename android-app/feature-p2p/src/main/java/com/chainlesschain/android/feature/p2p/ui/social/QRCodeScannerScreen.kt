@@ -212,9 +212,21 @@ private fun CameraPreview(
 
                     // 图像分析（二维码扫描）
                     val imageAnalysis = ImageAnalysis.Builder()
-                        // FAMILY-67: 1080p（原 720p）。DID 二维码模块密集，720p 下细模块糊成一团
-                        // ML Kit 识别不出；1080p 让分析帧拿到足够分辨率。
-                        .setTargetResolution(Size(1920, 1080))
+                        // FAMILY-67 修复: 用 ResolutionSelector 把分析帧锁到 ~1280x720（ML Kit 推荐档）。
+                        // 此前 setTargetResolution(1920x1080) 在真机（MIUI）被忽略 → 实际下发 2448x2448
+                        // 巨帧（logcat 实测），ML Kit 逐帧处理慢、帧率低、卡顿；降密度后的 DID 码 720p
+                        // 已足够清晰。FALLBACK 取最接近的较低分辨率，进一步减负。
+                        .setResolutionSelector(
+                            androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                                .setResolutionStrategy(
+                                    androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                        Size(1280, 720),
+                                        androidx.camera.core.resolutionselector.ResolutionStrategy
+                                            .FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                                    ),
+                                )
+                                .build(),
+                        )
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .also {
@@ -265,24 +277,12 @@ private fun CameraPreview(
                             android.util.Log.w("CC_SCAN_DIAG", "startFocusAndMetering threw: ${it.message}")
                         }
                     }
+                    // 一次性初始对焦, 踢一脚 AF; 之后交给 CONTROL_AF_MODE_CONTINUOUS_PICTURE 自动保持。
+                    // ⚠️ FAMILY-67 回归修复: 绝不能周期性 startFocusAndMetering。真机 logcat 实测每隔 2s
+                    // 触发会被下一次取消 (OperationCanceledException: Cancelled by another
+                    // startFocusAndMetering), 焦点永远 hunt 不锁住 → 画面持续模糊, 比纯连续对焦还难扫。
+                    // 连续对焦本身就会随距离变化自动重对; 手动只保留一次初始 + 点按对焦即可。
                     previewView.post { triggerCenterFocus() }
-                    // 周期性强制重新对焦: 部分设备 (尤其 MIUI) 即便设了 CONTINUOUS_PICTURE 也不会
-                    // 持续刷新焦点; 每 2s 主动扫一次中心 AF, 视图移除即停止, 不泄漏。
-                    val focusHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                    val periodicFocus = object : Runnable {
-                        override fun run() {
-                            if (!previewView.isAttachedToWindow) return
-                            triggerCenterFocus()
-                            focusHandler.postDelayed(this, 2000L)
-                        }
-                    }
-                    focusHandler.postDelayed(periodicFocus, 2000L)
-                    previewView.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
-                        override fun onViewAttachedToWindow(v: android.view.View) {}
-                        override fun onViewDetachedFromWindow(v: android.view.View) {
-                            focusHandler.removeCallbacks(periodicFocus)
-                        }
-                    })
                     previewView.setOnTouchListener { v, event ->
                         if (event.action == android.view.MotionEvent.ACTION_UP) {
                             val pt = previewView.meteringPointFactory.createPoint(event.x, event.y)

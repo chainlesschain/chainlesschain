@@ -120,15 +120,20 @@ object QRCodeGenerator {
      * URL格式: chainlesschain://add-friend?did={did}&sig={signature}&ts={timestamp}
      *
      * @param did 用户DID
-     * @param signature 签名（用户私钥对时间戳的签名）
+     * @param signature 签名（用户私钥对 [timestamp] 字符串的签名）
+     * @param timestamp 被签名的时间戳（**必须**与签名时用的时间戳一致）。
+     *   ⚠️ FAMILY-67 修复: 此前这里用 `System.currentTimeMillis()` 现取一个**新**时间戳，
+     *   与调用方 (MyQRCodeViewModel) 实际签名的时间戳不是同一个 → 扫码端按 `ts` 重建消息
+     *   验签必然失败（"签名验证失败"，静默无提示，表现为"扫了没反应/无法识别"）。
+     *   现改为由调用方把**被签名的那个时间戳**传进来，保证 sig 与 ts 对应。
      * @return 二维码URL格式字符串
      */
-    fun generateDIDQRCode(did: String, signature: String): String {
+    fun generateDIDQRCode(did: String, signature: String, timestamp: Long): String {
         return buildString {
             append("chainlesschain://add-friend?")
             append("did=").append(URLEncoder.encode(did, "UTF-8"))
             append("&sig=").append(URLEncoder.encode(signature, "UTF-8"))
-            append("&ts=").append(System.currentTimeMillis())
+            append("&ts=").append(timestamp)
         }
     }
 

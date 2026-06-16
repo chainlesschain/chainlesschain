@@ -78,13 +78,15 @@ class MyQRCodeViewModel @Inject constructor(
 
             val myDid = finalIdentity.did
 
-            // 生成时间戳并签名（防止二维码被复制滥用）
-            val timestamp = System.currentTimeMillis().toString()
-            val signatureBytes = didManager.sign(timestamp)
+            // 生成时间戳并签名（防止二维码被复制滥用）。
+            // FAMILY-67 修复: 必须把**这个**被签名的时间戳传给 generateDIDQRCode，让 QR 里的 ts
+            // 与签名一致；否则扫码端按 QR 的 ts 重建消息验签必然失败（旧 bug：QR 内部另取新时间戳）。
+            val timestampMs = System.currentTimeMillis()
+            val signatureBytes = didManager.sign(timestampMs.toString())
             val signature = bytesToHex(signatureBytes)
 
             // 生成二维码内容（URL格式）
-            val qrContent = QRCodeGenerator.generateDIDQRCode(myDid, signature)
+            val qrContent = QRCodeGenerator.generateDIDQRCode(myDid, signature, timestampMs)
 
             // 生成二维码图片
             val qrBitmap = QRCodeGenerator.generateQRCode(

@@ -117,9 +117,10 @@ class QRCodeGeneratorTest {
         // Given
         val did = "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
         val signature = "0x1234567890abcdef"
+        val ts = System.currentTimeMillis()
 
         // When
-        val qrCodeUrl = QRCodeGenerator.generateDIDQRCode(did, signature)
+        val qrCodeUrl = QRCodeGenerator.generateDIDQRCode(did, signature, ts)
 
         // Then
         assertTrue("URL should start with chainlesschain://", qrCodeUrl.startsWith("chainlesschain://add-friend?"))
@@ -127,10 +128,10 @@ class QRCodeGeneratorTest {
         assertTrue("URL should contain sig parameter", qrCodeUrl.contains("sig="))
         assertTrue("URL should contain ts parameter", qrCodeUrl.contains("ts="))
 
-        // 验证时间戳是最近的
+        // FAMILY-67: QR 里的 ts 必须正是传入(被签名)的那个时间戳
         val timestamp = qrCodeUrl.substringAfter("ts=").toLongOrNull()
         assertNotNull("Timestamp should be valid", timestamp)
-        assertTrue("Timestamp should be recent", System.currentTimeMillis() - timestamp!! < 1000)
+        assertEquals("QR ts must equal the signed timestamp passed in", ts, timestamp)
     }
 
     @Test
@@ -140,7 +141,7 @@ class QRCodeGeneratorTest {
         val signature = "签名@#$%"
 
         // When
-        val qrCodeUrl = QRCodeGenerator.generateDIDQRCode(did, signature)
+        val qrCodeUrl = QRCodeGenerator.generateDIDQRCode(did, signature, System.currentTimeMillis())
 
         // Then
         assertTrue("URL should be properly encoded", qrCodeUrl.contains("did="))
