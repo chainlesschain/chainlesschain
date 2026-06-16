@@ -55,11 +55,18 @@ class P2PClient @Inject constructor(
     private val commandRouter: CommandRouter,
     // Phase 3d v1.1 #2: sync.* 入向 auth 校验（dagger.Lazy 因 SyncAuthVerifier
     // 反向注入 P2PClient — 用 Lazy 解循环）
-    private val syncAuthVerifier: dagger.Lazy<com.chainlesschain.android.sync.SyncAuthVerifier>
+    private val syncAuthVerifier: dagger.Lazy<com.chainlesschain.android.sync.SyncAuthVerifier>,
+    // FAMILY-67 (第10层): 家庭连接的 auth 须用 core-did did:key（与 connectedPeers/家庭关系一致），
+    // 而非 remote 的 did:chainlesschain，否则 SyncAuthVerifier DID-match 失败。
+    private val coreDidManager: com.chainlesschain.android.core.did.manager.DIDManager,
 ) : RemoteSkillProvider {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
     @Volatile private var heartbeatJob: Job? = null
+
+    // FAMILY-67 (第10层): 当前是否家庭 P2P 连接（connectFamilyPeer 置 true / connect 置 false）。
+    // 单连接 WebRTCClient 一次只一条，故此标志反映当前连接，createAuth 据此选 DID 体系。
+    @Volatile private var familyConnection: Boolean = false
     @Volatile private var reconnectJob: Job? = null
     @Volatile private var heartbeatTimeoutJob: Job? = null
 
@@ -179,6 +186,7 @@ class P2PClient @Inject constructor(
             )
 
             _connectionState.value = ConnectionState.CONNECTED
+            familyConnection = false // FAMILY-67 (第10层): PC 路径用 remote DID 体系
             // W2.1: 进 Map 不替换。W2.1 lifecycle 仍 single-peer-at-a-time（connect 前已 disconnect()），
             // 所以 Map 此刻只会有这一条；W2.2 会放开 lifecycle 让 N 个 peer 并存。
             val newPeer = PeerInfo(
@@ -249,6 +257,7 @@ class P2PClient @Inject constructor(
             // FAMILY-67 (第8层): sendCommand 要求 _connectionState==CONNECTED 才发 RPC。
             // connect() 会设，connectFamilyPeer 之前漏设 → sync.push 立刻 "Not connected" 失败。
             _connectionState.value = ConnectionState.CONNECTED
+            familyConnection = true // FAMILY-67 (第10层): auth 用 core-did did:key
             deviceActivityManager.setConnected(true)
             deviceActivityManager.recordActivity("family-connected")
             Result.success(Unit)
@@ -928,10 +937,25 @@ class P2PClient @Inject constructor(
 
     private suspend fun createAuth(method: String): AuthInfo {
         val timestamp = System.currentTimeMillis()
-        val did = didManager.getCurrentDID()
+        // FAMILY-67 (第10层): 家庭连接用 core-did did:key（与 connectedPeers / 家庭关系一致），
+        // 否则 SyncAuthVerifier 的 DID-match 闸会因 auth.did=did:chainlesschain 不匹配而拒。
+        // 非家庭（PC）路径保持 remote DID 体系不变。
+        val coreDid = if (familyConnection) {
+            runCatching { coreDidManager.getCurrentDID() }.getOrNull()
+        } else {
+            null
+        }
+        val did = coreDid ?: didManager.getCurrentDID()
         // 使用 NonceManager 生成持久化的 Nonce（防重放攻击）
         val nonce = nonceManager.generateNonce(did)
-        val signature = didManager.sign("$method:$timestamp:$nonce")
+        val signature = if (coreDid != null) {
+            android.util.Base64.encodeToString(
+                coreDidManager.sign("$method:$timestamp:$nonce"),
+                android.util.Base64.NO_WRAP,
+            )
+        } else {
+            didManager.sign("$method:$timestamp:$nonce")
+        }
         return AuthInfo(
             did = did,
             signature = signature,
