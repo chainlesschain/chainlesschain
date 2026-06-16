@@ -246,6 +246,9 @@ class P2PClient @Inject constructor(
                 connectedAt = System.currentTimeMillis(),
             )
             _connectedPeers.update { it + (peerDID to peer) }
+            // FAMILY-67 (第8层): sendCommand 要求 _connectionState==CONNECTED 才发 RPC。
+            // connect() 会设，connectFamilyPeer 之前漏设 → sync.push 立刻 "Not connected" 失败。
+            _connectionState.value = ConnectionState.CONNECTED
             deviceActivityManager.setConnected(true)
             deviceActivityManager.recordActivity("family-connected")
             Result.success(Unit)
