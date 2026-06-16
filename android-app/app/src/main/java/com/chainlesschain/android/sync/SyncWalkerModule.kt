@@ -25,4 +25,11 @@ abstract class SyncWalkerModule {
     abstract fun bindSyncRepositoryWalker(
         impl: CompositeSyncRepositoryWalker,
     ): SyncRepositoryWalker
+
+    /** FAMILY-67: VM 经接口拿 connector（纯单测可注入 fake），实装即 FamilyGuardSyncConnector。 */
+    @Binds
+    @Singleton
+    abstract fun bindFamilyPairingConnector(
+        impl: FamilyGuardSyncConnector,
+    ): FamilyPairingConnector
 }

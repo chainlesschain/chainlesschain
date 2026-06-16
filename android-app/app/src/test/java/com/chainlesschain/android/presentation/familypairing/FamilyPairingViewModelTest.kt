@@ -135,7 +135,13 @@ class FamilyPairingViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyPairingViewModel(service, repo, didProvider)
+    /** fake connector：记录配对成功后是否触发自动接通。 */
+    private class FakePairingConnector : com.chainlesschain.android.sync.FamilyPairingConnector {
+        var established = 0
+        override fun onPairingEstablished() { established++ }
+    }
+
+    private fun vm() = FamilyPairingViewModel(service, repo, didProvider, FakePairingConnector())
 
     @Test
     fun `role selection transitions and reset returns to choose`() {

@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.familyguard.domain.model.permissions.F
 import com.chainlesschain.android.feature.familyguard.domain.model.permissions.TelemetryLevel
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyGroupRepository
 import com.chainlesschain.android.feature.familyguard.domain.service.InvitePairingService
+import com.chainlesschain.android.sync.FamilyPairingConnector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +64,7 @@ class FamilyPairingViewModel @Inject constructor(
     private val pairingService: InvitePairingService,
     private val familyGroupRepository: FamilyGroupRepository,
     private val localDidProvider: LocalDidProvider,
+    private val syncConnector: FamilyPairingConnector,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyPairingUiState())
@@ -195,14 +197,18 @@ class FamilyPairingViewModel @Inject constructor(
 
     private fun applyResult(result: PairingResult) {
         when (result) {
-            is PairingResult.Success -> _uiState.update {
-                it.copy(
-                    busy = false,
-                    kycPending = false,
-                    pairedRelationshipId = result.relationship.id,
-                    revivalCode = result.revivalCode.value,
-                    message = "绑定成功！请记下复活码（紧急解绑用，仅显示一次）",
-                )
+            is PairingResult.Success -> {
+                // FAMILY-67: 配对成功即触发 P2P 自动接通，让孩子端遥测能推到家长端。
+                runCatching { syncConnector.onPairingEstablished() }
+                _uiState.update {
+                    it.copy(
+                        busy = false,
+                        kycPending = false,
+                        pairedRelationshipId = result.relationship.id,
+                        revivalCode = result.revivalCode.value,
+                        message = "绑定成功！请记下复活码（紧急解绑用，仅显示一次）",
+                    )
+                }
             }
             is PairingResult.KycRequired -> _uiState.update {
                 it.copy(busy = false, kycPending = true, message = null)

@@ -43,6 +43,9 @@ class AppInitializer @Inject constructor(
     // Phase 3d v1.1 #4: 移动同步 auto-trigger，让本地写入自动推到桌面
     private val syncCoordinator: Lazy<SyncCoordinator>,
 
+    // FAMILY-67: 已配对家庭组在启动时自动接通监护人 P2P，让孩子端遥测能跨设备推送
+    private val familyGuardSyncConnector: Lazy<com.chainlesschain.android.sync.FamilyGuardSyncConnector>,
+
     // v1.1 issue #19: OfflineCommandQueue.initialize() 监听 P2P 连接 + auto-send queued commands
     private val offlineCommandQueue: Lazy<OfflineCommandQueue>,
 
@@ -118,6 +121,17 @@ class AppInitializer @Inject constructor(
                         Timber.d("SyncCoordinator started")
                     } catch (e: Exception) {
                         Timber.w(e, "SyncCoordinator start failed (non-fatal)")
+                    }
+                }
+
+                // 5b. FAMILY-67: 自动接通已配对家庭 peer（presence + 按 DID 发现拨号），
+                //     连上后 SyncCoordinator 把排队遥测推到家长端。自闸：无 active relationship 空转。
+                launch {
+                    try {
+                        familyGuardSyncConnector.get().ensureConnected()
+                        Timber.d("FamilyGuardSyncConnector started")
+                    } catch (e: Exception) {
+                        Timber.w(e, "FamilyGuardSyncConnector start failed (non-fatal)")
                     }
                 }
 
