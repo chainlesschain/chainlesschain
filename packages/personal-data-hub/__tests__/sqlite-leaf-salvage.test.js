@@ -66,6 +66,28 @@ describe("pdh-sqlite-leaf-salvage — leaf-page record salvager", () => {
     expect(byUuid["uuid-3"].cols[3]).toBe("ok 👍"); // emoji (4-byte UTF-8)
   });
 
+  it("finds a leaf page at a NON-4096-aligned offset (unaligned scan)", () => {
+    const PAGE = 4096;
+    // locate a real data leaf page on the aligned grid
+    let leaf = null;
+    for (let base = 0; base + PAGE <= buf.length; base += PAGE) {
+      const recs = parseLeafPage(buf, base, PAGE, 3);
+      if (recs && recs.some((r) => r.cols.length === 5)) { leaf = buf.slice(base, base + PAGE); break; }
+    }
+    expect(leaf).not.toBeNull();
+    // embed it at a 512-aligned-but-not-4096-aligned offset inside a zero buffer
+    const big = Buffer.alloc(PAGE * 4, 0);
+    const off = 512 * 3; // 1536: hit by stride-512, missed by stride-4096
+    leaf.copy(big, off);
+    // aligned 4096-grid misses it
+    expect(parseLeafPage(big, 0, PAGE, 3)).toBeNull();
+    expect(parseLeafPage(big, PAGE, PAGE, 3)).toBeNull();
+    // unaligned stride finds it at its true offset
+    const recs = parseLeafPage(big, off, PAGE, 3);
+    expect(recs).not.toBeNull();
+    expect(recs.some((r) => r.cols[0] === "uuid-1")).toBe(true);
+  });
+
   it("returns null for non-leaf / garbage pages", () => {
     const garbage = Buffer.alloc(4096, 0xff);
     expect(parseLeafPage(garbage, 0, 4096, 3)).toBeNull();
