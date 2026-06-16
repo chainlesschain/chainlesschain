@@ -67,10 +67,13 @@ implemented and build-verified** (0.4.0).
       was 0.3.3).
 - [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
 
-## ✅ Also done
-- [x] **getTerminalOutput** tool (0.4.4) — best-effort terminal screen read via
-      `TerminalToolWindowManager` + jediterm buffer; closes the last feasible VS Code
-      tool gap (executeCode stays out — Jupyter is PyCharm-Pro/DataSpell only).
+## ⚠️ Reverted
+- [x] ~~**getTerminalOutput** tool (0.4.4)~~ — **REVERTED in 0.4.5.** The terminal API
+      (`TerminalToolWindowManager.getWidgets()` → `JBTerminalWidget.getTerminalTextBuffer()`
+      / jediterm) compiled fine against 2024.2 and worked in that sandbox, but is **not
+      stable across IDE builds** (2024.3+ reworked terminal) → errored on other versions
+      (user-reported "多个版本idea出现了问题"). A robust version would need reflection +
+      per-version guards. `executeCode` (Jupyter) also stays out — edition-gated.
 - [x] @-mention **class + method/function symbols** via PSI search
       (`PsiShortNamesCache` getAllClassNames/getAllMethodNames, bounded 800 each,
       resolved to file → `Mentions.formatSymbolItems`) — classes 0.4.2, methods
