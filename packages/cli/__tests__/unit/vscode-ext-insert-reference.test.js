@@ -9,7 +9,10 @@
  */
 import { describe, it, expect, vi } from "vitest";
 
-import { formatInsertReference } from "../../../vscode-extension/src/chat/insert-reference.js";
+import {
+  formatInsertReference,
+  selectionToLineRange,
+} from "../../../vscode-extension/src/chat/insert-reference.js";
 import { ChatViewProvider } from "../../../vscode-extension/src/chat/chat-view.js";
 import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 
@@ -28,6 +31,47 @@ describe("formatInsertReference", () => {
     expect(formatInsertReference("")).toBe("");
     expect(formatInsertReference(null)).toBe("");
     expect(formatInsertReference("   ")).toBe("");
+  });
+
+  it("appends #Lstart-end for a multi-line range, #Ln for a single line", () => {
+    expect(formatInsertReference("src/app.js", { start: 5, end: 10 })).toBe(
+      "@src/app.js#L5-10 ",
+    );
+    expect(formatInsertReference("src/app.js", { start: 7, end: 7 })).toBe(
+      "@src/app.js#L7 ",
+    );
+    // end < start collapses to a single line; no range → no suffix
+    expect(formatInsertReference("a.ts", { start: 9, end: 3 })).toBe(
+      "@a.ts#L9 ",
+    );
+    expect(formatInsertReference("a.ts", null)).toBe("@a.ts ");
+  });
+});
+
+describe("selectionToLineRange", () => {
+  it("returns null for empty / missing selections", () => {
+    expect(selectionToLineRange(null)).toBe(null);
+    expect(selectionToLineRange({ isEmpty: true })).toBe(null);
+  });
+
+  it("converts a 0-based selection to a 1-based inclusive range", () => {
+    expect(
+      selectionToLineRange({
+        isEmpty: false,
+        start: { line: 4, character: 2 },
+        end: { line: 9, character: 6 },
+      }),
+    ).toEqual({ start: 5, end: 10 });
+  });
+
+  it("drops a trailing line the selection only touches at column 0", () => {
+    expect(
+      selectionToLineRange({
+        isEmpty: false,
+        start: { line: 4, character: 0 },
+        end: { line: 10, character: 0 },
+      }),
+    ).toEqual({ start: 5, end: 10 });
   });
 });
 

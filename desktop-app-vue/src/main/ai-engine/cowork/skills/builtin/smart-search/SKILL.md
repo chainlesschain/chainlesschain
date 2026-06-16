@@ -1,7 +1,7 @@
 ---
 name: smart-search
 display-name: Smart Search
-description: Use this to find specific existing info in your knowledge base via hybrid Vector+BM25 search—use when retrieving specific content to answer questions (not creating/writing docs); skip for formatting, external queries, or search method questions.
+description: Use this for hybrid Vector+BM25 search to find specific existing info in the knowledge base—use only for factual, pre-existing content (skip guidance on creating/structuring docs, formatting, external queries, or search method questions)
 version: 1.0.0
 category: knowledge
 user-invocable: true

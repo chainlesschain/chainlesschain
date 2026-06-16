@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.dev-apk-static/
 bower_components/
 wlsimkey/
 SIMKeySDK-20220416/
