@@ -39,6 +39,10 @@ function generateFilename(item) {
 
 function generateMarkdown(item) {
   const tags = item.tags ? String(item.tags) : "";
+  // Conditionally include the tags line via a spread — a previous
+  // `.filter(Boolean)` here dropped the empty tags entry but ALSO ate the
+  // intended trailing "" newline, so the closing `---` was glued directly
+  // onto the body ("---body") producing malformed YAML front matter.
   const frontMatter = [
     "---",
     `id: ${item.id}`,
@@ -46,12 +50,10 @@ function generateMarkdown(item) {
     `type: ${item.type || "note"}`,
     `created_at: ${item.created_at}`,
     `updated_at: ${item.updated_at}`,
-    tags ? `tags: ${tags}` : "",
+    ...(tags ? [`tags: ${tags}`] : []),
     "---",
     "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].join("\n");
   return frontMatter + (item.content || "") + "\n";
 }
 
