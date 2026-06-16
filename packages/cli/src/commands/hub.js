@@ -795,6 +795,53 @@ async function cmdRunSkill(name, options) {
   }
 }
 
+// ─── salvage ───────────────────────────────────────────────────────────
+//
+// Method B (key-free) decryption capstone: a rooted device dumps a running
+// app's decrypted SQLite pages from /proc/<pid>/mem, then this salvages the
+// message records straight out of the leaf pages (no key, no password) and
+// ingests them through the social-douyin snapshot path. This is the on-device
+// command the Android「一键 root 采集」button calls after the mem scan.
+// See docs/internal/pdh-db-decryption-runbook.md §3.5.
+
+async function cmdSalvage(dumpfile, options) {
+  const spinner = options.json ? null : ora(`salvaging ${dumpfile}...`).start();
+  try {
+    const hub = await (options._getHub || getHub)();
+    const { salvageAndSync } = options._salvageAndSync
+      ? { salvageAndSync: options._salvageAndSync }
+      : await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+    const opts = {
+      uid: options.uid,
+      unaligned: options.unaligned !== false, // default-on: scattered page cache
+      stagingDir: options.stagingDir,
+    };
+    if (options.pageSize) opts.pageSize = Number(options.pageSize);
+    if (options.minCols) opts.minCols = Number(options.minCols);
+    if (options.columns)
+      opts.columns = String(options.columns)
+        .split(",")
+        .map((s) => s.trim());
+    const report = await salvageAndSync(hub.registry, dumpfile, opts);
+    if (spinner) spinner.succeed(`salvaged ${dumpfile}`);
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    const dy = report.douyin || {};
+    const sv = dy.salvage || {};
+    const counts = dy.eventCounts || {};
+    logger.log(chalk.green(`✓ salvage succeeded`));
+    logger.log(`  leaf pages:   ${sv.leafPages || 0}`);
+    logger.log(`  records:      ${sv.recordsSalvaged || 0}`);
+    logger.log(`  messages:     ${counts.message || 0}`);
+    logger.log(`  ingested:     ${report.ingested || 0}`);
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
 //
 // Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
@@ -2480,6 +2527,23 @@ export function registerHubCommand(program) {
     .option("--until <ms>", "End of time window")
     .option("--json", "Output JSON")
     .action(cmdRunSkill);
+
+  hub
+    .command("salvage <dumpfile>")
+    .description(
+      "Method B (免密钥): salvage SQLite leaf-page records from a /proc/mem dump → ingest into the vault. Used by the Android root 一键采集 button after a memory scan.",
+    )
+    .option("--uid <id>", "Account uid for the snapshot (default: salvage)")
+    .option(
+      "--columns <list>",
+      "Comma-separated msg column order; else inferred",
+    )
+    .option("--page-size <n>", "SQLite page size (default 4096)")
+    .option("--min-cols <n>", "Drop records with fewer columns (default 3)")
+    .option("--no-unaligned", "Disable the finer (512) stride scan")
+    .option("--staging-dir <path>", "Where to write the intermediate snapshot")
+    .option("--json", "Output JSON")
+    .action(cmdSalvage);
 
   hub
     .command("event-detail <eventId>")

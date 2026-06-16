@@ -25,6 +25,8 @@ const {
   writeSnapshotJson,
   cleanupSnapshotJson,
 } = require("./snapshot-builder");
+const { salvageFile } = require("../../forensics/leaf-salvage");
+const { mapMsgRecords, inferMsgColumns } = require("./salvage-mapper");
 
 /**
  * Pull IM db → parse → write snapshot. Returns the staging path + counts
@@ -159,6 +161,102 @@ async function collectAndSync(bridge, registry, opts = {}) {
   };
 }
 
+// ── Salvage path (Method B /proc/mem dump → leaf-salvage → snapshot) ──────
+//
+// The key-free decryption breakthrough: a rooted device dumps a running app's
+// decrypted SQLite pages from /proc/<pid>/mem, then this salvages the message
+// records straight out of the leaf pages (no key, no password) and ingests them
+// through the same social-douyin snapshot path. Closes the loop: dump → salvage
+// → THIS → PDH entities. See docs/internal/pdh-db-decryption-runbook.md §3.5.
+
+/**
+ * Salvage records from a memory dump → social-douyin snapshot JSON.
+ *
+ * @param {string} dumpPath  path to the /proc/mem dump (or concatenated dumps)
+ * @param {{
+ *   uid?: string,             // account uid; defaults to "salvage" placeholder
+ *   columns?: string[],       // explicit msg column order; else inferMsgColumns
+ *   pageSize?: number, minCols?: number, unaligned?: boolean, stride?: number,
+ *   displayName?: string,
+ *   stagingDir?: string,
+ *   now?: () => number,
+ * }} [opts]
+ * @returns {{snapshotPath: string, uid: string, eventCounts: object, salvage: object}}
+ */
+function salvageDumpToSnapshot(dumpPath, opts = {}) {
+  if (typeof dumpPath !== "string" || dumpPath.length === 0) {
+    throw new TypeError("salvageDumpToSnapshot: dumpPath must be a non-empty string");
+  }
+  const now = opts.now || Date.now;
+  const { records, pages } = salvageFile(dumpPath, {
+    pageSize: opts.pageSize,
+    minCols: opts.minCols,
+    unaligned: opts.unaligned,
+    stride: opts.stride,
+  });
+  // Leaf pages carry no column names — use the caller's explicit order when
+  // known (most accurate), else heuristically infer content/created_time.
+  const columns = Array.isArray(opts.columns) && opts.columns.length
+    ? opts.columns
+    : inferMsgColumns(records);
+  const messages = mapMsgRecords(records, columns);
+  const uid = typeof opts.uid === "string" && opts.uid.length ? opts.uid : "salvage";
+  const snapshot = buildSnapshot({
+    uid,
+    displayName: opts.displayName,
+    messages,
+    contacts: [],
+    snapshottedAt: now(),
+  });
+  const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+  return {
+    snapshotPath,
+    uid,
+    eventCounts: { message: messages.length, total: messages.length },
+    salvage: { leafPages: pages, recordsSalvaged: records.length, columns },
+  };
+}
+
+/**
+ * One-shot: salvage dump → snapshot → syncAdapter("social-douyin") → cleanup.
+ *
+ * @param {object} registry  AdapterRegistry (must expose syncAdapter)
+ * @param {string} dumpPath
+ * @param {object} [opts]    forwarded to salvageDumpToSnapshot
+ * @returns {Promise<object>} SyncReport + salvage diagnostic
+ */
+async function salvageAndSync(registry, dumpPath, opts = {}) {
+  if (!registry || typeof registry.syncAdapter !== "function") {
+    throw new TypeError(
+      "salvageAndSync: registry must expose syncAdapter(name, options)",
+    );
+  }
+  const res = salvageDumpToSnapshot(dumpPath, opts);
+  let syncReport = null;
+  let cleanupFailed = false;
+  try {
+    syncReport = await registry.syncAdapter("social-douyin", {
+      inputPath: res.snapshotPath,
+    });
+  } finally {
+    try {
+      cleanupSnapshotJson(res.snapshotPath);
+    } catch (_e) {
+      cleanupFailed = true;
+    }
+  }
+  return {
+    ...syncReport,
+    douyin: {
+      uid: res.uid,
+      eventCounts: res.eventCounts,
+      salvage: res.salvage,
+      mode: "salvage",
+      cleanupFailed,
+    },
+  };
+}
+
 // ── Watch-history (video_record.db) path ─────────────────────────────────
 // Distinct from the IM-db path above: pulls the plaintext video_record.db and
 // emits `history` events (KIND_HISTORY → BROWSE) the social-douyin adapter
@@ -276,4 +374,6 @@ module.exports = {
   collectAndSync,
   collectWatchHistory,
   collectWatchHistoryAndSync,
+  salvageDumpToSnapshot,
+  salvageAndSync,
 };

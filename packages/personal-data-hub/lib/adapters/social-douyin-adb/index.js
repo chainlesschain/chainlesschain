@@ -43,6 +43,8 @@ const {
   collectAndSync,
   collectWatchHistory,
   collectWatchHistoryAndSync,
+  salvageDumpToSnapshot,
+  salvageAndSync,
 } = require("./collector");
 const {
   createDouyinWatchExtension,
@@ -71,4 +73,7 @@ module.exports = {
   // Collector orchestrator
   collect,
   collectAndSync,
+  // Method B salvage path (/proc/mem dump → leaf-salvage → snapshot → ingest)
+  salvageDumpToSnapshot,
+  salvageAndSync,
 };
