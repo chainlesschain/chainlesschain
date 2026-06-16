@@ -40,6 +40,7 @@ const FACT_BLOCK_FOOTER = "END FACTS.";
 const NO_FACTS_HINT = "(FACTS is empty — the vault has nothing matching this question. Say so honestly.)";
 const TOTALS_HEADER = "TOTALS (authoritative entity counts from vault — use these for count questions, NOT FACTS length):";
 const AMOUNT_SUM_HEADER = "AMOUNT_SUM (authoritative SQL total of amount-bearing events — use for spending questions, NOT FACTS sums):";
+const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app 活跃度/类型/消费/高频联系人，回答跨 app 与决策类问题时优先参考；为汇总信号，非逐条事实):";
 
 // ─── Fact summarization ─────────────────────────────────────────────────
 
@@ -134,6 +135,10 @@ function buildPrompt(opts) {
     opts.vaultTotals && typeof opts.vaultTotals === "object" ? opts.vaultTotals : null;
   const amountSummary =
     opts.amountSummary && typeof opts.amountSummary === "object" ? opts.amountSummary : null;
+  const crossAppOverview =
+    typeof opts.crossAppOverview === "string" && opts.crossAppOverview.length > 0
+      ? opts.crossAppOverview
+      : null;
 
   const trimmed = facts.slice(0, maxFacts);
   const summaries = trimmed
@@ -169,6 +174,10 @@ function buildPrompt(opts) {
   // returns undefined for empty so we don't show a misleading ¥0.
   if (amountSummary && Number.isFinite(amountSummary.total) && amountSummary.count > 0) {
     userContent += `\n${AMOUNT_SUM_HEADER}\n${JSON.stringify(amountSummary, null, 2)}\n`;
+  }
+  // CROSS_APP_OVERVIEW — 跨 app 汇聚画像，置于 FACTS 前（同 TOTALS）。
+  if (crossAppOverview) {
+    userContent += `\n${CROSS_APP_HEADER}\n${crossAppOverview}\n`;
   }
   userContent += `\n${FACT_BLOCK_HEADER}\n${factBody}\n${FACT_BLOCK_FOOTER}${truncatedNote}\n\nUSER QUESTION: ${question}`;
 

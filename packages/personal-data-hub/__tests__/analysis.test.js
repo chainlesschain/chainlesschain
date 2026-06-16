@@ -1797,3 +1797,49 @@ describe("AnalysisEngine._gatherFacts intent=count routing", () => {
     expect(r.facts.filter((f) => f.type === "item").length).toBe(3);
   });
 });
+
+// ─── ① cross-app overview injected into ask() prompt (decision grounding) ──
+describe("AnalysisEngine.ask crossApp overview context", () => {
+  function seedMultiApp(vault) {
+    vault.putPerson({
+      id: "person-friend", type: "person", subtype: "contact",
+      names: ["小明"], identifiers: {}, ingestedAt: Date.now(), source: source("wechat-pc"),
+    });
+    vault.putEvent({
+      id: newId(), type: "event", subtype: "order", occurredAt: ts(2026, 3, 10),
+      actor: "person-self",
+      content: { title: "鞋", amount: { value: 200, currency: "CNY", direction: "out" } },
+      ingestedAt: Date.now(), source: source("shopping-taobao", "o1"),
+    });
+    vault.putEvent({
+      id: newId(), type: "event", subtype: "message", occurredAt: ts(2026, 3, 11),
+      actor: "person-self", participants: ["person-friend"],
+      content: { title: "hi", text: "hi" },
+      ingestedAt: Date.now(), source: source("wechat-pc", "m1"),
+    });
+  }
+
+  it("injects CROSS_APP_OVERVIEW block when crossApp:true", async () => {
+    freshVault();
+    seedMultiApp(vault);
+    const llm = new MockLLMClient({ reply: "建议：…" });
+    const engine = new AnalysisEngine({ vault, llm });
+    await engine.ask("综合我各 app 的数据，我最近重心在哪？", { crossApp: true });
+    const userMsg = llm.calls[0].messages.find((m) => m.role === "user").content;
+    expect(userMsg).toContain("CROSS_APP_OVERVIEW");
+    expect(userMsg).toContain("活跃 app");
+    // both apps surface in the cross-app aggregation
+    expect(userMsg).toMatch(/shopping-taobao|wechat-pc/);
+    expect(userMsg).toContain("跨 app 消费合计");
+  });
+
+  it("omits CROSS_APP_OVERVIEW when crossApp not set", async () => {
+    freshVault();
+    seedMultiApp(vault);
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault, llm });
+    await engine.ask("随便问问", {});
+    const userMsg = llm.calls[0].messages.find((m) => m.role === "user").content;
+    expect(userMsg).not.toContain("CROSS_APP_OVERVIEW");
+  });
+});

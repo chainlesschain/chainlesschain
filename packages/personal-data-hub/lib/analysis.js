@@ -22,6 +22,7 @@
 "use strict";
 
 const { parseQuery, extractEntityTerm, extractPersonNameCandidate } = require("./query-parser");
+const { OverviewSkill } = require("./analysis-skills/overview");
 const {
   buildPrompt,
   parseCitations,
@@ -212,6 +213,27 @@ class AnalysisEngine {
       }
     }
 
+    // Optional cross-app overview context (opt-in via options.crossApp) — runs
+    // the OverviewSkill aggregation and injects a compact summary so the LLM
+    // can answer cross-app / decision questions grounded in ALL apps' data.
+    let crossAppOverview;
+    if (options.crossApp) {
+      try {
+        const ov = await new OverviewSkill({ vault: this.vault }).run({
+          commentary: false,
+          topN: 5,
+          ...(parsed.timeWindow &&
+          Number.isFinite(parsed.timeWindow.since) &&
+          Number.isFinite(parsed.timeWindow.until)
+            ? { since: parsed.timeWindow.since, until: parsed.timeWindow.until }
+            : {}),
+        });
+        crossAppOverview = formatCrossAppOverview(ov);
+      } catch (_e) {
+        /* overview is best-effort context; never abort the ask */
+      }
+    }
+
     // Build prompt.
     const { messages, factIds, factCount, truncated } = buildPrompt({
       question,
@@ -223,6 +245,7 @@ class AnalysisEngine {
       vaultTotals: this._gatherVaultTotals(),
       amountSummary:
         parsed.intent === "sum-amount" ? this._gatherAmountSummary(parsed) : undefined,
+      crossAppOverview,
     });
 
     // Telemetry: post-cap prompt size + truncation count. If `truncated` > 0
@@ -820,8 +843,35 @@ class AnalysisEngine {
   }
 }
 
+/**
+ * Compact, prompt-friendly rendering of an OverviewSkill result for the
+ * CROSS_APP_OVERVIEW context block. Aggregate signals only (no raw content).
+ */
+function formatCrossAppOverview(ov) {
+  if (!ov || !ov.summary) return null;
+  const top = (arr, k, v) =>
+    (arr || []).slice(0, 5).map((x) => `${x[k]}(${x[v]})`).join(", ") || "无";
+  const lines = [
+    `共 ${ov.summary.totalEvents} 事件，跨 ${ov.summary.appsActive} 个 app`,
+    `活跃 app(Top): ${top(ov.byApp, "app", "count")}`,
+    `事件类型(Top): ${top(ov.byType, "type", "count")}`,
+  ];
+  if (ov.spending && Number.isFinite(ov.spending.total) && ov.spending.total !== 0) {
+    lines.push(`跨 app 消费合计: ${ov.spending.total} ${ov.spending.currency || ""}`.trim());
+  }
+  if (Array.isArray(ov.topContacts) && ov.topContacts.length > 0) {
+    const c = ov.topContacts
+      .slice(0, 5)
+      .map((x) => `${x.name || x.personId}(${x.interactions})`)
+      .join(", ");
+    lines.push(`高频联系人(Top): ${c}`);
+  }
+  return lines.join("\n");
+}
+
 module.exports = {
   AnalysisEngine,
+  formatCrossAppOverview,
   DEFAULT_MAX_FACTS,
   DEFAULT_MAX_QUERY_LIMIT,
   LATEST_INTENT_FACT_LIMIT,
