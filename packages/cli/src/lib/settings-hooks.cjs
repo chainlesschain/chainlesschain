@@ -28,6 +28,7 @@ const path = require("node:path");
 const os = require("node:os");
 const fsDefault = require("node:fs");
 const { SUGGEST_UMBRELLA } = require("./permission-rules.cjs");
+const { projectRootBase } = require("./project-root.cjs");
 
 const _deps = { fs: fsDefault, homedir: () => os.homedir() };
 
@@ -44,14 +45,25 @@ const HOOK_EVENTS = Object.freeze([
   "Notification",
 ]);
 
-/** Same hierarchy as settings-loader (user < project < .local < --settings). */
+/**
+ * Same hierarchy as settings-loader (user < project-root < cwd < --settings).
+ * When run from a SUBDIRECTORY, the project-root `.claude` hooks apply (below
+ * cwd's, above the user layer) — same walk-up as settings-loader's settingsPaths
+ * (shared `projectRootBase`, threaded through this loader's own `_deps.fs` to
+ * keep test injection intact). Hooks RUN SHELL COMMANDS, so a guard hook in the
+ * project-root settings must NOT silently vanish when `cc` is invoked from a
+ * subdirectory. `projectRootBase` returns null when cwd IS the root.
+ */
 function settingsFiles(cwd, explicitFile) {
   const home = _deps.homedir();
-  const list = [
-    path.join(home, ".claude", "settings.json"),
-    path.join(cwd, ".claude", "settings.json"),
-    path.join(cwd, ".claude", "settings.local.json"),
-  ];
+  const list = [path.join(home, ".claude", "settings.json")];
+  const root = projectRootBase(cwd, { fs: _deps.fs, path });
+  if (root) {
+    list.push(path.join(root, ".claude", "settings.json"));
+    list.push(path.join(root, ".claude", "settings.local.json"));
+  }
+  list.push(path.join(cwd, ".claude", "settings.json"));
+  list.push(path.join(cwd, ".claude", "settings.local.json"));
   if (explicitFile) list.push(path.resolve(cwd, explicitFile));
   return list;
 }
