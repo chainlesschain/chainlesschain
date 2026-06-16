@@ -58,7 +58,9 @@ class P2PClientTest {
             nonceManager = mockNonceManager,
             deviceActivityManager = mockDeviceActivityManager,
             commandRouter = mockCommandRouter,
-            syncAuthVerifier = mockSyncAuthVerifier
+            syncAuthVerifier = mockSyncAuthVerifier,
+            // FAMILY-67 (第10层): 家庭连接 auth 用 core-did；测试用 relaxed mock。
+            coreDidManager = mockk(relaxed = true)
         )
     }
 

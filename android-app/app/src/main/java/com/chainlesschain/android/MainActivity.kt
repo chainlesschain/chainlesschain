@@ -74,6 +74,10 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var familyGuardSyncConnector: dagger.Lazy<com.chainlesschain.android.sync.FamilyGuardSyncConnector>
 
+    // FAMILY-67 对称件: 已加好友在启动时自动接通好友 P2P，让社交/好友数据跨设备推送
+    @Inject
+    lateinit var friendSyncConnector: dagger.Lazy<com.chainlesschain.android.sync.FriendSyncConnector>
+
     private var isReady = false
 
     /**
@@ -99,6 +103,8 @@ class MainActivity : AppCompatActivity() {
                 .onFailure { Timber.w(it, "SyncCoordinator start failed (non-fatal)") }
             runCatching { familyGuardSyncConnector.get().ensureConnected() }
                 .onFailure { Timber.w(it, "FamilyGuardSyncConnector start failed (non-fatal)") }
+            runCatching { friendSyncConnector.get().ensureConnected() }
+                .onFailure { Timber.w(it, "FriendSyncConnector start failed (non-fatal)") }
         }
 
         // #21 C.1 PR1 — pick up ACTION_START_VOICE_MODE on cold start.

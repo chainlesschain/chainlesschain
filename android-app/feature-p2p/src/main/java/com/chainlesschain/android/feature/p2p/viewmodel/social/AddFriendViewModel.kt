@@ -11,6 +11,7 @@ import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
 import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
+import com.chainlesschain.android.feature.p2p.social.FriendConnector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AddFriendViewModel @Inject constructor(
     private val friendRepository: FriendRepository,
-    private val realtimeEventManager: RealtimeEventManager
+    private val realtimeEventManager: RealtimeEventManager,
+    private val friendConnector: FriendConnector,
 ) : BaseViewModel<AddFriendUiState, AddFriendEvent>(
     initialState = AddFriendUiState()
 ) {
@@ -164,6 +166,8 @@ class AddFriendViewModel @Inject constructor(
             friendRepository.addFriend(friend)
                 .onSuccess {
                     realtimeEventManager.sendFriendRequest(targetDid, message) // best-effort: 有 P2P 时对端同步
+                    // FAMILY-67 对称件: 加好友即触发 P2P 自动接通，让好友/社交数据能跨设备推送。
+                    runCatching { friendConnector.onFriendAdded() }
                     sendEvent(AddFriendEvent.ShowToast("已添加为好友"))
                     sendEvent(AddFriendEvent.FriendRequestSent(targetDid))
                 }.onError { error ->

@@ -32,4 +32,11 @@ abstract class SyncWalkerModule {
     abstract fun bindFamilyPairingConnector(
         impl: FamilyGuardSyncConnector,
     ): FamilyPairingConnector
+
+    /** FAMILY-67 对称件：加好友 VM 经 feature-p2p 的 FriendConnector 接口拿 :app 的 FriendSyncConnector。 */
+    @Binds
+    @Singleton
+    abstract fun bindFriendConnector(
+        impl: FriendSyncConnector,
+    ): com.chainlesschain.android.feature.p2p.social.FriendConnector
 }
