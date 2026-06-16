@@ -259,7 +259,10 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
       expect(s.sig).toMatch(/^[0-9a-f]+$/);
       expect(s.sig.length).toBeGreaterThan(0);
     }
-  });
+    // Heavy multi-process flow — policy/propose/sign/consume/bridge spawns many
+    // sequential CLI cold-starts; the 60s default is tight under the integration
+    // load (recurring flake, passes isolated). See internal handbook trap #31.
+  }, 90000);
 
   it("1-of-1 reaches threshold on first signature", () => {
     fs.writeFileSync(
