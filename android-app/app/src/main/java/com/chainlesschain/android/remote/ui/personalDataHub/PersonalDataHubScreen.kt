@@ -45,8 +45,8 @@ fun PersonalDataHubScreen(
     // 仅当 initialTab=4 时生效（其它 tab 不消费此参数）。
     askPrefill: String? = null,
 ) {
-    var tab by remember { mutableStateOf(initialTab.coerceIn(0, 5)) }
-    val titles = listOf("提问", "Adapter", "审计", "本机数据", "本机提问", "数据浏览")
+    var tab by remember { mutableStateOf(initialTab.coerceIn(0, 6)) }
+    val titles = listOf("提问", "Adapter", "审计", "本机数据", "本机提问", "数据浏览", "数据总览")
 
     // statusBarsPadding inset: PersonalDataHubScreen lives under the system
     // status bar (it has no Scaffold topBar above). Without this the tab row
@@ -69,6 +69,7 @@ fun PersonalDataHubScreen(
             3 -> HubLocalScreen()
             4 -> HubLocalAskScreen(askPrefill = askPrefill)
             5 -> HubBrowserScreen(onGoCollect = { tab = 3 }) // 空库 → 跳「本机数据」采集
+            6 -> HubOverviewScreen(onGoCollect = { tab = 3 }) // ② 跨 app 数据总览
             else -> Text("?", color = MaterialTheme.colorScheme.error)
         }
     }

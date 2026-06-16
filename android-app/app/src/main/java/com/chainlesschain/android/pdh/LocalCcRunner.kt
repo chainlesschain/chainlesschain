@@ -1632,6 +1632,56 @@ class LocalCcRunner @Inject constructor(
         }
     }
 
+    sealed class OverviewResult {
+        data class Ok(val report: OverviewReport) : OverviewResult()
+        data class Failed(val reason: String, val exitCode: Int?) : OverviewResult()
+    }
+
+    /**
+     * ② 跨 app 数据总览 — runs `cc hub run-skill analysis.overview --json` and
+     * parses the cross-app aggregate (byApp / byType / spend / topContacts) for
+     * the 数据总览 tab. Reuses _runCcJson.
+     */
+    suspend fun runOverview(
+        since: Long? = null,
+        until: Long? = null,
+        timeoutMs: Long = 30_000L,
+    ): OverviewResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext OverviewResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("run-skill"); add("analysis.overview")
+            if (since != null && since > 0) { add("--since"); add(since.toString()) }
+            if (until != null && until > 0) { add("--until"); add(until.toString()) }
+            add("--json")
+        }
+        val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+        if (timedOut) return@withContext OverviewResult.Failed("timeout after ${timeoutMs}ms", null)
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext OverviewResult.Failed(
+                reason = errMsg ?: "cc exited $exit: ${stderr.take(300)}",
+                exitCode = exit,
+            )
+        }
+        try {
+            OverviewResult.Ok(parseOverview(stdout.trim()))
+        } catch (e: Exception) {
+            OverviewResult.Failed("parse-failed: ${e.message ?: e.javaClass.simpleName}", exit)
+        }
+    }
+
     private fun _jsonObjectToIntMap(obj: JSONObject?): Map<String, Int> {
         if (obj == null) return emptyMap()
         val out = mutableMapOf<String, Int>()
@@ -1713,5 +1763,64 @@ class LocalCcRunner @Inject constructor(
         val stderr: String,
         val exitCode: Int,
         val timedOut: Boolean,
+    )
+}
+
+// ─── ② analysis.overview parsing (top-level, pure → JVM-testable) ──────────
+
+data class OverviewContact(
+    val personId: String,
+    val name: String?,
+    val interactions: Int,
+)
+
+data class OverviewReport(
+    val totalEvents: Int,
+    val appsActive: Int,
+    val topAppName: String?,
+    val byApp: List<Pair<String, Int>>,
+    val byType: List<Pair<String, Int>>,
+    val topContacts: List<OverviewContact>,
+    val spendTotal: Double,
+    val spendCurrency: String?,
+)
+
+/** Parse `cc hub run-skill analysis.overview --json` stdout into [OverviewReport]. */
+internal fun parseOverview(json: String): OverviewReport {
+    fun String.cleanOrNull(): String? = takeIf { it.isNotEmpty() && it != "null" }
+    val obj = JSONObject(json)
+    val summary = obj.optJSONObject("summary") ?: JSONObject()
+    fun pairs(arr: org.json.JSONArray?, key: String): List<Pair<String, Int>> {
+        if (arr == null) return emptyList()
+        val out = ArrayList<Pair<String, Int>>(arr.length())
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            out.add(o.optString(key) to o.optInt("count"))
+        }
+        return out
+    }
+    val contacts = ArrayList<OverviewContact>()
+    obj.optJSONArray("topContacts")?.let { arr ->
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            contacts.add(
+                OverviewContact(
+                    personId = o.optString("personId"),
+                    name = o.optString("name").cleanOrNull(),
+                    interactions = o.optInt("interactions"),
+                ),
+            )
+        }
+    }
+    val spending = obj.optJSONObject("spending")
+    return OverviewReport(
+        totalEvents = summary.optInt("totalEvents"),
+        appsActive = summary.optInt("appsActive"),
+        topAppName = summary.optString("topAppName").cleanOrNull(),
+        byApp = pairs(obj.optJSONArray("byApp"), "app"),
+        byType = pairs(obj.optJSONArray("byType"), "type"),
+        topContacts = contacts,
+        spendTotal = spending?.optDouble("total", 0.0) ?: 0.0,
+        spendCurrency = spending?.optString("currency")?.cleanOrNull(),
     )
 }
