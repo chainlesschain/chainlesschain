@@ -4,12 +4,13 @@ import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
 import com.chainlesschain.android.core.e2ee.session.E2EESession
 import com.chainlesschain.android.core.e2ee.session.InitialMessage
-import com.chainlesschain.android.core.e2ee.session.SessionManager
+import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -26,7 +27,7 @@ import org.junit.Test
 class FriendSessionHandshakeTest {
 
     private lateinit var p2pClient: P2PClient
-    private lateinit var sessionManager: SessionManager
+    private lateinit var sessionManager: PersistentSessionManager
     private lateinit var didManager: DIDManager
     private lateinit var handshake: FriendSessionHandshake
 
@@ -79,7 +80,7 @@ class FriendSessionHandshakeTest {
             oneTimePreKeyUsed = false,
         )
         val fakeSession = mockk<E2EESession>(relaxed = true)
-        every { sessionManager.createSession("did:key:zPeer", any()) } returns Pair(fakeSession, initialMessage)
+        coEvery { sessionManager.createSession("did:key:zPeer", any()) } returns Pair(fakeSession, initialMessage)
 
         installSender { method ->
             when (method) {
@@ -99,8 +100,8 @@ class FriendSessionHandshakeTest {
         assertEquals("did:key:zMe", initParams["fromDid"])
         val decodedIm = E2EEHandshakeCodec.decodeInitialMessage(initParams["initialMessage"] as String)
         assertTrue(initialMessage.identityKey.contentEquals(decodedIm.identityKey))
-        verify { sessionManager.ensureInitialized() }
-        verify { sessionManager.createSession("did:key:zPeer", any()) }
+        coVerify { sessionManager.initialize() }
+        coVerify { sessionManager.createSession("did:key:zPeer", any()) }
     }
 
     @Test
@@ -113,7 +114,7 @@ class FriendSessionHandshakeTest {
 
         assertFalse(ok)
         assertEquals(listOf("e2ee.getBundle"), sentMethods)
-        verify { sessionManager.deleteSession("did:key:zPeer") }
+        coVerify { sessionManager.deleteSession("did:key:zPeer") }
     }
 
     @Test

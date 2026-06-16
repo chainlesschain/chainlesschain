@@ -1,6 +1,6 @@
 package com.chainlesschain.android.remote.p2p
 
-import com.chainlesschain.android.core.e2ee.session.SessionManager
+import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,10 +23,15 @@ import timber.log.Timber
  * sync 投递（与家庭遥测同栈，已验证）。auth 已在 [P2PClient] 层强制验签（见 handleIncomingCommandRequest）。
  *
  * 加进 [CompositeCommandRouter] 的 `e2ee.*` 分支。
+ *
+ * ⚠️ 用 [PersistentSessionManager]（**不是** SessionManager）：好友聊天 [P2PMessageRepository] /
+ * [P2PChatViewModel] 的发送闸 `getSession`/`hasSession` + `encrypt`/`decrypt` 全走
+ * PersistentSessionManager（@Singleton），握手必须把会话建在**同一个**管理器里聊天才看得见。
+ * 它还会把会话持久化到磁盘 → 进程重启后 `initialize(autoRestore=true)` 自动恢复，免重握手。
  */
 @Singleton
 class E2EEHandshakeCommandRouter @Inject constructor(
-    private val sessionManager: SessionManager,
+    private val sessionManager: PersistentSessionManager,
 ) : CommandRouter {
 
     override suspend fun route(method: String, params: Map<String, Any>): Any? {
@@ -42,19 +47,19 @@ class E2EEHandshakeCommandRouter @Inject constructor(
         }
     }
 
-    private fun handleGetBundle(): Map<String, Any> {
-        sessionManager.ensureInitialized()
+    private suspend fun handleGetBundle(): Map<String, Any> {
+        sessionManager.initialize()
         val bundle = sessionManager.getPreKeyBundle()
         return mapOf("bundle" to E2EEHandshakeCodec.encodeBundle(bundle))
     }
 
-    private fun handleInit(params: Map<String, Any>): Map<String, Any> {
+    private suspend fun handleInit(params: Map<String, Any>): Map<String, Any> {
         val fromDid = params["fromDid"] as? String
             ?: throw IllegalArgumentException("e2ee.init: missing 'fromDid' param")
         val initialMessageJson = params["initialMessage"] as? String
             ?: throw IllegalArgumentException("e2ee.init: missing 'initialMessage' param")
 
-        sessionManager.ensureInitialized()
+        sessionManager.initialize()
         val initialMessage = E2EEHandshakeCodec.decodeInitialMessage(initialMessageJson)
         sessionManager.acceptSession(fromDid, initialMessage)
         Timber.i("[E2EEHandshake] session accepted from peer=${fromDid.take(20)}…")

@@ -2,8 +2,10 @@ package com.chainlesschain.android.remote.p2p
 
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
 import com.chainlesschain.android.core.e2ee.session.InitialMessage
-import com.chainlesschain.android.core.e2ee.session.SessionManager
+import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -22,7 +24,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class E2EEHandshakeCommandRouterTest {
 
-    private lateinit var sessionManager: SessionManager
+    private lateinit var sessionManager: PersistentSessionManager
     private lateinit var router: E2EEHandshakeCommandRouter
 
     @Before
@@ -43,7 +45,7 @@ class E2EEHandshakeCommandRouterTest {
         @Suppress("UNCHECKED_CAST")
         val result = router.route("e2ee.getBundle", emptyMap()) as Map<String, Any>
 
-        verify { sessionManager.ensureInitialized() }
+        coVerify { sessionManager.initialize() }
         val decoded = E2EEHandshakeCodec.decodeBundle(result["bundle"] as String)
         assertTrue(bundle.identityKey.contentEquals(decoded.identityKey))
     }
@@ -57,7 +59,7 @@ class E2EEHandshakeCommandRouterTest {
             oneTimePreKeyUsed = false,
         )
         val imSlot = slot<InitialMessage>()
-        every { sessionManager.acceptSession(any(), capture(imSlot)) } returns mockk(relaxed = true)
+        coEvery { sessionManager.acceptSession(any(), capture(imSlot)) } returns mockk(relaxed = true)
 
         @Suppress("UNCHECKED_CAST")
         val result = router.route(
@@ -69,7 +71,7 @@ class E2EEHandshakeCommandRouterTest {
         ) as Map<String, Any>
 
         assertEquals(true, result["ok"])
-        verify { sessionManager.acceptSession("did:key:zPeer", any()) }
+        coVerify { sessionManager.acceptSession("did:key:zPeer", any()) }
         assertTrue(initialMessage.identityKey.contentEquals(imSlot.captured.identityKey))
     }
 

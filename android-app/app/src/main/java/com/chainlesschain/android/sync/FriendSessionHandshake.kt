@@ -1,7 +1,7 @@
 package com.chainlesschain.android.sync
 
 import com.chainlesschain.android.core.did.manager.DIDManager
-import com.chainlesschain.android.core.e2ee.session.SessionManager
+import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
 import javax.inject.Inject
@@ -21,13 +21,16 @@ import timber.log.Timber
  * `getSession(peerId)` 非空，[P2PChatViewModel] 的发送闸打开，好友可聊天（消息经 ResourceType.MESSAGE
  * sync 投递）。响应方逻辑见 [com.chainlesschain.android.remote.p2p.E2EEHandshakeCommandRouter]。
  *
- * 幂等（已有会话直接返回）；失败仅记日志、清半建会话，下轮 connector 重连时自动重试（密钥仅存
- * 内存、进程重启后失效，靠重连重跑握手自愈）。
+ * ⚠️ 用 [PersistentSessionManager]（**不是** SessionManager）：好友聊天发送闸 + encrypt/decrypt 全走
+ * 它（@Singleton），会话必须建在同一个管理器聊天才看得见。它持久化到磁盘 → 进程重启后
+ * `initialize(autoRestore=true)` 自动恢复会话，不必每次重启都重握手。
+ *
+ * 幂等（已有会话直接返回）；失败仅记日志、清半建会话，下轮 connector 重连时自动重试。
  */
 @Singleton
 class FriendSessionHandshake @Inject constructor(
     private val p2pClient: P2PClient,
-    private val sessionManager: SessionManager,
+    private val sessionManager: PersistentSessionManager,
     private val didManager: DIDManager,
 ) {
 
@@ -47,7 +50,7 @@ class FriendSessionHandshake @Inject constructor(
             return false
         }
         return try {
-            sessionManager.ensureInitialized()
+            sessionManager.initialize()
 
             // 1. 取对端 PreKeyBundle
             val bundleResp = commandSender(
