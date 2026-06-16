@@ -1670,10 +1670,15 @@ class LocalCcRunner @Inject constructor(
             val errMsg = try {
                 JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
             } catch (_: Exception) { null }
-            return@withContext OverviewResult.Failed(
-                reason = errMsg ?: "cc exited $exit: ${stderr.take(300)}",
-                exitCode = exit,
-            )
+            // 设备上 bundled 的 cc 若早于 analysis.overview 上线（pdh < 0.4.26），
+            // run-skill 会回 "Unknown skill: analysis.overview. Available: ..."。
+            // 把这条裸错误翻成可操作提示，而不是吓人的原始串（真机首报此症 2026-06-16）。
+            val friendly = if (errMsg != null && isUnknownSkillError(errMsg)) {
+                "数据总览需要更新本机 cc 组件（当前版本不含 analysis.overview）。请更新到含该技能的 APK。"
+            } else {
+                errMsg ?: "cc exited $exit: ${stderr.take(300)}"
+            }
+            return@withContext OverviewResult.Failed(reason = friendly, exitCode = exit)
         }
         try {
             OverviewResult.Ok(parseOverview(stdout.trim()))
@@ -1784,6 +1789,16 @@ data class OverviewReport(
     val spendTotal: Double,
     val spendCurrency: String?,
 )
+
+/**
+ * True when a cc error string means the requested analysis skill isn't
+ * registered in the bundled cc (older pdh). Matches the CLI's
+ * "Unknown skill: ..." and the pdh lib's "unknown analysis skill: ...".
+ */
+internal fun isUnknownSkillError(msg: String): Boolean {
+    val m = msg.lowercase()
+    return m.contains("unknown") && m.contains("skill")
+}
 
 /** Parse `cc hub run-skill analysis.overview --json` stdout into [OverviewReport]. */
 internal fun parseOverview(json: String): OverviewReport {

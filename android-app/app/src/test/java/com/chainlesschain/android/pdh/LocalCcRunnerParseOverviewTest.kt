@@ -54,4 +54,13 @@ class LocalCcRunnerParseOverviewTest {
         assertEquals("px", r.topContacts[0].personId)
         assertNull(r.topContacts[0].name)
     }
+
+    @Test
+    fun `isUnknownSkillError matches CLI and lib phrasings`() {
+        assertEquals(true, isUnknownSkillError("Unknown skill: analysis.overview. Available: analysis.spending"))
+        assertEquals(true, isUnknownSkillError("unknown analysis skill: analysis.overview. Known: ..."))
+        // unrelated errors must NOT be misclassified
+        assertEquals(false, isUnknownSkillError("database disk image is malformed"))
+        assertEquals(false, isUnknownSkillError("timeout after 30000ms"))
+    }
 }
