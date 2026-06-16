@@ -23,6 +23,19 @@
 - **`cc insights [id]` — 会话分析报告（`/insights` 平价）**：轮次 / 工具调用 + 错误率 / 时长 / token + 估算 $ 成本，纯 JSONL 复盘；从 `session_start` 回填模型给 headless 会话定价（强于 `cc cost`）。
 - **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。
 
+#### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.28.0 → 0.30.0（已发 Open VSX）
+> `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.30.0**（2026-06-16）。继续对标 Claude Code IDE/terminal：审批模式、键盘快捷键、上下文用量、扩展思考可视化、行范围引用、待审提示。
+
+- **0.28.0 后台 tab 完成提示**：在你没看的会话 tab 里一轮跑完 → 该 tab 标绿 ● 点 + 「Show」toast 跳转，不再静默完成。
+- **0.29.0 面板补齐**：`/retry`（重发上条 prompt）/ 代码块悬浮 **Copy** 按钮 / `/` 斜杠命令自动补全下拉 / `/rewind`（列本会话 checkpoint 并恢复工作树，需 cc ≥ 0.162.70）。
+- **0.30.0 审批模式选择器 `/auto`·`/bypass`·`/normal`（Claude Code 平价）**：面板可让 agent hands-off——`/auto` 自动接受文件编辑、`/bypass` 跳过所有审批、`/normal` 回默认逐项审批。按会话生效（`--permission-mode` 是 spawn-time，切模式停子进程→下条消息带新模式 respawn，resume 同会话续上下文）。plan 模式不变。
+- **0.30.0 新会话 / 重开已关 快捷键**：`Cmd/Ctrl+Alt+N` 任意处开新会话 tab；`Cmd/Ctrl+Shift+T`（聊天视图聚焦时）重开最近关闭的 tab 并 **resume 其会话**；视图标题栏加 ＋ 按钮。
+- **0.30.0 持久上下文窗口指示**：聊天下方细行显示模型上下文用量 `⊟ context 12.3k / 200k (6%)`，每轮后刷新（复用 CLI 权威算法 `cc context --json`，溢出转红）。`chainlesschain.chat.contextIndicator: false` 可关。
+- **0.30.0 扩展思考 toggle + 推理可视化**：`/think` 开 / `/ultrathink` 最大预算 / `/think-off` 关（Anthropic；其它 provider 忽略）。开启时推理以**可折叠** dimmed 块（`▾ thinking`）在答案上方**流式**渲染，action/answer 来时自动折叠，可点开。
+- **0.30.0 待审 tab 蓝点**：审批落在你没看的后台 tab（agent 被 block 等你）时，该 tab 显**蓝**点（区别于绿「完成」点）+ toast；切到该 tab 重新呈现审批卡可操作。
+- **0.30.0 `@file#L5-10` 行范围引用**：有选区时「Insert File Reference」(`Ctrl/Cmd+Alt+K`) 插入选中行范围 `@src/app.ts#L5-10`（单行 `#L7`），CLI 只展开那几行而非整文件（需 cc ≥ 0.162.71）。
+- **发布**：0.28–0.30 各 tag `ide-vscode-v*` → `ide-extensions.yml` 清洁室构建发 Open VSX；0.30.0 经 CI run 实证 registry latest = **0.30.0**。
+
 #### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.23.0 → 0.27.0（已发 Open VSX）
 > `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.27.0**（2026-06-15）。继 0.22.x 之后,继续对标 Claude Code IDE：终端上下文、版本对齐、稳定性。
 
