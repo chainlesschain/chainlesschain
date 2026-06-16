@@ -130,15 +130,22 @@ function parseImDb(dbPath, opts = {}) {
       : 5_000;
   const Database = opts._databaseClass || loadDatabaseClass();
   const db = new Database(dbPath, { readonly: true });
+  const limitConversations =
+    Number.isInteger(opts.limitConversations) && opts.limitConversations > 0
+      ? opts.limitConversations
+      : 5_000;
   const out = {
     messages: [],
     contacts: [],
+    conversations: [],
     diagnostic: {
       messageCount: 0,
       contactCount: 0,
+      conversationCount: 0,
       hadMsgTable: false,
       hadSimpleUserTable: false,
       hadParticipantTable: false,
+      hadConversationListTable: false,
     },
   };
   try {
@@ -266,6 +273,46 @@ function parseImDb(dbPath, opts = {}) {
           });
         }
         out.diagnostic.contactCount = out.contacts.length;
+      }
+    }
+
+    // ─── conversation_list table (device-verified 2026-06-16) ────────────
+    // Each row is a chat thread → PDH TOPIC. Columns vary by build; pick
+    // defensively. conversation_id is the only hard requirement.
+    const convTableInfo = trySelect(db, "PRAGMA table_info(conversation_list)");
+    if (Array.isArray(convTableInfo) && convTableInfo.length > 0) {
+      out.diagnostic.hadConversationListTable = true;
+      const columns = new Set(convTableInfo.map((r) => r.name));
+      const idCol = pickCol(columns, ["conversation_id", "conv_id", "id"]);
+      const typeCol = pickCol(columns, ["type", "conversation_type", "conv_type"]);
+      const lastTimeCol = pickCol(columns, [
+        "last_msg_create_time",
+        "last_message_time",
+        "updated_time",
+      ]);
+      const strangerCol = pickCol(columns, ["stranger", "is_stranger"]);
+      if (idCol) {
+        const fields = [`${idCol} AS convId`];
+        if (typeCol) fields.push(`${typeCol} AS convType`);
+        if (lastTimeCol) fields.push(`${lastTimeCol} AS lastMsgTime`);
+        if (strangerCol) fields.push(`${strangerCol} AS stranger`);
+        const orderBy = lastTimeCol ? ` ORDER BY ${lastTimeCol} DESC` : "";
+        const sql =
+          `SELECT ${fields.join(", ")} FROM conversation_list` +
+          `${orderBy} LIMIT ${limitConversations}`;
+        const rows = trySelect(db, sql) || [];
+        for (const r of rows) {
+          if (r.convId == null) continue;
+          out.conversations.push({
+            conversationId: String(r.convId),
+            conversationType:
+              typeof r.convType === "number" ? r.convType : null,
+            lastMsgTimeMs: normalizeEpochMs(r.lastMsgTime),
+            stranger:
+              typeof r.stranger === "number" ? r.stranger === 1 : null,
+          });
+        }
+        out.diagnostic.conversationCount = out.conversations.length;
       }
     }
   } finally {

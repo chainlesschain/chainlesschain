@@ -31,7 +31,7 @@ const { partitionBatch } = require("../lib/batch");
  */
 
 // Fake better-sqlite3-style driver answering the parser's PRAGMA + SELECTs.
-function makeFakeDb({ msgRows, userRows, msgCols, userCols, partCols, partRows }) {
+function makeFakeDb({ msgRows, userRows, msgCols, userCols, partCols, partRows, convCols, convRows }) {
   class FakeStmt {
     constructor(sql) {
       this.sql = sql;
@@ -44,6 +44,8 @@ function makeFakeDb({ msgRows, userRows, msgCols, userCols, partCols, partRows }
       if (/FROM SIMPLE_USER/.test(s)) return userRows || [];
       if (/PRAGMA table_info\(participant\)/.test(s)) return partCols || [];
       if (/FROM participant/.test(s)) return partRows || [];
+      if (/PRAGMA table_info\(conversation_list\)/.test(s)) return convCols || [];
+      if (/FROM conversation_list/.test(s)) return convRows || [];
       return [];
     }
   }
@@ -282,6 +284,33 @@ describe("DouyinAdapter — 本地直读 <uid>_im.db", () => {
     // each participant uid → a CONTACT person keyed by douyin-uid
     const n = a.normalize(contacts[0]);
     expect(n.persons[0].identifiers["douyin-uid"]).toEqual([contacts[0].payload.uid]);
+  });
+
+  // device-verified: conversation_list row → PDH TOPIC (one chat thread).
+  it("maps conversation_list rows to TOPIC entities", async () => {
+    const spec = {
+      msgCols: DEFAULT_FAKE.msgCols,
+      msgRows: DEFAULT_FAKE.msgRows,
+      userCols: [], userRows: [],
+      convCols: [
+        { name: "conversation_id" }, { name: "type" },
+        { name: "last_msg_create_time" }, { name: "stranger" },
+      ],
+      convRows: [
+        { convId: "conv-1", convType: 0, lastMsgTime: 1700000002000, stranger: 0 },
+        { convId: "conv-2", convType: 1, lastMsgTime: 1700000003000, stranger: 1 },
+      ],
+    };
+    const a = freshAdapter(spec);
+    const raws = await collect(a.sync({ imDbPath: "/fake/123_im.db" }));
+    const convs = raws.filter((r) => r.kind === "conversation");
+    expect(convs.map((r) => r.payload.conversationId)).toEqual(["conv-1", "conv-2"]);
+    const n = a.normalize(convs[1]);
+    expect(n.topics).toHaveLength(1);
+    expect(n.topics[0].type).toBe("topic");
+    expect(n.topics[0].extra.conversationId).toBe("conv-2");
+    expect(n.topics[0].extra.stranger).toBe(true);
+    expect(n.topics[0].extra.lastMsgTimeMs).toBe(1700000003000);
   });
 
   it("participant dedups against SIMPLE_USER contacts (no double-count)", async () => {

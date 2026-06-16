@@ -63,7 +63,8 @@ const KIND_FAVOURITE = "favourite"; // v0.3 (X-Bogus required)
 const KIND_LIKE = "like";         // v0.3 (X-Bogus required)
 const KIND_SEARCH = "search";     // legacy sqlite-mode only
 const KIND_MESSAGE = "message";   // Phase 2a — IM private messages from <uid>_im.db (abrignoni DFIR)
-const KIND_CONTACT = "contact";   // Phase 2a — SIMPLE_USER table contacts/follows from <uid>_im.db
+const KIND_CONTACT = "contact";   // Phase 2a — SIMPLE_USER/participant contacts from <uid>_im.db
+const KIND_CONVERSATION = "conversation"; // device-verified — conversation_list thread → TOPIC
 
 // Forward-compat: list every kind v0.3+ may emit so cc adapter accepts
 // snapshots from a newer Android even if this JS hasn't been bumped yet.
@@ -258,7 +259,7 @@ class DouyinAdapter {
     if (Number.isInteger(opts.limitContacts)) parseOpts.limitContacts = opts.limitContacts;
     if (this._deps.dbDriverFactory) parseOpts._databaseClass = this._deps.dbDriverFactory();
 
-    const { messages, contacts, diagnostic } = parseImDb(dbPath, parseOpts);
+    const { messages, contacts, conversations, diagnostic } = parseImDb(dbPath, parseOpts);
     if (typeof opts.onProgress === "function") {
       try {
         opts.onProgress({ phase: "im-db-parsed", adapter: NAME, ...diagnostic });
@@ -310,6 +311,27 @@ class DouyinAdapter {
           ),
           capturedAt: fallbackCapturedAt,
           payload: { kind: KIND_CONTACT, ...c },
+        };
+        emitted += 1;
+      }
+    }
+
+    if (include[KIND_CONVERSATION] !== false) {
+      for (const cv of conversations || []) {
+        if (emitted >= limit) return;
+        if (!cv || typeof cv !== "object" || !cv.conversationId) continue;
+        yield {
+          adapter: NAME,
+          kind: KIND_CONVERSATION,
+          originalId: stableOriginalId(
+            KIND_CONVERSATION,
+            `conv-${cv.conversationId}`,
+          ),
+          capturedAt:
+            typeof cv.lastMsgTimeMs === "number" && cv.lastMsgTimeMs > 0
+              ? cv.lastMsgTimeMs
+              : fallbackCapturedAt,
+          payload: { kind: KIND_CONVERSATION, ...cv },
         };
         emitted += 1;
       }
@@ -453,6 +475,9 @@ class DouyinAdapter {
     }
     if (kind === KIND_CONTACT) {
       return normalizeContact(p, raw, ingestedAt);
+    }
+    if (kind === KIND_CONVERSATION) {
+      return normalizeConversation(p, raw, ingestedAt);
     }
     throw new Error(`DouyinAdapter.normalize: unknown kind ${kind}`);
   }
@@ -694,6 +719,35 @@ function normalizeContact(p, raw, ingestedAt) {
       },
     }],
     places: [], items: [], topics: [],
+  };
+}
+
+function normalizeConversation(p, raw, ingestedAt) {
+  // conversation_list row from <uid>_im.db → a TOPIC (one chat thread).
+  const convId =
+    (typeof p.conversationId === "string" && p.conversationId) ||
+    (typeof p.conversationId === "number" && String(p.conversationId)) ||
+    null;
+  const occurredAt = raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.SQLITE);
+  return {
+    events: [], persons: [], places: [], items: [],
+    topics: [{
+      id: convId ? `topic-douyin-conv-${convId}` : `topic-douyin-conv-${newId()}`,
+      type: ENTITY_TYPES.TOPIC,
+      name: convId ? `抖音会话 ${convId}` : "抖音会话",
+      ingestedAt,
+      source,
+      extra: {
+        platform: "douyin",
+        conversationId: convId,
+        conversationType:
+          typeof p.conversationType === "number" ? p.conversationType : null,
+        lastMsgTimeMs:
+          typeof p.lastMsgTimeMs === "number" ? p.lastMsgTimeMs : null,
+        stranger: typeof p.stranger === "boolean" ? p.stranger : null,
+      },
+    }],
   };
 }
 
