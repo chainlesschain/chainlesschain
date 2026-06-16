@@ -36,6 +36,14 @@ are smoke-tested (`PureLogicSmokeMain`, 116 assertions).
   `@diagnostics` + project files (speed-search filtered); choosing splices the
   reference into the input.
 
+Verified in a `runIde` sandbox; fixes found during that GUI pass:
+- Chat replies are no longer silently dropped (the multi-conversation refactor
+  could leave a conversation's turn-state as the wrong type, throwing on the first
+  stream event and killing the reply reader).
+- Tool-window stripe icon renders again (switched the New-UI-incompatible
+  raster-in-SVG icon to a real PNG of the same logo).
+- The chat input now spans its own full-width line, with Send/Stop on a row below.
+
 ## [0.3.3] — 2026-06-12
 
 - Tool window icon is now **pixel-exact** with the VS Code extension's
