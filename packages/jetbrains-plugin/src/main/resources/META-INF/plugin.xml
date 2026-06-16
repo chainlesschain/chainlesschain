@@ -30,9 +30,13 @@
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.chainlesschain.ide.intellij.IdeBridgeStartup"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
+        <projectService serviceImplementation="com.chainlesschain.ide.intellij.PreviewService"/>
         <toolWindow id="ChainlessChain" anchor="right" secondary="true"
                     icon="/icons/chainlesschain.svg"
                     factoryClass="com.chainlesschain.ide.intellij.ChatToolWindowFactory"/>
+        <toolWindow id="ChainlessChain Preview" anchor="bottom" secondary="true"
+                    icon="/icons/chainlesschain.svg"
+                    factoryClass="com.chainlesschain.ide.intellij.PreviewToolWindowFactory"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
@@ -89,6 +93,18 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt K"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt K"/>
+        </action>
+        <action id="chainlesschain.preview.start"
+                class="com.chainlesschain.ide.intellij.StartPreviewAction"
+                text="ChainlessChain: Start App Preview (启动应用预览)"
+                description="Run the project's dev script and show the app in the preview tool window">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.preview.stop"
+                class="com.chainlesschain.ide.intellij.StopPreviewAction"
+                text="ChainlessChain: Stop App Preview (停止应用预览)"
+                description="Stop the App Preview dev server">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>
