@@ -14,6 +14,18 @@
 - **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**。
 - **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连冷启动）**120s**、"both code paths" 等价性测试（4 连冷启动）**90s**（旧时均撞 60s 全局默认）。
 - **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s 比内部子命令自身 30s 超时还短，提到 **40s**。
+- **integration 重活测试**（同 trap #31 模式延伸到集成层）：`crosschain-multisig-e2e` happy-path 2-of-2 + `mtc-federation-governance-sync-cli` alice publish→bob pull，各多次串行 CLI 冷启动，重负载下反复撞 60s 全局默认（隔离全绿）→ 各给显式 **90s**。
+
+#### Added — cc CLI 0.162.71 → 0.162.73：Claude Code IDE/terminal 平价收官 + microcompact 自动压缩（已发 npm）
+
+> 对照 Claude Code desktop/IDE 的剩余体验缺口一连补齐 17 项并收官。`chainlesschain` 0.162.70 → **0.162.73** 已发 npm（`latest`，全局安装实测全通；161/162 旧版已 deprecate）。
+
+- **扩展思考可视化（REPL）**：`/think` 开 / `/ultrathink` 最大预算 / `/think-off` 关（Anthropic provider；其它忽略）。推理以 dimmed 折叠块在最终答案之上**流式**渲染，含会话**中途步骤**的推理，不只末轮。
+- **REPL token 流式输出**：assistant 文本逐字流式呈现（无 AssistantResponse hook 时启用），不再整段一次性弹出。
+- **审批档位即时切换**：REPL `/permissions <tier>`（normal / acceptEdits / bypass / plan）+ **Shift+Tab 循环**审批模式，无需重启会话。
+- **行范围文件引用**：`@src/app.ts#L5-10`（单行 `#L7`）只展开选中行而非整文件（CLI + VS Code 扩展一致）。
+- **PDF 页抽取**：`@report.pdf` 经可选 `pdf-parse` 依赖抽取文本页注入上下文（异步 `expandFileRefsAsync`；未装依赖则优雅跳过）。
+- **microcompact 自动压缩（0.162.73）**：会话历史跨阈值时，`agentLoop` 先就地**精简陈旧的大体积工具结果**（保留最近上下文 + 消息条数），若由此回落阈值下则**整体跳过破坏性的全量摘要**；否则照常 fall-through。`autoMicroCompact:false` 退出。省下「几个巨型旧工具输出」场景的全量摘要成本与上下文损失。
 
 #### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
 > 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
