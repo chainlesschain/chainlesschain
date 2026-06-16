@@ -67,9 +67,10 @@ implemented and build-verified** (0.4.0).
       was 0.3.3).
 - [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
 
-## ⏳ Future add (not blocking)
-- [ ] @-mention **workspace-symbol** entries via PSI search (file + IDE-mention
-      completion already wired).
+## ✅ Also done
+- [x] @-mention **class-symbol** entries via PSI search (`PsiShortNamesCache`,
+      bounded 800, resolved to file → `Mentions.formatSymbolItems`) — 0.4.2,
+      runIde-verified + published. (Method/function symbols could be a further add.)
 
 ---
 
