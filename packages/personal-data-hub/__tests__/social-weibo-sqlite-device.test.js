@@ -1,0 +1,174 @@
+"use strict";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+
+const { WeiboAdapter } = require("../lib/adapters/social-weibo");
+
+// §A8 sqlite mode — device-verified schema regression tests.
+//
+// The legacy sqlite path queried `post`/`status`/`search_history`, but a real
+// Weibo install (Redmi M2104K10AC, 微博 16.5.3, verified 2026-06-16) has NO
+// such tables — its data lives in `home_table` (timeline), `like_table`
+// (likes), `follower_table` (following). So the legacy path silently
+// collected ZERO on a real device. These tests pin the device-verified
+// table/column mapping + the legacy fallback.
+//
+// A fake driver returns synthetic rows keyed off the table name in the SQL,
+// and throws "no such table" for absent tables (mirroring better-sqlite3) so
+// `trySelect` falls through exactly as on a real DB.
+
+function makeFakeDriver(tables) {
+  return function dbDriverFactory() {
+    return class FakeDb {
+      constructor() {}
+      prepare(sql) {
+        return {
+          all: () => {
+            for (const [name, rows] of Object.entries(tables)) {
+              if (new RegExp(`FROM ${name}\\b`).test(sql)) return rows;
+            }
+            throw new Error("no such table");
+          },
+        };
+      }
+      close() {}
+    };
+  };
+}
+
+const SELF_UID = "2075014533";
+
+// Device-verified column shapes.
+const HOME_ROW = {
+  mblogid: "MID_001",
+  uid: SELF_UID,
+  own_uid: SELF_UID,
+  nick: "me",
+  content: "今天去爬山了 ⛰️",
+  time: "1718500000",
+  src: "微博 weibo.com",
+  rtnum: 3,
+  commentnum: 7,
+  attitudenum: 42,
+};
+const LIKE_ROW = {
+  mblogid: "MID_LIKED",
+  uid: "999",
+  nick: "好友A",
+  content: "一条被点赞的微博",
+  time: "1718400000",
+  attitudenum: 100,
+};
+const FOLLOW_ROW = {
+  user_id: "555",
+  id: "555",
+  screen_name: "关注的人",
+  remark: "",
+  gender: "f",
+  following: 1,
+};
+
+function newAdapter(tables) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "weibo-sqlite-"));
+  const dbPath = path.join(tmp, "sina_weibo");
+  fs.writeFileSync(dbPath, "x"); // existsSync gate
+  const a = new WeiboAdapter({
+    account: { uid: SELF_UID },
+    dbPath,
+    dbDriverFactory: makeFakeDriver(tables),
+  });
+  return { a, dbPath, tmp };
+}
+
+async function collect(a, dbPath) {
+  const out = [];
+  for await (const raw of a.sync({ dbPath })) out.push(raw);
+  return out;
+}
+
+describe("WeiboAdapter sqlite mode — device-verified schema", () => {
+  let dirs = [];
+  afterEach(() => {
+    for (const d of dirs) {
+      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+    }
+    dirs = [];
+  });
+
+  it("modern device (home/like/follower only) collects posts+favs+follows", async () => {
+    const { a, dbPath, tmp } = newAdapter({
+      home_table: [HOME_ROW],
+      like_table: [LIKE_ROW],
+      follower_table: [FOLLOW_ROW],
+    });
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    const kinds = raws.map((r) => r.payload.kind).sort();
+    expect(kinds).toEqual(["favourite", "follow", "post"]);
+  });
+
+  it("home_table post normalizes content/time/counts correctly", async () => {
+    const { a, dbPath, tmp } = newAdapter({ home_table: [HOME_ROW] });
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    expect(raws).toHaveLength(1);
+    const norm = a.normalize(raws[0]);
+    const ev = norm.events[0];
+    expect(ev.subtype).toBe("post");
+    expect(ev.content.text).toBe("今天去爬山了 ⛰️");
+    expect(ev.extra.weiboMid).toBe("MID_001");
+    expect(ev.extra.likesCount).toBe(42);
+    expect(ev.extra.repostsCount).toBe(3);
+    expect(ev.extra.commentsCount).toBe(7);
+    // time '1718500000' (epoch seconds) → ms
+    expect(ev.occurredAt).toBe(1718500000 * 1000);
+  });
+
+  it("like_table normalizes to a LIKE event with author nick", async () => {
+    const { a, dbPath, tmp } = newAdapter({ like_table: [LIKE_ROW] });
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    const norm = a.normalize(raws[0]);
+    const ev = norm.events[0];
+    expect(ev.subtype).toBe("like");
+    expect(ev.content.text).toBe("一条被点赞的微博");
+    expect(ev.extra.weiboMid).toBe("MID_LIKED");
+    expect(ev.extra.authorScreenName).toBe("好友A");
+  });
+
+  it("follower_table normalizes to a CONTACT person with weibo-uid", async () => {
+    const { a, dbPath, tmp } = newAdapter({ follower_table: [FOLLOW_ROW] });
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    const norm = a.normalize(raws[0]);
+    expect(norm.events).toHaveLength(0);
+    expect(norm.persons).toHaveLength(1);
+    const person = norm.persons[0];
+    expect(person.names).toEqual(["关注的人"]);
+    expect(person.identifiers["weibo-uid"]).toEqual(["555"]);
+  });
+
+  it("legacy device (post table, no home_table) still works via fallback", async () => {
+    const { a, dbPath, tmp } = newAdapter({
+      post: [{ id: "L1", text: "legacy post", created_at: "1700000000", attitudes_count: 5 }],
+    });
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    expect(raws).toHaveLength(1);
+    const ev = a.normalize(raws[0]).events[0];
+    expect(ev.subtype).toBe("post");
+    expect(ev.content.text).toBe("legacy post");
+    expect(ev.extra.likesCount).toBe(5);
+  });
+
+  it("empty DB (none of the tables exist) collects nothing, no throw", async () => {
+    const { a, dbPath, tmp } = newAdapter({});
+    dirs.push(tmp);
+    const raws = await collect(a, dbPath);
+    expect(raws).toEqual([]);
+  });
+});

@@ -9,10 +9,23 @@
  *      — account.uid is OPTIONAL at construction (the snapshot file carries
  *      account in payload).
  *
- *   2. sqlite mode (opts.dbPath, legacy): Phase 13.2 device-pull path —
- *      reads Weibo Android app's SQLite (history / post / status / search_
- *      history). Preserved for backward compat with desktop sqlite-mode
- *      users; account.uid REQUIRED in this mode.
+ *   2. sqlite mode (opts.dbPath): desktop device-pull path — reads the Weibo
+ *      Android app's plain SQLite DB `com.sina.weibo/databases/sina_weibo`.
+ *      account.uid REQUIRED in this mode.
+ *
+ *      Table/column names are DEVICE-VERIFIED against a real install
+ *      (Redmi M2104K10AC, 微博 16.5.3, 2026-06-16):
+ *        - posts      → `home_table` (timeline cache; own posts = uid==selfUid)
+ *                       cols: mblogid / uid / content / time / rtnum /
+ *                       commentnum / attitudenum / src / longitude / latitude
+ *        - favourites → `like_table`   cols: mblogid / content / time / nick
+ *        - follows    → `follower_table` (following=1 ⇒ accounts the user
+ *                       follows) cols: user_id / screen_name / remark / gender
+ *      The legacy `post`/`status`/`search_history` queries are kept as
+ *      FALLBACKS (older builds) — on a modern device those tables don't
+ *      exist so the adapter previously collected ZERO. Row VALUES were not
+ *      validated (verification account was empty); column semantics use the
+ *      standard Weibo schema. See memory pdh_collector_completeness_audit.
  *
  * Snapshot schema (mirrors WeiboLocalCollector.SNAPSHOT_SCHEMA_VERSION):
  *
@@ -44,7 +57,7 @@ const {
 } = require("../../constants");
 
 const NAME = "social-weibo";
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_POST = "post";
@@ -246,21 +259,64 @@ class WeiboAdapter {
       ? this._deps.dbDriverFactory()
       : require("better-sqlite3-multiple-ciphers");
     const db = new Driver(dbPath, { readonly: true });
+    // selfUid sanitised to digits — interpolated into a WHERE clause and
+    // sourced from wiring config (numeric uin). Defensive against injection.
+    const selfUid = String(this.account.uid).replace(/[^0-9]/g, "");
 
     try {
+      // POSTS — device-verified `home_table` (own posts = uid==selfUid);
+      // legacy `post`/`status` kept as fallback for older builds.
       const posts =
-        trySelect(db, "SELECT * FROM post ORDER BY created_at DESC LIMIT 5000")
-        || trySelect(db, "SELECT * FROM status ORDER BY created_at DESC LIMIT 5000")
-        || [];
+        (selfUid &&
+          trySelect(
+            db,
+            `SELECT * FROM home_table WHERE uid='${selfUid}' ORDER BY time DESC LIMIT 5000`,
+          )) ||
+        trySelect(db, "SELECT * FROM post ORDER BY created_at DESC LIMIT 5000") ||
+        trySelect(db, "SELECT * FROM status ORDER BY created_at DESC LIMIT 5000") ||
+        [];
       for (const row of posts) {
         yield {
           adapter: NAME,
-          originalId: `post-${row.id || row.mid || row.idstr}`,
-          capturedAt: parseTime(row.created_at || row.time),
+          originalId: `post-${row.mblogid || row.id || row.mid || row.idstr}`,
+          capturedAt: parseTime(row.time || row.created_at),
           payload: { row, kind: KIND_POST },
         };
       }
 
+      // FAVOURITES — device-verified `like_table` (the account's likes).
+      // Legacy sqlite had no favourite path (folded into posts pre-A8).
+      const favourites =
+        trySelect(db, "SELECT * FROM like_table ORDER BY time DESC LIMIT 5000") || [];
+      for (const row of favourites) {
+        yield {
+          adapter: NAME,
+          originalId: `fav-${row.mblogid || row.id}`,
+          capturedAt: parseTime(row.time),
+          payload: { row, kind: KIND_FAVOURITE },
+        };
+      }
+
+      // FOLLOWS — device-verified `follower_table`; following=1 ⇒ accounts
+      // the user follows (vs followers). Fallback to the whole table.
+      const follows =
+        trySelect(
+          db,
+          "SELECT * FROM follower_table WHERE following=1 ORDER BY user_id LIMIT 5000",
+        ) ||
+        trySelect(db, "SELECT * FROM follower_table LIMIT 5000") ||
+        [];
+      for (const row of follows) {
+        yield {
+          adapter: NAME,
+          originalId: `follow-${row.user_id || row.id}`,
+          capturedAt: parseTime(row.time) || Date.now(),
+          payload: { row, kind: KIND_FOLLOW },
+        };
+      }
+
+      // SEARCH — legacy only (`search_history` doesn't exist on modern
+      // weibo; trySelect returns null gracefully, loop is skipped).
       const searches =
         trySelect(db, "SELECT * FROM search_history ORDER BY time DESC LIMIT 5000")
         || [];
@@ -342,8 +398,9 @@ function normalizePost(p, raw, ingestedAt) {
   // Sqlite mode:   { kind:"post", row: { text, mid, ... } }
   const row = p.row || p;
   const isSnapshot = !p.row;
-  const text = row.text || "";
-  const mid = row.mid || row.id || row.idstr || null;
+  // home_table (device-verified) stores body in `content`, id in `mblogid`.
+  const text = row.text || row.content || "";
+  const mid = row.mid || row.mblogid || row.id || row.idstr || null;
   const occurredAt =
     parseTime(row.created_at || row.createdAt || row.time || raw.capturedAt) ||
     ingestedAt;
@@ -369,13 +426,13 @@ function normalizePost(p, raw, ingestedAt) {
         weiboMid: mid,
         repostsCount:
           row.repostsCount != null ? row.repostsCount
-            : row.reposts_count || row.repost || 0,
+            : row.reposts_count || row.repost || row.rtnum || 0,
         commentsCount:
           row.commentsCount != null ? row.commentsCount
-            : row.comments_count || row.comments || 0,
+            : row.comments_count || row.comments || row.commentnum || 0,
         likesCount:
           row.likesCount != null ? row.likesCount
-            : row.attitudes_count || row.likes || 0,
+            : row.attitudes_count || row.likes || row.attitudenum || 0,
         picCount: row.picCount || row.pic_num || 0,
         source: row.source || null,
         location: row.location || row.geo || null,
@@ -387,13 +444,21 @@ function normalizePost(p, raw, ingestedAt) {
 }
 
 function normalizeFavourite(p, raw, ingestedAt) {
-  // Snapshot only — sqlite mode has no favourite kind (legacy parser merged
-  // favourites into posts pre-A8). Payload: { kind:"favourite", mid, text,
-  // capturedAt, authorScreenName }
-  const text = p.text || "";
-  const mid = p.mid || null;
-  const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
-  const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
+  // Snapshot: { kind:"favourite", mid, text, capturedAt, authorScreenName }
+  // Sqlite (device-verified `like_table`): { row: { mblogid, content, time,
+  // nick } }. Both shapes handled below.
+  const row = p.row || null;
+  const isSqlite = !!row;
+  const text = isSqlite ? (row.content || "") : (p.text || "");
+  const mid = isSqlite ? (row.mblogid || row.id || null) : (p.mid || null);
+  const occurredAt = isSqlite
+    ? (parseTime(row.time) || raw.capturedAt || ingestedAt)
+    : (parseTime(p.capturedAt) || raw.capturedAt || ingestedAt);
+  const source = buildSource(
+    raw,
+    occurredAt,
+    isSqlite ? CAPTURED_BY.SQLITE : CAPTURED_BY.API,
+  );
   return {
     events: [{
       id: newId(),
@@ -410,7 +475,9 @@ function normalizeFavourite(p, raw, ingestedAt) {
       extra: {
         platform: "weibo",
         weiboMid: mid,
-        authorScreenName: p.authorScreenName || null,
+        authorScreenName: isSqlite
+          ? (row.nick || null)
+          : (p.authorScreenName || null),
       },
     }],
     persons: [], places: [], items: [], topics: [],
@@ -418,15 +485,28 @@ function normalizeFavourite(p, raw, ingestedAt) {
 }
 
 function normalizeFollow(p, raw, ingestedAt) {
-  // Snapshot only — payload: { kind:"follow", uid, screenName, description,
-  // avatarUrl, capturedAt }
+  // Snapshot: { kind:"follow", uid, screenName, description, avatarUrl,
+  //   capturedAt }
+  // Sqlite (device-verified `follower_table`): { row: { user_id|id,
+  //   screen_name, remark, gender } }. Both shapes handled below.
+  const row = p.row || null;
+  const isSqlite = !!row;
+  const rawUid = isSqlite ? (row.user_id || row.id) : p.uid;
   const followUid =
-    (typeof p.uid === "number" && p.uid) ||
-    (typeof p.uid === "string" && p.uid.length > 0 && p.uid) ||
+    (typeof rawUid === "number" && rawUid) ||
+    (typeof rawUid === "string" && rawUid.length > 0 && rawUid) ||
     `unknown-${newId()}`;
-  const screenName = p.screenName || "(unnamed)";
-  const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
-  const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
+  const screenName = isSqlite
+    ? (row.screen_name || row.remark || "(unnamed)")
+    : (p.screenName || "(unnamed)");
+  const occurredAt = isSqlite
+    ? (parseTime(row.time) || raw.capturedAt || ingestedAt)
+    : (parseTime(p.capturedAt) || raw.capturedAt || ingestedAt);
+  const source = buildSource(
+    raw,
+    occurredAt,
+    isSqlite ? CAPTURED_BY.SQLITE : CAPTURED_BY.API,
+  );
   const person = {
     id: `person-weibo-${followUid}`,
     type: ENTITY_TYPES.PERSON,
