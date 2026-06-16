@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**（均远小于 30s `hookTimeout`，又足够扛冷启动）。
 - **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连串行子进程冷启动）**120s**；"both code paths" 等价性测试（4 连冷启动，`cbfbc08f9`）**90s**（旧时均撞 60s 全局默认超时）。
 - **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s < 内部子命令自身 30s 超时，vitest 在子命令超时处理跑之前就杀了测试；提到 **40s**。
+- **integration 重活测试**（`ab81feca4`，同 trap #31 模式延伸到集成层）：`crosschain-multisig-e2e` happy-path 2-of-2（policy→propose→sign→consume→bridge）+ `mtc-federation-governance-sync-cli` alice publish→bob pull，各多次串行 CLI 冷启动，重负载下反复撞 60s 全局默认（隔离全绿）→ 各给显式 **90s**。
 - 注：与 README `2026-06-14` 的"24 个 e2e 文件**子进程** timeout 15s→30s"正交——那条调 `execSync` 子命令超时，本次调的是 **server-readiness 等待器 + per-test 预算**。
 
 ### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
