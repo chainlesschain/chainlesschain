@@ -3,13 +3,20 @@ package com.chainlesschain.android.core.database.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
  * P2P聊天消息实体
  *
- * 存储端到端加密的P2P消息
+ * 存储端到端加密的P2P消息。
+ *
+ * FAMILY-67: 标 @Serializable —— 好友聊天跨设备投递经 SocialSyncAdapter.syncMessageSent
+ * 直接 json.encodeToString(entity)（收端 decodeFromString<P2PMessageEntity> 还原），
+ * 缺此注解时运行时抛 "Serializer for class 'P2PMessageEntity' is not found" → 消息发出但
+ * 永远同步不到对端（真机实测：本地"已发送"✓ 但好友恒 0 条）。所有字段均为可序列化原始类型。
  */
+@Serializable
 @Entity(
     tableName = "p2p_messages",
     indices = [
