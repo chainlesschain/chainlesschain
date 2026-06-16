@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.30.1] — 2026-06-16
+
+- **Fix: CJK IME composition no longer cancels or submits mid-compose
+  (Claude-Code 2.1.178 parity).** Pressing **Esc** to dismiss the IME candidate
+  window used to also interrupt the running turn, and pressing **Enter** to
+  confirm a candidate used to submit a half-composed message. The chat panel
+  now tracks composition (`compositionstart`/`compositionend` plus
+  `event.isComposing`/`keyCode 229`) and skips the Esc→interrupt and Enter→send
+  paths while an IME composition is active. Affects Chinese/Japanese/Korean
+  input.
+
 ## [0.30.0] — 2026-06-15
 
 - **Approval-mode selector — `/auto`, `/bypass`, `/normal` (Claude-Code parity).**
