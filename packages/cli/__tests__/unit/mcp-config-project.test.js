@@ -39,6 +39,8 @@ beforeEach(() => {
   sub = path.join(root, "packages", "x");
   fs.mkdirSync(sub, { recursive: true });
   fs.writeFileSync(path.join(root, ".git"), "gitdir: /nowhere\n", "utf-8");
+  // Project `.mcp.json` is OPT-IN (default-off); enable it for the load tests.
+  process.env.CC_PROJECT_MCP = "1";
 });
 
 afterEach(() => {
@@ -81,14 +83,27 @@ describe("loadProjectMcp", () => {
     expect(res).toBe(into);
   });
 
-  it("CC_PROJECT_MCP=0 disables discovery entirely", async () => {
+  it("default-off: does nothing when CC_PROJECT_MCP is unset", async () => {
     write(path.join(root, ".mcp.json"), {
       mcpServers: { rooty: { command: "node" } },
     });
-    process.env.CC_PROJECT_MCP = "0";
+    delete process.env.CC_PROJECT_MCP; // override the beforeEach opt-in
     const createClient = fakeClientFactory();
     const res = await loadProjectMcp({ cwd: sub }, { createClient });
     expect(res).toBeNull();
+  });
+
+  it("opt-in can be passed via opts.env without touching process.env", async () => {
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: { rooty: { command: "node" } },
+    });
+    delete process.env.CC_PROJECT_MCP;
+    const createClient = fakeClientFactory();
+    const res = await loadProjectMcp(
+      { cwd: sub, env: { CC_PROJECT_MCP: "1" } },
+      { createClient },
+    );
+    expect(res.connected.map((c) => c.server)).toContain("rooty");
   });
 
   it("a malformed .mcp.json is skipped (best-effort, never throws)", async () => {

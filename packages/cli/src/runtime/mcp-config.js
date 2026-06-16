@@ -384,18 +384,23 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
  * (cwd wins on a name clash — closest wins). Best-effort: a missing / empty /
  * malformed file contributes nothing and never throws.
  *
- * SECURITY: a checked-in `.mcp.json` can spawn arbitrary commands, so the
- * servers it loads are announced via writeErr and the whole layer is skippable
- * with `--no-project-mcp` / `CC_PROJECT_MCP=0`. Connected into `deps.into`, so
- * an explicit `--mcp-config` server or a registered (`cc mcp add`) server WINS
- * on a name clash (the first batch wins in setupMcpFromConfig).
+ * SECURITY: a checked-in `.mcp.json` can spawn arbitrary commands, so this layer
+ * is OPT-IN (default-off) — it only runs when explicitly enabled with
+ * `--project-mcp` / `CC_PROJECT_MCP=1` (truthy). When enabled, the servers it
+ * loads are announced via writeErr. Connected into `deps.into`, so an explicit
+ * `--mcp-config` server or a registered (`cc mcp add`) server WINS on a name
+ * clash (the first batch wins in setupMcpFromConfig).
  *
  * @param {object} opts  { cwd?, env? }
  * @param {object} [deps] { writeErr, into, readFile, fileExists, createClient }
  */
 export async function loadProjectMcp(opts = {}, deps = {}) {
   const env = opts.env || process.env;
-  if (env.CC_PROJECT_MCP === "0") return deps.into || null;
+  // Opt-in gate (default-off): only load a project `.mcp.json` when explicitly
+  // enabled — a checked-in file spawning commands in any cloned repo is a
+  // supply-chain risk, so the user must turn it on per run / per shell.
+  const flag = String(env.CC_PROJECT_MCP || "").toLowerCase();
+  if (flag !== "1" && flag !== "true") return deps.into || null;
   const cwd = opts.cwd || process.cwd();
   const readFile = deps.readFile || ((p) => fs.readFileSync(p, "utf-8"));
   const fileExists = deps.fileExists || ((p) => fs.existsSync(p));
@@ -429,7 +434,7 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   if (Object.keys(servers).length === 0) return deps.into || null;
   writeErr(
     `  mcp: ${Object.keys(servers).length} server(s) from project .mcp.json ` +
-      `(${seenFiles.join(", ")}) — disable with --no-project-mcp\n`,
+      `(${seenFiles.join(", ")}) — loaded via --project-mcp\n`,
   );
   return setupMcpFromConfig(servers, deps);
 }
@@ -437,8 +442,8 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
 /**
  * Resolve the full MCP tool surface for one agent run: the ad-hoc
  * `--mcp-config` file (if any) PLUS registered auto-connect servers (unless
- * disabled) PLUS a project-scoped `.mcp.json` PLUS an auto-discovered IDE
- * bridge, connected into a single client.
+ * disabled) PLUS a project-scoped `.mcp.json` (opt-in, `--project-mcp`) PLUS an
+ * auto-discovered IDE bridge, connected into a single client.
  * Returns the combined `{mcpClient, extraToolDefinitions, ...}` or null when
  * there's nothing. Throws only on a bad `--mcp-config` file (explicit request).
  *
@@ -476,7 +481,9 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   }
   // Project-scoped `.mcp.json` (Claude-Code parity). After --mcp-config +
   // registered (those win on a name clash), before IDE auto-discovery. Skipped
-  // under --strict-mcp-config (returned above) and via CC_PROJECT_MCP=0.
+  // under --strict-mcp-config (returned above). OPT-IN: loadProjectMcp is a
+  // no-op unless --project-mcp / CC_PROJECT_MCP=1 is set (default-off — a
+  // checked-in .mcp.json can spawn commands). `projectMcp:false` hard-skips it.
   if (args.projectMcp !== false) {
     result = await doProject(
       { cwd: args.cwd, env: args.env || process.env },

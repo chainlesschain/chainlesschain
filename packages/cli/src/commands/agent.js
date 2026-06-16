@@ -287,8 +287,8 @@ export function registerAgentCommand(program) {
       "Use ONLY --mcp-config servers; ignore registered (cc mcp add) and IDE-bridge MCP for a reproducible tool surface",
     )
     .option(
-      "--no-project-mcp",
-      "Do not auto-load a project-scoped .mcp.json (security: a checked-in .mcp.json can spawn commands)",
+      "--project-mcp",
+      "Opt in to loading a project-scoped .mcp.json (default off; a checked-in .mcp.json can spawn commands)",
     )
     .option(
       "--replay-user-messages",
@@ -308,12 +308,13 @@ export function registerAgentCommand(program) {
           );
         }
       }
-      // --no-project-mcp: opt out of project-scoped `.mcp.json` auto-discovery
-      // (resolveAgentMcp / loadProjectMcp read CC_PROJECT_MCP). Set here so it
-      // reaches every run mode (headless / stream / REPL) without threading the
-      // flag through each resolveAgentMcp call site.
-      if (options.projectMcp === false) {
-        process.env.CC_PROJECT_MCP = "0";
+      // --project-mcp: opt IN to project-scoped `.mcp.json` discovery, which is
+      // off by default (a checked-in .mcp.json can spawn commands). loadProjectMcp
+      // reads CC_PROJECT_MCP; set it here so the opt-in reaches every run mode
+      // (headless / stream / REPL) without threading the flag through each
+      // resolveAgentMcp call site.
+      if (options.projectMcp === true) {
+        process.env.CC_PROJECT_MCP = "1";
       }
       // --worktree (Claude-Code 2.1.171 parity): run THIS session in a fresh
       // git worktree — edits land on an isolated branch, the main working
