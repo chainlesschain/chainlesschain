@@ -3587,12 +3587,32 @@ export async function* agentLoop(messages, options) {
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
+          // Cheap surgical pre-pass (Claude-Code microcompact parity): trim old
+          // large tool results IN PLACE before the disruptive full
+          // summarization. If the trim brings the context back under threshold,
+          // the full compaction below is skipped this round — so heavy-tool
+          // conversations rarely hit a full summarize. Opt out:
+          // autoMicroCompact: false.
+          if (options.autoMicroCompact !== false) {
+            try {
+              const { microCompact } = await import("../lib/micro-compact.js");
+              const mc = microCompact(messages);
+              if (mc.stats.trimmed > 0) {
+                messages.splice(0, messages.length, ...mc.messages);
+                yield { type: "micro-compaction", runId, stats: mc.stats };
+              }
+            } catch {
+              // microcompact is best-effort — never break the run
+            }
+          }
+          // After the trim, is the full (disruptive) compaction still needed?
+          const needFull = compactor.shouldAutoCompact(messages);
           // settings.json PreCompact hooks: a `block` decision SKIPS this
           // compaction round (e.g. the hook archived / owns the history). Fires
           // right before the history would be compacted.
           let preCompactBlocked = false;
           let preCompactReason = null;
-          if (options.settingsHooks) {
+          if (needFull && options.settingsHooks) {
             try {
               const pc = runObserveHooks(
                 options.settingsHooks,
@@ -3619,9 +3639,10 @@ export async function* agentLoop(messages, options) {
               reason: preCompactReason,
             };
           }
-          const { messages: compacted, stats } = preCompactBlocked
-            ? { messages, stats: { saved: 0 } }
-            : await compactor.compress(messages, { preserveToolPairs: true });
+          const { messages: compacted, stats } =
+            !needFull || preCompactBlocked
+              ? { messages, stats: { saved: 0 } }
+              : await compactor.compress(messages, { preserveToolPairs: true });
           if (stats.saved > 0 && compacted.length < messages.length) {
             messages.splice(0, messages.length, ...compacted);
             // Persist the compaction so a later --resume rebuilds from the
