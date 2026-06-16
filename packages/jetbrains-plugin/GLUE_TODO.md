@@ -68,9 +68,10 @@ implemented and build-verified** (0.4.0).
 - [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
 
 ## ✅ Also done
-- [x] @-mention **class-symbol** entries via PSI search (`PsiShortNamesCache`,
-      bounded 800, resolved to file → `Mentions.formatSymbolItems`) — 0.4.2,
-      runIde-verified + published. (Method/function symbols could be a further add.)
+- [x] @-mention **class + method/function symbols** via PSI search
+      (`PsiShortNamesCache` getAllClassNames/getAllMethodNames, bounded 800 each,
+      resolved to file → `Mentions.formatSymbolItems`) — classes 0.4.2, methods
+      0.4.3, both runIde-verified + published.
 
 ---
 
