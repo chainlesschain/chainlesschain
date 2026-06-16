@@ -11,6 +11,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
+import com.intellij.ui.SimpleListCellRenderer;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -70,6 +76,7 @@ final class ConversationView {
     private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
     private JComponent planCard;
     private List<String> cachedFiles;                     // §5 @-mention file index (lazy, bounded)
+    private List<Mentions.MentionItem> cachedSymbols;     // §5 @-mention PSI symbols (lazy, bounded)
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -546,17 +553,57 @@ final class ConversationView {
     }
 
     private void openMentionPopup() {
-        List<String> candidates = new java.util.ArrayList<>();
-        candidates.add("selection");   // IDE pseudo-mentions (Mentions.ideMentionMatches)
-        candidates.add("diagnostics");
-        candidates.addAll(projectRelativeFiles());
+        // Candidates carry a display label + the value spliced on choose. Files
+        // and PSI symbols both resolve to a file path (cc expands it); a symbol
+        // entry just adds a name-based way to find that file (e.g. type a class
+        // name). IDE pseudo-mentions splice @selection / @diagnostics.
+        List<Mentions.MentionItem> candidates = new java.util.ArrayList<>();
+        candidates.add(Mentions.MentionItem.symbol("selection", "selection"));
+        candidates.add(Mentions.MentionItem.symbol("diagnostics", "diagnostics"));
+        candidates.addAll(symbolCandidates());
+        for (String f : projectRelativeFiles()) candidates.add(Mentions.MentionItem.path(f));
         if (candidates.isEmpty()) return;
         JBPopup popup = JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(candidates)
                 .setTitle("Insert @mention")
-                .setItemChosenCallback(this::insertMention)
+                .setRenderer(SimpleListCellRenderer.create("", Mentions::mentionLabel))
+                .setItemChosenCallback(item -> insertMention(Mentions.mentionValue(item)))
                 .createPopup();
         popup.showUnderneathOf(input);
+    }
+
+    /**
+     * Project class symbols for @-mention (lazy, bounded). Each resolves to its
+     * file via {@link PsiShortNamesCache}; {@link Mentions#formatSymbolItems}
+     * builds "class Foo · src/foo.kt" labels with the file relpath as the value.
+     * JVM-language-centric best-effort; non-JVM projects just get files +
+     * IDE-mentions (the cache returns no class names there).
+     */
+    private List<Mentions.MentionItem> symbolCandidates() {
+        if (cachedSymbols != null) return cachedSymbols;
+        final List<Mentions.Symbol> syms = new java.util.ArrayList<>();
+        try {
+            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
+                PsiShortNamesCache cache = PsiShortNamesCache.getInstance(project);
+                GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
+                String[] names = cache.getAllClassNames();
+                int cap = Math.min(names.length, 800); // bound resolution for big projects
+                for (int i = 0; i < cap; i++) {
+                    for (PsiClass c : cache.getClassesByName(names[i], scope)) {
+                        PsiFile f = c.getContainingFile();
+                        VirtualFile vf = f == null ? null : f.getVirtualFile();
+                        if (vf != null) {
+                            syms.add(new Mentions.Symbol(names[i], 4 /* class */, vf.getPath()));
+                            break; // first declaration is enough
+                        }
+                    }
+                }
+            });
+        } catch (Throwable ignored) {
+            // no PSI symbol cache (non-JVM / indexing) → files + IDE-mentions still work
+        }
+        cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 800);
+        return cachedSymbols;
     }
 
     /** Splice the chosen value into the input, replacing the current {@code @}-token. */

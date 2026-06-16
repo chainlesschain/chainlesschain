@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.2] — 2026-06-16 — @-mention workspace symbols
+
+- The `@`-mention completion popup now includes **project class symbols** (PSI
+  short-names cache, bounded) alongside `@selection` / `@diagnostics` and project
+  files — type a class name to insert an `@file` reference to where it's defined.
+  JVM-language best-effort; non-JVM projects still get files + IDE mentions.
+
 ## [0.4.1] — 2026-06-16 — Marketplace listing
 
 - Expanded the plugin **description** and **what's-new** to cover the full 0.4.0

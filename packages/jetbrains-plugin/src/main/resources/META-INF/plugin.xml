@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.1</version>
+    <version>0.4.2</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -46,7 +46,8 @@
               <em>Explain</em> or <em>Refactor</em>; <code>Ctrl/Cmd+Alt+K</code>
               inserts an <code>@file#L5-10</code> reference for the selection; type
               <code>@</code> for a completion popup of
-              <code>@selection</code>/<code>@diagnostics</code> + project files.</li>
+              <code>@selection</code>/<code>@diagnostics</code> + project files +
+              class symbols.</li>
           <li><b>In-editor app preview</b> — <em>Start App Preview</em> finds your dev
               script, runs the dev server, detects the URL and embeds it (JCEF, with
               an external-browser fallback); a one-click Restart if the server dies.</li>
@@ -60,6 +61,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.2</b> — the <code>@</code>-mention popup now includes project class
+        symbols (type a class name to reference the file where it's defined),
+        alongside <code>@selection</code>/<code>@diagnostics</code> and files.
+        <br/><br/>
         <b>0.4.1</b> — expanded the plugin description / what's-new (no functional
         change since 0.4.0).
         <br/><br/>
