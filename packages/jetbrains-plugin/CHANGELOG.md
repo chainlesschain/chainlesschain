@@ -1,5 +1,34 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.0] — 2026-06-16 — VS Code feature parity (conversation tabs → app preview)
+
+Brings the JetBrains plugin up to the VS Code extension's feature set (0.22–0.30).
+All glue compiles + packages against the IntelliJ 2024.2 SDK; the pure logic layers
+are smoke-tested (`PureLogicSmokeMain`, 116 assertions).
+
+- **Conversation tabs** (§1): the chat tool window is now multi-conversation — a
+  tab strip with one live `cc agent` child per tab, `+ New chat`, per-tab `×`
+  close (activates the neighbor, never empties), instant switching, and per-tab
+  resume ids persisted across IDE restarts (migrates the old single-session key).
+- **Approval-mode + extended-thinking** (§6): panel slash commands `/auto`
+  (accept edits), `/bypass`, `/normal`, and `/think` / `/ultrathink` / `/think-off`
+  (Anthropic) — spawn-time flags, so a change restarts the child with the new flag.
+- **Panel slash commands** (§5): `/new`, `/stop`, `/cost`, `/context`, `/help`.
+- **Context-window indicator** (§6): a dimmed `⊟ context …/… (n%)` line refreshes
+  after each turn (red on overflow).
+- **New / reopen-closed actions** (§6): `Ctrl/Cmd+Alt+N` new conversation;
+  `Ctrl/Cmd+Shift+T` reopen the last-closed conversation (resumes it).
+- **Selection actions** (§5): editor right-click **Explain** / **Refactor** seed
+  the chat with `@selection`; **Insert File Reference** (`Ctrl/Cmd+Alt+K`) inserts
+  `@<path>#L<start>-<end>` for the current selection so `cc` expands only those lines.
+- **Inline diff "Request changes…"** (§3): `openDiff` review is now Accept /
+  Request changes… / Reject; requested changes return line-note comments to the agent.
+- **Batch multi-file diff** (§4): new `openMultiDiff` tool / `mcp__ide__openMultiDiff`
+  — a native multi-file diff with Accept all / Choose files… / Reject.
+- **App Preview** (§2): **Start App Preview** runs the project's dev script, detects
+  the server URL, and embeds it (JCEF) in a new preview tool window (external-browser
+  fallback when JCEF is unavailable); **Stop App Preview** kills the process tree.
+
 ## [0.3.3] — 2026-06-12
 
 - Tool window icon is now **pixel-exact** with the VS Code extension's
