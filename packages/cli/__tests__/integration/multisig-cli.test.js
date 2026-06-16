@@ -268,7 +268,10 @@ describe("cc multisig — CLI integration", () => {
     expect(logRaw).toContain('"signed"');
     expect(logRaw).toContain('"reached"');
     expect(logRaw).toContain('"consumed"');
-  });
+    // Heavy multi-process flow — policy/propose/sign×2/finalize spawns many
+    // sequential CLI cold-starts; the 60s default is tight under integration
+    // load (flakes under load, passes isolated). See internal handbook trap #31.
+  }, 90000);
 
   it("sign rejects duplicate signer", () => {
     runCli([
