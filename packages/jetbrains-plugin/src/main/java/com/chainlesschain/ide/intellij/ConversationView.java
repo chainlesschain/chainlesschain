@@ -14,6 +14,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiMethod;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.ui.SimpleListCellRenderer;
@@ -586,15 +587,27 @@ final class ConversationView {
             ApplicationManager.getApplication().runReadAction((Runnable) () -> {
                 PsiShortNamesCache cache = PsiShortNamesCache.getInstance(project);
                 GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
-                String[] names = cache.getAllClassNames();
-                int cap = Math.min(names.length, 800); // bound resolution for big projects
-                for (int i = 0; i < cap; i++) {
-                    for (PsiClass c : cache.getClassesByName(names[i], scope)) {
-                        PsiFile f = c.getContainingFile();
-                        VirtualFile vf = f == null ? null : f.getVirtualFile();
+                // Classes (kind 4).
+                String[] classNames = cache.getAllClassNames();
+                int classCap = Math.min(classNames.length, 800); // bound for big projects
+                for (int i = 0; i < classCap; i++) {
+                    for (PsiClass c : cache.getClassesByName(classNames[i], scope)) {
+                        VirtualFile vf = vfileOf(c.getContainingFile());
                         if (vf != null) {
-                            syms.add(new Mentions.Symbol(names[i], 4 /* class */, vf.getPath()));
+                            syms.add(new Mentions.Symbol(classNames[i], 4, vf.getPath()));
                             break; // first declaration is enough
+                        }
+                    }
+                }
+                // Methods / functions (kind 5).
+                String[] methodNames = cache.getAllMethodNames();
+                int methodCap = Math.min(methodNames.length, 800);
+                for (int i = 0; i < methodCap; i++) {
+                    for (PsiMethod m : cache.getMethodsByName(methodNames[i], scope)) {
+                        VirtualFile vf = vfileOf(m.getContainingFile());
+                        if (vf != null) {
+                            syms.add(new Mentions.Symbol(methodNames[i], 5, vf.getPath()));
+                            break;
                         }
                     }
                 }
@@ -602,8 +615,12 @@ final class ConversationView {
         } catch (Throwable ignored) {
             // no PSI symbol cache (non-JVM / indexing) → files + IDE-mentions still work
         }
-        cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 800);
+        cachedSymbols = Mentions.formatSymbolItems(syms, project.getBasePath(), 1600);
         return cachedSymbols;
+    }
+
+    private static VirtualFile vfileOf(PsiFile f) {
+        return f == null ? null : f.getVirtualFile();
     }
 
     /** Splice the chosen value into the input, replacing the current {@code @}-token. */

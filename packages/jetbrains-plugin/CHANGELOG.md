@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.3] — 2026-06-16 — @-mention method symbols
+
+- The `@`-mention symbol completion now also includes **methods/functions**
+  (`getAllMethodNames` / `getMethodsByName`, bounded), not just classes — type a
+  method name to insert an `@file` reference to where it's defined.
+
 ## [0.4.2] — 2026-06-16 — @-mention workspace symbols
 
 - The `@`-mention completion popup now includes **project class symbols** (PSI
