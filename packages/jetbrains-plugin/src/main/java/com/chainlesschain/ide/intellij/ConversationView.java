@@ -84,12 +84,14 @@ final class ConversationView {
         transcript.setFont(new Font(Font.MONOSPACED, Font.PLAIN, transcript.getFont().getSize()));
         root.add(new JScrollPane(transcript), BorderLayout.CENTER);
 
-        JPanel south = new JPanel(new BorderLayout(4, 0));
-        south.add(input, BorderLayout.CENTER);
-        JPanel buttons = new JPanel();
+        // Input gets its own full-width line; Send/Stop sit on a row below it
+        // (the old side-by-side layout left the field too narrow).
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         buttons.add(sendBtn);
         buttons.add(stopBtn);
-        south.add(buttons, BorderLayout.EAST);
+        JPanel south = new JPanel(new BorderLayout(0, 2));
+        south.add(input, BorderLayout.NORTH);
+        south.add(buttons, BorderLayout.SOUTH);
 
         contextLabel.setFont(contextLabel.getFont().deriveFont(
                 contextLabel.getFont().getSize2D() - 1f));

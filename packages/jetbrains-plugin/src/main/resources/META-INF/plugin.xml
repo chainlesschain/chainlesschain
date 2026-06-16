@@ -32,10 +32,10 @@
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.IdeBridgeService"/>
         <projectService serviceImplementation="com.chainlesschain.ide.intellij.PreviewService"/>
         <toolWindow id="ChainlessChain" anchor="right" secondary="true"
-                    icon="/icons/chainlesschain.svg"
+                    icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.ChatToolWindowFactory"/>
         <toolWindow id="ChainlessChain Preview" anchor="bottom" secondary="true"
-                    icon="/icons/chainlesschain.svg"
+                    icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.PreviewToolWindowFactory"/>
     </extensions>
 
