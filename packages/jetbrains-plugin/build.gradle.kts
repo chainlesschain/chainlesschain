@@ -4,13 +4,15 @@
 // build time). The protocol/server/lockfile/tools core under
 // com.chainlesschain.ide is pure JDK and is also compiled + interop-tested
 // independently (see README "Verification").
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+
 plugins {
     id("java")
     id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
 group = "com.chainlesschain"
-version = "0.4.5"
+version = "0.4.6"
 
 repositories {
     mavenCentral()
@@ -24,6 +26,7 @@ dependencies {
         // Community is enough — the bridge uses only platform + terminal APIs.
         intellijIdeaCommunity("2024.2")
         bundledPlugin("org.jetbrains.plugins.terminal")
+        pluginVerifier() // for ./gradlew verifyPlugin
     }
 }
 
@@ -48,6 +51,15 @@ intellijPlatform {
         ideaVersion {
             sinceBuild = "242"
             untilBuild = provider { null } // no hard upper bound
+        }
+    }
+
+    // `./gradlew verifyPlugin` runs the JetBrains Plugin Verifier against newer
+    // IDE builds to catch internal / scheduled-for-removal / deprecated API usage
+    // before they break on those versions.
+    pluginVerification {
+        ides {
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
         }
     }
 

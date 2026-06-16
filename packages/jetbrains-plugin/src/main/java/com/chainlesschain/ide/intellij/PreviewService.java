@@ -4,8 +4,8 @@ import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.PreviewDetect;
 import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.execution.process.OSProcessHandler;
-import com.intellij.execution.process.ProcessAdapter;
 import com.intellij.execution.process.ProcessEvent;
+import com.intellij.execution.process.ProcessListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
@@ -96,7 +96,7 @@ public final class PreviewService {
         urlFound = false;
         revealToolWindow();
         setStatus("Starting `npm run " + script + "` — waiting for server URL…");
-        handler.addProcessListener(new ProcessAdapter() {
+        handler.addProcessListener(new ProcessListener() {
             @Override
             public void onTextAvailable(@NotNull ProcessEvent event, @NotNull Key outputType) {
                 if (urlFound) return;

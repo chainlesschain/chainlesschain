@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.5</version>
+    <version>0.4.6</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.6</b> — newer-IDE compatibility: removed the last deprecated-API
+        usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
+        reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
+        <br/><br/>
         <b>0.4.5</b> — reverted the experimental 0.4.4 <code>getTerminalOutput</code>
         tool: the terminal API it used is not stable across IDE versions and caused
         errors on some builds. Everything else is unchanged from 0.4.3.

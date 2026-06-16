@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.6] — 2026-06-16 — newer-IDE compatibility (clear deprecated-API usage)
+
+- Cleared the remaining **deprecated-API** usages the JetBrains Plugin Verifier
+  flagged on newer IDE builds (2025.2+):
+  - `PreviewService` — `ProcessAdapter` → `ProcessListener` (the adapter is
+    deprecated; the listener interface now has default methods).
+  - `ConfigureLlmAction` — deprecated `Messages.showChooseDialog` → a small
+    `DialogWrapper` + `JComboBox` provider chooser.
+- Combined with 0.4.5 (which removed the internal / scheduled-for-removal terminal
+  API), the Plugin Verifier now reports **Compatible — 0 internal, 0
+  scheduled-for-removal, 0 deprecated** API usages against 2025.2.
+- Added a `verifyPlugin` Gradle config (`pluginVerification` + `pluginVerifier()`)
+  so future changes are checked against newer IDEs before release.
+
 ## [0.4.5] — 2026-06-16 — revert getTerminalOutput (cross-version stability)
 
 - **Reverted the 0.4.4 `getTerminalOutput` tool.** The JetBrains terminal API it

@@ -7,8 +7,15 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import java.awt.BorderLayout;
 
 /**
  * Tools-menu guided LLM setup (mirrors the VS Code wizard): provider →
@@ -30,9 +37,7 @@ public final class ConfigureLlmAction extends AnAction {
             LlmConfig.Preset p = LlmConfig.PRESETS[i];
             labels[i] = p.label + "  —  默认 " + p.defaultModel + (p.needsKey ? " (需 API key)" : " (免 key)");
         }
-        int idx = Messages.showChooseDialog(project,
-                "选择 LLM 提供商(写入 ~/.chainlesschain/config.json,CLI 与各编辑器共用)",
-                TITLE, Messages.getQuestionIcon(), labels, labels[0]);
+        int idx = chooseProvider(project, labels);
         if (idx < 0) return;
         LlmConfig.Preset preset = LlmConfig.PRESETS[idx];
 
@@ -55,6 +60,33 @@ public final class ConfigureLlmAction extends AnAction {
                 "Base URL(回车用默认)", TITLE, null, preset.baseUrl, null);
         if (baseUrl == null) return;
 
+        configureAndVerify(project, preset, model, apiKey, baseUrl);
+    }
+
+    /** Blocking provider chooser (combo box) — replaces the deprecated
+     *  Messages.showChooseDialog; returns the selected index or -1 if cancelled. */
+    private static int chooseProvider(Project project, String[] labels) {
+        final JComboBox<String> combo = new JComboBox<>(labels);
+        combo.setSelectedIndex(0);
+        DialogWrapper dlg = new DialogWrapper(project, true) {
+            {
+                setTitle(TITLE);
+                init();
+            }
+            @Override
+            protected JComponent createCenterPanel() {
+                JPanel p = new JPanel(new BorderLayout(8, 8));
+                p.add(new JLabel("<html>选择 LLM 提供商<br/>(写入 ~/.chainlesschain/config.json,"
+                        + "CLI 与各编辑器共用)</html>"), BorderLayout.NORTH);
+                p.add(combo, BorderLayout.CENTER);
+                return p;
+            }
+        };
+        return dlg.showAndGet() ? combo.getSelectedIndex() : -1;
+    }
+
+    private void configureAndVerify(Project project, LlmConfig.Preset preset,
+                                    String model, String apiKey, String baseUrl) {
         final String fModel = model, fKey = apiKey, fBaseUrl = baseUrl;
         new Task.Backgroundable(project, "ChainlessChain: 写入 LLM 配置并验证连通…", false) {
             @Override
