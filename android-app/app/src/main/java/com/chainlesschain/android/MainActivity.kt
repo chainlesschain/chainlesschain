@@ -34,7 +34,9 @@ import com.chainlesschain.android.sign.AndroidApprovalGate
 import com.chainlesschain.android.sign.ApprovalDialogHost
 import com.chainlesschain.android.voice.VoiceLaunchActions
 import com.chainlesschain.android.voice.VoiceTriggerSource
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -63,6 +65,15 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var strongBoxKeyManager: StrongBoxKeyManager
 
+    // FAMILY-67: 真实启动入口（AppInitializer 当前未被任何地方调用＝死代码，其内的
+    // SyncCoordinator/FamilyGuardSyncConnector 启动也从未触发）。在这里启动同步推送 loop
+    // + 家庭 P2P 自动接通；两者皆幂等、自闸（无 peer/无 DID/无 relationship 即空转）。
+    @Inject
+    lateinit var syncCoordinator: dagger.Lazy<com.chainlesschain.android.sync.SyncCoordinator>
+
+    @Inject
+    lateinit var familyGuardSyncConnector: dagger.Lazy<com.chainlesschain.android.sync.FamilyGuardSyncConnector>
+
     private var isReady = false
 
     /**
@@ -81,6 +92,14 @@ class MainActivity : AppCompatActivity() {
 
         Timber.d("MainActivity onCreate - start")
         val startTime = System.currentTimeMillis()
+
+        // FAMILY-67: 启动同步推送 loop + 家庭 P2P 自动接通（幂等；早于 PIN 也安全，各自自闸）。
+        lifecycleScope.launch {
+            runCatching { syncCoordinator.get().start() }
+                .onFailure { Timber.w(it, "SyncCoordinator start failed (non-fatal)") }
+            runCatching { familyGuardSyncConnector.get().ensureConnected() }
+                .onFailure { Timber.w(it, "FamilyGuardSyncConnector start failed (non-fatal)") }
+        }
 
         // #21 C.1 PR1 — pick up ACTION_START_VOICE_MODE on cold start.
         pendingVoiceTrigger.value = VoiceLaunchActions.extractTriggerSource(intent)
