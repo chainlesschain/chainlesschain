@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.1] — 2026-06-16 — Marketplace listing
+
+- Expanded the plugin **description** and **what's-new** to cover the full 0.4.0
+  feature set (conversation tabs, approval modes, interactive cards, selection
+  actions, @-mentions, native diff review, multi-file diff, app preview). No
+  functional change since 0.4.0.
+
 ## [0.4.0] — 2026-06-16 — VS Code feature parity (conversation tabs → app preview)
 
 Brings the JetBrains plugin up to the VS Code extension's feature set (0.22–0.30).

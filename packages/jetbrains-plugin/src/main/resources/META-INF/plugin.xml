@@ -1,28 +1,84 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.0</version>
+    <version>0.4.1</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
-        Bridges the ChainlessChain <code>cc</code> agent CLI to JetBrains IDEs.
-        Runs a localhost MCP server exposing the active selection, diagnostics,
-        open editors, and native diff review as tools the agent can call, and
-        injects the discovery env vars into integrated terminals so
-        <code>cc agent</code> auto-connects.
+        <b>ChainlessChain IDE Bridge</b> brings the ChainlessChain <code>cc</code>
+        agent CLI into your JetBrains IDE — a full AI coding agent in a side panel
+        that sees your editor, edits through native diffs you approve, and runs
+        your app, without leaving the IDE.
         <br/><br/>
-        With cc &ge; 0.162.39 the agent is also <b>automatically aware</b> of the
-        editor: your selection and open tabs ride along with every prompt, and
-        after the agent edits a file the IDE's fresh errors/warnings flow back
-        into the same run. Set <code>CC_IDE_CONTEXT=0</code> to opt out.
+        It runs a localhost MCP server exposing your active selection, diagnostics,
+        open editors and native diff review as tools the agent can call, and injects
+        the discovery env vars into integrated terminals so a <code>cc agent</code>
+        you launch there auto-connects too.
         <br/><br/>
-        <b>Chat tool window</b> (right dock, "ChainlessChain"): talk to the
-        agent without leaving the IDE — streaming replies, tool-call trace,
-        Stop interrupts the in-flight turn, and conversations resume across
-        IDE restarts. The chat child runs inside this window's bridge, so
-        selection context, diagnostics feedback and native diff review all
-        apply automatically.
+        <b>What you get</b>
+        <ul>
+          <li><b>Chat tool window with conversation tabs</b> — talk to the agent in
+              the right-dock "ChainlessChain" panel: streaming replies, tool-call
+              trace, and multiple conversations as tabs (each its own
+              <code>cc agent</code> process; switch instantly, close, reopen). Tabs
+              and their sessions resume across IDE restarts. New chat
+              (<code>Ctrl/Cmd+Alt+N</code>), reopen last closed
+              (<code>Ctrl/Cmd+Shift+T</code>).</li>
+          <li><b>Editor-aware out of the box</b> — your selection and open tabs ride
+              along with every prompt; after the agent edits a file, the IDE's fresh
+              errors/warnings flow back into the same run so it fixes what it broke.
+              (<code>CC_IDE_CONTEXT=0</code> to opt out.)</li>
+          <li><b>Native diff review</b> — file edits become a side-by-side IDE diff:
+              <em>Accept</em>, <em>Request changes…</em> (inline notes go back to the
+              agent), or <em>Reject</em> (never writes). Multi-file changes open as a
+              single <code>openMultiDiff</code> batch — accept all, pick files, or
+              reject.</li>
+          <li><b>Approval modes &amp; extended thinking</b> — slash commands in the
+              panel: <code>/auto</code> (accept edits), <code>/bypass</code>,
+              <code>/normal</code>; <code>/think</code> · <code>/ultrathink</code> ·
+              <code>/think-off</code> (Anthropic). Also <code>/new</code>
+              <code>/stop</code> <code>/cost</code> <code>/context</code>
+              <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+          <li><b>Interactive plan &amp; approval cards</b> — plans and tool-permission
+              prompts render as cards with Approve / Deny (Approve / Reject) buttons,
+              right in the chat.</li>
+          <li><b>Selection actions &amp; @-mentions</b> — right-click code →
+              <em>Explain</em> or <em>Refactor</em>; <code>Ctrl/Cmd+Alt+K</code>
+              inserts an <code>@file#L5-10</code> reference for the selection; type
+              <code>@</code> for a completion popup of
+              <code>@selection</code>/<code>@diagnostics</code> + project files.</li>
+          <li><b>In-editor app preview</b> — <em>Start App Preview</em> finds your dev
+              script, runs the dev server, detects the URL and embeds it (JCEF, with
+              an external-browser fallback); a one-click Restart if the server dies.</li>
+          <li><b>Live context window</b> — a subtle line under the chat shows model
+              context usage after each turn.</li>
+        </ul>
+        <b>Requirements:</b> the ChainlessChain <code>cc</code> CLI on your PATH
+        (<code>npm i -g chainlesschain</code>) and a configured model
+        (Tools → "ChainlessChain: Configure LLM", or <code>cc config</code>).
+        Open-source: <a href="https://github.com/chainlesschain/chainlesschain">github.com/chainlesschain/chainlesschain</a>.
     ]]></description>
+
+    <change-notes><![CDATA[
+        <b>0.4.1</b> — expanded the plugin description / what's-new (no functional
+        change since 0.4.0).
+        <br/><br/>
+        <b>0.4.0</b> — VS Code feature parity.
+        <ul>
+          <li>Multi-conversation <b>tabs</b> (one agent per tab, resume across restarts).</li>
+          <li><b>Approval modes</b> (<code>/auto</code>·<code>/bypass</code>·<code>/normal</code>)
+              and <b>extended thinking</b> (<code>/think</code>·<code>/ultrathink</code>·<code>/think-off</code>),
+              plus <code>/new</code> <code>/stop</code> <code>/cost</code> <code>/context</code>
+              <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+          <li><b>Interactive plan &amp; approval cards</b> (Approve/Deny buttons).</li>
+          <li>Editor <b>Explain / Refactor</b> actions, <code>@file#L</code> reference
+              insertion (<code>Ctrl/Cmd+Alt+K</code>), and an <code>@</code>-mention popup.</li>
+          <li>Native diff "<b>Request changes…</b>" with inline notes, and batch
+              <b>openMultiDiff</b> multi-file review.</li>
+          <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
+          <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>org.jetbrains.plugins.terminal</depends>
