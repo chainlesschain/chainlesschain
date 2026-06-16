@@ -4,8 +4,13 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
+import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -64,6 +69,7 @@ final class ConversationView {
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
     private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
     private JComponent planCard;
+    private List<String> cachedFiles;                     // §5 @-mention file index (lazy, bounded)
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -104,6 +110,13 @@ final class ConversationView {
         stopBtn.addActionListener(e -> {
             AgentChatSession s = liveSession();
             if (s != null) s.interrupt();
+        });
+        // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
+        input.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent e) {
+                if (e.getKeyChar() == '@') SwingUtilities.invokeLater(() -> maybeOpenMention());
+            }
         });
     }
 
@@ -514,6 +527,71 @@ final class ConversationView {
                 // best-effort — context line is non-essential
             }
         }, "cc-context-" + conv.id).start();
+    }
+
+    // ---- §5 @-mention completion popup ---------------------------------
+
+    /** Open the chooser only when the caret sits on a real {@code @}-token. */
+    private void maybeOpenMention() {
+        String text = input.getText();
+        int caret = Math.min(input.getCaretPosition(), text.length());
+        if (Mentions.detectAtToken(text.substring(0, caret)) != null) openMentionPopup();
+    }
+
+    private void openMentionPopup() {
+        List<String> candidates = new java.util.ArrayList<>();
+        candidates.add("selection");   // IDE pseudo-mentions (Mentions.ideMentionMatches)
+        candidates.add("diagnostics");
+        candidates.addAll(projectRelativeFiles());
+        if (candidates.isEmpty()) return;
+        JBPopup popup = JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(candidates)
+                .setTitle("Insert @mention")
+                .setItemChosenCallback(this::insertMention)
+                .createPopup();
+        popup.showUnderneathOf(input);
+    }
+
+    /** Splice the chosen value into the input, replacing the current {@code @}-token. */
+    private void insertMention(String value) {
+        String text = input.getText();
+        int caret = Math.min(input.getCaretPosition(), text.length());
+        Mentions.AtToken at = Mentions.detectAtToken(text.substring(0, caret));
+        if (at != null) {
+            Mentions.ApplyResult r = Mentions.applyMention(text, at, value, caret);
+            input.setText(r.text);
+            input.setCaretPosition(Math.min(r.caret, r.text.length()));
+        } else {
+            String ins = "@" + value + " ";
+            input.setText(text.substring(0, caret) + ins + text.substring(caret));
+            input.setCaretPosition(caret + ins.length());
+        }
+        input.requestFocusInWindow();
+    }
+
+    /** Project-relative content file paths (lazy, capped) for @-file ranking. */
+    private List<String> projectRelativeFiles() {
+        if (cachedFiles != null) return cachedFiles;
+        final List<String> out = new java.util.ArrayList<>();
+        final String base = project.getBasePath();
+        final String b = base == null ? null
+                : (base.replace('\\', '/').endsWith("/") ? base.replace('\\', '/')
+                        : base.replace('\\', '/') + "/");
+        try {
+            ApplicationManager.getApplication().runReadAction((Runnable) () -> {
+                ProjectFileIndex.getInstance(project).iterateContent(vf -> {
+                    if (vf.isDirectory()) return true;
+                    String p = vf.getPath().replace('\\', '/');
+                    if (b != null && p.startsWith(b)) p = p.substring(b.length());
+                    out.add(p);
+                    return out.size() < 3000; // bound the index for big projects
+                });
+            });
+        } catch (Throwable ignored) {
+            // partial / empty index → @-completion still offers the pseudo-mentions
+        }
+        cachedFiles = out;
+        return out;
     }
 
     /** Compact token count: 12345 → "12.3k", 1500000 → "1.5M". */
