@@ -17,6 +17,7 @@ class CompositeCommandRouterTest {
     private lateinit var syncRouter: SyncCommandRouter
     private lateinit var approvalRouter: ApprovalCommandRouter
     private lateinit var taskRouter: TaskProgressCommandRouter
+    private lateinit var e2eeRouter: E2EEHandshakeCommandRouter
     private lateinit var composite: CompositeCommandRouter
 
     @Before
@@ -24,7 +25,8 @@ class CompositeCommandRouterTest {
         syncRouter = mockk(relaxed = true)
         approvalRouter = mockk(relaxed = true)
         taskRouter = mockk(relaxed = true)
-        composite = CompositeCommandRouter(syncRouter, approvalRouter, taskRouter)
+        e2eeRouter = mockk(relaxed = true)
+        composite = CompositeCommandRouter(syncRouter, approvalRouter, taskRouter, e2eeRouter)
     }
 
     @Test
@@ -113,5 +115,25 @@ class CompositeCommandRouterTest {
         composite.route("task.complete", mapOf("id" to "t"))
 
         coVerify(exactly = 1) { taskRouter.route("task.complete", mapOf("id" to "t")) }
+    }
+
+    @Test
+    fun `e2ee_getBundle routes to E2EEHandshakeCommandRouter`() = runTest {
+        coEvery { e2eeRouter.route("e2ee.getBundle", any()) } returns mapOf("bundle" to "{}")
+
+        val result = composite.route("e2ee.getBundle", mapOf("fromDid" to "did:key:zA"))
+
+        assertEquals(mapOf("bundle" to "{}"), result)
+        coVerify(exactly = 1) { e2eeRouter.route("e2ee.getBundle", mapOf("fromDid" to "did:key:zA")) }
+        coVerify(exactly = 0) { syncRouter.route(any(), any()) }
+    }
+
+    @Test
+    fun `e2ee_init routes to E2EEHandshakeCommandRouter`() = runTest {
+        coEvery { e2eeRouter.route("e2ee.init", any()) } returns mapOf("ok" to true)
+
+        composite.route("e2ee.init", mapOf("fromDid" to "did:key:zA", "initialMessage" to "{}"))
+
+        coVerify(exactly = 1) { e2eeRouter.route("e2ee.init", any()) }
     }
 }

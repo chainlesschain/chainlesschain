@@ -56,6 +56,21 @@ class SessionManager @Inject constructor(
     }
 
     /**
+     * 幂等初始化：仅在尚未初始化时生成密钥，避免重复调用 [initialize] 重新生成身份密钥
+     * （会作废已建立的会话）。FAMILY-67：好友 E2EE 握手按需调用本方法，因为应用此前
+     * 从未调用过 [initialize]（密钥从未生成 → getPreKeyBundle/createSession 必抛
+     * UninitializedPropertyAccessException）。
+     *
+     * 注意：当前密钥仅存内存、不持久化，进程重启后身份变化 → 旧会话失效，需重新握手
+     * （握手随重连自动重跑，自愈）。持久化是后续项。
+     */
+    fun ensureInitialized() {
+        if (!::identityKeyPair.isInitialized) {
+            initialize()
+        }
+    }
+
+    /**
      * 生成一次性预密钥
      *
      * @param count 生成数量

@@ -799,11 +799,13 @@ class P2PClient @Inject constructor(
             // Desktop side mobile-bridge-sync.js v1.2 #1 已开始发 AuthInfo；任何还
             // 不发 auth 的 desktop 客户端会被拒（升级 desktop 即可）。
             // 真密码学签名 v1.2 next iteration 加（需 peer pubkey 交换）。
-            if (request.method.startsWith("sync.")) {
+            // FAMILY-67: e2ee.* (好友 E2EE 会话握手) 与 sync.* 同样强制 auth 非 null + 验签，
+            // 确保 PreKeyBundle 交换/会话初始化只发生在已认证的对端之间。
+            if (request.method.startsWith("sync.") || request.method.startsWith("e2ee.")) {
                 val auth = request.auth
                     ?: throw SecurityException(
-                        "sync.* request requires auth field (method=${request.method}); " +
-                            "desktop client may be pre-v1.2 — please upgrade"
+                        "${request.method.substringBefore('.')}.* request requires auth field " +
+                            "(method=${request.method}); peer may be outdated — please upgrade"
                     )
                 syncAuthVerifier.get().verify(auth, request.method)
             }

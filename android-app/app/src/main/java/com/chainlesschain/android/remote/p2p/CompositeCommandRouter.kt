@@ -19,6 +19,7 @@ class CompositeCommandRouter @Inject constructor(
     private val syncRouter: SyncCommandRouter,
     private val approvalRouter: ApprovalCommandRouter,
     private val taskRouter: TaskProgressCommandRouter,
+    private val e2eeRouter: E2EEHandshakeCommandRouter,
 ) : CommandRouter {
 
     override suspend fun route(method: String, params: Map<String, Any>): Any? {
@@ -26,6 +27,7 @@ class CompositeCommandRouter @Inject constructor(
             method.startsWith("sync.") -> syncRouter.route(method, params)
             method.startsWith("approval.") -> approvalRouter.route(method, params)
             method.startsWith("task.") -> taskRouter.route(method, params)
+            method.startsWith("e2ee.") -> e2eeRouter.route(method, params)
             else -> throw IllegalArgumentException("Method namespace not handled: $method")
         }
     }
