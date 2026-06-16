@@ -71,7 +71,10 @@ function rpc(ws, msg) {
 }
 
 /** Collect N messages */
-function collectMessages(ws, n, timeoutMs = 10000) {
+// Default sized for streamed WS messages that arrive after a cold command
+// execution under the singleFork e2e load (well within the 60s test budget).
+// See internal handbook trap #31.
+function collectMessages(ws, n, timeoutMs = 25000) {
   return new Promise((resolve) => {
     const msgs = [];
     const timer = setTimeout(() => {
