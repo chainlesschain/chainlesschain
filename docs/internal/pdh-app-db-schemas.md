@@ -46,19 +46,99 @@
 | `user_favorite` / `favourite` | `create_time`, `aweme_id`... | EVENT subtype=LIKE + ITEM | 收藏兴趣 |
 | `search_history` | `time`, `keyword`/`query` | EVENT subtype=INTERACTION | 主动检索意图 |
 
+> 真机内存打捞实测（2026-06-16）：除上述，内存里大量是**下载/内容缓存表**（JSON 字段
+> `auto_install`/`dbjson_key_download_prepare_time`/`expect_file_length`/`start_offset`/
+> `ttmd5_check_status` 等，带双 epoch 时间戳）——视频缓存/feed 投放记录，→ EVENT(MEDIA)。
+
+### `msg` 关键细节（IM 正文）
+- `type`(int) 区分消息形态（文本/图片/卡片/系统）；`content` 是 ByteDance 消息 JSON，按 type 取文本。
+- `created_time` 多为 epoch（秒/毫秒/微秒混用，按位数判，见 `im-db-parser.normalizeEpochMs`）。
+- `deleted=1` 应过滤；按 `conversation_id` 聚合成一段对话；`order_index`/`index_in_conversation` 排序。
+- ⚠️ `sender` 列存对端/自己 uid（大整数）；昵称/头像不在 msg 表，需另查用户表或 `participant`。
+
+### AI 找数据指引（抖音）
+- **私信**：`msg`（按 `conversation_id` 分组）；会话元信息 `conversation_list`；成员 `participant.user_id`。
+- **看过的视频/兴趣**：`video_history`/内容缓存表（`aweme_id` + 时间戳）。
+- **收藏**：`user_favorite`；**搜索**：`search_history`。
+- ⚠️ 库加密（WCDB2 专有 cipher）→ 必须走 Method B 内存打捞（免密钥）；端点见 runbook。
+
+### UI 展示建议（抖音）
+- `msg`+`conversation_list`+`participant` → **私信会话视图**（会话列表 + 气泡）。
+- `video_history`/内容缓存 → **观看历史/兴趣画像**（时间轴 + 标签云）。
+- `user_favorite` → **收藏夹**；`search_history` → **搜索记录**。
+
 ---
 
-## 微信 WeChat（`com.tencent.mm`）— `inferred`（标准 SQLCipher，待真机解密填充）
+## 微信 WeChat（`com.tencent.mm`）— `reference`（公开 DFIR；字段名级，未导出任何真实内容）
 
-`EnMicroMsg.db`（标准 SQLCipher，key=Method A frida hook 拿）。经典表（公开逆向已知，待本机实测确认列）：
+> 主库 `/data/data/com.tencent.mm/MicroMsg/<md5(uin)>/EnMicroMsg.db`（标准 SQLCipher）。
+> 解密：① Method B 免密钥内存打捞（已真机验证可行，登录态下解密页在内存）② Method A frida
+> 抓 key 离线解密。下表为**公开 DFIR 已知字段名**（abrignoni 等），本会话**未导出真实内容**；
+> 真机实测列序后改标 `device-verified`。⚠️ 微信 8.x 为多库/分表，下列以经典 `EnMicroMsg.db`
+> 结构为准，8.x 部分消息可能在分库（见库清单末尾）。
 
-| 表 | 含义 | → PDH | AI 解读 |
-|---|---|---|---|
-| `message` | 聊天消息（`talker`, `content`, `createTime`, `type`, `isSend`）| EVENT INTERACTION | 沟通网络/频率/话题 |
-| `rcontact` | 联系人（`username`, `nickname`, `type`）| PERSON CONTACT | 社交图谱 |
-| `chatroom` | 群（`chatroomname`, `memberlist`）| TOPIC | 群活跃度 |
+### `message`（聊天消息）→ PDH **EVENT**(subtype `MESSAGE`/`INTERACTION`)
 
-> 待用 Method A 解密真机 `EnMicroMsg.db` 后把列名/单位改成 `device-verified`。
+| 列 | 含义 | 备注 |
+|---|---|---|
+| `msgId` | 本地自增 id（PK）| |
+| `msgSvrId` | 服务器消息 id | 跨设备唯一，做去重 |
+| `type` | 消息类型码 | 见下方类型码表 |
+| `isSend` | 0=收到 / 1=发出 | → actor=self(1) 或 talker(0) |
+| `createTime` | 发送时间（epoch **ms**）| → occurredAt |
+| `talker` | 对端 `wxid` 或 `<id>@chatroom`（群）| → 会话键；群消息 content 前缀 `wxid:\n` |
+| `content` | 正文：type=1 纯文本；群聊为 `wxid:\n正文`；type≠1 多为 XML(`<msg>/<appmsg>`) | → content.text（群需剥前缀）|
+| `imgPath` / `reserved` / `lvbuffer` | 图片缩略路径 / 预留 / 二进制附加 | |
+| `status` `flag` `talkerId` `msgSeq` | 状态/标志/会话内序 | |
+
+**`type` 类型码**：1=文本 · 3=图片 · 34=语音 · 42=名片 · 43/44=视频 · 47=表情 · 48=位置 · 49=富媒体(XML，子类型在 `<appmsg><type>`：5=链接 6=文件 8=自定义表情 33/36=小程序 2000=转账 2001=红包) · 50=音视频通话 · 10000=系统提示 · 10002=撤回。
+
+### `rcontact`（联系人）→ PDH **PERSON**(subtype `CONTACT`；`verifyFlag≠0` → `MERCHANT` 公众号/服务号)
+
+| 列 | 含义 |
+|---|---|
+| `username` | `wxid`（PK）或 `<id>@chatroom` | → identifiers `wechat-wxid` |
+| `alias` | 微信号（用户自设）| → identifiers `wechat-alias` |
+| `conRemark` | 备注名 | → names[0]（优先）|
+| `nickname` | 昵称 | → names fallback |
+| `type` | 联系人类型位掩码（好友/群/黑名单等）| |
+| `verifyFlag` | ≠0=公众号/服务号 | → subtype MERCHANT |
+| `pyInitial`/`quanPin` | 拼音首字母/全拼（搜索用）| |
+
+### `chatroom`（群聊）→ PDH **TOPIC** + 成员 **PERSON**
+
+| 列 | 含义 |
+|---|---|
+| `chatroomname` | `<id>@chatroom`（PK）| → TOPIC id |
+| `memberlist` | 成员 `wxid` 分号分隔 | → 每个成员一个 PERSON + participant |
+| `displayname` | 与 memberlist 对应的群昵称（分号分隔）| |
+| `roomowner` | 群主 wxid | |
+| `roomdata` | 成员详情（protobuf BLOB）| |
+
+### 其它表 / 同账号其它库
+
+| 表/库 | 含义 | → PDH |
+|---|---|---|
+| `userinfo`(id,value) | 本账号 KV（id 2=wxid 4=昵称 6=手机）| PERSON(self) |
+| `ImgInfo2`/`videoinfo2`/`voiceinfo` | 图片/视频/语音文件索引 | ITEM(media) |
+| `fmessage_conversation`/`_msginfo` | 好友验证/请求 | EVENT(INTERACTION) |
+| `addr_upload2` | 上传的手机通讯录（手机号↔联系人）| PERSON 身份补全 |
+| `SnsMicroMsg.db`：`SnsInfo`/`SnsComment` | 朋友圈条目/评论点赞 | EVENT(POST)/EVENT(LIKE) |
+| `WxFileIndex.db` | 文件传输索引 | ITEM(file) |
+| `FTS5IndexMicroMsg_*.db` | 全文搜索索引（含消息明文分词）| 备用检索源 |
+
+### AI 找数据指引（WeChat）
+- **「和某人的聊天」**：先在 `rcontact` 用 `conRemark`/`nickname` 找到 `username`(wxid)，再 `message WHERE talker=<wxid>`。
+- **群聊**：`message WHERE talker LIKE '%@chatroom'`；群信息+成员在 `chatroom`。
+- **好友/联系人数**：`rcontact` 按 `type` 位过滤（排除公众号 verifyFlag≠0）。
+- **朋友圈**：`SnsMicroMsg.db.SnsInfo`。
+- **时间**：`message.createTime` 是 **毫秒**（部分旧版为秒，按位数判）。
+
+### UI 展示建议（WeChat）
+- `message` → **会话时间线**（按 `talker` 分组的聊天气泡，isSend 决定左右）。
+- `rcontact` → **通讯录列表**（备注名 + 头像）。
+- `chatroom` → **群列表** + 成员面板。
+- `SnsInfo` → **朋友圈 feed 卡片**。
 
 ---
 
