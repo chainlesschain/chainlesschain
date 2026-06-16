@@ -482,6 +482,22 @@ chainlesschain agent -p "..." --no-mcp          # 跳过注册的自动连接(--
 工具 fail-closed,本旗标把每个 CONFIRM 档审批交给一个 MCP 工具裁决——它收 `{tool_name, input}`,
 返回 `{behavior:"allow"|"deny"}`(任何非 allow / 出错都 fail-closed)。
 
+### 项目 `.mcp.json` — 团队共享配置(opt-in,默认关)
+
+对标 Claude Code 的项目级 `.mcp.json`:在 git 项目根(从 cwd 向上找,与 `.claude`
+各层一致)和 cwd 放一个 `.mcp.json`(`{ "mcpServers": { ... } }`),`cc agent` 合并两处
+(同名时 **cwd 就近覆盖根**)。**安全默认关** —— 签入仓库的 `.mcp.json` 能 spawn 任意
+命令,克隆任何仓库就跑等于供应链风险,故必须**显式 opt-in**:
+
+```bash
+chainlesschain agent --project-mcp -p "..."     # 仅本次运行加载项目 .mcp.json
+CC_PROJECT_MCP=1 chainlesschain agent -p "..."  # 等价(整 shell 生效)
+```
+
+精度:`--mcp-config` 与注册 server **同名时优先**(先连者赢);加载顺序排在 IDE 自动发现
+之前;`--strict-mcp-config` 下完全跳过(只用 `--mcp-config`);未 opt-in 时彻底 no-op。
+与 Claude Code 不同,暂无逐 server 审批弹窗 —— env/flag 的 opt-in 即当前的安全闸。
+
 ### Resources — 把 MCP 资源喂给 agent
 
 MCP 不止 tools。当任一连上的 server 暴露 **resource**(文档 / 文件 / 数据)时,agent
