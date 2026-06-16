@@ -234,6 +234,29 @@ fun HubLocalScreen(
                     Text(if (globalBusy) "采集中…" else "一键采集本机数据（免登录）")
                 }
             }
+            item("root-mem-salvage") {
+                // Method B 一键 root 内存采集（免密钥取证）— root 读目标 app 进程内存
+                // 解密页 → 叶子页打捞 → cc hub salvage 入库。仅 root 机；目标 app 须前台
+                // 登录在用。v1 限抖音。
+                val ms = state.memSalvage
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { viewModel.rootMemSalvageCollect() },
+                    enabled = !ms.isRunning && !globalBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (ms.isRunning) "root 采集中…" else "一键 root 采集（抖音内存·免密钥）")
+                }
+                val note = ms.phase ?: ms.lastMessage
+                if (!note.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             item("ask") {
                 Spacer(Modifier.height(16.dp))
                 HubAskCard(

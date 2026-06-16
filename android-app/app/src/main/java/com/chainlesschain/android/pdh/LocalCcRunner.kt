@@ -1637,6 +1637,60 @@ class LocalCcRunner @Inject constructor(
         data class Failed(val reason: String, val exitCode: Int?) : OverviewResult()
     }
 
+    sealed class SalvageResult {
+        /** ingested = events written to vault; salvaged = leaf-page records recovered. */
+        data class Ok(val ingested: Int, val salvaged: Int) : SalvageResult()
+        data class Failed(val reason: String, val exitCode: Int?) : SalvageResult()
+    }
+
+    /**
+     * Method B 免密钥取证入库 — runs `cc hub salvage <dumpPath> --json` to salvage
+     * SQLite leaf-page records from a /proc/mem dump and ingest them into the
+     * local vault. Called by the Android root 一键采集 button per memory dump.
+     * [columns] is an optional explicit msg column order (CSV); null → inferred.
+     */
+    suspend fun salvageIngest(
+        dumpPath: String,
+        columns: String? = null,
+        uid: String? = null,
+        timeoutMs: Long = 60_000L,
+    ): SalvageResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext SalvageResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("salvage"); add(dumpPath)
+            if (!columns.isNullOrBlank()) { add("--columns"); add(columns) }
+            if (!uid.isNullOrBlank()) { add("--uid"); add(uid) }
+            add("--json")
+        }
+        val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+        if (timedOut) return@withContext SalvageResult.Failed("timeout after ${timeoutMs}ms", null)
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext SalvageResult.Failed(
+                reason = errMsg ?: "cc exited $exit: ${stderr.take(300)}",
+                exitCode = exit,
+            )
+        }
+        try {
+            val parsed = parseSalvage(stdout.trim())
+            SalvageResult.Ok(parsed.first, parsed.second)
+        } catch (e: Exception) {
+            SalvageResult.Failed("parse-failed: ${e.message ?: e.javaClass.simpleName}", exit)
+        }
+    }
+
     /**
      * ② 跨 app 数据总览 — runs `cc hub run-skill analysis.overview --json` and
      * parses the cross-app aggregate (byApp / byType / spend / topContacts) for
@@ -1798,6 +1852,17 @@ data class OverviewReport(
 internal fun isUnknownSkillError(msg: String): Boolean {
     val m = msg.lowercase()
     return m.contains("unknown") && m.contains("skill")
+}
+
+/**
+ * Parse `cc hub salvage --json` stdout → (ingested, recordsSalvaged).
+ * Shape: { ingested, douyin: { eventCounts:{message}, salvage:{recordsSalvaged} } }.
+ */
+internal fun parseSalvage(json: String): Pair<Int, Int> {
+    val obj = JSONObject(json)
+    val ingested = obj.optInt("ingested", obj.optJSONObject("entityCounts")?.optInt("events", 0) ?: 0)
+    val salvaged = obj.optJSONObject("douyin")?.optJSONObject("salvage")?.optInt("recordsSalvaged", 0) ?: 0
+    return ingested to salvaged
 }
 
 /** Parse `cc hub run-skill analysis.overview --json` stdout into [OverviewReport]. */

@@ -103,6 +103,25 @@ schema 映射（如抖音 `msg`：cols=[msg_uuid, conversation_id, sender, conte
 **已单测**（`packages/personal-data-hub/__tests__/sqlite-leaf-salvage.test.js`，真 sqlite 库往返）。
 覆盖度取决于 dump 是否含该库的叶子页——尽量 dump 全 rw 段（方法 B 默认就扫所有 <256MB 段）。
 
+### 3.5.1 一键入库 `cc hub salvage`（打捞→映射→vault 一步到位）
+
+打捞器已收进可 bundle 的 pdh lib（`packages/personal-data-hub/lib/forensics/leaf-salvage.js`），
+并封装成单条命令，dump → 叶子页打捞 → `mapSalvaged` → snapshot → `social-douyin` 入库：
+
+```sh
+cc hub salvage dumps/cc_xxx.db --json        # 列序自动推断（content/created_time 启发式）
+cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content,created_time
+```
+
+返回 `{ingested, douyin:{salvage:{recordsSalvaged}}}`。本机真 sqlite 库端到端验证（中文+emoji
+无损）。**v1 经 `social-douyin` 适配器入库**——别家 app dump 需各自 salvage 适配器（避免源归属错挂）。
+
+### 3.5.2 Android 一键 root 采集按钮（自动化）
+
+「本机数据」tab →「一键 root 采集（抖音内存·免密钥）」：`MemSalvageCollector` 编排
+`su` 内存扫描（assets/pdh/pdh-mem-sqlite-scan.sh）→ 拷 dump 进 app 目录 → 逐个 `cc hub salvage`
+入库。仅 root 机；目标 app 须前台登录在用。手动脚本路径仍保留（本节上文）供调试。
+
 ## 4. 结论
 
 - 真机解密采集**已验证可行**：方法 B 从 Douyin 内存 dump 出真实明文 SQLite 库（免 key，

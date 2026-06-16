@@ -127,6 +127,7 @@ class HubLocalViewModelTest {
     private lateinit var remoteHub: PersonalDataHubCommands
     private val lanUrlFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private lateinit var appContext: Context
+    private lateinit var memSalvageCollector: com.chainlesschain.android.pdh.MemSalvageCollector
 
     @Before
     fun setUp() {
@@ -304,6 +305,7 @@ class HubLocalViewModelTest {
         androidLlmExecutor = mockk(relaxed = true)
         every { androidLlmExecutor.detectProvider() } returns null
         remoteHub = mockk(relaxed = true)
+        memSalvageCollector = mockk(relaxed = true)
         coEvery { remoteHub.health() } returns Result.failure(RuntimeException("no desktop paired"))
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
@@ -379,6 +381,7 @@ class HubLocalViewModelTest {
             androidLlmExecutor,
             remoteHub,
             appContext,
+            memSalvageCollector,
             // init 在 ioDispatcher 上 launch；传 testDispatcher 让 advanceUntilIdle()
             // 能驱动 init 完成（生产由 Hilt @IoDispatcher 提供 Dispatchers.IO）。
             testDispatcher,

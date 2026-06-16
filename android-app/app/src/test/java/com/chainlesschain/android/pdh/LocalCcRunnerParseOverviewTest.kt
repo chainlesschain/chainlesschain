@@ -63,4 +63,31 @@ class LocalCcRunnerParseOverviewTest {
         assertEquals(false, isUnknownSkillError("database disk image is malformed"))
         assertEquals(false, isUnknownSkillError("timeout after 30000ms"))
     }
+
+    @Test
+    fun `parseSalvage reads ingested + recordsSalvaged`() {
+        val json = """
+            {"adapter":"social-douyin","status":"ok","ingested":1191,
+             "entityCounts":{"events":1191},
+             "douyin":{"eventCounts":{"message":1191},"salvage":{"leafPages":40,"recordsSalvaged":1300},"mode":"salvage"}}
+        """.trimIndent()
+        val (ingested, salvaged) = parseSalvage(json)
+        assertEquals(1191, ingested)
+        assertEquals(1300, salvaged)
+    }
+
+    @Test
+    fun `parseSalvage falls back to entityCounts events when ingested absent`() {
+        val json = """{"entityCounts":{"events":7},"douyin":{"salvage":{"recordsSalvaged":9}}}"""
+        val (ingested, salvaged) = parseSalvage(json)
+        assertEquals(7, ingested)
+        assertEquals(9, salvaged)
+    }
+
+    @Test
+    fun `parseSalvage tolerates missing fields`() {
+        val (ingested, salvaged) = parseSalvage("""{"status":"ok"}""")
+        assertEquals(0, ingested)
+        assertEquals(0, salvaged)
+    }
 }

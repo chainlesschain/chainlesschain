@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
+import com.chainlesschain.android.pdh.MemSalvageCollector
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.email.EmailVendor
@@ -143,11 +144,20 @@ class HubLocalViewModel @Inject constructor(
     private val androidLlmExecutor: AndroidLocalLlmExecutor,
     private val remoteHub: PersonalDataHubCommands,
     @ApplicationContext private val appContext: Context,
+    // Method B 一键 root 内存采集编排器（免密钥取证 → cc hub salvage 入库）。
+    private val memSalvageCollector: com.chainlesschain.android.pdh.MemSalvageCollector,
     // init 的 refresh*FromStore() 读 keystore-backed EncryptedSharedPreferences，
     // 必须挪到 IO 线程避免主线程 ANR。注入而非硬编码 Dispatchers.IO，让单测能
     // 传 TestDispatcher 使 advanceUntilIdle() 能驱动 init 完成。
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
+
+    @Immutable
+    data class MemSalvageState(
+        val isRunning: Boolean = false,
+        val phase: String? = null,
+        val lastMessage: String? = null,
+    )
 
     @Immutable
     data class SystemDataCardState(
@@ -627,6 +637,8 @@ class HubLocalViewModel @Inject constructor(
         // §2.5 — vendorKey → travel card state (travel-amap / travel-ctrip).
         val travel: Map<String, TravelCardState> = emptyMap(),
         val vaultPreview: VaultPreviewState = VaultPreviewState(),
+        // Method B 一键 root 内存采集（免密钥取证）。
+        val memSalvage: MemSalvageState = MemSalvageState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -898,6 +910,55 @@ class HubLocalViewModel @Inject constructor(
         // Add more no-login collectors here (each guarded so one failure doesn't
         // block the rest) as they land.
         refreshSystemData()
+    }
+
+    /**
+     * Method B 一键 root 内存采集（免密钥）— 走 [MemSalvageCollector]：root 读目标
+     * app 进程内存里的解密 SQLite 页，叶子页打捞 → cc hub salvage 入库。仅 root 机
+     * 且目标 app 须在前台真用起来。v1 限抖音。结果经 [MemSalvageState] 透出。
+     */
+    fun rootMemSalvageCollect(
+        target: MemSalvageCollector.TargetApp = MemSalvageCollector.TargetApp.DOUYIN,
+    ) {
+        if (_state.value.memSalvage.isRunning) return
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    memSalvage = it.memSalvage.copy(
+                        isRunning = true,
+                        phase = "正在 root 扫描 ${target.displayName} 内存并打捞入库…（请保持该 app 在前台已登录）",
+                        lastMessage = null,
+                    ),
+                )
+            }
+            val result = try {
+                memSalvageCollector.collect(target)
+            } catch (e: Exception) {
+                Timber.w(e, "HubLocalViewModel: mem salvage threw")
+                MemSalvageCollector.Result.Failed(e.message ?: e.javaClass.simpleName)
+            }
+            val msg = when (result) {
+                is MemSalvageCollector.Result.Ok ->
+                    "✓ ${target.displayName}：打捞 ${result.salvaged} 条、入库 ${result.ingested} 条（${result.dumps} 个内存库）"
+                MemSalvageCollector.Result.NoRoot ->
+                    "需要 root 权限（非 root 设备无法读取进程内存）"
+                MemSalvageCollector.Result.AppNotRunning ->
+                    "未找到 ${target.displayName} 进程：请先打开并登录该 app、进任意聊天/信息流后重试"
+                MemSalvageCollector.Result.NoDumps ->
+                    "内存里未发现解密的数据库页：请在 ${target.displayName} 里真正用一下（刷信息流/进消息）再重试"
+                is MemSalvageCollector.Result.Failed ->
+                    "采集失败：${result.reason}"
+            }
+            _state.update {
+                it.copy(
+                    memSalvage = it.memSalvage.copy(
+                        isRunning = false,
+                        phase = null,
+                        lastMessage = msg,
+                    ),
+                )
+            }
+        }
     }
 
     fun refreshSystemData() {
