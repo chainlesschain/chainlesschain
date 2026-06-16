@@ -98,6 +98,50 @@ public final class AgentChatSession {
         return child != null && child.isAlive();
     }
 
+    /**
+     * One-shot, best-effort {@code cc <args…>} → captured stdout, for short
+     * introspection commands (e.g. {@code cc context <id> --json}). Reuses the
+     * same {@code cmd.exe /c cc} resolution as {@link #buildCommandLine()}.
+     * Returns "" on timeout, non-zero exit, or any failure — callers treat a
+     * blank result as "unavailable". Pure JDK; safe to call off the EDT.
+     */
+    public static String runCapture(List<String> args, File cwd, long timeoutMs) {
+        List<String> cmd = new ArrayList<>();
+        if (File.separatorChar == '\\') {
+            cmd.add("cmd.exe");
+            cmd.add("/c");
+        }
+        cmd.add("cc");
+        if (args != null) cmd.addAll(args);
+        try {
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (cwd != null) pb.directory(cwd);
+            pb.redirectErrorStream(false);
+            Process p = pb.start();
+            StringBuilder out = new StringBuilder();
+            Thread pump = new Thread(() -> {
+                try (BufferedReader r = new BufferedReader(
+                        new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = r.readLine()) != null) out.append(line).append('\n');
+                } catch (IOException ignored) {
+                    // child closed / killed — return what we have
+                }
+            }, "cc-capture-pump");
+            pump.setDaemon(true);
+            pump.start();
+            boolean done = p.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            if (!done) {
+                p.destroyForcibly();
+                return "";
+            }
+            pump.join(500);
+            return p.exitValue() == 0 ? out.toString() : "";
+        } catch (IOException | InterruptedException e) {
+            return "";
+        }
+    }
+
     /** Spawn the child and start the stdout/stderr pumps. Idempotent. */
     public synchronized void start() throws IOException {
         if (isRunning()) return;

@@ -1,39 +1,45 @@
 package com.chainlesschain.ide.intellij;
 
-import com.chainlesschain.ide.AgentChatSession;
-import com.chainlesschain.ide.ChatEvents;
+import com.chainlesschain.ide.ConversationManager;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
+import java.awt.FlowLayout;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * "ChainlessChain" tool window — an in-IDE chat with the `cc` agent, the
- * JetBrains twin of the VS Code extension's chat panel (slice 1: plain-text
- * transcript; streaming deltas, tool trace, Stop/New).
+ * "ChainlessChain" tool window — an in-IDE chat with the {@code cc} agent, the
+ * JetBrains twin of the VS Code extension's chat panel. Now multi-conversation
+ * (Claude-Code conversation-tabs parity): a {@link JBTabbedPane} of
+ * {@link ConversationView}s, one live {@code cc agent} child per tab, driven by
+ * the pure {@link ConversationManager} model.
  *
- * All protocol logic lives in the pure-JDK core (AgentChatSession/ChatEvents,
- * headless-smoked); this class is Swing + project glue only. The child agent
- * inherits THIS window's bridge port/token, so selection context, diagnostics
- * feedback and native diff review light up automatically.
+ * <ul>
+ *   <li>{@code + New chat} → {@link ConversationManager#create()} → new tab.</li>
+ *   <li>per-tab {@code ×} → {@link ConversationManager#close(String)} (activates
+ *       the neighbor, never empties).</li>
+ *   <li>tab switch → {@link ConversationManager#switchTo(String)}; each tab keeps
+ *       its own transcript + session, so switching is instant.</li>
+ *   <li>per-tab resume ids persist in {@link PropertiesComponent} → tabs survive
+ *       IDE restart (migrates the old single-session key).</li>
+ * </ul>
+ *
+ * All protocol logic is in the pure core; this is Swing + project glue only.
  */
 public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware {
 
@@ -47,207 +53,159 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
     }
 
     static final class ChatPanel implements Disposable {
+        /** New per-tab resume-id list (comma-joined); migrates the legacy single key. */
+        private static final String SESSION_IDS_KEY = "chainlesschain.chat.sessionIds";
+        private static final String LEGACY_SESSION_ID_KEY = "chainlesschain.chat.sessionId";
+
         private final Project project;
-        private final JPanel root = new JPanel(new BorderLayout(4, 4));
-        private final JTextArea transcript = new JTextArea();
-        private final JTextField input = new JTextField();
-        private final JButton sendBtn = new JButton("Send");
-        private final JButton stopBtn = new JButton("Stop");
-        private final JButton newBtn = new JButton("New");
-        private final ChatEvents.TurnState turnState = new ChatEvents.TurnState();
-        private AgentChatSession session;
+        private final JPanel root = new JPanel(new BorderLayout(0, 2));
+        private final JBTabbedPane tabs = new JBTabbedPane();
+        private final ConversationManager conversations = new ConversationManager();
+        private final Map<String, ConversationView> views = new LinkedHashMap<String, ConversationView>();
+        private final List<String> tabIds = new ArrayList<String>(); // mirrors tab index order
+        private boolean syncing = false; // guard re-entrant ChangeListener during structural edits
 
         ChatPanel(Project project) {
             this.project = project;
-            transcript.setEditable(false);
-            transcript.setLineWrap(true);
-            transcript.setWrapStyleWord(true);
-            transcript.setFont(new Font(Font.MONOSPACED, Font.PLAIN,
-                    transcript.getFont().getSize()));
-            root.add(new JScrollPane(transcript), BorderLayout.CENTER);
 
-            JPanel south = new JPanel(new BorderLayout(4, 0));
-            south.add(input, BorderLayout.CENTER);
-            JPanel buttons = new JPanel();
-            buttons.add(sendBtn);
-            buttons.add(stopBtn);
-            buttons.add(newBtn);
-            south.add(buttons, BorderLayout.EAST);
-            root.add(south, BorderLayout.SOUTH);
+            JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+            JButton addBtn = new JButton("+ New chat");
+            addBtn.addActionListener(e -> newConversation());
+            north.add(addBtn);
+            root.add(north, BorderLayout.NORTH);
+            root.add(tabs, BorderLayout.CENTER);
 
-            ActionListener doSend = new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    sendCurrentInput();
-                }
-            };
-            sendBtn.addActionListener(doSend);
-            input.addActionListener(doSend); // Enter sends
-            stopBtn.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (session != null) session.interrupt();
-                }
+            tabs.addChangeListener(e -> {
+                if (syncing) return;
+                int i = tabs.getSelectedIndex();
+                if (i < 0 || i >= tabIds.size()) return;
+                String id = tabIds.get(i);
+                conversations.switchTo(id);
+                ConversationView v = views.get(id);
+                if (v != null) v.focusInput();
             });
-            newBtn.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    resetSession();
-                    rememberSessionId(null); // fresh conversation, not a resume
-                    transcript.setText("");
-                }
-            });
+
+            restoreOrCreate();
         }
 
-        JPanel getComponent() {
+        JComponent getComponent() {
             return root;
         }
 
-        private void sendCurrentInput() {
-            final String text = input.getText().trim();
-            if (text.isEmpty()) return;
+        // ---- conversation lifecycle ----------------------------------------
+
+        private void newConversation() {
+            ConversationManager.Conversation conv = conversations.create();
+            addTabFor(conv, true);
+            persistSessionIds();
+        }
+
+        /** Add a tab + view for an existing model conversation. */
+        private void addTabFor(ConversationManager.Conversation conv, boolean select) {
+            ConversationView view = new ConversationView(project, conv,
+                    (cid, sid) -> persistSessionIds());
+            views.put(conv.id, view);
+            syncing = true;
             try {
-                ensureSession();
-            } catch (IOException ex) {
-                append("⚠ failed to start `cc` (is the ChainlessChain CLI "
-                        + "installed and on PATH?): " + ex.getMessage() + "\n");
+                tabs.addTab(conv.title, view.getComponent());
+                tabIds.add(conv.id);
+                int idx = tabIds.size() - 1;
+                tabs.setTabComponentAt(idx, makeTabHeader(conv.id, conv.title));
+                if (select) tabs.setSelectedIndex(idx);
+            } finally {
+                syncing = false;
+            }
+            if (select) {
+                conversations.switchTo(conv.id);
+                view.focusInput();
+            }
+        }
+
+        private void closeConversation(String id) {
+            int idx = tabIds.indexOf(id);
+            if (idx < 0) return;
+            ConversationManager.CloseResult r = conversations.close(id);
+            ConversationView view = views.remove(id);
+            if (view != null) view.dispose();
+            syncing = true;
+            try {
+                tabs.removeTabAt(idx);
+                tabIds.remove(idx);
+            } finally {
+                syncing = false;
+            }
+            // Never leave the window empty — open a fresh conversation.
+            if (tabIds.isEmpty()) {
+                newConversation();
                 return;
             }
-            if (session.send(text)) {
-                append("\nyou> " + text + "\n");
-                input.setText("");
+            String activeId = r.active != null ? r.active.id : tabIds.get(Math.min(idx, tabIds.size() - 1));
+            int sel = tabIds.indexOf(activeId);
+            if (sel >= 0) {
+                tabs.setSelectedIndex(sel);
+                conversations.switchTo(activeId);
+            }
+            persistSessionIds();
+        }
+
+        /** A tab header: title label + a small × close button. */
+        private JComponent makeTabHeader(String id, String title) {
+            JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+            header.setOpaque(false);
+            JLabel label = new JLabel(title);
+            JButton close = new JButton("×");
+            close.setBorderPainted(false);
+            close.setContentAreaFilled(false);
+            close.setFocusable(false);
+            close.setMargin(new java.awt.Insets(0, 4, 0, 0));
+            close.setToolTipText("Close conversation");
+            close.addActionListener(e -> closeConversation(id));
+            header.add(label);
+            header.add(close);
+            return header;
+        }
+
+        // ---- persistence ----------------------------------------------------
+
+        private void persistSessionIds() {
+            List<String> ids = new ArrayList<String>();
+            for (String id : tabIds) {
+                ConversationManager.Conversation c = conversations.get(id);
+                ids.add(c != null && c.sessionId != null ? c.sessionId : "");
+            }
+            PropertiesComponent.getInstance(project)
+                    .setValue(SESSION_IDS_KEY, String.join(",", ids));
+        }
+
+        /** Rebuild tabs from stored resume ids on open; migrate the legacy single key. */
+        private void restoreOrCreate() {
+            PropertiesComponent props = PropertiesComponent.getInstance(project);
+            String stored = props.getValue(SESSION_IDS_KEY);
+            if (stored == null) {
+                String legacy = props.getValue(LEGACY_SESSION_ID_KEY);
+                if (legacy != null && !legacy.trim().isEmpty()) stored = legacy;
+            }
+            if (stored != null && !stored.trim().isEmpty()) {
+                for (String raw : stored.split(",", -1)) {
+                    String sid = raw.trim();
+                    ConversationManager.Conversation conv =
+                            conversations.create(null, sid.isEmpty() ? null : sid, false);
+                    addTabFor(conv, false);
+                }
+            }
+            if (tabIds.isEmpty()) {
+                newConversation();
             } else {
-                append("⚠ agent session is not running — press New to restart\n");
+                tabs.setSelectedIndex(0);
+                conversations.switchTo(tabIds.get(0));
             }
-        }
-
-        /** Per-project key for the resumable chat session id (parity with the
-         *  VS Code panel's workspaceState persistence — survives IDE restarts). */
-        private static final String SESSION_ID_KEY = "chainlesschain.chat.sessionId";
-
-        private String storedSessionId() {
-            String v = com.intellij.ide.util.PropertiesComponent
-                    .getInstance(project).getValue(SESSION_ID_KEY);
-            return v == null || v.trim().isEmpty() ? null : v;
-        }
-
-        private void rememberSessionId(String id) {
-            com.intellij.ide.util.PropertiesComponent
-                    .getInstance(project).setValue(SESSION_ID_KEY, id);
-        }
-
-        /** Lazy spawn: first message starts the child; New restarts it. */
-        private void ensureSession() throws IOException {
-            if (session != null && session.isRunning()) return;
-            AgentChatSession.Options o = new AgentChatSession.Options();
-            String basePath = project.getBasePath();
-            if (basePath != null) o.cwd = new File(basePath);
-            // Resume this project's last conversation across child/IDE
-            // restarts; "New" clears the stored id for a fresh session.
-            o.extraArgs = ChatEvents.buildSessionArgs(null, null, storedSessionId());
-            IdeBridgeService bridge = IdeBridgeService.getInstance(project);
-            if (bridge != null && bridge.getPort() > 0) {
-                o.extraEnv.put("CHAINLESSCHAIN_IDE_PORT",
-                        String.valueOf(bridge.getPort()));
-                if (bridge.getToken() != null) {
-                    o.extraEnv.put("CHAINLESSCHAIN_IDE_TOKEN", bridge.getToken());
-                }
-            }
-            o.onEvent = new AgentChatSession.EventListener() {
-                @Override
-                public void onEvent(Map<String, Object> event) {
-                    if (event != null && "system".equals(event.get("type"))
-                            && "init".equals(event.get("subtype"))) {
-                        Object sid = event.get("session_id");
-                        if (sid != null && !String.valueOf(sid).isEmpty()) {
-                            rememberSessionId(String.valueOf(sid));
-                        }
-                        Object resumed = event.get("resumed_messages");
-                        if (resumed instanceof Number
-                                && ((Number) resumed).intValue() > 0) {
-                            final String note = "ℹ resumed previous conversation ("
-                                    + ((Number) resumed).intValue() + " messages)\n";
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    append(note);
-                                }
-                            });
-                        }
-                    }
-                    final Map<String, Object> ui =
-                            ChatEvents.mapAgentEvent(event, turnState);
-                    if (ui == null) return;
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            render(ui);
-                        }
-                    });
-                }
-            };
-            o.onExit = new AgentChatSession.ExitListener() {
-                @Override
-                public void onExit(final int code) {
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            append("\n── agent exited (" + code
-                                    + ") — next message restarts ──\n");
-                        }
-                    });
-                }
-            };
-            session = new AgentChatSession(o);
-            session.start();
-        }
-
-        @SuppressWarnings("unchecked")
-        private void render(Map<String, Object> ui) {
-            String kind = String.valueOf(ui.get("kind"));
-            if ("init".equals(kind)) {
-                append("── " + ui.get("model") + " · " + ui.get("provider") + " ──\n");
-            } else if ("delta".equals(kind)) {
-                append(String.valueOf(ui.get("text")));
-            } else if ("tool".equals(kind)) {
-                String summary = String.valueOf(ui.get("summary"));
-                append("\n→ " + ui.get("tool")
-                        + (summary.isEmpty() ? "" : " " + summary) + "\n");
-            } else if ("tool_done".equals(kind)) {
-                append((Boolean.TRUE.equals(ui.get("isError")) ? "✗ " : "✓ ")
-                        + ui.get("tool") + "\n");
-            } else if ("turn_end".equals(kind)) {
-                Object text = ui.get("text");
-                if (text != null) append(String.valueOf(text));
-                append("\n");
-            } else if ("plan".equals(kind)) {
-                Object items = ui.get("items");
-                int n = items instanceof List ? ((List<Object>) items).size() : 0;
-                append("📋 plan " + ui.get("state") + " (" + n + " steps)\n");
-            } else if ("info".equals(kind) || "error".equals(kind)
-                    || "approval".equals(kind) || "approval_done".equals(kind)) {
-                Object text = ui.get("text");
-                append(("error".equals(kind) ? "⚠ " : "ℹ ")
-                        + (text != null ? text : kind) + "\n");
-            }
-        }
-
-        private void append(String s) {
-            transcript.append(s);
-            transcript.setCaretPosition(transcript.getDocument().getLength());
-        }
-
-        private void resetSession() {
-            if (session != null) {
-                session.stop();
-                session = null;
-            }
-            turnState.sawDelta = false;
         }
 
         @Override
         public void dispose() {
-            resetSession();
+            for (ConversationView v : views.values()) v.dispose();
+            views.clear();
+            tabIds.clear();
         }
     }
 }
