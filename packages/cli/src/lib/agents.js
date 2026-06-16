@@ -21,6 +21,7 @@ import fsDefault from "node:fs";
 import pathDefault from "node:path";
 import { homedir } from "node:os";
 import yaml from "js-yaml";
+import { projectRootBase } from "./project-root.cjs";
 
 const _deps = { fs: fsDefault, path: pathDefault };
 
@@ -46,26 +47,36 @@ function parseFrontmatter(content) {
 /** Normalize `tools` (comma string | array | null) into a string[] or null. */
 export function normalizeTools(tools) {
   if (tools == null) return null;
-  const list = Array.isArray(tools)
-    ? tools
-    : String(tools).split(/[,\s]+/);
+  const list = Array.isArray(tools) ? tools : String(tools).split(/[,\s]+/);
   const out = list.map((t) => String(t).trim()).filter(Boolean);
   return out.length > 0 ? out : null;
 }
 
 /** Directories scanned for agent files — project first (shadows personal). */
 export function agentDirs(cwd = process.cwd(), opts = {}) {
+  const fs = opts.deps?.fs || _deps.fs;
   const path = opts.deps?.path || _deps.path;
   const home = opts.home || homedir();
   // Project-native first (highest precedence), then the Claude-Code-portable
   // location (so existing `.claude/agents/*.md` work unchanged), then personal.
   // discoverAgents reverses + last-write-wins, so `.chainlesschain/agents/`
   // shadows `.claude/agents/` shadows `~/.claude/agents/` on a name clash.
-  return [
+  const dirs = [
     { dir: path.join(cwd, ".chainlesschain", "agents"), scope: "project" },
     { dir: path.join(cwd, ".claude", "agents"), scope: "project" },
-    { dir: path.join(home, ".claude", "agents"), scope: "personal" },
   ];
+  // Subdirectory run: also scan the project-root `.claude` (cwd stays closest
+  // and wins on a name clash through the reverse + last-write-wins below).
+  const root = projectRootBase(cwd, { fs, path });
+  if (root) {
+    dirs.push({
+      dir: path.join(root, ".chainlesschain", "agents"),
+      scope: "project",
+    });
+    dirs.push({ dir: path.join(root, ".claude", "agents"), scope: "project" });
+  }
+  dirs.push({ dir: path.join(home, ".claude", "agents"), scope: "personal" });
+  return dirs;
 }
 
 /** Recursively collect `*.md` files under `dir` as `{file, rel}` (rel uses /). */

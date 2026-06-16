@@ -27,6 +27,7 @@
 const fsDefault = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { projectRootBase } = require("./project-root.cjs");
 
 const _deps = { fs: fsDefault, homedir: () => os.homedir() };
 
@@ -72,11 +73,17 @@ function accrete(target, sources, arr, file, kind) {
 /** The ordered list of candidate settings files for a cwd. */
 function settingsPaths(cwd, explicitFile) {
   const home = _deps.homedir();
-  const list = [
-    path.join(home, ".claude", "settings.json"),
-    path.join(cwd, ".claude", "settings.json"),
-    path.join(cwd, ".claude", "settings.local.json"),
-  ];
+  const list = [path.join(home, ".claude", "settings.json")];
+  // When run from a subdirectory, the project-root `.claude` sits BELOW cwd's
+  // own (closest wins) but ABOVE the user layer — so its rules apply yet a
+  // cwd-local settings file still overrides them. Null when cwd IS the root.
+  const root = projectRootBase(cwd, { fs: _deps.fs, path });
+  if (root) {
+    list.push(path.join(root, ".claude", "settings.json"));
+    list.push(path.join(root, ".claude", "settings.local.json"));
+  }
+  list.push(path.join(cwd, ".claude", "settings.json"));
+  list.push(path.join(cwd, ".claude", "settings.local.json"));
   if (explicitFile) list.push(path.resolve(cwd, explicitFile));
   return list;
 }

@@ -23,6 +23,7 @@ import pathDefault from "node:path";
 import { homedir } from "node:os";
 import { execSync as execSyncDefault } from "node:child_process";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
+import { projectRootBase } from "./project-root.cjs";
 
 const _deps = { fs: fsDefault, path: pathDefault, execSync: execSyncDefault };
 
@@ -62,16 +63,31 @@ export const BANG_TIMEOUT_MS = 10_000;
  * on a name clash). `opts.home` overrides the personal root for tests.
  */
 export function commandDirs(cwd = process.cwd(), opts = {}) {
+  const fs = opts.deps?.fs || _deps.fs;
   const path = opts.deps?.path || _deps.path;
   const home = opts.home || homedir();
   // Project-native `.chainlesschain/commands/` takes precedence, then the
   // Claude-Code-portable `.claude/commands/` (so existing definitions work
   // unchanged), then personal. Both project dirs share the "project" scope.
-  return [
+  const dirs = [
     { dir: path.join(cwd, ".chainlesschain", "commands"), scope: "project" },
     { dir: path.join(cwd, ".claude", "commands"), scope: "project" },
-    { dir: path.join(home, ".claude", "commands"), scope: "personal" },
   ];
+  // Subdirectory run: also scan the project-root `.claude` (cwd stays closest
+  // and wins on a name clash via discoverCommands' reverse + last-write-wins).
+  const root = projectRootBase(cwd, { fs, path });
+  if (root) {
+    dirs.push({
+      dir: path.join(root, ".chainlesschain", "commands"),
+      scope: "project",
+    });
+    dirs.push({
+      dir: path.join(root, ".claude", "commands"),
+      scope: "project",
+    });
+  }
+  dirs.push({ dir: path.join(home, ".claude", "commands"), scope: "personal" });
+  return dirs;
 }
 
 /** Recursively collect `*.md` files under `dir` as `{file, rel}` (rel uses /). */

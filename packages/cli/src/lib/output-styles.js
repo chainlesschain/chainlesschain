@@ -17,6 +17,7 @@
 import fsDefault from "node:fs";
 import pathDefault from "node:path";
 import { homedir as homedirDefault } from "node:os";
+import { projectRootBase } from "./project-root.cjs";
 
 export const _deps = {
   fs: fsDefault,
@@ -46,7 +47,8 @@ export const BUILTIN_OUTPUT_STYLES = Object.freeze({
   },
   learning: {
     name: "learning",
-    description: "Collaborative — leaves small instructive pieces for the user.",
+    description:
+      "Collaborative — leaves small instructive pieces for the user.",
     body: [
       "## Output style: Learning",
       "Work collaboratively. When a small, well-scoped piece of the task would be",
@@ -82,11 +84,31 @@ function parseFrontmatter(content) {
 /** Directories scanned for style files (project first, then personal). */
 function styleDirs(cwd, home) {
   const { path } = _deps;
-  return [
-    { dir: path.join(cwd, ".chainlesschain", "output-styles"), scope: "project" },
+  const dirs = [
+    {
+      dir: path.join(cwd, ".chainlesschain", "output-styles"),
+      scope: "project",
+    },
     { dir: path.join(cwd, ".claude", "output-styles"), scope: "project" },
-    { dir: path.join(home, ".claude", "output-styles"), scope: "personal" },
   ];
+  // Subdirectory run: also scan the project-root `.claude` (closest cwd wins on
+  // a name clash via the reverse + last-write-wins in discoverOutputStyles).
+  const root = projectRootBase(cwd, { fs: _deps.fs, path });
+  if (root) {
+    dirs.push({
+      dir: path.join(root, ".chainlesschain", "output-styles"),
+      scope: "project",
+    });
+    dirs.push({
+      dir: path.join(root, ".claude", "output-styles"),
+      scope: "project",
+    });
+  }
+  dirs.push({
+    dir: path.join(home, ".claude", "output-styles"),
+    scope: "personal",
+  });
+  return dirs;
 }
 
 /** Discover all styles: built-ins + files (a file shadows a built-in by name). */
@@ -155,7 +177,11 @@ export function settingsDefaultOutputStyle(cwd = process.cwd(), opts = {}) {
     try {
       if (!fs.existsSync(f)) continue;
       const data = JSON.parse(fs.readFileSync(f, "utf-8"));
-      if (data && typeof data.outputStyle === "string" && data.outputStyle.trim()) {
+      if (
+        data &&
+        typeof data.outputStyle === "string" &&
+        data.outputStyle.trim()
+      ) {
         value = data.outputStyle.trim();
       }
     } catch {
@@ -170,8 +196,16 @@ export function settingsDefaultOutputStyle(cwd = process.cwd(), opts = {}) {
  * Precedence: explicit name → settings.json `outputStyle` → none.
  * Returns `{ name, body }` (body may be "" for `default`) or null if unresolved.
  */
-export function resolveOutputStyle(explicitName, cwd = process.cwd(), opts = {}) {
-  const name = (explicitName || settingsDefaultOutputStyle(cwd, opts) || "").trim();
+export function resolveOutputStyle(
+  explicitName,
+  cwd = process.cwd(),
+  opts = {},
+) {
+  const name = (
+    explicitName ||
+    settingsDefaultOutputStyle(cwd, opts) ||
+    ""
+  ).trim();
   if (!name) return null;
   const style = getOutputStyle(name, cwd, opts);
   if (!style) return { name, body: "", missing: true };
