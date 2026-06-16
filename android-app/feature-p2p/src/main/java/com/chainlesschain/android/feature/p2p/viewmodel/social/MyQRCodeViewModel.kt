@@ -89,7 +89,9 @@ class MyQRCodeViewModel @Inject constructor(
             // 生成二维码图片
             val qrBitmap = QRCodeGenerator.generateQRCode(
                 content = qrContent,
-                size = 512
+                // FAMILY-67: 720（原 512）。Compose 在高密度屏上把二维码放大显示，512 源位图被上采样
+                // 后模块边缘发虚；720 源更清晰，相机更易分辨。纠错级别用默认 M（见 generateQRCode）。
+                size = 720
                 // 可选：添加App Logo
                 // logo = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
             )

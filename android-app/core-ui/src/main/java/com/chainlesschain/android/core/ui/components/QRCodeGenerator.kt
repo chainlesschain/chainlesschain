@@ -33,7 +33,12 @@ object QRCodeGenerator {
         size: Int = 512,
         fgColor: Int = Color.BLACK,
         bgColor: Int = Color.WHITE,
-        logo: Bitmap? = null
+        logo: Bitmap? = null,
+        // FAMILY-67: 纠错级别默认 M（15%）。屏对屏扫码（干净显示、无破损/无遮挡）不需要 H（30%），
+        // 而 H 会把 DID 二维码（含 128 位十六进制签名 ~245 字节）撑到 ~77×77 模块，模块极小，
+        // 真机相机难以分辨 → 扫不出。M 把它缩到 ~57×57，模块更大更易识别。有 logo 覆盖中心时
+        // 才强制回 H（需要冗余补偿被遮挡区域）。
+        errorCorrection: ErrorCorrectionLevel = ErrorCorrectionLevel.M
     ): Bitmap {
         require(content.isNotEmpty()) { "QR code content cannot be empty" }
         require(size > 0) { "QR code size must be positive" }
@@ -41,7 +46,7 @@ object QRCodeGenerator {
         // 配置ZXing编码参数
         val hints = hashMapOf<EncodeHintType, Any>()
         hints[EncodeHintType.CHARACTER_SET] = "UTF-8"
-        hints[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.H // 高纠错级别（30%容错）
+        hints[EncodeHintType.ERROR_CORRECTION] = if (logo != null) ErrorCorrectionLevel.H else errorCorrection
         hints[EncodeHintType.MARGIN] = 1 // 边距（最小值）
 
         // 生成二维码矩阵

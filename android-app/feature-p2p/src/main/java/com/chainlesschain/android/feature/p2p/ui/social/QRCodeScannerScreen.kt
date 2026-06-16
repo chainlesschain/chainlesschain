@@ -212,7 +212,9 @@ private fun CameraPreview(
 
                     // 图像分析（二维码扫描）
                     val imageAnalysis = ImageAnalysis.Builder()
-                        .setTargetResolution(Size(1280, 720))
+                        // FAMILY-67: 1080p（原 720p）。DID 二维码模块密集，720p 下细模块糊成一团
+                        // ML Kit 识别不出；1080p 让分析帧拿到足够分辨率。
+                        .setTargetResolution(Size(1920, 1080))
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .also {
@@ -316,9 +318,16 @@ private class QRCodeAnalyzer(
     private val onQRCodeDetected: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
-    private val scanner = BarcodeScanning.getClient()
+    // FAMILY-67: 只认 QR_CODE（而非默认全格式）→ ML Kit 检测更快更稳；DID 二维码偏密集，
+    // 限定格式显著提升识别率。
+    private val scanner = BarcodeScanning.getClient(
+        com.google.mlkit.vision.barcode.BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build(),
+    )
     private var lastScanTime = 0L
-    private val scanThrottle = 1000L // 1秒扫描一次，避免重复
+    // FAMILY-67: 250ms（原 1000ms）→ 每秒多试几帧，密集 DID 二维码更容易在对焦清晰那一帧命中。
+    private val scanThrottle = 250L
     private var frameCount = 0
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
