@@ -122,7 +122,24 @@ class FriendRepository @Inject constructor(
                     )
                 )
             } else {
-                Result.Success(null)
+                // FAMILY-67/离线互加: 输入是合法 `did:` 但对方 profile 不可达（离线/未 P2P 连）→
+                // 仍返回**可添加**结果，让用户直接按 DID 离线互加（无需相机扫码/对方在线，匹配
+                // AddFriendViewModel.sendFriendRequest 的"离线互加"语义）。仅对合法 DID 放行，普通
+                // 昵称模糊词仍走下游本地模糊搜索。
+                val trimmed = did.trim()
+                if (trimmed.startsWith("did:") && trimmed.length >= 12) {
+                    Result.Success(
+                        com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(
+                            did = trimmed,
+                            nickname = "用户 ${trimmed.takeLast(8)}",
+                            avatar = null,
+                            bio = null,
+                            isFriend = false,
+                        ),
+                    )
+                } else {
+                    Result.Success(null)
+                }
             }
         } catch (e: Exception) {
             Result.Error(e)
