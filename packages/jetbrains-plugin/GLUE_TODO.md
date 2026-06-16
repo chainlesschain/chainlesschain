@@ -65,7 +65,24 @@ implemented and build-verified** (0.4.0).
       job `publishPlugin` ✓ (run 27604136165). Uploaded to the Marketplace; in
       JetBrains' auto-validation queue (updates API lists it minutes–hours later;
       was 0.3.3).
-- [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
+- [x] Synced the 官网 ide page + README zh/en to the 0.4.x features (`bb67cea60`,
+      www deployed HTTP 200).
+- [x] **Latest 0.4.7 — Plugin Verifier CLEAN on 2024.2 → 2026.x** (user-confirmed:
+      no internal / scheduled-for-removal / deprecated). See "Compatibility" below.
+- [~] Screenshots — **intentionally skipped** (decided 2026-06-16). Capture +
+      dashboard upload are human-only (GUI staging + authed account); the listing is
+      complete without them. Capture guide kept in `SCREENSHOTS.md` if ever wanted.
+
+## ✅ COMPLETE
+The JetBrains plugin is feature-aligned with the VS Code extension, runIde-verified,
+Plugin-Verifier-clean across 2024.2 → 2026.x, and published (0.4.7). Nothing pending.
+
+## Compatibility (verifier history)
+0.4.4 getTerminalOutput broke on 2024.3+ (terminal API) → reverted 0.4.5 → 0.4.6
+cleared 2025.2 deprecated → 0.4.7 cleared 2026.x scheduled-for-removal + deprecated
+(SimpleListCellRenderer→DefaultListCellRenderer, removed LocalTerminalCustomizer).
+`./gradlew verifyPlugin` (2025.2) = Compatible/0 flags; 2026.x confirmed clean on the
+Marketplace verifier post-publish.
 
 ## ⚠️ Reverted
 - [x] ~~**getTerminalOutput** tool (0.4.4)~~ — **REVERTED in 0.4.5.** The terminal API
