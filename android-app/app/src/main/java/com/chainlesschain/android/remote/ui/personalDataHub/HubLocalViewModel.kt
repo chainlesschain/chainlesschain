@@ -886,6 +886,20 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * ③ 一键采集（免登录）— runs every local collector that needs neither a
+     * login/cookie nor root, in sequence, so a fresh/empty vault fills with one
+     * tap. Today that's system-data (通讯录 + 已装应用); social/IM need a login
+     * cookie and root-DB collectors need root, so they stay per-card. Structured
+     * as a single entry point + extension comment for future no-login adapters.
+     */
+    fun quickCollectNoLogin() {
+        // system-data is the only no-login + no-root ingest path at present.
+        // Add more no-login collectors here (each guarded so one failure doesn't
+        // block the rest) as they land.
+        refreshSystemData()
+    }
+
     fun refreshSystemData() {
         if (_state.value.globalSyncingAdapter != null) return
         viewModelScope.launch {

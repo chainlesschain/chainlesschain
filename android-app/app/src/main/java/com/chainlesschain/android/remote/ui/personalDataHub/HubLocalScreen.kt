@@ -222,6 +222,18 @@ fun HubLocalScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         ) {
             item("header") { ScreenHeader() }
+            item("quick-collect") {
+                // ③ 一键采集（免登录）— fills an empty vault in one tap (system-data;
+                // social/root collectors stay per-card below since they need login/root).
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = { viewModel.quickCollectNoLogin() },
+                    enabled = !globalBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (globalBusy) "采集中…" else "一键采集本机数据（免登录）")
+                }
+            }
             item("ask") {
                 Spacer(Modifier.height(16.dp))
                 HubAskCard(
