@@ -10,7 +10,7 @@
 #### Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）
 > 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑约 3.3s 即打印 URL，姊妹测试全过）。
 
-- **ui-command / web-panel**：服务器就绪 fallback 8s/10s → **25s**（旧逻辑到期后静默返回空输出，把"启动慢"翻成 `expected '' to contain URL` 的误导断言并级联砸了 13 个测试）。
+- **ui-command / web-panel**：服务器就绪 fallback 8s/10s → **25s**（旧逻辑到期后静默返回空输出，把"启动慢"翻成 `expected '' to contain URL` 的误导断言并级联砸了 13 个测试）。后续补齐同文件 `--token` / `--web-panel-dir` 两个块自带的内联就绪等待（同样 8s，重负载下 ECONNREFUSED 级联 7 个测试）→ 也提到 **25s**，全文件 3 处一致。
 - **coding-agent-envelope-roundtrip**：`waitForReady` 默认 10s → **25s**。
 - **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连冷启动）**120s**、"both code paths" 等价性测试（4 连冷启动）**90s**（旧时均撞 60s 全局默认）。
 - **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s 比内部子命令自身 30s 超时还短，提到 **40s**。
