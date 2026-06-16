@@ -7,7 +7,10 @@ import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.SessionArgs;
 import com.intellij.openapi.project.Project;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -15,9 +18,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +61,9 @@ final class ConversationView {
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
+    private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
+    private final Map<String, JComponent> approvalCards = new LinkedHashMap<>();
+    private JComponent planCard;
 
     ConversationView(Project project, ConversationManager.Conversation conv,
                      SessionIdSink sessionIdSink) {
@@ -76,12 +85,18 @@ final class ConversationView {
         buttons.add(stopBtn);
         south.add(buttons, BorderLayout.EAST);
 
-        JPanel southWrap = new JPanel(new BorderLayout(0, 2));
         contextLabel.setFont(contextLabel.getFont().deriveFont(
                 contextLabel.getFont().getSize2D() - 1f));
         contextLabel.setEnabled(false); // dimmed status line
-        southWrap.add(contextLabel, BorderLayout.NORTH);
-        southWrap.add(south, BorderLayout.CENTER);
+        cardsPanel.setLayout(new BoxLayout(cardsPanel, BoxLayout.Y_AXIS));
+
+        JPanel inputArea = new JPanel(new BorderLayout(0, 2));
+        inputArea.add(contextLabel, BorderLayout.NORTH);
+        inputArea.add(south, BorderLayout.CENTER);
+
+        JPanel southWrap = new JPanel(new BorderLayout(0, 2));
+        southWrap.add(cardsPanel, BorderLayout.NORTH);   // §5 interactive cards above input
+        southWrap.add(inputArea, BorderLayout.CENTER);
         root.add(southWrap, BorderLayout.SOUTH);
 
         sendBtn.addActionListener(e -> sendCurrentInput());
@@ -203,9 +218,19 @@ final class ConversationView {
             case "/cost":
                 runIntrospect("cost");
                 return;
+            case "/plan":
+                sendPlanAction("enter");
+                append("ℹ plan mode — write tools blocked until you approve\n");
+                return;
+            case "/approve":
+                respondPlan("approve");
+                return;
+            case "/reject":
+                respondPlan("reject");
+                return;
             case "/help":
                 append("ℹ commands: /new /stop /auto /bypass /normal /think "
-                        + "/ultrathink /think-off /context /cost\n");
+                        + "/ultrathink /think-off /plan /approve /reject /context /cost\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
@@ -304,15 +329,164 @@ final class ConversationView {
             append("\n");
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
-            Object items = ui.get("items");
-            int n = items instanceof List ? ((List<Object>) items).size() : 0;
-            append("📋 plan " + ui.get("state") + " (" + n + " steps)\n");
-        } else if ("info".equals(kind) || "error".equals(kind)
-                || "approval".equals(kind) || "approval_done".equals(kind)) {
+            showPlanCard(ui); // §5 interactive plan card (items + Approve/Reject)
+        } else if ("approval".equals(kind)) {
+            showApprovalCard(ui); // §5 interactive approval card (Approve/Deny)
+        } else if ("approval_done".equals(kind)) {
+            resolveApprovalCard(ui);
+        } else if ("info".equals(kind) || "error".equals(kind)) {
             Object text = ui.get("text");
             append(("error".equals(kind) ? "⚠ " : "ℹ ")
                     + (text != null ? text : kind) + "\n");
         }
+    }
+
+    // ---- §5 interactive cards ------------------------------------------
+
+    private static final Color WARN = new Color(0xCC, 0x88, 0x00);
+
+    /** Tool-permission approval card → sends {type:approval,id,approve} on click. */
+    @SuppressWarnings("unchecked")
+    private void showApprovalCard(Map<String, Object> ui) {
+        final String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
+        if (id.isEmpty() || approvalCards.containsKey(id)) return;
+
+        StringBuilder q = new StringBuilder("Allow ");
+        q.append(ui.get("tool") != null ? ui.get("tool") : "tool");
+        if (ui.get("command") != null) q.append(": ").append(ui.get("command"));
+        q.append("?");
+        if (ui.get("risk") != null) q.append("  [risk: ").append(ui.get("risk")).append("]");
+        if (ui.get("reason") != null) q.append("\n").append(ui.get("reason"));
+
+        JPanel card = new JPanel(new BorderLayout(4, 4));
+        card.setBorder(BorderFactory.createLineBorder(WARN));
+        card.add(htmlLabel(q.toString()), BorderLayout.CENTER);
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
+        JButton approve = new JButton("Approve");
+        JButton deny = new JButton("Deny");
+        approve.addActionListener(e -> respondApproval(id, true));
+        deny.addActionListener(e -> respondApproval(id, false));
+        btns.add(approve);
+        btns.add(deny);
+        card.add(btns, BorderLayout.SOUTH);
+
+        approvalCards.put(id, card);
+        cardsPanel.add(card);
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+    }
+
+    private void respondApproval(String id, boolean approve) {
+        AgentChatSession s = liveSession();
+        if (s != null) {
+            Map<String, Object> ev = new LinkedHashMap<>();
+            ev.put("type", "approval");
+            ev.put("id", id);
+            ev.put("approve", approve);
+            s.sendEvent(ev);
+        }
+        removeApprovalCard(id);
+        append("ℹ " + (approve ? "approved" : "denied") + " (" + id + ")\n");
+    }
+
+    private void resolveApprovalCard(Map<String, Object> ui) {
+        Object id = ui.get("id");
+        if (id != null) removeApprovalCard(String.valueOf(id));
+    }
+
+    private void removeApprovalCard(String id) {
+        JComponent card = approvalCards.remove(id);
+        if (card != null) {
+            cardsPanel.remove(card);
+            cardsPanel.revalidate();
+            cardsPanel.repaint();
+        }
+    }
+
+    /** Plan card with the step list + Approve/Reject → sends {type:plan,action}. */
+    @SuppressWarnings("unchecked")
+    private void showPlanCard(Map<String, Object> ui) {
+        String state = String.valueOf(ui.get("state"));
+        boolean active = Boolean.TRUE.equals(ui.get("active"));
+        // Terminal states clear the card and leave a transcript note.
+        if (!active || "approved".equals(state) || "rejected".equals(state)) {
+            removePlanCard();
+            append("📋 plan " + (state == null ? "ended" : state) + "\n");
+            return;
+        }
+        removePlanCard();
+        List<Object> items = ui.get("items") instanceof List
+                ? (List<Object>) ui.get("items") : java.util.Collections.emptyList();
+
+        StringBuilder sb = new StringBuilder("<b>Plan</b>");
+        if (ui.get("risk") != null) sb.append("  [risk: ").append(ui.get("risk")).append("]");
+        sb.append("<br>");
+        int n = 1;
+        for (Object it : items) {
+            String text = it instanceof Map && ((Map<String, Object>) it).get("text") != null
+                    ? String.valueOf(((Map<String, Object>) it).get("text")) : String.valueOf(it);
+            sb.append(n++).append(". ").append(escapeHtml(text)).append("<br>");
+        }
+
+        JPanel card = new JPanel(new BorderLayout(4, 4));
+        card.setBorder(BorderFactory.createLineBorder(WARN));
+        card.add(htmlLabel(sb.toString()), BorderLayout.CENTER);
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
+        JButton ok = new JButton("Approve");
+        JButton no = new JButton("Reject");
+        ok.addActionListener(e -> respondPlan("approve"));
+        no.addActionListener(e -> respondPlan("reject"));
+        btns.add(ok);
+        btns.add(no);
+        card.add(btns, BorderLayout.SOUTH);
+
+        planCard = card;
+        cardsPanel.add(card);
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+    }
+
+    private void respondPlan(String action) {
+        sendPlanAction(action);
+        removePlanCard();
+        append("📋 plan " + action + "d\n");
+    }
+
+    /** Send a plan control ({type:plan,action}); entering plan may need to spawn the child. */
+    private void sendPlanAction(String action) {
+        AgentChatSession s = liveSession();
+        if (s == null || !s.isRunning()) {
+            try {
+                ensureSession();
+            } catch (IOException ex) {
+                append("⚠ could not start agent for plan control: " + ex.getMessage() + "\n");
+                return;
+            }
+            s = liveSession();
+        }
+        if (s != null) {
+            Map<String, Object> ev = new LinkedHashMap<>();
+            ev.put("type", "plan");
+            ev.put("action", action);
+            s.sendEvent(ev);
+        }
+    }
+
+    private void removePlanCard() {
+        if (planCard != null) {
+            cardsPanel.remove(planCard);
+            planCard = null;
+            cardsPanel.revalidate();
+            cardsPanel.repaint();
+        }
+    }
+
+    private static JLabel htmlLabel(String text) {
+        return new JLabel("<html>" + text.replace("\n", "<br>") + "</html>");
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     /**
