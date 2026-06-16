@@ -66,7 +66,7 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val prefs = context.getSharedPreferences("signaling_prefs", android.content.Context.MODE_PRIVATE)
     var signalingServerUrl by remember {
-        mutableStateOf(prefs.getString("custom_signaling_url", "ws://192.168.1.1:9001") ?: "ws://192.168.1.1:9001")
+        mutableStateOf(prefs.getString("custom_signaling_url", "wss://signaling.chainlesschain.com") ?: "wss://signaling.chainlesschain.com")
     }
     var signalingTestStatus by remember { mutableStateOf("") }
 

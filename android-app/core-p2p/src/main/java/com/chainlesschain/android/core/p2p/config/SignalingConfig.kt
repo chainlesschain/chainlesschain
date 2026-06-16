@@ -18,10 +18,15 @@ class SignalingConfig @Inject constructor(
 ) {
 
     companion object {
-        const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
+        // FAMILY-67 fix: 端口 9001 在生产 nginx 上未开放（实测 connect 被拒）；信令 WS 走标准
+        // 443（wss 默认端口）。与下方 DEFAULT_RELAY_URL 一致，去掉 :9001。
+        const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com"
 
-        /** Debug-only fallback - use local network IP for real device testing */
-        const val DEBUG_SIGNALING_URL = "ws://192.168.1.1:9001"
+        // FAMILY-67 fix: 旧值 ws://192.168.1.1:9001 是一个真机上根本不存在的网关地址（也非
+        // 模拟器 host 10.0.2.2），debug 包据此永远连不上信令 → 跨设备同步全失败。改用生产信令
+        // 服务器，真机 debug 开箱即用；本地起信令服务器的开发者用 SharedPreferences 自定义 URL
+        // 或 SIGNALING_SERVER_URL 环境变量覆盖（优先级更高）。
+        const val DEBUG_SIGNALING_URL = "wss://signaling.chainlesschain.com"
 
         const val CONNECT_TIMEOUT_MS = 10000L
         const val RECONNECT_DELAY_MS = 3000L

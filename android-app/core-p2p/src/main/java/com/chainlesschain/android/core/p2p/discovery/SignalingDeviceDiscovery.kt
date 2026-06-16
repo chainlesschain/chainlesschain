@@ -33,9 +33,9 @@ class SignalingDeviceDiscovery @Inject constructor(
     companion object {
         private const val PREFS_NAME = "signaling_prefs"
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
-        // 默认使用局域网广播发现或用户配置的地址
-        // 用户需要在设置中配置实际的 PC 信令服务器地址
-        private const val DEFAULT_URL = "ws://192.168.1.1:9001"
+        // FAMILY-67 fix: 旧默认 ws://192.168.1.1:9001 是不可路由的占位地址；改用生产信令服务器
+        // （与 SignalingConfig/AppConfig 一致）。用户可在设置中覆盖为本地/PC 信令地址。
+        private const val DEFAULT_URL = "wss://signaling.chainlesschain.com"
         private const val RECONNECT_DELAY_MS = 5000L
         private const val HEARTBEAT_INTERVAL_MS = 30000L
     }
