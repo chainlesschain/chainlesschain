@@ -2474,7 +2474,7 @@ export function registerHubCommand(program) {
   hub
     .command("run-skill <name>")
     .description(
-      "Run one of the built-in analysis skills (spending/relations/footprint/interests/timeline)",
+      "Run a built-in analysis skill: overview (跨 app 汇聚, 决策依据) / spending / relations / footprint / interests / timeline. 'analysis.overview' aggregates all apps' data into one cross-app snapshot.",
     )
     .option("--since <ms>", "Start of time window")
     .option("--until <ms>", "End of time window")
