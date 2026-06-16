@@ -86,6 +86,23 @@ sqlite3 dumps/<x>.db .tables       # 读明文表
 | 设备 USB 掉线 | 重 frida 负载后 `device offline` | `adb kill-server && adb start-server` |
 | input 注入 | `SecurityException INJECT_EVENTS` | MIUI 需 `su -c 'input tap/swipe ...'`（root）|
 
+## 3.5 散页重组 / 记录打捞（malformed dump → 真数据）
+
+方法 B 的连续 dump 对**散列页缓存**库是 malformed（头有效、b-tree 断）。直接 `sqlite3`
+打不开，且 platform-tools 的 sqlite3 **没有 `.recover`**。用本仓打捞器按 SQLite 记录格式
+直接从叶子页（type `0x0D`）捞记录（顺序无关，等价 `.recover`）：
+
+```sh
+# 对单个 dump 或整目录扫
+node scripts/android/pdh-sqlite-leaf-salvage.js dumps/cc_xxx.db > rows.jsonl
+for f in dumps/*.db; do node scripts/android/pdh-sqlite-leaf-salvage.js "$f"; done > all-rows.jsonl
+```
+
+输出每行一条 `{rowid, cols:[...]}`（列按位置；UTF-8 正确解码，已测中文+emoji）。再按目标
+schema 映射（如抖音 `msg`：cols=[msg_uuid, conversation_id, sender, content(JSON), created_time]）。
+**已单测**（`packages/personal-data-hub/__tests__/sqlite-leaf-salvage.test.js`，真 sqlite 库往返）。
+覆盖度取决于 dump 是否含该库的叶子页——尽量 dump 全 rw 段（方法 B 默认就扫所有 <256MB 段）。
+
 ## 4. 结论
 
 - 真机解密采集**已验证可行**：方法 B 从 Douyin 内存 dump 出真实明文 SQLite 库（免 key，
