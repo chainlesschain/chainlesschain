@@ -68,6 +68,9 @@ implemented and build-verified** (0.4.0).
 - [ ] Sync the 官网 ide page / README to the 0.4.0 features (mirror VS Code copy).
 
 ## ✅ Also done
+- [x] **getTerminalOutput** tool (0.4.4) — best-effort terminal screen read via
+      `TerminalToolWindowManager` + jediterm buffer; closes the last feasible VS Code
+      tool gap (executeCode stays out — Jupyter is PyCharm-Pro/DataSpell only).
 - [x] @-mention **class + method/function symbols** via PSI search
       (`PsiShortNamesCache` getAllClassNames/getAllMethodNames, bounded 800 each,
       resolved to file → `Mentions.formatSymbolItems`) — classes 0.4.2, methods
