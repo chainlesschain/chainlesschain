@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑 ~3.3s 即打印 URL，姊妹测试全过）。已合并 `26a811874`，验证 89/89。详见内部手册 trap #31。
 
 - **ui-command / web-panel**：`startUiServer` readiness fallback 8s/10s → **25s**（旧逻辑到期后静默 `resolve` 出空 output，把"启动慢"翻译成 `expected '' to contain URL` 的误导性断言，并级联砸了同块 13 个测试）。后续补齐同文件 `--token` / `--web-panel-dir` 两个 describe 块自带的内联就绪等待（同样 8s，重负载下 ECONNREFUSED 级联 7 个测试）→ 也提到 **25s**（`a793e013e`），全文件 3 处就绪 fallback 现一致。
-- **coding-agent-envelope-roundtrip / serve-command**：`waitForReady` 默认 10s → **25s**（均远小于 30s `hookTimeout`，又足够扛冷启动；serve-command `98b09cab1`）。
+- **coding-agent-envelope-roundtrip / serve-command**：`waitForReady` 默认 10s → **25s**（均远小于 30s `hookTimeout`，又足够扛冷启动；serve-command `98b09cab1`）。serve-command 另把 `collectMessages` 默认 10s → **25s**（流式 WS `stream-data`/`stream-end` 在冷命令执行后才到，旧时 `dataMsg` 取到 undefined；`b15fb408c`）。
 - **mtc-audit-e2e**：两个重活测试给显式预算——独立验证测试（6 连串行子进程冷启动）**120s**；"both code paths" 等价性测试（4 连冷启动，`cbfbc08f9`）**90s**（旧时均撞 60s 全局默认超时）。
 - **orchestrate-command**：修 timeout 倒挂——`it()` 预算 20s < 内部子命令自身 30s 超时，vitest 在子命令超时处理跑之前就杀了测试；提到 **40s**。
-- **integration 重活测试**（`ab81feca4` + `92571e92c`，同 trap #31 模式延伸到集成层）：`crosschain-multisig-e2e` happy-path 2-of-2（policy→propose→sign→consume→bridge）+ `mtc-federation-governance-sync-cli` alice publish→bob pull + `marketplace-multisig-e2e` ¥1500 order（policy→purchase→sign→consume），各多次串行 CLI 冷启动，重负载下反复撞 60s 全局默认（隔离全绿）→ 各给显式 **90s**。
+- **integration 重活测试**（`ab81feca4` + `92571e92c` + `055e01d2a`，同 trap #31 模式延伸到集成层）：`crosschain-multisig-e2e` happy-path 2-of-2（policy→propose→sign→consume→bridge）+ `mtc-federation-governance-sync-cli` alice publish→bob pull + `marketplace-multisig-e2e` ¥1500 order（policy→purchase→sign→consume）+ `multisig-cli` policy→propose→sign×2→finalize，各多次串行 CLI 冷启动，重负载下反复撞 60s 全局默认（隔离全绿）→ 各给显式 **90s**。
+- **系统性收口（`2a6cdc293`）**：与其逐个 flake 加 per-test 预算，把 base vitest config 的 `testTimeout` **60s → 90s**——unit + integration 本地与 CI shard 都跑在这个 base config 上，一处覆盖整个重活集成族（per-test 90s/120s 覆写保留作最重流程的显式文档）；unit 共享但很快，唯一代价=真卡死的 unit 测试在 90s（而非 60s）才失败。e2e 仍用自有 config（`vitest.e2e.config.js`）。
+- **install-and-run execSync 子进程超时**（`f23aaeb80`）：`--version` / `--help` / `config list` 三处 `execSync` 用 10s，重负载冷启动 `spawnSync cmd.exe ETIMEDOUT`（漏网于 README 2026-06-14 的 15s→30s 族）→ 提到 **30s**。
 - 注：与 README `2026-06-14` 的"24 个 e2e 文件**子进程** timeout 15s→30s"正交——那条调 `execSync` 子命令超时，本次调的是 **server-readiness 等待器 + per-test 预算**。
 
 ### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）

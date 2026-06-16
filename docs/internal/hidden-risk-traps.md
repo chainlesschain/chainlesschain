@@ -2030,6 +2030,7 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 3. 量预算：readiness fallback 必须**远小于** `hookTimeout`（e2e config 是 30s），却又**足够大**扛冷启动（本案 8s/10s → **25s**）。`waitForReady` 默认同理。
 4. 倒挂检查：任何 `it(..., T)` 的 `T` 必须 **> 它内部 `execSync`/子命令自己的 timeout**，否则子命令的超时处理永远测不到（本案 20s → 40s，让出 > 子命令 30s）。
 5. 重活测试（多次串行子进程冷启动，如 mtc-audit 的 6 连 `run()`）给**显式大 testTimeout**（本案 120s），别吃 60s 全局默认。
+6. **当一整族重活测试反复 flake**（本案 2026-06-16：crosschain-multisig / marketplace-multisig / multisig-cli / mtc-federation 一个一个冒），别再逐个加 per-test 预算打地鼠——直接抬 **base vitest config 的 `testTimeout`**（`packages/cli/vitest.config.js` 60s → **90s**，`2a6cdc293`）。关键事实：**unit + integration 本地与 CI shard（`_cli-test.yml` 的 `npx vitest run __tests__/integration/` 无 `--config`）都跑在这个 base config 上**，所以一处改覆盖所有 run path，无需碰 CI sharding workflow（handbook 高危区）。e2e 例外——它有自己的 `vitest.e2e.config.js`（singleFork），其重活测试仍走 per-test 覆写。per-test 90s/120s 覆写可保留作最重流程的显式文档。代价：unit 共享该预算但很快，唯一影响=真卡死的 unit 测试在 90s 而非 60s 失败。
 
 **反模式**：
 
