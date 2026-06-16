@@ -205,7 +205,10 @@ describe("cc marketplace + multisig — Phase 2 E2E (2-of-2 ¥1500)", () => {
     expect(logRaw).toContain('"reached"');
     expect(logRaw).toContain('"consumed"');
     expect((logRaw.match(/"signed"/g) || []).length).toBe(2);
-  });
+    // Heavy multi-process flow — policy/purchase/sign/consume spawns many
+    // sequential CLI cold-starts; the 60s default is tight under the integration
+    // load (flakes under load, passes isolated). See internal handbook trap #31.
+  }, 90000);
 
   it("small order (¥500) below threshold: direct path, no multisig", () => {
     const purchaseRes = runCli([
