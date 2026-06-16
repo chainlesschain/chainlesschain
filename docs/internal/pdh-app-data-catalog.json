@@ -1,0 +1,1466 @@
+{
+  "generated": "run gen-app-data-catalog.js",
+  "count": 78,
+  "adapters": [
+    {
+      "export": "BrowserHistoryChromeAdapter",
+      "name": "browser-history-chrome",
+      "display": "Chrome 浏览历史",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:chrome-history-sqlite",
+        "sync:chrome-bookmarks-json"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
+        "bookmarks:url,name,dateAddedMs,folderPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BrowserHistoryEdgeAdapter",
+      "name": "browser-history-edge",
+      "display": "Edge 浏览历史",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:edge-history-sqlite",
+        "sync:edge-bookmarks-json"
+      ],
+      "fields": [
+        "visits:url,title,visitTimeMs,transition,visitDurationMs,hidden",
+        "bookmarks:url,name,dateAddedMs,folderPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "GitActivityAdapter",
+      "name": "git-activity",
+      "display": "Git 提交记录",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:git-log-local"
+      ],
+      "fields": [
+        "commits:sha,authoredAtMs,authorName,authorEmail,subject,repoName"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "LocalFilesAdapter",
+      "name": "local-files",
+      "display": "本地文件",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:local-file-walk"
+      ],
+      "fields": [
+        "files:path,name,ext,size,mtimeMs,root"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "ShellHistoryAdapter",
+      "name": "shell-history",
+      "display": "命令行历史",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:shell-history-files"
+      ],
+      "fields": [
+        "commands:shell,value,sourceIndex,snapshotTs"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "SystemDataAndroidAdapter",
+      "name": "system-data-android",
+      "display": "Android 系统数据",
+      "category": "本地/系统",
+      "version": "0.3.2",
+      "capabilities": [
+        "sync:android-content-provider",
+        "sync:android-package-manager",
+        "sync:android-sms",
+        "sync:android-call-log",
+        "sync:android-media-files"
+      ],
+      "fields": [
+        "contacts:displayName,phones,emails,starred,organization,photoUri",
+        "installed_apps:packageName,label,versionName,versionCode,firstInstallTime,lastUpdateTime,isSystem",
+        "sms:id,address,body,date,dateSent,type,threadId,read,subject",
+        "callLog:id,number,name,duration,date,type,geocoded",
+        "media:path,size,mtimeMs,ext,category(photos|pictures|videos|downloads|documents)"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "VSCodeAdapter",
+      "name": "vscode",
+      "display": "VS Code",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:vscode-workspace-storage",
+        "sync:vscode-globalstorage-sqlite"
+      ],
+      "fields": [
+        "workspaces:hash,folderUri,folderPath,lastOpenedMs",
+        "terminal-commands:command,shellType,sourceIndex,snapshotTs",
+        "terminal-dirs:dir,shellType,sourceIndex,snapshotTs"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "WinRecentAdapter",
+      "name": "win-recent",
+      "display": "Windows 最近使用",
+      "category": "本地/系统",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:win-recent-shortcuts"
+      ],
+      "fields": [
+        "recent:name,mtimeMs,size,lnkPath"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "MercedesMeAdapter",
+      "name": "car-mercedesme",
+      "display": "奔驰 Mercedes me",
+      "category": "出行/车",
+      "version": "0.1.0",
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:mercedesme-trips"
+      ],
+      "fields": [
+        "mercedesme:tripId / startAddress / endAddress / startTime / endTime / distanceKm"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "Train12306Adapter",
+      "name": "travel-12306",
+      "display": "12306 铁路",
+      "category": "出行/车",
+      "version": "0.7.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "import:json",
+        "parse:12306-orders"
+      ],
+      "fields": [
+        "12306:orderSequenceNo / ticketNumber / passengerName / trainNumber / fromStation / toStation / departureMs / arrivalMs / seat / price"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "AmapAdapter",
+      "name": "travel-amap",
+      "display": "高德地图",
+      "category": "出行/车",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:sqlite",
+        "sync:snapshot",
+        "parse:amap-history"
+      ],
+      "fields": [
+        "amap:search_history (query / time / location)",
+        "amap:route_history (from / to / mode / time)",
+        "amap:favourites (name / address / coords)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "BaiduMapAdapter",
+      "name": "travel-baidu-map",
+      "display": "百度地图",
+      "category": "出行/车",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:baidu-map-favourite",
+        "parse:baidu-map-history"
+      ],
+      "fields": [
+        "baidu:account (uid / displayName, cookie scrape)",
+        "baidu:my_favourite (saved places — home / company / other)",
+        "baidu:search_history (queries, legacy sqlite mode)",
+        "baidu:route_history (planned routes, legacy sqlite mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "CtripAdapter",
+      "name": "travel-ctrip",
+      "display": "携程",
+      "category": "出行/车",
+      "version": "0.7.0",
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:ctrip-orders"
+      ],
+      "fields": [
+        "ctrip:orderId / type / fromCity / toCity / dates / passengerName / price / carrier"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "DidiAdapter",
+      "name": "travel-didi",
+      "display": "滴滴企业版",
+      "category": "出行/车",
+      "version": "0.1.0",
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:didi-rides"
+      ],
+      "fields": [
+        "didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "DidiConsumerAdapter",
+      "name": "travel-didi-consumer",
+      "display": "滴滴出行",
+      "category": "出行/车",
+      "version": "0.1.0",
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:didi-rides"
+      ],
+      "fields": [
+        "didi:orderId / fromAddress / toAddress / departTime / arriveTime / fare / carType"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "TencentMapAdapter",
+      "name": "travel-tencent-map",
+      "display": "腾讯地图",
+      "category": "出行/车",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:tencent-map-favourite",
+        "parse:tencent-map-history"
+      ],
+      "fields": [
+        "tencent:account (uid / displayName, cookie scrape)",
+        "tencent:favourite (saved places — home / company / other)",
+        "tencent:search_history (queries, scaffold sqlite mode)",
+        "tencent:route_history (planned routes, scaffold sqlite mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "TongchengAdapter",
+      "name": "travel-tongcheng",
+      "display": "同程旅行",
+      "category": "出行/车",
+      "version": "0.1.0",
+      "capabilities": [
+        "import:json",
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:tongcheng-orders"
+      ],
+      "fields": [
+        "tongcheng:orderId / type / fromCity / toCity / dates / passengerName / price / carrier"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "DianpingAdapter",
+      "name": "shopping-dianping",
+      "display": "大众点评",
+      "category": "购物/电商",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:dianping-orders"
+      ],
+      "fields": [
+        "dianping:orderId / poiName / deals / totalPrice / address"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "ElemeAdapter",
+      "name": "shopping-eleme",
+      "display": "饿了么",
+      "category": "购物/电商",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:eleme-orders"
+      ],
+      "fields": [
+        "eleme:orderId / restaurantName / dishes / totalAmount / deliveryAddress"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "JdAdapter",
+      "name": "shopping-jd",
+      "display": "京东",
+      "category": "购物/电商",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:jd-orders"
+      ],
+      "fields": [
+        "jd:orderId / venderName / productList / orderTotalPrice / address"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "MeituanAdapter",
+      "name": "shopping-meituan",
+      "display": "美团",
+      "category": "购物/电商",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:meituan-orders"
+      ],
+      "fields": [
+        "meituan:orderId / poiName / dishes / totalPrice / deliveryAddress"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "PinduoduoAdapter",
+      "name": "shopping-pinduoduo",
+      "display": "拼多多",
+      "category": "购物/电商",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:pinduoduo-orders"
+      ],
+      "fields": [
+        "pinduoduo:order_sn / mall_name / goods_list / order_amount / address"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "TaobaoAdapter",
+      "name": "shopping-taobao",
+      "display": "淘宝",
+      "category": "购物/电商",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:taobao-orders"
+      ],
+      "fields": [
+        "taobao:bizOrderId / sellerNick / items / payTime / actualFee / address"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "VipshopAdapter",
+      "name": "shopping-vipshop",
+      "display": "唯品会",
+      "category": "购物/电商",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:vipshop-orders"
+      ],
+      "fields": [
+        "vipshop:orderSn / brandName / goods / amount / deliveryAddress"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "XianyuAdapter",
+      "name": "shopping-xianyu",
+      "display": "闲鱼",
+      "category": "购物/电商",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:xianyu-orders"
+      ],
+      "fields": [
+        "xianyu:orderId / side / itemTitle / counterparty / amount / address"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "DingTalkPcAdapter",
+      "name": "dingtalk-pc",
+      "display": "钉钉（电脑版）",
+      "category": "即时通讯",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:sqlite",
+        "parse:local-im-message"
+      ],
+      "fields": [
+        "dingtalk:messages (time / sender / peer / best-effort text; raw row preserved)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "FeishuPcAdapter",
+      "name": "feishu-pc",
+      "display": "飞书（电脑版）",
+      "category": "即时通讯",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:sqlite",
+        "parse:local-im-message"
+      ],
+      "fields": [
+        "feishu:messages (time / sender / peer / best-effort text; raw row preserved)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "QQAdapter",
+      "name": "messaging-qq",
+      "display": "QQ（手机）",
+      "category": "即时通讯",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:qq-contacts",
+        "parse:qq-groups",
+        "parse:qq-messages",
+        "decrypt:xor-imei"
+      ],
+      "fields": [
+        "qq:contacts (uin / nickname / remark)",
+        "qq:groups (troop_uin / name / member_count)",
+        "qq:messages (peer / content / time / type) — XOR-decrypted"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "TelegramAdapter",
+      "name": "messaging-telegram",
+      "display": "Telegram",
+      "category": "即时通讯",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:sqlite",
+        "sync:snapshot",
+        "parse:telegram-messages"
+      ],
+      "fields": [
+        "telegram:users / chats / messages / dialogs"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "WhatsAppAdapter",
+      "name": "messaging-whatsapp",
+      "display": "WhatsApp",
+      "category": "即时通讯",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:sqlite",
+        "sync:snapshot",
+        "parse:whatsapp-messages"
+      ],
+      "fields": [
+        "whatsapp:jid (contacts + chats)",
+        "whatsapp:messages (text / media / time)",
+        "whatsapp:call_log"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "QQPcAdapter",
+      "name": "qq-pc",
+      "display": "QQ（电脑版 NT）",
+      "category": "即时通讯",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:sqlite",
+        "decrypt:sqlcipher-qqnt",
+        "parse:qq-nt-message"
+      ],
+      "fields": [
+        "qq-pc:messages (time / type / sender / peer / best-effort text from nt_msg.db; raw row preserved)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "WechatAdapter",
+      "name": "wechat",
+      "display": "微信（手机）",
+      "category": "即时通讯",
+      "version": "0.5.0",
+      "capabilities": [
+        "sync:sqlite",
+        "auth:keystore",
+        "decrypt:sqlcipher-v1",
+        "parse:wechat-message"
+      ],
+      "fields": [
+        "wechat:messages (text + group + 1-on-1 chats from EnMicroMsg.db)",
+        "wechat:contacts (rcontact: nickname / alias / 备注名)",
+        "wechat:chatrooms (group display names + member lists)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "WeChatPcAdapter",
+      "name": "wechat-pc",
+      "display": "微信（电脑版）",
+      "category": "即时通讯",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:sqlite",
+        "decrypt:sqlcipher-pc",
+        "parse:wechat-pc-message",
+        "parse:wechat-pc-contact"
+      ],
+      "fields": [
+        "wechat-pc:messages (StrTalker / StrContent / CreateTime / IsSender from MSG*.db)",
+        "wechat-pc:contacts (UserName / NickName / Remark from MicroMsg.db)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "WeWorkPcAdapter",
+      "name": "wework-pc",
+      "display": "企业微信（电脑版）",
+      "category": "即时通讯",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:sqlite",
+        "parse:local-im-message"
+      ],
+      "fields": [
+        "wework:messages (time / sender / peer / best-effort text; raw row preserved)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "AppleHealthAdapter",
+      "name": "apple-health",
+      "display": "Apple 健康",
+      "category": "健康/运动",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:file-import",
+        "parse:healthkit-record",
+        "parse:healthkit-workout"
+      ],
+      "fields": [
+        "apple-health:records (步数 / 心率 / 睡眠 / 体重 / 距离 / 能量 …)",
+        "apple-health:workouts (运动类型 / 时长 / 距离 / 能量)"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "JoyrunAdapter",
+      "name": "fitness-joyrun",
+      "display": "悦跑圈",
+      "category": "健康/运动",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:joyrun-run"
+      ],
+      "fields": [
+        "joyrun:run (distance / duration / pace / calories / steps — carries GPS route)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "KeepAdapter",
+      "name": "fitness-keep",
+      "display": "Keep",
+      "category": "健康/运动",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:keep-workout"
+      ],
+      "fields": [
+        "keep:workout (type / distance / duration / calories / steps — outdoor carries GPS route)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "MeiyouAdapter",
+      "name": "health-meiyou",
+      "display": "美柚",
+      "category": "健康/运动",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:meiyou-period",
+        "parse:meiyou-record"
+      ],
+      "fields": [
+        "meiyou:period (startDate / endDate / cycleLength / periodLength)",
+        "meiyou:record (recordType / value / note)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "HuaweiLearningAdapter",
+      "name": "edu-huawei-learning",
+      "display": "华为教育中心",
+      "category": "教育/学习",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie",
+        "parse:huawei-learning-profile",
+        "parse:huawei-learning-study-session"
+      ],
+      "fields": [
+        "huawei-learning:profile (uid / nickname)",
+        "huawei-learning:study_session (course / start / duration)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "ZuoyebangAdapter",
+      "name": "edu-zuoyebang",
+      "display": "作业帮",
+      "category": "教育/学习",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie",
+        "parse:zuoyebang-profile",
+        "parse:zuoyebang-study-session"
+      ],
+      "fields": [
+        "zuoyebang:profile (uid / nickname / grade)",
+        "zuoyebang:study_session (subject / start / duration)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "AlipayBillAdapter",
+      "name": "alipay-bill",
+      "display": "支付宝账单",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "import:csv-zip",
+        "parse:transactions"
+      ],
+      "fields": [
+        "alipay:txId, createdAt, paidAt, counterparty, itemName, amount, direction, status, note"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "BankcommBankAdapter",
+      "name": "bank-bankcomm",
+      "display": "交通银行",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:bankcomm-transaction",
+        "parse:bankcomm-card"
+      ],
+      "fields": [
+        "bankcomm:transaction (time / amount / direction / counterparty / balance)",
+        "bankcomm:card (billMonth / statementAmount / status)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "BocBankAdapter",
+      "name": "bank-boc",
+      "display": "中国银行",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:boc-transaction",
+        "parse:boc-card"
+      ],
+      "fields": [
+        "boc:transaction (time / amount / direction / counterparty / balance)",
+        "boc:card (billMonth / statementAmount / status)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "CmbcBankAdapter",
+      "name": "bank-cmbc",
+      "display": "民生银行",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:cmbc-transaction",
+        "parse:cmbc-card"
+      ],
+      "fields": [
+        "cmbc:transaction (time / amount / direction / counterparty / balance)",
+        "cmbc:card (billMonth / statementAmount / status)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "IcbcBankAdapter",
+      "name": "bank-icbc",
+      "display": "工商银行",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:icbc-transaction",
+        "parse:icbc-card"
+      ],
+      "fields": [
+        "icbc:transaction (time / amount / direction / counterparty / balance)",
+        "icbc:card (billMonth / statementAmount / status)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "AlipayAdapter",
+      "name": "finance-alipay",
+      "display": "支付宝",
+      "category": "金融/支付",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie",
+        "parse:alipay-profile",
+        "parse:alipay-order"
+      ],
+      "fields": [
+        "alipay:profile (uid / nickname)",
+        "alipay:order (merchant / amount / direction / time)"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "DcepAdapter",
+      "name": "finance-dcep",
+      "display": "数字人民币",
+      "category": "金融/支付",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:dcep-transaction"
+      ],
+      "fields": [
+        "dcep:transaction (time / amount / direction / counterparty / walletType)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "XimalayaAdapter",
+      "name": "audio-ximalaya",
+      "display": "喜马拉雅",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:ximalaya-play",
+        "parse:ximalaya-favorite",
+        "parse:ximalaya-subscribe"
+      ],
+      "fields": [
+        "ximalaya:play (声音标题 / 主播 / 专辑)",
+        "ximalaya:favorite (收藏的声音)",
+        "ximalaya:subscribe (订阅专辑名 / 集数)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "KugouMusicAdapter",
+      "name": "music-kugou",
+      "display": "酷狗音乐",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:kugou-play",
+        "parse:kugou-favorite",
+        "parse:kugou-playlist"
+      ],
+      "fields": [
+        "kugou:play (歌名 / 歌手 / 专辑)",
+        "kugou:favorite (收藏的歌)",
+        "kugou:playlist (歌单名 / 曲目数)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "QQMusicAdapter",
+      "name": "music-qq",
+      "display": "QQ音乐",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:qqmusic-play",
+        "parse:qqmusic-favorite",
+        "parse:qqmusic-playlist"
+      ],
+      "fields": [
+        "qqmusic:play (歌名 / 歌手 / 专辑)",
+        "qqmusic:favorite (收藏的歌)",
+        "qqmusic:playlist (歌单名 / 曲目数)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "FanqieReadingAdapter",
+      "name": "reading-fanqie",
+      "display": "番茄小说",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:fanqie-read",
+        "parse:fanqie-favourite"
+      ],
+      "fields": [
+        "fanqie:read (书名 / 作者 / 分类 / 进度)",
+        "fanqie:favourite (收藏的书)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "QimaoReadingAdapter",
+      "name": "reading-qimao",
+      "display": "七猫小说",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:qimao-read",
+        "parse:qimao-favourite"
+      ],
+      "fields": [
+        "qimao:read (书名 / 作者 / 分类 / 进度)",
+        "qimao:favourite (收藏的书)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "IqiyiVideoAdapter",
+      "name": "video-iqiyi",
+      "display": "爱奇艺",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:iqiyi-watch",
+        "parse:iqiyi-favourite"
+      ],
+      "fields": [
+        "iqiyi:watch (title / category / episode / channel)",
+        "iqiyi:favourite (title / category)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "TencentVideoAdapter",
+      "name": "video-tencent",
+      "display": "腾讯视频",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:tencent-video-watch",
+        "parse:tencent-video-favourite"
+      ],
+      "fields": [
+        "tencent-video:watch (title / category / episode / channel)",
+        "tencent-video:favourite (title / category)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "XiguaVideoAdapter",
+      "name": "video-xigua",
+      "display": "西瓜视频",
+      "category": "媒体/阅读",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:xigua-watch",
+        "parse:xigua-favourite"
+      ],
+      "fields": [
+        "xigua:watch (title / category / episode / channel)",
+        "xigua:favourite (title / category)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "NeteaseMusicAdapter",
+      "name": "netease-music",
+      "display": "网易云音乐",
+      "category": "其它",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie",
+        "parse:netease-play",
+        "parse:netease-favorite",
+        "parse:netease-playlist"
+      ],
+      "fields": [
+        "netease:play (歌名 / 歌手 / 专辑 / 播放次数)",
+        "netease:favorite (收藏的歌)",
+        "netease:playlist (歌单名 / 曲目数)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "WeReadAdapter",
+      "name": "weread",
+      "display": "微信读书",
+      "category": "其它",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:cookie",
+        "sync:snapshot",
+        "parse:weread-book",
+        "parse:weread-highlight",
+        "parse:weread-review"
+      ],
+      "fields": [
+        "weread:book (书名 / 作者 / 笔记数)",
+        "weread:highlight (划线文本 / 章节)",
+        "weread:review (想法文本 / 章节)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "TianyanchaAdapter",
+      "name": "biz-tianyancha",
+      "display": "天眼查",
+      "category": "企业/工商",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:tianyancha-monitor",
+        "parse:tianyancha-search"
+      ],
+      "fields": [
+        "tianyancha:monitor (companyName / legalPerson / regStatus)",
+        "tianyancha:search (query / companyName)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "BilibiliAdapter",
+      "name": "social-bilibili",
+      "display": "哔哩哔哩",
+      "category": "社交/内容",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:bilibili-history",
+        "parse:bilibili-favourite",
+        "parse:bilibili-dynamic",
+        "parse:bilibili-follow"
+      ],
+      "fields": [
+        "bilibili:history (avid / bvid / title / view_at / duration / uploader)",
+        "bilibili:favourite (folder / video / save_time / uploader)",
+        "bilibili:dynamic (rid / type / summary / author)",
+        "bilibili:follow (mid / uname / face)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "CsdnAdapter",
+      "name": "social-csdn",
+      "display": "CSDN",
+      "category": "社交/内容",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:csdn-article",
+        "parse:csdn-favourite",
+        "parse:csdn-follow"
+      ],
+      "fields": [
+        "csdn:article (title / viewCount / collectCount)",
+        "csdn:favourite (title / url / source)",
+        "csdn:follow (username / name)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "DongchediAdapter",
+      "name": "social-dongchedi",
+      "display": "懂车帝",
+      "category": "社交/内容",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:dongchedi-favourite",
+        "parse:dongchedi-follow"
+      ],
+      "fields": [
+        "dongchedi:favourite (title / contentType / url)",
+        "dongchedi:follow (name / followType)"
+      ],
+      "sensitivity": "low",
+      "legalGate": false
+    },
+    {
+      "export": "DoubanAdapter",
+      "name": "social-douban",
+      "display": "豆瓣",
+      "category": "社交/内容",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:douban-interest",
+        "parse:douban-review",
+        "parse:douban-follow"
+      ],
+      "fields": [
+        "douban:interest (subjectType / title / status / myRating / comment)",
+        "douban:review (title / subjectTitle / rating)",
+        "douban:follow (memberId / name)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "DouyinAdapter",
+      "name": "social-douyin",
+      "display": "抖音",
+      "category": "社交/内容",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:douyin-profile",
+        "parse:douyin-history",
+        "parse:douyin-favourite",
+        "parse:douyin-like",
+        "parse:douyin-search"
+      ],
+      "fields": [
+        "douyin:profile (sec_user_id / nickname / signature / counts)",
+        "douyin:history (aweme_id / title / author / view_time)",
+        "douyin:favourite",
+        "douyin:like",
+        "douyin:search_history (sqlite-mode only)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "KuaishouAdapter",
+      "name": "social-kuaishou",
+      "display": "快手",
+      "category": "社交/内容",
+      "version": "0.2.1",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:kuaishou-profile",
+        "parse:kuaishou-photo-history",
+        "parse:kuaishou-user-collect",
+        "parse:kuaishou-search"
+      ],
+      "fields": [
+        "kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city)",
+        "kuaishou:photo_history (photo_id / caption / view_time / duration / author_id)",
+        "kuaishou:user_collect (photo_id / caption / collect_time)",
+        "kuaishou:search_record (keyword / search_time)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "ToutiaoAdapter",
+      "name": "social-toutiao",
+      "display": "今日头条",
+      "category": "社交/内容",
+      "version": "0.2.1",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:toutiao-profile",
+        "parse:toutiao-read-history",
+        "parse:toutiao-collection",
+        "parse:toutiao-search"
+      ],
+      "fields": [
+        "toutiao:profile (user_id / screen_name / avatar / mobile / following / followers)",
+        "toutiao:read_history (item_id / title / read_time / category)",
+        "toutiao:collection_article (item_id / title / save_time)",
+        "toutiao:search_history (keyword / search_time)"
+      ],
+      "sensitivity": "high",
+      "legalGate": false
+    },
+    {
+      "export": "WeiboAdapter",
+      "name": "social-weibo",
+      "display": "微博",
+      "category": "社交/内容",
+      "version": "0.7.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:weibo-posts",
+        "parse:weibo-favourite",
+        "parse:weibo-follow",
+        "parse:weibo-search"
+      ],
+      "fields": [
+        "weibo:posts (text / created_at / reposts_count / comments_count / likes)",
+        "weibo:favourite (mid / text / author)",
+        "weibo:follow (uid / screen_name)",
+        "weibo:search_history (legacy sqlite mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "XiaohongshuAdapter",
+      "name": "social-xiaohongshu",
+      "display": "小红书",
+      "category": "社交/内容",
+      "version": "0.6.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:sqlite",
+        "parse:xhs-note",
+        "parse:xhs-liked",
+        "parse:xhs-follow",
+        "parse:xhs-history"
+      ],
+      "fields": [
+        "xhs:notes (own posts, title / desc / type / engagement counts)",
+        "xhs:liked (notes the user liked)",
+        "xhs:follow (followed users)",
+        "xhs:history / search (legacy sqlite mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "ZhihuAdapter",
+      "name": "social-zhihu",
+      "display": "知乎",
+      "category": "社交/内容",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:zhihu-answer",
+        "parse:zhihu-favourite",
+        "parse:zhihu-follow"
+      ],
+      "fields": [
+        "zhihu:answer (questionTitle / excerpt / voteupCount)",
+        "zhihu:favourite (title / url / collectionName)",
+        "zhihu:follow (memberToken / name / headline)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "BaiduNetdiskAdapter",
+      "name": "doc-baidu-netdisk",
+      "display": "百度网盘",
+      "category": "文档/云盘",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:baidu-netdisk-documents"
+      ],
+      "fields": [
+        "baidu-netdisk:document (title / docType / createdTime / url)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "CamScannerDocAdapter",
+      "name": "doc-camscanner",
+      "display": "扫描全能王",
+      "category": "文档/云盘",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:camscanner-documents"
+      ],
+      "fields": [
+        "camscanner:document (title / docType / createdTime / url)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "TencentDocsAdapter",
+      "name": "doc-tencent-docs",
+      "display": "腾讯文档",
+      "category": "文档/云盘",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:tencent-docs-documents"
+      ],
+      "fields": [
+        "tencent-docs:document (title / docType / createdTime / url)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "WpsDocAdapter",
+      "name": "doc-wps",
+      "display": "WPS 云文档",
+      "category": "文档/云盘",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:wps-documents"
+      ],
+      "fields": [
+        "wps:document (title / docType / createdTime / url)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "GenshinAdapter",
+      "name": "game-genshin",
+      "display": "原神",
+      "category": "游戏",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie",
+        "parse:genshin-profile",
+        "parse:genshin-play-session"
+      ],
+      "fields": [
+        "genshin:profile (uid / nickname / level / avatar)",
+        "genshin:play_session (start / duration / mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "HonorOfKingsAdapter",
+      "name": "game-honor-of-kings",
+      "display": "王者荣耀",
+      "category": "游戏",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:camp-token",
+        "parse:hok-profile",
+        "parse:hok-play-session"
+      ],
+      "fields": [
+        "hok:profile (uid / nickname / level / rank / avatar)",
+        "hok:play_session (start / duration / mode)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "BossZhipinAdapter",
+      "name": "recruit-boss",
+      "display": "BOSS 直聘",
+      "category": "招聘",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:boss-chat",
+        "parse:boss-application"
+      ],
+      "fields": [
+        "boss:chat (jobTitle / company / hrName / salary / city)",
+        "boss:application (jobTitle / company / status / deliverTime)"
+      ],
+      "sensitivity": "medium",
+      "legalGate": false
+    },
+    {
+      "export": "Tmri12123Adapter",
+      "name": "gov-12123",
+      "display": "交管12123",
+      "category": "政务",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:12123-violation",
+        "parse:12123-license"
+      ],
+      "fields": [
+        "12123:violation (time / location / reason / fine / points)",
+        "12123:license (status / cumulativePoints / validUntil)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "IXiamenAdapter",
+      "name": "gov-ixiamen",
+      "display": "i厦门",
+      "category": "政务",
+      "version": "0.2.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:ixiamen-service"
+      ],
+      "fields": [
+        "ixiamen:service (serviceName / category / handledTime / status / dept)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    },
+    {
+      "export": "TaxAdapter",
+      "name": "gov-tax",
+      "display": "个人所得税",
+      "category": "政务",
+      "version": "0.1.0",
+      "capabilities": [
+        "sync:snapshot",
+        "sync:cookie-api",
+        "parse:tax-income",
+        "parse:tax-declaration"
+      ],
+      "fields": [
+        "tax:income (period / incomeType / amount / withheld / payer)",
+        "tax:declaration (year / declType / status / settleAmount)"
+      ],
+      "sensitivity": "high",
+      "legalGate": true
+    }
+  ]
+}
