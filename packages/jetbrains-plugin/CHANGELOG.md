@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.4] — 2026-06-16 — getTerminalOutput tool
+
+- New `getTerminalOutput` tool (`mcp__ide__getTerminalOutput`): the agent can read
+  the integrated terminal's recent text — so it can see what you just ran and how
+  it failed without asking you to paste it. **Best-effort** raw screen text per
+  terminal (JetBrains has no VS-Code-style shell integration, so no per-command
+  structure / exit codes); reads on the EDT with the jediterm buffer locked, and
+  returns no terminals if none are open or the API varies.
+
 ## [0.4.3] — 2026-06-16 — @-mention method symbols
 
 - The `@`-mention symbol completion now also includes **methods/functions**

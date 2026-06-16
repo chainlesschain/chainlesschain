@@ -122,7 +122,41 @@ public final class IdeTools {
             }
         });
 
+        tools.add(new BaseTool(
+                "getTerminalOutput",
+                "Return the recent text from the editor's integrated terminal(s) — so "
+                        + "you can see what the user just ran and how it failed without asking "
+                        + "them to paste it. `limit` is a best-effort cap (default 3). NOTE: on "
+                        + "JetBrains this is the visible terminal screen text (no per-command "
+                        + "structure or exit codes — that needs shell integration not available "
+                        + "here). Empty if there is no terminal open yet.",
+                terminalSchema()) {
+            @Override public Object call(Map<String, Object> args) {
+                if (args == null) args = new LinkedHashMap<>();
+                int limit = 3;
+                Object l = args.get("limit");
+                if (l instanceof Number) limit = Math.max(1, ((Number) l).intValue());
+                Map<String, Object> res = editor.getTerminalOutput(limit);
+                if (res != null) return res;
+                Map<String, Object> fallback = new LinkedHashMap<>();
+                fallback.put("terminals", new ArrayList<>());
+                return fallback;
+            }
+        });
+
         return tools;
+    }
+
+    private static Map<String, Object> terminalSchema() {
+        Map<String, Object> limit = new LinkedHashMap<>();
+        limit.put("type", "number");
+        limit.put("description", "Best-effort cap on how much recent output to return (default 3).");
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("limit", limit);
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("type", "object");
+        s.put("properties", props);
+        return s;
     }
 
     private static Map<String, Object> openMultiDiffSchema() {
