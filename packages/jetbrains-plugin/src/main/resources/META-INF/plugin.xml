@@ -70,5 +70,25 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift T"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift T"/>
         </action>
+        <action id="chainlesschain.chat.explainSelection"
+                class="com.chainlesschain.ide.intellij.ExplainSelectionAction"
+                text="ChainlessChain: Explain Selection (解释选中代码)"
+                description="Send the selected code to ChainlessChain chat and ask for an explanation">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.chat.refactorSelection"
+                class="com.chainlesschain.ide.intellij.RefactorSelectionAction"
+                text="ChainlessChain: Refactor Selection (重构选中代码)"
+                description="Send the selected code to ChainlessChain chat and ask for a refactor">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.chat.insertFileReference"
+                class="com.chainlesschain.ide.intellij.InsertFileReferenceAction"
+                text="ChainlessChain: Insert File Reference (@文件引用)"
+                description="Insert an @file reference (with selected line range) into the ChainlessChain chat input">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt K"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt K"/>
+        </action>
     </actions>
 </idea-plugin>

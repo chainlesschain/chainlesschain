@@ -126,9 +126,12 @@ public final class IntellijEditorFacade implements EditorFacade {
                     leftContent, rightContent, "Current", "Proposed");
             DiffManager.getInstance().showDiff(project, request);
 
-            int choice = Messages.showYesNoDialog(
-                    project, "Apply proposed changes to " + path + "?",
-                    "ChainlessChain Review", "Accept", "Reject", null);
+            // §3: three-way review — Accept / Request changes… / Reject. The
+            // "changes-requested" shape matches VS Code so the CLI's
+            // requestIdeDiffApproval handles it unchanged.
+            int choice = Messages.showYesNoCancelDialog(
+                    project, "Review proposed changes to " + path + ":",
+                    "ChainlessChain Review", "Accept", "Request changes…", "Reject", null);
 
             Map<String, Object> r = new LinkedHashMap<>();
             if (choice == Messages.YES) {
@@ -136,6 +139,18 @@ public final class IntellijEditorFacade implements EditorFacade {
                 r.put("outcome", "accepted");
                 r.put("path", path);
                 r.put("finalText", modifiedText);
+            } else if (choice == Messages.NO) {
+                List<Map<String, Object>> comments = collectReviewComments();
+                if (comments.isEmpty()) {
+                    // No notes entered → treat as a plain rejection.
+                    r.put("outcome", "rejected");
+                    r.put("path", path);
+                } else {
+                    r.put("outcome", "changes-requested");
+                    r.put("path", path);
+                    r.put("comments", comments);
+                    r.put("reviewedText", modifiedText);
+                }
             } else {
                 r.put("outcome", "rejected");
                 r.put("path", path);
@@ -143,6 +158,28 @@ public final class IntellijEditorFacade implements EditorFacade {
             result.set(r);
         });
         return result.get();
+    }
+
+    /**
+     * §3: collect one or more free-text review notes (EDT). Each becomes a
+     * {@code {note}} comment in the VS-Code "changes-requested" shape; line
+     * anchors are left null (the diff viewer is show-only here), which the CLI
+     * tolerates. Blank input ends the loop.
+     */
+    private List<Map<String, Object>> collectReviewComments() {
+        List<Map<String, Object>> comments = new ArrayList<>();
+        for (int i = 0; i < 20; i++) { // hard cap — avoid an accidental infinite loop
+            String prompt = comments.isEmpty()
+                    ? "Describe the change you want (blank to cancel):"
+                    : "Another note? (blank to finish, " + comments.size() + " so far):";
+            String note = Messages.showInputDialog(
+                    project, prompt, "Request Changes", null);
+            if (note == null || note.trim().isEmpty()) break;
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("note", note.trim());
+            comments.add(c);
+        }
+        return comments;
     }
 
     private void applyToFile(VirtualFile vf, String text) {

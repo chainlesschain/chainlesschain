@@ -104,6 +104,16 @@ final class ConversationView {
         SwingUtilities.invokeLater(input::requestFocusInWindow);
     }
 
+    /** §5: seed the input box (e.g. Explain/Refactor or an @file reference) without sending. */
+    void seedInput(String text) {
+        SwingUtilities.invokeLater(() -> {
+            String cur = input.getText();
+            input.setText((cur == null || cur.isEmpty()) ? text : cur + " " + text);
+            input.requestFocusInWindow();
+            input.setCaretPosition(input.getText().length());
+        });
+    }
+
     private ChatEvents.TurnState turnState() {
         return (ChatEvents.TurnState) conv.turnState;
     }

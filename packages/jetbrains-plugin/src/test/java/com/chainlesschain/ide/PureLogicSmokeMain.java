@@ -268,6 +268,18 @@ public final class PureLogicSmokeMain {
         eq(deduped.get(0).value, "src/app.js", "dedupe keeps first");
         eq(Mentions.mentionLabel(deduped.get(1)), "class Bar · src/bar.js", "mentionLabel");
         eq(Mentions.mentionValue(deduped.get(1)), "src/bar.js", "mentionValue");
+
+        // formatInsertReference (§5 @file#L line ranges) — 0-based in, 1-based inclusive out
+        eq(Mentions.formatInsertReference("src/app.ts", 0, 0, 0, 0), "@src/app.ts",
+                "no selection -> bare @path");
+        eq(Mentions.formatInsertReference("src/app.ts", 6, 2, 6, 9), "@src/app.ts#L7",
+                "single line -> #L7");
+        eq(Mentions.formatInsertReference("src/app.ts", 4, 0, 9, 3), "@src/app.ts#L5-10",
+                "multi-line range -> #L5-10");
+        eq(Mentions.formatInsertReference("src/app.ts", 4, 0, 9, 0), "@src/app.ts#L5-9",
+                "trailing col-0 line dropped -> #L5-9");
+        eq(Mentions.formatInsertReference("a.txt", 2, 0, 3, 0), "@a.txt#L3",
+                "whole single line via col-0 end -> #L3");
     }
 
     private static void sessionArgs() {

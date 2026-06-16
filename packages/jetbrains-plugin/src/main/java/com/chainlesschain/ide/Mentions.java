@@ -203,4 +203,40 @@ public final class Mentions {
         }
         return out;
     }
+
+    /**
+     * Format an {@code @file} reference with an optional line range, matching the
+     * VS Code extension's {@code insert-reference.js}
+     * ({@code formatInsertReference}/{@code selectionToLineRange}). The shared
+     * {@code cc} expander understands the {@code #L5-10} (and single-line
+     * {@code #L7}) suffix and expands only those lines.
+     *
+     * <p>Inputs use 0-based editor coordinates (IntelliJ {@code LogicalPosition}).
+     * Output line numbers are 1-based inclusive. With no selection
+     * ({@code startLine==endLine && startCol==endCol}) → bare {@code @path}. A
+     * trailing line the selection only touches at column 0 is dropped (so
+     * selecting whole lines 5–9 yields {@code #L5-9}, not {@code #L5-10}).
+     *
+     * @param relPath project-relative path (already normalized to forward slashes)
+     */
+    public static String formatInsertReference(String relPath, int startLine0, int startCol,
+                                               int endLine0, int endCol) {
+        String path = relPath == null ? "" : relPath;
+        // No selection → just the file.
+        if (startLine0 == endLine0 && startCol == endCol) {
+            return "@" + path;
+        }
+        int endLine = endLine0;
+        // Selection ends at the very start of a line → it only touches the line
+        // above; don't include the empty trailing line (VS Code parity).
+        if (endCol == 0 && endLine > startLine0) {
+            endLine -= 1;
+        }
+        int start1 = startLine0 + 1;
+        int end1 = endLine + 1;
+        if (start1 >= end1) {
+            return "@" + path + "#L" + start1;
+        }
+        return "@" + path + "#L" + start1 + "-" + end1;
+    }
 }

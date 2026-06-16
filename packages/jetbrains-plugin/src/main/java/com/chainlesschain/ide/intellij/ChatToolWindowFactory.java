@@ -121,6 +121,15 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             persistSessionIds();
         }
 
+        /** §5: seed the active conversation's input (Explain/Refactor, @file ref). */
+        void seedActiveInput(String text) {
+            String id = conversations.activeId();
+            if (id == null && !tabIds.isEmpty()) id = tabIds.get(0);
+            if (id == null) { newConversation(); id = conversations.activeId(); }
+            ConversationView v = id != null ? views.get(id) : null;
+            if (v != null) v.seedInput(text);
+        }
+
         /** §6 reopen-closed: re-open the most recently closed conversation, resuming it. */
         void reopenClosed() {
             if (lastClosedSessionId == null && lastClosedTitle == null) {
