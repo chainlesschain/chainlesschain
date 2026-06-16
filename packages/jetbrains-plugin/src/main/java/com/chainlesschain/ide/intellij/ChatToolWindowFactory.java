@@ -7,6 +7,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * "ChainlessChain" tool window — an in-IDE chat with the {@code cc} agent, the
@@ -52,12 +54,30 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         toolWindow.getContentManager().addContent(content);
     }
 
+    /** Tool-window id (matches plugin.xml) — for actions to reveal the window. */
+    static final String TOOL_WINDOW_ID = "ChainlessChain";
+
+    /** Per-project live panel, so IDE actions (new / reopen) can reach it. */
+    private static final Map<Project, ChatPanel> REGISTRY = new WeakHashMap<Project, ChatPanel>();
+
+    /** Reveal the chat tool window and run {@code body} on its panel (creates it if needed). */
+    static void onPanel(Project project, java.util.function.Consumer<ChatPanel> body) {
+        ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
+        if (tw == null) return;
+        tw.activate(() -> {
+            ChatPanel panel = REGISTRY.get(project);
+            if (panel != null) body.accept(panel);
+        }, true, true);
+    }
+
     static final class ChatPanel implements Disposable {
         /** New per-tab resume-id list (comma-joined); migrates the legacy single key. */
         private static final String SESSION_IDS_KEY = "chainlesschain.chat.sessionIds";
         private static final String LEGACY_SESSION_ID_KEY = "chainlesschain.chat.sessionId";
 
         private final Project project;
+        private String lastClosedSessionId; // §6 reopen-closed
+        private String lastClosedTitle;
         private final JPanel root = new JPanel(new BorderLayout(0, 2));
         private final JBTabbedPane tabs = new JBTabbedPane();
         private final ConversationManager conversations = new ConversationManager();
@@ -67,6 +87,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         ChatPanel(Project project) {
             this.project = project;
+            REGISTRY.put(project, this);
 
             JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
             JButton addBtn = new JButton("+ New chat");
@@ -94,16 +115,31 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         // ---- conversation lifecycle ----------------------------------------
 
-        private void newConversation() {
+        void newConversation() {
             ConversationManager.Conversation conv = conversations.create();
             addTabFor(conv, true);
             persistSessionIds();
+        }
+
+        /** §6 reopen-closed: re-open the most recently closed conversation, resuming it. */
+        void reopenClosed() {
+            if (lastClosedSessionId == null && lastClosedTitle == null) {
+                newConversation();
+                return;
+            }
+            ConversationManager.Conversation conv =
+                    conversations.create(lastClosedTitle, lastClosedSessionId, true);
+            addTabFor(conv, true);
+            persistSessionIds();
+            lastClosedSessionId = null;
+            lastClosedTitle = null;
         }
 
         /** Add a tab + view for an existing model conversation. */
         private void addTabFor(ConversationManager.Conversation conv, boolean select) {
             ConversationView view = new ConversationView(project, conv,
                     (cid, sid) -> persistSessionIds());
+            view.setContainerActions(this::newConversation);
             views.put(conv.id, view);
             syncing = true;
             try {
@@ -125,6 +161,10 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             int idx = tabIds.indexOf(id);
             if (idx < 0) return;
             ConversationManager.CloseResult r = conversations.close(id);
+            if (r.conv != null) { // remember for §6 reopen-closed
+                lastClosedSessionId = r.conv.sessionId;
+                lastClosedTitle = r.conv.title;
+            }
             ConversationView view = views.remove(id);
             if (view != null) view.dispose();
             syncing = true;
@@ -203,6 +243,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         @Override
         public void dispose() {
+            REGISTRY.remove(project);
             for (ConversationView v : views.values()) v.dispose();
             views.clear();
             tabIds.clear();

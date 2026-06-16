@@ -39,9 +39,15 @@ final class ConversationView {
         void onSessionId(String convId, String sessionId);
     }
 
+    /** Container hooks a slash command may invoke (e.g. {@code /new} opens a tab). */
+    interface ContainerActions {
+        void newConversation();
+    }
+
     private final Project project;
     private final ConversationManager.Conversation conv;
     private final SessionIdSink sessionIdSink;
+    private ContainerActions containerActions;
 
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
     private final JTextArea transcript = new JTextArea();
@@ -90,6 +96,10 @@ final class ConversationView {
         return root;
     }
 
+    void setContainerActions(ContainerActions actions) {
+        this.containerActions = actions;
+    }
+
     void focusInput() {
         SwingUtilities.invokeLater(input::requestFocusInWindow);
     }
@@ -105,7 +115,12 @@ final class ConversationView {
     private void sendCurrentInput() {
         final String text = input.getText().trim();
         if (text.isEmpty()) return;
-        // §5/§6 slash commands are intercepted by the container before reaching here.
+        // §5 panel slash + §6 mode/thinking commands are handled locally, never sent.
+        if (text.startsWith("/")) {
+            input.setText("");
+            handleSlash(text);
+            return;
+        }
         try {
             ensureSession();
         } catch (IOException ex) {
@@ -120,6 +135,89 @@ final class ConversationView {
         } else {
             append("⚠ agent session is not running — press New to restart\n");
         }
+    }
+
+    /**
+     * Panel slash commands (§5) + approval-mode / extended-thinking toggles (§6).
+     * Mode/thinking are spawn-time flags, so changing one stops the live child;
+     * the next message respawns with the new flag (resume id preserved).
+     */
+    private void handleSlash(String raw) {
+        String[] parts = raw.trim().split("\\s+", 2);
+        String cmd = parts[0].toLowerCase();
+        switch (cmd) {
+            case "/new":
+                if (containerActions != null) containerActions.newConversation();
+                else append("ℹ /new unavailable\n");
+                return;
+            case "/stop": {
+                AgentChatSession s = liveSession();
+                if (s != null) { s.interrupt(); append("ℹ interrupted\n"); }
+                else append("ℹ no running agent\n");
+                return;
+            }
+            case "/auto":
+                conv.mode = "acceptEdits";
+                restartForModeChange();
+                append("ℹ approval mode → auto (accept edits) — next message applies\n");
+                return;
+            case "/bypass":
+                conv.mode = "bypassPermissions";
+                restartForModeChange();
+                append("ℹ approval mode → bypass (skip all approvals) — next message applies\n");
+                return;
+            case "/normal":
+                conv.mode = "default";
+                restartForModeChange();
+                append("ℹ approval mode → normal — next message applies\n");
+                return;
+            case "/think":
+                conv.thinking = "on";
+                restartForModeChange();
+                append("ℹ extended thinking → on (Anthropic) — next message applies\n");
+                return;
+            case "/ultrathink":
+                conv.thinking = "ultra";
+                restartForModeChange();
+                append("ℹ extended thinking → max — next message applies\n");
+                return;
+            case "/think-off":
+                conv.thinking = "off";
+                restartForModeChange();
+                append("ℹ extended thinking → off — next message applies\n");
+                return;
+            case "/context":
+                append("ℹ refreshing context…\n");
+                refreshContextIndicator();
+                return;
+            case "/cost":
+                runIntrospect("cost");
+                return;
+            case "/help":
+                append("ℹ commands: /new /stop /auto /bypass /normal /think "
+                        + "/ultrathink /think-off /context /cost\n");
+                return;
+            default:
+                append("ℹ unknown command " + cmd + " — try /help\n");
+        }
+    }
+
+    /** Best-effort {@code cc <kind> <id> --json} → append a short line off the EDT. */
+    private void runIntrospect(String kind) {
+        final String sid = conv.sessionId;
+        if (sid == null || sid.isEmpty()) {
+            append("ℹ /" + kind + " needs an active session (send a message first)\n");
+            return;
+        }
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        new Thread(() -> {
+            List<String> args = IntrospectArgs.build(kind, sid, null, null, true);
+            String out = AgentChatSession.runCapture(args, cwd, 8000);
+            final String line = (out == null || out.trim().isEmpty())
+                    ? "ℹ /" + kind + " unavailable\n"
+                    : "ℹ " + kind + ": " + out.trim().replace('\n', ' ') + "\n";
+            SwingUtilities.invokeLater(() -> append(line));
+        }, "cc-" + kind + "-" + conv.id).start();
     }
 
     /** Restart the child so the next message respawns with current mode/thinking (§6). */

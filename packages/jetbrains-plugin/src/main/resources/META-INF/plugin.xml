@@ -53,5 +53,22 @@
                 description="Guided LLM setup via cc config set + cc llm test">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action id="chainlesschain.chat.newConversation"
+                class="com.chainlesschain.ide.intellij.NewConversationAction"
+                text="ChainlessChain: New Chat (新建对话)"
+                description="Open a new ChainlessChain chat conversation tab">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <!-- Avoid Ctrl+Shift+Esc (OS-reserved on Windows); mirror VS Code Ctrl/Cmd+Alt+N. -->
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt N"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt N"/>
+        </action>
+        <action id="chainlesschain.chat.reopenClosedConversation"
+                class="com.chainlesschain.ide.intellij.ReopenClosedConversationAction"
+                text="ChainlessChain: Reopen Closed Chat (重开已关对话)"
+                description="Reopen the most recently closed ChainlessChain conversation, resuming it">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift T"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift T"/>
+        </action>
     </actions>
 </idea-plugin>
