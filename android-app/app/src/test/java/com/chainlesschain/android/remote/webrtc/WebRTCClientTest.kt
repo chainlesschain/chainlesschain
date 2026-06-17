@@ -2,10 +2,12 @@ package com.chainlesschain.android.remote.webrtc
 
 import android.content.Context
 import io.mockk.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -207,7 +209,12 @@ class WebRTCClientTest {
     }
 
     @Test
-    fun `connect() as responder waits for offer and sends answer (FAMILY-30)`() = runTest {
+    fun `connect() as responder waits for offer and sends answer (FAMILY-30)`() = runBlocking {
+        // 用 runBlocking（非 runTest）：connect() 内 startRemoteIceListener() 在 scope=Dispatchers.IO
+        // （真线程）launch 一个 while(isActive) 无限循环；receiveIceCandidate() 抛错 → delay(250) → 再循环。
+        // connect() 成功返回后该监听器仍在跑，runTest 的虚拟时间收尾会把它判为未完成的 active child job
+        // → UncompletedCoroutinesError（时序 flaky）。改 runBlocking 走真实时间不做该泄漏检测；末尾
+        // disconnect() 取消监听器避免线程泄漏。同 line 446 “queue remote ICE candidates” 测试的处理。
         // Arrange
         webRTCClient.initialize()
         val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\no=- 1 1 IN IP4 0.0.0.0\n...")
@@ -227,11 +234,24 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.sendAnswer(any(), any()) } just Runs
         coEvery { mockSignalClient.receiveIceCandidate() } throws Exception("No ICE")
 
+        // FAMILY-67: connect() 末尾会阻塞等 DataChannel OPEN 才返回成功。responder 不自建 DataChannel，
+        // 而是经 PeerConnection.Observer.onDataChannel 受领。故并发模拟远端 DataChannel 到达：等
+        // createPeerConnection 捕获到 observer 后，投递一个已 OPEN 的 mockDataChannel，让 connect() 的
+        // DC-open 等待通过。（真机由 WebRTC 在 ICE 连通后回调 onDataChannel。）
+        val dcDelivery = launch(Dispatchers.Default) {
+            while (capturedPeerConnectionObserver == null) delay(10)
+            capturedPeerConnectionObserver!!.onDataChannel(mockDataChannel)
+        }
+
         // Act — responder path (isInitiator = false)
         val result = webRTCClient.connect(testPeerId, testLocalPeerId, isInitiator = false)
+        dcDelivery.cancel()
 
         // Assert — responder: waitForOffer → setRemoteDescription(offer) → createAnswer → sendAnswer
-        assertTrue(result.isSuccess, "Responder connection should succeed")
+        assertTrue(
+            result.isSuccess,
+            "Responder connection should succeed: ${result.exceptionOrNull()?.message}",
+        )
         coVerify { mockSignalClient.waitForOffer(testPeerId, 15000) }
         verify { mockPeerConnection.setRemoteDescription(any(), any()) }
         verify { mockPeerConnection.createAnswer(any(), any()) }
@@ -240,6 +260,9 @@ class WebRTCClientTest {
         verify(exactly = 0) { mockPeerConnection.createDataChannel(any(), any()) }
         verify(exactly = 0) { mockPeerConnection.createOffer(any(), any()) }
         coVerify(exactly = 0) { mockSignalClient.sendOffer(any(), any()) }
+
+        // 取消 IO scope 上常驻的 remote-ICE 监听器，避免跨测试线程泄漏。
+        webRTCClient.disconnect()
     }
 
     @Test
