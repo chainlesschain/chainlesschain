@@ -2,8 +2,10 @@
 # PDH 免密钥内存扫描：从已 root 真机的 App 进程内存里 dump 出解密后的 SQLite 库。
 #
 # 原理：WCDB/SQLCipher 打开 DB 后，解密页进入进程页缓存（明文）。root 直接读
-# /proc/<pid>/mem（不用 ptrace，绕过 App 反调试），扫描 "SQLite format 3" 页头，
-# 按页头 page_size/page_count dump 成 .db。
+# /proc/<pid>/mem（不用 ptrace，绕过 App 反调试），把**含 SQLite 内容**的内存区域整段
+# dump 成 .db——内容标记 = 文件头 "SQLite format 3"（标准 SQLCipher）或解密页里的明文
+# schema "CREATE TABLE"（WCDB2 如抖音，内存里没有文件头）。下游 leaf-salvage 扫 0x0D
+# 叶子页打捞记录，不依赖文件头，两种加密通吃。
 #
 # ⚠️ 64 位地址：toybox sh 的 $(()) 算术是 32 位，原生堆在 0x66xxxxxxxx（>4GB）会
 #    溢出成负数 → dd seek 到错误偏移、扫不到任何东西（血泪 bug）。所以地址换算一律用
@@ -33,31 +35,32 @@ trap 'kill 0 2>/dev/null' EXIT INT TERM
 OUT=/data/local/tmp/ccmem
 mkdir -p "$OUT"; rm -f "$OUT"/*.db "$OUT"/_r.bin
 
+# D1 (2026-06-17): dump regions by SQLite *content*, not just the file header.
+# 抖音/WCDB2 解密页在内存里**不带** "SQLite format 3" 文件头 → 旧的纯头匹配 0 命中
+# （真机实证）。改为：只要区域里出现 SQLite 内容标记——文件头（标准 SQLCipher，如
+# 微信）或解密页缓存里的明文 schema "CREATE TABLE"（WCDB2，如抖音）——就把**整段
+# 原始区域**落盘。下游 `cc hub salvage`(leaf-salvage --unaligned) 不靠文件头、直接扫
+# 0x0D 叶子页打捞记录，对两种加密形态通吃。带上限防爆盘/超时。
+MAX_DUMPS=30
+RAW_CAP=67108864       # 单区域 raw dump 上限 64MB（再大不 cp，leaf-salvage 成本+盘）
+dumped=0
 awk '/rw-p/{print $1}' "/proc/$PID/maps" | while read range; do
+  [ "$dumped" -ge "$MAX_DUMPS" ] && break
   sh=$(echo "$range" | cut -d- -f1); eh=$(echo "$range" | cut -d- -f2)
   sdec=$(printf "%d" "0x$sh"); edec=$(printf "%d" "0x$eh")   # 64-bit hex->dec
   size=$(echo "$edec - $sdec" | bc)
   [ "$(echo "$size < 8192" | bc)" = 1 ] && continue
-  [ "$(echo "$size > 268435456" | bc)" = 1 ] && continue     # 跳过 >256MB（dalvik 大空间）
+  [ "$(echo "$size > $RAW_CAP" | bc)" = 1 ] && continue      # 跳过大区域（dalvik 堆等）
   cnt=$(echo "$size / 4096" | bc)
   # iflag=skip_bytes: skip 按字节，避免 $((addr/4096)) 32 位溢出
   dd if="/proc/$PID/mem" bs=4096 skip="$sdec" count="$cnt" iflag=skip_bytes 2>/dev/null > "$OUT/_r.bin" || continue
-  grep -abo "SQLite format 3" "$OUT/_r.bin" 2>/dev/null | cut -d: -f1 | while read off; do
-    # 区域内偏移 off 较小，$(()) 32 位足够
-    ps=$(dd if="$OUT/_r.bin" bs=1 skip=$((off + 16)) count=2 2>/dev/null | od -A n -t u1 | tr -s ' ')
-    p1=$(echo "$ps" | cut -d' ' -f1); p2=$(echo "$ps" | cut -d' ' -f2)
-    pagesize=$((p1 * 256 + p2)); [ "$pagesize" -eq 1 ] && pagesize=65536
-    pc=$(dd if="$OUT/_r.bin" bs=1 skip=$((off + 28)) count=4 2>/dev/null | od -A n -t u1 | tr -s ' ')
-    c1=$(echo "$pc" | cut -d' ' -f1); c2=$(echo "$pc" | cut -d' ' -f2)
-    c3=$(echo "$pc" | cut -d' ' -f3); c4=$(echo "$pc" | cut -d' ' -f4)
-    pagecount=$((c1 * 16777216 + c2 * 65536 + c3 * 256 + c4))
-    [ "$pagesize" -lt 512 ] && continue;  [ "$pagesize" -gt 65536 ] && continue
-    [ "$pagecount" -lt 2 ] && continue;   [ "$pagecount" -gt 500000 ] && continue
-    bytes=$((pagesize * pagecount)); [ "$bytes" -gt 83886080 ] && bytes=83886080  # cap 80MB
-    nm="cc_${sh}_$off"
-    dd if="$OUT/_r.bin" bs=1 skip="$off" count="$bytes" 2>/dev/null > "$OUT/$nm.db"
-    echo "DUMP $nm pages=$pagecount ps=$pagesize"
-  done
+  # 内容标记：文件头 OR 明文 schema。命中即落整段供 leaf-salvage。
+  if grep -qaE "SQLite format 3|CREATE TABLE" "$OUT/_r.bin" 2>/dev/null; then
+    nm="cc_${sh}"
+    cp "$OUT/_r.bin" "$OUT/$nm.db" 2>/dev/null || continue
+    dumped=$((dumped + 1))
+    echo "DUMP $nm size=$size"
+  fi
 done
 
 rm -f "$OUT/_r.bin"

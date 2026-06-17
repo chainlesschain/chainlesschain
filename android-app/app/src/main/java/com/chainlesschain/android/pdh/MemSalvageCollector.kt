@@ -69,7 +69,21 @@ class MemSalvageCollector @Inject constructor(
         data class Failed(val reason: String) : Result()
     }
 
+    /** 单实例锁：防多次点击/并发触发堆积并发扫描（真机 2026-06-17：双击 → 多个并发 dd 猛读内存）。 */
+    private val running = java.util.concurrent.atomic.AtomicBoolean(false)
+
     suspend fun collect(target: TargetApp = TargetApp.DOUYIN): Result = withContext(Dispatchers.IO) {
+        if (!running.compareAndSet(false, true)) {
+            return@withContext Result.Failed("已有一次 root 采集在进行中，请等它结束")
+        }
+        try {
+            collectLocked(target)
+        } finally {
+            running.set(false)
+        }
+    }
+
+    private suspend fun collectLocked(target: TargetApp): Result = withContext(Dispatchers.IO) {
         if (!runner.isSuAvailable()) return@withContext Result.NoRoot
 
         val pid = parsePidof(runner.execAndCapture("pidof ${target.packageName}") ?: "")
@@ -126,8 +140,10 @@ class MemSalvageCollector @Inject constructor(
             if (dumps == 0) Result.NoDumps else Result.Ok(ingested, salvaged, dumps)
         } finally {
             // 5. 善后（无论成败/超时）：杀残留扫描进程 + 删 app 目录 dump + root 侧
-            //    ccmem（含明文页，必须清掉）。pkill 兜底脚本 trap 没清干净的孤儿。
+            //    ccmem（含明文页，必须清掉）。真机 2026-06-17：timeout 的 tree-kill 杀不到
+            //    管道里的 dd 子进程 → 必须显式 pkill dd（否则一堆 dd 残留猛读 /proc/mem）。
             runner.exec("pkill -9 -f pdh-mem-sqlite-scan", CLEANUP_TIMEOUT_MS)
+            runner.exec("pkill -9 -f 'dd if=/proc'", CLEANUP_TIMEOUT_MS)
             (stageDir.listFiles { f -> f.name.endsWith(".db") } ?: emptyArray())
                 .forEach { try { it.delete() } catch (_: Exception) {} }
             runner.exec("rm -rf /data/local/tmp/ccmem", CLEANUP_TIMEOUT_MS)
