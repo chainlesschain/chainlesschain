@@ -22,12 +22,18 @@ import javax.inject.Singleton
  * 管理所有端到端加密会话，支持持久化、恢复和自动轮转
  */
 @Singleton
-class PersistentSessionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+class PersistentSessionManager internal constructor(
+    // SessionStorage 用 Android Keystore（Robolectric 跑不了），抽成可注入 seam 让单测传 fake/mock，
+    // 从而能覆盖 initialize/autoRestore 这条 FAMILY-67 启动恢复关键路径。
+    private val sessionStorage: SessionStorage,
 ) {
 
+    // Hilt 生产构造：从 ApplicationContext 建 Keystore-backed SessionStorage（行为与重构前完全一致）。
+    // @Inject 构造不能带 Kotlin 默认值（会生成第二个合成构造器，Hilt 报错），故用委托构造。
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(SessionStorage(context))
+
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val sessionStorage = SessionStorage(context)
 
     // 当前设备的密钥对
     private lateinit var identityKeyPair: X25519KeyPair
