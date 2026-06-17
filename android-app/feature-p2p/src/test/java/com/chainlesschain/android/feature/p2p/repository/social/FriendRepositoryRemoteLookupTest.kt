@@ -98,14 +98,30 @@ class FriendRepositoryRemoteLookupTest {
     }
 
     @Test
-    fun `searchUserByDid returns null Success on P2P timeout`() = runTest {
+    fun `searchUserByDid returns addable placeholder for valid DID on P2P timeout (offline add)`() = runTest {
+        // FAMILY-67/离线互加：合法 did: 但对方 profile 不可达（离线/未 P2P 连）→ 不返回 null，而是返回
+        // 可添加的占位结果，让用户直接按 DID 离线互加（匹配 AddFriendViewModel "离线互加" 语义）。
         coEvery { friendDao.getFriendByDid("did:key:absent") } returns null
         coEvery { realtime.queryProfile("did:key:absent", any()) } returns null
 
         val result = repo.searchUserByDid("did:key:absent")
-        // 重要：超时不抛错——UI 应显示"未找到"，不要弹错误对话框
-        assertTrue("超时返回 Result.Success(null) 而非 Error", result is Result.Success)
-        assertNull((result as Result.Success).data)
+        // 重要：超时不抛错——不要弹错误对话框
+        assertTrue("超时返回 Result.Success 而非 Error", result is Result.Success)
+        val data = (result as Result.Success).data
+        assertNotNull("合法 DID 超时应返回可添加占位结果", data)
+        assertEquals("did:key:absent", data!!.did)
+        assertEquals("占位结果尚未成为好友", false, data.isFriend)
+    }
+
+    @Test
+    fun `searchUserByDid returns null Success for non-DID input on P2P timeout`() = runTest {
+        // 非 did: 的普通昵称词不放行离线互加（避免把任意关键词当 DID）→ Result.Success(null)，UI 显示"未找到"
+        coEvery { friendDao.getFriendByDid("alice") } returns null
+        coEvery { realtime.queryProfile("alice", any()) } returns null
+
+        val result = repo.searchUserByDid("alice")
+        assertTrue("超时不抛错", result is Result.Success)
+        assertNull("非 DID 输入超时返回 null", (result as Result.Success).data)
     }
 
     @Test
