@@ -45,14 +45,21 @@ class MemSalvageCollector @Inject constructor(
      * 支持的目标 app。[appKey] → `cc hub salvage --app <key>`，决定入库的正确来源
      * 归属（抖音→social-douyin、头条→social-toutiao …），不再全挂到 douyin。
      * columns=null → cc 端 inferMsgColumns 启发式推断列序（各 app 精确列序后续细化）。
+     *
+     * [note] 标注采集形态限制。**抖音的 IM 用 WCDB2 私有页格式**——2026-06-17 三轮
+     * 证据驱动（真机 dump 60 区域分析）定论：内存里抖音 IM 的解密页不是标准 SQLite
+     * b-tree 叶子页，leaf-salvage 解出全误报，只能拿到抖音的小配置/资源缓存库。
+     * salvage 这条路对**标准 SQLCipher app（微信/QQ）**才有效。详见 memory
+     * pdh_mem_salvage_one_tap_and_release_gotchas / android_app_db_decryption_findings。
      */
     enum class TargetApp(
         val packageName: String,
         val displayName: String,
         val appKey: String,
         val columns: String? = null,
+        val note: String? = null,
     ) {
-        DOUYIN("com.ss.android.ugc.aweme", "抖音", "douyin"),
+        DOUYIN("com.ss.android.ugc.aweme", "抖音", "douyin", note = "WCDB2·IM 暂不支持"),
         TOUTIAO("com.ss.android.article.news", "今日头条", "toutiao"),
         WECHAT("com.tencent.mm", "微信", "wechat"),
         KUAISHOU("com.smile.gifmaker", "快手", "kuaishou"),

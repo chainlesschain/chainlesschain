@@ -118,13 +118,31 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
 
 ### 3.5.2 Android 一键 root 采集按钮（自动化）
 
-「本机数据」tab →「一键 root 采集（抖音内存·免密钥）」：`MemSalvageCollector` 编排
-`su` 内存扫描（assets/pdh/pdh-mem-sqlite-scan.sh）→ 拷 dump 进 app 目录 → 逐个 `cc hub salvage`
-入库。仅 root 机；目标 app 须前台登录在用。手动脚本路径仍保留（本节上文）供调试。
+「本机数据」tab →「一键 root 采集（免密钥）」+ 目标 app 下拉：`MemSalvageCollector` 编排
+`su` 内存扫描（assets/pdh/pdh-mem-sqlite-scan.sh）→ 拷 dump 进 app 目录 → 逐个 `cc hub salvage --app`
+入库（按所选 app 正确来源归属）。仅 root 机；目标 app 须前台登录在用。手动脚本路径仍保留供调试。
+
+### 3.5.3 ⚠️ 适用范围：标准 SQLCipher 可，WCDB2（抖音）不可
+
+**2026-06-17 三轮证据驱动（D1 内容扫描 / D2 进程硬化 / E2 锚定头+多页大小，真机 dump
+60 区域 119MB 分析）定论：**
+
+- **标准 SQLCipher app（微信/QQ，libWCDB.so 带 `sqlite3_key`）**：解密页是标准 SQLite
+  b-tree 叶子页 → leaf-salvage 有效。
+- **抖音 IM = WCDB2（腾讯私有改版，`libwcdb2.so`/`libEncryptor.so`，无 `sqlite3_key`）**：
+  内存里 IM 的解密页**不是标准 SQLite b-tree 叶子页**——leaf-salvage 解出全误报（779KB/
+  1.37MB 单字段、列数 2–976 乱飞、无一致表形状），只能拿到抖音的**小配置/资源缓存库**。
+  **抖音 IM 经「/proc/mem → leaf-salvage」走不通**，不是页大小/对齐/超时能修的，要它需
+  WCDB2 页格式逆向或 frida hook DB 读 API（独立大工程）。UI 下拉已标「抖音（WCDB2·IM 暂不支持）」。
+- 调试要点：dump 后查 DB 头 +16(BE,1=65536) 得页大小；非 512 对齐的标准 DB 页须**锚定
+  "SQLite format 3\0"(16 字节含 NUL,别用带空格的 sig)走 header+k×pageSize**（--unaligned
+  512-stride 扫不到非对齐页；但对 WCDB2 仍无效）。
 
 ## 4. 结论
 
-- 真机解密采集**已验证可行**：方法 B 从 Douyin 内存 dump 出真实明文 SQLite 库（免 key，
-  绕过 anti-debug）。技术**引擎无关**，对任何透明加密 App 通用（其他 app 也可以）。
-- 定向抓某库（如 IM 消息库）= 让 App 先打开它 + 在热进程上 `/proc/mem` 扫；最稳是接进
-  in-app collector 自动化。
+- 真机免密钥采集**对标准 SQLCipher app（微信/QQ）已验证路径成立**：方法 B 从内存 dump 出
+  明文标准 SQLite 页 → leaf-salvage 打捞（免 key，绕 anti-debug）。**但非"引擎无关通用"**：
+  WCDB2（抖音）的私有页格式解不了（见 §3.5.3）。
+- 个人数据采集**最高产可靠的是 system-data（通讯录/短信/通话/媒体，明文/content-query）**——
+  优先做这个，不是跟 WCDB2 app 死磕。app IM 仅标准 SQLCipher 可，且需 App 先打开目标会话
+  让其库进内存。

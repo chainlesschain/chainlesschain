@@ -261,7 +261,12 @@ fun HubLocalScreen(
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             com.chainlesschain.android.pdh.MemSalvageCollector.TargetApp.values().forEach { app ->
                                 DropdownMenuItem(
-                                    text = { Text(app.displayName) },
+                                    text = {
+                                        Text(
+                                            if (app.note != null) "${app.displayName}（${app.note}）"
+                                            else app.displayName,
+                                        )
+                                    },
                                     onClick = { target = app; menuOpen = false },
                                 )
                             }
