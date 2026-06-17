@@ -53,6 +53,7 @@ describe("cc hub command surface", () => {
         "register-mock",
         "retrieve-context", // S4 cloud RAG bridge — LLM-free fact gathering
         "run-skill",
+        "salvage", // Method B 免密钥取证 — salvage decrypted SQLite pages from a /proc/<pid>/mem dump then ingest
         "search", // Phase 16 Vault Browser — FTS5 search surface
         "stats",
         "sync-adapter",
