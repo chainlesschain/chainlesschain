@@ -20,7 +20,7 @@ import javax.inject.Singleton
  *     │
  *     ▼  pidof <目标app>             ← 进程须「热」：已登录 + 已打开过目标 DB
  *   su sh pdh-mem-sqlite-scan.sh pid ← root 读 /proc/pid/mem，dump 解密 SQLite 页
- *     │                                到 /data/local/tmp/ccmem/*.db（绕过反调试）
+ *     │                                到 /data/local/tmp/ccmem 目录下的 db（绕过反调试）
  *     ▼  su cp+chown → app filesDir   ← 拷进 app 可读目录（cc 以 app uid 跑，读不了
  *   cc hub salvage <dump> --json      shell 私有目录）
  *     │
