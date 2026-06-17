@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.database.entity.social.FriendStatus
 import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import com.chainlesschain.android.feature.p2p.ui.decodeQrLuminance
+import com.chainlesschain.android.feature.p2p.social.FriendConnector
 import com.chainlesschain.android.feature.p2p.viewmodel.social.AddFriendViewModel
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.DecodeHintType
@@ -47,12 +48,14 @@ class ScanToAddFriendIntegrationTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var friendRepository: FriendRepository
     private lateinit var realtime: RealtimeEventManager
+    private lateinit var friendConnector: FriendConnector
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         friendRepository = mockk(relaxed = true)
         realtime = mockk(relaxed = true)
+        friendConnector = mockk(relaxed = true)
         every { friendRepository.getNearbyUsers() } returns flowOf(Result.success(emptyList()))
         every { friendRepository.getRecommendedFriends() } returns flowOf(Result.success(emptyList()))
     }
@@ -118,7 +121,7 @@ class ScanToAddFriendIntegrationTest {
         coEvery { friendRepository.addFriend(capture(captured)) } returns Result.success(Unit)
         coEvery { realtime.sendFriendRequest(any(), any()) } just Runs
 
-        val vm = AddFriendViewModel(friendRepository, realtime)
+        val vm = AddFriendViewModel(friendRepository, realtime, friendConnector)
         vm.sendFriendRequest(parsedDid!!)
 
         assertNotNull(captured.captured, "扫码后应落库一条好友")

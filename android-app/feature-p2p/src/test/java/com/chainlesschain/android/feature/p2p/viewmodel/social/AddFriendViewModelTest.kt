@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
 import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
+import com.chainlesschain.android.feature.p2p.social.FriendConnector
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -39,12 +40,14 @@ class AddFriendViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var friendRepository: FriendRepository
     private lateinit var realtime: RealtimeEventManager
+    private lateinit var friendConnector: FriendConnector
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         friendRepository = mockk(relaxed = true)
         realtime = mockk(relaxed = true)
+        friendConnector = mockk(relaxed = true)
         // init {} 会拉这两条流, 给空结果即可。
         every { friendRepository.getNearbyUsers() } returns flowOf(Result.success(emptyList()))
         every { friendRepository.getRecommendedFriends() } returns flowOf(Result.success(emptyList()))
@@ -55,7 +58,7 @@ class AddFriendViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun newVm() = AddFriendViewModel(friendRepository, realtime)
+    private fun newVm() = AddFriendViewModel(friendRepository, realtime, friendConnector)
 
     @Test
     fun `sendFriendRequest adds peer as ACCEPTED friend offline (no P2P needed)`() = runTest(dispatcher) {
