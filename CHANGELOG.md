@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — root 内存采集 抖音/WCDB2 命中 + 扫描生命周期硬化（v5.0.3.117）
+> 真机 2026-06-17 暴露：抖音 WCDB2 解密页内存无 "SQLite format 3" 文件头 → 旧纯头匹配扫描 0 命中。纯 APK 改动（脚本在 assets，复用 bundle v20260617b/pdh 0.4.27）。
+
+- **D1 叶子页扫描**：mem-scan 改按内容判定——含文件头（标准 SQLCipher/微信）或明文 schema `CREATE TABLE`（WCDB2/抖音解密页缓存）的内存区域整段落盘 → 下游 `leaf-salvage --unaligned` 扫 0x0D 叶子页打捞（不依赖文件头，两种加密通吃）；MAX_DUMPS=30 + 单区域≤64MB 防爆盘/超时。
+- **D2 扫描生命周期硬化**：`finally` 额外 `pkill 'dd if=/proc'` 杀孤儿 dd（timeout tree-kill 杀不到管道里的 dd）；AtomicBoolean 单实例锁防多次点击并发扫描。
+
 ### Added — root 内存采集 多 app + 来源归属 + 扫描硬化（v5.0.3.116）
 > 真机暴露的扫描 bug 修复 + 多 app 直采。pdh 0.4.27 + cli 0.162.77 已发 npm；Android cc bundle `internal-binaries-android-v20260617b`（USR_VERSION 47）。
 
