@@ -86,9 +86,14 @@ class P2PChatViewModel @Inject constructor(
                 // 连接/会话状态 + 设备验证状态（会话已就绪时自动视为已验证）
                 refreshConnectionState(peerId)
 
-                // 加载历史消息
+                // 加载历史消息。注意：getMessages 是**永不结束**的 Flow（持续 collect 实时更新），
+                // 所以下面 finally 在 collect 期间不可达 → 不能靠 finally 关 isLoading，否则顶部
+                // LinearProgressIndicator 会「一直从左走到右」转个不停。改为首帧到达即关 loading。
                 messageRepository.getMessages(peerId).collect { messageList ->
                     _messages.value = messageList
+                    if (_uiState.value.isLoading) {
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                    }
                     Timber.d("Loaded ${messageList.size} messages")
                 }
 
