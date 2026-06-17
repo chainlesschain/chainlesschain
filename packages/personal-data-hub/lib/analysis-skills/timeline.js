@@ -63,7 +63,12 @@ class TimelineSkill extends AnalysisSkill {
   }
 
   _fetchEvents({ since, until }, limit) {
-    const q = { limit };
+    // Exclude inventory-snapshot events (installed-app roster + contact
+    // roster from system-data-android). They carry a synthetic
+    // collection-time occurredAt — tens of thousands of them cluster at one
+    // recent timestamp and would otherwise crowd out real activity from this
+    // chronological narrative. They remain in the vault for facet counts.
+    const q = { limit, excludeExtraKinds: ["app-snapshot", "contact-snapshot"] };
     if (since != null) q.since = since;
     if (until != null) q.until = until;
     const events = this.vault.queryEvents(q) || [];

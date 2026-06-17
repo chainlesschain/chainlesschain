@@ -290,6 +290,22 @@ class WeChatPcAdapter {
       null;
     const fallbackCapturedAt = Date.now();
     const messages = (result && Array.isArray(result.messages)) ? result.messages : [];
+    // Harvest group display names from the contact roster: WeChat stores group
+    // chatrooms (wxid ending @chatroom) in contact.db with a nickname/remark.
+    // They are skipped as Person entities below, but their names let us label
+    // group Topics with a human-readable name instead of the raw numeric id.
+    const groupNames = new Map();
+    {
+      const contactsForNames = (result && Array.isArray(result.contacts)) ? result.contacts : [];
+      for (const c of contactsForNames) {
+        if (!c || typeof c.wxid !== "string" || !c.wxid.endsWith("@chatroom")) continue;
+        const nm =
+          (typeof c.remark === "string" && c.remark.trim()) ||
+          (typeof c.nickname === "string" && c.nickname.trim()) ||
+          "";
+        if (nm) groupNames.set(c.wxid, nm);
+      }
+    }
     let emitted = 0;
     // The sidecar already applied `limit` across all sources (chat/biz/sns/
     // favorite). Yield everything it returned — do NOT re-cap here, or the
@@ -311,6 +327,7 @@ class WeChatPcAdapter {
         text: typeof m.text === "string" ? m.text : "",
         senderWxid: isGroup ? (m.sender || null) : null,
         isGroup,
+        groupName: isGroup && conv ? (groupNames.get(conv) || null) : null,
         contentBlob: typeof m.text === "string" ? m.text : null,
         // provenance: chat | biz(公众号) | sns(朋友圈) | favorite(收藏)
         wechatSource: typeof m.source === "string" ? m.source : "chat",
@@ -423,10 +440,16 @@ function normalizeMessage(p, raw, ingestedAt) {
 
   const topics = [];
   if (isGroup && p.talker) {
+    // Prefer the resolved group display name (harvested from contact.db in
+    // sync()); fall back to the raw numeric chatroom id only when unknown.
+    const groupName =
+      (typeof p.groupName === "string" && p.groupName.trim())
+        ? p.groupName.trim()
+        : p.talker.replace("@chatroom", "");
     topics.push({
       id: `topic-wechat-group-${p.talker}`,
       type: ENTITY_TYPES.TOPIC,
-      name: p.talker.replace("@chatroom", ""),
+      name: groupName,
       ingestedAt,
       source,
       extra: { platform: "wechat", source: "pc", wxid: p.talker },

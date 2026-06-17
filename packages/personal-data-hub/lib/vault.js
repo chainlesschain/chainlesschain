@@ -811,6 +811,18 @@ class LocalVault {
       where.push("source_adapter = @adapter");
       params.adapter = q.adapter;
     }
+    if (Array.isArray(q.excludeExtraKinds) && q.excludeExtraKinds.length > 0) {
+      // Exclude inventory-snapshot events (e.g. installed-app / contact-roster
+      // facet events) whose extra.kind is in the given list. Those carry a
+      // synthetic collection-time occurredAt and would otherwise dominate any
+      // time-ordered (occurred_at DESC) query. Rows with no extra.kind are kept.
+      const placeholders = q.excludeExtraKinds.map((_v, i) => `@xk${i}`);
+      q.excludeExtraKinds.forEach((v, i) => { params[`xk${i}`] = v; });
+      where.push(
+        "(json_extract(extra, '$.kind') IS NULL OR json_extract(extra, '$.kind') NOT IN (" +
+        placeholders.join(", ") + "))",
+      );
+    }
 
     const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
     const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;

@@ -498,6 +498,32 @@ describe("InterestsSkill", () => {
     expect(r.topTopics[0].name).toBe("Travel");
     expect(r.llmInterests).toBeNull();
   });
+
+  it("drops unresolved numeric group-id topics (e.g. WeChat chatroom ids) from the profile", async () => {
+    // Real interest topic
+    rig.vault.putTopic({
+      id: "topic-doubao", type: "topic", name: "豆包",
+      derivedFromEvents: ["e1"],
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    // Unresolved group-chat topics named by raw numeric chatroom id — noise.
+    rig.vault.putTopic({
+      id: "topic-g1", type: "topic", name: "45498354778",
+      derivedFromEvents: [],
+      ingestedAt: Date.now() + 1, source: defaultSource("test"),
+    });
+    rig.vault.putTopic({
+      id: "topic-g2", type: "topic", name: "54346634535",
+      derivedFromEvents: [],
+      ingestedAt: Date.now() + 2, source: defaultSource("test"),
+    });
+    const skill = new InterestsSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    const names = r.topTopics.map((t) => t.name);
+    expect(names).toContain("豆包");
+    expect(names).not.toContain("45498354778");
+    expect(names).not.toContain("54346634535");
+  });
 });
 
 // ─── TimelineSkill ──────────────────────────────────────────────────────
@@ -533,6 +559,34 @@ describe("TimelineSkill", () => {
     const skill = new TimelineSkill({ vault: rig.vault, llm });
     const r = await skill.run({ since: ts(2026, 4, 1) });
     expect(r.llm_narrative).toBe("你这周点了一次外卖。");
+  });
+
+  it("excludes inventory-snapshot events (installed-app / contact roster) from the narrative", async () => {
+    // Real activity event (extra has no `kind` → must be kept)
+    makePayment(rig.vault, { id: "act-1", occurredAt: ts(2026, 5, 1), counterpartyName: "美团", amount: 10, adapter: "alipay-bill", title: "外卖" });
+    // Inventory-snapshot events stamped at a LATER (collection) time — these
+    // would dominate a DESC time query but must be filtered out.
+    rig.vault.putEvent({
+      id: "event-android-app-com.x", type: "event", subtype: "other",
+      occurredAt: ts(2026, 6, 1), actor: "person-self",
+      content: { title: "应用：X" },
+      ingestedAt: Date.now(), source: defaultSource("system-data-android"),
+      extra: { kind: "app-snapshot", packageName: "com.x" },
+    });
+    rig.vault.putEvent({
+      id: "event-android-contact-y", type: "event", subtype: "other",
+      occurredAt: ts(2026, 6, 1), actor: "person-self",
+      content: { title: "联系人：Y" },
+      ingestedAt: Date.now(), source: defaultSource("system-data-android"),
+      extra: { kind: "contact-snapshot" },
+    });
+    const skill = new TimelineSkill({ vault: rig.vault });
+    const r = await skill.run({ since: ts(2026, 4, 1) });
+    const ids = r.entries.map((e) => e.id);
+    expect(ids).toContain("act-1");
+    expect(ids).not.toContain("event-android-app-com.x");
+    expect(ids).not.toContain("event-android-contact-y");
+    expect(r.summary.totalEvents).toBe(1);
   });
 });
 
