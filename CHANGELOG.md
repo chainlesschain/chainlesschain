@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — 好友 P2P 发消息稳定性（v5.0.3.119）
+> 两天「无法扫码加好友 / 对方收不到消息 / 连不上」全链路收口，真机 amethyst↔chopin 双向消息 <1s 送达验证。
+
+- **消息显示**：收方 `saveMessageFromSync` 按本机视角重写 `peerId=发送方DID` + `isOutgoing=false`，修「消息已到库但聊天界面看不到」（此前原样存发方视角→落错会话）。
+- **连接稳定性**：ICE 改回 **ALL**（恢复同网 host 直连，此前误用 relay-only 反而禁直连 + 撞 coturn EIP-NAT 自身 IP）+ DataChannel OPEN 超时 15s→40s（给同网直连 + DTLS 足够时间）。
+- **信令中继兜底**：DataChannel 打不通时 `P2PClient.sendCommand` 自动经信令服务器中继命令（e2ee 握手 + sync.push 消息），不再依赖 P2P 直连建立成功；E2EE 不受影响（仅转发签名/密文帧）。
+- **断连自动重连**：`handleDisconnection` 清空 `connectedPeers`，连接丢失后连接器 ≤15s 内重拨（此前残留 stale 条目→永久假在线）。
+- **重启恢复会话**：`AppInitializer` 启动恢复持久化 E2EE 会话 + 即时推送（`SyncManager.changeSignal` 唤醒 `SyncCoordinator`，免等 30s 周期）+ 顶部 loading 进度条永转修复。
+- **TURN 服务器**：coturn `external-ip` 补私网映射（公网/私网），修 relay candidate 广播私网 IP 导致 CREATE_PERMISSION 403。
+
 ### Fixed — 个人 AI 知识库分析管线去噪（v5.0.3.118）
 > 真机采集数据接入个人 AI 知识库后暴露的 3 个分析质量问题：`analysis.interests` 被 14 个数字群聊 ID 淹没（挤掉唯一真实兴趣 topic）、`analysis.timeline` 被 2.4 万条同戳的联系人/应用清单快照事件冲垮。pdh 0.4.28 + cli 0.162.78 已发 npm；Android cc bundle `internal-binaries-android-v20260617c`（USR_VERSION 48）。
 
