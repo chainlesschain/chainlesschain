@@ -37,6 +37,8 @@ class WebRTCClientTest {
     private lateinit var mockContext: Context
     private lateinit var mockSignalClient: SignalClient
     private lateinit var mockPairedPeersStore: com.chainlesschain.android.core.p2p.pairing.PairedPeersStore
+    private lateinit var mockOkHttpClient: okhttp3.OkHttpClient
+    private lateinit var mockSignalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig
     private lateinit var mockPeerConnectionFactory: PeerConnectionFactory
     private lateinit var mockPeerConnection: PeerConnection
     private lateinit var mockDataChannel: DataChannel
@@ -67,6 +69,10 @@ class WebRTCClientTest {
         // Stub with a real MutableStateFlow so the generic erasure stays sound.
         mockPairedPeersStore = mockk(relaxed = true)
         every { mockPairedPeersStore.devices } returns MutableStateFlow(emptyList())
+
+        // FAMILY-67 plan B: TURN 凭证拉取依赖（手机↔手机），测试中不实际发请求
+        mockOkHttpClient = mockk(relaxed = true)
+        mockSignalingConfig = mockk(relaxed = true)
 
         // Mock PeerConnectionFactory static initialization
         mockkStatic(PeerConnectionFactory::class)
@@ -110,7 +116,7 @@ class WebRTCClientTest {
         } returns mockDataChannel
 
         // Create WebRTCClient instance
-        webRTCClient = WebRTCClient(mockContext, mockSignalClient, mockPairedPeersStore)
+        webRTCClient = WebRTCClient(mockContext, mockSignalClient, mockPairedPeersStore, mockOkHttpClient, mockSignalingConfig)
     }
 
     @After
