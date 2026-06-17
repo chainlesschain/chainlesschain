@@ -7,6 +7,15 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Added — 个人数据中台 免密钥取证一键采集 + 跨 app 数据总览上设备（v5.0.3.115）
+
+> root 真机免密钥取证（Method B `/proc/mem` 内存打捞）从手动脚本做成 app 内一键按钮；跨 app 数据总览修复（旧 cc bundle 不含 `analysis.overview` 致「数据总览报错」）。pdh 0.4.26 + cli 0.162.76 已发 npm；Android cc bundle 刷到 `internal-binaries-android-v20260617`（USR_VERSION 46）。
+
+- **`cc hub salvage <dump>`**：把叶子页打捞器收进可 bundle 的 pdh lib（`forensics/leaf-salvage.js`）+ 封装成单命令（dump → 叶子页打捞 → `social-douyin` 入库），真 SQLite 库端到端验证（中文 + emoji 无损）。
+- **Android「一键 root 采集（抖音内存·免密钥）」按钮**：`MemSalvageCollector` 编排 `su` 内存扫描 → 拷 dump → 逐个 `cc hub salvage` 入库；仅 root 机、目标 app 须前台登录在用，v1 限抖音。
+- **数据总览旧 cc 优雅降级**：设备 bundled cc 早于 `analysis.overview` 时把裸 `Unknown skill` 翻成「需更新本机 cc 组件」可操作提示。
+- 版本面：productVersion v5.0.3.114 → v5.0.3.115 / 桌面 5.0.3-alpha.115 / Android versionCode 503115 · USR_VERSION 46 · binariesVersion 20260617 / iOS build 115。
+
 #### Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）
 > 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑约 3.3s 即打印 URL，姊妹测试全过）。
 

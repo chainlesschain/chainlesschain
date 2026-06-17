@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.115 · 2026-06-17',
+    title: '个人数据中台 免密钥取证一键采集 + 跨 app 数据总览上设备（pdh 0.4.26 / cli 0.162.76 / cc bundle v20260617）',
+    sub: 'root 真机免密钥取证（Method B /proc/mem 内存打捞）从手动脚本做成 app 内一键按钮；跨 app 数据总览修复（旧 cc bundle 不含 analysis.overview 致「数据总览报错」）。桌面 / Android / iOS 全 surface 对齐 .115；Android cc bundle 滚到 internal-binaries-android-v20260617（携 pdh 0.4.26，USR_VERSION → 46）；release 发 18 assets。',
+    desc: 'cc hub salvage <dump>：把叶子页打捞器收进可 bundle 的 pdh lib（forensics/leaf-salvage.js）+ 封装成单命令（dump → 叶子页打捞 → social-douyin 入库），真 SQLite 库端到端验证（中文 + emoji 无损）。Android「一键 root 采集（抖音内存·免密钥）」按钮：MemSalvageCollector 编排 su 内存扫描 → 拷 dump → 逐个 cc hub salvage 入库；仅 root 机、目标 app 须前台登录在用，v1 限抖音。数据总览旧 cc 优雅降级：设备 bundled cc 早于 analysis.overview 时把裸 Unknown skill 翻成「需更新本机 cc 组件」可操作提示。发版链：@chainlesschain/personal-data-hub 0.4.25 → 0.4.26 + CLI 0.162.75 → 0.162.76 已发 npm；Android in-APK cc bundle 刷到 internal-binaries-android-v20260617（USR_VERSION 45 → 46，binariesVersion 20260615d → 20260617）。版本面：productVersion v5.0.3.114 → v5.0.3.115 / 桌面 5.0.3-alpha.115 / Android versionCode 503115 · USR_VERSION 46 · binariesVersion 20260617 / iOS build 115。',
+  },
+  {
     tag: 'v5.0.3.114 · 2026-06-15',
     title: '个人数据中台 gov-ixiamen 端点真机静态校验 + Android cc bundle v20260615d（pdh 0.4.25 / cli 0.162.71）',
     sub: '用已 root 真机对 PDH「端点抓包」runbook 跑静态分析层（只读 APK，无登录态），修正 i 厦门虚构占位主机为真实网关。桌面 / Android / iOS 全 surface 对齐 .114；Android cc bundle 滚到 v20260615d（携 pdh 0.4.25，USR_VERSION → 45）。',
