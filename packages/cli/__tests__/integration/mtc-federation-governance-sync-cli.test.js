@@ -195,10 +195,11 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
       } finally {
         fs.rmSync(dropZone, { recursive: true, force: true });
       }
-      // Cross-member publish/pull spawns multiple CLI processes; the 60s default
-      // is tight under the integration load (recurring flake, passes isolated).
-      // See internal handbook trap #31.
-    }, 90000);
+      // Cross-member publish/pull spawns the most CLI processes of any federation
+      // test (alice publish + bob pull). ~21s isolated but >90s under full-suite
+      // 2-fork contention; raised 90s→120s to match the heaviest sibling
+      // (mtc-audit). See internal handbook trap #31.
+    }, 120000);
 
     it("--verify passes for valid events when actor's pubkey is in registry", () => {
       joinAs("alice");
