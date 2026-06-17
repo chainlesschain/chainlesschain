@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — root 内存采集 多 app + 来源归属 + 扫描硬化（v5.0.3.116）
+> 真机暴露的扫描 bug 修复 + 多 app 直采。pdh 0.4.27 + cli 0.162.77 已发 npm；Android cc bundle `internal-binaries-android-v20260617b`（USR_VERSION 47）。
+
+- **多 app root 直采 + 正确来源归属**：`cc hub salvage --app <key>`（douyin/toutiao/wechat/kuaishou/xiaohongshu/weibo）经新 `forensics/salvage-ingest.js` 把消息以正确 `source.adapter` 直写 vault（头条→social-toutiao，不再全挂 douyin）；Android「一键 root 采集」按钮加目标 app 下拉选择器。
+- **扫描引擎硬化**（真机 2026-06-17 暴露）：mem-scan 脚本加 `trap 'kill 0'` 自清子进程 + collector 用 `timeout` 包裹 + 预算 180s→300s + `finally` `pkill` 兜底——修复扫描超时残留孤儿 root 进程问题。
+
 ### Added — 个人数据中台 免密钥取证一键采集 + 跨 app 数据总览上设备（v5.0.3.115）
 > root 真机免密钥取证（Method B `/proc/mem` 内存打捞）从手动脚本做成 app 内一键按钮；跨 app 数据总览修复（旧 cc bundle 不含 `analysis.overview` 致「数据总览报错」）。pdh 0.4.26 + cli 0.162.76 已发 npm；Android cc bundle 刷到 `internal-binaries-android-v20260617`（USR_VERSION 46）。
 
