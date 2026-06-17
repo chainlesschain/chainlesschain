@@ -93,14 +93,17 @@ class FriendSyncConnector @Inject constructor(
             )
             runCatching { p2pClient.connectFamilyPeer(t.did, myDid, t.isInitiator) }
                 .onFailure { Timber.w(it, "[FriendSyncConnector] connect to ${t.did} failed") }
-            // offerer（DID 较小方）连上后发起 E2EE 握手；建好会话后好友聊天发送闸才打开
+            // offerer（DID 较小方）发起 E2EE 握手；建好会话后好友聊天发送闸才打开
             // （P2PChatViewModel 要求 getSession(peerId) 非空）。responder 侧由 e2ee.* 路由被动应答。
-            val connectedToThis = p2pClient.connectedPeers.value.values.any { it.did == t.did }
-            if (connectedToThis && t.isInitiator) {
+            // FAMILY-67: 不再要求 DataChannel 已连（connectedToThis）才握手——握手命令经
+            // P2PClient.sendCommand 会在 DataChannel 打不通时自动经信令中继送达，故 offerer 总尝试。
+            // initiate 幂等（已有会话直接返回），重复 pass 无副作用。
+            if (t.isInitiator) {
                 runCatching { sessionHandshake.initiate(t.did) }
                     .onFailure { Timber.w(it, "[FriendSyncConnector] E2EE handshake to ${t.did} failed") }
             }
-            // 连上即停（单连接），不再拨别的好友把刚建好的连接拆掉。
+            // 已与某好友连上（DataChannel）即停拨别的；中继路径下 connectedPeers 可能为空，
+            // 则继续把握手/中继机会给本 friendDids 列表里的其它 peer（单 1:1 场景只有一个目标）。
             if (p2pClient.connectedPeers.value.values.any { it.did in friendDids }) break
         }
         return targets.size

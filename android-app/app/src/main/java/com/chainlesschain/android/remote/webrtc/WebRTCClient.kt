@@ -69,6 +69,10 @@ class WebRTCClient @Inject constructor(
     @Volatile
     private var currentIceServers: List<PeerConnection.IceServer> = fallbackIceServers
 
+    // FAMILY-67: true → 本次连接强制 ICE RELAY-only（手机↔手机跨 NAT；见 connect() 注释）。
+    @Volatile
+    private var forceRelayOnly: Boolean = false
+
     // FAMILY-67 plan B — 手机↔手机无桌面 QR → 从 signaling 同域 https /turn-credentials 拉
     // 服务端签发的时效 TURN 凭证（secret 只在服务端）。缓存到过期。
     @Volatile private var p2pTurnIceServers: List<PeerConnection.IceServer>? = null
@@ -221,8 +225,12 @@ class WebRTCClient @Inject constructor(
     companion object {
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
 
-        /** FAMILY-67: connect() 在发完 offer/answer 后等 DataChannel OPEN 的上限（ICE+DC 协商）。 */
-        private const val DATA_CHANNEL_OPEN_TIMEOUT_MS = 15000L
+        /**
+         * FAMILY-67: connect() 在发完 offer/answer 后等 DataChannel OPEN 的上限（ICE+DC 协商）。
+         * 跨 NAT relay 路径（TURN 中继 + DTLS 握手）比同 LAN 直连慢，15s 偏紧常超时；放宽到 40s
+         * 给 relay 候选连通检查 + DTLS/SCTP 握手足够时间。
+         */
+        private const val DATA_CHANNEL_OPEN_TIMEOUT_MS = 40000L
     }
 
     fun initialize() {
@@ -286,6 +294,12 @@ class WebRTCClient @Inject constructor(
 
             // FAMILY-67: 手机↔手机走中继时把 WebRTC 信令包进 type:"message"；手机↔PC 保持裸类型。
             signalClient.setRelaySignaling(relaySignaling)
+
+            // FAMILY-67: ICE 用 ALL（默认）——既可同网 host 直连（最快、TURN 不参与），
+            // 也可跨网 relay-srflx 兜底。曾试 RELAY-only，但在「coturn 处于阿里云 EIP 1:1 NAT 之后」时
+            // 强制 relay-only 会逼出 relay↔relay（peer 落到 coturn 自身私网 IP 172.17.62.36），
+            // 服务端不在两个分配间回环投递 → 反而全连不上。故保持 ALL，配合放宽到 40s 的超时。
+            forceRelayOnly = false
 
             // 1. Connect to signaling server
             Timber.i("[Step 1/5] Connecting to signaling server...")
@@ -401,6 +415,12 @@ class WebRTCClient @Inject constructor(
 
         val rtcConfig = PeerConnection.RTCConfiguration(currentIceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            // FAMILY-67: 手机↔手机强制只用 TURN relay 候选（跳过打不通的 host/srflx 直连），
+            // 让 ICE 在超时预算内直接走已验证可用的 relay。其余场景(PC 同 LAN) 用 ALL。
+            if (forceRelayOnly) {
+                iceTransportsType = PeerConnection.IceTransportsType.RELAY
+                Timber.i("[WebRTCClient] ICE policy = RELAY-only (phone↔phone cross-NAT)")
+            }
         }
 
         peerConnection = peerConnectionFactory?.createPeerConnection(
@@ -635,6 +655,15 @@ class WebRTCClient @Inject constructor(
         channel.send(buffer)
         Timber.d("Message sent: ${message.take(50)}...")
     }
+
+    // FAMILY-67: 暴露 SignalClient 的信令中继能力给 P2PClient（DataChannel 兜底 RPC）。
+    /** 经信令服务器把 payload 转发给指定对端（type:"message"）。 */
+    suspend fun sendForwardedMessage(toPeerId: String, payload: org.json.JSONObject): Result<Unit> =
+        signalClient.sendForwardedMessage(toPeerId, payload)
+
+    /** 信令服务器转发来的 message payload 流（多订阅）。 */
+    val forwardedMessages: kotlinx.coroutines.flow.SharedFlow<String>
+        get() = signalClient.forwardedMessages
 
     fun setOnMessageReceived(callback: (String) -> Unit) {
         this.onMessageReceived = callback

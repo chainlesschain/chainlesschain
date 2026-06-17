@@ -92,6 +92,11 @@ class P2PClient @Inject constructor(
     @Volatile private var lastHeartbeatReceived = System.currentTimeMillis()
     @Volatile private var autoReconnectEnabled = true
 
+    // FAMILY-67: 当前会话对端 DID（connect/connectFamilyPeer 时记）。WebRTC DataChannel 打不通时，
+    // sendCommand 回退到「经信令服务器中继 RPC」（sendForwardedMessage / forwardedMessages 流），
+    // 把命令请求+响应包进 type:"message" 信封转发给对端 —— 信令服务器双方都稳连，保证消息送达。
+    @Volatile private var currentPeerDid: String? = null
+
     private val _events = MutableSharedFlow<EventNotification>(replay = 0, extraBufferCapacity = 16)
     val events: SharedFlow<EventNotification> = _events.asSharedFlow()
 
@@ -153,6 +158,14 @@ class P2PClient @Inject constructor(
         webRTCClient.setOnDisconnected {
             scope.launch { handleDisconnection() }
         }
+        // FAMILY-67: 订阅信令转发流，处理经信令服务器中继的 p2p-rpc 请求/响应（DataChannel 兜底）。
+        // SharedFlow 多订阅，与既有 WebRTC 信令解包/pairing 订阅者互不干扰（按 type:"p2p-rpc" 过滤）。
+        scope.launch {
+            webRTCClient.forwardedMessages.collect { raw ->
+                runCatching { handleRelayEnvelope(raw) }
+                    .onFailure { Timber.w(it, "[P2PClient] handleRelayEnvelope failed") }
+            }
+        }
     }
 
     suspend fun connect(pcPeerId: String, pcDID: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -176,6 +189,7 @@ class P2PClient @Inject constructor(
             // Store for reconnection
             lastConnectedPeerId = pcPeerId
             lastConnectedPeerDID = pcDID
+            currentPeerDid = pcDID  // FAMILY-67: 信令中继 RPC 的目标
 
             // Generate a local peerId for signaling registration
             val localPeerId = "mobile-${java.util.UUID.randomUUID().toString().take(8)}"
@@ -242,6 +256,8 @@ class P2PClient @Inject constructor(
         isInitiator: Boolean,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            // FAMILY-67: 记下对端 DID —— 即便 WebRTC 连不上，sendCommand 也能经信令中继 RPC 发给它。
+            currentPeerDid = peerDID
             // 已与此 peer 连上 → 幂等成功（顺带清退避状态）。
             if (_connectedPeers.value.containsKey(peerDID)) {
                 peerFailCount.remove(peerDID)
@@ -502,7 +518,9 @@ class P2PClient @Inject constructor(
         params: Map<String, Any> = emptyMap(),
         timeout: Long = config.requestTimeout
     ): Result<T> = withContext(Dispatchers.IO) {
-        if (_connectionState.value != ConnectionState.CONNECTED) {
+        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid）就放行——
+        // sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。两者都缺才真失败。
+        if (_connectionState.value != ConnectionState.CONNECTED && currentPeerDid == null) {
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
@@ -535,7 +553,9 @@ class P2PClient @Inject constructor(
         timeout: Long = config.requestTimeout,
         typeOf: Type
     ): Result<T> = withContext(Dispatchers.IO) {
-        if (_connectionState.value != ConnectionState.CONNECTED) {
+        // FAMILY-67: DataChannel 未连（CONNECTED）时，只要知道对端 DID（currentPeerDid）就放行——
+        // sendCommandInternal 会经信令服务器中继 RPC（双方都稳连信令）。两者都缺才真失败。
+        if (_connectionState.value != ConnectionState.CONNECTED && currentPeerDid == null) {
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
@@ -600,7 +620,14 @@ class P2PClient @Inject constructor(
                 type = MessageTypes.COMMAND_REQUEST,
                 payload = requestPayload.toJsonString()
             )
-            webRTCClient.sendMessage(message.toJsonString())
+            // 优先 WebRTC DataChannel；打不通则经信令服务器中继 RPC（FAMILY-67）。
+            try {
+                webRTCClient.sendMessage(message.toJsonString())
+            } catch (dcDown: IllegalStateException) {
+                val sent = relayCommandFrame("req", requestId, message.toJsonString())
+                if (!sent) throw dcDown  // 既无 DataChannel 又无法中继 → 真失败
+                Timber.i("[P2PClient] command relayed via signaling: $method (id=$requestId)")
+            }
             val response = deferred.await()
             timeoutJob.cancel()
             pendingRequests.remove(requestId)
@@ -941,6 +968,87 @@ class P2PClient @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "[P2PClient] sendCommandResponse 失败: id=$requestId")
         }
+    }
+
+    // ==================== FAMILY-67: 信令服务器中继 RPC（DataChannel 兜底）====================
+    // WebRTC DataChannel 在双方 NAT/网络下常打不通，但双方都稳连信令服务器（offer/answer/ICE 都经它）。
+    // 故把 P2PClient 的 command 请求/响应包进 type:"message" 信封经信令转发，命令链路（含 e2ee 握手 +
+    // sync.push 消息投递）不再依赖 DataChannel 建立成功。信令只转发密文/签名帧，E2EE 不受影响。
+
+    private suspend fun myDidForRelay(): String? =
+        runCatching { coreDidManager.getCurrentDID() }.getOrNull() ?: didManager.getCurrentDID()
+
+    /** 把一帧（命令请求/响应 P2PMessage JSON）经信令中继给当前对端。返回是否已发出。 */
+    private suspend fun relayCommandFrame(dir: String, requestId: String, frameJson: String): Boolean {
+        val peer = currentPeerDid ?: return false
+        val from = myDidForRelay() ?: return false
+        val env = org.json.JSONObject()
+            .put("type", "p2p-rpc")
+            .put("dir", dir)
+            .put("from", from)
+            .put("rid", requestId)
+            .put("frame", frameJson)
+        return runCatching { webRTCClient.sendForwardedMessage(peer, env).isSuccess }.getOrDefault(false)
+    }
+
+    /** 订阅信令转发流，处理中继来的 p2p-rpc 请求/响应（与 DataChannel 路径等价，复用 commandRouter）。 */
+    private suspend fun handleRelayEnvelope(raw: String) {
+        val obj = runCatching { org.json.JSONObject(raw) }.getOrNull() ?: return
+        if (obj.optString("type") != "p2p-rpc") return
+        val dir = obj.optString("dir")
+        val fromDid = obj.optString("from")
+        val frame = obj.optString("frame")
+        if (frame.isEmpty()) return
+        val msg = runCatching { frame.fromJson<P2PMessage>() }.getOrNull() ?: return
+        when (dir) {
+            "req" -> {
+                // 收到中继命令请求 → 与 DataChannel 入向请求同样经 commandRouter 处理，响应经信令回传给 from。
+                if (fromDid.isNotEmpty()) currentPeerDid = fromDid
+                handleRelayedCommandRequest(msg.payload, fromDid)
+            }
+            "resp" -> {
+                val response = runCatching { msg.payload.fromJson<CommandResponse>() }.getOrNull() ?: return
+                pendingRequests[response.id]?.deferred?.complete(response)
+            }
+        }
+    }
+
+    /** 中继来的命令请求：鉴权 + 路由（与 [handleIncomingCommandRequest] 同逻辑），响应经信令回传。 */
+    private suspend fun handleRelayedCommandRequest(payload: String, replyToDid: String) {
+        var requestId = ""
+        try {
+            val request = payload.fromJson<CommandRequest>()
+            requestId = request.id
+            if (request.method.startsWith("sync.") || request.method.startsWith("e2ee.")) {
+                val auth = request.auth
+                    ?: throw SecurityException("${request.method.substringBefore('.')}.* request requires auth")
+                syncAuthVerifier.get().verify(auth, request.method)
+            }
+            val result = commandRouter.route(request.method, request.params)
+            relayCommandResponse(replyToDid, requestId, result, null)
+        } catch (e: SecurityException) {
+            relayCommandResponse(replyToDid, requestId, null, ErrorInfo(ErrorCodes.AUTHENTICATION_FAILED, e.message ?: "auth failed"))
+        } catch (e: IllegalArgumentException) {
+            relayCommandResponse(replyToDid, requestId, null, ErrorInfo(ErrorCodes.METHOD_NOT_FOUND, e.message ?: "Method not found"))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            relayCommandResponse(replyToDid, requestId, null, ErrorInfo(ErrorCodes.INTERNAL_ERROR, e.message ?: e.javaClass.simpleName))
+        }
+    }
+
+    private suspend fun relayCommandResponse(toDid: String, requestId: String, result: Any?, error: ErrorInfo?) {
+        val responseMap = mutableMapOf<String, Any?>("jsonrpc" to "2.0", "id" to requestId)
+        if (error != null) {
+            responseMap["error"] = mapOf("code" to error.code, "message" to error.message, "data" to error.data)
+        } else {
+            responseMap["result"] = result
+        }
+        val frame = P2PMessage(type = MessageTypes.COMMAND_RESPONSE, payload = gson.toJson(responseMap)).toJsonString()
+        val from = myDidForRelay() ?: return
+        val env = org.json.JSONObject()
+            .put("type", "p2p-rpc").put("dir", "resp").put("from", from).put("rid", requestId).put("frame", frame)
+        runCatching { webRTCClient.sendForwardedMessage(toDid, env) }
     }
 
     /**
