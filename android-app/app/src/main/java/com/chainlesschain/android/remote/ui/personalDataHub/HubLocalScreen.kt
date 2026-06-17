@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -236,16 +239,41 @@ fun HubLocalScreen(
             }
             item("root-mem-salvage") {
                 // Method B 一键 root 内存采集（免密钥取证）— root 读目标 app 进程内存
-                // 解密页 → 叶子页打捞 → cc hub salvage 入库。仅 root 机；目标 app 须前台
-                // 登录在用。v1 限抖音。
+                // 解密页 → 叶子页打捞 → cc hub salvage 入库（按所选 app 正确归属来源）。
+                // 仅 root 机；目标 app 须前台登录在用。
                 val ms = state.memSalvage
+                var target by remember {
+                    mutableStateOf(com.chainlesschain.android.pdh.MemSalvageCollector.TargetApp.DOUYIN)
+                }
+                var menuOpen by remember { mutableStateOf(false) }
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { viewModel.rootMemSalvageCollect() },
-                    enabled = !ms.isRunning && !globalBusy,
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (ms.isRunning) "root 采集中…" else "一键 root 采集（抖音内存·免密钥）")
+                    // 目标 app 选择器（下拉）
+                    Box {
+                        OutlinedButton(
+                            onClick = { menuOpen = true },
+                            enabled = !ms.isRunning && !globalBusy,
+                        ) { Text("目标：${target.displayName} ▾") }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            com.chainlesschain.android.pdh.MemSalvageCollector.TargetApp.values().forEach { app ->
+                                DropdownMenuItem(
+                                    text = { Text(app.displayName) },
+                                    onClick = { target = app; menuOpen = false },
+                                )
+                            }
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.rootMemSalvageCollect(target) },
+                        enabled = !ms.isRunning && !globalBusy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(if (ms.isRunning) "root 采集中…" else "一键 root 采集（免密钥）")
+                    }
                 }
                 val note = ms.phase ?: ms.lastMessage
                 if (!note.isNullOrBlank()) {

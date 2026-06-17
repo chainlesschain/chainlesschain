@@ -52,8 +52,17 @@ class MemSalvageCollectorTest {
     }
 
     @Test
-    fun `DOUYIN target maps to the real package`() {
+    fun `target apps map to real packages + appKeys (multi-app de-silo)`() {
         assertEquals("com.ss.android.ugc.aweme", MemSalvageCollector.TargetApp.DOUYIN.packageName)
-        assertEquals("抖音", MemSalvageCollector.TargetApp.DOUYIN.displayName)
+        assertEquals("douyin", MemSalvageCollector.TargetApp.DOUYIN.appKey)
+        assertEquals("com.ss.android.article.news", MemSalvageCollector.TargetApp.TOUTIAO.packageName)
+        assertEquals("toutiao", MemSalvageCollector.TargetApp.TOUTIAO.appKey)
+        assertEquals("com.tencent.mm", MemSalvageCollector.TargetApp.WECHAT.packageName)
+        assertEquals("wechat", MemSalvageCollector.TargetApp.WECHAT.appKey)
+        // every target has a non-blank appKey (drives cc hub salvage --app source attribution)
+        for (t in MemSalvageCollector.TargetApp.values()) {
+            assertEquals(false, t.appKey.isBlank())
+            assertEquals(false, t.packageName.isBlank())
+        }
     }
 }

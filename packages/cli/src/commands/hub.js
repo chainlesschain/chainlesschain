@@ -808,13 +808,15 @@ async function cmdSalvage(dumpfile, options) {
   const spinner = options.json ? null : ora(`salvaging ${dumpfile}...`).start();
   try {
     const hub = await (options._getHub || getHub)();
-    const { salvageAndSync } = options._salvageAndSync
-      ? { salvageAndSync: options._salvageAndSync }
-      : await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+    // Generic multi-app salvage → vault with correct per-app source.adapter
+    // (douyin→social-douyin, toutiao→social-toutiao, wechat→wechat, …). The
+    // earlier social-douyin-only path mis-attributed every app to douyin.
+    const { salvageDumpToVault } = options._salvageDumpToVault
+      ? { salvageDumpToVault: options._salvageDumpToVault }
+      : await import("@chainlesschain/personal-data-hub/forensics/salvage-ingest");
     const opts = {
-      uid: options.uid,
+      app: options.app || "douyin",
       unaligned: options.unaligned !== false, // default-on: scattered page cache
-      stagingDir: options.stagingDir,
     };
     if (options.pageSize) opts.pageSize = Number(options.pageSize);
     if (options.minCols) opts.minCols = Number(options.minCols);
@@ -822,19 +824,18 @@ async function cmdSalvage(dumpfile, options) {
       opts.columns = String(options.columns)
         .split(",")
         .map((s) => s.trim());
-    const report = await salvageAndSync(hub.registry, dumpfile, opts);
+    const report = salvageDumpToVault(hub.vault, dumpfile, opts);
     if (spinner) spinner.succeed(`salvaged ${dumpfile}`);
     if (options.json) {
       jsonAndExit(report);
       return;
     }
-    const dy = report.douyin || {};
-    const sv = dy.salvage || {};
-    const counts = dy.eventCounts || {};
     logger.log(chalk.green(`✓ salvage succeeded`));
-    logger.log(`  leaf pages:   ${sv.leafPages || 0}`);
-    logger.log(`  records:      ${sv.recordsSalvaged || 0}`);
-    logger.log(`  messages:     ${counts.message || 0}`);
+    logger.log(
+      `  app:          ${report.app} (source: ${report.sourceAdapter})`,
+    );
+    logger.log(`  leaf pages:   ${report.leafPages || 0}`);
+    logger.log(`  records:      ${report.salvaged || 0}`);
     logger.log(`  ingested:     ${report.ingested || 0}`);
     process.exit(0);
   } catch (err) {
@@ -2531,9 +2532,12 @@ export function registerHubCommand(program) {
   hub
     .command("salvage <dumpfile>")
     .description(
-      "Method B (免密钥): salvage SQLite leaf-page records from a /proc/mem dump → ingest into the vault. Used by the Android root 一键采集 button after a memory scan.",
+      "Method B (免密钥): salvage SQLite leaf-page records from a /proc/mem dump → ingest into the vault with the correct per-app source (--app). Used by the Android root 一键采集 button after a memory scan.",
     )
-    .option("--uid <id>", "Account uid for the snapshot (default: salvage)")
+    .option(
+      "--app <key>",
+      "Source app: douyin/toutiao/wechat/kuaishou/xiaohongshu/weibo/qq (default douyin)",
+    )
     .option(
       "--columns <list>",
       "Comma-separated msg column order; else inferred",
@@ -2541,7 +2545,6 @@ export function registerHubCommand(program) {
     .option("--page-size <n>", "SQLite page size (default 4096)")
     .option("--min-cols <n>", "Drop records with fewer columns (default 3)")
     .option("--no-unaligned", "Disable the finer (512) stride scan")
-    .option("--staging-dir <path>", "Where to write the intermediate snapshot")
     .option("--json", "Output JSON")
     .action(cmdSalvage);
 

@@ -68,7 +68,9 @@
     "./adapters/messaging-qq": "./lib/adapters/messaging-qq/index.js",
     "./adapters/messaging-telegram": "./lib/adapters/messaging-telegram/index.js",
     "./adapters/messaging-whatsapp": "./lib/adapters/messaging-whatsapp/index.js",
-    "./sidecar": "./lib/sidecar/index.js"
+    "./sidecar": "./lib/sidecar/index.js",
+    "./forensics/leaf-salvage": "./lib/forensics/leaf-salvage.js",
+    "./forensics/salvage-ingest": "./lib/forensics/salvage-ingest.js"
   },
   "scripts": {
     "test": "vitest run",

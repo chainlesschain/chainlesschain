@@ -41,9 +41,23 @@ class MemSalvageCollector @Inject constructor(
     private val ccRunner: LocalCcRunner,
 ) {
 
-    /** 支持的目标 app。columns=null → cc 端 inferMsgColumns 启发式推断列序。 */
-    enum class TargetApp(val packageName: String, val displayName: String, val columns: String?) {
-        DOUYIN("com.ss.android.ugc.aweme", "抖音", null),
+    /**
+     * 支持的目标 app。[appKey] → `cc hub salvage --app <key>`，决定入库的正确来源
+     * 归属（抖音→social-douyin、头条→social-toutiao …），不再全挂到 douyin。
+     * columns=null → cc 端 inferMsgColumns 启发式推断列序（各 app 精确列序后续细化）。
+     */
+    enum class TargetApp(
+        val packageName: String,
+        val displayName: String,
+        val appKey: String,
+        val columns: String? = null,
+    ) {
+        DOUYIN("com.ss.android.ugc.aweme", "抖音", "douyin"),
+        TOUTIAO("com.ss.android.article.news", "今日头条", "toutiao"),
+        WECHAT("com.tencent.mm", "微信", "wechat"),
+        KUAISHOU("com.smile.gifmaker", "快手", "kuaishou"),
+        XIAOHONGSHU("com.xingin.xhs", "小红书", "xiaohongshu"),
+        WEIBO("com.sina.weibo", "微博", "weibo"),
     }
 
     sealed class Result {
@@ -71,28 +85,35 @@ class MemSalvageCollector @Inject constructor(
             return@withContext Result.Failed("script-stage-failed: ${e.message ?: "io"}")
         }
 
-        // 2. root 跑扫描 → dump 到 /data/local/tmp/ccmem/*.db。
-        val scanOut = runner.execAndCapture("sh ${scriptFile.absolutePath} $pid", SCAN_TIMEOUT_MS)
-            ?: return@withContext Result.Failed("mem-scan failed (su / bc 不可用?)")
-        val total = parseScanTotal(scanOut)
-        if (total <= 0) return@withContext Result.NoDumps
-
-        // 3. su 拷 dump 进 app 目录 + chown 到 app uid（cc 以 app uid 跑才读得到）。
+        // 大 app（抖音/微信）内存动辄数 GB，单线程 dd+grep 扫所有 rw-p 段耗时长。
+        // 两道保险防孤儿 + 防卡死：① `timeout` 包裹让脚本自限（略小于 collector 预算）；
+        // ② 脚本自身 trap 'kill 0' 清 dd 子进程；③ 无论成败 finally 里 su pkill 兜底。
+        // 真机 2026-06-17：180s 对抖音不够 + destroyForcibly 杀不到 root 子进程→4 个孤儿。
         val stageDir = File(context.filesDir, STAGE_DIR).apply { mkdirs() }
-        val copyOk = runner.exec(
-            buildCopyScript(stageDir.absolutePath, android.os.Process.myUid()),
-            COPY_TIMEOUT_MS,
-        )
-        if (!copyOk) return@withContext Result.Failed("dump copy (su) failed")
-
-        // 4. 逐 dump 打捞入库。
-        var ingested = 0
-        var salvaged = 0
-        var dumps = 0
-        val files = stageDir.listFiles { f -> f.name.endsWith(".db") } ?: emptyArray()
         try {
+            // 2. root 跑扫描 → dump 到 /data/local/tmp/ccmem/*.db（timeout 自限）。
+            val scanSecs = SCAN_TIMEOUT_MS / 1000 - 10
+            val scanOut = runner.execAndCapture(
+                "timeout $scanSecs sh ${scriptFile.absolutePath} $pid",
+                SCAN_TIMEOUT_MS,
+            ) ?: return@withContext Result.Failed("mem-scan failed/timeout (su / bc 不可用?)")
+            val total = parseScanTotal(scanOut)
+            if (total <= 0) return@withContext Result.NoDumps
+
+            // 3. su 拷 dump 进 app 目录 + chown 到 app uid（cc 以 app uid 跑才读得到）。
+            val copyOk = runner.exec(
+                buildCopyScript(stageDir.absolutePath, android.os.Process.myUid()),
+                COPY_TIMEOUT_MS,
+            )
+            if (!copyOk) return@withContext Result.Failed("dump copy (su) failed")
+
+            // 4. 逐 dump 打捞入库。
+            var ingested = 0
+            var salvaged = 0
+            var dumps = 0
+            val files = stageDir.listFiles { f -> f.name.endsWith(".db") } ?: emptyArray()
             for (f in files) {
-                when (val r = ccRunner.salvageIngest(f.absolutePath, target.columns)) {
+                when (val r = ccRunner.salvageIngest(f.absolutePath, target.appKey, target.columns)) {
                     is LocalCcRunner.SalvageResult.Ok -> {
                         ingested += r.ingested
                         salvaged += r.salvaged
@@ -102,19 +123,21 @@ class MemSalvageCollector @Inject constructor(
                         Timber.w("MemSalvageCollector: salvage ingest failed for %s: %s", f.name, r.reason)
                 }
             }
+            if (dumps == 0) Result.NoDumps else Result.Ok(ingested, salvaged, dumps)
         } finally {
-            // 5. 善后：删 app 目录 dump + root 侧 ccmem（含明文页，必须清掉）。
-            files.forEach { try { it.delete() } catch (_: Exception) {} }
+            // 5. 善后（无论成败/超时）：杀残留扫描进程 + 删 app 目录 dump + root 侧
+            //    ccmem（含明文页，必须清掉）。pkill 兜底脚本 trap 没清干净的孤儿。
+            runner.exec("pkill -9 -f pdh-mem-sqlite-scan", CLEANUP_TIMEOUT_MS)
+            (stageDir.listFiles { f -> f.name.endsWith(".db") } ?: emptyArray())
+                .forEach { try { it.delete() } catch (_: Exception) {} }
             runner.exec("rm -rf /data/local/tmp/ccmem", CLEANUP_TIMEOUT_MS)
         }
-
-        if (dumps == 0) Result.NoDumps else Result.Ok(ingested, salvaged, dumps)
     }
 
     companion object {
         const val SCRIPT_NAME = "pdh-mem-sqlite-scan.sh"
         const val STAGE_DIR = "ccmem-salvage"
-        const val SCAN_TIMEOUT_MS = 180_000L
+        const val SCAN_TIMEOUT_MS = 300_000L
         const val COPY_TIMEOUT_MS = 60_000L
         const val CLEANUP_TIMEOUT_MS = 10_000L
 

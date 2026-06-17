@@ -1651,8 +1651,8 @@ class LocalCcRunner @Inject constructor(
      */
     suspend fun salvageIngest(
         dumpPath: String,
+        app: String,
         columns: String? = null,
-        uid: String? = null,
         timeoutMs: Long = 60_000L,
     ): SalvageResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
@@ -1668,8 +1668,8 @@ class LocalCcRunner @Inject constructor(
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
             add("hub"); add("salvage"); add(dumpPath)
+            add("--app"); add(app)
             if (!columns.isNullOrBlank()) { add("--columns"); add(columns) }
-            if (!uid.isNullOrBlank()) { add("--uid"); add(uid) }
             add("--json")
         }
         val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)

@@ -21,6 +21,15 @@ PID="$1"
 [ -z "$PID" ] && { echo "usage: $0 <pid>"; exit 1; }
 [ -r "/proc/$PID/maps" ] || { echo "cannot read /proc/$PID/maps (need root, valid pid)"; exit 1; }
 
+# Self-cleanup: kill the whole process group (this script + any in-flight `dd`
+# child) on exit/termination. Without this, when the Android collector hits its
+# timeout and destroyForcibly()'s the `su` wrapper, the root-owned grandchild
+# (this script + its dd) keeps running orphaned, hammering /proc/<pid>/mem
+# (real-device repro 2026-06-17: 4 orphaned scans survived a button timeout).
+# `timeout` (toybox) wrapping from the caller + this trap together guarantee
+# the scan never outlives the button.
+trap 'kill 0 2>/dev/null' EXIT INT TERM
+
 OUT=/data/local/tmp/ccmem
 mkdir -p "$OUT"; rm -f "$OUT"/*.db "$OUT"/_r.bin
 
