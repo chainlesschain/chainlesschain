@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.116 · 2026-06-17',
+    title: 'PDH multi-app root memory collection + source attribution + scan hardening (pdh 0.4.27 / cli 0.162.77 / cc bundle v20260617b)',
+    sub: 'Real-device scan-bug fixes + multi-app direct collection: salvage now attributes records to the right target app, and the scan engine gains timeouts and orphan-process cleanup. pdh 0.4.27 + CLI 0.162.77 published to npm; Android cc bundle rolled to internal-binaries-android-v20260617b (USR_VERSION → 47).',
+    desc: 'Multi-app root direct collection + correct source attribution: cc hub salvage --app <key> (douyin/toutiao/wechat/kuaishou/xiaohongshu/weibo) routes messages through the new forensics/salvage-ingest.js, writing them to the vault under the right source.adapter (Toutiao → social-toutiao, no longer all lumped under douyin); the Android "one-tap root collect" button gains a target-app dropdown. Scan-engine hardening (surfaced on a real device 2026-06-17): the mem-scan script adds trap "kill 0" to reap subprocesses + wraps the collector in timeout + raises the budget 180s → 300s + a finally pkill fallback, fixing orphan root processes left behind on scan timeout. Versions: productVersion v5.0.3.115 → v5.0.3.116 / desktop 5.0.3-alpha.116 / Android versionCode 503116 · USR_VERSION 46 → 47 · binariesVersion 20260617 → 20260617b / iOS build 116.',
+  },
+  {
     tag: 'v5.0.3.115 · 2026-06-17',
     title: 'PDH key-free forensic one-tap collection + cross-app data overview on device (pdh 0.4.26 / cli 0.162.76 / cc bundle v20260617)',
     sub: 'Key-free forensic collection on a rooted device (Method B /proc/mem leaf-page salvage) goes from a manual script to a one-tap in-app button; cross-app data overview fixed (older cc bundles lacked analysis.overview, causing an "overview error"). Desktop / Android / iOS surfaces aligned to .115; Android cc bundle rolled to internal-binaries-android-v20260617 (carries pdh 0.4.26, USR_VERSION → 46); release ships 18 assets.',
