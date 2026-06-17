@@ -34,7 +34,9 @@ beforeAll(() => {
   execSync(`node ${bin} init --template ai-media-creator --yes`, {
     cwd: tempDir,
     encoding: "utf-8",
-    timeout: 15000,
+    // 30s: cc init cold-start can exceed 15s under integration load (a beforeAll
+    // timeout fails the whole file). Documented subprocess-timeout family.
+    timeout: 30000,
   });
   // Create a require function rooted at the temp dir
   require = createRequire(pathToFileURL(join(tempDir, "index.js")).href);
