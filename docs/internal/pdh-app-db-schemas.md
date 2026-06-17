@@ -161,6 +161,79 @@
 
 ---
 
+## Android 系统数据 System Providers（明文，`device-verified` 2026-06-17）— **决策价值最高、最可靠**
+
+> 采集脚本：`scripts/android/pdh-device-collect.mjs`（contacts 走 root 读库，sms/call/app/media 走 `adb content query`/`pm`/`find`）。全部**明文**，无需解密，是真机采集首选（远比加密 App IM 容易、量大）。落库适配器 = `system-data-android`（bridge 模式）。
+
+**① 联系人** `contacts2.db`（`/data/data/com.android.providers.contacts/databases/`，明文；`content query` 被拒→须 root 读）
+
+| 表 | 关键列 | 含义 | → PDH 实体 | AI 解读要点 |
+|---|---|---|---|---|
+| `raw_contacts` | `_id`,`display_name`,`deleted` | 联系人主记录 | **PERSON**(`CONTACT`) | `deleted=0` 才有效；`display_name` 常含**单位/职务**（"黄金鹏 支队长 莆田海渔局"）→ 可抽取组织/角色 |
+| `data` + `mimetypes` | `data1`,`mimetype_id`→`mimetype` | 多值字段：`phone_v2`=电话 / `email_v2`=邮箱 | identifiers.phone/email | 一人多号；按 `raw_contact_id` 聚合；电话号是跨 SMS/通话 join 的主键 |
+
+**② 短信** `content://sms`（或 `mmssms.db`，明文）→ **EVENT**(`MESSAGE`)
+
+| 列 | 含义 | AI 解读 / 决策价值 |
+|---|---|---|
+| `address` | 对端号码/短号 | 银行(95xxx)/运营商/平台(106xxx) 可分类 |
+| `body` | 正文 | **验证码短信=账号资产清单**（你注册了哪些 App：支付宝/微信/银行）；**账单/扣款短信=财务流水**；物流短信=消费 |
+| `date` | 收到时间(ms) | 时间线 |
+| `type` | 1=收 2=发 | 方向 |
+| `thread_id` | 会话线程 | 按对端归并 |
+
+**③ 通话记录** `content://call_log/calls`（或 `calllog.db`，明文）→ **EVENT**(`call`/通讯)
+
+| 列 | 含义 | AI 解读 / 决策价值 |
+|---|---|---|
+| `number` | 号码 | join `contacts2.db` 得姓名（title 已是"拨打/来电 <姓名>"）|
+| `date` | 时间(ms) | — |
+| `duration` | 时长(秒) | 0=未接通 |
+| `type` | 1=来电 2=去电 3=未接 4=语音留言 | **通话频次+时长+方向 → 关系强度/亲密度**（谁联系最多、最近联系是谁）→ 关系维护决策 |
+
+**④ 媒体** `find /sdcard/{DCIM/Camera,Pictures,Movies,Download,Documents}`（仅元数据：path/size/mtime/ext）→ **ITEM**(`media-file`)
+
+| 字段 | 含义 | AI 解读 / 决策价值 |
+|---|---|---|
+| `path` | 完整路径 | 目录即类别（Camera=拍摄/Download=下载）|
+| `size`,`mtimeMs` | 大小/修改时间 | **拍照时间分布=活动/出行时间线**（集中拍照=旅行/活动）；大文件清理决策；按月聚合看生活节奏 |
+
+**AI 找数据指引（系统数据）**：决策类问题优先查这里——「我都注册过哪些金融 App」→SMS 验证码 `body`；「最近谁联系我最多」→`call_log` 按 `number` 聚合频次；「我认识哪些某单位的人」→`contacts.display_name` 模糊匹配；「这个月我忙不忙」→media `mtime` + call/SMS 频次。
+**UI 展示建议**：联系人通讯录（按拼音/星标）；短信时间线（按对端分组气泡）；通话记录（来/去/未接图标 + 时长 + 频次榜）；媒体按日期网格 + 月度热力图。
+**敏感度**：高（真实身份/社交图谱/财务线索）；`legalGate` 适用，本人设备本人用途。
+
+---
+
+## AOSP 浏览器 MIUI Browser（`com.android.browser` → `browser2.db`，明文，`device-verified` 2026-06-17）
+
+DB 文件：`/data/data/com.android.browser/databases/browser2.db`（明文；**注意≠Chrome**，schema 不同）
+
+| 表 | 关键列 | 含义 | → PDH 实体 | AI 解读要点 |
+|---|---|---|---|---|
+| `history` | `_id`,`title`,`url`,`date`(ms),`visits` | 浏览历史 | **EVENT**(`browse`) | `date`=ms(1970)；`visits`=访问次数 |
+| `bookmarks` | `title`,`url`,`folder`,`deleted` | 书签(folder=1)+部分历史 | ITEM/EVENT | `folder=0` 才是书签条目 |
+
+**适配缺口**：仅有 `browser-history-chrome`/`-edge` 适配器（读 Chrome `urls`+`visits`，WebKit-µs 时间）。AOSP `browser2.db` 须**转 Chrome 形再喂**：建临时 `History`(urls+visits)，`visit_time=(date_ms+11644473600000)*1000`，然后 `syncAdapter("browser-history-chrome",{profilePath})`（见 `pdh-device-collect` 同款思路）。
+**AI/决策**：浏览 `url` 域名分布=兴趣/关注；但本测试机多为应用市场/推送落地页（噪声多，需过滤 `*.market.xiaomi.com`/push 域）。**UI**：按域名聚合的访问 Top + 时间线。
+
+---
+
+## 微博 Weibo（`com.sina.weibo`，明文，`device-verified` 2026-06-17）
+
+DB 文件（均明文 `SQLite format 3`，root 读）：`sina_weibo` / `message_<uid>.db` / `ArticleDb.db` / `Recent.db` / `UnreadDb.db`
+
+| 库.表 | 关键列 | 含义 | → PDH 实体 | AI 解读要点 |
+|---|---|---|---|---|
+| `ArticleDb.long_text_table` | `_own_uid`,`_mid`,`_content` | **本人发的长微博正文** | **EVENT**(`POST`) | `_mid`=微博 id；`_content`=正文（兴趣/观点信号）|
+| `sina_weibo.mblog_pic_table` | `mblogid`,`picid`,`*url` | 微博配图 | ITEM(图片) | 按 `mblogid` 关联到 post |
+| `message_<uid>.db.t_session` | `session_id`,`last_msg_*` | 私信会话列表 | **TOPIC** | 本机为空壳(null)；填充账号有 `t_message`(t_buddy/t_group) |
+| `sina_weibo.home_table`/`like_table`/`follower_table` | (填充账号才有) | 时间线/赞/粉丝 | EVENT/PERSON | 本测试账号无这些表→**旧 sqlite 适配器查这些表会静默 0 行**（已知坑）|
+
+**适配状态**：`social-weibo` 适配器 **snapshot 模式**（`{schemaVersion:1,account:{uid},events:[{kind:"post",text,mid,picCount}]}` → `cc hub sync-adapter social-weibo --input`，已实测入库 + FTS5 可搜）。sqlite 模式查的表名与真机不符（坑）。
+**AI/决策**：`long_text_table` 正文=公开表达/兴趣；**UI**：个人微博 feed 卡（正文+配图）。
+
+---
+
 ## 模板（新增 App 照抄）
 
 ```
