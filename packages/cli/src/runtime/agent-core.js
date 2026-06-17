@@ -2860,6 +2860,40 @@ export function _accumulateOllamaStream(lines, onToken) {
   return _ollamaFinalize(state);
 }
 
+/**
+ * Decide how to handle an error thrown mid-stream while reading an SSE / NDJSON
+ * response body. Returns:
+ *   - "rethrow"  — the error is a user abort (Esc / AbortController) or no
+ *                  partial text was accumulated, so surface it to the caller.
+ *   - "preserve" — a genuine connection drop (ECONNRESET / "terminated" /
+ *                  server hangup) after some text already streamed to the user;
+ *                  finalize and return what we have instead of replacing the
+ *                  visible partial answer with a raw network error.
+ *
+ * Parity with Claude-Code 2.1.179 ("preserving partial responses instead of
+ * showing raw errors"). Pure + exported for unit tests.
+ */
+export function _streamErrorDisposition(err, signal, partialText) {
+  if (isAbortError(err)) return "rethrow";
+  if (signal && signal.aborted) return "rethrow";
+  if (typeof partialText === "string" && partialText.trim()) return "preserve";
+  return "rethrow";
+}
+
+/**
+ * Finalize a partial stream into the standard {message, usage} shape after a
+ * mid-stream connection drop: marks the message truncated and drops any
+ * half-streamed tool_call (its JSON args are incomplete and not safely
+ * executable), so the agent loop treats it as a partial text answer and ends
+ * the turn showing what the user already saw.
+ */
+function _finalizeTruncatedStream(finalize, state) {
+  const out = finalize(state);
+  if (out.message && out.message.tool_calls) delete out.message.tool_calls;
+  if (out.message) out.message._truncated = true;
+  return out;
+}
+
 async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -2874,17 +2908,23 @@ async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let idx;
-    while ((idx = buf.indexOf("\n")) >= 0) {
-      _ollamaReduceLine(state, buf.slice(0, idx), onToken);
-      buf = buf.slice(idx + 1);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n")) >= 0) {
+        _ollamaReduceLine(state, buf.slice(0, idx), onToken);
+        buf = buf.slice(idx + 1);
+      }
     }
+    if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
+  } catch (err) {
+    if (_streamErrorDisposition(err, signal, state.content) === "rethrow")
+      throw err;
+    return _finalizeTruncatedStream(_ollamaFinalize, state);
   }
-  if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
   return _ollamaFinalize(state);
 }
 
@@ -3030,16 +3070,22 @@ async function _chatAnthropicStreaming(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const line of lines)
-      _anthropicReduceLine(state, line, onToken, onThinking);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
+      for (const line of lines)
+        _anthropicReduceLine(state, line, onToken, onThinking);
+    }
+    if (buf.trim()) _anthropicReduceLine(state, buf, onToken, onThinking);
+  } catch (err) {
+    if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
+      throw err;
+    return _finalizeTruncatedStream(_anthropicFinalize, state);
   }
-  if (buf.trim()) _anthropicReduceLine(state, buf, onToken, onThinking);
   return _anthropicFinalize(state);
 }
 
@@ -3144,15 +3190,21 @@ async function _chatOpenAIStreaming(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const line of lines) _openaiReduceLine(state, line, onToken);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
+      for (const line of lines) _openaiReduceLine(state, line, onToken);
+    }
+    if (buf.trim()) _openaiReduceLine(state, buf, onToken);
+  } catch (err) {
+    if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
+      throw err;
+    return _finalizeTruncatedStream(_openaiFinalize, state);
   }
-  if (buf.trim()) _openaiReduceLine(state, buf, onToken);
   return _openaiFinalize(state);
 }
 

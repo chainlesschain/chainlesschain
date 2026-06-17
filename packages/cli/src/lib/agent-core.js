@@ -33,6 +33,7 @@ export {
   _accumulateOllamaStream,
   _accumulateOpenAIStream,
   _accumulateAnthropicStream,
+  _streamErrorDisposition,
   _toAnthropicMessages,
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,
