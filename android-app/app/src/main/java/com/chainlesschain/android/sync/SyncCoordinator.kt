@@ -2,10 +2,12 @@ package com.chainlesschain.android.sync
 
 import com.chainlesschain.android.capture.share.SharePayloadFlusher
 import com.chainlesschain.android.core.p2p.sync.SyncManager
+import com.chainlesschain.android.di.IoDispatcher
 import com.chainlesschain.android.remote.p2p.P2PClient
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -42,9 +44,17 @@ class SyncCoordinator @Inject constructor(
     private val p2pClient: P2PClient,
     private val syncManager: SyncManager,
     private val sharePayloadFlusher: SharePayloadFlusher,
+    // 注入便于单测用 TestDispatcher 驱动周期 push 循环（默认生产为 Dispatchers.IO，见 DispatchersModule）。
+    // @Inject 构造不能写 Kotlin 默认值，故走 @IoDispatcher 限定符（memory android_inject_default_param_dual_ctor）。
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    /**
+     * 协调器生命周期 scope。每次 [start] 新建、[stop] 整体 cancel —— 让停止后所有子协程
+     * （watcher + 周期 push）都确定性收尾（旧实现只 cancel 两个 job、scope 常驻，残留协程在
+     * 测试 leak 检测下会偶发 UncompletedCoroutinesError）。重启即重建新 scope。
+     */
+    @Volatile private var scope: CoroutineScope? = null
 
     /** 监听 connectedPeer 的外层 job */
     @Volatile private var watcherJob: Job? = null
@@ -65,7 +75,9 @@ class SyncCoordinator @Inject constructor(
             return
         }
         Timber.i("[SyncCoordinator] starting connectedPeers watcher (v1.1 W2.3 multi-peer)")
-        watcherJob = scope.launch {
+        val s = CoroutineScope(ioDispatcher + SupervisorJob())
+        scope = s
+        watcherJob = s.launch {
             // v1.1 W2.3: 切到 connectedPeers Map (peerId → PeerInfo)
             // - lifecycle 仍 single-peer-at-a-time（W2.1 范围内 connect() 前先 disconnect 现连接），
             //   所以本 collect 在 v1.1 收到的 Map 实际只有 0 或 1 entry
@@ -91,13 +103,16 @@ class SyncCoordinator @Inject constructor(
         stopPeriodicPush()
         watcherJob?.cancel()
         watcherJob = null
+        scope?.cancel()
+        scope = null
     }
 
     private fun startPeriodicPush(peerIds: List<String>) {
         // Cancel any existing loop (peer set changed)
         stopPeriodicPush()
 
-        periodicPushJob = scope.launch {
+        val s = scope ?: return
+        periodicPushJob = s.launch {
             // 进入循环：每 pushIntervalMs 检查 pendingChanges + Inbox
             while (isActive) {
                 try {
