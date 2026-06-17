@@ -69,6 +69,43 @@
 
 ---
 
+## 今日头条 Toutiao（`com.ss.android.article.news`）— IM 库 `schema-accurate`（2026-06-17 真机明文库实测）
+
+> **引擎/加密**：`databases/encrypted_<uid>_im.db` = WCDB（SQLCipher 4，文件头 16 字节=salt；
+> 由 IM 插件 `files/plugins/com.ss.android.im.so/.../libwcdb.so` 打开）。**头条 = 抖音同一套
+> ByteDance IM 框架（`com.ss.android.im`），下表 schema 对两者通用**——本表取自头条一个**明文旧账号库**
+> `<olduid>_im.db`（"SQLite format 3" 头，12 表齐全、0 行），是 ByteDance IM 的**权威 schema**。
+> `msg.content` 是 ByteDance 消息 JSON（按 `type` 分文本/图片/卡片）；时间 epoch（秒/毫秒/微秒混用按位数判）。
+
+| 表 | 关键列 | 含义 | → PDH | AI 解读要点 |
+|---|---|---|---|---|
+| **`msg`** | `msg_uuid`(PK), `msg_server_id`, `conversation_id`, `conversation_short_id`, `conversation_type`, `type`(int 消息形态), `index_in_conversation(_v2)`, `order_index`, `status`, `net_status`, `deleted`, `created_time`(epoch), `sender`(BIGINT uid), `content`(TEXT=ByteDance JSON), `ext`, `local_info`, `read_status`, `sec_sender`, `property_list` | 每条私信 | **EVENT** subtype=MESSAGE/INTERACTION，`occurredAt=created_time`，text=content 按 type 解 | 沟通频率/活跃时段/话题；`type` 区分形态；`deleted=1` 过滤；按 `conversation_id` 聚合对话；`sender` 是 uid（昵称查 `participant`/`conversation_core`）|
+| **`conversation_list`** | `conversation_id`(PK), `short_id`, `type`, `last_msg_index`, `updated_time`, `unread_count`, `read_index`, `inbox`, `is_member`, `member_count`, `participant`(TEXT), `stranger`, `sort_order`, `is_in_box`, `badge_count` | 会话列表 | **TOPIC**（一个会话） | 活跃联系人、未读/拖延、`stranger` 陌生人；`participant` 列冗余存成员 |
+| **`conversation_core`** | `conversation_id`(PK), `name`, `desc`, `icon`, `notice`, `owner_id`, `sec_owner`, `mode`, `info_version` | 会话元信息（群名/群主）| **TOPIC**.title/desc | 群名/群主/公告；`mode` 区分单聊/群聊 |
+| **`participant`** | `user_id`(NN), `conversation_id`, `role`, `alias`, `sec_uid`, `sort_order`, `silent` | 会话成员（你聊的人）| **PERSON** subtype=CONTACT，id=`toutiao-uid`/`sec_uid` | 社交图谱、关系强度（共现会话）、`role` 群角色、`alias` 备注名 |
+| **`attchment`**(原文拼写) | `uuid`, `local_uri`, `remote_uri`, `size`, `type`, `mime_type`, `hash`, `status`, `display_type` | 消息附件（图/视频/文件）| EVENT.extra / ITEM | 多媒体沟通；`mime_type` 区分类型 |
+| **`mention`** | `uuid`(PK), `conversation_id`, `ids_str`, `sender_id`, `created_time` | @提及 | EVENT subtype=MENTION | 被@频率/群活跃 |
+| **`conversation_setting`** | `conversation_id`(PK), `stick_top`, `mute`, `favor`, `set_top_time`, `push_status` | 会话设置 | TOPIC.extra | 置顶/免打扰/收藏偏好 |
+| `msg_property_new` | `msg_uuid`, `key`, `sender`, `create_time`, `value` | 消息属性/表态（点赞等）| EVENT.extra | 互动质量 |
+| `conversation_kv` / `message_kv` | `(conv_id\|uuid, key, value)` | 会话/消息 KV 扩展 | TOPIC/EVENT.extra | 杂项元数据 |
+| `conversation_tag` | `conv_id`, `tag_id`, `tag_type` | 会话标签/分组 | TOPIC.extra | 会话分类 |
+| `participant_read` | `user_id`, `conversation_id`, `read_index` | 成员已读位 | — | 已读回执/群已读 |
+
+### 解密状态（2026-06-17 真机实测，重要）
+- 加密库 `encrypted_<uid>_im.db` **是 SQLCipher**（首 16 字节=salt）。**frida hook `sqlite3_key`（libwcdb.so/libwcdb2.so，均导出，头条无 libmsaoaidsec 反 frida）已成功截获 raw key**（`x'<64hex key><32hex salt>'`，salt 与文件头一致）。
+- ⚠️ 但用 better-sqlite3-multiple-ciphers 标准 SQLCipher 参数（compat 1-4 × HMAC SHA1/256/512 × page/plaintext-header）**未能解密**（72 组合全 "file is not a database"）——WCDB **自研 cipher 配置**（导出 `setDefaultCipherConfiguration(CipherVersion)`/`cipherHmacAlgorithm`/`cipherPlainTextHeaderSize`），非 vanilla SQLCipher，光有 key 还不够。
+- **现实解密路径**：① 用 WCDB 自身库（带正确 CipherVersion 配置）离线解；或 ② frida 拿到 db handle 后**直接在 app 已解密连接上 `sqlite3_exec("SELECT ... FROM msg")` dump**（绕过 cipher 复现）。两者皆 frida/RE 量，详见 [[pdh_mem_salvage_one_tap_and_release_gotchas]]。
+
+### AI 找数据指引（头条/抖音 IM）
+- **私信**：`msg`（按 `conversation_id` 分组、`order_index` 排序、过滤 `deleted=1`）；会话元 `conversation_list`+`conversation_core`；成员 `participant.user_id`/`sec_uid`。
+- ⚠️ 加密 → 须先解密（frida 截 key + WCDB 配置解，或 frida 直查 app 连接）。明文旧账号库可直读但常为空。
+
+### UI 展示建议（头条/抖音 IM）
+- `msg`+`conversation_list`+`conversation_core`+`participant` → **私信会话视图**（会话列表+气泡，群显 `conversation_core.name`）。
+- `attchment` → 媒体气泡；`conversation_setting.stick_top/mute` → 置顶/免打扰标。
+
+---
+
 ## 微信 WeChat（`com.tencent.mm`）— `schema-accurate`（完整 258 表 schema 已入库：`docs/internal/reference/wechat_schema.sql`，源自 sjqz 取证项目）
 
 > 主库 `/data/data/com.tencent.mm/MicroMsg/<md5(uin)>/EnMicroMsg.db`（标准 SQLCipher）。
