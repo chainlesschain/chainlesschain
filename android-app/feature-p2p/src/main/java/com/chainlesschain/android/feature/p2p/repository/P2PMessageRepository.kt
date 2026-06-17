@@ -342,8 +342,17 @@ class P2PMessageRepository @Inject constructor(
     suspend fun saveMessageFromSync(resourceId: String, data: String) {
         try {
             val entity = json.decodeFromString<P2PMessageEntity>(data)
-            p2pMessageDao.insertMessage(entity)
-            Timber.d("Message saved from sync: $resourceId")
+            // FAMILY-67 修复「对方收不到/看不到消息」：发来的 entity 是**发送方视角**——
+            // peerId=发送方的会话对端(=本机自己的 DID)、isOutgoing=true。直接 insert 会让消息
+            // 落在 peerId=本机DID 的会话里、且标成"我发的"，于是接收方打开"与发送方的聊天"
+            // （查 getMessagesByPeer(发送方DID)）根本查不到 → UI 不显示。
+            // 必须重写成**接收方视角**：会话对端=发送方(fromDeviceId)，方向=incoming。
+            val rewritten = entity.copy(
+                peerId = entity.fromDeviceId,
+                isOutgoing = false,
+            )
+            p2pMessageDao.insertMessage(rewritten)
+            Timber.d("Message saved from sync: $resourceId (peer=${entity.fromDeviceId.take(16)}…)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to save message from sync: $resourceId")
         }
