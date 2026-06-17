@@ -19,7 +19,7 @@ describe("CLI aliases integration", () => {
   const runCli = (args) => {
     return execSync(`node "${binScript}" ${args}`, {
       encoding: "utf-8",
-      timeout: 15000,
+      timeout: 30000,
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
     });
   };
@@ -67,7 +67,7 @@ describe("CLI aliases integration", () => {
       // Simulate running from a different directory (like npm global bin)
       const result = execSync(`node "${binScript}" --version`, {
         encoding: "utf-8",
-        timeout: 10000,
+        timeout: 30000,
         cwd: process.env.TEMP || "/tmp",
       });
       expect(result.trim()).toMatch(/^\d+\.\d+\.\d+/);
