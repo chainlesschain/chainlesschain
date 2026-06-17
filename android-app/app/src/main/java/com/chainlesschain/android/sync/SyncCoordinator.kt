@@ -7,9 +7,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,6 +52,7 @@ class SyncCoordinator @Inject constructor(
     /** 当前连接对应的周期 push job；连接切换时 cancel + 重启 */
     @Volatile private var periodicPushJob: Job? = null
 
+    /** 周期 push 的兜底间隔（无新变更时）。有新变更时由 SyncManager.changeSignal 立即唤醒，不等满这 30s。 */
     private val pushIntervalMs = 30_000L
 
     /**
@@ -136,7 +137,10 @@ class SyncCoordinator @Inject constructor(
                 } catch (e: Exception) {
                     Timber.w(e, "[SyncCoordinator] share flush failed; entries left in inbox")
                 }
-                delay(pushIntervalMs)
+                // 等待下一次推送时机：兜底 30s 周期 OR 有新本地变更（即时唤醒），取先到者。
+                // 用户发消息 → SyncManager.recordChange 发 changeSignal → 这里立即醒来 push，
+                // 好友聊天近实时投递（修「发了对方 30s 后才收到」的体验问题）。
+                withTimeoutOrNull(pushIntervalMs) { syncManager.changeSignal.receive() }
             }
         }
     }

@@ -131,8 +131,12 @@ class FamilyGuardSyncConnector @Inject constructor(
         /** 有待连 peer 时的快速重试间隔（加速 WebRTC offer/answer rendezvous）。 */
         const val RETRY_INTERVAL_MS = 3_000L
 
-        /** 全部已连上后的慢轮询间隔（省电；连上后 connectOnce 直接早返，几乎零开销）。 */
-        const val IDLE_INTERVAL_MS = 30_000L
+        /**
+         * 全部已连上后的慢轮询间隔（省电；连上后 connectOnce 直接早返，几乎零开销）。
+         * FAMILY-67: 兼作连接丢失后的重拨上限 —— P2PClient.handleDisconnection 清空 connectedPeers 后，
+         * 本循环须在 ≤ 此间隔内跑下一轮 connectOnce 才会重拨，故定 15s（平衡重连速度 vs 省电）。
+         */
+        const val IDLE_INTERVAL_MS = 15_000L
 
         /**
          * Glare 规避：DID 字典序较小的一方做 offerer（主动发 offer），另一方做 responder

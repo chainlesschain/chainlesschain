@@ -29,7 +29,7 @@ import json
 import os
 import re
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer  # 单线程足够（低 QPS 凭证签发；老 py3 无 ThreadingHTTPServer）
 from urllib.parse import urlparse, parse_qs
 
 TURN_SECRET = os.environ.get("CC_TURN_SECRET", "")
@@ -95,6 +95,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     if not TURN_SECRET:
         print("WARN: CC_TURN_SECRET not set — endpoint will return 500 until configured")
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    srv = HTTPServer(("127.0.0.1", PORT), Handler)
     print(f"turn-cred endpoint on 127.0.0.1:{PORT} (host={TURN_HOST}, ttl={TURN_TTL}s)")
     srv.serve_forever()

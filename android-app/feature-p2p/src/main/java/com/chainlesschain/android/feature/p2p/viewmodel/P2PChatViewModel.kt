@@ -8,11 +8,14 @@ import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.Immutable
@@ -55,6 +58,9 @@ class P2PChatViewModel @Inject constructor(
     // 当前对话的设备ID
     private var currentPeerId: String? = null
 
+    // 连接/会话就绪观察 job：聊天打开后后台 connector + 握手仍在建立连接，轮询到会话就绪即恢复输入框
+    @Volatile private var connectionWatcherJob: Job? = null
+
     // 本地设备ID (DID)
     private val localDeviceId: String
         get() = didManager.getCurrentDID() ?: ""
@@ -77,16 +83,8 @@ class P2PChatViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-                // 检查设备验证状态
-                _isDeviceVerified.value = verificationManager.isVerified(peerId)
-
-                // 检查会话状态
-                val session = sessionManager.getSession(peerId)
-                _connectionStatus.value = if (session != null) {
-                    ConnectionStatus.CONNECTED
-                } else {
-                    ConnectionStatus.DISCONNECTED
-                }
+                // 连接/会话状态 + 设备验证状态（会话已就绪时自动视为已验证）
+                refreshConnectionState(peerId)
 
                 // 加载历史消息
                 messageRepository.getMessages(peerId).collect { messageList ->
@@ -104,7 +102,47 @@ class P2PChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
+
+        // 会话可能在聊天打开后才由后台 FriendSyncConnector + FriendSessionHandshake 建立
+        // （重启后尤其明显：连接需重新协商）。loadChat 的状态只取一次快照，握手完成后
+        // 不会自动更新 → 输入框卡在「请先建立连接」。这里持续观察直到会话就绪，自动恢复可用。
+        startConnectionWatcher(peerId)
     }
+
+    /**
+     * 刷新连接/验证状态。会话非空（已有持久化 E2EE 会话）= 之前完成过 DID 验签握手，
+     * 直接视为已验证 → 清「设备未验证」横幅（验证状态在内存、重启即丢，靠这里从会话事实重建）。
+     */
+    private suspend fun refreshConnectionState(peerId: String) {
+        val session = sessionManager.getSession(peerId)
+        if (session != null) {
+            _connectionStatus.value = ConnectionStatus.CONNECTED
+            if (!verificationManager.isVerified(peerId)) {
+                runCatching {
+                    verificationManager.markAsVerified(peerId, VerificationMethod.MUTUAL_HANDSHAKE)
+                }
+            }
+            _isDeviceVerified.value = true
+        } else {
+            _connectionStatus.value = ConnectionStatus.DISCONNECTED
+            _isDeviceVerified.value = verificationManager.isVerified(peerId)
+        }
+    }
+
+    /** 轮询直到会话就绪（后台 connector + 握手完成），就绪后刷新状态并停止。切换 peer / VM 清理时取消。 */
+    private fun startConnectionWatcher(peerId: String) {
+        connectionWatcherJob?.cancel()
+        connectionWatcherJob = viewModelScope.launch {
+            while (currentPeerId == peerId) {
+                if (sessionManager.getSession(peerId) != null) {
+                    refreshConnectionState(peerId)
+                    break
+                }
+                delay(1500)
+            }
+        }
+    }
+
 
     /**
      * 发送消息
@@ -328,6 +366,7 @@ class P2PChatViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        connectionWatcherJob?.cancel()
         super.onCleared()
         Timber.d("ViewModel cleared")
     }

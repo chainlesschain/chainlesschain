@@ -43,6 +43,12 @@ class AppInitializer @Inject constructor(
     // Phase 3d v1.1 #4: 移动同步 auto-trigger，让本地写入自动推到桌面
     private val syncCoordinator: Lazy<SyncCoordinator>,
 
+    // FAMILY-67: 启动时把已持久化的 E2EE 会话恢复进内存，否则重启后 getSession 为空，
+    // 好友聊天输入框卡「请先建立连接」直到下一次握手（需先连上）。在此提前 restore 让
+    // 重启后聊天即刻可用（消息离线排队、连上即推），「设备未验证」横幅也由会话事实自动清除。
+    private val persistentSessionManager:
+        Lazy<com.chainlesschain.android.core.e2ee.session.PersistentSessionManager>,
+
     // FAMILY-67: 已配对家庭组在启动时自动接通监护人 P2P，让孩子端遥测能跨设备推送
     private val familyGuardSyncConnector: Lazy<com.chainlesschain.android.sync.FamilyGuardSyncConnector>,
 
@@ -112,6 +118,17 @@ class AppInitializer @Inject constructor(
 
                 // 4. 预加载字体和资源
                 launch { preloadResources() }
+
+                // 4b. FAMILY-67: 恢复持久化的 E2EE 会话进内存（autoRestore）。必须在 P2P 连接 /
+                //     握手之前完成，这样重启后打开好友聊天 getSession 即非空、输入框可用。
+                launch {
+                    try {
+                        persistentSessionManager.get().initialize(autoRestore = true)
+                        Timber.d("PersistentSessionManager restored sessions on boot")
+                    } catch (e: Exception) {
+                        Timber.w(e, "PersistentSessionManager restore failed (non-fatal)")
+                    }
+                }
 
                 // 5. Phase 3d v1.1 #4: 启动 SyncCoordinator 监听 P2P 连接，
                 //    连上桌面后周期推 pendingChanges 到对端

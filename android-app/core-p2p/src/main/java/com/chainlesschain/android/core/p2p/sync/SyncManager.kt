@@ -7,6 +7,8 @@ import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessageTransport
 import dagger.Lazy
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +60,17 @@ class SyncManager @Inject constructor(
     // 待同步项（资源ID -> 变更）
     private val pendingChanges = ConcurrentHashMap<String, SyncItem>()
 
+    /**
+     * 即时推送信号：每次 [recordChange] 发一拍，[com.chainlesschain.android.sync.SyncCoordinator]
+     * 的周期 push 循环收到后立刻 push，免等 30s 周期 —— 好友聊天近实时投递（修「对方收不到」
+     * 实为「30s 后才到」的体验问题）。
+     *
+     * CONFLATED：即使当前无消费者也保留最新一拍，下次 `receive()` 立即返回（不丢信号）；
+     * 短时间多拍合并成一拍（天然去抖，一次 push 带走全部 pending）。单一消费者（SyncCoordinator）。
+     */
+    private val _changeSignal = Channel<Unit>(Channel.CONFLATED)
+    val changeSignal: ReceiveChannel<Unit> get() = _changeSignal
+
     // 本地状态缓存（资源ID -> 本地项）
     private val localState = ConcurrentHashMap<String, SyncItem>()
 
@@ -104,6 +117,8 @@ class SyncManager @Inject constructor(
         pendingChanges[item.resourceId] = item
         localState[item.resourceId] = item
         Timber.d("Change recorded: ${item.resourceId} (${item.operation})")
+        // 即时推送：通知 SyncCoordinator 立刻 push（免等 30s 周期）。CONFLATED → 无消费者也不丢、多拍合一。
+        _changeSignal.trySend(Unit)
     }
 
     /**

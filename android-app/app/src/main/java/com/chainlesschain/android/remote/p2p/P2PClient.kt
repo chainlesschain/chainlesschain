@@ -351,6 +351,19 @@ class P2PClient @Inject constructor(
 
         _connectionState.value = ConnectionState.DISCONNECTED
 
+        // FAMILY-67: 底层 WebRTCClient 单连接 —— 连接丢失即所有 peer 都没了。必须清空
+        // _connectedPeers，否则 connectFamilyPeer 路径建立的连接断开后这里残留 stale 条目：
+        //  ① FriendSyncConnector/FamilyGuardSyncConnector 的 connectOnce 看 connectedPeers 非空 →
+        //     误判「仍连着」永不重拨 → 永久离线（信令在线但 P2P 链路死掉，sendCommand 恒 "Not connected"）。
+        //  ② SyncCoordinator 的 connectedPeers watcher 看非空 → 继续往死 peer 推 → sync.push 恒失败。
+        // 清空后：connector 下一轮（≤RETRY/IDLE 间隔）看到空 → 重拨 connectFamilyPeer 自动恢复；
+        // SyncCoordinator 先停死推、重连后自动重启并推出排队消息。
+        _connectedPeers.value = emptyMap()
+        familyConnection = false
+        runCatching { deviceActivityManager.setConnected(false) }
+
+        // connect() 路径（lastConnectedPeer* 已设）走内建指数退避重连；connectFamilyPeer 路径
+        // （好友/家庭，lastConnectedPeer* 为空）由各自 connector 的轮询循环重拨（见上）。
         if (autoReconnectEnabled && lastConnectedPeerId != null && lastConnectedPeerDID != null) {
             scheduleReconnect()
         }
