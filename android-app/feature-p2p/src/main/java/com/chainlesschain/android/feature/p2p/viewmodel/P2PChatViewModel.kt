@@ -129,16 +129,22 @@ class P2PChatViewModel @Inject constructor(
         }
     }
 
-    /** 轮询直到会话就绪（后台 connector + 握手完成），就绪后刷新状态并停止。切换 peer / VM 清理时取消。 */
+    /**
+     * 轮询直到会话就绪（后台 connector + 握手完成），就绪后刷新状态并停止。切换 peer / VM 清理时取消。
+     * 有上限（[MAX_CONNECTION_WATCH_ATTEMPTS] 次 ×[CONNECTION_WATCH_INTERVAL_MS]）：到顶仍未就绪即停，
+     * 避免对永不连上的 peer 无限轮询耗电；手动重连 / 重开聊天 / 切换 peer 会重启观察。
+     */
     private fun startConnectionWatcher(peerId: String) {
         connectionWatcherJob?.cancel()
         connectionWatcherJob = viewModelScope.launch {
-            while (currentPeerId == peerId) {
+            var attempts = 0
+            while (currentPeerId == peerId && attempts < MAX_CONNECTION_WATCH_ATTEMPTS) {
                 if (sessionManager.getSession(peerId) != null) {
                     refreshConnectionState(peerId)
                     break
                 }
-                delay(1500)
+                attempts++
+                delay(CONNECTION_WATCH_INTERVAL_MS)
             }
         }
     }
@@ -369,6 +375,17 @@ class P2PChatViewModel @Inject constructor(
         connectionWatcherJob?.cancel()
         super.onCleared()
         Timber.d("ViewModel cleared")
+    }
+
+    companion object {
+        /** 会话就绪轮询间隔。 */
+        private const val CONNECTION_WATCH_INTERVAL_MS = 1_500L
+
+        /**
+         * 会话就绪轮询上限（~2 分钟）。会话通常在连上后数秒内建立；到顶仍未就绪即停止轮询，
+         * 避免对永不连上的 peer 后台无限耗电（观察 job 仅在聊天界面打开期间存活，onCleared 取消）。
+         */
+        private const val MAX_CONNECTION_WATCH_ATTEMPTS = 80
     }
 }
 

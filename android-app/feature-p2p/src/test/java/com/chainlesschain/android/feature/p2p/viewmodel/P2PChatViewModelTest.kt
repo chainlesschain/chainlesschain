@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.session.E2EESession
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
@@ -95,6 +96,23 @@ class P2PChatViewModelTest {
         assertEquals(testMessages, viewModel.messages.value)
         assertEquals(ConnectionStatus.CONNECTED, viewModel.connectionStatus.value)
         assertTrue(viewModel.isDeviceVerified.value)
+    }
+
+    @Test
+    fun `loadChat with session but lost verification should auto-mark verified from session fact`() = runTest {
+        // Given: 已有持久化 E2EE 会话，但内存验证状态丢失（重启后 isVerified 为 false 的场景）
+        val testSession = mockk<E2EESession>()
+        every { sessionManager.getSession(testPeerId) } returns testSession
+        coEvery { verificationManager.isVerified(testPeerId) } returns false
+
+        // When
+        viewModel.loadChat(testPeerId)
+        advanceUntilIdle()
+
+        // Then: 会话存在 = 之前完成过 DID 握手 → 自动重建验证状态、清「设备未验证」横幅
+        assertEquals(ConnectionStatus.CONNECTED, viewModel.connectionStatus.value)
+        assertTrue(viewModel.isDeviceVerified.value)
+        coVerify { verificationManager.markAsVerified(testPeerId, VerificationMethod.MUTUAL_HANDSHAKE) }
     }
 
     @Test
