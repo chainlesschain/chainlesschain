@@ -155,6 +155,7 @@ class CentralTelemetryDispatcherTest {
         override suspend fun saveEvent(event: ChildEventEntity): Long = nextRowId
         override suspend fun querySince(childDid: String, sinceMs: Long): List<ChildEventEntity> = emptyList()
         override fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>> = emptyFlow()
+        override fun observeRecentAnyChild(limit: Int): Flow<List<ChildEventEntity>> = emptyFlow()
         override suspend fun deleteOlderThan(cutoffMs: Long): Int = 0
     }
 }
