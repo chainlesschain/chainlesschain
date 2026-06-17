@@ -122,7 +122,7 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
 `su` 内存扫描（assets/pdh/pdh-mem-sqlite-scan.sh）→ 拷 dump 进 app 目录 → 逐个 `cc hub salvage --app`
 入库（按所选 app 正确来源归属）。仅 root 机；目标 app 须前台登录在用。手动脚本路径仍保留供调试。
 
-### 3.5.3 ⚠️ 适用范围：标准 SQLCipher 可，WCDB2（抖音）不可
+### 3.5.3 ⚠️ 适用范围：标准 SQLCipher 可，WCDB2（抖音/头条等 ByteDance）不可
 
 **2026-06-17 三轮证据驱动（D1 内容扫描 / D2 进程硬化 / E2 锚定头+多页大小，真机 dump
 60 区域 119MB 分析）定论：**
@@ -145,7 +145,7 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
 | app | 引擎（来源） | salvage 状态 |
 |---|---|---|
 | 抖音 | WCDB2 私有页格式（真机 dump 分析 + `aweme_database`=file is not a database） | ❌ 真机确认不支持 |
-| 今日头条 | ByteDance，extractor 注"same as Douyin" | ⚠️ 疑同 WCDB2·未验证 |
+| 今日头条 | **WCDB2**（真机 `/proc/25576/maps` 实证加载 `libwcdb2.so`+`libEncryptor.so`+IM 插件 `com.ss.android.im.so/libwcdb.so`；dump 60 区域仅 1 个标准 SQLite 头 0 记录） | ❌ 真机确认不支持（同抖音 ByteDance WCDB2 栈） |
 | 微信 | 标准 SQLCipher（`libWCDB.so` 带 `sqlite3_key`，WeChatDbExtractor） | ✅ 理论甜区·需登录·未真机验 |
 | QQ | plain SQLite（Android stock，QQDbExtractor 注"NOT SQLCipher"） | ✅ 理论最易·未验证（当前不在 TargetApp 列表） |
 | 快手 | 自研加密/SQLCipher + libmsaoaidsec 反 frida（KuaishouRootDbExtractor） | ⚠️ 加密强·未验证 |

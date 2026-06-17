@@ -60,10 +60,11 @@ class MemSalvageCollector @Inject constructor(
         val note: String? = null,
     ) {
         // note 标采集形态 + 真机验证状态（2026-06-17，基于项目自带 *DbExtractor 引擎证据
-        // + 真机定论）。**只有抖音是真机确认（WCDB2 墙）；其余是引擎预测 + 未真机验证**——
-        // 抖音的教训：extractor doc 的"明文"预测被真机推翻成 WCDB2，所以别把预测当结论。
+        // + 真机定论）。**抖音+头条已真机确认 WCDB2 墙（/proc/maps 实证 libwcdb2.so+
+        // libEncryptor.so，ByteDance 同栈）；其余是引擎预测 + 未真机验证**——抖音/头条的
+        // 教训：extractor doc 的"明文"预测被真机推翻成 WCDB2，别把预测当结论。
         DOUYIN("com.ss.android.ugc.aweme", "抖音", "douyin", note = "WCDB2·IM 不支持(真机确认)"),
-        TOUTIAO("com.ss.android.article.news", "今日头条", "toutiao", note = "ByteDance·疑同 WCDB2·未验证"),
+        TOUTIAO("com.ss.android.article.news", "今日头条", "toutiao", note = "WCDB2·IM 不支持(真机确认)"),
         WECHAT("com.tencent.mm", "微信", "wechat", note = "标准 SQLCipher·需登录·未验证"),
         KUAISHOU("com.smile.gifmaker", "快手", "kuaishou", note = "加密强(自研/SQLCipher)·未验证"),
         XIAOHONGSHU("com.xingin.xhs", "小红书", "xiaohongshu", note = "SQLCipher/libshield·未验证"),
