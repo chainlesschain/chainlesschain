@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — 个人 AI 知识库分析管线去噪（v5.0.3.118）
+> 真机采集数据接入个人 AI 知识库后暴露的 3 个分析质量问题：`analysis.interests` 被 14 个数字群聊 ID 淹没（挤掉唯一真实兴趣 topic）、`analysis.timeline` 被 2.4 万条同戳的联系人/应用清单快照事件冲垮。pdh 0.4.28 + cli 0.162.78 已发 npm；Android cc bundle `internal-binaries-android-v20260617c`（USR_VERSION 48）。
+
+- **微信群 topic 名解析**：`wechat-pc` 从联系人册（`@chatroom` 记录带 nickname/remark）解析群显示名，不再用裸数字 chatroom id 命名群 topic；`sync()` 收集 wxid→名映射并经 `payload.groupName` 透传，`normalizeMessage` 优先用之、无则回退 id。
+- **`analysis.interests` 去噪**：过滤纯数字/空 topic 名（不是兴趣）+ 过滤前 over-fetch（×20），避免真实兴趣 topic 被未解析的群 ID 挤出 top-N。
+- **`analysis.timeline` 清单排除**：`vault.queryEvents` 新增 `excludeExtraKinds` 查询参数（`json_extract` over `extra.kind`，NULL-kind 保留）→ 时间线跳过 `app-snapshot`/`contact-snapshot` 清单事件（它们带合成的采集时刻 occurredAt，会冲垮任何按时间倒序的查询）；事件仍留在 vault 供 facet 计数。
+
 ### Fixed — root 内存采集 抖音/WCDB2 命中 + 扫描生命周期硬化（v5.0.3.117）
 > 真机 2026-06-17 暴露：抖音 WCDB2 解密页内存无 "SQLite format 3" 文件头 → 旧纯头匹配扫描 0 命中。纯 APK 改动（脚本在 assets，复用 bundle v20260617b/pdh 0.4.27）。
 
