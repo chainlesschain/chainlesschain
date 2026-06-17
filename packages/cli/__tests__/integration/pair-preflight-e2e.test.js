@@ -13,7 +13,10 @@ import path from "node:path";
 
 const CLI_BIN = path.resolve(process.cwd(), "bin/chainlesschain.js");
 
-function runCli(args, timeoutMs = 15000) {
+// 30s default: `cc pair preflight` runs 5 checks and its cold start can exceed
+// 15s under integration load, getting killed (status null) before the test's own
+// timeout. Matches the documented subprocess-timeout family (README 2026-06-14).
+function runCli(args, timeoutMs = 30000) {
   return spawnSync(process.execPath, [CLI_BIN, ...args], {
     encoding: "utf-8",
     timeout: timeoutMs,
