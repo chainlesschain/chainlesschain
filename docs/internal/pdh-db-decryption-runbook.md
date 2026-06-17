@@ -138,6 +138,23 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
   "SQLite format 3\0"(16 字节含 NUL,别用带空格的 sig)走 header+k×pageSize**（--unaligned
   512-stride 扫不到非对齐页；但对 WCDB2 仍无效）。
 
+**各 app salvage 状态（2026-06-17，基于项目自带 `*DbExtractor` 引擎证据 + 真机；UI 下拉已标注）**
+——⚠️ **只有抖音是真机确认；其余是引擎预测 + 未真机验证**（抖音教训：extractor doc 的"明文"
+预测被真机推翻成 WCDB2，别把预测当结论）：
+
+| app | 引擎（来源） | salvage 状态 |
+|---|---|---|
+| 抖音 | WCDB2 私有页格式（真机 dump 分析 + `aweme_database`=file is not a database） | ❌ 真机确认不支持 |
+| 今日头条 | ByteDance，extractor 注"same as Douyin" | ⚠️ 疑同 WCDB2·未验证 |
+| 微信 | 标准 SQLCipher（`libWCDB.so` 带 `sqlite3_key`，WeChatDbExtractor） | ✅ 理论甜区·需登录·未真机验 |
+| QQ | plain SQLite（Android stock，QQDbExtractor 注"NOT SQLCipher"） | ✅ 理论最易·未验证（当前不在 TargetApp 列表） |
+| 快手 | 自研加密/SQLCipher + libmsaoaidsec 反 frida（KuaishouRootDbExtractor） | ⚠️ 加密强·未验证 |
+| 小红书 | SQLCipher/libshield（XhsRootDbExtractor） | ⚠️ 未验证 |
+| 微博 | v0.1 假设明文，可能 SQLCipher（WeiboRootDbExtractor） | ⚠️ 未验证 |
+
+真要扒某个的 IM：先按 §3.5/§3.5.3 真机 dump（app 须登录+开会话载库进内存）+ 查页结构验证，
+别凭 extractor 的乐观预测当结论。**最高产可靠仍是 system-data，不是 app IM。**
+
 ## 4. 结论
 
 - 真机免密钥采集**对标准 SQLCipher app（微信/QQ）已验证路径成立**：方法 B 从内存 dump 出
