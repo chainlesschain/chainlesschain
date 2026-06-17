@@ -155,11 +155,41 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
 真要扒某个的 IM：先按 §3.5/§3.5.3 真机 dump（app 须登录+开会话载库进内存）+ 查页结构验证，
 别凭 extractor 的乐观预测当结论。**最高产可靠仍是 system-data，不是 app IM。**
 
+## 3.6 方法 C — frida `sqlcipher_export` 在线解密（2026-06-17 突破，WCDB/WCDB2 IM 正解）
+
+§3.5.3 的「/proc/mem → leaf-salvage」对 WCDB2 走不通；而「frida 抓 key → 离线解密」也**走不通**
+——2026-06-17 实测：frida hook `sqlite3_key`（头条 `libwcdb.so`/`libwcdb2.so` 均导出，头条无
+`libmsaoaidsec` 反 frida）**稳定拿到 raw key**（`x'<64hex key><32hex salt>'`，salt 与 `encrypted_<uid>_im.db`
+文件头 16 字节完全一致），但用 better-sqlite3-multiple-ciphers 的标准 SQLCipher 参数
+（compat 1–4 × HMAC SHA1/256/512 × page/plaintext-header）**72 组合全 "file is not a database"**
+——WCDB 用**自研 cipher 配置**（导出 `setDefaultCipherConfiguration`/`cipherHmacAlgorithm`/
+`cipherPlainTextHeaderSize`），光有 key 不够。
+
+**正解**：不离线复现 cipher，而是**借 App 进程里已用正确 key 打开的那条连接**，在它上面执行
+`ATTACH DATABASE '<out>' AS ccpt KEY ''`（空 key=明文目标库）+ `SELECT sqlcipher_export('ccpt')`
+（SQLCipher 内建函数，整库导出明文）→ 得到**完整明文副本**，完全绕开 cipher 参数。
+
+```sh
+# 设备已 root；目标 App 已登录并【前台进到「私信/消息」界面】（库被查询，hook 才命中）。
+bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~/pdh-data 60
+#  → 明文 encrypted_<uid>_im.db.plain.db 拉到 ~/pdh-data（仓库外，勿入 git），脚本自动清设备侧。
+```
+
+- hook：`scripts/android/pdh-frida-sqlcipher-export.js`（装 `sqlite3_key/_v2` 开库 + `sqlite3_prepare*`
+  下次查询；只对 `DB_MATCH=/_im\.db$/` 导出，INEXEC 防递归）。改 `DB_MATCH` 可解微信
+  `EnMicroMsg.db` 等。
+- 触发：停在信息流时 IM 插件 `.so` 未加载、`sqlite3_key` 不出现 → **必须进「私信」**让库被查询。
+- 反 frida：头条✅、微信✅；**抖音带 `libmsaoaidsec` 可能 attach 后被杀** → 换头条同账号 IM
+  （ByteDance 同 `com.ss.android.im` 框架、schema 一致，见 `reference/{toutiao,douyin}_im_schema.sql`）。
+- privacy：明文副本含真实聊天 → 只在仓库外 `~/pdh-data` 留存，接完 PDH / 查完即删。
+
 ## 4. 结论
 
 - 真机免密钥采集**对标准 SQLCipher app（微信/QQ）已验证路径成立**：方法 B 从内存 dump 出
   明文标准 SQLite 页 → leaf-salvage 打捞（免 key，绕 anti-debug）。**但非"引擎无关通用"**：
   WCDB2（抖音）的私有页格式解不了（见 §3.5.3）。
 - 个人数据采集**最高产可靠的是 system-data（通讯录/短信/通话/媒体，明文/content-query）**——
-  优先做这个，不是跟 WCDB2 app 死磕。app IM 仅标准 SQLCipher 可，且需 App 先打开目标会话
-  让其库进内存。
+  优先做这个，不是跟 WCDB2 app 死磕。
+- **加密 App IM**：①标准 SQLCipher（微信/QQ）可 leaf-salvage（方法 B）；②**WCDB/WCDB2（头条/抖音）
+  的 IM 现在也能解了——走方法 C（§3.6）frida `sqlcipher_export` 在线导出**（不靠 cipher 复现），
+  前提是 App 能跑+无强反 frida（头条✅/抖音 libmsaoaidsec 风险），且需先进「私信」让库被查询。
