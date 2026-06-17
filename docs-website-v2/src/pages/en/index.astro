@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.117 · 2026-06-17',
+    title: 'PDH root memory collection: Douyin/WCDB2 hit fix + scan lifecycle hardening (pure-APK change, reuses bundle v20260617b / pdh 0.4.27)',
+    sub: 'Surfaced on a real device 2026-06-17: Douyin WCDB2 decrypted-page memory has no "SQLite format 3" file header, so the old header-only scan matched 0 regions. mem-scan now decides by content and the leaf-page salvage no longer depends on a header, covering both encryption schemes. Pure-APK change (scripts in assets); cc bundle / pdh / USR_VERSION unchanged.',
+    desc: 'D1 leaf-page scan: mem-scan now decides by content — memory regions containing either a file header (standard SQLCipher / WeChat) or plaintext schema CREATE TABLE (WCDB2 / Douyin decrypted-page cache) are dumped whole, then leaf-salvage --unaligned scavenges 0x0D leaf pages downstream (header-independent, covers both encryption schemes); MAX_DUMPS=30 + per-region <=64MB to avoid disk blowup / timeout. D2 scan lifecycle hardening: a finally block adds pkill "dd if=/proc" to kill orphaned dd (timeout tree-kill cannot reach the dd inside the pipe) + an AtomicBoolean single-instance lock prevents concurrent scans from repeated taps. Versions: productVersion v5.0.3.116 -> v5.0.3.117 / desktop 5.0.3-alpha.117 / Android versionCode 503117 (USR_VERSION 47 / binariesVersion 20260617b unchanged, bundle same as .116) / iOS build 117.',
+  },
+  {
     tag: 'v5.0.3.116 · 2026-06-17',
     title: 'PDH multi-app root memory collection + source attribution + scan hardening (pdh 0.4.27 / cli 0.162.77 / cc bundle v20260617b)',
     sub: 'Real-device scan-bug fixes + multi-app direct collection: salvage now attributes records to the right target app, and the scan engine gains timeouts and orphan-process cleanup. pdh 0.4.27 + CLI 0.162.77 published to npm; Android cc bundle rolled to internal-binaries-android-v20260617b (USR_VERSION → 47).',

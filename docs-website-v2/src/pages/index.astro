@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.117 · 2026-06-17',
+    title: '个人数据中台 root 内存采集 抖音/WCDB2 命中修复 + 扫描生命周期硬化（纯 APK 改动，复用 bundle v20260617b / pdh 0.4.27）',
+    sub: '真机 2026-06-17 暴露：抖音 WCDB2 解密页内存无 SQLite format 3 文件头，旧纯文件头匹配扫描 0 命中。mem-scan 改按内容判定，叶子页打捞不依赖文件头，两种加密通吃。纯 APK 改动（脚本在 assets），cc bundle / pdh / USR_VERSION 不变。',
+    desc: 'D1 叶子页扫描：mem-scan 改按内容判定——含文件头（标准 SQLCipher / 微信）或明文 schema CREATE TABLE（WCDB2 / 抖音解密页缓存）的内存区域整段落盘 → 下游 leaf-salvage --unaligned 扫 0x0D 叶子页打捞（不依赖文件头，两种加密通吃）；MAX_DUMPS=30 + 单区域 ≤64MB 防爆盘 / 超时。D2 扫描生命周期硬化：finally 额外 pkill "dd if=/proc" 杀孤儿 dd（timeout tree-kill 杀不到管道里的 dd）+ AtomicBoolean 单实例锁防多次点击并发扫描。版本面：productVersion v5.0.3.116 → v5.0.3.117 / 桌面 5.0.3-alpha.117 / Android versionCode 503117（USR_VERSION 47 · binariesVersion 20260617b 不变，bundle 同 .116）/ iOS build 117。',
+  },
+  {
     tag: 'v5.0.3.116 · 2026-06-17',
     title: '个人数据中台 root 内存采集多 app + 来源归属 + 扫描硬化（pdh 0.4.27 / cli 0.162.77 / cc bundle v20260617b）',
     sub: '真机暴露的扫描 bug 修复 + 多 app 直采：salvage 支持按目标 app 归属来源，扫描引擎加超时与孤儿进程清理。pdh 0.4.27 + CLI 0.162.77 已发 npm；Android cc bundle 滚到 internal-binaries-android-v20260617b（USR_VERSION → 47）。',
