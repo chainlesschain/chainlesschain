@@ -71,6 +71,46 @@ class SyncManagerTest {
         assertEquals(1, stats.pendingChanges) // Same ID, so only 1 pending
     }
 
+    // ====================================================================
+    // FAMILY-67: changeSignal 即时推送通知（recordChange → SyncCoordinator 立即 push，免等 30s）
+    // ====================================================================
+
+    @Test
+    fun `recordChange emits a changeSignal tick`() {
+        // 初始无变更 → 无信号
+        assertTrue("初始 changeSignal 应为空", syncManager.changeSignal.tryReceive().isFailure)
+
+        syncManager.recordChange(createSyncItem("item1"))
+
+        // recordChange 后应有一拍待 SyncCoordinator 消费
+        assertTrue(
+            "recordChange 后 changeSignal 应有一拍",
+            syncManager.changeSignal.tryReceive().isSuccess
+        )
+    }
+
+    @Test
+    fun `changeSignal is CONFLATED - bursts of recordChange collapse to one tick`() {
+        // 短时间连发 3 次（此刻无消费者）
+        syncManager.recordChange(createSyncItem("a"))
+        syncManager.recordChange(createSyncItem("b"))
+        syncManager.recordChange(createSyncItem("c"))
+
+        // CONFLATED → 多拍天然合并成一拍（一次 push 带走全部 pending，去抖）
+        assertTrue(syncManager.changeSignal.tryReceive().isSuccess)
+        assertTrue("多拍应合并为一拍", syncManager.changeSignal.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `changeSignal retains latest tick for a late consumer - no signal lost`() = runTest {
+        // 先 recordChange（此刻消费者还没起来），CONFLATED 保留最新一拍不丢
+        syncManager.recordChange(createSyncItem("late"))
+
+        // 稍后才到的消费者仍能立即收到（receive 不挂起，runTest 不超时即通过）
+        syncManager.changeSignal.receive()
+        assertTrue(true)
+    }
+
     @Test
     fun `test triggerSync enqueues pending changes`() = runTest {
         // Given
