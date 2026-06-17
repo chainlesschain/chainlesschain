@@ -16,8 +16,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1021,6 +1025,30 @@ fun NavGraph(
                 deviceName = peerName,
                 onNavigateBack = { navController.popBackStack() },
                 onVerifyDevice = { navController.navigate("safety_numbers/$peerId") }
+            )
+        }
+
+        // FAMILY-67: Safety Numbers 验证页 —— P2PChatScreen 的「验证」按钮 navigate 到这里。
+        // 此前该 route 只在 feature-p2p 的独立 P2PNavigation 注册、未并入主 NavGraph →
+        // 点「验证」抛 IllegalArgumentException(destination not found)闪退。补注册到主图。
+        composable(
+            route = "safety_numbers/{peerId}",
+            arguments = listOf(navArgument("peerId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val peerId = backStackEntry.arguments?.getString("peerId") ?: return@composable
+            val vm = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel>()
+            var verificationInfo by remember {
+                mutableStateOf<com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo?>(null)
+            }
+            LaunchedEffect(peerId) {
+                verificationInfo = runCatching { vm.getVerificationInfo(peerId) }.getOrNull()
+            }
+            com.chainlesschain.android.feature.p2p.ui.SafetyNumbersScreen(
+                peerId = peerId,
+                verificationInfo = verificationInfo,
+                onVerify = { navController.popBackStack() },
+                onScanQRCode = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
             )
         }
     }

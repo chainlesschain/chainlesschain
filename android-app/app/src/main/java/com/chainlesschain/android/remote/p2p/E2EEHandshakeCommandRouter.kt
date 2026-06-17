@@ -1,6 +1,8 @@
 package com.chainlesschain.android.remote.p2p
 
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +34,7 @@ import timber.log.Timber
 @Singleton
 class E2EEHandshakeCommandRouter @Inject constructor(
     private val sessionManager: PersistentSessionManager,
+    private val verificationManager: VerificationManager,
 ) : CommandRouter {
 
     override suspend fun route(method: String, params: Map<String, Any>): Any? {
@@ -62,6 +65,8 @@ class E2EEHandshakeCommandRouter @Inject constructor(
         sessionManager.initialize()
         val initialMessage = E2EEHandshakeCodec.decodeInitialMessage(initialMessageJson)
         sessionManager.acceptSession(fromDid, initialMessage)
+        // FAMILY-67: DID 验签认证的握手即视为已验证 → 清「设备未验证」横幅。
+        runCatching { verificationManager.markAsVerified(fromDid, VerificationMethod.MUTUAL_HANDSHAKE) }
         Timber.i("[E2EEHandshake] session accepted from peer=${fromDid.take(20)}…")
         return mapOf("ok" to true)
     }

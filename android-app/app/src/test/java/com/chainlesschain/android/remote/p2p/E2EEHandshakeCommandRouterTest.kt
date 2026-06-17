@@ -25,12 +25,14 @@ import org.junit.Test
 class E2EEHandshakeCommandRouterTest {
 
     private lateinit var sessionManager: PersistentSessionManager
+    private lateinit var verificationManager: com.chainlesschain.android.core.e2ee.verification.VerificationManager
     private lateinit var router: E2EEHandshakeCommandRouter
 
     @Before
     fun setup() {
         sessionManager = mockk(relaxed = true)
-        router = E2EEHandshakeCommandRouter(sessionManager)
+        verificationManager = mockk(relaxed = true)
+        router = E2EEHandshakeCommandRouter(sessionManager, verificationManager)
     }
 
     @Test

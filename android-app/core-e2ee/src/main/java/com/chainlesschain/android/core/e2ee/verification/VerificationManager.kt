@@ -273,6 +273,9 @@ enum class VerificationMethod {
     /** 第三方验证 */
     THIRD_PARTY,
 
+    /** FAMILY-67: 经 DID 签名认证的 X3DH 握手自动确立（好友扫码加好友 + core-did 验签链路）。 */
+    MUTUAL_HANDSHAKE,
+
     /** 其他 */
     OTHER
 }

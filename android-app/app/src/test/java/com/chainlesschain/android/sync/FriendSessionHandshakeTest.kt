@@ -29,6 +29,7 @@ class FriendSessionHandshakeTest {
     private lateinit var p2pClient: P2PClient
     private lateinit var sessionManager: PersistentSessionManager
     private lateinit var didManager: DIDManager
+    private lateinit var verificationManager: com.chainlesschain.android.core.e2ee.verification.VerificationManager
     private lateinit var handshake: FriendSessionHandshake
 
     private val sentMethods = mutableListOf<String>()
@@ -39,7 +40,8 @@ class FriendSessionHandshakeTest {
         p2pClient = mockk(relaxed = true)
         sessionManager = mockk(relaxed = true)
         didManager = mockk(relaxed = true)
-        handshake = FriendSessionHandshake(p2pClient, sessionManager, didManager)
+        verificationManager = mockk(relaxed = true)
+        handshake = FriendSessionHandshake(p2pClient, sessionManager, didManager, verificationManager)
     }
 
     private fun installSender(

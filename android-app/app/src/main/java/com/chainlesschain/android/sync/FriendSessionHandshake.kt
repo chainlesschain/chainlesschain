@@ -2,6 +2,8 @@ package com.chainlesschain.android.sync
 
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationManager
+import com.chainlesschain.android.core.e2ee.verification.VerificationMethod
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.e2ee.E2EEHandshakeCodec
 import javax.inject.Inject
@@ -32,6 +34,7 @@ class FriendSessionHandshake @Inject constructor(
     private val p2pClient: P2PClient,
     private val sessionManager: PersistentSessionManager,
     private val didManager: DIDManager,
+    private val verificationManager: VerificationManager,
 ) {
 
     /**
@@ -43,7 +46,10 @@ class FriendSessionHandshake @Inject constructor(
         { method, params -> p2pClient.sendCommand(method, params) }
 
     suspend fun initiate(peerDid: String): Boolean {
-        if (sessionManager.hasSession(peerDid)) return true
+        if (sessionManager.hasSession(peerDid)) {
+            runCatching { verificationManager.markAsVerified(peerDid, VerificationMethod.MUTUAL_HANDSHAKE) }
+            return true
+        }
         val myDid = runCatching { didManager.getCurrentDID() }.getOrNull()
         if (myDid.isNullOrBlank()) {
             Timber.d("[FriendSessionHandshake] no local DID yet — skip")
@@ -72,6 +78,10 @@ class FriendSessionHandshake @Inject constructor(
                     "initialMessage" to E2EEHandshakeCodec.encodeInitialMessage(initialMessage),
                 ),
             ).getOrThrow()
+
+            // FAMILY-67: DID 验签认证的握手即视为已验证 → 清「设备未验证」横幅（P2PChatViewModel 读
+            // 同一 @Singleton VerificationManager.isVerified）。手动 Safety Numbers 验证仍可叠加。
+            runCatching { verificationManager.markAsVerified(peerDid, VerificationMethod.MUTUAL_HANDSHAKE) }
 
             Timber.i("[FriendSessionHandshake] E2EE session established with ${peerDid.take(20)}…")
             true
