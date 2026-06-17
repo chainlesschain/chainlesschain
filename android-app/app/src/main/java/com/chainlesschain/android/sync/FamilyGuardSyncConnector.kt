@@ -104,7 +104,9 @@ class FamilyGuardSyncConnector @Inject constructor(
      * 拨另一个 peer（如已离线的旧绑定）会把好连接拆掉）；② 一旦本趟某个 connect 成功即停，
      * 不再拨后续 peer。1:1 家庭场景下这让连接稳定保持。
      */
-    private suspend fun connectOnce(myDid: String): Int {
+    // internal（非 private）以便单测直接驱动单趟建连逻辑（单连接守卫 + 连上即停）；
+    // 本函数不碰内部 scope，可在 runTest 里作为普通 suspend 调用，无协程泄漏风险。
+    internal suspend fun connectOnce(myDid: String): Int {
         val peerDids = relationshipRepository.observeAllActive().first()
             .map { it.friendDid }
             .distinct()
