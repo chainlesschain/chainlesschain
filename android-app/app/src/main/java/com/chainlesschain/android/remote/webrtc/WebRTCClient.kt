@@ -35,6 +35,9 @@ class WebRTCClient @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val signalClient: SignalClient,
     private val pairedPeersStore: com.chainlesschain.android.core.p2p.pairing.PairedPeersStore,
+    // FAMILY-67 plan B：手机↔手机从 signaling 同域 https 端点拉 TURN 凭证用。
+    private val okHttpClient: okhttp3.OkHttpClient,
+    private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig,
 ) {
     @Volatile
     private var peerConnectionFactory: PeerConnectionFactory? = null
@@ -66,19 +69,70 @@ class WebRTCClient @Inject constructor(
     @Volatile
     private var currentIceServers: List<PeerConnection.IceServer> = fallbackIceServers
 
+    // FAMILY-67 plan B — 手机↔手机无桌面 QR → 从 signaling 同域 https /turn-credentials 拉
+    // 服务端签发的时效 TURN 凭证（secret 只在服务端）。缓存到过期。
+    @Volatile private var p2pTurnIceServers: List<PeerConnection.IceServer>? = null
+    @Volatile private var p2pTurnExpiry: Long = 0L
+
     private fun resolveIceServersFor(pcPeerId: String): List<PeerConnection.IceServer> {
-        val desktop = pairedPeersStore.devices.value.firstOrNull { it.pcPeerId == pcPeerId }
-        val json = desktop?.iceServersJson ?: return fallbackIceServers
         val now = System.currentTimeMillis() / 1000
-        if (desktop.iceExpiry > 0 && now > desktop.iceExpiry) {
-            Timber.w("[WebRTCClient] iceServers expired for $pcPeerId (exp=${desktop.iceExpiry}) — fallback Google STUN")
-            return fallbackIceServers
+        // 1. 桌面 QR 配对签发的 iceServers（优先，含 turn.chainlesschain.com TURN）
+        val desktop = pairedPeersStore.devices.value.firstOrNull { it.pcPeerId == pcPeerId }
+        val json = desktop?.iceServersJson
+        if (json != null && !(desktop.iceExpiry > 0 && now > desktop.iceExpiry)) {
+            runCatching { parseIceServersJson(json).ifEmpty { null } }
+                .onFailure { Timber.w(it, "[WebRTCClient] parseIceServersJson failed") }
+                .getOrNull()?.let { return it }
         }
-        return try {
-            parseIceServersJson(json).ifEmpty { fallbackIceServers }
+        // 2. FAMILY-67 plan B：手机↔手机经 /turn-credentials 取的 TURN 凭证（跨 NAT relay）
+        p2pTurnIceServers?.let { if (now < p2pTurnExpiry) return it }
+        // 3. 兜底 Google STUN（跨 NAT 多半连不上，仅同网/有公网候选时可用）
+        return fallbackIceServers
+    }
+
+    /**
+     * FAMILY-67 plan B：从信令同域 https 端点拉 TURN 凭证（缓存；失败静默退 STUN）。
+     * 在 [connect] 的 IO 上下文里、createPeerConnection 之前调（阻塞 HTTP 在 IO 线程安全）。
+     */
+    private fun ensurePhoneTurnCredentials(localPeerId: String) {
+        val now = System.currentTimeMillis() / 1000
+        if (p2pTurnIceServers != null && now < p2pTurnExpiry - 300) return // 仍有 >5min，用缓存
+        val base = turnCredBaseUrl() ?: return
+        val url = "$base/turn-credentials?uid=" + java.net.URLEncoder.encode(localPeerId, "UTF-8")
+        try {
+            val req = okhttp3.Request.Builder().url(url).get().build()
+            okHttpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    Timber.w("[WebRTCClient] turn-cred HTTP ${resp.code} — STUN only")
+                    return
+                }
+                val body = resp.body?.string() ?: return
+                val obj = org.json.JSONObject(body)
+                val iceArr = obj.optJSONArray("iceServers")?.toString() ?: return
+                val servers = parseIceServersJson(iceArr)
+                if (servers.isNotEmpty()) {
+                    p2pTurnIceServers = servers
+                    p2pTurnExpiry = obj.optLong("expiry", now + 3600)
+                    Timber.i("[WebRTCClient] ✓ phone TURN creds fetched (${servers.size} servers, exp=$p2pTurnExpiry)")
+                }
+            }
         } catch (e: Exception) {
-            Timber.w(e, "[WebRTCClient] parseIceServersJson failed — fallback")
-            fallbackIceServers
+            Timber.w(e, "[WebRTCClient] phone TURN cred fetch failed — STUN only")
+        }
+    }
+
+    /** 由信令 wss URL 推 https 同域 base（wss://host[:port]/... → https://host[:port]）。 */
+    private fun turnCredBaseUrl(): String? {
+        val sig = runCatching { signalingConfig.getSignalingUrl() }.getOrNull()
+        if (sig.isNullOrBlank()) return null
+        return try {
+            val u = java.net.URI(sig)
+            val scheme = if (u.scheme == "wss" || u.scheme == "https") "https" else "http"
+            val host = u.host ?: return null
+            val port = if (u.port > 0) ":${u.port}" else ""
+            "$scheme://$host$port"
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -254,6 +308,10 @@ class WebRTCClient @Inject constructor(
             ))
             _connectionState.value = P2PConnectionState.REGISTERED
             Timber.i("[Step 2/5] ✓ Registered successfully")
+
+            // FAMILY-67 plan B：建 PeerConnection 前确保有 TURN 凭证（手机↔手机跨 NAT relay 必需；
+            // 无桌面 QR 时从 signaling 同域 /turn-credentials 拉。失败静默退 STUN）。
+            ensurePhoneTurnCredentials(localPeerId)
 
             // 3. Create PeerConnection (DataChannel: initiator 自建; responder 经 onDataChannel 受领)
             Timber.i("[Step 3/5] Creating PeerConnection (isInitiator=$isInitiator)...")
