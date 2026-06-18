@@ -61,6 +61,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.11</b> — slash-command autocomplete: typing <code>/</code> at the
+        start of the chat input pops a chooser of the panel's commands
+        (<code>/new</code>, <code>/compact</code>, <code>/think</code>, …),
+        filtered as you type (VS Code parity).
+        <br/><br/>
         <b>0.4.10</b> — fix: wrap the diff-review document reads
         (<code>openDiff</code>/<code>openMultiDiff</code>) in a read action.
         Since 2026.2 the EDT no longer grants implicit read access, so building

@@ -45,6 +45,7 @@ public final class PureLogicSmokeMain {
         sessionArgs();
         introspectArgs();
         llmConfig();
+        slashCommands();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -372,5 +373,27 @@ public final class PureLogicSmokeMain {
         // no llm block / bad json → {null,null}
         eq(LlmConfig.parseLlmProviderModel("{}")[0], null, "no llm -> null");
         eq(LlmConfig.parseLlmProviderModel("not json")[0], null, "bad json -> null");
+    }
+
+    private static void slashCommands() {
+        System.out.println("SlashCommands:");
+        // detectSlashToken: only a bare leading slash token (whole input so far)
+        eq(SlashCommands.detectSlashToken("/co"), "co", "/co -> co");
+        eq(SlashCommands.detectSlashToken("/"), "", "/ -> empty (all)");
+        eq(SlashCommands.detectSlashToken("  /TH"), "th", "lowercased + leading ws");
+        check(SlashCommands.detectSlashToken("/cost x") == null, "full cmd + arg -> null");
+        check(SlashCommands.detectSlashToken("hi /x") == null, "mid-line slash -> null");
+        check(SlashCommands.detectSlashToken("") == null, "empty -> null");
+        // filter: prefix-matches command name (sans '/'), in menu order
+        List<String[]> co = SlashCommands.filter("co");
+        check(co.size() == 3, "filter co -> /compact /context /cost (3)");
+        eq(co.get(0)[0], "/compact", "co first = /compact (menu order)");
+        List<String[]> comp = SlashCommands.filter("comp");
+        check(comp.size() == 1 && comp.get(0)[0].equals("/compact"), "comp -> only /compact");
+        eq(SlashCommands.filter("").size(), SlashCommands.COMMANDS.size(), "empty prefix -> all");
+        check(SlashCommands.filter("zzz").isEmpty(), "no match -> empty");
+        // label
+        eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
+                "/cost  —  token cost", "label format");
     }
 }

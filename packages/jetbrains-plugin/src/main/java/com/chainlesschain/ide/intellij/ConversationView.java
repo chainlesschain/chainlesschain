@@ -6,6 +6,7 @@ import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
+import com.chainlesschain.ide.SlashCommands;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
@@ -121,10 +122,12 @@ final class ConversationView {
             if (s != null) s.interrupt();
         });
         // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
+        // Slash-command completion: typing '/' at the line start pops a chooser too.
         input.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyTyped(java.awt.event.KeyEvent e) {
                 if (e.getKeyChar() == '@') SwingUtilities.invokeLater(() -> maybeOpenMention());
+                else if (e.getKeyChar() == '/') SwingUtilities.invokeLater(() -> maybeOpenSlash());
             }
         });
     }
@@ -555,6 +558,44 @@ final class ConversationView {
                 // best-effort — context line is non-essential
             }
         }, "cc-context-" + conv.id).start();
+    }
+
+    // ---- slash-command completion popup --------------------------------
+
+    /** Open the chooser only when the whole input so far is a leading slash token. */
+    private void maybeOpenSlash() {
+        String text = input.getText();
+        int caret = Math.min(input.getCaretPosition(), text.length());
+        String prefix = SlashCommands.detectSlashToken(text.substring(0, caret));
+        if (prefix != null) openSlashPopup(prefix);
+    }
+
+    private void openSlashPopup(String prefix) {
+        final List<String[]> candidates = SlashCommands.filter(prefix);
+        if (candidates.isEmpty()) return;
+        JBPopup popup = JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(candidates)
+                .setTitle("Slash commands")
+                .setRenderer(new javax.swing.DefaultListCellRenderer() {
+                    @Override
+                    public java.awt.Component getListCellRendererComponent(
+                            javax.swing.JList<?> list, Object value, int index,
+                            boolean selected, boolean hasFocus) {
+                        java.awt.Component c = super.getListCellRendererComponent(
+                                list, value, index, selected, hasFocus);
+                        if (value instanceof String[]) {
+                            setText(SlashCommands.label((String[]) value));
+                        }
+                        return c;
+                    }
+                })
+                .setItemChosenCallback(item -> {
+                    // Replace the input with the chosen command (ready to Enter).
+                    input.setText(((String[]) item)[0] + " ");
+                    input.requestFocusInWindow();
+                })
+                .createPopup();
+        popup.showUnderneathOf(input);
     }
 
     // ---- §5 @-mention completion popup ---------------------------------

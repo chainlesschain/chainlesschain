@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.11] — 2026-06-18 — slash-command autocomplete in the chat input
+
+- **Slash-command autocomplete (VS Code parity).** Typing `/` at the start of
+  the chat input now pops a chooser of the panel's slash commands (`/new`,
+  `/compact`, `/think`, `/plan`, `/cost`, …) with one-line descriptions,
+  filtered as you type — the same discoverability the VS Code panel already had.
+  Picking one fills the input ready to send. Mirrors the existing `@`-mention
+  popup. Pure catalog/filter logic in `SlashCommands` (15 commands, kept in sync
+  with the command switch).
+
 ## [0.4.10] — 2026-06-18 — fix: read-action compliance for diff review (2026.2)
 
 - **Fix: wrap the diff-review document reads in a read action.** `openDiff` /
