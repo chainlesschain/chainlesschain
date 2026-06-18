@@ -101,6 +101,9 @@ class MainActivity : AppCompatActivity() {
      */
     private val pendingVoiceTrigger = mutableStateOf<VoiceTriggerSource?>(null)
 
+    /** FAMILY-67: 点好友消息通知 → 携带 open_chat_peer 进来，鉴权后深链到对应好友聊天。 */
+    private val pendingChatPeer = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // 安装 SplashScreen（必须在 super.onCreate 之前）
         val splashScreen = installSplashScreen()
@@ -142,6 +145,8 @@ class MainActivity : AppCompatActivity() {
                 "MainActivity onCreate: VoiceMode launch intent received, source=${pendingVoiceTrigger.value}",
             )
         }
+        // FAMILY-67: 冷启动时若由好友消息通知拉起，携带 open_chat_peer
+        intent.getStringExtra("open_chat_peer")?.let { pendingChatPeer.value = it }
 
         // 配置 SplashScreen
         setupSplashScreen(splashScreen)
@@ -223,6 +228,17 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
+                    // FAMILY-67: 好友消息通知深链 —— 鉴权后导航到对应好友聊天页（peerName 用 DID 兜底）。
+                    val pendingChat = pendingChatPeer.value
+                    LaunchedEffect(pendingChat, uiState.isAuthenticated) {
+                        if (pendingChat != null && uiState.isAuthenticated) {
+                            runCatching {
+                                navController.navigate(Screen.P2PChat.createRoute(pendingChat, pendingChat))
+                            }.onFailure { Timber.w(it, "deep-link to chat failed") }
+                            pendingChatPeer.value = null
+                        }
+                    }
+
                     // 全局 ApprovalDialog 宿主：监听 backend (SignAsService / 未来 M4 D2
                     // 桌面 approval channel) 通过 AndroidApprovalGate 发起的确认请求，
                     // 弹 BiometricPrompt + 同意/拒绝对话框。
@@ -256,6 +272,8 @@ class MainActivity : AppCompatActivity() {
             Timber.i("MainActivity onNewIntent: VoiceMode launch, source=$src")
             pendingVoiceTrigger.value = src
         }
+        // FAMILY-67: app 已在运行时点好友消息通知 → 深链到对应聊天
+        intent.getStringExtra("open_chat_peer")?.let { pendingChatPeer.value = it }
     }
 
     /**
