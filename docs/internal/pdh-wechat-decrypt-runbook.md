@@ -81,6 +81,42 @@ cc hub ask "我和谁聊得最多？"           # RAG over vault
 明文库 + 解密产物只放仓库外（`~/pdh-data` 或桌面 `我的数据库\`），**绝不入 git**。
 `~/.pdh-wechat-keys.json` 存的是口令，注意保护。
 
+## QQ NT (nt_msg.db) — ✅ 已验证（PC 路）
+
+> 实测 2026-06-19，PC QQ NT 9.9.31，账号 896075341：**group_msg 2662 / c2c 私聊 / 49 会话**
+> 解密。库在 `~/Documents/Tencent Files/<qq>/nt_qq/nt_db/nt_msg.db`。
+
+**关键事实**（与微信完全不同）：
+1. **头部 1024 字节是明文头**（伪装 `SQLite header 3\0`）→ **必须 SKIP 1024 字节**，真 SQLCipher
+   库从 byte 1024 开始（salt 在 1024..1039）。
+2. SQLCipher：page **4096** / **reserve 48**（IV16+HMAC_SHA1=20+pad）/ **IV 在 reserve 开头
+   (offset 0)** / kdf_iter 4000 / AES-256-CBC。（**IV 位置是最大的坑**——标准 SQLCipher IV 在
+   reserve 开头，不是 HMAC 之后。）
+3. **密钥**：QQ SQLCipher 走 **OpenSSL `EVP_CipherInit_ex`(crypto.dll, arg3=32字节 AES key)**，
+   **不是** sqlite3_key（libsqlite.so 是标准 SQLite 无 cipher；libDBEncryptV2 只是文本字段混淆）。
+   key 仅**登录建连**时设一次 → 运行态读页缓存抓不到 → **必须 frida spawn QQ + 登录瞬间抓**。
+   DB 主进程可能拒绝 frida 注入（反调试），但渲染/工具子进程里的 EVP 也经手 DB key（实测命中）。
+4. 消息正文 `40800`/`40900` 是 **protobuf 二进制**，需 qq-pc adapter/sidecar 解码为可读文本。
+
+**复现命令**：
+```sh
+# 1) frida 抓 key（杀 QQ → spawn → 登录）
+node scripts/android/pdh-frida-qq-aeskey.mjs --out qq-keys.json --seconds 180
+# 2) 解密（确定性）
+node scripts/android/pdh-qq-decrypt.mjs --db "C:/Users/<u>/Documents/Tencent Files/<qq>/nt_qq/nt_db/nt_msg.db" \
+     --raw-keys-file qq-keys.json --out-dir "C:/Users/<u>/Desktop/我的数据库"
+```
+
+**Android QQ NT 未解**：libDBEncryptV2 自研 + 无导出 key 函数；走 PC 路更可行（消息可能同账号同步）。
+
+## Schema 字典（供 AI 解读/展示）
+
+```sh
+node scripts/android/pdh-dump-decrypted-schema.mjs --dir "C:/Users/<u>/Desktop/我的数据库"
+# → SCHEMA_字典.md：核心表速查 + 每表 CREATE TABLE SQL + 列含义 + 样本
+#   微信列名自带语义；QQ 数字列(40001/40050/40033/40800…)含义见 qq-pc COL_CANDIDATES。
+```
+
 ## 相关
-记忆 `pdh_realdevice_collect_2026_06_18`、`android_app_db_decryption_findings`；
-QQ NT 是另一套（OpenSSL EVP + 内存缓存，密钥难抓，见记忆，未完成）。
+记忆 `pdh_realdevice_collect_2026_06_18`、`android_app_db_decryption_findings`。
+参考工程 `C:\code\sjqz`(微信 7 位口令候选)、`QQBackup/qq-win-db-key`(QQ NT 1024 头+SQLCipher 参数)。
