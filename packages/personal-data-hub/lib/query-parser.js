@@ -160,7 +160,10 @@ const SUBTYPE_KEYWORDS = [
   { subtype: "order", patterns: [/(订单|下单|买了|购买|下了几单|下了多少单|order)/i] },
   { subtype: "payment", patterns: [/(支付|付款|花了|花费|消费|开销|payment|spent|spend)/i] },
   { subtype: "transfer", patterns: [/(转账|转给|转钱|transfer)/i] },
-  { subtype: "income", patterns: [/(收入|工资|进账|收到|income)/i] },
+  // NOTE: bare 收到 ("receive") is deliberately NOT here — you 收到 messages /
+  // packages / 红包 too, so it stole "收到多少消息" → income (income is checked
+  // before message). 收到转账 still classifies as transfer (checked earlier).
+  { subtype: "income", patterns: [/(收入|工资|进账|入账|income)/i] },
   { subtype: "message", patterns: [/(聊天|消息|聊了|对话|message|chat)/i] },
   { subtype: "post", patterns: [/(朋友圈|发了|动态|moment|post)/i] },
   { subtype: "visit", patterns: [/(去过|到过|visited|去了|来到)/i] },

@@ -116,6 +116,17 @@ describe("parseFilters", () => {
     expect(parseFilters("我朋友圈发了啥").subtype).toBe("post");
   });
 
+  it("bare 收到 does not steal non-income subtypes (regression)", () => {
+    // 收到 ("receive") used to match income before message → "收到多少消息"
+    // was mis-classified as income.
+    expect(parseFilters("我收到多少消息").subtype).toBe("message");
+    expect(parseFilters("收到的快递").subtype).toBeUndefined();
+    expect(parseFilters("收到转账了吗").subtype).toBe("transfer"); // still transfer
+    // genuine income keywords still classify
+    expect(parseFilters("这个月工资多少").subtype).toBe("income");
+    expect(parseFilters("进账多少").subtype).toBe("income");
+  });
+
   it("identifies adapter via keywords (Chinese + English)", () => {
     expect(parseFilters("淘宝今年下了多少单").adapter).toBe("taobao");
     expect(parseFilters("支付宝账单").adapter).toBe("alipay-bill");
