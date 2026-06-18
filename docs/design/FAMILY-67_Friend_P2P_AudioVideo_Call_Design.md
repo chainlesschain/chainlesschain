@@ -102,8 +102,12 @@
 > - **P1 音频**：`WebRtcCallMediaController`（独立媒体 PeerConnection，复用 `sharedFactory()`+`callIceServers()`，音轨 + offer/answer/ICE）+ `AudioRouteController`（`MODE_IN_COMMUNICATION` + 焦点 + 听筒/扬声器）+ `AppInitializer` 接线。
 > - **P2 视频**：同 `WebRtcCallMediaController` 懒建独立**视频版** `PeerConnectionFactory`（`EglBase` + `DefaultVideoEncoder/DecoderFactory`；消息侧 factory 无视频编解码）；`Camera2/1Enumerator` 优先前置摄像头采集 + 本地视频轨 + 远端视频轨经 `onAddTrack` 暴露；`CallHost` 渲染远端全屏 `SurfaceViewRenderer` + 本地 PiP + 摄像头翻转 + `CAMERA` 运行时权限。
 > - **P3 前台/锁屏**：`CallServiceLauncher` seam（`CallManager` 经此驱动，默认 NOOP 保单测）+ `AndroidCallServiceLauncher`（来电高优先级全屏通知 `setFullScreenIntent`→`CallActivity` 越锁屏点屏 + 接听/拒接动作；接通→`CallForegroundService`；结束→撤通知+停服务）+ `CallForegroundService`(`microphone|camera`，接通后启动避开 Android 14 无权限崩溃，保锁屏/后台麦克风不被杀) + `CallActivity`(`showWhenLocked`+`turnScreenOn`，语音激活 `PROXIMITY_SCREEN_OFF_WAKE_LOCK` 贴耳息屏) + `CallActionReceiver`(通知动作)。
-> - **UI**：`CallHost`（MainActivity 顶层全屏浮层，来电/去电/通话中）+ `CallViewModel` + `P2PChatScreen`「语音/视频通话」按钮（用好友 DID 拨号，同消息信令路由键）。
-> - **剩余**：真机 amethyst↔chopin 双向音视频 + 锁屏来电验收（设备阻塞，需两机）。Android 14 后台拨号→接听场景下 FGS-from-background 可能被系统拒（已 runCatching 兜底，降级为前台时工作）。
+> - **UI**：`CallHost`（MainActivity 顶层全屏浮层，来电/去电/通话中）+ `CallViewModel` + `P2PChatScreen`「语音/视频通话」按钮 + 好友资料页 `FriendDetailScreen` 通话按钮（均用好友 DID 拨号，同消息信令路由键）。
+> - **铃声**：`CallRinger`（来电系统默认铃声 + 振动，尊重响铃/振动/静音模式；去电回铃音；接听/结束停），由 `AndroidCallServiceLauncher` 按状态驱动（前台 + 锁屏来电都覆盖）。
+> - **通话记录**：`CallHistoryRecorder` seam + `RoomCallHistoryRecorder` 写 `call_history`（DB v24 已有 entity+DAO，补 DI + CallManager.end() 落库 + MainActivity 注入）+ `CallHistoryScreen`/`ViewModel`（好友资料页「查看通话记录」入口）。
+> - **真机验证（amethyst↔chopin）**：发起/来电/接通/通话记录已通。
+> - **剩余**：双向音视频实听 + 锁屏来电真机验收。
+> - **真机暴露并修复的关键 bug**：① 启动接线最初写在 `AppInitializer.initializeAsynchronously()`——那是**死代码**（全项目从不调用，真启动路径是 `MainActivity.onCreate`）→ `CallManager.start()` 从不执行 → 被叫端不订阅来电信令、收到 invite 也不响铃（主叫 `startCall` 直接 send 不需 start，骗过首轮自测）。修复=接线移到 `MainActivity`。② 好友资料页通话按钮原是「开发中」占位 → 接真 `CallManager`。③「查看通话记录」原是 NavGraph no-op → 补齐落库+记录页。④ 来电无铃声 → 加 `CallRinger`。Android 14 后台拨号→接听场景下 FGS-from-background 可能被系统拒（已 runCatching 兜底）。
 
 ### 10.1 模块与职责
 

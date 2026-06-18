@@ -18,7 +18,9 @@
 - 🤝 **双呼仲裁（glare）**：双方同时互呼时按 callId 字典序确定保留方，另一方自动让步转为接听。
 - ⏱️ **超时与状态机**：无应答 60s / 媒体协商 30s 超时自动结束；完整状态机（去电 / 响铃 / 接听 / 通话中 / 结束）。
 - 🔔 **后台 / 锁屏来电**：前台服务（`microphone|camera`）保锁屏 / 熄屏期间麦克风采集不被杀；全屏来电通知越锁屏点亮屏幕 + 接听 / 拒接。
+- 🔊 **来电铃声 / 振动**：来电响系统默认铃声 + 振动（尊重响铃 / 振动 / 静音模式）；去电播回铃音；接听 / 结束即停。
 - 📴 **贴耳息屏**：语音通话中接近传感器自动息屏（`PROXIMITY_SCREEN_OFF_WAKE_LOCK`）。
+- 🕑 **通话记录**：每通通话结束落库 `call_history`（呼出 / 呼入 / 未接 + 语音 / 视频 + 时长 + 状态），好友资料页「查看通话记录」查看。
 - 🧭 **零中心存储**：媒体内容从不经服务器；信令服务器仅做发现 + 控制信令转发。
 
 ## 系统架构
@@ -66,7 +68,8 @@
 - **单元测试（25）**：`CallManagerTest`（状态机：去电 / 来电 / 响铃 / 接听 / 拒接 / 挂断 / glare / 超时 / P3 前台服务 seam 转发）+ `CallSignalTest`（信令序列化 + glare 仲裁）。
 - **集成测试（5，Robolectric）**：`AndroidCallServiceLauncherTest`（通话状态 → 通知 / 前台服务映射：来电全屏通知 / 接通起 FGS / 去电只通知 / clear 撤通知）。
 - **端到端测试（2）**：`CallHandshakeE2ETest`（两个 `CallManager` 经 fake 信令总线互联，跑完整握手 `INVITE→RINGING→ACCEPT→media→ACTIVE`（双方）`→HANGUP→ENDED` + 拒接路径）。
-- 合计 **34 个 JVM 测试全绿**（非 flaky，多轮复跑）。**真机双向音视频 + 锁屏来电验收**需两台真机（设备级 e2e）。
+- **通话记录映射（6）**：`CallHistoryRecorderTest`（终态 → `CallHistoryEntity`：方向 / 状态 / 时长 / 媒体类型）。
+- 合计 **40 个 JVM 测试全绿**（非 flaky，多轮复跑）。**真机验证**：amethyst↔chopin 发起 / 来电 / 接通 / 通话记录已通；双向音视频实听 + 锁屏来电仍在真机验收中。
 
 ## 安全考虑
 
@@ -85,6 +88,8 @@
 | 视频黑屏 | `CAMERA` 是否授予；查 `[CallMedia] local video setup`；部分 ROM 需回落 Camera1 |
 | 锁屏收不到全屏来电 | `POST_NOTIFICATIONS`（Android 13+）/ `USE_FULL_SCREEN_INTENT` 是否授予；通话渠道是否被系统静音 |
 | 后台一会儿就断 | 确认前台服务已启动（接通后）；Android 14 后台拨号→接听场景前台服务可能被系统限制（已兜底降级为前台时工作） |
+| 来电没有铃声 | 检查手机是否处于静音 / 振动模式（静音模式不响铃只振动）；确认系统默认铃声已设置；通话通知渠道未被静音 |
+| 查看通话记录为空 | 仅记录**升级到含通话记录版本之后**的通话；旧通话不会回填。新打一通后即出现 |
 
 ## 关键文件
 
@@ -94,6 +99,8 @@
 - `.../call/AudioRouteController.kt` — 音频路由 / 焦点
 - `.../call/ui/CallHost.kt` / `CallViewModel.kt` — 通话 UI 浮层
 - `.../call/CallForegroundService.kt` / `CallActivity.kt` / `AndroidCallServiceLauncher.kt` / `CallActionReceiver.kt` — 前台服务 + 锁屏来电
+- `.../call/CallRinger.kt` — 来电铃声 / 振动 / 去电回铃音
+- `.../call/CallHistoryRecorder.kt` / `RoomCallHistoryRecorder.kt` / `ui/CallHistoryScreen.kt` / `ui/CallHistoryViewModel.kt` — 通话记录落库 + 查看页（`call_history` 表）
 - 设计文档：`docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md`
 
 ## 使用示例
