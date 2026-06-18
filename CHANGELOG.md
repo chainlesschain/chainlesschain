@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（v5.0.3.120）
+> 好友语音/视频通话历史落库 + 通话记录可查看，来电铃声/振动/去电回铃音，CLI 各处 fetch 加超时防挂死。cli 0.162.81 已发 npm。
+
+- **通话历史落库**：`CallManager` 终态经 `CallHistoryRecorder` seam（默认 NOOP 保单测纯净）落库 `call_history`；`MainActivity` 注入 `RoomCallHistoryRecorder`（Room 实现）；记录来/去电、未接、音视频类型与挂断原因。
+- **好友资料页查看通话记录**：好友资料页「查看通话记录」接通 `call_history/{peerDid}` 路由 → `CallHistoryScreen`/`CallHistoryViewModel`（按 peerDid 过滤/全部，Flow 读取）。
+- **来电铃声/振动 + 去电回铃音**：来电播放系统铃声 + 振动，去电播放回铃音（修「来电无声音」）。
+- **CLI 网络鲁棒性**：webhook notifiers、`cc update`/`vcheck` 的 update-check fetch、provider 连通性探针均加超时（dead endpoint 不再永久挂起）。
+- **CLI 数值守卫**：reputation / 插件收益分账拒绝 NaN 的 score/amount，避免污染余额。
+
 ### Fixed — 好友 P2P 发消息稳定性（v5.0.3.119）
 > 两天「无法扫码加好友 / 对方收不到消息 / 连不上」全链路收口，真机 amethyst↔chopin 双向消息 <1s 送达验证。
 
