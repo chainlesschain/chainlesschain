@@ -1,5 +1,23 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.16] — 2026-06-18 — chat panel LLM UX (paste · quick config · vision model)
+
+- **Screenshot/image paste.** Press **Ctrl/Cmd+V** with an image on the
+  clipboard and it attaches to your next message (📷 indicator by the Send
+  button) — sent to a vision-capable model alongside your text, the same as the
+  VS Code panel. Up to 4 images per turn; image-only turns are allowed. The CLI
+  switches to the vision model automatically when images are present.
+- **Quick LLM-config entry + hint.** A **⚙ LLM** button now sits next to Send
+  and opens the provider/model wizard directly from the chat — no hunting in the
+  Tools menu. When a turn fails with what looks like an auth/key problem
+  (401/403, missing/expired key), the transcript adds a dimmed hint pointing at
+  the button.
+- **Configurable vision model.** The wizard now has a dedicated
+  image-recognition (vision) model step (written to `llm.visionModel`), so the
+  text model and the vision model can differ — e.g. a text LLM plus
+  `doubao-seed-1-6-vision` for screenshots. Leave it blank to reuse the text
+  model / the CLI default.
+
 ## [0.4.15] — 2026-06-18 — multi-line chat composer
 
 - **Multi-line input.** The chat input is now a wrapping multi-line composer

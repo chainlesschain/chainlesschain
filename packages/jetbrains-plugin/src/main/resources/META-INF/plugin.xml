@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.7</version>
+    <version>0.4.16</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.16</b> — chat panel LLM UX: (1) paste screenshots — Ctrl/Cmd+V an
+        image to attach it to your next message (vision); (2) a <b>⚙ LLM</b>
+        quick-entry button by Send opens the provider/model wizard, and auth
+        failures (401/403/missing key) now hint at it; (3) the wizard can set a
+        separate <b>image-recognition (vision) model</b> — text and vision models
+        no longer have to be the same.
+        <br/><br/>
         <b>0.4.15</b> — multi-line chat composer: the input now wraps across
         lines — <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
         parity).

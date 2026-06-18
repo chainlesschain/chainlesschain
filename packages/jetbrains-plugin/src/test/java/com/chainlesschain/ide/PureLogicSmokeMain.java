@@ -375,6 +375,31 @@ public final class PureLogicSmokeMain {
         // no llm block / bad json → {null,null}
         eq(LlmConfig.parseLlmProviderModel("{}")[0], null, "no llm -> null");
         eq(LlmConfig.parseLlmProviderModel("not json")[0], null, "bad json -> null");
+
+        // looksLikeLlmConfigError: nudge to the wizard only on auth/key failures.
+        check(LlmConfig.looksLikeLlmConfigError("Anthropic error: 401"), "401 -> config error");
+        check(LlmConfig.looksLikeLlmConfigError("ANTHROPIC_API_KEY required"), "api key -> config error");
+        check(LlmConfig.looksLikeLlmConfigError("403 Forbidden"), "403 -> config error");
+        check(!LlmConfig.looksLikeLlmConfigError("network timeout"), "network -> not config error");
+        check(!LlmConfig.looksLikeLlmConfigError(null), "null -> not config error");
+
+        // suggestVisionModel: volcengine has a distinct vision model; others blank.
+        eq(LlmConfig.suggestVisionModel("volcengine"), "doubao-seed-1-6-vision-250815", "volcengine vision");
+        eq(LlmConfig.suggestVisionModel("ollama"), "", "ollama vision blank");
+
+        // buildConfigSetArgs: visionModel adds one set; blank omits it.
+        java.util.List<java.util.List<String>> withVis = LlmConfig.buildConfigSetArgs(
+                "volcengine", "doubao-seed-1-6", "k", "https://x", "doubao-vision");
+        boolean hasVision = false;
+        for (java.util.List<String> s : withVis) {
+            if (s.size() >= 4 && "llm.visionModel".equals(s.get(2)) && "doubao-vision".equals(s.get(3))) {
+                hasVision = true;
+            }
+        }
+        check(hasVision, "buildConfigSetArgs emits llm.visionModel");
+        int noVis = LlmConfig.buildConfigSetArgs("ollama", "m", "", "u", "").size();
+        int yesVis = LlmConfig.buildConfigSetArgs("ollama", "m", "", "u", "v").size();
+        check(yesVis == noVis + 1, "blank visionModel omitted, set when present");
     }
 
     private static void slashCommands() {

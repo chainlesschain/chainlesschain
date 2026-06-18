@@ -4,6 +4,7 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
+import com.chainlesschain.ide.LlmConfig;
 import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
@@ -85,6 +86,9 @@ final class ConversationView {
     private int assistantRunStart = -1;
     private boolean inAssistantRun = false;
     private final JTextArea input = new JTextArea(3, 0); // multi-line composer
+    // Pasted screenshots (Ctrl/Cmd+V) → temp PNG paths, attached to the next turn.
+    private final java.util.List<String> pendingImages = new java.util.ArrayList<>();
+    private final JLabel imageLabel = new JLabel();
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
@@ -117,11 +121,20 @@ final class ConversationView {
         // Input gets its own full-width line; Send/Stop sit on a row below it
         // (the old side-by-side layout left the field too narrow).
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        JButton llmBtn = new JButton("⚙ LLM");
+        llmBtn.setToolTipText("配置 LLM 提供商 / 文本模型 / 图片识别模型(写入共享 config.json)");
+        llmBtn.addActionListener(ev -> ConfigureLlmAction.runWizard(project));
+        buttons.add(llmBtn);
         buttons.add(sendBtn);
         buttons.add(stopBtn);
+        imageLabel.setEnabled(false);
+        imageLabel.setVisible(false);
+        JPanel buttonRow = new JPanel(new BorderLayout());
+        buttonRow.add(imageLabel, BorderLayout.WEST);   // 📷 attached-image indicator
+        buttonRow.add(buttons, BorderLayout.EAST);
         JPanel south = new JPanel(new BorderLayout(0, 2));
         south.add(new JScrollPane(input), BorderLayout.NORTH);
-        south.add(buttons, BorderLayout.SOUTH);
+        south.add(buttonRow, BorderLayout.SOUTH);
 
         contextLabel.setFont(contextLabel.getFont().deriveFont(
                 contextLabel.getFont().getSize2D() - 1f));
@@ -159,6 +172,14 @@ final class ConversationView {
                 if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER && !e.isShiftDown()) {
                     e.consume();
                     sendCurrentInput();
+                    return;
+                }
+                // Ctrl/Cmd+V with an image on the clipboard → attach it (vision);
+                // otherwise fall through to normal text paste.
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_V
+                        && (e.isControlDown() || e.isMetaDown())
+                        && tryPasteImage()) {
+                    e.consume();
                 }
             }
         });
@@ -201,9 +222,10 @@ final class ConversationView {
 
     private void sendCurrentInput() {
         final String text = input.getText().trim();
-        if (text.isEmpty()) return;
-        // §5 panel slash + §6 mode/thinking commands are handled locally, never sent.
-        if (text.startsWith("/")) {
+        if (text.isEmpty() && pendingImages.isEmpty()) return;
+        // §5 panel slash + §6 mode/thinking commands are handled locally, never
+        // sent (only when it's a pure text command, no attached images).
+        if (pendingImages.isEmpty() && text.startsWith("/")) {
             input.setText("");
             handleSlash(text);
             return;
@@ -216,12 +238,59 @@ final class ConversationView {
             return;
         }
         AgentChatSession s = liveSession();
-        if (s != null && s.send(text)) {
-            append("\nyou> " + text + "\n");
+        java.util.List<String> imgs = new java.util.ArrayList<>(pendingImages);
+        if (s != null && s.send(text, imgs)) {
+            String tag = imgs.isEmpty() ? ""
+                    : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
+            append("\nyou> " + text + tag + "\n");
             input.setText("");
+            pendingImages.clear();
+            updateImageIndicator();
         } else {
             append("⚠ agent session is not running — press New to restart\n");
         }
+    }
+
+    /** Attach a clipboard image (Ctrl/Cmd+V). Returns true if one was taken. */
+    private boolean tryPasteImage() {
+        try {
+            java.awt.datatransfer.Clipboard cb =
+                    java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+            if (!cb.isDataFlavorAvailable(java.awt.datatransfer.DataFlavor.imageFlavor)) {
+                return false;
+            }
+            Object data = cb.getData(java.awt.datatransfer.DataFlavor.imageFlavor);
+            if (!(data instanceof java.awt.Image)) return false;
+            if (pendingImages.size() >= 4) return true; // cap at 4, still consume the paste
+            java.io.File tmp = java.io.File.createTempFile("cc-paste-", ".png");
+            tmp.deleteOnExit();
+            javax.imageio.ImageIO.write(toBuffered((java.awt.Image) data), "png", tmp);
+            pendingImages.add(tmp.getAbsolutePath());
+            updateImageIndicator();
+            return true;
+        } catch (Exception ex) {
+            return false; // any failure → fall back to normal text paste
+        }
+    }
+
+    private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) {
+        if (img instanceof java.awt.image.BufferedImage) {
+            return (java.awt.image.BufferedImage) img;
+        }
+        int w = Math.max(1, img.getWidth(null));
+        int h = Math.max(1, img.getHeight(null));
+        java.awt.image.BufferedImage bi =
+                new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D g = bi.createGraphics();
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+        return bi;
+    }
+
+    private void updateImageIndicator() {
+        int n = pendingImages.size();
+        imageLabel.setText(n == 0 ? "" : "📷 " + n + " image" + (n == 1 ? "" : "s"));
+        imageLabel.setVisible(n > 0);
     }
 
     /**
@@ -418,8 +487,14 @@ final class ConversationView {
             resolveApprovalCard(ui);
         } else if ("info".equals(kind) || "error".equals(kind)) {
             Object text = ui.get("text");
-            append(("error".equals(kind) ? "⚠ " : "ℹ ")
-                    + (text != null ? text : kind) + "\n");
+            String body = String.valueOf(text != null ? text : kind);
+            append(("error".equals(kind) ? "⚠ " : "ℹ ") + body + "\n");
+            // Nudge toward the LLM wizard when the failure looks like a
+            // missing/expired key or wrong provider (401/403/api key…).
+            if ("error".equals(kind) && LlmConfig.looksLikeLlmConfigError(body)) {
+                appendThinking("提示:点右下「⚙ LLM」配置提供商 / API key"
+                        + "(文本模型与图片识别模型可分别设置)。\n");
+            }
         }
     }
 
@@ -842,6 +917,8 @@ final class ConversationView {
     void clearTranscript() {
         inAssistantRun = false;
         assistantRunStart = -1;
+        pendingImages.clear();
+        updateImageIndicator();
         transcript.setText("");
     }
 

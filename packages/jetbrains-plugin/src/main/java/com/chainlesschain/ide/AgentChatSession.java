@@ -253,11 +253,31 @@ public final class AgentChatSession {
 
     /** Send one user turn. Returns false when the session is not running. */
     public boolean send(String text) {
-        if (text == null || text.trim().isEmpty()) return false;
+        return send(text, null);
+    }
+
+    /**
+     * Send a user turn with optional pasted image file paths (vision). The CLI's
+     * stream protocol takes file PATHS in `images` (same pipeline as
+     * {@code cc agent --image}); it switches to the vision model automatically
+     * when images are present. An image-only turn is valid.
+     */
+    public boolean send(String text, java.util.List<String> images) {
+        Map<String, Object> evt = userEvent(text, images);
+        return evt != null && sendEvent(evt);
+    }
+
+    /** Build a {@code user} turn event (text + optional image paths), or null
+     *  when there's nothing to send. Pure — exported for tests. */
+    public static Map<String, Object> userEvent(String text, java.util.List<String> images) {
+        boolean hasText = text != null && !text.trim().isEmpty();
+        boolean hasImg = images != null && !images.isEmpty();
+        if (!hasText && !hasImg) return null;
         Map<String, Object> evt = MiniJson.obj();
         evt.put("type", "user");
-        evt.put("text", text);
-        return sendEvent(evt);
+        evt.put("text", hasText ? text : "Please look at the attached image(s).");
+        if (hasImg) evt.put("images", new java.util.ArrayList<Object>(images));
+        return evt;
     }
 
     /** Interrupt the in-flight turn (CLI keeps the session alive). */

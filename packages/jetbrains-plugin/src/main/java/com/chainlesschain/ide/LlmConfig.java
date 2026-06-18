@@ -63,15 +63,24 @@ public final class LlmConfig {
         return value != null && UNSAFE.matcher(value).find();
     }
 
-    /** The {@code cc config set} invocations for the wizard's answers. */
+    /** The {@code cc config set} invocations for the wizard's answers. A blank
+     *  visionModel is omitted (the CLI keeps its default vision model). */
     public static List<List<String>> buildConfigSetArgs(
-            String provider, String model, String apiKey, String baseUrl) {
+            String provider, String model, String apiKey, String baseUrl, String visionModel) {
         List<List<String>> sets = new ArrayList<List<String>>();
         if (notBlank(provider)) sets.add(args("config", "set", "llm.provider", provider));
         if (notBlank(model)) sets.add(args("config", "set", "llm.model", model));
         if (notBlank(baseUrl)) sets.add(args("config", "set", "llm.baseUrl", baseUrl));
         if (notBlank(apiKey)) sets.add(args("config", "set", "llm.apiKey", apiKey));
+        if (notBlank(visionModel)) sets.add(args("config", "set", "llm.visionModel", visionModel));
         return sets;
+    }
+
+    /** Suggested default vision (image-recognition) model for a provider, when
+     *  it differs from the text model. Blank = use the CLI's own default. */
+    public static String suggestVisionModel(String providerId) {
+        if ("volcengine".equals(providerId)) return "doubao-seed-1-6-vision-250815";
+        return "";
     }
 
     /** Outcome of one CLI run. */
@@ -116,6 +125,22 @@ public final class LlmConfig {
         CliResult r = runCli(args("config", "get", "llm.provider"));
         if (!r.ok) return null;
         return parseConfigGet(r.output);
+    }
+
+    /**
+     * Does this agent error message look like an LLM provider/key configuration
+     * problem (auth failure / missing key) — i.e. worth nudging the user toward
+     * Configure LLM? Pure, testable.
+     */
+    public static boolean looksLikeLlmConfigError(String message) {
+        if (message == null) return false;
+        String m = message.toLowerCase();
+        return m.contains("401") || m.contains("403")
+                || m.contains("api key") || m.contains("api_key")
+                || m.contains("unauthorized")
+                || m.contains("authentication failed")
+                || m.contains("invalid api key")
+                || m.contains("incorrect api key");
     }
 
     private static String blankToNull(Object o) {
@@ -172,15 +197,21 @@ public final class LlmConfig {
      * @return null on success, otherwise a user-facing error message
      */
     public static String applyConfig(String provider, String model, String apiKey, String baseUrl) {
+        return applyConfig(provider, model, apiKey, baseUrl, null);
+    }
+
+    public static String applyConfig(String provider, String model, String apiKey,
+                                     String baseUrl, String visionModel) {
         String[][] fields = {
-            {"provider", provider}, {"model", model}, {"apiKey", apiKey}, {"baseUrl", baseUrl},
+            {"provider", provider}, {"model", model}, {"apiKey", apiKey},
+            {"baseUrl", baseUrl}, {"visionModel", visionModel},
         };
         for (String[] f : fields) {
             if (notBlank(f[1]) && hasUnsafeShellChars(f[1])) {
                 return "值含不安全字符 (" + f[0] + ") — 请去掉空格/引号/& 等再试";
             }
         }
-        for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl)) {
+        for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl, visionModel)) {
             CliResult r = runCli(set);
             if (!r.ok) return tail(r.output, 200);
         }

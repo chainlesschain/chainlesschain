@@ -30,8 +30,12 @@ public final class ConfigureLlmAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        Project project = e.getProject();
+        runWizard(e.getProject());
+    }
 
+    /** Run the guided LLM-config wizard. Public so the chat panel can offer a
+     *  quick entry (a "⚙ LLM" button + an error hint) into it. */
+    public static void runWizard(Project project) {
         String[] labels = new String[LlmConfig.PRESETS.length];
         for (int i = 0; i < LlmConfig.PRESETS.length; i++) {
             LlmConfig.Preset p = LlmConfig.PRESETS[i];
@@ -60,7 +64,15 @@ public final class ConfigureLlmAction extends AnAction {
                 "Base URL(回车用默认)", TITLE, null, preset.baseUrl, null);
         if (baseUrl == null) return;
 
-        configureAndVerify(project, preset, model, apiKey, baseUrl);
+        // Vision (image-recognition) model — often differs from the text model.
+        // Blank = reuse the text model / the CLI's own default vision model.
+        String visionModel = Messages.showInputDialog(project,
+                "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认)\n"
+                        + "看图时自动切到此模型,可与文本模型不同。",
+                TITLE, null, LlmConfig.suggestVisionModel(preset.id), null);
+        if (visionModel == null) return;
+
+        configureAndVerify(project, preset, model, apiKey, baseUrl, visionModel);
     }
 
     /** Blocking provider chooser (combo box) — replaces the deprecated
@@ -85,22 +97,24 @@ public final class ConfigureLlmAction extends AnAction {
         return dlg.showAndGet() ? combo.getSelectedIndex() : -1;
     }
 
-    private void configureAndVerify(Project project, LlmConfig.Preset preset,
-                                    String model, String apiKey, String baseUrl) {
-        final String fModel = model, fKey = apiKey, fBaseUrl = baseUrl;
+    private static void configureAndVerify(Project project, LlmConfig.Preset preset,
+                                    String model, String apiKey, String baseUrl, String visionModel) {
+        final String fModel = model, fKey = apiKey, fBaseUrl = baseUrl, fVision = visionModel;
         new Task.Backgroundable(project, "ChainlessChain: 写入 LLM 配置并验证连通…", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 final String applyError =
-                        LlmConfig.applyConfig(preset.id, fModel, fKey, fBaseUrl);
+                        LlmConfig.applyConfig(preset.id, fModel, fKey, fBaseUrl, fVision);
                 final LlmConfig.CliResult test =
                         applyError == null ? LlmConfig.testLlm() : null;
+                final String visionNote = (fVision != null && !fVision.trim().isEmpty())
+                        ? " · 视觉 " + fVision : "";
                 ApplicationManager.getApplication().invokeLater(() -> {
                     if (applyError != null) {
                         Messages.showErrorDialog(project, "LLM 配置写入失败:" + applyError, TITLE);
                     } else if (test.ok) {
                         Messages.showInfoMessage(project,
-                                "LLM 配置完成并连通 ✓ (" + preset.id + " · " + fModel + ")。"
+                                "LLM 配置完成并连通 ✓ (" + preset.id + " · " + fModel + visionNote + ")。"
                                         + "终端里的 cc agent 即刻生效。", TITLE);
                     } else {
                         Messages.showWarningDialog(project,

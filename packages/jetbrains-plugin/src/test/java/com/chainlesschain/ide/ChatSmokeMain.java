@@ -54,6 +54,7 @@ public final class ChatSmokeMain {
         failures += checkCommandLineShape();
         failures += checkDuplexRoundTrip();
         failures += checkThinkingMapped();
+        failures += checkUserEvent();
         if (failures > 0) {
             System.err.println("CHAT SMOKE: " + failures + " FAILURE(S)");
             System.exit(1);
@@ -182,6 +183,32 @@ public final class ChatSmokeMain {
         return expect(ui != null && "thinking".equals(ui.get("kind"))
                         && "let me reason".equals(ui.get("text")),
                 "thinking_delta -> thinking kind: " + MiniJson.stringify(ui));
+    }
+
+    /** The user-turn event shape: text, optional images (vision), or null. */
+    private static int checkUserEvent() {
+        int f = 0;
+        Map<String, Object> textOnly = AgentChatSession.userEvent("hi", null);
+        f += expect(textOnly != null && "user".equals(textOnly.get("type"))
+                        && "hi".equals(textOnly.get("text")) && textOnly.get("images") == null,
+                "userEvent text-only: " + MiniJson.stringify(textOnly));
+        Map<String, Object> withImg = AgentChatSession.userEvent(
+                "look", java.util.Arrays.asList("/tmp/a.png", "/tmp/b.png"));
+        boolean okImg = withImg != null
+                && "look".equals(withImg.get("text"))
+                && withImg.get("images") instanceof java.util.List
+                && ((java.util.List<?>) withImg.get("images")).size() == 2;
+        f += expect(okImg, "userEvent with images: " + MiniJson.stringify(withImg));
+        // image-only turn → synthesized text, still valid
+        Map<String, Object> imgOnly = AgentChatSession.userEvent(
+                "  ", java.util.Arrays.asList("/tmp/c.png"));
+        f += expect(imgOnly != null && String.valueOf(imgOnly.get("text")).contains("image"),
+                "image-only turn synthesizes text");
+        // nothing to send → null
+        f += expect(AgentChatSession.userEvent("", null) == null
+                        && AgentChatSession.userEvent(null, new java.util.ArrayList<String>()) == null,
+                "empty text + no images → null");
+        return f;
     }
 
     private static <T> T take(BlockingQueue<T> q) throws InterruptedException {
