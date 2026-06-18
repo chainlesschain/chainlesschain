@@ -108,6 +108,28 @@ async function getConfiguredProvider({ command = "cc", deps } = {}) {
   return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
 }
 
+/** Currently configured vision model (null when unset / CLI missing). */
+async function getConfiguredVisionModel({ command = "cc", deps } = {}) {
+  const r = await runCli(command, ["config", "get", "llm.visionModel"], deps);
+  if (!r.ok) return null;
+  const raw = r.stdout.trim().split("=").pop().trim();
+  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+}
+
+/**
+ * Set just `llm.visionModel` — the dedicated vision-model entry, so the user
+ * need not re-run the full wizard / re-type the API key. A blank value clears it
+ * (revert to the text model / CLI default).
+ */
+async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
+  const v = (visionModel == null ? "" : String(visionModel)).trim();
+  if (v && hasUnsafeShellChars(v)) {
+    return { ok: false, error: "值含不安全字符 — 请去掉空格/引号/& 等再试" };
+  }
+  const r = await runCli(command, ["config", "set", "llm.visionModel", v], deps);
+  return r.ok ? { ok: true } : { ok: false, error: r.error || r.stderr.slice(0, 200) };
+}
+
 /** Apply the wizard's answers via `cc config set` (sequential, fail-fast). */
 async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
   for (const [key, value] of Object.entries(answers || {})) {
@@ -136,6 +158,8 @@ module.exports = {
   suggestVisionModel,
   looksLikeLlmConfigError,
   getConfiguredProvider,
+  getConfiguredVisionModel,
+  setVisionModel,
   applyLlmConfig,
   testLlm,
 };

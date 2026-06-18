@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.0] — 2026-06-19 — dedicated vision-model entry
+
+- **You can now set the image-recognition (vision) model on its own.** It used
+  to only appear as the last step of the full Configure-LLM wizard, so changing
+  it meant re-walking provider → model → API key → base URL. New command
+  **ChainlessChain: Configure Vision Model** (command palette, and in the chat
+  view's title `⋯` menu) writes just `llm.visionModel` — prefilled with the
+  current value (or the configured provider's suggestion); leave it blank to
+  clear it. No API-key re-entry. (Matches the JetBrains 0.4.18 ⚙ LLM menu.)
+
 ## [0.32.1] — 2026-06-19 — guided-setup card now triggers on bare auth failures
 
 - **Fix: a bare `401`/`403`/`Unauthorized`/`authentication failed` now surfaces

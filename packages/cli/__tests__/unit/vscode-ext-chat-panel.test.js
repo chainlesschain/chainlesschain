@@ -660,6 +660,61 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     expect(llmCfg.looksLikeLlmConfigError(null)).toBe(false);
   });
 
+  it("setVisionModel: writes llm.visionModel, blank clears, unsafe rejected", async () => {
+    const calls = [];
+    const deps = {
+      execFile: (c, a, o, cb) => {
+        calls.push(a);
+        cb(null, "");
+      },
+    };
+    // a value → cc config set llm.visionModel <value>
+    const ok = await llmCfg.setVisionModel({
+      visionModel: "doubao-seed-1-6-vision-250815",
+      deps,
+    });
+    expect(ok.ok).toBe(true);
+    expect(calls.at(-1)).toEqual([
+      "config",
+      "set",
+      "llm.visionModel",
+      "doubao-seed-1-6-vision-250815",
+    ]);
+    // blank → still writes (clears to empty string)
+    await llmCfg.setVisionModel({ visionModel: "", deps });
+    expect(calls.at(-1)).toEqual(["config", "set", "llm.visionModel", ""]);
+    // unsafe value → rejected without spawning
+    const bad = await llmCfg.setVisionModel({
+      visionModel: "a b",
+      deps: {
+        execFile: () => {
+          throw new Error("must not spawn");
+        },
+      },
+    });
+    expect(bad.ok).toBe(false);
+    expect(bad.error).toMatch(/不安全字符/);
+  });
+
+  it("getConfiguredVisionModel parses output and maps unset to null", async () => {
+    const mk = (out, err) => ({
+      execFile: (c, a, o, cb) => cb(err || null, out || ""),
+    });
+    expect(
+      await llmCfg.getConfiguredVisionModel({
+        deps: mk("llm.visionModel = doubao-vision"),
+      }),
+    ).toBe("doubao-vision");
+    expect(
+      await llmCfg.getConfiguredVisionModel({ deps: mk("undefined") }),
+    ).toBe(null);
+    expect(
+      await llmCfg.getConfiguredVisionModel({
+        deps: mk("", new Error("cli missing")),
+      }),
+    ).toBe(null);
+  });
+
   it("rejects shell-unsafe values before writing", async () => {
     expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
     expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);

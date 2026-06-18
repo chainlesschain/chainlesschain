@@ -373,6 +373,47 @@ function activate(context) {
         chatProvider.onLlmConfigured?.();
       },
     ),
+    // Dedicated vision-model entry — set just llm.visionModel without re-running
+    // the full wizard (or re-typing the API key). Mirrors the JetBrains
+    // "Configure Vision Model" action / ⚙ LLM menu item.
+    vscode.commands.registerCommand(
+      "chainlesschain.llm.configureVision",
+      async () => {
+        const {
+          getConfiguredProvider,
+          getConfiguredVisionModel,
+          suggestVisionModel,
+          setVisionModel,
+        } = require("./llm-config.js");
+        const cliCmd =
+          vscode.workspace.getConfiguration("chainlesschain.cli").get("path") ||
+          "cc";
+        const [provider, current] = await Promise.all([
+          getConfiguredProvider({ command: cliCmd }),
+          getConfiguredVisionModel({ command: cliCmd }),
+        ]);
+        const prefill = current || suggestVisionModel(provider || "");
+        const visionModel = await vscode.window.showInputBox({
+          prompt:
+            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认;粘贴截图时自动切到此模型)",
+          value: prefill,
+          ignoreFocusOut: true,
+        });
+        if (visionModel === undefined) return;
+        const r = await setVisionModel({ command: cliCmd, visionModel });
+        if (!r.ok) {
+          vscode.window.showErrorMessage(`视觉模型写入失败:${r.error}`);
+        } else if (!visionModel.trim()) {
+          vscode.window.showInformationMessage(
+            "已清除图片识别模型 —— 看图时复用文本模型 / CLI 默认。",
+          );
+        } else {
+          vscode.window.showInformationMessage(
+            `图片识别模型已设为 ${visionModel.trim()} ✓(粘贴截图时自动切到它)。`,
+          );
+        }
+      },
+    ),
     // Insert File Reference (Cmd/Ctrl+Alt+K — Claude Code parity): take the
     // active editor's workspace-relative path and drop it into the chat input
     // as an `@<path>` reference (the CLI expands it server-side).
