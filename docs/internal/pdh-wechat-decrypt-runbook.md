@@ -107,7 +107,24 @@ node scripts/android/pdh-qq-decrypt.mjs --db "C:/Users/<u>/Documents/Tencent Fil
      --raw-keys-file qq-keys.json --out-dir "C:/Users/<u>/Desktop/我的数据库"
 ```
 
-**Android QQ NT 未解**：libDBEncryptV2 自研 + 无导出 key 函数；走 PC 路更可行（消息可能同账号同步）。
+### ✅ Android QQ NT — 已验证（**无需 frida**，密钥可推导）
+
+> 实测 chopin / 账号 896075341：group_msg 466 / c2c 7 解密。比 PC 路干净得多。
+
+**密钥推导**：`key = MD5( MD5(uid) + rand )`（32-hex 串作 SQLCipher 口令）
+- `rand` = nt_msg.db 头部 "QQ_NT DB" 后的可读串（protobuf field2，~8 chars，如 `6bd8giTC`）；
+  头里还写 HMAC 算法（`HMAC_SHA1`）。
+- **坑：`nt_qq_<hash>` 目录名的 hash ≠ MD5(uid)**（实测不符）！必须用**真实 uid**。uid 无固定
+  位置 → 从 QQ 全量数据 `strings|grep u_` 收候选（实测 417 个），逐个套公式暴力，page1 解出有效
+  SQLite header 即命中 self uid（本机 `u_UIQoK3voMJD53LvjlHj3aw`，与 PC 同账号）。
+- 解密参数：SKIP 1024 / page 4096 / reserve 48(HMAC_SHA1) / IV@reserve开头 / PBKDF2_HMAC_SHA512
+  iter 4000 / AES-256-CBC。
+
+**复现命令**（一条龙：pull + 推导 + 解密）：
+```sh
+node scripts/android/pdh-qq-android-decrypt.mjs --serial <serial> --out-dir "C:/Users/<u>/Desktop/我的数据库" --self <qq>
+node scripts/android/pdh-qq-ingest.mjs --db "C:/Users/<u>/Desktop/我的数据库/QQ_android_nt_msg_decrypted.db" --self <qq>
+```
 
 ## Schema 字典（供 AI 解读/展示）
 
