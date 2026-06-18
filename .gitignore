@@ -6,9 +6,10 @@ bower_components/
 wlsimkey/
 SIMKeySDK-20220416/
 doc/
-# Claude Code local settings (keep .claude/rules/ tracked)
+# Claude Code local settings (keep .claude/rules/ and .claude/skills/ tracked)
 .claude/*
 !.claude/rules/
+!.claude/skills/
 CLAUDE.local.md
 docs/claude/CLAUDE-activeContext.md
 参考资料/
