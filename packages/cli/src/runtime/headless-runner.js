@@ -46,6 +46,7 @@ import {
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
+import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
 import { withQuietStdout } from "./quiet-stdout.js";
 import { CostBudget } from "../lib/cost-budget.js";
 
@@ -323,6 +324,50 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   const isStream = outputFormat === "stream-json";
   const isJson = outputFormat === "json";
   const isText = outputFormat === "text";
+
+  // ── Headless `/config` directive (Claude-Code 2.1.181: /config in -p mode) ──
+  // A leading `/config …` prompt is a one-shot config get/set/show, not a task
+  // for the LLM — handled before bootstrap/session/model so it never spends a
+  // turn or touches a provider. Mirrors the REPL `/config`; secrets stay masked.
+  if (isHeadlessConfigCommand(prompt)) {
+    const cm = await import("../lib/config-manager.js");
+    const { getConfigPath } = await import("../lib/paths.js");
+    const { runConfigDirective } =
+      await import("../lib/headless-config-command.js");
+    const { text, isError } = runConfigDirective(prompt, {
+      configManager: cm,
+      getConfigPath,
+    });
+    const subtype = isError ? "error" : "success";
+    if (isStream) {
+      writeOut(
+        JSON.stringify({
+          type: "result",
+          subtype,
+          is_error: isError,
+          result: text,
+        }) + "\n",
+      );
+    } else if (isJson) {
+      writeOut(
+        JSON.stringify(
+          buildResultEnvelope({
+            subtype,
+            isError,
+            result: text,
+            sessionId: null,
+            toolCalls: [],
+            usage: null,
+            numTurns: 0,
+            durationMs: 0,
+          }),
+        ) + "\n",
+      );
+    } else {
+      writeOut(text + (text.endsWith("\n") ? "" : "\n"));
+    }
+    return { exitCode: isError ? 1 : 0, result: text, isError };
+  }
 
   // ── Expand @file references in the prompt (Claude-Code parity) ─────────
   // `@path/to/file` tokens are augmented with the referenced file contents (or
@@ -673,7 +718,10 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   // per-call cost from token-usage events and stops the loop before the next
   // paid call once the cap is reached. null → no cap (unchanged behavior).
   const costBudget = options.maxCostUsd
-    ? new CostBudget({ limitUsd: options.maxCostUsd, table: options.priceTable })
+    ? new CostBudget({
+        limitUsd: options.maxCostUsd,
+        table: options.priceTable,
+      })
     : null;
 
   const startedAt = deps.now ? deps.now() : Date.now();
