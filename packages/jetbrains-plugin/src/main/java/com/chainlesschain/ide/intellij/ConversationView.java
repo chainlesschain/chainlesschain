@@ -79,6 +79,7 @@ final class ConversationView {
     private final SimpleAttributeSet stylePlain = new SimpleAttributeSet();
     private final SimpleAttributeSet styleCode = new SimpleAttributeSet();
     private final SimpleAttributeSet styleBold = new SimpleAttributeSet();
+    private final SimpleAttributeSet styleDim = new SimpleAttributeSet(); // extended-thinking
     // The current streamed assistant text run: appended plain, then re-styled
     // with markdown when it ends (a tool call, the turn end, or any other line).
     private int assistantRunStart = -1;
@@ -105,6 +106,8 @@ final class ConversationView {
         transcript.setFont(new Font(Font.MONOSPACED, Font.PLAIN, transcript.getFont().getSize()));
         StyleConstants.setForeground(styleCode, new Color(0xCC, 0x78, 0x32)); // amber code
         StyleConstants.setBold(styleBold, true);
+        StyleConstants.setForeground(styleDim, new Color(0x80, 0x80, 0x80)); // gray thinking
+        StyleConstants.setItalic(styleDim, true);
         root.add(new JScrollPane(transcript), BorderLayout.CENTER);
 
         // Input gets its own full-width line; Send/Stop sit on a row below it
@@ -376,6 +379,8 @@ final class ConversationView {
             append("── " + ui.get("model") + " · " + ui.get("provider") + " ──\n");
         } else if ("delta".equals(kind)) {
             appendAssistantDelta(String.valueOf(ui.get("text")));
+        } else if ("thinking".equals(kind)) {
+            appendThinking(String.valueOf(ui.get("text")));
         } else if ("tool".equals(kind)) {
             String summary = String.valueOf(ui.get("summary"));
             append("\n→ " + ui.get("tool") + (summary.isEmpty() ? "" : " " + summary) + "\n");
@@ -808,6 +813,12 @@ final class ConversationView {
         } catch (BadLocationException ignored) {
             /* best-effort — leave the plain text in place on any hiccup */
         }
+    }
+
+    /** Extended-thinking reasoning — streamed dim/italic, not markdown-rendered. */
+    private void appendThinking(String s) {
+        finalizeAssistantRun();
+        insertStyled(s, styleDim);
     }
 
     void appendInfo(String s) {

@@ -61,6 +61,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.14</b> — extended-thinking reasoning (with <code>/think</code>) now
+        streams into the transcript dimmed/italic, set apart from the answer
+        (VS Code parity).
+        <br/><br/>
         <b>0.4.13</b> — Markdown rendering in the chat transcript: fenced/inline
         <code>code</code> (monospace) and <b>bold</b> now render instead of raw
         markers (VS Code parity). Streaming stays plain, then snaps to styled.

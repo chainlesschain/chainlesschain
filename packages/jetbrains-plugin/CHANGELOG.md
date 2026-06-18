@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.14] — 2026-06-18 — extended-thinking reasoning shown dimmed
+
+- **Thinking-stream display.** With `/think` (or `/ultrathink`) on, the model's
+  extended-thinking reasoning now streams into the transcript in a dimmed italic
+  gray, set apart from the answer — VS Code parity. `ChatEvents` maps the
+  `thinking_delta` stream event to a "thinking" line; the JTextPane renders it
+  with the dim style (not markdown). Previously thinking deltas were dropped.
+
 ## [0.4.13] — 2026-06-18 — Markdown rendering in the chat transcript
 
 - **Markdown in assistant replies.** The chat transcript now renders fenced

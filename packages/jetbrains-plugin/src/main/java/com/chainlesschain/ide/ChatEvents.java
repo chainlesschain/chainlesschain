@@ -88,6 +88,15 @@ public final class ChatEvents {
                 m.put("text", delta.get("text"));
                 return m;
             }
+            // Extended-thinking reasoning delta (Anthropic; only when /think is on)
+            // → a dimmed "thinking" line, like the VS Code panel.
+            if (delta != null
+                    && "thinking_delta".equals(str(delta, "type", ""))
+                    && delta.get("thinking") instanceof String) {
+                Map<String, Object> m = ui("thinking");
+                m.put("text", delta.get("thinking"));
+                return m;
+            }
             return null;
         }
         if ("tool_use".equals(type)) {

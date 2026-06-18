@@ -53,6 +53,7 @@ public final class ChatSmokeMain {
         int failures = 0;
         failures += checkCommandLineShape();
         failures += checkDuplexRoundTrip();
+        failures += checkThinkingMapped();
         if (failures > 0) {
             System.err.println("CHAT SMOKE: " + failures + " FAILURE(S)");
             System.exit(1);
@@ -164,6 +165,23 @@ public final class ChatSmokeMain {
         failures += expect(!session.isRunning(), "session no longer running");
         failures += expect(!session.send("late"), "send() refused after exit");
         return failures;
+    }
+
+    /** A thinking_delta stream event maps to a dimmed "thinking" UI line. */
+    private static int checkThinkingMapped() {
+        ChatEvents.TurnState st = new ChatEvents.TurnState();
+        Map<String, Object> evt = MiniJson.obj();
+        evt.put("type", "stream_event");
+        Map<String, Object> ev = MiniJson.obj();
+        Map<String, Object> delta = MiniJson.obj();
+        delta.put("type", "thinking_delta");
+        delta.put("thinking", "let me reason");
+        ev.put("delta", delta);
+        evt.put("event", ev);
+        Map<String, Object> ui = ChatEvents.mapAgentEvent(evt, st);
+        return expect(ui != null && "thinking".equals(ui.get("kind"))
+                        && "let me reason".equals(ui.get("text")),
+                "thinking_delta -> thinking kind: " + MiniJson.stringify(ui));
     }
 
     private static <T> T take(BlockingQueue<T> q) throws InterruptedException {
