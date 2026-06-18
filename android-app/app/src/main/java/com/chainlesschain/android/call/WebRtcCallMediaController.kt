@@ -279,6 +279,8 @@ class WebRtcCallMediaController @Inject constructor(
                 PeerConnection.IceConnectionState.CONNECTED,
                 PeerConnection.IceConnectionState.COMPLETED -> listener?.onMediaConnected(id)
                 PeerConnection.IceConnectionState.FAILED -> listener?.onMediaFailed(id)
+                // 通话中网络瞬断 → 进重连宽限期（WebRTC 可能自行 ICE restart 恢复→回 CONNECTED）
+                PeerConnection.IceConnectionState.DISCONNECTED -> listener?.onMediaDisconnected(id)
                 else -> {}
             }
         }

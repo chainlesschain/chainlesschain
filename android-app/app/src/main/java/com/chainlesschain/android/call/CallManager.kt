@@ -53,6 +53,7 @@ class CallManager @Inject constructor(
 
     @Volatile private var started = false
     @Volatile private var timeoutJob: Job? = null
+    @Volatile private var reconnectJob: Job? = null // 断网重连宽限计时（ACTIVE 中 ICE 断开）
 
     fun start() {
         if (started) return
@@ -212,7 +213,13 @@ class CallManager @Inject constructor(
 
     override fun onMediaConnected(callId: String) {
         val s = _callState.value ?: return
-        if (s.callId != callId || s.state == CallState.ACTIVE) return
+        if (s.callId != callId) return
+        // 重连成功（或首次连通）→ 清掉断网重连宽限计时
+        reconnectJob?.cancel(); reconnectJob = null
+        if (s.state == CallState.ACTIVE) {
+            Timber.i("[Call] media reconnected $callId")
+            return
+        }
         cancelTimeout()
         transition(s.copy(state = CallState.ACTIVE, connectedAtMs = clock()))
         Timber.i("[Call] active $callId")
@@ -220,6 +227,21 @@ class CallManager @Inject constructor(
 
     override fun onMediaFailed(callId: String) {
         if (_callState.value?.callId == callId) end(CallEndReason.MEDIA_FAILED)
+    }
+
+    override fun onMediaDisconnected(callId: String) {
+        val s = _callState.value ?: return
+        if (s.callId != callId || s.state != CallState.ACTIVE) return
+        if (reconnectJob != null) return // 已在宽限期
+        Timber.w("[Call] media disconnected $callId — reconnect grace ${RECONNECT_GRACE_MS}ms")
+        reconnectJob = scope.launch {
+            delay(RECONNECT_GRACE_MS)
+            val cur = _callState.value
+            if (cur != null && cur.callId == callId && cur.state == CallState.ACTIVE) {
+                Timber.w("[Call] reconnect grace expired $callId — ending NETWORK_LOST")
+                end(CallEndReason.NETWORK_LOST)
+            }
+        }
     }
 
     // ============ 内部 ============
@@ -234,6 +256,7 @@ class CallManager @Inject constructor(
 
     private fun end(reason: CallEndReason) {
         cancelTimeout()
+        reconnectJob?.cancel(); reconnectJob = null
         runCatching { media.close() }
         val s = _callState.value
         if (s != null && !s.state.isTerminal) {
@@ -272,5 +295,6 @@ class CallManager @Inject constructor(
         const val NO_ANSWER_TIMEOUT_MS = 60_000L
         const val MEDIA_TIMEOUT_MS = 30_000L
         const val END_LINGER_MS = 2_500L
+        const val RECONNECT_GRACE_MS = 20_000L // 通话中 ICE 断开后等待恢复的宽限期
     }
 }

@@ -160,6 +160,39 @@ class CallManagerTest {
         assertNull(mgr.callState.value)
     }
 
+    // ---- 通话中网络瞬断 / 重连宽限 ----
+
+    private suspend fun toActive() {
+        mgr.onSignal(CallSignal(CallSignalTypes.INVITE, "call-peer", PEER))
+        mgr.accept()
+        mgr.onMediaConnected("call-peer")
+        assertEquals(CallState.ACTIVE, mgr.callState.value!!.state)
+    }
+
+    @Test
+    fun `media disconnect during ACTIVE does not immediately end (grace)`() = runTest {
+        toActive()
+        mgr.onMediaDisconnected("call-peer")
+        // 仍 ACTIVE（进入宽限期，等待恢复或宽限超时）
+        assertEquals(CallState.ACTIVE, mgr.callState.value!!.state)
+    }
+
+    @Test
+    fun `media reconnect within grace keeps call ACTIVE`() = runTest {
+        toActive()
+        mgr.onMediaDisconnected("call-peer")
+        mgr.onMediaConnected("call-peer") // 恢复
+        assertEquals(CallState.ACTIVE, mgr.callState.value!!.state)
+        assertNull(mgr.callState.value!!.endReason)
+    }
+
+    @Test
+    fun `media disconnect ignored when not active`() = runTest {
+        mgr.startCall(PEER) // OUTGOING, 未 ACTIVE
+        mgr.onMediaDisconnected("call-mine")
+        assertEquals(CallState.OUTGOING, mgr.callState.value!!.state)
+    }
+
     // ---- P3：serviceLauncher seam 转发（start() 里的 callState collector）----
 
     private class RecordingLauncher : CallServiceLauncher {

@@ -54,4 +54,7 @@ interface CallMediaListener {
 
     /** 媒体连接失败（ICE 始终不通）。 */
     fun onMediaFailed(callId: String)
+
+    /** 通话中媒体暂时断开（ICE DISCONNECTED）——可能瞬断，进入重连宽限期。默认空实现（兼容旧 fake）。 */
+    fun onMediaDisconnected(callId: String) {}
 }

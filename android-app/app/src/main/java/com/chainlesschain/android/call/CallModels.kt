@@ -65,6 +65,9 @@ enum class CallEndReason {
     /** 媒体连接失败（ICE 始终不通）。 */
     MEDIA_FAILED,
 
+    /** 通话中网络中断且超过重连宽限期未恢复（ICE DISCONNECTED 持续）。 */
+    NETWORK_LOST,
+
     /** Glare 让步（双方同时呼叫，本端 callId 较大主动让步）。 */
     GLARE_LOST,
 
