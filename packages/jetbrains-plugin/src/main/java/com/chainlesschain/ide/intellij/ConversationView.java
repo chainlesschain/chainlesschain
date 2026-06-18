@@ -208,6 +208,15 @@ final class ConversationView {
                 else append("ℹ no running agent\n");
                 return;
             }
+            case "/compact": {
+                // Manual compaction (Claude-Code IDE parity): trim the live
+                // history in the CLI child between turns. The CLI answers with
+                // a `compaction` event rendered as "compacted: saved … tokens".
+                AgentChatSession s = liveSession();
+                if (s != null) { s.compact(); append("ℹ compacting…\n"); }
+                else append("ℹ no running agent to compact\n");
+                return;
+            }
             case "/auto":
                 conv.mode = "acceptEdits";
                 restartForModeChange();
@@ -256,7 +265,7 @@ final class ConversationView {
                 respondPlan("reject");
                 return;
             case "/help":
-                append("ℹ commands: /new /stop /auto /bypass /normal /think "
+                append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
                         + "/ultrathink /think-off /plan /approve /reject /context /cost\n");
                 return;
             default:

@@ -267,6 +267,17 @@ public final class AgentChatSession {
         return sendEvent(evt);
     }
 
+    /**
+     * Manual `/compact` (Claude-Code IDE parity): ask the CLI to trim its live
+     * conversation history between turns. The CLI answers with a `compaction`
+     * event; the conversation stays alive.
+     */
+    public boolean compact() {
+        Map<String, Object> evt = MiniJson.obj();
+        evt.put("type", "compact");
+        return sendEvent(evt);
+    }
+
     /** End the conversation gracefully (close stdin → CLI exits cleanly). */
     public synchronized void end() {
         try {

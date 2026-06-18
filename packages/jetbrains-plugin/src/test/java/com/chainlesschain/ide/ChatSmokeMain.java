@@ -43,6 +43,9 @@ public final class ChatSmokeMain {
           + "    out({type:'stream_event',event:{delta:{type:'text_delta',text:'echo:'+e.text}}});\n"
           + "    out({type:'result',subtype:'success',result:'echo:'+e.text,usage:{output_tokens:1}});\n"
           + "  }\n"
+          + "  if(e.type==='compact'){\n"
+          + "    out({type:'compaction',stats:{saved:123,trimmed:1,kept:6}});\n"
+          + "  }\n"
           + "});\n"
           + "rl.on('close',()=>process.exit(0));\n";
 
@@ -146,6 +149,14 @@ public final class ChatSmokeMain {
         failures += expect(delta2 != null && "echo:again".equals(delta2.get("text")),
                 "second turn streams");
         take(events); // result
+
+        // Manual /compact (Claude-Code IDE parity): compact() sends the control
+        // event; the CLI answers with a `compaction` event mapped to an info line.
+        failures += expect(session.compact(), "compact() accepted while running");
+        Map<String, Object> compUi = ChatEvents.mapAgentEvent(take(events), state);
+        failures += expect(compUi != null && "info".equals(compUi.get("kind"))
+                        && String.valueOf(compUi.get("text")).contains("compacted: saved 123"),
+                "compaction mapped to info: " + MiniJson.stringify(compUi));
 
         session.end(); // graceful: close stdin → fake agent exits 0
         failures += expect(exited.await(10, TimeUnit.SECONDS), "child exited after end()");

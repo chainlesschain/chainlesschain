@@ -61,6 +61,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.8</b> — <code>/compact</code> in the chat tool window (Claude-Code
+        IDE parity): trims the live conversation history between turns (no extra
+        LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0
+        feature.
+        <br/><br/>
         <b>0.4.7</b> — cleared the remaining API-compatibility flags the Plugin
         Verifier reported on 2026.x: the @-mention list renderer no longer uses a
         scheduled-for-removal helper, and the deprecated terminal customizer was

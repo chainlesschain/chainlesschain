@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.8] — 2026-06-18 — `/compact` manual compaction (Claude-Code IDE parity)
+
+- **`/compact` in the chat tool window.** Typing `/compact` trims the live
+  conversation history in the panel's `cc agent` child between turns (shortens
+  large old tool results, preserves recent turns + tool pairs, no extra LLM
+  call) and reports `compacted: saved <N> tokens`. Mirrors the VS Code 0.31.0
+  feature and reuses the same `{type:"compact"}` CLI streaming control event.
+  `AgentChatSession.compact()` sends the control event; the existing
+  `compaction`-event renderer shows the result. Added to `/help`.
+
 ## [0.4.7] — 2026-06-16 — clear 2026.x verifier flags (scheduled-for-removal + deprecated)
 
 The Marketplace Plugin Verifier flagged more on 2026.x builds than on 2025.2:
