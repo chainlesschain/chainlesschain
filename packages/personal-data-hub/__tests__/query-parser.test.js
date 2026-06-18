@@ -69,6 +69,27 @@ describe("parseTimeWindow", () => {
     expect(months.since).toBeLessThan(NOW);
   });
 
+  it("最近 N 个月 does NOT month-overflow on a month-end day (regression)", () => {
+    // Naive setMonth(getMonth()-1) on Mar 31 lands on "Feb 31" → Mar 3, silently
+    // dropping all of February from the window. since must land in February.
+    const mar31 = new Date(2026, 2, 31, 12, 0, 0).getTime();
+    const since = parseTimeWindow("最近1个月", mar31).since;
+    const d = new Date(since);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(1); // February, NOT still March
+    expect(d.getDate()).toBe(28); // clamped to Feb's last day
+
+    // May 31 −1mo → April 30 (April has 30 days), not May 1.
+    const may31 = new Date(2026, 4, 31, 12, 0, 0).getTime();
+    const aprSince = new Date(parseTimeWindow("最近1个月", may31).since);
+    expect(aprSince.getMonth()).toBe(3); // April
+    expect(aprSince.getDate()).toBe(30);
+
+    // mid-month is unaffected: Mar 15 −1mo → Feb 15.
+    const mar15 = new Date(2026, 2, 15, 12, 0, 0).getTime();
+    expect(new Date(parseTimeWindow("最近1个月", mar15).since).getDate()).toBe(15);
+  });
+
   it("YYYY 年 M 月 → that calendar month", () => {
     const w = parseTimeWindow("2024 年 7 月在淘宝下过几单", NOW);
     expect(w.since).toBe(new Date(2024, 6, 1).getTime());

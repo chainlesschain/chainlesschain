@@ -127,8 +127,16 @@ function parseTimeWindow(text, now = Date.now()) {
   if (m) {
     const n = parseInt(m[1], 10);
     if (Number.isFinite(n) && n > 0) {
+      // Safe month subtraction. Naive `setMonth(getMonth()-n)` overflows on a
+      // month-end day into a shorter month (e.g. Mar 31 −1mo → "Feb 31" → Mar 3),
+      // which silently DROPS the whole previous month from the window. Pin to
+      // day 1 first, then clamp the day to the target month's length.
       const target = new Date(now);
+      const day = target.getDate();
+      target.setDate(1);
       target.setMonth(target.getMonth() - n);
+      const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+      target.setDate(Math.min(day, lastDay));
       return { since: target.getTime(), until: now };
     }
   }
