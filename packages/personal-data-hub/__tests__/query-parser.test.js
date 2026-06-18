@@ -124,6 +124,23 @@ describe("parseIntent", () => {
     expect(parseIntent("花了多少")).toBe("sum-amount");
   });
 
+  it("sum-amount for INCOME-side questions (收入/赚/到账)", () => {
+    // Regression: income amount words were missing → "总共收入多少" even
+    // mis-returned "count". Both with and without 总共.
+    expect(parseIntent("这个月收入多少")).toBe("sum-amount");
+    expect(parseIntent("我这个月赚了多少")).toBe("sum-amount");
+    expect(parseIntent("上个月到账多少")).toBe("sum-amount");
+    expect(parseIntent("总共收入多少")).toBe("sum-amount");
+  });
+
+  it("count for 多少X / 几X measure-word symmetry (多少条/多少单 were missed)", () => {
+    expect(parseIntent("我有多少条朋友圈")).toBe("count");
+    expect(parseIntent("下了多少单")).toBe("count");
+    expect(parseIntent("发了多少条微博")).toBe("count");
+    expect(parseIntent("多少笔交易")).toBe("count");
+    expect(parseIntent("几部电影")).toBe("count");
+  });
+
   it("count when 'how many' phrasing", () => {
     expect(parseIntent("最近多少次跟妈妈聊过")).toBe("count");
     expect(parseIntent("我下了几单")).toBe("count");

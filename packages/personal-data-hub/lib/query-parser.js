@@ -201,31 +201,37 @@ function parseFilters(text) {
 
 // ─── Intent detection (sum / count / list / latest / ...) ────────────────
 
+// Amount/money words — BOTH the spend side (花/消费/开销/spent/金额) and the
+// income side (收入/进账/到账/赚/挣). A question carrying one of these plus a
+// "多少/how much" wants a SUM (sumEventAmount), not a row list.
+const AMOUNT_HINT =
+  /(花|花了|花费|消费|开销|spent|金额|多少钱|amount|收入|进账|到账|入账|赚|挣)/;
+// Count quantifier: "多少X" or "几X" for a measure word. 钱 is deliberately
+// EXCLUDED so "多少钱" routes to sum-amount, not count. Symmetric 多少/几 (the
+// old pattern had 几条/几单 but not 多少条/多少单, and 多少部 but not 几部).
+const COUNT_QUANTIFIER =
+  /(多少|几)(次|条|单|个|家|人|张|部|篇|集|本|件|笔|顿|杯)|how\s+many|count\s+of/i;
+const HOW_MUCH = /(多少钱|多少|how\s+much)/i;
+
 function parseIntent(text) {
   if (typeof text !== "string") return "list";
   if (/(总共|共多少|加起来|sum|total|合计)/.test(text)) {
-    // Distinguish amount vs count by presence of currency words.
-    if (/(花|花了|花费|消费|开销|spent|金额|多少钱|amount)/.test(text)) return "sum-amount";
+    // Distinguish amount vs count by presence of amount words (incl. income,
+    // so "总共收入多少" is sum-amount, not count).
+    if (AMOUNT_HINT.test(text)) return "sum-amount";
     return "count";
   }
-  // Count intents: 几次/条/单/个 / 多少个/家/人/张/部 / how many / count of
-  // 2026-05-21: extended "几个 X" / "多少个 X" — needed for "几个联系人"
-  // and "几个 app" which prior pattern missed (returned "list" → LLM had no
-  // hint to read authoritative TOTALS instead of the FACTS sample length).
-  if (/(多少次|几次|几条|几单|几个|多少个|多少家|多少人|多少张|多少部|how\s+many|count\s+of)/i.test(text)) {
+  // Count: 多少X / 几X for a measure word ("多少条朋友圈" / "下了几单" /
+  // "几个联系人"). Runs BEFORE the bare-sum rule so "消费了多少次" → count.
+  if (COUNT_QUANTIFIER.test(text)) {
     return "count";
   }
-  // Spending question without an explicit 总共/合计 — "(这个月)花了多少钱" /
-  // "在淘宝花了多少" / "消费多少" / "spent how much". A spend/currency word + a
-  // "多少/how much" quantity ⇒ the user wants a TOTAL, not a list of rows. The
-  // count check above already claimed "多少次/几次/多少个", so this can't steal
-  // a count question (e.g. "消费了多少次" → count). Without this, these very
-  // common phrasings fell through to intent=list and the engine returned a row
-  // sample instead of the authoritative sumEventAmount total.
-  if (
-    /(花|花了|花费|消费|开销|spent|金额|多少钱|amount)/.test(text) &&
-    /(多少钱|多少|how\s+much)/i.test(text)
-  ) {
+  // Spend/income question without an explicit 总共/合计 — "(这个月)花了多少钱" /
+  // "在淘宝花了多少" / "这个月收入多少" / "赚了多少". The amount word + a
+  // "多少/how much" ⇒ a TOTAL. Without this these common phrasings fell through
+  // to intent=list and the engine returned a row sample, not the authoritative
+  // sumEventAmount total.
+  if (AMOUNT_HINT.test(text) && HOW_MUCH.test(text)) {
     return "sum-amount";
   }
   if (/(最近|最新|latest|recent)/i.test(text)) return "latest";
