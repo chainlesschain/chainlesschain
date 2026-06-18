@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.32.1] — 2026-06-19 — guided-setup card now triggers on bare auth failures
+
+- **Fix: a bare `401`/`403`/`Unauthorized`/`authentication failed` now surfaces
+  the guided-setup card** (Configure LLM) instead of a raw error. The trigger
+  previously only matched connection failures or messages containing the literal
+  "api key", so a wrong/expired key that reported just `Anthropic error: 401`
+  slipped through as a bare error. The detector (`looksLikeLlmConfigError`) now
+  mirrors the JetBrains panel, so both editors react to the same failures.
+
 ## [0.32.0] — 2026-06-18 — configurable image-recognition (vision) model
 
 - **Separate vision model.** The Configure-LLM wizard now has a dedicated

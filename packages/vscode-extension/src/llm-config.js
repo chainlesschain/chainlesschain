@@ -53,6 +53,28 @@ function suggestVisionModel(providerId) {
   return providerId === "volcengine" ? "doubao-seed-1-6-vision-250815" : "";
 }
 
+/**
+ * Does this agent error message look like an LLM provider/key configuration
+ * problem (auth failure / missing key) — worth surfacing the guided-setup card
+ * instead of a bare error? Mirrors the JetBrains LlmConfig.looksLikeLlmConfigError
+ * so both panels treat a bare `401`/`403`/`unauthorized` the same way (the
+ * connection-refused cases are handled separately by the caller). Pure/testable.
+ */
+function looksLikeLlmConfigError(message) {
+  if (!message) return false;
+  const m = String(message).toLowerCase();
+  return (
+    m.includes("401") ||
+    m.includes("403") ||
+    m.includes("api key") ||
+    m.includes("api_key") ||
+    m.includes("unauthorized") ||
+    m.includes("authentication failed") ||
+    m.includes("invalid api key") ||
+    m.includes("incorrect api key")
+  );
+}
+
 function runCli(command, args, deps) {
   const run = deps?.execFile || execFile;
   return new Promise((resolve) => {
@@ -112,6 +134,7 @@ module.exports = {
   hasUnsafeShellChars,
   buildConfigSetArgs,
   suggestVisionModel,
+  looksLikeLlmConfigError,
   getConfiguredProvider,
   applyLlmConfig,
   testLlm,

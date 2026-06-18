@@ -18,6 +18,7 @@ const {
 } = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
 const { ConversationManager } = require("./conversation-manager");
+const { looksLikeLlmConfigError } = require("../llm-config.js");
 
 class ChatViewProvider {
   /**
@@ -169,16 +170,22 @@ class ChatViewProvider {
           });
         }
       }
-      // An LLM connection failure usually means "nothing configured yet" —
-      // surface the guided-setup card instead of a bare error.
-      if (
-        evt?.type === "result" &&
-        evt.is_error &&
-        /fetch failed|ECONNREFUSED|ENOTFOUND|api.?key/i.test(
-          String(evt.error || evt.result || ""),
-        )
-      ) {
-        this._postFrom(convId, { kind: "setup", reason: String(evt.error || "") });
+      // An LLM connection failure ("nothing configured / server down") OR an
+      // auth failure (wrong/expired key, bare 401/403/unauthorized) usually
+      // means setup is needed — surface the guided-setup card instead of a bare
+      // error. The auth half mirrors the JetBrains panel's hint so a bare
+      // "Anthropic error: 401" (no "api key" text) still triggers the card.
+      if (evt?.type === "result" && evt.is_error) {
+        const reason = String(evt.error || evt.result || "");
+        if (
+          /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
+          looksLikeLlmConfigError(reason)
+        ) {
+          this._postFrom(convId, {
+            kind: "setup",
+            reason: String(evt.error || ""),
+          });
+        }
       }
       const ui = mapAgentEvent(evt, conv.turnState);
       this._postFrom(convId, ui);

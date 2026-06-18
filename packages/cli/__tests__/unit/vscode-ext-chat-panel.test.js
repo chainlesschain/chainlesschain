@@ -644,6 +644,22 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     expect(llmCfg.suggestVisionModel("anthropic")).toBe("");
   });
 
+  it("looksLikeLlmConfigError: catches bare 401/403/unauthorized (setup-card trigger)", () => {
+    // The original bug class — these must surface the setup card even without
+    // the literal "api key" text the old regex required.
+    expect(llmCfg.looksLikeLlmConfigError("Anthropic error: 401")).toBe(true);
+    expect(llmCfg.looksLikeLlmConfigError("403 Forbidden")).toBe(true);
+    expect(llmCfg.looksLikeLlmConfigError("Unauthorized")).toBe(true);
+    expect(llmCfg.looksLikeLlmConfigError("authentication failed")).toBe(true);
+    expect(llmCfg.looksLikeLlmConfigError("ANTHROPIC_API_KEY required")).toBe(
+      true,
+    );
+    // not an auth/config problem
+    expect(llmCfg.looksLikeLlmConfigError("network timeout")).toBe(false);
+    expect(llmCfg.looksLikeLlmConfigError("")).toBe(false);
+    expect(llmCfg.looksLikeLlmConfigError(null)).toBe(false);
+  });
+
   it("rejects shell-unsafe values before writing", async () => {
     expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
     expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);
