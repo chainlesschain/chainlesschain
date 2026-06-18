@@ -21,6 +21,15 @@
 - **P3 background/lockscreen**: incoming-call foreground service (`microphone|camera`, keeps the mic alive when locked/backgrounded) + full-screen incoming notification (turns the screen on over the lock screen + accept/reject) + proximity-sensor screen-off.
 - **Tests**: state machine / signaling / integration (Robolectric) / handshake e2e — **34 JVM unit tests green**; two-device live A/V + lockscreen-incoming verification pending two real phones.
 
+## 2026-06-18 Mainline — **cc CLI client/transport robustness hardening (vs Claude Code CLI) + full test sweep**
+
+> Audited cc's own network/IO client layer (the layer the parallel parity loop never touches) against Claude Code CLI and fixed a batch of "silent failure / hang forever / truncate without erroring" issues, each with dedicated unit tests. Full three-tier sweep green (CLI unit 19523 / integration 24 isolated / e2e 604); the sweep also surfaced and fixed 1 `--verbose` regression + 2 stale assertions.
+
+- **Write integrity**: `write_file` / `edit_file` verify the on-disk byte count after writing — a silent truncation or 0-byte write on a network / cloud-synced drive no longer looks like success.
+- **MCP resilience**: `tools/list` failure shows "! Connected · tools fetch failed" (not a misleading "Tools: 0") / a dead stdio server process rejects in-flight requests immediately (no 30s hang) / HTTP requests get a 30s timeout (`longRunning` servers exempt — also wires up previously-unconsumed metadata) / `cc mcp serve` bounds request body size + collection timeout + error handling.
+- **Install download integrity**: `cc setup` verifies Content-Length (truncated → discard, don't install) + a stall timeout (a hung mirror can't freeze the install).
+- **Resource cleanup**: SIGTERM→SIGKILL escalation timers are `unref`'d + cleared on exit, so a killed task no longer holds the event loop open / delays CLI shutdown.
+
 ## 2026-06-16 Mainline — **JetBrains IDE plugin 0.4.0: VS Code feature parity (published to the JetBrains Marketplace)**
 
 > `packages/jetbrains-plugin/` closes the feature gap with the VS Code extension (0.22–0.30) in one pass, verified feature-by-feature in a `./gradlew runIde` sandbox before shipping (tag `ide-jetbrains-v0.4.0` → CI `publishPlugin`).

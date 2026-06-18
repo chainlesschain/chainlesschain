@@ -7,6 +7,19 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Fixed — cc CLI 客户端/传输层稳健性硬化（对照 Claude Code CLI）
+
+> 对照 Claude Code CLI 排查 cc 自身的网络/IO 客户端层（并行平价循环未覆盖的一层），修复一批「静默失败 / 永久挂起 / 截断不报错」类问题。全部带专项单元测试（~27 项新增）。三层测试普查全绿：CLI 单元 19523、集成隔离 24、e2e 604（4 skip）；普查另暴露并修复 1 个 `--verbose` 回归 + 2 个陈旧断言。
+
+- **写入完整性**：`write_file` / `edit_file` / `edit_file_hashed` 落盘后比对实际字节数（网络盘 / OneDrive·Dropbox·Google Drive 可能静默截断或写出 0 字节），不匹配即报错而非假成功。
+- **MCP `tools/list` 失败可见**：服务器声明了 tools 能力但 `tools/list` 失败时，`cc mcp connect` 显示「! Connected · tools fetch failed」而非误导的「Tools: 0」（Claude-Code 2.1.181 对齐）。
+- **MCP stdio 进程猝死快速失败**：服务器进程崩溃/退出时立即拒绝在途请求，而非挂满 30s 超时。
+- **MCP HTTP 请求超时**：HTTP 传输补齐 30s 超时（与 stdio 对齐），挂死服务器不再永久阻塞；`longRunning` 服务器（IDE 桥接 openDiff 需人工评审）豁免——顺带接通此前预留未消费的 `longRunning` 元数据。
+- **`cc mcp serve` 请求护栏**：请求体大小上限（413）+ 收集阶段超时（408）+ `error` 处理，防内存耗尽 / 慢客户端占用 socket / 断连崩溃。
+- **安装下载完整性**：`cc setup` 下载校验 Content-Length（截断即删分片不安装）+ 停滞超时（无数据 60s 中止，防挂死镜像冻结安装）。
+- **杀进程定时器清理**：SIGTERM→SIGKILL 升级定时器 `unref` + 进程退出即清，杀任务后不再占住事件循环、延迟 CLI 退出。
+- **`--verbose` 根因可见**：非法 JSON 选项的友好报错（`parseJsonOption`）链上原始 `SyntaxError` 为 `cause` 并续接其调用栈，`cc … --verbose` 重新显示根 `SyntaxError`（修复 helper 合并引入的回归），非 verbose 仍是单行友好提示。
+
 #### Fixed — 好友 P2P 发消息稳定性（v5.0.3.119）
 
 > 两天「无法扫码加好友 / 对方收不到消息 / 连不上」全链路收口，真机双向消息 <1s 送达验证。

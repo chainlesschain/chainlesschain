@@ -11,6 +11,15 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
+## 2026-06-18 主线 — **cc CLI 客户端/传输层稳健性硬化（对照 Claude Code CLI）+ 三层测试普查**
+
+> 对照 Claude Code CLI 排查 cc 自身的网络/IO 客户端层（并行平价循环未覆盖的一层），修复一批「静默失败 / 永久挂起 / 截断不报错」类稳健性问题，全部带专项单元测试。三层测试普查全绿（CLI 单元 19523 / 集成隔离 24 / e2e 604），普查另暴露并修 1 个 `--verbose` 回归 + 2 个陈旧断言。
+
+- **写入完整性**：`write_file` / `edit_file` 落盘后校验实际字节数，网络盘 / 云同步盘静默截断或 0 字节写不再假成功。
+- **MCP 韧性**：`tools/list` 失败显式「! Connected · tools fetch failed」/ stdio 进程猝死立即拒绝在途请求（不挂 30s）/ HTTP 请求补 30s 超时（`longRunning` 豁免，顺带接通预留未消费的元数据）/ `cc mcp serve` 请求体上限 + 超时 + 错误处理。
+- **安装下载完整性**：`cc setup` 校验 Content-Length（截断即弃不安装）+ 停滞超时（防挂死镜像冻结安装）。
+- **资源清理**：SIGTERM→SIGKILL 升级定时器 `unref` + 进程退出即清，杀任务后不再占住事件循环、延迟 CLI 退出。
+
 ## 2026-06-16 主线 — **JetBrains IDE 插件 0.4.0：对齐 VS Code 扩展功能（已发 JetBrains Marketplace）**
 
 > `packages/jetbrains-plugin/` 一次性补齐与 VS Code 扩展（0.22–0.30）的功能差距，经 `./gradlew runIde` 沙箱逐特性人工验证后发版（tag `ide-jetbrains-v0.4.0` → CI `publishPlugin`）。

@@ -408,3 +408,21 @@ ChainlessChain 的「CLI Runtime 收口路线图」。
 
 ### 17. 相关文档
 [系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。
+
+---
+
+## 附录：客户端/传输层稳健性硬化（2026-06-18）
+
+收口闭环后，对照 Claude Code CLI 对 cc 自身的网络/IO 客户端层做了一轮稳健性硬化——这一层是「并行平价循环」（专注命令/展示层的特性对齐）未覆盖的一层，其真实缺口集中在「静默失败 / 永久挂起 / 截断不报错」三类：
+
+| 层 | 硬化点 | 失败场景（修复前） |
+|---|---|---|
+| 工具 IO | `write_file`/`edit_file`/`edit_file_hashed` 落盘后比对实际字节数（不匹配报错） | 网络盘 / 云同步盘静默截断或 0 字节写 → 假成功 |
+| MCP 客户端 | `tools/list` 失败显式「! Connected · tools fetch failed」 | 误显示「Tools: 0」掩盖坏服务器 |
+| MCP 客户端 | stdio 进程 close/error 即拒绝在途请求 | 进程猝死后每个在途请求挂满 30s |
+| MCP 客户端 | HTTP 请求 30s 超时（`longRunning` 豁免，接通预留元数据） | 挂死 HTTP 服务器永久阻塞（含 connect 握手） |
+| MCP 服务端 | `cc mcp serve` 请求体上限(413)+收集超时(408)+`error` 处理 | 大 body 撑爆内存 / 慢客户端占 socket / 断连崩溃 |
+| 安装 | `cc setup` 下载校验 Content-Length + 停滞超时(60s) | 截断下载假成功后装坏包 / 挂死镜像冻结安装 |
+| 进程管理 | SIGTERM→SIGKILL 升级定时器 `unref`+退出即清 | 杀任务后定时器占住事件循环、延迟 CLI 退出 |
+
+每项均带专项单元测试（~27 项新增）。三层测试普查全绿（CLI 单元 19523 / 集成隔离 24 / e2e 604），普查另暴露并修复 1 个 `--verbose` 根因丢失回归（`parseJsonOption` 包装时链上原始 `SyntaxError` 为 `cause` 并续接调用栈）+ 2 个陈旧断言。原则不变：不改成功路径行为，仅在失败/边界路径补「该报错时报错、该超时时超时」。

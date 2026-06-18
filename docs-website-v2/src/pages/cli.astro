@@ -526,6 +526,21 @@ const packs = [
     </div>
   </section>
 
+  <!-- Reliability / robustness -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">稳健性 · 客户端/传输层硬化</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          网络抖动、服务器猝死、下载截断 ——<br/><span class="italic text-ember">该报错时报错，该超时时超时</span>。
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          对照 Claude Code CLI 持续硬化 cc 的网络 / IO 客户端层：<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> 落盘后校验字节数（网络盘 / 云同步盘静默截断不再假成功）；MCP 客户端 <code class="font-mono text-sm">tools/list</code> 失败显式可见、stdio 进程猝死立即失败（不挂 30s）、HTTP 请求补超时；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> 请求体上限 + 超时 + 错误处理；<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> 下载校验 Content-Length + 停滞超时。每项都带专项测试。
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="py-24 text-center">
     <div class="container-wide">
       <h2 class="text-4xl md:text-5xl mb-6">完整 API 参考</h2>

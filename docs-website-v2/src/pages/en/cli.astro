@@ -528,6 +528,21 @@ const packs = [
     </div>
   </section>
 
+  <!-- Reliability / robustness -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Reliability · client/transport hardening</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          Flaky networks, dead servers, truncated downloads —<br/><span class="italic text-ember">it errors when it should, times out when it should</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          cc's network / IO client layer is continuously hardened against Claude Code CLI: <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">write_file</code> / <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">edit_file</code> verify the on-disk byte count (a silent truncation on a network / cloud-synced drive no longer reads as success); the MCP client surfaces <code class="font-mono text-sm">tools/list</code> failures, fails fast on a dead stdio server (no 30s hang) and times out HTTP requests; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc mcp serve</code> bounds request body + timeout + errors; <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc setup</code> verifies Content-Length + a stall timeout. Every guard ships with tests.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="py-24 text-center">
     <div class="container-wide">
       <h2 class="text-4xl md:text-5xl mb-6">Full API reference</h2>
