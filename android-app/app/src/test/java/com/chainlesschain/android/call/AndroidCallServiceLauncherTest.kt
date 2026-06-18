@@ -68,6 +68,46 @@ class AndroidCallServiceLauncherTest {
     }
 
     @Test
+    fun `missed incoming call posts a missed-call notification (separate id)`() {
+        val missed = CallSession(
+            "c1", "did:key:zPeer", CallDirection.INCOMING, CallMediaType.AUDIO,
+            CallState.ENDED, startedAtMs = 0L, connectedAtMs = 0L, endReason = CallEndReason.REMOTE_HANGUP,
+        )
+        launcher.onCall(missed)
+        assertNotNull(
+            "missed incoming should post a missed-call notification",
+            shadowOf(nm).getNotification(CallNotifications.MISSED_NOTIFICATION_ID),
+        )
+    }
+
+    @Test
+    fun `rejected incoming does not post a missed-call notification`() {
+        val rejected = CallSession(
+            "c2", "did:key:zPeer", CallDirection.INCOMING, CallMediaType.AUDIO,
+            CallState.ENDED, startedAtMs = 0L, connectedAtMs = 0L, endReason = CallEndReason.REJECTED,
+        )
+        launcher.onCall(rejected)
+        assertNull(
+            "explicitly rejected call is not a missed call",
+            shadowOf(nm).getNotification(CallNotifications.MISSED_NOTIFICATION_ID),
+        )
+    }
+
+    @Test
+    fun `answered then ended posts no missed-call notification`() {
+        val answered = CallSession(
+            "c3", "did:key:zPeer", CallDirection.INCOMING, CallMediaType.AUDIO,
+            CallState.ENDED, startedAtMs = 0L, connectedAtMs = 2_000L, endedAtMs = 8_000L,
+            endReason = CallEndReason.REMOTE_HANGUP,
+        )
+        launcher.onCall(answered)
+        assertNull(
+            "an answered call is not missed",
+            shadowOf(nm).getNotification(CallNotifications.MISSED_NOTIFICATION_ID),
+        )
+    }
+
+    @Test
     fun `clear cancels the call notification`() {
         launcher.onCall(session(CallState.INCOMING))
         assertNotNull(shadowOf(nm).getNotification(CallNotifications.NOTIFICATION_ID))

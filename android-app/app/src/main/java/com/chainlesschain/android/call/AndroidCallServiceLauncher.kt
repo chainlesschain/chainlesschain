@@ -34,8 +34,36 @@ class AndroidCallServiceLauncher @Inject constructor(
             CallState.INCOMING -> { ringer.startRinging(); notifyIncoming(session) }
             CallState.OUTGOING, CallState.OUTGOING_RINGING -> { ringer.startRingback(); notifyOutgoing(session) }
             CallState.CONNECTING, CallState.ACTIVE -> { ringer.stop(); CallForegroundService.start(context) }
-            else -> { ringer.stop() /* ENDED/IDLE → clear() 负责 */ }
+            CallState.ENDED -> { ringer.stop(); maybeNotifyMissed(session) }
+            else -> { ringer.stop() /* IDLE → clear() 负责 */ }
         }
+    }
+
+    /** 未接来电（来电、从未接通、对端放弃或超时；非我方拒接/挂断）→ 发持久「未接来电」通知。 */
+    private fun maybeNotifyMissed(session: CallSession) {
+        val missed = session.direction == CallDirection.INCOMING &&
+            session.connectedAtMs == 0L &&
+            (session.endReason == CallEndReason.REMOTE_HANGUP || session.endReason == CallEndReason.TIMEOUT_NO_ANSWER)
+        if (!missed) return
+        CallNotifications.ensureChannel(context)
+        val mediaLabel = if (session.media == CallMediaType.VIDEO) "视频通话" else "语音通话"
+        val open = PendingIntent.getActivity(
+            context, 20,
+            (context.packageManager.getLaunchIntentForPackage(context.packageName)
+                ?: Intent(context, CallActivity::class.java))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val notif = NotificationCompat.Builder(context, CallNotifications.CHANNEL_ID)
+            .setContentTitle("未接$mediaLabel")
+            .setContentText(shortDid(session.peerDid))
+            .setSmallIcon(android.R.drawable.sym_call_missed)
+            .setCategory(NotificationCompat.CATEGORY_MISSED_CALL)
+            .setAutoCancel(true)
+            .setContentIntent(open)
+            .build()
+        runCatching { nm?.notify(CallNotifications.MISSED_NOTIFICATION_ID, notif) }
+            .onFailure { Timber.w(it, "[CallLauncher] notifyMissed failed") }
     }
 
     override fun clear() {

@@ -10,6 +10,9 @@ object CallNotifications {
     const val CHANNEL_ID = "call_incoming"
     const val NOTIFICATION_ID = 9101
 
+    /** 未接来电通知（独立 id，不被通话结束的 clear 撤掉）。 */
+    const val MISSED_NOTIFICATION_ID = 9102
+
     const val ACTION_ACCEPT = "com.chainlesschain.android.call.ACCEPT"
     const val ACTION_REJECT = "com.chainlesschain.android.call.REJECT"
     const val ACTION_HANGUP = "com.chainlesschain.android.call.HANGUP"
