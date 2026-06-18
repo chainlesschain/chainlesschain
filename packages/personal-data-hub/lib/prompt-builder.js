@@ -48,11 +48,25 @@ const CROSS_APP_HEADER = "CROSS_APP_OVERVIEW (跨 app 汇聚画像 — 各 app �
  * Trim an event down to the fields the LLM actually needs. Saves tokens +
  * reduces prompt injection surface (no raw `extra` blob).
  */
+// Local-time "YYYY-MM-DD HH:mm" for the LLM. Passing the raw epoch-ms integer
+// (e.g. 1781706182375) made the model unreliable on "when did I…" questions —
+// it can't dependably convert epoch ms to a date. buildPrompt runs on the
+// user's own machine (cc hub / desktop), so local getters are the user's TZ.
+function fmtLocalDateTime(ms) {
+  const d = new Date(ms);
+  if (!Number.isFinite(d.getTime())) return null;
+  const p = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}`
+  );
+}
+
 function summarizeEvent(e) {
   const out = {
     id: e.id,
     type: e.subtype,
-    at: e.occurredAt,
+    at: fmtLocalDateTime(e.occurredAt) || e.occurredAt,
     source: e.source && e.source.adapter,
   };
   if (e.actor) out.actor = e.actor;

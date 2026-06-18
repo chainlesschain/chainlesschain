@@ -38,6 +38,19 @@ describe("summarizeFact", () => {
     expect(s).not.toHaveProperty("extra");
   });
 
+  it("renders occurredAt as a readable local 'YYYY-MM-DD HH:mm' (not raw epoch ms)", () => {
+    // LLMs can't dependably convert epoch ms → date for "when did I…" questions.
+    const e = {
+      id: "evt-2", type: "event", subtype: "browse",
+      occurredAt: new Date(2026, 5, 17, 14, 23, 9).getTime(), // local time
+      source: { adapter: "social-douyin" },
+    };
+    expect(summarizeEvent(e).at).toBe("2026-06-17 14:23");
+    expect(typeof summarizeEvent(e).at).toBe("string");
+    // invalid timestamp falls back to the raw value, never throws
+    expect(summarizeEvent({ id: "x", subtype: "o", occurredAt: NaN }).at).toBeNaN();
+  });
+
   it("packs person names + relation + identifiers + notes; omits source", () => {
     // 2026-05-27 — identifiers (phone/wechatId/email) MUST reach the LLM,
     // otherwise "妈手机号是多少" can never be answered even when vault has
