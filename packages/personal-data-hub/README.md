@@ -16,13 +16,21 @@ middleware.
 > Ollama / Volcengine / Anthropic / Gemini / DeepSeek), **CcKgSink**, **CcRagSink**
 > — injected at the desktop/CLI entry so this package stays decoupled (Phase 3.5).
 >
-> **51 adapters are now live** (no longer "later phases"): Email IMAP,
+> **89 adapters are now live** (no longer "later phases"): Email IMAP,
 > Alipay bill, 9 AI-chat vendors, WeChat / QQ / Weibo / Bilibili / Douyin /
-> Xiaohongshu / Toutiao / Kuaishou social, Telegram / WhatsApp messaging,
-> Taobao / JD / Meituan / Pinduoduo shopping, Amap / Baidu-map / Tencent-map /
-> Ctrip / 12306 travel, system-data (contacts / calls / sms / location),
+> Xiaohongshu / Toutiao / Kuaishou / Douban social, Telegram / WhatsApp messaging,
+> Taobao / JD / Meituan / Pinduoduo / Eleme / Xianyu / Vipshop shopping, Amap /
+> Baidu-map / Tencent-map / Ctrip / 12306 / Didi travel, Kugou / Ximalaya audio,
+> Keep / Joyrun fitness, system-data (contacts / calls / sms / location),
 > and the developer-activity set (git / shell / vscode / browser-history /
-> local-files / win-recent).
+> local-files / win-recent). See `lib/adapters/` for the full list.
+>
+> **On-device root forensics (rooted devices):** beyond cookie/sign-based
+> collection, PDH can pull a logged-in app's local encrypted DB directly via
+> **method B** (key-free `/proc/<pid>/mem` memory scan — engine-agnostic,
+> anti-debug-resistant) or **method C** (frida `sqlcipher_export` online decrypt),
+> plus a SQLite leaf-page **salvager** (`--unaligned`) that recovers plaintext
+> pages from corrupt mem dumps. See `docs/internal/pdh-db-decryption-runbook.md`.
 >
 > **New in v0.4.0 (v5.0.3.99):** adapter **readiness** — split out from the
 > loose `healthCheck` sync gate into a real ready/needs_setup/unavailable
