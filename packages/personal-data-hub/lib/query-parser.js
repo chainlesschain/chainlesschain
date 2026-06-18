@@ -215,6 +215,19 @@ function parseIntent(text) {
   if (/(多少次|几次|几条|几单|几个|多少个|多少家|多少人|多少张|多少部|how\s+many|count\s+of)/i.test(text)) {
     return "count";
   }
+  // Spending question without an explicit 总共/合计 — "(这个月)花了多少钱" /
+  // "在淘宝花了多少" / "消费多少" / "spent how much". A spend/currency word + a
+  // "多少/how much" quantity ⇒ the user wants a TOTAL, not a list of rows. The
+  // count check above already claimed "多少次/几次/多少个", so this can't steal
+  // a count question (e.g. "消费了多少次" → count). Without this, these very
+  // common phrasings fell through to intent=list and the engine returned a row
+  // sample instead of the authoritative sumEventAmount total.
+  if (
+    /(花|花了|花费|消费|开销|spent|金额|多少钱|amount)/.test(text) &&
+    /(多少钱|多少|how\s+much)/i.test(text)
+  ) {
+    return "sum-amount";
+  }
   if (/(最近|最新|latest|recent)/i.test(text)) return "latest";
   return "list";
 }

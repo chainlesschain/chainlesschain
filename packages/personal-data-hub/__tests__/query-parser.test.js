@@ -114,9 +114,23 @@ describe("parseIntent", () => {
     expect(parseIntent("我今年开销加起来")).toBe("sum-amount");
   });
 
+  it("sum-amount for spending questions WITHOUT an explicit 总共/合计", () => {
+    // Regression: these very common phrasings previously fell through to
+    // intent=list (→ engine returned a row sample instead of the authoritative
+    // sumEventAmount total).
+    expect(parseIntent("我这个月花了多少钱")).toBe("sum-amount");
+    expect(parseIntent("上个月在淘宝花了多少钱")).toBe("sum-amount");
+    expect(parseIntent("这个月消费多少")).toBe("sum-amount");
+    expect(parseIntent("花了多少")).toBe("sum-amount");
+  });
+
   it("count when 'how many' phrasing", () => {
     expect(parseIntent("最近多少次跟妈妈聊过")).toBe("count");
     expect(parseIntent("我下了几单")).toBe("count");
+    // the new sum-amount rule must NOT steal a count question that also
+    // mentions spending ("how many TIMES did I spend").
+    expect(parseIntent("消费了多少次")).toBe("count");
+    expect(parseIntent("花了多少次钱")).toBe("count");
   });
 
   it("latest when 'recent / latest'", () => {
