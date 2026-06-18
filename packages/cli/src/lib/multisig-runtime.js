@@ -150,11 +150,30 @@ export function readSecretKey(arg) {
 }
 
 /**
- * Read JSON from inline string or file path.
+ * Read JSON from an inline string or a file path. Errors name the file (or
+ * say it was inline) and carry the underlying parser reason, instead of a
+ * bare "Unexpected token …" / "ENOENT …" with no context.
  */
 export function readJsonArg(arg) {
-  if (fs.existsSync(arg)) {
-    return JSON.parse(fs.readFileSync(arg, "utf-8"));
+  if (arg == null || arg === "") {
+    throw new Error("Expected inline JSON or a path to a JSON file");
   }
-  return JSON.parse(arg);
+  if (fs.existsSync(arg)) {
+    let raw;
+    try {
+      raw = fs.readFileSync(arg, "utf-8");
+    } catch (e) {
+      throw new Error(`Cannot read JSON file "${arg}": ${e.message}`);
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      throw new Error(`Invalid JSON in file "${arg}": ${e.message}`);
+    }
+  }
+  try {
+    return JSON.parse(arg);
+  } catch (e) {
+    throw new Error(`Invalid inline JSON argument: ${e.message}`);
+  }
 }

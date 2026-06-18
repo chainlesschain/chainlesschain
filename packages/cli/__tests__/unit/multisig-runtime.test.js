@@ -75,7 +75,22 @@ describe("multisig-runtime — readJsonArg", () => {
   });
 
   it("throws on invalid inline JSON", () => {
-    expect(() => readJsonArg("{not json")).toThrow();
+    expect(() => readJsonArg("{not json")).toThrow(
+      /Invalid inline JSON argument:/,
+    );
+  });
+
+  it("names the file when its JSON is malformed", () => {
+    const f = join(dir, "bad.json");
+    writeFileSync(f, "{not json", "utf-8");
+    expect(() => readJsonArg(f)).toThrow(/Invalid JSON in file ".*bad\.json"/);
+  });
+
+  it("errors clearly when the arg is empty", () => {
+    expect(() => readJsonArg("")).toThrow(/Expected inline JSON or a path/);
+    expect(() => readJsonArg(undefined)).toThrow(
+      /Expected inline JSON or a path/,
+    );
   });
 });
 
