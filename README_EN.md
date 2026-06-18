@@ -45,6 +45,15 @@
 
 ---
 
+## 2026-06-18 Release — **v5.0.3.120: FAMILY-67 friend call history + incoming ringtone + CLI network robustness (cli 0.162.81)**
+
+> Friend voice/video call history is persisted and viewable + incoming ringtone/vibration/outgoing ringback + timeouts on every CLI network fetch so a dead endpoint can no longer hang forever. The release shipped 18 installer assets, and all three doc sites (docs / design / www) were synced and deployed. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **Call history**: friend voice/video call terminal states are persisted to `call_history` via `CallHistoryRecorder` (incoming/outgoing, missed, audio/video type, hangup reason); the friend profile "view call history" filters by friend DID or shows all (live Flow read).
+- **Incoming ringtone/vibration + outgoing ringback**: incoming calls play the system ringtone + vibrate (respecting silent/vibrate mode), outgoing calls play ringback — fixes "no sound on incoming call".
+- **CLI network robustness**: webhook notifiers / `cc update`·`vcheck` update-checks / the provider connectivity probe all get timeouts (a dead endpoint no longer hangs forever); reputation / plugin revenue split reject NaN score/amount.
+- **Version surfaces**: productVersion v5.0.3.119 → v5.0.3.120 / desktop 5.0.3-alpha.120 / Android versionCode 503120 / iOS CFBundleVersion 120 (check-version-sync green); `chainlesschain` 0.162.80 → 0.162.81 published to npm.
+
 ## 2026-06-15 Release — **v5.0.3.114: PDH gov-ixiamen endpoint static-verify on a real device + Android cc bundle v20260615d (pdh 0.4.25 / cli 0.162.71)**
 
 > Ran the PDH endpoint-capture runbook's **static-analysis tier** (read-only APK binary analysis, no login/account interaction) on a rooted device. Corrected the `gov-ixiamen` collector's fabricated placeholder host — the old `app.ixm.gov.cn` does not exist; static dex analysis confirmed i-Xiamen's real backend is `*.ixiamen.org.cn` (gateway `https://buss.ixiamen.org.cn/pbc/`), now wired (overridable via `opts.listUrl`); the list sub-path + body stay `unverified` (bodies encrypted by `libzxprotect`, opaque to static analysis). BOC (SecNeo shell) / ICBC (encrypted+signed bodies) stay snapshot; 12123 host was already correct. `@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 published to npm; Android cc bundle rolled to `v20260615d`, `USR_VERSION` → 45. Desktop / Android / iOS surfaces aligned to .114 (check-version-sync green).
