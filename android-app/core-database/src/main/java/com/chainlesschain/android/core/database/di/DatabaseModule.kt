@@ -178,6 +178,13 @@ object DatabaseModule {
     fun provideFriendDao(database: ChainlessChainDatabase) = database.friendDao()
 
     /**
+     * 提供通话历史DAO（FAMILY-67）
+     */
+    @Provides
+    @Singleton
+    fun provideCallHistoryDao(database: ChainlessChainDatabase) = database.callHistoryDao()
+
+    /**
      * 提供屏蔽用户DAO
      */
     @Provides

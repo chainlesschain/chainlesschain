@@ -43,6 +43,9 @@ class CallManager @Inject constructor(
     /** 前台服务 + 来电全屏通知 seam（P3 注入 AndroidCallServiceLauncher；默认 NOOP，保单测纯净）。 */
     @Volatile var serviceLauncher: CallServiceLauncher = CallServiceLauncher.NOOP
 
+    /** 通话历史落库 seam（注入 RoomCallHistoryRecorder；默认 NOOP）。 */
+    @Volatile var historyRecorder: CallHistoryRecorder = CallHistoryRecorder.NOOP
+
     // ---- 可注入 seam（单测替换）----
     internal var clock: () -> Long = { System.currentTimeMillis() }
     internal var genCallId: () -> String = { "call-" + java.util.UUID.randomUUID().toString().take(12) }
@@ -234,7 +237,9 @@ class CallManager @Inject constructor(
         runCatching { media.close() }
         val s = _callState.value
         if (s != null && !s.state.isTerminal) {
-            _callState.value = s.copy(state = CallState.ENDED, endedAtMs = clock(), endReason = reason)
+            val ended = s.copy(state = CallState.ENDED, endedAtMs = clock(), endReason = reason)
+            _callState.value = ended
+            runCatching { historyRecorder.record(ended) }
         }
         // 短暂保留 ENDED 供 UI 显示结束态，随后清空
         scope.launch {

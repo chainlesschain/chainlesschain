@@ -88,6 +88,9 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var callServiceLauncher: dagger.Lazy<com.chainlesschain.android.call.AndroidCallServiceLauncher>
 
+    @Inject
+    lateinit var callHistoryRecorder: dagger.Lazy<com.chainlesschain.android.call.RoomCallHistoryRecorder>
+
     private var isReady = false
 
     /**
@@ -122,6 +125,7 @@ class MainActivity : AppCompatActivity() {
                 mgr.media = callMediaController.get()
                 callMediaController.get().listener = mgr
                 mgr.serviceLauncher = callServiceLauncher.get()
+                mgr.historyRecorder = callHistoryRecorder.get()
                 mgr.start()
                 Timber.d("CallManager started")
             }.onFailure { Timber.w(it, "CallManager start failed (non-fatal)") }

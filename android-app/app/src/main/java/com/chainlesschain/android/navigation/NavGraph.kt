@@ -658,7 +658,9 @@ fun NavGraph(
                     // 已存在的 P2P chat 路由用 peerId+peerName 两段；用 friendDid 当 peer 显示名兜底
                     navController.navigate(Screen.P2PChat.createRoute(peerId, friendDid))
                 },
-                onNavigateToCallHistory = { /* 通话功能已移除 */ },
+                onNavigateToCallHistory = { did ->
+                    navController.navigate("call_history/" + android.net.Uri.encode(did))
+                },
                 onStartVoiceCall = { did ->
                     friendCallVm.startCall(did, com.chainlesschain.android.call.CallMediaType.AUDIO)
                 },
@@ -1065,6 +1067,18 @@ fun NavGraph(
                 onVerify = { navController.popBackStack() },
                 onScanQRCode = { navController.popBackStack() },
                 onBack = { navController.popBackStack() },
+            )
+        }
+
+        // FAMILY-67: 通话记录页（好友资料页「查看通话记录」→ 这里；读 call_history 表）
+        composable(
+            route = "call_history/{peerDid}",
+            arguments = listOf(navArgument("peerDid") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val peerDid = android.net.Uri.decode(backStackEntry.arguments?.getString("peerDid") ?: "")
+            com.chainlesschain.android.call.ui.CallHistoryScreen(
+                peerDid = peerDid.ifBlank { null },
+                onNavigateBack = { navController.popBackStack() },
             )
         }
     }
