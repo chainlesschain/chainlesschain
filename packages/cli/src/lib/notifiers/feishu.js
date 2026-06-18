@@ -9,6 +9,7 @@
  */
 
 import crypto from "crypto";
+import { fetchWithTimeout } from "./_http.js";
 
 export class FeishuNotifier {
   constructor(options = {}) {
@@ -57,7 +58,7 @@ export class FeishuNotifier {
     };
 
     try {
-      const res = await fetch(this.webhookUrl, {
+      const res = await fetchWithTimeout(this.webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

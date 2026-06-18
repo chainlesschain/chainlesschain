@@ -9,6 +9,7 @@
  */
 
 import crypto from "crypto";
+import { fetchWithTimeout } from "./_http.js";
 
 export class DingTalkNotifier {
   constructor(options = {}) {
@@ -43,7 +44,7 @@ export class DingTalkNotifier {
   async send(title, text) {
     if (!this.isConfigured) return { ok: false, reason: "not configured" };
     try {
-      const res = await fetch(this._signedUrl(), {
+      const res = await fetchWithTimeout(this._signedUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

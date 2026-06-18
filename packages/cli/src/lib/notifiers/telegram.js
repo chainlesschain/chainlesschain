@@ -7,6 +7,8 @@
  *   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
  */
 
+import { fetchWithTimeout } from "./_http.js";
+
 const TELEGRAM_API = "https://api.telegram.org";
 
 export class TelegramNotifier {
@@ -32,15 +34,18 @@ export class TelegramNotifier {
     if (!this.isConfigured) return { ok: false, reason: "not configured" };
 
     try {
-      const res = await fetch(`${TELEGRAM_API}/bot${this.token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: this.chatId,
-          text,
-          parse_mode: "HTML",
-        }),
-      });
+      const res = await fetchWithTimeout(
+        `${TELEGRAM_API}/bot${this.token}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: this.chatId,
+            text,
+            parse_mode: "HTML",
+          }),
+        },
+      );
       const data = await res.json();
       return { ok: data.ok, data };
     } catch (err) {

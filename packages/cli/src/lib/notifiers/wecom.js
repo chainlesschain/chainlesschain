@@ -6,6 +6,8 @@
  * or options.webhookUrl
  */
 
+import { fetchWithTimeout } from "./_http.js";
+
 export class WeComNotifier {
   constructor(options = {}) {
     this.webhookUrl = options.webhookUrl || process.env.WECOM_WEBHOOK_URL || "";
@@ -22,7 +24,7 @@ export class WeComNotifier {
   async send(content) {
     if (!this.isConfigured) return { ok: false, reason: "not configured" };
     try {
-      const res = await fetch(this.webhookUrl, {
+      const res = await fetchWithTimeout(this.webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
