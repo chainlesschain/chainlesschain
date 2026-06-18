@@ -247,12 +247,24 @@ export class MCPClient extends EventEmitter {
       entry.serverInfo = initResult?.serverInfo || {};
       entry.capabilities = initResult?.capabilities || {};
 
-      // Fetch available tools
+      // Fetch available tools. Per MCP a server advertises a `tools` capability
+      // in its initialize response; if it does and tools/list then fails, that
+      // is a genuine fetch failure we must surface (Claude-Code 2.1.181 — show
+      // "Connected · tools fetch failed" rather than a misleading "Tools: 0").
+      // A server that did not advertise tools simply has none, so a failure
+      // there is expected and stays quiet.
+      entry.tools = [];
+      entry.toolsError = null;
+      const advertisesTools =
+        entry.capabilities && entry.capabilities.tools !== undefined;
       try {
         const toolsResult = await this._sendRequest(name, "tools/list", {});
         entry.tools = toolsResult?.tools || [];
-      } catch {
-        // Server may not support tools
+      } catch (err) {
+        if (advertisesTools) {
+          entry.toolsError = err?.message || String(err);
+        }
+        // else: server did not advertise tools — legitimately none.
       }
 
       // Fetch available resources
@@ -275,11 +287,16 @@ export class MCPClient extends EventEmitter {
         // Server may not support prompts
       }
 
-      this.emit("server-connected", { name, tools: entry.tools.length });
+      this.emit("server-connected", {
+        name,
+        tools: entry.tools.length,
+        toolsError: entry.toolsError,
+      });
       return {
         name,
         state: entry.state,
         tools: entry.tools,
+        toolsError: entry.toolsError,
         resources: entry.resources,
         prompts: entry.prompts,
         serverInfo: entry.serverInfo,
@@ -338,6 +355,7 @@ export class MCPClient extends EventEmitter {
         name,
         state: entry.state,
         tools: entry.tools.length,
+        toolsError: entry.toolsError || null,
         resources: entry.resources.length,
         prompts: (entry.prompts || []).length,
         serverInfo: entry.serverInfo || {},

@@ -558,8 +558,17 @@ export function registerMcpCommand(program) {
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
-          logger.success(`Connected to ${chalk.cyan(name)}`);
-          logger.log(`  ${chalk.gray("Tools:")} ${result.tools.length}`);
+          // initialize succeeded but tools/list failed → connected, yet the
+          // tool list is unreliable. Surface it rather than a misleading
+          // "Tools: 0" (Claude-Code 2.1.181 parity).
+          if (result.toolsError) {
+            logger.warn(
+              `${chalk.yellow("!")} Connected to ${chalk.cyan(name)} ${chalk.gray("·")} tools fetch failed: ${result.toolsError}`,
+            );
+          } else {
+            logger.success(`Connected to ${chalk.cyan(name)}`);
+            logger.log(`  ${chalk.gray("Tools:")} ${result.tools.length}`);
+          }
           logger.log(
             `  ${chalk.gray("Resources:")} ${result.resources.length}`,
           );
