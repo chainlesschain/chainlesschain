@@ -6,6 +6,7 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
+import { parseNumberOption } from "../lib/parse-number-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureDAOv2Tables,
@@ -110,7 +111,7 @@ export function registerDaoCommand(program) {
           proposalId,
           options.voter,
           direction,
-          parseFloat(options.weight),
+          parseNumberOption(options.weight, "--weight", 1),
         );
         logger.success("Vote recorded");
         logger.log(
@@ -145,7 +146,7 @@ export function registerDaoCommand(program) {
           db,
           delegator,
           delegateTo,
-          parseFloat(options.weight),
+          parseNumberOption(options.weight, "--weight", 1),
         );
         logger.success("Delegation set");
         logger.log(`  ${chalk.bold("From:")}   ${result.delegator}`);
@@ -490,7 +491,7 @@ export function registerDaoCommand(program) {
         const d = delegateVotingPower(db, {
           fromDid,
           toDid,
-          weight: parseFloat(options.weight),
+          weight: parseNumberOption(options.weight, "--weight", 1),
           expiresAt: options.expiresAt || null,
         });
         logger.success(`Delegated ${fromDid} → ${toDid}`);
