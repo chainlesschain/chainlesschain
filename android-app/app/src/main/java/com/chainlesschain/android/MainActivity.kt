@@ -8,7 +8,9 @@ import android.view.animation.AnticipateInterpolator
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -196,16 +198,21 @@ class MainActivity : AppCompatActivity() {
 
                     Timber.d("MainActivity: nextAfterSplash=$nextAfterSplash, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
 
-                    NavGraph(
-                        navController = navController,
-                        startDestination = Screen.Splash.route,
-                        authViewModel = authViewModel,
-                        nextAfterSplash = nextAfterSplash,
-                        currentThemeMode = appConfig.themeMode,
-                        onThemeModeChanged = { newMode ->
-                            appConfigManager.saveConfig(appConfig.copy(themeMode = newMode))
-                        }
-                    )
+                    // FAMILY-67 举一反三：全 app edge-to-edge 下键盘会遮挡输入框。在 NavGraph 外层统一
+                    // 加 imePadding —— 键盘弹出时把所有页面内容抬到键盘之上。imePadding 会「消费」ime inset，
+                    // 故各屏内已有的 imePadding/safeDrawing 自动变为 no-op，不会重复 padding。一处修全部页面。
+                    Box(modifier = Modifier.fillMaxSize().imePadding()) {
+                        NavGraph(
+                            navController = navController,
+                            startDestination = Screen.Splash.route,
+                            authViewModel = authViewModel,
+                            nextAfterSplash = nextAfterSplash,
+                            currentThemeMode = appConfig.themeMode,
+                            onThemeModeChanged = { newMode ->
+                                appConfigManager.saveConfig(appConfig.copy(themeMode = newMode))
+                            }
+                        )
+                    }
 
                     // FAMILY-67: 全局通话浮层 —— 任意页面之上接来电/显示通话中。
                     com.chainlesschain.android.call.ui.CallHost()
