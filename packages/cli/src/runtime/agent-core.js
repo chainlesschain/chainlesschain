@@ -1208,6 +1208,37 @@ export async function executeTool(name, args, context = {}) {
 }
 
 /**
+ * Write a file then verify the on-disk byte count matches the intended
+ * content. Network drives and cloud-synced folders (OneDrive / Dropbox /
+ * Google Drive) can silently truncate a write or leave a 0-byte file; without
+ * this check the agent reports `success` on a corrupted write and moves on.
+ * Parity with Claude-Code 2.1.181 ("Fixed Write/Edit producing 0-byte or
+ * truncated files on network drives and cloud-synced folders").
+ *
+ * Returns `{ size }` (actual on-disk bytes) on success, or `{ error }`
+ * describing the truncation so the caller surfaces it as a tool error instead
+ * of a false success. `fsImpl` is injectable for unit tests.
+ */
+export function writeFileVerified(filePath, content, fsImpl = fs) {
+  const expected = Buffer.byteLength(content, "utf8");
+  fsImpl.writeFileSync(filePath, content, "utf8");
+  let actual;
+  try {
+    actual = fsImpl.statSync(filePath).size;
+  } catch (err) {
+    return {
+      error: `Write verification failed: cannot stat ${filePath} after writing (${err.message}). The file may be on an unreliable network or cloud-synced drive.`,
+    };
+  }
+  if (actual !== expected) {
+    return {
+      error: `Write truncated: expected ${expected} bytes but only ${actual} reached disk for ${filePath}. A network drive or cloud-sync folder (OneDrive/Dropbox/Google Drive) may have interrupted the write — retry, or write to a local path.`,
+    };
+  }
+  return { size: actual };
+}
+
+/**
  * Inner tool execution — no hooks, no plan-mode checks.
  */
 async function executeToolInner(
@@ -1297,11 +1328,12 @@ async function executeToolInner(
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(filePath, args.content, "utf8");
+      const wrote = writeFileVerified(filePath, args.content);
+      if (wrote.error) return attachDescriptor({ error: wrote.error });
       return attachDescriptor({
         success: true,
         path: filePath,
-        size: args.content.length,
+        size: wrote.size,
       });
     }
 
@@ -1315,8 +1347,13 @@ async function executeToolInner(
         return attachDescriptor({ error: "old_string not found in file" });
       }
       const newContent = content.replace(args.old_string, args.new_string);
-      fs.writeFileSync(filePath, newContent, "utf8");
-      return attachDescriptor({ success: true, path: filePath });
+      const wrote = writeFileVerified(filePath, newContent);
+      if (wrote.error) return attachDescriptor({ error: wrote.error });
+      return attachDescriptor({
+        success: true,
+        path: filePath,
+        size: wrote.size,
+      });
     }
 
     case "edit_file_hashed": {
@@ -1358,10 +1395,12 @@ async function executeToolInner(
           ...(snippet && { current_snippet: snippet }),
         });
       }
-      fs.writeFileSync(filePath, result.content, "utf8");
+      const wrote = writeFileVerified(filePath, result.content);
+      if (wrote.error) return attachDescriptor({ error: wrote.error });
       return attachDescriptor({
         success: true,
         path: filePath,
+        size: wrote.size,
         lineNumber: result.lineNumber,
         previousContent: result.previousContent,
       });
