@@ -114,6 +114,33 @@ export const BUILT_IN_PROVIDERS = {
   },
 };
 
+// A connectivity probe (`testProvider`) sends a tiny "Hi" and expects a quick
+// reply, so it must fail fast — a probe that hangs forever defeats its purpose
+// (it backs `cc llm test`, provider selection, doctor). Bound it with a total
+// timeout; env-overridable via CC_PROVIDER_TEST_TIMEOUT_MS.
+export const PROVIDER_TEST_TIMEOUT_MS =
+  Number(process.env.CC_PROVIDER_TEST_TIMEOUT_MS) || 20000;
+
+async function _fetchWithTimeout(
+  url,
+  opts = {},
+  ms = PROVIDER_TEST_TIMEOUT_MS,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  if (timer && typeof timer.unref === "function") timer.unref();
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new Error(`provider test timed out after ${ms / 1000}s`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Provider registry — manages available providers and active selection.
  */
@@ -291,7 +318,7 @@ export class LLMProviderRegistry {
     const testModel = model || provider.models[0];
 
     if (name === "ollama") {
-      const res = await fetch(`${provider.baseUrl}/api/generate`, {
+      const res = await _fetchWithTimeout(`${provider.baseUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: testModel, prompt: "Hi", stream: false }),
@@ -308,7 +335,7 @@ export class LLMProviderRegistry {
     if (name === "gemini") {
       const key = this.getApiKey(name);
       if (!key) throw new Error("GEMINI_API_KEY not set");
-      const res = await fetch(
+      const res = await _fetchWithTimeout(
         `${provider.baseUrl}/models/${testModel}:generateContent?key=${key}`,
         {
           method: "POST",
@@ -325,7 +352,7 @@ export class LLMProviderRegistry {
     if (name === "anthropic") {
       const key = this.getApiKey(name);
       if (!key) throw new Error("ANTHROPIC_API_KEY not set");
-      const res = await fetch(`${provider.baseUrl}/messages`, {
+      const res = await _fetchWithTimeout(`${provider.baseUrl}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -347,18 +374,21 @@ export class LLMProviderRegistry {
     // OpenAI-compatible (openai, deepseek, dashscope, mistral, volcengine, kimi, minimax)
     const key = this.getApiKey(name);
     if (!key) throw new Error(`${provider.apiKeyEnv} not set`);
-    const res = await fetch(`${provider.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
+    const res = await _fetchWithTimeout(
+      `${provider.baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: testModel,
+          messages: [{ role: "user", content: "Hi" }],
+          max_tokens: 10,
+        }),
       },
-      body: JSON.stringify({
-        model: testModel,
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 10,
-      }),
-    });
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content || "";
