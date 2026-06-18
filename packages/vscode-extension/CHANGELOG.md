@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.1] — 2026-06-19 — fix: suggested vision model matches the CLI default
+
+- **Fix.** The vision-model entry prefilled `doubao-seed-1-6-vision-250815`, but
+  the CLI's actual default is `doubao-seed-2-0-lite-260215` (a newer,
+  natively-multimodal model). The suggestion now mirrors the CLI (with a test
+  guarding against future drift), so the prefilled value equals what
+  `cc agent --image` would use. Verified live: the new model works and is faster
+  / more accurate than the old one.
+
 ## [0.33.0] — 2026-06-19 — dedicated vision-model entry
 
 - **You can now set the image-recognition (vision) model on its own.** It used

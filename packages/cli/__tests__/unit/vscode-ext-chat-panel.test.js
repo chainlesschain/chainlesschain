@@ -636,12 +636,20 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     ).toEqual([["config", "set", "llm.provider", "ollama"]]);
   });
 
-  it("suggestVisionModel: distinct vision model for volcengine, blank otherwise", () => {
+  it("suggestVisionModel: matches the CLI default vision model for volcengine, blank otherwise", () => {
+    // Must equal the CLI's DEFAULT_VISION_MODEL (image-input.js) so the IDE
+    // prefill is what `cc agent --image` would actually use.
     expect(llmCfg.suggestVisionModel("volcengine")).toBe(
-      "doubao-seed-1-6-vision-250815",
+      "doubao-seed-2-0-lite-260215",
     );
     expect(llmCfg.suggestVisionModel("ollama")).toBe("");
     expect(llmCfg.suggestVisionModel("anthropic")).toBe("");
+  });
+
+  it("suggestVisionModel stays in sync with the CLI's DEFAULT_VISION_MODEL (drift guard)", async () => {
+    const { DEFAULT_VISION_MODEL } =
+      await import("../../src/lib/image-input.js");
+    expect(llmCfg.suggestVisionModel("volcengine")).toBe(DEFAULT_VISION_MODEL);
   });
 
   it("looksLikeLlmConfigError: catches bare 401/403/unauthorized (setup-card trigger)", () => {
