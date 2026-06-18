@@ -17,8 +17,19 @@ function fetchStub(routes) {
   return vi.fn(async (url, opts = {}) => {
     const key = `${(opts.method || "GET").toUpperCase()} ${url}`;
     const r = routes[key] ?? routes[url];
-    if (!r) return { ok: false, status: 404, text: async () => "no route", json: async () => ({}) };
-    return { ok: r.ok !== false, status: r.status || 200, json: async () => r.body, text: async () => JSON.stringify(r.body) };
+    if (!r)
+      return {
+        ok: false,
+        status: 404,
+        text: async () => "no route",
+        json: async () => ({}),
+      };
+    return {
+      ok: r.ok !== false,
+      status: r.status || 200,
+      json: async () => r.body,
+      text: async () => JSON.stringify(r.body),
+    };
   });
 }
 
@@ -89,16 +100,18 @@ describe("discoverAuthMetadata", () => {
 
   it("throws when nothing is discoverable", async () => {
     _deps.fetch = fetchStub({});
-    await expect(oauth.discoverAuthMetadata("https://x.example.com")).rejects.toThrow(
-      /could not discover/,
-    );
+    await expect(
+      oauth.discoverAuthMetadata("https://x.example.com"),
+    ).rejects.toThrow(/could not discover/);
   });
 });
 
 describe("registerClient", () => {
   it("posts to the registration endpoint → client_id", async () => {
     _deps.fetch = fetchStub({
-      "POST https://auth.example.com/register": { body: { client_id: "cid-123" } },
+      "POST https://auth.example.com/register": {
+        body: { client_id: "cid-123" },
+      },
     });
     const r = await oauth.registerClient(
       { registration_endpoint: "https://auth.example.com/register" },
@@ -107,7 +120,9 @@ describe("registerClient", () => {
     expect(r.clientId).toBe("cid-123");
   });
   it("errors without a registration endpoint", async () => {
-    await expect(oauth.registerClient({}, {})).rejects.toThrow(/no --client-id/);
+    await expect(oauth.registerClient({}, {})).rejects.toThrow(
+      /no --client-id/,
+    );
   });
 });
 
@@ -143,7 +158,12 @@ describe("token exchange + refresh", () => {
     });
     const tok = await oauth.exchangeCodeForToken(
       { token_endpoint: "https://auth.example.com/token" },
-      { code: "C", codeVerifier: "V", clientId: "cid", redirectUri: "http://x/cb" },
+      {
+        code: "C",
+        codeVerifier: "V",
+        clientId: "cid",
+        redirectUri: "http://x/cb",
+      },
     );
     expect(tok).toMatchObject({ access_token: "AT", refresh_token: "RT" });
     expect(tok.expires_at).toBe(1_000_000 + 3600 * 1000);
@@ -151,7 +171,9 @@ describe("token exchange + refresh", () => {
 
   it("refresh keeps the old refresh_token when none returned", async () => {
     _deps.fetch = fetchStub({
-      "POST https://auth.example.com/token": { body: { access_token: "AT2", expires_in: 60 } },
+      "POST https://auth.example.com/token": {
+        body: { access_token: "AT2", expires_in: 60 },
+      },
     });
     const tok = await oauth.refreshAccessToken(
       { token_endpoint: "https://auth.example.com/token" },
@@ -163,11 +185,15 @@ describe("token exchange + refresh", () => {
 
 describe("token store + expiry", () => {
   it("save → get round-trips by server origin", () => {
-    oauth.saveStoredToken("https://mcp.example.com/mcp", { access_token: "AT" });
-    expect(oauth.getStoredToken("https://mcp.example.com/other")).toMatchObject({
+    oauth.saveStoredToken("https://mcp.example.com/mcp", {
       access_token: "AT",
-      server: "https://mcp.example.com",
     });
+    expect(oauth.getStoredToken("https://mcp.example.com/other")).toMatchObject(
+      {
+        access_token: "AT",
+        server: "https://mcp.example.com",
+      },
+    );
   });
 
   it("delete removes it", () => {
@@ -180,10 +206,16 @@ describe("token store + expiry", () => {
     expect(oauth.isTokenExpired(null)).toBe(true);
     expect(oauth.isTokenExpired({ access_token: "AT" })).toBe(false); // no expiry
     expect(
-      oauth.isTokenExpired({ access_token: "AT", expires_at: 1_000_000 + 30_000 }),
+      oauth.isTokenExpired({
+        access_token: "AT",
+        expires_at: 1_000_000 + 30_000,
+      }),
     ).toBe(true); // within 60s skew
     expect(
-      oauth.isTokenExpired({ access_token: "AT", expires_at: 1_000_000 + 600_000 }),
+      oauth.isTokenExpired({
+        access_token: "AT",
+        expires_at: 1_000_000 + 600_000,
+      }),
     ).toBe(false);
   });
 
@@ -196,11 +228,15 @@ describe("token store + expiry", () => {
       endpoints: { token_endpoint: "https://auth.example.com/token" },
     });
     _deps.fetch = fetchStub({
-      "POST https://auth.example.com/token": { body: { access_token: "NEW", expires_in: 3600 } },
+      "POST https://auth.example.com/token": {
+        body: { access_token: "NEW", expires_in: 3600 },
+      },
     });
     const at = await oauth.ensureValidToken("https://m.example.com");
     expect(at).toBe("NEW");
-    expect(oauth.getStoredToken("https://m.example.com").access_token).toBe("NEW");
+    expect(oauth.getStoredToken("https://m.example.com").access_token).toBe(
+      "NEW",
+    );
   });
 
   it("ensureValidToken returns null when nothing stored", async () => {
@@ -220,7 +256,10 @@ describe("connect wiring (setupMcpFromConfig)", () => {
 
   it("injects a stored token as an Authorization: Bearer header", async () => {
     fakeStore({
-      "https://m.example.com": { server: "https://m.example.com", access_token: "AT" },
+      "https://m.example.com": {
+        server: "https://m.example.com",
+        access_token: "AT",
+      },
     });
     let seenCfg = null;
     const fakeClient = {
@@ -239,7 +278,10 @@ describe("connect wiring (setupMcpFromConfig)", () => {
 
   it("does not override an explicit Authorization header", async () => {
     fakeStore({
-      "https://m.example.com": { server: "https://m.example.com", access_token: "AT" },
+      "https://m.example.com": {
+        server: "https://m.example.com",
+        access_token: "AT",
+      },
     });
     let seenCfg = null;
     const fakeClient = {
@@ -259,5 +301,32 @@ describe("connect wiring (setupMcpFromConfig)", () => {
       { createClient: () => fakeClient },
     );
     expect(seenCfg.headers.Authorization).toBe("Bearer MANUAL");
+  });
+});
+
+describe("renderCallbackPage (auto-close on success)", () => {
+  it("auto-closes the tab on success and shows a friendly message", () => {
+    const html = oauth.renderCallbackPage(null);
+    expect(html).toContain("Authorized");
+    expect(html).toContain("window.close()");
+    expect(html).toContain("close this tab");
+    expect(html).toMatch(/^<!doctype html>/i);
+    expect(html).toContain('charset="utf-8"');
+  });
+
+  it("shows the error WITHOUT auto-closing, and escapes it (no injection)", () => {
+    const html = oauth.renderCallbackPage('<img src=x onerror="alert(1)">');
+    expect(html).toContain("Authorization failed");
+    expect(html).not.toContain("window.close()"); // failures stay open to read
+    // The raw tag must be escaped, never reflected as live HTML.
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("treats empty-string error as a failure (not success)", () => {
+    // `error=` with no value still means the provider denied — but an empty
+    // string is falsy, so it renders as success; a real denial always carries
+    // an error code. Document the boundary: undefined/null/"" → success page.
+    expect(oauth.renderCallbackPage(undefined)).toContain("window.close()");
   });
 });

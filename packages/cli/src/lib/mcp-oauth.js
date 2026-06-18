@@ -39,7 +39,11 @@ export const _deps = {
 };
 
 const base64url = (buf) =>
-  Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  Buffer.from(buf)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 
 /** RFC 7636 PKCE pair (S256). */
 export function generatePkce() {
@@ -53,6 +57,52 @@ export function randomState(bytes = 16) {
   return base64url(_deps.randomBytes(bytes));
 }
 
+/** Minimal HTML-escape for values reflected into the callback page. */
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c],
+  );
+}
+
+/**
+ * The HTML shown in the user's browser after the OAuth redirect hits our
+ * localhost callback. On success it AUTO-CLOSES the tab (Claude-Code 2.1.181
+ * parity) — best-effort, since window.close() only acts on script-opened
+ * windows, so the page still tells the user they may close it manually. The
+ * provider-supplied `error` is HTML-escaped (it is reflected into the page).
+ * Pure → unit-testable.
+ *
+ * @param {string|null|undefined} error  the `error` query param, if any
+ */
+export function renderCallbackPage(error) {
+  const ok = !error;
+  const title = ok ? "Authorized" : "Authorization failed";
+  const body = ok
+    ? "You can close this tab and return to the terminal."
+    : `The provider returned an error: ${escapeHtml(error)}`;
+  const autoClose = ok
+    ? "<script>setTimeout(function(){try{window.close();}catch(e){}},800);</script>"
+    : "";
+  return (
+    '<!doctype html><html><head><meta charset="utf-8"><title>' +
+    title +
+    "</title></head>" +
+    '<body style="font-family:system-ui,-apple-system,sans-serif;text-align:center;margin-top:18vh;color:#222">' +
+    `<h2 style="color:${ok ? "#16794a" : "#b00020"}">${title}</h2>` +
+    `<p style="color:#555">${body}</p>` +
+    autoClose +
+    "</body></html>"
+  );
+}
+
 async function fetchJson(url, opts) {
   const res = await _deps.fetch(url, opts);
   if (!res || !res.ok) {
@@ -63,7 +113,9 @@ async function fetchJson(url, opts) {
     } catch {
       /* ignore */
     }
-    const err = new Error(`HTTP ${status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+    const err = new Error(
+      `HTTP ${status}${body ? `: ${body.slice(0, 200)}` : ""}`,
+    );
     err.status = res ? res.status : null;
     throw err;
   }
@@ -76,7 +128,10 @@ async function fetchJson(url, opts) {
  * the authorization-server doc directly at the origin.
  * @returns {Promise<{issuer?,authorization_endpoint,token_endpoint,registration_endpoint?,scopes_supported?}>}
  */
-export async function discoverAuthMetadata(serverUrl, { resourceMetadataUrl } = {}) {
+export async function discoverAuthMetadata(
+  serverUrl,
+  { resourceMetadataUrl } = {},
+) {
   const origin = new URL(serverUrl).origin;
   // 1. protected-resource metadata (RFC 9728) → authorization_servers[]
   let authServer = origin;
@@ -84,7 +139,10 @@ export async function discoverAuthMetadata(serverUrl, { resourceMetadataUrl } = 
     const prUrl =
       resourceMetadataUrl || `${origin}/.well-known/oauth-protected-resource`;
     const pr = await fetchJson(prUrl);
-    if (Array.isArray(pr.authorization_servers) && pr.authorization_servers[0]) {
+    if (
+      Array.isArray(pr.authorization_servers) &&
+      pr.authorization_servers[0]
+    ) {
       authServer = String(pr.authorization_servers[0]).replace(/\/$/, "");
     }
   } catch {
@@ -118,9 +176,14 @@ export async function discoverAuthMetadata(serverUrl, { resourceMetadataUrl } = 
 }
 
 /** RFC 7591 dynamic client registration → client_id (public client). */
-export async function registerClient(metadata, { redirectUri, clientName = "chainlesschain-cli" } = {}) {
+export async function registerClient(
+  metadata,
+  { redirectUri, clientName = "chainlesschain-cli" } = {},
+) {
   if (!metadata.registration_endpoint) {
-    throw new Error("server has no registration_endpoint and no --client-id was given");
+    throw new Error(
+      "server has no registration_endpoint and no --client-id was given",
+    );
   }
   const reg = await fetchJson(metadata.registration_endpoint, {
     method: "POST",
@@ -133,12 +196,16 @@ export async function registerClient(metadata, { redirectUri, clientName = "chai
       token_endpoint_auth_method: "none",
     }),
   });
-  if (!reg.client_id) throw new Error("registration did not return a client_id");
+  if (!reg.client_id)
+    throw new Error("registration did not return a client_id");
   return { clientId: reg.client_id, clientSecret: reg.client_secret || null };
 }
 
 /** Build the authorize URL (Authorization Code + PKCE). */
-export function buildAuthorizeUrl(metadata, { clientId, redirectUri, scope, codeChallenge, state, resource }) {
+export function buildAuthorizeUrl(
+  metadata,
+  { clientId, redirectUri, scope, codeChallenge, state, resource },
+) {
   const u = new URL(metadata.authorization_endpoint);
   u.searchParams.set("response_type", "code");
   u.searchParams.set("client_id", clientId);
@@ -157,7 +224,10 @@ function _tokenExpiresAt(tok) {
 }
 
 /** Exchange an authorization code for tokens. */
-export async function exchangeCodeForToken(metadata, { code, codeVerifier, clientId, clientSecret, redirectUri, resource }) {
+export async function exchangeCodeForToken(
+  metadata,
+  { code, codeVerifier, clientId, clientSecret, redirectUri, resource },
+) {
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -182,7 +252,10 @@ export async function exchangeCodeForToken(metadata, { code, codeVerifier, clien
 }
 
 /** Refresh an access token. */
-export async function refreshAccessToken(metadata, { refreshToken, clientId, clientSecret, resource }) {
+export async function refreshAccessToken(
+  metadata,
+  { refreshToken, clientId, clientSecret, resource },
+) {
   const body = new URLSearchParams({
     grant_type: "refresh_token",
     refresh_token: refreshToken,
@@ -249,7 +322,11 @@ export function deleteStoredToken(serverUrl) {
   if (!(key in store)) return false;
   delete store[key];
   try {
-    _deps.fs.writeFileSync(file, JSON.stringify(store, null, 2) + "\n", "utf-8");
+    _deps.fs.writeFileSync(
+      file,
+      JSON.stringify(store, null, 2) + "\n",
+      "utf-8",
+    );
   } catch {
     /* best-effort */
   }
@@ -292,8 +369,7 @@ function defaultOpenBrowser(url) {
   const platform = process.platform;
   const cmd =
     platform === "win32" ? "cmd" : platform === "darwin" ? "open" : "xdg-open";
-  const args =
-    platform === "win32" ? ["/c", "start", "", url] : [url];
+  const args = platform === "win32" ? ["/c", "start", "", url] : [url];
   try {
     const child = spawn(cmd, args, { stdio: "ignore", detached: true });
     child.unref?.();
@@ -304,7 +380,12 @@ function defaultOpenBrowser(url) {
 }
 
 /** Wait for the OAuth redirect on a localhost callback server; resolve {code,state}. */
-function waitForCallback({ port, host = "127.0.0.1", path = "/callback", timeout = 300_000 }) {
+function waitForCallback({
+  port,
+  host = "127.0.0.1",
+  path = "/callback",
+  timeout = 300_000,
+}) {
   return new Promise((resolve, reject) => {
     const server = _deps.createServer((req, res) => {
       let u;
@@ -323,10 +404,8 @@ function waitForCallback({ port, host = "127.0.0.1", path = "/callback", timeout
       const code = u.searchParams.get("code");
       const state = u.searchParams.get("state");
       const error = u.searchParams.get("error");
-      res.writeHead(200, { "content-type": "text/html" });
-      res.end(
-        `<html><body style="font-family:sans-serif"><h3>${error ? "Authorization failed" : "Authorized — you can close this tab."}</h3></body></html>`,
-      );
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(renderCallbackPage(error));
       server.close();
       clearTimeout(timer);
       if (error) reject(new Error(`authorization error: ${error}`));
@@ -377,13 +456,22 @@ export async function authorizeInteractive(serverUrl, opts = {}) {
   const authorizeUrl = buildAuthorizeUrl(metadata, {
     clientId,
     redirectUri,
-    scope: scope || (metadata.scopes_supported ? metadata.scopes_supported.join(" ") : undefined),
+    scope:
+      scope ||
+      (metadata.scopes_supported
+        ? metadata.scopes_supported.join(" ")
+        : undefined),
     codeChallenge: pkce.challenge,
     state,
     resource: serverUrl,
   });
 
-  const callbackPromise = waitForCallback({ port, host, path: redirectPath, timeout });
+  const callbackPromise = waitForCallback({
+    port,
+    host,
+    path: redirectPath,
+    timeout,
+  });
   const opened = _deps.openBrowser(authorizeUrl);
   writeOut(
     (opened
@@ -393,7 +481,8 @@ export async function authorizeInteractive(serverUrl, opts = {}) {
   );
 
   const { code, state: returnedState } = await callbackPromise;
-  if (returnedState !== state) throw new Error("OAuth state mismatch (possible CSRF)");
+  if (returnedState !== state)
+    throw new Error("OAuth state mismatch (possible CSRF)");
 
   const tok = await exchangeCodeForToken(metadata, {
     code,
