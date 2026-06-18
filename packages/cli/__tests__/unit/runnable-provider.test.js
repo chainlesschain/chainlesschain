@@ -8,6 +8,9 @@ import {
   hasUsableKey,
   runnableTaskModel,
   pickRunnableProvider,
+  isAuthError,
+  inferProviderFromBaseUrl,
+  makeRunnableProviderFallback,
 } from "../../src/lib/runnable-provider.js";
 
 describe("hasUsableKey", () => {
@@ -103,5 +106,131 @@ describe("pickRunnableProvider (runnable-first fallback)", () => {
     expect(
       pickRunnableProvider({ provider: "anthropic", apiKey: "", env: {} }),
     ).toMatchObject({ provider: "ollama", keyless: true });
+  });
+});
+
+describe("isAuthError", () => {
+  it("detects 401/403 by status and common messages", () => {
+    expect(isAuthError({ status: 401 })).toBe(true);
+    expect(isAuthError({ statusCode: 403 })).toBe(true);
+    expect(isAuthError(new Error("anthropic API error: HTTP 401"))).toBe(true);
+    expect(isAuthError(new Error("API key required for anthropic"))).toBe(true);
+    expect(isAuthError(new Error("authentication failed"))).toBe(true);
+    expect(isAuthError(new Error("invalid api key"))).toBe(true);
+  });
+  it("ignores non-auth errors", () => {
+    expect(isAuthError(new Error("ECONNRESET"))).toBe(false);
+    expect(isAuthError({ status: 500 })).toBe(false);
+    expect(isAuthError(null)).toBe(false);
+  });
+});
+
+describe("inferProviderFromBaseUrl", () => {
+  it("maps a known endpoint host to its provider", () => {
+    expect(
+      inferProviderFromBaseUrl("https://ark.cn-beijing.volces.com/api/v3"),
+    ).toBe("volcengine");
+    expect(inferProviderFromBaseUrl("https://api.anthropic.com/v1")).toBe(
+      "anthropic",
+    );
+    expect(inferProviderFromBaseUrl("https://api.openai.com/v1")).toBe(
+      "openai",
+    );
+  });
+  it("returns null for unknown / empty", () => {
+    expect(inferProviderFromBaseUrl("https://example.com")).toBeNull();
+    expect(inferProviderFromBaseUrl("")).toBeNull();
+    expect(inferProviderFromBaseUrl(null)).toBeNull();
+  });
+});
+
+describe("makeRunnableProviderFallback", () => {
+  it("heals a mislabeled config: provider=anthropic but volces baseUrl → volcengine", async () => {
+    const seen = [];
+    const fb = [];
+    // throws auth on anthropic, succeeds once provider matches the baseUrl
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.provider);
+      if (opts.provider === "anthropic") {
+        throw new Error("API key required for anthropic");
+      }
+      return { message: { role: "assistant", content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: {},
+      onFallback: (i) => fb.push(i),
+    });
+    const out = await wrapped([], {
+      provider: "anthropic",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-volc",
+      model: "haiku",
+    });
+    expect(seen).toEqual(["anthropic", "volcengine"]);
+    expect(out._opts.provider).toBe("volcengine");
+    expect(out._opts.apiKey).toBe("sk-volc"); // same key + baseUrl kept
+    expect(out._opts.model).toBe("doubao-seed-1-6-251015"); // provider default
+    expect(fb[0]).toMatchObject({
+      from: "anthropic",
+      to: "volcengine",
+      reason: "baseurl-mismatch",
+    });
+  });
+
+  it("falls back to an env-keyed provider when the endpoint is unknown", async () => {
+    const seen = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.provider);
+      if (opts.provider === "anthropic") throw new Error("401 unauthorized");
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: { VOLCENGINE_API_KEY: "sk-v" },
+    });
+    const out = await wrapped([], {
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      apiKey: "",
+    });
+    expect(out._opts.provider).toBe("volcengine");
+    expect(out._opts.apiKey).toBe("sk-v");
+  });
+
+  it("rethrows the auth error when nowhere runnable to go", async () => {
+    const chatFn = async () => {
+      throw new Error("API key required for anthropic");
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, { env: {} });
+    await expect(
+      wrapped([], {
+        provider: "anthropic",
+        baseUrl: "https://api.anthropic.com/v1",
+      }),
+    ).rejects.toThrow(/API key required/);
+  });
+
+  it("passes non-auth errors straight through (no retry)", async () => {
+    let calls = 0;
+    const chatFn = async () => {
+      calls++;
+      throw new Error("ECONNRESET");
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: { VOLCENGINE_API_KEY: "sk-v" },
+    });
+    await expect(wrapped([], { provider: "anthropic" })).rejects.toThrow(
+      /ECONNRESET/,
+    );
+    expect(calls).toBe(1);
+  });
+
+  it("happy path: returns the first result untouched", async () => {
+    const chatFn = async () => ({ message: { content: "hi" } });
+    const wrapped = makeRunnableProviderFallback(chatFn, { env: {} });
+    expect(
+      await wrapped([], { provider: "volcengine", apiKey: "sk-v" }),
+    ).toEqual({
+      message: { content: "hi" },
+    });
   });
 });

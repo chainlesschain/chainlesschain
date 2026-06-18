@@ -14,9 +14,128 @@
  * Empty/whitespace keys never count (a missing or cleared key is not usable).
  */
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { selectModelForTask, TaskType } from "./task-model-selector.js";
 
 function nonEmpty(v) {
   return typeof v === "string" && v.trim().length > 0;
+}
+
+/** Is this an authentication/authorization failure (missing/invalid/expired key)? */
+export function isAuthError(err) {
+  if (!err) return false;
+  const status =
+    typeof err.status === "number"
+      ? err.status
+      : typeof err.statusCode === "number"
+        ? err.statusCode
+        : null;
+  if (status === 401 || status === 403) return true;
+  const msg = String(err.message || err).toLowerCase();
+  return /\b401\b|\b403\b|unauthorized|forbidden|authentication failed|api[\s_-]*key required|invalid api[\s_-]*key|incorrect api[\s_-]*key|expired/.test(
+    msg,
+  );
+}
+
+/** Host of a baseUrl, lowercased, or "" — tolerant of a bare host string. */
+function hostOf(url) {
+  if (!nonEmpty(url)) return "";
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return String(url).toLowerCase();
+  }
+}
+
+/**
+ * Infer the provider a baseUrl actually belongs to. Catches a config where the
+ * provider field disagrees with the endpoint (e.g. provider "anthropic" but
+ * baseUrl points at volces.com → really volcengine). Returns null if unknown.
+ */
+export function inferProviderFromBaseUrl(baseUrl) {
+  const host = hostOf(baseUrl);
+  if (!host) return null;
+  for (const [name, def] of Object.entries(BUILT_IN_PROVIDERS)) {
+    const defHost = hostOf(def.baseUrl);
+    if (defHost && (host === defHost || host.endsWith("." + defHost))) {
+      return name;
+    }
+  }
+  return null;
+}
+
+function envKey(provider, env) {
+  const def = BUILT_IN_PROVIDERS[provider];
+  return def && def.apiKeyEnv ? env[def.apiKeyEnv] : null;
+}
+
+/** A sensible default model for a provider (its CHAT task model). */
+function defaultModelFor(provider) {
+  return selectModelForTask(provider, TaskType.CHAT) || undefined;
+}
+
+/**
+ * Wrap a chatFn so an AUTH failure (no / wrong / expired key for the resolved
+ * provider) self-heals to a provider we can actually run instead of failing the
+ * whole turn. Two recovery paths, in order:
+ *   1. baseUrl says otherwise — the endpoint belongs to a different provider
+ *      than the `provider` field; retry with that provider, SAME baseUrl + key
+ *      (fixes a mislabeled config like provider:anthropic + volces baseUrl).
+ *   2. env-keyed fallback — some other built-in provider has its key in the
+ *      environment; retry with that provider's baseUrl + env key + default model.
+ * If neither applies, the original (clear) auth error is rethrown. One hop only;
+ * never recurses. Non-auth errors pass straight through.
+ *
+ * @param {Function} chatFn
+ * @param {object} [opts] { env=process.env, onFallback?({from,to,reason}) }
+ */
+export function makeRunnableProviderFallback(
+  chatFn,
+  { env = process.env, onFallback } = {},
+) {
+  const notify = (info) => {
+    if (typeof onFallback === "function") {
+      try {
+        onFallback(info);
+      } catch {
+        /* notification is best-effort */
+      }
+    }
+  };
+  return async function runnableProviderFallback(messages, options = {}) {
+    try {
+      return await chatFn(messages, options);
+    } catch (err) {
+      if (!isAuthError(err)) throw err;
+      const failed = options.provider;
+
+      // 1) The endpoint belongs to a different provider than the label.
+      const inferred = inferProviderFromBaseUrl(options.baseUrl);
+      if (inferred && inferred !== failed) {
+        notify({ from: failed, to: inferred, reason: "baseurl-mismatch" });
+        return await chatFn(messages, {
+          ...options,
+          provider: inferred,
+          model: defaultModelFor(inferred) || options.model,
+        });
+      }
+
+      // 2) Another provider has a usable key in the environment.
+      for (const [name, def] of Object.entries(BUILT_IN_PROVIDERS)) {
+        if (name === failed) continue;
+        if (def.apiKeyEnv && nonEmpty(env[def.apiKeyEnv])) {
+          notify({ from: failed, to: name, reason: "env-key" });
+          return await chatFn(messages, {
+            ...options,
+            provider: name,
+            baseUrl: def.baseUrl,
+            apiKey: envKey(name, env),
+            model: defaultModelFor(name) || options.model,
+          });
+        }
+      }
+      throw err; // nowhere runnable to fall back to — surface the clear error
+    }
+  };
 }
 
 /**

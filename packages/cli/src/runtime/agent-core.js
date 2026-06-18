@@ -3731,7 +3731,27 @@ export async function* agentLoop(messages, options) {
   // `options.chatFn` to drive the loop deterministically without hitting a
   // real provider. Production code path is unchanged — the fallback is the
   // real `chatWithTools`.
-  const llmCall = options.chatFn || chatWithTools;
+  let llmCall = options.chatFn || chatWithTools;
+
+  // Runnable-first auth recovery: if the resolved provider's key is missing /
+  // wrong / expired, self-heal to a provider we can actually run (endpoint-
+  // inferred, then env-keyed) instead of failing the turn. Opt out with
+  // `runnableProviderFallback: false`. Transparent on the happy path.
+  if (options.runnableProviderFallback !== false) {
+    const { makeRunnableProviderFallback } =
+      await import("../lib/runnable-provider.js");
+    llmCall = makeRunnableProviderFallback(llmCall, {
+      onFallback: ({ from, to, reason }) => {
+        try {
+          process.stderr.write(
+            `\x1b[2m[provider] "${from}" auth failed (${reason}) — retrying with "${to}"\x1b[0m\n`,
+          );
+        } catch {
+          /* notice is best-effort */
+        }
+      },
+    });
+  }
 
   // Phase 5 run bookends — a stable runId lets envelope subscribers correlate
   // every tool_call / tool_result / message / ended event back to one run.
