@@ -7,10 +7,11 @@
  */
 "use strict";
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 
 const {
   createDouyinWatchExtension,
+  watchHistoryToVault,
   VIDEO_RECORD_DB_REMOTE_PATH,
   _internals,
 } = require("../../lib/adapters/social-douyin-adb/watch-history-reader");
@@ -209,5 +210,60 @@ describe("collectWatchHistory → social-douyin history events", () => {
 describe("createDouyinWatchExtension contract", () => {
   it("rejects when ctx lacks {adb, pickDevice}", async () => {
     await expect(createDouyinWatchExtension()({}, {})).rejects.toThrow(/ctx must provide/);
+  });
+});
+
+// ── watchHistoryToVault: local-db → canonical BROWSE events → vault ────
+describe("watchHistoryToVault — real sqlite + real vault", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const os = require("node:os");
+  const { LocalVault } = require("../../lib/vault");
+  const { generateKeyHex } = require("../../lib/key-providers");
+  let dir, dbPath, vdir, vault;
+
+  beforeAll(() => {
+    const Database = require("better-sqlite3-multiple-ciphers");
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dy-watch-"));
+    dbPath = path.join(dir, "video_record.db");
+    const db = new Database(dbPath);
+    db.exec("CREATE TABLE record_0 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)");
+    db.exec("CREATE TABLE record_92585448288 (aid TEXT, view_time_timestamp INTEGER, enter_from TEXT)");
+    db.prepare("INSERT INTO record_0 VALUES (?,?,?)").run("7644480728574545765", 1781706182375, "homepage_hot");
+    db.prepare("INSERT INTO record_92585448288 VALUES (?,?,?)").run("7480000000000000002", 1717800600000, "others_homepage");
+    db.close();
+
+    vdir = fs.mkdtempSync(path.join(os.tmpdir(), "dy-watch-vault-"));
+    vault = new LocalVault({ path: path.join(vdir, "v.db"), key: generateKeyHex() });
+    vault.open();
+  });
+
+  afterAll(() => {
+    try { vault.close(); } catch (_e) { /* best-effort */ }
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
+    try { fs.rmSync(vdir, { recursive: true, force: true }); } catch (_e) { /* best-effort */ }
+  });
+
+  it("merges record_0 + uid table and ingests canonical BROWSE events", () => {
+    const r = watchHistoryToVault(vault, dbPath, { now: 1781900000000 });
+    expect(r.records).toBe(2); // record_0 row no longer dropped
+    expect(r.ingested).toBe(2);
+    expect(r.uid).toBe("92585448288");
+    const events = vault.queryEvents({ limit: 100 }) || [];
+    const browse = events.filter(
+      (e) => e.subtype === "browse" && e.source.adapter === "social-douyin",
+    );
+    expect(browse.length).toBe(2);
+    expect(browse.some((e) => e.extra.awemeId === "7644480728574545765")).toBe(true);
+    expect(browse.some((e) => e.extra.enterFrom === "homepage_hot")).toBe(true);
+  });
+
+  it("re-ingest dedups on the per-record originalId", () => {
+    watchHistoryToVault(vault, dbPath, { now: 1781999999999 });
+    const events = vault.queryEvents({ limit: 100 }) || [];
+    const browse = events.filter(
+      (e) => e.subtype === "browse" && e.source.adapter === "social-douyin",
+    );
+    expect(browse.length).toBe(2); // still two
   });
 });

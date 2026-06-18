@@ -29,6 +29,7 @@ const crypto = require("node:crypto");
 const {
   _internals: { loadDatabaseClass },
 } = require("../social-bilibili-adb/chromium-cookies-reader");
+const { DouyinAdapter } = require("../social-douyin");
 
 const DOUYIN_PACKAGE = "com.ss.android.ugc.aweme";
 const VIDEO_RECORD_DB_REMOTE_PATH =
@@ -171,6 +172,53 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
   }
 }
 
+/**
+ * Read watch records from a local video_record.db and write them straight into
+ * the vault as canonical BROWSE events (via DouyinAdapter.normalize, so they
+ * match exactly what the device-bridge collector path produces). Stable
+ * per-record originalId → re-ingest UPDATES rather than duplicates.
+ *
+ * @param {object} vault LocalVault (must expose putBatch)
+ * @param {string} dbPath path to video_record.db
+ */
+function buildWatchHistoryEvents(dbPath, opts = {}) {
+  const { uid, records } = readDouyinWatchHistory(dbPath, opts);
+  const adapter = opts._adapter || new DouyinAdapter();
+  const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+  const events = [];
+  for (const r of records) {
+    if (!r.awemeId) continue;
+    const occurredAt =
+      Number.isFinite(r.capturedAt) && r.capturedAt > 0 ? r.capturedAt : now;
+    const batch = adapter.normalize({
+      adapter: "social-douyin",
+      kind: "history",
+      originalId: `social-douyin:history:${r.awemeId}:${occurredAt}`,
+      capturedAt: occurredAt,
+      payload: {
+        kind: "history",
+        awemeId: r.awemeId,
+        capturedAt: occurredAt,
+        enterFrom: r.enterFrom,
+      },
+    });
+    for (const ev of batch.events) events.push(ev);
+  }
+  return { events, records: records.length, uid };
+}
+
+function watchHistoryToVault(vault, dbPath, opts = {}) {
+  if (!vault || typeof vault.putBatch !== "function") {
+    throw new TypeError("watchHistoryToVault: vault with putBatch required");
+  }
+  if (typeof dbPath !== "string" || !dbPath) {
+    throw new TypeError("watchHistoryToVault: dbPath required");
+  }
+  const { events, records, uid } = buildWatchHistoryEvents(dbPath, opts);
+  const res = events.length ? vault.putBatch({ events }) : { events: 0 };
+  return { ingested: res.events || 0, records, uid };
+}
+
 /** Bridge handler factory: `bridge.invoke("douyin.watch-history")` → {uid, records}. */
 function createDouyinWatchExtension(factoryOpts = {}) {
   const timeoutMs = factoryOpts.timeoutMs || 60_000;
@@ -201,6 +249,8 @@ function createDouyinWatchExtension(factoryOpts = {}) {
 
 module.exports = {
   createDouyinWatchExtension,
+  buildWatchHistoryEvents,
+  watchHistoryToVault,
   VIDEO_RECORD_DB_REMOTE_PATH,
   DOUYIN_PACKAGE,
   _internals: {
