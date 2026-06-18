@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.18</version>
+    <version>0.4.19</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.19</b> — fix: the suggested vision model now matches the CLI's
+        actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
+        older snapshot, so the prefilled value equals what
+        <code>cc agent --image</code> uses.
+        <br/><br/>
         <b>0.4.18</b> — dedicated image-recognition (vision) model entry: the
         <b>⚙ LLM</b> button is now a small menu (configure full LLM <i>or</i> just
         the vision model), plus a <b>Tools → Configure Vision Model</b> action.

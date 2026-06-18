@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.19] — 2026-06-19 — fix: suggested vision model matches the CLI default
+
+- **Fix.** The vision-model wizard/menu prefilled `doubao-seed-1-6-vision-250815`,
+  but the CLI's actual default is `doubao-seed-2-0-lite-260215` (a newer,
+  natively-multimodal model). The suggestion now mirrors the CLI, so the
+  prefilled value equals what `cc agent --image` would use.
+
 ## [0.4.18] — 2026-06-19 — dedicated vision-model entry
 
 - **You can now set the image-recognition (vision) model on its own.** It used

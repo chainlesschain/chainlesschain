@@ -79,7 +79,9 @@ public final class LlmConfig {
     /** Suggested default vision (image-recognition) model for a provider, when
      *  it differs from the text model. Blank = use the CLI's own default. */
     public static String suggestVisionModel(String providerId) {
-        if ("volcengine".equals(providerId)) return "doubao-seed-1-6-vision-250815";
+        // Mirror the CLI's DEFAULT_VISION_MODEL (image-input.js) so the prefilled
+        // suggestion equals what `cc agent --image` would use by default.
+        if ("volcengine".equals(providerId)) return "doubao-seed-2-0-lite-260215";
         return "";
     }
 

@@ -384,7 +384,7 @@ public final class PureLogicSmokeMain {
         check(!LlmConfig.looksLikeLlmConfigError(null), "null -> not config error");
 
         // suggestVisionModel: volcengine has a distinct vision model; others blank.
-        eq(LlmConfig.suggestVisionModel("volcengine"), "doubao-seed-1-6-vision-250815", "volcengine vision");
+        eq(LlmConfig.suggestVisionModel("volcengine"), "doubao-seed-2-0-lite-260215", "volcengine vision");
         eq(LlmConfig.suggestVisionModel("ollama"), "", "ollama vision blank");
 
         // buildConfigSetArgs: visionModel adds one set; blank omits it.
