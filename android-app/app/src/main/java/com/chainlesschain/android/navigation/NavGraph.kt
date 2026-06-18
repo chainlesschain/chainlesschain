@@ -647,6 +647,8 @@ fun NavGraph(
             arguments = listOf(navArgument("did") { type = NavType.StringType })
         ) { backStackEntry ->
             val friendDid = backStackEntry.arguments?.getString("did") ?: return@composable
+            // FAMILY-67: 好友详情页语音/视频通话 → CallManager（与聊天页同一好友 DID 路由）
+            val friendCallVm = hiltViewModel<com.chainlesschain.android.call.ui.CallViewModel>()
             FriendDetailScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToPost = { postId ->
@@ -656,7 +658,13 @@ fun NavGraph(
                     // 已存在的 P2P chat 路由用 peerId+peerName 两段；用 friendDid 当 peer 显示名兜底
                     navController.navigate(Screen.P2PChat.createRoute(peerId, friendDid))
                 },
-                onNavigateToCallHistory = { /* 通话功能已移除 */ }
+                onNavigateToCallHistory = { /* 通话功能已移除 */ },
+                onStartVoiceCall = { did ->
+                    friendCallVm.startCall(did, com.chainlesschain.android.call.CallMediaType.AUDIO)
+                },
+                onStartVideoCall = { did ->
+                    friendCallVm.startCall(did, com.chainlesschain.android.call.CallMediaType.VIDEO)
+                }
             )
         }
 

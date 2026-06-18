@@ -78,6 +78,16 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var friendSyncConnector: dagger.Lazy<com.chainlesschain.android.sync.FriendSyncConnector>
 
+    // FAMILY-67: 好友 P2P 音视频通话 —— 启动接通话状态机（监听来电信令），媒体/前台服务 seam 互挂。
+    @Inject
+    lateinit var callManager: dagger.Lazy<com.chainlesschain.android.call.CallManager>
+
+    @Inject
+    lateinit var callMediaController: dagger.Lazy<com.chainlesschain.android.call.WebRtcCallMediaController>
+
+    @Inject
+    lateinit var callServiceLauncher: dagger.Lazy<com.chainlesschain.android.call.AndroidCallServiceLauncher>
+
     private var isReady = false
 
     /**
@@ -105,6 +115,16 @@ class MainActivity : AppCompatActivity() {
                 .onFailure { Timber.w(it, "FamilyGuardSyncConnector start failed (non-fatal)") }
             runCatching { friendSyncConnector.get().ensureConnected() }
                 .onFailure { Timber.w(it, "FriendSyncConnector start failed (non-fatal)") }
+            // FAMILY-67: 接通话状态机 + 媒体/前台服务互挂 —— start() 订阅 call:* 来电信令，
+            // 否则被叫端收不到来电（startCall 直接 send 不需要 start，但 onSignal 订阅必须 start）。
+            runCatching {
+                val mgr = callManager.get()
+                mgr.media = callMediaController.get()
+                callMediaController.get().listener = mgr
+                mgr.serviceLauncher = callServiceLauncher.get()
+                mgr.start()
+                Timber.d("CallManager started")
+            }.onFailure { Timber.w(it, "CallManager start failed (non-fatal)") }
         }
 
         // #21 C.1 PR1 — pick up ACTION_START_VOICE_MODE on cold start.

@@ -37,6 +37,8 @@ fun FriendDetailScreen(
     onNavigateToPost: (String) -> Unit = {},
     onNavigateToChat: (String) -> Unit = {},
     onNavigateToCallHistory: (String) -> Unit = {},
+    onStartVoiceCall: (String) -> Unit = {},
+    onStartVideoCall: (String) -> Unit = {},
     viewModel: FriendDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -53,10 +55,10 @@ fun FriendDetailScreen(
                     onNavigateToChat(event.did)
                 }
                 is FriendDetailEvent.StartVoiceCall -> {
-                    snackbarHostState.showSnackbar("语音通话功能开发中")
+                    uiState.friend?.did?.let { onStartVoiceCall(it) }
                 }
                 is FriendDetailEvent.StartVideoCall -> {
-                    snackbarHostState.showSnackbar("视频通话功能开发中")
+                    uiState.friend?.did?.let { onStartVideoCall(it) }
                 }
                 is FriendDetailEvent.NavigateBack -> {
                     onNavigateBack()
