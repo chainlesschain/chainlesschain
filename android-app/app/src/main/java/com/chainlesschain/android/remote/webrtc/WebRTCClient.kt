@@ -665,6 +665,18 @@ class WebRTCClient @Inject constructor(
     val forwardedMessages: kotlinx.coroutines.flow.SharedFlow<String>
         get() = signalClient.forwardedMessages
 
+    // FAMILY-67 通话复用：把消息侧已建好的 PeerConnectionFactory + ICE 配置共享给通话媒体控制器，
+    // 避免重复 PeerConnectionFactory.initialize（global，仅可一次）+ 重复拉 TURN 凭证。
+    /** 共享 PeerConnectionFactory（[initialize] 已 global 初始化；通话媒体 PC 复用之）。 */
+    fun sharedFactory(): PeerConnectionFactory? = peerConnectionFactory
+
+    /** 为通话对端解析 ICE 服务器（先确保 TURN 凭证）。 */
+    suspend fun callIceServers(localDid: String, peerDid: String): List<PeerConnection.IceServer> =
+        withContext(Dispatchers.IO) {
+            runCatching { ensurePhoneTurnCredentials(localDid) }
+            resolveIceServersFor(peerDid)
+        }
+
     fun setOnMessageReceived(callback: (String) -> Unit) {
         this.onMessageReceived = callback
     }
