@@ -3171,6 +3171,17 @@ export async function startAgentRepl(options = {}) {
         thinking: reasoning,
       } = await agentLoop(messages, {
         ...liveOpts,
+        // Visible auto-retry feedback (Claude-Code 2.1.181): when the model's
+        // streaming call hits a transient connection drop and retries, tell the
+        // user instead of leaving them staring at a silent pause. To stderr so
+        // it never corrupts the streamed answer on stdout.
+        onStreamRetry: (attempt) =>
+          process.stderr.write(
+            chalk.dim(
+              `  ⟳ connection dropped — retrying (attempt ${attempt})…
+`,
+            ),
+          ),
         signal: _turnAbort.signal,
         provider,
         model: activeModel,

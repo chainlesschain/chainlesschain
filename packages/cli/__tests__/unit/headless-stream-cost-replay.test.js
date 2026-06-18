@@ -103,3 +103,22 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
     expect(outcome.exitCode).toBe(0);
   });
 });
+
+describe("runAgentHeadlessStream stream_retry (auto-retry notice, 2.1.181)", () => {
+  it("emits a stream_retry event when the turn's model call auto-retries", async () => {
+    // The real auto-retry happens inside chatWithTools (below the agentLoop
+    // seam); here the injected loop stands in for it by invoking the
+    // onStreamRetry hook the runner wired into the turn options.
+    const agentLoop = async function* (_messages, options) {
+      options.onStreamRetry?.(1);
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({ agentLoop, input: input({ text: "hi" }) });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    const retry = parse(deps._lines).find((e) => e.type === "stream_retry");
+    expect(retry).toBeTruthy();
+    expect(retry.attempt).toBe(1);
+    expect(retry.message).toMatch(/retrying/i);
+  });
+});

@@ -591,6 +591,16 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
             },
           })
       : undefined,
+    // Auto-retry notice (Claude-Code 2.1.181): the streaming call hit a
+    // transient API connection drop and is retrying. Surfaced unconditionally
+    // (not gated on --include-partial-messages) so programmatic NDJSON
+    // consumers can log/monitor reconnects rather than seeing an opaque pause.
+    onStreamRetry: (attempt) =>
+      emit({
+        type: "stream_retry",
+        attempt,
+        message: "API connection dropped — retrying",
+      }),
   };
 
   // --max-budget-usd: a SESSION-WIDE USD spend cap across all turns. Folded
