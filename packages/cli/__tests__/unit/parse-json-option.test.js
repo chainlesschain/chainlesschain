@@ -60,4 +60,20 @@ describe("parseJsonOption", () => {
     const obj = { already: "parsed" };
     expect(parseJsonOption(obj, "--input")).toBe(obj);
   });
+
+  it("preserves the original SyntaxError as cause + in the stack (--verbose)", () => {
+    let err;
+    try {
+      parseJsonOption("{bad", "--metadata");
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(Error);
+    // Chained for programmatic consumers…
+    expect(err.cause).toBeInstanceOf(SyntaxError);
+    // …and surfaced in the stack so the CLI --verbose boundary (which prints
+    // err.stack) still shows the root SyntaxError type, not just the wrapper.
+    expect(err.stack).toContain("SyntaxError");
+    expect(err.stack).toContain("Caused by:");
+  });
 });

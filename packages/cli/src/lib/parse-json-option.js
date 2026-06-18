@@ -22,7 +22,13 @@ export function parseJsonOption(value, label, fallback = undefined) {
     return JSON.parse(value);
   } catch (e) {
     const reason = e && e.message ? e.message : String(e);
-    throw new Error(`Invalid JSON for ${label}: ${reason}`);
+    // Friendly one-line message for the non-verbose error boundary, but keep the
+    // original SyntaxError reachable: chain it as `cause`, and append its stack
+    // to ours so `--verbose` (which prints err.stack) still surfaces the root
+    // SyntaxError type + location instead of swallowing it behind the wrapper.
+    const err = new Error(`Invalid JSON for ${label}: ${reason}`, { cause: e });
+    if (e && e.stack) err.stack += `\nCaused by: ${e.stack}`;
+    throw err;
   }
 }
 
