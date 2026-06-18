@@ -97,6 +97,7 @@ export class ClaudeCodeAgent extends EventEmitter {
       timeout = 300_000,
       context = "",
       allowedTools = null,
+      killGraceMs = 3000,
     } = options;
 
     const fullPrompt = context
@@ -128,10 +129,19 @@ export class ClaudeCodeAgent extends EventEmitter {
       });
       this._proc = proc;
 
+      // SIGKILL-escalation timer is hoisted so the close/error handlers can
+      // clear it — otherwise, when the process dies promptly from SIGTERM, this
+      // inner timer still fires a redundant SIGKILL on a dead pid AND holds the
+      // event loop open for the full grace period. unref() is a second guard so
+      // it never keeps the process alive on its own.
+      let killTimer = null;
       const timer = setTimeout(() => {
         timedOut = true;
         proc.kill("SIGTERM");
-        setTimeout(() => proc.kill("SIGKILL"), 3000);
+        killTimer = setTimeout(() => proc.kill("SIGKILL"), killGraceMs);
+        if (killTimer && typeof killTimer.unref === "function") {
+          killTimer.unref();
+        }
       }, timeout);
 
       proc.stdout.on("data", (data) => {
@@ -146,6 +156,7 @@ export class ClaudeCodeAgent extends EventEmitter {
 
       proc.on("close", (code) => {
         clearTimeout(timer);
+        if (killTimer) clearTimeout(killTimer);
         this._proc = null;
         const duration = Date.now() - startTime;
         const rawOutput = outputChunks.join("");
@@ -178,6 +189,7 @@ export class ClaudeCodeAgent extends EventEmitter {
 
       proc.on("error", (err) => {
         clearTimeout(timer);
+        if (killTimer) clearTimeout(killTimer);
         this._proc = null;
         this.status = AGENT_STATUS.FAILED;
         this.currentTask = null;

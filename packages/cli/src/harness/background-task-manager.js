@@ -9,12 +9,7 @@
  */
 
 import { fork } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  appendFileSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
@@ -38,7 +33,10 @@ export const TaskStatus = {
   TIMEOUT: "timeout",
 };
 
-const RECOVERABLE_TASK_STATUSES = new Set([TaskStatus.PENDING, TaskStatus.RUNNING]);
+const RECOVERABLE_TASK_STATUSES = new Set([
+  TaskStatus.PENDING,
+  TaskStatus.RUNNING,
+]);
 
 export class BackgroundTaskManager extends EventEmitter {
   constructor(options = {}) {
@@ -47,7 +45,9 @@ export class BackgroundTaskManager extends EventEmitter {
     this.heartbeatTimeout = options.heartbeatTimeout || 60000;
     this.historyLimit = options.historyLimit || 50;
     this.nodeId =
-      options.nodeId || process.env.CC_NODE_ID || `${process.pid}@${process.platform}`;
+      options.nodeId ||
+      process.env.CC_NODE_ID ||
+      `${process.pid}@${process.platform}`;
     this.recoveryPolicy = options.recoveryPolicy || "claim-stale";
     this.staleNodeTimeout = options.staleNodeTimeout || 5 * 60 * 1000;
     this.tasks = new Map();
@@ -139,7 +139,12 @@ export class BackgroundTaskManager extends EventEmitter {
     child.on("exit", (code) => {
       if (task.status === TaskStatus.RUNNING) {
         if (code === 0) {
-          this._complete(taskId, TaskStatus.COMPLETED, "Process exited (0)", null);
+          this._complete(
+            taskId,
+            TaskStatus.COMPLETED,
+            "Process exited (0)",
+            null,
+          );
         } else {
           this._complete(
             taskId,
@@ -178,8 +183,12 @@ export class BackgroundTaskManager extends EventEmitter {
 
   getHistory(taskId, options = {}) {
     const history = this.get(taskId)?.history || [];
-    const limit = Number.isFinite(options.limit) ? Math.max(1, options.limit) : null;
-    const offset = Number.isFinite(options.offset) ? Math.max(0, options.offset) : 0;
+    const limit = Number.isFinite(options.limit)
+      ? Math.max(1, options.limit)
+      : null;
+    const offset = Number.isFinite(options.offset)
+      ? Math.max(0, options.offset)
+      : 0;
 
     if (limit === null && offset === 0) {
       return history;
@@ -192,7 +201,8 @@ export class BackgroundTaskManager extends EventEmitter {
       offset,
       limit: limit || history.length,
       hasMore: offset + items.length < history.length,
-      nextOffset: offset + items.length < history.length ? offset + items.length : null,
+      nextOffset:
+        offset + items.length < history.length ? offset + items.length : null,
     };
   }
 
@@ -212,9 +222,16 @@ export class BackgroundTaskManager extends EventEmitter {
     const child = this.processes.get(taskId);
     if (child) {
       child.kill("SIGTERM");
-      setTimeout(() => {
+      // Escalate to SIGKILL only if SIGTERM didn't take. unref() + clear-on-exit
+      // so a prompt exit (or process shutdown right after stop) isn't held open
+      // for the full grace period by this timer.
+      const killTimer = setTimeout(() => {
         if (child.exitCode === null) child.kill("SIGKILL");
       }, 2000);
+      if (killTimer && typeof killTimer.unref === "function") killTimer.unref();
+      if (typeof child.once === "function") {
+        child.once("exit", () => clearTimeout(killTimer));
+      }
     }
     const task = this.tasks.get(taskId);
     if (task) {
@@ -335,7 +352,8 @@ export class BackgroundTaskManager extends EventEmitter {
   }
 
   _normalizePersistedTask(entry) {
-    const task = entry?.kind === "task_snapshot" && entry.task ? entry.task : entry;
+    const task =
+      entry?.kind === "task_snapshot" && entry.task ? entry.task : entry;
 
     if (!task || typeof task !== "object") {
       return null;
@@ -354,7 +372,11 @@ export class BackgroundTaskManager extends EventEmitter {
     if (normalized.history.length === 0) {
       normalized.history.push({
         event: "loaded",
-        timestamp: normalized.completedAt || normalized.startedAt || normalized.createdAt || Date.now(),
+        timestamp:
+          normalized.completedAt ||
+          normalized.startedAt ||
+          normalized.createdAt ||
+          Date.now(),
         status: normalized.status,
       });
     }
@@ -414,8 +436,10 @@ export class BackgroundTaskManager extends EventEmitter {
 
   _decideRecovery(task) {
     const previousOwnerNodeId = task.ownerNodeId || null;
-    const sameNode = previousOwnerNodeId === this.nodeId || !previousOwnerNodeId;
-    const lastSeenAt = task.lastHeartbeat || task.startedAt || task.createdAt || 0;
+    const sameNode =
+      previousOwnerNodeId === this.nodeId || !previousOwnerNodeId;
+    const lastSeenAt =
+      task.lastHeartbeat || task.startedAt || task.createdAt || 0;
     const stale = Date.now() - lastSeenAt > this.staleNodeTimeout;
 
     if (sameNode) {
@@ -440,7 +464,9 @@ export class BackgroundTaskManager extends EventEmitter {
       return {
         shouldRecover: false,
         policy: this.recoveryPolicy,
-        reason: stale ? "foreign-node-stale-observed" : "foreign-node-active-observed",
+        reason: stale
+          ? "foreign-node-stale-observed"
+          : "foreign-node-active-observed",
         previousOwnerNodeId,
       };
     }

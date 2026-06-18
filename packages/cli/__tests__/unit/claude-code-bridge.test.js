@@ -249,6 +249,54 @@ describe("ClaudeCodeAgent", () => {
     expect(json.cliCommand).toBe("codex");
     expect(json.status).toBe(AGENT_STATUS.IDLE);
   });
+
+  it("escalates to SIGKILL when the process ignores SIGTERM", async () => {
+    const { EventEmitter } = require("events");
+    const proc = new EventEmitter();
+    proc.stdout = new EventEmitter();
+    proc.stderr = new EventEmitter();
+    // Ignores SIGTERM; only dies (emits close) once SIGKILL arrives.
+    proc.kill = vi.fn((sig) => {
+      if (sig === "SIGKILL") process.nextTick(() => proc.emit("close", null));
+    });
+    _deps.spawn = vi.fn(() => proc);
+
+    const agent = new ClaudeCodeAgent({ id: "kt1" });
+    const result = await agent.executeTask("hang", {
+      cwd: "/tmp",
+      timeout: 20,
+      killGraceMs: 20,
+    });
+
+    expect(result.timedOut).toBe(true);
+    expect(proc.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(proc.kill).toHaveBeenCalledWith("SIGKILL");
+  }, 10000);
+
+  it("does not fire a redundant SIGKILL when SIGTERM kills the process promptly", async () => {
+    const { EventEmitter } = require("events");
+    const proc = new EventEmitter();
+    proc.stdout = new EventEmitter();
+    proc.stderr = new EventEmitter();
+    // Dies immediately on SIGTERM — the escalation timer must be cleared.
+    proc.kill = vi.fn((sig) => {
+      if (sig === "SIGTERM") process.nextTick(() => proc.emit("close", null));
+    });
+    _deps.spawn = vi.fn(() => proc);
+
+    const agent = new ClaudeCodeAgent({ id: "kt2" });
+    const result = await agent.executeTask("hang", {
+      cwd: "/tmp",
+      timeout: 20,
+      killGraceMs: 30,
+    });
+
+    expect(result.timedOut).toBe(true);
+    // Wait past the (short) grace; the cleared timer must not fire SIGKILL.
+    await new Promise((r) => setTimeout(r, 80));
+    expect(proc.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(proc.kill).not.toHaveBeenCalledWith("SIGKILL");
+  }, 10000);
 });
 
 // ─── ClaudeCodePool ───────────────────────────────────────────────
