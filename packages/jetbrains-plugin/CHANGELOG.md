@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.12] — 2026-06-18 — "Fix with ChainlessChain" intention (VS Code parity)
+
+- **Fix-with-cc quick-fix.** On a line carrying an error or warning, the
+  lightbulb (Alt+Enter) now offers *"Fix with ChainlessChain"* — it reveals the
+  chat tool window and seeds it with a fix request scoped to this file (as an
+  `@file` reference the agent expands) plus the problems on that line. Mirrors
+  the VS Code 0.19 Fix-with-cc QuickFix. Pure prompt construction in `FixWithCc`.
+
 ## [0.4.11] — 2026-06-18 — slash-command autocomplete in the chat input
 
 - **Slash-command autocomplete (VS Code parity).** Typing `/` at the start of

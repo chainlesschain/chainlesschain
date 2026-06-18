@@ -46,6 +46,7 @@ public final class PureLogicSmokeMain {
         introspectArgs();
         llmConfig();
         slashCommands();
+        fixWithCc();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -395,5 +396,35 @@ public final class PureLogicSmokeMain {
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");
+    }
+
+    private static void fixWithCc() {
+        System.out.println("FixWithCc:");
+        FixWithCc.Diag e = new FixWithCc.Diag(12, "Error", "Cannot find symbol foo", "javac", "compiler.err");
+        eq(FixWithCc.formatDiagnosticLine(e),
+                "- [Error] line 13: Cannot find symbol foo (javac compiler.err)",
+                "diagnostic line (0→1-based, source+code)");
+        // whitespace collapse in message
+        FixWithCc.Diag w = new FixWithCc.Diag(0, "Warning", "unused\n   import", null, null);
+        eq(FixWithCc.formatDiagnosticLine(w), "- [Warning] line 1: unused import",
+                "message whitespace collapsed");
+        // full prompt: @file reference + bullets
+        java.util.List<FixWithCc.Diag> ds = java.util.Arrays.asList(e, w);
+        String prompt = FixWithCc.formatFixPrompt("src\\Main.java", ds);
+        check(prompt.startsWith("Fix the following problems in @src/Main.java"),
+                "prompt: @-ref with forward slashes + plural");
+        check(prompt.contains("line 13") && prompt.contains("line 1"),
+                "prompt lists both problems");
+        check(prompt.endsWith("\n"), "prompt ends with newline");
+        // singular noun + no path → "this file"
+        String one = FixWithCc.formatFixPrompt("", java.util.Arrays.asList(e));
+        check(one.startsWith("Fix the following problem in this file"),
+                "singular + no path → this file");
+        // empty → ""
+        eq(FixWithCc.formatFixPrompt("x", new java.util.ArrayList<FixWithCc.Diag>()), "",
+                "no diagnostics → empty prompt");
+        // title
+        eq(FixWithCc.buildFixActionTitle(3), "Fix 3 problems with ChainlessChain", "counted title");
+        eq(FixWithCc.buildFixActionTitle(1), "Fix with ChainlessChain", "singular title");
     }
 }
