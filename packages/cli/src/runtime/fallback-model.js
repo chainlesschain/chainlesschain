@@ -18,10 +18,18 @@
  */
 
 import { chatWithTools } from "./agent-core.js";
+import { isAbortError } from "../lib/abort-utils.js";
 
 // Claude Code caps the fallback chain at 3 backups; mirror that here so a
 // mis-configured comma list can't fan out into an unbounded retry storm.
 const MAX_FALLBACK_MODELS = 3;
+
+// Same-model auto-retry budget (Claude-Code 2.1.181 "auto-retry: API connection
+// drops mid-thinking now automatically retry"). Small so a genuinely-down
+// backend still fails fast rather than hanging through a long backoff chain.
+const DEFAULT_MAX_RETRIES = 2;
+const DEFAULT_RETRY_BASE_DELAY_MS = 250;
+const MAX_RETRY_DELAY_MS = 4000;
 
 // Heuristics for "try again on a different model" — overloaded backends,
 // rate limits, and transient connectivity. Deliberately conservative: a 4xx
@@ -200,5 +208,80 @@ export function makeFallbackChatFn(opts = {}) {
       }
       throw err;
     }
+  };
+}
+
+/**
+ * Build a chatFn that retries the *same* model a few times on a transient
+ * connection drop before giving up. Parity with Claude-Code 2.1.181
+ * ("Improved auto-retry: API connection drops mid-thinking now automatically
+ * retry instead of showing 'Connection closed while thinking'").
+ *
+ * Composes *inside* {@link makeFallbackChatFn}: same-model retries are
+ * exhausted first, then the fallback chain advances to the next model. It is
+ * meant to be default-on (no flag) — wrap it around chatWithTools at the same
+ * `options.chatFn` seam, even when no fallback models are configured.
+ *
+ * Interaction with partial-response preservation: a mid-stream drop that has
+ * already produced visible text does NOT reach here — chatWithTools preserves
+ * the partial answer and returns (no throw). Only a drop *before* any output
+ * (the "mid-thinking" case) throws, which is exactly what we retry. A user
+ * abort (Esc / AbortController) and a non-transient error (auth / bad request)
+ * surface immediately without retry.
+ *
+ * @param {object} opts
+ * @param {Function} [opts.baseChatFn=chatWithTools] underlying LLM call
+ * @param {number}   [opts.maxRetries=2]   extra attempts after the first (≤ this many retries)
+ * @param {Function} [opts.isRetryable]    transient-error predicate (seam)
+ * @param {Function} [opts.onRetry]        notified ({attempt,max,error}) per retry
+ * @param {number}   [opts.baseDelayMs=250] first backoff delay; doubles each retry, capped
+ * @param {Function} [opts.sleep]          delay fn (seam for tests)
+ * @returns {Function} a (messages, options) => Promise<result> chatFn
+ */
+export function makeRetryingChatFn(opts = {}) {
+  const baseChatFn = opts.baseChatFn || chatWithTools;
+  const maxRetries =
+    Number.isInteger(opts.maxRetries) && opts.maxRetries >= 0
+      ? opts.maxRetries
+      : DEFAULT_MAX_RETRIES;
+  const isRetryable = opts.isRetryable || isRetryableModelError;
+  const onRetry = opts.onRetry;
+  const baseDelayMs =
+    Number.isFinite(opts.baseDelayMs) && opts.baseDelayMs >= 0
+      ? opts.baseDelayMs
+      : DEFAULT_RETRY_BASE_DELAY_MS;
+  const sleep =
+    opts.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+
+  return async function chatWithRetry(messages, options = {}) {
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await baseChatFn(messages, options);
+      } catch (err) {
+        lastErr = err;
+        // Never retry a user abort, an exhausted budget, or a non-transient
+        // (auth / bad-request) error — surface those immediately.
+        const aborted =
+          isAbortError(err) ||
+          Boolean(options.signal && options.signal.aborted);
+        if (aborted || attempt >= maxRetries || !isRetryable(err)) throw err;
+        if (typeof onRetry === "function") {
+          try {
+            onRetry({
+              attempt: attempt + 1,
+              max: maxRetries,
+              error: err?.message || String(err),
+            });
+          } catch {
+            // Notification is best-effort — never mask the retry.
+          }
+        }
+        const delay = Math.min(baseDelayMs * 2 ** attempt, MAX_RETRY_DELAY_MS);
+        if (delay > 0) await sleep(delay);
+      }
+    }
+    // Unreachable: the final attempt rethrows in the catch above.
+    throw lastErr;
   };
 }

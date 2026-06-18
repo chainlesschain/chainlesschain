@@ -12,6 +12,7 @@ import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { resolvePromptText } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
+  makeRetryingChatFn,
   normalizeFallbackModels,
 } from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
@@ -548,15 +549,33 @@ export function registerAgentCommand(program) {
         options.fallbackModel,
         loadConfig().llm || {},
       );
+      // Same-model auto-retry (default-on, Claude-Code 2.1.181 parity): a
+      // transient connection drop before any output ("connection closed while
+      // thinking") is retried a few times on the same model BEFORE the fallback
+      // chain advances to the next model. Wrapped around chatWithTools even when
+      // no fallback is configured, so every unattended run is resilient to a
+      // single network blip. config llm.maxRetries (integer ≥ 0) tunes / disables.
+      const _llmCfg = loadConfig().llm || {};
+      const _maxRetries = Number.isInteger(_llmCfg.maxRetries)
+        ? _llmCfg.maxRetries
+        : undefined;
+      const retryingChatFn = makeRetryingChatFn({
+        maxRetries: _maxRetries,
+        onRetry: ({ attempt, max, error }) =>
+          process.stderr.write(
+            `Note: connection drop (${error}); auto-retry ${attempt}/${max}.\n`,
+          ),
+      });
       const fallbackChatFn = fallbackModels.length
         ? makeFallbackChatFn({
             fallbackModels,
+            baseChatFn: retryingChatFn,
             onFallback: ({ from, to, error }) =>
               process.stderr.write(
                 `Note: model "${from}" failed (${error}); retrying with fallback model "${to}".\n`,
               ),
           })
-        : undefined;
+        : retryingChatFn;
 
       // --max-budget-usd: parse the cap + build the price table (config llm.pricing
       // overrides merged onto the built-in cc cost table) once, so both the
