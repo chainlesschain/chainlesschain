@@ -77,6 +77,16 @@
 
 ---
 
+## 2026-06-18 — **好友 P2P 加密语音 / 视频通话（FAMILY-67，Android）**
+
+> 在好友端到端加密消息（FAMILY-67）之上补齐 **1:1 实时语音 / 视频通话**：纯 P2P + DTLS-SRTP 端到端加密，信令复用既有信令服务器中继（与消息同一好友 DID 路由），媒体走独立 WebRTC PeerConnection。设计文档 [`docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md`](docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md) §10。
+
+- **P0 信令状态机**：`CallManager`（呼叫/响铃/接听/拒接/挂断 + glare 双呼仲裁 + 超时）+ `CallSignalingClient`（`call:*` 信令经信令服务器中继，DataChannel 没建过也保送达）。
+- **P1 语音**：独立媒体 `PeerConnection`（复用消息侧 `PeerConnectionFactory` + ICE/TURN 配置）+ 音频路由（`MODE_IN_COMMUNICATION` + 听筒/扬声器）。
+- **P2 视频**：懒建带 `EglBase` + 编解码工厂的视频版 `PeerConnectionFactory`，前置摄像头采集 + 远端全屏 + 本地 PiP + 摄像头翻转。
+- **P3 后台/锁屏**：来电前台服务（`microphone|camera`，保锁屏/熄屏麦克风不被杀）+ 全屏来电通知（越锁屏点亮屏幕 + 接听/拒接）+ 接近传感器贴耳息屏。
+- **测试**：状态机/信令/集成（Robolectric）/握手 e2e 共 **34 个 JVM 单测全绿**；真机双向音视频 + 锁屏来电验收需两台真机。
+
 ## 2026-06-14 发布 — **v5.0.3.110：个人数据中台采集器扩面 — 13 个新平台 adapter（出行 / 购物 / 社交 / 文档 / 音乐 / 视频 / 招聘）**
 
 > 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段所有 ≥⭐⭐⭐ 平台 + 可行的长尾全部落地。逐项明细见 [CHANGELOG.md](CHANGELOG.md)。

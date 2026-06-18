@@ -11,6 +11,16 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
+## 2026-06-18 — **Friend P2P encrypted voice / video calls (FAMILY-67, Android)**
+
+> On top of friend end-to-end encrypted messaging (FAMILY-67), adds **1:1 real-time voice / video calling**: pure P2P + DTLS-SRTP end-to-end encryption, signaling relayed over the existing signaling server (same friend-DID routing as messages), media over a dedicated WebRTC PeerConnection. Design: [`docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md`](docs/design/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.md) §10.
+
+- **P0 signaling state machine**: `CallManager` (ringing/accept/reject/hangup + glare arbitration + timeouts) + `CallSignalingClient` (`call:*` relayed via signaling server; delivers even if a DataChannel was never built).
+- **P1 voice**: dedicated media `PeerConnection` (reuses the message-side `PeerConnectionFactory` + ICE/TURN config) + audio routing (`MODE_IN_COMMUNICATION` + earpiece/speaker).
+- **P2 video**: lazily-built video `PeerConnectionFactory` with `EglBase` + codec factories, front-camera capture + remote full-screen + local PiP + camera flip.
+- **P3 background/lockscreen**: incoming-call foreground service (`microphone|camera`, keeps the mic alive when locked/backgrounded) + full-screen incoming notification (turns the screen on over the lock screen + accept/reject) + proximity-sensor screen-off.
+- **Tests**: state machine / signaling / integration (Robolectric) / handshake e2e — **34 JVM unit tests green**; two-device live A/V + lockscreen-incoming verification pending two real phones.
+
 ## 2026-06-16 Mainline — **JetBrains IDE plugin 0.4.0: VS Code feature parity (published to the JetBrains Marketplace)**
 
 > `packages/jetbrains-plugin/` closes the feature gap with the VS Code extension (0.22–0.30) in one pass, verified feature-by-feature in a `./gradlew runIde` sandbox before shipping (tag `ide-jetbrains-v0.4.0` → CI `publishPlugin`).

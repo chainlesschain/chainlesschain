@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'FAMILY-67 · 2026-06-18',
+    title: 'Friend P2P encrypted voice / video calls (P0–P3 landed)',
+    sub: '1:1 real-time A/V calling on top of friend E2E-encrypted messaging; 34 JVM unit tests green.',
+    desc: 'Adds 1:1 real-time voice / video calling on top of friend P2P encrypted messaging: pure P2P + DTLS-SRTP end-to-end encryption, control signaling relayed over the existing signaling server (same friend-DID routing as messages — delivers even if a DataChannel was never built), media over a dedicated WebRTC PeerConnection. P0 signaling state machine (ringing / accept / reject / hangup + glare arbitration + timeouts); P1 voice (reuses the message-side PeerConnectionFactory + ICE/TURN, earpiece / speaker routing); P2 video (lazily-built video PeerConnectionFactory with EglBase + codec factories, front-camera capture + remote full-screen + local PiP + camera flip); P3 background / lockscreen (foreground service keeps the mic alive when locked + full-screen incoming notification turns the screen on over the lock screen + proximity-sensor screen-off). Tests: state machine / signaling / integration (Robolectric) / handshake e2e — 34 JVM unit tests green; two-device live A/V + lockscreen-incoming verification pending two real phones.',
+  },
+  {
     tag: 'v5.0.3.119 · 2026-06-18',
     title: 'Friend P2P messaging stability — "cannot scan to add friend / messages not received / cannot connect" end-to-end fix',
     sub: 'Two days of debugging wrapped up; verified on real devices (amethyst<->chopin) with sub-second bidirectional delivery.',

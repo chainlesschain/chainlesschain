@@ -146,8 +146,9 @@ static-auth-secret=<服务端 secret>
 
 ## 相关文档
 
+- [好友 P2P 语音/视频通话](./friend-p2p-calls.md) — 在消息之上的 1:1 实时音视频通话（已落地）
 - [好友 P2P 消息系统设计（FAMILY-67）](https://design.chainlesschain.com/FAMILY-67_Friend_P2P_Messaging_Design.html) — 实现层设计 + 修复历史
-- [好友 P2P 音视频通话设计方案](https://design.chainlesschain.com/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.html) — 复用同一信令/TURN/连接（设计阶段）
+- [好友 P2P 音视频通话设计方案](https://design.chainlesschain.com/FAMILY-67_Friend_P2P_AudioVideo_Call_Design.html) — 实现层设计（P0–P3 已落地）
 - [去中心化社交模块](https://design.chainlesschain.com/modules/02_去中心化社交模块.html) — 高层社交设计
 - [远程操控 Plan AB](https://design.chainlesschain.com/Android_Remote_Operate_Plan_AB.html) — WebRTC/信令/coturn TURN 基础设施
 - [CLI P2P 命令](./cli-p2p.md) · [去中心化社交](./social.md)
