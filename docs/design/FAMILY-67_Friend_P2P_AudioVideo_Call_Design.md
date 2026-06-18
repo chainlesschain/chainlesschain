@@ -57,10 +57,12 @@
 
 ## 5. 媒体层（WebRTC）
 
-- **采集**：`getUserMedia({audio, video})`（Android `PeerConnectionFactory` + `VideoCapturer`/`AudioSource`）。语音先行，视频可选 + 通话中切换。
-- **PeerConnection**：在已有 `WebRTCClient` 基础上加媒体能力——`addTrack(audioTrack[, videoTrack])`，复用同一 ICE 配置（`resolveIceServersFor` + TURN 凭证）。**通话用独立 PeerConnection**（与数据 DataChannel 的 PeerConnection 分开，避免互相影响生命周期；或同一 PC 加媒体 transceiver，二选一，倾向独立 PC 更清晰）。
-- **编解码**：音频 Opus，视频 VP8/H264（Android 硬编优先）。带宽自适应（WebRTC 内置）。
+- **决策：独立 Call PeerConnection**（已定，不复用消息 DataChannel 的 PC）。理由：① 消息 PC 单连接且常走中继兜底，生命周期与通话无关；② 通话有独立的呼叫态/挂断/重连，混在一起易互相打断；③ 独立 PC 各自 ICE/DTLS/TURN 分配，互不干扰。**复用**（非复制）：`PeerConnectionFactory`（抽成共享单例 `WebRtcCore`，供消息 + 通话共用，避免双份 native 初始化）、ICE 配置 `resolveIceServersFor` + TURN 凭证、`SignalClient.sendForwardedMessage`/`forwardedMessages`（呼叫信令复用同一信令通道，按 `type:"call:*"` 分流）。
+- **采集（音频，P1）**：`PeerConnectionFactory.createAudioSource(MediaConstraints)` → `createAudioTrack` → `pc.addTrack(audioTrack)`。`JavaAudioDeviceModule`（`setUseHardwareAcousticEchoCanceler` / `NoiseSuppressor` 真机可用时开，否则 WebRTC 软件 AEC/NS/AGC）。接收侧 `onTrack` 拿远端 `AudioTrack`，WebRTC 自动经 AudioDeviceModule 播放。
+- **采集（视频，P2）**：`Camera2Enumerator` + `VideoCapturer` → `VideoSource` → `VideoTrack` → `addTrack`；渲染 `SurfaceViewRenderer`（本地/远端各一）。
+- **编解码**：音频 Opus（默认），视频 VP8/H264（`DefaultVideoEncoderFactory` 硬编优先）。带宽自适应 WebRTC 内置。
 - **加密**：DTLS-SRTP（WebRTC 强制），密钥经 DTLS 握手，端到端，服务器无法解。
+- **音频路由 / 焦点（P1 必做）**：`AudioManager.mode = MODE_IN_COMMUNICATION`；请求音频焦点（`AudioFocusRequest`，通话期暂停他方音频）；默认听筒、可切扬声器/蓝牙（`setSpeakerphoneOn` / `AudioDeviceInfo` 路由）；接近传感器贴耳息屏（`PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK`）。通话结束恢复 `MODE_NORMAL` + 放焦点。
 
 ## 6. UI / 交互
 
@@ -92,3 +94,55 @@
 - **回声/啸叫**：WebRTC AEC/NS/AGC 默认开，真机调参。
 - **电量/发热**：视频通话耗电，限时长 + 降级策略。
 - **单连接约束**：当前 WebRTCClient 单连接；通话与数据同步可能争用，需确认通话期间数据同步策略（暂停/独立 PC）。
+
+## 10. 实施细节（音频先行 P0 + P1，已定稿）
+
+### 10.1 模块与职责
+
+| 组件 | 模块 | 职责 |
+|---|---|---|
+| `WebRtcCore`（新，共享单例） | :app | `PeerConnectionFactory` + EglBase + ADM 单例，供消息 PC + 通话 PC 共用，避免双份 native 初始化 |
+| `CallManager`（新，@Singleton） | :app | 通话状态机 + 编排（发起/接听/挂断/媒体协商/重连）+ 暴露 `callState: StateFlow` 给 UI |
+| `CallSignalingClient`（新） | :app | 订阅 `WebRTCClient.forwardedMessages` 按 `type:"call:*"` 分流；`sendForwardedMessage` 发呼叫信令；DID 验签 |
+| `CallPeerConnection`（新） | :app | 独立媒体 PeerConnection（音频轨 + ICE/DTLS-SRTP）；复用 `resolveIceServersFor` + TURN 凭证 |
+| `AudioRouteController`（新） | :app | AudioManager MODE_IN_COMMUNICATION + 焦点 + 听筒/扬声器/蓝牙 + 接近传感器 |
+| `CallForegroundService`（新） | :app | 通话期前台服务（microphone 类型，Android 14+ `FOREGROUND_SERVICE_MICROPHONE`），防 OS 杀 |
+| `Outgoing/Incoming/InCallScreen`（新 Compose） | :app | 去电/来电/通话中 UI，绑定 `CallManager.callState` |
+
+### 10.2 状态机（CallState）
+
+```
+IDLE
+ ├─(主叫 startCall)──► OUTGOING ──(收 call:ringing)──► OUTGOING_RINGING
+ │                         │                              │(收 call:accept)
+ │                         │(收 call:reject/超时60s)       ▼
+ │                         ▼                          CONNECTING ──(ICE connected + DTLS)──► ACTIVE
+ │                       ENDED                            │(媒体协商/超时)                      │(挂断/对端 hangup)
+ └─(收 call:invite)──► INCOMING ─(接听)─► CONNECTING      └─► ENDED                            ▼
+                          │(拒接/超时)                                                       ENDED
+                          ▼
+                        ENDED
+```
+- **超时**：OUTGOING→无 ringing/accept 60s→ENDED；INCOMING→无接听 60s→自动拒接；CONNECTING→媒体 30s 不通→ENDED（提示网络受限）。
+- **Glare（双方同时呼叫）**：各持一个 callId，比较 `min(callIdA, callIdB)` 保留、另一个自动 reject（确定性，两端一致）。
+- **幂等**：重复 invite/accept/hangup 按 callId 去重；ENDED 后丢弃迟到信令。
+
+### 10.3 媒体协商（音频 P1）
+
+1. 接听后，offerer（沿用 `electOfferer(myDid, peerDid)`）`CallPeerConnection.createOffer`（含 audio m-line）→ `call:offer{callId, sdp}`。
+2. 对端 setRemoteDescription + `createAnswer` → `call:answer`。
+3. 双方 onIceCandidate → `call:ice{callId, candidate}`（与消息 ICE 分流，callId 命名空间）。
+4. ICE connected + DTLS 握手完成 → onTrack 拿远端 AudioTrack → ACTIVE，开始计时。
+
+### 10.4 P0 验收（无媒体，纯信令）
+
+主叫点「语音通话」→ 被叫**响铃 UI 弹出** → 接听/拒接/挂断**双端状态同步**（经信令中继，即使 DataChannel 没建过）。不涉及 getUserMedia/媒体 PC。可在两台真机仅验信令链路。
+
+### 10.5 P1 验收（音频打通）
+
+P0 之上接媒体：接听后媒体协商 → ICE connected → **双向听到对方声音 <2s 接通**（同网直连 + 跨网 TURN relay）+ 静音/扬声器切换 + 挂断释放（AudioManager 恢复、焦点放、PC close）。真机 amethyst↔chopin 验证。
+
+### 10.6 权限 / 清单
+
+- `RECORD_AUDIO`（运行时申请）；`MODIFY_AUDIO_SETTINGS`；`FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_MICROPHONE`（Android 14+）；`USE_FULL_SCREEN_INTENT`（P3 来电）。
+- `CallForegroundService` 注册 `android:foregroundServiceType="microphone"`。
