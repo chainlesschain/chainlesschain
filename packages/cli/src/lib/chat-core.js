@@ -12,23 +12,65 @@
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { appendTokenUsage } from "../harness/jsonl-session-store.js";
 
+// A streaming chat call must not hang forever if the API accepts the connection
+// but then goes silent (TCP up, no bytes). Abort the request if no data arrives
+// for STREAM_STALL_MS — reset on every chunk, so it's a stall detector, not a
+// total-time cap (long but healthy responses are unaffected). The default is
+// generous (and env-overridable) so a slow local model's first token isn't cut
+// off; raise CC_CHAT_STALL_MS if you run very large local models.
+export const STREAM_STALL_MS = Number(process.env.CC_CHAT_STALL_MS) || 180000;
+
+function makeStallGuard(stallMs = STREAM_STALL_MS) {
+  const controller = new AbortController();
+  let timer = null;
+  const bump = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), stallMs);
+    if (timer && typeof timer.unref === "function") timer.unref();
+  };
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  return {
+    signal: controller.signal,
+    bump,
+    stop,
+    stalled: () => controller.signal.aborted,
+  };
+}
+
 /**
  * Stream a response from Ollama.
  * If `onUsage` is provided, it's called with `{inputTokens, outputTokens}`
  * derived from Ollama's terminal `prompt_eval_count` / `eval_count` fields.
  */
 export async function streamOllama(messages, model, baseUrl, onToken, onUsage) {
-  const response = await fetch(`${baseUrl}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-    }),
-  });
+  const guard = makeStallGuard();
+  guard.bump();
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+      }),
+      signal: guard.signal,
+    });
+  } catch (e) {
+    guard.stop();
+    throw guard.stalled()
+      ? new Error(
+          `Ollama request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : e;
+  }
 
   if (!response.ok) {
+    guard.stop();
     throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
   }
 
@@ -36,31 +78,42 @@ export async function streamOllama(messages, model, baseUrl, onToken, onUsage) {
   const decoder = new TextDecoder();
   let fullResponse = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      guard.bump();
 
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split("\n").filter(Boolean);
+      const text = decoder.decode(value, { stream: true });
+      const lines = text.split("\n").filter(Boolean);
 
-    for (const line of lines) {
-      try {
-        const json = JSON.parse(line);
-        if (json.message?.content) {
-          fullResponse += json.message.content;
-          onToken(json.message.content);
-        }
-        if (json.done && onUsage) {
-          const inputTokens = Number(json.prompt_eval_count) || 0;
-          const outputTokens = Number(json.eval_count) || 0;
-          if (inputTokens || outputTokens) {
-            onUsage({ inputTokens, outputTokens });
+      for (const line of lines) {
+        try {
+          const json = JSON.parse(line);
+          if (json.message?.content) {
+            fullResponse += json.message.content;
+            onToken(json.message.content);
           }
+          if (json.done && onUsage) {
+            const inputTokens = Number(json.prompt_eval_count) || 0;
+            const outputTokens = Number(json.eval_count) || 0;
+            if (inputTokens || outputTokens) {
+              onUsage({ inputTokens, outputTokens });
+            }
+          }
+        } catch {
+          // Partial JSON, skip
         }
-      } catch {
-        // Partial JSON, skip
       }
     }
+  } catch (e) {
+    throw guard.stalled()
+      ? new Error(
+          `Ollama stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : e;
+  } finally {
+    guard.stop();
   }
 
   return fullResponse;
@@ -77,23 +130,37 @@ export async function streamOpenAI(
   onToken,
   onUsage,
 ) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-      // Opt-in token usage in the terminal chunk (OpenAI-compatible).
-      // Servers that don't understand it simply ignore it.
-      stream_options: { include_usage: true },
-    }),
-  });
+  const guard = makeStallGuard();
+  guard.bump();
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        // Opt-in token usage in the terminal chunk (OpenAI-compatible).
+        // Servers that don't understand it simply ignore it.
+        stream_options: { include_usage: true },
+      }),
+      signal: guard.signal,
+    });
+  } catch (e) {
+    guard.stop();
+    throw guard.stalled()
+      ? new Error(
+          `API request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : e;
+  }
 
   if (!response.ok) {
+    guard.stop();
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
 
@@ -101,36 +168,45 @@ export async function streamOpenAI(
   const decoder = new TextDecoder();
   let fullResponse = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      guard.bump();
 
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split("\n").filter(Boolean);
+      const text = decoder.decode(value, { stream: true });
+      const lines = text.split("\n").filter(Boolean);
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const json = JSON.parse(data);
-          const content = json.choices?.[0]?.delta?.content;
-          if (content) {
-            fullResponse += content;
-            onToken(content);
-          }
-          if (json.usage && onUsage) {
-            const inputTokens = Number(json.usage.prompt_tokens) || 0;
-            const outputTokens = Number(json.usage.completion_tokens) || 0;
-            if (inputTokens || outputTokens) {
-              onUsage({ inputTokens, outputTokens });
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+          try {
+            const json = JSON.parse(data);
+            const content = json.choices?.[0]?.delta?.content;
+            if (content) {
+              fullResponse += content;
+              onToken(content);
             }
+            if (json.usage && onUsage) {
+              const inputTokens = Number(json.usage.prompt_tokens) || 0;
+              const outputTokens = Number(json.usage.completion_tokens) || 0;
+              if (inputTokens || outputTokens) {
+                onUsage({ inputTokens, outputTokens });
+              }
+            }
+          } catch {
+            // Partial data
           }
-        } catch {
-          // Partial data
         }
       }
     }
+  } catch (e) {
+    throw guard.stalled()
+      ? new Error(`API stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`)
+      : e;
+  } finally {
+    guard.stop();
   }
 
   return fullResponse;
@@ -161,23 +237,37 @@ export async function streamAnthropic(
     }
   }
 
-  const response = await fetch(`${baseUrl}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      stream: true,
-      ...(system ? { system } : {}),
-      messages: convo,
-    }),
-  });
+  const guard = makeStallGuard();
+  guard.bump();
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        stream: true,
+        ...(system ? { system } : {}),
+        messages: convo,
+      }),
+      signal: guard.signal,
+    });
+  } catch (e) {
+    guard.stop();
+    throw guard.stalled()
+      ? new Error(
+          `Anthropic request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : e;
+  }
 
   if (!response.ok) {
+    guard.stop();
     throw new Error(
       `Anthropic error: ${response.status} ${response.statusText}`,
     );
@@ -190,36 +280,48 @@ export async function streamAnthropic(
   let inputTokens = 0;
   let outputTokens = 0;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const raw of lines) {
-      const line = raw.trim();
-      if (!line || !line.startsWith("data:")) continue;
-      const payload = line.slice(5).trim();
-      if (!payload) continue;
-      try {
-        const obj = JSON.parse(payload);
-        if (obj.type === "content_block_delta") {
-          const delta = obj.delta?.text;
-          if (delta) {
-            fullResponse += delta;
-            onToken(delta);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      guard.bump();
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line || !line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload) continue;
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.type === "content_block_delta") {
+            const delta = obj.delta?.text;
+            if (delta) {
+              fullResponse += delta;
+              onToken(delta);
+            }
+          } else if (obj.type === "message_start") {
+            inputTokens =
+              Number(obj.message?.usage?.input_tokens) || inputTokens;
+            outputTokens =
+              Number(obj.message?.usage?.output_tokens) || outputTokens;
+          } else if (obj.type === "message_delta") {
+            outputTokens = Number(obj.usage?.output_tokens) || outputTokens;
           }
-        } else if (obj.type === "message_start") {
-          inputTokens = Number(obj.message?.usage?.input_tokens) || inputTokens;
-          outputTokens =
-            Number(obj.message?.usage?.output_tokens) || outputTokens;
-        } else if (obj.type === "message_delta") {
-          outputTokens = Number(obj.usage?.output_tokens) || outputTokens;
+        } catch {
+          /* skip malformed */
         }
-      } catch {
-        /* skip malformed */
       }
     }
+  } catch (e) {
+    throw guard.stalled()
+      ? new Error(
+          `Anthropic stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : e;
+  } finally {
+    guard.stop();
   }
 
   if (onUsage && (inputTokens || outputTokens)) {
