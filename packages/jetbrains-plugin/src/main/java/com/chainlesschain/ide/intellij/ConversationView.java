@@ -4,6 +4,7 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
+import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SlashCommands;
@@ -26,7 +27,11 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
@@ -68,7 +73,16 @@ final class ConversationView {
     private ContainerActions containerActions;
 
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
-    private final JTextArea transcript = new JTextArea();
+    private final JTextPane transcript = new JTextPane();
+    // Markdown styling for the transcript: plain (default), inline/fenced code
+    // (amber, readable on light + dark themes), and **bold**.
+    private final SimpleAttributeSet stylePlain = new SimpleAttributeSet();
+    private final SimpleAttributeSet styleCode = new SimpleAttributeSet();
+    private final SimpleAttributeSet styleBold = new SimpleAttributeSet();
+    // The current streamed assistant text run: appended plain, then re-styled
+    // with markdown when it ends (a tool call, the turn end, or any other line).
+    private int assistantRunStart = -1;
+    private boolean inAssistantRun = false;
     private final JTextField input = new JTextField();
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
@@ -87,9 +101,10 @@ final class ConversationView {
         if (conv.turnState == null) conv.turnState = new ChatEvents.TurnState();
 
         transcript.setEditable(false);
-        transcript.setLineWrap(true);
-        transcript.setWrapStyleWord(true);
+        // JTextPane wraps by default (no setLineWrap). Keep the monospace look.
         transcript.setFont(new Font(Font.MONOSPACED, Font.PLAIN, transcript.getFont().getSize()));
+        StyleConstants.setForeground(styleCode, new Color(0xCC, 0x78, 0x32)); // amber code
+        StyleConstants.setBold(styleBold, true);
         root.add(new JScrollPane(transcript), BorderLayout.CENTER);
 
         // Input gets its own full-width line; Send/Stop sit on a row below it
@@ -360,7 +375,7 @@ final class ConversationView {
         if ("init".equals(kind)) {
             append("── " + ui.get("model") + " · " + ui.get("provider") + " ──\n");
         } else if ("delta".equals(kind)) {
-            append(String.valueOf(ui.get("text")));
+            appendAssistantDelta(String.valueOf(ui.get("text")));
         } else if ("tool".equals(kind)) {
             String summary = String.valueOf(ui.get("summary"));
             append("\n→ " + ui.get("tool") + (summary.isEmpty() ? "" : " " + summary) + "\n");
@@ -369,7 +384,11 @@ final class ConversationView {
                     + ui.get("tool") + "\n");
         } else if ("turn_end".equals(kind)) {
             Object text = ui.get("text");
-            if (text != null) append(String.valueOf(text));
+            // The final result text only arrives here when nothing streamed; run
+            // it through the same markdown path. (When deltas streamed, text is
+            // null and we just finalize the streamed run.)
+            if (text != null) appendAssistantDelta(String.valueOf(text));
+            finalizeAssistantRun();
             append("\n");
             refreshContextIndicator(); // §6: after each turn
         } else if ("plan".equals(kind)) {
@@ -738,9 +757,57 @@ final class ConversationView {
         return String.format("%.1fM", n / 1_000_000.0);
     }
 
+    private void insertStyled(String s, javax.swing.text.AttributeSet style) {
+        try {
+            StyledDocument d = transcript.getStyledDocument();
+            d.insertString(d.getLength(), s, style);
+            transcript.setCaretPosition(d.getLength());
+        } catch (BadLocationException ignored) {
+            /* document offsets are append-only here — should not happen */
+        }
+    }
+
+    /** A plain transcript line (header / tool / info / error). Ends any pending
+     *  assistant markdown run first so it gets re-styled before this line. */
     private void append(String s) {
-        transcript.append(s);
-        transcript.setCaretPosition(transcript.getDocument().getLength());
+        finalizeAssistantRun();
+        insertStyled(s, stylePlain);
+    }
+
+    /** Streaming assistant text — appended plain; re-styled with markdown when
+     *  the run finalizes (so streaming stays responsive, then snaps to styled). */
+    private void appendAssistantDelta(String s) {
+        if (!inAssistantRun) {
+            assistantRunStart = transcript.getStyledDocument().getLength();
+            inAssistantRun = true;
+        }
+        insertStyled(s, stylePlain);
+    }
+
+    /** Re-render the just-streamed assistant run as markdown (code → monospace
+     *  amber, **bold** → bold). No-op when not in a run. */
+    private void finalizeAssistantRun() {
+        if (!inAssistantRun) return;
+        inAssistantRun = false;
+        StyledDocument d = transcript.getStyledDocument();
+        int end = d.getLength();
+        int start = assistantRunStart;
+        assistantRunStart = -1;
+        if (start < 0 || end <= start) return;
+        try {
+            String text = d.getText(start, end - start);
+            d.remove(start, end - start);
+            for (MarkdownLite.Span span : MarkdownLite.parse(text)) {
+                javax.swing.text.AttributeSet st =
+                        span.kind == MarkdownLite.Kind.CODE ? styleCode
+                        : span.kind == MarkdownLite.Kind.BOLD ? styleBold
+                        : stylePlain;
+                d.insertString(d.getLength(), span.text, st);
+            }
+            transcript.setCaretPosition(d.getLength());
+        } catch (BadLocationException ignored) {
+            /* best-effort — leave the plain text in place on any hiccup */
+        }
     }
 
     void appendInfo(String s) {
@@ -748,6 +815,8 @@ final class ConversationView {
     }
 
     void clearTranscript() {
+        inAssistantRun = false;
+        assistantRunStart = -1;
         transcript.setText("");
     }
 

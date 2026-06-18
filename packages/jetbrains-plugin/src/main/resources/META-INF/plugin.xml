@@ -61,6 +61,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.13</b> — Markdown rendering in the chat transcript: fenced/inline
+        <code>code</code> (monospace) and <b>bold</b> now render instead of raw
+        markers (VS Code parity). Streaming stays plain, then snaps to styled.
+        <br/><br/>
         <b>0.4.12</b> — "Fix with ChainlessChain" intention: on an error/warning
         line, Alt+Enter offers a quick-fix that seeds the chat with a fix request
         scoped to that file + those problems (VS Code parity).

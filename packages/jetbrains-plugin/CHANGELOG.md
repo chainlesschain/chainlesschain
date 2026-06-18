@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.13] — 2026-06-18 — Markdown rendering in the chat transcript
+
+- **Markdown in assistant replies.** The chat transcript now renders fenced
+  ```code``` / inline `code` (monospace amber) and **bold** instead of showing
+  raw markers — VS Code parity. Streaming stays responsive (plain text as it
+  arrives, then the completed reply snaps to styled). The transcript moved from
+  `JTextArea` to `JTextPane`; all other lines (headers, tool trace, info) are
+  unchanged. Tiny dependency-free `MarkdownLite` tokenizer (unclosed markers
+  degrade to plain text, never losing characters).
+
 ## [0.4.12] — 2026-06-18 — "Fix with ChainlessChain" intention (VS Code parity)
 
 - **Fix-with-cc quick-fix.** On a line carrying an error or warning, the

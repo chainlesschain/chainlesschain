@@ -47,6 +47,7 @@ public final class PureLogicSmokeMain {
         llmConfig();
         slashCommands();
         fixWithCc();
+        markdownLite();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -426,5 +427,48 @@ public final class PureLogicSmokeMain {
         // title
         eq(FixWithCc.buildFixActionTitle(3), "Fix 3 problems with ChainlessChain", "counted title");
         eq(FixWithCc.buildFixActionTitle(1), "Fix with ChainlessChain", "singular title");
+    }
+
+    private static void markdownLite() {
+        System.out.println("MarkdownLite:");
+        // plain text → single TEXT span
+        eq(MarkdownLite.parse("hello world"),
+                java.util.Arrays.asList(new MarkdownLite.Span(MarkdownLite.Kind.TEXT, "hello world")),
+                "plain → one TEXT span");
+        // inline code
+        eq(MarkdownLite.parse("run `npm test` now"),
+                java.util.Arrays.asList(
+                        new MarkdownLite.Span(MarkdownLite.Kind.TEXT, "run "),
+                        new MarkdownLite.Span(MarkdownLite.Kind.CODE, "npm test"),
+                        new MarkdownLite.Span(MarkdownLite.Kind.TEXT, " now")),
+                "inline `code`");
+        // bold
+        eq(MarkdownLite.parse("a **bold** b"),
+                java.util.Arrays.asList(
+                        new MarkdownLite.Span(MarkdownLite.Kind.TEXT, "a "),
+                        new MarkdownLite.Span(MarkdownLite.Kind.BOLD, "bold"),
+                        new MarkdownLite.Span(MarkdownLite.Kind.TEXT, " b")),
+                "**bold**");
+        // fenced code with a language tag (tag line dropped)
+        java.util.List<MarkdownLite.Span> fenced =
+                MarkdownLite.parse("see:\n```java\nint x = 1;\n```\ndone");
+        check(fenced.size() == 3, "fenced → TEXT + CODE + TEXT");
+        eq(fenced.get(1).kind, MarkdownLite.Kind.CODE, "middle span is CODE");
+        eq(fenced.get(1).text, "int x = 1;\n", "code body keeps newline, drops lang tag");
+        // unclosed markers degrade to plain (never lose chars)
+        eq(MarkdownLite.parse("a `b c"),
+                java.util.Arrays.asList(new MarkdownLite.Span(MarkdownLite.Kind.TEXT, "a `b c")),
+                "unclosed backtick → plain");
+        eq(MarkdownLite.parse("x **y"),
+                java.util.Arrays.asList(new MarkdownLite.Span(MarkdownLite.Kind.TEXT, "x **y")),
+                "unclosed bold → plain");
+        // round-trip: concatenated span texts == input minus markers
+        String md = "use `f()` and **g** in ```py\ncode\n```";
+        StringBuilder rebuilt = new StringBuilder();
+        for (MarkdownLite.Span s : MarkdownLite.parse(md)) rebuilt.append(s.text);
+        eq(rebuilt.toString(), "use f() and g in code\n", "spans lose only the markers");
+        // empty / null
+        check(MarkdownLite.parse("").isEmpty(), "empty → no spans");
+        check(MarkdownLite.parse(null).isEmpty(), "null → no spans");
     }
 }
