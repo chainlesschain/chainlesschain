@@ -18,6 +18,72 @@ export function maskSecret(v) {
 }
 
 /**
+ * A config key whose value must never be echoed in plaintext in the
+ * (shoulder-surfable) interactive REPL — apiKey / secret / token / password.
+ * Matched on the last dotted segment (e.g. `llm.apiKey`, `webSearch.apiKey`).
+ */
+const SECRET_KEY_RE = /(api[_-]?key|secret|token|password|passwd)$/i;
+export function isSecretConfigKey(key) {
+  if (!key) return false;
+  const last = String(key).split(".").pop();
+  return SECRET_KEY_RE.test(last);
+}
+
+/**
+ * Parse the argument string after `/config` into an action.
+ * Mirrors Claude Code's `/config key=value` syntax, and also accepts the
+ * `/config key value` form. Returns one of:
+ *   { action: "show" }                       // `/config`
+ *   { action: "get", key }                   // `/config llm.model`
+ *   { action: "set", key, value }            // `/config llm.model=opus` | `/config llm.model opus`
+ *   { action: "error", message }
+ * `value` is the raw string; the caller coerces (true/false/null/number) via
+ * config-manager's setConfigValue.
+ *
+ * @param {string} argStr  everything after the literal `/config`
+ */
+export function parseConfigCommand(argStr) {
+  const s = (argStr || "").trim();
+  if (s === "") return { action: "show" };
+
+  const eq = s.indexOf("=");
+  if (eq !== -1) {
+    const key = s.slice(0, eq).trim();
+    const value = s.slice(eq + 1).trim();
+    if (!key) return { action: "error", message: "missing key before '='" };
+    return { action: "set", key, value };
+  }
+
+  // `key value` — split on the first run of whitespace.
+  const m = s.match(/^(\S+)\s+([\s\S]+)$/);
+  if (m) return { action: "set", key: m[1], value: m[2].trim() };
+
+  // Bare token → read that key.
+  return { action: "get", key: s };
+}
+
+/** Render a single config value for `/config <key>`, masking secrets. */
+export function renderConfigGet(key, value) {
+  if (value === undefined) return `${key} = (unset)`;
+  if (isSecretConfigKey(key)) return `${key} = ${maskSecret(value)}`;
+  const shown =
+    value !== null && typeof value === "object"
+      ? JSON.stringify(value)
+      : String(value);
+  return `${key} = ${shown}`;
+}
+
+/** Render the confirmation line after `/config <key>=<value>`. */
+export function renderConfigSet(key, storedValue) {
+  if (isSecretConfigKey(key)) return `set ${key} = ${maskSecret(storedValue)}`;
+  const shown =
+    storedValue !== null && typeof storedValue === "object"
+      ? JSON.stringify(storedValue)
+      : String(storedValue);
+  return `set ${key} = ${shown}`;
+}
+
+/**
  * @param {object|null} config  loaded config.json
  * @param {object} [opts]  { path, activeProvider, activeModel }
  * @returns {string}

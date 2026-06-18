@@ -743,7 +743,9 @@ export async function startAgentRepl(options = {}) {
         _bundleResolved.approvalPolicy.default,
       );
       // Mirror it so Shift+Tab cycling starts from the real tier.
-      const applied = parsePermissionTier(_bundleResolved.approvalPolicy.default);
+      const applied = parsePermissionTier(
+        _bundleResolved.approvalPolicy.default,
+      );
       if (applied) _sessionTier = applied;
     } catch (_err) {
       // Non-critical — invalid policy value is silently ignored
@@ -1307,7 +1309,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
       );
       logger.log(
-        `  ${chalk.cyan("/config")}     Effective config (provider/model, keys masked)`,
+        `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set`,
       );
       logger.log(
         `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
@@ -2695,18 +2697,43 @@ export async function startAgentRepl(options = {}) {
 
     // `/config` — effective configuration (secret-safe): the LLM provider/model
     // in effect, whether keys are set, web-search backend, config path.
-    if (trimmed === "/config" || trimmed === "/config ") {
+    // `/config <key>` reads a value; `/config <key>=<value>` (Claude-Code
+    // parity) or `/config <key> <value>` persists one. Secrets stay masked.
+    if (trimmed === "/config" || trimmed.startsWith("/config ")) {
       try {
-        const { loadConfig } = await import("../lib/config-manager.js");
+        const cm = await import("../lib/config-manager.js");
         const { getConfigPath } = await import("../lib/paths.js");
-        const { renderConfigSummary } = await import("./config-summary.js");
-        logger.log(
-          renderConfigSummary(loadConfig(), {
-            path: getConfigPath(),
-            activeProvider: provider,
-            activeModel: _curModel || model,
-          }),
-        );
+        const {
+          renderConfigSummary,
+          parseConfigCommand,
+          renderConfigGet,
+          renderConfigSet,
+        } = await import("./config-summary.js");
+        const cmd = parseConfigCommand(trimmed.slice("/config".length));
+        if (cmd.action === "error") {
+          logger.error(chalk.red(`/config: ${cmd.message}`));
+        } else if (cmd.action === "get") {
+          logger.log(renderConfigGet(cmd.key, cm.getConfigValue(cmd.key)));
+        } else if (cmd.action === "set") {
+          cm.setConfigValue(cmd.key, cmd.value);
+          logger.log(
+            chalk.green("✓ ") +
+              renderConfigSet(cmd.key, cm.getConfigValue(cmd.key)),
+          );
+          logger.log(
+            chalk.gray(
+              "  (persisted; provider/model changes apply to new sessions)",
+            ),
+          );
+        } else {
+          logger.log(
+            renderConfigSummary(cm.loadConfig(), {
+              path: getConfigPath(),
+              activeProvider: provider,
+              activeModel: _curModel || model,
+            }),
+          );
+        }
       } catch (err) {
         logger.error(chalk.red(`/config failed: ${err.message}`));
       }
@@ -3122,7 +3149,8 @@ export async function startAgentRepl(options = {}) {
         ? {
             onToken: (t) => {
               // Separate the answer from the dimmed reasoning above it (once).
-              if (!_liveStreamed && _liveThinkStarted) process.stdout.write("\n");
+              if (!_liveStreamed && _liveThinkStarted)
+                process.stdout.write("\n");
               _liveStreamed = true;
               process.stdout.write(t);
             },
@@ -3242,7 +3270,8 @@ export async function startAgentRepl(options = {}) {
         } else {
           // Phase G #2 — route through StreamRouter so REPL / WS / future
           // streaming providers share one StreamEvent protocol.
-          const { streamAgentResponse } = await import("../lib/agent-stream.js");
+          const { streamAgentResponse } =
+            await import("../lib/agent-stream.js");
           process.stdout.write("\n");
           const noStream = options.noStream === true;
           const streamResult = await streamAgentResponse(effectiveResponse, {

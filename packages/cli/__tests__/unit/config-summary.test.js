@@ -6,6 +6,10 @@ import { describe, it, expect } from "vitest";
 import {
   maskSecret,
   renderConfigSummary,
+  isSecretConfigKey,
+  parseConfigCommand,
+  renderConfigGet,
+  renderConfigSet,
 } from "../../src/repl/config-summary.js";
 
 describe("maskSecret", () => {
@@ -80,5 +84,98 @@ describe("renderConfigSummary", () => {
     });
     expect(matched).toContain("active this session: ollama · qwen2.5:7b");
     expect(matched).not.toContain("(overrides config)");
+  });
+});
+
+describe("isSecretConfigKey", () => {
+  it("matches secret-bearing keys on the last dotted segment", () => {
+    expect(isSecretConfigKey("llm.apiKey")).toBe(true);
+    expect(isSecretConfigKey("webSearch.apiKey")).toBe(true);
+    expect(isSecretConfigKey("llm.api_key")).toBe(true);
+    expect(isSecretConfigKey("foo.token")).toBe(true);
+    expect(isSecretConfigKey("foo.secret")).toBe(true);
+    expect(isSecretConfigKey("db.password")).toBe(true);
+  });
+  it("does not match non-secret keys", () => {
+    expect(isSecretConfigKey("llm.provider")).toBe(false);
+    expect(isSecretConfigKey("llm.model")).toBe(false);
+    expect(isSecretConfigKey("cli.theme")).toBe(false);
+    expect(isSecretConfigKey("")).toBe(false);
+    expect(isSecretConfigKey(undefined)).toBe(false);
+    // `keyboard` ends in "board", not a bare secret token
+    expect(isSecretConfigKey("ui.keyboard")).toBe(false);
+  });
+});
+
+describe("parseConfigCommand", () => {
+  it("treats empty input as show", () => {
+    expect(parseConfigCommand("")).toEqual({ action: "show" });
+    expect(parseConfigCommand("   ")).toEqual({ action: "show" });
+  });
+  it("parses key=value (Claude-Code syntax)", () => {
+    expect(parseConfigCommand(" llm.model=opus ")).toEqual({
+      action: "set",
+      key: "llm.model",
+      value: "opus",
+    });
+  });
+  it("parses the key value form", () => {
+    expect(parseConfigCommand(" llm.provider anthropic ")).toEqual({
+      action: "set",
+      key: "llm.provider",
+      value: "anthropic",
+    });
+  });
+  it("keeps spaces and = inside a value", () => {
+    expect(parseConfigCommand("llm.baseUrl=https://x/api?a=b")).toEqual({
+      action: "set",
+      key: "llm.baseUrl",
+      value: "https://x/api?a=b",
+    });
+    expect(parseConfigCommand("note hello world")).toEqual({
+      action: "set",
+      key: "note",
+      value: "hello world",
+    });
+  });
+  it("treats a bare token as a get", () => {
+    expect(parseConfigCommand("llm.model")).toEqual({
+      action: "get",
+      key: "llm.model",
+    });
+  });
+  it("allows clearing a value with key=", () => {
+    expect(parseConfigCommand("llm.baseUrl=")).toEqual({
+      action: "set",
+      key: "llm.baseUrl",
+      value: "",
+    });
+  });
+  it("errors on a missing key before =", () => {
+    expect(parseConfigCommand("=value").action).toBe("error");
+  });
+});
+
+describe("renderConfigGet / renderConfigSet (secret-safe)", () => {
+  it("masks secret values on read and write", () => {
+    expect(renderConfigGet("llm.apiKey", "sk-ant-verysecret-4XYZ")).toBe(
+      "llm.apiKey = set (…4XYZ)",
+    );
+    expect(
+      renderConfigGet("llm.apiKey", "sk-ant-verysecret-4XYZ"),
+    ).not.toContain("verysecret");
+    expect(renderConfigSet("webSearch.apiKey", "tvly-secret-9999")).toBe(
+      "set webSearch.apiKey = set (…9999)",
+    );
+  });
+  it("shows non-secret values plainly, JSON-stringifying objects", () => {
+    expect(renderConfigGet("llm.model", "opus")).toBe("llm.model = opus");
+    expect(renderConfigGet("llm", { provider: "ollama" })).toBe(
+      'llm = {"provider":"ollama"}',
+    );
+    expect(renderConfigGet("missing.key", undefined)).toBe(
+      "missing.key = (unset)",
+    );
+    expect(renderConfigSet("cli.theme", "dark")).toBe("set cli.theme = dark");
   });
 });
