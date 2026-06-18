@@ -129,6 +129,10 @@ class MainActivity : AppCompatActivity() {
                 mgr.start()
                 Timber.d("CallManager started")
             }.onFailure { Timber.w(it, "CallManager start failed (non-fatal)") }
+            // FAMILY-67:「保持在线接听」前台服务 —— 保活进程 + 周期重连信令，后台/熄屏也能收来电
+            // （用户可在通知「停止」opt-out；幂等，重复启动安全）。
+            runCatching { com.chainlesschain.android.call.CallPresenceService.startIfEnabled(this@MainActivity) }
+                .onFailure { Timber.w(it, "CallPresenceService start failed (non-fatal)") }
         }
 
         // #21 C.1 PR1 — pick up ACTION_START_VOICE_MODE on cold start.

@@ -177,6 +177,13 @@
             android:exported="false"
             android:foregroundServiceType="microphone|camera" />
 
+        <!-- FAMILY-67「保持在线接听」前台服务（P3+）：保活进程 + 周期重连信令，后台/熄屏也能收来电。 -->
+        <service
+            android:name=".call.CallPresenceService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- FAMILY-67 通话通知动作（接听/拒接/挂断）。 -->
         <receiver
             android:name=".call.CallActionReceiver"
