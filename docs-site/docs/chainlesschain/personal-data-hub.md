@@ -92,6 +92,8 @@
 - 🔁 **WAL 安全的主密钥旋转**：`vault.rotateKey(newKeyHex)` 在 WAL 模式下也能透明换密钥，旧密钥保留为 `vault:<id>:prev` 应急回滚
 - 🧪 **Validator 永不抛**：所有校验器返回 `{ valid, errors }`，单条坏数据不会拉垮整窗 ingest，可定向回看
 - 🧰 **MockAdapter / OllamaClient 自带**：测试用 deterministic MockAdapter (seeded)、单机 fallback OllamaClient (`http://localhost:11434` 可改 env)
+- 🕵️ **Root 设备端侧取证采集（v0.7）**：rooted 设备上绕开 cookie/签名风控，直取已登录加密 app 的本地库——**方法 B** 免密钥 `/proc/<pid>/mem` 内存扫描（引擎无关、扛反调试、无需登录口令）/ **方法 C** frida `sqlcipher_export` 在线解密 IM / SQLite 叶子页 **salvager**（`--unaligned`，从损坏内存 dump 救出明文页）/ D1/D2 root 采集 + 多 app 并采 + 来源归属。仅限**用户本人设备 / 本人账号 / 本人 app**；运维细节见仓库内部 runbook `docs/internal/pdh-db-decryption-runbook.md`
+- 📊 **跨 app 统一概览（analysis.overview）**：`ask({crossApp})` 把跨 app 数据总览注入 AnalysisEngine prompt 做决策支持；分析管线去噪（话题名分组 / 兴趣过滤 / timeline inventory 排除）减少噪声
 
 ## 系统架构
 
@@ -581,6 +583,87 @@ WebView 内用户登录 → CookieManager.getCookie() 提取
 
 详见设计文档：[`Adapter_Social_Cookie.md`](https://design.chainlesschain.com/Adapter_Social_Cookie.html)。
 
+## 真机采集与本地解密（Android root · 四方法框架）
+
+> **授权边界**：以下方法**仅用于用户本人拥有的、已 root 的设备 + 本人账号 + 本人 App**，目的是与
+> 用户自己的 PDH 互通。不要对他人账号 / 设备使用。明文副本含真实隐私，**只在本地仓库外目录留存、查完即删，绝不入 git**。
+
+桌面 / cookie 路径采不到的**端上加密数据**（IM 聊天、系统通讯录 / 短信 / 通话）需要在 root 设备上本地采集。
+按"产出可靠性"排序，四种**互补**方法：
+
+| 方法 | 适用 | 原理 | 产出 | 状态 |
+|---|---|---|---|---|
+| **D 系统数据** | **任何 root 机第一步** | 通讯录 `contacts2.db` root 直读 + 短信 / 通话 `content query`（shell 权限）+ 媒体 `find` 元数据 | 单机实测 2 万+ events / 1 千+ 联系人 / 2 千+ 媒体 | ✅ 最高产可靠 |
+| **B 免密钥内存扫描** | 标准 SQLCipher App（微信 / QQ）已登录热进程 | App 打开加密库后，解密页驻留进程页缓存；root 读 `/proc/<pid>/mem`（不 ptrace、绕反调试）扫 `"SQLite format 3"` 页 → 重组 + 叶子页打捞 | 视 App / 版本 | ✅ 标准 SQLCipher 可（⚠️抖音 WCDB2 私有页格式不行）|
+| **A frida 抓 key** | 标准 SQLCipher 微信（`libWCDB.so`）已登录 | frida hook `sqlite3_key` 拿 raw key → 离线解密 | key | ✅ 但**登出态无 key**；解密优先走 C |
+| **C frida 在线解密** | WCDB/WCDB2 IM（头条 / 微信等，**无强反 frida**） | 借 App **自己已用正确 key 打开的连接** `ATTACH '' KEY ''` + `sqlcipher_export` 导明文副本，**绕开 cipher 参数**（拿 key 后离线复现 WCDB 自研 cipher 实测 72 组合全失败）| 明文库副本 | 🚧 **链路可达·端到端待验**（见下方诚实状态）|
+
+### 方法 D — 系统数据（先做这个，最可靠）
+
+```sh
+node scripts/android/pdh-device-collect.mjs --serial <serial>   # 通讯录+短信+通话+应用+媒体
+cc hub stats                                  # 看 events/persons/items 增长
+cc hub search --adapter system-data-android   # 抽查
+```
+全程明文、无解密、幂等（按 originalId 去重，可反复跑）。落库走 `system-data-android` adapter bridge 模式。
+
+### 方法 B — 免密钥内存扫描（标准 SQLCipher App）
+
+```sh
+adb -s <serial> push scripts/android/pdh-mem-sqlite-scan.sh /data/local/tmp/cc-scan.sh
+PID=$(adb -s <serial> shell su -c 'pidof <pkg>' | tr -d '\r' | awk '{print $1}')
+adb -s <serial> shell su -c "sh /data/local/tmp/cc-scan.sh $PID"   # dump → /data/local/tmp/ccmem/*.db
+# 连续 dump 对散页库 malformed → 叶子页打捞：
+for f in dumps/*.db; do node scripts/android/pdh-sqlite-leaf-salvage.js "$f"; done
+```
+**前提**：App 须**前台热进程**（已登录 + 已打开过目标库，明文页才在内存）；**别 force-stop 再启动**（冷启动触发反调试且未载库）。
+**Android 内一键**：HubLocal「一键 root 采集」按钮（`MemSalvageCollector`）封装了 su 扫描 → cp+chown → `cc hub salvage` 入库。
+
+### 方法 C — frida `sqlcipher_export` 在线解密
+
+```sh
+# 设备已 root；目标 App 已登录并前台进到「私信/消息」让库被查询。
+bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~/pdh-data 60
+# → 明文副本 *.plain.db 拉到仓库外 ~/pdh-data（勿入 git），脚本自动清设备侧。
+```
+
+> ⚠️ **诚实状态（2026-06-18）**：目前是「`sqlcipher_export` **可达**」，**尚未真机产出明文库**。
+> 头条 `libwcdb2.so` 有导出符号、hook 命中 IM 库、export 被调用到，但 **rc=1 "disk I/O error"**
+> （疑 WCDB 自定义 VFS 管 `databases/` 目录 → 已把输出改写 `cache/`，未验证）。验证不了的原因：
+> **头条私信本机空**（无会话→无查询触发）+ **抖音有数据但反 frida**（`libmsaoaidsec` 压制 frida 输出 + 重负载把 USB 打 offline）。
+> 复现坑（写权限须 App 可写目录 / 必须等 libwcdb2 加载后再 attach / 点开会话才有查询 / DB_MATCH 用 `/encrypted_.*\.db$/` / export 走 onLeave 防重入）+ checklist 见 `docs/internal/pdh-db-decryption-runbook.md` §3.6.1。
+
+### 各 App 解密状态
+
+| App | 引擎 | 可行方法 | 状态 |
+|---|---|---|---|
+| 系统数据（通讯录 / 短信 / 通话 / 媒体）| 明文 / content-query | **D** | ✅ 实测最可靠 |
+| 微信 `com.tencent.mm` | 标准 SQLCipher（`libWCDB.so`）| A / B / C | ✅ 机制验证（需登录；登出态无 key）|
+| QQ `com.tencent.mobileqq` | 普通 SQLite + XOR(IMEI) | root + IMEI（非 SQLCipher）| ✅ 算法移植 |
+| 今日头条 `com.ss.android.article.news` | WCDB2（`libwcdb2.so` **有符号**）| C（无反 frida）| 🚧 可达·待验（本机私信空）|
+| 抖音 `com.ss.android.ugc.aweme` | WCDB2 + `libEncryptor`/`libmsaoaidsec` | —（反 frida）| ❌ Method C 不实用；明文小库可拉 |
+
+### 数据库 Schema 字典（AI 正确解读 + adapter 适配的依据）
+
+各 App 解密出的本地库结构（表 / 字段 / 含义 / → PDH 实体 / 解读要点）已逐一登记，**完整导出 SQL（仅结构无数据，git tracked）**：
+
+| 文件（`docs/internal/reference/`）| 内容 |
+|---|---|
+| `wechat_schema.sql` | 微信 258 表完整 schema |
+| `toutiao_im_schema.sql` / `douyin_im_schema.sql` | 头条 / 抖音 ByteDance IM（12 表，`com.ss.android.im` 框架，两者通用；抖音另有 Room 版 `im_database_`）|
+| `toutiao_plaintext_db_schemas.sql` / `douyin_plaintext_db_schemas.sql` | 头条 19 + 抖音 25 个明文 app 库结构 |
+
+字段含义字典 `docs/internal/pdh-app-db-schemas.md`；解密方法详解 `docs/internal/pdh-db-decryption-runbook.md`（方法 A/B/C/D）；可复现 skill：`.claude/skills/pdh-android-collect/SKILL.md`。
+
+### 复现脚本清单
+
+| 脚本 | 方法 |
+|---|---|
+| `scripts/android/pdh-device-collect.mjs` | D 系统数据一键采 |
+| `scripts/android/pdh-mem-sqlite-scan.sh` + `pdh-sqlite-leaf-salvage.js` | B 免密钥内存扫描 + 叶子页打捞 |
+| `scripts/android/pdh-frida-decrypt.sh` + `pdh-frida-sqlcipher-export.js` | C frida 在线解密 |
+| `cc hub salvage <dump> --app <key>` | 打捞 dump → 按来源归属入 vault |
+
 ## 配置参考
 
 ### 数据目录
@@ -683,7 +766,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ## 测试覆盖率
 
-- **总单测**：55 个测试文件 / **1007 单元测试**（最新基线 v5.0.3.73 含 Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix + 2026-05-21 doubao/toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-6 全套，`npx vitest run` 全绿，~38s）
+- **总单测**：**184 个测试文件 / 2876 单元测试**（最新基线 v5.0.3.119，pdh 0.4.28；含 89 个 adapter 全套契约/解析测 + 分析管线去噪 + analysis.overview 跨 app 概览 + root 取证（salvager / leaf-page scan / mem dump 解析）+ 设备级 schema 字典，经 CLI vitest 二进制 `npx vitest run` 全绿）
 - **覆盖矩阵**：
   - `__tests__/ids.test.js` — UUID v7 唯一性 / 时间序性
   - `__tests__/schemas.test.js` — 5 类实体所有 subtype + 边界字段
@@ -714,7 +797,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ```bash
 cd packages/personal-data-hub
-npm test                                  # 全部 (47 file / 927 test)
+npm test                                  # 全部 (184 file / 2876 test)
 npx vitest run __tests__/vault.test.js    # 单文件
 ```
 
