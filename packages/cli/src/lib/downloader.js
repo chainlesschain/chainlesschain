@@ -24,6 +24,67 @@ const ASSET_PATTERNS = {
   linux: { x64: /chainlesschain.*linux.*x64.*\.zip$/i },
 };
 
+/**
+ * Stream a fetch Response body to `destPath` with two robustness guards for the
+ * download/install path:
+ *   - idle timeout: if no bytes arrive for `idleTimeoutMs`, abort `controller`
+ *     (which cancels the underlying fetch) so a hung server can't freeze the
+ *     download forever. The timer resets on every chunk — a stall detector, not
+ *     a total-time cap — and is unref'd so it never holds the loop open.
+ *   - size verification: if the server advertised a Content-Length and fewer
+ *     bytes arrived, throw. A silently truncated download must not look like a
+ *     successful one (the caller would otherwise extract/install a corrupt file).
+ *
+ * Exported for tests. Returns { downloadedBytes, totalBytes }.
+ */
+export async function streamToFileVerified(
+  response,
+  destPath,
+  {
+    controller = null,
+    idleTimeoutMs = 60000,
+    onProgress = null,
+    createWriteStreamImpl = createWriteStream,
+  } = {},
+) {
+  const totalBytes = parseInt(
+    response.headers.get("content-length") || "0",
+    10,
+  );
+  let downloadedBytes = 0;
+  let idleTimer = null;
+  const armIdle = () => {
+    if (!controller || !(idleTimeoutMs > 0)) return;
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => controller.abort(), idleTimeoutMs);
+    if (idleTimer && typeof idleTimer.unref === "function") idleTimer.unref();
+  };
+  const reader = response.body.getReader();
+  async function* track() {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        armIdle();
+        downloadedBytes += value.byteLength;
+        if (onProgress) onProgress(downloadedBytes, totalBytes);
+        yield value;
+      }
+    } finally {
+      if (idleTimer) clearTimeout(idleTimer);
+    }
+  }
+  armIdle();
+  await pipeline(track(), createWriteStreamImpl(destPath));
+  if (idleTimer) clearTimeout(idleTimer);
+  if (totalBytes > 0 && downloadedBytes !== totalBytes) {
+    throw new Error(
+      `Download truncated: received ${downloadedBytes} of ${totalBytes} bytes`,
+    );
+  }
+  return { downloadedBytes, totalBytes };
+}
+
 export async function downloadRelease(version, options = {}) {
   const binDir = ensureDir(getBinDir());
 
@@ -41,9 +102,14 @@ export async function downloadRelease(version, options = {}) {
   const spinner = ora(`Downloading ${assetName}...`).start();
 
   try {
+    // Abort the fetch if the download stalls (no bytes for idleTimeoutMs) so a
+    // hung mirror can't freeze `cc setup` forever; streamToFileVerified also
+    // verifies the full body landed (truncation guard).
+    const controller = new AbortController();
     const response = await fetch(assetUrl, {
       headers: { Accept: "application/octet-stream" },
       redirect: "follow",
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -52,30 +118,16 @@ export async function downloadRelease(version, options = {}) {
       );
     }
 
-    const totalBytes = parseInt(
-      response.headers.get("content-length") || "0",
-      10,
-    );
-    let downloadedBytes = 0;
-
-    // Stream the fetch body to disk via an async generator (stable APIs only —
-    // avoids the experimental stream.Readable.fromWeb); `pipeline` keeps the
-    // backpressure + error handling. Progress is tracked as chunks flow through.
-    const reader = response.body.getReader();
-    async function* trackProgress() {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) return;
-        downloadedBytes += value.byteLength;
-        if (totalBytes > 0) {
-          const pct = ((downloadedBytes / totalBytes) * 100).toFixed(1);
-          spinner.text = `Downloading ${assetName}... ${pct}% (${formatBytes(downloadedBytes)}/${formatBytes(totalBytes)})`;
+    const { downloadedBytes } = await streamToFileVerified(response, destPath, {
+      controller,
+      idleTimeoutMs: options.idleTimeoutMs,
+      onProgress: (downloaded, total) => {
+        if (total > 0) {
+          const pct = ((downloaded / total) * 100).toFixed(1);
+          spinner.text = `Downloading ${assetName}... ${pct}% (${formatBytes(downloaded)}/${formatBytes(total)})`;
         }
-        yield value;
-      }
-    }
-
-    await pipeline(trackProgress(), createWriteStream(destPath));
+      },
+    });
 
     spinner.succeed(
       `Downloaded ${assetName} (${formatBytes(downloadedBytes)})`,
@@ -96,11 +148,16 @@ export async function downloadRelease(version, options = {}) {
 
     return binDir;
   } catch (err) {
-    spinner.fail(`Download failed: ${err.message}`);
+    const stalled =
+      err && (err.name === "AbortError" || err.code === "ABORT_ERR");
+    const msg = stalled
+      ? `Download stalled (no data received): ${assetName}`
+      : `Download failed: ${err.message}`;
+    spinner.fail(msg);
     if (existsSync(destPath)) {
       unlinkSync(destPath);
     }
-    throw err;
+    throw stalled ? new Error(msg) : err;
   }
 }
 
