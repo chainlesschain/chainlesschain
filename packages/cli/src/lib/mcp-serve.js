@@ -62,11 +62,14 @@ export function buildTools({ root, readOnly = false, deps = _deps }) {
         const text = (truncated ? buf.slice(0, MAX_READ_BYTES) : buf).toString(
           "utf-8",
         );
-        return ok(truncated ? `${text}\n… [truncated ${buf.length} bytes]` : text);
+        return ok(
+          truncated ? `${text}\n… [truncated ${buf.length} bytes]` : text,
+        );
       },
     },
     list_dir: {
-      description: "List a directory under the serve root (dirs get trailing /)",
+      description:
+        "List a directory under the serve root (dirs get trailing /)",
       inputSchema: {
         type: "object",
         properties: { path: { type: "string" } },
@@ -106,12 +109,14 @@ export function buildTools({ root, readOnly = false, deps = _deps }) {
             return;
           }
           for (const e of list) {
-            if (hits.length >= MAX_SEARCH_RESULTS || ++seen >= MAX_SEARCH_ENTRIES)
+            if (
+              hits.length >= MAX_SEARCH_RESULTS ||
+              ++seen >= MAX_SEARCH_ENTRIES
+            )
               return;
             const abs = deps.path.join(d, e.name);
             if (e.isDirectory()) {
-              if (!SKIP_DIRS.has(e.name) && !e.name.startsWith("."))
-                walk(abs);
+              if (!SKIP_DIRS.has(e.name) && !e.name.startsWith(".")) walk(abs);
             } else {
               const rel = deps.path.relative(root, abs).replace(/\\/g, "/");
               if (rel.toLowerCase().includes(q)) hits.push(rel);
@@ -125,7 +130,8 @@ export function buildTools({ root, readOnly = false, deps = _deps }) {
   };
   if (!readOnly) {
     tools.write_file = {
-      description: "Write a UTF-8 file under the serve root (creates parent dirs)",
+      description:
+        "Write a UTF-8 file under the serve root (creates parent dirs)",
       inputSchema: {
         type: "object",
         properties: {
@@ -138,7 +144,9 @@ export function buildTools({ root, readOnly = false, deps = _deps }) {
         const abs = confine(root, rel, deps);
         fs.mkdirSync(deps.path.dirname(abs), { recursive: true });
         fs.writeFileSync(abs, String(content), "utf-8");
-        return ok(`wrote ${Buffer.byteLength(String(content))} bytes to ${rel}`);
+        return ok(
+          `wrote ${Buffer.byteLength(String(content))} bytes to ${rel}`,
+        );
       },
     };
   }
@@ -163,10 +171,19 @@ export function startMcpServe(opts = {}) {
   const root = deps.path.resolve(opts.root || process.cwd());
   const readOnly = Boolean(opts.readOnly);
   const token =
-    opts.token === false
-      ? null
-      : opts.token || randomBytes(16).toString("hex");
+    opts.token === false ? null : opts.token || randomBytes(16).toString("hex");
   const tools = buildTools({ root, readOnly, deps });
+
+  // Guardrails for the request-collection phase: a JSON-RPC request is small,
+  // so cap the body and bound how long we wait for it. Without these a large
+  // body grows `raw` unbounded (memory) and a stalled client holds the socket
+  // forever (req.on("end") never fires). Both overridable for tests / tuning.
+  const maxRequestBytes = Number.isFinite(opts.maxRequestBytes)
+    ? opts.maxRequestBytes
+    : 1024 * 1024; // 1 MB
+  const requestTimeoutMs = Number.isFinite(opts.requestTimeoutMs)
+    ? opts.requestTimeoutMs
+    : 30000;
 
   const server = http.createServer((req, res) => {
     const send = (status, body) => {
@@ -183,10 +200,49 @@ export function startMcpServe(opts = {}) {
       }
     }
     let raw = "";
+    let bytes = 0;
+    let aborted = false;
+    const collectTimer = setTimeout(() => {
+      if (aborted) return;
+      aborted = true;
+      try {
+        send(408, rpcError(null, -32001, "request timeout"));
+      } catch {
+        /* socket already gone */
+      }
+      req.destroy();
+    }, requestTimeoutMs);
+    req.on("error", () => {
+      if (aborted) return;
+      aborted = true;
+      clearTimeout(collectTimer);
+      // Request stream errored (client reset/dropped): no response is
+      // deliverable on a broken socket — just stop, don't crash the process.
+      try {
+        if (!res.writableEnded) res.destroy();
+      } catch {
+        /* ignore */
+      }
+    });
     req.on("data", (c) => {
+      if (aborted) return;
+      bytes += c.length;
+      if (bytes > maxRequestBytes) {
+        aborted = true;
+        clearTimeout(collectTimer);
+        try {
+          send(413, rpcError(null, -32600, "request too large"));
+        } catch {
+          /* socket already gone */
+        }
+        req.destroy();
+        return;
+      }
       raw += c;
     });
     req.on("end", () => {
+      if (aborted) return;
+      clearTimeout(collectTimer);
       let msg;
       try {
         msg = JSON.parse(raw);
@@ -224,7 +280,10 @@ export function startMcpServe(opts = {}) {
         if (method === "tools/call") {
           const tool = tools[params?.name];
           if (!tool) {
-            return send(200, rpcResult(id, fail(`unknown tool: ${params?.name}`)));
+            return send(
+              200,
+              rpcResult(id, fail(`unknown tool: ${params?.name}`)),
+            );
           }
           let result;
           try {
