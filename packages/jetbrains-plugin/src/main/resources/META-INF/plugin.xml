@@ -61,6 +61,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.15</b> — multi-line chat composer: the input now wraps across
+        lines — <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
+        parity).
+        <br/><br/>
         <b>0.4.14</b> — extended-thinking reasoning (with <code>/think</code>) now
         streams into the transcript dimmed/italic, set apart from the answer
         (VS Code parity).

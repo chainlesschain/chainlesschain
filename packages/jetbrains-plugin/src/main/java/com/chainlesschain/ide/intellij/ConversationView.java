@@ -32,7 +32,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import javax.swing.JTextField;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -84,7 +84,7 @@ final class ConversationView {
     // with markdown when it ends (a tool call, the turn end, or any other line).
     private int assistantRunStart = -1;
     private boolean inAssistantRun = false;
-    private final JTextField input = new JTextField();
+    private final JTextArea input = new JTextArea(3, 0); // multi-line composer
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
@@ -110,13 +110,17 @@ final class ConversationView {
         StyleConstants.setItalic(styleDim, true);
         root.add(new JScrollPane(transcript), BorderLayout.CENTER);
 
+        // Multi-line composer: Enter sends, Shift+Enter inserts a newline.
+        input.setLineWrap(true);
+        input.setWrapStyleWord(true);
+
         // Input gets its own full-width line; Send/Stop sit on a row below it
         // (the old side-by-side layout left the field too narrow).
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         buttons.add(sendBtn);
         buttons.add(stopBtn);
         JPanel south = new JPanel(new BorderLayout(0, 2));
-        south.add(input, BorderLayout.NORTH);
+        south.add(new JScrollPane(input), BorderLayout.NORTH);
         south.add(buttons, BorderLayout.SOUTH);
 
         contextLabel.setFont(contextLabel.getFont().deriveFont(
@@ -134,7 +138,6 @@ final class ConversationView {
         root.add(southWrap, BorderLayout.SOUTH);
 
         sendBtn.addActionListener(e -> sendCurrentInput());
-        input.addActionListener(e -> sendCurrentInput()); // Enter sends
         stopBtn.addActionListener(e -> {
             AgentChatSession s = liveSession();
             if (s != null) s.interrupt();
@@ -146,6 +149,17 @@ final class ConversationView {
             public void keyTyped(java.awt.event.KeyEvent e) {
                 if (e.getKeyChar() == '@') SwingUtilities.invokeLater(() -> maybeOpenMention());
                 else if (e.getKeyChar() == '/') SwingUtilities.invokeLater(() -> maybeOpenSlash());
+            }
+
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                // Enter sends; Shift+Enter falls through to insert a newline
+                // (the multi-line composer). IME confirms candidates before this
+                // fires, so CJK composition is unaffected.
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER && !e.isShiftDown()) {
+                    e.consume();
+                    sendCurrentInput();
+                }
             }
         });
     }

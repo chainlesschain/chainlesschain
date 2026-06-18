@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.15] — 2026-06-18 — multi-line chat composer
+
+- **Multi-line input.** The chat input is now a wrapping multi-line composer
+  (was a single-line field): **Enter** sends, **Shift+Enter** inserts a newline —
+  matching the VS Code panel. Lets you compose longer, structured prompts.
+  CJK IME composition is unaffected (candidates confirm before Enter reaches the
+  send handler).
+
 ## [0.4.14] — 2026-06-18 — extended-thinking reasoning shown dimmed
 
 - **Thinking-stream display.** With `/think` (or `/ultrathink`) on, the model's
