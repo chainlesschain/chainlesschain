@@ -1020,11 +1020,16 @@ fun NavGraph(
         ) { backStackEntry ->
             val peerId = android.net.Uri.decode(backStackEntry.arguments?.getString("peerId") ?: return@composable)
             val peerName = android.net.Uri.decode(backStackEntry.arguments?.getString("peerName") ?: "")
+            // FAMILY-67: 拨号按钮 → CallManager.startCall（与全局 CallHost 共享同一 @Singleton CallManager）。
+            // peerId 即好友 DID（FriendDetailScreen onNavigateToChat(friend.did)），与消息信令
+            // 路由键一致（connectFamilyPeer targetPeerId=peerDID）→ 通话信令同走该 DID 中继，故verbatim。
+            val callViewModel = hiltViewModel<com.chainlesschain.android.call.ui.CallViewModel>()
             P2PChatScreen(
                 deviceId = peerId,
                 deviceName = peerName,
                 onNavigateBack = { navController.popBackStack() },
-                onVerifyDevice = { navController.navigate("safety_numbers/$peerId") }
+                onVerifyDevice = { navController.navigate("safety_numbers/$peerId") },
+                onStartCall = { callViewModel.startCall(peerId) }
             )
         }
 

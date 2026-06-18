@@ -42,6 +42,7 @@ fun P2PChatScreen(
     deviceName: String,
     onNavigateBack: () -> Unit,
     onVerifyDevice: () -> Unit,
+    onStartCall: () -> Unit = {},
     onNavigateToFileTransfers: () -> Unit = {},
     viewModel: P2PChatViewModel = hiltViewModel(),
     fileTransferViewModel: FileTransferViewModel = hiltViewModel()
@@ -133,6 +134,14 @@ fun P2PChatScreen(
                     }
                 },
                 actions = {
+                    // FAMILY-67: 语音通话按钮（发起对好友的 P2P 加密语音呼叫）
+                    IconButton(onClick = onStartCall) {
+                        Icon(
+                            Icons.Default.Call,
+                            contentDescription = stringResource(R.string.voice_call),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     // 重连按钮
                     if (connectionStatus == ConnectionStatus.DISCONNECTED) {
                         IconButton(onClick = { viewModel.reconnect() }) {

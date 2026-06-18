@@ -196,4 +196,5 @@
     <string name="fingerprint_mismatch">指纹不一致</string>
     <string name="security_warning">安全警告</string>
     <string name="fingerprint_mismatch_warning">指纹不一致可能意味着通信被中间人攻击！\n\n建议立即断开连接并通过其他可信渠道联系对方。</string>
+    <string name="voice_call">语音通话</string>
 </resources>

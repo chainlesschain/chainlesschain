@@ -160,6 +160,9 @@ class MainActivity : AppCompatActivity() {
                         }
                     )
 
+                    // FAMILY-67: 全局通话浮层 —— 任意页面之上接来电/显示通话中。
+                    com.chainlesschain.android.call.ui.CallHost()
+
                     // #21 C.1 PR1 — wire ACTION_START_VOICE_MODE into NavGraph.
                     // We wait until auth is done (otherwise SetupPin / Login
                     // get jumped over) — voice intent on unauthenticated boot

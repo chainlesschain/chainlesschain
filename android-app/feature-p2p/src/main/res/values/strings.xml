@@ -196,4 +196,5 @@
     <string name="fingerprint_mismatch">Fingerprints do not match</string>
     <string name="security_warning">Security Warning</string>
     <string name="fingerprint_mismatch_warning">Mismatched fingerprints may indicate a man-in-the-middle attack!\n\nIt is recommended to disconnect immediately and contact the other party through a trusted channel.</string>
+    <string name="voice_call">Voice call</string>
 </resources>
