@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureHardeningTables,
@@ -518,7 +519,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = registerAuditV2(db, {
           name,
           type: opts.type,
@@ -594,7 +595,7 @@ export function registerHardeningCommand(program) {
         if (opts.errorMessage !== undefined)
           patch.errorMessage = opts.errorMessage;
         if (opts.metadata !== undefined)
-          patch.metadata = JSON.parse(opts.metadata);
+          patch.metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = setAuditStatusV2(db, auditId, status, patch);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`${auditId} → ${r.status}`);
@@ -644,7 +645,7 @@ export function registerHardeningCommand(program) {
       try {
         const { db } = await bootstrap();
         ensureHardeningTables(db);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = createBaselineV2(db, {
           name,
           version: opts.version,
@@ -690,7 +691,7 @@ export function registerHardeningCommand(program) {
         const patch = {};
         if (opts.reason !== undefined) patch.reason = opts.reason;
         if (opts.metadata !== undefined)
-          patch.metadata = JSON.parse(opts.metadata);
+          patch.metadata = parseJsonOption(opts.metadata, "--metadata");
         const r = setBaselineStatusV2(db, baselineId, status, patch);
         if (opts.json) console.log(JSON.stringify(r, null, 2));
         else console.log(`${baselineId} → ${r.status}`);

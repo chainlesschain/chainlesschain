@@ -7,6 +7,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureGovernanceTables,
@@ -648,7 +649,8 @@ export function registerGovernanceCommand(program) {
       const config = { proposerId, realm: opts.realm };
       if (opts.displayName) config.displayName = opts.displayName;
       if (opts.initialStatus) config.initialStatus = opts.initialStatus;
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(JSON.stringify(registerProposerV2(null, config), null, 2));
     });
 
@@ -667,7 +669,8 @@ export function registerGovernanceCommand(program) {
     .action((proposerId, status, opts) => {
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setProposerMaturityV2(null, proposerId, status, patch),
@@ -734,7 +737,8 @@ export function registerGovernanceCommand(program) {
         scope: opts.scope,
       };
       if (opts.expiresAt) config.expiresAt = Number(opts.expiresAt);
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(JSON.stringify(createDelegationV2(null, config), null, 2));
     });
 
@@ -753,7 +757,8 @@ export function registerGovernanceCommand(program) {
     .action((delegationId, status, opts) => {
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setDelegationStatusV2(null, delegationId, status, patch),

@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureEconomyTables,
@@ -324,7 +325,7 @@ export function registerEconomyCommand(program) {
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
 
-        const metadata = options.metadata ? JSON.parse(options.metadata) : {};
+        const metadata = parseJsonOption(options.metadata, "--metadata", {});
         const nftObj = mintNFT(db, owner, type, metadata);
         logger.success("NFT minted");
         logger.log(`  ${chalk.bold("ID:")}    ${chalk.cyan(nftObj.id)}`);
@@ -722,7 +723,7 @@ export function registerEconomyCommand(program) {
           owner,
           assetType,
           royaltyPercent: options.royalty,
-          metadata: options.metadata ? JSON.parse(options.metadata) : {},
+          metadata: parseJsonOption(options.metadata, "--metadata", {}),
         });
         if (options.json) console.log(JSON.stringify(n, null, 2));
         else

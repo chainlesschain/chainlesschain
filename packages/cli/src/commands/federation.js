@@ -52,6 +52,7 @@ import {
   autoIsolateUnhealthyNodes,
   getFederationHardeningStatsV2,
 } from "../lib/federation-hardening.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -598,7 +599,7 @@ export function registerFederationCommand(program) {
     .option("--json", "JSON output")
     .action((nodeId, opts) => {
       const db = _dbFromCtx(fed);
-      const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+      const metadata = parseJsonOption(opts.metadata, "--metadata");
       const r = registerNodeV2(db, { nodeId, metadata });
       if (opts.json) return console.log(JSON.stringify(r, null, 2));
       console.log(`Registered ${nodeId} (status: ${r.status})`);
@@ -626,7 +627,7 @@ export function registerFederationCommand(program) {
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
       if (opts.metadata !== undefined)
-        patch.metadata = JSON.parse(opts.metadata);
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       const r = setNodeStatusV2(db, nodeId, status, patch);
       if (opts.json) return console.log(JSON.stringify(r, null, 2));
       console.log(`${nodeId} → ${r.status}`);
@@ -649,7 +650,7 @@ export function registerFederationCommand(program) {
     .option("--json", "JSON output")
     .action((nodeId, opts) => {
       const db = _dbFromCtx(fed);
-      const metrics = opts.metrics ? JSON.parse(opts.metrics) : undefined;
+      const metrics = parseJsonOption(opts.metrics, "--metrics");
       const r = recordHealthCheckV2(db, {
         nodeId,
         checkType: opts.type,

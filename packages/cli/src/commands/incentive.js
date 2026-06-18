@@ -6,6 +6,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTokenTables,
@@ -267,7 +268,7 @@ export function registerIncentiveCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const metadata = options.metadata ? JSON.parse(options.metadata) : null;
+        const metadata = parseJsonOption(options.metadata, "--metadata", null);
         const contribution = recordContribution(db, {
           userId,
           type,
@@ -485,7 +486,7 @@ export function registerIncentiveCommand(program) {
       const ctx = bootstrap();
       try {
         const db = _dbFromCtx(ctx);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = registerAccountV2(db, { accountId, metadata });
         logger.log(JSON.stringify(entry, null, 2));
       } finally {
@@ -514,7 +515,7 @@ export function registerIncentiveCommand(program) {
       const ctx = bootstrap();
       try {
         const db = _dbFromCtx(ctx);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = setAccountStatusV2(db, accountId, status, {
           reason: opts.reason,
           metadata,
@@ -581,7 +582,7 @@ export function registerIncentiveCommand(program) {
       const ctx = bootstrap();
       try {
         const db = _dbFromCtx(ctx);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = submitClaimV2(db, {
           claimId,
           userId: opts.user,
@@ -616,7 +617,7 @@ export function registerIncentiveCommand(program) {
       const ctx = bootstrap();
       try {
         const db = _dbFromCtx(ctx);
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = setClaimStatusV2(db, claimId, status, {
           reason: opts.reason,
           metadata,

@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureDAOv2Tables,
@@ -383,7 +384,7 @@ export function registerDaoCommand(program) {
           description: options.description,
           proposerDid: options.proposerDid || "did:cli:user",
           type: options.type,
-          actions: JSON.parse(options.actions),
+          actions: parseJsonOption(options.actions, "--actions"),
           votingDurationMs: options.votingDuration
             ? parseInt(options.votingDuration)
             : undefined,
