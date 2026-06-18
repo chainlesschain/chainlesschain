@@ -65,6 +65,7 @@ import {
   autoArchiveStaleFeeds,
   getRecommendationStatsV2,
 } from "../lib/content-recommendation.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -140,8 +141,8 @@ export function registerRecommendCommand(program) {
     .option("--json", "JSON output")
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);
-      const topics = opts.topics ? JSON.parse(opts.topics) : {};
-      const interactionWeights = opts.weights ? JSON.parse(opts.weights) : {};
+      const topics = parseJsonOption(opts.topics, "--topics", {});
+      const interactionWeights = parseJsonOption(opts.weights, "--weights", {});
       const result = createProfile(db, userId, { topics, interactionWeights });
       if (opts.json) return console.log(JSON.stringify(result, null, 2));
       if (result.profileId) console.log(`Profile created: ${result.profileId}`);
@@ -158,8 +159,9 @@ export function registerRecommendCommand(program) {
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);
       const params = {};
-      if (opts.topics) params.topics = JSON.parse(opts.topics);
-      if (opts.weights) params.interactionWeights = JSON.parse(opts.weights);
+      if (opts.topics) params.topics = parseJsonOption(opts.topics, "--topics");
+      if (opts.weights)
+        params.interactionWeights = parseJsonOption(opts.weights, "--weights");
       if (opts.decay !== undefined) params.decayFactor = opts.decay;
       const result = updateProfile(db, userId, params);
       if (opts.json) return console.log(JSON.stringify(result, null, 2));
@@ -228,7 +230,7 @@ export function registerRecommendCommand(program) {
       if (!opts.pool) {
         return console.log("Provide --pool as JSON array of content items.");
       }
-      const pool = JSON.parse(opts.pool);
+      const pool = parseJsonOption(opts.pool, "--pool");
       const result = generateRecommendations(db, userId, pool, {
         limit: opts.limit,
         minScore: opts.minScore,

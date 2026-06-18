@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureBITables,
@@ -78,8 +79,8 @@ export function registerBiCommand(program) {
         const db = ctx.db.getDatabase();
         ensureBITables(db);
 
-        const widgets = options.widgets ? JSON.parse(options.widgets) : [];
-        const layout = options.layout ? JSON.parse(options.layout) : undefined;
+        const widgets = parseJsonOption(options.widgets, "--widgets", []);
+        const layout = parseJsonOption(options.layout, "--layout");
         const dashboard = createDashboard(db, name, widgets, layout);
 
         if (options.json) {
@@ -177,7 +178,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const data = options.data ? JSON.parse(options.data) : [];
+        const data = parseJsonOption(options.data, "--data", []);
         const result = detectAnomaly(data, {
           threshold: parseFloat(options.threshold),
         });
@@ -211,7 +212,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const data = options.data ? JSON.parse(options.data) : [];
+        const data = parseJsonOption(options.data, "--data", []);
         const result = predictTrend(data, parseInt(options.periods));
 
         if (options.json) {
@@ -310,7 +311,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action((question, options) => {
       try {
-        const schema = options.schema ? JSON.parse(options.schema) : undefined;
+        const schema = parseJsonOption(options.schema, "--schema");
         const result = nlQueryV2({ query: question, schema });
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -339,7 +340,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       try {
-        const data = options.data ? JSON.parse(options.data) : [];
+        const data = parseJsonOption(options.data, "--data", []);
         const threshold =
           options.threshold !== undefined
             ? parseFloat(options.threshold)
@@ -383,7 +384,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       try {
-        const data = options.data ? JSON.parse(options.data) : [];
+        const data = parseJsonOption(options.data, "--data", []);
         const result = predictTrendV2({
           data,
           periods: parseInt(options.periods, 10),
@@ -414,7 +415,7 @@ export function registerBiCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       try {
-        const shape = options.shape ? JSON.parse(options.shape) : undefined;
+        const shape = parseJsonOption(options.shape, "--shape");
         const chart = recommendChart({
           intent: options.intent,
           dataShape: shape,
@@ -446,7 +447,7 @@ export function registerBiCommand(program) {
         const db = ctx.db.getDatabase();
         ensureBITables(db);
 
-        const widgets = JSON.parse(options.widgets);
+        const widgets = parseJsonOption(options.widgets, "--widgets");
         let layout;
         if (options.layout) {
           try {

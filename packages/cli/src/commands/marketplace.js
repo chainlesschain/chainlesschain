@@ -123,7 +123,7 @@ export function registerMarketplaceCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const pricing = options.pricing ? JSON.parse(options.pricing) : null;
+        const pricing = parseJsonOption(options.pricing, "--pricing", null);
         const service = publishService(db, {
           name,
           version: options.version,
