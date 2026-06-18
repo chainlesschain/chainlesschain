@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.31.0] — 2026-06-18
+
+- **`/compact` — manual conversation compaction in the chat panel (Claude-Code
+  IDE parity).** Long conversations can now be trimmed on demand: typing
+  `/compact` shortens large old tool results in the live history (preserving
+  recent turns and tool pairs, no extra LLM call) and reports
+  `compacted: saved <N> tokens`. Added to the slash-command autocomplete and
+  `/help`. Built on a new `{type:"compact"}` control event in the CLI streaming
+  protocol, so the compaction happens in the panel's `cc agent` child between
+  turns without ending the conversation.
+
 ## [0.30.1] — 2026-06-16
 
 - **Fix: CJK IME composition no longer cancels or submits mid-compose

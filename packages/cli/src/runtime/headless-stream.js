@@ -90,6 +90,11 @@ export function parseInputEvent(line) {
   if (obj && typeof obj === "object" && obj.type === "interrupt") {
     return { interrupt: true };
   }
+  // Manual compaction (panel `/compact`, Claude-Code IDE parity): trim the
+  // live conversation history in place between turns. {"type":"compact"}
+  if (obj && typeof obj === "object" && obj.type === "compact") {
+    return { compact: true };
+  }
   // Approval verdicts (panel Approve/Deny for --interactive-approvals):
   //   {"type":"approval","id":"appr-1","approve":true|false}
   if (obj && typeof obj === "object" && obj.type === "approval") {
@@ -680,6 +685,25 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         error: parsed.error,
       });
       sawError = true;
+      continue;
+    }
+
+    // Manual `/compact` (Claude-Code IDE parity): trim the live history in
+    // place between turns — no LLM call (microCompact shortens large old tool
+    // results, preserving recent turns + tool pairs). Answers with a
+    // `compaction` event the panel renders as "compacted N→M, saved …".
+    if (parsed.compact) {
+      const { microCompact } = await import("../lib/micro-compact.js");
+      const before = messages.length;
+      const { messages: compacted, stats } = microCompact(messages);
+      messages.length = 0;
+      messages.push(...compacted);
+      emit({
+        type: "compaction",
+        stats,
+        messages_before: before,
+        messages_after: messages.length,
+      });
       continue;
     }
 

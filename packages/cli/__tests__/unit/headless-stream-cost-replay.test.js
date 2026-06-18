@@ -97,9 +97,61 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
       agentLoop: expensiveLoop,
       input: input({ text: "one" }, { text: "two" }),
     });
-    const outcome = await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false },
+      deps,
+    );
     const results = parse(deps._lines).filter((e) => e.type === "result");
     expect(results).toHaveLength(2);
+    expect(outcome.exitCode).toBe(0);
+  });
+});
+
+describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () => {
+  it("emits a compaction event when a {type:'compact'} control event arrives", async () => {
+    const agentLoop = async function* () {
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      // one real turn, then a compact control event between turns
+      input: input({ text: "hello" }, { type: "compact" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    const events = parse(deps._lines);
+    const compaction = events.find((e) => e.type === "compaction");
+    expect(compaction).toBeTruthy();
+    expect(compaction.stats).toMatchObject({
+      trimmed: expect.any(Number),
+      saved: expect.any(Number),
+    });
+    expect(typeof compaction.messages_before).toBe("number");
+    expect(typeof compaction.messages_after).toBe("number");
+    // compaction never grows the history
+    expect(compaction.messages_after).toBeLessThanOrEqual(
+      compaction.messages_before,
+    );
+  });
+
+  it("a compact event does not end the conversation (turns can follow)", async () => {
+    let turns = 0;
+    const agentLoop = async function* () {
+      turns++;
+      yield { type: "response-complete", content: `turn ${turns}` };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ text: "one" }, { type: "compact" }, { text: "two" }),
+    });
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false },
+      deps,
+    );
+    const results = parse(deps._lines).filter((e) => e.type === "result");
+    expect(results).toHaveLength(2); // both user turns ran, compact between them
+    expect(turns).toBe(2);
     expect(outcome.exitCode).toBe(0);
   });
 });

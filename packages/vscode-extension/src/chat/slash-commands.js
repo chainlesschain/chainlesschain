@@ -24,6 +24,7 @@
     ["/ultrathink", "extended thinking, max budget"],
     ["/think-off", "extended thinking off"],
     ["/stop", "interrupt the running turn"],
+    ["/compact", "compact the conversation history"],
     ["/cost", "token cost for this session"],
     ["/context", "context-window usage"],
     ["/rewind", "restore a checkpoint"],

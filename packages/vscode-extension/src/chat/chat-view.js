@@ -813,6 +813,11 @@ class ChatViewProvider {
       } else if (m.type === "interrupt") {
         // Abort the in-flight turn only — the conversation/child stays alive.
         this.session?.sendEvent({ type: "interrupt" });
+      } else if (m.type === "compact") {
+        // Manual /compact (Claude-Code IDE parity): ask the child to trim its
+        // live history between turns. The CLI answers with a `compaction`
+        // event rendered like any other status line.
+        this.session?.sendEvent({ type: "compact" });
       } else if (m.type === "stop") {
         this.session?.stop();
       } else if (m.type === "ready") {

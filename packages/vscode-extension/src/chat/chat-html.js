@@ -327,6 +327,7 @@ function buildChatHtml({ cspSource, nonce }) {
     "/ultrathink": () => vscode.postMessage({ type: "think", level: "ultra" }),
     "/think-off": () => vscode.postMessage({ type: "think", level: "off" }),
     "/stop": () => vscode.postMessage({ type: "interrupt" }),
+    "/compact": () => vscode.postMessage({ type: "compact" }),
     "/cost": () => vscode.postMessage({ type: "cost" }),
     "/context": () => vscode.postMessage({ type: "context" }),
     "/rewind": () => vscode.postMessage({ type: "rewind" }),
@@ -377,7 +378,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /cost · /context · /rewind · /retry · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /help");
         return;
       }
       if (SLASH[cmd]) {

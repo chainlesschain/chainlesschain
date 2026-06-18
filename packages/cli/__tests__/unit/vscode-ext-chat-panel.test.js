@@ -263,6 +263,25 @@ describe("buildChatHtml", () => {
       expect(html).toContain(`case "${kind}"`);
     }
   });
+
+  it("wires /compact to a compact control message (Claude-Code IDE parity)", () => {
+    const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "N1" });
+    // The SLASH map posts a compact control message …
+    expect(html).toContain('"/compact"');
+    expect(html).toContain('type: "compact"');
+    // … and /compact is advertised in the /help one-liner + autocomplete catalog.
+    expect(html).toMatch(/\/stop[^\n]*\/compact/); // listed right after /stop
+    expect(html).toContain("compact the conversation history");
+  });
+});
+
+describe("mapAgentEvent — compaction (manual /compact result)", () => {
+  it("renders the compaction stats as an info line", () => {
+    const st = createTurnState();
+    expect(
+      mapAgentEvent({ type: "compaction", stats: { saved: 1234 } }, st),
+    ).toMatchObject({ kind: "info", text: "compacted: saved 1234 tokens" });
+  });
 });
 
 describe("buildSessionArgs (P1: model/provider settings)", async () => {
@@ -483,9 +502,8 @@ describe("IME composition guard (CJK Esc/Enter regression)", async () => {
     // Esc to close the IME candidate window also cancelled the running turn.
     // We guard the document-level Esc→interrupt with a composition flag +
     // event.isComposing/keyCode 229; Enter confirming a candidate must not send.
-    const { buildChatHtml: htmlIme } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlIme } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlIme({ cspSource: "x:", nonce: "N" });
     // The page has several nonce'd <script> blocks (md-lite, at-mention, …);
     // the handler markers live only in the main one — assert against the page.
@@ -493,12 +511,20 @@ describe("IME composition guard (CJK Esc/Enter regression)", async () => {
     expect(page).toContain("compositionend");
     expect(page).toContain("imeComposing");
     // the interrupt path bails while composing
-    expect(page).toMatch(/imeComposing\s*\|\|\s*e\.isComposing\s*\|\|\s*e\.keyCode === 229/);
+    expect(page).toMatch(
+      /imeComposing\s*\|\|\s*e\.isComposing\s*\|\|\s*e\.keyCode === 229/,
+    );
     // Enter submit is likewise gated on not-composing
-    expect(page).toMatch(/!imeComposing\s*&&\s*!e\.isComposing\s*&&\s*e\.keyCode !== 229/);
+    expect(page).toMatch(
+      /!imeComposing\s*&&\s*!e\.isComposing\s*&&\s*e\.keyCode !== 229/,
+    );
     // and the main handler script still parses (regression: template escapes)
-    const blocks = [...page.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g)];
-    const main = blocks.map((b) => b[1]).find((s) => s.includes("imeComposing"));
+    const blocks = [
+      ...page.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g),
+    ];
+    const main = blocks
+      .map((b) => b[1])
+      .find((s) => s.includes("imeComposing"));
     expect(main).toBeTruthy();
     expect(() => new Function(main)).not.toThrow();
   });
