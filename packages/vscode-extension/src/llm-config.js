@@ -32,13 +32,25 @@ function hasUnsafeShellChars(value) {
 }
 
 /** The `cc config set` invocations for the wizard's answers (skips blanks). */
-function buildConfigSetArgs({ provider, model, apiKey, baseUrl } = {}) {
+function buildConfigSetArgs({ provider, model, apiKey, baseUrl, visionModel } = {}) {
   const sets = [];
   if (provider) sets.push(["config", "set", "llm.provider", provider]);
   if (model) sets.push(["config", "set", "llm.model", model]);
   if (baseUrl) sets.push(["config", "set", "llm.baseUrl", baseUrl]);
   if (apiKey) sets.push(["config", "set", "llm.apiKey", apiKey]);
+  // Vision (image-recognition) model — often differs from the text model; the
+  // CLI auto-switches to it when a turn carries images. Blank = reuse the text
+  // model / the CLI default, so it is omitted.
+  if (visionModel) sets.push(["config", "set", "llm.visionModel", visionModel]);
   return sets;
+}
+
+/**
+ * Suggested default vision (image-recognition) model for a provider, when it
+ * differs from the text model. Blank = use the text model / the CLI default.
+ */
+function suggestVisionModel(providerId) {
+  return providerId === "volcengine" ? "doubao-seed-1-6-vision-250815" : "";
 }
 
 function runCli(command, args, deps) {
@@ -99,6 +111,7 @@ module.exports = {
   PROVIDER_PRESETS,
   hasUnsafeShellChars,
   buildConfigSetArgs,
+  suggestVisionModel,
   getConfiguredProvider,
   applyLlmConfig,
   testLlm,

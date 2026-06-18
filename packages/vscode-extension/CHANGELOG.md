@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.32.0] — 2026-06-18 — configurable image-recognition (vision) model
+
+- **Separate vision model.** The Configure-LLM wizard now has a dedicated
+  image-recognition (vision) model step, written to `llm.visionModel`, so the
+  text model and the vision model no longer have to be the same — e.g. a text
+  LLM plus `doubao-seed-1-6-vision` for screenshots. The panel already switches
+  to the vision model automatically when you paste a screenshot; this lets you
+  pick which one. Leave it blank to reuse the text model / the CLI default.
+  (Matches the JetBrains 0.4.16 wizard.)
+
 ## [0.31.1] — 2026-06-18 — fix: chat panel uses your configured LLM provider
 
 - **Fix: the chat panel now deterministically uses the provider you configured

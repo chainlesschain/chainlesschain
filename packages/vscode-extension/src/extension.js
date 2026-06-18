@@ -289,6 +289,7 @@ function activate(context) {
         const {
           PROVIDER_PRESETS,
           applyLlmConfig,
+          suggestVisionModel,
           testLlm,
         } = require("./llm-config.js");
         const cliCmd =
@@ -333,9 +334,19 @@ function activate(context) {
           ignoreFocusOut: true,
         });
         if (baseUrl === undefined) return;
+        // Vision (image-recognition) model — can differ from the text model;
+        // the panel auto-switches to it when you paste a screenshot. Blank =
+        // reuse the text model / the CLI default.
+        const visionModel = await vscode.window.showInputBox({
+          prompt:
+            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认;粘贴截图时自动切到此模型)",
+          value: suggestVisionModel(preset.id),
+          ignoreFocusOut: true,
+        });
+        if (visionModel === undefined) return;
         const applied = await applyLlmConfig({
           command: cliCmd,
-          answers: { provider: preset.id, model, apiKey, baseUrl },
+          answers: { provider: preset.id, model, apiKey, baseUrl, visionModel },
         });
         if (!applied.ok) {
           vscode.window.showErrorMessage(`LLM 配置写入失败:${applied.error}`);

@@ -618,6 +618,32 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     ]);
   });
 
+  it("buildConfigSetArgs writes llm.visionModel only when provided", () => {
+    expect(
+      llmCfg.buildConfigSetArgs({
+        provider: "volcengine",
+        model: "doubao-seed-1-6",
+        visionModel: "doubao-seed-1-6-vision-250815",
+      }),
+    ).toEqual([
+      ["config", "set", "llm.provider", "volcengine"],
+      ["config", "set", "llm.model", "doubao-seed-1-6"],
+      ["config", "set", "llm.visionModel", "doubao-seed-1-6-vision-250815"],
+    ]);
+    // blank vision model → omitted (reuse text model / CLI default)
+    expect(
+      llmCfg.buildConfigSetArgs({ provider: "ollama", visionModel: "" }),
+    ).toEqual([["config", "set", "llm.provider", "ollama"]]);
+  });
+
+  it("suggestVisionModel: distinct vision model for volcengine, blank otherwise", () => {
+    expect(llmCfg.suggestVisionModel("volcengine")).toBe(
+      "doubao-seed-1-6-vision-250815",
+    );
+    expect(llmCfg.suggestVisionModel("ollama")).toBe("");
+    expect(llmCfg.suggestVisionModel("anthropic")).toBe("");
+  });
+
   it("rejects shell-unsafe values before writing", async () => {
     expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
     expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);
