@@ -78,6 +78,18 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.119 · 2026-06-18',
+    title: 'Friend P2P messaging stability — "cannot scan to add friend / messages not received / cannot connect" end-to-end fix',
+    sub: 'Two days of debugging wrapped up; verified on real devices (amethyst<->chopin) with sub-second bidirectional delivery.',
+    desc: 'Message display: the receiver rewrites each message to its own perspective (peerId = sender DID, direction = incoming), fixing "message reached the DB but is invisible in the chat" (previously stored with the sender perspective and landed in the wrong conversation). Connection stability: ICE reverted to ALL (restores same-network direct host connections; the earlier relay-only attempt actually disabled direct connect and hit the TURN server own IP, making things worse) + WebRTC DataChannel open timeout 15s->40s (enough time for direct connect + DTLS handshake). Signaling-relay fallback: when the DataChannel cannot open, commands (E2EE handshake + message sync) are automatically relayed through the signaling server, so delivery no longer depends on a P2P direct connection; end-to-end encryption is unaffected (only signed/ciphertext frames are forwarded). Auto-reconnect: on connection loss the state is cleared and re-dialed within 15s (previously stale state caused fake-online-real-offline). Restart recovery: the app restores the persisted E2EE session on startup + immediate message push (no waiting for the periodic sync) + fixed the chat top loading bar spinning forever. TURN server: coturn public/private mapping fix resolves CREATE_PERMISSION 403 caused by broadcasting the private relay IP.',
+  },
+  {
+    tag: 'v5.0.3.118 · 2026-06-17',
+    title: 'Personal AI knowledge base analysis pipeline de-noising (WeChat group name resolution + interests/timeline de-noise)',
+    sub: 'Analysis-quality issues surfaced after real-device collected data was fed into the personal AI knowledge base (pdh 0.4.28 + cli 0.162.78 published to npm; Android cc bundle v20260617c).',
+    desc: 'WeChat group topic name resolution: resolves the group display name from the contacts book instead of naming group topics with raw numeric chatroom ids. analysis.interests de-noise: filters pure-numeric/empty topic names + over-fetches before ranking, so real interests are not pushed out of the leaderboard by unresolved group ids. analysis.timeline list exclusion: timeline queries gain excludeExtraKinds, skipping app-snapshot / contact-snapshot inventory events (which carry a synthesized collection timestamp that overwhelms any reverse-chronological query); the events remain in the vault for facet counts.',
+  },
+  {
     tag: 'v5.0.3.117 · 2026-06-17',
     title: 'PDH root memory collection: Douyin/WCDB2 hit fix + scan lifecycle hardening (pure-APK change, reuses bundle v20260617b / pdh 0.4.27)',
     sub: 'Surfaced on a real device 2026-06-17: Douyin WCDB2 decrypted-page memory has no "SQLite format 3" file header, so the old header-only scan matched 0 regions. mem-scan now decides by content and the leaf-page salvage no longer depends on a header, covering both encryption schemes. Pure-APK change (scripts in assets); cc bundle / pdh / USR_VERSION unchanged.',

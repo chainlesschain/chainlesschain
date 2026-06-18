@@ -81,6 +81,18 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.119 · 2026-06-18',
+    title: '好友 P2P 发消息稳定性——「无法扫码加好友 / 对方收不到 / 连不上」全链路收口',
+    sub: '两天调试收口，真机 amethyst↔chopin 双向消息 <1 秒送达验证。',
+    desc: '消息显示：接收方按本机视角重写消息会话归属（peerId = 发送方 DID、方向=入向），修「消息已到库但聊天界面看不到」（此前原样存发送方视角 → 落进错误会话查不到）。连接稳定性：ICE 改回 ALL（恢复同网设备直连；此前误用 relay-only 反而禁掉直连且撞 TURN 服务器自身 IP，越改越糟）+ WebRTC DataChannel 建立超时 15s→40s（给同网直连 + 加密握手足够时间）。信令中继兜底：DataChannel 打不通时命令（E2EE 握手 + 消息同步）自动经信令服务器中继，不再依赖 P2P 直连建立成功；端到端加密不受影响（仅转发签名/密文帧）。断连自动重连：连接丢失后清理状态并 ≤15s 内自动重拨（此前残留状态导致假在线真离线）。重启恢复：应用启动恢复持久化 E2EE 会话 + 消息即时推送（免等周期同步）+ 聊天顶部 loading 进度条永转修复。TURN 服务器：coturn 公网/私网映射修复，解决中继候选广播私网 IP 导致的权限拒绝 403。',
+  },
+  {
+    tag: 'v5.0.3.118 · 2026-06-17',
+    title: '个人 AI 知识库分析管线去噪（微信群名解析 + interests/timeline 去噪）',
+    sub: '真机采集数据接入个人 AI 知识库后暴露的分析质量问题（pdh 0.4.28 + cli 0.162.78 已发 npm；Android cc bundle v20260617c）。',
+    desc: '微信群 topic 名解析：从联系人册解析群显示名，不再用裸数字 chatroom id 命名群话题。analysis.interests 去噪：过滤纯数字/空话题名 + 拉取前 over-fetch，避免真实兴趣被未解析的群 ID 挤出榜单。analysis.timeline 清单排除：时间线查询新增 excludeExtraKinds，跳过 app-snapshot / contact-snapshot 清单快照事件（带合成采集时刻 → 冲垮按时间倒序查询），事件仍留库供统计。',
+  },
+  {
     tag: 'v5.0.3.117 · 2026-06-17',
     title: '个人数据中台 root 内存采集 抖音/WCDB2 命中修复 + 扫描生命周期硬化（纯 APK 改动，复用 bundle v20260617b / pdh 0.4.27）',
     sub: '真机 2026-06-17 暴露：抖音 WCDB2 解密页内存无 SQLite format 3 文件头，旧纯文件头匹配扫描 0 命中。mem-scan 改按内容判定，叶子页打捞不依赖文件头，两种加密通吃。纯 APK 改动（脚本在 assets），cc bundle / pdh / USR_VERSION 不变。',
