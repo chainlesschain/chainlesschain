@@ -34,21 +34,32 @@ export function validateAgainstSchema(value, schema, path = "$") {
   if (schema.type) {
     const want = Array.isArray(schema.type) ? schema.type : [schema.type];
     const got = typeOf(value);
-    const ok = want.some((t) => t === got || (t === "number" && got === "integer"));
+    const ok = want.some(
+      (t) => t === got || (t === "number" && got === "integer"),
+    );
     if (!ok) {
       errors.push(`${path}: expected type ${want.join("|")}, got ${got}`);
       return errors; // type mismatch — deeper checks are noise
     }
   }
-  if (schema.enum && !schema.enum.some((e) => JSON.stringify(e) === JSON.stringify(value))) {
-    errors.push(`${path}: value not in enum [${schema.enum.map((e) => JSON.stringify(e)).join(", ")}]`);
+  if (
+    schema.enum &&
+    !schema.enum.some((e) => JSON.stringify(e) === JSON.stringify(value))
+  ) {
+    errors.push(
+      `${path}: value not in enum [${schema.enum.map((e) => JSON.stringify(e)).join(", ")}]`,
+    );
   }
-  if (schema.const !== undefined && JSON.stringify(schema.const) !== JSON.stringify(value)) {
+  if (
+    schema.const !== undefined &&
+    JSON.stringify(schema.const) !== JSON.stringify(value)
+  ) {
     errors.push(`${path}: must equal const ${JSON.stringify(schema.const)}`);
   }
   if (typeOf(value) === "object" && !Array.isArray(value)) {
     for (const req of schema.required || []) {
-      if (!(req in value)) errors.push(`${path}: missing required property "${req}"`);
+      if (!(req in value))
+        errors.push(`${path}: missing required property "${req}"`);
     }
     const props = schema.properties || {};
     for (const [k, v] of Object.entries(value)) {
@@ -61,7 +72,9 @@ export function validateAgainstSchema(value, schema, path = "$") {
   }
   if (Array.isArray(value) && schema.items) {
     value.forEach((item, i) => {
-      errors.push(...validateAgainstSchema(item, schema.items, `${path}[${i}]`));
+      errors.push(
+        ...validateAgainstSchema(item, schema.items, `${path}[${i}]`),
+      );
     });
   }
   return errors;
@@ -76,10 +89,12 @@ export function extractJsonPayload(text) {
   if (fence) tries.push(fence[1].trim());
   const firstObj = raw.indexOf("{");
   const lastObj = raw.lastIndexOf("}");
-  if (firstObj !== -1 && lastObj > firstObj) tries.push(raw.slice(firstObj, lastObj + 1));
+  if (firstObj !== -1 && lastObj > firstObj)
+    tries.push(raw.slice(firstObj, lastObj + 1));
   const firstArr = raw.indexOf("[");
   const lastArr = raw.lastIndexOf("]");
-  if (firstArr !== -1 && lastArr > firstArr) tries.push(raw.slice(firstArr, lastArr + 1));
+  if (firstArr !== -1 && lastArr > firstArr)
+    tries.push(raw.slice(firstArr, lastArr + 1));
   for (const candidate of tries) {
     if (!candidate) continue;
     try {
@@ -112,6 +127,35 @@ export function buildRetryPrompt(originalPrompt, raw, errors) {
 }
 
 /**
+ * Load + parse a --json-schema file, raising errors that name the file and
+ * the underlying cause instead of a bare `ENOENT …` or `Unexpected token …`
+ * stack (which is all the user would otherwise see).
+ *
+ * @param {{ readFileSync: Function }} fs
+ * @param {string} schemaFile
+ */
+export function loadSchemaFile(fs, schemaFile) {
+  if (!schemaFile) {
+    throw new Error(
+      "No schema provided: pass --json-schema <file> or a schema object",
+    );
+  }
+  let raw;
+  try {
+    raw = fs.readFileSync(schemaFile, "utf-8");
+  } catch (e) {
+    throw new Error(`Cannot read schema file "${schemaFile}": ${e.message}`);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error(
+      `Invalid JSON in schema file "${schemaFile}": ${e.message}`,
+    );
+  }
+}
+
+/**
  * Run a headless turn constrained to a schema, retrying on validation
  * failure. Prints the validated JSON to writeOut; returns the exit code.
  *
@@ -124,8 +168,7 @@ export async function runJsonSchemaConstrained(cfg = {}) {
   const writeErr = cfg.writeErr || ((s) => process.stderr.write(s));
   const maxAttempts = cfg.maxAttempts || MAX_ATTEMPTS;
 
-  const schema =
-    cfg.schema || JSON.parse(fs.readFileSync(cfg.schemaFile, "utf-8"));
+  const schema = cfg.schema || loadSchemaFile(fs, cfg.schemaFile);
   const instruction = buildSchemaInstruction(schema);
   const base = cfg.baseOptions || {};
 
@@ -151,7 +194,8 @@ export async function runJsonSchemaConstrained(cfg = {}) {
         writeErr,
       },
     );
-    const raw = String(outcome?.result ?? captured ?? "").trim() || captured.trim();
+    const raw =
+      String(outcome?.result ?? captured ?? "").trim() || captured.trim();
     lastRaw = raw;
     const parsed = extractJsonPayload(raw);
     if (parsed.ok) {

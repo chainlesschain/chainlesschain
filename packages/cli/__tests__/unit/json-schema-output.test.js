@@ -5,6 +5,7 @@ import {
   extractJsonPayload,
   buildSchemaInstruction,
   runJsonSchemaConstrained,
+  loadSchemaFile,
 } from "../../src/lib/json-schema-output.js";
 
 const SCHEMA = {
@@ -54,9 +55,9 @@ describe("extractJsonPayload", () => {
     expect(
       extractJsonPayload('Sure!\n```json\n{"a":2}\n```\nthanks').value,
     ).toEqual({ a: 2 });
-    expect(extractJsonPayload('The answer is {"a":3} as requested.').value).toEqual(
-      { a: 3 },
-    );
+    expect(
+      extractJsonPayload('The answer is {"a":3} as requested.').value,
+    ).toEqual({ a: 3 });
     expect(extractJsonPayload("no json here").ok).toBe(false);
   });
 });
@@ -150,5 +151,34 @@ describe("runJsonSchemaConstrained", () => {
     expect(buildSchemaInstruction({ type: "object" })).toContain(
       '{"type":"object"}',
     );
+  });
+});
+
+describe("loadSchemaFile", () => {
+  it("reads and parses a valid schema file", () => {
+    const fs = { readFileSync: () => '{"type":"object"}' };
+    expect(loadSchemaFile(fs, "schema.json")).toEqual({ type: "object" });
+  });
+
+  it("names the file when it cannot be read", () => {
+    const fs = {
+      readFileSync: () => {
+        throw new Error("ENOENT: no such file or directory");
+      },
+    };
+    expect(() => loadSchemaFile(fs, "missing.json")).toThrow(
+      /Cannot read schema file "missing\.json": ENOENT/,
+    );
+  });
+
+  it("names the file when its JSON is malformed", () => {
+    const fs = { readFileSync: () => "{bad" };
+    expect(() => loadSchemaFile(fs, "bad.json")).toThrow(
+      /Invalid JSON in schema file "bad\.json":/,
+    );
+  });
+
+  it("errors clearly when no schema file is given", () => {
+    expect(() => loadSchemaFile({}, undefined)).toThrow(/No schema provided/);
   });
 });
