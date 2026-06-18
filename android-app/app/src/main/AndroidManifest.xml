@@ -69,6 +69,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- M3 D2 LocationForegroundService 用，API 34+ 需特定子类型 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- FAMILY-67 通话前台服务（API 34+ 媒体子类型）+ 来电全屏 intent -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- 生物识别权限 -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -155,6 +159,29 @@
                 <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
+
+        <!-- FAMILY-67 通话全屏 Activity（P3）：锁屏/后台来电经全屏 intent 拉起，越锁屏点屏。 -->
+        <activity
+            android:name=".call.CallActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.ChainlessChain" />
+
+        <!-- FAMILY-67 通话前台服务（P3）：接通后保锁屏/后台麦克风采集不被杀。 -->
+        <service
+            android:name=".call.CallForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone|camera" />
+
+        <!-- FAMILY-67 通话通知动作（接听/拒接/挂断）。 -->
+        <receiver
+            android:name=".call.CallActionReceiver"
+            android:enabled="true"
+            android:exported="false" />
 
         <!-- AppCompat 1.6+ 提供的本地 locale 持久化服务（API <33 用） -->
         <service

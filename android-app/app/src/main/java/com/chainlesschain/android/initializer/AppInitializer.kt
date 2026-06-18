@@ -46,6 +46,7 @@ class AppInitializer @Inject constructor(
     // FAMILY-67: 好友 P2P 音视频通话 —— 启动接通话状态机 + 媒体控制器（监听信令来电）。
     private val callManager: Lazy<com.chainlesschain.android.call.CallManager>,
     private val callMediaController: Lazy<com.chainlesschain.android.call.WebRtcCallMediaController>,
+    private val callServiceLauncher: Lazy<com.chainlesschain.android.call.AndroidCallServiceLauncher>,
 
     // FAMILY-67: 启动时把已持久化的 E2EE 会话恢复进内存，否则重启后 getSession 为空，
     // 好友聊天输入框卡「请先建立连接」直到下一次握手（需先连上）。在此提前 restore 让
@@ -153,6 +154,7 @@ class AppInitializer @Inject constructor(
                         val mediaCtl = callMediaController.get()
                         mediaCtl.listener = mgr
                         mgr.media = mediaCtl
+                        mgr.serviceLauncher = callServiceLauncher.get()
                         mgr.start()
                         Timber.d("CallManager started")
                     } catch (e: Exception) {

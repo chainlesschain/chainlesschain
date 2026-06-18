@@ -46,6 +46,9 @@ class AppInitializerTest {
         iceServerConfig = mockk<Lazy<IceServerConfig>>(relaxed = true),
         turnEphemeralRefresher = mockk<Lazy<TurnEphemeralRefresher>>(relaxed = true),
         wearPushForwarder = mockk<Lazy<WearPushForwarder>>(relaxed = true),
+        callManager = mockk<Lazy<com.chainlesschain.android.call.CallManager>>(relaxed = true),
+        callMediaController = mockk<Lazy<com.chainlesschain.android.call.WebRtcCallMediaController>>(relaxed = true),
+        callServiceLauncher = mockk<Lazy<com.chainlesschain.android.call.AndroidCallServiceLauncher>>(relaxed = true),
     )
 
     @Test

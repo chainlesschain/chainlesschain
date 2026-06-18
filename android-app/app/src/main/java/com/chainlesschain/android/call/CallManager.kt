@@ -40,6 +40,9 @@ class CallManager @Inject constructor(
     /** 媒体控制器（P1 注入 WebRtcCallMediaController；P0 默认 NOOP）。 */
     @Volatile var media: CallMediaController = CallMediaController.NOOP
 
+    /** 前台服务 + 来电全屏通知 seam（P3 注入 AndroidCallServiceLauncher；默认 NOOP，保单测纯净）。 */
+    @Volatile var serviceLauncher: CallServiceLauncher = CallServiceLauncher.NOOP
+
     // ---- 可注入 seam（单测替换）----
     internal var clock: () -> Long = { System.currentTimeMillis() }
     internal var genCallId: () -> String = { "call-" + java.util.UUID.randomUUID().toString().take(12) }
@@ -53,6 +56,12 @@ class CallManager @Inject constructor(
         started = true
         signaling.start()
         scope.launch { signaling.incoming.collect { runCatching { onSignal(it) } } }
+        // P3: 把状态转发给前台服务/通知 seam（来电全屏通知、通话中前台服务、结束清理）。
+        scope.launch {
+            _callState.collect { s ->
+                runCatching { if (s == null) serviceLauncher.clear() else serviceLauncher.onCall(s) }
+            }
+        }
     }
 
     // ============ 用户动作 ============
