@@ -158,7 +158,7 @@
     <string name="e2ee_encrypted">端到端加密</string>
     <string name="attachment">附件</string>
     <string name="input_message_placeholder">输入消息...</string>
-    <string name="connect_first_placeholder">请先建立连接</string>
+    <string name="connect_first_placeholder">正在自动连接好友，请稍候…</string>
     <string name="encrypted">加密</string>
     <string name="send">发送</string>
 

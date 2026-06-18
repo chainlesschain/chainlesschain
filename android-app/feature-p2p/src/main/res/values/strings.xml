@@ -158,7 +158,7 @@
     <string name="e2ee_encrypted">End-to-end encrypted</string>
     <string name="attachment">Attachment</string>
     <string name="input_message_placeholder">Type a message...</string>
-    <string name="connect_first_placeholder">Please connect first</string>
+    <string name="connect_first_placeholder">Connecting to friend, please wait…</string>
     <string name="encrypted">Encrypted</string>
     <string name="send">Send</string>
 
