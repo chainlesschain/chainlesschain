@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.16</version>
+    <version>0.4.17</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.17</b> — first-run nudge: when no LLM provider is configured yet,
+        the chat panel now shows a dim hint pointing at the <b>⚙ LLM</b> button
+        instead of staying blank until the first turn fails with a 401 (VS Code
+        onboarding parity).
+        <br/><br/>
         <b>0.4.16</b> — chat panel LLM UX: (1) paste screenshots — Ctrl/Cmd+V an
         image to attach it to your next message (vision); (2) a <b>⚙ LLM</b>
         quick-entry button by Send opens the provider/model wizard, and auth

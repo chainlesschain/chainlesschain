@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.17] — 2026-06-19 — first-run LLM-setup nudge
+
+- **First-run nudge.** When the chat panel opens and no LLM provider is
+  configured yet (`cc config get llm.provider` is empty), the transcript now
+  shows a dim hint pointing at the **⚙ LLM** button — instead of staying blank
+  until the first turn fails with a `401`. The probe runs off the UI thread and
+  is best-effort. Matches the VS Code panel's onboarding setup card.
+
 ## [0.4.16] — 2026-06-18 — chat panel LLM UX (paste · quick config · vision model)
 
 - **Screenshot/image paste.** Press **Ctrl/Cmd+V** with an image on the

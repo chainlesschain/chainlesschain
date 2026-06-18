@@ -183,6 +183,29 @@ final class ConversationView {
                 }
             }
         });
+
+        // First-run nudge (VS Code parity): if no LLM provider is configured yet,
+        // dim-hint toward the ⚙ LLM button instead of leaving the panel blank
+        // until the first turn fails with a 401. Best-effort, probe runs off the EDT.
+        maybeShowOnboarding();
+    }
+
+    /** One-time first-run nudge: when `cc config get llm.provider` is empty,
+     *  guide the user to the ⚙ LLM button. The CLI probe runs off the EDT so
+     *  it never blocks the panel; failures are swallowed (best-effort). */
+    private void maybeShowOnboarding() {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String provider;
+            try {
+                provider = LlmConfig.getConfiguredProvider();
+            } catch (Throwable t) {
+                return; // never block the panel on the probe
+            }
+            if (provider == null || provider.trim().isEmpty()) {
+                SwingUtilities.invokeLater(() -> appendThinking(
+                        "尚未配置 LLM —— 点右下「⚙ LLM」选择提供商并填入 API key,即可开始对话。\n"));
+            }
+        });
     }
 
     JPanel getComponent() {
