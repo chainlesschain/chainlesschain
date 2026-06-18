@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.120 · 2026-06-18',
+    title: 'FAMILY-67 friend call history + incoming ringtone + CLI network robustness',
+    sub: 'Persist & view friend voice/video call history, add incoming ringtone/vibration/ringback, and add timeouts to every CLI network fetch so a dead endpoint can no longer hang forever. cli 0.162.81 published to npm.',
+    desc: 'Call history: friend voice/video call terminal states are persisted to call_history via CallHistoryRecorder (incoming/outgoing, missed, audio/video type, and hangup reason); the friend profile "view call history" entry filters by friend DID or shows all (live Flow read). Incoming ringtone/vibration + outgoing ringback: incoming calls play the system ringtone + vibrate (respecting silent/vibrate mode), outgoing calls play ringback — fixes "no sound on incoming call". CLI network robustness: webhook notifiers, cc update / vcheck update-checks, and the provider connectivity probe all get timeouts (a dead endpoint no longer hangs forever); reputation / plugin revenue split reject NaN score/amount to avoid corrupting balances. Shipped with 18 release assets.',
+  },
+  {
     tag: 'FAMILY-67 · 2026-06-18',
     title: 'Friend P2P encrypted voice / video calls (P0–P3 + call history)',
     sub: '1:1 real-time A/V calling on top of friend E2E-encrypted messaging + ringtone + call history; 40 JVM unit tests green, on-device verified.',

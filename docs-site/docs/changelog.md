@@ -20,6 +20,16 @@
 - **杀进程定时器清理**：SIGTERM→SIGKILL 升级定时器 `unref` + 进程退出即清，杀任务后不再占住事件循环、延迟 CLI 退出。
 - **`--verbose` 根因可见**：非法 JSON 选项的友好报错（`parseJsonOption`）链上原始 `SyntaxError` 为 `cause` 并续接其调用栈，`cc … --verbose` 重新显示根 `SyntaxError`（修复 helper 合并引入的回归），非 verbose 仍是单行友好提示。
 
+#### Added — FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（v5.0.3.120）
+
+> 好友语音/视频通话历史落库 + 通话记录可查看，来电铃声/振动/去电回铃音，CLI 各处网络 fetch 加超时防永久挂起。cli 0.162.81 已发 npm。
+
+- **通话历史落库**：通话终态经 `CallHistoryRecorder` 落库 `call_history`，记录来/去电、未接、音视频类型与挂断原因。
+- **好友资料页查看通话记录**：好友资料页「查看通话记录」接通，按好友 DID 过滤或查看全部（Flow 实时读取）。
+- **来电铃声/振动 + 去电回铃音**：来电播放系统铃声 + 振动，去电播放回铃音（修「来电无声音」）。
+- **CLI 网络鲁棒性**：webhook 通知、`cc update` / `vcheck` 的更新检查、provider 连通性探针均加超时（dead endpoint 不再永久挂起）。
+- **CLI 数值守卫**：reputation / 插件收益分账拒绝 NaN 的 score/amount，避免污染余额。
+
 #### Fixed — 好友 P2P 发消息稳定性（v5.0.3.119）
 
 > 两天「无法扫码加好友 / 对方收不到消息 / 连不上」全链路收口，真机双向消息 <1s 送达验证。

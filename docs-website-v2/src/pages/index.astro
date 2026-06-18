@@ -81,6 +81,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 docs.chainlesschain.com/changelog）
 const highlights = [
   {
+    tag: 'v5.0.3.120 · 2026-06-18',
+    title: 'FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性',
+    sub: '把好友语音/视频通话历史落库可查看、补齐来电铃声/振动/回铃音，并给 CLI 各处网络 fetch 加超时防永久挂起。cli 0.162.81 已发 npm。',
+    desc: '通话历史落库：好友语音/视频通话终态经 CallHistoryRecorder 落库 call_history，记录来/去电、未接、音视频类型与挂断原因；好友资料页「查看通话记录」按好友 DID 过滤或查看全部（Flow 实时读取）。来电铃声/振动 + 去电回铃音：来电播放系统铃声 + 振动（尊重静音/振动模式），去电播放回铃音，修「来电无声音」。CLI 网络鲁棒性：webhook 通知、cc update / vcheck 更新检查、provider 连通性探针均补超时（dead endpoint 不再永久挂起）；reputation / 插件收益分账拒绝 NaN 的 score/amount，避免污染余额。本次随 release 发布 18 个安装包资产。',
+  },
+  {
     tag: 'FAMILY-67 · 2026-06-18',
     title: '好友 P2P 加密语音 / 视频通话（P0–P3 全落地 + 通话记录）',
     sub: '在好友端到端加密消息之上补齐 1:1 实时音视频通话 + 来电铃声 + 通话记录，40 个 JVM 单测全绿，真机验证发起/来电/接通/记录已通。',

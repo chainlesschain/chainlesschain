@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.114 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.71 / 158 命令 / 30,000+ 测试 | Android 5.0.3.114 (versionCode 503114 · USR_VERSION 45 · binariesVersion 20260615d) | iOS 5.0.3 (build 114，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.120 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.81 / 158 命令 / 30,000+ 测试 | Android 5.0.3.120 (versionCode 503120 · USR_VERSION 48 · binariesVersion 20260617c) | iOS 5.0.3 (build 120，ad-hoc 签名 .ipa)**
+>
+> **v5.0.3.120 FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（2026-06-18）**：好友语音/视频通话终态经 `CallHistoryRecorder` 落库 `call_history`（来/去电、未接、音视频类型与挂断原因），好友资料页「查看通话记录」按好友 DID 过滤或查看全部；来电播放系统铃声 + 振动、去电播放回铃音（修「来电无声音」）；CLI 各处网络 fetch（webhook 通知 / `cc update`·`vcheck` 更新检查 / provider 连通性探针）补超时防永久挂起，reputation/插件分账拒绝 NaN。`chainlesschain` 0.162.81 已发 npm；release 发 18 assets。
 >
 > **v5.0.3.114 个人数据中台 gov-ixiamen 端点真机静态校验（2026-06-15）**：用已 root 真机对 PDH「端点抓包」runbook 跑**静态分析层**（只读 APK 二进制，无任何登录态/账号介入）。修正 `gov-ixiamen` 采集器的虚构占位主机——旧 `app.ixm.gov.cn` 实为不存在域名；真机 dex 静态分析确认 i 厦门真实后端为 `*.ixiamen.org.cn`（业务网关 `https://buss.ixiamen.org.cn/pbc/`），已改为真实网关（`opts.listUrl` 可覆盖），子路径 + 请求体仍 `unverified`（body 经 `libzxprotect` 加密静态不可见）。中行（SecNeo 壳）/工行（请求体加密+签名）维持 snapshot，不因拿到域名就标 verified；12123 域名早已正确。`@chainlesschain/personal-data-hub` 0.4.24→0.4.25 + CLI 0.162.70→0.162.71 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615d`、USR_VERSION → 45。
 >
