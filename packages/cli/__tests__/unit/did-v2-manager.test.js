@@ -525,6 +525,12 @@ describe("did-v2-manager", () => {
       expect(r.weight).toBe(1.0);
     });
 
+    it("rejects a NaN score (typeof NaN === 'number' slipped the old guard)", () => {
+      expect(() =>
+        recordReputationSource(db, { did, source: "on-chain", score: NaN }),
+      ).toThrow(/finite number/);
+    });
+
     it("aggregates to weighted mean", () => {
       recordReputationSource(db, { did, source: "on-chain", score: 4.0 });
       recordReputationSource(db, { did, source: "social", score: 2.0 });

@@ -898,7 +898,7 @@ export function recordRevenue(
   if (!Object.values(REVENUE_TYPE).includes(type)) {
     throw new Error(`Unknown revenue type: ${type}`);
   }
-  if (typeof amount !== "number" || amount < 0) {
+  if (!Number.isFinite(amount) || amount < 0) {
     throw new Error("amount must be a non-negative number");
   }
   if (developerShareRatio < 0 || developerShareRatio > 1) {

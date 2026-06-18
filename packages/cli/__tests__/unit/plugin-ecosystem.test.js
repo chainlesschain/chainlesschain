@@ -613,6 +613,14 @@ describe("plugin-ecosystem", () => {
           developerId: "d",
           pluginId: "p",
           type: REVENUE_TYPE.DONATION,
+          amount: NaN,
+        }),
+      ).toThrow(/non-negative/);
+      expect(() =>
+        recordRevenue(db, {
+          developerId: "d",
+          pluginId: "p",
+          type: REVENUE_TYPE.DONATION,
           amount: 10,
           developerShareRatio: 1.5,
         }),

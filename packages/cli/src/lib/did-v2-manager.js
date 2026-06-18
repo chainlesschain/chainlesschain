@@ -948,7 +948,7 @@ export function recordReputationSource(
 ) {
   if (!did) throw new Error("did required");
   if (!source) throw new Error("source required");
-  if (typeof score !== "number") throw new Error("score must be a number");
+  if (!Number.isFinite(score)) throw new Error("score must be a finite number");
 
   const weight = REPUTATION_SOURCE_WEIGHTS[source] ?? 1.0;
   const id = _uuid();
