@@ -9,6 +9,17 @@
 > **授权边界**：仅针对用户本人设备/账号/App。
 >
 > 每个 App 一节，每张表给：列 + 含义 + → PDH 实体映射 + AI 解读要点。新 App 照此模板加。
+>
+> **完整导出 SQL（`docs/internal/reference/`，仅结构无数据，git tracked）**：
+> | 文件 | 内容 |
+> |---|---|
+> | `wechat_schema.sql` | 微信 258 表完整 schema（源自 sjqz 取证项目）|
+> | `toutiao_im_schema.sql` | 头条经典 ByteDance IM（12 表，`com.ss.android.im` 框架，与抖音通用）|
+> | `douyin_im_schema.sql` | 抖音 (A)经典 ByteDance IM(mi_pigeon/同 encrypted_im 主库) + (B)新版 Room IM(`im_database_`：`im_message`/`im_conversation`)|
+> | `toutiao_plaintext_db_schemas.sql` | 头条 19 个明文 app 库（遥测/缓存/新闻/推送等）|
+> | `douyin_plaintext_db_schemas.sql` | 抖音 25 个明文 app 库（feature-engineering/下载器/观看记录/扫描等）|
+>
+> 解密方法见 `pdh-db-decryption-runbook.md`（方法 A/B/C/D）。
 
 ---
 

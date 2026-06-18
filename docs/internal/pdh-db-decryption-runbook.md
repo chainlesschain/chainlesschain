@@ -155,6 +155,9 @@ cc hub salvage dumps/cc_xxx.db --columns msg_uuid,conversation_id,sender,content
 真要扒某个的 IM：先按 §3.5/§3.5.3 真机 dump（app 须登录+开会话载库进内存）+ 查页结构验证，
 别凭 extractor 的乐观预测当结论。**最高产可靠仍是 system-data，不是 app IM。**
 
+> 注：上表 ❌ 仅指**方法 B（leaf-salvage）不适用**，**不等于该库无法解密**——头条/抖音的 WCDB2 IM
+> 改走**方法 C（§3.6 frida `sqlcipher_export`）**，头条 `libwcdb2.so` 有导出符号可 hook（抖音反 frida）。
+
 ## 3.6 方法 C — frida `sqlcipher_export` 在线解密（2026-06-17 突破，WCDB/WCDB2 IM 正解）
 
 §3.5.3 的「/proc/mem → leaf-salvage」对 WCDB2 走不通；而「frida 抓 key → 离线解密」也**走不通**
@@ -183,6 +186,32 @@ bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~
   （ByteDance 同 `com.ss.android.im` 框架、schema 一致，见 `reference/{toutiao,douyin}_im_schema.sql`）。
 - privacy：明文副本含真实聊天 → 只在仓库外 `~/pdh-data` 留存，接完 PDH / 查完即删。
 
+### 3.6.1 实战状态（2026-06-18，**诚实**：链路打通到 export 可达，但本机未取到真实数据）
+
+⚠️ **方法 C 目前是「`sqlcipher_export` 可达」，不是「已产出明文库」**。2026-06-17/18 真机深入：
+- ✅ 头条 `libwcdb2.so` **导出 sqlite3_exec/prepare/key**（per-module hook 实测 `[db][libwcdb2.so]
+  encrypted_92585448288_im.db` 命中），sqlcipher_export **被调用到**。
+- ❌ 但 export **rc=1 "disk I/O error"**（目标写 `databases/` 目录）。怀疑 **WCDB 自定义 VFS 管
+  `databases/` 目录** → 目标文件页操作失败。改把目标写到 **`cache/` 目录（默认 VFS）+ 唯一 alias**
+  （脚本里把 `DB_MATCH` 放宽到 `/encrypted_.*\.db$/`、out 改 `cache/`）——**此修复尚未验证**。
+- ❌ 验证不了的原因：**头条私信本机是空的**（`encrypted_92585448288_im.db` idle 无会话→无 IM 查询触发；
+  `encrypted_im_biz_*.db` 1.4MB=服务/系统通知非个人聊天）；**抖音有真实私信但反 frida**（见下）。
+- **关键坑（复现必读）**：
+  1. **写权限**：frida 以 **App uid** 跑，**写不了 `/data/local/tmp`**（root/shell 属主）→ export 目标 +
+     日志都要写 **App 自己可写目录**（`cache/`），再 `su cp` 出来。
+  2. **hook 时机**：必须在 **libwcdb2 加载之后**才 attach（`/proc/pid/fd` 已有 `_im.db` fds 时）；
+     在 app 启动即 attach → libwcdb2 未加载 → frida-inject 的 `setTimeout` 重试**不 pump**（无 interceptor
+     时 gum 事件循环不转）→ 后到的 libwcdb2 永不被 hook。**正确=等 IM 库开了再 attach**。
+  3. **触发**：prepare hook 只在**有新查询**时 fire；停私信列表/库 idle 不 fire → 要**点开具体会话+滑动+下拉刷新**。
+  4. **DB_MATCH 太窄**：`/_im\.db$/` 漏掉 `encrypted_im_biz_<uid>.db`（真有数据那个）→ 用 `/encrypted_.*\.db$/`。
+  5. **重入**：在 prepare **onEnter** 里调 exec 会让连接重入 → "disk I/O error"/"ccpt already in use"；改 **onLeave** + 唯一 alias + 先 DETACH。
+- **抖音 = 反 frida**：`libmsaoaidsec` —— frida **能 attach 上但 send() 输出被压制**（无诊断行）+ 重负载
+  **把 USB/adb 打 offline**（`adb kill-server/start-server` 或 `adb reconnect` 恢复）→ 抖音 Method C **不实用**。
+  抖音才有真实私信；要它需先绕过 libmsaoaidsec（spawn-time hook / 反 ptrace 检测），是独立工程。
+- **下次复现 checklist**：① 找个**私信有真实会话**的 ByteDance App（头条多半空）；② 先把 App 用进私信、确认
+  `_im.db` fds 已开，再 attach；③ 用 cache/ 输出 + 宽 DB_MATCH + onLeave 版脚本；④ 验证 export rc=0 后
+  `su cp` 出明文副本到 `~/pdh-data`。
+
 ## 4. 结论
 
 - 真机免密钥采集**对标准 SQLCipher app（微信/QQ）已验证路径成立**：方法 B 从内存 dump 出
@@ -191,5 +220,8 @@ bash scripts/android/pdh-frida-decrypt.sh <serial> com.ss.android.article.news ~
 - 个人数据采集**最高产可靠的是 system-data（通讯录/短信/通话/媒体，明文/content-query）**——
   优先做这个，不是跟 WCDB2 app 死磕。
 - **加密 App IM**：①标准 SQLCipher（微信/QQ）可 leaf-salvage（方法 B）；②**WCDB/WCDB2（头条/抖音）
-  的 IM 现在也能解了——走方法 C（§3.6）frida `sqlcipher_export` 在线导出**（不靠 cipher 复现），
-  前提是 App 能跑+无强反 frida（头条✅/抖音 libmsaoaidsec 风险），且需先进「私信」让库被查询。
+  的 IM 走方法 C（§3.6）frida `sqlcipher_export` 在线导出**（不靠 cipher 复现）——**目前打通到
+  `sqlcipher_export` 可达，但尚未真机产出明文库**（disk I/O error + 头条私信空 + 抖音反 frida，详见
+  §3.6.1 实战状态）。可达性已证；端到端取数仍待一个「私信有真实会话 + 无强反 frida」的 App 验证。
+- **WCDB2 不是铁板一块**：头条 `libwcdb2.so` 导出符号可 hook；抖音被 `libEncryptor.so`/`libmsaoaidsec`
+  挡住。**别把"抖音 WCDB2 无符号"当成所有 WCDB2 的通论**——逐 App 实测。
