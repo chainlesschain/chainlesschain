@@ -165,6 +165,20 @@ class MainActivity : AppCompatActivity() {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = hiltViewModel()
 
+                    // FAMILY-67: Android 13+ 必须运行时申请通知权限，否则来电/好友消息/未接来电
+                    // 通知全部不显示（用户得打开 app 才看得到）。首启请求一次。
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+                        ) { /* 拒绝则通知不显示；用户可在系统设置开启 */ }
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                                this@MainActivity, android.Manifest.permission.POST_NOTIFICATIONS,
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (!granted) notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+
                     // 启动总是从 Splash 进入；splash 结束后跳到下面计算的实际目的地。
                     val uiState = authViewModel.uiState.collectAsState().value
                     val nextAfterSplash = remember(uiState.isSetupComplete, uiState.isAuthenticated) {
