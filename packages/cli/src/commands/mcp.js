@@ -22,6 +22,7 @@ import {
   generateMcpServerScaffold,
   SUPPORTED_TRANSPORTS,
 } from "../lib/mcp-scaffold.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -236,7 +237,9 @@ export function registerMcpCommand(program) {
         });
         logger.log(chalk.bold("MCP server ready (Streamable-HTTP)"));
         logger.log(`  URL:   ${chalk.cyan(handle.url)}`);
-        logger.log(`  Root:  ${handle.root}${handle.readOnly ? "  (read-only)" : ""}`);
+        logger.log(
+          `  Root:  ${handle.root}${handle.readOnly ? "  (read-only)" : ""}`,
+        );
         if (handle.token) {
           logger.log(`  Auth:  Bearer ${handle.token}`);
         } else {
@@ -650,7 +653,7 @@ export function registerMcpCommand(program) {
           serverName = match.server;
         }
 
-        const args = options.args ? JSON.parse(options.args) : {};
+        const args = parseJsonOption(options.args, "--args", {});
         const spinner = ora(`Calling ${tool}...`).start();
 
         const result = await client.callTool(serverName, tool, args);
@@ -822,7 +825,7 @@ export function registerMcpCommand(program) {
           }
           server = match.server;
         }
-        const args = options.args ? JSON.parse(options.args) : {};
+        const args = parseJsonOption(options.args, "--args", {});
         const result = await client.getPrompt(server, name, args);
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));

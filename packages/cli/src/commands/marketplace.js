@@ -6,6 +6,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureMarketplaceTables,
@@ -246,8 +247,8 @@ export function registerMarketplaceCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const input = options.input ? JSON.parse(options.input) : null;
-        const output = options.output ? JSON.parse(options.output) : null;
+        const input = parseJsonOption(options.input, "--input", null);
+        const output = parseJsonOption(options.output, "--output", null);
         const inv = recordInvocation(db, {
           serviceId,
           callerId: options.caller,

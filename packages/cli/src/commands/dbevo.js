@@ -64,6 +64,7 @@ import {
   autoFailStuckMigrationRuns,
   getDbEvoStatsV2,
 } from "../lib/dbevo.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function _parseMetaV2(raw) {
   if (!raw) return undefined;
@@ -272,7 +273,14 @@ export function registerDbEvoCommand(program) {
     .option("--json", "JSON output")
     .action((sql, durationMs, opts) => {
       const db = _dbFromCtx(dbevo);
-      const params = opts.params ? JSON.parse(opts.params) : undefined;
+      let params;
+      try {
+        params = parseJsonOption(opts.params, "--params");
+      } catch (e) {
+        console.error(e.message);
+        process.exitCode = 1;
+        return;
+      }
       const result = logQuery(db, sql, parseFloat(durationMs), {
         params,
         source: opts.source,
