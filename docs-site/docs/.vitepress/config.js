@@ -163,6 +163,10 @@ export default defineConfig({
               text: "个人数据中台 ⭐NEW",
               link: "/chainlesschain/personal-data-hub",
             },
+            {
+              text: "个人 AI 知识库 ⭐NEW",
+              link: "/chainlesschain/personal-ai-knowledge-base",
+            },
             { text: "去中心化社交", link: "/chainlesschain/social" },
             { text: "好友 P2P 加密消息 ⭐NEW", link: "/chainlesschain/friend-p2p-messaging" },
             { text: "交易辅助", link: "/chainlesschain/trading" },

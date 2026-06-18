@@ -1073,6 +1073,7 @@ await ws.executeJson({
 
 ### 同类核心功能
 
+- [个人 AI 知识库](/chainlesschain/personal-ai-knowledge-base) — 采集之后：analysis.\* 分析技能 + RAG 问答 + 决策辅助
 - [知识库管理](/chainlesschain/knowledge-base) — 中台派生的 KG / RAG 写入目标
 - [数据加密](/chainlesschain/encryption) — SQLCipher / FileKeyProvider / Phase 4 升级到平台 Keystore
 - [U盾集成](/chainlesschain/ukey) / [SIMKey集成](/chainlesschain/simkey) / [蓝牙U-Key](/chainlesschain/ble-ukey) — 硬件加固主密钥（Phase 4 + Phase 7 路线）
