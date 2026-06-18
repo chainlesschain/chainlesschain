@@ -1029,7 +1029,10 @@ fun NavGraph(
                 deviceName = peerName,
                 onNavigateBack = { navController.popBackStack() },
                 onVerifyDevice = { navController.navigate("safety_numbers/$peerId") },
-                onStartCall = { callViewModel.startCall(peerId) }
+                onStartCall = { callViewModel.startCall(peerId) },
+                onStartVideoCall = {
+                    callViewModel.startCall(peerId, com.chainlesschain.android.call.CallMediaType.VIDEO)
+                }
             )
         }
 

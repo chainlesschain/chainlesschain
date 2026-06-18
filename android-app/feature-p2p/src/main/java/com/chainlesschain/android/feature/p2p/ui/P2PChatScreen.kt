@@ -43,6 +43,7 @@ fun P2PChatScreen(
     onNavigateBack: () -> Unit,
     onVerifyDevice: () -> Unit,
     onStartCall: () -> Unit = {},
+    onStartVideoCall: () -> Unit = {},
     onNavigateToFileTransfers: () -> Unit = {},
     viewModel: P2PChatViewModel = hiltViewModel(),
     fileTransferViewModel: FileTransferViewModel = hiltViewModel()
@@ -139,6 +140,14 @@ fun P2PChatScreen(
                         Icon(
                             Icons.Default.Call,
                             contentDescription = stringResource(R.string.voice_call),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    // FAMILY-67: 视频通话按钮（P2）
+                    IconButton(onClick = onStartVideoCall) {
+                        Icon(
+                            Icons.Default.Videocam,
+                            contentDescription = stringResource(R.string.video_call),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
