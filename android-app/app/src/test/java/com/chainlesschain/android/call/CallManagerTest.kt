@@ -159,4 +159,57 @@ class CallManagerTest {
     fun `no state initially`() {
         assertNull(mgr.callState.value)
     }
+
+    // ---- P3：serviceLauncher seam 转发（start() 里的 callState collector）----
+
+    private class RecordingLauncher : CallServiceLauncher {
+        val states = java.util.concurrent.CopyOnWriteArrayList<CallState>()
+        @Volatile var cleared = 0
+        override fun onCall(session: CallSession) { states.add(session.state) }
+        override fun clear() { cleared++ }
+    }
+
+    /** 轮询等待（seam collector 跑在 Dispatchers.Default 真线程上）。 */
+    private fun awaitTrue(timeoutMs: Long = 2000, cond: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (cond()) return
+            Thread.sleep(15)
+        }
+    }
+
+    @Test
+    fun `serviceLauncher receives onCall OUTGOING when starting a call`() {
+        every { signaling.incoming } returns kotlinx.coroutines.flow.MutableSharedFlow()
+        val rec = RecordingLauncher()
+        mgr.serviceLauncher = rec
+        mgr.start()
+        mgr.startCall(PEER)
+        awaitTrue { rec.states.contains(CallState.OUTGOING) }
+        org.junit.Assert.assertTrue("launcher should see OUTGOING", rec.states.contains(CallState.OUTGOING))
+    }
+
+    @Test
+    fun `serviceLauncher receives onCall INCOMING on remote invite`() = runTest {
+        every { signaling.incoming } returns kotlinx.coroutines.flow.MutableSharedFlow()
+        val rec = RecordingLauncher()
+        mgr.serviceLauncher = rec
+        mgr.start()
+        mgr.onSignal(CallSignal(CallSignalTypes.INVITE, "call-peer", PEER))
+        awaitTrue { rec.states.contains(CallState.INCOMING) }
+        org.junit.Assert.assertTrue("launcher should see INCOMING", rec.states.contains(CallState.INCOMING))
+    }
+
+    @Test
+    fun `serviceLauncher clear called when call fully ends`() {
+        every { signaling.incoming } returns kotlinx.coroutines.flow.MutableSharedFlow()
+        val rec = RecordingLauncher()
+        mgr.serviceLauncher = rec
+        // END_LINGER 后状态回 null → clear()。用短 linger 不可注入，故缩短等待窗到 > END_LINGER_MS。
+        mgr.start()
+        mgr.startCall(PEER)
+        mgr.hangup() // → ENDED，2.5s 后 → null → clear()
+        awaitTrue(timeoutMs = 5000) { rec.cleared >= 1 }
+        org.junit.Assert.assertTrue("launcher.clear() should fire after END_LINGER", rec.cleared >= 1)
+    }
 }
