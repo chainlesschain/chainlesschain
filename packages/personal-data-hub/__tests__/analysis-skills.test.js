@@ -655,6 +655,34 @@ describe("OverviewSkill — cross-app unified snapshot", () => {
     expect(r.summary.appsActive).toBe(4); // alipay-bill, shopping-taobao, wechat, social-douyin
   });
 
+  it("byApp/byType/total use uncapped facetCounts, not the row-capped fetch", async () => {
+    // queryEvents hard-caps at 10k rows; on a big vault one dominant app crowds
+    // out the rest, so deriving byApp from the row fetch undercounts (real bug:
+    // social-douyin showed 10 instead of 232). Fake a vault where the capped
+    // row fetch and the SQL GROUP BY disagree, and assert overview trusts SQL.
+    const fakeVault = {
+      facetCounts: () => ({
+        byAdapter: { "social-douyin": 232, "wechat-pc": 100000 },
+        bySubtype: { browse: 232, message: 100000 },
+        byCategory: {},
+        total: 100232,
+        mode: "like",
+        shortQuery: false,
+      }),
+      // simulates the cap: only wechat rows survived the recent-10k window
+      queryEvents: () => [
+        { id: "w1", subtype: "message", occurredAt: ts(2026, 6, 1), actor: "person-self", source: { adapter: "wechat-pc" }, content: {} },
+      ],
+    };
+    const r = await new OverviewSkill({ vault: fakeVault }).run({ commentary: false });
+    const dy = r.byApp.find((a) => a.app === "social-douyin");
+    expect(dy && dy.count).toBe(232); // would be absent/0 if derived from the row fetch
+    expect(r.byApp[0].app).toBe("wechat-pc"); // 100000 sorts first
+    expect(r.summary.totalEvents).toBe(100232);
+    expect(r.summary.appsActive).toBe(2);
+    expect(r.byType.find((t) => t.type === "browse").count).toBe(232);
+  });
+
   it("counts 4 distinct apps + sums cross-app spend + top contact merged", async () => {
     const { vault } = rig;
     makePerson(vault, "p-friend", ["小明"], {}, { adapter: "wechat" });

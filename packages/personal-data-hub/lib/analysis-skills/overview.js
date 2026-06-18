@@ -39,6 +39,18 @@ class OverviewSkill extends AnalysisSkill {
     if (until != null) q.until = until;
     const events = this.vault.queryEvents(q) || [];
 
+    // Accurate, uncapped app/type/total counts via SQL GROUP BY. queryEvents
+    // hard-caps at 10k rows, so deriving byApp/byType/total from `events`
+    // silently undercounts any app whose data is older than the recent-10k
+    // window — e.g. on a vault where one chat app dominates recent events,
+    // social-douyin showed 10 instead of its true 232. facetCounts honors the
+    // same since/until. (Row-derived spend/contacts/monthly stay sample-based —
+    // they need actual rows.)
+    const facets =
+      typeof this.vault.facetCounts === "function"
+        ? this.vault.facetCounts({ since, until })
+        : null;
+
     const byApp = new Map();
     const byType = new Map();
     const byMonth = new Map();
@@ -81,7 +93,11 @@ class OverviewSkill extends AnalysisSkill {
       if (citations.length < 50) citations.push(e.id);
     }
 
-    const byAppArr = [...byApp.entries()].map(([app, count]) => ({ app, count })).sort((a, b) => b.count - a.count);
+    const byAppArr = (
+      facets
+        ? Object.entries(facets.byAdapter).map(([app, count]) => ({ app, count }))
+        : [...byApp.entries()].map(([app, count]) => ({ app, count }))
+    ).sort((a, b) => b.count - a.count);
     const topContacts = [...contacts.entries()]
       .map(([personId, v]) => ({
         personId,
@@ -93,8 +109,8 @@ class OverviewSkill extends AnalysisSkill {
       .slice(0, topN);
 
     const summary = {
-      totalEvents: events.length,
-      appsActive: byApp.size,
+      totalEvents: facets ? facets.total : events.length,
+      appsActive: facets ? Object.keys(facets.byAdapter).length : byApp.size,
       period: { since: since || null, until: until || null },
       topAppName: byAppArr.length ? byAppArr[0].app : null,
     };
@@ -103,7 +119,11 @@ class OverviewSkill extends AnalysisSkill {
       skill: "analysis.overview",
       summary,
       byApp: byAppArr,
-      byType: [...byType.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
+      byType: (
+        facets
+          ? Object.entries(facets.bySubtype).map(([type, count]) => ({ type, count }))
+          : [...byType.entries()].map(([type, count]) => ({ type, count }))
+      ).sort((a, b) => b.count - a.count),
       monthlyActivity: [...byMonth.entries()].map(([monthKey, count]) => ({ monthKey, count })).sort((a, b) => a.monthKey.localeCompare(b.monthKey)),
       topContacts,
       spending: {
