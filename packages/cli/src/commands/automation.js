@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureAutomationTables,
@@ -81,15 +82,6 @@ async function _prepare(cmd) {
   const db = ctx.db.getDatabase();
   ensureAutomationTables(db);
   return db;
-}
-
-function _parseJsonArg(value, label) {
-  if (!value) return undefined;
-  try {
-    return JSON.parse(value);
-  } catch (_e) {
-    throw new Error(`Invalid JSON for ${label}`);
-  }
 }
 
 export function registerAutomationCommand(program) {
@@ -196,8 +188,8 @@ function _wire(root) {
         const flow = createFlow(db, {
           name: opts.name,
           description: opts.description,
-          nodes: _parseJsonArg(opts.nodes, "--nodes") || [],
-          edges: _parseJsonArg(opts.edges, "--edges") || [],
+          nodes: parseJsonOption(opts.nodes, "--nodes") || [],
+          edges: parseJsonOption(opts.edges, "--edges") || [],
           createdBy: opts.createdBy,
           schedule: opts.schedule,
         });
@@ -443,7 +435,7 @@ function _wire(root) {
       try {
         const trig = addTrigger(db, flowId, {
           type: opts.type,
-          config: _parseJsonArg(opts.config, "--config") || {},
+          config: parseJsonOption(opts.config, "--config") || {},
         });
         logger.success(`Trigger added: ${chalk.cyan(trig.id)}`);
         logger.log(`  flow: ${trig.flowId}`);
@@ -524,7 +516,7 @@ function _wire(root) {
     .action(async (triggerId, opts, cmd) => {
       const db = _dbFromCtx(cmd);
       try {
-        const input = _parseJsonArg(opts.input, "--input") || {};
+        const input = parseJsonOption(opts.input, "--input") || {};
         const exec = fireTrigger(db, triggerId, input);
         logger.success(`Fired trigger → exec ${chalk.cyan(exec.id)}`);
         logger.log(`  status:   ${exec.status}`);
@@ -548,7 +540,7 @@ function _wire(root) {
     .action(async (flowId, opts, cmd) => {
       const db = _dbFromCtx(cmd);
       try {
-        const input = _parseJsonArg(opts.input, "--input") || {};
+        const input = parseJsonOption(opts.input, "--input") || {};
         const exec = executeFlow(db, flowId, {
           inputData: input,
           testMode: Boolean(opts.test),

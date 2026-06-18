@@ -56,15 +56,7 @@ import {
   autoFailStuckGenJobs,
   getCodeAgentStatsV2,
 } from "../lib/code-agent.js";
-
-function _parseMetaV2(raw) {
-  if (!raw) return undefined;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error("--metadata must be valid JSON");
-  }
-}
+import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -419,7 +411,7 @@ export function registerCodegenCommand(program) {
         ownerId: opts.owner,
         name: opts.name,
         initialStatus: opts.initialStatus,
-        metadata: _parseMetaV2(opts.metadata),
+        metadata: parseJsonOption(opts.metadata, "--metadata"),
       });
       console.log(JSON.stringify(r, null, 2));
     });
@@ -440,7 +432,7 @@ export function registerCodegenCommand(program) {
     .action((id, status, opts) => {
       const r = setAgentMaturityV2(null, id, status, {
         reason: opts.reason,
-        metadata: _parseMetaV2(opts.metadata),
+        metadata: parseJsonOption(opts.metadata, "--metadata"),
       });
       console.log(JSON.stringify(r, null, 2));
     });
@@ -473,7 +465,7 @@ export function registerCodegenCommand(program) {
         ownerId: opts.owner,
         agentId: opts.agent,
         prompt: opts.prompt,
-        metadata: _parseMetaV2(opts.metadata),
+        metadata: parseJsonOption(opts.metadata, "--metadata"),
       });
       console.log(JSON.stringify(r, null, 2));
     });
@@ -494,7 +486,7 @@ export function registerCodegenCommand(program) {
     .action((id, status, opts) => {
       const r = setGenJobStatusV2(null, id, status, {
         reason: opts.reason,
-        metadata: _parseMetaV2(opts.metadata),
+        metadata: parseJsonOption(opts.metadata, "--metadata"),
       });
       console.log(JSON.stringify(r, null, 2));
     });
