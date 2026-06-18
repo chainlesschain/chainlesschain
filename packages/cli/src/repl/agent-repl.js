@@ -3178,8 +3178,7 @@ export async function startAgentRepl(options = {}) {
         onStreamRetry: (attempt) =>
           process.stderr.write(
             chalk.dim(
-              `  ⟳ connection dropped — retrying (attempt ${attempt})…
-`,
+              `  ⟳ connection dropped — retrying (attempt ${attempt})…\n`,
             ),
           ),
         signal: _turnAbort.signal,
