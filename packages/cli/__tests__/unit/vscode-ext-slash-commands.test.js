@@ -25,6 +25,7 @@ describe("slash-commands (panel / autocomplete)", () => {
   it("filterSlashCommands prefix-matches by name, in menu order", () => {
     expect(slash.filterSlashCommands("")).toEqual(slash.SLASH_COMMANDS); // all
     expect(slash.filterSlashCommands("c").map((r) => r[0])).toEqual([
+      "/compact",
       "/cost",
       "/context",
     ]);

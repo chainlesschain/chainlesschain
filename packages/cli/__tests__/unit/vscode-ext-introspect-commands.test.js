@@ -114,7 +114,14 @@ describe("ChatViewProvider._runIntrospect", () => {
       runCliText: runText,
     });
     await provider._runIntrospect("context");
-    expect(runText.mock.calls[0][0].args).toEqual(["context", "sess-1"]); // blanks dropped
+    // [kind, id] is always passed for the stored session; the effective
+    // model/provider tail is resolved from panel config → cc config (env-
+    // dependent), so assert only the stable prefix here. LLM-arg shaping is
+    // covered deterministically by the buildIntrospectArgs unit tests above.
+    expect(runText.mock.calls[0][0].args.slice(0, 2)).toEqual([
+      "context",
+      "sess-1",
+    ]);
     expect(posts).toEqual([
       { kind: "pre", text: "Session cost (estimated):\n  total: $0.02" },
     ]);
