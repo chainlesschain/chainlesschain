@@ -11,10 +11,18 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { testHome } from "./_helpers/cli-e2e.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliRoot = path.join(__dirname, "..", "..");
 const bin = path.join(cliRoot, "bin", "chainlesschain.js");
+
+// Per-file isolated CHAINLESSCHAIN_HOME so every spawned `cc` opens its own
+// bootstrap DB instead of contending on the shared %APPDATA% one. Without this,
+// concurrent/overlapping runs (full e2e suite + parallel sessions) hit the
+// DB-recovery path, which intermittently fails the `--dry-run "writes nothing"`
+// and remove assertions. See _helpers/cli-e2e.js for the full rationale.
+const h = testHome("skillpacks");
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -23,6 +31,7 @@ function run(args, opts = {}) {
     encoding: "utf-8",
     timeout: 30000,
     stdio: "pipe",
+    env: h.env(),
     ...opts,
   });
 }
@@ -55,6 +64,7 @@ afterAll(() => {
   } catch {
     /* cleanup */
   }
+  h.cleanup();
 });
 
 // ── skill sync-cli --help ──────────────────────────────────────────
