@@ -34,6 +34,14 @@ export const ServerState = {
 const URL_TRANSPORTS = new Set(["http", "https", "sse", "ws", "wss"]);
 
 /**
+ * Default per-call timeout for HTTP MCP requests, mirroring the 30s stdio
+ * timeout so a hung/dead HTTP server can't block a request forever. Servers
+ * flagged `longRunning` (e.g. the IDE bridge, whose openDiff blocks on human
+ * review) are exempt; override per server with `config.requestTimeoutMs`.
+ */
+const HTTP_REQUEST_TIMEOUT_MS = 30000;
+
+/**
  * Infer the transport kind for a server config. Falls back to "stdio".
  * Prefers an explicit `transport` field; otherwise derives from URL scheme
  * (http → http, https → https, ws/wss preserved); otherwise stdio.
@@ -636,53 +644,87 @@ export class MCPClient extends EventEmitter {
       headers["Mcp-Session-Id"] = entry.httpSessionId;
     }
 
-    const response = await _deps.fetch(entry.httpUrl, {
-      method: "POST",
-      headers,
-      body,
-    });
-
-    // Capture session id (server may emit on initialize response only)
-    const sessionId =
-      (response.headers && typeof response.headers.get === "function"
-        ? response.headers.get("mcp-session-id") ||
-          response.headers.get("Mcp-Session-Id")
-        : null) || null;
-    if (sessionId && !entry.httpSessionId) {
-      entry.httpSessionId = sessionId;
+    // Per-call timeout (parity with the 30s stdio timeout) so a hung or dead
+    // HTTP MCP server can't block the request forever. Servers flagged
+    // longRunning — e.g. the IDE bridge, whose openDiff blocks on human review
+    // (see ideServerToMcpConfig) — are exempt. Override per server with
+    // config.requestTimeoutMs (0 disables).
+    const longRunning = Boolean(entry.config && entry.config.longRunning);
+    const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
+      ? entry.config.requestTimeoutMs
+      : HTTP_REQUEST_TIMEOUT_MS;
+    let controller = null;
+    let timer = null;
+    if (
+      !longRunning &&
+      timeoutMs > 0 &&
+      typeof AbortController === "function"
+    ) {
+      controller = new AbortController();
+      timer = setTimeout(() => controller.abort(), timeoutMs);
     }
 
-    if (!response.ok) {
-      const text =
-        typeof response.text === "function" ? await response.text() : "";
-      throw new Error(
-        `HTTP ${response.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
-      );
-    }
+    try {
+      const response = await _deps.fetch(entry.httpUrl, {
+        method: "POST",
+        headers,
+        body,
+        ...(controller ? { signal: controller.signal } : {}),
+      });
 
-    const contentType = response.headers?.get
-      ? String(response.headers.get("content-type") || "").toLowerCase()
-      : "";
+      // Capture session id (server may emit on initialize response only)
+      const sessionId =
+        (response.headers && typeof response.headers.get === "function"
+          ? response.headers.get("mcp-session-id") ||
+            response.headers.get("Mcp-Session-Id")
+          : null) || null;
+      if (sessionId && !entry.httpSessionId) {
+        entry.httpSessionId = sessionId;
+      }
 
-    let envelope;
-    if (contentType.includes("text/event-stream")) {
-      envelope = await _extractSseResponse(response, id);
-    } else {
-      envelope =
-        typeof response.json === "function"
-          ? await response.json()
-          : JSON.parse(
-              typeof response.text === "function" ? await response.text() : "",
-            );
-    }
+      if (!response.ok) {
+        const text =
+          typeof response.text === "function" ? await response.text() : "";
+        throw new Error(
+          `HTTP ${response.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
+        );
+      }
 
-    if (!envelope || typeof envelope !== "object") {
-      throw new Error("Empty or invalid JSON-RPC response");
+      const contentType = response.headers?.get
+        ? String(response.headers.get("content-type") || "").toLowerCase()
+        : "";
+
+      let envelope;
+      if (contentType.includes("text/event-stream")) {
+        envelope = await _extractSseResponse(response, id);
+      } else {
+        envelope =
+          typeof response.json === "function"
+            ? await response.json()
+            : JSON.parse(
+                typeof response.text === "function"
+                  ? await response.text()
+                  : "",
+              );
+      }
+
+      if (!envelope || typeof envelope !== "object") {
+        throw new Error("Empty or invalid JSON-RPC response");
+      }
+      if (envelope.error) {
+        throw new Error(envelope.error.message || "Unknown error");
+      }
+      return envelope.result;
+    } catch (err) {
+      if (controller && controller.signal.aborted) {
+        throw new Error(
+          `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`,
+        );
+      }
+      throw err;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    if (envelope.error) {
-      throw new Error(envelope.error.message || "Unknown error");
-    }
-    return envelope.result;
   }
 
   /** Fire-and-forget JSON-RPC notification over HTTP. Errors swallowed. */
