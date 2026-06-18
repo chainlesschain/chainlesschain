@@ -63,12 +63,17 @@ class TimelineSkill extends AnalysisSkill {
   }
 
   _fetchEvents({ since, until }, limit) {
-    // Exclude inventory-snapshot events (installed-app roster + contact
-    // roster from system-data-android). They carry a synthetic
-    // collection-time occurredAt — tens of thousands of them cluster at one
-    // recent timestamp and would otherwise crowd out real activity from this
-    // chronological narrative. They remain in the vault for facet counts.
-    const q = { limit, excludeExtraKinds: ["app-snapshot", "contact-snapshot"] };
+    // Exclude inventory-snapshot + aggregate-baseline events. The snapshots
+    // (installed-app / contact roster from system-data-android) carry a
+    // synthetic collection-time occurredAt — tens of thousands cluster at one
+    // recent timestamp and would crowd out real activity. `app-usage-profile`
+    // is a single rolling aggregate (e.g. douyin "24天/108h" baseline), not a
+    // discrete activity, so it doesn't belong in a chronological narrative.
+    // All remain in the vault for facet counts / overview.
+    const q = {
+      limit,
+      excludeExtraKinds: ["app-snapshot", "contact-snapshot", "app-usage-profile"],
+    };
     if (since != null) q.since = since;
     if (until != null) q.until = until;
     const events = this.vault.queryEvents(q) || [];

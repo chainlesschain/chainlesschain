@@ -580,12 +580,22 @@ describe("TimelineSkill", () => {
       ingestedAt: Date.now(), source: defaultSource("system-data-android"),
       extra: { kind: "contact-snapshot" },
     });
+    // Aggregate-baseline event (douyin app-usage-profile) — a single rolling
+    // summary, not a discrete activity, so it must be filtered from the timeline.
+    rig.vault.putEvent({
+      id: "event-douyin-usage", type: "event", subtype: "other",
+      occurredAt: ts(2026, 6, 1), actor: "person-self",
+      content: { title: "抖音使用画像：24天/108h" },
+      ingestedAt: Date.now(), source: defaultSource("social-douyin"),
+      extra: { kind: "app-usage-profile" },
+    });
     const skill = new TimelineSkill({ vault: rig.vault });
     const r = await skill.run({ since: ts(2026, 4, 1) });
     const ids = r.entries.map((e) => e.id);
     expect(ids).toContain("act-1");
     expect(ids).not.toContain("event-android-app-com.x");
     expect(ids).not.toContain("event-android-contact-y");
+    expect(ids).not.toContain("event-douyin-usage");
     expect(r.summary.totalEvents).toBe(1);
   });
 });
