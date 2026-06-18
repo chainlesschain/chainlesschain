@@ -61,6 +61,7 @@ import {
   autoTimeoutStuckRemediations,
   getAiOpsStatsV2,
 } from "../lib/aiops.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 
 function _dbFromCtx(cmd) {
   const root = cmd?.parent?.parent ?? cmd?.parent;
@@ -549,7 +550,8 @@ export function registerOpsCommand(program) {
       const config = { playbookId, ownerId: opts.owner };
       if (opts.name) config.name = opts.name;
       if (opts.initialStatus) config.initialStatus = opts.initialStatus;
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(JSON.stringify(registerPlaybookV2(db, config), null, 2));
     });
 
@@ -570,7 +572,8 @@ export function registerOpsCommand(program) {
       const db = _dbFromCtx(cmd);
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setPlaybookMaturityV2(db, playbookId, status, patch),
@@ -639,7 +642,8 @@ export function registerOpsCommand(program) {
         playbookId: opts.playbook,
       };
       if (opts.incident) config.incidentId = opts.incident;
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(JSON.stringify(submitRemediationV2(db, config), null, 2));
     });
 
@@ -660,7 +664,8 @@ export function registerOpsCommand(program) {
       const db = _dbFromCtx(cmd);
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setRemediationStatusV2(db, remediationId, status, patch),

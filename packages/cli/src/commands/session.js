@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   listSessions,
@@ -288,7 +289,10 @@ export function registerSessionCommand(program) {
     .description(
       "Export a session as Markdown (chat-DB session, or JSONL agent session fallback)",
     )
-    .argument("<id>", "Session ID (or prefix; `last` = most recent agent session)")
+    .argument(
+      "<id>",
+      "Session ID (or prefix; `last` = most recent agent session)",
+    )
     .option("-o, --output <file>", "Output file path")
     .action(async (id, options) => {
       try {
@@ -315,9 +319,8 @@ export function registerSessionCommand(program) {
           const store = await import("../harness/jsonl-session-store.js");
           const sid = id === "last" ? store.getLastSessionId() : id;
           if (sid && store.sessionExists(sid)) {
-            const { renderAgentSessionMarkdown } = await import(
-              "../lib/agent-session-export.js"
-            );
+            const { renderAgentSessionMarkdown } =
+              await import("../lib/agent-session-export.js");
             markdown = renderAgentSessionMarkdown(sid, store.readEvents(sid), {
               exportedAt: new Date().toISOString(),
             });
@@ -1026,7 +1029,7 @@ export function registerSessionCommand(program) {
     .requiredOption("-m, --model <model>", "model")
     .option("--metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const c = registerConversationV2(id, {
         userId: opts.user,
         model: opts.model,
@@ -1092,7 +1095,7 @@ export function registerSessionCommand(program) {
     .option("-r, --role <role>", "role (user/assistant)", "user")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const t = createTurnV2(id, {
         conversationId: opts.conversation,
         role: opts.role,

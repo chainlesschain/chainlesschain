@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSCIMTables,
@@ -348,7 +349,7 @@ export function registerScimCommand(program) {
     .requiredOption("-e, --external <id>", "external id")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const i = registerIdentityV2(id, {
         connectorId: opts.connector,
         externalId: opts.external,
@@ -412,7 +413,7 @@ export function registerScimCommand(program) {
     .option("-k, --kind <kind>", "job kind", "full")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const j = createSyncJobV2(id, {
         connectorId: opts.connector,
         kind: opts.kind,

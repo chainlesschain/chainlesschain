@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   getSyncStatus,
@@ -373,7 +374,7 @@ export function registerSyncCommand(program) {
     .requiredOption("-k, --kind <kind>", "kind (file/note/...)")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const r = registerResourceV2(id, {
         owner: opts.owner,
         kind: opts.kind,
@@ -437,7 +438,7 @@ export function registerSyncCommand(program) {
     .option("-k, --kind <kind>", "run kind", "push")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const j = createSyncRunV2(id, {
         resourceId: opts.resource,
         kind: opts.kind,

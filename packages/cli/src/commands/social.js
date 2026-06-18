@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureSocialTables,
@@ -642,7 +643,7 @@ export function registerSocialCommand(program) {
         ensureGraphTables(db);
         graphLoadFromDb(db);
 
-        const metadata = options.metadata ? JSON.parse(options.metadata) : null;
+        const metadata = parseJsonOption(options.metadata, "--metadata", null);
         const result = graphAddEdge(db, source, target, options.type, {
           weight: Number(options.weight) || 1.0,
           metadata,
@@ -1206,7 +1207,7 @@ export function registerSocialCommand(program) {
     .requiredOption("-p, --peer <peerId>", "peer id")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const r = registerRelationshipV2(id, {
         userId: opts.user,
         peerId: opts.peer,
@@ -1272,7 +1273,7 @@ export function registerSocialCommand(program) {
     .requiredOption("-t, --topic <topic>", "topic")
     .option("-m, --metadata <json>", "metadata JSON", "{}")
     .action((id, opts) => {
-      const meta = JSON.parse(opts.metadata);
+      const meta = parseJsonOption(opts.metadata, "--metadata", {});
       const t = createThreadV2(id, {
         userId: opts.user,
         topic: opts.topic,
