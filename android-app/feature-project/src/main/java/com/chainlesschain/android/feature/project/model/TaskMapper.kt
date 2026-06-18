@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.project.model
 import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.TaskEntity
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -117,7 +118,10 @@ object TaskMapper {
     private fun parseSteps(stepsJson: String?): List<TodoStep> {
         if (stepsJson.isNullOrBlank()) return emptyList()
         return try {
-            val stepDtos = json.decodeFromString<List<TodoStepDto>>(stepsJson)
+            // 用显式生成的 serializer（非 reified 反射查找）——TodoStepDto 是 private 嵌套类，
+            // reified serializer<List<TodoStepDto>>() 的反射查找在运行时会抛 SerializationException
+            // 被吞成空列表（且 R8 下更糟）→ 子步骤静默丢失。显式 serializer 免反射、R8 安全。
+            val stepDtos = json.decodeFromString(ListSerializer(TodoStepDto.serializer()), stepsJson)
             stepDtos.map { dto ->
                 TodoStep(
                     id = dto.id,
@@ -146,7 +150,7 @@ object TaskMapper {
                     completedAt = step.completedAt
                 )
             }
-            json.encodeToString(stepDtos)
+            json.encodeToString(ListSerializer(TodoStepDto.serializer()), stepDtos)
         } catch (e: Exception) {
             Timber.w(e, "Failed to serialize steps: $steps")
             null

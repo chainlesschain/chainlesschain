@@ -1,6 +1,9 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    // 缺失此插件时 @Serializable 类（如 TaskMapper.TodoStepDto）不生成 serializer，
+    // 运行时 encodeToString 反射查找抛异常被吞 → 任务子步骤静默丢失（见 TaskMapperTest）。
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
