@@ -30,7 +30,7 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
-> **155 top-level commands** are registered (as of CLI v0.162.38). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+> **158 top-level commands** are registered (as of CLI v0.162.78). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
 
 ### `chainlesschain setup`
 
@@ -1416,6 +1416,42 @@ chainlesschain loop "nightly sweep" --save nightly         # Persist; later: --r
 ```
 
 Options: `--every <dur>` (30s / 5m / 1.5h), `-n, --max-iterations <n>`, `--until-exit-zero`, `--until <regex>`, `--dynamic`, `--save [id]`, `--resume <id>`, `--json`. Unknown flags pass through to the wrapped agent/command.
+
+### `chainlesschain review [effort]`
+
+Diff-first code review of your working changes (Claude-Code `/code-review` parity). Reviews the working tree by default; scope it to staged changes, a branch base, or an explicit revision range.
+
+```bash
+chainlesschain review                                  # Review working changes (effort: medium)
+chainlesschain review high --paths src/                # Higher effort, limited to paths
+chainlesschain review --staged                         # Staged changes only
+chainlesschain review --base main                      # This branch vs a base ref
+chainlesschain review --fix                            # Apply fixes to the working tree (auto-checkpointed)
+chainlesschain review --security                       # Security-focused (/security-review parity)
+chainlesschain review --simplify                       # Cleanup-only, no bug hunt (/simplify parity)
+chainlesschain review --comment                        # Post findings as inline PR comments (via gh)
+```
+
+Options: `-e, --effort <low|medium|high>`, `--range <A..B>`, `--no-untracked`, `--no-checkpoint`, `--model`/`--provider`/`--base-url`/`--api-key`, `--max-turns <n>`, `--dry-run`, `--json`.
+
+### `chainlesschain insights [id]`
+
+Analyze a session — turns, tools used, errors, duration, and token usage + cost. Defaults to the most-recent session when the ID is omitted.
+
+```bash
+chainlesschain insights                  # Most recent session
+chainlesschain insights <session-id>     # One session
+chainlesschain insights --json           # JSON output
+```
+
+### `chainlesschain terminal-setup`
+
+Bind **Shift+Enter** to a REPL newline in your terminal (Claude-Code parity). Prints the manual steps by default, or writes the VS Code keybinding with `--apply`.
+
+```bash
+chainlesschain terminal-setup            # Print binding instructions
+chainlesschain terminal-setup --apply    # Write the keybinding (VS Code only)
+```
 
 ### `chainlesschain goal <action>`
 
