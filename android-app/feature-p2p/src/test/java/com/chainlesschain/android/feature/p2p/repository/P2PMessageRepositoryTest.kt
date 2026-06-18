@@ -66,7 +66,8 @@ class P2PMessageRepositoryTest {
             p2pMessageDao = p2pMessageDao,
             sessionManager = sessionManager,
             connectionManager = connectionManager,
-            syncAdapter = syncAdapter
+            syncAdapter = syncAdapter,
+            messageNotifier = mockk(relaxed = true)
         )
     }
 

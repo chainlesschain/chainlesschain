@@ -40,7 +40,9 @@ class P2PMessageRepository @Inject constructor(
     // Phase 3d M3 step B：本地发送/接收的消息 → SyncManager.recordChange，
     // 桌面端通过 sync.pull 拉到 p2p_chat_messages 表。dagger.Lazy 与社交 repos
     // 同模式，避开 SocialSyncAdapter ↔ P2PMessageRepository 循环依赖。
-    private val syncAdapter: Lazy<SocialSyncAdapter>
+    private val syncAdapter: Lazy<SocialSyncAdapter>,
+    // FAMILY-67: 被叫端收到消息时弹通知（仅 app 不在前台时）
+    private val messageNotifier: com.chainlesschain.android.feature.p2p.notification.MessageNotifier,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
@@ -353,6 +355,9 @@ class P2PMessageRepository @Inject constructor(
             )
             p2pMessageDao.insertMessage(rewritten)
             Timber.d("Message saved from sync: $resourceId (peer=${entity.fromDeviceId.take(16)}…)")
+            // FAMILY-67: app 不在前台时弹「好友消息」通知（前台由聊天页实时展示，不打扰）
+            runCatching { messageNotifier.notifyIncoming(rewritten.peerId, rewritten.content) }
+                .onFailure { Timber.w(it, "message notify failed") }
         } catch (e: Exception) {
             Timber.e(e, "Failed to save message from sync: $resourceId")
         }
