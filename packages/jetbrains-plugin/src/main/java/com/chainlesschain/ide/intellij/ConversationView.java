@@ -122,8 +122,19 @@ final class ConversationView {
         // (the old side-by-side layout left the field too narrow).
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         JButton llmBtn = new JButton("⚙ LLM");
-        llmBtn.setToolTipText("配置 LLM 提供商 / 文本模型 / 图片识别模型(写入共享 config.json)");
-        llmBtn.addActionListener(ev -> ConfigureLlmAction.runWizard(project));
+        llmBtn.setToolTipText("配置 LLM 提供商 / 文本模型 / 图片识别(视觉)模型(写入共享 config.json)");
+        llmBtn.addActionListener(ev -> {
+            javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+            javax.swing.JMenuItem full =
+                    new javax.swing.JMenuItem("配置 LLM(提供商 / 模型 / API key)…");
+            full.addActionListener(a -> ConfigureLlmAction.runWizard(project));
+            javax.swing.JMenuItem vision =
+                    new javax.swing.JMenuItem("图片识别(视觉)模型…");
+            vision.addActionListener(a -> ConfigureLlmAction.configureVisionModel(project));
+            menu.add(full);
+            menu.add(vision);
+            menu.show(llmBtn, 0, llmBtn.getHeight());
+        });
         buttons.add(llmBtn);
         buttons.add(sendBtn);
         buttons.add(stopBtn);

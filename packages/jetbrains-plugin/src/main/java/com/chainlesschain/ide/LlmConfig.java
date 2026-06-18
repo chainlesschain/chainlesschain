@@ -127,6 +127,28 @@ public final class LlmConfig {
         return parseConfigGet(r.output);
     }
 
+    /** Currently configured vision (image-recognition) model, or null when unset. */
+    public static String getConfiguredVisionModel() {
+        CliResult r = runCli(args("config", "get", "llm.visionModel"));
+        if (!r.ok) return null;
+        return parseConfigGet(r.output);
+    }
+
+    /**
+     * Set just {@code llm.visionModel} (the dedicated vision-model entry, so the
+     * user need not re-run the full wizard / re-type the API key). A blank value
+     * clears it (reverting to the text model / CLI default).
+     * @return null on success, otherwise a user-facing error message
+     */
+    public static String setVisionModel(String visionModel) {
+        String v = visionModel == null ? "" : visionModel.trim();
+        if (!v.isEmpty() && hasUnsafeShellChars(v)) {
+            return "值含不安全字符 — 请去掉空格/引号/& 等再试";
+        }
+        CliResult r = runCli(args("config", "set", "llm.visionModel", v));
+        return r.ok ? null : tail(r.output, 200);
+    }
+
     /**
      * Does this agent error message look like an LLM provider/key configuration
      * problem (auth failure / missing key) — i.e. worth nudging the user toward

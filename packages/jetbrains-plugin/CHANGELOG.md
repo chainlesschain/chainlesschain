@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.18] — 2026-06-19 — dedicated vision-model entry
+
+- **You can now set the image-recognition (vision) model on its own.** It used
+  to only appear as the last step of the full Configure-LLM wizard, so changing
+  it meant re-walking provider → model → API key → base URL. Now:
+  - the **⚙ LLM** button in the chat panel opens a small menu — *Configure LLM*
+    (the full wizard) **or** *Vision model…* (just `llm.visionModel`);
+  - **Tools → ChainlessChain: Configure Vision Model** does the same from the
+    menu bar.
+  The dialog prefills the current value (or the configured provider's
+  suggestion); leaving it blank clears it (revert to the text model / CLI
+  default). No API-key re-entry.
+
 ## [0.4.17] — 2026-06-19 — first-run LLM-setup nudge
 
 - **First-run nudge.** When the chat panel opens and no LLM provider is

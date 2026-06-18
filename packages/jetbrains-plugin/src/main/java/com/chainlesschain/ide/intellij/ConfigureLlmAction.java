@@ -75,6 +75,54 @@ public final class ConfigureLlmAction extends AnAction {
         configureAndVerify(project, preset, model, apiKey, baseUrl, visionModel);
     }
 
+    /**
+     * Dedicated entry to set ONLY the image-recognition (vision) model, without
+     * re-running the full wizard or re-typing the API key. Prefills the current
+     * value (or the configured provider's suggestion); blank clears it.
+     */
+    public static void configureVisionModel(Project project) {
+        new Task.Backgroundable(project, "ChainlessChain: 读取当前视觉模型…", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                String current = LlmConfig.getConfiguredVisionModel();
+                String provider = LlmConfig.getConfiguredProvider();
+                final String prefill = (current != null && !current.trim().isEmpty())
+                        ? current
+                        : LlmConfig.suggestVisionModel(provider == null ? "" : provider);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    String vision = Messages.showInputDialog(project,
+                            "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认)\n"
+                                    + "看图/粘贴截图时自动切到此模型,可与文本模型不同。",
+                            TITLE, null, prefill, null);
+                    if (vision == null) return; // cancelled
+                    applyVisionModel(project, vision);
+                });
+            }
+        }.queue();
+    }
+
+    private static void applyVisionModel(Project project, String visionModel) {
+        final String fVision = visionModel;
+        new Task.Backgroundable(project, "ChainlessChain: 写入视觉模型…", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                final String err = LlmConfig.setVisionModel(fVision);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (err != null) {
+                        Messages.showErrorDialog(project, "视觉模型写入失败:" + err, TITLE);
+                    } else if (fVision == null || fVision.trim().isEmpty()) {
+                        Messages.showInfoMessage(project,
+                                "已清除图片识别模型 —— 看图时复用文本模型 / CLI 默认。", TITLE);
+                    } else {
+                        Messages.showInfoMessage(project,
+                                "图片识别模型已设为 " + fVision.trim()
+                                        + " ✓(粘贴截图时自动切到它)。", TITLE);
+                    }
+                });
+            }
+        }.queue();
+    }
+
     /** Blocking provider chooser (combo box) — replaces the deprecated
      *  Messages.showChooseDialog; returns the selected index or -1 if cancelled. */
     private static int chooseProvider(Project project, String[] labels) {

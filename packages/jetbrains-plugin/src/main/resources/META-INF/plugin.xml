@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.17</version>
+    <version>0.4.18</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.18</b> — dedicated image-recognition (vision) model entry: the
+        <b>⚙ LLM</b> button is now a small menu (configure full LLM <i>or</i> just
+        the vision model), plus a <b>Tools → Configure Vision Model</b> action.
+        Set <code>llm.visionModel</code> without re-running the whole wizard or
+        re-typing your API key; blank reverts to the text model.
+        <br/><br/>
         <b>0.4.17</b> — first-run nudge: when no LLM provider is configured yet,
         the chat panel now shows a dim hint pointing at the <b>⚙ LLM</b> button
         instead of staying blank until the first turn fails with a 401 (VS Code
@@ -182,6 +188,12 @@
                 class="com.chainlesschain.ide.intellij.ConfigureLlmAction"
                 text="ChainlessChain: Configure LLM (配置大模型)"
                 description="Guided LLM setup via cc config set + cc llm test">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.ide.ConfigureVisionModel"
+                class="com.chainlesschain.ide.intellij.ConfigureVisionModelAction"
+                text="ChainlessChain: Configure Vision Model (配置图片识别模型)"
+                description="Set just llm.visionModel — the image-recognition model used when you paste a screenshot">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.chat.newConversation"
