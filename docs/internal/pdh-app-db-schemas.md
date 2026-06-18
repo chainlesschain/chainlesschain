@@ -61,6 +61,17 @@
 > `auto_install`/`dbjson_key_download_prepare_time`/`expect_file_length`/`start_offset`/
 > `ttmd5_check_status` 等，带双 epoch 时间戳）——视频缓存/feed 投放记录，→ EVENT(MEDIA)。
 
+### 明文 app 库（`device-verified` 2026-06-18，用户导出明文库实测）— **免解密直读，高价值**
+
+抖音两个 **明文** sqlite 库（无需 frida/解密）直接给出"看过什么 + 怎么用 App"：
+
+| 库 / 表 | 列 | → PDH | 解读 / 坑 |
+|---|---|---|---|
+| `video_record.db` → `record_<uid>` + `record_0` | `aid`, `view_time_timestamp`(ms), `enter_from`(来源页 homepage_hot/others_homepage…) | EVENT subtype=BROWSE（adapter kind `history`）| **观看记录**。⚠️ 历史按表分散：`record_0`(默认桶) + `record_<uid>`(登录账号)，**哪张装大头因设备而异**（一机 uid 表 900 行；另一机 record_0=223 vs uid=9）→ 必须 **MERGE 所有 `record_*` 表 + 按 (aid, ts) 去重**，别只取最大 uid 表（`readDouyinWatchHistory`，commit `6ed13be4d`）。只有 aid 无标题/作者，语义需另调 `aweme-detail-client`。|
+| `1128_feature_engineering.db` → `FEInternalUserActivityTable` | `timestamp`(s), `open_app_count`, `launch_hour_0..23`, `total_duration`(ms) | EVENT subtype=other, `extra.kind="app-usage-profile"` | **使用画像基线**（每会话聚合）：天数/会话/启动次数/累计时长/24h 直方图/高峰时段桶。实测 24 天/81 会话/175 启动/107.9h/高峰 12-17h。`usage-profile-reader`（commit `51c1565c8`），stable originalId 去重、timeline 排除、overview/interests 可用。|
+
+> 其余 `1128_feature_engineering.db` 数千行 `FeatureSchema_*`/`AppLog_*` = ML 特征向量（电商/直播/广告推荐），编码不可读 = 噪音，不入库。`offline_download_*`(下载视频)、`<uid>_im.db`(私信) 在该导出库为空。`scan_v1.db` = 手机相册 AI 扫描标签（本地相册元数据，另类，敏感度高）。
+
 ### `msg` 关键细节（IM 正文）
 - `type`(int) 区分消息形态（文本/图片/卡片/系统）；`content` 是 ByteDance 消息 JSON，按 type 取文本。
 - `created_time` 多为 epoch（秒/毫秒/微秒混用，按位数判，见 `im-db-parser.normalizeEpochMs`）。
@@ -69,9 +80,10 @@
 
 ### AI 找数据指引（抖音）
 - **私信**：`msg`（按 `conversation_id` 分组）；会话元信息 `conversation_list`；成员 `participant.user_id`。
-- **看过的视频/兴趣**：`video_history`/内容缓存表（`aweme_id` + 时间戳）。
+- **看过的视频/兴趣**：优先 **明文** `video_record.db`（`record_*` 合并去重，免解密）；其次 `video_history`/内容缓存表。
+- **使用习惯/作息**：**明文** `1128_feature_engineering.db` → `FEInternalUserActivityTable`（活跃时段+时长）。
 - **收藏**：`user_favorite`；**搜索**：`search_history`。
-- ⚠️ 库加密（WCDB2 专有 cipher）→ 必须走 Method B 内存打捞（免密钥）；端点见 runbook。
+- ⚠️ 仅 **IM 私信** 库加密（WCDB2 专有 cipher）→ 必须走 Method B/C；观看记录+使用画像是明文，直读即可。
 
 ### UI 展示建议（抖音）
 - `msg`+`conversation_list`+`participant` → **私信会话视图**（会话列表 + 气泡）。
