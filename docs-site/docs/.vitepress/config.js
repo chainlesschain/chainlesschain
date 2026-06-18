@@ -164,6 +164,7 @@ export default defineConfig({
               link: "/chainlesschain/personal-data-hub",
             },
             { text: "去中心化社交", link: "/chainlesschain/social" },
+            { text: "好友 P2P 加密消息 ⭐NEW", link: "/chainlesschain/friend-p2p-messaging" },
             { text: "交易辅助", link: "/chainlesschain/trading" },
             { text: "U盾集成", link: "/chainlesschain/ukey" },
             { text: "SIMKey集成", link: "/chainlesschain/simkey" },
