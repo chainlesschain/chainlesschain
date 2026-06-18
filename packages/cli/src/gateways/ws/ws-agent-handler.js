@@ -16,6 +16,7 @@ import {
   detectTaskType,
   selectModelForTask,
 } from "../../lib/task-model-selector.js";
+import { runnableTaskModel } from "../../lib/runnable-provider.js";
 import { PlanState } from "../../lib/plan-mode.js";
 import { CLISlotFiller } from "../../lib/slot-filler.js";
 import { createAbortError, isAbortError } from "../../lib/abort-utils.js";
@@ -63,7 +64,9 @@ export class WSAgentHandler {
       // Add user message
       session.messages.push({ role: "user", content: userMessage });
 
-      // Auto-select model based on task type
+      // Auto-select model based on task type — runnable-first: never switch
+      // onto a provider with no usable key (you'd just 401). Keep the
+      // configured model in that case.
       let activeModel = session.model;
       const taskDetection = detectTaskType(userMessage);
       if (taskDetection.confidence > 0.3) {
@@ -71,8 +74,14 @@ export class WSAgentHandler {
           session.provider,
           taskDetection.taskType,
         );
-        if (recommended && recommended !== activeModel) {
-          activeModel = recommended;
+        const switchTo = runnableTaskModel({
+          provider: session.provider,
+          currentModel: activeModel,
+          recommended,
+          apiKey: session.apiKey,
+        });
+        if (switchTo) {
+          activeModel = switchTo;
           this.interaction.emit("model-switch", {
             requestId,
             from: session.model,

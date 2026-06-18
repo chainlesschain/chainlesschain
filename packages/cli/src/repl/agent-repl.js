@@ -52,6 +52,7 @@ import {
   detectTaskType,
   selectModelForTask,
 } from "../lib/task-model-selector.js";
+import { runnableTaskModel, hasUsableKey } from "../lib/runnable-provider.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import {
@@ -3107,15 +3108,34 @@ export async function startAgentRepl(options = {}) {
       // Slot-filling failure is non-critical
     }
 
-    // Auto-select best model based on task type
+    // Auto-select best model based on task type — but ONLY onto a runnable
+    // provider. The selector maps e.g. "fast" → claude-haiku on anthropic; if
+    // there's no usable key for the provider, never switch there (you'd just
+    // get a 401). Runnable-first: keep the configured (working) model instead.
     let activeModel = model;
     const taskDetection = detectTaskType(promptText);
     if (taskDetection.confidence > 0.3) {
       const recommended = selectModelForTask(provider, taskDetection.taskType);
-      if (recommended && recommended !== activeModel) {
-        activeModel = recommended;
+      const switchTo = runnableTaskModel({
+        provider,
+        currentModel: activeModel,
+        recommended,
+        apiKey,
+      });
+      if (switchTo) {
+        activeModel = switchTo;
         logger.info(
           chalk.gray(`[auto] ${taskDetection.name} → ${activeModel}`),
+        );
+      } else if (
+        recommended &&
+        recommended !== activeModel &&
+        !hasUsableKey(provider, { apiKey })
+      ) {
+        logger.info(
+          chalk.gray(
+            `[auto] ${taskDetection.name}: keeping ${activeModel} — no usable key for "${provider}" (skipping ${recommended})`,
+          ),
         );
       }
     }
