@@ -131,6 +131,7 @@ fun LLMTestChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding() // 键盘弹出时抬起输入框，避免被遮挡
         ) {
             // 性能统计卡片
             if (uiState.showStats) {

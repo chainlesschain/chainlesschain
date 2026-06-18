@@ -209,6 +209,8 @@ fun P2PChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                // 键盘弹出时把内容（含底部输入框）抬到键盘之上，否则输入框被键盘遮挡看不到输入内容。
+                .imePadding()
         ) {
             // 未验证警告
             if (!isVerified) {

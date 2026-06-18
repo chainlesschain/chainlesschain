@@ -191,6 +191,7 @@ fun EnhancedAIChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding() // 键盘弹出时抬起输入框，避免被遮挡
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
         ) {
             LazyColumn(
