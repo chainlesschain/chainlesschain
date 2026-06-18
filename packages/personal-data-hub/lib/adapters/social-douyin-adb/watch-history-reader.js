@@ -88,9 +88,18 @@ async function pullVideoRecordDbViaSu(adb, serial, opts = {}) {
 
 /**
  * Read watch records from video_record.db. Tables are named `record_<uid>`
- * (per-account) plus an anonymous `record_0`. Picks the numeric-uid table with
- * the most rows (the logged-in account); records carry aid + view timestamp +
- * enter_from surface.
+ * (per-account) plus a default `record_0`. We MERGE every `record_*` table
+ * (record_0 included) and dedup by (awemeId, capturedAt), because the watch
+ * history is split across tables and which one holds the bulk varies by device:
+ *
+ *   - real-device 2026-06-11 (5lhyaqu8lbwstc6x): record_<uid> = 900 rows.
+ *   - real-device 2026-06-18: record_0 = 223 rows vs record_<uid> = 9 — the
+ *     anonymous/default bucket held 96% of the history.
+ *
+ * The earlier "skip record_0, pick the largest uid table" logic silently
+ * dropped the record_0 rows and lost most of the history on the 2nd device.
+ * Attribution `uid` is still the largest non-zero `record_<uid>` table (the
+ * logged-in account), or null when only record_0 exists.
  *
  * @returns {{uid: string|null, records: Array<{awemeId,capturedAt,enterFrom}>}}
  */
@@ -102,43 +111,57 @@ function readDouyinWatchHistory(dbPath, opts = {}) {
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'record\\_%' ESCAPE '\\'")
       .all()
-      .map((t) => t.name);
-    // Candidate uid tables: record_<digits>, uid != 0. Pick the largest.
-    let best = null;
+      .map((t) => t.name)
+      .filter((name) => /^record_\d+$/.test(name));
+    if (tables.length === 0) return { uid: null, records: [] };
+
+    let bestUid = null; // largest non-zero record_<uid> table → attribution
+    const merged = new Map(); // dedupKey → record (first-seen wins)
     for (const name of tables) {
       const m = /^record_(\d+)$/.exec(name);
-      if (!m || m[1] === "0") continue;
       let count = 0;
       try {
         count = db.prepare(`SELECT COUNT(*) c FROM "${name}"`).get().c;
       } catch (_e) {
         continue;
       }
-      if (!best || count > best.count) best = { name, uid: m[1], count };
+      if (m && m[1] !== "0" && (!bestUid || count > bestUid.count)) {
+        bestUid = { uid: m[1], count };
+      }
+      const cols = new Set(
+        db.prepare(`PRAGMA table_info("${name}")`).all().map((c) => c.name),
+      );
+      const hasEnter = cols.has("enter_from");
+      const hasTs = cols.has("view_time_timestamp");
+      let rows;
+      try {
+        rows = db
+          .prepare(
+            `SELECT aid${hasTs ? ", view_time_timestamp" : ""}${hasEnter ? ", enter_from" : ""} ` +
+              `FROM "${name}"${hasTs ? " ORDER BY view_time_timestamp DESC" : ""} LIMIT ${limit}`,
+          )
+          .all();
+      } catch (_e) {
+        continue;
+      }
+      for (const r of rows) {
+        const awemeId = r.aid != null ? String(r.aid) : null;
+        if (!awemeId) continue;
+        const capturedAt = hasTs ? toEpochMs(r.view_time_timestamp) : null;
+        const key = `${awemeId}@${capturedAt == null ? "" : capturedAt}`;
+        if (merged.has(key)) continue;
+        merged.set(key, {
+          awemeId,
+          capturedAt,
+          enterFrom: hasEnter ? r.enter_from || null : null,
+        });
+      }
     }
-    if (!best) return { uid: null, records: [] };
-    const cols = new Set(
-      db.prepare(`PRAGMA table_info("${best.name}")`).all().map((c) => c.name),
-    );
-    const hasEnter = cols.has("enter_from");
-    const hasTs = cols.has("view_time_timestamp");
-    const rows = db
-      .prepare(
-        `SELECT aid${hasTs ? ", view_time_timestamp" : ""}${hasEnter ? ", enter_from" : ""} ` +
-          `FROM "${best.name}"${hasTs ? " ORDER BY view_time_timestamp DESC" : ""} LIMIT ${limit}`,
-      )
-      .all();
-    const records = [];
-    for (const r of rows) {
-      const awemeId = r.aid != null ? String(r.aid) : null;
-      if (!awemeId) continue;
-      records.push({
-        awemeId,
-        capturedAt: hasTs ? toEpochMs(r.view_time_timestamp) : null,
-        enterFrom: hasEnter ? r.enter_from || null : null,
-      });
-    }
-    return { uid: best.uid, records };
+    // Most-recent first (null timestamps sink to the end), then cap.
+    const records = Array.from(merged.values())
+      .sort((a, b) => (b.capturedAt || 0) - (a.capturedAt || 0))
+      .slice(0, limit);
+    return { uid: bestUid ? bestUid.uid : null, records };
   } finally {
     try {
       db.close();

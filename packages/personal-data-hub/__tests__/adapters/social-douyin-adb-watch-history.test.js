@@ -55,9 +55,9 @@ function makeFakeDb(tablesToRows) {
 }
 
 describe("readDouyinWatchHistory", () => {
-  it("picks the largest record_<uid> table (skips record_0), parses rows → ms", () => {
+  it("merges record_0 + record_<uid>, attributes uid to the largest uid table, parses rows → ms", () => {
     const Db = makeFakeDb({
-      record_0: [{ aid: "x", view_time_timestamp: 1, enter_from: "a" }],
+      record_0: [{ aid: "xrec0", view_time_timestamp: 1, enter_from: "a" }],
       record_92585448288: [
         { aid: "7480000000000000001", view_time_timestamp: 1717800000, enter_from: "homepage_hot" },
         { aid: "7480000000000000002", view_time_timestamp: 1717800600, enter_from: "homepage_follow" },
@@ -65,19 +65,40 @@ describe("readDouyinWatchHistory", () => {
     });
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
     expect(r.uid).toBe("92585448288");
-    expect(r.records).toHaveLength(2);
+    // record_0 is no longer dropped: 1 (record_0) + 2 (uid) = 3 merged records.
+    expect(r.records).toHaveLength(3);
+    // Most-recent first.
     expect(r.records[0]).toEqual({
-      awemeId: "7480000000000000001",
-      capturedAt: 1717800000 * 1000, // seconds → ms
-      enterFrom: "homepage_hot",
+      awemeId: "7480000000000000002",
+      capturedAt: 1717800600 * 1000,
+      enterFrom: "homepage_follow",
     });
+    const ids = r.records.map((x) => x.awemeId);
+    expect(ids).toContain("xrec0"); // the formerly-lost record_0 row
+    const rec0 = r.records.find((x) => x.awemeId === "xrec0");
+    expect(rec0).toEqual({ awemeId: "xrec0", capturedAt: 1000, enterFrom: "a" });
   });
 
-  it("returns {uid:null, records:[]} when only the anonymous record_0 exists", () => {
-    const Db = makeFakeDb({ record_0: [{ aid: "x", view_time_timestamp: 1 }] });
+  it("recovers history from record_0 alone (uid:null) — the bulk-in-record_0 device case", () => {
+    const Db = makeFakeDb({
+      record_0: [
+        { aid: "a1", view_time_timestamp: 1717800000, enter_from: "homepage_hot" },
+        { aid: "a2", view_time_timestamp: 1717800600, enter_from: "homepage_hot" },
+      ],
+    });
     const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
-    expect(r.uid).toBe(null);
-    expect(r.records).toEqual([]);
+    expect(r.uid).toBe(null); // no logged-in account table → no attribution
+    expect(r.records).toHaveLength(2); // but the watch history is still recovered
+    expect(r.records.map((x) => x.awemeId).sort()).toEqual(["a1", "a2"]);
+  });
+
+  it("dedups the same (aid, timestamp) appearing in two record_* tables", () => {
+    const Db = makeFakeDb({
+      record_0: [{ aid: "dup", view_time_timestamp: 1717800000, enter_from: "homepage_hot" }],
+      record_111: [{ aid: "dup", view_time_timestamp: 1717800000, enter_from: "homepage_hot" }],
+    });
+    const r = _internals.readDouyinWatchHistory("x.db", { _databaseClass: Db });
+    expect(r.records).toHaveLength(1);
   });
 
   it("toEpochMs treats >1e12 as ms, else seconds; rejects junk", () => {
