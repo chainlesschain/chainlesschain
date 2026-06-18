@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 class AndroidCallServiceLauncherTest {
 
     private val app: Application = RuntimeEnvironment.getApplication()
-    private val launcher = AndroidCallServiceLauncher(app)
+    private val launcher = AndroidCallServiceLauncher(app, CallRinger(app))
     private val nm = app.getSystemService(NotificationManager::class.java)!!
 
     private fun session(

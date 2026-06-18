@@ -23,6 +23,7 @@ import javax.inject.Singleton
 @Singleton
 class AndroidCallServiceLauncher @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val ringer: CallRinger,
 ) : CallServiceLauncher {
 
     private val nm: NotificationManager? =
@@ -30,14 +31,15 @@ class AndroidCallServiceLauncher @Inject constructor(
 
     override fun onCall(session: CallSession) {
         when (session.state) {
-            CallState.INCOMING -> notifyIncoming(session)
-            CallState.OUTGOING, CallState.OUTGOING_RINGING -> notifyOutgoing(session)
-            CallState.CONNECTING, CallState.ACTIVE -> CallForegroundService.start(context)
-            else -> { /* ENDED/IDLE → clear() 负责 */ }
+            CallState.INCOMING -> { ringer.startRinging(); notifyIncoming(session) }
+            CallState.OUTGOING, CallState.OUTGOING_RINGING -> { ringer.startRingback(); notifyOutgoing(session) }
+            CallState.CONNECTING, CallState.ACTIVE -> { ringer.stop(); CallForegroundService.start(context) }
+            else -> { ringer.stop() /* ENDED/IDLE → clear() 负责 */ }
         }
     }
 
     override fun clear() {
+        ringer.stop()
         runCatching { nm?.cancel(CallNotifications.NOTIFICATION_ID) }
         CallForegroundService.stop(context)
     }
