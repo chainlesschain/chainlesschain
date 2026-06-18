@@ -93,18 +93,23 @@ class AndroidCallServiceLauncher @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        // CallStyle.forIncomingCall：系统级来电样式，锁屏/熄屏/通知栏都渲染醒目的「接听/拒绝」按钮
+        // （即便 Android 14+ 全屏 intent 被降级为 heads-up，按钮仍在）。配合 setFullScreenIntent
+        // 在已授权设备上直接拉起全屏 CallActivity（android:showWhenLocked/turnScreenOn 越锁屏）。
+        val caller = androidx.core.app.Person.Builder()
+            .setName("$mediaLabel · ${shortDid(session.peerDid)}")
+            .setImportant(true)
+            .build()
         val notif = NotificationCompat.Builder(context, CallNotifications.CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle("$mediaLabel 来电")
             .setContentText(shortDid(session.peerDid))
-            .setSmallIcon(android.R.drawable.ic_menu_call)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreen, true)
-            .setContentIntent(fullScreen)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "拒接", reject)
-            .addAction(android.R.drawable.ic_menu_call, "接听", accept)
+            .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, reject, accept))
             .build()
         runCatching { nm?.notify(CallNotifications.NOTIFICATION_ID, notif) }
             .onFailure { Timber.w(it, "[CallLauncher] notifyIncoming failed") }
