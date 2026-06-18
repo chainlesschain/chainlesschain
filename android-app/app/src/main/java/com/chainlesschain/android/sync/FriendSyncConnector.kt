@@ -95,10 +95,14 @@ class FriendSyncConnector @Inject constructor(
                 .onFailure { Timber.w(it, "[FriendSyncConnector] connect to ${t.did} failed") }
             // offerer（DID 较小方）发起 E2EE 握手；建好会话后好友聊天发送闸才打开
             // （P2PChatViewModel 要求 getSession(peerId) 非空）。responder 侧由 e2ee.* 路由被动应答。
-            // FAMILY-67: 不再要求 DataChannel 已连（connectedToThis）才握手——握手命令经
-            // P2PClient.sendCommand 会在 DataChannel 打不通时自动经信令中继送达，故 offerer 总尝试。
-            // initiate 幂等（已有会话直接返回），重复 pass 无副作用。
-            if (t.isInitiator) {
+            // FAMILY-67 自愈修复：**仅在 DataChannel 已连（connectedPeers 含该 peer）时才握手**。
+            // connectFamilyPeer 成功时同步把 peer 写入 connectedPeers（见 P2PClient L330），故此处可直接判。
+            // 此前「不管 DataChannel 都握手」在中继-only 场景下徒劳——responder 的 SyncAuthVerifier 因
+            // connectedPeers 为空必拒（"no active P2P peer to validate against"），握手循环空转失败 + connect
+            // 退避并存 → 卡死「正在自动连接」需手动重启。改为连上才握手：连不上则本轮不握手，connectFamilyPeer
+            // 退避到期后下一轮重连，连上即自然握手 → 自动恢复，无需重启 app。initiate 幂等，重复 pass 无副作用。
+            val connectedToThis = p2pClient.connectedPeers.value.values.any { it.did == t.did }
+            if (t.isInitiator && connectedToThis) {
                 runCatching { sessionHandshake.initiate(t.did) }
                     .onFailure { Timber.w(it, "[FriendSyncConnector] E2EE handshake to ${t.did} failed") }
             }
