@@ -2605,11 +2605,15 @@ export async function chatWithTools(rawMessages, options) {
     // same {message, usage} shape is returned, so the agent loop is unchanged.
     // Without onToken we keep the cheaper single-shot non-streaming request.
     if (typeof options.onToken === "function") {
-      return await _chatOllamaStreaming(
-        apiUrl,
-        { model, messages: ollamaMessages, tools },
-        options.onToken,
-        signal,
+      return await _retryStreamingChat(
+        () =>
+          _chatOllamaStreaming(
+            apiUrl,
+            { model, messages: ollamaMessages, tools },
+            options.onToken,
+            signal,
+          ),
+        { signal, onRetry: options.onStreamRetry },
       );
     }
     const response = await fetch(apiUrl, {
@@ -2691,13 +2695,17 @@ export async function chatWithTools(rawMessages, options) {
     // and forward text deltas live, assembling tool_use blocks back into the
     // same {message, usage} shape the non-streaming path returns.
     if (typeof options.onToken === "function") {
-      return await _chatAnthropicStreaming(
-        `${url}/messages`,
-        { ...body, stream: true },
-        { "x-api-key": key, "anthropic-version": "2023-06-01" },
-        options.onToken,
-        signal,
-        options.onThinking,
+      return await _retryStreamingChat(
+        () =>
+          _chatAnthropicStreaming(
+            `${url}/messages`,
+            { ...body, stream: true },
+            { "x-api-key": key, "anthropic-version": "2023-06-01" },
+            options.onToken,
+            signal,
+            options.onThinking,
+          ),
+        { signal, onRetry: options.onStreamRetry },
       );
     }
 
@@ -2775,19 +2783,23 @@ export async function chatWithTools(rawMessages, options) {
   // stream the SSE response, forward content deltas live, and reassemble the
   // delta-fragmented tool_calls into the standard {message, usage} shape.
   if (typeof options.onToken === "function") {
-    return await _chatOpenAIStreaming(
-      `${url}/chat/completions`,
-      {
-        model: model || defaultModels[provider] || "gpt-4o-mini",
-        messages,
-        tools,
-        stream: true,
-        stream_options: { include_usage: true },
-      },
-      key,
-      options.onToken,
-      signal,
-      provider,
+    return await _retryStreamingChat(
+      () =>
+        _chatOpenAIStreaming(
+          `${url}/chat/completions`,
+          {
+            model: model || defaultModels[provider] || "gpt-4o-mini",
+            messages,
+            tools,
+            stream: true,
+            stream_options: { include_usage: true },
+          },
+          key,
+          options.onToken,
+          signal,
+          provider,
+        ),
+      { signal, onRetry: options.onStreamRetry },
     );
   }
 
@@ -2917,6 +2929,86 @@ export function _streamErrorDisposition(err, signal, partialText) {
   if (signal && signal.aborted) return "rethrow";
   if (typeof partialText === "string" && partialText.trim()) return "preserve";
   return "rethrow";
+}
+
+/**
+ * Is this error from a streaming chat request a transient API CONNECTION drop
+ * that is safe to retry? True only for genuine network failures (reset /
+ * timeout / DNS / refused / socket hangup / undici "terminated" / "fetch
+ * failed"). False for user aborts and for HTTP/status errors (a 4xx/auth/5xx is
+ * the server's verdict carried in the message, not a dropped pipe — retrying a
+ * connection that never dropped won't help and could double-bill).
+ *
+ * Safe to act on at the dispatch seam because any error that propagates OUT of
+ * `_chat*Streaming` is either an abort or a drop with ZERO output already
+ * streamed (partial-output drops are preserved internally and never throw) — so
+ * a retry can never duplicate visible text. Pure + exported for tests.
+ */
+export function _isRetryableStreamError(err, signal) {
+  if (isAbortError(err)) return false;
+  if (signal && signal.aborted) return false;
+  if (!err) return false;
+  const code = String(err.code || err.cause?.code || "").toUpperCase();
+  if (
+    [
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "ECONNREFUSED",
+      "EAI_AGAIN",
+      "EPIPE",
+      "ENETUNREACH",
+      "ENOTFOUND",
+      "UND_ERR_SOCKET",
+    ].includes(code)
+  ) {
+    return true;
+  }
+  const msg = String(err.message || err).toLowerCase();
+  return /econnreset|etimedout|econnrefused|eai_again|socket hang ?up|terminated|fetch failed|network error|timed?\s*out|premature close/.test(
+    msg,
+  );
+}
+
+/** Bounded auto-retry for streaming connection drops (Claude-Code 2.1.181). */
+const STREAM_RETRY_MAX = 2;
+const STREAM_RETRY_BASE_MS = 400;
+
+/**
+ * Run a streaming chat attempt with bounded auto-retry on transient API
+ * connection drops (Claude-Code 2.1.181: "auto-retry for API connection drops
+ * during thinking"). Only connection-level failures are retried (see
+ * `_isRetryableStreamError`); user aborts and HTTP/status errors surface
+ * immediately. Backoff is exponential and abort-aware. Transparent to the
+ * caller: on success returns the attempt's result; on exhaustion rethrows the
+ * last error — strictly better than today (one drop → instant error).
+ *
+ * @param {() => Promise<any>} streamFn  invokes one `_chat*Streaming` attempt
+ * @param {object} opts  { signal?, retries?, baseDelayMs?, onRetry?, sleep? }
+ */
+export async function _retryStreamingChat(streamFn, opts = {}) {
+  const retries = opts.retries ?? STREAM_RETRY_MAX;
+  const base = opts.baseDelayMs ?? STREAM_RETRY_BASE_MS;
+  const signal = opts.signal;
+  const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await streamFn();
+    } catch (err) {
+      if (attempt >= retries || !_isRetryableStreamError(err, signal))
+        throw err;
+      attempt++;
+      if (typeof opts.onRetry === "function") {
+        try {
+          opts.onRetry(attempt, err);
+        } catch {
+          /* the retry notice is best-effort; never let it mask the retry */
+        }
+      }
+      await sleep(base * Math.pow(2, attempt - 1));
+      if (signal && signal.aborted) throw err; // user bailed during backoff
+    }
+  }
 }
 
 /**

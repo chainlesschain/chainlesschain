@@ -17,6 +17,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import os from "os";
 import {
   _streamErrorDisposition,
+  _isRetryableStreamError,
+  _retryStreamingChat,
   chatWithTools,
 } from "../../src/runtime/agent-core.js";
 
@@ -165,5 +167,139 @@ describe("chatWithTools — streaming connection-drop resilience", () => {
         baseOpts({ onToken: () => {} }),
       ),
     ).rejects.toThrow(/socket hang up/);
+  });
+});
+
+describe("_isRetryableStreamError (auto-retry classifier, 2.1.181)", () => {
+  const byCode = (c) => Object.assign(new Error("boom"), { code: c });
+
+  it("retries genuine connection drops by code", () => {
+    for (const c of [
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "ECONNREFUSED",
+      "EAI_AGAIN",
+      "EPIPE",
+      "ENETUNREACH",
+      "ENOTFOUND",
+      "UND_ERR_SOCKET",
+    ]) {
+      expect(_isRetryableStreamError(byCode(c), null)).toBe(true);
+    }
+  });
+
+  it("retries connection drops detected by message (incl. nested cause)", () => {
+    expect(_isRetryableStreamError(new Error("terminated"), null)).toBe(true);
+    expect(_isRetryableStreamError(new TypeError("fetch failed"), null)).toBe(
+      true,
+    );
+    expect(_isRetryableStreamError(new Error("socket hang up"), null)).toBe(
+      true,
+    );
+    const undici = Object.assign(new TypeError("fetch failed"), {
+      cause: { code: "ECONNRESET" },
+    });
+    expect(_isRetryableStreamError(undici, null)).toBe(true);
+  });
+
+  it("does NOT retry aborts or HTTP/status errors", () => {
+    const abort = Object.assign(new Error("stop"), { name: "AbortError" });
+    expect(_isRetryableStreamError(abort, null)).toBe(false);
+    expect(
+      _isRetryableStreamError(new Error("terminated"), { aborted: true }),
+    ).toBe(false);
+    // HTTP status errors are the server's verdict, not a dropped pipe.
+    expect(
+      _isRetryableStreamError(new Error("Anthropic error: 401"), null),
+    ).toBe(false);
+    expect(_isRetryableStreamError(new Error("Ollama error: 500"), null)).toBe(
+      false,
+    );
+    expect(_isRetryableStreamError(null, null)).toBe(false);
+  });
+});
+
+describe("_retryStreamingChat (bounded auto-retry, 2.1.181)", () => {
+  const noSleep = () => Promise.resolve();
+
+  it("returns the first success without retrying", async () => {
+    let calls = 0;
+    const out = await _retryStreamingChat(
+      async () => {
+        calls++;
+        return "ok";
+      },
+      { sleep: noSleep },
+    );
+    expect(out).toBe("ok");
+    expect(calls).toBe(1);
+  });
+
+  it("retries a connection drop, then succeeds", async () => {
+    let calls = 0;
+    const drop = Object.assign(new Error("terminated"), { code: "ECONNRESET" });
+    const onRetry = vi.fn();
+    const out = await _retryStreamingChat(
+      async () => {
+        calls++;
+        if (calls < 3) throw drop;
+        return "recovered";
+      },
+      { sleep: noSleep, onRetry },
+    );
+    expect(out).toBe("recovered");
+    expect(calls).toBe(3); // 1 attempt + 2 retries
+    expect(onRetry).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after the retry budget and rethrows the last error", async () => {
+    let calls = 0;
+    const drop = new Error("socket hang up");
+    await expect(
+      _retryStreamingChat(
+        async () => {
+          calls++;
+          throw drop;
+        },
+        { sleep: noSleep },
+      ),
+    ).rejects.toThrow(/socket hang up/);
+    expect(calls).toBe(3); // 1 + default budget of 2
+  });
+
+  it("never retries a non-retryable (abort / HTTP) error", async () => {
+    let calls = 0;
+    const abort = Object.assign(new Error("interrupted"), {
+      name: "AbortError",
+    });
+    await expect(
+      _retryStreamingChat(
+        async () => {
+          calls++;
+          throw abort;
+        },
+        { sleep: noSleep },
+      ),
+    ).rejects.toThrow(/interrupted/);
+    expect(calls).toBe(1);
+  });
+
+  it("stops retrying when the signal aborts during backoff", async () => {
+    let calls = 0;
+    const signal = { aborted: false };
+    const drop = Object.assign(new Error("terminated"), { code: "ETIMEDOUT" });
+    const sleep = async () => {
+      signal.aborted = true; // user hits Esc mid-backoff
+    };
+    await expect(
+      _retryStreamingChat(
+        async () => {
+          calls++;
+          throw drop;
+        },
+        { sleep, signal },
+      ),
+    ).rejects.toThrow(/terminated/);
+    expect(calls).toBe(1);
   });
 });
