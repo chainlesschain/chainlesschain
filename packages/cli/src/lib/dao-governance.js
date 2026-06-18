@@ -437,7 +437,7 @@ export function castVote(db, opts) {
       `Invalid voteType: ${voteType}. Must be one of: ${Object.values(VOTE_TYPE).join(", ")}`,
     );
   }
-  if (typeof voteCount !== "number" || voteCount <= 0) {
+  if (!Number.isFinite(voteCount) || voteCount <= 0) {
     throw new Error("voteCount must be a positive number");
   }
 
@@ -686,7 +686,7 @@ export function allocateFundsV2(db, opts) {
   const { proposalId, recipient, amount, asset = "native", memo } = opts || {};
   if (!proposalId) throw new Error("proposalId is required");
   if (!recipient) throw new Error("recipient is required");
-  if (typeof amount !== "number" || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error("amount must be a positive number");
   }
   if (amount > _configV2.maxSingleAllocation) {
@@ -807,7 +807,7 @@ export function getConfigV2() {
 
 export function depositToTreasuryV2(db, opts) {
   const { amount, asset = "native", memo, depositorDid } = opts || {};
-  if (typeof amount !== "number" || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error("amount must be a positive number");
   }
 

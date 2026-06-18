@@ -665,7 +665,7 @@ export function registerDaoCommand(program) {
         const tx = allocateFundsV2(db, {
           proposalId,
           recipient: options.recipient,
-          amount: parseFloat(options.amount),
+          amount: parseNumberOption(options.amount, "--amount"),
           asset: options.asset,
           memo: options.memo,
         });
@@ -707,7 +707,7 @@ export function registerDaoCommand(program) {
         ensureDAOv2Tables(db);
 
         const tx = depositToTreasuryV2(db, {
-          amount: parseFloat(options.amount),
+          amount: parseNumberOption(options.amount, "--amount"),
           asset: options.asset,
           depositorDid: options.depositorDid,
           memo: options.memo,

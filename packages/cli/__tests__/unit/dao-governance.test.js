@@ -698,6 +698,16 @@ describe("dao-governance", () => {
         }),
       ).toThrow(/maxSingleAllocation|Insufficient/);
     });
+
+    it("rejects a NaN amount (typeof NaN === 'number' slipped the old guard)", () => {
+      expect(() =>
+        allocateFundsV2(db, {
+          proposalId: pid,
+          recipient: "r",
+          amount: NaN,
+        }),
+      ).toThrow(/positive number/);
+    });
   });
 
   describe("getTreasuryState + depositToTreasuryV2", () => {
@@ -708,6 +718,13 @@ describe("dao-governance", () => {
       expect(s.transactions).toHaveLength(1);
       expect(s.transactions[0].txType).toBe(TREASURY_TX_TYPE.DEPOSIT);
       expect(s.transactions[0].balanceAfter).toBe(5000);
+    });
+
+    it("rejects a NaN deposit instead of corrupting the balance to NaN", () => {
+      expect(() => depositToTreasuryV2(db, { amount: NaN })).toThrow(
+        /positive number/,
+      );
+      expect(getTreasuryState().balance).toBe(0);
     });
   });
 
