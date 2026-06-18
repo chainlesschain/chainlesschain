@@ -226,12 +226,18 @@ export function registerLowcodeCommand(program) {
         const db = ctx.db.getDatabase();
         ensureLowcodeTables(db);
 
-        let config;
-        try {
-          config = JSON.parse(options.config);
-        } catch (_err) {
-          // Intentionally ignore parse error — use empty config
-          config = {};
+        let config = {};
+        if (options.config) {
+          try {
+            config = JSON.parse(options.config);
+          } catch (err) {
+            // Non-fatal by design (fall back to empty config), but surface the
+            // problem instead of swallowing it — a typo'd --config was silently
+            // dropped before, so the data source looked configured but wasn't.
+            logger.warn(
+              `Ignoring invalid --config JSON (using empty config): ${err.message}`,
+            );
+          }
         }
 
         const result = addDataSource(db, appId, name, type, config);
@@ -413,11 +419,17 @@ export function registerLowcodeCommand(program) {
         const db = ctx.db.getDatabase();
         ensureLowcodeTables(db);
 
-        let config;
-        try {
-          config = JSON.parse(options.config);
-        } catch (_err) {
-          config = {};
+        let config = {};
+        if (options.config) {
+          try {
+            config = JSON.parse(options.config);
+          } catch (err) {
+            // Non-fatal by design (fall back to empty config), but surface the
+            // problem instead of swallowing it silently.
+            logger.warn(
+              `Ignoring invalid --config JSON (using empty config): ${err.message}`,
+            );
+          }
         }
 
         const result = registerDataSourceV2(db, {
