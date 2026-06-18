@@ -127,6 +127,20 @@
 - `msg`+`conversation_list`+`conversation_core`+`participant` → **私信会话视图**（会话列表+气泡，群显 `conversation_core.name`）。
 - `attchment` → 媒体气泡；`conversation_setting.stick_top/mute` → 置顶/免打扰标。
 
+### 头条 明文文章库（`device-verified` 2026-06-18）— **免解密直读**
+
+`news_article.db` → `article`（本地 feed 缓存，实测 48 行）。**坑：标题不是列**——在 `share_info` JSON blob（`{title, share_url, video_url}`，`ext_json` 为重型 fallback）。
+
+| 字段 | 含义 | → PDH |
+|---|---|---|
+| `share_info`→`title` | 文章标题（带 ` - 今日头条` 后缀，须剥）| EVENT content.title |
+| `share_url` `category_new=` | 来源频道（headline/my_tabs_digg/tt_video_immerse）| extra.category |
+| `behot_time`(s) | 出现在 feed 的时间 | occurredAt（无 read_ts 时）|
+| `read_timestamp`(s) | >0 = 真正打开过（实测多为 0）| extra.read |
+| `is_user_digg`/`is_user_repin` | 点赞/收藏 | extra.digg/repin |
+
+→ `social-toutiao-adb/article-reader`（`readToutiaoArticles`/`articlesToVault`，commit `ff3628aa3`），BROWSE 事件 `source=social-toutiao` `extra.kind="article"`，stable originalId `social-toutiao:article:<group_id>` 去重。**一键 ingest 全 3 类（观看/画像/文章）**：`scripts/pdh/ingest-douyin-toutiao-local.mjs`（getHub 真 vault 全管线 partition→putBatch→KG→RAG）。
+
 ---
 
 ## 微信 WeChat（`com.tencent.mm`）— `schema-accurate`（完整 258 表 schema 已入库：`docs/internal/reference/wechat_schema.sql`，源自 sjqz 取证项目）
