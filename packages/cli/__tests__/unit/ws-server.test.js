@@ -319,6 +319,26 @@ describe("ChainlessChainWSServer", () => {
     });
   });
 
+  // ---- Heartbeat lifecycle ----
+  describe("heartbeat", () => {
+    it("_startHeartbeat is idempotent — clears the prior timer instead of leaking it", () => {
+      server = new ChainlessChainWSServer();
+      const clearSpy = vi.spyOn(globalThis, "clearInterval");
+      server._startHeartbeat();
+      const first = server._heartbeatTimer;
+      expect(first).toBeTruthy();
+
+      // A second call (e.g. a repeated start / re-fired "listening" event)
+      // must clear the previous interval rather than overwrite + orphan it.
+      server._startHeartbeat();
+      expect(server._heartbeatTimer).not.toBe(first);
+      expect(clearSpy).toHaveBeenCalledWith(first);
+
+      clearSpy.mockRestore();
+      // afterEach -> server.stop() clears the live timer
+    });
+  });
+
   // ---- Connection handling ----
   describe("connection handling", () => {
     it("emits connection event when a client connects", async () => {

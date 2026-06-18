@@ -855,6 +855,12 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   _startHeartbeat() {
+    // Idempotent: clear any existing timer first so a repeated start() (or a
+    // re-fired "listening" event) can't leak the previous interval — stop()
+    // only clears the most recent handle, so an overwrite would orphan it.
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+    }
     this._heartbeatTimer = setInterval(() => {
       for (const [clientId, client] of this.clients) {
         if (!client.alive) {
