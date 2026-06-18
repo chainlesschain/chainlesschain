@@ -218,13 +218,32 @@ export class MCPClient extends EventEmitter {
           this.emit("server-error", { name, error: data.toString("utf8") });
         });
 
+        // If the server process dies with requests in flight, reject them
+        // immediately with a clear error instead of letting each hang until its
+        // 30s timeout (fail-fast on a crashed/exited MCP server).
+        const failPending = (errMsg) => {
+          for (const [, pending] of entry._pending) {
+            if (pending.timeout) clearTimeout(pending.timeout);
+            try {
+              pending.reject(new Error(errMsg));
+            } catch {
+              // already settled — ignore
+            }
+          }
+          entry._pending.clear();
+        };
+
         proc.on("close", (code) => {
           entry.state = ServerState.DISCONNECTED;
+          failPending(
+            `MCP server "${name}" process exited (code ${code}) before responding`,
+          );
           this.emit("server-disconnected", { name, code });
         });
 
         proc.on("error", (err) => {
           entry.state = ServerState.ERROR;
+          failPending(`MCP server "${name}" process error: ${err.message}`);
           this.emit("server-error", { name, error: err.message });
         });
       } else {
