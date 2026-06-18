@@ -43,6 +43,10 @@ class AppInitializer @Inject constructor(
     // Phase 3d v1.1 #4: 移动同步 auto-trigger，让本地写入自动推到桌面
     private val syncCoordinator: Lazy<SyncCoordinator>,
 
+    // FAMILY-67: 好友 P2P 音视频通话 —— 启动接通话状态机 + 媒体控制器（监听信令来电）。
+    private val callManager: Lazy<com.chainlesschain.android.call.CallManager>,
+    private val callMediaController: Lazy<com.chainlesschain.android.call.WebRtcCallMediaController>,
+
     // FAMILY-67: 启动时把已持久化的 E2EE 会话恢复进内存，否则重启后 getSession 为空，
     // 好友聊天输入框卡「请先建立连接」直到下一次握手（需先连上）。在此提前 restore 让
     // 重启后聊天即刻可用（消息离线排队、连上即推），「设备未验证」横幅也由会话事实自动清除。
@@ -138,6 +142,21 @@ class AppInitializer @Inject constructor(
                         Timber.d("SyncCoordinator started")
                     } catch (e: Exception) {
                         Timber.w(e, "SyncCoordinator start failed (non-fatal)")
+                    }
+                }
+
+                // 5a2. FAMILY-67: 接通话状态机 + 媒体控制器（监听信令服务器来电 call:invite），
+                //      并把媒体控制器与状态机互相挂接（状态机 ↔ 媒体回调）。
+                launch {
+                    try {
+                        val mgr = callManager.get()
+                        val mediaCtl = callMediaController.get()
+                        mediaCtl.listener = mgr
+                        mgr.media = mediaCtl
+                        mgr.start()
+                        Timber.d("CallManager started")
+                    } catch (e: Exception) {
+                        Timber.w(e, "CallManager start failed (non-fatal)")
                     }
                 }
 
