@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.31.1] — 2026-06-18 — fix: chat panel uses your configured LLM provider
+
+- **Fix: the chat panel now deterministically uses the provider you configured
+  (`cc config` / Configure LLM), instead of occasionally falling back to a
+  different provider and failing with a cryptic `Anthropic error: 401`.** When
+  the panel's own `chainlesschain.chat.provider` setting is empty, the panel now
+  reads `~/.chainlesschain/config.json` and passes the provider/model
+  **explicitly** to `cc agent` (`--provider`/`--model`), so it always matches the
+  terminal `cc` and can't drift to a stale ambient default. A non-empty panel
+  override still wins.
+
 ## [0.31.0] — 2026-06-18
 
 - **`/compact` — manual conversation compaction in the chat panel (Claude-Code

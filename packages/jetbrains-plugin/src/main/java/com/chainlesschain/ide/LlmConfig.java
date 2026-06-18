@@ -3,8 +3,11 @@ package com.chainlesschain.ide;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -113,6 +116,43 @@ public final class LlmConfig {
         CliResult r = runCli(args("config", "get", "llm.provider"));
         if (!r.ok) return null;
         return parseConfigGet(r.output);
+    }
+
+    private static String blankToNull(Object o) {
+        if (o == null) return null;
+        String s = String.valueOf(o).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /** Pure: extract {provider, model} from a ~/.chainlesschain/config.json string. */
+    public static String[] parseLlmProviderModel(String configJson) {
+        try {
+            Map<String, Object> root = MiniJson.parseObject(configJson);
+            Object llmObj = root == null ? null : root.get("llm");
+            if (!(llmObj instanceof Map)) return new String[] { null, null };
+            @SuppressWarnings("unchecked")
+            Map<String, Object> llm = (Map<String, Object>) llmObj;
+            return new String[] { blankToNull(llm.get("provider")), blankToNull(llm.get("model")) };
+        } catch (Exception e) {
+            return new String[] { null, null };
+        }
+    }
+
+    /**
+     * Read llm.provider/llm.model straight from ~/.chainlesschain/config.json
+     * (no CLI spawn — safe to call off the wizard), so the chat panel can PIN
+     * the same provider the terminal `cc` uses instead of relying on the child's
+     * ambient resolution. Returns {provider, model}; either may be null.
+     */
+    public static String[] readConfiguredProviderModel() {
+        try {
+            String json = new String(Files.readAllBytes(
+                    Paths.get(System.getProperty("user.home"), ".chainlesschain", "config.json")),
+                    StandardCharsets.UTF_8);
+            return parseLlmProviderModel(json);
+        } catch (Exception e) {
+            return new String[] { null, null };
+        }
     }
 
     /** Pure parse of `cc config get` output (both `k = v` and bare-value). */

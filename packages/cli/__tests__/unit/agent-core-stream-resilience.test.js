@@ -19,8 +19,28 @@ import {
   _streamErrorDisposition,
   _isRetryableStreamError,
   _retryStreamingChat,
+  formatProviderHttpError,
   chatWithTools,
 } from "../../src/runtime/agent-core.js";
+
+describe("formatProviderHttpError (actionable auth errors)", () => {
+  it("names the provider and points at the fix on 401/403", () => {
+    for (const status of [401, 403]) {
+      const msg = formatProviderHttpError("anthropic", status);
+      expect(msg).toContain("anthropic");
+      expect(msg).toContain(String(status));
+      expect(msg).toMatch(/authentication failed/i);
+      expect(msg).toContain("cc config get llm.provider");
+      expect(msg).toMatch(/differs from the one you configured/);
+    }
+  });
+  it("flags rate limiting on 429 and is terse otherwise", () => {
+    expect(formatProviderHttpError("volcengine", 429)).toMatch(/rate limited/i);
+    expect(formatProviderHttpError("ollama", 500)).toBe(
+      "ollama API error: HTTP 500",
+    );
+  });
+});
 
 describe("_streamErrorDisposition", () => {
   it("rethrows on an AbortError (name)", () => {

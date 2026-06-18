@@ -158,6 +158,46 @@ const PERMISSION_MODES = new Set(["plan", "acceptEdits", "bypassPermissions"]);
  * "on" → --think, "ultra" → --ultrathink (ignored by non-Anthropic providers);
  * "off"/unset adds nothing.
  */
+/** Read the user's cc LLM config — the `llm` block of ~/.chainlesschain/config.json. */
+function readCcLlmConfig() {
+  try {
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const p = path.join(os.homedir(), ".chainlesschain", "config.json");
+    return (JSON.parse(fs.readFileSync(p, "utf8")) || {}).llm || {};
+  } catch {
+    return {}; // no/unreadable config → let the CLI resolve on its own
+  }
+}
+
+/**
+ * Resolve the panel's EFFECTIVE provider/model. A non-empty panel override
+ * (`chainlesschain.chat.provider`/`.model`) always wins; when empty, fall back
+ * to the user's cc config (~/.chainlesschain/config.json) and return it so the
+ * caller can pass it EXPLICITLY as `--provider/--model`.
+ *
+ * Why explicit instead of letting the empty case fall through to the CLI's own
+ * config resolution: the panel spawns `cc` with the IDE's full environment and
+ * working directory, and a stale/ambient state there could otherwise make the
+ * child resolve a different provider than the terminal — surfacing as a
+ * spurious "Anthropic error: 401" when the user actually configured, say,
+ * volcengine. Pinning the config value makes the panel deterministically match
+ * `cc config`. `readConfig` is injectable for tests.
+ */
+function resolveChatLlm({ provider, model } = {}, readConfig = readCcLlmConfig) {
+  let p = typeof provider === "string" ? provider.trim() : "";
+  let m = typeof model === "string" ? model.trim() : "";
+  if (!p) {
+    const llm = readConfig() || {};
+    if (llm.provider) {
+      p = String(llm.provider);
+      if (!m && llm.model) m = String(llm.model);
+    }
+  }
+  return { provider: p, model: m };
+}
+
 function buildSessionArgs({ model, provider, resume, mode, think } = {}) {
   const args = [];
   if (typeof provider === "string" && provider.trim()) {
@@ -183,5 +223,7 @@ module.exports = {
   createTurnState,
   summarizeToolArgs,
   buildSessionArgs,
+  resolveChatLlm,
+  readCcLlmConfig,
   PERMISSION_MODES,
 };

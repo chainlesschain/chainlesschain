@@ -2628,7 +2628,7 @@ export async function chatWithTools(rawMessages, options) {
       }),
     });
     if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status}`);
+      throw new Error(formatProviderHttpError("ollama", response.status));
     }
     const data = await response.json();
     if (data.prompt_eval_count || data.eval_count) {
@@ -2721,7 +2721,7 @@ export async function chatWithTools(rawMessages, options) {
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic error: ${response.status}`);
+      throw new Error(formatProviderHttpError("anthropic", response.status));
     }
 
     const data = await response.json();
@@ -2818,7 +2818,7 @@ export async function chatWithTools(rawMessages, options) {
   });
 
   if (!response.ok) {
-    throw new Error(`${provider} API error: ${response.status}`);
+    throw new Error(formatProviderHttpError(provider, response.status));
   }
 
   const data = await response.json();
@@ -2932,6 +2932,28 @@ export function _streamErrorDisposition(err, signal, partialText) {
 }
 
 /**
+ * Format a provider HTTP error with an actionable hint. 401/403 almost always
+ * means a missing/invalid API key for the ACTIVE provider — and because the
+ * provider is resolved from config, a surprise "anthropic 401" usually means
+ * the effective provider differs from what the user configured. Name the
+ * provider and point at the fix instead of dumping a bare status code. Pure +
+ * exported for tests.
+ */
+export function formatProviderHttpError(provider, status) {
+  const base = `${provider} API error: HTTP ${status}`;
+  if (status === 401 || status === 403) {
+    return (
+      `${base} — authentication failed: the API key for provider "${provider}" ` +
+      `is missing or invalid. Check "cc config get llm.provider" and ` +
+      `"cc config get llm.apiKey" (or run Configure LLM). A surprise "${provider}" ` +
+      `here usually means the effective provider differs from the one you configured.`
+    );
+  }
+  if (status === 429) return `${base} — rate limited; please retry shortly.`;
+  return base;
+}
+
+/**
  * Is this error from a streaming chat request a transient API CONNECTION drop
  * that is safe to retry? True only for genuine network failures (reset /
  * timeout / DNS / refused / socket hangup / undici "terminated" / "fetch
@@ -3033,7 +3055,7 @@ async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
     body: JSON.stringify({ ...body, stream: true }),
   });
   if (!response.ok) {
-    throw new Error(`Ollama error: ${response.status}`);
+    throw new Error(formatProviderHttpError("ollama", response.status));
   }
   const state = _ollamaInitState();
   const reader = response.body.getReader();
@@ -3195,7 +3217,7 @@ async function _chatAnthropicStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(`Anthropic error: ${response.status}`);
+    throw new Error(formatProviderHttpError("anthropic", response.status));
   }
   const state = _anthropicInitState();
   const reader = response.body.getReader();
@@ -3315,7 +3337,7 @@ async function _chatOpenAIStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(`${provider} API error: ${response.status}`);
+    throw new Error(formatProviderHttpError(provider, response.status));
   }
   const state = _openaiInitState();
   const reader = response.body.getReader();

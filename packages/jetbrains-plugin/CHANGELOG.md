@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.9] — 2026-06-18 — fix: chat tool window uses your configured LLM provider
+
+- **Fix: the chat tool window now deterministically uses the provider you
+  configured (`cc config` / Configure LLM), instead of occasionally drifting to
+  a different provider and failing with a cryptic `Anthropic error: 401`.** The
+  panel reads `~/.chainlesschain/config.json` and passes the provider/model
+  **explicitly** to `cc agent`, so it always matches the terminal `cc`. Mirrors
+  the VS Code 0.31.1 fix.
+
 ## [0.4.8] — 2026-06-18 — `/compact` manual compaction (Claude-Code IDE parity)
 
 - **`/compact` in the chat tool window.** Typing `/compact` trims the live

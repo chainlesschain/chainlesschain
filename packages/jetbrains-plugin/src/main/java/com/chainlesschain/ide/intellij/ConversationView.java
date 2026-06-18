@@ -309,8 +309,13 @@ final class ConversationView {
         AgentChatSession.Options o = new AgentChatSession.Options();
         String basePath = project.getBasePath();
         if (basePath != null) o.cwd = new File(basePath);
-        // Spawn carries this conversation's resume id + approval mode + thinking level.
-        o.extraArgs = SessionArgs.build(null, null, conv.sessionId, conv.mode, conv.thinking);
+        // Pin the user's configured provider/model (read straight from
+        // ~/.chainlesschain/config.json) so the panel deterministically uses the
+        // SAME LLM as the terminal `cc` — never drifts to a stale ambient default
+        // (the cause of spurious "Anthropic error: 401" when another provider is
+        // actually configured). Blank → SessionArgs omits the flag (CLI resolves).
+        String[] llm = com.chainlesschain.ide.LlmConfig.readConfiguredProviderModel();
+        o.extraArgs = SessionArgs.build(llm[0], llm[1], conv.sessionId, conv.mode, conv.thinking);
 
         IdeBridgeService bridge = IdeBridgeService.getInstance(project);
         if (bridge != null && bridge.getPort() > 0) {

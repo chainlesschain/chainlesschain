@@ -61,6 +61,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.9</b> — fix: the chat tool window now deterministically uses the
+        LLM provider you configured (<code>cc config</code> / Configure LLM),
+        reading <code>~/.chainlesschain/config.json</code> and passing it
+        explicitly to <code>cc agent</code> — no more spurious
+        <code>Anthropic error: 401</code> when another provider is configured.
+        <br/><br/>
         <b>0.4.8</b> — <code>/compact</code> in the chat tool window (Claude-Code
         IDE parity): trims the live conversation history between turns (no extra
         LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0

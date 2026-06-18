@@ -14,6 +14,7 @@ const {
   mapAgentEvent,
   createTurnState,
   buildSessionArgs,
+  resolveChatLlm,
 } = require("./chat-events");
 const { buildChatHtml } = require("./chat-html");
 const { ConversationManager } = require("./conversation-manager");
@@ -284,8 +285,13 @@ class ChatViewProvider {
       command: this._cliCommand(),
       args: [
         ...buildSessionArgs({
-          model: chatCfg.get("model"),
-          provider: chatCfg.get("provider"),
+          // Pin the effective provider/model (panel override, else the user's
+          // cc config) so the panel deterministically uses the SAME LLM as the
+          // terminal `cc` — never drifts to a stale ambient default.
+          ...resolveChatLlm({
+            provider: chatCfg.get("provider"),
+            model: chatCfg.get("model"),
+          }),
           // Continue THIS tab's conversation across child restarts; a new tab
           // (or "New") starts with no resume id for a fresh session.
           resume: conv.sessionId,
@@ -567,10 +573,14 @@ class ChatViewProvider {
       typeof this.opts.getBridgeEnv === "function"
         ? this.opts.getBridgeEnv()
         : {};
-    const args = introspect.buildIntrospectArgs(kind, id, {
-      model: chatCfg.get("model"),
-      provider: chatCfg.get("provider"),
-    });
+    const args = introspect.buildIntrospectArgs(
+      kind,
+      id,
+      resolveChatLlm({
+        model: chatCfg.get("model"),
+        provider: chatCfg.get("provider"),
+      }),
+    );
     const text = await runText({
       command: this._cliCommand(),
       args,

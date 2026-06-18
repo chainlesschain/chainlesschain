@@ -7,7 +7,7 @@
  *   3. a REAL node child speaking the protocol over real pipes.
  * The webview HTML builder gets a CSP/nonce smoke check.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { spawn as realSpawn } from "node:child_process";
@@ -272,6 +272,47 @@ describe("buildChatHtml", () => {
     // … and /compact is advertised in the /help one-liner + autocomplete catalog.
     expect(html).toMatch(/\/stop[^\n]*\/compact/); // listed right after /stop
     expect(html).toContain("compact the conversation history");
+  });
+});
+
+describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)", () => {
+  let resolveChatLlm;
+  beforeAll(async () => {
+    ({ resolveChatLlm } =
+      await import("../../../vscode-extension/src/chat/chat-events.js"));
+  });
+
+  it("a non-empty panel override wins (provider + model)", () => {
+    const out = resolveChatLlm(
+      { provider: " anthropic ", model: " opus " },
+      () => ({ provider: "volcengine", model: "doubao" }),
+    );
+    expect(out).toEqual({ provider: "anthropic", model: "opus" });
+  });
+
+  it("falls back to the cc config provider/model when the override is empty", () => {
+    const out = resolveChatLlm({ provider: "", model: "" }, () => ({
+      provider: "volcengine",
+      model: "doubao-seed-1-6",
+    }));
+    // THE FIX: empty override → pin the user's configured provider explicitly,
+    // so the panel can't drift to a stale ambient default (the anthropic-401 bug).
+    expect(out).toEqual({ provider: "volcengine", model: "doubao-seed-1-6" });
+  });
+
+  it("keeps an explicit panel model even when provider falls back", () => {
+    const out = resolveChatLlm({ provider: "", model: "my-model" }, () => ({
+      provider: "volcengine",
+      model: "doubao",
+    }));
+    expect(out).toEqual({ provider: "volcengine", model: "my-model" });
+  });
+
+  it("returns empty (let the CLI decide) when neither override nor config has a provider", () => {
+    expect(resolveChatLlm({ provider: "", model: "" }, () => ({}))).toEqual({
+      provider: "",
+      model: "",
+    });
   });
 });
 

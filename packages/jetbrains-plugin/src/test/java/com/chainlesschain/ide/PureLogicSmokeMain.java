@@ -44,6 +44,7 @@ public final class PureLogicSmokeMain {
         mentions();
         sessionArgs();
         introspectArgs();
+        llmConfig();
 
         System.out.println("\n=== PureLogicSmokeMain: " + passed + " passed, " + failed + " failed ===");
         if (failed > 0) System.exit(1);
@@ -351,5 +352,25 @@ public final class PureLogicSmokeMain {
                 "missing window -> null");
         check(IntrospectArgs.parseContextStatus(
                 "{\"contextWindow\":0,\"totalTokens\":5}") == null, "zero window -> null");
+    }
+
+    private static void llmConfig() {
+        System.out.println("LlmConfig.parseLlmProviderModel:");
+        // THE FIX: the panel pins provider/model from ~/.chainlesschain/config.json
+        // so it can't drift to a stale ambient default (the anthropic-401 bug).
+        String[] full = LlmConfig.parseLlmProviderModel(
+                "{\"llm\":{\"provider\":\"volcengine\",\"model\":\"doubao-seed-1-6\"}}");
+        eq(full[0], "volcengine", "provider parsed");
+        eq(full[1], "doubao-seed-1-6", "model parsed");
+        // provider only (no model) → model null, provider still pinned
+        String[] provOnly = LlmConfig.parseLlmProviderModel("{\"llm\":{\"provider\":\"ollama\"}}");
+        eq(provOnly[0], "ollama", "provider-only provider");
+        eq(provOnly[1], null, "provider-only model null");
+        // blanks → null (SessionArgs then omits the flag → CLI resolves)
+        String[] blank = LlmConfig.parseLlmProviderModel("{\"llm\":{\"provider\":\"  \"}}");
+        eq(blank[0], null, "blank provider -> null");
+        // no llm block / bad json → {null,null}
+        eq(LlmConfig.parseLlmProviderModel("{}")[0], null, "no llm -> null");
+        eq(LlmConfig.parseLlmProviderModel("not json")[0], null, "bad json -> null");
     }
 }
