@@ -97,7 +97,7 @@
 
 ## 10. 实施细节（音频先行 P0 + P1，已定稿）
 
-> **实施状态（2026-06-18）**：P0 信令 + P1 音频 + P2 视频 + P3 前台/锁屏 + UI 已落地（`:app` / `:feature-p2p`，`:app:assembleDebug` 绿，call 单测 24 全过）。
+> **实施状态（2026-06-19 更新）**：P0 信令 + P1 音频 + P2 视频 + P3 前台/锁屏 + UI + 铃声 + 未接通知 + 通话记录 + 断网重连 + 连接自愈 + 全局键盘修复均已落地（`:app` / `:feature-p2p`，`:app:assembleDebug` 绿，call 单测 **44** 全过）。真机 amethyst↔chopin **双向语音通话 + 铃声 + 通话记录已实测可用**。
 > - **P0 信令**：`CallModels` / `CallSignal`（`resolveGlareKeepMine`）/ `CallSignalingClient`（复用 `WebRTCClient.forwardedMessages` 中继）/ `CallManager`（状态机 + glare + 超时）。
 > - **P1 音频**：`WebRtcCallMediaController`（独立媒体 PeerConnection，复用 `sharedFactory()`+`callIceServers()`，音轨 + offer/answer/ICE）+ `AudioRouteController`（`MODE_IN_COMMUNICATION` + 焦点 + 听筒/扬声器）+ `AppInitializer` 接线。
 > - **P2 视频**：同 `WebRtcCallMediaController` 懒建独立**视频版** `PeerConnectionFactory`（`EglBase` + `DefaultVideoEncoder/DecoderFactory`；消息侧 factory 无视频编解码）；`Camera2/1Enumerator` 优先前置摄像头采集 + 本地视频轨 + 远端视频轨经 `onAddTrack` 暴露；`CallHost` 渲染远端全屏 `SurfaceViewRenderer` + 本地 PiP + 摄像头翻转 + `CAMERA` 运行时权限。
@@ -105,9 +105,15 @@
 > - **UI**：`CallHost`（MainActivity 顶层全屏浮层，来电/去电/通话中）+ `CallViewModel` + `P2PChatScreen`「语音/视频通话」按钮 + 好友资料页 `FriendDetailScreen` 通话按钮（均用好友 DID 拨号，同消息信令路由键）。
 > - **铃声**：`CallRinger`（来电系统默认铃声 + 振动，尊重响铃/振动/静音模式；去电回铃音；接听/结束停），由 `AndroidCallServiceLauncher` 按状态驱动（前台 + 锁屏来电都覆盖）。
 > - **通话记录**：`CallHistoryRecorder` seam + `RoomCallHistoryRecorder` 写 `call_history`（DB v24 已有 entity+DAO，补 DI + CallManager.end() 落库 + MainActivity 注入）+ `CallHistoryScreen`/`ViewModel`（好友资料页「查看通话记录」入口）。
-> - **真机验证（amethyst↔chopin）**：发起/来电/接通/通话记录已通。
-> - **剩余**：双向音视频实听 + 锁屏来电真机验收。
-> - **真机暴露并修复的关键 bug**：① 启动接线最初写在 `AppInitializer.initializeAsynchronously()`——那是**死代码**（全项目从不调用，真启动路径是 `MainActivity.onCreate`）→ `CallManager.start()` 从不执行 → 被叫端不订阅来电信令、收到 invite 也不响铃（主叫 `startCall` 直接 send 不需 start，骗过首轮自测）。修复=接线移到 `MainActivity`。② 好友资料页通话按钮原是「开发中」占位 → 接真 `CallManager`。③「查看通话记录」原是 NavGraph no-op → 补齐落库+记录页。④ 来电无铃声 → 加 `CallRinger`。Android 14 后台拨号→接听场景下 FGS-from-background 可能被系统拒（已 runCatching 兜底）。
+> - **保持在线**：`CallPresenceService`（前台 `dataSync`，保活进程 + 周期 `ensureConnected` 重连信令）→ app 退后台/熄屏也能收来电；用户可在通知「停止」opt-out。
+> - **未接来电**：来电未接通（对端放弃/超时，非本端拒接）→ 持久「未接来电」通知（独立 id 不被结束清理撤掉）。
+> - **断网重连**：通话中 ICE `DISCONNECTED` → 20s 重连宽限（保持 ACTIVE 等 WebRTC 恢复），超时未恢复才 `end(NETWORK_LOST)` —— 不再卡死「通话中」无声。
+> - **消息通知 + 连接自愈（messaging 侧，同根）**：`MessageNotifier`（后台收消息弹通知，点击深链聊天）；`FriendSyncConnector` 仅在 DataChannel 已连时才发起握手（避免中继空转失败+退避死循环卡「正在自动连接」）。
+> - **通知权限**：`MainActivity` 运行时申请 `POST_NOTIFICATIONS`（Android 13+ 不申请则来电/消息/未接通知全不显示）。
+> - **键盘遮挡**：全 app `enableEdgeToEdge` 下输入框被键盘遮挡 → `MainActivity` NavGraph 外层统一 `imePadding()`，一处修全部页面。
+> - **真机验证（amethyst↔chopin）**：发起 / 来电响铃 / 接听 / **双向语音通话**（实测可正常通话）/ 通话记录 / 连接自愈均已通过。
+> - **剩余**：视频画面 + 锁屏全屏来电 真机验收。
+> - **真机暴露并修复的关键 bug**：① 启动接线最初写在 `AppInitializer.initializeAsynchronously()`——那是**死代码**（全项目从不调用，真启动路径是 `MainActivity.onCreate`）→ `CallManager.start()` 从不执行 → 被叫端不订阅来电信令、收到 invite 也不响铃（主叫 `startCall` 直接 send 不需 start，骗过首轮自测）。修复=接线移到 `MainActivity`。② 好友资料页通话按钮原是「开发中」占位 → 接真 `CallManager`。③「查看通话记录」原是 NavGraph no-op → 补齐落库+记录页。④ 来电无铃声 → 加 `CallRinger`。⑤ **通知全不显示根因**：Android 13+ 从不运行时申请 `POST_NOTIFICATIONS` → 来电/消息/未接通知全被 MIUI 默认 `importance=NONE` 拦掉。⑥ **卡「正在自动连接」死循环**：offerer 不管 DataChannel 都发握手，但中继-only 时 responder `SyncAuthVerifier` 因 `connectedPeers` 空必拒 → 握手空转 + connect 退避并存死锁 → 改为连上才握手自愈。Android 14 后台拨号→接听场景下 FGS-from-background 可能被系统拒（已 runCatching 兜底）。
 
 ### 10.1 模块与职责
 
