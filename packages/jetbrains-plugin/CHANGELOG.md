@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.10] — 2026-06-18 — fix: read-action compliance for diff review (2026.2)
+
+- **Fix: wrap the diff-review document reads in a read action.** `openDiff` /
+  `openMultiDiff` read the on-disk file's text on the EDT to build the "Current"
+  side of the diff. Since IntelliJ 2026.2 the EDT no longer grants implicit read
+  access to the document model, so an unwrapped `Document.getText()` there threw
+  *"Read access is allowed from inside read-action only"* (flagged by the
+  Marketplace Plugin Verifier). Both reads now go through a `runReadAction`
+  helper. No behavior change on 2025.x; fixes the crash when reviewing a
+  proposed file edit on 2026.2+.
+
 ## [0.4.9] — 2026-06-18 — fix: chat tool window uses your configured LLM provider
 
 - **Fix: the chat tool window now deterministically uses the provider you

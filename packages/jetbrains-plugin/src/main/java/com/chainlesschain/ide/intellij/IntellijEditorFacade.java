@@ -128,8 +128,7 @@ public final class IntellijEditorFacade implements EditorFacade {
             VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(path);
             String left = originalText;
             if (left == null && vf != null) {
-                Document d = FileDocumentManager.getInstance().getDocument(vf);
-                left = d == null ? "" : d.getText();
+                left = readDocumentText(vf);
             }
             DocumentContent leftContent = factory.create(left == null ? "" : left);
             DocumentContent rightContent = factory.create(modifiedText);
@@ -213,10 +212,7 @@ public final class IntellijEditorFacade implements EditorFacade {
                 String left = f.originalText;
                 if (left == null) {
                     VirtualFile vf = LocalFileSystem.getInstance().findFileByPath(f.path);
-                    if (vf != null) {
-                        Document d = FileDocumentManager.getInstance().getDocument(vf);
-                        left = d == null ? "" : d.getText();
-                    }
+                    left = readDocumentText(vf);
                 }
                 DocumentContent l = factory.create(left == null ? "" : left);
                 DocumentContent rt = factory.create(f.modifiedText == null ? "" : f.modifiedText);
@@ -306,6 +302,22 @@ public final class IntellijEditorFacade implements EditorFacade {
             doc.setText(text);
             FileDocumentManager.getInstance().saveDocument(doc);
         });
+    }
+
+    /**
+     * Read a file's current document text INSIDE a read action. The diff-review
+     * code below runs on the EDT (invokeAndWait), and since 2026.2 the EDT no
+     * longer grants implicit read access for document-model reads — an unwrapped
+     * {@code Document.getText()} there throws "Read access is allowed from inside
+     * read-action only". Returns "" for a missing file/document.
+     */
+    private String readDocumentText(VirtualFile vf) {
+        if (vf == null) return "";
+        return ApplicationManager.getApplication().runReadAction(
+                (com.intellij.openapi.util.Computable<String>) () -> {
+                    Document d = FileDocumentManager.getInstance().getDocument(vf);
+                    return d == null ? "" : d.getText();
+                });
     }
 
     private static Map<String, Object> range(Document doc, int start, int end) {
