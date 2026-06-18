@@ -4,6 +4,32 @@ import logger from "./logger.js";
 
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/chainlesschain/latest";
 
+// `cc update` / `cc vcheck` fetch GitHub + npm metadata; bound each so a stalled
+// registry can't hang the command forever (checkForUpdates already degrades
+// gracefully to "unavailable" on error). Env-overridable.
+const VERSION_CHECK_TIMEOUT_MS =
+  Number(process.env.CC_VERSION_CHECK_TIMEOUT_MS) || 15000;
+
+async function _fetchWithTimeout(
+  url,
+  opts = {},
+  ms = VERSION_CHECK_TIMEOUT_MS,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  if (timer && typeof timer.unref === "function") timer.unref();
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new Error(`update check timed out after ${ms / 1000}s`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function checkForUpdates(options = {}) {
   const channel = options.channel || "stable";
   const currentVersion = options.currentVersion || VERSION;
@@ -64,7 +90,7 @@ export async function checkForUpdates(options = {}) {
 }
 
 async function fetchNpmVersion() {
-  const response = await fetch(NPM_REGISTRY_URL, {
+  const response = await _fetchWithTimeout(NPM_REGISTRY_URL, {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
@@ -75,9 +101,12 @@ async function fetchNpmVersion() {
 }
 
 async function fetchReleases() {
-  const response = await fetch(`${GITHUB_RELEASES_URL}?per_page=20`, {
-    headers: { Accept: "application/vnd.github.v3+json" },
-  });
+  const response = await _fetchWithTimeout(
+    `${GITHUB_RELEASES_URL}?per_page=20`,
+    {
+      headers: { Accept: "application/vnd.github.v3+json" },
+    },
+  );
   if (!response.ok) {
     throw new Error(`GitHub API error: HTTP ${response.status}`);
   }
