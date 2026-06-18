@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — 个人数据中台分析/采集修复 + FAMILY-67 通话/通知体验 + Android 键盘遮挡修复（v5.0.3.121）
+> 个人数据中台（PDH）一批分析管线 + 查询解析 + 抖音/头条采集修复（pdh 0.4.29 + cli 0.162.82 已发 npm；Android cc bundle `internal-binaries-android-v20260619`，USR_VERSION 49）；FAMILY-67 通话/消息通知体验完善；Android 全局键盘遮挡修复。
+
+- **PDH 分析管线**：`spending` 总额改用 `sumEventAmount`（不再被每子类型 5000 行上限少计）；`overview` byApp/byType/total 用 facetCounts（不再被 1 万行上限截断）；`timeline` 排除 app-usage-profile / app-usage-baseline 聚合基线事件。
+- **PDH 查询解析**：`parseIntent` 补收入类金额词 + 「多少/几」量词对称；`parseFilters` 移除 income 的裸「收到」（不再把「收到多少消息」误判为收入）；`parseTimeWindow`「最近 N 个月」月末日不再月份溢出丢整月；「花了多少钱」无「总共」时不再误判为 list（应为 sum-amount）。
+- **PDH 采集**：抖音使用画像采集（FEInternalUserActivityTable → app-usage baseline）+ 观看记录 vault ingest；头条明文文章 reader（标题在 share_info blob）+ 一键 ingest 脚本；可复现 Android 微信 EnMicroMsg.db 解密 + 入库脚本。
+- **FAMILY-67 通话/通知**：通话中断网重连宽限（ICE DISCONNECTED 不再静默挂死）；好友连接自愈（仅 DataChannel 已连时才发起 E2EE 握手）；未接来电通知 + CallStyle 锁屏来电（熄屏也有接听/拒绝）+「保持在线接听」前台服务；好友消息通知 + 点通知深链进对应聊天 + 运行时申请 POST_NOTIFICATIONS（Android 13+）。
+- **Android 键盘遮挡**：全 app edge-to-edge 下加全局 `imePadding`，一处修复所有页面输入框被键盘遮挡。
+- **IDE 扩展**：VS Code 0.33.0 / JetBrains 0.4.18 专用视觉模型入口 + 首次运行 LLM 配置引导（独立 tag 发布）。
+
 ### Added — FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（v5.0.3.120）
 > 好友语音/视频通话历史落库 + 通话记录可查看，来电铃声/振动/去电回铃音，CLI 各处 fetch 加超时防挂死。cli 0.162.81 已发 npm。
 
