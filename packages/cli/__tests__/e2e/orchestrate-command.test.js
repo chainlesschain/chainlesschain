@@ -308,7 +308,9 @@ describe("E2E: orchestrate --webhook server", () => {
     );
 
     await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("timeout")), 20000);
+      // 30s: the spawned `cc orchestrate --webhook` server cold-start + HTTP
+      // response can exceed 20s under heavy singleFork e2e load (passes isolated).
+      const timeout = setTimeout(() => reject(new Error("timeout")), 30000);
       let resolved = false;
       const done = () => {
         if (resolved) return;
