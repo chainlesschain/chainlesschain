@@ -7,6 +7,7 @@
 import fs from "fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureKnowledgeGraphTables,
@@ -111,9 +112,11 @@ export function registerKgCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const properties = options.properties
-          ? JSON.parse(options.properties)
-          : null;
+        const properties = parseJsonOption(
+          options.properties,
+          "--properties",
+          null,
+        );
         const tags = options.tags
           ? options.tags
               .split(",")
@@ -221,9 +224,11 @@ export function registerKgCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const properties = options.properties
-          ? JSON.parse(options.properties)
-          : null;
+        const properties = parseJsonOption(
+          options.properties,
+          "--properties",
+          null,
+        );
         const relation = addRelation(db, {
           sourceId,
           targetId,
@@ -492,7 +497,7 @@ export function registerKgCommand(program) {
     .option("--json", "Output as JSON")
     .action((entityId, opts) => {
       try {
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const rec = registerEntityV2(null, {
           entityId,
           ownerId: opts.owner,
@@ -533,7 +538,8 @@ export function registerKgCommand(program) {
       try {
         const patch = {};
         if (opts.reason) patch.reason = opts.reason;
-        if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+        if (opts.metadata)
+          patch.metadata = parseJsonOption(opts.metadata, "--metadata");
         const rec = setEntityStatusV2(null, entityId, status, patch);
         logger.success(`Entity ${entityId} → ${rec.status}`);
       } catch (err) {
@@ -615,7 +621,7 @@ export function registerKgCommand(program) {
     .option("--json", "Output as JSON")
     .action((relationId, opts) => {
       try {
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const rec = registerRelationV2(null, {
           relationId,
           sourceEntityId: opts.source,
@@ -659,7 +665,8 @@ export function registerKgCommand(program) {
       try {
         const patch = {};
         if (opts.reason) patch.reason = opts.reason;
-        if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+        if (opts.metadata)
+          patch.metadata = parseJsonOption(opts.metadata, "--metadata");
         const rec = setRelationStatusV2(null, relationId, status, patch);
         logger.success(`Relation ${relationId} → ${rec.status}`);
       } catch (err) {

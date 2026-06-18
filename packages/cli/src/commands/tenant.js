@@ -8,6 +8,7 @@
 import fs from "fs";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureTenantTables,
@@ -170,7 +171,7 @@ export function registerTenantCommand(program) {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const db = _dbFromCtx(ctx);
-        const config = options.config ? JSON.parse(options.config) : null;
+        const config = parseJsonOption(options.config, "--config", null);
         const t = createTenant(db, {
           name,
           slug,
@@ -205,7 +206,7 @@ export function registerTenantCommand(program) {
         const db = _dbFromCtx(ctx);
         const updates = {};
         if (options.config !== undefined) {
-          updates.config = JSON.parse(options.config);
+          updates.config = parseJsonOption(options.config, "--config");
         }
         if (options.plan !== undefined) updates.plan = options.plan;
         if (options.status !== undefined) updates.status = options.status;
@@ -720,7 +721,8 @@ export function registerTenantCommand(program) {
       const config = { tenantId, plan: opts.plan };
       if (opts.owner) config.ownerId = opts.owner;
       if (opts.initialStatus) config.initialStatus = opts.initialStatus;
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(JSON.stringify(registerTenantV2(null, config), null, 2));
     });
 
@@ -740,7 +742,8 @@ export function registerTenantCommand(program) {
     .action((tenantId, status, opts) => {
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setTenantMaturityV2(null, tenantId, status, patch),
@@ -811,7 +814,8 @@ export function registerTenantCommand(program) {
         plan: opts.plan,
       };
       if (opts.expiresAt) config.expiresAt = Number(opts.expiresAt);
-      if (opts.metadata) config.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        config.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(registerSubscriptionV2(null, config), null, 2),
       );
@@ -833,7 +837,8 @@ export function registerTenantCommand(program) {
     .action((subscriptionId, status, opts) => {
       const patch = {};
       if (opts.reason !== undefined) patch.reason = opts.reason;
-      if (opts.metadata) patch.metadata = JSON.parse(opts.metadata);
+      if (opts.metadata)
+        patch.metadata = parseJsonOption(opts.metadata, "--metadata");
       console.log(
         JSON.stringify(
           setSubscriptionStatusV2(null, subscriptionId, status, patch),

@@ -6,6 +6,7 @@
 import chalk from "chalk";
 import fs from "fs";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getHomeDir } from "../lib/paths.js";
 import {
@@ -434,7 +435,7 @@ export function registerAuditCommand(program) {
     .action((logId, opts) => {
       const db = bootstrap();
       try {
-        const details = opts.details ? JSON.parse(opts.details) : undefined;
+        const details = parseJsonOption(opts.details, "--details");
         const entry = logEventV2(db, {
           logId,
           eventType: opts.eventType,
@@ -536,7 +537,7 @@ export function registerAuditCommand(program) {
     .action((alertId, status, opts) => {
       const db = bootstrap();
       try {
-        const metadata = opts.metadata ? JSON.parse(opts.metadata) : undefined;
+        const metadata = parseJsonOption(opts.metadata, "--metadata");
         const entry = setAlertStatusV2(db, alertId, status, {
           reason: opts.reason,
           metadata,
@@ -785,7 +786,7 @@ function registerAuditMtcSubcommands(audit) {
           occurred_at: opts.occurredAt,
         };
         if (opts.details) {
-          body.details = JSON.parse(opts.details);
+          body.details = parseJsonOption(opts.details, "--details");
         }
         const r = auditMtcEmit(resolveAuditMtcDir(opts), body, {
           requireEnabled: !opts.force,

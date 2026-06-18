@@ -6,6 +6,7 @@
 import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   assessCapability,
@@ -469,7 +470,7 @@ export function registerEvolutionCommand(program) {
     .option("--json", "Output as JSON")
     .action((dimension, score, options) => {
       try {
-        const metadata = JSON.parse(options.metadata);
+        const metadata = parseJsonOption(options.metadata, "--metadata");
         const r = assessCapabilityV2({
           dimension,
           score: parseFloat(score),
@@ -673,7 +674,7 @@ export function registerEvolutionCommand(program) {
     .option("--json", "Output as JSON")
     .action((type, options) => {
       try {
-        const details = JSON.parse(options.details);
+        const details = parseJsonOption(options.details, "--details");
         const r = recordMilestone({
           type,
           description: options.description,

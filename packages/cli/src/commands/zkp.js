@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureZKPTables,
@@ -100,10 +101,8 @@ export function registerZkpCommand(program) {
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
 
-        const privateInputs = options.private
-          ? JSON.parse(options.private)
-          : {};
-        const publicInputs = options.public ? JSON.parse(options.public) : [];
+        const privateInputs = parseJsonOption(options.private, "--private", {});
+        const publicInputs = parseJsonOption(options.public, "--public", []);
         const proveOpts = options.scheme ? { scheme: options.scheme } : {};
         const proof = generateProof(
           db,
@@ -174,7 +173,7 @@ export function registerZkpCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const claims = options.claims ? JSON.parse(options.claims) : {};
+        const claims = parseJsonOption(options.claims, "--claims", {});
         const disclose = options.disclose
           ? options.disclose.split(",").map((s) => s.trim())
           : [];
@@ -404,7 +403,7 @@ export function registerZkpCommand(program) {
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
 
-        const claims = options.claims ? JSON.parse(options.claims) : {};
+        const claims = parseJsonOption(options.claims, "--claims", {});
         const cred = registerCredential(db, {
           did: options.did,
           claims,
@@ -622,7 +621,7 @@ export function registerZkpCommand(program) {
         }
         const db = ctx.db.getDatabase();
         ensureZKPTables(db);
-        const def = options.definition ? JSON.parse(options.definition) : {};
+        const def = parseJsonOption(options.definition, "--definition", {});
         const circuit = compileCircuitV2(db, {
           name,
           definition: def,
@@ -675,8 +674,8 @@ export function registerZkpCommand(program) {
         ensureZKPTables(db);
         const proof = generateProofV2(db, {
           circuitId,
-          privateInputs: JSON.parse(options.private),
-          publicInputs: JSON.parse(options.public),
+          privateInputs: parseJsonOption(options.private, "--private"),
+          publicInputs: parseJsonOption(options.public, "--public"),
           scheme: options.scheme,
         });
         logger.success("Proof generated (V2)");
