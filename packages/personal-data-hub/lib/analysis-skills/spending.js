@@ -30,6 +30,13 @@ const { AnalysisSkill } = require("./base");
 
 const SUPPORTED_DIMENSIONS = new Set(["merchant", "category", "counterparty", "month"]);
 
+// Event subtypes that carry content.amount (shared by the row fetch + the
+// accurate SQL-sum path). Phase 7 shopping adapters emit "order".
+const PAYMENT_SUBTYPES = [
+  "payment", "transfer", "refund", "utility",
+  "redenvelope", "investment", "income", "order",
+];
+
 class SpendingSkill extends AnalysisSkill {
   constructor(opts) {
     super({ ...opts, name: "analysis.spending" });
@@ -48,6 +55,19 @@ class SpendingSkill extends AnalysisSkill {
     const filtered = this._applyFilters(events, options);
 
     const summary = this._summarize(filtered, since, until);
+    // The row fetch caps at 5000 events PER subtype — a heavy alipay/wechat-pay
+    // user with >5000 payments would have their TOTAL silently undercounted.
+    // When no row-only filter is active (merchant text / personId / direction),
+    // recompute the headline totals from the uncapped SQL SUM. Breakdown / trend
+    // / citations stay row-sampled (they need actual rows).
+    const accurate = this._accurateTotals({ since, until }, options);
+    if (accurate) {
+      summary.totalSpend = accurate.totalSpend;
+      summary.totalIncome = accurate.totalIncome;
+      summary.netFlow = accurate.netFlow;
+      summary.eventCount = accurate.eventCount;
+      if (accurate.currency) summary.currency = accurate.currency;
+    }
     const breakdown = this._breakdown(filtered, dimension, topN);
     const trend = this._monthlyTrend(filtered);
     const citations = filtered.slice(0, 50).map((e) => e.id);
@@ -72,8 +92,7 @@ class SpendingSkill extends AnalysisSkill {
     // Phase 7 shopping adapters emit subtype="order" — must include so
     // spending aggregates cover Taobao/JD/Meituan along with Alipay
     // (payment/transfer) + Email (refund) etc.
-    const subtypes = ["payment", "transfer", "refund", "utility", "redenvelope", "investment", "income", "order"];
-    for (const subtype of subtypes) {
+    for (const subtype of PAYMENT_SUBTYPES) {
       const q = { subtype, limit: 5000 };
       if (since != null) q.since = since;
       if (until != null) q.until = until;
@@ -86,6 +105,48 @@ class SpendingSkill extends AnalysisSkill {
       }
     }
     return events;
+  }
+
+  /**
+   * Accurate (uncapped) headline totals via vault.sumEventAmount — used only
+   * when the query has no filter SQL can't express. merchantFilter (text match
+   * on title/counterparty) and personId (participant expansion) need rows, and
+   * a direction filter changes which total/count is meaningful, so any of them
+   * → return null and fall back to the row-sampled summary. Returns null when
+   * the vault lacks sumEventAmount (older vault → original behavior).
+   */
+  _accurateTotals({ since, until }, options) {
+    if (
+      (typeof options.merchantFilter === "string" && options.merchantFilter.length > 0) ||
+      (typeof options.personId === "string" && options.personId.length > 0) ||
+      options.direction === "out" ||
+      options.direction === "in"
+    ) {
+      return null;
+    }
+    if (typeof this.vault.sumEventAmount !== "function") return null;
+    let totalSpend = 0;
+    let totalIncome = 0;
+    let eventCount = 0;
+    let currency = null;
+    for (const subtype of PAYMENT_SUBTYPES) {
+      const q = { subtype };
+      if (since != null) q.since = since;
+      if (until != null) q.until = until;
+      const r = this.vault.sumEventAmount(q);
+      if (!r) continue;
+      totalSpend += (r.byDirection && r.byDirection.out) || 0;
+      totalIncome += (r.byDirection && r.byDirection.in) || 0;
+      eventCount += r.count || 0;
+      if (!currency && r.count > 0 && r.currency) currency = r.currency;
+    }
+    return {
+      totalSpend: Math.round(totalSpend * 100) / 100,
+      totalIncome: Math.round(totalIncome * 100) / 100,
+      netFlow: Math.round((totalIncome - totalSpend) * 100) / 100,
+      eventCount,
+      currency,
+    };
   }
 
   _applyFilters(events, options) {

@@ -151,6 +151,43 @@ describe("SpendingSkill", () => {
     expect(r.summary.currency).toBe("CNY");
   });
 
+  it("headline totals come from uncapped sumEventAmount, not the 5000-capped row fetch", async () => {
+    // queryEvents caps at 5000 rows per subtype; a >5000-payment user would
+    // have totalSpend silently undercounted. Fake a vault where the row fetch
+    // returns only a sample but sumEventAmount reports the true sum.
+    const fakeVault = {
+      queryEvents: ({ subtype }) =>
+        subtype === "payment"
+          ? [
+              { id: "p1", subtype: "payment", occurredAt: ts(2026, 5, 1), content: { amount: { value: 10, direction: "out", currency: "CNY" } } },
+              { id: "p2", subtype: "payment", occurredAt: ts(2026, 5, 2), content: { amount: { value: 20, direction: "out", currency: "CNY" } } },
+            ]
+          : [],
+      sumEventAmount: ({ subtype }) =>
+        subtype === "payment"
+          ? { total: 88000, currency: "CNY", count: 5200, byDirection: { out: 88000, in: 1234 }, byCurrency: {} }
+          : { total: 0, currency: "CNY", count: 0, byDirection: { out: 0, in: 0 }, byCurrency: {} },
+    };
+    const r = await new SpendingSkill({ vault: fakeVault }).run({ commentary: false });
+    expect(r.summary.totalSpend).toBe(88000); // true sum, not the 30 from 2 sampled rows
+    expect(r.summary.totalIncome).toBe(1234);
+    expect(r.summary.eventCount).toBe(5200);
+    expect(r.summary.netFlow).toBe(Math.round((1234 - 88000) * 100) / 100);
+  });
+
+  it("with a merchant/person/direction filter it falls back to the row sample (SQL can't express it)", async () => {
+    const fakeVault = {
+      queryEvents: ({ subtype }) =>
+        subtype === "payment"
+          ? [{ id: "p1", subtype: "payment", occurredAt: ts(2026, 5, 1), content: { amount: { value: 30, direction: "out", currency: "CNY" } }, extra: { counterparty: "美团" } }]
+          : [],
+      // would be used by the accurate path — must NOT be when a filter is active
+      sumEventAmount: () => { throw new Error("sumEventAmount must not be called when a row-only filter is set"); },
+    };
+    const r = await new SpendingSkill({ vault: fakeVault }).run({ commentary: false, direction: "out" });
+    expect(r.summary.totalSpend).toBe(30); // from the row sample, not SQL
+  });
+
   it("breakdown by merchant ranks top spenders", async () => {
     setupAlipayPayments();
     const skill = new SpendingSkill({ vault: rig.vault });
