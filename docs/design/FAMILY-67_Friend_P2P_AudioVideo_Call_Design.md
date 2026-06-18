@@ -97,12 +97,13 @@
 
 ## 10. 实施细节（音频先行 P0 + P1，已定稿）
 
-> **实施状态（2026-06-18）**：P0 信令 + P1 音频 + P2 视频 + UI 已落地（`:app` / `:feature-p2p`，`:app:assembleDebug` 绿）。
-> - **P0 信令**：`CallModels` / `CallSignal`（`resolveGlareKeepMine`）/ `CallSignalingClient`（复用 `WebRTCClient.forwardedMessages` 中继）/ `CallManager`（状态机 + glare + 超时），23 单测过。
+> **实施状态（2026-06-18）**：P0 信令 + P1 音频 + P2 视频 + P3 前台/锁屏 + UI 已落地（`:app` / `:feature-p2p`，`:app:assembleDebug` 绿，call 单测 24 全过）。
+> - **P0 信令**：`CallModels` / `CallSignal`（`resolveGlareKeepMine`）/ `CallSignalingClient`（复用 `WebRTCClient.forwardedMessages` 中继）/ `CallManager`（状态机 + glare + 超时）。
 > - **P1 音频**：`WebRtcCallMediaController`（独立媒体 PeerConnection，复用 `sharedFactory()`+`callIceServers()`，音轨 + offer/answer/ICE）+ `AudioRouteController`（`MODE_IN_COMMUNICATION` + 焦点 + 听筒/扬声器）+ `AppInitializer` 接线。
 > - **P2 视频**：同 `WebRtcCallMediaController` 懒建独立**视频版** `PeerConnectionFactory`（`EglBase` + `DefaultVideoEncoder/DecoderFactory`；消息侧 factory 无视频编解码）；`Camera2/1Enumerator` 优先前置摄像头采集 + 本地视频轨 + 远端视频轨经 `onAddTrack` 暴露；`CallHost` 渲染远端全屏 `SurfaceViewRenderer` + 本地 PiP + 摄像头翻转 + `CAMERA` 运行时权限。
+> - **P3 前台/锁屏**：`CallServiceLauncher` seam（`CallManager` 经此驱动，默认 NOOP 保单测）+ `AndroidCallServiceLauncher`（来电高优先级全屏通知 `setFullScreenIntent`→`CallActivity` 越锁屏点屏 + 接听/拒接动作；接通→`CallForegroundService`；结束→撤通知+停服务）+ `CallForegroundService`(`microphone|camera`，接通后启动避开 Android 14 无权限崩溃，保锁屏/后台麦克风不被杀) + `CallActivity`(`showWhenLocked`+`turnScreenOn`，语音激活 `PROXIMITY_SCREEN_OFF_WAKE_LOCK` 贴耳息屏) + `CallActionReceiver`(通知动作)。
 > - **UI**：`CallHost`（MainActivity 顶层全屏浮层，来电/去电/通话中）+ `CallViewModel` + `P2PChatScreen`「语音/视频通话」按钮（用好友 DID 拨号，同消息信令路由键）。
-> - **剩余**：真机 amethyst↔chopin 双向音视频验收（设备阻塞，需两机）；来电前台服务/全屏 intent / 接近传感器息屏（P3）。
+> - **剩余**：真机 amethyst↔chopin 双向音视频 + 锁屏来电验收（设备阻塞，需两机）。Android 14 后台拨号→接听场景下 FGS-from-background 可能被系统拒（已 runCatching 兜底，降级为前台时工作）。
 
 ### 10.1 模块与职责
 
