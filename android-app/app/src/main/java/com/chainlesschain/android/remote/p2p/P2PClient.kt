@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -663,6 +664,20 @@ class P2PClient @Inject constructor(
         lastConnectedPeerId = null
         lastConnectedPeerDID = null
         resetReconnectionState()
+    }
+
+    /**
+     * Tear the client down for good: disconnect, then cancel the whole IO [scope]
+     * so the init-block relay collector + any heartbeat/reconnect coroutines stop.
+     *
+     * The client owns a long-lived `CoroutineScope(Dispatchers.IO + SupervisorJob())`
+     * that eagerly launches `webRTCClient.forwardedMessages.collect { … }` in init and
+     * never had a teardown — those coroutines outlive any DI scope and (in unit tests)
+     * leak across test cases. Call this when the client's lifecycle ends.
+     */
+    fun close() {
+        runCatching { disconnect() }
+        scope.cancel()
     }
 
     /**

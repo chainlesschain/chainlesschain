@@ -8,6 +8,7 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -51,6 +52,12 @@ class P2PClientTest {
         // P2PClient init calls initialize() and setOnMessageReceived()
         every { mockWebRTCClient.initialize() } just Runs
         every { mockWebRTCClient.setOnMessageReceived(any()) } just Runs
+        // FAMILY-67: init { } now launches scope.launch { webRTCClient.forwardedMessages.collect { … } }.
+        // On a relaxed mock, forwardedMessages is a relaxed SharedFlow whose collect() (return type
+        // Nothing) gets relaxed → throws KotlinNothingValueException inside the IO coroutine, surfacing
+        // as a test failure (and leaking into the next test as UncaughtExceptionsBeforeTest). Hand it a
+        // real, never-emitting SharedFlow so the collector just suspends harmlessly.
+        every { mockWebRTCClient.forwardedMessages } returns MutableSharedFlow()
 
         p2pClient = P2PClient(
             didManager = mockDIDManager,
@@ -66,6 +73,11 @@ class P2PClientTest {
 
     @After
     fun tearDown() {
+        // Cancel the client's IO scope FIRST so the init-block forwardedMessages
+        // collector (launched async on Dispatchers.IO) can't outlive the test and
+        // re-touch the mock after clearAllMocks() wipes the stub — that race is what
+        // surfaced as KotlinNothingValueException / UncaughtExceptionsBeforeTest.
+        p2pClient.close()
         clearAllMocks()
     }
 
