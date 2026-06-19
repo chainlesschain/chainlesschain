@@ -104,6 +104,9 @@ fun NewHomeScreen(
     // 2026-05-24 — 首页 ChatInputBar 路由 = LOCAL_DEVICE/LAN/PC_LOCAL 时点 inline sheet
     // 「查看详情」 → 跳 PDH tab 4 本机提问 + 自动重 submit 拿完整引用。
     onNavigateToPdhAsk: (question: String) -> Unit = {},
+    // 「更多功能 → AI 陪学」入口。B 方案下家庭 / AI 陪学 tab 按角色动态显隐, 未选角色
+    // 时该入口是进入家庭 / AI 陪学 shell (含角色设置) 的常驻路径。
+    onNavigateToAiStudyHub: () -> Unit = {},
     socialUnreadCount: Int = 0,
     homeStatusViewModel: HomeStatusViewModel = hiltViewModel(),
     pairedDevicesViewModel: PairedDevicesViewModel = hiltViewModel(),
@@ -244,6 +247,7 @@ fun NewHomeScreen(
                 onNavigateToPdhBrowser = onNavigateToPdhBrowser,
                 onNavigateToLocalModel = onNavigateToLocalModel,
                 onCheckForUpdates = onCheckForUpdates,
+                onNavigateToAiStudyHub = onNavigateToAiStudyHub,
                 socialUnreadCount = socialUnreadCount
             )
 
@@ -715,6 +719,8 @@ fun FunctionEntryGrid(
     onNavigateToPdhBrowser: () -> Unit = {},
     onNavigateToLocalModel: () -> Unit = {},
     onCheckForUpdates: () -> Unit = {},
+    // 「更多功能 → AI 陪学」入口 (B 方案; 家庭 tab 隐藏时进入 shell 的常驻路径)
+    onNavigateToAiStudyHub: () -> Unit = {},
     socialUnreadCount: Int = 0
 ) {
     // 8宫格 + 更多 sheet 布局
@@ -736,6 +742,7 @@ fun FunctionEntryGrid(
         onNavigateToPdhBrowser,
         onNavigateToLocalModel,
         onCheckForUpdates,
+        onNavigateToAiStudyHub,
         socialUnreadCount
     ) {
         listOf(
@@ -767,6 +774,8 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
             // AI 对话 — 依赖远控桌面 LLM，离线不可用
             FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            // AI 陪学 — 家庭 / AI 陪学 shell 常驻入口 (B 方案: 底部家庭 tab 按角色显隐, 此处恒可达)
+            FunctionEntryItem("AI 陪学", Icons.Outlined.School, Color(0xFF7E57C2), FeatureGroup.CORE_WORK, onClick = onNavigateToAiStudyHub),
             FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
             FunctionEntryItem(context.getString(R.string.feature_remote_control), Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
             FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
