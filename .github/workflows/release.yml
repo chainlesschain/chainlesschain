@@ -86,7 +86,7 @@ jobs:
           # install time; npm publish itself doesn't enforce this, but
           # downstream `npm install` does. Order mirrors the original
           # sequence inside publish-cli before the v5.0.3.79 refactor.
-          for pkg in core-env shared-logger core-config core-db core-infra core-mtc core-multisig session-core personal-data-hub; do
+          for pkg in core-env shared-logger core-config core-db core-infra core-mtc core-multisig core-settlement session-core personal-data-hub; do
             dir="packages/$pkg"
             name="@chainlesschain/$pkg"
             CURRENT=$(npm view "$name" version 2>/dev/null || echo "0.0.0")
