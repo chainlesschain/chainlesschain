@@ -78,6 +78,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.121 · 2026-06-19',
+    title: 'PDH analysis/collection fixes + FAMILY-67 call/notification UX + Android keyboard-overlap fix',
+    sub: 'A batch of PDH analysis-pipeline + query-parsing + Douyin/Toutiao collection fixes, FAMILY-67 call/message notification UX polish, and a single global Android keyboard-overlap fix. pdh 0.4.29 + cli 0.162.82 published to npm; Android cc bundle internal-binaries-android-v20260619 (USR_VERSION 49).',
+    desc: 'PDH analysis pipeline: spending total now uses sumEventAmount (no longer undercounted by the per-subtype 5000-row cap); overview byApp/byType/total use facetCounts (no longer truncated by the 10k-row cap); timeline excludes app-usage baseline aggregate events. PDH query parsing: parseIntent adds income-amount phrasing + symmetric "how many/几" quantifiers; parseFilters removes income\'s bare "收到" mis-classification; parseTimeWindow "last N months" no longer overflows the month-end day and drops a whole month; "how much did I spend" without "总共" no longer mis-routes to list (it is a sum). PDH collection: Douyin usage-profile + watch-history vault ingest; Toutiao plaintext article reader (title in the share_info blob); a reproducible WeChat EnMicroMsg.db decrypt-and-ingest script. FAMILY-67 call/notification: network-drop reconnect grace (ICE DISCONNECTED no longer silently hangs); friend-connection self-heal (E2EE handshake only when the DataChannel is already connected); missed-call notification + CallStyle lock-screen incoming call + "stay online to answer" foreground service; friend message notifications deep-link into the right chat + runtime POST_NOTIFICATIONS request (Android 13+). Android keyboard overlap: a global imePadding under edge-to-edge fixes input fields being covered by the keyboard across every page in one place. IDE extensions: VS Code 0.33.0 / JetBrains 0.4.18 dedicated vision-model entry + first-run LLM config onboarding. Version surfaces: productVersion v5.0.3.120 → v5.0.3.121 / desktop 5.0.3-alpha.121 / Android versionCode 503121 / iOS build 121; shipped with 18 release assets.',
+  },
+  {
     tag: 'v5.0.3.120 · 2026-06-18',
     title: 'FAMILY-67 friend call history + incoming ringtone + CLI network robustness',
     sub: 'Persist & view friend voice/video call history, add incoming ringtone/vibration/ringback, and add timeouts to every CLI network fetch so a dead endpoint can no longer hang forever. cli 0.162.81 published to npm.',

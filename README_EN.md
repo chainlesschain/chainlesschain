@@ -45,6 +45,17 @@
 
 ---
 
+## 2026-06-19 Release — **v5.0.3.121: PDH analysis/collection fixes + FAMILY-67 call/notification UX + Android keyboard-overlap fix (pdh 0.4.29 / cli 0.162.82)**
+
+> A batch of Personal Data Hub (PDH) analysis-pipeline + query-parsing + Douyin/Toutiao collection fixes; FAMILY-67 call/message notification UX polish; a single global Android keyboard-overlap fix. The release shipped 18 installer assets. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
+
+- **PDH analysis pipeline**: `spending` total now uses `sumEventAmount` (no longer undercounted by the per-subtype 5000-row cap); `overview` byApp/byType/total use facetCounts (no longer truncated by the 10k-row cap); `timeline` excludes app-usage baseline aggregate events.
+- **PDH query parsing**: added income-amount phrasing + symmetric "how many/几" quantifiers; removed income's bare "收到" mis-classification; "last N months" no longer overflows the month-end day and drops a whole month; "how much did I spend" without "总共" no longer mis-routes to list (it's a sum).
+- **PDH collection**: Douyin usage-profile + watch-history vault ingest; Toutiao plaintext article reader (title in the share_info blob); reproducible WeChat EnMicroMsg.db decrypt-and-ingest script.
+- **FAMILY-67 call/notification**: network-drop reconnect grace (ICE DISCONNECTED no longer silently hangs); friend-connection self-heal (E2EE handshake only when the DataChannel is already connected); missed-call notification + CallStyle lock-screen incoming call + "stay online to answer" foreground service; friend message notifications deep-link into the right chat + runtime POST_NOTIFICATIONS request (Android 13+).
+- **Android keyboard overlap**: a global `imePadding` under edge-to-edge fixes input fields being covered by the keyboard across every page in one place.
+- **Version surfaces**: productVersion v5.0.3.120 → v5.0.3.121 / desktop 5.0.3-alpha.121 / Android versionCode 503121 / iOS CFBundleVersion 121 (check-version-sync green); pdh 0.4.29 + `chainlesschain` 0.162.82 published to npm; Android cc bundle `internal-binaries-android-v20260619` (USR_VERSION 49).
+
 ## 2026-06-18 Release — **v5.0.3.120: FAMILY-67 friend call history + incoming ringtone + CLI network robustness (cli 0.162.81)**
 
 > Friend voice/video call history is persisted and viewable + incoming ringtone/vibration/outgoing ringback + timeouts on every CLI network fetch so a dead endpoint can no longer hang forever. The release shipped 18 installer assets, and all three doc sites (docs / design / www) were synced and deployed. Full per-version detail in [CHANGELOG.md](CHANGELOG.md).
