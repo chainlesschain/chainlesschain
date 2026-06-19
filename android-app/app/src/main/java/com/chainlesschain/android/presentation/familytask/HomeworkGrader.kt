@@ -128,9 +128,13 @@ object GradingPrompts {
  */
 object GradingResultParser {
 
-    private val SCORE = Regex("""分数[:：]\s*(\d{1,3})""")
+    // 分数：容忍 分数/得分/分數 前缀 + 中间 0-4 个非数字符 (冒号/空格/markdown ** 等) → 取数字。
+    private val SCORE = Regex("""(?:分数|得分|分數)[^\d\n]{0,4}(\d{1,3})""")
     private val FEEDBACK = Regex("""评语[:：]\s*([\s\S]*?)(?:\n\s*错题[:：]|$)""")
     private val MISTAKES = Regex("""错题[:：]\s*([\s\S]*)$""")
+
+    // 行首项目符号 (符号 / 数字编号 / 圈号)，解析错题时剥离。
+    private val BULLET = Regex("""^(?:[-*·•‣◦]\s*)+|^(?:\d+[.、)]|[①②③④⑤⑥⑦⑧⑨⑩])\s*""")
 
     fun parse(raw: String): GradingResult {
         val text = raw.trim()
@@ -142,8 +146,8 @@ object GradingResultParser {
             ?: text // 格式没对上时，整段当评语，不丢内容
         val mistakes = MISTAKES.find(text)?.groupValues?.get(1)
             ?.lines()
-            ?.map { it.trim().removePrefix("-").removePrefix("·").trim() }
-            ?.filter { it.isNotBlank() && it != "无" && it != "无。" }
+            ?.map { stripBullet(it.trim()) }
+            ?.filter { it.isNotBlank() && !isNoMistakes(it) }
             ?: emptyList()
 
         return GradingResult(
@@ -151,5 +155,15 @@ object GradingResultParser {
             feedback = feedback,
             mistakes = mistakes,
         )
+    }
+
+    private fun stripBullet(s: String): String = BULLET.replace(s.trim(), "").trim()
+
+    /** 模型表达"无错题"的多种说法，命中即不计入错题 (否则会变成一条伪错题)。 */
+    private fun isNoMistakes(line: String): Boolean {
+        val s = line.trim().trimEnd('。', '.', '!', '！', '，', ',').lowercase()
+        if (s.isEmpty() || s == "none" || s == "n/a" || s == "na" || s == "-") return true
+        return s.startsWith("无") || s.startsWith("没有") || s == "暂无" ||
+            s == "全对" || s == "全部正确" || s == "全部答对" || s == "无误"
     }
 }
