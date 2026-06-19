@@ -93,6 +93,7 @@ import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand } from "./think-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
+import { buildPermissionPrompt } from "./permission-prompt.js";
 import {
   parsePermissionTier,
   describeTier,
@@ -442,7 +443,7 @@ export async function startAgentRepl(options = {}) {
     _permissionRules = total > 0 ? loaded.rules : null;
     // Confirmer is shared by permission `ask` rules AND hook `ask` decisions,
     // so define it unconditionally (a `hook:` rule label flows through too).
-    _permissionConfirm = async ({ tool, args, rule }) => {
+    _permissionConfirm = async ({ tool, args, rule, reason }) => {
       await _fireNotification(
         `Permission needed: ${tool}${rule ? " (" + rule + ")" : ""}`,
       );
@@ -451,18 +452,11 @@ export async function startAgentRepl(options = {}) {
         output: process.stdout,
       });
       const q = (p) => new Promise((res) => rl.question(p, res));
-      const detail = args?.command
-        ? ` ${args.command}`
-        : args?.path
-          ? ` ${args.path}`
-          : "";
-      const ans = (
-        await q(
-          chalk.yellow(
-            `\n[Permission] ${rule} asks before ${tool}:${detail}\n  Proceed? (y/N) `,
-          ),
-        )
-      )
+      // Picks the right phrasing whether the caller passed a `rule`
+      // (settings/hook ask) or a `reason` (destructive-git / sensitive-file
+      // guards) — avoids the literal "null" the old template printed.
+      const header = buildPermissionPrompt({ tool, args, rule, reason });
+      const ans = (await q(chalk.yellow(`\n${header}\n  Proceed? (y/N) `)))
         .trim()
         .toLowerCase();
       rl.close();
