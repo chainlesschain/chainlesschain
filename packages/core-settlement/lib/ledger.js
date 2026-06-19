@@ -55,33 +55,38 @@ function createLedger(db, opts) {
     return { did: row.did, alg: row.alg, pubkeyJwk: JSON.parse(row.pubkey_jwk) };
   }
 
+  // 所有读/链查询都按 ledger_id 隔离：一个 DB 可托管多个联邦账本（schema 每条
+  // 都带 ledger_id），balanceOf/totalMinted/head/verifyChain/nonceUsed 必须只看
+  // 本账本的条目，否则多账本共享 DB 时余额会串、哈希链会交织。
   function head() {
     const row = db
-      .prepare(`SELECT entry_hash FROM ledger_entries ORDER BY seq DESC LIMIT 1`)
-      .get();
+      .prepare(`SELECT entry_hash FROM ledger_entries WHERE ledger_id = ? ORDER BY seq DESC LIMIT 1`)
+      .get(ledgerId);
     return row ? row.entry_hash : null;
   }
 
   function balanceOf(did) {
     const inc = Number(
-      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE to_did = ?`).get(did).s,
+      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE ledger_id = ? AND to_did = ?`).get(ledgerId, did).s,
     );
     const dec = Number(
-      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE from_did = ?`).get(did).s,
+      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE ledger_id = ? AND from_did = ?`).get(ledgerId, did).s,
     );
     return inc - dec;
   }
 
   function totalMinted() {
     return Number(
-      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE kind = 'mint'`).get().s,
+      db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM ledger_entries WHERE ledger_id = ? AND kind = 'mint'`).get(ledgerId).s,
     );
   }
 
+  // nonce 唯一性按 (ledger_id, signer_did) 作用域：同一签名者在不同账本复用同一
+  // nonce 不是重放（签名 core 含 ledgerId → 字节不同），故不应跨账本误拦。
   function nonceUsed(signerDid, nonce) {
     return !!db
-      .prepare(`SELECT 1 FROM ledger_entries WHERE signer_did = ? AND nonce = ? LIMIT 1`)
-      .get(signerDid, nonce);
+      .prepare(`SELECT 1 FROM ledger_entries WHERE ledger_id = ? AND signer_did = ? AND nonce = ? LIMIT 1`)
+      .get(ledgerId, signerDid, nonce);
   }
 
   function _append({ kind, from, to, amount, nonce, alg, sig, signerDid }) {
@@ -141,7 +146,7 @@ function createLedger(db, opts) {
 
   /** 全链复算：链接续 + entry_hash + 每条签名都对 → 篡改可检测。 */
   function verifyChain() {
-    const rows = db.prepare(`SELECT * FROM ledger_entries ORDER BY seq ASC`).all();
+    const rows = db.prepare(`SELECT * FROM ledger_entries WHERE ledger_id = ? ORDER BY seq ASC`).all(ledgerId);
     let prev = null;
     for (const row of rows) {
       const core = {

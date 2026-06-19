@@ -35,8 +35,9 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_ledger_from ON ledger_entries(from_did);
 CREATE INDEX IF NOT EXISTS idx_ledger_to   ON ledger_entries(to_did);
--- 同一签名者 nonce 唯一 → 防重放（transfer 与 mint 都覆盖）
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_signer_nonce ON ledger_entries(signer_did, nonce);
+-- 同一账本内同一签名者 nonce 唯一 → 防重放（transfer 与 mint 都覆盖）。
+-- 含 ledger_id：跨账本同 nonce 不是重放（签名 core 含 ledgerId），不应误拦。
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_signer_nonce ON ledger_entries(ledger_id, signer_did, nonce);
 
 CREATE TABLE IF NOT EXISTS escrow_holds (
   id             TEXT PRIMARY KEY,
