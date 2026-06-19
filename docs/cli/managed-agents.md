@@ -147,6 +147,23 @@ chainlesschain agent --image a.png --image b.jpg -p "对比这两张图" --provi
   **anthropic** 转成 `image` content block(base64 source)。纯文本运行的请求形状**字节不变**。
 - 仅 headless 路径生效(`-p` / 位置参数 / stdin 管道);交互会话传 `--image` 会被忽略并给出提示。
 
+### 自动识别消息里的图片路径(Claude-Code 平价)
+
+除了显式 `--image`,**消息里直接写一个本地图片路径**就会被自动当成视觉输入读图(和 Claude Code 一致),无需任何参数:
+
+```bash
+echo "描述这张图 ./shot.png" | chainlesschain agent --input-format stream-json --output-format stream-json
+# 交互 REPL 里同理:直接打 "描述 C:\Users\me\shot.png"
+```
+
+- **生效范围**:headless stream-json 输入、交互 REPL,以及 **VS Code / JetBrains 聊天面板**(面板就是经 `cc agent --input-format stream-json` 驱动,因此零改插件即生效)。
+- **识别规则**:只把**磁盘上真实存在**且扩展名受支持(`png/jpg/jpeg/gif/webp`)的 token 当图片;识别后把路径文本从消息里剥掉。不存在的路径、不支持的扩展名、`http(s)://` / `data:` 远程地址都**不会**被附图。
+- **路径形式**:`C:\Users\…`、`C:/Users/…`、Git-Bash 形 `/c/Users/…`、`~/…`、以及 IDE 拖拽给的 `file:///C:/Users/…`(含 `%20` 转义)都能识别。
+- **自动切视觉模型**:命中图片的回合会**切到视觉模型**(`config.llm.visionModel`,未配则用内置默认 `doubao-seed-2-0-lite-260215`;只换模型,provider/key/baseUrl 不变),stderr 打印 `[image] N attached → vision model X`。
+- **开关**:`CC_AUTO_IMAGE=0` 关闭自动识别(仍可用显式 `--image` / 粘贴)。
+
+> 配套:面板里 **Ctrl/Cmd+V 粘贴截图**走的是另一条(粘贴真图数据)路径;视觉模型可在 `cc config set llm.visionModel <model>` 或编辑器的「配置图片识别模型」入口里改。
+
 ### 备用模型链(`--fallback-model`)
 
 无人值守运行时,当主模型调用失败就按顺序切到备用模型重试(Claude-Code 2.1.166/2.1.152 平价):
