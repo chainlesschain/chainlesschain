@@ -80,6 +80,49 @@ describe("coding-agent shell policy", () => {
     );
   });
 
+  describe("compound commands (every segment is inspected)", () => {
+    it("blocks a dangerous command smuggled after && / ; / | behind a benign segment", () => {
+      for (const cmd of [
+        "echo hi && git reset --hard HEAD~3",
+        "true && git clean -fd",
+        "ls | rm -rf node_modules",
+        "cd src; rm -rf build",
+        "npm run build && git checkout -- .",
+      ]) {
+        const r = evaluateShellCommandPolicy(cmd);
+        expect(r.allowed, cmd).toBe(false);
+      }
+    });
+
+    it("does NOT auto-allow a compound just because the first segment is allowlisted", () => {
+      const r = evaluateShellCommandPolicy(
+        "npm run build && git checkout -- .",
+      );
+      expect(r.allowed).toBe(false);
+      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.REROUTE);
+    });
+
+    it("still ALLOWs a compound where every segment is independently allowlisted", () => {
+      const r = evaluateShellCommandPolicy(
+        "npm run build && npm run test:unit",
+      );
+      expect(r.allowed).toBe(true);
+      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.ALLOW);
+    });
+
+    it("the most restrictive segment decides (DENY beats a trailing WARN)", () => {
+      const r = evaluateShellCommandPolicy("rm -rf foo && echo done");
+      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.DENY);
+      expect(r.ruleId).toBe("dangerous-delete");
+    });
+
+    it("splitCommandSegments returns every non-empty segment", () => {
+      expect(
+        sharedShellPolicy.splitCommandSegments("a && b || c | d ; e"),
+      ).toEqual(["a", "b", "c", "d", "e"]);
+    });
+  });
+
   describe("overrideRuleIds", () => {
     it("downgrades a DENY rule to WARN when its ID is in overrideRuleIds", () => {
       const result = evaluateShellCommandPolicy(

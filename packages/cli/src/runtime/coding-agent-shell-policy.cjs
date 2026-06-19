@@ -114,6 +114,20 @@ function splitFirstCommandSegment(command) {
     .trim();
 }
 
+/**
+ * Split a (possibly compound) command on shell separators (`&&`, `||`, `|`,
+ * `;`) into its individual command segments. The policy must inspect EVERY
+ * segment — not just the first — so a destructive command (`rm -rf …`,
+ * `git reset --hard`) cannot be smuggled after a separator behind a benign or
+ * allowlisted leading segment (e.g. `npm run build && git checkout -- .`).
+ */
+function splitCommandSegments(command) {
+  return String(command || "")
+    .split(/(?:\|\||&&|[|;])/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
 function tokenizeShellCommand(command) {
   const tokens = [];
   let current = "";
@@ -165,33 +179,27 @@ function normalizeShellCommand(command) {
   return splitFirstCommandSegment(command).replace(/\s+/g, " ").trim();
 }
 
-function evaluateShellCommandPolicy(command, options = {}) {
-  const normalized = normalizeShellCommand(command);
+// Severity ordering so the most restrictive segment of a compound command wins.
+const DECISION_SEVERITY = Object.freeze({
+  [SHELL_POLICY_DECISIONS.DENY]: 3,
+  [SHELL_POLICY_DECISIONS.REROUTE]: 2,
+  [SHELL_POLICY_DECISIONS.WARN]: 1,
+  [SHELL_POLICY_DECISIONS.ALLOW]: 0,
+});
+
+/** Classify ONE command segment (no separators). */
+function evaluateSegmentPolicy(segment, overrideRuleIds) {
+  const normalized = normalizeShellCommand(segment);
   const tokens = tokenizeShellCommand(normalized);
   const firstToken = (tokens[0] || "").toLowerCase();
   const secondToken = (tokens[1] || "").toLowerCase();
   const context = {
-    command: String(command || ""),
+    command: String(segment || ""),
     normalized,
     tokens,
     firstToken,
     secondToken,
   };
-
-  // Rule IDs that should be downgraded from DENY to WARN (e.g. cowork web-research)
-  const overrideRuleIds = Array.isArray(options.overrideRuleIds)
-    ? new Set(options.overrideRuleIds)
-    : new Set();
-
-  if (!normalized) {
-    return {
-      allowed: false,
-      decision: SHELL_POLICY_DECISIONS.DENY,
-      reason: "Shell command is required.",
-      ruleId: "empty-command",
-      normalizedCommand: normalized,
-    };
-  }
 
   const blockedRule = BLOCKED_SHELL_RULES.find((rule) => rule.test(context));
   if (blockedRule) {
@@ -237,6 +245,37 @@ function evaluateShellCommandPolicy(command, options = {}) {
   };
 }
 
+function evaluateShellCommandPolicy(command, options = {}) {
+  // Rule IDs that should be downgraded from DENY to WARN (e.g. cowork web-research)
+  const overrideRuleIds = Array.isArray(options.overrideRuleIds)
+    ? new Set(options.overrideRuleIds)
+    : new Set();
+
+  // Inspect EVERY segment of a compound command, not just the first — a
+  // dangerous segment after `&&` / `;` / `|` must still be caught. The most
+  // restrictive segment decides the whole command (a compound is only ALLOW
+  // when every segment is independently allowlisted).
+  const segments = splitCommandSegments(command);
+  if (!segments.length) {
+    return {
+      allowed: false,
+      decision: SHELL_POLICY_DECISIONS.DENY,
+      reason: "Shell command is required.",
+      ruleId: "empty-command",
+      normalizedCommand: "",
+    };
+  }
+
+  let worst = null;
+  for (const segment of segments) {
+    const result = evaluateSegmentPolicy(segment, overrideRuleIds);
+    const sev = DECISION_SEVERITY[result.decision] ?? 1;
+    const worstSev = worst ? (DECISION_SEVERITY[worst.decision] ?? 1) : -1;
+    if (sev > worstSev) worst = result;
+  }
+  return worst;
+}
+
 module.exports = {
   ALLOWLISTED_SHELL_RULES,
   BLOCKED_SHELL_RULES,
@@ -244,5 +283,6 @@ module.exports = {
   evaluateShellCommandPolicy,
   normalizeShellCommand,
   splitFirstCommandSegment,
+  splitCommandSegments,
   tokenizeShellCommand,
 };
