@@ -53,6 +53,8 @@ class AiStudyViewModel @Inject constructor(
     private val guardrailSink: GuardrailEventSink,
     private val taskContext: StudyTaskContext,
     private val companionVault: CompanionVault,
+    private val pointsLedger: PointsLedger,
+    private val studyContext: com.chainlesschain.android.presentation.familytask.FamilyStudyContext,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
@@ -236,8 +238,18 @@ class AiStudyViewModel @Inject constructor(
     /** 取某任务的 AI 调用 log (防作弊 review)。 */
     fun taskAiCallLog(taskId: String): List<TaskAiCall> = taskContext.callLogFor(taskId)
 
-    /** 生成家长端学情报告 (§3.6)。护栏块只含类别+次数，不含聊天原文。 */
-    fun generateReport(): StudyReport {
+    /**
+     * 生成家长端学情报告 (§3.6)。护栏块只含类别+次数，不含聊天原文。
+     *
+     * FAMILY-67 Phase 2：正向激励 (M9) 块从**真持久积分账本**读 (今日赚分 + 当前余额，按
+     * [studyContext] 的 childDid)，不再缺省跳过 —— 积分经 Phase 1 同步后家长端也能看到。
+     */
+    suspend fun generateReport(): StudyReport {
+        val childDid = studyContext.childDid()
+        val now = System.currentTimeMillis()
+        val dayStart = now - (now % DAY_MS)
+        val earnedToday = pointsLedger.earnedBetween(childDid, dayStart, dayStart + DAY_MS)
+        val balance = pointsLedger.balanceOf(childDid, now).balance
         val snapshot = StudyActivitySnapshot(
             learningTurns = learningTurns,
             companionTurns = companionTurns,
@@ -247,6 +259,8 @@ class AiStudyViewModel @Inject constructor(
             mistakesReviewed = mistakesReviewedThisSession,
             mistakeBookTotal = mistakeBook.snapshot().size,
             guardrailCategories = guardrailSink.findings.value.map { it.category },
+            pointsEarnedToday = earnedToday,
+            pointsBalance = balance,
         )
         return StudyReportGenerator.generate(_uiState.value.profile.nickname, snapshot)
     }
@@ -264,5 +278,6 @@ class AiStudyViewModel @Inject constructor(
     private companion object {
         const val CONV_LEARNING = "ai-study-learning"
         const val CONV_COMPANION = "ai-study-companion"
+        const val DAY_MS = 86_400_000L
     }
 }

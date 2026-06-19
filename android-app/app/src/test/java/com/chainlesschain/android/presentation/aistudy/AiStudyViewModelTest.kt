@@ -63,6 +63,10 @@ class AiStudyViewModelTest {
     private lateinit var guardrailSink: InMemoryGuardrailEventSink
     private lateinit var taskContext: InMemoryStudyTaskContext
     private lateinit var companionVault: FakeCompanionVault
+    private lateinit var ledger: InMemoryPointsLedger
+    private val studyContext = object : com.chainlesschain.android.presentation.familytask.FamilyStudyContext {
+        override suspend fun childDid() = TEST_CHILD_DID
+    }
 
     @Before
     fun setUp() {
@@ -73,6 +77,7 @@ class AiStudyViewModelTest {
         guardrailSink = InMemoryGuardrailEventSink()
         taskContext = InMemoryStudyTaskContext()
         companionVault = FakeCompanionVault()
+        ledger = InMemoryPointsLedger()
     }
 
     @After
@@ -82,6 +87,7 @@ class AiStudyViewModelTest {
 
     private fun vm() = AiStudyViewModel(
         llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
+        ledger, studyContext,
     )
 
     @Test
@@ -182,6 +188,7 @@ class AiStudyViewModelTest {
         }
         val vm2 = AiStudyViewModel(
             erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
+            ledger, studyContext,
         )
         vm2.send("hi")
 
@@ -321,5 +328,32 @@ class AiStudyViewModelTest {
         assertNull(viewModel.uiState.value.activeTask)
         assertTrue(!llm.lastMessages.first().content.contains("任务进行中"))
         assertTrue(viewModel.taskAiCallLog("t1").isEmpty())
+    }
+
+    @Test
+    fun `report shows M9 positive-reinforcement block from persisted points (FAMILY-67 Phase 2)`() = runTest {
+        // 任务侧赚的分 (同 childDid) → 报告正向激励块出现，含今日赚分 + 余额真值。
+        val now = System.currentTimeMillis()
+        ledger.append(
+            PointsEvent(
+                id = "e1", childDid = TEST_CHILD_DID, type = PointsEventType.EARN,
+                amount = 30, reason = "作业满分", timestamp = now,
+            ),
+        )
+        val text = vm().generateReport().render()
+        assertTrue(text.contains("正向激励"))
+        assertTrue(text.contains("赚 30 分"))
+        assertTrue(text.contains("余额 30 分"))
+    }
+
+    @Test
+    fun `report with no points still shows balance block at zero`() = runTest {
+        val text = vm().generateReport().render()
+        assertTrue(text.contains("正向激励"))
+        assertTrue(text.contains("余额 0 分"))
+    }
+
+    private companion object {
+        const val TEST_CHILD_DID = "did:test-child"
     }
 }

@@ -33,8 +33,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +59,7 @@ fun AiStudyScreen(
     viewModel: AiStudyViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
     var showProfileDialog by remember { mutableStateOf(false) }
     var reportText by remember { mutableStateOf<String?>(null) }
     var input by remember { mutableStateOf("") }
@@ -83,8 +86,8 @@ fun AiStudyScreen(
                 modifier = Modifier.weight(1f),
             )
             if (state.selectedTab == AiStudyTab.LEARNING) {
-                // M6 学情报告: 本次会话学习活动简报 (AI 借力/错题本/需要关注)。
-                TextButton(onClick = { reportText = viewModel.generateReport().render() }) {
+                // M6 学情报告: 学习活动简报 (AI 借力/错题本/正向激励-真积分/需要关注)。
+                TextButton(onClick = { scope.launch { reportText = viewModel.generateReport().render() } }) {
                     Text("学情")
                 }
                 TextButton(onClick = { showProfileDialog = true }) {

@@ -71,4 +71,11 @@ abstract class AiStudyModule {
     @Binds
     @Singleton
     abstract fun bindCompanionVault(impl: EncryptedCompanionVault): CompanionVault
+
+    // FAMILY-67 Phase 2: 学情报告/任务 共用的"当前孩子 DID"单一真相源。
+    @Binds
+    @Singleton
+    abstract fun bindFamilyStudyContext(
+        impl: com.chainlesschain.android.presentation.familytask.DefaultFamilyStudyContext,
+    ): com.chainlesschain.android.presentation.familytask.FamilyStudyContext
 }
