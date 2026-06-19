@@ -279,9 +279,19 @@ function isDangerousGitCommand(command) {
     case "switch":
       return has("-f", "--force", "--discard-changes");
     case "push":
-      // `--force`/`-f` rewrites remote history; `--force-with-lease`/
-      // `--force-if-includes` are the safe forms and are NOT flagged.
-      return has("--force", "-f");
+      // Rewrites or deletes remote refs:
+      //   --force/-f           → force overwrite remote history
+      //   a `+refspec` token   → per-ref force push (e.g. `push origin +main`)
+      //   --delete/-d, or a    → delete a remote branch/ref
+      //     `:dst` token (empty-source refspec, e.g. `push origin :main`)
+      //   --mirror             → can delete remote refs to mirror local
+      // `--force-with-lease`/`--force-if-includes` are the safe forms (distinct
+      // tokens from `--force`) and are NOT flagged; a normal `src:dst` refspec
+      // does not start with `:` so it is not flagged either.
+      return (
+        has("--force", "-f", "--delete", "-d", "--mirror") ||
+        rest.some((t) => t.startsWith("+") || t.startsWith(":"))
+      );
     case "branch":
       // `-D` (force delete, case-sensitive — `-d` only deletes merged branches)
       // or an explicit `--delete --force`.
