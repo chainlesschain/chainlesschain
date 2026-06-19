@@ -26,6 +26,7 @@ on:
     paths:
       - "packages/**"
       - "scripts/lint-undeclared-deps.mjs"
+      - "scripts/__tests__/lint-undeclared-deps.test.mjs"
       - ".github/workflows/undeclared-deps-audit.yml"
   workflow_dispatch:
 
@@ -47,6 +48,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Run lint unit tests
+        run: node --test scripts/__tests__/lint-undeclared-deps.test.mjs
 
       - name: Run undeclared-deps audit
         id: lint
