@@ -189,9 +189,7 @@ function registerTradeInitializers(factory) {
     name: "lightningPaymentManager",
     dependsOn: ["database", "assetManager"],
     async init(context) {
-      const {
-        LightningPaymentManager,
-      } = require("../trade/lightning-payment");
+      const { LightningPaymentManager } = require("../trade/lightning-payment");
       const mgr = new LightningPaymentManager(
         context.database,
         context.assetManager,
@@ -250,6 +248,88 @@ function registerTradeInitializers(factory) {
       const mgr = new AtomicSwapManager(context.database, bridgeManager);
       await mgr.initialize();
       return mgr;
+    },
+  });
+
+  // ========================================
+  // 结算 escrow（core-settlement 集成 adapter）
+  // ========================================
+  // 把 @chainlesschain/core-settlement（联邦签名转账日志账本 + multisig 门控托管
+  // escrow）桥接到桌面：复用本机 DID 身份签转账、复用桌面 db、release 放款经
+  // governanceMultiSig 门控（fail-closed：无达阈提案不放款）。
+  // 单节点联邦默认：本机身份同时担任 genesis（发 credits）与 custodian（托管）；
+  // 跨设备联邦由各成员后续注册公钥 + 独立 custodian（follow-up）。
+  // 详见 ../trade/settlement-escrow.js。
+  factory.register({
+    name: "settlementEscrow",
+    dependsOn: ["database", "didManager", "governanceMultiSig"],
+    required: false,
+    async init(context) {
+      const settlement = require("@chainlesschain/core-settlement");
+      const {
+        createSettlementEscrow,
+        naclIdentityToMember,
+      } = require("../trade/settlement-escrow.js");
+
+      const identity = context.didManager.getCurrentIdentity();
+      if (!identity || !identity.did) {
+        logger.warn(
+          "[Trade] settlementEscrow：当前无 DID 身份，结算 escrow 暂不激活（创建身份后重启生效）",
+        );
+        return null;
+      }
+
+      const db = context.database && context.database.db;
+      if (!db) {
+        logger.warn("[Trade] settlementEscrow：数据库句柄不可用，跳过");
+        return null;
+      }
+
+      // 单节点联邦：本机身份既是 genesis 也是 custodian。
+      const localMember = naclIdentityToMember(identity);
+      const ledgerId = "desktop-fed";
+
+      // 放款门控：接 governanceMultiSig（M-of-N 达阈才放款）。
+      //  - community = ledgerId；proposalId 由开 hold 方携带。
+      //  - fail-closed：无 governanceMultiSig / 缺 proposalId / 未达阈 → 不放款。
+      const gov = context.governanceMultiSig || null;
+      const proposalGate = (proposalId) => {
+        if (!gov) {
+          return {
+            releasable: false,
+            reason: "governance_multisig_unavailable",
+          };
+        }
+        if (!proposalId) {
+          return { releasable: false, reason: "no_proposal_id" };
+        }
+        try {
+          const st = gov.getStatus(ledgerId, proposalId);
+          if (st && st.complete) {
+            return { releasable: true };
+          }
+          return {
+            releasable: false,
+            reason: `threshold_${st ? st.collected : 0}/${st ? st.threshold : "?"}`,
+          };
+        } catch (_err) {
+          // 提案不存在（_readProposal 抛错）→ 不放款
+          return { releasable: false, reason: "proposal_not_found" };
+        }
+      };
+
+      const escrow = createSettlementEscrow({
+        settlement,
+        db,
+        ledgerId,
+        genesis: localMember,
+        custodian: localMember,
+        proposalGate,
+      });
+      logger.info(
+        `[Trade] ✓ settlementEscrow 初始化成功（ledger=${ledgerId}, member=${identity.did}）`,
+      );
+      return escrow;
     },
   });
 
