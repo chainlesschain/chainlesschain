@@ -580,6 +580,7 @@ class ChainlessChainApp {
     this.contractEngine = instances.contractEngine;
     this.knowledgePaymentManager = instances.knowledgePaymentManager;
     this.creditScoreManager = instances.creditScoreManager;
+    this.settlementEscrow = instances.settlementEscrow;
     this.reviewManager = instances.reviewManager;
     this.statsCollector = instances.statsCollector;
   }
@@ -1376,6 +1377,7 @@ class ChainlessChainApp {
         promptTemplateManager: this.promptTemplateManager,
         knowledgePaymentManager: this.knowledgePaymentManager,
         creditScoreManager: this.creditScoreManager,
+        settlementEscrow: this.settlementEscrow,
         reviewManager: this.reviewManager,
         vcTemplateManager: this.vcTemplateManager,
         identityContextManager: this.identityContextManager,

@@ -632,6 +632,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getStatistics: () => ipcRenderer.invoke("escrow:get-statistics"),
   },
 
+  // 结算 escrow (core-settlement：联邦签名转账账本 + multisig 门控托管)
+  settlement: {
+    getBalance: (did) => ipcRenderer.invoke("settlement:get-balance", did),
+    getHold: (holdId) => ipcRenderer.invoke("settlement:get-hold", holdId),
+    registerMember: (member) =>
+      ipcRenderer.invoke("settlement:register-member", member),
+    grant: (payload) => ipcRenderer.invoke("settlement:grant", payload),
+    openHold: (payload) => ipcRenderer.invoke("settlement:open-hold", payload),
+    release: (holdId) => ipcRenderer.invoke("settlement:release", holdId),
+    refund: (holdId) => ipcRenderer.invoke("settlement:refund", holdId),
+  },
+
   // 智能合约
   contract: {
     create: (options) => ipcRenderer.invoke("contract:create", options),

@@ -38,6 +38,8 @@ function registerPhases8to9Extras({
     reviewManager,
     vcTemplateManager,
     creditScoreManager,
+    settlementEscrow,
+    didManager,
     fileImporter,
     syncManager,
     fileSyncManager,
@@ -144,6 +146,21 @@ function registerPhases8to9Extras({
         registerCreditIPC({ creditScoreManager });
       },
       handlers: 7,
+    });
+  }
+
+  // 结算 escrow (core-settlement) — 7 handlers。settlementEscrow 由
+  // trade-initializer 构造（无 DID 身份时为 null，此时跳过注册）。
+  if (settlementEscrow) {
+    safeRegister("Settlement Escrow IPC", {
+      register: () => {
+        const {
+          registerSettlementEscrowIPC,
+        } = require("../../trade/settlement-escrow-ipc");
+        registerSettlementEscrowIPC({ settlementEscrow, didManager });
+      },
+      handlers: 7,
+      continueMessage: "Settlement escrow features will be unavailable",
     });
   }
 
