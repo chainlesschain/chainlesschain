@@ -2,7 +2,9 @@ package com.chainlesschain.android.feature.p2p.sync
 
 import timber.log.Timber
 import com.chainlesschain.android.core.p2p.sync.FamilyGuardSyncApplier
+import com.chainlesschain.android.core.p2p.sync.FamilyTaskSyncApplier
 import com.chainlesschain.android.core.p2p.sync.KnowledgeSyncApplier
+import com.chainlesschain.android.core.p2p.sync.PointsLedgerSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ProjectSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncDataApplier
@@ -34,6 +36,8 @@ class DefaultSyncDataApplier @Inject constructor(
     private val projectSyncApplier: ProjectSyncApplier,
     private val familyGuardSyncApplier: FamilyGuardSyncApplier,
     private val telemetrySyncApplier: TelemetrySyncApplier,
+    private val familyTaskSyncApplier: FamilyTaskSyncApplier,
+    private val pointsLedgerSyncApplier: PointsLedgerSyncApplier,
 ) : SyncDataApplier {
 
     override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {
@@ -49,6 +53,8 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.FAMILY_GROUP -> familyGuardSyncApplier.saveFamilyGroupFromSync(resourceId, data)
             ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.saveFamilyMembershipFromSync(resourceId, data)
             ResourceType.TELEMETRY -> telemetrySyncApplier.saveTelemetryFromSync(resourceId, data)
+            ResourceType.FAMILY_TASK -> familyTaskSyncApplier.saveTaskFromSync(resourceId, data)
+            ResourceType.POINTS_EVENT -> pointsLedgerSyncApplier.savePointsEventFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for create: $resourceType")
         }
     }
@@ -67,6 +73,9 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.FAMILY_MEMBERSHIP -> familyGuardSyncApplier.updateFamilyMembershipFromSync(resourceId, data)
             // telemetry append-only：UPDATE 复用保存（幂等），无独立更新语义
             ResourceType.TELEMETRY -> telemetrySyncApplier.saveTelemetryFromSync(resourceId, data)
+            ResourceType.FAMILY_TASK -> familyTaskSyncApplier.updateTaskFromSync(resourceId, data)
+            // points append-only：UPDATE 复用保存（幂等），无独立更新语义
+            ResourceType.POINTS_EVENT -> pointsLedgerSyncApplier.savePointsEventFromSync(resourceId, data)
             else -> Timber.w("Unsupported resource type for update: $resourceType")
         }
     }
@@ -81,6 +90,8 @@ class DefaultSyncDataApplier @Inject constructor(
             ResourceType.POST -> postRepository.deletePostFromSync(resourceId)
             ResourceType.POST_COMMENT -> postRepository.deleteCommentFromSync(resourceId)
             ResourceType.NOTIFICATION -> notificationRepository.deleteNotificationFromSync(resourceId)
+            ResourceType.FAMILY_TASK -> familyTaskSyncApplier.deleteTaskFromSync(resourceId)
+            // points append-only：无 DELETE 语义
             else -> Timber.w("Unsupported resource type for delete: $resourceType")
         }
     }

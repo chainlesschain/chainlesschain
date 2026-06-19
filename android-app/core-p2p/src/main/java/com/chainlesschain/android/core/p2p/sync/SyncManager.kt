@@ -717,7 +717,13 @@ enum class ResourceType {
     // 家庭守护 family_group（FAMILY-26 双向同步）：配对建立的家庭组在两端收敛。
     FAMILY_GROUP,
     // 家庭守护 family_membership（FAMILY-26）：成员行双向同步, 让对端家人页显示本成员。
-    FAMILY_MEMBERSHIP
+    FAMILY_MEMBERSHIP,
+    // AI 陪学 family_task（FAMILY-67）：作业/任务双向同步 (parent→child 布置, child→parent
+    // 提交/批改/打回)。可变资源, 冲突走 FamilyTaskMerge。
+    FAMILY_TASK,
+    // AI 陪学 points_event（FAMILY-67）：积分流水同步 (child→parent earn/spend, parent→child
+    // grant)。append-only CREATE; 重复 id 由 DAO INSERT IGNORE 去重。
+    POINTS_EVENT
 }
 
 /**
