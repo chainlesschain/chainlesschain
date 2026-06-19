@@ -1,6 +1,9 @@
 package com.chainlesschain.android.presentation.familytask
 
+import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
+import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyRelationshipRepository
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,10 +15,13 @@ import javax.inject.Singleton
  * [com.chainlesschain.android.presentation.aistudy.AiStudyViewModel] (报告读) 都经此取 DID，
  * 二者绝不能分叉 (分叉 → 报告积分恒 0)。
  *
- * 解析：**孩子端**经 [ChildIdentityProvider] 取本机真实 child DID (角色 CHILD + 已建身份双闸)；
- * **家长端 / 未配置**回落演示常量 (家长端按配对关系解析「配对孩子 DID」待真配对流程，follow-up)。
+ * 解析三段：
+ *  1. **孩子端**：经 [ChildIdentityProvider] 取本机真实 child DID (角色 CHILD + 已建身份双闸)。
+ *  2. **家长端**：本机非孩子时，从活跃 family_relationship 取 role_other==CHILD 的好友 DID
+ *     (= 配对孩子)。多孩子取首个 (选择交互留 UI follow-up)。
+ *  3. **未配置**：回落演示常量。
  *
- * suspend：解析要查角色偏好 + DID 库 (IO)。
+ * suspend：解析要查角色偏好 + DID 库 + 关系库 (IO)。
  */
 interface FamilyStudyContext {
 
@@ -26,11 +32,23 @@ interface FamilyStudyContext {
 @Singleton
 class DefaultFamilyStudyContext @Inject constructor(
     private val childIdentityProvider: ChildIdentityProvider,
+    private val relationshipRepository: FamilyRelationshipRepository,
 ) : FamilyStudyContext {
 
-    // 孩子端 = 本机真实 child DID；家长端/未选角色/未建身份 → 回落演示常量。
-    override suspend fun childDid(): String =
-        childIdentityProvider.childDidOrNull() ?: DEMO_CHILD_DID
+    override suspend fun childDid(): String {
+        // 1) 孩子端：本机即孩子。
+        childIdentityProvider.childDidOrNull()?.let { return it }
+        // 2) 家长端：配对关系里 role_other==CHILD 的好友 DID (首个活跃孩子)。
+        pairedChildDid()?.let { return it }
+        // 3) 未配置：回落演示常量。
+        return DEMO_CHILD_DID
+    }
+
+    private suspend fun pairedChildDid(): String? = runCatching {
+        relationshipRepository.observeAllActive().first()
+            .firstOrNull { MemberRole.fromStorage(it.roleOther) == MemberRole.CHILD }
+            ?.friendDid
+    }.getOrNull()
 
     private companion object {
         const val DEMO_CHILD_DID = "did:chain:local-child"
