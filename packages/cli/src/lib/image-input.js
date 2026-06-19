@@ -105,6 +105,36 @@ export function detectImagePaths(text, deps = {}) {
 }
 
 /**
+ * Compose a REPL/interactive turn from raw typed text: auto-detect local image
+ * paths, build the user-message content, and (on an image turn) the per-turn
+ * vision-LLM override. Pure orchestration over detectImagePaths/resolveImages/
+ * buildUserContent/resolveVisionLlm so the interactive wiring is unit-testable
+ * (the REPL itself forces a terminal and can't be driven headlessly).
+ *
+ * @param {string} text     the user's typed message
+ * @param {object} llm      { provider, baseUrl, apiKey, visionModel } current LLM
+ * @param {object} deps     { existsSync, fs } injected for tests
+ * @returns {{ content, images: string[], visionLlm: object|null, text: string }}
+ *   content is a plain string when no image is detected, else a multimodal
+ *   array; visionLlm is the per-turn provider/model/baseUrl/apiKey override
+ *   (null when there are no images); text is the path-stripped prompt.
+ */
+export function prepareVisionTurn(text, llm = {}, deps = {}) {
+  const detected = detectImagePaths(text, deps);
+  if (!detected.images.length) {
+    return { content: text, images: [], visionLlm: null, text };
+  }
+  const finalText = detected.text || "Please look at the attached image(s).";
+  const resolved = resolveImages(detected.images, deps); // throws on bad ext
+  return {
+    content: buildUserContent(finalText, resolved),
+    images: detected.images,
+    visionLlm: resolveVisionLlm({ hasImage: true, flags: {}, llm }),
+    text: finalText,
+  };
+}
+
+/**
  * Build a user-message `content`: the plain string when there are no images,
  * else an OpenAI-style multimodal array (the internal representation).
  */

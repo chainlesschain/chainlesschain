@@ -13,6 +13,7 @@ import {
   imageUrlBlockToAnthropic,
   resolveVisionLlm,
   detectImagePaths,
+  prepareVisionTurn,
   DEFAULT_VISION_MODEL,
 } from "../../src/lib/image-input.js";
 
@@ -254,5 +255,55 @@ describe("detectImagePaths (Claude-Code-style path auto-detect)", () => {
     });
     expect(detectImagePaths("", mk([]))).toEqual({ images: [], text: "" });
     expect(detectImagePaths(null, mk([]))).toEqual({ images: [], text: "" });
+  });
+});
+
+describe("prepareVisionTurn (REPL interactive composition)", () => {
+  const deps = (existing) => ({
+    existsSync: (p) => existing.includes(p),
+    fs: { readFileSync: (p) => Buffer.from(`bytes-of-${p}`) },
+  });
+  const llm = {
+    provider: "volcengine",
+    baseUrl: "https://ark/api",
+    apiKey: "K",
+    visionModel: "doubao-vlm",
+  };
+
+  it("no image path → plain text content, no vision override", () => {
+    const r = prepareVisionTurn("just a question", llm, deps([]));
+    expect(r.content).toBe("just a question");
+    expect(r.images).toEqual([]);
+    expect(r.visionLlm).toBeNull();
+  });
+
+  it("image path → multimodal content + vision LLM override (model switched)", () => {
+    const r = prepareVisionTurn("describe a.png now", llm, deps(["a.png"]));
+    expect(r.images).toEqual(["a.png"]);
+    expect(Array.isArray(r.content)).toBe(true);
+    expect(r.content[0]).toEqual({ type: "text", text: "describe now" });
+    expect(r.content[1].type).toBe("image_url");
+    // same provider/baseUrl/apiKey, model switched to the configured vision model
+    expect(r.visionLlm).toEqual({
+      provider: "volcengine",
+      model: "doubao-vlm",
+      baseUrl: "https://ark/api",
+      apiKey: "K",
+    });
+  });
+
+  it("path-only message → synthesized instruction + attachment", () => {
+    const r = prepareVisionTurn("a.png", llm, deps(["a.png"]));
+    expect(r.content[0].text).toMatch(/attached image/);
+    expect(r.visionLlm.model).toBe("doubao-vlm");
+  });
+
+  it("falls back to the default vision model when none configured", () => {
+    const r = prepareVisionTurn(
+      "see a.png",
+      { provider: "volcengine" },
+      deps(["a.png"]),
+    );
+    expect(r.visionLlm.model).toBe(DEFAULT_VISION_MODEL);
   });
 });

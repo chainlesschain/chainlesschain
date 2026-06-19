@@ -81,6 +81,7 @@ import {
 } from "../runtime/agent-core.js";
 import { formatBackgroundTasks } from "./tasks-status.js";
 import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
+import { prepareVisionTurn } from "../lib/image-input.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import {
   makeFallbackChatFn,
@@ -279,6 +280,16 @@ export async function startAgentRepl(options = {}) {
   let _sessionTier = "strict";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
+  // Configured vision model (config.llm.visionModel) — used when a turn carries
+  // an auto-detected image path so the REPL switches to a vision-capable model
+  // for that turn only (resolveVisionLlm falls back to the default when unset).
+  let _visionModel;
+  try {
+    const { loadConfig } = await import("../lib/config-manager.js");
+    _visionModel = loadConfig()?.llm?.visionModel || undefined;
+  } catch {
+    /* optional — resolveVisionLlm falls back to DEFAULT_VISION_MODEL */
+  }
   // Extra workspace roots (--add-dir): advertised in the system prompt and
   // spanned by search_files.
   const additionalDirectories = Array.isArray(options.additionalDirectories)
@@ -3075,8 +3086,40 @@ export async function startAgentRepl(options = {}) {
       // optional polish — never fail the turn over it
     }
 
+    // Claude-Code-style: auto-attach local image paths typed in the message so
+    // "describe ./shot.png" reads the image via the vision model (same as the
+    // chat panels). CC_AUTO_IMAGE=0 opts out. `_visionLlm` (truthy on an image
+    // turn) overrides this turn's provider/model/baseUrl/apiKey below. The
+    // composition is the unit-tested `prepareVisionTurn` helper.
+    let _visionLlm = null;
+    let _userMessageContent = userContent;
+    if (process.env.CC_AUTO_IMAGE !== "0") {
+      try {
+        const turn = prepareVisionTurn(userContent, {
+          provider,
+          baseUrl,
+          apiKey,
+          visionModel: _visionModel,
+        });
+        if (turn.visionLlm) {
+          _userMessageContent = turn.content;
+          _visionLlm = turn.visionLlm;
+          logger.info(
+            chalk.gray(
+              `[image] ${turn.images.length} attached → vision model ${turn.visionLlm.model}`,
+            ),
+          );
+        }
+      } catch (e) {
+        // Bad attachment (e.g. unreadable file) → send as plain text.
+        _visionLlm = null;
+        _userMessageContent = userContent;
+        logger.info(chalk.yellow(`[image] ${e.message} — sending as text`));
+      }
+    }
+
     // Add user message
-    messages.push({ role: "user", content: userContent });
+    messages.push({ role: "user", content: _userMessageContent });
 
     // Slot-filling: detect intent and fill missing parameters interactively
     try {
@@ -3202,12 +3245,14 @@ export async function startAgentRepl(options = {}) {
             ),
           ),
         signal: _turnAbort.signal,
-        provider,
-        model: activeModel,
+        // On an auto-detected image turn, switch to the vision LLM for this
+        // turn only (provider/baseUrl/apiKey unchanged, model → vision model).
+        provider: _visionLlm ? _visionLlm.provider : provider,
+        model: _visionLlm ? _visionLlm.model : activeModel,
         thinking,
         thinkingBudget,
-        baseUrl,
-        apiKey,
+        baseUrl: _visionLlm ? _visionLlm.baseUrl : baseUrl,
+        apiKey: _visionLlm ? _visionLlm.apiKey : apiKey,
         contextEngine,
         iterationBudget,
         sessionId,
