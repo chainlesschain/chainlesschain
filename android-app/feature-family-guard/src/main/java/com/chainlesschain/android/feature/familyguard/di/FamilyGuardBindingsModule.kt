@@ -101,6 +101,13 @@ abstract class FamilyGuardBindingsModule {
         impl: FamilyRelationshipRepositoryImpl,
     ): FamilyRelationshipRepository
 
+    // FAMILY-67 Phase 2: 多孩子选择 — 家长端"当前选中孩子" DID 持久化。
+    @Binds
+    @Singleton
+    abstract fun bindSelectedChildStore(
+        impl: com.chainlesschain.android.feature.familyguard.data.repository.DataStoreSelectedChildStore,
+    ): com.chainlesschain.android.feature.familyguard.domain.repository.SelectedChildStore
+
     @Binds
     @Singleton
     abstract fun bindInviteSigner(impl: DidManagerInviteSigner): InviteSigner

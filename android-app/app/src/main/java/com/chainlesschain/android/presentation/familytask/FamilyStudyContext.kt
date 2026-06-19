@@ -2,6 +2,7 @@ package com.chainlesschain.android.presentation.familytask
 
 import com.chainlesschain.android.feature.familyguard.domain.model.MemberRole
 import com.chainlesschain.android.feature.familyguard.domain.repository.FamilyRelationshipRepository
+import com.chainlesschain.android.feature.familyguard.domain.repository.SelectedChildStore
 import com.chainlesschain.android.feature.familyguard.domain.telemetry.ChildIdentityProvider
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -17,11 +18,11 @@ import javax.inject.Singleton
  *
  * 解析三段：
  *  1. **孩子端**：经 [ChildIdentityProvider] 取本机真实 child DID (角色 CHILD + 已建身份双闸)。
- *  2. **家长端**：本机非孩子时，从活跃 family_relationship 取 role_other==CHILD 的好友 DID
- *     (= 配对孩子)。多孩子取首个 (选择交互留 UI follow-up)。
+ *  2. **家长端**：本机非孩子时，从活跃 family_relationship 取 role_other==CHILD 的好友 DID。
+ *     多孩子时用 [SelectedChildStore] 的当前选择 (选中且仍是活跃孩子)，否则回落首个活跃孩子。
  *  3. **未配置**：回落演示常量。
  *
- * suspend：解析要查角色偏好 + DID 库 + 关系库 (IO)。
+ * suspend：解析要查角色偏好 + DID 库 + 关系库 + 选择偏好 (IO)。
  */
 interface FamilyStudyContext {
 
@@ -33,21 +34,26 @@ interface FamilyStudyContext {
 class DefaultFamilyStudyContext @Inject constructor(
     private val childIdentityProvider: ChildIdentityProvider,
     private val relationshipRepository: FamilyRelationshipRepository,
+    private val selectedChildStore: SelectedChildStore,
 ) : FamilyStudyContext {
 
     override suspend fun childDid(): String {
         // 1) 孩子端：本机即孩子。
         childIdentityProvider.childDidOrNull()?.let { return it }
-        // 2) 家长端：配对关系里 role_other==CHILD 的好友 DID (首个活跃孩子)。
+        // 2) 家长端：当前选中孩子 (多孩子) / 首个活跃孩子。
         pairedChildDid()?.let { return it }
         // 3) 未配置：回落演示常量。
         return DEMO_CHILD_DID
     }
 
     private suspend fun pairedChildDid(): String? = runCatching {
-        relationshipRepository.observeAllActive().first()
-            .firstOrNull { MemberRole.fromStorage(it.roleOther) == MemberRole.CHILD }
-            ?.friendDid
+        val children = relationshipRepository.observeAllActive().first()
+            .filter { MemberRole.fromStorage(it.roleOther) == MemberRole.CHILD }
+            .map { it.friendDid }
+        if (children.isEmpty()) return@runCatching null
+        // 选中且仍是活跃孩子 → 用之；否则首个 (选择失效/未选时的稳定回落)。
+        val selected = selectedChildStore.observeSelectedChildDid().first()
+        selected?.takeIf { it in children } ?: children.first()
     }.getOrNull()
 
     private companion object {
