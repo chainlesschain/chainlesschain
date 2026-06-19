@@ -114,7 +114,11 @@ describe("cc hub list-adapters — 4 Phase 17 adapters registered", () => {
     ]) {
       expect(names).toContain(expected);
     }
-  });
+    // Per-test timeout must EXCEED runCli's 60s spawn budget (trap #31:
+    // per-test/child timeout inversion). The default 10s vitest timeout
+    // reaps the cold CLI subprocess spawn under full-suite/parallel load
+    // before it can finish — even though the spawn itself is given 60s.
+  }, 65_000);
 });
 
 describe("cc hub sync-adapter — drives one adapter end-to-end", () => {
@@ -142,5 +146,7 @@ describe("cc hub sync-adapter — drives one adapter end-to-end", () => {
     expect(["ok", "auth_expired", "unhealthy", "error"]).toContain(parsed.status);
     expect(typeof parsed.rawCount).toBe("number");
     expect(parsed.entityCounts).toBeDefined();
-  });
+    // Per-test timeout > runCli's 60s spawn budget (trap #31) — see the
+    // list-adapters test above for the rationale.
+  }, 65_000);
 });
