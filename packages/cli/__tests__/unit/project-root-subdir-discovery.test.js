@@ -73,11 +73,20 @@ afterEach(() => {
 
 describe("project-root.cjs walk-up", () => {
   it("findGitProjectRoot walks up to the nearest .git", () => {
-    expect(findGitProjectRoot(sub, { fs, path })).toBe(fs.realpathSync(root));
+    // Normalize both sides through realpathSync: the function returns a
+    // path.resolve()'d (not realpath'd) path, so on macOS its result keeps the
+    // `/var/...` form while fs.realpathSync(root) resolves the `/var → /private/var`
+    // symlink — same directory, different string. Comparing realpath'd values is
+    // OS-portable (identity on Linux/Windows temp dirs).
+    expect(fs.realpathSync(findGitProjectRoot(sub, { fs, path }))).toBe(
+      fs.realpathSync(root),
+    );
   });
 
   it("projectRootBase returns the ancestor root from a subdir, null at the root", () => {
-    expect(projectRootBase(sub, { fs, path })).toBe(fs.realpathSync(root));
+    expect(fs.realpathSync(projectRootBase(sub, { fs, path }))).toBe(
+      fs.realpathSync(root),
+    );
     expect(projectRootBase(root, { fs, path })).toBe(null);
   });
 
