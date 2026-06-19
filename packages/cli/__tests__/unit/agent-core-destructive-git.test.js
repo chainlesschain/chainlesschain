@@ -57,6 +57,35 @@ describe("destructive-git guard", () => {
     });
   });
 
+  it("guards `commit --amend` (history rewrite) — fails closed headless", async () => {
+    const res = await executeTool(
+      "git",
+      { command: "commit --amend --no-edit" },
+      { cwd: tmp },
+    );
+    expect(res.error).toMatch(/\[Destructive Git\]/);
+    expect(res.policy).toMatchObject({ via: "destructive-git" });
+  });
+
+  it("does NOT guard a plain commit", async () => {
+    fs.writeFileSync(path.join(tmp, "a.txt"), "v2\n", "utf-8");
+    git("add -A");
+    let prompted = false;
+    const res = await executeTool(
+      "git",
+      { command: "commit -m second" },
+      {
+        cwd: tmp,
+        permissionConfirm: async () => {
+          prompted = true;
+          return false;
+        },
+      },
+    );
+    expect(res.error).toBeUndefined();
+    expect(prompted).toBe(false);
+  });
+
   it("blocks when the confirmer declines", async () => {
     let asked = null;
     const res = await executeTool(

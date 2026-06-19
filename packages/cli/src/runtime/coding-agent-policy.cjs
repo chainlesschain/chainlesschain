@@ -263,6 +263,11 @@ function isDangerousGitCommand(command) {
     case "clean":
       // Deletes untracked files — irrecoverable.
       return true;
+    case "commit":
+      // `--amend` rewrites the last commit (history rewrite); a plain commit is
+      // not flagged. (Claude-Code 2.1.183 blocks amend of commits the agent did
+      // not make this session; we conservatively confirm on any amend.)
+      return has("--amend");
     case "checkout":
       // Discard working-tree changes: `checkout -- <path>`, `checkout .`,
       // or `-f`/`--force` (a plain branch checkout is not flagged).
