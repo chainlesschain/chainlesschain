@@ -10,6 +10,7 @@ import {
   parseConfigCommand,
   renderConfigGet,
   renderConfigSet,
+  renderConfigHelp,
 } from "../../src/repl/config-summary.js";
 
 describe("maskSecret", () => {
@@ -153,6 +154,29 @@ describe("parseConfigCommand", () => {
   });
   it("errors on a missing key before =", () => {
     expect(parseConfigCommand("=value").action).toBe("error");
+  });
+  it("recognizes --help / -h / help / ? as the help action", () => {
+    for (const a of ["--help", "-h", "help", "?", " --help "]) {
+      expect(parseConfigCommand(a)).toEqual({ action: "help" });
+    }
+  });
+  it("does NOT treat 'helper' (a real key) as help", () => {
+    expect(parseConfigCommand("helper")).toEqual({
+      action: "get",
+      key: "helper",
+    });
+  });
+});
+
+describe("renderConfigHelp", () => {
+  it("lists usage and the common keys without printing secrets", () => {
+    const out = renderConfigHelp();
+    expect(out).toContain("/config <key>=<value>");
+    expect(out).toContain("llm.provider");
+    expect(out).toContain("llm.visionModel");
+    expect(out).toContain("cli.theme");
+    // it documents keys, never values — no secret material
+    expect(out).not.toMatch(/sk-/);
   });
 });
 
