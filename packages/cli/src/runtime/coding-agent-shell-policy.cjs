@@ -29,6 +29,28 @@ const BLOCKED_SHELL_RULES = Object.freeze([
     reason:
       "Destructive delete commands are blocked by the coding-agent shell policy.",
   },
+  {
+    // Disk / filesystem destroyers — near-zero legitimate use for a coding
+    // agent, catastrophic when wrong. Matched precisely so the common, benign
+    // PowerShell output formatters (Format-Table / Format-List / Format-Wide /
+    // Format-Custom / ft / fl) are NEVER caught — only `format` (cmd.exe disk
+    // format) and `Format-Volume` are. `dd` is blocked ONLY when writing to a
+    // raw block device (`of=/dev/…` / Windows `\\.\…`); file-image creation
+    // (`of=disk.img`) stays allowed.
+    id: "disk-destruction",
+    decision: SHELL_POLICY_DECISIONS.DENY,
+    test: ({ firstToken, normalized }) => {
+      if (firstToken === "format" || firstToken === "format-volume") return true;
+      if (firstToken === "mkfs" || firstToken.startsWith("mkfs.")) return true;
+      if (["wipefs", "shred", "diskpart"].includes(firstToken)) return true;
+      if (firstToken === "dd") {
+        return /\bof=(\/dev\/|\\\\)/i.test(normalized);
+      }
+      return false;
+    },
+    reason:
+      "Disk-destroying commands (format / Format-Volume / mkfs / wipefs / shred / diskpart / dd-to-device) are blocked by the coding-agent shell policy.",
+  },
   // The dangerous-git-* DENY rules MUST precede `git-tool-reroute` below:
   // `evaluateSegmentPolicy` returns the FIRST matching rule, and the reroute
   // rule matches every git command. Ordering reroute first (as it was) made

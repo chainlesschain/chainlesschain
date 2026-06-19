@@ -115,6 +115,44 @@ describe("coding-agent shell policy", () => {
     );
   });
 
+  describe("disk destruction (format / mkfs / dd-to-device / shred)", () => {
+    it("blocks disk/filesystem destroyers", () => {
+      for (const cmd of [
+        "format C:",
+        "Format-Volume -DriveLetter D",
+        "mkfs /dev/sdb",
+        "mkfs.ext4 /dev/sdb1",
+        "wipefs -a /dev/sdb",
+        "shred -u secret.key",
+        "diskpart",
+        "dd if=/dev/zero of=/dev/sda bs=1M",
+        "dd of=/dev/sdb if=image.iso",
+      ]) {
+        expect(evaluateShellCommandPolicy(cmd), cmd).toEqual(
+          expect.objectContaining({
+            allowed: false,
+            decision: SHELL_POLICY_DECISIONS.DENY,
+            ruleId: "disk-destruction",
+          }),
+        );
+      }
+    });
+
+    it("does NOT block benign PowerShell formatters or file-image dd", () => {
+      for (const cmd of [
+        "Format-Table -AutoSize",
+        "Get-Process | Format-Table",
+        "Format-List",
+        "ft",
+        "fl",
+        "dd if=/dev/zero of=disk.img bs=1M count=10",
+      ]) {
+        const r = evaluateShellCommandPolicy(cmd);
+        expect(r.ruleId, cmd).not.toBe("disk-destruction");
+      }
+    });
+  });
+
   it("allowlists verification and search commands", () => {
     expect(evaluateShellCommandPolicy("npm run test:unit")).toEqual(
       expect.objectContaining({
