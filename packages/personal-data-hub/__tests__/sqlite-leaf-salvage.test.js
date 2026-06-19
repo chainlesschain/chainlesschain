@@ -6,13 +6,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 
-// The salvager lives in scripts/ (a standalone forensic tool) but exports its
-// pure parsers for testing.
+// The pure parsers now live in the bundle-able pdh lib (so the Android cc
+// bundle and `cc hub salvage` can call them on-device); scripts/android/
+// pdh-sqlite-leaf-salvage.js is just a thin CLI wrapper that re-exports them.
+// Require the in-package module so this test passes in the isolated install
+// (where only the pdh package — not the repo's scripts/ dir — is copied).
 const {
   parseLeafPage,
   readVarint,
   serialTypeSize,
-} = require("../../../scripts/android/pdh-sqlite-leaf-salvage.js");
+} = require("../lib/forensics/leaf-salvage.js");
 
 // Build a real (UTF-8) SQLite DB via the SQLCipher-capable driver, then salvage
 // records straight from its raw page bytes — proving the leaf-page parser reads
