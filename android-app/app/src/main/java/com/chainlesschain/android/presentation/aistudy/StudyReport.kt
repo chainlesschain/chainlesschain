@@ -39,6 +39,11 @@ data class StudyActivitySnapshot(
     val gentleness: GentlenessReport? = null,
     /** §3.2 今日前台 app 使用汇总 (真 telemetry 聚合)；总时长 > 0 才出现"今日使用"块。 */
     val usageToday: ForegroundUsageSummary? = null,
+    /**
+     * §3.2 今日 AnomalyDetector 检出的行为异常**类型友好名** (每条一项，调用方已脱包名)；
+     * 非空才出现"行为提醒"块。同护栏块契约：只报类别 + 次数，不含具体 app/明细。
+     */
+    val behaviorAlertsToday: List<String> = emptyList(),
 )
 
 /** 报告中的一块。 */
@@ -103,6 +108,17 @@ object StudyReportGenerator {
                     if (u.topApps.isNotEmpty()) {
                         add("用得最多：" + u.topApps.joinToString("、") { "${it.label} ${formatMinutes(it.minutes)}" })
                     }
+                },
+            )
+        }
+
+        // 2.6) 行为提醒 (§3.2 AnomalyDetector 真 telemetry 检出；非空才出现，只报类别+次数)
+        if (snap.behaviorAlertsToday.isNotEmpty()) {
+            val byType = snap.behaviorAlertsToday.groupingBy { it }.eachCount()
+            sections += StudyReportSection(
+                title = "行为提醒",
+                lines = byType.entries.map { (label, n) ->
+                    "今日 $n 次「$label」，建议找机会温和聊聊，不必直接质问"
                 },
             )
         }

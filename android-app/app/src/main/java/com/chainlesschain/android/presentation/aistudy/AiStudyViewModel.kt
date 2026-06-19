@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -56,6 +57,7 @@ class AiStudyViewModel @Inject constructor(
     private val pointsLedger: PointsLedger,
     private val studyContext: com.chainlesschain.android.presentation.familytask.FamilyStudyContext,
     private val childEventRepository: com.chainlesschain.android.feature.familyguard.domain.repository.ChildEventRepository,
+    private val anomalyRepository: com.chainlesschain.android.feature.familyguard.domain.repository.AnomalyRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiStudyUiState(profile = profileStore.profile.value))
@@ -255,6 +257,11 @@ class AiStudyViewModel @Inject constructor(
         val usageToday = runCatching {
             ForegroundUsageAggregator.summarize(childEventRepository.querySince(childDid, dayStart))
         }.getOrNull()
+        val behaviorAlerts = runCatching {
+            anomalyRepository.observeRecent(childDid).first()
+                .filter { it.detectedAt >= dayStart }
+                .map { behaviorAlertLabel(it.type) }
+        }.getOrElse { emptyList() }
         val snapshot = StudyActivitySnapshot(
             learningTurns = learningTurns,
             companionTurns = companionTurns,
@@ -267,9 +274,22 @@ class AiStudyViewModel @Inject constructor(
             pointsEarnedToday = earnedToday,
             pointsBalance = balance,
             usageToday = usageToday,
+            behaviorAlertsToday = behaviorAlerts,
         )
         return StudyReportGenerator.generate(_uiState.value.profile.nickname, snapshot)
     }
+
+    /** AnomalyType → 家长可读类别名 (脱包名/明细，只给类别，隐私安全)。 */
+    private fun behaviorAlertLabel(typeStorage: String): String =
+        when (com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.fromStorage(typeStorage)) {
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.SINGLE_APP_OVERUSE -> "单个应用使用偏久"
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.LATE_NIGHT_SCREEN -> "凌晨时段使用"
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.DAILY_GAME_OVERUSE -> "游戏时间偏长"
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.UNKNOWN_APP_FIRST_SEEN -> "新应用首次使用"
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.RECHARGE_INTENT_SPIKE -> "多次充值相关操作"
+            com.chainlesschain.android.feature.familyguard.domain.anomaly.AnomalyType.GEOFENCE_DWELL -> "在某区域停留偏久"
+            null -> "需留意的行为"
+        }
 
     private fun appendMessage(tab: AiStudyTab, message: Message) {
         _uiState.update {
