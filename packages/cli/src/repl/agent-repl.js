@@ -1321,7 +1321,7 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/theme")}      Color theme (/theme <auto|dark|light|mono>; mono = no color)`,
       );
       logger.log(
-        `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set`,
+        `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set, ${chalk.cyan("/config --help")} keys`,
       );
       logger.log(
         `  ${chalk.cyan("/doctor")}     Session health check (provider/key/IDE/MCP/hooks)`,
@@ -2720,10 +2720,13 @@ export async function startAgentRepl(options = {}) {
           parseConfigCommand,
           renderConfigGet,
           renderConfigSet,
+          renderConfigHelp,
         } = await import("./config-summary.js");
         const cmd = parseConfigCommand(trimmed.slice("/config".length));
         if (cmd.action === "error") {
           logger.error(chalk.red(`/config: ${cmd.message}`));
+        } else if (cmd.action === "help") {
+          logger.log(renderConfigHelp());
         } else if (cmd.action === "get") {
           logger.log(renderConfigGet(cmd.key, cm.getConfigValue(cmd.key)));
         } else if (cmd.action === "set") {

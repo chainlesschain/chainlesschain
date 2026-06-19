@@ -46,6 +46,11 @@ export function parseConfigCommand(argStr) {
   const s = (argStr || "").trim();
   if (s === "") return { action: "show" };
 
+  // `/config --help` | `-h` | `help` | `?` (Claude-Code 2.1.183 parity) — list
+  // the common config keys. Checked before `=` / `key value` so `help` isn't
+  // mistaken for a key read.
+  if (/^(--help|-h|help|\?)$/i.test(s)) return { action: "help" };
+
   const eq = s.indexOf("=");
   if (eq !== -1) {
     const key = s.slice(0, eq).trim();
@@ -60,6 +65,49 @@ export function parseConfigCommand(argStr) {
 
   // Bare token → read that key.
   return { action: "get", key: s };
+}
+
+/**
+ * The common config keys, surfaced by `/config --help`. cc's `/config` accepts
+ * any dotted key (free-form), so this is a curated quick-reference of the keys
+ * the CLI actually reads — not an exhaustive schema.
+ */
+export const COMMON_CONFIG_KEYS = Object.freeze([
+  [
+    "llm.provider",
+    "LLM provider (ollama | volcengine | anthropic | openai | …)",
+  ],
+  ["llm.model", "default text model id"],
+  ["llm.visionModel", "model used for image turns (falls back to a default)"],
+  ["llm.baseUrl", "provider API base URL"],
+  ["llm.apiKey", "provider API key (stored masked; env *_API_KEY overrides)"],
+  [
+    "webSearch.provider",
+    "web_search backend (auto | tavily | brave | duckduckgo | …)",
+  ],
+  ["webSearch.apiKey", "web-search API key"],
+  ["cli.theme", "REPL color theme (auto | dark | light | mono)"],
+]);
+
+/** Render `/config --help`: usage + the common config keys. */
+export function renderConfigHelp() {
+  const lines = [
+    "/config — show or edit configuration:",
+    "  /config                 show effective config (secret-safe)",
+    "  /config <key>           read a value     (e.g. /config llm.model)",
+    "  /config <key>=<value>   set a value      (e.g. /config llm.model=opus)",
+    "  /config <key> <value>   set a value      (space form)",
+    "  /config --help          this list",
+    "",
+    "Common keys:",
+  ];
+  const width = Math.max(...COMMON_CONFIG_KEYS.map(([k]) => k.length));
+  for (const [key, desc] of COMMON_CONFIG_KEYS) {
+    lines.push(`  ${key.padEnd(width)}  ${desc}`);
+  }
+  lines.push("");
+  lines.push("  (any dotted key is accepted; keys are stored in config.json)");
+  return lines.join("\n");
 }
 
 /** Render a single config value for `/config <key>`, masking secrets. */
