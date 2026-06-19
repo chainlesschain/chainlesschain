@@ -15,6 +15,7 @@ const SHELL_STARTUP_NAMES = new Set([
   ".bash_profile",
   ".bash_login",
   ".bash_logout",
+  ".bash_aliases", // auto-sourced by the default .bashrc on Debian/Ubuntu
   ".profile",
   ".zshrc",
   ".zshenv",
@@ -26,8 +27,14 @@ const SHELL_STARTUP_NAMES = new Set([
   ".kshrc",
 ]);
 
-const POWERSHELL_PROFILE_RE = /(^|[\\/])(microsoft\.powershell_profile\.ps1|profile\.ps1)$/i;
-const FISH_CONFIG_RE = /[\\/]fish[\\/]config\.fish$/i;
+// PowerShell profiles are per-host: Microsoft.PowerShell_profile.ps1 (console),
+// Microsoft.VSCode_profile.ps1, Microsoft.PowerShellISE_profile.ps1, … plus the
+// all-hosts profile.ps1. `microsoft.<host>_profile.ps1` covers them all.
+const POWERSHELL_PROFILE_RE =
+  /(^|[\\/])(microsoft\.\w+_profile\.ps1|profile\.ps1)$/i;
+// fish: config.fish AND auto-sourced conf.d/*.fish snippets.
+const FISH_CONFIG_RE =
+  /[\\/]fish[\\/](config\.fish|conf\.d[\\/][^\\/]+\.fish)$/i;
 const GIT_HOOK_RE = /[\\/]\.git[\\/]hooks[\\/][^\\/]+$/i;
 const HUSKY_HOOK_RE = /[\\/]\.husky[\\/](?!_)[^\\/]+$/i;
 
@@ -41,6 +48,9 @@ export function sensitiveFileReason(targetPath) {
   const base = p.replace(/\\/g, "/").split("/").pop() || "";
   if (SHELL_STARTUP_NAMES.has(base)) {
     return `shell startup file (${base}) — runs on the user's next shell`;
+  }
+  if (base === ".envrc") {
+    return "direnv .envrc — executes when the user enters this directory";
   }
   if (POWERSHELL_PROFILE_RE.test(p)) {
     return "PowerShell profile — runs on the user's next PowerShell session";

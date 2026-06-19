@@ -28,6 +28,32 @@ describe("sensitiveFileReason", () => {
     expect(sensitiveFileReason("repo/.husky/pre-push")).toMatch(/husky/);
   });
 
+  it("flags direnv .envrc (executes on directory entry)", () => {
+    expect(sensitiveFileReason(".envrc")).toMatch(/direnv/);
+    expect(sensitiveFileReason("/home/u/project/.envrc")).toMatch(/direnv/);
+    expect(sensitiveFileReason("C:\\repo\\.envrc")).toMatch(/direnv/);
+  });
+
+  it("flags .bash_aliases (auto-sourced by default .bashrc)", () => {
+    expect(sensitiveFileReason("~/.bash_aliases")).toMatch(/shell startup/);
+  });
+
+  it("flags all PowerShell host profiles, not just the console one", () => {
+    for (const f of [
+      "Documents/PowerShell/Microsoft.VSCode_profile.ps1",
+      "Documents/WindowsPowerShell/Microsoft.PowerShellISE_profile.ps1",
+      "C:\\Users\\u\\Documents\\PowerShell\\profile.ps1",
+    ]) {
+      expect(sensitiveFileReason(f), f).toMatch(/PowerShell profile/);
+    }
+  });
+
+  it("flags auto-sourced fish conf.d snippets", () => {
+    expect(sensitiveFileReason("~/.config/fish/conf.d/aliases.fish")).toMatch(
+      /fish/,
+    );
+  });
+
   it("leaves everyday files alone (incl. .husky/_ internals)", () => {
     expect(sensitiveFileReason("src/index.js")).toBeNull();
     expect(sensitiveFileReason("package.json")).toBeNull();
@@ -60,7 +86,10 @@ describe("executeTool sensitive-file seam", () => {
       { cwd: tmp },
     );
     expect(res.error).toMatch(/\[Sensitive File\]/);
-    expect(res.policy).toMatchObject({ decision: "ask", via: "sensitive-file" });
+    expect(res.policy).toMatchObject({
+      decision: "ask",
+      via: "sensitive-file",
+    });
     expect(fs.existsSync(path.join(tmp, ".bashrc"))).toBe(false);
   });
 
@@ -117,8 +146,6 @@ describe("executeTool sensitive-file seam", () => {
       { cwd: tmp },
     );
     expect(res.error).toBeUndefined();
-    expect(fs.readFileSync(path.join(tmp, "notes.txt"), "utf-8")).toBe(
-      "plain",
-    );
+    expect(fs.readFileSync(path.join(tmp, "notes.txt"), "utf-8")).toBe("plain");
   });
 });
