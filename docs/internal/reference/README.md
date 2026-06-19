@@ -67,6 +67,19 @@
 
 ---
 
+## 📦 次要/元数据库（有数据但非核心聊天内容，`数据字典_次要库/`）
+
+| 库 | 字典 | 内容 |
+|---|---|---|
+| 微信 `TextStatus.db` | [微信_状态TextStatus](数据字典_次要库/数据字典_微信_状态TextStatus.md) | 微信状态(心情) |
+| 微信 `FinderMessage.db` | [微信_视频号FinderMessage](数据字典_次要库/数据字典_微信_视频号FinderMessage.md) | 视频号会话 |
+| 微信 `WxFileIndex.db` | [微信_文件索引WxFileIndex](数据字典_次要库/数据字典_微信_文件索引WxFileIndex.md) | 收发文件元信息 |
+| QQ `misc.db` | [QQ_杂项misc](数据字典_次要库/数据字典_QQ_杂项misc.md) | 配置/在线状态/公众号KV |
+| QQ `file_assistant.db` | [QQ_文件助手file_assistant](数据字典_次要库/数据字典_QQ_文件助手file_assistant.md) | 文件传输助手记录 |
+
+> 其余设备 DB（微信 liteapp/finder/FTS索引、抖音 feature_engineering 94MB埋点/ccd缓存、各 app push/sdk）= 缓存/埋点/索引，无个人内容，已确认非遗漏。
+> 微信 3 个账号（e1d7e7a2/2d80efb/60e2c317，60e2c317 朋友圈 13MB）schema 相同，字典通用。
+
 ## 🔧 配套
 
 - **结构 SQL（无注释，给程序用）**：[`wechat_schema.sql`](wechat_schema.sql) · [`qq_nt_schema.sql`](qq_nt_schema.sql) · [`douyin_im_schema.sql`](douyin_im_schema.sql) · [`toutiao_im_schema.sql`](toutiao_im_schema.sql) · `*_plaintext_db_schemas.sql`
