@@ -241,6 +241,19 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
+  // Vision model (config.llm.visionModel) — image turns switch to it for that
+  // turn only (resolveVisionLlm falls back to the default when unset), so a
+  // pasted/typed image is read by a vision-capable model even though the
+  // session's default model is text-only.
+  let visionModel = options.visionModel;
+  if (!visionModel) {
+    try {
+      const { loadConfig } = await import("../lib/config-manager.js");
+      visionModel = loadConfig()?.llm?.visionModel || undefined;
+    } catch {
+      /* optional — resolveVisionLlm falls back to DEFAULT_VISION_MODEL */
+    }
+  }
   const cwd = options.cwd || process.cwd();
   const additionalDirectories = Array.isArray(options.additionalDirectories)
     ? options.additionalDirectories.filter(Boolean)
@@ -863,14 +876,25 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // Attach pasted/added images (panel parity with `--image`): file paths →
     // data URLs → OpenAI-style multimodal content. buildUserContent returns
     // the plain string when there are no images, so text turns are unchanged.
+    // On an image turn, also switch THIS turn to the vision LLM (model only —
+    // same account/key) so it's read by a vision-capable model.
     let turnContent = userContent;
+    let turnVisionLlm = null;
     if (parsed.images && parsed.images.length) {
       try {
-        const { resolveImages, buildUserContent } =
+        const { resolveImages, buildUserContent, resolveVisionLlm } =
           await import("../lib/image-input.js");
         turnContent = buildUserContent(
           userContent,
           resolveImages(parsed.images),
+        );
+        turnVisionLlm = resolveVisionLlm({
+          hasImage: true,
+          flags: {},
+          llm: { provider, baseUrl, apiKey, visionModel },
+        });
+        writeErr(
+          `  [image] ${parsed.images.length} attached → vision model ${turnVisionLlm.model}\n`,
         );
       } catch (err) {
         emit({
@@ -906,7 +930,21 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     try {
       outcome = await runTurn(
         messages,
-        { ...loopOptionsBase, iterationBudget: budget, signal: turnSignal },
+        {
+          ...loopOptionsBase,
+          // Image turn → switch this turn's provider/model/baseUrl/apiKey to
+          // the vision LLM (model only; same account/key/baseUrl).
+          ...(turnVisionLlm
+            ? {
+                provider: turnVisionLlm.provider,
+                model: turnVisionLlm.model,
+                baseUrl: turnVisionLlm.baseUrl,
+                apiKey: turnVisionLlm.apiKey,
+              }
+            : {}),
+          iterationBudget: budget,
+          signal: turnSignal,
+        },
         { runLoop, emit, costBudget },
       );
     } catch (err) {

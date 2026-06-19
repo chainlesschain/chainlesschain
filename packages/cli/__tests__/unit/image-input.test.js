@@ -247,6 +247,21 @@ describe("detectImagePaths (Claude-Code-style path auto-detect)", () => {
     expect(r.text).toBe("描述"); // raw token stripped
   });
 
+  it("resolves a local file:// URI (IDE drag/drop) incl. %20 and /C: prefix", () => {
+    const r = detectImagePaths(
+      "describe file:///C:/Users/me/a.png now",
+      mk(["C:/Users/me/a.png"]),
+    );
+    expect(r.images).toEqual(["C:/Users/me/a.png"]);
+    expect(r.text).toBe("describe now");
+    // percent-encoded space in a file:// URI is decoded before existence check
+    const r2 = detectImagePaths(
+      "see file:///C:/my%20pics/b.jpg",
+      mk(["C:/my pics/b.jpg"]),
+    );
+    expect(r2.images).toEqual(["C:/my pics/b.jpg"]);
+  });
+
   it("ignores non-existent paths, unsupported extensions, and URLs", () => {
     expect(detectImagePaths("see missing.png", mk([])).images).toEqual([]);
     expect(

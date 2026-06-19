@@ -17,11 +17,13 @@ import {
 const PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
-function harness({ inputObjs }) {
+function harness({ inputObjs, runOptions }) {
   const lines = [];
   const seenTurns = [];
-  async function* loop(messages) {
+  const seenOpts = [];
+  async function* loop(messages, opts) {
     seenTurns.push(messages.map((m) => ({ role: m.role, content: m.content })));
+    seenOpts.push(opts || {});
     yield { type: "response-complete", content: "reply" };
     yield { type: "run-ended", reason: "complete" };
   }
@@ -37,7 +39,8 @@ function harness({ inputObjs }) {
     input: input(),
   };
   return {
-    run: () => runAgentHeadlessStream({ expandFileRefs: false }, deps),
+    run: () =>
+      runAgentHeadlessStream({ expandFileRefs: false, ...runOptions }, deps),
     events: () =>
       lines
         .join("")
@@ -45,6 +48,7 @@ function harness({ inputObjs }) {
         .split("\n")
         .map((l) => JSON.parse(l)),
     seenTurns,
+    seenOpts,
   };
 }
 
@@ -164,6 +168,31 @@ describe("stream turn with images", () => {
     expect(user.content[1].image_url.url).toBe(
       `data:image/png;base64,${PNG_BASE64}`,
     );
+  });
+
+  it("an image turn switches THIS turn to the vision model (text default unchanged)", async () => {
+    const h = harness({
+      runOptions: {
+        provider: "volcengine",
+        model: "doubao-seed-1-6-251015", // text model
+        baseUrl: "https://ark/api",
+        apiKey: "K",
+        visionModel: "doubao-vlm",
+      },
+      inputObjs: [
+        { type: "user", text: "plain question" }, // text turn → text model
+        { type: "user", text: "look", images: [pngPath] }, // image → vision model
+      ],
+    });
+    await h.run();
+    expect(h.seenOpts).toHaveLength(2);
+    // text turn keeps the session's text model
+    expect(h.seenOpts[0].model).toBe("doubao-seed-1-6-251015");
+    // image turn switches model → vision (same provider/baseUrl/apiKey)
+    expect(h.seenOpts[1].model).toBe("doubao-vlm");
+    expect(h.seenOpts[1].provider).toBe("volcengine");
+    expect(h.seenOpts[1].baseUrl).toBe("https://ark/api");
+    expect(h.seenOpts[1].apiKey).toBe("K");
   });
 
   it("a bad attachment errors the turn, not the session", async () => {

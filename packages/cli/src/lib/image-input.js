@@ -32,6 +32,24 @@ function localPathCandidates(raw) {
   return cands;
 }
 
+/**
+ * Convert a local `file://` URI to a filesystem path so a dragged/pasted image
+ * (IDEs often hand back `file:///C:/Users/…/a.png`) is recognized like a bare
+ * path. Strips the scheme, percent-decodes, and drops the leading slash before
+ * a Windows drive (`/C:/…` → `C:/…`). Returns null for non-file URIs.
+ */
+function fileUriToPath(uri) {
+  if (!/^file:\/\//i.test(uri)) return null;
+  let p = uri.replace(/^file:\/\//i, "");
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* leave as-is if it isn't valid percent-encoding */
+  }
+  if (/^\/[a-zA-Z]:/.test(p)) p = p.slice(1); // /C:/Users/x → C:/Users/x
+  return p;
+}
+
 const EXT_MEDIA = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -97,13 +115,19 @@ export function detectImagePaths(text, deps = {}) {
   while ((m = re.exec(text)) !== null) {
     const raw = m[1] || m[2] || m[3];
     if (!raw) continue;
-    // Local files only — never auto-attach URLs / data: URIs.
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || /^data:/i.test(raw)) continue;
+    // A local `file://` URI (common from drag/drop in IDEs) → a path token;
+    // any other scheme (http/https/ftp/data…) is never auto-attached.
+    let token = raw;
+    if (/^file:\/\//i.test(raw)) {
+      token = fileUriToPath(raw) || raw;
+    } else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || /^data:/i.test(raw)) {
+      continue;
+    }
     // Resolve to the first on-disk form (handles Git-Bash `/c/…` + `~`). The
     // RESOLVED path is what gets attached/read; the RAW token is stripped from
     // the text.
     let resolved = null;
-    for (const cand of localPathCandidates(raw)) {
+    for (const cand of localPathCandidates(token)) {
       try {
         if (existsSync(cand)) {
           resolved = cand;
