@@ -37,6 +37,8 @@ data class StudyActivitySnapshot(
     val geofenceViolationsToday: Int = 0,
     /** M10 监管温和度月报 (来自 [ParentEducationEngine.generateReport])；null = 跳过温和度块。 */
     val gentleness: GentlenessReport? = null,
+    /** §3.2 今日前台 app 使用汇总 (真 telemetry 聚合)；总时长 > 0 才出现"今日使用"块。 */
+    val usageToday: ForegroundUsageSummary? = null,
 )
 
 /** 报告中的一块。 */
@@ -92,6 +94,19 @@ object StudyReportGenerator {
             },
         )
 
+        // 2.5) 今日使用 (§3.2 真 telemetry 聚合；总时长 > 0 才出现)
+        snap.usageToday?.takeIf { it.totalMinutes > 0 }?.let { u ->
+            sections += StudyReportSection(
+                title = "今日使用",
+                lines = buildList {
+                    add("今日前台使用约 ${formatMinutes(u.totalMinutes)}")
+                    if (u.topApps.isNotEmpty()) {
+                        add("用得最多：" + u.topApps.joinToString("、") { "${it.label} ${formatMinutes(it.minutes)}" })
+                    }
+                },
+            )
+        }
+
         // 3) 正向激励 (M9 积分；数据不可得时跳过)
         snap.pointsBalance?.let { balance ->
             sections += StudyReportSection(
@@ -142,5 +157,13 @@ object StudyReportGenerator {
         }
 
         return StudyReport(nickname = name, sections = sections)
+    }
+
+    /** 分钟 → "X 小时 Y 分钟" / "Y 分钟" (家长可读)。 */
+    private fun formatMinutes(min: Int): String {
+        if (min < 60) return "$min 分钟"
+        val h = min / 60
+        val m = min % 60
+        return if (m == 0) "$h 小时" else "$h 小时 $m 分钟"
     }
 }

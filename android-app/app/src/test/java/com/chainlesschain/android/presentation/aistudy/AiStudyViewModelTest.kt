@@ -3,6 +3,10 @@ package com.chainlesschain.android.presentation.aistudy
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
+import com.chainlesschain.android.feature.familyguard.data.entity.ChildEventEntity
+import com.chainlesschain.android.feature.familyguard.domain.repository.ChildEventRepository
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.ForegroundAppRun
+import com.chainlesschain.android.feature.familyguard.domain.telemetry.TelemetryEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -57,6 +61,18 @@ class AiStudyViewModelTest {
         }
     }
 
+    /** 内存 fake：querySince 返回可设事件，其余 no-op/空。 */
+    private class FakeChildEventRepository : ChildEventRepository {
+        var events: List<ChildEventEntity> = emptyList()
+        override suspend fun saveForegroundAppRun(childDid: String, run: ForegroundAppRun): Long = 0
+        override suspend fun saveEvent(event: ChildEventEntity): Long = 0
+        override suspend fun saveTelemetryEvent(event: TelemetryEvent): Long = 0
+        override suspend fun querySince(childDid: String, sinceMs: Long): List<ChildEventEntity> = events
+        override fun observeRecent(childDid: String, limit: Int): Flow<List<ChildEventEntity>> = flowOf(emptyList())
+        override fun observeRecentAnyChild(limit: Int): Flow<List<ChildEventEntity>> = flowOf(emptyList())
+        override suspend fun deleteOlderThan(cutoffMs: Long): Int = 0
+    }
+
     private lateinit var llm: FakeAiStudyLlm
     private lateinit var store: FakeStudyProfileStore
     private lateinit var mistakeBook: InMemoryMistakeBook
@@ -64,6 +80,7 @@ class AiStudyViewModelTest {
     private lateinit var taskContext: InMemoryStudyTaskContext
     private lateinit var companionVault: FakeCompanionVault
     private lateinit var ledger: InMemoryPointsLedger
+    private lateinit var childEventRepo: FakeChildEventRepository
     private val studyContext = object : com.chainlesschain.android.presentation.familytask.FamilyStudyContext {
         override suspend fun childDid() = TEST_CHILD_DID
     }
@@ -78,6 +95,7 @@ class AiStudyViewModelTest {
         taskContext = InMemoryStudyTaskContext()
         companionVault = FakeCompanionVault()
         ledger = InMemoryPointsLedger()
+        childEventRepo = FakeChildEventRepository()
     }
 
     @After
@@ -87,7 +105,7 @@ class AiStudyViewModelTest {
 
     private fun vm() = AiStudyViewModel(
         llm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
-        ledger, studyContext,
+        ledger, studyContext, childEventRepo,
     )
 
     @Test
@@ -188,7 +206,7 @@ class AiStudyViewModelTest {
         }
         val vm2 = AiStudyViewModel(
             erroringLlm, store, mistakeBook, KeywordGuardrailClassifier(), guardrailSink, taskContext, companionVault,
-            ledger, studyContext,
+            ledger, studyContext, childEventRepo,
         )
         vm2.send("hi")
 
@@ -352,6 +370,33 @@ class AiStudyViewModelTest {
         assertTrue(text.contains("正向激励"))
         assertTrue(text.contains("余额 0 分"))
     }
+
+    @Test
+    fun `report shows today-usage block from telemetry foreground-app runs`() = runTest {
+        // 真 telemetry: 微信 45min + 王者 30min 的前台 run。
+        childEventRepo.events = listOf(
+            childEvent("com.tencent.mm", 45 * 60_000L),
+            childEvent("com.tencent.tmgp.sgame", 30 * 60_000L),
+            childEvent("com.unknown.app", 5 * 60_000L),
+        )
+        val text = vm().generateReport().render()
+        assertTrue(text.contains("今日使用"))
+        assertTrue(text.contains("1 小时 20 分钟")) // 总时长 80min
+        assertTrue(text.contains("微信 45 分钟"))
+        assertTrue(text.contains("王者荣耀 30 分钟"))
+    }
+
+    @Test
+    fun `no telemetry means no today-usage block`() = runTest {
+        childEventRepo.events = emptyList()
+        assertTrue(!vm().generateReport().render().contains("今日使用"))
+    }
+
+    private fun childEvent(pkg: String, durationMs: Long) = ChildEventEntity(
+        childDid = TEST_CHILD_DID, source = "foreground_app", kind = "run",
+        payload = """{"package":"$pkg","duration_ms":$durationMs}""",
+        timestamp = 1L, durationMs = durationMs, level = "L1",
+    )
 
     private companion object {
         const val TEST_CHILD_DID = "did:test-child"
