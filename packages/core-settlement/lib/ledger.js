@@ -144,23 +144,51 @@ function createLedger(db, opts) {
     return mint({ to, amount, nonce: n, sig });
   }
 
-  /** 全链复算：链接续 + entry_hash + 每条签名都对 → 篡改可检测。 */
+  /**
+   * 全链复算 = 完整再校验「写入路径强制的每条不变量」，不只是哈希+签名。这样即使
+   * 有节点/成员合谋绕过 mint()/transfer() 直接 INSERT well-formed 行，再验也能识破
+   * （支撑设计「节点伪造不了转账、印不了钱」的核心安全声明）：
+   *   1) 哈希链续接 + entry_hash 自洽（重排/插入/改值可检测）
+   *   2) 金额必须正整数（防注入 amount<=0 / 非整数 偷钱）
+   *   3) 授权规则：mint 必由 genesis 签且无 from；transfer 的 signer 必等于 from、
+   *      不可自转（防越权增发 / 冒名转账）
+   *   4) 签名对（signer 注册公钥验 core）
+   *   5) 经济守恒：按 seq 折叠余额，任一时刻 from 余额不足即拦（防注入透支花钱）
+   */
   function verifyChain() {
     const rows = db.prepare(`SELECT * FROM ledger_entries WHERE ledger_id = ? ORDER BY seq ASC`).all(ledgerId);
     let prev = null;
+    const bal = new Map();
+    const get = (d) => bal.get(d) || 0;
     for (const row of rows) {
-      const core = {
-        ledgerId: row.ledger_id,
-        kind: row.kind,
-        from: row.from_did == null ? null : row.from_did,
-        to: row.to_did,
-        amount: Number(row.amount),
-        nonce: row.nonce,
-      };
+      const from = row.from_did == null ? null : row.from_did;
+      const amount = Number(row.amount);
+      const core = { ledgerId: row.ledger_id, kind: row.kind, from, to: row.to_did, amount, nonce: row.nonce };
+      // 1) 链接续 + 哈希自洽
       if ((row.prev_hash || null) !== (prev || null)) return { ok: false, reason: "chain_break", at: row.entry_id };
       if (entryHash(canonicalizeEntry(core), prev) !== row.entry_hash) return { ok: false, reason: "hash_mismatch", at: row.entry_id };
+      // 2) 金额正整数
+      if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: "invalid_amount", at: row.entry_id };
+      // 3) 授权规则
+      if (core.kind === "mint") {
+        if (from !== null) return { ok: false, reason: "mint_has_from", at: row.entry_id };
+        if (row.signer_did !== genesisDid) return { ok: false, reason: "mint_not_by_genesis", at: row.entry_id };
+      } else if (core.kind === "transfer") {
+        if (from == null) return { ok: false, reason: "transfer_missing_from", at: row.entry_id };
+        if (from === core.to) return { ok: false, reason: "self_transfer", at: row.entry_id };
+        if (row.signer_did !== from) return { ok: false, reason: "transfer_signer_mismatch", at: row.entry_id };
+      } else {
+        return { ok: false, reason: "unknown_kind", at: row.entry_id };
+      }
+      // 4) 签名对
       const member = getMember(row.signer_did);
       if (!member || !verifyEntry(core, row.sig, member.pubkeyJwk)) return { ok: false, reason: "bad_sig", at: row.entry_id };
+      // 5) 经济守恒：余额折叠（mint 增发到 to；transfer 必须 from 余额充足）
+      if (core.kind === "transfer") {
+        if (get(from) < amount) return { ok: false, reason: "insufficient_funds", at: row.entry_id };
+        bal.set(from, get(from) - amount);
+      }
+      bal.set(core.to, get(core.to) + amount);
       prev = row.entry_hash;
     }
     return { ok: true, count: rows.length };
