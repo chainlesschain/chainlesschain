@@ -1,10 +1,6 @@
 /**
- * @deprecated — canonical implementation lives in
- * `../runtime/agent-core.js` as of the CLI Runtime Convergence roadmap
- * (Phase 6b, 2026-04-09). This file is retained as a re-export shim for
- * backwards compatibility and will be removed once all external consumers
- * have migrated. Please import from `packages/cli/src/runtime/agent-core.js`
- * in new code.
+ * @deprecated Re-export shim; canonical impl is `../runtime/agent-core.js`
+ * (CLI Runtime Convergence, Phase 6b). Import from there in new code.
  */
 
 export {
@@ -29,10 +25,14 @@ export {
   listBackgroundShellTasks,
   killBackgroundShellTask,
   killAllBackgroundShellTasks,
+  writeFileVerified,
+  formatProviderHttpError,
   _accumulateOllamaStream,
   _accumulateOpenAIStream,
   _accumulateAnthropicStream,
   _streamErrorDisposition,
+  _isRetryableStreamError,
+  _retryStreamingChat,
   _toAnthropicMessages,
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,

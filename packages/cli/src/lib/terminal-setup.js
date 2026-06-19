@@ -58,12 +58,16 @@ export function vscodeKeybindingsPath(
   env = process.env,
 ) {
   const home = os.homedir();
+  // Use OS-specific joiners (not the host's `path`) so a path requested for a
+  // given target platform comes out with that platform's separators regardless
+  // of the runner — otherwise vscodeKeybindingsPath("win32", …) yields mixed
+  // separators (C:\AppData/Code/User/…) when invoked on a POSIX CI runner.
   if (platform === "win32") {
-    const appData = env.APPDATA || path.join(home, "AppData", "Roaming");
-    return path.join(appData, "Code", "User", "keybindings.json");
+    const appData = env.APPDATA || path.win32.join(home, "AppData", "Roaming");
+    return path.win32.join(appData, "Code", "User", "keybindings.json");
   }
   if (platform === "darwin") {
-    return path.join(
+    return path.posix.join(
       home,
       "Library",
       "Application Support",
@@ -72,7 +76,7 @@ export function vscodeKeybindingsPath(
       "keybindings.json",
     );
   }
-  return path.join(home, ".config", "Code", "User", "keybindings.json");
+  return path.posix.join(home, ".config", "Code", "User", "keybindings.json");
 }
 
 /**
