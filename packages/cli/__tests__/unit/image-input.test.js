@@ -12,6 +12,7 @@ import {
   toOllamaMessages,
   imageUrlBlockToAnthropic,
   resolveVisionLlm,
+  detectImagePaths,
   DEFAULT_VISION_MODEL,
 } from "../../src/lib/image-input.js";
 
@@ -79,7 +80,15 @@ describe("hasImageContent", () => {
   it("detects image_url parts", () => {
     expect(
       hasImageContent([
-        { role: "user", content: [{ type: "image_url", image_url: { url: "data:image/png;base64,A" } }] },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: "data:image/png;base64,A" },
+            },
+          ],
+        },
       ]),
     ).toBe(true);
     expect(hasImageContent([{ role: "user", content: "plain" }])).toBe(false);
@@ -93,7 +102,10 @@ describe("toOllamaMessages", () => {
         role: "user",
         content: [
           { type: "text", text: "look" },
-          { type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } },
+          {
+            type: "image_url",
+            image_url: { url: "data:image/png;base64,AAAA" },
+          },
         ],
       },
     ]);
@@ -156,7 +168,12 @@ describe("resolveVisionLlm", () => {
   it("explicit flags always win over vision config", () => {
     const out = resolveVisionLlm({
       hasImage: true,
-      flags: { provider: "openai", model: "gpt-4o", baseUrl: "u", apiKey: "k2" },
+      flags: {
+        provider: "openai",
+        model: "gpt-4o",
+        baseUrl: "u",
+        apiKey: "k2",
+      },
       llm,
     });
     expect(out).toEqual({
@@ -169,15 +186,73 @@ describe("resolveVisionLlm", () => {
 
   it("--vision-model overrides the configured vision model", () => {
     expect(
-      resolveVisionLlm({ hasImage: true, flags: { visionModel: "my-vlm" }, llm })
-        .model,
+      resolveVisionLlm({
+        hasImage: true,
+        flags: { visionModel: "my-vlm" },
+        llm,
+      }).model,
     ).toBe("my-vlm");
   });
 
   it("falls back to DEFAULT_VISION_MODEL when none configured", () => {
     expect(
-      resolveVisionLlm({ hasImage: true, flags: {}, llm: { provider: "volcengine" } })
-        .model,
+      resolveVisionLlm({
+        hasImage: true,
+        flags: {},
+        llm: { provider: "volcengine" },
+      }).model,
     ).toBe(DEFAULT_VISION_MODEL);
+  });
+});
+
+describe("detectImagePaths (Claude-Code-style path auto-detect)", () => {
+  // existsSync stub: only these paths "exist".
+  const mk = (existing) => ({
+    existsSync: (p) => existing.includes(p),
+  });
+
+  it("attaches an existing local image path and strips it from the text", () => {
+    const r = detectImagePaths(
+      "describe ./shot.png please",
+      mk(["./shot.png"]),
+    );
+    expect(r.images).toEqual(["./shot.png"]);
+    expect(r.text).toBe("describe please");
+  });
+
+  it("handles a bare Windows path and an all-path message", () => {
+    const win = String.raw`C:\tmp\a.png`;
+    const r = detectImagePaths(win, mk([win]));
+    expect(r.images).toEqual([win]);
+    expect(r.text).toBe(""); // image-only → caller synthesizes a prompt
+  });
+
+  it("supports quoted paths with spaces + multiple images, deduped", () => {
+    const spaced = String.raw`C:\my pics\a.png`;
+    const r = detectImagePaths(
+      `compare "${spaced}" and b.jpg and a.png again "${spaced}"`,
+      mk([spaced, "b.jpg", "a.png"]),
+    );
+    expect(r.images).toEqual([spaced, "b.jpg", "a.png"]);
+  });
+
+  it("ignores non-existent paths, unsupported extensions, and URLs", () => {
+    expect(detectImagePaths("see missing.png", mk([])).images).toEqual([]);
+    expect(
+      detectImagePaths("a report.pdf here", mk(["report.pdf"])).images,
+    ).toEqual([]);
+    expect(
+      detectImagePaths("https://x.com/p.png", mk(["https://x.com/p.png"]))
+        .images,
+    ).toEqual([]);
+  });
+
+  it("returns text unchanged when nothing matches; tolerates non-strings", () => {
+    expect(detectImagePaths("just words", mk([]))).toEqual({
+      images: [],
+      text: "just words",
+    });
+    expect(detectImagePaths("", mk([]))).toEqual({ images: [], text: "" });
+    expect(detectImagePaths(null, mk([]))).toEqual({ images: [], text: "" });
   });
 });

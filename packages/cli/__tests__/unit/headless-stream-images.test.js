@@ -58,7 +58,11 @@ describe("parseInputEvent — images", () => {
   it("filters junk entries and caps at 8", () => {
     const imgs = Array.from({ length: 12 }, (_, i) => `/img${i}.png`);
     const parsed = parseInputEvent(
-      JSON.stringify({ type: "user", text: "x", images: [1, "", null, ...imgs] }),
+      JSON.stringify({
+        type: "user",
+        text: "x",
+        images: [1, "", null, ...imgs],
+      }),
     );
     expect(parsed.images).toHaveLength(8);
     expect(parsed.images[0]).toBe("/img0.png");
@@ -75,6 +79,61 @@ describe("parseInputEvent — images", () => {
       text: "hi",
     });
     expect(parseInputEvent('{"type":"user","images":[]}')).toBe(null);
+  });
+});
+
+describe("parseInputEvent — auto image-path detection (Claude-Code style)", () => {
+  let imgPath;
+  beforeEach(() => {
+    imgPath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-autoimg-")),
+      "shot.png",
+    );
+    fs.writeFileSync(imgPath, Buffer.from(PNG_BASE64, "base64"));
+  });
+  afterEach(() => {
+    try {
+      fs.rmSync(path.dirname(imgPath), { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+  });
+
+  it("attaches a real image path typed in the text and strips it", () => {
+    const parsed = parseInputEvent(
+      JSON.stringify({ type: "user", text: `describe ${imgPath} for me` }),
+    );
+    expect(parsed.images).toEqual([imgPath]);
+    expect(parsed.text).toBe("describe for me");
+  });
+
+  it("a path-only message becomes a valid image-only turn", () => {
+    const parsed = parseInputEvent(
+      JSON.stringify({ type: "user", text: imgPath }),
+    );
+    expect(parsed.images).toEqual([imgPath]);
+    expect(parsed.text).toMatch(/attached image/);
+  });
+
+  it("does not attach a path that does not exist", () => {
+    const parsed = parseInputEvent(
+      JSON.stringify({ type: "user", text: "see C:/nope/missing.png" }),
+    );
+    expect(parsed).toEqual({ text: "see C:/nope/missing.png" });
+  });
+
+  it("CC_AUTO_IMAGE=0 disables auto-detection", () => {
+    const prev = process.env.CC_AUTO_IMAGE;
+    process.env.CC_AUTO_IMAGE = "0";
+    try {
+      const parsed = parseInputEvent(
+        JSON.stringify({ type: "user", text: `look ${imgPath}` }),
+      );
+      expect(parsed).toEqual({ text: `look ${imgPath}` });
+    } finally {
+      if (prev === undefined) delete process.env.CC_AUTO_IMAGE;
+      else process.env.CC_AUTO_IMAGE = prev;
+    }
   });
 });
 
@@ -110,7 +169,11 @@ describe("stream turn with images", () => {
   it("a bad attachment errors the turn, not the session", async () => {
     const h = harness({
       inputObjs: [
-        { type: "user", text: "broken", images: [path.join(tmpDir, "nope.png")] },
+        {
+          type: "user",
+          text: "broken",
+          images: [path.join(tmpDir, "nope.png")],
+        },
         { type: "user", text: "still alive" },
       ],
     });
@@ -120,9 +183,9 @@ describe("stream turn with images", () => {
     expect(h.seenTurns[0].find((m) => m.role === "user").content).toBe(
       "still alive",
     );
-    const errors = h.events().filter(
-      (e) => e.type === "result" && e.subtype === "error",
-    );
+    const errors = h
+      .events()
+      .filter((e) => e.type === "result" && e.subtype === "error");
     expect(errors).toHaveLength(1);
     expect(errors[0].result).toMatch(/image attach failed/);
   });
@@ -134,9 +197,9 @@ describe("stream turn with images", () => {
       inputObjs: [{ type: "user", text: "x", images: [bmp] }],
     });
     await h.run();
-    const errors = h.events().filter(
-      (e) => e.type === "result" && e.subtype === "error",
-    );
+    const errors = h
+      .events()
+      .filter((e) => e.type === "result" && e.subtype === "error");
     expect(errors[0].result).toMatch(/Unsupported image type/);
   });
 

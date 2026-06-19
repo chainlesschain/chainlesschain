@@ -45,6 +45,66 @@ export function resolveImages(paths, deps = {}) {
 }
 
 /**
+ * Claude-Code-style auto-detection: find local image-file paths mentioned in a
+ * prompt so the turn can attach them as vision input. A token is treated as an
+ * image only when (a) its extension is one we support and (b) the file actually
+ * exists on disk — so prose like "I edited a.png" attaches only when a.png is
+ * really there, and a typo'd/remote path stays as plain text. Matched path
+ * tokens are stripped from the returned text ("describe ./a.png" → "describe" +
+ * an attachment); an all-path message leaves empty text, which the caller turns
+ * into an image-only turn. URLs / data: URIs are never auto-attached (local
+ * files only). Pure except for the existence check (inject `deps.existsSync`).
+ *
+ * @param {string} text
+ * @param {object} deps  { existsSync }
+ * @returns {{ images: string[], text: string }}
+ */
+export function detectImagePaths(text, deps = {}) {
+  const existsSync = deps.existsSync || fs.existsSync;
+  if (typeof text !== "string" || !text.trim()) {
+    return { images: [], text: typeof text === "string" ? text : "" };
+  }
+  const exts = Object.keys(EXT_MEDIA)
+    .map((e) => e.slice(1))
+    .join("|"); // png|jpg|jpeg|gif|webp
+  // Quoted ("…"/'…') paths first (may contain spaces), then bare
+  // whitespace-delimited tokens ending in a supported image extension.
+  const re = new RegExp(
+    `"([^"]+?\\.(?:${exts}))"|'([^']+?\\.(?:${exts}))'|(\\S+?\\.(?:${exts}))(?=$|[\\s)\\]'",])`,
+    "gi",
+  );
+  const images = [];
+  const seen = new Set();
+  const ranges = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const raw = m[1] || m[2] || m[3];
+    if (!raw) continue;
+    // Local files only — never auto-attach URLs / data: URIs.
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || /^data:/i.test(raw)) continue;
+    let exists = false;
+    try {
+      exists = existsSync(raw);
+    } catch {
+      exists = false;
+    }
+    if (!exists) continue;
+    if (!seen.has(raw)) {
+      seen.add(raw);
+      images.push(raw);
+    }
+    ranges.push([m.index, m.index + m[0].length]);
+  }
+  if (!images.length) return { images: [], text };
+  let out = text;
+  for (let i = ranges.length - 1; i >= 0; i--) {
+    out = out.slice(0, ranges[i][0]) + out.slice(ranges[i][1]);
+  }
+  out = out.replace(/ {2,}/g, " ").trim();
+  return { images, text: out };
+}
+
+/**
  * Build a user-message `content`: the plain string when there are no images,
  * else an OpenAI-style multimodal array (the internal representation).
  */

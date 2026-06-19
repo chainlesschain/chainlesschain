@@ -20,6 +20,7 @@ import { bootstrap } from "./bootstrap.js";
 import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
+import { detectImagePaths } from "../lib/image-input.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -113,9 +114,24 @@ export function parseInputEvent(line) {
   // the same image-input pipeline as `cc agent --image`.
   const rawImages =
     obj && typeof obj === "object" ? obj.images || msg.images : null;
-  const images = Array.isArray(rawImages)
-    ? rawImages.filter((p) => typeof p === "string" && p.trim()).slice(0, 8)
+  let images = Array.isArray(rawImages)
+    ? rawImages.filter((p) => typeof p === "string" && p.trim())
     : [];
+  // Claude-Code-style: auto-attach local image-file paths the user typed into
+  // the message (so "describe ./shot.png" reads the image, like Claude Code).
+  // Opt out with CC_AUTO_IMAGE=0. Explicit `images` (paste) still win.
+  if (
+    typeof content === "string" &&
+    content.trim() &&
+    process.env.CC_AUTO_IMAGE !== "0"
+  ) {
+    const detected = detectImagePaths(content);
+    if (detected.images.length) {
+      images = [...images, ...detected.images];
+      content = detected.text;
+    }
+  }
+  images = [...new Set(images)].slice(0, 8);
   if (typeof content !== "string" || !content.trim()) {
     // An image-only turn is valid — give the model something to act on.
     if (images.length)
