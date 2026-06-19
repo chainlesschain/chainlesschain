@@ -121,6 +121,27 @@ describe("coding-agent shell policy", () => {
         sharedShellPolicy.splitCommandSegments("a && b || c | d ; e"),
       ).toEqual(["a", "b", "c", "d", "e"]);
     });
+
+    it("blocks a dangerous command hidden by newline / & / subshell / substitution / env-prefix", () => {
+      for (const cmd of [
+        "echo hi\nrm -rf foo", // newline
+        "echo a && echo b\ngit reset --hard", // newline after &&
+        "echo done & rm -rf node_modules", // single & (background)
+        "( rm -rf foo )", // subshell
+        "foo=$(rm -rf bar)", // command substitution
+        "echo `rm -rf baz`", // backticks
+        "x=1 rm -rf foo", // env-var assignment prefix
+      ]) {
+        const r = evaluateShellCommandPolicy(cmd);
+        expect(r.allowed, cmd).toBe(false);
+      }
+    });
+
+    it("an env-var prefix does not hide an allowlisted command", () => {
+      const r = evaluateShellCommandPolicy("CI=true npm run test:unit");
+      expect(r.allowed).toBe(true);
+      expect(r.ruleId).toBe("npm-test");
+    });
   });
 
   describe("overrideRuleIds", () => {

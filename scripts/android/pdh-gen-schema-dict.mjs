@@ -92,6 +92,10 @@ const TABLE_DESC = {
   troopextdbinfo: '群扩展信息(QQ老库,文本混淆)', troopmemberinfoext: '群成员信息(QQ老库)', publicaccountinfo: '公众号信息', mayknowrecommend: '可能认识的人推荐', shieldlistinfo: '屏蔽列表', emoticon: '表情', emoticonpackage: '表情包', recentschemelaunchdbsource: '最近启动记录',
   // 明文库：微博
   long_text_table: '本人长微博正文(明文)', mblog_pic_table: '微博配图(图片URL,与mblogid关联)', t_session: '私信会话(message_<uid>.db)', emotionpackagedbsource: '微博表情包', card_dot_remind_table: '红点提醒', new_letter_users: '私信用户',
+  // 微信朋友圈 SnsMicroMsg.db(明文)
+  snsinfo: '朋友圈动态(本人+好友; userName=发布者, createTime=发布时间, type=类型, likeFlag=已赞)', snscomment: '朋友圈评论/点赞', snscover: '朋友圈封面', snsextinfo3: '朋友圈扩展信息', snswsfoldgroupdetail: '朋友圈折叠分组', adsnsinfo: '朋友圈广告', snsconfig: '朋友圈配置', snsdraft: '朋友圈草稿', snsalbum: '朋友圈相册', snsobject: '朋友圈对象', snsfaultinfo: '朋友圈异常信息', adpullrecordsinfo: '广告拉取记录',
+  // 次要库
+  textstatus: '微信状态(我发布的状态/心情)', textstatussessioninfo: '状态会话信息', findersessioninfo: '视频号会话信息', finderconversation: '视频号私信会话', wxfileindex3: '文件传输索引(收发文件的元信息:名/大小/时间)', wxfileindexrefresh: '文件索引刷新记录', wxfileindexregistry: '文件索引注册', file_assistant_v2: 'QQ文件传输助手记录', config_mgr_table: '配置管理(QQ)', misc_kv_storage_table: '杂项键值存储', online_status_kv_table: '在线状态键值', public_account_kv_table: '公众号键值', service_assistant_kv_table: '服务助手键值',
 };
 
 function tableDesc(name) {

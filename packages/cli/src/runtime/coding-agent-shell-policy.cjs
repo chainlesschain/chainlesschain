@@ -115,16 +115,48 @@ function splitFirstCommandSegment(command) {
 }
 
 /**
- * Split a (possibly compound) command on shell separators (`&&`, `||`, `|`,
- * `;`) into its individual command segments. The policy must inspect EVERY
- * segment — not just the first — so a destructive command (`rm -rf …`,
- * `git reset --hard`) cannot be smuggled after a separator behind a benign or
- * allowlisted leading segment (e.g. `npm run build && git checkout -- .`).
+ * Strip the parts of a command segment that hide the real executable from
+ * first-token classification: a leading subshell `(`/`{`, and leading env-var
+ * assignments (`FOO=bar BAZ=qux cmd …` → `cmd …`). Without this, `x=1 rm -rf …`
+ * would be classified by firstToken `x=1` (unclassified → WARN) instead of `rm`.
+ */
+function stripSegmentPrefix(segment) {
+  let t = String(segment || "").trim();
+  t = t.replace(/^[({]\s*/, ""); // leading subshell / group
+  // leading VAR=value assignments (quoted or bare), one or more
+  t = t.replace(/^(?:[A-Za-z_]\w*=(?:"[^"]*"|'[^']*'|\S*)\s+)+/, "");
+  return t.trim();
+}
+
+/**
+ * Split a (possibly compound) command into the individual command segments the
+ * policy must EACH inspect — not just the first — so a destructive command
+ * (`rm -rf …`, `git reset --hard`) cannot be smuggled past a benign or
+ * allowlisted leading segment.
+ *
+ * Covers every way a second command can ride along: the shell separators
+ * `&& || | ; &` AND newlines, plus commands hidden inside command-substitution
+ * `$(…)` / backticks (extracted as their own segments). Leading subshell parens
+ * and env-var assignment prefixes are stripped per segment so the real
+ * executable is what gets classified.
  */
 function splitCommandSegments(command) {
-  return String(command || "")
-    .split(/(?:\|\||&&|[|;])/)
-    .map((segment) => segment.trim())
+  let s = String(command || "");
+  const extracted = [];
+  // Pull out command-substitution / backtick bodies as additional segments
+  // (single level — nested substitutions are an accepted edge case).
+  s = s.replace(/\$\(([^()]*)\)/g, (_m, inner) => {
+    extracted.push(inner);
+    return " ";
+  });
+  s = s.replace(/`([^`]*)`/g, (_m, inner) => {
+    extracted.push(inner);
+    return " ";
+  });
+  // Separators: && || | ; & and any newline.
+  const parts = s.split(/(?:\|\||&&|[|;&]|[\r\n]+)/).concat(extracted);
+  return parts
+    .map((segment) => stripSegmentPrefix(segment))
     .filter(Boolean);
 }
 
