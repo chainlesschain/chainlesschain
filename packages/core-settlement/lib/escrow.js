@@ -36,6 +36,27 @@ function createEscrow(db, ledger, opts) {
   // 无 gate 时默认放行（非 multisig 流程）；P1 接 core-multisig。
   const proposalGate = (opts && opts.proposalGate) || (() => ({ releasable: true }));
 
+  // 原子性：每个写操作都做「转账 + 状态写」两步，必须同生共死，否则部分失败会留下
+  // 危险中间态——例如 release 已把货款转给卖方但 status 没翻 'released'，重试就**重复
+  // 放款**（double-settle）。用 SAVEPOINT 包裹（better-sqlite3 与 sql.js 都支持完整
+  // SQLite SQL，可嵌套在调用方事务内）：抛错则 ROLLBACK TO 把转账一并撤回，可安全重试。
+  function _atomic(label, fn) {
+    db.exec(`SAVEPOINT ${label}`);
+    try {
+      const out = fn();
+      db.exec(`RELEASE ${label}`);
+      return out;
+    } catch (e) {
+      try {
+        db.exec(`ROLLBACK TO ${label}`);
+        db.exec(`RELEASE ${label}`);
+      } catch (_e) {
+        /* best-effort：清理失败也不掩盖原始错误 */
+      }
+      return { ok: false, reason: "tx_failed:" + (e && e.message ? e.message : "error") };
+    }
+  }
+
   function _normHold(row) {
     if (!row) return null;
     return {
@@ -59,14 +80,16 @@ function createEscrow(db, ledger, opts) {
    * 买方押款入托管。fund = 买方对 buyer→custodian 转账的签名 {nonce, alg, sig}。
    */
   function openHold({ orderId, buyer, seller, amount, proposalId, fund }) {
-    const r = ledger.transfer({ from: buyer, to: custodianDid, amount, nonce: fund.nonce, alg: fund.alg, sig: fund.sig });
-    if (!r.ok) return { ok: false, reason: "fund_failed:" + r.reason };
-    const id = _deps.newId();
-    db.prepare(
-      `INSERT INTO escrow_holds(id, order_id, buyer_did, seller_did, amount, proposal_id, status, fund_entry_id, created_at_ms)
-       VALUES(?,?,?,?,?,?, 'held', ?, ?)`,
-    ).run(id, orderId, buyer, seller, amount, proposalId == null ? null : proposalId, r.entryId, _deps.now());
-    return { ok: true, holdId: id, fundEntryId: r.entryId };
+    return _atomic("cc_escrow_open", () => {
+      const r = ledger.transfer({ from: buyer, to: custodianDid, amount, nonce: fund.nonce, alg: fund.alg, sig: fund.sig });
+      if (!r.ok) return { ok: false, reason: "fund_failed:" + r.reason };
+      const id = _deps.newId();
+      db.prepare(
+        `INSERT INTO escrow_holds(id, order_id, buyer_did, seller_did, amount, proposal_id, status, fund_entry_id, created_at_ms)
+         VALUES(?,?,?,?,?,?, 'held', ?, ?)`,
+      ).run(id, orderId, buyer, seller, amount, proposalId == null ? null : proposalId, r.entryId, _deps.now());
+      return { ok: true, holdId: id, fundEntryId: r.entryId };
+    });
   }
 
   /** 经 multisig 门控放款给卖方。状态闸防 double-settle。 */
@@ -76,10 +99,12 @@ function createEscrow(db, ledger, opts) {
     if (hold.status !== "held") return { ok: false, reason: "hold_state_" + hold.status };
     const gate = proposalGate(hold.proposalId);
     if (!gate || !gate.releasable) return { ok: false, reason: "proposal_not_releasable" + (gate && gate.reason ? ":" + gate.reason : "") };
-    const r = ledger.signAndTransfer({ from: custodianDid, to: hold.sellerDid, amount: hold.amount, secretKey: custodianSecretKey });
-    if (!r.ok) return { ok: false, reason: "settle_failed:" + r.reason };
-    db.prepare(`UPDATE escrow_holds SET status='released', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
-    return { ok: true, entryId: r.entryId };
+    return _atomic("cc_escrow_release", () => {
+      const r = ledger.signAndTransfer({ from: custodianDid, to: hold.sellerDid, amount: hold.amount, secretKey: custodianSecretKey });
+      if (!r.ok) return { ok: false, reason: "settle_failed:" + r.reason };
+      db.prepare(`UPDATE escrow_holds SET status='released', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
+      return { ok: true, entryId: r.entryId };
+    });
   }
 
   /** 退款给买方（交付失败/超时/争议判退）。状态闸防重复。 */
@@ -87,10 +112,12 @@ function createEscrow(db, ledger, opts) {
     const hold = getHold(holdId);
     if (!hold) return { ok: false, reason: "hold_not_found" };
     if (hold.status !== "held") return { ok: false, reason: "hold_state_" + hold.status };
-    const r = ledger.signAndTransfer({ from: custodianDid, to: hold.buyerDid, amount: hold.amount, secretKey: custodianSecretKey });
-    if (!r.ok) return { ok: false, reason: "refund_failed:" + r.reason };
-    db.prepare(`UPDATE escrow_holds SET status='refunded', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
-    return { ok: true, entryId: r.entryId };
+    return _atomic("cc_escrow_refund", () => {
+      const r = ledger.signAndTransfer({ from: custodianDid, to: hold.buyerDid, amount: hold.amount, secretKey: custodianSecretKey });
+      if (!r.ok) return { ok: false, reason: "refund_failed:" + r.reason };
+      db.prepare(`UPDATE escrow_holds SET status='refunded', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
+      return { ok: true, entryId: r.entryId };
+    });
   }
 
   return { custodianDid, getHold, openHold, release, refund };
