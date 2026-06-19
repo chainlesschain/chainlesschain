@@ -195,6 +195,45 @@ describe("stream turn with images", () => {
     expect(h.seenOpts[1].apiKey).toBe("K");
   });
 
+  it("a text follow-up AFTER an image turn stays on the vision model (history holds the image)", async () => {
+    const h = harness({
+      runOptions: {
+        provider: "volcengine",
+        model: "doubao-seed-1-6-251015", // text-only default model
+        baseUrl: "https://ark/api",
+        apiKey: "K",
+        visionModel: "doubao-vlm",
+      },
+      inputObjs: [
+        { type: "user", text: "what shape", images: [pngPath] }, // image → vision
+        { type: "user", text: "what colour is it" }, // follow-up → still vision
+      ],
+    });
+    await h.run();
+    expect(h.seenOpts).toHaveLength(2);
+    // image turn uses the vision model
+    expect(h.seenOpts[0].model).toBe("doubao-vlm");
+    // the text follow-up MUST stay on the vision model — the image is still in
+    // history and a text-only model can't read it.
+    expect(h.seenOpts[1].model).toBe("doubao-vlm");
+    expect(h.seenOpts[1].provider).toBe("volcengine");
+    expect(h.seenOpts[1].apiKey).toBe("K");
+  });
+
+  it("a text turn BEFORE any image stays on the text model", async () => {
+    const h = harness({
+      runOptions: {
+        provider: "volcengine",
+        model: "doubao-seed-1-6-251015",
+        visionModel: "doubao-vlm",
+      },
+      inputObjs: [{ type: "user", text: "plain question, no image" }],
+    });
+    await h.run();
+    expect(h.seenOpts).toHaveLength(1);
+    expect(h.seenOpts[0].model).toBe("doubao-seed-1-6-251015");
+  });
+
   it("a bad attachment errors the turn, not the session", async () => {
     const h = harness({
       inputObjs: [
