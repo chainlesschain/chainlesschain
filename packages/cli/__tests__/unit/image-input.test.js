@@ -237,6 +237,16 @@ describe("detectImagePaths (Claude-Code-style path auto-detect)", () => {
     expect(r.images).toEqual([spaced, "b.jpg", "a.png"]);
   });
 
+  it("resolves a Git-Bash/MSYS drive path (/c/Users/… → C:/Users/…)", () => {
+    // Only the Windows form exists on disk; the typed token is the /c/… form.
+    const r = detectImagePaths(
+      "描述 /c/Users/me/pics/a.png",
+      mk(["C:/Users/me/pics/a.png"]),
+    );
+    expect(r.images).toEqual(["C:/Users/me/pics/a.png"]); // attaches resolved form
+    expect(r.text).toBe("描述"); // raw token stripped
+  });
+
   it("ignores non-existent paths, unsupported extensions, and URLs", () => {
     expect(detectImagePaths("see missing.png", mk([])).images).toEqual([]);
     expect(

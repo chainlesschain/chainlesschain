@@ -14,6 +14,23 @@
 
 import fs from "fs";
 import path from "path";
+import os from "os";
+
+/**
+ * Candidate on-disk forms for a path token typed in a prompt, so a path copied
+ * from a Git-Bash / MSYS shell still resolves on Windows. Order = most-literal
+ * first: the raw token, then the MSYS drive form (`/c/Users/…` → `C:/Users/…`),
+ * then `~`/`~/…` home expansion. The caller attaches the first that exists.
+ */
+function localPathCandidates(raw) {
+  const cands = [raw];
+  const msys = /^\/([a-zA-Z])\/(.*)$/.exec(raw); // /c/Users/x → C:/Users/x
+  if (msys) cands.push(`${msys[1].toUpperCase()}:/${msys[2]}`);
+  if (raw === "~" || raw.startsWith("~/") || raw.startsWith("~\\")) {
+    cands.push(path.join(os.homedir(), raw.slice(1)));
+  }
+  return cands;
+}
 
 const EXT_MEDIA = {
   ".png": "image/png",
@@ -82,16 +99,24 @@ export function detectImagePaths(text, deps = {}) {
     if (!raw) continue;
     // Local files only — never auto-attach URLs / data: URIs.
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || /^data:/i.test(raw)) continue;
-    let exists = false;
-    try {
-      exists = existsSync(raw);
-    } catch {
-      exists = false;
+    // Resolve to the first on-disk form (handles Git-Bash `/c/…` + `~`). The
+    // RESOLVED path is what gets attached/read; the RAW token is stripped from
+    // the text.
+    let resolved = null;
+    for (const cand of localPathCandidates(raw)) {
+      try {
+        if (existsSync(cand)) {
+          resolved = cand;
+          break;
+        }
+      } catch {
+        /* unreadable candidate — try the next form */
+      }
     }
-    if (!exists) continue;
-    if (!seen.has(raw)) {
-      seen.add(raw);
-      images.push(raw);
+    if (!resolved) continue;
+    if (!seen.has(resolved)) {
+      seen.add(resolved);
+      images.push(resolved);
     }
     ranges.push([m.index, m.index + m[0].length]);
   }
