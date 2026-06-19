@@ -50,6 +50,33 @@ const BLOCKED_SHELL_RULES = Object.freeze([
       "git clean is blocked by the coding-agent shell policy.",
   },
   {
+    // Infrastructure-as-Code teardown: `terraform destroy`, `pulumi destroy`,
+    // `cdk destroy`, `terragrunt destroy` (and the `terraform apply -destroy`
+    // flag variant). These tear down real cloud/infra resources and must not run
+    // unprompted. Overridable (via overrideRuleIds) when the user explicitly
+    // asks — mirrors Claude Code auto-mode safety for IaC destroy.
+    id: "iac-destroy",
+    decision: SHELL_POLICY_DECISIONS.DENY,
+    test: ({ firstToken, tokens }) =>
+      [
+        "terraform",
+        "terraform.exe",
+        "terragrunt",
+        "terragrunt.exe",
+        "pulumi",
+        "pulumi.exe",
+        "cdk",
+        "cdk.exe",
+        "cdklocal",
+      ].includes(firstToken) &&
+      tokens.some((token) => {
+        const t = token.toLowerCase();
+        return t === "destroy" || t === "-destroy" || t === "--destroy";
+      }),
+    reason:
+      "Infrastructure-as-Code destroy commands (terraform/pulumi/cdk/terragrunt) are blocked by the coding-agent shell policy unless explicitly requested.",
+  },
+  {
     id: "network-download",
     decision: SHELL_POLICY_DECISIONS.DENY,
     test: ({ firstToken }) =>

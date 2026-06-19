@@ -80,6 +80,69 @@ describe("coding-agent shell policy", () => {
     );
   });
 
+  describe("IaC destroy (terraform/pulumi/cdk/terragrunt)", () => {
+    it("blocks destroy subcommands", () => {
+      for (const cmd of [
+        "terraform destroy",
+        "terraform destroy -auto-approve",
+        "pulumi destroy --yes",
+        "cdk destroy --all",
+        "terragrunt destroy",
+        "cdklocal destroy MyStack",
+      ]) {
+        expect(evaluateShellCommandPolicy(cmd), cmd).toEqual(
+          expect.objectContaining({
+            allowed: false,
+            decision: SHELL_POLICY_DECISIONS.DENY,
+            ruleId: "iac-destroy",
+          }),
+        );
+      }
+    });
+
+    it("blocks the `terraform apply -destroy` flag variant", () => {
+      expect(
+        evaluateShellCommandPolicy("terraform apply -destroy -auto-approve"),
+      ).toEqual(
+        expect.objectContaining({
+          allowed: false,
+          decision: SHELL_POLICY_DECISIONS.DENY,
+          ruleId: "iac-destroy",
+        }),
+      );
+    });
+
+    it("does NOT block non-destroy IaC commands (plan/apply/preview)", () => {
+      for (const cmd of [
+        "terraform plan",
+        "terraform apply -auto-approve",
+        "pulumi preview",
+        "cdk synth",
+      ]) {
+        const r = evaluateShellCommandPolicy(cmd);
+        expect(r.allowed, cmd).toBe(true);
+        expect(r.ruleId, cmd).toBe("unclassified-command");
+      }
+    });
+
+    it("is overridable when explicitly requested", () => {
+      const r = evaluateShellCommandPolicy("terraform destroy -auto-approve", {
+        overrideRuleIds: ["iac-destroy"],
+      });
+      expect(r.allowed).toBe(true);
+      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.WARN);
+      expect(r.reason).toContain("overridden by session policy");
+    });
+
+    it("catches an IaC destroy smuggled into a compound command", () => {
+      const r = evaluateShellCommandPolicy(
+        "echo deploying && terraform destroy -auto-approve",
+      );
+      expect(r.allowed).toBe(false);
+      expect(r.ruleId).toBe("iac-destroy");
+    });
+  });
+
   describe("compound commands (every segment is inspected)", () => {
     it("blocks a dangerous command smuggled after && / ; / | behind a benign segment", () => {
       for (const cmd of [
