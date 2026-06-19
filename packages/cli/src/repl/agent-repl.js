@@ -92,6 +92,7 @@ import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { parseThinkCommand } from "./think-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
+import { emptyTurnNotice } from "./empty-turn-notice.js";
 import {
   parsePermissionTier,
   describeTier,
@@ -3361,7 +3362,17 @@ export async function startAgentRepl(options = {}) {
           messages.push({ role: "assistant", content: streamResult.text });
         }
       } else if (!responseDirective.suppress) {
-        process.stdout.write("\n");
+        // Claude-Code 2.1.183 parity: a turn that completes with no answer text
+        // (model produced only extended-thinking blocks, or an empty response)
+        // otherwise returned to the prompt silently — looking like a no-op/hang.
+        // Surface a dim notice so the turn's completion is always visible.
+        const notice = emptyTurnNotice({
+          response: effectiveResponse,
+          reasoning,
+        });
+        process.stdout.write(
+          notice ? "\n" + chalk.dim("  " + notice) + "\n\n" : "\n",
+        );
       }
 
       // Auto-save session
