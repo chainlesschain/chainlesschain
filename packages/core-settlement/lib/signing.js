@@ -56,12 +56,12 @@ function verifyEntry(core, sig, pubkeyJwk) {
   if (!pk) return false;
   const s = Buffer.isBuffer(sig) ? sig : Buffer.from(sig || []);
   if (s.length !== 64) return false;
-  const { ed25519 } = require("@noble/curves/ed25519.js");
-  try {
-    return ed25519.verify(s, canonicalizeEntry(core), pk);
-  } catch (_err) {
-    return false;
-  }
+  // 复用 core-mtc 已声明的 ed25519 验签（makeVerifier 内部即 ed25519.verify），不直接
+  // require("@noble/curves")——该包未在 core-settlement 声明，仅靠 monorepo hoisting
+  // 碰巧能用，独立发布安装会 Cannot find module。
+  const id = ed25519Signer.pubkeyId(pk);
+  const verify = ed25519Signer.makeVerifier(new Map([[id, pk]]));
+  return verify(canonicalizeEntry(core), { alg: ALG, pubkey_id: id, sig: s.toString("base64url") });
 }
 
 module.exports = { DOMAIN_PREFIX, ALG, canonicalizeEntry, signEntry, verifyEntry };
