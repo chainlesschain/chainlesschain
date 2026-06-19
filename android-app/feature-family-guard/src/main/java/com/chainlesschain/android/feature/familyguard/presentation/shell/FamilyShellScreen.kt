@@ -61,6 +61,7 @@ fun FamilyShellScreen(
     onNavigateToGentleness: () -> Unit,
     onNavigateToMistakeBook: () -> Unit,
     onNavigateToChildActivity: () -> Unit,
+    onNavigateToChildSelection: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -138,6 +139,14 @@ fun FamilyShellScreen(
             enabled = true,
             testTag = TestTag.SectionChildActivity,
             onClick = onNavigateToChildActivity,
+        )
+
+        SectionCard(
+            title = "选择孩子",
+            description = "配对多个孩子时，选择当前查看的孩子 (任务/积分/学情报告随之切换)",
+            enabled = true,
+            testTag = TestTag.SectionChildSelection,
+            onClick = onNavigateToChildSelection,
         )
 
         SectionCard(
@@ -233,4 +242,5 @@ object TestTag {
     const val SectionGentleness = "family_guard/shell/section_gentleness"
     const val SectionMistakeBook = "family_guard/shell/section_mistake_book"
     const val SectionChildActivity = "family_guard/shell/section_child_activity"
+    const val SectionChildSelection = "family_guard/shell/section_child_selection"
 }

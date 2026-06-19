@@ -38,6 +38,7 @@ fun MainContainer(
     onNavigateToPairing: () -> Unit = {},
     onNavigateToMistakeBook: () -> Unit = {},
     onNavigateToChildActivity: () -> Unit = {},
+    onNavigateToChildSelection: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToConversation: (String) -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
@@ -183,6 +184,7 @@ fun MainContainer(
                         onNavigateToGentleness = onNavigateToGentleness,
                         onNavigateToMistakeBook = onNavigateToMistakeBook,
                         onNavigateToChildActivity = onNavigateToChildActivity,
+                        onNavigateToChildSelection = onNavigateToChildSelection,
                         onSosTriggered = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(
