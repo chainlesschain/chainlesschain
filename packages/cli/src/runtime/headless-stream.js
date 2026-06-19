@@ -649,6 +649,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
 
   let turns = 0;
   let sawError = false;
+  // Once any turn attaches an image, the image stays in the conversation
+  // history — so every later turn (even a text-only follow-up like "what colour
+  // is it?") must keep using the vision LLM, otherwise a text-only default model
+  // is handed image content it can't read. Claude Code never hits this (one
+  // multimodal model); cc splits text/vision models, so we sticky the routing.
+  let conversationHasImages = false;
 
   // ── Concurrent stdin pump (turn-interrupt support) ────────────────────────
   // Input is consumed AS IT ARRIVES — not between turns — so an
@@ -879,23 +885,15 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // On an image turn, also switch THIS turn to the vision LLM (model only —
     // same account/key) so it's read by a vision-capable model.
     let turnContent = userContent;
-    let turnVisionLlm = null;
     if (parsed.images && parsed.images.length) {
       try {
-        const { resolveImages, buildUserContent, resolveVisionLlm } =
+        const { resolveImages, buildUserContent } =
           await import("../lib/image-input.js");
         turnContent = buildUserContent(
           userContent,
           resolveImages(parsed.images),
         );
-        turnVisionLlm = resolveVisionLlm({
-          hasImage: true,
-          flags: {},
-          llm: { provider, baseUrl, apiKey, visionModel },
-        });
-        writeErr(
-          `  [image] ${parsed.images.length} attached → vision model ${turnVisionLlm.model}\n`,
-        );
+        conversationHasImages = true;
       } catch (err) {
         emit({
           type: "result",
@@ -905,6 +903,24 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           session_id: sessionId,
         });
         continue; // bad attachment kills the turn, not the session
+      }
+    }
+    // Route to the vision LLM (model only — same provider/account/key/baseUrl)
+    // on any turn that carries an image AND on every later turn once the
+    // conversation holds an image, so a text-only follow-up about the image
+    // isn't sent to a text-only default model that can't read the history.
+    let turnVisionLlm = null;
+    if (conversationHasImages) {
+      const { resolveVisionLlm } = await import("../lib/image-input.js");
+      turnVisionLlm = resolveVisionLlm({
+        hasImage: true,
+        flags: {},
+        llm: { provider, baseUrl, apiKey, visionModel },
+      });
+      if (parsed.images && parsed.images.length) {
+        writeErr(
+          `  [image] ${parsed.images.length} attached → vision model ${turnVisionLlm.model}\n`,
+        );
       }
     }
 
