@@ -19,6 +19,7 @@
     "packages/core-blockchain",
     "packages/core-mtc",
     "packages/core-multisig",
+    "packages/core-settlement",
     "packages/session-core",
     "packages/cli",
     "packages/personal-data-hub"
