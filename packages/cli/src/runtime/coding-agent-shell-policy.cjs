@@ -9,13 +9,6 @@ const SHELL_POLICY_DECISIONS = Object.freeze({
 
 const BLOCKED_SHELL_RULES = Object.freeze([
   {
-    id: "git-tool-reroute",
-    decision: SHELL_POLICY_DECISIONS.REROUTE,
-    test: ({ firstToken }) => firstToken === "git",
-    reason:
-      "Use the dedicated git tool instead of run_shell for repository operations.",
-  },
-  {
     id: "dangerous-delete",
     decision: SHELL_POLICY_DECISIONS.DENY,
     test: ({ firstToken }) =>
@@ -23,6 +16,12 @@ const BLOCKED_SHELL_RULES = Object.freeze([
     reason:
       "Destructive delete commands are blocked by the coding-agent shell policy.",
   },
+  // The dangerous-git-* DENY rules MUST precede `git-tool-reroute` below:
+  // `evaluateSegmentPolicy` returns the FIRST matching rule, and the reroute
+  // rule matches every git command. Ordering reroute first (as it was) made
+  // these DENYs unreachable dead code — a `git reset --hard && …` segment would
+  // only REROUTE. Destructive git now hard-DENYs on the run_shell path; the git
+  // tool itself separately confirms (isDangerousGitCommand) on its own path.
   {
     id: "dangerous-git-reset",
     decision: SHELL_POLICY_DECISIONS.DENY,
@@ -48,6 +47,13 @@ const BLOCKED_SHELL_RULES = Object.freeze([
       firstToken === "git" && secondToken === "clean",
     reason:
       "git clean is blocked by the coding-agent shell policy.",
+  },
+  {
+    id: "git-tool-reroute",
+    decision: SHELL_POLICY_DECISIONS.REROUTE,
+    test: ({ firstToken }) => firstToken === "git",
+    reason:
+      "Use the dedicated git tool instead of run_shell for repository operations.",
   },
   {
     // Infrastructure-as-Code teardown: `terraform destroy`, `pulumi destroy`,

@@ -234,6 +234,74 @@ function isReadOnlyGitCommand(command) {
   return READ_ONLY_GIT_SUBCOMMANDS.includes((subcommand || "").toLowerCase());
 }
 
+/**
+ * Classify a git command as DESTRUCTIVE — one that discards working-tree
+ * changes, deletes untracked files, or rewrites history/refs and therefore
+ * cannot be cleanly undone. Used to require confirmation before the `git`
+ * tool runs such a command in auto mode (Claude-Code 2.1.183 parity:
+ * "destructive git commands blocked when unintended").
+ *
+ * Conservative by design — common, recoverable operations (plain `reset`,
+ * `restore --staged`, branch switches, `--force-with-lease`, `rebase
+ * --continue`) are NOT flagged, so the guard only interrupts genuinely
+ * irrecoverable actions.
+ */
+function isDangerousGitCommand(command) {
+  const normalized = normalizeGitCommand(command);
+  if (!normalized) return false;
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const sub = (tokens[0] || "").toLowerCase();
+  const rest = tokens.slice(1);
+  const lower = rest.map((t) => t.toLowerCase());
+  const has = (...flags) => flags.some((f) => lower.includes(f));
+
+  switch (sub) {
+    case "reset":
+      // --hard/--merge/--keep overwrite the working tree irrecoverably
+      // (plain/--soft/--mixed only move HEAD/index and are reflog-recoverable).
+      return has("--hard", "--merge", "--keep");
+    case "clean":
+      // Deletes untracked files — irrecoverable.
+      return true;
+    case "checkout":
+      // Discard working-tree changes: `checkout -- <path>`, `checkout .`,
+      // or `-f`/`--force` (a plain branch checkout is not flagged).
+      return lower.includes("--") || lower.includes(".") || has("-f", "--force");
+    case "restore":
+      // Worktree restore discards changes; a pure `--staged` restore only
+      // unstages and is recoverable.
+      return !(has("--staged", "-s") && !has("--worktree", "-w"));
+    case "switch":
+      return has("-f", "--force", "--discard-changes");
+    case "push":
+      // `--force`/`-f` rewrites remote history; `--force-with-lease`/
+      // `--force-if-includes` are the safe forms and are NOT flagged.
+      return has("--force", "-f");
+    case "branch":
+      // `-D` (force delete, case-sensitive — `-d` only deletes merged branches)
+      // or an explicit `--delete --force`.
+      return rest.includes("-D") || (has("--delete") && has("-f", "--force"));
+    case "stash":
+      return ["drop", "clear"].includes((lower[0] || ""));
+    case "reflog":
+      return ["expire", "delete"].includes((lower[0] || ""));
+    case "update-ref":
+      return has("-d", "--delete");
+    case "filter-branch":
+    case "filter-repo":
+      return true;
+    case "gc":
+      return lower.some((t) => t.startsWith("--prune"));
+    case "rebase":
+      // History rewrite; control sub-actions (--abort/--continue/etc.) are safe.
+      return !["--abort", "--continue", "--skip", "--quit", "--edit-todo", "--show-current-patch"].includes(
+        lower[0] || "",
+      );
+    default:
+      return false;
+  }
+}
+
 function normalizeRiskLevel(value, fallback = RISK_LEVELS.MEDIUM) {
   if (value === RISK_LEVELS.LOW) return RISK_LEVELS.LOW;
   if (value === RISK_LEVELS.MEDIUM) return RISK_LEVELS.MEDIUM;
@@ -461,6 +529,7 @@ module.exports = {
   TOOL_POLICY_METADATA,
   evaluateToolPolicy,
   getToolPolicyMetadata,
+  isDangerousGitCommand,
   isReadOnlyGitCommand,
   normalizeGitCommand,
   resolveToolPolicy,

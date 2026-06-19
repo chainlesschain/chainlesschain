@@ -22,12 +22,48 @@ describe("coding-agent shell policy", () => {
     );
   });
 
-  it("reroutes git commands away from run_shell", () => {
+  it("reroutes benign git commands away from run_shell", () => {
     expect(evaluateShellCommandPolicy("git status --short")).toEqual(
       expect.objectContaining({
         allowed: false,
         decision: SHELL_POLICY_DECISIONS.REROUTE,
         ruleId: "git-tool-reroute",
+      }),
+    );
+  });
+
+  // Regression: the dangerous-git-* DENY rules must outrank `git-tool-reroute`.
+  // When reroute was ordered first they were dead code (find() returned reroute
+  // for every git command), so `git reset --hard` only rerouted.
+  it("DENIES destructive git commands on the run_shell path (not just reroute)", () => {
+    expect(evaluateShellCommandPolicy("git reset --hard HEAD~1")).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        decision: SHELL_POLICY_DECISIONS.DENY,
+        ruleId: "dangerous-git-reset",
+      }),
+    );
+    expect(evaluateShellCommandPolicy("git clean -fd")).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        decision: SHELL_POLICY_DECISIONS.DENY,
+        ruleId: "dangerous-git-clean",
+      }),
+    );
+    expect(evaluateShellCommandPolicy("git checkout -- src/index.js")).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        decision: SHELL_POLICY_DECISIONS.DENY,
+        ruleId: "dangerous-git-checkout-discard",
+      }),
+    );
+    // …and a destructive git segment smuggled after a benign one is still caught.
+    expect(
+      evaluateShellCommandPolicy("git status && git reset --hard"),
+    ).toEqual(
+      expect.objectContaining({
+        decision: SHELL_POLICY_DECISIONS.DENY,
+        ruleId: "dangerous-git-reset",
       }),
     );
   });
@@ -162,7 +198,11 @@ describe("coding-agent shell policy", () => {
         "npm run build && git checkout -- .",
       );
       expect(r.allowed).toBe(false);
-      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.REROUTE);
+      // The trailing `git checkout -- .` is a discard → DENY (severity 3) now
+      // outranks the leading allowlisted build. Previously this was REROUTE only
+      // because the dangerous-git-checkout-discard DENY rule was unreachable.
+      expect(r.decision).toBe(SHELL_POLICY_DECISIONS.DENY);
+      expect(r.ruleId).toBe("dangerous-git-checkout-discard");
     });
 
     it("still ALLOWs a compound where every segment is independently allowlisted", () => {

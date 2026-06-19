@@ -70,7 +70,8 @@ export function getActiveMcpServers() {
   return new Set(_activeMcpServers);
 }
 
-const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
+const { isDangerousGitCommand, isReadOnlyGitCommand, normalizeGitCommand } =
+  sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
@@ -976,6 +977,37 @@ export async function executeTool(name, args, context = {}) {
           policy: { decision: "ask", via: "sensitive-file" },
         };
       }
+    }
+  }
+
+  // Destructive-git guard (Claude-Code 2.1.183 parity: "destructive git
+  // commands blocked when unintended"). The `git` tool otherwise runs any
+  // command unguarded in auto mode — including `reset --hard`, `clean -fd`,
+  // `restore .`, `push --force`, `branch -D`, `rebase`, `reflog expire` —
+  // which irrecoverably discard work. An explicit settings `allow`/confirmed
+  // `ask` (ruleAllowed) pre-authorizes; headless without a confirmer fails
+  // closed. Plan mode already blocks non-read-only git below.
+  if (
+    name === "git" &&
+    !ruleAllowed &&
+    !planManager.isActive() &&
+    isDangerousGitCommand(args?.command)
+  ) {
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    const ok =
+      typeof confirm === "function"
+        ? await confirm({
+            tool: name,
+            args,
+            rule: null,
+            reason: `destructive git command: git ${normalizeGitCommand(args.command)}`,
+          })
+        : false;
+    if (!ok) {
+      return {
+        error: `[Destructive Git] "git ${normalizeGitCommand(args.command)}" discards work irrecoverably and requires confirmation — denied. Add a settings allow rule to pre-authorize.`,
+        policy: { decision: "ask", via: "destructive-git" },
+      };
     }
   }
 
