@@ -108,14 +108,8 @@ const VALID_PKG_NAME =
 // the gate reports stale baseline entries so they don't rot.
 // ---------------------------------------------------------------------------
 const KNOWN_BASELINE = {
-  chainlesschain: {
-    "@noble/curves":
-      "static import in src/commands/mtc.js + src/lib/audit-mtc.js; currently devDep — MOVE to dependencies on next cli release",
-    "js-yaml":
-      "static import in src/lib/agents.js — ADD to dependencies on next cli release",
-    playwright:
-      "optional screenshot dep (src/lib/browser-automation.js, returns null when absent) — declare as optional peer (peerDependenciesMeta) on next cli release",
-  },
+  // cli items burned down 2026-06-19 (cli 0.162.90): @noble/curves + js-yaml
+  // moved/added to dependencies, playwright declared as optional peer.
   "@chainlesschain/personal-data-hub": {
     "pdf-parse":
       "lazy-loaded heavy optional (lib/adapters/email-imap/pdf-extractor.js) — ADD to optionalDependencies; triggers USR_VERSION + Android bundle rollover (traps #27/#28)",
