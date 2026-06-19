@@ -1,6 +1,7 @@
 {
   "_comment": "Single-source filename map shared by docs-site/scripts/sync-design-docs.js + docs-site-design/scripts/sync-docs.js. Edit here, both sites pick up. String value = both sites map to the same target; object = per-site override. See CLAUDE.md 'Doc-site source-of-truth' section.",
   "root": {
+    "去中心化交易_知识资产加密交付与AI撮合_v1.md": "decentralized-trade-knowledge-asset-ai-matching-v1.md",
     "系统设计_主文档.md": "system-design-main.md",
     "系统设计_个人移动AI管理系统.md": "system-design-full.md",
     "安全机制设计.md": "security-design.md",
