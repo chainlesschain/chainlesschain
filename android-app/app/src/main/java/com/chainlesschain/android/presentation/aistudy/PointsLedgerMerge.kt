@@ -14,8 +14,22 @@ object PointsLedgerMerge {
         (a + b)
             .groupBy { it.id }
             .map { (_, dup) ->
+                // 同 id 不同内容按契约不应出现 (事件不可变), 防御性取确定性一侧。
+                // 比较器必须是**全序**: 否则两端按各自的 list 顺序合并时, 若所有
+                // 比较键相等就会各取 minWithOrNull 的迭代首元 → merge(a,b) ≠
+                // merge(b,a), P2P 收敛失败。故纳入所有可区分字段 (id 组内相同, 略);
+                // compareBy 对可空字段做 null-safe 排序 (null 在前)。
                 dup.minWithOrNull(
-                    compareBy({ it.timestamp }, { it.amount }, { it.reason }, { it.type.name }),
+                    compareBy(
+                        { it.timestamp },
+                        { it.amount },
+                        { it.reason },
+                        { it.type.name },
+                        { it.childDid },
+                        { it.relatedTaskId },
+                        { it.relatedRewardId },
+                        { it.granterDid },
+                    ),
                 )!!
             }
             .sortedWith(compareBy({ it.timestamp }, { it.id }))

@@ -48,4 +48,20 @@ class PointsLedgerMergeTest {
         assertEquals(ab, ba)
         assertEquals(30, ab.amount) // compareBy amount → 确定性取小
     }
+
+    @Test
+    fun `same-id conflict differing only in an omitted identity field still converges`() {
+        // Regression: before the comparator was made total it compared only
+        // (timestamp, amount, reason, type). Two same-id events that tie on all
+        // four but differ in relatedTaskId tied → minWithOrNull returned the
+        // iteration-first element → merge(a,b) != merge(b,a) (P2P diverges).
+        val base = ev("e1", amount = 30, ts = 1_000L)
+        val a = listOf(base.copy(relatedTaskId = "tA"))
+        val b = listOf(base.copy(relatedTaskId = "tB"))
+
+        val ab = PointsLedgerMerge.merge(a, b).single()
+        val ba = PointsLedgerMerge.merge(b, a).single()
+        assertEquals(ab, ba) // must converge regardless of merge order
+        assertEquals("tA", ab.relatedTaskId) // deterministic: "tA" < "tB"
+    }
 }
