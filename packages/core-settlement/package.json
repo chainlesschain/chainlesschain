@@ -1,0 +1,33 @@
+{
+  "name": "@chainlesschain/core-settlement",
+  "version": "0.1.0",
+  "description": "P1 settlement core — append-only signed transfer-log ledger (federation node hosts, cannot forge/mint) + custodian-driven escrow gated by M-of-N multisig. See docs/design 去中心化交易_知识资产加密交付与AI撮合_v1 §8.2/§6.",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./ledger": "./lib/ledger.js",
+    "./escrow": "./lib/escrow.js",
+    "./signing": "./lib/signing.js",
+    "./schema": "./lib/schema.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "files": [
+    "lib/"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@chainlesschain/core-mtc": "^0.2.0",
+    "canonicalize": "^2.0.0"
+  },
+  "devDependencies": {
+    "@chainlesschain/core-multisig": "*",
+    "sql.js": "^1.10.3",
+    "vitest": "^4.0.0"
+  }
+}
