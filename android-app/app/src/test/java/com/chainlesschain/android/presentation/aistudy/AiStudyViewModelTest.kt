@@ -287,6 +287,31 @@ class AiStudyViewModelTest {
     }
 
     @Test
+    fun `homework-like query without task actually enters guided mode in prompt`() = runTest {
+        val viewModel = vm()
+        // 没有进行中任务，但内容像作业 (多个题号) → 应真正进引导模式 (修正 v0.1 只计数不引导的缺口)。
+        viewModel.send("帮我做这几题：第1题 1/2+1/3  第2题 2/3-1/6")
+
+        val system = llm.lastMessages.first()
+        assertEquals(MessageRole.SYSTEM, system.role)
+        assertTrue(system.content.contains("作业模式"))
+        assertTrue(system.content.contains("绝不直接给出最终答案"))
+        // 不是任务级引导，不应出现"任务进行中"。
+        assertTrue(!system.content.contains("任务进行中"))
+    }
+
+    @Test
+    fun `plain non-homework query without task stays in normal mode`() = runTest {
+        val viewModel = vm()
+        viewModel.send("老师，分数是什么意思呀")
+
+        val system = llm.lastMessages.first()
+        // 普通提问不进强制引导块 (基础 prompt 仍含"作业模式"软提示，但无强制引导块标志句)。
+        assertTrue(!system.content.contains("绝不直接给出最终答案"))
+        assertTrue(!system.content.contains("任务进行中"))
+    }
+
+    @Test
     fun `finishing task returns learning to normal mode`() = runTest {
         val viewModel = vm()
         viewModel.startTask(StudyTask(id = "t1", title = "作业"))

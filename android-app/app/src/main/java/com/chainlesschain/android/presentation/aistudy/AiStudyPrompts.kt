@@ -81,20 +81,47 @@ object AiStudyPrompts {
     /**
      * 学习 tab + M5 任务联动 (主文档 §3.5/§3.6 AI 防作弊)。
      * 有进行中任务时，在 RAG prompt 后追加**强制引导模式**块：不给答案、只给思路。
-     * [activeTask] 为 null 时等价于上面的两参重载。
+     * [activeTask] 为 null 时等价于上面的两参重载 (= [homeworkDetected] 为 false 的四参重载)。
      */
     fun learningSystemPrompt(
         profile: StudyProfile,
         retrievedContext: String,
         activeTask: StudyTask?,
+    ): String = learningSystemPrompt(profile, retrievedContext, activeTask, homeworkDetected = false)
+
+    /**
+     * 学习 tab + 作业模式 (主文档 §3.6：内容侧检测到作业 → 进入引导模式，**无需** M5 任务)。
+     *
+     * 优先级：有 [activeTask] 走任务级强制引导 (绑定任务标题)；否则 [homeworkDetected] 为 true 时
+     * 追加通用作业引导块 (不绑定具体任务)。两者皆无则返回普通 RAG prompt。
+     *
+     * 修正 v0.1 缺口：此前内容检测到作业只统计"引导次数"却不真正进引导模式，AI 仍直接给答案，
+     * 学情报告与实际行为不符。现内容检测也强制进引导模式 (与计数一致)。
+     */
+    fun learningSystemPrompt(
+        profile: StudyProfile,
+        retrievedContext: String,
+        activeTask: StudyTask?,
+        homeworkDetected: Boolean,
     ): String {
         val base = learningSystemPrompt(profile, retrievedContext)
-        if (activeTask == null) return base
-        return "$base\n\n${guidedModeBlock(profile.nickname.ifBlank { "同学" }, activeTask)}"
+        val name = profile.nickname.ifBlank { "同学" }
+        return when {
+            activeTask != null -> "$base\n\n${guidedModeBlock(name, activeTask)}"
+            homeworkDetected -> "$base\n\n${homeworkGuidedBlock(name)}"
+            else -> base
+        }
     }
 
     private fun guidedModeBlock(name: String, task: StudyTask): String = """
         【任务进行中：${task.title}】$name 正在完成这项作业，对本任务的任何提问一律走「引导模式」：
+        - 绝不直接给出最终答案 / 完整解题过程 / 作文成稿。
+        - 只拆解思路、给提示、反问，引导 $name 自己写出答案。
+        - 若 ta 反复索要答案，温和坚持引导，并提醒「自己想出来才学得会」。
+    """.trimIndent()
+
+    private fun homeworkGuidedBlock(name: String): String = """
+        【作业模式】这看起来像是 $name 正在做作业，对相关提问一律走「引导模式」：
         - 绝不直接给出最终答案 / 完整解题过程 / 作文成稿。
         - 只拆解思路、给提示、反问，引导 $name 自己写出答案。
         - 若 ta 反复索要答案，温和坚持引导，并提醒「自己想出来才学得会」。

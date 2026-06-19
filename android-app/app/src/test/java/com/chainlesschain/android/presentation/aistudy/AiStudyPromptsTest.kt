@@ -60,6 +60,40 @@ class AiStudyPromptsTest {
     }
 
     @Test
+    fun `homework-detected without task appends generic guided-mode block`() {
+        val profile = StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明")
+        val prompt = AiStudyPrompts.learningSystemPrompt(
+            profile, "", activeTask = null, homeworkDetected = true,
+        )
+        // 内容检测到作业 → 真正进引导模式 (不再只是计数)。
+        assertTrue(prompt.contains("作业模式"))
+        assertTrue(prompt.contains("绝不直接给出最终答案"))
+        // 通用块不绑定具体任务标题。
+        assertTrue(!prompt.contains("任务进行中"))
+    }
+
+    @Test
+    fun `active task takes precedence over homework detection`() {
+        val profile = StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明")
+        val task = StudyTask(id = "t1", title = "数学第3页")
+        val prompt = AiStudyPrompts.learningSystemPrompt(
+            profile, "", activeTask = task, homeworkDetected = true,
+        )
+        // 有任务时走任务级引导块 (绑定标题)，不再叠加通用块。
+        assertTrue(prompt.contains("任务进行中"))
+        assertTrue(prompt.contains("数学第3页"))
+    }
+
+    @Test
+    fun `no task and no homework equals plain rag prompt`() {
+        val profile = StudyProfile(grade = GradeLevel.P5, subject = Subject.MATH, nickname = "小明")
+        assertEquals(
+            AiStudyPrompts.learningSystemPrompt(profile, ""),
+            AiStudyPrompts.learningSystemPrompt(profile, "", activeTask = null, homeworkDetected = false),
+        )
+    }
+
+    @Test
     fun `answer-seeking heuristic flags direct-answer requests only`() {
         assertTrue(AiStudyPrompts.looksLikeAnswerSeeking("直接告诉我答案"))
         assertTrue(AiStudyPrompts.looksLikeAnswerSeeking("帮我写完这篇作文"))

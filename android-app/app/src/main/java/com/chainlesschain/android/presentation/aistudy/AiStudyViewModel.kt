@@ -126,13 +126,15 @@ class AiStudyViewModel @Inject constructor(
 
         // M5 任务联动：进行中任务 → 该任务的 AI 调用一律走引导模式 + 记防作弊 log。
         val activeTask = _uiState.value.activeTask
+        // 内容侧作业检测 (无任务时也据此进引导模式，主文档 §3.6)。计数与 prompt 用同一判定。
+        val homeworkDetected = tab == AiStudyTab.LEARNING && AiStudyPrompts.looksLikeHomework(content)
 
         // 会话内计数 (供学情报告)。
         when (tab) {
             AiStudyTab.LEARNING -> {
                 learningTurns++
-                // 有进行中任务则强制引导；否则用作业启发式判断。
-                if (activeTask != null || AiStudyPrompts.looksLikeHomework(content)) guidedModeTurns++
+                // 有进行中任务则强制引导；否则据内容作业检测进引导模式 (两者都真正进引导)。
+                if (activeTask != null || homeworkDetected) guidedModeTurns++
                 if (activeTask != null) {
                     val kind = if (AiStudyPrompts.looksLikeAnswerSeeking(content)) {
                         answerSeekingAttempts++
@@ -154,6 +156,7 @@ class AiStudyViewModel @Inject constructor(
                     profile,
                     MistakeRetriever.renderContext(related),
                     activeTask,
+                    homeworkDetected,
                 )
             }
             AiStudyTab.COMPANION -> AiStudyPrompts.companionSystemPrompt(profile.nickname)
