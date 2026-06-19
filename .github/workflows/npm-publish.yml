@@ -147,6 +147,22 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # core-multisig -> core-mtc (published just above), @noble/*, canonicalize.
+      # Idempotent: skips when npm version already matches package.json.
+      - name: "Publish @chainlesschain/core-multisig"
+        working-directory: packages/core-multisig
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-multisig version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: "Publish @chainlesschain/shared-logger"
         working-directory: packages/shared-logger
         run: |

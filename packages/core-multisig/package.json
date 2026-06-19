@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-multisig",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "M-of-N multi-signature coordination beyond MTC publisher_signature — marketplace large purchases, DID rotation, cross-chain bridge.",
   "type": "commonjs",
   "main": "lib/index.js",
