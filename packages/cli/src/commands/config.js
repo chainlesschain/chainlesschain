@@ -26,6 +26,38 @@ export function registerConfigCommand(program) {
     });
 
   cmd
+    .command("keys")
+    .description("List the recognized configuration keys (with types/defaults)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { describeConfigKeys } = await import("../lib/config-keys.js");
+      const entries = describeConfigKeys();
+      if (options.json) {
+        console.log(JSON.stringify(entries, null, 2));
+        return;
+      }
+      logger.log(chalk.bold("\n  Configuration keys\n"));
+      logger.log(
+        chalk.gray(
+          "  Set with: cc config set <key> <value>   Get: cc config get <key>\n",
+        ),
+      );
+      for (const e of entries) {
+        const cur =
+          e.current === undefined || e.current === null
+            ? chalk.gray("(unset)")
+            : typeof e.current === "object"
+              ? chalk.gray(JSON.stringify(e.current))
+              : chalk.green(String(e.current));
+        logger.log(
+          `  ${chalk.cyan(e.key)} ${chalk.gray(`<${e.type}>`)}  = ${cur}`,
+        );
+        if (e.description) logger.log(`      ${chalk.gray(e.description)}`);
+      }
+      logger.newline();
+    });
+
+  cmd
     .command("get")
     .description("Get a configuration value")
     .argument("<key>", "Config key (dot-notation, e.g. llm.provider)")
