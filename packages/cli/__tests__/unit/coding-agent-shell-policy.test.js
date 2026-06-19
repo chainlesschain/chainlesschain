@@ -87,6 +87,34 @@ describe("coding-agent shell policy", () => {
     );
   });
 
+  it("blocks Unix AND Windows/PowerShell deletes (Windows-primary repo)", () => {
+    for (const cmd of [
+      "rm -rf node_modules",
+      "del /s /q build",
+      "rmdir /s build",
+      "Remove-Item -Recurse -Force dist",
+      "remove-item -Recurse -Force C:\\\\temp",
+      "ri -Recurse -Force .git",
+    ]) {
+      expect(evaluateShellCommandPolicy(cmd), cmd).toEqual(
+        expect.objectContaining({
+          allowed: false,
+          decision: SHELL_POLICY_DECISIONS.DENY,
+          ruleId: "dangerous-delete",
+        }),
+      );
+    }
+    // A PowerShell delete smuggled after a benign segment is still caught.
+    expect(
+      evaluateShellCommandPolicy("npm run build && Remove-Item -Recurse dist"),
+    ).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        ruleId: "dangerous-delete",
+      }),
+    );
+  });
+
   it("allowlists verification and search commands", () => {
     expect(evaluateShellCommandPolicy("npm run test:unit")).toEqual(
       expect.objectContaining({

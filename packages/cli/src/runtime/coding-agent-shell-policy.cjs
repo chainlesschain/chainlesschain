@@ -11,8 +11,21 @@ const BLOCKED_SHELL_RULES = Object.freeze([
   {
     id: "dangerous-delete",
     decision: SHELL_POLICY_DECISIONS.DENY,
+    // Unix (rm) AND Windows/PowerShell deletes. This repo is Windows-primary
+    // (PowerShell is the default shell), where the `rm -rf` analog is
+    // `Remove-Item -Recurse -Force` / its alias `ri` — neither shares a first
+    // token with the Unix forms, so they must be listed explicitly. (`rm`/`del`
+    // already cover PowerShell's `rm`/`del` aliases; `rd` covers `rmdir`.)
     test: ({ firstToken }) =>
-      ["rm", "del", "erase", "rmdir", "rd"].includes(firstToken),
+      [
+        "rm",
+        "del",
+        "erase",
+        "rmdir",
+        "rd",
+        "remove-item",
+        "ri",
+      ].includes(firstToken),
     reason:
       "Destructive delete commands are blocked by the coding-agent shell policy.",
   },
