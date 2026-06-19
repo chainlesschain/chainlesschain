@@ -57,6 +57,7 @@ class FamilyTaskViewModel @Inject constructor(
     private val mistakeBook: MistakeBook,
     private val pointsLedger: PointsLedger,
     private val dataLifecycle: FamilyDataLifecycle,
+    private val studyContext: FamilyStudyContext,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyTaskUiState())
@@ -64,7 +65,7 @@ class FamilyTaskViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repo.observeForChild(DEMO_CHILD_DID).collect { tasks ->
+            repo.observeForChild(studyContext.childDid()).collect { tasks ->
                 _uiState.update { it.copy(tasks = tasks) }
             }
         }
@@ -78,24 +79,24 @@ class FamilyTaskViewModel @Inject constructor(
     fun createTask(title: String, subjectCode: String?, description: String, dueInDays: Int? = null) {
         val name = title.trim()
         if (name.isBlank()) return
-        val now = System.currentTimeMillis()
-        val task = FamilyTask(
-            id = UUID.randomUUID().toString(),
-            familyGroupId = DEMO_GROUP_ID,
-            assignerDid = DEMO_PARENT_DID,
-            childDid = DEMO_CHILD_DID,
-            source = FamilyTaskSource.PARENT,
-            type = FamilyTaskType.HOMEWORK,
-            title = name,
-            description = description.trim(),
-            subject = subjectCode,
-            dueAtMs = dueInDays?.let { now + it * DAY_MS },
-            rewardPoints = DEFAULT_REWARD,
-            status = FamilyTaskStatus.ASSIGNED,
-            createdAtMs = now,
-            updatedAtMs = now,
-        )
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val task = FamilyTask(
+                id = UUID.randomUUID().toString(),
+                familyGroupId = DEMO_GROUP_ID,
+                assignerDid = DEMO_PARENT_DID,
+                childDid = studyContext.childDid(),
+                source = FamilyTaskSource.PARENT,
+                type = FamilyTaskType.HOMEWORK,
+                title = name,
+                description = description.trim(),
+                subject = subjectCode,
+                dueAtMs = dueInDays?.let { now + it * DAY_MS },
+                rewardPoints = DEFAULT_REWARD,
+                status = FamilyTaskStatus.ASSIGNED,
+                createdAtMs = now,
+                updatedAtMs = now,
+            )
             repo.upsert(task)
             _uiState.update { it.copy(showCreateForm = false) }
         }
@@ -214,19 +215,20 @@ class FamilyTaskViewModel @Inject constructor(
      * 返回 snackbar 后缀; 未触发为空串。
      */
     private suspend fun awardStreakBonus(now: Long): String {
-        val tasks = repo.observeForChild(DEMO_CHILD_DID).first()
+        val childDid = studyContext.childDid()
+        val tasks = repo.observeForChild(childDid).first()
         val days = StreakCalculator.consecutiveOnTimeDays(tasks, now)
         if (PointsEngine.streakBonus(days, EarnRules()) <= 0) return ""
 
         val dayStart = now - (now % DAY_MS)
         val streakTaskId = "streak-$dayStart"
         val decision = PointsEngine.decideEarn(
-            childDid = DEMO_CHILD_DID,
+            childDid = childDid,
             completion = Completion.Streak(taskId = streakTaskId, consecutiveOnTimeDays = days),
             reason = "连续 $days 天准时完成任务",
             context = EarnContext(
-                taskAlreadyEarned = pointsLedger.hasEarnedForTask(DEMO_CHILD_DID, streakTaskId),
-                earnedToday = pointsLedger.earnedBetween(DEMO_CHILD_DID, dayStart, dayStart + DAY_MS),
+                taskAlreadyEarned = pointsLedger.hasEarnedForTask(childDid, streakTaskId),
+                earnedToday = pointsLedger.earnedBetween(childDid, dayStart, dayStart + DAY_MS),
             ),
             eventId = UUID.randomUUID().toString(),
             now = now,
@@ -251,13 +253,14 @@ class FamilyTaskViewModel @Inject constructor(
             _uiState.update { it.copy(message = "没识别出作业，可手动「+ 新建作业」") }
             return@launch
         }
+        val childDid = studyContext.childDid()
         candidates.forEach { c ->
             repo.upsert(
                 FamilyTask(
                     id = UUID.randomUUID().toString(),
                     familyGroupId = DEMO_GROUP_ID,
                     assignerDid = DEMO_PARENT_DID,
-                    childDid = DEMO_CHILD_DID,
+                    childDid = childDid,
                     source = source,
                     type = FamilyTaskType.HOMEWORK,
                     title = c.title,
@@ -302,7 +305,8 @@ class FamilyTaskViewModel @Inject constructor(
     )
 
     private companion object {
-        const val DEMO_CHILD_DID = "did:chain:local-child"
+        // child DID 现经 studyContext.childDid() 解析 (孩子端真实 DID / 回落演示常量)。
+        // group/assigner 仍演示常量待真配对解析 (follow-up)。
         const val DEMO_GROUP_ID = "local-family"
         const val DEMO_PARENT_DID = "did:chain:local-parent"
         const val DEFAULT_REWARD = 20

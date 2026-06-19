@@ -108,6 +108,9 @@ class FamilyTaskViewModelTest {
     private lateinit var mistakeBook: InMemoryMistakeBook
     private lateinit var ledger: InMemoryPointsLedger
     private lateinit var lifecycle: FamilyDataLifecycle
+    private val studyContext = object : FamilyStudyContext {
+        override suspend fun childDid() = "did:chain:local-child"
+    }
 
     @Before
     fun setUp() {
@@ -123,7 +126,7 @@ class FamilyTaskViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook, ledger, lifecycle)
+    private fun vm() = FamilyTaskViewModel(repo, taskContext, grader, mistakeBook, ledger, lifecycle, studyContext)
 
     private fun firstTask(viewModel: FamilyTaskViewModel) = viewModel.uiState.value.tasks.first()
 
