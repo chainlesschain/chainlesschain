@@ -1,9 +1,12 @@
 {
   "name": "@chainlesschain/personal-data-hub",
-  "version": "0.4.29",
+  "version": "0.4.30",
   "description": "Personal Data Hub — UnifiedSchema + validators + KG ingest helpers for the data-back-to-the-individual middleware",
   "type": "commonjs",
   "main": "lib/index.js",
+  "files": [
+    "lib/"
+  ],
   "exports": {
     ".": "./lib/index.js",
     "./constants": "./lib/constants.js",
