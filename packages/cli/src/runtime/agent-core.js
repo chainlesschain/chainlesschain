@@ -1091,6 +1091,7 @@ export async function executeTool(name, args, context = {}) {
       additionalDirectories: context.additionalDirectories || null,
       ruleAllowed,
       subAgentDepth: context.subAgentDepth || 0,
+      interactiveApproval: context.interactiveApproval || false,
     });
   } catch (err) {
     if (hookDb) {
@@ -1293,6 +1294,7 @@ async function executeToolInner(
     additionalDirectories,
     ruleAllowed = false,
     subAgentDepth = 0,
+    interactiveApproval = false,
   },
 ) {
   const localToolDescriptor =
@@ -1694,6 +1696,39 @@ async function executeToolInner(
     }
 
     case "run_code": {
+      // run_code executes arbitrary python/node/bash — strictly more powerful
+      // than run_shell — yet historically ran ungated. In an INTERACTIVE
+      // session (interactiveApproval) it now honors the same ApprovalGate tier
+      // as run_shell so a strict-tier session prompts before arbitrary code
+      // runs (closing the bypass where `run_code` could `rm -rf` / rmtree past
+      // the run_shell gate). A settings `allow` rule (ruleAllowed) pre-
+      // authorizes; headless leaves interactiveApproval false so its existing
+      // per-permission-mode behavior is unchanged.
+      if (
+        interactiveApproval &&
+        approvalGate &&
+        !ruleAllowed &&
+        typeof approvalGate.decide === "function"
+      ) {
+        const { APPROVAL_RISK, APPROVAL_DECISION } =
+          await import("@chainlesschain/session-core");
+        const gate = await approvalGate.decide({
+          sessionId,
+          riskLevel: APPROVAL_RISK.HIGH,
+          tool: "run_code",
+          args: { language: args.language },
+        });
+        if (gate.decision !== APPROVAL_DECISION.ALLOW) {
+          return attachDescriptor({
+            error: `[ApprovalGate] run_code denied (${gate.via})`,
+            approval: {
+              decision: gate.decision,
+              via: gate.via,
+              riskLevel: "high",
+            },
+          });
+        }
+      }
       return attachDescriptor(await _executeRunCode(args, cwd));
     }
 
@@ -3696,6 +3731,10 @@ export async function* agentLoop(messages, options) {
     shellPolicyOverrides: options.shellPolicyOverrides || null,
     approvalGate: options.approvalGate || null,
     shellConfirm: options.shellConfirm || null,
+    // Interactive sessions (the REPL) set this so run_code is gated through the
+    // ApprovalGate like run_shell — a human can approve. Headless leaves it
+    // false so run_code keeps its existing per-permission-mode behavior.
+    interactiveApproval: options.interactiveApproval || false,
     additionalDirectories: options.additionalDirectories || null,
     permissionRules: options.permissionRules || null,
     permissionConfirm: options.permissionConfirm || null,

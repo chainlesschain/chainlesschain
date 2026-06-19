@@ -3264,6 +3264,9 @@ export async function startAgentRepl(options = {}) {
         permissionRules: _permissionRules,
         permissionConfirm: _permissionConfirm,
         settingsHooks: _settingsHooks,
+        // Interactive session: gate run_code through the ApprovalGate (like
+        // run_shell) so a strict tier prompts before arbitrary code runs.
+        interactiveApproval: true,
         // MCP: --mcp-config (ad-hoc) wins; bundle MCP is the fallback. The 3
         // tool channels expose --mcp-config servers' tools to the LLM directly.
         mcpClient: _adhocMcp?.mcpClient || _bundleMcpClient || undefined,
