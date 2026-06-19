@@ -26,18 +26,18 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | 字段 | 类型 | 中文备注 |
 |---|---|---|
 | `_id` | INTEGER | ID |
-| `addSrcId` | INTEGER | 广告dsrcID |
-| `addSrcName` | TEXT | 广告dsrc名称 |
-| `addSubSrcId` | INTEGER | 广告dsubsrcID |
+| `addSrcId` | INTEGER | 广告d来源ID |
+| `addSrcName` | TEXT | 广告d来源名称 |
+| `addSubSrcId` | INTEGER | 广告dsub来源ID |
 | `age` | INTEGER | (age) |
-| `allowCalInteractive` | INTEGER | allowcalinter活跃 |
+| `allowCalInteractive` | INTEGER | allowcali网络类型er活跃 |
 | `allowClick` | INTEGER | allow点击 |
 | `allowPeopleSee` | INTEGER | (allowPeopleSee) |
 | `authState` | INTEGER | 授权状态 |
-| `bAvailVoteCnt` | INTEGER | (bAvailVoteCnt) |
+| `bAvailVoteCnt` | INTEGER | bavailvotec网络类型 |
 | `bBigClubVipOpen` | INTEGER | bbigclubVIPopen |
 | `bCardInfo` | BLOB | b卡片信息 |
-| `bHaveVotedCnt` | INTEGER | (bHaveVotedCnt) |
+| `bHaveVotedCnt` | INTEGER | bhavevotedc网络类型 |
 | `bHollywoodVipOpen` | INTEGER | bhollywoodVIPopen |
 | `bQQVipOpen` | INTEGER | bqqVIPopen |
 | `bSuperQQOpen` | INTEGER | (bSuperQQOpen) |
@@ -69,14 +69,14 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `diyTextWidth` | REAL | diy文本宽 |
 | `dynamicCardFlag` | INTEGER | dynamic卡片标志 |
 | `encId` | TEXT | encID |
-| `enlargeQzonePic` | INTEGER | enlargeqzone图片 |
+| `enlargeQzonePic` | INTEGER | en大图qzone图片 |
 | `extendFriendEntryAddFriend` | INTEGER | 扩展结束好友入口广告d好友 |
 | `extendFriendEntryContact` | INTEGER | 扩展结束好友入口联系人 |
 | `extendFriendFlag` | INTEGER | 扩展结束好友标志 |
 | `extendFriendQuestion` | INTEGER | 扩展结束好友question |
 | `extendFriendVoiceDuration` | INTEGER | 扩展结束好友语音时长 |
 | `favoriteSource` | INTEGER | 收藏来源 |
-| `feedPreviewTime` | INTEGER | 信息流pre查看时间 |
+| `feedPreviewTime` | INTEGER | 信息流前查看时间 |
 | `fontId` | INTEGER | 字体ID |
 | `fontType` | INTEGER | 字体类型 |
 | `forbidCode` | INTEGER | forbID码 |
@@ -100,14 +100,14 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `iSuperVipLevel` | INTEGER | 是否uperVIP级别 |
 | `iSuperVipType` | INTEGER | 是否uperVIP类型 |
 | `iUpgradeCount` | INTEGER | iup等级数量 |
-| `iVoteIncrement` | INTEGER | (iVoteIncrement) |
+| `iVoteIncrement` | INTEGER | ivoteincreme网络类型 |
 | `iXManScene1DelayTime` | INTEGER | ixman场景1延迟时间 |
 | `iXManScene2DelayTime` | INTEGER | ixman场景2延迟时间 |
 | `idx` | INTEGER | 索引 |
 | `isForbidAccount` | INTEGER | 是否forbID账号 |
 | `isGreenDiamond` | INTEGER | 是否gre结束iamond |
-| `isHidePrettyGroutIdentity` | INTEGER | 是否hIDeprettygroutIDentity |
-| `isPrettyGroupOwner` | INTEGER | 是否pretty群/组群主/拥有者 |
+| `isHidePrettyGroutIdentity` | INTEGER | 是否hIDe前ttygroutIDe网络类型ity |
+| `isPrettyGroupOwner` | INTEGER | 是否前tty群/组群主/拥有者 |
 | `isRedDiamond` | INTEGER | 是否红包diamond |
 | `isShowCard` | INTEGER | 是否显示卡片 |
 | `isSuperGreenDiamond` | INTEGER | 是否supergre结束iamond |
@@ -142,10 +142,10 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `nameplateExtId` | INTEGER | 名称p纬度e扩展ID |
 | `nameplateVipType` | INTEGER | 名称p纬度eVIP类型 |
 | `popularity` | INTEGER | (popularity) |
-| `presentCustourl` | TEXT | presentcusto链接 |
-| `presentDesc` | TEXT | present描述 |
-| `presentNum` | INTEGER | present数量 |
-| `presentSwitch` | INTEGER | presen时间戳witch |
+| `presentCustourl` | TEXT | 前se网络类型custo链接 |
+| `presentDesc` | TEXT | 前se网络类型描述 |
+| `presentNum` | INTEGER | 前se网络类型数量 |
+| `presentSwitch` | INTEGER | 前se网络类型switch |
 | `privilegeJumpUrl` | TEXT | privilegejump链接 |
 | `privilegePromptStr` | TEXT | privilegepromp时间戳tr |
 | `qid` | TEXT | qID |
@@ -155,9 +155,9 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `redLevel` | INTEGER | 红包级别 |
 | `schoolId` | TEXT | schoolID |
 | `schoolName` | TEXT | school名称 |
-| `schoolVerifiedFlag` | INTEGER | schoolverified标志 |
+| `schoolVerifiedFlag` | INTEGER | school已认证标志 |
 | `shGender` | INTEGER | sh性别 |
-| `showPresent` | INTEGER | 显示present |
+| `showPresent` | INTEGER | 显示前se网络类型 |
 | `showPublishButton` | INTEGER | 显示发布button |
 | `strActiveUrl` | TEXT | str活跃链接 |
 | `strAutoRemark` | TEXT | strauto备注 |
@@ -178,7 +178,7 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `strLocationDesc` | TEXT | strlocation描述 |
 | `strLoginDaysDesc` | TEXT | str登录days描述 |
 | `strMobile` | TEXT | str手机 |
-| `strNick` | TEXT | (strNick) |
+| `strNick` | TEXT | str昵称 |
 | `strPersonalNote` | TEXT | (strPersonalNote) |
 | `strPromptParams` | TEXT | strprompt参数 |
 | `strProvince` | TEXT | str省 |
@@ -202,18 +202,18 @@ CREATE TABLE Card (_id INTEGER PRIMARY KEY AUTOINCREMENT,addSrcId INTEGER,addSrc
 | `uCurMulType` | INTEGER | ucurmul类型 |
 | `uFaceTimeStamp` | INTEGER | uface时间戳 |
 | `uin` | TEXT | QQ号/UIN |
-| `ulShowControl` | INTEGER | ul显示control |
+| `ulShowControl` | INTEGER | ul显示co网络类型rol |
 | `updateTime` | INTEGER | 更新时间 |
 | `vClosePriv` | BLOB | (vClosePriv) |
 | `vCookies` | BLOB | vCookies |
 | `vCoverInfo` | BLOB | v封面信息 |
-| `vLongNickTopicInfo` | BLOB | vlongnick置顶ic信息 |
+| `vLongNickTopicInfo` | BLOB | vlong昵称话题信息 |
 | `vOpenPriv` | BLOB | (vOpenPriv) |
 | `vQQFaceID` | BLOB | vqqfaceID |
 | `vQzoneCoverInfo` | BLOB | vqzone封面信息 |
 | `vQzonePhotos` | BLOB | vqzone照片s |
 | `vRichSign` | BLOB | vrich签名 |
-| `vSeed` | BLOB | (vSeed) |
+| `vSeed` | BLOB | v种子 |
 | `vipIcons` | TEXT | VIP图标s |
 | `vipMedalId` | INTEGER | VIPmedalID |
 | `vipMedalJumpUrl` | TEXT | VIPmedaljump链接 |
@@ -233,7 +233,7 @@ CREATE TABLE ColorNote (_id INTEGER PRIMARY KEY AUTOINCREMENT,mExtLong INTEGER,m
 | `_id` | INTEGER | ID |
 | `mExtLong` | INTEGER | m扩展long |
 | `mExtra` | INTEGER | m扩展 |
-| `mMainTitle` | TEXT | mmain标题 |
+| `mMainTitle` | TEXT | mmai网络类型itle |
 | `mPicUrl` | TEXT | m图片链接 |
 | `mReserve` | BLOB | (mReserve) |
 | `mServiceType` | INTEGER | m服务类型 |
@@ -269,7 +269,7 @@ CREATE TABLE ContactCard (_id INTEGER PRIMARY KEY AUTOINCREMENT,bAge INTEGER,bSe
 | `vCoverInfo` | BLOB | v封面信息 |
 | `vRichSign` | BLOB | vrich签名 |
 
-### `DesktopAppEntityV3` — desk置顶应用entity表
+### `DesktopAppEntityV3` — desk置顶应用e网络类型ity表
 
 ```sql
 CREATE TABLE DesktopAppEntityV3 (_id INTEGER PRIMARY KEY AUTOINCREMENT,appId TEXT,appInfo BLOB,name TEXT,uniqueId TEXT UNIQUE,verType INTEGER)
@@ -303,11 +303,11 @@ CREATE TABLE DiscussionInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,DiscussionFla
 | `hasCollect` | INTEGER | 是否收藏 |
 | `infoSeq` | INTEGER | 信息序号 |
 | `inheritOwnerUin` | TEXT | inherit群主/拥有者QQ号/UIN |
-| `mComparePartInt` | INTEGER | (mComparePartInt) |
-| `mCompareSpell` | TEXT | (mCompareSpell) |
+| `mComparePartInt` | INTEGER | m比较部分i网络类型 |
+| `mCompareSpell` | TEXT | m比较拼音 |
 | `mOrigin` | INTEGER | m原始 |
 | `mOriginExtra` | INTEGER | m原始扩展 |
-| `mSelfRight` | INTEGER | m自己right |
+| `mSelfRight` | INTEGER | m自己权限 |
 | `ownerUin` | TEXT | 群主/拥有者QQ号/UIN |
 | `timeSec` | INTEGER | 时间sec |
 | `uiControlFlag` | INTEGER | u图标trol标志 |
@@ -323,7 +323,7 @@ CREATE TABLE Emoticon (_id INTEGER PRIMARY KEY AUTOINCREMENT,backColor TEXT,busi
 |---|---|---|
 | `_id` | INTEGER | ID |
 | `backColor` | TEXT | back颜色 |
-| `businessExtra` | TEXT | busines性别tra |
+| `businessExtra` | TEXT | 业务扩展 |
 | `character` | TEXT | (character) |
 | `clickNum` | INTEGER | 点击数量 |
 | `eId` | TEXT | eID |
@@ -343,7 +343,7 @@ CREATE TABLE Emoticon (_id INTEGER PRIMARY KEY AUTOINCREMENT,backColor TEXT,busi
 | `magicValue` | TEXT | 魔法值 |
 | `name` | TEXT | 名称 |
 | `value` | INTEGER | 值 |
-| `voicePrint` | TEXT | 语音print |
+| `voicePrint` | TEXT | 语音pri网络类型 |
 | `volumeColor` | TEXT | volume颜色 |
 | `width` | INTEGER | 宽 |
 
@@ -359,7 +359,7 @@ CREATE TABLE EmoticonPackage (_id INTEGER PRIMARY KEY AUTOINCREMENT,aio INTEGER,
 | `aio` | INTEGER | (aio) |
 | `author` | TEXT | 授权or |
 | `beginTime` | INTEGER | 开始时间 |
-| `businessExtra` | TEXT | busines性别tra |
+| `businessExtra` | TEXT | 业务扩展 |
 | `buttonWording` | TEXT | button文案 |
 | `childEpId` | TEXT | 子epID |
 | `comeFom` | TEXT | (comeFom) |
@@ -381,7 +381,7 @@ CREATE TABLE EmoticonPackage (_id INTEGER PRIMARY KEY AUTOINCREMENT,aio INTEGER,
 | `ipLastReqTime` | INTEGER | ip最后req时间 |
 | `ipName` | TEXT | ip名称 |
 | `ipOpName` | TEXT | ipop名称 |
-| `ipReqTime` | INTEGER | ipreq时间 |
+| `ipReqTime` | INTEGER | i前q时间 |
 | `ipSiteInfoBytes` | BLOB | ipsite信息字节 |
 | `ipUrl` | TEXT | ip链接 |
 | `isAPNG` | INTEGER | (isAPNG) |
@@ -400,7 +400,7 @@ CREATE TABLE EmoticonPackage (_id INTEGER PRIMARY KEY AUTOINCREMENT,aio INTEGER,
 | `name` | TEXT | 名称 |
 | `newSoundEp` | INTEGER | 资讯oundep |
 | `richIPLastReqTime` | INTEGER | richip最后req时间 |
-| `richIPReqTime` | INTEGER | richipreq时间 |
+| `richIPReqTime` | INTEGER | richi前q时间 |
 | `rscType` | INTEGER | rsc类型 |
 | `status` | INTEGER | 状态 |
 | `subType` | INTEGER | 子类型 |
@@ -408,7 +408,7 @@ CREATE TABLE EmoticonPackage (_id INTEGER PRIMARY KEY AUTOINCREMENT,aio INTEGER,
 | `type` | INTEGER | 类型 |
 | `updateFlag` | INTEGER | 更新标志 |
 | `updateTip` | TEXT | 更新提示 |
-| `upperLeftLable` | INTEGER | (upperLeftLable) |
+| `upperLeftLable` | INTEGER | upper左lable |
 | `valid` | INTEGER | 有效 |
 | `wordingId` | INTEGER | 文案ID |
 
@@ -449,7 +449,7 @@ CREATE TABLE ExpiredPushBanner (_id INTEGER PRIMARY KEY AUTOINCREMENT ,cid INTEG
 | `md5` | TEXT | MD5 |
 | `endtime` | INTEGER | 结束时间 |
 
-### `FrontBackData` — frontback数据表
+### `FrontBackData` — fro网络类型back数据表
 
 ```sql
 CREATE TABLE FrontBackData (_id INTEGER PRIMARY KEY AUTOINCREMENT,time INTEGER,type INTEGER)
@@ -461,7 +461,7 @@ CREATE TABLE FrontBackData (_id INTEGER PRIMARY KEY AUTOINCREMENT,time INTEGER,t
 | `time` | INTEGER | 时间 |
 | `type` | INTEGER | 类型 |
 
-### `HotChatInfo` — hot聊天表
+### `HotChatInfo` — 热门聊天表
 
 ```sql
 CREATE TABLE HotChatInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT ,name TEXT ,troopCode TEXT ,signature TEXT ,troopUin TEXT UNIQUE ,faceId INTEGER ,memberCount INTEGER ,hasJoined INTEGER ,isWifiHotChat INTEGER ,uuid TEXT ,iconUrl TEXT ,hotThemeGroupFlag INTEGER ,detail TEXT ,state INTEGER ,leftTime INTEGER ,ruState INTEGER ,supportFlashPic INTEGER ,supportDemo INTEGER ,adminLevel INTEGER ,joinUrl TEXT ,hotChatType INTEGER ,memo TEXT ,memoUrl TEXT ,memoShowed INTEGER ,userCreate INTEGER ,strAdminUins TEXT ,ownerUin TEXT ,pkFlag INTEGER ,subType INTEGER ,lLastMsgSeq INTEGER ,extra1 TEXT ,isFavorite INTEGER ,mFissionRoomNum INTEGER ,praiseCount INTEGER ,uint32_group_flag_ext2 INTEGER ,isGameRoom INTEGER ,isRobotHotChat INTEGER ,robotUin INTEGER ,apolloGameId INTEGER)
@@ -477,19 +477,19 @@ CREATE TABLE HotChatInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT ,name TEXT ,troo
 | `faceId` | INTEGER | faceID |
 | `memberCount` | INTEGER | 群成员数 |
 | `hasJoined` | INTEGER | 是否加入ed |
-| `isWifiHotChat` | INTEGER | 是否WiFihot聊天 |
+| `isWifiHotChat` | INTEGER | 是否WiFi热门聊天 |
 | `uuid` | TEXT | UUID |
 | `iconUrl` | TEXT | 图标链接 |
-| `hotThemeGroupFlag` | INTEGER | hot主题群/组标志 |
+| `hotThemeGroupFlag` | INTEGER | 热门主题群/组标志 |
 | `detail` | TEXT | 详情 |
 | `state` | INTEGER | 状态 |
-| `leftTime` | INTEGER | left时间 |
+| `leftTime` | INTEGER | 左时间 |
 | `ruState` | INTEGER | ru状态 |
 | `supportFlashPic` | INTEGER | supportflash图片 |
 | `supportDemo` | INTEGER | (supportDemo) |
 | `adminLevel` | INTEGER | 广告最小级别 |
 | `joinUrl` | TEXT | 加入链接 |
-| `hotChatType` | INTEGER | hot聊天类型 |
+| `hotChatType` | INTEGER | 热门聊天类型 |
 | `memo` | TEXT | (memo) |
 | `memoUrl` | TEXT | memo链接 |
 | `memoShowed` | INTEGER | memo显示ed |
@@ -505,7 +505,7 @@ CREATE TABLE HotChatInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT ,name TEXT ,troo
 | `praiseCount` | INTEGER | 点赞数量 |
 | `uint32_group_flag_ext2` | INTEGER | QQ号/UINt32群/组标志扩展2 |
 | `isGameRoom` | INTEGER | 是否游戏群 |
-| `isRobotHotChat` | INTEGER | 是否机器人hot聊天 |
+| `isRobotHotChat` | INTEGER | 是否机器人热门聊天 |
 | `robotUin` | INTEGER | 机器人QQ号/UIN |
 | `apolloGameId` | INTEGER | a轮询o游戏ID |
 
@@ -562,9 +562,9 @@ CREATE TABLE MayKnowRecommend (_id INTEGER PRIMARY KEY AUTOINCREMENT,accountType
 | `mobile_name` | TEXT | 手机名称 |
 | `msgLabelByte` | BLOB | 消息标签字节 |
 | `multiReason` | TEXT | 多原因 |
-| `nick` | TEXT | (nick) |
+| `nick` | TEXT | 昵称 |
 | `province` | TEXT | 省 |
-| `qZoneFeedsCnt` | INTEGER | qzone信息流scnt |
+| `qZoneFeedsCnt` | INTEGER | qzone信息流sc网络类型 |
 | `qZoneJumpUrl` | TEXT | qzonejump链接 |
 | `recommendReason` | TEXT | 推荐原因 |
 | `remark` | TEXT | 备注 |
@@ -590,7 +590,7 @@ CREATE TABLE MedalInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,iId INTEGER UNIQUE
 | `iId` | INTEGER | iID |
 | `iLevel` | INTEGER | i级别 |
 | `iLevelCount` | INTEGER | i级别数量 |
-| `iNoProgress` | INTEGER | (iNoProgress) |
+| `iNoProgress` | INTEGER | ino进度 |
 | `iPointLevel1` | INTEGER | i积分级别1 |
 | `iPointLevel2` | INTEGER | i积分级别2 |
 | `iPointLevel3` | INTEGER | i积分级别3 |
@@ -599,9 +599,9 @@ CREATE TABLE MedalInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,iId INTEGER UNIQUE
 | `iUnreadLevel2` | INTEGER | i未读级别2 |
 | `iUnreadLevel3` | INTEGER | i未读级别3 |
 | `lEndTime` | INTEGER | l结束时间 |
-| `lObtainTimeLevel1` | INTEGER | lobtain时间级别1 |
-| `lObtainTimeLevel2` | INTEGER | lobtain时间级别2 |
-| `lObtainTimeLevel3` | INTEGER | lobtain时间级别3 |
+| `lObtainTimeLevel1` | INTEGER | lobtai网络类型ime级别1 |
+| `lObtainTimeLevel2` | INTEGER | lobtai网络类型ime级别2 |
+| `lObtainTimeLevel3` | INTEGER | lobtai网络类型ime级别3 |
 | `lSeqLevel1` | INTEGER | l序号级别1 |
 | `lSeqLevel2` | INTEGER | l序号级别2 |
 | `lSeqLevel3` | INTEGER | l序号级别3 |
@@ -631,7 +631,7 @@ CREATE TABLE MemberGradeLevelInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,gameCar
 | `gradeLevel` | INTEGER | 等级级别 |
 | `memberuin` | TEXT | 成员QQ号/UIN |
 
-### `NTIntimateBaseEntity` — (NTIntimateBaseEntity)
+### `NTIntimateBaseEntity` — 网络类型i网络类型imatebasee网络类型ity表
 
 ```sql
 CREATE TABLE NTIntimateBaseEntity (_id INTEGER PRIMARY KEY AUTOINCREMENT,iconFlag BLOB,intimateChatDays INTEGER,intimateLevel INTEGER,intimateType INTEGER,isExtinguish INTEGER,isListenTogetherOpen INTEGER,lastIntimatChatTime INTEGER,mutualMarkStoreJson TEXT,uid TEXT,uin TEXT,UNIQUE(uid) ON CONFLICT REPLACE)
@@ -641,12 +641,12 @@ CREATE TABLE NTIntimateBaseEntity (_id INTEGER PRIMARY KEY AUTOINCREMENT,iconFla
 |---|---|---|
 | `_id` | INTEGER | ID |
 | `iconFlag` | BLOB | 图标标志 |
-| `intimateChatDays` | INTEGER | intimate聊天days |
-| `intimateLevel` | INTEGER | intimate级别 |
-| `intimateType` | INTEGER | intimate类型 |
+| `intimateChatDays` | INTEGER | i网络类型imate聊天days |
+| `intimateLevel` | INTEGER | i网络类型imate级别 |
+| `intimateType` | INTEGER | i网络类型imate类型 |
 | `isExtinguish` | INTEGER | 是否扩展inguish |
-| `isListenTogetherOpen` | INTEGER | 是否列表entogetheropen |
-| `lastIntimatChatTime` | INTEGER | 最后intimat聊天时间 |
+| `isListenTogetherOpen` | INTEGER | 是否列表e网络类型ogetheropen |
+| `lastIntimatChatTime` | INTEGER | 最后i网络类型imat聊天时间 |
 | `mutualMarkStoreJson` | TEXT | mutual标记商店JSON |
 | `uid` | TEXT | uid |
 | `uin` | TEXT | QQ号/UIN |
@@ -671,14 +671,14 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `birthday` | INTEGER | (birthday) |
 | `sign` | TEXT | 签名 |
 | `constellation` | INTEGER | constel纬度ion |
-| `distance` | TEXT | (distance) |
+| `distance` | TEXT | 距离 |
 | `timeDiff` | TEXT | 时间diff |
-| `aioDistanceAndTime` | TEXT | aiodistanceand时间 |
+| `aioDistanceAndTime` | TEXT | aio距离and时间 |
 | `likeCount` | INTEGER | 点赞数量 |
 | `likeCountInc` | INTEGER | 点赞数量inc |
 | `oldPhotoCount` | INTEGER | old照片数量 |
 | `dateInfo` | BLOB | 日期信息 |
-| `ulShowControl` | INTEGER | ul显示control |
+| `ulShowControl` | INTEGER | ul显示co网络类型rol |
 | `xuanYan` | BLOB | (xuanYan) |
 | `maritalStatus` | INTEGER | marital状态 |
 | `job` | INTEGER | (job) |
@@ -690,14 +690,14 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `hometownDistrict` | TEXT | (hometownDistrict) |
 | `vCookies` | BLOB | vCookies |
 | `bVoted` | INTEGER | (bVoted) |
-| `feedPreviewTime` | INTEGER | 信息流pre查看时间 |
+| `feedPreviewTime` | INTEGER | 信息流前查看时间 |
 | `qzoneFeed` | TEXT | qzone信息流 |
 | `qzoneName` | TEXT | qzone名称 |
 | `qzonePicUrl_1` | TEXT | qzone图片链接1 |
 | `qzonePicUrl_2` | TEXT | qzone图片链接2 |
 | `qzonePicUrl_3` | TEXT | qzone图片链接3 |
 | `isPhotoUseCache` | INTEGER | 是否照片使用缓存 |
-| `vSeed` | BLOB | (vSeed) |
+| `vSeed` | BLOB | v种子 |
 | `vTempChatSig` | BLOB | v临时聊天sig |
 | `vGroupList` | BLOB | v群/组列表 |
 | `nearbyInfo` | BLOB | 附近信息 |
@@ -708,13 +708,13 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `mHeartNum` | INTEGER | mheart数量 |
 | `switchQzone` | INTEGER | (switchQzone) |
 | `switchHobby` | INTEGER | (switchHobby) |
-| `uiShowControl` | INTEGER | ui显示control |
+| `uiShowControl` | INTEGER | ui显示co网络类型rol |
 | `userFlag` | INTEGER | 用户标志 |
 | `busiEntry` | TEXT | busi入口 |
 | `godFlag` | INTEGER | god标志 |
 | `nLastGameFlag` | INTEGER | n最后游戏标志 |
 | `strProfileUrl` | TEXT | str资料链接 |
-| `lastUpdateNickTime` | INTEGER | 最后更新nick时间 |
+| `lastUpdateNickTime` | INTEGER | 最后更新昵称时间 |
 | `favoriteSource` | INTEGER | 收藏来源 |
 | `switchGiftVisible` | INTEGER | switch礼物visible |
 | `vGiftInfo` | BLOB | v礼物信息 |
@@ -733,11 +733,11 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `picInfo` | TEXT | 图片信息 |
 | `videoDetails` | TEXT | 视频详情s |
 | `strFreshNewsInfo` | TEXT | strfresh资讯信息 |
-| `strHotChatInfo` | TEXT | strhot聊天信息 |
+| `strHotChatInfo` | TEXT | str热门聊天信息 |
 | `uRoomid` | INTEGER | u房间ID |
 | `strVoteLimitedNotice` | TEXT | strvote限制ed通知/公告 |
-| `bHaveVotedCnt` | INTEGER | (bHaveVotedCnt) |
-| `bAvailVoteCnt` | INTEGER | (bAvailVoteCnt) |
+| `bHaveVotedCnt` | INTEGER | bhavevotedc网络类型 |
+| `bAvailVoteCnt` | INTEGER | bavailvotec网络类型 |
 | `collegeId` | INTEGER | collegeID |
 | `videoHeadFlag` | INTEGER | 视频头像标志 |
 | `bVideoHeadUrl` | TEXT | b视频头像链接 |
@@ -751,12 +751,12 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `maskMsgFlag` | INTEGER | mask消息标志 |
 | `isForbidSendMsg` | INTEGER | 是否forbID发送消息 |
 | `isForbidSendGiftMsg` | INTEGER | 是否forbID发送礼物消息 |
-| `disableSendMsgBtnTips` | TEXT | 禁用发送消息btn提示 |
-| `disableSendGiftBtnTips` | TEXT | 禁用发送礼物btn提示 |
+| `disableSendMsgBtnTips` | TEXT | 禁用发送消息bt网络类型ips |
+| `disableSendGiftBtnTips` | TEXT | 禁用发送礼物bt网络类型ips |
 | `isForbidSendMsgForTribar` | INTEGER | 是否forbID发送消息fortribar |
 | `isForbidSendGiftMsgForTribar` | INTEGER | 是否forbID发送礼物消息fortribar |
-| `disableSendMsgBtnTipsForTribar` | TEXT | 禁用发送消息btn提示fortribar |
-| `disableSendGiftBtnTipsForTribar` | TEXT | 禁用发送礼物btn提示fortribar |
+| `disableSendMsgBtnTipsForTribar` | TEXT | 禁用发送消息bt网络类型ipsfortribar |
+| `disableSendGiftBtnTipsForTribar` | TEXT | 禁用发送礼物bt网络类型ipsfortribar |
 | `highScoreNum` | INTEGER | high分数数量 |
 | `mHasStory` | INTEGER | (mHasStory) |
 | `mQQStoryData` | BLOB | mqqstory数据 |
@@ -766,17 +766,17 @@ CREATE TABLE NearbyPeopleCard (_id INTEGER PRIMARY KEY AUTOINCREMENT ,tinyId INT
 | `tribeAppDownloadPageUrl` | TEXT | tribe应用下载页链接 |
 | `nearbyNowDataBytes` | BLOB | 附近now数据字节 |
 | `guideAppNowTip` | TEXT | guide应用now提示 |
-| `guideAppNowTipLeftBtn` | TEXT | guide应用now提示leftbtn |
-| `guideAppNowTipRightBtnInstalled` | TEXT | guide应用now提示rightbtninstalled |
-| `guideAppNowTipRightBtnNotInstalled` | TEXT | guide应用now提示rightbtnnotinstalled |
+| `guideAppNowTipLeftBtn` | TEXT | guide应用now提示左btn |
+| `guideAppNowTipRightBtnInstalled` | TEXT | guide应用now提示权限btninstalled |
+| `guideAppNowTipRightBtnNotInstalled` | TEXT | guide应用now提示权限btnnotinstalled |
 | `guideAppNowPackage` | TEXT | guide应用now包 |
 | `guideAppNowJumpUri` | TEXT | guide应用nowjump地址 |
 | `guideAppNowDownloadUrl` | TEXT | guide应用now下载链接 |
-| `guideVerifiedDialogTitle` | TEXT | guideverified对话框标题 |
-| `guideVerifiedDialogRightBtnText` | TEXT | guideverified对话框rightbtn文本 |
+| `guideVerifiedDialogTitle` | TEXT | guide已认证对话框标题 |
+| `guideVerifiedDialogRightBtnText` | TEXT | guide已认证对话框权限bt网络类型扩展 |
 | `firstOfficialMsg` | TEXT | 首官方消息 |
 | `unverifyGrayTips` | TEXT | un验证gray提示 |
-| `isVerified` | INTEGER | (isVerified) |
+| `isVerified` | INTEGER | 是否已认证 |
 
 ### `PYMKBizEntryInfo` — pymKBiz入口表
 
@@ -790,7 +790,7 @@ CREATE TABLE PYMKBizEntryInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,backgroundD
 | `backgroundDarkUrl` | TEXT | 背景dark链接 |
 | `backgroundLightUrl` | TEXT | 背景light链接 |
 | `buttonJumpUrl` | TEXT | buttonjump链接 |
-| `buttonText` | TEXT | button文本 |
+| `buttonText` | TEXT | butto网络类型扩展 |
 | `cardJumpUrl` | TEXT | 卡片jump链接 |
 | `closeDelayTime` | INTEGER | close延迟时间 |
 | `dataSource` | INTEGER | 数据来源 |
@@ -887,7 +887,7 @@ CREATE TABLE PublicAccountDetailImpl (_id INTEGER PRIMARY KEY AUTOINCREMENT,acco
 | `protocol839Data` | BLOB | protocol839数据 |
 | `protocolVersion` | INTEGER | protocol版本 |
 | `seqno` | INTEGER | 序号no |
-| `sharedFollowerCount` | INTEGER | 分享d关注er数量 |
+| `sharedFollowerCount` | INTEGER | 分享d粉丝数量 |
 | `showFlag` | INTEGER | 显示标志 |
 | `summary` | TEXT | 摘要 |
 | `uid` | TEXT | uid |
@@ -923,8 +923,8 @@ CREATE TABLE PublicAccountInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT ,uin INTEG
 | `isShieldMsg` | INTEGER | 是否shield消息 |
 | `messageSettingFlag` | INTEGER | 消息设置标志 |
 | `extendType` | INTEGER | 扩展结束类型 |
-| `mComparePartInt` | INTEGER | (mComparePartInt) |
-| `mCompareSpell` | TEXT | (mCompareSpell) |
+| `mComparePartInt` | INTEGER | m比较部分i网络类型 |
+| `mCompareSpell` | TEXT | m比较拼音 |
 | `logo` | TEXT | 日志o |
 | `lastAIOReadTime` | INTEGER | 最后aio已读时间 |
 | `isMsgDisturb` | INTEGER | 是否消息disturb |
@@ -958,7 +958,7 @@ CREATE TABLE QQStrangerUserInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,avatar TE
 | `gender` | INTEGER | 性别 |
 | `matchSource` | INTEGER | match来源 |
 | `matchText` | TEXT | match文本 |
-| `nick` | TEXT | (nick) |
+| `nick` | TEXT | 昵称 |
 | `onlineStatus` | TEXT | on线状态 |
 | `openId` | TEXT | openID |
 | `tinyId` | INTEGER | tinyID |
@@ -979,7 +979,7 @@ CREATE TABLE QZoneCover (_id INTEGER PRIMARY KEY AUTOINCREMENT ,uin TEXT UNIQUE 
 | `vCoverInfo` | BLOB | v封面信息 |
 | `vPhotoInfo` | BLOB | v照片信息 |
 
-### `QzoneRedDotEntity` — qzone红包dotentity表
+### `QzoneRedDotEntity` — qzone红包dote网络类型ity表
 
 ```sql
 CREATE TABLE QzoneRedDotEntity (_id INTEGER PRIMARY KEY AUTOINCREMENT,iconUrl TEXT,isShowRedDot INTEGER,jumpSchema TEXT,timeStamp INTEGER,uin TEXT UNIQUE)
@@ -1036,7 +1036,7 @@ CREATE TABLE ResourcePluginInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT ,strPkgNa
 | `strResName` | TEXT | strres名称 |
 | `strResURL` | TEXT | strres链接 |
 | `uiCurVer` | INTEGER | (uiCurVer) |
-| `sLanType` | INTEGER | slan类型 |
+| `sLanType` | INTEGER | sla网络类型ype |
 | `strGotoUrl` | TEXT | strgoto链接 |
 | `sResSubType` | INTEGER | sres子类型 |
 | `sPriority` | INTEGER | s优先级 |
@@ -1150,7 +1150,7 @@ CREATE TABLE TofuItem (_id INTEGER PRIMARY KEY AUTOINCREMENT,busId INTEGER,frdUi
 | `lastPullTsLocal` | INTEGER | 最后拉取时间戳本地 |
 | `lastPullTsSvr` | INTEGER | 最后拉取时间戳服务器 |
 | `msgData` | BLOB | 消息数据 |
-| `pullInterval` | INTEGER | 拉取interval |
+| `pullInterval` | INTEGER | 拉取i网络类型erval |
 
 ### `TofuLimitMsg` — tofu限制消息表
 
@@ -1161,8 +1161,8 @@ CREATE TABLE TofuLimitMsg (_id INTEGER PRIMARY KEY AUTOINCREMENT,businessId INTE
 | 字段 | 类型 | 中文备注 |
 |---|---|---|
 | `_id` | INTEGER | ID |
-| `businessId` | INTEGER | businessID |
-| `businessMsgId` | TEXT | business消息ID |
+| `businessId` | INTEGER | 业务ID |
+| `businessMsgId` | TEXT | 业务消息ID |
 | `extra` | TEXT | 扩展 |
 | `flag` | INTEGER | 标志 |
 | `friendUin` | TEXT | 好友QQ号/UIN |
@@ -1199,12 +1199,12 @@ CREATE TABLE TroopExtDBInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,atOrReplyMeUi
 | `avatarId` | INTEGER | 头像ID |
 | `cGroupRankUserFlag` | INTEGER | c群/组排名用户标志 |
 | `cNewGroupRankUserFlag` | INTEGER | cnew群/组排名用户标志 |
-| `comparePartInt` | INTEGER | (comparePartInt) |
-| `compareSpell` | TEXT | (compareSpell) |
+| `comparePartInt` | INTEGER | 比较部分i网络类型 |
+| `compareSpell` | TEXT | 比较拼音 |
 | `dailyNewMemberUins` | TEXT | dailynew成员QQ号/UINs |
 | `feedsId` | TEXT | 信息流sID |
 | `fileVideoIsWhite` | INTEGER | 文件视频iswhite |
-| `fileVideoReqInterval` | INTEGER | 文件视频reqinterval |
+| `fileVideoReqInterval` | INTEGER | 文件视频reqi网络类型erval |
 | `gameSwitchStatus` | INTEGER | 游戏switch状态 |
 | `hadInitLevelInfo` | INTEGER | 曾init级别信息 |
 | `headerUinsNew` | TEXT | 头像erQQ号/UINsnew |
@@ -1218,11 +1218,11 @@ CREATE TABLE TroopExtDBInfo (_id INTEGER PRIMARY KEY AUTOINCREMENT,atOrReplyMeUi
 | `myHonorRichFlag` | INTEGER | 我的honorrich标志 |
 | `newLevelMapStr` | TEXT | new级别mapstr |
 | `newTroopNameTimeStamp` | INTEGER | new群(QQ)名称时间戳 |
-| `oldMemberNickIconSeq` | INTEGER | old成员nick图标序号 |
+| `oldMemberNickIconSeq` | INTEGER | old成员昵称图标序号 |
 | `picListJson` | TEXT | 图片列表JSON |
 | `showGameSwitchStatus` | INTEGER | 显示游戏switch状态 |
 | `specialClass` | INTEGER | (specialClass) |
-| `strLastAnnouncement` | TEXT | str最后公告ment |
+| `strLastAnnouncement` | TEXT | str最后公告me网络类型 |
 | `troopGuildSwitchOpen` | INTEGER | 群(QQ)guildswitchopen |
 | `troopHonorGrayFlag` | INTEGER | 群(QQ)honorgray标志 |
 | `troopRepeatType` | INTEGER | 群(QQ)repeat类型 |
@@ -1240,7 +1240,7 @@ CREATE TABLE TroopMemberIconData (_id INTEGER PRIMARY KEY AUTOINCREMENT,memberUi
 |---|---|---|
 | `_id` | INTEGER | ID |
 | `memberUin` | TEXT | 成员QQ号/UIN |
-| `nickIconBytes` | BLOB | nick图标字节 |
+| `nickIconBytes` | BLOB | 昵称图标字节 |
 
 ### `TroopMemberInfoExt` — 群成员信息(QQ老库)
 
@@ -1251,12 +1251,12 @@ CREATE TABLE TroopMemberInfoExt (_id INTEGER PRIMARY KEY AUTOINCREMENT,commonFrd
 | 字段 | 类型 | 中文备注 |
 |---|---|---|
 | `_id` | INTEGER | ID |
-| `commonFrdCnt` | INTEGER | (commonFrdCnt) |
+| `commonFrdCnt` | INTEGER | commonfrdc网络类型 |
 | `flagEx3` | INTEGER | 标志ex3 |
-| `hwIdentity` | INTEGER | hwIDentity |
+| `hwIdentity` | INTEGER | hwIDe网络类型ity |
 | `lastMsgUpdateHonorRichTime` | INTEGER | 最后消息更新honorrich时间 |
 | `memberUin` | TEXT | 成员QQ号/UIN |
-| `nickIconRepeatMsgBuffer` | BLOB | nick图标repeat消息缓冲 |
+| `nickIconRepeatMsgBuffer` | BLOB | 昵称图标repeat消息缓冲 |
 | `recommendRemark` | TEXT | 推荐备注 |
 | `showNameForPinyin` | TEXT | 显示名称for置顶yin |
 | `showNamePinyinAll` | TEXT | 显示名称置顶yinall |
@@ -1275,7 +1275,7 @@ CREATE TABLE applets_account_info (_id INTEGER PRIMARY KEY AUTOINCREMENT,appInfo
 | `appInfoDetail` | BLOB | 应用信息详情 |
 | `faceUrl` | TEXT | face链接 |
 | `faceUrlSimple` | TEXT | face链接simple |
-| `nick` | TEXT | (nick) |
+| `nick` | TEXT | 昵称 |
 | `uin` | TEXT | QQ号/UIN |
 
 ### `mr_data_line` — mr数据线表
@@ -1290,18 +1290,18 @@ CREATE TABLE mr_data_line (_id INTEGER PRIMARY KEY AUTOINCREMENT,busId INTEGER,f
 | `busId` | INTEGER | busID |
 | `filename` | TEXT | 文件名称 |
 | `filesize` | INTEGER | 文件大小 |
-| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件entrance |
+| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件e网络类型rance |
 | `groupId` | INTEGER | 群ID |
 | `groupIndex` | INTEGER | 群/组索引 |
 | `groupSize` | INTEGER | 群/组大小 |
 | `issuc` | INTEGER | (issuc) |
 | `md5` | BLOB | MD5 |
 | `path` | TEXT | 路径 |
-| `progress` | REAL | (progress) |
+| `progress` | REAL | 进度 |
 | `serverPath` | TEXT | 服务器路径 |
 | `sessionid` | INTEGER | 会话ID |
 | `thumbPath` | TEXT | 缩略图路径 |
-| `extInt` | INTEGER | 扩展int |
+| `extInt` | INTEGER | 扩展i网络类型 |
 | `extLong` | INTEGER | 扩展long |
 | `extStr` | TEXT | 扩展str |
 | `extraflag` | INTEGER | 扩展标志 |
@@ -1325,7 +1325,7 @@ CREATE TABLE mr_data_line (_id INTEGER PRIMARY KEY AUTOINCREMENT,busId INTEGER,f
 | `time` | INTEGER | 时间 |
 | `uniseq` | INTEGER | uni序号 |
 | `versionCode` | INTEGER | 版本码 |
-| `vipBubbleID` | INTEGER | VIPbubbleID |
+| `vipBubbleID` | INTEGER | VIP气泡ID |
 
 ### `mr_data_line_ipad` — mr数据线ip广告表
 
@@ -1339,18 +1339,18 @@ CREATE TABLE mr_data_line_ipad (_id INTEGER PRIMARY KEY AUTOINCREMENT,busId INTE
 | `busId` | INTEGER | busID |
 | `filename` | TEXT | 文件名称 |
 | `filesize` | INTEGER | 文件大小 |
-| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件entrance |
+| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件e网络类型rance |
 | `groupId` | INTEGER | 群ID |
 | `groupIndex` | INTEGER | 群/组索引 |
 | `groupSize` | INTEGER | 群/组大小 |
 | `issuc` | INTEGER | (issuc) |
 | `md5` | BLOB | MD5 |
 | `path` | TEXT | 路径 |
-| `progress` | REAL | (progress) |
+| `progress` | REAL | 进度 |
 | `serverPath` | TEXT | 服务器路径 |
 | `sessionid` | INTEGER | 会话ID |
 | `thumbPath` | TEXT | 缩略图路径 |
-| `extInt` | INTEGER | 扩展int |
+| `extInt` | INTEGER | 扩展i网络类型 |
 | `extLong` | INTEGER | 扩展long |
 | `extStr` | TEXT | 扩展str |
 | `extraflag` | INTEGER | 扩展标志 |
@@ -1374,7 +1374,7 @@ CREATE TABLE mr_data_line_ipad (_id INTEGER PRIMARY KEY AUTOINCREMENT,busId INTE
 | `time` | INTEGER | 时间 |
 | `uniseq` | INTEGER | uni序号 |
 | `versionCode` | INTEGER | 版本码 |
-| `vipBubbleID` | INTEGER | VIPbubbleID |
+| `vipBubbleID` | INTEGER | VIP气泡ID |
 
 ### `mr_fileManager` — mr文件manager表
 
@@ -1406,23 +1406,23 @@ CREATE TABLE mr_fileManager (_id INTEGER PRIMARY KEY AUTOINCREMENT,TroopUin INTE
 | `dlGourpIndex` | INTEGER | dlgour置顶dex |
 | `dlGroupCount` | INTEGER | dl群/组数量 |
 | `dlGroupId` | INTEGER | dl群ID |
-| `duplicateAssistantId` | TEXT | duplicateassistantID |
-| `duplicateEntitySessionId` | INTEGER | duplicateentity会话ID |
+| `duplicateAssistantId` | TEXT | duplicateassista网络类型ID |
+| `duplicateEntitySessionId` | INTEGER | duplicatee网络类型ity会话ID |
 | `duplicateFilePath` | TEXT | duplicate文件路径 |
 | `errCode` | INTEGER | err码 |
-| `fOlRecvProgressOnNotify` | REAL | fol接收progresson通知 |
+| `fOlRecvProgressOnNotify` | REAL | fol接收进度on通知 |
 | `fOlRecvSpeed` | REAL | fol接收速度 |
-| `fProgress` | REAL | (fProgress) |
-| `fileAssistantId` | TEXT | 文件assistantID |
+| `fProgress` | REAL | f进度 |
+| `fileAssistantId` | TEXT | 文件assista网络类型ID |
 | `fileIdCrc` | TEXT | 文件IDcrc |
 | `fileName` | TEXT | 文件名称 |
 | `fileSize` | INTEGER | 文件大小 |
-| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件entrance |
+| `forwardTroopFileEntrance` | INTEGER | 转发群(QQ)文件e网络类型rance |
 | `fromScene` | INTEGER | from场景 |
-| `fwSrcNtMsgId` | INTEGER | fwsrcnt消息ID |
-| `fwSrcPeerType` | INTEGER | fwsrcpeer类型 |
-| `fwSrcPeerUid` | TEXT | fwsrcpeeruid |
-| `fwSrcUniseq` | INTEGER | fwsrcuni序号 |
+| `fwSrcNtMsgId` | INTEGER | fw来源网络类型消息ID |
+| `fwSrcPeerType` | INTEGER | fw来源peer类型 |
+| `fwSrcPeerUid` | TEXT | fw来源peeruid |
+| `fwSrcUniseq` | INTEGER | fw来源uni序号 |
 | `guildId` | TEXT | guildID |
 | `guildName` | TEXT | guild名称 |
 | `httpsDomain` | TEXT | (httpsDomain) |
@@ -1433,21 +1433,21 @@ CREATE TABLE mr_fileManager (_id INTEGER PRIMARY KEY AUTOINCREMENT,TroopUin INTE
 | `isZipInnerFile` | INTEGER | 是否zi置顶ner文件 |
 | `lastTime` | INTEGER | 最后时间 |
 | `localModifyTime` | INTEGER | 本地修改时间 |
-| `mTroopFileVideoReqInterval` | INTEGER | m群(QQ)文件视频reqinterval |
+| `mTroopFileVideoReqInterval` | INTEGER | m群(QQ)文件视频reqi网络类型erval |
 | `msgSeq` | INTEGER | 消息序号 |
 | `msgTime` | INTEGER | 消息时间 |
 | `msgUid` | INTEGER | 消息uid |
 | `nFileType` | INTEGER | n文件类型 |
 | `nOLfileSessionId` | INTEGER | nol文件会话ID |
-| `nOlSenderProgress` | INTEGER | nol发送者progress |
+| `nOlSenderProgress` | INTEGER | nol发送者进度 |
 | `nOpType` | INTEGER | nop类型 |
 | `nRelatedSessionId` | INTEGER | nre纬度ed会话ID |
 | `nSessionId` | INTEGER | n会话ID |
-| `nWeiYunSrcType` | INTEGER | nweiyunsrc类型 |
-| `ntChatType` | INTEGER | nt聊天类型 |
-| `ntMsgId` | INTEGER | nt消息ID |
-| `ntSubMsgID` | INTEGER | n时间戳ub消息ID |
-| `peerNick` | TEXT | (peerNick) |
+| `nWeiYunSrcType` | INTEGER | nweiyun来源类型 |
+| `ntChatType` | INTEGER | 网络类型聊天类型 |
+| `ntMsgId` | INTEGER | 网络类型消息ID |
+| `ntSubMsgID` | INTEGER | 网络类型sub消息ID |
+| `peerNick` | TEXT | peer昵称 |
 | `peerType` | INTEGER | peer类型 |
 | `peerUid` | TEXT | peeruid |
 | `peerUin` | TEXT | peerQQ号/UIN |
@@ -1462,11 +1462,11 @@ CREATE TABLE mr_fileManager (_id INTEGER PRIMARY KEY AUTOINCREMENT,TroopUin INTE
 | `strFilePath` | TEXT | str文件路径 |
 | `strFileSHA` | TEXT | str文件sha |
 | `strFileSha3` | TEXT | str文件sha3 |
-| `strLargeThumPath` | TEXT | strlargethum路径 |
-| `strMiddleThumPath` | TEXT | strmIDdlethum路径 |
+| `strLargeThumPath` | TEXT | str大图thum路径 |
+| `strMiddleThumPath` | TEXT | str中thum路径 |
 | `strQRUrl` | TEXT | str二维码链接 |
 | `strServerPath` | TEXT | str服务器路径 |
-| `strSrcName` | TEXT | strsrc名称 |
+| `strSrcName` | TEXT | str来源名称 |
 | `strThumbPath` | TEXT | str缩略图路径 |
 | `strTroopFileID` | TEXT | str群(QQ)文件ID |
 | `strTroopFilePath` | TEXT | str群(QQ)文件路径 |
@@ -1496,7 +1496,7 @@ CREATE TABLE mr_friend_D4FCC05BD8205C41FBE4F2645BF0C6B8_New (_id INTEGER PRIMARY
 | 字段 | 类型 | 中文备注 |
 |---|---|---|
 | `_id` | INTEGER | ID |
-| `extInt` | INTEGER | 扩展int |
+| `extInt` | INTEGER | 扩展i网络类型 |
 | `extLong` | INTEGER | 扩展long |
 | `extStr` | TEXT | 扩展str |
 | `extraflag` | INTEGER | 扩展标志 |
@@ -1520,7 +1520,7 @@ CREATE TABLE mr_friend_D4FCC05BD8205C41FBE4F2645BF0C6B8_New (_id INTEGER PRIMARY
 | `time` | INTEGER | 时间 |
 | `uniseq` | INTEGER | uni序号 |
 | `versionCode` | INTEGER | 版本码 |
-| `vipBubbleID` | INTEGER | VIPbubbleID |
+| `vipBubbleID` | INTEGER | VIP气泡ID |
 
 ### `mr_friend_FA246D0262C3925617B0C72BB20EEB1D_New` — mr好友fa246d0262c3925617b0c72bb20eeb1d表
 
@@ -1531,7 +1531,7 @@ CREATE TABLE mr_friend_FA246D0262C3925617B0C72BB20EEB1D_New (_id INTEGER PRIMARY
 | 字段 | 类型 | 中文备注 |
 |---|---|---|
 | `_id` | INTEGER | ID |
-| `extInt` | INTEGER | 扩展int |
+| `extInt` | INTEGER | 扩展i网络类型 |
 | `extLong` | INTEGER | 扩展long |
 | `extStr` | TEXT | 扩展str |
 | `extraflag` | INTEGER | 扩展标志 |
@@ -1555,7 +1555,7 @@ CREATE TABLE mr_friend_FA246D0262C3925617B0C72BB20EEB1D_New (_id INTEGER PRIMARY
 | `time` | INTEGER | 时间 |
 | `uniseq` | INTEGER | uni序号 |
 | `versionCode` | INTEGER | 版本码 |
-| `vipBubbleID` | INTEGER | VIPbubbleID |
+| `vipBubbleID` | INTEGER | VIP气泡ID |
 
 ### `recent` — 最近表
 
