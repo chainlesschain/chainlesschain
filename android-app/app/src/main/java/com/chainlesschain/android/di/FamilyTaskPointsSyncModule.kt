@@ -3,6 +3,8 @@ package com.chainlesschain.android.di
 import com.chainlesschain.android.core.p2p.sync.FamilyTaskSyncApplier
 import com.chainlesschain.android.core.p2p.sync.PointsLedgerSyncApplier
 import com.chainlesschain.android.familyguard.sync.FamilyTaskSyncApplierImpl
+import com.chainlesschain.android.familyguard.sync.SyncManagerFamilyTaskOutbox
+import com.chainlesschain.android.feature.familyguard.domain.sync.FamilyTaskOutbox
 import com.chainlesschain.android.presentation.aistudy.PointsLedgerSyncApplierImpl
 import dagger.Binds
 import dagger.Module
@@ -33,4 +35,11 @@ abstract class FamilyTaskPointsSyncModule {
     abstract fun bindPointsLedgerSyncApplier(
         impl: PointsLedgerSyncApplierImpl,
     ): PointsLedgerSyncApplier
+
+    // 上行 outbox：覆盖 feature-family-guard 的 NoOpFamilyTaskOutbox 默认 (feature 不依赖 core-p2p)。
+    @Binds
+    @Singleton
+    abstract fun bindFamilyTaskOutbox(
+        impl: SyncManagerFamilyTaskOutbox,
+    ): FamilyTaskOutbox
 }

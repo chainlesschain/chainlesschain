@@ -32,6 +32,8 @@ class GentlenessReportViewModelTest {
         override suspend fun upsert(task: FamilyTask) {
             all.value = all.value.filterNot { it.id == task.id } + task
         }
+        override suspend fun upsertFromSync(task: FamilyTask) = upsert(task)
+        override suspend fun deleteFromSync(id: String) = false
         override suspend fun getById(id: String) = find(id)
         override fun observeForChild(childDid: String): Flow<List<FamilyTask>> =
             all.map { list -> list.filter { it.childDid == childDid } }

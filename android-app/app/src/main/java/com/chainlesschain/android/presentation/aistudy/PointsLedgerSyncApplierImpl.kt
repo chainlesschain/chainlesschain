@@ -24,7 +24,7 @@ import timber.log.Timber
  */
 @Singleton
 class PointsLedgerSyncApplierImpl @Inject constructor(
-    private val ledger: PointsLedger,
+    @RawPointsLedger private val ledger: PointsLedger,
     private val relationshipRepository: FamilyRelationshipRepository,
 ) : PointsLedgerSyncApplier {
 

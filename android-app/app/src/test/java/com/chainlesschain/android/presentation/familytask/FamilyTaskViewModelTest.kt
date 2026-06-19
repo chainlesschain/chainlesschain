@@ -42,6 +42,8 @@ class FamilyTaskViewModelTest {
         private fun find(id: String) = all.value.firstOrNull { it.id == id }
 
         override suspend fun upsert(task: FamilyTask) = put(task)
+        override suspend fun upsertFromSync(task: FamilyTask) = put(task)
+        override suspend fun deleteFromSync(id: String) = delete(id)
         override suspend fun getById(id: String) = find(id)
         override fun observeForChild(childDid: String): Flow<List<FamilyTask>> =
             all.map { list -> list.filter { it.childDid == childDid } }

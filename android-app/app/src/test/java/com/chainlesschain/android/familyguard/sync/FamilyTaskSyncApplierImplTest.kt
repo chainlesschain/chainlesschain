@@ -43,11 +43,11 @@ class FamilyTaskSyncApplierImplTest {
         coEvery { relRepo.findByFriendDid(childDid) } returns null
         coEvery { taskRepo.getById("t-1") } returns null
         val slot = slot<FamilyTask>()
-        coEvery { taskRepo.upsert(capture(slot)) } returns Unit
+        coEvery { taskRepo.upsertFromSync(capture(slot)) } returns Unit
 
         applier.saveTaskFromSync("family_task|t-1", FamilyTaskSyncRecord.encode(task()))
 
-        coVerify(exactly = 1) { taskRepo.upsert(any()) }
+        coVerify(exactly = 1) { taskRepo.upsertFromSync(any()) }
         assertEquals("t-1", slot.captured.id)
     }
 
@@ -57,7 +57,7 @@ class FamilyTaskSyncApplierImplTest {
 
         applier.saveTaskFromSync("family_task|t-1", FamilyTaskSyncRecord.encode(task()))
 
-        coVerify(exactly = 0) { taskRepo.upsert(any()) }
+        coVerify(exactly = 0) { taskRepo.upsertFromSync(any()) }
     }
 
     @Test
@@ -69,7 +69,7 @@ class FamilyTaskSyncApplierImplTest {
 
         applier.saveTaskFromSync("family_task|t-1", FamilyTaskSyncRecord.encode(task()))
 
-        coVerify(exactly = 1) { taskRepo.upsert(any()) }
+        coVerify(exactly = 1) { taskRepo.upsertFromSync(any()) }
     }
 
     @Test
@@ -79,7 +79,7 @@ class FamilyTaskSyncApplierImplTest {
         val local = task(status = FamilyTaskStatus.ASSIGNED, updatedAtMs = 50L)
         coEvery { taskRepo.getById("t-1") } returns local
         val slot = slot<FamilyTask>()
-        coEvery { taskRepo.upsert(capture(slot)) } returns Unit
+        coEvery { taskRepo.upsertFromSync(capture(slot)) } returns Unit
 
         val incoming = task(status = FamilyTaskStatus.SUBMITTED, updatedAtMs = 200L)
         applier.saveTaskFromSync("family_task|t-1", FamilyTaskSyncRecord.encode(incoming))
@@ -93,18 +93,18 @@ class FamilyTaskSyncApplierImplTest {
 
         applier.saveTaskFromSync("family_task|t-1", "{not json")
 
-        coVerify(exactly = 0) { taskRepo.upsert(any()) }
+        coVerify(exactly = 0) { taskRepo.upsertFromSync(any()) }
     }
 
     @Test
     fun `delete only removes existing active-family task`() = runTest {
         coEvery { taskRepo.getById("t-1") } returns task()
         coEvery { relRepo.findByFriendDid(parentDid) } returns activeRel(parentDid)
-        coEvery { taskRepo.delete("t-1") } returns true
+        coEvery { taskRepo.deleteFromSync("t-1") } returns true
 
         applier.deleteTaskFromSync("family_task|t-1")
 
-        coVerify(exactly = 1) { taskRepo.delete("t-1") }
+        coVerify(exactly = 1) { taskRepo.deleteFromSync("t-1") }
     }
 
     @Test
@@ -113,6 +113,6 @@ class FamilyTaskSyncApplierImplTest {
 
         applier.deleteTaskFromSync("family_task|ghost")
 
-        coVerify(exactly = 0) { taskRepo.delete(any()) }
+        coVerify(exactly = 0) { taskRepo.deleteFromSync(any()) }
     }
 }

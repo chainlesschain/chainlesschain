@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chainlesschain.android.feature.familyguard.data.FamilyGuardDatabase
+import com.chainlesschain.android.feature.familyguard.data.sync.NoOpFamilyTaskOutbox
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogCodec
 import com.chainlesschain.android.feature.familyguard.domain.task.AiCallLogEntry
 import com.chainlesschain.android.feature.familyguard.domain.task.FamilyTask
@@ -44,11 +45,46 @@ class FamilyTaskRepositoryImplTest {
         )
             .allowMainThreadQueries()
             .build()
-        repo = FamilyTaskRepositoryImpl(db.familyTaskDao(), FamilyFixtures.fakeClock(baseMs))
+        repo = FamilyTaskRepositoryImpl(
+            db.familyTaskDao(),
+            FamilyFixtures.fakeClock(baseMs),
+            NoOpFamilyTaskOutbox(),
+        )
     }
 
     @After
     fun tearDown() = db.close()
+
+    private class RecordingTaskOutbox :
+        com.chainlesschain.android.feature.familyguard.domain.sync.FamilyTaskOutbox {
+        val enqueued = mutableListOf<String>()
+        val deleted = mutableListOf<String>()
+        override suspend fun enqueue(task: FamilyTask) { enqueued += task.id }
+        override suspend fun enqueueDelete(taskId: String) { deleted += taskId }
+    }
+
+    @Test
+    fun `local mutations enqueue to outbox but sync-writes do not (FAMILY-67)`() = runBlocking {
+        val outbox = RecordingTaskOutbox()
+        val syncRepo = FamilyTaskRepositoryImpl(db.familyTaskDao(), FamilyFixtures.fakeClock(baseMs), outbox)
+
+        syncRepo.upsert(task("t1"))                  // 本地 → 上行
+        syncRepo.transition("t1", FamilyTaskStatus.IN_PROGRESS) // 本地状态流转 → 上行
+        syncRepo.upsertFromSync(task("t2"))          // 收端 → 不上行
+        syncRepo.deleteFromSync("t1")                // 收端删除 → 不上行
+
+        assertEquals(listOf("t1", "t1"), outbox.enqueued) // upsert + transition 两次, t2/收端删不计
+        assertTrue(outbox.deleted.isEmpty())
+    }
+
+    @Test
+    fun `local delete enqueues a delete to outbox (FAMILY-67)`() = runBlocking {
+        val outbox = RecordingTaskOutbox()
+        val syncRepo = FamilyTaskRepositoryImpl(db.familyTaskDao(), FamilyFixtures.fakeClock(baseMs), outbox)
+        syncRepo.upsert(task("d1"))
+        syncRepo.delete("d1")
+        assertEquals(listOf("d1"), outbox.deleted)
+    }
 
     private fun task(
         id: String,

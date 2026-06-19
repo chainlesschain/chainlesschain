@@ -27,6 +27,8 @@ class PersistingStudyTaskContextTest {
         }
 
         override suspend fun upsert(task: FamilyTask) = Unit
+        override suspend fun upsertFromSync(task: FamilyTask) = Unit
+        override suspend fun deleteFromSync(id: String) = false
         override suspend fun getById(id: String): FamilyTask? = null
         override fun observeForChild(childDid: String): Flow<List<FamilyTask>> = flowOf(emptyList())
         override fun observeForChild(childDid: String, status: FamilyTaskStatus): Flow<List<FamilyTask>> =

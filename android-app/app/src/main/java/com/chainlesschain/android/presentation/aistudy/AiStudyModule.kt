@@ -43,9 +43,20 @@ abstract class AiStudyModule {
     ): StudyTaskContext
 
     // M9 奖励/积分账本: family_guard.db points_event 真持久 (InMemory 留测试/演示)。
+    // @RawPointsLedger = 底层真持久, 供收端 applier 注入避免上行 echo。
     @Binds
     @Singleton
-    abstract fun bindPointsLedger(impl: RoomPointsLedger): PointsLedger
+    @RawPointsLedger
+    abstract fun bindRawPointsLedger(impl: RoomPointsLedger): PointsLedger
+
+    // 默认 (无限定符) = 同步装饰器: 本机 append 自动上行同步给对端 (FAMILY-67)。ViewModel 注入此。
+    @Binds
+    @Singleton
+    abstract fun bindPointsLedger(impl: SyncingPointsLedger): PointsLedger
+
+    @Binds
+    @Singleton
+    abstract fun bindPointsLedgerOutbox(impl: SyncManagerPointsLedgerOutbox): PointsLedgerOutbox
 
     @Binds
     @Singleton

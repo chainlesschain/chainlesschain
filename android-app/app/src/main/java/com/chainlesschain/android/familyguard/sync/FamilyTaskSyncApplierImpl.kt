@@ -46,7 +46,8 @@ class FamilyTaskSyncApplierImpl @Inject constructor(
             Timber.w("[FamilyTaskSync] delete rejected — not an active family task: %s", resourceId)
             return
         }
-        runCatching { taskRepository.delete(id) }
+        // deleteFromSync：不回弹上行 (避免 echo)。
+        runCatching { taskRepository.deleteFromSync(id) }
             .onFailure { Timber.e(it, "[FamilyTaskSync] delete failed: %s", resourceId) }
     }
 
@@ -64,7 +65,8 @@ class FamilyTaskSyncApplierImpl @Inject constructor(
         }
         val local = runCatching { taskRepository.getById(incoming.id) }.getOrNull()
         val merged = if (local != null) FamilyTaskMerge.merge(local, incoming) else incoming
-        runCatching { taskRepository.upsert(merged) }
+        // upsertFromSync：不回弹上行 (避免 echo)。
+        runCatching { taskRepository.upsertFromSync(merged) }
             .onFailure { Timber.e(it, "[FamilyTaskSync] upsert failed: %s", incoming.id) }
     }
 

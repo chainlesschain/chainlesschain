@@ -13,8 +13,17 @@ import kotlinx.coroutines.flow.Flow
  */
 interface FamilyTaskRepository {
 
-    /** 新建/整体覆盖一条任务。 */
+    /** 新建/整体覆盖一条任务 (本地变更 → 触发上行同步)。 */
     suspend fun upsert(task: FamilyTask)
+
+    /**
+     * 收端同步写入：落对端推来的任务，**不回弹上行** (FAMILY-67 applier 专用，避免 echo)。
+     * 与 [upsert] 的唯一区别是不触发 [com.chainlesschain.android.feature.familyguard.domain.sync.FamilyTaskOutbox]。
+     */
+    suspend fun upsertFromSync(task: FamilyTask)
+
+    /** 收端同步删除：删对端推来的删除，**不回弹上行** (FAMILY-67 applier 专用)。 */
+    suspend fun deleteFromSync(id: String): Boolean
 
     suspend fun getById(id: String): FamilyTask?
 
