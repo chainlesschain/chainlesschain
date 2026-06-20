@@ -160,13 +160,17 @@ REASON: (1-2 sentence justification)`;
   };
 }
 
-function parseScores(text, variants, criteria) {
+export function parseScores(text, variants, criteria) {
   const scores = [];
   for (let i = 0; i < variants.length; i++) {
     const variantScores = {};
     for (const c of criteria) {
+      // The criterion is matched LITERALLY — escape regex metacharacters so a
+      // name like "latency(ms)" or "f.score" doesn't silently mis-parse (and an
+      // unbalanced one like "a)b(" doesn't throw and crash the whole compare).
+      const cEsc = String(c).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const pattern = new RegExp(
-        `variant\\s*${i + 1}[^\\n]*${c}\\s*=\\s*(\\d+)`,
+        `variant\\s*${i + 1}[^\\n]*${cEsc}\\s*=\\s*(\\d+)`,
         "i",
       );
       const match = text.match(pattern);
