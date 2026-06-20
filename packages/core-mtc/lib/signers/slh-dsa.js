@@ -158,9 +158,14 @@ function makeVerifierFromLandmark(landmark) {
     for (const anchor of landmark.trust_anchors) {
       if (!anchor || anchor.alg !== ALG) continue;
       const pk = jwkToPublicKey(anchor.pubkey_jwk);
-      if (pk && typeof anchor.pubkey_id === "string") {
-        trustedKeys.set(anchor.pubkey_id, pk);
-      }
+      if (!pk || typeof anchor.pubkey_id !== "string") continue;
+      // Enforce content-address binding pubkey_id === sha256(JCS(jwk)) — see
+      // ed25519.makeVerifierFromLandmark: stops one key being declared under
+      // several pubkey_ids to Sybil-forge an M-of-N threshold (landmark-cache
+      // dedups by sig.pubkey_id), and stops binding a pinned id to a foreign
+      // key. Honest anchors (trustAnchorEntry) always pass.
+      if (pubkeyId(pk) !== anchor.pubkey_id) continue;
+      trustedKeys.set(anchor.pubkey_id, pk);
     }
   }
   return makeVerifier(trustedKeys);
