@@ -10,6 +10,17 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+
+// Temp-name generator behind a seam so it's testable. A UNIQUE name per write is
+// essential: with a fixed `${filePath}.tmp`, two processes writing the same file
+// (multiple `cc` sessions sharing memory-store.json) race on one temp — one
+// process's rename can move the OTHER's half-written temp into place, corrupting
+// the file or throwing ENOENT. pid + random makes each write independent.
+const _deps = {
+  tmpName: (filePath) =>
+    `${filePath}.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`,
+};
 
 function ensureDirSync(filePath) {
   const dir = path.dirname(filePath);
@@ -30,9 +41,19 @@ function readJsonSafe(filePath, fallback) {
 
 function writeJsonAtomic(filePath, data) {
   ensureDirSync(filePath);
-  const tmp = `${filePath}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
-  fs.renameSync(tmp, filePath);
+  const tmp = _deps.tmpName(filePath);
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    // Don't leave a stray temp behind if the rename (or write) fails.
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
 }
 
 /**
@@ -123,4 +144,5 @@ module.exports = {
   hydrateMemoryStore,
   readJsonSafe,
   writeJsonAtomic,
+  _deps,
 };
