@@ -64,7 +64,12 @@ class MerkleTree {
   }
 
   _mthRange(start, end) {
-    const key = (start << 22) | end; // packed key (works for n up to 4M)
+    // String key, NOT a bit-packed int. The old `(start << 22) | end` used JS's
+    // 32-bit bitwise `<<`: for start ≥ 1024, `start << 22` overflows to 0, so
+    // e.g. key(0, 2048) and key(1024, 2048) collided → a subtree root got
+    // memoized under the same key as a different range and was read back wrong,
+    // corrupting the root and every audit path for trees ≥ ~2048 leaves.
+    const key = start + "," + end;
     const cached = this._memo.get(key);
     if (cached) return cached;
     const len = end - start;

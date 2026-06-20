@@ -116,3 +116,34 @@ describe("MerkleTree determinism", () => {
     expect(r1.equals(r2)).toBe(false);
   });
 });
+
+describe("MerkleTree — large trees (memo-key collision regression)", () => {
+  // The old memo key `(start << 22) | end` overflowed JS's 32-bit bitwise shift
+  // for start ≥ 1024, colliding e.g. key(0,2048) with key(1024,2048) and
+  // corrupting roots/proofs for trees ≥ ~2048 leaves. Verify every audit path
+  // round-trips at sizes that span the old break point.
+  for (const n of [1024, 2048, 4096, 5000]) {
+    it(`every proof round-trips for n=${n}`, () => {
+      const leafHashes = makeLeaves(n).map(leafHash);
+      const tree = new MerkleTree(leafHashes);
+      const root = tree.root();
+      let fails = 0;
+      for (let i = 0; i < n; i++) {
+        const got = computeRootFromPath(leafHashes[i], i, n, tree.prove(i));
+        if (!got.equals(root)) fails++;
+      }
+      expect(fails).toBe(0);
+    });
+  }
+
+  it("root is order-independent of prove() vs root() call sequence", () => {
+    const leafHashes = makeLeaves(2048).map(leafHash);
+    // Build two trees: one calls prove() before root(), the other after.
+    const t1 = new MerkleTree(leafHashes);
+    t1.prove(0);
+    t1.prove(1500);
+    const r1 = t1.root();
+    const r2 = new MerkleTree(leafHashes).root();
+    expect(r1.equals(r2)).toBe(true);
+  });
+});
