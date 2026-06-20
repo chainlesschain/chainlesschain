@@ -217,6 +217,34 @@ describe("Privacy Computing", () => {
       expect(result.globalWeights[0]).toBeCloseTo(9.0);
     });
 
+    it("rejects negative or non-finite sampleCount (anti-poisoning)", async () => {
+      await pc.federatedTrain("fl-neg", { participants: 2, rounds: 5 });
+      expect(() =>
+        pc.submitUpdate("fl-neg", "p1", { gradients: [1.0], sampleCount: -5 }),
+      ).toThrow("non-negative");
+      expect(() =>
+        pc.submitUpdate("fl-neg", "p2", { gradients: [1.0], sampleCount: NaN }),
+      ).toThrow("non-negative");
+    });
+
+    it("does not corrupt the model with NaN when all sampleCounts are 0", async () => {
+      await pc.federatedTrain("fl-zero", { participants: 2, rounds: 5 });
+      pc.submitUpdate("fl-zero", "p1", {
+        gradients: [1.0, 2.0],
+        sampleCount: 0,
+      });
+      const result = pc.submitUpdate("fl-zero", "p2", {
+        gradients: [3.0, 4.0],
+        sampleCount: 0,
+      });
+
+      // Round is skipped rather than producing NaN weights.
+      expect(result.aggregated).toBe(false);
+      const status = pc.getModelStatus("fl-zero");
+      const weights = status.globalWeights || [];
+      weights.forEach((w) => expect(Number.isNaN(w)).toBe(false));
+    });
+
     it("completes model after all rounds", async () => {
       await pc.federatedTrain("fl-complete", { participants: 1, rounds: 2 });
 
