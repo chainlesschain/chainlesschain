@@ -393,6 +393,20 @@ function createSqlJsCompat(raw, dbPath) {
     },
     transaction(fn) {
       return (...args) => {
+        // Nested transaction: SQLite can't nest BEGIN…COMMIT (a second BEGIN
+        // throws "cannot start a transaction within a transaction"). Join the
+        // open outer transaction instead of starting a new one — run fn inline;
+        // a throw propagates to the outer wrapper, which rolls everything back
+        // (atomicity preserved). Mirrors better-sqlite3 tolerating nested
+        // transaction() calls. txDepth is still bumped so persist() stays off.
+        if (state.txDepth > 0) {
+          state.txDepth++;
+          try {
+            return fn(...args);
+          } finally {
+            state.txDepth--;
+          }
+        }
         raw.exec("BEGIN");
         state.txDepth++;
         try {

@@ -140,6 +140,34 @@ describe("createSqlJsCompat — better-sqlite3 API shim over sql.js", () => {
     expect(rows.map((r) => r.v)).toEqual([1]);
   });
 
+  it("supports nested transactions (inner joins outer, commits once)", () => {
+    compat.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v INTEGER)");
+    const inner = compat.transaction(() => {
+      compat.prepare("INSERT INTO t (v) VALUES (?)").run(2);
+    });
+    const outer = compat.transaction(() => {
+      compat.prepare("INSERT INTO t (v) VALUES (?)").run(1);
+      inner(); // would throw "transaction within a transaction" if not flattened
+    });
+    expect(() => outer()).not.toThrow();
+    expect(compat.prepare("SELECT v FROM t ORDER BY v").all().map((r) => r.v)).toEqual([1, 2]);
+  });
+
+  it("a throw in a nested transaction rolls back the whole outer transaction", () => {
+    compat.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v INTEGER)");
+    const innerBad = compat.transaction(() => {
+      compat.prepare("INSERT INTO t (v) VALUES (?)").run(2);
+      throw new Error("inner-boom");
+    });
+    const outer = compat.transaction(() => {
+      compat.prepare("INSERT INTO t (v) VALUES (?)").run(1);
+      innerBad();
+    });
+    expect(() => outer()).toThrow("inner-boom");
+    // Both inserts rolled back — nesting preserves atomicity.
+    expect(compat.prepare("SELECT COUNT(*) AS c FROM t").get().c).toBe(0);
+  });
+
   it("pragma is a no-op (not a rejection) under sql.js", () => {
     // The legacy code path threw `pragma is not a function` because raw
     // sql.js Database has no pragma() method. The shim gives us a no-op
