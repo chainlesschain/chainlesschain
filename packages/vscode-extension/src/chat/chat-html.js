@@ -336,6 +336,16 @@ function buildChatHtml({ cspSource, nonce }) {
       if (lastSentText) { input.value = lastSentText; send(); }
       else { add("info", "nothing to retry yet — send a message first"); }
     },
+    "/review": () => {
+      // Seed a review turn: the agent inspects the working-tree diff using its
+      // tools + THIS window's IDE context (selection/diagnostics ride along).
+      input.value =
+        "Review my current uncommitted git changes. Run git diff (and " +
+        "git diff --staged) to see them, then flag correctness bugs first and " +
+        "simplifications/cleanups second. Cite file:line and be concise. " +
+        "Don't edit files unless I ask.";
+      send();
+    },
   };
   // Pasted screenshots ride the message as data URLs; the host writes them
   // to temp files and the CLI attaches them like --image (vision model
@@ -378,7 +388,7 @@ function buildChatHtml({ cspSource, nonce }) {
       const cmd = text.split(/\s+/)[0].toLowerCase();
       input.value = "";
       if (cmd === "/help") {
-        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /help");
+        add("info", "panel commands: /new · /sessions (/resume) · /plan · /approve · /reject · /auto · /bypass · /normal · /think · /ultrathink · /think-off · /stop · /compact · /cost · /context · /rewind · /retry · /review · /help");
         return;
       }
       if (SLASH[cmd]) {

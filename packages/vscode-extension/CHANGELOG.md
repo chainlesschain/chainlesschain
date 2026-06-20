@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.2] — 2026-06-20 — `/review` panel command (review the current diff)
+
+- **New `/review` slash command in the chat panel.** Type `/review` to ask the
+  agent to review your uncommitted git changes — it inspects the working-tree
+  diff (`git diff` / `git diff --staged`) with this window's IDE context
+  (selection, diagnostics, open editors) riding along, flags correctness bugs
+  first and simplifications/cleanups second, and cites `file:line`. It does not
+  edit files unless you ask. Like `/retry`, it's local sugar that seeds a turn
+  (no new control plumbing); discoverable in the `/` autocomplete and `/help`.
+  Brings the panel closer to Claude Code's IDE review affordance.
+
 ## [0.33.1] — 2026-06-19 — fix: suggested vision model matches the CLI default
 
 - **Fix.** The vision-model entry prefilled `doubao-seed-1-6-vision-250815`, but
