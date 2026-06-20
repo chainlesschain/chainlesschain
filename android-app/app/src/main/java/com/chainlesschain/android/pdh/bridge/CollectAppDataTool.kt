@@ -1,8 +1,16 @@
 package com.chainlesschain.android.pdh.bridge
 
 import com.chainlesschain.android.pdh.LocalCcRunner
-import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
+import com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
+import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
 import com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
@@ -17,30 +25,42 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * Phase 1, L3 (app business data via stored login → API) — `collect_app_data`.
- * Dispatches to the cookie-only collectors (no WebSignBridge signing): weibo /
- * bilibili / 12306. Each: Kotlin collector `snapshot()` (uses a stored cookie)
- * → `cc hub sync-adapter <provider>` ingest (decision #15 "方案 i"). When there
- * is no stored credential, returns `assist_required` (design §3.6 human-in-loop:
- * log in via the app, then retry) instead of failing.
+ * Dispatches to the on-device app collectors and ingests via
+ * `cc hub sync-adapter <provider>` (decision #15 "方案 i", reuses the proven L2
+ * ingest path — no cc-bundle change needed). When there is no stored credential,
+ * returns `assist_required` (design §3.6 human-in-loop: log in via the app, then
+ * retry) instead of failing.
  *
- * Signing-gated apps (douyin v0.3 / xhs / toutiao / kuaishou) need WebSignBridge
- * and are intentionally NOT wired here yet — they land once the sign bridge is
- * exposed to the bridge tools.
+ * Two classes of collector:
+ *   - cookie-only (no signing): weibo / bilibili / 12306
+ *   - signing-gated (WebSignBridge): douyin / xiaohongshu / toutiao / kuaishou —
+ *     the tool wires the collector's `signProvider` to the matching SignBridge
+ *     for the call, then shuts the bridge down (the bridge handles its WebView
+ *     on Dispatchers.Main internally, so it's safe from this background call).
  *
- * Android-bound (stored creds + network + cc subprocess) → device-validated.
+ * Android-bound (stored creds + network + WebView + cc subprocess) → validated
+ * on-device (needs a real logged-in account for a full collect).
  */
 class CollectAppDataTool(
     private val ccRunner: LocalCcRunner,
     private val weibo: WeiboLocalCollector,
     private val bilibili: BilibiliLocalCollector,
     private val kyfw12306: Kyfw12306LocalCollector,
+    private val douyin: DouyinLocalCollector,
+    private val douyinSign: DouyinSignBridge,
+    private val xhs: XhsLocalCollector,
+    private val xhsSign: XhsSignBridge,
+    private val toutiao: ToutiaoLocalCollector,
+    private val toutiaoSign: ToutiaoSignBridge,
+    private val kuaishou: KuaishouLocalCollector,
+    private val kuaishouSign: KuaishouSignBridge,
 ) : PdhTool {
 
     override val name = "collect_app_data"
     override val description =
-        "Collect your data from an app via its stored login (weibo/bilibili/12306) " +
-            "into the vault. Returns assist_required (log in via the app first) if " +
-            "there is no stored credential."
+        "Collect your data from an app via its stored login into the vault " +
+            "(weibo/bilibili/12306/douyin/xiaohongshu/toutiao/kuaishou). Returns " +
+            "assist_required (log in via the app first) if there is no stored credential."
     override val inputSchema = buildJsonObject {
         put("type", "object")
         putJsonObject("properties") {
@@ -69,6 +89,22 @@ class CollectAppDataTool(
             "weibo" -> toSnap(weibo.snapshot()) to "social-weibo"
             "bilibili" -> toSnap(bilibili.snapshot()) to "social-bilibili"
             "12306" -> toSnap(kyfw12306.snapshot()) to "travel-12306"
+            "douyin" -> signed(douyinSign) {
+                douyin.signProvider = douyinSign
+                toSnap(douyin.snapshot())
+            } to "social-douyin"
+            "xiaohongshu", "xhs" -> signed(xhsSign) {
+                xhs.signProvider = xhsSign
+                toSnap(xhs.snapshot())
+            } to "social-xiaohongshu"
+            "toutiao" -> signed(toutiaoSign) {
+                toutiao.signProvider = toutiaoSign
+                toSnap(toutiao.snapshot())
+            } to "social-toutiao"
+            "kuaishou" -> signed(kuaishouSign) {
+                kuaishou.signProvider = kuaishouSign
+                toSnap(kuaishou.snapshot())
+            } to "social-kuaishou"
             else -> throw IllegalArgumentException(
                 "unsupported app: $app (supported: ${SUPPORTED.joinToString()})",
             )
@@ -101,6 +137,16 @@ class CollectAppDataTool(
         }
     }
 
+    /** Run a signing-gated snapshot, always shutting the WebView bridge after. */
+    private inline fun signed(
+        sign: com.chainlesschain.android.pdh.social.SignProvider,
+        block: () -> Snap,
+    ): Snap = try {
+        block()
+    } finally {
+        sign.shutdown()
+    }
+
     // Per-collector result → common Snap (distinct sealed types, handled each).
     private fun toSnap(r: WeiboLocalCollector.SnapshotResult): Snap = when (r) {
         is WeiboLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
@@ -111,7 +157,6 @@ class CollectAppDataTool(
     private fun toSnap(r: BilibiliLocalCollector.SnapshotResult): Snap = when (r) {
         is BilibiliLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
         is BilibiliLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
-        // Stale/incomplete cookie → treat as "needs login again" (assist).
         is BilibiliLocalCollector.SnapshotResult.StaleCookie -> Snap(null, 0, true, null)
         is BilibiliLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
     }
@@ -122,7 +167,32 @@ class CollectAppDataTool(
         is Kyfw12306LocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
     }
 
+    private fun toSnap(r: DouyinLocalCollector.SnapshotResult): Snap = when (r) {
+        is DouyinLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
+        is DouyinLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
+        is DouyinLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
+    }
+
+    private fun toSnap(r: XhsLocalCollector.SnapshotResult): Snap = when (r) {
+        is XhsLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
+        is XhsLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
+        is XhsLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
+    }
+
+    private fun toSnap(r: ToutiaoLocalCollector.SnapshotResult): Snap = when (r) {
+        is ToutiaoLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
+        is ToutiaoLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
+        is ToutiaoLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
+    }
+
+    private fun toSnap(r: KuaishouLocalCollector.SnapshotResult): Snap = when (r) {
+        is KuaishouLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
+        is KuaishouLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
+        is KuaishouLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
+    }
+
     companion object {
-        private val SUPPORTED = listOf("weibo", "bilibili", "12306")
+        private val SUPPORTED =
+            listOf("weibo", "bilibili", "12306", "douyin", "xiaohongshu", "toutiao", "kuaishou")
     }
 }
