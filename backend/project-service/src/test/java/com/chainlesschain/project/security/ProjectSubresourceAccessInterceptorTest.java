@@ -50,8 +50,20 @@ class ProjectSubresourceAccessInterceptorTest {
                 ProjectSubresourceAccessInterceptor.extractProjectId("/api/projects/p1/comments"));
         assertEquals("p1",
                 ProjectSubresourceAccessInterceptor.extractProjectId("/api/projects/p1/collaborators/c1"));
+        assertEquals("p1",
+                ProjectSubresourceAccessInterceptor.extractProjectId("/api/projects/p1/automation/rules"));
         assertNull(ProjectSubresourceAccessInterceptor.extractProjectId("/api/users/u1"));
         assertNull(ProjectSubresourceAccessInterceptor.extractProjectId(null));
+    }
+
+    @Test
+    void automationPath_isGuarded() throws Exception {
+        // /api/projects/*/automation/** was previously NOT intercepted → IDOR;
+        // now in the WebConfig path patterns, so the guard must run on it.
+        when(request.getRequestURI()).thenReturn("/api/projects/p1/automation/rules/r1/trigger");
+
+        assertTrue(interceptor().preHandle(request, response, new Object()));
+        verify(accessGuard).assertCanAccessProject(eq("p1"), any());
     }
 
     @Test

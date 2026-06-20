@@ -78,8 +78,13 @@ public class FileUploadController {
     @Operation(summary = "下载文件", description = "根据文件名下载文件")
     public ResponseEntity<Resource> downloadFile(
             @PathVariable String userId,
-            @PathVariable String fileName) {
+            @PathVariable String fileName,
+            Authentication authentication) {
         try {
+            // 授权：只能下载自己的文件（防 IDOR 跨用户读取）。与 deleteFile 同款校验。
+            if (authentication == null || !authentication.getName().equals(userId)) {
+                return ResponseEntity.status(403).build();
+            }
             File file = fileUploadService.getFile(userId, fileName);
             if (file == null) {
                 return ResponseEntity.notFound().build();
@@ -135,8 +140,13 @@ public class FileUploadController {
     @Operation(summary = "获取文件信息", description = "获取文件的元数据信息")
     public ResponseEntity<?> getFileInfo(
             @PathVariable String userId,
-            @PathVariable String fileName) {
+            @PathVariable String fileName,
+            Authentication authentication) {
         try {
+            // 授权：只能查看自己的文件元数据（防 IDOR 跨用户探测）。
+            if (authentication == null || !authentication.getName().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("error", "无权访问此文件"));
+            }
             File file = fileUploadService.getFile(userId, fileName);
             if (file == null) {
                 return ResponseEntity.notFound().build();

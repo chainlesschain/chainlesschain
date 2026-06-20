@@ -31,8 +31,11 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * 项目子资源（files / comments / collaborators）统一项目级授权拦截，修复 IDOR。
-     * 项目自身端点由 ProjectController 显式调用 ProjectAccessGuard。
+     * 项目子资源（files / comments / collaborators / automation）统一项目级授权
+     * 拦截，修复 IDOR。项目自身端点由 ProjectController 显式调用 ProjectAccessGuard。
+     * automation 端点同样挂在 /api/projects/{projectId}/automation/** 下，但此前未被
+     * 拦截 —— 任意已登录用户可凭 projectId 增删改触发任意项目的自动化规则（IDOR），
+     * 故纳入同一拦截路径（projectId 取位与其它子资源一致）。
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -40,6 +43,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                         "/api/projects/*/files/**",
                         "/api/projects/*/comments/**",
-                        "/api/projects/*/collaborators/**");
+                        "/api/projects/*/collaborators/**",
+                        "/api/projects/*/automation/**");
     }
 }
