@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.6] — 2026-06-20 — no more scary "ask_user_question failed"
+
+- **Fix.** When the agent tried to ask you a clarifying question, the panel
+  showed a red **`✗ ask_user_question failed`** even though nothing actually
+  broke — the panel has no interactive question round-trip yet, so the CLI
+  degrades gracefully (`user_not_reachable`) and the model just proceeds on its
+  own. That benign degradation (and `user_timeout`) is no longer rendered as a
+  tool failure; instead you get a quiet note: *"couldn't ask interactively in the
+  panel — proceeding autonomously"*. Real tool errors still show as failures.
+
 ## [0.33.5] — 2026-06-20 — check-version button + "cc not installed" warning
 
 - **New command + button: "Check for CLI Updates".** The 0.33.4 update notice

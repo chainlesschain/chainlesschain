@@ -107,8 +107,27 @@ public final class ChatEvents {
         }
         if ("tool_result".equals(type)) {
             Map<String, Object> m = ui("tool_done");
-            m.put("tool", str(evt, "tool", "?"));
-            m.put("isError", isTrue(evt.get("is_error")));
+            String tool = str(evt, "tool", "?");
+            m.put("tool", tool);
+            // ask_user_question degrades gracefully in the panel (no interactive
+            // round-trip yet): {error:"user_not_reachable"|"user_timeout"} and the
+            // model proceeds autonomously — that is NOT a tool FAILURE, so don't
+            // paint a scary "✗ … failed"; surface a quiet note instead.
+            Object errO = evt.get("error");
+            String errText = errO instanceof String ? (String) errO : null;
+            if (errText == null) {
+                Map<String, Object> res = asMap(evt.get("result"));
+                Object re = res == null ? null : res.get("error");
+                if (re instanceof String) errText = (String) re;
+            }
+            boolean benign = "user_not_reachable".equals(errText)
+                    || "user_timeout".equals(errText);
+            m.put("isError", isTrue(evt.get("is_error")) && !benign);
+            if (benign) {
+                m.put("note", "ask_user_question".equals(tool)
+                        ? "面板暂不支持交互提问 —— 已按最佳判断继续"
+                        : "已跳过 —— 继续");
+            }
             return m;
         }
         if ("compaction".equals(type)) {

@@ -652,6 +652,10 @@ final class ConversationView {
         } else if ("tool_done".equals(kind)) {
             append((Boolean.TRUE.equals(ui.get("isError")) ? "✗ " : "✓ ")
                     + ui.get("tool") + "\n");
+            Object note = ui.get("note");
+            if (note instanceof String && !((String) note).isEmpty()) {
+                appendThinking("ℹ " + ui.get("tool") + ":" + note + "\n");
+            }
         } else if ("turn_end".equals(kind)) {
             Object text = ui.get("text");
             // The final result text only arrives here when nothing streamed; run

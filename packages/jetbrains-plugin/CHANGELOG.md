@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.24] — 2026-06-20 — no more scary "✗ ask_user_question"
+
+- **Fix.** When the agent tried to ask a clarifying question, the chat showed a
+  red **`✗ ask_user_question`** even though nothing broke — there's no
+  interactive question round-trip yet, so the CLI degrades gracefully
+  (`user_not_reachable`) and the model proceeds on its own. That benign
+  degradation (and `user_timeout`) no longer renders as a failure; instead a
+  quiet note appears: 「面板暂不支持交互提问 —— 已按最佳判断继续」. Real tool
+  errors still show as failures.
+
 ## [0.4.23] — 2026-06-20 — check-version menu item + "cc not installed" hint
 
 - **New ⚙ LLM menu item: "检查 cc 更新…".** The 0.4.22 update hint only appeared
