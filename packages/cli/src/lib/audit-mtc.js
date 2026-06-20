@@ -70,6 +70,30 @@ function ensureDirs(dir) {
   }
 }
 
+/**
+ * Atomically write a UTF-8 file (temp sibling + rename). Used for the config
+ * and per-event staging records: a crash mid-write would truncate config.json
+ * or leave a partial event that closeBatch silently drops as malformed. Temp
+ * names end in `.tmp` (never `.json`), so a hard-crash leftover is ignored by
+ * listStagingEvents' `.json` filter. NOTE: the issuer key (flag "wx" exclusive
+ * create) and closeBatch (whole tmp-dir rename) have their own atomicity and
+ * are intentionally left untouched.
+ */
+function atomicWriteFileSync(filePath, data) {
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data, "utf-8");
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Config
 // ─────────────────────────────────────────────────────────────────────
@@ -107,7 +131,7 @@ export function saveAuditMtcConfig(dir, patch) {
   if (typeof merged.issuer !== "string" || !merged.issuer) {
     throw new TypeError("config.issuer must be non-empty string");
   }
-  fs.writeFileSync(configPath(dir), JSON.stringify(merged, null, 2), "utf-8");
+  atomicWriteFileSync(configPath(dir), JSON.stringify(merged, null, 2));
   return merged;
 }
 
@@ -227,7 +251,7 @@ export function emitEvent(dir, body, opts = {}) {
   };
 
   const filePath = path.join(stagingDir(dir), `${eventId}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(record, null, 2), "utf-8");
+  atomicWriteFileSync(filePath, JSON.stringify(record, null, 2));
   return { eventId, path: filePath, record };
 }
 

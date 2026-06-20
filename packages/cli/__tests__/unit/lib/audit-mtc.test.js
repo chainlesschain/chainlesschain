@@ -50,6 +50,8 @@ describe("audit-mtc lib", () => {
       expect(updated.enabled).toBe(true);
       expect(updated.batch_interval_seconds).toBe(60);
       expect(loadAuditMtcConfig(dir).enabled).toBe(true);
+      // Atomic write: no temp sibling left behind in the store dir.
+      expect(fs.readdirSync(dir).some((n) => n.endsWith(".tmp"))).toBe(false);
 
       expect(() =>
         saveAuditMtcConfig(dir, { batch_interval_seconds: 0 }),
