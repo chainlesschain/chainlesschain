@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.21] — 2026-06-20 — fix: Configure-LLM now restarts the running chat
+
+- **Fix.** After you reconfigured the LLM (⚙ LLM → provider / model / API key, or
+  the vision model), the chat tab you were in kept using the **old** config — the
+  provider/model are pinned when the `cc` child starts, so it would keep erroring
+  (e.g. `401`) until you opened a *new* conversation. Now the panel restarts the
+  tab's child once the wizard closes, so your next message respawns with the
+  fresh config. No more "配置完还没用 / 新开一个对话才行."
+
 ## [0.4.20] — 2026-06-20 — `/review` panel command (review the current diff)
 
 - **New `/review` slash command in the chat tool window.** Type `/review` to ask

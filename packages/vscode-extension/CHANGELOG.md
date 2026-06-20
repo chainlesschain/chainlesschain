@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.3] — 2026-06-20 — fix: Configure-LLM now restarts running chats
+
+- **Fix.** After you reconfigured the LLM (⚙ provider / model / API key), the
+  chat tab you were already in kept using the **old** config — a `cc` child is
+  spawned with the LLM settings pinned at start, so it would keep erroring (e.g.
+  `401`) until you opened a *new* conversation. Now, once the Configure-LLM
+  wizard closes, the panel stops every running child so the next message in each
+  tab respawns with the fresh config. No more "I configured it but it still
+  errors / only a new chat works."
+
 ## [0.33.2] — 2026-06-20 — `/review` panel command (review the current diff)
 
 - **New `/review` slash command in the chat panel.** Type `/review` to ask the

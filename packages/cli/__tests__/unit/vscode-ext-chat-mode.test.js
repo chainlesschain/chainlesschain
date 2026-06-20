@@ -90,8 +90,14 @@ function makeMemento(seed = {}) {
 function makeProvider() {
   const posted = [];
   const spawns = [];
+  const commandCalls = [];
   const vscode = {
-    commands: { executeCommand() {} },
+    commands: {
+      executeCommand(id) {
+        commandCalls.push(id);
+        return Promise.resolve();
+      },
+    },
     window: {},
     workspace: {
       workspaceFolders: [{ uri: { fsPath: "/ws" } }],
@@ -118,7 +124,7 @@ function makeProvider() {
   provider.view = {
     webview: { postMessage: (msg) => (posted.push(msg), Promise.resolve()) },
   };
-  return { provider, posted, spawns };
+  return { provider, posted, spawns, commandCalls };
 }
 
 const lastPost = (posted) => posted[posted.length - 1];
@@ -165,6 +171,47 @@ describe("ChatViewProvider — approval mode", () => {
       kind: "info",
       text: expect.stringContaining("unknown mode"),
     });
+  });
+});
+
+describe("ChatViewProvider — Configure LLM reloads running children", () => {
+  it("runs the wizard then restarts the live child so it picks up new config", async () => {
+    const { provider, posted, spawns, commandCalls } = makeProvider();
+    // A child is already running with the OLD (broken) config.
+    provider._handleMessage({ type: "send", text: "hi" });
+    expect(spawns).toHaveLength(1);
+    expect(spawns[0].running).toBe(true);
+
+    // Configure LLM: opens the wizard, then (once it closes) stops the child.
+    provider._handleMessage({ type: "configureLlm" });
+    expect(commandCalls).toContain("chainlesschain.llm.configure");
+    // Reload is chained off the wizard promise — flush microtasks.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(spawns[0].running).toBe(false);
+    expect(lastPost(posted)).toMatchObject({
+      kind: "info",
+      text: expect.stringContaining("LLM config updated"),
+    });
+    expect(lastPost(posted).text).toContain("next message");
+
+    // Next turn respawns a FRESH child (reads the updated config.json).
+    provider._handleMessage({ type: "send", text: "again" });
+    expect(spawns).toHaveLength(2);
+    expect(spawns[1].running).toBe(true);
+  });
+
+  it("acknowledges with no 'next message' qualifier when no child is running", async () => {
+    const { provider, posted, commandCalls } = makeProvider();
+    provider._handleMessage({ type: "configureLlm" });
+    expect(commandCalls).toContain("chainlesschain.llm.configure");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(lastPost(posted)).toMatchObject({
+      kind: "info",
+      text: expect.stringContaining("LLM config updated"),
+    });
+    expect(lastPost(posted).text).not.toContain("next message");
   });
 });
 

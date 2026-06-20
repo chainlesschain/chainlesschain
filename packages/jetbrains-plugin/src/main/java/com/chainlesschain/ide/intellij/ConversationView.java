@@ -127,10 +127,16 @@ final class ConversationView {
             javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
             javax.swing.JMenuItem full =
                     new javax.swing.JMenuItem("配置 LLM(提供商 / 模型 / API key)…");
-            full.addActionListener(a -> ConfigureLlmAction.runWizard(project));
+            full.addActionListener(a -> {
+                ConfigureLlmAction.runWizard(project);
+                reloadLlmConfig();
+            });
             javax.swing.JMenuItem vision =
                     new javax.swing.JMenuItem("图片识别(视觉)模型…");
-            vision.addActionListener(a -> ConfigureLlmAction.configureVisionModel(project));
+            vision.addActionListener(a -> {
+                ConfigureLlmAction.configureVisionModel(project);
+                reloadLlmConfig();
+            });
             menu.add(full);
             menu.add(vision);
             menu.show(llmBtn, 0, llmBtn.getHeight());
@@ -441,6 +447,21 @@ final class ConversationView {
                     : "ℹ " + kind + ": " + out.trim().replace('\n', ' ') + "\n";
             SwingUtilities.invokeLater(() -> append(line));
         }, "cc-" + kind + "-" + conv.id).start();
+    }
+
+    /**
+     * After a Configure-LLM / vision-model change, restart this tab's child so it
+     * respawns with the new config. The provider/model are pinned at spawn time
+     * (SessionArgs reads config.json once via {@code ensureSession}), so a child
+     * started with the old/broken LLM config keeps erroring until it respawns —
+     * the "配置完还没用 / 新开一个对话才行" symptom. Mirrors the VS Code panel reload.
+     */
+    private void reloadLlmConfig() {
+        boolean restarted = liveSession() != null;
+        restartForModeChange();
+        append(restarted
+                ? "ℹ LLM 配置已更新 —— 下一条消息生效\n"
+                : "ℹ LLM 配置已更新\n");
     }
 
     /** Restart the child so the next message respawns with current mode/thinking (§6). */
