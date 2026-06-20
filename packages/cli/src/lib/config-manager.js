@@ -9,6 +9,7 @@ import {
 import { dirname } from "node:path";
 import { getConfigPath } from "./paths.js";
 import { DEFAULT_CONFIG } from "../constants.js";
+import { withFileLock } from "./with-file-lock.js";
 
 export function loadConfig() {
   const configPath = getConfigPath();
@@ -53,10 +54,16 @@ export function getConfigValue(key) {
 }
 
 export function setConfigValue(key, value) {
-  const config = loadConfig();
-  setNestedValue(config, key, parseValue(value));
-  saveConfig(config);
-  return config;
+  // Serialize the read-modify-write across processes: two concurrent
+  // `cc config set` invocations would otherwise each load, mutate, and write
+  // back, silently losing one update. Best-effort lock (see with-file-lock):
+  // on contention timeout it proceeds anyway, so the CLI never hangs.
+  return withFileLock(getConfigPath(), () => {
+    const config = loadConfig();
+    setNestedValue(config, key, parseValue(value));
+    saveConfig(config);
+    return config;
+  });
 }
 
 export function resetConfig() {
