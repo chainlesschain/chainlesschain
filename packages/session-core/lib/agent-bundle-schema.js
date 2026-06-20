@@ -127,12 +127,30 @@ function validateBundle(bundle) {
  *   - 空行
  * 不支持 inline table / array / 多层嵌套, 对 bundle manifest 足够.
  */
+/**
+ * Strip a `#` comment, but only when the `#` is OUTSIDE a quoted string.
+ * A blind /#.*$/ replace corrupts string values that legitimately contain '#'
+ * (e.g. name = "Agent #1", color = "#fff") — it cuts at the '#', the closing
+ * quote is lost, and the value parses to garbage like '"Agent'.
+ */
+function stripTomlComment(line) {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === "#" && !inSingle && !inDouble) return line.slice(0, i);
+  }
+  return line;
+}
+
 function parseMinimalToml(text) {
   const out = {};
   let current = out;
   const lines = String(text).split(/\r?\n/);
   for (let raw of lines) {
-    const line = raw.replace(/#.*$/, "").trim();
+    const line = stripTomlComment(raw).trim();
     if (!line) continue;
     const sectionMatch = line.match(/^\[([A-Za-z0-9_.-]+)\]$/);
     if (sectionMatch) {

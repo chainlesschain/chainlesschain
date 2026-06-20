@@ -114,4 +114,17 @@ describe("parseMinimalToml", () => {
     expect(out.a).toBe(false);
     expect(out.b).toBe(3.14);
   });
+  it("keeps '#' inside quoted strings (not a comment)", () => {
+    const out = parseMinimalToml(
+      `name = "Agent #1"\ncolor = "#fff"\ntag = 'c#sharp'`
+    );
+    expect(out.name).toBe("Agent #1");
+    expect(out.color).toBe("#fff");
+    expect(out.tag).toBe("c#sharp");
+  });
+  it("still strips a trailing comment after a quoted value", () => {
+    const out = parseMinimalToml(`id = "acme"   # the id\nn = 5 # five`);
+    expect(out.id).toBe("acme");
+    expect(out.n).toBe(5);
+  });
 });
