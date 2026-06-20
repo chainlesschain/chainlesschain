@@ -131,7 +131,20 @@ function createStore(db) {
       return rows.map(_rowToProposal);
     },
 
-    updateProposalState(id, state, nowMs) {
+    updateProposalState(id, state, nowMs, expectedState) {
+      // CAS: when expectedState is provided, the flip only happens if the row's
+      // current state still matches — the read + write collapse into one atomic
+      // conditional UPDATE, closing the finalize/cancel double-consume TOCTOU
+      // (concurrent finalizers can't both see 'reached' and both consume).
+      // Without expectedState it stays an unconditional update (expire/reached
+      // callers). Returns true iff a row was actually flipped.
+      if (expectedState != null) {
+        const stmt = db.prepare(
+          `UPDATE multisig_proposals SET state = ?, updated_at_ms = ? WHERE id = ? AND state = ?`,
+        );
+        const result = stmt.run(state, nowMs, id, expectedState);
+        return result.changes > 0;
+      }
       const stmt = db.prepare(
         `UPDATE multisig_proposals SET state = ?, updated_at_ms = ? WHERE id = ?`,
       );
