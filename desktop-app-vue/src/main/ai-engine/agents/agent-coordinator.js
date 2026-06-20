@@ -84,6 +84,17 @@ const TASK_STATUS = {
   CANCELLED: 'cancelled',
 };
 
+// Cap on retained in-memory tasks. Each assignment adds an activeTasks entry
+// that is persisted to agent_task_history but never removed during operation,
+// so without a bound the map grows forever. Only terminal tasks are evicted;
+// getTaskStatus already falls back to the DB for them.
+const MAX_ACTIVE_TASKS = 500;
+const TERMINAL_TASK_STATES = new Set([
+  TASK_STATUS.COMPLETED,
+  TASK_STATUS.FAILED,
+  TASK_STATUS.CANCELLED,
+]);
+
 /**
  * Priority levels for subtasks
  * @type {Object<string, number>}
@@ -117,6 +128,7 @@ class AgentCoordinator extends EventEmitter {
 
     // Active task tracking
     this.activeTasks = new Map();
+    this.maxActiveTasks = MAX_ACTIVE_TASKS;
 
     // Orchestration sessions
     this.orchestrationSessions = new Map();
@@ -381,6 +393,7 @@ class AgentCoordinator extends EventEmitter {
     };
 
     this.activeTasks.set(taskId, taskInfo);
+    this._evictTerminalTasks();
     this.stats.totalAssignments++;
 
     this.emit('task:assigned', { taskId, agentId, templateType });
@@ -533,6 +546,28 @@ class AgentCoordinator extends EventEmitter {
       success: false,
       error: `Task not found: ${taskId}`,
     };
+  }
+
+  /**
+   * Bound the in-memory activeTasks map. Evicts the oldest terminal tasks
+   * (completed/failed/cancelled) once over maxActiveTasks; active tasks
+   * (pending/assigned/running) are never evicted. Evicted tasks remain in
+   * agent_task_history and getTaskStatus falls back to the DB for them.
+   * @private
+   */
+  _evictTerminalTasks() {
+    if (this.activeTasks.size <= this.maxActiveTasks) {
+      return;
+    }
+    for (const [id, task] of this.activeTasks) {
+      if (!TERMINAL_TASK_STATES.has(task.status)) {
+        continue; // keep active tasks
+      }
+      this.activeTasks.delete(id);
+      if (this.activeTasks.size <= this.maxActiveTasks) {
+        break;
+      }
+    }
   }
 
   /**
