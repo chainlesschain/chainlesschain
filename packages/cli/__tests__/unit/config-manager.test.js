@@ -4,6 +4,7 @@ import {
   mkdirSync,
   writeFileSync,
   readFileSync,
+  readdirSync,
   rmSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -48,6 +49,18 @@ describe("config-manager", () => {
     const parsed = JSON.parse(raw);
     expect(parsed.setupCompleted).toBe(true);
     expect(parsed.edition).toBe("enterprise");
+  });
+
+  it("saveConfig writes atomically (valid JSON, no .tmp leftover)", async () => {
+    const { saveConfig } = await import("../../src/lib/config-manager.js");
+    saveConfig({ llm: { apiKey: "sk-secret", provider: "openai" } });
+    // The config file is complete + parseable (atomic rename → never partial).
+    expect(JSON.parse(readFileSync(configPath, "utf-8")).llm.apiKey).toBe(
+      "sk-secret",
+    );
+    // No temp sibling left behind after a successful write.
+    const leftovers = readdirSync(tempDir).filter((n) => n.endsWith(".tmp"));
+    expect(leftovers).toEqual([]);
   });
 
   it("loadConfig merges saved values with defaults", async () => {
