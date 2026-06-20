@@ -112,4 +112,103 @@ class PdhAgentSessionTest {
     fun malformed_json_is_null() {
         assertNull(PdhAgentSession.parseLine("""{"type":"text" """))
     }
+
+    // ── §3.5.9 trust-card events ──────────────────────────────────────────
+
+    @Test
+    fun approval_request_maps_fields() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"approval_request","id":"appr-1","tool":"mcp__pdh__send_message",""" +
+                """"command":"发给 妈妈:晚上好","risk":"high"}""",
+        )
+        assertTrue(e is PdhAgentEvent.ApprovalRequest)
+        e as PdhAgentEvent.ApprovalRequest
+        assertEquals("appr-1", e.id)
+        assertEquals("mcp__pdh__send_message", e.tool)
+        assertEquals("发给 妈妈:晚上好", e.summary)
+        assertEquals("high", e.risk)
+    }
+
+    @Test
+    fun approval_request_summary_falls_back_to_reason_then_tool() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"approval_request","id":"a2","tool":"mcp__pdh__make_call","reason":"拨打电话"}""",
+        ) as PdhAgentEvent.ApprovalRequest
+        assertEquals("拨打电话", e.summary)
+        assertNull(e.risk)
+    }
+
+    @Test
+    fun approval_resolved_maps_approved() {
+        assertEquals(
+            PdhAgentEvent.ApprovalResolved("appr-1", true),
+            PdhAgentSession.parseLine(
+                """{"type":"approval_resolved","id":"appr-1","approved":true,"via":"panel"}""",
+            ),
+        )
+        assertEquals(
+            PdhAgentEvent.ApprovalResolved("a2", false),
+            PdhAgentSession.parseLine("""{"type":"approval_resolved","id":"a2","approved":false}"""),
+        )
+    }
+
+    @Test
+    fun plan_update_extracts_item_titles_and_phase() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"plan_update","state":"awaiting_approval","items":[""" +
+                """{"id":"1","title":"采集抖音","tool":"x"},{"id":"2","title":"总结兴趣"}]}""",
+        )
+        assertTrue(e is PdhAgentEvent.PlanUpdate)
+        e as PdhAgentEvent.PlanUpdate
+        assertEquals(listOf("采集抖音", "总结兴趣"), e.items)
+        assertEquals("awaiting_approval", e.phase)
+    }
+
+    @Test
+    fun plan_update_with_no_items_yields_empty_list() {
+        val e = PdhAgentSession.parseLine("""{"type":"plan_update","state":"inactive","items":[]}""")
+        assertEquals(emptyList<String>(), (e as PdhAgentEvent.PlanUpdate).items)
+    }
+
+    @Test
+    fun tool_result_with_assist_required_yields_assist_event() {
+        val line =
+            """{"type":"tool_result","content":"{\"status\":\"assist_required\",""" +
+                """\"instruction\":\"打开抖音\",\"deepLink\":\"snssdk1128://message\",""" +
+                """\"resumeToken\":\"rt-9\",\"reason\":\"需 .so 加载\"}"}"""
+        val e = PdhAgentSession.parseLine(line)
+        assertTrue(e is PdhAgentEvent.AssistRequired)
+        e as PdhAgentEvent.AssistRequired
+        assertEquals("打开抖音", e.instruction)
+        assertEquals("snssdk1128://message", e.deepLink)
+        assertEquals("rt-9", e.resumeToken)
+        assertEquals("需 .so 加载", e.reason)
+    }
+
+    @Test
+    fun tool_result_plain_content_is_not_assist() {
+        assertEquals(
+            PdhAgentEvent.ToolResult("pong"),
+            PdhAgentSession.parseLine("""{"type":"tool_result","content":"pong"}"""),
+        )
+    }
+
+    @Test
+    fun tool_result_json_without_assist_status_stays_tool_result() {
+        // A JSON-object content that ISN'T assist_required must not be hijacked.
+        val line = """{"type":"tool_result","content":"{\"status\":\"ok\",\"ingested\":3}"}"""
+        val e = PdhAgentSession.parseLine(line)
+        assertTrue(e is PdhAgentEvent.ToolResult)
+    }
+
+    @Test
+    fun parse_assist_optional_fields_default_null() {
+        val a = PdhAgentSession.parseAssist("""{"status":"assist_required","instruction":"登录"}""")
+        assertTrue(a is PdhAgentEvent.AssistRequired)
+        a as PdhAgentEvent.AssistRequired
+        assertEquals("登录", a.instruction)
+        assertNull(a.deepLink)
+        assertNull(a.resumeToken)
+        assertNull(a.reason)
+    }
 }

@@ -71,6 +71,28 @@ class PdhAgentSession @Inject constructor(
         data class Error(val message: String) : PdhAgentEvent()
         /** Process exited. */
         data class Exit(val code: Int) : PdhAgentEvent()
+
+        // §3.5.9 三类信任卡 — agent 在写工具/事务前发 approval_request 并阻塞
+        // (--interactive-approvals);裁决回显 approval_resolved。引导卡来自工具
+        // 返回的 assist_required(tool_result 中间态)。计划卡来自 plan_update。
+        /** 预览卡 / 审批卡:有副作用工具的审批请求(按 [tool] 名分流)。 */
+        data class ApprovalRequest(
+            val id: String,
+            val tool: String,
+            val summary: String,
+            val risk: String?,
+        ) : PdhAgentEvent()
+        /** 审批裁决回显 → UI 收起对应卡。 */
+        data class ApprovalResolved(val id: String, val approved: Boolean) : PdhAgentEvent()
+        /** 计划卡(Plan Mode):当前计划项 + 阶段。 */
+        data class PlanUpdate(val items: List<String>, val phase: String) : PdhAgentEvent()
+        /** 引导卡:采集前置缺失,需人在 App 内完成一步(§3.6)。 */
+        data class AssistRequired(
+            val instruction: String,
+            val deepLink: String?,
+            val resumeToken: String?,
+            val reason: String?,
+        ) : PdhAgentEvent()
     }
 
     private val _events = MutableSharedFlow<PdhAgentEvent>(extraBufferCapacity = 256)
@@ -108,12 +130,18 @@ class PdhAgentSession @Inject constructor(
                 add("agent")
                 add("--input-format"); add("stream-json")
                 add("--output-format"); add("stream-json")
+                // §3.5.9: emit approval_request + block writes/transactions until
+                // the UI sends {"type":"approval",id,approve} — backs the 预览/审批卡.
+                add("--interactive-approvals")
                 // `cc agent` defaults to provider=ollama (localhost:11434, absent
                 // on the device) and ignores config.json's llm.provider — unlike
                 // `cc ask`. Pass the user's configured provider+model explicitly
                 // so the agent uses the same cloud LLM as the app's AI chat. The
                 // API key still arrives via PtyEnvironment env injection.
                 addAll(llmArgs())
+                // PDH persona: make the agent a personal-data steward (not the
+                // default coding assistant) that prefers the mcp__pdh__* tools.
+                add("--append-system-prompt"); add(PDH_SYSTEM_PROMPT)
             }
             // PDH bridge auto-discovery for the in-APK agent (env fast-path).
             val envList = ptyEnvironment
@@ -184,15 +212,42 @@ class PdhAgentSession @Inject constructor(
         }
 
     /** Send one user turn (NDJSON `{"type":"user","text":…}`). No-op if not running. */
-    suspend fun send(text: String): Boolean = withContext(Dispatchers.IO) {
-        val w = writer ?: return@withContext false
-        if (!isRunning) return@withContext false
-        val payload = buildJsonObject {
+    suspend fun send(text: String): Boolean = sendRaw(
+        buildJsonObject {
             put("type", "user")
             put("text", text)
-        }.toString()
+        },
+    )
+
+    /**
+     * §3.5.9: approve/deny an `approval_request` (预览卡 / 审批卡) →
+     * `{"type":"approval","id":…,"approve":…}`. cc unblocks the gated tool.
+     */
+    suspend fun sendApproval(id: String, approve: Boolean): Boolean = sendRaw(
+        buildJsonObject {
+            put("type", "approval")
+            put("id", id)
+            put("approve", approve)
+        },
+    )
+
+    /**
+     * §3.5.9: plan-card control → `{"type":"plan","action":…}`
+     * (`approve` | `reject` | `enter`).
+     */
+    suspend fun sendPlan(action: String): Boolean = sendRaw(
+        buildJsonObject {
+            put("type", "plan")
+            put("action", action)
+        },
+    )
+
+    /** Write one NDJSON input event to the agent's stdin. No-op if not running. */
+    private suspend fun sendRaw(obj: JsonObject): Boolean = withContext(Dispatchers.IO) {
+        val w = writer ?: return@withContext false
+        if (!isRunning) return@withContext false
         try {
-            w.write(payload)
+            w.write(obj.toString())
             w.write("\n")
             w.flush()
             true
@@ -256,6 +311,22 @@ class PdhAgentSession @Inject constructor(
         const val ENV_PDH_PORT = "CHAINLESSCHAIN_PDH_PORT"
         const val DEFAULT_BRIDGE_PORT = 18510
 
+        /** Appended to cc agent's default prompt so it acts as a PDH steward. */
+        val PDH_SYSTEM_PROMPT =
+            """
+            你是「个人数据助手」——帮用户管理 ta 自己手机上的个人数据。你的本职是用
+            mcp__pdh__* 工具采集、查询、分析用户的个人数据(系统数据 / 本地文件 / 各 App
+            数据),把散落在各处的数据汇入用户本地的个人数据库(vault),让用户重新掌握
+            自己的数据主权。
+            - 遇到"采集 / 查询 / 分析个人数据"类请求,优先调用 mcp__pdh__* 工具,而不是当
+              通用编程助手或凭空回答。
+            - 工具返回 assist_required(需在 App 内登录 / 打开目标 App / 授予权限 / 需 root)时,
+              把指引清楚、简短地转达用户,等用户完成后再重试该工具。
+            - 诚实:工具采到 0 条或失败就如实告知,绝不编造数据。
+            - 隐私:这些是用户的私人数据,只在本机处理,不外传。
+            - 用中文、简洁地回复。
+            """.trimIndent()
+
         /**
          * Pure: one NDJSON stream-json output line → a [PdhAgentEvent], or null
          * to skip (blank / unknown / control events). Liberal field reading so
@@ -280,8 +351,31 @@ class PdhAgentSession @Inject constructor(
                     name = str(obj, "name").ifEmpty { str(obj, "tool") },
                     input = obj["input"]?.toString(),
                 )
-                "tool_result" -> PdhAgentEvent.ToolResult(
-                    content = str(obj, "content").ifEmpty { str(obj, "text") },
+                "tool_result" -> {
+                    val content = str(obj, "content").ifEmpty { str(obj, "text") }
+                    // §3.6/§3.5.9: a tool may return status:assist_required as its
+                    // result — surface it as a 引导卡, not a plain tool result.
+                    parseAssist(content) ?: PdhAgentEvent.ToolResult(content)
+                }
+                // §3.5.9 trust cards (--interactive-approvals + plan mode).
+                "approval_request" -> PdhAgentEvent.ApprovalRequest(
+                    id = str(obj, "id"),
+                    tool = str(obj, "tool"),
+                    summary = str(obj, "command")
+                        .ifEmpty { str(obj, "reason") }
+                        .ifEmpty { str(obj, "tool") },
+                    risk = str(obj, "risk").ifEmpty { null },
+                )
+                "approval_resolved" -> PdhAgentEvent.ApprovalResolved(
+                    id = str(obj, "id"),
+                    approved = bool(obj, "approved"),
+                )
+                "plan_update" -> PdhAgentEvent.PlanUpdate(
+                    items = (obj["items"] as? JsonArray)
+                        ?.mapNotNull { (it as? JsonObject)?.let { o -> str(o, "title") } }
+                        ?.filter { it.isNotEmpty() }
+                        ?: emptyList(),
+                    phase = str(obj, "state"),
                 )
                 "result" -> PdhAgentEvent.Result(
                     // cc agent puts the final answer in the `result` field
@@ -303,6 +397,28 @@ class PdhAgentSession @Inject constructor(
         /** Boolean value of a JSON field, else false. */
         private fun bool(obj: JsonObject, key: String): Boolean =
             (obj[key] as? JsonPrimitive)?.booleanOrNull ?: false
+
+        /**
+         * §3.6/§3.5.9: a tool_result whose content is a JSON object with
+         * `status:"assist_required"` → [PdhAgentEvent.AssistRequired]; else null
+         * (a normal tool result). Pure + liberal.
+         */
+        fun parseAssist(content: String): PdhAgentEvent.AssistRequired? {
+            val c = content.trim()
+            if (c.isEmpty() || c[0] != '{') return null
+            val o = try {
+                json.parseToJsonElement(c).jsonObject
+            } catch (_: Throwable) {
+                return null
+            }
+            if (str(o, "status") != "assist_required") return null
+            return PdhAgentEvent.AssistRequired(
+                instruction = str(o, "instruction"),
+                deepLink = str(o, "deepLink").ifEmpty { null },
+                resumeToken = str(o, "resumeToken").ifEmpty { null },
+                reason = str(o, "reason").ifEmpty { null },
+            )
+        }
 
         /** Pull assistant text from the several shapes cc may emit. */
         private fun textOf(obj: JsonObject): String {
