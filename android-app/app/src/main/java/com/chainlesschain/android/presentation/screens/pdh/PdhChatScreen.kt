@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 
 /**
@@ -141,12 +142,24 @@ private fun MessageRow(role: Role, text: String) {
             color = bubbleColor,
             shape = RoundedCornerShape(12.dp),
         ) {
-            Text(
-                text = text,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = if (role == Role.SYSTEM) TextAlign.Center else TextAlign.Start,
-            )
+            val pad = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            if (role == Role.ASSISTANT) {
+                // The agent replies in Markdown — render it instead of showing
+                // raw `**`/`###`/`-` syntax.
+                MarkdownText(
+                    markdown = text,
+                    modifier = pad,
+                    textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                Text(
+                    text = text,
+                    modifier = pad,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = if (role == Role.SYSTEM) TextAlign.Center else TextAlign.Start,
+                )
+            }
         }
     }
 }

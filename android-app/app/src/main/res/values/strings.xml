@@ -352,6 +352,7 @@
     <!-- ==================== Bottom Navigation ==================== -->
     <string name="nav_home">Home</string>
     <string name="nav_projects">Projects</string>
+    <string name="nav_pdh_assistant">Assistant</string>
     <string name="nav_social">Social</string>
     <string name="nav_profile">Profile</string>
     <!-- FAMILY-06: family-guard bottom tab. See docs/design/AI陪学_v0.1_ticket_tree.md. -->

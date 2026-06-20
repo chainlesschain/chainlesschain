@@ -352,6 +352,7 @@
     <!-- ==================== Bottom Navigation ==================== -->
     <string name="nav_home">首页</string>
     <string name="nav_projects">项目</string>
+    <string name="nav_pdh_assistant">个人助手</string>
     <string name="nav_social">社交</string>
     <string name="nav_profile">我的</string>
     <!-- FAMILY-06 -->

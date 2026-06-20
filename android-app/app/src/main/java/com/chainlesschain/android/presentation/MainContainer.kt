@@ -190,13 +190,9 @@ fun MainContainer(
                         socialUnreadCount = notificationState.unreadCount
                     )
                 }
-                BottomTab.PROJECT -> key("project") {
-                    ProjectScreen(
-                        onProjectClick = onNavigateToProjectDetail,
-                        onNavigateToFileBrowser = onNavigateToFileBrowser,
-                        onNavigateToRemoteProjectBrowser = onNavigateToRemoteProjectBrowser,
-                        authViewModel = viewModel  // 传递共享的AuthViewModel实例
-                    )
+                // module 101 Phase 2: 「项目」slot 改为「个人助手」单输入框 Chat
+                BottomTab.PROJECT -> key("pdh_assistant") {
+                    com.chainlesschain.android.presentation.screens.pdh.PdhChatScreen()
                 }
                 BottomTab.SOCIAL -> key("social") {
                     SocialScreen(
