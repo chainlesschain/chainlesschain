@@ -174,6 +174,67 @@ describe("setupMcpFromConfig", () => {
     expect(out).toMatch(/cc mcp login https:\/\/mcp\.example\.com\/sse/);
   });
 
+  it("surfaces res.toolsError (connected but tools fetch failed) instead of a silent 0-tools, with auth hint on 401", async () => {
+    const client = {
+      servers: { has: () => false },
+      setSessionId() {},
+      async connect(name) {
+        // Initialize OK, but tools/list failed with auth — mirrors mcp-client.
+        return {
+          name,
+          state: "connected",
+          tools: [],
+          toolsError: "HTTP 401: Unauthorized",
+        };
+      },
+      async disconnectAll() {},
+    };
+    const errs = [];
+    const res = await setupMcpFromConfig(
+      {
+        remote: {
+          url: "https://mcp.example.com/sse",
+          headers: { Authorization: "Bearer stale" },
+        },
+      },
+      { createClient: () => client, writeErr: (s) => errs.push(s) },
+    );
+    const out = errs.join("");
+    expect(out).toMatch(/"remote" connected but tools fetch failed: HTTP 401/);
+    expect(out).toMatch(/cc mcp login https:\/\/mcp\.example\.com\/sse/);
+    // Still recorded as connected (with 0 tools) — not dropped.
+    expect(res.connected).toMatchObject([{ server: "remote", tools: 0 }]);
+  });
+
+  it("a non-auth toolsError is reported without a login hint", async () => {
+    const client = {
+      servers: { has: () => false },
+      setSessionId() {},
+      async connect(name) {
+        return {
+          name,
+          state: "connected",
+          tools: [],
+          toolsError: "HTTP 500: internal error",
+        };
+      },
+      async disconnectAll() {},
+    };
+    const errs = [];
+    await setupMcpFromConfig(
+      {
+        remote: {
+          url: "https://mcp.example.com/sse",
+          headers: { Authorization: "Bearer stale" },
+        },
+      },
+      { createClient: () => client, writeErr: (s) => errs.push(s) },
+    );
+    const out = errs.join("");
+    expect(out).toMatch(/connected but tools fetch failed: HTTP 500/);
+    expect(out).not.toMatch(/cc mcp login/);
+  });
+
   it("mcpAuthHint: returns a `cc mcp login` hint for HTTP 401/403/Unauthorized on a url server", () => {
     expect(mcpAuthHint("https://x/sse", "HTTP 401: Unauthorized")).toMatch(
       /cc mcp login https:\/\/x\/sse/,

@@ -165,6 +165,17 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     const tools = Array.isArray(res?.tools) ? res.tools : [];
     const resources = Array.isArray(res?.resources) ? res.resources : [];
     const prompts = Array.isArray(res?.prompts) ? res.prompts : [];
+    // A server can connect (initialize OK) yet have its tools/list fail — the
+    // mcp-client surfaces that as `res.toolsError` (Claude-Code 2.1.181
+    // "Connected · tools fetch failed"). Don't let it pass as a silent
+    // "0 tools": report it, and if the fetch failed on auth (401/403), reuse the
+    // same actionable `cc mcp login` hint as the connect-failure path.
+    if (res?.toolsError) {
+      let line = `  mcp: "${name}" connected but tools fetch failed: ${res.toolsError}\n`;
+      const hint = mcpAuthHint(cfg.url, res.toolsError);
+      if (hint) line += hint;
+      writeErr(line);
+    }
     connected.push({
       server: name,
       tools: tools.length,
