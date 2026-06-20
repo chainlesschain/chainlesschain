@@ -5,6 +5,11 @@
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
 
+// Cap on the in-memory bookkeeping Maps whose entries are persisted to the DB +
+// returned and never read back from the Map. profile() and registerHotUpdate
+// use a unique key per call, so without a bound they grow without limit.
+const MAX_RUNTIME_ENTRIES = 200;
+
 class UniversalRuntime extends EventEmitter {
   constructor() {
     super();
@@ -121,7 +126,7 @@ class UniversalRuntime extends EventEmitter {
       status: "completed",
       timestamp: Date.now(),
     };
-    this._hotUpdates.set(updateId, update);
+    this._capMapSet(this._hotUpdates, updateId, update);
     try {
       this.db
         .prepare(
@@ -163,7 +168,7 @@ class UniversalRuntime extends EventEmitter {
         flamegraph: type === "flamegraph" ? { frames: [], duration } : null,
       },
     };
-    this._profileData.set(id, profileResult);
+    this._capMapSet(this._profileData, id, profileResult);
     try {
       this.db
         .prepare(
@@ -186,6 +191,18 @@ class UniversalRuntime extends EventEmitter {
 
   getState(key) {
     return this._syncState.get(key) || null;
+  }
+
+  // Insert into a write-only bookkeeping Map, evicting the oldest entry once it
+  // exceeds MAX_RUNTIME_ENTRIES so per-call unique keys can't leak.
+  _capMapSet(map, key, value) {
+    if (!map.has(key) && map.size >= MAX_RUNTIME_ENTRIES) {
+      const oldest = map.keys().next().value;
+      if (oldest !== undefined) {
+        map.delete(oldest);
+      }
+    }
+    map.set(key, value);
   }
 
   getPlatformInfo() {
