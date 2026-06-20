@@ -5,6 +5,13 @@
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
 
+// Cap on retained in-memory executions. Each executeWorkflow() adds one entry
+// that is persisted to the DB but never removed, so without a bound the
+// _executions map grows forever. Only *terminal* executions are evicted (active
+// ones must stay readable for pause/resume/rollback).
+const MAX_EXECUTIONS = 500;
+const TERMINAL_EXEC_STATES = new Set(["completed", "failed", "rolled_back"]);
+
 class WorkflowEngine extends EventEmitter {
   constructor() {
     super();
@@ -12,6 +19,7 @@ class WorkflowEngine extends EventEmitter {
     this.initialized = false;
     this._workflows = new Map();
     this._executions = new Map();
+    this.maxExecutions = MAX_EXECUTIONS;
     this._templates = new Map();
     this._breakpoints = new Set();
     this._config = {
@@ -331,6 +339,7 @@ class WorkflowEngine extends EventEmitter {
     };
 
     this._executions.set(execId, execution);
+    this._evictOldExecutions();
     this.emit("workflow:started", { executionId: execId, workflowId });
 
     // Execute stages in topological order
@@ -505,6 +514,25 @@ class WorkflowEngine extends EventEmitter {
       return null;
     }
     return execution.log;
+  }
+
+  // Bound the in-memory execution map. Evicts the oldest *terminal* executions
+  // (completed/failed/rolled_back) once over MAX_EXECUTIONS; active executions
+  // are never evicted so pause/resume/rollback keep working. Evicted executions
+  // remain persisted in workflow_executions.
+  _evictOldExecutions() {
+    if (this._executions.size <= this.maxExecutions) {
+      return;
+    }
+    for (const [id, exec] of this._executions) {
+      if (!TERMINAL_EXEC_STATES.has(exec.status)) {
+        continue; // keep active executions
+      }
+      this._executions.delete(id);
+      if (this._executions.size <= this.maxExecutions) {
+        break;
+      }
+    }
   }
 
   setBreakpoint(workflowId, stageId) {
