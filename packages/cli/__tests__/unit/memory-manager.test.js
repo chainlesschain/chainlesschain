@@ -435,17 +435,6 @@ describe("memory-manager", () => {
       const content = fs.readFileSync(path.join(memDir, "MEMORY.md"), "utf8");
       expect(content).toBe("new content");
     });
-
-    it("writes MEMORY.md atomically (no .tmp leftover, content intact)", () => {
-      const memDir = path.join(tmpDir, "memory");
-      updateMemoryFile(memDir, "# v1");
-      updateMemoryFile(memDir, "# v2 content");
-      // Atomic rename → never a half-written index file.
-      expect(fs.readFileSync(path.join(memDir, "MEMORY.md"), "utf8")).toBe(
-        "# v2 content",
-      );
-      expect(fs.readdirSync(memDir).some((n) => n.endsWith(".tmp"))).toBe(false);
-    });
   });
 });
 

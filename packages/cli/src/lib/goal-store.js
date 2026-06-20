@@ -38,28 +38,6 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-/**
- * Write a goal file atomically: a crash mid-write must not truncate/corrupt an
- * existing goal (an unparseable goal file is silently dropped by getGoal's catch
- * → the user loses that goal). Temp sibling + rename (atomic within a
- * filesystem). Temp names end in `.tmp` (never `.json`), so a hard-crash
- * leftover is ignored by listGoals.
- */
-function atomicWriteFileSync(filePath, data) {
-  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    fs.writeFileSync(tmp, data, "utf-8");
-    fs.renameSync(tmp, filePath);
-  } catch (err) {
-    try {
-      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
-
 function newId(prefix) {
   // Date.now/random are fine here (plain CLI lib, not a resumable workflow).
   const rand = Math.random().toString(36).slice(2, 8);
@@ -120,7 +98,7 @@ export function createGoal(input = {}, opts = {}) {
     updatedAt: nowIso(),
   };
   ensureDir(root);
-  atomicWriteFileSync(goalFile(root, id), JSON.stringify(goal, null, 2));
+  fs.writeFileSync(goalFile(root, id), JSON.stringify(goal, null, 2), "utf-8");
   return goal;
 }
 
@@ -159,7 +137,11 @@ function saveGoal(goal, opts = {}) {
   const root = opts.root || defaultRoot();
   ensureDir(root);
   goal.updatedAt = nowIso();
-  atomicWriteFileSync(goalFile(root, goal.id), JSON.stringify(goal, null, 2));
+  fs.writeFileSync(
+    goalFile(root, goal.id),
+    JSON.stringify(goal, null, 2),
+    "utf-8",
+  );
   return goal;
 }
 

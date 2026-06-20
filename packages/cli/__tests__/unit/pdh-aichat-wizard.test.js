@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-  existsSync,
-  readdirSync,
-} from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -52,16 +46,6 @@ describe("pdh-aichat-wizard — createAccountsStore", () => {
     await s.put("openai", { cookie: "c", ts: 1 });
     expect(existsSync(s._filePath)).toBe(true);
     expect(await s.get("openai")).toEqual({ cookie: "c", ts: 1 });
-  });
-
-  it("put/delete write atomically (no .tmp leftover, round-trips)", async () => {
-    const s = createAccountsStore({ hubDir: dir });
-    await s.put("a", { n: 1 });
-    await s.put("b", { n: 2 });
-    await s.delete("a");
-    // Round-trip intact + no temp siblings left behind in the hub dir.
-    expect(await s.get("b")).toEqual({ n: 2 });
-    expect(readdirSync(dir).some((n) => n.endsWith(".tmp"))).toBe(false);
   });
 
   it("creates a missing hubDir on first put", async () => {

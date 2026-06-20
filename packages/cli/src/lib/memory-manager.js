@@ -9,27 +9,6 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Atomically write a UTF-8 file: a crash mid-write must not truncate MEMORY.md
- * (the long-term knowledge file, re-read each session). Temp sibling + rename,
- * which is atomic within a filesystem, so a reader/crash sees either the old
- * file or the complete new one.
- */
-function atomicWriteFileSync(filePath, data) {
-  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    fs.writeFileSync(tmp, data, "utf8");
-    fs.renameSync(tmp, filePath);
-  } catch (err) {
-    try {
-      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
-
-/**
  * Ensure the memory directory structure exists
  */
 function ensureMemoryDirs(memoryDir) {
@@ -167,7 +146,7 @@ export function appendDailyNote(memoryDir, content) {
     fs.appendFileSync(filePath, entry, "utf8");
   } else {
     const header = `# Daily Note: ${today}\n${entry}`;
-    atomicWriteFileSync(filePath, header);
+    fs.writeFileSync(filePath, header, "utf8");
   }
 
   return { date: today, path: filePath };
@@ -227,7 +206,7 @@ export function getMemoryFile(memoryDir) {
 export function updateMemoryFile(memoryDir, content) {
   ensureMemoryDirs(memoryDir);
   const filePath = path.join(memoryDir, "MEMORY.md");
-  atomicWriteFileSync(filePath, content);
+  fs.writeFileSync(filePath, content, "utf8");
   return { path: filePath };
 }
 

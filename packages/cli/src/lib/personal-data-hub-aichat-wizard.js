@@ -15,41 +15,11 @@
  * Reference: docs/design/Personal_Data_Hub_Phase_10_3_AIChat_WebView_Wizard.md §2 §11
  */
 
-import {
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-  unlinkSync,
-  renameSync,
-  existsSync,
-} from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 
 const _require = createRequire(import.meta.url);
-
-/**
- * Atomically persist the accounts JSON at mode 0600. The store holds AI-chat
- * vendor API keys, and `_readAll` swallows a parse error → returns {}, so a
- * crash mid-write would silently drop every saved vendor. Temp sibling (created
- * 0600 so the secret is never world-readable) + rename, atomic within a
- * filesystem. (Mirrors the config / mcp-oauth / sync-credentials / PDH-account
- * atomic-write fixes.) Exported as a test seam.
- */
-export function _atomicWriteAccounts(filePath, data) {
-  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    writeFileSync(tmp, data, { mode: 0o600 });
-    renameSync(tmp, filePath);
-  } catch (err) {
-    try {
-      if (existsSync(tmp)) unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
 
 // Lazy-load `@chainlesschain/personal-data-hub/adapters/ai-chat-history` —
 // older nested copies of the hub package (e.g. PDH 0.2.0 left in
@@ -106,7 +76,7 @@ export function createAccountsStore({ hubDir }) {
       } catch (err) {
         if (!err || err.code !== "EEXIST") throw err;
       }
-      _atomicWriteAccounts(filePath, JSON.stringify(all, null, 2));
+      writeFileSync(filePath, JSON.stringify(all, null, 2), { mode: 0o600 });
     });
     return writeChain;
   }
@@ -123,7 +93,7 @@ export function createAccountsStore({ hubDir }) {
           /* missing is fine */
         }
       } else {
-        _atomicWriteAccounts(filePath, JSON.stringify(all, null, 2));
+        writeFileSync(filePath, JSON.stringify(all, null, 2), { mode: 0o600 });
       }
     });
     return writeChain;

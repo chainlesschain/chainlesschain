@@ -20,8 +20,6 @@ import {
   writeFileSync,
   mkdirSync,
   appendFileSync,
-  renameSync,
-  unlinkSync,
 } from "node:fs";
 import { join } from "node:path";
 
@@ -31,36 +29,8 @@ export const _deps = {
   writeFileSync,
   mkdirSync,
   appendFileSync,
-  renameSync,
-  unlinkSync,
   now: () => new Date(),
 };
-
-/**
- * Atomically write a learned-template JSON via _deps. A crash mid-write would
- * truncate `<templateId>.json`; loadUserTemplate's catch then drops it, losing
- * the learned prompt extension. Temp sibling + rename (atomic within a
- * filesystem). Graceful-degrade to a direct write when the injected fs lacks
- * renameSync — the real fs always has it, so production is always atomic.
- */
-function _atomicWriteJson(file, data) {
-  if (typeof _deps.renameSync !== "function") {
-    _deps.writeFileSync(file, data, "utf-8");
-    return;
-  }
-  const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    _deps.writeFileSync(tmp, data, "utf-8");
-    _deps.renameSync(tmp, file);
-  } catch (err) {
-    try {
-      if (_deps.existsSync(tmp) && _deps.unlinkSync) _deps.unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
 
 /** Minimum historical runs before a template qualifies for a patch suggestion. */
 export const MIN_RUNS_FOR_PATCH = 10;
@@ -444,7 +414,7 @@ export function applyPromptPatch(cwd, patch) {
     updatedAt: _deps.now().toISOString(),
   };
   const file = join(dir, `${patch.templateId}.json`);
-  _atomicWriteJson(file, JSON.stringify(doc, null, 2));
+  _deps.writeFileSync(file, JSON.stringify(doc, null, 2), "utf-8");
 
   // Audit trail — never pruned automatically
   _deps.appendFileSync(

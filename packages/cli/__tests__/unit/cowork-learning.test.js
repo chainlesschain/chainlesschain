@@ -34,16 +34,6 @@ function installFullFakeFs() {
   _deps.writeFileSync = vi.fn((p, content) => {
     files.set(p, content);
   });
-  // Simulate atomic temp+rename in the in-memory fs.
-  _deps.renameSync = vi.fn((from, to) => {
-    if (files.has(from)) {
-      files.set(to, files.get(from));
-      files.delete(from);
-    }
-  });
-  _deps.unlinkSync = vi.fn((p) => {
-    files.delete(p);
-  });
   _deps.mkdirSync = vi.fn(() => {});
   _deps.appendFileSync = vi.fn((p, content) => {
     appended.set(p, (appended.get(p) || "") + content);
@@ -452,8 +442,6 @@ describe("N2: applyPromptPatch", () => {
     expect(doc.templateId).toBe("tpl-a");
     expect(doc.systemPromptExtension).toBe("Double-check assumptions.");
     expect(doc.updatedAt).toBe("2026-04-15T00:00:00.000Z");
-    // Atomic write: the temp sibling was renamed away, none left behind.
-    expect([...files.keys()].some((k) => k.endsWith(".tmp"))).toBe(false);
   });
 
   it("concatenates existing systemPromptExtension", () => {

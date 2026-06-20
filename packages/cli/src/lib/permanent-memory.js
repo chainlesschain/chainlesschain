@@ -17,34 +17,6 @@ export const _deps = {
   BM25Search,
 };
 
-/**
- * Atomically rewrite a UTF-8 file via _deps.fs. MEMORY.md is the memory index
- * (re-read every session); a crash mid-rewrite truncates it and loses the
- * index. Temp sibling + rename (atomic within a filesystem). Graceful-degrade
- * to a direct write when the injected fs has no renameSync (partial test mocks);
- * the real fs always has it, so production is always atomic.
- */
-function _atomicWriteFile(filePath, data) {
-  const fsx = _deps.fs;
-  if (typeof fsx.renameSync !== "function") {
-    fsx.writeFileSync(filePath, data, "utf-8");
-    return;
-  }
-  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    fsx.writeFileSync(tmp, data, "utf-8");
-    fsx.renameSync(tmp, filePath);
-  } catch (err) {
-    try {
-      if (fsx.existsSync && fsx.existsSync(tmp) && fsx.unlinkSync)
-        fsx.unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
-
 export class CLIPermanentMemory {
   /**
    * @param {object} options
@@ -176,13 +148,13 @@ export class CLIPermanentMemory {
           existing.slice(0, sectionIdx) +
           `${sectionHeader}\n\n${content}\n` +
           existing.slice(endIdx);
-        _atomicWriteFile(filePath, newContent);
+        _deps.fs.writeFileSync(filePath, newContent, "utf-8");
       } else {
         // Append new section
         const append = existing
           ? `\n${sectionHeader}\n\n${content}\n`
           : `# Memory\n\n${sectionHeader}\n\n${content}\n`;
-        _atomicWriteFile(filePath, existing + append);
+        _deps.fs.writeFileSync(filePath, existing + append, "utf-8");
       }
 
       this._loadMemoryFile();

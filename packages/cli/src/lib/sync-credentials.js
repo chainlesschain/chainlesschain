@@ -55,37 +55,6 @@ function _ensureDir() {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-/**
- * Write a secret file atomically. A crash (or concurrent writer) mid-write must
- * never corrupt the master key or the encrypted vault — a truncated key throws
- * on every load, a truncated vault fails AEAD decrypt and forces a reconfigure.
- * Temp sibling + rename (atomic within a filesystem); when `mode` is given the
- * temp is created with it (0600) so the secret is never world-readable in the
- * window before rename. chmod after rename is belt-and-suspenders (best-effort
- * on NTFS / older fs).
- */
-function _atomicWriteFileSync(filePath, data, mode) {
-  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  try {
-    fs.writeFileSync(tmp, data, mode != null ? { mode } : undefined);
-    fs.renameSync(tmp, filePath);
-    if (mode != null) {
-      try {
-        fs.chmodSync(filePath, mode);
-      } catch (_e) {
-        /* non-fatal: NTFS / older fs */
-      }
-    }
-  } catch (err) {
-    try {
-      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    } catch {
-      /* best-effort temp cleanup */
-    }
-    throw err;
-  }
-}
-
 function _loadOrCreateMasterKey() {
   _ensureDir();
   const kp = _keyPath();
@@ -100,10 +69,12 @@ function _loadOrCreateMasterKey() {
     return buf;
   }
   const key = crypto.randomBytes(KEY_LEN);
-  // Atomic + 0600 from creation: a crash mid-write must not leave a truncated
-  // master key (a wrong-length key file then throws on every load), and the
-  // secret must never be briefly world-readable in the gap before chmod.
-  _atomicWriteFileSync(kp, key, 0o600);
+  fs.writeFileSync(kp, key);
+  try {
+    fs.chmodSync(kp, 0o600);
+  } catch (_e) {
+    /* non-fatal: NTFS / older fs */
+  }
   return key;
 }
 
@@ -152,7 +123,7 @@ function loadAll() {
 
 function saveAll(all) {
   _ensureDir();
-  _atomicWriteFileSync(_vaultPath(), _encryptBlob(JSON.stringify(all)));
+  fs.writeFileSync(_vaultPath(), _encryptBlob(JSON.stringify(all)));
   return true;
 }
 

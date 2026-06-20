@@ -199,15 +199,6 @@ class TransactionManager extends EventEmitter {
       return;
     }
 
-    // A committed transaction must never be rolled back: doing so would run
-    // every completed step's rollback fn and undo already-committed work.
-    // Defensive callers that do `commit()` then `rollback()` previously
-    // silently reverted the whole transaction.
-    if (this.status === TransactionStatus.COMMITTED) {
-      logger.warn(`[Transaction:${this.name}] 事务已提交，无法回滚，跳过`);
-      return;
-    }
-
     this.status = TransactionStatus.ROLLING_BACK;
     logger.warn(`[Transaction:${this.name}] 开始回滚事务，共 ${this.steps.length} 个步骤`);
     this.emit('rollback-start', { stepCount: this.steps.length });

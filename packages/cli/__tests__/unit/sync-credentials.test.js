@@ -5,10 +5,9 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
-  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import {
   ALLOWED_PROVIDER_IDS,
   SENSITIVE_FIELDS,
@@ -108,16 +107,6 @@ describe("sync-credentials — set / get round-trip", () => {
     setCredentials("webdav", creds);
     expect(existsSync(_keyPath())).toBe(true);
     expect(existsSync(_vaultPath())).toBe(true);
-  });
-
-  it("writes key + vault atomically (no .tmp leftover, round-trips)", () => {
-    setCredentials("webdav", creds);
-    // Both secret files are complete + usable (atomic rename → never partial).
-    expect(getCredentials("webdav")).toEqual(creds);
-    // No temp siblings left in the credentials dir(s) after a successful write.
-    for (const d of new Set([dirname(_keyPath()), dirname(_vaultPath())])) {
-      expect(readdirSync(d).some((n) => n.endsWith(".tmp"))).toBe(false);
-    }
   });
 
   it("stores the vault encrypted (plaintext secret not on disk)", () => {
