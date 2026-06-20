@@ -10,7 +10,14 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import java.io.BufferedReader
 import java.io.File
@@ -147,7 +154,10 @@ class PdhAgentSession @Inject constructor(
     suspend fun send(text: String): Boolean = withContext(Dispatchers.IO) {
         val w = writer ?: return@withContext false
         if (!isRunning) return@withContext false
-        val payload = JSONObject().put("type", "user").put("text", text).toString()
+        val payload = buildJsonObject {
+            put("type", "user")
+            put("text", text)
+        }.toString()
         try {
             w.write(payload)
             w.write("\n")
@@ -181,49 +191,58 @@ class PdhAgentSession @Inject constructor(
          * to skip (blank / unknown / control events). Liberal field reading so
          * minor cc-side schema drift doesn't break the chat.
          */
+        private val json = Json { ignoreUnknownKeys = true }
+
         fun parseLine(line: String): PdhAgentEvent? {
             val trimmed = line.trim()
             if (trimmed.isEmpty() || trimmed[0] != '{') return null
             val obj = try {
-                JSONObject(trimmed)
+                json.parseToJsonElement(trimmed).jsonObject
             } catch (_: Throwable) {
                 return null
             }
-            return when (obj.optString("type")) {
+            return when (str(obj, "type")) {
                 "text", "assistant", "assistant_delta" -> {
                     val t = textOf(obj)
                     if (t.isEmpty()) null else PdhAgentEvent.Text(t)
                 }
                 "tool_use" -> PdhAgentEvent.ToolUse(
-                    name = obj.optString("name").ifEmpty { obj.optString("tool") },
-                    input = obj.opt("input")?.toString(),
+                    name = str(obj, "name").ifEmpty { str(obj, "tool") },
+                    input = obj["input"]?.toString(),
                 )
                 "tool_result" -> PdhAgentEvent.ToolResult(
-                    content = obj.optString("content").ifEmpty { obj.optString("text") },
+                    content = str(obj, "content").ifEmpty { str(obj, "text") },
                 )
                 "result" -> PdhAgentEvent.Result(
                     text = textOf(obj),
-                    isError = obj.optBoolean("is_error", false) ||
-                        obj.optString("subtype").contains("error"),
+                    isError = bool(obj, "is_error") || str(obj, "subtype").contains("error"),
                 )
                 "error" -> PdhAgentEvent.Error(
-                    obj.optString("message").ifEmpty { obj.optString("error").ifEmpty { "error" } },
+                    str(obj, "message").ifEmpty { str(obj, "error").ifEmpty { "error" } },
                 )
                 else -> null // system/init/token_usage/etc. — not surfaced
             }
         }
 
+        /** String value of a JSON field (string primitives only), else "". */
+        private fun str(obj: JsonObject, key: String): String =
+            (obj[key] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: ""
+
+        /** Boolean value of a JSON field, else false. */
+        private fun bool(obj: JsonObject, key: String): Boolean =
+            (obj[key] as? JsonPrimitive)?.booleanOrNull ?: false
+
         /** Pull assistant text from the several shapes cc may emit. */
-        private fun textOf(obj: JSONObject): String {
-            obj.optString("text").takeIf { it.isNotEmpty() }?.let { return it }
-            obj.optString("content").takeIf { it.isNotEmpty() }?.let { return it }
-            val msg = obj.optJSONObject("message") ?: return ""
-            msg.optString("content").takeIf { it.isNotEmpty() }?.let { return it }
-            val arr = msg.optJSONArray("content") ?: return ""
+        private fun textOf(obj: JsonObject): String {
+            str(obj, "text").takeIf { it.isNotEmpty() }?.let { return it }
+            str(obj, "content").takeIf { it.isNotEmpty() }?.let { return it }
+            val msg = obj["message"] as? JsonObject ?: return ""
+            str(msg, "content").takeIf { it.isNotEmpty() }?.let { return it }
+            val arr = msg["content"] as? JsonArray ?: return ""
             val sb = StringBuilder()
-            for (i in 0 until arr.length()) {
-                val block = arr.optJSONObject(i) ?: continue
-                if (block.optString("type") == "text") sb.append(block.optString("text"))
+            for (el in arr) {
+                val block = el as? JsonObject ?: continue
+                if (str(block, "type") == "text") sb.append(str(block, "text"))
             }
             return sb.toString()
         }
