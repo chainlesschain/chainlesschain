@@ -276,15 +276,28 @@ class PdhChatViewModel @Inject constructor(
      * 引导卡「我已完成」→ 让 agent 继续(§3.5.9 占位:发续跑 user turn;§3.5.15
      * 将升级为带 resumeToken 的结构化 resume)。
      */
-    fun completeGuide(id: String) {
-        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
-        viewModelScope.launch { session.send("我已完成上一步,请继续。") }
-    }
+    fun completeGuide(id: String) = resumeGuide(id, "completed")
 
     /** 引导卡「跳过」→ 让 agent 跳过该源、继续其余。 */
-    fun skipGuide(id: String) {
+    fun skipGuide(id: String) = resumeGuide(id, "skip")
+
+    /**
+     * §3.5.15 结构化续跑:有 resumeToken → 发 `{type:resume,token,action}`(cc 凭 token
+     * 重调 assist_required 工具,确定性);无 token → 退回 §3.5.9 的 user-turn 提示。
+     */
+    private fun resumeGuide(id: String, action: String) {
+        val card = _uiState.value.pendingCards.firstOrNull { it.id == id } as? TrustCard.Guide
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
-        viewModelScope.launch { session.send("跳过这一步,继续其余部分。") }
+        val token = card?.resumeToken
+        viewModelScope.launch {
+            if (token != null) {
+                session.sendResume(token, action)
+            } else {
+                session.send(
+                    if (action == "completed") "我已完成上一步,请继续。" else "跳过这一步,继续其余部分。",
+                )
+            }
+        }
     }
 
     /** 计划卡 → `{type:plan,action}`(`approve`|`reject`|`enter`)。 */

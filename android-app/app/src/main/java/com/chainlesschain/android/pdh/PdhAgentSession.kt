@@ -256,6 +256,14 @@ class PdhAgentSession @Inject constructor(
         comment: String? = null,
     ): Boolean = sendRaw(feedbackEvent(turnId, kind, comment))
 
+    /**
+     * §3.5.15: structured resume for a 引导卡 → `{"type":"resume","token":…,"action":…}`
+     * (`completed` | `skip`). Deterministically tells cc to re-invoke the assist_required
+     * tool with the token (vs §3.5.9's user-turn placeholder). cc-side routing is cc-bound.
+     */
+    suspend fun sendResume(token: String, action: String): Boolean =
+        sendRaw(resumeEvent(token, action))
+
     /** Write one NDJSON input event to the agent's stdin. No-op if not running. */
     private suspend fun sendRaw(obj: JsonObject): Boolean = withContext(Dispatchers.IO) {
         val w = writer ?: return@withContext false
@@ -332,6 +340,14 @@ class PdhAgentSession @Inject constructor(
                 put("turn_id", turnId)
                 put("kind", kind.name.lowercase())
                 if (!comment.isNullOrBlank()) put("comment", comment)
+            }
+
+        /** §3.5.15 pure: build the `{type:resume}` event (testable). */
+        fun resumeEvent(token: String, action: String): JsonObject =
+            buildJsonObject {
+                put("type", "resume")
+                put("token", token)
+                put("action", action)
             }
 
         /** Appended to cc agent's default prompt so it acts as a PDH steward. */

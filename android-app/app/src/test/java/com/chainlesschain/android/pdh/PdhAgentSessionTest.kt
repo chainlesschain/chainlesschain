@@ -241,4 +241,20 @@ class PdhAgentSessionTest {
         assertTrue(s.contains("\"kind\":\"negative\""))
         assertFalse(s.contains("comment"))
     }
+
+    // ── §3.5.15 resume events ─────────────────────────────────────────────
+
+    @Test
+    fun resume_event_completed() {
+        val s = PdhAgentSession.resumeEvent("rt-9", "completed").toString()
+        assertTrue(s.contains("\"type\":\"resume\""))
+        assertTrue(s.contains("\"token\":\"rt-9\""))
+        assertTrue(s.contains("\"action\":\"completed\""))
+    }
+
+    @Test
+    fun resume_event_skip() {
+        val s = PdhAgentSession.resumeEvent("rt-9", "skip").toString()
+        assertTrue(s.contains("\"action\":\"skip\""))
+    }
 }
