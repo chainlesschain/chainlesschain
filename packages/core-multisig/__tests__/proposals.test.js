@@ -631,3 +631,111 @@ describe("proposals.get + governance log integration", () => {
     expect(store.getProposal(p2.id).state).toBe("expired");
   });
 });
+
+describe("proposals — requirePqc enforcement (security regression)", () => {
+  let store;
+  beforeEach(() => {
+    store = setupStore();
+  });
+
+  it("snapshots requirePqc onto the proposal", () => {
+    const mgr = createProposalsManager(store);
+    const { policy, secretKeys, members } = setupPolicy({
+      m: 2,
+      n: 3,
+      withPqc: true,
+      requirePqc: true,
+    });
+    const { proposal } = mgr.propose({
+      domain: policy.domain,
+      payload: { orderId: "o-pqc" },
+      policy,
+      // initiator is an Ed25519 member (members[0] is the SLH-DSA one)
+      initiator: {
+        did: members[1].did,
+        alg: members[1].alg,
+        secretKey: secretKeys[members[1].did],
+      },
+    });
+    expect(store.getProposal(proposal.id).requirePqc).toBe(true);
+  });
+
+  it("requirePqc=true: M valid Ed25519 sigs alone do NOT reach threshold — needs ≥1 PQC sig", () => {
+    const mgr = createProposalsManager(store);
+    // members[0] = SLH-DSA, members[1]/[2] = Ed25519
+    const { policy, secretKeys, members } = setupPolicy({
+      m: 2,
+      n: 3,
+      withPqc: true,
+      requirePqc: true,
+    });
+    const { proposal, reachedThreshold } = mgr.propose({
+      domain: policy.domain,
+      payload: { orderId: "o-pqc" },
+      policy,
+      initiator: {
+        did: members[1].did,
+        alg: members[1].alg,
+        secretKey: secretKeys[members[1].did],
+      },
+    });
+    expect(reachedThreshold).toBe(false);
+
+    // Second Ed25519 sig → 2 valid sigs == m, but still 0 PQC sigs.
+    const r2 = mgr.sign({
+      proposalId: proposal.id,
+      signer: {
+        did: members[2].did,
+        alg: members[2].alg,
+        secretKey: secretKeys[members[2].did],
+      },
+    });
+    expect(r2.accepted).toBe(true);
+    // Regression: before requirePqc was snapshotted, this wrongly returned true.
+    expect(r2.reachedThreshold).toBe(false);
+    expect(store.getProposal(proposal.id).state).toBe("pending");
+
+    // SLH-DSA member signs → PQC requirement satisfied → reached.
+    const r3 = mgr.sign({
+      proposalId: proposal.id,
+      signer: {
+        did: members[0].did,
+        alg: members[0].alg,
+        secretKey: secretKeys[members[0].did],
+      },
+    });
+    expect(r3.accepted).toBe(true);
+    expect(r3.reachedThreshold).toBe(true);
+    expect(store.getProposal(proposal.id).state).toBe("reached");
+  });
+
+  it("requirePqc=false: M Ed25519 sigs reach threshold (control)", () => {
+    const mgr = createProposalsManager(store);
+    const { policy, secretKeys, members } = setupPolicy({
+      m: 2,
+      n: 3,
+      withPqc: true,
+      requirePqc: false,
+    });
+    const { proposal } = mgr.propose({
+      domain: policy.domain,
+      payload: { orderId: "o-noreq" },
+      policy,
+      initiator: {
+        did: members[1].did,
+        alg: members[1].alg,
+        secretKey: secretKeys[members[1].did],
+      },
+    });
+    const r2 = mgr.sign({
+      proposalId: proposal.id,
+      signer: {
+        did: members[2].did,
+        alg: members[2].alg,
+        secretKey: secretKeys[members[2].did],
+      },
+    });
+    expect(r2.reachedThreshold).toBe(true);
+    expect(store.getProposal(proposal.id).state).toBe("reached");
+  });
+});

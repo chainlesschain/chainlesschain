@@ -120,6 +120,11 @@ function createProposalsManager(store, options = {}) {
       expiresAtMs,
       thresholdM: policy.m,
       memberSet: policy.members,
+      // Snapshot requirePqc so the PQC-signature requirement is enforced at
+      // threshold time (verifyThreshold). Snapshotting (not re-reading the
+      // live policy) prevents weakening it by mutating the policy after the
+      // proposal exists — mirrors why members/m are snapshotted + signed.
+      requirePqc: policy.requirePqc === true,
       state: "pending",
       initiatorDid: initiator.did,
       createdAtMs,
@@ -434,11 +439,13 @@ function createProposalsManager(store, options = {}) {
     };
     const signingInput = canonicalizeForSigning(signingCore);
 
-    // 用 policy 蜕化形式（normalize 已做过；这里只重建必要字段）
+    // 用 policy 蜕化形式（normalize 已做过；这里只重建必要字段）。
+    // requirePqc 取自 proposal 快照 — 若 policy 要求 PQC，则 threshold 必须
+    // 含 ≥1 个有效 SLH-DSA 签名才算 reached（verifyThreshold 内强制）。
     const policyForVerify = {
       m: proposal.thresholdM,
       members: proposal.memberSet,
-      requirePqc: false, // policy.requirePqc 不持久化到 proposal（snapshot 时已校验过）
+      requirePqc: proposal.requirePqc === true,
     };
     const result = verifyThreshold(signingInput, sigs, policyForVerify);
     if (result.reached) {

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS multisig_proposals (
     expires_at_ms   INTEGER NOT NULL,
     threshold_m     INTEGER NOT NULL,
     member_set      TEXT    NOT NULL,
+    require_pqc     INTEGER NOT NULL DEFAULT 0,
     state           TEXT    NOT NULL CHECK(state IN ('pending', 'reached', 'consumed', 'cancelled', 'expired')),
     initiator_did   TEXT    NOT NULL,
     created_at_ms   INTEGER NOT NULL,
@@ -61,6 +62,21 @@ function applySchema(db) {
     throw new TypeError("applySchema: db.exec is required (better-sqlite3 or sql.js)");
   }
   db.exec(DDL);
+  // Migration: snapshot the policy's requirePqc onto each proposal so the
+  // post-quantum-signature requirement is enforced at threshold time, not
+  // dropped (it must NOT be re-read from the live policy, which could be
+  // mutated after the proposal was created). Pre-existing DBs created before
+  // this column was added get it via ADD COLUMN; fresh DBs already have it
+  // from the CREATE TABLE above (the ALTER then throws "duplicate column
+  // name", which is the idempotent no-op we swallow).
+  try {
+    db.exec(
+      `ALTER TABLE multisig_proposals ADD COLUMN require_pqc INTEGER NOT NULL DEFAULT 0`,
+    );
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    if (!/duplicate column name/i.test(msg)) throw err;
+  }
 }
 
 module.exports = { DDL, applySchema };

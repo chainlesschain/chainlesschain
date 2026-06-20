@@ -22,6 +22,7 @@
  * @property {number} expiresAtMs
  * @property {number} thresholdM
  * @property {Array}  memberSet
+ * @property {boolean} requirePqc      - snapshot of policy.requirePqc (≥1 PQC sig required to reach)
  * @property {string} state            - 'pending' | 'reached' | 'consumed' | 'cancelled' | 'expired'
  * @property {string} initiatorDid
  * @property {number} createdAtMs
@@ -51,6 +52,7 @@ function _rowToProposal(row) {
     expiresAtMs: Number(row.expires_at_ms),
     thresholdM: Number(row.threshold_m),
     memberSet: JSON.parse(row.member_set),
+    requirePqc: Boolean(row.require_pqc),
     state: row.state,
     initiatorDid: row.initiator_did,
     createdAtMs: Number(row.created_at_ms),
@@ -81,8 +83,8 @@ function createStore(db) {
       db.prepare(
         `INSERT INTO multisig_proposals
          (id, domain, payload_jcs, payload_hash, nonce, expires_at_ms,
-          threshold_m, member_set, state, initiator_did, created_at_ms, updated_at_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          threshold_m, member_set, require_pqc, state, initiator_did, created_at_ms, updated_at_ms)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         p.id,
         p.domain,
@@ -92,6 +94,7 @@ function createStore(db) {
         p.expiresAtMs,
         p.thresholdM,
         JSON.stringify(p.memberSet),
+        p.requirePqc ? 1 : 0,
         p.state,
         p.initiatorDid,
         p.createdAtMs,
