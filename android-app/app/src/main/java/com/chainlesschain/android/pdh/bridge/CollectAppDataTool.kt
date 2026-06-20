@@ -111,6 +111,8 @@ class CollectAppDataTool(
     private fun toSnap(r: BilibiliLocalCollector.SnapshotResult): Snap = when (r) {
         is BilibiliLocalCollector.SnapshotResult.Ok -> Snap(r.snapshotPath, r.totalEvents, false, null)
         is BilibiliLocalCollector.SnapshotResult.NoCredentials -> Snap(null, 0, true, null)
+        // Stale/incomplete cookie → treat as "needs login again" (assist).
+        is BilibiliLocalCollector.SnapshotResult.StaleCookie -> Snap(null, 0, true, null)
         is BilibiliLocalCollector.SnapshotResult.Failed -> Snap(null, 0, false, r.reason)
     }
 
