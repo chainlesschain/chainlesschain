@@ -266,3 +266,39 @@ describe("edit_file_hashed", () => {
     expect(result.error).toBe("new_line must be a string");
   });
 });
+
+describe("edit_file — new_string with $ sequences is inserted literally", () => {
+  let tempDir;
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cc-edit-dollar-"));
+  });
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("does not treat $$, $&, $`, $' in new_string as replace patterns", async () => {
+    const filePath = join(tempDir, "s.sh");
+    writeFileSync(filePath, "echo PLACEHOLDER", "utf8");
+    // A shell line full of String.replace special sequences.
+    const literal = "pid=$$ all=$& pre=$` post=$'";
+    const result = await executeTool(
+      "edit_file",
+      { path: "s.sh", old_string: "PLACEHOLDER", new_string: literal },
+      { cwd: tempDir },
+    );
+    expect(result.success).toBe(true);
+    // The file must contain the new_string byte-for-byte (no pattern expansion).
+    expect(readFileSync(filePath, "utf8")).toBe(`echo ${literal}`);
+  });
+
+  it("preserves a literal $$ (was collapsing to a single $)", async () => {
+    const filePath = join(tempDir, "p.txt");
+    writeFileSync(filePath, "X", "utf8");
+    await executeTool(
+      "edit_file",
+      { path: "p.txt", old_string: "X", new_string: "$$" },
+      { cwd: tempDir },
+    );
+    expect(readFileSync(filePath, "utf8")).toBe("$$");
+  });
+});
