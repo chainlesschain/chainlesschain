@@ -111,6 +111,28 @@ function looksBinary(buf) {
 }
 
 /**
+ * Read at most `limit` bytes from the start of a file. A plain `@file` only
+ * ever shows the first `maxBytes`, so reading the whole thing into memory first
+ * (readFileSync) would allocate the entire file — pointless for a 300 MB log and
+ * a hard failure for files > 2 GB. We read `limit` bytes so truncation can still
+ * be detected (caller passes maxBytes + 1). Falls back to readFileSync if the
+ * injected fs lacks the lower-level calls.
+ */
+function readBoundedFile(fs, abs, limit) {
+  if (typeof fs.openSync !== "function" || typeof fs.readSync !== "function") {
+    return fs.readFileSync(abs);
+  }
+  const fd = fs.openSync(abs, "r");
+  try {
+    const buf = Buffer.alloc(limit);
+    const n = fs.readSync(fd, buf, 0, limit, 0);
+    return buf.subarray(0, n);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
  * Resolve a single raw token to an injectable ref descriptor, or null when it
  * does not resolve to an existing path. Tries the literal path first, then a
  * trailing-punctuation-stripped variant (handles "see @config.json.").
@@ -159,9 +181,15 @@ function resolveRef(raw, { cwd, fs, path, maxBytes, maxDirEntries }) {
       };
     }
     if (stat.isFile()) {
+      // PDFs (pdf-parse needs the bytes) and line ranges (must reach the end
+      // line) need the whole file; a plain inline only ever shows the first
+      // maxBytes, so cap the read there instead of slurping the entire file.
+      const needsWholeFile = isPdf(fsPath) || range != null;
       let buf;
       try {
-        buf = fs.readFileSync(abs);
+        buf = needsWholeFile
+          ? fs.readFileSync(abs)
+          : readBoundedFile(fs, abs, maxBytes + 1);
       } catch (err) {
         return {
           kind: "error",

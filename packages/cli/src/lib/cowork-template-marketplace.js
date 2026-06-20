@@ -22,6 +22,7 @@ import {
   writeFileSync,
   readdirSync,
   unlinkSync,
+  renameSync,
 } from "node:fs";
 import { join } from "node:path";
 
@@ -32,9 +33,37 @@ export const _deps = {
   writeFileSync,
   readdirSync,
   unlinkSync,
+  renameSync,
   // Injected at runtime by CLI to avoid eager evomap-client load
   evomapClient: null,
 };
+
+/**
+ * Atomically write a JSON file via _deps. A user template (<id>.json) is
+ * persistent state; a crash mid-write truncates it and listUserTemplates /
+ * loadUserTemplate's JSON.parse then drops or throws on it. Temp sibling +
+ * rename (atomic within a filesystem). Graceful-degrade to a direct write when
+ * the injected fs lacks renameSync — the real fs always has it, so production
+ * is always atomic.
+ */
+function _atomicWriteJson(file, data) {
+  if (typeof _deps.renameSync !== "function") {
+    _deps.writeFileSync(file, data, "utf-8");
+    return;
+  }
+  const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    _deps.writeFileSync(tmp, data, "utf-8");
+    _deps.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      if (_deps.existsSync(tmp) && _deps.unlinkSync) _deps.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
 
 const EVOMAP_CATEGORY = "cowork-template";
 
@@ -150,10 +179,9 @@ export function saveUserTemplate(cwd, template) {
   if (!template?.id) throw new Error("template.id is required");
   const dir = _userTemplatesDir(cwd);
   _deps.mkdirSync(dir, { recursive: true });
-  _deps.writeFileSync(
+  _atomicWriteJson(
     _userTemplateFile(cwd, template.id),
     JSON.stringify(template, null, 2),
-    "utf-8",
   );
   return template;
 }

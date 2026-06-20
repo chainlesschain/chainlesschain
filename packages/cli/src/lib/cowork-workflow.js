@@ -29,6 +29,7 @@ import {
   readdirSync,
   unlinkSync,
   appendFileSync,
+  renameSync,
 } from "node:fs";
 import { join } from "node:path";
 import { evaluate as evalExpr, resolveReference } from "./workflow-expr.js";
@@ -47,6 +48,7 @@ export const _deps = {
   readdirSync,
   unlinkSync,
   appendFileSync,
+  renameSync,
   now: () => Date.now(),
   runTask: null, // injected by CLI
   // Timer seams (injectable for deterministic retry/timeout tests).
@@ -54,6 +56,32 @@ export const _deps = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (t) => clearTimeout(t),
 };
+
+/**
+ * Atomically write a JSON file via _deps. A saved workflow definition is
+ * persistent user state; a crash mid-write truncates <id>.json and getWorkflow
+ * then fails to parse it. Temp sibling + rename (atomic within a filesystem).
+ * Graceful-degrade to a direct write when the injected fs lacks renameSync — the
+ * real fs always has it, so production is always atomic.
+ */
+function _atomicWriteJson(file, data) {
+  if (typeof _deps.renameSync !== "function") {
+    _deps.writeFileSync(file, data, "utf-8");
+    return;
+  }
+  const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    _deps.writeFileSync(tmp, data, "utf-8");
+    _deps.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      if (_deps.existsSync(tmp) && _deps.unlinkSync) _deps.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
@@ -376,11 +404,7 @@ export function saveWorkflow(cwd, wf) {
   if (!valid) throw new Error(`Invalid workflow: ${errors.join("; ")}`);
   const dir = workflowsDir(cwd);
   _deps.mkdirSync(dir, { recursive: true });
-  _deps.writeFileSync(
-    workflowFile(cwd, wf.id),
-    JSON.stringify(wf, null, 2),
-    "utf-8",
-  );
+  _atomicWriteJson(workflowFile(cwd, wf.id), JSON.stringify(wf, null, 2));
   return wf;
 }
 

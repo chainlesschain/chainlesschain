@@ -35,7 +35,11 @@ function makeFs(files, dirs = {}) {
   for (const [rel, entries] of Object.entries(dirs)) {
     dirMap.set(path.resolve(cwd, rel), entries);
   }
+  const fds = new Map();
+  let nextFd = 100;
+  const calls = { readFileSyncBytes: 0, readSyncBytes: 0 };
   return {
+    _calls: calls, // test-only instrumentation
     statSync(abs) {
       if (fileMap.has(abs)) {
         const b = fileMap.get(abs);
@@ -54,7 +58,29 @@ function makeFs(files, dirs = {}) {
         err.code = "ENOENT";
         throw err;
       }
-      return fileMap.get(abs);
+      const b = fileMap.get(abs);
+      calls.readFileSyncBytes += b.length;
+      return b;
+    },
+    openSync(abs) {
+      if (!fileMap.has(abs)) {
+        const err = new Error(`ENOENT: ${abs}`);
+        err.code = "ENOENT";
+        throw err;
+      }
+      const fd = nextFd++;
+      fds.set(fd, fileMap.get(abs));
+      return fd;
+    },
+    readSync(fd, buffer, offset, length, position) {
+      const src = fds.get(fd);
+      const start = position == null ? 0 : position;
+      const n = src.copy(buffer, offset, start, Math.min(start + length, src.length));
+      calls.readSyncBytes += n;
+      return n;
+    },
+    closeSync(fd) {
+      fds.delete(fd);
     },
     readdirSync(abs) {
       const entries = dirMap.get(abs) || [];
@@ -143,6 +169,21 @@ describe("expandFileRefs", () => {
     expect(r.prompt).toContain("[truncated");
     // only the first 10 bytes are inlined
     expect(r.prompt).toContain("xxxxxxxxxx");
+  });
+
+  it("does not read the whole file when only the first maxBytes are shown", () => {
+    const fs = makeFs({ "big.txt": "x".repeat(50_000) });
+    const r = expandFileRefs("read @big.txt", {
+      cwd,
+      deps: { fs },
+      maxBytes: 100,
+    });
+    expect(r.refs[0].truncated).toBe(true);
+    expect(r.refs[0].bytes).toBe(50_000); // full size still reported
+    // The plain inline path reads a bounded slice (maxBytes + 1), never slurps
+    // the whole 50 KB file into memory.
+    expect(fs._calls.readFileSyncBytes).toBe(0);
+    expect(fs._calls.readSyncBytes).toBeLessThanOrEqual(101);
   });
 
   it("handles trailing sentence punctuation around the token", () => {

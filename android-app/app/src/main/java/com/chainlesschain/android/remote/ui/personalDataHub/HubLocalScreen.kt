@@ -225,34 +225,6 @@ fun HubLocalScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         ) {
             item("header") { ScreenHeader() }
-            // 采集前权限引导(§3.6)— 缺联系人权限时,采集只得已装应用、联系人为 0。
-            // 横幅 + 授予按钮 → 运行时权限对话框,而非只在结果里文字提示。
-            if (!state.systemData.contactsPermissionGranted) {
-                item("collect-perm-banner") {
-                    Spacer(Modifier.height(12.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                "采集联系人需授予权限，授予后可采集更完整的本机数据。",
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            )
-                            Button(onClick = {
-                                permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                            }) { Text("授予") }
-                        }
-                    }
-                }
-            }
             item("quick-collect") {
                 // ③ 一键采集（免登录）— fills an empty vault in one tap (system-data;
                 // social/root collectors stay per-card below since they need login/root).

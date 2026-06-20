@@ -15,7 +15,14 @@
  * @module cowork-share
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 import crypto, { createHash } from "node:crypto";
 import {
@@ -29,8 +36,37 @@ export const _deps = {
   mkdirSync,
   readFileSync,
   writeFileSync,
+  renameSync,
+  unlinkSync,
   now: () => new Date().toISOString(),
 };
+
+/**
+ * Atomically write a JSON file via _deps. Imported result packets are persistent
+ * local state (shared-results/<taskId>.json) and exported packets are read by
+ * other tools — a crash mid-write must not leave a truncated/invalid packet
+ * (verifyPacket/readPacket would reject it). Temp sibling + rename (atomic
+ * within a filesystem). Graceful-degrade to a direct write when the injected fs
+ * lacks renameSync — the real fs always has it, so production is always atomic.
+ */
+function _atomicWriteJson(file, data) {
+  if (typeof _deps.renameSync !== "function") {
+    _deps.writeFileSync(file, data, "utf-8");
+    return;
+  }
+  const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    _deps.writeFileSync(tmp, data, "utf-8");
+    _deps.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      if (_deps.existsSync(tmp) && _deps.unlinkSync) _deps.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
 
 const SUPPORTED_SIG_ALG = "Ed25519";
 
@@ -256,7 +292,7 @@ export function findHistoryRecord(cwd, taskId) {
  * Write a packet to disk as pretty-printed JSON.
  */
 export function writePacket(filePath, packet) {
-  _deps.writeFileSync(filePath, JSON.stringify(packet, null, 2), "utf-8");
+  _atomicWriteJson(filePath, JSON.stringify(packet, null, 2));
   return filePath;
 }
 
@@ -317,7 +353,7 @@ export function importResultPacket(cwd, packet) {
   const dir = join(cwd, ".chainlesschain", "cowork", "shared-results");
   _deps.mkdirSync(dir, { recursive: true });
   const file = join(dir, `${packet.payload.taskId}.json`);
-  _deps.writeFileSync(file, JSON.stringify(packet, null, 2), "utf-8");
+  _atomicWriteJson(file, JSON.stringify(packet, null, 2));
   return { file, taskId: packet.payload.taskId };
 }
 

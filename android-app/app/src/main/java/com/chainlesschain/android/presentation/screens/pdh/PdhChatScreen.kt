@@ -1,11 +1,5 @@
 package com.chainlesschain.android.presentation.screens.pdh
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,8 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -68,16 +59,6 @@ fun PdhChatScreen(
         if (total > 0) listState.animateScrollToItem(total - 1)
     }
 
-    // §3.6 human-in-loop: collect_system_data reads contacts (and files), which
-    // need runtime grants. Surface a one-tap request when missing — MIUI blocks
-    // adb `pm grant` but the runtime dialog still works.
-    val context = LocalContext.current
-    val dataPermissions = remember { dataCollectionPermissions() }
-    var missingPerms by remember { mutableStateOf(missingPermissions(context, dataPermissions)) }
-    val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { missingPerms = missingPermissions(context, dataPermissions) }
-
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("个人数据助手") })
@@ -100,12 +81,6 @@ fun PdhChatScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-            }
-
-            if (missingPerms.isNotEmpty()) {
-                PermissionBanner(
-                    onGrant = { permLauncher.launch(missingPerms.toTypedArray()) },
-                )
             }
 
             LazyColumn(
@@ -221,45 +196,3 @@ private fun InputBar(
         }
     }
 }
-
-@Composable
-private fun PermissionBanner(onGrant: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "采集联系人 / 本地文件需要权限，授予后可采集更完整的个人数据。",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-            Button(onClick = onGrant) { Text("授予") }
-        }
-    }
-}
-
-/** Runtime permissions the data collectors benefit from (SDK-aware). */
-private fun dataCollectionPermissions(): List<String> = buildList {
-    add(Manifest.permission.READ_CONTACTS)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        add(Manifest.permission.READ_MEDIA_IMAGES)
-        add(Manifest.permission.READ_MEDIA_VIDEO)
-        add(Manifest.permission.READ_MEDIA_AUDIO)
-    } else {
-        @Suppress("DEPRECATION")
-        add(Manifest.permission.READ_EXTERNAL_STORAGE)
-    }
-}
-
-/** Subset of [perms] not yet granted. */
-private fun missingPermissions(context: Context, perms: List<String>): List<String> =
-    perms.filter {
-        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-    }

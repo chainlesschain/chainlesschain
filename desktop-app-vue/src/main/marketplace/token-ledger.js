@@ -128,6 +128,10 @@ class TokenLedger extends EventEmitter {
     }
     const id = uuidv4();
     const tokensEarned = (qualityScore || 0.5) * this._rewardMultiplier * 10;
+    const createdAt = Date.now();
+    // balance_after must reflect the post-reward balance, but we only advance
+    // the in-memory balance once the rows are durably persisted (see below).
+    const newBalance = this._balance + tokensEarned;
     const contribution = {
       id,
       type,
@@ -136,29 +140,31 @@ class TokenLedger extends EventEmitter {
       quality_score: qualityScore || 0.5,
       tokens_earned: tokensEarned,
       description: description || "",
-      created_at: Date.now(),
+      created_at: createdAt,
     };
-    // Add reward transaction
-    this._balance += tokensEarned;
     const txId = uuidv4();
     const tx = {
       id: txId,
       type: TX_TYPE.REWARD,
       amount: tokensEarned,
-      balance_after: this._balance,
+      balance_after: newBalance,
       description: `Reward for ${type} contribution`,
       from_did: "system",
       to_did: contributorDid || "self",
       skill_id: resourceId,
       reputation_weight: 1.0,
-      created_at: Date.now(),
+      created_at: createdAt,
     };
     if (this.database && this.database.db) {
-      this.database.db
-        .prepare(
+      const db = this.database.db;
+      // Persist the contribution + transaction atomically and BEFORE mutating
+      // in-memory state. Previously the balance was incremented first with no
+      // transaction, so a failed/partial DB write left the in-memory balance
+      // ahead of the persisted ledger (and the two inserts could half-apply).
+      const persist = db.transaction(() => {
+        db.prepare(
           `INSERT INTO contributions (id,type,contributor_did,resource_id,quality_score,tokens_earned,description,created_at) VALUES (?,?,?,?,?,?,?,?)`,
-        )
-        .run(
+        ).run(
           id,
           type,
           contribution.contributor_did,
@@ -168,11 +174,9 @@ class TokenLedger extends EventEmitter {
           contribution.description,
           contribution.created_at,
         );
-      this.database.db
-        .prepare(
+        db.prepare(
           `INSERT INTO token_transactions (id,type,amount,balance_after,description,from_did,to_did,skill_id,reputation_weight,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        )
-        .run(
+        ).run(
           txId,
           tx.type,
           tx.amount,
@@ -184,7 +188,12 @@ class TokenLedger extends EventEmitter {
           tx.reputation_weight,
           tx.created_at,
         );
+      });
+      persist(); // throws on failure → in-memory state below is left untouched
     }
+    // Commit in-memory state only after a successful persist (or when running
+    // without a database).
+    this._balance = newBalance;
     this._transactions.unshift(tx);
     this.emit("contribution-submitted", contribution);
     logger.info(
@@ -208,6 +217,27 @@ class TokenLedger extends EventEmitter {
   }
 
   async getRewardsSummary() {
+    // Aggregate over the full persisted ledger. The in-memory cache only holds
+    // the most recent 100 transactions, so reducing it under-reported
+    // totalRewards/rewardCount once a user had more than 100 transactions.
+    if (this.database && this.database.db) {
+      try {
+        const row = this.database.db
+          .prepare(
+            "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS cnt FROM token_transactions WHERE type = ?",
+          )
+          .get(TX_TYPE.REWARD);
+        return {
+          totalRewards: row.total,
+          rewardCount: row.cnt,
+          currentBalance: this._balance,
+          rewardMultiplier: this._rewardMultiplier,
+        };
+      } catch (err) {
+        logger.error("[TokenLedger] Failed to compute rewards summary:", err);
+        // fall through to the in-memory approximation
+      }
+    }
     const rewards = this._transactions.filter((t) => t.type === TX_TYPE.REWARD);
     return {
       totalRewards: rewards.reduce((sum, r) => sum + r.amount, 0),

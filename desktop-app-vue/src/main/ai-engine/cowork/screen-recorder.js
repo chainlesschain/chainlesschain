@@ -44,6 +44,11 @@ const DEFAULT_CONFIG = {
   changeThreshold: 0.1,
 };
 
+// Upper bound on retained capture-result entries (each holds a base64
+// screenshot). Recording sessions are exempt from this cap. See
+// _evictOldCaptures.
+const MAX_CACHED_CAPTURES = 200;
+
 // ============================================================
 // ScreenRecorder Class
 // ============================================================
@@ -163,6 +168,7 @@ class ScreenRecorder extends EventEmitter {
       };
 
       this.captures.set(captureId, result);
+      this._evictOldCaptures();
       this.emit("capture:completed", { captureId, hasOCR: ocrText.length > 0 });
 
       return result;
@@ -239,12 +245,38 @@ class ScreenRecorder extends EventEmitter {
       frames: session.frames,
     };
 
+    // The session is returned here and never read from the map again — drop it
+    // so finished recordings don't accumulate in `captures`.
+    this.captures.delete(sessionId);
+
     this.emit("recording:stopped", result);
     logger.info(
       `[ScreenRecorder] Recording stopped: ${sessionId} (${result.frameCount} frames)`,
     );
 
     return result;
+  }
+
+  /**
+   * Bound the in-memory capture cache. Capture results (each holding a base64
+   * screenshot) are emitted + returned but never retrieved by key, so without a
+   * cap a recording — one capture per keyframe — grows `captures` unbounded.
+   * Active recording sessions (which carry a `frames` array and are read back by
+   * stopRecording) are never evicted.
+   */
+  _evictOldCaptures() {
+    if (this.captures.size <= MAX_CACHED_CAPTURES) {
+      return;
+    }
+    for (const [key, val] of this.captures) {
+      if (val && Array.isArray(val.frames)) {
+        continue; // recording session — keep
+      }
+      this.captures.delete(key);
+      if (this.captures.size <= MAX_CACHED_CAPTURES) {
+        break;
+      }
+    }
   }
 
   /**

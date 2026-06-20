@@ -202,6 +202,30 @@ describe("token store + expiry", () => {
     expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
   });
 
+  it("writes the token file owner-only (0600 file, 0700 dir, chmod enforced)", () => {
+    const cap = { write: null, mkdir: null, chmod: null };
+    _deps.fs = {
+      existsSync: () => false,
+      readFileSync: () => "{}",
+      mkdirSync: (_p, opts) => {
+        cap.mkdir = opts && opts.mode;
+      },
+      writeFileSync: (_p, _c, opts) => {
+        cap.write = opts && opts.mode;
+      },
+      chmodSync: (_p, mode) => {
+        cap.chmod = mode;
+      },
+    };
+    oauth.saveStoredToken("https://m.example.com", {
+      access_token: "AT",
+      refresh_token: "RT",
+    });
+    expect(cap.write).toBe(0o600); // token file not world-readable
+    expect(cap.mkdir).toBe(0o700); // dir not world-listable
+    expect(cap.chmod).toBe(0o600); // enforced even if the file pre-existed
+  });
+
   it("isTokenExpired: missing token, within skew, valid", () => {
     expect(oauth.isTokenExpired(null)).toBe(true);
     expect(oauth.isTokenExpired({ access_token: "AT" })).toBe(false); // no expiry

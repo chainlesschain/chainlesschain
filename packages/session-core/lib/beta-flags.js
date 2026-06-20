@@ -95,8 +95,15 @@ class BetaFlags extends EventEmitter {
     if (!this._store?.load) return;
     const flags = await this._store.load();
     if (Array.isArray(flags)) {
-      this._enabled = new Set(flags);
-      for (const f of flags) this._known.add(f);
+      // Honor strict mode on the persistence path too: enable() rejects
+      // malformed flags, but a hand-edited or older-version store file would
+      // otherwise smuggle them straight into _enabled, breaking the invariant
+      // that strict mode only ever holds valid <feature>-<YYYY-MM-DD> flags.
+      const accepted = this._strict
+        ? flags.filter((f) => BetaFlags.validFlag(f))
+        : flags;
+      this._enabled = new Set(accepted);
+      for (const f of accepted) this._known.add(f);
     }
   }
 

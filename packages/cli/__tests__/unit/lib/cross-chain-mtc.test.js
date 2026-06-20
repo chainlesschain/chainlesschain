@@ -161,6 +161,8 @@ describe("cross-chain-mtc lib", () => {
       const reloaded = loadCrossChainMtcConfig(dir);
       expect(reloaded.enabled).toBe(true);
       expect(reloaded.mode).toBe("federated");
+      // Atomic write: no temp sibling left behind in the store dir.
+      expect(fs.readdirSync(dir).some((n) => n.endsWith(".tmp"))).toBe(false);
     });
 
     it("rejects invalid mode", () => {

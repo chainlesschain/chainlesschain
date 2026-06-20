@@ -1005,6 +1005,58 @@ describe("federation-governance", () => {
       expect(r.events_count).toBe(2);
     });
 
+    describe("opt-in cryptographic signature verification", () => {
+      function cleanLog() {
+        const aliceKeys = ed25519.generateKeyPair();
+        const log = [
+          ev({
+            eventType: "create",
+            actor: "alice",
+            keys: aliceKeys,
+            payload: {
+              bootstrap_member_id: "alice",
+              bootstrap_pubkey_id: aliceKeys.pubkeyId,
+            },
+          }),
+          ev({ eventType: "leave", actor: "alice", keys: aliceKeys }),
+        ];
+        const getPublicKey = (_m, keyId) =>
+          keyId === aliceKeys.pubkeyId ? aliceKeys.publicKey : null;
+        return { log, getPublicKey };
+      }
+
+      it("clean log still passes with getPublicKey (signatures verify)", () => {
+        const { log, getPublicKey } = cleanLog();
+        const r = auditGovernanceLog(log, "fed-test", { getPublicKey });
+        expect(r.ok).toBe(true);
+        expect(r.findings).toHaveLength(0);
+      });
+
+      it("flags FORGED_SIGNATURE when a signature is tampered", () => {
+        const { log, getPublicKey } = cleanLog();
+        // Tamper the second event's signature bytes (key_id label unchanged).
+        log[1].signature.value = Buffer.alloc(64, 7).toString("base64url");
+        const r = auditGovernanceLog(log, "fed-test", { getPublicKey });
+        expect(r.ok).toBe(false);
+        expect(r.findings.some((f) => f.code === "FORGED_SIGNATURE")).toBe(true);
+      });
+
+      it("flags MISSING_SIGNATURE when getPublicKey is set but a sig is absent", () => {
+        const { log, getPublicKey } = cleanLog();
+        delete log[1].signature;
+        const r = auditGovernanceLog(log, "fed-test", { getPublicKey });
+        expect(r.ok).toBe(false);
+        expect(r.findings.some((f) => f.code === "MISSING_SIGNATURE")).toBe(true);
+      });
+
+      it("without getPublicKey, a forged signature passes the structural audit (documents the gap)", () => {
+        const { log } = cleanLog();
+        log[1].signature.value = Buffer.alloc(64, 7).toString("base64url");
+        const r = auditGovernanceLog(log, "fed-test");
+        expect(r.ok).toBe(true); // structural-only cannot catch a forged sig
+      });
+    });
+
     it("flags UNKNOWN_ACTOR when an event's actor isn't in the roster", () => {
       const aliceKeys = ed25519.generateKeyPair();
       const log = [

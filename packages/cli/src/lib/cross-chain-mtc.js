@@ -95,6 +95,28 @@ function ensureDirs(dir) {
   }
 }
 
+/**
+ * Atomically write a UTF-8 file. The cross-chain MTC store holds config, trust
+ * anchors (federation security material), staged bridge ops, the batch-seq
+ * counter, and closed batches — a crash mid-write corrupts ledger/security
+ * state. Temp sibling + rename (atomic within a filesystem); temp names end in
+ * `.tmp` (never `.json`), so a hard-crash leftover is ignored by listStagedOps.
+ */
+function atomicWriteFileSync(filePath, data) {
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data, "utf-8");
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Namespace
 // ─────────────────────────────────────────────────────────────────────
@@ -173,7 +195,7 @@ export function saveCrossChainMtcConfig(dir, patch) {
       "config.mode must be independent, federated, or light-client",
     );
   }
-  fs.writeFileSync(configPath(dir), JSON.stringify(merged, null, 2), "utf-8");
+  atomicWriteFileSync(configPath(dir), JSON.stringify(merged, null, 2));
   return merged;
 }
 
@@ -201,11 +223,7 @@ export function loadTrustAnchors(dir) {
 }
 
 function saveTrustAnchorStore(dir, store) {
-  fs.writeFileSync(
-    trustAnchorsPath(dir),
-    JSON.stringify(store, null, 2),
-    "utf-8",
-  );
+  atomicWriteFileSync(trustAnchorsPath(dir), JSON.stringify(store, null, 2));
 }
 
 /**
@@ -456,7 +474,7 @@ export function stageBridgeOp(dir, op, opts = {}) {
   if (fs.existsSync(file)) {
     return { staged: false, path: file, reason: "ALREADY_STAGED" };
   }
-  fs.writeFileSync(file, JSON.stringify(op, null, 2), "utf-8");
+  atomicWriteFileSync(file, JSON.stringify(op, null, 2));
   return { staged: true, path: file };
 }
 
@@ -498,7 +516,7 @@ function nextBatchSeq(dir, pair) {
   }
   const next = (map[pair] || 0) + 1;
   map[pair] = next;
-  fs.writeFileSync(p, JSON.stringify(map, null, 2), "utf-8");
+  atomicWriteFileSync(p, JSON.stringify(map, null, 2));
   return next;
 }
 
@@ -546,16 +564,14 @@ export function closeBatch(dir, opts = {}) {
       `${pair}-${String(seq).padStart(6, "0")}`,
     );
     fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(
+    atomicWriteFileSync(
       path.join(outDir, "landmark.json"),
       JSON.stringify(result.landmark, null, 2),
-      "utf-8",
     );
     result.envelopes.forEach((env, i) => {
-      fs.writeFileSync(
+      atomicWriteFileSync(
         path.join(outDir, `envelope-${String(i).padStart(4, "0")}.json`),
         JSON.stringify(env, null, 2),
-        "utf-8",
       );
     });
 

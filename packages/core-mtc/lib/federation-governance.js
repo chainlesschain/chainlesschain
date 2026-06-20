@@ -722,11 +722,17 @@ function validateCrossFederationTrustAnchor(anchor, opts = {}) {
  *   - Events whose actor isn't in the active member set at issued_at
  *   - Events whose signature key_id doesn't match the actor's recorded pubkey_id
  *   - Out-of-order events (issued_at decreases)
- *   - Forged signatures
+ *   - Forged / missing signatures — ONLY when opts.getPublicKey is supplied.
+ *     Without a key resolver the audit is purely structural (the key_id check
+ *     is a label match, not a cryptographic proof); pass getPublicKey to also
+ *     verify each signature against the real key.
  *
  * @param {Array<object>} events - chronologically sorted governance events
  * @param {string} federationId
- * @param {{ now?: number }} [opts]
+ * @param {{ now?: number,
+ *           getPublicKey?: (memberId: string, keyId: string) => (Buffer|null)
+ *         }} [opts] - getPublicKey enables cryptographic signature verification
+ *           (pubkey_id → key bytes); omit for a structural-only audit.
  * @returns {{
  *   ok: boolean,
  *   federation_id: string,
@@ -744,6 +750,56 @@ function auditGovernanceLog(events, federationId, opts = {}) {
   // The trick: the bootstrap "create" event is self-signed by the future first
   // member, so its key_id must equal what create.payload.bootstrap_pubkey_id says.
   const rosterByMember = new Map(); // member_id → {pubkey_id, alg, status, joined_at}
+
+  // Structural checks alone (key_id label == recorded pubkey_id) do NOT prove an
+  // event was actually signed by that key — a forger who knows a member's public
+  // pubkey_id can stamp it on a garbage signature and pass every check above.
+  // When the caller supplies opts.getPublicKey (pubkey_id → key bytes), also
+  // verify the signature cryptographically, so a forged or absent signature is
+  // surfaced. Without it, this stays a structural/roster audit (pair it with
+  // verifyGovernanceLog for crypto verification).
+  const verifyCrypto = typeof opts.getPublicKey === "function";
+  const cryptoCheck = (ev, memberId, keyId) => {
+    if (!verifyCrypto) return;
+    if (!ev.signature || typeof ev.signature !== "object") {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "MISSING_SIGNATURE",
+        message: "event has no signature to verify",
+      });
+      return;
+    }
+    let pk = null;
+    try {
+      pk = opts.getPublicKey(memberId, keyId);
+    } catch (_err) {
+      pk = null;
+    }
+    if (!pk) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "UNKNOWN_KEY",
+        message: `no public key for ${memberId} / ${keyId}`,
+      });
+      return;
+    }
+    let r;
+    try {
+      r = verifyGovernanceEvent(ev, { publicKey: pk });
+    } catch (_err) {
+      r = { ok: false, code: "VERIFY_THREW" };
+    }
+    if (!r.ok) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "FORGED_SIGNATURE",
+        message: `signature verification failed (${r.code})`,
+      });
+    }
+  };
 
   for (const ev of events) {
     if (!ev || ev.fed_id !== federationId) continue;
@@ -807,6 +863,12 @@ function auditGovernanceLog(events, federationId, opts = {}) {
           joined_at: ev.issued_at,
         });
       }
+      // Bootstrap is self-signed by the future first member.
+      cryptoCheck(
+        ev,
+        ev.payload && ev.payload.bootstrap_member_id,
+        ev.payload && ev.payload.bootstrap_pubkey_id,
+      );
       continue;
     }
 
@@ -831,6 +893,13 @@ function auditGovernanceLog(events, federationId, opts = {}) {
         message: `signature.key_id ${ev.signature.key_id} != actor's recorded pubkey_id ${actor.pubkey_id}`,
       });
     }
+
+    // 5b. Cryptographic signature verification (opt-in via opts.getPublicKey).
+    cryptoCheck(
+      ev,
+      ev.actor_member_id,
+      ev.signature && ev.signature.key_id,
+    );
 
     // 6. Event-specific roster updates (so later events validate against new state)
     if (ev.event_type === "vote" && ev.payload) {

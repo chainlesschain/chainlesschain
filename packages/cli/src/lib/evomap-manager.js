@@ -14,6 +14,33 @@ export const _deps = {
   path,
 };
 
+/**
+ * Atomically write a UTF-8 file via _deps.fs. A gene's gene.json / content.md
+ * are persistent store state; a crash mid-write truncates them and getGene's
+ * JSON.parse then throws. Temp sibling + rename (atomic within a filesystem).
+ * Graceful-degrade to a direct write when the injected fs has no renameSync
+ * (partial test mocks); the real fs always has it, so production is atomic.
+ */
+function _atomicWriteFile(filePath, data) {
+  const fsx = _deps.fs;
+  if (typeof fsx.renameSync !== "function") {
+    fsx.writeFileSync(filePath, data, "utf-8");
+    return;
+  }
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fsx.writeFileSync(tmp, data, "utf-8");
+    fsx.renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (fsx.existsSync(tmp) && fsx.unlinkSync) fsx.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 export class EvoMapManager {
   /**
    * @param {object} options
@@ -78,19 +105,14 @@ export class EvoMapManager {
     }
 
     // Save metadata
-    _deps.fs.writeFileSync(
+    _atomicWriteFile(
       _deps.path.join(geneDir, "gene.json"),
       JSON.stringify(gene, null, 2),
-      "utf-8",
     );
 
     // Save content
     if (content) {
-      _deps.fs.writeFileSync(
-        _deps.path.join(geneDir, "content.md"),
-        content,
-        "utf-8",
-      );
+      _atomicWriteFile(_deps.path.join(geneDir, "content.md"), content);
     }
 
     // Register in DB

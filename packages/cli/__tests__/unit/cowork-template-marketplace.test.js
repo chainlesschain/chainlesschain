@@ -39,6 +39,12 @@ function installFakeFs() {
     if (!files.has(p)) throw new Error(`ENOENT: ${p}`);
     files.delete(p);
   });
+  // Simulate atomic temp+rename in the in-memory fs.
+  _deps.renameSync = vi.fn((from, to) => {
+    if (!files.has(from)) throw new Error(`ENOENT: ${from}`);
+    files.set(to, files.get(from));
+    files.delete(from);
+  });
   return files;
 }
 
@@ -133,11 +139,14 @@ describe("local persistence", () => {
   });
 
   it("saveUserTemplate then listUserTemplates round-trips", () => {
+    const files = installFakeFs();
     saveUserTemplate("/project", SAMPLE_TEMPLATE);
     const list = listUserTemplates("/project");
     expect(list).toHaveLength(1);
     expect(list[0].id).toBe("my-tpl");
     expect(list[0].source).toBe("user");
+    // Atomic write: the temp sibling was renamed away, none left behind.
+    expect([...files.keys()].some((k) => k.endsWith(".tmp"))).toBe(false);
   });
 
   it("removeUserTemplate removes the file", () => {
