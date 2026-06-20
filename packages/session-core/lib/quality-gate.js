@@ -54,8 +54,11 @@ function validateChecker(checker) {
  * @returns {number} aggregate score in [0, 1]
  */
 function aggregateScore(checks, strategy = AGGREGATE.WEIGHTED_MEAN) {
+  // Number.isFinite (not typeof === "number") so a NaN / ±Infinity score from a
+  // misbehaving checker can't slip in and poison the aggregate (NaN propagates
+  // through Math.min/max and weighted sums, silently failing every gate).
   const scored = checks.filter(
-    (c) => c.status !== CHECK_RESULT.SKIP && typeof c.score === "number",
+    (c) => c.status !== CHECK_RESULT.SKIP && Number.isFinite(c.score),
   );
   if (scored.length === 0) return 1; // no checks → pass by default
 
@@ -186,7 +189,12 @@ class QualityGate {
         checkResult = {
           name: checker.name,
           pass: !!raw.pass,
-          score: typeof raw.score === "number" ? Math.max(0, Math.min(1, raw.score)) : (raw.pass ? 1 : 0),
+          // Normalize to [0,1]. Number.isFinite rejects NaN/±Infinity (which
+          // Math.max/min do NOT clamp for NaN) — fall back to a pass-based score
+          // so a bad checker can't emit a NaN that poisons the aggregate.
+          score: Number.isFinite(raw.score)
+            ? Math.max(0, Math.min(1, raw.score))
+            : (raw.pass ? 1 : 0),
           reason: raw.reason || "",
           status: CHECK_RESULT.PASS,
           weight: checker.weight,
