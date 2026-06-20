@@ -444,7 +444,34 @@ class CollaborationManager extends EventEmitter {
       logger.info(
         `[CollaborationManager] 用户离开文档: ${conn.userName} <- ${conn.documentId}`,
       );
+
+      // 该文档已无其他活跃连接时，取消订阅并从内存映射移除，避免 documents
+      // 随历史打开过的每个文档无限增长（ShareDB doc 由 connection 缓存，
+      // 重新加入会重新 get + subscribe）。
+      this._releaseDocumentIfIdle(conn.documentId, conn);
     }
+  }
+
+  /**
+   * 当某文档不再有任何活跃连接时，取消订阅并从内存映射中移除。
+   * @private
+   */
+  _releaseDocumentIfIdle(documentId, excludeConn) {
+    const stillOpen = [...this.connections.values()].some(
+      (c) => c !== excludeConn && c.documentId === documentId,
+    );
+    if (stillOpen) {
+      return;
+    }
+    const doc = this.documents.get(documentId);
+    if (doc && typeof doc.unsubscribe === "function") {
+      try {
+        doc.unsubscribe();
+      } catch (e) {
+        logger.warn("[CollaborationManager] 取消文档订阅失败:", e?.message || e);
+      }
+    }
+    this.documents.delete(documentId);
   }
 
   /**
