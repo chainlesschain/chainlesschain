@@ -395,11 +395,13 @@ class RAGManager extends EventEmitter {
         seen.add(id);
         unique.push(result);
       } else {
-        // 如果已存在，保留分数更高的
+        // 如果已存在，保留分数更高的。用 ?? 0 兜底缺失分数：否则当先到的
+        // 重复项无 score、后到的有 score 时，`score > undefined` 为 false，
+        // 会错误地丢弃有分数的那条（多来源合并时部分来源不带 score）。
         const existingIndex = unique.findIndex((r) => r.id === id);
         if (
           existingIndex !== -1 &&
-          result.score > unique[existingIndex].score
+          (result.score ?? 0) > (unique[existingIndex].score ?? 0)
         ) {
           unique[existingIndex] = result;
         }
