@@ -167,6 +167,10 @@ export default defineConfig({
               text: "个人 AI 知识库 ⭐NEW",
               link: "/chainlesschain/personal-ai-knowledge-base",
             },
+            {
+              text: "PDH Bridge 个人数据 IDE 桥接 ⭐NEW",
+              link: "/chainlesschain/pdh-bridge",
+            },
             { text: "去中心化社交", link: "/chainlesschain/social" },
             { text: "好友 P2P 加密消息 ⭐NEW", link: "/chainlesschain/friend-p2p-messaging" },
             { text: "好友 P2P 语音/视频通话 ⭐NEW", link: "/chainlesschain/friend-p2p-calls" },

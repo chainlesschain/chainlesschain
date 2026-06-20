@@ -156,6 +156,19 @@ chainlesschain context [<sessionId>] [--json] [--model <m>]   # 按角色拆 tok
 
 `CC_IDE_CONTEXT=0` 关闭自动感知（4 个 `mcp__ide__*` 工具仍可显式调用）。完整安装/协议/排错见 [IDE 桥接](/chainlesschain/ide-bridge)。
 
+## PDH 桥接 — 自动连接安卓 App 的设备数据采集
+
+IDE 桥接的**姊妹能力**，把同样的"App-as-MCP-server"反转模式搬到**手机**：安卓 App 在本机跑一个"设备能力 MCP server"，`cc agent` 在 App 内置终端里**自动连接**（保留名 `pdh`，`--pdh` 强制 / `--no-pdh` 禁用），从而能**主动指挥设备采集自己的数据**：
+
+- **6 个设备工具**（`mcp__pdh__*`）：`collect_system_data`（L2 联系人+应用，免 root/登录）、`collect_app_data`（L3，7 源：微博/B站/12306/抖音/小红书/头条/快手）、`salvage_app_data`（L4 root 内存打捞）、`collect_files`（L1 本地文件）、`list_collectors`、`pdh_ping`。
+- **引导式协同**：采集前置缺失（未登录/cookie 未暖）时工具返回 `assist_required`，agent 引导你在对应 App 内完成一步再重试（server 标 `longRunning`，免单次调用超时）。
+
+```bash
+cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
+```
+
+完整安装/协议/排错见 [PDH Bridge 个人数据 IDE 桥接](/chainlesschain/pdh-bridge)。
+
 ## 内置工具
 
 代理模式提供 16 个内置工具（v0.47.0）：
@@ -932,3 +945,5 @@ Resumed session session-17... (8 messages)
 - [会话管理](./cli-session) — 代理会话持久化
 - [层次化记忆](./cli-hmemory) — 四层记忆系统
 - [Instinct 学习](./cli-instinct) — 用户偏好学习
+- [IDE 桥接](./ide-bridge) — 自动连接编辑器的 MCP server（`--ide` / `mcp__ide__*`）
+- [PDH Bridge 个人数据 IDE 桥接](./pdh-bridge) — 自动连接安卓 App 的设备采集（`--pdh` / `mcp__pdh__*`）
