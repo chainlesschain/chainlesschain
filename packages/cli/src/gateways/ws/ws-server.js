@@ -949,4 +949,35 @@ export class ChainlessChainWSServer extends EventEmitter {
    * Broadcast a Phase-5 service envelope to all authenticated clients.
    */
   broadcastEnvelope(envOrSpec) {
-  
+    let env = envOrSpec;
+    if (!("v" in (env || {}))) {
+      try {
+        env = createEnvelope(envOrSpec);
+      } catch (_e) {
+        this._broadcast(envOrSpec);
+        return;
+      }
+    }
+    this._broadcast(env);
+    if (this.envelopeBus && env && env.sessionId) {
+      try {
+        this.envelopeBus.publish(env.sessionId, env);
+      } catch (_e) {
+        // HTTP fan-out must never break the WS path.
+      }
+    }
+  }
+
+  /**
+   * Adapt a StreamRouter event ({type:"token", content:"..."} etc.) into a
+   * Phase-5 run.* envelope and send it to a single client.
+   */
+  sendStreamEnvelope(ws, streamEvent, ctx) {
+    try {
+      const env = envelopeFromStreamEvent(streamEvent, ctx);
+      this._send(ws, env);
+    } catch (_e) {
+      this._send(ws, streamEvent);
+    }
+  }
+}
