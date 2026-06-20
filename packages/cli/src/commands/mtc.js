@@ -2770,7 +2770,16 @@ function registerFederationGovernanceCommands(fed) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function getDiscoverAnnouncesDir(dropZone, federationId) {
-  return path.join(dropZone, "federation-announces", federationId);
+  // Sanitize federation_id (same charset as getDiscoverFilename's pubkey_id):
+  // a value from a (remote) announce must not escape the drop zone via "../",
+  // and ":" in a did-style id is an invalid path char on Windows. Mirrors
+  // core-mtc's _persistAnnounce. Publish + scan both go through here, so the
+  // sanitized dir name stays consistent between write and read.
+  const safe = String(federationId == null ? "" : federationId).replace(
+    /[^a-zA-Z0-9_-]/g,
+    "_",
+  );
+  return path.join(dropZone, "federation-announces", safe);
 }
 
 function getDiscoverFilename(announce) {
