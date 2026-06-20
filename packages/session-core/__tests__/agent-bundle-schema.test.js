@@ -127,4 +127,23 @@ describe("parseMinimalToml", () => {
     expect(out.id).toBe("acme");
     expect(out.n).toBe(5);
   });
+
+  it("does not pollute Object.prototype via a [__proto__] section", () => {
+    // An untrusted manifest must never reach the prototype.
+    parseMinimalToml(`[__proto__]\npolluted = "EVIL"`);
+    expect({}.polluted).toBeUndefined();
+    parseMinimalToml(`[constructor]\nx = "EVIL"\n[prototype]\ny = "EVIL"`);
+    expect({}.x).toBeUndefined();
+    expect({}.y).toBeUndefined();
+  });
+
+  it("ignores top-level __proto__/constructor/prototype keys", () => {
+    const out = parseMinimalToml(
+      `__proto__ = "a"\nconstructor = "b"\nprototype = "c"\nid = "ok"`,
+    );
+    expect(out.id).toBe("ok");
+    expect(Object.hasOwn(out, "__proto__")).toBe(false);
+    expect(Object.hasOwn(out, "constructor")).toBe(false);
+    expect({}.polluted).toBeUndefined();
+  });
 });
