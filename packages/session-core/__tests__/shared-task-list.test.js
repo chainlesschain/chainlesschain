@@ -239,3 +239,68 @@ describe("generateTaskId", () => {
     expect(ids.size).toBe(100);
   });
 });
+
+describe("SharedTaskList — terminal states are final", () => {
+  function completedTask() {
+    const list = new SharedTaskList();
+    const t = list.add({ title: "T" });
+    const done = list.complete(t.id);
+    return { list, id: t.id, rev: done.rev };
+  }
+
+  it("rejects re-opening a completed task", () => {
+    const { list, id, rev } = completedTask();
+    expect(() =>
+      list.update(id, { rev, patch: { status: TASK_STATUS.PENDING } }),
+    ).toThrow(/terminal/);
+    expect(() =>
+      list.update(id, { rev, patch: { status: TASK_STATUS.IN_PROGRESS } }),
+    ).toThrow(/terminal/);
+    expect(list.get(id).status).toBe(TASK_STATUS.COMPLETED);
+  });
+
+  it("rejects flipping a cancelled task to completed", () => {
+    const list = new SharedTaskList();
+    const t = list.add({ title: "T" });
+    const cancelled = list.update(t.id, {
+      rev: t.rev,
+      patch: { status: TASK_STATUS.CANCELLED },
+    });
+    expect(() =>
+      list.update(t.id, {
+        rev: cancelled.rev,
+        patch: { status: TASK_STATUS.COMPLETED },
+      }),
+    ).toThrow(/terminal/);
+  });
+
+  it("claim still refuses terminal tasks (unchanged)", () => {
+    const { list, id } = completedTask();
+    expect(list.claim(id, { agentId: "a1" })).toBeNull();
+  });
+
+  it("allows non-status edits on a terminal task (e.g. metadata note)", () => {
+    const { list, id, rev } = completedTask();
+    const updated = list.update(id, {
+      rev,
+      patch: { metadata: { note: "post-hoc" } },
+    });
+    expect(updated.status).toBe(TASK_STATUS.COMPLETED);
+    expect(updated.metadata.note).toBe("post-hoc");
+  });
+
+  it("normal forward transitions still work (regression)", () => {
+    const list = new SharedTaskList();
+    const t = list.add({ title: "T" });
+    const ip = list.update(t.id, {
+      rev: t.rev,
+      patch: { status: TASK_STATUS.IN_PROGRESS },
+    });
+    expect(ip.status).toBe(TASK_STATUS.IN_PROGRESS);
+    const done = list.update(t.id, {
+      rev: ip.rev,
+      patch: { status: TASK_STATUS.COMPLETED },
+    });
+    expect(done.status).toBe(TASK_STATUS.COMPLETED);
+  });
+});

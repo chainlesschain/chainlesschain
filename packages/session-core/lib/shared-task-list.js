@@ -105,6 +105,20 @@ class SharedTaskList extends EventEmitter {
     if (changes.status && !Object.values(TASK_STATUS).includes(changes.status)) {
       throw new Error(`update: invalid status "${changes.status}"`);
     }
+    // Terminal states (completed/cancelled) are final — `claim` already refuses
+    // them; enforce it on the write path too. Re-opening a completed task (or
+    // flipping completed↔cancelled) in a shared multi-agent list re-creates the
+    // duplicate work this list exists to prevent. Same-status no-ops and
+    // non-status edits are still allowed.
+    if (
+      changes.status !== undefined &&
+      changes.status !== task.status &&
+      TERMINAL.has(task.status)
+    ) {
+      throw new Error(
+        `update: task ${taskId} is in terminal state "${task.status}"; cannot transition to "${changes.status}"`,
+      );
+    }
 
     Object.assign(task, changes);
     task.updatedAt = this._now();
