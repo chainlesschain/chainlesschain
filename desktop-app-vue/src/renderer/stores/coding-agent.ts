@@ -1291,6 +1291,11 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) {
         throw new Error("No active coding agent session");
       }
+      // Capture the session up-front: the user may switch or close the session
+      // while the IPC call is in flight, which would otherwise mis-attribute the
+      // result (and the fetchSessionState refresh) to the wrong/null session —
+      // and display gating keys off latestWorktreeDiff.sessionId.
+      const sessionId = this.currentSessionId;
 
       this.worktreeLoading = true;
       this.error = null;
@@ -1298,7 +1303,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         const result = await (
           window as any
         ).electronAPI.codingAgent.getWorktreeDiff({
-          sessionId: this.currentSessionId,
+          sessionId,
           ...options,
         });
         if (!result?.success) {
@@ -1308,7 +1313,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         }
 
         this.latestWorktreeDiff = {
-          sessionId: result.sessionId || this.currentSessionId,
+          sessionId: result.sessionId || sessionId,
           branch: result.branch,
           filePath: result.filePath || null,
           files: result.files || [],
@@ -1316,7 +1321,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           diff: result.diff || null,
           record: result.record || null,
         };
-        await this.fetchSessionState(this.currentSessionId);
+        await this.fetchSessionState(sessionId);
         return this.latestWorktreeDiff;
       } catch (error: any) {
         this.error = error.message;
@@ -1337,6 +1342,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) {
         throw new Error("No active coding agent session");
       }
+      // Capture session up-front (see loadCurrentWorktreeDiff) — guard against a
+      // mid-await session switch mis-attributing the preview result.
+      const sessionId = this.currentSessionId;
 
       this.worktreeLoading = true;
       this.error = null;
@@ -1344,7 +1352,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         const result = await (
           window as any
         ).electronAPI.codingAgent.getWorktreeDiff({
-          sessionId: this.currentSessionId,
+          sessionId,
           ...options,
         });
         if (!result?.success) {
@@ -1354,7 +1362,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         }
 
         return {
-          sessionId: result.sessionId || this.currentSessionId,
+          sessionId: result.sessionId || sessionId,
           branch: result.branch,
           filePath: result.filePath || null,
           files: result.files || [],
@@ -1381,6 +1389,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) {
         throw new Error("No active coding agent session");
       }
+      // Capture session up-front (see loadCurrentWorktreeDiff) — guard against a
+      // mid-await session switch mis-attributing the merge result.
+      const sessionId = this.currentSessionId;
 
       this.worktreeLoading = true;
       this.error = null;
@@ -1388,7 +1399,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         const result = await (
           window as any
         ).electronAPI.codingAgent.mergeWorktree({
-          sessionId: this.currentSessionId,
+          sessionId,
           ...options,
         });
         if (!result?.success && !Array.isArray(result?.conflicts)) {
@@ -1400,7 +1411,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         this.latestWorktreeMergeResult = {
           success: result.success !== false,
           previewOnly: result.previewOnly === true,
-          sessionId: result.sessionId || this.currentSessionId,
+          sessionId: result.sessionId || sessionId,
           branch: result.branch,
           baseBranch: result.baseBranch || null,
           strategy: result.strategy,
@@ -1411,7 +1422,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           previewEntrypoints: result.previewEntrypoints || [],
           record: result.record || null,
         };
-        await this.fetchSessionState(this.currentSessionId);
+        await this.fetchSessionState(sessionId);
         return this.latestWorktreeMergeResult;
       } catch (error: any) {
         this.error = error.message;
@@ -1432,6 +1443,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       if (!this.currentSessionId) {
         throw new Error("No active coding agent session");
       }
+      // Capture session up-front (see loadCurrentWorktreeDiff) — guard against a
+      // mid-await session switch mis-attributing the preview-merge result.
+      const sessionId = this.currentSessionId;
 
       this.worktreeLoading = true;
       this.error = null;
@@ -1439,7 +1453,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         const result = await (
           window as any
         ).electronAPI.codingAgent.previewWorktreeMerge({
-          sessionId: this.currentSessionId,
+          sessionId,
           ...options,
         });
         if (!result?.success && !Array.isArray(result?.conflicts)) {
@@ -1451,7 +1465,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         this.latestWorktreeMergeResult = {
           success: result.success !== false,
           previewOnly: result.previewOnly === true,
-          sessionId: result.sessionId || this.currentSessionId,
+          sessionId: result.sessionId || sessionId,
           branch: result.branch,
           baseBranch: result.baseBranch || null,
           strategy: result.strategy,
@@ -1462,7 +1476,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           previewEntrypoints: result.previewEntrypoints || [],
           record: result.record || null,
         };
-        await this.fetchSessionState(this.currentSessionId);
+        await this.fetchSessionState(sessionId);
         return this.latestWorktreeMergeResult;
       } catch (error: any) {
         this.error = error.message;
