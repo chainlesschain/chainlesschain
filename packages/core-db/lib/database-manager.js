@@ -28,6 +28,19 @@ const { getLogger } = require("./logger-adapter.js");
  * blow up later during initialize(), instead of transparently falling
  * back to the sql.js WASM runtime.
  */
+/**
+ * Build the SQLCipher `key` pragma, escaping single quotes in the key so it
+ * can't break out of the SQL string literal. The old `key='${key}'` form was
+ * a quote-injection bug: a key containing a single quote (passphrase, base64
+ * with no padding, etc.) either truncated the key — encrypting the DB under a
+ * DIFFERENT key than intended, unrecoverable — or injected extra SQL into the
+ * security-critical keying pragma. Doubling `'`→`''` is the standard SQLite
+ * string-literal escape and leaves quote-free keys byte-identical.
+ */
+function buildKeyPragma(key) {
+  return `key='${String(key).replace(/'/g, "''")}'`;
+}
+
 function loadSQLiteDriver() {
   const logger = getLogger();
 
@@ -122,7 +135,7 @@ class DatabaseManager {
 
         // Apply encryption if using cipher driver and key provided
         if (driver.type === "native-cipher" && this.encryptionKey) {
-          this.db.pragma(`key='${this.encryptionKey}'`);
+          this.db.pragma(buildKeyPragma(this.encryptionKey));
         }
 
         // Enable WAL mode for better concurrency
@@ -445,4 +458,5 @@ module.exports = {
   // hard to reach from a dev machine with working natives installed).
   createSqlJsCompat,
   loadSQLiteDriver,
+  buildKeyPragma,
 };
