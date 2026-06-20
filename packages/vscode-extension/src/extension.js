@@ -90,20 +90,29 @@ async function startBridge(context) {
   }
   const token = generateToken();
   _token = token;
-  // CLI checks (fire-and-forget, best-effort), in priority order:
+  // Resolve the CLI binary first (cc may be shadowed by the C compiler, also
+  // named `cc`) — tries cc → chainlesschain → clc → clchain and caches the one
+  // that actually answers as chainlesschain, so the panel spawn + every probe
+  // agree. THEN the CLI checks (fire-and-forget, best-effort), in priority order:
   //  1. cc missing entirely → prompt to install (the panel can't work without it)
   //  2. cc too old for this extension's features → hard-floor upgrade nudge
   //  3. a newer cc is available on npm → soft "update available" nudge
-  // (1) short-circuits the rest; (2) short-circuits (3). The npm/Open VSX split
-  // means the extension can't bundle the CLI, so these keep them in sync.
-  notifyIfCliMissing(vscode, context)
-    .then((missing) => {
-      if (missing) return; // no usable cc → version checks are moot
-      return checkCliVersionAndNotify(vscode, context).then((res) => {
-        if (res === "none") return checkLatestCliAndNotify(vscode, context);
-      });
-    })
-    .catch(() => {});
+  // (1) short-circuits the rest; (2) short-circuits (3).
+  (async () => {
+    const { resolveCliBinary, setResolvedCli } = require("./cli-binary");
+    const configuredPath = vscode.workspace
+      .getConfiguration("chainlesschain.cli")
+      .get("path");
+    const bin = await resolveCliBinary({
+      configuredPath,
+      getVersionOf: (b) => runCliVersion(b),
+    });
+    setResolvedCli(bin);
+    const missing = await notifyIfCliMissing(vscode, context);
+    if (missing) return; // no usable cc → version checks are moot
+    const res = await checkCliVersionAndNotify(vscode, context);
+    if (res === "none") await checkLatestCliAndNotify(vscode, context);
+  })().catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
   // Clean up the terminal shell-integration subscriptions on deactivate.
   context.subscriptions.push({
@@ -549,6 +558,8 @@ function runCliVersion(cliPath) {
       });
       child.on("error", () => finish(null));
       child.on("close", () => finish(out.trim() || null));
+      // Generous timeout: a cold Windows `cc` (node + npm .cmd shim) can take
+      // several seconds the first time — 5s caused false "cc not installed".
       setTimeout(() => {
         try {
           child.kill();
@@ -556,7 +567,7 @@ function runCliVersion(cliPath) {
           /* best-effort */
         }
         finish(null);
-      }, 5000);
+      }, 12000);
     } catch {
       finish(null);
     }
@@ -567,7 +578,7 @@ function runCliVersion(cliPath) {
 function checkCliVersionAndNotify(vscode, context) {
   const { runCliVersionSync } = require("./version-check");
   const cliPath =
-    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+    require("./cli-binary").getResolvedCli();
   return runCliVersionSync({
     getVersion: () => runCliVersion(cliPath),
     isDismissed: (k) => !!context.globalState.get(k),
@@ -648,13 +659,14 @@ function fetchLatestCliVersion() {
  * caller then skips the version checks, which are pointless without cc).
  */
 async function notifyIfCliMissing(vscode, context) {
-  const { parseCliVersion } = require("./version-check");
-  const cliPath =
-    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
-  const installed = parseCliVersion(
-    String((await runCliVersion(cliPath).catch(() => null)) || ""),
+  const { looksLikeCcVersion, getResolvedCli } = require("./cli-binary");
+  // Use the resolved binary + a BARE-semver check (not parseCliVersion's
+  // find-anywhere) so a `cc` that's really a C compiler — "cc (GCC) 12.2.0" —
+  // is correctly treated as "no chainlesschain", not a false "installed".
+  const present = looksLikeCcVersion(
+    String((await runCliVersion(getResolvedCli()).catch(() => null)) || ""),
   );
-  if (installed) return false; // cc is present → not missing
+  if (present) return false; // chainlesschain cc is present → not missing
   if (context.globalState.get("cliMissingDismissed")) return true;
   const pick = await vscode.window.showWarningMessage(
     "ChainlessChain: the `cc` CLI isn't installed or isn't on PATH — the chat panel needs it to work. Install it now?",
@@ -683,7 +695,7 @@ async function notifyIfCliMissing(vscode, context) {
 function checkLatestCliAndNotify(vscode, context) {
   const { runLatestVersionCheck } = require("./version-check");
   const cliPath =
-    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+    require("./cli-binary").getResolvedCli();
   const OFF = "cliLatestNudge:off";
   return runLatestVersionCheck({
     getVersion: () => runCliVersion(cliPath),
@@ -719,7 +731,7 @@ async function checkCliUpdateManually(vscode) {
     latestUpdateNotice,
   } = require("./version-check");
   const cliPath =
-    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+    require("./cli-binary").getResolvedCli();
   const installed = parseCliVersion(
     String((await runCliVersion(cliPath).catch(() => null)) || ""),
   );

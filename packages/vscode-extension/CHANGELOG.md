@@ -2,7 +2,19 @@
 
 All notable changes to this extension are documented here.
 
-## [0.33.7] — 2026-06-20 — the agent can actually ask you a question now
+## [0.33.8] — 2026-06-20 — robust `cc` resolution (cc-name conflict) + cold-start
+
+- **The panel no longer breaks when `cc` is shadowed by another tool.** `cc` is
+  also the C compiler's name, so on a PATH where `cc` = gcc/clang the extension
+  would spawn the wrong binary / mis-detect the CLI. It now **resolves the binary
+  with fallback** — tries `cc` → `chainlesschain` → `clc` → `clchain` at
+  activation and uses the first whose `--version` is a real chainlesschain
+  version (a bare semver, not a compiler banner), for both the chat spawn and
+  every probe. An explicit `chainlesschain.cli.path` still wins.
+- **Fixed a false "cc not installed" on cold starts** — the version probe timed
+  out at 5s (a cold Windows `cc` cold-start can take longer); bumped to 12s, and
+  the missing-cc check now requires a bare chainlesschain version so a compiler
+  `cc` isn't mistaken for the CLI. (Mirrors JetBrains 0.4.26.)
 
 - **`ask_user_question` is now interactive.** Previously the panel couldn't
   answer the agent's questions, so it degraded to "proceeding autonomously"

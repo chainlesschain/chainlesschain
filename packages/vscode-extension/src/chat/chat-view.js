@@ -128,11 +128,14 @@ class ChatViewProvider {
   }
 
   _cliCommand() {
-    return (
-      this.vscode.workspace
-        .getConfiguration("chainlesschain.cli")
-        .get("path") || "cc"
-    );
+    // An explicit non-default `cli.path` wins; otherwise use the binary resolved
+    // at activation (cc → chainlesschain → clc → clchain), so a `cc` shadowed by
+    // the C compiler doesn't break the panel spawn.
+    const configured = this.vscode.workspace
+      .getConfiguration("chainlesschain.cli")
+      .get("path");
+    if (configured && configured !== "cc") return configured;
+    return require("../cli-binary").getResolvedCli();
   }
 
   /** Post a webview message only when it belongs to the ACTIVE tab — so a
