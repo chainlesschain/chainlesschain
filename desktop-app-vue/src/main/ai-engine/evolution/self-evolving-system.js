@@ -333,6 +333,22 @@ class SelfEvolvingSystem extends EventEmitter {
     if (this._growthLog.length > this._config.maxGrowthLogSize) {
       this._growthLog.shift();
     }
+
+    // Persist to evolution_growth_log. The table is created in _ensureTables but
+    // was never written, so growth history lived only in the bounded in-memory
+    // array — lost on restart, and the table stayed permanently empty.
+    try {
+      this.db
+        .prepare(
+          "INSERT INTO evolution_growth_log (id, event_type, description, capability_id, delta) VALUES (?, ?, ?, ?, ?)",
+        )
+        .run(entry.id, eventType, description, capabilityId, delta);
+    } catch (error) {
+      logger.warn(
+        "[SelfEvolvingSystem] Failed to persist growth log:",
+        error.message,
+      );
+    }
   }
 
   configure(config) {
