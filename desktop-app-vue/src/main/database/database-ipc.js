@@ -117,7 +117,10 @@ function registerDatabaseIPC({
 
       // 从RAG索引移除
       if (result && ragManager) {
-        ragManager.removeFromIndex(id);
+        // removeFromIndex is async (like addToIndex/updateIndex above); without
+        // await its rejection escapes this try/catch as an unhandled rejection
+        // and the handler returns before the RAG index is actually updated.
+        await ragManager.removeFromIndex(id);
       }
 
       return result;
@@ -300,7 +303,13 @@ function registerDatabaseIPC({
    */
   ipcMain.handle("db:backup", async (_event, backupPath) => {
     try {
-      await database?.backup(backupPath);
+      // Don't claim success when there is no database: `await database?.backup()`
+      // would skip the backup yet still return true, telling the caller a backup
+      // exists when none was written (silent data-loss footgun on restore).
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+      await database.backup(backupPath);
       return true;
     } catch (error) {
       logger.error("[Database IPC] 备份数据库失败:", error);
