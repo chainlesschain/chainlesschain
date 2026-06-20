@@ -92,6 +92,17 @@ describe("core-env/paths", () => {
       expect(getPath("custom")).toBe(path.join("/test", "custom"));
     });
 
+    it("treats Object.prototype keys as unknown names (no inherited returns)", () => {
+      process.env.CHAINLESSCHAIN_HOME = "/test";
+      // Bare-object truthiness would return Object.prototype.toString (a fn);
+      // with Object.hasOwn these fall through to the userData-subdir path.
+      for (const k of ["toString", "constructor", "valueOf", "hasOwnProperty"]) {
+        const got = getPath(k);
+        expect(typeof got).toBe("string");
+        expect(got).toBe(path.join("/test", k));
+      }
+    });
+
     it("delegates to Electron app when available", () => {
       const mockApp = { getPath: (name) => `/electron/${name}` };
       _setElectronApp(mockApp);

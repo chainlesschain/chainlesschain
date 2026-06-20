@@ -170,7 +170,11 @@ export function getPath(name) {
     home: os.homedir(),
   };
 
-  if (mapping[name]) return mapping[name];
+  // Use Object.hasOwn, not truthiness on `mapping[name]`: a bare object literal
+  // inherits Object.prototype members, so getPath("toString") / "constructor" /
+  // "__proto__" / "valueOf" would otherwise return an inherited function/object
+  // instead of a path string. Only own keys are real mappings.
+  if (Object.hasOwn(mapping, name)) return mapping[name];
 
   // Unknown path name — default to userData subdirectory
   return path.join(getUserDataPath(), name);
