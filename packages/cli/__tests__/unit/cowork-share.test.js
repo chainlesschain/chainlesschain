@@ -29,11 +29,23 @@ function installFakeFs() {
   const fakeWrite = (p, body) => {
     files.set(p, body);
   };
+  // Simulate atomic temp+rename in the in-memory fs.
+  const fakeRename = (from, to) => {
+    if (files.has(from)) {
+      files.set(to, files.get(from));
+      files.delete(from);
+    }
+  };
+  const fakeUnlink = (p) => {
+    files.delete(p);
+  };
 
   _deps.existsSync = vi.fn(fakeExists);
   _deps.mkdirSync = vi.fn(fakeMkdir);
   _deps.readFileSync = vi.fn(fakeRead);
   _deps.writeFileSync = vi.fn(fakeWrite);
+  _deps.renameSync = vi.fn(fakeRename);
+  _deps.unlinkSync = vi.fn(fakeUnlink);
   _deps.now = () => "2026-04-15T12:00:00Z";
 
   mpDeps.existsSync = vi.fn(fakeExists);
@@ -249,6 +261,8 @@ describe("import helpers", () => {
       "task-123.json",
     );
     expect(files.has(expectedPath)).toBe(true);
+    // Atomic write: the temp sibling was renamed away, none left behind.
+    expect([...files.keys()].some((k) => k.endsWith(".tmp"))).toBe(false);
   });
 
   it("importResultPacket rejects wrong kind", () => {
