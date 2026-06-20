@@ -20,13 +20,30 @@ export function formatForDiscord(response, options = {}) {
   if (!response) return "";
   const maxLength = options.maxLength || DISCORD_MAX_LENGTH;
 
-  let text = response;
+  // Defang mass-mention pings (@everyone / @here) that can appear in agent
+  // output — a zero-width space after the `@` renders identically but stops
+  // Discord parsing it as a mention. There is no allowed_mentions safety net at
+  // the send layer, so the formatter must be safe by default.
+  let text = neutralizeMassMentions(response);
 
   if (text.length > maxLength) {
     text = text.substring(0, maxLength - 3) + "...";
   }
 
   return text;
+}
+
+/**
+ * Insert a zero-width space into @everyone / @here so they don't ping. Exported
+ * so callers composing messages by other means can reuse it.
+ * @param {string} text
+ * @returns {string}
+ */
+export function neutralizeMassMentions(text) {
+  return String(text == null ? "" : text).replace(
+    /@(everyone|here)/g,
+    "@​$1",
+  );
 }
 
 /**
