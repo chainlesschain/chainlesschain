@@ -38,6 +38,11 @@ class TransactionMonitor extends EventEmitter {
     // 定时器
     this.monitorTimer = null;
 
+    // 防止 setInterval 的 async 回调在上一轮检查未完成时重入
+    // （waitForTransaction 可能远超 monitorInterval，否则同一笔交易会被
+    //  并发监控，导致 onConfirmed/onFailed 与事件重复触发）
+    this._checking = false;
+
     this.initialized = false;
   }
 
@@ -270,12 +275,24 @@ class TransactionMonitor extends EventEmitter {
    * 检查待处理交易
    */
   async checkPendingTransactions() {
-    for (const [txHash, txData] of this.pendingTxs.entries()) {
-      try {
-        await this.monitorTx(txHash, txData.onConfirmed, txData.onFailed);
-      } catch (error) {
-        logger.error(`[TransactionMonitor] 检查交易 ${txHash} 失败:`, error);
+    // monitorTx awaits a blockchain confirmation, which routinely takes longer
+    // than monitorInterval. Without this guard the next interval tick would run
+    // concurrently and re-monitor the still-pending txs, firing duplicate
+    // onConfirmed/onFailed callbacks and tx:confirmed/tx:failed events.
+    if (this._checking) {
+      return;
+    }
+    this._checking = true;
+    try {
+      for (const [txHash, txData] of this.pendingTxs.entries()) {
+        try {
+          await this.monitorTx(txHash, txData.onConfirmed, txData.onFailed);
+        } catch (error) {
+          logger.error(`[TransactionMonitor] 检查交易 ${txHash} 失败:`, error);
+        }
       }
+    } finally {
+      this._checking = false;
     }
   }
 
