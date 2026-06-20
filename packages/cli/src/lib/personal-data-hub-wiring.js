@@ -126,7 +126,13 @@ const {
   runAnalysisSkill,
   ANALYSIS_SKILL_NAMES,
 } = hub;
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
 
 import {
@@ -1382,11 +1388,34 @@ function loadWechatAccounts(filePath) {
   }
 }
 
+/**
+ * Atomically persist a JSON state file at mode 0600. The PDH account stores hold
+ * login credentials (cookies/tokens), so a crash mid-write must not truncate the
+ * file — loadXAccounts swallows a parse error and returns [], silently dropping
+ * every saved account. Temp sibling (created 0600 so the secret is never world-
+ * readable) + rename, which is atomic within a filesystem. Exported as a test
+ * seam. (Mirrors the config / mcp-oauth / sync-credentials atomic-write fixes.)
+ */
+export function _atomicWriteJson600(filePath, obj) {
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    writeFileSync(tmp, JSON.stringify(obj, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (existsSync(tmp)) unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 function saveWechatAccounts(filePath, accounts) {
-  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  _atomicWriteJson600(filePath, accounts);
 }
 
 // ─── Email account persistence (Phase 5.6) ───────────────────────────────
@@ -1403,10 +1432,7 @@ function loadEmailAccounts(filePath) {
 }
 
 function saveEmailAccounts(filePath, accounts) {
-  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  _atomicWriteJson600(filePath, accounts);
 }
 
 // ─── Alipay account persistence (Phase 6) ───────────────────────────────
@@ -1423,10 +1449,7 @@ function loadAlipayAccounts(filePath) {
 }
 
 function saveAlipayAccounts(filePath, accounts) {
-  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  _atomicWriteJson600(filePath, accounts);
 }
 
 export async function getHub() {
