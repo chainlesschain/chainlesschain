@@ -12,52 +12,52 @@
  * @module ai-engine/cowork/file-sandbox
  */
 
-const { logger } = require('../../utils/logger.js');
-const path = require('path');
-const fs = require('fs').promises;
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
+const { logger } = require("../../utils/logger.js");
+const path = require("path");
+const fs = require("fs").promises;
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
 
 /**
  * 权限类型
  */
 const Permission = {
-  READ: 'read',
-  WRITE: 'write',
-  EXECUTE: 'execute',
+  READ: "read",
+  WRITE: "write",
+  EXECUTE: "execute",
 };
 
 /**
  * 敏感文件模式（默认拒绝访问）
  */
 const SENSITIVE_PATTERNS = [
-  /\.env$/,                      // 环境变量文件
-  /\.env\..+$/,                  // .env.local, .env.production等
-  /credentials?\.json$/i,        // 凭证文件
-  /secrets?\.json$/i,            // 密钥文件
-  /\.ssh\//,                     // SSH密钥目录
-  /\.git\/config$/,              // Git配置
-  /id_rsa$/,                     // SSH私钥
-  /\.pem$/,                      // 证书文件
-  /\.key$/,                      // 密钥文件
-  /\.p12$/,                      // PKCS12证书
-  /\.keystore$/,                 // Java密钥库
-  /password/i,                   // 包含password的文件
-  /\.aws\/credentials$/,         // AWS凭证
-  /\.azure\/config$/,            // Azure配置
-  /\.kube\/config$/,             // Kubernetes配置
-  /private.*key/i,               // 私钥文件
-  /\.npmrc$/,                    // NPM配置文件（可能包含认证令牌）
+  /\.env$/, // 环境变量文件
+  /\.env\..+$/, // .env.local, .env.production等
+  /credentials?\.json$/i, // 凭证文件
+  /secrets?\.json$/i, // 密钥文件
+  /\.ssh\//, // SSH密钥目录
+  /\.git\/config$/, // Git配置
+  /id_rsa$/, // SSH私钥
+  /\.pem$/, // 证书文件
+  /\.key$/, // 密钥文件
+  /\.p12$/, // PKCS12证书
+  /\.keystore$/, // Java密钥库
+  /password/i, // 包含password的文件
+  /\.aws\/credentials$/, // AWS凭证
+  /\.azure\/config$/, // Azure配置
+  /\.kube\/config$/, // Kubernetes配置
+  /private.*key/i, // 私钥文件
+  /\.npmrc$/, // NPM配置文件（可能包含认证令牌）
 ];
 
 /**
  * 危险操作模式
  */
 const DANGEROUS_OPERATIONS = [
-  /rm\s+-rf/,                    // 递归删除
-  /format/i,                     // 格式化
-  /delete.*all/i,                // 删除所有
-  /drop.*table/i,                // 删除表
+  /rm\s+-rf/, // 递归删除
+  /format/i, // 格式化
+  /delete.*all/i, // 删除所有
+  /drop.*table/i, // 删除表
 ];
 
 /**
@@ -69,7 +69,7 @@ class FileSandbox extends EventEmitter {
 
     // 兼容性：检测是否传入的是数据库对象（用于测试）
     let options = {};
-    if (dbOrOptions && typeof dbOrOptions.run === 'function') {
+    if (dbOrOptions && typeof dbOrOptions.run === "function") {
       // 传入的是数据库对象
       this.db = dbOrOptions;
     } else {
@@ -109,7 +109,7 @@ class FileSandbox extends EventEmitter {
       ...this.options.customSensitivePatterns,
     ];
 
-    this._log('FileSandbox 已初始化');
+    this._log("FileSandbox 已初始化");
   }
 
   /**
@@ -132,19 +132,28 @@ class FileSandbox extends EventEmitter {
    * @param {Object} options - 选项
    * @returns {Promise<boolean>} 是否授权
    */
-  async requestAccess(teamId, folderPath, permissions = [Permission.READ], options = {}) {
+  async requestAccess(
+    teamId,
+    folderPath,
+    permissions = [Permission.READ],
+    options = {},
+  ) {
     const normalizedPath = path.normalize(folderPath);
 
     // 检查路径是否已经被授权
     if (this.hasPermission(teamId, normalizedPath, Permission.READ)) {
-      this._log(`路径已授权: ${normalizedPath}`, 'info');
+      this._log(`路径已授权: ${normalizedPath}`, "info");
       return true;
     }
 
     // 检查是否为敏感路径
     if (this.isSensitivePath(normalizedPath)) {
-      this._log(`拒绝访问敏感路径: ${normalizedPath}`, 'warn');
-      this.emit('access-denied', { teamId, path: normalizedPath, reason: 'sensitive_path' });
+      this._log(`拒绝访问敏感路径: ${normalizedPath}`, "warn");
+      this.emit("access-denied", {
+        teamId,
+        path: normalizedPath,
+        reason: "sensitive_path",
+      });
       return false;
     }
 
@@ -152,11 +161,15 @@ class FileSandbox extends EventEmitter {
     try {
       const stats = await fs.stat(normalizedPath);
       if (!stats.isDirectory()) {
-        throw new Error('路径必须是目录');
+        throw new Error("路径必须是目录");
       }
     } catch (_error) {
-      this._log(`路径不存在或无效: ${normalizedPath}`, 'error');
-      this.emit('access-denied', { teamId, path: normalizedPath, reason: 'invalid_path' });
+      this._log(`路径不存在或无效: ${normalizedPath}`, "error");
+      this.emit("access-denied", {
+        teamId,
+        path: normalizedPath,
+        reason: "invalid_path",
+      });
       return false;
     }
 
@@ -170,7 +183,7 @@ class FileSandbox extends EventEmitter {
     }
 
     // 发送授权请求事件
-    this.emit('access-requested', {
+    this.emit("access-requested", {
       teamId,
       path: normalizedPath,
       permissions,
@@ -191,7 +204,12 @@ class FileSandbox extends EventEmitter {
    * @param {Array<string>} permissions - 权限列表
    * @param {Object} options - 选项
    */
-  async grantAccess(teamId, folderPath, permissions = [Permission.READ], options = {}) {
+  async grantAccess(
+    teamId,
+    folderPath,
+    permissions = [Permission.READ],
+    options = {},
+  ) {
     const normalizedPath = path.normalize(folderPath);
 
     // 检查路径数量限制
@@ -201,7 +219,9 @@ class FileSandbox extends EventEmitter {
 
     const teamPaths = this.teamPermissions.get(teamId);
     if (teamPaths.size >= this.options.maxAllowedPaths) {
-      throw new Error(`已达到最大允许路径数限制: ${this.options.maxAllowedPaths}`);
+      throw new Error(
+        `已达到最大允许路径数限制: ${this.options.maxAllowedPaths}`,
+      );
     }
 
     // 存储权限
@@ -223,10 +243,10 @@ class FileSandbox extends EventEmitter {
               normalizedPath,
               permission,
               Date.now(),
-              options.grantedBy || 'system',
+              options.grantedBy || "system",
               options.expiresAt || null,
               1,
-            ]
+            ],
           );
         } catch (_error) {
           // Ignore duplicate key errors silently
@@ -234,8 +254,10 @@ class FileSandbox extends EventEmitter {
       }
     }
 
-    this._log(`权限已授予: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permissions.join(', ')}`);
-    this.emit('access-granted', { teamId, path: normalizedPath, permissions });
+    this._log(
+      `权限已授予: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permissions.join(", ")}`,
+    );
+    this.emit("access-granted", { teamId, path: normalizedPath, permissions });
 
     // 为每个授予的权限记录审计日志
     for (const permission of permissions) {
@@ -244,7 +266,7 @@ class FileSandbox extends EventEmitter {
         null,
         permission.toUpperCase(), // 'READ' or 'WRITE' or 'EXECUTE'
         normalizedPath,
-        true
+        true,
       );
     }
   }
@@ -272,15 +294,15 @@ class FileSandbox extends EventEmitter {
           `UPDATE cowork_sandbox_permissions
            SET is_active = 0
            WHERE team_id = ? AND path = ?`,
-          [teamId, normalizedPath]
+          [teamId, normalizedPath],
         );
       } catch (error) {
-        this._log(`撤销权限失败: ${error.message}`, 'error');
+        this._log(`撤销权限失败: ${error.message}`, "error");
       }
     }
 
     this._log(`权限已撤销: 团队 ${teamId}, 路径 ${normalizedPath}`);
-    this.emit('access-revoked', { teamId, path: normalizedPath });
+    this.emit("access-revoked", { teamId, path: normalizedPath });
   }
 
   /**
@@ -293,7 +315,8 @@ class FileSandbox extends EventEmitter {
   hasPermission(teamId, filePath, permission = Permission.READ) {
     const normalizedPath = path.normalize(filePath);
     // 规范化权限为小写
-    const normalizedPermission = typeof permission === 'string' ? permission.toLowerCase() : permission;
+    const normalizedPermission =
+      typeof permission === "string" ? permission.toLowerCase() : permission;
 
     // 查找匹配的允许路径
     for (const [key, permissions] of this.allowedPaths.entries()) {
@@ -301,7 +324,10 @@ class FileSandbox extends EventEmitter {
         const allowedPath = key.substring(`${teamId}:`.length);
 
         // 检查文件路径是否在允许的路径下
-        if (normalizedPath === allowedPath || normalizedPath.startsWith(allowedPath + path.sep)) {
+        if (
+          normalizedPath === allowedPath ||
+          normalizedPath.startsWith(allowedPath + path.sep)
+        ) {
           if (permissions.includes(normalizedPermission)) {
             return true;
           }
@@ -323,7 +349,7 @@ class FileSandbox extends EventEmitter {
       return [];
     }
 
-    return Array.from(teamPaths).map(p => ({
+    return Array.from(teamPaths).map((p) => ({
       path: p,
       permissions: this.allowedPaths.get(`${teamId}:${p}`) || [],
     }));
@@ -342,13 +368,13 @@ class FileSandbox extends EventEmitter {
     const normalizedPath = path.normalize(filePath);
 
     // 检查路径遍历攻击
-    if (normalizedPath.includes('..')) {
-      return { safe: false, reason: 'path_traversal' };
+    if (normalizedPath.includes("..")) {
+      return { safe: false, reason: "path_traversal" };
     }
 
     // 检查是否为敏感文件
     if (this.isSensitivePath(normalizedPath)) {
-      return { safe: false, reason: 'sensitive_file' };
+      return { safe: false, reason: "sensitive_file" };
     }
 
     return { safe: true };
@@ -362,8 +388,8 @@ class FileSandbox extends EventEmitter {
   isSensitivePath(filePath) {
     const normalizedPath = path.normalize(filePath);
     // 兼容性：将路径转换为Unix风格（用于与模式匹配）
-    const unixPath = normalizedPath.split(path.sep).join('/');
-    return this.sensitivePatterns.some(pattern => pattern.test(unixPath));
+    const unixPath = normalizedPath.split(path.sep).join("/");
+    return this.sensitivePatterns.some((pattern) => pattern.test(unixPath));
   }
 
   /**
@@ -372,7 +398,7 @@ class FileSandbox extends EventEmitter {
    * @returns {boolean}
    */
   isDangerousOperation(operation) {
-    return DANGEROUS_OPERATIONS.some(pattern => pattern.test(operation));
+    return DANGEROUS_OPERATIONS.some((pattern) => pattern.test(operation));
   }
 
   /**
@@ -388,35 +414,58 @@ class FileSandbox extends EventEmitter {
     // 1. 检查路径安全性
     const safety = this.checkPathSafety(normalizedPath);
     if (!safety.safe) {
-      this._log(`不安全的路径: ${normalizedPath}, 原因: ${safety.reason}`, 'warn');
-      await this._auditOperation(teamId, null, 'access_denied', normalizedPath, false, safety.reason);
+      this._log(
+        `不安全的路径: ${normalizedPath}, 原因: ${safety.reason}`,
+        "warn",
+      );
+      await this._auditOperation(
+        teamId,
+        null,
+        "access_denied",
+        normalizedPath,
+        false,
+        safety.reason,
+      );
       return { allowed: false, reason: safety.reason };
     }
 
     // 2. 检查权限
     if (!this.hasPermission(teamId, normalizedPath, permission)) {
-      this._log(`权限不足: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permission}`, 'warn');
-      await this._auditOperation(teamId, null, 'access_denied', normalizedPath, false, 'insufficient_permission');
-      return { allowed: false, reason: 'insufficient_permission' };
+      this._log(
+        `权限不足: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permission}`,
+        "warn",
+      );
+      await this._auditOperation(
+        teamId,
+        null,
+        "access_denied",
+        normalizedPath,
+        false,
+        "insufficient_permission",
+      );
+      return { allowed: false, reason: "insufficient_permission" };
     }
 
     // 3. 严格模式下，检查路径是否存在于允许列表
     if (this.options.strictMode) {
       const teamPaths = this.teamPermissions.get(teamId);
       if (!teamPaths) {
-        return { allowed: false, reason: 'no_team_permissions' };
+        return { allowed: false, reason: "no_team_permissions" };
       }
 
       let pathAllowed = false;
       for (const allowedPath of teamPaths) {
-        if (normalizedPath === allowedPath || normalizedPath.startsWith(allowedPath + path.sep)) {
+        if (
+          normalizedPath === allowedPath ||
+          normalizedPath.startsWith(allowedPath + path.sep)
+        ) {
           pathAllowed = true;
           break;
         }
       }
 
       if (!pathAllowed) {
-        return { allowed: false, reason: 'path_not_allowed' };
+        return { allowed: false, reason: "path_not_allowed" };
       }
     }
 
@@ -425,8 +474,8 @@ class FileSandbox extends EventEmitter {
       try {
         const stats = await fs.lstat(normalizedPath);
         if (stats.isSymbolicLink()) {
-          this._log(`拒绝符号链接: ${normalizedPath}`, 'warn');
-          return { allowed: false, reason: 'symlink_not_allowed' };
+          this._log(`拒绝符号链接: ${normalizedPath}`, "warn");
+          return { allowed: false, reason: "symlink_not_allowed" };
         }
       } catch (_error) {
         // 文件不存在，允许（可能是写操作）
@@ -438,8 +487,8 @@ class FileSandbox extends EventEmitter {
       try {
         const stats = await fs.stat(normalizedPath);
         if (stats.size > this.options.maxFileSize) {
-          this._log(`文件过大: ${normalizedPath}, 大小: ${stats.size}`, 'warn');
-          return { allowed: false, reason: 'file_too_large' };
+          this._log(`文件过大: ${normalizedPath}, 大小: ${stats.size}`, "warn");
+          return { allowed: false, reason: "file_too_large" };
         }
       } catch (_error) {
         // 文件不存在，忽略
@@ -462,19 +511,35 @@ class FileSandbox extends EventEmitter {
    * @returns {Promise<string>} 文件内容
    */
   async readFile(teamId, agentId, filePath, options = {}) {
-    const validation = await this.validateAccess(teamId, filePath, Permission.READ);
+    const validation = await this.validateAccess(
+      teamId,
+      filePath,
+      Permission.READ,
+    );
 
     if (!validation.allowed) {
       throw new Error(`文件访问被拒绝: ${validation.reason}`);
     }
 
     try {
-      const content = await fs.readFile(filePath, options.encoding || 'utf-8');
-      await this._auditOperation(teamId, agentId, 'read', filePath, true);
-      this.emit('file-read', { teamId, agentId, filePath, size: content.length });
+      const content = await fs.readFile(filePath, options.encoding || "utf-8");
+      await this._auditOperation(teamId, agentId, "read", filePath, true);
+      this.emit("file-read", {
+        teamId,
+        agentId,
+        filePath,
+        size: content.length,
+      });
       return content;
     } catch (error) {
-      await this._auditOperation(teamId, agentId, 'read', filePath, false, error.message);
+      await this._auditOperation(
+        teamId,
+        agentId,
+        "read",
+        filePath,
+        false,
+        error.message,
+      );
       throw error;
     }
   }
@@ -488,18 +553,34 @@ class FileSandbox extends EventEmitter {
    * @param {Object} options - 选项
    */
   async writeFile(teamId, agentId, filePath, content, options = {}) {
-    const validation = await this.validateAccess(teamId, filePath, Permission.WRITE);
+    const validation = await this.validateAccess(
+      teamId,
+      filePath,
+      Permission.WRITE,
+    );
 
     if (!validation.allowed) {
       throw new Error(`文件写入被拒绝: ${validation.reason}`);
     }
 
     try {
-      await fs.writeFile(filePath, content, options.encoding || 'utf-8');
-      await this._auditOperation(teamId, agentId, 'write', filePath, true);
-      this.emit('file-written', { teamId, agentId, filePath, size: content.length });
+      await fs.writeFile(filePath, content, options.encoding || "utf-8");
+      await this._auditOperation(teamId, agentId, "write", filePath, true);
+      this.emit("file-written", {
+        teamId,
+        agentId,
+        filePath,
+        size: content.length,
+      });
     } catch (error) {
-      await this._auditOperation(teamId, agentId, 'write', filePath, false, error.message);
+      await this._auditOperation(
+        teamId,
+        agentId,
+        "write",
+        filePath,
+        false,
+        error.message,
+      );
       throw error;
     }
   }
@@ -511,7 +592,11 @@ class FileSandbox extends EventEmitter {
    * @param {string} filePath - 文件路径
    */
   async deleteFile(teamId, agentId, filePath) {
-    const validation = await this.validateAccess(teamId, filePath, Permission.WRITE);
+    const validation = await this.validateAccess(
+      teamId,
+      filePath,
+      Permission.WRITE,
+    );
 
     if (!validation.allowed) {
       throw new Error(`文件删除被拒绝: ${validation.reason}`);
@@ -519,15 +604,22 @@ class FileSandbox extends EventEmitter {
 
     // 再次确认不是敏感文件
     if (this.isSensitivePath(filePath)) {
-      throw new Error('禁止删除敏感文件');
+      throw new Error("禁止删除敏感文件");
     }
 
     try {
       await fs.unlink(filePath);
-      await this._auditOperation(teamId, agentId, 'delete', filePath, true);
-      this.emit('file-deleted', { teamId, agentId, filePath });
+      await this._auditOperation(teamId, agentId, "delete", filePath, true);
+      this.emit("file-deleted", { teamId, agentId, filePath });
     } catch (error) {
-      await this._auditOperation(teamId, agentId, 'delete', filePath, false, error.message);
+      await this._auditOperation(
+        teamId,
+        agentId,
+        "delete",
+        filePath,
+        false,
+        error.message,
+      );
       throw error;
     }
   }
@@ -540,7 +632,11 @@ class FileSandbox extends EventEmitter {
    * @returns {Promise<Array>} 文件列表
    */
   async listDirectory(teamId, agentId, dirPath) {
-    const validation = await this.validateAccess(teamId, dirPath, Permission.READ);
+    const validation = await this.validateAccess(
+      teamId,
+      dirPath,
+      Permission.READ,
+    );
 
     if (!validation.allowed) {
       throw new Error(`目录访问被拒绝: ${validation.reason}`);
@@ -550,21 +646,33 @@ class FileSandbox extends EventEmitter {
       const files = await fs.readdir(dirPath, { withFileTypes: true });
 
       // 过滤敏感文件
-      const filtered = files.filter(file => {
+      const filtered = files.filter((file) => {
         const filePath = path.join(dirPath, file.name);
         return !this.isSensitivePath(filePath);
       });
 
-      await this._auditOperation(teamId, agentId, 'list', dirPath, true);
-      this.emit('directory-listed', { teamId, agentId, dirPath, count: filtered.length });
+      await this._auditOperation(teamId, agentId, "list", dirPath, true);
+      this.emit("directory-listed", {
+        teamId,
+        agentId,
+        dirPath,
+        count: filtered.length,
+      });
 
-      return filtered.map(file => ({
+      return filtered.map((file) => ({
         name: file.name,
         isDirectory: file.isDirectory(),
         isFile: file.isFile(),
       }));
     } catch (error) {
-      await this._auditOperation(teamId, agentId, 'list', dirPath, false, error.message);
+      await this._auditOperation(
+        teamId,
+        agentId,
+        "list",
+        dirPath,
+        false,
+        error.message,
+      );
       throw error;
     }
   }
@@ -577,7 +685,14 @@ class FileSandbox extends EventEmitter {
    * 记录操作审计
    * @private
    */
-  async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null) {
+  async _auditOperation(
+    teamId,
+    agentId,
+    operation,
+    resourcePath,
+    success,
+    errorMessage = null,
+  ) {
     if (!this.options.auditEnabled) {
       return;
     }
@@ -586,7 +701,7 @@ class FileSandbox extends EventEmitter {
       teamId,
       agentId,
       operation,
-      resourceType: 'file',
+      resourceType: "file",
       resourcePath,
       path: resourcePath, // 兼容性：添加 path 别名
       timestamp: Date.now(),
@@ -608,14 +723,23 @@ class FileSandbox extends EventEmitter {
           `INSERT INTO cowork_audit_log
            (team_id, agent_id, operation, resource_type, resource_path, timestamp, success, error_message)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [teamId, agentId, operation, 'file', resourcePath, auditRecord.timestamp, success ? 1 : 0, errorMessage]
+          [
+            teamId,
+            agentId,
+            operation,
+            "file",
+            resourcePath,
+            auditRecord.timestamp,
+            success ? 1 : 0,
+            errorMessage,
+          ],
         );
       } catch (error) {
-        this._log(`保存审计日志失败: ${error.message}`, 'error');
+        this._log(`保存审计日志失败: ${error.message}`, "error");
       }
     }
 
-    this.emit('audit', auditRecord);
+    this.emit("audit", auditRecord);
   }
 
   /**
@@ -626,24 +750,29 @@ class FileSandbox extends EventEmitter {
    */
   getAuditLog(filters = {}, limitParam) {
     // 兼容性：处理 limit 参数
-    const limit = limitParam !== undefined ? limitParam : (filters.limit || 100);
+    const limit = limitParam !== undefined ? limitParam : filters.limit || 100;
 
     let logs = this.auditLog;
 
     if (filters.teamId) {
-      logs = logs.filter(l => l.teamId === filters.teamId);
+      logs = logs.filter((l) => l.teamId === filters.teamId);
     }
 
     if (filters.agentId) {
-      logs = logs.filter(l => l.agentId === filters.agentId);
+      logs = logs.filter((l) => l.agentId === filters.agentId);
     }
 
     if (filters.operation) {
-      logs = logs.filter(l => l.operation === filters.operation);
+      logs = logs.filter((l) => l.operation === filters.operation);
     }
 
     if (filters.success !== undefined) {
-      logs = logs.filter(l => l.success === (filters.success ? 1 : 0));
+      // auditLog records store success as a boolean (Boolean(success)); the old
+      // `=== (filters.success ? 1 : 0)` compared boolean to integer (true === 1
+      // is false), so the success filter matched nothing. Normalize both sides.
+      logs = logs.filter(
+        (l) => Boolean(l.success) === Boolean(filters.success),
+      );
     }
 
     const filteredLogs = logs.slice(-limit);
@@ -663,10 +792,10 @@ class FileSandbox extends EventEmitter {
    * 日志输出
    * @private
    */
-  _log(message, level = 'info') {
-    if (level === 'error') {
+  _log(message, level = "info") {
+    if (level === "error") {
       logger.error(`[FileSandbox] ${message}`);
-    } else if (level === 'warn') {
+    } else if (level === "warn") {
       logger.warn(`[FileSandbox] ${message}`);
     } else {
       logger.info(`[FileSandbox] ${message}`);
@@ -688,12 +817,12 @@ class FileSandbox extends EventEmitter {
         `UPDATE cowork_sandbox_permissions
          SET is_active = 0
          WHERE expires_at IS NOT NULL AND expires_at < ?`,
-        [now]
+        [now],
       );
 
-      this._log('过期权限已清理');
+      this._log("过期权限已清理");
     } catch (error) {
-      this._log(`清理过期权限失败: ${error.message}`, 'error');
+      this._log(`清理过期权限失败: ${error.message}`, "error");
     }
   }
 
@@ -706,8 +835,8 @@ class FileSandbox extends EventEmitter {
       totalAllowedPaths: this.allowedPaths.size,
       totalTeams: this.teamPermissions.size,
       totalAuditLogs: this.auditLog.length,
-      successfulOperations: this.auditLog.filter(l => l.success === 1).length,
-      failedOperations: this.auditLog.filter(l => l.success === 0).length,
+      successfulOperations: this.auditLog.filter((l) => l.success === 1).length,
+      failedOperations: this.auditLog.filter((l) => l.success === 0).length,
     };
   }
 
@@ -718,7 +847,7 @@ class FileSandbox extends EventEmitter {
     this.allowedPaths.clear();
     this.teamPermissions.clear();
     this.auditLog = [];
-    this._log('FileSandbox 已重置');
+    this._log("FileSandbox 已重置");
   }
 
   // ==========================================
@@ -733,14 +862,24 @@ class FileSandbox extends EventEmitter {
    * @param {object} options - 选项
    * @returns {Promise<object>} 结果
    */
-  async grantPermission(teamId, folderPath, permissions = ['read'], options = {}) {
+  async grantPermission(
+    teamId,
+    folderPath,
+    permissions = ["read"],
+    options = {},
+  ) {
     // 转换权限字符串为 Permission 常量
-    const permissionObjects = permissions.map(p => {
-      const perm = p.toUpperCase().replace(/-/g, '_');
+    const permissionObjects = permissions.map((p) => {
+      const perm = p.toUpperCase().replace(/-/g, "_");
       return Permission[perm] || p;
     });
 
-    return await this.grantAccess(teamId, folderPath, permissionObjects, options);
+    return await this.grantAccess(
+      teamId,
+      folderPath,
+      permissionObjects,
+      options,
+    );
   }
 
   /**
@@ -760,8 +899,8 @@ class FileSandbox extends EventEmitter {
     }
 
     // 转换权限为小写
-    const permissionsToRevoke = permissions.map(p =>
-      typeof p === 'string' ? p.toLowerCase() : p
+    const permissionsToRevoke = permissions.map((p) =>
+      typeof p === "string" ? p.toLowerCase() : p,
     );
 
     // 获取当前权限
@@ -769,7 +908,7 @@ class FileSandbox extends EventEmitter {
 
     // 过滤掉要撤销的权限
     const remainingPermissions = currentPermissions.filter(
-      p => !permissionsToRevoke.includes(p)
+      (p) => !permissionsToRevoke.includes(p),
     );
 
     // 如果没有剩余权限，完全移除路径
@@ -788,16 +927,22 @@ class FileSandbox extends EventEmitter {
             `UPDATE cowork_sandbox_permissions
              SET is_active = 0
              WHERE team_id = ? AND path = ? AND permission = ?`,
-            [teamId, normalizedPath, permission]
+            [teamId, normalizedPath, permission],
           );
         } catch (error) {
-          this._log(`撤销数据库权限失败: ${error.message}`, 'error');
+          this._log(`撤销数据库权限失败: ${error.message}`, "error");
         }
       }
     }
 
-    this._log(`部分权限已撤销: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permissionsToRevoke.join(', ')}`);
-    this.emit('permissions-revoked', { teamId, path: normalizedPath, permissions: permissionsToRevoke });
+    this._log(
+      `部分权限已撤销: 团队 ${teamId}, 路径 ${normalizedPath}, 权限 ${permissionsToRevoke.join(", ")}`,
+    );
+    this.emit("permissions-revoked", {
+      teamId,
+      path: normalizedPath,
+      permissions: permissionsToRevoke,
+    });
   }
 
   /**
@@ -821,7 +966,7 @@ class FileSandbox extends EventEmitter {
       operation,
       resourcePath,
       success,
-      error_message
+      error_message,
     );
   }
 }
