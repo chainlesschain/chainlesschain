@@ -43,6 +43,33 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+/**
+ * Write a file atomically: write to a unique temp sibling, then rename over the
+ * target. rename() is atomic within a filesystem, so a crash mid-write leaves
+ * the previous file (or nothing) intact — never a half-written manifest/blob.
+ * Without this, a checkpoint manifest truncated by a crash makes the whole
+ * checkpoint unrecoverable (getCheckpoint's JSON.parse fails → null) while its
+ * blobs are orphaned on disk. The temp lives in the SAME dir as the target so
+ * the rename stays on one filesystem; on failure the temp is best-effort
+ * removed. Temp names end in `.tmp` (never `.json`), so a leftover from a hard
+ * crash is ignored by listCheckpoints.
+ */
+function atomicWriteFileSync(filePath, data) {
+  const rand = Math.random().toString(36).slice(2, 8);
+  const tmp = `${filePath}.${process.pid}.${rand}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data);
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 function sha256(buf) {
   return createHash("sha256").update(buf).digest("hex");
 }
@@ -127,7 +154,7 @@ export function createCheckpoint(paths, opts = {}) {
     const buf = fs.readFileSync(abs);
     const hash = sha256(buf);
     const blobPath = path.join(blobDir, hash);
-    if (!fs.existsSync(blobPath)) fs.writeFileSync(blobPath, buf);
+    if (!fs.existsSync(blobPath)) atomicWriteFileSync(blobPath, buf);
     files.push({
       rel: path.relative(cwd, abs) || path.basename(abs),
       abs,
@@ -145,10 +172,9 @@ export function createCheckpoint(paths, opts = {}) {
     files,
   };
   ensureDir(root);
-  fs.writeFileSync(
+  atomicWriteFileSync(
     path.join(root, `${id}.json`),
     JSON.stringify(manifest, null, 2),
-    "utf-8",
   );
   return manifest;
 }
@@ -275,7 +301,7 @@ export function restoreCheckpoint(id, opts = {}) {
 
   for (const w of toWrite) {
     ensureDir(path.dirname(w.abs));
-    fs.writeFileSync(w.abs, w.blob);
+    atomicWriteFileSync(w.abs, w.blob);
     restored.push(w.rel);
   }
 

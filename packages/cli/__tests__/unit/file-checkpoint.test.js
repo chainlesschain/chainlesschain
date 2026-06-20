@@ -6,6 +6,7 @@ import {
   rmSync,
   existsSync,
   mkdirSync,
+  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -128,5 +129,25 @@ describe("file-checkpoint store", () => {
     expect(m.files[0].sha256).toBe(m.files[1].sha256);
     // a single blob file exists for the shared content
     expect(existsSync(join(root, m.id, m.files[0].sha256))).toBe(true);
+  });
+
+  it("writes manifest, blobs, and restores atomically with no .tmp leftovers", () => {
+    const m = mk("atomic");
+    // Manifest dir holds exactly `<id>.json` (+ the blob dir) — no `.tmp` files.
+    const rootEntries = readdirSync(root);
+    expect(rootEntries).toContain(`${m.id}.json`);
+    expect(rootEntries.some((n) => n.endsWith(".tmp"))).toBe(false);
+    // Blob dir holds only sha-named blobs — no `.tmp` files.
+    const blobEntries = readdirSync(join(root, m.id));
+    expect(blobEntries.length).toBe(2);
+    expect(blobEntries.some((n) => n.endsWith(".tmp"))).toBe(false);
+    // Manifest is fully-formed valid JSON (atomic rename → never half-written).
+    expect(getCheckpoint(m.id, { root })).toMatchObject({ id: m.id });
+
+    // Restore is atomic too: correct content, no `.tmp` left in the work dir.
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf-8");
+    restoreCheckpoint(m.id, { root, skipSafety: true });
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
+    expect(readdirSync(work).some((n) => n.endsWith(".tmp"))).toBe(false);
   });
 });
