@@ -56,7 +56,7 @@
     "@chainlesschain/core-db": "0.1.3",
     "@chainlesschain/core-env": "0.1.1",
     "@chainlesschain/core-infra": "0.1.0",
-    "@chainlesschain/core-mtc": "0.2.1",
+    "@chainlesschain/core-mtc": "0.2.2",
     "@chainlesschain/core-multisig": "0.1.2",
     "@chainlesschain/personal-data-hub": "0.4.30",
     "@chainlesschain/session-core": "0.3.2",
