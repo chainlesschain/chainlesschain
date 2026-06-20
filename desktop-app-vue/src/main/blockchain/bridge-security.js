@@ -506,10 +506,16 @@ class BridgeSecurityManager extends EventEmitter {
       `[BridgeSecurity] Bridge paused until ${new Date(this.pausedUntil).toISOString()}`,
     );
 
-    // Auto-resume after duration
-    setTimeout(() => {
+    // Auto-resume after duration. unref so the background timer never keeps the
+    // process alive, and store the handle so a manual resume / shutdown can
+    // cancel it. resumeBridge() is now resilient, so the unawaited call can't
+    // surface an unhandled rejection.
+    this.autoResumeTimer = setTimeout(() => {
       this.resumeBridge();
     }, duration);
+    if (this.autoResumeTimer && this.autoResumeTimer.unref) {
+      this.autoResumeTimer.unref();
+    }
   }
 
   /**
@@ -518,12 +524,26 @@ class BridgeSecurityManager extends EventEmitter {
   async resumeBridge() {
     this.isPaused = false;
     this.pausedUntil = null;
+    if (this.autoResumeTimer) {
+      clearTimeout(this.autoResumeTimer);
+      this.autoResumeTimer = null;
+    }
 
-    await this.logSecurityEvent({
-      type: "BRIDGE_RESUMED",
-      severity: "info",
-      details: "Bridge operations resumed",
-    });
+    // Best-effort audit log: a failed write must not prevent the resume nor
+    // surface as an unhandled rejection (resumeBridge is invoked from an
+    // unawaited auto-resume timer).
+    try {
+      await this.logSecurityEvent({
+        type: "BRIDGE_RESUMED",
+        severity: "info",
+        details: "Bridge operations resumed",
+      });
+    } catch (err) {
+      logger.error(
+        "[BridgeSecurity] Failed to log BRIDGE_RESUMED audit event:",
+        err,
+      );
+    }
 
     this.emit("bridge-resumed");
 
