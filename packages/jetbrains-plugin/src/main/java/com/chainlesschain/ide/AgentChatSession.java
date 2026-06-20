@@ -51,8 +51,9 @@ public final class AgentChatSession {
     }
 
     public static final class Options {
-        /** cc executable; Windows npm shims are .cmd → run through cmd.exe. */
-        public String command = "cc";
+        /** cc executable; null → resolve cc/chainlesschain/clc (skip a shadowed
+         *  `cc`, e.g. the C compiler). Windows npm shims are .cmd → run via cmd.exe. */
+        public String command = null;
         /** Extra CLI args appended after the protocol flags. */
         public List<String> extraArgs = new ArrayList<>();
         /** Working directory for the agent (project root). */
@@ -84,7 +85,7 @@ public final class AgentChatSession {
             cmd.add("cmd.exe");
             cmd.add("/c");
         }
-        cmd.add(opts.command == null || opts.command.isEmpty() ? "cc" : opts.command);
+        cmd.add(opts.command == null || opts.command.isEmpty() ? resolveBinary() : opts.command);
         cmd.addAll(Arrays.asList(
                 "agent",
                 "--input-format", "stream-json",
@@ -106,12 +107,56 @@ public final class AgentChatSession {
      * blank result as "unavailable". Pure JDK; safe to call off the EDT.
      */
     public static String runCapture(List<String> args, File cwd, long timeoutMs) {
+        return runCaptureWith(resolveBinary(), args, cwd, timeoutMs);
+    }
+
+    private static volatile String resolvedBinary = null;
+
+    /**
+     * Resolve the chainlesschain CLI binary, tolerating a {@code cc} that is
+     * shadowed by another tool (classically the C compiler — {@code cc} is also
+     * gcc/clang's name). The npm package installs {@code cc}, {@code chainlesschain},
+     * {@code clc} and {@code clchain}; we try them in order and pick the first
+     * whose {@code --version} prints a BARE chainlesschain version (a leading
+     * semver line, not a compiler banner). Cached; probed off the EDT. Falls back
+     * to {@code cc} if none resolve (the spawn then surfaces the real error).
+     */
+    public static String resolveBinary() {
+        String r = resolvedBinary;
+        if (r != null) return r;
+        for (String cand : new String[] { "cc", "chainlesschain", "clc", "clchain" }) {
+            String out = runCaptureWith(
+                    cand, java.util.Collections.singletonList("--version"), null, 12000);
+            if (looksLikeCcVersion(out)) {
+                resolvedBinary = cand;
+                return cand;
+            }
+        }
+        resolvedBinary = "cc";
+        return resolvedBinary;
+    }
+
+    /** True when {@code --version} output's first non-blank line is a bare semver
+     *  (chainlesschain prints "0.162.95"), distinguishing it from a {@code cc}
+     *  that is really a C compiler ("cc (GCC) 12.2.0", "Apple clang …"). */
+    static boolean looksLikeCcVersion(String out) {
+        if (out == null) return false;
+        for (String line : out.split("\n")) {
+            String t = line.trim();
+            if (t.isEmpty()) continue;
+            return t.matches("v?\\d+\\.\\d+\\.\\d+.*");
+        }
+        return false;
+    }
+
+    /** {@code <binary> <args…>} → captured stdout, or "" on failure/timeout. */
+    private static String runCaptureWith(String binary, List<String> args, File cwd, long timeoutMs) {
         List<String> cmd = new ArrayList<>();
         if (File.separatorChar == '\\') {
             cmd.add("cmd.exe");
             cmd.add("/c");
         }
-        cmd.add("cc");
+        cmd.add(binary);
         if (args != null) cmd.addAll(args);
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);

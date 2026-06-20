@@ -228,7 +228,7 @@ final class ConversationView {
             // otherwise the provider probe below fails and shows the misleading
             // "未配置 LLM" hint when the real problem is "cc not installed".
             String ver = AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 5000);
+                    java.util.Collections.singletonList("--version"), cwd, 12000);
             if (CliVersionCheck.parseVersion(ver) == null) {
                 SwingUtilities.invokeLater(() -> appendThinking(
                         "未检测到 cc CLI —— 面板需要它才能工作。请先安装:npm i -g chainlesschain\n"));
@@ -257,7 +257,7 @@ final class ConversationView {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 String installed = AgentChatSession.runCapture(
-                        java.util.Collections.singletonList("--version"), cwd, 5000);
+                        java.util.Collections.singletonList("--version"), cwd, 12000);
                 String latestJson = fetchNpmLatest();
                 String latest = CliVersionCheck.parseNpmLatest(latestJson);
                 String notice = CliVersionCheck.updateNotice(installed, latest);
@@ -305,7 +305,7 @@ final class ConversationView {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             String installed = CliVersionCheck.parseVersion(AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 5000));
+                    java.util.Collections.singletonList("--version"), cwd, 12000));
             String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
             SwingUtilities.invokeLater(() -> {
                 if (installed == null) {

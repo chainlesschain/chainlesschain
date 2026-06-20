@@ -1,6 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.25] — 2026-06-20 — the agent can actually ask you a question now
+## [0.4.26] — 2026-06-20 — fix: "cc not installed" false alarm + cc-name conflict
+
+- **Fix: the panel no longer cries "未检测到 cc CLI" when `cc` IS installed.** Two
+  causes: (1) the version probe timed out on a cold start (Windows node + npm
+  `.cmd` shim can take >5s) — bumped to 12s; (2) **`cc` is also the C compiler's
+  name**, so if PATH resolved `cc` to gcc/clang the probe got a non-chainlesschain
+  banner. The plugin now **resolves the binary with fallback** — it tries
+  `cc` → `chainlesschain` → `clc` → `clchain` and picks the first whose
+  `--version` prints a bare chainlesschain version (skipping a shadowed `cc`),
+  then uses that binary for both the chat spawn and all probes. So a `cc` clash
+  no longer breaks the plugin.
 
 - **`ask_user_question` is now interactive** (matches VS Code 0.33.7). When the
   agent asks, the chat tool window pops a dialog — a single-choice picker, a

@@ -47,6 +47,7 @@ public final class PureLogicSmokeMain {
         llmConfig();
         slashCommands();
         cliVersionCheck();
+        binaryResolution();
         fixWithCc();
         markdownLite();
 
@@ -425,6 +426,19 @@ public final class PureLogicSmokeMain {
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");
+    }
+
+    private static void binaryResolution() {
+        System.out.println("AgentChatSession.looksLikeCcVersion (cc-conflict resolution):");
+        check(AgentChatSession.looksLikeCcVersion("0.162.95"), "bare semver → chainlesschain");
+        check(AgentChatSession.looksLikeCcVersion("0.162.95\n"), "trailing newline ok");
+        check(AgentChatSession.looksLikeCcVersion("v1.2.3"), "v-prefixed ok");
+        check(!AgentChatSession.looksLikeCcVersion("cc (GCC) 12.2.0"), "C compiler banner → reject");
+        check(!AgentChatSession.looksLikeCcVersion("Apple clang version 15.0.0"), "clang → reject");
+        check(!AgentChatSession.looksLikeCcVersion("Microsoft Windows [Version 10.0.19045]"), "win banner → reject");
+        check(!AgentChatSession.looksLikeCcVersion(""), "empty → reject");
+        check(!AgentChatSession.looksLikeCcVersion(null), "null → reject");
+        check(!AgentChatSession.looksLikeCcVersion("not a version"), "junk → reject");
     }
 
     private static void cliVersionCheck() {
