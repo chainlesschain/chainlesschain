@@ -538,6 +538,10 @@
     "100_自定义斜杠命令与宏系统.md": {
       "docs-site": "100-slash-commands-macros.md",
       "docs-site-design": "m100-slash-commands-macros.md"
+    },
+    "101_个人数据IDE桥接方案.md": {
+      "docs-site": "101-personal-data-ide-bridge.md",
+      "docs-site-design": "m101-personal-data-ide-bridge.md"
     }
   }
 }

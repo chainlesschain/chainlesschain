@@ -921,6 +921,10 @@ export default defineConfig({
               text: "100 自定义斜杠命令与宏系统 ⭐NEW",
               link: "/modules/m100-slash-commands-macros",
             },
+            {
+              text: "101 个人数据 IDE 桥接方案 ⭐NEW",
+              link: "/modules/m101-personal-data-ide-bridge",
+            },
           ],
         },
         {
