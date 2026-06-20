@@ -202,6 +202,35 @@ describe("token store + expiry", () => {
     expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
   });
 
+  it("writes the token store atomically (temp + rename, no .tmp left, 0600 temp)", () => {
+    const calls = { writes: [], renames: [] };
+    const files = {};
+    _deps.fs = {
+      existsSync: (p) => p in files,
+      readFileSync: (p) => files[p] ?? "{}",
+      mkdirSync: () => {},
+      writeFileSync: (p, c, opts) => {
+        files[p] = c;
+        calls.writes.push({ p, mode: opts && opts.mode });
+      },
+      renameSync: (from, to) => {
+        files[to] = files[from];
+        delete files[from];
+        calls.renames.push({ from, to });
+      },
+      unlinkSync: (p) => delete files[p],
+      chmodSync: () => {},
+    };
+    oauth.saveStoredToken("https://m.example.com", { access_token: "AT" });
+    // Wrote a 0600 temp sibling, then renamed it over the store; none left.
+    expect(calls.writes).toHaveLength(1);
+    expect(calls.writes[0].p).toMatch(/\.tmp$/);
+    expect(calls.writes[0].mode).toBe(0o600);
+    expect(calls.renames).toHaveLength(1);
+    expect(calls.renames[0].from).toBe(calls.writes[0].p);
+    expect(Object.keys(files).some((k) => k.endsWith(".tmp"))).toBe(false);
+  });
+
   it("writes the token file owner-only (0600 file, 0700 dir, chmod enforced)", () => {
     const cap = { write: null, mkdir: null, chmod: null };
     _deps.fs = {

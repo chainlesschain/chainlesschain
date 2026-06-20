@@ -311,10 +311,29 @@ export function getStoredToken(serverUrl) {
 // also chmod (best-effort) to tighten a file an older version left at 0644.
 function _writeStoreSecure(file, store) {
   _deps.fs.mkdirSync(pathDefault.dirname(file), { recursive: true, mode: 0o700 });
-  _deps.fs.writeFileSync(file, JSON.stringify(store, null, 2) + "\n", {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  const data = JSON.stringify(store, null, 2) + "\n";
+  // Atomic temp+rename: the store holds live OAuth tokens, so a crash (or a
+  // concurrent `cc mcp login`) mid-write must not truncate it and lose auth for
+  // every server. The temp inherits the 0600 mode. Falls back to a direct write
+  // when the injected fs lacks renameSync (test mocks); the real fs always has
+  // it, so production is always atomic.
+  if (typeof _deps.fs.renameSync !== "function") {
+    _deps.fs.writeFileSync(file, data, { encoding: "utf-8", mode: 0o600 });
+  } else {
+    const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+    try {
+      _deps.fs.writeFileSync(tmp, data, { encoding: "utf-8", mode: 0o600 });
+      _deps.fs.renameSync(tmp, file);
+    } catch (err) {
+      try {
+        if (_deps.fs.existsSync && _deps.fs.existsSync(tmp) && _deps.fs.unlinkSync)
+          _deps.fs.unlinkSync(tmp);
+      } catch {
+        /* best-effort temp cleanup */
+      }
+      throw err;
+    }
+  }
   try {
     _deps.fs.chmodSync(file, 0o600);
   } catch {

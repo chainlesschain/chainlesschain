@@ -22,6 +22,7 @@ const CICD_CHANNELS = [
   "cicd:get-dependency-graph",
   "cicd:plan-build",
   "cicd:execute-build-step",
+  "cicd:record-build-result",
   "cicd:get-build-cache",
   "cicd:analyze-coverage",
   "cicd:get-config",
@@ -165,6 +166,29 @@ function registerCICDOptimizerIPC(cicdOptimizer) {
     } catch (error) {
       logger.error(
         "[CICDOptimizerIPC] execute-build-step error:",
+        error.message,
+      );
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Record a completed build step into the build cache so future plans with the
+   * same input hash can skip it. Called by the executor (shell / workflow
+   * engine) after a step finishes.
+   * @param {Object} step - { name, inputHash, outputPath? }
+   */
+  ipcMain.handle("cicd:record-build-result", async (_event, step = {}) => {
+    try {
+      const result = cicdOptimizer.recordBuildResult(
+        step.name,
+        step.inputHash,
+        step.outputPath || null,
+      );
+      return { success: result.success !== false, data: result };
+    } catch (error) {
+      logger.error(
+        "[CICDOptimizerIPC] record-build-result error:",
         error.message,
       );
       return { success: false, error: error.message };

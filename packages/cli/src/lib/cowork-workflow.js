@@ -330,7 +330,10 @@ export function resolveForEachItems(forEach, resultsById) {
 export function substituteItem(template, item) {
   if (typeof template !== "string") return template;
   const repl = typeof item === "string" ? item : JSON.stringify(item);
-  return template.replace(/\$\{item\}/g, repl);
+  // Insert via a function so $-sequences in the item ($&, $`, $', $$ — common in
+  // JSON values / shell snippets) are placed literally rather than interpreted
+  // as String.replace patterns, which would corrupt the substituted value.
+  return template.replace(/\$\{item\}/g, () => repl);
 }
 
 /** Evaluate a step's `when` expression. Missing expression → always true. */

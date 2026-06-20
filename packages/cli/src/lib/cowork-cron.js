@@ -32,6 +32,7 @@
 import crypto from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { withFileLock } from "./with-file-lock.js";
 
 export const _deps = {
   existsSync,
@@ -260,49 +261,59 @@ export function addSchedule(cwd, input) {
   const err = validateCron(cron);
   if (err) throw new Error(`invalid cron: ${err}`);
 
-  const schedules = loadSchedules(cwd);
-  const entry = {
-    id: `sch-${crypto.randomUUID().slice(0, 12)}`,
-    cron: cron.trim(),
-    templateId,
-    userMessage,
-    files: Array.isArray(files) ? files : [],
-    enabled: true,
-    createdAt: _deps.now().toISOString(),
-    lastRunAt: null,
-    lastStatus: null,
-  };
-  schedules.push(entry);
-  saveSchedules(cwd, schedules);
-  return entry;
+  // Serialize the read-modify-write across processes (cc+cc / cc+desktop share
+  // the cowork dir) so concurrently-added schedules don't clobber each other.
+  return withFileLock(_scheduleFile(cwd), () => {
+    const schedules = loadSchedules(cwd);
+    const entry = {
+      id: `sch-${crypto.randomUUID().slice(0, 12)}`,
+      cron: cron.trim(),
+      templateId,
+      userMessage,
+      files: Array.isArray(files) ? files : [],
+      enabled: true,
+      createdAt: _deps.now().toISOString(),
+      lastRunAt: null,
+      lastStatus: null,
+    };
+    schedules.push(entry);
+    saveSchedules(cwd, schedules);
+    return entry;
+  });
 }
 
 export function removeSchedule(cwd, id) {
-  const schedules = loadSchedules(cwd);
-  const idx = schedules.findIndex((s) => s.id === id);
-  if (idx === -1) return false;
-  schedules.splice(idx, 1);
-  saveSchedules(cwd, schedules);
-  return true;
+  return withFileLock(_scheduleFile(cwd), () => {
+    const schedules = loadSchedules(cwd);
+    const idx = schedules.findIndex((s) => s.id === id);
+    if (idx === -1) return false;
+    schedules.splice(idx, 1);
+    saveSchedules(cwd, schedules);
+    return true;
+  });
 }
 
 export function setScheduleEnabled(cwd, id, enabled) {
-  const schedules = loadSchedules(cwd);
-  const s = schedules.find((x) => x.id === id);
-  if (!s) return false;
-  s.enabled = !!enabled;
-  saveSchedules(cwd, schedules);
-  return true;
+  return withFileLock(_scheduleFile(cwd), () => {
+    const schedules = loadSchedules(cwd);
+    const s = schedules.find((x) => x.id === id);
+    if (!s) return false;
+    s.enabled = !!enabled;
+    saveSchedules(cwd, schedules);
+    return true;
+  });
 }
 
 export function updateScheduleRunState(cwd, id, { lastRunAt, lastStatus }) {
-  const schedules = loadSchedules(cwd);
-  const s = schedules.find((x) => x.id === id);
-  if (!s) return false;
-  if (lastRunAt) s.lastRunAt = lastRunAt;
-  if (lastStatus) s.lastStatus = lastStatus;
-  saveSchedules(cwd, schedules);
-  return true;
+  return withFileLock(_scheduleFile(cwd), () => {
+    const schedules = loadSchedules(cwd);
+    const s = schedules.find((x) => x.id === id);
+    if (!s) return false;
+    if (lastRunAt) s.lastRunAt = lastRunAt;
+    if (lastStatus) s.lastStatus = lastStatus;
+    saveSchedules(cwd, schedules);
+    return true;
+  });
 }
 
 // ─── Scheduler ───────────────────────────────────────────────────────────────
