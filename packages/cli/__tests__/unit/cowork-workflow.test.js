@@ -53,6 +53,12 @@ function installFakeFs() {
     if (!files.has(p)) throw new Error(`ENOENT: ${p}`);
     files.delete(p);
   });
+  // Simulate atomic temp+rename in the in-memory fs.
+  _deps.renameSync = vi.fn((from, to) => {
+    if (!files.has(from)) throw new Error(`ENOENT: ${from}`);
+    files.set(to, files.get(from));
+    files.delete(from);
+  });
   _deps.appendFileSync = vi.fn((p, body) => {
     files.set(p, (files.get(p) || "") + body);
   });
@@ -183,8 +189,11 @@ describe("persistence", () => {
   beforeEach(() => installFakeFs());
 
   it("saves and reads back a workflow", () => {
+    const files = installFakeFs();
     saveWorkflow("/project", VALID_WF);
     expect(getWorkflow("/project", "wf-1")).toEqual(VALID_WF);
+    // Atomic write: the temp sibling was renamed away, none left behind.
+    expect([...files.keys()].some((k) => k.endsWith(".tmp"))).toBe(false);
   });
 
   it("listWorkflows returns [] when dir missing", () => {

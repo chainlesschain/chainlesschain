@@ -34,6 +34,13 @@ function installFakeFs() {
   wfDeps.mkdirSync = vi.fn((p) => dirs.add(norm(p)));
   wfDeps.appendFileSync = vi.fn(() => {});
   wfDeps.unlinkSync = vi.fn((p) => files.delete(norm(p)));
+  // Simulate atomic temp+rename in the in-memory fs.
+  wfDeps.renameSync = vi.fn((from, to) => {
+    const nf = norm(from);
+    if (!files.has(nf)) throw new Error(`ENOENT: ${from}`);
+    files.set(norm(to), files.get(nf));
+    files.delete(nf);
+  });
   wfDeps.readdirSync = vi.fn((dir) => {
     const prefix = norm(dir).replace(/\/$/, "") + "/";
     return [...files.keys()]
