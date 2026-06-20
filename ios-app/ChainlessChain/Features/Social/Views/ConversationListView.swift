@@ -5,6 +5,8 @@ import CoreDID
 struct ConversationListView: View {
     @StateObject private var viewModel = ConversationListViewModel()
     @State private var showNewChat = false
+    @State private var showSocialFeed = false
+    @State private var showFriends = false
 
     var body: some View {
         NavigationView {
@@ -19,6 +21,19 @@ struct ConversationListView: View {
             }
             .navigationTitle("消息")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button(action: { showSocialFeed = true }) {
+                            Label("社交广场", systemImage: "person.3")
+                        }
+                        Button(action: { showFriends = true }) {
+                            Label("好友", systemImage: "person.2")
+                        }
+                    } label: {
+                        Image(systemName: "person.2.circle")
+                    }
+                    .accessibilityLabel("社交")
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showNewChat = true }) {
                         Image(systemName: "square.and.pencil")
@@ -30,6 +45,12 @@ struct ConversationListView: View {
                     viewModel.startConversation(with: contact)
                     showNewChat = false
                 }
+            }
+            .sheet(isPresented: $showSocialFeed) {
+                SocialFeedView()
+            }
+            .sheet(isPresented: $showFriends) {
+                FriendListView()
             }
             .refreshable {
                 await viewModel.loadConversations()
