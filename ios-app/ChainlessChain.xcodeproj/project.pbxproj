@@ -33,6 +33,18 @@
 		333E7CC1D5B18E3BD57F9D89 /* RemoteBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72139FA75E27E8DDC4B21A7F /* RemoteBrowserView.swift */; };
 		3340FC1074E029178C3D5928 /* IntentUnderstandingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65B47DA8B60BAA96960C5C /* IntentUnderstandingService.swift */; };
 		366B1EEBFC5EB1B8FAD0F3B5 /* SocialFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2714270CED201264AC6460 /* SocialFeedView.swift */; };
+		FE5009B100000000000000B1 /* SocialPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009A100000000000000A1 /* SocialPost.swift */; };
+		FE5009B200000000000000B2 /* SocialRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009A200000000000000A2 /* SocialRepository.swift */; };
+		FE5009B300000000000000B3 /* SocialFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009A300000000000000A3 /* SocialFeedViewModel.swift */; };
+		FE5009B400000000000000B4 /* PublishPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009A400000000000000A4 /* PublishPostView.swift */; };
+		FE5009B500000000000000B5 /* PostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009A500000000000000A5 /* PostDetailView.swift */; };
+		FE5009D100000000000000D1 /* FriendsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C100000000000000C1 /* FriendsViewModel.swift */; };
+		FE5009D200000000000000D2 /* FriendListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C200000000000000C2 /* FriendListView.swift */; };
+		FE5009D300000000000000D3 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C300000000000000C3 /* AddFriendView.swift */; };
+		FE5009D400000000000000D4 /* FriendDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C400000000000000C4 /* FriendDetailView.swift */; };
+		FE5009D500000000000000D5 /* BlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C500000000000000C5 /* BlockedUsersView.swift */; };
+		FE5009D600000000000000D6 /* UserPostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C600000000000000C6 /* UserPostsView.swift */; };
+		FE5009D700000000000000D7 /* MyDIDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE5009C700000000000000C7 /* MyDIDView.swift */; };
 		368995B347BB5ED4E39435E0 /* ProjectAIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732AFB61FA1B6BA9F9F6BF40 /* ProjectAIManager.swift */; };
 		3CA26E1824D81DADC04FAD04 /* ImageStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2608689829ED73A12B5F641 /* ImageStorageManager.swift */; };
 		3D84AACB4102CE896326A77D /* RecordingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B88B9832F862383826B971 /* RecordingListView.swift */; };
@@ -275,6 +287,18 @@
 		E99D0409733F669F306B67DA /* ElementHighlighter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ElementHighlighter.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ElementHighlighter.swift; sourceTree = "<group>"; };
 		EA4D3C05603995C161C99970 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = ./ChainlessChain/Features/Settings/Views/SettingsView.swift; sourceTree = "<group>"; };
 		EC2714270CED201264AC6460 /* SocialFeedView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialFeedView.swift; path = ./ChainlessChain/Features/Social/Views/SocialFeedView.swift; sourceTree = "<group>"; };
+		FE5009A100000000000000A1 /* SocialPost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialPost.swift; path = ./ChainlessChain/Features/Social/Models/SocialPost.swift; sourceTree = "<group>"; };
+		FE5009A200000000000000A2 /* SocialRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialRepository.swift; path = ./ChainlessChain/Features/Social/Services/SocialRepository.swift; sourceTree = "<group>"; };
+		FE5009A300000000000000A3 /* SocialFeedViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialFeedViewModel.swift; path = ./ChainlessChain/Features/Social/ViewModels/SocialFeedViewModel.swift; sourceTree = "<group>"; };
+		FE5009A400000000000000A4 /* PublishPostView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PublishPostView.swift; path = ./ChainlessChain/Features/Social/Views/PublishPostView.swift; sourceTree = "<group>"; };
+		FE5009A500000000000000A5 /* PostDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PostDetailView.swift; path = ./ChainlessChain/Features/Social/Views/PostDetailView.swift; sourceTree = "<group>"; };
+		FE5009C100000000000000C1 /* FriendsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FriendsViewModel.swift; path = ./ChainlessChain/Features/Social/ViewModels/FriendsViewModel.swift; sourceTree = "<group>"; };
+		FE5009C200000000000000C2 /* FriendListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FriendListView.swift; path = ./ChainlessChain/Features/Social/Views/FriendListView.swift; sourceTree = "<group>"; };
+		FE5009C300000000000000C3 /* AddFriendView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddFriendView.swift; path = ./ChainlessChain/Features/Social/Views/AddFriendView.swift; sourceTree = "<group>"; };
+		FE5009C400000000000000C4 /* FriendDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FriendDetailView.swift; path = ./ChainlessChain/Features/Social/Views/FriendDetailView.swift; sourceTree = "<group>"; };
+		FE5009C500000000000000C5 /* BlockedUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BlockedUsersView.swift; path = ./ChainlessChain/Features/Social/Views/BlockedUsersView.swift; sourceTree = "<group>"; };
+		FE5009C600000000000000C6 /* UserPostsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UserPostsView.swift; path = ./ChainlessChain/Features/Social/Views/UserPostsView.swift; sourceTree = "<group>"; };
+		FE5009C700000000000000C7 /* MyDIDView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MyDIDView.swift; path = ./ChainlessChain/Features/Social/Views/MyDIDView.swift; sourceTree = "<group>"; };
 		ED4B83C162BCFBD9DC0647FD /* MessageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MessageManager.swift; path = ./ChainlessChain/Features/Social/Services/MessageManager.swift; sourceTree = "<group>"; };
 		F010556B9D5579AEDAE02443 /* ComputerUseTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseTypes.swift; path = ./ChainlessChain/Features/ComputerUse/Models/ComputerUseTypes.swift; sourceTree = "<group>"; };
 		F0435AA490476517B94AE2FA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -349,6 +373,7 @@
 				790BB7D492AEE9CC85253673 /* OfflineMessageQueue.swift */,
 				48631B8C1263C905AAB2F71E /* MessageStatusManager.swift */,
 				CC62BDC254550A9098A68D56 /* WebRTCManager.swift */,
+				FE5009A200000000000000A2 /* SocialRepository.swift */,
 			);
 			name = Services;
 			sourceTree = "<group>";
@@ -484,6 +509,8 @@
 			children = (
 				8FE510F1EE7A7FE7FA7B281F /* P2PViewModel.swift */,
 				9E9ABC912104F75749E37B15 /* GroupChatViewModel.swift */,
+				FE5009A300000000000000A3 /* SocialFeedViewModel.swift */,
+				FE5009C100000000000000C1 /* FriendsViewModel.swift */,
 			);
 			name = ViewModels;
 			sourceTree = "<group>";
@@ -535,6 +562,7 @@
 		70343107AE177B175C36EFE4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				FE5009A100000000000000A1 /* SocialPost.swift */,
 			);
 			name = Models;
 			sourceTree = "<group>";
@@ -927,6 +955,14 @@
 				1D569285B5CBD46DA3D8A82F /* P2PChatView.swift */,
 				541484F5325784212A983066 /* ConversationListView.swift */,
 				EC2714270CED201264AC6460 /* SocialFeedView.swift */,
+				FE5009A400000000000000A4 /* PublishPostView.swift */,
+				FE5009A500000000000000A5 /* PostDetailView.swift */,
+				FE5009C200000000000000C2 /* FriendListView.swift */,
+				FE5009C300000000000000C3 /* AddFriendView.swift */,
+				FE5009C400000000000000C4 /* FriendDetailView.swift */,
+				FE5009C500000000000000C5 /* BlockedUsersView.swift */,
+				FE5009C600000000000000C6 /* UserPostsView.swift */,
+				FE5009C700000000000000C7 /* MyDIDView.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -1048,6 +1084,18 @@
 				2C973CFA77E9206051319183 /* P2PChatView.swift in Sources */,
 				256DB890DE3F355B4C925932 /* ConversationListView.swift in Sources */,
 				366B1EEBFC5EB1B8FAD0F3B5 /* SocialFeedView.swift in Sources */,
+				FE5009B100000000000000B1 /* SocialPost.swift in Sources */,
+				FE5009B200000000000000B2 /* SocialRepository.swift in Sources */,
+				FE5009B300000000000000B3 /* SocialFeedViewModel.swift in Sources */,
+				FE5009B400000000000000B4 /* PublishPostView.swift in Sources */,
+				FE5009B500000000000000B5 /* PostDetailView.swift in Sources */,
+				FE5009D100000000000000D1 /* FriendsViewModel.swift in Sources */,
+				FE5009D200000000000000D2 /* FriendListView.swift in Sources */,
+				FE5009D300000000000000D3 /* AddFriendView.swift in Sources */,
+				FE5009D400000000000000D4 /* FriendDetailView.swift in Sources */,
+				FE5009D500000000000000D5 /* BlockedUsersView.swift in Sources */,
+				FE5009D600000000000000D6 /* UserPostsView.swift in Sources */,
+				FE5009D700000000000000D7 /* MyDIDView.swift in Sources */,
 				CF0C6E6D6B3756453AB34393 /* P2PContactRepository.swift in Sources */,
 				29B95258A1AC762A396B6517 /* SignalProtocolManager.swift in Sources */,
 				EA74381E5FE78EE235259279 /* P2PManager.swift in Sources */,

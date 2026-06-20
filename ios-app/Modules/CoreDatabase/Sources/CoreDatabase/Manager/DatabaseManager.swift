@@ -203,29 +203,35 @@ public class DatabaseManager {
     /// 执行 SQL 语句
     @discardableResult
     public func execute(_ sql: String) throws -> Int {
-        return try queue.sync {
-            guard let database = db else {
-                throw DatabaseError.notOpen
-            }
+        return try queue.sync { try _execute(sql) }
+    }
 
-            var errorMessage: UnsafeMutablePointer<CChar>?
-            let result = sqlite3_exec(database, sql, nil, nil, &errorMessage)
-
-            if result != SQLITE_OK {
-                let message: String
-                if let errorPtr = errorMessage {
-                    message = String(cString: errorPtr)
-                    sqlite3_free(errorPtr)
-                } else {
-                    message = "Unknown error"
-                }
-                logger.database("SQL execution failed: \(message)", level: .error)
-                throw DatabaseError.executionFailed(message)
-            }
-
-            let changes = Int(sqlite3_changes(database))
-            return changes
+    /// 内部执行（**不**获取 `queue` 锁）。仅供已经运行在 `queue` 闭包内的代码
+    /// 调用（如 `open` → `runMigrations`）。对串行队列重入 `queue.sync` 会让
+    /// 线程永久死锁——这正是首次输入 PIN 打开数据库时「闪退」(watchdog 杀进程)
+    /// 的根因。所有 `open()` 同步上下文里的 SQL 必须走这些 `_` 前缀的原语。
+    @discardableResult
+    private func _execute(_ sql: String) throws -> Int {
+        guard let database = db else {
+            throw DatabaseError.notOpen
         }
+
+        var errorMessage: UnsafeMutablePointer<CChar>?
+        let result = sqlite3_exec(database, sql, nil, nil, &errorMessage)
+
+        if result != SQLITE_OK {
+            let message: String
+            if let errorPtr = errorMessage {
+                message = String(cString: errorPtr)
+                sqlite3_free(errorPtr)
+            } else {
+                message = "Unknown error"
+            }
+            logger.database("SQL execution failed: \(message)", level: .error)
+            throw DatabaseError.executionFailed(message)
+        }
+
+        return Int(sqlite3_changes(database))
     }
 
     /// 执行带参数绑定的 SQL（INSERT/UPDATE/DELETE 用）。`execute(_:)` 走的是
@@ -265,39 +271,49 @@ public class DatabaseManager {
 
     /// 执行查询
     public func query<T>(_ sql: String, parameters: [Any?] = [], mapper: (OpaquePointer) -> T?) throws -> [T] {
-        return try queue.sync {
-            guard let database = db else {
-                throw DatabaseError.notOpen
-            }
+        return try queue.sync { try _query(sql, parameters: parameters, mapper: mapper) }
+    }
 
-            var statement: OpaquePointer?
-            let prepareResult = sqlite3_prepare_v2(database, sql, -1, &statement, nil)
-
-            guard prepareResult == SQLITE_OK, let stmt = statement else {
-                let errorMessage = String(cString: sqlite3_errmsg(database))
-                throw DatabaseError.queryFailed(errorMessage)
-            }
-
-            defer { sqlite3_finalize(stmt) }
-
-            // 绑定参数
-            try bindParameters(stmt, parameters: parameters)
-
-            var results: [T] = []
-
-            while sqlite3_step(stmt) == SQLITE_ROW {
-                if let item = mapper(stmt) {
-                    results.append(item)
-                }
-            }
-
-            return results
+    /// 内部查询（**不**获取 `queue` 锁）。见 `_execute` 的注释——`open()` 同步
+    /// 上下文里的查询（如 `getCurrentVersion`）必须走这里，否则串行队列重入死锁。
+    private func _query<T>(_ sql: String, parameters: [Any?] = [], mapper: (OpaquePointer) -> T?) throws -> [T] {
+        guard let database = db else {
+            throw DatabaseError.notOpen
         }
+
+        var statement: OpaquePointer?
+        let prepareResult = sqlite3_prepare_v2(database, sql, -1, &statement, nil)
+
+        guard prepareResult == SQLITE_OK, let stmt = statement else {
+            let errorMessage = String(cString: sqlite3_errmsg(database))
+            throw DatabaseError.queryFailed(errorMessage)
+        }
+
+        defer { sqlite3_finalize(stmt) }
+
+        // 绑定参数
+        try bindParameters(stmt, parameters: parameters)
+
+        var results: [T] = []
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let item = mapper(stmt) {
+                results.append(item)
+            }
+        }
+
+        return results
     }
 
     /// 执行单行查询
     public func queryOne<T>(_ sql: String, parameters: [Any?] = [], mapper: (OpaquePointer) -> T?) throws -> T? {
         let results: [T] = try query(sql, parameters: parameters, mapper: mapper)
+        return results.first
+    }
+
+    /// 内部单行查询（**不**获取 `queue` 锁），供 `open()` 同步上下文使用。
+    private func _queryOne<T>(_ sql: String, parameters: [Any?] = [], mapper: (OpaquePointer) -> T?) throws -> T? {
+        let results: [T] = try _query(sql, parameters: parameters, mapper: mapper)
         return results.first
     }
 
@@ -368,9 +384,14 @@ public class DatabaseManager {
     // MARK: - Migration
 
     /// 运行数据库迁移
+    ///
+    /// **重要**：本方法及其调用链（`getCurrentVersion` / `runMigration` /
+    /// `migration_v1`）只在 `open()` 的 `queue.sync` 闭包内被调用，因此一律使用
+    /// `_execute` / `_queryOne` 这些**不**重入队列的内部原语。改用公开的
+    /// `execute` / `queryOne` 会对串行队列重入 `sync` → 死锁（首次输入 PIN 闪退）。
     private func runMigrations() throws {
         // 创建 migrations 表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS migrations (
                 version INTEGER PRIMARY KEY,
                 applied_at INTEGER NOT NULL
@@ -389,9 +410,9 @@ public class DatabaseManager {
         }
     }
 
-    /// 获取当前数据库版本
+    /// 获取当前数据库版本（在 `open()` 同步上下文内调用，走非重入的 `_queryOne`）
     private func getCurrentVersion() throws -> Int {
-        let result: Int? = try queryOne("SELECT MAX(version) FROM migrations;") { stmt in
+        let result: Int? = try _queryOne("SELECT MAX(version) FROM migrations;") { stmt in
             return Int(sqlite3_column_int(stmt, 0))
         }
         return result ?? 0
@@ -408,19 +429,21 @@ public class DatabaseManager {
         // BlockchainMigration.swift which is currently excluded from compile
         // (Package.swift exclude: [...]). Re-enable when Migrations folder
         // dependencies are implemented.
+        case 3:
+            try migration_v3()
         default:
             break
         }
 
-        // 记录迁移
-        try execute("INSERT INTO migrations (version, applied_at) VALUES (\(version), \(Date().timestampMs));")
+        // 记录迁移（同步上下文内，走非重入的 `_execute`）
+        try _execute("INSERT INTO migrations (version, applied_at) VALUES (\(version), \(Date().timestampMs));")
         logger.database("Migration v\(version) completed")
     }
 
     /// 迁移 v1: 创建核心表
     private func migration_v1() throws {
         // 用户设置表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
@@ -429,7 +452,7 @@ public class DatabaseManager {
         """)
 
         // DID 身份表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS did_identities (
                 id TEXT PRIMARY KEY,
                 did TEXT NOT NULL UNIQUE,
@@ -444,7 +467,7 @@ public class DatabaseManager {
         """)
 
         // 联系人表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS contacts (
                 id TEXT PRIMARY KEY,
                 did TEXT NOT NULL UNIQUE,
@@ -459,7 +482,7 @@ public class DatabaseManager {
         """)
 
         // 对话表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS conversations (
                 id TEXT PRIMARY KEY,
                 type TEXT NOT NULL DEFAULT 'direct',
@@ -476,7 +499,7 @@ public class DatabaseManager {
         """)
 
         // 消息表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id TEXT PRIMARY KEY,
                 conversation_id TEXT NOT NULL,
@@ -493,7 +516,7 @@ public class DatabaseManager {
         """)
 
         // 知识库表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS knowledge_items (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
@@ -511,7 +534,7 @@ public class DatabaseManager {
         """)
 
         // AI 对话表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS ai_conversations (
                 id TEXT PRIMARY KEY,
                 title TEXT,
@@ -526,7 +549,7 @@ public class DatabaseManager {
         """)
 
         // AI 消息表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS ai_messages (
                 id TEXT PRIMARY KEY,
                 conversation_id TEXT NOT NULL,
@@ -539,7 +562,7 @@ public class DatabaseManager {
         """)
 
         // 社交帖子表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS social_posts (
                 id TEXT PRIMARY KEY,
                 author_did TEXT NOT NULL,
@@ -556,7 +579,7 @@ public class DatabaseManager {
         """)
 
         // 数字资产表
-        try execute("""
+        try _execute("""
             CREATE TABLE IF NOT EXISTS assets (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -572,13 +595,47 @@ public class DatabaseManager {
         """)
 
         // 创建索引
-        try execute("CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);")
-        try execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);")
-        try execute("CREATE INDEX IF NOT EXISTS idx_knowledge_created ON knowledge_items(created_at);")
-        try execute("CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_messages(conversation_id);")
-        try execute("CREATE INDEX IF NOT EXISTS idx_contacts_did ON contacts(did);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_knowledge_created ON knowledge_items(created_at);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_messages(conversation_id);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_contacts_did ON contacts(did);")
 
         logger.database("Created v1 schema with core tables")
+    }
+
+    /// 迁移 v3: 去中心化社交网络（动态/评论/点赞）。
+    /// `social_posts` 表已在 v1 创建，这里补齐评论与点赞明细表，使 iOS 端的
+    /// 社交「广场」与 Android 端对齐（帖子 / 评论 / 点赞 / 时间线）。
+    private func migration_v3() throws {
+        // 帖子评论表（支持二级回复：parent_comment_id）
+        try _execute("""
+            CREATE TABLE IF NOT EXISTS social_post_comments (
+                id TEXT PRIMARY KEY,
+                post_id TEXT NOT NULL,
+                author_did TEXT NOT NULL,
+                content TEXT NOT NULL,
+                parent_comment_id TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (post_id) REFERENCES social_posts(id)
+            );
+        """)
+
+        // 帖子点赞明细表（记录谁点了赞，便于撤销与去重）
+        try _execute("""
+            CREATE TABLE IF NOT EXISTS social_post_likes (
+                post_id TEXT NOT NULL,
+                liker_did TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (post_id, liker_did)
+            );
+        """)
+
+        try _execute("CREATE INDEX IF NOT EXISTS idx_social_posts_created ON social_posts(created_at DESC);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_social_comments_post ON social_post_comments(post_id);")
+        try _execute("CREATE INDEX IF NOT EXISTS idx_social_likes_post ON social_post_likes(post_id);")
+
+        logger.database("Created v3 social network schema (posts/comments/likes)")
     }
 
     // MARK: - Maintenance
