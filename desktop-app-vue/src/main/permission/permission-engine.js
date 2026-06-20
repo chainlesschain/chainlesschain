@@ -135,7 +135,11 @@ class PermissionEngine extends EventEmitter {
       // Check cache
       const cached = this._getFromCache(cacheKey);
       if (cached !== undefined) {
-        return cached;
+        // Return the same shape as the cache-miss path below. Previously a hit
+        // returned the bare boolean while a miss returned { success,
+        // hasPermission }, so callers (permission-ipc → renderer) saw an
+        // inconsistent result — result.hasPermission was undefined on hits.
+        return { success: true, hasPermission: cached };
       }
 
       const db = this.database.getDatabase();
