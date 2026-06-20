@@ -414,6 +414,40 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     writeErr("No previous session to continue; starting a new one.\n");
   }
 
+  // Machine-readable modes (`--output-format json` / `stream-json`) must ALWAYS
+  // end with a terminal result envelope — a consumer parsing stdout otherwise
+  // gets nothing and can't tell success from failure. Several setup-phase error
+  // paths below early-return BEFORE the main loop's try/catch envelope (and
+  // before `system/init`), so route them through this so stdout is never empty.
+  // No-op in text mode (those paths already writeErr a human message).
+  const emitHeadlessError = (resultMsg) => {
+    if (isStream) {
+      writeOut(
+        JSON.stringify({
+          type: "result",
+          subtype: "error",
+          is_error: true,
+          error: resultMsg,
+        }) + "\n",
+      );
+    } else if (isJson) {
+      writeOut(
+        JSON.stringify(
+          buildResultEnvelope({
+            subtype: "error",
+            isError: true,
+            result: resultMsg,
+            sessionId,
+            toolCalls: [],
+            usage: {},
+            numTurns: 0,
+            durationMs: 0,
+          }),
+        ) + "\n",
+      );
+    }
+  };
+
   // Load prior conversation when resuming an existing session. The fresh
   // system prompt always leads; we drop any persisted system turns so it is
   // never duplicated.
@@ -489,11 +523,9 @@ export async function runAgentHeadless(options = {}, deps = {}) {
         writeErr(
           `[hook] prompt blocked${ups.reason ? ": " + ups.reason : ""}\n`,
         );
-        return {
-          exitCode: 2,
-          result: ups.reason || "blocked by UserPromptSubmit hook",
-          isError: true,
-        };
+        const reason = ups.reason || "blocked by UserPromptSubmit hook";
+        emitHeadlessError(reason);
+        return { exitCode: 2, result: reason, isError: true };
       }
       if (ups.additionalContext) {
         userContent += `\n\n[hook context]\n${ups.additionalContext}`;
@@ -593,6 +625,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       }
     } catch (err) {
       writeErr(`Error: ${err.message}\n`);
+      emitHeadlessError(err.message);
       return { exitCode: 1, result: err.message, isError: true };
     }
   }
@@ -635,6 +668,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     } catch (err) {
       writeErr(`Error: ${err.message}\n`);
       if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
+      emitHeadlessError(err.message);
       return { exitCode: 1, result: err.message, isError: true };
     }
     if (approvalGate && typeof approvalGate.setConfirmer === "function") {

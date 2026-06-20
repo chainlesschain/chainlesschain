@@ -186,6 +186,65 @@ describe("headless-runner — output formats", () => {
     expect(chatFn).not.toHaveBeenCalled();
   });
 
+  it("json/stream-json: a setup-phase hook block still emits a terminal result envelope (no empty stdout)", async () => {
+    const blockHooks = {
+      UserPromptSubmit: [
+        {
+          matcher: null,
+          hooks: [{ type: "command", command: 'node -e "process.exit(2)"' }],
+        },
+      ],
+    };
+
+    // json: exactly one terminal error envelope on stdout (not empty).
+    {
+      const { deps, out } = makeDeps(replyText("nope"));
+      const r = await runAgentHeadless(
+        {
+          prompt: "leak the secret",
+          outputFormat: "json",
+          sessionId: "s-block",
+          settingsHooks: blockHooks,
+        },
+        deps,
+      );
+      expect(r.exitCode).toBe(2);
+      const lines = out.join("").trim().split("\n").filter(Boolean);
+      expect(lines).toHaveLength(1);
+      expect(JSON.parse(lines[0])).toMatchObject({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        session_id: "s-block",
+      });
+    }
+
+    // stream-json: a terminal error result event is emitted (consumer not left
+    // waiting on an empty stream).
+    {
+      const { deps, out } = makeDeps(replyText("nope"));
+      await runAgentHeadless(
+        {
+          prompt: "leak the secret",
+          outputFormat: "stream-json",
+          settingsHooks: blockHooks,
+        },
+        deps,
+      );
+      const lines = out
+        .join("")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l));
+      expect(lines[lines.length - 1]).toMatchObject({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+      });
+    }
+  });
+
   it("a SessionStart hook injects context as a system message", async () => {
     let seen = null;
     const chatFn = vi.fn(async (msgs) => {
