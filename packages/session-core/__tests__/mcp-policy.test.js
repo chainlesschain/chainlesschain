@@ -24,6 +24,44 @@ describe("inferTransport", () => {
     expect(inferTransport({})).toBeNull();
     expect(inferTransport(null)).toBeNull();
   });
+  it("a command without a remote url is stdio even if transport is mislabeled (anti-spoof)", () => {
+    // declared remote transport but no url + a command = stdio execution vector
+    expect(inferTransport({ transport: "http", command: "npx" })).toBe("stdio");
+    expect(inferTransport({ transport: "wss", command: "./srv" })).toBe("stdio");
+    // file:// is not a usable remote url → command wins → stdio
+    expect(
+      inferTransport({ transport: "http", url: "file:///x", command: "npx" }),
+    ).toBe("stdio");
+  });
+  it("a real remote url is NOT downgraded even when a command is also present", () => {
+    expect(
+      inferTransport({ transport: "http", url: "https://x", command: "npx" }),
+    ).toBe("http");
+    expect(
+      inferTransport({ transport: "sse", url: "https://x", command: "npx" }),
+    ).toBe("sse");
+  });
+});
+
+describe("validateMcpServer — transport-spoofing cannot bypass no-stdio rule", () => {
+  it("rejects mislabeled stdio (transport:http + command, no url) in hosted/lan", () => {
+    const spoof = { transport: "http", command: "npx" };
+    expect(validateMcpServer(spoof, "hosted").allowed).toBe(false);
+    expect(validateMcpServer(spoof, "hosted").transport).toBe("stdio");
+    expect(validateMcpServer(spoof, "lan").allowed).toBe(false);
+    // local still allows stdio
+    expect(validateMcpServer(spoof, "local").allowed).toBe(true);
+  });
+  it("still allows a genuine remote server (url present) in hosted", () => {
+    expect(
+      validateMcpServer({ transport: "http", url: "https://x" }, "hosted")
+        .allowed,
+    ).toBe(true);
+  });
+  it("annotateCompatibility marks a mislabeled-stdio server local-only", () => {
+    const out = annotateCompatibility({ transport: "http", command: "npx" });
+    expect(out._modeCompatibility).toEqual(["local"]);
+  });
 });
 
 describe("validateMcpServer — local mode", () => {
