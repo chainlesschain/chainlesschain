@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.33.4",
+  "version": "0.33.5",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -95,6 +95,11 @@
         "command": "chainlesschain.cli.upgrade",
         "title": "ChainlessChain: Upgrade CLI (npm i -g chainlesschain@latest)",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "chainlesschain.cli.checkUpdate",
+        "title": "ChainlessChain: Check for CLI Updates (cc version)",
+        "icon": "$(sync)"
       }
     ],
     "keybindings": [
@@ -179,6 +184,16 @@
           "command": "chainlesschain.llm.configureVision",
           "when": "view == chainlesschainIdeChat",
           "group": "1_config@1"
+        },
+        {
+          "command": "chainlesschain.cli.checkUpdate",
+          "when": "view == chainlesschainIdeChat",
+          "group": "1_config@2"
+        },
+        {
+          "command": "chainlesschain.cli.upgrade",
+          "when": "view == chainlesschainIdeChat",
+          "group": "1_config@3"
         },
         {
           "command": "chainlesschain.ide.openDashboard",

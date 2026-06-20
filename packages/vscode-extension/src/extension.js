@@ -90,14 +90,18 @@ async function startBridge(context) {
   }
   const token = generateToken();
   _token = token;
-  // CLI version-sync (fire-and-forget, best-effort): first the hard-floor check
-  // (cc too old for this extension's features). If that stays quiet, run the
-  // softer "a newer cc is available on npm" nudge so users on a working-but-old
-  // CLI still learn that newer features shipped — they share the npm/Open VSX
-  // split, so the extension can't bundle the CLI.
-  checkCliVersionAndNotify(vscode, context)
-    .then((res) => {
-      if (res === "none") return checkLatestCliAndNotify(vscode, context);
+  // CLI checks (fire-and-forget, best-effort), in priority order:
+  //  1. cc missing entirely → prompt to install (the panel can't work without it)
+  //  2. cc too old for this extension's features → hard-floor upgrade nudge
+  //  3. a newer cc is available on npm → soft "update available" nudge
+  // (1) short-circuits the rest; (2) short-circuits (3). The npm/Open VSX split
+  // means the extension can't bundle the CLI, so these keep them in sync.
+  notifyIfCliMissing(vscode, context)
+    .then((missing) => {
+      if (missing) return; // no usable cc → version checks are moot
+      return checkCliVersionAndNotify(vscode, context).then((res) => {
+        if (res === "none") return checkLatestCliAndNotify(vscode, context);
+      });
     })
     .catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
@@ -271,6 +275,12 @@ function activate(context) {
     // just when the version-sync floor check nags. Runs npm i -g in a terminal.
     vscode.commands.registerCommand("chainlesschain.cli.upgrade", () => {
       upgradeCliInTerminal(vscode);
+    }),
+    // On-demand: check the installed cc against npm `latest` and report — unlike
+    // the activation nudge this ALWAYS shows a result (incl. "up to date") and
+    // ignores the once-per-version throttle / "don't show again".
+    vscode.commands.registerCommand("chainlesschain.cli.checkUpdate", () => {
+      checkCliUpdateManually(vscode).catch(() => {});
     }),
     // Project memory (CLI 0.162.41): drive `chainlesschain init` / `memory
     // files` in the shared terminal — cc.md is then auto-loaded by cc agent.
@@ -631,6 +641,41 @@ function fetchLatestCliVersion() {
 }
 
 /**
+ * Proactive "the `cc` CLI isn't installed" warning. The whole chat panel needs
+ * `cc` on PATH, so if it's missing we say so up front (instead of only failing
+ * when the user sends their first message). Offers a one-click install or a
+ * jump to the CLI-path setting. Returns true when cc is missing/unusable (the
+ * caller then skips the version checks, which are pointless without cc).
+ */
+async function notifyIfCliMissing(vscode, context) {
+  const { parseCliVersion } = require("./version-check");
+  const cliPath =
+    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+  const installed = parseCliVersion(
+    String((await runCliVersion(cliPath).catch(() => null)) || ""),
+  );
+  if (installed) return false; // cc is present → not missing
+  if (context.globalState.get("cliMissingDismissed")) return true;
+  const pick = await vscode.window.showWarningMessage(
+    "ChainlessChain: the `cc` CLI isn't installed or isn't on PATH — the chat panel needs it to work. Install it now?",
+    "Install cc",
+    "Set CLI path",
+    "Don't show again",
+  );
+  if (pick === "Install cc") {
+    upgradeCliInTerminal(vscode, "npm i -g chainlesschain");
+  } else if (pick === "Set CLI path") {
+    vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "chainlesschain.cli.path",
+    );
+  } else if (pick === "Don't show again") {
+    context.globalState.update("cliMissingDismissed", true);
+  }
+  return true;
+}
+
+/**
  * Proactive "a newer cc is available" nudge (distinct from the hard-floor
  * check): compares the installed cc against the latest npm release. Shown at
  * most once per newer version; "Don't show again" suppresses it for good.
@@ -660,6 +705,55 @@ function checkLatestCliAndNotify(vscode, context) {
     },
     upgrade: (command) => upgradeCliInTerminal(vscode, command),
   });
+}
+
+/**
+ * Manual "Check for CLI Updates" command. Unlike the activation nudge, this
+ * ALWAYS reports (including "you're up to date") and ignores the throttle /
+ * "don't show again", so it's a reliable button to check + upgrade on demand.
+ */
+async function checkCliUpdateManually(vscode) {
+  const {
+    parseCliVersion,
+    compareVersions,
+    latestUpdateNotice,
+  } = require("./version-check");
+  const cliPath =
+    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+  const installed = parseCliVersion(
+    String((await runCliVersion(cliPath).catch(() => null)) || ""),
+  );
+  if (!installed) {
+    vscode.window.showWarningMessage(
+      "ChainlessChain: couldn't read the installed cc version. Is the CLI on PATH? Install with `npm i -g chainlesschain`.",
+      "Install cc",
+    ).then((p) => {
+      if (p === "Install cc") upgradeCliInTerminal(vscode);
+    });
+    return;
+  }
+  const latest = parseCliVersion(
+    String((await fetchLatestCliVersion().catch(() => null)) || ""),
+  );
+  if (!latest) {
+    vscode.window.showWarningMessage(
+      `ChainlessChain: couldn't reach npm to check for updates (you have cc ${installed}).`,
+    );
+    return;
+  }
+  if (compareVersions(installed, latest) >= 0) {
+    vscode.window.showInformationMessage(
+      `ChainlessChain: cc ${installed} is up to date (latest published is ${latest}).`,
+    );
+    return;
+  }
+  const notice = latestUpdateNotice(installed, latest);
+  const pick = await vscode.window.showInformationMessage(
+    notice.message,
+    "Upgrade cc",
+    "Later",
+  );
+  if (pick === "Upgrade cc") upgradeCliInTerminal(vscode, notice.upgradeCommand);
 }
 
 module.exports = { activate, deactivate };

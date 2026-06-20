@@ -2,6 +2,22 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.5] — 2026-06-20 — check-version button + "cc not installed" warning
+
+- **New command + button: "Check for CLI Updates".** The 0.33.4 update notice
+  only fired automatically on startup; now there's a manual trigger in the chat
+  view's title `⋯` menu (and the command palette) that **always** reports — tells
+  you `cc X is up to date` or offers a one-click **Upgrade cc** — and ignores the
+  once-per-version throttle / "don't show again". The existing **Upgrade CLI**
+  command is now surfaced in the same menu too, so checking and upgrading the
+  `cc` CLI no longer requires hunting through the command palette.
+- **The panel now warns up front when `cc` isn't installed.** The chat panel
+  needs the `cc` CLI on PATH; previously a missing CLI only surfaced when you
+  sent your first message (spawn failure). On activation it now detects a
+  missing/unusable `cc` and offers **Install cc** (`npm i -g chainlesschain`),
+  **Set CLI path** (jumps to the `chainlesschain.cli.path` setting), or
+  **Don't show again**.
+
 ## [0.33.4] — 2026-06-20 — notify when a newer cc CLI is available
 
 - **You're now told when a newer `cc` is published.** The extension and the

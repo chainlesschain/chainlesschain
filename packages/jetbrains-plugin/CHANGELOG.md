@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.23] — 2026-06-20 — check-version menu item + "cc not installed" hint
+
+- **New ⚙ LLM menu item: "检查 cc 更新…".** The 0.4.22 update hint only appeared
+  automatically when the tool window opened; now you can check on demand — it
+  **always** reports (tells you `cc X 已是最新`, or offers to copy the upgrade
+  command when a newer version is published), ignoring the once-per-version
+  throttle.
+- **The panel now hints up front when `cc` isn't installed.** The chat tool
+  window needs the `cc` CLI on PATH; if it's missing it now shows
+  「未检测到 cc CLI —— 请先安装:npm i -g chainlesschain」 instead of the
+  misleading "未配置 LLM" hint.
+
 ## [0.4.22] — 2026-06-20 — notify when a newer cc CLI is available
 
 - **You're now told when a newer `cc` is published.** The plugin and the

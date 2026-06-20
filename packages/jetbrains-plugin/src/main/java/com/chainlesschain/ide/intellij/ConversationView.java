@@ -139,8 +139,13 @@ final class ConversationView {
                 ConfigureLlmAction.configureVisionModel(project);
                 reloadLlmConfig();
             });
+            javax.swing.JMenuItem checkUpdate =
+                    new javax.swing.JMenuItem("检查 cc 更新…");
+            checkUpdate.addActionListener(a -> checkCliUpdateManually());
             menu.add(full);
             menu.add(vision);
+            menu.addSeparator();
+            menu.add(checkUpdate);
             menu.show(llmBtn, 0, llmBtn.getHeight());
         });
         buttons.add(llmBtn);
@@ -217,7 +222,18 @@ final class ConversationView {
      *  guide the user to the ⚙ LLM button. The CLI probe runs off the EDT so
      *  it never blocks the panel; failures are swallowed (best-effort). */
     private void maybeShowOnboarding() {
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            // The whole panel needs `cc` on PATH. If it's missing, say so first —
+            // otherwise the provider probe below fails and shows the misleading
+            // "未配置 LLM" hint when the real problem is "cc not installed".
+            String ver = AgentChatSession.runCapture(
+                    java.util.Collections.singletonList("--version"), cwd, 5000);
+            if (CliVersionCheck.parseVersion(ver) == null) {
+                SwingUtilities.invokeLater(() -> appendThinking(
+                        "未检测到 cc CLI —— 面板需要它才能工作。请先安装:npm i -g chainlesschain\n"));
+                return;
+            }
             String provider;
             try {
                 provider = LlmConfig.getConfiguredProvider();
@@ -280,6 +296,46 @@ final class ConversationView {
         } finally {
             if (c != null) c.disconnect();
         }
+    }
+
+    /** Manual "检查 cc 更新" (⚙ LLM menu): always reports — including up-to-date —
+     *  and ignores the once-per-version throttle. Probe + npm fetch run off the
+     *  EDT; the result dialog is shown back on the EDT. */
+    private void checkCliUpdateManually() {
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String installed = CliVersionCheck.parseVersion(AgentChatSession.runCapture(
+                    java.util.Collections.singletonList("--version"), cwd, 5000));
+            String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
+            SwingUtilities.invokeLater(() -> {
+                if (installed == null) {
+                    com.intellij.openapi.ui.Messages.showWarningDialog(project,
+                            "无法读取已安装的 cc 版本。请确认已安装并在 PATH 中(npm i -g chainlesschain)。",
+                            "ChainlessChain");
+                    return;
+                }
+                if (latest == null) {
+                    com.intellij.openapi.ui.Messages.showWarningDialog(project,
+                            "无法连接 npm 检查更新(你的版本是 cc " + installed + ")。", "ChainlessChain");
+                    return;
+                }
+                if (CliVersionCheck.compare(installed, latest) >= 0) {
+                    com.intellij.openapi.ui.Messages.showInfoMessage(project,
+                            "cc " + installed + " 已是最新(npm 最新为 " + latest + ")。", "ChainlessChain");
+                    return;
+                }
+                int r = com.intellij.openapi.ui.Messages.showYesNoDialog(project,
+                        "新版本 cc " + latest + " 可用(你的是 " + installed + ")。\n是否复制升级命令到剪贴板?\n\n"
+                                + CliVersionCheck.UPGRADE_COMMAND,
+                        "ChainlessChain", "复制升级命令", "稍后", null);
+                if (r == com.intellij.openapi.ui.Messages.YES) {
+                    java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                            new java.awt.datatransfer.StringSelection(CliVersionCheck.UPGRADE_COMMAND), null);
+                    appendThinking("ℹ 已复制:" + CliVersionCheck.UPGRADE_COMMAND
+                            + " —— 在终端粘贴运行即可升级。\n");
+                }
+            });
+        });
     }
 
     JPanel getComponent() {
