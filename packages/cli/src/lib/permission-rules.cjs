@@ -113,9 +113,17 @@ function globToRegExp(glob) {
     const c = s[i];
     if (c === "*") {
       if (s[i + 1] === "*") {
-        re += ".*";
-        i++;
-        if (s[i + 1] === "/") i++; // `**/` also matches zero segments
+        i++; // consume the second `*`
+        if (s[i + 1] === "/") {
+          i++; // consume the `/` too
+          // `**/` = zero or more WHOLE path segments. Must be boundary-aware:
+          // `.*` here would let `**/secret` match `notsecret` (no `/` before the
+          // suffix), over-matching permission patterns. `(?:.*/)?` requires the
+          // suffix to start a path segment (or sit at the root).
+          re += "(?:.*/)?";
+        } else {
+          re += ".*"; // bare `**` (no trailing slash) — matches across segments
+        }
       } else {
         re += "[^/]*";
       }
