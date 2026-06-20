@@ -69,6 +69,17 @@ describe("readJsonLines", () => {
     for await (const l of readJsonLines(src("a\nb"))) out.push(l);
     expect(out).toEqual(["a", "b"]);
   });
+  it("reassembles a multi-byte UTF-8 char split across Buffer chunks (no mojibake)", async () => {
+    // process.stdin yields Buffers; a 3-byte Chinese char split at a chunk
+    // boundary must not corrupt into U+FFFD. `你` = bytes 9..11 of this line;
+    // cut=10 splits it mid-character.
+    const line = Buffer.from('{"text":"你好"}\n', "utf-8");
+    const a = line.subarray(0, 10);
+    const b = line.subarray(10);
+    const out = [];
+    for await (const l of readJsonLines(src(a, b))) out.push(l);
+    expect(out).toEqual(['{"text":"你好"}']);
+  });
 });
 
 describe("runAgentHeadlessStream", () => {

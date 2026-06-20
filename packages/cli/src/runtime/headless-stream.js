@@ -147,14 +147,24 @@ export function parseInputEvent(line) {
  */
 export async function* readJsonLines(input) {
   let buf = "";
+  // Reuse ONE streaming decoder across chunks so a multi-byte UTF-8 character
+  // (e.g. a 3-byte Chinese char) split across two Buffer chunks is reassembled
+  // rather than corrupted. process.stdin yields Buffers with no setEncoding, so
+  // a per-chunk `chunk.toString("utf-8")` would turn a split character into
+  // U+FFFD replacement chars.
+  const decoder = new TextDecoder();
   for await (const chunk of input) {
-    buf += typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+    buf +=
+      typeof chunk === "string"
+        ? chunk
+        : decoder.decode(chunk, { stream: true });
     let idx;
     while ((idx = buf.indexOf("\n")) >= 0) {
       yield buf.slice(0, idx);
       buf = buf.slice(idx + 1);
     }
   }
+  buf += decoder.decode(); // flush any bytes held from a final partial char
   if (buf.trim()) yield buf;
 }
 
