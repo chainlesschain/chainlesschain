@@ -128,8 +128,12 @@ export function makeAtCompleter(opts = {}) {
       });
   };
 
+  // De-duplicate before sorting so a drifted/aliased entry in the hand-
+  // maintained command list never shows twice in the autocomplete (mirrors the
+  // @-path's `new Set` merge below; Claude-Code 2.1.183 fixed the same class of
+  // duplicate-in-slash-autocomplete bug).
   const slashCommands = Array.isArray(opts.slashCommands)
-    ? [...opts.slashCommands].sort()
+    ? [...new Set(opts.slashCommands)].sort()
     : [];
 
   const completer = (line) => {

@@ -203,4 +203,12 @@ describe("slash-command completion", () => {
     const c = makeAtCompleter({});
     expect(c("/he")[0]).toEqual([]);
   });
+
+  it("de-duplicates a drifted/aliased command list (no double entries)", () => {
+    const c = makeAtCompleter({
+      slashCommands: ["/help", "/help", "/exit", "/model", "/exit"],
+    });
+    expect(c("/")[0]).toEqual(["/exit", "/help", "/model"]); // sorted + unique
+    expect(c("/he")[0]).toEqual(["/help"]); // single, not doubled
+  });
 });
