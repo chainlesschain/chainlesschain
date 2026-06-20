@@ -90,6 +90,18 @@ describe("aggregateScore", () => {
   test("empty checks returns 1", () => {
     expect(aggregateScore([])).toBe(1);
   });
+
+  test("excludes NaN / Infinity scores instead of poisoning the aggregate", () => {
+    const checks = [
+      { score: 0.8, weight: 1, status: "pass", pass: true },
+      { score: NaN, weight: 1, status: "pass", pass: true },
+      { score: Infinity, weight: 1, status: "pass", pass: true },
+    ];
+    // weighted-mean + min must both ignore the non-finite entries.
+    expect(aggregateScore(checks)).toBeCloseTo(0.8, 2);
+    expect(aggregateScore(checks, AGGREGATE.MIN)).toBeCloseTo(0.8, 2);
+    expect(Number.isFinite(aggregateScore(checks))).toBe(true);
+  });
 });
 
 // ── QualityGate ───────────────────────────────────────────────────
@@ -335,5 +347,18 @@ describe("createLintPassChecker", () => {
     const result = await checker.fn({ errorCount: 10, totalCount: 100 });
     expect(result.pass).toBe(true);
     expect(result.score).toBeCloseTo(0.9, 2);
+  });
+});
+
+describe("QualityGate.check — robust to NaN checker scores", () => {
+  test("a checker returning NaN does not poison the aggregate", async () => {
+    const gate = new QualityGate({ threshold: 0.5 });
+    gate.register({ name: "good", fn: async () => ({ pass: true, score: 0.9 }) });
+    gate.register({ name: "buggy", fn: async () => ({ pass: true, score: 0 / 0 }) });
+    const r = await gate.check({});
+    expect(Number.isFinite(r.score)).toBe(true);
+    expect(r.pass).toBe(true); // good check passed; buggy normalized, not NaN
+    const buggy = r.checks.find((c) => c.name === "buggy");
+    expect(Number.isFinite(buggy.score)).toBe(true);
   });
 });
