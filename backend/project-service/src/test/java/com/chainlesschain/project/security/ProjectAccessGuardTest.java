@@ -3,6 +3,7 @@ package com.chainlesschain.project.security;
 import com.chainlesschain.project.entity.Conversation;
 import com.chainlesschain.project.entity.ConversationMessage;
 import com.chainlesschain.project.entity.Project;
+import com.chainlesschain.project.entity.ProjectCollaborator;
 import com.chainlesschain.project.entity.User;
 import com.chainlesschain.project.mapper.ConversationMapper;
 import com.chainlesschain.project.mapper.ConversationMessageMapper;
@@ -17,8 +18,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 
+import java.util.List;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -171,5 +178,37 @@ class ProjectAccessGuardTest {
         when(projectMapper.selectById("p1")).thenReturn(project("alice", "alice"));
 
         assertDoesNotThrow(() -> guard.assertCanAccessMessage("m1", auth));
+    }
+
+    // ── accessibleProjectIds (used by SearchService file scoping) ──
+
+    @Test
+    void accessibleProjectIds_returnsOwnedAndCollaboratorProjects() {
+        Authentication auth = authAs("alice");
+        User u = new User();
+        u.setId("u1");
+        u.setDid("did:x");
+        when(userMapper.findByUsername("alice")).thenReturn(u);
+        Project owned = new Project();
+        owned.setId("p1");
+        when(projectMapper.selectList(any())).thenReturn(List.of(owned));
+        ProjectCollaborator collab = new ProjectCollaborator();
+        collab.setProjectId("p2");
+        when(collaboratorMapper.selectList(any())).thenReturn(List.of(collab));
+
+        Set<String> ids = guard.accessibleProjectIds(auth);
+        assertEquals(Set.of("p1", "p2"), ids);
+    }
+
+    @Test
+    void accessibleProjectIds_emptyWhenUnauthenticated() {
+        assertTrue(guard.accessibleProjectIds(null).isEmpty());
+        verifyNoInteractions(projectMapper, collaboratorMapper);
+    }
+
+    @Test
+    void isCallerAuthenticated_reflectsState() {
+        assertTrue(guard.isCallerAuthenticated(authAs("alice")));
+        assertFalse(guard.isCallerAuthenticated(null));
     }
 }

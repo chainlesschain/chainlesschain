@@ -147,6 +147,43 @@ public class ProjectAccessGuard {
         return ids;
     }
 
+    /**
+     * 返回认证调用方可访问的项目 id 集合（其拥有的项目 + 作为协作者参与的项目），用于把
+     * 「无 userId 列、仅按 projectId 归属」的资源（如项目文件搜索）限定到调用方有权访问的
+     * 项目。未认证（dev-mode）返回空集；调用方应据此跳过此类查询以保持 permitAll 行为由
+     * 上层决定。
+     */
+    public Set<String> accessibleProjectIds(Authentication authentication) {
+        Set<String> result = new HashSet<>();
+        if (!isAuthenticated(authentication)) {
+            return result;
+        }
+        Set<String> ids = callerIdentities(authentication);
+        if (ids.isEmpty()) {
+            return result;
+        }
+        // 拥有的项目：userId 或 ownerDid 命中身份集合
+        for (Project p : projectMapper.selectList(
+                new LambdaQueryWrapper<Project>()
+                        .in(Project::getUserId, ids)
+                        .or()
+                        .in(Project::getOwnerDid, ids))) {
+            if (p.getId() != null) result.add(p.getId());
+        }
+        // 作为协作者参与的项目
+        for (ProjectCollaborator c : collaboratorMapper.selectList(
+                new LambdaQueryWrapper<ProjectCollaborator>()
+                        .in(ProjectCollaborator::getUserId, ids))) {
+            if (c.getProjectId() != null) result.add(c.getProjectId());
+        }
+        return result;
+    }
+
+    /** Public accessor for the dev-mode/permitAll authentication check (used by SearchService scoping). */
+    public boolean isCallerAuthenticated(Authentication authentication) {
+        return isAuthenticated(authentication);
+    }
+
     private boolean isAuthenticated(Authentication authentication) {
         return authentication != null
                 && authentication.isAuthenticated()

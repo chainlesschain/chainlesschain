@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,8 +31,9 @@ public class SearchController {
      */
     @PostMapping
     @Operation(summary = "搜索", description = "执行全文搜索")
-    public ResponseEntity<SearchResponse> search(@Valid @RequestBody SearchRequest request) {
-        SearchResponse response = searchService.search(request);
+    public ResponseEntity<SearchResponse> search(@Valid @RequestBody SearchRequest request,
+                                                 Authentication authentication) {
+        SearchResponse response = searchService.search(request, authentication);
         return ResponseEntity.ok(response);
     }
 
@@ -44,7 +46,8 @@ public class SearchController {
             @RequestParam String keyword,
             @RequestParam(defaultValue = "all") String type,
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "20") Integer pageSize) {
+            @RequestParam(defaultValue = "20") Integer pageSize,
+            Authentication authentication) {
 
         SearchRequest request = new SearchRequest();
         request.setKeyword(keyword);
@@ -52,7 +55,7 @@ public class SearchController {
         request.setPage(page);
         request.setPageSize(pageSize);
 
-        SearchResponse response = searchService.search(request);
+        SearchResponse response = searchService.search(request, authentication);
         return ResponseEntity.ok(response);
     }
 
@@ -74,8 +77,9 @@ public class SearchController {
      */
     @GetMapping("/suggestions")
     @Operation(summary = "搜索建议", description = "获取搜索关键词建议")
-    public ResponseEntity<?> getSuggestions(@RequestParam String keyword) {
-        List<String> suggestions = searchService.getSuggestions(keyword);
+    public ResponseEntity<?> getSuggestions(@RequestParam String keyword,
+                                            Authentication authentication) {
+        List<String> suggestions = searchService.getSuggestions(keyword, authentication);
         return ResponseEntity.ok(Map.of(
             "keyword", keyword,
             "suggestions", suggestions

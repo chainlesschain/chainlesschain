@@ -14,21 +14,33 @@ import com.chainlesschain.project.mapper.ConversationMessageMapper;
 import com.chainlesschain.project.mapper.KnowledgeItemMapper;
 import com.chainlesschain.project.mapper.ProjectCommentMapper;
 import com.chainlesschain.project.mapper.ProjectFileMapper;
+import com.chainlesschain.project.security.ProjectAccessGuard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * 搜索服务
- * 提供全文搜索功能
+ * 提供全文搜索功能。
+ *
+ * <p><b>授权（IDOR 修复）：</b>此前所有查询按调用方提供的 {@code userId}/{@code projectId}
+ * 作<i>可选</i>过滤（甚至消息内容搜索与搜索建议完全无过滤），任意已登录用户省略这些参数
+ * 即可搜出<b>其他所有用户</b>的对话/消息/知识库/评论/文件。现改为：已认证调用方一律按其
+ * 身份集合（{@link ProjectAccessGuard#callerIdentities}，兼容 username/userId/did 多形态）与
+ * 其可访问项目集合（{@link ProjectAccessGuard#accessibleProjectIds}）<b>强制</b>限定结果，
+ * 客户端传入的 userId/projectId 仅能在该范围内进一步收窄；缓存键也按调用方区分，避免跨用户
+ * 命中。dev-mode（未认证 permitAll）保持旧的可选过滤行为不变。
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +51,7 @@ public class SearchService {
     private final KnowledgeItemMapper knowledgeItemMapper;
     private final ProjectCommentMapper projectCommentMapper;
     private final ProjectFileMapper projectFileMapper;
+    private final ProjectAccessGuard accessGuard;
 
     @Autowired(required = false)
     private RedisTemplate<String, Object> redisTemplate;
@@ -49,26 +62,62 @@ public class SearchService {
     private static final int MAX_RESULTS_PER_TYPE = 50;
 
     /**
-     * 执行搜索
+     * 调用方搜索范围。{@code enforce=false} 表示 dev-mode/未认证，保持旧的可选过滤行为。
      */
-    public SearchResponse search(SearchRequest request) {
-        long startTime = System.currentTimeMillis();
+    static final class Scope {
+        final boolean enforce;
+        final Set<String> identities;  // 调用方身份集合 {username,userId,did}（enforce 时非空）
+        final Set<String> projectIds;  // 调用方可访问项目 id 集合（可能为空 = 无可访问项目）
+        final String cacheKeyPart;     // 按调用方区分缓存，防跨用户命中
 
-        // 尝试从缓存获取
-        String cacheKey = generateCacheKey(request);
+        Scope(boolean enforce, Set<String> identities, Set<String> projectIds, String cacheKeyPart) {
+            this.enforce = enforce;
+            this.identities = identities;
+            this.projectIds = projectIds;
+            this.cacheKeyPart = cacheKeyPart;
+        }
+
+        boolean hasProjects() {
+            return projectIds != null && !projectIds.isEmpty();
+        }
+    }
+
+    Scope resolveScope(Authentication authentication) {
+        if (accessGuard != null && accessGuard.isCallerAuthenticated(authentication)) {
+            return new Scope(
+                    true,
+                    accessGuard.callerIdentities(authentication),
+                    accessGuard.accessibleProjectIds(authentication),
+                    "u:" + authentication.getName());
+        }
+        return new Scope(false, null, null, "dev");
+    }
+
+    /**
+     * 执行搜索（按调用方身份强制限定范围）。
+     */
+    public SearchResponse search(SearchRequest request, Authentication authentication) {
+        long startTime = System.currentTimeMillis();
+        Scope scope = resolveScope(authentication);
+
+        // 尝试从缓存获取（缓存键含调用方区分，避免跨用户命中他人结果）
+        String cacheKey = generateCacheKey(request, scope.cacheKeyPart);
         SearchResponse cachedResult = getCachedResult(cacheKey);
         if (cachedResult != null) {
             return cachedResult;
         }
 
         // 执行搜索
-        List<SearchResult> results = performSearch(request);
+        List<SearchResult> results = performSearch(request, scope);
 
         // 计算分页
         int total = results.size();
         int start = (request.getPage() - 1) * request.getPageSize();
+        if (start < 0) start = 0;
         int end = Math.min(start + request.getPageSize(), total);
-        List<SearchResult> pagedResults = results.subList(start, end);
+        List<SearchResult> pagedResults = start <= total
+                ? new ArrayList<>(results.subList(Math.min(start, total), end))
+                : new ArrayList<>();
 
         // 构建响应
         SearchResponse response = new SearchResponse();
@@ -78,7 +127,7 @@ public class SearchService {
         response.setPageSize(request.getPageSize());
         response.setTotalPages((int) Math.ceil((double) total / request.getPageSize()));
         response.setDuration(System.currentTimeMillis() - startTime);
-        response.setSuggestions(generateSuggestions(request.getKeyword()));
+        response.setSuggestions(generateSuggestions(request.getKeyword(), scope));
 
         // 缓存结果
         cacheResult(cacheKey, response);
@@ -89,28 +138,28 @@ public class SearchService {
     /**
      * 执行实际搜索
      */
-    private List<SearchResult> performSearch(SearchRequest request) {
+    private List<SearchResult> performSearch(SearchRequest request, Scope scope) {
         List<SearchResult> results = new ArrayList<>();
         String keyword = request.getKeyword();
 
         // 搜索对话
         if ("all".equals(request.getType()) || "conversation".equals(request.getType())) {
-            results.addAll(searchConversations(keyword, request));
+            results.addAll(searchConversations(keyword, request, scope));
         }
 
         // 搜索知识库条目（帖子/笔记/文档）
         if ("all".equals(request.getType()) || "post".equals(request.getType())) {
-            results.addAll(searchPosts(keyword, request));
+            results.addAll(searchPosts(keyword, request, scope));
         }
 
         // 搜索评论
         if ("all".equals(request.getType()) || "comment".equals(request.getType())) {
-            results.addAll(searchComments(keyword, request));
+            results.addAll(searchComments(keyword, request, scope));
         }
 
         // 搜索文件
         if ("all".equals(request.getType()) || "file".equals(request.getType())) {
-            results.addAll(searchFiles(keyword, request));
+            results.addAll(searchFiles(keyword, request, scope));
         }
 
         // 按相关性排序
@@ -119,17 +168,33 @@ public class SearchService {
         return results;
     }
 
+    /** 调用方可访问的全部对话 id（用于把消息内容搜索限定到这些对话）。 */
+    private Set<String> callerConversationIds(Scope scope) {
+        LambdaQueryWrapper<Conversation> w = new LambdaQueryWrapper<>();
+        w.in(Conversation::getUserId, scope.identities);
+        if (scope.hasProjects()) {
+            w.or().in(Conversation::getProjectId, scope.projectIds);
+        }
+        return conversationMapper.selectList(w).stream()
+                .map(Conversation::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * 搜索对话（标题匹配 + 消息内容匹配）
      */
-    private List<SearchResult> searchConversations(String keyword, SearchRequest request) {
+    private List<SearchResult> searchConversations(String keyword, SearchRequest request, Scope scope) {
         List<SearchResult> results = new ArrayList<>();
 
-        // 1. 按对话标题搜索
+        // 1. 按对话标题搜索（强制按调用方身份限定；dev-mode 退回客户端可选过滤）
         LambdaQueryWrapper<Conversation> convWrapper = new LambdaQueryWrapper<>();
         convWrapper.like(Conversation::getTitle, keyword)
-                .eq(StringUtils.hasText(request.getUserId()), Conversation::getUserId, request.getUserId())
-                .eq(StringUtils.hasText(request.getProjectId()), Conversation::getProjectId, request.getProjectId())
+                .in(scope.enforce, Conversation::getUserId, scope.identities)
+                .eq(!scope.enforce && StringUtils.hasText(request.getUserId()),
+                        Conversation::getUserId, request.getUserId())
+                .eq(StringUtils.hasText(request.getProjectId()),
+                        Conversation::getProjectId, request.getProjectId())
                 .orderByDesc(Conversation::getUpdatedAt)
                 .last("LIMIT " + MAX_RESULTS_PER_TYPE);
 
@@ -147,10 +212,18 @@ public class SearchService {
             results.add(result);
         }
 
-        // 2. 按消息内容搜索（补充标题搜索未命中的对话）
+        // 2. 按消息内容搜索（补充标题未命中的对话）。消息表无 userId，须限定到调用方可访问的
+        //    对话 id，否则任意 keyword 会搜出他人对话消息（此前的 IDOR 重灾区）。
         LambdaQueryWrapper<ConversationMessage> msgWrapper = new LambdaQueryWrapper<>();
-        msgWrapper.like(ConversationMessage::getContent, keyword)
-                .orderByDesc(ConversationMessage::getCreatedAt)
+        msgWrapper.like(ConversationMessage::getContent, keyword);
+        if (scope.enforce) {
+            Set<String> convIds = callerConversationIds(scope);
+            if (convIds.isEmpty()) {
+                return results; // 调用方无任何可访问对话 → 无消息命中
+            }
+            msgWrapper.in(ConversationMessage::getConversationId, convIds);
+        }
+        msgWrapper.orderByDesc(ConversationMessage::getCreatedAt)
                 .last("LIMIT " + MAX_RESULTS_PER_TYPE);
 
         List<ConversationMessage> messages = conversationMessageMapper.selectList(msgWrapper);
@@ -179,14 +252,16 @@ public class SearchService {
     /**
      * 搜索知识库条目（笔记/文档/网页剪辑）
      */
-    private List<SearchResult> searchPosts(String keyword, SearchRequest request) {
+    private List<SearchResult> searchPosts(String keyword, SearchRequest request, Scope scope) {
         List<SearchResult> results = new ArrayList<>();
 
         LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(w -> w.like(KnowledgeItem::getTitle, keyword)
                         .or()
                         .like(KnowledgeItem::getContent, keyword))
-                .eq(StringUtils.hasText(request.getUserId()), KnowledgeItem::getUserId, request.getUserId())
+                .in(scope.enforce, KnowledgeItem::getUserId, scope.identities)
+                .eq(!scope.enforce && StringUtils.hasText(request.getUserId()),
+                        KnowledgeItem::getUserId, request.getUserId())
                 .orderByDesc(KnowledgeItem::getUpdatedAt)
                 .last("LIMIT " + MAX_RESULTS_PER_TYPE);
 
@@ -213,16 +288,29 @@ public class SearchService {
     }
 
     /**
-     * 搜索项目评论
+     * 搜索项目评论（调用方作者发表的 或 调用方可访问项目内的评论）
      */
-    private List<SearchResult> searchComments(String keyword, SearchRequest request) {
+    private List<SearchResult> searchComments(String keyword, SearchRequest request, Scope scope) {
         List<SearchResult> results = new ArrayList<>();
 
         LambdaQueryWrapper<ProjectComment> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(ProjectComment::getContent, keyword)
-                .eq(StringUtils.hasText(request.getProjectId()), ProjectComment::getProjectId, request.getProjectId())
-                .eq(StringUtils.hasText(request.getUserId()), ProjectComment::getUserId, request.getUserId())
-                .orderByDesc(ProjectComment::getCreatedAt)
+        wrapper.like(ProjectComment::getContent, keyword);
+        if (scope.enforce) {
+            wrapper.and(w -> {
+                w.in(ProjectComment::getUserId, scope.identities);
+                if (scope.hasProjects()) {
+                    w.or().in(ProjectComment::getProjectId, scope.projectIds);
+                }
+            });
+            wrapper.eq(StringUtils.hasText(request.getProjectId()),
+                    ProjectComment::getProjectId, request.getProjectId());
+        } else {
+            wrapper.eq(StringUtils.hasText(request.getProjectId()),
+                            ProjectComment::getProjectId, request.getProjectId())
+                    .eq(StringUtils.hasText(request.getUserId()),
+                            ProjectComment::getUserId, request.getUserId());
+        }
+        wrapper.orderByDesc(ProjectComment::getCreatedAt)
                 .last("LIMIT " + MAX_RESULTS_PER_TYPE);
 
         List<ProjectComment> comments = projectCommentMapper.selectList(wrapper);
@@ -246,10 +334,15 @@ public class SearchService {
     }
 
     /**
-     * 搜索项目文件（文件名 + 文件路径 + 内容）
+     * 搜索项目文件（文件名 + 文件路径 + 内容）。文件表无 userId，仅按 projectId 归属，故强制
+     * 限定到调用方可访问的项目集合；无可访问项目则不返回任何文件。
      */
-    private List<SearchResult> searchFiles(String keyword, SearchRequest request) {
+    private List<SearchResult> searchFiles(String keyword, SearchRequest request, Scope scope) {
         List<SearchResult> results = new ArrayList<>();
+
+        if (scope.enforce && !scope.hasProjects()) {
+            return results; // 调用方无可访问项目 → 无文件命中
+        }
 
         LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(w -> w.like(ProjectFile::getFileName, keyword)
@@ -257,7 +350,9 @@ public class SearchService {
                         .like(ProjectFile::getFilePath, keyword)
                         .or()
                         .like(ProjectFile::getContent, keyword))
-                .eq(StringUtils.hasText(request.getProjectId()), ProjectFile::getProjectId, request.getProjectId())
+                .in(scope.enforce, ProjectFile::getProjectId, scope.projectIds)
+                .eq(StringUtils.hasText(request.getProjectId()),
+                        ProjectFile::getProjectId, request.getProjectId())
                 .orderByDesc(ProjectFile::getUpdatedAt)
                 .last("LIMIT " + MAX_RESULTS_PER_TYPE);
 
@@ -285,9 +380,9 @@ public class SearchService {
     }
 
     /**
-     * 生成搜索建议（基于相关对话标题和知识库标题）
+     * 生成搜索建议（基于相关对话标题和知识库标题，按调用方身份限定）
      */
-    private List<String> generateSuggestions(String keyword) {
+    private List<String> generateSuggestions(String keyword, Scope scope) {
         List<String> suggestions = new ArrayList<>();
         if (!StringUtils.hasText(keyword) || keyword.length() < 2) {
             return suggestions;
@@ -296,6 +391,7 @@ public class SearchService {
         // 从对话标题中提取相关建议
         LambdaQueryWrapper<Conversation> convWrapper = new LambdaQueryWrapper<>();
         convWrapper.like(Conversation::getTitle, keyword)
+                .in(scope.enforce, Conversation::getUserId, scope.identities)
                 .orderByDesc(Conversation::getUpdatedAt)
                 .last("LIMIT 3");
         List<Conversation> relatedConvs = conversationMapper.selectList(convWrapper);
@@ -308,6 +404,7 @@ public class SearchService {
         if (suggestions.size() < 5) {
             LambdaQueryWrapper<KnowledgeItem> kiWrapper = new LambdaQueryWrapper<>();
             kiWrapper.like(KnowledgeItem::getTitle, keyword)
+                    .in(scope.enforce, KnowledgeItem::getUserId, scope.identities)
                     .orderByDesc(KnowledgeItem::getUpdatedAt)
                     .last("LIMIT " + (5 - suggestions.size()));
             List<KnowledgeItem> relatedItems = knowledgeItemMapper.selectList(kiWrapper);
@@ -321,17 +418,18 @@ public class SearchService {
     }
 
     /**
-     * 获取搜索建议（供Controller调用）
+     * 获取搜索建议（供Controller调用，按调用方身份限定）
      */
-    public List<String> getSuggestions(String keyword) {
-        return generateSuggestions(keyword);
+    public List<String> getSuggestions(String keyword, Authentication authentication) {
+        return generateSuggestions(keyword, resolveScope(authentication));
     }
 
     /**
-     * 生成缓存键
+     * 生成缓存键（含调用方区分，避免跨用户命中）
      */
-    private String generateCacheKey(SearchRequest request) {
+    private String generateCacheKey(SearchRequest request, String scopeKeyPart) {
         return SEARCH_CACHE_PREFIX +
+            scopeKeyPart + ":" +
             request.getKeyword() + ":" +
             request.getType() + ":" +
             request.getPage() + ":" +
