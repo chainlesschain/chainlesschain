@@ -13,6 +13,11 @@ const { logger } = require("../utils/logger.js");
 const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
 const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
+
+// Rolling window of latency samples kept per tool. getMetrics reduces the array
+// to avg/min/max/p95, so retaining one number per call forever leaks memory for
+// a frequently-invoked tool.
+const MAX_LATENCY_SAMPLES = 1000;
 const defaultHttpSseTransport = require("./transports/http-sse-transport");
 const EventEmitter = require("events");
 
@@ -132,11 +137,12 @@ class MCPClientManager extends EventEmitter {
     // Performance tracking
     this.metrics = {
       connectionTimes: new Map(), // serverName -> ms
-      toolCallLatencies: new Map(), // toolName -> [ms]
+      toolCallLatencies: new Map(), // toolName -> [ms] (rolling window)
       errorCounts: new Map(), // serverName -> count
       totalCalls: 0,
       successfulCalls: 0,
     };
+    this.maxLatencySamples = MAX_LATENCY_SAMPLES;
 
     // Connection states
     this.STATES = {
@@ -480,10 +486,7 @@ class MCPClientManager extends EventEmitter {
 
       // Track latency
       const latency = Date.now() - startTime;
-      if (!this.metrics.toolCallLatencies.has(toolName)) {
-        this.metrics.toolCallLatencies.set(toolName, []);
-      }
-      this.metrics.toolCallLatencies.get(toolName).push(latency);
+      this._recordLatency(toolName, latency);
 
       this.metrics.successfulCalls++;
 
@@ -773,6 +776,23 @@ class MCPClientManager extends EventEmitter {
     const index = Math.ceil((p / 100) * sorted.length) - 1;
 
     return sorted[index];
+  }
+
+  /**
+   * Record a tool-call latency sample, keeping only a bounded rolling window
+   * per tool so the latency arrays can't grow without limit.
+   * @private
+   */
+  _recordLatency(toolName, latency) {
+    let latencies = this.metrics.toolCallLatencies.get(toolName);
+    if (!latencies) {
+      latencies = [];
+      this.metrics.toolCallLatencies.set(toolName, latencies);
+    }
+    latencies.push(latency);
+    if (latencies.length > this.maxLatencySamples) {
+      latencies.shift();
+    }
   }
 
   /**
