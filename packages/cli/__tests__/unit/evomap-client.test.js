@@ -256,6 +256,37 @@ describe("EvoMapManager", () => {
       const mgr = new EvoMapManager({ genesDir: "/tmp/genes" });
       expect(() => mgr.saveGene({}, "content")).toThrow("Gene ID required");
     });
+
+    it("rejects a path-traversal gene id without writing (supply-chain guard)", () => {
+      const rmCalls = [];
+      mgrDeps.fs = {
+        existsSync: vi.fn(() => true), // pretend the traversal dir "exists"
+        mkdirSync: vi.fn(),
+        writeFileSync: vi.fn(),
+        renameSync: vi.fn(),
+        unlinkSync: vi.fn(),
+        rmSync: vi.fn((p) => rmCalls.push(p)),
+      };
+      const mgr = new EvoMapManager({ genesDir: "/tmp/genes" });
+      for (const bad of [
+        "../evil",
+        "../../etc/passwd",
+        "a/b",
+        "a\\b",
+        "C:\\Windows",
+        "..",
+      ]) {
+        expect(() => mgr.saveGene({ id: bad, name: "x" }, "c")).toThrow(
+          /Unsafe gene id/,
+        );
+      }
+      // No gene file was ever written for a traversal id.
+      expect(mgrDeps.fs.writeFileSync).not.toHaveBeenCalled();
+      // getGene fails safe; removeGene never rmSync's the escaped path.
+      expect(mgr.getGene("../evil")).toBeNull();
+      expect(mgr.removeGene("../evil")).toEqual({ removed: false });
+      expect(rmCalls).toEqual([]);
+    });
   });
 
   // ── listGenes ──

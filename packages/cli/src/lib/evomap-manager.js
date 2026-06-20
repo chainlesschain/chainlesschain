@@ -41,6 +41,26 @@ function _atomicWriteFile(filePath, data) {
   }
 }
 
+/**
+ * A gene id is interpolated into a filesystem path (genesDir/<id>/...). Gene ids
+ * arrive from downloaded/installed genes (an external hub / MCP response), so a
+ * malicious `id` like "../../.ssh/authorized_keys" or "C:\\Windows\\..." would
+ * escape genesDir and read/overwrite/delete arbitrary files. Restrict it to a
+ * single safe path segment (no separators, no traversal, no drive/NUL).
+ */
+function _isSafeGeneId(id) {
+  return (
+    typeof id === "string" &&
+    id.length > 0 &&
+    id !== "." &&
+    id !== ".." &&
+    !id.includes("/") &&
+    !id.includes("\\") &&
+    !id.includes(":") &&
+    !id.includes("\0")
+  );
+}
+
 export class EvoMapManager {
   /**
    * @param {object} options
@@ -98,6 +118,9 @@ export class EvoMapManager {
   saveGene(gene, content) {
     this.initialize();
     if (!gene || !gene.id) throw new Error("Gene ID required");
+    if (!_isSafeGeneId(gene.id)) {
+      throw new Error(`Unsafe gene id (path traversal): ${gene.id}`);
+    }
 
     const geneDir = _deps.path.join(this.genesDir, gene.id);
     if (!_deps.fs.existsSync(geneDir)) {
@@ -192,6 +215,7 @@ export class EvoMapManager {
    */
   getGene(geneId) {
     this.initialize();
+    if (!_isSafeGeneId(geneId)) return null;
     const geneDir = _deps.path.join(this.genesDir, geneId);
 
     if (!_deps.fs.existsSync(geneDir)) return null;
@@ -214,6 +238,7 @@ export class EvoMapManager {
    */
   removeGene(geneId) {
     this.initialize();
+    if (!_isSafeGeneId(geneId)) return { removed: false };
     const geneDir = _deps.path.join(this.genesDir, geneId);
 
     if (_deps.fs.existsSync(geneDir)) {
