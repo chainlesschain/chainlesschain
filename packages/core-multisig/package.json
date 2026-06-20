@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-multisig",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "M-of-N multi-signature coordination beyond MTC publisher_signature — marketplace large purchases, DID rotation, cross-chain bridge.",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -30,8 +30,7 @@
   "dependencies": {
     "@chainlesschain/core-mtc": "^0.2.0",
     "@noble/curves": "^1.9.7",
-    "@noble/post-quantum": "^0.6.1",
-    "canonicalize": "^2.0.0"
+    "@noble/post-quantum": "^0.6.1"
   },
   "devDependencies": {
     "sql.js": "^1.10.3",
