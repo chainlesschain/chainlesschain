@@ -30,7 +30,7 @@ import javax.inject.Singleton
  * by PtyEnvironment to `bootstrapper.homeDir.absolutePath`, so the bridge MUST
  * write its lockfile under THAT dir or cc's discovery finds nothing.
  *
- * Phase 1 collectors: L2 system data, L3 app-login (cookie weibo/bilibili/12306 +
+ * Phase 1 collectors: L1 local files, L2 system data, L3 app-login (cookie weibo/bilibili/12306 +
  * signing douyin/xhs/toutiao/kuaishou), L4 root salvage. [StubPdhToolHost] is
  * retained only for the headless protocol tests.
  */
@@ -59,6 +59,11 @@ object PdhBridgeModule {
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         val collectors = listOf(
+            PdhToolHost.Collector(
+                tool = CollectFilesTool(ccRunner),
+                layer = "L1",
+                requiresRoot = false,
+            ),
             PdhToolHost.Collector(
                 tool = CollectSystemDataTool(snapshotter, ccRunner),
                 layer = "L2",

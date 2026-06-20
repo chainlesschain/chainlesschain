@@ -102,6 +102,13 @@ class LocalCcRunner @Inject constructor(
         // the UI can render "金库写入中（N s）" — at least the user knows
         // work is happening + how long it's been at it.
         onProgress: ((String) -> Unit)? = null,
+        // L1 local-files (module 101): when non-empty the cc command uses
+        // `--roots <comma-joined>` to walk these directories directly, instead
+        // of a snapshot `--input` file. Other adapters keep the --input path.
+        // Placed last so existing positional callers (incl. mockk stubs that
+        // match onProgress positionally) stay valid — only the named `roots =`
+        // call site (CollectFilesTool) opts in.
+        roots: List<String>? = null,
     ): CcResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
         if (ensure.isFailure) {
@@ -138,7 +145,11 @@ class LocalCcRunner @Inject constructor(
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
             add("hub"); add("sync-adapter"); add(adapterName)
-            add("--input"); add(inputPath)
+            if (roots != null && roots.isNotEmpty()) {
+                add("--roots"); add(roots.joinToString(","))
+            } else {
+                add("--input"); add(inputPath)
+            }
             // Caller-supplied cap (see [limit] param doc above). Validated
             // positive to avoid `--limit 0` masquerading as "ingest none" —
             // cc reads <=0 as Infinity per cmdSyncAdapter in hub.js.
