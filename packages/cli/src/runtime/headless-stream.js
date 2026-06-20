@@ -102,6 +102,18 @@ export function parseInputEvent(line) {
     if (!obj.id) return null;
     return { approval: { id: String(obj.id), approve: obj.approve === true } };
   }
+  // Answer to an ask_user_question (panel QuickPick for interactive questions):
+  //   {"type":"answer","id":"q-1","answer":<string|string[]|null>}
+  // A null/absent answer cancels (handler → user_timeout, model proceeds).
+  if (obj && typeof obj === "object" && obj.type === "answer") {
+    if (!obj.id) return null;
+    return {
+      answer: {
+        id: String(obj.id),
+        value: obj.answer === undefined ? null : obj.answer,
+      },
+    };
+  }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
   let content = msg.content ?? obj.text ?? obj.prompt;
   if (Array.isArray(content)) {
@@ -414,6 +426,60 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     approvalGate = null;
   }
 
+  // ── Interactive questions (ask_user_question round-trip; chat-panel UX) ────
+  // Same structured pattern as approvals: when the consumer opts in (the IDE
+  // panel sets CC_INTERACTIVE_QUESTIONS=1 in the child env), the model's
+  // `ask_user_question` tool emits `question_request`, BLOCKS until a
+  // {"type":"answer",id,answer} arrives on stdin, and times out gracefully
+  // (CC_QUESTION_TIMEOUT_MS, default 180s) — the handler maps the timeout to
+  // user_timeout so the model proceeds, never a hard failure. Off by default
+  // (env unset / pipes) → agent-core gets no askUser → user_not_reachable, the
+  // existing graceful "proceed autonomously" path. Backward-safe: an env var
+  // (not a flag) means an old `cc` simply ignores it.
+  const interactiveQuestions =
+    options.interactiveQuestions === true ||
+    process.env.CC_INTERACTIVE_QUESTIONS === "1";
+  const pendingQuestions = new Map();
+  let questionSeq = 0;
+  const questionTimeoutMs =
+    Number(process.env.CC_QUESTION_TIMEOUT_MS) > 0
+      ? Number(process.env.CC_QUESTION_TIMEOUT_MS)
+      : 180000;
+  const settleQuestion = (id, answer, via) => {
+    const p = pendingQuestions.get(id);
+    if (!p) return;
+    pendingQuestions.delete(id);
+    clearTimeout(p.timer);
+    emit({ type: "question_resolved", id, via, session_id: sessionId });
+    p.resolve(answer);
+  };
+  const failQuestion = (id, via) => {
+    const p = pendingQuestions.get(id);
+    if (!p) return;
+    pendingQuestions.delete(id);
+    clearTimeout(p.timer);
+    emit({ type: "question_resolved", id, via, session_id: sessionId });
+    const e = new Error(`ask_user_question ${via}`);
+    e.code = "USER_TIMEOUT"; // handler → user_timeout (model proceeds, not a failure)
+    p.reject(e);
+  };
+  const interactionAskUser = ({ question, options: qOptions, multiSelect, timeoutMs } = {}) =>
+    new Promise((resolve, reject) => {
+      const id = `q-${++questionSeq}`;
+      const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
+      const timer = setTimeout(() => failQuestion(id, "timeout"), ms);
+      timer.unref?.();
+      pendingQuestions.set(id, { resolve, reject, timer });
+      emit({
+        type: "question_request",
+        id,
+        session_id: sessionId,
+        question: typeof question === "string" ? question : "",
+        options: Array.isArray(qOptions) ? qOptions : null,
+        multiSelect: multiSelect === true,
+      });
+    });
+
   // --output-style (or settings.json `outputStyle`) persona, appended.
   let outputStyleBody = null;
   try {
@@ -601,6 +667,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // edit reviews via openDiff) route to the structured approval round-trip
     // instead of failing closed. Absent in CI/pipes → unchanged fail-closed.
     permissionConfirm: interactive ? interactiveConfirm : undefined,
+    // ask_user_question round-trip (opt-in via CC_INTERACTIVE_QUESTIONS): give
+    // the tool handler an askUser that emits question_request + blocks on stdin.
+    // Absent → agent-core returns user_not_reachable (graceful proceed).
+    interaction: interactiveQuestions ? { askUser: interactionAskUser } : undefined,
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
@@ -694,6 +764,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           );
           continue;
         }
+        if (parsed.answer) {
+          // Answers settle a BLOCKED ask_user_question — never queued. A null
+          // value (user cancelled the QuickPick) → user_timeout (model proceeds).
+          if (parsed.answer.value == null) failQuestion(parsed.answer.id, "cancelled");
+          else settleQuestion(parsed.answer.id, parsed.answer.value, "user-answer");
+          continue;
+        }
         queue.push(parsed);
         if (wakeQueue) wakeQueue();
       }
@@ -705,6 +782,10 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // turn can finish and the process can exit.
     for (const id of [...pendingApprovals.keys()]) {
       settleApproval(id, false, "stdin-closed");
+    }
+    // stdin closed while a question was pending → user_timeout (model proceeds).
+    for (const id of [...pendingQuestions.keys()]) {
+      failQuestion(id, "stdin-closed");
     }
     if (wakeQueue) wakeQueue();
   })();

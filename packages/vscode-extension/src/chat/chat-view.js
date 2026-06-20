@@ -200,6 +200,10 @@ class ChatViewProvider {
         }
       } else if (ui?.kind === "approval_done") {
         if (this._convs.clearApproval(convId)) this._postTabs();
+      } else if (ui?.kind === "question") {
+        // The agent called ask_user_question and is BLOCKED on the user. Show a
+        // native QuickPick (or input box) and reply {type:"answer",...}.
+        this._askQuestion(convId, conv, ui).catch(() => {});
       }
       if (evt?.type === "result") {
         // Refresh the persistent context-window indicator for the active tab
@@ -214,6 +218,57 @@ class ChatViewProvider {
         }
       }
     };
+  }
+
+  /**
+   * ask_user_question round-trip: the agent is blocked waiting for an answer.
+   * Show a native QuickPick (options) or InputBox (free-text) and reply
+   * `{type:"answer", id, answer}` on the child's stdin. Cancelling (Esc) sends a
+   * null answer → the CLI treats it as user_timeout and the model proceeds. Any
+   * failure also replies null so the agent never hangs.
+   */
+  async _askQuestion(convId, conv, q) {
+    const win = this.vscode && this.vscode.window;
+    const session = conv && conv.session;
+    const reply = (answer) => {
+      try {
+        session?.sendEvent?.({ type: "answer", id: q.id, answer });
+      } catch {
+        /* the loop self-heals via timeout if the reply can't be delivered */
+      }
+    };
+    if (!win || !session || typeof session.sendEvent !== "function") {
+      reply(null);
+      return;
+    }
+    try {
+      const opts = Array.isArray(q.options) ? q.options : null;
+      const placeHolder = q.question || "ChainlessChain is asking…";
+      let answer = null;
+      if (opts && opts.length) {
+        const items = opts.map((o) => {
+          if (typeof o === "string") return { label: o };
+          return {
+            label: String(o.label != null ? o.label : o),
+            description: o.description ? String(o.description) : undefined,
+          };
+        });
+        const pick = await win.showQuickPick(items, {
+          placeHolder,
+          canPickMany: q.multiSelect === true,
+          ignoreFocusOut: true,
+        });
+        if (pick == null) answer = null;
+        else if (Array.isArray(pick)) answer = pick.map((p) => p.label);
+        else answer = pick.label;
+      } else {
+        const text = await win.showInputBox({ prompt: placeHolder, ignoreFocusOut: true });
+        answer = text == null ? null : text;
+      }
+      reply(answer);
+    } catch {
+      reply(null);
+    }
   }
 
   /**
@@ -314,7 +369,9 @@ class ChatViewProvider {
         "--interactive-approvals",
       ],
       cwd,
-      env: { ...process.env, ...bridgeEnv },
+      // CC_INTERACTIVE_QUESTIONS opts the child into the ask_user_question
+      // round-trip (QuickPick); an old `cc` simply ignores the env var.
+      env: { ...process.env, ...bridgeEnv, CC_INTERACTIVE_QUESTIONS: "1" },
       onEvent: this._makeOnEvent(conv.id),
       onStderr: (line) => this._postFrom(conv.id, { kind: "stderr", text: line }),
       onExit: ({ code }) => this._postFrom(conv.id, { kind: "exited", code }),

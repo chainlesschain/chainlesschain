@@ -138,6 +138,25 @@ function mapAgentEvent(evt, state) {
         approved: evt.approved === true,
         via: evt.via || null,
       };
+    case "question_request":
+      // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
+      // BLOCKED waiting for the user. chat-view shows a native QuickPick and
+      // replies {type:"answer",...}; the webview renders the question inline.
+      return {
+        kind: "question",
+        id: evt.id,
+        question: evt.question || "",
+        options: Array.isArray(evt.options) ? evt.options : null,
+        multiSelect: evt.multiSelect === true,
+      };
+    case "question_resolved":
+      return {
+        kind: "info",
+        text:
+          evt.via === "user-answer"
+            ? "✓ answered"
+            : "ask_user_question: no answer — proceeding",
+      };
     case "plan_update":
       return {
         kind: "plan",

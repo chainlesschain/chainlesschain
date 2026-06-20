@@ -2,7 +2,18 @@
 
 All notable changes to this extension are documented here.
 
-## [0.33.6] — 2026-06-20 — no more scary "ask_user_question failed"
+## [0.33.7] — 2026-06-20 — the agent can actually ask you a question now
+
+- **`ask_user_question` is now interactive.** Previously the panel couldn't
+  answer the agent's questions, so it degraded to "proceeding autonomously"
+  (0.33.6 just stopped showing that as an error). Now, when the agent asks, the
+  panel pops a native **QuickPick** (multi-select supported) — or an input box
+  for free-text — and sends your answer back, so the agent can clarify instead
+  of guessing. The question is echoed into the transcript; cancelling (Esc) or
+  not answering simply lets the agent proceed (no hang). **Requires `cc`
+  ≥ 0.162.95** for the round-trip; an older `cc` keeps the graceful 0.33.6
+  behavior (the panel opts in via `CC_INTERACTIVE_QUESTIONS`, which old `cc`
+  ignores).
 
 - **Fix.** When the agent tried to ask you a clarifying question, the panel
   showed a red **`✗ ask_user_question failed`** even though nothing actually

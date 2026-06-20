@@ -598,6 +598,14 @@ function buildChatHtml({ cspSource, nonce }) {
         if (m.isError) add("tool err", "✗ " + m.tool + " failed");
         else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);
         break;
+      case "question":
+        // The agent is asking — the native QuickPick (shown by the extension)
+        // collects the answer; echo the question into the transcript for context.
+        add("info", "❓ " + (m.question || "(question)") +
+          (Array.isArray(m.options) && m.options.length
+            ? " [" + m.options.map((o) => (typeof o === "string" ? o : o.label)).join(" / ") + "]"
+            : ""));
+        break;
       case "info":
         add("info", m.text);
         break;
