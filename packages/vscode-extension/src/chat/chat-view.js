@@ -204,9 +204,12 @@ class ChatViewProvider {
       } else if (ui?.kind === "approval_done") {
         if (this._convs.clearApproval(convId)) this._postTabs();
       } else if (ui?.kind === "question") {
-        // The agent called ask_user_question and is BLOCKED on the user. Show a
-        // native QuickPick (or input box) and reply {type:"answer",...}.
-        this._askQuestion(convId, conv, ui).catch(() => {});
+        // The agent called ask_user_question and is BLOCKED on the user. The
+        // question renders as an IN-PANEL card (chat-html) with clickable options
+        // / a text input — reliable + visible, unlike a native QuickPick which
+        // can fail to surface when the webview has focus. The card was already
+        // posted to the webview by _postFrom above; the answer returns as a
+        // {type:"answer"} message (handled below).
       }
       if (evt?.type === "result") {
         // Refresh the persistent context-window indicator for the active tab
@@ -221,57 +224,6 @@ class ChatViewProvider {
         }
       }
     };
-  }
-
-  /**
-   * ask_user_question round-trip: the agent is blocked waiting for an answer.
-   * Show a native QuickPick (options) or InputBox (free-text) and reply
-   * `{type:"answer", id, answer}` on the child's stdin. Cancelling (Esc) sends a
-   * null answer → the CLI treats it as user_timeout and the model proceeds. Any
-   * failure also replies null so the agent never hangs.
-   */
-  async _askQuestion(convId, conv, q) {
-    const win = this.vscode && this.vscode.window;
-    const session = conv && conv.session;
-    const reply = (answer) => {
-      try {
-        session?.sendEvent?.({ type: "answer", id: q.id, answer });
-      } catch {
-        /* the loop self-heals via timeout if the reply can't be delivered */
-      }
-    };
-    if (!win || !session || typeof session.sendEvent !== "function") {
-      reply(null);
-      return;
-    }
-    try {
-      const opts = Array.isArray(q.options) ? q.options : null;
-      const placeHolder = q.question || "ChainlessChain is asking…";
-      let answer = null;
-      if (opts && opts.length) {
-        const items = opts.map((o) => {
-          if (typeof o === "string") return { label: o };
-          return {
-            label: String(o.label != null ? o.label : o),
-            description: o.description ? String(o.description) : undefined,
-          };
-        });
-        const pick = await win.showQuickPick(items, {
-          placeHolder,
-          canPickMany: q.multiSelect === true,
-          ignoreFocusOut: true,
-        });
-        if (pick == null) answer = null;
-        else if (Array.isArray(pick)) answer = pick.map((p) => p.label);
-        else answer = pick.label;
-      } else {
-        const text = await win.showInputBox({ prompt: placeHolder, ignoreFocusOut: true });
-        answer = text == null ? null : text;
-      }
-      reply(answer);
-    } catch {
-      reply(null);
-    }
   }
 
   /**
@@ -922,6 +874,14 @@ class ChatViewProvider {
           type: "approval",
           id: String(m.id || ""),
           approve: m.approve === true,
+        });
+      } else if (m.type === "answer") {
+        // The in-panel question card's answer (option / text / multi-select, or
+        // null when skipped) → unblock the agent's ask_user_question.
+        this.session?.sendEvent({
+          type: "answer",
+          id: String(m.id || ""),
+          answer: m.answer === undefined ? null : m.answer,
         });
       } else if (m.type === "interrupt") {
         // Abort the in-flight turn only — the conversation/child stays alive.

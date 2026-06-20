@@ -598,14 +598,80 @@ function buildChatHtml({ cspSource, nonce }) {
         if (m.isError) add("tool err", "✗ " + m.tool + " failed");
         else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);
         break;
-      case "question":
-        // The agent is asking — the native QuickPick (shown by the extension)
-        // collects the answer; echo the question into the transcript for context.
-        add("info", "❓ " + (m.question || "(question)") +
-          (Array.isArray(m.options) && m.options.length
-            ? " [" + m.options.map((o) => (typeof o === "string" ? o : o.label)).join(" / ") + "]"
-            : ""));
+      case "question": {
+        // The agent is BLOCKED on ask_user_question. Render an in-panel card with
+        // clickable options (single → buttons, multi → checkboxes + submit) or a
+        // text input — and reply {type:"answer",id,answer} (null = Skip).
+        streamEl = null;
+        const card = document.createElement("div");
+        card.className = "approval"; // reuse the card styling
+        card.id = "q-" + m.id;
+        const q = document.createElement("div");
+        q.className = "q";
+        q.textContent = "❓ " + (m.question || "(question)");
+        card.appendChild(q);
+        const opts = Array.isArray(m.options) ? m.options : [];
+        const labelOf = (o) => (typeof o === "string" ? o : (o && o.label != null ? String(o.label) : String(o)));
+        const reply = (answer) => {
+          vscode.postMessage({ type: "answer", id: m.id, answer });
+          for (const b of card.querySelectorAll("button,input")) b.disabled = true;
+          const note = document.createElement("div");
+          note.className = "info";
+          note.textContent = answer == null ? "✗ skipped"
+            : "✓ " + (Array.isArray(answer) ? answer.join(", ") : answer);
+          card.appendChild(note);
+          card.className = "approval done";
+        };
+        const btns = document.createElement("div");
+        btns.className = "buttons";
+        if (opts.length && m.multiSelect === true) {
+          const boxes = [];
+          for (const o of opts) {
+            const lbl = labelOf(o);
+            const row = document.createElement("label");
+            row.style.display = "block";
+            const cb = document.createElement("input");
+            cb.type = "checkbox"; cb.value = lbl;
+            boxes.push(cb);
+            row.appendChild(cb);
+            row.appendChild(document.createTextNode(" " + lbl));
+            card.appendChild(row);
+          }
+          const submit = document.createElement("button");
+          submit.textContent = "Submit";
+          submit.addEventListener("click", () =>
+            reply(boxes.filter((b) => b.checked).map((b) => b.value)));
+          btns.appendChild(submit);
+        } else if (opts.length) {
+          for (const o of opts) {
+            const lbl = labelOf(o);
+            const b = document.createElement("button");
+            b.textContent = lbl;
+            b.addEventListener("click", () => reply(lbl));
+            btns.appendChild(b);
+          }
+        } else {
+          const inp = document.createElement("input");
+          inp.type = "text";
+          inp.placeholder = "Type your answer, Enter to send";
+          inp.style.flex = "1";
+          const submit = document.createElement("button");
+          submit.textContent = "Send";
+          const go = () => reply(inp.value);
+          submit.addEventListener("click", go);
+          inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+          btns.appendChild(inp); btns.appendChild(submit);
+        }
+        const skip = document.createElement("button");
+        skip.textContent = "Skip";
+        skip.className = "secondary";
+        skip.addEventListener("click", () => reply(null));
+        btns.appendChild(skip);
+        card.appendChild(btns);
+        log.appendChild(card);
+        log.scrollTop = log.scrollHeight;
         break;
+      }
       case "info":
         add("info", m.text);
         break;

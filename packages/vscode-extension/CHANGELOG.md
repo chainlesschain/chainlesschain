@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.9] — 2026-06-20 — fix: the question prompt now shows IN the panel
+
+- **Fix: `ask_user_question` is answered with an in-panel card, not a native
+  popup.** 0.33.7 used a native QuickPick/input box, which renders at the top of
+  the window and **could silently fail to appear when the chat panel had focus**
+  — leaving the agent stuck "thinking…". The question now renders as a card right
+  in the chat (like the approval cards): clickable **option buttons** (single),
+  **checkboxes + Submit** (multi-select), or a **text input** (free-text), plus a
+  **Skip** button. Always visible, no focus dependency. Your click sends the
+  answer back and the agent continues.
+
 ## [0.33.8] — 2026-06-20 — robust `cc` resolution (cc-name conflict) + cold-start
 
 - **The panel no longer breaks when `cc` is shadowed by another tool.** `cc` is
