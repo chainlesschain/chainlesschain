@@ -105,14 +105,20 @@ export function sanitizeData(data, seen = new WeakSet()) {
     "password",
     "token",
     "secret",
-    "apiKey",
-    "privateKey",
+    "apikey",
+    "privatekey",
     "pin",
   ];
   const sanitized = Array.isArray(data) ? [...data] : { ...data };
 
   for (const key in sanitized) {
-    if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
+    // Compare case-insensitively on BOTH sides. The key was already lowercased,
+    // but the previous list held "apiKey"/"privateKey" with capitals, so
+    // key.toLowerCase().includes("apiKey") was always false — apiKey and
+    // privateKey fields (the most sensitive ones) leaked into logs unredacted.
+    // Lowercasing sk too makes the match robust regardless of how it's written.
+    const lowerKey = key.toLowerCase();
+    if (sensitiveKeys.some((sk) => lowerKey.includes(sk.toLowerCase()))) {
       sanitized[key] = "***REDACTED***";
     } else if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
       sanitized[key] = sanitizeData(sanitized[key], seen);
