@@ -295,7 +295,20 @@ function replayGovernanceLog(events, federationId, options = {}) {
       const target = p.invite_target_member_id || p.target_member_id;
       const inv = state.pending_invites[target];
       if (inv && (p.decision === "approve" || p.decision === "reject")) {
-        inv.votes[p.decision].push(ev.actor_member_id);
+        // Consensus rule: count at most ONE vote per *current member*, and
+        // never the invite target voting for its own admission. `votes.approve`
+        // is a raw array compared by `length >= required`, so without this gate
+        // the M-of-N threshold is bypassable — a single member (or a forged /
+        // non-member actor_member_id) could append N approvals and reach quorum
+        // alone. Mirrors the per-pubkey dedup the federated landmark path uses.
+        const voter = ev.actor_member_id;
+        const alreadyVoted =
+          inv.votes.approve.includes(voter) || inv.votes.reject.includes(voter);
+        if (!state.members[voter] || voter === target || alreadyVoted) {
+          // ignore: non-member, self-vote, or duplicate vote
+        } else {
+          inv.votes[p.decision].push(voter);
+        }
         if (
           inv.votes.approve.length >= inv.required &&
           inv.votes.reject.length === 0

@@ -258,6 +258,77 @@ describe("federation-governance", () => {
       expect(s.pending_invites).toHaveLength(0);
     });
 
+    it("duplicate approvals from one member do NOT bypass the threshold", () => {
+      // threshold 2 with a single member (alice) — she cannot legitimately
+      // reach quorum alone. Regression: before vote dedup, two `approve`
+      // events from alice pushed two array entries and `length >= 2` promoted
+      // bob anyway (M-of-N threshold bypass).
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 2,
+          },
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          payload: {
+            candidate_member_id: "bob",
+            candidate_pubkey_id: "sha256:bob-pk",
+          },
+        }),
+        ev({
+          eventType: "vote",
+          actor: "alice",
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+        }),
+        ev({
+          eventType: "vote",
+          actor: "alice",
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.members.find((m) => m.member_id === "bob")).toBeUndefined();
+      expect(s.pending_invites).toHaveLength(1); // quorum not reached
+    });
+
+    it("a non-member's vote does NOT count toward the threshold", () => {
+      // Regression: the vote handler must consult the active member set —
+      // a fabricated / non-member actor_member_id must not reach quorum.
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:a",
+            initial_threshold: 1,
+          },
+        }),
+        ev({
+          eventType: "invite",
+          actor: "alice",
+          payload: {
+            candidate_member_id: "bob",
+            candidate_pubkey_id: "sha256:bob-pk",
+          },
+        }),
+        ev({
+          eventType: "vote",
+          actor: "mallory", // not a member
+          payload: { invite_target_member_id: "bob", decision: "approve" },
+        }),
+      ];
+      const s = replayGovernanceLog(log, "fed-test");
+      expect(s.members.find((m) => m.member_id === "bob")).toBeUndefined();
+      expect(s.pending_invites).toHaveLength(1);
+    });
+
     it("candidate auto-promotes to active after 30 days", () => {
       const t0 = Date.parse("2026-01-01T00:00:00Z");
       const log = [
