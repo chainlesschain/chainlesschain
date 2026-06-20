@@ -18,6 +18,7 @@ const {
   nsecDecode,
   noteEncode,
   noteDecode,
+  _internal,
 } = require("../lib/nostr-crypto.js");
 
 describe("nostr-crypto: key generation", () => {
@@ -210,5 +211,37 @@ describe("nostr-crypto: end-to-end pubkey↔npub↔sign↔verify", () => {
       priv,
     );
     expect(verifyEvent(signed)).toBe(true);
+  });
+});
+
+describe("hexToBytes input validation", () => {
+  const { hexToBytes } = _internal;
+
+  it("parses valid hex (both cases)", () => {
+    expect(Array.from(hexToBytes("00ff1A"))).toEqual([0, 255, 26]);
+    expect(Array.from(hexToBytes(""))).toEqual([]);
+  });
+
+  it("throws on non-hex characters instead of silently zero-filling", () => {
+    // parseInt('zz',16) is NaN → Uint8Array coerces to 0; must reject, not return [0,0].
+    expect(() => hexToBytes("zzzz")).toThrow(/non-hex/);
+    expect(() => hexToBytes("00gg")).toThrow(/non-hex/);
+    expect(() => hexToBytes("xy")).toThrow(/non-hex/);
+  });
+
+  it("throws on odd-length strings", () => {
+    expect(() => hexToBytes("abc")).toThrow(/Invalid hex/);
+  });
+
+  it("throws on non-string input", () => {
+    expect(() => hexToBytes(null)).toThrow(/Invalid hex/);
+    expect(() => hexToBytes(1234)).toThrow(/Invalid hex/);
+  });
+
+  it("rejects a malformed pubkey at verify time (no silent zero-fill bypass)", () => {
+    // A pubkey with non-hex chars must not be coerced into a valid all-zero key.
+    expect(
+      verifyEvent({ id: "ab", sig: "cd", pubkey: "zz".repeat(32) }),
+    ).toBe(false);
   });
 });

@@ -26,6 +26,14 @@ function hexToBytes(hex) {
   if (typeof hex !== "string" || hex.length % 2 !== 0) {
     throw new Error("Invalid hex string");
   }
+  // Reject non-hex characters. Without this, parseInt("zz", 16) → NaN, and
+  // assigning NaN to a Uint8Array element silently coerces to 0 — so a garbage
+  // string like "zzzz" would parse into zero-bytes instead of throwing. In a
+  // crypto path (keys / sigs / event ids) that silent coercion is dangerous;
+  // fail loudly on malformed input instead.
+  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string: contains non-hex characters");
+  }
   const len = hex.length / 2;
   const out = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
