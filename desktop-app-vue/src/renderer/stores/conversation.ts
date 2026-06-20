@@ -300,6 +300,12 @@ export const useConversationStore = defineStore("conversation", {
       }
 
       this.batchSaveTimer = setTimeout(async () => {
+        // The timeout has fired; its id is now stale. Null it before flushing so
+        // a later scheduleBatchSave() can arm a new timer. Without this, if the
+        // timer fires while the queue is empty, flushPendingMessages() early-
+        // returns without clearing batchSaveTimer, leaving a stale id that makes
+        // every future scheduleBatchSave() a permanent no-op.
+        this.batchSaveTimer = null;
         try {
           await this.flushPendingMessages();
         } catch (error) {
