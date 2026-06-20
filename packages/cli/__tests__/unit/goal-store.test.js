@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -40,6 +40,20 @@ describe("goal-store", () => {
 
   it("requires an objective", () => {
     expect(() => createGoal({ objective: "  " }, o())).toThrow(/objective/);
+  });
+
+  it("writes goal files atomically (no .tmp leftover after create + mutate)", () => {
+    const g = createGoal({ objective: "Atomic" }, o());
+    // saveGoal path (a mutation) must also be atomic.
+    setStatus(g.id, GOAL_STATUS.PAUSED, o());
+    const entries = readdirSync(root);
+    expect(entries).toContain(`${g.id}.json`);
+    expect(entries.some((n) => n.endsWith(".tmp"))).toBe(false);
+    // The file is complete + parseable (atomic rename → never half-written).
+    expect(getGoal(g.id, o())).toMatchObject({
+      id: g.id,
+      status: GOAL_STATUS.PAUSED,
+    });
   });
 
   it("derives progress from key results", () => {
