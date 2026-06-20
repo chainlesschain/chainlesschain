@@ -23,6 +23,7 @@ class PermissionEngine extends EventEmitter {
     this.database = database;
     this.permissionCache = new Map();
     this.cacheTimeout = 60000; // 1 minute cache
+    this.maxCacheEntries = 5000; // hard cap so the cache can't grow unbounded
   }
 
   // ========================================
@@ -664,10 +665,28 @@ class PermissionEngine extends EventEmitter {
     if (entry && Date.now() - entry.timestamp < this.cacheTimeout) {
       return entry.value;
     }
+    // Drop a stale entry on read instead of leaving it. Expired entries were
+    // previously only skipped, never deleted, so the cache accumulated dead
+    // keys (only _invalidateCache cleared, and only by grantee).
+    if (entry) {
+      this.permissionCache.delete(key);
+    }
     return undefined;
   }
 
   _setCache(key, value) {
+    // Hard size cap: evict the oldest entry (insertion order) so a stream of
+    // distinct permission checks that are never re-read can't grow the cache
+    // without bound.
+    if (
+      !this.permissionCache.has(key) &&
+      this.permissionCache.size >= this.maxCacheEntries
+    ) {
+      const oldest = this.permissionCache.keys().next().value;
+      if (oldest !== undefined) {
+        this.permissionCache.delete(oldest);
+      }
+    }
     this.permissionCache.set(key, { value, timestamp: Date.now() });
   }
 
