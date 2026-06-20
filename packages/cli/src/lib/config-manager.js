@@ -1,4 +1,11 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import { getConfigPath } from "./paths.js";
 import { DEFAULT_CONFIG } from "../constants.js";
@@ -20,7 +27,24 @@ export function loadConfig() {
 export function saveConfig(config) {
   const configPath = getConfigPath();
   mkdirSync(dirname(configPath), { recursive: true });
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  // Atomic write: config.json holds API keys + LLM settings, so a crash (or two
+  // concurrent `cc config set`) mid-write must never leave a truncated/corrupt
+  // file — that would break every cc command and could lose credentials. Write a
+  // temp sibling, then rename over the target (rename is atomic within a
+  // filesystem), so a reader/crash sees either the old file or the complete new
+  // one, never a half-written one.
+  const tmp = `${configPath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    renameSync(tmp, configPath);
+  } catch (err) {
+    try {
+      if (existsSync(tmp)) unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
 }
 
 export function getConfigValue(key) {
