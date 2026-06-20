@@ -274,9 +274,17 @@ class FederationAnnounceCache {
   _persistAnnounce(announce) {
     const fs = require("node:fs");
     const path = require("node:path");
-    const fedDir = path.join(this._persistDir, announce.federation_id);
+    // Sanitize BOTH path components. An announce is self-signed: an attacker can
+    // sign one with their OWN key (verifyMemberAnnounce only proves self-
+    // consistency; membership legitimacy is policy-layer) and set any
+    // federation_id. An unsanitized federation_id like "../../evil" would then
+    // traverse outside persistDir and write a file there. Map it to the same
+    // filesystem-safe charset as pubkey_id; the real federation_id is preserved
+    // inside the JSON content.
+    const fedSafe = String(announce.federation_id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fedDir = path.join(this._persistDir, fedSafe);
     fs.mkdirSync(fedDir, { recursive: true });
-    const safe = announce.pubkey_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safe = String(announce.pubkey_id).replace(/[^a-zA-Z0-9_-]/g, "_");
     const file = path.join(fedDir, `${safe}.json`);
     fs.writeFileSync(file, JSON.stringify(announce, null, 2), "utf-8");
   }

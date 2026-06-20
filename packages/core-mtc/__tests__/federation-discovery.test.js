@@ -175,3 +175,39 @@ describe("FederationAnnounceCache", () => {
     expect(r.reason).toBe("BAD_SIGNATURE");
   });
 });
+
+describe("FederationAnnounceCache — persist path safety", () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+
+  it("does not let a crafted federation_id traverse outside persistDir", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "fed-persist-"));
+    const persistDir = path.join(tmp, "persist");
+    fs.mkdirSync(persistDir);
+    try {
+      // A valid self-signed announce whose federation_id tries to escape.
+      const ann = createMemberAnnounce(
+        makeMember({ federationId: "../escaped-fed" }),
+      );
+      const cache = new FederationAnnounceCache({ persistDir });
+      expect(cache.ingest(ann).accepted).toBe(true);
+
+      // Nothing must be written as a sibling of persistDir.
+      expect(fs.existsSync(path.join(tmp, "escaped-fed"))).toBe(false);
+      // The entry is written INSIDE persistDir under a sanitized dir name,
+      // and the real federation_id is preserved in the file content.
+      const dirs = fs.readdirSync(persistDir);
+      expect(dirs).toHaveLength(1);
+      expect(dirs[0]).not.toContain("..");
+      expect(dirs[0]).not.toContain("/");
+      const file = fs.readdirSync(path.join(persistDir, dirs[0]))[0];
+      const saved = JSON.parse(
+        fs.readFileSync(path.join(persistDir, dirs[0], file), "utf-8"),
+      );
+      expect(saved.federation_id).toBe("../escaped-fed");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
