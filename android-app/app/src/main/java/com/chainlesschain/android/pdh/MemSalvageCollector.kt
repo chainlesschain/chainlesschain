@@ -66,6 +66,7 @@ class MemSalvageCollector @Inject constructor(
         DOUYIN("com.ss.android.ugc.aweme", "抖音", "douyin", note = "WCDB2·IM 不支持(真机确认)"),
         TOUTIAO("com.ss.android.article.news", "今日头条", "toutiao", note = "WCDB2·IM 不支持(真机确认)"),
         WECHAT("com.tencent.mm", "微信", "wechat", note = "标准 SQLCipher·需登录·未验证"),
+        QQ("com.tencent.mobileqq", "QQ", "qq", note = "标准 SQLCipher(同微信栈)·需登录·未验证"),
         KUAISHOU("com.smile.gifmaker", "快手", "kuaishou", note = "加密强(自研/SQLCipher)·未验证"),
         XIAOHONGSHU("com.xingin.xhs", "小红书", "xiaohongshu", note = "SQLCipher/libshield·未验证"),
         WEIBO("com.sina.weibo", "微博", "weibo", note = "未验证"),
