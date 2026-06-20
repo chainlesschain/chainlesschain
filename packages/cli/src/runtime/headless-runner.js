@@ -607,6 +607,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
           // registered (cc mcp add) + IDE bridge auto-discovery.
           strict: options.strictMcpConfig === true,
           ide: options.ide,
+          pdh: options.pdh,
           cwd: options.cwd || process.cwd(),
           // advertise the session id to spawned stdio MCP servers
           sessionId,

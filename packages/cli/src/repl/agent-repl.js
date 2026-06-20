@@ -721,6 +721,7 @@ export async function startAgentRepl(options = {}) {
           // an IDE integrated terminal. --ide forces it, --no-ide disables it
           // (parity with headless; auto-detect already works via process.env).
           ide: options.ide,
+          pdh: options.pdh,
           cwd: process.cwd(),
           // advertise the session id to spawned stdio MCP servers
           sessionId,

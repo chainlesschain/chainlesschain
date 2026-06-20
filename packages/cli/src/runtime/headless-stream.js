@@ -463,7 +463,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     e.code = "USER_TIMEOUT"; // handler → user_timeout (model proceeds, not a failure)
     p.reject(e);
   };
-  const interactionAskUser = ({ question, options: qOptions, multiSelect, timeoutMs } = {}) =>
+  const interactionAskUser = ({
+    question,
+    options: qOptions,
+    multiSelect,
+    timeoutMs,
+  } = {}) =>
     new Promise((resolve, reject) => {
       const id = `q-${++questionSeq}`;
       const ms = Number(timeoutMs) > 0 ? Number(timeoutMs) : questionTimeoutMs;
@@ -588,6 +593,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           // registered + IDE bridge) for a reproducible MCP surface.
           strict: options.strictMcpConfig === true,
           ide: options.ide,
+          pdh: options.pdh,
           cwd: options.cwd || process.cwd(),
           // advertise the session id to spawned stdio MCP servers
           sessionId,
@@ -670,7 +676,9 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // ask_user_question round-trip (opt-in via CC_INTERACTIVE_QUESTIONS): give
     // the tool handler an askUser that emits question_request + blocks on stdin.
     // Absent → agent-core returns user_not_reachable (graceful proceed).
-    interaction: interactiveQuestions ? { askUser: interactionAskUser } : undefined,
+    interaction: interactiveQuestions
+      ? { askUser: interactionAskUser }
+      : undefined,
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
@@ -767,8 +775,14 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         if (parsed.answer) {
           // Answers settle a BLOCKED ask_user_question — never queued. A null
           // value (user cancelled the QuickPick) → user_timeout (model proceeds).
-          if (parsed.answer.value == null) failQuestion(parsed.answer.id, "cancelled");
-          else settleQuestion(parsed.answer.id, parsed.answer.value, "user-answer");
+          if (parsed.answer.value == null)
+            failQuestion(parsed.answer.id, "cancelled");
+          else
+            settleQuestion(
+              parsed.answer.id,
+              parsed.answer.value,
+              "user-answer",
+            );
           continue;
         }
         queue.push(parsed);

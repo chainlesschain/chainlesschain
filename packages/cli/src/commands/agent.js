@@ -267,6 +267,11 @@ export function registerAgentCommand(program) {
     )
     .option("--no-ide", "Disable IDE bridge auto-connect")
     .option(
+      "--pdh",
+      "Force-enable PDH bridge auto-connect: discover the Android app's device-capability MCP server via ~/.chainlesschain/pdh-bridge/*.json (default: auto when CHAINLESSCHAIN_PDH_PORT is set)",
+    )
+    .option("--no-pdh", "Disable PDH bridge auto-connect")
+    .option(
       "--interactive-approvals",
       "Stream mode: confirm-tier approvals become approval_request/approval stdin-stdout events instead of failing closed (chat-panel UX)",
     )
@@ -616,6 +621,7 @@ export function registerAgentCommand(program) {
             mcpConfig: options.mcpConfig || null,
             useRegisteredMcp: options.mcp !== false,
             ide: options.ide,
+            pdh: options.pdh,
             cwd,
             permissionPromptTool: options.permissionPromptTool || null,
             interactiveApprovals: options.interactiveApprovals === true,
@@ -727,6 +733,8 @@ export function registerAgentCommand(program) {
           useRegisteredMcp: options.mcp !== false,
           // --ide / --no-ide: auto-connect a running editor's MCP bridge
           ide: options.ide,
+          // --pdh / --no-pdh: auto-connect the Android app's PDH bridge
+          pdh: options.pdh,
           cwd: process.cwd(),
           // --permission-prompt-tool: defer approvals to an MCP tool
           permissionPromptTool: options.permissionPromptTool || null,
@@ -828,6 +836,8 @@ export function registerAgentCommand(program) {
         useRegisteredMcp: options.mcp !== false,
         // --ide / --no-ide: IDE bridge auto-connect for the interactive session
         ide: options.ide,
+        // --pdh / --no-pdh: PDH bridge auto-connect for the interactive session
+        pdh: options.pdh,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.
