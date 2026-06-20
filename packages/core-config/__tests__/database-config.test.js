@@ -83,6 +83,22 @@ describe("AppConfigManager", () => {
       manager.set("custom.nested.key", "value");
       expect(manager.get("custom.nested.key")).toBe("value");
     });
+
+    it("blocks prototype pollution via set()", () => {
+      expect(() => manager.set("__proto__.polluted", "EVIL")).toThrow(/unsafe/);
+      expect(() => manager.set("constructor.prototype.x", "EVIL")).toThrow(
+        /unsafe/,
+      );
+      // Object.prototype must be untouched.
+      expect({}.polluted).toBeUndefined();
+      expect({}.x).toBeUndefined();
+    });
+
+    it("get() does not return inherited prototype members", () => {
+      expect(manager.get("__proto__", "DEFAULT")).toBe("DEFAULT");
+      expect(manager.get("toString", "DEFAULT")).toBe("DEFAULT");
+      expect(manager.get("constructor.prototype", "DEFAULT")).toBe("DEFAULT");
+    });
   });
 
   describe("database paths", () => {

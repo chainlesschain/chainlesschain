@@ -159,7 +159,10 @@ class AppConfigManager {
     let value = this.config;
 
     for (const k of keys) {
-      if (value && typeof value === "object" && k in value) {
+      // Object.hasOwn, not `in`: otherwise get("__proto__"/"toString"/…) would
+      // walk into inherited Object.prototype members instead of returning the
+      // default for an absent config key.
+      if (value && typeof value === "object" && Object.hasOwn(value, k)) {
         value = value[k];
       } else {
         return defaultValue;
@@ -171,11 +174,30 @@ class AppConfigManager {
 
   set(key, value) {
     const keys = key.split(".");
+
+    // Block prototype-pollution: set("__proto__.x", v) would otherwise walk into
+    // Object.prototype (typeof is "object", so the reset below is skipped) and
+    // assign to it, polluting every object in the process. No legitimate config
+    // key uses these segments.
+    if (
+      keys.some(
+        (k) => k === "__proto__" || k === "constructor" || k === "prototype",
+      )
+    ) {
+      throw new Error(`AppConfig.set: unsafe key segment in "${key}"`);
+    }
+
     let target = this.config;
 
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!(k in target) || typeof target[k] !== "object") {
+      // Use hasOwn + reject null (typeof null === "object") so we never walk
+      // through an inherited member or a null and crash / pollute.
+      if (
+        !Object.hasOwn(target, k) ||
+        typeof target[k] !== "object" ||
+        target[k] === null
+      ) {
         target[k] = {};
       }
       target = target[k];
