@@ -49,27 +49,40 @@ const MODE_ALLOWED_TRANSPORTS = Object.freeze({
   [BUNDLE_MODES.HOSTED]: Object.freeze([...REMOTE_TRANSPORTS]),
 });
 
+/** True iff server.url is a usable remote MCP URL (http/https/ws/wss). */
+function hasRemoteUrl(server) {
+  if (!server || !server.url) return false;
+  try {
+    const proto = new URL(server.url).protocol.replace(":", "").toLowerCase();
+    return (
+      proto === "http" ||
+      proto === "https" ||
+      proto === "ws" ||
+      proto === "wss"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * 推断单个 server 的 transport.
- * 优先显式字段, 退化用 url / command 判断.
+ *
+ * 安全不变量: 一个带 `command` 但没有可用远程 `url` 的 server 本质就是 stdio
+ * 执行向量 —— 不能让一个伪造的 `transport:"http"` 标签把它伪装成远程传输,
+ * 从而绕过 "lan/hosted 模式禁 stdio" 规则。所以 command-without-remote-url
+ * 一律判为 stdio,优先级高于声明的 transport 字段。
+ *
+ * 其余情况优先显式 transport 字段, 退化用 url 判断.
  */
 function inferTransport(server) {
   if (!server || typeof server !== "object") return null;
+  const remote = hasRemoteUrl(server);
+  // command + 无远程 url → stdio,无视声明的 transport(防标签伪造绕过)。
+  if (server.command && !remote) return TRANSPORTS.STDIO;
   if (server.transport) return String(server.transport).toLowerCase();
-  if (server.url) {
-    try {
-      const proto = new URL(server.url).protocol.replace(":", "").toLowerCase();
-      if (
-        proto === "http" ||
-        proto === "https" ||
-        proto === "ws" ||
-        proto === "wss"
-      ) {
-        return proto;
-      }
-    } catch {
-      // ignore
-    }
+  if (remote) {
+    return new URL(server.url).protocol.replace(":", "").toLowerCase();
   }
   if (server.command) return TRANSPORTS.STDIO;
   return null;
