@@ -187,6 +187,32 @@ describe("CLIPermanentMemory", () => {
       expect(writtenContent).toContain("Keep this");
       expect(writtenContent).not.toContain("Old content");
     });
+
+    it("rewrites MEMORY.md atomically (temp + rename) when fs supports renameSync", () => {
+      const calls = { writes: [], renames: [] };
+      _deps.fs = {
+        existsSync: vi.fn(() => false),
+        mkdirSync: vi.fn(),
+        writeFileSync: vi.fn((p, c) => calls.writes.push({ p, c })),
+        renameSync: vi.fn((a, b) => calls.renames.push({ a, b })),
+        unlinkSync: vi.fn(),
+        readFileSync: vi.fn(() => ""),
+        readdirSync: vi.fn(() => []),
+      };
+      _deps.path = originalDeps.path;
+
+      const pm = new CLIPermanentMemory({ memoryDir: "/tmp/mem" });
+      pm.updateMemoryFile("Patterns", "Use TS");
+
+      // Wrote to a temp sibling, then renamed it over MEMORY.md (never a direct
+      // write to the live index file).
+      expect(calls.writes).toHaveLength(1);
+      expect(calls.writes[0].p).toMatch(/MEMORY\.md\..*\.tmp$/);
+      expect(calls.writes[0].c).toContain("## Patterns");
+      expect(calls.renames).toHaveLength(1);
+      expect(calls.renames[0].a).toBe(calls.writes[0].p);
+      expect(calls.renames[0].b).toMatch(/MEMORY\.md$/);
+    });
   });
 
   // ── hybridSearch ──
