@@ -94,6 +94,34 @@ describe("useConversationStore", () => {
   // Initial state
   // -------------------------------------------------------------------------
 
+  describe("scheduleBatchSave timer lifecycle", () => {
+    it("clears batchSaveTimer after the timer fires so it can reschedule", async () => {
+      vi.useFakeTimers();
+      try {
+        const { useConversationStore } = await import("../conversation");
+        const store = useConversationStore();
+
+        // Empty queue → schedule a batch save.
+        store.scheduleBatchSave();
+        expect(store.batchSaveTimer).not.toBeNull();
+
+        // Fire it. flushPendingMessages early-returns on the empty queue.
+        await vi.runOnlyPendingTimersAsync();
+
+        // Regression: the fired timer's stale id was never cleared, so
+        // scheduleBatchSave() became a permanent no-op.
+        expect(store.batchSaveTimer).toBeNull();
+
+        // Rescheduling works again.
+        store.scheduleBatchSave();
+        expect(store.batchSaveTimer).not.toBeNull();
+      } finally {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe("Initial state", () => {
     it("conversations starts as empty array", async () => {
       const { useConversationStore } = await import("../conversation");
