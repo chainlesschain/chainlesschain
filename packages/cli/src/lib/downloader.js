@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import ora from "ora";
 import { GITHUB_RELEASES_URL } from "../constants.js";
 import { getBinDir, ensureDir } from "./paths.js";
@@ -208,16 +208,31 @@ async function fetchRelease(url) {
   return response.json();
 }
 
-function extractZip(zipPath, destDir) {
-  const p = getPlatform();
-  if (p === "win32") {
-    // Use PowerShell on Windows
-    execSync(
-      `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`,
-      { stdio: "ignore" },
+export function extractZip(
+  zipPath,
+  destDir,
+  { execFileImpl = execFileSync, platform = getPlatform() } = {},
+) {
+  // Never interpolate the paths into a shell string — `zipPath`/`destDir` derive
+  // from the (remote) release asset name, so a `"`/`$()`/`'` in a path would be a
+  // command-injection vector. execFileSync runs the tool directly (no shell), and
+  // on Windows the paths go through the environment so the -Command script stays
+  // a constant the shell can't be tricked by.
+  if (platform === "win32") {
+    execFileImpl(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        "Expand-Archive -Path $env:CC_ZIP_SRC -DestinationPath $env:CC_ZIP_DEST -Force",
+      ],
+      {
+        stdio: "ignore",
+        env: { ...process.env, CC_ZIP_SRC: zipPath, CC_ZIP_DEST: destDir },
+      },
     );
   } else {
-    execSync(`unzip -o "${zipPath}" -d "${destDir}"`, { stdio: "ignore" });
+    execFileImpl("unzip", ["-o", zipPath, "-d", destDir], { stdio: "ignore" });
   }
 }
 
