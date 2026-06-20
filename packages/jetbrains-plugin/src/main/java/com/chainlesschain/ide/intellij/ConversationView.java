@@ -277,8 +277,9 @@ final class ConversationView {
     private static String fetchNpmLatest() {
         java.net.HttpURLConnection c = null;
         try {
-            c = (java.net.HttpURLConnection) new java.net.URL(
-                    "https://registry.npmjs.org/chainlesschain/latest").openConnection();
+            // URI.toURL() instead of the deprecated new URL(String) constructor.
+            c = (java.net.HttpURLConnection) java.net.URI.create(
+                    "https://registry.npmjs.org/chainlesschain/latest").toURL().openConnection();
             c.setConnectTimeout(5000);
             c.setReadTimeout(5000);
             c.setRequestProperty("Accept", "application/json");
@@ -721,10 +722,7 @@ final class ConversationView {
             answer = com.intellij.openapi.ui.Messages.showInputDialog(
                     project, question, "ChainlessChain", null);
         } else if (!multi) {
-            int idx = com.intellij.openapi.ui.Messages.showChooseDialog(
-                    project, question, "ChainlessChain", null,
-                    labels.toArray(new String[0]), labels.get(0));
-            answer = idx < 0 ? null : labels.get(idx);
+            answer = showSingleSelectQuestion(question, labels);
         } else {
             answer = showMultiSelectQuestion(question, labels);
         }
@@ -734,6 +732,25 @@ final class ConversationView {
         ev.put("answer", answer);
         AgentChatSession s = liveSession();
         if (s != null) s.sendEvent(ev);
+    }
+
+    /** Single-select question → a combo-box dialog (non-deprecated; replaces
+     *  Messages.showChooseDialog). Returns the chosen label, or null if cancelled. */
+    private String showSingleSelectQuestion(String question, java.util.List<String> labels) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(new JLabel("<html>" + question + "</html>"));
+        javax.swing.JComboBox<String> combo =
+                new javax.swing.JComboBox<>(labels.toArray(new String[0]));
+        panel.add(combo);
+        com.intellij.openapi.ui.DialogBuilder b = new com.intellij.openapi.ui.DialogBuilder(project);
+        b.setTitle("ChainlessChain");
+        b.setCenterPanel(panel);
+        b.addOkAction();
+        b.addCancelAction();
+        if (b.show() != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) return null;
+        Object sel = combo.getSelectedItem();
+        return sel == null ? null : String.valueOf(sel);
     }
 
     /** Multi-select question → a checkbox dialog. Returns the chosen labels, or

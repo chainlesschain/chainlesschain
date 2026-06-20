@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.27] — 2026-06-20 — clear the 2 Marketplace deprecated-API warnings
+
+- **Removed the 2 deprecated-API usages** the Marketplace Plugin Verifier flagged
+  (so the plugin stays compatible with future IntelliJ releases): the npm-update
+  check now uses `URI.create(...).toURL()` instead of the deprecated
+  `new URL(String)` constructor, and the single-choice question dialog uses a
+  `DialogBuilder` + combo box instead of the deprecated `Messages.showChooseDialog`.
+  No behavior change — verifier report goes from "2 deprecated API usages" to clean.
+
 ## [0.4.26] — 2026-06-20 — fix: "cc not installed" false alarm + cc-name conflict
 
 - **Fix: the panel no longer cries "未检测到 cc CLI" when `cc` IS installed.** Two
