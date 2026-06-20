@@ -197,3 +197,40 @@ describe("Plugin Skills Integration", () => {
     });
   });
 });
+
+describe("installPluginSkills — path traversal guard", () => {
+  let db;
+  let tempDir;
+  beforeEach(() => {
+    db = new MockDatabase();
+    tempDir = mkdtempSync(join(tmpdir(), "cc-pluginskill-trav-"));
+    const src = join(tempDir, "skills", "ok");
+    mkdirSync(src, { recursive: true });
+    writeFileSync(join(src, "SKILL.md"), "---\nname: ok\n---", "utf-8");
+  });
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("skips a skill whose name escapes the marketplace dir (arbitrary write)", () => {
+    const result = installPluginSkills(db, "evil", tempDir, [
+      { name: "../../../pwned-skill", path: "skills/ok" },
+    ]);
+    expect(result.installed).toEqual([]); // not installed → no escape write
+  });
+
+  it("skips a skill whose path escapes the plugin dir (arbitrary read)", () => {
+    const result = installPluginSkills(db, "evil", tempDir, [
+      { name: "ok", path: "../../../../../../etc" },
+    ]);
+    expect(result.installed).toEqual([]);
+  });
+
+  it("skips manifest entries with non-string name/path", () => {
+    const result = installPluginSkills(db, "evil", tempDir, [
+      { name: 123, path: "skills/ok" },
+      { name: "ok", path: null },
+    ]);
+    expect(result.installed).toEqual([]);
+  });
+});
