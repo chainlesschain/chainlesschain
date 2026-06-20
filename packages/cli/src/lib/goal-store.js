@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getHomeDir } from "./paths.js";
+import { withFileLock } from "./with-file-lock.js";
 
 /** Valid goal lifecycle states. `active` goals are the ones injected. */
 export const GOAL_STATUS = Object.freeze({
@@ -36,6 +37,28 @@ function defaultRoot() {
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+/**
+ * Write a goal file atomically: a crash mid-write must not truncate/corrupt an
+ * existing goal (an unparseable goal file is silently dropped by getGoal's catch
+ * → the user loses that goal). Temp sibling + rename (atomic within a
+ * filesystem). Temp names end in `.tmp` (never `.json`), so a hard-crash
+ * leftover is ignored by listGoals.
+ */
+function atomicWriteFileSync(filePath, data) {
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data, "utf-8");
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
 }
 
 function newId(prefix) {
@@ -98,7 +121,7 @@ export function createGoal(input = {}, opts = {}) {
     updatedAt: nowIso(),
   };
   ensureDir(root);
-  fs.writeFileSync(goalFile(root, id), JSON.stringify(goal, null, 2), "utf-8");
+  atomicWriteFileSync(goalFile(root, id), JSON.stringify(goal, null, 2));
   return goal;
 }
 
@@ -137,11 +160,7 @@ function saveGoal(goal, opts = {}) {
   const root = opts.root || defaultRoot();
   ensureDir(root);
   goal.updatedAt = nowIso();
-  fs.writeFileSync(
-    goalFile(root, goal.id),
-    JSON.stringify(goal, null, 2),
-    "utf-8",
-  );
+  atomicWriteFileSync(goalFile(root, goal.id), JSON.stringify(goal, null, 2));
   return goal;
 }
 
@@ -162,10 +181,17 @@ export function listGoals(opts = {}) {
 
 /** Mutate a goal via `fn(goal)`; throws if not found. */
 function mutate(id, fn, opts = {}) {
-  const goal = getGoal(id, opts);
-  if (!goal) throw new Error(`no such goal: ${id}`);
-  fn(goal);
-  return saveGoal(goal, opts);
+  // Serialize the read-modify-write across processes (cc+cc, or cc+desktop
+  // sharing the goals dir) so concurrent goal edits don't lose an update.
+  // Best-effort lock (with-file-lock): on contention timeout it proceeds anyway,
+  // so the CLI never hangs.
+  const root = opts.root || defaultRoot();
+  return withFileLock(goalFile(root, id), () => {
+    const goal = getGoal(id, opts);
+    if (!goal) throw new Error(`no such goal: ${id}`);
+    fn(goal);
+    return saveGoal(goal, opts);
+  });
 }
 
 /** Add a key result to a goal. */

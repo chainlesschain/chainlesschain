@@ -23,6 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
+import { withFileLock } from "./with-file-lock.js";
 
 const SENSITIVE_FIELDS = ["sync.webdav.password", "sync.oss.secretAccessKey"];
 const ALLOWED_PROVIDER_IDS = ["webdav", "oss"];
@@ -55,6 +56,37 @@ function _ensureDir() {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+/**
+ * Write a secret file atomically. A crash (or concurrent writer) mid-write must
+ * never corrupt the master key or the encrypted vault — a truncated key throws
+ * on every load, a truncated vault fails AEAD decrypt and forces a reconfigure.
+ * Temp sibling + rename (atomic within a filesystem); when `mode` is given the
+ * temp is created with it (0600) so the secret is never world-readable in the
+ * window before rename. chmod after rename is belt-and-suspenders (best-effort
+ * on NTFS / older fs).
+ */
+function _atomicWriteFileSync(filePath, data, mode) {
+  const tmp = `${filePath}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data, mode != null ? { mode } : undefined);
+    fs.renameSync(tmp, filePath);
+    if (mode != null) {
+      try {
+        fs.chmodSync(filePath, mode);
+      } catch (_e) {
+        /* non-fatal: NTFS / older fs */
+      }
+    }
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 function _loadOrCreateMasterKey() {
   _ensureDir();
   const kp = _keyPath();
@@ -69,12 +101,10 @@ function _loadOrCreateMasterKey() {
     return buf;
   }
   const key = crypto.randomBytes(KEY_LEN);
-  fs.writeFileSync(kp, key);
-  try {
-    fs.chmodSync(kp, 0o600);
-  } catch (_e) {
-    /* non-fatal: NTFS / older fs */
-  }
+  // Atomic + 0600 from creation: a crash mid-write must not leave a truncated
+  // master key (a wrong-length key file then throws on every load), and the
+  // secret must never be briefly world-readable in the gap before chmod.
+  _atomicWriteFileSync(kp, key, 0o600);
   return key;
 }
 
@@ -123,7 +153,7 @@ function loadAll() {
 
 function saveAll(all) {
   _ensureDir();
-  fs.writeFileSync(_vaultPath(), _encryptBlob(JSON.stringify(all)));
+  _atomicWriteFileSync(_vaultPath(), _encryptBlob(JSON.stringify(all)));
   return true;
 }
 
@@ -184,20 +214,26 @@ function setCredentials(providerId, creds) {
   if (!creds || typeof creds !== "object") {
     throw new Error("sync-credentials: creds must be an object");
   }
-  const all = loadAll();
-  if (!all.sync || typeof all.sync !== "object") all.sync = {};
-  all.sync[providerId] = { ...creds };
-  return saveAll(all);
+  // Serialize the decrypt-modify-encrypt across processes so a concurrent write
+  // to a different provider doesn't drop this one (best-effort, never hangs).
+  return withFileLock(_vaultPath(), () => {
+    const all = loadAll();
+    if (!all.sync || typeof all.sync !== "object") all.sync = {};
+    all.sync[providerId] = { ...creds };
+    return saveAll(all);
+  });
 }
 
 function clearCredentials(providerId) {
   assertProviderId(providerId);
-  const all = loadAll();
-  if (all?.sync?.[providerId]) {
-    delete all.sync[providerId];
-    return saveAll(all);
-  }
-  return true;
+  return withFileLock(_vaultPath(), () => {
+    const all = loadAll();
+    if (all?.sync?.[providerId]) {
+      delete all.sync[providerId];
+      return saveAll(all);
+    }
+    return true;
+  });
 }
 
 /** Test seam: override the resolved chainlesschain dir without env leak. */
