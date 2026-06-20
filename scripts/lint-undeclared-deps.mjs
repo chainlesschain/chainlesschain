@@ -85,7 +85,16 @@ const BUILTINS = new Set([
 // dependency for these libraries. `electron` is accessed defensively
 // (`require("electron")` guarded by try/null-check) so the package works
 // both inside the desktop app (electron present) and the CLI (absent).
-const ALLOWED_AMBIENT = new Set(["electron", "vscode"]);
+//
+// `frida` is the same shape for the Personal Data Hub: it is the on-device
+// WeChat-key path (lib/adapters/wechat/key-providers/frida-key-provider.js),
+// lazy `require("frida")` guarded by FRIDA_BINDING_MISSING + a test seam. The
+// frida runtime is supplied by the Android internal-binaries chain, NOT npm —
+// the Android cc bundle is built with `npm install --ignore-scripts`, so npm's
+// `frida` native binary can never build there anyway. Declaring it as an npm
+// (optional) dependency would only bloat the bundle with a non-functional,
+// host-arch JS shell. So it is host-provided ambient, like electron/vscode.
+const ALLOWED_AMBIENT = new Set(["electron", "vscode", "frida"]);
 
 // npm package-name shape (lowercase, optional scope). Anything that fails
 // this is not a real specifier — e.g. `${indexPath}` left over from a
@@ -101,16 +110,16 @@ const VALID_PKG_NAME = /^(?:@[a-z0-9][a-z0-9-._]*\/)?[a-z0-9][a-z0-9-._]*$/;
 // release cycle. Remove an entry the moment the dep is properly declared —
 // the gate reports stale baseline entries so they don't rot.
 // ---------------------------------------------------------------------------
-const KNOWN_BASELINE = {
-  // cli items burned down 2026-06-19 (cli 0.162.90): @noble/curves + js-yaml
-  // moved/added to dependencies, playwright declared as optional peer.
-  "@chainlesschain/personal-data-hub": {
-    "pdf-parse":
-      "lazy-loaded heavy optional (lib/adapters/email-imap/pdf-extractor.js) — ADD to optionalDependencies; triggers USR_VERSION + Android bundle rollover (traps #27/#28)",
-    frida:
-      "device-only lazy require (lib/adapters/wechat/key-providers/frida-key-provider.js) — ADD to optionalDependencies; Android bundle chain",
-  },
-};
+// Empty: the ratchet is fully burned down.
+//   - cli items cleared 2026-06-19 (cli 0.162.90): @noble/curves + js-yaml
+//     moved/added to dependencies, playwright declared as optional peer.
+//   - pdh items cleared 2026-06-21: pdf-parse declared in optionalDependencies;
+//     frida moved to ALLOWED_AMBIENT (host-provided via the Android
+//     internal-binaries chain — not an npm dep, see above).
+// New undeclared runtime imports now FAIL the gate outright (no baseline to
+// hide behind). If a genuinely host-provided ambient appears, add it to
+// ALLOWED_AMBIENT; otherwise declare it in the package's manifest.
+const KNOWN_BASELINE = {};
 
 /** Base package name of an import specifier: `@scope/name/sub` -> `@scope/name`, `pkg/sub` -> `pkg`. */
 export function basePackage(spec) {
