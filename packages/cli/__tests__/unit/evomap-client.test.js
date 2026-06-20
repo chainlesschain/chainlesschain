@@ -227,17 +227,29 @@ describe("EvoMapManager", () => {
   // ── saveGene ──
 
   describe("saveGene", () => {
-    it("saves gene to disk", () => {
+    it("saves gene to disk atomically (temp + rename)", () => {
+      const writes = [];
+      const renames = [];
       mgrDeps.fs = {
         existsSync: vi.fn(() => false),
         mkdirSync: vi.fn(),
-        writeFileSync: vi.fn(),
+        writeFileSync: vi.fn((p) => writes.push(p)),
+        renameSync: vi.fn((from, to) => renames.push({ from, to })),
+        unlinkSync: vi.fn(),
       };
 
       const mgr = new EvoMapManager({ genesDir: "/tmp/genes" });
       const result = mgr.saveGene({ id: "test-gene", name: "Test" }, "content");
       expect(result.path).toContain("test-gene");
       expect(mgrDeps.fs.writeFileSync).toHaveBeenCalled();
+      // Atomic: each file was written to a temp sibling then renamed onto the
+      // final path (gene.json + content.md).
+      expect(renames).toHaveLength(2);
+      for (const { from, to } of renames) {
+        expect(from).toMatch(/\.tmp$/);
+        expect(to).not.toMatch(/\.tmp$/);
+      }
+      expect(writes.every((p) => p.endsWith(".tmp"))).toBe(true);
     });
 
     it("throws without gene ID", () => {
