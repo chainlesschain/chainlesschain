@@ -123,5 +123,21 @@ describe("shared-logger", () => {
       expect(content).not.toContain("secret123");
       expect(content).toContain("admin");
     });
+
+    it("redacts apiKey / privateKey fields despite camelCase naming", () => {
+      // These were never redacted: the list held "apiKey"/"privateKey" but the
+      // key was lowercased before the substring check, so they leaked.
+      logger.info("llm", {
+        apiKey: "sk-LEAK-API",
+        privateKey: "PRIV-LEAK-KEY",
+        llmApiKey: "sk-NESTED-LEAK",
+        model: "doubao",
+      });
+      const content = fs.readFileSync(logger.getCurrentLogFile(), "utf8");
+      expect(content).not.toContain("sk-LEAK-API");
+      expect(content).not.toContain("PRIV-LEAK-KEY");
+      expect(content).not.toContain("sk-NESTED-LEAK");
+      expect(content).toContain("doubao"); // non-sensitive field preserved
+    });
   });
 });
