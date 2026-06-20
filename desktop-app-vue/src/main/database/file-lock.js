@@ -31,22 +31,37 @@ function acquireLock(lockPath, fs = realFs, now = () => Date.now()) {
     if (err.code !== "EEXIST") {
       throw err;
     }
-    // Lock held — reclaim if stale.
+    // Lock held — reclaim if stale, atomically. The previous unlink()+open()
+    // sequence was racy: two processes that both saw the lock as stale could
+    // each unlink and recreate it and *both* return true, breaking the mutual
+    // exclusion this guards around a destructive op. Instead, rename the stale
+    // lock aside first — rename is atomic, so only the racer whose rename wins
+    // proceeds; the loser's rename throws ENOENT and it stays locked-out.
     try {
       const stat = fs.statSync(lockPath);
       const age = now() - stat.mtimeMs;
       if (age > STALE_LOCK_MS) {
+        const claimed = `${lockPath}.stale-${process.pid}-${now()}`;
+        fs.renameSync(lockPath, claimed); // ENOENT if another racer moved it first
+        try {
+          fs.unlinkSync(claimed);
+        } catch (_e) {
+          /* best-effort removal of the moved-aside stale lock */
+        }
+        const fd = fs.openSync(lockPath, "wx"); // EEXIST if a racer recreated it
+        try {
+          fs.writeSync(fd, String(now()));
+        } finally {
+          fs.closeSync(fd);
+        }
         logger.warn(
           `[file-lock] 回收陈旧锁 (age=${Math.round(age / 1000)}s):`,
           lockPath,
         );
-        fs.unlinkSync(lockPath);
-        const fd = fs.openSync(lockPath, "wx");
-        fs.closeSync(fd);
         return true;
       }
     } catch (_e) {
-      // Another process likely handled it; treat as locked.
+      // Lost the reclaim race (ENOENT on rename) or another process handled it.
     }
     return false;
   }
