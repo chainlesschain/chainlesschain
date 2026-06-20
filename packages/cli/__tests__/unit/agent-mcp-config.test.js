@@ -13,6 +13,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   parseMcpServers,
   mcpToolName,
+  mcpAuthHint,
   setupMcpFromConfig,
   loadMcpConfig,
   resolvePermissionPromptTool,
@@ -145,6 +146,52 @@ describe("setupMcpFromConfig", () => {
     expect(errs.join("")).toMatch(/failed to connect "bad": connect boom/);
     expect(res.connected).toMatchObject([{ server: "good", tools: 1 }]);
     expect(res.extraToolDefinitions).toHaveLength(1);
+  });
+
+  it("appends a `cc mcp login` hint when a URL server fails with HTTP 401", async () => {
+    // Explicit (stale) Authorization avoids the OAuth-discovery path so the
+    // test is offline; the connect then throws the transport's HTTP 401.
+    const client = {
+      servers: { has: () => false },
+      setSessionId() {},
+      async connect() {
+        throw new Error("HTTP 401: Unauthorized");
+      },
+      async disconnectAll() {},
+    };
+    const errs = [];
+    await setupMcpFromConfig(
+      {
+        remote: {
+          url: "https://mcp.example.com/sse",
+          headers: { Authorization: "Bearer stale" },
+        },
+      },
+      { createClient: () => client, writeErr: (s) => errs.push(s) },
+    );
+    const out = errs.join("");
+    expect(out).toMatch(/failed to connect "remote": HTTP 401/);
+    expect(out).toMatch(/cc mcp login https:\/\/mcp\.example\.com\/sse/);
+  });
+
+  it("mcpAuthHint: returns a `cc mcp login` hint for HTTP 401/403/Unauthorized on a url server", () => {
+    expect(mcpAuthHint("https://x/sse", "HTTP 401: Unauthorized")).toMatch(
+      /cc mcp login https:\/\/x\/sse/,
+    );
+    expect(mcpAuthHint("https://x/sse", "HTTP 403: Forbidden")).toMatch(
+      /cc mcp login/,
+    );
+    expect(mcpAuthHint("https://x/sse", "request was Unauthorized")).toMatch(
+      /cc mcp login/,
+    );
+  });
+
+  it("mcpAuthHint: returns null for non-auth errors, other HTTP codes, or stdio (no url)", () => {
+    expect(mcpAuthHint("https://x/sse", "ECONNREFUSED")).toBeNull();
+    expect(mcpAuthHint("https://x/sse", "HTTP 500: boom")).toBeNull();
+    expect(mcpAuthHint("https://x/sse", "HTTP 404: not found")).toBeNull();
+    expect(mcpAuthHint(undefined, "HTTP 401: Unauthorized")).toBeNull();
+    expect(mcpAuthHint("", "Unauthorized")).toBeNull();
   });
 
   it("passes deps.sessionId to the client (stdio MCP identity env)", async () => {

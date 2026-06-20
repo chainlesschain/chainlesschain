@@ -61,6 +61,31 @@ export function mcpToolName(server, tool) {
 }
 
 /**
+ * When an MCP connect fails with an authentication error (HTTP 401/403, or an
+ * explicit Unauthorized/Forbidden) on a URL-based server, return an actionable
+ * one-line hint pointing the user at `cc mcp login`. Returns null for non-auth
+ * errors or stdio servers (no url). cc's mcp-client throws `HTTP 401: …` /
+ * `HTTP 403: …` from its transport on these — the common path for an MCP server
+ * that requires OAuth but has no stored token (Claude-Code 2.1.183 surfaced the
+ * same auth-required class; cc already exposes no tools from such a server, so
+ * the residual gap was the missing actionable guidance).
+ *
+ * @param {string|undefined} url   the server's `url` (stdio servers pass none)
+ * @param {string} errMessage      the thrown connect error message
+ * @returns {string|null}
+ */
+export function mcpAuthHint(url, errMessage) {
+  if (!url) return null;
+  const m = String(errMessage || "");
+  const isAuth =
+    /\bHTTP\s*40[13]\b/i.test(m) ||
+    /\bunauthor/i.test(m) ||
+    /\bforbidden\b/i.test(m);
+  if (!isAuth) return null;
+  return `    → "${url}" requires authentication; run: cc mcp login ${url}\n`;
+}
+
+/**
  * Connect the given servers and build the agent-loop wiring. Connection
  * failures are reported (writeErr) but never abort the run — a broken server
  * just contributes no tools.
@@ -131,7 +156,10 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     try {
       res = await mcpClient.connect(name, connectCfg);
     } catch (err) {
-      writeErr(`  mcp: failed to connect "${name}": ${err.message}\n`);
+      let line = `  mcp: failed to connect "${name}": ${err.message}\n`;
+      const hint = mcpAuthHint(cfg.url, err.message);
+      if (hint) line += hint;
+      writeErr(line);
       continue;
     }
     const tools = Array.isArray(res?.tools) ? res.tools : [];
