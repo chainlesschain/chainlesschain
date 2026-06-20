@@ -9,18 +9,19 @@
  * Response format: { success: true, message: "...", data: {...}, timestamp: ... }
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
 let axios;
 try {
-  axios = require('axios');
+  axios = require("axios");
 } catch (e) {
-  logger.warn('[MarketplaceClient] axios not available');
+  logger.warn("[MarketplaceClient] axios not available");
 }
 
 // Default configuration
-const DEFAULT_BASE_URL = process.env.MARKETPLACE_API_URL || 'http://localhost:8090/api';
+const DEFAULT_BASE_URL =
+  process.env.MARKETPLACE_API_URL || "http://localhost:8090/api";
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY_BASE = 1000; // 1 second base delay for exponential backoff
@@ -35,14 +36,14 @@ const TRANSIENT_STATUS_CODES = [408, 429, 500, 502, 503, 504];
  * Error codes from axios that indicate network-level transient failures
  */
 const TRANSIENT_ERROR_CODES = [
-  'ECONNRESET',
-  'ECONNREFUSED',
-  'ETIMEDOUT',
-  'ENOTFOUND',
-  'ENETUNREACH',
-  'EAI_AGAIN',
-  'EPIPE',
-  'ERR_NETWORK',
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "ENETUNREACH",
+  "EAI_AGAIN",
+  "EPIPE",
+  "ERR_NETWORK",
 ];
 
 /**
@@ -85,7 +86,9 @@ class MarketplaceClient {
 
     this._initClient();
 
-    logger.info(`[MarketplaceClient] Initialized with baseURL: ${this.baseURL}`);
+    logger.info(
+      `[MarketplaceClient] Initialized with baseURL: ${this.baseURL}`,
+    );
   }
 
   /**
@@ -94,7 +97,9 @@ class MarketplaceClient {
    */
   _initClient() {
     if (!axios) {
-      logger.error('[MarketplaceClient] axios is not available, client will not function');
+      logger.error(
+        "[MarketplaceClient] axios is not available, client will not function",
+      );
       this.client = null;
       return;
     }
@@ -103,15 +108,16 @@ class MarketplaceClient {
       baseURL: this.baseURL,
       timeout: this.timeout,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Client-Version': '0.33.0',
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Client-Version": "0.33.0",
       },
     });
 
     // Set auth token if provided
     if (this.authToken) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${this.authToken}`;
+      this.client.defaults.headers.common["Authorization"] =
+        `Bearer ${this.authToken}`;
     }
 
     this._setupRequestInterceptor();
@@ -127,22 +133,25 @@ class MarketplaceClient {
       (config) => {
         // Generate and attach request ID for tracing
         const requestId = uuidv4();
-        config.headers['X-Request-ID'] = requestId;
+        config.headers["X-Request-ID"] = requestId;
         this.requestId = requestId;
 
         this._stats.totalRequests++;
         this._stats.lastRequestTime = Date.now();
 
         logger.info(
-          `[MarketplaceClient] ${config.method.toUpperCase()} ${config.url} [${requestId.substring(0, 8)}]`
+          `[MarketplaceClient] ${config.method.toUpperCase()} ${config.url} [${requestId.substring(0, 8)}]`,
         );
 
         return config;
       },
       (error) => {
-        logger.error('[MarketplaceClient] Request interceptor error:', error.message);
+        logger.error(
+          "[MarketplaceClient] Request interceptor error:",
+          error.message,
+        );
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -158,9 +167,11 @@ class MarketplaceClient {
         const { data } = response;
 
         // Handle standard API response format: { success, message, data, timestamp }
-        if (data && typeof data === 'object' && 'success' in data) {
+        if (data && typeof data === "object" && "success" in data) {
           if (!data.success) {
-            const error = new Error(data.message || 'API returned unsuccessful response');
+            const error = new Error(
+              data.message || "API returned unsuccessful response",
+            );
             error.apiResponse = data;
             error.status = response.status;
             throw error;
@@ -183,26 +194,25 @@ class MarketplaceClient {
           const responseData = error.response.data || {};
           const message = responseData.message || error.message;
 
-          logger.error(
-            `[MarketplaceClient] HTTP ${status}: ${message}`
-          );
+          logger.error(`[MarketplaceClient] HTTP ${status}: ${message}`);
 
           // Map common HTTP status codes to meaningful error messages
           const statusMessages = {
             400: `Bad request: ${message}`,
-            401: 'Authentication required. Please log in.',
-            403: 'Permission denied. Insufficient privileges.',
+            401: "Authentication required. Please log in.",
+            403: "Permission denied. Insufficient privileges.",
             404: `Resource not found: ${message}`,
             409: `Conflict: ${message}`,
-            413: 'Payload too large. Please reduce file size.',
+            413: "Payload too large. Please reduce file size.",
             422: `Validation error: ${message}`,
-            429: 'Rate limited. Please try again later.',
+            429: "Rate limited. Please try again later.",
             500: `Internal server error: ${message}`,
-            502: 'Bad gateway. Marketplace service may be down.',
-            503: 'Service unavailable. Please try again later.',
+            502: "Bad gateway. Marketplace service may be down.",
+            503: "Service unavailable. Please try again later.",
           };
 
-          const enhancedMessage = statusMessages[status] || `Request failed (${status}): ${message}`;
+          const enhancedMessage =
+            statusMessages[status] || `Request failed (${status}): ${message}`;
 
           const enhancedError = new Error(enhancedMessage);
           enhancedError.status = status;
@@ -213,22 +223,27 @@ class MarketplaceClient {
           return Promise.reject(enhancedError);
         } else if (error.request) {
           // Network error - no response received
-          const networkError = new Error('Network error: Unable to reach marketplace service');
+          const networkError = new Error(
+            "Network error: Unable to reach marketplace service",
+          );
           networkError.isNetworkError = true;
           networkError.isTransient = true;
           networkError.code = error.code;
 
           logger.warn(
-            `[MarketplaceClient] Network error: ${error.code || error.message}`
+            `[MarketplaceClient] Network error: ${error.code || error.message}`,
           );
 
           return Promise.reject(networkError);
         } else {
           // Request setup error
-          logger.error('[MarketplaceClient] Request setup error:', error.message);
+          logger.error(
+            "[MarketplaceClient] Request setup error:",
+            error.message,
+          );
           return Promise.reject(error);
         }
-      }
+      },
     );
   }
 
@@ -242,17 +257,19 @@ class MarketplaceClient {
     this.authToken = token;
 
     if (!this.client) {
-      logger.warn('[MarketplaceClient] Client not initialized, token stored for later use');
+      logger.warn(
+        "[MarketplaceClient] Client not initialized, token stored for later use",
+      );
       return;
     }
 
     if (token) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      logger.info('[MarketplaceClient] Auth token set');
+      this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      logger.info("[MarketplaceClient] Auth token set");
     } else {
-      delete this.client.defaults.headers.common['Authorization'];
+      delete this.client.defaults.headers.common["Authorization"];
       this.authToken = null;
-      logger.info('[MarketplaceClient] Auth token cleared');
+      logger.info("[MarketplaceClient] Auth token cleared");
     }
   }
 
@@ -283,21 +300,35 @@ class MarketplaceClient {
       this._ensureClient();
 
       const params = {};
-      if (filters.category) {params.category = filters.category;}
-      if (filters.search) {params.search = filters.search;}
-      if (filters.sort) {params.sort = filters.sort;}
-      if (filters.page != null) {params.page = filters.page;}
-      if (filters.pageSize != null) {params.pageSize = filters.pageSize;}
-      if (filters.verified != null) {params.verified = filters.verified;}
+      if (filters.category) {
+        params.category = filters.category;
+      }
+      if (filters.search) {
+        params.search = filters.search;
+      }
+      if (filters.sort) {
+        params.sort = filters.sort;
+      }
+      if (filters.page != null) {
+        params.page = filters.page;
+      }
+      if (filters.pageSize != null) {
+        params.pageSize = filters.pageSize;
+      }
+      if (filters.verified != null) {
+        params.verified = filters.verified;
+      }
 
-      const response = await this._requestWithRetry('get', '/plugins', { params });
+      const response = await this._requestWithRetry("get", "/plugins", {
+        params,
+      });
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'listPlugins');
+      return this._handleMethodError(error, "listPlugins");
     }
   }
 
@@ -317,28 +348,40 @@ class MarketplaceClient {
     try {
       this._ensureClient();
 
-      if (!keyword || typeof keyword !== 'string' || !keyword.trim()) {
+      if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
         return {
           success: false,
-          error: 'Search keyword is required and must be a non-empty string',
+          error: "Search keyword is required and must be a non-empty string",
         };
       }
 
       const params = { keyword: keyword.trim() };
-      if (filters.category) {params.category = filters.category;}
-      if (filters.verified != null) {params.verified = filters.verified;}
-      if (filters.sort) {params.sort = filters.sort;}
-      if (filters.page != null) {params.page = filters.page;}
-      if (filters.pageSize != null) {params.pageSize = filters.pageSize;}
+      if (filters.category) {
+        params.category = filters.category;
+      }
+      if (filters.verified != null) {
+        params.verified = filters.verified;
+      }
+      if (filters.sort) {
+        params.sort = filters.sort;
+      }
+      if (filters.page != null) {
+        params.page = filters.page;
+      }
+      if (filters.pageSize != null) {
+        params.pageSize = filters.pageSize;
+      }
 
-      const response = await this._requestWithRetry('get', '/plugins/search', { params });
+      const response = await this._requestWithRetry("get", "/plugins/search", {
+        params,
+      });
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'searchPlugins');
+      return this._handleMethodError(error, "searchPlugins");
     }
   }
 
@@ -353,17 +396,20 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
-      const response = await this._requestWithRetry('get', `/plugins/${encodeURIComponent(id)}`);
+      const response = await this._requestWithRetry(
+        "get",
+        `/plugins/${encodeURIComponent(id)}`,
+      );
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'getPluginDetail');
+      return this._handleMethodError(error, "getPluginDetail");
     }
   }
 
@@ -382,14 +428,18 @@ class MarketplaceClient {
         params.limit = Math.min(limit, 100);
       }
 
-      const response = await this._requestWithRetry('get', '/plugins/featured', { params });
+      const response = await this._requestWithRetry(
+        "get",
+        "/plugins/featured",
+        { params },
+      );
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'getFeatured');
+      return this._handleMethodError(error, "getFeatured");
     }
   }
 
@@ -408,14 +458,16 @@ class MarketplaceClient {
         params.limit = Math.min(limit, 100);
       }
 
-      const response = await this._requestWithRetry('get', '/plugins/popular', { params });
+      const response = await this._requestWithRetry("get", "/plugins/popular", {
+        params,
+      });
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'getPopular');
+      return this._handleMethodError(error, "getPopular");
     }
   }
 
@@ -428,14 +480,14 @@ class MarketplaceClient {
     try {
       this._ensureClient();
 
-      const response = await this._requestWithRetry('get', '/categories');
+      const response = await this._requestWithRetry("get", "/categories");
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'getCategories');
+      return this._handleMethodError(error, "getCategories");
     }
   }
 
@@ -453,7 +505,7 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
       const params = {};
@@ -462,9 +514,9 @@ class MarketplaceClient {
       }
 
       const response = await this._requestWithRetry(
-        'get',
+        "get",
         `/plugins/${encodeURIComponent(id)}/download`,
-        { params }
+        { params },
       );
 
       return {
@@ -472,7 +524,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'downloadPlugin');
+      return this._handleMethodError(error, "downloadPlugin");
     }
   }
 
@@ -506,25 +558,36 @@ class MarketplaceClient {
       if (!pluginData || !pluginData.name || !pluginData.version) {
         return {
           success: false,
-          error: 'Plugin name and version are required',
+          error: "Plugin name and version are required",
         };
       }
 
-      if (!fileBuffer || !(fileBuffer instanceof Buffer || ArrayBuffer.isView(fileBuffer))) {
+      if (
+        !fileBuffer ||
+        !(fileBuffer instanceof Buffer || ArrayBuffer.isView(fileBuffer))
+      ) {
         return {
           success: false,
-          error: 'A valid file buffer is required for plugin upload',
+          error: "A valid file buffer is required for plugin upload",
         };
       }
 
       // Build multipart form data
-      const FormData = require('form-data');
+      const FormData = require("form-data");
       const formData = new FormData();
 
       // Append metadata fields
       const metadataFields = [
-        'name', 'description', 'version', 'category', 'author',
-        'authorDid', 'license', 'homepage', 'readme', 'minAppVersion',
+        "name",
+        "description",
+        "version",
+        "category",
+        "author",
+        "authorDid",
+        "license",
+        "homepage",
+        "readme",
+        "minAppVersion",
       ];
       for (const field of metadataFields) {
         if (pluginData[field] != null) {
@@ -534,22 +597,28 @@ class MarketplaceClient {
 
       // Append array and object fields as JSON strings
       if (pluginData.tags && Array.isArray(pluginData.tags)) {
-        formData.append('tags', JSON.stringify(pluginData.tags));
+        formData.append("tags", JSON.stringify(pluginData.tags));
       }
-      if (pluginData.dependencies && typeof pluginData.dependencies === 'object') {
-        formData.append('dependencies', JSON.stringify(pluginData.dependencies));
+      if (
+        pluginData.dependencies &&
+        typeof pluginData.dependencies === "object"
+      ) {
+        formData.append(
+          "dependencies",
+          JSON.stringify(pluginData.dependencies),
+        );
       }
 
       // Append the plugin file
       const filename = `${pluginData.name}-${pluginData.version}.zip`;
-      formData.append('file', fileBuffer, {
+      formData.append("file", fileBuffer, {
         filename: filename,
-        contentType: 'application/zip',
+        contentType: "application/zip",
       });
 
       const response = await this._requestWithRetry(
-        'post',
-        '/plugins',
+        "post",
+        "/plugins",
         {
           data: formData,
           headers: {
@@ -557,17 +626,19 @@ class MarketplaceClient {
           },
           timeout: UPLOAD_TIMEOUT,
         },
-        1 // Only 1 retry for uploads to avoid duplicate submissions
+        1, // Only 1 retry for uploads to avoid duplicate submissions
       );
 
-      logger.info(`[MarketplaceClient] Plugin published successfully: ${pluginData.name}@${pluginData.version}`);
+      logger.info(
+        `[MarketplaceClient] Plugin published successfully: ${pluginData.name}@${pluginData.version}`,
+      );
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'publishPlugin');
+      return this._handleMethodError(error, "publishPlugin");
     }
   }
 
@@ -589,17 +660,20 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
-      if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
-        return { success: false, error: 'Update data must be a non-empty object' };
+      if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
+        return {
+          success: false,
+          error: "Update data must be a non-empty object",
+        };
       }
 
       const response = await this._requestWithRetry(
-        'put',
+        "put",
         `/plugins/${encodeURIComponent(id)}`,
-        { data }
+        { data },
       );
 
       logger.info(`[MarketplaceClient] Plugin metadata updated: ${id}`);
@@ -609,7 +683,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'updatePluginMetadata');
+      return this._handleMethodError(error, "updatePluginMetadata");
     }
   }
 
@@ -624,12 +698,12 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
       const response = await this._requestWithRetry(
-        'delete',
-        `/plugins/${encodeURIComponent(id)}`
+        "delete",
+        `/plugins/${encodeURIComponent(id)}`,
       );
 
       logger.info(`[MarketplaceClient] Plugin deleted: ${id}`);
@@ -639,7 +713,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'deletePlugin');
+      return this._handleMethodError(error, "deletePlugin");
     }
   }
 
@@ -660,18 +734,24 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!pluginId) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
       const params = {};
-      if (options.page != null) {params.page = options.page;}
-      if (options.pageSize != null) {params.pageSize = options.pageSize;}
-      if (options.sort) {params.sort = options.sort;}
+      if (options.page != null) {
+        params.page = options.page;
+      }
+      if (options.pageSize != null) {
+        params.pageSize = options.pageSize;
+      }
+      if (options.sort) {
+        params.sort = options.sort;
+      }
 
       const response = await this._requestWithRetry(
-        'get',
+        "get",
         `/plugins/${encodeURIComponent(pluginId)}/ratings`,
-        { params }
+        { params },
       );
 
       return {
@@ -679,7 +759,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'getRatings');
+      return this._handleMethodError(error, "getRatings");
     }
   }
 
@@ -696,7 +776,7 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!pluginId) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
       // Validate rating range
@@ -704,31 +784,33 @@ class MarketplaceClient {
       if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
         return {
           success: false,
-          error: 'Rating must be a number between 1 and 5',
+          error: "Rating must be a number between 1 and 5",
         };
       }
 
       const body = {
         rating: Math.round(numericRating),
       };
-      if (comment && typeof comment === 'string' && comment.trim()) {
+      if (comment && typeof comment === "string" && comment.trim()) {
         body.comment = comment.trim();
       }
 
       const response = await this._requestWithRetry(
-        'post',
+        "post",
         `/plugins/${encodeURIComponent(pluginId)}/ratings`,
-        { data: body }
+        { data: body },
       );
 
-      logger.info(`[MarketplaceClient] Rating submitted for plugin ${pluginId}: ${body.rating}/5`);
+      logger.info(
+        `[MarketplaceClient] Rating submitted for plugin ${pluginId}: ${body.rating}/5`,
+      );
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'ratePlugin');
+      return this._handleMethodError(error, "ratePlugin");
     }
   }
 
@@ -743,12 +825,12 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!ratingId) {
-        return { success: false, error: 'Rating ID is required' };
+        return { success: false, error: "Rating ID is required" };
       }
 
       const response = await this._requestWithRetry(
-        'delete',
-        `/ratings/${encodeURIComponent(ratingId)}`
+        "delete",
+        `/ratings/${encodeURIComponent(ratingId)}`,
       );
 
       logger.info(`[MarketplaceClient] Rating deleted: ${ratingId}`);
@@ -758,7 +840,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'deleteRating');
+      return this._handleMethodError(error, "deleteRating");
     }
   }
 
@@ -776,19 +858,19 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!pluginId) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
-      if (!reason || typeof reason !== 'string' || !reason.trim()) {
-        return { success: false, error: 'A reason for the report is required' };
+      if (!reason || typeof reason !== "string" || !reason.trim()) {
+        return { success: false, error: "A reason for the report is required" };
       }
 
       const response = await this._requestWithRetry(
-        'post',
+        "post",
         `/plugins/${encodeURIComponent(pluginId)}/report`,
         {
           data: { reason: reason.trim() },
-        }
+        },
       );
 
       logger.info(`[MarketplaceClient] Plugin reported: ${pluginId}`);
@@ -798,7 +880,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'reportPlugin');
+      return this._handleMethodError(error, "reportPlugin");
     }
   }
 
@@ -815,12 +897,12 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
       const response = await this._requestWithRetry(
-        'post',
-        `/plugins/${encodeURIComponent(id)}/approve`
+        "post",
+        `/plugins/${encodeURIComponent(id)}/approve`,
       );
 
       logger.info(`[MarketplaceClient] Plugin approved: ${id}`);
@@ -830,7 +912,7 @@ class MarketplaceClient {
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'approvePlugin');
+      return this._handleMethodError(error, "approvePlugin");
     }
   }
 
@@ -846,29 +928,34 @@ class MarketplaceClient {
       this._ensureClient();
 
       if (!id) {
-        return { success: false, error: 'Plugin ID is required' };
+        return { success: false, error: "Plugin ID is required" };
       }
 
-      if (!reason || typeof reason !== 'string' || !reason.trim()) {
-        return { success: false, error: 'A reason for rejection is required' };
+      if (!reason || typeof reason !== "string" || !reason.trim()) {
+        return { success: false, error: "A reason for rejection is required" };
       }
-
-      const params = { reason: reason.trim() };
 
       const response = await this._requestWithRetry(
-        'post',
+        "post",
         `/plugins/${encodeURIComponent(id)}/reject`,
-        { params }
+        // Send the reason in the request BODY (data), not as a query string
+        // (params). _requestWithRetry spreads config into the axios request, so
+        // { params } put the reason on the URL query — inconsistent with every
+        // other POST here (ratings/report use { data }) and likely dropped by
+        // the server, which reads the rejection reason from the body.
+        { data: { reason: reason.trim() } },
       );
 
-      logger.info(`[MarketplaceClient] Plugin rejected: ${id}, reason: ${reason.trim()}`);
+      logger.info(
+        `[MarketplaceClient] Plugin rejected: ${id}, reason: ${reason.trim()}`,
+      );
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      return this._handleMethodError(error, 'rejectPlugin');
+      return this._handleMethodError(error, "rejectPlugin");
     }
   }
 
@@ -879,8 +966,8 @@ class MarketplaceClient {
    * @param {string} newBaseURL - New base URL
    */
   setBaseURL(newBaseURL) {
-    if (!newBaseURL || typeof newBaseURL !== 'string') {
-      logger.warn('[MarketplaceClient] Invalid base URL provided');
+    if (!newBaseURL || typeof newBaseURL !== "string") {
+      logger.warn("[MarketplaceClient] Invalid base URL provided");
       return;
     }
 
@@ -937,13 +1024,13 @@ class MarketplaceClient {
       this._ensureClient();
 
       const startTime = Date.now();
-      await this.client.get('/health', { timeout: 5000 });
+      await this.client.get("/health", { timeout: 5000 });
       const latency = Date.now() - startTime;
 
       return {
         success: true,
         data: {
-          status: 'healthy',
+          status: "healthy",
           latency,
           baseURL: this.baseURL,
         },
@@ -953,7 +1040,7 @@ class MarketplaceClient {
         success: false,
         error: `Marketplace service unreachable: ${error.message}`,
         data: {
-          status: 'unhealthy',
+          status: "unhealthy",
           baseURL: this.baseURL,
         },
       };
@@ -969,7 +1056,9 @@ class MarketplaceClient {
    */
   _ensureClient() {
     if (!this.client) {
-      throw new Error('MarketplaceClient is not available: axios dependency is missing');
+      throw new Error(
+        "MarketplaceClient is not available: axios dependency is missing",
+      );
     }
   }
 
@@ -1000,7 +1089,10 @@ class MarketplaceClient {
         };
 
         // For methods that send data, place it correctly
-        if (config.data && (method === 'post' || method === 'put' || method === 'patch')) {
+        if (
+          config.data &&
+          (method === "post" || method === "put" || method === "patch")
+        ) {
           requestConfig.data = config.data;
         }
 
@@ -1016,7 +1108,7 @@ class MarketplaceClient {
         if (!isRetryable || isLastAttempt) {
           if (attempt > 0) {
             logger.warn(
-              `[MarketplaceClient] Request failed after ${attempt + 1} attempts: ${method.toUpperCase()} ${url}`
+              `[MarketplaceClient] Request failed after ${attempt + 1} attempts: ${method.toUpperCase()} ${url}`,
             );
           }
           throw error;
@@ -1030,7 +1122,7 @@ class MarketplaceClient {
         this._stats.retries++;
 
         logger.info(
-          `[MarketplaceClient] Retrying request (${attempt + 1}/${retryLimit}): ${method.toUpperCase()} ${url} in ${Math.round(delay)}ms`
+          `[MarketplaceClient] Retrying request (${attempt + 1}/${retryLimit}): ${method.toUpperCase()} ${url} in ${Math.round(delay)}ms`,
         );
 
         await this._sleep(delay);
@@ -1038,7 +1130,7 @@ class MarketplaceClient {
     }
 
     // Should not reach here, but safety net
-    throw lastError || new Error('Request failed after maximum retries');
+    throw lastError || new Error("Request failed after maximum retries");
   }
 
   /**
@@ -1081,7 +1173,7 @@ class MarketplaceClient {
    * @returns {Object} Standardized error response { success: false, error: string }
    */
   _handleMethodError(error, methodName) {
-    const errorMessage = error.message || 'Unknown error';
+    const errorMessage = error.message || "Unknown error";
 
     logger.error(`[MarketplaceClient] ${methodName} failed: ${errorMessage}`);
 
@@ -1125,7 +1217,7 @@ class MarketplaceClient {
     }
     this.client = null;
     this.authToken = null;
-    logger.info('[MarketplaceClient] Client destroyed');
+    logger.info("[MarketplaceClient] Client destroyed");
   }
 }
 
