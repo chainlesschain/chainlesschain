@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.25] — 2026-06-20 — the agent can actually ask you a question now
+
+- **`ask_user_question` is now interactive** (matches VS Code 0.33.7). When the
+  agent asks, the chat tool window pops a dialog — a single-choice picker, a
+  multi-select checkbox dialog, or a free-text input — and sends your answer
+  back, so the agent can clarify instead of guessing. Cancelling simply lets it
+  proceed (0.4.24's graceful behavior). **Requires `cc` ≥ 0.162.95** for the
+  round-trip; an older `cc` keeps the 0.4.24 behavior (the panel opts in via
+  `CC_INTERACTIVE_QUESTIONS`, which an old `cc` ignores).
+
 ## [0.4.24] — 2026-06-20 — no more scary "✗ ask_user_question"
 
 - **Fix.** When the agent tried to ask a clarifying question, the chat showed a

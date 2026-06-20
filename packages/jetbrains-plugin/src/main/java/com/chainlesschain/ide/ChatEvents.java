@@ -179,6 +179,24 @@ public final class ChatEvents {
             m.put("via", evt.get("via"));
             return m;
         }
+        if ("question_request".equals(type)) {
+            // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
+            // BLOCKED on the user. ConversationView pops a dialog and replies
+            // {type:"answer",id,answer}.
+            Map<String, Object> m = ui("question");
+            m.put("id", evt.get("id"));
+            m.put("question", str(evt, "question", ""));
+            m.put("options", evt.get("options") instanceof List ? evt.get("options") : null);
+            m.put("multiSelect", isTrue(evt.get("multiSelect")));
+            return m;
+        }
+        if ("question_resolved".equals(type)) {
+            Map<String, Object> m = ui("info");
+            m.put("text", "user-answer".equals(String.valueOf(evt.get("via")))
+                    ? "✓ answered"
+                    : "ask_user_question: no answer — proceeding");
+            return m;
+        }
         if ("plan_update".equals(type)) {
             Map<String, Object> m = ui("plan");
             m.put("active", isTrue(evt.get("active")));

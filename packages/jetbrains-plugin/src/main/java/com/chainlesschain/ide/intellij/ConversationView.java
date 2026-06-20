@@ -610,6 +610,9 @@ final class ConversationView {
                 o.extraEnv.put("CHAINLESSCHAIN_IDE_TOKEN", bridge.getToken());
             }
         }
+        // Opt into the ask_user_question round-trip: the agent's questions pop a
+        // dialog here (an old `cc` ignores the env var → graceful degrade).
+        o.extraEnv.put("CC_INTERACTIVE_QUESTIONS", "1");
         o.onEvent = event -> {
             if (event != null && "system".equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {
@@ -671,6 +674,8 @@ final class ConversationView {
             showApprovalCard(ui); // §5 interactive approval card (Approve/Deny)
         } else if ("approval_done".equals(kind)) {
             resolveApprovalCard(ui);
+        } else if ("question".equals(kind)) {
+            askQuestion(ui); // ask_user_question round-trip → dialog → {type:answer}
         } else if ("info".equals(kind) || "error".equals(kind)) {
             Object text = ui.get("text");
             String body = String.valueOf(text != null ? text : kind);
@@ -687,6 +692,74 @@ final class ConversationView {
     // ---- §5 interactive cards ------------------------------------------
 
     private static final Color WARN = new Color(0xCC, 0x88, 0x00);
+
+    /** ask_user_question round-trip: the agent is BLOCKED on the user. Pop a
+     *  dialog (single-choice / multi-choice / free-text) and reply
+     *  {type:"answer",id,answer}. Cancel → null answer (CLI maps to user_timeout,
+     *  the model proceeds). Runs on the EDT (render() is invoked via invokeLater),
+     *  and the modal dialog spins its own event loop so nothing deadlocks. */
+    private void askQuestion(Map<String, Object> ui) {
+        String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
+        if (id.isEmpty()) return;
+        String question = ui.get("question") == null || String.valueOf(ui.get("question")).isEmpty()
+                ? "ChainlessChain 提问" : String.valueOf(ui.get("question"));
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        Object optsO = ui.get("options");
+        if (optsO instanceof java.util.List) {
+            for (Object o : (java.util.List<?>) optsO) {
+                if (o instanceof Map) {
+                    Object lbl = ((Map<?, ?>) o).get("label");
+                    labels.add(String.valueOf(lbl != null ? lbl : o));
+                } else {
+                    labels.add(String.valueOf(o));
+                }
+            }
+        }
+        boolean multi = Boolean.TRUE.equals(ui.get("multiSelect"));
+        Object answer; // String | List<String> | null
+        if (labels.isEmpty()) {
+            answer = com.intellij.openapi.ui.Messages.showInputDialog(
+                    project, question, "ChainlessChain", null);
+        } else if (!multi) {
+            int idx = com.intellij.openapi.ui.Messages.showChooseDialog(
+                    project, question, "ChainlessChain", null,
+                    labels.toArray(new String[0]), labels.get(0));
+            answer = idx < 0 ? null : labels.get(idx);
+        } else {
+            answer = showMultiSelectQuestion(question, labels);
+        }
+        Map<String, Object> ev = new LinkedHashMap<>();
+        ev.put("type", "answer");
+        ev.put("id", id);
+        ev.put("answer", answer);
+        AgentChatSession s = liveSession();
+        if (s != null) s.sendEvent(ev);
+    }
+
+    /** Multi-select question → a checkbox dialog. Returns the chosen labels, or
+     *  null if cancelled (→ the agent proceeds without an answer). */
+    private java.util.List<String> showMultiSelectQuestion(String question, java.util.List<String> labels) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(new JLabel("<html>" + question + "</html>"));
+        java.util.List<javax.swing.JCheckBox> boxes = new java.util.ArrayList<>();
+        for (String l : labels) {
+            javax.swing.JCheckBox cb = new javax.swing.JCheckBox(l);
+            boxes.add(cb);
+            panel.add(cb);
+        }
+        com.intellij.openapi.ui.DialogBuilder b = new com.intellij.openapi.ui.DialogBuilder(project);
+        b.setTitle("ChainlessChain");
+        b.setCenterPanel(panel);
+        b.addOkAction();
+        b.addCancelAction();
+        if (b.show() != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) return null;
+        java.util.List<String> sel = new java.util.ArrayList<>();
+        for (int i = 0; i < boxes.size(); i++) {
+            if (boxes.get(i).isSelected()) sel.add(labels.get(i));
+        }
+        return sel;
+    }
 
     /** Tool-permission approval card → sends {type:approval,id,approve} on click. */
     @SuppressWarnings("unchecked")
