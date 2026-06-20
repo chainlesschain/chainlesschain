@@ -151,9 +151,16 @@ function makeVerifierFromLandmark(landmark) {
     for (const anchor of landmark.trust_anchors) {
       if (!anchor || anchor.alg !== ALG) continue;
       const pk = jwkToPublicKey(anchor.pubkey_jwk);
-      if (pk && typeof anchor.pubkey_id === "string") {
-        trustedKeys.set(anchor.pubkey_id, pk);
-      }
+      if (!pk || typeof anchor.pubkey_id !== "string") continue;
+      // Enforce the content-address binding pubkey_id === sha256(JCS(jwk)).
+      // Without it a landmark could declare ONE key under several different
+      // pubkey_ids: the federated threshold counter in landmark-cache dedups
+      // by sig.pubkey_id, so distinct-but-fake ids let a single key satisfy an
+      // M-of-N multi-sig (Sybil forge of the threshold). It also blocks binding
+      // a trusted/pinned pubkey_id to an attacker-controlled key. Honest anchors
+      // (built via trustAnchorEntry) always pass — their id IS pubkeyId(key).
+      if (pubkeyId(pk) !== anchor.pubkey_id) continue;
+      trustedKeys.set(anchor.pubkey_id, pk);
     }
   }
   return makeVerifier(trustedKeys);
