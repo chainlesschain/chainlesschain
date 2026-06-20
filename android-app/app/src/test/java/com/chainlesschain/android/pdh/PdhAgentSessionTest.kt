@@ -3,6 +3,7 @@ package com.chainlesschain.android.pdh
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -210,5 +211,34 @@ class PdhAgentSessionTest {
         assertNull(a.deepLink)
         assertNull(a.resumeToken)
         assertNull(a.reason)
+    }
+
+    // ── §3.5.13 feedback events ───────────────────────────────────────────
+
+    @Test
+    fun feedback_event_positive_no_comment() {
+        val s = PdhAgentSession.feedbackEvent("t1", PdhAgentSession.FeedbackKind.POSITIVE, null).toString()
+        assertTrue(s.contains("\"type\":\"feedback\""))
+        assertTrue(s.contains("\"turn_id\":\"t1\""))
+        assertTrue(s.contains("\"kind\":\"positive\""))
+        assertFalse(s.contains("comment"))
+    }
+
+    @Test
+    fun feedback_event_correction_carries_comment() {
+        val s = PdhAgentSession.feedbackEvent(
+            "t2", PdhAgentSession.FeedbackKind.CORRECTION, "外卖应含饿了么",
+        ).toString()
+        assertTrue(s.contains("\"kind\":\"correction\""))
+        assertTrue(s.contains("外卖应含饿了么"))
+    }
+
+    @Test
+    fun feedback_event_blank_comment_omitted() {
+        val s = PdhAgentSession.feedbackEvent(
+            "t3", PdhAgentSession.FeedbackKind.NEGATIVE, "   ",
+        ).toString()
+        assertTrue(s.contains("\"kind\":\"negative\""))
+        assertFalse(s.contains("comment"))
     }
 }

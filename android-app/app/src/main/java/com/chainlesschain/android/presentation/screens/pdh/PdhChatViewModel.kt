@@ -3,6 +3,7 @@ package com.chainlesschain.android.presentation.screens.pdh
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.pdh.PdhAgentSession
+import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhResultView
@@ -40,6 +41,8 @@ class PdhChatViewModel @Inject constructor(
         val collapsed: Boolean = true,
         // §3.5.12 对话内联结果视图:VIEW 行携可信结构化结果的种类。
         val viewKind: ViewKind? = null,
+        // §3.5.13 自学习纠正:已对该 ASSISTANT 轮给过的反馈(乐观标记)。
+        val feedback: FeedbackKind? = null,
     )
 
     /**
@@ -288,6 +291,33 @@ class PdhChatViewModel @Inject constructor(
     fun resolvePlan(action: String) {
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c is TrustCard.Plan }) }
         viewModelScope.launch { session.sendPlan(action) }
+    }
+
+    // ── §3.5.13 自学习纠正回路:UI 捕获 → 喂端侧学习层(cc 侧消费) ──────────
+
+    /** 对某 ASSISTANT 轮点赞(正反馈)。 */
+    fun thumbUp(messageId: String) = submitFeedback(messageId, FeedbackKind.POSITIVE, null)
+
+    /** 对某 ASSISTANT 轮点踩(负反馈)。 */
+    fun thumbDown(messageId: String) = submitFeedback(messageId, FeedbackKind.NEGATIVE, null)
+
+    /** 对某 ASSISTANT 轮提交文字纠正(ground truth)。 */
+    fun submitCorrection(messageId: String, text: String) {
+        val t = text.trim()
+        if (t.isEmpty()) return
+        submitFeedback(messageId, FeedbackKind.CORRECTION, t)
+    }
+
+    private fun submitFeedback(messageId: String, kind: FeedbackKind, comment: String?) {
+        // 乐观标记该轮已反馈;实际写入端侧学习层由 cc 侧消费 {type:feedback}。
+        _uiState.update {
+            it.copy(
+                messages = it.messages.map { m ->
+                    if (m.id == messageId) m.copy(feedback = kind) else m
+                },
+            )
+        }
+        viewModelScope.launch { session.sendFeedback(messageId, kind, comment) }
     }
 
     /** §3.5.11 数据引用行的展开/折叠。 */
