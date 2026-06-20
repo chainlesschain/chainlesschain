@@ -111,6 +111,18 @@ describe("file-checkpoint store", () => {
     ).toThrow(/exceeds 1 files/);
   });
 
+  it("rejects path-traversal checkpoint ids (no escape of the store)", () => {
+    for (const bad of ["../evil", "../../etc/passwd", "a/b", "a\\b", "..", "C:\\x"]) {
+      // create: explicit unsafe id is rejected before any blob is written.
+      expect(() =>
+        createCheckpoint(["a.txt"], { cwd: work, root, id: bad }),
+      ).toThrow(/Unsafe checkpoint id/);
+      // read/delete fail safe (no fs access outside the store).
+      expect(getCheckpoint(bad, { root })).toBeNull();
+      expect(deleteCheckpoint(bad, { root })).toBe(false);
+    }
+  });
+
   it("walks directories but skips heavy dirs (node_modules)", () => {
     mkdirSync(join(work, "sub"), { recursive: true });
     writeFileSync(join(work, "sub", "c.txt"), "C", "utf-8");

@@ -81,6 +81,27 @@ function newId() {
 }
 
 /**
+ * A checkpoint id is interpolated into filesystem paths (root/<id>.json and the
+ * blob dir root/<id>). The id comes from CLI args (`cc checkpoint show|delete
+ * <id>`), so an id like "../../etc/passwd" would read outside the checkpoint
+ * store, and "../../important" passed to delete would rmSync outside it. The git
+ * engine guards this via sanitizeSession(); mirror it for the copy fallback by
+ * restricting the id to a single safe path segment.
+ */
+function isSafeCheckpointId(id) {
+  return (
+    typeof id === "string" &&
+    id.length > 0 &&
+    id !== "." &&
+    id !== ".." &&
+    !id.includes("/") &&
+    !id.includes("\\") &&
+    !id.includes(":") &&
+    !id.includes("\0")
+  );
+}
+
+/**
  * Recursively collect regular files under an absolute path, honoring SKIP_DIRS
  * and a running maxFiles budget. Symlinks are not followed.
  */
@@ -146,6 +167,9 @@ export function createCheckpoint(paths, opts = {}) {
   const uniqueAbs = [...new Set(absFiles)];
 
   const id = opts.id || newId();
+  if (!isSafeCheckpointId(id)) {
+    throw new Error(`Unsafe checkpoint id (path traversal): ${id}`);
+  }
   const blobDir = path.join(root, id);
   ensureDir(blobDir);
 
@@ -181,6 +205,7 @@ export function createCheckpoint(paths, opts = {}) {
 
 /** Load a checkpoint manifest by id, or null. */
 export function getCheckpoint(id, opts = {}) {
+  if (!isSafeCheckpointId(id)) return null;
   const root = opts.root || defaultRoot();
   const file = path.join(root, `${id}.json`);
   if (!fs.existsSync(file)) return null;
@@ -310,6 +335,7 @@ export function restoreCheckpoint(id, opts = {}) {
 
 /** Delete a checkpoint (manifest + blobs). Returns true if it existed. */
 export function deleteCheckpoint(id, opts = {}) {
+  if (!isSafeCheckpointId(id)) return false;
   const root = opts.root || defaultRoot();
   const file = path.join(root, `${id}.json`);
   const blobDir = path.join(root, id);
