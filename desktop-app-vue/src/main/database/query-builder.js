@@ -3,6 +3,75 @@
  * Phase 80: Fluent query builder for SQLite (reduces raw SQL)
  */
 const { logger } = require("../utils/logger.js");
+const SqlSecurity = require("./sql-security.js");
+
+// Values are always parameterized (`?`), but identifiers (table/column/join
+// targets) and operators are interpolated straight into the SQL string. A
+// sort field or filter column that flows in from the UI is a classic SQL
+// injection vector, so every identifier passed to a setter is validated here.
+//
+// The allowlist permits the legitimate identifier surface this builder
+// produces — plain and dotted names (`created_at`, `users.id`), `*`, and
+// simple aggregate expressions like `COUNT(*) as count` — while rejecting any
+// SQL metacharacter (`;`, quotes, `--`, `/* */`, backslash, etc.). A
+// defense-in-depth keyword blocklist (shared with SqlSecurity) additionally
+// catches `UNION SELECT`/stacked statements that happen to fit the charset.
+const SAFE_IDENTIFIER = /^[A-Za-z0-9_.*\s(),]+$/;
+// Parentheses are allowed so aggregates like `COUNT(*)` work, which would
+// otherwise let a `(SELECT ...)` subquery through the charset. No legitimate
+// column or alias contains these statement keywords as a whole word
+// (snake_case names like `from_user` are safe thanks to the `\b` boundary).
+const FORBIDDEN_IDENTIFIER_KEYWORD =
+  /\b(SELECT|FROM|WHERE|UNION|JOIN|INTO|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|EXEC|EXECUTE|PRAGMA|ATTACH|DETACH|HAVING)\b/i;
+const SAFE_OPERATORS = new Set([
+  "=",
+  "!=",
+  "<>",
+  "<",
+  ">",
+  "<=",
+  ">=",
+  "LIKE",
+  "NOT LIKE",
+  "IS",
+  "IS NOT",
+  "IN",
+  "NOT IN",
+  "GLOB",
+]);
+
+function assertSafeIdentifier(value, kind = "identifier") {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Invalid ${kind}: must be a non-empty string`);
+  }
+  if (value.length > 256) {
+    throw new Error(`Invalid ${kind}: exceeds maximum length`);
+  }
+  if (
+    !SAFE_IDENTIFIER.test(value) ||
+    FORBIDDEN_IDENTIFIER_KEYWORD.test(value) ||
+    SqlSecurity.containsSqlInjectionPattern(value)
+  ) {
+    throw new Error(`Invalid ${kind}: ${value}`);
+  }
+  return value;
+}
+
+function assertSafeOperator(operator) {
+  const op = String(operator).trim();
+  if (!SAFE_OPERATORS.has(op.toUpperCase())) {
+    throw new Error(`Invalid SQL operator: ${operator}`);
+  }
+  return op;
+}
+
+function assertSafeDirection(direction) {
+  const dir = String(direction).trim().toUpperCase();
+  if (dir !== "ASC" && dir !== "DESC") {
+    throw new Error(`Invalid sort direction: ${direction}`);
+  }
+  return dir;
+}
 
 class QueryBuilder {
   constructor(db) {
@@ -27,26 +96,32 @@ class QueryBuilder {
   }
 
   table(name) {
-    this._table = name;
+    this._table = assertSafeIdentifier(name, "table name");
     return this;
   }
 
   select(...columns) {
     this._operation = "SELECT";
     if (columns.length > 0) {
-      this._columns = columns;
+      this._columns = columns.map((c) => assertSafeIdentifier(c, "column"));
     }
     return this;
   }
 
   insert(data) {
     this._operation = "INSERT";
+    for (const key of Object.keys(data || {})) {
+      assertSafeIdentifier(key, "column");
+    }
     this._values = data;
     return this;
   }
 
   update(data) {
     this._operation = "UPDATE";
+    for (const key of Object.keys(data || {})) {
+      assertSafeIdentifier(key, "column");
+    }
     this._updates = data;
     return this;
   }
@@ -61,6 +136,8 @@ class QueryBuilder {
       value = operator;
       operator = "=";
     }
+    assertSafeIdentifier(column, "column");
+    operator = assertSafeOperator(operator);
     this._wheres.push({ column, operator, value, logic: "AND" });
     this._params.push(value);
     return this;
@@ -71,12 +148,15 @@ class QueryBuilder {
       value = operator;
       operator = "=";
     }
+    assertSafeIdentifier(column, "column");
+    operator = assertSafeOperator(operator);
     this._wheres.push({ column, operator, value, logic: "OR" });
     this._params.push(value);
     return this;
   }
 
   whereIn(column, values) {
+    assertSafeIdentifier(column, "column");
     const placeholders = values.map(() => "?").join(", ");
     this._wheres.push({ raw: `${column} IN (${placeholders})`, logic: "AND" });
     this._params.push(...values);
@@ -84,32 +164,41 @@ class QueryBuilder {
   }
 
   whereNull(column) {
+    assertSafeIdentifier(column, "column");
     this._wheres.push({ raw: `${column} IS NULL`, logic: "AND" });
     return this;
   }
 
   whereNotNull(column) {
+    assertSafeIdentifier(column, "column");
     this._wheres.push({ raw: `${column} IS NOT NULL`, logic: "AND" });
     return this;
   }
 
   join(table, leftCol, rightCol) {
+    assertSafeIdentifier(table, "join table");
+    assertSafeIdentifier(leftCol, "join column");
+    assertSafeIdentifier(rightCol, "join column");
     this._joins.push({ type: "JOIN", table, leftCol, rightCol });
     return this;
   }
 
   leftJoin(table, leftCol, rightCol) {
+    assertSafeIdentifier(table, "join table");
+    assertSafeIdentifier(leftCol, "join column");
+    assertSafeIdentifier(rightCol, "join column");
     this._joins.push({ type: "LEFT JOIN", table, leftCol, rightCol });
     return this;
   }
 
   orderBy(column, direction = "ASC") {
-    this._orderBy.push({ column, direction: direction.toUpperCase() });
+    assertSafeIdentifier(column, "column");
+    this._orderBy.push({ column, direction: assertSafeDirection(direction) });
     return this;
   }
 
   groupBy(...columns) {
-    this._groupBy = columns;
+    this._groupBy = columns.map((c) => assertSafeIdentifier(c, "column"));
     return this;
   }
 
@@ -125,6 +214,7 @@ class QueryBuilder {
 
   count(column = "*") {
     this._operation = "SELECT";
+    assertSafeIdentifier(column, "column");
     this._columns = [`COUNT(${column}) as count`];
     return this;
   }

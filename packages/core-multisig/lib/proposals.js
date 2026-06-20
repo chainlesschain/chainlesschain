@@ -375,9 +375,23 @@ function createProposalsManager(store, options = {}) {
     if (TERMINAL_STATES.has(proposal.state) && proposal.state !== "reached") {
       return { ok: false, reason: `proposal_state_${proposal.state}` };
     }
-    store.updateProposalState(proposalId, "cancelled", now());
+    const nowMs = now();
+    // CAS from the observed (non-terminal) state: a concurrent finalize() may
+    // have consumed it between the read above and here — flip only if the state
+    // is unchanged, so we never stamp 'cancelled' over 'consumed'. 0 rows = lost
+    // the race (already consumed/cancelled/expired by another caller).
+    const flipped = store.updateProposalState(
+      proposalId,
+      "cancelled",
+      nowMs,
+      proposal.state,
+    );
+    if (!flipped) {
+      const fresh = store.getProposal(proposalId);
+      return { ok: false, reason: `proposal_state_${fresh ? fresh.state : "unknown"}` };
+    }
     logEvent({
-      at: new Date(now()).toISOString(),
+      at: new Date(nowMs).toISOString(),
       type: "cancelled",
       proposalId,
       reason: typeof reason === "string" ? reason : null,
@@ -394,9 +408,23 @@ function createProposalsManager(store, options = {}) {
     if (proposal.state !== "reached") {
       return { ok: false, reason: `proposal_state_${proposal.state}` };
     }
-    store.updateProposalState(proposalId, "consumed", now());
+    const nowMs = now();
+    // CAS reached→consumed. The outer state check is read outside any tx, so
+    // two concurrent finalize() (multi-connection) could both observe 'reached'
+    // and both consume → the approved privileged operation executes twice. Flip
+    // only if STILL 'reached'; 0 rows = lost the race (already consumed/cancelled).
+    const flipped = store.updateProposalState(
+      proposalId,
+      "consumed",
+      nowMs,
+      "reached",
+    );
+    if (!flipped) {
+      const fresh = store.getProposal(proposalId);
+      return { ok: false, reason: `proposal_state_${fresh ? fresh.state : "unknown"}` };
+    }
     logEvent({
-      at: new Date(now()).toISOString(),
+      at: new Date(nowMs).toISOString(),
       type: "consumed",
       proposalId,
     });
