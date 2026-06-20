@@ -17,6 +17,12 @@
 const fs = require("fs");
 const path = require("path");
 
+// Seam so tests can assert the fsync actually happens (vi.spyOn on fs built-ins
+// is unreliable in the forks pool). Defaults to the real fsync.
+const _deps = {
+  fsyncSync: (fd) => fs.fsyncSync(fd),
+};
+
 /**
  * 把 event 追加到指定 logPath，自动 mkdir。
  *
@@ -35,7 +41,18 @@ function appendEvent(logPath, event) {
   const dir = path.dirname(logPath);
   fs.mkdirSync(dir, { recursive: true });
   const line = JSON.stringify(event) + "\n";
-  fs.appendFileSync(logPath, line, { encoding: "utf-8" });
+  // fs.appendFileSync does NOT fsync — after it returns the line is only in the
+  // OS page cache, so a crash can lose a just-written audit event even though
+  // the multisig state (consumed/cancelled) is already durable, leaving the
+  // governance log inconsistent. The docstring promises per-record fsync for
+  // crash safety, so open → write → fsync → close explicitly.
+  const fd = fs.openSync(logPath, "a");
+  try {
+    fs.writeSync(fd, line, null, "utf-8");
+    _deps.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 /**
@@ -59,4 +76,4 @@ function readLog(logPath) {
   return events;
 }
 
-module.exports = { appendEvent, readLog };
+module.exports = { appendEvent, readLog, _deps };
