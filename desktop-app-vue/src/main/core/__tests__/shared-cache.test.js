@@ -119,6 +119,35 @@ describe("SharedCacheManager", () => {
       const ns = cache._namespaces.get("ns");
       expect(ns.order[ns.order.length - 1]).toBe("a");
     });
+
+    it("has() is read-only: no stats or LRU mutation", () => {
+      // Regression: has() delegated to get(), polluting hit/miss stats and
+      // bumping the key's LRU recency on every existence check.
+      cache.createNamespace("ns");
+      cache.set("ns", "a", 1);
+      cache.set("ns", "b", 2);
+      const before = { ...cache._stats };
+      const ns = cache._namespaces.get("ns");
+      const orderBefore = [...ns.order];
+
+      expect(cache.has("ns", "a")).toBe(true); // 'a' is first (LRU eviction candidate)
+      expect(cache.has("ns", "missing")).toBe(false);
+      expect(cache.has("nope", "x")).toBe(false);
+
+      expect(cache._stats.hits).toBe(before.hits);
+      expect(cache._stats.misses).toBe(before.misses);
+      expect(ns.order).toEqual(orderBefore); // 'a' NOT moved to end
+    });
+
+    it("has() returns false for an expired entry without mutating", () => {
+      cache.createNamespace("ns");
+      cache.set("ns", "k", "v", 1); // 1ms TTL
+      const entry = cache._namespaces.get("ns").entries.get("k");
+      entry.expiresAt = Date.now() - 1000; // force-expire
+      expect(cache.has("ns", "k")).toBe(false);
+      // still present in the map (has() doesn't delete; get() lazily evicts)
+      expect(cache._namespaces.get("ns").entries.has("k")).toBe(true);
+    });
   });
 
   describe("LRU eviction", () => {

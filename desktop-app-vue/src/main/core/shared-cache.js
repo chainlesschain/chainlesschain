@@ -105,7 +105,19 @@ class SharedCacheManager extends EventEmitter {
   }
 
   has(namespace, key) {
-    return this.get(namespace, key) !== undefined;
+    // Read-only existence check. Must NOT delegate to get(): get() mutates
+    // hit/miss stats and bumps the key to the end of the LRU order, so an
+    // existence check would pollute cache metrics and keep has()-only keys from
+    // ever being evicted.
+    const ns = this._namespaces.get(namespace);
+    if (!ns) {
+      return false;
+    }
+    const entry = ns.entries.get(key);
+    if (!entry) {
+      return false;
+    }
+    return Date.now() <= entry.expiresAt;
   }
 
   delete(namespace, key) {
