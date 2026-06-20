@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.style.TextAlign
@@ -125,7 +127,12 @@ fun PdhChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(state.messages) { _, msg ->
-                    MessageRow(role = msg.role, text = msg.text)
+                    if (msg.role == Role.DATA) {
+                        // §3.5.11: 被读取的数据用独立「引用」容器,绝不套 AI 气泡样式。
+                        DataQuoteCard(msg = msg, onToggle = { viewModel.toggleCollapse(msg.id) })
+                    } else {
+                        MessageRow(role = msg.role, text = msg.text)
+                    }
                 }
                 if (state.streamingText.isNotEmpty()) {
                     item {
@@ -173,6 +180,7 @@ private fun MessageRow(role: Role, text: String) {
         Role.ASSISTANT -> MaterialTheme.colorScheme.surfaceVariant
         Role.TOOL -> MaterialTheme.colorScheme.tertiaryContainer
         Role.SYSTEM -> MaterialTheme.colorScheme.secondaryContainer
+        Role.DATA -> MaterialTheme.colorScheme.surface // unused: DATA → DataQuoteCard
     }
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = align) {
         Surface(
@@ -253,6 +261,46 @@ private fun PermissionBanner(onGrant: () -> Unit) {
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Button(onClick = onGrant) { Text("授予") }
+        }
+    }
+}
+
+// ── §3.5.11 不可信数据的视觉隔离:「数据引用」容器 ─────────────────────────
+
+@Composable
+private fun DataQuoteCard(msg: PdhChatViewModel.ChatMessage, onToggle: () -> Unit) {
+    val lines = msg.text.split("\n")
+    val collapsible = lines.size > 3 || msg.text.length > 240
+    val shown = if (msg.collapsed && collapsible) lines.take(3).joinToString("\n") else msg.text
+    Surface(
+        // 异色 + 边框 + 等宽,与 AI 气泡(surfaceVariant 填充)截然不同 → 一眼是"数据"。
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "🔖 来自 ${msg.source ?: "工具"} · 引用数据" +
+                    if (msg.untrusted) "  ⚠ 被读取的内容,非 AI 判断" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                // 等宽渲染,降低"像自然语言指令"的错觉;纯展示,无可点链接(不可执行)。
+                text = shown + if (msg.collapsed && collapsible) "\n…" else "",
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (collapsible) {
+                TextButton(onClick = onToggle) {
+                    Text(if (msg.collapsed) "展开" else "收起")
+                }
+            }
         }
     }
 }

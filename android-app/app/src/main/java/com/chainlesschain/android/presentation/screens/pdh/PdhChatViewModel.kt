@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.pdh.PdhDataProvenance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,12 +26,16 @@ class PdhChatViewModel @Inject constructor(
     private val session: PdhAgentSession,
 ) : ViewModel() {
 
-    enum class Role { USER, ASSISTANT, SYSTEM, TOOL }
+    enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA }
 
     data class ChatMessage(
         val id: String = UUID.randomUUID().toString(),
         val role: Role,
         val text: String,
+        // §3.5.11 不可信数据视觉隔离:DATA 行携来源归属 + 折叠态。
+        val source: String? = null,
+        val untrusted: Boolean = false,
+        val collapsed: Boolean = true,
     )
 
     /**
@@ -82,6 +87,9 @@ class PdhChatViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    /** §3.5.11: last tool the agent invoked → derive its result's data provenance. */
+    private var lastToolUse: String? = null
 
     init {
         viewModelScope.launch {
@@ -136,7 +144,9 @@ class PdhChatViewModel @Inject constructor(
             is PdhAgentEvent.Text ->
                 _uiState.update { it.copy(streamingText = it.streamingText + ev.text) }
 
-            is PdhAgentEvent.ToolUse ->
+            is PdhAgentEvent.ToolUse -> {
+                // §3.5.11: remember the tool so its result's data gets correct provenance.
+                lastToolUse = ev.name
                 _uiState.update {
                     it.copy(
                         messages = it.messages + ChatMessage(
@@ -145,8 +155,27 @@ class PdhChatViewModel @Inject constructor(
                         ),
                     )
                 }
+            }
 
-            is PdhAgentEvent.ToolResult -> Unit // result folds into the agent's next text
+            // §3.5.11: a tool's returned content is DATA (被读取的内容,非 AI 判断),
+            // not the assistant's words — render it in an isolated 数据引用 row with
+            // provenance, instead of dropping it. Empty content stays dropped.
+            is PdhAgentEvent.ToolResult -> {
+                val content = ev.content.trim()
+                if (content.isNotEmpty()) {
+                    val prov = PdhDataProvenance.sourceOf(lastToolUse)
+                    _uiState.update {
+                        it.copy(
+                            messages = it.messages + ChatMessage(
+                                role = Role.DATA,
+                                text = content,
+                                source = prov.label,
+                                untrusted = prov.untrusted,
+                            ),
+                        )
+                    }
+                }
+            }
 
             // §3.5.9 trust cards.
             is PdhAgentEvent.ApprovalRequest -> _uiState.update {
@@ -238,6 +267,17 @@ class PdhChatViewModel @Inject constructor(
     fun resolvePlan(action: String) {
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c is TrustCard.Plan }) }
         viewModelScope.launch { session.sendPlan(action) }
+    }
+
+    /** §3.5.11 数据引用行的展开/折叠。 */
+    fun toggleCollapse(id: String) {
+        _uiState.update {
+            it.copy(
+                messages = it.messages.map { m ->
+                    if (m.id == id && m.role == Role.DATA) m.copy(collapsed = !m.collapsed) else m
+                },
+            )
+        }
     }
 
     /** 工具名分流:采集/索引/打捞(写 vault)→ 预览卡;其余有副作用 → 审批卡。 */
