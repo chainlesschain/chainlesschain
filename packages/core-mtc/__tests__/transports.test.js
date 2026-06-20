@@ -174,6 +174,31 @@ describe("FilesystemTransport", () => {
     tB.close();
   });
 
+  it("retries a mid-write (truncated) announcement instead of losing it", () => {
+    const t = new FilesystemTransport({ dropZone: tmpDir, pollIntervalMs: 0 });
+    const events = [];
+    t.subscribe("mtc/v1/did", (a) => events.push(a));
+
+    // Simulate writeFileSync not being atomic: the file appears truncated when
+    // the poller first reads it (invalid JSON).
+    const annFile = path.join(tmpDir, "announcements", "100-partial.json");
+    fs.writeFileSync(annFile, '{"namespace_prefix": "mtc/v1/');
+    t.drain();
+    expect(events).toHaveLength(0); // parse failed — not delivered (yet)
+
+    // Writer finishes — the file is now valid JSON.
+    fs.writeFileSync(
+      annFile,
+      JSON.stringify({ namespace_prefix: "mtc/v1/did/000001" }),
+    );
+    t.drain();
+    expect(events).toHaveLength(1); // recovered, not lost
+
+    t.drain();
+    expect(events).toHaveLength(1); // still exactly-once
+    t.close();
+  });
+
   it("drain picks up announcements published after subscribe", async () => {
     const t = new FilesystemTransport({ dropZone: tmpDir, pollIntervalMs: 0 });
     const events = [];

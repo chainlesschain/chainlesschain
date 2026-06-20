@@ -104,13 +104,19 @@ class FilesystemTransport {
     files.sort(); // process in lexicographic order (timestamp prefix → chronological)
     for (const name of files) {
       if (sub.seen.has(name)) continue;
-      sub.seen.add(name);
       let ann;
       try {
         ann = JSON.parse(fs.readFileSync(path.join(this._annDir, name), "utf-8"));
       } catch (_err) {
+        // Do NOT mark seen on a read/parse failure: writeFileSync isn't atomic
+        // (publish creates the file then writes it; over NFS / a shared folder a
+        // poller on another host can read it mid-write), so a truncated read
+        // yields invalid JSON. Marking it seen here would permanently drop a
+        // valid announcement — leave it unseen and retry on the next poll.
         continue;
       }
+      // Parsed cleanly → deliver at most once.
+      sub.seen.add(name);
       if (!ann || typeof ann.namespace_prefix !== "string") continue;
       if (prefixMatches(sub.prefix, ann.namespace_prefix)) {
         try {
