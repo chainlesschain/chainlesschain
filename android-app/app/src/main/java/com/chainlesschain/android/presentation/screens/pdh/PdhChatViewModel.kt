@@ -33,12 +33,51 @@ class PdhChatViewModel @Inject constructor(
         val text: String,
     )
 
+    /**
+     * §3.5.9 三类信任卡(+ 计划卡):内联在对话里的信任闸,只在"需人配合/要入库/
+     * 有副作用/进入计划"时出现。引导=AssistRequired;预览/审批=ApprovalRequest
+     * 按工具名分流;计划=PlanUpdate。回传全走现成 stdin 协议(§3.5.9)。
+     */
+    sealed class TrustCard {
+        abstract val id: String
+        /** 引导卡:采集需人在 App 内完成一步(§3.6)。 */
+        data class Guide(
+            override val id: String,
+            val instruction: String,
+            val deepLink: String?,
+            val resumeToken: String?,
+            val reason: String?,
+        ) : TrustCard()
+        /** 预览卡:数据即将入 vault(collect / index / salvage 类)。 */
+        data class Preview(
+            override val id: String,
+            val tool: String,
+            val summary: String,
+            val risk: String?,
+        ) : TrustCard()
+        /** 审批卡:有副作用的写/事务(send_message/make_call/…)。 */
+        data class Approve(
+            override val id: String,
+            val tool: String,
+            val summary: String,
+            val risk: String?,
+        ) : TrustCard()
+        /** 计划卡:Plan Mode 当前计划项。 */
+        data class Plan(
+            override val id: String,
+            val items: List<String>,
+            val phase: String,
+        ) : TrustCard()
+    }
+
     data class UiState(
         val messages: List<ChatMessage> = emptyList(),
         val streamingText: String = "",
         val isSending: Boolean = false,
         val ready: Boolean = false,
         val error: String? = null,
+        /** §3.5.9 内联信任卡(引导/预览/审批/计划),按到达顺序渲染。 */
+        val pendingCards: List<TrustCard> = emptyList(),
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -109,6 +148,38 @@ class PdhChatViewModel @Inject constructor(
 
             is PdhAgentEvent.ToolResult -> Unit // result folds into the agent's next text
 
+            // §3.5.9 trust cards.
+            is PdhAgentEvent.ApprovalRequest -> _uiState.update {
+                val card = if (isPreviewTool(ev.tool)) {
+                    TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk)
+                } else {
+                    TrustCard.Approve(ev.id, ev.tool, ev.summary, ev.risk)
+                }
+                it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == ev.id } + card)
+            }
+
+            is PdhAgentEvent.ApprovalResolved -> _uiState.update {
+                it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == ev.id })
+            }
+
+            is PdhAgentEvent.AssistRequired -> _uiState.update {
+                val id = ev.resumeToken ?: UUID.randomUUID().toString()
+                it.copy(
+                    pendingCards = it.pendingCards +
+                        TrustCard.Guide(id, ev.instruction, ev.deepLink, ev.resumeToken, ev.reason),
+                )
+            }
+
+            is PdhAgentEvent.PlanUpdate -> _uiState.update {
+                val others = it.pendingCards.filterNot { c -> c is TrustCard.Plan }
+                val cards = if (ev.items.isEmpty()) {
+                    others
+                } else {
+                    others + TrustCard.Plan(PLAN_CARD_ID, ev.items, ev.phase)
+                }
+                it.copy(pendingCards = cards)
+            }
+
             is PdhAgentEvent.Result -> _uiState.update {
                 val finalText = it.streamingText.ifEmpty { ev.text }
                 val msgs = if (finalText.isNotEmpty()) {
@@ -132,15 +203,57 @@ class PdhChatViewModel @Inject constructor(
                 it.copy(
                     isSending = false,
                     ready = false,
+                    // §3.5.9: no live agent to resolve cards → clear pending.
+                    pendingCards = emptyList(),
                     error = if (ev.code != 0) "本机 AI 进程已退出（code ${ev.code}）。" else it.error,
                 )
             }
         }
     }
 
+    // ── §3.5.9 card actions (回传走现成 stdin 协议) ──────────────────────────
+
+    /** 预览卡 / 审批卡 的 [确认]/[拒绝] → `{type:approval,id,approve}`。 */
+    fun resolveCard(id: String, approve: Boolean) {
+        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
+        viewModelScope.launch { session.sendApproval(id, approve) }
+    }
+
+    /**
+     * 引导卡「我已完成」→ 让 agent 继续(§3.5.9 占位:发续跑 user turn;§3.5.15
+     * 将升级为带 resumeToken 的结构化 resume)。
+     */
+    fun completeGuide(id: String) {
+        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
+        viewModelScope.launch { session.send("我已完成上一步,请继续。") }
+    }
+
+    /** 引导卡「跳过」→ 让 agent 跳过该源、继续其余。 */
+    fun skipGuide(id: String) {
+        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
+        viewModelScope.launch { session.send("跳过这一步,继续其余部分。") }
+    }
+
+    /** 计划卡 → `{type:plan,action}`(`approve`|`reject`|`enter`)。 */
+    fun resolvePlan(action: String) {
+        _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c is TrustCard.Plan }) }
+        viewModelScope.launch { session.sendPlan(action) }
+    }
+
+    /** 工具名分流:采集/索引/打捞(写 vault)→ 预览卡;其余有副作用 → 审批卡。 */
+    private fun isPreviewTool(tool: String): Boolean =
+        tool.contains("collect", ignoreCase = true) ||
+            tool.contains("index", ignoreCase = true) ||
+            tool.contains("salvage", ignoreCase = true)
+
     override fun onCleared() {
         super.onCleared()
         // Fire-and-forget shutdown; the process is destroyed when the VM dies.
         viewModelScope.launch { session.close() }
+    }
+
+    companion object {
+        /** 单张计划卡的固定 id(plan_update 到来时更新同一张)。 */
+        private const val PLAN_CARD_ID = "__plan__"
     }
 }
