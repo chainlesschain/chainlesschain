@@ -152,14 +152,22 @@ function createLedger(db, opts) {
    *   2) 金额必须正整数（防注入 amount<=0 / 非整数 偷钱）
    *   3) 授权规则：mint 必由 genesis 签且无 from；transfer 的 signer 必等于 from、
    *      不可自转（防越权增发 / 冒名转账）
-   *   4) 签名对（signer 注册公钥验 core）
-   *   5) 经济守恒：按 seq 折叠余额，任一时刻 from 余额不足即拦（防注入透支花钱）
+   *   4) nonce 唯一（防重放）：同一 (signer_did, nonce) 不可出现两次。写入路径靠
+   *      唯一索引 (ledger_id, signer_did, nonce) 拦，但离线审计不信任来源 DB 的
+   *      约束（旧 schema / 文件级篡改可能缺索引）→ 在此独立再校验，否则一条被
+   *      合法签名过的 transfer 被原样复制两次（签名仍有效、哈希自洽、付款方仍买
+   *      得起）即可双花瞒过再验。
+   *   5) 签名对（signer 注册公钥验 core）
+   *   6) 经济守恒：按 seq 折叠余额，任一时刻 from 余额不足即拦（防注入透支花钱）
    */
   function verifyChain() {
     const rows = db.prepare(`SELECT * FROM ledger_entries WHERE ledger_id = ? ORDER BY seq ASC`).all(ledgerId);
     let prev = null;
     const bal = new Map();
     const get = (d) => bal.get(d) || 0;
+    // nonce 唯一作用域同写入路径：(ledger_id, signer_did, nonce)；本函数已按
+    // ledger_id 过滤，故键为 signer_did|nonce。不靠 DB 唯一约束兜底（见上 4)）。
+    const seenNonce = new Set();
     for (const row of rows) {
       const from = row.from_did == null ? null : row.from_did;
       const amount = Number(row.amount);
@@ -180,10 +188,14 @@ function createLedger(db, opts) {
       } else {
         return { ok: false, reason: "unknown_kind", at: row.entry_id };
       }
-      // 4) 签名对
+      // 4) nonce 唯一（防重放）— 不依赖来源 DB 的唯一约束，独立再校验。
+      const nk = row.signer_did + "|" + row.nonce;
+      if (seenNonce.has(nk)) return { ok: false, reason: "nonce_reused", at: row.entry_id };
+      seenNonce.add(nk);
+      // 5) 签名对
       const member = getMember(row.signer_did);
       if (!member || !verifyEntry(core, row.sig, member.pubkeyJwk)) return { ok: false, reason: "bad_sig", at: row.entry_id };
-      // 5) 经济守恒：余额折叠（mint 增发到 to；transfer 必须 from 余额充足）
+      // 6) 经济守恒：余额折叠（mint 增发到 to；transfer 必须 from 余额充足）
       if (core.kind === "transfer") {
         if (get(from) < amount) return { ok: false, reason: "insufficient_funds", at: row.entry_id };
         bal.set(from, get(from) - amount);

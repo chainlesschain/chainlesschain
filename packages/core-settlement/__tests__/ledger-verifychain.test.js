@@ -39,15 +39,18 @@ function setup() {
 }
 
 // 把一条自洽哈希链 + 有效签名、但可越权的条目直接塞进表（绕过 mint()/transfer()）。
-function injectForged(db, ledger, { kind, from, to, amount, nonce, signer }) {
+function injectForged(db, ledger, { kind, from, to, amount, nonce, signer, entryId }) {
   const prev = ledger.head();
   const core = { ledgerId: LEDGER_ID, kind, from: from == null ? null : from, to, amount, nonce };
   const sig = signEntry(core, signer.secretKey); // 由 signer 真实签名（验签会过）
   const eh = entryHash(canonicalizeEntry(core), prev);
+  // entry_id 不入签名 core、不入哈希 → 攻击者可自由设定；默认按 nonce 命名，重放
+  // 测试需显式传不同 entryId（同 nonce、异 entry_id，模拟真实快照里的复制条目）。
+  const id = entryId || "forge-" + nonce;
   db.prepare(
     `INSERT INTO ledger_entries(entry_id, ledger_id, kind, from_did, to_did, amount, nonce, prev_hash, entry_hash, signer_did, alg, sig, created_at_ms)
      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-  ).run("forge-" + nonce, LEDGER_ID, kind, from == null ? null : from, to, amount, nonce, prev, eh, signer.did, signer.alg, sig, 0);
+  ).run(id, LEDGER_ID, kind, from == null ? null : from, to, amount, nonce, prev, eh, signer.did, signer.alg, sig, 0);
 }
 
 describe("verifyChain — full invariant re-validation (anti node/member collusion)", () => {
@@ -100,5 +103,34 @@ describe("verifyChain — full invariant re-validation (anti node/member collusi
     const v = ledger.verifyChain();
     expect(v.ok).toBe(false);
     expect(v.reason).toBe("invalid_amount");
+  });
+
+  // 重放（双花）：把一条已被付款方合法签名的 transfer 原样复制一遍 —— 签名仍有效、
+  // 哈希自洽、付款方仍买得起。写入路径靠唯一索引 (ledger_id,signer_did,nonce) 拦；
+  // 这里 DROP 掉该索引以模拟 verifyChain 真正的用例：审计一份来源不可信、其存储未
+  // 强制 nonce 唯一的账本快照（旧 schema / 文件级篡改）。verifyChain 必须不靠 DB
+  // 约束兜底、独立识破重放，否则离线审计会放行双花。
+  it("detects a replayed (duplicate-nonce) transfer even without the storage uniqueness constraint", () => {
+    const { db, ledger, genesis, alice, bob } = ctx;
+    ledger.signAndMint({ to: alice.did, amount: 1000, secretKey: genesis.secretKey });
+    ledger.signAndTransfer({ from: alice.did, to: bob.did, amount: 300, secretKey: alice.secretKey });
+    // 模拟来源 DB 缺唯一约束（否则下面的重复 nonce INSERT 会被存储层直接拒绝）。
+    db.exec("DROP INDEX IF EXISTS idx_ledger_signer_nonce");
+    // 同一笔 alice→bob 300（同 nonce "rp"）被注入两次：余额折叠仍 < 1000，守恒不报，
+    // 仅 nonce 唯一性能识破。
+    injectForged(db, ledger, { kind: "transfer", from: alice.did, to: bob.did, amount: 300, nonce: "rp", signer: alice, entryId: "forge-rp-1" });
+    injectForged(db, ledger, { kind: "transfer", from: alice.did, to: bob.did, amount: 300, nonce: "rp", signer: alice, entryId: "forge-rp-2" });
+    const v = ledger.verifyChain();
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe("nonce_reused");
+  });
+
+  // 同一签名者在「不同」nonce 下的多笔合法 transfer 不应被 nonce 检查误伤（回归）。
+  it("does not false-positive on distinct nonces from the same signer", () => {
+    const { ledger, genesis, alice, bob } = ctx;
+    ledger.signAndMint({ to: alice.did, amount: 1000, secretKey: genesis.secretKey });
+    ledger.signAndTransfer({ from: alice.did, to: bob.did, amount: 100, secretKey: alice.secretKey });
+    ledger.signAndTransfer({ from: alice.did, to: bob.did, amount: 100, secretKey: alice.secretKey });
+    expect(ledger.verifyChain()).toMatchObject({ ok: true, count: 3 });
   });
 });
