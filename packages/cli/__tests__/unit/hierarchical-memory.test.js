@@ -733,6 +733,20 @@ describe("hierarchical-memory", () => {
       expect(stopped).toBe(true);
     });
 
+    it("unref()s the timer so it never keeps the process alive on its own", () => {
+      const fake = { unref: vi.fn(), ref: vi.fn() };
+      const realSetInterval = globalThis.setInterval;
+      globalThis.setInterval = vi.fn(() => fake);
+      try {
+        const h = startConsolidationTimer({ intervalMs: 60000, db });
+        expect(h).toBe(fake);
+        expect(fake.unref).toHaveBeenCalledTimes(1);
+      } finally {
+        globalThis.setInterval = realSetInterval;
+        stopConsolidationTimer(); // clearInterval on the fake is a harmless no-op
+      }
+    });
+
     it("returns existing handle on double-start", () => {
       const h1 = startConsolidationTimer({ intervalMs: 60000, db });
       const h2 = startConsolidationTimer({ intervalMs: 60000, db });
