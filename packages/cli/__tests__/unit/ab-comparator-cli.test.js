@@ -3,6 +3,7 @@ import {
   compare,
   DEFAULT_CRITERIA,
   VARIANT_PROFILES,
+  parseScores,
 } from "../../src/lib/cowork/ab-comparator-cli.js";
 
 describe("ab-comparator-cli", () => {
@@ -219,5 +220,32 @@ REASON: Good.`,
         expect(score).toBe(5);
       }
     });
+  });
+});
+
+describe("parseScores — criteria are matched literally", () => {
+  const variants = [{ name: "a" }];
+
+  it("parses a score for a criterion containing regex metacharacters", () => {
+    const s = parseScores("Variant 1 (a): latency(ms)=42", variants, [
+      "latency(ms)",
+    ]);
+    expect(s[0]["latency(ms)"]).toBe(42); // not the default 5
+  });
+
+  it("does not throw on an unbalanced-paren criterion", () => {
+    expect(() =>
+      parseScores("Variant 1: a)b(=7", variants, ["a)b("]),
+    ).not.toThrow();
+  });
+
+  it("still parses a plain criterion", () => {
+    const s = parseScores("Variant 1 (a): quality=8", variants, ["quality"]);
+    expect(s[0].quality).toBe(8);
+  });
+
+  it("defaults to 5 when a criterion is absent", () => {
+    const s = parseScores("Variant 1 (a): quality=8", variants, ["missing"]);
+    expect(s[0].missing).toBe(5);
   });
 });
