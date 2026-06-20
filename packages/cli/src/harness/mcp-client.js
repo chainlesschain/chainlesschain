@@ -188,6 +188,12 @@ export class MCPClient extends EventEmitter {
       prompts: [],
       _pending: new Map(),
       _buffer: "",
+      // Per-connection streaming decoders so a multi-byte UTF-8 character (e.g.
+      // a 3-byte Chinese char) split across two stdout/stderr chunks is
+      // reassembled instead of corrupted into U+FFFD. Decoding each chunk
+      // independently (data.toString("utf8")) would mangle a split character.
+      _decoder: new TextDecoder("utf-8"),
+      _stderrDecoder: new TextDecoder("utf-8"),
     };
 
     this.servers.set(name, entry);
@@ -219,11 +225,22 @@ export class MCPClient extends EventEmitter {
         entry.process = proc;
 
         proc.stdout.on("data", (data) => {
-          this._handleData(name, data.toString("utf8"));
+          this._handleData(
+            name,
+            typeof data === "string"
+              ? data
+              : entry._decoder.decode(data, { stream: true }),
+          );
         });
 
         proc.stderr.on("data", (data) => {
-          this.emit("server-error", { name, error: data.toString("utf8") });
+          this.emit("server-error", {
+            name,
+            error:
+              typeof data === "string"
+                ? data
+                : entry._stderrDecoder.decode(data, { stream: true }),
+          });
         });
 
         // If the server process dies with requests in flight, reject them
