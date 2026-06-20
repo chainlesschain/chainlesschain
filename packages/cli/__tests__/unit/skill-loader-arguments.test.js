@@ -23,6 +23,14 @@ describe("substituteArguments — $ARGUMENTS", () => {
   it("respects word boundaries (does NOT replace $ARGUMENTSX)", () => {
     expect(substituteArguments("$ARGUMENTSX", "v")).toBe("$ARGUMENTSX");
   });
+
+  it("inserts args literally — $-sequences are not String.replace patterns", () => {
+    // $& $` $' would otherwise expand to match/pre/post; $$ would collapse to $.
+    expect(substituteArguments("Run: $ARGUMENTS", "a$&b $`c $'d")).toBe(
+      "Run: a$&b $`c $'d",
+    );
+    expect(substituteArguments("v=$ARGUMENTS", "$$")).toBe("v=$$");
+  });
 });
 
 describe("substituteArguments — $1, $2, $N", () => {

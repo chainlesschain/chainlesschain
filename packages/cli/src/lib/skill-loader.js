@@ -199,7 +199,10 @@ export function substituteArguments(body, args) {
   // Protect literal $$
   const MARKER = "\u0000DOLLAR\u0000";
   let out = body.replace(/\$\$/g, MARKER);
-  out = out.replace(/\$ARGUMENTS\b/g, full);
+  // Insert the args via a function so $-sequences in the user's arguments
+  // ($&, $`, $', $$) are placed literally instead of being interpreted as
+  // String.replace patterns (which would otherwise mangle the args).
+  out = out.replace(/\$ARGUMENTS\b/g, () => full);
   out = out.replace(/\$(\d+)/g, (match, idx) => {
     const i = parseInt(idx, 10) - 1;
     if (i < 0 || i >= positional.length) return match;
