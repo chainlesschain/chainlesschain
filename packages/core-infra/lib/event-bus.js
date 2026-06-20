@@ -69,7 +69,12 @@ class EventBus extends EventEmitter {
     let delivered = 0;
     const toRemove = [];
 
-    for (const sub of subs) {
+    // Iterate a snapshot: a handler may subscribe/unsubscribe during dispatch
+    // (e.g. it removes itself or a sibling). Walking the live array would let a
+    // splice shift the iterator and silently SKIP the next handler. Snapshot
+    // semantics (deliver to whoever was subscribed when the round started)
+    // match Node's EventEmitter.
+    for (const sub of [...subs]) {
       try {
         if (sub.filter && !sub.filter(data)) {
           continue;
