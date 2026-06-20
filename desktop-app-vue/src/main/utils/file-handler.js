@@ -362,25 +362,36 @@ class FileHandler {
       // 填充处理队列
       while (processing.length < concurrency && queue.length > 0) {
         const file = queue.shift();
-        const task = this.processWithRetry(file, processor, options).then(
+        // Wrap each task in an entry whose promise resolves to the entry
+        // itself. Promise.race resolves to the settled VALUE, not the promise
+        // object — so racing the raw task promises made findIndex(p === value)
+        // always return -1, and splice(-1, 1) removed the LAST (often still
+        // running) task instead of the completed one. That let the loop drain
+        // `processing` while tasks were still in flight, so processBatch could
+        // return with incomplete results/errors. Resolving to the entry lets us
+        // identify and remove exactly the task that finished.
+        const entry = {};
+        entry.promise = this.processWithRetry(file, processor, options).then(
           (result) => {
             results.push(result);
-            return result;
+            return entry;
           },
           (error) => {
             errors.push({ file, error });
-            return null;
+            return entry;
           },
         );
 
-        processing.push(task);
+        processing.push(entry);
       }
 
       // 等待至少一个完成
       if (processing.length > 0) {
-        const completed = await Promise.race(processing);
-        const index = processing.findIndex((p) => p === completed);
-        processing.splice(index, 1);
+        const completed = await Promise.race(processing.map((e) => e.promise));
+        const index = processing.indexOf(completed);
+        if (index !== -1) {
+          processing.splice(index, 1);
+        }
       }
     }
 
