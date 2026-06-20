@@ -77,6 +77,26 @@ function _userTemplateFile(cwd, id) {
   return join(_userTemplatesDir(cwd), `${id}.json`);
 }
 
+/**
+ * A template id is interpolated into a filesystem path (user-templates/<id>.json)
+ * and arrives from installed templates whose payload comes from an external hub /
+ * MCP download. A malicious id like "../../.ssh/authorized_keys" or
+ * "C:\\Windows\\..." would escape the user-templates dir and overwrite/delete
+ * arbitrary files. Restrict it to a single safe path segment.
+ */
+function _isSafeTemplateId(id) {
+  return (
+    typeof id === "string" &&
+    id.length > 0 &&
+    id !== "." &&
+    id !== ".." &&
+    !id.includes("/") &&
+    !id.includes("\\") &&
+    !id.includes(":") &&
+    !id.includes("\0")
+  );
+}
+
 // ─── Serialization ───────────────────────────────────────────────────────────
 
 const SHARED_FIELDS = [
@@ -177,6 +197,9 @@ export function listUserTemplates(cwd) {
 /** Save a template to the local user-templates directory. */
 export function saveUserTemplate(cwd, template) {
   if (!template?.id) throw new Error("template.id is required");
+  if (!_isSafeTemplateId(template.id)) {
+    throw new Error(`Unsafe template id (path traversal): ${template.id}`);
+  }
   const dir = _userTemplatesDir(cwd);
   _deps.mkdirSync(dir, { recursive: true });
   _atomicWriteJson(
@@ -188,6 +211,7 @@ export function saveUserTemplate(cwd, template) {
 
 /** Remove an installed user template. Returns true if removed. */
 export function removeUserTemplate(cwd, id) {
+  if (!_isSafeTemplateId(id)) return false;
   const file = _userTemplateFile(cwd, id);
   if (!_deps.existsSync(file)) return false;
   _deps.unlinkSync(file);

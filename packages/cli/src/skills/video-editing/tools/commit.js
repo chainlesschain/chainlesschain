@@ -96,7 +96,21 @@ export async function execute({ section_idx, shot_idx, clips }, context) {
     try {
       const raw = await fs.readFile(context.shotPointPath, "utf-8");
       existing = JSON.parse(raw);
-    } catch {}
+      if (!Array.isArray(existing)) {
+        throw new Error("shot-point log is not a JSON array");
+      }
+    } catch (err) {
+      // A missing file is the normal first-commit case — start fresh. Any other
+      // error (parse failure / wrong shape on an existing file, permission)
+      // means the log is present but unreadable; appending to a fresh [] would
+      // silently discard every previously committed clip, so surface it instead
+      // of clobbering.
+      if (err.code !== "ENOENT") {
+        throw new Error(
+          `Refusing to overwrite shot-point log ${context.shotPointPath}: ${err.message}`,
+        );
+      }
+    }
     existing.push(entry);
     await fs.writeFile(
       context.shotPointPath,

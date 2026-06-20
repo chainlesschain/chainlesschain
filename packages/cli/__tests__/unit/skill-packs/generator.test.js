@@ -12,7 +12,10 @@ import {
   generateCliPacks,
   checkForUpdates,
   removeCliPacks,
+  generateDirectHandler,
+  generateHybridHandler,
 } from "../../../src/lib/skill-packs/generator.js";
+import { createRequire } from "node:module";
 import {
   CLI_PACK_DOMAINS,
   PACK_SCHEMA_VERSION,
@@ -425,5 +428,67 @@ describe("removeCliPacks", () => {
 
     // Custom skill should still exist
     expect(fs.existsSync(otherSkill)).toBe(true);
+  });
+});
+
+// ── generated handler shell-injection guard ────────────────────────
+describe("generated handler — shell injection guard", () => {
+  const require = createRequire(import.meta.url);
+  let dir;
+  beforeEach(() => {
+    dir = makeTmpDir();
+  });
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  function loadHandler(code) {
+    const f = path.join(dir, `handler-${Math.random().toString(36).slice(2)}.cjs`);
+    fs.writeFileSync(f, code);
+    return require(f);
+  }
+
+  const directDef = {
+    displayName: "Test",
+    executionMode: "direct",
+    commands: { note: { example: "note add x" } },
+  };
+
+  it("direct handler rejects an arg with shell metacharacters (no injection)", async () => {
+    const handler = loadHandler(generateDirectHandler("test", directDef));
+    const marker = path.join(dir, "PWNED");
+    // parseInput strips the quotes; the `;` survives into the arg and would
+    // break out of the joined shell command under the old shell:true spawn.
+    const res = await handler.execute(
+      { input: `note "x; touch ${marker}"` },
+      { projectRoot: dir },
+    );
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/不安全|shell/);
+    expect(fs.existsSync(marker)).toBe(false); // command never executed
+  });
+
+  it("direct handler still allows clean args (guard is not over-broad)", async () => {
+    const handler = loadHandler(generateDirectHandler("test", directDef));
+    // A plain `note add hello` has no shell metacharacters → passes the guard
+    // and proceeds to spawn (which may fail if chainlesschain isn't installed,
+    // but it must NOT be blocked by the injection guard).
+    const res = await handler.execute(
+      { input: "note add hello" },
+      { projectRoot: dir },
+    );
+    expect(res.error || "").not.toMatch(/不安全/);
+  });
+
+  it("hybrid handler also guards its direct-exec path", () => {
+    const hybridDef = {
+      displayName: "Test",
+      executionMode: "hybrid",
+      commands: { note: { example: "note add x" } },
+    };
+    const code = generateHybridHandler("test", hybridDef);
+    expect(code).toContain("unsafeArg");
+    // the guard regex compiles inside the generated module
+    expect(() => loadHandler(code)).not.toThrow();
   });
 });

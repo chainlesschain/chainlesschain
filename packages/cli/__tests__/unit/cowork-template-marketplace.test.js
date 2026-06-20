@@ -162,6 +162,19 @@ describe("local persistence", () => {
   it("saveUserTemplate rejects objects without id", () => {
     expect(() => saveUserTemplate("/project", { name: "x" })).toThrow(/id/);
   });
+
+  it("rejects a path-traversal template id without writing (supply-chain guard)", () => {
+    const files = installFakeFs();
+    for (const bad of ["../evil", "../../etc/passwd", "a/b", "a\\b", "..", "C:\\x"]) {
+      expect(() => saveUserTemplate("/project", { id: bad, name: "x" })).toThrow(
+        /Unsafe template id/,
+      );
+      // removeUserTemplate fails safe (never unlinks an escaped path).
+      expect(removeUserTemplate("/project", bad)).toBe(false);
+    }
+    // Nothing was written anywhere for a traversal id.
+    expect([...files.keys()]).toHaveLength(0);
+  });
 });
 
 describe("marketplace operations", () => {
