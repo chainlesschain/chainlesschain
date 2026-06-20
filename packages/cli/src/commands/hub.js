@@ -356,6 +356,15 @@ async function cmdSyncAdapter(name, options) {
     if (options.passphrase) opts.passphrase = String(options.passphrase);
     // Cookie-mode sources (weread): pass the login cookie through to the adapter.
     if (options.cookie) opts.cookie = String(options.cookie);
+    // L1 local files (module 101): the local-files adapter walks directories
+    // given via opts.roots (comma-separated dirs → array). Without this the
+    // adapter falls back to its default user-data dirs.
+    if (options.roots) {
+      opts.roots = String(options.roots)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
     const report = await hub.registry.syncAdapter(name, opts);
     if (spinner) spinner.succeed(`synced ${name}`);
     // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
@@ -2238,6 +2247,10 @@ export function registerHubCommand(program) {
     .option(
       "--input <path>",
       "Path to a snapshot file or local DB (system-data-android snapshot, douyin <uid>_im.db, wechat-pc MSG*.db, etc.)",
+    )
+    .option(
+      "--roots <dirs>",
+      "Comma-separated directories to scan (local-files adapter, e.g. /sdcard/Documents,/sdcard/Download)",
     )
     .option(
       "--db-path <path>",
