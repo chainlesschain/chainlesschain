@@ -162,8 +162,11 @@ class DataCollector {
 
         updateStmt.run(
           updates.taskIncrement || 0,
-          updates.successRate || existing.success_rate,
-          updates.avgTaskDuration || existing.avg_task_duration,
+          // Use ?? not ||: a legitimate 0 (e.g. 0% success rate, 0ms duration)
+          // must overwrite the stored value, not be treated as "missing" and
+          // silently keep the stale previous value.
+          updates.successRate ?? existing.success_rate,
+          updates.avgTaskDuration ?? existing.avg_task_duration,
           updates.mostUsedTools
             ? JSON.stringify(updates.mostUsedTools)
             : existing.most_used_tools,
