@@ -2,8 +2,8 @@
  * LLM Store - LLM 服务管理
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -78,7 +78,7 @@ export interface LLMOptions {
  * LLM 配置
  */
 export interface LLMConfig {
-  provider: 'ollama' | 'openai' | 'anthropic' | 'deepseek' | 'custom';
+  provider: "ollama" | "openai" | "anthropic" | "deepseek" | "custom";
   ollama: OllamaConfig;
   openai: OpenAIConfig;
   anthropic: AnthropicConfig;
@@ -199,49 +199,49 @@ export interface LLMState {
 
 // ==================== Store ====================
 
-export const useLLMStore = defineStore('llm', {
+export const useLLMStore = defineStore("llm", {
   state: (): LLMState => ({
     // 服务状态
     status: {
       available: false,
-      provider: '',
+      provider: "",
       models: [],
       error: null,
     },
 
     // 配置
     config: {
-      provider: 'ollama',
+      provider: "ollama",
 
       ollama: {
-        url: 'http://localhost:11434',
-        model: 'llama2',
+        url: "http://localhost:11434",
+        model: "llama2",
       },
 
       openai: {
-        apiKey: '',
-        baseURL: 'https://api.openai.com/v1',
-        model: 'gpt-3.5-turbo',
-        organization: '',
+        apiKey: "",
+        baseURL: "https://api.openai.com/v1",
+        model: "gpt-3.5-turbo",
+        organization: "",
       },
 
       anthropic: {
-        apiKey: '',
-        baseURL: 'https://api.anthropic.com',
-        model: 'claude-3-opus-20240229',
-        version: '2023-06-01',
+        apiKey: "",
+        baseURL: "https://api.anthropic.com",
+        model: "claude-3-opus-20240229",
+        version: "2023-06-01",
       },
 
       deepseek: {
-        apiKey: '',
-        model: 'deepseek-chat',
+        apiKey: "",
+        model: "deepseek-chat",
       },
 
       custom: {
-        name: 'Custom Provider',
-        apiKey: '',
-        baseURL: '',
-        model: '',
+        name: "Custom Provider",
+        apiKey: "",
+        baseURL: "",
+        model: "",
       },
 
       options: {
@@ -252,7 +252,8 @@ export const useLLMStore = defineStore('llm', {
         timeout: 120000,
       },
 
-      systemPrompt: 'You are a helpful AI assistant for a knowledge management system.',
+      systemPrompt:
+        "You are a helpful AI assistant for a knowledge management system.",
       streamEnabled: true,
       autoSaveConversations: true,
     },
@@ -265,7 +266,7 @@ export const useLLMStore = defineStore('llm', {
     isStreaming: false,
 
     // 流式响应临时数据
-    streamingText: '',
+    streamingText: "",
     streamingMessageId: null,
     currentStreamControllerId: null,
 
@@ -328,15 +329,15 @@ export const useLLMStore = defineStore('llm', {
     // 当前提供商配置
     currentProviderConfig(): any {
       switch (this.config.provider) {
-        case 'ollama':
+        case "ollama":
           return this.config.ollama;
-        case 'openai':
+        case "openai":
           return this.config.openai;
-        case 'anthropic':
+        case "anthropic":
           return this.config.anthropic;
-        case 'deepseek':
+        case "deepseek":
           return this.config.deepseek;
-        case 'custom':
+        case "custom":
           return this.config.custom;
         default:
           return {};
@@ -346,7 +347,7 @@ export const useLLMStore = defineStore('llm', {
     // 当前模型
     currentModel(): string {
       const providerConfig = (this.config as any)[this.config.provider];
-      return providerConfig?.model || '';
+      return providerConfig?.model || "";
     },
 
     // 是否可用
@@ -362,11 +363,11 @@ export const useLLMStore = defineStore('llm', {
     // 提供商显示名称
     providerDisplayName(): string {
       const names: Record<string, string> = {
-        ollama: 'Ollama (本地)',
-        openai: 'OpenAI',
-        anthropic: 'Claude (Anthropic)',
-        deepseek: 'DeepSeek',
-        custom: this.config.custom.name || '自定义API',
+        ollama: "Ollama (本地)",
+        openai: "OpenAI",
+        anthropic: "Claude (Anthropic)",
+        deepseek: "DeepSeek",
+        custom: this.config.custom.name || "自定义API",
       };
       return names[this.config.provider] || this.config.provider;
     },
@@ -383,7 +384,7 @@ export const useLLMStore = defineStore('llm', {
           this.config = config;
         }
       } catch (error) {
-        logger.error('加载LLM配置失败:', error as any);
+        logger.error("加载LLM配置失败:", error as any);
         throw error;
       }
     },
@@ -398,7 +399,7 @@ export const useLLMStore = defineStore('llm', {
           this.config = config;
         }
       } catch (error) {
-        logger.error('保存LLM配置失败:', error as any);
+        logger.error("保存LLM配置失败:", error as any);
         throw error;
       }
     },
@@ -414,8 +415,11 @@ export const useLLMStore = defineStore('llm', {
      * 更新提供商配置
      */
     updateProviderConfig(
-      provider: keyof Pick<LLMConfig, 'ollama' | 'openai' | 'anthropic' | 'deepseek' | 'custom'>,
-      config: any
+      provider: keyof Pick<
+        LLMConfig,
+        "ollama" | "openai" | "anthropic" | "deepseek" | "custom"
+      >,
+      config: any,
     ): void {
       if (this.config[provider]) {
         this.config[provider] = { ...this.config[provider], ...config };
@@ -425,7 +429,7 @@ export const useLLMStore = defineStore('llm', {
     /**
      * 切换提供商
      */
-    async switchProvider(provider: LLMConfig['provider']): Promise<void> {
+    async switchProvider(provider: LLMConfig["provider"]): Promise<void> {
       this.config.provider = provider;
       await this.saveConfig();
       await this.checkStatus();
@@ -440,7 +444,7 @@ export const useLLMStore = defineStore('llm', {
         this.status = status;
         return status;
       } catch (error) {
-        logger.error('检查LLM状态失败:', error as any);
+        logger.error("检查LLM状态失败:", error as any);
         this.status = {
           available: false,
           provider: this.config.provider,
@@ -460,7 +464,7 @@ export const useLLMStore = defineStore('llm', {
         this.status.models = models;
         return models;
       } catch (error) {
-        logger.error('获取模型列表失败:', error as any);
+        logger.error("获取模型列表失败:", error as any);
         throw error;
       }
     },
@@ -468,7 +472,10 @@ export const useLLMStore = defineStore('llm', {
     /**
      * 发送查询（非流式）
      */
-    async query(prompt: string, options: QueryOptions = {}): Promise<LLMResponse> {
+    async query(
+      prompt: string,
+      options: QueryOptions = {},
+    ): Promise<LLMResponse> {
       this.isQuerying = true;
       const startTime = Date.now();
 
@@ -485,14 +492,15 @@ export const useLLMStore = defineStore('llm', {
         this.stats.totalTokens += response.tokens || 0;
         const responseTime = Date.now() - startTime;
         this.stats.averageResponseTime =
-          (this.stats.averageResponseTime * (this.stats.totalQueries - 1) + responseTime) /
+          (this.stats.averageResponseTime * (this.stats.totalQueries - 1) +
+            responseTime) /
           this.stats.totalQueries;
 
         this.lastQueryTime = Date.now();
 
         return response;
       } catch (error) {
-        logger.error('LLM查询失败:', error as any);
+        logger.error("LLM查询失败:", error as any);
         throw error;
       } finally {
         this.isQuerying = false;
@@ -505,50 +513,55 @@ export const useLLMStore = defineStore('llm', {
     async queryStream(
       prompt: string,
       onChunk?: (data: StreamChunk) => void,
-      options: QueryOptions = {}
+      options: QueryOptions = {},
     ): Promise<LLMResponse> {
       this.isStreaming = true;
-      this.streamingText = '';
+      this.streamingText = "";
       const startTime = Date.now();
 
+      // 监听流式事件。声明在 try 之前，确保 finally 始终能注销监听——
+      // 否则 queryStream 抛错时会跳过注销，每次失败都泄漏一个 'llm:stream-chunk'
+      // 监听器（后续流会被多个残留 handler 同时写入 streamingText）。
+      const handleChunk = (data: StreamChunk) => {
+        this.streamingText = data.fullText;
+        if (onChunk) {
+          onChunk(data);
+        }
+      };
+
       try {
-        // 监听流式事件
-        const handleChunk = (data: StreamChunk) => {
-          this.streamingText = data.fullText;
-          if (onChunk) {
-            onChunk(data);
-          }
-        };
+        (window as any).electronAPI.llm.on("llm:stream-chunk", handleChunk);
 
-        (window as any).electronAPI.llm.on('llm:stream-chunk', handleChunk);
-
-        const response = await (window as any).electronAPI.llm.queryStream(prompt, {
-          ...options,
-          conversationId: this.currentConversationId,
-          systemPrompt: this.config.systemPrompt,
-          ...this.config.options,
-        });
-
-        // 清理事件监听
-        (window as any).electronAPI.llm.off('llm:stream-chunk', handleChunk);
+        const response = await (window as any).electronAPI.llm.queryStream(
+          prompt,
+          {
+            ...options,
+            conversationId: this.currentConversationId,
+            systemPrompt: this.config.systemPrompt,
+            ...this.config.options,
+          },
+        );
 
         // 更新统计
         this.stats.totalQueries++;
         this.stats.totalTokens += response.tokens || 0;
         const responseTime = Date.now() - startTime;
         this.stats.averageResponseTime =
-          (this.stats.averageResponseTime * (this.stats.totalQueries - 1) + responseTime) /
+          (this.stats.averageResponseTime * (this.stats.totalQueries - 1) +
+            responseTime) /
           this.stats.totalQueries;
 
         this.lastQueryTime = Date.now();
 
         return response;
       } catch (error) {
-        logger.error('LLM流式查询失败:', error as any);
+        logger.error("LLM流式查询失败:", error as any);
         throw error;
       } finally {
+        // 始终注销监听，避免错误路径下的监听器泄漏。
+        (window as any).electronAPI.llm.off("llm:stream-chunk", handleChunk);
         this.isStreaming = false;
-        this.streamingText = '';
+        this.streamingText = "";
       }
     },
 
@@ -559,7 +572,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await (window as any).electronAPI.llm.embeddings(text);
       } catch (error) {
-        logger.error('生成嵌入向量失败:', error as any);
+        logger.error("生成嵌入向量失败:", error as any);
         throw error;
       }
     },
@@ -570,13 +583,13 @@ export const useLLMStore = defineStore('llm', {
     async clearContext(conversationId: string | null = null): Promise<void> {
       try {
         await (window as any).electronAPI.llm.clearContext(
-          conversationId || this.currentConversationId
+          conversationId || this.currentConversationId,
         );
         if (!conversationId || conversationId === this.currentConversationId) {
           this.currentConversationId = null;
         }
       } catch (error) {
-        logger.error('清除上下文失败:', error as any);
+        logger.error("清除上下文失败:", error as any);
         throw error;
       }
     },
@@ -584,31 +597,31 @@ export const useLLMStore = defineStore('llm', {
     /**
      * 取消流式输出
      */
-    async cancelStream(reason: string = '用户取消'): Promise<any> {
+    async cancelStream(reason: string = "用户取消"): Promise<any> {
       try {
         if (!this.currentStreamControllerId) {
-          logger.warn('[LLM Store] 没有正在进行的流式输出');
-          return { success: false, message: '没有正在进行的流式输出' };
+          logger.warn("[LLM Store] 没有正在进行的流式输出");
+          return { success: false, message: "没有正在进行的流式输出" };
         }
 
         const result = await (window as any).electronAPI.llm.cancelStream(
           this.currentStreamControllerId,
-          reason
+          reason,
         );
 
         // 重置状态
         this.isStreaming = false;
         this.isQuerying = false;
-        this.streamingText = '';
+        this.streamingText = "";
         this.currentStreamControllerId = null;
 
         return result;
       } catch (error) {
-        logger.error('取消流式输出失败:', error as any);
+        logger.error("取消流式输出失败:", error as any);
         // 即使取消失败，也重置状态
         this.isStreaming = false;
         this.isQuerying = false;
-        this.streamingText = '';
+        this.streamingText = "";
         this.currentStreamControllerId = null;
         throw error;
       }
@@ -660,7 +673,9 @@ export const useLLMStore = defineStore('llm', {
      */
     async loadTokenUsage(options: Record<string, any> = {}): Promise<any> {
       try {
-        const stats = await (window as any).electronAPI.llm.getUsageStats(options);
+        const stats = await (window as any).electronAPI.llm.getUsageStats(
+          options,
+        );
         if (stats) {
           Object.assign(this.tokenUsage, {
             totalTokens: stats.totalTokens || 0,
@@ -678,7 +693,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return stats;
       } catch (error) {
-        logger.error('加载 Token 使用统计失败:', error as any);
+        logger.error("加载 Token 使用统计失败:", error as any);
         throw error;
       }
     },
@@ -690,7 +705,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await (window as any).electronAPI.llm.getTimeSeries(options);
       } catch (error) {
-        logger.error('获取时间序列数据失败:', error as any);
+        logger.error("获取时间序列数据失败:", error as any);
         throw error;
       }
     },
@@ -702,7 +717,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await (window as any).electronAPI.llm.getCostBreakdown(options);
       } catch (error) {
-        logger.error('获取成本分解失败:', error as any);
+        logger.error("获取成本分解失败:", error as any);
         throw error;
       }
     },
@@ -710,7 +725,7 @@ export const useLLMStore = defineStore('llm', {
     /**
      * 加载预算配置
      */
-    async loadBudget(userId: string = 'default'): Promise<any> {
+    async loadBudget(userId: string = "default"): Promise<any> {
       try {
         const budget = await (window as any).electronAPI.llm.getBudget(userId);
         if (budget) {
@@ -718,7 +733,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return budget;
       } catch (error) {
-        logger.error('加载预算配置失败:', error as any);
+        logger.error("加载预算配置失败:", error as any);
         throw error;
       }
     },
@@ -726,13 +741,16 @@ export const useLLMStore = defineStore('llm', {
     /**
      * 保存预算配置
      */
-    async saveBudget(config: Partial<BudgetConfig>, userId: string = 'default'): Promise<boolean> {
+    async saveBudget(
+      config: Partial<BudgetConfig>,
+      userId: string = "default",
+    ): Promise<boolean> {
       try {
         await (window as any).electronAPI.llm.setBudget(userId, config);
         await this.loadBudget(userId);
         return true;
       } catch (error) {
-        logger.error('保存预算配置失败:', error as any);
+        logger.error("保存预算配置失败:", error as any);
         throw error;
       }
     },
@@ -744,7 +762,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await (window as any).electronAPI.llm.exportCostReport(options);
       } catch (error) {
-        logger.error('导出成本报告失败:', error as any);
+        logger.error("导出成本报告失败:", error as any);
         throw error;
       }
     },
@@ -759,7 +777,7 @@ export const useLLMStore = defineStore('llm', {
         await this.loadCacheStats();
         return result;
       } catch (error) {
-        logger.error('清除缓存失败:', error as any);
+        logger.error("清除缓存失败:", error as any);
         throw error;
       }
     },
@@ -783,7 +801,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return stats;
       } catch (error) {
-        logger.error('加载缓存统计失败:', error as any);
+        logger.error("加载缓存统计失败:", error as any);
         throw error;
       }
     },
@@ -793,9 +811,13 @@ export const useLLMStore = defineStore('llm', {
      */
     async initTokenTracking(): Promise<void> {
       try {
-        await Promise.all([this.loadTokenUsage(), this.loadBudget(), this.loadCacheStats()]);
+        await Promise.all([
+          this.loadTokenUsage(),
+          this.loadBudget(),
+          this.loadCacheStats(),
+        ]);
       } catch (error) {
-        logger.error('初始化 Token 追踪数据失败:', error as any);
+        logger.error("初始化 Token 追踪数据失败:", error as any);
       }
     },
   },
