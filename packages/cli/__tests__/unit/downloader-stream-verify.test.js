@@ -13,7 +13,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { streamToFileVerified } from "../../src/lib/downloader.js";
+import {
+  streamToFileVerified,
+  extractZip,
+} from "../../src/lib/downloader.js";
 
 let tmpDir;
 let n = 0;
@@ -95,5 +98,41 @@ describe("streamToFileVerified", () => {
       }),
     ).rejects.toThrow();
     expect(controller.signal.aborted).toBe(true);
+  });
+});
+
+describe("extractZip — no shell injection via paths", () => {
+  // A path that would break out of a quoted shell string and run a command.
+  const EVIL = '/tmp/a";rm -rf ~ #.zip';
+
+  it("unix: passes the zip path as a literal execFile argument (no shell)", () => {
+    let call;
+    extractZip(EVIL, "/dest", {
+      platform: "linux",
+      execFileImpl: (file, args) => {
+        call = { file, args };
+      },
+    });
+    expect(call.file).toBe("unzip");
+    expect(call.args).toEqual(["-o", EVIL, "-d", "/dest"]);
+    // The evil string survives verbatim as one argument — no shell ever parses it.
+    expect(call.args).toContain(EVIL);
+  });
+
+  it("windows: keeps the -Command script constant, paths only via env", () => {
+    let call;
+    extractZip(EVIL, "/dest", {
+      platform: "win32",
+      execFileImpl: (file, args, opts) => {
+        call = { file, args, env: opts.env };
+      },
+    });
+    expect(call.file).toBe("powershell");
+    const script = call.args[call.args.length - 1];
+    // The script must not contain the path at all (so it can't be injected).
+    expect(script).not.toContain("rm -rf");
+    expect(script).not.toContain(EVIL);
+    expect(call.env.CC_ZIP_SRC).toBe(EVIL);
+    expect(call.env.CC_ZIP_DEST).toBe("/dest");
   });
 });
