@@ -110,6 +110,10 @@ public class FileUploadService {
      * 删除文件
      */
     public boolean deleteFile(String userId, String fileId) throws IOException {
+        // 安全：拒绝含路径分隔符 / .. 的 userId / fileId，杜绝目录穿越删除
+        if (isUnsafeSegment(userId) || isUnsafeSegment(fileId)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
         Path userDir = Paths.get(uploadPath, userId);
 
         // 查找并删除文件（包括缩略图）
@@ -127,9 +131,31 @@ public class FileUploadService {
      * 获取文件
      */
     public File getFile(String userId, String fileName) {
-        Path filePath = Paths.get(uploadPath, userId, fileName);
+        Path filePath = resolveWithinUploadRoot(userId, fileName);
         File file = filePath.toFile();
         return file.exists() ? file : null;
+    }
+
+    /**
+     * 安全解析 {@code uploadPath/userId/name}：禁止路径分隔符与 {@code ..} 段，并断言
+     * 归一化后的路径仍在 {@code uploadPath} 根之下，杜绝 {@code ../} 目录穿越读取任意文件
+     * （如 {@code ../../../etc/passwd}）。
+     */
+    private Path resolveWithinUploadRoot(String userId, String name) {
+        if (isUnsafeSegment(userId) || isUnsafeSegment(name)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+        Path base = Paths.get(uploadPath).toAbsolutePath().normalize();
+        Path resolved = base.resolve(userId).resolve(name).normalize();
+        if (!resolved.startsWith(base)) {
+            throw new IllegalArgumentException("非法文件路径");
+        }
+        return resolved;
+    }
+
+    private static boolean isUnsafeSegment(String s) {
+        return s == null || s.isEmpty()
+                || s.contains("/") || s.contains("\\") || s.contains("..");
     }
 
     /**

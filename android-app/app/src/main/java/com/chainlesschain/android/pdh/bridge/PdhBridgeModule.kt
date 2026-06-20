@@ -33,11 +33,17 @@ object PdhBridgeModule {
         bootstrapper: LocalFilesystemBootstrapper,
         snapshotter: LocalSystemDataSnapshotter,
         ccRunner: LocalCcRunner,
+        memSalvage: com.chainlesschain.android.pdh.MemSalvageCollector,
+        weibo: com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector,
+        bilibili: com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector,
+        kyfw12306: com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector,
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         return PdhBridgeServer(
             lockDir = lockDir,
-            tools = PdhToolHost.tools(snapshotter, ccRunner),
+            tools = PdhToolHost.tools(
+                snapshotter, ccRunner, memSalvage, weibo, bilibili, kyfw12306,
+            ),
             device = "android",
             appUid = android.os.Process.myUid(),
             pid = { android.os.Process.myPid().toLong() },

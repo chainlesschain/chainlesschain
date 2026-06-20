@@ -6,12 +6,15 @@
  * 这些测试更接近集成测试的性质。
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Import the CommonJS module
-const { CodeExecutor, getCodeExecutor } = require('../../../src/main/engines/code-executor.js');
+const {
+  CodeExecutor,
+  getCodeExecutor,
+} = require("../../../src/main/engines/code-executor.js");
 
-describe('CodeExecutor', () => {
+describe("CodeExecutor", () => {
   let codeExecutor;
 
   beforeEach(() => {
@@ -19,56 +22,56 @@ describe('CodeExecutor', () => {
     codeExecutor = new CodeExecutor();
   });
 
-  describe('detectLanguage', () => {
-    it('应该正确检测Python', () => {
-      const lang = codeExecutor.detectLanguage('.py');
-      expect(lang).toBe('python');
+  describe("detectLanguage", () => {
+    it("应该正确检测Python", () => {
+      const lang = codeExecutor.detectLanguage(".py");
+      expect(lang).toBe("python");
     });
 
-    it('应该正确检测JavaScript', () => {
-      const lang = codeExecutor.detectLanguage('.js');
-      expect(lang).toBe('javascript');
+    it("应该正确检测JavaScript", () => {
+      const lang = codeExecutor.detectLanguage(".js");
+      expect(lang).toBe("javascript");
     });
 
-    it('应该正确检测Bash', () => {
-      const lang = codeExecutor.detectLanguage('.sh');
-      expect(lang).toBe('bash');
+    it("应该正确检测Bash", () => {
+      const lang = codeExecutor.detectLanguage(".sh");
+      expect(lang).toBe("bash");
     });
 
-    it('应该返回null对于未知类型', () => {
-      const lang = codeExecutor.detectLanguage('.xyz');
+    it("应该返回null对于未知类型", () => {
+      const lang = codeExecutor.detectLanguage(".xyz");
       expect(lang).toBeNull();
     });
   });
 
-  describe('checkSafety', () => {
-    it('应该检测到 os.system 危险操作', () => {
+  describe("checkSafety", () => {
+    it("应该检测到 os.system 危险操作", () => {
       const code = 'import os\nos.system("rm -rf /")';
       const result = codeExecutor.checkSafety(code);
 
       expect(result.safe).toBe(false);
       expect(result.warnings.length).toBeGreaterThan(0);
-      expect(result.warnings[0]).toContain('os');
-      expect(result.warnings[0]).toContain('system');
+      expect(result.warnings[0]).toContain("os");
+      expect(result.warnings[0]).toContain("system");
     });
 
-    it('应该检测到 eval 危险操作', () => {
-      const code = 'eval("__import__(\'os\').system(\'ls\')")';
+    it("应该检测到 eval 危险操作", () => {
+      const code = "eval(\"__import__('os').system('ls')\")";
       const result = codeExecutor.checkSafety(code);
 
       expect(result.safe).toBe(false);
-      expect(result.warnings.some((w) => w.includes('eval'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes("eval"))).toBe(true);
     });
 
-    it('应该检测到 subprocess 危险操作', () => {
+    it("应该检测到 subprocess 危险操作", () => {
       const code = 'import subprocess\nsubprocess.call(["ls", "-la"])';
       const result = codeExecutor.checkSafety(code);
 
       expect(result.safe).toBe(false);
-      expect(result.warnings.some((w) => w.includes('subprocess'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes("subprocess"))).toBe(true);
     });
 
-    it('应该检测到文件写入操作', () => {
+    it("应该检测到文件写入操作", () => {
       const code = 'open("/etc/passwd", "w").write("malicious")';
       const result = codeExecutor.checkSafety(code);
 
@@ -76,7 +79,7 @@ describe('CodeExecutor', () => {
       expect(result.warnings.length).toBeGreaterThan(0);
     });
 
-    it('应该通过安全代码检查', () => {
+    it("应该通过安全代码检查", () => {
       const code = `
 import math
 print(math.pi)
@@ -89,7 +92,7 @@ print(sum(x))
       expect(result.warnings.length).toBe(0);
     });
 
-    it('应该检测多个危险操作', () => {
+    it("应该检测多个危险操作", () => {
       const code = `
 import os
 import subprocess
@@ -104,26 +107,26 @@ eval("1+1")
     });
   });
 
-  describe('基本属性', () => {
-    it('应该有正确的初始状态', () => {
+  describe("基本属性", () => {
+    it("应该有正确的初始状态", () => {
       expect(codeExecutor.initialized).toBe(false);
       expect(codeExecutor.pythonPath).toBeNull();
       expect(codeExecutor.timeout).toBe(30000);
     });
 
-    it('应该有正确的支持语言配置', () => {
-      expect(codeExecutor.supportedLanguages).toHaveProperty('python');
-      expect(codeExecutor.supportedLanguages).toHaveProperty('javascript');
-      expect(codeExecutor.supportedLanguages).toHaveProperty('bash');
+    it("应该有正确的支持语言配置", () => {
+      expect(codeExecutor.supportedLanguages).toHaveProperty("python");
+      expect(codeExecutor.supportedLanguages).toHaveProperty("javascript");
+      expect(codeExecutor.supportedLanguages).toHaveProperty("bash");
     });
 
-    it('应该有正确的临时目录路径', () => {
-      expect(codeExecutor.tempDir).toContain('chainlesschain-code-exec');
+    it("应该有正确的临时目录路径", () => {
+      expect(codeExecutor.tempDir).toContain("chainlesschain-code-exec");
     });
   });
 
-  describe('getCodeExecutor 单例', () => {
-    it('应该返回单例实例', () => {
+  describe("getCodeExecutor 单例", () => {
+    it("应该返回单例实例", () => {
       const instance1 = getCodeExecutor();
       const instance2 = getCodeExecutor();
 
@@ -131,10 +134,30 @@ eval("1+1")
     });
   });
 
+  describe("runCommand shell-injection 加固", () => {
+    it("不对 args 做 shell 解释（杜绝命令注入）", async () => {
+      // 回归：runCommand 曾用 `shell: process.platform === "win32"`，于是在
+      // Windows 上 args 会被 shell 解释——一个含 `&` 的 arg（如渲染进程传入的
+      // filepath）能注入命令。shell:false 后，元字符只是 node 的字面量 argv。
+      // shell:true 下 cmd 会跑 `node -e ... & echo INJECTED` → 输出含 INJECTED；
+      // shell:false 下 `&`/`echo`/`INJECTED` 仅作为 node 的多余参数被忽略。
+      const result = await codeExecutor.runCommand("node", [
+        "-e",
+        'process.stdout.write("clean")',
+        "&",
+        "echo",
+        "INJECTED",
+      ]);
+
+      expect(result.stdout).toContain("clean");
+      expect(result.stdout).not.toContain("INJECTED");
+    }, 15000);
+  });
+
   // 以下测试依赖真实环境，标记为集成测试
-  describe.skip('集成测试 (需要真实Python环境)', () => {
-    describe('初始化', () => {
-      it('应该成功初始化并检测Python', async () => {
+  describe.skip("集成测试 (需要真实Python环境)", () => {
+    describe("初始化", () => {
+      it("应该成功初始化并检测Python", async () => {
         await codeExecutor.initialize();
 
         expect(codeExecutor.initialized).toBe(true);
@@ -142,14 +165,14 @@ eval("1+1")
       }, 10000);
     });
 
-    describe('executePython', () => {
+    describe("executePython", () => {
       beforeEach(async () => {
         await codeExecutor.initialize();
       });
 
-      it('应该成功执行简单的Python代码', async () => {
+      it("应该成功执行简单的Python代码", async () => {
         if (!codeExecutor.pythonPath) {
-          console.log('跳过：Python未安装');
+          console.log("跳过：Python未安装");
           return;
         }
 
@@ -157,17 +180,17 @@ eval("1+1")
         const result = await codeExecutor.executePython(code);
 
         expect(result.success).toBe(true);
-        expect(result.stdout).toContain('Hello, World!');
+        expect(result.stdout).toContain("Hello, World!");
         expect(result.exitCode).toBe(0);
       }, 10000);
 
-      it('应该处理Python执行错误', async () => {
+      it("应该处理Python执行错误", async () => {
         if (!codeExecutor.pythonPath) {
-          console.log('跳过：Python未安装');
+          console.log("跳过：Python未安装");
           return;
         }
 
-        const code = 'print("Hello';  // 语法错误
+        const code = 'print("Hello'; // 语法错误
         const result = await codeExecutor.executePython(code);
 
         expect(result.success).toBe(false);
@@ -175,11 +198,13 @@ eval("1+1")
       }, 10000);
     });
 
-    describe('executeFile', () => {
-      it('应该检测不支持的文件类型', async () => {
-        const filepath = '/path/to/unknown.xyz';
+    describe("executeFile", () => {
+      it("应该检测不支持的文件类型", async () => {
+        const filepath = "/path/to/unknown.xyz";
 
-        await expect(codeExecutor.executeFile(filepath)).rejects.toThrow(/不支持的文件类型/);
+        await expect(codeExecutor.executeFile(filepath)).rejects.toThrow(
+          /不支持的文件类型/,
+        );
       });
     });
   });

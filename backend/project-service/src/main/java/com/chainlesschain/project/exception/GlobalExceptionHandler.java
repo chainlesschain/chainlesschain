@@ -92,6 +92,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理授权失败异常（项目级 IDOR 守卫等）→ 403
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException e) {
+        log.warn("Access denied: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(403, e.getMessage()));
+    }
+
+    /**
      * 处理所有未捕获的异常
      */
     @ExceptionHandler(Exception.class)

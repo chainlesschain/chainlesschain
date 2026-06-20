@@ -256,7 +256,14 @@ class CodeExecutor {
       const proc = spawn(command, args, {
         cwd: workingDir,
         env: processEnv,
-        shell: process.platform === "win32",
+        // SECURITY: never spawn with a shell. With shell:true the args —
+        // including a (possibly renderer-supplied) filepath — are
+        // shell-interpreted, so an arg like `& calc` injects commands on
+        // Windows (cmd.exe). spawn resolves the python/node/bash interpreters
+        // on Windows WITHOUT a shell (empirically verified), so shell:false
+        // closes the injection with no functional loss. A .cmd/.bat
+        // interpreter would need an absolute path, but the defaults are .exe.
+        shell: false,
       });
 
       // 如果有输入,发送到stdin

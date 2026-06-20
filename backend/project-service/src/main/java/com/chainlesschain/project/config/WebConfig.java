@@ -1,22 +1,45 @@
 package com.chainlesschain.project.config;
 
+import com.chainlesschain.project.security.ProjectSubresourceAccessInterceptor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web配置 - CORS跨域支持
+ * Web配置 - CORS跨域支持 + 项目子资源授权拦截器
  */
 @Configuration
+@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
+
+    private final ProjectSubresourceAccessInterceptor projectSubresourceAccessInterceptor;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // 安全：与凭据(allowCredentials)同用时不得用通配 origin。改为与 SecurityConfig /
+        // WebSocketConfig 一致的显式 allowlist（此前 MVC 层的 allowedOriginPatterns("*")
+        // 是冗余且不安全的——任意源凭据请求；SecurityConfig 的安全过滤器 CORS 才是受保护
+        // 端点的权威配置）。
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+                .allowedOrigins("http://localhost:5173", "http://localhost:3000")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+    }
+
+    /**
+     * 项目子资源（files / comments / collaborators）统一项目级授权拦截，修复 IDOR。
+     * 项目自身端点由 ProjectController 显式调用 ProjectAccessGuard。
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(projectSubresourceAccessInterceptor)
+                .addPathPatterns(
+                        "/api/projects/*/files/**",
+                        "/api/projects/*/comments/**",
+                        "/api/projects/*/collaborators/**");
     }
 }

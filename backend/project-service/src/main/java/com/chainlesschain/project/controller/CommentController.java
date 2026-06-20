@@ -8,6 +8,7 @@ import com.chainlesschain.project.dto.CommentUpdateRequest;
 import com.chainlesschain.project.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,12 +50,12 @@ public class CommentController {
     public ApiResponse<CommentDTO> addComment(
             @PathVariable String projectId,
             @Validated @RequestBody CommentCreateRequest request,
-            @RequestHeader(value = "User-DID", required = false) String authorDid) {
+            @RequestHeader(value = "User-DID", required = false) String authorDid,
+            Authentication authentication) {
         try {
-            if (authorDid == null) {
-                authorDid = "anonymous";  // 默认值
-            }
-            CommentDTO comment = commentService.addComment(projectId, request, authorDid);
+            // 安全：已认证时以认证身份为评论作者，忽略可伪造的 User-DID 头（防冒名）
+            String actor = resolveActor(authentication, authorDid, "anonymous");
+            CommentDTO comment = commentService.addComment(projectId, request, actor);
             return ApiResponse.success("评论添加成功", comment);
         } catch (Exception e) {
             log.error("添加评论失败", e);
@@ -103,14 +104,13 @@ public class CommentController {
             @PathVariable String projectId,
             @PathVariable String commentId,
             @Validated @RequestBody CommentCreateRequest request,
-            @RequestHeader(value = "User-DID", required = false) String authorDid) {
+            @RequestHeader(value = "User-DID", required = false) String authorDid,
+            Authentication authentication) {
         try {
-            if (authorDid == null) {
-                authorDid = "anonymous";
-            }
+            String actor = resolveActor(authentication, authorDid, "anonymous");
             // 设置父评论ID
             request.setParentCommentId(commentId);
-            CommentDTO comment = commentService.addComment(projectId, request, authorDid);
+            CommentDTO comment = commentService.addComment(projectId, request, actor);
             return ApiResponse.success("回复成功", comment);
         } catch (Exception e) {
             log.error("回复评论失败", e);
@@ -132,5 +132,15 @@ public class CommentController {
             log.error("获取评论回复失败", e);
             return ApiResponse.error(e.getMessage());
         }
+    }
+
+    /**
+     * 解析操作者身份：已认证时用认证主体（不可伪造），否则回退到 User-DID 头 / 默认值。
+     */
+    private static String resolveActor(Authentication authentication, String headerDid, String fallback) {
+        if (authentication != null && authentication.getName() != null) {
+            return authentication.getName();
+        }
+        return headerDid != null ? headerDid : fallback;
     }
 }
