@@ -2667,7 +2667,7 @@ export async function startAgentRepl(options = {}) {
 
     // `/sessions` — list recent RESUMABLE conversations (read-only; the ids
     // work with `cc agent --resume <id>`). `/session` shows the current one.
-    if (trimmed === "/sessions" || trimmed === "/sessions ") {
+    if (trimmed === "/sessions" || trimmed.startsWith("/sessions ")) {
       try {
         const { listRecentSessions } = await import("../lib/recent-session.js");
         const { renderRecentSessions } = await import("./recent-sessions.js");
@@ -2683,7 +2683,7 @@ export async function startAgentRepl(options = {}) {
     // `/memory` — project-memory files auto-loaded into the system prompt
     // (cc.md hierarchy + imports + path-scoped rules). Distinct from `#` (add
     // a note) and `cc memory recall` (scoped store).
-    if (trimmed === "/memory" || trimmed === "/memory ") {
+    if (trimmed === "/memory" || trimmed.startsWith("/memory ")) {
       try {
         const { loadProjectInstructions } =
           await import("../lib/project-instructions.js");
@@ -2702,7 +2702,7 @@ export async function startAgentRepl(options = {}) {
     }
 
     // `/mcp` — overview of connected MCP servers' resources + prompts.
-    if (trimmed === "/mcp" || trimmed === "/mcp ") {
+    if (trimmed === "/mcp" || trimmed.startsWith("/mcp ")) {
       const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
       logger.log(renderMcpSurface(mcpClient));
       prompt();
@@ -2760,7 +2760,7 @@ export async function startAgentRepl(options = {}) {
 
     // `/doctor` — consolidated session-health readout (Claude-Code parity):
     // provider/key/IDE/MCP/permissions/hooks in one pass-or-warn view.
-    if (trimmed === "/doctor" || trimmed === "/doctor ") {
+    if (trimmed === "/doctor" || trimmed.startsWith("/doctor ")) {
       let config = {};
       try {
         config = (await import("../lib/config-manager.js")).loadConfig() || {};
@@ -2867,7 +2867,7 @@ export async function startAgentRepl(options = {}) {
 
     // `/cost` — running token spend + estimated $ for this session (Claude-Code
     // parity). In-memory accumulation, so it works without session persistence.
-    if (trimmed === "/cost" || trimmed === "/cost ") {
+    if (trimmed === "/cost" || trimmed.startsWith("/cost ")) {
       let overrides;
       let visionModel;
       try {
@@ -2944,7 +2944,7 @@ export async function startAgentRepl(options = {}) {
 
     // `/ide` — IDE bridge connection status (Claude-Code parity): which editor
     // is connected, its tools, or why discovery came up empty.
-    if (trimmed === "/ide" || trimmed === "/ide ") {
+    if (trimmed === "/ide" || trimmed.startsWith("/ide ")) {
       let diag = null;
       try {
         const { diagnoseIde } = await import("../lib/ide-bridge.js");
