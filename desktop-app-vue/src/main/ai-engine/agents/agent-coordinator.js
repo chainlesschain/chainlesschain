@@ -89,6 +89,9 @@ const TASK_STATUS = {
 // so without a bound the map grows forever. Only terminal tasks are evicted;
 // getTaskStatus already falls back to the DB for them.
 const MAX_ACTIVE_TASKS = 500;
+// orchestrationSessions is set per orchestrate() call and only read via .size,
+// never removed during operation — so it leaks one session object per run.
+const MAX_ORCHESTRATION_SESSIONS = 200;
 const TERMINAL_TASK_STATES = new Set([
   TASK_STATUS.COMPLETED,
   TASK_STATUS.FAILED,
@@ -132,6 +135,7 @@ class AgentCoordinator extends EventEmitter {
 
     // Orchestration sessions
     this.orchestrationSessions = new Map();
+    this.maxOrchestrationSessions = MAX_ORCHESTRATION_SESSIONS;
 
     // Configuration
     this.config = {
@@ -192,6 +196,7 @@ class AgentCoordinator extends EventEmitter {
     };
 
     this.orchestrationSessions.set(sessionId, session);
+    this._evictTerminalSessions();
     this.emit('orchestration:start', { sessionId, taskDescription });
 
     try {
@@ -565,6 +570,28 @@ class AgentCoordinator extends EventEmitter {
       }
       this.activeTasks.delete(id);
       if (this.activeTasks.size <= this.maxActiveTasks) {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Bound the in-memory orchestrationSessions map by evicting the oldest
+   * terminal sessions (completed/failed/cancelled) past maxOrchestrationSessions.
+   * Sessions are only read via .size, so this never affects an in-flight run
+   * (orchestrate() works off its local session reference).
+   * @private
+   */
+  _evictTerminalSessions() {
+    if (this.orchestrationSessions.size <= this.maxOrchestrationSessions) {
+      return;
+    }
+    for (const [id, session] of this.orchestrationSessions) {
+      if (!TERMINAL_TASK_STATES.has(session.status)) {
+        continue;
+      }
+      this.orchestrationSessions.delete(id);
+      if (this.orchestrationSessions.size <= this.maxOrchestrationSessions) {
         break;
       }
     }
