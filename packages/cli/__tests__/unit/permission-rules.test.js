@@ -78,6 +78,14 @@ describe("globToRegExp", () => {
     expect(globToRegExp("**/a.js").test("a.js")).toBe(true);
     expect(globToRegExp("**/a.js").test("x/y/a.js")).toBe(true);
   });
+  it("`**/` requires a path boundary — does not match a glued prefix", () => {
+    // `**/secret` must match `secret` / `a/b/secret`, NOT `notsecret`.
+    expect(globToRegExp("**/secret").test("notsecret")).toBe(false);
+    expect(globToRegExp("**/secret").test("secret")).toBe(true);
+    expect(globToRegExp("**/secret").test("a/b/secret")).toBe(true);
+    expect(globToRegExp("/c/**/foo").test("/c/barfoo")).toBe(false);
+    expect(globToRegExp("/c/**/foo").test("/c/a/foo")).toBe(true);
+  });
   it("escapes regex metacharacters in literals", () => {
     expect(globToRegExp("a.b+c").test("a.b+c")).toBe(true);
     expect(globToRegExp("a.b+c").test("aXbXc")).toBe(false);
