@@ -131,6 +131,28 @@ describe("QueryBuilder", () => {
       expect(params).toEqual([1, 2, 3]);
     });
 
+    it("whereIn with an empty array is valid SQL that matches nothing (not `IN ()`)", () => {
+      const { sql, params } = new QueryBuilder(null)
+        .table("notes")
+        .select()
+        .whereIn("id", [])
+        .buildSQL();
+      expect(sql).not.toContain("IN ()"); // `IN ()` is a syntax error
+      expect(sql).toBe("SELECT * FROM notes WHERE 1 = 0");
+      expect(params).toEqual([]);
+    });
+
+    it("empty whereIn ANDs to false alongside other conditions", () => {
+      const { sql, params } = new QueryBuilder(null)
+        .table("notes")
+        .select()
+        .where("active", 1)
+        .whereIn("id", [])
+        .buildSQL();
+      expect(sql).toBe("SELECT * FROM notes WHERE active = ? AND 1 = 0");
+      expect(params).toEqual([1]);
+    });
+
     it("builds WHERE NULL", () => {
       const qb = new QueryBuilder(null);
       const { sql } = qb
