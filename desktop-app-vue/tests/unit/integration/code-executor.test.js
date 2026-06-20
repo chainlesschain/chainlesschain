@@ -131,6 +131,26 @@ eval("1+1")
     });
   });
 
+  describe('runCommand shell-injection 加固', () => {
+    it('不对 args 做 shell 解释（杜绝命令注入）', async () => {
+      // 回归：runCommand 曾用 `shell: process.platform === "win32"`，于是在
+      // Windows 上 args 会被 shell 解释——一个含 `&` 的 arg（如渲染进程传入的
+      // filepath）能注入命令。shell:false 后，元字符只是 node 的字面量 argv。
+      // shell:true 下 cmd 会跑 `node -e ... & echo INJECTED` → 输出含 INJECTED；
+      // shell:false 下 `&`/`echo`/`INJECTED` 仅作为 node 的多余参数被忽略。
+      const result = await codeExecutor.runCommand('node', [
+        '-e',
+        'process.stdout.write("clean")',
+        '&',
+        'echo',
+        'INJECTED',
+      ]);
+
+      expect(result.stdout).toContain('clean');
+      expect(result.stdout).not.toContain('INJECTED');
+    }, 15000);
+  });
+
   // 以下测试依赖真实环境，标记为集成测试
   describe.skip('集成测试 (需要真实Python环境)', () => {
     describe('初始化', () => {
