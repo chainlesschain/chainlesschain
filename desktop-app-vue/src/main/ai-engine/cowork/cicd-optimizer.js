@@ -857,26 +857,6 @@ class CICDOptimizer extends EventEmitter {
   }
 
   /**
-   * Record a completed build step so future plans with the same input hash can
-   * skip it. Counterpart to recordTestResult: the build executor (shell /
-   * workflow engine) calls this after a step finishes, and
-   * planIncrementalBuild's _checkBuildCache then marks it cached. Previously
-   * cicd_build_cache was read but never written, so build steps were never
-   * actually cacheable (the incremental-build optimization was a no-op).
-   * @param {string} stepName - Build step name (e.g. "build:main")
-   * @param {string} inputHash - Hash of the step's inputs
-   * @param {string} [outputPath] - Optional built-artifact path
-   * @returns {{success: boolean, stepName?: string, inputHash?: string, error?: string}}
-   */
-  recordBuildResult(stepName, inputHash, outputPath = null) {
-    if (!stepName || !inputHash) {
-      return { success: false, error: "stepName and inputHash are required" };
-    }
-    this._storeBuildCache(stepName, inputHash, outputPath);
-    return { success: true, stepName, inputHash };
-  }
-
-  /**
    * Get build cache stats
    * @returns {Object} Cache stats
    */
@@ -988,35 +968,6 @@ class CICDOptimizer extends EventEmitter {
       );
     } catch (_e) {
       return null;
-    }
-  }
-
-  /**
-   * Persist a build-step result keyed by (step_name, input_hash). Replaces any
-   * prior entry for that key so the cache keeps one row per logical step, then
-   * prunes entries older than 7 days. Mirrors _storeCache (test cache).
-   * @private
-   */
-  _storeBuildCache(stepName, inputHash, outputPath = null) {
-    if (!this.db) {
-      return;
-    }
-    try {
-      this.db.run(
-        "DELETE FROM cicd_build_cache WHERE step_name = ? AND input_hash = ?",
-        [stepName, inputHash],
-      );
-      this.db.run(
-        `INSERT INTO cicd_build_cache (id, step_name, input_hash, output_path, created_at)
-         VALUES (?, ?, ?, ?, datetime('now'))`,
-        [uuidv4(), stepName, inputHash, outputPath],
-      );
-      // Cleanup old entries (mirrors test cache 7-day retention)
-      this.db.run(
-        "DELETE FROM cicd_build_cache WHERE created_at < datetime('now', '-7 days')",
-      );
-    } catch (error) {
-      logger.warn("[CICDOptimizer] Build cache store error:", error.message);
     }
   }
 

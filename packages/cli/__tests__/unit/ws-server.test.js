@@ -978,3 +978,27 @@ describe("ChainlessChainWSServer", () => {
     });
   });
 });
+
+describe("ChainlessChainWSServer._tokenMatches (constant-time auth)", () => {
+  it("accepts the correct token and rejects wrong ones", () => {
+    const s = new ChainlessChainWSServer({ token: "s3kret-value" });
+    expect(s._tokenMatches("s3kret-value")).toBe(true);
+    expect(s._tokenMatches("s3kret-valuX")).toBe(false); // same length, 1 char off
+    expect(s._tokenMatches("s3k")).toBe(false); // shorter
+    expect(s._tokenMatches("s3kret-value-extra")).toBe(false); // longer
+  });
+
+  it("rejects non-string tokens when one is configured", () => {
+    const s = new ChainlessChainWSServer({ token: "abc" });
+    expect(s._tokenMatches(null)).toBe(false);
+    expect(s._tokenMatches(undefined)).toBe(false);
+    expect(s._tokenMatches(123)).toBe(false);
+  });
+
+  it("no configured token: matches only an absent token (auto-auth path)", () => {
+    const s = new ChainlessChainWSServer({});
+    expect(s._tokenMatches(null)).toBe(true);
+    expect(s._tokenMatches(undefined)).toBe(true);
+    expect(s._tokenMatches("anything")).toBe(false);
+  });
+});
