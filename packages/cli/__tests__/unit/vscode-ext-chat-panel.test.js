@@ -64,7 +64,7 @@ describe("mapAgentEvent", () => {
     ).toEqual({ kind: "tool", tool: "read_file", summary: "a.js" });
     expect(
       mapAgentEvent({ type: "tool_result", tool: "x", is_error: true }, st),
-    ).toEqual({ kind: "tool_done", tool: "x", isError: true });
+    ).toEqual({ kind: "tool_done", tool: "x", isError: true, note: null });
     expect(
       mapAgentEvent({ type: "compaction", stats: { saved: 42 } }, st),
     ).toEqual({ kind: "info", text: "compacted: saved 42 tokens" });

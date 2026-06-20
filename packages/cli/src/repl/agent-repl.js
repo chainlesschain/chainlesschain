@@ -1946,6 +1946,11 @@ export async function startAgentRepl(options = {}) {
             messages.length = 1; // keep system prompt
             messages.push(...rebuilt.filter((m) => m.role !== "system"));
             sessionId = resumeId;
+            // The prior session's checkpoint marks (turn-index → checkpoint id)
+            // no longer map to this swapped-in history; keeping them would make
+            // a later /rewind restore files from the WRONG session's snapshot.
+            // Same reset /clear does on a context swap.
+            _checkpointMarks.length = 0;
             logger.info(
               `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
             );
@@ -1959,6 +1964,8 @@ export async function startAgentRepl(options = {}) {
               messages.length = 1; // keep system prompt
               messages.push(...parsed.filter((m) => m.role !== "system"));
               sessionId = existing.id;
+              // Drop the prior session's checkpoint marks (see JSONL branch).
+              _checkpointMarks.length = 0;
               logger.info(
                 `Resumed session ${sessionId} (${parsed.length} messages)`,
               );

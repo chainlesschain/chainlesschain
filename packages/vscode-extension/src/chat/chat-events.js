@@ -74,12 +74,30 @@ function mapAgentEvent(evt, state) {
         tool: evt.tool || "?",
         summary: summarizeToolArgs(evt.args),
       };
-    case "tool_result":
+    case "tool_result": {
+      // `ask_user_question` has no interactive round-trip in the panel yet, so it
+      // degrades gracefully: the handler returns {error:"user_not_reachable"} (or
+      // "user_timeout") and the model proceeds autonomously. That is NOT a tool
+      // failure — don't paint a scary red "✗ … failed"; surface a quiet note.
+      const errText =
+        typeof evt.error === "string"
+          ? evt.error
+          : evt.result && typeof evt.result.error === "string"
+            ? evt.result.error
+            : null;
+      const benign =
+        errText === "user_not_reachable" || errText === "user_timeout";
       return {
         kind: "tool_done",
         tool: evt.tool || "?",
-        isError: evt.is_error === true,
+        isError: evt.is_error === true && !benign,
+        note: benign
+          ? evt.tool === "ask_user_question"
+            ? "couldn't ask interactively in the panel — proceeding autonomously"
+            : "skipped — proceeding"
+          : null,
       };
+    }
     case "compaction":
       return {
         kind: "info",

@@ -1,7 +1,11 @@
 package com.chainlesschain.project.security;
 
+import com.chainlesschain.project.entity.Conversation;
+import com.chainlesschain.project.entity.ConversationMessage;
 import com.chainlesschain.project.entity.Project;
 import com.chainlesschain.project.entity.User;
+import com.chainlesschain.project.mapper.ConversationMapper;
+import com.chainlesschain.project.mapper.ConversationMessageMapper;
 import com.chainlesschain.project.mapper.ProjectCollaboratorMapper;
 import com.chainlesschain.project.mapper.ProjectMapper;
 import com.chainlesschain.project.mapper.UserMapper;
@@ -34,6 +38,10 @@ class ProjectAccessGuardTest {
     private ProjectCollaboratorMapper collaboratorMapper;
     @Mock
     private UserMapper userMapper;
+    @Mock
+    private ConversationMapper conversationMapper;
+    @Mock
+    private ConversationMessageMapper messageMapper;
     @InjectMocks
     private ProjectAccessGuard guard;
 
@@ -110,5 +118,58 @@ class ProjectAccessGuardTest {
         // 项目不存在：放行交由下游 service 以 404 处理（不在守卫层泄露存在性）
         assertDoesNotThrow(() -> guard.assertCanAccessProject("missing", auth));
         verify(collaboratorMapper, never()).selectCount(any());
+    }
+
+    private Conversation conversation(String projectId, String userId) {
+        Conversation c = new Conversation();
+        c.setProjectId(projectId);
+        c.setUserId(userId);
+        return c;
+    }
+
+    private ConversationMessage message(String conversationId) {
+        ConversationMessage m = new ConversationMessage();
+        m.setConversationId(conversationId);
+        return m;
+    }
+
+    @Test
+    void conversation_tiedToProject_ownerAllowed() {
+        Authentication auth = authAs("alice");
+        when(conversationMapper.selectById("c1")).thenReturn(conversation("p1", "alice"));
+        when(userMapper.findByUsername("alice")).thenReturn(null);
+        when(projectMapper.selectById("p1")).thenReturn(project("alice", "alice"));
+
+        assertDoesNotThrow(() -> guard.assertCanAccessConversation("c1", auth));
+    }
+
+    @Test
+    void conversation_noProject_ownerByUserId_allowed() {
+        Authentication auth = authAs("alice");
+        when(conversationMapper.selectById("c2")).thenReturn(conversation(null, "alice"));
+        when(userMapper.findByUsername("alice")).thenReturn(null);
+
+        assertDoesNotThrow(() -> guard.assertCanAccessConversation("c2", auth));
+    }
+
+    @Test
+    void conversation_noProject_stranger_denied() {
+        Authentication auth = authAs("mallory");
+        when(conversationMapper.selectById("c3")).thenReturn(conversation(null, "alice"));
+        when(userMapper.findByUsername("mallory")).thenReturn(null);
+
+        assertThrows(AccessDeniedException.class,
+                () -> guard.assertCanAccessConversation("c3", auth));
+    }
+
+    @Test
+    void message_resolvesToConversationProject_ownerAllowed() {
+        Authentication auth = authAs("alice");
+        when(messageMapper.selectById("m1")).thenReturn(message("c1"));
+        when(conversationMapper.selectById("c1")).thenReturn(conversation("p1", "alice"));
+        when(userMapper.findByUsername("alice")).thenReturn(null);
+        when(projectMapper.selectById("p1")).thenReturn(project("alice", "alice"));
+
+        assertDoesNotThrow(() -> guard.assertCanAccessMessage("m1", auth));
     }
 }

@@ -596,6 +596,7 @@ function buildChatHtml({ cspSource, nonce }) {
         break;
       case "tool_done":
         if (m.isError) add("tool err", "✗ " + m.tool + " failed");
+        else if (m.note) add("info", "ℹ " + m.tool + ": " + m.note);
         break;
       case "info":
         add("info", m.text);

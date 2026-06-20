@@ -7,6 +7,7 @@ import com.chainlesschain.project.dto.PermissionUpdateRequest;
 import com.chainlesschain.project.service.CollaboratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,12 +45,14 @@ public class CollaboratorController {
     public ApiResponse<CollaboratorDTO> addCollaborator(
             @PathVariable String projectId,
             @Validated @RequestBody CollaboratorAddRequest request,
-            @RequestHeader(value = "User-DID", required = false) String invitedBy) {
+            @RequestHeader(value = "User-DID", required = false) String invitedBy,
+            Authentication authentication) {
         try {
-            if (invitedBy == null) {
-                invitedBy = "system";  // 默认值
-            }
-            CollaboratorDTO collaborator = collaboratorService.addCollaborator(projectId, request, invitedBy);
+            // 安全：已认证时以认证身份为邀请人，忽略可伪造的 User-DID 头（防冒名邀请）
+            String inviter = (authentication != null && authentication.getName() != null)
+                    ? authentication.getName()
+                    : (invitedBy != null ? invitedBy : "system");
+            CollaboratorDTO collaborator = collaboratorService.addCollaborator(projectId, request, inviter);
             return ApiResponse.success("协作者添加成功", collaborator);
         } catch (Exception e) {
             log.error("添加协作者失败", e);

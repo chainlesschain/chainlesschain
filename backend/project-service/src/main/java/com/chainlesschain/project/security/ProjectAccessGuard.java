@@ -1,9 +1,13 @@
 package com.chainlesschain.project.security;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.chainlesschain.project.entity.Conversation;
+import com.chainlesschain.project.entity.ConversationMessage;
 import com.chainlesschain.project.entity.Project;
 import com.chainlesschain.project.entity.ProjectCollaborator;
 import com.chainlesschain.project.entity.User;
+import com.chainlesschain.project.mapper.ConversationMapper;
+import com.chainlesschain.project.mapper.ConversationMessageMapper;
 import com.chainlesschain.project.mapper.ProjectCollaboratorMapper;
 import com.chainlesschain.project.mapper.ProjectMapper;
 import com.chainlesschain.project.mapper.UserMapper;
@@ -41,6 +45,8 @@ public class ProjectAccessGuard {
     private final ProjectMapper projectMapper;
     private final ProjectCollaboratorMapper collaboratorMapper;
     private final UserMapper userMapper;
+    private final ConversationMapper conversationMapper;
+    private final ConversationMessageMapper messageMapper;
 
     /**
      * 校验调用方可访问指定项目；不可访问则抛 {@link AccessDeniedException}。
@@ -71,6 +77,51 @@ public class ProjectAccessGuard {
         }
         log.warn("拒绝访问：caller={} 非项目 {} 所有者/协作者", authentication.getName(), projectId);
         throw new AccessDeniedException("无权访问该项目");
+    }
+
+    /**
+     * 经会话归属校验访问权限：归属项目的会话走项目级授权；无项目归属的会话按会话所有者
+     * （{@code userId}）校验。会话不存在则放行（交由 service 以 404 处理）。
+     */
+    public void assertCanAccessConversation(String conversationId, Authentication authentication) {
+        if (!isAuthenticated(authentication)) {
+            return;
+        }
+        if (conversationId == null || conversationId.trim().isEmpty()) {
+            throw new AccessDeniedException("缺少会话标识");
+        }
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null) {
+            return;
+        }
+        String projectId = conversation.getProjectId();
+        if (projectId != null && !projectId.trim().isEmpty()) {
+            assertCanAccessProject(projectId, authentication);
+            return;
+        }
+        Set<String> ids = callerIdentities(authentication);
+        if (ids.contains(conversation.getUserId())) {
+            return;
+        }
+        log.warn("拒绝访问：caller={} 非会话 {} 所有者", authentication.getName(), conversationId);
+        throw new AccessDeniedException("无权访问该会话");
+    }
+
+    /**
+     * 经 消息 → 会话 → 项目 链校验访问权限。消息不存在则放行（交由 service 处理）。
+     */
+    public void assertCanAccessMessage(String messageId, Authentication authentication) {
+        if (!isAuthenticated(authentication)) {
+            return;
+        }
+        if (messageId == null || messageId.trim().isEmpty()) {
+            throw new AccessDeniedException("缺少消息标识");
+        }
+        ConversationMessage message = messageMapper.selectById(messageId);
+        if (message == null) {
+            return;
+        }
+        assertCanAccessConversation(message.getConversationId(), authentication);
     }
 
     /**
