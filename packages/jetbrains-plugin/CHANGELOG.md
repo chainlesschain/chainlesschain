@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.22] — 2026-06-20 — notify when a newer cc CLI is available
+
+- **You're now told when a newer `cc` is published.** The plugin and the
+  `chainlesschain` CLI ship on independent tracks (JetBrains Marketplace vs npm),
+  so a working-but-old `cc` would silently miss newer panel features. When the
+  chat tool window opens it checks the npm `latest` release against your
+  installed `cc` (off the EDT, best-effort) and, if you're behind, dim-hints the
+  upgrade command (`npm i -g chainlesschain@latest`) in the transcript — at most
+  once per new version. Any probe/network failure stays quiet.
+
 ## [0.4.21] — 2026-06-20 — fix: Configure-LLM now restarts the running chat
 
 - **Fix.** After you reconfigured the LLM (⚙ LLM → provider / model / API key, or

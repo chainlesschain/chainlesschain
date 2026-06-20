@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.ChatEvents;
+import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.LlmConfig;
@@ -9,6 +10,7 @@ import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.Mentions;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SlashCommands;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
@@ -205,6 +207,10 @@ final class ConversationView {
         // dim-hint toward the ⚙ LLM button instead of leaving the panel blank
         // until the first turn fails with a 401. Best-effort, probe runs off the EDT.
         maybeShowOnboarding();
+        // The plugin and the `cc` CLI ship on independent tracks (Marketplace vs
+        // npm), so a working-but-old cc misses newer features silently. Dim-hint
+        // when a newer cc is published. Best-effort, off the EDT, once per version.
+        maybeShowCliUpdateNudge();
     }
 
     /** One-time first-run nudge: when `cc config get llm.provider` is empty,
@@ -223,6 +229,57 @@ final class ConversationView {
                         "尚未配置 LLM —— 点右下「⚙ LLM」选择提供商并填入 API key,即可开始对话。\n"));
             }
         });
+    }
+
+    /** One-time-per-version nudge: if a newer `cc` is published on npm than the
+     *  one installed, dim-hint the upgrade command. The `cc --version` probe and
+     *  the npm fetch run off the EDT (never block the panel); the hint is shown
+     *  at most once per latest version via {@link PropertiesComponent}; every
+     *  failure is swallowed (best-effort). */
+    private void maybeShowCliUpdateNudge() {
+        final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                String installed = AgentChatSession.runCapture(
+                        java.util.Collections.singletonList("--version"), cwd, 5000);
+                String latestJson = fetchNpmLatest();
+                String latest = CliVersionCheck.parseNpmLatest(latestJson);
+                String notice = CliVersionCheck.updateNotice(installed, latest);
+                if (notice == null) return;
+                String key = "cc.cliUpdateNudge." + CliVersionCheck.parseVersion(latest);
+                PropertiesComponent props = PropertiesComponent.getInstance(project);
+                if (props.getBoolean(key, false)) return; // already nudged for this version
+                props.setValue(key, true);
+                SwingUtilities.invokeLater(() -> appendThinking("ℹ " + notice + "\n"));
+            } catch (Throwable t) {
+                // best-effort — never disturb the panel on a version probe
+            }
+        });
+    }
+
+    /** The npm registry body for `chainlesschain@latest`, or null (5s timeout). */
+    private static String fetchNpmLatest() {
+        java.net.HttpURLConnection c = null;
+        try {
+            c = (java.net.HttpURLConnection) new java.net.URL(
+                    "https://registry.npmjs.org/chainlesschain/latest").openConnection();
+            c.setConnectTimeout(5000);
+            c.setReadTimeout(5000);
+            c.setRequestProperty("Accept", "application/json");
+            if (c.getResponseCode() != 200) return null;
+            StringBuilder sb = new StringBuilder();
+            try (java.io.BufferedReader r = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(c.getInputStream(),
+                            java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (c != null) c.disconnect();
+        }
     }
 
     JPanel getComponent() {

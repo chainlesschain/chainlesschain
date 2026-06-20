@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.4] — 2026-06-20 — notify when a newer cc CLI is available
+
+- **You're now told when a newer `cc` is published.** The extension and the
+  `chainlesschain` CLI ship on independent tracks (Open VSX vs npm), so a
+  working-but-old `cc` would silently miss newer panel features. On activation
+  the extension now checks the npm `latest` release against your installed `cc`
+  and, if you're behind, shows a one-click **Upgrade cc** notification (runs
+  `npm i -g chainlesschain@latest` in a terminal). Shown at most once per new
+  version; **Don't show again** silences it for good. Best-effort and offline-
+  safe — any probe/network failure stays quiet. (The existing hard-floor check —
+  "your cc is too old for this extension" — is unchanged and takes priority.)
+
 ## [0.33.3] — 2026-06-20 — fix: Configure-LLM now restarts running chats
 
 - **Fix.** After you reconfigured the LLM (⚙ provider / model / API key), the

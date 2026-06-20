@@ -46,6 +46,7 @@ public final class PureLogicSmokeMain {
         introspectArgs();
         llmConfig();
         slashCommands();
+        cliVersionCheck();
         fixWithCc();
         markdownLite();
 
@@ -424,6 +425,25 @@ public final class PureLogicSmokeMain {
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");
+    }
+
+    private static void cliVersionCheck() {
+        System.out.println("CliVersionCheck:");
+        eq(CliVersionCheck.parseVersion("chainlesschain 0.162.80\n"), "0.162.80",
+                "parse from cc --version output");
+        check(CliVersionCheck.parseVersion("no version here") == null, "junk -> null");
+        check(CliVersionCheck.compare("0.162.80", "0.162.93") < 0, "older < newer");
+        check(CliVersionCheck.compare("0.162.93", "0.162.93") == 0, "equal");
+        check(CliVersionCheck.compare("0.163.0", "0.162.99") > 0, "newer > older");
+        eq(CliVersionCheck.parseNpmLatest("{\"name\":\"chainlesschain\",\"version\":\"0.162.93\"}"),
+                "0.162.93", "parseNpmLatest pulls version");
+        check(CliVersionCheck.parseNpmLatest("{}") == null, "no version field -> null");
+        String notice = CliVersionCheck.updateNotice("0.162.80", "0.162.93");
+        check(notice != null && notice.contains("0.162.93"), "trails latest -> notice mentions latest");
+        check(CliVersionCheck.updateNotice("0.162.93", "0.162.93") == null, "up to date -> null");
+        check(CliVersionCheck.updateNotice("0.163.0", "0.162.93") == null, "ahead -> null");
+        check(CliVersionCheck.updateNotice(null, "0.162.93") == null, "unknown installed -> null");
+        check(CliVersionCheck.updateNotice("0.162.80", null) == null, "no npm latest -> null");
     }
 
     private static void fixWithCc() {
