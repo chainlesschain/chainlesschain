@@ -49,6 +49,27 @@ describe("EventBus", () => {
     it("returns false for unknown ID", () => {
       expect(bus.unsubscribe("unknown-id")).toBe(false);
     });
+
+    it("a handler unsubscribing during publish does not skip other handlers", async () => {
+      const got = [];
+      let idA;
+      // A removes itself while dispatching — must not cause B to be skipped.
+      idA = bus.subscribe("ch", () => {
+        got.push("A");
+        bus.unsubscribe(idA);
+      });
+      bus.subscribe("ch", () => got.push("B"));
+      bus.subscribe("ch", () => got.push("C"));
+
+      const delivered = await bus.publish("ch", {});
+      expect(got).toEqual(["A", "B", "C"]); // snapshot semantics — none skipped
+      expect(delivered).toBe(3);
+
+      // A's unsubscribe applies to the next round.
+      got.length = 0;
+      await bus.publish("ch", {});
+      expect(got).toEqual(["B", "C"]);
+    });
   });
 
   describe("once subscriptions", () => {
