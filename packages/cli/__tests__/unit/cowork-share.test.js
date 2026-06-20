@@ -52,6 +52,8 @@ function installFakeFs() {
   mpDeps.mkdirSync = vi.fn(fakeMkdir);
   mpDeps.readFileSync = vi.fn(fakeRead);
   mpDeps.writeFileSync = vi.fn(fakeWrite);
+  mpDeps.renameSync = vi.fn(fakeRename);
+  mpDeps.unlinkSync = vi.fn(fakeUnlink);
   mpDeps.readdirSync = vi.fn((p) => {
     const sep = p.includes("\\") ? "\\" : "/";
     const prefix = p.endsWith(sep) ? p : p + sep;
