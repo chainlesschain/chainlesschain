@@ -158,7 +158,7 @@ ${commandDocs}
 /**
  * Generate handler.js content for a direct-execution pack
  */
-function generateDirectHandler(domainKey, domainDef) {
+export function generateDirectHandler(domainKey, domainDef) {
   const commandList = Object.keys(domainDef.commands).join('", "');
   const commandGuide = Object.entries(domainDef.commands)
     .map(
@@ -240,6 +240,17 @@ ${commandGuide}
     const cliArgs = [...args];
     const useJson = JSON_SUPPORTED_COMMANDS.has(command) && !cliArgs.includes("--json");
     if (useJson) cliArgs.push("--json");
+
+    // Security: spawnSync uses shell:true (needed to run the chainlesschain.cmd
+    // shim on Windows), which joins cliArgs into a shell command. Reject shell
+    // metacharacters so a crafted skill input can't inject commands.
+    const unsafeArg = cliArgs.find((a) => /[;&|\`$<>()\\n\\r]/.test(a));
+    if (unsafeArg) {
+      return {
+        success: false,
+        error: "参数包含不安全的 shell 字符，已拒绝执行: " + JSON.stringify(unsafeArg),
+      };
+    }
 
     // Execute via child process
     const result = spawnSync("chainlesschain", cliArgs, {
@@ -371,7 +382,7 @@ module.exports = handler;
 /**
  * Generate handler.js content for hybrid-mode pack
  */
-function generateHybridHandler(domainKey, domainDef) {
+export function generateHybridHandler(domainKey, domainDef) {
   const agentCmds = Object.entries(domainDef.commands)
     .filter(([cmd, info]) => info.isAgentMode || AGENT_MODE_COMMANDS.has(cmd))
     .map(([cmd]) => `"${cmd}"`)
@@ -458,6 +469,18 @@ const handler = {
 
     // Direct execution for other commands
     const cliArgs = [...args, "--quiet"];
+
+    // Security: spawnSync uses shell:true (needed to run the chainlesschain.cmd
+    // shim on Windows), which joins cliArgs into a shell command. Reject shell
+    // metacharacters so a crafted skill input can't inject commands.
+    const unsafeArg = cliArgs.find((a) => /[;&|\`$<>()\\n\\r]/.test(a));
+    if (unsafeArg) {
+      return {
+        success: false,
+        error: "参数包含不安全的 shell 字符，已拒绝执行: " + JSON.stringify(unsafeArg),
+      };
+    }
+
     const result = spawnSync("chainlesschain", cliArgs, {
       encoding: "utf-8",
       shell: true,
