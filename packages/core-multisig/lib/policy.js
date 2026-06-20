@@ -22,6 +22,8 @@
  * @property {boolean}           requirePqc    - 强制至少 1 个 SLH-DSA 签名（PQC 过渡期）
  */
 
+const { jcs } = require("@chainlesschain/core-mtc/jcs");
+
 const DEFAULT_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 const SUPPORTED_ALGS = Object.freeze(["Ed25519", "SLH-DSA-SHA2-128F"]);
@@ -56,6 +58,13 @@ function validatePolicy(policy) {
     );
   }
   const seenDids = new Set();
+  // Track distinct keys too, not just dids: an M-of-N policy is only really
+  // M-of-N if its members hold M DISTINCT keys. validatePolicy already rejects
+  // duplicate dids; without the matching pubkey check, two member slots sharing
+  // one key (copy-paste config, or a member-add flow that doesn't check key
+  // uniqueness) silently degrade the threshold — a single key holder fills two
+  // slots and reaches a 2-of-N alone. Fingerprint = canonical JWK bytes.
+  const seenKeys = new Set();
   for (const member of policy.members) {
     if (!member || typeof member.did !== "string" || member.did.length === 0) {
       throw new TypeError("validatePolicy: each member must have non-empty did");
@@ -72,6 +81,13 @@ function validatePolicy(policy) {
     if (!member.pubkeyJwk || typeof member.pubkeyJwk !== "object") {
       throw new TypeError(`validatePolicy: member ${member.did} missing pubkeyJwk`);
     }
+    const keyFp = jcs(member.pubkeyJwk).toString("base64url");
+    if (seenKeys.has(keyFp)) {
+      throw new RangeError(
+        `validatePolicy: duplicate member public key (member ${member.did} reuses another member's key) — M-of-N requires distinct keys per member`,
+      );
+    }
+    seenKeys.add(keyFp);
   }
   if (policy.algorithms != null) {
     if (!Array.isArray(policy.algorithms)) {

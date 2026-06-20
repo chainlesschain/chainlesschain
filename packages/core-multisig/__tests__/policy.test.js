@@ -59,6 +59,25 @@ describe("policy validation", () => {
     ).toThrow(RangeError);
   });
 
+  it("rejects two members that share a public key (distinct dids, same key)", () => {
+    // okMembers[0]'s key under a second, different did — a 2-of-2 policy that is
+    // really only ONE distinct signer. Must be rejected (degraded M-of-N).
+    const clone = {
+      did: "did:cc:clone",
+      alg: okMembers[0].alg,
+      pubkeyJwk: okMembers[0].pubkeyJwk,
+    };
+    expect(() =>
+      validatePolicy({ domain: "x", m: 2, n: 2, members: [okMembers[0], clone] }),
+    ).toThrow(/duplicate member public key/);
+  });
+
+  it("accepts members with distinct keys (regression — no false positive)", () => {
+    expect(() =>
+      validatePolicy({ domain: "x", m: 2, n: 2, members: [okMembers[0], okMembers[1]] }),
+    ).not.toThrow();
+  });
+
   it("rejects member with unknown alg", () => {
     expect(() =>
       validatePolicy({
