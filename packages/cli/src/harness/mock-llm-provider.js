@@ -165,3 +165,17 @@ export function mockToolCallMessage(toolName, args, callId = "call_1") {
 export function mockTextMessage(text) {
   return { role: "assistant", content: text };
 }
+
+/**
+ * Convenience builder for a "thinking-only" assistant message: extended-thinking
+ * blocks present but no visible text and no tool calls. Used to exercise the
+ * empty-thinking re-prompt path (Claude Code 2.1.183 parity).
+ * @param {string} thinkingText
+ */
+export function mockThinkingOnlyMessage(thinkingText) {
+  return {
+    role: "assistant",
+    content: "",
+    _thinkingBlocks: [{ type: "thinking", thinking: thinkingText, signature: "" }],
+  };
+}

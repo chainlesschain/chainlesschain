@@ -3838,6 +3838,11 @@ export async function* agentLoop(messages, options) {
   // True once a Stop hook has forced a continuation — passed to the next Stop
   // hook as `stop_hook_active` so a well-behaved hook won't block forever.
   let stopHookActive = false;
+  // True once we have already re-prompted a thinking-only turn (a turn that
+  // produced extended-thinking but no visible text and no tool calls). The
+  // one-shot guard means a model that keeps returning empty turns completes
+  // rather than looping forever (the iteration budget is the hard backstop).
+  let emptyThinkingReprompted = false;
 
   while (budget.hasRemaining()) {
     budget.consume();
@@ -4036,6 +4041,26 @@ export async function* agentLoop(messages, options) {
             .join("")
             .trim()
         : "";
+      // Claude Code 2.1.183 parity: a turn that produced ONLY extended-thinking
+      // (no visible text, no tool calls) would otherwise complete silently with
+      // an empty answer — the user sees nothing. Re-prompt the model ONCE to
+      // surface its actual response. Mirrors the Stop-hook continuation path
+      // below (push assistant turn + a user nudge, then continue). Scoped to the
+      // thinking-only case so a genuinely empty completion (no thinking) still
+      // ends instead of looping.
+      const _contentEmpty = !String(msg.content || "").trim();
+      if (_contentEmpty && _thinking && !emptyThinkingReprompted) {
+        emptyThinkingReprompted = true;
+        messages.push({ role: "assistant", content: "" });
+        messages.push({
+          role: "user",
+          content:
+            "You ended your turn with only internal reasoning and no visible " +
+            "response. Please provide your actual answer now.",
+        });
+        yield { type: "empty-thinking-reprompt", runId };
+        continue;
+      }
       yield {
         type: "response-complete",
         content: msg.content || "",
