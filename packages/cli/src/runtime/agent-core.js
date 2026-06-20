@@ -684,7 +684,7 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
       }
       return {
         filePath,
-        newContent: content.replace(args.old_string, args.new_string),
+        newContent: content.replace(args.old_string, () => args.new_string),
         originalText: content,
       };
     }
@@ -1380,7 +1380,7 @@ async function executeToolInner(
       if (!content.includes(args.old_string)) {
         return attachDescriptor({ error: "old_string not found in file" });
       }
-      const newContent = content.replace(args.old_string, args.new_string);
+      const newContent = content.replace(args.old_string, () => args.new_string);
       const wrote = writeFileVerified(filePath, newContent);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       return attachDescriptor({
