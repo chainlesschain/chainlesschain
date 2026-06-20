@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createRequire } from "node:module";
 import {
   _deps,
   ensureCliAnythingTables,
@@ -310,6 +314,36 @@ describe("cli-anything-bridge", () => {
     it("should return error when no input provided", () => {
       const js = _generateHandlerJs("test", "cli-anything-test");
       expect(js).toContain("No input provided");
+    });
+
+    it("rejects input with shell metacharacters (no command injection)", async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cab-inject-"));
+      try {
+        const code = _generateHandlerJs("test", "cli-anything-test");
+        const file = path.join(dir, "handler.cjs");
+        fs.writeFileSync(file, code);
+        const handler = createRequire(import.meta.url)(file);
+
+        const marker = path.join(dir, "PWNED");
+        // input is interpolated into a shell command; `;` would run `touch` as a
+        // separate command under the old execSync(`cmd ${input}`).
+        const res = await handler.execute(
+          { params: { input: `sub; touch ${marker}` } },
+          { projectRoot: dir },
+        );
+        expect(res.success).toBe(false);
+        expect(res.error).toMatch(/unsafe/i);
+        expect(fs.existsSync(marker)).toBe(false); // injection never executed
+
+        // a clean input is NOT rejected by the guard (may fail ENOENT, but not "unsafe")
+        const ok = await handler.execute(
+          { params: { input: "sub arg1 arg2" } },
+          { projectRoot: dir },
+        );
+        expect(ok.error || "").not.toMatch(/unsafe/i);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 

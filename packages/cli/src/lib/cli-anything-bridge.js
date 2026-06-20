@@ -258,6 +258,11 @@ module.exports = {
   async execute(task, context) {
     const input = (task?.params?.input || task?.action || "").trim();
     if (!input) return { success: false, error: "No input provided" };
+    // Security: input is interpolated into a shell command, so reject shell
+    // metacharacters to prevent command injection from untrusted skill input.
+    if (/[;&|\`$<>()\\n\\r]/.test(input)) {
+      return { success: false, error: "Input contains unsafe shell characters; refused." };
+    }
     try {
       const output = execSync(\`${command} \${input}\`, {
         encoding: "utf-8",
