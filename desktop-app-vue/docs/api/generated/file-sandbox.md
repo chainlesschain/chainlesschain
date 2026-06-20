@@ -75,10 +75,10 @@ setDatabase(db)
 
 ---
 
-## async requestAccess(teamId, folderPath, permissions = [Permission.READ], options =
+## async requestAccess(
 
 ```javascript
-async requestAccess(teamId, folderPath, permissions = [Permission.READ], options =
+async requestAccess(
 ```
 
 * 请求访问权限（弹出授权对话框）
@@ -90,10 +90,10 @@ async requestAccess(teamId, folderPath, permissions = [Permission.READ], options
 
 ---
 
-## async grantAccess(teamId, folderPath, permissions = [Permission.READ], options =
+## async grantAccess(
 
 ```javascript
-async grantAccess(teamId, folderPath, permissions = [Permission.READ], options =
+async grantAccess(
 ```
 
 * 授予访问权限
@@ -249,10 +249,10 @@ async listDirectory(teamId, agentId, dirPath)
 
 ---
 
-## async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null)
+## async _auditOperation(
 
 ```javascript
-async _auditOperation(teamId, agentId, operation, resourcePath, success, errorMessage = null)
+async _auditOperation(
 ```
 
 * 记录操作审计
@@ -273,10 +273,10 @@ getAuditLog(filters =
 
 ---
 
-## _log(message, level = 'info')
+## _log(message, level = "info")
 
 ```javascript
-_log(message, level = 'info')
+_log(message, level = "info")
 ```
 
 * 日志输出
@@ -315,10 +315,10 @@ reset()
 
 ---
 
-## async grantPermission(teamId, folderPath, permissions = ['read'], options =
+## async grantPermission(
 
 ```javascript
-async grantPermission(teamId, folderPath, permissions = ['read'], options =
+async grantPermission(
 ```
 
 * 授予权限（别名：grantAccess）
