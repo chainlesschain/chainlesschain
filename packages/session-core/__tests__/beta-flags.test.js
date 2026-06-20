@@ -137,4 +137,28 @@ describe("BetaFlags store integration", () => {
     const b = new BetaFlags();
     await expect(b.load()).resolves.toBeUndefined();
   });
+
+  it("load() drops malformed flags in strict mode", async () => {
+    const store = {
+      load: async () => ["idle-park-2026-05-01", "BAD-FLAG", "no-date", ""],
+      save: async () => {},
+    };
+    const b = new BetaFlags({ store, strict: true });
+    await b.load();
+    expect(b.list().enabled).toEqual(["idle-park-2026-05-01"]);
+    expect(b.isEnabled("BAD-FLAG")).toBe(false);
+  });
+
+  it("load() keeps all flags when not strict", async () => {
+    const store = {
+      load: async () => ["idle-park-2026-05-01", "anything-goes"],
+      save: async () => {},
+    };
+    const b = new BetaFlags({ store, strict: false });
+    await b.load();
+    expect(b.list().enabled.sort()).toEqual([
+      "anything-goes",
+      "idle-park-2026-05-01",
+    ]);
+  });
 });
