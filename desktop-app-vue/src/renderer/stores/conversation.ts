@@ -5,6 +5,13 @@
 import { logger } from "@/utils/logger";
 import { defineStore } from "pinia";
 
+// Monotonic token for loadConversation. When a conversation isn't cached it is
+// loaded from the DB via an await; a fast switch to another conversation could
+// be clobbered when the slower load resolves and sets currentConversation. Each
+// call claims the next token and only applies its result if still the latest.
+// The store is a singleton, so module scope is per-store.
+let _loadConversationSeq = 0;
+
 // ==================== 类型定义 ====================
 
 /**
@@ -229,6 +236,7 @@ export const useConversationStore = defineStore("conversation", {
     async loadConversation(
       conversationId: string,
     ): Promise<Conversation | null> {
+      const seq = ++_loadConversationSeq;
       try {
         // 先从内存中查找
         let conversation = this.conversations.find(
@@ -242,7 +250,9 @@ export const useConversationStore = defineStore("conversation", {
           );
         }
 
-        if (conversation) {
+        // 若期间用户已切换到另一个对话（更晚的 loadConversation 调用），
+        // 丢弃这次过期的结果，避免把当前对话覆盖回旧的。
+        if (conversation && seq === _loadConversationSeq) {
           this.currentConversation = conversation;
         }
 

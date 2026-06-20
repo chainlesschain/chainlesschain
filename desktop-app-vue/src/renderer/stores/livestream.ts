@@ -397,6 +397,13 @@ export const useLivestreamStore = defineStore('livestream', {
           limit,
           offset,
         );
+        // The user may have switched streams during the await. danmakuQueue
+        // always belongs to the current stream (leave/join reset it), so
+        // applying this stream's history now would corrupt a different
+        // stream's queue. Drop the stale response.
+        if (this.currentStream?.id !== streamId) {
+          return;
+        }
         const safeMsgs: DanmakuMessage[] = Array.isArray(messages) ? messages : [];
 
         if (offset === 0) {

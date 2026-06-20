@@ -7,6 +7,12 @@ import { logger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { electronAPI } from '../utils/ipc';
 
+// Monotonic token for loadProjectFiles. Concurrent loads for different projects
+// (e.g. fast-switching projects) could let a slow response overwrite a newer
+// project's files. Each call claims the next token; a response only applies if
+// it's still the latest. The store is a singleton, so module scope is per-store.
+let _loadProjectFilesSeq = 0;
+
 // ==================== 类型定义 ====================
 
 /**
@@ -672,6 +678,7 @@ export const useProjectStore = defineStore('project', {
      */
     async loadProjectFiles(projectId: string): Promise<ProjectFile[]> {
       const startTime = Date.now();
+      const seq = ++_loadProjectFilesSeq;
       logger.info('[Store] loadProjectFiles 开始, 项目ID:', projectId);
 
       try {
@@ -679,6 +686,12 @@ export const useProjectStore = defineStore('project', {
         const elapsed = Date.now() - startTime;
 
         logger.info(`[Store] IPC 返回，耗时: ${elapsed}ms`);
+
+        // A newer loadProjectFiles started during the await (project switched);
+        // discard this stale response so it can't clobber the newer files.
+        if (seq !== _loadProjectFilesSeq) {
+          return this.projectFiles;
+        }
 
         let files: ProjectFile[] = [];
 
@@ -700,6 +713,10 @@ export const useProjectStore = defineStore('project', {
         return this.projectFiles;
       } catch (error) {
         logger.error('[Store] loadProjectFiles 错误:', error as any);
+        // Don't clear a newer project's files on a stale failure either.
+        if (seq !== _loadProjectFilesSeq) {
+          return this.projectFiles;
+        }
         this.projectFiles = [];
         return [];
       }

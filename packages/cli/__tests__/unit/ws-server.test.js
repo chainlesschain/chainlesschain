@@ -983,9 +983,9 @@ describe("ChainlessChainWSServer._tokenMatches (constant-time auth)", () => {
   it("accepts the correct token and rejects wrong ones", () => {
     const s = new ChainlessChainWSServer({ token: "s3kret-value" });
     expect(s._tokenMatches("s3kret-value")).toBe(true);
-    expect(s._tokenMatches("s3kret-valuX")).toBe(false); // same length, 1 char off
-    expect(s._tokenMatches("s3k")).toBe(false); // shorter
-    expect(s._tokenMatches("s3kret-value-extra")).toBe(false); // longer
+    expect(s._tokenMatches("s3kret-valuX")).toBe(false);
+    expect(s._tokenMatches("s3k")).toBe(false);
+    expect(s._tokenMatches("s3kret-value-extra")).toBe(false);
   });
 
   it("rejects non-string tokens when one is configured", () => {
