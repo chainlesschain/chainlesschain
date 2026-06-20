@@ -4,6 +4,7 @@ const globals = require("globals");
 const tseslint = require("typescript-eslint");
 const vueParser = require("vue-eslint-parser");
 const tsParser = require("@typescript-eslint/parser");
+const noUnguardedStaleWrite = require("./eslint-rules/no-unguarded-stale-write");
 
 module.exports = [
   // 忽略目录
@@ -284,6 +285,27 @@ module.exports = [
       "no-unused-vars": "off",
       "no-undef": "off",
       "no-redeclare": "off",
+    },
+  },
+
+  // Pinia store 防回归：await 之后写 this.current* 前必须有“仍是当前上下文”的守卫，
+  // 否则切换上下文时慢响应会覆盖新响应（本仓修过 7 处同型 stale-response/race）。
+  // 仅 warn（启发式，可用带理由的 eslint-disable 关掉）。projectFiles/danmakuQueue
+  // 等非 current 前缀的列表态可按需扩进 propertyPattern。
+  {
+    files: ["src/renderer/stores/**/*.{ts,js}"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { ecmaVersion: 2022, sourceType: "module" },
+    },
+    plugins: {
+      "store-race": { rules: { "no-unguarded-stale-write": noUnguardedStaleWrite } },
+    },
+    rules: {
+      "store-race/no-unguarded-stale-write": [
+        "warn",
+        { propertyPattern: "^(current|projectFiles|danmakuQueue)" },
+      ],
     },
   },
 ];
