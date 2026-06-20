@@ -13,7 +13,7 @@ class ServiceContainer extends EventEmitter {
     super();
     this._services = new Map();
     this._instances = new Map();
-    this._initializing = new Set();
+    this._pending = new Map(); // name → in-flight resolution promise (singletons)
     this._initialized = false;
   }
 
@@ -35,7 +35,7 @@ class ServiceContainer extends EventEmitter {
     this.emit("service:registered", { name });
   }
 
-  async resolve(name) {
+  async resolve(name, _path = []) {
     const logger = getLogger();
 
     if (this._instances.has(name)) {
@@ -47,37 +47,53 @@ class ServiceContainer extends EventEmitter {
       throw new Error(`Service '${name}' not registered`);
     }
 
-    if (this._initializing.has(name)) {
+    // Cycle detection uses the current resolution PATH (the chain of names being
+    // resolved in this branch), not a global "being initialized" flag. The old
+    // global-set approach false-positived on concurrent resolves: two in-flight
+    // resolve() calls for services sharing a dependency (e.g. Promise.all over
+    // services that both need 'db') made the second throw a spurious
+    // "Circular dependency". A real cycle is `name` reappearing in its own path.
+    if (_path.includes(name)) {
       throw new Error(`Circular dependency detected for '${name}'`);
     }
 
-    this._initializing.add(name);
+    // Concurrent dedup for singletons: if a resolution is already in flight,
+    // await the same promise so we don't build the singleton twice (and don't
+    // false-trigger the cycle check). Non-singletons are intentionally built
+    // fresh on every call.
+    if (definition.singleton && this._pending.has(name)) {
+      return this._pending.get(name);
+    }
 
-    try {
+    const build = (async () => {
       const deps = {};
       for (const dep of definition.dependencies) {
-        deps[dep] = await this.resolve(dep);
+        deps[dep] = await this.resolve(dep, [..._path, name]);
       }
-
       const instance =
         typeof definition.factory === "function"
           ? await definition.factory(deps)
           : definition.factory;
-
       if (definition.singleton) {
         this._instances.set(name, instance);
       }
+      return instance;
+    })();
 
-      this._initializing.delete(name);
+    if (definition.singleton) this._pending.set(name, build);
+
+    try {
+      const instance = await build;
       this.emit("service:resolved", { name });
       return instance;
     } catch (error) {
-      this._initializing.delete(name);
       logger.error(
         `[ServiceContainer] Failed to resolve '${name}':`,
         error.message,
       );
       throw error;
+    } finally {
+      if (definition.singleton) this._pending.delete(name);
     }
   }
 
@@ -116,7 +132,7 @@ class ServiceContainer extends EventEmitter {
       }
     }
     this._instances.clear();
-    this._initializing.clear();
+    this._pending.clear();
     this.emit("container:disposed");
   }
 
@@ -139,7 +155,7 @@ class ServiceContainer extends EventEmitter {
     return {
       totalServices: this._services.size,
       resolvedServices: this._instances.size,
-      initializingServices: this._initializing.size,
+      initializingServices: this._pending.size,
     };
   }
 }

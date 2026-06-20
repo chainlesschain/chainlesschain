@@ -53,6 +53,51 @@ describe("ServiceContainer", () => {
         "Circular dependency",
       );
     });
+
+    it("does not false-trigger circular on concurrent resolves of a shared dep", async () => {
+      let dbBuilds = 0;
+      container.register(
+        "db",
+        async () => {
+          dbBuilds++;
+          await new Promise((r) => setTimeout(r, 10));
+          return { kind: "db" };
+        },
+        { dependencies: [] },
+      );
+      container.register("svcA", async ({ db }) => ({ a: true, db }), {
+        dependencies: ["db"],
+      });
+      container.register("svcB", async ({ db }) => ({ b: true, db }), {
+        dependencies: ["db"],
+      });
+      // Concurrent — both branches resolve 'db' while it's still in flight.
+      const [a, b] = await Promise.all([
+        container.resolve("svcA"),
+        container.resolve("svcB"),
+      ]);
+      expect(a.a).toBe(true);
+      expect(b.b).toBe(true);
+      expect(a.db).toBe(b.db); // same singleton instance
+      expect(dbBuilds).toBe(1); // built exactly once despite concurrency
+    });
+
+    it("concurrent resolves of the same singleton build it once", async () => {
+      let builds = 0;
+      container.register("once", async () => {
+        builds++;
+        await new Promise((r) => setTimeout(r, 5));
+        return { n: builds };
+      });
+      const [x, y, z] = await Promise.all([
+        container.resolve("once"),
+        container.resolve("once"),
+        container.resolve("once"),
+      ]);
+      expect(x).toBe(y);
+      expect(y).toBe(z);
+      expect(builds).toBe(1);
+    });
   });
 
   describe("dependency injection", () => {
