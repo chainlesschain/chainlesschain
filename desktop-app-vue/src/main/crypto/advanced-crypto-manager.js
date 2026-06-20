@@ -23,6 +23,11 @@ const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
 const { logger } = require("../utils/logger.js");
 
+// Bound the in-memory verifiable-compute result cache. Each verifiableCompute
+// call inserts under a unique resultId and the map was never pruned, so it grew
+// without limit; keep a rolling window of the most recent results.
+const MAX_COMPUTE_RESULTS = 1000;
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -65,7 +70,24 @@ class AdvancedCryptoManager extends EventEmitter {
     this._sseIndexes = new Map();
     this._reKeys = new Map();
     this._computeResults = new Map();
+    this.maxComputeResults = MAX_COMPUTE_RESULTS;
     this._delegations = new Map();
+  }
+
+  /**
+   * Evict the oldest verifiable-compute result(s) so the cache can't grow past
+   * maxComputeResults. Older results become unverifiable (verifyComputation
+   * throws "not found"), which is acceptable for a rolling recent-results cache.
+   * @private
+   */
+  _capComputeResults() {
+    while (this._computeResults.size >= this.maxComputeResults) {
+      const oldest = this._computeResults.keys().next().value;
+      if (oldest === undefined) {
+        break;
+      }
+      this._computeResults.delete(oldest);
+    }
   }
 
   /**
@@ -598,6 +620,7 @@ class AdvancedCryptoManager extends EventEmitter {
       .update(resultId)
       .digest("hex");
 
+    this._capComputeResults();
     this._computeResults.set(resultId, {
       program,
       inputs,
