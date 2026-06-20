@@ -414,6 +414,13 @@ describe("N3: substituteItem", () => {
   it("leaves template unchanged if no token", () => {
     expect(substituteItem("no token", "x")).toBe("no token");
   });
+
+  it("inserts the item literally — $-sequences are not replace patterns", () => {
+    // $& $` $' would expand to match/pre/post; $$ would collapse to $.
+    expect(substituteItem("x=${item}", "a$&b $`c $'d")).toBe("x=a$&b $`c $'d");
+    expect(substituteItem("v=${item}", "$$")).toBe("v=$$");
+    expect(substituteItem("${item}-${item}", "Z")).toBe("Z-Z");
+  });
 });
 
 describe("N3: shouldRunStep", () => {
