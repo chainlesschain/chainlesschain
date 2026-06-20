@@ -192,11 +192,20 @@ class QueryBuilder {
       sql += ` ORDER BY ${this._orderBy.map((o) => `${o.column} ${o.direction}`).join(", ")}`;
     }
 
+    // Bind LIMIT/OFFSET as parameters rather than interpolating them. They are
+    // the only remaining raw VALUE interpolation here (identifiers like table /
+    // column are developer-supplied by design), and they commonly come from
+    // pagination/API input — raw interpolation of an attacker-controlled limit
+    // is SQL injection. Bound, a non-numeric limit is data (SQLite raises
+    // "datatype mismatch") and a string number still coerces. Appended after
+    // the WHERE params so bind order matches their position in the SQL.
     if (this._limit !== null) {
-      sql += ` LIMIT ${this._limit}`;
+      sql += ` LIMIT ?`;
+      params.push(this._limit);
     }
     if (this._offset !== null) {
-      sql += ` OFFSET ${this._offset}`;
+      sql += ` OFFSET ?`;
+      params.push(this._offset);
     }
 
     return { sql, params };

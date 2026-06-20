@@ -61,15 +61,29 @@ describe("QueryBuilder", () => {
       expect(sql).toBe("SELECT * FROM notes ORDER BY created_at DESC");
     });
 
-    it("builds SELECT with LIMIT and OFFSET", () => {
+    it("builds SELECT with LIMIT and OFFSET as bound params (not interpolated)", () => {
       const qb = new QueryBuilder(null);
-      const { sql } = qb
+      const { sql, params } = qb
         .table("notes")
         .select()
         .limit(10)
         .offset(20)
         .buildSQL();
-      expect(sql).toBe("SELECT * FROM notes LIMIT 10 OFFSET 20");
+      expect(sql).toBe("SELECT * FROM notes LIMIT ? OFFSET ?");
+      expect(params).toEqual([10, 20]);
+    });
+
+    it("binds LIMIT/OFFSET after WHERE params in the right order", () => {
+      const qb = new QueryBuilder(null);
+      const { sql, params } = qb
+        .table("notes")
+        .select()
+        .where("status", "active")
+        .limit(5)
+        .offset(15)
+        .buildSQL();
+      expect(sql).toBe("SELECT * FROM notes WHERE status = ? LIMIT ? OFFSET ?");
+      expect(params).toEqual(["active", 5, 15]);
     });
 
     it("builds SELECT with JOIN", () => {
