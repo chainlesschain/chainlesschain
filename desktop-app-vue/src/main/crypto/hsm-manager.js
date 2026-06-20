@@ -394,10 +394,13 @@ class HSMManager extends EventEmitter {
         .createHmac("sha256", keyEntry.material.secret)
         .update(typeof data === "string" ? data : data.toString())
         .digest("hex");
-      valid = crypto.timingSafeEqual(
-        Buffer.from(expected, "hex"),
-        Buffer.from(signature, "hex"),
-      );
+      const expectedBuf = Buffer.from(expected, "hex");
+      const signatureBuf = Buffer.from(signature, "hex");
+      // timingSafeEqual throws RangeError on length mismatch; a malformed or
+      // wrong-length signature (untrusted input) must verify as false, not crash.
+      valid =
+        expectedBuf.length === signatureBuf.length &&
+        crypto.timingSafeEqual(expectedBuf, signatureBuf);
     }
 
     logger.info(
