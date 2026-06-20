@@ -23,6 +23,11 @@ import {
   ideServerToMcpConfig,
   isInIdeTerminal,
 } from "../lib/ide-bridge.js";
+import {
+  discoverPdhServer,
+  pdhServerToMcpConfig,
+  isInPdhTerminal,
+} from "../lib/pdh-bridge.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -378,6 +383,48 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
 }
 
 /**
+ * Discover a running PDH bridge (the Android app's device-capability MCP server)
+ * and connect it as the reserved server `pdh`. Best-effort: returns `deps.into`
+ * (or null) on nothing found / bad config, never throws. An explicit user
+ * registration of a server named `pdh` wins — PDH auto-discovery yields with a
+ * one-line warning. Reserved name `pdh` → tools `mcp__pdh__*`.
+ *
+ * Mirrors loadIdeMcp, but PDH has no workspace concept (a device has one
+ * server): env CHAINLESSCHAIN_PDH_PORT fast-path, else the newest live lock.
+ *
+ * @param {object} opts  { env?, force? }
+ * @param {object} [deps] { writeErr, into, discoverPdhServer, pdhServerToMcpConfig }
+ */
+export async function loadPdhMcp(opts = {}, deps = {}) {
+  const discover = deps.discoverPdhServer || discoverPdhServer;
+  const toCfg = deps.pdhServerToMcpConfig || pdhServerToMcpConfig;
+  const lock = discover({ env: opts.env, force: opts.force === true });
+  if (!lock) return deps.into || null;
+  if (deps.into?.mcpClient?.servers?.has?.("pdh")) {
+    (deps.writeErr || (() => {}))(
+      `  pdh: server "pdh" already registered explicitly — ` +
+        `skipping PDH auto-discovery\n`,
+    );
+    return deps.into;
+  }
+  const cfg = toCfg(lock);
+  if (!cfg) return deps.into || null;
+  const out = await setupMcpFromConfig({ pdh: cfg }, deps);
+  // Hot reconnect: the app restarts its bridge on a NEW port + token (process
+  // restart / sentinel re-extract). Register a reconnector so a failed
+  // mcp__pdh__* call re-scans the lockfiles mid-session and retries — the stale
+  // CHAINLESSCHAIN_PDH_PORT no longer matches a live lock, so discovery falls
+  // through to the newest live lock (exactly the restarted instance).
+  if (out?.mcpClient?.setReconnector) {
+    out.mcpClient.setReconnector("pdh", () => {
+      const fresh = discover({ env: opts.env, force: opts.force === true });
+      return fresh ? toCfg(fresh) : null;
+    });
+  }
+  return out;
+}
+
+/**
  * Discover + connect a project-scoped `.mcp.json` (Claude-Code parity). Reads a
  * `.mcp.json` from the git project root (walked up from cwd, same as the
  * `.claude` config layers) and from cwd itself, merging their `mcpServers`
@@ -450,14 +497,15 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
  * IDE discovery: default ON only inside an IDE integrated terminal; `ide:true`
  * (`--ide`) forces it; `ide:false` (`--no-ide`) disables it.
  *
- * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false, ide?, cwd?, env? }
- * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp, loadIdeMcp, isInIdeTerminal }
+ * @param {object} args { mcpConfigPath?, db?, includeRegistered=true, allRegistered=false, ide?, pdh?, cwd?, env? }
+ * @param {object} [deps] { writeErr, loadMcpConfig, loadRegisteredMcp, loadIdeMcp, loadPdhMcp, isInIdeTerminal, isInPdhTerminal }
  */
 export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
   const doProject = deps.loadProjectMcp || loadProjectMcp;
   const doIde = deps.loadIdeMcp || loadIdeMcp;
+  const doPdh = deps.loadPdhMcp || loadPdhMcp;
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   const fwd =
@@ -496,6 +544,20 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     if (args.ide === true || inIde) {
       result = await doIde(
         { cwd: args.cwd, env, force: args.ide === true },
+        { ...fwd, into: result || undefined },
+      );
+    }
+  }
+  // PDH bridge auto-discovery (the Android app's device-capability MCP server).
+  // Same gating shape as IDE: default ON only when env-wired (app-spawned cc),
+  // `pdh:true` (--pdh) forces it, `pdh:false` (--no-pdh) disables it. Reserved
+  // name `pdh` → mcp__pdh__*. Skipped under --strict-mcp-config (returned above).
+  if (args.pdh !== false) {
+    const env = args.env || process.env;
+    const inPdh = (deps.isInPdhTerminal || isInPdhTerminal)(env);
+    if (args.pdh === true || inPdh) {
+      result = await doPdh(
+        { env, force: args.pdh === true },
         { ...fwd, into: result || undefined },
       );
     }
