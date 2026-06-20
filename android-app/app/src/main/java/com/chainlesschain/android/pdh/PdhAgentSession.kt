@@ -95,6 +95,9 @@ class PdhAgentSession @Inject constructor(
         ) : PdhAgentEvent()
     }
 
+    /** §3.5.13 自学习纠正信号类别(人对 AI 某轮回应的反馈)。 */
+    enum class FeedbackKind { POSITIVE, NEGATIVE, CORRECTION }
+
     private val _events = MutableSharedFlow<PdhAgentEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<PdhAgentEvent> = _events.asSharedFlow()
 
@@ -242,6 +245,17 @@ class PdhAgentSession @Inject constructor(
         },
     )
 
+    /**
+     * §3.5.13: send a self-learning correction signal → `{"type":"feedback",…}`.
+     * The cc side feeds it to the end-side learning layer (module 84 OutcomeFeedback
+     * / instinct) — that consumption is cc-bound; this is the Android capture+send half.
+     */
+    suspend fun sendFeedback(
+        turnId: String,
+        kind: FeedbackKind,
+        comment: String? = null,
+    ): Boolean = sendRaw(feedbackEvent(turnId, kind, comment))
+
     /** Write one NDJSON input event to the agent's stdin. No-op if not running. */
     private suspend fun sendRaw(obj: JsonObject): Boolean = withContext(Dispatchers.IO) {
         val w = writer ?: return@withContext false
@@ -310,6 +324,15 @@ class PdhAgentSession @Inject constructor(
         private const val TAG = "PdhAgentSession"
         const val ENV_PDH_PORT = "CHAINLESSCHAIN_PDH_PORT"
         const val DEFAULT_BRIDGE_PORT = 18510
+
+        /** §3.5.13 pure: build the `{type:feedback}` event (testable). */
+        fun feedbackEvent(turnId: String, kind: FeedbackKind, comment: String?): JsonObject =
+            buildJsonObject {
+                put("type", "feedback")
+                put("turn_id", turnId)
+                put("kind", kind.name.lowercase())
+                if (!comment.isNullOrBlank()) put("comment", comment)
+            }
 
         /** Appended to cc agent's default prompt so it acts as a PDH steward. */
         val PDH_SYSTEM_PROMPT =

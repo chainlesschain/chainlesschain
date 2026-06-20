@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.TrustCard
@@ -133,6 +134,13 @@ fun PdhChatScreen(
                         Role.DATA -> DataQuoteCard(msg, onToggle = { viewModel.toggleCollapse(msg.id) })
                         // §3.5.12: 可信结构化结果用视图卡(区别于不可信数据)。
                         Role.VIEW -> ResultViewCard(msg, onToggle = { viewModel.toggleCollapse(msg.id) })
+                        // §3.5.13: 已落库的 AI 回应带反馈页脚(👍/👎/纠正)。
+                        Role.ASSISTANT -> AssistantMessage(
+                            msg = msg,
+                            onThumbUp = { viewModel.thumbUp(msg.id) },
+                            onThumbDown = { viewModel.thumbDown(msg.id) },
+                            onCorrect = { viewModel.submitCorrection(msg.id, it) },
+                        )
                         else -> MessageRow(role = msg.role, text = msg.text)
                     }
                 }
@@ -207,6 +215,74 @@ private fun MessageRow(role: Role, text: String) {
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = if (role == Role.SYSTEM) TextAlign.Center else TextAlign.Start,
                 )
+            }
+        }
+    }
+}
+
+// §3.5.13 自学习纠正:已落库的 AI 回应 + 反馈页脚(👍/👎/纠正 → FeedbackSignal)。
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AssistantMessage(
+    msg: PdhChatViewModel.ChatMessage,
+    onThumbUp: () -> Unit,
+    onThumbDown: () -> Unit,
+    onCorrect: (String) -> Unit,
+) {
+    var correcting by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("") }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                MarkdownText(
+                    markdown = msg.text,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        val given = msg.feedback
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onThumbUp, enabled = given == null) {
+                Text(if (given == FeedbackKind.POSITIVE) "👍 已赞" else "👍")
+            }
+            TextButton(onClick = onThumbDown, enabled = given == null) {
+                Text(if (given == FeedbackKind.NEGATIVE) "👎 已踩" else "👎")
+            }
+            TextButton(onClick = { correcting = !correcting }) {
+                Text(if (given == FeedbackKind.CORRECTION) "已纠正" else "纠正")
+            }
+            if (given != null) {
+                Text(
+                    "已记录,以后按此调整",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+        }
+        if (correcting) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("纠正 AI 的理解…") },
+                    maxLines = 3,
+                )
+                Button(
+                    onClick = { onCorrect(text); text = ""; correcting = false },
+                    enabled = text.isNotBlank(),
+                ) { Text("提交") }
             }
         }
     }
