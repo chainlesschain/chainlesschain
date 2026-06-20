@@ -306,12 +306,27 @@ export function getStoredToken(serverUrl) {
   return loadTokenStore()[serverKey(serverUrl)] || null;
 }
 
+// The store holds OAuth access + refresh tokens, so it must not be world-
+// readable. writeFileSync's `mode` only applies when the file is created, so
+// also chmod (best-effort) to tighten a file an older version left at 0644.
+function _writeStoreSecure(file, store) {
+  _deps.fs.mkdirSync(pathDefault.dirname(file), { recursive: true, mode: 0o700 });
+  _deps.fs.writeFileSync(file, JSON.stringify(store, null, 2) + "\n", {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  try {
+    _deps.fs.chmodSync(file, 0o600);
+  } catch {
+    /* chmod unsupported on this platform/fs (e.g. Windows) — mode is advisory */
+  }
+}
+
 export function saveStoredToken(serverUrl, record) {
   const file = tokenStorePath();
   const store = loadTokenStore();
   store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
-  _deps.fs.mkdirSync(pathDefault.dirname(file), { recursive: true });
-  _deps.fs.writeFileSync(file, JSON.stringify(store, null, 2) + "\n", "utf-8");
+  _writeStoreSecure(file, store);
   return store[serverKey(serverUrl)];
 }
 
@@ -322,11 +337,7 @@ export function deleteStoredToken(serverUrl) {
   if (!(key in store)) return false;
   delete store[key];
   try {
-    _deps.fs.writeFileSync(
-      file,
-      JSON.stringify(store, null, 2) + "\n",
-      "utf-8",
-    );
+    _writeStoreSecure(file, store);
   } catch {
     /* best-effort */
   }
