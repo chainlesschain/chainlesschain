@@ -115,7 +115,13 @@ class MemoryConsolidator extends EventEmitter {
           ? session.agentId || session.sessionId
           : null);
 
-    const events = this._trace.query(session.sessionId) || [];
+    // Consolidate the WHOLE session, not just trace.query's default page of 500
+    // (newest-first) — otherwise a long session silently drops its earliest
+    // preferences / errors / tasks from the long-term memory this extracts.
+    // Mirrors summarize()'s use of an unbounded limit.
+    const events =
+      this._trace.query(session.sessionId, { limit: Number.MAX_SAFE_INTEGER }) ||
+      [];
 
     let facts = [];
     if (options.useLLM && this._summarizer) {

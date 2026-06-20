@@ -232,4 +232,21 @@ describe("MemoryConsolidator", () => {
     expect(spy).toHaveBeenCalledOnce();
     expect(res.writtenCount).toBe(0);
   });
+
+  it("consolidates the whole session, not just the newest 500 trace events", async () => {
+    const { memoryStore, traceStore } = buildRig();
+    // 600 user-preference messages — more than trace.query's default 500 page.
+    for (let i = 0; i < 600; i++) {
+      traceStore.record({
+        sessionId: "s1",
+        type: TRACE_TYPES.MESSAGE,
+        payload: { role: "user", content: `我喜欢 setting #${i}` },
+      });
+    }
+    const c = new MemoryConsolidator({ memoryStore, traceStore });
+    const res = await c.consolidate({ sessionId: "s1", agentId: "a1" });
+    expect(res.eventCount).toBe(600); // not capped at 500
+    expect(res.factCount).toBe(600); // every preference extracted
+    expect(res.writtenCount).toBe(600);
+  });
 });
