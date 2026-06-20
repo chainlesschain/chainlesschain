@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — 个人数据 IDE 桥接（module 101）Phase 2 单输入框 UI 接线:设计 §3.5.9–3.5.20 + 代码核
+> 把 Phase 2「单输入框 Chat」从 MVP 细化为完整 UI 接线:设计文档 §3.5 共 20 子节(屏幕解剖 / UI⇆agent stream-json 协议 / 三类信任卡 / 隐私分级路由 / 不可信数据隔离 / 内联结果视图 / 自学习纠正 / 跨设备备份·操作 / 引导续跑 / 事务执行 / 透明度审计 / onboarding / 资源预算)已上线 docs + design 两站;其中纯 Android 可落核 12 块落地,~85 单测全绿(`:app:testDebugUnitTest`),`git commit --only` + plumbing 双推 github=gitee。grounded 在已落地的 `PdhAgentSession`/`PdhChatViewModel`/`PdhChatScreen`/`HubAskViewModel`。
+
+- **三类信任卡（§3.5.9，完整）**：`PdhAgentSession` 开 `--interactive-approvals` + 4 事件(ApprovalRequest/Resolved/PlanUpdate/AssistRequired)+ sendApproval/sendPlan;`PdhChatViewModel` `TrustCard`(引导/预览/审批/计划)+ `pendingCards`;`PdhChatScreen` 内联卡 + deepLink。回传全走现成 stream-json,零新增协议。
+- **不可信数据视觉隔离（§3.5.11，完整）**：工具返回内容从丢弃改为渲染成带来源徽章的「数据引用」容器(`Role.DATA` + `DataQuoteCard` + `PdhDataProvenance.sourceOf`),injection 文案显形为数据不冒充 AI 判断（§7.2 UI 半边）。
+- **自学习纠正捕获（§3.5.13）**：assistant 回应 👍/👎/纠正 → `{type:feedback}` 事件 + `PdhChatViewModel` 反馈动作。
+- **引导续跑（§3.5.15）**：把"发 user turn 让 agent 猜"升级为确定性 `{type:resume,token,action}`。
+- **纯决策/数据引擎（核心）**：`PdhPrivacyTier`(隐私优先路由,翻转 cloud-first)/ `PdhResultView`(VIEW vs DATA 路由)/ `PdhResourceBudget`(重活择机)/ `PdhTransaction`(事务风险分级 + 幂等)/ `PdhOnboarding`(首跑 FRESH/SKIP/RECOVER)/ `PdhAssetBackup`(资产清单 + DID 认领)/ `PdhCrossDevice`(目标设备授权 + 远端确认)/ `PdhTransparency`(三本台账读模型,诚实摘要)。
+- **测试钉出 2 真 bug**：§3.5.11 `ToolResult→Unit` 静默丢弃工具数据;§3.5.20 `decide` run-now 漏 `wifiOnly=false` 允许移动数据。
+- 剩各节 device/cc/§9 集成层（per-session LLM 重启 / 两阶段采集器 / libp2p P2P / §9 富视图浏览器 / FAMILY 执行器 / 台账持久化 / cc 侧认 resume·feedback）+ 真机 E2E。
+
 ### Added — 个人数据助手（PDH 工具上设备）+ node DNS 修复（v5.0.3.122）
 > 个人数据 IDE 桥接（module 101）Phase 2 productize：底部「个人助手」单输入框 → 端侧 cc agent → PDH 工具（`mcp__pdh__*`）真采集 / 查询 / 分析个人数据入本地 vault，数据主权回归个人。cc bundle `internal-binaries-android-v20260620`（cc-cli.tgz 含 pdh-bridge.js），USR_VERSION 50。
 
