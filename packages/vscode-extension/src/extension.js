@@ -90,9 +90,16 @@ async function startBridge(context) {
   }
   const token = generateToken();
   _token = token;
-  // CLI version-sync: if the installed `cc` is older than this extension's
-  // features need, nudge the user to upgrade it (fire-and-forget, best-effort).
-  checkCliVersionAndNotify(vscode, context).catch(() => {});
+  // CLI version-sync (fire-and-forget, best-effort): first the hard-floor check
+  // (cc too old for this extension's features). If that stays quiet, run the
+  // softer "a newer cc is available on npm" nudge so users on a working-but-old
+  // CLI still learn that newer features shipped — they share the npm/Open VSX
+  // split, so the extension can't bundle the CLI.
+  checkCliVersionAndNotify(vscode, context)
+    .then((res) => {
+      if (res === "none") return checkLatestCliAndNotify(vscode, context);
+    })
+    .catch(() => {});
   const facade = createVscodeEditorFacade(vscode);
   // Clean up the terminal shell-integration subscriptions on deactivate.
   context.subscriptions.push({
@@ -575,6 +582,84 @@ function upgradeCliInTerminal(vscode, command) {
   const term = vscode.window.createTerminal("ChainlessChain CLI upgrade");
   term.show();
   term.sendText(command || UPGRADE_COMMAND);
+}
+
+/** The npm `latest` dist-tag of the CLI, or null (best-effort, 5s timeout). */
+function fetchLatestCliVersion() {
+  const https = require("https");
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(
+        "https://registry.npmjs.org/chainlesschain/latest",
+        { headers: { Accept: "application/json" } },
+        (res) => {
+          if (res.statusCode !== 200) {
+            res.resume();
+            return finish(null);
+          }
+          let body = "";
+          res.on("data", (d) => (body += d));
+          res.on("end", () => {
+            try {
+              finish(JSON.parse(body).version || null);
+            } catch {
+              finish(null);
+            }
+          });
+        },
+      );
+      req.on("error", () => finish(null));
+      req.setTimeout(5000, () => {
+        try {
+          req.destroy();
+        } catch {
+          /* best-effort */
+        }
+        finish(null);
+      });
+    } catch {
+      finish(null);
+    }
+  });
+}
+
+/**
+ * Proactive "a newer cc is available" nudge (distinct from the hard-floor
+ * check): compares the installed cc against the latest npm release. Shown at
+ * most once per newer version; "Don't show again" suppresses it for good.
+ */
+function checkLatestCliAndNotify(vscode, context) {
+  const { runLatestVersionCheck } = require("./version-check");
+  const cliPath =
+    vscode.workspace.getConfiguration("chainlesschain.cli").get("path") || "cc";
+  const OFF = "cliLatestNudge:off";
+  return runLatestVersionCheck({
+    getVersion: () => runCliVersion(cliPath),
+    getLatest: () => fetchLatestCliVersion(),
+    isSuppressed: () => !!context.globalState.get(OFF),
+    wasShownFor: (v) => !!context.globalState.get("cliLatestNudge:" + v),
+    markShownFor: (v) => context.globalState.update("cliLatestNudge:" + v, true),
+    setSuppressed: () => context.globalState.update(OFF, true),
+    prompt: async (message) => {
+      const pick = await vscode.window.showInformationMessage(
+        message,
+        "Upgrade cc",
+        "Later",
+        "Don't show again",
+      );
+      if (pick === "Upgrade cc") return "upgrade";
+      if (pick === "Don't show again") return "dismiss";
+      return null;
+    },
+    upgrade: (command) => upgradeCliInTerminal(vscode, command),
+  });
 }
 
 module.exports = { activate, deactivate };

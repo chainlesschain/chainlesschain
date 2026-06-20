@@ -102,6 +102,65 @@ async function runCliVersionSync(deps, minimum = MIN_CLI_VERSION) {
   return "shown";
 }
 
+/**
+ * The "a newer cc is available" nudge (distinct from the hard-floor check
+ * above). The floor check only fires when cc is BELOW the minimum a feature
+ * needs; this one fires whenever the installed cc trails the latest published
+ * npm release, so users on a working-but-old cc still learn that newer features
+ * shipped. Returns the notice, or null when up to date / ahead / unknown.
+ */
+function latestUpdateNotice(installed, latest) {
+  if (!installed || !latest) return null;
+  if (compareVersions(installed, latest) >= 0) return null; // up to date or ahead
+  return {
+    message:
+      `ChainlessChain IDE: a newer cc CLI (${latest}) is available — you have ` +
+      `${installed}. Update to get the latest features.`,
+    upgradeCommand: UPGRADE_COMMAND,
+  };
+}
+
+/**
+ * Orchestrate the "newer version available" nudge with injected I/O (testable;
+ * extension.js supplies the real vscode/https deps):
+ *   deps.getVersion()        -> Promise<string|null>  (`cc --version` stdout)
+ *   deps.getLatest()         -> Promise<string|null>  (npm `latest` dist-tag)
+ *   deps.isSuppressed()      -> boolean   (user chose "Don't show again")
+ *   deps.wasShownFor(latest) -> boolean   (already nudged for THIS version)
+ *   deps.markShownFor(latest)-> void
+ *   deps.setSuppressed()     -> void
+ *   deps.prompt(message)     -> Promise<'upgrade'|'dismiss'|null>
+ *   deps.upgrade(command)    -> void
+ * @returns {Promise<'none'|'shown'|'upgrade'|'dismissed'>}
+ */
+async function runLatestVersionCheck(deps) {
+  if (deps.isSuppressed && deps.isSuppressed()) return "none";
+  let installedRaw;
+  let latestRaw;
+  try {
+    installedRaw = await deps.getVersion();
+    latestRaw = await deps.getLatest();
+  } catch {
+    return "none"; // probe/network failure → stay quiet (best-effort)
+  }
+  const installed = parseCliVersion(String(installedRaw || ""));
+  const latest = parseCliVersion(String(latestRaw || ""));
+  const notice = latestUpdateNotice(installed, latest);
+  if (!notice) return "none";
+  if (deps.wasShownFor && deps.wasShownFor(latest)) return "none";
+  if (deps.markShownFor) deps.markShownFor(latest); // at most once per new version
+  const pick = await deps.prompt(notice.message);
+  if (pick === "upgrade") {
+    deps.upgrade(notice.upgradeCommand);
+    return "upgrade";
+  }
+  if (pick === "dismiss") {
+    if (deps.setSuppressed) deps.setSuppressed();
+    return "dismissed";
+  }
+  return "shown";
+}
+
 module.exports = {
   MIN_CLI_VERSION,
   UPGRADE_COMMAND,
@@ -110,4 +169,6 @@ module.exports = {
   checkCliVersion,
   upgradeNotice,
   runCliVersionSync,
+  latestUpdateNotice,
+  runLatestVersionCheck,
 };

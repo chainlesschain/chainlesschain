@@ -1,5 +1,35 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.22] — 2026-06-20 — notify when a newer cc CLI is available
+
+- **You're now told when a newer `cc` is published.** The plugin and the
+  `chainlesschain` CLI ship on independent tracks (JetBrains Marketplace vs npm),
+  so a working-but-old `cc` would silently miss newer panel features. When the
+  chat tool window opens it checks the npm `latest` release against your
+  installed `cc` (off the EDT, best-effort) and, if you're behind, dim-hints the
+  upgrade command (`npm i -g chainlesschain@latest`) in the transcript — at most
+  once per new version. Any probe/network failure stays quiet.
+
+## [0.4.21] — 2026-06-20 — fix: Configure-LLM now restarts the running chat
+
+- **Fix.** After you reconfigured the LLM (⚙ LLM → provider / model / API key, or
+  the vision model), the chat tab you were in kept using the **old** config — the
+  provider/model are pinned when the `cc` child starts, so it would keep erroring
+  (e.g. `401`) until you opened a *new* conversation. Now the panel restarts the
+  tab's child once the wizard closes, so your next message respawns with the
+  fresh config. No more "配置完还没用 / 新开一个对话才行."
+
+## [0.4.20] — 2026-06-20 — `/review` panel command (review the current diff)
+
+- **New `/review` slash command in the chat tool window.** Type `/review` to ask
+  the agent to review your uncommitted git changes — it inspects the working-tree
+  diff (`git diff` / `git diff --staged`) with this window's IDE context
+  (selection, diagnostics, open editors) riding along, flags correctness bugs
+  first and simplifications/cleanups second, and cites `file:line`. It does not
+  edit files unless you ask. Local sugar that seeds a turn (re-enters the input
+  with a canned prompt — no new plumbing); discoverable in the `/` autocomplete
+  popup and `/help`. Mirrors the VS Code panel's 0.33.2 `/review`.
+
 ## [0.4.19] — 2026-06-19 — fix: suggested vision model matches the CLI default
 
 - **Fix.** The vision-model wizard/menu prefilled `doubao-seed-1-6-vision-250815`,

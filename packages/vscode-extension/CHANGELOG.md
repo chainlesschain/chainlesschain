@@ -2,6 +2,39 @@
 
 All notable changes to this extension are documented here.
 
+## [0.33.4] — 2026-06-20 — notify when a newer cc CLI is available
+
+- **You're now told when a newer `cc` is published.** The extension and the
+  `chainlesschain` CLI ship on independent tracks (Open VSX vs npm), so a
+  working-but-old `cc` would silently miss newer panel features. On activation
+  the extension now checks the npm `latest` release against your installed `cc`
+  and, if you're behind, shows a one-click **Upgrade cc** notification (runs
+  `npm i -g chainlesschain@latest` in a terminal). Shown at most once per new
+  version; **Don't show again** silences it for good. Best-effort and offline-
+  safe — any probe/network failure stays quiet. (The existing hard-floor check —
+  "your cc is too old for this extension" — is unchanged and takes priority.)
+
+## [0.33.3] — 2026-06-20 — fix: Configure-LLM now restarts running chats
+
+- **Fix.** After you reconfigured the LLM (⚙ provider / model / API key), the
+  chat tab you were already in kept using the **old** config — a `cc` child is
+  spawned with the LLM settings pinned at start, so it would keep erroring (e.g.
+  `401`) until you opened a *new* conversation. Now, once the Configure-LLM
+  wizard closes, the panel stops every running child so the next message in each
+  tab respawns with the fresh config. No more "I configured it but it still
+  errors / only a new chat works."
+
+## [0.33.2] — 2026-06-20 — `/review` panel command (review the current diff)
+
+- **New `/review` slash command in the chat panel.** Type `/review` to ask the
+  agent to review your uncommitted git changes — it inspects the working-tree
+  diff (`git diff` / `git diff --staged`) with this window's IDE context
+  (selection, diagnostics, open editors) riding along, flags correctness bugs
+  first and simplifications/cleanups second, and cites `file:line`. It does not
+  edit files unless you ask. Like `/retry`, it's local sugar that seeds a turn
+  (no new control plumbing); discoverable in the `/` autocomplete and `/help`.
+  Brings the panel closer to Claude Code's IDE review affordance.
+
 ## [0.33.1] — 2026-06-19 — fix: suggested vision model matches the CLI default
 
 - **Fix.** The vision-model entry prefilled `doubao-seed-1-6-vision-250815`, but

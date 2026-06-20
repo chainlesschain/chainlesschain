@@ -33,6 +33,7 @@ public final class SlashCommands {
             new String[] { "/reject", "reject the current plan" },
             new String[] { "/context", "context-window usage" },
             new String[] { "/cost", "token cost for this session" },
+            new String[] { "/review", "review the current git diff" },
             new String[] { "/help", "list panel commands" }));
 
     // Whole input so far is `/` + command chars at the start of the line, no

@@ -422,6 +422,32 @@ class ChatViewProvider {
     });
   }
 
+  /**
+   * Reload after a Configure-LLM change. The LLM config is GLOBAL
+   * (~/.chainlesschain/config.json), so EVERY spawned child holds the stale
+   * provider/model/key until it respawns — a child started with bad config
+   * keeps erroring even after you fix it (the "配置完还没用 / a new conversation
+   * works" symptom). Stop all running children so each conversation's next
+   * message respawns with the new config (session id preserved → context kept).
+   */
+  _reloadLlmConfig() {
+    let restartedActive = false;
+    for (const summary of this._convs.list()) {
+      const conv = this._convs.get(summary.id);
+      if (conv && conv.session && conv.session.running) {
+        conv.session.stop();
+        this._convs.setSession(conv.id, null);
+        if (conv.id === this._convs.activeId()) restartedActive = true;
+      }
+    }
+    this._post({
+      kind: "info",
+      text:
+        "LLM config updated" +
+        (restartedActive ? " — applies on your next message" : ""),
+    });
+  }
+
   /** Open a fresh conversation tab (becomes active); its child spawns on the
    * first message. `sessionId` resumes an existing session (reopen-closed);
    * null starts blank. No "reset" is posted, so other tabs stay buffered. */
@@ -820,7 +846,17 @@ class ChatViewProvider {
       } else if (m.type === "think") {
         this._setThinking(String(m.level || "off"));
       } else if (m.type === "configureLlm") {
-        this.vscode.commands.executeCommand("chainlesschain.llm.configure");
+        // After the wizard writes config (cc config set), every ALREADY-RUNNING
+        // child still holds the OLD provider/model/key — so a child spawned with
+        // bad/empty LLM config keeps erroring until it respawns. Restart running
+        // children once the wizard closes so the next message picks up the new
+        // config (without the user having to open a fresh conversation).
+        Promise.resolve(
+          this.vscode.commands.executeCommand("chainlesschain.llm.configure"),
+        ).then(
+          () => this._reloadLlmConfig(),
+          () => this._reloadLlmConfig(),
+        );
       } else if (m.type === "approval") {
         this.session?.sendEvent({
           type: "approval",

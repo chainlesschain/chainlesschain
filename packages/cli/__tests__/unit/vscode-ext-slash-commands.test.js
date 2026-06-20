@@ -33,12 +33,16 @@ describe("slash-commands (panel / autocomplete)", () => {
       "/reject",
       "/rewind",
       "/retry",
+      "/review",
     ]);
     expect(slash.filterSlashCommands("rew").map((r) => r[0])).toEqual([
       "/rewind",
     ]);
     expect(slash.filterSlashCommands("ret").map((r) => r[0])).toEqual([
       "/retry",
+    ]);
+    expect(slash.filterSlashCommands("rev").map((r) => r[0])).toEqual([
+      "/review",
     ]);
     expect(slash.filterSlashCommands("zzz")).toEqual([]);
   });
@@ -67,5 +71,18 @@ describe("slash-commands (panel / autocomplete)", () => {
       ...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g),
     ];
     for (const [, body] of scripts) new Function(body);
+  });
+
+  it("/review seeds a diff-review turn (canned prompt → send), not a control message", () => {
+    const html = buildChatHtml({ nonce: "n".repeat(32), cspSource: "vsc:" });
+    // Unlike /cost or /rewind (which postMessage a control), /review is local
+    // sugar: it sets the input to a review request and re-enters send(), so the
+    // agent reviews the working-tree diff with this window's IDE context.
+    const m = /"\/review":\s*\(\)\s*=>\s*\{([\s\S]*?)\n    \},/.exec(html);
+    expect(m).toBeTruthy();
+    const body = m[1];
+    expect(body).toContain("git diff");
+    expect(body).toContain("send()");
+    expect(body).not.toContain("postMessage");
   });
 });
