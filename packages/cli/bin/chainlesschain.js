@@ -18,25 +18,15 @@ if (!process.stderr.isTTY && process.stderr._handle?.setBlocking) {
 }
 
 import { createProgram } from "../src/index.js";
+import {
+  reportFatal,
+  installGlobalErrorHandlers,
+} from "../src/lib/fatal-handler.js";
 
-// Centralized friendly-error boundary. An uncaught error thrown from a command
-// action (e.g. malformed --json input, a failed DB op) otherwise surfaces as a
-// raw stack trace via Node's default unhandledRejection. Turn it into a clean
-// one-line `error: <message>` instead; restore the full stack under --verbose
-// or CC_DEBUG/DEBUG for debugging.
-function reportFatal(err) {
-  const verbose =
-    process.argv.includes("--verbose") ||
-    Boolean(process.env.CC_DEBUG) ||
-    Boolean(process.env.DEBUG);
-  if (verbose && err && err.stack) {
-    process.stderr.write(`${err.stack}\n`);
-  } else {
-    const msg = err && err.message ? err.message : String(err);
-    process.stderr.write(`error: ${msg}\n`);
-  }
-  process.exit(1);
-}
+// Funnel rejections/exceptions that escape a command action (async event
+// handlers, detached tasks, third-party libs) through the same friendly
+// boundary as the top-level parse, instead of Node's default ugly-stack crash.
+installGlobalErrorHandlers();
 
 const program = createProgram();
 program.parseAsync(process.argv).catch(reportFatal);
