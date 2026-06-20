@@ -176,6 +176,51 @@ describe("SelfEvolvingSystem", () => {
     expect(listener).toHaveBeenCalled();
   });
 
+  it("flags high memory and surfaces the recommendation", async () => {
+    // Regression: memory component status was hardcoded "healthy", so memory
+    // was never in `issues` and the high-memory recommendation never fired.
+    await sys.initialize(db);
+    const spy = vi.spyOn(process, "memoryUsage").mockReturnValue({
+      heapUsed: 95,
+      heapTotal: 100,
+      rss: 0,
+      external: 0,
+      arrayBuffers: 0,
+    });
+    try {
+      const diag = sys.selfDiagnose();
+      const memComponent = diag.components.find((c) => c.name === "memory");
+      expect(memComponent.status).toBe("warning");
+      expect(memComponent.metric).toBeCloseTo(0.95);
+      expect(diag.recommendations).toContain(
+        "High memory usage detected. Consider garbage collection.",
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("does not flag memory at normal usage", async () => {
+    await sys.initialize(db);
+    const spy = vi.spyOn(process, "memoryUsage").mockReturnValue({
+      heapUsed: 20,
+      heapTotal: 100,
+      rss: 0,
+      external: 0,
+      arrayBuffers: 0,
+    });
+    try {
+      const diag = sys.selfDiagnose();
+      const memComponent = diag.components.find((c) => c.name === "memory");
+      expect(memComponent.status).toBe("healthy");
+      expect(diag.recommendations).not.toContain(
+        "High memory usage detected. Consider garbage collection.",
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   // ── selfRepair ───────────────────────────────────────────────────────────
   it("should attempt high-memory repair", async () => {
     await sys.initialize(db);

@@ -186,12 +186,17 @@ class SelfEvolvingSystem extends EventEmitter {
   // Self-Diagnosis
   selfDiagnose() {
     const id = `diag-${Date.now()}`;
+    // Read memory once (two process.memoryUsage() calls could straddle a GC and
+    // mix heapUsed/heapTotal from different snapshots) and derive status from
+    // the ratio — the status was hardcoded "healthy", so memory was never in
+    // `issues` and the high-memory recommendation below was dead code.
+    const mem = process.memoryUsage();
+    const heapRatio = mem.heapTotal > 0 ? mem.heapUsed / mem.heapTotal : 0;
     const components = [
       {
         name: "memory",
-        status: "healthy",
-        metric:
-          process.memoryUsage().heapUsed / process.memoryUsage().heapTotal,
+        status: heapRatio > 0.9 ? "warning" : "healthy",
+        metric: heapRatio,
       },
       {
         name: "capabilities",
