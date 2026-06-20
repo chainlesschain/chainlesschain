@@ -169,6 +169,12 @@ class PrivacyComputing extends EventEmitter {
     if (model.status !== "training") {
       throw new Error(`Model '${modelId}' is not in training status`);
     }
+    // Reject non-finite / negative sampleCount: a negative weight would let a
+    // participant subtract their gradients from the global model (poisoning),
+    // and NaN/Infinity would corrupt the FedAvg weighted average.
+    if (!Number.isFinite(sampleCount) || sampleCount < 0) {
+      throw new Error("sampleCount must be a non-negative finite number");
+    }
 
     const updates = this._pendingUpdates.get(modelId) || [];
     updates.push({ participantId, gradients, sampleCount });
@@ -200,6 +206,12 @@ class PrivacyComputing extends EventEmitter {
     }
 
     const totalSamples = updates.reduce((sum, u) => sum + u.sampleCount, 0);
+    // Guard against every participant reporting 0 samples: weight would be
+    // 0/0 = NaN and corrupt the global model. Skip the round instead.
+    if (totalSamples <= 0) {
+      this._pendingUpdates.set(modelId, []);
+      return { modelId, aggregated: false, reason: "no samples to aggregate" };
+    }
     const gradientLength = updates[0].gradients.length;
 
     // Weighted average of gradients
