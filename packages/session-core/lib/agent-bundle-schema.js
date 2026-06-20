@@ -145,6 +145,13 @@ function stripTomlComment(line) {
   return line;
 }
 
+// Keys that must never be written through, or the parser would mutate the
+// prototype chain. A bundle manifest is untrusted (it can come from a
+// marketplace), and `[__proto__]` as a section name made `current` resolve to
+// Object.prototype (via its __proto__ getter), so the next `key = value` line
+// assigned onto Object.prototype — polluting every object in the process.
+const UNSAFE_TOML_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 function parseMinimalToml(text) {
   const out = {};
   let current = out;
@@ -155,6 +162,11 @@ function parseMinimalToml(text) {
     const sectionMatch = line.match(/^\[([A-Za-z0-9_.-]+)\]$/);
     if (sectionMatch) {
       const key = sectionMatch[1];
+      if (UNSAFE_TOML_KEYS.has(key)) {
+        // Route this section's keys to a throwaway sink, never the prototype.
+        current = Object.create(null);
+        continue;
+      }
       out[key] = out[key] || {};
       current = out[key];
       continue;
@@ -162,6 +174,7 @@ function parseMinimalToml(text) {
     const kv = line.match(/^([A-Za-z0-9_.-]+)\s*=\s*(.+)$/);
     if (!kv) continue;
     const key = kv[1];
+    if (UNSAFE_TOML_KEYS.has(key)) continue;
     let value = kv[2].trim();
     if (/^".*"$/.test(value)) {
       value = value.slice(1, -1);
