@@ -5,6 +5,12 @@
 
 import { defineStore } from 'pinia';
 
+// Monotonic token for loadDailyNote. Loading a note awaits the read IPC then
+// sets currentDailyNote/selectedDate; rapidly switching dates could let a
+// slower response overwrite a newer date's note. Each call claims the next
+// token and only applies its result if still the latest. Store is a singleton.
+let _loadDailyNoteSeq = 0;
+
 // ==================== 类型定义 ====================
 
 /**
@@ -267,6 +273,7 @@ export const useMemoryStore = defineStore('memory', {
      */
     async loadDailyNote(date: string | null = null): Promise<void> {
       const targetDate = date || this.selectedDate;
+      const seq = ++_loadDailyNoteSeq;
       this.loading.dailyNotes = true;
       this.error = null;
 
@@ -275,6 +282,12 @@ export const useMemoryStore = defineStore('memory', {
           date: targetDate,
         });
 
+        // A newer loadDailyNote started during the await (date switched);
+        // discard this stale result so it can't overwrite the newer note.
+        if (seq !== _loadDailyNoteSeq) {
+          return;
+        }
+
         if (result?.success) {
           this.currentDailyNote = result.content as string;
           this.selectedDate = targetDate;
@@ -282,10 +295,17 @@ export const useMemoryStore = defineStore('memory', {
           this.currentDailyNote = null;
         }
       } catch (error) {
+        if (seq !== _loadDailyNoteSeq) {
+          return;
+        }
         this.error = (error as Error).message;
         this.currentDailyNote = null;
       } finally {
-        this.loading.dailyNotes = false;
+        // Only the latest in-flight load clears the spinner, so a superseded
+        // call can't flip it off while the newer one is still loading.
+        if (seq === _loadDailyNoteSeq) {
+          this.loading.dailyNotes = false;
+        }
       }
     },
 
