@@ -22,6 +22,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519.js";
 import mtcLib from "@chainlesschain/core-mtc";
+import { withFileLock } from "./with-file-lock.js";
 
 const { sha256, jcs, encodeHashStr, ed25519, assembleBatch } = mtcLib;
 
@@ -317,6 +318,19 @@ function listStagingEvents(dir) {
  * @param {string} [opts.issuer]    - override config.issuer
  */
 export function closeBatch(dir, opts = {}) {
+  // Serialize the whole staging-scan → batch-write → staging-cleanup section
+  // across processes. Without it, two concurrent closes (e.g. overlapping
+  // `cc audit mtc reconcile` runs) both scan the same staging events, allocate
+  // the same batch id, and the defensive rmSync(finalDir) lets the second
+  // silently overwrite the first's audit batch. Best-effort lock (never hangs);
+  // generous timeout since the section includes Merkle assembly + signing.
+  ensureDirs(dir);
+  return withFileLock(batchesDir(dir), () => _closeBatchImpl(dir, opts), {
+    timeoutMs: 15000,
+  });
+}
+
+function _closeBatchImpl(dir, opts = {}) {
   ensureDirs(dir);
   const cfg = loadAuditMtcConfig(dir);
   const events = listStagingEvents(dir);

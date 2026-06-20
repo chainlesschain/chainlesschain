@@ -145,6 +145,9 @@ describe("audit-mtc lib", () => {
       expect(fs.existsSync(e1.path)).toBe(false);
       expect(fs.existsSync(e2.path)).toBe(false);
       expect(fs.existsSync(e3.path)).toBe(false);
+
+      // Cross-process lock around the close section was released (no leftover).
+      expect(fs.existsSync(path.join(dir, "batches.lock"))).toBe(false);
     });
 
     it("envelopes verify against landmark via core-mtc verifier", () => {

@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import mtcLib from "@chainlesschain/core-mtc";
+import { withFileLock } from "./with-file-lock.js";
 
 const {
   assembleBatch,
@@ -532,6 +533,18 @@ function nextBatchSeq(dir, pair) {
  *             skipped: { reason: string } | null }}
  */
 export function closeBatch(dir, opts = {}) {
+  // Serialize the whole staging-scan → batch-write → staging-cleanup section
+  // across processes. Without it, two concurrent closes both read the same
+  // staged ops, allocate the same per-pair sequence (namespace collision), and
+  // batch the same ops twice before clearing staging. Best-effort lock (never
+  // hangs); generous timeout since the section includes batch assembly+signing.
+  ensureDirs(dir);
+  return withFileLock(batchesDir(dir), () => _closeBatchImpl(dir, opts), {
+    timeoutMs: 15000,
+  });
+}
+
+function _closeBatchImpl(dir, opts = {}) {
   ensureDirs(dir);
   const cfg = loadCrossChainMtcConfig(dir);
   const grouped = listStagedOps(dir);
