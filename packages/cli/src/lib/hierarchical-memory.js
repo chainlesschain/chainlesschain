@@ -1006,6 +1006,12 @@ export function startConsolidationTimer({
       }
     }
   }, intervalMs);
+  // Background maintenance must not by itself keep the CLI process alive (the
+  // process should exit once foreground work is done); matches the unref
+  // discipline used by downloader / PtyManager / background-task-manager.
+  if (_consolidationTimer && typeof _consolidationTimer.unref === "function") {
+    _consolidationTimer.unref();
+  }
   return _consolidationTimer;
 }
 
