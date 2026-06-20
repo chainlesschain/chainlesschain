@@ -118,10 +118,16 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
   for (const server of declared) {
     const normalized = validateMcpServerConfig(server);
     if (!normalized) {
-      skipped.push({
-        name: server?.name || "(invalid)",
-        error: "invalid config",
-      });
+      const name = server?.name || "(invalid)";
+      skipped.push({ name, error: "invalid config" });
+      // Surface invalid configs too — previously only connect FAILURES warned,
+      // so a malformed server config was dropped silently and the skill author
+      // never learned why their MCP server didn't mount.
+      if (typeof opts.onWarn === "function") {
+        opts.onWarn(
+          `[skill-mcp] Skipped "${name}" for skill "${skill?.id || skill?.name}": invalid config`,
+        );
+      }
       continue;
     }
     try {

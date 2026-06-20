@@ -225,18 +225,23 @@ describe("mountSkillMcpServers", () => {
     expect(onWarn.mock.calls[0][0]).toMatch(/Failed to mount "bad"/);
   });
 
-  it("skips entries that fail validation without calling connect", async () => {
+  it("skips entries that fail validation without calling connect, and warns", async () => {
     const client = fakeClient();
+    const onWarn = vi.fn();
     const skill = {
+      name: "demo",
       mcpServers: [
         { name: "valid", command: "x" },
         { command: "no-name" }, // invalid
       ],
     };
-    const result = await mountSkillMcpServers(client, skill);
+    const result = await mountSkillMcpServers(client, skill, { onWarn });
     expect(result.mounted).toEqual(["valid"]);
-    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped).toEqual([{ name: "(invalid)", error: "invalid config" }]);
     expect(client.connect).toHaveBeenCalledTimes(1);
+    // Invalid configs are now surfaced too (previously only connect failures warned).
+    expect(onWarn).toHaveBeenCalledOnce();
+    expect(onWarn.mock.calls[0][0]).toMatch(/Skipped "\(invalid\)".*invalid config/);
   });
 
   it("throws when mcpClient lacks .connect", async () => {
