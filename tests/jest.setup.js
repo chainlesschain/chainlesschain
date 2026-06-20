@@ -81,7 +81,10 @@ jest.mock('electron', () => ({
     createFromPath: jest.fn(),
     createFromDataURL: jest.fn(),
   },
-}));
+  // `virtual: true` so the mock registers even when the real module is not
+  // resolvable from the repo-root Jest context (electron/axios are deps of
+  // desktop-app-vue, not guaranteed to be hoisted to the root node_modules).
+}), { virtual: true });
 
 // Mock crypto 模块
 jest.mock('crypto', () => ({
@@ -145,7 +148,10 @@ jest.mock('axios', () => ({
   put: jest.fn(() => Promise.resolve({ data: {} })),
   delete: jest.fn(() => Promise.resolve({ data: {} })),
   patch: jest.fn(() => Promise.resolve({ data: {} })),
-}));
+  // `virtual: true` — `axios` is a dependency of desktop-app-vue and is not
+  // hoisted to the repo-root node_modules, so without this the entire root
+  // Jest suite fails to run with "Cannot find module 'axios'".
+}), { virtual: true });
 
 // Mock os 模块
 jest.mock('os', () => ({
