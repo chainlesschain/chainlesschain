@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — 个人数据助手（PDH 工具上设备）+ node DNS 修复（v5.0.3.122）
+> 个人数据 IDE 桥接（module 101）Phase 2 productize：底部「个人助手」单输入框 → 端侧 cc agent → PDH 工具（`mcp__pdh__*`）真采集 / 查询 / 分析个人数据入本地 vault，数据主权回归个人。cc bundle `internal-binaries-android-v20260620`（cc-cli.tgz 含 pdh-bridge.js），USR_VERSION 50。
+
+- **个人助手单输入框**：底部 nav 加「个人助手」入口，一句话指挥端侧 AI 采集 / 查询 / 分析你的个人数据，全程本地处理不上云。真机实测：单输入框 → AI → `collect_system_data` 真采 1824 事件（含 513 联系人）入 vault。
+- **node DNS 修复（跨手机）**：Android 上 node `getaddrinfo` 在 cc 子进程恒 ENOTFOUND（c-ares 可用）→ PtyEnvironment 预加载 `dns-fix.js`（把 `dns.lookup` 重指向 c-ares）+ 经 ConnectivityManager 注入设备真实 DNS。一处修好所有 in-APK cc 外部网络（chat / 各采集器 cookie / update-check）。
+- **cc agent LLM 配置**：端侧 cc agent 用 app 配置的 provider/model（火山等云 LLM）而非默认 ollama；答复字段对齐（`result`）；权限引导横幅（缺联系人权限时一键授予运行时权限）。
+- **QQ salvage**：root 取证采集支持 QQ（标准 SQLCipher，同微信栈）。
+
 ### Added — 个人数据中台分析/采集修复 + FAMILY-67 通话/通知体验 + Android 键盘遮挡修复（v5.0.3.121）
 > 个人数据中台（PDH）一批分析管线 + 查询解析 + 抖音/头条采集修复（pdh 0.4.29 + cli 0.162.82 已发 npm；Android cc bundle `internal-binaries-android-v20260619`，USR_VERSION 49）；FAMILY-67 通话/消息通知体验完善；Android 全局键盘遮挡修复。
 
