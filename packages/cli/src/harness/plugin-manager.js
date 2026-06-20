@@ -352,10 +352,20 @@ export function installPluginSkills(db, pluginName, pluginPath, skills) {
   const installed = [];
 
   for (const skill of skills) {
+    if (!skill || typeof skill.name !== "string" || typeof skill.path !== "string") {
+      continue;
+    }
     const srcDir = path.resolve(pluginPath, skill.path);
+    // Reject manifest entries that escape the plugin (read) or the marketplace
+    // (arbitrary file WRITE) via `../` — a malicious plugin could otherwise drop
+    // files anywhere (e.g. overwrite ~/.bashrc) during install.
+    if (!_isWithin(pluginPath, srcDir)) continue;
     if (!fs.existsSync(srcDir)) continue;
 
     const destDir = path.join(marketplaceDir, skill.name);
+    if (!_isWithin(marketplaceDir, destDir) || path.resolve(destDir) === path.resolve(marketplaceDir)) {
+      continue;
+    }
     fs.mkdirSync(destDir, { recursive: true });
 
     // Copy skill files
@@ -419,6 +429,16 @@ export function getPluginSkills(db, pluginName) {
 /**
  * Recursively copy a directory
  */
+/**
+ * True when `child` resolves to `parent` or a path inside it. Used to keep a
+ * (semi-trusted) plugin manifest from escaping its sandbox via `../` in
+ * skill.path / skill.name.
+ */
+function _isWithin(parent, child) {
+  const rel = path.relative(path.resolve(parent), path.resolve(child));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
 function _copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
