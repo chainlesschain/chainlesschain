@@ -89,6 +89,10 @@ export async function* followSession(sessionId, options = {}) {
       ? fromOffset
       : initialOffset(sessionId, { fromStart });
   let buffer = "";
+  // Streaming decoder persisted across polls: when the file grows by a partial
+  // multi-byte UTF-8 character between reads (the rest arrives next poll), the
+  // held bytes are reassembled instead of corrupted into U+FFFD.
+  let decoder = new TextDecoder("utf-8");
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -100,6 +104,7 @@ export async function* followSession(sessionId, options = {}) {
         // File was truncated / rotated — restart from beginning
         offset = 0;
         buffer = "";
+        decoder = new TextDecoder("utf-8"); // drop any held partial-char bytes
       }
       if (stat.size > offset) {
         const fd = await fsp.open(filePath, "r");
@@ -108,7 +113,7 @@ export async function* followSession(sessionId, options = {}) {
           const buf = Buffer.alloc(length);
           await fd.read(buf, 0, length, offset);
           offset = stat.size;
-          buffer += buf.toString("utf-8");
+          buffer += decoder.decode(buf, { stream: true });
         } finally {
           await fd.close();
         }

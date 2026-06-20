@@ -148,6 +148,29 @@ describe("ClaudeCodeAgent", () => {
     );
   });
 
+  it("reassembles a multi-byte UTF-8 char split across stdout chunks (no mojibake)", async () => {
+    const { EventEmitter } = require("events");
+    const line = JSON.stringify({ type: "result", result: "你好世界" }) + "\n";
+    const buf = Buffer.from(line, "utf-8");
+    const cut = buf.indexOf(Buffer.from("你", "utf-8")) + 1; // 1 byte into 你
+    _deps.spawn = vi.fn(() => {
+      const proc = new EventEmitter();
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+      process.nextTick(() => {
+        proc.stdout.emit("data", buf.subarray(0, cut));
+        proc.stdout.emit("data", buf.subarray(cut));
+        proc.emit("close", 0);
+      });
+      return proc;
+    });
+    const agent = new ClaudeCodeAgent({ id: "utf8", cliCommand: "claude" });
+    const result = await agent.executeTask("hi", { cwd: "/tmp" });
+    expect(result.output).toBe("你好世界"); // intact, not "�好世界"
+    expect(result.rawOutput).not.toContain("�");
+  });
+
   it("marks task as FAILED when exit code is non-zero", async () => {
     _deps.spawn = vi.fn(() => makeChildProcess({ stdout: "", exitCode: 1 }));
     const agent = new ClaudeCodeAgent({ id: "a3" });

@@ -120,6 +120,11 @@ export class ClaudeCodeAgent extends EventEmitter {
       const startTime = Date.now();
       const outputChunks = [];
       const errorChunks = [];
+      // Streaming decoders so a multi-byte UTF-8 char split across two stdout/
+      // stderr chunks is reassembled, not corrupted into U+FFFD (in both the
+      // live `output` emit and the final join).
+      const outDecoder = new TextDecoder("utf-8");
+      const errDecoder = new TextDecoder("utf-8");
       let timedOut = false;
 
       const proc = _deps.spawn(this.cliCommand, args, {
@@ -145,13 +150,20 @@ export class ClaudeCodeAgent extends EventEmitter {
       }, timeout);
 
       proc.stdout.on("data", (data) => {
-        const chunk = data.toString("utf8");
+        const chunk =
+          typeof data === "string"
+            ? data
+            : outDecoder.decode(data, { stream: true });
         outputChunks.push(chunk);
         this.emit("output", { agentId: this.id, chunk });
       });
 
       proc.stderr.on("data", (data) => {
-        errorChunks.push(data.toString("utf8"));
+        errorChunks.push(
+          typeof data === "string"
+            ? data
+            : errDecoder.decode(data, { stream: true }),
+        );
       });
 
       proc.on("close", (code) => {
