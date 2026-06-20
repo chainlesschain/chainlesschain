@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.28] — 2026-06-20 — Marketplace "What's New" now lists every release
+
+- **Fix: the plugin's `<change-notes>` (the Marketplace / IDE "What's New") had
+  silently stopped at 0.4.19** — it was hand-written and never synced past that,
+  so 0.4.20–0.4.27 (the `/review` command, Configure-LLM restart, update notices,
+  interactive `ask_user_question`, the cc-conflict fix, deprecation cleanup) were
+  all missing from the update notes. Added every release back in. No code change.
+
 ## [0.4.27] — 2026-06-20 — clear the 2 Marketplace deprecated-API warnings
 
 - **Removed the 2 deprecated-API usages** the Marketplace Plugin Verifier flagged

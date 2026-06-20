@@ -61,6 +61,39 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.28</b> — docs: the Marketplace "What's New" now lists every release
+        (it had silently stopped at 0.4.19 — change-notes are no longer missed).
+        <br/><br/>
+        <b>0.4.27</b> — cleared the 2 deprecated-API usages the Marketplace verifier
+        flagged (now <code>URI.toURL()</code> + a combo-box dialog), so the plugin
+        stays compatible with future IntelliJ releases.
+        <br/><br/>
+        <b>0.4.26</b> — fix: no more false "未检测到 cc CLI" when <code>cc</code> IS
+        installed. The version probe timeout went 5s → 12s (cold starts), and since
+        <code>cc</code> is also the C compiler's name, the plugin now resolves the
+        binary with fallback (<code>cc → chainlesschain → clc → clchain</code>) and
+        uses it for the chat spawn and every probe.
+        <br/><br/>
+        <b>0.4.25</b> — the agent can actually ask you a question:
+        <code>ask_user_question</code> now pops a dialog (single-choice / multi-select
+        checkboxes / free-text input) so the agent can clarify instead of guessing.
+        Requires <code>cc</code> ≥ 0.162.95.
+        <br/><br/>
+        <b>0.4.24</b> — fix: a graceful "couldn't ask in the panel" degradation no
+        longer renders as a scary <b>✗ ask_user_question</b> failure.
+        <br/><br/>
+        <b>0.4.23</b> — new <b>⚙ LLM → 检查 cc 更新…</b> menu item (check on demand),
+        plus a clear hint when the <code>cc</code> CLI isn't installed.
+        <br/><br/>
+        <b>0.4.22</b> — you're now told when a newer <code>cc</code> CLI is published
+        on npm, so you don't silently miss new features.
+        <br/><br/>
+        <b>0.4.21</b> — fix: reconfiguring the LLM now restarts the running chat so it
+        picks up the new provider/model/key (no more "配置完还没用 / 新开对话才行").
+        <br/><br/>
+        <b>0.4.20</b> — new <code>/review</code> command: review your uncommitted git
+        diff right from the chat (matches the VS Code panel).
+        <br/><br/>
         <b>0.4.19</b> — fix: the suggested vision model now matches the CLI's
         actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
         older snapshot, so the prefilled value equals what
