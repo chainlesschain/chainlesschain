@@ -47,17 +47,20 @@ export function toTelegramMarkdown(markdown) {
   // Escape special characters in text
   result = escapeMarkdownV2(result);
 
-  // Restore code blocks and inline code (unescaped)
+  // Restore code blocks and inline code (unescaped). Use a replacement FUNCTION
+  // so `$`-sequences inside the code (e.g. `$&`, `$1`, `$$` in sed/regex/shell)
+  // are inserted literally — a string replacement would interpret them as
+  // String.replace patterns and corrupt the code.
   for (let i = codeBlocks.length - 1; i >= 0; i--) {
     result = result.replace(
       `__CODE_BLOCK_${i}__`.replace(ESCAPE_CHARS, "\\$1"),
-      codeBlocks[i],
+      () => codeBlocks[i],
     );
   }
   for (let i = inlineCode.length - 1; i >= 0; i--) {
     result = result.replace(
       `__INLINE_CODE_${i}__`.replace(ESCAPE_CHARS, "\\$1"),
-      inlineCode[i],
+      () => inlineCode[i],
     );
   }
 
