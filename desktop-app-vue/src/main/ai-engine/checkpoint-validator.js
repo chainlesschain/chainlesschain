@@ -244,9 +244,13 @@ class CheckpointValidator {
     // 提取下一步需要的输入
     const requiredInputs = this.extractRequiredInputs(nextStep);
 
-    // 检查当前结果是否提供了这些输入
+    // 检查当前结果是否提供了这些输入。result 可能为 null/非对象（checkCompleteness
+    // 与 checkExpectedOutputs 同样会遇到并各自做了空值保护），此时 `input in result`
+    // 会抛 TypeError，故先判断：无有效结果 → 视为所有依赖均缺失。
+    const hasResult = result !== null && typeof result === "object";
     for (const input of requiredInputs) {
       if (
+        !hasResult ||
         !(input in result) ||
         result[input] === null ||
         result[input] === undefined
