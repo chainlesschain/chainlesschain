@@ -339,6 +339,49 @@ describe("useLLMStore", () => {
   });
 
   // -------------------------------------------------------------------------
+  // queryStream
+  // -------------------------------------------------------------------------
+
+  describe("queryStream()", () => {
+    it("removes the stream-chunk listener on success", async () => {
+      mockLlm.queryStream.mockResolvedValueOnce({ content: "ok", tokens: 5 });
+
+      const { useLLMStore } = await import("../llm");
+      const store = useLLMStore();
+      await store.queryStream("Hi");
+
+      expect(mockLlm.on).toHaveBeenCalledWith(
+        "llm:stream-chunk",
+        expect.any(Function),
+      );
+      expect(mockLlm.off).toHaveBeenCalledWith(
+        "llm:stream-chunk",
+        expect.any(Function),
+      );
+      // The exact handler that was registered is the one removed.
+      expect(mockLlm.off.mock.calls[0][1]).toBe(mockLlm.on.mock.calls[0][1]);
+      expect(store.isStreaming).toBe(false);
+    });
+
+    it("removes the stream-chunk listener even when the query fails (no leak)", async () => {
+      // Regression: off() lived after the awaited queryStream, so an error
+      // skipped it and leaked a 'llm:stream-chunk' listener each failure.
+      mockLlm.queryStream.mockRejectedValueOnce(new Error("stream fail"));
+
+      const { useLLMStore } = await import("../llm");
+      const store = useLLMStore();
+      await expect(store.queryStream("Hi")).rejects.toThrow("stream fail");
+
+      expect(mockLlm.off).toHaveBeenCalledWith(
+        "llm:stream-chunk",
+        expect.any(Function),
+      );
+      expect(mockLlm.off.mock.calls[0][1]).toBe(mockLlm.on.mock.calls[0][1]);
+      expect(store.isStreaming).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // cancelStream
   // -------------------------------------------------------------------------
 

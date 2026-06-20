@@ -724,12 +724,24 @@ class DIDManager extends EventEmitter {
         didDocument.updated = new Date().toISOString();
 
         // 重新签名文档
-        // 需要获取私钥来签名
-        if (identity.private_key) {
+        // 需要获取私钥来签名。签名私钥存于 private_key_ref JSON 的 .sign 字段
+        // （getIdentityByDID 已解密该字段），而非不存在的 identity.private_key —
+        // 旧代码读 identity.private_key 恒为 undefined，导致资料更新后 DID 文档
+        // 从不重新签名（始终走 else 分支打印“私钥不可用”）。
+        let secretKey = null;
+        try {
+          const keyRef = JSON.parse(identity.private_key_ref || "{}");
+          if (keyRef && keyRef.sign) {
+            secretKey = naclUtil.decodeBase64(keyRef.sign);
+          }
+        } catch (parseError) {
+          logger.warn(
+            "[DIDManager] 解析私钥引用失败，无法重新签名:",
+            parseError.message,
+          );
+        }
+        if (secretKey) {
           try {
-            const privateKeyBase64 = identity.private_key;
-            const secretKey = naclUtil.decodeBase64(privateKeyBase64);
-
             // 使用 signDIDDocument 重新签名
             const resignedDocument = this.signDIDDocument(
               didDocument,

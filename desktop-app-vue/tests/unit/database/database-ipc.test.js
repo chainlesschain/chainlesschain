@@ -338,6 +338,21 @@ describe("database-ipc", () => {
 
         expect(result).toBe(false);
       });
+
+      it("应该等待RAG移除完成，其失败时返回false而非吞掉拒绝", async () => {
+        // Regression: removeFromIndex was called without await, so a rejection
+        // escaped the try/catch (unhandled) and the handler returned true.
+        mockRagManager.removeFromIndex.mockRejectedValue(
+          new Error("RAG remove failed"),
+        );
+        registerWithDeps();
+        const handler = getHandler("db:delete-knowledge-item");
+
+        const result = await handler({}, 1);
+
+        expect(mockRagManager.removeFromIndex).toHaveBeenCalledWith(1);
+        expect(result).toBe(false);
+      });
     });
 
     describe("db:search-knowledge-items", () => {
@@ -579,6 +594,14 @@ describe("database-ipc", () => {
       it("应该在错误时返回false", async () => {
         mockDatabase.backup.mockRejectedValue(new Error("Backup failed"));
         registerWithDeps();
+        const result = await getHandler("db:backup")({}, "/backup/path.db");
+        expect(result).toBe(false);
+      });
+
+      it("应该在数据库未初始化时返回false（不谎报备份成功）", async () => {
+        // Regression: `await database?.backup()` skipped the backup when database
+        // was null but still returned true, claiming a backup that never ran.
+        registerWithDeps({ database: null });
         const result = await getHandler("db:backup")({}, "/backup/path.db");
         expect(result).toBe(false);
       });

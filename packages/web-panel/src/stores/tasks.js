@@ -7,6 +7,7 @@ export const useTasksStore = defineStore('tasks', () => {
   const loading = ref(false)
   let pollTimer = null
   let unsubscribeNotifications = null
+  let notificationTimer = null
 
   const running = computed(() => tasks.value.filter(t => t.status === 'running'))
   const pending = computed(() => tasks.value.filter(t => t.status === 'pending'))
@@ -60,6 +61,10 @@ export const useTasksStore = defineStore('tasks', () => {
       unsubscribeNotifications()
       unsubscribeNotifications = null
     }
+    if (notificationTimer) {
+      clearTimeout(notificationTimer)
+      notificationTimer = null
+    }
   }
 
   function _subscribeNotifications() {
@@ -70,8 +75,14 @@ export const useTasksStore = defineStore('tasks', () => {
         lastNotification.value = event.payload.task
         // Refresh task list immediately
         fetchTasks()
-        // Auto-clear notification after 8 seconds
-        setTimeout(() => { lastNotification.value = null }, 8000)
+        // Auto-clear notification after 8 seconds. Reset any in-flight timer
+        // first so a stale timer from an earlier notification cannot wipe this
+        // fresh one prematurely (overlapping notifications within 8s).
+        if (notificationTimer) clearTimeout(notificationTimer)
+        notificationTimer = setTimeout(() => {
+          lastNotification.value = null
+          notificationTimer = null
+        }, 8000)
       }
     }
     unsubscribeNotifications = ws.onRuntimeEvent(handler)

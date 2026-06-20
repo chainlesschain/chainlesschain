@@ -71,6 +71,7 @@ import { registerOutputStyleCommand } from "./commands/output-style.js";
 import { registerStatuslineCommand } from "./commands/statusline.js";
 import { registerTerminalSetupCommand } from "./commands/terminal-setup.js";
 import { registerIdeCommand } from "./commands/ide.js";
+import { registerPdhCommand } from "./commands/pdh.js";
 import { registerConsolCommand } from "./commands/consol.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerExportCommand } from "./commands/export.js";
@@ -486,6 +487,7 @@ export function createProgram(opts = {}) {
   registerStatuslineCommand(program);
   registerTerminalSetupCommand(program);
   registerIdeCommand(program);
+  registerPdhCommand(program);
   registerConsolCommand(program);
 
   // Phase 2: Knowledge & content management

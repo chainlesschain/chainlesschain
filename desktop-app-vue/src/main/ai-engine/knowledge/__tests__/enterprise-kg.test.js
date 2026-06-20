@@ -46,16 +46,14 @@ describe("EnterpriseKG", () => {
     db2.prepare.mockImplementation((sql) => {
       if (sql.includes("kg_entities")) {
         return {
-          all: vi
-            .fn()
-            .mockReturnValue([
-              {
-                id: "e1",
-                name: "Alice",
-                type: "person",
-                properties: '{"age":30}',
-              },
-            ]),
+          all: vi.fn().mockReturnValue([
+            {
+              id: "e1",
+              name: "Alice",
+              type: "person",
+              properties: '{"age":30}',
+            },
+          ]),
         };
       }
       return { all: vi.fn().mockReturnValue([]) };
@@ -251,6 +249,22 @@ describe("EnterpriseKG", () => {
     const result = kg.graphRAGSearch("nonexistent");
     expect(result.totalMatches).toBe(0);
     expect(result.results.length).toBe(0);
+  });
+
+  it("should not break search/query when an entity has a null name", () => {
+    // Regression: addEntity does not validate name, so a single null-named
+    // entity made e.name.toLowerCase() throw inside the filters — breaking
+    // graphRAGSearch and name-query for every other entity.
+    kg.addEntity(null, "topic");
+    kg.addEntity("Quantum Computing", "topic", { description: "qubits" });
+
+    const search = kg.graphRAGSearch("quantum");
+    expect(search.totalMatches).toBe(1);
+    expect(search.results[0].entity.name).toBe("Quantum Computing");
+
+    const queried = kg.query({ name: "quantum" });
+    expect(queried.length).toBe(1);
+    expect(queried[0].name).toBe("Quantum Computing");
   });
 
   // --- Import / Export ---

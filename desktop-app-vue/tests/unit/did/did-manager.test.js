@@ -710,6 +710,41 @@ describe("DIDManager", () => {
       );
     });
 
+    it("更新资料后应使用 private_key_ref.sign 重新签名 DID 文档", async () => {
+      // Regression: updateIdentityProfile read identity.private_key (which never
+      // exists — the column is private_key_ref) so the re-sign branch was dead
+      // and the DID document never reflected profile edits.
+      const testDID = "did:chainlesschain:resign-test";
+      const identity = {
+        did: testDID,
+        nickname: "Old Name",
+        did_document: JSON.stringify({
+          id: testDID,
+          verificationMethod: [
+            { id: `${testDID}#sign-key-1`, publicKeyBase64: "AQ==" },
+          ],
+          profile: { nickname: "Old Name" },
+          proof: { proofValue: "stale" },
+        }),
+        private_key_ref: JSON.stringify({
+          sign: Buffer.from(new Uint8Array(64).fill(2)).toString("base64"),
+        }),
+      };
+      vi.spyOn(didManager, "getIdentityByDID").mockReturnValue(identity);
+      const signSpy = vi
+        .spyOn(didManager, "signDIDDocument")
+        .mockReturnValue({ id: testDID, proof: { proofValue: "fresh" } });
+
+      await didManager.updateIdentityProfile(testDID, { nickname: "New Name" });
+
+      // The document was actually re-signed with the parsed signing key...
+      expect(signSpy).toHaveBeenCalledTimes(1);
+      // ...and persisted back.
+      expect(mockDb.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE identities SET did_document = ?"),
+      );
+    });
+
     it("应该删除身份", async () => {
       const testDID = "did:chainlesschain:test123";
       mockDb.prepare().all = vi.fn().mockReturnValue([

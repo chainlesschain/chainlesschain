@@ -280,6 +280,22 @@ describe("HSMManager", () => {
         "Key not found",
       );
     });
+
+    it("should return valid:false for a wrong-length symmetric signature (no crash)", async () => {
+      // Regression: timingSafeEqual throws RangeError when the (untrusted)
+      // signature buffer length differs from the 32-byte HMAC, so a malformed
+      // signature crashed verify() instead of failing closed.
+      await manager.initialize(null);
+      await manager.generateKey("verify-key-badlen", "aes-256-gcm");
+
+      const result = await manager.verify(
+        "verify-key-badlen",
+        "message to verify",
+        "abcd", // 2 bytes, far shorter than the 32-byte HMAC
+      );
+
+      expect(result.valid).toBe(false);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────

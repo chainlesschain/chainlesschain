@@ -102,7 +102,13 @@ function createEscrow(db, ledger, opts) {
     return _atomic("cc_escrow_release", () => {
       const r = ledger.signAndTransfer({ from: custodianDid, to: hold.sellerDid, amount: hold.amount, secretKey: custodianSecretKey });
       if (!r.ok) return { ok: false, reason: "settle_failed:" + r.reason };
-      db.prepare(`UPDATE escrow_holds SET status='released', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
+      // 条件 UPDATE = 状态闸的 CAS：仅当行仍是 'held' 才翻 'released'。上面那次
+      // hold.status 检查发生在事务外（getHold），多连接下两个 release/refund 可能
+      // 都读到 'held' 各自放款 → double-settle；且当 custodian 为多笔 hold 共持
+      // 资金时，ledger 的余额检查挡不住（第二次放款会盗用其它 hold 的押款）。
+      // 若 0 行被改 = 竞态输家：抛错让 _atomic ROLLBACK TO 把本次转账一并撤回。
+      const upd = db.prepare(`UPDATE escrow_holds SET status='released', settle_entry_id=?, settled_at_ms=? WHERE id=? AND status='held'`).run(r.entryId, _deps.now(), holdId);
+      if (upd.changes !== 1) throw new Error("hold_no_longer_held");
       return { ok: true, entryId: r.entryId };
     });
   }
@@ -115,7 +121,9 @@ function createEscrow(db, ledger, opts) {
     return _atomic("cc_escrow_refund", () => {
       const r = ledger.signAndTransfer({ from: custodianDid, to: hold.buyerDid, amount: hold.amount, secretKey: custodianSecretKey });
       if (!r.ok) return { ok: false, reason: "refund_failed:" + r.reason };
-      db.prepare(`UPDATE escrow_holds SET status='refunded', settle_entry_id=?, settled_at_ms=? WHERE id=?`).run(r.entryId, _deps.now(), holdId);
+      // 同 release：条件 UPDATE 把状态闸做成 CAS，防多连接 TOCTOU 重复结算（见上）。
+      const upd = db.prepare(`UPDATE escrow_holds SET status='refunded', settle_entry_id=?, settled_at_ms=? WHERE id=? AND status='held'`).run(r.entryId, _deps.now(), holdId);
+      if (upd.changes !== 1) throw new Error("hold_no_longer_held");
       return { ok: true, entryId: r.entryId };
     });
   }

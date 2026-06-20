@@ -134,8 +134,11 @@ class EnterpriseKG extends EventEmitter {
       }
     } else if (queryDef.name) {
       const searchName = queryDef.name.toLowerCase();
+      // Guard e.name: addEntity does not validate name, so one entity with a
+      // null/undefined name would otherwise throw inside this filter and break
+      // the entire query (every entity is visited).
       results = Array.from(this._entities.values()).filter((e) =>
-        e.name.toLowerCase().includes(searchName),
+        (e.name || "").toLowerCase().includes(searchName),
       );
     } else {
       results = Array.from(this._entities.values()).slice(
@@ -217,7 +220,9 @@ class EnterpriseKG extends EventEmitter {
     const searchTerm = query.toLowerCase();
     const matchedEntities = Array.from(this._entities.values()).filter(
       (e) =>
-        e.name.toLowerCase().includes(searchTerm) ||
+        // Guard e.name (see query()): one null-named entity must not break
+        // search for every query.
+        (e.name || "").toLowerCase().includes(searchTerm) ||
         (e.properties.description || "").toLowerCase().includes(searchTerm),
     );
     const context = [];
