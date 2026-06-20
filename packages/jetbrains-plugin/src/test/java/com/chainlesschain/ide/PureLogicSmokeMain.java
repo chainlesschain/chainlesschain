@@ -419,6 +419,8 @@ public final class PureLogicSmokeMain {
         check(comp.size() == 1 && comp.get(0)[0].equals("/compact"), "comp -> only /compact");
         eq(SlashCommands.filter("").size(), SlashCommands.COMMANDS.size(), "empty prefix -> all");
         check(SlashCommands.filter("zzz").isEmpty(), "no match -> empty");
+        List<String[]> rev = SlashCommands.filter("rev");
+        check(rev.size() == 1 && rev.get(0)[0].equals("/review"), "rev -> only /review");
         // label
         eq(SlashCommands.label(new String[] { "/cost", "token cost" }),
                 "/cost  —  token cost", "label format");

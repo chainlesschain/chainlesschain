@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.20] — 2026-06-20 — `/review` panel command (review the current diff)
+
+- **New `/review` slash command in the chat tool window.** Type `/review` to ask
+  the agent to review your uncommitted git changes — it inspects the working-tree
+  diff (`git diff` / `git diff --staged`) with this window's IDE context
+  (selection, diagnostics, open editors) riding along, flags correctness bugs
+  first and simplifications/cleanups second, and cites `file:line`. It does not
+  edit files unless you ask. Local sugar that seeds a turn (re-enters the input
+  with a canned prompt — no new plumbing); discoverable in the `/` autocomplete
+  popup and `/help`. Mirrors the VS Code panel's 0.33.2 `/review`.
+
 ## [0.4.19] — 2026-06-19 — fix: suggested vision model matches the CLI default
 
 - **Fix.** The vision-model wizard/menu prefilled `doubao-seed-1-6-vision-250815`,

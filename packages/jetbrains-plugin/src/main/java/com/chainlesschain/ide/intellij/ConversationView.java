@@ -392,6 +392,19 @@ final class ConversationView {
             case "/cost":
                 runIntrospect("cost");
                 return;
+            case "/review":
+                // Seed a review turn: the agent inspects the working-tree diff
+                // using its tools + this window's IDE context (selection /
+                // diagnostics ride along). Local sugar — re-enter
+                // sendCurrentInput() with a canned prompt (mirrors the VS Code
+                // panel's /review); the non-slash text sends as a normal turn.
+                input.setText(
+                        "Review my current uncommitted git changes. Run git diff (and "
+                        + "git diff --staged) to see them, then flag correctness bugs "
+                        + "first and simplifications/cleanups second. Cite file:line "
+                        + "and be concise. Don't edit files unless I ask.");
+                sendCurrentInput();
+                return;
             case "/plan":
                 sendPlanAction("enter");
                 append("ℹ plan mode — write tools blocked until you approve\n");
@@ -404,7 +417,8 @@ final class ConversationView {
                 return;
             case "/help":
                 append("ℹ commands: /new /stop /compact /auto /bypass /normal /think "
-                        + "/ultrathink /think-off /plan /approve /reject /context /cost\n");
+                        + "/ultrathink /think-off /plan /approve /reject /context /cost "
+                        + "/review\n");
                 return;
             default:
                 append("ℹ unknown command " + cmd + " — try /help\n");
