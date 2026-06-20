@@ -10,6 +10,12 @@
 import { logger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
+// Monotonic token for loadSessionDetail. It awaits session:load then sets
+// currentSession; fast-switching sessions could let a slower load overwrite a
+// newer session. Each call claims the next token and only applies its result if
+// still the latest. The store is a singleton, so module scope is per-store.
+let _loadSessionDetailSeq = 0;
+
 // ==================== 类型定义 ====================
 
 /**
@@ -395,11 +401,18 @@ export const useSessionStore = defineStore('session', {
      * 加载会话详情
      */
     async loadSessionDetail(sessionId: string): Promise<Session | null> {
+      const seq = ++_loadSessionDetailSeq;
       this.loadingDetail = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke('session:load', sessionId);
+
+        // A newer loadSessionDetail started during the await (session switched);
+        // return the result to this caller but don't clobber currentSession.
+        if (seq !== _loadSessionDetailSeq) {
+          return result;
+        }
 
         if (result) {
           this.currentSession = result;
@@ -408,10 +421,15 @@ export const useSessionStore = defineStore('session', {
         return result;
       } catch (error) {
         logger.error('[SessionStore] 加载会话详情失败:', error as any);
-        this.error = (error as Error).message;
+        if (seq === _loadSessionDetailSeq) {
+          this.error = (error as Error).message;
+        }
         throw error;
       } finally {
-        this.loadingDetail = false;
+        // Only the latest in-flight load clears the spinner.
+        if (seq === _loadSessionDetailSeq) {
+          this.loadingDetail = false;
+        }
       }
     },
 
