@@ -787,6 +787,9 @@ describe("cross-chain-mtc lib", () => {
       // staging cleared
       expect(listStagedOps(dir)).toEqual({});
 
+      // Cross-process lock around the close section was released (no leftover).
+      expect(fs.existsSync(path.join(dir, "batches.lock"))).toBe(false);
+
       // landmark + envelopes on disk
       expect(fs.existsSync(path.join(ethPoly.dir, "landmark.json"))).toBe(true);
       expect(fs.existsSync(path.join(ethPoly.dir, "envelope-0000.json"))).toBe(
