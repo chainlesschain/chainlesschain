@@ -192,6 +192,27 @@ class FederationHardening extends EventEmitter {
     }
 
     this._circuitBreakers.set(nodeId, cb);
+
+    // Persist, mirroring resetCircuit. Without this the failure count and the
+    // OPEN transition lived only in memory, so initialize() (which reloads from
+    // the table) would silently re-close a tripped breaker after a restart.
+    if (this.database && this.database.db) {
+      this.database.db
+        .prepare(
+          `INSERT OR REPLACE INTO federation_circuit_breakers (id, node_id, state, failure_count, last_failure_at, opened_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          cb.id,
+          nodeId,
+          cb.state,
+          cb.failure_count,
+          cb.last_failure_at,
+          cb.opened_at || null,
+          cb.created_at,
+        );
+    }
+
     return cb;
   }
 
