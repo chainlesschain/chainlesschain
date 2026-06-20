@@ -362,6 +362,19 @@ describe("MarketplaceClient", () => {
       const r = await client.rejectPlugin("p1", "Policy violation");
       expect(r.success).toBe(true);
     });
+
+    it("should send the reason in the request body, not the query string", async () => {
+      // Regression: rejectPlugin used { params } so the reason went to the URL
+      // query instead of the POST body (every other POST uses { data }).
+      mockRequest.mockResolvedValue({ success: true, data: {} });
+      await client.rejectPlugin("p1", "Policy violation");
+
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      const cfg = mockRequest.mock.calls[0][0];
+      expect(cfg.method).toBe("post");
+      expect(cfg.data).toEqual({ reason: "Policy violation" });
+      expect(cfg.params).toBeUndefined();
+    });
   });
 
   // ── setBaseURL ────────────────────────────────────────────────────────
