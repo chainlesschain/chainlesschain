@@ -41,6 +41,17 @@ export const SUGGESTION_TYPE = Object.freeze({
 
 let _migrations = []; // registered migration definitions
 let _migrationHistory = []; // executed migration records from DB
+
+/**
+ * Compare two version strings with NUMERIC collation so "10" sorts AFTER "2".
+ * A migration framework must order numeric versions correctly; plain
+ * localeCompare()/Array.sort() is lexicographic ("10" < "2"), which would run
+ * migration v10 before v2 and corrupt the schema. Numeric collation also leaves
+ * zero-padded / date / semver-ish versions ordered as expected.
+ */
+function cmpVersion(a, b) {
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
 let _queryLogs = [];
 let _suggestions = new Map();
 let _slowQueryThresholdMs = 100;
@@ -147,7 +158,7 @@ export function registerMigration(
   });
 
   // Keep sorted by version
-  _migrations.sort((a, b) => a.version.localeCompare(b.version));
+  _migrations.sort((a, b) => cmpVersion(a.version, b.version));
 
   return { registered: true, version, checksum };
 }
@@ -178,13 +189,13 @@ export function getCurrentVersion(db) {
   );
 
   if (active.length === 0) return null;
-  return active.sort((a, b) => b.localeCompare(a))[0];
+  return active.sort((a, b) => cmpVersion(b, a))[0];
 }
 
 export function getPendingMigrations(db) {
   const current = getCurrentVersion(db);
   return _migrations.filter(
-    (m) => !current || m.version.localeCompare(current) > 0,
+    (m) => !current || cmpVersion(m.version, current) > 0,
   );
 }
 
@@ -193,7 +204,7 @@ export function migrateUp(db, targetVersion) {
   if (pending.length === 0) return { migrated: false, reason: "no_pending" };
 
   const toRun = targetVersion
-    ? pending.filter((m) => m.version.localeCompare(targetVersion) <= 0)
+    ? pending.filter((m) => cmpVersion(m.version, targetVersion) <= 0)
     : pending;
 
   if (toRun.length === 0) return { migrated: false, reason: "no_pending" };
@@ -248,13 +259,13 @@ export function migrateDown(db, targetVersion) {
     .filter((m) => {
       if (targetVersion) {
         return (
-          m.version.localeCompare(current) <= 0 &&
-          m.version.localeCompare(targetVersion) > 0
+          cmpVersion(m.version, current) <= 0 &&
+          cmpVersion(m.version, targetVersion) > 0
         );
       }
       return m.version === current;
     })
-    .sort((a, b) => b.version.localeCompare(a.version));
+    .sort((a, b) => cmpVersion(b.version, a.version));
 
   if (toRollBack.length === 0)
     return { rolledBack: false, reason: "nothing_to_rollback" };
@@ -331,7 +342,7 @@ export function validateMigrations() {
   if (_migrations.length === 0) return { valid: true, issues: [] };
 
   const issues = [];
-  const versions = _migrations.map((m) => m.version).sort();
+  const versions = _migrations.map((m) => m.version).sort(cmpVersion);
 
   // Check for gaps in version sequence
   for (let i = 1; i < versions.length; i++) {
