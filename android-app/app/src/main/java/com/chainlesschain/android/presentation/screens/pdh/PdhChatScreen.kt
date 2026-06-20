@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.TrustCard
 
@@ -127,11 +128,12 @@ fun PdhChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(state.messages) { _, msg ->
-                    if (msg.role == Role.DATA) {
+                    when (msg.role) {
                         // §3.5.11: 被读取的数据用独立「引用」容器,绝不套 AI 气泡样式。
-                        DataQuoteCard(msg = msg, onToggle = { viewModel.toggleCollapse(msg.id) })
-                    } else {
-                        MessageRow(role = msg.role, text = msg.text)
+                        Role.DATA -> DataQuoteCard(msg, onToggle = { viewModel.toggleCollapse(msg.id) })
+                        // §3.5.12: 可信结构化结果用视图卡(区别于不可信数据)。
+                        Role.VIEW -> ResultViewCard(msg, onToggle = { viewModel.toggleCollapse(msg.id) })
+                        else -> MessageRow(role = msg.role, text = msg.text)
                     }
                 }
                 if (state.streamingText.isNotEmpty()) {
@@ -181,6 +183,7 @@ private fun MessageRow(role: Role, text: String) {
         Role.TOOL -> MaterialTheme.colorScheme.tertiaryContainer
         Role.SYSTEM -> MaterialTheme.colorScheme.secondaryContainer
         Role.DATA -> MaterialTheme.colorScheme.surface // unused: DATA → DataQuoteCard
+        Role.VIEW -> MaterialTheme.colorScheme.surface // unused: VIEW → ResultViewCard
     }
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = align) {
         Surface(
@@ -261,6 +264,55 @@ private fun PermissionBanner(onGrant: () -> Unit) {
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Button(onClick = onGrant) { Text("授予") }
+        }
+    }
+}
+
+// ── §3.5.12 对话内联结果视图:可信结构化结果的视图卡 ─────────────────────────
+
+@Composable
+private fun ResultViewCard(msg: PdhChatViewModel.ChatMessage, onToggle: () -> Unit) {
+    val kindLabel = msg.viewKind?.let { PdhResultView.label(it) } ?: "结果"
+    val lines = msg.text.split("\n")
+    val collapsible = lines.size > 6 || msg.text.length > 400
+    val shown = if (msg.collapsed && collapsible) lines.take(6).joinToString("\n") else msg.text
+    Surface(
+        // 可信视图卡:用填充式 tonal 卡,明显区别于 §3.5.11 的异色+边框"数据引用"。
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                "📊 $kindLabel",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                shown + if (msg.collapsed && collapsible) "\n…" else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // §3.5.12 接线4:跳转完整浏览器 seam —— §9/Phase 6,暂置灰提示(诚实降级)。
+                Text(
+                    "→ 完整视图见数据浏览器(开发中)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                )
+                if (collapsible) {
+                    TextButton(onClick = onToggle) {
+                        Text(if (msg.collapsed) "展开" else "收起")
+                    }
+                }
+            }
         }
     }
 }

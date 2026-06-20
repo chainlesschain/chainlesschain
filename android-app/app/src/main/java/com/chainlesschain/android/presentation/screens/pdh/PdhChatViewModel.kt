@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
+import com.chainlesschain.android.pdh.PdhResultView
+import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +28,7 @@ class PdhChatViewModel @Inject constructor(
     private val session: PdhAgentSession,
 ) : ViewModel() {
 
-    enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA }
+    enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA, VIEW }
 
     data class ChatMessage(
         val id: String = UUID.randomUUID().toString(),
@@ -36,6 +38,8 @@ class PdhChatViewModel @Inject constructor(
         val source: String? = null,
         val untrusted: Boolean = false,
         val collapsed: Boolean = true,
+        // §3.5.12 对话内联结果视图:VIEW 行携可信结构化结果的种类。
+        val viewKind: ViewKind? = null,
     )
 
     /**
@@ -88,8 +92,9 @@ class PdhChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    /** §3.5.11: last tool the agent invoked → derive its result's data provenance. */
+    /** §3.5.11/§3.5.12: last tool + input → derive its result's provenance / view kind. */
     private var lastToolUse: String? = null
+    private var lastToolInput: String? = null
 
     init {
         viewModelScope.launch {
@@ -145,8 +150,9 @@ class PdhChatViewModel @Inject constructor(
                 _uiState.update { it.copy(streamingText = it.streamingText + ev.text) }
 
             is PdhAgentEvent.ToolUse -> {
-                // §3.5.11: remember the tool so its result's data gets correct provenance.
+                // §3.5.11/§3.5.12: remember tool + input → result provenance / view kind.
                 lastToolUse = ev.name
+                lastToolInput = ev.input
                 _uiState.update {
                     it.copy(
                         messages = it.messages + ChatMessage(
@@ -163,16 +169,31 @@ class PdhChatViewModel @Inject constructor(
             is PdhAgentEvent.ToolResult -> {
                 val content = ev.content.trim()
                 if (content.isNotEmpty()) {
-                    val prov = PdhDataProvenance.sourceOf(lastToolUse)
-                    _uiState.update {
-                        it.copy(
-                            messages = it.messages + ChatMessage(
-                                role = Role.DATA,
-                                text = content,
-                                source = prov.label,
-                                untrusted = prov.untrusted,
-                            ),
-                        )
+                    val kind = PdhResultView.viewKindOf(lastToolUse, lastToolInput)
+                    if (kind != null) {
+                        // §3.5.12: trusted structured result → 视图卡(not the untrusted DATA quote).
+                        _uiState.update {
+                            it.copy(
+                                messages = it.messages + ChatMessage(
+                                    role = Role.VIEW,
+                                    text = content,
+                                    viewKind = kind,
+                                ),
+                            )
+                        }
+                    } else {
+                        // §3.5.11: raw tool content → untrusted 数据引用 row.
+                        val prov = PdhDataProvenance.sourceOf(lastToolUse)
+                        _uiState.update {
+                            it.copy(
+                                messages = it.messages + ChatMessage(
+                                    role = Role.DATA,
+                                    text = content,
+                                    source = prov.label,
+                                    untrusted = prov.untrusted,
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -274,7 +295,11 @@ class PdhChatViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 messages = it.messages.map { m ->
-                    if (m.id == id && m.role == Role.DATA) m.copy(collapsed = !m.collapsed) else m
+                    if (m.id == id && (m.role == Role.DATA || m.role == Role.VIEW)) {
+                        m.copy(collapsed = !m.collapsed)
+                    } else {
+                        m
+                    }
                 },
             )
         }
