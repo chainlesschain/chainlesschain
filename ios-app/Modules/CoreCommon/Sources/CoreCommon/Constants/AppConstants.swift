@@ -35,7 +35,7 @@ public enum AppConstants {
     /// 数据库配置
     public enum Database {
         public static let name = "chainlesschain.db"
-        public static let version = 2
+        public static let version = 3
         public static let encryptionKeySize = 32 // 256 bits
         public static let pbkdf2Iterations = 256_000
     }
