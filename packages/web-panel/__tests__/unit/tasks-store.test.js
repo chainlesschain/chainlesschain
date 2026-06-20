@@ -108,4 +108,50 @@ describe('tasks store', () => {
     vi.advanceTimersByTime(8000)
     expect(store.lastNotification).toBeNull()
   })
+
+  it('a later notification is not cleared early by an earlier timer', async () => {
+    sendRaw.mockResolvedValue({ type: 'tasks-list', tasks: [] })
+
+    const store = useTasksStore()
+    store.startPolling(5000)
+    const [handler] = [...onRuntimeEventHandlers]
+
+    // Notification A at t=0
+    handler({ type: 'task:notification', payload: { task: { id: 'a' } } })
+    await Promise.resolve()
+    expect(store.lastNotification).toEqual({ id: 'a' })
+
+    // Notification B at t=5000 (A's 8s timer would fire at t=8000)
+    vi.advanceTimersByTime(5000)
+    handler({ type: 'task:notification', payload: { task: { id: 'b' } } })
+    await Promise.resolve()
+    expect(store.lastNotification).toEqual({ id: 'b' })
+
+    // At t=8000, A's old timer must NOT clear B (only 3s into B's display)
+    vi.advanceTimersByTime(3000)
+    expect(store.lastNotification).toEqual({ id: 'b' })
+
+    // B clears 8s after it appeared (t=13000)
+    vi.advanceTimersByTime(5000)
+    expect(store.lastNotification).toBeNull()
+  })
+
+  it('stopPolling cancels the pending auto-clear timer', async () => {
+    sendRaw.mockResolvedValue({ type: 'tasks-list', tasks: [] })
+
+    const store = useTasksStore()
+    store.startPolling(5000)
+    const [handler] = [...onRuntimeEventHandlers]
+
+    handler({ type: 'task:notification', payload: { task: { id: 'a' } } })
+    await Promise.resolve()
+    expect(store.lastNotification).toEqual({ id: 'a' })
+
+    // Stopping polling tears down the timer; advancing time must not throw or
+    // mutate state via a dangling timer.
+    store.stopPolling()
+    expect(vi.getTimerCount()).toBe(0)
+    vi.advanceTimersByTime(8000)
+    expect(store.lastNotification).toEqual({ id: 'a' })
+  })
 })
