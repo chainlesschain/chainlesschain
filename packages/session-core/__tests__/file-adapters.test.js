@@ -7,6 +7,8 @@ import {
   createBetaFlagsFileAdapter,
   createApprovalGateFileAdapter,
   hydrateMemoryStore,
+  writeJsonAtomic,
+  _deps,
 } from "../lib/file-adapters.js";
 import { MemoryStore, SCOPE } from "../lib/memory-store.js";
 import { BetaFlags } from "../lib/beta-flags.js";
@@ -124,5 +126,44 @@ describe("createApprovalGateFileAdapter", () => {
     fs.writeFileSync(file, "{not json", "utf-8");
     const adapter = createApprovalGateFileAdapter(file);
     expect(await adapter.load()).toEqual({});
+  });
+});
+
+describe("writeJsonAtomic — concurrency-safe temp files", () => {
+  it("routes each write through _deps.tmpName, getting a unique temp", () => {
+    const f = path.join(tmpDir, "store.json");
+    const calls = [];
+    const orig = _deps.tmpName;
+    _deps.tmpName = (p) => {
+      const t = orig(p);
+      calls.push(t);
+      return t;
+    };
+    try {
+      writeJsonAtomic(f, { a: 1 });
+      writeJsonAtomic(f, { a: 2 });
+    } finally {
+      _deps.tmpName = orig;
+    }
+    // A fixed `${filePath}.tmp` would skip the generator and let two processes
+    // collide on one temp; we require a per-write unique name.
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).not.toBe(calls[1]);
+    expect(calls[0]).not.toBe(`${f}.tmp`);
+    expect(JSON.parse(fs.readFileSync(f, "utf-8"))).toEqual({ a: 2 });
+  });
+
+  it("leaves no .tmp behind on a successful write", () => {
+    const f = path.join(tmpDir, "store.json");
+    writeJsonAtomic(f, { a: 1 });
+    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual([]);
+  });
+
+  it("cleans up — no orphaned .tmp after a failed write/rename", () => {
+    // Make the target an existing directory so renameSync fails.
+    const target = path.join(tmpDir, "as-dir");
+    fs.mkdirSync(target);
+    expect(() => writeJsonAtomic(target, { x: 1 })).toThrow();
+    expect(fs.readdirSync(tmpDir).filter((n) => n.includes(".tmp"))).toEqual([]);
   });
 });
