@@ -478,9 +478,20 @@ describe("FileSandbox", () => {
       const result = sandbox.getAuditLog({ success: true });
       const logs = result.logs || result;
 
+      // Regression: success records store booleans but the filter compared to
+      // integers (true === 1 → false), so success:true matched nothing and this
+      // assertion passed vacuously. The two beforeEach ops both succeeded.
+      expect(logs.length).toBeGreaterThanOrEqual(2);
       logs.forEach((log) => {
         expect(log.success).toBeTruthy();
       });
+    });
+
+    test("success:false 不应误返回成功记录", () => {
+      const result = sandbox.getAuditLog({ success: false });
+      const logs = result.logs || result;
+      // All beforeEach operations succeeded, so there are no failed records.
+      expect(logs.length).toBe(0);
     });
   });
 
