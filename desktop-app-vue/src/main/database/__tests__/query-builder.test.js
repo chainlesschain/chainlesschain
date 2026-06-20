@@ -250,4 +250,102 @@ describe("QueryBuilder", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("identifier safety (SQL injection prevention)", () => {
+    it("rejects a malicious table name", () => {
+      expect(() =>
+        QueryBuilder.from(db).table("users; DROP TABLE users; --"),
+      ).toThrow(/Invalid table name/);
+    });
+
+    it("rejects a malicious column in select()", () => {
+      // quote + stacked statement
+      expect(() =>
+        QueryBuilder.from(db).table("users").select("id'; DROP TABLE x"),
+      ).toThrow(/Invalid column/);
+      // subquery hidden behind the allowed parentheses
+      expect(() =>
+        QueryBuilder.from(db).table("users").select("id, (SELECT secret)"),
+      ).toThrow(/Invalid column/);
+    });
+
+    it("rejects a UNION SELECT injection that fits the charset", () => {
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .select("id FROM users UNION SELECT password FROM creds"),
+      ).toThrow(/Invalid column/);
+    });
+
+    it("rejects a malicious WHERE column", () => {
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .select()
+          .where("id = 1; DELETE FROM users --", 1),
+      ).toThrow(/Invalid column/);
+    });
+
+    it("rejects an unknown WHERE operator (operator injection)", () => {
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .select()
+          .where("id", "= 1 OR 1=1 --", 1),
+      ).toThrow(/Invalid SQL operator/);
+    });
+
+    it("rejects injection via ORDER BY column and direction", () => {
+      expect(() =>
+        QueryBuilder.from(db).table("users").select().orderBy("name; DROP"),
+      ).toThrow(/Invalid column/);
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .select()
+          .orderBy("name", "DESC; DROP TABLE x"),
+      ).toThrow(/Invalid sort direction/);
+    });
+
+    it("rejects injection via JOIN targets and GROUP BY", () => {
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .select()
+          .join("profiles); DROP TABLE x; --", "users.id", "p.user_id"),
+      ).toThrow(/Invalid join/);
+      expect(() =>
+        QueryBuilder.from(db).table("users").select().groupBy("status; DROP"),
+      ).toThrow(/Invalid column/);
+    });
+
+    it("rejects malicious INSERT/UPDATE column keys", () => {
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .insert({ "name) VALUES ('x'); DROP TABLE users; --": "y" }),
+      ).toThrow(/Invalid column/);
+      expect(() =>
+        QueryBuilder.from(db)
+          .table("users")
+          .update({ "name = 'x' WHERE 1=1; --": "y" }),
+      ).toThrow(/Invalid column/);
+    });
+
+    it("still allows legitimate aggregate, dotted and starred identifiers", () => {
+      const { sql } = QueryBuilder.from(db)
+        .table("orders")
+        .select("orders.id", "COUNT(*) as cnt")
+        .join("users", "orders.user_id", "users.id")
+        .where("status", ">=", 1)
+        .groupBy("orders.user_id")
+        .orderBy("cnt", "DESC")
+        .buildSQL();
+      expect(sql).toContain("COUNT(*) as cnt");
+      expect(sql).toContain("JOIN users ON orders.user_id = users.id");
+      expect(sql).toContain("status >= ?");
+      expect(sql).toContain("GROUP BY orders.user_id");
+      expect(sql).toContain("ORDER BY cnt DESC");
+    });
+  });
 });
