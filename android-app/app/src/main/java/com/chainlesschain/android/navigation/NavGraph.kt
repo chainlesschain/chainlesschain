@@ -198,6 +198,7 @@ fun NavGraph(
                 onNavigateToUsageStatistics = { navController.navigate(Screen.UsageStatistics.route) },
                 onNavigateToLLMTest = { navController.navigate(Screen.LLMTest.route) },
                 onNavigateToCcChat = { navController.navigate(Screen.CcChat.route) },
+                onNavigateToPdhChat = { navController.navigate(Screen.PdhChat.route) },
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
                 onNavigateToRemoteProjectBrowser = { navController.navigate(Screen.RemoteProjectBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
@@ -485,6 +486,12 @@ fun NavGraph(
         composable(Screen.CcChat.route) {
             com.chainlesschain.android.presentation.screens.cc.CcChatScreen(
                 initialProvider = LLMProvider.DOUBAO,
+            )
+        }
+        // PDH 单输入框 Chat (module 101 Phase 2): cc agent → 本机 PDH bridge
+        composable(Screen.PdhChat.route) {
+            com.chainlesschain.android.presentation.screens.pdh.PdhChatScreen(
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -1114,6 +1121,7 @@ sealed class Screen(val route: String) {
     /** Phase 4 — local terminal (mksh in $PREFIX, no pairing required). */
     data object LocalTerminal : Screen("local_terminal")
     data object CcChat : Screen("cc_chat")
+    data object PdhChat : Screen("pdh_chat")
     data object KnowledgeList : Screen("knowledge_list")
     data object KnowledgeEditor : Screen("knowledge_editor") {
         fun createRoute(itemId: String) = "knowledge_editor/$itemId"

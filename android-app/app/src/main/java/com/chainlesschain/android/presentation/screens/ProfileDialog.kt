@@ -32,6 +32,7 @@ fun ProfileDialog(
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToCcChat: () -> Unit = {},
+    onNavigateToPdhChat: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
@@ -210,6 +211,16 @@ fun ProfileDialog(
                             title = "cc Chat (自然语言)",
                             subtitle = "用自然语言调 cc 查询本地数据",
                             onClick = onNavigateToCcChat
+                        )
+                    }
+
+                    // module 101 Phase 2: PDH 单输入框 — 采集/查询/分析个人数据
+                    item {
+                        ProfileDialogMenuItem(
+                            icon = Icons.Default.Terminal,
+                            title = "个人数据助手",
+                            subtitle = "一句话指挥采集 / 查询 / 分析你的个人数据",
+                            onClick = onNavigateToPdhChat
                         )
                     }
 

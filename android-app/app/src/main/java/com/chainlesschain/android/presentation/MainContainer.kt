@@ -60,6 +60,7 @@ fun MainContainer(
     onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToCcChat: () -> Unit = {},
+    onNavigateToPdhChat: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteProjectBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
@@ -270,6 +271,10 @@ fun MainContainer(
             onNavigateToCcChat = {
                 showProfileDialog = false
                 onNavigateToCcChat()
+            },
+            onNavigateToPdhChat = {
+                showProfileDialog = false
+                onNavigateToPdhChat()
             },
             onNavigateToKnowledgeList = {
                 showProfileDialog = false
