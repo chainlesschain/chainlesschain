@@ -108,11 +108,12 @@ val allBottomNavItems = listOf(
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
     ),
+    // module 101 Phase 2: 把「项目」slot 换成「个人助手」(PDH 单输入框 Chat)
     BottomNavItem(
         tab = BottomTab.PROJECT,
-        labelResId = R.string.nav_projects,
-        selectedIcon = Icons.Filled.FolderOpen,
-        unselectedIcon = Icons.Outlined.FolderOpen
+        labelResId = R.string.nav_pdh_assistant,
+        selectedIcon = Icons.Filled.AutoAwesome,
+        unselectedIcon = Icons.Outlined.AutoAwesome
     ),
     BottomNavItem(
         tab = BottomTab.SOCIAL,

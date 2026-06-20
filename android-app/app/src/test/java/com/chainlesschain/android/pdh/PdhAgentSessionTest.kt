@@ -64,6 +64,17 @@ class PdhAgentSessionTest {
     }
 
     @Test
+    fun result_field_carries_the_final_answer() {
+        // cc agent's real success shape: the answer is in `result`, not `text`.
+        assertEquals(
+            PdhAgentEvent.Result("我是助手", false),
+            PdhAgentSession.parseLine(
+                """{"type":"result","subtype":"success","is_error":false,"result":"我是助手"}""",
+            ),
+        )
+    }
+
+    @Test
     fun result_is_error_flag_honored() {
         val e = PdhAgentSession.parseLine("""{"type":"result","text":"x","is_error":true}""")
         assertTrue((e as PdhAgentEvent.Result).isError)

@@ -84,11 +84,63 @@ class PtyEnvironment @Inject constructor(
             "CC_UI_TOKEN" to ccUiToken(),
         )
 
-        // Layer order: defaults < LLM key envs < caller-provided extras.
-        val merged = defaults + loadLlmKeyEnvs() + extra
+        // Layer order: defaults < DNS fix < LLM key envs < caller-provided extras.
+        val merged = defaults + dnsFixEnv() + loadLlmKeyEnvs() + extra
         return merged.entries
             .map { (k, v) -> "$k=$v" }
             .toTypedArray()
+    }
+
+    /**
+     * Android node DNS fix (module 101 Phase 2). On Android, node's
+     * `dns.lookup` (getaddrinfo → netd) fails with ENOTFOUND inside the cc
+     * subprocess (the per-uid netId resolver context the framework gives Java
+     * networking isn't wired up for a raw forked process), so `fetch`/HTTPS —
+     * the LLM call, cookie collectors, update checks — all break. c-ares
+     * (`dns.resolve`) over plain UDP DOES work. We ship a tiny `--require`
+     * preload that re-points `dns.lookup` at c-ares, and feed it the device's
+     * REAL DNS servers (read here via the framework, which works on every
+     * phone) so it isn't hostage to a hard-coded public resolver that some
+     * networks block. Returns empty (no NODE_OPTIONS) if the preload can't be
+     * staged — better a clear "fetch failed" than node refusing to start on a
+     * missing --require module.
+     */
+    private fun dnsFixEnv(): Map<String, String> {
+        val path = ensureDnsFix() ?: return emptyMap()
+        val servers = deviceDnsServers()
+        val env = mutableMapOf("NODE_OPTIONS" to "--require $path")
+        if (servers.isNotEmpty()) env["CC_DNS_SERVERS"] = servers
+        return env
+    }
+
+    /** Active-network DNS servers (comma-joined). Best-effort; "" if unknown. */
+    private fun deviceDnsServers(): String = try {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE)
+            as? android.net.ConnectivityManager
+        val net = cm?.activeNetwork
+        val lp = net?.let { cm.getLinkProperties(it) }
+        lp?.dnsServers?.mapNotNull { it.hostAddress }?.distinct()?.joinToString(",") ?: ""
+    } catch (e: Exception) {
+        Timber.tag("PtyEnv").w(e, "Failed reading device DNS servers")
+        ""
+    }
+
+    /**
+     * Stage the DNS-fix preload at `$PREFIX/etc/dns-fix.js` (idempotent — only
+     * rewrites if missing or stale). Returns its absolute path, or null on
+     * failure (so the caller omits NODE_OPTIONS rather than point at nothing).
+     */
+    private fun ensureDnsFix(): String? = try {
+        val etc = java.io.File(bootstrapper.prefixDir, "etc")
+        if (!etc.exists()) etc.mkdirs()
+        val file = java.io.File(etc, "dns-fix.js")
+        if (!file.exists() || file.length().toInt() != DNS_FIX_JS.toByteArray().size) {
+            file.writeText(DNS_FIX_JS)
+        }
+        file.absolutePath.takeIf { file.exists() }
+    } catch (e: Exception) {
+        Timber.tag("PtyEnv").w(e, "Failed staging dns-fix.js")
+        null
     }
 
     /**
@@ -186,4 +238,51 @@ class PtyEnvironment @Inject constructor(
     /** Path to the mksh executable symlink in `$PREFIX/bin`. */
     val mkshExecutable: String
         get() = "${bootstrapper.prefixDir.absolutePath}/bin/mksh"
+
+    companion object {
+        /**
+         * The `--require` preload that fixes node DNS on Android (see
+         * [dnsFixEnv]). Re-points `dns.lookup` (used by fetch/net.connect) at
+         * c-ares `dns.resolve`, seeded with the device's real DNS from
+         * `CC_DNS_SERVERS` plus public fallbacks. Pure JS, ES5-safe (no `$`
+         * so it survives the Kotlin raw string), self-contained.
+         */
+        private val DNS_FIX_JS =
+            """
+            // Android node DNS fix (module 101 Phase 2). getaddrinfo (dns.lookup)
+            // fails in the cc subprocess; c-ares (dns.resolve) over UDP works.
+            // Re-point dns.lookup at c-ares, seeded with the device's real DNS
+            // (CC_DNS_SERVERS) + public fallbacks.
+            var dns = require('dns');
+            var fromEnv = String(process.env.CC_DNS_SERVERS || '')
+              .split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+            var fallback = ['223.5.5.5', '119.29.29.29', '1.1.1.1', '8.8.8.8'];
+            var seen = {}, servers = [];
+            fromEnv.concat(fallback).forEach(function (s) {
+              if (s && !seen[s]) { seen[s] = 1; servers.push(s); }
+            });
+            try { dns.setServers(servers); } catch (e) {}
+            var origLookup = dns.lookup;
+            dns.lookup = function (hostname, opts, cb) {
+              if (typeof opts === 'function') { cb = opts; opts = {}; }
+              opts = (typeof opts === 'number') ? { family: opts } : (opts || {});
+              var fb = function () { return origLookup(hostname, opts, cb); };
+              var v6 = function () {
+                dns.resolve6(hostname, function (e, a) {
+                  if (e || !a || !a.length) return fb();
+                  cb(null, opts.all ? a.map(function (x) {
+                    return { address: x, family: 6 };
+                  }) : a[0], 6);
+                });
+              };
+              if (opts.family === 6) return v6();
+              dns.resolve4(hostname, function (e, a) {
+                if (e || !a || !a.length) return v6();
+                cb(null, opts.all ? a.map(function (x) {
+                  return { address: x, family: 4 };
+                }) : a[0], 4);
+              });
+            };
+            """.trimIndent()
+    }
 }

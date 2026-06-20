@@ -1,5 +1,7 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.localterminal.LocalFilesystemBootstrapper
 import com.chainlesschain.android.feature.localterminal.PtyEnvironment
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +54,7 @@ import javax.inject.Singleton
 class PdhAgentSession @Inject constructor(
     private val bootstrapper: LocalFilesystemBootstrapper,
     private val ptyEnvironment: PtyEnvironment,
+    private val llmConfig: LLMConfigManager,
 ) {
 
     /** Parsed cc-agent stream-json output events (liberal — unknown types ignored). */
@@ -76,6 +79,7 @@ class PdhAgentSession @Inject constructor(
     private var process: Process? = null
     private var writer: OutputStreamWriter? = null
     private var readerJob: Job? = null
+    private var stderrJob: Job? = null
     private var exitJob: Job? = null
 
     /** True once [start] has a live process. */
@@ -98,13 +102,19 @@ class PdhAgentSession @Inject constructor(
             val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
 
             // W^X: execve mksh (a whitelisted .so symlink), pass cc as a script arg.
-            val command = listOf(
-                mkshPath.absolutePath,
-                ccPath.absolutePath,
-                "agent",
-                "--input-format", "stream-json",
-                "--output-format", "stream-json",
-            )
+            val command = buildList {
+                add(mkshPath.absolutePath)
+                add(ccPath.absolutePath)
+                add("agent")
+                add("--input-format"); add("stream-json")
+                add("--output-format"); add("stream-json")
+                // `cc agent` defaults to provider=ollama (localhost:11434, absent
+                // on the device) and ignores config.json's llm.provider — unlike
+                // `cc ask`. Pass the user's configured provider+model explicitly
+                // so the agent uses the same cloud LLM as the app's AI chat. The
+                // API key still arrives via PtyEnvironment env injection.
+                addAll(llmArgs())
+            }
             // PDH bridge auto-discovery for the in-APK agent (env fast-path).
             val envList = ptyEnvironment
                 .envp(extra = mapOf(ENV_PDH_PORT to bridgePort.toString()))
@@ -143,6 +153,29 @@ class PdhAgentSession @Inject constructor(
                     runCatching { reader.close() }
                 }
             }
+            // Read stderr too — cc prints the real failure reason there (e.g.
+            // "✖ Failed: fetch failed" / "API key required …"). PdhAgentSession
+            // otherwise only reads the NDJSON stdout, so the cause was lost and
+            // the UI could only show a generic "turn ended with error".
+            stderrJob = scope.launch(Dispatchers.IO) {
+                val errReader = BufferedReader(InputStreamReader(proc.errorStream, Charsets.UTF_8))
+                try {
+                    var line: String?
+                    while (errReader.readLine().also { line = it } != null) {
+                        val l = line!!.trim()
+                        if (l.isEmpty()) continue
+                        if (l.contains("Failed") || l.contains("error", ignoreCase = true) ||
+                            l.contains("required") || l.startsWith("✖")
+                        ) {
+                            _events.emit(PdhAgentEvent.Error(l.take(300)))
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Timber.tag(TAG).w(t, "stderr reader stopped")
+                } finally {
+                    runCatching { errReader.close() }
+                }
+            }
             exitJob = scope.launch(Dispatchers.IO) {
                 val code = runCatching { proc.waitFor() }.getOrDefault(-1)
                 _events.emit(PdhAgentEvent.Exit(code))
@@ -174,11 +207,48 @@ class PdhAgentSession @Inject constructor(
         runCatching { writer?.close() }
         runCatching { process?.destroy() }
         readerJob?.cancel()
+        stderrJob?.cancel()
         exitJob?.cancel()
         process = null
         writer = null
         readerJob = null
+        stderrJob = null
         exitJob = null
+    }
+
+    /**
+     * `--provider/--model` for `cc agent`, from the app's LLM config so the
+     * agent uses the same cloud LLM the user set in AI settings (cross-device,
+     * no reliance on a hand-written config.json). Empty when unknown — then cc
+     * falls back to its own resolution. The API key arrives via env injection.
+     */
+    private fun llmArgs(): List<String> = try {
+        val provider = ccProviderName(llmConfig.getProvider())
+        val model = llmConfig.getCurrentModel().trim()
+        if (provider != null && model.isNotEmpty()) {
+            listOf("--provider", provider, "--model", model)
+        } else {
+            emptyList()
+        }
+    } catch (t: Throwable) {
+        Timber.tag(TAG).w(t, "llmArgs failed; cc agent uses its own LLM resolution")
+        emptyList()
+    }
+
+    /** App [LLMProvider] -> cc CLI provider name (packages/cli llm-providers.js). */
+    private fun ccProviderName(p: LLMProvider): String? = when (p) {
+        LLMProvider.OPENAI -> "openai"
+        LLMProvider.DEEPSEEK -> "deepseek"
+        LLMProvider.CLAUDE -> "anthropic"
+        LLMProvider.DOUBAO -> "volcengine"
+        LLMProvider.QWEN -> "qwen"
+        LLMProvider.ERNIE -> "ernie"
+        LLMProvider.CHATGLM -> "chatglm"
+        LLMProvider.MOONSHOT -> "moonshot"
+        LLMProvider.SPARK -> "spark"
+        LLMProvider.GEMINI -> "gemini"
+        LLMProvider.OLLAMA -> "ollama"
+        LLMProvider.CUSTOM -> null
     }
 
     companion object {
@@ -214,7 +284,9 @@ class PdhAgentSession @Inject constructor(
                     content = str(obj, "content").ifEmpty { str(obj, "text") },
                 )
                 "result" -> PdhAgentEvent.Result(
-                    text = textOf(obj),
+                    // cc agent puts the final answer in the `result` field
+                    // (not `text`); fall back to the streamed text shapes.
+                    text = str(obj, "result").ifEmpty { textOf(obj) },
                     isError = bool(obj, "is_error") || str(obj, "subtype").contains("error"),
                 )
                 "error" -> PdhAgentEvent.Error(
