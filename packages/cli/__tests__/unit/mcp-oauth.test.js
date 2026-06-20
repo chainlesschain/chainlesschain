@@ -202,6 +202,29 @@ describe("token store + expiry", () => {
     expect(oauth.getStoredToken("https://m.example.com")).toBeNull();
   });
 
+  it("saveStoredToken writes atomically (temp + rename) when fs supports renameSync", () => {
+    const file = oauth.tokenStorePath();
+    const calls = { writes: [], renames: [], unlinks: [] };
+    _deps.fs = {
+      existsSync: () => false,
+      readFileSync: () => {
+        throw new Error("no file"); // loadTokenStore → {} on throw
+      },
+      mkdirSync: () => {},
+      writeFileSync: (p, c) => calls.writes.push({ p, c }),
+      renameSync: (a, b) => calls.renames.push({ a, b }),
+      unlinkSync: (p) => calls.unlinks.push(p),
+    };
+    oauth.saveStoredToken("https://m.example.com", { access_token: "AT" });
+    // Wrote to a temp sibling, then renamed it over the real file (never a
+    // direct write to the live token store).
+    expect(calls.writes).toHaveLength(1);
+    expect(calls.writes[0].p).toMatch(/\.tmp$/);
+    expect(calls.writes[0].p).not.toBe(file);
+    expect(calls.renames).toEqual([{ a: calls.writes[0].p, b: file }]);
+    expect(calls.unlinks).toEqual([]); // no cleanup needed on success
+  });
+
   it("isTokenExpired: missing token, within skew, valid", () => {
     expect(oauth.isTokenExpired(null)).toBe(true);
     expect(oauth.isTokenExpired({ access_token: "AT" })).toBe(false); // no expiry

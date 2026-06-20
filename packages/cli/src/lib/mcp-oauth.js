@@ -306,12 +306,40 @@ export function getStoredToken(serverUrl) {
   return loadTokenStore()[serverKey(serverUrl)] || null;
 }
 
+/**
+ * Write the token store atomically: a crash (or a second `cc mcp login`)
+ * mid-write must not corrupt mcp-oauth.json — it holds live OAuth access/refresh
+ * tokens, and a truncated file would lose MCP auth for every server. Temp
+ * sibling + rename (atomic within a filesystem). Falls back to a direct write
+ * when the injected fs has no renameSync (test mocks); the real fs always does,
+ * so production is always atomic.
+ */
+function _atomicWriteStore(file, data) {
+  const fs = _deps.fs;
+  if (typeof fs.renameSync !== "function") {
+    fs.writeFileSync(file, data, "utf-8");
+    return;
+  }
+  const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    fs.writeFileSync(tmp, data, "utf-8");
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      if (fs.existsSync && fs.existsSync(tmp) && fs.unlinkSync) fs.unlinkSync(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 export function saveStoredToken(serverUrl, record) {
   const file = tokenStorePath();
   const store = loadTokenStore();
   store[serverKey(serverUrl)] = { server: serverKey(serverUrl), ...record };
   _deps.fs.mkdirSync(pathDefault.dirname(file), { recursive: true });
-  _deps.fs.writeFileSync(file, JSON.stringify(store, null, 2) + "\n", "utf-8");
+  _atomicWriteStore(file, JSON.stringify(store, null, 2) + "\n");
   return store[serverKey(serverUrl)];
 }
 
@@ -322,11 +350,7 @@ export function deleteStoredToken(serverUrl) {
   if (!(key in store)) return false;
   delete store[key];
   try {
-    _deps.fs.writeFileSync(
-      file,
-      JSON.stringify(store, null, 2) + "\n",
-      "utf-8",
-    );
+    _atomicWriteStore(file, JSON.stringify(store, null, 2) + "\n");
   } catch {
     /* best-effort */
   }
