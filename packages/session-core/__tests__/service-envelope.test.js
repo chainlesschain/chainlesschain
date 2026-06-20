@@ -133,6 +133,27 @@ describe("toLegacyWsMessage", () => {
   it("rejects invalid envelope", () => {
     expect(() => toLegacyWsMessage({ type: "x" })).toThrow(/invalid/);
   });
+  it("envelope routing fields win over colliding payload keys (no spoof)", () => {
+    const env = createEnvelope({
+      type: "run.token",
+      sessionId: "A",
+      runId: "r1",
+      requestId: "req-1",
+      payload: {
+        content: "hi",
+        sessionId: "EVIL",
+        type: "spoofed.type",
+        runId: "EVIL-run",
+        requestId: "EVIL-req",
+      },
+    });
+    const msg = toLegacyWsMessage(env);
+    expect(msg.type).toBe("run.token");
+    expect(msg.sessionId).toBe("A");
+    expect(msg.runId).toBe("r1");
+    expect(msg.requestId).toBe("req-1");
+    expect(msg.content).toBe("hi"); // non-colliding payload still flattened
+  });
 });
 
 describe("parseEnvelope", () => {

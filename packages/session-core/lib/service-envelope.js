@@ -181,13 +181,19 @@ function toLegacyWsMessage(env) {
   if (errors.length) {
     throw new Error(`invalid envelope: ${errors.join("; ")}`);
   }
+  // Spread payload FIRST, then the envelope's correlation fields, so the
+  // authoritative routing keys (type/sessionId/runId/requestId/ts) always win.
+  // If payload were spread last, a payload carrying a reserved key (e.g.
+  // { sessionId: "other", type: "spoofed" }) would silently override the
+  // envelope's routing — a correlation/routing-spoof in the one function whose
+  // job is correlation. Envelope fields are the source of truth.
   return {
+    ...(env.payload && typeof env.payload === "object" ? env.payload : {}),
     type: env.type,
     requestId: env.requestId,
     sessionId: env.sessionId,
     runId: env.runId,
     ts: env.ts,
-    ...(env.payload && typeof env.payload === "object" ? env.payload : {}),
   };
 }
 
