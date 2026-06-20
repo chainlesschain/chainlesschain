@@ -165,6 +165,23 @@ describe("dbevo", () => {
       expect(list[1].version).toBe("002");
       expect(list[1].hasDown).toBe(false);
     });
+
+    it("orders unpadded numeric versions numerically (v10 after v2, not before)", () => {
+      for (const v of ["1", "2", "10", "11", "3"]) {
+        registerMigration(v, { upSql: `SELECT ${v}` });
+      }
+      const order = listRegisteredMigrations().map((m) => m.version);
+      // Lexicographic would give 1,10,11,2,3 — numeric collation must give:
+      expect(order).toEqual(["1", "2", "3", "10", "11"]);
+    });
+
+    it("getPendingMigrations returns unpadded numeric versions in order", () => {
+      for (const v of ["1", "2", "10"]) {
+        registerMigration(v, { upSql: `SELECT ${v}` });
+      }
+      const pending = getPendingMigrations(db).map((m) => m.version);
+      expect(pending).toEqual(["1", "2", "10"]);
+    });
   });
 
   /* ── Migration Execution ─────────────────────────── */
