@@ -38,5 +38,12 @@ interface AppEntryPoint {
      * Started in [ChainlessChainApplication.delayedInit].
      */
     fun localLlmServer(): com.chainlesschain.android.pdh.llm.LocalLlmServer
+
+    /**
+     * Module 101 Phase 0 — PDH bridge: device-capability MCP server on
+     * 127.0.0.1:<port> the in-APK cc agent discovers + connects to (lockfile +
+     * CHAINLESSCHAIN_PDH_PORT). Started in [ChainlessChainApplication.delayedInit].
+     */
+    fun pdhBridgeServer(): com.chainlesschain.android.pdh.bridge.PdhBridgeServer
 }
 

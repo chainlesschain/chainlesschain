@@ -165,6 +165,23 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
                     Timber.w(e, "[App] LocalLlmServer start threw")
                 }
 
+                // Module 101 Phase 0 — start the PDH bridge: a device-capability
+                // MCP server on 127.0.0.1 that writes a discovery lockfile under
+                // the in-APK cc's HOME (<homeDir>/.chainlesschain/pdh-bridge), so
+                // cc agent auto-discovers + connects (reserved name `pdh` →
+                // mcp__pdh__*). Phase 0 exposes stub tools (pdh_ping/list_collectors)
+                // to weld the connect path; real collectors land in Phase 1.
+                // Non-fatal at startup.
+                try {
+                    val pdhPort = entryPoint.pdhBridgeServer().start().getOrElse {
+                        Timber.w(it, "[App] PdhBridgeServer.start failed")
+                        -1
+                    }
+                    if (pdhPort > 0) Timber.i("[App] PdhBridgeServer started on 127.0.0.1:%d", pdhPort)
+                } catch (e: Exception) {
+                    Timber.w(e, "[App] PdhBridgeServer start threw")
+                }
+
                 Timber.d("Delayed initialization completed")
             } catch (e: Exception) {
                 Timber.e(e, "Delayed initialization failed")
