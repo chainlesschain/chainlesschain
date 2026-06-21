@@ -20,10 +20,16 @@
  *
  * Rollout (gated, like the repo's other security features): modes are
  *   off | report | enforce, via `CC_IPC_SENDER_GUARD`:
- *     - unset / "report"  → DEFAULT: compute the verdict and LOG would-blocks,
- *                           but DO NOT block (zero breakage risk; lets us verify
- *                           no false-positive across every window type first);
- *     - "enforce" / "1"   → block untrusted senders (the actual hardening);
+ *     - unset / "enforce" / "1" → DEFAULT: block untrusted senders (the actual
+ *                           hardening). Static verification confirmed every
+ *                           IPC-capable window (main + multi-window role windows
+ *                           + splash; they carry the preload bridge) loads from
+ *                           file:(bundle) or loopback, and the external-content
+ *                           windows (sign-bridge BrowserView, pdf render, the
+ *                           loopback PDH window) have NO preload so they cannot
+ *                           invoke ipcMain.handle at all → no false-positive.
+ *     - "report" / "audit" → compute the verdict and LOG would-blocks, but do
+ *                           NOT block (use to re-verify after window changes);
  *     - "0" / "off"       → disabled entirely (kill-switch).
  * Internal guard errors FAIL OPEN (allow + log): a bug in the guard must never
  * brick legitimate IPC. A clean "untrusted" verdict FAILS CLOSED in enforce mode.
@@ -40,10 +46,11 @@ function resolveMode() {
   if (v === "0" || v === "off" || v === "false" || v === "disable") {
     return "off";
   }
-  if (v === "enforce" || v === "1" || v === "block" || v === "true") {
-    return "enforce";
+  if (v === "report" || v === "audit" || v === "warn") {
+    return "report";
   }
-  return "report";
+  // Default (unset) + explicit enforce values → enforce (block untrusted).
+  return "enforce";
 }
 
 /** App bundle root that legit `file:` frames load from (contains renderer/).
@@ -241,7 +248,7 @@ function installSenderGuard(ipcMain, opts = {}) {
 
   ipcMain.__ccSenderGuardInstalled = true;
   logger.info(
-    `[ipc-sender-guard] installed (mode=${getMode()}; set CC_IPC_SENDER_GUARD=enforce to block, =0 to disable)`,
+    `[ipc-sender-guard] installed (mode=${getMode()}; set CC_IPC_SENDER_GUARD=report for audit-only, =0 to disable)`,
   );
   return true;
 }

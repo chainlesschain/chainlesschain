@@ -33,6 +33,44 @@ function evt(senderFrame) {
   return { senderFrame };
 }
 
+describe("ipc-sender-guard / resolveMode", () => {
+  const { resolveMode } = guard;
+  const orig = process.env.CC_IPC_SENDER_GUARD;
+  afterEach(() => {
+    if (orig === undefined) {
+      delete process.env.CC_IPC_SENDER_GUARD;
+    } else {
+      process.env.CC_IPC_SENDER_GUARD = orig;
+    }
+  });
+
+  it("defaults to enforce when unset (the hardening is on)", () => {
+    delete process.env.CC_IPC_SENDER_GUARD;
+    expect(resolveMode()).toBe("enforce");
+  });
+
+  it("honors explicit report/audit (opt-out of blocking)", () => {
+    process.env.CC_IPC_SENDER_GUARD = "report";
+    expect(resolveMode()).toBe("report");
+    process.env.CC_IPC_SENDER_GUARD = "audit";
+    expect(resolveMode()).toBe("report");
+  });
+
+  it("honors the kill-switch (0/off)", () => {
+    process.env.CC_IPC_SENDER_GUARD = "0";
+    expect(resolveMode()).toBe("off");
+    process.env.CC_IPC_SENDER_GUARD = "off";
+    expect(resolveMode()).toBe("off");
+  });
+
+  it("honors explicit enforce values", () => {
+    process.env.CC_IPC_SENDER_GUARD = "enforce";
+    expect(resolveMode()).toBe("enforce");
+    process.env.CC_IPC_SENDER_GUARD = "1";
+    expect(resolveMode()).toBe("enforce");
+  });
+});
+
 describe("ipc-sender-guard / originIsTrusted", () => {
   it("trusts a file: URL inside the app bundle root", () => {
     expect(originIsTrusted(trustedFileUrl)).toBe(true);
