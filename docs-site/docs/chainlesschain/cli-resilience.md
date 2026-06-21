@@ -4,7 +4,7 @@
 >
 > 当 `cc agent` / `cc ask` 与 LLM 接口交互出现「沉默故障」时，CLI 会**主动在 stderr 给出一行提示**（必要时还能**自动恢复**），而不是让用户对着冻住的 spinner 或一句不透明的 `model not found` 干等：
 > 1. **流式停顿提示**（2.1.185）——流式回复中途 API 静默（连接还在、但 >20s 没有任何字节）时，提示「仍在等待 API 响应」。
-> 2. **弃用模型预警**（2.1.183）——请求的模型 id 命中「厂商已退役快照」名单时，在运行**开始前**就提醒并给出替代型号。
+> 2. **弃用模型预警**（2.1.183）——请求的模型 id 命中「厂商已退役快照」名单时提醒并给出替代型号；触发点覆盖**运行开始前**（`cc agent` / `cc ask`）与**配置 pin 时**（`cc config set llm.model`）。
 > 3. **流式硬超时**（可选，**默认关闭**）——流持续静默超过用户设定的阈值时，主动取消连接并以**可重试**的 `ETIMEDOUT` 触发自动重发，避免「连接半死、cc 永久挂起、只能 Esc」。
 
 ## 概述
@@ -51,7 +51,8 @@
 
 | 能力 | 触发时机 | 接入位置 | 渲染 |
 |------|---------|---------|------|
-| 弃用模型预警 | 模型解析后、首次调用前 | `agent.js`（`applyConfigLlmDefaults` 之后）+ `ask.js`（高频单次问答路径） | `chalk.yellow` stderr 一行 |
+| 弃用模型预警（运行时） | 模型解析后、首次调用前 | `agent.js`（`applyConfigLlmDefaults` 之后）+ `ask.js`（高频单次问答路径） | `chalk.yellow` stderr 一行 |
+| 弃用模型预警（pin 时） | `cc config set` 写入模型键 | `config.js`（**仅** `model` / `visionModel` / `fallbackModel` 键，key-gated） | `chalk.yellow` stderr 一行 |
 | 流式停顿提示 | 流式回复中途静默 >20s | 三路 streaming reader → `onStall` | REPL `chalk.dim` stderr 一行 |
 | 流式硬超时（可选） | 静默超过 `streamStallTimeoutMs` | 三路 reader → 取消 reader + 抛 `ETIMEDOUT` | 经 `_retryStreamingChat` 自动重发 |
 
@@ -164,6 +165,7 @@ packages/cli/src/runtime/agent-core.js                       # _iterateStreamWit
 packages/cli/__tests__/unit/agent-core-stream-stall.test.js  # 12 单元测试
 packages/cli/src/commands/agent.js                           # 弃用预警接入（applyConfigLlmDefaults 之后）
 packages/cli/src/commands/ask.js                             # 弃用预警接入（cc ask 单次问答路径）
+packages/cli/src/commands/config.js                          # 弃用预警接入（cc config set 模型键 pin 时，key-gated）
 packages/cli/src/repl/agent-repl.js                          # onStall → dim stderr 提示渲染；启动读 config.llm.streamStallTimeoutMs
 ```
 
@@ -178,19 +180,24 @@ cc agent -p "总结这个文件" --model claude-2.1
 # 2) 关闭弃用预警（例如你确知在用一个兼容网关的同名快照）
 CC_MODEL_NOTICE=0 cc agent -p "..."
 
-# 3) 在产模型 —— 静默，无任何额外提示
+# 3) 配置 pin 时即预警 —— 写入退役模型 id 的那一刻就提醒（不必等到运行失败）
+cc config set llm.model claude-3-5-sonnet-20241022
+#   ⚠ Warning: model "claude-3-5-sonnet-20241022" is deprecated — ...
+# 仅对模型键生效：llm.provider=claude-2 这类非模型键不会误报
+
+# 4) 在产模型 —— 静默，无任何额外提示
 cc agent -p "..." --model claude-opus-4-8
 
-# 4) 流式回复中途 API 静默 —— REPL 下提示「仍在等待」而非冻住 spinner
+# 5) 流式回复中途 API 静默 —— REPL 下提示「仍在等待」而非冻住 spinner
 cc agent
 # > 帮我写一个长函数...
 #   ⏳ waiting for API response (silent 21s)…       ← API 慢，连接仍在
 #   （随后正常续流，答案照常输出在 stdout）
 
-# 5) headless / 管道场景 —— 提示在 stderr，stdout 仅保留干净结果
+# 6) headless / 管道场景 —— 提示在 stderr，stdout 仅保留干净结果
 cc agent -p "..." --output-format json 2>/dev/null   # 屏蔽提示只取 JSON
 
-# 6) 开启流式硬超时 —— 静默 2 分钟仍无字节则自动取消并重发（默认关闭）
+# 7) 开启流式硬超时 —— 静默 2 分钟仍无字节则自动取消并重发（默认关闭）
 #    编辑 ~/.chainlesschain/config.json：
 #    { "llm": { "streamStallTimeoutMs": 120000 } }
 #    云端 API 建议开启；本地 CPU 模型（ollama 首字慢）保持 0 或设更大值。
