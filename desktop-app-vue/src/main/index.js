@@ -919,6 +919,18 @@ class ChainlessChainApp {
       ...titleBarOptions,
     });
 
+    // Sender-frame trust guard: monkey-patch ipcMain.handle BEFORE any handler
+    // registers so every channel validates which frame sent the request (reject
+    // sub-frames / foreign origins). Default report-only; CC_IPC_SENDER_GUARD=
+    // enforce to block, =0 to disable. See ipc/ipc-sender-guard.js.
+    try {
+      const { ipcMain } = require("electron");
+      const { installSenderGuard } = require("./ipc/ipc-sender-guard.js");
+      installSenderGuard(ipcMain);
+    } catch (e) {
+      logger.warn("[Main] IPC sender-guard install failed:", e.message);
+    }
+
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
 
