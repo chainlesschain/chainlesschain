@@ -112,7 +112,7 @@ fun PdhChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("个人数据助手") },
+                title = { Text("个人助手", style = MaterialTheme.typography.titleMedium) },
                 actions = {
                     // §3.5.16: 目标设备选择器 —— 指挥本机或你的其他自有设备。
                     DeviceSelector(
