@@ -1357,7 +1357,7 @@ class LLMManager extends EventEmitter {
     // 模型成本映射（从低到高）
     const cheaperModels = {
       openai: ["gpt-3.5-turbo", "gpt-4o-mini"],
-      anthropic: ["claude-3-haiku-20240307", "claude-3-5-haiku-20241022"],
+      anthropic: ["claude-haiku-4-5"],
       deepseek: ["deepseek-chat"],
       volcengine: ["doubao-lite-32k", "doubao-pro-32k"],
     };

@@ -13,8 +13,8 @@
  * @module remote/handlers/ai-handler-enhanced
  */
 
-const { logger } = require('../../utils/logger');
-const EventEmitter = require('events');
+const { logger } = require("../../utils/logger");
+const EventEmitter = require("events");
 
 /**
  * AI 命令处理器类
@@ -35,7 +35,7 @@ class AICommandHandlerEnhanced extends EventEmitter {
       defaultTopK: 5, // RAG 搜索默认返回数量
       conversationTitleLength: 50, // 对话标题最大长度
       enableMetrics: true, // 启用性能指标
-      ...dependencies.config
+      ...dependencies.config,
     };
 
     // 性能指标
@@ -43,10 +43,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
       totalRequests: 0,
       successCount: 0,
       failureCount: 0,
-      avgResponseTime: 0
+      avgResponseTime: 0,
     };
 
-    logger.info('[AIHandlerEnhanced] AI 命令处理器已初始化');
+    logger.info("[AIHandlerEnhanced] AI 命令处理器已初始化");
   }
 
   /**
@@ -61,23 +61,23 @@ class AICommandHandlerEnhanced extends EventEmitter {
 
       let result;
       switch (action) {
-        case 'chat':
+        case "chat":
           result = await this.chat(params, context);
           break;
 
-        case 'getConversations':
+        case "getConversations":
           result = await this.getConversations(params, context);
           break;
 
-        case 'ragSearch':
+        case "ragSearch":
           result = await this.ragSearch(params, context);
           break;
 
-        case 'controlAgent':
+        case "controlAgent":
           result = await this.controlAgent(params, context);
           break;
 
-        case 'getModels':
+        case "getModels":
           result = await this.getModels(params, context);
           break;
 
@@ -91,11 +91,11 @@ class AICommandHandlerEnhanced extends EventEmitter {
       this.updateAvgResponseTime(responseTime);
 
       // 发出成功事件
-      this.emit('command-success', {
+      this.emit("command-success", {
         action,
         did: context.did,
         responseTime,
-        result
+        result,
       });
 
       return result;
@@ -104,10 +104,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
       logger.error(`[AIHandlerEnhanced] 命令失败: ${action}`, error);
 
       // 发出失败事件
-      this.emit('command-failure', {
+      this.emit("command-failure", {
         action,
         did: context.did,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -127,28 +127,32 @@ class AICommandHandlerEnhanced extends EventEmitter {
       systemPrompt,
       temperature,
       maxTokens,
-      stream = false
+      stream = false,
     } = params;
 
     // 参数验证
-    if (!message || typeof message !== 'string') {
+    if (!message || typeof message !== "string") {
       throw new Error('Parameter "message" is required and must be a string');
     }
 
     if (message.length > this.config.maxMessageLength) {
-      throw new Error(`Message too long (max: ${this.config.maxMessageLength} characters)`);
+      throw new Error(
+        `Message too long (max: ${this.config.maxMessageLength} characters)`,
+      );
     }
 
-    logger.info(`[AIHandlerEnhanced] 处理对话请求: "${message.substring(0, 50)}..." (来自: ${context.did})`);
+    logger.info(
+      `[AIHandlerEnhanced] 处理对话请求: "${message.substring(0, 50)}..." (来自: ${context.did})`,
+    );
 
     try {
       // 1. 检查 LLM 服务是否可用
       if (!this.llmManager) {
-        throw new Error('LLM service not available');
+        throw new Error("LLM service not available");
       }
 
       if (!this.llmManager.isInitialized) {
-        logger.warn('[AIHandlerEnhanced] LLM 服务未初始化，尝试初始化...');
+        logger.warn("[AIHandlerEnhanced] LLM 服务未初始化，尝试初始化...");
         await this.llmManager.initialize();
       }
 
@@ -171,12 +175,12 @@ class AICommandHandlerEnhanced extends EventEmitter {
         const title = message.substring(0, this.config.conversationTitleLength);
         conversation = this.database.createConversation({
           title,
-          model: model || this.llmManager.config.model || 'default',
+          model: model || this.llmManager.config.model || "default",
           metadata: JSON.stringify({
-            source: 'remote',
+            source: "remote",
             did: context.did,
-            channel: context.channel || 'p2p'
-          })
+            channel: context.channel || "p2p",
+          }),
         });
         convId = conversation.id;
         logger.info(`[AIHandlerEnhanced] 创建新对话: ${convId}`);
@@ -186,12 +190,12 @@ class AICommandHandlerEnhanced extends EventEmitter {
       if (this.database && convId) {
         try {
           this.database.addMessageToConversation(convId, {
-            role: 'user',
+            role: "user",
             content: message,
-            created_at: Date.now()
+            created_at: Date.now(),
           });
         } catch (error) {
-          logger.warn('[AIHandlerEnhanced] 保存用户消息失败:', error);
+          logger.warn("[AIHandlerEnhanced] 保存用户消息失败:", error);
         }
       }
 
@@ -201,8 +205,8 @@ class AICommandHandlerEnhanced extends EventEmitter {
       // 添加系统提示（如果提供）
       if (systemPrompt) {
         messages.push({
-          role: 'system',
-          content: systemPrompt
+          role: "system",
+          content: systemPrompt,
         });
       }
 
@@ -211,23 +215,23 @@ class AICommandHandlerEnhanced extends EventEmitter {
         try {
           const history = this.database.getConversationMessages(convId, 10); // 最近 10 条
           for (const msg of history) {
-            if (msg.role !== 'user' || msg.content !== message) {
+            if (msg.role !== "user" || msg.content !== message) {
               // 排除当前用户消息（已经添加过了）
               messages.push({
                 role: msg.role,
-                content: msg.content
+                content: msg.content,
               });
             }
           }
         } catch (error) {
-          logger.warn('[AIHandlerEnhanced] 获取历史消息失败:', error);
+          logger.warn("[AIHandlerEnhanced] 获取历史消息失败:", error);
         }
       }
 
       // 添加当前用户消息
       messages.push({
-        role: 'user',
-        content: message
+        role: "user",
+        content: message,
       });
 
       // 5. 调用 LLM 服务
@@ -235,12 +239,14 @@ class AICommandHandlerEnhanced extends EventEmitter {
       const llmOptions = {
         model: model || this.llmManager.config.model,
         temperature: temperature || this.llmManager.config.temperature,
-        maxTokens: maxTokens || this.llmManager.config.maxTokens
+        maxTokens: maxTokens || this.llmManager.config.maxTokens,
       };
 
       if (stream) {
         // 流式响应（暂不支持通过远程命令）
-        logger.warn('[AIHandlerEnhanced] 流式响应暂不支持远程命令，使用非流式模式');
+        logger.warn(
+          "[AIHandlerEnhanced] 流式响应暂不支持远程命令，使用非流式模式",
+        );
         response = await this.llmManager.chat(messages, llmOptions);
       } else {
         // 非流式响应
@@ -248,23 +254,24 @@ class AICommandHandlerEnhanced extends EventEmitter {
       }
 
       // 6. 提取响应内容
-      const assistantMessage = response.content || response.text || '';
+      const assistantMessage = response.content || response.text || "";
       const usage = response.usage || response.tokens || {};
 
       // 7. 保存助手消息
       if (this.database && convId && assistantMessage) {
         try {
           this.database.addMessageToConversation(convId, {
-            role: 'assistant',
+            role: "assistant",
             content: assistantMessage,
-            created_at: Date.now()
+            created_at: Date.now(),
           });
 
           // 更新对话的 updated_at
-          this.database.prepare('UPDATE conversations SET updated_at = ? WHERE id = ?')
+          this.database
+            .prepare("UPDATE conversations SET updated_at = ? WHERE id = ?")
             .run(Date.now(), convId);
         } catch (error) {
-          logger.warn('[AIHandlerEnhanced] 保存助手消息失败:', error);
+          logger.warn("[AIHandlerEnhanced] 保存助手消息失败:", error);
         }
       }
 
@@ -272,21 +279,21 @@ class AICommandHandlerEnhanced extends EventEmitter {
       return {
         conversationId: convId,
         response: assistantMessage,
-        model: response.model || model || 'unknown',
+        model: response.model || model || "unknown",
         usage: {
           promptTokens: usage.prompt_tokens || usage.prompt || 0,
           completionTokens: usage.completion_tokens || usage.completion || 0,
-          totalTokens: usage.total_tokens || usage.total || 0
+          totalTokens: usage.total_tokens || usage.total || 0,
         },
         metadata: {
-          source: 'remote',
+          source: "remote",
           did: context.did,
-          channel: context.channel || 'p2p',
-          timestamp: Date.now()
-        }
+          channel: context.channel || "p2p",
+          timestamp: Date.now(),
+        },
       };
     } catch (error) {
-      logger.error('[AIHandlerEnhanced] AI 对话失败:', error);
+      logger.error("[AIHandlerEnhanced] AI 对话失败:", error);
       throw new Error(`AI chat failed: ${error.message}`);
     }
   }
@@ -300,45 +307,49 @@ class AICommandHandlerEnhanced extends EventEmitter {
     const {
       limit = 20,
       offset = 0,
-      search = '',
-      sortBy = 'updated_at',
-      sortOrder = 'DESC'
+      search = "",
+      sortBy = "updated_at",
+      sortOrder = "DESC",
     } = params;
 
-    logger.info(`[AIHandlerEnhanced] 查询对话历史 (limit: ${limit}, offset: ${offset}, search: "${search}")`);
+    logger.info(
+      `[AIHandlerEnhanced] 查询对话历史 (limit: ${limit}, offset: ${offset}, search: "${search}")`,
+    );
 
     try {
       if (!this.database) {
-        throw new Error('Database not available');
+        throw new Error("Database not available");
       }
 
       // 使用现有的 database.getConversations 方法
       const conversations = this.database.getConversations({
         limit,
         offset,
-        search: search || undefined
+        search: search || undefined,
       });
 
       // 获取总数
       let total = conversations.length;
       try {
         const countResult = this.database
-          .prepare('SELECT COUNT(*) as count FROM conversations WHERE title LIKE ?')
+          .prepare(
+            "SELECT COUNT(*) as count FROM conversations WHERE title LIKE ?",
+          )
           .get(`%${search}%`);
         total = countResult.count;
       } catch (error) {
-        logger.warn('[AIHandlerEnhanced] 获取对话总数失败:', error);
+        logger.warn("[AIHandlerEnhanced] 获取对话总数失败:", error);
       }
 
       // 格式化结果
-      const formattedConversations = conversations.map(conv => ({
+      const formattedConversations = conversations.map((conv) => ({
         id: conv.id,
         title: conv.title,
         model: conv.model,
         messageCount: conv.message_count || 0,
         createdAt: conv.created_at,
         updatedAt: conv.updated_at,
-        metadata: conv.metadata ? JSON.parse(conv.metadata) : null
+        metadata: conv.metadata ? JSON.parse(conv.metadata) : null,
       }));
 
       return {
@@ -346,10 +357,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total
+        hasMore: offset + limit < total,
       };
     } catch (error) {
-      logger.error('[AIHandlerEnhanced] 查询对话历史失败:', error);
+      logger.error("[AIHandlerEnhanced] 查询对话历史失败:", error);
       throw new Error(`Get conversations failed: ${error.message}`);
     }
   }
@@ -366,20 +377,22 @@ class AICommandHandlerEnhanced extends EventEmitter {
       threshold = 0.7,
       filter = null,
       useHybridSearch = true,
-      useReranker = true
+      useReranker = true,
     } = params;
 
     // 参数验证
-    if (!query || typeof query !== 'string') {
+    if (!query || typeof query !== "string") {
       throw new Error('Parameter "query" is required and must be a string');
     }
 
-    logger.info(`[AIHandlerEnhanced] RAG 搜索: "${query}" (topK: ${topK}, threshold: ${threshold})`);
+    logger.info(
+      `[AIHandlerEnhanced] RAG 搜索: "${query}" (topK: ${topK}, threshold: ${threshold})`,
+    );
 
     try {
       // 检查 RAG 服务是否可用
       if (!this.ragManager) {
-        throw new Error('RAG service not available');
+        throw new Error("RAG service not available");
       }
 
       // 调用 RAGManager 的 search 方法
@@ -388,22 +401,22 @@ class AICommandHandlerEnhanced extends EventEmitter {
         scoreThreshold: threshold,
         useHybridSearch,
         useReranker,
-        filter
+        filter,
       });
 
       // 格式化结果
-      const formattedResults = searchResults.map(result => ({
+      const formattedResults = searchResults.map((result) => ({
         id: result.id || result.noteId,
-        title: result.title || '',
-        content: result.content || result.text || '',
+        title: result.title || "",
+        content: result.content || result.text || "",
         score: result.score || result.similarity || 0,
         metadata: {
           noteId: result.noteId,
           projectId: result.projectId,
           createdAt: result.created_at || result.createdAt,
           tags: result.tags || [],
-          ...(result.metadata || {})
-        }
+          ...(result.metadata || {}),
+        },
       }));
 
       return {
@@ -415,11 +428,11 @@ class AICommandHandlerEnhanced extends EventEmitter {
         metadata: {
           useHybridSearch,
           useReranker,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       };
     } catch (error) {
-      logger.error('[AIHandlerEnhanced] RAG 搜索失败:', error);
+      logger.error("[AIHandlerEnhanced] RAG 搜索失败:", error);
       throw new Error(`RAG search failed: ${error.message}`);
     }
   }
@@ -433,45 +446,52 @@ class AICommandHandlerEnhanced extends EventEmitter {
     const { action, agentId, taskConfig = {} } = params;
 
     // 参数验证
-    if (!action || !['start', 'stop', 'restart', 'status', 'list'].includes(action)) {
-      throw new Error('Parameter "action" must be one of: start, stop, restart, status, list');
+    if (
+      !action ||
+      !["start", "stop", "restart", "status", "list"].includes(action)
+    ) {
+      throw new Error(
+        'Parameter "action" must be one of: start, stop, restart, status, list',
+      );
     }
 
-    if (action !== 'list' && !agentId) {
+    if (action !== "list" && !agentId) {
       throw new Error('Parameter "agentId" is required for this action');
     }
 
-    logger.info(`[AIHandlerEnhanced] 控制 Agent: ${action} ${agentId || ''}`);
+    logger.info(`[AIHandlerEnhanced] 控制 Agent: ${action} ${agentId || ""}`);
 
     try {
       // 检查 AI Engine Manager 是否可用
       if (!this.aiEngineManager) {
         // 如果没有 AI Engine Manager，返回模拟响应
-        logger.warn('[AIHandlerEnhanced] AI Engine Manager not available, returning mock response');
+        logger.warn(
+          "[AIHandlerEnhanced] AI Engine Manager not available, returning mock response",
+        );
         return this.getMockAgentResponse(action, agentId, taskConfig);
       }
 
       // 根据 action 执行不同操作
       let result;
       switch (action) {
-        case 'start':
+        case "start":
           result = await this.startAgent(agentId, taskConfig);
           break;
 
-        case 'stop':
+        case "stop":
           result = await this.stopAgent(agentId);
           break;
 
-        case 'restart':
+        case "restart":
           await this.stopAgent(agentId);
           result = await this.startAgent(agentId, taskConfig);
           break;
 
-        case 'status':
+        case "status":
           result = await this.getAgentStatus(agentId);
           break;
 
-        case 'list':
+        case "list":
           result = await this.listAgents();
           break;
       }
@@ -481,10 +501,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
         action,
         agentId: agentId || null,
         ...result,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[AIHandlerEnhanced] 控制 Agent 失败:', error);
+      logger.error("[AIHandlerEnhanced] 控制 Agent 失败:", error);
       throw new Error(`Control agent failed: ${error.message}`);
     }
   }
@@ -495,7 +515,7 @@ class AICommandHandlerEnhanced extends EventEmitter {
    * 支持本地模型（Ollama）和云端模型（OpenAI、Anthropic 等）
    */
   async getModels(params, context) {
-    const { provider = 'all', includeStatus = true } = params;
+    const { provider = "all", includeStatus = true } = params;
 
     logger.info(`[AIHandlerEnhanced] 获取模型列表 (provider: ${provider})`);
 
@@ -503,19 +523,19 @@ class AICommandHandlerEnhanced extends EventEmitter {
       const models = [];
 
       // 获取本地模型（Ollama）
-      if (provider === 'all' || provider === 'ollama') {
+      if (provider === "all" || provider === "ollama") {
         try {
-          if (this.llmManager && this.llmManager.provider === 'ollama') {
+          if (this.llmManager && this.llmManager.provider === "ollama") {
             const localModels = await this.getOllamaModels(includeStatus);
             models.push(...localModels);
           }
         } catch (error) {
-          logger.warn('[AIHandlerEnhanced] 获取本地模型失败:', error);
+          logger.warn("[AIHandlerEnhanced] 获取本地模型失败:", error);
         }
       }
 
       // 获取云端模型配置
-      if (provider === 'all' || provider !== 'ollama') {
+      if (provider === "all" || provider !== "ollama") {
         const cloudModels = this.getCloudModels(provider);
         models.push(...cloudModels);
       }
@@ -524,10 +544,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
         models,
         total: models.length,
         provider,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[AIHandlerEnhanced] 获取模型列表失败:', error);
+      logger.error("[AIHandlerEnhanced] 获取模型列表失败:", error);
       throw new Error(`Get models failed: ${error.message}`);
     }
   }
@@ -541,21 +561,21 @@ class AICommandHandlerEnhanced extends EventEmitter {
     try {
       // 调用 Ollama API 获取模型列表
       const ollamaClient = this.llmManager.client;
-      if (ollamaClient && typeof ollamaClient.listModels === 'function') {
+      if (ollamaClient && typeof ollamaClient.listModels === "function") {
         const models = await ollamaClient.listModels();
-        return models.map(m => ({
+        return models.map((m) => ({
           id: m.name || m.model,
           name: m.name || m.model,
-          provider: 'ollama',
+          provider: "ollama",
           size: m.size,
           modifiedAt: m.modified_at,
-          capabilities: ['chat', 'completion'],
-          status: includeStatus ? 'available' : undefined
+          capabilities: ["chat", "completion"],
+          status: includeStatus ? "available" : undefined,
         }));
       }
       return [];
     } catch (error) {
-      logger.warn('[AIHandlerEnhanced] 获取 Ollama 模型失败:', error);
+      logger.warn("[AIHandlerEnhanced] 获取 Ollama 模型失败:", error);
       return [];
     }
   }
@@ -567,28 +587,76 @@ class AICommandHandlerEnhanced extends EventEmitter {
     const cloudModels = [];
 
     // OpenAI 模型
-    if (provider === 'all' || provider === 'openai') {
+    if (provider === "all" || provider === "openai") {
       cloudModels.push(
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'openai', capabilities: ['chat', 'function_calling'], maxTokens: 128000 },
-        { id: 'gpt-4', name: 'GPT-4', provider: 'openai', capabilities: ['chat', 'function_calling'], maxTokens: 8192 },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'openai', capabilities: ['chat', 'function_calling'], maxTokens: 16385 }
+        {
+          id: "gpt-4-turbo",
+          name: "GPT-4 Turbo",
+          provider: "openai",
+          capabilities: ["chat", "function_calling"],
+          maxTokens: 128000,
+        },
+        {
+          id: "gpt-4",
+          name: "GPT-4",
+          provider: "openai",
+          capabilities: ["chat", "function_calling"],
+          maxTokens: 8192,
+        },
+        {
+          id: "gpt-3.5-turbo",
+          name: "GPT-3.5 Turbo",
+          provider: "openai",
+          capabilities: ["chat", "function_calling"],
+          maxTokens: 16385,
+        },
       );
     }
 
     // Anthropic 模型
-    if (provider === 'all' || provider === 'anthropic') {
+    if (provider === "all" || provider === "anthropic") {
       cloudModels.push(
-        { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic', capabilities: ['chat', 'function_calling'], maxTokens: 200000 },
-        { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', provider: 'anthropic', capabilities: ['chat', 'function_calling'], maxTokens: 200000 },
-        { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', provider: 'anthropic', capabilities: ['chat'], maxTokens: 200000 }
+        {
+          id: "claude-opus-4-8",
+          name: "Claude Opus 4.8",
+          provider: "anthropic",
+          capabilities: ["chat", "function_calling"],
+          maxTokens: 200000,
+        },
+        {
+          id: "claude-sonnet-4-6",
+          name: "Claude Sonnet 4.6",
+          provider: "anthropic",
+          capabilities: ["chat", "function_calling"],
+          maxTokens: 200000,
+        },
+        {
+          id: "claude-haiku-4-5",
+          name: "Claude Haiku 4.5",
+          provider: "anthropic",
+          capabilities: ["chat"],
+          maxTokens: 200000,
+        },
       );
     }
 
     // DeepSeek 模型
-    if (provider === 'all' || provider === 'deepseek') {
+    if (provider === "all" || provider === "deepseek") {
       cloudModels.push(
-        { id: 'deepseek-chat', name: 'DeepSeek Chat', provider: 'deepseek', capabilities: ['chat'], maxTokens: 32768 },
-        { id: 'deepseek-coder', name: 'DeepSeek Coder', provider: 'deepseek', capabilities: ['chat', 'code'], maxTokens: 16384 }
+        {
+          id: "deepseek-chat",
+          name: "DeepSeek Chat",
+          provider: "deepseek",
+          capabilities: ["chat"],
+          maxTokens: 32768,
+        },
+        {
+          id: "deepseek-coder",
+          name: "DeepSeek Coder",
+          provider: "deepseek",
+          capabilities: ["chat", "code"],
+          maxTokens: 16384,
+        },
       );
     }
 
@@ -603,9 +671,9 @@ class AICommandHandlerEnhanced extends EventEmitter {
     // 目前返回模拟响应
     return {
       agentId,
-      status: 'running',
+      status: "running",
       taskId: `task-${Date.now()}`,
-      message: 'Agent started successfully'
+      message: "Agent started successfully",
     };
   }
 
@@ -615,8 +683,8 @@ class AICommandHandlerEnhanced extends EventEmitter {
   async stopAgent(agentId) {
     return {
       agentId,
-      status: 'stopped',
-      message: 'Agent stopped successfully'
+      status: "stopped",
+      message: "Agent stopped successfully",
     };
   }
 
@@ -626,10 +694,10 @@ class AICommandHandlerEnhanced extends EventEmitter {
   async getAgentStatus(agentId) {
     return {
       agentId,
-      status: 'idle',
+      status: "idle",
       uptime: 0,
       tasksCompleted: 0,
-      currentTask: null
+      currentTask: null,
     };
   }
 
@@ -639,10 +707,25 @@ class AICommandHandlerEnhanced extends EventEmitter {
   async listAgents() {
     return {
       agents: [
-        { id: 'general-agent', name: 'General Agent', status: 'idle', type: 'general' },
-        { id: 'code-agent', name: 'Code Agent', status: 'idle', type: 'specialized' },
-        { id: 'data-agent', name: 'Data Analysis Agent', status: 'idle', type: 'specialized' }
-      ]
+        {
+          id: "general-agent",
+          name: "General Agent",
+          status: "idle",
+          type: "general",
+        },
+        {
+          id: "code-agent",
+          name: "Code Agent",
+          status: "idle",
+          type: "specialized",
+        },
+        {
+          id: "data-agent",
+          name: "Data Analysis Agent",
+          status: "idle",
+          type: "specialized",
+        },
+      ],
     };
   }
 
@@ -653,32 +736,32 @@ class AICommandHandlerEnhanced extends EventEmitter {
     const responses = {
       start: {
         agentId,
-        status: 'running',
+        status: "running",
         taskId: `mock-task-${Date.now()}`,
-        message: 'Agent started (mock mode)'
+        message: "Agent started (mock mode)",
       },
       stop: {
         agentId,
-        status: 'stopped',
-        message: 'Agent stopped (mock mode)'
+        status: "stopped",
+        message: "Agent stopped (mock mode)",
       },
       restart: {
         agentId,
-        status: 'running',
-        message: 'Agent restarted (mock mode)'
+        status: "running",
+        message: "Agent restarted (mock mode)",
       },
       status: {
         agentId,
-        status: 'idle',
+        status: "idle",
         uptime: 0,
-        message: 'Agent status (mock mode)'
+        message: "Agent status (mock mode)",
       },
       list: {
         agents: [
-          { id: 'mock-agent-1', name: 'Mock Agent 1', status: 'idle' },
-          { id: 'mock-agent-2', name: 'Mock Agent 2', status: 'running' }
-        ]
-      }
+          { id: "mock-agent-1", name: "Mock Agent 1", status: "idle" },
+          { id: "mock-agent-2", name: "Mock Agent 2", status: "running" },
+        ],
+      },
     };
 
     return {
@@ -686,7 +769,7 @@ class AICommandHandlerEnhanced extends EventEmitter {
       action,
       ...responses[action],
       timestamp: Date.now(),
-      note: 'This is a mock response. AI Engine Manager not available.'
+      note: "This is a mock response. AI Engine Manager not available.",
     };
   }
 
@@ -696,7 +779,8 @@ class AICommandHandlerEnhanced extends EventEmitter {
   updateAvgResponseTime(responseTime) {
     const totalRequests = this.metrics.totalRequests;
     const currentAvg = this.metrics.avgResponseTime;
-    this.metrics.avgResponseTime = (currentAvg * (totalRequests - 1) + responseTime) / totalRequests;
+    this.metrics.avgResponseTime =
+      (currentAvg * (totalRequests - 1) + responseTime) / totalRequests;
   }
 
   /**
@@ -705,9 +789,13 @@ class AICommandHandlerEnhanced extends EventEmitter {
   getMetrics() {
     return {
       ...this.metrics,
-      successRate: this.metrics.totalRequests > 0
-        ? (this.metrics.successCount / this.metrics.totalRequests * 100).toFixed(2) + '%'
-        : '0%'
+      successRate:
+        this.metrics.totalRequests > 0
+          ? (
+              (this.metrics.successCount / this.metrics.totalRequests) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 }

@@ -347,7 +347,7 @@ class VisionManager extends EventEmitter {
 
       const response = await this.cloudClient.chatWithMessages(messages, {
         ...options,
-        model: options.model || "gpt-4-vision-preview",
+        model: options.model || "gpt-4o",
       });
 
       return {
