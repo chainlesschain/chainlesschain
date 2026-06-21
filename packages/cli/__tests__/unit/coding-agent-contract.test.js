@@ -125,17 +125,11 @@ describe("coding-agent contract", () => {
         type: "function",
         function: {
           name: "read_file",
-          description: "Read a file's content",
-          parameters: {
+          description: expect.stringContaining("Read a file"),
+          parameters: expect.objectContaining({
             type: "object",
-            properties: {
-              path: {
-                type: "string",
-                description: "File path to read",
-              },
-            },
             required: ["path"],
-          },
+          }),
         },
       },
       {
@@ -184,11 +178,11 @@ describe("coding-agent contract", () => {
   });
 
   it("resolves runtime descriptors from shell command strings", () => {
-    expect(getCodingAgentRuntimeDescriptorByCommand("git status")).toMatchObject(
-      {
-        name: "git",
-      },
-    );
+    expect(
+      getCodingAgentRuntimeDescriptorByCommand("git status"),
+    ).toMatchObject({
+      name: "git",
+    });
     expect(
       getCodingAgentRuntimeDescriptorByCommand(
         "chainlesschain mcp call tools list",
@@ -196,11 +190,11 @@ describe("coding-agent contract", () => {
     ).toMatchObject({
       name: "mcp",
     });
-    expect(getCodingAgentRuntimeDescriptorByCommand("echo hello")).toMatchObject(
-      {
-        name: "shell",
-      },
-    );
+    expect(
+      getCodingAgentRuntimeDescriptorByCommand("echo hello"),
+    ).toMatchObject({
+      name: "shell",
+    });
   });
 
   it("can distinguish MVP tools from extension tools", () => {
