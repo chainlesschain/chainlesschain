@@ -255,4 +255,5 @@ chainlesschain llm test
 - [LLM 中转站与自定义接入](./cli-llm-proxy) — 中转站、代理、自建网关、自定义 Provider 完整指南
 - [AI 对话](./cli-chat) — 使用 LLM 进行对话
 - [代理模式](./cli-agent) — 代理式 AI 会话
+- [Agent 弹性提示](./cli-resilience) — 弃用模型预警 + 流式停顿提示
 - [AI 模型](./ai-models) — 模型配置详情
