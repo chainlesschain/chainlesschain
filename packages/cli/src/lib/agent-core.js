@@ -12,6 +12,8 @@ export {
   buildSystemPrompt,
   executeTool,
   computeProposedEdit,
+  editNotebookCell,
+  renderNotebook,
   classifyError,
   isValidPackageName,
   chatWithTools,
