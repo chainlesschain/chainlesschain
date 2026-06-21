@@ -6,6 +6,7 @@ import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.MemSalvageCollector
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
 import com.chainlesschain.android.pdh.messaging.qq.QQNTFridaCollector
+import com.chainlesschain.android.pdh.messaging.qq.QQNTNativeCollector
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
@@ -67,6 +68,7 @@ object PdhBridgeModule {
         memSalvage: MemSalvageCollector,
         qq: QQLocalCollector,
         qqnt: QQNTFridaCollector,
+        qqNative: QQNTNativeCollector,
         weibo: WeiboLocalCollector,
         bilibili: BilibiliLocalCollector,
         kyfw12306: Kyfw12306LocalCollector,
@@ -135,6 +137,12 @@ object PdhBridgeModule {
             // module 101 QQNT 方案 Phase 1 — modern nt_msg.db (SQLCipher, frida export).
             PdhToolHost.Collector(
                 tool = CollectQqntTool(ccRunner, qqnt),
+                layer = "L4",
+                requiresRoot = true,
+            ),
+            // module 101 QQNT 方案 — on-device frida-FREE path (derived-key decrypt).
+            PdhToolHost.Collector(
+                tool = CollectQqNativeTool(qqNative),
                 layer = "L4",
                 requiresRoot = true,
             ),

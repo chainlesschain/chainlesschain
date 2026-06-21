@@ -1702,6 +1702,61 @@ class LocalCcRunner @Inject constructor(
         }
     }
 
+    sealed class QqCollectResult {
+        data class Ok(val matchedUid: String, val messages: Int, val ingested: Int) : QqCollectResult()
+        data class NoMatch(val uidCandidates: Int) : QqCollectResult()
+        data class Failed(val reason: String, val exitCode: Int?) : QqCollectResult()
+    }
+
+    /**
+     * module 101 QQNT 采集方案 (on-device) — `cc hub collect-qq`: decrypt a
+     * root-staged encrypted nt_msg.db via the DERIVED key (no frida) + ingest.
+     * The collector su-stages the DB + uid candidates; this invokes the bundle.
+     */
+    suspend fun collectQqNative(
+        encDbPath: String,
+        uidsPath: String,
+        self: String?,
+        timeoutMs: Long = 180_000L,
+    ): QqCollectResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext QqCollectResult.Failed(
+                "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}", null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("collect-qq")
+            add("--db"); add(encDbPath)
+            add("--uids"); add(uidsPath)
+            if (!self.isNullOrBlank()) { add("--self"); add(self) }
+            add("--json")
+        }
+        val (stdout, _, exit, timedOut) = _runCcJson(command, timeoutMs)
+        if (timedOut) return@withContext QqCollectResult.Failed("timeout after ${timeoutMs}ms", null)
+        val json = try { JSONObject(stdout.trim()) } catch (_: Exception) { null }
+        if (json != null && json.optString("reason") == "no-uid-match") {
+            return@withContext QqCollectResult.NoMatch(json.optInt("uidCandidates", 0))
+        }
+        if (exit != 0 || json == null || !json.optBoolean("ok", false)) {
+            return@withContext QqCollectResult.Failed(
+                json?.optString("error")?.takeIf { it.isNotEmpty() }
+                    ?: json?.optString("reason")?.takeIf { it.isNotEmpty() }
+                    ?: "cc exited $exit",
+                exit,
+            )
+        }
+        QqCollectResult.Ok(
+            matchedUid = json.optString("matchedUid"),
+            messages = json.optInt("messages"),
+            ingested = json.optInt("ingested"),
+        )
+    }
+
     /**
      * ② 跨 app 数据总览 — runs `cc hub run-skill analysis.overview --json` and
      * parses the cross-app aggregate (byApp / byType / spend / topContacts) for
