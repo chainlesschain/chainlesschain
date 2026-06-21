@@ -41,6 +41,12 @@ function resolveRbacMode() {
   if (v === "enforce" || v === "1" || v === "block" || v === "true") {
     return "enforce";
   }
+  if (v === "report" || v === "audit" || v === "warn") {
+    return "report";
+  }
+  // ENFORCE-FLIP POINT — the unset default. Change to "enforce" once report logs
+  // confirm legit owners/admins pass; "report"/"audit" above stays the opt-out.
+  // Procedure: docs/internal/ipc-security-guards-runbook.md.
   return "report";
 }
 

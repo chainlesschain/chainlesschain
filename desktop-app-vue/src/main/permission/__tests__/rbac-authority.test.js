@@ -71,11 +71,16 @@ describe("rbac-authority / resolveRbacMode", () => {
       process.env.CC_IPC_RBAC_GUARD = orig;
     }
   });
-  it("defaults to report; honors enforce + off", () => {
+  it("defaults to report; honors enforce/report/audit + off", () => {
     delete process.env.CC_IPC_RBAC_GUARD;
-    expect(resolveRbacMode()).toBe("report");
+    expect(resolveRbacMode()).toBe("report"); // ENFORCE-FLIP POINT (runbook)
     process.env.CC_IPC_RBAC_GUARD = "enforce";
     expect(resolveRbacMode()).toBe("enforce");
+    // explicit opt-out survives a future default flip to enforce
+    process.env.CC_IPC_RBAC_GUARD = "report";
+    expect(resolveRbacMode()).toBe("report");
+    process.env.CC_IPC_RBAC_GUARD = "audit";
+    expect(resolveRbacMode()).toBe("report");
     process.env.CC_IPC_RBAC_GUARD = "0";
     expect(resolveRbacMode()).toBe("off");
   });
