@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.29] — fix: Configure LLM pre-fills config — no more re-typing model+key
+
+- **Fix: re-running "Configure LLM" no longer makes you re-enter everything.**
+  The wizard now pre-fills the **current model, base URL, and vision model**, and
+  pre-selects your **current provider** (marked `✓ 当前`). When you keep the same
+  provider, the **API-key dialog can be left blank to keep the stored key** —
+  it's only required when there's no key yet or you switch to a new keyed
+  provider. The key value is never read into the UI (only its presence), so
+  "blank = keep" stays secure. Mirrors the VS Code 0.34.0 fix.
+- New `LlmConfig` helpers `getConfiguredModel` / `getConfiguredBaseUrl` /
+  `hasConfiguredApiKey`; `buildConfigSetArgs` already omits a blank key so the
+  stored one is preserved. (Also fixed a stale smoke-test call to
+  `buildConfigSetArgs` that predated the visionModel parameter.)
+
 ## [0.4.28] — 2026-06-20 — Marketplace "What's New" now lists every release
 
 - **Fix: the plugin's `<change-notes>` (the Marketplace / IDE "What's New") had

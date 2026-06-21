@@ -28,13 +28,21 @@ public final class LlmConfigSmokeMain {
 
         // set-arg builder
         List<List<String>> sets =
-                LlmConfig.buildConfigSetArgs("deepseek", "deepseek-chat", "k", "https://x");
+                LlmConfig.buildConfigSetArgs("deepseek", "deepseek-chat", "k", "https://x", null);
         check("4 sets", sets.size() == 4);
         check("provider first",
                 String.join(" ", sets.get(0)).equals("config set llm.provider deepseek"));
         check("key last", String.join(" ", sets.get(3)).equals("config set llm.apiKey k"));
         check("blank skipped",
-                LlmConfig.buildConfigSetArgs("ollama", null, "", null).size() == 1);
+                LlmConfig.buildConfigSetArgs("ollama", null, "", null, null).size() == 1);
+        // blank apiKey is OMITTED so the stored key is kept (the "更新后又要重配
+        // key" fix): model/baseUrl still update, llm.apiKey is never re-written.
+        List<List<String>> keepKey = LlmConfig.buildConfigSetArgs(
+                "volcengine", "doubao-seed-1-6-251015", "",
+                "https://ark.cn-beijing.volces.com/api/v3", null);
+        boolean noKeyWrite = true;
+        for (List<String> s : keepKey) if (s.contains("llm.apiKey")) noKeyWrite = false;
+        check("blank key keeps existing (no apiKey write)", keepKey.size() == 3 && noKeyWrite);
 
         // unsafe-char gate
         check("safe key ok", !LlmConfig.hasUnsafeShellChars("bce-v3/ALTAK-abc_123=+"));

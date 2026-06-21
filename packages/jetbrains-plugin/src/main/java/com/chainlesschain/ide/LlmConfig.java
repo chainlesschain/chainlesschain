@@ -136,6 +136,32 @@ public final class LlmConfig {
         return parseConfigGet(r.output);
     }
 
+    /** Currently configured text model, or null when unset / CLI missing. */
+    public static String getConfiguredModel() {
+        CliResult r = runCli(args("config", "get", "llm.model"));
+        if (!r.ok) return null;
+        return parseConfigGet(r.output);
+    }
+
+    /** Currently configured base URL, or null when unset / CLI missing. */
+    public static String getConfiguredBaseUrl() {
+        CliResult r = runCli(args("config", "get", "llm.baseUrl"));
+        if (!r.ok) return null;
+        return parseConfigGet(r.output);
+    }
+
+    /**
+     * True when an API key is already stored — lets the wizard offer "leave the
+     * key blank to keep the existing one" instead of forcing a re-type on every
+     * reconfigure ("更新后又要重新配置模型和key"). The key value is never read
+     * into the UI — only its presence — so "blank = keep" stays secure.
+     */
+    public static boolean hasConfiguredApiKey() {
+        CliResult r = runCli(args("config", "get", "llm.apiKey"));
+        if (!r.ok) return false;
+        return parseConfigGet(r.output) != null;
+    }
+
     /**
      * Set just {@code llm.visionModel} (the dedicated vision-model entry, so the
      * user need not re-run the full wizard / re-type the API key). A blank value

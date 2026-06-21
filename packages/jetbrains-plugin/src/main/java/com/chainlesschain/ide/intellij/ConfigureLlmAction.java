@@ -36,40 +36,66 @@ public final class ConfigureLlmAction extends AnAction {
     /** Run the guided LLM-config wizard. Public so the chat panel can offer a
      *  quick entry (a "⚙ LLM" button + an error hint) into it. */
     public static void runWizard(Project project) {
+        // Pre-read existing config so re-running PRE-FILLS instead of forcing a
+        // full re-type ("更新后又要重新配置模型和key"). The API key is never read
+        // into the UI — only its presence — so "blank = keep" stays secure.
+        final String curProvider = LlmConfig.getConfiguredProvider();
+        final String curModel = LlmConfig.getConfiguredModel();
+        final String curBaseUrl = LlmConfig.getConfiguredBaseUrl();
+        final String curVision = LlmConfig.getConfiguredVisionModel();
+        final boolean curHasKey = LlmConfig.hasConfiguredApiKey();
+
         String[] labels = new String[LlmConfig.PRESETS.length];
+        int curIdx = 0;
         for (int i = 0; i < LlmConfig.PRESETS.length; i++) {
             LlmConfig.Preset p = LlmConfig.PRESETS[i];
-            labels[i] = p.label + "  —  默认 " + p.defaultModel + (p.needsKey ? " (需 API key)" : " (免 key)");
+            labels[i] = p.label + "  —  默认 " + p.defaultModel + (p.needsKey ? " (需 API key)" : " (免 key)")
+                    + (p.id.equals(curProvider) ? "  ✓ 当前" : "");
+            if (p.id.equals(curProvider)) curIdx = i;
         }
-        int idx = chooseProvider(project, labels);
+        int idx = chooseProvider(project, labels, curIdx);
         if (idx < 0) return;
         LlmConfig.Preset preset = LlmConfig.PRESETS[idx];
 
+        // Same provider as before → pre-fill current model/baseUrl/vision and
+        // allow keeping the stored key. Switched provider → use preset defaults.
+        boolean sameProvider = preset.id.equals(curProvider);
+        String modelDefault = (sameProvider && curModel != null) ? curModel : preset.defaultModel;
         String model = Messages.showInputDialog(project,
-                "模型名(" + preset.id + ")", TITLE, null, preset.defaultModel, null);
+                "模型名(" + preset.id + ")", TITLE, null, modelDefault, null);
         if (model == null) return;
 
         String apiKey = "";
         if (preset.needsKey) {
+            boolean canKeep = sameProvider && curHasKey;
             apiKey = Messages.showPasswordDialog(
-                    preset.label + " 的 API key(只写入本机 config.json,不进 IDE 设置)", TITLE);
-            if (apiKey == null || apiKey.trim().isEmpty()) {
+                    canKeep
+                            ? preset.label + " 的 API key(留空 = 保留已有的 key,不必重输)"
+                            : preset.label + " 的 API key(只写入本机 config.json,不进 IDE 设置)",
+                    TITLE);
+            if (apiKey == null) return; // cancelled
+            // Blank + canKeep → applyConfig omits llm.apiKey, keeping the stored
+            // one (buildConfigSetArgs skips blank values).
+            if (apiKey.trim().isEmpty() && !canKeep) {
                 Messages.showWarningDialog(project,
                         "未输入 API key — 配置已取消(该提供商必须有 key)。", TITLE);
                 return;
             }
         }
 
+        String baseUrlDefault = (sameProvider && curBaseUrl != null) ? curBaseUrl : preset.baseUrl;
         String baseUrl = Messages.showInputDialog(project,
-                "Base URL(回车用默认)", TITLE, null, preset.baseUrl, null);
+                "Base URL(回车用默认)", TITLE, null, baseUrlDefault, null);
         if (baseUrl == null) return;
 
         // Vision (image-recognition) model — often differs from the text model.
         // Blank = reuse the text model / the CLI's own default vision model.
+        String visionDefault = (sameProvider && curVision != null)
+                ? curVision : LlmConfig.suggestVisionModel(preset.id);
         String visionModel = Messages.showInputDialog(project,
                 "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认)\n"
                         + "看图时自动切到此模型,可与文本模型不同。",
-                TITLE, null, LlmConfig.suggestVisionModel(preset.id), null);
+                TITLE, null, visionDefault, null);
         if (visionModel == null) return;
 
         configureAndVerify(project, preset, model, apiKey, baseUrl, visionModel);
@@ -125,9 +151,9 @@ public final class ConfigureLlmAction extends AnAction {
 
     /** Blocking provider chooser (combo box) — replaces the deprecated
      *  Messages.showChooseDialog; returns the selected index or -1 if cancelled. */
-    private static int chooseProvider(Project project, String[] labels) {
+    private static int chooseProvider(Project project, String[] labels, int defaultIdx) {
         final JComboBox<String> combo = new JComboBox<>(labels);
-        combo.setSelectedIndex(0);
+        combo.setSelectedIndex(defaultIdx >= 0 && defaultIdx < labels.length ? defaultIdx : 0);
         DialogWrapper dlg = new DialogWrapper(project, true) {
             {
                 setTitle(TITLE);
