@@ -33,8 +33,17 @@ class CollectQqNativeTool(
 
     override fun call(args: JsonObject): JsonElement = runBlocking {
         when (val r = collector.snapshot()) {
-            QQNTNativeCollector.Result.NoRoot ->
-                throw RuntimeException("device is not rooted; QQNT decrypt requires root")
+            QQNTNativeCollector.Result.DaemonUnavailable -> buildJsonObject {
+                put("status", "assist_required")
+                put(
+                    "instruction",
+                    "需要安装并启用「PDH QQ 采集守护进程」(Magisk 模块,需 root)。MIUI 限制 App 直接读 " +
+                        "QQ 数据,改由这个 root 守护进程代为暂存。装好模块(android-app/magisk-module-pdh-qqd)" +
+                        "重启后重试 collect_qq_native。",
+                )
+                put("reason", "Magisk QQ staging daemon not installed/responding (root required)")
+                put("resumeToken", "collect_qq_native")
+            }
 
             QQNTNativeCollector.Result.NotLoggedIn -> buildJsonObject {
                 put("status", "assist_required")
