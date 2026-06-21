@@ -39,8 +39,16 @@ const safePathSchema = z
       if (path.includes("..")) {
         return false;
       }
-      // 禁止绝对路径（应使用项目相对路径）
-      if (path.startsWith("/") || /^[A-Z]:\\/.test(path)) {
+      // 禁止绝对路径（应使用项目相对路径）。覆盖：
+      // - unix 绝对路径 `/...` 及正斜杠 UNC `//server/share`
+      // - 反斜杠开头 `\...` 及 Windows UNC `\\server\share`
+      // - Windows 盘符路径 `C:\` / `C:/`（大小写均拒，正反斜杠均拒）
+      // 旧实现只拒 `/^[A-Z]:\\/`，漏了小写盘符(`c:\`)、正斜杠盘符(`C:/`)与 UNC 路径。
+      if (
+        path.startsWith("/") ||
+        path.startsWith("\\") ||
+        /^[A-Za-z]:[\\/]/.test(path)
+      ) {
         return false;
       }
       return true;
