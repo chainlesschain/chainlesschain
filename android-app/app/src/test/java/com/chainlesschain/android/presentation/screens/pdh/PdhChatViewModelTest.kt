@@ -4,8 +4,10 @@ import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDeviceState
+import com.chainlesschain.android.pdh.PdhLedger
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhResourceBudget
+import com.chainlesschain.android.pdh.PdhTransparency
 import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import io.mockk.coEvery
@@ -43,6 +45,7 @@ class PdhChatViewModelTest {
     private lateinit var context: android.content.Context
     private lateinit var tmpDir: java.io.File
     private lateinit var deviceState: PdhDeviceState
+    private lateinit var ledger: PdhLedger
 
     @Before
     fun setUp() {
@@ -60,6 +63,8 @@ class PdhChatViewModelTest {
         deviceState = mockk(relaxed = true)
         every { deviceState.read() } returns
             PdhResourceBudget.Device(charging = true, batteryPercent = 90, onWifi = true)
+        // §3.5.18: relaxed ledger (read* → empty lists) unless a test stubs it.
+        ledger = mockk(relaxed = true)
     }
 
     @After
@@ -72,7 +77,7 @@ class PdhChatViewModelTest {
     private fun newVm(): PdhChatViewModel {
         // Inject the test dispatcher as @IoDispatcher so init's file IO runs on the
         // test scheduler → advanceUntilIdle deterministically drains it.
-        val vm = PdhChatViewModel(session, context, dispatcher, deviceState)
+        val vm = PdhChatViewModel(session, context, dispatcher, deviceState, ledger)
         dispatcher.scheduler.advanceUntilIdle() // start() + IO + subscribe to events
         return vm
     }
@@ -361,5 +366,76 @@ class PdhChatViewModelTest {
         assertFalse(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(data, user)))
         // USER then DATA → untrusted data appeared this turn.
         assertTrue(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(user, data)))
+    }
+
+    // ── §3.5.18 透明度台账(出境/操作 写 + 读)─────────────────────────────
+
+    @Test
+    fun cloud_session_send_records_egress() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        vm.send("总结我的消费")
+        advanceUntilIdle()
+        coVerify { ledger.appendEgress(any()) }
+    }
+
+    @Test
+    fun on_device_session_send_records_no_egress() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.LOCAL_DEVICE
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        vm.send("总结我的消费")
+        advanceUntilIdle()
+        coVerify(exactly = 0) { ledger.appendEgress(any()) } // 端侧不出端
+    }
+
+    @Test
+    fun approving_a_transaction_records_an_action() = runTest(dispatcher) {
+        coEvery { session.sendApproval(any(), any()) } returns true
+        val vm = newVm()
+        emit(approval("a1", "mcp__pdh__send_message", "发给妈妈:晚上好"))
+        vm.resolveCard("a1", true)
+        advanceUntilIdle()
+        coVerify { ledger.appendAction(any()) }
+    }
+
+    @Test
+    fun denying_a_transaction_records_no_action() = runTest(dispatcher) {
+        coEvery { session.sendApproval(any(), any()) } returns true
+        val vm = newVm()
+        emit(approval("a2", "mcp__pdh__send_message", "发给妈妈:晚上好"))
+        vm.resolveCard("a2", false)
+        advanceUntilIdle()
+        coVerify(exactly = 0) { ledger.appendAction(any()) }
+    }
+
+    @Test
+    fun open_transparency_reads_ledgers_into_view() = runTest(dispatcher) {
+        every { ledger.readEgress() } returns listOf(
+            PdhTransparency.EgressEntry(1L, "对话", "第三方云模型", "☁️ 云"),
+        )
+        every { ledger.readActions() } returns listOf(
+            PdhTransparency.ActionEntry(2L, "send_message", "妈妈", "已批准发起", "你"),
+        )
+        val vm = newVm()
+        vm.openTransparency()
+        advanceUntilIdle()
+        val t = vm.uiState.value.transparency
+        assertNotNull(t)
+        assertEquals(1, t!!.egress.size)
+        assertEquals(1, t.actions.size)
+        assertTrue(t.profile.isEmpty()) // honest-empty (source = instinct/memory, cc-bound)
+    }
+
+    @Test
+    fun open_transparency_with_empty_ledgers_is_honest_empty() = runTest(dispatcher) {
+        val vm = newVm() // relaxed ledger → read* return empty lists
+        vm.openTransparency()
+        advanceUntilIdle()
+        val t = vm.uiState.value.transparency
+        assertNotNull(t)
+        assertTrue(t!!.egress.isEmpty())
+        assertEquals("尚无数据出过端", PdhTransparency.egressSummary(t.egress))
     }
 }

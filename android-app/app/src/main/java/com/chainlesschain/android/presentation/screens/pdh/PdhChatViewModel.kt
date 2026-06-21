@@ -9,13 +9,16 @@ import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhDeviceState
+import com.chainlesschain.android.pdh.PdhLedger
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResourceBudget
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.pdh.PdhTransaction
+import com.chainlesschain.android.pdh.PdhTransparency
 import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.pdh.ViewKind
+import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -47,6 +50,8 @@ class PdhChatViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     // §3.5.20: device state (charging/battery/wifi) for the resource-budget gate.
     private val deviceState: PdhDeviceState,
+    // §3.5.18: append-only egress/action ledgers (transparency 读写两侧的写持久化)。
+    private val ledger: PdhLedger,
 ) : ViewModel() {
 
     // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
@@ -146,6 +151,17 @@ class PdhChatViewModel @Inject constructor(
         val costWarning: String?,
     )
 
+    /**
+     * §3.5.18 透明度审计视图(读侧):AI 画像(可纠)+ 出境台账 + 操作(行为)台账。
+     * 写侧:出境=§3.5.10/16(本类 send 时按档记)、操作=§3.5.17(事务批准时记);
+     * 画像源自 instinct/memory(cc/集成层),Phase 2 honest-empty。
+     */
+    data class Transparency(
+        val egress: List<PdhTransparency.EgressEntry>,
+        val actions: List<PdhTransparency.ActionEntry>,
+        val profile: List<PdhTransparency.ProfileItem>,
+    )
+
     data class UiState(
         val messages: List<ChatMessage> = emptyList(),
         val streamingText: String = "",
@@ -160,6 +176,8 @@ class PdhChatViewModel @Inject constructor(
         val onboarding: Onboarding? = null,
         /** §3.5.20 重活预算提醒(非空=展示提醒卡,等用户「现在就跑」或取消)。 */
         val budgetNotice: BudgetNotice? = null,
+        /** §3.5.18 透明度审计视图(非空=展示;从本地台账读取)。 */
+        val transparency: Transparency? = null,
         /** 记录搜索关键词(非空时只显示命中行)。 */
         val searchQuery: String = "",
         /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
@@ -187,6 +205,9 @@ class PdhChatViewModel @Inject constructor(
     /** §3.5.20 资源预算(默认保守:省电省流量);预算设置 UI 是后续 seam。 */
     private val budgetSettings = PdhResourceBudget.Settings()
 
+    /** §3.5.18: this session's LLM route — drives the egress 台账(数据去过哪)。 */
+    private var sessionRoute: LlmRoute? = null
+
     init {
         viewModelScope.launch {
             // §3.7: restore the persisted transcript first so it survives an app
@@ -207,14 +228,14 @@ class PdhChatViewModel @Inject constructor(
                     it.copy(error = "无法启动本机 AI（cc agent）：${r.exceptionOrNull()?.message ?: "未知"}")
                 }
             } else {
+                // §3.5.10/§3.5.18: resolve the session route once → privacy badge +
+                // egress 台账 destination (best-effort; never crash).
+                val route = runCatching { session.currentRoute() }.getOrNull()
+                sessionRoute = route
                 _uiState.update {
                     it.copy(
                         ready = true,
-                        // §3.5.10 接线3: surface where this session's LLM runs +
-                        // whether data leaves the phone (best-effort; never crash).
-                        privacyBadge = runCatching {
-                            PdhPrivacyTier.badge(session.currentRoute())
-                        }.getOrNull(),
+                        privacyBadge = route?.let { r -> PdhPrivacyTier.badge(r) },
                         // §3.5.19: first-run 3-step onboarding (免 root 默认源先出价值).
                         onboarding = if (showOnboarding) {
                             Onboarding(
@@ -311,6 +332,7 @@ class PdhChatViewModel @Inject constructor(
             )
         }
         persistChat()
+        recordEgressIfLeaving() // §3.5.18: the turn's text goes to the session LLM.
         viewModelScope.launch {
             val ok = session.send(text)
             if (!ok) {
@@ -322,6 +344,27 @@ class PdhChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * §3.5.18 出境台账:本轮文本去了哪。端侧(LOCAL)不出端→不记;桌面/局域网=自有
+     * 设备;云=第三方。诚实:出境就记,绝不隐藏(§13.3)。
+     */
+    private fun recordEgressIfLeaving() {
+        val route = sessionRoute ?: return
+        val destination = when (route) {
+            LlmRoute.LOCAL_DEVICE -> return // 端侧推理,数据不出手机 → 无出境
+            LlmRoute.PC_LOCAL -> "你的桌面(自有设备)"
+            LlmRoute.LAN_OLLAMA -> "你的局域网设备(自有)"
+            LlmRoute.CLOUD_ANDROID -> "第三方云模型"
+        }
+        val entry = PdhTransparency.EgressEntry(
+            epochMs = System.currentTimeMillis(),
+            category = "对话",
+            destination = destination,
+            tier = PdhPrivacyTier.badge(route).label,
+        )
+        viewModelScope.launch(ioDispatcher) { ledger.appendEgress(entry) }
     }
 
     private fun onEvent(ev: PdhAgentEvent) {
@@ -486,10 +529,25 @@ class PdhChatViewModel @Inject constructor(
 
     // ── §3.5.9 card actions (回传走现成 stdin 协议) ──────────────────────────
 
-    /** 预览卡 / 审批卡 的 [确认]/[拒绝] → `{type:approval,id,approve}`。 */
+    /** 预览卡 / 审批卡 / 事务卡 的 [确认]/[拒绝] → `{type:approval,id,approve}`。 */
     fun resolveCard(id: String, approve: Boolean) {
+        val card = _uiState.value.pendingCards.firstOrNull { it.id == id }
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
+        // §3.5.18 接线: an approved transaction is a real behavior → 操作台账。
+        if (approve && card is TrustCard.Transaction) recordAction(card)
         viewModelScope.launch { session.sendApproval(id, approve) }
+    }
+
+    /** §3.5.18 操作台账:记录"AI 替你办过的事务"(批准=已发起;执行结果在对话里)。 */
+    private fun recordAction(card: TrustCard.Transaction) {
+        val entry = PdhTransparency.ActionEntry(
+            epochMs = System.currentTimeMillis(),
+            action = card.tool,
+            target = card.summary,
+            result = "已批准发起", // 真实执行结果是 cc/FAMILY 侧(§4),此处记审批已发起
+            approvedBy = "你",
+        )
+        viewModelScope.launch(ioDispatcher) { ledger.appendAction(entry) }
     }
 
     /**
@@ -682,6 +740,40 @@ class PdhChatViewModel @Inject constructor(
 
     /** §3.5.20「取消」:撤下预算提醒,不采集(诚实:无引擎,不排队、不假装完成)。 */
     fun dismissBudgetNotice() = _uiState.update { it.copy(budgetNotice = null) }
+
+    // ── §3.5.18 透明度审计视图(读侧)──────────────────────────────────────
+
+    /**
+     * 打开透明度视图:从本地台账读出境/操作记录(端侧、不出端)。AI 画像源自
+     * instinct/memory(cc/集成层),Phase 2 honest-empty——如实显示"还没学到",
+     * 不美化、不隐藏(§13.3)。
+     */
+    fun openTransparency() {
+        viewModelScope.launch {
+            val (egress, actions) = withContext(ioDispatcher) {
+                ledger.readEgress() to ledger.readActions()
+            }
+            _uiState.update {
+                it.copy(
+                    transparency = Transparency(
+                        egress = PdhTransparency.filterEgress(egress),
+                        actions = PdhTransparency.filterActions(actions),
+                        profile = emptyList(),
+                    ),
+                )
+            }
+        }
+    }
+
+    /** 关闭透明度视图。 */
+    fun closeTransparency() = _uiState.update { it.copy(transparency = null) }
+
+    /**
+     * §3.5.18 接线4 / §3.5.13: 画像条「这条不对/改」→ 经 FeedbackSignal 喂端侧学习层
+     * (人=最权威标注者)。画像条目源(instinct/memory)落地前是 seam;复用纠正通道。
+     */
+    fun correctProfileItem(itemId: String, correction: String) =
+        submitFeedback(itemId, FeedbackKind.CORRECTION, correction)
 
     /** 结束 onboarding:落"已完成"标志(不再引导)+ 清面板;可选补已就绪文案。 */
     private fun finishOnboarding(addReadyLine: Boolean) {

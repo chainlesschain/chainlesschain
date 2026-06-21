@@ -60,6 +60,7 @@ import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
+import com.chainlesschain.android.pdh.PdhTransparency
 import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.TrustCard
@@ -90,6 +91,11 @@ fun PdhChatScreen(
         if (total > 0) listState.animateScrollToItem(total - 1)
     }
 
+    // §3.5.18: the transparency panel renders at the top → scroll to it when opened.
+    LaunchedEffect(state.transparency != null) {
+        if (state.transparency != null) listState.animateScrollToItem(0)
+    }
+
     // §3.6 human-in-loop: collect_system_data reads contacts (and files), which
     // need runtime grants. Surface a one-tap request when missing — MIUI blocks
     // adb `pm grant` but the runtime dialog still works.
@@ -105,6 +111,8 @@ fun PdhChatScreen(
             TopAppBar(
                 title = { Text("个人数据助手") },
                 actions = {
+                    // §3.5.18: 透明度入口 —— 看数据去过哪 / AI 替你办过什么。
+                    TextButton(onClick = { viewModel.openTransparency() }) { Text("透明度") }
                     // 记录搜索开关:开→显示搜索框,关→清空关键词恢复正常视图。
                     IconButton(onClick = {
                         searchOpen = !searchOpen
@@ -175,6 +183,10 @@ fun PdhChatScreen(
                 // §3.5.20 重活预算提醒(成本/时机 +「现在就跑」覆盖)。
                 state.budgetNotice?.let { notice ->
                     item { BudgetNoticeCard(notice = notice, viewModel = viewModel) }
+                }
+                // §3.5.18 透明度审计视图(数据去过哪 / AI 替你办过什么 / AI 画像)。
+                state.transparency?.let { t ->
+                    item { TransparencyPanel(t = t, viewModel = viewModel) }
                 }
                 // 翻页:顶部「加载更早」展开更老的记录(非搜索态)。
                 if (state.hasOlder) {
@@ -360,6 +372,60 @@ private fun BudgetNoticeCard(notice: PdhChatViewModel.BudgetNotice, viewModel: P
                 onClick = { viewModel.runCollectNow() },
                 modifier = Modifier.padding(start = 8.dp),
             ) { Text("现在就跑") }
+        }
+    }
+}
+
+/**
+ * §3.5.18 透明度审计视图(读侧):三段——AI 画像(可纠)/ 数据出境 / AI 替你办过的事。
+ * 诚实(§13.3/§13.4):0 也如实显示,绝不隐藏出境/操作。完整下钻/关系图是 §9/Phase 6。
+ */
+@Composable
+private fun TransparencyPanel(t: PdhChatViewModel.Transparency, viewModel: PdhChatViewModel) {
+    val onColor = MaterialTheme.colorScheme.onSurfaceVariant
+    CardSurface(color = MaterialTheme.colorScheme.surfaceVariant) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("透明度", style = MaterialTheme.typography.titleSmall, color = onColor)
+            TextButton(onClick = { viewModel.closeTransparency() }) { Text("关闭") }
+        }
+
+        Text("AI 对你的理解", style = MaterialTheme.typography.labelLarge, color = onColor)
+        Text(
+            PdhTransparency.profileSummary(t.profile),
+            style = MaterialTheme.typography.bodySmall,
+            color = onColor,
+        )
+
+        Text("数据出境", style = MaterialTheme.typography.labelLarge, color = onColor)
+        Text(
+            PdhTransparency.egressSummary(t.egress),
+            style = MaterialTheme.typography.bodySmall,
+            color = onColor,
+        )
+        t.egress.take(8).forEach { e ->
+            Text(
+                "· ${e.category} → ${e.destination}(${e.tier})",
+                style = MaterialTheme.typography.bodySmall,
+                color = onColor,
+            )
+        }
+
+        Text("AI 替你办过的事", style = MaterialTheme.typography.labelLarge, color = onColor)
+        Text(
+            PdhTransparency.actionSummary(t.actions),
+            style = MaterialTheme.typography.bodySmall,
+            color = onColor,
+        )
+        t.actions.take(8).forEach { a ->
+            Text(
+                "· ${a.action} → ${a.target}:${a.result}（${a.approvedBy}批）",
+                style = MaterialTheme.typography.bodySmall,
+                color = onColor,
+            )
         }
     }
 }
