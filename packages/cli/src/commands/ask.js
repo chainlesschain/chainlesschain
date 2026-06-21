@@ -78,6 +78,19 @@ async function queryLLM(question, options = {}) {
   const provider = options.provider || "ollama";
   const model = options.model || "qwen2:7b";
 
+  // Claude-Code 2.1.183 parity: warn (stderr only, so --json/stdout stays
+  // clean) if the requested model is a provider-retired snapshot. Suppressed
+  // under vitest so it never pollutes spawned-bin test stderr.
+  if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
+    try {
+      const { maybeWarnDeprecatedModel } =
+        await import("../lib/model-deprecation.js");
+      maybeWarnDeprecatedModel({ model });
+    } catch {
+      /* fail-open: a deprecation notice must never affect the query */
+    }
+  }
+
   if (provider === "ollama") {
     const baseUrl = options.baseUrl || "http://localhost:11434";
     // Use /api/chat (modern Ollama API + only endpoint Android LocalLlmServer
