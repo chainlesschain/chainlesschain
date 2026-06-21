@@ -154,6 +154,10 @@ function registerPermissionIPC(database) {
     try {
       const { getPermissionEngine } = require("./permission-engine");
       const engine = getPermissionEngine(resolveDatabase(database));
+      params.grantedBy = resolveActorDid(params.grantedBy, {
+        field: "grantedBy",
+        channel: "perm:bulk-grant",
+      });
       return await engine.bulkGrant(params.grants, params.grantedBy);
     } catch (error) {
       logger.error("[IPC] perm:bulk-grant failed:", error);
@@ -237,6 +241,10 @@ function registerPermissionIPC(database) {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
       const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      params.requesterDid = resolveActorDid(params.requesterDid, {
+        field: "requesterDid",
+        channel: "perm:submit-approval",
+      });
       return await manager.submitApproval(params);
     } catch (error) {
       logger.error("[IPC] perm:submit-approval failed:", error);
@@ -250,6 +258,10 @@ function registerPermissionIPC(database) {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
       const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      params.approverDid = resolveActorDid(params.approverDid, {
+        field: "approverDid",
+        channel: "perm:approve-request",
+      });
       return await manager.approveRequest(
         params.requestId,
         params.approverDid,
@@ -267,6 +279,10 @@ function registerPermissionIPC(database) {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
       const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      params.approverDid = resolveActorDid(params.approverDid, {
+        field: "approverDid",
+        channel: "perm:reject-request",
+      });
       return await manager.rejectRequest(
         params.requestId,
         params.approverDid,
@@ -284,6 +300,10 @@ function registerPermissionIPC(database) {
         getApprovalWorkflowManager,
       } = require("./approval-workflow-manager");
       const manager = getApprovalWorkflowManager(resolveDatabase(database));
+      params.approverDid = resolveActorDid(params.approverDid, {
+        field: "approverDid",
+        channel: "perm:get-pending-approvals",
+      });
       return await manager.getPendingApprovals(
         params.approverDid,
         params.orgId,
@@ -333,6 +353,10 @@ function registerPermissionIPC(database) {
     try {
       const { getDelegationManager } = require("./delegation-manager");
       const manager = getDelegationManager(resolveDatabase(database));
+      params.revokerDid = resolveActorDid(params.revokerDid, {
+        field: "revokerDid",
+        channel: "perm:revoke-delegation",
+      });
       return await manager.revokeDelegation(
         params.delegationId,
         params.revokerDid,
@@ -362,6 +386,10 @@ function registerPermissionIPC(database) {
     try {
       const { getDelegationManager } = require("./delegation-manager");
       const manager = getDelegationManager(resolveDatabase(database));
+      params.delegateDid = resolveActorDid(params.delegateDid, {
+        field: "delegateDid",
+        channel: "perm:accept-delegation",
+      });
       return await manager.acceptDelegation(
         params.delegationId,
         params.delegateDid,
@@ -413,6 +441,10 @@ function registerPermissionIPC(database) {
     try {
       const { getTeamManager } = require("./team-manager");
       const manager = getTeamManager(await ensureDatabase(database));
+      params.invitedBy = resolveActorDid(params.invitedBy, {
+        field: "invitedBy",
+        channel: "team:add-member",
+      });
       return await manager.addMember(
         params.teamId,
         params.memberDid,
