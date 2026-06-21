@@ -36,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,13 +73,17 @@ fun PdhChatScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var input by remember { mutableStateOf("") }
+    var searchOpen by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    // Auto-scroll to the newest line (messages + streaming bubble + trust cards).
-    LaunchedEffect(state.messages.size, state.streamingText, state.pendingCards.size) {
-        val total = state.messages.size +
+    // Auto-scroll to the newest line — but NOT while searching (the user is
+    // browsing matches, not following the live turn).
+    LaunchedEffect(state.messages.size, state.streamingText, state.pendingCards.size, state.searchQuery) {
+        if (state.searchQuery.isNotBlank()) return@LaunchedEffect
+        val total = state.visibleMessages.size +
             (if (state.streamingText.isNotEmpty()) 1 else 0) +
-            state.pendingCards.size
+            state.pendingCards.size +
+            (if (state.hasOlder) 1 else 0)
         if (total > 0) listState.animateScrollToItem(total - 1)
     }
 
@@ -95,8 +101,20 @@ fun PdhChatScreen(
         topBar = {
             TopAppBar(
                 title = { Text("个人数据助手") },
-                // §3.5.10 接线3: data-flow badge — 这次 AI 在哪跑、数据是否离开手机。
-                actions = { state.privacyBadge?.let { PrivacyBadge(it) } },
+                actions = {
+                    // 记录搜索开关:开→显示搜索框,关→清空关键词恢复正常视图。
+                    IconButton(onClick = {
+                        searchOpen = !searchOpen
+                        if (!searchOpen) viewModel.setSearch("")
+                    }) {
+                        Icon(
+                            imageVector = if (searchOpen) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (searchOpen) "关闭搜索" else "搜索记录",
+                        )
+                    }
+                    // §3.5.10 接线3: data-flow badge — 这次 AI 在哪跑、数据是否离开手机。
+                    state.privacyBadge?.let { PrivacyBadge(it) }
+                },
             )
         },
     ) { padding ->
@@ -125,6 +143,20 @@ fun PdhChatScreen(
                 )
             }
 
+            // 记录搜索框:命中关键词只显示匹配行(§ 用户要求的记录查询)。
+            if (searchOpen) {
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.setSearch(it) },
+                    placeholder = { Text("搜索对话记录…") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
+
+            val searching = state.searchQuery.isNotBlank()
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -133,7 +165,18 @@ fun PdhChatScreen(
                     .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(state.messages) { _, msg ->
+                // 翻页:顶部「加载更早」展开更老的记录(非搜索态)。
+                if (state.hasOlder) {
+                    item {
+                        TextButton(
+                            onClick = { viewModel.loadMore() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("加载更早的 ${state.messages.size - state.displayLimit} 条记录…")
+                        }
+                    }
+                }
+                itemsIndexed(state.visibleMessages, key = { _, m -> m.id }) { _, msg ->
                     when (msg.role) {
                         // §3.5.11: 被读取的数据用独立「引用」容器,绝不套 AI 气泡样式。
                         Role.DATA -> DataQuoteCard(msg, onToggle = { viewModel.toggleCollapse(msg.id) })
@@ -149,25 +192,38 @@ fun PdhChatScreen(
                         else -> MessageRow(role = msg.role, text = msg.text)
                     }
                 }
-                if (state.streamingText.isNotEmpty()) {
+                if (searching && state.visibleMessages.isEmpty()) {
                     item {
-                        MessageRow(role = Role.ASSISTANT, text = state.streamingText)
+                        Text(
+                            "没有匹配「${state.searchQuery}」的记录",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
                     }
                 }
-                if (state.isSending && state.streamingText.isEmpty()) {
-                    item {
-                        Row(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
-                            Text("思考中…", style = MaterialTheme.typography.bodySmall)
+                // 实时回合 UI(流式/思考/信任卡)只在非搜索态显示。
+                if (!searching) {
+                    if (state.streamingText.isNotEmpty()) {
+                        item {
+                            MessageRow(role = Role.ASSISTANT, text = state.streamingText)
                         }
                     }
-                }
-                // §3.5.9 内联信任卡(引导/预览/审批/计划)。
-                items(state.pendingCards, key = { it.id }) { card ->
-                    TrustCardItem(card = card, viewModel = viewModel, context = context)
+                    if (state.isSending && state.streamingText.isEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                                Text("思考中…", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    // §3.5.9 内联信任卡(引导/预览/审批/计划)。
+                    items(state.pendingCards, key = { it.id }) { card ->
+                        TrustCardItem(card = card, viewModel = viewModel, context = context)
+                    }
                 }
             }
 
