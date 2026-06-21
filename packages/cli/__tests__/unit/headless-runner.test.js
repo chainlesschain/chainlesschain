@@ -129,7 +129,12 @@ describe("headless-runner — output formats", () => {
     expect(env.is_error).toBe(false);
     expect(env.result).toBe("done");
     expect(env.session_id).toBe("s-1");
-    expect(env.usage).toEqual({ input_tokens: 7, output_tokens: 3 });
+    expect(env.usage).toEqual({
+      input_tokens: 7,
+      output_tokens: 3,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 0,
+    });
   });
 
   it("stream-json: init envelope first, result envelope last (NDJSON)", async () => {
