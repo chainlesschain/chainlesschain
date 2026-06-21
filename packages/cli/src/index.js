@@ -62,6 +62,7 @@ import { registerContextCommand } from "./commands/context.js";
 import { registerCheckpointCommand } from "./commands/checkpoint.js";
 import { registerGoalCommand } from "./commands/goal.js";
 import { registerCommandCommand } from "./commands/command.js";
+import { registerAgentsCommand } from "./commands/agents.js";
 import { registerCompactCommand } from "./commands/compact.js";
 import { registerLoopCommand } from "./commands/loop.js";
 import { registerReviewCommand } from "./commands/review.js";
@@ -478,6 +479,7 @@ export function createProgram(opts = {}) {
   registerCheckpointCommand(program);
   registerGoalCommand(program);
   registerCommandCommand(program);
+  registerAgentsCommand(program);
   registerCompactCommand(program);
   registerLoopCommand(program);
   registerReviewCommand(program);
