@@ -204,9 +204,13 @@ class CodeReviewer:
                     continue
 
                 if in_code_block:
+                    # 代码块内的行原样收集；块内以 '##'/'【' 开头的行是代码内容
+                    # （如 shell/Makefile/Markdown 的 '## section'），不能当作 section 结束，
+                    # 否则会截断改进代码。
                     code_lines.append(line)
+                    continue
 
-                # 如果遇到新的section标题，结束
+                # 仅在代码块外，遇到新的 section 标题才结束
                 if line.startswith('【') or line.startswith('##'):
                     break
 
