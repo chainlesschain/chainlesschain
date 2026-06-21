@@ -13,6 +13,12 @@ beforeEach(async () => {
   mockAllStmt = { all: vi.fn(() => []) };
   mockDb = {
     exec: vi.fn(),
+    // Mirror better-sqlite3: db.transaction(fn) returns a callable that runs fn.
+    transaction: vi.fn(
+      (fn) =>
+        (...args) =>
+          fn(...args),
+    ),
     prepare: vi.fn((sql) => {
       if (sql.includes("INSERT") || sql.includes("UPDATE")) {
         return mockRunStmt;
