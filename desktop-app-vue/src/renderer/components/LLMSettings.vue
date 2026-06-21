@@ -1,9 +1,6 @@
 <template>
   <div class="llm-settings">
-    <a-card
-      title="LLM 服务设置"
-      :loading="loading"
-    >
+    <a-card title="LLM 服务设置" :loading="loading">
       <a-form
         :model="form"
         :label-col="{ span: 6 }"
@@ -16,35 +13,21 @@
             v-model:value="form.provider"
             @change="handleProviderChange"
           >
-            <a-radio-button value="ollama">
-              Ollama (本地)
-            </a-radio-button>
-            <a-radio-button value="openai">
-              OpenAI
-            </a-radio-button>
+            <a-radio-button value="ollama"> Ollama (本地) </a-radio-button>
+            <a-radio-button value="openai"> OpenAI </a-radio-button>
             <a-radio-button value="anthropic">
               Claude (Anthropic)
             </a-radio-button>
-            <a-radio-button value="volcengine">
-              豆包 (字节)
-            </a-radio-button>
-            <a-radio-button value="deepseek">
-              DeepSeek
-            </a-radio-button>
-            <a-radio-button value="custom">
-              自定义API
-            </a-radio-button>
+            <a-radio-button value="volcengine"> 豆包 (字节) </a-radio-button>
+            <a-radio-button value="deepseek"> DeepSeek </a-radio-button>
+            <a-radio-button value="custom"> 自定义API </a-radio-button>
           </a-radio-group>
-          <div class="form-hint">
-            选择LLM服务提供商
-          </div>
+          <div class="form-hint">选择LLM服务提供商</div>
         </a-form-item>
 
         <!-- Ollama 配置 -->
         <template v-if="form.provider === 'ollama'">
-          <a-divider orientation="left">
-            Ollama 配置
-          </a-divider>
+          <a-divider orientation="left"> Ollama 配置 </a-divider>
 
           <a-form-item label="服务地址">
             <a-input
@@ -70,21 +53,14 @@
 
         <!-- OpenAI 配置 -->
         <template v-if="form.provider === 'openai'">
-          <a-divider orientation="left">
-            OpenAI 配置
-          </a-divider>
+          <a-divider orientation="left"> OpenAI 配置 </a-divider>
 
-          <a-form-item
-            label="API Key"
-            required
-          >
+          <a-form-item label="API Key" required>
             <a-input-password
               v-model:value="form.openai.apiKey"
               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              OpenAI API 密钥
-            </div>
+            <div class="form-hint">OpenAI API 密钥</div>
           </a-form-item>
 
           <a-form-item label="API 地址">
@@ -92,9 +68,7 @@
               v-model:value="form.openai.baseURL"
               placeholder="https://api.openai.com/v1"
             />
-            <div class="form-hint">
-              默认为官方API地址，使用代理时可修改
-            </div>
+            <div class="form-hint">默认为官方API地址，使用代理时可修改</div>
           </a-form-item>
 
           <a-form-item label="模型">
@@ -112,29 +86,20 @@
               v-model:value="form.openai.organization"
               placeholder="org-xxxxxxxxxxxxxxxx (可选)"
             />
-            <div class="form-hint">
-              组织ID（可选）
-            </div>
+            <div class="form-hint">组织ID（可选）</div>
           </a-form-item>
         </template>
 
         <!-- Anthropic Claude 配置 -->
         <template v-if="form.provider === 'anthropic'">
-          <a-divider orientation="left">
-            Claude (Anthropic) 配置
-          </a-divider>
+          <a-divider orientation="left"> Claude (Anthropic) 配置 </a-divider>
 
-          <a-form-item
-            label="API Key"
-            required
-          >
+          <a-form-item label="API Key" required>
             <a-input-password
               v-model:value="form.anthropic.apiKey"
               placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              Anthropic API 密钥
-            </div>
+            <div class="form-hint">Anthropic API 密钥</div>
           </a-form-item>
 
           <a-form-item label="API 地址">
@@ -142,28 +107,23 @@
               v-model:value="form.anthropic.baseURL"
               placeholder="https://api.anthropic.com"
             />
-            <div class="form-hint">
-              默认官方 API 地址，可用于代理/私有部署
-            </div>
+            <div class="form-hint">默认官方 API 地址，可用于代理/私有部署</div>
           </a-form-item>
 
           <a-form-item label="模型">
             <a-input
               v-model:value="form.anthropic.model"
-              placeholder="输入模型名称，如 claude-3-5-sonnet-20241022"
+              placeholder="输入模型名称，如 claude-sonnet-4-6"
             />
             <div class="form-hint">
-              常用模型: claude-3-5-sonnet-20241022, claude-3-opus-20240229,
-              claude-3-haiku-20240307
+              常用模型: claude-sonnet-4-6, claude-opus-4-8, claude-haiku-4-5
             </div>
           </a-form-item>
         </template>
 
         <!-- DeepSeek 配置 -->
         <template v-if="form.provider === 'deepseek'">
-          <a-divider orientation="left">
-            DeepSeek 配置
-          </a-divider>
+          <a-divider orientation="left"> DeepSeek 配置 </a-divider>
 
           <a-form-item label="API 地址">
             <a-input
@@ -175,17 +135,12 @@
             </div>
           </a-form-item>
 
-          <a-form-item
-            label="API Key"
-            required
-          >
+          <a-form-item label="API Key" required>
             <a-input-password
               v-model:value="form.deepseek.apiKey"
               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              DeepSeek API 密钥
-            </div>
+            <div class="form-hint">DeepSeek API 密钥</div>
           </a-form-item>
 
           <a-form-item label="模型">
@@ -193,17 +148,13 @@
               v-model:value="form.deepseek.model"
               placeholder="输入模型名称，如 deepseek-chat, deepseek-coder"
             />
-            <div class="form-hint">
-              常用模型: deepseek-chat, deepseek-coder
-            </div>
+            <div class="form-hint">常用模型: deepseek-chat, deepseek-coder</div>
           </a-form-item>
         </template>
 
         <!-- 豆包（火山引擎）配置 -->
         <template v-if="form.provider === 'volcengine'">
-          <a-divider orientation="left">
-            豆包（火山引擎）配置
-          </a-divider>
+          <a-divider orientation="left"> 豆包（火山引擎）配置 </a-divider>
 
           <a-form-item label="API 地址">
             <a-input
@@ -215,10 +166,7 @@
             </div>
           </a-form-item>
 
-          <a-form-item
-            label="API Key"
-            required
-          >
+          <a-form-item label="API Key" required>
             <a-input-password
               v-model:value="form.volcengine.apiKey"
               placeholder="输入火山引擎 API Key"
@@ -246,9 +194,7 @@
 
         <!-- 自定义 API 配置 -->
         <template v-if="form.provider === 'custom'">
-          <a-divider orientation="left">
-            自定义 API 配置
-          </a-divider>
+          <a-divider orientation="left"> 自定义 API 配置 </a-divider>
 
           <a-form-item label="服务名称">
             <a-input
@@ -257,17 +203,12 @@
             />
           </a-form-item>
 
-          <a-form-item
-            label="API 地址"
-            required
-          >
+          <a-form-item label="API 地址" required>
             <a-input
               v-model:value="form.custom.baseURL"
               placeholder="https://api.example.com/v1"
             />
-            <div class="form-hint">
-              兼容 OpenAI API 格式的服务地址
-            </div>
+            <div class="form-hint">兼容 OpenAI API 格式的服务地址</div>
           </a-form-item>
 
           <a-form-item label="API Key">
@@ -277,24 +218,17 @@
             />
           </a-form-item>
 
-          <a-form-item
-            label="模型名称"
-            required
-          >
+          <a-form-item label="模型名称" required>
             <a-input
               v-model:value="form.custom.model"
               placeholder="model-name"
             />
-            <div class="form-hint">
-              模型标识符
-            </div>
+            <div class="form-hint">模型标识符</div>
           </a-form-item>
         </template>
 
         <!-- 通用选项 -->
-        <a-divider orientation="left">
-          生成参数
-        </a-divider>
+        <a-divider orientation="left"> 生成参数 </a-divider>
 
         <a-form-item label="Temperature">
           <a-slider
@@ -317,9 +251,7 @@
             :step="0.05"
             :marks="{ 0: '0', 0.5: '0.5', 1: '1' }"
           />
-          <div class="form-hint">
-            核采样参数。推荐 0.9
-          </div>
+          <div class="form-hint">核采样参数。推荐 0.9</div>
         </a-form-item>
 
         <a-form-item label="Top K">
@@ -329,9 +261,7 @@
             :max="100"
             style="width: 120px"
           />
-          <div class="form-hint">
-            仅保留概率最高的K个词。推荐 40
-          </div>
+          <div class="form-hint">仅保留概率最高的K个词。推荐 40</div>
         </a-form-item>
 
         <a-form-item label="最大Token数">
@@ -342,9 +272,7 @@
             :step="100"
             style="width: 150px"
           />
-          <div class="form-hint">
-            单次生成的最大token数量
-          </div>
+          <div class="form-hint">单次生成的最大token数量</div>
         </a-form-item>
 
         <a-form-item label="超时时间">
@@ -355,15 +283,11 @@
             style="width: 120px"
           />
           <span class="unit-text">秒</span>
-          <div class="form-hint">
-            API请求超时时间
-          </div>
+          <div class="form-hint">API请求超时时间</div>
         </a-form-item>
 
         <!-- 系统提示词 -->
-        <a-divider orientation="left">
-          系统设置
-        </a-divider>
+        <a-divider orientation="left"> 系统设置 </a-divider>
 
         <a-form-item label="系统提示词">
           <a-textarea
@@ -371,88 +295,48 @@
             :rows="4"
             placeholder="输入系统提示词..."
           />
-          <div class="form-hint">
-            定义AI助手的角色和行为
-          </div>
+          <div class="form-hint">定义AI助手的角色和行为</div>
         </a-form-item>
 
         <a-form-item label="启用流式输出">
           <a-switch v-model:checked="form.streamEnabled" />
-          <div class="form-hint">
-            启用后，响应将逐字显示
-          </div>
+          <div class="form-hint">启用后，响应将逐字显示</div>
         </a-form-item>
 
         <a-form-item label="自动保存对话">
           <a-switch v-model:checked="form.autoSaveConversations" />
-          <div class="form-hint">
-            自动保存对话历史到数据库
-          </div>
+          <div class="form-hint">自动保存对话历史到数据库</div>
         </a-form-item>
 
         <!-- 操作按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button
-              type="primary"
-              html-type="submit"
-              :loading="saving"
-            >
+            <a-button type="primary" html-type="submit" :loading="saving">
               保存设置
             </a-button>
-            <a-button
-              :loading="testing"
-              @click="handleTest"
-            >
+            <a-button :loading="testing" @click="handleTest">
               测试连接
             </a-button>
-            <a-button @click="handleReset">
-              恢复默认
-            </a-button>
+            <a-button @click="handleReset"> 恢复默认 </a-button>
           </a-space>
         </a-form-item>
       </a-form>
     </a-card>
 
     <!-- 连接状态 -->
-    <a-card
-      title="服务状态"
-      class="status-card"
-      style="margin-top: 16px"
-    >
-      <a-descriptions
-        bordered
-        :column="2"
-      >
+    <a-card title="服务状态" class="status-card" style="margin-top: 16px">
+      <a-descriptions bordered :column="2">
         <a-descriptions-item label="服务状态">
-          <a-tag
-            v-if="status.available"
-            color="success"
-          >
-            可用
-          </a-tag>
-          <a-tag
-            v-else
-            color="error"
-          >
-            不可用
-          </a-tag>
+          <a-tag v-if="status.available" color="success"> 可用 </a-tag>
+          <a-tag v-else color="error"> 不可用 </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="当前提供商">
           {{ getProviderName(status.provider) }}
         </a-descriptions-item>
-        <a-descriptions-item
-          v-if="status.models"
-          label="可用模型数"
-          :span="2"
-        >
+        <a-descriptions-item v-if="status.models" label="可用模型数" :span="2">
           {{ status.models.length }}
         </a-descriptions-item>
-        <a-descriptions-item
-          v-if="status.error"
-          label="错误信息"
-          :span="2"
-        >
+        <a-descriptions-item v-if="status.error" label="错误信息" :span="2">
           <a-typography-text type="danger">
             {{ status.error }}
           </a-typography-text>
@@ -549,7 +433,7 @@ const form = reactive({
   anthropic: {
     apiKey: "",
     baseURL: "https://api.anthropic.com",
-    model: "claude-3-opus-20240229",
+    model: "claude-opus-4-8",
     version: "2023-06-01",
   },
 
@@ -686,7 +570,7 @@ const handleReset = () => {
   form.anthropic = {
     apiKey: "",
     baseURL: "https://api.anthropic.com",
-    model: "claude-3-opus-20240229",
+    model: "claude-opus-4-8",
     version: "2023-06-01",
   };
   form.deepseek = {

@@ -7,20 +7,17 @@
     <template #extra>
       <a-space>
         <a-tag :color="isVisionEnabled ? 'green' : 'default'">
-          {{ isVisionEnabled ? 'Vision AI 可用' : 'Vision AI 未配置' }}
+          {{ isVisionEnabled ? "Vision AI 可用" : "Vision AI 未配置" }}
         </a-tag>
         <a-tag :color="isDesktopEnabled ? 'green' : 'default'">
-          {{ isDesktopEnabled ? '桌面控制可用' : '桌面控制未安装' }}
+          {{ isDesktopEnabled ? "桌面控制可用" : "桌面控制未安装" }}
         </a-tag>
       </a-space>
     </template>
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 坐标操作 -->
-      <a-tab-pane
-        key="coordinate"
-        tab="坐标操作"
-      >
+      <a-tab-pane key="coordinate" tab="坐标操作">
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="8">
@@ -47,18 +44,10 @@
                   v-model:value="coordinateForm.action"
                   style="width: 100%"
                 >
-                  <a-select-option value="click">
-                    点击
-                  </a-select-option>
-                  <a-select-option value="doubleClick">
-                    双击
-                  </a-select-option>
-                  <a-select-option value="rightClick">
-                    右键
-                  </a-select-option>
-                  <a-select-option value="move">
-                    移动
-                  </a-select-option>
+                  <a-select-option value="click"> 点击 </a-select-option>
+                  <a-select-option value="doubleClick"> 双击 </a-select-option>
+                  <a-select-option value="rightClick"> 右键 </a-select-option>
+                  <a-select-option value="move"> 移动 </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -125,10 +114,7 @@
               </a-form-item>
             </a-col>
           </a-row>
-          <a-button
-            :loading="loading.drag"
-            @click="handleDragAction"
-          >
+          <a-button :loading="loading.drag" @click="handleDragAction">
             <template #icon>
               <DragOutlined />
             </template>
@@ -138,11 +124,7 @@
       </a-tab-pane>
 
       <!-- 视觉操作 -->
-      <a-tab-pane
-        key="vision"
-        tab="视觉操作"
-        :disabled="!isVisionEnabled"
-      >
+      <a-tab-pane key="vision" tab="视觉操作" :disabled="!isVisionEnabled">
         <a-form layout="vertical">
           <a-form-item label="元素描述">
             <a-input
@@ -152,19 +134,14 @@
           </a-form-item>
 
           <a-form-item label="Vision 模型">
-            <a-select
-              v-model:value="visionForm.model"
-              style="width: 100%"
-            >
-              <a-select-option value="claude-3-5-sonnet-20241022">
-                Claude 3.5 Sonnet
+            <a-select v-model:value="visionForm.model" style="width: 100%">
+              <a-select-option value="claude-sonnet-4-6">
+                Claude Sonnet 4.6
               </a-select-option>
-              <a-select-option value="claude-3-opus-20240229">
-                Claude 3 Opus
+              <a-select-option value="claude-opus-4-8">
+                Claude Opus 4.8
               </a-select-option>
-              <a-select-option value="gpt-4o">
-                GPT-4o
-              </a-select-option>
+              <a-select-option value="gpt-4o"> GPT-4o </a-select-option>
               <a-select-option value="llava:13b">
                 LLaVA (本地)
               </a-select-option>
@@ -182,19 +159,13 @@
               </template>
               视觉点击
             </a-button>
-            <a-button
-              :loading="loading.locate"
-              @click="handleLocateElement"
-            >
+            <a-button :loading="loading.locate" @click="handleLocateElement">
               <template #icon>
                 <SearchOutlined />
               </template>
               定位元素
             </a-button>
-            <a-button
-              :loading="loading.analyze"
-              @click="handleAnalyzePage"
-            >
+            <a-button :loading="loading.analyze" @click="handleAnalyzePage">
               <template #icon>
                 <ScanOutlined />
               </template>
@@ -236,10 +207,7 @@
           </a-button>
 
           <!-- 任务执行结果 -->
-          <a-collapse
-            v-if="taskResult"
-            style="margin-top: 16px"
-          >
+          <a-collapse v-if="taskResult" style="margin-top: 16px">
             <a-collapse-panel
               key="1"
               :header="`任务结果 (${taskResult.totalSteps} 步)`"
@@ -248,16 +216,15 @@
                 <a-timeline-item
                   v-for="(step, index) in taskResult.steps"
                   :key="index"
-                  :color="step.completed || step.action === 'done' ? 'green' : 'blue'"
+                  :color="
+                    step.completed || step.action === 'done' ? 'green' : 'blue'
+                  "
                 >
-                  <p><strong>{{ step.action }}</strong></p>
-                  <p v-if="step.target">
-                    目标: {{ step.target }}
+                  <p>
+                    <strong>{{ step.action }}</strong>
                   </p>
-                  <p
-                    v-if="step.reasoning"
-                    class="text-secondary"
-                  >
+                  <p v-if="step.target">目标: {{ step.target }}</p>
+                  <p v-if="step.reasoning" class="text-secondary">
                     {{ step.reasoning }}
                   </p>
                 </a-timeline-item>
@@ -268,10 +235,7 @@
       </a-tab-pane>
 
       <!-- 网络拦截 -->
-      <a-tab-pane
-        key="network"
-        tab="网络拦截"
-      >
+      <a-tab-pane key="network" tab="网络拦截">
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
@@ -295,24 +259,12 @@
                   <a-select-option value="NO_THROTTLE">
                     不限速
                   </a-select-option>
-                  <a-select-option value="WIFI">
-                    WiFi
-                  </a-select-option>
-                  <a-select-option value="FAST_4G">
-                    4G (快)
-                  </a-select-option>
-                  <a-select-option value="SLOW_4G">
-                    4G (慢)
-                  </a-select-option>
-                  <a-select-option value="FAST_3G">
-                    3G (快)
-                  </a-select-option>
-                  <a-select-option value="SLOW_3G">
-                    3G (慢)
-                  </a-select-option>
-                  <a-select-option value="OFFLINE">
-                    离线
-                  </a-select-option>
+                  <a-select-option value="WIFI"> WiFi </a-select-option>
+                  <a-select-option value="FAST_4G"> 4G (快) </a-select-option>
+                  <a-select-option value="SLOW_4G"> 4G (慢) </a-select-option>
+                  <a-select-option value="FAST_3G"> 3G (快) </a-select-option>
+                  <a-select-option value="SLOW_3G"> 3G (慢) </a-select-option>
+                  <a-select-option value="OFFLINE"> 离线 </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -346,13 +298,10 @@
             <a-textarea
               v-model:value="mockForm.body"
               :rows="3"
-              placeholder="{&quot;success&quot;: true}"
+              placeholder='{"success": true}'
             />
           </a-form-item>
-          <a-button
-            :loading="loading.mock"
-            @click="handleAddMock"
-          >
+          <a-button :loading="loading.mock" @click="handleAddMock">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -385,11 +334,7 @@
       </a-tab-pane>
 
       <!-- 桌面控制 -->
-      <a-tab-pane
-        key="desktop"
-        tab="桌面控制"
-        :disabled="!isDesktopEnabled"
-      >
+      <a-tab-pane key="desktop" tab="桌面控制" :disabled="!isDesktopEnabled">
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
@@ -406,10 +351,7 @@
               </a-button>
             </a-col>
             <a-col :span="12">
-              <a-button
-                block
-                @click="handleGetScreenInfo"
-              >
+              <a-button block @click="handleGetScreenInfo">
                 <template #icon>
                   <InfoCircleOutlined />
                 </template>
@@ -447,23 +389,14 @@
                   v-model:value="desktopForm.button"
                   style="width: 100%"
                 >
-                  <a-select-option value="left">
-                    左键
-                  </a-select-option>
-                  <a-select-option value="right">
-                    右键
-                  </a-select-option>
-                  <a-select-option value="middle">
-                    中键
-                  </a-select-option>
+                  <a-select-option value="left"> 左键 </a-select-option>
+                  <a-select-option value="right"> 右键 </a-select-option>
+                  <a-select-option value="middle"> 中键 </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
           </a-row>
-          <a-button
-            :loading="loading.desktopClick"
-            @click="handleDesktopClick"
-          >
+          <a-button :loading="loading.desktopClick" @click="handleDesktopClick">
             <template #icon>
               <AimOutlined />
             </template>
@@ -481,10 +414,7 @@
             />
           </a-form-item>
           <a-space>
-            <a-button
-              :loading="loading.desktopType"
-              @click="handleDesktopType"
-            >
+            <a-button :loading="loading.desktopType" @click="handleDesktopType">
               <template #icon>
                 <EditOutlined />
               </template>
@@ -508,10 +438,7 @@
               placeholder="例如: Ctrl+C, Ctrl+Shift+S"
             />
           </a-form-item>
-          <a-button
-            :loading="loading.shortcut"
-            @click="handleDesktopShortcut"
-          >
+          <a-button :loading="loading.shortcut" @click="handleDesktopShortcut">
             <template #icon>
               <ThunderboltOutlined />
             </template>
@@ -530,7 +457,7 @@
             :src="desktopScreenshot.data"
             style="width: 100%"
             alt="Desktop Screenshot"
-          >
+          />
         </a-modal>
       </a-tab-pane>
     </a-tabs>
@@ -549,8 +476,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   AimOutlined,
   CompassOutlined,
@@ -564,20 +491,20 @@ import {
   InfoCircleOutlined,
   EditOutlined,
   SnippetsOutlined,
-  ThunderboltOutlined
-} from '@ant-design/icons-vue'
+  ThunderboltOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   targetId: {
     type: String,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
 // 状态
-const activeTab = ref('coordinate')
-const isVisionEnabled = ref(false)
-const isDesktopEnabled = ref(false)
+const activeTab = ref("coordinate");
+const isVisionEnabled = ref(false);
+const isDesktopEnabled = ref(false);
 
 const loading = reactive({
   coordinate: false,
@@ -591,450 +518,466 @@ const loading = reactive({
   desktopCapture: false,
   desktopClick: false,
   desktopType: false,
-  shortcut: false
-})
+  shortcut: false,
+});
 
 // 表单数据
 const coordinateForm = reactive({
   x: 500,
   y: 300,
-  action: 'click'
-})
+  action: "click",
+});
 
 const dragForm = reactive({
   fromX: 100,
   fromY: 100,
   toX: 500,
-  toY: 500
-})
+  toY: 500,
+});
 
 const visionForm = reactive({
-  description: '',
-  model: 'claude-3-5-sonnet-20241022',
-  task: ''
-})
+  description: "",
+  model: "claude-sonnet-4-6",
+  task: "",
+});
 
-const networkEnabled = ref(false)
-const networkCondition = ref('NO_THROTTLE')
+const networkEnabled = ref(false);
+const networkCondition = ref("NO_THROTTLE");
 
 const mockForm = reactive({
-  urlPattern: '',
+  urlPattern: "",
   status: 200,
-  body: '{}'
-})
+  body: "{}",
+});
 
-const mockRules = ref([])
+const mockRules = ref([]);
 const mockColumns = [
-  { title: 'URL 模式', dataIndex: 'urlPattern', key: 'urlPattern' },
-  { title: '状态码', dataIndex: 'status', key: 'status', width: 100 },
-  { title: '操作', key: 'action', width: 80 }
-]
+  { title: "URL 模式", dataIndex: "urlPattern", key: "urlPattern" },
+  { title: "状态码", dataIndex: "status", key: "status", width: 100 },
+  { title: "操作", key: "action", width: 80 },
+];
 
 const desktopForm = reactive({
   x: 500,
   y: 300,
-  button: 'left',
-  text: '',
-  shortcut: 'Ctrl+C'
-})
+  button: "left",
+  text: "",
+  shortcut: "Ctrl+C",
+});
 
 const desktopScreenshot = reactive({
   visible: false,
-  data: null
-})
+  data: null,
+});
 
 // 结果
-const locateResult = ref(null)
-const taskResult = ref(null)
+const locateResult = ref(null);
+const taskResult = ref(null);
 const analysisModal = reactive({
   visible: false,
-  content: ''
-})
+  content: "",
+});
 
 const locateResultDescription = computed(() => {
-  if (!locateResult.value) {return ''}
-  if (!locateResult.value.found) {return '未能在页面中找到匹配的元素'}
-  const el = locateResult.value.element
-  return `位置: (${el.x}, ${el.y}), 大小: ${el.width}x${el.height}, 置信度: ${(locateResult.value.confidence * 100).toFixed(1)}%`
-})
+  if (!locateResult.value) {
+    return "";
+  }
+  if (!locateResult.value.found) {
+    return "未能在页面中找到匹配的元素";
+  }
+  const el = locateResult.value.element;
+  return `位置: (${el.x}, ${el.y}), 大小: ${el.width}x${el.height}, 置信度: ${(locateResult.value.confidence * 100).toFixed(1)}%`;
+});
 
 // 方法
 const handleCoordinateAction = async () => {
-  loading.coordinate = true
+  loading.coordinate = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:action:coordinate',
+      "browser:action:coordinate",
       props.targetId,
       {
         action: coordinateForm.action,
         x: coordinateForm.x,
-        y: coordinateForm.y
-      }
-    )
+        y: coordinateForm.y,
+      },
+    );
     if (result.success) {
-      message.success(`${coordinateForm.action} 操作成功`)
+      message.success(`${coordinateForm.action} 操作成功`);
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message)
+    message.error("操作失败: " + error.message);
   } finally {
-    loading.coordinate = false
+    loading.coordinate = false;
   }
-}
+};
 
 const handleGetMousePosition = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:desktop', {
-      action: 'getMousePosition'
-    })
+    const result = await window.electron.ipcRenderer.invoke("browser:desktop", {
+      action: "getMousePosition",
+    });
     if (result.success) {
-      coordinateForm.x = result.x
-      coordinateForm.y = result.y
-      message.success(`鼠标位置: (${result.x}, ${result.y})`)
+      coordinateForm.x = result.x;
+      coordinateForm.y = result.y;
+      message.success(`鼠标位置: (${result.x}, ${result.y})`);
     }
   } catch (error) {
-    message.error('获取失败: ' + error.message)
+    message.error("获取失败: " + error.message);
   }
-}
+};
 
 const handleDragAction = async () => {
-  loading.drag = true
+  loading.drag = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:action:coordinate',
+      "browser:action:coordinate",
       props.targetId,
       {
-        action: 'drag',
+        action: "drag",
         fromX: dragForm.fromX,
         fromY: dragForm.fromY,
         toX: dragForm.toX,
         toY: dragForm.toY,
-        smooth: true
-      }
-    )
+        smooth: true,
+      },
+    );
     if (result.success) {
-      message.success('拖拽操作成功')
+      message.success("拖拽操作成功");
     }
   } catch (error) {
-    message.error('拖拽失败: ' + error.message)
+    message.error("拖拽失败: " + error.message);
   } finally {
-    loading.drag = false
+    loading.drag = false;
   }
-}
+};
 
 const handleVisualClick = async () => {
   if (!visionForm.description) {
-    message.warning('请输入元素描述')
-    return
+    message.warning("请输入元素描述");
+    return;
   }
 
-  loading.visualClick = true
+  loading.visualClick = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:visualClick',
+      "browser:visualClick",
       props.targetId,
       visionForm.description,
-      { model: visionForm.model }
-    )
+      { model: visionForm.model },
+    );
     if (result.success) {
-      message.success(`已点击: ${visionForm.description}`)
+      message.success(`已点击: ${visionForm.description}`);
     } else {
-      message.warning(result.error || '未找到元素')
+      message.warning(result.error || "未找到元素");
     }
   } catch (error) {
-    message.error('视觉点击失败: ' + error.message)
+    message.error("视觉点击失败: " + error.message);
   } finally {
-    loading.visualClick = false
+    loading.visualClick = false;
   }
-}
+};
 
 const handleLocateElement = async () => {
   if (!visionForm.description) {
-    message.warning('请输入元素描述')
-    return
+    message.warning("请输入元素描述");
+    return;
   }
 
-  loading.locate = true
+  loading.locate = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:action:vision',
+      "browser:action:vision",
       props.targetId,
       {
-        task: 'locate',
+        task: "locate",
         description: visionForm.description,
-        model: visionForm.model
-      }
-    )
-    locateResult.value = result
+        model: visionForm.model,
+      },
+    );
+    locateResult.value = result;
   } catch (error) {
-    message.error('定位失败: ' + error.message)
+    message.error("定位失败: " + error.message);
   } finally {
-    loading.locate = false
+    loading.locate = false;
   }
-}
+};
 
 const handleAnalyzePage = async () => {
-  loading.analyze = true
+  loading.analyze = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:action:vision',
+      "browser:action:vision",
       props.targetId,
       {
-        task: 'describe',
-        model: visionForm.model
-      }
-    )
+        task: "describe",
+        model: visionForm.model,
+      },
+    );
     if (result.success) {
-      analysisModal.content = result.analysis
-      analysisModal.visible = true
+      analysisModal.content = result.analysis;
+      analysisModal.visible = true;
     }
   } catch (error) {
-    message.error('分析失败: ' + error.message)
+    message.error("分析失败: " + error.message);
   } finally {
-    loading.analyze = false
+    loading.analyze = false;
   }
-}
+};
 
 const handleExecuteTask = async () => {
   if (!visionForm.task) {
-    message.warning('请输入任务描述')
-    return
+    message.warning("请输入任务描述");
+    return;
   }
 
-  loading.task = true
-  taskResult.value = null
+  loading.task = true;
+  taskResult.value = null;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:action:vision',
+      "browser:action:vision",
       props.targetId,
       {
         task: visionForm.task,
         model: visionForm.model,
-        maxSteps: 10
-      }
-    )
-    taskResult.value = result
+        maxSteps: 10,
+      },
+    );
+    taskResult.value = result;
     if (result.success) {
-      message.success('任务执行完成')
+      message.success("任务执行完成");
     } else {
-      message.warning('任务未完成')
+      message.warning("任务未完成");
     }
   } catch (error) {
-    message.error('任务执行失败: ' + error.message)
+    message.error("任务执行失败: " + error.message);
   } finally {
-    loading.task = false
+    loading.task = false;
   }
-}
+};
 
 const handleToggleNetwork = async (checked) => {
-  loading.networkToggle = true
+  loading.networkToggle = true;
   try {
     await window.electron.ipcRenderer.invoke(
-      'browser:network',
+      "browser:network",
       props.targetId,
-      { action: checked ? 'enable' : 'disable' }
-    )
-    message.success(checked ? '网络拦截已启用' : '网络拦截已禁用')
+      { action: checked ? "enable" : "disable" },
+    );
+    message.success(checked ? "网络拦截已启用" : "网络拦截已禁用");
   } catch (error) {
-    message.error('操作失败: ' + error.message)
-    networkEnabled.value = !checked
+    message.error("操作失败: " + error.message);
+    networkEnabled.value = !checked;
   } finally {
-    loading.networkToggle = false
+    loading.networkToggle = false;
   }
-}
+};
 
 const handleSetNetworkCondition = async (condition) => {
   try {
     await window.electron.ipcRenderer.invoke(
-      'browser:network',
+      "browser:network",
       props.targetId,
-      { action: 'setCondition', condition }
-    )
-    message.success(`网络条件已设置为: ${condition}`)
+      { action: "setCondition", condition },
+    );
+    message.success(`网络条件已设置为: ${condition}`);
   } catch (error) {
-    message.error('设置失败: ' + error.message)
+    message.error("设置失败: " + error.message);
   }
-}
+};
 
 const handleAddMock = async () => {
   if (!mockForm.urlPattern) {
-    message.warning('请输入 URL 模式')
-    return
+    message.warning("请输入 URL 模式");
+    return;
   }
 
-  loading.mock = true
+  loading.mock = true;
   try {
-    let body
+    let body;
     try {
-      body = JSON.parse(mockForm.body)
+      body = JSON.parse(mockForm.body);
     } catch {
-      body = mockForm.body
+      body = mockForm.body;
     }
 
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:network',
+      "browser:network",
       props.targetId,
       {
-        action: 'mockAPI',
+        action: "mockAPI",
         urlPattern: mockForm.urlPattern,
         response: {
           status: mockForm.status,
-          body
-        }
-      }
-    )
+          body,
+        },
+      },
+    );
 
     if (result.success) {
       mockRules.value.push({
         id: result.ruleId,
         urlPattern: mockForm.urlPattern,
-        status: mockForm.status
-      })
-      mockForm.urlPattern = ''
-      mockForm.body = '{}'
-      message.success('Mock 规则已添加')
+        status: mockForm.status,
+      });
+      mockForm.urlPattern = "";
+      mockForm.body = "{}";
+      message.success("Mock 规则已添加");
     }
   } catch (error) {
-    message.error('添加失败: ' + error.message)
+    message.error("添加失败: " + error.message);
   } finally {
-    loading.mock = false
+    loading.mock = false;
   }
-}
+};
 
 const handleRemoveMock = async (ruleId) => {
   try {
     await window.electron.ipcRenderer.invoke(
-      'browser:network',
+      "browser:network",
       props.targetId,
-      { action: 'removeRule', ruleId }
-    )
-    mockRules.value = mockRules.value.filter(r => r.id !== ruleId)
-    message.success('规则已删除')
+      { action: "removeRule", ruleId },
+    );
+    mockRules.value = mockRules.value.filter((r) => r.id !== ruleId);
+    message.success("规则已删除");
   } catch (error) {
-    message.error('删除失败: ' + error.message)
+    message.error("删除失败: " + error.message);
   }
-}
+};
 
 const handleDesktopCapture = async () => {
-  loading.desktopCapture = true
+  loading.desktopCapture = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:desktop:capture')
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:desktop:capture",
+    );
     if (result.success) {
-      desktopScreenshot.data = result.image
-      desktopScreenshot.visible = true
+      desktopScreenshot.data = result.image;
+      desktopScreenshot.visible = true;
     }
   } catch (error) {
-    message.error('截图失败: ' + error.message)
+    message.error("截图失败: " + error.message);
   } finally {
-    loading.desktopCapture = false
+    loading.desktopCapture = false;
   }
-}
+};
 
 const handleGetScreenInfo = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:desktop', {
-      action: 'getScreenInfo'
-    })
+    const result = await window.electron.ipcRenderer.invoke("browser:desktop", {
+      action: "getScreenInfo",
+    });
     if (result.success) {
-      message.info(`主屏幕: ${result.primary.size.width}x${result.primary.size.height}, 缩放: ${result.primary.scaleFactor}`)
+      message.info(
+        `主屏幕: ${result.primary.size.width}x${result.primary.size.height}, 缩放: ${result.primary.scaleFactor}`,
+      );
     }
   } catch (error) {
-    message.error('获取失败: ' + error.message)
+    message.error("获取失败: " + error.message);
   }
-}
+};
 
 const handleDesktopClick = async () => {
-  loading.desktopClick = true
+  loading.desktopClick = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:desktop:click',
+      "browser:desktop:click",
       desktopForm.x,
       desktopForm.y,
-      { button: desktopForm.button }
-    )
+      { button: desktopForm.button },
+    );
     if (result.success) {
-      message.success(`已点击 (${desktopForm.x}, ${desktopForm.y})`)
+      message.success(`已点击 (${desktopForm.x}, ${desktopForm.y})`);
     }
   } catch (error) {
-    message.error('点击失败: ' + error.message)
+    message.error("点击失败: " + error.message);
   } finally {
-    loading.desktopClick = false
+    loading.desktopClick = false;
   }
-}
+};
 
 const handleDesktopType = async () => {
   if (!desktopForm.text) {
-    message.warning('请输入文本')
-    return
+    message.warning("请输入文本");
+    return;
   }
 
-  loading.desktopType = true
+  loading.desktopType = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:desktop:type',
-      desktopForm.text
-    )
+      "browser:desktop:type",
+      desktopForm.text,
+    );
     if (result.success) {
-      message.success('文本已输入')
+      message.success("文本已输入");
     }
   } catch (error) {
-    message.error('输入失败: ' + error.message)
+    message.error("输入失败: " + error.message);
   } finally {
-    loading.desktopType = false
+    loading.desktopType = false;
   }
-}
+};
 
 const handleDesktopPaste = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:desktop:key', 'v', ['control'])
-    message.success('已粘贴')
+    await window.electron.ipcRenderer.invoke("browser:desktop:key", "v", [
+      "control",
+    ]);
+    message.success("已粘贴");
   } catch (error) {
-    message.error('粘贴失败: ' + error.message)
+    message.error("粘贴失败: " + error.message);
   }
-}
+};
 
 const handleDesktopShortcut = async () => {
   if (!desktopForm.shortcut) {
-    message.warning('请输入快捷键')
-    return
+    message.warning("请输入快捷键");
+    return;
   }
 
-  loading.shortcut = true
+  loading.shortcut = true;
   try {
-    const parts = desktopForm.shortcut.split('+').map(p => p.trim())
-    const key = parts.pop().toLowerCase()
-    const modifiers = parts.map(p => p.toLowerCase())
+    const parts = desktopForm.shortcut.split("+").map((p) => p.trim());
+    const key = parts.pop().toLowerCase();
+    const modifiers = parts.map((p) => p.toLowerCase());
 
-    await window.electron.ipcRenderer.invoke('browser:desktop:key', key, modifiers)
-    message.success(`已执行: ${desktopForm.shortcut}`)
+    await window.electron.ipcRenderer.invoke(
+      "browser:desktop:key",
+      key,
+      modifiers,
+    );
+    message.success(`已执行: ${desktopForm.shortcut}`);
   } catch (error) {
-    message.error('执行失败: ' + error.message)
+    message.error("执行失败: " + error.message);
   } finally {
-    loading.shortcut = false
+    loading.shortcut = false;
   }
-}
+};
 
 // 检查功能可用性
 const checkCapabilities = async () => {
   // 检查 Vision AI
   try {
     // 简单检查 LLM 服务是否可用
-    isVisionEnabled.value = true // 假设可用，实际需要检查
+    isVisionEnabled.value = true; // 假设可用，实际需要检查
   } catch {
-    isVisionEnabled.value = false
+    isVisionEnabled.value = false;
   }
 
   // 检查桌面控制
   try {
-    await window.electron.ipcRenderer.invoke('browser:desktop', { action: 'getScreenInfo' })
-    isDesktopEnabled.value = true
+    await window.electron.ipcRenderer.invoke("browser:desktop", {
+      action: "getScreenInfo",
+    });
+    isDesktopEnabled.value = true;
   } catch {
-    isDesktopEnabled.value = false
+    isDesktopEnabled.value = false;
   }
-}
+};
 
 onMounted(() => {
-  checkCapabilities()
-})
+  checkCapabilities();
+});
 </script>
 
 <style scoped lang="less">

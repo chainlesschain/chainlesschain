@@ -140,7 +140,7 @@
         <a-form-item label="对话模型">
           <a-input
             v-model:value="config.llm.anthropicModel"
-            placeholder="claude-3-5-sonnet-20241022"
+            placeholder="claude-sonnet-4-6"
           />
         </a-form-item>
         <a-form-item label="嵌入模型">
@@ -445,8 +445,7 @@ const testLLMConnection = async () => {
           apiKey: config.value.llm.anthropicApiKey,
           baseURL:
             config.value.llm.anthropicBaseUrl || "https://api.anthropic.com",
-          model:
-            config.value.llm.anthropicModel || "claude-3-5-sonnet-20241022",
+          model: config.value.llm.anthropicModel || "claude-sonnet-4-6",
           version: "2023-06-01",
         };
         break;

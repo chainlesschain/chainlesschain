@@ -1,8 +1,6 @@
 <template>
   <div class="llm-quick-setup">
-    <a-typography-title :level="4">
-      AI 模型配置
-    </a-typography-title>
+    <a-typography-title :level="4"> AI 模型配置 </a-typography-title>
     <a-typography-paragraph type="secondary">
       配置您的 AI 模型服务。可以选择简化配置、高级配置或稍后设置。
     </a-typography-paragraph>
@@ -17,10 +15,7 @@
     />
 
     <!-- 简化模式 -->
-    <div
-      v-if="currentMode === 'simple'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'simple'" class="config-panel">
       <a-alert
         message="简化模式"
         description="只需选择一个AI提供商，其他参数将使用默认值"
@@ -61,21 +56,14 @@
         </a-form-item>
 
         <!-- 云端提供商需要 API Key -->
-        <a-form-item
-          v-if="needsApiKey"
-          label="API密钥"
-          required
-        >
+        <a-form-item v-if="needsApiKey" label="API密钥" required>
           <a-input-password
             v-model:value="formData.apiKey"
             placeholder="输入您的API密钥"
             @change="emitUpdate"
           />
           <template #extra>
-            <a
-              :href="getApiKeyLink()"
-              target="_blank"
-            >
+            <a :href="getApiKeyLink()" target="_blank">
               <LinkOutlined /> 获取API密钥
             </a>
           </template>
@@ -84,11 +72,7 @@
         <!-- 测试连接按钮 -->
         <a-form-item>
           <a-space>
-            <a-button
-              type="primary"
-              :loading="testing"
-              @click="testConnection"
-            >
+            <a-button type="primary" :loading="testing" @click="testConnection">
               测试连接
             </a-button>
             <a-tag
@@ -103,10 +87,7 @@
     </div>
 
     <!-- 高级模式 -->
-    <div
-      v-if="currentMode === 'advanced'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'advanced'" class="config-panel">
       <a-alert
         message="高级模式"
         description="完整配置所有AI参数，适合高级用户"
@@ -121,35 +102,19 @@
             v-model:value="formData.provider"
             @change="handleProviderChange"
           >
-            <a-select-option value="ollama">
-              Ollama (本地)
-            </a-select-option>
-            <a-select-option value="volcengine">
-              火山引擎
-            </a-select-option>
-            <a-select-option value="openai">
-              OpenAI
-            </a-select-option>
+            <a-select-option value="ollama"> Ollama (本地) </a-select-option>
+            <a-select-option value="volcengine"> 火山引擎 </a-select-option>
+            <a-select-option value="openai"> OpenAI </a-select-option>
             <a-select-option value="anthropic">
               Claude (Anthropic)
             </a-select-option>
-            <a-select-option value="deepseek">
-              DeepSeek
-            </a-select-option>
-            <a-select-option value="zhipu">
-              智谱AI
-            </a-select-option>
-            <a-select-option value="qianfan">
-              百度千帆
-            </a-select-option>
+            <a-select-option value="deepseek"> DeepSeek </a-select-option>
+            <a-select-option value="zhipu"> 智谱AI </a-select-option>
+            <a-select-option value="qianfan"> 百度千帆 </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          v-if="needsApiKey"
-          label="API密钥"
-          required
-        >
+        <a-form-item v-if="needsApiKey" label="API密钥" required>
           <a-input-password
             v-model:value="formData.apiKey"
             placeholder="输入API密钥"
@@ -176,11 +141,7 @@
         <!-- 测试连接按钮 -->
         <a-form-item>
           <a-space>
-            <a-button
-              type="primary"
-              :loading="testing"
-              @click="testConnection"
-            >
+            <a-button type="primary" :loading="testing" @click="testConnection">
               测试连接
             </a-button>
             <a-tag
@@ -195,10 +156,7 @@
     </div>
 
     <!-- 跳过模式 -->
-    <div
-      v-if="currentMode === 'skip'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'skip'" class="config-panel">
       <a-result
         status="info"
         title="稍后配置"
@@ -340,7 +298,7 @@ const testConnection = async () => {
         llmConfig.anthropic = {
           apiKey: formData.apiKey,
           baseURL: formData.baseUrl || "https://api.anthropic.com",
-          model: formData.model || "claude-3-5-sonnet-20241022",
+          model: formData.model || "claude-sonnet-4-6",
           version: "2023-06-01",
         };
         break;
@@ -423,7 +381,7 @@ const getDefaultModel = () => {
     ollama: "llama2",
     volcengine: "doubao-pro-4k",
     openai: "gpt-3.5-turbo",
-    anthropic: "claude-3-5-sonnet-20241022",
+    anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-chat",
     zhipu: "glm-4",
     qianfan: "ERNIE-Bot-turbo",

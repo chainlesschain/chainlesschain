@@ -228,7 +228,7 @@ export const useLLMStore = defineStore("llm", {
       anthropic: {
         apiKey: "",
         baseURL: "https://api.anthropic.com",
-        model: "claude-3-opus-20240229",
+        model: "claude-opus-4-8",
         version: "2023-06-01",
       },
 

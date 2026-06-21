@@ -1,40 +1,21 @@
 <template>
-  <a-card
-    title="按模型预算限制"
-    class="model-budget-panel"
-  >
+  <a-card title="按模型预算限制" class="model-budget-panel">
     <template #extra>
-      <a-button
-        type="primary"
-        size="small"
-        @click="showAddModal"
-      >
+      <a-button type="primary" size="small" @click="showAddModal">
         <PlusOutlined /> 添加限制
       </a-button>
     </template>
 
-    <a-skeleton
-      :loading="loading"
-      active
-    >
+    <a-skeleton :loading="loading" active>
       <!-- Empty state -->
-      <a-empty
-        v-if="modelBudgets.length === 0"
-        description="暂无模型预算限制"
-      >
-        <a-button
-          type="primary"
-          @click="showAddModal"
-        >
+      <a-empty v-if="modelBudgets.length === 0" description="暂无模型预算限制">
+        <a-button type="primary" @click="showAddModal">
           <PlusOutlined /> 添加第一个限制
         </a-button>
       </a-empty>
 
       <!-- Model budget list -->
-      <div
-        v-else
-        class="budget-list"
-      >
+      <div v-else class="budget-list">
         <div
           v-for="budget in modelBudgets"
           :key="`${budget.provider}-${budget.model}`"
@@ -54,11 +35,7 @@
                 size="small"
                 @change="(checked) => toggleBudget(budget, checked)"
               />
-              <a-button
-                type="text"
-                size="small"
-                @click="showEditModal(budget)"
-              >
+              <a-button type="text" size="small" @click="showEditModal(budget)">
                 <EditOutlined />
               </a-button>
               <a-popconfirm
@@ -67,11 +44,7 @@
                 cancel-text="取消"
                 @confirm="deleteBudget(budget)"
               >
-                <a-button
-                  type="text"
-                  size="small"
-                  danger
-                >
+                <a-button type="text" size="small" danger>
                   <DeleteOutlined />
                 </a-button>
               </a-popconfirm>
@@ -80,10 +53,7 @@
 
           <div class="budget-progress">
             <!-- Daily -->
-            <div
-              v-if="budget.daily_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.daily_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>日限额</span>
                 <span class="progress-value">
@@ -107,10 +77,7 @@
             </div>
 
             <!-- Weekly -->
-            <div
-              v-if="budget.weekly_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.weekly_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>周限额</span>
                 <span class="progress-value">
@@ -137,10 +104,7 @@
             </div>
 
             <!-- Monthly -->
-            <div
-              v-if="budget.monthly_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.monthly_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>月限额</span>
                 <span class="progress-value">
@@ -170,8 +134,8 @@
             <div
               v-if="
                 budget.daily_limit_usd === 0 &&
-                  budget.weekly_limit_usd === 0 &&
-                  budget.monthly_limit_usd === 0
+                budget.weekly_limit_usd === 0 &&
+                budget.monthly_limit_usd === 0
               "
               class="no-limits"
             >
@@ -184,23 +148,13 @@
               <ApiOutlined /> {{ budget.total_calls || 0 }} 次调用
             </span>
             <span class="stat">
-              <DollarOutlined /> ${{
-                (budget.total_cost_usd || 0).toFixed(4)
-              }}
+              <DollarOutlined /> ${{ (budget.total_cost_usd || 0).toFixed(4) }}
               累计
             </span>
-            <a-tag
-              v-if="budget.blockOnLimit"
-              color="red"
-              size="small"
-            >
+            <a-tag v-if="budget.blockOnLimit" color="red" size="small">
               超限阻止
             </a-tag>
-            <a-tag
-              v-else-if="budget.alertOnLimit"
-              color="orange"
-              size="small"
-            >
+            <a-tag v-else-if="budget.alertOnLimit" color="orange" size="small">
               超限告警
             </a-tag>
           </div>
@@ -221,46 +175,24 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="提供商"
-          required
-        >
+        <a-form-item label="提供商" required>
           <a-select
             v-model:value="formData.provider"
             placeholder="选择提供商"
             :disabled="isEditing"
           >
-            <a-select-option value="ollama">
-              Ollama (本地)
-            </a-select-option>
-            <a-select-option value="openai">
-              OpenAI
-            </a-select-option>
-            <a-select-option value="anthropic">
-              Anthropic
-            </a-select-option>
-            <a-select-option value="deepseek">
-              DeepSeek
-            </a-select-option>
-            <a-select-option value="volcengine">
-              火山引擎
-            </a-select-option>
-            <a-select-option value="dashscope">
-              阿里云
-            </a-select-option>
-            <a-select-option value="zhipuai">
-              智谱AI
-            </a-select-option>
-            <a-select-option value="moonshot">
-              Moonshot
-            </a-select-option>
+            <a-select-option value="ollama"> Ollama (本地) </a-select-option>
+            <a-select-option value="openai"> OpenAI </a-select-option>
+            <a-select-option value="anthropic"> Anthropic </a-select-option>
+            <a-select-option value="deepseek"> DeepSeek </a-select-option>
+            <a-select-option value="volcengine"> 火山引擎 </a-select-option>
+            <a-select-option value="dashscope"> 阿里云 </a-select-option>
+            <a-select-option value="zhipuai"> 智谱AI </a-select-option>
+            <a-select-option value="moonshot"> Moonshot </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="模型"
-          required
-        >
+        <a-form-item label="模型" required>
           <a-auto-complete
             v-model:value="formData.model"
             :options="modelOptions"
@@ -376,9 +308,9 @@ const modelOptions = computed(() => {
       { value: "gpt-3.5-turbo" },
     ],
     anthropic: [
-      { value: "claude-3-opus-20240229" },
-      { value: "claude-3-sonnet-20240229" },
-      { value: "claude-3-haiku-20240307" },
+      { value: "claude-opus-4-8" },
+      { value: "claude-sonnet-4-6" },
+      { value: "claude-haiku-4-5" },
     ],
     deepseek: [{ value: "deepseek-chat" }, { value: "deepseek-coder" }],
     volcengine: [
