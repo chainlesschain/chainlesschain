@@ -19,9 +19,8 @@ vi.mock("../../src/lib/config-manager.js", () => ({
 
 const store = await import("../../src/harness/jsonl-session-store.js");
 const { logger } = await import("../../src/lib/logger.js");
-const { registerInsightsCommand } = await import(
-  "../../src/commands/insights.js"
-);
+const { registerInsightsCommand } =
+  await import("../../src/commands/insights.js");
 
 const T0 = 1_700_000_000_000;
 const sampleEvents = [
@@ -67,8 +66,8 @@ describe("cc insights", () => {
     expect(payload.sessionId).toBe("sess-1");
     expect(payload.messages.total).toBe(2);
     expect(payload.usage.total.totalTokens).toBe(1_000_000);
-    // anthropic opus = $15 / 1M input → cost ≈ 15
-    expect(payload.cost.totalCost).toBeCloseTo(15, 4);
+    // anthropic opus 4.x = $5 / 1M input → cost ≈ 5
+    expect(payload.cost.totalCost).toBeCloseTo(5, 4);
   });
 
   it("defaults to the most-recent session", async () => {

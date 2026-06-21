@@ -1,8 +1,4 @@
-/**
- * @deprecated Re-export shim; canonical impl is `../runtime/agent-core.js`
- * (CLI Runtime Convergence, Phase 6b). Import from there in new code.
- */
-
+/** @deprecated Thin re-export shim; canonical impl is `../runtime/agent-core.js` (CLI Runtime Convergence, Phase 6b) — import from there in new code. */
 export {
   AGENT_TOOLS,
   AGENT_TOOL_REGISTRY,
@@ -33,6 +29,7 @@ export {
   _streamErrorDisposition,
   _isRetryableStreamError,
   _retryStreamingChat,
+  _iterateStreamWithStall,
   _toAnthropicMessages,
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,
