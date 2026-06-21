@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.3.123] - 2026-06-21 — 安全/鲁棒性硬化一批（退役模型清退 / NaN 校验 / XSS·路径穿越 / notebook 工具 / PDH query_app_data）+ MTC 联邦创始投票修复 + module 101 Phase 2 UI（CLI 0.162.96）
+
+### Fixed — 安全与鲁棒性硬化（v5.0.3.122 以来 163 commits，多 session）
+> 一批 fix / security / test 收口。亮点如下；逐条见 `git log v5.0.3.122..HEAD`。CLI 已发 npm 0.162.96；pdh 0.4.30 不变（无 lib 改动 → 无需 Android cc bundle rollover，沿用既有 bundle）。
+
+- **退役 Claude 模型全面清退**：桌面渲染层 LLM 配置不再默认/提供已退役模型快照，vision / routing / remote 处理器换用当前 Claude 4 模型，成本追踪器按当前 Claude 4 定价；config 示例同步。
+- **CLI 数值选项 NaN 静默绕过校验**：`dlp` / `activitypub` / `dao` 数值选项 + evomap governance（`typeof` → `Number.isFinite`）。
+- **安全缺口修复 + 首批测试**：xss-sanitizer URL/JSON 缺口（+27 测试）、file-validator 路径穿越误报（+14 测试）、git ref 校验防 worktree shell 注入。
+- **健壮性**：`isEncryptedFile` fd 泄漏 + `/auto` listener 累积、taskkill spawn-error、a2a `JSON.parse` 抗 DB 损坏、enterprise 订阅拒未知 plan、blockchain `estimateFee` 链校验。
+- **PDH 桥接（module 101 §4）**：`query_app_data` 工具扩展至 bilibili/douyin/toutiao/kuaishou/xiaohongshu（带 stored cookie 的 live API 查询）、`collect_app_data_root`（root DB 直读免登录）；`notebook_edit`（Jupyter .ipynb cell 编辑，Claude Code parity）+ `read_file` 渲染 .ipynb 为紧凑 cell 列表。
+
 ### Fixed — MTC 联邦治理:创始成员投票被静默丢弃（无法扩员）+ cowork 模板原子写测试桩
 > 跟进昨日的「关闭 M-of-N 投票阈值绕过」安全修复（core-mtc `replayGovernanceLog` 仅统计当前成员的投票）暴露的回归 + 一处过期测试桩。`git commit --only` 隔离并行 session。
 
