@@ -132,6 +132,12 @@ class PdhChatViewModel @Inject constructor(
                 isSending = true,
                 streamingText = "",
                 error = null,
+                // A new request supersedes any leftover 引导卡 from a previous turn
+                // (e.g. a "登录微博" assist the user didn't complete) — otherwise it
+                // lingers under an unrelated new request and looks like THIS request
+                // needs that step. No turn is in flight here (isSending was false), so
+                // any pending cards are stale.
+                pendingCards = emptyList(),
             )
         }
         viewModelScope.launch {
