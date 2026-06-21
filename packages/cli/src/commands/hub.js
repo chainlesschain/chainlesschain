@@ -1045,6 +1045,121 @@ async function cmdCollectDb(options) {
   }
 }
 
+// ─── collect-wechat (WeChat EnMicroMsg derived-key decrypt → vault) ──────
+//
+// module 101 — same model as collect-qq. The Magisk daemon stages a
+// (root-read) EnMicroMsg.db + uin/IMEI candidates; this derives the key
+// (MD5(IMEI+uin)[:7]), decrypts (SQLCipher page-AES), parses message/rcontact/
+// chatroom, and ingests. Plaintext temp is written app-local + wiped.
+async function cmdCollectWechat(options) {
+  const spinner = options.json
+    ? null
+    : ora("collect-wechat (decrypt + ingest)...").start();
+  try {
+    const { createRequire } = await import("module");
+    const require = createRequire(import.meta.url);
+    const fs = require("fs");
+    const path = require("path");
+    const wx = options._wechatCore
+      ? options._wechatCore
+      : await import("@chainlesschain/personal-data-hub/forensics/wechat-collect");
+    if (!options.db) throw new Error("need --db <EnMicroMsg.db>");
+    const raw = fs.readFileSync(options.db);
+    const readLines = (f) =>
+      f && fs.existsSync(f)
+        ? fs.readFileSync(f, "utf8").split(/\s+/).filter(Boolean)
+        : [];
+    let passphrases = readLines(options.keys);
+    const uins = readLines(options.uins);
+    const imeis = options.imeis ? readLines(options.imeis) : [];
+    // Android 13 IMEI usually unreadable → always try empty + a placeholder
+    imeis.push("", "1234567890ABCDE");
+    if (uins.length)
+      passphrases = passphrases.concat(
+        wx.computeKeyCandidates(imeis, uins, passphrases),
+      );
+    const rawKeys =
+      options.rawKeys && fs.existsSync(options.rawKeys)
+        ? (() => {
+            try {
+              return JSON.parse(fs.readFileSync(options.rawKeys, "utf8"));
+            } catch {
+              return [];
+            }
+          })()
+        : [];
+    if (!passphrases.length && !rawKeys.length) {
+      throw new Error("no key candidates (need --uins, --keys, or --raw-keys)");
+    }
+
+    const result = wx.deriveAndDecrypt(raw, passphrases, rawKeys);
+    if (!result) {
+      const report = {
+        ok: false,
+        reason: "no-key-match",
+        candidates: passphrases.length + rawKeys.length,
+      };
+      if (options.json) {
+        jsonAndExit(report);
+        return;
+      }
+      if (spinner)
+        spinner.fail(
+          "no WeChat key matched (supply a saved --keys or frida --raw-keys)",
+        );
+      process.exit(2);
+    }
+
+    const hub = await (options._getHub || getHub)();
+    const vault = hub.vault;
+    const Database = (vault.db || vault._db || vault).constructor;
+    const tmp = path.join(
+      path.dirname(path.resolve(options.db)),
+      `enmm-dec-${process.pid}.db`,
+    );
+    fs.writeFileSync(tmp, result.decrypted);
+    let events;
+    try {
+      events = wx.parseEvents(Database, tmp, options.self || "self");
+    } finally {
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* wipe plaintext */
+      }
+    }
+
+    let ingested = 0;
+    for (const ev of events) {
+      try {
+        vault.putEvent(ev);
+        ingested++;
+      } catch {
+        /* dup */
+      }
+    }
+    const report = {
+      ok: true,
+      cfg: result.cfg,
+      messages: events.length,
+      ingested,
+    };
+    if (spinner)
+      spinner.succeed(`collect-wechat: ${ingested} messages → vault`);
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    logger.log(chalk.green("✓ WeChat collect succeeded"));
+    logger.log(`  config:    ${result.cfg}`);
+    logger.log(`  messages:  ${events.length}`);
+    logger.log(`  ingested:  ${ingested}`);
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
 //
 // Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
@@ -2782,6 +2897,35 @@ export function registerHubCommand(program) {
     .option("--dir <dir>", "A dir of plaintext dbs (all *.db ingested)")
     .option("--json", "Output JSON")
     .action(cmdCollectDb);
+
+  hub
+    .command("collect-wechat")
+    .description(
+      "WeChat: decrypt a root-staged EnMicroMsg.db via the DERIVED key MD5(IMEI+uin)[:7] (no frida; saved/raw keys as fallback), parse message/rcontact/chatroom, and ingest. Pairs with the Magisk daemon (stages DB + uin/IMEI candidates).",
+    )
+    .requiredOption(
+      "--db <path>",
+      "Encrypted EnMicroMsg.db (root-staged / pulled)",
+    )
+    .option(
+      "--uins <path>",
+      "File with uin(s) (one per line) for key derivation",
+    )
+    .option(
+      "--imeis <path>",
+      "File with IMEI candidate(s); empty+placeholder always tried",
+    )
+    .option(
+      "--keys <path>",
+      "File with saved 7-char passphrase keys (instant re-match)",
+    )
+    .option(
+      "--raw-keys <path>",
+      "JSON array of 32-byte raw AES keys (frida fallback)",
+    )
+    .option("--self <wxid>", "Your own wxid (attribution for sent messages)")
+    .option("--json", "Output JSON")
+    .action(cmdCollectWechat);
 
   hub
     .command("event-detail <eventId>")
