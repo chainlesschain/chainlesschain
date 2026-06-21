@@ -62,6 +62,54 @@ const PRICING_DATA = {
   },
 
   anthropic: {
+    // Claude 4 系列 (2026, 当前在用) — verified 2026-06-21 vs the claude-api
+    // reference. Without these, current models fall to the generic 0.5/1.5
+    // default below and UNDER-count badly (Opus $5/$25 → 10x low). The Opus tier
+    // dropped to $5/$25 with Opus 4.5 (2025-11); Sonnet $3/$15; Haiku $1/$5;
+    // Fable 5 $10/$50. cache = 0.1×input (read), cacheWrite = 1.25×input.
+    "claude-opus-4-8": {
+      input: 5.0,
+      output: 25.0,
+      cache: 0.5,
+      cacheWrite: 6.25,
+    },
+    "claude-opus-4-7": {
+      input: 5.0,
+      output: 25.0,
+      cache: 0.5,
+      cacheWrite: 6.25,
+    },
+    "claude-opus-4-6": {
+      input: 5.0,
+      output: 25.0,
+      cache: 0.5,
+      cacheWrite: 6.25,
+    },
+    "claude-sonnet-4-6": {
+      input: 3.0,
+      output: 15.0,
+      cache: 0.3,
+      cacheWrite: 3.75,
+    },
+    "claude-sonnet-4-5-20250929": {
+      input: 3.0,
+      output: 15.0,
+      cache: 0.3,
+      cacheWrite: 3.75,
+    },
+    "claude-haiku-4-5": {
+      input: 1.0,
+      output: 5.0,
+      cache: 0.1,
+      cacheWrite: 1.25,
+    },
+    "claude-fable-5": {
+      input: 10.0,
+      output: 50.0,
+      cache: 1.0,
+      cacheWrite: 12.5,
+    },
+
     // Claude 3.5 系列 (2024新版支持 Prompt Caching)
     "claude-3-5-sonnet-20241022": {
       input: 3.0,
