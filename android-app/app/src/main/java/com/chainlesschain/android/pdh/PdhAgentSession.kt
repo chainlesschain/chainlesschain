@@ -364,9 +364,9 @@ class PdhAgentSession @Inject constructor(
             - 遇到"采集 / 查询 / 分析个人数据"类请求,优先调用 mcp__pdh__* 工具,而不是当
               通用编程助手或凭空回答。
             - 尽量自主、多法尝试,目标是「最终把数据采到」,方法不限:采某 App 时先
-              collect_app_data(走已存 cookie);若它返回 assist_required 且该 App 也支持
-              salvage_app_data(root 内存打捞,常常无需登录),就自动改试 salvage_app_data;
-              都拿不到再考虑引导用户。能自动完成就别打扰用户。
+              collect_app_data(走已存 cookie);若它返回 assist_required,在已 root 的设备上
+              自动改试 collect_app_data_root(直读 App 本地库,常无需登录、采得更全)或
+              salvage_app_data(IM 内存打捞);多法都拿不到再考虑引导用户。能自动完成就别打扰用户。
             - 只有所有自动方法都失败、确实需要用户配合(登录 / 打开 App / 授权 / root)时,才把
               assist_required 的指引简短转达,等用户完成后重试该工具——这是最后手段,不是第一反应。
             - 诚实:工具采到 0 条或失败就如实告知,绝不编造数据。

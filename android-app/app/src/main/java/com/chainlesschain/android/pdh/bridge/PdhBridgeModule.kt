@@ -15,6 +15,12 @@ import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
 import com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
+import com.chainlesschain.android.pdh.social.bilibili.BilibiliRootDbCollector
+import com.chainlesschain.android.pdh.social.douyin.DouyinRootDbCollector
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootDbCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoRootDbCollector
+import com.chainlesschain.android.pdh.social.weibo.WeiboRootDbCollector
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsRootDbCollector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -56,6 +62,12 @@ object PdhBridgeModule {
         toutiaoSign: ToutiaoSignBridge,
         kuaishou: KuaishouLocalCollector,
         kuaishouSign: KuaishouSignBridge,
+        weiboRoot: WeiboRootDbCollector,
+        bilibiliRoot: BilibiliRootDbCollector,
+        douyinRoot: DouyinRootDbCollector,
+        xhsRoot: XhsRootDbCollector,
+        toutiaoRoot: ToutiaoRootDbCollector,
+        kuaishouRoot: KuaishouRootDbCollector,
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         val collectors = listOf(
@@ -83,6 +95,15 @@ object PdhBridgeModule {
             ),
             PdhToolHost.Collector(
                 tool = SalvageAppDataTool(memSalvage),
+                layer = "L4",
+                requiresRoot = true,
+            ),
+            PdhToolHost.Collector(
+                tool = CollectAppDataRootTool(
+                    ccRunner,
+                    weiboRoot, bilibiliRoot, douyinRoot,
+                    xhsRoot, toutiaoRoot, kuaishouRoot,
+                ),
                 layer = "L4",
                 requiresRoot = true,
             ),
