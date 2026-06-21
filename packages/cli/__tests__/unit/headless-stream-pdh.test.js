@@ -223,10 +223,7 @@ describe("stream PDH flywheel — learned-preference injection (§3.5.13)", () =
   });
 
   it("injects standing corrections into a PDH session's first turn", async () => {
-    appendFeedback(
-      { kind: "correction", comment: "金额一律用人民币" },
-      ledgerDeps,
-    );
+    appendFeedback({ kind: "correction", comment: "金额一律用人民币" }, ledgerDeps);
     appendFeedback({ kind: "positive" }, ledgerDeps);
     const h = harness({
       options: { pdh: true },
@@ -238,10 +235,7 @@ describe("stream PDH flywheel — learned-preference injection (§3.5.13)", () =
   });
 
   it("does NOT inject outside PDH context (IDE/coding sessions unaffected)", async () => {
-    appendFeedback(
-      { kind: "correction", comment: "金额一律用人民币" },
-      ledgerDeps,
-    );
+    appendFeedback({ kind: "correction", comment: "金额一律用人民币" }, ledgerDeps);
     const h = harness({
       options: { pdh: false },
       inputObjs: [{ type: "user", text: "看看我的消费" }],

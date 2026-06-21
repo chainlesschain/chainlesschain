@@ -38,8 +38,7 @@ function makeStallGuard(
   const controller = new AbortController();
   let timer = null;
   let hintTimer = null;
-  const hintArmed =
-    typeof onHint === "function" && hintMs > 0 && hintMs < stallMs;
+  const hintArmed = typeof onHint === "function" && hintMs > 0 && hintMs < stallMs;
   const bump = () => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => controller.abort(), stallMs);
@@ -90,14 +89,7 @@ function _cachedPromptTokens(usage) {
  * If `onUsage` is provided, it's called with `{inputTokens, outputTokens}`
  * derived from Ollama's terminal `prompt_eval_count` / `eval_count` fields.
  */
-export async function streamOllama(
-  messages,
-  model,
-  baseUrl,
-  onToken,
-  onUsage,
-  onStall,
-) {
+export async function streamOllama(messages, model, baseUrl, onToken, onUsage, onStall) {
   const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
   let response;
@@ -468,15 +460,7 @@ export async function* chatStream(messages, options) {
       );
     }
     providerCall = () =>
-      streamAnthropic(
-        messages,
-        model,
-        url,
-        key,
-        onToken,
-        onUsage,
-        options.onStall,
-      );
+      streamAnthropic(messages, model, url, key, onToken, onUsage, options.onStall);
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
     const url =
@@ -492,15 +476,7 @@ export async function* chatStream(messages, options) {
       );
     }
     providerCall = () =>
-      streamOpenAI(
-        messages,
-        model,
-        url,
-        key,
-        onToken,
-        onUsage,
-        options.onStall,
-      );
+      streamOpenAI(messages, model, url, key, onToken, onUsage, options.onStall);
   }
 
   // Run the provider stream concurrently with the queue-drain loop. finally

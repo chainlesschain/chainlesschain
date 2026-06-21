@@ -83,8 +83,9 @@ async function queryLLM(question, options = {}) {
   // under vitest so it never pollutes spawned-bin test stderr.
   if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
     try {
-      const { maybeWarnDeprecatedModel } =
-        await import("../lib/model-deprecation.js");
+      const { maybeWarnDeprecatedModel } = await import(
+        "../lib/model-deprecation.js"
+      );
       maybeWarnDeprecatedModel({ model });
     } catch {
       /* fail-open: a deprecation notice must never affect the query */

@@ -260,12 +260,7 @@ describe("makeRunnableProviderFallback — sticky resolution + dedup", () => {
     // Turn 2 + 3: route straight to volcengine, no wasted anthropic attempt.
     await wrapped([], opts);
     await wrapped([], opts);
-    expect(seen).toEqual([
-      "anthropic",
-      "volcengine",
-      "volcengine",
-      "volcengine",
-    ]);
+    expect(seen).toEqual(["anthropic", "volcengine", "volcengine", "volcengine"]);
     // The fallback was announced exactly once despite three turns.
     expect(fb).toHaveLength(1);
     expect(fb[0]).toMatchObject({ from: "anthropic", to: "volcengine" });
@@ -281,11 +276,7 @@ describe("makeRunnableProviderFallback — sticky resolution + dedup", () => {
     const wrapped = makeRunnableProviderFallback(chatFn, {
       env: { VOLCENGINE_API_KEY: "sk-v" },
     });
-    const opts = {
-      provider: "anthropic",
-      baseUrl: "https://api.anthropic.com/v1",
-      apiKey: "",
-    };
+    const opts = { provider: "anthropic", baseUrl: "https://api.anthropic.com/v1", apiKey: "" };
     await wrapped([], opts);
     await wrapped([], opts);
     expect(seen).toEqual(["anthropic", "volcengine", "volcengine"]);

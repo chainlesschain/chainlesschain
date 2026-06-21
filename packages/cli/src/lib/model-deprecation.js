@@ -227,7 +227,8 @@ export function maybeWarnDeprecatedModel(opts = {}) {
   const env = opts.env || process.env;
   const seen = opts.seen || _warned;
   const print =
-    opts.print || ((line) => process.stderr.write(chalk.yellow(line) + "\n"));
+    opts.print ||
+    ((line) => process.stderr.write(chalk.yellow(line) + "\n"));
   const out = { warned: false, info: null };
   try {
     if (env.CC_MODEL_NOTICE === "0") return out;

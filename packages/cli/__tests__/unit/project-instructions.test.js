@@ -126,9 +126,9 @@ describe("findInstructionFiles", () => {
 
   it("returns [] when nothing exists", () => {
     fs.mkdirSync(path.join(tmp, "empty"), { recursive: true });
-    expect(
-      findInstructionFiles({ cwd: path.join(tmp, "empty"), home }),
-    ).toEqual([]);
+    expect(findInstructionFiles({ cwd: path.join(tmp, "empty"), home })).toEqual(
+      [],
+    );
   });
 });
 
@@ -214,9 +214,9 @@ describe("path-scoped rules (.claude/rules)", () => {
     );
     expect(fm.globs).toEqual(["desktop-app-vue/**", "packages/cli/**"]);
     expect(fm.body).toBe("# Body here");
-    expect(
-      parseRuleFrontmatter('---\nglobs: "backend/**"\n---\nX').globs,
-    ).toEqual(["backend/**"]);
+    expect(parseRuleFrontmatter('---\nglobs: "backend/**"\n---\nX').globs).toEqual(
+      ["backend/**"],
+    );
     expect(parseRuleFrontmatter("plain body").globs).toEqual([]);
   });
 
@@ -257,10 +257,7 @@ describe("path-scoped rules (.claude/rules)", () => {
     expect(all).not.toContain("DESKTOP RULE BODY");
 
     // at the project root, every rule is in play
-    const atRoot = loadProjectInstructions({
-      cwd: path.join(tmp, "repo"),
-      home,
-    });
+    const atRoot = loadProjectInstructions({ cwd: path.join(tmp, "repo"), home });
     expect(atRoot.files.map((f) => f.content).join("\n")).toContain(
       "DESKTOP RULE BODY",
     );

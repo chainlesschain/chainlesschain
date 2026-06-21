@@ -538,8 +538,9 @@ export function registerAgentCommand(program) {
       // never pollutes spawned-bin test stderr.
       if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
         try {
-          const { maybeWarnDeprecatedModel } =
-            await import("../lib/model-deprecation.js");
+          const { maybeWarnDeprecatedModel } = await import(
+            "../lib/model-deprecation.js"
+          );
           maybeWarnDeprecatedModel({ model: options.model });
         } catch {
           /* fail-open: a deprecation notice must never affect the run */
