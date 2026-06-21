@@ -110,4 +110,18 @@ describe("AnthropicClient.buildPayload — sampling-param gating", () => {
     expect(p.temperature).toBeUndefined();
     expect(p.max_tokens).toBeGreaterThan(0);
   });
+
+  it("defaults max_tokens to 4096 (not the old truncating 2000)", () => {
+    const p = mk("claude-opus-4-8").buildPayload(msgs, {}, false);
+    expect(p.max_tokens).toBe(4096);
+  });
+
+  it("still honors an explicit max_tokens override", () => {
+    const p = mk("claude-opus-4-8").buildPayload(
+      msgs,
+      { max_tokens: 8192 },
+      false,
+    );
+    expect(p.max_tokens).toBe(8192);
+  });
 });

@@ -27,7 +27,11 @@ class AnthropicClient extends EventEmitter {
     this.baseURL = config.baseURL || "https://api.anthropic.com";
     this.model = config.model || "claude-opus-4-8";
     this.timeout = config.timeout || 300000; // 5分钟
-    this.maxTokens = config.maxTokens || 2000;
+    // 4096 (matches the cc CLI default) instead of 2000 — current Claude models
+    // support far more output and a 2000 cap truncates non-trivial responses
+    // (code, long explanations). Cost only rises when a reply genuinely needs
+    // the room. Callers can still override via config.maxTokens / options.max_tokens.
+    this.maxTokens = config.maxTokens || 4096;
     this.anthropicVersion = config.anthropicVersion || "2023-06-01";
 
     this.client = axios.create({
