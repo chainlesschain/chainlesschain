@@ -114,6 +114,34 @@ export function parseInputEvent(line) {
       },
     };
   }
+  // PDH self-learning feedback (design module 101 §3.5.13). The personal-data
+  // chat's 纠正卡 sends {"type":"feedback","turn_id":…,"kind":"positive"|
+  // "negative"|"correction","comment":…} after a reply. A missing kind → skip.
+  if (obj && typeof obj === "object" && obj.type === "feedback") {
+    const kind = String(obj.kind || "").toLowerCase();
+    if (!kind) return null;
+    return {
+      feedback: {
+        turnId: obj.turn_id != null ? String(obj.turn_id) : null,
+        kind,
+        comment: typeof obj.comment === "string" ? obj.comment : null,
+      },
+    };
+  }
+  // PDH guided-collection resume (design module 101 §3.5.15). When a PDH tool
+  // returns assist_required (e.g. "log into the app first") the chat's 引导卡
+  // sends {"type":"resume","token":…,"action":"completed"|"skip"} once the user
+  // finishes or skips the in-app step. A missing action → skip.
+  if (obj && typeof obj === "object" && obj.type === "resume") {
+    const action = String(obj.action || "").toLowerCase();
+    if (!action) return null;
+    return {
+      resume: {
+        token: obj.token != null ? String(obj.token) : null,
+        action,
+      },
+    };
+  }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
   let content = msg.content ?? obj.text ?? obj.prompt;
   if (Array.isArray(content)) {
@@ -908,6 +936,48 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       } else if (!parsed.text) {
         continue; // unknown plan action — ignored
       }
+    }
+
+    // PDH self-learning feedback (design module 101 §3.5.13). Always ack so the
+    // chat app can confirm receipt. A `correction` re-drives a turn so the model
+    // adapts within the session; `positive`/`negative` are recorded as a
+    // lightweight preference note in history without forcing a fresh reply.
+    if (parsed.feedback) {
+      const { turnId, kind, comment } = parsed.feedback;
+      emit({
+        type: "feedback_ack",
+        turn_id: turnId,
+        kind,
+        session_id: sessionId,
+      });
+      if (kind === "correction") {
+        parsed.text = comment
+          ? `用户对上一轮回复给出纠正：${comment}\n请据此调整并重新回复。`
+          : "用户认为上一轮回复需要纠正，请反思后给出更准确的回复。";
+        // fall through into the normal turn machinery with the correction prompt
+      } else {
+        const tag = kind === "positive" ? "认可" : "不满意";
+        messages.push({
+          role: "user",
+          content: `（用户反馈：对上一轮回复表示${tag}。请在后续回复中延续/修正此偏好。）`,
+        });
+        continue;
+      }
+    }
+
+    // PDH guided-collection resume (design module 101 §3.5.15). A PDH tool
+    // returned assist_required (e.g. "log into the app first"); the chat's 引导卡
+    // sends a resume once the user finishes or skips the in-app step. Ack so the
+    // app can dismiss the card, then re-drive the model to retry (completed) or
+    // move on (skip).
+    if (parsed.resume) {
+      const { token, action } = parsed.resume;
+      emit({ type: "resume_ack", token, action, session_id: sessionId });
+      parsed.text =
+        action === "skip"
+          ? "我跳过了刚才需要的引导操作，请不要重试该步骤，继续处理其它事项或做个小结。"
+          : "我已完成刚才需要的引导操作，请重试刚才的采集/操作。";
+      // fall through into the normal turn machinery with the continuation prompt
     }
 
     // --replay-user-messages: echo each accepted user message back on the
