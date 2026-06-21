@@ -11,6 +11,11 @@
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { appendTokenUsage } from "../harness/jsonl-session-store.js";
+import {
+  isRetryableStreamError,
+  STREAM_RETRY_MAX,
+  STREAM_RETRY_BASE_MS,
+} from "./stream-retry.js";
 
 // A streaming chat call must not hang forever if the API accepts the connection
 // but then goes silent (TCP up, no bytes). Abort the request if no data arrives
@@ -394,7 +399,12 @@ export async function* chatStream(messages, options) {
     waiter = null;
     w();
   };
+  // Count of tokens the provider has actually emitted this turn. A connection
+  // drop is only safe to retry while this is 0 — once any token has been
+  // streamed, re-issuing would duplicate visible output.
+  let tokensEmitted = 0;
   const onToken = (token) => {
+    tokensEmitted++;
     queue.push(token);
     wake();
   };
@@ -448,7 +458,36 @@ export async function* chatStream(messages, options) {
   // any token still terminates the generator cleanly.
   const streamPromise = (async () => {
     try {
-      return await providerCall();
+      let attempt = 0;
+      for (;;) {
+        try {
+          return await providerCall();
+        } catch (err) {
+          // Retry ONLY a transient connection drop that hit before any token
+          // reached the user (tokensEmitted === 0) — otherwise the re-issue
+          // would duplicate the visible answer. Mirrors agent-core's
+          // zero-output retry safety (cc agent parity). Stall aborts (180s) and
+          // HTTP/auth errors are not retryable and surface immediately.
+          if (
+            attempt >= STREAM_RETRY_MAX ||
+            tokensEmitted > 0 ||
+            !isRetryableStreamError(err)
+          ) {
+            throw err;
+          }
+          attempt++;
+          if (typeof options.onStreamRetry === "function") {
+            try {
+              options.onStreamRetry(attempt, err);
+            } catch {
+              /* retry notice is best-effort */
+            }
+          }
+          await new Promise((r) =>
+            setTimeout(r, STREAM_RETRY_BASE_MS * 2 ** (attempt - 1)),
+          );
+        }
+      }
     } finally {
       done = true;
       wake();
