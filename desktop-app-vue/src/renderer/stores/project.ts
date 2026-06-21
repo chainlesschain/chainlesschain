@@ -3,42 +3,36 @@
  * 管理项目列表、文件、模板、同步状态等
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
-import { electronAPI } from '../utils/ipc';
-
-// Monotonic token for loadProjectFiles. Concurrent loads for different projects
-// (e.g. fast-switching projects) could let a slow response overwrite a newer
-// project's files. Each call claims the next token; a response only applies if
-// it's still the latest. The store is a singleton, so module scope is per-store.
-let _loadProjectFilesSeq = 0;
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
+import { electronAPI } from "../utils/ipc";
 
 // ==================== 类型定义 ====================
 
 /**
  * 项目类型
  */
-export type ProjectType = 'web' | 'document' | 'data' | 'app' | string;
+export type ProjectType = "web" | "document" | "data" | "app" | string;
 
 /**
  * 项目状态
  */
-export type ProjectStatus = 'active' | 'completed' | 'archived' | string;
+export type ProjectStatus = "active" | "completed" | "archived" | string;
 
 /**
  * 视图模式
  */
-export type ViewMode = 'grid' | 'list';
+export type ViewMode = "grid" | "list";
 
 /**
  * 排序字段
  */
-export type SortBy = 'updated_at' | 'created_at' | 'name';
+export type SortBy = "updated_at" | "created_at" | "name";
 
 /**
  * 排序顺序
  */
-export type SortOrder = 'asc' | 'desc';
+export type SortOrder = "asc" | "desc";
 
 /**
  * 项目
@@ -96,8 +90,8 @@ export interface PaginationState {
  * 筛选条件
  */
 export interface ProjectFilters {
-  projectType: ProjectType | '';
-  status: ProjectStatus | '';
+  projectType: ProjectType | "";
+  status: ProjectStatus | "";
   tags: string[];
   searchKeyword: string;
 }
@@ -143,14 +137,14 @@ export interface ProgressStage {
   stage: string;
   message: string;
   timestamp: number;
-  status: 'running' | 'completed' | 'error';
+  status: "running" | "completed" | "error";
 }
 
 /**
  * 进度日志
  */
 export interface ProgressLog {
-  type: 'info' | 'success' | 'error';
+  type: "info" | "success" | "error";
   message: string;
   timestamp: number;
 }
@@ -179,7 +173,7 @@ export interface ProjectState {
 
 // ==================== Store ====================
 
-export const useProjectStore = defineStore('project', {
+export const useProjectStore = defineStore("project", {
   state: (): ProjectState => ({
     // 项目列表
     projects: [],
@@ -199,18 +193,18 @@ export const useProjectStore = defineStore('project', {
 
     // 筛选和搜索
     filters: {
-      projectType: '',
-      status: '',
+      projectType: "",
+      status: "",
       tags: [],
-      searchKeyword: '',
+      searchKeyword: "",
     },
 
     // 排序
-    sortBy: 'updated_at',
-    sortOrder: 'desc',
+    sortBy: "updated_at",
+    sortOrder: "desc",
 
     // 视图模式
-    viewMode: 'grid',
+    viewMode: "grid",
 
     // UI状态
     loading: false,
@@ -220,7 +214,7 @@ export const useProjectStore = defineStore('project', {
     // 新建项目状态
     creatingProject: false,
     createProgress: 0,
-    createStatus: '',
+    createStatus: "",
   }),
 
   getters: {
@@ -232,7 +226,9 @@ export const useProjectStore = defineStore('project', {
 
       // 筛选
       if (this.filters.projectType) {
-        result = result.filter((p) => p.project_type === this.filters.projectType);
+        result = result.filter(
+          (p) => p.project_type === this.filters.projectType,
+        );
       }
       if (this.filters.status) {
         result = result.filter((p) => p.status === this.filters.status);
@@ -240,7 +236,7 @@ export const useProjectStore = defineStore('project', {
       if (this.filters.tags.length > 0) {
         result = result.filter((p) => {
           try {
-            const projectTags = JSON.parse(p.tags || '[]') as string[];
+            const projectTags = JSON.parse(p.tags || "[]") as string[];
             return this.filters.tags.some((tag) => projectTags.includes(tag));
           } catch {
             return false;
@@ -252,7 +248,7 @@ export const useProjectStore = defineStore('project', {
         result = result.filter(
           (p) =>
             p.name.toLowerCase().includes(keyword) ||
-            (p.description && p.description.toLowerCase().includes(keyword))
+            (p.description && p.description.toLowerCase().includes(keyword)),
         );
       }
 
@@ -261,13 +257,13 @@ export const useProjectStore = defineStore('project', {
         const aVal = a[this.sortBy];
         const bVal = b[this.sortBy];
 
-        if (this.sortBy === 'name') {
-          return this.sortOrder === 'asc'
+        if (this.sortBy === "name") {
+          return this.sortOrder === "asc"
             ? String(aVal).localeCompare(String(bVal))
             : String(bVal).localeCompare(String(aVal));
         }
 
-        return this.sortOrder === 'asc'
+        return this.sortOrder === "asc"
           ? Number(aVal) - Number(bVal)
           : Number(bVal) - Number(aVal);
       });
@@ -307,16 +303,21 @@ export const useProjectStore = defineStore('project', {
      * 文件树结构
      */
     fileTree(): FileTreeNode {
-      const root: FileTreeNode = { name: '/', path: '/', children: [], files: [] };
+      const root: FileTreeNode = {
+        name: "/",
+        path: "/",
+        children: [],
+        files: [],
+      };
 
       this.projectFiles.forEach((file) => {
-        const parts = file.file_path.split('/').filter(Boolean);
+        const parts = file.file_path.split("/").filter(Boolean);
         let current = root;
 
         // 构建目录结构
         for (let i = 0; i < parts.length - 1; i++) {
           const partName = parts[i];
-          const partPath = '/' + parts.slice(0, i + 1).join('/');
+          const partPath = "/" + parts.slice(0, i + 1).join("/");
 
           let child = current.children.find((c) => c.name === partName);
           if (!child) {
@@ -345,12 +346,17 @@ export const useProjectStore = defineStore('project', {
     /**
      * 获取项目列表
      */
-    async fetchProjects(userId: string, forceSync: boolean = false): Promise<void> {
+    async fetchProjects(
+      userId: string,
+      forceSync: boolean = false,
+    ): Promise<void> {
       this.loading = true;
       try {
         // 1. 从本地SQLite加载
         const response = await electronAPI.project.getAll(userId);
-        const localProjects = Array.isArray(response) ? response : response.projects || [];
+        const localProjects = Array.isArray(response)
+          ? response
+          : response.projects || [];
         this.projects = localProjects;
         this.pagination.total = (response as any).total || localProjects.length;
 
@@ -359,7 +365,7 @@ export const useProjectStore = defineStore('project', {
           await this.syncProjects(userId);
         }
       } catch (error) {
-        logger.error('加载项目列表失败:', error as any);
+        logger.error("加载项目列表失败:", error as any);
         throw error;
       } finally {
         this.loading = false;
@@ -372,21 +378,23 @@ export const useProjectStore = defineStore('project', {
     async createProject(createData: ProjectCreateData): Promise<Project> {
       this.creatingProject = true;
       this.createProgress = 0;
-      this.createStatus = '正在连接AI服务...';
+      this.createStatus = "正在连接AI服务...";
 
       try {
         // 调用后端创建项目（含AI生成）
         this.createProgress = 10;
-        this.createStatus = '正在生成项目文件...';
+        this.createStatus = "正在生成项目文件...";
 
-        const response = await (window as any).electronAPI.project.create(createData);
+        const response = await (window as any).electronAPI.project.create(
+          createData,
+        );
 
         this.createProgress = 90;
-        this.createStatus = '项目创建成功！';
+        this.createStatus = "项目创建成功！";
 
         // 添加到列表
         if (!Array.isArray(this.projects)) {
-          logger.warn('[Store] this.projects 不是数组，重置为空数组');
+          logger.warn("[Store] this.projects 不是数组，重置为空数组");
           this.projects = [];
         }
         this.projects.unshift(response);
@@ -396,13 +404,13 @@ export const useProjectStore = defineStore('project', {
 
         return response;
       } catch (error) {
-        this.createStatus = '创建失败: ' + (error as Error).message;
+        this.createStatus = "创建失败: " + (error as Error).message;
         throw error;
       } finally {
         setTimeout(() => {
           this.creatingProject = false;
           this.createProgress = 0;
-          this.createStatus = '';
+          this.createStatus = "";
         }, 1000);
       }
     },
@@ -412,9 +420,11 @@ export const useProjectStore = defineStore('project', {
      */
     async createProjectStream(
       createData: ProjectCreateData,
-      onProgress?: (data: ProgressData & { type: string; result?: any; error?: string }) => void
+      onProgress?: (
+        data: ProgressData & { type: string; result?: any; error?: string },
+      ) => void,
     ): Promise<any> {
-      logger.info('[Store] ===== createProjectStream被调用 =====');
+      logger.info("[Store] ===== createProjectStream被调用 =====");
 
       // 从 createData 中提取回调函数（如果存在）
       const {
@@ -427,7 +437,7 @@ export const useProjectStore = defineStore('project', {
 
       return new Promise((resolve, reject) => {
         const progressData: ProgressData = {
-          currentStage: '',
+          currentStage: "",
           stages: [],
           contentByStage: {},
           logs: [],
@@ -436,26 +446,28 @@ export const useProjectStore = defineStore('project', {
 
         const callbacks = {
           onProgress: (data: { stage: string; message: string }) => {
-            logger.info('[Store] Progress data:', data);
+            logger.info("[Store] Progress data:", data);
 
             progressData.currentStage = data.stage;
 
-            const existingStage = progressData.stages.find((s) => s.stage === data.stage);
+            const existingStage = progressData.stages.find(
+              (s) => s.stage === data.stage,
+            );
 
             if (existingStage) {
               existingStage.message = data.message;
               existingStage.timestamp = Date.now();
-              existingStage.status = 'running';
+              existingStage.status = "running";
 
               progressData.stages.forEach((s) => {
-                if (s.stage !== data.stage && s.status === 'running') {
-                  s.status = 'completed';
+                if (s.stage !== data.stage && s.status === "running") {
+                  s.status = "completed";
                 }
               });
             } else {
               progressData.stages.forEach((s) => {
-                if (s.status === 'running') {
-                  s.status = 'completed';
+                if (s.status === "running") {
+                  s.status = "completed";
                 }
               });
 
@@ -463,12 +475,12 @@ export const useProjectStore = defineStore('project', {
                 stage: data.stage,
                 message: data.message,
                 timestamp: Date.now(),
-                status: 'running',
+                status: "running",
               });
             }
 
             progressData.logs.push({
-              type: 'info',
+              type: "info",
               message: data.message,
               timestamp: Date.now(),
             });
@@ -479,14 +491,14 @@ export const useProjectStore = defineStore('project', {
 
             // 只调用新的进度回调（如果存在）
             onProgress?.({
-              type: 'progress',
+              type: "progress",
               ...progressData,
             });
           },
 
           onContent: (data: { stage: string; content: string }) => {
             if (!progressData.contentByStage[data.stage]) {
-              progressData.contentByStage[data.stage] = '';
+              progressData.contentByStage[data.stage] = "";
             }
             progressData.contentByStage[data.stage] += data.content;
 
@@ -496,18 +508,22 @@ export const useProjectStore = defineStore('project', {
 
             // 只调用新的进度回调（如果存在）
             onProgress?.({
-              type: 'content',
+              type: "content",
               ...progressData,
             });
           },
 
-          onComplete: (data: { projectId?: string; files?: any[]; metadata?: any }) => {
-            logger.info('[Store] Complete data:', data);
+          onComplete: (data: {
+            projectId?: string;
+            files?: any[];
+            metadata?: any;
+          }) => {
+            logger.info("[Store] Complete data:", data);
 
-            progressData.stages.forEach((s) => (s.status = 'completed'));
+            progressData.stages.forEach((s) => (s.status = "completed"));
             progressData.metadata = data.metadata || {};
             progressData.logs.push({
-              type: 'success',
+              type: "success",
               message: `成功生成${data.files?.length || 0}个文件`,
               timestamp: Date.now(),
             });
@@ -518,9 +534,9 @@ export const useProjectStore = defineStore('project', {
               }
               this.projects.unshift({
                 id: data.projectId,
-                name: pureData.name || '未命名项目',
-                project_type: pureData.type || 'web',
-                status: 'active',
+                name: pureData.name || "未命名项目",
+                project_type: pureData.type || "web",
+                status: "active",
                 files: data.files || [],
                 metadata: data.metadata,
                 created_at: Date.now(),
@@ -535,7 +551,7 @@ export const useProjectStore = defineStore('project', {
 
             // 只调用新的进度回调（如果存在）
             onProgress?.({
-              type: 'complete',
+              type: "complete",
               ...progressData,
               result: data,
             });
@@ -544,12 +560,14 @@ export const useProjectStore = defineStore('project', {
           },
 
           onError: (error: Error) => {
-            const currentStage = progressData.stages.find((s) => s.status === 'running');
+            const currentStage = progressData.stages.find(
+              (s) => s.status === "running",
+            );
             if (currentStage) {
-              currentStage.status = 'error';
+              currentStage.status = "error";
             }
             progressData.logs.push({
-              type: 'error',
+              type: "error",
               message: error.message,
               timestamp: Date.now(),
             });
@@ -560,7 +578,7 @@ export const useProjectStore = defineStore('project', {
 
             // 只调用新的进度回调（如果存在）
             onProgress?.({
-              type: 'error',
+              type: "error",
               ...progressData,
               error: error.message,
             });
@@ -571,7 +589,9 @@ export const useProjectStore = defineStore('project', {
 
         // 调用流式创建
         const serializedData = JSON.parse(JSON.stringify(pureData));
-        (window as any).electronAPI.project.createStream(serializedData, callbacks).catch(reject);
+        (window as any).electronAPI.project
+          .createStream(serializedData, callbacks)
+          .catch(reject);
       });
     },
 
@@ -593,7 +613,9 @@ export const useProjectStore = defineStore('project', {
 
         if (!project) {
           // 2. 从后端获取并缓存
-          project = await (window as any).electronAPI.project.fetchFromBackend(projectId);
+          project = await (window as any).electronAPI.project.fetchFromBackend(
+            projectId,
+          );
         }
 
         this.currentProject = project;
@@ -603,7 +625,7 @@ export const useProjectStore = defineStore('project', {
 
         return project;
       } catch (error) {
-        logger.error('获取项目详情失败:', error as any);
+        logger.error("获取项目详情失败:", error as any);
         throw error;
       } finally {
         this.loading = false;
@@ -620,7 +642,10 @@ export const useProjectStore = defineStore('project', {
     /**
      * 更新项目
      */
-    async updateProject(projectId: string, updates: Partial<Project>): Promise<void> {
+    async updateProject(
+      projectId: string,
+      updates: Partial<Project>,
+    ): Promise<void> {
       try {
         // 1. 更新本地
         await (window as any).electronAPI.project.update(projectId, updates);
@@ -642,7 +667,7 @@ export const useProjectStore = defineStore('project', {
         // 3. 后台同步到后端
         this.syncProjectToBackend(projectId);
       } catch (error) {
-        logger.error('更新项目失败:', error as any);
+        logger.error("更新项目失败:", error as any);
         throw error;
       }
     },
@@ -666,7 +691,7 @@ export const useProjectStore = defineStore('project', {
           this.currentProject = null;
         }
       } catch (error) {
-        logger.error('删除项目失败:', error as any);
+        logger.error("删除项目失败:", error as any);
         throw error;
       }
     },
@@ -678,27 +703,26 @@ export const useProjectStore = defineStore('project', {
      */
     async loadProjectFiles(projectId: string): Promise<ProjectFile[]> {
       const startTime = Date.now();
-      const seq = ++_loadProjectFilesSeq;
-      logger.info('[Store] loadProjectFiles 开始, 项目ID:', projectId);
+      logger.info("[Store] loadProjectFiles 开始, 项目ID:", projectId);
 
       try {
-        const response = await (window as any).electronAPI.project.getFiles(projectId);
+        const response = await (window as any).electronAPI.project.getFiles(
+          projectId,
+        );
         const elapsed = Date.now() - startTime;
 
         logger.info(`[Store] IPC 返回，耗时: ${elapsed}ms`);
-
-        // A newer loadProjectFiles started during the await (project switched);
-        // discard this stale response so it can't clobber the newer files.
-        if (seq !== _loadProjectFilesSeq) {
-          return this.projectFiles;
-        }
 
         let files: ProjectFile[] = [];
 
         try {
           if (Array.isArray(response)) {
             files = response;
-          } else if (response && typeof response === 'object' && Array.isArray(response.files)) {
+          } else if (
+            response &&
+            typeof response === "object" &&
+            Array.isArray(response.files)
+          ) {
             files = response.files;
           } else {
             files = [];
@@ -708,15 +732,14 @@ export const useProjectStore = defineStore('project', {
         }
 
         this.projectFiles = Array.isArray(files) ? [...files] : [];
-        logger.info('[Store] projectFiles 已更新, 长度:', this.projectFiles.length);
+        logger.info(
+          "[Store] projectFiles 已更新, 长度:",
+          this.projectFiles.length,
+        );
 
         return this.projectFiles;
       } catch (error) {
-        logger.error('[Store] loadProjectFiles 错误:', error as any);
-        // Don't clear a newer project's files on a stale failure either.
-        if (seq !== _loadProjectFilesSeq) {
-          return this.projectFiles;
-        }
+        logger.error("[Store] loadProjectFiles 错误:", error as any);
         this.projectFiles = [];
         return [];
       }
@@ -725,12 +748,15 @@ export const useProjectStore = defineStore('project', {
     /**
      * 保存项目文件
      */
-    async saveProjectFiles(projectId: string, files: ProjectFile[]): Promise<void> {
+    async saveProjectFiles(
+      projectId: string,
+      files: ProjectFile[],
+    ): Promise<void> {
       try {
         await (window as any).electronAPI.project.saveFiles(projectId, files);
         this.projectFiles = files;
       } catch (error) {
-        logger.error('保存项目文件失败:', error as any);
+        logger.error("保存项目文件失败:", error as any);
         throw error;
       }
     },
@@ -762,7 +788,7 @@ export const useProjectStore = defineStore('project', {
           this.currentFile = { ...this.currentFile, ...updatedFile };
         }
       } catch (error) {
-        logger.error('更新文件失败:', error as any);
+        logger.error("更新文件失败:", error as any);
         throw error;
       }
     },
@@ -808,19 +834,21 @@ export const useProjectStore = defineStore('project', {
 
         // 重新加载本地数据
         const response = await electronAPI.project.getAll(userId);
-        const localProjects = Array.isArray(response) ? response : response.projects || [];
+        const localProjects = Array.isArray(response)
+          ? response
+          : response.projects || [];
         this.projects = localProjects;
         this.pagination.total = (response as any).total || localProjects.length;
 
         // 更新最后同步时间
-        localStorage.setItem('project_last_sync', Date.now().toString());
+        localStorage.setItem("project_last_sync", Date.now().toString());
       } catch (error) {
         const err = error as Error;
-        if (err.message?.includes('No handler registered')) {
+        if (err.message?.includes("No handler registered")) {
           return;
         }
         this.syncError = err.message;
-        logger.error('[Project Store] 同步项目失败:', error as any);
+        logger.error("[Project Store] 同步项目失败:", error as any);
       } finally {
         this.syncing = false;
       }
@@ -833,7 +861,7 @@ export const useProjectStore = defineStore('project', {
       try {
         await (window as any).electronAPI.project.syncOne(projectId);
       } catch (error) {
-        logger.error('同步项目到后端失败:', error as any);
+        logger.error("同步项目到后端失败:", error as any);
       }
     },
 
@@ -842,7 +870,7 @@ export const useProjectStore = defineStore('project', {
      */
     shouldSync(): boolean {
       try {
-        const lastSync = localStorage.getItem('project_last_sync');
+        const lastSync = localStorage.getItem("project_last_sync");
         if (!lastSync) {
           return true;
         }
@@ -867,10 +895,10 @@ export const useProjectStore = defineStore('project', {
      */
     resetFilters(): void {
       this.filters = {
-        projectType: '',
-        status: '',
+        projectType: "",
+        status: "",
         tags: [],
-        searchKeyword: '',
+        searchKeyword: "",
       };
       this.pagination.current = 1;
     },
@@ -889,7 +917,7 @@ export const useProjectStore = defineStore('project', {
     setViewMode(mode: ViewMode): void {
       this.viewMode = mode;
       try {
-        localStorage.setItem('project_view_mode', mode);
+        localStorage.setItem("project_view_mode", mode);
       } catch {
         // 静默失败
       }
@@ -910,16 +938,22 @@ export const useProjectStore = defineStore('project', {
     /**
      * 初始化Git仓库
      */
-    async initGit(projectId: string, remoteUrl: string | null = null): Promise<void> {
+    async initGit(
+      projectId: string,
+      remoteUrl: string | null = null,
+    ): Promise<void> {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        await (window as any).electronAPI.project.gitInit(project.root_path, remoteUrl);
+        await (window as any).electronAPI.project.gitInit(
+          project.root_path,
+          remoteUrl,
+        );
       } catch (error) {
-        logger.error('初始化Git失败:', error as any);
+        logger.error("初始化Git失败:", error as any);
         throw error;
       }
     },
@@ -930,22 +964,22 @@ export const useProjectStore = defineStore('project', {
     async gitCommit(
       projectId: string,
       message: string,
-      autoGenerate: boolean = false
+      autoGenerate: boolean = false,
     ): Promise<void> {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
         await (window as any).electronAPI.project.gitCommit(
           projectId,
           project.root_path,
           message,
-          autoGenerate
+          autoGenerate,
         );
       } catch (error) {
-        logger.error('Git提交失败:', error as any);
+        logger.error("Git提交失败:", error as any);
         throw error;
       }
     },
@@ -955,18 +989,22 @@ export const useProjectStore = defineStore('project', {
      */
     async gitPush(
       projectId: string,
-      remote: string = 'origin',
-      branch: string | null = null
+      remote: string = "origin",
+      branch: string | null = null,
     ): Promise<void> {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        await (window as any).electronAPI.project.gitPush(project.root_path, remote, branch);
+        await (window as any).electronAPI.project.gitPush(
+          project.root_path,
+          remote,
+          branch,
+        );
       } catch (error) {
-        logger.error('Git推送失败:', error as any);
+        logger.error("Git推送失败:", error as any);
         throw error;
       }
     },
@@ -976,26 +1014,26 @@ export const useProjectStore = defineStore('project', {
      */
     async gitPull(
       projectId: string,
-      remote: string = 'origin',
-      branch: string | null = null
+      remote: string = "origin",
+      branch: string | null = null,
     ): Promise<void> {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
         await (window as any).electronAPI.project.gitPull(
           projectId,
           project.root_path,
           remote,
-          branch
+          branch,
         );
 
         // 重新加载文件
         await this.loadProjectFiles(projectId);
       } catch (error) {
-        logger.error('Git拉取失败:', error as any);
+        logger.error("Git拉取失败:", error as any);
         throw error;
       }
     },
@@ -1007,12 +1045,14 @@ export const useProjectStore = defineStore('project', {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        return await (window as any).electronAPI.project.gitStatus(project.root_path);
+        return await (window as any).electronAPI.project.gitStatus(
+          project.root_path,
+        );
       } catch (error) {
-        logger.error('获取Git状态失败:', error as any);
+        logger.error("获取Git状态失败:", error as any);
         throw error;
       }
     },
@@ -1034,7 +1074,9 @@ export const useProjectStore = defineStore('project', {
      */
     restoreViewMode(): void {
       try {
-        const savedMode = localStorage.getItem('project_view_mode') as ViewMode | null;
+        const savedMode = localStorage.getItem(
+          "project_view_mode",
+        ) as ViewMode | null;
         if (savedMode) {
           this.viewMode = savedMode;
         }

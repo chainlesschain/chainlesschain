@@ -3,13 +3,7 @@
  * 管理永久记忆相关状态：Daily Notes、MEMORY.md、混合搜索
  */
 
-import { defineStore } from 'pinia';
-
-// Monotonic token for loadDailyNote. Loading a note awaits the read IPC then
-// sets currentDailyNote/selectedDate; rapidly switching dates could let a
-// slower response overwrite a newer date's note. Each call claims the next
-// token and only applies its result if still the latest. Store is a singleton.
-let _loadDailyNoteSeq = 0;
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -37,7 +31,7 @@ export interface MemorySection {
  */
 export interface SearchResult {
   id: string;
-  type: 'daily' | 'memory';
+  type: "daily" | "memory";
   title: string;
   content: string;
   score: number;
@@ -128,7 +122,7 @@ export interface MemoryState {
   indexStats: IndexStats;
   loading: LoadingState;
   error: string | null;
-  activeTab: 'daily' | 'memory' | 'search';
+  activeTab: "daily" | "memory" | "search";
   isEditing: boolean;
   editingContent: string;
 }
@@ -138,7 +132,10 @@ export interface MemoryState {
 /**
  * 安全的 IPC 调用封装
  */
-async function safeIpcInvoke<T = any>(channel: string, ...args: any[]): Promise<IpcResult<T> | null> {
+async function safeIpcInvoke<T = any>(
+  channel: string,
+  ...args: any[]
+): Promise<IpcResult<T> | null> {
   if (!(window as any).electronAPI?.invoke) {
     console.warn(`[MemoryStore] IPC 未就绪: ${channel}`);
     return null;
@@ -153,19 +150,19 @@ async function safeIpcInvoke<T = any>(channel: string, ...args: any[]): Promise<
 
 // ==================== Store ====================
 
-export const useMemoryStore = defineStore('memory', {
+export const useMemoryStore = defineStore("memory", {
   state: (): MemoryState => ({
     // Daily Notes
     dailyNotes: [],
     currentDailyNote: null,
-    selectedDate: new Date().toISOString().split('T')[0],
+    selectedDate: new Date().toISOString().split("T")[0],
 
     // MEMORY.md
-    memoryContent: '',
+    memoryContent: "",
     memorySections: [],
 
     // 搜索
-    searchQuery: '',
+    searchQuery: "",
     searchResults: [],
     searchOptions: {
       vectorWeight: 0.6,
@@ -204,9 +201,9 @@ export const useMemoryStore = defineStore('memory', {
     error: null,
 
     // UI 状态
-    activeTab: 'daily',
+    activeTab: "daily",
     isEditing: false,
-    editingContent: '',
+    editingContent: "",
   }),
 
   getters: {
@@ -214,7 +211,7 @@ export const useMemoryStore = defineStore('memory', {
      * 今日日期
      */
     today(): string {
-      return new Date().toISOString().split('T')[0];
+      return new Date().toISOString().split("T")[0];
     },
 
     /**
@@ -273,20 +270,13 @@ export const useMemoryStore = defineStore('memory', {
      */
     async loadDailyNote(date: string | null = null): Promise<void> {
       const targetDate = date || this.selectedDate;
-      const seq = ++_loadDailyNoteSeq;
       this.loading.dailyNotes = true;
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:read-daily-note', {
+        const result = await safeIpcInvoke("memory:read-daily-note", {
           date: targetDate,
         });
-
-        // A newer loadDailyNote started during the await (date switched);
-        // discard this stale result so it can't overwrite the newer note.
-        if (seq !== _loadDailyNoteSeq) {
-          return;
-        }
 
         if (result?.success) {
           this.currentDailyNote = result.content as string;
@@ -295,17 +285,10 @@ export const useMemoryStore = defineStore('memory', {
           this.currentDailyNote = null;
         }
       } catch (error) {
-        if (seq !== _loadDailyNoteSeq) {
-          return;
-        }
         this.error = (error as Error).message;
         this.currentDailyNote = null;
       } finally {
-        // Only the latest in-flight load clears the spinner, so a superseded
-        // call can't flip it off while the newer one is still loading.
-        if (seq === _loadDailyNoteSeq) {
-          this.loading.dailyNotes = false;
-        }
+        this.loading.dailyNotes = false;
       }
     },
 
@@ -317,7 +300,7 @@ export const useMemoryStore = defineStore('memory', {
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:get-recent-daily-notes', {
+        const result = await safeIpcInvoke("memory:get-recent-daily-notes", {
           limit,
         });
 
@@ -336,13 +319,13 @@ export const useMemoryStore = defineStore('memory', {
      */
     async writeDailyNote(
       content: string,
-      options: { append: boolean } = { append: true }
+      options: { append: boolean } = { append: true },
     ): Promise<boolean> {
       this.loading.write = true;
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:write-daily-note', {
+        const result = await safeIpcInvoke("memory:write-daily-note", {
           content,
           append: options.append,
         });
@@ -371,10 +354,10 @@ export const useMemoryStore = defineStore('memory', {
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:read-memory');
+        const result = await safeIpcInvoke("memory:read-memory");
 
         if (result?.success) {
-          this.memoryContent = (result.content as string) || '';
+          this.memoryContent = (result.content as string) || "";
         }
       } catch (error) {
         this.error = (error as Error).message;
@@ -386,12 +369,15 @@ export const useMemoryStore = defineStore('memory', {
     /**
      * 追加内容到 MEMORY.md
      */
-    async appendToMemory(content: string, section: string | null = null): Promise<boolean> {
+    async appendToMemory(
+      content: string,
+      section: string | null = null,
+    ): Promise<boolean> {
       this.loading.write = true;
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:append-to-memory', {
+        const result = await safeIpcInvoke("memory:append-to-memory", {
           content,
           section,
         });
@@ -413,7 +399,10 @@ export const useMemoryStore = defineStore('memory', {
     /**
      * 执行混合搜索
      */
-    async search(query: string | null = null, options: Partial<SearchOptions> = {}): Promise<void> {
+    async search(
+      query: string | null = null,
+      options: Partial<SearchOptions> = {},
+    ): Promise<void> {
       const searchQuery = query || this.searchQuery;
       if (!searchQuery.trim()) {
         this.searchResults = [];
@@ -429,7 +418,7 @@ export const useMemoryStore = defineStore('memory', {
           ...options,
         };
 
-        const result = await safeIpcInvoke('memory:search', {
+        const result = await safeIpcInvoke("memory:search", {
           query: searchQuery,
           options: searchOptions,
         });
@@ -461,13 +450,13 @@ export const useMemoryStore = defineStore('memory', {
       this.loading.stats = true;
 
       try {
-        const result = await safeIpcInvoke('memory:get-stats');
+        const result = await safeIpcInvoke("memory:get-stats");
 
         if (result?.success) {
           this.stats = result.stats || this.stats;
         }
       } catch (error) {
-        console.error('[MemoryStore] 加载统计失败:', error);
+        console.error("[MemoryStore] 加载统计失败:", error);
       } finally {
         this.loading.stats = false;
       }
@@ -478,13 +467,13 @@ export const useMemoryStore = defineStore('memory', {
      */
     async loadIndexStats(): Promise<void> {
       try {
-        const result = await safeIpcInvoke('memory:get-index-stats');
+        const result = await safeIpcInvoke("memory:get-index-stats");
 
         if (result?.success) {
           this.indexStats = result.stats || this.indexStats;
         }
       } catch (error) {
-        console.error('[MemoryStore] 加载索引统计失败:', error);
+        console.error("[MemoryStore] 加载索引统计失败:", error);
       }
     },
 
@@ -496,7 +485,7 @@ export const useMemoryStore = defineStore('memory', {
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:rebuild-index');
+        const result = await safeIpcInvoke("memory:rebuild-index");
 
         if (result?.success) {
           // 重新加载统计
@@ -521,7 +510,7 @@ export const useMemoryStore = defineStore('memory', {
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:extract-from-session', {
+        const result = await safeIpcInvoke("memory:extract-from-session", {
           sessionId,
         });
 
@@ -545,14 +534,14 @@ export const useMemoryStore = defineStore('memory', {
      */
     async saveToMemory(
       content: string,
-      type: 'daily' | 'discovery' | 'solution' | 'preference' = 'daily',
-      section: string | null = null
+      type: "daily" | "discovery" | "solution" | "preference" = "daily",
+      section: string | null = null,
     ): Promise<any | null> {
       this.loading.write = true;
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:save-to-memory', {
+        const result = await safeIpcInvoke("memory:save-to-memory", {
           content,
           type,
           section,
@@ -560,7 +549,7 @@ export const useMemoryStore = defineStore('memory', {
 
         if (result?.success) {
           // 重新加载相关数据
-          if (result.result.savedTo === 'daily_notes') {
+          if (result.result.savedTo === "daily_notes") {
             await this.loadDailyNote(this.today);
             await this.loadRecentDailyNotes();
           } else {
@@ -582,13 +571,13 @@ export const useMemoryStore = defineStore('memory', {
      */
     async extractFromConversation(
       messages: Array<{ role: string; content: string }>,
-      title: string = ''
+      title: string = "",
     ): Promise<any | null> {
       this.loading.write = true;
       this.error = null;
 
       try {
-        const result = await safeIpcInvoke('memory:extract-from-conversation', {
+        const result = await safeIpcInvoke("memory:extract-from-conversation", {
           messages,
           conversationTitle: title,
         });
@@ -616,7 +605,7 @@ export const useMemoryStore = defineStore('memory', {
      */
     async loadMemorySections(): Promise<MemorySection[]> {
       try {
-        const result = await safeIpcInvoke('memory:get-memory-sections');
+        const result = await safeIpcInvoke("memory:get-memory-sections");
 
         if (result?.success) {
           this.memorySections = result.sections || [];
@@ -624,7 +613,7 @@ export const useMemoryStore = defineStore('memory', {
         }
         return [];
       } catch (error) {
-        console.error('[MemoryStore] 加载章节列表失败:', error);
+        console.error("[MemoryStore] 加载章节列表失败:", error);
         return [];
       }
     },
@@ -632,7 +621,7 @@ export const useMemoryStore = defineStore('memory', {
     /**
      * 切换标签页
      */
-    setActiveTab(tab: 'daily' | 'memory' | 'search'): void {
+    setActiveTab(tab: "daily" | "memory" | "search"): void {
       this.activeTab = tab;
     },
 
@@ -642,7 +631,9 @@ export const useMemoryStore = defineStore('memory', {
     startEditing(): void {
       this.isEditing = true;
       this.editingContent =
-        this.activeTab === 'memory' ? this.memoryContent : this.currentDailyNote || '';
+        this.activeTab === "memory"
+          ? this.memoryContent
+          : this.currentDailyNote || "";
     },
 
     /**
@@ -650,14 +641,14 @@ export const useMemoryStore = defineStore('memory', {
      */
     cancelEditing(): void {
       this.isEditing = false;
-      this.editingContent = '';
+      this.editingContent = "";
     },
 
     /**
      * 保存编辑
      */
     async saveEditing(): Promise<void> {
-      if (this.activeTab === 'memory') {
+      if (this.activeTab === "memory") {
         // 保存 MEMORY.md - 完整覆盖
         const success = await this.updateMemory(this.editingContent);
         if (success) {
@@ -676,14 +667,17 @@ export const useMemoryStore = defineStore('memory', {
     async updateMemory(content: string): Promise<boolean> {
       this.loading.memory = true;
       try {
-        const result = await (window as any).electron.ipcRenderer.invoke('memory:update-memory', {
-          content,
-        });
+        const result = await (window as any).electron.ipcRenderer.invoke(
+          "memory:update-memory",
+          {
+            content,
+          },
+        );
         if (result.success) {
           this.memoryContent = content;
           return true;
         } else {
-          this.error = result.error || '更新失败';
+          this.error = result.error || "更新失败";
           return false;
         }
       } catch (error) {
@@ -706,7 +700,7 @@ export const useMemoryStore = defineStore('memory', {
      * 清除搜索结果
      */
     clearSearch(): void {
-      this.searchQuery = '';
+      this.searchQuery = "";
       this.searchResults = [];
     },
 

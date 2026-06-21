@@ -7,14 +7,8 @@
  * @since 2026-01-17
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
-
-// Monotonic token for loadSessionDetail. It awaits session:load then sets
-// currentSession; fast-switching sessions could let a slower load overwrite a
-// newer session. Each call claims the next token and only applies its result if
-// still the latest. The store is a singleton, so module scope is per-store.
-let _loadSessionDetailSeq = 0;
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -23,7 +17,7 @@ let _loadSessionDetailSeq = 0;
  */
 export interface SessionMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
   tokens?: number;
@@ -77,7 +71,7 @@ export interface SessionFilters {
   searchQuery: string;
   selectedTags: string[];
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
 /**
@@ -96,7 +90,7 @@ export interface LoadSessionsOptions {
   offset?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 /**
@@ -112,7 +106,7 @@ export interface SearchOptions {
  * 导出选项
  */
 export interface ExportOptions {
-  format?: 'json' | 'markdown';
+  format?: "json" | "markdown";
   includeMessages?: boolean;
   includeTags?: boolean;
   [key: string]: any;
@@ -166,7 +160,7 @@ export interface SessionState {
 
 // ==================== Store ====================
 
-export const useSessionStore = defineStore('session', {
+export const useSessionStore = defineStore("session", {
   state: (): SessionState => ({
     // 会话列表
     sessions: [],
@@ -194,10 +188,10 @@ export const useSessionStore = defineStore('session', {
 
     // 筛选条件
     filters: {
-      searchQuery: '',
+      searchQuery: "",
       selectedTags: [],
-      sortBy: 'updated_at',
-      sortOrder: 'desc',
+      sortBy: "updated_at",
+      sortOrder: "desc",
     },
 
     // 分页
@@ -229,7 +223,9 @@ export const useSessionStore = defineStore('session', {
       if (this.filters.selectedTags.length > 0) {
         result = result.filter((session) => {
           const sessionTags = session.tags || [];
-          return this.filters.selectedTags.some((tag) => sessionTags.includes(tag));
+          return this.filters.selectedTags.some((tag) =>
+            sessionTags.includes(tag),
+          );
         });
       }
 
@@ -307,7 +303,10 @@ export const useSessionStore = defineStore('session', {
           sortOrder: options.sortOrder ?? this.filters.sortOrder,
         };
 
-        const result = await (window as any).electronAPI.invoke('session:list', params);
+        const result = await (window as any).electronAPI.invoke(
+          "session:list",
+          params,
+        );
 
         if (result) {
           if (params.offset === 0) {
@@ -325,7 +324,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 加载会话列表失败:', error as any);
+        logger.error("[SessionStore] 加载会话列表失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -336,7 +335,10 @@ export const useSessionStore = defineStore('session', {
     /**
      * 搜索会话
      */
-    async searchSessions(query: string, options: SearchOptions = {}): Promise<Session[]> {
+    async searchSessions(
+      query: string,
+      options: SearchOptions = {},
+    ): Promise<Session[]> {
       this.loading = true;
       this.error = null;
 
@@ -348,9 +350,9 @@ export const useSessionStore = defineStore('session', {
         };
 
         const result = await (window as any).electronAPI.invoke(
-          'session:search',
+          "session:search",
           query,
-          searchOptions
+          searchOptions,
         );
 
         if (result) {
@@ -360,7 +362,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 搜索会话失败:', error as any);
+        logger.error("[SessionStore] 搜索会话失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -371,15 +373,18 @@ export const useSessionStore = defineStore('session', {
     /**
      * 按标签查找会话
      */
-    async findByTags(tags: string[], options: Record<string, any> = {}): Promise<Session[]> {
+    async findByTags(
+      tags: string[],
+      options: Record<string, any> = {},
+    ): Promise<Session[]> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:find-by-tags',
+          "session:find-by-tags",
           tags,
-          options
+          options,
         );
 
         if (result) {
@@ -389,7 +394,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 按标签查找失败:', error as any);
+        logger.error("[SessionStore] 按标签查找失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -401,18 +406,14 @@ export const useSessionStore = defineStore('session', {
      * 加载会话详情
      */
     async loadSessionDetail(sessionId: string): Promise<Session | null> {
-      const seq = ++_loadSessionDetailSeq;
       this.loadingDetail = true;
       this.error = null;
 
       try {
-        const result = await (window as any).electronAPI.invoke('session:load', sessionId);
-
-        // A newer loadSessionDetail started during the await (session switched);
-        // return the result to this caller but don't clobber currentSession.
-        if (seq !== _loadSessionDetailSeq) {
-          return result;
-        }
+        const result = await (window as any).electronAPI.invoke(
+          "session:load",
+          sessionId,
+        );
 
         if (result) {
           this.currentSession = result;
@@ -420,16 +421,11 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 加载会话详情失败:', error as any);
-        if (seq === _loadSessionDetailSeq) {
-          this.error = (error as Error).message;
-        }
+        logger.error("[SessionStore] 加载会话详情失败:", error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
-        // Only the latest in-flight load clears the spinner.
-        if (seq === _loadSessionDetailSeq) {
-          this.loadingDetail = false;
-        }
+        this.loadingDetail = false;
       }
     },
 
@@ -438,7 +434,7 @@ export const useSessionStore = defineStore('session', {
      */
     async deleteSession(sessionId: string): Promise<{ success: boolean }> {
       try {
-        await (window as any).electronAPI.invoke('session:delete', sessionId);
+        await (window as any).electronAPI.invoke("session:delete", sessionId);
 
         // 从列表中移除
         this.sessions = this.sessions.filter((s) => s.id !== sessionId);
@@ -453,7 +449,7 @@ export const useSessionStore = defineStore('session', {
 
         return { success: true };
       } catch (error) {
-        logger.error('[SessionStore] 删除会话失败:', error as any);
+        logger.error("[SessionStore] 删除会话失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -465,24 +461,29 @@ export const useSessionStore = defineStore('session', {
     async deleteMultiple(sessionIds: string[]): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:delete-multiple',
-          sessionIds
+          "session:delete-multiple",
+          sessionIds,
         );
 
         // 从列表中移除
         this.sessions = this.sessions.filter((s) => !sessionIds.includes(s.id));
 
         // 如果删除了当前会话，清空当前会话
-        if (this.currentSession && sessionIds.includes(this.currentSession.id)) {
+        if (
+          this.currentSession &&
+          sessionIds.includes(this.currentSession.id)
+        ) {
           this.currentSession = null;
         }
 
         // 清空选中列表
-        this.selectedIds = this.selectedIds.filter((id) => !sessionIds.includes(id));
+        this.selectedIds = this.selectedIds.filter(
+          (id) => !sessionIds.includes(id),
+        );
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 批量删除失败:', error as any);
+        logger.error("[SessionStore] 批量删除失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -494,9 +495,9 @@ export const useSessionStore = defineStore('session', {
     async addTags(sessionId: string, tags: string[]): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:add-tags',
+          "session:add-tags",
           sessionId,
-          tags
+          tags,
         );
 
         // 更新列表中的会话
@@ -515,7 +516,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 添加标签失败:', error as any);
+        logger.error("[SessionStore] 添加标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -527,9 +528,9 @@ export const useSessionStore = defineStore('session', {
     async removeTags(sessionId: string, tags: string[]): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:remove-tags',
+          "session:remove-tags",
           sessionId,
-          tags
+          tags,
         );
 
         // 更新列表中的会话
@@ -545,7 +546,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 移除标签失败:', error as any);
+        logger.error("[SessionStore] 移除标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -554,12 +555,15 @@ export const useSessionStore = defineStore('session', {
     /**
      * 批量添加标签
      */
-    async addTagsToMultiple(sessionIds: string[], tags: string[]): Promise<any> {
+    async addTagsToMultiple(
+      sessionIds: string[],
+      tags: string[],
+    ): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:add-tags-multiple',
+          "session:add-tags-multiple",
           sessionIds,
-          tags
+          tags,
         );
 
         // 刷新会话列表
@@ -570,7 +574,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 批量添加标签失败:', error as any);
+        logger.error("[SessionStore] 批量添加标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -583,11 +587,13 @@ export const useSessionStore = defineStore('session', {
       this.loadingTags = true;
 
       try {
-        const result = await (window as any).electronAPI.invoke('session:get-all-tags');
+        const result = await (window as any).electronAPI.invoke(
+          "session:get-all-tags",
+        );
         this.allTags = result || [];
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 加载标签失败:', error as any);
+        logger.error("[SessionStore] 加载标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -598,15 +604,18 @@ export const useSessionStore = defineStore('session', {
     /**
      * 导出会话为 JSON
      */
-    async exportToJSON(sessionId: string, options: ExportOptions = {}): Promise<any> {
+    async exportToJSON(
+      sessionId: string,
+      options: ExportOptions = {},
+    ): Promise<any> {
       try {
         return await (window as any).electronAPI.invoke(
-          'session:export-json',
+          "session:export-json",
           sessionId,
-          options
+          options,
         );
       } catch (error) {
-        logger.error('[SessionStore] 导出 JSON 失败:', error as any);
+        logger.error("[SessionStore] 导出 JSON 失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -615,15 +624,18 @@ export const useSessionStore = defineStore('session', {
     /**
      * 导出会话为 Markdown
      */
-    async exportToMarkdown(sessionId: string, options: ExportOptions = {}): Promise<any> {
+    async exportToMarkdown(
+      sessionId: string,
+      options: ExportOptions = {},
+    ): Promise<any> {
       try {
         return await (window as any).electronAPI.invoke(
-          'session:export-markdown',
+          "session:export-markdown",
           sessionId,
-          options
+          options,
         );
       } catch (error) {
-        logger.error('[SessionStore] 导出 Markdown 失败:', error as any);
+        logger.error("[SessionStore] 导出 Markdown 失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -632,15 +644,18 @@ export const useSessionStore = defineStore('session', {
     /**
      * 批量导出会话
      */
-    async exportMultiple(sessionIds: string[], options: ExportOptions = {}): Promise<any> {
+    async exportMultiple(
+      sessionIds: string[],
+      options: ExportOptions = {},
+    ): Promise<any> {
       try {
         return await (window as any).electronAPI.invoke(
-          'session:export-multiple',
+          "session:export-multiple",
           sessionIds,
-          options
+          options,
         );
       } catch (error) {
-        logger.error('[SessionStore] 批量导出失败:', error as any);
+        logger.error("[SessionStore] 批量导出失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -649,12 +664,15 @@ export const useSessionStore = defineStore('session', {
     /**
      * 从 JSON 导入会话
      */
-    async importFromJSON(jsonData: any, options: ImportOptions = {}): Promise<any> {
+    async importFromJSON(
+      jsonData: any,
+      options: ImportOptions = {},
+    ): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:import-json',
+          "session:import-json",
           jsonData,
-          options
+          options,
         );
 
         // 刷新会话列表
@@ -662,7 +680,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 导入 JSON 失败:', error as any);
+        logger.error("[SessionStore] 导入 JSON 失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -673,13 +691,13 @@ export const useSessionStore = defineStore('session', {
      */
     async generateSummary(
       sessionId: string,
-      options: Record<string, any> = {}
+      options: Record<string, any> = {},
     ): Promise<{ summary: string }> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:generate-summary',
+          "session:generate-summary",
           sessionId,
-          options
+          options,
         );
 
         // 更新当前会话
@@ -689,7 +707,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 生成摘要失败:', error as any);
+        logger.error("[SessionStore] 生成摘要失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -698,11 +716,18 @@ export const useSessionStore = defineStore('session', {
     /**
      * 恢复会话
      */
-    async resumeSession(sessionId: string, options: Record<string, any> = {}): Promise<any> {
+    async resumeSession(
+      sessionId: string,
+      options: Record<string, any> = {},
+    ): Promise<any> {
       try {
-        return await (window as any).electronAPI.invoke('session:resume', sessionId, options);
+        return await (window as any).electronAPI.invoke(
+          "session:resume",
+          sessionId,
+          options,
+        );
       } catch (error) {
-        logger.error('[SessionStore] 恢复会话失败:', error as any);
+        logger.error("[SessionStore] 恢复会话失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -711,12 +736,15 @@ export const useSessionStore = defineStore('session', {
     /**
      * 保存为模板
      */
-    async saveAsTemplate(sessionId: string, templateInfo: TemplateInfo): Promise<any> {
+    async saveAsTemplate(
+      sessionId: string,
+      templateInfo: TemplateInfo,
+    ): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:save-as-template',
+          "session:save-as-template",
           sessionId,
-          templateInfo
+          templateInfo,
         );
 
         // 刷新模板列表
@@ -724,7 +752,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 保存模板失败:', error as any);
+        logger.error("[SessionStore] 保存模板失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -733,12 +761,15 @@ export const useSessionStore = defineStore('session', {
     /**
      * 从模板创建会话
      */
-    async createFromTemplate(templateId: string, options: Record<string, any> = {}): Promise<any> {
+    async createFromTemplate(
+      templateId: string,
+      options: Record<string, any> = {},
+    ): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:create-from-template',
+          "session:create-from-template",
           templateId,
-          options
+          options,
         );
 
         // 刷新会话列表
@@ -746,7 +777,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 从模板创建失败:', error as any);
+        logger.error("[SessionStore] 从模板创建失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -755,15 +786,20 @@ export const useSessionStore = defineStore('session', {
     /**
      * 加载模板列表
      */
-    async loadTemplates(options: Record<string, any> = {}): Promise<SessionTemplate[]> {
+    async loadTemplates(
+      options: Record<string, any> = {},
+    ): Promise<SessionTemplate[]> {
       this.loadingTemplates = true;
 
       try {
-        const result = await (window as any).electronAPI.invoke('session:list-templates', options);
+        const result = await (window as any).electronAPI.invoke(
+          "session:list-templates",
+          options,
+        );
         this.templates = result || [];
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 加载模板失败:', error as any);
+        logger.error("[SessionStore] 加载模板失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -776,14 +812,17 @@ export const useSessionStore = defineStore('session', {
      */
     async deleteTemplate(templateId: string): Promise<{ success: boolean }> {
       try {
-        await (window as any).electronAPI.invoke('session:delete-template', templateId);
+        await (window as any).electronAPI.invoke(
+          "session:delete-template",
+          templateId,
+        );
 
         // 从列表中移除
         this.templates = this.templates.filter((t) => t.id !== templateId);
 
         return { success: true };
       } catch (error) {
-        logger.error('[SessionStore] 删除模板失败:', error as any);
+        logger.error("[SessionStore] 删除模板失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -796,13 +835,15 @@ export const useSessionStore = defineStore('session', {
       this.loadingStats = true;
 
       try {
-        const result = await (window as any).electronAPI.invoke('session:get-global-stats');
+        const result = await (window as any).electronAPI.invoke(
+          "session:get-global-stats",
+        );
         if (result) {
           this.globalStats = result;
         }
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 加载全局统计失败:', error as any);
+        logger.error("[SessionStore] 加载全局统计失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -816,9 +857,9 @@ export const useSessionStore = defineStore('session', {
     async updateTitle(sessionId: string, title: string): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:update-title',
+          "session:update-title",
           sessionId,
-          title
+          title,
         );
 
         // 更新列表中的会话
@@ -834,7 +875,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 更新标题失败:', error as any);
+        logger.error("[SessionStore] 更新标题失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -847,12 +888,15 @@ export const useSessionStore = defineStore('session', {
     /**
      * 复制会话
      */
-    async duplicateSession(sessionId: string, options: Record<string, any> = {}): Promise<any> {
+    async duplicateSession(
+      sessionId: string,
+      options: Record<string, any> = {},
+    ): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:duplicate',
+          "session:duplicate",
           sessionId,
-          options
+          options,
         );
 
         // 刷新会话列表
@@ -863,7 +907,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 复制会话失败:', error as any);
+        logger.error("[SessionStore] 复制会话失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -879,9 +923,9 @@ export const useSessionStore = defineStore('session', {
     async renameTag(oldTag: string, newTag: string): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:rename-tag',
+          "session:rename-tag",
           oldTag,
-          newTag
+          newTag,
         );
 
         // 刷新标签列表
@@ -892,7 +936,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 重命名标签失败:', error as any);
+        logger.error("[SessionStore] 重命名标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -904,9 +948,9 @@ export const useSessionStore = defineStore('session', {
     async mergeTags(sourceTags: string[], targetTag: string): Promise<any> {
       try {
         const result = await (window as any).electronAPI.invoke(
-          'session:merge-tags',
+          "session:merge-tags",
           sourceTags,
-          targetTag
+          targetTag,
         );
 
         // 刷新标签列表
@@ -917,7 +961,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 合并标签失败:', error as any);
+        logger.error("[SessionStore] 合并标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -928,7 +972,10 @@ export const useSessionStore = defineStore('session', {
      */
     async deleteTag(tag: string): Promise<any> {
       try {
-        const result = await (window as any).electronAPI.invoke('session:delete-tag', tag);
+        const result = await (window as any).electronAPI.invoke(
+          "session:delete-tag",
+          tag,
+        );
 
         // 刷新标签列表
         await this.loadAllTags();
@@ -938,7 +985,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 删除标签失败:', error as any);
+        logger.error("[SessionStore] 删除标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -949,7 +996,10 @@ export const useSessionStore = defineStore('session', {
      */
     async deleteTags(tags: string[]): Promise<any> {
       try {
-        const result = await (window as any).electronAPI.invoke('session:delete-tags', tags);
+        const result = await (window as any).electronAPI.invoke(
+          "session:delete-tags",
+          tags,
+        );
 
         // 刷新标签列表
         await this.loadAllTags();
@@ -959,7 +1009,7 @@ export const useSessionStore = defineStore('session', {
 
         return result;
       } catch (error) {
-        logger.error('[SessionStore] 批量删除标签失败:', error as any);
+        logger.error("[SessionStore] 批量删除标签失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -970,12 +1020,16 @@ export const useSessionStore = defineStore('session', {
      */
     async getTagDetails(
       tag: string,
-      options: Record<string, any> = {}
+      options: Record<string, any> = {},
     ): Promise<TagDetails | null> {
       try {
-        return await (window as any).electronAPI.invoke('session:get-tag-details', tag, options);
+        return await (window as any).electronAPI.invoke(
+          "session:get-tag-details",
+          tag,
+          options,
+        );
       } catch (error) {
-        logger.error('[SessionStore] 获取标签详情失败:', error as any);
+        logger.error("[SessionStore] 获取标签详情失败:", error as any);
         this.error = (error as Error).message;
         throw error;
       }
@@ -993,10 +1047,10 @@ export const useSessionStore = defineStore('session', {
      */
     clearFilters(): void {
       this.filters = {
-        searchQuery: '',
+        searchQuery: "",
         selectedTags: [],
-        sortBy: 'updated_at',
-        sortOrder: 'desc',
+        sortBy: "updated_at",
+        sortOrder: "desc",
       };
     },
 
@@ -1079,10 +1133,10 @@ export const useSessionStore = defineStore('session', {
         totalTemplates: 0,
       };
       this.filters = {
-        searchQuery: '',
+        searchQuery: "",
         selectedTags: [],
-        sortBy: 'updated_at',
-        sortOrder: 'desc',
+        sortBy: "updated_at",
+        sortOrder: "desc",
       };
       this.pagination = {
         offset: 0,

@@ -543,12 +543,6 @@ export const useSocialStore = defineStore("social", {
           offset,
         );
 
-        // 用户可能在 await 期间切换了聊天会话；currentMessages 始终属于当前会话，
-        // 把这个会话的消息写进去会污染另一个会话的消息列表，丢弃过期结果。
-        if (this.currentChatSession?.id !== sessionId) {
-          return;
-        }
-
         // 确保 messages 是数组
         const safeMessages: ChatMessage[] = Array.isArray(messages)
           ? messages
@@ -565,10 +559,7 @@ export const useSocialStore = defineStore("social", {
       } catch (error) {
         logger.error("加载消息失败:", error as any);
       } finally {
-        // 仅当仍停留在该会话时才关闭加载态，避免过期调用把新会话的 spinner 提前关掉。
-        if (this.currentChatSession?.id === sessionId) {
-          this.messagesLoading = false;
-        }
+        this.messagesLoading = false;
       }
     },
 

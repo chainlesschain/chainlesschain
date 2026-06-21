@@ -12,26 +12,26 @@
  * @version 0.44.0
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
-import { createRetryableIPC } from '../utils/ipc';
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
+import { createRetryableIPC } from "../utils/ipc";
 
 // ==================== Type Definitions ====================
 
 /**
  * Stream status
  */
-export type StreamStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
+export type StreamStatus = "scheduled" | "live" | "ended" | "cancelled";
 
 /**
  * Stream access type
  */
-export type StreamAccessType = 'public' | 'friends' | 'password' | 'invite';
+export type StreamAccessType = "public" | "friends" | "password" | "invite";
 
 /**
  * Danmaku message type
  */
-export type DanmakuMessageType = 'normal' | 'top' | 'bottom' | 'special';
+export type DanmakuMessageType = "normal" | "top" | "bottom" | "special";
 
 /**
  * Livestream
@@ -60,7 +60,7 @@ export interface LivestreamViewer {
   id: string;
   stream_id: string;
   viewer_did: string;
-  status: 'watching' | 'left';
+  status: "watching" | "left";
   joined_at: number;
   left_at: number | null;
   [key: string]: any;
@@ -135,7 +135,7 @@ const MAX_DANMAKU_QUEUE_SIZE = 100;
 
 // ==================== Store ====================
 
-export const useLivestreamStore = defineStore('livestream', {
+export const useLivestreamStore = defineStore("livestream", {
   state: (): LivestreamState => ({
     activeStreams: [],
     currentStream: null,
@@ -159,14 +159,14 @@ export const useLivestreamStore = defineStore('livestream', {
      * Whether the current stream is live
      */
     isCurrentStreamLive(): boolean {
-      return this.currentStream?.status === 'live';
+      return this.currentStream?.status === "live";
     },
 
     /**
      * Active viewer count for current stream
      */
     activeViewerCount(): number {
-      return this.viewers.filter((v) => v.status === 'watching').length;
+      return this.viewers.filter((v) => v.status === "watching").length;
     },
 
     /**
@@ -180,21 +180,21 @@ export const useLivestreamStore = defineStore('livestream', {
      * Public active streams
      */
     publicActiveStreams(): Livestream[] {
-      return this.activeStreams.filter((s) => s.access_type === 'public');
+      return this.activeStreams.filter((s) => s.access_type === "public");
     },
 
     /**
      * Live streams from my streams list
      */
     myLiveStreams(): Livestream[] {
-      return this.myStreams.filter((s) => s.status === 'live');
+      return this.myStreams.filter((s) => s.status === "live");
     },
 
     /**
      * Scheduled streams from my streams list
      */
     myScheduledStreams(): Livestream[] {
-      return this.myStreams.filter((s) => s.status === 'scheduled');
+      return this.myStreams.filter((s) => s.status === "scheduled");
     },
   },
 
@@ -207,11 +207,11 @@ export const useLivestreamStore = defineStore('livestream', {
     async loadActiveStreams(): Promise<void> {
       this.loading = true;
       try {
-        const streams = await ipcRenderer.invoke('livestream:get-active');
+        const streams = await ipcRenderer.invoke("livestream:get-active");
         this.activeStreams = Array.isArray(streams) ? streams : [];
       } catch (error: any) {
-        if (error?.message !== 'IPC not available') {
-          logger.error('Failed to load active streams:', error);
+        if (error?.message !== "IPC not available") {
+          logger.error("Failed to load active streams:", error);
         }
         this.activeStreams = [];
       } finally {
@@ -225,11 +225,11 @@ export const useLivestreamStore = defineStore('livestream', {
     async loadMyStreams(): Promise<void> {
       this.loading = true;
       try {
-        const streams = await ipcRenderer.invoke('livestream:get-my-streams');
+        const streams = await ipcRenderer.invoke("livestream:get-my-streams");
         this.myStreams = Array.isArray(streams) ? streams : [];
       } catch (error: any) {
-        if (error?.message !== 'IPC not available') {
-          logger.error('Failed to load my streams:', error);
+        if (error?.message !== "IPC not available") {
+          logger.error("Failed to load my streams:", error);
         }
         this.myStreams = [];
       } finally {
@@ -244,11 +244,11 @@ export const useLivestreamStore = defineStore('livestream', {
      */
     async createStream(params: CreateStreamParams): Promise<Livestream> {
       try {
-        const stream = await ipcRenderer.invoke('livestream:create', params);
+        const stream = await ipcRenderer.invoke("livestream:create", params);
         this.myStreams.unshift(stream);
         return stream;
       } catch (error) {
-        logger.error('Failed to create stream:', error as any);
+        logger.error("Failed to create stream:", error as any);
         throw error;
       }
     },
@@ -258,7 +258,7 @@ export const useLivestreamStore = defineStore('livestream', {
      */
     async startStream(streamId: string): Promise<Livestream> {
       try {
-        const stream = await ipcRenderer.invoke('livestream:start', streamId);
+        const stream = await ipcRenderer.invoke("livestream:start", streamId);
         this.currentStream = stream;
         this.isStreaming = true;
 
@@ -270,7 +270,7 @@ export const useLivestreamStore = defineStore('livestream', {
 
         return stream;
       } catch (error) {
-        logger.error('Failed to start stream:', error as any);
+        logger.error("Failed to start stream:", error as any);
         throw error;
       }
     },
@@ -280,7 +280,7 @@ export const useLivestreamStore = defineStore('livestream', {
      */
     async endStream(streamId: string): Promise<Livestream> {
       try {
-        const stream = await ipcRenderer.invoke('livestream:end', streamId);
+        const stream = await ipcRenderer.invoke("livestream:end", streamId);
         this.isStreaming = false;
         this.viewerCount = 0;
         this.viewers = [];
@@ -299,7 +299,7 @@ export const useLivestreamStore = defineStore('livestream', {
 
         return stream;
       } catch (error) {
-        logger.error('Failed to end stream:', error as any);
+        logger.error("Failed to end stream:", error as any);
         throw error;
       }
     },
@@ -309,10 +309,13 @@ export const useLivestreamStore = defineStore('livestream', {
     /**
      * Join a livestream as a viewer
      */
-    async joinStream(streamId: string, accessCode?: string): Promise<Livestream> {
+    async joinStream(
+      streamId: string,
+      accessCode?: string,
+    ): Promise<Livestream> {
       try {
         const stream = await ipcRenderer.invoke(
-          'livestream:join',
+          "livestream:join",
           streamId,
           accessCode || null,
         );
@@ -324,7 +327,7 @@ export const useLivestreamStore = defineStore('livestream', {
 
         return stream;
       } catch (error) {
-        logger.error('Failed to join stream:', error as any);
+        logger.error("Failed to join stream:", error as any);
         throw error;
       }
     },
@@ -334,7 +337,7 @@ export const useLivestreamStore = defineStore('livestream', {
      */
     async leaveStream(streamId: string): Promise<void> {
       try {
-        await ipcRenderer.invoke('livestream:leave', streamId);
+        await ipcRenderer.invoke("livestream:leave", streamId);
 
         if (this.currentStream?.id === streamId) {
           this.currentStream = null;
@@ -343,7 +346,7 @@ export const useLivestreamStore = defineStore('livestream', {
           this.danmakuQueue = [];
         }
       } catch (error) {
-        logger.error('Failed to leave stream:', error as any);
+        logger.error("Failed to leave stream:", error as any);
         throw error;
       }
     },
@@ -354,14 +357,14 @@ export const useLivestreamStore = defineStore('livestream', {
     async loadViewers(streamId: string): Promise<void> {
       try {
         const viewers = await ipcRenderer.invoke(
-          'livestream:get-viewers',
+          "livestream:get-viewers",
           streamId,
           true,
         );
         this.viewers = Array.isArray(viewers) ? viewers : [];
         this.viewerCount = this.viewers.length;
       } catch (error) {
-        logger.error('Failed to load viewers:', error as any);
+        logger.error("Failed to load viewers:", error as any);
         this.viewers = [];
       }
     },
@@ -373,11 +376,11 @@ export const useLivestreamStore = defineStore('livestream', {
      */
     async sendDanmaku(params: SendDanmakuParams): Promise<DanmakuMessage> {
       try {
-        const danmaku = await ipcRenderer.invoke('danmaku:send', params);
+        const danmaku = await ipcRenderer.invoke("danmaku:send", params);
         this.addDanmaku(danmaku);
         return danmaku;
       } catch (error) {
-        logger.error('Failed to send danmaku:', error as any);
+        logger.error("Failed to send danmaku:", error as any);
         throw error;
       }
     },
@@ -392,19 +395,14 @@ export const useLivestreamStore = defineStore('livestream', {
     ): Promise<void> {
       try {
         const messages = await ipcRenderer.invoke(
-          'danmaku:get-history',
+          "danmaku:get-history",
           streamId,
           limit,
           offset,
         );
-        // The user may have switched streams during the await. danmakuQueue
-        // always belongs to the current stream (leave/join reset it), so
-        // applying this stream's history now would corrupt a different
-        // stream's queue. Drop the stale response.
-        if (this.currentStream?.id !== streamId) {
-          return;
-        }
-        const safeMsgs: DanmakuMessage[] = Array.isArray(messages) ? messages : [];
+        const safeMsgs: DanmakuMessage[] = Array.isArray(messages)
+          ? messages
+          : [];
 
         if (offset === 0) {
           // Replace queue with history (reversed to chronological order)
@@ -415,7 +413,7 @@ export const useLivestreamStore = defineStore('livestream', {
           this.danmakuQueue = combined.slice(-MAX_DANMAKU_QUEUE_SIZE);
         }
       } catch (error) {
-        logger.error('Failed to load danmaku history:', error as any);
+        logger.error("Failed to load danmaku history:", error as any);
       }
     },
 

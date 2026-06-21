@@ -215,13 +215,6 @@ export const useWorkflowSessionStore = defineStore("workflow-session", {
       this.error = null;
       try {
         const res = await api().get(sessionId);
-        // currentSessionId is set synchronously at the top of each call, so if
-        // it no longer equals sessionId a newer selectSession ran during the
-        // await — discard this stale result to avoid showing one session's id
-        // with another session's state.
-        if (this.currentSessionId !== sessionId) {
-          return;
-        }
         if (res.success && res.state) {
           this.currentState = res.state;
         } else {
@@ -230,16 +223,10 @@ export const useWorkflowSessionStore = defineStore("workflow-session", {
         }
       } catch (err: any) {
         logger.error(`selectSession(${sessionId}) failed`, err);
-        if (this.currentSessionId !== sessionId) {
-          return;
-        }
         this.error = err?.message || String(err);
         this.currentState = null;
       } finally {
-        // Only the latest selection clears the spinner.
-        if (this.currentSessionId === sessionId) {
-          this.loadingDetail = false;
-        }
+        this.loadingDetail = false;
       }
     },
 
