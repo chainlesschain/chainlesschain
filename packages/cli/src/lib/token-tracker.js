@@ -21,9 +21,19 @@ const PRICING = {
     _default: { input: 2.5, output: 10 },
   },
   anthropic: {
+    // Current Anthropic list prices (USD/1M), verified 2026-06-21 vs the
+    // claude-api reference. Lookup is EXACT-key (calculateCost), so keep current
+    // model ids listed or they fall back to the Sonnet _default and mis-price —
+    // e.g. claude-opus-4-8 would otherwise be billed at $3/$15 not $5/$25. The
+    // Opus tier dropped to $5/$25 with Opus 4.5; Haiku 4.5 is $1/$5.
+    "claude-opus-4-8": { input: 5, output: 25 },
+    "claude-opus-4-7": { input: 5, output: 25 },
+    "claude-opus-4-6": { input: 5, output: 25 },
+    "claude-opus-4-5": { input: 5, output: 25 },
     "claude-sonnet-4-6": { input: 3, output: 15 },
-    "claude-opus-4-6": { input: 15, output: 75 },
-    "claude-haiku-4-5-20251001": { input: 0.8, output: 4 },
+    "claude-haiku-4-5": { input: 1, output: 5 },
+    "claude-haiku-4-5-20251001": { input: 1, output: 5 },
+    "claude-fable-5": { input: 10, output: 50 },
     _default: { input: 3, output: 15 },
   },
   deepseek: {

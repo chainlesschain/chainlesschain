@@ -61,14 +61,14 @@ describe("token-tracker", () => {
       expect(cost).toBeCloseTo(18, 1); // $3 + $15
     });
 
-    it("calculates Anthropic Claude Opus cost", () => {
+    it("calculates Anthropic Claude Opus cost (current $5/$25 tier)", () => {
       const cost = calculateCost(
         "anthropic",
         "claude-opus-4-6",
         1_000_000,
         1_000_000,
       );
-      expect(cost).toBeCloseTo(90, 1); // $15 + $75
+      expect(cost).toBeCloseTo(30, 1); // $5 + $25
     });
 
     it("calculates Anthropic Claude Haiku cost", () => {
@@ -78,7 +78,7 @@ describe("token-tracker", () => {
         1_000_000,
         1_000_000,
       );
-      expect(cost).toBeCloseTo(4.8, 1); // $0.8 + $4
+      expect(cost).toBeCloseTo(6, 1); // $1 + $5
     });
 
     it("calculates DeepSeek cost", () => {
