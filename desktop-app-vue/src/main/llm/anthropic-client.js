@@ -7,6 +7,18 @@ const { logger } = require("../utils/logger.js");
 const axios = require("axios");
 const EventEmitter = require("events");
 
+/**
+ * Claude models that reject sampling params (temperature / top_p / top_k) with a
+ * 400 per the Anthropic Messages API: Opus 4.7 and 4.8, plus Fable 5 / Mythos 5.
+ * Sonnet 4.6, Opus 4.6, Haiku 4.5, and Claude 3.x still accept them. Exported
+ * for tests.
+ */
+function modelRejectsSamplingParams(model) {
+  return /(opus-4-7|opus-4-8|fable-5|mythos-5)/.test(
+    String(model || "").toLowerCase(),
+  );
+}
+
 class AnthropicClient extends EventEmitter {
   constructor(config = {}) {
     super();
@@ -79,14 +91,21 @@ class AnthropicClient extends EventEmitter {
     if (system) {
       payload.system = system;
     }
-    if (options.temperature !== undefined) {
-      payload.temperature = options.temperature;
-    }
-    if (options.top_p !== undefined) {
-      payload.top_p = options.top_p;
-    }
-    if (options.top_k !== undefined) {
-      payload.top_k = options.top_k;
+    // Current Claude models (Opus 4.7/4.8, Fable 5/Mythos 5) reject sampling
+    // params with a 400 — omit them there, keep them for models that accept them
+    // (Sonnet 4.6, Opus 4.6, Haiku 4.5, Claude 3.x). Added when the default model
+    // moved to claude-opus-4-8; without it the default Anthropic chat 400s
+    // because the desktop config carries a default temperature.
+    if (!modelRejectsSamplingParams(payload.model)) {
+      if (options.temperature !== undefined) {
+        payload.temperature = options.temperature;
+      }
+      if (options.top_p !== undefined) {
+        payload.top_p = options.top_p;
+      }
+      if (options.top_k !== undefined) {
+        payload.top_k = options.top_k;
+      }
     }
     if (
       Array.isArray(options.stop_sequences) &&
@@ -285,4 +304,5 @@ class AnthropicClient extends EventEmitter {
 
 module.exports = {
   AnthropicClient,
+  modelRejectsSamplingParams,
 };
