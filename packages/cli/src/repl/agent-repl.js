@@ -2474,12 +2474,19 @@ export async function startAgentRepl(options = {}) {
           process.stdout.write(chalk.gray(`  [step] ${evt.step}\n`));
         };
 
-        autonomousAgent.on("goal:completed", goalListener);
-        autonomousAgent.on("goal:failed", goalListener);
-        autonomousAgent.on("step:started", stepListener);
-        autonomousAgent.on("step:completed", (evt) => {
-          process.stdout.write(chalk.green(`  [done] ${evt.step}\n`));
-        });
+        // Attach the live-output listeners ONCE per REPL session — the agent is
+        // a session-scoped singleton (created once above), so re-attaching on
+        // every `/auto` would accumulate listeners (duplicate output + leak +
+        // MaxListenersExceededWarning). The handlers are stateless.
+        if (!autonomousAgent._replListenersAttached) {
+          autonomousAgent._replListenersAttached = true;
+          autonomousAgent.on("goal:completed", goalListener);
+          autonomousAgent.on("goal:failed", goalListener);
+          autonomousAgent.on("step:started", stepListener);
+          autonomousAgent.on("step:completed", (evt) => {
+            process.stdout.write(chalk.green(`  [done] ${evt.step}\n`));
+          });
+        }
 
         logger.info(`Submitting goal: ${chalk.cyan(autoArg)}`);
         try {

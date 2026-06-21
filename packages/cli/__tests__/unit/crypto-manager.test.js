@@ -203,6 +203,15 @@ describe("Crypto Manager", () => {
     it("should return false for non-existent files", () => {
       expect(isEncryptedFile("/nonexistent")).toBe(false);
     });
+
+    it("returns false on a directory across many calls without exhausting fds", () => {
+      // On POSIX openSync(dir) succeeds but the readSync throws EISDIR — the
+      // post-open error path. The fix closes the fd in a finally, so repeated
+      // failures must not leak descriptors (would throw EMFILE if they did).
+      for (let i = 0; i < 100; i++) {
+        expect(isEncryptedFile(tmpDir)).toBe(false);
+      }
+    });
   });
 
   // ─── generateKey ──────────────────────────────────────────

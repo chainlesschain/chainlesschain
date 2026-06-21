@@ -136,14 +136,24 @@ export function decryptFile(inputPath, password, outputPath) {
  * Check if a file is encrypted with our format.
  */
 export function isEncryptedFile(filePath) {
+  let fd;
   try {
-    const fd = fs.openSync(filePath, "r");
+    fd = fs.openSync(filePath, "r");
     const buf = Buffer.alloc(MAGIC_HEADER.length);
     fs.readSync(fd, buf, 0, MAGIC_HEADER.length, 0);
-    fs.closeSync(fd);
     return buf.equals(MAGIC_HEADER);
   } catch (_err) {
     return false;
+  } finally {
+    // Close in finally so a readSync throw (permission change mid-op, OS error)
+    // can't leak the descriptor — repeated failures would otherwise exhaust FDs.
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* already closed / invalid fd — nothing to release */
+      }
+    }
   }
 }
 
