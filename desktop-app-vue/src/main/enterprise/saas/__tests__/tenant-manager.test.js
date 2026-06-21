@@ -166,6 +166,24 @@ describe("TenantManager", () => {
     );
   });
 
+  it("should reject an unknown plan instead of silently pricing it at 0", async () => {
+    await tm.initialize(db);
+    const tenant = tm.createTenant("Bad Plan Corp");
+    expect(() => tm.manageSubscription(tenant.id, "premium_ultra")).toThrow(
+      /Invalid plan/,
+    );
+    // No bogus subscription should have been stored.
+    expect(tm._subscriptions.get(tenant.id)).toBeUndefined();
+  });
+
+  it("should price the free plan at 0 (not via the || fallback)", async () => {
+    await tm.initialize(db);
+    const tenant = tm.createTenant("Free Corp");
+    const sub = tm.manageSubscription(tenant.id, "free");
+    expect(sub.plan).toBe("free");
+    expect(sub.price).toBe(0);
+  });
+
   // ── exportData ───────────────────────────────────────────────────────────
   it("should export tenant data", async () => {
     await tm.initialize(db);

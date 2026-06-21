@@ -135,11 +135,16 @@ class TenantManager extends EventEmitter {
   manageSubscription(tenantId, plan, options = {}) {
     const id = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const prices = { free: 0, starter: 29, pro: 99, enterprise: 299 };
+    // 校验套餐合法性：此前 `prices[plan] || 0` 会把任意未知套餐名静默存成 price=0、
+    // status=active（billing/数据完整性隐患）。未知套餐直接拒绝。
+    if (!Object.prototype.hasOwnProperty.call(prices, plan)) {
+      throw new Error(`Invalid plan: ${plan}`);
+    }
     const subscription = {
       id,
       tenantId,
       plan,
-      price: prices[plan] || 0,
+      price: prices[plan],
       billingCycle: options.billingCycle || "monthly",
       status: "active",
     };
