@@ -31,15 +31,15 @@ describe("CostBudget", () => {
   });
 
   it("accumulates priced cost and trips at the cap", () => {
-    // anthropic opus = $15 / 1M input. 1M input = $15.
-    const b = new CostBudget({ limitUsd: 10 });
+    // anthropic opus = $5 / 1M input (Opus tier dropped to $5/$25). 1M input = $5.
+    const b = new CostBudget({ limitUsd: 3 });
     expect(b.exceeded()).toBe(false);
     b.add({
       provider: "anthropic",
       model: "claude-opus",
       usage: { input_tokens: 1_000_000, output_tokens: 0 },
     });
-    expect(b.spentUsd).toBeCloseTo(15, 5);
+    expect(b.spentUsd).toBeCloseTo(5, 5);
     expect(b.exceeded()).toBe(true);
     expect(b.remaining()).toBe(0);
   });

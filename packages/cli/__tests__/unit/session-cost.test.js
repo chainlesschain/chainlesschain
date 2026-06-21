@@ -71,13 +71,13 @@ describe("renderSessionCost", () => {
     expect(renderSessionCost(newCostStore())).toContain("no LLM calls yet");
   });
 
-  it("prices a known model (anthropic opus: 15/75 per 1M)", () => {
+  it("prices a known model (anthropic opus: 5/25 per 1M)", () => {
     const s = newCostStore();
     addUsage(s, [ev("anthropic", "claude-opus", 1_000_000, 1_000_000)]);
     const out = renderSessionCost(s);
     expect(out).toContain("Session cost (estimated):");
-    // 1M in × $15 + 1M out × $75 = $90.0000
-    expect(out).toContain("$90.0000");
+    // 1M in × $5 + 1M out × $25 = $30.0000 (Opus tier dropped to $5/$25)
+    expect(out).toContain("$30.0000");
     expect(out).toContain("anthropic");
     expect(out).toContain("in=1000000 out=1000000");
   });
@@ -181,7 +181,7 @@ describe("categorizeByRole", () => {
 describe("renderSessionCost — category breakdown", () => {
   it("shows a by-category section when >1 role was used", () => {
     const s = newCostStore();
-    addUsage(s, [ev("anthropic", "claude-opus", 1_000_000, 0)]); // main → $15
+    addUsage(s, [ev("anthropic", "claude-opus", 1_000_000, 0)]); // main → $5
     addUsage(s, [ev("myprov", "my-vision", 1_000_000, 0)]); // vision → $2
     const out = renderSessionCost(s, {
       pricingOverrides: { myprov: [{ match: "my-vision", in: 2, out: 8 }] },
@@ -193,9 +193,9 @@ describe("renderSessionCost — category breakdown", () => {
       },
     });
     expect(out).toContain("by category:");
-    expect(out).toMatch(/main\s+\$15\.0000/);
+    expect(out).toMatch(/main\s+\$5\.0000/);
     expect(out).toMatch(/vision\s+\$2\.0000/);
-    expect(out).toMatch(/main\s+\$15\.0000 \(88%\)/); // 15 of 17
+    expect(out).toMatch(/main\s+\$5\.0000 \(71%\)/); // 5 of 7
   });
 
   it("omits the breakdown for a single-model session", () => {

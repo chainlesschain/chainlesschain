@@ -44,6 +44,51 @@ describe("llm-pricing — lookupRate", () => {
     expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
   });
 
+  it("uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots", () => {
+    // The Opus tier dropped to $5/$25 with Opus 4.5 — the table must NOT bill
+    // the old $15/$75 for current Opus, or cc cost / /cost overcounts 3x.
+    expect(lookupRate("anthropic", "claude-opus-4-8")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    expect(lookupRate("anthropic", "claude-opus-4-7")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    expect(lookupRate("anthropic", "claude-opus-4-6")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    expect(lookupRate("anthropic", "claude-opus-4-5-20251101")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    // bare "opus" defaults to the current price, not the retired $15/$75
+    expect(lookupRate("anthropic", "claude-opus")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    // the one deprecated-but-live $15/$75 snapshot keeps its real rate
+    expect(lookupRate("anthropic", "claude-opus-4-1-20250805")).toMatchObject({
+      in: 15,
+      out: 75,
+    });
+    // Fable 5 ($10/$50) was previously unpriced
+    expect(lookupRate("anthropic", "claude-fable-5")).toMatchObject({
+      in: 10,
+      out: 50,
+    });
+    // Sonnet / Haiku unchanged
+    expect(lookupRate("anthropic", "claude-sonnet-4-6")).toMatchObject({
+      in: 3,
+      out: 15,
+    });
+    expect(lookupRate("anthropic", "claude-haiku-4-5")).toMatchObject({
+      in: 1,
+      out: 5,
+    });
+  });
+
   it("prices Doubao Seed 2.0 above the generic seed fallback", () => {
     // doubao-seed-2-0-lite-260215 must hit the 2.0 lite rate (out 0.5), not the
     // generic "seed" 0.28 that underprices 2.0 output by ~2x.

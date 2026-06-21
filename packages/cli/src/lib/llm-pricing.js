@@ -30,7 +30,19 @@ export const FREE_PROVIDERS = Object.freeze([
  */
 export const PRICE_TABLE = Object.freeze({
   anthropic: [
-    { match: "opus", in: 15, out: 75 },
+    // Current Anthropic list prices (USD per 1M tokens), verified 2026-06-21
+    // against the claude-api reference. The Opus tier dropped to $5/$25 with
+    // Opus 4.5 (Nov 2025) — the old $15/$75 applies only to the retired
+    // Opus 4 / 4.1. Longest-pattern-first matching (see matchRate) resolves
+    // dated ids to the specific rate; bare "opus" defaults to the current price.
+    { match: "fable-5", in: 10, out: 50 },
+    { match: "mythos-5", in: 10, out: 50 },
+    { match: "opus-4-8", in: 5, out: 25 },
+    { match: "opus-4-7", in: 5, out: 25 },
+    { match: "opus-4-6", in: 5, out: 25 },
+    { match: "opus-4-5", in: 5, out: 25 },
+    { match: "opus-4-1", in: 15, out: 75 },
+    { match: "opus", in: 5, out: 25 },
     { match: "sonnet", in: 3, out: 15 },
     { match: "haiku", in: 1, out: 5 },
   ],
