@@ -173,6 +173,26 @@ describe("P2P Enhancement Features", () => {
       expect(health.status).toBe("disconnected");
     });
 
+    it("does not leak a 'message' listener when a ping times out", async () => {
+      // No pong is emitted → _checkPeerConnection resolves false after
+      // pingTimeout (100ms). The "message" listener must be removed on the
+      // timeout path, not just on success.
+      const before = mockP2PManager.listenerCount("message");
+      const result = await healthManager._checkPeerConnection("peer-timeout");
+      expect(result).toBe(false);
+      expect(mockP2PManager.listenerCount("message")).toBe(before);
+    });
+
+    it("removes the 'message' listener when a pong arrives", async () => {
+      const before = mockP2PManager.listenerCount("message");
+      const p = healthManager._checkPeerConnection("peer-pong");
+      // Let the awaited sendMessage resolve + the handler register, then pong.
+      await new Promise((r) => setTimeout(r, 20));
+      mockP2PManager.emit("message", { type: "pong", peerId: "peer-pong" });
+      expect(await p).toBe(true);
+      expect(mockP2PManager.listenerCount("message")).toBe(before);
+    });
+
     it("应该能够获取所有对等方健康状态", async () => {
       await healthManager.initialize();
 

@@ -180,6 +180,11 @@ class P2PConnectionHealthManager extends EventEmitter {
       // 等待pong响应
       return await new Promise((resolve) => {
         const timeout = setTimeout(() => {
+          // Remove the pong listener on timeout too — otherwise every ping to a
+          // slow/offline peer leaks a "message" listener on p2pManager, and over
+          // a long session those stale handlers pile up (memory + per-message
+          // dispatch lag). Mirrors the success-path cleanup below.
+          this.p2pManager.off("message", handler);
           resolve(false);
         }, this.options.pingTimeout);
 
