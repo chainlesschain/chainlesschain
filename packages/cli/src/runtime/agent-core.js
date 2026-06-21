@@ -2747,7 +2747,9 @@ export async function chatWithTools(rawMessages, options) {
     // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192) via
     // provider-options. We read ONLY maxTokens: the module's `temperature`
     // default is never forwarded (400s on Opus 4.7/4.8).
-    const effModel = model || "claude-sonnet-4-20250514";
+    // Fallback to the CURRENT Sonnet, not a retired snapshot:
+    // claude-sonnet-4-20250514 was retired 2026-06-15 and would 404 here.
+    const effModel = model || "claude-sonnet-4-6";
     const { maxTokens: anthropicMaxTokens } = mergeProviderOptions(
       "anthropic",
       effModel,
