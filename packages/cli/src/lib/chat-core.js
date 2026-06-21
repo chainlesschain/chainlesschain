@@ -24,18 +24,43 @@ import {
 // generous (and env-overridable) so a slow local model's first token isn't cut
 // off; raise CC_CHAT_STALL_MS if you run very large local models.
 export const STREAM_STALL_MS = Number(process.env.CC_CHAT_STALL_MS) || 180000;
+// Before the hard abort above, surface a "waiting for API response" hint once
+// per silent gap (cc agent parity — agent-core STREAM_STALL_MS). Purely
+// informational; never aborts. Env-overridable; disabled if it would exceed the
+// abort threshold.
+export const STREAM_STALL_HINT_MS =
+  Number(process.env.CC_CHAT_STALL_HINT_MS) || 20000;
 
-function makeStallGuard(stallMs = STREAM_STALL_MS) {
+function makeStallGuard(
+  stallMs = STREAM_STALL_MS,
+  { onHint, hintMs = STREAM_STALL_HINT_MS } = {},
+) {
   const controller = new AbortController();
   let timer = null;
+  let hintTimer = null;
+  const hintArmed =
+    typeof onHint === "function" && hintMs > 0 && hintMs < stallMs;
   const bump = () => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => controller.abort(), stallMs);
     if (timer && typeof timer.unref === "function") timer.unref();
+    if (hintArmed) {
+      if (hintTimer) clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        try {
+          onHint(hintMs);
+        } catch {
+          /* hint is best-effort — never affect the stream */
+        }
+      }, hintMs);
+      if (hintTimer && typeof hintTimer.unref === "function") hintTimer.unref();
+    }
   };
   const stop = () => {
     if (timer) clearTimeout(timer);
+    if (hintTimer) clearTimeout(hintTimer);
     timer = null;
+    hintTimer = null;
   };
   return {
     signal: controller.signal,
@@ -65,8 +90,15 @@ function _cachedPromptTokens(usage) {
  * If `onUsage` is provided, it's called with `{inputTokens, outputTokens}`
  * derived from Ollama's terminal `prompt_eval_count` / `eval_count` fields.
  */
-export async function streamOllama(messages, model, baseUrl, onToken, onUsage) {
-  const guard = makeStallGuard();
+export async function streamOllama(
+  messages,
+  model,
+  baseUrl,
+  onToken,
+  onUsage,
+  onStall,
+) {
+  const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
   let response;
   try {
@@ -149,8 +181,9 @@ export async function streamOpenAI(
   apiKey,
   onToken,
   onUsage,
+  onStall,
 ) {
-  const guard = makeStallGuard();
+  const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
   let response;
   try {
@@ -248,6 +281,7 @@ export async function streamAnthropic(
   apiKey,
   onToken,
   onUsage,
+  onStall,
 ) {
   // Split out a leading system prompt (Anthropic requires it as top-level
   // `system`, not an OpenAI-style role=system message).
@@ -261,7 +295,7 @@ export async function streamAnthropic(
     }
   }
 
-  const guard = makeStallGuard();
+  const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
   guard.bump();
   let response;
   try {
@@ -418,7 +452,7 @@ export async function* chatStream(messages, options) {
   let providerCall;
   if (provider === "ollama") {
     providerCall = () =>
-      streamOllama(messages, model, baseUrl, onToken, onUsage);
+      streamOllama(messages, model, baseUrl, onToken, onUsage, options.onStall);
   } else if (provider === "anthropic") {
     const providerDef = BUILT_IN_PROVIDERS.anthropic;
     const url =
@@ -434,7 +468,15 @@ export async function* chatStream(messages, options) {
       );
     }
     providerCall = () =>
-      streamAnthropic(messages, model, url, key, onToken, onUsage);
+      streamAnthropic(
+        messages,
+        model,
+        url,
+        key,
+        onToken,
+        onUsage,
+        options.onStall,
+      );
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
     const url =
@@ -450,7 +492,15 @@ export async function* chatStream(messages, options) {
       );
     }
     providerCall = () =>
-      streamOpenAI(messages, model, url, key, onToken, onUsage);
+      streamOpenAI(
+        messages,
+        model,
+        url,
+        key,
+        onToken,
+        onUsage,
+        options.onStall,
+      );
   }
 
   // Run the provider stream concurrently with the queue-drain loop. finally

@@ -183,6 +183,13 @@ export async function startChatRepl(options = {}) {
       const onUsage = (u) => {
         capturedUsage = u;
       };
+      // Stall hint (cc agent parity): the connection is alive but the API has
+      // gone silent — reassure instead of a frozen cursor. stderr so it never
+      // corrupts the streamed answer on stdout.
+      const onStall = (ms) =>
+        process.stderr.write(
+          `\x1b[2m  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\x1b[0m\n`,
+        );
 
       if (sessionId)
         appendEvent(sessionId, "user_message", { content: trimmed });
@@ -194,6 +201,7 @@ export async function startChatRepl(options = {}) {
           baseUrl,
           onToken,
           onUsage,
+          onStall,
         );
       } else if (provider === "anthropic") {
         const providerDef = BUILT_IN_PROVIDERS.anthropic;
@@ -215,6 +223,7 @@ export async function startChatRepl(options = {}) {
           key,
           onToken,
           onUsage,
+          onStall,
         );
       } else {
         // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini, anthropic-proxy)
@@ -237,6 +246,7 @@ export async function startChatRepl(options = {}) {
           key,
           onToken,
           onUsage,
+          onStall,
         );
       }
 
