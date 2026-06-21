@@ -19,6 +19,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import os from "os";
 import {
   _iterateStreamWithStall,
+  _isRetryableStreamError,
   chatWithTools,
 } from "../../src/runtime/agent-core.js";
 
@@ -181,4 +182,99 @@ describe("chatWithTools streaming → onStall wiring", () => {
     expect(out.message.content).toBe("hi");
     expect(stalls).toHaveLength(0);
   });
+});
+
+describe("_iterateStreamWithStall (hard inactivity timeout)", () => {
+  // A reader that never resolves read() — a dead-but-open connection.
+  const makeSilentReader = () => {
+    let cancelled = false;
+    return {
+      read: () => new Promise(() => {}), // never settles
+      cancel: () => {
+        cancelled = true;
+        return Promise.resolve();
+      },
+      get cancelled() {
+        return cancelled;
+      },
+    };
+  };
+
+  it("throws a RETRYABLE ETIMEDOUT after stallTimeoutMs of silence", async () => {
+    const reader = makeSilentReader();
+    let thrown;
+    try {
+      await drain(_iterateStreamWithStall(reader, { stallTimeoutMs: 30 }));
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown.code).toBe("ETIMEDOUT");
+    expect(thrown.message).toMatch(/stalled/i);
+    // The dead stream was cancelled so the socket is released before retry.
+    expect(reader.cancelled).toBe(true);
+    // The error must be classified retryable so the dispatch seam re-issues it.
+    expect(_isRetryableStreamError(thrown, null)).toBe(true);
+  });
+
+  it("fires the stall hint before the hard timeout when both are set", async () => {
+    const reader = makeSilentReader();
+    const stalls = [];
+    await expect(
+      drain(
+        _iterateStreamWithStall(reader, {
+          stallMs: 10,
+          stallTimeoutMs: 50,
+          onStall: (ms) => stalls.push(ms),
+        }),
+      ),
+    ).rejects.toThrow(/stalled/i);
+    // The hint fired (once) during the silence that preceded the timeout.
+    expect(stalls).toHaveLength(1);
+    expect(stalls[0]).toBeGreaterThanOrEqual(10);
+  });
+
+  it("never times out when disabled (default): a slow chunk still arrives", async () => {
+    const reader = makeReader([99], [60]); // 60ms-late chunk, no timeout set
+    const out = await drain(
+      _iterateStreamWithStall(reader, { stallMs: 10000 }),
+    );
+    expect(out).toEqual([99]);
+  });
+});
+
+describe("chatWithTools streaming → hard timeout recovery", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("retries a permanently silent stream, then surfaces the timeout", async () => {
+    // Fresh never-resolving reader per fetch attempt (the retry layer re-fetches).
+    let fetches = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        fetches++;
+        return {
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: () => new Promise(() => {}),
+              cancel: () => Promise.resolve(),
+            }),
+          },
+        };
+      }),
+    );
+    await expect(
+      chatWithTools([{ role: "user", content: "hi" }], {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        apiKey: "test-key",
+        cwd: os.tmpdir(),
+        onToken: () => {},
+        streamStallTimeoutMs: 20,
+      }),
+    ).rejects.toThrow(/stalled|ETIMEDOUT/i);
+    // 1 initial attempt + STREAM_RETRY_MAX(2) retries = 3 fetches.
+    expect(fetches).toBe(3);
+  }, 10000);
 });

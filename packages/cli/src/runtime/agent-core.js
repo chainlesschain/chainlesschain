@@ -2684,6 +2684,7 @@ export async function chatWithTools(rawMessages, options) {
             signal,
             options.onStall,
             options.streamStallMs,
+            options.streamStallTimeoutMs,
           ),
         { signal, onRetry: options.onStreamRetry },
       );
@@ -2778,6 +2779,7 @@ export async function chatWithTools(rawMessages, options) {
             options.onThinking,
             options.onStall,
             options.streamStallMs,
+            options.streamStallTimeoutMs,
           ),
         { signal, onRetry: options.onStreamRetry },
       );
@@ -2874,6 +2876,7 @@ export async function chatWithTools(rawMessages, options) {
           provider,
           options.onStall,
           options.streamStallMs,
+          options.streamStallTimeoutMs,
         ),
       { signal, onRetry: options.onStreamRetry },
     );
@@ -3075,6 +3078,13 @@ const STREAM_RETRY_BASE_MS = 400;
 // "waiting for API response" hint after this many ms instead of leaving the
 // user staring at a frozen spinner. Upstream raised this from 10s to 20s.
 const STREAM_STALL_MS = 20000;
+// Hard inactivity timeout: a stream silent for this long is treated as a dead
+// connection — the watchdog cancels the reader and throws a RETRYABLE error so
+// `_retryStreamingChat` re-issues the request instead of hanging forever.
+// Default 0 = disabled (opt-in): local models (ollama on CPU) can legitimately
+// take minutes to the first token, so cc never auto-aborts unless the user sets
+// `llm.streamStallTimeoutMs`. Should exceed STREAM_STALL_MS when enabled.
+const STREAM_STALL_TIMEOUT_MS = 0;
 const _STREAM_STALL = Symbol("stream-stall");
 
 /**
@@ -3130,17 +3140,23 @@ function _finalizeTruncatedStream(finalize, state) {
 }
 
 // Wrap a ReadableStream reader so the read loop yields chunk values while a
-// watchdog fires `onStall(elapsedMs)` at most once per silent gap longer than
-// `stallMs` (2.1.185 stream-stall hint). The SAME in-flight read() promise is
+// watchdog (a) fires `onStall(elapsedMs)` at most once per silent gap longer
+// than `stallMs` (2.1.185 stream-stall hint) and (b) — when `stallTimeoutMs` is
+// set — cancels the reader and throws a RETRYABLE ETIMEDOUT after that long a
+// silence, so a permanently dead-but-open connection recovers via the retry
+// layer instead of hanging forever. The SAME in-flight read() promise is
 // re-raced against a fresh timer each tick, so no chunk is ever dropped or
-// double-read; `done`, errors, and aborts all propagate unchanged. With no
-// onStall hook this degrades to a plain read loop (zero extra timers).
+// double-read; `done`, errors, and aborts propagate unchanged. With neither a
+// hook nor a timeout this degrades to a plain read loop (zero extra timers).
 export async function* _iterateStreamWithStall(reader, opts = {}) {
   const onStall = typeof opts.onStall === "function" ? opts.onStall : null;
   const stallMs = opts.stallMs ?? STREAM_STALL_MS;
+  const timeoutMs =
+    opts.stallTimeoutMs == null ? STREAM_STALL_TIMEOUT_MS : opts.stallTimeoutMs;
   for (;;) {
     const readP = reader.read();
-    if (!onStall) {
+    // Fast path: nothing to watch for — await the chunk directly.
+    if (!onStall && !timeoutMs) {
       const { done, value } = await readP;
       if (done) return;
       yield value;
@@ -3150,19 +3166,46 @@ export async function* _iterateStreamWithStall(reader, opts = {}) {
     let notified = false;
     let result;
     for (;;) {
+      const elapsed = Date.now() - start;
+      // Hard inactivity timeout reached: cancel the dead stream (release the
+      // socket) and throw a retryable error the dispatch seam re-issues.
+      if (timeoutMs && elapsed >= timeoutMs) {
+        try {
+          await reader.cancel();
+        } catch {
+          /* best-effort release — the throw below is what matters */
+        }
+        const err = new Error(
+          `stream stalled: no data from API for ${Math.round(elapsed / 1000)}s`,
+        );
+        err.code = "ETIMEDOUT";
+        throw err;
+      }
+      // Wake at whichever fires first: the one-shot stall hint or the timeout.
+      const waits = [];
+      if (onStall && !notified) waits.push(stallMs - elapsed);
+      if (timeoutMs) waits.push(timeoutMs - elapsed);
+      const nextWait = waits.length ? Math.max(0, Math.min(...waits)) : null;
+      if (nextWait == null) {
+        // Hint already fired and no timeout — just wait for the chunk.
+        result = await readP;
+        break;
+      }
       let timer;
-      const stallP = new Promise((resolve) => {
-        timer = setTimeout(() => resolve(_STREAM_STALL), stallMs);
+      const wakeP = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(_STREAM_STALL), nextWait);
         if (timer && typeof timer.unref === "function") timer.unref();
       });
       let r;
       try {
-        r = await Promise.race([readP, stallP]);
+        r = await Promise.race([readP, wakeP]);
       } finally {
         clearTimeout(timer);
       }
       if (r === _STREAM_STALL) {
-        if (!notified) {
+        // A timer woke us. Fire the one-shot hint if we've crossed stallMs; the
+        // loop re-evaluates `elapsed` to decide hint-vs-hard-timeout next tick.
+        if (onStall && !notified && Date.now() - start >= stallMs) {
           notified = true;
           try {
             onStall(Date.now() - start);
@@ -3187,6 +3230,7 @@ async function _chatOllamaStreaming(
   signal,
   onStall,
   stallMs,
+  stallTimeoutMs,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3205,6 +3249,7 @@ async function _chatOllamaStreaming(
     for await (const value of _iterateStreamWithStall(reader, {
       onStall,
       stallMs,
+      stallTimeoutMs,
     })) {
       buf += decoder.decode(value, { stream: true });
       let idx;
@@ -3352,6 +3397,7 @@ async function _chatAnthropicStreaming(
   onThinking,
   onStall,
   stallMs,
+  stallTimeoutMs,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3370,6 +3416,7 @@ async function _chatAnthropicStreaming(
     for await (const value of _iterateStreamWithStall(reader, {
       onStall,
       stallMs,
+      stallTimeoutMs,
     })) {
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
@@ -3472,6 +3519,7 @@ async function _chatOpenAIStreaming(
   provider,
   onStall,
   stallMs,
+  stallTimeoutMs,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3493,6 +3541,7 @@ async function _chatOpenAIStreaming(
     for await (const value of _iterateStreamWithStall(reader, {
       onStall,
       stallMs,
+      stallTimeoutMs,
     })) {
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");

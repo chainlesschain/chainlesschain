@@ -286,9 +286,16 @@ export async function startAgentRepl(options = {}) {
   // an auto-detected image path so the REPL switches to a vision-capable model
   // for that turn only (resolveVisionLlm falls back to the default when unset).
   let _visionModel;
+  // Hard stream inactivity timeout (config.llm.streamStallTimeoutMs, ms): when
+  // set, a stream silent that long is aborted + retried instead of hanging.
+  // Off by default — local models can be slow to the first token.
+  let _streamStallTimeoutMs;
   try {
     const { loadConfig } = await import("../lib/config-manager.js");
-    _visionModel = loadConfig()?.llm?.visionModel || undefined;
+    const _cfg = loadConfig();
+    _visionModel = _cfg?.llm?.visionModel || undefined;
+    const t = Number(_cfg?.llm?.streamStallTimeoutMs);
+    if (Number.isFinite(t) && t > 0) _streamStallTimeoutMs = t;
   } catch {
     /* optional — resolveVisionLlm falls back to DEFAULT_VISION_MODEL */
   }
@@ -3260,6 +3267,9 @@ export async function startAgentRepl(options = {}) {
               `  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\n`,
             ),
           ),
+        // Opt-in hard inactivity timeout: abort + retry a dead-but-open stream
+        // instead of hanging forever (config.llm.streamStallTimeoutMs).
+        streamStallTimeoutMs: _streamStallTimeoutMs,
         signal: _turnAbort.signal,
         // On an auto-detected image turn, switch to the vision LLM for this
         // turn only (provider/baseUrl/apiKey unchanged, model → vision model).
