@@ -8,6 +8,7 @@ import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhAssetBackup
+import com.chainlesschain.android.pdh.PdhCrossDevice
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhLedger
@@ -196,11 +197,21 @@ class PdhChatViewModel @Inject constructor(
         val budgetNotice: BudgetNotice? = null,
         /** §3.5.18 透明度审计视图(非空=展示;从本地台账读取)。 */
         val transparency: Transparency? = null,
+        /** §3.5.16 跨设备:已配对的自有设备(§10 discovery 注入;Phase 2 暂空=仅本机)。 */
+        val pairedDevices: List<String> = emptyList(),
+        /** §3.5.16 用户选的目标设备(null=本机);经 resolveTarget 落到 [targetDevice]。 */
+        val selectedDevice: String? = null,
         /** 记录搜索关键词(非空时只显示命中行)。 */
         val searchQuery: String = "",
         /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
         val displayLimit: Int = PAGE_SIZE,
     ) {
+        /**
+         * §3.5.16 本轮 effective 目标设备:选本机/未配对 → 本机(诚实不静默驱动陌生
+         * 设备);选了已配对设备 → 该设备。真正连远端 bridge 是 §10/Phase 8 传输层。
+         */
+        val targetDevice: String
+            get() = PdhCrossDevice.resolveTarget(selectedDevice, SELF_DEVICE, pairedDevices.toSet())
         /** 实际渲染的消息:搜索命中(全量过滤) 或 最近 displayLimit 条(翻页窗口)。 */
         val visibleMessages: List<ChatMessage>
             get() = if (searchQuery.isBlank()) {
@@ -798,6 +809,21 @@ class PdhChatViewModel @Inject constructor(
     fun correctProfileItem(itemId: String, correction: String) =
         submitFeedback(itemId, FeedbackKind.CORRECTION, correction)
 
+    // ── §3.5.16 跨设备:目标设备选择(指挥另一台你自有设备)──────────────────
+
+    /**
+     * 选目标设备(null/本机=本机)。Phase 2 真正连远端 bridge 的传输是 §10/Phase 8;
+     * 本动作只落选择 + 经 resolveTarget 校验(未配对→回退本机,诚实不驱动陌生设备)。
+     */
+    fun setTargetDevice(deviceId: String?) = _uiState.update {
+        it.copy(selectedDevice = if (deviceId == SELF_DEVICE) null else deviceId)
+    }
+
+    /** §10 device discovery 注入已配对的自有设备列表(seam;Phase 2 暂无来源=仅本机)。 */
+    fun setPairedDevices(devices: List<String>) = _uiState.update {
+        it.copy(pairedDevices = devices)
+    }
+
     /** 结束 onboarding:落"已完成"标志(不再引导)+ 清面板;可选补已就绪文案。 */
     private fun finishOnboarding(addReadyLine: Boolean) {
         viewModelScope.launch(ioDispatcher) {
@@ -837,6 +863,9 @@ class PdhChatViewModel @Inject constructor(
         /** 空态/结束 onboarding 后的已就绪提示文案。 */
         private const val READY_LINE =
             "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。"
+
+        /** §3.5.16 本机设备标识(目标设备默认值)。 */
+        const val SELF_DEVICE = "本机"
 
         /**
          * §3.5.17 接线3 (pure): 本轮(上一个 USER turn 之后)是否出现过不可信采集
