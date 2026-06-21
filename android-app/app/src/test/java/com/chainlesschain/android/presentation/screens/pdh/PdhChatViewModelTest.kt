@@ -3,6 +3,7 @@ package com.chainlesschain.android.presentation.screens.pdh
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -150,5 +151,16 @@ class PdhChatViewModelTest {
         val msg = vm.uiState.value.messages.first { it.id == msgId }
         assertNull(msg.feedback) // reverted
         assertTrue(vm.uiState.value.error?.contains("失败") == true)
+    }
+
+    // §3.5.10 接线3: the top-bar data-flow badge reflects the session's route.
+    @Test
+    fun init_sets_privacy_badge_from_session_route() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        val vm = newVm()
+
+        val badge = vm.uiState.value.privacyBadge
+        assertEquals("☁️ 云", badge?.label)
+        assertTrue(badge?.dataFlow?.contains("摘要") == true)
     }
 }

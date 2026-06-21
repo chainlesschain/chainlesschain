@@ -4,6 +4,7 @@ import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.localterminal.LocalFilesystemBootstrapper
 import com.chainlesschain.android.feature.localterminal.PtyEnvironment
+import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -332,10 +333,30 @@ class PdhAgentSession @Inject constructor(
         LLMProvider.CUSTOM -> null
     }
 
+    /**
+     * §3.5.10 接线3: the privacy route this session's cc-agent LLM actually runs
+     * on, for the top-bar data-flow badge. Honest 云 vs 自有设备 — the cc-agent
+     * chat always uses a network provider (端侧 MediaPipe is a separate, non-cc
+     * path), so the badge surfaces whether data leaves the phone.
+     */
+    fun currentRoute(): LlmRoute =
+        routeForProvider(runCatching { llmConfig.getProvider() }.getOrDefault(LLMProvider.OLLAMA))
+
     companion object {
         private const val TAG = "PdhAgentSession"
         const val ENV_PDH_PORT = "CHAINLESSCHAIN_PDH_PORT"
         const val DEFAULT_BRIDGE_PORT = 18510
+
+        /**
+         * §3.5.10 pure: App LLM provider → privacy route. A self-hosted Ollama is
+         * your own PC/LAN box (rank 1, 不出私域);every third-party cloud provider
+         * leaves the device to a 第三方云 (rank 2). CUSTOM is treated as cloud
+         * (conservative — never under-claim privacy). No Android deps, testable.
+         */
+        fun routeForProvider(p: LLMProvider): LlmRoute = when (p) {
+            LLMProvider.OLLAMA -> LlmRoute.PC_LOCAL
+            else -> LlmRoute.CLOUD_ANDROID
+        }
 
         /** §3.5.13 pure: build the `{type:feedback}` event (testable). */
         fun feedbackEvent(turnId: String, kind: FeedbackKind, comment: String?): JsonObject =

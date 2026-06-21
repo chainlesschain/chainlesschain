@@ -54,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
+import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.TrustCard
@@ -92,7 +93,11 @@ fun PdhChatScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("个人数据助手") })
+            TopAppBar(
+                title = { Text("个人数据助手") },
+                // §3.5.10 接线3: data-flow badge — 这次 AI 在哪跑、数据是否离开手机。
+                actions = { state.privacyBadge?.let { PrivacyBadge(it) } },
+            )
         },
     ) { padding ->
         Column(
@@ -178,6 +183,25 @@ fun PdhChatScreen(
                 },
             )
         }
+    }
+}
+
+/**
+ * §3.5.10 接线3 — 顶栏数据流向徽章:常显这次 AI 在哪跑、数据是否离开手机。
+ * 透明度优先(§3.5.5/§13.3):如实展示档位,不隐藏。
+ */
+@Composable
+private fun PrivacyBadge(badge: PdhPrivacyTier.TierBadge) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.padding(end = 12.dp),
+    ) {
+        Text(text = badge.label, style = MaterialTheme.typography.labelMedium)
+        Text(
+            text = badge.dataFlow,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

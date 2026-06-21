@@ -1,6 +1,8 @@
 package com.chainlesschain.android.pdh
 
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,6 +16,22 @@ import kotlin.test.assertTrue
  * silently break.
  */
 class PdhAgentSessionTest {
+
+    // §3.5.10 接线3: provider → privacy route for the top-bar data-flow badge.
+    @Test
+    fun route_for_provider_self_hosted_ollama_is_own_device() {
+        assertEquals(LlmRoute.PC_LOCAL, PdhAgentSession.routeForProvider(LLMProvider.OLLAMA))
+    }
+
+    @Test
+    fun route_for_provider_third_party_and_custom_are_cloud() {
+        for (p in listOf(
+            LLMProvider.DOUBAO, LLMProvider.OPENAI, LLMProvider.CLAUDE,
+            LLMProvider.DEEPSEEK, LLMProvider.QWEN, LLMProvider.CUSTOM,
+        )) {
+            assertEquals(LlmRoute.CLOUD_ANDROID, PdhAgentSession.routeForProvider(p), "cloud: $p")
+        }
+    }
 
     @Test
     fun text_event_yields_text() {

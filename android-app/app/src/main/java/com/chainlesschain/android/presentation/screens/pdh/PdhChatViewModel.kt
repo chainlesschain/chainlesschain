@@ -7,6 +7,7 @@ import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
+import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -103,7 +104,24 @@ class PdhChatViewModel @Inject constructor(
         val error: String? = null,
         /** §3.5.9 内联信任卡(引导/预览/审批/计划),按到达顺序渲染。 */
         val pendingCards: List<TrustCard> = emptyList(),
-    )
+        /** §3.5.10 顶栏数据流向徽章:这次 AI 在哪跑、数据是否离开手机(透明度优先)。 */
+        val privacyBadge: PdhPrivacyTier.TierBadge? = null,
+        /** 记录搜索关键词(非空时只显示命中行)。 */
+        val searchQuery: String = "",
+        /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
+        val displayLimit: Int = PAGE_SIZE,
+    ) {
+        /** 实际渲染的消息:搜索命中(全量过滤) 或 最近 displayLimit 条(翻页窗口)。 */
+        val visibleMessages: List<ChatMessage>
+            get() = if (searchQuery.isBlank()) {
+                if (messages.size <= displayLimit) messages else messages.takeLast(displayLimit)
+            } else {
+                messages.filter { it.text.contains(searchQuery, ignoreCase = true) }
+            }
+
+        /** 还有更早的消息没显示(非搜索态)→ 显示「加载更早」。 */
+        val hasOlder: Boolean get() = searchQuery.isBlank() && messages.size > displayLimit
+    }
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -128,6 +146,11 @@ class PdhChatViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         ready = true,
+                        // §3.5.10 接线3: surface where this session's LLM runs +
+                        // whether data leaves the phone (best-effort; never crash).
+                        privacyBadge = runCatching {
+                            PdhPrivacyTier.badge(session.currentRoute())
+                        }.getOrNull(),
                         messages = if (it.messages.isEmpty()) {
                             it.messages + ChatMessage(
                                 role = Role.SYSTEM,
@@ -489,6 +512,16 @@ class PdhChatViewModel @Inject constructor(
         }
     }
 
+    /** 记录搜索:设关键词(非空只显示命中行;空=恢复正常翻页视图)。 */
+    fun setSearch(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    /** 翻页:多显示一页更早的消息。 */
+    fun loadMore() {
+        _uiState.update { it.copy(displayLimit = it.displayLimit + PAGE_SIZE) }
+    }
+
     /** 工具名分流:采集/索引/打捞(写 vault)→ 预览卡;其余有副作用 → 审批卡。 */
     private fun isPreviewTool(tool: String): Boolean =
         tool.contains("collect", ignoreCase = true) ||
@@ -504,5 +537,8 @@ class PdhChatViewModel @Inject constructor(
     companion object {
         /** 单张计划卡的固定 id(plan_update 到来时更新同一张)。 */
         private const val PLAN_CARD_ID = "__plan__"
+
+        /** 翻页每页消息数。 */
+        const val PAGE_SIZE = 50
     }
 }
