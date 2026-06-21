@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
+## [v5.0.3.124] - 2026-06-22 — QQNT 现代 QQ 全自动采集（派生 key 解密无 frida + MIUI Magisk 守护进程）
+
+### Added — QQ (QQNT) 端侧采集（module 101）
+
+- **`cc hub collect-qq`**（pdh 0.4.31 `lib/forensics/qq-nt-collect.js`）：解密现代 QQ `nt_msg.db`(WCDB/SQLCipher) 用**派生 key**（`MD5(MD5(uid)+rand)`，**无 frida**；frida 对 QQNT WCDB 死路）+ protobuf 消息解析 + 入金库，纯 Node。
+- **`collect_qq_native`** bridge 工具 + **Magisk 守护进程**（`android-app/magisk-module-pdh-qqd`，打包 `pdh-qqd-magisk-v1.0.zip`）：MIUI/HyperOS 拦 App 进程 su 跨应用读 → 由 init 上下文的 root 守护进程替读 QQ 数据暂存到 app cache，App 再解密入库。**真机验证（chopin/HyperOS）460 条 QQ 消息入设备金库，全程手机端、无 PC/USB**。非 root 机优雅降级（assist_required，不崩）。
+- 个人助手标题改「个人助手」+ 字体调小；对话记录搜索+翻页+持久化。
+- 版本面：cli 0.162.98 / pdh 0.4.31 / Android bundle v20260622 / USR_VERSION 51。设计+复现 runbook：`docs/design/modules/101_QQNT_frida采集方案.md` §2.5–2.7。
+
 ## [v5.0.3.123] - 2026-06-21 — 安全/鲁棒性硬化一批（退役模型清退 / NaN 校验 / XSS·路径穿越 / notebook 工具 / PDH query_app_data）+ MTC 联邦创始投票修复 + module 101 Phase 2 UI（CLI 0.162.96）
 
 ### Fixed — 安全与鲁棒性硬化（v5.0.3.122 以来 163 commits，多 session）
