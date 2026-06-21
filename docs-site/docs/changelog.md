@@ -7,6 +7,14 @@
 
 > 全栈测试普查（CLI / 桌面 / 后端 Java / 后端 Python）并修复全部真实失败，仅余环境受限项（需 Ollama/Qdrant 服务或 GPU 本地推理）。
 
+#### Added — cc CLI 0.162.97：流式停顿提示显示重试/超时倒计时（对照 Claude Code 2.1.185，已发 npm）
+
+> 对照 Claude Code CLI 2.1.185 的流式停顿提示改进。`chainlesschain` 0.162.96 → **0.162.97** 已发 npm（`latest`；186 个历史版本全部 deprecate，仅 0.162.97 live）。pdh 0.4.30 不变 → 无需 Android cc bundle rollover，沿用既有 bundle。
+
+- **agent REPL**：流静默 20s 的「⏳ waiting for API response」提示补上自动重试倒计时 `· will retry in Ns`——agent 路径硬超时（默认 180s）后会自动重发，提示让用户知道何时重试而非以为永久卡死。
+- **chat REPL（`cc chat` / `cc ask`）**：同款提示补上 `· will time out in Ns`——措辞用「超时」而非「重试」，因 chat 路径停顿后是**中止并报错**（不像 agent 路径自动重试）。
+- **底层**：`_iterateStreamWithStall`（agent 路径）与 `makeStallGuard`（chat 路径）把硬超时截止时间作为 `onStall` / `onHint` 的第 2 个参数传出，提示据此渲染倒计时；未配置超时时优雅省略后缀。新增 / 更新单元测试覆盖第 2 参传递与「无超时→0」边界。
+
 #### Fixed — cc CLI 客户端/传输层稳健性硬化（对照 Claude Code CLI）
 
 > 对照 Claude Code CLI 排查 cc 自身的网络/IO 客户端层（并行平价循环未覆盖的一层），修复一批「静默失败 / 永久挂起 / 截断不报错」类问题。全部带专项单元测试（~27 项新增）。三层测试普查全绿：CLI 单元 19523、集成隔离 24、e2e 604（4 skip）；普查另暴露并修复 1 个 `--verbose` 回归 + 2 个陈旧断言。

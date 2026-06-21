@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.97：流式停顿提示显示重试/超时倒计时（对照 Claude Code 2.1.185）
+
+> CLI-only 发版（`chainlesschain` 0.162.96 → 0.162.97，已发 npm `latest`，仅 0.162.97 live）。pdh 0.4.30 不变 → 无 Android cc bundle rollover / 无 USR_VERSION 改动（未触 `pdh/lib`）。
+
+- **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
+- 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
+
 ## [v5.0.3.123] - 2026-06-21 — 安全/鲁棒性硬化一批（退役模型清退 / NaN 校验 / XSS·路径穿越 / notebook 工具 / PDH query_app_data）+ MTC 联邦创始投票修复 + module 101 Phase 2 UI（CLI 0.162.96）
 
 ### Fixed — 安全与鲁棒性硬化（v5.0.3.122 以来 163 commits，多 session）
+
 > 一批 fix / security / test 收口。亮点如下；逐条见 `git log v5.0.3.122..HEAD`。CLI 已发 npm 0.162.96；pdh 0.4.30 不变（无 lib 改动 → 无需 Android cc bundle rollover，沿用既有 bundle）。
 
 - **退役 Claude 模型全面清退**：桌面渲染层 LLM 配置不再默认/提供已退役模型快照，vision / routing / remote 处理器换用当前 Claude 4 模型，成本追踪器按当前 Claude 4 定价；config 示例同步。
@@ -19,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PDH 桥接（module 101 §4）**：`query_app_data` 工具扩展至 bilibili/douyin/toutiao/kuaishou/xiaohongshu（带 stored cookie 的 live API 查询）、`collect_app_data_root`（root DB 直读免登录）；`notebook_edit`（Jupyter .ipynb cell 编辑，Claude Code parity）+ `read_file` 渲染 .ipynb 为紧凑 cell 列表。
 
 ### Fixed — MTC 联邦治理:创始成员投票被静默丢弃（无法扩员）+ cowork 模板原子写测试桩
+
 > 跟进昨日的「关闭 M-of-N 投票阈值绕过」安全修复（core-mtc `replayGovernanceLog` 仅统计当前成员的投票）暴露的回归 + 一处过期测试桩。`git commit --only` 隔离并行 session。
 
 - **联邦创始成员投票被丢弃（核心修复，`packages/cli/src/commands/mtc.js`）**：`cc mtc federation join` 此前只把创始成员写进本地注册表、**不向 governance.log 写任何 `create` 创世事件**。安全修复后投票回放只认 `state.members` 里的成员，而创始成员从不在回放名册里 → 其自己的 `approve` 被静默丢弃，单创始人联邦**永远无法接纳第二名成员**；跨节点同步时更糟（peer 拉取日志后完全不知道谁是创始人）。修复：`join` 在**首次创建**联邦时写一条由创始人自签名的创世 `create` 事件（`bootstrap_member_id`/`bootstrap_pubkey_id`/`initial_threshold=1`），使创始人在本地与任意同步该日志的 peer 上都进入回放名册。`audit` 对创世事件自签名验签通过（实测 0 error）。安全不变量保留：伪造/非成员投票仍被拒。
@@ -26,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 治理日志事件计数测试（core/sync/trust 三个 governance CLI 套件）相应 +1 创世事件。
 
 ### Added — 个人数据 IDE 桥接（module 101）Phase 2 单输入框 UI 接线:设计 §3.5.9–3.5.20 + 代码核
+
 > 把 Phase 2「单输入框 Chat」从 MVP 细化为完整 UI 接线:设计文档 §3.5 共 20 子节(屏幕解剖 / UI⇆agent stream-json 协议 / 三类信任卡 / 隐私分级路由 / 不可信数据隔离 / 内联结果视图 / 自学习纠正 / 跨设备备份·操作 / 引导续跑 / 事务执行 / 透明度审计 / onboarding / 资源预算)已上线 docs + design 两站;其中纯 Android 可落核 12 块落地,~85 单测全绿(`:app:testDebugUnitTest`),`git commit --only` + plumbing 双推 github=gitee。grounded 在已落地的 `PdhAgentSession`/`PdhChatViewModel`/`PdhChatScreen`/`HubAskViewModel`。
 
 - **三类信任卡（§3.5.9，完整）**：`PdhAgentSession` 开 `--interactive-approvals` + 4 事件(ApprovalRequest/Resolved/PlanUpdate/AssistRequired)+ sendApproval/sendPlan;`PdhChatViewModel` `TrustCard`(引导/预览/审批/计划)+ `pendingCards`;`PdhChatScreen` 内联卡 + deepLink。回传全走现成 stream-json,零新增协议。
@@ -37,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 剩各节 device/cc/§9 集成层（per-session LLM 重启 / 两阶段采集器 / libp2p P2P / §9 富视图浏览器 / FAMILY 执行器 / 台账持久化 / cc 侧认 resume·feedback）+ 真机 E2E。
 
 ### Added — 个人数据助手（PDH 工具上设备）+ node DNS 修复（v5.0.3.122）
+
 > 个人数据 IDE 桥接（module 101）Phase 2 productize：底部「个人助手」单输入框 → 端侧 cc agent → PDH 工具（`mcp__pdh__*`）真采集 / 查询 / 分析个人数据入本地 vault，数据主权回归个人。cc bundle `internal-binaries-android-v20260620`（cc-cli.tgz 含 pdh-bridge.js），USR_VERSION 50。
 
 - **个人助手单输入框**：底部 nav 加「个人助手」入口，一句话指挥端侧 AI 采集 / 查询 / 分析你的个人数据，全程本地处理不上云。真机实测：单输入框 → AI → `collect_system_data` 真采 1824 事件（含 513 联系人）入 vault。
@@ -45,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **QQ salvage**：root 取证采集支持 QQ（标准 SQLCipher，同微信栈）。
 
 ### Added — 个人数据中台分析/采集修复 + FAMILY-67 通话/通知体验 + Android 键盘遮挡修复（v5.0.3.121）
+
 > 个人数据中台（PDH）一批分析管线 + 查询解析 + 抖音/头条采集修复（pdh 0.4.29 + cli 0.162.82 已发 npm；Android cc bundle `internal-binaries-android-v20260619`，USR_VERSION 49）；FAMILY-67 通话/消息通知体验完善；Android 全局键盘遮挡修复。
 
 - **PDH 分析管线**：`spending` 总额改用 `sumEventAmount`（不再被每子类型 5000 行上限少计）；`overview` byApp/byType/total 用 facetCounts（不再被 1 万行上限截断）；`timeline` 排除 app-usage-profile / app-usage-baseline 聚合基线事件。
@@ -55,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **IDE 扩展**：VS Code 0.33.0 / JetBrains 0.4.18 专用视觉模型入口 + 首次运行 LLM 配置引导（独立 tag 发布）。
 
 ### Added — FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（v5.0.3.120）
+
 > 好友语音/视频通话历史落库 + 通话记录可查看，来电铃声/振动/去电回铃音，CLI 各处 fetch 加超时防挂死。cli 0.162.81 已发 npm。
 
 - **通话历史落库**：`CallManager` 终态经 `CallHistoryRecorder` seam（默认 NOOP 保单测纯净）落库 `call_history`；`MainActivity` 注入 `RoomCallHistoryRecorder`（Room 实现）；记录来/去电、未接、音视频类型与挂断原因。
@@ -64,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI 数值守卫**：reputation / 插件收益分账拒绝 NaN 的 score/amount，避免污染余额。
 
 ### Fixed — 好友 P2P 发消息稳定性（v5.0.3.119）
+
 > 两天「无法扫码加好友 / 对方收不到消息 / 连不上」全链路收口，真机 amethyst↔chopin 双向消息 <1s 送达验证。
 
 - **消息显示**：收方 `saveMessageFromSync` 按本机视角重写 `peerId=发送方DID` + `isOutgoing=false`，修「消息已到库但聊天界面看不到」（此前原样存发方视角→落错会话）。
@@ -74,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TURN 服务器**：coturn `external-ip` 补私网映射（公网/私网），修 relay candidate 广播私网 IP 导致 CREATE_PERMISSION 403。
 
 ### Fixed — 个人 AI 知识库分析管线去噪（v5.0.3.118）
+
 > 真机采集数据接入个人 AI 知识库后暴露的 3 个分析质量问题：`analysis.interests` 被 14 个数字群聊 ID 淹没（挤掉唯一真实兴趣 topic）、`analysis.timeline` 被 2.4 万条同戳的联系人/应用清单快照事件冲垮。pdh 0.4.28 + cli 0.162.78 已发 npm；Android cc bundle `internal-binaries-android-v20260617c`（USR_VERSION 48）。
 
 - **微信群 topic 名解析**：`wechat-pc` 从联系人册（`@chatroom` 记录带 nickname/remark）解析群显示名，不再用裸数字 chatroom id 命名群 topic；`sync()` 收集 wxid→名映射并经 `payload.groupName` 透传，`normalizeMessage` 优先用之、无则回退 id。
@@ -81,18 +96,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`analysis.timeline` 清单排除**：`vault.queryEvents` 新增 `excludeExtraKinds` 查询参数（`json_extract` over `extra.kind`，NULL-kind 保留）→ 时间线跳过 `app-snapshot`/`contact-snapshot` 清单事件（它们带合成的采集时刻 occurredAt，会冲垮任何按时间倒序的查询）；事件仍留在 vault 供 facet 计数。
 
 ### Fixed — root 内存采集 抖音/WCDB2 命中 + 扫描生命周期硬化（v5.0.3.117）
+
 > 真机 2026-06-17 暴露：抖音 WCDB2 解密页内存无 "SQLite format 3" 文件头 → 旧纯头匹配扫描 0 命中。纯 APK 改动（脚本在 assets，复用 bundle v20260617b/pdh 0.4.27）。
 
 - **D1 叶子页扫描**：mem-scan 改按内容判定——含文件头（标准 SQLCipher/微信）或明文 schema `CREATE TABLE`（WCDB2/抖音解密页缓存）的内存区域整段落盘 → 下游 `leaf-salvage --unaligned` 扫 0x0D 叶子页打捞（不依赖文件头，两种加密通吃）；MAX_DUMPS=30 + 单区域≤64MB 防爆盘/超时。
 - **D2 扫描生命周期硬化**：`finally` 额外 `pkill 'dd if=/proc'` 杀孤儿 dd（timeout tree-kill 杀不到管道里的 dd）；AtomicBoolean 单实例锁防多次点击并发扫描。
 
 ### Added — root 内存采集 多 app + 来源归属 + 扫描硬化（v5.0.3.116）
+
 > 真机暴露的扫描 bug 修复 + 多 app 直采。pdh 0.4.27 + cli 0.162.77 已发 npm；Android cc bundle `internal-binaries-android-v20260617b`（USR_VERSION 47）。
 
 - **多 app root 直采 + 正确来源归属**：`cc hub salvage --app <key>`（douyin/toutiao/wechat/kuaishou/xiaohongshu/weibo）经新 `forensics/salvage-ingest.js` 把消息以正确 `source.adapter` 直写 vault（头条→social-toutiao，不再全挂 douyin）；Android「一键 root 采集」按钮加目标 app 下拉选择器。
 - **扫描引擎硬化**（真机 2026-06-17 暴露）：mem-scan 脚本加 `trap 'kill 0'` 自清子进程 + collector 用 `timeout` 包裹 + 预算 180s→300s + `finally` `pkill` 兜底——修复扫描超时残留孤儿 root 进程问题。
 
 ### Added — 个人数据中台 免密钥取证一键采集 + 跨 app 数据总览上设备（v5.0.3.115）
+
 > root 真机免密钥取证（Method B `/proc/mem` 内存打捞）从手动脚本做成 app 内一键按钮；跨 app 数据总览修复（旧 cc bundle 不含 `analysis.overview` 致「数据总览报错」）。pdh 0.4.26 + cli 0.162.76 已发 npm；Android cc bundle 刷到 `internal-binaries-android-v20260617`（USR_VERSION 46）。
 
 - **`cc hub salvage <dump>`**：把叶子页打捞器收进可 bundle 的 pdh lib（`forensics/leaf-salvage.js`）+ 封装成单命令（dump→叶子页打捞→`social-douyin` 入库），真 SQLite 库端到端验证（中文+emoji 无损）。
@@ -100,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **数据总览旧 cc 优雅降级**：设备 bundled cc 早于 `analysis.overview` 时把裸 `Unknown skill` 翻成「需更新本机 cc 组件」可操作提示。
 
 ### Fixed — CLI e2e server-readiness 超时硬化（冷启动高负载下的 flake）
+
 > 全量 e2e 跑出 4 文件 / 16 测试失败，单独重跑全绿——根因是 singleFork 满负载下子服务器冷启动慢、等待预算太紧；非产品 bug（`cc ui` 独立跑 ~3.3s 即打印 URL，姊妹测试全过）。已合并 `26a811874`，验证 89/89。详见内部手册 trap #31。
 
 - **ui-command / web-panel**：`startUiServer` readiness fallback 8s/10s → **25s**（旧逻辑到期后静默 `resolve` 出空 output，把"启动慢"翻译成 `expected '' to contain URL` 的误导性断言，并级联砸了同块 13 个测试）。后续补齐同文件 `--token` / `--web-panel-dir` 两个 describe 块自带的内联就绪等待（同样 8s，重负载下 ECONNREFUSED 级联 7 个测试）→ 也提到 **25s**（`a793e013e`），全文件 3 处就绪 fallback 现一致。
@@ -112,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 注：与 README `2026-06-14` 的"24 个 e2e 文件**子进程** timeout 15s→30s"正交——那条调 `execSync` 子命令超时，本次调的是 **server-readiness 等待器 + per-test 预算**。
 
 ### Added — cc CLI 0.162.66：Claude-Code 编码闭环补齐（已发 npm）
+
 > 对照 Claude Code CLI 的剩余高价值缺口一次性补齐。`chainlesschain` 0.162.65 → 0.162.66 已发 npm（全局安装实测 `cc review` / `cc insights` / `cc agent` 新 flag 全通）。
 
 - **`cc review` — diff-first 代码审查（`/code-review` 平价）**：默认审工作区 vs HEAD，可 `--staged` / `--base <ref>`（PR 式 `base...HEAD`）/ `--range A..B` / `--paths`，并内联未跟踪新文件；`low|medium|high` 力度档；`--security`（/security-review）+ `--simplify`（/simplify，只清理不抓 bug）两视角。只读走 plan 权限出 Markdown 报告；`--fix` 走 acceptEdits + 自动 checkpoint 直接落地（每次编辑可 `cc checkpoint restore` 回滚）；`--comment` 解析机读 JSON findings → 经 `gh` 在当前分支 PR 发行内评论（`--dry-run` 预览 + 交互确认）。
@@ -120,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **全局 `run` / `verify` 技能**：新增 `cli-bundled` 技能层（随 cc 包发布）——`run`（按项目类型拉起实跑）+ `verify`（观测真实行为给 VERIFIED / NOT VERIFIED / BLOCKED 裁决）；CLI 自有层而非桌面 builtin，不动桌面端「144 技能」计数。
 
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.23.0 → 0.27.0（已发 Open VSX）
+
 > `open-vsx.org/extension/chainlesschain/chainlesschain-ide` latest = **0.27.0**（2026-06-15）。继 0.22.x 之后,继续对标 Claude Code IDE：终端上下文、版本对齐、稳定性。
 
 - **终端上下文共享（0.23.0，Claude Code 平价）**：新增 `getTerminalOutput` IDE 工具（`mcp__ide__getTerminalOutput`）——agent 能看你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）。配套 CLI（cc 0.162.67）：每轮提交自动把最近终端输出注入 `<ide-context>` + 显式 `@terminal` at-mention。
@@ -130,6 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **发布**：0.23–0.27 各 tag `ide-vscode-v*` → `ide-extensions.yml` 清洁室构建发 Open VSX,逐版对 registry 实证 latest。0.22.1 为纯文档刷新（Open VSX listing：标注「仅 Open VSX,非微软商店」+ 功能列表对齐）。
 
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.22.0（已发 Open VSX）
+
 > `open-vsx.org/extension/chainlesschain/chainlesschain-ide` 早前 latest = **0.22.0**（2026-06-15）。对标 Claude Code desktop/IDE 的四个高价值面板能力一次性补齐。
 
 - **会话 tabs（Claude Code 平价）**：聊天面板支持多会话——标题栏每个 tab 显标题 + `×` 关闭、`+` 新建；每个 tab 独立持有自己的 `cc agent` 进程与 resume id，切换 tab 恢复该会话 transcript，后台 tab 输出不串入当前可见会话，关闭一个 tab 激活相邻 tab 且永不为空。
@@ -139,6 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **发布**：tag `ide-vscode-v0.22.0` → `ide-extensions.yml` 清洁室构建（vscode-ext 241 测试全绿 + 干净 38 文件 `.vsix`）发 Open VSX；本地 `vsce package` 实证产物一致。官方 Marketplace 仍跳过（无 `VSCE_PAT`，Azure 受限）。
 
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.19.0 + 0.20.0 + 0.21.0（已发 Open VSX）
+
 > 独立版本轨（同 CLI npm）。`open-vsx.org/extension/chainlesschain/chainlesschain-ide` 早前 latest = **0.21.0**。补齐对标 Claude Code IDE 的最后四个面板原生入口（设计文档 module 98 Phase 7）。
 
 - **Fix with ChainlessChain（0.19.0）**：诊断（error/warning）上 QuickFix 灯泡 → 唤起聊天面板并种入**作用域修复请求**（文件以 `@<path>` 引用让 CLI 附带内容 + severity 标签 + 1-based 行号，上限 10 条）；命令面板与编辑器右键亦可（无灯泡参数时按 选区→光标行→全文 兜底收集问题）。
@@ -148,9 +171,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **发布**：tag `ide-vscode-v0.20.0`（0.19+0.20）与 `ide-vscode-v0.21.0`（gap D）→ `ide-extensions.yml` 清洁室构建（扩展/IDE 测试全绿 + 干净 `.vsix`）并发 Open VSX；官方 VS Code Marketplace 仍跳过（无 `VSCE_PAT`，Azure 受限），不建 GitHub Release（避 immutable/tag-burn）。ws transport 仍有意 defer。
 
 ### Fixed
+
 - **project-service ZIP 导出 UTF-8 编码 bug**：项目导出写 ZIP 条目时使用平台默认编码（在 GBK 默认的 JVM 上即 GBK），导致导出含中文内容的项目后，UTF-8 的导入端读取时抛 `MalformedInputException`，无法回环重导入。改为始终以 UTF-8 写入，并对文件内容为 null 时写空条目兜底（不再 NPE）。
 
 ### Tests / QA hardening
+
 全栈测试普查并修复全部真实失败（仅余环境受限项：需 Ollama/Qdrant 服务或带 GPU 的本地推理）。
 
 - **CLI**：恢复 deprecated-shim 导出平价（`agent-core` 缺 `reloadSkills`/`MAX_SUB_AGENT_DEPTH`、`mcp-client` 缺 `isLikelyConnectionError`）；补 `hub` 子命令清单 `douyin-watch-sync`；`skill sources` 断言 4→6 层（新增 `claude-user`/`claude-project` 可移植层）；24 个 e2e 文件的 15s 子进程超时放宽到 30s，消除 Windows 冷启动负载下的 `spawnSync ETIMEDOUT` 抖动。
@@ -163,21 +188,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 用已 root 真机对 PDH「端点抓包」runbook 跑**静态分析层**（只读 APK 二进制，无任何登录态/账号介入），校验若干 best-effort scaffold 的占位端点。`@chainlesschain/personal-data-hub` 0.4.24→0.4.25、CLI `chainlesschain` 0.162.70→0.162.71 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615d`（携 pdh 0.4.25），`USR_VERSION` → 45。桌面 / Android / iOS 全 surface 对齐 .114（check-version-sync 绿）。
 
 ### Fixed — gov-ixiamen 采集器主机域名纠正（静态 APK 校验）
+
 - **i 厦门 `com.xmgov.xmapp` 的 cookie-api 占位主机原是错的**：旧 `app.ixm.gov.cn` 为虚构域名；真机 dex 静态分析确认真实后端为 `*.ixiamen.org.cn`（业务网关 `https://buss.ixiamen.org.cn/pbc/`）。已改为真实网关（`opts.listUrl` 仍可覆盖），`/handle/list` 尾段 + 请求体仍 `unverified`（body 经 `libzxprotect` 加密，静态不可见）。adapter VERSION 0.1.0→0.2.0。
 - **银行/政务结论一并记入 runbook §3.1**：中行（SecNeo 壳，明文仅推送 SDK 域 → 维持 snapshot）、工行（网关域可见但请求体加密+签名 → 银行维持 snapshot，不因拿到域名就标 verified）、12123（域名早已正确，子路径由 `libNetHTProtect` 原生构造）。
-
-
 
 > 修复中国大陆镜像装机失败、加固 npm 发布链路，并继续推进 IDE / CLI 体验。桌面 / Android / iOS 全 surface 对齐 .113（check-version-sync 绿）。Android cc bundle 滚到 `internal-binaries-android-v20260615c`（携 cli 0.162.70 + pdh 0.4.24），`USR_VERSION` → 44。
 
 ### Fixed — npm 安装可靠性（中国大陆镜像）
+
 - **npmmirror tarball 懒同步导致 `npm install` E404**（[#33](https://github.com/chainlesschain/chainlesschain/issues/33)）：`@chainlesschain/core-infra@0.1.0` 在 `registry.npmmirror.com` 仅有元数据、tarball 未缓存 → 默认走淘宝镜像的用户装机硬失败。修：① 手动触发镜像 sync API 修复线上（tarball 404→200，镜像装机恢复）；② `npm-publish.yml` 新增「发版后自动 PUT 镜像 sync API」步（best-effort，结果进 job summary，不阻断发版），后续每次发版自动补齐；③ README（中英）补「改用官方源 `npm i -g chainlesschain --registry https://registry.npmjs.org`」说明。
 
 ### Added — npm 发布链路工具
+
 - **`npm-deprecate.yml`**：参数化 workflow，用 `NPM_TOKEN` secret 弃用/取消弃用已发布的 npm 版本（本地 token 已过期，发布权限只在 CI）。
 - **CLI 0.162.68 → 0.162.70 收口**：`0.162.68` 误从陈旧 tag 发布、`personal-data-hub-wiring.js` 漏接 8 个 PDH adapter（douban/ximalaya/keep/didi/mercedes/eleme/xianyu/vipshop）→ 已 deprecate；`0.162.69` 为修复版（从 main 重发，含完整 adapter wiring）；`0.162.70` 续推 REPL 增强（已发 npm，npm `latest`）。
 
 ### Added — VS Code 扩展「ChainlessChain IDE Bridge」0.28.0 / 0.29.0（已发 Open VSX）
+
 - **后台 tab 完成信号（0.28.0）**：非当前可见会话 tab 跑完时给出完成提示。
 - **面板 `/` slash 命令 + `@` 补全 + `/rewind`（0.29.0）**：聊天面板内联 slash 命令与 at-mention 自动补全；`/rewind` 回到 agent checkpoint。
 
@@ -186,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 补齐路线图/参考机之外、但高个人数据价值的 6 个主流平台采集器。`@chainlesschain/personal-data-hub` 0.4.23→0.4.24、CLI `chainlesschain` 0.162.66→0.162.67 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615b`（携全部新 adapter），`USR_VERSION` → 43。桌面端 / CLI 即装即用；Android 端随本 APK 携带。
 
 ### Added — 本轮新采集 adapter（6 个）
+
 - **饿了么**（`shopping-eleme`）：外卖订单（snapshot + cookie-api，镜像美团 外卖结构）。
 - **闲鱼**（`shopping-xianyu`）：二手买卖记录，买/卖双向（对手方角色随 side 翻转）。
 - **唯品会**（`shopping-vipshop`）：品牌特卖订单（品牌 → 商家）。
@@ -200,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 继 v5.0.3.110 之后再补一轮 PDH 采集长尾：新增 西瓜视频 / 天眼查 / 懂车帝 / 企业微信（wework-pc）等 adapter，并由并行支线补上 个税（gov-tax scaffold）/ 扫描全能王 / 美柚 / i 厦门。`@chainlesschain/personal-data-hub` 0.4.18→0.4.23、CLI `chainlesschain` 0.162.60→0.162.65 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260615`（携全部新 adapter），`USR_VERSION` → 42。至此 PDH 路线图除 6 个 gov/bank 强认证 app（个税/民生·中行·交行银行/数字人民币/12123，故意 defer）外的消费级平台已全部接通。
 
 ### Added — 本轮新采集 adapter
+
 - **西瓜视频**（`video-xigua`）：复用 `_video-base` 工厂，观看历史 + 收藏（snapshot + cookie-api 双模）。
 - **天眼查**（`biz-tianyancha`）：监控 / 搜索行为事件采集。
 - **懂车帝**（`social-dongchedi`）：收藏 / 关注采集。
@@ -207,6 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **个税 APP**（`gov-tax`，scaffold）：收入 + 雇主 + 申报骨架（强实名认证，best-effort，需真机验证）。
 
 ### Changed
+
 - VS Code 扩展「ChainlessChain IDE Bridge」补齐会话 tabs / App Preview / diff 行内批注 / 批量多文件 diff（详见 [Unreleased] 段，已发 Open VSX 0.22.0）。
 - project-service ZIP 导出改为始终 UTF-8 写入，修复含中文项目导出后无法回环重导入（`MalformedInputException`）。
 
@@ -215,6 +245,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > 一轮 `/loop` 把 PDH 采集覆盖补齐：完成阶段（Phase 5–12）所有 ≥⭐⭐⭐ 平台 + 可行的 Phase 13+ 长尾全部落地。`@chainlesschain/personal-data-hub` 0.4.7→0.4.18、CLI `chainlesschain` 0.162.49→0.162.60 已发 npm；Android cc bundle 滚到 `internal-binaries-android-v20260614b`（携全部新 adapter），`USR_VERSION` → 37。
 
 ### Added — 13 个新采集 adapter
+
 - **出行**：`travel-tongcheng`（同程旅行）、`travel-didi`（滴滴企业版）。
 - **购物**：`shopping-dianping`（大众点评）—— 补 Phase 7 ⭐⭐⭐⭐ 漏建（订单 / 团购）。
 - **社交 / 内容**：`social-zhihu`（知乎）、`social-csdn`（CSDN）—— 收藏 / 关注 / 自己回答 / 技术阅读。
@@ -225,6 +256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 每个 adapter 均双模：snapshot（设备快照）+ cookie-api（注入 `fetchFn` + `signProvider` seam，端点 best-effort 可经 opts 覆盖）。
 
 ### Changed
+
 - 新增 3 个同形平台共享工厂：`_document-base`（文档 / 云盘列表）、`_video-base`（视频观看史），与既有 `shopping-base` / `travel-base` / `_local-im-pc-adapter` 一致。
 - pdh / cli 已发 npm；Android `binariesVersion` → `20260614b`，bundle 内核实测携带 pdh 0.4.18 + cli 0.162.60。
 
@@ -800,12 +832,14 @@ Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, Drive
 > 用户反馈：「安卓端本机模型问几个联系人会崩」— v5.0.3.84 APK 在 productVersion bump (2026-05-23 09:10) 之后 30 小时才 land MediaPipe 三连修 (`3fa4a81d5`)，84 装机包不含 guard。本 hotfix 把 trap #22 (MediaPipe OUT_OF_RANGE → JNI abort → SIGABRT) 三处联动修真 ship；同期把 trap #25 (PDH partial-index `IF NOT EXISTS` drift) + rederive 孤儿数据救援 一并入袋。
 
 ### Android — MediaPipe JNI abort 防护 (3fa4a81d5)
+
 - **`android-app/app/src/main/java/com/chainlesschain/android/pdh/llm/MediaPipeLlmEngine.kt`**：chat() 进 native 前加 prompt-length guard (`if (estPromptTokens > ctxBudget - 128) throw LlmInferenceException`)。MediaPipe `predictSync` 在 prompt > setMaxTokens 时抛 IllegalStateException 后**不 clear pending exception** 就调 NewByteArray → CheckJNI JniAbort → SIGABRT 整 app，Kotlin try/catch 完全够不到，只能上游 fail-fast。
 - **同文件 ensureLoadedLocked()**：session 缓存 key 加 `loadedMaxTokens` — MediaPipe 把 ctx 窗口烤进 LlmInference handle，首次 chat 用 512 建好后所有后续 maxTokens 变更全被忽略。
 - **`android-app/app/src/main/java/com/chainlesschain/android/pdh/llm/LocalLlmServer.kt`**：`setMaxTokens ← req.options?.numCtx` (不是 numPredict)。Ollama num_predict 是 output budget，与 MediaPipe maxTokens(总上下文窗口) 不同义。
 - 3 处必须联动 — 漏一个都不修。新加 2 JVM 单测 + handbook trap #22。
 
 ### PDH — trap #25 partial-index drift recovery (7af396405)
+
 - **`packages/personal-data-hub/lib/migrations.js`** migration v4：explicit DROP + CREATE partial unique index — 4 表 events/persons/places/items 同步带 `WHERE source_original_id IS NOT NULL`。修老 vault (pre 44c4188a8) 因 `CREATE UNIQUE INDEX IF NOT EXISTS` 隐藏的 schema drift → adapter.sync silent fail / events 卡 0 行 / raw_events 累积 1000+。
 - **`packages/personal-data-hub/lib/registry.js`** + **`vault.js`**：`rederive({ adapter?, batchSize=100 })` + `queryRawEvents()` — 升级到 v4 后, raw_events 里的孤儿数据手动 re-derive (不 re-fetch source，不更新 watermark)。
 - **`packages/cli/src/commands/hub.js`**：`cc hub rederive [--adapter <name>] [--batch-size <n>] [--json]`。
@@ -910,8 +944,8 @@ cursor 分页 / race token) + 文件清单 + 已知限制 + commit 链。
 - **`packages/personal-data-hub/lib/analysis.js`** `_gatherFacts` 新增 3 个
   routing 分支（count 之前已 land 19c11920e）：
   - `intent=latest && !timeWindow` → narrow `queryEvents({limit: 3, adapter?})`
-    + skip persons/items；有 timeWindow 时 fallthrough；0 结果 fallback 默认。
-    新 const `LATEST_INTENT_FACT_LIMIT=3`。commit `9a00c0d95`。
+    - skip persons/items；有 timeWindow 时 fallthrough；0 结果 fallback 默认。
+      新 const `LATEST_INTENT_FACT_LIMIT=3`。commit `9a00c0d95`。
   - `intent=list && entity extracted` → 默认 path 之后追加
     `vault.searchEvents({q, adapter?, since?, until?, limit:min(headroom,10)})`
     去重；FTS 抛错 / 老 vault graceful skip。新 const `LIST_INTENT_FTS_LIMIT=10`。
@@ -921,9 +955,9 @@ cursor 分页 / race token) + 文件清单 + 已知限制 + commit 链。
     skip persons/items；0 结果 **不 fallback**（避免拉 message/visit 给 LLM 错算 sum）。
     新 const `SUM_AMOUNT_SUBTYPES` + `SUM_AMOUNT_MIN_PER_SUBTYPE=20`。commit `c0fe34933`。
 - **`packages/personal-data-hub/lib/query-parser.js`** 新 export `extractEntityTerm(text)`
-  + `ENTITY_STOP_PATTERNS` 黑名单（时间/intent/subtype/adapter/list-trigger/虚词/标点/数字，
-  multi-char compound 先于 short alternative 防 "多少钱" decay）。剩下 2-10 字符段取最长。
-  单字中文名（"妈"/"爸"）不抽 — single-char false-positive 过多（已知限制）。
+  - `ENTITY_STOP_PATTERNS` 黑名单（时间/intent/subtype/adapter/list-trigger/虚词/标点/数字，
+    multi-char compound 先于 short alternative 防 "多少钱" decay）。剩下 2-10 字符段取最长。
+    单字中文名（"妈"/"爸"）不抽 — single-char false-positive 过多（已知限制）。
 - **Bug fix (2026-05-24)**：sum-amount narrow 0 结果原 fallback 到默认 path 会拉
   messages/visits 给 LLM 错算 sum。改为返回 `[]` 触发 `warning="no-facts"` +
   TOTALS preamble 让模型说"找不到相关花费记录"。与 latest fallback 行为不对称
@@ -934,7 +968,7 @@ cursor 分页 / race token) + 文件清单 + 已知限制 + commit 链。
   - `cli/hub-ask.test.js` +1 question-verbatim-passthrough canary（CLI 不能预处理问题，
     否则 routing 路径全错）
 - **文档**：新设计文档 [`docs/design/PDH_Analysis_Engine_Intent_Routing.md`](docs/design/PDH_Analysis_Engine_Intent_Routing.md)
-  + Personal_Data_Hub_Architecture.md §8.3 加 cross-reference。
+  - Personal_Data_Hub_Architecture.md §8.3 加 cross-reference。
 - 关键 caveat (memory `pdh_analysis_engine_intent_routing.md` 详记):
   - latest 必须 `!timeWindow` 才走 narrow（"最近 30 天" 是 list-with-window 不是"最新 3 条"）
   - sum-amount 0-result 不 fallback（避免 LLM 错算）— 与 latest 不对称
@@ -1119,6 +1153,7 @@ cursor 分页 / race token) + 文件清单 + 已知限制 + commit 链。
 **Personal Data Hub Phase 4.5 → 13.7 全收口** in one evening across 15 commits `763047a22 → b2baf4eda`. **38 test files / 792 tests / 9/9 AIChat real-vendor wired**.
 
 **New phases**:
+
 - Phase 4.5 — Python sidecar bridge + SystemDataAdapter wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 sjqz parsers via subprocess JSON-RPC, avoiding parser rewrite.
 - Phase 7 — Shopping three-pack (Taobao + JD + Meituan) order/logistics/reviews adapter.
 - Phase 7.5 — Mobile Extraction Layer: Android ADB backup + iOS iTunes encrypted backup via `adm-zip` + `iconv-lite` (GBK→UTF-8).
@@ -1145,7 +1180,7 @@ v5.0.3.67 desktop release succeeded (all 11 jobs green) but `publish-cli` saw `c
 
 ## [v5.0.3.67] - 2026-05-19 — Android Phase 5.6/5.8 cc-exec 自然语言 Chat
 
-First release letting LLM directly call native `cc` CLI from Android for read-only queries. 8-subcommand allowlist (note/search/memory/skill/status/session/mcp/did) gated through mksh + Node bundled in app. Three LLM tool-use protocols wired: OpenAI tool_calls + type:function, Doubao (wire-compat delegate), Claude/Anthropic tool_use blocks + tool_result role=user. 127 new tests across CcAllowlist (38) / CcExecService (19) / CcToolCallDispatcher (17) / CcChatOrchestrator (14) / CcChatViewModel (19) / CcChatIntegrationTest (9). 3 fixes shipped alongside: B17 allowedSubcommands required / B26 StreamChunk.error surface / B28 async pipe drain to avoid JVM buffer deadlock. Real-device E2E Checklist + SOP shipped under `docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_*.md`.
+First release letting LLM directly call native `cc` CLI from Android for read-only queries. 8-subcommand allowlist (note/search/memory/skill/status/session/mcp/did) gated through mksh + Node bundled in app. Three LLM tool-use protocols wired: OpenAI tool*calls + type:function, Doubao (wire-compat delegate), Claude/Anthropic tool_use blocks + tool_result role=user. 127 new tests across CcAllowlist (38) / CcExecService (19) / CcToolCallDispatcher (17) / CcChatOrchestrator (14) / CcChatViewModel (19) / CcChatIntegrationTest (9). 3 fixes shipped alongside: B17 allowedSubcommands required / B26 StreamChunk.error surface / B28 async pipe drain to avoid JVM buffer deadlock. Real-device E2E Checklist + SOP shipped under `docs/design/Android_AI_Chat_CC_Exec_Phase_5_8*\*.md`.
 
 ## [v5.0.3.65–66] - 2026-05-17/18 — Android cc CLI bundle + iOS .ipa 重发
 
@@ -1156,6 +1191,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 > 一晚 19 commits 收口 iOS Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 多模态实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修。
 
 **Phase 6.3 — Knowledge 桌面 30 method 全 hybrid**（commits `d5525c1d1` → `874b3b83c`）
+
 - step 1: folders 5 + tags CRUD 3 + getNote alias 2 = 10 method
 - step 2: versions 4 + star/pin 6 = 10 method
 - step 3: archive 3 + import-export 4 + tags 高级 3 = 10 method
@@ -1164,12 +1200,14 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - 92 cumulative tests 联跑 7.94s
 
 **Phase 6.3 — iOS KnowledgeCommands actor wrap 31 method**（commit `5b0e82c97`）
+
 - `Modules/CoreP2P/Sources/RemoteSkills/Knowledge/KnowledgeCommands.swift` actor 31 method（30 + getNote alias）
 - `KnowledgeModels.swift` 25 Sendable Response struct + `pickIdAsString` / `pickInt64` helper
 - 复用 Extension Phase 6.7 `invokeAndDecode` helper 模板（method ≥ 10 时统一）
 - 35 envelope + decode + tag JSON 字符串→数组 + Int→String id 标准化 tests
 
 **Phase 6.4 — AI Handler 桌面 25 method 全 hybrid**（commits `b6da42ef2` + `d23d41cc9` + `d0bb48733`）
+
 - commit 1: Conversations 高级 5 + Prompt templates 3 + RAG 5 = 13 method
 - commit 2: Multimodal 4 + Code helpers 4 = 8 method
 - commit 3: Agents 4 = 4 method
@@ -1178,12 +1216,14 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - 101 cumulative ai tests 联跑 1.7s
 
 **Phase 6.4 — iOS AIExtendedCommands actor wrap 25 method**（commit `cf75e822f`）
+
 - `Modules/CoreP2P/Sources/RemoteSkills/AIExtended/` 25 method + 24 Sendable Response struct
 - 与 AIChat (Phase 5 12) 并列共 37 ai method 完全覆盖桌面
 - SeedRegistry ai entry methodCount 53 → 37 对齐真实，nativeSourceFile 列两个 actor
 - 28 envelope/decode tests
 
 **Phase 6.4 UI — KnowledgeView + AIExtendedView**（commit `b92ffe640`）
+
 - RemoteOperateView SkillTab 13 → **15** main tab（`.knowledge` 📚 / `.aiExtended` ✨）
 - KnowledgeView 4 filter segmented（All/Starred/Pinned/Archived）+ 搜索 + 新建 sheet + swipe action
 - AIExtendedView 3 sub-tab（Templates/Code 3 mode/RAG）
@@ -1192,12 +1232,14 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - 19 VM tests（filter 路由 / optimistic update / archive 列表移除 / code 3 mode 路由 / RAG search+stats）
 
 **Phase 6.4 v0.2 — Multimodal + Agents UI**（commit `d897d3cdf`）
+
 - AIExtendedView +2 sub-tab → 5 sub-tab（触 HIG 软上限，picker 切 horizontal scroll + capsule highlight）
 - Multimodal 4 mode：PhotosUI PhotosPicker OCR / 文本生图 AsyncImage+base64→UIImage / TTS AVAudioPlayer / .fileImporter UTType.audio → base64 transcribe
 - Agents：statusBanner + 列表 + run form + 4 色 status chip（running/complete/failed/stopped）
 - 13 VM tests（Multimodal 7 + Agents 6）
 
 **Phase 6.4 v0.3 — Agent streaming + 实时录音**（commits `a2d41fc7e` + `073af9ed4`）
+
 - 桌面 `runAgentStream` 复用既有 `activeStreams` Map（streamId-agnostic 与 chat stream 共用），onChunk 兼容 string + {content} 对象
 - iOS 3 wrap method（runAgentStream/getAgentStreamChunk/cancelAgentStream，后两个调既有桌面 `ai.getStreamChunk`/`ai.cancelStream`）
 - VM 后台 Task while `!Task.isCancelled` 轮询 250ms（≈4Hz UI 更新，测试可调小）+ MainActor.run 累 `agentStreamOutput`
@@ -1206,6 +1248,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - 10 desktop tests + 4 iOS VM streaming tests = 14
 
 **iOS CI 真编 verify**（commits `fa0746860` + `1fb947b32`）
+
 - iOS GitHub Actions `ios-build.yml` 2 轮抓 2 真 bug 修：
   1. `RemoteAIExtendedViewModel.swift:425` `sinceChunk = resp.nextChunkIdx` —`StreamChunkResponse.nextChunkIdx` 是 `Int?`，类型不匹配 → `?? sinceChunk`
   2. `RemoteAIExtendedViewModel.swift:431` `if let err = resp.error` — `StreamChunkResponse` 模型缺 `error` 字段 → 加 (backward-compat decode)
@@ -1213,12 +1256,14 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - **绿基线 `1fb947b32`** (Build & Test SPM + Build Release SPM 三 job 全绿)
 
 **设计文档**
+
 - `iOS_对标_Android_Phase_6_Plan.md` §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式（invokeAndDecode helper 模板 / 桌面 handler available 优雅降级 / better-sqlite3 Number→TEXT trap / iOS Inner View StateObject 模式 / OQ-3 hybrid 决策框架）
 - `iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md` — Phase 6.3/6.4 desktop debt 审计
 - `iOS_Phase_6_6_Desktop_Skill.md` + `iOS_Phase_6_7_Extension_Skill.md` — Coverage Trap T2/T4 误判修正
 - `iOS_Phase_6_0_RealDevice_E2E_Plan.md` v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级
 
 **memory** 新增 4 entries（type=feedback/project）：
+
 - `phase_6_knowledge_ai_hybrid_complete` (project) — 全套总结
 - `better_sqlite3_text_number_trap` (feedback) — Number→TEXT "1.0" 5 处 String() 包
 - `ios_inner_view_stateobject_pattern` (feedback) — SwiftUI @EnvironmentObject 不可在 init() 用
@@ -1233,11 +1278,13 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 > 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。
 
 **Issue 1: LOCAL 项目终端入口改为 PC 项目 picker**
+
 - 旧 v1 手输 Windows 路径太难用；新 v2 dialog 打开调 `project.list` 拉所有桌面项目 → LazyColumn picker → tap row → 保存 pcRootPath + 跳终端
 - 同名匹配项目高亮 "同名" 标顶部；列表为空时自动展开自定义路径折叠区 + error hint
 - 触点：`RemoteContextViewModel.listPcProjects` / `ProjectDetailScreenV2` AlertDialog 全重写
 
 **Issue 2: PC→Android 全量项目内容拉取**
+
 - 旧 v1 pullSingle 只拉 metadata + 文件清单；新 v2 之后循环 `project.getFile(fileId)` 把每个文件 content 存 Room project_files
 - 单文件失败 continue + log warn；content > 1MB skip 占位 row 防 OOM
 - PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + 当前文件名行
@@ -1423,7 +1470,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - `.github/workflows/ios-build.yml` — 拔双层 mask，destination 改 `generic/platform=iOS Simulator`，pivot 到 native `swift build --target CoreP2P`（绕开 xcodebuild + Package.swift CLI 不可靠的坑）。Phase 1-5 CoreP2P 真编译验证（run 25923999179）
 - `ios-app/Package.swift` 清理：删 dead targets（CoreBlockchain 目录从未创建 / sqlcipher repo 没 Package.swift / libsignal repo 没 root Package.swift）；恢复 CoreDatabase target（之前误删——其实只用 Apple 内置 SQLite3）；CoreDatabase DAO+Migrations 暂排除编译（缺 8 个未实现 model 类型）
 - `ios-app/ChainlessChain.xcodeproj/project.pbxproj`：commit `5ea6c47bf` 修 25 个 broken file path（24 改 ./ChainlessChain/Features/.../X.swift 全路径 + 删 KnowledgeItem.swift 孤儿引用）；commit `159fc2403` 程序化加 XCLocalSwiftPackageReference + 6 个 XCSwiftPackageProductDependency（via `wire_spm_packages.rb`）
-- `.gitignore` `models/` 改 `/models/` — anchor 顶层，避免 case-insensitive 误杀子目录 Modules/iOS Features/*/Models/（实战屏蔽 7 个 Swift 文件 silent）
+- `.gitignore` `models/` 改 `/models/` — anchor 顶层，避免 case-insensitive 误杀子目录 Modules/iOS Features/\*/Models/（实战屏蔽 7 个 Swift 文件 silent）
 - `.github/workflows/release.yml` build-ios job — 删 `ruby scripts/create_xcode_project.rb`（会覆盖 wiring）+ 删所有 mask + 临时回退 SPM-only 路径（待 app target 412 错消化后再恢复 xcodebuild archive + IPA export）
 
 ### Added — iOS 缺失类型补 stubs
@@ -1541,7 +1588,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 ### Added — Phase 2 DC fast path
 
-- `SignalingRpcClient.invoke` 内部 `trySendViaDataChannel` 优先 `webRTCClient.sendMessage(envelope)`，DC 未 ready 或 sendMessage 抛 IllegalStateException 时自动 fallback signaling LAN+relay 既有路径。**所有 RPC 客户端**（terminal + system.* + ai.*）自动受益，pending pool 共享。
+- `SignalingRpcClient.invoke` 内部 `trySendViaDataChannel` 优先 `webRTCClient.sendMessage(envelope)`，DC 未 ready 或 sendMessage 抛 IllegalStateException 时自动 fallback signaling LAN+relay 既有路径。**所有 RPC 客户端**（terminal + system._ + ai._）自动受益，pending pool 共享。
 - `preferDataChannel: Boolean = true` feature flag（in-memory；后期接 SharedPreferences）允许诊断切回纯 signaling。
 - `ensureResponseListener` 双路监听 `SignalClient.forwardedMessages` + `WebRTCClient.messages`，响应从任一路到达都 complete 同一 pending deferred；二次 complete 被 CompletableDeferred 安全忽略，无需显式去重。
 - 埋点 `[SignalingRpc.metric] path=dc|signaling → method`，发版 grep logcat 算 fast path 占比（验收 > 80% / 一周内）。
@@ -1630,12 +1677,12 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 ### Tests — 39 new, all green
 
-| 层 | 文件 | 数量 |
-|----|------|------|
-| Unit (core-p2p) | `RealtimeEventManagerProfileQueryTest` | 6 |
-| Unit (feature-p2p) | `PostRepositoryReportTest / FriendRepositoryRemoteLookupTest / FriendViewModelBlockedUsersTest / DefaultSelfProfileProviderTest` | 4+4+4+2 = 14 |
-| Integration (core-database) | `PostReportDaoTest` (Robolectric + in-memory Room) | 8 |
-| Regression (app) | `SocialRouteRegressionTest / SocialScreenTabRegressionTest` | 6+5 = 11 |
+| 层                          | 文件                                                                                                                             | 数量         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Unit (core-p2p)             | `RealtimeEventManagerProfileQueryTest`                                                                                           | 6            |
+| Unit (feature-p2p)          | `PostRepositoryReportTest / FriendRepositoryRemoteLookupTest / FriendViewModelBlockedUsersTest / DefaultSelfProfileProviderTest` | 4+4+4+2 = 14 |
+| Integration (core-database) | `PostReportDaoTest` (Robolectric + in-memory Room)                                                                               | 8            |
+| Regression (app)            | `SocialRouteRegressionTest / SocialScreenTabRegressionTest`                                                                      | 6+5 = 11     |
 
 **关键学习——race-fix**：`queryProfile resolves with matching PROFILE_RESPONSE` 这个测试最初用 `runTest` 跑 fail——`RealtimeEventManager` 内部 `scope = CoroutineScope(Dispatchers.IO + SupervisorJob())` 与 `runTest` virtual-time TestDispatcher 不在同一调度图，2s timeout 在 virtual 时间瞬时跳完，IO 协程还没来得及 `handleRealtimeMessage` 就 fail。改 `runBlocking + withTimeout(10_000)` 跑真实并发后通过。
 
@@ -1670,7 +1717,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 - **A.3 ADR Review v2.0**（commit `348896382`）—— 新增 [`docs/design/Android_ADR_重评估_v2.0.md`](docs/design/Android_ADR_重评估_v2.0.md) v1.0；8 ADR 全 audit 结论 **5 keep / 2 amend / 1 revise**：ADR-2 (M2 DID wallet 走软件 Ed25519，blocks B.3 DID rotate) 待 v1.2 GA Play Console API level 数据决策选项 A/B/C；ADR-7 (cc-mobile.json 从未创建，实际走 user_settings 表 + `mobile.*` scope) + ADR-8 (实际 disk-first + push-based，非 pull) 文本 amend 落 §4 对齐真实。同 commit §10 v1.3+ scope triage 分层（12 子项 P0/P1/P2 + 5 依赖链）。
 - **B.6 PQC 严格模式 verifier gate**（commit `e24386d00`）—— `packages/core-mtc/lib/landmark-cache.js` 加 `strictPqMode` opt-in flag + `_assertStrictPqMode()` + `_assertStrictPqModeForSnapshot()` 两层 gate + `STRICT_PQ_MODE_VIOLATION` error code + `CLASSICAL_ALGS` 常量 + `isClassicalAlg` helper。Reading A 语义：拒收任何 `alg === "Ed25519"` 的 partial sig + publisher_signature；与现 heterogeneous federation 数据格式兼容，0 schema 改动；生产者侧 0 改动（用户已可配 SLH-DSA signers）。
-- **B.2 in-process multisig.* + marketplace.consume topics**（commit `b1c7cfd95` + label fix `c21ba9346`）—— `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` 新增 7 个 WS topics 镜像 CLI `--json` 输出 shape：`multisig.list / show / policy.show / cancel / finalize / sweep` + `marketplace.consume`。Topics 调 `openMultisigManager()` from CLI `multisig-runtime.js`（per-call open SQLite WAL ~20ms），dynamic-import 跨 CJS/ESM 边界。`Multisig.vue` 加 `callMultisigTopic(topic, msg, fallbackCmd)` helper 用 `useShellMode().isEmbedded` 分发；7 处 `ws.executeJson` 全切；非 embedded（cc serve 无 asar 开销）保留原 subprocess fallback。**性能：asar:true 子进程冷启 6-10s → in-process ~20ms (SQLite open) + 查询，60-100× 提升**。UX 0 改动。
+- **B.2 in-process multisig.\* + marketplace.consume topics**（commit `b1c7cfd95` + label fix `c21ba9346`）—— `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` 新增 7 个 WS topics 镜像 CLI `--json` 输出 shape：`multisig.list / show / policy.show / cancel / finalize / sweep` + `marketplace.consume`。Topics 调 `openMultisigManager()` from CLI `multisig-runtime.js`（per-call open SQLite WAL ~20ms），dynamic-import 跨 CJS/ESM 边界。`Multisig.vue` 加 `callMultisigTopic(topic, msg, fallbackCmd)` helper 用 `useShellMode().isEmbedded` 分发；7 处 `ws.executeJson` 全切；非 embedded（cc serve 无 asar 开销）保留原 subprocess fallback。**性能：asar:true 子进程冷启 6-10s → in-process ~20ms (SQLite open) + 查询，60-100× 提升**。UX 0 改动。
 - **A.3 AI-3 SkillMetadata.signature forward-compat**（commit `45a88270e`）—— Android-side Kotlin。新增 `ManifestSignatureVerifier.kt`：`interface` + sealed `VerificationResult.{Accepted | Rejected(reason)}` + `object NoOpManifestVerifier` always-accept stub（默认 wired）。`SkillMetadata.kt` 加 `signature: String? = null` field + init invariant（null = unsigned legacy，blank reject）。`RemoteSkillRegistry.kt` 加 `@Volatile manifestVerifier = NoOpManifestVerifier` + `setManifestVerifier(v)` swap seam + `updateFromRemote()` 跑 verifier per-skill（Accepted 合并，Rejected `Timber.w` warn-log + 跳过，accepted.isEmpty() 短路）。Marketplace M0（#21 AI-5）上线时注入真 Ed25519/SLH-DSA hybrid verifier 即可，调用方 0 改动。
 
 ### Fixed
@@ -1695,11 +1742,13 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 ### Tests
 
 阶段 1 (P0):
+
 - **`landmark-cache-strict-pq-mode.test.js`** 11/11 pass（原 9 + 2 disk-load integration tests for strict mode persistence）
 - **`multisig-handlers.test.js`** 23/23 pass（B.2 via `runtimeFactory` 注入 seam）
 - **`ManifestSignatureVerifierTest.kt`** 10/10 + `SkillMetadataTest` 9/9 + `RemoteSkillRegistryTest` 38/38 regression 全过
 
 阶段 2 (project workflow):
+
 - **`project-management-handler.test.js`** 21/21 pass（P1 desktop handler）
 - **`project-cli.test.js`** 7/7 pass（P1 `cc project` CLI integration via sql.js WASM temp DB）
 - **`ProjectSyncWalkerTest.kt`** 12 tests (P2 Android walker — pending CI run，本地 feature-project test 套有 pre-existing 不相关 failures)
@@ -1837,7 +1886,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 - **Auth + DID** —— `AuthRepository.register` 幂等回退到 `verifyPIN`（fix race：AuthVM 异步 DataStore read vs splash navigate 抢跑）；SettingsScreen 生物识别 toggle 接 AuthVM `enableBiometric` / `disableBiometric`；新增 `KeyManagementScreen`（DID + public key hex + clipboard + trusted devices + reset）
 - **Home page UX** —— LLM 未配置 banner 显示在 BrandSection 上方（点击跳 LLM Settings）；Send-from-home prefill 通路：home → NewConversation route 带 prefill；`ConversationViewModel.getDefaultModel()` + 自动建会话（prefill 跳过 picker UI）；BrandSection / AboutScreen logo 切 `R.mipmap.ic_launcher`（TT 品牌）；FunctionEntryCard 12 个硬编码彩色 → 统一 surfaceVariant + 44dp icon chip
 - **Launcher icons** —— 替换默认 Android 机器人 `mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher{,_round}.png` 为 TT logo（PIL LANCZOS resize）
-- **顺手修的 latent bug**：`OpenAIAdapter.{chat,chatWithTools,checkAvailability,streamChat}` 加 `withContext IO` + `flowOn`（之前 block main thread → 12s 主页冻结）；`RemoteConnectionManager.invoke{,WithRetry}` inline reified `<T : Any>`；`ProcessManagerViewModel.cpuUsage` Elvis fallback 改 `Double 0.0`；`SystemMonitorScreen.kt:149` `os?.type/version` null-safe；256 个 `rs_*` string stub 自动生成（remote/ui/* 屏 Phase 3d v1.3 work 平行编译需要）
+- **顺手修的 latent bug**：`OpenAIAdapter.{chat,chatWithTools,checkAvailability,streamChat}` 加 `withContext IO` + `flowOn`（之前 block main thread → 12s 主页冻结）；`RemoteConnectionManager.invoke{,WithRetry}` inline reified `<T : Any>`；`ProcessManagerViewModel.cpuUsage` Elvis fallback 改 `Double 0.0`；`SystemMonitorScreen.kt:149` `os?.type/version` null-safe；256 个 `rs_*` string stub 自动生成（remote/ui/\* 屏 Phase 3d v1.3 work 平行编译需要）
 
 ### Fixed
 
@@ -1933,10 +1982,10 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
   - 新增 23 个 case 覆盖 18 channel 路由 + happy-path payload + AuditManager 异常路径
   - 全局测试套总数滚到 17,455 / 17,455
 
-| 套 | 通过 |
-|---|---|
-| desktop 单测 | 1477 / 1477 |
-| CLI unit | 17,455 / 17,455 |
+| 套           | 通过            |
+| ------------ | --------------- |
+| desktop 单测 | 1477 / 1477     |
+| CLI unit     | 17,455 / 17,455 |
 
 ### Notes
 
@@ -1977,10 +2026,10 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 > 源码级 follow-ups，源自 `551ef28b3` "fix(ipc): correct ipcGuard API" 那次 sweep 不彻底，留下两类互补 bug。两个 commit 都是源码 / 测试同步问题，**不影响 v5.0.3.43 桌面 binary 的业务功能**（handlers 仍正常注册），下次发版自动滚入。
 
-| Commit | Bug | 为什么之前没炸 | 测试 |
-|---|---|---|---|
-| **`af92e0162` fix(test): align nostr-bridge-ipc stub** | 源码用 `ipcGuard.markModuleRegistered(name)` 直调（real guard 有此 fn），但 test stub 仍 mock 不存在的 `registerModule(name, channels)` 二参 → stub 调时 `TypeError: ipcGuard.markModuleRegistered is not a function`，23 / 389 social 用例炸 | CI "Unit Tests" stable-fallback 排除 `**/*-ipc.test.js`；"Full Test Suite" 用 `continue-on-error: true` | 23 / 23 ✅ |
-| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 个 IPC 模块（autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference）反过来 —— 源码 `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }`，real guard 没 `registerModule` → `if` 永远 falsy → guard 内部 `registeredModules` Set 漏跟踪这 8 个模块。Handlers 走 `ipcMain.handle` 仍真正注册，业务功能正常，只是 guard tracker 漏 8 个模块 | 测试 stub 自己 mock 了 `registerModule` → 测试假绿 | 邻近 29 文件 577 / 577 ✅ |
+| Commit                                                  | Bug                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 为什么之前没炸                                                                                          | 测试                      |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **`af92e0162` fix(test): align nostr-bridge-ipc stub**  | 源码用 `ipcGuard.markModuleRegistered(name)` 直调（real guard 有此 fn），但 test stub 仍 mock 不存在的 `registerModule(name, channels)` 二参 → stub 调时 `TypeError: ipcGuard.markModuleRegistered is not a function`，23 / 389 social 用例炸                                                                                                                                                                                                            | CI "Unit Tests" stable-fallback 排除 `**/*-ipc.test.js`；"Full Test Suite" 用 `continue-on-error: true` | 23 / 23 ✅                |
+| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 个 IPC 模块（autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference）反过来 —— 源码 `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }`，real guard 没 `registerModule` → `if` 永远 falsy → guard 内部 `registeredModules` Set 漏跟踪这 8 个模块。Handlers 走 `ipcMain.handle` 仍真正注册，业务功能正常，只是 guard tracker 漏 8 个模块 | 测试 stub 自己 mock 了 `registerModule` → 测试假绿                                                      | 邻近 29 文件 577 / 577 ✅ |
 
 修法：stub `registerModule` → `markModuleRegistered` + 断言去 channels 参（test 侧）；`if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` → `ipcGuard.markModuleRegistered(name)`，同时去掉同样无意义的 `if (ipcGuard.unregisterModule)` wrap（源码侧）。CI 漏检的两类（fallback 排除 `*-ipc.test.js` + Full Suite `continue-on-error: true`）作为单独 follow-up，不在本 commit 范围。
 
@@ -1988,22 +2037,22 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 > 当晚晚些时候继续清理。其中 `cf77aea8d` 直接关掉上一段 explicit 留的"CI 漏检两类"follow-up；其余三条是顺手清出的 V5 opt-out 死代码 + 必走的 CLI 版本 bump + 一个 web-panel 404 bundle 修。这一批同样**不影响 v5.0.3.43 桌面 binary 的业务功能**，下次发版自动滚入。
 
-| Commit | 内容 |
-|---|---|
-| **`1cb6576b9` chore(web-panel): refresh built asset hashes** | committed 的 `index.html` 引用 `index-Cf0pZvjB.js`，但该 bundle 已被新 build 覆盖；workspace 实际用 `index-Cs70ksHC.js` —— main 上 web-panel 在加载 404 bundle。同步两处 dist (`packages/web-panel/dist/` + `packages/cli/src/assets/web-panel/`) |
-| **`cf77aea8d` fix(ci): close test.yml two coverage holes** | (1) Unit Tests stable-fallback 删掉 `**/*-ipc.test.js` catch-all（40 个 IPC 文件本地 39 pass + 1 skip / 1476 用例）；(2) Full Test Suite "Run all unit tests" 删掉 `continue-on-error: true`（coverage step 保留）。drive-by：`compliance-ipc.test.js` 3 个 fail align 到源里实际注册的 `compliance-classify:*` typo 前缀（dead handler 独立 bug 后续 commit 再处理） |
-| **`539463b85` refactor(ui): drop dead chat-panel state + stale V5 page references** | `5066a778d` 删了 V5 ChatPanel 容器，但 `app.ts` `chatPanelVisible` field、`AppHeader` 聊天 toggle、`VoiceCommandHandler` 打开/关闭聊天 + 未识别语音 fall-through 派发到聊天的分支全成 cosmetic no-op。同时清 4 个 plugin.json description + `communityQuick.ts` header 引用已删 V5 页面的 stale 字符串。−50 行净瘦身 |
-| **`a9b85f5ba` test(ui): drop chatPanelVisible default-state assertion in app.test.js** | `539463b85` 漏改第二个 store 测试 `tests/unit/stores/app.test.js`（之前 .ts 镜像 `src/renderer/stores/__tests__/app.test.ts` 改了，.js 这个 broke）。pre-commit prettier 顺手 reformat 整文件单引号→双引号 |
-| **`c61de71eb` chore(cli): bump 0.161.4 → 0.161.5** | `af92e0162` + `11247a957` 改了 CLI 源但没 bump 版本号 → 下次发版 cli-tests 会被 `SHOULD_TEST=false` 跳过（rule: `github_release_pipeline_constraints.md` #5）。drive-by：`package-lock.json` 之前 v5.0.3.42 release 时 .161.3 → .161.4 漂移没修，一并对齐到 .161.5 |
+| Commit                                                                                 | 内容                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`1cb6576b9` chore(web-panel): refresh built asset hashes**                           | committed 的 `index.html` 引用 `index-Cf0pZvjB.js`，但该 bundle 已被新 build 覆盖；workspace 实际用 `index-Cs70ksHC.js` —— main 上 web-panel 在加载 404 bundle。同步两处 dist (`packages/web-panel/dist/` + `packages/cli/src/assets/web-panel/`)                                                                                                                     |
+| **`cf77aea8d` fix(ci): close test.yml two coverage holes**                             | (1) Unit Tests stable-fallback 删掉 `**/*-ipc.test.js` catch-all（40 个 IPC 文件本地 39 pass + 1 skip / 1476 用例）；(2) Full Test Suite "Run all unit tests" 删掉 `continue-on-error: true`（coverage step 保留）。drive-by：`compliance-ipc.test.js` 3 个 fail align 到源里实际注册的 `compliance-classify:*` typo 前缀（dead handler 独立 bug 后续 commit 再处理） |
+| **`539463b85` refactor(ui): drop dead chat-panel state + stale V5 page references**    | `5066a778d` 删了 V5 ChatPanel 容器，但 `app.ts` `chatPanelVisible` field、`AppHeader` 聊天 toggle、`VoiceCommandHandler` 打开/关闭聊天 + 未识别语音 fall-through 派发到聊天的分支全成 cosmetic no-op。同时清 4 个 plugin.json description + `communityQuick.ts` header 引用已删 V5 页面的 stale 字符串。−50 行净瘦身                                                  |
+| **`a9b85f5ba` test(ui): drop chatPanelVisible default-state assertion in app.test.js** | `539463b85` 漏改第二个 store 测试 `tests/unit/stores/app.test.js`（之前 .ts 镜像 `src/renderer/stores/__tests__/app.test.ts` 改了，.js 这个 broke）。pre-commit prettier 顺手 reformat 整文件单引号→双引号                                                                                                                                                            |
+| **`c61de71eb` chore(cli): bump 0.161.4 → 0.161.5**                                     | `af92e0162` + `11247a957` 改了 CLI 源但没 bump 版本号 → 下次发版 cli-tests 会被 `SHOULD_TEST=false` 跳过（rule: `github_release_pipeline_constraints.md` #5）。drive-by：`package-lock.json` 之前 v5.0.3.42 release 时 .161.3 → .161.4 漂移没修，一并对齐到 .161.5                                                                                                    |
 
 ### Tests
 
-| 套 | 通过 |
-|---|---|
-| desktop 单测（含 nostr-bridge-ipc 修） | 1454 / 1454 |
-| core-mtc 单测 | 258 / 258 |
-| CLI mtc-federation 集成 | 41 / 41 |
-| CLI 全量 unit | 17,432 / 17,432 |
+| 套                                     | 通过            |
+| -------------------------------------- | --------------- |
+| desktop 单测（含 nostr-bridge-ipc 修） | 1454 / 1454     |
+| core-mtc 单测                          | 258 / 258       |
+| CLI mtc-federation 集成                | 41 / 41         |
+| CLI 全量 unit                          | 17,432 / 17,432 |
 
 ### Notes
 
@@ -2048,14 +2097,14 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 ### Tests
 
-| 套 | 通过 |
-|---|---|
-| desktop unit（MTC + DID + social + web-shell + p2p + bootstrap + renderer）| 1454 / 1454（4 skipped）|
-| core-mtc 单测 | 258 / 258 |
-| CLI chat-intent + mtc-federation core/trust/sync 集成 | 69 / 69 |
-| CLI 全量 unit | 17,432 / 17,432 |
-| web-panel 单元 | 1853 / 1853 |
-| web-panel e2e | 63 / 63 |
+| 套                                                                          | 通过                     |
+| --------------------------------------------------------------------------- | ------------------------ |
+| desktop unit（MTC + DID + social + web-shell + p2p + bootstrap + renderer） | 1454 / 1454（4 skipped） |
+| core-mtc 单测                                                               | 258 / 258                |
+| CLI chat-intent + mtc-federation core/trust/sync 集成                       | 69 / 69                  |
+| CLI 全量 unit                                                               | 17,432 / 17,432          |
+| web-panel 单元                                                              | 1853 / 1853              |
+| web-panel e2e                                                               | 63 / 63                  |
 
 ### Notes
 
@@ -2075,15 +2124,15 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 
 ### Tests
 
-| 套 | 通过 | 文件 | Duration |
-|---|---|---|---|
-| Desktop unit + stores | 10482 / 10482 (689 skipped) | 320 | 1022s |
-| MTC handler in-process 新增 | 7 / 7 | 1 | 3.4s |
-| web-panel mtc-parser 新增 | 14 / 14 | 1 | 1.1s |
-| CLI unit | 17392 / 17392 (7 skipped) | 412 | 458s |
-| CLI integration | 821 / 821 | 56 | 198s |
-| CLI e2e | TBD | TBD | TBD |
-| **小计** | **12224 + e2e** | **790+** | **~28 min** |
+| 套                          | 通过                        | 文件     | Duration    |
+| --------------------------- | --------------------------- | -------- | ----------- |
+| Desktop unit + stores       | 10482 / 10482 (689 skipped) | 320      | 1022s       |
+| MTC handler in-process 新增 | 7 / 7                       | 1        | 3.4s        |
+| web-panel mtc-parser 新增   | 14 / 14                     | 1        | 1.1s        |
+| CLI unit                    | 17392 / 17392 (7 skipped)   | 412      | 458s        |
+| CLI integration             | 821 / 821                   | 56       | 198s        |
+| CLI e2e                     | TBD                         | TBD      | TBD         |
+| **小计**                    | **12224 + e2e**             | **790+** | **~28 min** |
 
 ### Notes
 
@@ -2096,20 +2145,24 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 ## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装显著加速, issue #8）
 
 ### Fixed
+
 - Windows installer time substantially reduced by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`). **Measured: 190.9s on dev-box (NVMe SSD + Defender OFF) vs 1201s legacy baseline (issue #6) = 6.3× speedup. HDD + Defender ON default-environment strict parity not measured** — see [issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) for methodology caveats.
 
 ### Added
+
 - `scripts/asar-surgery.js` — extract → inject → repack with original unpackDir preserved + verification gate.
 - `scripts/build-win-with-deref.js` — Win wrapper that detaches workspace symlinks, runs electron-builder, restores in finally with `'junction'`.
 - `scripts/probe-asar.js` — debug CLI for inspecting any asar's top-level entries.
 - `tests/unit/scripts/asar-surgery.test.js` (8) + `build-win-with-deref.test.js` (15) — 23 unit/integration tests, real fs + real `@electron/asar` against tmp fixtures.
 
 ### Changed
+
 - `electron-builder.yml`: `asar: false` → `asar: true`; removed 7 force-include `extraResources` entries that targeted `app.asar.unpacked/`.
 - `scripts/electron-after-pack.js`: dual-branch — asar:false nuclear-replace (legacy) / asar:true `runSurgery`. Mac/Linux + Win all funnel through the same hook.
 - `desktop-app-vue/package.json`: `@electron/asar ^3.4.1` declared as explicit devDep (was implicit transitive).
 
 ### Notes
+
 - Surfaced one bug during testing: `@electron/asar` has a module-level `filesystemCache` keyed by archive path; `extractAll` populates it with the pre-surgery header so `listPackage` returns stale entries after we delete + repack. Fix: `asar.uncache(asarPath)` after `fs.rmSync`. Production builds were also affected — no Win VM smoke needed to find this.
 - Refuted approaches (don't re-attempt): asarUnpack glob (issue #6 proven empirical), extraResources to `app.asar.unpacked/` (v5.0.3.12), declaring 4 packages as direct deps (v5.0.3.6).
 - ASAR integrity: Electron `EnableEmbeddedAsarIntegrityValidation` fuse currently macOS-only. Windows post-surgery hash mismatch is unenforced. When macOS support lands, either patch electron.exe hash or disable integrity via `@electron/fuses`.
@@ -2511,6 +2564,7 @@ v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in 
 ### Tests
 
 本轮全面回归通过：
+
 - `src/main/ipc/__tests__/`: 89/89 ✅
 - `src/main/git/__tests__/` + `tests/unit/git/`: 192/192 ✅
 - `tests/unit/project/`: 212/212 ✅（修复了 3 个 pre-existing 失败）
