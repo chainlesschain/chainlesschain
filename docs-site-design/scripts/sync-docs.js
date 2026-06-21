@@ -199,18 +199,22 @@ function escapeVueTags(content) {
  * 替换 markdown 内容中的内部链接（中文路径 → ASCII 路径）
  */
 function rewriteInternalLinks(content) {
-  // 替换 [text](modules/中文.md) 和 [text](中文.md) 链接
+  // 替换内部 markdown 链接的目标文件名（中文 → ASCII slug）。
+  // 支持任意相对前缀（./ ../ modules/ ../modules/ 等）+ 末尾 #anchor，跳过
+  // 外部 http(s)/mailto 链接。旧正则只匹配裸 `modules/` 或无前缀，导致 ./ ../
+  // 与带锚点的链接漏掉、在部署站点以中文文件名 404（如 ../系统设计_主文档.md）。
   return content.replace(
-    /\]\((modules\/)?([^)]+\.md)\)/g,
-    (match, prefix, filename) => {
-      const isModule = !!prefix;
-      const mapped = isModule
-        ? MODULE_FILE_MAP[filename]
-        : ROOT_FILE_MAP[filename];
-      if (mapped) {
-        return `](${prefix || ""}${mapped})`;
-      }
-      return match;
+    /\]\(([^)\s]+?\.md)((?:#[^)\s]*)?)\)/g,
+    (match, linkPath, anchor) => {
+      if (/^(https?:|\/\/|mailto:)/i.test(linkPath)) return match;
+      const slash = linkPath.lastIndexOf("/");
+      const dir = slash >= 0 ? linkPath.slice(0, slash + 1) : "";
+      const base = linkPath.slice(slash + 1);
+      const mapped = dir.includes("modules/")
+        ? MODULE_FILE_MAP[base] || ROOT_FILE_MAP[base]
+        : ROOT_FILE_MAP[base] || MODULE_FILE_MAP[base];
+      if (!mapped) return match;
+      return `](${dir}${mapped}${anchor})`;
     },
   );
 }

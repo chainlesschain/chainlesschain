@@ -152,17 +152,23 @@ function escapeVueTags(content) {
  * 替换 markdown 内容中的内部链接（中文路径 → ASCII 路径）
  */
 function rewriteInternalLinks(content) {
+  // Rewrite internal design-doc link targets (中文 → ASCII slug). Handles any
+  // relative prefix (./ ../ modules/ ../modules/) and a trailing #anchor, and
+  // skips external http(s)/mailto links. The old regex only matched a bare
+  // `modules/` or no prefix, so ./ ../ and anchored links leaked through as
+  // Chinese filenames and 404'd on the deployed site (../系统设计_主文档.md etc).
   return content.replace(
-    /\]\((modules\/)?([^)]+\.md)\)/g,
-    (match, prefix, filename) => {
-      const isModule = !!prefix;
-      const mapped = isModule
-        ? MODULE_FILE_MAP[filename]
-        : ROOT_FILE_MAP[filename];
-      if (mapped) {
-        return `](${prefix || ""}${mapped})`;
-      }
-      return match;
+    /\]\(([^)\s]+?\.md)((?:#[^)\s]*)?)\)/g,
+    (match, linkPath, anchor) => {
+      if (/^(https?:|\/\/|mailto:)/i.test(linkPath)) return match;
+      const slash = linkPath.lastIndexOf("/");
+      const dir = slash >= 0 ? linkPath.slice(0, slash + 1) : "";
+      const base = linkPath.slice(slash + 1);
+      const mapped = dir.includes("modules/")
+        ? MODULE_FILE_MAP[base] || ROOT_FILE_MAP[base]
+        : ROOT_FILE_MAP[base] || MODULE_FILE_MAP[base];
+      if (!mapped) return match;
+      return `](${dir}${mapped}${anchor})`;
     },
   );
 }
