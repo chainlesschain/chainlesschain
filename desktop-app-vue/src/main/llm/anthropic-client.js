@@ -91,12 +91,27 @@ class AnthropicClient extends EventEmitter {
     if (system) {
       payload.system = system;
     }
-    // Current Claude models (Opus 4.7/4.8, Fable 5/Mythos 5) reject sampling
-    // params with a 400 — omit them there, keep them for models that accept them
-    // (Sonnet 4.6, Opus 4.6, Haiku 4.5, Claude 3.x). Added when the default model
-    // moved to claude-opus-4-8; without it the default Anthropic chat 400s
-    // because the desktop config carries a default temperature.
-    if (!modelRejectsSamplingParams(payload.model)) {
+    // Sampling params vs current Claude models (the desktop config defaults
+    // temperature, top_p AND top_k, so this matters):
+    //  - Opus 4.7/4.8 + Fable/Mythos 5 reject temperature/top_p/top_k entirely
+    //    (400) — omit all.
+    //  - Every other Claude 4.x (Sonnet 4.6, Opus 4.6, Haiku 4.5) accepts at
+    //    most ONE of temperature / top_p (sending both 400s) — prefer
+    //    temperature, drop top_p; top_k passes through.
+    //  - Claude 3.x / non-Claude — pass through as before.
+    const effModel = String(payload.model || "").toLowerCase();
+    if (modelRejectsSamplingParams(effModel)) {
+      // omit all sampling params
+    } else if (/claude-(opus|sonnet|haiku)-4/.test(effModel)) {
+      if (options.temperature !== undefined) {
+        payload.temperature = options.temperature;
+      } else if (options.top_p !== undefined) {
+        payload.top_p = options.top_p;
+      }
+      if (options.top_k !== undefined) {
+        payload.top_k = options.top_k;
+      }
+    } else {
       if (options.temperature !== undefined) {
         payload.temperature = options.temperature;
       }

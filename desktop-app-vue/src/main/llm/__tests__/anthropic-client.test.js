@@ -30,7 +30,9 @@ describe("modelRejectsSamplingParams", () => {
     expect(modelRejectsSamplingParams("claude-sonnet-4-6")).toBe(false);
     expect(modelRejectsSamplingParams("claude-opus-4-6")).toBe(false);
     expect(modelRejectsSamplingParams("claude-haiku-4-5")).toBe(false);
-    expect(modelRejectsSamplingParams("claude-3-5-sonnet-20241022")).toBe(false);
+    expect(modelRejectsSamplingParams("claude-3-5-sonnet-20241022")).toBe(
+      false,
+    );
   });
 
   it("handles empty / non-string input", () => {
@@ -72,6 +74,35 @@ describe("AnthropicClient.buildPayload — sampling-param gating", () => {
       false,
     );
     expect(p.temperature).toBe(0.3);
+  });
+
+  it("sends only ONE of temperature/top_p for Sonnet 4.6 (both → 400)", () => {
+    // The desktop config defaults BOTH temperature and top_p; Claude 4.x rejects
+    // them together. Prefer temperature, drop top_p.
+    const p = mk("claude-sonnet-4-6").buildPayload(
+      msgs,
+      { temperature: 0.7, top_p: 0.9, top_k: 40 },
+      false,
+    );
+    expect(p.temperature).toBe(0.7);
+    expect(p.top_p).toBeUndefined();
+    expect(p.top_k).toBe(40); // top_k still allowed alongside one of temp/top_p
+  });
+
+  it("uses top_p for Sonnet 4.6 when temperature is absent", () => {
+    const p = mk("claude-opus-4-6").buildPayload(msgs, { top_p: 0.9 }, false);
+    expect(p.top_p).toBe(0.9);
+    expect(p.temperature).toBeUndefined();
+  });
+
+  it("legacy claude-3.x still accepts BOTH temperature and top_p", () => {
+    const p = mk("claude-3-5-sonnet-20241022").buildPayload(
+      msgs,
+      { temperature: 0.3, top_p: 0.9 },
+      false,
+    );
+    expect(p.temperature).toBe(0.3);
+    expect(p.top_p).toBe(0.9);
   });
 
   it("still works when no sampling params are passed", () => {
