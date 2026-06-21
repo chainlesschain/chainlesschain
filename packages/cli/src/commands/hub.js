@@ -869,7 +869,6 @@ async function cmdCollectQq(options) {
     const fs = require("fs");
     const os = require("os");
     const path = require("path");
-    const Database = require("better-sqlite3");
     const qq = options._qqCore
       ? options._qqCore
       : await import("@chainlesschain/personal-data-hub/forensics/qq-nt-collect");
@@ -906,7 +905,20 @@ async function cmdCollectQq(options) {
       process.exit(2);
     }
 
-    const tmp = path.join(os.tmpdir(), `qqnt-dec-${process.pid}.db`);
+    // better-sqlite3's native binding isn't at the standard `bindings` path on
+    // Android (the bundle loads it specially) — reuse the vault's already-loaded
+    // Database constructor instead of require("better-sqlite3").
+    const hub = await (options._getHub || getHub)();
+    const vault = hub.vault;
+    const Database = (vault.db || vault._db || vault).constructor;
+
+    // Write the plaintext next to the (app-writable) input DB — os.tmpdir() is
+    // /data/local/tmp on Android, which the app uid can't write (EACCES).
+    void os;
+    const tmp = path.join(
+      path.dirname(path.resolve(options.db)),
+      `qqnt-dec-${process.pid}.db`,
+    );
     fs.writeFileSync(tmp, result.decrypted);
     let events;
     try {
@@ -919,8 +931,6 @@ async function cmdCollectQq(options) {
       }
     }
 
-    const hub = await (options._getHub || getHub)();
-    const vault = hub.vault;
     let ingested = 0;
     for (const ev of events) {
       try {
