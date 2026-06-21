@@ -113,18 +113,22 @@ class CollectAppDataTool(
         when {
             snap.noCreds -> buildJsonObject {
                 put("status", "assist_required")
+                // The cookie is captured by the in-app 本机数据 WebView login (which
+                // persists it), NOT by opening the external app (whose cookie stays
+                // in its own sandbox). Direct the user there so collection is
+                // reproducible: log in once → cookie persists → later collects reuse
+                // it with no re-login. (No external-app deepLink here — it would
+                // mislead; salvage_app_data keeps its deepLink since root salvage
+                // genuinely needs the target app foregrounded.)
                 put(
                     "instruction",
-                    "请先在 App 内登录「$app」(让 cookie 生效),然后重试 collect_app_data。",
+                    "采集「$app」需要先登录拿到 cookie。请到 首页 → 本机数据,点开「$app」完成登录" +
+                        "(cookie 会自动保存,以后采集不用再登录),登录后回来点「我已完成」重试。",
                 )
                 put("reason", "no stored credentials for $app")
                 // §3.5.15: a correlation token so the chat's 引导卡 can resume via
                 // {type:resume,token,…} (structured) instead of a plain user turn.
                 put("resumeToken", "collect_app_data:$app")
-                // §3.6: one-tap "打开 App" — the chat opens this target so the user
-                // doesn't have to manually switch apps to log in. The package name
-                // (no scheme) is launched by getLaunchIntentForPackage on the UI side.
-                APP_PACKAGES[app]?.let { put("deepLink", it) }
             }
             snap.failed != null -> throw RuntimeException("$app snapshot failed: ${snap.failed}")
             snap.path == null -> throw RuntimeException("$app snapshot produced no data")
