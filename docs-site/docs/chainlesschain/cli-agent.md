@@ -5,7 +5,7 @@
 ## 核心特性
 
 - 🤖 **Claude Code 风格**: 代理式 AI 会话，自主完成任务
-- 🔧 **9 个内置工具**: 读写文件、执行命令、搜索代码库、代码执行
+- 🔧 **19 个内置工具**: 读写/编辑文件、执行命令（含后台）、搜索代码库与会话、代码执行、联网搜索/抓取、Jupyter 编辑、子代理、技能调用等
 - 🎯 **146 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
@@ -26,7 +26,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
      ┌──────────┬──────────┬─────────────┼──────────────┬─────────────┬──────────┐
      ▼          ▼          ▼             ▼              ▼             ▼          ▼
   工具系统   Plan Mode  Hook管道   Context Engine    会话管理    Autonomous  Bootstrap
- (16 tools) (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
+ (19 tools) (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
                         manager)    engineering.js)  manager)   (ReAct)        │
      │          │          │             │              │          │      7-stage init
      ▼          ▼          ▼             ▼              ▼          ▼        (DB/Config)
@@ -370,7 +370,7 @@ Git: available
 ```
 agent-core.js （中心模块）
     │
-    ├── AGENT_TOOLS (9 工具定义)
+    ├── AGENT_TOOLS (19 工具定义)
     ├── getBaseSystemPrompt() ← getEnvironmentInfo()
     ├── executeTool() → executeToolInner() → _executeRunCode()
     │                                           ├── classifyError()
