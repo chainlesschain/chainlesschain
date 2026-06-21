@@ -293,6 +293,20 @@ describe("evomap-governance", () => {
       expect(p.threshold).toBe(0.67);
     });
 
+    it("falls back to defaults on NaN quorum/threshold (no NaN stored)", () => {
+      // NaN passes `typeof === "number"` and slips past the `< 1` / `<= 0`
+      // guards (NaN comparisons are false) — must now default, not store NaN.
+      const p = createGovernanceProposalV2(db, {
+        title: "T",
+        quorum: Number("abc"), // NaN (e.g. `--quorum abc`)
+        threshold: Number("x"), // NaN
+      });
+      expect(p.quorum).toBe(3);
+      expect(p.threshold).toBe(0.5);
+      expect(Number.isNaN(p.quorum)).toBe(false);
+      expect(Number.isNaN(p.threshold)).toBe(false);
+    });
+
     it("rejects missing title", () => {
       expect(() => createGovernanceProposalV2(db, {})).toThrow(
         "Title is required",
@@ -330,6 +344,20 @@ describe("evomap-governance", () => {
       expect(r.direction).toBe("for");
       expect(r.weight).toBe(3);
       expect(r.status).toBe(PROPOSAL_STATUS_V2.ACTIVE);
+    });
+
+    it("defaults a NaN weight to 1 instead of corrupting the tally", () => {
+      // `--weight abc` → NaN: previously slipped past `weightValue <= 0` and
+      // made weightFor NaN (proposal tally permanently NaN). Now defaults to 1.
+      const p = createGovernanceProposalV2(db, { title: "T", quorum: 5 });
+      const r = castVoteV2(db, {
+        proposalId: p.id,
+        voterDid: "did:a",
+        direction: VOTE_DIRECTION.FOR,
+        weight: Number("abc"), // NaN
+      });
+      expect(r.weight).toBe(1);
+      expect(Number.isNaN(r.weight)).toBe(false);
     });
 
     it("passes when threshold met", () => {

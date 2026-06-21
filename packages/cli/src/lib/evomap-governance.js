@@ -305,8 +305,8 @@ export function createGovernanceProposalV2(db, options = {}) {
     throw new Error(`Unknown proposal type: ${proposalType}`);
   }
 
-  const quorumValue = typeof quorum === "number" ? quorum : 3;
-  const thresholdValue = typeof threshold === "number" ? threshold : 0.5;
+  const quorumValue = Number.isFinite(quorum) ? quorum : 3;
+  const thresholdValue = Number.isFinite(threshold) ? threshold : 0.5;
   if (quorumValue < 1) throw new Error("Quorum must be >= 1");
   if (thresholdValue <= 0 || thresholdValue > 1) {
     throw new Error("Threshold must be in (0, 1]");
@@ -370,7 +370,7 @@ export function castVoteV2(db, options = {}) {
   if (!Object.values(VOTE_DIRECTION).includes(direction)) {
     throw new Error(`Unknown vote direction: ${direction}`);
   }
-  const weightValue = typeof weight === "number" ? weight : 1;
+  const weightValue = Number.isFinite(weight) ? weight : 1;
   if (weightValue <= 0) throw new Error("Vote weight must be positive");
 
   if (direction === VOTE_DIRECTION.FOR) {
@@ -456,7 +456,7 @@ export function cancelProposal(db, proposalId) {
 }
 
 export function expireProposalsV2(db, now) {
-  const cutoff = typeof now === "number" ? now : Date.now();
+  const cutoff = Number.isFinite(now) ? now : Date.now();
   const expired = [];
   for (const p of _proposals.values()) {
     if (p.status === PROPOSAL_STATUS_V2.ACTIVE) {
