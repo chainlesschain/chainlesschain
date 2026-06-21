@@ -130,9 +130,7 @@ class DAOGovernanceV2 extends EventEmitter {
     // NaN total slips past execute()'s `votesFor <= votesAgainst` guard (NaN
     // comparisons are always false), executing a proposal that never passed.
     if (!Number.isFinite(weight) || weight < 0) {
-      throw new Error(
-        "Invalid vote weight: must be a non-negative finite number",
-      );
+      throw new Error("Invalid vote weight: must be a non-negative finite number");
     }
 
     let effectiveWeight = weight;

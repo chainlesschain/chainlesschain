@@ -30,9 +30,7 @@ describe("modelRejectsSamplingParams", () => {
     expect(modelRejectsSamplingParams("claude-sonnet-4-6")).toBe(false);
     expect(modelRejectsSamplingParams("claude-opus-4-6")).toBe(false);
     expect(modelRejectsSamplingParams("claude-haiku-4-5")).toBe(false);
-    expect(modelRejectsSamplingParams("claude-3-5-sonnet-20241022")).toBe(
-      false,
-    );
+    expect(modelRejectsSamplingParams("claude-3-5-sonnet-20241022")).toBe(false);
   });
 
   it("handles empty / non-string input", () => {

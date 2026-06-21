@@ -311,22 +311,10 @@ export function registerDaoCommand(program) {
 
         const cfg = {};
         if (options.votingPeriod)
-          cfg.votingPeriod = numericOption(options.votingPeriod, {
-            name: "--voting-period",
-            integer: true,
-            min: 1,
-          });
-        if (options.quorum)
-          cfg.quorum = numericOption(options.quorum, {
-            name: "--quorum",
-            min: 0,
-          });
+          cfg.votingPeriod = numericOption(options.votingPeriod, { name: "--voting-period", integer: true, min: 1 });
+        if (options.quorum) cfg.quorum = numericOption(options.quorum, { name: "--quorum", min: 0 });
         if (options.executionDelay)
-          cfg.executionDelay = numericOption(options.executionDelay, {
-            name: "--execution-delay",
-            integer: true,
-            min: 0,
-          });
+          cfg.executionDelay = numericOption(options.executionDelay, { name: "--execution-delay", integer: true, min: 0 });
 
         const result = configure(cfg);
         logger.success("Configuration updated");

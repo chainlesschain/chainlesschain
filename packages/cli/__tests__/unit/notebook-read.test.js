@@ -36,8 +36,9 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool, renderNotebook } =
-  await import("../../src/runtime/agent-core.js");
+const { executeTool, renderNotebook } = await import(
+  "../../src/runtime/agent-core.js"
+);
 
 const NB = JSON.stringify({
   cells: [

@@ -445,7 +445,8 @@ const testLLMConnection = async () => {
           apiKey: config.value.llm.anthropicApiKey,
           baseURL:
             config.value.llm.anthropicBaseUrl || "https://api.anthropic.com",
-          model: config.value.llm.anthropicModel || "claude-sonnet-4-6",
+          model:
+            config.value.llm.anthropicModel || "claude-sonnet-4-6",
           version: "2023-06-01",
         };
         break;

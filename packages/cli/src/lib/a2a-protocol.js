@@ -5,6 +5,7 @@
  * capability negotiation, and peer discovery.
  */
 
+
 // Safe JSON-array parse for values read back from the DB (capabilities / skills /
 // history / artifacts are stored as JSON strings). Written via JSON.stringify so
 // normally valid, but a corrupted or externally-edited DB must not crash agent
