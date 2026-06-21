@@ -1332,7 +1332,11 @@ describe("chatWithTools", () => {
         provider: "openai",
         model: "gpt-4o",
       });
-      expect(result.usage).toEqual({ input_tokens: 150, output_tokens: 60 });
+      expect(result.usage).toEqual({
+        input_tokens: 150,
+        output_tokens: 60,
+        cache_read_input_tokens: 0,
+      });
     } finally {
       if (saved) process.env.OPENAI_API_KEY = saved;
       else delete process.env.OPENAI_API_KEY;
@@ -1354,7 +1358,12 @@ describe("chatWithTools", () => {
         provider: "anthropic",
         model: "claude-sonnet-4-20250514",
       });
-      expect(result.usage).toEqual({ input_tokens: 300, output_tokens: 100 });
+      expect(result.usage).toEqual({
+        input_tokens: 300,
+        output_tokens: 100,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+      });
     } finally {
       if (saved) process.env.ANTHROPIC_API_KEY = saved;
       else delete process.env.ANTHROPIC_API_KEY;
