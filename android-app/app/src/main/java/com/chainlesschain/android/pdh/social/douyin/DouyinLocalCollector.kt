@@ -74,13 +74,25 @@ class DouyinLocalCollector @Inject constructor(
             return@withContext SnapshotResult.NoCredentials
         }
         val cookie = credentialsStore.getCookie() ?: return@withContext SnapshotResult.NoCredentials
-        val storedSecUid = credentialsStore.getSecUid() ?: return@withContext SnapshotResult.NoCredentials
 
+        // fetchProfile needs no signing (no X-Bogus), so it works with just the
+        // cookie — this is how we resolve secUid lazily when login couldn't
+        // (Douyin's acrawler isn't loaded on the login page).
         val profile = try {
             apiClient.fetchProfile(cookie)
         } catch (t: Throwable) {
             Timber.w(t, "DouyinLocalCollector: fetchProfile threw")
             null
+        }
+
+        // Lazy secUid: prefer the stored one, else take it from fetchProfile and
+        // backfill the store for next time. No usable secUid at all → not yet
+        // authenticated (cookie stale / login incomplete).
+        val storedSecUid = credentialsStore.getSecUid() ?: profile?.secUid
+            ?: return@withContext SnapshotResult.NoCredentials
+        if (credentialsStore.getSecUid() == null) {
+            credentialsStore.setSecUid(storedSecUid)
+            Timber.i("DouyinLocalCollector: backfilled secUid via fetchProfile (lazy login)")
         }
 
         // v0.3 — same template as Toutiao: optionally warm sign bridge,

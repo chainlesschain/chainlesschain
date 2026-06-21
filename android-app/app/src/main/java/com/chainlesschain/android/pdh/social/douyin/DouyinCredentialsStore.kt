@@ -47,9 +47,12 @@ class DouyinCredentialsStore @Inject constructor(
 
     fun hasCredentials(): Boolean {
         return try {
+            // Lazy secUid: a cookie alone is enough to be "logged in". Douyin's
+            // anti-crawler signing means secUid can't be fetched at login time
+            // (acrawler isn't loaded on the login page), so it's filled lazily by
+            // the collector via the signed fetchProfile at first collect.
             val cookie = prefs.getString(KEY_COOKIE, null)
-            val secUid = prefs.getString(KEY_SEC_UID, null)
-            cookie != null && cookie.isNotBlank() && secUid != null && secUid.isNotBlank()
+            cookie != null && cookie.isNotBlank()
         } catch (t: Throwable) {
             Timber.w(t, "DouyinCredentialsStore.hasCredentials threw — treating as unauthenticated")
             false
@@ -83,6 +86,35 @@ class DouyinCredentialsStore @Inject constructor(
                 .apply()
         } catch (t: Throwable) {
             Timber.e(t, "DouyinCredentialsStore.saveCredentials failed")
+        }
+    }
+
+    /**
+     * Lazy-secUid login: save the cookie when login succeeds but secUid couldn't
+     * be fetched (acrawler not loaded). The collector fills secUid later via the
+     * signed fetchProfile. Preserves any previously-known secUid.
+     */
+    fun saveCookieOnly(cookie: String, shortId: String?, displayName: String?) {
+        try {
+            prefs.edit()
+                .putString(KEY_COOKIE, cookie)
+                .apply {
+                    if (!shortId.isNullOrBlank()) putString(KEY_SHORT_ID, shortId)
+                    if (!displayName.isNullOrBlank()) putString(KEY_DISPLAY_NAME, displayName)
+                }
+                .apply()
+        } catch (t: Throwable) {
+            Timber.e(t, "DouyinCredentialsStore.saveCookieOnly failed")
+        }
+    }
+
+    /** Backfill secUid once the collector resolves it via the signed fetchProfile. */
+    fun setSecUid(secUid: String) {
+        if (secUid.isBlank()) return
+        try {
+            prefs.edit().putString(KEY_SEC_UID, secUid).apply()
+        } catch (t: Throwable) {
+            Timber.w(t, "DouyinCredentialsStore.setSecUid failed (non-fatal)")
         }
     }
 

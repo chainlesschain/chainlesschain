@@ -3546,18 +3546,26 @@ class HubLocalViewModel @Inject constructor(
         val account = root.optJSONObject("account")
         val secUid = account?.optString("secUid")?.takeIf { it.isNotBlank() }
         if (secUid == null) {
-            Timber.w("HubLocalViewModel: Douyin prefetched account.secUid missing — 调 ingestPrefetched 留 _debug log + 文件备查")
-            viewModelScope.launch {
-                douyinCollector.ingestPrefetched(prefetched)
-            }
+            // Lazy secUid: Douyin's acrawler isn't loaded on the login page, so the
+            // login-time prefetch can't get secUid. The cookie itself is valid, so
+            // SAVE it and run a normal sync — syncDouyin() drives the collector with
+            // the sign bridge, which resolves secUid via the (unsigned) fetchProfile
+            // and backfills the store. Previously we dropped the cookie here, so
+            // Douyin collection never worked ("cookie 没拿到").
+            Timber.w("HubLocalViewModel: Douyin secUid missing at login — saving cookie, will resolve via fetchProfile on sync")
+            val shortIdFromCookie = com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
+                .extractShortIdFromCookie(cookie)
+            val nicknameFromPrefetch = account?.optString("nickname")?.takeIf { it.isNotBlank() }
+            douyinCredentials.saveCookieOnly(cookie, shortIdFromCookie, nicknameFromPrefetch)
             _state.update {
                 it.copy(
                     pendingLogin = null,
-                    douyin = it.douyin.copy(
-                        errorMessage = "登录未完成 — prefetch 未拿到 sec_uid (账号未登录或 cookie 缺关键字段)",
-                    ),
+                    douyin = it.douyin.copy(isSyncing = true, errorMessage = null),
+                    globalSyncingAdapter = "social-douyin",
                 )
             }
+            refreshDouyinFromStore()
+            syncDouyin()
             return
         }
         val nickname = account.optString("nickname").takeIf { it.isNotBlank() }
@@ -3647,24 +3655,32 @@ class HubLocalViewModel @Inject constructor(
             // 显式传 displayName=null 避免 kotlinc 生成 $default GETFIELD
             // 桥（见 memory feedback_mockk_cross_file_jvm_pollution.md）。
             val accepted = douyinCollector.acceptLoginCookie(cookie, null)
+            if (accepted) {
+                refreshDouyinFromStore()
+                _state.update {
+                    it.copy(pendingLogin = null, douyin = it.douyin.copy(errorMessage = null))
+                }
+                return@launch
+            }
+            // Lazy secUid fallback: passport/info/v2 couldn't return sec_user_id
+            // (Douyin anti-crawler), but the cookie is valid — save it and let
+            // syncDouyin resolve secUid via the unsigned fetchProfile. If the
+            // cookie is genuinely bad, that sync surfaces NoCredentials honestly.
+            Timber.w(
+                "HubLocalViewModel: Douyin acceptLoginCookie failed (code=${douyinCollector.lastLoginErrorCode}) — saving cookie, lazy-resolve secUid on sync",
+            )
+            val shortId = com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
+                .extractShortIdFromCookie(cookie)
+            douyinCredentials.saveCookieOnly(cookie, shortId, null)
             _state.update {
                 it.copy(
                     pendingLogin = null,
-                    douyin = it.douyin.copy(
-                        errorMessage = if (!accepted) {
-                            // Surface the real apiClient error so users can tell
-                            // "cookie expired" (status_code=2154) apart from
-                            // "endpoint shape changed" (code=-5) apart from
-                            // "anonymous response" (code=-7).
-                            val code = douyinCollector.lastLoginErrorCode
-                            val detail = douyinCollector.lastLoginErrorMessage
-                                ?: "passport/info/v2 未返 sec_user_id"
-                            "登录未完成 — code=$code $detail（cookie 可能不全请重试）"
-                        } else null,
-                    ),
+                    douyin = it.douyin.copy(isSyncing = true, errorMessage = null),
+                    globalSyncingAdapter = "social-douyin",
                 )
             }
-            if (accepted) refreshDouyinFromStore()
+            refreshDouyinFromStore()
+            syncDouyin()
         }
     }
 
