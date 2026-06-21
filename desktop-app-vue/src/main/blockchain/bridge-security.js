@@ -454,6 +454,19 @@ class BridgeSecurityManager extends EventEmitter {
       throw new Error("Invalid signature");
     }
 
+    // 防重复签名：同一签名者只能计入一次 M-of-N。此前无去重，单一签名者可对同一交易
+    // 多次提交签名，使 signatures.length 达到 requiredSignatures 而实际只有一名签名者，
+    // 从而独自“批准”多签交易（多签绕过）。
+    // 注：更完整的修复还需「授权签名者集合」成员校验（当前数据模型无此集合，任意地址的
+    // 有效签名都会被接受 → 攻击者可用 N 个一次性私钥凑齐阈值）；该集合需引入签名者注册表
+    // （设计决策），作为残留项记录，见 commit / memory。
+    const signerLc = signer.toLowerCase();
+    if (
+      multiSigTx.signatures.some((s) => s.signer.toLowerCase() === signerLc)
+    ) {
+      throw new Error("Signer has already signed");
+    }
+
     // Add signature
     multiSigTx.signatures.push({ signer, signature, timestamp: Date.now() });
 
