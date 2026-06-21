@@ -161,6 +161,34 @@ function requireOrgManageAuthorityForGrant(db, opts = {}) {
 }
 
 /**
+ * Authority gate for team management (team:add-member): the team's org isn't in
+ * params — look it up from org_teams, then require owner/admin of that org.
+ * Unknown team → allow (op no-ops naturally); db error → fail open.
+ */
+function requireOrgManageAuthorityForTeam(db, opts = {}) {
+  const { teamId, channel = "?", actorDid, getMode = resolveRbacMode } = opts;
+  if (getMode() === "off") {
+    return true;
+  }
+  let orgId;
+  try {
+    const row = db
+      .prepare("SELECT org_id FROM org_teams WHERE id = ?")
+      .get(teamId);
+    if (!row) {
+      return true;
+    } // team not found → let the op no-op
+    orgId = row.org_id;
+  } catch (err) {
+    logger.error(
+      `[rbac-guard] team-org lookup error for "${channel}" (allowing): ${err && err.message}`,
+    );
+    return true; // fail open
+  }
+  return requireOrgManageAuthority(db, { orgId, channel, actorDid, getMode });
+}
+
+/**
  * Authority gate for a batch of grants — every distinct target org must be
  * manageable by the actor. Denies (enforce) if ANY org is unauthorized.
  */
@@ -255,6 +283,7 @@ module.exports = {
   requireOrgManageAuthority,
   requireOrgManageAuthorityForGrant,
   requireOrgManageAuthorityForGrants,
+  requireOrgManageAuthorityForTeam,
   requireCanDelegate,
   resolveRbacMode,
   // exported for tests

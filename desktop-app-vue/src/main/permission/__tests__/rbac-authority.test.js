@@ -9,6 +9,7 @@ const {
   requireOrgManageAuthority,
   requireOrgManageAuthorityForGrant,
   requireOrgManageAuthorityForGrants,
+  requireOrgManageAuthorityForTeam,
   requireCanDelegate,
   resolveRbacMode,
   _actorOrgRole,
@@ -23,6 +24,7 @@ function fakeDb({
   memberRole = null,
   owner = false,
   grantOrg = undefined,
+  teamOrg = undefined,
 } = {}) {
   return {
     prepare(sql) {
@@ -30,6 +32,9 @@ function fakeDb({
         get() {
           if (sql.includes("permission_grants")) {
             return grantOrg ? { org_id: grantOrg } : undefined;
+          }
+          if (sql.includes("org_teams")) {
+            return teamOrg ? { org_id: teamOrg } : undefined;
           }
           if (sql.includes("organization_members")) {
             return memberRole ? { role: memberRole } : undefined;
@@ -176,6 +181,29 @@ describe("rbac-authority / requireOrgManageAuthorityForGrants (bulk)", () => {
   });
   it("allows an empty batch", () => {
     expect(enf(fakeDb({}), [])).toBe(true);
+  });
+});
+
+describe("rbac-authority / requireOrgManageAuthorityForTeam (team:add-member)", () => {
+  const enf = (db, extra = {}) =>
+    requireOrgManageAuthorityForTeam(db, {
+      teamId: "t1",
+      channel: "team:add-member",
+      actorDid: ME,
+      getMode: () => "enforce",
+      ...extra,
+    });
+  it("authorizes via the team's org (owner ok, member denied)", () => {
+    expect(enf(fakeDb({ teamOrg: "org-1", memberRole: "owner" }))).toBe(true);
+    expect(() =>
+      enf(fakeDb({ teamOrg: "org-1", memberRole: "member" })),
+    ).toThrow("not authorized");
+  });
+  it("allows when the team is not found", () => {
+    expect(enf(fakeDb({ teamOrg: undefined }))).toBe(true);
+  });
+  it("fails open on a db error", () => {
+    expect(enf(throwingDb)).toBe(true);
   });
 });
 

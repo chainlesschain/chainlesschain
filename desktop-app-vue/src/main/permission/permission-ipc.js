@@ -25,6 +25,7 @@ const {
   requireOrgManageAuthority,
   requireOrgManageAuthorityForGrant,
   requireOrgManageAuthorityForGrants,
+  requireOrgManageAuthorityForTeam,
   requireCanDelegate,
 } = require("./rbac-authority.js");
 
@@ -473,12 +474,17 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("team:add-member", async (_event, params) => {
     try {
-      const { getTeamManager } = require("./team-manager");
-      const manager = getTeamManager(await ensureDatabase(database));
       params.invitedBy = resolveActorDid(params.invitedBy, {
         field: "invitedBy",
         channel: "team:add-member",
       });
+      const tmDbMgr = await ensureDatabase(database);
+      requireOrgManageAuthorityForTeam(tmDbMgr.getDatabase(), {
+        teamId: params.teamId,
+        channel: "team:add-member",
+      });
+      const { getTeamManager } = require("./team-manager");
+      const manager = getTeamManager(tmDbMgr);
       return await manager.addMember(
         params.teamId,
         params.memberDid,
