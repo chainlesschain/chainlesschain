@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -47,8 +48,9 @@ class SyncServiceScopingTest {
 
     @BeforeEach
     void setUp() {
-        // Explicit field injection (the impl uses @Autowired fields; deterministic here).
-        syncService = new SyncServiceImpl();
+        // The impl has a required-arg constructor (builds a TransactionTemplate); the rest
+        // are @Autowired fields injected explicitly below for deterministic mocking.
+        syncService = new SyncServiceImpl(mock(PlatformTransactionManager.class));
         ReflectionTestUtils.setField(syncService, "projectMapper", projectMapper);
         ReflectionTestUtils.setField(syncService, "projectFileMapper", projectFileMapper);
         ReflectionTestUtils.setField(syncService, "conversationMapper", conversationMapper);
