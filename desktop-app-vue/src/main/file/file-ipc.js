@@ -42,6 +42,23 @@ function registerFileIPC({
 
   logger.info("[File IPC] Registering File IPC handlers...");
 
+  /**
+   * 防 `..` 逃逸出项目根（IPC 安全发现 #2）：所有项目级文件操作（copy/move/rename/
+   * delete/create/reveal）都把渲染层传入的相对路径 `path.join(rootPath, x)` 后直接落盘，
+   * 此前无任何 `..` 守卫 → 渲染层可用 `../../` 读写/删除项目根之外的任意文件。合法调用方
+   * （文件树节点）只传项目内相对路径，故强制解析结果落在 root 内，越界即拒绝。
+   * @param {string} rootPath 项目根绝对路径
+   * @param {string} resolvedPath path.join 后的解析路径
+   * @param {string} [label] 操作名（用于错误信息）
+   */
+  const assertWithinRoot = (rootPath, resolvedPath, label = "path") => {
+    if (!isPathWithin(rootPath, resolvedPath)) {
+      throw new Error(
+        `Refused ${label} outside the project root: ${String(resolvedPath).slice(0, 200)}`,
+      );
+    }
+  };
+
   // ============================================================
   // 文件读写操作 (3 handlers)
   // ============================================================
@@ -189,6 +206,7 @@ function registerFileIPC({
           projectId,
         );
         const resolvedPath = path.join(rootPath, filePath);
+        assertWithinRoot(rootPath, resolvedPath, "reveal");
 
         logger.info("[Main] 解析后的路径:", resolvedPath);
 
@@ -232,6 +250,8 @@ function registerFileIPC({
         const resolvedTargetPath = targetPath
           ? path.join(rootPath, targetPath, path.basename(sourcePath))
           : resolvedSourcePath + "_copy";
+        assertWithinRoot(rootPath, resolvedSourcePath, "copy source");
+        assertWithinRoot(rootPath, resolvedTargetPath, "copy target");
 
         logger.info("[Main] 源路径:", resolvedSourcePath);
         logger.info("[Main] 目标路径:", resolvedTargetPath);
@@ -308,6 +328,8 @@ function registerFileIPC({
           targetPath,
           path.basename(sourcePath),
         );
+        assertWithinRoot(rootPath, resolvedSourcePath, "move source");
+        assertWithinRoot(rootPath, resolvedTargetPath, "move target");
 
         logger.info("[Main] 源路径:", resolvedSourcePath);
         logger.info("[Main] 目标路径:", resolvedTargetPath);
@@ -359,6 +381,7 @@ function registerFileIPC({
 
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
+      assertWithinRoot(rootPath, resolvedPath, "delete");
 
       logger.info("[Main] 解析后的路径:", resolvedPath);
 
@@ -422,6 +445,8 @@ function registerFileIPC({
           path.dirname(resolvedOldPath),
           newName,
         );
+        assertWithinRoot(rootPath, resolvedOldPath, "rename source");
+        assertWithinRoot(rootPath, resolvedNewPath, "rename target");
 
         logger.info("[Main] 旧路径:", resolvedOldPath);
         logger.info("[Main] 新路径:", resolvedNewPath);
@@ -472,6 +497,7 @@ function registerFileIPC({
 
         const rootPath = project.root_path;
         const resolvedPath = path.join(rootPath, filePath);
+        assertWithinRoot(rootPath, resolvedPath, "create file");
 
         logger.info("[Main] 解析后的路径:", resolvedPath);
 
@@ -521,6 +547,7 @@ function registerFileIPC({
 
         const rootPath = project.root_path;
         const resolvedPath = path.join(rootPath, folderPath);
+        assertWithinRoot(rootPath, resolvedPath, "create folder");
 
         logger.info("[Main] 解析后的路径:", resolvedPath);
 
