@@ -331,4 +331,22 @@ describe("worktree-isolator", () => {
       expect(result.diff).not.toContain("notes.txt");
     });
   });
+
+  describe("ref-injection guard (shell-safety)", () => {
+    it("rejects a branch name with shell metacharacters before any git call", () => {
+      expect(() => createWorktree(repoDir, "x$(touch HACKED)")).toThrow(
+        /Unsafe/,
+      );
+      expect(() => diffWorktree(repoDir, "a;b")).toThrow(/Unsafe/);
+      expect(() => mergeWorktree(repoDir, "a`id`")).toThrow(/Unsafe/);
+      // the injected side-effect must NOT have executed
+      expect(existsSync(join(repoDir, "HACKED"))).toBe(false);
+    });
+
+    it("rejects an unsafe baseBranch option", () => {
+      expect(() =>
+        diffWorktree(repoDir, "main", { baseBranch: "a$(whoami)" }),
+      ).toThrow(/Unsafe/);
+    });
+  });
 });

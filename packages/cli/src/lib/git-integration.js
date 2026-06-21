@@ -14,6 +14,34 @@ export function isGitRepo(dir) {
 }
 
 /**
+ * Reject a git ref (branch / base / tag) that could break out of a
+ * shell-interpolated `git` command. gitExec interpolates its args into a shell
+ * string, so a ref like `x$(rm -rf ~)`, a backtick, or `--upload-pack=evil`
+ * would otherwise execute or inject a flag (double-quoting does NOT stop `$()`
+ * / backticks). Legit refs are branch/tag names — alphanumerics plus `. _ / -`;
+ * `HEAD` and `origin/main` pass. Throws on anything else. Exported for reuse +
+ * tests; callers validate caller/agent-supplied refs before interpolation.
+ *
+ * @param {string} ref
+ * @param {string} [label="git ref"]
+ */
+export function assertSafeGitRef(ref, label = "git ref") {
+  if (typeof ref !== "string" || ref.length === 0) {
+    throw new Error(`Invalid ${label}: expected a non-empty string`);
+  }
+  if (
+    !/^[A-Za-z0-9._/-]+$/.test(ref) || // only ref-safe chars (no space/shell metachars)
+    ref.startsWith("-") || // block flag injection (e.g. --upload-pack=…)
+    ref.includes("..") || // forbidden in refnames; also blocks range tricks
+    ref.includes("//") ||
+    ref.endsWith("/") ||
+    ref.endsWith(".lock")
+  ) {
+    throw new Error(`Unsafe ${label}: ${JSON.stringify(ref)}`);
+  }
+}
+
+/**
  * Run a git command and return stdout.
  */
 export function gitExec(args, cwd) {

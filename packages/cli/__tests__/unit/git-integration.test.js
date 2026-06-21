@@ -24,7 +24,52 @@ import {
   gitLog,
   gitHistoryAnalyze,
   installHooks,
+  assertSafeGitRef,
 } from "../../src/lib/git-integration.js";
+
+describe("assertSafeGitRef (shell-injection guard for interpolated git refs)", () => {
+  it("accepts legitimate branch/base refs", () => {
+    for (const ref of [
+      "HEAD",
+      "main",
+      "origin/main",
+      "agent/task-123",
+      "feature/my.thing_v2",
+      "v1.2.3",
+    ]) {
+      expect(() => assertSafeGitRef(ref)).not.toThrow();
+    }
+  });
+
+  it("rejects shell metacharacters / command substitution", () => {
+    for (const ref of [
+      "x$(whoami)",
+      "x`id`",
+      "a;rm -rf ~",
+      "a && b",
+      "a|b",
+      "a b", // space
+      "a\nb",
+      'a"b',
+    ]) {
+      expect(() => assertSafeGitRef(ref)).toThrow(/Unsafe/);
+    }
+  });
+
+  it("rejects flag injection, ranges, and bad refnames", () => {
+    expect(() => assertSafeGitRef("--upload-pack=evil")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitRef("a..b")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitRef("a//b")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitRef("foo/")).toThrow(/Unsafe/);
+    expect(() => assertSafeGitRef("foo.lock")).toThrow(/Unsafe/);
+  });
+
+  it("rejects empty / non-string", () => {
+    expect(() => assertSafeGitRef("")).toThrow(/Invalid/);
+    expect(() => assertSafeGitRef(null)).toThrow(/Invalid/);
+    expect(() => assertSafeGitRef(undefined)).toThrow(/Invalid/);
+  });
+});
 
 describe("Git Integration", () => {
   beforeEach(() => {

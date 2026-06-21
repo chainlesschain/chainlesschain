@@ -10,11 +10,17 @@
 import { execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { isGitRepo, gitExec } from "../lib/git-integration.js";
+import {
+  isGitRepo,
+  gitExec,
+  assertSafeGitRef,
+} from "../lib/git-integration.js";
 
 const WORKTREE_DIR = ".worktrees";
 
 export function createWorktree(repoDir, branchName, baseBranch) {
+  assertSafeGitRef(branchName, "branch name");
+  if (baseBranch) assertSafeGitRef(baseBranch, "base branch");
   if (!isGitRepo(repoDir)) {
     throw new Error("Not a git repository");
   }
@@ -157,6 +163,8 @@ export function cleanupAgentWorktrees(repoDir) {
 }
 
 export function diffWorktree(repoDir, branchName, options = {}) {
+  assertSafeGitRef(branchName, "branch name");
+  if (options.baseBranch) assertSafeGitRef(options.baseBranch, "base branch");
   const base = options.baseBranch || "HEAD";
   const filePath = options.filePath || null;
   const fileArg = filePath ? ` -- "${filePath}"` : "";
@@ -204,6 +212,8 @@ export function diffWorktree(repoDir, branchName, options = {}) {
 }
 
 export function mergeWorktree(repoDir, branchName, options = {}) {
+  assertSafeGitRef(branchName, "branch name");
+  if (options.baseBranch) assertSafeGitRef(options.baseBranch, "base branch");
   const strategy = options.strategy || "merge";
   const deleteBranch = options.deleteBranch !== false;
 
@@ -285,6 +295,8 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
 }
 
 export function previewWorktreeMerge(repoDir, branchName, options = {}) {
+  assertSafeGitRef(branchName, "branch name");
+  if (options.baseBranch) assertSafeGitRef(options.baseBranch, "base branch");
   const strategy = options.strategy || "merge";
   const baseBranch = _resolveBaseBranchForMerge(repoDir, options.baseBranch);
   const worktree = _findWorktreeByBranch(repoDir, branchName);
@@ -374,6 +386,8 @@ export function applyWorktreeAutomationCandidate(
   branchName,
   options = {},
 ) {
+  assertSafeGitRef(branchName, "branch name");
+  if (options.baseBranch) assertSafeGitRef(options.baseBranch, "base branch");
   const filePath = options.filePath || null;
   const candidateId = options.candidateId || null;
   const conflictType = options.conflictType || null;
@@ -473,6 +487,8 @@ export function applyWorktreeAutomationCandidate(
 }
 
 export function worktreeLog(repoDir, branchName, baseBranch = "HEAD") {
+  assertSafeGitRef(branchName, "branch name");
+  assertSafeGitRef(baseBranch, "base branch");
   try {
     const output = gitExec(
       `log ${baseBranch}..${branchName} --pretty=format:"%h|%s|%ci"`,
