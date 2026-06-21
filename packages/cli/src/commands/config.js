@@ -79,9 +79,25 @@ export function registerConfigCommand(program) {
     .description("Set a configuration value")
     .argument("<key>", "Config key (dot-notation)")
     .argument("<value>", "Value to set")
-    .action((key, value) => {
+    .action(async (key, value) => {
       setConfigValue(key, value);
       logger.success(`Set ${key} = ${value}`);
+      // Claude-Code parity: if the user just pinned a retired/deprecated model
+      // id (llm.model / llm.visionModel / llm.fallbackModel), warn now — at pin
+      // time — rather than only when a later run fails. stderr-only, vitest-safe.
+      if (
+        /(^|\.)(model|visionModel|fallbackModel)$/i.test(key) &&
+        !process.env.VITEST &&
+        !process.env.VITEST_WORKER_ID
+      ) {
+        try {
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
+          maybeWarnDeprecatedModel({ model: value });
+        } catch {
+          /* fail-open: a deprecation notice must never affect the set */
+        }
+      }
     });
 
   cmd
