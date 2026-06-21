@@ -39,9 +39,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
+            // getAllErrors() 返回 ObjectError；类级/跨字段约束（如 @AssertTrue、
+            // 类级 @ScriptAssert）产生的不是 FieldError —— 直接强转会抛
+            // ClassCastException，被通用处理器吞成 500（本应是 400 客户端错误）。
+            String key = (error instanceof FieldError)
+                    ? ((FieldError) error).getField()
+                    : error.getObjectName();
             String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
+            errors.put(key, errorMessage);
         });
 
         log.error("Validation exception: {}", errors);
