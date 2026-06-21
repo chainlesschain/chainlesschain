@@ -487,7 +487,12 @@ class GovernanceMultiSig {
       };
     }
 
-    const sigs = this._loadSignatures(communityId, proposalId);
+    // 仅按「成员内 + DID 去重」的签名计数法定人数（纵深防御，防 signatures/ 目录被
+    // 直接篡改虚增 quorum）。
+    const sigs = this._distinctMemberSignatures(
+      this._loadSignatures(communityId, proposalId),
+      proposal.members,
+    );
     if (sigs.length < proposal.threshold) {
       throw new Error(
         "insufficient signatures: have " +
@@ -574,7 +579,10 @@ class GovernanceMultiSig {
       .map((d) => {
         try {
           const proposal = this._readProposal(communityId, d.name);
-          const collected = this._loadSignatures(communityId, d.name).length;
+          const collected = this._distinctMemberSignatures(
+            this._loadSignatures(communityId, d.name),
+            proposal.members,
+          ).length;
           return {
             proposalId: d.name,
             threshold: proposal.threshold,
@@ -619,8 +627,37 @@ class GovernanceMultiSig {
       .map((n) => JSON.parse(fs.readFileSync(path.join(dir, n), "utf-8")));
   }
 
+  /**
+   * 法定人数计数的唯一真相：从原始签名文件里只保留「在成员名单内 + 按 DID 去重」的签名。
+   *
+   * addSignature 写入时已校验成员资格/DID-pubkey 匹配且按 DID 文件名幂等，但 finalize 与
+   * 状态汇总会盲读 signatures/ 目录。若该目录被直接写入越权签名文件（非成员 DID）或同一
+   * DID 以不同文件名重复出现（绕过 addSignature 的 FS 篡改），不应据此虚增 quorum。本方法
+   * 在「共识决策边界」对计数输入做净化，作为纵深防御。
+   * @param {Array<object>} rawSigs - _loadSignatures 的原始结果
+   * @param {string[]} members - 提案成员 DID 名单
+   * @returns {Array<object>} 去重后、仅含成员的签名（保持出现顺序）
+   */
+  _distinctMemberSignatures(rawSigs, members) {
+    const memberSet = new Set(Array.isArray(members) ? members : []);
+    const seen = new Set();
+    const out = [];
+    for (const s of rawSigs) {
+      const did = s && s.did;
+      if (!did || !memberSet.has(did) || seen.has(did)) {
+        continue;
+      }
+      seen.add(did);
+      out.push(s);
+    }
+    return out;
+  }
+
   _summarize(proposal, communityId, proposalId) {
-    const sigs = this._loadSignatures(communityId, proposalId);
+    const sigs = this._distinctMemberSignatures(
+      this._loadSignatures(communityId, proposalId),
+      proposal.members,
+    );
     return {
       proposal,
       threshold: proposal.threshold,

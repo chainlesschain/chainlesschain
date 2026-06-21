@@ -343,6 +343,61 @@ describe("GovernanceMultiSig", () => {
     });
   });
 
+  describe("finalize — quorum integrity (defense-in-depth #5)", () => {
+    let members;
+    const sigDir = () => path.join(tmpDir, "comm-q", "prop-q", "signatures");
+
+    beforeEach(() => {
+      members = [genMember(), genMember(), genMember()];
+      mgr.createProposal({
+        communityId: "comm-q",
+        proposalId: "prop-q",
+        payload: { kind: "rule_change", text: "x" },
+        members: members.map((m) => m.did),
+        threshold: 2,
+      });
+    });
+
+    // Plant a signature file directly on disk (bypassing addSignature's
+    // membership/DID checks) to simulate signatures/ directory tampering.
+    function plantSig(fileName, signer) {
+      fs.writeFileSync(
+        path.join(sigDir(), fileName),
+        JSON.stringify({
+          schema: "governance-multisig-signature/v1",
+          did: signer.did,
+          secretKey: signer.secretKey.toString("base64"),
+          publicKey: signer.publicKey.toString("base64"),
+          addedAt: new Date(0).toISOString(),
+        }),
+        "utf-8",
+      );
+    }
+
+    it("ignores a stray non-member signature file in the quorum count", () => {
+      mgr.addSignature("comm-q", "prop-q", members[0]); // 1 legit
+      plantSig("attacker.json", genMember()); // outsider, not a member
+      expect(mgr.getStatus("comm-q", "prop-q").collected).toBe(1);
+      expect(() => mgr.finalize("comm-q", "prop-q")).toThrow(/insufficient/);
+    });
+
+    it("does not double-count the same DID under a different filename", () => {
+      mgr.addSignature("comm-q", "prop-q", members[0]); // 1 legit file for A
+      plantSig("dup-of-a.json", members[0]); // same DID, different filename
+      expect(mgr.getStatus("comm-q", "prop-q").collected).toBe(1);
+      expect(() => mgr.finalize("comm-q", "prop-q")).toThrow(/insufficient/);
+    });
+
+    it("still finalizes with enough distinct members despite a stray file", () => {
+      mgr.addSignature("comm-q", "prop-q", members[0]);
+      mgr.addSignature("comm-q", "prop-q", members[1]); // 2 distinct members
+      plantSig("attacker.json", genMember()); // stray outsider
+      const result = mgr.finalize("comm-q", "prop-q");
+      expect(result.ok).toBe(true);
+      expect(result.signers).toHaveLength(2); // stray excluded
+    });
+  });
+
   describe("listProposals", () => {
     it("returns all proposals for a community with state summary", () => {
       const m = [genMember(), genMember()];
