@@ -51,4 +51,21 @@ class PdhOnboardingTest {
         assertTrue(PdhOnboarding.isAdvanced("salvage"))
         assertFalse(PdhOnboarding.isAdvanced("system_data"))
     }
+
+    @Test
+    fun source_label_maps_known_keys_and_passes_through_unknown() {
+        assertTrue(PdhOnboarding.sourceLabel("system_data").contains("系统数据"))
+        assertTrue(PdhOnboarding.sourceLabel("local_files").contains("本地文件"))
+        assertTrue(PdhOnboarding.sourceLabel("salvage").contains("root"))
+        assertEquals("weird_src", PdhOnboarding.sourceLabel("weird_src"))
+    }
+
+    @Test
+    fun collect_prompt_names_selected_sources_and_is_blank_when_empty() {
+        assertEquals("", PdhOnboarding.collectPrompt(emptyList()))
+        val p = PdhOnboarding.collectPrompt(listOf("system_data", "local_files"))
+        assertTrue(p.contains("系统数据"))
+        assertTrue(p.contains("本地文件"))
+        assertTrue(p.contains("全貌"))
+    }
 }

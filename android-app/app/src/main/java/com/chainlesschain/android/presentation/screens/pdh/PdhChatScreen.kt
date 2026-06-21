@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -56,6 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
+import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
@@ -165,6 +167,10 @@ fun PdhChatScreen(
                     .padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // §3.5.19 首跑 onboarding 三步(空态引导,取代"已就绪"文案)。
+                state.onboarding?.let { ob ->
+                    item { OnboardingPanel(ob = ob, viewModel = viewModel) }
+                }
                 // 翻页:顶部「加载更早」展开更老的记录(非搜索态)。
                 if (state.hasOlder) {
                     item {
@@ -258,6 +264,106 @@ private fun PrivacyBadge(badge: PdhPrivacyTier.TierBadge) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * §3.5.19 首跑 onboarding 三步(身份 → 选源 → 一键采集),取代空态"已就绪"文案。
+ * 低门槛 = 普惠:默认免 root 源先出价值、高级源折叠、每步显式同意(不偷采)。
+ */
+@Composable
+private fun OnboardingPanel(ob: PdhChatViewModel.Onboarding, viewModel: PdhChatViewModel) {
+    CardSurface(color = MaterialTheme.colorScheme.secondaryContainer) {
+        Text("欢迎 · 把散落的数据汇回你自己", style = MaterialTheme.typography.titleMedium)
+        when (ob.step) {
+            PdhOnboarding.Step.IDENTITY -> {
+                Text("① 你的数据身份", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "用一个数据身份根(DID)标识你的个人数据库——密钥只归你自己,数据不属于任何平台。",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OnboardingButtons(
+                    onSkip = { viewModel.onboardingSkip() },
+                    primaryText = "继续",
+                    primaryEnabled = true,
+                    onPrimary = { viewModel.onboardingNext() },
+                )
+            }
+            PdhOnboarding.Step.SOURCES -> {
+                Text("② 选择数据来源", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "先连免 root 的来源,马上能看到价值;高级来源可选。",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                PdhOnboarding.DEFAULT_SOURCES.forEach { src ->
+                    SourceCheckRow(src, src in ob.selectedSources) { viewModel.onboardingToggleSource(src) }
+                }
+                TextButton(onClick = { viewModel.onboardingToggleAdvanced() }) {
+                    Text(if (ob.showAdvanced) "收起高级来源" else "高级来源(需 root / 登录)")
+                }
+                if (ob.showAdvanced) {
+                    PdhOnboarding.ADVANCED_SOURCES.forEach { src ->
+                        SourceCheckRow(src, src in ob.selectedSources) {
+                            viewModel.onboardingToggleSource(src)
+                        }
+                    }
+                }
+                OnboardingButtons(
+                    onSkip = { viewModel.onboardingSkip() },
+                    primaryText = "继续",
+                    primaryEnabled = ob.selectedSources.isNotEmpty(),
+                    onPrimary = { viewModel.onboardingNext() },
+                )
+            }
+            PdhOnboarding.Step.COLLECT -> {
+                Text("③ 一键采集", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "将采集:" + ob.selectedSources.joinToString("、") { PdhOnboarding.sourceLabel(it) },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "采完给你一份数据全貌——这些都在你手机上,只属于你。",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OnboardingButtons(
+                    onSkip = { viewModel.onboardingSkip() },
+                    primaryText = "开始采集",
+                    primaryEnabled = ob.selectedSources.isNotEmpty(),
+                    onPrimary = { viewModel.onboardingStartCollect() },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SourceCheckRow(source: String, checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Text(PdhOnboarding.sourceLabel(source), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun OnboardingButtons(
+    onSkip: () -> Unit,
+    primaryText: String,
+    primaryEnabled: Boolean,
+    onPrimary: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        TextButton(onClick = onSkip) { Text("跳过") }
+        Button(
+            onClick = onPrimary,
+            enabled = primaryEnabled,
+            modifier = Modifier.padding(start = 8.dp),
+        ) { Text(primaryText) }
     }
 }
 

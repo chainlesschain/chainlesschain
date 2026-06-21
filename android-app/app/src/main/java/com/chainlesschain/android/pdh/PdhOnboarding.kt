@@ -52,4 +52,23 @@ object PdhOnboarding {
 
     /** 是否高级源(默认不勾选、折叠展示)。 */
     fun isAdvanced(source: String): Boolean = source in ADVANCED_SOURCES
+
+    /** 源 key → 中文标签(选源 chips + 采集 prompt;诚实列实际可采源,不画饼)。 */
+    fun sourceLabel(source: String): String = when (source) {
+        "system_data" -> "系统数据(联系人/短信/通话/媒体)"
+        "local_files" -> "本地文件(文档/图片/下载)"
+        "app_data" -> "App 数据(需登录/cookie)"
+        "salvage" -> "App 数据库取证(需 root)"
+        else -> source
+    }
+
+    /**
+     * §3.5.19 接线4: 选中源 → 一句话采集请求,交给常驻 agent 的工具循环执行
+     * (复用现成 chat 管线,无新协议)。空集合 → 空串(调用方禁用按钮,不偷采)。
+     */
+    fun collectPrompt(sources: Collection<String>): String {
+        val labels = sources.map(::sourceLabel)
+        if (labels.isEmpty()) return ""
+        return "请采集我的" + labels.joinToString("、") + ",汇入我的本地数据库,然后给我一份数据全貌。"
+    }
 }

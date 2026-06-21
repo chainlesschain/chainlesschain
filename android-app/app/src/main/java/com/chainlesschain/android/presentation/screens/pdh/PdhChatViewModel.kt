@@ -3,16 +3,18 @@ package com.chainlesschain.android.presentation.screens.pdh
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.di.IoDispatcher
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
+import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,12 +38,19 @@ import javax.inject.Inject
 class PdhChatViewModel @Inject constructor(
     private val session: PdhAgentSession,
     @ApplicationContext private val appContext: Context,
+    // @Inject 构造不能写 Kotlin 默认值,故走 @IoDispatcher 限定符(让单测注入测试
+    // 调度器,使 init 的文件 IO 在测试 scheduler 上确定性完成)。
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
     // it. Persist the visible transcript to disk so it survives restart.
     private val historyFile: File
         get() = File(appContext.filesDir, "pdh-chat-history.json")
+
+    // §3.5.19 首跑标志:存在 = onboarding 已完成/跳过 → 以后不再引导(只引导新用户)。
+    private val onboardingFlagFile: File
+        get() = File(appContext.filesDir, "pdh-onboarding-done")
 
     enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA, VIEW }
 
@@ -96,6 +105,16 @@ class PdhChatViewModel @Inject constructor(
         ) : TrustCard()
     }
 
+    /**
+     * §3.5.19 首跑 onboarding 三步状态(身份 → 选源 → 一键采集)。属空态引导,
+     * 不进消息流、不持久化(持久的是"已完成"标志,见 [onboardingFlagFile])。
+     */
+    data class Onboarding(
+        val step: PdhOnboarding.Step,
+        val selectedSources: Set<String>,
+        val showAdvanced: Boolean = false,
+    )
+
     data class UiState(
         val messages: List<ChatMessage> = emptyList(),
         val streamingText: String = "",
@@ -106,6 +125,8 @@ class PdhChatViewModel @Inject constructor(
         val pendingCards: List<TrustCard> = emptyList(),
         /** §3.5.10 顶栏数据流向徽章:这次 AI 在哪跑、数据是否离开手机(透明度优先)。 */
         val privacyBadge: PdhPrivacyTier.TierBadge? = null,
+        /** §3.5.19 首跑 onboarding(空态三步);非空=正在引导,取代"已就绪"文案。 */
+        val onboarding: Onboarding? = null,
         /** 记录搜索关键词(非空时只显示命中行)。 */
         val searchQuery: String = "",
         /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
@@ -135,7 +156,14 @@ class PdhChatViewModel @Inject constructor(
             // §3.7: restore the persisted transcript first so it survives an app
             // kill/recreate, THEN start the agent. The 已就绪 line is only added for
             // a fresh chat (no restored history) to avoid stacking it each launch.
-            val restored = withContext(Dispatchers.IO) { loadChat() }
+            // §3.7 restore + §3.5.19 first-run probe in a single IO hop.
+            val (restored, onboardingDone) = withContext(ioDispatcher) {
+                loadChat() to onboardingFlagFile.exists()
+            }
+            // §3.5.19 接线2: only guide NEW users. Fresh chat (no restored history)
+            // and onboarding never finished → show the 3-step onboarding instead of
+            // the 已就绪 line; returning users go straight to the chat (zero打扰).
+            val showOnboarding = restored.isEmpty() && !onboardingDone
             if (restored.isNotEmpty()) _uiState.update { it.copy(messages = restored) }
             val r = session.start(viewModelScope)
             if (r.isFailure) {
@@ -151,11 +179,17 @@ class PdhChatViewModel @Inject constructor(
                         privacyBadge = runCatching {
                             PdhPrivacyTier.badge(session.currentRoute())
                         }.getOrNull(),
-                        messages = if (it.messages.isEmpty()) {
-                            it.messages + ChatMessage(
-                                role = Role.SYSTEM,
-                                text = "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。",
+                        // §3.5.19: first-run 3-step onboarding (免 root 默认源先出价值).
+                        onboarding = if (showOnboarding) {
+                            Onboarding(
+                                step = PdhOnboarding.Step.IDENTITY,
+                                selectedSources = PdhOnboarding.DEFAULT_SOURCES.toSet(),
                             )
+                        } else {
+                            null
+                        },
+                        messages = if (it.messages.isEmpty() && !showOnboarding) {
+                            it.messages + ChatMessage(role = Role.SYSTEM, text = READY_LINE)
                         } else {
                             it.messages
                         },
@@ -171,7 +205,7 @@ class PdhChatViewModel @Inject constructor(
     /** §3.7: write the visible transcript to disk (best-effort, off the main thread). */
     private fun persistChat() {
         val msgs = _uiState.value.messages
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 val arr = JSONArray()
                 for (m in msgs) {
@@ -522,6 +556,64 @@ class PdhChatViewModel @Inject constructor(
         _uiState.update { it.copy(displayLimit = it.displayLimit + PAGE_SIZE) }
     }
 
+    // ── §3.5.19 首跑 onboarding 三步动作 ────────────────────────────────────
+
+    /** ①身份/②选源 的「继续」→ 下一步(COLLECT 由 [onboardingStartCollect] 收尾)。 */
+    fun onboardingNext() = _uiState.update { st ->
+        val ob = st.onboarding ?: return@update st
+        val next = PdhOnboarding.nextStep(ob.step) ?: return@update st
+        st.copy(onboarding = ob.copy(step = next))
+    }
+
+    /** ②选源:勾选/取消一个数据来源(每源显式同意,§3.5.19 不偷采)。 */
+    fun onboardingToggleSource(source: String) = _uiState.update { st ->
+        val ob = st.onboarding ?: return@update st
+        val sel = if (source in ob.selectedSources) {
+            ob.selectedSources - source
+        } else {
+            ob.selectedSources + source
+        }
+        st.copy(onboarding = ob.copy(selectedSources = sel))
+    }
+
+    /** ②选源:展开/收起「高级来源」(root/登录,默认折叠不吓退普通用户)。 */
+    fun onboardingToggleAdvanced() = _uiState.update { st ->
+        val ob = st.onboarding ?: return@update st
+        st.copy(onboarding = ob.copy(showAdvanced = !ob.showAdvanced))
+    }
+
+    /** 任意步「跳过」→ 结束引导、进正常对话(补一条已就绪文案)。 */
+    fun onboardingSkip() = finishOnboarding(addReadyLine = true)
+
+    /**
+     * §3.5.19 接线4: ③一键采集 → 把选中源拼成一句话发给常驻 agent(复用现成
+     * [send] 管线;采集结果/全貌经现成 §3.5.12 视图卡回显)。无选中源 → no-op。
+     */
+    fun onboardingStartCollect() {
+        val ob = _uiState.value.onboarding ?: return
+        val prompt = PdhOnboarding.collectPrompt(ob.selectedSources)
+        if (prompt.isBlank()) return
+        finishOnboarding(addReadyLine = false)
+        send(prompt)
+    }
+
+    /** 结束 onboarding:落"已完成"标志(不再引导)+ 清面板;可选补已就绪文案。 */
+    private fun finishOnboarding(addReadyLine: Boolean) {
+        viewModelScope.launch(ioDispatcher) {
+            runCatching { onboardingFlagFile.writeText("1") }
+        }
+        _uiState.update {
+            it.copy(
+                onboarding = null,
+                messages = if (addReadyLine && it.messages.isEmpty()) {
+                    it.messages + ChatMessage(role = Role.SYSTEM, text = READY_LINE)
+                } else {
+                    it.messages
+                },
+            )
+        }
+    }
+
     /** 工具名分流:采集/索引/打捞(写 vault)→ 预览卡;其余有副作用 → 审批卡。 */
     private fun isPreviewTool(tool: String): Boolean =
         tool.contains("collect", ignoreCase = true) ||
@@ -540,5 +632,9 @@ class PdhChatViewModel @Inject constructor(
 
         /** 翻页每页消息数。 */
         const val PAGE_SIZE = 50
+
+        /** 空态/结束 onboarding 后的已就绪提示文案。 */
+        private const val READY_LINE =
+            "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。"
     }
 }
