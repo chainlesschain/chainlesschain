@@ -125,12 +125,20 @@ export function registerCommandCommand(program) {
           return;
         }
 
+        // Claude-Code 2.1.183 parity: surface model-deprecation notices for
+        // frontmatter-declared models, same as `cc agents run` and print mode.
+        const resolvedModel = options.model || c.model || undefined;
+        if (resolvedModel) {
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
+          maybeWarnDeprecatedModel({ model: resolvedModel });
+        }
         const { runAgentHeadless, parseToolList } =
           await import("../runtime/headless-runner.js");
         const outcome = await runAgentHeadless({
           prompt,
           outputFormat: options.outputFormat,
-          model: options.model || c.model || undefined,
+          model: resolvedModel,
           permissionMode: options.permissionMode,
           // A command's frontmatter allowed-tools scopes the run.
           allowedTools: parseToolList(c.allowedTools),
@@ -145,7 +153,9 @@ export function registerCommandCommand(program) {
   // ── new (scaffold) ────────────────────────────────────────────────────
   cmd
     .command("new <name>")
-    .description("Scaffold a new command file (project-native .chainlesschain/commands/)")
+    .description(
+      "Scaffold a new command file (project-native .chainlesschain/commands/)",
+    )
     .option("--description <d>", "Frontmatter description")
     .option("--claude", "Create under .claude/commands (Claude-Code-portable)")
     .option("--personal", "Create under ~/.claude/commands instead of project")
