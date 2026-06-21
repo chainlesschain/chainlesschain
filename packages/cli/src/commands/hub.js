@@ -962,6 +962,89 @@ async function cmdCollectQq(options) {
   }
 }
 
+// ─── collect-db (generic plaintext-db ingest → vault) ────────────────────
+//
+// module 101 — collect an app's PLAINTEXT SQLite dbs (browse/read/history/
+// content/config) into the vault. The Magisk daemon (root, MIUI cross-app)
+// stages an app's databases dir; this turns each readable db into vault
+// records (generic text extraction). Encrypted IM (QQNT/WeChat) have their
+// own collectors; this covers the rest of the 明文库.
+async function cmdCollectDb(options) {
+  const spinner = options.json
+    ? null
+    : ora("collect-db (plaintext)...").start();
+  try {
+    const { createRequire } = await import("module");
+    const require = createRequire(import.meta.url);
+    const fs = require("fs");
+    const path = require("path");
+    const g = options._plaintextCore
+      ? options._plaintextCore
+      : await import("@chainlesschain/personal-data-hub/forensics/plaintext-db-collect");
+    if (!options.app) throw new Error("need --app <key>");
+    let dbs = [];
+    if (options.db) {
+      dbs = [options.db];
+    } else if (options.dir) {
+      dbs = fs
+        .readdirSync(options.dir)
+        .filter((f) => /\.db$/.test(f) && !/-wal$|-shm$/.test(f))
+        .map((f) => path.join(options.dir, f));
+    } else {
+      throw new Error("need --db <path> or --dir <dir>");
+    }
+    const hub = await (options._getHub || getHub)();
+    const vault = hub.vault;
+    const Database = (vault.db || vault._db || vault).constructor;
+    let ingested = 0;
+    let records = 0;
+    const perDb = [];
+    for (const dbp of dbs) {
+      try {
+        const events = g.ingestPlaintextDb(Database, dbp, options.app);
+        let ok = 0;
+        for (const ev of events) {
+          try {
+            vault.putEvent(ev);
+            ok++;
+          } catch {
+            /* skip dup/invalid */
+          }
+        }
+        ingested += ok;
+        records += events.length;
+        if (events.length)
+          perDb.push({ db: path.basename(dbp), records: events.length });
+      } catch {
+        /* skip encrypted/unreadable db */
+      }
+    }
+    const report = {
+      ok: true,
+      app: options.app,
+      dbs: dbs.length,
+      records,
+      ingested,
+      perDb,
+    };
+    if (spinner)
+      spinner.succeed(
+        `collect-db: ${ingested} records from ${perDb.length}/${dbs.length} dbs`,
+      );
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    logger.log(
+      chalk.green(`✓ collect-db (${options.app}): ${ingested} records → vault`),
+    );
+    for (const d of perDb.slice(0, 12)) logger.log(`  ${d.db}: ${d.records}`);
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
 //
 // Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
@@ -2685,6 +2768,20 @@ export function registerHubCommand(program) {
     .option("--self <qq>", "Your own QQ number (attribution fallback)")
     .option("--json", "Output JSON")
     .action(cmdCollectQq);
+
+  hub
+    .command("collect-db")
+    .description(
+      "Ingest an app's PLAINTEXT SQLite dbs (browse/read/history/content/config) into the vault — generic readable-record extraction with noise filtering. Pair with the Magisk daemon which stages the dbs (root, MIUI cross-app). Encrypted IM has its own collectors (collect-qq/collect-wechat).",
+    )
+    .requiredOption(
+      "--app <key>",
+      "App key (→ source local-<app>, e.g. qq/toutiao/douyin)",
+    )
+    .option("--db <path>", "A single plaintext db")
+    .option("--dir <dir>", "A dir of plaintext dbs (all *.db ingested)")
+    .option("--json", "Output JSON")
+    .action(cmdCollectDb);
 
   hub
     .command("event-detail <eventId>")
