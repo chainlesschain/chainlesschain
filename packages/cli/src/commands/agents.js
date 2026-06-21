@@ -125,10 +125,22 @@ export function registerAgentsCommand(program) {
           process.exitCode = 1;
           return;
         }
-        // Claude-Code 2.1.183 parity: deprecation warnings appear in stderr
-        // during print mode AND for agent-frontmatter models. The resolved model
-        // here comes from `--model` or the agent file's frontmatter `model:`.
-        const resolvedModel = options.model || a.model || undefined;
+        // Resolve the effective LLM. Model precedence: --model > frontmatter
+        // `model:` > config.llm.model. provider/baseUrl/apiKey come from
+        // config.llm (cc agents run has no provider flag) — mirrors `cc agent`
+        // so a cloud-configured setup runs without flags instead of silently
+        // falling back to ollama (localhost:11434) and failing with "fetch
+        // failed". (This path was never exercised while cc agents was unwired.)
+        const { loadConfig } = await import("../lib/config-manager.js");
+        const { applyConfigLlmDefaults } =
+          await import("../lib/llm-config-defaults.js");
+        const llmOpts = { model: options.model || a.model || undefined };
+        applyConfigLlmDefaults(llmOpts, loadConfig().llm || {}, {
+          explicitModel: options.model || a.model,
+        });
+        const resolvedModel = llmOpts.model || undefined;
+        // Claude-Code 2.1.183 parity: warn on stderr if the resolved model
+        // (--model / frontmatter / config) is a deprecated/retired snapshot.
         if (resolvedModel) {
           const { maybeWarnDeprecatedModel } =
             await import("../lib/model-deprecation.js");
@@ -143,6 +155,9 @@ export function registerAgentsCommand(program) {
           // Frontmatter `tools` scopes the run; null = inherit all.
           allowedTools: a.tools || undefined,
           model: resolvedModel,
+          provider: llmOpts.provider,
+          baseUrl: llmOpts.baseUrl,
+          apiKey: llmOpts.apiKey,
           outputFormat: options.outputFormat,
           permissionMode: options.permissionMode,
           additionalDirectories: Array.isArray(options.addDir)

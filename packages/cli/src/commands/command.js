@@ -125,9 +125,22 @@ export function registerCommandCommand(program) {
           return;
         }
 
-        // Claude-Code 2.1.183 parity: surface model-deprecation notices for
-        // frontmatter-declared models, same as `cc agents run` and print mode.
-        const resolvedModel = options.model || c.model || undefined;
+        // Resolve the effective LLM. Model precedence: --model > frontmatter
+        // `model:` > config.llm.model. provider/baseUrl/apiKey come from
+        // config.llm (cc command run has no provider flag) — mirrors `cc agent`
+        // so a cloud-configured setup runs without flags instead of silently
+        // falling back to ollama (localhost:11434) and failing with "fetch
+        // failed".
+        const { loadConfig } = await import("../lib/config-manager.js");
+        const { applyConfigLlmDefaults } =
+          await import("../lib/llm-config-defaults.js");
+        const llmOpts = { model: options.model || c.model || undefined };
+        applyConfigLlmDefaults(llmOpts, loadConfig().llm || {}, {
+          explicitModel: options.model || c.model,
+        });
+        const resolvedModel = llmOpts.model || undefined;
+        // Claude-Code 2.1.183 parity: surface model-deprecation notices for the
+        // resolved model (--model / frontmatter / config), same as print mode.
         if (resolvedModel) {
           const { maybeWarnDeprecatedModel } =
             await import("../lib/model-deprecation.js");
@@ -139,6 +152,9 @@ export function registerCommandCommand(program) {
           prompt,
           outputFormat: options.outputFormat,
           model: resolvedModel,
+          provider: llmOpts.provider,
+          baseUrl: llmOpts.baseUrl,
+          apiKey: llmOpts.apiKey,
           permissionMode: options.permissionMode,
           // A command's frontmatter allowed-tools scopes the run.
           allowedTools: parseToolList(c.allowedTools),
