@@ -18,6 +18,8 @@ import {
   safeOpenExternal,
   isPathWithin,
   safeOpenPathDir,
+  isExecutableProgramPath,
+  assertSafeProgramOpen,
   ALLOWED_EXTERNAL_PROTOCOLS,
 } from "../../../src/main/utils/safe-open.js";
 
@@ -117,5 +119,134 @@ describe("safeOpenPathDir", () => {
       safeOpenPathDir("/some/app.exe", { openPath, fs }),
     ).rejects.toThrow(/non-directory/);
     expect(openPath).not.toHaveBeenCalled();
+  });
+});
+
+describe("isExecutableProgramPath", () => {
+  const okFs = { statSync: () => ({ isFile: () => true, mode: 0o755 }) };
+  const missingFs = {
+    statSync: () => {
+      throw new Error("ENOENT");
+    },
+  };
+
+  it("accepts an existing absolute .exe on windows", () => {
+    expect(
+      isExecutableProgramPath("C:\\Program Files\\app\\app.exe", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects bare command names (would resolve via PATH)", () => {
+    expect(
+      isExecutableProgramPath("cmd", { fs: okFs, platform: "win32" }),
+    ).toBe(false);
+    // not absolute → rejected even with .exe extension
+    expect(
+      isExecutableProgramPath("powershell.exe", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects a non-existent program", () => {
+    expect(
+      isExecutableProgramPath("C:\\nope\\x.exe", {
+        fs: missingFs,
+        platform: "win32",
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects disallowed extensions on windows (.bat/.txt)", () => {
+    expect(
+      isExecutableProgramPath("C:\\x\\run.bat", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toBe(false);
+    expect(
+      isExecutableProgramPath("C:\\x\\notes.txt", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toBe(false);
+  });
+
+  it("accepts posix files with the execute bit, rejects non-exec", () => {
+    expect(
+      isExecutableProgramPath("/usr/bin/code", {
+        fs: { statSync: () => ({ isFile: () => true, mode: 0o755 }) },
+        platform: "linux",
+      }),
+    ).toBe(true);
+    expect(
+      isExecutableProgramPath("/usr/share/doc/readme", {
+        fs: { statSync: () => ({ isFile: () => true, mode: 0o644 }) },
+        platform: "linux",
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects directories, non-strings, and empty", () => {
+    expect(
+      isExecutableProgramPath("C:\\dir", {
+        fs: { statSync: () => ({ isFile: () => false }) },
+        platform: "win32",
+      }),
+    ).toBe(false);
+    expect(isExecutableProgramPath(null, { fs: okFs })).toBe(false);
+    expect(isExecutableProgramPath("", { fs: okFs })).toBe(false);
+  });
+});
+
+describe("assertSafeProgramOpen", () => {
+  const okFs = { statSync: () => ({ isFile: () => true, mode: 0o755 }) };
+
+  it("passes for a valid program + existing absolute target", () => {
+    expect(() =>
+      assertSafeProgramOpen("C:\\app\\a.exe", "C:\\docs\\f.txt", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).not.toThrow();
+  });
+
+  it("throws for a disallowed program (arbitrary-exe spawn blocked)", () => {
+    expect(() =>
+      assertSafeProgramOpen("cmd", "C:\\docs\\f.txt", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toThrow(/disallowed or non-executable/);
+  });
+
+  it("throws for a non-existent target (arg-injection like '/c calc')", () => {
+    const fs = {
+      statSync: (p) => {
+        if (String(p).toLowerCase().endsWith(".exe")) {
+          return { isFile: () => true, mode: 0o755 };
+        }
+        throw new Error("ENOENT");
+      },
+    };
+    expect(() =>
+      assertSafeProgramOpen("C:\\app\\a.exe", "/c calc", {
+        fs,
+        platform: "win32",
+      }),
+    ).toThrow(/does not exist/);
+  });
+
+  it("throws for a non-absolute target", () => {
+    expect(() =>
+      assertSafeProgramOpen("C:\\app\\a.exe", "foo.txt", {
+        fs: okFs,
+        platform: "win32",
+      }),
+    ).toThrow(/non-absolute/);
   });
 });

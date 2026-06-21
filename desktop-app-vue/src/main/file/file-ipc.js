@@ -8,7 +8,10 @@
 
 const { logger } = require("../utils/logger.js");
 const path = require("path");
-const { isPathWithin } = require("../utils/safe-open.js");
+const {
+  isPathWithin,
+  assertSafeProgramOpen,
+} = require("../utils/safe-open.js");
 
 /**
  * 注册文件操作相关的 IPC 处理器
@@ -817,6 +820,11 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
+      // 防 `..` 逃逸出项目根
+      if (!isPathWithin(rootPath, resolvedPath)) {
+        throw new Error("Refused to open a file outside the project root");
+      }
+
       logger.info("[Main] 解析后的路径:", resolvedPath);
 
       // 显示打开方式对话框
@@ -863,10 +871,16 @@ function registerFileIPC({
       try {
         logger.info("[Main] 使用指定程序打开文件:", { filePath, programPath });
 
+        // 安全闸（IPC 安全发现 #2）：programPath/filePath 均为渲染层可控，此前未校验即
+        // spawn → 任意可执行体 + 任意参数 = 远程代码执行原语。校验程序为真实可执行文件、
+        // 目标为已存在的绝对路径后再 spawn（无 shell，参数以数组传入）。
+        assertSafeProgramOpen(programPath, filePath);
+
         const { spawn } = require("child_process");
         spawn(programPath, [filePath], {
           detached: true,
           stdio: "ignore",
+          shell: false,
         }).unref();
 
         return { success: true };
