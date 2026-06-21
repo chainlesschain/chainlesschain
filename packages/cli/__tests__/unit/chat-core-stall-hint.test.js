@@ -77,6 +77,33 @@ describe("chat-core stall hint", () => {
     expect(stalls.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("passes the abort deadline (stallMs) as onStall's 2nd arg", async () => {
+    globalThis.fetch = () =>
+      Promise.resolve({
+        ok: true,
+        body: delayedBody(
+          [
+            'data: {"choices":[{"delta":{"content":"hi"}}]}\n',
+            "data: [DONE]\n",
+          ],
+          80,
+        ),
+      });
+    const calls = [];
+    await streamOpenAI(
+      [{ role: "user", content: "hi" }],
+      "gpt-4o",
+      "https://api.openai.com/v1",
+      "sk-test",
+      () => {},
+      null,
+      (ms, timeoutMs) => calls.push([ms, timeoutMs]),
+    );
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    // CC_CHAT_STALL_MS=5000 set at top of file → the hard abort deadline.
+    expect(calls[0][1]).toBe(5000);
+  });
+
   it("does not fire onStall when data arrives promptly", async () => {
     globalThis.fetch = () =>
       Promise.resolve({

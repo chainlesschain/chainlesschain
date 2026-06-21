@@ -48,7 +48,12 @@ function makeStallGuard(
       if (hintTimer) clearTimeout(hintTimer);
       hintTimer = setTimeout(() => {
         try {
-          onHint(hintMs);
+          // 2nd arg = the hard abort deadline (stallMs) so the hint can tell
+          // the user when the silent request will time out. Note the chat path
+          // surfaces a stall error rather than auto-retrying (see the dispatch
+          // loop in chatStream), so callers should word it "will time out",
+          // not "will retry".
+          onHint(hintMs, stallMs);
         } catch {
           /* hint is best-effort — never affect the stream */
         }
