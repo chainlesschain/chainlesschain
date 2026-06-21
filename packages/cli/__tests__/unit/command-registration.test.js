@@ -60,6 +60,27 @@ describe("command registration", () => {
     expect(commandNames).toContain("audit");
   });
 
+  it("registers the .claude/* sibling commands (agents + command)", async () => {
+    const { createProgram } = await import("../../src/index.js");
+    const program = createProgram();
+    const commandNames = program.commands.map((c) => c.name());
+    // Regression guard: `cc agents` exported registerAgentsCommand but it was
+    // never imported/called in index.js for several releases (fixed in
+    // ea0c9270c7), so the whole command was a silent "unknown command". Its
+    // sibling `cc command` shares the same wiring pattern. Assert both stay
+    // wired so this class of "exported but never registered" bug is caught.
+    expect(commandNames).toContain("agents");
+    expect(commandNames).toContain("command");
+  });
+
+  it("registers a healthy number of top-level commands (no wholesale regression)", async () => {
+    const { createProgram } = await import("../../src/index.js");
+    const program = createProgram();
+    // Lower bound, not an exact count — robust to new commands being added but
+    // catches a build/wiring regression that silently drops a large chunk.
+    expect(program.commands.length).toBeGreaterThanOrEqual(150);
+  });
+
   it("agent command has alias 'a'", async () => {
     const { createProgram } = await import("../../src/index.js");
     const program = createProgram();
