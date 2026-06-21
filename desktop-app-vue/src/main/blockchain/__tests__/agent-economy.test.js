@@ -86,6 +86,44 @@ describe("AgentEconomy", () => {
     );
   });
 
+  it("rejects a NaN amount instead of corrupting balances", async () => {
+    await economy.initialize(db);
+    economy._balances.set("alice", { balance: 100, locked: 0 });
+    await expect(economy.pay("alice", "bob", NaN)).rejects.toThrow(
+      "Invalid amount",
+    );
+    // balances untouched — a NaN would have slipped past `balance < amount`.
+    expect(economy.getBalance("alice").balance).toBe(100);
+    expect(Number.isNaN(economy.getBalance("bob").balance)).toBe(false);
+  });
+
+  it("rejects a negative amount (no money creation)", async () => {
+    await economy.initialize(db);
+    economy._balances.set("alice", { balance: 100, locked: 0 });
+    // Without the guard, `100 < -10` is false → `balance -= -10` = sender gains.
+    await expect(economy.pay("alice", "bob", -10)).rejects.toThrow(
+      "Invalid amount",
+    );
+    expect(economy.getBalance("alice").balance).toBe(100);
+  });
+
+  it("rejects a NaN trade quantity instead of corrupting the listing", async () => {
+    await economy.initialize(db);
+    const listing = economy.listResource("storage", "p1", 1.0, 50);
+    expect(() => economy.tradeResource(listing.id, "buyer", NaN)).toThrow(
+      "Invalid quantity",
+    );
+    expect(economy._market.get(listing.id).available).toBe(50);
+  });
+
+  it("rejects a NaN revenue pool instead of corrupting all balances", async () => {
+    await economy.initialize(db);
+    expect(() => economy.distributeRevenue(NaN, ["a", "b"])).toThrow(
+      "Invalid pool",
+    );
+    expect(Number.isNaN(economy.getBalance("a").balance)).toBe(false);
+  });
+
   it("should get balance for unknown agent as zero", async () => {
     await economy.initialize(db);
     const bal = economy.getBalance("nobody");

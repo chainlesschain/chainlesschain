@@ -5,6 +5,23 @@
 const EventEmitter = require("events");
 const { logger } = require("../utils/logger.js");
 
+// Reject NaN/Infinity/negative numeric inputs before they reach a balance or
+// market operation. A NaN slips past `balance < amount` / `available < quantity`
+// guards (NaN comparisons are always false) and permanently corrupts a balance;
+// a negative `amount` makes `balance < -x` false and then `balance -= -x` lets
+// the sender GAIN money. Centralized so every economic entry point validates.
+function _finiteAmount(value, label, { allowZero = false } = {}) {
+  const valid =
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    (allowZero ? value >= 0 : value > 0);
+  if (!valid) {
+    throw new Error(
+      `Invalid ${label}: must be a ${allowZero ? "non-negative" : "positive"} finite number`,
+    );
+  }
+}
+
 class AgentEconomy extends EventEmitter {
   constructor() {
     super();
@@ -115,6 +132,7 @@ class AgentEconomy extends EventEmitter {
 
   // Service Pricing
   priceService(serviceId, price, metadata = {}) {
+    _finiteAmount(price, "price", { allowZero: true });
     this._priceList.set(serviceId, {
       price,
       metadata,
@@ -130,6 +148,7 @@ class AgentEconomy extends EventEmitter {
 
   // Micropayments
   async pay(fromAgent, toAgent, amount, description = "") {
+    _finiteAmount(amount, "amount");
     const fromBalance = this._balances.get(fromAgent) || {
       balance: 0,
       locked: 0,
@@ -245,6 +264,8 @@ class AgentEconomy extends EventEmitter {
 
   // Resource Market
   listResource(resourceType, provider, price, available, unit = "unit") {
+    _finiteAmount(price, "price", { allowZero: true });
+    _finiteAmount(available, "available", { allowZero: true });
     const id = `res-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const listing = {
       id,
@@ -280,6 +301,7 @@ class AgentEconomy extends EventEmitter {
   }
 
   tradeResource(listingId, buyer, quantity) {
+    _finiteAmount(quantity, "quantity");
     const listing = this._market.get(listingId);
     if (!listing) {
       throw new Error("Listing not found");
@@ -343,6 +365,7 @@ class AgentEconomy extends EventEmitter {
   }
 
   distributeRevenue(pool, agentIds) {
+    _finiteAmount(pool, "pool", { allowZero: true });
     if (agentIds.length === 0) {
       return [];
     }
