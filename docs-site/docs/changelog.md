@@ -1338,7 +1338,7 @@ c8142e573  feat(pdh):         vault FTS5 search + facetCounts API (migration v3)
 - B.1 F1-F4：encrypted software secret store / CLI --keystore flag / SignProposalModal 'unified' radio / UnifiedKeyManager IPC bind-did
 - C.1 真机 instrumented E2E + 预览 drawables + phone shortcut tile
 
-issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设计文档：[Android 重新定位 §10 GA 后续 scope](./design/Android_重新定位_设计文档.md)
+issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设计文档：[Android 重新定位 §10 GA 后续 scope](./design/android-repositioning)
 
 ---
 

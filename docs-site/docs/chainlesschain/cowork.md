@@ -1527,7 +1527,7 @@ chainlesschain cowork status
 
 ## 相关文档
 
-- [快速入门指南 →](/guide/cowork-quick-start)
+- 快速入门指南 →
 - [Skills 技能系统 →](/chainlesschain/skills)
 - [Computer Use →](/chainlesschain/computer-use)
 - [权限系统 →](/chainlesschain/permissions)

@@ -352,4 +352,4 @@ cd desktop-app-vue && npx vitest run tests/unit/monitoring/ tests/unit/performan
 
 - [生产加固](/chainlesschain/production-hardening) - 性能基线与安全审计
 - [自主运维](/chainlesschain/autonomous-ops) - 告警与自动修复
-- [数据分析仪表盘](/chainlesschain/analytics) - 实时 KPI 监控与报告
+- 数据分析仪表盘 - 实时 KPI 监控与报告

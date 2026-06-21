@@ -671,7 +671,7 @@ chainlesschain bi anomaly-feedback --id <anomaly-id> --label false-positive
 
 - [企业知识图谱](/chainlesschain/enterprise-knowledge-graph)
 - [低代码/无代码平台](/chainlesschain/low-code-platform)
-- [Analytics 分析](/chainlesschain/analytics)
+- Analytics 分析
 
 ## 关键文件
 

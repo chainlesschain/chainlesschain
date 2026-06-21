@@ -159,5 +159,5 @@ chainlesschain status
 
 - [启动应用](./cli-start) — 启动桌面应用
 - [Docker 服务](./cli-services) — 管理后端服务
-- [环境诊断](./doctor) — 深度环境诊断
+- [环境诊断](./cli-doctor) — 深度环境诊断
 - [配置向导](./cli-setup) — 初始配置

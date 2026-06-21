@@ -379,6 +379,6 @@ const results = new QueryBuilder("notes")
 
 ## 相关文档
 
-- [数据库核心](/chainlesschain/database) — SQLite/SQLCipher 加密数据库
-- [性能优化](/chainlesschain/performance) — 应用整体性能调优
+- [数据库核心](/chainlesschain/database-evolution) — SQLite/SQLCipher 加密数据库
+- [性能优化](/chainlesschain/performance-tuning) — 应用整体性能调优
 - [企业知识图谱](/chainlesschain/enterprise-knowledge-graph) — 基于数据库的知识管理

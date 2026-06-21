@@ -295,5 +295,5 @@ chainlesschain dbevo stats --json
 - 设计文档: `docs/design/modules/45_数据库演进与迁移框架.md`
 - 管理器: `packages/cli/src/lib/dbevo.js`
 - 命令: `packages/cli/src/commands/dbevo.js`
-- [DB Evolution V2 →](/chainlesschain/dbevo_v2_phase80_cli)
+- DB Evolution V2 →
 - [Perf Tuning →](/chainlesschain/cli-perf)

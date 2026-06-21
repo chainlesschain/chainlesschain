@@ -181,4 +181,4 @@ chainlesschain setup
 - [启动应用](./cli-start) — 启动桌面应用
 - [Docker 服务](./cli-services) — 管理后端服务
 - [系统状态](./cli-status) — 查看系统状态
-- [环境诊断](./doctor) — 诊断环境问题
+- [环境诊断](./cli-doctor) — 诊断环境问题

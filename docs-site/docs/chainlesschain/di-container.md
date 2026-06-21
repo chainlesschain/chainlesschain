@@ -366,5 +366,5 @@ const cacheStats = await window.electron.ipcRenderer.invoke("core:cache-stats");
 ## 相关文档
 
 - [数据库演进](/chainlesschain/database-evolution) — 数据库迁移与查询优化
-- [性能优化](/chainlesschain/performance) — 缓存与资源池调优
-- [IPC 系统](/chainlesschain/ipc) — IPC 域拆分与中间件
+- [性能优化](/chainlesschain/performance-tuning) — 缓存与资源池调优
+- [IPC 系统](/chainlesschain/ipc-domain-split) — IPC 域拆分与中间件

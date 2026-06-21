@@ -2,7 +2,7 @@
 
 > **状态：✅ 已完成 (收口闭环)** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
 >
-> 关联文档：[CLI Agent Runtime 重构计划](./cli-agent-runtime-plan) · [Minimal Coding Agent 实施计划](./minimal-coding-agent-plan) · [Canonical Tool Descriptor](./coding-agent-tool-descriptor-unification-plan) · [边界冻结 ADR](../../../docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR)
+> 关联文档：[CLI Agent Runtime 重构计划](./cli-agent-runtime-plan) · [Minimal Coding Agent 实施计划](./minimal-coding-agent-plan) · [Canonical Tool Descriptor](./coding-agent-tool-descriptor-unification-plan) · [边界冻结 ADR](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md)
 
 ## 当前进度 (2026-04-09 Phase 7 完成 — 收口闭环)
 

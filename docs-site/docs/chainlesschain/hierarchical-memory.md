@@ -414,6 +414,6 @@ const consolidated = await window.electron.ipcRenderer.invoke(
 
 ## 相关文档
 
-- [LLM 记忆系统 →](/chainlesschain/llm-memory)
-- [会话管理 →](/chainlesschain/session)
-- [DID 身份系统 →](/chainlesschain/did)
+- LLM 记忆系统 →
+- [会话管理 →](/chainlesschain/session-manager)
+- [DID 身份系统 →](/chainlesschain/did-v2)

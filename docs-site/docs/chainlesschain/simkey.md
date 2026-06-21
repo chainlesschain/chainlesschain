@@ -876,6 +876,6 @@ SIMKey耗电极低，可忽略不计
 ## 相关文档
 
 - [U-Key 硬件密钥](/chainlesschain/ukey) - PC 端 USB 硬件安全密钥
-- [DID 身份管理](/chainlesschain/did) - 去中心化身份创建与签名
+- [DID 身份管理](/chainlesschain/did-v2) - 去中心化身份创建与签名
 - [加密系统](/chainlesschain/encryption) - AES-256-GCM 文件加密
 - [卫星通信](/chainlesschain/satellite-comm) - LEO 卫星加密消息传输

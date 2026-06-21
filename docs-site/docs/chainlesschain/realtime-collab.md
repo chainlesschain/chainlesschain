@@ -472,6 +472,6 @@ const awarenessConfig = {
 
 ## 相关文档
 
-- [P2P 加密通信](/chainlesschain/p2p) - P2P 网络与加密消息基础
-- [DID 身份管理](/chainlesschain/did) - 去中心化身份认证
+- [P2P 加密通信](/chainlesschain/cli-p2p) - P2P 网络与加密消息基础
+- [DID 身份管理](/chainlesschain/did-v2) - 去中心化身份认证
 - [知识库管理](/chainlesschain/knowledge-base) - 文档与笔记管理系统

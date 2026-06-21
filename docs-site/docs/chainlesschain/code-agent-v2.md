@@ -289,7 +289,7 @@ chainlesschain agent template-sync --source official
 | `codeAgent.cicd.defaultPlatform`       | string       | `"github-actions"`                   | 默认 CI/CD 平台                 |
 | `codeAgent.cicd.autoDetectLanguage`    | boolean      | `true`                               | 是否根据项目自动检测语言        |
 
-> **类别路由提示**: `generation.model` 支持类别别名（如 `"deep"`、`"reasoning"`），运行时由 LLM Manager 映射到已配置的最优 Provider。详见 [LLM 类别路由](/chainlesschain/llm-manager#category-routing)。
+> **类别路由提示**: `generation.model` 支持类别别名（如 `"deep"`、`"reasoning"`），运行时由 LLM Manager 映射到已配置的最优 Provider。详见 LLM 类别路由。
 
 ## 性能指标
 

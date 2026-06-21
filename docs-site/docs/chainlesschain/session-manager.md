@@ -734,7 +734,7 @@ ws.send(
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 优化与上下文工程
 - [Permanent Memory](/chainlesschain/permanent-memory) - 永久记忆系统详解
 - [AI 模型配置](/chainlesschain/ai-models) - 本地 AI 模型管理
-- [Token 追踪](/chainlesschain/token-tracker) - Token 使用量统计与分析
+- Token 追踪 - Token 使用量统计与分析
 - [WebSocket 服务器](/chainlesschain/cli-serve) - WebSocket 会话协议详解
 
 ---

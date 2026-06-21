@@ -492,30 +492,30 @@ grep -rn "parameters:" desktop-app-vue/src/main/ai-engine/
 
 - [Coding Agent 系统总览](./coding-agent.md) — Agent REPL、工具执行流程、sub-runtime 架构
 - [设计文档 83 — 工具描述规范统一](../design/modules/83-tool-descriptor-unification.md) — 背景分析与 P0–P3 阶段规划
-- [CLAUDE-patterns.md § Canonical Tool Descriptor 规范](../../CLAUDE-patterns.md#canonical-tool-descriptor-规范-v5029) — 架构模式库内的规范摘要
+- [CLAUDE-patterns.md § Canonical Tool Descriptor 规范](https://github.com/chainlesschain/chainlesschain/blob/main/docs/claude/CLAUDE-patterns.md#canonical-tool-descriptor-规范-v5029) — 架构模式库内的规范摘要
 
 ### 权限与 Plan Mode
 
-- [Permission Gate 设计](./coding-agent-permission-gate.md) — ApprovalGate 策略、riskLevel 判定树
-- [Managed Agents Phase H](./managed-agents-phase-h.md) — Desktop ApprovalGate 合流（hosted-tool 路径）
-- [Managed Agents Phase J](./managed-agents-phase-j.md) — `_executeHostedTool` 异步化、auto-consolidate
+- Permission Gate 设计 — ApprovalGate 策略、riskLevel 判定树
+- Managed Agents Phase H — Desktop ApprovalGate 合流（hosted-tool 路径）
+- Managed Agents Phase J — `_executeHostedTool` 异步化、auto-consolidate
 
 ### 工具注册表与技能系统
 
-- [Unified Tool Registry](./unified-tool-registry.md) — 注册、规范化、clone-on-read 完整说明
-- [Skill System Overview](./skill-system.md) — 四层技能加载、SKILL.md 格式、技能绑定工具
-- [Skill-Embedded MCP](./skill-embedded-mcp.md) — SKILL.md 内联 mcp-servers fenced block
+- Unified Tool Registry — 注册、规范化、clone-on-read 完整说明
+- Skill System Overview — 四层技能加载、SKILL.md 格式、技能绑定工具
+- Skill-Embedded MCP — SKILL.md 内联 mcp-servers fenced block
 
 ### CLI 相关
 
 - [CLI Agent 系统](./cli-agent.md) — `cc agent` 命令、Hashline 编辑、会话管理
 - [session-core 包](./session-core.md) — MemoryStore、ApprovalGate、QualityGate、StreamRouter
-- [Deep Agents Deploy — CLI Bundle](./deep-agents-deploy-cli-bundle.md) — `--bundle` 加载 AGENTS.md + MCP + approval
+- Deep Agents Deploy — CLI Bundle — `--bundle` 加载 AGENTS.md + MCP + approval
 
 ### MCP 集成
 
-- [MCP 服务器管理](./mcp-server-management.md) — 注册、安全策略、community registry
-- [MCP IPC 协议](./mcp-ipc-protocol.md) — `mcp:list-tools` / `mcp:call-tool` canonical 序列化格式
+- MCP 服务器管理 — 注册、安全策略、community registry
+- MCP IPC 协议 — `mcp:list-tools` / `mcp:call-tool` canonical 序列化格式
 
 ### 外部参考
 

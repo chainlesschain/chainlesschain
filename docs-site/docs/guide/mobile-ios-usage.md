@@ -505,7 +505,7 @@ iPhone → 远程操控 tab → AI 子 tab → 「新对话」
 - [iOS Phase 1-6 用户文档（架构 / Phase 设计全集）](/guide/mobile-ios)
 - [Android 用户操作手册](/guide/mobile-android-usage)
 - [系统概述](/chainlesschain/overview)
-- [DID 身份管理](/chainlesschain/did-management)
+- [DID 身份管理](/chainlesschain/did-v2)
 - [更新日志](/changelog)
 - [iOS Phase 1 配对设计文档](/design/iOS_Phase_1_Pairing_Flow_B)
 - [iOS Phase 2 远程终端设计文档](/design/iOS_Phase_2_Remote_Terminal)

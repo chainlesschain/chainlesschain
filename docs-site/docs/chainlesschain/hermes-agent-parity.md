@@ -734,7 +734,7 @@ chainlesschain a2a send --platform matrix --room !xyz:matrix.org --text "deploy 
 
 ## 相关文档
 
-- **设计文档 (中文)**: [docs/design/modules/85_Hermes_Agent对标实施方案.md](../../design/modules/85_Hermes_Agent对标实施方案.md)
+- **设计文档 (中文)**: [docs/design/modules/85_Hermes_Agent对标实施方案.md](../design/modules/85-hermes-agent-parity)
 - **英文用户文档**: [docs-site/docs/design/modules/85-hermes-agent-parity.md](../design/modules/85-hermes-agent-parity.md)
 - **Hermes Agent 原始参考**: [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
 - **自主学习闭环**: [autonomous-learning-loop.md](./autonomous-learning-loop.md) — 与 Phase 2 搜索和轨迹存储协同

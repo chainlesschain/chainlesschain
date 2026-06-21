@@ -833,10 +833,10 @@ Renderer：
 
 ### Phase 0 实施计划
 
-- [`docs/implementation-plans/LEARN_CODING_AGENT_IMPLEMENTATION_PLAN.md`](../../../../docs/implementation-plans/LEARN_CODING_AGENT_IMPLEMENTATION_PLAN.md) — 总实施计划
-- [`docs/implementation-plans/CODING_AGENT_EVENT_SCHEMA.md`](../../../../docs/implementation-plans/CODING_AGENT_EVENT_SCHEMA.md) — 事件协议
-- [`docs/implementation-plans/CODING_AGENT_MVP_TOOL_PERMISSION_MATRIX.md`](../../../../docs/implementation-plans/CODING_AGENT_MVP_TOOL_PERMISSION_MATRIX.md) — 工具与权限矩阵
-- [`docs/implementation-plans/CODING_AGENT_DESKTOP_CLI_BRIDGE_SEQUENCE.md`](../../../../docs/implementation-plans/CODING_AGENT_DESKTOP_CLI_BRIDGE_SEQUENCE.md) — 桌面端到 CLI Bridge 时序
+- [`docs/implementation-plans/LEARN_CODING_AGENT_IMPLEMENTATION_PLAN.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/LEARN_CODING_AGENT_IMPLEMENTATION_PLAN.md) — 总实施计划
+- [`docs/implementation-plans/CODING_AGENT_EVENT_SCHEMA.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/CODING_AGENT_EVENT_SCHEMA.md) — 事件协议
+- [`docs/implementation-plans/CODING_AGENT_MVP_TOOL_PERMISSION_MATRIX.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/CODING_AGENT_MVP_TOOL_PERMISSION_MATRIX.md) — 工具与权限矩阵
+- [`docs/implementation-plans/CODING_AGENT_DESKTOP_CLI_BRIDGE_SEQUENCE.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/CODING_AGENT_DESKTOP_CLI_BRIDGE_SEQUENCE.md) — 桌面端到 CLI Bridge 时序
 
 ### 关联模块
 

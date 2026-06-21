@@ -173,4 +173,4 @@ chainlesschain services up
 
 - [环境配置](./cli-setup) — 初始化向导（包含 Docker 服务配置）
 - [系统状态](./cli-status) — 查看服务运行状态
-- [环境诊断](./doctor) — 诊断环境问题
+- [环境诊断](./cli-doctor) — 诊断环境问题

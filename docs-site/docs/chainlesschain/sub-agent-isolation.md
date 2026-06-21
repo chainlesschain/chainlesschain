@@ -387,7 +387,7 @@ chainlesschain agent
 
 ## 相关文档
 
-- [Agent 会话管理](./agent-session.md) — Agent REPL 主循环与会话生命周期
-- [Cowork 多代理协作](./cowork-system.md) — Debate Review、AB Comparator 等多代理协作模式
+- Agent 会话管理 — Agent REPL 主循环与会话生命周期
+- [Cowork 多代理协作](./cowork) — Debate Review、AB Comparator 等多代理协作模式
 - [Plan Mode](./plan-mode.md) — 工具审批与计划模式
-- [Worktree Isolator](./worktree-isolator.md) — Git worktree 隔离机制详解
+- Worktree Isolator — Git worktree 隔离机制详解

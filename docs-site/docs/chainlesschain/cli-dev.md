@@ -233,6 +233,6 @@ cc dev gov-stats-v2
 ## 相关文档
 
 - [Coding Agent](./coding-agent)
-- [Code Gen Agent V2](./code_agent_v2_phase86_cli)
-- [V2 设计文档](/chainlesschain/autonomous_developer_v2_cli)
+- Code Gen Agent V2
+- V2 设计文档
 - 设计文档：`docs/design/modules/75_自主开发者引擎.md`

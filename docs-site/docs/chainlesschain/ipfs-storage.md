@@ -464,5 +464,5 @@ await window.electronAPI.invoke("ipfs:set-gc-policy", {
 ## 相关文档
 
 - [去中心化社交](/chainlesschain/social)
-- [实时协作](/chainlesschain/collaboration)
+- [实时协作](/chainlesschain/collaboration-governance)
 - [加密与安全](/chainlesschain/encryption)

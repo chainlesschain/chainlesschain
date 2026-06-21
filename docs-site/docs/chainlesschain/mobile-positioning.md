@@ -650,8 +650,8 @@ class ShareReceiverActivity : ComponentActivity() {
 
 ### 内部文档
 
-- [Android 重新定位设计文档](../design/Android_重新定位_设计文档.md) — 本文档的设计源文件，含 ADR 决策、里程碑拆分、副线发现
-- [Phase 3d Mobile Sync 设计文档](../design/Phase3d_Mobile_Sync_设计文档.md) — 已落地的双向同步基础（v1.0 直接复用）
+- [Android 重新定位设计文档](../design/android-repositioning) — 本文档的设计源文件，含 ADR 决策、里程碑拆分、副线发现
+- [Phase 3d Mobile Sync 设计文档](../design/phase3d-mobile-sync) — 已落地的双向同步基础（v1.0 直接复用）
 - [Cowork 多智能体协作系统](./cowork.md) — Android 通过 REMOTE 调用桌面 Cowork
 - [DID v2](./did-v2.md) — DID 钱包基础规范
 - [BLE U-Key](./ble-ukey.md) — 桌面硬件密钥（与 StrongBox 角色对位）

@@ -1032,4 +1032,4 @@ chainlesschain memory gc --max-age 365d --min-importance 0.2
 - [AI 模型配置](./ai-models.md) - LLM 和 Embedding 模型的配置说明
 - [会话管理](./session-manager.md) - 会话管理器与记忆系统的集成
 - [系统配置](./configuration.md) - 统一配置管理
-- [混合搜索引擎](../features/PERMANENT_MEMORY_INTEGRATION.md) - 混合搜索引擎的详细设计文档
+- [混合搜索引擎](https://github.com/chainlesschain/chainlesschain/blob/main/docs/features/PERMANENT_MEMORY_INTEGRATION.md) - 混合搜索引擎的详细设计文档

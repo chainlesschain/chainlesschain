@@ -646,7 +646,7 @@ await delegationManager.delegate({
 
 ## 相关文档
 
-- [SSO 企业认证](/chainlesschain/sso) - SAML/OAuth/OIDC 身份认证
+- [SSO 企业认证](/chainlesschain/cli-sso) - SAML/OAuth/OIDC 身份认证
 - [审计与合规](/chainlesschain/audit) - 企业审计日志系统
 - [Cowork 多智能体](/chainlesschain/cowork) - 多智能体协作权限
 

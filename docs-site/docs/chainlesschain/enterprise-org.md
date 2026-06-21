@@ -413,4 +413,4 @@ desktop-app-vue/tests/unit/enterprise/
 
 - [权限系统 (RBAC) →](/chainlesschain/permissions)
 - [审计日志 →](/chainlesschain/audit)
-- [SSO 单点登录 →](/chainlesschain/sso)
+- [SSO 单点登录 →](/chainlesschain/cli-sso)

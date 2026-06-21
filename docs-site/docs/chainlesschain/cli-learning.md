@@ -194,5 +194,5 @@ chainlesschain learning reflect --json | jq '.trend'
 ## 相关文档
 
 - [演化系统](./cli-evolution) — 自诊断与演化学习
-- [技能系统](./skill-system) — 技能管理与四层加载
+- 技能系统 — 技能管理与四层加载
 - [自主学习循环](./autonomous-learning-loop) — 设计文档

@@ -577,7 +577,7 @@ chainlesschain agent --session-migrate
 
 - [Web 管理界面 (ui)](./cli-ui) — Web Panel 前端，消费 Runtime Event 的主要入口
 - [WebSocket 服务 (serve)](./cli-serve) — `chainlesschain serve` WS 协议完整参考
-- [Managed Agents (session-core)](./managed-agents) — Phase D–J 会话管理与 ApprovalGate
+- [Managed Agents (session-core)](./managed-agents-parity) — Phase D–J 会话管理与 ApprovalGate
 - [设计文档：模块 69](../design/modules/69-websocket-server) — WebSocket 服务架构设计
 - [设计文档：模块 77](../design/modules/77-agent-optimization) — Agent 架构优化设计决策
 - [设计文档：模块 78](../design/modules/78-cli-agent-runtime) — CLI Agent Runtime 重构计划（边界收口）

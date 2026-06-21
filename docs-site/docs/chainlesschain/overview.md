@@ -1842,8 +1842,8 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 - [EvoMap联邦](/chainlesschain/evomap-federation) - 全球进化网络 (v3.4.0)
 - [EvoMap治理](/chainlesschain/evomap-governance) - 知识产权DAO (v3.4.0)
 - [CLI-Anything集成](/chainlesschain/cli-cli-anything) - 外部软件Agent化 (v5.0.1)
-- [Web UI管理面板](/chainlesschain/web-ui) - HTTP管理界面 (v5.0.2)
-- [AI Orchestration](/chainlesschain/orchestration) - 多Agent编排层 (v5.0.2)
+- [Web UI管理面板](/design/modules/73-web-ui) - HTTP管理界面 (v5.0.2)
+- [AI Orchestration](/design/modules/74-orchestration-layer) - 多Agent编排层 (v5.0.2)
 - [产品路线图](/chainlesschain/product-roadmap) - 产品演进规划
 
 ---

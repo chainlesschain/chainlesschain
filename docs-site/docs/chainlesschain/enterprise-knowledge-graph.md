@@ -648,7 +648,7 @@ desktop-app-vue/tests/unit/enterprise/
 
 ## 相关文档
 
-- [知识库管理](/chainlesschain/knowledge)
-- [RAG 搜索](/chainlesschain/rag)
+- [知识库管理](/chainlesschain/knowledge-base)
+- [RAG 搜索](/chainlesschain/knowledge-base)
 - [BI 智能分析](/chainlesschain/bi-engine)
 - [低代码/无代码平台](/chainlesschain/low-code-platform)

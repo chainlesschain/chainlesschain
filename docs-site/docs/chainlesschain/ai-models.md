@@ -920,7 +920,7 @@ ChainlessChain 内置 LLM Performance Dashboard（路由: `#/llm/performance`）
 }
 ```
 
-> 详见 [LLM Performance Dashboard 文档](../features/LLM_PERFORMANCE_DASHBOARD.md)
+> 详见 [LLM Performance Dashboard 文档](https://github.com/chainlesschain/chainlesschain/blob/main/docs/features/LLM_PERFORMANCE_DASHBOARD.md)
 
 ---
 
@@ -1548,4 +1548,4 @@ const LLM_CATEGORIES = {
 - [Computer Use 视觉自动化](/chainlesschain/computer-use)
 - [Skills 技能系统](/chainlesschain/skills)
 - [Cowork 多智能体协作](/chainlesschain/cowork)
-- [RAG 检索增强生成](/chainlesschain/rag)
+- [RAG 检索增强生成](/chainlesschain/knowledge-base)

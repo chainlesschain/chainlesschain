@@ -292,9 +292,9 @@ async function generate() {
 
 ## 相关文档
 
-- [架构设计：AI 视频生成 Volcengine Seedance](../design/90_AI视频生成_Volcengine_Seedance.md)
-- [LLM 类别路由（媒体扩展）](../patterns/llm-category-routing.md) — `asr` / `audio-analysis` / `video-vlm` 三个媒体类别
-- [视频剪辑 Agent (CutClaw)](./video-editing-agent.md) — 完整剪辑管线：deconstruct → plan → assemble → render
-- [AI 设置配置](./ai-settings.md) — 火山方舟 apiKey 配置入口
-- [统一配置管理](./unified-config.md) — `.chainlesschain/config.json` 结构说明
-- [CLI 视频命令参考](../../cli/video.md) — `cc video` 命令完整列表
+- [架构设计：AI 视频生成 Volcengine Seedance](../design/modules/90-ai-video-generation-seedance)
+- LLM 类别路由（媒体扩展） — `asr` / `audio-analysis` / `video-vlm` 三个媒体类别
+- [视频剪辑 Agent (CutClaw)](./video-editing) — 完整剪辑管线：deconstruct → plan → assemble → render
+- AI 设置配置 — 火山方舟 apiKey 配置入口
+- 统一配置管理 — `.chainlesschain/config.json` 结构说明
+- [CLI 视频命令参考](./cli-video) — `cc video` 命令完整列表

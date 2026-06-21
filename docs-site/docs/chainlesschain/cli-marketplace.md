@@ -205,5 +205,5 @@ cc marketplace invocations $sid --limit 50
 
 - [Skill Loader](./cli-skill)
 - [Agent Economy](./cli-economy)
-- [V2 设计文档](/chainlesschain/skill_marketplace_v2)（如可用）
+- [V2 设计文档](/chainlesschain/skill-marketplace)（如可用）
 - 设计文档：`docs/design/modules/77_技能市场.md`

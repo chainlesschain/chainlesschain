@@ -447,7 +447,7 @@ $ cc note search merkle     # 搜桌面知识库
 - [远程文件 skill 设计文档](/guide/remote-file)
 - [Cowork 多智能体](/chainlesschain/cowork)
 - [系统概述](/chainlesschain/overview)
-- [DID 身份管理](/chainlesschain/did-management)
+- [DID 身份管理](/chainlesschain/did-v2)
 - [更新日志](/changelog)
 
 ---

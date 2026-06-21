@@ -893,9 +893,9 @@ chainlesschain audit export-verify --file ./audit-export.csv
 
 ## 相关文档
 
-- [权限引擎（RBAC）](./permission-engine.md) - 企业权限管理系统
+- 权限引擎（RBAC） - 企业权限管理系统
 - [团队管理](./team-manager.md) - 团队组织与成员管理
 - [Hook 系统](./hooks.md) - 21 种 Hook 事件与 4 种类型
-- [IPC 错误处理](./ipc-error-handler.md) - 统一 IPC 错误处理机制
-- [企业组织管理](./enterprise-org-manager.md) - 部门层级与审批流程
-- [SSO 企业认证](./sso-manager.md) - SAML / OAuth / OIDC 集成
+- IPC 错误处理 - 统一 IPC 错误处理机制
+- [企业组织管理](./enterprise-org) - 部门层级与审批流程
+- SSO 企业认证 - SAML / OAuth / OIDC 集成

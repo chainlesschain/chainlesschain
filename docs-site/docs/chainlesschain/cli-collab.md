@@ -303,5 +303,5 @@ cc collab stats-v2
 
 - [DAO Governance (cli-dao)](./cli-dao)
 - [合规与 UEBA (cli-compliance)](./cli-compliance)
-- [V2 设计文档](/chainlesschain/collaboration_governance_v2_cli)
+- V2 设计文档
 - 设计文档：`docs/design/modules/76_协作治理系统.md`
