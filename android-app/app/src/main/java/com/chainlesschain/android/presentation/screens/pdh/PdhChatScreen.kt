@@ -171,6 +171,10 @@ fun PdhChatScreen(
                 state.onboarding?.let { ob ->
                     item { OnboardingPanel(ob = ob, viewModel = viewModel) }
                 }
+                // §3.5.20 重活预算提醒(成本/时机 +「现在就跑」覆盖)。
+                state.budgetNotice?.let { notice ->
+                    item { BudgetNoticeCard(notice = notice, viewModel = viewModel) }
+                }
                 // 翻页:顶部「加载更早」展开更老的记录(非搜索态)。
                 if (state.hasOlder) {
                     item {
@@ -332,6 +336,29 @@ private fun OnboardingPanel(ob: PdhChatViewModel.Onboarding, viewModel: PdhChatV
                     onPrimary = { viewModel.onboardingStartCollect() },
                 )
             }
+        }
+    }
+}
+
+/**
+ * §3.5.20 重活预算提醒(advisory):大采集前的成本/时机提示 +「现在就跑」覆盖。
+ * 诚实:Phase 2 不做自动排队引擎(§13.2),故只提醒;立即跑或取消由人决定。
+ */
+@Composable
+private fun BudgetNoticeCard(notice: PdhChatViewModel.BudgetNotice, viewModel: PdhChatViewModel) {
+    val onColor = MaterialTheme.colorScheme.onTertiaryContainer
+    CardSurface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+        Text("重活提醒", style = MaterialTheme.typography.titleSmall, color = onColor)
+        Text(notice.message, style = MaterialTheme.typography.bodyMedium, color = onColor)
+        notice.costWarning?.let {
+            Text("⚠ $it", style = MaterialTheme.typography.bodySmall, color = onColor)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { viewModel.dismissBudgetNotice() }) { Text("取消") }
+            Button(
+                onClick = { viewModel.runCollectNow() },
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("现在就跑") }
         }
     }
 }

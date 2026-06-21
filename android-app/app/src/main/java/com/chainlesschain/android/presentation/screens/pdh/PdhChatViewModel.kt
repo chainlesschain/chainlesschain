@@ -8,8 +8,10 @@ import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
 import com.chainlesschain.android.pdh.PdhDataProvenance
+import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
+import com.chainlesschain.android.pdh.PdhResourceBudget
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,6 +43,8 @@ class PdhChatViewModel @Inject constructor(
     // @Inject 构造不能写 Kotlin 默认值,故走 @IoDispatcher 限定符(让单测注入测试
     // 调度器,使 init 的文件 IO 在测试 scheduler 上确定性完成)。
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    // §3.5.20: device state (charging/battery/wifi) for the resource-budget gate.
+    private val deviceState: PdhDeviceState,
 ) : ViewModel() {
 
     // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
@@ -115,6 +119,17 @@ class PdhChatViewModel @Inject constructor(
         val showAdvanced: Boolean = false,
     )
 
+    /**
+     * §3.5.20 重活预算提醒(诚实降级,advisory):大批采集前若设备非理想(非充电 /
+     * 非 WiFi / 低电)→ 给成本提示 + 推荐时机,由人「现在就跑」或取消。Phase 2 不做
+     * 自动排队引擎(§13.2),故**不假称"已排队"**——只提醒 + 即时覆盖。
+     */
+    data class BudgetNotice(
+        val pendingPrompt: String,
+        val message: String,
+        val costWarning: String?,
+    )
+
     data class UiState(
         val messages: List<ChatMessage> = emptyList(),
         val streamingText: String = "",
@@ -127,6 +142,8 @@ class PdhChatViewModel @Inject constructor(
         val privacyBadge: PdhPrivacyTier.TierBadge? = null,
         /** §3.5.19 首跑 onboarding(空态三步);非空=正在引导,取代"已就绪"文案。 */
         val onboarding: Onboarding? = null,
+        /** §3.5.20 重活预算提醒(非空=展示提醒卡,等用户「现在就跑」或取消)。 */
+        val budgetNotice: BudgetNotice? = null,
         /** 记录搜索关键词(非空时只显示命中行)。 */
         val searchQuery: String = "",
         /** 翻页:默认只显示最近 [PAGE_SIZE] 条,点「加载更早」逐页展开。 */
@@ -150,6 +167,9 @@ class PdhChatViewModel @Inject constructor(
     /** §3.5.11/§3.5.12: last tool + input → derive its result's provenance / view kind. */
     private var lastToolUse: String? = null
     private var lastToolInput: String? = null
+
+    /** §3.5.20 资源预算(默认保守:省电省流量);预算设置 UI 是后续 seam。 */
+    private val budgetSettings = PdhResourceBudget.Settings()
 
     init {
         viewModelScope.launch {
@@ -594,8 +614,44 @@ class PdhChatViewModel @Inject constructor(
         val prompt = PdhOnboarding.collectPrompt(ob.selectedSources)
         if (prompt.isBlank()) return
         finishOnboarding(addReadyLine = false)
-        send(prompt)
+        startHeavyCollect(prompt)
     }
+
+    /**
+     * §3.5.20 接线1: route a bulk first-collect through the resource budget. On an
+     * ideal device (充电+WiFi) run immediately; otherwise surface an advisory
+     * [BudgetNotice] (cost + recommended timing) with a「现在就跑」override — never
+     * silently burn battery/data, never fake an auto-queue (no engine yet, §13.2).
+     */
+    private fun startHeavyCollect(prompt: String) {
+        val device = deviceState.read()
+        val decision = PdhResourceBudget.decide(
+            PdhResourceBudget.weightOf("bulk_collect"), device, budgetSettings,
+        )
+        if (!decision.deferred) {
+            send(prompt)
+            return
+        }
+        _uiState.update {
+            it.copy(
+                budgetNotice = BudgetNotice(
+                    pendingPrompt = prompt,
+                    message = decision.reason,
+                    costWarning = PdhResourceBudget.forceRunWarning(device, budgetSettings),
+                ),
+            )
+        }
+    }
+
+    /** §3.5.20「现在就跑」:覆盖预算建议,立即采集(成本已在卡上明示)。 */
+    fun runCollectNow() {
+        val notice = _uiState.value.budgetNotice ?: return
+        _uiState.update { it.copy(budgetNotice = null) }
+        send(notice.pendingPrompt)
+    }
+
+    /** §3.5.20「取消」:撤下预算提醒,不采集(诚实:无引擎,不排队、不假装完成)。 */
+    fun dismissBudgetNotice() = _uiState.update { it.copy(budgetNotice = null) }
 
     /** 结束 onboarding:落"已完成"标志(不再引导)+ 清面板;可选补已就绪文案。 */
     private fun finishOnboarding(addReadyLine: Boolean) {

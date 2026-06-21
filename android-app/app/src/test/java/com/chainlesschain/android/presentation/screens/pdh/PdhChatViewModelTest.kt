@@ -3,7 +3,9 @@ package com.chainlesschain.android.presentation.screens.pdh
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhOnboarding
+import com.chainlesschain.android.pdh.PdhResourceBudget
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -39,6 +41,7 @@ class PdhChatViewModelTest {
     private lateinit var events: MutableSharedFlow<PdhAgentEvent>
     private lateinit var context: android.content.Context
     private lateinit var tmpDir: java.io.File
+    private lateinit var deviceState: PdhDeviceState
 
     @Before
     fun setUp() {
@@ -51,6 +54,11 @@ class PdhChatViewModelTest {
         tmpDir = java.io.File.createTempFile("pdhchat", "").apply { delete(); mkdirs() }
         context = mockk(relaxed = true)
         every { context.filesDir } returns tmpDir
+        // §3.5.20: default to an ideal device (充电+WiFi) so heavy collect runs
+        // immediately; deferral tests override this.
+        deviceState = mockk(relaxed = true)
+        every { deviceState.read() } returns
+            PdhResourceBudget.Device(charging = true, batteryPercent = 90, onWifi = true)
     }
 
     @After
@@ -63,7 +71,7 @@ class PdhChatViewModelTest {
     private fun newVm(): PdhChatViewModel {
         // Inject the test dispatcher as @IoDispatcher so init's file IO runs on the
         // test scheduler → advanceUntilIdle deterministically drains it.
-        val vm = PdhChatViewModel(session, context, dispatcher)
+        val vm = PdhChatViewModel(session, context, dispatcher, deviceState)
         dispatcher.scheduler.advanceUntilIdle() // start() + IO + subscribe to events
         return vm
     }
@@ -218,6 +226,67 @@ class PdhChatViewModelTest {
 
         assertNull(vm.uiState.value.onboarding)
         coVerify { session.send(match { it.contains("系统数据") && it.contains("全貌") }) }
+    }
+
+    // ── §3.5.20 资源预算(重活择机)─────────────────────────────────────────
+
+    private fun vmAtCollectStep(): PdhChatViewModel {
+        val vm = newVm()
+        vm.onboardingNext() // SOURCES
+        vm.onboardingNext() // COLLECT
+        return vm
+    }
+
+    @Test
+    fun heavy_collect_on_ideal_device_runs_immediately() = runTest(dispatcher) {
+        coEvery { session.send(any()) } returns true // setUp device = 充电+WiFi → not deferred
+        val vm = vmAtCollectStep()
+        vm.onboardingStartCollect()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.budgetNotice)
+        coVerify { session.send(any()) }
+    }
+
+    @Test
+    fun heavy_collect_off_ideal_shows_budget_notice_without_sending() = runTest(dispatcher) {
+        every { deviceState.read() } returns
+            PdhResourceBudget.Device(charging = false, batteryPercent = 50, onWifi = false)
+        val vm = vmAtCollectStep()
+        vm.onboardingStartCollect()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.budgetNotice)
+        assertNull(vm.uiState.value.onboarding) // onboarding still finishes
+        coVerify(exactly = 0) { session.send(any()) } // 诚实:不偷跑
+    }
+
+    @Test
+    fun run_collect_now_overrides_budget_and_sends() = runTest(dispatcher) {
+        every { deviceState.read() } returns
+            PdhResourceBudget.Device(charging = false, batteryPercent = 50, onWifi = false)
+        coEvery { session.send(any()) } returns true
+        val vm = vmAtCollectStep()
+        vm.onboardingStartCollect()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.budgetNotice)
+
+        vm.runCollectNow()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.budgetNotice)
+        coVerify { session.send(match { it.contains("系统数据") }) }
+    }
+
+    @Test
+    fun dismiss_budget_notice_clears_without_sending() = runTest(dispatcher) {
+        every { deviceState.read() } returns
+            PdhResourceBudget.Device(charging = false, batteryPercent = 50, onWifi = false)
+        val vm = vmAtCollectStep()
+        vm.onboardingStartCollect()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.budgetNotice)
+
+        vm.dismissBudgetNotice()
+        assertNull(vm.uiState.value.budgetNotice)
+        coVerify(exactly = 0) { session.send(any()) }
     }
 
     // §3.5.10 接线3: the top-bar data-flow badge reflects the session's route.
