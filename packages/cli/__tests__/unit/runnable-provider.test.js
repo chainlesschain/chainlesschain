@@ -234,3 +234,72 @@ describe("makeRunnableProviderFallback", () => {
     });
   });
 });
+
+describe("makeRunnableProviderFallback — sticky resolution + dedup", () => {
+  it("skips the known-bad provider on later turns and warns only once", async () => {
+    const seen = [];
+    const fb = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.provider);
+      if (opts.provider === "anthropic")
+        throw new Error("API key required for anthropic");
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: {},
+      onFallback: (i) => fb.push(i),
+    });
+    const opts = {
+      provider: "anthropic",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiKey: "sk-volc",
+      model: "haiku",
+    };
+    // Turn 1: attempts anthropic (fails) → volcengine.
+    await wrapped([], opts);
+    // Turn 2 + 3: route straight to volcengine, no wasted anthropic attempt.
+    await wrapped([], opts);
+    await wrapped([], opts);
+    expect(seen).toEqual([
+      "anthropic",
+      "volcengine",
+      "volcengine",
+      "volcengine",
+    ]);
+    // The fallback was announced exactly once despite three turns.
+    expect(fb).toHaveLength(1);
+    expect(fb[0]).toMatchObject({ from: "anthropic", to: "volcengine" });
+  });
+
+  it("still works (and is sticky) for env-key fallback across turns", async () => {
+    const seen = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.provider);
+      if (opts.provider === "anthropic") throw new Error("401 unauthorized");
+      return { message: { content: "ok" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, {
+      env: { VOLCENGINE_API_KEY: "sk-v" },
+    });
+    const opts = {
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      apiKey: "",
+    };
+    await wrapped([], opts);
+    await wrapped([], opts);
+    expect(seen).toEqual(["anthropic", "volcengine", "volcengine"]);
+  });
+
+  it("a genuinely healthy provider never becomes sticky", async () => {
+    const seen = [];
+    const chatFn = async (_msgs, opts) => {
+      seen.push(opts.provider);
+      return { message: { content: "hi" }, _opts: opts };
+    };
+    const wrapped = makeRunnableProviderFallback(chatFn, { env: {} });
+    await wrapped([], { provider: "volcengine", apiKey: "sk-v" });
+    await wrapped([], { provider: "volcengine", apiKey: "sk-v" });
+    expect(seen).toEqual(["volcengine", "volcengine"]);
+  });
+});

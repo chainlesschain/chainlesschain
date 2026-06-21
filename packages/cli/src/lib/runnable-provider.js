@@ -92,48 +92,79 @@ export function makeRunnableProviderFallback(
   chatFn,
   { env = process.env, onFallback } = {},
 ) {
+  // Notify at most once per from→to pair: in an agent loop the same fallback
+  // would otherwise re-warn on every turn.
+  const notified = new Set();
   const notify = (info) => {
-    if (typeof onFallback === "function") {
-      try {
-        onFallback(info);
-      } catch {
-        /* notification is best-effort */
-      }
+    if (typeof onFallback !== "function") return;
+    const key = `${info.from}→${info.to}`;
+    if (notified.has(key)) return;
+    notified.add(key);
+    try {
+      onFallback(info);
+    } catch {
+      /* notification is best-effort */
     }
   };
-  return async function runnableProviderFallback(messages, options = {}) {
-    try {
-      return await chatFn(messages, options);
-    } catch (err) {
-      if (!isAuthError(err)) throw err;
-      const failed = options.provider;
 
-      // 1) The endpoint belongs to a different provider than the label.
-      const inferred = inferProviderFromBaseUrl(options.baseUrl);
-      if (inferred && inferred !== failed) {
-        notify({ from: failed, to: inferred, reason: "baseurl-mismatch" });
-        return await chatFn(messages, {
-          ...options,
+  // Compute the fallback for these options WITHOUT calling the model — the
+  // resolution is deterministic (baseUrl-inferred provider, then env-keyed
+  // provider). Returns { to, reason, override } or null. Pure so we can both
+  // react to an auth failure AND pre-empt the known-bad attempt on later turns.
+  const computeFallback = (options) => {
+    const failed = options.provider;
+    const inferred = inferProviderFromBaseUrl(options.baseUrl);
+    if (inferred && inferred !== failed) {
+      return {
+        to: inferred,
+        reason: "baseurl-mismatch",
+        override: {
           provider: inferred,
           model: defaultModelFor(inferred) || options.model,
-        });
-      }
-
-      // 2) Another provider has a usable key in the environment.
-      for (const [name, def] of Object.entries(BUILT_IN_PROVIDERS)) {
-        if (name === failed) continue;
-        if (def.apiKeyEnv && nonEmpty(env[def.apiKeyEnv])) {
-          notify({ from: failed, to: name, reason: "env-key" });
-          return await chatFn(messages, {
-            ...options,
+        },
+      };
+    }
+    for (const [name, def] of Object.entries(BUILT_IN_PROVIDERS)) {
+      if (name === failed) continue;
+      if (def.apiKeyEnv && nonEmpty(env[def.apiKeyEnv])) {
+        return {
+          to: name,
+          reason: "env-key",
+          override: {
             provider: name,
             baseUrl: def.baseUrl,
             apiKey: envKey(name, env),
             model: defaultModelFor(name) || options.model,
-          });
-        }
+          },
+        };
       }
-      throw err; // nowhere runnable to fall back to — surface the clear error
+    }
+    return null;
+  };
+
+  // Providers we have already proven need a fallback — later turns route
+  // straight to the working provider instead of re-attempting the broken one.
+  const stickyFrom = new Set();
+
+  return async function runnableProviderFallback(messages, options = {}) {
+    // Known-bad provider: skip the wasted failed attempt and route directly.
+    if (stickyFrom.has(options.provider)) {
+      const fb = computeFallback(options);
+      if (fb) {
+        notify({ from: options.provider, to: fb.to, reason: fb.reason });
+        return await chatFn(messages, { ...options, ...fb.override });
+      }
+      // Resolution no longer available — fall through to a normal attempt.
+    }
+    try {
+      return await chatFn(messages, options);
+    } catch (err) {
+      if (!isAuthError(err)) throw err;
+      const fb = computeFallback(options);
+      if (!fb) throw err; // nowhere runnable — surface the clear error
+      stickyFrom.add(options.provider);
+      notify({ from: options.provider, to: fb.to, reason: fb.reason });
+      return await chatFn(messages, { ...options, ...fb.override });
     }
   };
 }
