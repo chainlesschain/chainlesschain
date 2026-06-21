@@ -14,6 +14,14 @@ import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
 import com.chainlesschain.android.pdh.social.weibo.WeiboApiClient
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
+import com.chainlesschain.android.pdh.social.bilibili.BilibiliApiClient
+import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
+import com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
+import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoApiClient
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouApiClient
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
 import com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
@@ -72,6 +80,14 @@ object PdhBridgeModule {
         kuaishouRoot: KuaishouRootDbCollector,
         weiboApi: WeiboApiClient,
         weiboCreds: WeiboCredentialsStore,
+        bilibiliApi: BilibiliApiClient,
+        bilibiliCreds: BilibiliCredentialsStore,
+        douyinApi: DouyinApiClient,
+        douyinCreds: DouyinCredentialsStore,
+        toutiaoApi: ToutiaoApiClient,
+        toutiaoCreds: ToutiaoCredentialsStore,
+        kuaishouApi: KuaishouApiClient,
+        kuaishouCreds: KuaishouCredentialsStore,
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         val collectors = listOf(
@@ -112,7 +128,13 @@ object PdhBridgeModule {
                 requiresRoot = true,
             ),
             PdhToolHost.Collector(
-                tool = QueryAppDataTool(weiboApi, weiboCreds),
+                tool = QueryAppDataTool(
+                    weiboApi, weiboCreds,
+                    bilibiliApi, bilibiliCreds,
+                    douyinApi, douyinCreds, douyinSign,
+                    toutiaoApi, toutiaoCreds, toutiaoSign,
+                    kuaishouApi, kuaishouCreds, kuaishouSign,
+                ),
                 layer = "L3",
                 requiresRoot = false,
             ),
