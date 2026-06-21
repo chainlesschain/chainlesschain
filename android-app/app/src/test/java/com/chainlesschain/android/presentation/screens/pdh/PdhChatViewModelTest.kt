@@ -32,6 +32,8 @@ class PdhChatViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var session: PdhAgentSession
     private lateinit var events: MutableSharedFlow<PdhAgentEvent>
+    private lateinit var context: android.content.Context
+    private lateinit var tmpDir: java.io.File
 
     @Before
     fun setUp() {
@@ -40,14 +42,21 @@ class PdhChatViewModelTest {
         session = mockk(relaxed = true)
         every { session.events } returns events
         coEvery { session.start(any()) } returns Result.success(Unit)
+        // Real temp filesDir so chat-history persist/restore has somewhere to write.
+        tmpDir = java.io.File.createTempFile("pdhchat", "").apply { delete(); mkdirs() }
+        context = mockk(relaxed = true)
+        every { context.filesDir } returns tmpDir
     }
 
     @After
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() {
+        Dispatchers.resetMain()
+        tmpDir.deleteRecursively()
+    }
 
     /** Build the VM and let its init (start + event collector) settle. */
     private fun newVm(): PdhChatViewModel {
-        val vm = PdhChatViewModel(session)
+        val vm = PdhChatViewModel(session, context)
         dispatcher.scheduler.advanceUntilIdle() // start() + subscribe to events
         return vm
     }

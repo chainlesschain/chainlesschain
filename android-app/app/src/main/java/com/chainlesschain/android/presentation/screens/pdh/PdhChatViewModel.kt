@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.screens.pdh
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.pdh.PdhAgentSession
@@ -9,11 +10,17 @@ import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhResultView
 import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 
@@ -27,7 +34,13 @@ import javax.inject.Inject
 @HiltViewModel
 class PdhChatViewModel @Inject constructor(
     private val session: PdhAgentSession,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
+
+    // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
+    // it. Persist the visible transcript to disk so it survives restart.
+    private val historyFile: File
+        get() = File(appContext.filesDir, "pdh-chat-history.json")
 
     enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA, VIEW }
 
@@ -101,6 +114,11 @@ class PdhChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // §3.7: restore the persisted transcript first so it survives an app
+            // kill/recreate, THEN start the agent. The 已就绪 line is only added for
+            // a fresh chat (no restored history) to avoid stacking it each launch.
+            val restored = withContext(Dispatchers.IO) { loadChat() }
+            if (restored.isNotEmpty()) _uiState.update { it.copy(messages = restored) }
             val r = session.start(viewModelScope)
             if (r.isFailure) {
                 _uiState.update {
@@ -110,10 +128,14 @@ class PdhChatViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         ready = true,
-                        messages = it.messages + ChatMessage(
-                            role = Role.SYSTEM,
-                            text = "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。",
-                        ),
+                        messages = if (it.messages.isEmpty()) {
+                            it.messages + ChatMessage(
+                                role = Role.SYSTEM,
+                                text = "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。",
+                            )
+                        } else {
+                            it.messages
+                        },
                     )
                 }
             }
@@ -121,6 +143,61 @@ class PdhChatViewModel @Inject constructor(
         viewModelScope.launch {
             session.events.collect { ev -> onEvent(ev) }
         }
+    }
+
+    /** §3.7: write the visible transcript to disk (best-effort, off the main thread). */
+    private fun persistChat() {
+        val msgs = _uiState.value.messages
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val arr = JSONArray()
+                for (m in msgs) {
+                    if (m.role == Role.SYSTEM) continue // transient 已就绪 line
+                    arr.put(
+                        JSONObject().apply {
+                            put("id", m.id); put("role", m.role.name); put("text", m.text)
+                            m.source?.let { put("source", it) }
+                            put("untrusted", m.untrusted); put("collapsed", m.collapsed)
+                            m.viewKind?.let { put("viewKind", it.name) }
+                            m.feedback?.let { put("feedback", it.name) }
+                        },
+                    )
+                }
+                historyFile.writeText(arr.toString())
+            } catch (_: Throwable) {
+                // persistence is best-effort — never crash the chat over it
+            }
+        }
+    }
+
+    /** §3.7: restore the transcript written by [persistChat]; [] on any error. */
+    private fun loadChat(): List<ChatMessage> = try {
+        if (!historyFile.exists()) {
+            emptyList()
+        } else {
+            val arr = JSONArray(historyFile.readText())
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.getJSONObject(i)
+                val role = runCatching { Role.valueOf(o.getString("role")) }.getOrNull()
+                    ?: return@mapNotNull null
+                ChatMessage(
+                    id = o.optString("id").ifEmpty { UUID.randomUUID().toString() },
+                    role = role,
+                    text = o.optString("text", ""),
+                    source = o.optString("source").ifEmpty { null },
+                    untrusted = o.optBoolean("untrusted", false),
+                    collapsed = o.optBoolean("collapsed", true),
+                    viewKind = runCatching {
+                        o.optString("viewKind").ifEmpty { null }?.let { ViewKind.valueOf(it) }
+                    }.getOrNull(),
+                    feedback = runCatching {
+                        o.optString("feedback").ifEmpty { null }?.let { FeedbackKind.valueOf(it) }
+                    }.getOrNull(),
+                )
+            }
+        }
+    } catch (_: Throwable) {
+        emptyList()
     }
 
     fun send(raw: String) {
@@ -140,6 +217,7 @@ class PdhChatViewModel @Inject constructor(
                 pendingCards = emptyList(),
             )
         }
+        persistChat()
         viewModelScope.launch {
             val ok = session.send(text)
             if (!ok) {
@@ -265,19 +343,22 @@ class PdhChatViewModel @Inject constructor(
                 }
             }
 
-            is PdhAgentEvent.Result -> _uiState.update {
-                val finalText = it.streamingText.ifEmpty { ev.text }
-                val msgs = if (finalText.isNotEmpty()) {
-                    it.messages + ChatMessage(role = Role.ASSISTANT, text = finalText)
-                } else {
-                    it.messages
+            is PdhAgentEvent.Result -> {
+                _uiState.update {
+                    val finalText = it.streamingText.ifEmpty { ev.text }
+                    val msgs = if (finalText.isNotEmpty()) {
+                        it.messages + ChatMessage(role = Role.ASSISTANT, text = finalText)
+                    } else {
+                        it.messages
+                    }
+                    it.copy(
+                        messages = msgs,
+                        streamingText = "",
+                        isSending = false,
+                        error = if (ev.isError) "本轮以错误结束。" else it.error,
+                    )
                 }
-                it.copy(
-                    messages = msgs,
-                    streamingText = "",
-                    isSending = false,
-                    error = if (ev.isError) "本轮以错误结束。" else it.error,
-                )
+                persistChat() // §3.7: save the transcript at each turn's end
             }
 
             is PdhAgentEvent.Error -> _uiState.update {
