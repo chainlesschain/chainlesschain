@@ -26,15 +26,21 @@ function emit(obj) {
 // SQLCipher — the sqlite3_* symbols we need are exported THERE, not in the
 // system libsqlite.so. Resolve/hook from WCDB first, fall back to global.
 var MODS = null;
-function modCandidates() {
-  if (MODS) return MODS;
-  MODS = [];
+function wcdbNames() {
+  var names = [];
   try {
     Process.enumerateModules().forEach(function (m) {
-      if (/wcdb|sqlcipher/i.test(m.name)) MODS.push(m.name);
+      if (/wcdb|sqlcipher/i.test(m.name)) names.push(m.name);
     });
   } catch (e) {}
-  MODS.push(null); // global fallback last
+  return names;
+}
+function modCandidates() {
+  if (MODS) return MODS;
+  var names = wcdbNames();
+  if (names.length === 0) return [null]; // wcdb not loaded yet — DON'T cache
+  names.push(null);
+  MODS = names; // cache only once wcdb is present
   return MODS;
 }
 function findSym(name) {
@@ -83,7 +89,11 @@ function tryExport(db) {
   if (r.rc !== 0) DONE[fn] = false; // 失败允许其它 hook 重试
 }
 function install() {
-  if (!resolve()) { setTimeout(install, 400); return; }
+  // Wait for WCDB (libwcdb.so) to load — QQNT's nt_msg cipher lives there, and
+  // if we hook before it loads we'd bind the system libsqlite instead. Polling
+  // also lets us attach early and still catch the FIRST nt_msg open (key set).
+  if (wcdbNames().length === 0) { setTimeout(install, 250); return; }
+  if (!resolve()) { setTimeout(install, 250); return; }
   emit({ kind: 'ready', match: String(DB_MATCH), mods: modCandidates() });
   ['sqlite3_key', 'sqlite3_key_v2'].forEach(function (n) {
     var p = findSym(n);
