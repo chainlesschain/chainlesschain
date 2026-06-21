@@ -93,6 +93,10 @@ class PdhAgentSession @Inject constructor(
             val resumeToken: String?,
             val reason: String?,
         ) : PdhAgentEvent()
+        /** §3.5.13: cc 已收到并处理某轮反馈(纠正卡)→ UI 确认该轮标记。 */
+        data class FeedbackAck(val turnId: String?, val kind: String) : PdhAgentEvent()
+        /** §3.5.15: cc 已收到 resume(引导卡)→ UI 收起对应引导卡。 */
+        data class ResumeAck(val token: String?, val action: String) : PdhAgentEvent()
     }
 
     /** §3.5.13 自学习纠正信号类别(人对 AI 某轮回应的反馈)。 */
@@ -424,6 +428,16 @@ class PdhAgentSession @Inject constructor(
                 )
                 "error" -> PdhAgentEvent.Error(
                     str(obj, "message").ifEmpty { str(obj, "error").ifEmpty { "error" } },
+                )
+                // §3.5.13/§3.5.15: cc acks the chat's feedback/resume events so
+                // the UI can confirm the mark / dismiss the 引导卡 authoritatively.
+                "feedback_ack" -> PdhAgentEvent.FeedbackAck(
+                    turnId = str(obj, "turn_id").ifEmpty { null },
+                    kind = str(obj, "kind"),
+                )
+                "resume_ack" -> PdhAgentEvent.ResumeAck(
+                    token = str(obj, "token").ifEmpty { null },
+                    action = str(obj, "action"),
                 )
                 else -> null // system/init/token_usage/etc. — not surfaced
             }

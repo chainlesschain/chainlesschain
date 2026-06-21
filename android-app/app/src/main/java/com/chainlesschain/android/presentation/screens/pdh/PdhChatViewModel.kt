@@ -233,6 +233,32 @@ class PdhChatViewModel @Inject constructor(
                 it.copy(pendingCards = cards)
             }
 
+            // §3.5.15: cc confirmed the resume → authoritatively dismiss the
+            // matching 引导卡 (idempotent; the optimistic remove usually beat it).
+            is PdhAgentEvent.ResumeAck -> _uiState.update { st ->
+                val token = ev.token
+                st.copy(
+                    pendingCards = st.pendingCards.filterNot { c ->
+                        c is TrustCard.Guide && (token == null || c.resumeToken == token)
+                    },
+                )
+            }
+
+            // §3.5.13: cc confirmed receipt → ensure the 该轮 mark reflects it
+            // (idempotent; the optimistic mark usually already set it).
+            is PdhAgentEvent.FeedbackAck -> {
+                val k = runCatching { FeedbackKind.valueOf(ev.kind.uppercase()) }.getOrNull()
+                if (k != null && ev.turnId != null) {
+                    _uiState.update { st ->
+                        st.copy(
+                            messages = st.messages.map { m ->
+                                if (m.id == ev.turnId) m.copy(feedback = k) else m
+                            },
+                        )
+                    }
+                }
+            }
+
             is PdhAgentEvent.Result -> _uiState.update {
                 val finalText = it.streamingText.ifEmpty { ev.text }
                 val msgs = if (finalText.isNotEmpty()) {
@@ -286,16 +312,31 @@ class PdhChatViewModel @Inject constructor(
      * 重调 assist_required 工具,确定性);无 token → 退回 §3.5.9 的 user-turn 提示。
      */
     private fun resumeGuide(id: String, action: String) {
-        val card = _uiState.value.pendingCards.firstOrNull { it.id == id } as? TrustCard.Guide
+        val card = _uiState.value.pendingCards.firstOrNull { it.id == id } as? TrustCard.Guide ?: return
+        // Optimistic dismissal for a snappy UI; cc's resume_ack confirms it
+        // (idempotent). If the send fails the card is restored so the step is
+        // never silently dropped (§3.5.15 honest-degradation).
         _uiState.update { it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == id }) }
-        val token = card?.resumeToken
+        val token = card.resumeToken
         viewModelScope.launch {
-            if (token != null) {
+            val ok = if (token != null) {
                 session.sendResume(token, action)
             } else {
                 session.send(
                     if (action == "completed") "我已完成上一步,请继续。" else "跳过这一步,继续其余部分。",
                 )
+            }
+            if (!ok) {
+                _uiState.update {
+                    if (it.pendingCards.any { c -> c.id == id }) {
+                        it.copy(error = "续跑发送失败：会话未运行。")
+                    } else {
+                        it.copy(
+                            pendingCards = it.pendingCards + card,
+                            error = "续跑发送失败：会话未运行。",
+                        )
+                    }
+                }
             }
         }
     }
@@ -322,7 +363,8 @@ class PdhChatViewModel @Inject constructor(
     }
 
     private fun submitFeedback(messageId: String, kind: FeedbackKind, comment: String?) {
-        // 乐观标记该轮已反馈;实际写入端侧学习层由 cc 侧消费 {type:feedback}。
+        // 乐观标记该轮已反馈;cc 侧消费 {type:feedback} 并经 feedback_ack 确认 +
+        // 持久化到跨 session 学习台账。发送失败则回退标记(诚实降级)。
         _uiState.update {
             it.copy(
                 messages = it.messages.map { m ->
@@ -330,7 +372,19 @@ class PdhChatViewModel @Inject constructor(
                 },
             )
         }
-        viewModelScope.launch { session.sendFeedback(messageId, kind, comment) }
+        viewModelScope.launch {
+            val ok = session.sendFeedback(messageId, kind, comment)
+            if (!ok) {
+                _uiState.update {
+                    it.copy(
+                        messages = it.messages.map { m ->
+                            if (m.id == messageId) m.copy(feedback = null) else m
+                        },
+                        error = "反馈发送失败：会话未运行。",
+                    )
+                }
+            }
+        }
     }
 
     /** §3.5.11 数据引用行的展开/折叠。 */

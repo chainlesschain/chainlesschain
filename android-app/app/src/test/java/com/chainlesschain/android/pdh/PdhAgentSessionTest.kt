@@ -257,4 +257,40 @@ class PdhAgentSessionTest {
         val s = PdhAgentSession.resumeEvent("rt-9", "skip").toString()
         assertTrue(s.contains("\"action\":\"skip\""))
     }
+
+    // ── §3.5.13/§3.5.15 cc-side acks (UI confirms mark / dismisses 引导卡) ──
+
+    @Test
+    fun feedback_ack_yields_turn_and_kind() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"feedback_ack","turn_id":"t1","kind":"correction"}""",
+        )
+        assertTrue(e is PdhAgentEvent.FeedbackAck)
+        e as PdhAgentEvent.FeedbackAck
+        assertEquals("t1", e.turnId)
+        assertEquals("correction", e.kind)
+    }
+
+    @Test
+    fun feedback_ack_missing_turn_id_is_null() {
+        val e = PdhAgentSession.parseLine("""{"type":"feedback_ack","kind":"positive"}""")
+        assertEquals(null, (e as PdhAgentEvent.FeedbackAck).turnId)
+    }
+
+    @Test
+    fun resume_ack_yields_token_and_action() {
+        val e = PdhAgentSession.parseLine(
+            """{"type":"resume_ack","token":"rt-9","action":"skip"}""",
+        )
+        assertTrue(e is PdhAgentEvent.ResumeAck)
+        e as PdhAgentEvent.ResumeAck
+        assertEquals("rt-9", e.token)
+        assertEquals("skip", e.action)
+    }
+
+    @Test
+    fun resume_ack_missing_token_is_null() {
+        val e = PdhAgentSession.parseLine("""{"type":"resume_ack","action":"completed"}""")
+        assertEquals(null, (e as PdhAgentEvent.ResumeAck).token)
+    }
 }
