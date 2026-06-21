@@ -234,12 +234,28 @@ describe("_iterateStreamWithStall (hard inactivity timeout)", () => {
     expect(stalls[0]).toBeGreaterThanOrEqual(10);
   });
 
-  it("never times out when disabled (default): a slow chunk still arrives", async () => {
-    const reader = makeReader([99], [60]); // 60ms-late chunk, no timeout set
+  it("a chunk arriving under the timeout is delivered (no spurious abort)", async () => {
+    // 60ms-late chunk, explicit generous timeout — must not trip.
+    const reader = makeReader([99], [60]);
     const out = await drain(
-      _iterateStreamWithStall(reader, { stallMs: 10000 }),
+      _iterateStreamWithStall(reader, { stallMs: 10000, stallTimeoutMs: 5000 }),
     );
     expect(out).toEqual([99]);
+  });
+
+  it("stallTimeoutMs:0 disables the hard timeout (hint still fires)", async () => {
+    const stalls = [];
+    // 80ms-late chunk: the 10ms hint fires, but a 0 timeout never aborts.
+    const reader = makeReader([7], [80]);
+    const out = await drain(
+      _iterateStreamWithStall(reader, {
+        stallMs: 10,
+        stallTimeoutMs: 0,
+        onStall: () => stalls.push(1),
+      }),
+    );
+    expect(out).toEqual([7]);
+    expect(stalls.length).toBeGreaterThanOrEqual(1);
   });
 });
 

@@ -286,16 +286,19 @@ export async function startAgentRepl(options = {}) {
   // an auto-detected image path so the REPL switches to a vision-capable model
   // for that turn only (resolveVisionLlm falls back to the default when unset).
   let _visionModel;
-  // Hard stream inactivity timeout (config.llm.streamStallTimeoutMs, ms): when
-  // set, a stream silent that long is aborted + retried instead of hanging.
-  // Off by default — local models can be slow to the first token.
+  // Hard stream inactivity timeout override (config.llm.streamStallTimeoutMs,
+  // ms): a stream silent that long is aborted + retried instead of hanging.
+  // Unset → agent-core's 180s default (matches cc chat/ask). Set to 0 to
+  // disable. Left undefined here means "use the default".
   let _streamStallTimeoutMs;
   try {
     const { loadConfig } = await import("../lib/config-manager.js");
     const _cfg = loadConfig();
     _visionModel = _cfg?.llm?.visionModel || undefined;
-    const t = Number(_cfg?.llm?.streamStallTimeoutMs);
-    if (Number.isFinite(t) && t > 0) _streamStallTimeoutMs = t;
+    const raw = _cfg?.llm?.streamStallTimeoutMs;
+    const t = Number(raw);
+    // Accept 0 (explicit disable) — only ignore absent/invalid values.
+    if (raw != null && Number.isFinite(t) && t >= 0) _streamStallTimeoutMs = t;
   } catch {
     /* optional — resolveVisionLlm falls back to DEFAULT_VISION_MODEL */
   }
@@ -3267,8 +3270,9 @@ export async function startAgentRepl(options = {}) {
               `  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\n`,
             ),
           ),
-        // Opt-in hard inactivity timeout: abort + retry a dead-but-open stream
-        // instead of hanging forever (config.llm.streamStallTimeoutMs).
+        // Hard inactivity timeout: abort + retry a dead-but-open stream instead
+        // of hanging forever. undefined → agent-core's 180s default (matches cc
+        // chat/ask); config.llm.streamStallTimeoutMs tunes or disables (0).
         streamStallTimeoutMs: _streamStallTimeoutMs,
         signal: _turnAbort.signal,
         // On an auto-detected image turn, switch to the vision LLM for this

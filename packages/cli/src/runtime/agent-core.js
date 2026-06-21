@@ -3122,10 +3122,13 @@ const STREAM_STALL_MS = 20000;
 // Hard inactivity timeout: a stream silent for this long is treated as a dead
 // connection — the watchdog cancels the reader and throws a RETRYABLE error so
 // `_retryStreamingChat` re-issues the request instead of hanging forever.
-// Default 0 = disabled (opt-in): local models (ollama on CPU) can legitimately
-// take minutes to the first token, so cc never auto-aborts unless the user sets
-// `llm.streamStallTimeoutMs`. Should exceed STREAM_STALL_MS when enabled.
-const STREAM_STALL_TIMEOUT_MS = 0;
+// Default 180s mirrors the long-standing `cc chat`/`cc ask` stall guard
+// (chat-core.js STREAM_STALL_MS / CC_CHAT_STALL_MS) — generous enough that even
+// a slow local model's first token arrives in time, while still recovering from
+// a genuinely dead connection by default. Set llm.streamStallTimeoutMs (or pass
+// streamStallTimeoutMs: 0) to tune or disable. The 20s hint above still fires
+// first. Must exceed STREAM_STALL_MS.
+const STREAM_STALL_TIMEOUT_MS = 180000;
 const _STREAM_STALL = Symbol("stream-stall");
 
 /**
