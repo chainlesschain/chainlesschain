@@ -186,10 +186,19 @@ export async function startChatRepl(options = {}) {
       // Stall hint (cc agent parity): the connection is alive but the API has
       // gone silent — reassure instead of a frozen cursor. stderr so it never
       // corrupts the streamed answer on stdout.
-      const onStall = (ms) =>
+      const onStall = (ms, timeoutMs) => {
+        const silent = Math.round(ms / 1000);
+        // 2.1.185: surface the abort deadline so the user knows when the silent
+        // request gives up. The chat path aborts (and surfaces an error) on
+        // stall rather than auto-retrying like the agent path, so the wording is
+        // "will time out", not "will retry".
+        const timeoutIn =
+          timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
+        const suffix = timeoutIn > 0 ? ` · will time out in ${timeoutIn}s` : "";
         process.stderr.write(
-          `\x1b[2m  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\x1b[0m\n`,
+          `\x1b[2m  ⏳ waiting for API response (silent ${silent}s)${suffix}…\x1b[0m\n`,
         );
+      };
 
       if (sessionId)
         appendEvent(sessionId, "user_message", { content: trimmed });
