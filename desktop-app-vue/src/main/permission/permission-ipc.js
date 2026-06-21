@@ -21,7 +21,12 @@ const { resolveActorDid } = require("./current-user-context.js");
 // before they can manage another user's permissions. Report-only by default
 // (logs would-deny, no behavior change); CC_IPC_RBAC_GUARD=enforce to deny.
 // See permission/rbac-authority.js.
-const { requireOrgManageAuthority } = require("./rbac-authority.js");
+const {
+  requireOrgManageAuthority,
+  requireOrgManageAuthorityForGrant,
+  requireOrgManageAuthorityForGrants,
+  requireCanDelegate,
+} = require("./rbac-authority.js");
 
 let databaseInitPromise = null;
 
@@ -114,8 +119,13 @@ function registerPermissionIPC(database) {
         field: "revokedBy",
         channel: "perm:revoke-permission",
       });
+      const revDbMgr = await ensureDatabase(database);
+      requireOrgManageAuthorityForGrant(revDbMgr.getDatabase(), {
+        grantId: params.grantId,
+        channel: "perm:revoke-permission",
+      });
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
+      const engine = getPermissionEngine(revDbMgr);
       return await engine.revokePermission(params.grantId, revokedBy);
     } catch (error) {
       logger.error("[IPC] perm:revoke-permission failed:", error);
@@ -162,12 +172,17 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("perm:bulk-grant", async (_event, params) => {
     try {
-      const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(resolveDatabase(database));
       params.grantedBy = resolveActorDid(params.grantedBy, {
         field: "grantedBy",
         channel: "perm:bulk-grant",
       });
+      const bgDbMgr = await ensureDatabase(database);
+      requireOrgManageAuthorityForGrants(bgDbMgr.getDatabase(), {
+        grants: params.grants,
+        channel: "perm:bulk-grant",
+      });
+      const { getPermissionEngine } = require("./permission-engine");
+      const engine = getPermissionEngine(bgDbMgr);
       return await engine.bulkGrant(params.grants, params.grantedBy);
     } catch (error) {
       logger.error("[IPC] perm:bulk-grant failed:", error);
@@ -350,8 +365,17 @@ function registerPermissionIPC(database) {
         field: "delegatorDid",
         channel: "perm:delegate-permissions",
       });
+      const delDbMgr = await ensureDatabase(database);
+      const { getPermissionEngine } = require("./permission-engine");
+      await requireCanDelegate(getPermissionEngine(delDbMgr), {
+        orgId: params.orgId,
+        delegatorDid: params.delegatorDid,
+        permissions: params.permissions,
+        resourceScope: params.resourceScope,
+        channel: "perm:delegate-permissions",
+      });
       const { getDelegationManager } = require("./delegation-manager");
-      const manager = getDelegationManager(resolveDatabase(database));
+      const manager = getDelegationManager(delDbMgr);
       return await manager.delegatePermissions(params);
     } catch (error) {
       logger.error("[IPC] perm:delegate-permissions failed:", error);

@@ -132,8 +132,130 @@ function requireOrgManageAuthority(db, opts = {}) {
   return true; // report: allow
 }
 
+/**
+ * Authority gate for revoke (the org isn't in params — look it up from the
+ * grant being revoked). Unknown grant → allow (revoke will no-op naturally);
+ * db error → fail open.
+ */
+function requireOrgManageAuthorityForGrant(db, opts = {}) {
+  const { grantId, channel = "?", actorDid, getMode = resolveRbacMode } = opts;
+  if (getMode() === "off") {
+    return true;
+  }
+  let orgId;
+  try {
+    const row = db
+      .prepare("SELECT org_id FROM permission_grants WHERE id = ?")
+      .get(grantId);
+    if (!row) {
+      return true;
+    } // grant not found → let the op no-op, don't add auth noise
+    orgId = row.org_id;
+  } catch (err) {
+    logger.error(
+      `[rbac-guard] grant-org lookup error for "${channel}" (allowing): ${err && err.message}`,
+    );
+    return true; // fail open
+  }
+  return requireOrgManageAuthority(db, { orgId, channel, actorDid, getMode });
+}
+
+/**
+ * Authority gate for a batch of grants — every distinct target org must be
+ * manageable by the actor. Denies (enforce) if ANY org is unauthorized.
+ */
+function requireOrgManageAuthorityForGrants(db, opts = {}) {
+  const { grants, channel = "?", actorDid, getMode = resolveRbacMode } = opts;
+  if (getMode() === "off") {
+    return true;
+  }
+  const orgIds = new Set(
+    (Array.isArray(grants) ? grants : [])
+      .map((g) => g && g.orgId)
+      .filter(Boolean),
+  );
+  for (const orgId of orgIds) {
+    requireOrgManageAuthority(db, { orgId, channel, actorDid, getMode });
+  }
+  return true;
+}
+
+/**
+ * Authority gate for delegation — a delegator may only delegate permissions they
+ * actually HOLD (a non-admin can delegate their own perms; nobody can delegate
+ * what they lack). Distinct from owner/admin management authority.
+ * @param {object} engine - PermissionEngine (has async checkPermission)
+ * @returns {Promise<boolean>} throws in enforce when delegating an unheld perm.
+ */
+async function requireCanDelegate(engine, opts = {}) {
+  const {
+    orgId,
+    delegatorDid,
+    permissions,
+    resourceScope,
+    channel = "perm:delegate-permissions",
+    getMode = resolveRbacMode,
+  } = opts;
+  const mode = getMode();
+  if (mode === "off") {
+    return true;
+  }
+  const actor = delegatorDid || getCurrentUserDid();
+  const perms = Array.isArray(permissions) ? permissions : [];
+  if (!actor || perms.length === 0) {
+    // Can't meaningfully check (no actor / nothing to delegate) — report logs,
+    // enforce refuses an actor-less privileged delegation.
+    if (!actor && mode === "enforce") {
+      throw new Error(
+        `[rbac-guard] no authenticated delegator for "${channel}"`,
+      );
+    }
+    return true;
+  }
+  const rt = (resourceScope && resourceScope.resourceType) || "*";
+  const rid = (resourceScope && resourceScope.resourceId) || null;
+  for (const permission of perms) {
+    let held = false;
+    try {
+      const res = await engine.checkPermission({
+        userDid: actor,
+        orgId,
+        resourceType: rt,
+        resourceId: rid,
+        permission,
+      });
+      held = !!(res && res.hasPermission);
+    } catch (err) {
+      logger.error(
+        `[rbac-guard] delegate check error for "${channel}" perm=${permission} (allowing): ${err && err.message}`,
+      );
+      return true; // fail open
+    }
+    if (!held) {
+      const blocking = mode === "enforce";
+      const key = `${channel}:lacks:${permission}`;
+      if (blocking || !_warned.has(key)) {
+        _warned.add(key);
+        logger.warn(
+          `[rbac-guard] ${blocking ? "DENIED" : "would-deny"} "${channel}": ` +
+            `delegator does not hold permission "${permission}"`,
+        );
+      }
+      if (blocking) {
+        throw new Error(
+          `[rbac-guard] cannot delegate unheld permission "${permission}" for "${channel}"`,
+        );
+      }
+    }
+  }
+  return true;
+}
+
 module.exports = {
   requireOrgManageAuthority,
+  requireOrgManageAuthorityForGrant,
+  requireOrgManageAuthorityForGrants,
+  requireCanDelegate,
   resolveRbacMode,
   // exported for tests
   _actorOrgRole: actorOrgRole,
