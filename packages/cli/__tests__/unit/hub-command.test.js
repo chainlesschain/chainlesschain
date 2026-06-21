@@ -45,7 +45,9 @@ describe("cc hub command surface", () => {
         "douyin-watch-sync", // Douyin 观看历史 C 路径 — ADB video_record.db → history (BROWSE) events
         "event-detail", // §A6 citation chip — opens raw event for "出处" link
         "export", // §A8 v0.2 export staged snapshot rows
+        "export-events", // module 101 §8.3 — raw event export for cross-device backup
         "facet-counts", // Phase 16 Vault Browser — per-category counts
+        "import-events", // module 101 §8.3 — raw event import (idempotent upsert by id)
         "health",
         "kuaishou-adb-sync", // Phase 6d.3 (Kuaishou C 路径) — PC + ADB + NS_sig3 SignProvider
         "list-adapters",

@@ -494,6 +494,91 @@ async function cmdQueryEvents(options) {
   }
 }
 
+// ─── export-events / import-events (§8.3 cross-device backup) ─────────
+//
+// Raw vault event export/import for the module 101 §8.3 backup engine.
+// The Android PdhVaultBridge.CcVaultGateway shells to these:
+//   cc hub export-events --json          → full events (paginated)
+//   cc hub import-events --input <file>  → idempotent putEvent (ON
+//                                          CONFLICT(id) upsert)
+// Events round-trip queryEvents ⇄ putEvent (same canonical schema), so an
+// exported snapshot re-imports without loss/dup. CLI-only (no pdh/lib change).
+
+/** Page through queryEvents to collect EVERY event (no default 100 cap). */
+function exportAllEvents(vault, pageSize = 10000) {
+  const all = [];
+  let offset = 0;
+  for (;;) {
+    const page = vault.queryEvents({ limit: pageSize, offset });
+    all.push(...page);
+    if (page.length < pageSize) break;
+    offset += page.length;
+  }
+  return all;
+}
+
+/** putEvent each (idempotent upsert by id); count outcomes, never throw mid-batch. */
+function importEventsInto(vault, events) {
+  let imported = 0;
+  let failed = 0;
+  const errors = [];
+  for (const ev of events) {
+    try {
+      vault.putEvent(ev);
+      imported += 1;
+    } catch (e) {
+      failed += 1;
+      if (errors.length < 10) errors.push({ id: ev && ev.id, error: e.message });
+    }
+  }
+  return { ok: failed === 0, imported, failed, errors };
+}
+
+async function cmdExportEvents(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const all = exportAllEvents(hub.vault);
+    if (options.output) {
+      require("fs").writeFileSync(options.output, JSON.stringify(all), "utf-8");
+      if (options.json) {
+        jsonAndExit({ ok: true, count: all.length, output: options.output });
+        return;
+      }
+      logger.log(`exported ${all.length} events → ${options.output}`);
+      process.exit(0);
+    }
+    // default: emit the array (data command; the gateway reads stdout)
+    jsonAndExit(all);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdImportEvents(options) {
+  try {
+    if (!options.input) {
+      throw new Error(
+        "import-events: --input <file> is required (a JSON array of events)",
+      );
+    }
+    const raw = require("fs").readFileSync(options.input, "utf-8");
+    const events = JSON.parse(raw);
+    if (!Array.isArray(events)) {
+      throw new Error("import-events: expected a JSON array of events");
+    }
+    const hub = await (options._getHub || getHub)();
+    const result = importEventsInto(hub.vault, events);
+    if (options.json) {
+      jsonAndExit(result);
+      return;
+    }
+    logger.log(`imported ${result.imported}, failed ${result.failed}`);
+    process.exit(result.ok ? 0 : 1);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 // ─── search / facet-counts (Phase 16 Vault Browser) ──────────────────
 //
 // Surfaces vault.searchEvents + vault.facetCounts for headless use
@@ -2823,6 +2908,24 @@ export function registerHubCommand(program) {
     .action(cmdFacetCounts);
 
   hub
+    .command("export-events")
+    .description(
+      "Export all vault events as JSON (module 101 §8.3 cross-device backup)",
+    )
+    .option("--output <file>", "Write JSON array to file (default: stdout)")
+    .option("--json", "Output JSON ({ok,count} with --output; array otherwise)")
+    .action(cmdExportEvents);
+
+  hub
+    .command("import-events")
+    .description(
+      "Import vault events from a JSON array file (idempotent upsert by id; §8.3)",
+    )
+    .requiredOption("--input <file>", "JSON array of events to import")
+    .option("--json", "Output JSON result")
+    .action(cmdImportEvents);
+
+  hub
     .command("recent-audit")
     .description("Recent audit log entries")
     .option("--since <ms>", "Start of time window (unix-ms)")
@@ -3094,4 +3197,8 @@ export const _internal = {
   cmdKuaishouAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
+  exportAllEvents,
+  importEventsInto,
+  cmdExportEvents,
+  cmdImportEvents,
 };
