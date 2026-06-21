@@ -1,61 +1,61 @@
 {
-  "tag": "v5.0.3.122",
-  "fetchedAt": "2026-06-21T07:37:39.201Z",
-  "cliVersion": "0.162.95",
+  "tag": "v5.0.3.123",
+  "fetchedAt": "2026-06-21T16:40:35.172Z",
+  "cliVersion": "0.162.98",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",
-      "bytes": 288799486,
-      "label": "275 MB"
+      "bytes": 288907810,
+      "label": "276 MB"
     },
     "android-armeabi-v7a": {
       "name": "app-armeabi-v7a-release.apk",
-      "bytes": 246598297,
+      "bytes": 246706621,
       "label": "235 MB"
     },
     "android-aab": {
       "name": "app-release.aab",
-      "bytes": 247937921,
+      "bytes": 247974995,
       "label": "236 MB"
     },
     "android-universal": {
       "name": "app-universal-release.apk",
-      "bytes": 318706670,
+      "bytes": 318814994,
       "label": "304 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.122-arm64.dmg",
-      "bytes": 512269698,
-      "label": "489 MB"
+      "name": "ChainlessChain-5.0.3-alpha.123-arm64.dmg",
+      "bytes": 511867779,
+      "label": "488 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.122.AppImage",
-      "bytes": 728737979,
+      "name": "ChainlessChain-5.0.3-alpha.123.AppImage",
+      "bytes": 728715465,
       "label": "695 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.122.dmg",
-      "bytes": 517656678,
+      "name": "ChainlessChain-5.0.3-alpha.123.dmg",
+      "bytes": 517676694,
       "label": "494 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.122.x86_64.rpm",
-      "bytes": 378084517,
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.123.x86_64.rpm",
+      "bytes": 378090073,
       "label": "361 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.122_amd64.deb",
-      "bytes": 375133558,
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.123_amd64.deb",
+      "bytes": 375131746,
       "label": "358 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.122.exe",
-      "bytes": 493439912,
+      "name": "ChainlessChain-Portable-5.0.3-alpha.123.exe",
+      "bytes": 493452395,
       "label": "471 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.122.exe",
-      "bytes": 493759532,
+      "name": "ChainlessChain-Setup-5.0.3-alpha.123.exe",
+      "bytes": 493772017,
       "label": "471 MB"
     }
   }
