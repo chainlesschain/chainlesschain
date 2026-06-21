@@ -49,7 +49,7 @@ const DEFAULT_CONFIG = {
   anthropic: {
     apiKey: "",
     baseURL: "https://api.anthropic.com",
-    model: "claude-3-opus-20240229",
+    model: "claude-opus-4-8",
     embeddingModel: "", // Anthropic目前无嵌入模型API，使用外部服务
     version: "2023-06-01",
   },

@@ -260,7 +260,7 @@ class LLMManager extends EventEmitter {
         return new _AnthropicClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL || "https://api.anthropic.com",
-          model: this.config.model || "claude-3-opus-20240229",
+          model: this.config.model || "claude-opus-4-8",
           timeout: this.config.timeout,
           anthropicVersion: this.config.anthropicVersion,
           maxTokens: this.config.maxTokens,

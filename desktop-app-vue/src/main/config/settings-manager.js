@@ -108,7 +108,7 @@ class SettingsManager extends EventEmitter {
         openaiEmbeddingModel: "text-embedding-3-small",
         anthropicApiKey: "",
         anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicModel: "claude-3-5-sonnet-20241022",
+        anthropicModel: "claude-sonnet-4-6",
         anthropicEmbeddingModel: "",
         volcengineApiKey: "",
         volcengineModel: "doubao-seed-1-6-251015",
