@@ -22,6 +22,8 @@ import com.chainlesschain.android.pdh.social.toutiao.ToutiaoApiClient
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouApiClient
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsApiClient
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
 import com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
@@ -88,6 +90,8 @@ object PdhBridgeModule {
         toutiaoCreds: ToutiaoCredentialsStore,
         kuaishouApi: KuaishouApiClient,
         kuaishouCreds: KuaishouCredentialsStore,
+        xhsApi: XhsApiClient,
+        xhsCreds: XhsCredentialsStore,
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         val collectors = listOf(
@@ -134,6 +138,7 @@ object PdhBridgeModule {
                     douyinApi, douyinCreds, douyinSign,
                     toutiaoApi, toutiaoCreds, toutiaoSign,
                     kuaishouApi, kuaishouCreds, kuaishouSign,
+                    xhsApi, xhsCreds, xhsSign,
                 ),
                 layer = "L3",
                 requiresRoot = false,

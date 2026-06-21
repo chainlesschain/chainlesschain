@@ -14,6 +14,9 @@ import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
 import com.chainlesschain.android.pdh.social.weibo.WeiboApiClient
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsApiClient
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -60,6 +63,9 @@ class QueryAppDataTool(
     private val kuaishouApi: KuaishouApiClient,
     private val kuaishouCreds: KuaishouCredentialsStore,
     private val kuaishouSign: KuaishouSignBridge,
+    private val xhsApi: XhsApiClient,
+    private val xhsCreds: XhsCredentialsStore,
+    private val xhsSign: XhsSignBridge,
 ) : PdhTool {
 
     override val name = "query_app_data"
@@ -68,14 +74,16 @@ class QueryAppDataTool(
             "answer specific questions instead of bulk-collecting. " +
             "weibo: posts|favourites|follows · bilibili: history|favourites|dynamics|follows · " +
             "douyin: history|favourites|likes · toutiao: feed|collection|searches · " +
-            "kuaishou: history|searches. Returns assist_required if not logged in."
+            "kuaishou: history|searches · xiaohongshu: notes|liked|follows. " +
+            "Returns assist_required if not logged in."
     override val inputSchema = buildJsonObject {
         put("type", "object")
         putJsonObject("properties") {
             putJsonObject("app") {
                 put("type", "string")
                 putJsonArray("enum") {
-                    listOf("weibo", "bilibili", "douyin", "toutiao", "kuaishou").forEach { add(it) }
+                    listOf("weibo", "bilibili", "douyin", "toutiao", "kuaishou", "xiaohongshu")
+                        .forEach { add(it) }
                 }
             }
             putJsonObject("query") {
@@ -103,8 +111,9 @@ class QueryAppDataTool(
             "douyin" -> queryDouyin(query, limit)
             "toutiao" -> queryToutiao(query, limit)
             "kuaishou" -> queryKuaishou(query, limit)
+            "xiaohongshu", "xhs" -> queryXhs(query, limit)
             else -> throw IllegalArgumentException(
-                "unsupported app: $app (weibo|bilibili|douyin|toutiao|kuaishou)",
+                "unsupported app: $app (weibo|bilibili|douyin|toutiao|kuaishou|xiaohongshu)",
             )
         }
     }
@@ -267,6 +276,48 @@ class QueryAppDataTool(
             }
         }
         return ok("kuaishou", query, items)
+    }
+
+    // ── xiaohongshu (cookie + a1 + userId + signing + warmUp) ─────────────
+    private suspend fun queryXhs(query: String, limit: Int): JsonElement {
+        val cookie = xhsCreds.getCookie()?.takeIf { it.isNotBlank() }
+            ?: return notLoggedIn("xiaohongshu")
+        val a1 = xhsCreds.getA1() ?: return notLoggedIn("xiaohongshu")
+        val userId = xhsCreds.getUserIdStr() ?: return notLoggedIn("xiaohongshu")
+        val items = signed(xhsSign) {
+            xhsApi.signProvider = xhsSign
+            try {
+                xhsSign.warmUp(cookie)
+            } catch (_: Throwable) {
+                // warm-up is best-effort; signedHeaders fall back if it fails
+            }
+            when (query) {
+                "notes", "note" -> buildJsonArray {
+                    xhsApi.fetchNotes(cookie, a1, userId, limit).forEach { n -> addJsonObject {
+                        put("noteId", n.noteId); put("title", n.title); put("desc", n.desc ?: "")
+                        put("type", n.type); put("createdAt", n.createdAt)
+                        put("likes", n.likedCount); put("collects", n.collectedCount)
+                        put("comments", n.commentCount)
+                    } }
+                }
+                "liked", "likes" -> buildJsonArray {
+                    xhsApi.fetchLiked(cookie, a1, limit).forEach { l -> addJsonObject {
+                        put("noteId", l.noteId); put("title", l.title)
+                        put("likedAt", l.likedAt); put("author", l.authorNickname ?: "")
+                    } }
+                }
+                "follows", "following" -> buildJsonArray {
+                    xhsApi.fetchFollows(cookie, a1, userId, limit).forEach { f -> addJsonObject {
+                        put("userId", f.userId); put("nickname", f.nickname)
+                        put("followedAt", f.followedAt)
+                    } }
+                }
+                else -> throw IllegalArgumentException(
+                    "unsupported xiaohongshu query: $query (notes|liked|follows)",
+                )
+            }
+        }
+        return ok("xiaohongshu", query, items)
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
