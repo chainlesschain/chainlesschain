@@ -931,6 +931,21 @@ class ChainlessChainApp {
       logger.warn("[Main] IPC sender-guard install failed:", e.message);
     }
 
+    // Authoritative current-user source for privileged-handler actor hardening
+    // (perm grant/revoke/delegate/override stop trusting renderer-supplied actor
+    // DIDs). Lazy closure → reads this.didManager at call time regardless of init
+    // order. Default report-only; CC_IPC_ACTOR_GUARD=enforce to override claims.
+    try {
+      const {
+        setCurrentUserProvider,
+      } = require("./permission/current-user-context.js");
+      setCurrentUserProvider(
+        () => this.didManager?.getCurrentIdentity?.()?.did || null,
+      );
+    } catch (e) {
+      logger.warn("[Main] current-user provider wiring failed:", e.message);
+    }
+
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
 

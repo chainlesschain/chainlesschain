@@ -12,6 +12,11 @@
 
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
+// Actor-identity hardening: derive the acting user from the authenticated
+// main-process identity instead of trusting renderer-supplied actor DIDs.
+// Report-only by default (logs mismatches, no behavior change); CC_IPC_ACTOR_
+// GUARD=enforce to override claims. See permission/current-user-context.js.
+const { resolveActorDid } = require("./current-user-context.js");
 
 let databaseInitPromise = null;
 
@@ -80,6 +85,10 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("perm:grant-permission", async (_event, params) => {
     try {
+      params.grantedBy = resolveActorDid(params.grantedBy, {
+        field: "grantedBy",
+        channel: "perm:grant-permission",
+      });
       const { getPermissionEngine } = require("./permission-engine");
       const engine = getPermissionEngine(await ensureDatabase(database));
       return await engine.grantPermission(params);
@@ -91,9 +100,13 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("perm:revoke-permission", async (_event, params) => {
     try {
+      const revokedBy = resolveActorDid(params.revokedBy, {
+        field: "revokedBy",
+        channel: "perm:revoke-permission",
+      });
       const { getPermissionEngine } = require("./permission-engine");
       const engine = getPermissionEngine(resolveDatabase(database));
-      return await engine.revokePermission(params.grantId, params.revokedBy);
+      return await engine.revokePermission(params.grantId, revokedBy);
     } catch (error) {
       logger.error("[IPC] perm:revoke-permission failed:", error);
       throw error;
@@ -303,6 +316,10 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("perm:delegate-permissions", async (_event, params) => {
     try {
+      params.delegatorDid = resolveActorDid(params.delegatorDid, {
+        field: "delegatorDid",
+        channel: "perm:delegate-permissions",
+      });
       const { getDelegationManager } = require("./delegation-manager");
       const manager = getDelegationManager(resolveDatabase(database));
       return await manager.delegatePermissions(params);
@@ -696,6 +713,12 @@ function registerPermissionIPC(database) {
         userDID,
       } = params;
       const now = Date.now();
+      // granted_by is the acting admin — derive from the authenticated identity,
+      // not the renderer-supplied userDID (which could spoof another admin).
+      const actorDID = resolveActorDid(userDID, {
+        field: "userDID",
+        channel: "permission:create-override",
+      });
 
       db.prepare(
         `
@@ -711,7 +734,7 @@ function registerPermissionIPC(database) {
         permission,
         granted ? 1 : 0,
         reason || null,
-        userDID,
+        actorDID,
         expiresAt || null,
         now,
         now,
