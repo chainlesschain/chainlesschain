@@ -188,6 +188,21 @@ describe("CrossChainBridge", () => {
     expect(fee.estimatedTime).toBe(600);
   });
 
+  it("should reject estimateFee for an unknown source chain", async () => {
+    await bridge.initialize(db);
+    expect(() => bridge.estimateFee("nope", "polygon", 1000)).toThrow(
+      /Unknown chain: nope/,
+    );
+  });
+
+  it("should reject estimateFee for an unknown destination chain", async () => {
+    await bridge.initialize(db);
+    // Previously returned a silent 2x fee (evm !== undefined) instead of erroring.
+    expect(() => bridge.estimateFee("ethereum", "ghost", 1000)).toThrow(
+      /Unknown chain: ghost/,
+    );
+  });
+
   // ── getTransferStatus ────────────────────────────────────────────────────
   it("should return transfer status", async () => {
     await bridge.initialize(db);

@@ -206,9 +206,17 @@ class CrossChainBridge extends EventEmitter {
   }
 
   estimateFee(fromChain, toChain, amount) {
+    // 与 bridgeAsset 一致校验链存在性。此前用 `?.type`：链不存在时 type=undefined，
+    // `'evm' !== undefined` 为真 → 给不存在的链算出 2× 跨型费用并静默返回（误导调用方）。
+    if (!this._chains.has(fromChain)) {
+      throw new Error(`Unknown chain: ${fromChain}`);
+    }
+    if (!this._chains.has(toChain)) {
+      throw new Error(`Unknown chain: ${toChain}`);
+    }
     const baseFee = amount * 0.001;
-    const fromType = this._chains.get(fromChain)?.type;
-    const toType = this._chains.get(toChain)?.type;
+    const fromType = this._chains.get(fromChain).type;
+    const toType = this._chains.get(toChain).type;
     const crossTypeFee = fromType !== toType ? baseFee * 2 : baseFee;
     return {
       fee: crossTypeFee,
