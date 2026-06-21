@@ -172,13 +172,46 @@ export function parseInputEvent(line) {
     }
   }
   images = [...new Set(images)].slice(0, 8);
+  // §3.5.10 接线6: optional per-turn LLM override (PDH privacy-tier switch) —
+  // {"type":"user","text":…,"llm":{"provider","model","baseUrl"?,"apiKey"?}}.
+  // Switches THIS turn's model (e.g. cloud → your own PC Ollama) without
+  // restarting the session. Reuses the same per-turn loopOptions seam as vision.
+  const llm = sanitizeLlmHint(
+    obj && typeof obj === "object" ? obj.llm || msg.llm : null,
+  );
   if (typeof content !== "string" || !content.trim()) {
     // An image-only turn is valid — give the model something to act on.
-    if (images.length)
-      return { text: "Please look at the attached image(s).", images };
+    if (images.length) {
+      const r = { text: "Please look at the attached image(s).", images };
+      if (llm) r.llm = llm;
+      return r;
+    }
     return null;
   }
-  return images.length ? { text: content, images } : { text: content };
+  const result = images.length ? { text: content, images } : { text: content };
+  if (llm) result.llm = llm;
+  return result;
+}
+
+/**
+ * §3.5.10 接线6: sanitize a per-turn LLM override hint. Requires at least a
+ * provider or model (string); baseUrl/apiKey optional. Returns null when absent
+ * or malformed (the turn then uses the session default).
+ */
+export function sanitizeLlmHint(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const str = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const provider = str(raw.provider);
+  const model = str(raw.model);
+  if (!provider && !model) return null;
+  const hint = {};
+  if (provider) hint.provider = provider;
+  if (model) hint.model = model;
+  const baseUrl = str(raw.baseUrl);
+  if (baseUrl) hint.baseUrl = baseUrl;
+  const apiKey = str(raw.apiKey);
+  if (apiKey) hint.apiKey = apiKey;
+  return hint;
 }
 
 /**
@@ -1141,6 +1174,18 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       }
     }
 
+    // §3.5.10 接线6: explicit per-turn LLM override (PDH privacy-tier switch).
+    // Applies to THIS turn only; the vision override (above) still wins on image
+    // turns since an image needs a vision-capable model.
+    const turnLlmOverride = parsed.llm || null;
+    if (turnLlmOverride && !turnVisionLlm) {
+      writeErr(
+        `  [llm] this turn → ${turnLlmOverride.provider || provider}/${
+          turnLlmOverride.model || "(session model)"
+        }\n`,
+      );
+    }
+
     messages.push({ role: "user", content: turnContent });
     if (persist) {
       try {
@@ -1165,8 +1210,28 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         messages,
         {
           ...loopOptionsBase,
+          // §3.5.10 接线6: explicit per-turn LLM override (privacy-tier switch);
+          // only the fields provided are overridden (e.g. provider+model+baseUrl
+          // to route to your own PC Ollama for one turn).
+          ...(turnLlmOverride
+            ? {
+                ...(turnLlmOverride.provider
+                  ? { provider: turnLlmOverride.provider }
+                  : {}),
+                ...(turnLlmOverride.model
+                  ? { model: turnLlmOverride.model }
+                  : {}),
+                ...(turnLlmOverride.baseUrl
+                  ? { baseUrl: turnLlmOverride.baseUrl }
+                  : {}),
+                ...(turnLlmOverride.apiKey
+                  ? { apiKey: turnLlmOverride.apiKey }
+                  : {}),
+              }
+            : {}),
           // Image turn → switch this turn's provider/model/baseUrl/apiKey to
-          // the vision LLM (model only; same account/key/baseUrl).
+          // the vision LLM (model only; same account/key/baseUrl). Wins over an
+          // explicit llm override above (an image needs a vision model).
           ...(turnVisionLlm
             ? {
                 provider: turnVisionLlm.provider,
