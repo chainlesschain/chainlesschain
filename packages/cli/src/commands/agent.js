@@ -531,6 +531,21 @@ export function registerAgentCommand(program) {
         });
       }
 
+      // Claude-Code 2.1.183 parity: warn up front if the now-resolved model is
+      // a provider-retired snapshot, before the run fails with an opaque "model
+      // not found". (The "auto-updated to a newer model" half is handled by the
+      // fallback-model onFallback notice below.) Suppressed under vitest so it
+      // never pollutes spawned-bin test stderr.
+      if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
+        try {
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
+          maybeWarnDeprecatedModel({ model: options.model });
+        } catch {
+          /* fail-open: a deprecation notice must never affect the run */
+        }
+      }
+
       // --think / --ultrathink 鈫?options.thinking for the agent loop (Anthropic
       // extended thinking; ignored by other providers). --think with no value 鈫?      // true; --think <level> 鈫?that level; --ultrathink wins as "ultra".
       const thinking = options.ultrathink
