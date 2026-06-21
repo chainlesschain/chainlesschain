@@ -203,7 +203,9 @@ const usePQCEcosystemStore = defineStore("pqcEcosystem", {
 
 ```javascript
 // 1. 查看全系统迁移覆盖率
-const coverage = await window.electron.ipcRenderer.invoke("pqc-ecosystem:get-coverage");
+const coverage = await window.electron.ipcRenderer.invoke(
+  "pqc-ecosystem:get-coverage",
+);
 Object.entries(coverage.coverage).forEach(([sub, info]) => {
   console.log(`${sub}: ${info.percentage}% (${info.completed}/${info.total})`);
 });
@@ -212,15 +214,22 @@ Object.entries(coverage.coverage).forEach(([sub, info]) => {
 const subsystems = ["did", "auth", "p2p", "messaging", "storage", "ukey"];
 for (const sub of subsystems) {
   const alg = ["did", "auth"].includes(sub) ? "ML-DSA-65" : "ML-KEM-768";
-  const result = await window.electron.ipcRenderer.invoke("pqc-ecosystem:migrate-subsystem", {
-    subsystem: sub,
-    algorithm: alg,
-  });
-  console.log(`${sub}: ${result.migration.status}, 密钥迁移 ${result.migration.keys_migrated}/${result.migration.keys_total}`);
+  const result = await window.electron.ipcRenderer.invoke(
+    "pqc-ecosystem:migrate-subsystem",
+    {
+      subsystem: sub,
+      algorithm: alg,
+    },
+  );
+  console.log(
+    `${sub}: ${result.migration.status}, 密钥迁移 ${result.migration.keys_migrated}/${result.migration.keys_total}`,
+  );
 }
 
 // 3. 验证全系统迁移完整性
-const verify = await window.electron.ipcRenderer.invoke("pqc-ecosystem:verify-migration");
+const verify = await window.electron.ipcRenderer.invoke(
+  "pqc-ecosystem:verify-migration",
+);
 console.log(`验证结果: ${verify.verified ? "全部通过" : "存在未迁移子系统"}`);
 ```
 
@@ -229,9 +238,12 @@ console.log(`验证结果: ${verify.verified ? "全部通过" : "存在未迁移
 ```javascript
 // 升级硬件密钥固件到支持 PQC 的版本
 const firmware = await window.electron.ipcRenderer.invoke(
-  "pqc-ecosystem:update-firmware-pqc", "2.0.0"
+  "pqc-ecosystem:update-firmware-pqc",
+  "2.0.0",
 );
-console.log(`固件版本: ${firmware.result.firmwareVersion}, PQC: ${firmware.result.pqcEnabled}`);
+console.log(
+  `固件版本: ${firmware.result.firmwareVersion}, PQC: ${firmware.result.pqcEnabled}`,
+);
 ```
 
 ## 配置参考
@@ -240,53 +252,53 @@ console.log(`固件版本: ${firmware.result.firmwareVersion}, PQC: ${firmware.r
 // desktop-app-vue/src/main/ukey/pqc-ecosystem-manager.js
 const DEFAULT_CONFIG = {
   migration: {
-    defaultAlgorithmKem: "ML-KEM-768",  // 密钥封装默认算法
-    defaultAlgorithmDsa: "ML-DSA-65",   // 数字签名默认算法
-    hybridModeEnabled: true,             // 迁移期间启用混合模式（经典+PQC）
-    batchSize: 100,                      // 单批次密钥迁移数量
-    retryOnFailure: true,                // 迁移失败时自动重试
+    defaultAlgorithmKem: "ML-KEM-768", // 密钥封装默认算法
+    defaultAlgorithmDsa: "ML-DSA-65", // 数字签名默认算法
+    hybridModeEnabled: true, // 迁移期间启用混合模式（经典+PQC）
+    batchSize: 100, // 单批次密钥迁移数量
+    retryOnFailure: true, // 迁移失败时自动重试
   },
   firmware: {
-    minPqcFirmwareVersion: "2.0.0",      // 支持 PQC 的最低固件版本
-    autoUpgradePrompt: true,             // 检测到旧固件时提示升级
+    minPqcFirmwareVersion: "2.0.0", // 支持 PQC 的最低固件版本
+    autoUpgradePrompt: true, // 检测到旧固件时提示升级
   },
   verification: {
-    verifyAfterMigration: true,          // 迁移完成后自动触发验证
-    coverageTarget: 100,                 // 目标覆盖率 100%
+    verifyAfterMigration: true, // 迁移完成后自动触发验证
+    coverageTarget: 100, // 目标覆盖率 100%
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `defaultAlgorithmKem` | `ML-KEM-768` | 密钥封装默认目标算法 |
-| `defaultAlgorithmDsa` | `ML-DSA-65` | 数字签名默认目标算法 |
-| `hybridModeEnabled` | true | 迁移期间保持混合模式向后兼容 |
-| `batchSize` | 100 | 单批次迁移密钥数量 |
+| 配置项                | 默认值       | 说明                         |
+| --------------------- | ------------ | ---------------------------- |
+| `defaultAlgorithmKem` | `ML-KEM-768` | 密钥封装默认目标算法         |
+| `defaultAlgorithmDsa` | `ML-DSA-65`  | 数字签名默认目标算法         |
+| `hybridModeEnabled`   | true         | 迁移期间保持混合模式向后兼容 |
+| `batchSize`           | 100          | 单批次迁移密钥数量           |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 子系统迁移（100 密钥） | < 5000ms | ~2000ms | ✅ |
-| 迁移覆盖率查询 | < 100ms | ~30ms | ✅ |
-| 全系统迁移验证 | < 500ms | ~150ms | ✅ |
-| SIMKey 固件 PQC 升级 | < 3000ms | ~1200ms | ✅ |
-| ML-KEM-768 密钥生成 | < 50ms | ~15ms | ✅ |
-| ML-DSA-65 签名操作 | < 100ms | ~40ms | ✅ |
+| 操作                   | 目标     | 实际    | 状态 |
+| ---------------------- | -------- | ------- | ---- |
+| 子系统迁移（100 密钥） | < 5000ms | ~2000ms | ✅   |
+| 迁移覆盖率查询         | < 100ms  | ~30ms   | ✅   |
+| 全系统迁移验证         | < 500ms  | ~150ms  | ✅   |
+| SIMKey 固件 PQC 升级   | < 3000ms | ~1200ms | ✅   |
+| ML-KEM-768 密钥生成    | < 50ms   | ~15ms   | ✅   |
+| ML-DSA-65 签名操作     | < 100ms  | ~40ms   | ✅   |
 
 ---
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 子系统迁移失败 | 该子系统存在正在使用的活跃连接 | 先停止相关服务（如 P2P 连接），再执行迁移 |
-| 覆盖率显示 0% | 子系统未初始化密钥 | 先确保对应子系统已启用并生成了初始密钥 |
-| 固件升级失败 | U-Key 未连接或固件版本不兼容 | 检查 U-Key 连接状态，确认目标固件版本存在 |
-| 验证未通过 | 部分子系统迁移未完成 | 查看 `coverage` 详情，补充迁移未完成的子系统 |
-| 迁移后签名验证失败 | 对端尚未升级到 PQC | 确保通信双方均已完成 PQC 迁移，过渡期使用混合模式 |
-| 迁移进度卡住 | 数据库锁或并发冲突 | 重启应用后重新执行迁移，检查数据库表锁状态 |
+| 问题               | 可能原因                       | 解决方案                                          |
+| ------------------ | ------------------------------ | ------------------------------------------------- |
+| 子系统迁移失败     | 该子系统存在正在使用的活跃连接 | 先停止相关服务（如 P2P 连接），再执行迁移         |
+| 覆盖率显示 0%      | 子系统未初始化密钥             | 先确保对应子系统已启用并生成了初始密钥            |
+| 固件升级失败       | U-Key 未连接或固件版本不兼容   | 检查 U-Key 连接状态，确认目标固件版本存在         |
+| 验证未通过         | 部分子系统迁移未完成           | 查看 `coverage` 详情，补充迁移未完成的子系统      |
+| 迁移后签名验证失败 | 对端尚未升级到 PQC             | 确保通信双方均已完成 PQC 迁移，过渡期使用混合模式 |
+| 迁移进度卡住       | 数据库锁或并发冲突             | 重启应用后重新执行迁移，检查数据库表锁状态        |
 
 ---
 

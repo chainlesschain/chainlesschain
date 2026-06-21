@@ -136,16 +136,16 @@ cc infra digov-auto-stale-idle-v2 | digov-auto-fail-stuck-v2 | digov-gov-stats-v
 
 均为运行时 setter（进程内生效），无环境变量：
 
-| 配置项 | 默认值 | 设置命令 | 来源常量 |
-|--------|--------|---------|---------|
-| 每 operator 活跃 provider 上限 | `20` | `set-max-active-providers-per-operator <n>` | `DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR` |
-| 每 provider 活跃 deal 上限 | `10` | `set-max-active-deals-per-provider <n>` | `DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER` |
-| provider idle 阈值 | `604800000` ms（7 天） | `set-provider-idle-ms <ms>` | `DI_DEFAULT_PROVIDER_IDLE_MS` |
-| deal stuck 阈值 | `86400000` ms（24 小时） | `set-deal-stuck-ms <ms>` | `DI_DEFAULT_DEAL_STUCK_MS` |
-| digov: 每 owner 活跃 profile 上限 | `6` | `digov-set-max-active-v2 <n>` | `_digovMaxActive` |
-| digov: 每 profile pending deal 上限 | `15` | `digov-set-max-pending-v2 <n>` | `_digovMaxPending` |
-| digov: idle 阈值 | `2592000000` ms（30 天） | `digov-set-idle-ms-v2 <n>` | `_digovIdleMs` |
-| digov: stuck 阈值 | `60000` ms | `digov-set-stuck-ms-v2 <n>` | `_digovStuckMs` |
+| 配置项                              | 默认值                   | 设置命令                                    | 来源常量                                       |
+| ----------------------------------- | ------------------------ | ------------------------------------------- | ---------------------------------------------- |
+| 每 operator 活跃 provider 上限      | `20`                     | `set-max-active-providers-per-operator <n>` | `DI_DEFAULT_MAX_ACTIVE_PROVIDERS_PER_OPERATOR` |
+| 每 provider 活跃 deal 上限          | `10`                     | `set-max-active-deals-per-provider <n>`     | `DI_DEFAULT_MAX_ACTIVE_DEALS_PER_PROVIDER`     |
+| provider idle 阈值                  | `604800000` ms（7 天）   | `set-provider-idle-ms <ms>`                 | `DI_DEFAULT_PROVIDER_IDLE_MS`                  |
+| deal stuck 阈值                     | `86400000` ms（24 小时） | `set-deal-stuck-ms <ms>`                    | `DI_DEFAULT_DEAL_STUCK_MS`                     |
+| digov: 每 owner 活跃 profile 上限   | `6`                      | `digov-set-max-active-v2 <n>`               | `_digovMaxActive`                              |
+| digov: 每 profile pending deal 上限 | `15`                     | `digov-set-max-pending-v2 <n>`              | `_digovMaxPending`                             |
+| digov: idle 阈值                    | `2592000000` ms（30 天） | `digov-set-idle-ms-v2 <n>`                  | `_digovIdleMs`                                 |
+| digov: stuck 阈值                   | `60000` ms               | `digov-set-stuck-ms-v2 <n>`                 | `_digovStuckMs`                                |
 
 V1 schema 默认值（SQLite 列级）：deal `status='pending'`、`renewal_count=0`；version `version=1`、`cached=0`、`peer_count=0`；route `status='active'`、`reliability=1.0`。
 
@@ -162,10 +162,10 @@ V1 schema 默认值（SQLite 列级）：deal `status='pending'`、`renewal_coun
 
 共 **109** 个测试：
 
-| 测试文件 | 数量 | 覆盖范围 |
-|---------|------|---------|
-| `packages/cli/__tests__/unit/decentral-infra.test.js` | 65 | 建表、deal/version/route CRUD 与统计、V2 provider/deal 治理状态机 |
-| `packages/cli/__tests__/unit/lib/decentral-infra-v2-iter23.test.js` | 44 | digov profile/deal 治理 overlay |
+| 测试文件                                                            | 数量 | 覆盖范围                                                          |
+| ------------------------------------------------------------------- | ---- | ----------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/decentral-infra.test.js`               | 65   | 建表、deal/version/route CRUD 与统计、V2 provider/deal 治理状态机 |
+| `packages/cli/__tests__/unit/lib/decentral-infra-v2-iter23.test.js` | 44   | digov profile/deal 治理 overlay                                   |
 
 ```bash
 cd packages/cli
@@ -182,24 +182,24 @@ npx vitest run __tests__/unit/decentral-infra.test.js __tests__/unit/lib/decentr
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `--metadata must be valid JSON` | metadata 参数不是合法 JSON | 用单引号包裹并校验，如 `--metadata '{"region":"ap"}'` |
-| `Unknown provider: <id>` 且退出码 1 | provider 未注册或进程已重启（V2 为内存态） | 先 `register-provider-v2`；V2 数据不跨进程持久 |
-| 激活 provider 报上限错误 | operator 活跃 provider 已达 20 | `set-max-active-providers-per-operator` 调高或 retire 闲置 provider |
-| `auto-offline-stale-providers` 返回空 | 没有 provider 心跳超过 7 天阈值 | 预期行为；`touch-provider-heartbeat` 可刷新心跳，`set-provider-idle-ms` 可调小阈值验证 |
-| deal 状态更新 `Failed: ...` | 目标状态非法或 deal 不存在 | `cc infra deal-statuses` 查合法值；`deal-show <id>` 确认存在 |
-| `version-add` 版本号不递增 | `-c` 传的 CID 与已有版本不同 | 版本号按 `content_cid` 维度递增，确认 CID 一致 |
-| V1 数据「丢失」 | 命令树未挂载 `_db` 时不落库 | V2/digov 子命令不依赖 DB；V1 持久化依赖宿主注入数据库句柄 |
+| 现象                                  | 可能原因                                   | 处理                                                                                   |
+| ------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `--metadata must be valid JSON`       | metadata 参数不是合法 JSON                 | 用单引号包裹并校验，如 `--metadata '{"region":"ap"}'`                                  |
+| `Unknown provider: <id>` 且退出码 1   | provider 未注册或进程已重启（V2 为内存态） | 先 `register-provider-v2`；V2 数据不跨进程持久                                         |
+| 激活 provider 报上限错误              | operator 活跃 provider 已达 20             | `set-max-active-providers-per-operator` 调高或 retire 闲置 provider                    |
+| `auto-offline-stale-providers` 返回空 | 没有 provider 心跳超过 7 天阈值            | 预期行为；`touch-provider-heartbeat` 可刷新心跳，`set-provider-idle-ms` 可调小阈值验证 |
+| deal 状态更新 `Failed: ...`           | 目标状态非法或 deal 不存在                 | `cc infra deal-statuses` 查合法值；`deal-show <id>` 确认存在                           |
+| `version-add` 版本号不递增            | `-c` 传的 CID 与已有版本不同               | 版本号按 `content_cid` 维度递增，确认 CID 一致                                         |
+| V1 数据「丢失」                       | 命令树未挂载 `_db` 时不落库                | V2/digov 子命令不依赖 DB；V1 持久化依赖宿主注入数据库句柄                              |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/infra.js` | `cc infra` 全部子命令注册（V1 + V2 治理 + digov overlay） |
-| `packages/cli/src/lib/decentral-infra.js` | 实现层（schema、deal/version/route、provider/deal 状态机、digov） |
-| `packages/cli/__tests__/unit/decentral-infra.test.js` | 65 单元测试（V1 + V2 治理） |
-| `packages/cli/__tests__/unit/lib/decentral-infra-v2-iter23.test.js` | 44 单元测试（digov overlay） |
+| 文件                                                                | 说明                                                              |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/cli/src/commands/infra.js`                                | `cc infra` 全部子命令注册（V1 + V2 治理 + digov overlay）         |
+| `packages/cli/src/lib/decentral-infra.js`                           | 实现层（schema、deal/version/route、provider/deal 状态机、digov） |
+| `packages/cli/__tests__/unit/decentral-infra.test.js`               | 65 单元测试（V1 + V2 治理）                                       |
+| `packages/cli/__tests__/unit/lib/decentral-infra-v2-iter23.test.js` | 44 单元测试（digov overlay）                                      |
 
 ## 使用示例
 

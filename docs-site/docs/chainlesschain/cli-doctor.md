@@ -56,33 +56,33 @@ chainlesschain doctor
 
 ### 环境依赖
 
-| 检查项 | 说明 | 必需 |
-|--------|------|------|
-| Node.js | 版本需满足最低要求 | 是 |
-| npm | 包管理器 | 是 |
-| Docker | 容器运行时 | 否（可选） |
-| Docker Compose | 容器编排 | 否（可选） |
-| Git | 版本控制 | 是 |
+| 检查项         | 说明               | 必需       |
+| -------------- | ------------------ | ---------- |
+| Node.js        | 版本需满足最低要求 | 是         |
+| npm            | 包管理器           | 是         |
+| Docker         | 容器运行时         | 否（可选） |
+| Docker Compose | 容器编排           | 否（可选） |
+| Git            | 版本控制           | 是         |
 
 ### 配置状态
 
-| 检查项 | 说明 |
-|--------|------|
-| Config dir | `~/.chainlesschain/` 是否存在 |
-| Config file | `config.json` 是否存在 |
-| Desktop binary | 桌面应用可执行文件是否已下载 |
+| 检查项          | 说明                                |
+| --------------- | ----------------------------------- |
+| Config dir      | `~/.chainlesschain/` 是否存在       |
+| Config file     | `config.json` 是否存在              |
+| Desktop binary  | 桌面应用可执行文件是否已下载        |
 | Setup completed | `config.setupCompleted` 是否为 true |
 
 ### 默认端口
 
-| 服务 | 端口 |
-|------|------|
-| Vite Dev | 5173 |
-| Signaling | 9001 |
-| Ollama | 11434 |
-| Qdrant | 6333 |
-| PostgreSQL | 5432 |
-| Redis | 6379 |
+| 服务       | 端口  |
+| ---------- | ----- |
+| Vite Dev   | 5173  |
+| Signaling  | 9001  |
+| Ollama     | 11434 |
+| Qdrant     | 6333  |
+| PostgreSQL | 5432  |
+| Redis      | 6379  |
 
 ## 配置参考
 
@@ -92,13 +92,13 @@ chainlesschain doctor
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 环境依赖检测（Node/npm/Git） | < 1s | ~ 300-500ms | ✅ |
-| 配置目录/文件检查 | < 100ms | ~ 30ms | ✅ |
-| 端口扫描（6 端口 TCP） | < 2s | ~ 600ms | ✅ |
-| 磁盘检查（Node 22+ statfs） | < 100ms | ~ 10ms | ✅ |
-| 总运行时间 | < 3s | ~ 1-2s | ✅ |
+| 操作                         | 目标    | 实际        | 状态 |
+| ---------------------------- | ------- | ----------- | ---- |
+| 环境依赖检测（Node/npm/Git） | < 1s    | ~ 300-500ms | ✅   |
+| 配置目录/文件检查            | < 100ms | ~ 30ms      | ✅   |
+| 端口扫描（6 端口 TCP）       | < 2s    | ~ 600ms     | ✅   |
+| 磁盘检查（Node 22+ statfs）  | < 100ms | ~ 10ms      | ✅   |
+| 总运行时间                   | < 3s    | ~ 1-2s      | ✅   |
 
 ## 测试覆盖率
 
@@ -133,6 +133,7 @@ chainlesschain doctor
 ```
 
 输出示例：
+
 ```
   ChainlessChain Doctor
 
@@ -173,13 +174,13 @@ chainlesschain doctor && chainlesschain start
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| Node.js 版本不满足 | 使用 nvm 安装更高版本：`nvm install 20` |
-| Config dir 不存在 | 运行 `chainlesschain setup` |
-| Desktop binary 缺失 | 运行 `chainlesschain setup` 或 `chainlesschain update` |
-| 端口显示未运行 | 启动对应服务：`chainlesschain services up` |
-| 磁盘空间不足（< 2GB） | 清理不需要的文件，LLM 模型占用较大空间 |
+| 问题                  | 解决方案                                               |
+| --------------------- | ------------------------------------------------------ |
+| Node.js 版本不满足    | 使用 nvm 安装更高版本：`nvm install 20`                |
+| Config dir 不存在     | 运行 `chainlesschain setup`                            |
+| Desktop binary 缺失   | 运行 `chainlesschain setup` 或 `chainlesschain update` |
+| 端口显示未运行        | 启动对应服务：`chainlesschain services up`             |
+| 磁盘空间不足（< 2GB） | 清理不需要的文件，LLM 模型占用较大空间                 |
 
 ## 相关文档
 

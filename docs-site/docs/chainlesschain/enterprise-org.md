@@ -191,24 +191,24 @@ chainlesschain org list
 ```javascript
 // 创建部门层级
 const techDept = await orgManager.createDepartment({
-  orgId: 'org-001',
-  name: '技术部',
-  description: '负责产品研发',
-  parentId: 'root-dept-id'
+  orgId: "org-001",
+  name: "技术部",
+  description: "负责产品研发",
+  parentId: "root-dept-id",
 });
 
 // 批量导入成员（CSV 格式）
-await orgManager.importMembers('org-001', {
-  file: './members.csv',
-  format: 'csv'
+await orgManager.importMembers("org-001", {
+  file: "./members.csv",
+  format: "csv",
 });
 
 // 创建审批工作流
 await orgManager.createApprovalWorkflow({
-  name: '敏感资源访问审批',
-  type: 'resource',
-  approvers: ['dept-lead', 'security-admin'],
-  timeout: 24 * 60 * 60 * 1000
+  name: "敏感资源访问审批",
+  type: "resource",
+  approvers: ["dept-lead", "security-admin"],
+  timeout: 24 * 60 * 60 * 1000,
 });
 ```
 
@@ -296,14 +296,14 @@ await orgManager.createApprovalWorkflow({
 
 ### 关键配置项速查
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `org.maxDeptDepth` | `10` | 部门树层级上限，超出时创建操作被拒绝 |
-| `member.inviteExpireDays` | `7` | 邀请链接过期天数，过期需重新邀请 |
-| `approval.defaultTimeoutHours` | `24` | 审批超时后自动过期，防止僵尸审批请求 |
-| `approval.maxApproverLevels` | `5` | 审批链最大层级，超出时工作流创建失败 |
-| `multiTenant.isolationLevel` | `"strict"` | 严格模式下所有查询强制携带 `orgId` 过滤 |
-| `dashboard.cacheTTLSeconds` | `300` | 统计缓存有效期，降低高并发下的 DB 压力 |
+| 参数                           | 默认值     | 说明                                    |
+| ------------------------------ | ---------- | --------------------------------------- |
+| `org.maxDeptDepth`             | `10`       | 部门树层级上限，超出时创建操作被拒绝    |
+| `member.inviteExpireDays`      | `7`        | 邀请链接过期天数，过期需重新邀请        |
+| `approval.defaultTimeoutHours` | `24`       | 审批超时后自动过期，防止僵尸审批请求    |
+| `approval.maxApproverLevels`   | `5`        | 审批链最大层级，超出时工作流创建失败    |
+| `multiTenant.isolationLevel`   | `"strict"` | 严格模式下所有查询强制携带 `orgId` 过滤 |
+| `dashboard.cacheTTLSeconds`    | `300`      | 统计缓存有效期，降低高并发下的 DB 压力  |
 
 ---
 
@@ -311,24 +311,24 @@ await orgManager.createApprovalWorkflow({
 
 ### 典型场景基准（4 核 / 8 GB RAM）
 
-| 操作 | 数据规模 | 典型耗时 | 说明 |
-| --- | --- | --- | --- |
-| 创建部门 | 单次写入 | < 10 ms | 含权限校验 + 审计日志写入 |
-| 查询部门树 | 100 部门 / 5 层 | < 30 ms | 递归 CTE 查询，有索引 |
-| 查询部门树 | 1000 部门 / 10 层 | < 150 ms | 建议启用仪表盘缓存 |
-| 成员列表分页 | 单部门 500 人 | < 20 ms | page size = 50，有 `dept_id` 索引 |
-| 批量导入成员 | 1000 行 CSV | 3–8 s | 含校验 + 去重 + 审批请求创建 |
-| 审批工作流创建 | 5 级审批链 | < 50 ms | |
-| 审批状态查询 | 单条 | < 5 ms | |
-| 组织仪表盘统计 | 1 万成员 / 200 部门 | < 100 ms | 有缓存时 < 5 ms |
+| 操作           | 数据规模            | 典型耗时 | 说明                              |
+| -------------- | ------------------- | -------- | --------------------------------- |
+| 创建部门       | 单次写入            | < 10 ms  | 含权限校验 + 审计日志写入         |
+| 查询部门树     | 100 部门 / 5 层     | < 30 ms  | 递归 CTE 查询，有索引             |
+| 查询部门树     | 1000 部门 / 10 层   | < 150 ms | 建议启用仪表盘缓存                |
+| 成员列表分页   | 单部门 500 人       | < 20 ms  | page size = 50，有 `dept_id` 索引 |
+| 批量导入成员   | 1000 行 CSV         | 3–8 s    | 含校验 + 去重 + 审批请求创建      |
+| 审批工作流创建 | 5 级审批链          | < 50 ms  |                                   |
+| 审批状态查询   | 单条                | < 5 ms   |                                   |
+| 组织仪表盘统计 | 1 万成员 / 200 部门 | < 100 ms | 有缓存时 < 5 ms                   |
 
 ### 容量建议
 
-| 组织规模 | 推荐配置 | 备注 |
-| --- | --- | --- |
-| < 500 成员 | 2 核 / 4 GB | 默认配置，无需调优 |
-| 500–5000 成员 | 4 核 / 8 GB | 启用仪表盘缓存，`cacheTTLSeconds: 300` |
-| > 5000 成员 | 8 核 / 16 GB | 开启 SQLite WAL 模式，考虑分库分部门 |
+| 组织规模      | 推荐配置     | 备注                                   |
+| ------------- | ------------ | -------------------------------------- |
+| < 500 成员    | 2 核 / 4 GB  | 默认配置，无需调优                     |
+| 500–5000 成员 | 4 核 / 8 GB  | 启用仪表盘缓存，`cacheTTLSeconds: 300` |
+| > 5000 成员   | 8 核 / 16 GB | 开启 SQLite WAL 模式，考虑分库分部门   |
 
 ### 性能调优建议
 
@@ -354,14 +354,14 @@ desktop-app-vue/tests/unit/enterprise/
 
 ### 测试覆盖列表
 
-| 测试文件 | 覆盖功能 | 测试数 |
-| --- | --- | --- |
-| `enterprise-org-manager.test.js` | 部门 CRUD、成员加入/移除、角色分配、层级调整 | 42 |
-| `approval-workflow.test.js` | 工作流创建、多级审批流转、超时自动过期、拒绝回退 | 35 |
-| `org-multi-tenant.test.js` | 跨组织查询被拒绝、orgId 过滤、子组织隔离 | 18 |
-| `org-import.test.js` | CSV 字段校验、编码处理、部门路径解析、错误行跳过 | 22 |
-| `enterprise-org-ipc.test.js` | IPC 参数校验、错误格式、权限拦截 | 16 |
-| **合计** | | **133** |
+| 测试文件                         | 覆盖功能                                         | 测试数  |
+| -------------------------------- | ------------------------------------------------ | ------- |
+| `enterprise-org-manager.test.js` | 部门 CRUD、成员加入/移除、角色分配、层级调整     | 42      |
+| `approval-workflow.test.js`      | 工作流创建、多级审批流转、超时自动过期、拒绝回退 | 35      |
+| `org-multi-tenant.test.js`       | 跨组织查询被拒绝、orgId 过滤、子组织隔离         | 18      |
+| `org-import.test.js`             | CSV 字段校验、编码处理、部门路径解析、错误行跳过 | 22      |
+| `enterprise-org-ipc.test.js`     | IPC 参数校验、错误格式、权限拦截                 | 16      |
+| **合计**                         |                                                  | **133** |
 
 ### 关键测试场景
 
@@ -377,7 +377,7 @@ desktop-app-vue/tests/unit/enterprise/
 ✅ CSV 批量导入：部门路径 `技术部/前端组` 正确解析为层级关系  
 ✅ 成员移除后其 RBAC 权限立即失效（同一事务内完成）  
 ✅ 仪表盘统计缓存：TTL 内重复请求命中缓存，不触发 DB 查询  
-✅ 组织仪表盘 `pendingApprovals` 数量与实际待审批记录数一致  
+✅ 组织仪表盘 `pendingApprovals` 数量与实际待审批记录数一致
 
 ---
 

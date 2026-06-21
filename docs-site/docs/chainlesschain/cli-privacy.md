@@ -173,33 +173,33 @@ chainlesschain privacy report --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/privacy.js` | privacy 命令主入口 |
+| 文件                                        | 职责                                      |
+| ------------------------------------------- | ----------------------------------------- |
+| `packages/cli/src/commands/privacy.js`      | privacy 命令主入口                        |
 | `packages/cli/src/lib/privacy-computing.js` | 联邦学习、MPC、差分隐私、同态加密核心实现 |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `fl.rounds` | 联邦训练轮数 | 5 |
-| `fl.participants` | 默认参与方 | 3 |
-| `fl.aggregation` | 聚合方式 | `fedavg` |
-| `dp.epsilon` | 差分隐私 ε | 1.0 |
-| `dp.delta` | 差分隐私 δ | 1e-5 |
-| `mpc.protocol` | MPC 协议 | `shamir` |
-| `he.scheme` | 同态加密方案 | `paillier` |
+| 配置项            | 含义         | 默认       |
+| ----------------- | ------------ | ---------- |
+| `fl.rounds`       | 联邦训练轮数 | 5          |
+| `fl.participants` | 默认参与方   | 3          |
+| `fl.aggregation`  | 聚合方式     | `fedavg`   |
+| `dp.epsilon`      | 差分隐私 ε   | 1.0        |
+| `dp.delta`        | 差分隐私 δ   | 1e-5       |
+| `mpc.protocol`    | MPC 协议     | `shamir`   |
+| `he.scheme`       | 同态加密方案 | `paillier` |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `create-model` | < 50 ms | 本地注册 |
-| `train` 单轮 | 依赖数据规模 | 合成路径用于冒烟/回归 |
-| `aggregate` | < 100 ms | FedAvg 合并 |
-| `mpc compute` | < 200 ms | Shamir 3-方 |
-| `dp-noise` | < 20 ms | 一次加噪 |
-| `he encrypt/decrypt` | < 100 ms | Paillier 2048-bit |
+| 操作                 | 典型耗时     | 备注                  |
+| -------------------- | ------------ | --------------------- |
+| `create-model`       | < 50 ms      | 本地注册              |
+| `train` 单轮         | 依赖数据规模 | 合成路径用于冒烟/回归 |
+| `aggregate`          | < 100 ms     | FedAvg 合并           |
+| `mpc compute`        | < 200 ms     | Shamir 3-方           |
+| `dp-noise`           | < 20 ms      | 一次加噪              |
+| `he encrypt/decrypt` | < 100 ms     | Paillier 2048-bit     |
 
 合成指标仅供管线搭建回归，真实性能取决于底层数值库。
 
@@ -262,10 +262,10 @@ chainlesschain privacy report --json
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "budget exceeded" | 隐私预算用尽 | 增大 epsilon 或减少查询次数 |
-| "Model not found" | 模型 ID 错误 | 使用 `models` 查看已有模型 |
+| 症状               | 可能原因       | 解决方案                        |
+| ------------------ | -------------- | ------------------------------- |
+| "budget exceeded"  | 隐私预算用尽   | 增大 epsilon 或减少查询次数     |
+| "Model not found"  | 模型 ID 错误   | 使用 `models` 查看已有模型      |
 | HE 查询结果为 null | 操作或数据无效 | 检查 `-d` JSON 格式和 `-o` 操作 |
 
 ## 相关文档

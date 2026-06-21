@@ -10,12 +10,12 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 
 **默克尔树证书（MTC）** 通过批量签发 + RFC 6962 Merkle 树 + inclusion proof 解决：N 张证书共用一棵树，CA 只对树根（tree head）签**一次**。每条证书携带物 = 1 个签名（共享）+ 1 个公钥（共享）+ 1 个 inclusion proof（每条 ~450 B）。
 
-| 场景 | 朴素 SLH-DSA-128f | MTC（每 envelope）| 节省 |
-|---|---|---|---|
-| 单 DID 文档 | ~17 KB | ~700 B | 96% |
-| 1 K 批次 | ~17 MB | ~700 KB | 96% |
-| 8 K 批次 | ~136 MB | ~5.6 MB | 96% |
-| DHT 周流量（10K 用户） | ~170 GB | ~3 GB | 98% |
+| 场景                   | 朴素 SLH-DSA-128f | MTC（每 envelope） | 节省 |
+| ---------------------- | ----------------- | ------------------ | ---- |
+| 单 DID 文档            | ~17 KB            | ~700 B             | 96%  |
+| 1 K 批次               | ~17 MB            | ~700 KB            | 96%  |
+| 8 K 批次               | ~136 MB           | ~5.6 MB            | 96%  |
+| DHT 周流量（10K 用户） | ~170 GB           | ~3 GB              | 98%  |
 
 **当前状态**：树头签名支持双算法 —— `--alg ed25519`（默认，小签名 + 经典 128 位安全）与 `--alg slh-dsa-128f`（FIPS 205 后量子 128 位安全，via `@noble/post-quantum@0.6.1`）。同一联邦内成员可异构，单棵树的 threshold 计票按"有效签名"汇总，不区分算法。
 
@@ -150,24 +150,25 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 
 ### 核心模块
 
-| 模块 | 路径 | 职责 |
-|---|---|---|
-| `MerkleTree` | `lib/merkle.js` | RFC 6962 树构造 + 取证 + 验证（O(log n) prove，子树根 memo） |
-| `Verifier` (`verify`) | `lib/verifier.js` | 纯函数 envelope 验证，按错误码返回结果 |
-| `LandmarkCache` | `lib/landmark-cache.js` | 内存 + 磁盘双层缓存，split-view 防御，M-of-N 阈值校验 |
-| `assembleBatch` | `lib/batch.js` | 单签批次组装（leaves + key + meta → landmark + envelopes） |
-| `assembleBatchFederated` | `lib/batch.js` | 联邦 M-of-N 批次组装（threshold + signers[]） |
-| `Ed25519Signer` | `lib/signers/ed25519.js` | Ed25519 树头签名 + verifier factory（@noble/curves） |
-| `SlhDsaSigner` | `lib/signers/slh-dsa.js` | SLH-DSA-128F 树头签名 + verifier factory（@noble/post-quantum，FIPS 205） |
-| `JCS` | `lib/jcs.js` | RFC 8785 规范化 JSON 包装（依赖 `canonicalize` 包） |
-| `Transports` | `lib/transports/{in-memory,filesystem,libp2p}.js` | 4 种 publish/subscribe 后端 |
-| `Federation` | `lib/federation.js` | 成员 announce schema + `FederationAnnounceCache`（TTL + 验签） |
-| `FederationGovernance` | `lib/federation-governance.js` | 治理事件 schema + create/verify/replay + cross-trust + audit + on-chain anchor |
-| `cc mtc` 命令 | `packages/cli/src/commands/mtc.js` | 30+ 子命令薄包装 |
+| 模块                     | 路径                                              | 职责                                                                           |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `MerkleTree`             | `lib/merkle.js`                                   | RFC 6962 树构造 + 取证 + 验证（O(log n) prove，子树根 memo）                   |
+| `Verifier` (`verify`)    | `lib/verifier.js`                                 | 纯函数 envelope 验证，按错误码返回结果                                         |
+| `LandmarkCache`          | `lib/landmark-cache.js`                           | 内存 + 磁盘双层缓存，split-view 防御，M-of-N 阈值校验                          |
+| `assembleBatch`          | `lib/batch.js`                                    | 单签批次组装（leaves + key + meta → landmark + envelopes）                     |
+| `assembleBatchFederated` | `lib/batch.js`                                    | 联邦 M-of-N 批次组装（threshold + signers[]）                                  |
+| `Ed25519Signer`          | `lib/signers/ed25519.js`                          | Ed25519 树头签名 + verifier factory（@noble/curves）                           |
+| `SlhDsaSigner`           | `lib/signers/slh-dsa.js`                          | SLH-DSA-128F 树头签名 + verifier factory（@noble/post-quantum，FIPS 205）      |
+| `JCS`                    | `lib/jcs.js`                                      | RFC 8785 规范化 JSON 包装（依赖 `canonicalize` 包）                            |
+| `Transports`             | `lib/transports/{in-memory,filesystem,libp2p}.js` | 4 种 publish/subscribe 后端                                                    |
+| `Federation`             | `lib/federation.js`                               | 成员 announce schema + `FederationAnnounceCache`（TTL + 验签）                 |
+| `FederationGovernance`   | `lib/federation-governance.js`                    | 治理事件 schema + create/verify/replay + cross-trust + audit + on-chain anchor |
+| `cc mtc` 命令            | `packages/cli/src/commands/mtc.js`                | 30+ 子命令薄包装                                                               |
 
 ### 数据格式（关键字段）
 
 **Envelope**:
+
 ```json
 {
   "schema": "mtc-envelope/v1",
@@ -180,6 +181,7 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 ```
 
 **Landmark — 单签**:
+
 ```json
 {
   "schema": "mtc-landmark/v1",
@@ -195,6 +197,7 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 ```
 
 **Landmark — 联邦 M-of-N**:
+
 ```json
 {
   "schema": "mtc-landmark/v1",
@@ -216,6 +219,7 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 ```
 
 **Governance Event** (`federation/governance.log` 一行一条):
+
 ```json
 {
   "schema": "mtc-federation-governance/v1",
@@ -223,8 +227,15 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
   "type": "invite | vote | propose-revoke | confirm-revoke | rotate-key | propose-threshold | confirm-threshold | fork | merge | cross-trust-create | audit-emit",
   "federation_id": "fed:cc:enterprise-skills-001",
   "issued_at": "2026-05-03T00:00:00Z",
-  "payload": { /* type-specific */ },
-  "signature": { "alg": "Ed25519", "issuer": "mtca:cc:fed:m1", "sig": "...", "pubkey_id": "sha256:..." }
+  "payload": {
+    /* type-specific */
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "issuer": "mtca:cc:fed:m1",
+    "sig": "...",
+    "pubkey_id": "sha256:..."
+  }
 }
 ```
 
@@ -234,76 +245,76 @@ ChainlessChain 已经从 Ed25519 全面迁向后量子安全签名（FIPS 205 / 
 
 ### `cc mtc batch-dids` / `batch-skills` / `batch` 共用选项
 
-| 选项 | 必填 | 说明 |
-|---|---|---|
-| `--namespace <ns>` | ✅ | 形如 `mtc/v1/did/000001`（kind/scope/batch-seq） |
-| `--issuer <issuer>` | ✅（单签）| MTCA 标识，如 `mtca:cc:zQ3sh...`；联邦模式下被 federation-level issuer 覆盖 |
-| `--alg <ed25519\|slh-dsa-128f>` | ❌ | 签名算法（默认 ed25519） |
-| `--secret-key-file <path>` | ❌ | 单签密钥 hex 文件，复用以保持信任锚稳定（mode 0600） |
-| `--federation <id>` | ❌ | 启用联邦 M-of-N 多签；signers 来自 `cc mtc federation join` 注册表，覆盖 `--alg` / `--secret-key-file` |
-| `--did <did>` | ❌（仅 batch-dids）| 仅打包指定 DID（可重复），省略 = 全部 |
-| `--skill <name>` | ❌（仅 batch-skills）| 仅打包指定 skill |
-| `--out <dir>` | ❌ | 输出目录（默认 `./mtc-out`） |
-| `--issued-at <iso>` | ❌ | 树头签发时间（默认当前 UTC） |
-| `--expires-at <iso>` | ❌ | 树头过期时间（默认 +7 天） |
-| `--json` | ❌ | JSON 输出（CI/脚本友好） |
+| 选项                            | 必填                  | 说明                                                                                                   |
+| ------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--namespace <ns>`              | ✅                    | 形如 `mtc/v1/did/000001`（kind/scope/batch-seq）                                                       |
+| `--issuer <issuer>`             | ✅（单签）            | MTCA 标识，如 `mtca:cc:zQ3sh...`；联邦模式下被 federation-level issuer 覆盖                            |
+| `--alg <ed25519\|slh-dsa-128f>` | ❌                    | 签名算法（默认 ed25519）                                                                               |
+| `--secret-key-file <path>`      | ❌                    | 单签密钥 hex 文件，复用以保持信任锚稳定（mode 0600）                                                   |
+| `--federation <id>`             | ❌                    | 启用联邦 M-of-N 多签；signers 来自 `cc mtc federation join` 注册表，覆盖 `--alg` / `--secret-key-file` |
+| `--did <did>`                   | ❌（仅 batch-dids）   | 仅打包指定 DID（可重复），省略 = 全部                                                                  |
+| `--skill <name>`                | ❌（仅 batch-skills） | 仅打包指定 skill                                                                                       |
+| `--out <dir>`                   | ❌                    | 输出目录（默认 `./mtc-out`）                                                                           |
+| `--issued-at <iso>`             | ❌                    | 树头签发时间（默认当前 UTC）                                                                           |
+| `--expires-at <iso>`            | ❌                    | 树头过期时间（默认 +7 天）                                                                             |
+| `--json`                        | ❌                    | JSON 输出（CI/脚本友好）                                                                               |
 
 ### `cc mtc serve` 选项
 
-| 选项 | 必填 | 说明 |
-|---|---|---|
-| `--transport <kind>` | ❌ | `libp2p` / `filesystem`（默认 libp2p） |
-| `--listen <multiaddr>` | ❌ | libp2p 监听地址（默认 `/ip4/127.0.0.1/tcp/0`） |
-| `--connect <multiaddr>` | ❌ | libp2p 启动时拨号的 peer（可重复） |
-| `--mode <kind>` | ❌ | libp2p `direct` / `gossipsub`（默认 direct） |
-| `--drop-zone <dir>` | ❌ | filesystem 共享目录 |
-| `--prefix <ns>` | ❌ | 订阅命名空间前缀（可重复，默认 `mtc/v1/did`） |
-| `--cache-dir <dir>` | ❌ | LandmarkCache 持久化目录 |
-| `--exit-after <n>` | ❌ | 收到 N 条后自动退出（CI/test 用） |
+| 选项                    | 必填 | 说明                                           |
+| ----------------------- | ---- | ---------------------------------------------- |
+| `--transport <kind>`    | ❌   | `libp2p` / `filesystem`（默认 libp2p）         |
+| `--listen <multiaddr>`  | ❌   | libp2p 监听地址（默认 `/ip4/127.0.0.1/tcp/0`） |
+| `--connect <multiaddr>` | ❌   | libp2p 启动时拨号的 peer（可重复）             |
+| `--mode <kind>`         | ❌   | libp2p `direct` / `gossipsub`（默认 direct）   |
+| `--drop-zone <dir>`     | ❌   | filesystem 共享目录                            |
+| `--prefix <ns>`         | ❌   | 订阅命名空间前缀（可重复，默认 `mtc/v1/did`）  |
+| `--cache-dir <dir>`     | ❌   | LandmarkCache 持久化目录                       |
+| `--exit-after <n>`      | ❌   | 收到 N 条后自动退出（CI/test 用）              |
 
 ### `cc mtc federation` 子命令族
 
-| 子命令 | 用途 |
-|---|---|
-| `join <fed-id> --member-id <m> [--alg ed25519\|slh-dsa-128f] [--issuer <s>]` | 生成成员密钥并注册到本地 `~/.chainlesschain/federation/members.json` |
-| `leave <fed-id> --member-id <m>` | 从本地注册表移除成员（不影响远端） |
-| `status [fed-id] [--json]` | 列出已注册联邦及成员 |
-| `discover <fed-id> --transport filesystem\|libp2p [--drop-zone <dir>] [--gossipsub]` | 通过 announce 流自动发现成员 |
-| `invite <fed-id> <candidate>` | 发起准入提案，写 governance event |
-| `vote <fed-id> <candidate> --member-id <m> [--ballot approve\|reject]` | 对准入提案投票 |
-| `propose-revoke <fed-id> <target>` / `confirm-revoke <fed-id> <target>` | 撤销成员的两阶段流程 |
-| `rotate-key <fed-id> --member-id <m>` | 轮换成员密钥（旧密钥保留至 grace period 结束） |
-| `propose-threshold <fed-id> <new-threshold>` / `confirm-threshold <fed-id>` | threshold 变更（30 天公示期） |
-| `fork <fed-id> <new-fed-id>` | 联邦分裂，产生独立新 ID |
-| `merge <fed-id> <other-fed-id> <new-fed-id>` | 联邦合并，产生独立新 ID |
-| `governance-publish <fed-id>` / `governance-pull <fed-id>` | 单次同步 governance.log（filesystem / libp2p 二选一） |
-| `governance-sync-serve <fed-id>` | 长跑双向同步守护进程 |
-| `governance-sync-libp2p <fed-id>` | 仅 libp2p gossipsub 同步路径 |
-| `governance-sync-stats <fed-id>` | 查询同步进度 / 健康度 |
-| `governance-log <fed-id> [--json]` | 检视本地 governance.log（dedup + sort 后） |
-| `cross-trust-create <host-fed> <trusted-fed>` | 创建跨联邦互信锚 |
-| `cross-trust-validate <anchor-path>` | 验证跨联邦互信锚（含 multi-hop） |
-| `audit <fed-id>` | 离线审计（违规 + 建议） |
-| `governance-anchor <fed-id>` | 上链锚定当前治理快照（Q-COMP-3） |
-| `governance-verify-anchor <fed-id>` | 与链上锚比对验证 |
+| 子命令                                                                               | 用途                                                                 |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `join <fed-id> --member-id <m> [--alg ed25519\|slh-dsa-128f] [--issuer <s>]`         | 生成成员密钥并注册到本地 `~/.chainlesschain/federation/members.json` |
+| `leave <fed-id> --member-id <m>`                                                     | 从本地注册表移除成员（不影响远端）                                   |
+| `status [fed-id] [--json]`                                                           | 列出已注册联邦及成员                                                 |
+| `discover <fed-id> --transport filesystem\|libp2p [--drop-zone <dir>] [--gossipsub]` | 通过 announce 流自动发现成员                                         |
+| `invite <fed-id> <candidate>`                                                        | 发起准入提案，写 governance event                                    |
+| `vote <fed-id> <candidate> --member-id <m> [--ballot approve\|reject]`               | 对准入提案投票                                                       |
+| `propose-revoke <fed-id> <target>` / `confirm-revoke <fed-id> <target>`              | 撤销成员的两阶段流程                                                 |
+| `rotate-key <fed-id> --member-id <m>`                                                | 轮换成员密钥（旧密钥保留至 grace period 结束）                       |
+| `propose-threshold <fed-id> <new-threshold>` / `confirm-threshold <fed-id>`          | threshold 变更（30 天公示期）                                        |
+| `fork <fed-id> <new-fed-id>`                                                         | 联邦分裂，产生独立新 ID                                              |
+| `merge <fed-id> <other-fed-id> <new-fed-id>`                                         | 联邦合并，产生独立新 ID                                              |
+| `governance-publish <fed-id>` / `governance-pull <fed-id>`                           | 单次同步 governance.log（filesystem / libp2p 二选一）                |
+| `governance-sync-serve <fed-id>`                                                     | 长跑双向同步守护进程                                                 |
+| `governance-sync-libp2p <fed-id>`                                                    | 仅 libp2p gossipsub 同步路径                                         |
+| `governance-sync-stats <fed-id>`                                                     | 查询同步进度 / 健康度                                                |
+| `governance-log <fed-id> [--json]`                                                   | 检视本地 governance.log（dedup + sort 后）                           |
+| `cross-trust-create <host-fed> <trusted-fed>`                                        | 创建跨联邦互信锚                                                     |
+| `cross-trust-validate <anchor-path>`                                                 | 验证跨联邦互信锚（含 multi-hop）                                     |
+| `audit <fed-id>`                                                                     | 离线审计（违规 + 建议）                                              |
+| `governance-anchor <fed-id>`                                                         | 上链锚定当前治理快照（Q-COMP-3）                                     |
+| `governance-verify-anchor <fed-id>`                                                  | 与链上锚比对验证                                                     |
 
 ### `cc audit mtc` 子命令族（默认关闭，等 Q-COMP-1/2 出函）
 
-| 子命令 | 用途 |
-|---|---|
-| `enable` / `disable` | 启用 / 禁用审计事件 emit（持久化到 `.chainlesschain/audit-mtc.json`） |
-| `status` | 查询当前 enabled、间隔、上次 emit 时间、堆积数 |
-| `config [--key <k> --value <v>]` | 读 / 写配置 |
-| `set-interval <seconds>` | 修改 emit 间隔（默认 60s 短路径 / 3600s 长路径双轨） |
-| `emit` | 手动触发一次 emit（需 enabled） |
-| `reconcile` / `reconcile-check` | 对账：本地审计事件 vs 已发布 audit MTC 树 |
+| 子命令                           | 用途                                                                  |
+| -------------------------------- | --------------------------------------------------------------------- |
+| `enable` / `disable`             | 启用 / 禁用审计事件 emit（持久化到 `.chainlesschain/audit-mtc.json`） |
+| `status`                         | 查询当前 enabled、间隔、上次 emit 时间、堆积数                        |
+| `config [--key <k> --value <v>]` | 读 / 写配置                                                           |
+| `set-interval <seconds>`         | 修改 emit 间隔（默认 60s 短路径 / 3600s 长路径双轨）                  |
+| `emit`                           | 手动触发一次 emit（需 enabled）                                       |
+| `reconcile` / `reconcile-check`  | 对账：本地审计事件 vs 已发布 audit MTC 树                             |
 
 ### `cc crosschain mtc-*`（跨链桥集成）
 
-| 子命令 | 用途 |
-|---|---|
-| `mtc-batch <namespace> <out-dir>` | 把当前批次的 tree-head 组装为跨链证明 |
-| `mtc-status` | 查看跨链桥 MTC 守护进程状态、最近一次锚定、待处理消息 |
+| 子命令                            | 用途                                                  |
+| --------------------------------- | ----------------------------------------------------- |
+| `mtc-batch <namespace> <out-dir>` | 把当前批次的 tree-head 组装为跨链证明                 |
+| `mtc-status`                      | 查看跨链桥 MTC 守护进程状态、最近一次锚定、待处理消息 |
 
 ### 命名空间规则
 
@@ -321,25 +332,25 @@ mtc/v1/<kind>(/<scope>)?/<batch-seq>
 
 测试环境：Node 23.11.1, Windows 10 / Intel Core i7
 
-| 操作 | 规模 | 时间 |
-|---|---|---|
-| `MerkleTree.root()` | N=8192 | ~5 ms |
-| `MerkleTree.prove(i)` | N=1024（已构树） | < 5 ms |
-| `MerkleTree.prove(i)`（首次构树）| N=1024 | ~30 ms |
-| 8K 批次完整端到端（构树 + sign + 全 prove，单签 Ed25519）| 8192 leaves | ~250 ms |
-| 8K 批次完整端到端（构树 + sign + 全 prove，单签 SLH-DSA-128F）| 8192 leaves | ~330 ms |
-| 8K 批次完整端到端（联邦 3-of-5 异构）| 8192 leaves | ~520 ms |
-| 单 envelope `verify()` | path 长 13 | < 1 ms |
-| Ed25519 树头签名 | 17 KB 输入 | < 1 ms |
-| Ed25519 树头验签 | 17 KB 输入 | < 1 ms |
-| SLH-DSA-128F 树头签名 | 17 KB 输入 | ~80 ms |
-| SLH-DSA-128F 树头验签 | 17 KB 输入 | ~5 ms |
-| `LandmarkCache.ingest()` 单签 | 1 snapshot | ~2 ms（含 sig + split-view 校验） |
-| `LandmarkCache.ingest()` 联邦 3-of-5 | 1 snapshot | ~12 ms（5 路验签 + 阈值 + 去重） |
-| Libp2p 节点启动（TCP listen） | 单节点 | ~250 ms |
-| Libp2p direct mode 端到端 | 4 envelope | ~600 ms（含 dial + protocol） |
-| Governance log replay | 100 事件 | ~6 ms（dedup + sort + verify） |
-| Cross-fed trust validation | 3-hop 信任链 | ~3 ms |
+| 操作                                                           | 规模             | 时间                              |
+| -------------------------------------------------------------- | ---------------- | --------------------------------- |
+| `MerkleTree.root()`                                            | N=8192           | ~5 ms                             |
+| `MerkleTree.prove(i)`                                          | N=1024（已构树） | < 5 ms                            |
+| `MerkleTree.prove(i)`（首次构树）                              | N=1024           | ~30 ms                            |
+| 8K 批次完整端到端（构树 + sign + 全 prove，单签 Ed25519）      | 8192 leaves      | ~250 ms                           |
+| 8K 批次完整端到端（构树 + sign + 全 prove，单签 SLH-DSA-128F） | 8192 leaves      | ~330 ms                           |
+| 8K 批次完整端到端（联邦 3-of-5 异构）                          | 8192 leaves      | ~520 ms                           |
+| 单 envelope `verify()`                                         | path 长 13       | < 1 ms                            |
+| Ed25519 树头签名                                               | 17 KB 输入       | < 1 ms                            |
+| Ed25519 树头验签                                               | 17 KB 输入       | < 1 ms                            |
+| SLH-DSA-128F 树头签名                                          | 17 KB 输入       | ~80 ms                            |
+| SLH-DSA-128F 树头验签                                          | 17 KB 输入       | ~5 ms                             |
+| `LandmarkCache.ingest()` 单签                                  | 1 snapshot       | ~2 ms（含 sig + split-view 校验） |
+| `LandmarkCache.ingest()` 联邦 3-of-5                           | 1 snapshot       | ~12 ms（5 路验签 + 阈值 + 去重）  |
+| Libp2p 节点启动（TCP listen）                                  | 单节点           | ~250 ms                           |
+| Libp2p direct mode 端到端                                      | 4 envelope       | ~600 ms（含 dial + protocol）     |
+| Governance log replay                                          | 100 事件         | ~6 ms（dedup + sort + verify）    |
+| Cross-fed trust validation                                     | 3-hop 信任链     | ~3 ms                             |
 
 ## 测试覆盖
 
@@ -347,43 +358,43 @@ mtc/v1/<kind>(/<scope>)?/<batch-seq>
 
 ### core-mtc 包（234 测试 / 18 文件）
 
-| 测试文件 | 测试数 | 覆盖范围 |
-|---|---|---|
-| `hash.test.js` | 14 | NIST SHA-256 标准向量、leaf/node hash 域分离、base64url 编解码 |
-| `jcs.test.js` | 7 | 键序无关、嵌套规范化、特殊字符 |
-| `merkle-rfc6962.test.js` | 12 | RFC 6962 标准向量（empty / single / 2-leaf / 3,5,7 不平衡） |
-| `merkle.test.js` | 18 | round-trip + audit path 长度 + 错误码 + 篡改检测 |
-| `merkle-tree.test.js` | 11 | MerkleTree 类 + 子树根 memo + 性能（n=8192 < 2s） |
-| `batch.test.js` | 3 | `assembleBatch` + `assembleBatchFederated` 端到端 |
-| `e2e.test.js` | 18 | 端到端 8/1024 leaf + 9 拒收场景 + split-view 攻击 + 签名验证器集成 |
-| `landmark-cache-persist.test.js` | 8 | persistDir 写盘 + loadFromDisk + 篡改检测 + 密钥变更跳过 |
-| `ed25519-signer.test.js` | 10 | keypair gen + signRaw + makeVerifier + makeVerifierFromLandmark |
-| `slh-dsa-signer.test.js` | 7 | FIPS 205 keypair + sign + verify + 跨实现互操作 |
-| `transports.test.js` | 15 | InMemory + Filesystem + 两节点 e2e（包括完整 4 envelope 验证） |
-| `libp2p-transport.test.js` | 5 | 真 TCP 网络两节点端到端 + protocol negotiation |
-| `libp2p-gossipsub.test.js` | 5 | gossipsub mode shape + topic subscription + pubsub peers |
-| `federation.test.js` | 11 | announce schema + 自签 + TTL + cache 验签 + 篡改拒收 |
-| `federation-discovery.test.js` | 15 | filesystem drop-zone discovery + 聚合 + 过期清理 |
-| `libp2p-federation-discovery.test.js` | 9 | libp2p gossipsub discovery 真实多节点 |
-| `federation-governance.test.js` | 62 | 11 事件类型 create/verify/replay + dedup + sort + cross-trust + audit + on-chain anchor + governance log verifier |
-| `federation-governance-libp2p.test.js` | 4 | governance.log 跨节点同步 + quorum 门控集成 |
+| 测试文件                               | 测试数 | 覆盖范围                                                                                                          |
+| -------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `hash.test.js`                         | 14     | NIST SHA-256 标准向量、leaf/node hash 域分离、base64url 编解码                                                    |
+| `jcs.test.js`                          | 7      | 键序无关、嵌套规范化、特殊字符                                                                                    |
+| `merkle-rfc6962.test.js`               | 12     | RFC 6962 标准向量（empty / single / 2-leaf / 3,5,7 不平衡）                                                       |
+| `merkle.test.js`                       | 18     | round-trip + audit path 长度 + 错误码 + 篡改检测                                                                  |
+| `merkle-tree.test.js`                  | 11     | MerkleTree 类 + 子树根 memo + 性能（n=8192 < 2s）                                                                 |
+| `batch.test.js`                        | 3      | `assembleBatch` + `assembleBatchFederated` 端到端                                                                 |
+| `e2e.test.js`                          | 18     | 端到端 8/1024 leaf + 9 拒收场景 + split-view 攻击 + 签名验证器集成                                                |
+| `landmark-cache-persist.test.js`       | 8      | persistDir 写盘 + loadFromDisk + 篡改检测 + 密钥变更跳过                                                          |
+| `ed25519-signer.test.js`               | 10     | keypair gen + signRaw + makeVerifier + makeVerifierFromLandmark                                                   |
+| `slh-dsa-signer.test.js`               | 7      | FIPS 205 keypair + sign + verify + 跨实现互操作                                                                   |
+| `transports.test.js`                   | 15     | InMemory + Filesystem + 两节点 e2e（包括完整 4 envelope 验证）                                                    |
+| `libp2p-transport.test.js`             | 5      | 真 TCP 网络两节点端到端 + protocol negotiation                                                                    |
+| `libp2p-gossipsub.test.js`             | 5      | gossipsub mode shape + topic subscription + pubsub peers                                                          |
+| `federation.test.js`                   | 11     | announce schema + 自签 + TTL + cache 验签 + 篡改拒收                                                              |
+| `federation-discovery.test.js`         | 15     | filesystem drop-zone discovery + 聚合 + 过期清理                                                                  |
+| `libp2p-federation-discovery.test.js`  | 9      | libp2p gossipsub discovery 真实多节点                                                                             |
+| `federation-governance.test.js`        | 62     | 11 事件类型 create/verify/replay + dedup + sort + cross-trust + audit + on-chain anchor + governance log verifier |
+| `federation-governance-libp2p.test.js` | 4      | governance.log 跨节点同步 + quorum 门控集成                                                                       |
 
 ### CLI 集成测试（114 测试 / 12 文件）
 
-| 测试文件 | 测试数 | 覆盖范围 |
-|---|---|---|
-| `mtc-cli.test.js` | 7 | help / batch / verify / 篡改 → exit 2 / LANDMARK_EXPIRED / inspect |
-| `mtc-did-cli.test.js` | 4 | 从 DID DB 全/单/无匹配 |
-| `mtc-batch-skills-cli.test.js` | 3 | 从 CLISkillLoader 全/过滤/无匹配 |
-| `mtc-publish-skills-cli.test.js` | 5 | 守护进程 + 指纹 diff + 自动 batch-seq + 状态文件 |
-| `mtc-serve-cli.test.js` | 3 | filesystem subscribe + ingest + exit + 配置错误 |
-| `mtc-slh-dsa-cli.test.js` | 3 | `--alg slh-dsa-128f` 单签 + 验证 + JSON 输出 |
-| `mtc-federation-cli.test.js` | 8 | join / leave / status 注册表生命周期 |
-| `mtc-federation-discover-cli.test.js` | 10 | filesystem + libp2p 服务发现两路径 |
-| `mtc-federation-publish-cli.test.js` | 5 | `--federation` 联邦多签端到端 |
-| `mtc-federation-governance-cli.test.js` | 41 | 24 governance 子命令全覆盖 + cross-trust + audit + on-chain anchor + sync daemon |
-| `audit-mtc-cli.test.js` | 5 | enable/disable/status/emit/reconcile 默认关闭 + 配置往返 |
-| `crosschain-mtc-cli.test.js` | 20 | `mtc-batch` / `mtc-status` 跨链桥集成 + 错误路径 |
+| 测试文件                                | 测试数 | 覆盖范围                                                                         |
+| --------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| `mtc-cli.test.js`                       | 7      | help / batch / verify / 篡改 → exit 2 / LANDMARK_EXPIRED / inspect               |
+| `mtc-did-cli.test.js`                   | 4      | 从 DID DB 全/单/无匹配                                                           |
+| `mtc-batch-skills-cli.test.js`          | 3      | 从 CLISkillLoader 全/过滤/无匹配                                                 |
+| `mtc-publish-skills-cli.test.js`        | 5      | 守护进程 + 指纹 diff + 自动 batch-seq + 状态文件                                 |
+| `mtc-serve-cli.test.js`                 | 3      | filesystem subscribe + ingest + exit + 配置错误                                  |
+| `mtc-slh-dsa-cli.test.js`               | 3      | `--alg slh-dsa-128f` 单签 + 验证 + JSON 输出                                     |
+| `mtc-federation-cli.test.js`            | 8      | join / leave / status 注册表生命周期                                             |
+| `mtc-federation-discover-cli.test.js`   | 10     | filesystem + libp2p 服务发现两路径                                               |
+| `mtc-federation-publish-cli.test.js`    | 5      | `--federation` 联邦多签端到端                                                    |
+| `mtc-federation-governance-cli.test.js` | 41     | 24 governance 子命令全覆盖 + cross-trust + audit + on-chain anchor + sync daemon |
+| `audit-mtc-cli.test.js`                 | 5      | enable/disable/status/emit/reconcile 默认关闭 + 配置往返                         |
+| `crosschain-mtc-cli.test.js`            | 20     | `mtc-batch` / `mtc-status` 跨链桥集成 + 错误路径                                 |
 
 ### 上层（桌面 V6 widget + Web Panel + Web Shell + 跨链桥 IPC）
 
@@ -408,28 +419,28 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 
 ### 攻击面 + 防御
 
-| 攻击 | 防御机制 | 错误码 |
-|---|---|---|
-| Split-view（同 size 双签不同根） | `LandmarkCache.ingest()` 强制单调性 | `MTCA_DOUBLE_SIGNED` |
-| 篡改 envelope 内容 | 重算 leaf hash → 不匹配 root | `ROOT_MISMATCH` |
-| 篡改 audit_path | proof 重算 root 失败 | `ROOT_MISMATCH` |
-| 替换 tree_head（不同公钥） | 签名验证用 trust_anchors 内的公钥 | `BAD_TREE_HEAD_SIG` |
-| 重放过期 landmark | `expires_at` 检查 | `LANDMARK_EXPIRED` |
-| 篡改 landmark 文件（disk） | `loadFromDisk` 重新签名校验 | 跳过 + `failed[]` |
-| 跨场景签名重放 | 域分离前缀 | 签名校验失败 |
-| 命名空间欺骗 | `NAMESPACE_RE` 严格校验 | `BAD_NAMESPACE` |
-| Schema 注入 | 显式 schema 字符串匹配 | `UNKNOWN_SCHEMA` |
-| Inclusion proof 范围越界 | `0 ≤ leaf_index < tree_size` | `BAD_PROOF_INDEX` |
-| Inclusion proof 长度异常 | `audit_path.length` vs 期望值 | `BAD_PROOF_LENGTH` |
-| Tree size 不匹配 | `proof.tree_size == cached.tree_size` | `PROOF_TREE_SIZE_MISMATCH` |
-| 联邦签名数不达阈值 | `LandmarkCache` 计算有效签名数 ≥ threshold | `INSUFFICIENT_SIGNATURES` |
-| 一人多签作弊 | 按 `pubkey_id` 去重计票 | `DUPLICATE_PUBKEY` |
-| 未授权成员签名 | `trust_anchors` 白名单匹配 | `UNKNOWN_FEDERATION_MEMBER` |
-| 治理事件伪造 | 每事件独立签名 + `verifyGovernanceEvent` | 拒收 + 不进入 replay |
-| 治理事件重放 | `event_id = sha256(jcs(payload))` + `dedupeEventsByEventId` | 静默去重 |
-| 治理事件乱序 | `sortEventsChronologically(by issued_at)` | 状态机按时间序回放 |
-| 联邦 fork 后回滚到旧成员名单 | governance.log 不可剪裁 + on-chain anchor | `GOVERNANCE_LOG_TAMPERED` |
-| 跨联邦伪造背书 | `validateCrossFederationTrustAnchor` 验整条信任链 | `CROSS_TRUST_INVALID` |
+| 攻击                             | 防御机制                                                    | 错误码                      |
+| -------------------------------- | ----------------------------------------------------------- | --------------------------- |
+| Split-view（同 size 双签不同根） | `LandmarkCache.ingest()` 强制单调性                         | `MTCA_DOUBLE_SIGNED`        |
+| 篡改 envelope 内容               | 重算 leaf hash → 不匹配 root                                | `ROOT_MISMATCH`             |
+| 篡改 audit_path                  | proof 重算 root 失败                                        | `ROOT_MISMATCH`             |
+| 替换 tree_head（不同公钥）       | 签名验证用 trust_anchors 内的公钥                           | `BAD_TREE_HEAD_SIG`         |
+| 重放过期 landmark                | `expires_at` 检查                                           | `LANDMARK_EXPIRED`          |
+| 篡改 landmark 文件（disk）       | `loadFromDisk` 重新签名校验                                 | 跳过 + `failed[]`           |
+| 跨场景签名重放                   | 域分离前缀                                                  | 签名校验失败                |
+| 命名空间欺骗                     | `NAMESPACE_RE` 严格校验                                     | `BAD_NAMESPACE`             |
+| Schema 注入                      | 显式 schema 字符串匹配                                      | `UNKNOWN_SCHEMA`            |
+| Inclusion proof 范围越界         | `0 ≤ leaf_index < tree_size`                                | `BAD_PROOF_INDEX`           |
+| Inclusion proof 长度异常         | `audit_path.length` vs 期望值                               | `BAD_PROOF_LENGTH`          |
+| Tree size 不匹配                 | `proof.tree_size == cached.tree_size`                       | `PROOF_TREE_SIZE_MISMATCH`  |
+| 联邦签名数不达阈值               | `LandmarkCache` 计算有效签名数 ≥ threshold                  | `INSUFFICIENT_SIGNATURES`   |
+| 一人多签作弊                     | 按 `pubkey_id` 去重计票                                     | `DUPLICATE_PUBKEY`          |
+| 未授权成员签名                   | `trust_anchors` 白名单匹配                                  | `UNKNOWN_FEDERATION_MEMBER` |
+| 治理事件伪造                     | 每事件独立签名 + `verifyGovernanceEvent`                    | 拒收 + 不进入 replay        |
+| 治理事件重放                     | `event_id = sha256(jcs(payload))` + `dedupeEventsByEventId` | 静默去重                    |
+| 治理事件乱序                     | `sortEventsChronologically(by issued_at)`                   | 状态机按时间序回放          |
+| 联邦 fork 后回滚到旧成员名单     | governance.log 不可剪裁 + on-chain anchor                   | `GOVERNANCE_LOG_TAMPERED`   |
+| 跨联邦伪造背书                   | `validateCrossFederationTrustAnchor` 验整条信任链           | `CROSS_TRUST_INVALID`       |
 
 ### 信任模型
 
@@ -453,6 +464,7 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ✗ Verification failed: LANDMARK_MISS
 ```
+
 - **原因**：本地 cache 找不到 envelope 引用的 tree_head_id
 - **排查**：
   1. 确认你的 cache-dir 是否包含对应 namespace 的 snapshot
@@ -462,6 +474,7 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ✗ Verification failed: ROOT_MISMATCH
 ```
+
 - **原因**：重算根与 landmark 中的 root_hash 不一致
 - **可能性**：
   1. envelope.leaf 被篡改（最常见）
@@ -472,6 +485,7 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ✗ Verification failed: BAD_TREE_HEAD_SIG
 ```
+
 - **原因**：landmark 中的 tree_head 签名校验失败
 - **可能性**：
   1. trust_anchors 与签发时使用的密钥不匹配
@@ -482,6 +496,7 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ✗ Verification failed: INSUFFICIENT_SIGNATURES (联邦模式)
 ```
+
 - **原因**：有效签名数 < threshold
 - **可能性**：
   1. 部分成员密钥被撤销但 landmark 仍带其旧签名
@@ -492,6 +507,7 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ✗ MTCA_DOUBLE_SIGNED — split-view detected
 ```
+
 - **原因**：发现同 namespace + tree_size 但不同 root_hash 的两份 landmark
 - **可能性**：
   1. MTCA 节点被攻陷，对不同 verifier 群体出不同视图
@@ -503,12 +519,14 @@ cd packages/cli && npx vitest run __tests__/integration/{mtc,audit-mtc,crosschai
 ```
 ingest failed: NO_SIGNATURE_VERIFIER
 ```
+
 - **原因**：persistDir 中有旧 snapshot，但当前 cache 还没拿到 trust_anchors
 - **修复**：等第一份新 landmark 到达 → cache 用其 trust_anchors 初始化 → 旧 snapshot 自动重新校验
 
 ```
 mtc serve failed: connect to /ip4/.../tcp/9000/p2p/... failed
 ```
+
 - **原因**：libp2p `--connect` 的 peer 未启动或网络不通
 - **修复**：先确认对端节点的 multiaddr，再用 `nc -zv <ip> <port>` 测试 TCP 连通性
 
@@ -517,18 +535,21 @@ mtc serve failed: connect to /ip4/.../tcp/9000/p2p/... failed
 ```
 ✗ unknown federation "fed:cc:..." — run `cc mtc federation join ... --member-id <m>` first
 ```
+
 - **原因**：本地 `~/.chainlesschain/federation/members.json` 没有该联邦
 - **修复**：先 join 再 batch；或 `cc mtc federation discover` 接收远端 announce
 
 ```
 ✗ confirm-* aborted: quorum not met (need 2, got 1) — use --no-quorum-check to override
 ```
+
 - **原因**：投票数不够，pre-flight 拒签
 - **修复**：等其他成员投票完成；或紧急情况下 `--no-quorum-check` bypass（**会留下警告事件，事后必须由审计复盘**）
 
 ```
 ✗ governance-sync stalled — last sync 47 minutes ago (threshold 5 min)
 ```
+
 - **原因**：governance-sync-serve 守护进程异常
 - **修复**：`cc mtc federation governance-sync-stats <fed-id> --json` 看错误详情；常见是 libp2p mesh 不形成或 drop-zone 文件锁冲突；重启守护进程
 
@@ -544,6 +565,7 @@ mtc serve failed: connect to /ip4/.../tcp/9000/p2p/... failed
 ```
 audit emit refused: feature disabled (run `cc audit mtc enable` after Q-COMP-1 sign-off)
 ```
+
 - 设计如此：审计 emit 默认关闭，等法务出函才开。`status` 子命令查看当前 enabled 状态、上次 emit、堆积数。
 
 ## 关键文件
@@ -752,33 +774,46 @@ cc mtc publish-status ~/.chainlesschain/mtc/publish-state.json
 
 ```js
 import {
-  MerkleTree, leafHash, jcs, encodeHashStr, sha256,
-  LandmarkCache, verify, ed25519, slhDsa,
+  MerkleTree,
+  leafHash,
+  jcs,
+  encodeHashStr,
+  sha256,
+  LandmarkCache,
+  verify,
+  ed25519,
+  slhDsa,
   assembleBatchFederated,
   TREE_HEAD_SIG_PREFIX,
-  createGovernanceEvent, verifyGovernanceLog,
-  computeGovernanceSnapshotHash, buildGovernanceAnchorRecord,
-} from '@chainlesschain/core-mtc';
+  createGovernanceEvent,
+  verifyGovernanceLog,
+  computeGovernanceSnapshotHash,
+  buildGovernanceAnchorRecord,
+} from "@chainlesschain/core-mtc";
 
 // 联邦 2-of-3 异构签名
 const m1 = ed25519.generateKeyPair();
 const m2 = slhDsa.generateKeyPair();
 const m3 = ed25519.generateKeyPair();
 
-const items = [{ id: 'x' }, { id: 'y' }, { id: 'z' }];
-const leaves = items.map(i => leafHash(jcs(i)));
+const items = [{ id: "x" }, { id: "y" }, { id: "z" }];
+const leaves = items.map((i) => leafHash(jcs(i)));
 
-const { landmark, envelopes } = assembleBatchFederated(leaves, [
-  { ...m1, alg: 'Ed25519',      issuer: 'mtca:cc:fed:m1' },
-  { ...m2, alg: 'SLH-DSA-128F', issuer: 'mtca:cc:fed:m2' },
-  { ...m3, alg: 'Ed25519',      issuer: 'mtca:cc:fed:m3' },
-], {
-  threshold: 2,
-  federationId: 'fed:cc:demo',
-  namespace: 'mtc/v1/did/000099',
-  issuedAt: new Date().toISOString(),
-  expiresAt: new Date(Date.now() + 7*24*3600*1000).toISOString(),
-});
+const { landmark, envelopes } = assembleBatchFederated(
+  leaves,
+  [
+    { ...m1, alg: "Ed25519", issuer: "mtca:cc:fed:m1" },
+    { ...m2, alg: "SLH-DSA-128F", issuer: "mtca:cc:fed:m2" },
+    { ...m3, alg: "Ed25519", issuer: "mtca:cc:fed:m3" },
+  ],
+  {
+    threshold: 2,
+    federationId: "fed:cc:demo",
+    namespace: "mtc/v1/did/000099",
+    issuedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+  },
+);
 
 // Verifier
 const cache = new LandmarkCache({

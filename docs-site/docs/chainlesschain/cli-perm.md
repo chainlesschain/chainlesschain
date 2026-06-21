@@ -104,12 +104,12 @@ cc perm reset-state-v2                # 清空内存状态、恢复默认参数
 
 无配置文件/环境变量——四个参数仅经命令在运行时设置（进程内生效）：
 
-| 参数 | 设置命令 | 默认值 | 含义 |
-|------|---------|--------|------|
-| `maxActivePermRulesPerOwner` | `set-max-active-v2 <n>` | **10** | 每 owner 同时 active 的规则数上限 |
-| `maxPendingPermChecksPerRule` | `set-max-pending-v2 <n>` | **30** | 每规则 queued+evaluating 检查数上限 |
-| `permRuleIdleMs` | `set-idle-ms-v2 <n>` | **2592000000**（30 天） | active 规则未 touch 多久算空闲 |
-| `permCheckStuckMs` | `set-stuck-ms-v2 <n>` | **60000**（60 秒） | evaluating 检查多久算卡死 |
+| 参数                          | 设置命令                 | 默认值                  | 含义                                |
+| ----------------------------- | ------------------------ | ----------------------- | ----------------------------------- |
+| `maxActivePermRulesPerOwner`  | `set-max-active-v2 <n>`  | **10**                  | 每 owner 同时 active 的规则数上限   |
+| `maxPendingPermChecksPerRule` | `set-max-pending-v2 <n>` | **30**                  | 每规则 queued+evaluating 检查数上限 |
+| `permRuleIdleMs`              | `set-idle-ms-v2 <n>`     | **2592000000**（30 天） | active 规则未 touch 多久算空闲      |
+| `permCheckStuckMs`            | `set-stuck-ms-v2 <n>`    | **60000**（60 秒）      | evaluating 检查多久算卡死           |
 
 四参数均要求正整数，否则抛 `must be positive integer`。`register-rule-v2 --scope` 默认 `"*"`；`create-check-v2 --subject` 默认空字符串。
 
@@ -122,10 +122,10 @@ cc perm reset-state-v2                # 清空内存状态、恢复默认参数
 
 ## 测试覆盖
 
-| 测试文件 | 数量 | 覆盖 |
-|----------|------|------|
+| 测试文件                                                       | 数量   | 覆盖                                                                                                                                                                        |
+| -------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/cli/__tests__/unit/lib/permission-engine-v2.test.js` | **38** | V2 全面：枚举冻结、参数 get/set 与校验、规则/检查全部流转与非法流转、配额（含 disabled 恢复豁免）、auto-disable-idle / auto-deny-stuck（注入 now 确定性）、gov-stats、reset |
-| `packages/cli/__tests__/unit/permission-engine.test.js` | 36 | 同 lib 的旧版 SQLite RBAC（角色/授予/直接权限/checkPermission 通配），非 `cc perm` 命令面 |
+| `packages/cli/__tests__/unit/permission-engine.test.js`        | 36     | 同 lib 的旧版 SQLite RBAC（角色/授予/直接权限/checkPermission 通配），非 `cc perm` 命令面                                                                                   |
 
 ```bash
 cd packages/cli
@@ -143,26 +143,26 @@ npx vitest run __tests__/unit/lib/permission-engine-v2.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `invalid perm rule transition X → Y` | 流转不在状态机允许集合内（如 retired → active） | 按 `enums-v2` 输出的状态机走；retired/settled 为终态 |
-| `max active perm rules for owner <o> reached` | 该 owner active 规则已达上限（默认 10） | `retire`/`disable` 旧规则，或 `set-max-active-v2` 调高；disabled → active 恢复不占配额 |
-| `max pending perm checks for rule <r> reached` | 该规则 queued+evaluating 检查已达上限（默认 30） | 先 settle（allow/deny/cancel）存量检查，或 `auto-deny-stuck-v2` 清卡死项 |
-| `perm rule <id> not found` / `perm check <id> not found` | id 不存在，或进程重启后内存态已清空 | `list-rules-v2`/`list-checks-v2` 核对；内存态不跨进程是设计行为 |
-| `... already registered / already exists` | id 重复注册 | 换 id，或 `reset-state-v2`（会清空一切） |
-| `cannot touch terminal perm rule <id>` | 对 retired 规则 touch | 终态规则不可续命；需要就重新 register |
-| 规则被莫名 disabled | 超过 idle 阈值后跑过 `auto-disable-idle-v2` | 活跃规则定期 `touch-rule-v2`；或 `activate-rule-v2` 恢复（不占配额） |
-| `<param> must be positive integer` | set-* 命令传了 0/负数/非数字 | 传正整数 |
-| 想配置 agent 的 allow/ask/deny 却找不到子命令 | 用错命令——那是 `cc permissions`（全名），`perm` 被 V2 治理占用 | 见 [权限规则（cc permissions）](./cli-permissions.md) |
+| 现象                                                     | 可能原因                                                       | 处理                                                                                   |
+| -------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `invalid perm rule transition X → Y`                     | 流转不在状态机允许集合内（如 retired → active）                | 按 `enums-v2` 输出的状态机走；retired/settled 为终态                                   |
+| `max active perm rules for owner <o> reached`            | 该 owner active 规则已达上限（默认 10）                        | `retire`/`disable` 旧规则，或 `set-max-active-v2` 调高；disabled → active 恢复不占配额 |
+| `max pending perm checks for rule <r> reached`           | 该规则 queued+evaluating 检查已达上限（默认 30）               | 先 settle（allow/deny/cancel）存量检查，或 `auto-deny-stuck-v2` 清卡死项               |
+| `perm rule <id> not found` / `perm check <id> not found` | id 不存在，或进程重启后内存态已清空                            | `list-rules-v2`/`list-checks-v2` 核对；内存态不跨进程是设计行为                        |
+| `... already registered / already exists`                | id 重复注册                                                    | 换 id，或 `reset-state-v2`（会清空一切）                                               |
+| `cannot touch terminal perm rule <id>`                   | 对 retired 规则 touch                                          | 终态规则不可续命；需要就重新 register                                                  |
+| 规则被莫名 disabled                                      | 超过 idle 阈值后跑过 `auto-disable-idle-v2`                    | 活跃规则定期 `touch-rule-v2`；或 `activate-rule-v2` 恢复（不占配额）                   |
+| `<param> must be positive integer`                       | set-\* 命令传了 0/负数/非数字                                  | 传正整数                                                                               |
+| 想配置 agent 的 allow/ask/deny 却找不到子命令            | 用错命令——那是 `cc permissions`（全名），`perm` 被 V2 治理占用 | 见 [权限规则（cc permissions）](./cli-permissions.md)                                  |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/perm.js` | `cc perm` 命令面（24 个子命令，薄封装，全 JSON 输出） |
-| `packages/cli/src/lib/permission-engine.js` | V2 治理 overlay（状态机、配额、自动治理、统计）+ 旧版 SQLite RBAC |
-| `packages/cli/__tests__/unit/lib/permission-engine-v2.test.js` | V2 单测（38） |
-| `packages/cli/__tests__/unit/permission-engine.test.js` | 旧版 RBAC lib 单测（36） |
+| 文件                                                           | 说明                                                              |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/cli/src/commands/perm.js`                            | `cc perm` 命令面（24 个子命令，薄封装，全 JSON 输出）             |
+| `packages/cli/src/lib/permission-engine.js`                    | V2 治理 overlay（状态机、配额、自动治理、统计）+ 旧版 SQLite RBAC |
+| `packages/cli/__tests__/unit/lib/permission-engine-v2.test.js` | V2 单测（38）                                                     |
+| `packages/cli/__tests__/unit/permission-engine.test.js`        | 旧版 RBAC lib 单测（36）                                          |
 
 ## 使用示例
 

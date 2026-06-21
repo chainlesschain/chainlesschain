@@ -865,26 +865,26 @@ CREATE TABLE IF NOT EXISTS memory_stats (
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/llm/permanent-memory-manager.js` | 永久记忆核心管理器 |
-| `src/main/llm/permanent-memory-ipc.js` | IPC 处理器（30+ 个） |
-| `src/main/llm/memory-file-watcher.js` | 文件变更监听器 |
-| `src/main/rag/hybrid-search-engine.js` | 混合搜索引擎（Vector+BM25） |
-| `src/main/rag/embedding-cache.js` | Embedding 向量缓存 |
-| `src/main/database/migrations/009_embedding_cache.sql` | 数据库迁移（5 张表） |
+| 文件                                                   | 职责                        |
+| ------------------------------------------------------ | --------------------------- |
+| `src/main/llm/permanent-memory-manager.js`             | 永久记忆核心管理器          |
+| `src/main/llm/permanent-memory-ipc.js`                 | IPC 处理器（30+ 个）        |
+| `src/main/llm/memory-file-watcher.js`                  | 文件变更监听器              |
+| `src/main/rag/hybrid-search-engine.js`                 | 混合搜索引擎（Vector+BM25） |
+| `src/main/rag/embedding-cache.js`                      | Embedding 向量缓存          |
+| `src/main/database/migrations/009_embedding_cache.sql` | 数据库迁移（5 张表）        |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 记忆检索响应慢 | 向量索引未优化或嵌入缓存失效 | 执行 `memory index-optimize`，启用嵌入缓存 |
-| 向量索引损坏查询报错 | 索引文件异常写入或磁盘故障 | 重建向量索引 `memory index-rebuild` |
-| 存储空间不足 | 记忆数据量超出磁盘限额 | 清理过期记忆 `memory gc`，迁移到更大存储 |
+| 症状                 | 可能原因                     | 解决方案                                        |
+| -------------------- | ---------------------------- | ----------------------------------------------- |
+| 记忆检索响应慢       | 向量索引未优化或嵌入缓存失效 | 执行 `memory index-optimize`，启用嵌入缓存      |
+| 向量索引损坏查询报错 | 索引文件异常写入或磁盘故障   | 重建向量索引 `memory index-rebuild`             |
+| 存储空间不足         | 记忆数据量超出磁盘限额       | 清理过期记忆 `memory gc`，迁移到更大存储        |
 | 记忆去重失败出现重复 | 相似度阈值过高或嵌入模型变更 | 降低去重阈值 `deduplicationThreshold`，重新嵌入 |
-| 记忆导入后查询不到 | 导入数据未生成嵌入向量 | 执行 `memory embed-pending` 补充缺失嵌入 |
+| 记忆导入后查询不到   | 导入数据未生成嵌入向量       | 执行 `memory embed-pending` 补充缺失嵌入        |
 
 ### 常见错误修复
 
@@ -922,27 +922,27 @@ chainlesschain memory gc --max-age 365d --min-importance 0.2
 
 ### 核心操作延迟
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| Daily Note 写入（追加模式） | < 50ms | ~20ms | ✅ |
-| MEMORY.md 章节追加 | < 100ms | ~35ms | ✅ |
-| Embedding 缓存命中搜索 | < 500ms | ~120ms | ✅ |
-| 首次混合搜索（冷启动） | < 5s | ~2.5s | ✅ |
-| 全量索引重建（35 文件） | < 30s | ~12s | ✅ |
-| 文件变化检测到触发索引 | < 2s | ~1.6s | ✅ |
-| `getStats()` 统计查询 | < 200ms | ~80ms | ✅ |
-| `extractFromConversation()` LLM 提取 | < 10s | ~4s | ✅ |
+| 操作                                 | 目标    | 实际   | 状态 |
+| ------------------------------------ | ------- | ------ | ---- |
+| Daily Note 写入（追加模式）          | < 50ms  | ~20ms  | ✅   |
+| MEMORY.md 章节追加                   | < 100ms | ~35ms  | ✅   |
+| Embedding 缓存命中搜索               | < 500ms | ~120ms | ✅   |
+| 首次混合搜索（冷启动）               | < 5s    | ~2.5s  | ✅   |
+| 全量索引重建（35 文件）              | < 30s   | ~12s   | ✅   |
+| 文件变化检测到触发索引               | < 2s    | ~1.6s  | ✅   |
+| `getStats()` 统计查询                | < 200ms | ~80ms  | ✅   |
+| `extractFromConversation()` LLM 提取 | < 10s   | ~4s    | ✅   |
 
 ### 资源使用
 
-| 指标 | 典型值 | 上限 | 说明 |
-| ---- | ------ | ---- | ---- |
-| 内存占用（基础） | ~15MB | ~50MB | 不含 Embedding 缓存 |
-| Embedding 缓存内存 | ~30MB | ~200MB | 10 万条向量，384 维 |
-| SQLite 文件大小（10 万缓存条目） | ~200MB | — | 含向量 BLOB |
-| Daily Notes 磁盘（30 天） | ~5MB | — | 取决于对话频率 |
-| 文件监听 CPU（idle） | < 0.1% | — | debounce 1500ms |
-| Embedding 缓存命中率 | ~70% | — | 重复查询场景下 |
+| 指标                             | 典型值 | 上限   | 说明                |
+| -------------------------------- | ------ | ------ | ------------------- |
+| 内存占用（基础）                 | ~15MB  | ~50MB  | 不含 Embedding 缓存 |
+| Embedding 缓存内存               | ~30MB  | ~200MB | 10 万条向量，384 维 |
+| SQLite 文件大小（10 万缓存条目） | ~200MB | —      | 含向量 BLOB         |
+| Daily Notes 磁盘（30 天）        | ~5MB   | —      | 取决于对话频率      |
+| 文件监听 CPU（idle）             | < 0.1% | —      | debounce 1500ms     |
+| Embedding 缓存命中率             | ~70%   | —      | 重复查询场景下      |
 
 ---
 
@@ -1000,11 +1000,11 @@ chainlesschain memory gc --max-age 365d --min-importance 0.2
 
 ### 检索缓慢
 
-| 现象 | 解决方案 |
-|------|---------|
+| 现象              | 解决方案                                                                |
+| ----------------- | ----------------------------------------------------------------------- |
 | 首次搜索慢（>5s） | Embedding 缓存为空，首次需计算向量；后续搜索会命中缓存，延迟降至 <500ms |
-| 所有搜索均慢 | 检查 Qdrant 服务是否运行（端口 6333），若不可用则回退到简单搜索 |
-| 索引重建耗时长 | 文件数量多时 `rebuildIndex()` 耗时正常；可分批索引或在后台执行 |
+| 所有搜索均慢      | 检查 Qdrant 服务是否运行（端口 6333），若不可用则回退到简单搜索         |
+| 索引重建耗时长    | 文件数量多时 `rebuildIndex()` 耗时正常；可分批索引或在后台执行          |
 
 ### 存储满
 
@@ -1015,11 +1015,13 @@ chainlesschain memory gc --max-age 365d --min-importance 0.2
 ## 安全深度说明
 
 ### 加密存储
+
 - 记忆数据库通过 **SQLCipher AES-256** 全库透明加密，数据库文件被拷贝后无法读取
 - `memory/` 目录下的 Markdown 文件为明文存储，建议敏感项目使用 **git-crypt** 或系统级磁盘加密保护
 - Embedding 向量缓存在本地 SQLite 中，不上传到外部向量数据库或云端
 
 ### 隐私保护
+
 - LLM 智能提取使用本地 Ollama 模型，对话内容不发送到云端；若使用云端 LLM，需注意对话内容可能被传输
 - 搜索查询仅在本地执行，不记录搜索历史到外部服务
 - `extractFromConversation` 提取的技术发现不包含密码、密钥等敏感数据，提取逻辑由 LLM prompt 控制

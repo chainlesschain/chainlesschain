@@ -46,13 +46,13 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/ai-engine/cowork/spec-translator.js` | 自然语言到结构化 Spec 的翻译引擎 |
-| `src/main/ai-engine/cowork/project-style-analyzer.js` | 项目代码风格与约定分析 |
-| `src/main/ai-engine/cowork/code-generator.js` | 基于 Spec 的代码生成器 |
-| `src/renderer/stores/nlProgramming.ts` | Pinia 状态管理 |
-| `src/renderer/pages/NLProgramming.vue` | 自然语言编程前端页面 |
+| 文件                                                  | 职责                             |
+| ----------------------------------------------------- | -------------------------------- |
+| `src/main/ai-engine/cowork/spec-translator.js`        | 自然语言到结构化 Spec 的翻译引擎 |
+| `src/main/ai-engine/cowork/project-style-analyzer.js` | 项目代码风格与约定分析           |
+| `src/main/ai-engine/cowork/code-generator.js`         | 基于 Spec 的代码生成器           |
+| `src/renderer/stores/nlProgramming.ts`                | Pinia 状态管理                   |
+| `src/renderer/pages/NLProgramming.vue`                | 自然语言编程前端页面             |
 
 ## 系统概述
 
@@ -143,15 +143,15 @@
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Spec 完整度低于 50% | 自然语言描述过于简略 | 补充具体细节（字段名、验证规则、交互行为），使用反馈优化功能迭代 |
-| 生成代码不符合项目风格 | 项目约定未分析或已过期 | 先运行 `nl-prog:analyze-project` 更新约定，确认检测到正确的框架和规范 |
-| 翻译请求超时 | LLM 服务未启动或连接异常 | 检查 Ollama/LLM Provider 连接状态，确认 `OLLAMA_HOST` 配置正确 |
-| 实体识别不准确 | 描述中存在歧义表达 | 使用明确的技术术语（如"Vue3 组件"而非"页面模块"），避免模糊用词 |
-| 验收条件缺失 | 描述中未包含具体要求 | 在描述中明确列出验证规则、边界条件和预期行为 |
-| 代码生成后编译报错 | 约定与实际项目版本不匹配 | 检查 `conventionSources` 配置是否包含 `package.json` 和 `tsconfig.json` |
-| 历史记录查询为空 | 未执行过翻译操作 | 先通过 `nl-prog:translate` 完成至少一次翻译，历史记录会自动保存 |
+| 问题                   | 可能原因                 | 解决方案                                                                |
+| ---------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| Spec 完整度低于 50%    | 自然语言描述过于简略     | 补充具体细节（字段名、验证规则、交互行为），使用反馈优化功能迭代        |
+| 生成代码不符合项目风格 | 项目约定未分析或已过期   | 先运行 `nl-prog:analyze-project` 更新约定，确认检测到正确的框架和规范   |
+| 翻译请求超时           | LLM 服务未启动或连接异常 | 检查 Ollama/LLM Provider 连接状态，确认 `OLLAMA_HOST` 配置正确          |
+| 实体识别不准确         | 描述中存在歧义表达       | 使用明确的技术术语（如"Vue3 组件"而非"页面模块"），避免模糊用词         |
+| 验收条件缺失           | 描述中未包含具体要求     | 在描述中明确列出验证规则、边界条件和预期行为                            |
+| 代码生成后编译报错     | 约定与实际项目版本不匹配 | 检查 `conventionSources` 配置是否包含 `package.json` 和 `tsconfig.json` |
+| 历史记录查询为空       | 未执行过翻译操作         | 先通过 `nl-prog:translate` 完成至少一次翻译，历史记录会自动保存         |
 
 ---
 
@@ -185,26 +185,26 @@
 
 ### 配置项说明
 
-| 配置项                  | 类型    | 默认值                          | 说明                             |
-| ----------------------- | ------- | ------------------------------- | -------------------------------- |
-| `enabled`               | boolean | `true`                          | 是否启用自然语言编程功能         |
-| `model`                 | string  | `"default"`                     | 使用的 LLM 模型（`default` 跟随全局配置）|
-| `maxSpecEntities`       | number  | `20`                            | 单次翻译最大实体数量             |
-| `autoValidate`          | boolean | `true`                          | 翻译完成后自动验证 Spec 完整性   |
-| `conventionSources`     | array   | `["package.json", ".eslintrc"]` | 项目约定分析的来源文件           |
-| `maxInputLength`        | number  | `2000`                          | 自然语言输入最大字符数           |
-| `completenessThreshold` | number  | `70`                            | Spec 完整度达标阈值（百分比）    |
-| `historyMaxEntries`     | number  | `200`                           | 翻译历史最大保存条数             |
-| `iterationMaxRounds`    | number  | `5`                             | 反馈迭代最大轮次                 |
-| `codeGenerator.temperature` | number | `0.2`                       | 代码生成温度（越低越确定性越强） |
+| 配置项                      | 类型    | 默认值                          | 说明                                      |
+| --------------------------- | ------- | ------------------------------- | ----------------------------------------- |
+| `enabled`                   | boolean | `true`                          | 是否启用自然语言编程功能                  |
+| `model`                     | string  | `"default"`                     | 使用的 LLM 模型（`default` 跟随全局配置） |
+| `maxSpecEntities`           | number  | `20`                            | 单次翻译最大实体数量                      |
+| `autoValidate`              | boolean | `true`                          | 翻译完成后自动验证 Spec 完整性            |
+| `conventionSources`         | array   | `["package.json", ".eslintrc"]` | 项目约定分析的来源文件                    |
+| `maxInputLength`            | number  | `2000`                          | 自然语言输入最大字符数                    |
+| `completenessThreshold`     | number  | `70`                            | Spec 完整度达标阈值（百分比）             |
+| `historyMaxEntries`         | number  | `200`                           | 翻译历史最大保存条数                      |
+| `iterationMaxRounds`        | number  | `5`                             | 反馈迭代最大轮次                          |
+| `codeGenerator.temperature` | number  | `0.2`                           | 代码生成温度（越低越确定性越强）          |
 
 ### 环境变量
 
-| 变量                       | 默认值  | 说明                       |
-| -------------------------- | ------- | -------------------------- |
-| `NL_PROG_MODEL`            | —       | 覆盖配置文件中的 `model`   |
-| `NL_PROG_MAX_INPUT`        | `2000`  | 最大输入长度               |
-| `NL_PROG_COMPLETENESS_THR` | `70`    | Spec 完整度阈值            |
+| 变量                       | 默认值 | 说明                     |
+| -------------------------- | ------ | ------------------------ |
+| `NL_PROG_MODEL`            | —      | 覆盖配置文件中的 `model` |
+| `NL_PROG_MAX_INPUT`        | `2000` | 最大输入长度             |
+| `NL_PROG_COMPLETENESS_THR` | `70`   | Spec 完整度阈值          |
 
 ---
 
@@ -214,36 +214,36 @@
 
 > 测试环境：Intel Core i7-12700K / 32GB RAM / Ollama qwen2:7b / Windows 10 Pro
 
-| 操作                         | 典型耗时 | P95 耗时 | 目标上限 |
-| ---------------------------- | -------- | -------- | -------- |
-| 自然语言 → Spec 翻译         | 1.8 s    | 4.2 s    | 8 s      |
-| Spec 完整性验证              | < 50 ms  | 120 ms   | 300 ms   |
-| 反馈迭代优化（单轮）         | 1.5 s    | 3.8 s    | 7 s      |
-| 项目约定分析（中型项目）     | 220 ms   | 650 ms   | 1500 ms  |
-| 代码生成（单组件，~100 行）  | 3.2 s    | 7.5 s    | 15 s     |
-| 历史记录查询（200 条）       | < 10 ms  | 25 ms    | 50 ms    |
+| 操作                        | 典型耗时 | P95 耗时 | 目标上限 |
+| --------------------------- | -------- | -------- | -------- |
+| 自然语言 → Spec 翻译        | 1.8 s    | 4.2 s    | 8 s      |
+| Spec 完整性验证             | < 50 ms  | 120 ms   | 300 ms   |
+| 反馈迭代优化（单轮）        | 1.5 s    | 3.8 s    | 7 s      |
+| 项目约定分析（中型项目）    | 220 ms   | 650 ms   | 1500 ms  |
+| 代码生成（单组件，~100 行） | 3.2 s    | 7.5 s    | 15 s     |
+| 历史记录查询（200 条）      | < 10 ms  | 25 ms    | 50 ms    |
 
 ### 翻译质量指标
 
 基于 500 条标注样本的内部测试数据：
 
-| 指标                      | 得分   |
-| ------------------------- | ------ |
-| 意图识别准确率            | 94.2%  |
-| 实体提取 F1               | 88.7%  |
-| 验收条件召回率            | 82.3%  |
-| 生成代码首次编译通过率    | 78.5%  |
-| 一轮迭代后代码通过率      | 91.2%  |
-| Spec 完整度均值           | 81.4%  |
+| 指标                   | 得分  |
+| ---------------------- | ----- |
+| 意图识别准确率         | 94.2% |
+| 实体提取 F1            | 88.7% |
+| 验收条件召回率         | 82.3% |
+| 生成代码首次编译通过率 | 78.5% |
+| 一轮迭代后代码通过率   | 91.2% |
+| Spec 完整度均值        | 81.4% |
 
 ### 资源消耗
 
-| 阶段            | CPU 占用（峰值） | 内存增量  |
-| --------------- | ---------------- | --------- |
-| 翻译请求期间    | 15–40%           | ~20 MB    |
-| 代码生成期间    | 20–55%           | ~35 MB    |
-| 项目约定分析    | 5–15%            | ~8 MB     |
-| 空闲状态        | < 1%             | ~3 MB     |
+| 阶段         | CPU 占用（峰值） | 内存增量 |
+| ------------ | ---------------- | -------- |
+| 翻译请求期间 | 15–40%           | ~20 MB   |
+| 代码生成期间 | 20–55%           | ~35 MB   |
+| 项目约定分析 | 5–15%            | ~8 MB    |
+| 空闲状态     | < 1%             | ~3 MB    |
 
 ---
 
@@ -251,24 +251,24 @@
 
 ### 测试文件
 
-| 测试文件                                                          | 测试数 | 覆盖模块                       |
-| ----------------------------------------------------------------- | ------ | ------------------------------ |
-| `tests/unit/ai-engine/cowork/spec-translator.test.js`            | 28     | 意图提取、实体识别、验收条件   |
-| `tests/unit/ai-engine/cowork/project-style-analyzer.test.js`     | 19     | 框架检测、命名规范提取         |
-| `tests/unit/ai-engine/cowork/code-generator.test.js`             | 22     | Spec 驱动代码生成、多语言框架  |
-| `tests/unit/renderer/stores/nlProgramming.test.ts`               | 14     | Pinia store 状态管理与 IPC     |
-| `tests/integration/nl-programming/translate-generate.test.js`    | 11     | 翻译→生成端到端流程            |
+| 测试文件                                                      | 测试数 | 覆盖模块                      |
+| ------------------------------------------------------------- | ------ | ----------------------------- |
+| `tests/unit/ai-engine/cowork/spec-translator.test.js`         | 28     | 意图提取、实体识别、验收条件  |
+| `tests/unit/ai-engine/cowork/project-style-analyzer.test.js`  | 19     | 框架检测、命名规范提取        |
+| `tests/unit/ai-engine/cowork/code-generator.test.js`          | 22     | Spec 驱动代码生成、多语言框架 |
+| `tests/unit/renderer/stores/nlProgramming.test.ts`            | 14     | Pinia store 状态管理与 IPC    |
+| `tests/integration/nl-programming/translate-generate.test.js` | 11     | 翻译→生成端到端流程           |
 
 **总计: 94 个测试**
 
 ### 覆盖率摘要
 
-| 模块                          | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 |
-| ----------------------------- | ---------- | ---------- | ---------- |
-| `spec-translator.js`          | 97%        | 93%        | 100%       |
-| `project-style-analyzer.js`   | 92%        | 87%        | 95%        |
-| `code-generator.js`           | 95%        | 90%        | 100%       |
-| `nlProgramming.ts` (store)    | 91%        | 86%        | 100%       |
+| 模块                        | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 |
+| --------------------------- | ---------- | ---------- | ---------- |
+| `spec-translator.js`        | 97%        | 93%        | 100%       |
+| `project-style-analyzer.js` | 92%        | 87%        | 95%        |
+| `code-generator.js`         | 95%        | 90%        | 100%       |
+| `nlProgramming.ts` (store)  | 91%        | 86%        | 100%       |
 
 ### 运行测试
 

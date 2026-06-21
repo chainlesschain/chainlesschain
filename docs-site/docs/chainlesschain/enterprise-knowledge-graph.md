@@ -352,6 +352,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_rel_type ON kg_relations(type);
 **现象**: `kg:import` 或 `kg:add-entity`（`autoExtract: true`）未抽取到任何实体。
 
 **排查步骤**:
+
 1. 确认输入文档内容为非空文本，且语言为 NER 模型支持的语言
 2. 检查 `ner.minConfidence` 配置是否设置过高（默认 0.6），过高会过滤掉低置信度实体
 3. 确认 `ner.entityTypes` 列表包含目标实体类型（如 Person、Technology）
@@ -362,6 +363,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_rel_type ON kg_relations(type);
 **现象**: `kg:query` 执行时间过长或返回超时错误。
 
 **排查步骤**:
+
 1. 检查查询是否包含未限制的全图遍历（添加 `LIMIT` 子句限制结果数量）
 2. 确认 `kg_entities` 和 `kg_relations` 表上的索引完整（`source_id`、`target_id`、`type`）
 3. 对于包含大量关系的实体，使用 `filters` 限制查询的关系类型范围
@@ -381,7 +383,11 @@ const result = await window.electron.ipcRenderer.invoke("kg:import", {
 
 // 对单个实体开启自动关系抽取
 await window.electron.ipcRenderer.invoke("kg:add-entity", {
-  entity: { name: "Vue3", type: "Technology", properties: { description: "渐进式JavaScript框架..." } },
+  entity: {
+    name: "Vue3",
+    type: "Technology",
+    properties: { description: "渐进式JavaScript框架..." },
+  },
   autoExtract: true,
 });
 ```
@@ -391,7 +397,8 @@ await window.electron.ipcRenderer.invoke("kg:add-entity", {
 ```javascript
 // 查询某技术的所有使用者
 const users = await window.electron.ipcRenderer.invoke("kg:query", {
-  cypher: "MATCH (o)-[:USES_TECHNOLOGY]->(t) WHERE t.name = 'Electron' RETURN o.name, o.type",
+  cypher:
+    "MATCH (o)-[:USES_TECHNOLOGY]->(t) WHERE t.name = 'Electron' RETURN o.name, o.type",
 });
 
 // 推理潜在关系
@@ -404,26 +411,26 @@ const inferred = await window.electron.ipcRenderer.invoke("kg:reason", {
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/enterprise/knowledge-graph.js` | 知识图谱核心引擎 |
-| `desktop-app-vue/src/main/enterprise/ner-extractor.js` | NER 命名实体抽取 |
-| `desktop-app-vue/src/main/enterprise/cypher-query-engine.js` | 类 Cypher 图查询引擎 |
-| `desktop-app-vue/src/main/enterprise/reasoning-engine.js` | 推理引擎（Rules + GNN） |
-| `desktop-app-vue/src/main/enterprise/graphrag-search.js` | GraphRAG 知识增强检索 |
-| `desktop-app-vue/src/main/enterprise/kg-ipc.js` | 知识图谱 8 个 IPC Handler |
+| 文件                                                         | 职责                      |
+| ------------------------------------------------------------ | ------------------------- |
+| `desktop-app-vue/src/main/enterprise/knowledge-graph.js`     | 知识图谱核心引擎          |
+| `desktop-app-vue/src/main/enterprise/ner-extractor.js`       | NER 命名实体抽取          |
+| `desktop-app-vue/src/main/enterprise/cypher-query-engine.js` | 类 Cypher 图查询引擎      |
+| `desktop-app-vue/src/main/enterprise/reasoning-engine.js`    | 推理引擎（Rules + GNN）   |
+| `desktop-app-vue/src/main/enterprise/graphrag-search.js`     | GraphRAG 知识增强检索     |
+| `desktop-app-vue/src/main/enterprise/kg-ipc.js`              | 知识图谱 8 个 IPC Handler |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 实体抽取结果为空 | 输入文本格式不支持或 NER 模型未加载 | 确认输入为纯文本/Markdown，检查模型状态 `kg model-status` |
-| 关系重复导致图谱膨胀 | 去重策略未启用或实体归一化不完整 | 启用 `deduplication`，执行 `kg entity-merge` |
-| 图查询超时 | 查询复杂度高或索引缺失 | 简化查询路径深度，执行 `kg index-rebuild` |
-| 知识图谱导入失败 | 数据格式不符合 schema 或文件过大 | 验证导入文件格式，分批导入大文件 |
-| 实体关系链断裂 | 中间实体被删除或合并不当 | 执行 `kg integrity-check` 修复断裂关系 |
+| 症状                 | 可能原因                            | 解决方案                                                  |
+| -------------------- | ----------------------------------- | --------------------------------------------------------- |
+| 实体抽取结果为空     | 输入文本格式不支持或 NER 模型未加载 | 确认输入为纯文本/Markdown，检查模型状态 `kg model-status` |
+| 关系重复导致图谱膨胀 | 去重策略未启用或实体归一化不完整    | 启用 `deduplication`，执行 `kg entity-merge`              |
+| 图查询超时           | 查询复杂度高或索引缺失              | 简化查询路径深度，执行 `kg index-rebuild`                 |
+| 知识图谱导入失败     | 数据格式不符合 schema 或文件过大    | 验证导入文件格式，分批导入大文件                          |
+| 实体关系链断裂       | 中间实体被删除或合并不当            | 执行 `kg integrity-check` 修复断裂关系                    |
 
 ### 常见错误修复
 
@@ -527,13 +534,13 @@ chainlesschain kg query "<query>" --max-depth 3
 
 ### 关键配置项速查
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `ner.minConfidence` | `0.6` | NER 置信度下限，越高精度越高但召回率越低 |
-| `visualization.maxNodes` | `500` | 超出此值自动截断，避免浏览器渲染卡顿 |
-| `reasoning.maxInferences` | `100` | 推理结果上限，防止规则链无限扩散 |
-| `graphrag.contextTokenLimit` | `5000` | 图谱上下文 token 预算，影响 LLM 生成质量 |
-| `reasoning.inferredRelationTTL` | `86400000` | 推理关系有效期（24 小时），到期重算 |
+| 参数                            | 默认值     | 说明                                     |
+| ------------------------------- | ---------- | ---------------------------------------- |
+| `ner.minConfidence`             | `0.6`      | NER 置信度下限，越高精度越高但召回率越低 |
+| `visualization.maxNodes`        | `500`      | 超出此值自动截断，避免浏览器渲染卡顿     |
+| `reasoning.maxInferences`       | `100`      | 推理结果上限，防止规则链无限扩散         |
+| `graphrag.contextTokenLimit`    | `5000`     | 图谱上下文 token 预算，影响 LLM 生成质量 |
+| `reasoning.inferredRelationTTL` | `86400000` | 推理关系有效期（24 小时），到期重算      |
 
 ---
 
@@ -541,24 +548,24 @@ chainlesschain kg query "<query>" --max-depth 3
 
 ### 典型场景基准（8 核 / 16 GB RAM）
 
-| 操作 | 图谱规模 | 典型耗时 | 说明 |
-| --- | --- | --- | --- |
-| NER 实体抽取 | 单文档 ≤ 10 KB | < 200 ms | 使用默认模型 |
-| 批量导入 | 100 文档 / 批 | 30–60 s | 含 NER + 去重 |
-| 类 Cypher 查询 | 1 万节点 / 5 万边 | < 50 ms | 有索引，简单模式匹配 |
-| 类 Cypher 查询 | 10 万节点 / 50 万边 | < 500 ms | 有索引，深度 ≤ 3 |
-| 可视化渲染 | 500 节点 / 2000 边 | < 100 ms | 力导向布局初始化 |
-| GNN 推理（GAT）| 1 万节点 | 1–3 s | 链接预测，GPU 可降至 < 200 ms |
-| GraphRAG 搜索 | 全图 | 1–5 s | 含图遍历 + LLM 生成 |
-| JSON 导出 | 1 万实体 / 5 万关系 | 2–5 s | 含序列化 |
+| 操作            | 图谱规模            | 典型耗时 | 说明                          |
+| --------------- | ------------------- | -------- | ----------------------------- |
+| NER 实体抽取    | 单文档 ≤ 10 KB      | < 200 ms | 使用默认模型                  |
+| 批量导入        | 100 文档 / 批       | 30–60 s  | 含 NER + 去重                 |
+| 类 Cypher 查询  | 1 万节点 / 5 万边   | < 50 ms  | 有索引，简单模式匹配          |
+| 类 Cypher 查询  | 10 万节点 / 50 万边 | < 500 ms | 有索引，深度 ≤ 3              |
+| 可视化渲染      | 500 节点 / 2000 边  | < 100 ms | 力导向布局初始化              |
+| GNN 推理（GAT） | 1 万节点            | 1–3 s    | 链接预测，GPU 可降至 < 200 ms |
+| GraphRAG 搜索   | 全图                | 1–5 s    | 含图遍历 + LLM 生成           |
+| JSON 导出       | 1 万实体 / 5 万关系 | 2–5 s    | 含序列化                      |
 
 ### 容量建议
 
-| 图谱规模 | 推荐配置 | 备注 |
-| --- | --- | --- |
-| < 10 万节点 | 4 核 / 8 GB | 默认配置即可 |
-| 10–50 万节点 | 8 核 / 16 GB | 建议启用 WAL 模式 + 增大索引缓存 |
-| > 50 万节点 | 16 核 / 32 GB + SSD | 考虑分域查询和图分片策略 |
+| 图谱规模     | 推荐配置            | 备注                             |
+| ------------ | ------------------- | -------------------------------- |
+| < 10 万节点  | 4 核 / 8 GB         | 默认配置即可                     |
+| 10–50 万节点 | 8 核 / 16 GB        | 建议启用 WAL 模式 + 增大索引缓存 |
+| > 50 万节点  | 16 核 / 32 GB + SSD | 考虑分域查询和图分片策略         |
 
 ### 性能调优建议
 
@@ -586,15 +593,15 @@ desktop-app-vue/tests/unit/enterprise/
 
 ### 测试覆盖列表
 
-| 测试文件 | 覆盖功能 | 测试数 |
-| --- | --- | --- |
-| `knowledge-graph.test.js` | 实体添加/查询/删除、关系 CRUD、去重逻辑 | 38 |
-| `ner-extractor.test.js` | 6 种实体类型抽取、置信度过滤、批处理 | 24 |
-| `cypher-query-engine.test.js` | MATCH 模式、WHERE 过滤、RETURN 投影、路径查询、聚合 | 31 |
-| `reasoning-engine.test.js` | IF-THEN 规则链、GNN 链接预测、hybrid 模式、maxInferences 限制 | 27 |
-| `graphrag-search.test.js` | local/global/hybrid 模式、上下文截断、来源追溯 | 19 |
-| `kg-ipc.test.js` | 8 个 IPC 通道参数校验、错误响应格式 | 22 |
-| **合计** | | **161** |
+| 测试文件                      | 覆盖功能                                                      | 测试数  |
+| ----------------------------- | ------------------------------------------------------------- | ------- |
+| `knowledge-graph.test.js`     | 实体添加/查询/删除、关系 CRUD、去重逻辑                       | 38      |
+| `ner-extractor.test.js`       | 6 种实体类型抽取、置信度过滤、批处理                          | 24      |
+| `cypher-query-engine.test.js` | MATCH 模式、WHERE 过滤、RETURN 投影、路径查询、聚合           | 31      |
+| `reasoning-engine.test.js`    | IF-THEN 规则链、GNN 链接预测、hybrid 模式、maxInferences 限制 | 27      |
+| `graphrag-search.test.js`     | local/global/hybrid 模式、上下文截断、来源追溯                | 19      |
+| `kg-ipc.test.js`              | 8 个 IPC 通道参数校验、错误响应格式                           | 22      |
+| **合计**                      |                                                               | **161** |
 
 ### 关键测试场景
 
@@ -610,28 +617,32 @@ desktop-app-vue/tests/unit/enterprise/
 ✅ `kg:get-stats` 返回 graphDensity 计算正确（关系数 / (节点数 × (节点数 - 1))）  
 ✅ NER `minConfidence` 低于阈值的实体标记 `pendingReview: true` 而非被丢弃  
 ✅ 唯一索引 `(name, type)` 阻止重复实体，返回现有实体 ID  
-✅ 推理关系 `inferred: 1` 与显式关系区分存储，查询时可单独过滤  
+✅ 推理关系 `inferred: 1` 与显式关系区分存储，查询时可单独过滤
 
 ---
 
 ## 安全考虑
 
 ### 数据访问控制
+
 - **实体级权限**: 敏感实体（如人物、组织内部信息）应设置访问权限标签，图查询时根据用户角色过滤不可见实体
 - **查询审计**: 所有 Cypher 查询操作记录到审计日志中，包含查询内容、执行者和返回结果数量，支持安全审计
 - **导出脱敏**: 导出知识图谱时支持按实体类型过滤（`filters.entityTypes`），避免将内部敏感实体导出到外部
 
 ### NER 与推理安全
+
 - **置信度阈值**: NER 自动抽取的实体设置最低置信度（`minConfidence: 0.6`），低于阈值的实体标记为待审核状态，防止错误实体污染图谱
 - **推理结果标注**: GNN 和规则推理产生的关系标记 `inferred: 1` 和 `inference_method`，与人工标注的显式关系区分，避免推理错误被当作事实
 - **推理数量限制**: `maxInferences` 限制单次推理最大结果数（默认 100），防止规则链爆炸导致性能问题和大量噪声关系
 
 ### GraphRAG 安全
+
 - **上下文长度控制**: `contextTokenLimit` 限制注入 LLM 的图谱上下文大小（默认 5000 tokens），防止过大上下文导致 prompt injection 风险
 - **来源可追溯**: GraphRAG 搜索结果包含 `sources` 字段，标注每个信息片段的来源实体和相关度，确保生成内容可溯源
 - **数据不出域**: 知识图谱数据存储在本地 SQLite 中，GraphRAG 查询在本地完成，图谱数据不上传到外部 LLM 服务
 
 ### 导入安全
+
 - **去重校验**: 批量导入时启用 `deduplication: true`，通过 `(name, type)` 唯一索引防止重复实体，保持图谱一致性
 - **格式验证**: 导入 RDF/JSON/CSV 文件时自动校验数据格式和必填字段，拒绝格式不合规的数据
 

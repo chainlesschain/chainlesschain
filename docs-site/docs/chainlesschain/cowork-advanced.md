@@ -42,23 +42,23 @@ Cowork 高级功能涵盖多智能体协作系统的进阶能力，包括 Instin
 const coworkConfig = {
   instinct: {
     enabled: true,
-    observationBufferSize: 50,       // 观测缓冲区上限
-    flushIntervalMs: 60_000,         // 定期刷新间隔（毫秒）
-    minConfidence: 0.3,              // 检索过滤阈值
-    maxContextInstincts: 5,          // 每次注入最多 N 条 instinct
-    confidenceDecayRate: 0.9,        // 衰减系数
-    confidenceReinforceStep: 0.05,   // 强化步长
+    observationBufferSize: 50, // 观测缓冲区上限
+    flushIntervalMs: 60_000, // 定期刷新间隔（毫秒）
+    minConfidence: 0.3, // 检索过滤阈值
+    maxContextInstincts: 5, // 每次注入最多 N 条 instinct
+    confidenceDecayRate: 0.9, // 衰减系数
+    confidenceReinforceStep: 0.05, // 强化步长
   },
   orchestrate: {
-    defaultTimeout: 300_000,         // 单代理超时（毫秒）
-    maxRetries: 2,                   // 代理失败重试次数
-    handoffMaxBytes: 8_192,          // 交接文档大小上限
+    defaultTimeout: 300_000, // 单代理超时（毫秒）
+    maxRetries: 2, // 代理失败重试次数
+    handoffMaxBytes: 8_192, // 交接文档大小上限
     templates: ["feature", "bugfix", "refactor", "security-audit"],
   },
   verificationLoop: {
     stages: ["build", "typecheck", "lint", "test", "security", "diffreview"],
-    defaultTimeout: 120_000,         // 每阶段超时（毫秒）
-    parallelStages: false,           // 阶段默认串联执行
+    defaultTimeout: 120_000, // 每阶段超时（毫秒）
+    parallelStages: false, // 阶段默认串联执行
     diffReviewPatterns: {
       consoleLogs: true,
       debuggerStatements: true,
@@ -67,16 +67,16 @@ const coworkConfig = {
     },
   },
   pipeline: {
-    maxConcurrentSteps: 8,           // 并行步骤最大并发数
-    checkpointThresholdMs: 300_000,  // 任务超 5 分钟启用增量检查点
-    metricsFlushIntervalMs: 60_000,  // 指标刷盘间隔
+    maxConcurrentSteps: 8, // 并行步骤最大并发数
+    checkpointThresholdMs: 300_000, // 任务超 5 分钟启用增量检查点
+    metricsFlushIntervalMs: 60_000, // 指标刷盘间隔
     templateDir: "builtin/pipelines",
   },
   agentPool: {
-    maxPoolSize: 10,                 // 每类型最大 Agent 数
-    heapRatioLimit: 0.85,            // 内存超过此比例自动缩池
-    healthCheckIntervalMs: 60_000,   // 健康探活周期
-    warmResetEnabled: true,          // 温复用（保留连接重置状态）
+    maxPoolSize: 10, // 每类型最大 Agent 数
+    heapRatioLimit: 0.85, // 内存超过此比例自动缩池
+    healthCheckIntervalMs: 60_000, // 健康探活周期
+    warmResetEnabled: true, // 温复用（保留连接重置状态）
   },
   gitHooks: {
     preCommitEnabled: true,
@@ -89,22 +89,22 @@ const coworkConfig = {
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 技能加载（90 技能，懒加载） | ≤ 60ms | ~45ms | ✅ 达标 |
-| 技能加载（90 技能，全量） | — | ~360ms | ⚠️ 已弃用 |
-| Instinct 观测缓冲区刷新 | ≤ 100ms | ~20ms | ✅ 达标 |
-| Instinct 上下文注入（5 条） | ≤ 50ms | ~12ms | ✅ 达标 |
-| Agent 温复用启动 | ≤ 300ms | ~200ms | ✅ 达标 |
-| Agent 冷启动 | — | ~2000ms | ℹ️ 基准 |
-| 增量检查点写入 | ≤ 2-10KB/次 | ~3KB/次 | ✅ 达标 |
-| 全量检查点写入 | — | ~50-100KB/次 | ℹ️ 基准 |
-| Pipeline 并行步骤（8 并发） | ≤ 500ms 调度开销 | ~120ms | ✅ 达标 |
-| Verification Loop（6 阶段） | ≤ 60s 全流程 | ~29s | ✅ 达标 |
-| Pre-commit Hook 总耗时 | ≤ 60s | ~45s | ✅ 达标（原 2-5 分钟） |
-| Orchestrate 代理交接延迟 | ≤ 200ms | ~80ms | ✅ 达标 |
-| Skill Metrics 刷盘 | 60s 周期 | 60s | ✅ 达标 |
-| UnifiedToolRegistry 刷新 | ≤ 100ms | ~30ms | ✅ 达标 |
+| 操作                        | 目标             | 实际         | 状态                   |
+| --------------------------- | ---------------- | ------------ | ---------------------- |
+| 技能加载（90 技能，懒加载） | ≤ 60ms           | ~45ms        | ✅ 达标                |
+| 技能加载（90 技能，全量）   | —                | ~360ms       | ⚠️ 已弃用              |
+| Instinct 观测缓冲区刷新     | ≤ 100ms          | ~20ms        | ✅ 达标                |
+| Instinct 上下文注入（5 条） | ≤ 50ms           | ~12ms        | ✅ 达标                |
+| Agent 温复用启动            | ≤ 300ms          | ~200ms       | ✅ 达标                |
+| Agent 冷启动                | —                | ~2000ms      | ℹ️ 基准                |
+| 增量检查点写入              | ≤ 2-10KB/次      | ~3KB/次      | ✅ 达标                |
+| 全量检查点写入              | —                | ~50-100KB/次 | ℹ️ 基准                |
+| Pipeline 并行步骤（8 并发） | ≤ 500ms 调度开销 | ~120ms       | ✅ 达标                |
+| Verification Loop（6 阶段） | ≤ 60s 全流程     | ~29s         | ✅ 达标                |
+| Pre-commit Hook 总耗时      | ≤ 60s            | ~45s         | ✅ 达标（原 2-5 分钟） |
+| Orchestrate 代理交接延迟    | ≤ 200ms          | ~80ms        | ✅ 达标                |
+| Skill Metrics 刷盘          | 60s 周期         | 60s          | ✅ 达标                |
+| UnifiedToolRegistry 刷新    | ≤ 100ms          | ~30ms        | ✅ 达标                |
 
 ## 测试覆盖率
 
@@ -767,6 +767,7 @@ chainlesschain cowork analyze src/ --type decisions
 **现象**: Orchestrate 工作流中某个代理步骤长时间无响应。
 
 **排查步骤**:
+
 1. 检查 LLM 服务是否可用，Agent 执行依赖 LLM 生成响应
 2. 确认 AgentCoordinator 是否已正确初始化（不可用时回退为模拟模式）
 3. 查看 Agent Pool 状态（`agentPool.getPoolStats()`），确认目标类型池有空闲 Agent
@@ -777,6 +778,7 @@ chainlesschain cowork analyze src/ --type decisions
 **现象**: 多个代理对同一任务给出矛盾的分析结果。
 
 **排查步骤**:
+
 1. 这是多 Agent 辩论模式的正常现象，最终裁决会综合各方意见
 2. 检查各 Agent 的角色配置是否正确，避免角色重叠导致冗余评估
 3. 查看 Orchestrate 工作流的交接文档（handoff），确认上下文正确传递
@@ -786,13 +788,13 @@ chainlesschain cowork analyze src/ --type decisions
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
+| 症状                        | 可能原因                          | 解决方案                                  |
+| --------------------------- | --------------------------------- | ----------------------------------------- |
 | 多 Agent 辩论超时未产出结论 | 参与 Agent 数量过多或共识阈值过高 | 减少参与者数量，降低 `consensusThreshold` |
-| 知识图谱构建缓慢 | 实体数量大或关系抽取模型负载高 | 启用增量构建，分批处理实体 |
-| 决策冲突多个 Agent 结论矛盾 | 角色分配不明确或评价标准不统一 | 明确角色 prompt，设置统一评分标准 |
-| 辩论轮次过多收敛慢 | 初始立场差异过大或调停策略不佳 | 限制最大轮次 `maxRounds`，启用调停 Agent |
-| A/B 对比结果不可复现 | 随机种子未固定或上下文差异 | 设置 `seed` 参数，确保输入上下文一致 |
+| 知识图谱构建缓慢            | 实体数量大或关系抽取模型负载高    | 启用增量构建，分批处理实体                |
+| 决策冲突多个 Agent 结论矛盾 | 角色分配不明确或评价标准不统一    | 明确角色 prompt，设置统一评分标准         |
+| 辩论轮次过多收敛慢          | 初始立场差异过大或调停策略不佳    | 限制最大轮次 `maxRounds`，启用调停 Agent  |
+| A/B 对比结果不可复现        | 随机种子未固定或上下文差异        | 设置 `seed` 参数，确保输入上下文一致      |
 
 ### 常见错误修复
 
@@ -838,17 +840,17 @@ chainlesschain cowork mediate --session-id <id>
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/llm/instinct-manager.js` | Instinct 学习系统核心（~1,100 行） |
-| `desktop-app-vue/src/main/llm/instinct-ipc.js` | Instinct 11 个 IPC Handler |
-| `desktop-app-vue/src/main/llm/context-engineering.js` | Instinct 上下文注入集成 |
-| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js` | Orchestrate 编排引擎（~507 行） |
-| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | 验证流水线引擎（~547 行） |
-| `desktop-app-vue/src/main/ai-engine/cowork/skill-pipeline-engine.js` | 流水线引擎（5 步骤类型） |
-| `desktop-app-vue/src/main/ai-engine/cowork/skill-metrics-collector.js` | 技能指标采集器 |
-| `desktop-app-vue/src/main/ai-engine/cowork/git-hook-runner.js` | Git Hooks 集成 |
-| `desktop-app-vue/src/main/ai-engine/cowork/workflow-designer-engine.js` | 可视化工作流引擎 |
+| 文件                                                                                    | 职责                               |
+| --------------------------------------------------------------------------------------- | ---------------------------------- |
+| `desktop-app-vue/src/main/llm/instinct-manager.js`                                      | Instinct 学习系统核心（~1,100 行） |
+| `desktop-app-vue/src/main/llm/instinct-ipc.js`                                          | Instinct 11 个 IPC Handler         |
+| `desktop-app-vue/src/main/llm/context-engineering.js`                                   | Instinct 上下文注入集成            |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`       | Orchestrate 编排引擎（~507 行）    |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | 验证流水线引擎（~547 行）          |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-pipeline-engine.js`                    | 流水线引擎（5 步骤类型）           |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-metrics-collector.js`                  | 技能指标采集器                     |
+| `desktop-app-vue/src/main/ai-engine/cowork/git-hook-runner.js`                          | Git Hooks 集成                     |
+| `desktop-app-vue/src/main/ai-engine/cowork/workflow-designer-engine.js`                 | 可视化工作流引擎                   |
 
 ## 相关文档
 

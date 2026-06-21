@@ -197,26 +197,26 @@ chainlesschain dbevo stats --json
 
 ## 配置参考
 
-| 配置项                     | 含义                     | 默认       |
-| -------------------------- | ------------------------ | ---------- |
-| `slow_query_threshold_ms`  | 慢查询阈值               | 100 ms     |
-| `min_count_for_suggestion` | 生成建议的最少命中次数   | 3          |
-| 迁移状态                   | success / failed / rolled_back |        |
-| 迁移方向                   | up / down                |            |
-| 建议类型                   | create_index / composite_index / covering_index | |
+| 配置项                     | 含义                                            | 默认   |
+| -------------------------- | ----------------------------------------------- | ------ |
+| `slow_query_threshold_ms`  | 慢查询阈值                                      | 100 ms |
+| `min_count_for_suggestion` | 生成建议的最少命中次数                          | 3      |
+| 迁移状态                   | success / failed / rolled_back                  |        |
+| 迁移方向                   | up / down                                       |        |
+| 建议类型                   | create_index / composite_index / covering_index |        |
 
 调整阈值：`chainlesschain dbevo slow-threshold 50`。
 
 ## 性能指标
 
-| 操作                          | 典型耗时         |
-| ----------------------------- | ---------------- |
-| register（含 checksum）       | < 10 ms          |
-| up / down 单个版本            | 依赖 SQL 复杂度  |
-| query-log 写入                | < 2 ms           |
-| analyze（1000 条慢查询）      | < 100 ms         |
-| apply (`CREATE INDEX`)        | 依赖表大小       |
-| history 查询（默认 limit 20） | < 5 ms           |
+| 操作                          | 典型耗时        |
+| ----------------------------- | --------------- |
+| register（含 checksum）       | < 10 ms         |
+| up / down 单个版本            | 依赖 SQL 复杂度 |
+| query-log 写入                | < 2 ms          |
+| analyze（1000 条慢查询）      | < 100 ms        |
+| apply (`CREATE INDEX`)        | 依赖表大小      |
+| history 查询（默认 limit 20） | < 5 ms          |
 
 ## 测试覆盖率
 

@@ -5,9 +5,11 @@
 > ChainlessChain Android 客户端 — Jetpack Compose + Kotlin 原生应用。三层定位：**L1 StrongBox 硬件 DID 钱包 / L2 移动现场捕获 / L3 REMOTE 远程遥控桌面 141 skill**。桌面与移动同版本同步发布（`v5.0.3.X`），每个 release tag 同时挂桌面 8 包 + Android 4 包。
 
 ::: tip 适用读者
+
 - 第一次安装手机端、想搞清楚怎么用的用户
 - 桌面 ↔ Android 配对失败、远程终端黑屏、远程操控掉线时排错的用户
 - 想了解架构、配置、性能指标、安全模型的开发者
+
 :::
 
 ## 概述
@@ -16,11 +18,11 @@ ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、
 
 具体落到三层：
 
-| 层 | 名称 | 干什么 | 桌面替代不了的原因 |
-|---|---|---|---|
-| **L1** | StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥 | Android Keystore + StrongBox HSM 是芯片级隔离，桌面 U-Key 需插着才能用 |
-| **L2** | 移动现场捕获 | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没有麦克风触手可及、没有摄像头、没有 GPS、不能接 Android 系统分享意图 |
-| **L3** | REMOTE 遥控器 | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
+| 层     | 名称               | 干什么                                  | 桌面替代不了的原因                                                        |
+| ------ | ------------------ | --------------------------------------- | ------------------------------------------------------------------------- |
+| **L1** | StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥              | Android Keystore + StrongBox HSM 是芯片级隔离，桌面 U-Key 需插着才能用    |
+| **L2** | 移动现场捕获       | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没有麦克风触手可及、没有摄像头、没有 GPS、不能接 Android 系统分享意图 |
+| **L3** | REMOTE 遥控器      | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑                                |
 
 ## 核心特性
 
@@ -53,12 +55,12 @@ ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、
 
 首页 ChatInputBar + 本机数据 tab + 本机提问 tab **三屏统一 selector**：
 
-| 路由 | 何时用 | 隐私 |
-|---|---|---|
-| **LOCAL_DEVICE** (端侧) | 无网 / 飞行模式 / 敏感问题 | 模型在 APK 内，零外传 — MediaPipe tasks-genai |
-| **CLOUD_ANDROID** (云) | 联网 + 复杂推理 | 走 Android 本机配置的 9 家云 LLM（DeepSeek/Doubao/Kimi/通义...）|
-| **PC_LOCAL** (桌面) | 配对桌面在 LAN | 走桌面本机 Ollama，跨设备零外传 |
-| **LAN_OLLAMA** (局域网) | 自托管 Ollama 服务 | 填 baseUrl，持久到 EncryptedSharedPreferences |
+| 路由                    | 何时用                     | 隐私                                                             |
+| ----------------------- | -------------------------- | ---------------------------------------------------------------- |
+| **LOCAL_DEVICE** (端侧) | 无网 / 飞行模式 / 敏感问题 | 模型在 APK 内，零外传 — MediaPipe tasks-genai                    |
+| **CLOUD_ANDROID** (云)  | 联网 + 复杂推理            | 走 Android 本机配置的 9 家云 LLM（DeepSeek/Doubao/Kimi/通义...） |
+| **PC_LOCAL** (桌面)     | 配对桌面在 LAN             | 走桌面本机 Ollama，跨设备零外传                                  |
+| **LAN_OLLAMA** (局域网) | 自托管 Ollama 服务         | 填 baseUrl，持久到 EncryptedSharedPreferences                    |
 
 设置 → AI 后端 配 LAN baseUrl；首页对话框直接选目标。**默认 CLOUD_ANDROID**（PC_LOCAL 配对后可自动切）；MediaPipe 端侧降级为离线 fallback 保留不主推（端侧模型小，回答质量明显弱于云）。
 
@@ -77,15 +79,15 @@ PersonalDataHub 6 tab：① 概览 / ② 同步 / ③ 提问 / ④ 本机数据 
 
 ### L1：StrongBox DID 钱包
 
-| 特性 | 说明 |
-|---|---|
-| 硬件级隔离 | Android Keystore + StrongBox HSM（Titan M / 高通 SPU / 三星 eFuse）芯片层保管私钥 |
-| 私钥永不导出 | 物理芯片设计上不允许导出 |
-| BIP-39 助记词 | 12 / 24 词标准，密语可选 |
-| 生物识别解锁 | 指纹 / 面容（强制 biometric tier，FAR ≤ 1/50,000）|
-| 多 DID 切换 | 工作 / 个人 / 匿名 三身份切换 |
-| 旧明文自动迁移 | 升级时自动把 v0.x 明文密钥迁到 StrongBox |
-| W3C DID v2 兼容 | did:key / did:web / did:ion 三种解析器 |
+| 特性            | 说明                                                                              |
+| --------------- | --------------------------------------------------------------------------------- |
+| 硬件级隔离      | Android Keystore + StrongBox HSM（Titan M / 高通 SPU / 三星 eFuse）芯片层保管私钥 |
+| 私钥永不导出    | 物理芯片设计上不允许导出                                                          |
+| BIP-39 助记词   | 12 / 24 词标准，密语可选                                                          |
+| 生物识别解锁    | 指纹 / 面容（强制 biometric tier，FAR ≤ 1/50,000）                                |
+| 多 DID 切换     | 工作 / 个人 / 匿名 三身份切换                                                     |
+| 旧明文自动迁移  | 升级时自动把 v0.x 明文密钥迁到 StrongBox                                          |
+| W3C DID v2 兼容 | did:key / did:web / did:ion 三种解析器                                            |
 
 ::: warning 助记词丢失 = 钱包丢失
 助记词是唯一找回途径。团队没有任何方式恢复（硬件钱包设计原则）。
@@ -95,40 +97,40 @@ PersonalDataHub 6 tab：① 概览 / ② 同步 / ③ 提问 / ④ 本机数据 
 
 桌面没有的：随身拍 / 随手录 / 随地标 / 系统分享接入 / 推送提醒。130 单测覆盖。
 
-| 模块 | 链路 | 入口 | 真机状态 |
-|---|---|---|---|
-| **VoiceMode** | 麦克风 → SeedASR → LLM → TTS | 底部"语音" / Quick Tile | 待真机 E2E |
-| **CameraOCR** | 相机 → 豆包视觉 OCR → 笔记 | 底部"相机" / 长按 home | 待真机 E2E |
-| **LocationTagger** | GPS 前台服务 → 笔记打标 | 设置 → 启用位置 | 已落地 `be6cb4974` |
-| **ShareReceiver** | Android 系统分享意图 → 5 种 SharePayload | 任意 App 点"分享" | 已落地 `be6cb4974` |
-| **PushNotifier** | 本地 4 类通知 + FCM 骨架 | 系统通知设置 | 待 google-services.json |
+| 模块               | 链路                                     | 入口                    | 真机状态                |
+| ------------------ | ---------------------------------------- | ----------------------- | ----------------------- |
+| **VoiceMode**      | 麦克风 → SeedASR → LLM → TTS             | 底部"语音" / Quick Tile | 待真机 E2E              |
+| **CameraOCR**      | 相机 → 豆包视觉 OCR → 笔记               | 底部"相机" / 长按 home  | 待真机 E2E              |
+| **LocationTagger** | GPS 前台服务 → 笔记打标                  | 设置 → 启用位置         | 已落地 `be6cb4974`      |
+| **ShareReceiver**  | Android 系统分享意图 → 5 种 SharePayload | 任意 App 点"分享"       | 已落地 `be6cb4974`      |
+| **PushNotifier**   | 本地 4 类通知 + FCM 骨架                 | 系统通知设置            | 待 google-services.json |
 
 ### L3：REMOTE 远程遥控桌面（23 命令）
 
 method-level 双粒度白名单（file × method）。每个 method 有：`namespace` / `action` / `riskLevel`（low/medium/high）/ `riskOverride` / `aliases`。
 
-| Namespace | 示例 method | 用途 |
-|---|---|---|
-| `AI.*` | summarize / translate / askChain | 调桌面 LLM |
-| `Application.*` | listApps / focusApp / launchApp | 应用切换 |
-| `Browser.*` | newTab / closeTab / navigate | 浏览器控制 |
-| `Clipboard.*` | get / set / history | 跨设备剪贴板 |
-| `Desktop.*` | screenshot / lockScreen | 桌面查询 |
-| `Extension.*` | invokeSkill / listSkills | 调任意 141 skill |
-| `File.*` | read / write / search | 文件操作（审批）|
-| `Input.*` | type / click / press | 输入注入 |
-| `Knowledge.*` | search / createNote / annotate | 知识库 |
-| `Security.*` | sign / verify | 签名（生物识别）|
-| `System.*` | shutdown / restart | 系统（审批）|
-| `Workflow.*` | run / status | 工作流 |
+| Namespace       | 示例 method                      | 用途             |
+| --------------- | -------------------------------- | ---------------- |
+| `AI.*`          | summarize / translate / askChain | 调桌面 LLM       |
+| `Application.*` | listApps / focusApp / launchApp  | 应用切换         |
+| `Browser.*`     | newTab / closeTab / navigate     | 浏览器控制       |
+| `Clipboard.*`   | get / set / history              | 跨设备剪贴板     |
+| `Desktop.*`     | screenshot / lockScreen          | 桌面查询         |
+| `Extension.*`   | invokeSkill / listSkills         | 调任意 141 skill |
+| `File.*`        | read / write / search            | 文件操作（审批） |
+| `Input.*`       | type / click / press             | 输入注入         |
+| `Knowledge.*`   | search / createNote / annotate   | 知识库           |
+| `Security.*`    | sign / verify                    | 签名（生物识别） |
+| `System.*`      | shutdown / restart               | 系统（审批）     |
+| `Workflow.*`    | run / status                     | 工作流           |
 
 ApprovalUI 4 类审批：
 
-| 类别 | 用途 | 审批方式 |
-|---|---|---|
-| Sign | DID 签名 / 跨链交易 | 生物识别 + payload 摘要 |
-| Cowork | 多智能体调用本机 | 一次性 / 永久信任 |
-| Marketplace | 安装第三方 skill | 权限清单 + 来源验证 |
+| 类别           | 用途                       | 审批方式                 |
+| -------------- | -------------------------- | ------------------------ |
+| Sign           | DID 签名 / 跨链交易        | 生物识别 + payload 摘要  |
+| Cowork         | 多智能体调用本机           | 一次性 / 永久信任        |
+| Marketplace    | 安装第三方 skill           | 权限清单 + 来源验证      |
 | SystemCritical | 关机 / 删文件 / 改系统设置 | 二次确认 + 输入 yes 文本 |
 
 ## 系统架构
@@ -198,12 +200,12 @@ ApprovalUI 4 类审批：
 
 [官方下载页](https://www.chainlesschain.com/mobile/#download)。每个桌面 release tag（如 `v5.0.3.54`）同时挂 4 个 Android 包：
 
-| 包名 | 适用 | 大小（约）|
-|---|---|---|
-| `app-arm64-v8a-release.apk` | 现代主流 Android 手机（2017 后）| 82 MB |
-| `app-armeabi-v7a-release.apk` | 老 ARM 32 位设备 | 59 MB |
-| `app-universal-release.apk` | 不确定架构 / 多机切换分发 | 124 MB |
-| `app-release.aab` | Google Play 上架用（普通用户不下）| 71 MB |
+| 包名                          | 适用                               | 大小（约） |
+| ----------------------------- | ---------------------------------- | ---------- |
+| `app-arm64-v8a-release.apk`   | 现代主流 Android 手机（2017 后）   | 82 MB      |
+| `app-armeabi-v7a-release.apk` | 老 ARM 32 位设备                   | 59 MB      |
+| `app-universal-release.apk`   | 不确定架构 / 多机切换分发          | 124 MB     |
+| `app-release.aab`             | Google Play 上架用（普通用户不下） | 71 MB      |
 
 ### APK 安装步骤
 
@@ -228,12 +230,12 @@ ApprovalUI 4 类审批：
 
 ### 为什么走"手机扫桌面"而不是反过来
 
-| 维度 | Flow B（手机扫桌面）✅ 默认 | Flow A（桌面扫手机）|
-|---|---|---|
-| 识别率 | 手机摄像头扫大屏，10ms 出码 | webcam 扫小手机屏，需对焦 + 多次尝试 |
-| 用户心智 | 微信 / 支付宝 / Discord 同套路 | 反直觉 |
-| webcam 依赖 | 不需要 | 桌面必须有 webcam |
-| Signal e2ee | 不需要 | 需要协议握手 |
+| 维度        | Flow B（手机扫桌面）✅ 默认    | Flow A（桌面扫手机）                 |
+| ----------- | ------------------------------ | ------------------------------------ |
+| 识别率      | 手机摄像头扫大屏，10ms 出码    | webcam 扫小手机屏，需对焦 + 多次尝试 |
+| 用户心智    | 微信 / 支付宝 / Discord 同套路 | 反直觉                               |
+| webcam 依赖 | 不需要                         | 桌面必须有 webcam                    |
+| Signal e2ee | 不需要                         | 需要协议握手                         |
 
 Flow A 保留为高级路径。
 
@@ -283,14 +285,14 @@ Flow A 保留为高级路径。
 
 v5.0.3.53 协议链路是通的，但真机 E2E 压出 6 个独立 root cause bug。v5.0.3.54 一次性扫净：
 
-| # | bug | 真因 | 修法 | 提交 |
-|---|---|---|---|---|
-| 1 | WebRTC echo loop | `sendOffer` 误把 target peerId 写进 self `currentPeerId` → WS 重连 auto-re-register 把 mobile 注册成桌面 → 消息路由回自己 | `currentPeerId` 只在 `register()` 写 | `b50552574` |
-| 2 | 中继 from 字段未注入 | signaling-relay handleMessage 只校验 to 不补 from → desktop 回包 `to=undefined` 被 reject 死循环 | `msg.from = ws._peerId` | `e65c278ae` |
-| 3 | iceServers 24h TTL 过期跨 NAT 全断 | 一次性 push 后没刷新机制 | `maybeRefreshIceForMobile` 12h 节流 LAN + relay 双发 | (内嵌) |
-| 4 | WebView 0 高死锁（"黑屏"真因）| AndroidView 默认 WRAP_CONTENT + HTML body height:100% → 父级 0 高 → xterm.fit() 返回 cols=49 rows=1 → 桌面 PTY 被 resize 成 1 行 | `LayoutParams MATCH_PARENT` + ResizeObserver + DOM `clientWidth/Height` guard | `8d3c95df6` |
-| 5 | cc / claude 命令找不到 | PtyManager `pty.spawn` 无 args → bash/wsl 不走 login mode → `~/.bashrc` 不加载 → 用户全局 CLI 找不到 | 返回 `{cmd, args}` 元组，bash 加 `-l`，shell=bash 优先 probe `Program Files/Git/bin/bash.exe` 避免 WSL 拦截 | `f54a6fcd0` |
-| 6 | TerminalListViewModel closure shadow | `onSuccess` 闭包参数 `it`（CreatedSession）被内层 `_state.update` 的 `it`（state）shadow → `lastCreatedId` 永远不更新 | 改用 named param `created.sessionId` + LaunchedEffect 自动 navigate | (内嵌) |
+| #   | bug                                  | 真因                                                                                                                             | 修法                                                                                                        | 提交        |
+| --- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------- |
+| 1   | WebRTC echo loop                     | `sendOffer` 误把 target peerId 写进 self `currentPeerId` → WS 重连 auto-re-register 把 mobile 注册成桌面 → 消息路由回自己        | `currentPeerId` 只在 `register()` 写                                                                        | `b50552574` |
+| 2   | 中继 from 字段未注入                 | signaling-relay handleMessage 只校验 to 不补 from → desktop 回包 `to=undefined` 被 reject 死循环                                 | `msg.from = ws._peerId`                                                                                     | `e65c278ae` |
+| 3   | iceServers 24h TTL 过期跨 NAT 全断   | 一次性 push 后没刷新机制                                                                                                         | `maybeRefreshIceForMobile` 12h 节流 LAN + relay 双发                                                        | (内嵌)      |
+| 4   | WebView 0 高死锁（"黑屏"真因）       | AndroidView 默认 WRAP_CONTENT + HTML body height:100% → 父级 0 高 → xterm.fit() 返回 cols=49 rows=1 → 桌面 PTY 被 resize 成 1 行 | `LayoutParams MATCH_PARENT` + ResizeObserver + DOM `clientWidth/Height` guard                               | `8d3c95df6` |
+| 5   | cc / claude 命令找不到               | PtyManager `pty.spawn` 无 args → bash/wsl 不走 login mode → `~/.bashrc` 不加载 → 用户全局 CLI 找不到                             | 返回 `{cmd, args}` 元组，bash 加 `-l`，shell=bash 优先 probe `Program Files/Git/bin/bash.exe` 避免 WSL 拦截 | `f54a6fcd0` |
+| 6   | TerminalListViewModel closure shadow | `onSuccess` 闭包参数 `it`（CreatedSession）被内层 `_state.update` 的 `it`（state）shadow → `lastCreatedId` 永远不更新            | 改用 named param `created.sessionId` + LaunchedEffect 自动 navigate                                         | (内嵌)      |
 
 ## 桌面 ↔ Android 双向同步（Phase 3d v1.3）
 
@@ -298,23 +300,23 @@ v5.0.3.53 协议链路是通的，但真机 E2E 压出 6 个独立 root cause bu
 
 5 类（+ tombstones）：
 
-| 类型 | 内容 | 双向 / 单向 |
-|---|---|---|
-| Note | 笔记（标题 / Markdown 正文 / tags）| 双向 |
-| Conversation | LLM 对话记录 | 双向 |
-| DID | DID 文档 / 公钥 | 双向（私钥不走线）|
-| Community | 加入的社区元数据 | 双向 |
-| Channel | 频道订阅 + 已读位置 | 双向 |
-| Tombstones | 删除标记 | 双向 |
+| 类型         | 内容                                | 双向 / 单向        |
+| ------------ | ----------------------------------- | ------------------ |
+| Note         | 笔记（标题 / Markdown 正文 / tags） | 双向               |
+| Conversation | LLM 对话记录                        | 双向               |
+| DID          | DID 文档 / 公钥                     | 双向（私钥不走线） |
+| Community    | 加入的社区元数据                    | 双向               |
+| Channel      | 频道订阅 + 已读位置                 | 双向               |
+| Tombstones   | 删除标记                            | 双向               |
 
 ### 同步触发时机
 
-| 时机 | 行为 |
-|---|---|
-| App 启动 + 进入"已配对"卡片 | 主动 pull |
-| 桌面端新写入 | 桌面主动 push |
-| 手动 | 设置 → 同步 → 立即同步 |
-| 定时 | 30 分钟后台 worker，仅 wifi |
+| 时机                        | 行为                        |
+| --------------------------- | --------------------------- |
+| App 启动 + 进入"已配对"卡片 | 主动 pull                   |
+| 桌面端新写入                | 桌面主动 push               |
+| 手动                        | 设置 → 同步 → 立即同步      |
+| 定时                        | 30 分钟后台 worker，仅 wifi |
 
 ### 安全模型
 
@@ -325,11 +327,11 @@ v5.0.3.53 协议链路是通的，但真机 E2E 压出 6 个独立 root cause bu
 
 ## 远程操控架构（Plan A / B / C 三段位）
 
-| Plan | 路径 | 适用 | 延迟 | 吞吐 |
-|---|---|---|---|---|
-| **Plan C** 信令转发 | signaling-relay JSON-RPC 2.0 转发 | 点按钮发单条命令、列设备、查状态 | 100-400ms | 低 |
-| **Plan A** WebRTC DC | 手机 ↔ 桌面 P2P DC 直连 | 远程终端 stdout 流、长命令 | 30-80ms LAN / 50-200ms TURN | 高 |
-| **Plan B** STUN+TURN | NAT 穿透回落 | 双 NAT / 蜂窝运营商 / 防火墙重 | 50-200ms | 中 |
+| Plan                 | 路径                              | 适用                             | 延迟                        | 吞吐 |
+| -------------------- | --------------------------------- | -------------------------------- | --------------------------- | ---- |
+| **Plan C** 信令转发  | signaling-relay JSON-RPC 2.0 转发 | 点按钮发单条命令、列设备、查状态 | 100-400ms                   | 低   |
+| **Plan A** WebRTC DC | 手机 ↔ 桌面 P2P DC 直连           | 远程终端 stdout 流、长命令       | 30-80ms LAN / 50-200ms TURN | 高   |
+| **Plan B** STUN+TURN | NAT 穿透回落                      | 双 NAT / 蜂窝运营商 / 防火墙重   | 50-200ms                    | 中   |
 
 ### Plan A.1 升级动机（v5.0.3.53）
 
@@ -339,23 +341,23 @@ v5.0.3.52 Plan A 真机首测暴露**架构性问题**：4 跳信令链路（手
 
 #### Phase 1-5 拆分
 
-| Phase | 内容 |
-|---|---|
-| Phase 1 Trap 1 修 | `SignalClient.forwardedMessages` 改 multi-subscribe SharedFlow；`WebRTCClient.dataChannelReady StateFlow`（READY 才真意味 DC OPEN）|
-| Phase 2 DC fast path | `SignalingRpcClient.invoke` 内置 transport selector；两路 listener 同 `requestId` 同 `CompletableDeferred`|
-| Phase 3 触发 + UI | `TerminalListViewModel` 进屏异步触发 connect；chip 显示 "P2P 直连"（绿）vs "中继路径"（黄）|
-| Phase 4 双向 LRU 去重 | Android 256-LRU + 桌面 128-LRU / 30s-TTL |
-| Phase 5 零新代码 | DC 失效 fallback / 自动重建 / 恢复切回 都是 Phase 2 既有 wiring 副产物 |
+| Phase                 | 内容                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1 Trap 1 修     | `SignalClient.forwardedMessages` 改 multi-subscribe SharedFlow；`WebRTCClient.dataChannelReady StateFlow`（READY 才真意味 DC OPEN） |
+| Phase 2 DC fast path  | `SignalingRpcClient.invoke` 内置 transport selector；两路 listener 同 `requestId` 同 `CompletableDeferred`                          |
+| Phase 3 触发 + UI     | `TerminalListViewModel` 进屏异步触发 connect；chip 显示 "P2P 直连"（绿）vs "中继路径"（黄）                                         |
+| Phase 4 双向 LRU 去重 | Android 256-LRU + 桌面 128-LRU / 30s-TTL                                                                                            |
+| Phase 5 零新代码      | DC 失效 fallback / 自动重建 / 恢复切回 都是 Phase 2 既有 wiring 副产物                                                              |
 
 #### 5 场景验收矩阵
 
-| 场景 | 网络 | 结果 |
-|---|---|---|
-| 同 LAN | adb reverse 或同 wifi | DC 直连，RTT 30-80ms |
-| 蜂窝 4G/5G | 手机 4G 桌面办公网 | DC 不通则 TURN，RTT 50-200ms |
-| 双 NAT | 家用宽带 ↔ 公司办公网 | 必经 TURN，RTT 80-300ms |
-| DC 强制失效 | adb 屏蔽 UDP | 自动 fallback signaling，RTT 200-500ms |
-| DC 恢复 | 解封 UDP | 自动切回 DC（5-15s）|
+| 场景        | 网络                  | 结果                                   |
+| ----------- | --------------------- | -------------------------------------- |
+| 同 LAN      | adb reverse 或同 wifi | DC 直连，RTT 30-80ms                   |
+| 蜂窝 4G/5G  | 手机 4G 桌面办公网    | DC 不通则 TURN，RTT 50-200ms           |
+| 双 NAT      | 家用宽带 ↔ 公司办公网 | 必经 TURN，RTT 80-300ms                |
+| DC 强制失效 | adb 屏蔽 UDP          | 自动 fallback signaling，RTT 200-500ms |
+| DC 恢复     | 解封 UDP              | 自动切回 DC（5-15s）                   |
 
 ### TURN 部署
 
@@ -376,11 +378,11 @@ v5.0.3.52 Plan A 真机首测暴露**架构性问题**：4 跳信令链路（手
 
 ### SocialScreen 三 tab 升级
 
-| Tab | 之前 | 之后 |
-|---|---|---|
-| Friends | 固定字串 | FriendListScreen |
-| Timeline | 固定字串 | TimelineScreen（myDid 走 DIDViewModel）|
-| Notifications | 固定字串 | NotificationCenterScreen（筛选 / 批量已读 / 清理菜单）|
+| Tab           | 之前     | 之后                                                   |
+| ------------- | -------- | ------------------------------------------------------ |
+| Friends       | 固定字串 | FriendListScreen                                       |
+| Timeline      | 固定字串 | TimelineScreen（myDid 走 DIDViewModel）                |
+| Notifications | 固定字串 | NotificationCenterScreen（筛选 / 批量已读 / 清理菜单） |
 
 ## 配置参考
 
@@ -474,46 +476,46 @@ val aiSummarize = RemoteSkillMetadata(
 
 ### 远程操控延迟
 
-| 路径 | RTT p50 | RTT p99 | 稳定性 |
-|---|---|---|---|
-| Plan A（v5.0.3.52，纯 signaling）| 200-500ms | 1.5-30s timeout | 20s-2min 间歇断 |
-| **Plan A.1（v5.0.3.53+，DC 直连）LAN** | **30-80ms** | **200-800ms** | **数小时持续** |
-| Plan A.1 TURN（蜂窝 / 双 NAT）| 50-200ms | 800ms-2s | 数小时持续 |
-| Plan B 强制 TURN（DC 失效）| 200-500ms | 1-3s | 数小时持续 |
-| Plan C 信令转发 | 100-400ms | 1-5s | 数小时持续 |
+| 路径                                   | RTT p50     | RTT p99         | 稳定性          |
+| -------------------------------------- | ----------- | --------------- | --------------- |
+| Plan A（v5.0.3.52，纯 signaling）      | 200-500ms   | 1.5-30s timeout | 20s-2min 间歇断 |
+| **Plan A.1（v5.0.3.53+，DC 直连）LAN** | **30-80ms** | **200-800ms**   | **数小时持续**  |
+| Plan A.1 TURN（蜂窝 / 双 NAT）         | 50-200ms    | 800ms-2s        | 数小时持续      |
+| Plan B 强制 TURN（DC 失效）            | 200-500ms   | 1-3s            | 数小时持续      |
+| Plan C 信令转发                        | 100-400ms   | 1-5s            | 数小时持续      |
 
 ### 端侧响应时间
 
-| 操作 | 目标 | 实际 |
-|---|---|---|
-| StrongBox 签名（一次）| < 200ms | ~80ms（Pixel 6）/ ~150ms（中端机）|
-| 助记词派生 BIP-39 | < 500ms | ~200ms |
-| DID 切换 | < 50ms | ~30ms |
-| QR 扫描识别（ML Kit）| < 100ms | ~50ms |
-| 远程终端 stdout 渲染（xterm.js）| < 16ms / frame | 60fps 不卡 |
-| OCR 拍照入笔记（豆包视觉）| < 3s | ~1.5s（wifi）|
+| 操作                             | 目标           | 实际                               |
+| -------------------------------- | -------------- | ---------------------------------- |
+| StrongBox 签名（一次）           | < 200ms        | ~80ms（Pixel 6）/ ~150ms（中端机） |
+| 助记词派生 BIP-39                | < 500ms        | ~200ms                             |
+| DID 切换                         | < 50ms         | ~30ms                              |
+| QR 扫描识别（ML Kit）            | < 100ms        | ~50ms                              |
+| 远程终端 stdout 渲染（xterm.js） | < 16ms / frame | 60fps 不卡                         |
+| OCR 拍照入笔记（豆包视觉）       | < 3s           | ~1.5s（wifi）                      |
 
 ### 资源占用
 
-| 指标 | 数值 |
-|---|---|
-| App 安装包（arm64-v8a）| 82 MB |
-| App 启动后内存（idle）| 80-120 MB |
-| App 启动后内存（远程终端 active）| 150-200 MB |
-| 单 session ring buffer | 256 KB |
-| Room 数据库（5 ResourceType + tombstones，1000 条）| ~5 MB |
-| 后台耗电（idle，foreground service off）| < 1% / 小时 |
-| 后台耗电（LocationTagger ON）| 3-5% / 小时 |
+| 指标                                                | 数值        |
+| --------------------------------------------------- | ----------- |
+| App 安装包（arm64-v8a）                             | 82 MB       |
+| App 启动后内存（idle）                              | 80-120 MB   |
+| App 启动后内存（远程终端 active）                   | 150-200 MB  |
+| 单 session ring buffer                              | 256 KB      |
+| Room 数据库（5 ResourceType + tombstones，1000 条） | ~5 MB       |
+| 后台耗电（idle，foreground service off）            | < 1% / 小时 |
+| 后台耗电（LocationTagger ON）                       | 3-5% / 小时 |
 
 ### 可扩展性
 
-| 限制 | 数值 |
-|---|---|
-| 最大配对桌面数 | 10 |
-| 单桌面最大并发 session 数 | 8 |
+| 限制                          | 数值       |
+| ----------------------------- | ---------- |
+| 最大配对桌面数                | 10         |
+| 单桌面最大并发 session 数     | 8          |
 | RemoteSkillRegistry seed 容量 | 200 method |
-| Sync 单批最大资源数 | 50 |
-| FCM 单次推送最大 payload | 4 KB |
+| Sync 单批最大资源数           | 50         |
+| FCM 单次推送最大 payload      | 4 KB       |
 
 ## 测试覆盖率
 
@@ -598,43 +600,43 @@ val aiSummarize = RemoteSkillMetadata(
 
 ### 安装 / 启动
 
-| 现象 | 原因 | 修法 |
-|---|---|---|
-| APK 安装提示"未知来源"| Android 默认禁第三方源 | 设置 → 应用 → 浏览器 → 允许安装应用 |
-| 启动闪退 | 架构不匹配 | 下载 universal 包 |
-| 启动报"DID 钱包初始化失败"| StrongBox 不支持（老机器）| App 自动降级 TEE，不影响功能但安全等级低一档 |
-| MIUI 杀后台 | MIUI 激进省电 | 设置 → 自启动 + 后台弹窗权限 |
-| Huawei 收不到推送 | 无 GMS | 待接入 HMS |
+| 现象                       | 原因                       | 修法                                         |
+| -------------------------- | -------------------------- | -------------------------------------------- |
+| APK 安装提示"未知来源"     | Android 默认禁第三方源     | 设置 → 应用 → 浏览器 → 允许安装应用          |
+| 启动闪退                   | 架构不匹配                 | 下载 universal 包                            |
+| 启动报"DID 钱包初始化失败" | StrongBox 不支持（老机器） | App 自动降级 TEE，不影响功能但安全等级低一档 |
+| MIUI 杀后台                | MIUI 激进省电              | 设置 → 自启动 + 后台弹窗权限                 |
+| Huawei 收不到推送          | 无 GMS                     | 待接入 HMS                                   |
 
 ### 配对
 
-| 现象 | 原因 | 修法 |
-|---|---|---|
-| 扫码无反应 | QR 过期（>60s）| 桌面"刷新 QR" |
-| 桌面没收请求 | signaling-relay 不通 / 防火墙 | 桌面 `cc doctor` 检查 `wss://signaling.chainlesschain.com` |
-| 配对成功列表不刷 | v5.0.3.52 前 `my_role` 字段 shape 错 | 升级到 v5.0.3.52+ |
-| Xiaomi QR 卡死 | MIUI 后台权限 | 开"自启动" + "后台弹窗权限" |
-| 一直显示 "等待桌面确认"| 桌面弹窗被遮挡 | 在桌面 systray 看通知 |
+| 现象                    | 原因                                 | 修法                                                       |
+| ----------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| 扫码无反应              | QR 过期（>60s）                      | 桌面"刷新 QR"                                              |
+| 桌面没收请求            | signaling-relay 不通 / 防火墙        | 桌面 `cc doctor` 检查 `wss://signaling.chainlesschain.com` |
+| 配对成功列表不刷        | v5.0.3.52 前 `my_role` 字段 shape 错 | 升级到 v5.0.3.52+                                          |
+| Xiaomi QR 卡死          | MIUI 后台权限                        | 开"自启动" + "后台弹窗权限"                                |
+| 一直显示 "等待桌面确认" | 桌面弹窗被遮挡                       | 在桌面 systray 看通知                                      |
 
 ### 远程终端 / 操控
 
-| 现象 | 原因 | 版本 |
-|---|---|---|
-| 终端黑屏 0 cols × 1 rows | WebView 0 高死锁 | v5.0.3.54 修 |
-| `cc` 命令找不到 | bash 不走 login mode | v5.0.3.54 修 |
-| WebRTC echo loop | mobile 注册成 desktop peerId | v5.0.3.54 修 |
-| iceServers 24h 后失效 | 没自动 refresh | v5.0.3.54 修（12h 节流刷新）|
-| signaling 反复重连 | from 字段未注入 | v5.0.3.54 修 |
-| TUI（vim / tmux）打字卡 | signaling 路径延迟高 | 用 Plan A.1 DC 直连（v5.0.3.53+）|
-| 长时任务面板不显示 | M4 D2 真机 E2E 待补 | 见 v1.0_GA_checklist |
+| 现象                     | 原因                         | 版本                              |
+| ------------------------ | ---------------------------- | --------------------------------- |
+| 终端黑屏 0 cols × 1 rows | WebView 0 高死锁             | v5.0.3.54 修                      |
+| `cc` 命令找不到          | bash 不走 login mode         | v5.0.3.54 修                      |
+| WebRTC echo loop         | mobile 注册成 desktop peerId | v5.0.3.54 修                      |
+| iceServers 24h 后失效    | 没自动 refresh               | v5.0.3.54 修（12h 节流刷新）      |
+| signaling 反复重连       | from 字段未注入              | v5.0.3.54 修                      |
+| TUI（vim / tmux）打字卡  | signaling 路径延迟高         | 用 Plan A.1 DC 直连（v5.0.3.53+） |
+| 长时任务面板不显示       | M4 D2 真机 E2E 待补          | 见 v1.0_GA_checklist              |
 
 ### 同步
 
-| 现象 | 原因 | 修法 |
-|---|---|---|
-| 永久"等待" | sync.\* WS handler 没注册 | 桌面升级到 v5.0.3.40+ |
-| 部分类型缺 | listTombstones SQL filter 错 | 升级 |
-| `auth` null 报错 | 老桌面要求 non-nullable | 升级 |
+| 现象               | 原因                            | 修法                   |
+| ------------------ | ------------------------------- | ---------------------- |
+| 永久"等待"         | sync.\* WS handler 没注册       | 桌面升级到 v5.0.3.40+  |
+| 部分类型缺         | listTombstones SQL filter 错    | 升级                   |
+| `auth` null 报错   | 老桌面要求 non-nullable         | 升级                   |
 | 桌面无 device 记录 | Android 用 P2P session DID 兜替 | 确认 pair 时桌面看到了 |
 
 ### 调试模式
@@ -664,67 +666,67 @@ adb logcat -s SignalClient WebRTCClient TerminalRpcClient SyncManager DIDManager
 
 ### Android 核心模块
 
-| 文件 / 模块 | 职责 | 概况 |
-|---|---|---|
-| `android-app/app/` | 主应用入口 + DI 配置 | MainActivity / Application |
-| `android-app/core-common/` | 通用基础 | ResourceProvider / DispatcherProvider |
-| `android-app/core-database/` | Room DB + Migration | 5 ResourceType + tombstones DAO |
-| `android-app/core-network/` | OkHttp + Retrofit | API client |
-| `android-app/core-security/` | 安全检查 + 加密 | `SecurityChecker.kt` (443 行) |
-| `android-app/core-did/` | DID 生成 / 签名 / 管理 | DIDKeyGenerator / DIDSigner / DIDManager |
-| `android-app/core-p2p/` | P2P + WebRTC + Sync | `SignalClient.kt` / `WebRTCClient.kt` / `SyncManager.kt` |
-| `android-app/core-e2ee/` | Signal Protocol E2E | Pre-key bundle / Session |
-| `android-app/core-ui/` | 共享 Compose 组件 | Theme / Common Composables |
-| `android-app/core-blockchain/` | 区块链交互 | 跨链桥接 |
+| 文件 / 模块                    | 职责                   | 概况                                                     |
+| ------------------------------ | ---------------------- | -------------------------------------------------------- |
+| `android-app/app/`             | 主应用入口 + DI 配置   | MainActivity / Application                               |
+| `android-app/core-common/`     | 通用基础               | ResourceProvider / DispatcherProvider                    |
+| `android-app/core-database/`   | Room DB + Migration    | 5 ResourceType + tombstones DAO                          |
+| `android-app/core-network/`    | OkHttp + Retrofit      | API client                                               |
+| `android-app/core-security/`   | 安全检查 + 加密        | `SecurityChecker.kt` (443 行)                            |
+| `android-app/core-did/`        | DID 生成 / 签名 / 管理 | DIDKeyGenerator / DIDSigner / DIDManager                 |
+| `android-app/core-p2p/`        | P2P + WebRTC + Sync    | `SignalClient.kt` / `WebRTCClient.kt` / `SyncManager.kt` |
+| `android-app/core-e2ee/`       | Signal Protocol E2E    | Pre-key bundle / Session                                 |
+| `android-app/core-ui/`         | 共享 Compose 组件      | Theme / Common Composables                               |
+| `android-app/core-blockchain/` | 区块链交互             | 跨链桥接                                                 |
 
 ### feature 模块（13 个）
 
-| 模块 | 职责 |
-|---|---|
-| `feature-auth/` | 登录 / 注册 / 助记词导入导出 |
-| `feature-knowledge/` | 笔记 / 知识库 / ShareReceiver |
-| `feature-ai/` | LLM / VoiceMode / CameraOCR |
-| `feature-p2p/` | 配对 / 同步 / 设备管理 |
-| `feature-project/` | 项目管理 |
-| `feature-file-browser/` | 文件浏览 + EnhancedCodeEditor |
-| `feature-blockchain/` | 钱包 UI / 交易 |
-| `feature-enterprise/` | RBAC / 组织 / 审计 |
-| `feature-knowledge-graph/` | KG 可视化 |
-| `feature-mcp/` | MCP 协议客户端 |
-| `feature-hooks/` | 钩子 / 自动化 |
-| `feature-collaboration/` | 社交 / 远程操控 / 远程终端 |
-| `feature-performance/` | 性能监控 |
+| 模块                       | 职责                          |
+| -------------------------- | ----------------------------- |
+| `feature-auth/`            | 登录 / 注册 / 助记词导入导出  |
+| `feature-knowledge/`       | 笔记 / 知识库 / ShareReceiver |
+| `feature-ai/`              | LLM / VoiceMode / CameraOCR   |
+| `feature-p2p/`             | 配对 / 同步 / 设备管理        |
+| `feature-project/`         | 项目管理                      |
+| `feature-file-browser/`    | 文件浏览 + EnhancedCodeEditor |
+| `feature-blockchain/`      | 钱包 UI / 交易                |
+| `feature-enterprise/`      | RBAC / 组织 / 审计            |
+| `feature-knowledge-graph/` | KG 可视化                     |
+| `feature-mcp/`             | MCP 协议客户端                |
+| `feature-hooks/`           | 钩子 / 自动化                 |
+| `feature-collaboration/`   | 社交 / 远程操控 / 远程终端    |
+| `feature-performance/`     | 性能监控                      |
 
 ### 桌面端配套文件
 
-| 文件 | 职责 |
-|---|---|
-| `desktop-app-vue/src/main/p2p/mobile-bridge.js` | 移动端 WS gateway + bridgeToLibp2p |
-| `desktop-app-vue/src/main/p2p/desktop-pair-handlers.js` | 配对处理 + iceServers 推送 |
-| `desktop-app-vue/src/main/p2p/mobile-approval-channel.js` | M4 D2 审批通道 |
-| `desktop-app-vue/src/main/p2p/mobile-approval-transport.js` | 审批 RPC transport bridge |
-| `desktop-app-vue/src/main/p2p/mobile-sign-client.js` | M5 SignAsService 客户端 |
-| `desktop-app-vue/src/main/terminal/pty-manager.js` | 远程终端 node-pty 托管 |
-| `desktop-app-vue/src/main/terminal/terminal-handlers.js` | terminal.\* envelope 处理 |
-| `signaling-relay/server.js` | wss://signaling.chainlesschain.com 中继 |
+| 文件                                                        | 职责                                    |
+| ----------------------------------------------------------- | --------------------------------------- |
+| `desktop-app-vue/src/main/p2p/mobile-bridge.js`             | 移动端 WS gateway + bridgeToLibp2p      |
+| `desktop-app-vue/src/main/p2p/desktop-pair-handlers.js`     | 配对处理 + iceServers 推送              |
+| `desktop-app-vue/src/main/p2p/mobile-approval-channel.js`   | M4 D2 审批通道                          |
+| `desktop-app-vue/src/main/p2p/mobile-approval-transport.js` | 审批 RPC transport bridge               |
+| `desktop-app-vue/src/main/p2p/mobile-sign-client.js`        | M5 SignAsService 客户端                 |
+| `desktop-app-vue/src/main/terminal/pty-manager.js`          | 远程终端 node-pty 托管                  |
+| `desktop-app-vue/src/main/terminal/terminal-handlers.js`    | terminal.\* envelope 处理               |
+| `signaling-relay/server.js`                                 | wss://signaling.chainlesschain.com 中继 |
 
 ### 设计文档
 
-| 文件 | 职责 |
-|---|---|
-| `docs/design/Android_重新定位_设计文档.md` | 主文档（693 行）— L1/L2/L3 + M1-M7 |
-| `docs/design/Android_W3_Pairing_E2E.md` | 配对协议（329 行）|
-| `docs/design/Android_Remote_Terminal_Plan_A.md` | 远程终端（359 行）|
-| `docs/design/Android_Remote_Terminal_Plan_A1.md` | DC 直连升级（461 行）|
-| `docs/design/Android_Remote_Operate_Plan_AB.md` | WebRTC + TURN（199 行）|
-| `docs/design/Android_Remote_Operate_Plan_C.md` | 信令转发（180 行）|
-| `docs/design/Android_Social_Wiring_2026-05.md` | 社交产线化（278 行）|
-| `docs/design/Android_REMOTE_commands_inventory.md` | 23 命令清单（209 行）|
-| `docs/design/Android_M3_Real_Device_Test_Plan.md` | M3 真机测试（197 行）|
-| `docs/design/Android_M4_D2_E2E.md` | M4 D2 真机 E2E（183 行）|
-| `docs/design/Android_M6_Performance_Validation.md` | M6 性能验证（192 行）|
-| `docs/design/phase3d-mobile-sync.md` | Phase 3d 同步设计 |
-| `docs/v1.0_GA_checklist.md` | GA 剩 5 项用户出场清单 |
+| 文件                                               | 职责                               |
+| -------------------------------------------------- | ---------------------------------- |
+| `docs/design/Android_重新定位_设计文档.md`         | 主文档（693 行）— L1/L2/L3 + M1-M7 |
+| `docs/design/Android_W3_Pairing_E2E.md`            | 配对协议（329 行）                 |
+| `docs/design/Android_Remote_Terminal_Plan_A.md`    | 远程终端（359 行）                 |
+| `docs/design/Android_Remote_Terminal_Plan_A1.md`   | DC 直连升级（461 行）              |
+| `docs/design/Android_Remote_Operate_Plan_AB.md`    | WebRTC + TURN（199 行）            |
+| `docs/design/Android_Remote_Operate_Plan_C.md`     | 信令转发（180 行）                 |
+| `docs/design/Android_Social_Wiring_2026-05.md`     | 社交产线化（278 行）               |
+| `docs/design/Android_REMOTE_commands_inventory.md` | 23 命令清单（209 行）              |
+| `docs/design/Android_M3_Real_Device_Test_Plan.md`  | M3 真机测试（197 行）              |
+| `docs/design/Android_M4_D2_E2E.md`                 | M4 D2 真机 E2E（183 行）           |
+| `docs/design/Android_M6_Performance_Validation.md` | M6 性能验证（192 行）              |
+| `docs/design/phase3d-mobile-sync.md`               | Phase 3d 同步设计                  |
+| `docs/v1.0_GA_checklist.md`                        | GA 剩 5 项用户出场清单             |
 
 ## 使用示例
 
@@ -857,14 +859,14 @@ cc ui --port 9001
 
 ## 版本历史
 
-| 版本 | 日期 | 重点 |
-|---|---|---|
-| v1.0.0 (`v5.0.3.48`) | 2026-05-12 | GA flip — ADR 8/8 / M1-M5 全落 / 383 单测 |
-| `v5.0.3.50` | 2026-05-13 | Plan C 信令转发 RPC（远程操控先通），20 单测 |
-| `v5.0.3.51` | 2026-05-13 | Plan A+B 基础设施 — TURN 部署 + iceServers 异步推送 |
-| `v5.0.3.52` | 2026-05-14 | Plan A 远程终端 — node-pty / xterm.js / 162 单测 |
-| `v5.0.3.53` | 2026-05-14 | Plan A.1 — 4 跳信令砍到 1 跳 DC 直连；RTT p50 30-80ms |
-| `v5.0.3.54` | 2026-05-14 | 远程终端真机收口 — 6 root cause bug 一次扫净；地铁里能跑 cc/claude |
+| 版本                 | 日期       | 重点                                                               |
+| -------------------- | ---------- | ------------------------------------------------------------------ |
+| v1.0.0 (`v5.0.3.48`) | 2026-05-12 | GA flip — ADR 8/8 / M1-M5 全落 / 383 单测                          |
+| `v5.0.3.50`          | 2026-05-13 | Plan C 信令转发 RPC（远程操控先通），20 单测                       |
+| `v5.0.3.51`          | 2026-05-13 | Plan A+B 基础设施 — TURN 部署 + iceServers 异步推送                |
+| `v5.0.3.52`          | 2026-05-14 | Plan A 远程终端 — node-pty / xterm.js / 162 单测                   |
+| `v5.0.3.53`          | 2026-05-14 | Plan A.1 — 4 跳信令砍到 1 跳 DC 直连；RTT p50 30-80ms              |
+| `v5.0.3.54`          | 2026-05-14 | 远程终端真机收口 — 6 root cause bug 一次扫净；地铁里能跑 cc/claude |
 
 完整 changelog：[CHANGELOG.md](https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md)。
 

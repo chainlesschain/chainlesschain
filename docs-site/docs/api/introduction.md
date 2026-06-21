@@ -82,17 +82,17 @@ curl -X GET "http://localhost:8080/api/devices/list" \
 
 ```javascript
 // JavaScript示例
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 
-fetch('http://localhost:8080/api/devices/list', {
-  method: 'GET',
+fetch("http://localhost:8080/api/devices/list", {
+  method: "GET",
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  }
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
 })
-.then(response => response.json())
-.then(data => console.log(data))
+  .then((response) => response.json())
+  .then((data) => console.log(data));
 ```
 
 ```python
@@ -173,12 +173,12 @@ Content-Type: application/json
 
 **请求参数**:
 
-| 参数 | 类型 | 必填 | 说明 | 默认值 |
-|------|------|------|------|--------|
-| page | int | 否 | 页码（从1开始） | 1 |
-| size | int | 否 | 每页数量 | 20 |
-| sortBy | string | 否 | 排序字段 | createTime |
-| sortOrder | string | 否 | 排序方向(asc/desc) | desc |
+| 参数      | 类型   | 必填 | 说明               | 默认值     |
+| --------- | ------ | ---- | ------------------ | ---------- |
+| page      | int    | 否   | 页码（从1开始）    | 1          |
+| size      | int    | 否   | 每页数量           | 20         |
+| sortBy    | string | 否   | 排序字段           | createTime |
+| sortOrder | string | 否   | 排序方向(asc/desc) | desc       |
 
 **请求示例**:
 
@@ -204,11 +204,11 @@ GET /api/devices/list?page=1&size=20&sortBy=createTime&sortOrder=desc
 
 ### 响应字段说明
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| code | int | 响应状态码 |
-| message | string | 响应消息 |
-| data | object/array | 业务数据（可为null） |
+| 字段    | 类型         | 说明                 |
+| ------- | ------------ | -------------------- |
+| code    | int          | 响应状态码           |
+| message | string       | 响应消息             |
+| data    | object/array | 业务数据（可为null） |
 
 ### 分页响应格式
 
@@ -234,34 +234,34 @@ GET /api/devices/list?page=1&size=20&sortBy=createTime&sortOrder=desc
 
 #### HTTP状态码
 
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 成功 |
-| 201 | 创建成功 |
-| 400 | 请求参数错误 |
-| 401 | 未授权（未登录或Token过期） |
-| 403 | 禁止访问（无权限） |
-| 404 | 资源不存在 |
-| 500 | 服务器内部错误 |
+| 状态码 | 说明                        |
+| ------ | --------------------------- |
+| 200    | 成功                        |
+| 201    | 创建成功                    |
+| 400    | 请求参数错误                |
+| 401    | 未授权（未登录或Token过期） |
+| 403    | 禁止访问（无权限）          |
+| 404    | 资源不存在                  |
+| 500    | 服务器内部错误              |
 
 #### 业务状态码
 
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 成功 |
-| 1001 | 参数错误 |
-| 1002 | 用户不存在 |
-| 1003 | 密码错误 |
-| 1004 | Token无效 |
-| 1005 | Token过期 |
-| 2001 | 设备不存在 |
-| 2002 | 设备已激活 |
-| 2003 | 激活码无效 |
-| 2004 | 设备已锁定 |
-| 3001 | 备份不存在 |
-| 3002 | 恢复失败 |
-| 4001 | 版本不存在 |
-| 4002 | 文件上传失败 |
+| 状态码 | 说明         |
+| ------ | ------------ |
+| 200    | 成功         |
+| 1001   | 参数错误     |
+| 1002   | 用户不存在   |
+| 1003   | 密码错误     |
+| 1004   | Token无效    |
+| 1005   | Token过期    |
+| 2001   | 设备不存在   |
+| 2002   | 设备已激活   |
+| 2003   | 激活码无效   |
+| 2004   | 设备已锁定   |
+| 3001   | 备份不存在   |
+| 3002   | 恢复失败     |
+| 4001   | 版本不存在   |
+| 4002   | 文件上传失败 |
 
 ### 错误响应示例
 
@@ -287,12 +287,12 @@ GET /api/devices/list?page=1&size=20&sortBy=createTime&sortOrder=desc
 
 为保护服务稳定性，部分接口有频率限制：
 
-| 接口类型 | 限制 |
-|----------|------|
-| 登录接口 | 5次/分钟 |
+| 接口类型 | 限制       |
+| -------- | ---------- |
+| 登录接口 | 5次/分钟   |
 | 查询接口 | 100次/分钟 |
-| 修改接口 | 30次/分钟 |
-| 上传接口 | 10次/小时 |
+| 修改接口 | 30次/分钟  |
+| 上传接口 | 10次/小时  |
 
 超出限制会返回`429 Too Many Requests`。
 
@@ -392,24 +392,26 @@ Authorization: Bearer <token>
 连接WebSocket接收实时通知：
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/api/ws/notifications?token=' + token)
+const ws = new WebSocket(
+  "ws://localhost:8080/api/ws/notifications?token=" + token,
+);
 
 ws.onopen = () => {
-  console.log('WebSocket连接已建立')
-}
+  console.log("WebSocket连接已建立");
+};
 
 ws.onmessage = (event) => {
-  const notification = JSON.parse(event.data)
-  console.log('收到通知:', notification)
-}
+  const notification = JSON.parse(event.data);
+  console.log("收到通知:", notification);
+};
 
 ws.onerror = (error) => {
-  console.error('WebSocket错误:', error)
-}
+  console.error("WebSocket错误:", error);
+};
 
 ws.onclose = () => {
-  console.log('WebSocket连接已关闭')
-}
+  console.log("WebSocket连接已关闭");
+};
 ```
 
 **通知格式**:
@@ -435,6 +437,7 @@ ws.onclose = () => {
 **访问地址**: http://localhost:8080/api/swagger-ui.html
 
 **功能**:
+
 - 查看所有API接口
 - 在线测试API
 - 查看请求/响应示例
@@ -495,26 +498,26 @@ npm install @chainlesschain/manufacturer-sdk
 ```
 
 ```javascript
-import { ManufacturerClient } from '@chainlesschain/manufacturer-sdk'
+import { ManufacturerClient } from "@chainlesschain/manufacturer-sdk";
 
 const client = new ManufacturerClient({
-  baseURL: 'http://localhost:8080/api',
-  token: 'your-jwt-token'
-})
+  baseURL: "http://localhost:8080/api",
+  token: "your-jwt-token",
+});
 
 // 查询设备列表
 const devices = await client.devices.list({
   page: 1,
   size: 20,
-  type: 'UKEY'
-})
+  type: "UKEY",
+});
 
 // 激活设备
 await client.devices.activate({
-  deviceId: 'DEV-1234567890',
-  activationCode: 'ABCD-EFGH-IJKL-MNOP',
-  userId: 'user123'
-})
+  deviceId: "DEV-1234567890",
+  activationCode: "ABCD-EFGH-IJKL-MNOP",
+  userId: "user123",
+});
 ```
 
 ### Python
@@ -586,27 +589,27 @@ client.devices().activate(
 ```javascript
 async function activateDevice(deviceId, activationCode, userId) {
   try {
-    const response = await fetch('/api/devices/activate', {
-      method: 'POST',
+    const response = await fetch("/api/devices/activate", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ deviceId, activationCode, userId })
-    })
+      body: JSON.stringify({ deviceId, activationCode, userId }),
+    });
 
-    const result = await response.json()
+    const result = await response.json();
 
     if (result.code === 200) {
-      console.log('激活成功')
-      return result.data
+      console.log("激活成功");
+      return result.data;
     } else {
-      console.error('激活失败:', result.message)
-      throw new Error(result.message)
+      console.error("激活失败:", result.message);
+      throw new Error(result.message);
     }
   } catch (error) {
-    console.error('请求失败:', error)
-    throw error
+    console.error("请求失败:", error);
+    throw error;
   }
 }
 ```
@@ -618,46 +621,46 @@ async function activateDevice(deviceId, activationCode, userId) {
 ```javascript
 class APIClient {
   constructor(baseURL, token) {
-    this.baseURL = baseURL
-    this.token = token
+    this.baseURL = baseURL;
+    this.token = token;
   }
 
   async request(endpoint, options = {}) {
     let response = await fetch(`${this.baseURL}${endpoint}`, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
-    })
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
 
     // Token过期，自动刷新
     if (response.status === 401) {
-      await this.refreshToken()
+      await this.refreshToken();
       // 重试请求
       response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
         headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      })
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
     }
 
-    return response.json()
+    return response.json();
   }
 
   async refreshToken() {
     const response = await fetch(`${this.baseURL}/auth/refresh`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${this.token}`
-      }
-    })
-    const result = await response.json()
-    this.token = result.data.token
+        Authorization: `Bearer ${this.token}`,
+      },
+    });
+    const result = await response.json();
+    this.token = result.data.token;
   }
 }
 ```
@@ -670,25 +673,25 @@ class APIClient {
 async function requestWithRetry(url, options, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch(url, options)
-      if (response.ok) return response.json()
+      const response = await fetch(url, options);
+      if (response.ok) return response.json();
 
       // 5xx错误重试
       if (response.status >= 500 && i < maxRetries - 1) {
-        await sleep(1000 * (i + 1)) // 指数退避
-        continue
+        await sleep(1000 * (i + 1)); // 指数退避
+        continue;
       }
 
-      throw new Error(`HTTP ${response.status}`)
+      throw new Error(`HTTP ${response.status}`);
     } catch (error) {
-      if (i === maxRetries - 1) throw error
-      await sleep(1000 * (i + 1))
+      if (i === maxRetries - 1) throw error;
+      await sleep(1000 * (i + 1));
     }
   }
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 ```
 
@@ -699,37 +702,35 @@ function sleep(ms) {
 ```javascript
 class RequestQueue {
   constructor(concurrency = 5) {
-    this.concurrency = concurrency
-    this.running = 0
-    this.queue = []
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
   }
 
   async add(fn) {
     while (this.running >= this.concurrency) {
-      await new Promise(resolve => this.queue.push(resolve))
+      await new Promise((resolve) => this.queue.push(resolve));
     }
 
-    this.running++
+    this.running++;
 
     try {
-      return await fn()
+      return await fn();
     } finally {
-      this.running--
-      const resolve = this.queue.shift()
-      if (resolve) resolve()
+      this.running--;
+      const resolve = this.queue.shift();
+      if (resolve) resolve();
     }
   }
 }
 
 // 使用
-const queue = new RequestQueue(5)
+const queue = new RequestQueue(5);
 
-const devices = ['DEV-001', 'DEV-002', 'DEV-003', /* ... */]
+const devices = ["DEV-001", "DEV-002", "DEV-003" /* ... */];
 const results = await Promise.all(
-  devices.map(deviceId =>
-    queue.add(() => client.devices.get(deviceId))
-  )
-)
+  devices.map((deviceId) => queue.add(() => client.devices.get(deviceId))),
+);
 ```
 
 ## 下一步
@@ -789,11 +790,11 @@ REST + JWT；统一响应 `{code, message, data}`；厂家系统 Spring Boot 3.2
 
 ### 9. 竞品对比
 
-| 维度 | 本 API | 无规范裸接口 |
-|---|---|---|
-| 统一响应 / 状态码 | ✅ | ❌ |
-| 分页 / 限流约定 | ✅ | ⚠️ |
-| 多语言 SDK | ✅ | ❌ |
+| 维度              | 本 API | 无规范裸接口 |
+| ----------------- | ------ | ------------ |
+| 统一响应 / 状态码 | ✅     | ❌           |
+| 分页 / 限流约定   | ✅     | ⚠️           |
+| 多语言 SDK        | ✅     | ❌           |
 
 ### 10. 配置参考
 
@@ -819,11 +820,11 @@ REST + JWT；统一响应 `{code, message, data}`；厂家系统 Spring Boot 3.2
 
 ### 15. 关键文件
 
-| 资源 | 说明 |
-|---|---|
-| Base URL | 厂家 `:8080/api` · ChainlessChain `:3000/api` |
-| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
-| SDK | JS/TS · Python · Java（见正文「SDK和客户端库」） |
+| 资源       | 说明                                             |
+| ---------- | ------------------------------------------------ |
+| Base URL   | 厂家 `:8080/api` · ChainlessChain `:3000/api`    |
+| Swagger UI | `http://localhost:8080/api/swagger-ui.html`      |
+| SDK        | JS/TS · Python · Java（见正文「SDK和客户端库」） |
 
 ### 16. 使用示例
 

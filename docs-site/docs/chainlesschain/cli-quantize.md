@@ -58,13 +58,13 @@
 
 ## 配置参考
 
-| 配置项            | 含义                    | 默认        |
-| ----------------- | ----------------------- | ----------- |
-| `type`            | 量化方案                | gguf / gptq |
-| `level`（GGUF）   | 14 种精度               | Q2_K ~ Q8_0 |
-| `bits`（GPTQ）    | 位宽                    | 2 / 3 / 4 / 8 |
-| 状态              | pending/running/completed/failed/cancelled | |
-| V2 caps           | per-owner active model / running job | 见备忘录 |
+| 配置项          | 含义                                       | 默认          |
+| --------------- | ------------------------------------------ | ------------- |
+| `type`          | 量化方案                                   | gguf / gptq   |
+| `level`（GGUF） | 14 种精度                                  | Q2_K ~ Q8_0   |
+| `bits`（GPTQ）  | 位宽                                       | 2 / 3 / 4 / 8 |
+| 状态            | pending/running/completed/failed/cancelled |               |
+| V2 caps         | per-owner active model / running job       | 见备忘录      |
 
 查看：`chainlesschain quantize statuses`、`quantize types`、`quantize levels`、`quantize gptq-bits`。
 
@@ -72,14 +72,14 @@
 
 ## 性能指标
 
-| 操作                           | 典型耗时         |
-| ------------------------------ | ---------------- |
-| create 任务                    | < 15 ms          |
-| start / progress / complete    | < 10 ms          |
-| list / show                    | < 10 ms          |
-| stats 聚合                     | < 20 ms          |
-| 实际量化耗时                   | 依赖模型大小（GGUF Q4_K_M 7B 约 5-15 分钟） |
-| V2 createJobV2 dispatch        | < 50 ms          |
+| 操作                        | 典型耗时                                    |
+| --------------------------- | ------------------------------------------- |
+| create 任务                 | < 15 ms                                     |
+| start / progress / complete | < 10 ms                                     |
+| list / show                 | < 10 ms                                     |
+| stats 聚合                  | < 20 ms                                     |
+| 实际量化耗时                | 依赖模型大小（GGUF Q4_K_M 7B 约 5-15 分钟） |
+| V2 createJobV2 dispatch     | < 50 ms                                     |
 
 注：CLI 仅管理任务元数据与状态，真实量化计算由外部工具（llama.cpp / AutoGPTQ）完成，CLI 负责登记。
 

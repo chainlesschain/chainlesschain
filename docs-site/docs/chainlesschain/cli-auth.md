@@ -118,11 +118,11 @@ chainlesschain auth scopes
 
 ## 内置角色
 
-| 角色     | 权限                                              |
-| -------- | ------------------------------------------------- |
-| `admin`  | `*` (全部权限)                                    |
-| `editor` | note:*, session:*, llm:*, skill:*, search:*, memory:* |
-| `viewer` | note:read, session:read, skill:read, search:read  |
+| 角色     | 权限                                                    |
+| -------- | ------------------------------------------------------- |
+| `admin`  | `*` (全部权限)                                          |
+| `editor` | note:_, session:_, llm:_, skill:_, search:_, memory:_   |
+| `viewer` | note:read, session:read, skill:read, search:read        |
 | `agent`  | note:read, note:write, skill:run, llm:chat, search:read |
 
 ## 权限范围 (26 个)
@@ -187,14 +187,14 @@ chainlesschain auth [subcommand] [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 权限 check（含通配符匹配） | < 20ms | ~5ms | ✅ |
-| grant/revoke 角色 | < 50ms | ~20ms | ✅ |
-| permissions 聚合（多角色合并） | < 80ms | ~30ms | ✅ |
-| create-role（含权限分配） | < 100ms | ~40ms | ✅ |
-| users --role 过滤（1k 用户） | < 150ms | ~60ms | ✅ |
-| 过期授权自动失效检查 | < 10ms | ~3ms | ✅ |
+| 操作                           | 目标    | 实际  | 状态 |
+| ------------------------------ | ------- | ----- | ---- |
+| 权限 check（含通配符匹配）     | < 20ms  | ~5ms  | ✅   |
+| grant/revoke 角色              | < 50ms  | ~20ms | ✅   |
+| permissions 聚合（多角色合并） | < 80ms  | ~30ms | ✅   |
+| create-role（含权限分配）      | < 100ms | ~40ms | ✅   |
+| users --role 过滤（1k 用户）   | < 150ms | ~60ms | ✅   |
+| 过期授权自动失效检查           | < 10ms  | ~3ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -246,12 +246,12 @@ chainlesschain auth scopes
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `check` 返回 denied | 确认用户已被授予包含该权限的角色 |
-| `grant` 失败 | 确认角色名称正确，使用 `auth roles` 查看可用角色 |
-| `create-role` 报已存在 | 角色名唯一，使用 `grant-permission` 添加权限 |
-| 过期角色仍生效 | 权限检查实时验证过期时间，检查系统时间是否正确 |
+| 问题                   | 解决方案                                         |
+| ---------------------- | ------------------------------------------------ |
+| `check` 返回 denied    | 确认用户已被授予包含该权限的角色                 |
+| `grant` 失败           | 确认角色名称正确，使用 `auth roles` 查看可用角色 |
+| `create-role` 报已存在 | 角色名唯一，使用 `grant-permission` 添加权限     |
+| 过期角色仍生效         | 权限检查实时验证过期时间，检查系统时间是否正确   |
 
 ## 关键文件
 

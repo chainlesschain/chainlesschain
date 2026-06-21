@@ -128,21 +128,21 @@ cc inference infnetgov-auto-stale-idle-v2 | infnetgov-auto-fail-stuck-v2 | infne
 
 均为运行时 setter（进程内生效），无环境变量：
 
-| 配置项 | 默认值 | 设置命令 | 来源常量 |
-|--------|--------|---------|---------|
-| 每节点最大并发任务 | `4` | `set-max-concurrent-tasks <n>` | `INFERENCE_DEFAULT_MAX_CONCURRENT_TASKS_PER_NODE` |
-| 心跳超时 | `90000` ms | `set-heartbeat-timeout <ms>` | `INFERENCE_DEFAULT_HEARTBEAT_TIMEOUT_MS` |
-| 最大节点数 | `100` | 不可配置 | `DEFAULT_CONFIG.maxNodes` |
-| 默认隐私模式 | `standard` | 按任务 `-m` 覆盖 | `DEFAULT_CONFIG.defaultPrivacyMode` |
-| 优先级范围 | `1-10`（默认 5，越界自动钳制） | 按任务 `-p` | `DEFAULT_CONFIG.maxPriority` |
-| 治理: 每 operator 活跃节点上限 | `12` | `config-set-v2 --max-active` | `_inMaxActivePerOperator` |
-| 治理: 每节点 pending 作业上限 | `25` | `config-set-v2 --max-pending` | `_inMaxPendingJobsPerNode` |
-| 治理: 节点 idle 阈值 | `86400000` ms（24h） | `config-set-v2 --idle-ms` | `_inIdleMs` |
-| 治理: 作业 stuck 阈值 | `600000` ms（10min） | `config-set-v2 --stuck-ms` | `_ijStuckMs` |
-| infnetgov: 每 owner 活跃 profile 上限 | `8` | `infnetgov-set-max-active-v2` | `_infnetgovMaxActive` |
-| infnetgov: 每 profile pending 上限 | `25` | `infnetgov-set-max-pending-v2` | `_infnetgovMaxPending` |
-| infnetgov: idle 阈值 | `2592000000` ms（30 天） | `infnetgov-set-idle-ms-v2` | `_infnetgovIdleMs` |
-| infnetgov: stuck 阈值 | `60000` ms | `infnetgov-set-stuck-ms-v2` | `_infnetgovStuckMs` |
+| 配置项                                | 默认值                         | 设置命令                       | 来源常量                                          |
+| ------------------------------------- | ------------------------------ | ------------------------------ | ------------------------------------------------- |
+| 每节点最大并发任务                    | `4`                            | `set-max-concurrent-tasks <n>` | `INFERENCE_DEFAULT_MAX_CONCURRENT_TASKS_PER_NODE` |
+| 心跳超时                              | `90000` ms                     | `set-heartbeat-timeout <ms>`   | `INFERENCE_DEFAULT_HEARTBEAT_TIMEOUT_MS`          |
+| 最大节点数                            | `100`                          | 不可配置                       | `DEFAULT_CONFIG.maxNodes`                         |
+| 默认隐私模式                          | `standard`                     | 按任务 `-m` 覆盖               | `DEFAULT_CONFIG.defaultPrivacyMode`               |
+| 优先级范围                            | `1-10`（默认 5，越界自动钳制） | 按任务 `-p`                    | `DEFAULT_CONFIG.maxPriority`                      |
+| 治理: 每 operator 活跃节点上限        | `12`                           | `config-set-v2 --max-active`   | `_inMaxActivePerOperator`                         |
+| 治理: 每节点 pending 作业上限         | `25`                           | `config-set-v2 --max-pending`  | `_inMaxPendingJobsPerNode`                        |
+| 治理: 节点 idle 阈值                  | `86400000` ms（24h）           | `config-set-v2 --idle-ms`      | `_inIdleMs`                                       |
+| 治理: 作业 stuck 阈值                 | `600000` ms（10min）           | `config-set-v2 --stuck-ms`     | `_ijStuckMs`                                      |
+| infnetgov: 每 owner 活跃 profile 上限 | `8`                            | `infnetgov-set-max-active-v2`  | `_infnetgovMaxActive`                             |
+| infnetgov: 每 profile pending 上限    | `25`                           | `infnetgov-set-max-pending-v2` | `_infnetgovMaxPending`                            |
+| infnetgov: idle 阈值                  | `2592000000` ms（30 天）       | `infnetgov-set-idle-ms-v2`     | `_infnetgovIdleMs`                                |
+| infnetgov: stuck 阈值                 | `60000` ms                     | `infnetgov-set-stuck-ms-v2`    | `_infnetgovStuckMs`                               |
 
 所有 setter 校验「正整数」，非法值抛错（CLI 以 `exitCode=1` 退出）。
 
@@ -159,11 +159,11 @@ cc inference infnetgov-auto-stale-idle-v2 | infnetgov-auto-fail-stuck-v2 | infne
 
 共 **172** 个测试，全部为真实断言（无 stub）：
 
-| 测试文件 | 数量 | 覆盖范围 |
-|---------|------|---------|
-| `packages/cli/__tests__/unit/inference-network.test.js` | 83 | 建表、V1 节点/任务/统计、V2 调度面（并发上限、心跳超时、状态机） |
-| `packages/cli/__tests__/unit/lib/inference-network-v2.test.js` | 45 | 节点成熟度 + 作业生命周期治理 |
-| `packages/cli/__tests__/unit/lib/inference-network-v2-iter28.test.js` | 44 | infnetgov profile/request 治理 overlay |
+| 测试文件                                                              | 数量 | 覆盖范围                                                         |
+| --------------------------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/inference-network.test.js`               | 83   | 建表、V1 节点/任务/统计、V2 调度面（并发上限、心跳超时、状态机） |
+| `packages/cli/__tests__/unit/lib/inference-network-v2.test.js`        | 45   | 节点成熟度 + 作业生命周期治理                                    |
+| `packages/cli/__tests__/unit/lib/inference-network-v2-iter28.test.js` | 44   | infnetgov profile/request 治理 overlay                           |
 
 ```bash
 cd packages/cli
@@ -180,26 +180,26 @@ npx vitest run __tests__/unit/inference-network.test.js __tests__/unit/lib/infer
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `Failed: max_nodes_reached` | 已注册节点达 100 上限 | `cc inference unregister <id>` 清理无用节点 |
-| `Failed: duplicate_node` | 同 `node_id` 已注册 | `cc inference nodes` 查重；换 node-id 或先注销 |
-| `submit` 后状态是 `queued` 而非 `dispatched` | 当前没有 `online` 节点 | 注册节点或 `heartbeat <id>` 把 offline 节点拉回 online |
-| `dispatch-v2` 报 `No eligible online nodes available` | 在线节点全部达到并发上限（默认 4） | `set-max-concurrent-tasks` 调高，或等任务完成 |
-| `Invalid transition: ... → ...` | 违反 V2 状态机顺序 | 按 `queued→dispatched→running→complete/failed` 顺序操作；用 `show-task` 确认当前状态 |
-| `auto-offline` 总返回 `No stale nodes.` | 心跳都在 90s 阈值内 | 预期行为；可 `set-heartbeat-timeout` 调小阈值验证 |
-| 治理 V2 数据重启后丢失 | 治理 overlay 是纯内存实现 | 预期行为：节点/作业治理与 infnetgov 不落库 |
-| V1 子命令报数据库相关错误 | 命令树未挂载 `_db`（`_dbFromCtx` 取不到） | 治理类（`*-v2`、`infnetgov-*`）子命令不依赖 DB，可正常使用 |
+| 现象                                                  | 可能原因                                  | 处理                                                                                 |
+| ----------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| `Failed: max_nodes_reached`                           | 已注册节点达 100 上限                     | `cc inference unregister <id>` 清理无用节点                                          |
+| `Failed: duplicate_node`                              | 同 `node_id` 已注册                       | `cc inference nodes` 查重；换 node-id 或先注销                                       |
+| `submit` 后状态是 `queued` 而非 `dispatched`          | 当前没有 `online` 节点                    | 注册节点或 `heartbeat <id>` 把 offline 节点拉回 online                               |
+| `dispatch-v2` 报 `No eligible online nodes available` | 在线节点全部达到并发上限（默认 4）        | `set-max-concurrent-tasks` 调高，或等任务完成                                        |
+| `Invalid transition: ... → ...`                       | 违反 V2 状态机顺序                        | 按 `queued→dispatched→running→complete/failed` 顺序操作；用 `show-task` 确认当前状态 |
+| `auto-offline` 总返回 `No stale nodes.`               | 心跳都在 90s 阈值内                       | 预期行为；可 `set-heartbeat-timeout` 调小阈值验证                                    |
+| 治理 V2 数据重启后丢失                                | 治理 overlay 是纯内存实现                 | 预期行为：节点/作业治理与 infnetgov 不落库                                           |
+| V1 子命令报数据库相关错误                             | 命令树未挂载 `_db`（`_dbFromCtx` 取不到） | 治理类（`*-v2`、`infnetgov-*`）子命令不依赖 DB，可正常使用                           |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/inference.js` | `cc inference` 全部子命令注册（V1 + V2 + 治理 + infnetgov overlay） |
-| `packages/cli/src/lib/inference-network.js` | 调度引擎与治理实现（schema、状态机、并发/心跳、双层治理） |
-| `packages/cli/__tests__/unit/inference-network.test.js` | 83 单元测试（V1 + V2 调度面） |
-| `packages/cli/__tests__/unit/lib/inference-network-v2.test.js` | 45 单元测试（节点/作业治理） |
-| `packages/cli/__tests__/unit/lib/inference-network-v2-iter28.test.js` | 44 单元测试（infnetgov overlay） |
+| 文件                                                                  | 说明                                                                |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `packages/cli/src/commands/inference.js`                              | `cc inference` 全部子命令注册（V1 + V2 + 治理 + infnetgov overlay） |
+| `packages/cli/src/lib/inference-network.js`                           | 调度引擎与治理实现（schema、状态机、并发/心跳、双层治理）           |
+| `packages/cli/__tests__/unit/inference-network.test.js`               | 83 单元测试（V1 + V2 调度面）                                       |
+| `packages/cli/__tests__/unit/lib/inference-network-v2.test.js`        | 45 单元测试（节点/作业治理）                                        |
+| `packages/cli/__tests__/unit/lib/inference-network-v2-iter28.test.js` | 44 单元测试（infnetgov overlay）                                    |
 
 ## 使用示例
 

@@ -338,20 +338,30 @@ CREATE INDEX IF NOT EXISTS idx_dao_treasury_proposal ON dao_treasury(proposal_id
 
 ```javascript
 // 1. 创建提案（草案状态）
-const proposal = await window.electron.ipcRenderer.invoke("dao:create-proposal", {
-  title: "启用社区贡献者奖励计划",
-  description: "建议为活跃贡献者每月发放 500 CCT 奖励...",
-  type: "treasury",
-  actions: [{ type: "transfer", to: "did:chainless:rewards-pool", amount: 500, currency: "CCT" }],
-  votingPeriod: 604800000,
-  quorum: 0.15,
-});
+const proposal = await window.electron.ipcRenderer.invoke(
+  "dao:create-proposal",
+  {
+    title: "启用社区贡献者奖励计划",
+    description: "建议为活跃贡献者每月发放 500 CCT 奖励...",
+    type: "treasury",
+    actions: [
+      {
+        type: "transfer",
+        to: "did:chainless:rewards-pool",
+        amount: 500,
+        currency: "CCT",
+      },
+    ],
+    votingPeriod: 604800000,
+    quorum: 0.15,
+  },
+);
 
 // 2. 提交提案进入投票（状态从 draft → active）
 // 3. 社区成员投票（二次方投票）
 await window.electron.ipcRenderer.invoke("dao:vote", {
   proposalId: proposal.proposalId,
-  votes: 2,           // 成本 = 2² = 4 tokens
+  votes: 2, // 成本 = 2² = 4 tokens
   direction: "for",
   reason: "支持激励社区贡献",
 });
@@ -394,6 +404,7 @@ console.log(`CCT 余额: ${treasury.treasury.balance.CCT}`);
 **现象**: `dao:vote` 返回错误，投票未被记录。
 
 **排查步骤**:
+
 1. 确认提案状态为 `active` 且投票时间窗口未过期（`voting_ends_at` 未到）
 2. 检查当前 DID 是否已对该提案投过票（`UNIQUE(proposal_id, voter_did)` 约束）
 3. 计算二次方成本（票数²），确认账户 token 余额充足
@@ -404,6 +415,7 @@ console.log(`CCT 余额: ${treasury.treasury.balance.CCT}`);
 **现象**: 提案状态未按预期流转（如投票通过后未进入 Queue 阶段）。
 
 **排查步骤**:
+
 1. 确认投票参与率是否达到 `quorum` 要求（赞成+反对+弃权 / 总投票权重）
 2. 检查 `votingPeriod` 是否已结束，投票期内提案保持 `active` 状态
 3. 通过后需等待 `executionDelay` 期满才能执行（默认 2 天缓冲期）
@@ -411,25 +423,25 @@ console.log(`CCT 余额: ${treasury.treasury.balance.CCT}`);
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/blockchain/dao-governance-v2.js` | DAO 治理引擎核心 |
-| `desktop-app-vue/src/main/blockchain/quadratic-voting.js` | 二次方投票算法 |
-| `desktop-app-vue/src/main/blockchain/delegation-manager.js` | 委托投票与环路检测 |
-| `desktop-app-vue/src/main/blockchain/treasury-manager.js` | 资金库管理 |
+| 文件                                                        | 职责                 |
+| ----------------------------------------------------------- | -------------------- |
+| `desktop-app-vue/src/main/blockchain/dao-governance-v2.js`  | DAO 治理引擎核心     |
+| `desktop-app-vue/src/main/blockchain/quadratic-voting.js`   | 二次方投票算法       |
+| `desktop-app-vue/src/main/blockchain/delegation-manager.js` | 委托投票与环路检测   |
+| `desktop-app-vue/src/main/blockchain/treasury-manager.js`   | 资金库管理           |
 | `desktop-app-vue/src/main/blockchain/dao-governance-ipc.js` | DAO 8 个 IPC Handler |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 投票权重计算错误 | 快照区块高度不正确或代币委托关系未同步 | 重新获取快照 `dao snapshot-refresh`，验证委托记录 |
-| 提案状态卡住不流转 | 触发条件未满足或定时任务异常 | 检查提案条件表达式，重启调度服务 |
-| 国库余额不足执行失败 | 预算超支或多提案并发扣款 | 查看国库明细 `dao treasury-detail`，排队执行提案 |
-| 投票交易提交失败 | 签名不匹配或投票窗口已关闭 | 确认使用正确 DID 签名，检查投票截止时间 |
-| 执行交易 Gas 超限 | 提案包含过多操作或 Gas 估算偏低 | 拆分提案操作，手动设置 `gasLimit` |
+| 症状                 | 可能原因                               | 解决方案                                          |
+| -------------------- | -------------------------------------- | ------------------------------------------------- |
+| 投票权重计算错误     | 快照区块高度不正确或代币委托关系未同步 | 重新获取快照 `dao snapshot-refresh`，验证委托记录 |
+| 提案状态卡住不流转   | 触发条件未满足或定时任务异常           | 检查提案条件表达式，重启调度服务                  |
+| 国库余额不足执行失败 | 预算超支或多提案并发扣款               | 查看国库明细 `dao treasury-detail`，排队执行提案  |
+| 投票交易提交失败     | 签名不匹配或投票窗口已关闭             | 确认使用正确 DID 签名，检查投票截止时间           |
+| 执行交易 Gas 超限    | 提案包含过多操作或 Gas 估算偏低        | 拆分提案操作，手动设置 `gasLimit`                 |
 
 ### 常见错误修复
 
@@ -526,17 +538,17 @@ chainlesschain dao proposal-pause --id <id> --reason "insufficient-funds"
 ```javascript
 // 社区早期（人数少，参与率敏感）
 const EARLY_STAGE_CONFIG = {
-  minQuorum: 0.05,         // 降低法定人数至 5%，防止提案全部 Defeated
+  minQuorum: 0.05, // 降低法定人数至 5%，防止提案全部 Defeated
   defaultPeriod: 1209600000, // 延长至 14 天，给更多成员参与时间
-  initialTokenAllocation: 200 // 提高初始 token，鼓励积极投票
+  initialTokenAllocation: 200, // 提高初始 token，鼓励积极投票
 };
 
 // 成熟社区（人数多，需防操控）
 const MATURE_STAGE_CONFIG = {
-  minQuorum: 0.2,           // 提高法定人数至 20%
+  minQuorum: 0.2, // 提高法定人数至 20%
   maxQuorum: 0.4,
-  approvalThreshold: 5,     // 更多审批人数防单点
-  maxSingleTransfer: 5000   // 降低单笔上限
+  approvalThreshold: 5, // 更多审批人数防单点
+  maxSingleTransfer: 5000, // 降低单笔上限
 };
 ```
 
@@ -544,49 +556,49 @@ const MATURE_STAGE_CONFIG = {
 
 ### 核心操作基准（单节点，SQLite WAL 模式）
 
-| 操作 | 目标 | 实际（测试值） | 状态 |
-| ---- | ---- | -------------- | ---- |
-| 创建提案 | < 100ms | ~28ms | ✅ 达标 |
-| 投票（含二次方成本计算） | < 150ms | ~42ms | ✅ 达标 |
-| 委托投票（含 DFS 环路检测） | < 200ms | ~76ms | ✅ 达标 |
-| 5 层委托链 DFS 检测 | < 50ms | ~18ms | ✅ 达标 |
-| 执行提案（单 transfer 动作） | < 300ms | ~145ms | ✅ 达标 |
-| 查询资金库（含最近 20 条记录） | < 80ms | ~22ms | ✅ 达标 |
-| 治理统计计算（30 天范围） | < 500ms | ~210ms | ✅ 达标 |
-| 配置更新（dao:configure） | < 50ms | ~12ms | ✅ 达标 |
+| 操作                           | 目标    | 实际（测试值） | 状态    |
+| ------------------------------ | ------- | -------------- | ------- |
+| 创建提案                       | < 100ms | ~28ms          | ✅ 达标 |
+| 投票（含二次方成本计算）       | < 150ms | ~42ms          | ✅ 达标 |
+| 委托投票（含 DFS 环路检测）    | < 200ms | ~76ms          | ✅ 达标 |
+| 5 层委托链 DFS 检测            | < 50ms  | ~18ms          | ✅ 达标 |
+| 执行提案（单 transfer 动作）   | < 300ms | ~145ms         | ✅ 达标 |
+| 查询资金库（含最近 20 条记录） | < 80ms  | ~22ms          | ✅ 达标 |
+| 治理统计计算（30 天范围）      | < 500ms | ~210ms         | ✅ 达标 |
+| 配置更新（dao:configure）      | < 50ms  | ~12ms          | ✅ 达标 |
 
 ### 并发与规模指标
 
-| 场景 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 并发投票（10 用户同时） | 无锁冲突 | WAL 模式完全并发 | ✅ 达标 |
-| 提案数 1000 条时查询 | < 200ms | ~85ms（含索引） | ✅ 达标 |
-| 投票记录 10,000 条时统计 | < 1s | ~380ms | ✅ 达标 |
-| 委托链最大深度 5 层 DFS | < 100ms | ~32ms | ✅ 达标 |
-| 资金库流水 5,000 条分页查询 | < 300ms | ~95ms | ✅ 达标 |
+| 场景                        | 目标     | 实际             | 状态    |
+| --------------------------- | -------- | ---------------- | ------- |
+| 并发投票（10 用户同时）     | 无锁冲突 | WAL 模式完全并发 | ✅ 达标 |
+| 提案数 1000 条时查询        | < 200ms  | ~85ms（含索引）  | ✅ 达标 |
+| 投票记录 10,000 条时统计    | < 1s     | ~380ms           | ✅ 达标 |
+| 委托链最大深度 5 层 DFS     | < 100ms  | ~32ms            | ✅ 达标 |
+| 资金库流水 5,000 条分页查询 | < 300ms  | ~95ms            | ✅ 达标 |
 
 ### 资金库操作性能
 
-| 操作 | 目标响应时间 | 状态 |
-| ---- | ------------ | ---- |
-| 余额查询 | < 20ms | ✅ 达标 |
-| 资金分配（单类别） | < 100ms | ✅ 达标 |
-| 批量资金分配（3 类别） | < 200ms | ✅ 达标 |
-| 历史流水查询（最近 100 条） | < 80ms | ✅ 达标 |
+| 操作                        | 目标响应时间 | 状态    |
+| --------------------------- | ------------ | ------- |
+| 余额查询                    | < 20ms       | ✅ 达标 |
+| 资金分配（单类别）          | < 100ms      | ✅ 达标 |
+| 批量资金分配（3 类别）      | < 200ms      | ✅ 达标 |
+| 历史流水查询（最近 100 条） | < 80ms       | ✅ 达标 |
 
 ## 测试覆盖率
 
 ### 测试文件列表
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| -------- | -------- | ------ |
-| ✅ `desktop-app-vue/tests/unit/blockchain/dao-governance-v2.test.js` | 提案全生命周期、状态流转、配置验证 | 56 |
-| ✅ `desktop-app-vue/tests/unit/blockchain/quadratic-voting.test.js` | 二次方成本计算、token 扣减、防刷票 | 34 |
-| ✅ `desktop-app-vue/tests/unit/blockchain/delegation-manager.test.js` | 委托链构建、DFS 环路检测、过期撤销 | 41 |
-| ✅ `desktop-app-vue/tests/unit/blockchain/treasury-manager.test.js` | 资金分配、余额检查、多签审批、审计日志 | 38 |
-| ✅ `desktop-app-vue/tests/unit/blockchain/dao-governance-ipc.test.js` | 8 个 IPC Handler 参数校验与响应格式 | 48 |
-| ✅ `desktop-app-vue/tests/unit/blockchain/dao-analytics.test.js` | 治理统计计算、参与率、通过率、委托网络 | 22 |
-| ✅ `desktop-app-vue/tests/integration/dao-full-flow.test.js` | 端到端：创建→投票→队列→执行→资金库 | 17 |
+| 测试文件                                                              | 覆盖范围                               | 用例数 |
+| --------------------------------------------------------------------- | -------------------------------------- | ------ |
+| ✅ `desktop-app-vue/tests/unit/blockchain/dao-governance-v2.test.js`  | 提案全生命周期、状态流转、配置验证     | 56     |
+| ✅ `desktop-app-vue/tests/unit/blockchain/quadratic-voting.test.js`   | 二次方成本计算、token 扣减、防刷票     | 34     |
+| ✅ `desktop-app-vue/tests/unit/blockchain/delegation-manager.test.js` | 委托链构建、DFS 环路检测、过期撤销     | 41     |
+| ✅ `desktop-app-vue/tests/unit/blockchain/treasury-manager.test.js`   | 资金分配、余额检查、多签审批、审计日志 | 38     |
+| ✅ `desktop-app-vue/tests/unit/blockchain/dao-governance-ipc.test.js` | 8 个 IPC Handler 参数校验与响应格式    | 48     |
+| ✅ `desktop-app-vue/tests/unit/blockchain/dao-analytics.test.js`      | 治理统计计算、参与率、通过率、委托网络 | 22     |
+| ✅ `desktop-app-vue/tests/integration/dao-full-flow.test.js`          | 端到端：创建→投票→队列→执行→资金库     | 17     |
 
 **总计**: 7 个测试文件，256 个测试用例
 
@@ -610,21 +622,25 @@ const MATURE_STAGE_CONFIG = {
 ## 安全考虑
 
 ### 投票安全
+
 - **二次方投票防刷**: 每个 DID 在同一提案中只能投票一次（`UNIQUE(proposal_id, voter_did)`），防止通过创建多个身份绕过二次方成本
 - **投票隐私**: 投票记录存储在本地加密数据库中，投票方向（`direction`）在投票期结束前不公开，防止从众效应和投票贿赂
 - **时间锁保护**: 提案通过后有 `executionDelay`（默认 2 天）缓冲期，社区可在此期间发起否决（Veto），防止恶意提案快速执行
 
 ### 委托安全
+
 - **环路检测**: 系统使用深度优先搜索（DFS）自动检测委托链中的环路，拒绝会导致循环的委托操作
 - **委托深度限制**: `maxChainDepth` 限制委托链最大长度（默认 5 层），防止过长的委托链导致投票权溯源困难
 - **可撤销委托**: 委托方可随时撤销委托（`revocable: true`），且委托有过期时间，避免永久性权力转移
 
 ### 资金库安全
+
 - **多签审批**: 资金分配需要达到 `approvalThreshold`（默认 3 票）才能执行，单一管理员无法独自动用资金
 - **提案绑定**: 所有资金支出必须关联有效提案（`proposal_id`），无提案授权的转账将被拒绝
 - **审计追溯**: `dao_treasury` 表完整记录所有资金流向，支持按类别、提案、时间维度进行审计
 
 ### 治理攻击防护
+
 - **最低法定人数**: 提案必须达到 `minQuorum`（默认 10%）参与率才能通过，防止低参与度下少数人操控结果
 - **冷却期**: 同一类型的提案在短时间内不可重复提交，防止通过反复提案消耗社区注意力
 

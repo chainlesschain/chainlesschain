@@ -48,13 +48,13 @@ ChainlessChain 零知识证明引擎（ZKP Engine）提供 zk-SNARK/zk-STARK 本
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/main/crypto/zkp-engine.js` | ZKP 证明生成与验证核心 |
-| `desktop-app-vue/src/main/crypto/circom-compiler.js` | Circom 电路编译器 |
-| `desktop-app-vue/src/main/crypto/identity-proof.js` | DID 身份零知识证明 |
-| `desktop-app-vue/src/main/crypto/zkp-ipc.js` | ZKP IPC 处理器 (6 个) |
-| `desktop-app-vue/src/renderer/stores/zkpEngine.ts` | Pinia 状态管理 |
+| 文件                                                 | 职责                   |
+| ---------------------------------------------------- | ---------------------- |
+| `desktop-app-vue/src/main/crypto/zkp-engine.js`      | ZKP 证明生成与验证核心 |
+| `desktop-app-vue/src/main/crypto/circom-compiler.js` | Circom 电路编译器      |
+| `desktop-app-vue/src/main/crypto/identity-proof.js`  | DID 身份零知识证明     |
+| `desktop-app-vue/src/main/crypto/zkp-ipc.js`         | ZKP IPC 处理器 (6 个)  |
+| `desktop-app-vue/src/renderer/stores/zkpEngine.ts`   | Pinia 状态管理         |
 
 ## IPC 接口
 
@@ -243,13 +243,13 @@ CREATE INDEX IF NOT EXISTS idx_zkp_proofs_status ON zkp_proofs(status);
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 电路约束过多编译慢 | 电路复杂度过高或未分拆子电路 | 拆分为多个子电路，减少单电路约束数 |
-| 证明生成 OOM 内存溢出 | 电路规模超出系统内存上限 | 增加系统内存，或减小电路规模和 witness 大小 |
-| 验证密钥不匹配 | 编译电路后密钥未更新或版本混用 | 重新生成密钥对 `zkp keygen --circuit <name>` |
-| 证明验证失败返回 false | publicSignals 与生成时不一致 | 对比 publicSignals，确认输入参数完全一致 |
-| 可信设置仪式超时 | 参与方网络延迟或参与人数过多 | 减少参与方数量，或切换到无需可信设置的 PLONK |
+| 症状                   | 可能原因                       | 解决方案                                     |
+| ---------------------- | ------------------------------ | -------------------------------------------- |
+| 电路约束过多编译慢     | 电路复杂度过高或未分拆子电路   | 拆分为多个子电路，减少单电路约束数           |
+| 证明生成 OOM 内存溢出  | 电路规模超出系统内存上限       | 增加系统内存，或减小电路规模和 witness 大小  |
+| 验证密钥不匹配         | 编译电路后密钥未更新或版本混用 | 重新生成密钥对 `zkp keygen --circuit <name>` |
+| 证明验证失败返回 false | publicSignals 与生成时不一致   | 对比 publicSignals，确认输入参数完全一致     |
+| 可信设置仪式超时       | 参与方网络延迟或参与人数过多   | 减少参与方数量，或切换到无需可信设置的 PLONK |
 
 ### 常见错误修复
 
@@ -341,24 +341,24 @@ const PROOF_SYSTEM_CONFIG = {
   groth16: {
     // 最快的证明/验证速度，需要可信设置仪式
     trustedSetup: true,
-    proofSizeBytes: 192,      // 证明体积最小
-    verifyTimeMs: 5,          // 链上验证极快
-    useCase: "隐私交易、高频验证场景"
+    proofSizeBytes: 192, // 证明体积最小
+    verifyTimeMs: 5, // 链上验证极快
+    useCase: "隐私交易、高频验证场景",
   },
   plonk: {
     // 无需可信设置，通用 SRS，证明体积较大
     trustedSetup: false,
     proofSizeBytes: 896,
     verifyTimeMs: 12,
-    useCase: "无需可信设置的身份证明"
+    useCase: "无需可信设置的身份证明",
   },
   stark: {
     // 量子安全，无可信设置，证明体积最大
     trustedSetup: false,
-    proofSizeBytes: 45000,    // 体积较大
+    proofSizeBytes: 45000, // 体积较大
     verifyTimeMs: 80,
-    useCase: "后量子安全场景、监管合规"
-  }
+    useCase: "后量子安全场景、监管合规",
+  },
 };
 ```
 
@@ -366,49 +366,49 @@ const PROOF_SYSTEM_CONFIG = {
 
 ### 核心操作基准（Apple M2 / AMD Ryzen 7 参考值）
 
-| 操作 | 目标 | 实际（10K 约束电路） | 状态 |
-| ---- | ---- | -------------------- | ---- |
-| Circom 电路编译（首次） | < 5s | ~3.2s | ✅ 达标 |
-| Circom 电路编译（增量） | < 500ms | ~180ms | ✅ 达标 |
-| Groth16 证明生成（10K 约束） | < 3s | ~1.8s | ✅ 达标 |
-| Groth16 证明生成（100K 约束） | < 30s | ~22s | ✅ 达标 |
-| Groth16 证明验证 | < 20ms | ~8ms | ✅ 达标 |
-| PLONK 证明生成（10K 约束） | < 8s | ~6.1s | ✅ 达标 |
-| PLONK 证明验证 | < 30ms | ~14ms | ✅ 达标 |
-| 身份证明创建（3 个 claims） | < 2s | ~1.1s | ✅ 达标 |
-| 选择性披露验证 | < 50ms | ~18ms | ✅ 达标 |
-| 缓存证明复用（命中） | < 5ms | ~1.2ms | ✅ 达标 |
+| 操作                          | 目标    | 实际（10K 约束电路） | 状态    |
+| ----------------------------- | ------- | -------------------- | ------- |
+| Circom 电路编译（首次）       | < 5s    | ~3.2s                | ✅ 达标 |
+| Circom 电路编译（增量）       | < 500ms | ~180ms               | ✅ 达标 |
+| Groth16 证明生成（10K 约束）  | < 3s    | ~1.8s                | ✅ 达标 |
+| Groth16 证明生成（100K 约束） | < 30s   | ~22s                 | ✅ 达标 |
+| Groth16 证明验证              | < 20ms  | ~8ms                 | ✅ 达标 |
+| PLONK 证明生成（10K 约束）    | < 8s    | ~6.1s                | ✅ 达标 |
+| PLONK 证明验证                | < 30ms  | ~14ms                | ✅ 达标 |
+| 身份证明创建（3 个 claims）   | < 2s    | ~1.1s                | ✅ 达标 |
+| 选择性披露验证                | < 50ms  | ~18ms                | ✅ 达标 |
+| 缓存证明复用（命中）          | < 5ms   | ~1.2ms               | ✅ 达标 |
 
 ### 内存占用参考
 
-| 场景 | 内存峰值 | 说明 |
-| ---- | -------- | ---- |
-| 10K 约束电路 Witness 计算 | ~256MB | 标准身份证明场景 |
-| 100K 约束电路 Witness 计算 | ~1.5GB | 复杂隐私交易电路 |
-| 并发 2 路证明生成 | ~2.8GB | 默认 maxConcurrentGeneration=2 |
-| 验证操作（仅验证） | ~32MB | 验证无需加载 witness |
+| 场景                       | 内存峰值 | 说明                           |
+| -------------------------- | -------- | ------------------------------ |
+| 10K 约束电路 Witness 计算  | ~256MB   | 标准身份证明场景               |
+| 100K 约束电路 Witness 计算 | ~1.5GB   | 复杂隐私交易电路               |
+| 并发 2 路证明生成          | ~2.8GB   | 默认 maxConcurrentGeneration=2 |
+| 验证操作（仅验证）         | ~32MB    | 验证无需加载 witness           |
 
 ### 并发扩展性
 
-| 并发证明数 | 吞吐量（证明/分钟） | CPU 利用率 | 状态 |
-| ---------- | ------------------- | ---------- | ---- |
-| 1 | ~20 | 45% | ✅ 基准 |
-| 2 | ~36 | 82% | ✅ 推荐（默认） |
-| 4 | ~42 | 98% | ⚠️ CPU 争抢，延迟上升 |
+| 并发证明数 | 吞吐量（证明/分钟） | CPU 利用率 | 状态                  |
+| ---------- | ------------------- | ---------- | --------------------- |
+| 1          | ~20                 | 45%        | ✅ 基准               |
+| 2          | ~36                 | 82%        | ✅ 推荐（默认）       |
+| 4          | ~42                 | 98%        | ⚠️ CPU 争抢，延迟上升 |
 
 ## 测试覆盖率
 
 ### 测试文件列表
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| -------- | -------- | ------ |
-| ✅ `desktop-app-vue/tests/unit/crypto/zkp-engine.test.js` | 证明生成/验证核心逻辑、缓存、并发 | 48 |
-| ✅ `desktop-app-vue/tests/unit/crypto/circom-compiler.test.js` | 电路编译、增量编译、约束数统计 | 31 |
-| ✅ `desktop-app-vue/tests/unit/crypto/identity-proof.test.js` | 身份证明创建、选择性披露、自动续签 | 27 |
-| ✅ `desktop-app-vue/tests/unit/crypto/zkp-ipc.test.js` | 6 个 IPC Handler 参数校验与响应格式 | 42 |
-| ✅ `desktop-app-vue/tests/unit/crypto/zkp-proof-systems.test.js` | Groth16 / PLONK / STARK 三系统对比 | 19 |
-| ✅ `desktop-app-vue/tests/unit/crypto/zkp-security.test.js` | 证明撤销、过期策略、验证密钥保护 | 23 |
-| ✅ `desktop-app-vue/tests/integration/zkp-full-flow.test.js` | 端到端：编译→生成→验证→身份证明 | 14 |
+| 测试文件                                                         | 覆盖范围                            | 用例数 |
+| ---------------------------------------------------------------- | ----------------------------------- | ------ |
+| ✅ `desktop-app-vue/tests/unit/crypto/zkp-engine.test.js`        | 证明生成/验证核心逻辑、缓存、并发   | 48     |
+| ✅ `desktop-app-vue/tests/unit/crypto/circom-compiler.test.js`   | 电路编译、增量编译、约束数统计      | 31     |
+| ✅ `desktop-app-vue/tests/unit/crypto/identity-proof.test.js`    | 身份证明创建、选择性披露、自动续签  | 27     |
+| ✅ `desktop-app-vue/tests/unit/crypto/zkp-ipc.test.js`           | 6 个 IPC Handler 参数校验与响应格式 | 42     |
+| ✅ `desktop-app-vue/tests/unit/crypto/zkp-proof-systems.test.js` | Groth16 / PLONK / STARK 三系统对比  | 19     |
+| ✅ `desktop-app-vue/tests/unit/crypto/zkp-security.test.js`      | 证明撤销、过期策略、验证密钥保护    | 23     |
+| ✅ `desktop-app-vue/tests/integration/zkp-full-flow.test.js`     | 端到端：编译→生成→验证→身份证明     | 14     |
 
 **总计**: 7 个测试文件，204 个测试用例
 
@@ -430,16 +430,19 @@ const PROOF_SYSTEM_CONFIG = {
 ## 安全考虑
 
 ### 证明系统安全性
+
 - **可信设置**: Groth16 需要可信设置仪式（Trusted Setup），泄露 toxic waste 将导致伪造证明；建议使用多方参与的 Powers of Tau 仪式或切换到无需可信设置的 PLONK/STARK
 - **电路审计**: 自定义 Circom 电路上线前务必进行形式化验证或第三方审计，约束不完整可能导致零知识性失效
 - **侧信道防护**: 证明生成过程中避免在共享环境下运行，防止计时攻击（Timing Attack）泄露 witness 信息
 
 ### 密钥与证明管理
+
 - **验证密钥保护**: `vkey_data` 存储在 SQLite 中并由 SQLCipher 加密，切勿以明文导出或传输验证密钥
 - **证明有效期**: 所有证明默认设置过期时间（`defaultExpiry`），过期证明自动标记为 `expired` 状态，防止无限期重放
 - **证明撤销**: 支持主动撤销已签发的证明（状态置为 `revoked`），撤销后验证方将拒绝接受
 
 ### 身份证明隐私
+
 - **最小披露原则**: 使用选择性披露时仅公开必要的身份属性，系统默认 `defaultDisclosure` 为空数组
 - **验证方身份校验**: 选择性披露操作需指定 `verifierDid`，系统记录披露对象以便事后审计
 - **证明不可关联性**: 同一身份的多次证明之间不应可被关联，避免使用固定的 `proofId` 前缀或可预测的标识符
@@ -455,12 +458,12 @@ const PROOF_SYSTEM_CONFIG = {
 
 ### 证明验证错误
 
-| 现象 | 排查步骤 |
-|------|---------|
+| 现象           | 排查步骤                                                                          |
+| -------------- | --------------------------------------------------------------------------------- |
 | `valid: false` | 确认 `publicSignals` 与生成证明时完全一致（顺序和数值），任何偏差都会导致验证失败 |
-| 验证密钥不匹配 | 检查 `circuitId` 是否正确，证明必须使用同一电路的验证密钥验证 |
-| 证明已过期 | `status: "expired"` 表示超过 `defaultExpiry`（默认 24 小时），需重新生成证明 |
-| 跨设备验证失败 | 确认导出的验证密钥（`vkey_data`）完整且未被篡改 |
+| 验证密钥不匹配 | 检查 `circuitId` 是否正确，证明必须使用同一电路的验证密钥验证                     |
+| 证明已过期     | `status: "expired"` 表示超过 `defaultExpiry`（默认 24 小时），需重新生成证明      |
+| 跨设备验证失败 | 确认导出的验证密钥（`vkey_data`）完整且未被篡改                                   |
 
 ### 性能问题
 

@@ -204,14 +204,14 @@ const useEvoMapFederationStore = defineStore("evoMapFederation", {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Hub 发现失败 | 远程 Hub 不在线或网络不可达 | 检查网络连接，确认目标 Hub endpoint 地址正确 |
-| 基因同步冲突过多 | 双方基因版本差异大 | 改用单向同步（push/pull），手动解决冲突 |
-| 进化压力报告为空 | 基因库数据不足 | 需要累计一定数量的基因才能生成统计 |
-| 重组后适应度为 0 | 父基因兼容性差 | 选择相似领域的基因进行重组 |
-| 谱系 DAG 加载缓慢 | 基因历史代数过多 | 限制查询深度，分页加载谱系数据 |
-| Hub 状态显示 offline | 心跳超时未响应 | 联系 Hub 管理员确认服务状态 |
+| 问题                 | 可能原因                    | 解决方案                                     |
+| -------------------- | --------------------------- | -------------------------------------------- |
+| Hub 发现失败         | 远程 Hub 不在线或网络不可达 | 检查网络连接，确认目标 Hub endpoint 地址正确 |
+| 基因同步冲突过多     | 双方基因版本差异大          | 改用单向同步（push/pull），手动解决冲突      |
+| 进化压力报告为空     | 基因库数据不足              | 需要累计一定数量的基因才能生成统计           |
+| 重组后适应度为 0     | 父基因兼容性差              | 选择相似领域的基因进行重组                   |
+| 谱系 DAG 加载缓慢    | 基因历史代数过多            | 限制查询深度，分页加载谱系数据               |
+| Hub 状态显示 offline | 心跳超时未响应              | 联系 Hub 管理员确认服务状态                  |
 
 ## 配置参考
 
@@ -219,41 +219,41 @@ const useEvoMapFederationStore = defineStore("evoMapFederation", {
 // desktop-app-vue/src/main/evomap/evomap-federation.js
 const DEFAULT_CONFIG = {
   federation: {
-    hubHeartbeatIntervalMs: 30000,   // Hub 心跳检测间隔（30 秒）
-    hubTimeoutMs: 90000,             // Hub 心跳超时判定离线（90 秒）
-    maxHubsPerInstance: 20,          // 单实例最多联邦 Hub 数
-    syncBatchSize: 50,               // 单次同步批量基因数
+    hubHeartbeatIntervalMs: 30000, // Hub 心跳检测间隔（30 秒）
+    hubTimeoutMs: 90000, // Hub 心跳超时判定离线（90 秒）
+    maxHubsPerInstance: 20, // 单实例最多联邦 Hub 数
+    syncBatchSize: 50, // 单次同步批量基因数
   },
   evolution: {
-    fitnessThreshold: 0.3,           // 适应度低于此值的基因被淘汰
-    recombinationRate: 0.8,          // 基因重组交叉概率
-    mutationRate: 0.05,              // 变异概率
-    eliteRetentionRatio: 0.1,        // 精英基因保留比例
+    fitnessThreshold: 0.3, // 适应度低于此值的基因被淘汰
+    recombinationRate: 0.8, // 基因重组交叉概率
+    mutationRate: 0.05, // 变异概率
+    eliteRetentionRatio: 0.1, // 精英基因保留比例
   },
   lineage: {
-    maxGenerationsDepth: 50,         // 谱系 DAG 最大追溯代数
-    dagPageSize: 100,                // 谱系分页大小
+    maxGenerationsDepth: 50, // 谱系 DAG 最大追溯代数
+    dagPageSize: 100, // 谱系分页大小
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `hubHeartbeatIntervalMs` | 30000 | Hub 心跳检测间隔 |
-| `fitnessThreshold` | 0.3 | 进化淘汰适应度阈值 |
-| `syncBatchSize` | 50 | 单批次同步基因数量 |
-| `maxGenerationsDepth` | 50 | 谱系 DAG 最大追溯代数 |
+| 配置项                   | 默认值 | 说明                  |
+| ------------------------ | ------ | --------------------- |
+| `hubHeartbeatIntervalMs` | 30000  | Hub 心跳检测间隔      |
+| `fitnessThreshold`       | 0.3    | 进化淘汰适应度阈值    |
+| `syncBatchSize`          | 50     | 单批次同步基因数量    |
+| `maxGenerationsDepth`    | 50     | 谱系 DAG 最大追溯代数 |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| Hub 列表发现 | < 200ms | ~60ms | ✅ |
-| 跨 Hub 基因同步（50 条） | < 1000ms | ~350ms | ✅ |
-| 进化压力报告生成 | < 300ms | ~100ms | ✅ |
-| 基因重组（crossover） | < 200ms | ~80ms | ✅ |
-| 谱系 DAG 查询（5 代） | < 150ms | ~50ms | ✅ |
-| Hub 心跳检测轮次 | < 30s | ~28s | ✅ |
+| 操作                     | 目标     | 实际   | 状态 |
+| ------------------------ | -------- | ------ | ---- |
+| Hub 列表发现             | < 200ms  | ~60ms  | ✅   |
+| 跨 Hub 基因同步（50 条） | < 1000ms | ~350ms | ✅   |
+| 进化压力报告生成         | < 300ms  | ~100ms | ✅   |
+| 基因重组（crossover）    | < 200ms  | ~80ms  | ✅   |
+| 谱系 DAG 查询（5 代）    | < 150ms  | ~50ms  | ✅   |
+| Hub 心跳检测轮次         | < 30s    | ~28s   | ✅   |
 
 ## 安全考虑
 

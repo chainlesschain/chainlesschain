@@ -10,10 +10,10 @@
 
 命令来源分两层：
 
-| 层级 | 路径 | 作用域 |
-|------|------|--------|
+| 层级 | 路径                        | 作用域               |
+| ---- | --------------------------- | -------------------- |
 | 项目 | `.claude/commands/`（递归） | 当前项目，随仓库共享 |
-| 个人 | `~/.claude/commands/` | 当前用户，全局可用 |
+| 个人 | `~/.claude/commands/`       | 当前用户，全局可用   |
 
 **命名冲突时项目层覆盖个人层。** 文件名到命令名的映射：子目录用冒号连接，`git/commit.md → git:commit`（运行时 `git:commit` 与 `git/commit` 两种写法都接受）。
 
@@ -88,12 +88,12 @@ model: claude-opus-4-8
 参考最近风格：@CHANGELOG.md
 ```
 
-| 字段 | 说明 |
-|------|------|
-| `description` | 命令简述，`list` 时展示 |
+| 字段            | 说明                     |
+| --------------- | ------------------------ |
+| `description`   | 命令简述，`list` 时展示  |
 | `argument-hint` | 参数提示，引导调用方传参 |
 | `allowed-tools` | 限定本次运行的工具白名单 |
-| `model` | 指定本次运行的模型 |
+| `model`         | 指定本次运行的模型       |
 
 > frontmatter 键做 kebab→camel 归一，**用零依赖手写标量解析器**（不用 js-yaml，也不用 skill-loader 的 `parseSkillMd`），以免引入会导致全局安装崩溃或 Windows vitest EPERM 的依赖链。
 
@@ -125,22 +125,22 @@ npx vitest run __tests__/unit/slash-commands.test.js
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `cc command run` 找不到命令 | 文件不在 `.claude/commands/` 或 `~/.claude/commands/` | 用 `cc command list` 确认；子目录用 `:` 连接命令名 |
-| 个人命令被「忽略」 | 同名项目命令覆盖了个人命令 | 项目层优先；改名或删除项目同名文件 |
-| `` !`cmd` `` 没有执行 | 用了 `--no-bang`，或 frontmatter 未授权 | 去掉 `--no-bang`；确认 `allowBang` 未被关闭 |
-| Shell 拼接显示 `[command failed: …]` | 命令出错或 >10s 超时 | 单独运行该 Shell 命令排查；保持其 <10s |
-| `@path` 未注入文件 | 路径相对基准不对 | 用相对项目根/cwd 的正确路径；先 `--print-prompt` 验证 |
+| 现象                                 | 可能原因                                              | 处理                                                  |
+| ------------------------------------ | ----------------------------------------------------- | ----------------------------------------------------- |
+| `cc command run` 找不到命令          | 文件不在 `.claude/commands/` 或 `~/.claude/commands/` | 用 `cc command list` 确认；子目录用 `:` 连接命令名    |
+| 个人命令被「忽略」                   | 同名项目命令覆盖了个人命令                            | 项目层优先；改名或删除项目同名文件                    |
+| `` !`cmd` `` 没有执行                | 用了 `--no-bang`，或 frontmatter 未授权               | 去掉 `--no-bang`；确认 `allowBang` 未被关闭           |
+| Shell 拼接显示 `[command failed: …]` | 命令出错或 >10s 超时                                  | 单独运行该 Shell 命令排查；保持其 <10s                |
+| `@path` 未注入文件                   | 路径相对基准不对                                      | 用相对项目根/cwd 的正确路径；先 `--print-prompt` 验证 |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/slash-commands.js` | `discoverCommands` / `getCommand` / `parseCommandFile` / `substituteArgs` / `expandCommand`（纯函数，可注入依赖） |
-| `packages/cli/src/commands/command.js` | `list \| show \| run \| new` 命令，`run` 展开后驱动 `runAgentHeadless` |
-| `packages/cli/src/lib/file-ref-expander.js` | `@path` 文件引用展开（复用） |
-| `packages/cli/__tests__/unit/slash-commands.test.js` | 11 单元测试 |
+| 文件                                                 | 说明                                                                                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/src/lib/slash-commands.js`             | `discoverCommands` / `getCommand` / `parseCommandFile` / `substituteArgs` / `expandCommand`（纯函数，可注入依赖） |
+| `packages/cli/src/commands/command.js`               | `list \| show \| run \| new` 命令，`run` 展开后驱动 `runAgentHeadless`                                            |
+| `packages/cli/src/lib/file-ref-expander.js`          | `@path` 文件引用展开（复用）                                                                                      |
+| `packages/cli/__tests__/unit/slash-commands.test.js` | 11 单元测试                                                                                                       |
 
 ## 使用示例
 

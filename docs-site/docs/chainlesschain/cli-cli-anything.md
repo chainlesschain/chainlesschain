@@ -77,6 +77,7 @@ chainlesschain cli-anything register gimp --force
 ```
 
 注册后生成的文件：
+
 - `<userData>/skills/cli-anything-gimp/SKILL.md` — 技能元数据
 - `<userData>/skills/cli-anything-gimp/handler.js` — 执行处理器
 
@@ -139,24 +140,24 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 
 ## 数据库表
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | TEXT PK | 唯一标识 |
-| name | TEXT UNIQUE | 工具名（如 gimp） |
-| software_path | TEXT | 原始软件路径 |
-| cli_command | TEXT | CLI 命令（如 cli-anything-gimp） |
-| version | TEXT | 版本号 |
-| description | TEXT | 描述 |
-| subcommands | TEXT | 子命令 JSON 数组 |
-| skill_name | TEXT | 关联的技能名 |
-| status | TEXT | 状态（discovered/registered） |
+| 字段          | 类型        | 说明                             |
+| ------------- | ----------- | -------------------------------- |
+| id            | TEXT PK     | 唯一标识                         |
+| name          | TEXT UNIQUE | 工具名（如 gimp）                |
+| software_path | TEXT        | 原始软件路径                     |
+| cli_command   | TEXT        | CLI 命令（如 cli-anything-gimp） |
+| version       | TEXT        | 版本号                           |
+| description   | TEXT        | 描述                             |
+| subcommands   | TEXT        | 子命令 JSON 数组                 |
+| skill_name    | TEXT        | 关联的技能名                     |
+| status        | TEXT        | 状态（discovered/registered）    |
 
 ## 选项说明
 
-| 选项 | 命令 | 说明 |
-|------|------|------|
-| `--json` | 所有子命令 | 以 JSON 格式输出 |
-| `--force` | register | 覆盖已有注册 |
+| 选项      | 命令       | 说明             |
+| --------- | ---------- | ---------------- |
+| `--json`  | 所有子命令 | 以 JSON 格式输出 |
+| `--force` | register   | 覆盖已有注册     |
 
 ## 核心特性
 
@@ -225,14 +226,14 @@ chainlesschain cli-anything <subcommand> [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| doctor 环境探测 | < 500ms | ~180ms | ✅ |
-| scan PATH 扫描 | < 300ms | ~120ms | ✅ |
-| register 解析 --help | < 800ms | ~350ms | ✅ |
-| register 生成 SKILL.md + handler.js | < 100ms | ~40ms | ✅ |
-| list 查询（含 DB） | < 50ms | ~20ms | ✅ |
-| Agent 调用已注册工具（execSync） | < 60s 上限 | 取决于工具 | ✅ |
+| 操作                                | 目标       | 实际       | 状态 |
+| ----------------------------------- | ---------- | ---------- | ---- |
+| doctor 环境探测                     | < 500ms    | ~180ms     | ✅   |
+| scan PATH 扫描                      | < 300ms    | ~120ms     | ✅   |
+| register 解析 --help                | < 800ms    | ~350ms     | ✅   |
+| register 生成 SKILL.md + handler.js | < 100ms    | ~40ms      | ✅   |
+| list 查询（含 DB）                  | < 50ms     | ~20ms      | ✅   |
+| Agent 调用已注册工具（execSync）    | < 60s 上限 | 取决于工具 | ✅   |
 
 ## 测试覆盖率
 
@@ -360,13 +361,13 @@ chainlesschain cli-anything register gimp --force
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/cli-anything.js` | 命令注册入口（doctor/scan/register/list/remove 五个子命令） |
+| 文件                                          | 说明                                                                 |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| `packages/cli/src/commands/cli-anything.js`   | 命令注册入口（doctor/scan/register/list/remove 五个子命令）          |
 | `packages/cli/src/lib/cli-anything-bridge.js` | 核心桥接库（Python 检测、PATH 扫描、--help 解析、技能生成、DB 操作） |
-| `packages/cli/src/lib/paths.js` | `getElectronUserDataDir()` 提供 managed 层技能目录路径 |
-| `<userData>/skills/cli-anything-*/SKILL.md` | 生成的技能元数据文件 |
-| `<userData>/skills/cli-anything-*/handler.js` | 生成的执行处理器（CJS，execSync 包装） |
+| `packages/cli/src/lib/paths.js`               | `getElectronUserDataDir()` 提供 managed 层技能目录路径               |
+| `<userData>/skills/cli-anything-*/SKILL.md`   | 生成的技能元数据文件                                                 |
+| `<userData>/skills/cli-anything-*/handler.js` | 生成的执行处理器（CJS，execSync 包装）                               |
 
 ## 相关文档
 

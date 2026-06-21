@@ -30,19 +30,19 @@ chainlesschain stream "分析代码" --base-url http://localhost:8080/v1
 
 #### 参数
 
-| 参数 | 说明 |
-|------|------|
+| 参数       | 说明                        |
+| ---------- | --------------------------- |
 | `<prompt>` | 必填，要发送给 LLM 的提示词 |
 
 #### 选项
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--provider <provider>` | LLM 提供商 | `ollama`（或 config 中的配置） |
-| `--model <model>` | 模型名称 | 配置文件中的默认模型 |
-| `--base-url <url>` | API 基础 URL | 配置文件中的默认值 |
-| `--api-key <key>` | API 密钥 | 配置文件中的默认值 |
-| `--text` | 输出拼接后的纯文本而非 NDJSON | 关闭 |
+| 选项                    | 说明                          | 默认值                         |
+| ----------------------- | ----------------------------- | ------------------------------ |
+| `--provider <provider>` | LLM 提供商                    | `ollama`（或 config 中的配置） |
+| `--model <model>`       | 模型名称                      | 配置文件中的默认模型           |
+| `--base-url <url>`      | API 基础 URL                  | 配置文件中的默认值             |
+| `--api-key <key>`       | API 密钥                      | 配置文件中的默认值             |
+| `--text`                | 输出拼接后的纯文本而非 NDJSON | 关闭                           |
 
 ## 输出格式
 
@@ -60,7 +60,11 @@ chainlesschain stream "分析代码" --base-url http://localhost:8080/v1
 错误时输出 error 事件：
 
 ```jsonl
-{"type":"error","error":"Connection refused","ts":1713000000005}
+{
+  "type": "error",
+  "error": "Connection refused",
+  "ts": 1713000000005
+}
 ```
 
 ### 文本模式（--text）
@@ -110,34 +114,34 @@ chainlesschain stream "分析代码" --base-url http://localhost:8080/v1
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/stream.js` | stream 命令主入口 |
-| `packages/cli/src/lib/provider-stream.js` | LLM 提供商流式适配器 |
+| 文件                                              | 职责                  |
+| ------------------------------------------------- | --------------------- |
+| `packages/cli/src/commands/stream.js`             | stream 命令主入口     |
+| `packages/cli/src/lib/provider-stream.js`         | LLM 提供商流式适配器  |
 | `packages/cli/src/lib/session-core-singletons.js` | StreamRouter 单例工厂 |
-| `packages/cli/src/lib/config-manager.js` | 配置加载 |
+| `packages/cli/src/lib/config-manager.js`          | 配置加载              |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `--provider` | LLM 提供商 | `ollama` |
-| `--model` | 模型名 | 由 provider 决定 |
-| `--base-url` | 自定义网关 | 依赖 `.env` |
-| `--text` | 仅输出文本（关闭 NDJSON） | false |
-| `--max-tokens` | 最大生成 token | 2048 |
-| `--temperature` | 采样温度 | 0.7 |
+| 配置项          | 含义                      | 默认             |
+| --------------- | ------------------------- | ---------------- |
+| `--provider`    | LLM 提供商                | `ollama`         |
+| `--model`       | 模型名                    | 由 provider 决定 |
+| `--base-url`    | 自定义网关                | 依赖 `.env`      |
+| `--text`        | 仅输出文本（关闭 NDJSON） | false            |
+| `--max-tokens`  | 最大生成 token            | 2048             |
+| `--temperature` | 采样温度                  | 0.7              |
 
 事件流格式：每行一个 JSON（`{"delta": "..."}` / `{"done": true, "usage": {...}}`）。
 
 ## 性能指标
 
-| 指标 | 典型值 | 备注 |
-| ---- | ------ | ---- |
-| 首 token 延迟 | 依赖 provider | Ollama 本地 300–600 ms |
-| token 吞吐 | 依赖模型 | 7B 量化 ~30–80 tok/s |
-| CLI 解析开销 | < 10 ms | Commander + singleton 工厂 |
-| 管道背压 | 原生 stdout | NDJSON 行对齐便于 `jq -c` |
+| 指标          | 典型值        | 备注                       |
+| ------------- | ------------- | -------------------------- |
+| 首 token 延迟 | 依赖 provider | Ollama 本地 300–600 ms     |
+| token 吞吐    | 依赖模型      | 7B 量化 ~30–80 tok/s       |
+| CLI 解析开销  | < 10 ms       | Commander + singleton 工厂 |
+| 管道背压      | 原生 stdout   | NDJSON 行对齐便于 `jq -c`  |
 
 ## 测试覆盖率
 
@@ -195,12 +199,12 @@ chainlesschain stream "生成 README 模板" --text > README_draft.md
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "connect ECONNREFUSED" | Ollama 未启动 | 启动 `ollama serve` |
-| "Stream errored" | API 密钥无效 | 检查 `--api-key` 或配置文件 |
-| 无输出 | 模型未安装 | 运行 `ollama pull <model>` |
-| 乱码输出 | 终端编码问题 | 确保终端使用 UTF-8 |
+| 症状                   | 可能原因      | 解决方案                    |
+| ---------------------- | ------------- | --------------------------- |
+| "connect ECONNREFUSED" | Ollama 未启动 | 启动 `ollama serve`         |
+| "Stream errored"       | API 密钥无效  | 检查 `--api-key` 或配置文件 |
+| 无输出                 | 模型未安装    | 运行 `ollama pull <model>`  |
+| 乱码输出               | 终端编码问题  | 确保终端使用 UTF-8          |
 
 ## 相关文档
 

@@ -98,10 +98,10 @@ chainlesschain marketplace stats -s <service-id> --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `marketplace_services` | 技能服务（名称、版本、描述、端点、所有者、定价、状态、调用数） |
-| `marketplace_invocations` | 调用记录（服务 ID、调用者、输入输出、状态、耗时、错误信息） |
+| 表名                      | 说明                                                           |
+| ------------------------- | -------------------------------------------------------------- |
+| `marketplace_services`    | 技能服务（名称、版本、描述、端点、所有者、定价、状态、调用数） |
+| `marketplace_invocations` | 调用记录（服务 ID、调用者、输入输出、状态、耗时、错误信息）    |
 
 ## 系统架构
 
@@ -144,19 +144,19 @@ chainlesschain marketplace stats -s <service-id> --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| publish 发布服务 | < 200ms | ~100ms | OK |
-| record 记录调用 | < 150ms | ~70ms | OK |
-| list 列出 (50 条) | < 300ms | ~130ms | OK |
-| stats 聚合统计 | < 500ms | ~250ms | OK |
-| invocations 列出 | < 300ms | ~140ms | OK |
+| 操作              | 目标    | 实际   | 状态 |
+| ----------------- | ------- | ------ | ---- |
+| publish 发布服务  | < 200ms | ~100ms | OK   |
+| record 记录调用   | < 150ms | ~70ms  | OK   |
+| list 列出 (50 条) | < 300ms | ~130ms | OK   |
+| stats 聚合统计    | < 500ms | ~250ms | OK   |
+| invocations 列出  | < 300ms | ~140ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/marketplace.js` | marketplace 命令主入口 (Phase 65) |
+| 文件                                        | 职责                                 |
+| ------------------------------------------- | ------------------------------------ |
+| `packages/cli/src/commands/marketplace.js`  | marketplace 命令主入口 (Phase 65)    |
 | `packages/cli/src/lib/skill-marketplace.js` | 服务发布、调用记录、统计聚合核心实现 |
 
 ## 测试覆盖率
@@ -177,12 +177,12 @@ __tests__/unit/skill-marketplace.test.js — 73 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `publish` 拒 | name 冲突 / tag 非法 | `list` 检查或改名 |
-| `record` 丢失 | provider 未注册 | 先 `publish` |
-| `stats` 空 | 时间窗太窄 | `--since` 放宽 |
-| 搜索无结果 | 索引未更新 | 重启 CLI 或 `rebuild-index` |
+| 症状          | 可能原因             | 解决方案                    |
+| ------------- | -------------------- | --------------------------- |
+| `publish` 拒  | name 冲突 / tag 非法 | `list` 检查或改名           |
+| `record` 丢失 | provider 未注册      | 先 `publish`                |
+| `stats` 空    | 时间窗太窄           | `--since` 放宽              |
+| 搜索无结果    | 索引未更新           | 重启 CLI 或 `rebuild-index` |
 
 ## 使用示例
 

@@ -67,38 +67,38 @@ External
 
 **完整参数说明：**
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `apiKey` | `string` | — | 方舟控制台的 API Key（必填） |
-| `baseURL` | `string` | `https://ark.cn-beijing.volces.com/api/v3` | 方舟 API 基础地址 |
-| `videoModel` | `string` | `doubao-seedance-1.0-lite` | 默认视频模型 |
+| 字段         | 类型     | 默认值                                     | 说明                         |
+| ------------ | -------- | ------------------------------------------ | ---------------------------- |
+| `apiKey`     | `string` | —                                          | 方舟控制台的 API Key（必填） |
+| `baseURL`    | `string` | `https://ark.cn-beijing.volces.com/api/v3` | 方舟 API 基础地址            |
+| `videoModel` | `string` | `doubao-seedance-1.0-lite`                 | 默认视频模型                 |
 
 **生成请求参数：**
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `prompt` | `string` | 文本描述（必填） |
-| `outputPath` | `string` | 本地落盘路径（必填） |
-| `ratio` | `string` | 画面比例：`16:9` / `9:16` / `1:1` |
-| `duration` | `number` | 视频秒数，Seedance 建议 4–10 |
+| 字段         | 类型     | 说明                                    |
+| ------------ | -------- | --------------------------------------- |
+| `prompt`     | `string` | 文本描述（必填）                        |
+| `outputPath` | `string` | 本地落盘路径（必填）                    |
+| `ratio`      | `string` | 画面比例：`16:9` / `9:16` / `1:1`       |
+| `duration`   | `number` | 视频秒数，Seedance 建议 4–10            |
 | `resolution` | `string` | `480p` / `720p` / `1080p`（取决于模型） |
-| `imageUrl` | `string` | 首帧图 URL，提供则按首帧驱动生成 |
-| `model` | `string` | 覆盖默认 `videoModel` |
-| `provider` | `string` | 预留，目前仅 `volcengine` |
+| `imageUrl`   | `string` | 首帧图 URL，提供则按首帧驱动生成        |
+| `model`      | `string` | 覆盖默认 `videoModel`                   |
+| `provider`   | `string` | 预留，目前仅 `volcengine`               |
 
 ---
 
 ## 性能指标
 
-| 操作 | 目标 | 实际（lite 模型） | 状态 |
-|------|------|------------------|------|
-| createTask 接口响应 | < 3s | ~1.2s | ✅ |
-| 5s 视频生成（lite） | < 90s | ~60–80s | ✅ |
-| 5s 视频生成（pro） | < 180s | ~120–150s | ✅ |
-| 进度事件推送间隔 | 5s | 5s（固定轮询） | ✅ |
-| MP4 下载（720p / 5s） | < 10s | ~3–6s（网络依赖） | ✅ |
-| 轮询超时上限 | 600s | 600s | ✅ |
-| IPC 事件延迟（main→renderer） | < 50ms | < 10ms | ✅ |
+| 操作                          | 目标   | 实际（lite 模型） | 状态 |
+| ----------------------------- | ------ | ----------------- | ---- |
+| createTask 接口响应           | < 3s   | ~1.2s             | ✅   |
+| 5s 视频生成（lite）           | < 90s  | ~60–80s           | ✅   |
+| 5s 视频生成（pro）            | < 180s | ~120–150s         | ✅   |
+| 进度事件推送间隔              | 5s     | 5s（固定轮询）    | ✅   |
+| MP4 下载（720p / 5s）         | < 10s  | ~3–6s（网络依赖） | ✅   |
+| 轮询超时上限                  | 600s   | 600s              | ✅   |
+| IPC 事件延迟（main→renderer） | < 50ms | < 10ms            | ✅   |
 
 > 实际耗时受方舟队列负载、网络带宽、提示词复杂度影响。高峰期可能增加 50–100%。
 
@@ -117,6 +117,7 @@ desktop-app-vue/
 ```
 
 **测试策略：**
+
 - 所有测试均使用 mock HTTP（`nock` / `vi.fn()`），**严禁**调用真实 Volcengine API（按秒计费）
 - 覆盖正常生成流程、轮询重试、超时、401 / SensitiveContent 等错误路径
 - 下载阶段通过 stream mock 验证文件落盘逻辑
@@ -126,20 +127,25 @@ desktop-app-vue/
 ## 安全考虑
 
 ### 1. API Key 保护
+
 API Key 仅存储在主进程配置中，不随 IPC 消息传递到渲染进程。渲染进程只能通过预定义的 `window.api.video.generate()` 接口触发生成，无法直接读取 `apiKey`。
 
 ### 2. 内容安全过滤
+
 Seedance 服务端内置内容安全策略（SensitiveContent）。客户端捕获到该错误后以友好提示返回给用户，不会崩溃或暴露内部错误栈。
 
 ### 3. 本地文件路径校验
+
 `outputPath` 在主进程中进行基础路径合法性检查，防止路径穿越攻击（如 `../../../etc/passwd`）。
 
 ### 4. 计费风险控制
+
 - 自动化脚本或测试代码应始终使用 mock，严禁循环调用真实 API
 - 建议在方舟控制台为 API Key 设置月度消费上限
 - CI 环境通过 `VOLCENGINE_API_KEY` 环境变量注入，本地开发通过 `.chainlesschain/config.json` 注入，两者均已加入 `.gitignore`
 
 ### 5. 网络传输安全
+
 所有请求通过 HTTPS 发往 `ark.cn-beijing.volces.com`，视频文件下载同样走 HTTPS，无需额外配置 TLS。
 
 ---
@@ -184,16 +190,16 @@ API Key 无效或该 Key 未开通 Seedance 模型权限。在方舟控制台检
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `desktop-app-vue/src/main/video/volcengine-video-service.js` | 核心服务：createTask / pollTask / downloadVideo |
-| `desktop-app-vue/src/main/video/video-ipc-handler.js` | IPC 通道注册，桥接 main ↔ renderer |
-| `desktop-app-vue/src/renderer/composables/useVideoGenerate.ts` | 渲染进程 Composable，封装 generate + progress 订阅 |
-| `desktop-app-vue/src/renderer/views/VideoGeneratePage.vue` | 视频生成 UI 页面 |
-| `desktop-app-vue/src/main/config/unified-config-manager.js` | 统一配置读取（apiKey / baseURL / videoModel） |
-| `desktop-app-vue/tests/unit/video/volcengine-video-service.test.js` | 主进程服务单元测试 |
-| `packages/cli/tests/unit/video/volcengine-video.test.js` | CLI 侧视频测试（mock API） |
-| `docs/design/modules/90_AI视频生成_Volcengine_Seedance.md` | 架构设计文档 |
+| 文件                                                                | 说明                                               |
+| ------------------------------------------------------------------- | -------------------------------------------------- |
+| `desktop-app-vue/src/main/video/volcengine-video-service.js`        | 核心服务：createTask / pollTask / downloadVideo    |
+| `desktop-app-vue/src/main/video/video-ipc-handler.js`               | IPC 通道注册，桥接 main ↔ renderer                 |
+| `desktop-app-vue/src/renderer/composables/useVideoGenerate.ts`      | 渲染进程 Composable，封装 generate + progress 订阅 |
+| `desktop-app-vue/src/renderer/views/VideoGeneratePage.vue`          | 视频生成 UI 页面                                   |
+| `desktop-app-vue/src/main/config/unified-config-manager.js`         | 统一配置读取（apiKey / baseURL / videoModel）      |
+| `desktop-app-vue/tests/unit/video/volcengine-video-service.test.js` | 主进程服务单元测试                                 |
+| `packages/cli/tests/unit/video/volcengine-video.test.js`            | CLI 侧视频测试（mock API）                         |
+| `docs/design/modules/90_AI视频生成_Volcengine_Seedance.md`          | 架构设计文档                                       |
 
 ---
 
@@ -212,10 +218,10 @@ const unsubscribe = window.api.video.onGenerateProgress((p) => {
 const result = await window.api.video.generate({
   prompt: "a mountain lake at sunrise, time lapse",
   outputPath: "D:/videos/demo.mp4",
-  ratio: "16:9",        // 可选，默认 16:9
-  duration: 5,           // 秒，可选，建议 4–10
-  resolution: "720p",    // 可选，默认 720p
-  imageUrl: undefined,   // 可选，提供则进入首帧图驱动模式
+  ratio: "16:9", // 可选，默认 16:9
+  duration: 5, // 秒，可选，建议 4–10
+  resolution: "720p", // 可选，默认 720p
+  imageUrl: undefined, // 可选，提供则进入首帧图驱动模式
 });
 
 unsubscribe();
@@ -251,26 +257,26 @@ cc video assets prune --older-than 30
 
 ```vue
 <script setup>
-import { ref } from 'vue'
+import { ref } from "vue";
 
-const progress = ref(null)
-const result = ref(null)
+const progress = ref(null);
+const result = ref(null);
 
 async function generate() {
   const unsub = window.api.video.onGenerateProgress((p) => {
-    progress.value = p
-  })
+    progress.value = p;
+  });
 
   try {
     result.value = await window.api.video.generate({
-      prompt: '赛博朋克城市夜景，霓虹灯雨中反光',
-      outputPath: 'D:/videos/cyberpunk.mp4',
-      ratio: '16:9',
+      prompt: "赛博朋克城市夜景，霓虹灯雨中反光",
+      outputPath: "D:/videos/cyberpunk.mp4",
+      ratio: "16:9",
       duration: 5,
-      resolution: '720p',
-    })
+      resolution: "720p",
+    });
   } finally {
-    unsub()
+    unsub();
   }
 }
 </script>

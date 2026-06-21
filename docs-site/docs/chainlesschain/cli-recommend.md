@@ -193,21 +193,21 @@ chainlesschain recommend suggest <user-id> --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/recommend.js` | recommend 命令主入口 |
+| 文件                                             | 职责                             |
+| ------------------------------------------------ | -------------------------------- |
+| `packages/cli/src/commands/recommend.js`         | recommend 命令主入口             |
 | `packages/cli/src/lib/content-recommendation.js` | 画像管理、评分、推荐生成核心实现 |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `create-profile` | < 20 ms | 本地 SQLite |
-| `generate`（候选池 < 1000） | < 100 ms | 画像点乘 + 排序 |
-| `feedback` | < 10 ms | UPDATE 单行 |
-| `stats` | < 50 ms | 聚合查询 |
-| `suggest` | < 100 ms | 简单启发式 |
-| V2 cr-* dispatch | < 50 ms | `content_recommender_v2_cli.md` |
+| 操作                        | 典型耗时 | 备注                            |
+| --------------------------- | -------- | ------------------------------- |
+| `create-profile`            | < 20 ms  | 本地 SQLite                     |
+| `generate`（候选池 < 1000） | < 100 ms | 画像点乘 + 排序                 |
+| `feedback`                  | < 10 ms  | UPDATE 单行                     |
+| `stats`                     | < 50 ms  | 聚合查询                        |
+| `suggest`                   | < 100 ms | 简单启发式                      |
+| V2 cr-\* dispatch           | < 50 ms  | `content_recommender_v2_cli.md` |
 
 候选池超过 10K 建议先外部预过滤。
 

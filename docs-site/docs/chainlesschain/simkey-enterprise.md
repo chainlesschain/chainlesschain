@@ -1020,37 +1020,37 @@ module.exports = {
   // eSIM OTA 远程配置
   esimOta: {
     enabled: true,
-    smdpPlusUrl: "https://smdp.company.com",  // SM-DP+ 服务器地址
-    smdsUrl: "https://smds.gsma.com",          // SM-DS 发现服务
-    defaultKeyType: "ec256",                   // "ec256" | "ec384" | "ml-dsa-65"
-    pinPolicy: "set-on-first-use",             // "set-on-first-use" | "preset" | "random"
-    batchCsvFormat: "eid,employeeId,dept",     // 批量部署 CSV 列定义
-    rotationPeriodDays: 365,                   // 密钥轮换周期（天）
-    rotationTransitionDays: 180,               // 轮换过渡期（天）
-    retryOnFailure: true,                      // 部署失败自动重试
+    smdpPlusUrl: "https://smdp.company.com", // SM-DP+ 服务器地址
+    smdsUrl: "https://smds.gsma.com", // SM-DS 发现服务
+    defaultKeyType: "ec256", // "ec256" | "ec384" | "ml-dsa-65"
+    pinPolicy: "set-on-first-use", // "set-on-first-use" | "preset" | "random"
+    batchCsvFormat: "eid,employeeId,dept", // 批量部署 CSV 列定义
+    rotationPeriodDays: 365, // 密钥轮换周期（天）
+    rotationTransitionDays: 180, // 轮换过渡期（天）
+    retryOnFailure: true, // 部署失败自动重试
     maxRetries: 3,
   },
 
   // TEE 可信执行环境
   tee: {
     enabled: true,
-    accelerateSigning: true,          // 启用 TEE 签名加速
-    trustedUi: true,                  // 安全 PIN 输入（Trusted UI）
-    sealedStorage: true,              // TEE 密封存储（本地密钥缓存）
-    remoteAttestation: true,          // 远程证明
-    dualSignRequired: false,          // 强制 SIMKey + TEE 双重签名
-    biometricBinding: true,           // 生物识别绑定
-    securityLevel: "enhanced",        // "standard" | "enhanced" | "maximum"
+    accelerateSigning: true, // 启用 TEE 签名加速
+    trustedUi: true, // 安全 PIN 输入（Trusted UI）
+    sealedStorage: true, // TEE 密封存储（本地密钥缓存）
+    remoteAttestation: true, // 远程证明
+    dualSignRequired: false, // 强制 SIMKey + TEE 双重签名
+    biometricBinding: true, // 生物识别绑定
+    securityLevel: "enhanced", // "standard" | "enhanced" | "maximum"
   },
 
   // 跨运营商漫游
   roaming: {
     enabled: true,
-    homeCarrier: "cn-mobile",         // 归属运营商
-    switchPolicy: "auto",             // "auto" | "manual" | "disabled"
+    homeCarrier: "cn-mobile", // 归属运营商
+    switchPolicy: "auto", // "auto" | "manual" | "disabled"
     defaultSecurityLevel: "standard", // "full" | "standard" | "restricted" | "verify-only"
-    maxDailySignatures: 100,          // 漫游日签名限额
-    maxRoamingHours: 24,              // 最大漫游时长（小时）
+    maxDailySignatures: 100, // 漫游日签名限额
+    maxRoamingHours: 24, // 最大漫游时长（小时）
     regionWhitelist: ["CN", "HK", "MO", "TW"], // 允许漫游地区
     notifyOnRoaming: true,
     notifyOnRoamingSign: true,
@@ -1059,30 +1059,30 @@ module.exports = {
   // 零知识证明
   zkp: {
     enabled: true,
-    defaultScheme: "plonk",           // "plonk" | "bulletproofs" | "bbs+"
-    cacheProofs: true,                // 缓存最近证明（避免重复计算）
-    cacheTtlMs: 300000,               // 证明缓存 TTL (5 分钟)
-    maxProofSizeBytes: 1024,          // 最大证明大小
-    selectiveDisclosureFields: [],    // 默认披露字段（空=按需选择）
+    defaultScheme: "plonk", // "plonk" | "bulletproofs" | "bbs+"
+    cacheProofs: true, // 缓存最近证明（避免重复计算）
+    cacheTtlMs: 300000, // 证明缓存 TTL (5 分钟)
+    maxProofSizeBytes: 1024, // 最大证明大小
+    selectiveDisclosureFields: [], // 默认披露字段（空=按需选择）
   },
 
   // 卫星通信 SIM
   satellite: {
     enabled: true,
-    transmitMode: "hybrid",           // "hybrid" | "ground-first" | "satellite-first" | "beidou-sms"
-    beidouSms: false,                 // 北斗短报文（需北斗模块）
-    signatureCompression: true,       // 签名数据压缩
+    transmitMode: "hybrid", // "hybrid" | "ground-first" | "satellite-first" | "beidou-sms"
+    beidouSms: false, // 北斗短报文（需北斗模块）
+    signatureCompression: true, // 签名数据压缩
     offlineQueue: true,
-    offlineQueueMax: 100,             // 最大离线队列条数
-    batchMerkleOptimize: true,        // 批量 Merkle 优化
+    offlineQueueMax: 100, // 最大离线队列条数
+    batchMerkleOptimize: true, // 批量 Merkle 优化
   },
 
   // HSM 联合认证
   hsm: {
     enabled: true,
-    mode: "2of2",                     // "2of2" | "2of3" | "sequential" | "parallel"
+    mode: "2of2", // "2of2" | "2of3" | "sequential" | "parallel"
     primaryHsm: {
-      type: "thales_luna",            // "thales_luna" | "aws_cloudhsm" | "azure_hsm" | "sanwei" | "jiangnan" | "yuweng"
+      type: "thales_luna", // "thales_luna" | "aws_cloudhsm" | "azure_hsm" | "sanwei" | "jiangnan" | "yuweng"
       endpoint: "hsm.company.com:1792",
       interface: "pkcs11",
     },
@@ -1091,13 +1091,13 @@ module.exports = {
       endpoint: "cloudhsm.company.aws",
       interface: "jce",
     },
-    failoverTimeout: 5000,            // 主备切换超时 (ms)
+    failoverTimeout: 5000, // 主备切换超时 (ms)
     approvalPolicy: {
-      auto: 10000,                    // < ¥10,000 自动批准
-      single: 100000,                 // < ¥100,000 单人审批
-      multi: { threshold: "2of3" },   // ≥ ¥100,000 多人审批
+      auto: 10000, // < ¥10,000 自动批准
+      single: 100000, // < ¥100,000 单人审批
+      multi: { threshold: "2of3" }, // ≥ ¥100,000 多人审批
     },
-    auditRetentionYears: 7,           // 审计日志保留年限
+    auditRetentionYears: 7, // 审计日志保留年限
   },
 };
 ```
@@ -1106,40 +1106,40 @@ module.exports = {
 
 > 测试环境: 企业服务器（8 核 / 32GB）+ Thales Luna HSM 7 + 5G USIM + ARM TrustZone，测试样本 ≥ 500 次
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| eSIM OTA 单设备密钥部署 | < 30s | 12s | ✅ |
-| eSIM OTA 批量部署（100 台） | < 10min | 6.5min | ✅ |
-| 密钥轮换（生成+更新 DID） | < 60s | 28s | ✅ |
-| TEE 签名加速（vs. 软件签名） | ≥ 2× | 3.1× | ✅ |
-| TEE 双重签名（SIMKey + TEE） | < 300ms | 175ms | ✅ |
-| TEE 远程证明报告生成 | < 5s | 1.9s | ✅ |
-| 跨运营商漫游建立延迟 | < 5s | 2.3s | ✅ |
-| ZKP 身份证明（PLONK） | < 50ms | 31ms | ✅ |
-| ZKP 年龄范围证明（Bulletproofs） | < 100ms | 68ms | ✅ |
-| ZKP 选择性披露（BBS+） | < 60ms | 44ms | ✅ |
-| 卫星签名（天通一号，单次） | < 1500ms | 720ms | ✅ |
-| 批量 Merkle 签名（10 条→1 传输） | < 2000ms | 890ms | ✅ |
-| HSM 2-of-2 联合签名 | < 500ms | 210ms | ✅ |
-| HSM 故障转移（主→备） | < 5s | 2.8s | ✅ |
-| HSM 审批流程（2/3 审批人） | < 10min | 4.2min | ✅ |
-| 企业级并发签名吞吐（HSM 模式） | ≥ 50 TPS | 78 TPS | ✅ |
+| 操作                             | 目标     | 实际   | 状态 |
+| -------------------------------- | -------- | ------ | ---- |
+| eSIM OTA 单设备密钥部署          | < 30s    | 12s    | ✅   |
+| eSIM OTA 批量部署（100 台）      | < 10min  | 6.5min | ✅   |
+| 密钥轮换（生成+更新 DID）        | < 60s    | 28s    | ✅   |
+| TEE 签名加速（vs. 软件签名）     | ≥ 2×     | 3.1×   | ✅   |
+| TEE 双重签名（SIMKey + TEE）     | < 300ms  | 175ms  | ✅   |
+| TEE 远程证明报告生成             | < 5s     | 1.9s   | ✅   |
+| 跨运营商漫游建立延迟             | < 5s     | 2.3s   | ✅   |
+| ZKP 身份证明（PLONK）            | < 50ms   | 31ms   | ✅   |
+| ZKP 年龄范围证明（Bulletproofs） | < 100ms  | 68ms   | ✅   |
+| ZKP 选择性披露（BBS+）           | < 60ms   | 44ms   | ✅   |
+| 卫星签名（天通一号，单次）       | < 1500ms | 720ms  | ✅   |
+| 批量 Merkle 签名（10 条→1 传输） | < 2000ms | 890ms  | ✅   |
+| HSM 2-of-2 联合签名              | < 500ms  | 210ms  | ✅   |
+| HSM 故障转移（主→备）            | < 5s     | 2.8s   | ✅   |
+| HSM 审批流程（2/3 审批人）       | < 10min  | 4.2min | ✅   |
+| 企业级并发签名吞吐（HSM 模式）   | ≥ 50 TPS | 78 TPS | ✅   |
 
 ## 测试覆盖率
 
 > 测试位置: `desktop-app-vue/tests/unit/ukey/enterprise/` 及 `packages/cli/__tests__/ukey/enterprise/`
 
-| 测试文件 | 覆盖模块 | 测试数 |
-| --- | --- | --- |
-| ✅ `esim-ota-manager.test.js` | OTA 部署、批量部署、密钥轮换、Profile 管理 | 42 |
-| ✅ `tee-integration.test.js` | TEE 初始化、密钥生成、双重签名、远程证明 | 38 |
-| ✅ `simkey-roaming.test.js` | 漫游会话建立/终止、联盟信任级别、策略执行 | 31 |
-| ✅ `simkey-zkp.test.js` | PLONK/Bulletproofs/BBS+ 证明生成与验证、选择性披露 | 47 |
-| ✅ `satellite-sim-driver.test.js` | 天通签名、北斗短报文、Merkle 批量、离线队列 | 35 |
-| ✅ `hsm-federation.test.js` | HSM 注册、分片密钥、联合签名、故障转移、审计日志 | 44 |
-| ✅ `enterprise-approval-policy.test.js` | 审批阈值、多人审批、白名单豁免、策略变更 | 26 |
-| ✅ `enterprise-integration.test.js` | 端到端：OTA+TEE+HSM、漫游+ZKP、卫星批量 | 29 |
-| ✅ `enterprise-cli.test.js` | CLI 命令：esim ota、hsm cosign、zkp prove、roaming | 22 |
+| 测试文件                                | 覆盖模块                                           | 测试数 |
+| --------------------------------------- | -------------------------------------------------- | ------ |
+| ✅ `esim-ota-manager.test.js`           | OTA 部署、批量部署、密钥轮换、Profile 管理         | 42     |
+| ✅ `tee-integration.test.js`            | TEE 初始化、密钥生成、双重签名、远程证明           | 38     |
+| ✅ `simkey-roaming.test.js`             | 漫游会话建立/终止、联盟信任级别、策略执行          | 31     |
+| ✅ `simkey-zkp.test.js`                 | PLONK/Bulletproofs/BBS+ 证明生成与验证、选择性披露 | 47     |
+| ✅ `satellite-sim-driver.test.js`       | 天通签名、北斗短报文、Merkle 批量、离线队列        | 35     |
+| ✅ `hsm-federation.test.js`             | HSM 注册、分片密钥、联合签名、故障转移、审计日志   | 44     |
+| ✅ `enterprise-approval-policy.test.js` | 审批阈值、多人审批、白名单豁免、策略变更           | 26     |
+| ✅ `enterprise-integration.test.js`     | 端到端：OTA+TEE+HSM、漫游+ZKP、卫星批量            | 29     |
+| ✅ `enterprise-cli.test.js`             | CLI 命令：esim ota、hsm cosign、zkp prove、roaming | 22     |
 
 **总计**: 314 个测试，覆盖率 93%
 
@@ -1159,30 +1159,41 @@ module.exports = {
 
 ```javascript
 // 1. eSIM OTA 远程密钥下发
-await window.electronAPI.invoke('simkey:esim:provision', {
-  carrier: 'china-mobile', profileUrl: 'lpa://...' })
+await window.electronAPI.invoke("simkey:esim:provision", {
+  carrier: "china-mobile",
+  profileUrl: "lpa://...",
+});
 
 // 2. TEE 签名（私钥不出安全区）
-const sig = await window.electronAPI.invoke('simkey:tee:sign', {
-  keyRef: 'corp-root', hash: '0x...' })
+const sig = await window.electronAPI.invoke("simkey:tee:sign", {
+  keyRef: "corp-root",
+  hash: "0x...",
+});
 
 // 3. 跨运营商漫游
-await window.electronAPI.invoke('simkey:roaming:enable', {
-  allowedCarriers: ['china-mobile', 'china-unicom'],
-  signatureLimitPerHour: 10
-})
+await window.electronAPI.invoke("simkey:roaming:enable", {
+  allowedCarriers: ["china-mobile", "china-unicom"],
+  signatureLimitPerHour: 10,
+});
 
 // 4. SIMKey ZKP 年龄证明（不泄漏生日）
-const proof = await window.electronAPI.invoke('simkey:zkp:prove', {
-  statement: 'age>=18', privateInputs: { birthday: '1990-01-01' } })
+const proof = await window.electronAPI.invoke("simkey:zkp:prove", {
+  statement: "age>=18",
+  privateInputs: { birthday: "1990-01-01" },
+});
 
 // 5. HSM 多人审批大额签名
-await window.electronAPI.invoke('simkey:hsm:request-sign', {
-  amount: 1_000_000, requiredApprovers: 3, approverGroups: ['finance', 'risk'] })
+await window.electronAPI.invoke("simkey:hsm:request-sign", {
+  amount: 1_000_000,
+  requiredApprovers: 3,
+  approverGroups: ["finance", "risk"],
+});
 
 // 6. 卫星链路（天通一号）
-await window.electronAPI.invoke('simkey:satellite:send', {
-  kind: 'beidou-short-msg', text: 'emergency-ack' })
+await window.electronAPI.invoke("simkey:satellite:send", {
+  kind: "beidou-short-msg",
+  text: "emergency-ack",
+});
 ```
 
 企业部署请先在 `admin` 后台配置 HSM Cluster、审批人组与漫游白名单，再通过 IPC 调用。
@@ -1197,11 +1208,11 @@ await window.electronAPI.invoke('simkey:satellite:send', {
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-| --- | --- | --- |
-| `src/main/ukey/esim-ota-manager.js` | eSIM OTA 远程配置引擎 | ~380 |
-| `src/main/ukey/tee-integration.js` | TEE 可信执行环境集成 | ~420 |
-| `src/main/ukey/simkey-roaming.js` | 跨运营商漫游协议 | ~350 |
-| `src/main/ukey/simkey-zkp.js` | 零知识证明引擎 | ~300 |
-| `src/main/ukey/satellite-sim-driver.js` | 卫星通信 SIM 驱动 | ~280 |
-| `src/main/ukey/hsm-federation.js` | HSM 联合认证管理 | ~360 |
+| 文件                                    | 职责                  | 行数 |
+| --------------------------------------- | --------------------- | ---- |
+| `src/main/ukey/esim-ota-manager.js`     | eSIM OTA 远程配置引擎 | ~380 |
+| `src/main/ukey/tee-integration.js`      | TEE 可信执行环境集成  | ~420 |
+| `src/main/ukey/simkey-roaming.js`       | 跨运营商漫游协议      | ~350 |
+| `src/main/ukey/simkey-zkp.js`           | 零知识证明引擎        | ~300 |
+| `src/main/ukey/satellite-sim-driver.js` | 卫星通信 SIM 驱动     | ~280 |
+| `src/main/ukey/hsm-federation.js`       | HSM 联合认证管理      | ~360 |

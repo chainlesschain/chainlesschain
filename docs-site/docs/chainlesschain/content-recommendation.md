@@ -332,45 +332,45 @@ const metrics = await window.electronAPI.invoke("recommendation:get-metrics");
 // desktop-app-vue/src/main/social/content-recommendation.js
 const DEFAULT_CONFIG = {
   // 推荐引擎
-  strategy: "hybrid",               // 推荐策略: content | collaborative | trending | hybrid
+  strategy: "hybrid", // 推荐策略: content | collaborative | trending | hybrid
   weights: {
-    contentBased: 0.4,              // 内容相似度权重 (TF-IDF)
-    collaborative: 0.3,             // 协同过滤权重 (P2P 匿名)
-    trending: 0.3,                  // 热度推荐权重 (时间衰减)
+    contentBased: 0.4, // 内容相似度权重 (TF-IDF)
+    collaborative: 0.3, // 协同过滤权重 (P2P 匿名)
+    trending: 0.3, // 热度推荐权重 (时间衰减)
   },
-  maxRecommendations: 50,           // 每次最多推荐条数
-  refreshInterval: 3600000,         // 推荐缓存刷新间隔 (ms)，默认 1 小时
-  minConfidence: 0.3,               // 推荐最低置信度阈值 (0~1)
-  decayFactor: 0.95,                // 兴趣衰减系数 (每次更新)
+  maxRecommendations: 50, // 每次最多推荐条数
+  refreshInterval: 3600000, // 推荐缓存刷新间隔 (ms)，默认 1 小时
+  minConfidence: 0.3, // 推荐最低置信度阈值 (0~1)
+  decayFactor: 0.95, // 兴趣衰减系数 (每次更新)
 
   // 兴趣画像
   interestProfile: {
-    minInteractions: 5,             // 兴趣生效所需最低交互次数
-    maxTopics: 50,                  // 兴趣画像最大主题数
-    highConfidenceThreshold: 0.7,   // 高置信度阈值
+    minInteractions: 5, // 兴趣生效所需最低交互次数
+    maxTopics: 50, // 兴趣画像最大主题数
+    highConfidenceThreshold: 0.7, // 高置信度阈值
     mediumConfidenceThreshold: 0.4, // 中置信度阈值
   },
 
   // 差分隐私 (P2P 协同过滤)
   privacy: {
-    enabled: true,                  // 启用差分隐私
-    epsilon: 1.0,                   // 隐私预算 (越小越安全，越大越准确)
-    noiseScale: 0.1,                // 兴趣向量噪声幅度
+    enabled: true, // 启用差分隐私
+    epsilon: 1.0, // 隐私预算 (越小越安全，越大越准确)
+    noiseScale: 0.1, // 兴趣向量噪声幅度
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `strategy` | `hybrid` | 推荐策略，`hybrid` 综合三种算法 |
-| `weights.contentBased` | `0.4` | 内容相似度在混合策略中的权重 |
-| `weights.collaborative` | `0.3` | 协同过滤权重，依赖 P2P 网络 |
-| `weights.trending` | `0.3` | 热度推荐权重，适合冷启动 |
-| `maxRecommendations` | `50` | 单次推荐上限，过大影响性能 |
-| `refreshInterval` | `3600000` | 毫秒，推荐缓存有效期 |
-| `minConfidence` | `0.3` | 低于此值的推荐被过滤 |
-| `decayFactor` | `0.95` | 每次画像更新时旧兴趣的衰减系数 |
-| `privacy.epsilon` | `1.0` | 差分隐私预算，建议范围 0.1~2.0 |
+| 配置项                  | 默认值    | 说明                            |
+| ----------------------- | --------- | ------------------------------- |
+| `strategy`              | `hybrid`  | 推荐策略，`hybrid` 综合三种算法 |
+| `weights.contentBased`  | `0.4`     | 内容相似度在混合策略中的权重    |
+| `weights.collaborative` | `0.3`     | 协同过滤权重，依赖 P2P 网络     |
+| `weights.trending`      | `0.3`     | 热度推荐权重，适合冷启动        |
+| `maxRecommendations`    | `50`      | 单次推荐上限，过大影响性能      |
+| `refreshInterval`       | `3600000` | 毫秒，推荐缓存有效期            |
+| `minConfidence`         | `0.3`     | 低于此值的推荐被过滤            |
+| `decayFactor`           | `0.95`    | 每次画像更新时旧兴趣的衰减系数  |
+| `privacy.epsilon`       | `1.0`     | 差分隐私预算，建议范围 0.1~2.0  |
 
 ---
 
@@ -398,15 +398,15 @@ const DEFAULT_CONFIG = {
 
 ```javascript
 // 对不相关推荐提供负反馈，帮助系统学习
-await window.electronAPI.invoke('recommendation:feedback', {
-  recommendationId: 'rec-xxx',
-  feedback: 'irrelevant'
+await window.electronAPI.invoke("recommendation:feedback", {
+  recommendationId: "rec-xxx",
+  feedback: "irrelevant",
 });
 
 // 手动调整兴趣画像，降低某个主题的权重
-await window.electronAPI.invoke('recommendation:dismiss', {
-  contentId: 'post-xxx',
-  reason: 'not-interested'
+await window.electronAPI.invoke("recommendation:dismiss", {
+  contentId: "post-xxx",
+  reason: "not-interested",
 });
 ```
 
@@ -435,14 +435,14 @@ await window.electronAPI.invoke('recommendation:dismiss', {
 
 ```javascript
 // 切换推荐策略为内容相似度优先
-await window.electronAPI.invoke('recommendation:update-config', {
-  strategy: 'hybrid',
-  weights: { contentBased: 0.6, collaborative: 0.2, trending: 0.2 }
+await window.electronAPI.invoke("recommendation:update-config", {
+  strategy: "hybrid",
+  weights: { contentBased: 0.6, collaborative: 0.2, trending: 0.2 },
 });
 
 // 降低推荐最低置信度阈值（获取更多推荐结果）
-await window.electronAPI.invoke('recommendation:update-config', {
-  minConfidence: 0.2
+await window.electronAPI.invoke("recommendation:update-config", {
+  minConfidence: 0.2,
 });
 ```
 
@@ -450,37 +450,47 @@ await window.electronAPI.invoke('recommendation:update-config', {
 
 ```javascript
 // 基于当前阅读内容查找相似文章
-const similar = await window.electronAPI.invoke('recommendation:get-similar-content', {
-  contentId: 'post-123',
-  limit: 10
-});
+const similar = await window.electronAPI.invoke(
+  "recommendation:get-similar-content",
+  {
+    contentId: "post-123",
+    limit: 10,
+  },
+);
 // 返回按相似度降序排列的内容列表，每条附带匹配分数和匹配原因
 
 // 基于关键词搜索推荐候选内容
-const results = await window.electronAPI.invoke('recommendation:get-recommendations', {
-  limit: 20,
-  strategy: 'content'  // 仅使用内容相似度策略
-});
+const results = await window.electronAPI.invoke(
+  "recommendation:get-recommendations",
+  {
+    limit: 20,
+    strategy: "content", // 仅使用内容相似度策略
+  },
+);
 ```
 
 ### 用户偏好学习与反馈
 
 ```javascript
 // 批量记录用户行为（阅读 + 收藏）
-await window.electronAPI.invoke('recommendation:track-interaction', {
-  contentId: 'post-456', interactionType: 'read', metadata: { duration: 120 }
+await window.electronAPI.invoke("recommendation:track-interaction", {
+  contentId: "post-456",
+  interactionType: "read",
+  metadata: { duration: 120 },
 });
-await window.electronAPI.invoke('recommendation:track-interaction', {
-  contentId: 'post-456', interactionType: 'bookmark'
+await window.electronAPI.invoke("recommendation:track-interaction", {
+  contentId: "post-456",
+  interactionType: "bookmark",
 });
 
 // 对不感兴趣的推荐提供负反馈（系统自动降权该主题）
-await window.electronAPI.invoke('recommendation:dismiss', {
-  contentId: 'post-789', reason: 'not-interested'
+await window.electronAPI.invoke("recommendation:dismiss", {
+  contentId: "post-789",
+  reason: "not-interested",
 });
 
 // 手动刷新兴趣画像，使最新行为数据立即生效
-await window.electronAPI.invoke('recommendation:update-profile');
+await window.electronAPI.invoke("recommendation:update-profile");
 ```
 
 ## 相关文档
@@ -492,13 +502,13 @@ await window.electronAPI.invoke('recommendation:update-profile');
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/social/content-recommendation.js` | 推荐引擎核心实现 |
-| `desktop-app-vue/src/main/social/interest-profiler.js` | 兴趣画像构建器 |
-| `desktop-app-vue/src/main/social/local-recommender.js` | 本地推荐算法（内容/协同/热度） |
-| `desktop-app-vue/src/main/social/recommendation-feedback.js` | 推荐反馈与学习 |
-| `desktop-app-vue/src/renderer/stores/recommendation.ts` | 推荐系统 Pinia Store |
+| 文件                                                         | 说明                           |
+| ------------------------------------------------------------ | ------------------------------ |
+| `desktop-app-vue/src/main/social/content-recommendation.js`  | 推荐引擎核心实现               |
+| `desktop-app-vue/src/main/social/interest-profiler.js`       | 兴趣画像构建器                 |
+| `desktop-app-vue/src/main/social/local-recommender.js`       | 本地推荐算法（内容/协同/热度） |
+| `desktop-app-vue/src/main/social/recommendation-feedback.js` | 推荐反馈与学习                 |
+| `desktop-app-vue/src/renderer/stores/recommendation.ts`      | 推荐系统 Pinia Store           |
 
 ---
 

@@ -333,13 +333,13 @@ async function scrapeProducts(page) {
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/browser/browser-engine.js` | 核心浏览器自动化引擎 |
-| `desktop-app-vue/src/main/browser/element-locator.js` | 多策略元素定位器 |
-| `desktop-app-vue/src/main/browser/snapshot-engine.js` | 截图对比和变更检测 |
-| `desktop-app-vue/src/main/browser/recording-engine.js` | 操作录制与回放 |
-| `desktop-app-vue/src/main/browser/smart-diagnostics.js` | AI 诊断与自动修复 |
+| 文件                                                    | 说明                 |
+| ------------------------------------------------------- | -------------------- |
+| `desktop-app-vue/src/main/browser/browser-engine.js`    | 核心浏览器自动化引擎 |
+| `desktop-app-vue/src/main/browser/element-locator.js`   | 多策略元素定位器     |
+| `desktop-app-vue/src/main/browser/snapshot-engine.js`   | 截图对比和变更检测   |
+| `desktop-app-vue/src/main/browser/recording-engine.js`  | 操作录制与回放       |
+| `desktop-app-vue/src/main/browser/smart-diagnostics.js` | AI 诊断与自动修复    |
 
 ## 故障排查
 
@@ -379,42 +379,42 @@ async function scrapeProducts(page) {
 
 ### BrowserEngine 启动选项
 
-| 选项                     | 类型      | 默认值                        | 说明                                              |
-| ------------------------ | --------- | ----------------------------- | ------------------------------------------------- |
-| `headless`               | `boolean` | `true`                        | 无头模式；调试时设为 `false` 可观察浏览器窗口     |
-| `defaultViewport.width`  | `number`  | `1280`                        | 视口宽度（像素）                                  |
-| `defaultViewport.height` | `number`  | `720`                         | 视口高度（像素）                                  |
-| `slowMo`                 | `number`  | `0`                           | 每次操作延迟（毫秒），便于调试观察                |
-| `timeout`                | `number`  | `30000`                       | 全局操作超时（毫秒）                              |
-| `executablePath`         | `string`  | Puppeteer 自动检测            | Chrome/Chromium 可执行文件路径                    |
-| `args`                   | `string[]`| `[]`                          | 附加启动参数（如 `--no-sandbox`、`--disable-gpu`）|
+| 选项                     | 类型       | 默认值             | 说明                                               |
+| ------------------------ | ---------- | ------------------ | -------------------------------------------------- |
+| `headless`               | `boolean`  | `true`             | 无头模式；调试时设为 `false` 可观察浏览器窗口      |
+| `defaultViewport.width`  | `number`   | `1280`             | 视口宽度（像素）                                   |
+| `defaultViewport.height` | `number`   | `720`              | 视口高度（像素）                                   |
+| `slowMo`                 | `number`   | `0`                | 每次操作延迟（毫秒），便于调试观察                 |
+| `timeout`                | `number`   | `30000`            | 全局操作超时（毫秒）                               |
+| `executablePath`         | `string`   | Puppeteer 自动检测 | Chrome/Chromium 可执行文件路径                     |
+| `args`                   | `string[]` | `[]`               | 附加启动参数（如 `--no-sandbox`、`--disable-gpu`） |
 
 ### ElementLocator 定位选项
 
-| 选项            | 类型      | 默认值  | 说明                                      |
-| --------------- | --------- | ------- | ----------------------------------------- |
-| `timeout`       | `number`  | `5000`  | 单次定位超时（毫秒）                      |
-| `fallback`      | `boolean` | `false` | 启用后自动降级到低优先级策略              |
-| `retries`       | `number`  | `1`     | 定位失败重试次数                          |
-| `waitForVisible`| `boolean` | `true`  | 等待元素可见后再返回                      |
+| 选项             | 类型      | 默认值  | 说明                         |
+| ---------------- | --------- | ------- | ---------------------------- |
+| `timeout`        | `number`  | `5000`  | 单次定位超时（毫秒）         |
+| `fallback`       | `boolean` | `false` | 启用后自动降级到低优先级策略 |
+| `retries`        | `number`  | `1`     | 定位失败重试次数             |
+| `waitForVisible` | `boolean` | `true`  | 等待元素可见后再返回         |
 
 ### SnapshotEngine 对比选项
 
-| 选项          | 类型     | 默认值 | 说明                                         |
-| ------------- | -------- | ------ | -------------------------------------------- |
-| `threshold`   | `number` | `0.05` | 像素差异阈值（0–1），超过此值报告页面变更    |
-| `baselineDir` | `string` | `.snapshots/` | 基线截图存储目录                    |
-| `fullPage`    | `boolean`| `false`| `true` 时截取整页（含滚动内容）              |
-| `quality`     | `number` | `80`   | JPEG 压缩质量（1–100），仅对 `.jpg` 生效     |
+| 选项          | 类型      | 默认值        | 说明                                      |
+| ------------- | --------- | ------------- | ----------------------------------------- |
+| `threshold`   | `number`  | `0.05`        | 像素差异阈值（0–1），超过此值报告页面变更 |
+| `baselineDir` | `string`  | `.snapshots/` | 基线截图存储目录                          |
+| `fullPage`    | `boolean` | `false`       | `true` 时截取整页（含滚动内容）           |
+| `quality`     | `number`  | `80`          | JPEG 压缩质量（1–100），仅对 `.jpg` 生效  |
 
 ### SmartDiagnostics 修复选项
 
-| 选项                 | 类型      | 默认值 | 说明                                           |
-| -------------------- | --------- | ------ | ---------------------------------------------- |
-| `maxRetries`         | `number`  | `3`    | 自动修复最大重试次数                           |
-| `waitBetweenRetries` | `number`  | `1000` | 重试间隔（毫秒）                               |
-| `aiDiagnosis`        | `boolean` | `true` | 失败时调用本地 Ollama 进行 AI 诊断             |
-| `autoFix`            | `boolean` | `false`| 是否自动应用建议的新选择器                     |
+| 选项                 | 类型      | 默认值  | 说明                               |
+| -------------------- | --------- | ------- | ---------------------------------- |
+| `maxRetries`         | `number`  | `3`     | 自动修复最大重试次数               |
+| `waitBetweenRetries` | `number`  | `1000`  | 重试间隔（毫秒）                   |
+| `aiDiagnosis`        | `boolean` | `true`  | 失败时调用本地 Ollama 进行 AI 诊断 |
+| `autoFix`            | `boolean` | `false` | 是否自动应用建议的新选择器         |
 
 ---
 
@@ -422,13 +422,13 @@ async function scrapeProducts(page) {
 
 浏览器自动化系统通过五大测试模块保证核心功能稳定性：
 
-| 测试文件                                                                     | 用例数 | 覆盖内容                              |
-| ---------------------------------------------------------------------------- | ------ | ------------------------------------- |
-| `desktop-app-vue/tests/unit/browser/browser-engine.test.js`                  | 28     | 启动/关闭、页面导航、截图、脚本执行   |
-| `desktop-app-vue/tests/unit/browser/element-locator.test.js`                 | 34     | 六级定位策略、Shadow DOM、超时/重试   |
-| `desktop-app-vue/tests/unit/browser/snapshot-engine.test.js`                 | 19     | 基线对比、差异区域检测、阈值边界      |
-| `desktop-app-vue/tests/unit/browser/recording-engine.test.js`                | 22     | 录制开始/停止、回放速度、三种导出格式 |
-| `desktop-app-vue/tests/unit/browser/smart-diagnostics.test.js`               | 25     | AI 诊断流程、自动修复重试、健康检查   |
+| 测试文件                                                       | 用例数 | 覆盖内容                              |
+| -------------------------------------------------------------- | ------ | ------------------------------------- |
+| `desktop-app-vue/tests/unit/browser/browser-engine.test.js`    | 28     | 启动/关闭、页面导航、截图、脚本执行   |
+| `desktop-app-vue/tests/unit/browser/element-locator.test.js`   | 34     | 六级定位策略、Shadow DOM、超时/重试   |
+| `desktop-app-vue/tests/unit/browser/snapshot-engine.test.js`   | 19     | 基线对比、差异区域检测、阈值边界      |
+| `desktop-app-vue/tests/unit/browser/recording-engine.test.js`  | 22     | 录制开始/停止、回放速度、三种导出格式 |
+| `desktop-app-vue/tests/unit/browser/smart-diagnostics.test.js` | 25     | AI 诊断流程、自动修复重试、健康检查   |
 
 ### 运行测试
 
@@ -460,7 +460,9 @@ it("falls back to text strategy when CSS selector fails", async () => {
 
 // snapshot-engine.test.js 节选 — 阈值边界
 it("does not report change when diff is below threshold", async () => {
-  const diff = await SnapshotEngine.compare(page, "baseline", { threshold: 0.1 });
+  const diff = await SnapshotEngine.compare(page, "baseline", {
+    threshold: 0.1,
+  });
   expect(diff.changed).toBe(false); // 差异 0.08 < threshold 0.1
 });
 ```
@@ -482,32 +484,49 @@ it("does not report change when diff is below threshold", async () => {
 
 ```javascript
 // 1. 启动浏览器并打开页面
-const id = await window.electronAPI.invoke('browser:engine:launch', { headless: true })
-await window.electronAPI.invoke('browser:engine:goto', { id, url: 'https://example.com' })
+const id = await window.electronAPI.invoke("browser:engine:launch", {
+  headless: true,
+});
+await window.electronAPI.invoke("browser:engine:goto", {
+  id,
+  url: "https://example.com",
+});
 
 // 2. 智能元素定位（文本/语义/CSS 多策略组合）
-const el = await window.electronAPI.invoke('browser:locator:find', {
-  id, hints: { text: '登录', role: 'button' }
-})
-await window.electronAPI.invoke('browser:engine:click', { id, selector: el.selector })
+const el = await window.electronAPI.invoke("browser:locator:find", {
+  id,
+  hints: { text: "登录", role: "button" },
+});
+await window.electronAPI.invoke("browser:engine:click", {
+  id,
+  selector: el.selector,
+});
 
 // 3. 截图对比回归
-const before = await window.electronAPI.invoke('browser:snapshot:capture', { id })
+const before = await window.electronAPI.invoke("browser:snapshot:capture", {
+  id,
+});
 // ... 交互 ...
-const diff = await window.electronAPI.invoke('browser:snapshot:diff', {
-  id, baseline: before.path, threshold: 0.02
-})
+const diff = await window.electronAPI.invoke("browser:snapshot:diff", {
+  id,
+  baseline: before.path,
+  threshold: 0.02,
+});
 
 // 4. 录制 → 导出可复用脚本
-const rec = await window.electronAPI.invoke('browser:recorder:start', { id })
+const rec = await window.electronAPI.invoke("browser:recorder:start", { id });
 // ... 用户手工演示 ...
-await window.electronAPI.invoke('browser:recorder:stop', { id: rec.id })
-const script = await window.electronAPI.invoke('browser:recorder:export', { id: rec.id })
+await window.electronAPI.invoke("browser:recorder:stop", { id: rec.id });
+const script = await window.electronAPI.invoke("browser:recorder:export", {
+  id: rec.id,
+});
 
 // 5. AI 诊断失败用例
-const diag = await window.electronAPI.invoke('browser:diagnostics:analyze', {
-  error: 'TimeoutError', html: '<html>...</html>', screenshot: '/tmp/x.png'
-})
+const diag = await window.electronAPI.invoke("browser:diagnostics:analyze", {
+  error: "TimeoutError",
+  html: "<html>...</html>",
+  screenshot: "/tmp/x.png",
+});
 ```
 
 搭配 Cowork 多 Agent 可做端到端 UI 回归编排。

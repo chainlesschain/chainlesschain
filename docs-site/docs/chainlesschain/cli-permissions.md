@@ -48,8 +48,8 @@ cc permissions add <allow|ask|deny> <rule>           # 追加规则（默认写 
 {
   "permissions": {
     "allow": ["Bash(npm run test:*)", "Read(./src/**)"],
-    "ask":   ["Bash(git push:*)"],
-    "deny":  ["Read(./.env)", "Bash(curl:*)"]
+    "ask": ["Bash(git push:*)"],
+    "deny": ["Read(./.env)", "Bash(curl:*)"]
   }
 }
 ```
@@ -87,13 +87,13 @@ CC_PERMISSIONS_ALLOW/_ASK/_DENY    (env kill-switch，最高)
 
 ## 配置参考
 
-| 配置面 | 键 / Flag | 说明 |
-|--------|-----------|------|
-| settings 文件 | `permissions.allow` / `permissions.ask` / `permissions.deny` | 规则字符串数组 |
-| settings 文件 | `model` / `env` | 附带配置覆盖（`loadSettingsConfig`，last-write-wins） |
-| 环境变量 | `CC_PERMISSIONS_ALLOW` / `CC_PERMISSIONS_ASK` / `CC_PERMISSIONS_DENY` | 逗号/换行分隔的规则列表，最高优先级 kill-switch |
-| CLI flag | `cc agent --settings <file>` | 在层级里追加一个显式 settings 文件 |
-| CLI flag | `cc permissions add --local / --user` | 写入目标：local（个人）/ user（全项目）/ 默认 project |
+| 配置面        | 键 / Flag                                                             | 说明                                                  |
+| ------------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
+| settings 文件 | `permissions.allow` / `permissions.ask` / `permissions.deny`          | 规则字符串数组                                        |
+| settings 文件 | `model` / `env`                                                       | 附带配置覆盖（`loadSettingsConfig`，last-write-wins） |
+| 环境变量      | `CC_PERMISSIONS_ALLOW` / `CC_PERMISSIONS_ASK` / `CC_PERMISSIONS_DENY` | 逗号/换行分隔的规则列表，最高优先级 kill-switch       |
+| CLI flag      | `cc agent --settings <file>`                                          | 在层级里追加一个显式 settings 文件                    |
+| CLI flag      | `cc permissions add --local / --user`                                 | 写入目标：local（个人）/ user（全项目）/ 默认 project |
 
 路径模式语义：`./x` 与 `x` 相对 cwd 解析；`//abs/x` 绝对路径（Claude-Code 约定，首个 `/` 去掉）；`~/x` 解析到 home。命令模式：`prefix:*` 前缀匹配；含 `*` 走 glob；否则全等。URL 模式：`domain:host`（host 可含 glob）或对整个 URL 的 glob。
 
@@ -108,12 +108,12 @@ CC_PERMISSIONS_ALLOW/_ASK/_DENY    (env kill-switch，最高)
 
 共 **65** 个测试（统计 `it(`/`test(`）：
 
-| 测试文件 | 数量 | 覆盖 |
-|----------|------|------|
-| `packages/cli/__tests__/unit/permission-rules.test.js` | 32 | 引擎：解析、伞名、命令/路径/URL 匹配、优先级、`suggestAllowRule` |
-| `packages/cli/__tests__/unit/settings-loader.test.js` | 14 | 五层合并、并集累加、来源标注、坏文件 fail-open、`addRule` 幂等 |
-| `packages/cli/__tests__/unit/permissions-command.test.js` | 9 | `list`/`test`/`add` 命令行为 |
-| `packages/cli/__tests__/unit/agent-core-permission-rules.test.js` | 10 | `executeTool` 接线：deny/ask/allow/无规则零变化/host 优先级 |
+| 测试文件                                                          | 数量 | 覆盖                                                             |
+| ----------------------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/permission-rules.test.js`            | 32   | 引擎：解析、伞名、命令/路径/URL 匹配、优先级、`suggestAllowRule` |
+| `packages/cli/__tests__/unit/settings-loader.test.js`             | 14   | 五层合并、并集累加、来源标注、坏文件 fail-open、`addRule` 幂等   |
+| `packages/cli/__tests__/unit/permissions-command.test.js`         | 9    | `list`/`test`/`add` 命令行为                                     |
+| `packages/cli/__tests__/unit/agent-core-permission-rules.test.js` | 10   | `executeTool` 接线：deny/ask/allow/无规则零变化/host 优先级      |
 
 ```bash
 cd packages/cli
@@ -132,26 +132,26 @@ npx vitest run __tests__/unit/permission-rules.test.js __tests__/unit/settings-l
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 规则没生效 | 写错文件/层级，或规则语法不被解析 | `cc permissions list` 看合并结果与来源；`cc permissions test <tool> <args>` 干跑验证 |
-| `decision: fallthrough` | 没有任何规则命中 | 预期：回落 risk-tier / `--permission-mode` 逻辑；需要硬决定就补规则 |
-| allow 了还是被拦 | 命中的是 host deny 或 shell 硬黑名单（allow 不可松弛二者）；或同时存在 deny/ask 规则（优先级更高） | `test` 干跑看实际命中链；deny > ask > allow |
-| headless 下 ask 全被拒绝 | 无确认器 fail-closed 是设计行为 | 改成 allow 规则，或交互式运行 |
-| `settings: ignoring malformed <file>` 警告 | settings 文件 JSON 语法错误 | 修复 JSON；该文件在修复前被整体跳过 |
-| `permissions add` 报 refusing to overwrite | 目标文件已存在但是坏 JSON | 手工修复或删除该文件后重试 |
-| Windows 下路径规则不匹配 | 模式与目标都会斜杠归一化；常见问题是忘了 `./` 前缀导致按 cwd 之外解析 | 用 `cc permissions test read_file <路径>` 验证；相对模式以 cwd 为基准 |
-| 想全局临时禁某工具 | — | 用 env kill-switch：`CC_PERMISSIONS_DENY="Bash(curl:*)" cc agent ...` |
+| 现象                                       | 可能原因                                                                                           | 处理                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 规则没生效                                 | 写错文件/层级，或规则语法不被解析                                                                  | `cc permissions list` 看合并结果与来源；`cc permissions test <tool> <args>` 干跑验证 |
+| `decision: fallthrough`                    | 没有任何规则命中                                                                                   | 预期：回落 risk-tier / `--permission-mode` 逻辑；需要硬决定就补规则                  |
+| allow 了还是被拦                           | 命中的是 host deny 或 shell 硬黑名单（allow 不可松弛二者）；或同时存在 deny/ask 规则（优先级更高） | `test` 干跑看实际命中链；deny > ask > allow                                          |
+| headless 下 ask 全被拒绝                   | 无确认器 fail-closed 是设计行为                                                                    | 改成 allow 规则，或交互式运行                                                        |
+| `settings: ignoring malformed <file>` 警告 | settings 文件 JSON 语法错误                                                                        | 修复 JSON；该文件在修复前被整体跳过                                                  |
+| `permissions add` 报 refusing to overwrite | 目标文件已存在但是坏 JSON                                                                          | 手工修复或删除该文件后重试                                                           |
+| Windows 下路径规则不匹配                   | 模式与目标都会斜杠归一化；常见问题是忘了 `./` 前缀导致按 cwd 之外解析                              | 用 `cc permissions test read_file <路径>` 验证；相对模式以 cwd 为基准                |
+| 想全局临时禁某工具                         | —                                                                                                  | 用 env kill-switch：`CC_PERMISSIONS_DENY="Bash(curl:*)" cc agent ...`                |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/permissions.js` | `cc permissions list/test/add` 命令 |
-| `packages/cli/src/lib/permission-rules.cjs` | 规则引擎（解析、glob、匹配、`evaluatePermissionRules`、`suggestAllowRule`） |
-| `packages/cli/src/lib/settings-loader.cjs` | 五层发现合并、来源追踪、`addRule` 幂等写入、`loadSettingsConfig` |
-| `packages/cli/src/runtime/agent-core.js` | `executeTool` 权限判定链（settings deny → host deny → ask → allow） |
-| `packages/cli/__tests__/unit/permission-rules.test.js` | 引擎单测（32） |
+| 文件                                                   | 说明                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `packages/cli/src/commands/permissions.js`             | `cc permissions list/test/add` 命令                                         |
+| `packages/cli/src/lib/permission-rules.cjs`            | 规则引擎（解析、glob、匹配、`evaluatePermissionRules`、`suggestAllowRule`） |
+| `packages/cli/src/lib/settings-loader.cjs`             | 五层发现合并、来源追踪、`addRule` 幂等写入、`loadSettingsConfig`            |
+| `packages/cli/src/runtime/agent-core.js`               | `executeTool` 权限判定链（settings deny → host deny → ask → allow）         |
+| `packages/cli/__tests__/unit/permission-rules.test.js` | 引擎单测（32）                                                              |
 
 ## 使用示例
 

@@ -84,11 +84,11 @@
 
 ### 消息边界说明
 
-| 类型 | 示例 | 回答 |
-|------|------|------|
-| 协议响应 | `session-list-result`, `tasks-detail` | 这次请求拿到了什么 |
-| Runtime Event | `session:start`, `task:notification` | 系统状态发生了什么变化 |
-| Session Stream | `response-token`, `tool-result` | 当前会话流正在输出什么 |
+| 类型           | 示例                                  | 回答                   |
+| -------------- | ------------------------------------- | ---------------------- |
+| 协议响应       | `session-list-result`, `tasks-detail` | 这次请求拿到了什么     |
+| Runtime Event  | `session:start`, `task:notification`  | 系统状态发生了什么变化 |
+| Session Stream | `response-token`, `tool-result`       | 当前会话流正在输出什么 |
 
 ## 已经完成且与代码一致的能力
 
@@ -345,19 +345,19 @@ CLI、WS、Web Panel 三层已经开始共享统一 runtime event。
 
 各优化模块均通过 `.chainlesschain/config.json` 统一配置：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `featureFlags.JSONL_SESSION` | boolean | `true` | 是否启用 JSONL 会话持久化 |
-| `featureFlags.COMPRESSION_AB` | string | `"control"` | 压缩 A/B 实验分组（`control` / `treatment`） |
-| `promptCompressor.enabled` | boolean | `true` | 是否启用上下文压缩 |
-| `promptCompressor.strategy` | string | `"auto"` | 压缩策略（`dedup` / `truncate` / `summarize` / `snip-compact` / `context-collapse` / `auto`） |
-| `promptCompressor.threshold` | number | `0.8` | 触发压缩的上下文填充率阈值 |
-| `jsonlSession.compactInterval` | number | `50` | 每隔多少轮写一次 compact 快照 |
-| `jsonlSession.retryOnFailure` | boolean | `true` | 写入失败是否自动重试 |
-| `backgroundTask.maxConcurrent` | number | `5` | 最大并发后台任务数 |
-| `backgroundTask.notificationEnabled` | boolean | `true` | 任务完成是否推送 `task:notification` |
-| `worktreeIsolator.autoCleanup` | boolean | `true` | 合并后是否自动删除 worktree |
-| `worktreeIsolator.conflictStrategy` | string | `"interactive"` | 冲突解决策略（`interactive` / `auto-candidates`） |
+| 配置项                               | 类型    | 默认值          | 说明                                                                                          |
+| ------------------------------------ | ------- | --------------- | --------------------------------------------------------------------------------------------- |
+| `featureFlags.JSONL_SESSION`         | boolean | `true`          | 是否启用 JSONL 会话持久化                                                                     |
+| `featureFlags.COMPRESSION_AB`        | string  | `"control"`     | 压缩 A/B 实验分组（`control` / `treatment`）                                                  |
+| `promptCompressor.enabled`           | boolean | `true`          | 是否启用上下文压缩                                                                            |
+| `promptCompressor.strategy`          | string  | `"auto"`        | 压缩策略（`dedup` / `truncate` / `summarize` / `snip-compact` / `context-collapse` / `auto`） |
+| `promptCompressor.threshold`         | number  | `0.8`           | 触发压缩的上下文填充率阈值                                                                    |
+| `jsonlSession.compactInterval`       | number  | `50`            | 每隔多少轮写一次 compact 快照                                                                 |
+| `jsonlSession.retryOnFailure`        | boolean | `true`          | 写入失败是否自动重试                                                                          |
+| `backgroundTask.maxConcurrent`       | number  | `5`             | 最大并发后台任务数                                                                            |
+| `backgroundTask.notificationEnabled` | boolean | `true`          | 任务完成是否推送 `task:notification`                                                          |
+| `worktreeIsolator.autoCleanup`       | boolean | `true`          | 合并后是否自动删除 worktree                                                                   |
+| `worktreeIsolator.conflictStrategy`  | string  | `"interactive"` | 冲突解决策略（`interactive` / `auto-candidates`）                                             |
 
 ### Feature Flags 运行时读取示例
 
@@ -379,57 +379,57 @@ if (process.env.JSONL_SESSION === "true" || config.featureFlags.JSONL_SESSION) {
 
 ### 上下文压缩效果
 
-| 压缩策略 | 平均压缩率 | 语义保留率（人工评估） | 适用场景 |
-| --- | --- | --- | --- |
-| `dedup` | 5–10% | 100% | 短对话去重 |
-| `truncate` | 10–30% | 95% | 超长历史截断 |
-| `summarize` | 40–60% | 88% | 长对话摘要 |
-| `snip-compact` | 15–25% | 97% | 代码块内联压缩 |
-| `context-collapse` | 30–50% | 91% | 多轮上下文折叠 |
-| `auto`（自动选策略） | 20–45% | 93% | 默认推荐 |
+| 压缩策略             | 平均压缩率 | 语义保留率（人工评估） | 适用场景       |
+| -------------------- | ---------- | ---------------------- | -------------- |
+| `dedup`              | 5–10%      | 100%                   | 短对话去重     |
+| `truncate`           | 10–30%     | 95%                    | 超长历史截断   |
+| `summarize`          | 40–60%     | 88%                    | 长对话摘要     |
+| `snip-compact`       | 15–25%     | 97%                    | 代码块内联压缩 |
+| `context-collapse`   | 30–50%     | 91%                    | 多轮上下文折叠 |
+| `auto`（自动选策略） | 20–45%     | 93%                    | 默认推荐       |
 
 ### 会话存储性能
 
-| 指标 | 值 |
-| --- | --- |
-| JSONL 追加写入延迟（P99） | < 2ms |
-| compact 快照写入耗时（50 轮） | < 20ms |
-| 崩溃恢复加载耗时（10k 条记录） | < 150ms |
-| 会话迁移 dry-run 速率 | 约 500 会话/秒 |
+| 指标                           | 值             |
+| ------------------------------ | -------------- |
+| JSONL 追加写入延迟（P99）      | < 2ms          |
+| compact 快照写入耗时（50 轮）  | < 20ms         |
+| 崩溃恢复加载耗时（10k 条记录） | < 150ms        |
+| 会话迁移 dry-run 速率          | 约 500 会话/秒 |
 
 ### 后台任务调度
 
-| 指标 | 值 |
-| --- | --- |
-| 任务入队延迟 | < 1ms |
-| `task:notification` 推送延迟（P99） | < 50ms |
-| 最大持久化任务历史条数（默认） | 1000 条 |
-| 重启恢复耗时 | < 30ms |
+| 指标                                | 值      |
+| ----------------------------------- | ------- |
+| 任务入队延迟                        | < 1ms   |
+| `task:notification` 推送延迟（P99） | < 50ms  |
+| 最大持久化任务历史条数（默认）      | 1000 条 |
+| 重启恢复耗时                        | < 30ms  |
 
 ### Worktree 操作
 
-| 操作 | P50 耗时 | P99 耗时 |
-| --- | --- | --- |
-| `worktree-list` | 5ms | 15ms |
-| `worktree-diff`（1000 行变更） | 80ms | 200ms |
-| `worktree-merge`（无冲突） | 120ms | 350ms |
-| `worktree-merge`（有冲突，自动候选） | 180ms | 500ms |
+| 操作                                 | P50 耗时 | P99 耗时 |
+| ------------------------------------ | -------- | -------- |
+| `worktree-list`                      | 5ms      | 15ms     |
+| `worktree-diff`（1000 行变更）       | 80ms     | 200ms    |
+| `worktree-merge`（无冲突）           | 120ms    | 350ms    |
+| `worktree-merge`（有冲突，自动候选） | 180ms    | 500ms    |
 
 ## 测试覆盖率
 
-| 测试套件 | 测试文件 | 用例数 | 通过率 |
-| --- | --- | --- | --- |
-| Feature Flags（含 A/B 分流） | `feature-flags.test.js` | 18 | 100% |
-| Prompt Compressor（5 策略） | `prompt-compressor.test.js` | 34 | 100% |
-| JSONL Session Store | `jsonl-session.test.js` | 28 | 100% |
-| Background Task Manager | `background-task.test.js` | 22 | 100% |
-| Worktree Isolator | `worktree-isolator.test.js` | 20 | 100% |
-| WS Runtime Events 集成 | `ws-runtime-events.test.js` | 2 | 100% |
-| Tools Registry 集成 | `tools-registry.test.js` | 6 | 100% |
-| Agent Core 集成 | `agent-core.test.js` | 66 | 100% |
-| WS Session Workflow 集成 | `ws-session-workflow.test.js` | 16 | 100% |
-| Web Panel 单元 | `web-panel.test.js` | 27 | 100% |
-| **合计** | **10 文件** | **239** | **100%** |
+| 测试套件                     | 测试文件                      | 用例数  | 通过率   |
+| ---------------------------- | ----------------------------- | ------- | -------- |
+| Feature Flags（含 A/B 分流） | `feature-flags.test.js`       | 18      | 100%     |
+| Prompt Compressor（5 策略）  | `prompt-compressor.test.js`   | 34      | 100%     |
+| JSONL Session Store          | `jsonl-session.test.js`       | 28      | 100%     |
+| Background Task Manager      | `background-task.test.js`     | 22      | 100%     |
+| Worktree Isolator            | `worktree-isolator.test.js`   | 20      | 100%     |
+| WS Runtime Events 集成       | `ws-runtime-events.test.js`   | 2       | 100%     |
+| Tools Registry 集成          | `tools-registry.test.js`      | 6       | 100%     |
+| Agent Core 集成              | `agent-core.test.js`          | 66      | 100%     |
+| WS Session Workflow 集成     | `ws-session-workflow.test.js` | 16      | 100%     |
+| Web Panel 单元               | `web-panel.test.js`           | 27      | 100%     |
+| **合计**                     | **10 文件**                   | **239** | **100%** |
 
 关键覆盖场景：
 
@@ -477,23 +477,23 @@ A: 失败项通常是格式不兼容的旧会话文件。可设置 `jsonlSession
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/feature-flags.js` | Feature Flags 读取与 `featureVariant()` 实验分流 |
-| `packages/cli/src/lib/prompt-compressor.js` | 五策略上下文压缩引擎（dedup/truncate/summarize/snip-compact/context-collapse） |
-| `packages/cli/src/lib/jsonl-session-store.js` | JSONL 会话持久化：追加写入、compact 快照、崩溃恢复、会话迁移 |
-| `packages/cli/src/lib/background-task-manager.js` | 后台任务调度：异步执行、历史持久化、重启恢复、`task:notification` 推送 |
-| `packages/cli/src/lib/worktree-isolator.js` | Worktree 隔离执行：diff 预览、merge 助手、冲突摘要、自动候选项 |
-| `packages/cli/src/runtime/agent-core.js` | Agent Core Runtime 主入口，集成五大优化模块 |
-| `packages/web-panel/src/stores/ws.js` | Web Panel WebSocket 层，提供 `onRuntimeEvent()` 统一事件消费入口 |
-| `packages/web-panel/src/stores/tasks.js` | 后台任务 Pinia store，消费 `task:notification` 和 `tasks-*` 协议响应 |
-| `packages/web-panel/src/stores/dashboard.js` | Dashboard store，消费 `compression:summary` 和会话统计 |
-| `packages/cli/__tests__/unit/feature-flags.test.js` | Feature Flags 单元测试（18 tests，含 A/B 分流） |
-| `packages/cli/__tests__/unit/prompt-compressor.test.js` | Prompt Compressor 单元测试（34 tests，5 策略全覆盖） |
-| `packages/cli/__tests__/unit/jsonl-session.test.js` | JSONL Session Store 单元测试（28 tests，含崩溃恢复） |
-| `packages/cli/__tests__/unit/background-task.test.js` | Background Task Manager 单元测试（22 tests） |
-| `packages/cli/__tests__/unit/worktree-isolator.test.js` | Worktree Isolator 单元测试（20 tests） |
-| `packages/cli/__tests__/integration/ws-session-workflow.test.js` | WS Session 工作流集成测试（16 tests） |
+| 文件                                                             | 说明                                                                           |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `packages/cli/src/lib/feature-flags.js`                          | Feature Flags 读取与 `featureVariant()` 实验分流                               |
+| `packages/cli/src/lib/prompt-compressor.js`                      | 五策略上下文压缩引擎（dedup/truncate/summarize/snip-compact/context-collapse） |
+| `packages/cli/src/lib/jsonl-session-store.js`                    | JSONL 会话持久化：追加写入、compact 快照、崩溃恢复、会话迁移                   |
+| `packages/cli/src/lib/background-task-manager.js`                | 后台任务调度：异步执行、历史持久化、重启恢复、`task:notification` 推送         |
+| `packages/cli/src/lib/worktree-isolator.js`                      | Worktree 隔离执行：diff 预览、merge 助手、冲突摘要、自动候选项                 |
+| `packages/cli/src/runtime/agent-core.js`                         | Agent Core Runtime 主入口，集成五大优化模块                                    |
+| `packages/web-panel/src/stores/ws.js`                            | Web Panel WebSocket 层，提供 `onRuntimeEvent()` 统一事件消费入口               |
+| `packages/web-panel/src/stores/tasks.js`                         | 后台任务 Pinia store，消费 `task:notification` 和 `tasks-*` 协议响应           |
+| `packages/web-panel/src/stores/dashboard.js`                     | Dashboard store，消费 `compression:summary` 和会话统计                         |
+| `packages/cli/__tests__/unit/feature-flags.test.js`              | Feature Flags 单元测试（18 tests，含 A/B 分流）                                |
+| `packages/cli/__tests__/unit/prompt-compressor.test.js`          | Prompt Compressor 单元测试（34 tests，5 策略全覆盖）                           |
+| `packages/cli/__tests__/unit/jsonl-session.test.js`              | JSONL Session Store 单元测试（28 tests，含崩溃恢复）                           |
+| `packages/cli/__tests__/unit/background-task.test.js`            | Background Task Manager 单元测试（22 tests）                                   |
+| `packages/cli/__tests__/unit/worktree-isolator.test.js`          | Worktree Isolator 单元测试（20 tests）                                         |
+| `packages/cli/__tests__/integration/ws-session-workflow.test.js` | WS Session 工作流集成测试（16 tests）                                          |
 
 ## 使用示例
 

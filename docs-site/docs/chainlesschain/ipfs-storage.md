@@ -217,11 +217,11 @@ const deal = await filecoinStorage.storeToFilecoin(cid, size, options);
 
 // 验证存储证明 (PoRep / PoSt)
 const verification = await filecoinStorage.verifyStorageProof(dealId, {
-  type: "porep",       // porep | post
-  proofData: "...",    // 证明数据
-  commitment: "...",   // SHA-256 承诺值（可选，PoSt 用）
+  type: "porep", // porep | post
+  proofData: "...", // 证明数据
+  commitment: "...", // SHA-256 承诺值（可选，PoSt 用）
   sectorId: 42,
-  challengeIndex: 7
+  challengeIndex: 7,
 });
 // { verified: true, type: "porep", verifiedAt: "2026-04-12T..." }
 
@@ -230,24 +230,27 @@ const renewed = await filecoinStorage.renewDeal(dealId, 518400);
 // { dealId, additionalEpochs: 518400, newExpiry, renewalCount, additionalPrice }
 
 // 按条件查询交易列表
-const deals = await filecoinStorage.listDeals({ status: "active", minerId: "f01234" });
+const deals = await filecoinStorage.listDeals({
+  status: "active",
+  minerId: "f01234",
+});
 ```
 
 ### 证明验证规则
 
-| 证明类型 | 验证方式 | 说明 |
-|---------|---------|------|
-| PoRep (复制证明) | 检查 proofData 长度 ≥ 32 字节 | 验证矿工确实存储了数据副本 |
-| PoSt (时空证明) | SHA-256(dealCid + sectorId + challengeIndex) 与 commitment 比对 | 验证矿工持续存储数据 |
+| 证明类型         | 验证方式                                                        | 说明                       |
+| ---------------- | --------------------------------------------------------------- | -------------------------- |
+| PoRep (复制证明) | 检查 proofData 长度 ≥ 32 字节                                   | 验证矿工确实存储了数据副本 |
+| PoSt (时空证明)  | SHA-256(dealCid + sectorId + challengeIndex) 与 commitment 比对 | 验证矿工持续存储数据       |
 
 ## 关键文件
 
-| 文件                            | 职责                      |
-| ------------------------------- | ------------------------- |
-| `src/main/ipfs/ipfs-manager.js` | IPFS 管理器核心（双引擎） |
-| `src/main/ipfs/ipfs-ipc.js`     | IPFS IPC 处理器           |
+| 文件                                | 职责                        |
+| ----------------------------------- | --------------------------- |
+| `src/main/ipfs/ipfs-manager.js`     | IPFS 管理器核心（双引擎）   |
+| `src/main/ipfs/ipfs-ipc.js`         | IPFS IPC 处理器             |
 | `src/main/ipfs/filecoin-storage.js` | Filecoin 存储证明与交易管理 |
-| `src/renderer/stores/ipfs.ts`   | IPFS 状态管理             |
+| `src/renderer/stores/ipfs.ts`       | IPFS 状态管理               |
 
 ---
 
@@ -257,10 +260,10 @@ const deals = await filecoinStorage.listDeals({ status: "active", minerId: "f012
 
 ```javascript
 // 上传文件（可选加密）
-const result = await window.electronAPI.invoke('ipfs:upload', {
-  filePath: '/path/to/document.pdf',
-  encrypt: true,  // AES-256-GCM 加密
-  pin: true       // 固定内容防垃圾回收
+const result = await window.electronAPI.invoke("ipfs:upload", {
+  filePath: "/path/to/document.pdf",
+  encrypt: true, // AES-256-GCM 加密
+  pin: true, // 固定内容防垃圾回收
 });
 
 console.log(result);
@@ -271,10 +274,10 @@ console.log(result);
 
 ```javascript
 // 通过 CID 下载文件
-const file = await window.electronAPI.invoke('ipfs:download', {
-  cid: 'QmXxx...',
-  outputPath: '/path/to/output.pdf',
-  decrypt: true   // 自动解密（需要本地持有密钥）
+const file = await window.electronAPI.invoke("ipfs:download", {
+  cid: "QmXxx...",
+  outputPath: "/path/to/output.pdf",
+  decrypt: true, // 自动解密（需要本地持有密钥）
 });
 ```
 
@@ -282,13 +285,13 @@ const file = await window.electronAPI.invoke('ipfs:download', {
 
 ```javascript
 // 查看已 Pin 的内容列表
-const pinned = await window.electronAPI.invoke('ipfs:list-pinned');
+const pinned = await window.electronAPI.invoke("ipfs:list-pinned");
 
 // 取消 Pin（下次 GC 时清理）
-await window.electronAPI.invoke('ipfs:unpin', { cid: 'QmXxx...' });
+await window.electronAPI.invoke("ipfs:unpin", { cid: "QmXxx..." });
 
 // 查看存储使用情况
-const quota = await window.electronAPI.invoke('ipfs:quota-status');
+const quota = await window.electronAPI.invoke("ipfs:quota-status");
 // { used: 536870912, limit: 1073741824, percentage: 50 }
 ```
 
@@ -373,20 +376,20 @@ ipfs daemon
 
 ```javascript
 // 通过 IPC 更新存储配额
-await window.electronAPI.invoke('ipfs:set-quota', {
-  quotaBytes: 2147483648   // 动态调整为 2 GB
+await window.electronAPI.invoke("ipfs:set-quota", {
+  quotaBytes: 2147483648, // 动态调整为 2 GB
 });
 
 // 切换引擎模式（需重启 IPFS 节点）
-await window.electronAPI.invoke('ipfs:switch-mode', {
-  mode: 'kubo',
-  externalApiUrl: 'http://localhost:5001'
+await window.electronAPI.invoke("ipfs:switch-mode", {
+  mode: "kubo",
+  externalApiUrl: "http://localhost:5001",
 });
 
 // 更新 GC 策略
-await window.electronAPI.invoke('ipfs:set-gc-policy', {
-  intervalMs: 43200000,    // 12 小时
-  keepEncryptedOnSoftLimit: true
+await window.electronAPI.invoke("ipfs:set-gc-policy", {
+  intervalMs: 43200000, // 12 小时
+  keepEncryptedOnSoftLimit: true,
 });
 ```
 
@@ -396,27 +399,27 @@ await window.electronAPI.invoke('ipfs:set-gc-policy', {
 
 ### 存储与传输性能
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 文件上传（本地 Helia，1 MB） | < 200 ms | ~120 ms | ✅ |
-| 文件上传（加密，1 MB） | < 350 ms | ~280 ms | ✅ |
-| 文件下载（本地 Pin，1 MB） | < 150 ms | ~90 ms | ✅ |
-| 文件下载 + 解密（1 MB） | < 300 ms | ~210 ms | ✅ |
-| Kubo API 上传（1 MB） | < 500 ms | ~380 ms | ✅ |
-| CID 重复内容去重命中 | < 10 ms | ~5 ms | ✅ |
-| Pin 操作 | < 50 ms | ~30 ms | ✅ |
-| 配额状态查询 | < 20 ms | ~8 ms | ✅ |
+| 操作                         | 目标     | 实际    | 状态 |
+| ---------------------------- | -------- | ------- | ---- |
+| 文件上传（本地 Helia，1 MB） | < 200 ms | ~120 ms | ✅   |
+| 文件上传（加密，1 MB）       | < 350 ms | ~280 ms | ✅   |
+| 文件下载（本地 Pin，1 MB）   | < 150 ms | ~90 ms  | ✅   |
+| 文件下载 + 解密（1 MB）      | < 300 ms | ~210 ms | ✅   |
+| Kubo API 上传（1 MB）        | < 500 ms | ~380 ms | ✅   |
+| CID 重复内容去重命中         | < 10 ms  | ~5 ms   | ✅   |
+| Pin 操作                     | < 50 ms  | ~30 ms  | ✅   |
+| 配额状态查询                 | < 20 ms  | ~8 ms   | ✅   |
 
 ### 存储效率
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 相同文件去重率 | 100% | 100% | ✅ |
-| 加密开销（相对原始大小） | < 5% | ~1.2% | ✅ |
-| 元数据 SQLite 写入 | < 30 ms | ~18 ms | ✅ |
-| 垃圾回收（1000 个未 Pin CID） | < 10 s | ~6 s | ✅ |
-| Helia 节点启动时间 | < 3 s | ~1.8 s | ✅ |
-| Filecoin 存储证明验证（PoRep） | < 200 ms | ~140 ms | ✅ |
+| 操作                           | 目标     | 实际    | 状态 |
+| ------------------------------ | -------- | ------- | ---- |
+| 相同文件去重率                 | 100%     | 100%    | ✅   |
+| 加密开销（相对原始大小）       | < 5%     | ~1.2%   | ✅   |
+| 元数据 SQLite 写入             | < 30 ms  | ~18 ms  | ✅   |
+| 垃圾回收（1000 个未 Pin CID）  | < 10 s   | ~6 s    | ✅   |
+| Helia 节点启动时间             | < 3 s    | ~1.8 s  | ✅   |
+| Filecoin 存储证明验证（PoRep） | < 200 ms | ~140 ms | ✅   |
 
 ---
 
@@ -438,12 +441,12 @@ await window.electronAPI.invoke('ipfs:set-gc-policy', {
 
 ### 总覆盖
 
-| 模块 | 行覆盖率 | 分支覆盖率 |
-| --- | --- | --- |
-| `ipfs-manager.js` | 94% | 91% |
-| `filecoin-storage.js` | 89% | 86% |
-| `ipfs-ipc.js` | 97% | 95% |
-| **整体** | **93%** | **91%** |
+| 模块                  | 行覆盖率 | 分支覆盖率 |
+| --------------------- | -------- | ---------- |
+| `ipfs-manager.js`     | 94%      | 91%        |
+| `filecoin-storage.js` | 89%      | 86%        |
+| `ipfs-ipc.js`         | 97%      | 95%        |
+| **整体**              | **93%**  | **91%**    |
 
 ---
 

@@ -34,28 +34,28 @@ chainlesschain skill run cli-infra-pack "status"
 
 ## 9 个域技能包
 
-| 技能包 ID | 显示名 | 执行模式 | 指令数 | 覆盖指令 |
-|-----------|--------|----------|--------|---------|
-| `cli-knowledge-pack` | 知识管理技能包 | `direct` | 8 | note, search, import, export, git, tokens, memory, session |
-| `cli-identity-pack` | 身份安全技能包 | `direct` | 5 | did, encrypt, decrypt, auth, audit |
-| `cli-infra-pack` | 基础设施技能包 | `direct` | 9 | setup, start, stop, status, services, config, update, doctor, db |
-| `cli-ai-query-pack` | AI查询技能包 | `llm-query` | 4 | ask, llm, instinct, cowork |
-| `cli-agent-mode-pack` | Agent模式技能包 | `agent` | 2 | chat, agent |
-| `cli-web3-pack` | Web3与社交技能包 | `direct` | 9 | p2p, sync, wallet, org, dao, economy, nostr, matrix, social |
-| `cli-security-pack` | 安全合规技能包 | `direct` | 7 | compliance, dlp, siem, pqc, zkp, sandbox, hardening |
-| `cli-enterprise-pack` | 企业级技能包 | `direct` | 8 | bi, lowcode, terraform, scim, hook, workflow, a2a, hmemory |
-| `cli-integration-pack` | 集成扩展技能包 | `hybrid` | 9 | mcp, browse, plugin, cli-anything, evomap, serve, evolution, init, persona |
+| 技能包 ID              | 显示名           | 执行模式    | 指令数 | 覆盖指令                                                                   |
+| ---------------------- | ---------------- | ----------- | ------ | -------------------------------------------------------------------------- |
+| `cli-knowledge-pack`   | 知识管理技能包   | `direct`    | 8      | note, search, import, export, git, tokens, memory, session                 |
+| `cli-identity-pack`    | 身份安全技能包   | `direct`    | 5      | did, encrypt, decrypt, auth, audit                                         |
+| `cli-infra-pack`       | 基础设施技能包   | `direct`    | 9      | setup, start, stop, status, services, config, update, doctor, db           |
+| `cli-ai-query-pack`    | AI查询技能包     | `llm-query` | 4      | ask, llm, instinct, cowork                                                 |
+| `cli-agent-mode-pack`  | Agent模式技能包  | `agent`     | 2      | chat, agent                                                                |
+| `cli-web3-pack`        | Web3与社交技能包 | `direct`    | 9      | p2p, sync, wallet, org, dao, economy, nostr, matrix, social                |
+| `cli-security-pack`    | 安全合规技能包   | `direct`    | 7      | compliance, dlp, siem, pqc, zkp, sandbox, hardening                        |
+| `cli-enterprise-pack`  | 企业级技能包     | `direct`    | 8      | bi, lowcode, terraform, scim, hook, workflow, a2a, hmemory                 |
+| `cli-integration-pack` | 集成扩展技能包   | `hybrid`    | 9      | mcp, browse, plugin, cli-anything, evomap, serve, evolution, init, persona |
 
 **合计**: 9 个包，覆盖 61 条核心指令
 
 ## 执行模式说明
 
-| 模式 | 标识 | 行为 | 适用场景 |
-|------|------|------|---------|
-| **直接执行** | `direct` | `spawnSync` 调用 CLI 子进程，返回 JSON 结果 | 绝大多数指令，无需 LLM |
-| **LLM 查询** | `llm-query` | 单次非交互式 LLM 调用 | ask、llm 等 AI 查询指令 |
-| **Agent 模式** | `agent` | 不执行！返回如何在终端运行的使用说明 | chat、agent 等交互式 REPL |
-| **混合模式** | `hybrid` | 大部分直接执行，少量指令路由到 Agent 模式 | 集成扩展包 |
+| 模式           | 标识        | 行为                                        | 适用场景                  |
+| -------------- | ----------- | ------------------------------------------- | ------------------------- |
+| **直接执行**   | `direct`    | `spawnSync` 调用 CLI 子进程，返回 JSON 结果 | 绝大多数指令，无需 LLM    |
+| **LLM 查询**   | `llm-query` | 单次非交互式 LLM 调用                       | ask、llm 等 AI 查询指令   |
+| **Agent 模式** | `agent`     | 不执行！返回如何在终端运行的使用说明        | chat、agent 等交互式 REPL |
+| **混合模式**   | `hybrid`    | 大部分直接执行，少量指令路由到 Agent 模式   | 集成扩展包                |
 
 ### 为什么 Agent 模式包不直接执行？
 
@@ -93,6 +93,7 @@ chainlesschain skill sync-cli --output <dir>  # 指定输出目录
 ```
 
 当以下任一变化时，哈希失效并触发重新生成：
+
 - Schema 版本升级
 - CLI `package.json` 的 `version` 字段变化
 - 域定义中的指令列表变化（新增/删除指令）
@@ -149,6 +150,7 @@ chainlesschain skill run cli-agent-mode-pack "agent --provider ollama"
 ```
 
 返回：
+
 ```json
 {
   "success": true,
@@ -186,10 +188,10 @@ name: cli-knowledge-pack
 display-name: 知识管理技能包
 description: 笔记增删改查、全文混合搜索...
 version: 1.0.0
-category: cli-direct          # cli-direct | cli-agent
-execution-mode: direct        # direct | llm-query | agent | hybrid
-cli-domain: knowledge         # 所属域名称
-cli-version-hash: "ec00e811"  # SHA-256 前 16 位，用于 sync 检测
+category: cli-direct # cli-direct | cli-agent
+execution-mode: direct # direct | llm-query | agent | hybrid
+cli-domain: knowledge # 所属域名称
+cli-version-hash: "ec00e811" # SHA-256 前 16 位，用于 sync 检测
 tags: [note, search, ...]
 user-invocable: true
 handler: handler.js
@@ -255,13 +257,13 @@ CC_SKILL_PACKS_SCHEMA_VERSION                  # 覆盖 PACK_SCHEMA_VERSION (开
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| sync-cli 全量生成 (9 域) | < 2s | ~850ms | ✅ |
-| 单域哈希比对 | < 50ms | ~15ms | ✅ |
-| 单指令执行 (spawnSync) | < 500ms | ~230ms (短命令) | ✅ |
-| 技能加载 (启动扫描) | < 300ms | ~180ms (9 包) | ✅ |
-| dry-run 差异检测 | < 1s | ~400ms | ✅ |
+| 操作                     | 目标    | 实际            | 状态 |
+| ------------------------ | ------- | --------------- | ---- |
+| sync-cli 全量生成 (9 域) | < 2s    | ~850ms          | ✅   |
+| 单域哈希比对             | < 50ms  | ~15ms           | ✅   |
+| 单指令执行 (spawnSync)   | < 500ms | ~230ms (短命令) | ✅   |
+| 技能加载 (启动扫描)      | < 300ms | ~180ms (9 包)   | ✅   |
+| dry-run 差异检测         | < 1s    | ~400ms          | ✅   |
 
 ## 故障排查
 
@@ -333,13 +335,13 @@ packages/cli/__tests__/unit/
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/skill-packs/schema.js` | 9 域定义（`CLI_PACK_DOMAINS`）、执行模式说明、Agent 模式指令集、schema 版本 |
-| `packages/cli/src/lib/skill-packs/generator.js` | 包生成器（哈希计算、SKILL.md 生成、三种 handler 模板、批量生成/检查/删除） |
-| `packages/cli/src/commands/skill.js` | `sync-cli` 子命令注册入口 |
-| `~/.chainlesschain/skills/cli-*-pack/SKILL.md` | 生成的技能元数据（含 `execution-mode`、`cli-version-hash` 扩展字段） |
-| `~/.chainlesschain/skills/cli-*-pack/handler.js` | 生成的执行处理器（CJS，DirectHandler/AgentHandler/HybridHandler 三种模板） |
+| 文件                                             | 说明                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `packages/cli/src/lib/skill-packs/schema.js`     | 9 域定义（`CLI_PACK_DOMAINS`）、执行模式说明、Agent 模式指令集、schema 版本 |
+| `packages/cli/src/lib/skill-packs/generator.js`  | 包生成器（哈希计算、SKILL.md 生成、三种 handler 模板、批量生成/检查/删除）  |
+| `packages/cli/src/commands/skill.js`             | `sync-cli` 子命令注册入口                                                   |
+| `~/.chainlesschain/skills/cli-*-pack/SKILL.md`   | 生成的技能元数据（含 `execution-mode`、`cli-version-hash` 扩展字段）        |
+| `~/.chainlesschain/skills/cli-*-pack/handler.js` | 生成的执行处理器（CJS，DirectHandler/AgentHandler/HybridHandler 三种模板）  |
 
 ## 使用示例
 

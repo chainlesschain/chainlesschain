@@ -8,7 +8,7 @@
 
 ## 概述
 
-ChainlessChain 的多个 V2 内部子系统（BM25 搜索、记忆注入、Prompt 压缩、响应缓存、任务模型选择……）都遵循同一套**治理生命周期模型**：先注册一个 *profile*（带成熟度状态），再在其下创建 *job/query*（带生命周期状态），并由统一的配额与超时规则约束、由自动清道夫回收闲置/卡死项。每个子系统对应一个 `cc <cmd>` 治理命令，命令之间**子命令词汇完全一致**，只是名词随子系统而变（profile/target、query/job/task…）。
+ChainlessChain 的多个 V2 内部子系统（BM25 搜索、记忆注入、Prompt 压缩、响应缓存、任务模型选择……）都遵循同一套**治理生命周期模型**：先注册一个 _profile_（带成熟度状态），再在其下创建 _job/query_（带生命周期状态），并由统一的配额与超时规则约束、由自动清道夫回收闲置/卡死项。每个子系统对应一个 `cc <cmd>` 治理命令，命令之间**子命令词汇完全一致**，只是名词随子系统而变（profile/target、query/job/task…）。
 
 这族命令用于：检视某子系统的内部状态、手动驱动状态机做调试、调整治理参数、跑一次自动回收、读取治理统计。
 
@@ -41,51 +41,51 @@ src/lib/<subsystem>.js   （V2 治理 API，内存态）
 
 ### 统一子命令词汇
 
-| 子命令 | 作用 |
-|--------|------|
-| `enums-v2` | 打印成熟度 + 生命周期枚举常量 |
-| `config-v2` | 查看当前治理配置（配额/超时） |
-| `set-max-active-v2 <n>` | 设每 owner 最大活跃 profile 数 |
-| `set-max-pending-v2 <n>` | 设每 profile 最大 pending job 数 |
-| `set-idle-ms-v2 <ms>` | 设 profile 空闲超时 |
-| `set-stuck-ms-v2 <ms>` | 设 job 卡死超时 |
-| `register-profile-v2`（或 `register-target-v2`） | 注册 profile/target |
-| `activate-profile-v2 <id>` | 置 active |
-| `stale-profile-v2`/`pause-profile-v2 <id>` | 置 stale/paused |
-| `archive-profile-v2 <id>` | 归档 |
-| `touch-profile-v2 <id>` | 续活（刷新空闲计时） |
-| `get-profile-v2 <id>` / `list-profiles-v2` | 查/列 profile |
-| `create-<job>-v2` … `complete/fail/cancel-<job>-v2` | job/query 生命周期流转 |
-| `get-<job>-v2 <id>` / `list-<job>-v2` | 查/列 job |
-| `auto-stale-idle-...` / `auto-fail-stuck-...` | 自动清道夫 |
+| 子命令                                              | 作用                             |
+| --------------------------------------------------- | -------------------------------- |
+| `enums-v2`                                          | 打印成熟度 + 生命周期枚举常量    |
+| `config-v2`                                         | 查看当前治理配置（配额/超时）    |
+| `set-max-active-v2 <n>`                             | 设每 owner 最大活跃 profile 数   |
+| `set-max-pending-v2 <n>`                            | 设每 profile 最大 pending job 数 |
+| `set-idle-ms-v2 <ms>`                               | 设 profile 空闲超时              |
+| `set-stuck-ms-v2 <ms>`                              | 设 job 卡死超时                  |
+| `register-profile-v2`（或 `register-target-v2`）    | 注册 profile/target              |
+| `activate-profile-v2 <id>`                          | 置 active                        |
+| `stale-profile-v2`/`pause-profile-v2 <id>`          | 置 stale/paused                  |
+| `archive-profile-v2 <id>`                           | 归档                             |
+| `touch-profile-v2 <id>`                             | 续活（刷新空闲计时）             |
+| `get-profile-v2 <id>` / `list-profiles-v2`          | 查/列 profile                    |
+| `create-<job>-v2` … `complete/fail/cancel-<job>-v2` | job/query 生命周期流转           |
+| `get-<job>-v2 <id>` / `list-<job>-v2`               | 查/列 job                        |
+| `auto-stale-idle-...` / `auto-fail-stuck-...`       | 自动清道夫                       |
 
 ## 命令清单
 
-| 命令 | 子系统 | 底层 lib |
-|------|--------|----------|
-| `cc bm25` | BM25 搜索 profile/query | `lib/bm25-search.js` |
-| `cc ccron` | Cowork 定时任务 | `lib/cowork-cron.js` |
-| `cc consol` | 会话整合（Consolidator） | `lib/session-consolidator.js` |
-| `cc fflag` | 功能开关（Feature Flags） | `lib/feature-flags.js` |
-| `cc itbudget` | 迭代预算（Iteration Budget） | `lib/iteration-budget.js` |
-| `cc mcpscaf` | MCP 脚手架 | `lib/mcp-scaffold.js` |
-| `cc meminj` | 记忆注入（Memory Injection） | `lib/memory-injection.js` |
-| `cc orchgov` | 编排器治理（Orchestrator） | `lib/orchestrator.js` |
-| `cc pdfp` | PDF 解析器 | `lib/pdf-parser.js` |
-| `cc permmem` | 永久记忆 pin 成熟度 + 保留任务 | `lib/permanent-memory.js` |
-| `cc promcomp` | Prompt 压缩器 | `lib/prompt-compressor.js` |
-| `cc rcache` | 响应缓存 profile 成熟度 + 刷新任务 | `lib/response-cache.js` |
-| `cc seshhook` | 会话钩子（Session Hooks） | `lib/session-hooks.js` |
-| `cc seshsearch` | 会话搜索 | `lib/session-search.js` |
-| `cc seshtail` | 会话 Tail | `lib/session-tail.js` |
-| `cc seshu` | 会话用量（Session Usage） | `lib/session-usage.js` |
-| `cc slotfill` | 槽位填充器（Slot Filler） | `lib/slot-filler.js` |
-| `cc svccont` | 服务容器（Service Container） | `lib/service-container.js` |
-| `cc tms` | 任务模型选择器（Task Model Selector） | `lib/task-model-selector.js` |
-| `cc topiccls` | 主题分类器（Topic Classifier） | `lib/topic-classifier.js` |
-| `cc uprof` | 用户画像（User Profile） | `lib/user-profile.js` |
-| `cc vcheck` | 版本检查器（Version Checker） | `lib/version-checker.js` |
-| `cc webfetch` | 网页抓取 profile/target 治理 | `lib/web-fetch.js` |
+| 命令            | 子系统                                | 底层 lib                      |
+| --------------- | ------------------------------------- | ----------------------------- |
+| `cc bm25`       | BM25 搜索 profile/query               | `lib/bm25-search.js`          |
+| `cc ccron`      | Cowork 定时任务                       | `lib/cowork-cron.js`          |
+| `cc consol`     | 会话整合（Consolidator）              | `lib/session-consolidator.js` |
+| `cc fflag`      | 功能开关（Feature Flags）             | `lib/feature-flags.js`        |
+| `cc itbudget`   | 迭代预算（Iteration Budget）          | `lib/iteration-budget.js`     |
+| `cc mcpscaf`    | MCP 脚手架                            | `lib/mcp-scaffold.js`         |
+| `cc meminj`     | 记忆注入（Memory Injection）          | `lib/memory-injection.js`     |
+| `cc orchgov`    | 编排器治理（Orchestrator）            | `lib/orchestrator.js`         |
+| `cc pdfp`       | PDF 解析器                            | `lib/pdf-parser.js`           |
+| `cc permmem`    | 永久记忆 pin 成熟度 + 保留任务        | `lib/permanent-memory.js`     |
+| `cc promcomp`   | Prompt 压缩器                         | `lib/prompt-compressor.js`    |
+| `cc rcache`     | 响应缓存 profile 成熟度 + 刷新任务    | `lib/response-cache.js`       |
+| `cc seshhook`   | 会话钩子（Session Hooks）             | `lib/session-hooks.js`        |
+| `cc seshsearch` | 会话搜索                              | `lib/session-search.js`       |
+| `cc seshtail`   | 会话 Tail                             | `lib/session-tail.js`         |
+| `cc seshu`      | 会话用量（Session Usage）             | `lib/session-usage.js`        |
+| `cc slotfill`   | 槽位填充器（Slot Filler）             | `lib/slot-filler.js`          |
+| `cc svccont`    | 服务容器（Service Container）         | `lib/service-container.js`    |
+| `cc tms`        | 任务模型选择器（Task Model Selector） | `lib/task-model-selector.js`  |
+| `cc topiccls`   | 主题分类器（Topic Classifier）        | `lib/topic-classifier.js`     |
+| `cc uprof`      | 用户画像（User Profile）              | `lib/user-profile.js`         |
+| `cc vcheck`     | 版本检查器（Version Checker）         | `lib/version-checker.js`      |
+| `cc webfetch`   | 网页抓取 profile/target 治理          | `lib/web-fetch.js`            |
 
 > 注：`cc webfetch` 是网页抓取**子系统的治理面**（profile/target 生命周期），区别于 agent 的 `web_fetch` 抓取工具本身。
 
@@ -93,12 +93,12 @@ src/lib/<subsystem>.js   （V2 治理 API，内存态）
 
 每个子系统的治理参数都用相同的四个开关，运行时可调（内存态，进程内有效）：
 
-| 参数 | 子命令 | 含义 |
-|------|--------|------|
-| 每 owner 最大活跃 profile 数 | `set-max-active-v2 <n>` | 限制单 owner 同时 active 的 profile |
-| 每 profile 最大 pending job 数 | `set-max-pending-v2 <n>` | 限制单 profile 排队的 job |
-| profile 空闲超时（ms） | `set-idle-ms-v2 <ms>` | 超过则被 `auto-stale-idle` 回收 |
-| job 卡死超时（ms） | `set-stuck-ms-v2 <ms>` | 超过则被 `auto-fail-stuck` 失败 |
+| 参数                           | 子命令                   | 含义                                |
+| ------------------------------ | ------------------------ | ----------------------------------- |
+| 每 owner 最大活跃 profile 数   | `set-max-active-v2 <n>`  | 限制单 owner 同时 active 的 profile |
+| 每 profile 最大 pending job 数 | `set-max-pending-v2 <n>` | 限制单 profile 排队的 job           |
+| profile 空闲超时（ms）         | `set-idle-ms-v2 <ms>`    | 超过则被 `auto-stale-idle` 回收     |
+| job 卡死超时（ms）             | `set-stuck-ms-v2 <ms>`   | 超过则被 `auto-fail-stuck` 失败     |
 
 查看当前值用 `config-v2`，查看枚举常量用 `enums-v2`。
 
@@ -131,22 +131,22 @@ npx vitest run __tests__/unit/bm25-search.test.js \
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 重启后 profile/job 全没了 | 内存态、不持久化（设计如此） | 重新 register；不要依赖其跨重启 |
-| `register-profile-v2` 被拒 | 超过每 owner 最大活跃数 | `config-v2` 看配额，`set-max-active-v2` 调高或归档旧 profile |
-| `create-<job>-v2` 被拒 | 超过每 profile 最大 pending 数 | `set-max-pending-v2` 调高或先消费 pending job |
-| profile 莫名变 stale | 空闲超过 `idle-ms` 被清道夫回收 | `touch-profile-v2` 续活；或调高 `set-idle-ms-v2` |
-| job 莫名 failed | 运行超过 `stuck-ms` 被清道夫失败 | 调高 `set-stuck-ms-v2`；排查真实卡死原因 |
-| 不知道有哪些状态 | — | `cc <cmd> enums-v2` 打印枚举 |
+| 现象                       | 可能原因                         | 处理                                                         |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------ |
+| 重启后 profile/job 全没了  | 内存态、不持久化（设计如此）     | 重新 register；不要依赖其跨重启                              |
+| `register-profile-v2` 被拒 | 超过每 owner 最大活跃数          | `config-v2` 看配额，`set-max-active-v2` 调高或归档旧 profile |
+| `create-<job>-v2` 被拒     | 超过每 profile 最大 pending 数   | `set-max-pending-v2` 调高或先消费 pending job                |
+| profile 莫名变 stale       | 空闲超过 `idle-ms` 被清道夫回收  | `touch-profile-v2` 续活；或调高 `set-idle-ms-v2`             |
+| job 莫名 failed            | 运行超过 `stuck-ms` 被清道夫失败 | 调高 `set-stuck-ms-v2`；排查真实卡死原因                     |
+| 不知道有哪些状态           | —                                | `cc <cmd> enums-v2` 打印枚举                                 |
 
 ## 关键文件
 
-| 路径 | 说明 |
-|------|------|
-| `packages/cli/src/commands/<cmd>.js` | 各治理命令（薄封装，委托 lib 的 `*V2` 函数） |
+| 路径                                  | 说明                                                       |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `packages/cli/src/commands/<cmd>.js`  | 各治理命令（薄封装，委托 lib 的 `*V2` 函数）               |
 | `packages/cli/src/lib/<subsystem>.js` | 各子系统的 V2 治理 API（成熟度/生命周期/配额/清道夫/统计） |
-| `packages/cli/__tests__/unit/**` | lib 层 V2 治理单元测试 |
+| `packages/cli/__tests__/unit/**`      | lib 层 V2 治理单元测试                                     |
 
 ## 使用示例
 

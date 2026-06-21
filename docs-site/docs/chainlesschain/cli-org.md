@@ -73,13 +73,13 @@ chainlesschain org reject <request-id>             # 拒绝
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `organizations` | 组织信息 |
-| `org_members` | 成员关系（角色、状态） |
-| `org_teams` | 团队信息 |
-| `org_team_members` | 团队成员 |
-| `approval_requests` | 审批请求 |
+| 表名                | 说明                   |
+| ------------------- | ---------------------- |
+| `organizations`     | 组织信息               |
+| `org_members`       | 成员关系（角色、状态） |
+| `org_teams`         | 团队信息               |
+| `org_team_members`  | 团队成员               |
+| `approval_requests` | 审批请求               |
 
 ## 配置参考
 
@@ -98,14 +98,14 @@ ORG_DEFAULT_ROLE         # 邀请成员的默认角色 (默认 member)
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `org create` | < 100ms | ~45ms | ✅ |
-| `org list` | < 100ms | ~50ms | ✅ |
-| `org invite` | < 150ms | ~70ms | ✅ |
-| `org members` | < 120ms | ~60ms | ✅ |
-| `org approval-submit` | < 150ms | ~80ms | ✅ |
-| `org approve` / `reject` | < 120ms | ~55ms | ✅ |
+| 操作                     | 目标    | 实际  | 状态 |
+| ------------------------ | ------- | ----- | ---- |
+| `org create`             | < 100ms | ~45ms | ✅   |
+| `org list`               | < 100ms | ~50ms | ✅   |
+| `org invite`             | < 150ms | ~70ms | ✅   |
+| `org members`            | < 120ms | ~60ms | ✅   |
+| `org approval-submit`    | < 150ms | ~80ms | ✅   |
+| `org approve` / `reject` | < 120ms | ~55ms | ✅   |
 
 ## 测试覆盖率
 
@@ -158,11 +158,11 @@ chainlesschain org approve <request-id>
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `create` 失败 | 确认数据库已初始化：`chainlesschain db init` |
-| `invite` 报用户不存在 | 确认用户 ID 有效 |
-| `delete` 级联失败 | 检查数据库完整性 |
+| 问题                  | 解决方案                                     |
+| --------------------- | -------------------------------------------- |
+| `create` 失败         | 确认数据库已初始化：`chainlesschain db init` |
+| `invite` 报用户不存在 | 确认用户 ID 有效                             |
+| `delete` 级联失败     | 检查数据库完整性                             |
 
 ## 关键文件
 

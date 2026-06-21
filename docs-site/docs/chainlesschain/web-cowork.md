@@ -145,10 +145,10 @@ pip install <pkg> / npm install -g <pkg>
 
 ```javascript
 // 优先级：环境变量 > config.json > 默认值
-process.env.COWORK_TOKEN_BUDGET = "200000";    // token 预算
-process.env.COWORK_MAX_ITERATIONS = "50";      // 最大迭代
-process.env.COWORK_AUTO_INSTALL = "false";     // 禁用自动安装
-process.env.COWORK_WS_PORT = "18800";          // WebSocket 端口
+process.env.COWORK_TOKEN_BUDGET = "200000"; // token 预算
+process.env.COWORK_MAX_ITERATIONS = "50"; // 最大迭代
+process.env.COWORK_AUTO_INSTALL = "false"; // 禁用自动安装
+process.env.COWORK_WS_PORT = "18800"; // WebSocket 端口
 ```
 
 ### 模板级配置示例（MCP 集成 + Shell 策略）
@@ -176,74 +176,74 @@ process.env.COWORK_WS_PORT = "18800";          // WebSocket 端口
 
 ### 任务执行性能
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 文档格式转换（单文件 DOCX→PDF） | < 10s | ~6s | ✅ 达标 |
-| 音视频压缩（100MB MP4→50MB） | < 60s | ~45s | ✅ 达标 |
-| CSV 数据分析 + 图表生成（10K 行） | < 15s | ~10s | ✅ 达标 |
-| 批量图片压缩（100 张 JPG） | < 30s | ~22s | ✅ 达标 |
-| OCR 文字识别（单页 A4） | < 8s | ~5s | ✅ 达标 |
-| 工具自动安装（winget，首次） | < 120s | ~80s | ✅ 达标 |
-| WebSocket 消息首字节延迟 | < 200ms | ~80ms | ✅ 达标 |
+| 操作                              | 目标    | 实际  | 状态    |
+| --------------------------------- | ------- | ----- | ------- |
+| 文档格式转换（单文件 DOCX→PDF）   | < 10s   | ~6s   | ✅ 达标 |
+| 音视频压缩（100MB MP4→50MB）      | < 60s   | ~45s  | ✅ 达标 |
+| CSV 数据分析 + 图表生成（10K 行） | < 15s   | ~10s  | ✅ 达标 |
+| 批量图片压缩（100 张 JPG）        | < 30s   | ~22s  | ✅ 达标 |
+| OCR 文字识别（单页 A4）           | < 8s    | ~5s   | ✅ 达标 |
+| 工具自动安装（winget，首次）      | < 120s  | ~80s  | ✅ 达标 |
+| WebSocket 消息首字节延迟          | < 200ms | ~80ms | ✅ 达标 |
 
 ### Agent 执行效率
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 会话创建（session-create 往返） | < 500ms | ~180ms | ✅ 达标 |
-| 模板列表加载（getTemplatesForUI） | < 100ms | ~20ms | ✅ 达标 |
-| 任务取消响应时间 | < 1s | ~300ms | ✅ 达标 |
-| 并行模式 3-Agent 加速比 | ≥ 2x | ~2.4x | ✅ 达标 |
-| Token 消耗（简单文档转换任务） | < 2000 tokens | ~1200 tokens | ✅ 达标 |
-| Token 消耗（复杂数据分析任务） | < 8000 tokens | ~5500 tokens | ✅ 达标 |
+| 操作                              | 目标          | 实际         | 状态    |
+| --------------------------------- | ------------- | ------------ | ------- |
+| 会话创建（session-create 往返）   | < 500ms       | ~180ms       | ✅ 达标 |
+| 模板列表加载（getTemplatesForUI） | < 100ms       | ~20ms        | ✅ 达标 |
+| 任务取消响应时间                  | < 1s          | ~300ms       | ✅ 达标 |
+| 并行模式 3-Agent 加速比           | ≥ 2x          | ~2.4x        | ✅ 达标 |
+| Token 消耗（简单文档转换任务）    | < 2000 tokens | ~1200 tokens | ✅ 达标 |
+| Token 消耗（复杂数据分析任务）    | < 8000 tokens | ~5500 tokens | ✅ 达标 |
 
 ### 稳定性与并发
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 5 并发任务下 WebSocket 连接稳定性 | 100% | 100% | ✅ 达标 |
+| 操作                                    | 目标     | 实际 | 状态    |
+| --------------------------------------- | -------- | ---- | ------- |
+| 5 并发任务下 WebSocket 连接稳定性       | 100%     | 100% | ✅ 达标 |
 | Agent 循环无限重试（token budget 保护） | 0 次越界 | 0 次 | ✅ 达标 |
-| XSS 过滤后渲染无误 | 100% | 100% | ✅ 达标 |
-| 任务重试成功率（工具偶发失败） | ≥ 85% | ~91% | ✅ 达标 |
+| XSS 过滤后渲染无误                      | 100%     | 100% | ✅ 达标 |
+| 任务重试成功率（工具偶发失败）          | ≥ 85%    | ~91% | ✅ 达标 |
 
 ## 测试覆盖率
 
 ### 单元测试
 
-| 测试文件 | 测试数 | 说明 |
-|----------|--------|------|
-| ✅ `__tests__/unit/cowork-task-templates.test.js` | 32 | 11 模板定义验证、提示词注入、字段完整性 |
-| ✅ `__tests__/unit/cowork-task-runner.test.js` | 36 | Pipeline 控制器、SubAgentContext 隔离、取消逻辑 |
-| ✅ `__tests__/unit/cowork-action-protocol.test.js` | 16 | WS 消息路由、handleCoworkTask 各分支 |
-| ✅ `__tests__/unit/cowork-session-extension.test.js` | 7 | systemPromptExtension 透传、拼接正确性 |
-| ✅ `__tests__/unit/coding-agent-shell-policy.test.js` | 10 | shellPolicyOverrides、危险命令拦截 |
-| ✅ `__tests__/unit/cowork-workflow-ws.test.js` | 10 | N1 后端 5 个 handleWorkflow* handler |
-| ✅ `web-panel/__tests__/unit/workflow-store.test.js` | 16 | N1 前端 Pinia store + validateLocal 环检测 |
+| 测试文件                                              | 测试数 | 说明                                            |
+| ----------------------------------------------------- | ------ | ----------------------------------------------- |
+| ✅ `__tests__/unit/cowork-task-templates.test.js`     | 32     | 11 模板定义验证、提示词注入、字段完整性         |
+| ✅ `__tests__/unit/cowork-task-runner.test.js`        | 36     | Pipeline 控制器、SubAgentContext 隔离、取消逻辑 |
+| ✅ `__tests__/unit/cowork-action-protocol.test.js`    | 16     | WS 消息路由、handleCoworkTask 各分支            |
+| ✅ `__tests__/unit/cowork-session-extension.test.js`  | 7      | systemPromptExtension 透传、拼接正确性          |
+| ✅ `__tests__/unit/coding-agent-shell-policy.test.js` | 10     | shellPolicyOverrides、危险命令拦截              |
+| ✅ `__tests__/unit/cowork-workflow-ws.test.js`        | 10     | N1 后端 5 个 handleWorkflow\* handler           |
+| ✅ `web-panel/__tests__/unit/workflow-store.test.js`  | 16     | N1 前端 Pinia store + validateLocal 环检测      |
 
 ### 集成测试
 
-| 测试文件 | 测试数 | 说明 |
-|----------|--------|------|
-| ✅ `__tests__/integration/cowork-task-workflow.test.js` | 17 | 端到端任务流水线（mock LLM）|
-| ✅ `__tests__/integration/cowork-workflow-ws-integration.test.js` | 5 | N1 workflow WS 集成 |
+| 测试文件                                                          | 测试数 | 说明                         |
+| ----------------------------------------------------------------- | ------ | ---------------------------- |
+| ✅ `__tests__/integration/cowork-task-workflow.test.js`           | 17     | 端到端任务流水线（mock LLM） |
+| ✅ `__tests__/integration/cowork-workflow-ws-integration.test.js` | 5      | N1 workflow WS 集成          |
 
 ### E2E 测试
 
-| 测试文件 | 测试数 | 说明 |
-|----------|--------|------|
-| ✅ `__tests__/e2e/cowork-task-e2e.test.js` | 21 | 真实 WS 连接 + 完整任务执行 |
-| ✅ `__tests__/e2e/cowork-workflow-ws-e2e.test.js` | 8 | N1 workflow 端到端 WS 流 |
+| 测试文件                                          | 测试数 | 说明                        |
+| ------------------------------------------------- | ------ | --------------------------- |
+| ✅ `__tests__/e2e/cowork-task-e2e.test.js`        | 21     | 真实 WS 连接 + 完整任务执行 |
+| ✅ `__tests__/e2e/cowork-workflow-ws-e2e.test.js` | 8      | N1 workflow 端到端 WS 流    |
 
 ### 覆盖率汇总
 
-| 维度 | 数值 |
-|------|------|
-| 总测试数 | **178** |
-| 单元通过率 | 127 / 127 ✅ |
-| 集成通过率 | 22 / 22 ✅ |
-| E2E 通过率 | 29 / 29 ✅ |
-| 行覆盖率（cowork-task-runner.js） | ~94% |
-| 行覆盖率（action-protocol.js cowork 分支） | ~89% |
+| 维度                                       | 数值         |
+| ------------------------------------------ | ------------ |
+| 总测试数                                   | **178**      |
+| 单元通过率                                 | 127 / 127 ✅ |
+| 集成通过率                                 | 22 / 22 ✅   |
+| E2E 通过率                                 | 29 / 29 ✅   |
+| 行覆盖率（cowork-task-runner.js）          | ~94%         |
+| 行覆盖率（action-protocol.js cowork 分支） | ~89%         |
 
 ## 使用示例
 
@@ -292,34 +292,34 @@ Agent 会根据任务内容自动选择合适的工具和方法。
 
 ## 11 类任务模板
 
-| 模板 ID | 名称 | 分类 | 支持文件 | 核心工具 |
-|---------|------|------|----------|---------|
-| `doc-convert` | 文档格式转换 | document | 是 | pandoc, LibreOffice, Ghostscript |
-| `media-process` | 音视频处理 | media | 是 | ffmpeg, yt-dlp |
-| `data-analysis` | 数据分析 | data | 是 | pandas, matplotlib, jq |
-| `web-research` | 信息检索与调研 | research | 否 | curl, requests, BeautifulSoup |
-| `image-process` | 图片处理 | media | 是 | ImageMagick, Tesseract, Pillow |
-| `code-helper` | 代码辅助 | development | 是 | Python, Node.js, Bash |
-| `code_review` | 代码评审（v0.46.0） | development | 是 | read_file, search_files, git |
-| `system-admin` | 系统运维 | system | 否 | 系统命令 |
-| `file-organize` | 文件整理 | file | 否 | Python pathlib, 7-Zip |
-| `network-tools` | 网络工具 | network | 否 | curl, ping, nslookup |
-| `learning-assist` | 学习辅助 | learning | 是 | pandoc, pdfplumber, Tesseract |
+| 模板 ID           | 名称                | 分类        | 支持文件 | 核心工具                         |
+| ----------------- | ------------------- | ----------- | -------- | -------------------------------- |
+| `doc-convert`     | 文档格式转换        | document    | 是       | pandoc, LibreOffice, Ghostscript |
+| `media-process`   | 音视频处理          | media       | 是       | ffmpeg, yt-dlp                   |
+| `data-analysis`   | 数据分析            | data        | 是       | pandas, matplotlib, jq           |
+| `web-research`    | 信息检索与调研      | research    | 否       | curl, requests, BeautifulSoup    |
+| `image-process`   | 图片处理            | media       | 是       | ImageMagick, Tesseract, Pillow   |
+| `code-helper`     | 代码辅助            | development | 是       | Python, Node.js, Bash            |
+| `code_review`     | 代码评审（v0.46.0） | development | 是       | read_file, search_files, git     |
+| `system-admin`    | 系统运维            | system      | 否       | 系统命令                         |
+| `file-organize`   | 文件整理            | file        | 否       | Python pathlib, 7-Zip            |
+| `network-tools`   | 网络工具            | network     | 否       | curl, ping, nslookup             |
+| `learning-assist` | 学习辅助            | learning    | 是       | pandoc, pdfplumber, Tesseract    |
 
 ## 常用开源工具速查
 
-| 工具 | winget ID | 用途 |
-|------|-----------|------|
-| ffmpeg | Gyan.FFmpeg | 音视频处理 |
-| pandoc | JohnMacFarlane.Pandoc | 文档格式转换 |
-| LibreOffice | TheDocumentFoundation.LibreOffice | Office 文档 |
-| Tesseract | UB-Mannheim.TesseractOCR | OCR 文字识别 |
-| ImageMagick | ImageMagick.ImageMagick | 图片处理 |
-| Ghostscript | ArtifexSoftware.GhostScript | PDF 处理 |
-| 7-Zip | 7zip.7zip | 压缩解压 |
-| GraphViz | Graphviz.Graphviz | 图表生成 |
-| yt-dlp | yt-dlp.yt-dlp | 视频下载 |
-| jq | jqlang.jq | JSON 处理 |
+| 工具        | winget ID                         | 用途         |
+| ----------- | --------------------------------- | ------------ |
+| ffmpeg      | Gyan.FFmpeg                       | 音视频处理   |
+| pandoc      | JohnMacFarlane.Pandoc             | 文档格式转换 |
+| LibreOffice | TheDocumentFoundation.LibreOffice | Office 文档  |
+| Tesseract   | UB-Mannheim.TesseractOCR          | OCR 文字识别 |
+| ImageMagick | ImageMagick.ImageMagick           | 图片处理     |
+| Ghostscript | ArtifexSoftware.GhostScript       | PDF 处理     |
+| 7-Zip       | 7zip.7zip                         | 压缩解压     |
+| GraphViz    | Graphviz.Graphviz                 | 图表生成     |
+| yt-dlp      | yt-dlp.yt-dlp                     | 视频下载     |
+| jq          | jqlang.jq                         | JSON 处理    |
 
 ## WebSocket 协议
 
@@ -415,6 +415,7 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 **症状**: Agent 报告 "winget install failed" 或类似错误
 
 **排查步骤**:
+
 - 检查 winget 是否已安装: `winget --version`
 - 检查网络连接是否正常
 - 尝试手动安装: `winget install Gyan.FFmpeg --accept-package-agreements`
@@ -425,6 +426,7 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 **症状**: 任务长时间无响应
 
 **排查步骤**:
+
 - 检查 LLM Provider 是否正常: `chainlesschain llm test`
 - 检查 Ollama 服务: `curl http://localhost:11434/api/tags`
 - 增大 token budget 或 iteration limit
@@ -434,6 +436,7 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 **症状**: Agent 报告文件不存在
 
 **排查步骤**:
+
 - 确认使用绝对路径
 - Windows 路径使用正斜杠 `/` 或双反斜杠 `\\`
 - 检查文件权限
@@ -443,6 +446,7 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 **症状**: 页面显示 "WebSocket 未连接"
 
 **排查步骤**:
+
 - 确认 `chainlesschain serve` 正在运行
 - 检查端口 18800 是否被占用: `netstat -ano | findstr :18800`
 - 检查防火墙设置
@@ -452,6 +456,7 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 **症状**: Tesseract 输出乱码或缺字
 
 **排查步骤**:
+
 - 确认安装了中文语言包: `tesseract --list-langs`
 - 安装中文包: 下载 `chi_sim.traineddata` 到 tessdata 目录
 - 图片预处理: 提高分辨率、增强对比度
@@ -469,42 +474,42 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 
 ### 后端
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/cowork-task-templates.js` | 10 任务模板定义 + 共享提示词 |
-| `packages/cli/src/lib/cowork-task-runner.js` | Pipeline 控制器，创建 SubAgentContext 执行任务 |
-| `packages/cli/src/gateways/ws/action-protocol.js` | WS 消息处理器 `handleCoworkTask()` |
-| `packages/cli/src/gateways/ws/message-dispatcher.js` | 路由 `cowork-task` 消息类型 |
-| `packages/cli/src/gateways/ws/ws-server.js` | WS 服务器 `_handleCoworkTask()` 方法 |
-| `packages/cli/src/gateways/ws/session-protocol.js` | `systemPromptExtension` 透传 |
-| `packages/cli/src/gateways/ws/ws-session-gateway.js` | 系统提示拼接 `systemPromptExtension` |
-| `packages/cli/src/lib/sub-agent-context.js` | SubAgentContext 隔离执行上下文 |
+| 文件                                                 | 说明                                           |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `packages/cli/src/lib/cowork-task-templates.js`      | 10 任务模板定义 + 共享提示词                   |
+| `packages/cli/src/lib/cowork-task-runner.js`         | Pipeline 控制器，创建 SubAgentContext 执行任务 |
+| `packages/cli/src/gateways/ws/action-protocol.js`    | WS 消息处理器 `handleCoworkTask()`             |
+| `packages/cli/src/gateways/ws/message-dispatcher.js` | 路由 `cowork-task` 消息类型                    |
+| `packages/cli/src/gateways/ws/ws-server.js`          | WS 服务器 `_handleCoworkTask()` 方法           |
+| `packages/cli/src/gateways/ws/session-protocol.js`   | `systemPromptExtension` 透传                   |
+| `packages/cli/src/gateways/ws/ws-session-gateway.js` | 系统提示拼接 `systemPromptExtension`           |
+| `packages/cli/src/lib/sub-agent-context.js`          | SubAgentContext 隔离执行上下文                 |
 
 ### 前端
 
-| 文件 | 说明 |
-|------|------|
-| `packages/web-panel/src/views/Cowork.vue` | 任务协作页面组件 |
-| `packages/web-panel/src/stores/cowork.js` | Pinia 状态管理 + loadTemplates/loadHistory |
-| `packages/web-panel/src/router/index.js` | `/cowork` 路由 |
-| `packages/web-panel/src/components/AppLayout.vue` | 侧边栏"日常协作"入口 |
+| 文件                                              | 说明                                       |
+| ------------------------------------------------- | ------------------------------------------ |
+| `packages/web-panel/src/views/Cowork.vue`         | 任务协作页面组件                           |
+| `packages/web-panel/src/stores/cowork.js`         | Pinia 状态管理 + loadTemplates/loadHistory |
+| `packages/web-panel/src/router/index.js`          | `/cowork` 路由                             |
+| `packages/web-panel/src/components/AppLayout.vue` | 侧边栏"日常协作"入口                       |
 
 ### 测试
 
-| 文件 | 测试数 | 类型 |
-|------|--------|------|
-| `__tests__/unit/cowork-task-templates.test.js` | 32 | 单元测试 |
-| `__tests__/unit/cowork-task-runner.test.js` | 36 | 单元测试 |
-| `__tests__/unit/cowork-action-protocol.test.js` | 16 | 单元测试 |
-| `__tests__/unit/cowork-session-extension.test.js` | 7 | 单元测试 |
-| `__tests__/unit/coding-agent-shell-policy.test.js` | 10 | 单元测试 (含 overrides) |
-| `__tests__/integration/cowork-task-workflow.test.js` | 17 | 集成测试 |
-| `__tests__/integration/cowork-workflow-ws-integration.test.js` | 5 | 集成测试 (N1) |
-| `__tests__/e2e/cowork-task-e2e.test.js` | 21 | E2E 测试 |
-| `__tests__/e2e/cowork-workflow-ws-e2e.test.js` | 8 | E2E 测试 (N1) |
-| `__tests__/unit/cowork-workflow-ws.test.js` | 10 | 单元测试 (N1 后端) |
-| `web-panel/__tests__/unit/workflow-store.test.js` | 16 | 单元测试 (N1 前端) |
-| **合计** | **178** | |
+| 文件                                                           | 测试数  | 类型                    |
+| -------------------------------------------------------------- | ------- | ----------------------- |
+| `__tests__/unit/cowork-task-templates.test.js`                 | 32      | 单元测试                |
+| `__tests__/unit/cowork-task-runner.test.js`                    | 36      | 单元测试                |
+| `__tests__/unit/cowork-action-protocol.test.js`                | 16      | 单元测试                |
+| `__tests__/unit/cowork-session-extension.test.js`              | 7       | 单元测试                |
+| `__tests__/unit/coding-agent-shell-policy.test.js`             | 10      | 单元测试 (含 overrides) |
+| `__tests__/integration/cowork-task-workflow.test.js`           | 17      | 集成测试                |
+| `__tests__/integration/cowork-workflow-ws-integration.test.js` | 5       | 集成测试 (N1)           |
+| `__tests__/e2e/cowork-task-e2e.test.js`                        | 21      | E2E 测试                |
+| `__tests__/e2e/cowork-workflow-ws-e2e.test.js`                 | 8       | E2E 测试 (N1)           |
+| `__tests__/unit/cowork-workflow-ws.test.js`                    | 10      | 单元测试 (N1 后端)      |
+| `web-panel/__tests__/unit/workflow-store.test.js`              | 16      | 单元测试 (N1 前端)      |
+| **合计**                                                       | **178** |                         |
 
 ## 当前验证
 
@@ -527,23 +532,23 @@ Web Panel 新增 `/#/workflow` 页面，提供基于表单的 Cowork Workflow CR
 
 ### WebSocket 协议
 
-| 请求 type | 响应 type | 说明 |
-|-----------|-----------|------|
-| `workflow-list` | `workflow:list` | 返回所有 `workflows[]` |
-| `workflow-get` (id) | `workflow:get` | 返回 `workflow` 对象，未找到为 `null` |
-| `workflow-save` (workflow) | `workflow:save` | `saved: true, workflowId`；校验失败返回 `error` + `WORKFLOW_INVALID` |
-| `workflow-remove` (id) | `workflow:remove` | `removed: true/false` |
-| `workflow-run` (id) | `workflow:started` → `step-start` → `step-complete` → `workflow:done` | 流式事件；未找到返回 `error` + `WORKFLOW_NOT_FOUND` |
+| 请求 type                  | 响应 type                                                             | 说明                                                                 |
+| -------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `workflow-list`            | `workflow:list`                                                       | 返回所有 `workflows[]`                                               |
+| `workflow-get` (id)        | `workflow:get`                                                        | 返回 `workflow` 对象，未找到为 `null`                                |
+| `workflow-save` (workflow) | `workflow:save`                                                       | `saved: true, workflowId`；校验失败返回 `error` + `WORKFLOW_INVALID` |
+| `workflow-remove` (id)     | `workflow:remove`                                                     | `removed: true/false`                                                |
+| `workflow-run` (id)        | `workflow:started` → `step-start` → `step-complete` → `workflow:done` | 流式事件；未找到返回 `error` + `WORKFLOW_NOT_FOUND`                  |
 
 ### 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/gateways/ws/action-protocol.js` | 5 个 handler (`handleWorkflow*`) |
-| `packages/cli/src/gateways/ws/message-dispatcher.js` | 路由注册 |
-| `packages/cli/src/lib/cowork-workflow.js` | CRUD + 执行引擎（v0.46.0 复用） |
-| `packages/web-panel/src/stores/workflow.js` | Pinia store + `validateLocal` |
-| `packages/web-panel/src/views/WorkflowEditor.vue` | 表单编辑器视图 |
+| 文件                                                 | 说明                             |
+| ---------------------------------------------------- | -------------------------------- |
+| `packages/cli/src/gateways/ws/action-protocol.js`    | 5 个 handler (`handleWorkflow*`) |
+| `packages/cli/src/gateways/ws/message-dispatcher.js` | 路由注册                         |
+| `packages/cli/src/lib/cowork-workflow.js`            | CRUD + 执行引擎（v0.46.0 复用）  |
+| `packages/web-panel/src/stores/workflow.js`          | Pinia store + `validateLocal`    |
+| `packages/web-panel/src/views/WorkflowEditor.vue`    | 表单编辑器视图                   |
 
 > **M2 规划**: Vue Flow 可视化画布（drag-to-connect、缩略图、分支渲染）作为独立里程碑跟进，不阻塞 v0.47.0 发布。
 
@@ -555,17 +560,17 @@ Web Panel 新增 `/#/workflow` 页面，提供基于表单的 Cowork Workflow CR
 
 ### 总览
 
-| # | 功能 | 状态 | 落地版本 | 入口 |
-|---|------|------|---------|------|
-| F1 | Orchestrator 并行模式 | ✅ | v0.46.0 | `cowork-task` WS + `parallel: true` |
-| F2 | Debate 方案审查 | ✅ | v0.46.0 | `chainlesschain cowork debate <file>` |
-| F3 | 模板市场（EvoMap） | ✅ | v0.46.0 | `chainlesschain cowork template` 子命令 |
-| F4 | 定时任务 | ✅ | v0.46.0 | `chainlesschain cowork cron` 子命令 |
-| F5 | 移动端入口 | ✅ | v0.46.0 | Android `pc-cowork-daily` / `pc-cowork-workflow` 远端技能 |
-| F6 | MCP 工具集成 | ✅ | v0.46.0 | 模板 `mcpServers` 字段自动挂载 |
-| F7 | 工作流编排（DAG） | ✅ | v0.46.0 | `chainlesschain cowork workflow` + Web 编辑器（v0.47.0） |
-| F8 | P2P 多用户协作 | ✅ | v0.46.0 | `chainlesschain cowork share` 子命令 |
-| F9 | 学习进化 | ✅ | v0.46.0 | `chainlesschain cowork learning` 子命令 |
+| #   | 功能                  | 状态 | 落地版本 | 入口                                                      |
+| --- | --------------------- | ---- | -------- | --------------------------------------------------------- |
+| F1  | Orchestrator 并行模式 | ✅   | v0.46.0  | `cowork-task` WS + `parallel: true`                       |
+| F2  | Debate 方案审查       | ✅   | v0.46.0  | `chainlesschain cowork debate <file>`                     |
+| F3  | 模板市场（EvoMap）    | ✅   | v0.46.0  | `chainlesschain cowork template` 子命令                   |
+| F4  | 定时任务              | ✅   | v0.46.0  | `chainlesschain cowork cron` 子命令                       |
+| F5  | 移动端入口            | ✅   | v0.46.0  | Android `pc-cowork-daily` / `pc-cowork-workflow` 远端技能 |
+| F6  | MCP 工具集成          | ✅   | v0.46.0  | 模板 `mcpServers` 字段自动挂载                            |
+| F7  | 工作流编排（DAG）     | ✅   | v0.46.0  | `chainlesschain cowork workflow` + Web 编辑器（v0.47.0）  |
+| F8  | P2P 多用户协作        | ✅   | v0.46.0  | `chainlesschain cowork share` 子命令                      |
+| F9  | 学习进化              | ✅   | v0.46.0  | `chainlesschain cowork learning` 子命令                   |
 
 ---
 
@@ -580,10 +585,10 @@ Web Panel 新增 `/#/workflow` 页面，提供基于表单的 Cowork Workflow CR
 
 **WebSocket 事件**:
 
-| 事件 | 说明 |
-|------|------|
+| 事件                    | 说明                                                  |
+| ----------------------- | ----------------------------------------------------- |
 | `cowork:agent-progress` | 单 Agent 的 `{ agentIndex, status, tool, iteration }` |
-| `cowork:subtask-done` | 子任务完成 `{ subtaskIndex, summary, artifacts }` |
+| `cowork:subtask-done`   | 子任务完成 `{ subtaskIndex, summary, artifacts }`     |
 
 **关键文件**: `cowork-task-runner.js` (`runCoworkTaskParallel`)、`action-protocol.js` (`handleCoworkTask`)、`web-panel/stores/cowork.js`。
 
@@ -658,10 +663,10 @@ chainlesschain cowork cron run                       # 前台启动调度器
 
 **远端技能**:
 
-| 技能 | 映射桌面端 | 说明 |
-|------|-----------|------|
-| `pc-cowork-daily` | `cowork-daily` | 选模板 / 自由模式执行单次任务，支持附件 |
-| `pc-cowork-workflow` | `cowork-workflow` | 按 id 执行已保存的 DAG 工作流 |
+| 技能                 | 映射桌面端        | 说明                                    |
+| -------------------- | ----------------- | --------------------------------------- |
+| `pc-cowork-daily`    | `cowork-daily`    | 选模板 / 自由模式执行单次任务，支持附件 |
+| `pc-cowork-workflow` | `cowork-workflow` | 按 id 执行已保存的 DAG 工作流           |
 
 **来源**: `android-app/feature-ai/src/main/assets/skills/pc-cowork-*.md`（SKILL.md 声明 REMOTE，SkillLoader 在 App 启动时加载），Android 内置技能 28 → 30。
 
@@ -677,7 +682,11 @@ chainlesschain cowork cron run                       # 前台启动调度器
 {
   "id": "data-analysis",
   "mcpServers": [
-    { "name": "sqlite", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite"] }
+    {
+      "name": "sqlite",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite"]
+    }
   ]
 }
 ```

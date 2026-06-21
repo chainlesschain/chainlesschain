@@ -102,10 +102,10 @@ chainlesschain zkp proofs --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `zkp_circuits` | 电路注册表（名称、定义、约束数、证明密钥、验证密钥） |
-| `zkp_proofs` | 证明记录（电路 ID、证明数据、公共输入、验证状态、时间戳） |
+| 表名           | 说明                                                      |
+| -------------- | --------------------------------------------------------- |
+| `zkp_circuits` | 电路注册表（名称、定义、约束数、证明密钥、验证密钥）      |
+| `zkp_proofs`   | 证明记录（电路 ID、证明数据、公共输入、验证状态、时间戳） |
 
 ## 系统架构
 
@@ -179,13 +179,13 @@ chainlesschain zkp stats --json
 
 ### 电路编译与证明问题
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Circuit compilation failed" | 约束定义 JSON 格式错误 | 检查 `--definition` 的 JSON 语法，确保有 constraints/inputs/outputs |
-| "Invalid witness" | witness 数据与电路输入不匹配 | 确保 witness 包含电路定义中所有 inputs 字段 |
-| "Proof verification failed" | 证明已损坏或 public inputs 不匹配 | 重新生成证明或检查 circuit-id 是否对应 |
-| "Circuit not found" | circuit-id 不存在 | 使用 `zkp circuits` 查看可用电路 |
-| 选择性披露结果为空 | `--disclose` 字段名不在 claims 中 | 确认披露字段名与 claims 的 key 完全一致 |
+| 症状                         | 可能原因                          | 解决方案                                                            |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| "Circuit compilation failed" | 约束定义 JSON 格式错误            | 检查 `--definition` 的 JSON 语法，确保有 constraints/inputs/outputs |
+| "Invalid witness"            | witness 数据与电路输入不匹配      | 确保 witness 包含电路定义中所有 inputs 字段                         |
+| "Proof verification failed"  | 证明已损坏或 public inputs 不匹配 | 重新生成证明或检查 circuit-id 是否对应                              |
+| "Circuit not found"          | circuit-id 不存在                 | 使用 `zkp circuits` 查看可用电路                                    |
+| 选择性披露结果为空           | `--disclose` 字段名不在 claims 中 | 确认披露字段名与 claims 的 key 完全一致                             |
 
 ### 常见错误
 
@@ -224,13 +224,13 @@ export CHAINLESSCHAIN_DB_PATH=~/.chainlesschain/db.sqlite
 
 ## 性能指标
 
-| 操作              | 目标    | 实际       | 状态 |
-| ----------------- | ------- | ---------- | ---- |
-| 电路编译          | < 500ms | 100–400ms  | ✅   |
-| 证明生成（小电路） | < 1s    | 200–800ms  | ✅   |
-| 证明验证          | < 100ms | 20–80ms    | ✅   |
-| 身份证明生成      | < 200ms | 50–150ms   | ✅   |
-| 统计查询          | < 100ms | 20–80ms    | ✅   |
+| 操作               | 目标    | 实际      | 状态 |
+| ------------------ | ------- | --------- | ---- |
+| 电路编译           | < 500ms | 100–400ms | ✅   |
+| 证明生成（小电路） | < 1s    | 200–800ms | ✅   |
+| 证明验证           | < 100ms | 20–80ms   | ✅   |
+| 身份证明生成       | < 200ms | 50–150ms  | ✅   |
+| 统计查询           | < 100ms | 20–80ms   | ✅   |
 
 ## 测试覆盖率
 

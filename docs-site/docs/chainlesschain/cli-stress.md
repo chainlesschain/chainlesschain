@@ -25,12 +25,12 @@ chainlesschain stress levels --json
 
 列出内置负载级别及其默认参数（并发数、RPS、持续时间）。
 
-| 级别 | 并发 | RPS | 持续时间 |
-|------|------|-----|---------|
-| light | 低 | 低 | 短 |
-| medium | 中 | 中 | 中 |
-| heavy | 高 | 高 | 长 |
-| extreme | 极高 | 极高 | 最长 |
+| 级别    | 并发 | RPS  | 持续时间 |
+| ------- | ---- | ---- | -------- |
+| light   | 低   | 低   | 短       |
+| medium  | 中   | 中   | 中       |
+| heavy   | 高   | 高   | 长       |
+| extreme | 极高 | 极高 | 最长     |
 
 ### stress run — 执行压力测试
 
@@ -121,31 +121,31 @@ chainlesschain stress stop <test-id>
 
 ## 性能指标说明
 
-| 指标 | 说明 |
-|------|------|
-| `tps` | 每秒事务数（实际吞吐量） |
-| `p50ResponseTime` | 50 分位延迟（ms） |
-| `p95ResponseTime` | 95 分位延迟（ms） |
-| `p99ResponseTime` | 99 分位延迟（ms） |
-| `errorRate` | 错误率 (0~1) |
-| `bottlenecks` | 检测到的瓶颈列表 |
+| 指标              | 说明                     |
+| ----------------- | ------------------------ |
+| `tps`             | 每秒事务数（实际吞吐量） |
+| `p50ResponseTime` | 50 分位延迟（ms）        |
+| `p95ResponseTime` | 95 分位延迟（ms）        |
+| `p99ResponseTime` | 99 分位延迟（ms）        |
+| `errorRate`       | 错误率 (0~1)             |
+| `bottlenecks`     | 检测到的瓶颈列表         |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/stress.js` | stress 命令主入口 |
+| 文件                                    | 职责                                       |
+| --------------------------------------- | ------------------------------------------ |
+| `packages/cli/src/commands/stress.js`   | stress 命令主入口                          |
 | `packages/cli/src/lib/stress-tester.js` | 合成指标生成、瓶颈启发式、容量规划核心实现 |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `stress levels` | < 20 ms | 纯内存枚举 |
+| 操作                     | 典型耗时     | 备注                     |
+| ------------------------ | ------------ | ------------------------ |
+| `stress levels`          | < 20 ms      | 纯内存枚举               |
 | `stress run`（合成指标） | 与 `-d` 一致 | 真实占用低，主要阻塞等待 |
-| `stress list` / `show` | < 50 ms | SQLite 索引查询 |
-| `stress analyze` | < 100 ms | 启发式瓶颈检测 |
-| `stress plan` | < 50 ms | 线性外推 |
+| `stress list` / `show`   | < 50 ms      | SQLite 索引查询          |
+| `stress analyze`         | < 100 ms     | 启发式瓶颈检测           |
+| `stress plan`            | < 50 ms      | 线性外推                 |
 
 注意：`stress run` 当前产出的是合成指标（用于容量规划/回归），非真实打流；若需真实打流请配合外部负载工具。
 
@@ -198,11 +198,11 @@ chainlesschain stress run -l extreme -c 200 -r 1000
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No stress tests recorded" | 未执行过测试 | 使用 `stress run` 执行 |
-| 测试结果异常 | 自定义参数不合理 | 先用 `levels` 查看预设参数 |
-| 瓶颈分析为空 | 负载不足以触发瓶颈 | 使用更高负载级别 |
+| 症状                       | 可能原因           | 解决方案                   |
+| -------------------------- | ------------------ | -------------------------- |
+| "No stress tests recorded" | 未执行过测试       | 使用 `stress run` 执行     |
+| 测试结果异常               | 自定义参数不合理   | 先用 `levels` 查看预设参数 |
+| 瓶颈分析为空               | 负载不足以触发瓶颈 | 使用更高负载级别           |
 
 ## 相关文档
 

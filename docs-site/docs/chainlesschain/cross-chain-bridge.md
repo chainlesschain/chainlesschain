@@ -297,6 +297,7 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 **现象**: `crosschain:bridge-asset` 状态变为 `failed`，资产未到达目标链。
 
 **排查步骤**:
+
 1. 通过 `crosschain:get-tx-status` 查询 `sourceTx` 在源链上的确认状态
 2. 检查源链是否有足够的 gas 余额支付交易费用
 3. 确认 `recipient` 地址在目标链上有效（EVM 和 Solana 地址格式不同）
@@ -308,6 +309,7 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 **现象**: 交换状态变为 `expired`，资金被锁定。
 
 **排查步骤**:
+
 1. 确认 `timelock` 设置是否合理，网络拥堵时建议设置为 2 小时以上
 2. 检查双方是否在锁定期内完成了各自的链上操作（锁定 + 揭示 secret）
 3. `expired` 状态下可调用退款操作取回锁定资金
@@ -318,6 +320,7 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 **现象**: 跨链操作返回目标链连接失败或 RPC 超时。
 
 **排查步骤**:
+
 1. 检查 `crossChainBridge.rpc` 中目标链的 RPC URL 是否正确可访问
 2. 确认 RPC 服务商的 API Key 未过期或超出配额限制
 3. 尝试切换备用 RPC 节点（通过 `crosschain:configure-chain` 更新）
@@ -325,26 +328,26 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/blockchain/cross-chain-bridge.js` | 跨链桥接核心引擎 |
-| `desktop-app-vue/src/main/blockchain/chain-adapters/evm-adapter.js` | EVM 链适配器 |
-| `desktop-app-vue/src/main/blockchain/chain-adapters/solana-adapter.js` | Solana 链适配器 |
-| `desktop-app-vue/src/main/blockchain/chain-adapters/cosmos-adapter.js` | Cosmos IBC 适配器 |
-| `desktop-app-vue/src/main/blockchain/htlc-manager.js` | HTLC 原子交换管理 |
-| `desktop-app-vue/src/main/blockchain/cross-chain-ipc.js` | 跨链 8 个 IPC Handler |
+| 文件                                                                   | 职责                  |
+| ---------------------------------------------------------------------- | --------------------- |
+| `desktop-app-vue/src/main/blockchain/cross-chain-bridge.js`            | 跨链桥接核心引擎      |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/evm-adapter.js`    | EVM 链适配器          |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/solana-adapter.js` | Solana 链适配器       |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/cosmos-adapter.js` | Cosmos IBC 适配器     |
+| `desktop-app-vue/src/main/blockchain/htlc-manager.js`                  | HTLC 原子交换管理     |
+| `desktop-app-vue/src/main/blockchain/cross-chain-ipc.js`               | 跨链 8 个 IPC Handler |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| HTLC 超时交易回滚 | 时间锁设置过短或对方链确认慢 | 增大 `timeLock` 值，确认目标链出块速度 |
-| 跨链消息丢失 | 中继节点离线或消息队列溢出 | 检查中继节点状态，增大消息队列容量 |
-| 链上 Gas 不足交易失败 | 账户余额不够支付 Gas 费 | 充值 Gas，或设置 `gasLimit` 自动调整策略 |
-| 资产锚定比例异常 | 预言机喂价延迟或价格源故障 | 检查预言机状态，切换备用价格源 |
-| 跨链验证失败 | Merkle 证明不匹配或区块头过期 | 重新获取最新区块头，重建 Merkle 证明 |
+| 症状                  | 可能原因                      | 解决方案                                 |
+| --------------------- | ----------------------------- | ---------------------------------------- |
+| HTLC 超时交易回滚     | 时间锁设置过短或对方链确认慢  | 增大 `timeLock` 值，确认目标链出块速度   |
+| 跨链消息丢失          | 中继节点离线或消息队列溢出    | 检查中继节点状态，增大消息队列容量       |
+| 链上 Gas 不足交易失败 | 账户余额不够支付 Gas 费       | 充值 Gas，或设置 `gasLimit` 自动调整策略 |
+| 资产锚定比例异常      | 预言机喂价延迟或价格源故障    | 检查预言机状态，切换备用价格源           |
+| 跨链验证失败          | Merkle 证明不匹配或区块头过期 | 重新获取最新区块头，重建 Merkle 证明     |
 
 ### 常见错误修复
 
@@ -380,47 +383,47 @@ chainlesschain wallet cross-chain gas-estimate --from <chain-a> --to <chain-b>
 
 ## 配置参考
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `enabled` | `true` | 是否启用跨链互操作模块 |
-| `defaultChains` | `["ethereum","polygon","bsc","arbitrum","solana"]` | 默认启用的链列表 |
-| `rpc.<chain>` | — | 各链 RPC 端点 URL，支持 Alchemy/Infura/自建节点 |
-| `bridge.maxAmount` | `"100000"` | 单笔桥接最大金额（USDC 计价） |
-| `bridge.feeRate` | `0.001` | 桥接手续费率（0.1%） |
-| `bridge.confirmationBlocks.ethereum` | `12` | 以太坊源链所需确认区块数 |
-| `bridge.confirmationBlocks.polygon` | `64` | Polygon 源链所需确认区块数 |
-| `bridge.confirmationBlocks.arbitrum` | `1` | Arbitrum L2 所需确认区块数（出块快） |
-| `atomicSwap.defaultTimelock` | `3600` | HTLC 默认锁定时长（秒，1 小时） |
-| `atomicSwap.maxTimelock` | `86400` | HTLC 最大锁定时长（秒，24 小时） |
-| `atomicSwap.minAmount` | `"0.001"` | 原子交换最小金额 |
-| `messaging.maxPayloadSize` | `"10KB"` | 跨链消息最大载荷大小 |
-| `messaging.maxRetries` | `3` | 消息中继失败最大重试次数 |
-| `messaging.retryInterval` | `60000` | 重试间隔（毫秒） |
+| 配置项                               | 默认值                                             | 说明                                            |
+| ------------------------------------ | -------------------------------------------------- | ----------------------------------------------- |
+| `enabled`                            | `true`                                             | 是否启用跨链互操作模块                          |
+| `defaultChains`                      | `["ethereum","polygon","bsc","arbitrum","solana"]` | 默认启用的链列表                                |
+| `rpc.<chain>`                        | —                                                  | 各链 RPC 端点 URL，支持 Alchemy/Infura/自建节点 |
+| `bridge.maxAmount`                   | `"100000"`                                         | 单笔桥接最大金额（USDC 计价）                   |
+| `bridge.feeRate`                     | `0.001`                                            | 桥接手续费率（0.1%）                            |
+| `bridge.confirmationBlocks.ethereum` | `12`                                               | 以太坊源链所需确认区块数                        |
+| `bridge.confirmationBlocks.polygon`  | `64`                                               | Polygon 源链所需确认区块数                      |
+| `bridge.confirmationBlocks.arbitrum` | `1`                                                | Arbitrum L2 所需确认区块数（出块快）            |
+| `atomicSwap.defaultTimelock`         | `3600`                                             | HTLC 默认锁定时长（秒，1 小时）                 |
+| `atomicSwap.maxTimelock`             | `86400`                                            | HTLC 最大锁定时长（秒，24 小时）                |
+| `atomicSwap.minAmount`               | `"0.001"`                                          | 原子交换最小金额                                |
+| `messaging.maxPayloadSize`           | `"10KB"`                                           | 跨链消息最大载荷大小                            |
+| `messaging.maxRetries`               | `3`                                                | 消息中继失败最大重试次数                        |
+| `messaging.retryInterval`            | `60000`                                            | 重试间隔（毫秒）                                |
 
 ## 性能指标
 
-| 指标 | 典型值 | 说明 |
-| --- | --- | --- |
-| 以太坊→Polygon 桥接时间 | ~15 分钟 | 需等待 12 个以太坊区块确认（~2 分钟/块） |
-| 以太坊→Arbitrum 桥接时间 | ~2 分钟 | Arbitrum L2 仅需 1 个确认 |
-| HTLC 原子交换完成时间 | ~10–30 分钟 | 取决于双方链的出块速度和网络拥堵 |
-| 跨链消息送达延迟 | 2–5 分钟 | 类 LayerZero 中继，Arbitrum 最快 ~120 秒 |
-| 多链余额查询耗时 | < 3 秒 | 并发查询 5 条链，聚合后本地缓存 30 秒 |
-| 费用估算响应时间 | < 500 ms | 通过 RPC 获取实时 gas price 计算 |
-| 数据库写入（桥接记录） | < 5 ms | SQLite 单次 INSERT，含索引更新 |
-| IPC 调用端到端延迟 | < 50 ms | 本地 Electron IPC + 同步 DB 读写 |
+| 指标                     | 典型值      | 说明                                     |
+| ------------------------ | ----------- | ---------------------------------------- |
+| 以太坊→Polygon 桥接时间  | ~15 分钟    | 需等待 12 个以太坊区块确认（~2 分钟/块） |
+| 以太坊→Arbitrum 桥接时间 | ~2 分钟     | Arbitrum L2 仅需 1 个确认                |
+| HTLC 原子交换完成时间    | ~10–30 分钟 | 取决于双方链的出块速度和网络拥堵         |
+| 跨链消息送达延迟         | 2–5 分钟    | 类 LayerZero 中继，Arbitrum 最快 ~120 秒 |
+| 多链余额查询耗时         | < 3 秒      | 并发查询 5 条链，聚合后本地缓存 30 秒    |
+| 费用估算响应时间         | < 500 ms    | 通过 RPC 获取实时 gas price 计算         |
+| 数据库写入（桥接记录）   | < 5 ms      | SQLite 单次 INSERT，含索引更新           |
+| IPC 调用端到端延迟       | < 50 ms     | 本地 Electron IPC + 同步 DB 读写         |
 
 ## 测试覆盖率
 
-| 模块 | 测试文件 | 用例数 | 覆盖场景 |
-| --- | --- | --- | --- |
-| CrossChainBridge 核心 | `cross-chain-bridge.test.js` | 35 | 桥接发起/状态追踪/失败回滚/重复防护 |
-| HTLC 原子交换 | `htlc-manager.test.js` | 28 | 锁定/揭秘/超时退款/哈希验证 |
-| EVM 链适配器 | `evm-adapter.test.js` | 22 | 4 条 EVM 链的 RPC 调用/Gas 估算/确认数 |
-| Solana 适配器 | `solana-adapter.test.js` | 16 | SPL Token 转移/账户派生/确认轮询 |
-| Cosmos IBC 适配器 | `cosmos-adapter.test.js` | 14 | IBC 通道建立/中继消息/超时处理 |
-| IPC Handlers | `cross-chain-ipc.test.js` | 24 | 8 个通道的请求验证/响应格式/错误路径 |
-| **合计** | **6 个文件** | **139** | **主流程 + 多链边界 + 异常恢复全覆盖** |
+| 模块                  | 测试文件                     | 用例数  | 覆盖场景                               |
+| --------------------- | ---------------------------- | ------- | -------------------------------------- |
+| CrossChainBridge 核心 | `cross-chain-bridge.test.js` | 35      | 桥接发起/状态追踪/失败回滚/重复防护    |
+| HTLC 原子交换         | `htlc-manager.test.js`       | 28      | 锁定/揭秘/超时退款/哈希验证            |
+| EVM 链适配器          | `evm-adapter.test.js`        | 22      | 4 条 EVM 链的 RPC 调用/Gas 估算/确认数 |
+| Solana 适配器         | `solana-adapter.test.js`     | 16      | SPL Token 转移/账户派生/确认轮询       |
+| Cosmos IBC 适配器     | `cosmos-adapter.test.js`     | 14      | IBC 通道建立/中继消息/超时处理         |
+| IPC Handlers          | `cross-chain-ipc.test.js`    | 24      | 8 个通道的请求验证/响应格式/错误路径   |
+| **合计**              | **6 个文件**                 | **139** | **主流程 + 多链边界 + 异常恢复全覆盖** |
 
 运行跨链互操作模块测试：
 
@@ -431,16 +434,19 @@ cd desktop-app-vue && npx vitest run tests/unit/blockchain/cross-chain/
 ## 安全考虑
 
 ### 跨链交易安全
+
 - **HTLC 时间锁**: 原子交换的 `timelock` 应设置合理区间（建议 1-24 小时），过短可能因网络拥堵导致资金锁定，过长则增加对手方风险
 - **哈希锁保密**: HTLC 的 `secret`（原像）在交换完成前严禁泄露，泄露将导致对手方提前取走资金
 - **双花防护**: 桥接交易在源链需等待足够的确认数（`confirmationBlocks`），以太坊建议 12 个区块，防止链重组导致双花
 
 ### RPC 节点安全
+
 - **节点可信性**: 仅使用可信的 RPC 节点（如 Alchemy、Infura 或自建全节点），恶意 RPC 可能返回伪造的交易状态
 - **API Key 保护**: RPC URL 中的 API Key 存储在加密配置中，切勿硬编码到代码或日志中
 - **请求频率限制**: 配置合理的请求频率，避免触发 RPC 提供商的速率限制导致交易状态查询失败
 
 ### 资产安全
+
 - **金额上限**: 通过 `maxAmount` 配置单笔桥接最大金额，防止操作失误或攻击导致大额资金损失
 - **合约地址验证**: 添加自定义链时务必验证 `bridgeContract` 地址的正确性，错误地址将导致资金永久丢失
 - **跨链消息验证**: 目标链接收跨链消息时应验证源链签名和中继器身份，防止伪造消息注入

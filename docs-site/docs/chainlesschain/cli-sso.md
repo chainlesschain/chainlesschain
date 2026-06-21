@@ -53,14 +53,14 @@ SSO 模块为企业提供单点登录集成，支持 SAML 2.0、OAuth 2.0 和 Op
 
 ## 配置参考
 
-| 配置项                    | 含义                    | 默认                |
-| ------------------------- | ----------------------- | ------------------- |
-| `protocols`               | 支持协议                | saml / oauth2 / oidc |
-| `provider-types`          | 提供商                  | azure-ad / okta / google / custom |
-| `token_encryption`        | 令牌加密算法            | AES-256-GCM         |
-| `kdf.iterations`          | PBKDF2 迭代次数         | 100000              |
-| `kdf.hash`                | 散列算法                | sha512              |
-| V2 per-owner active cap   | per memory 文件         | 见 `sso_manager_v2_cli.md` |
+| 配置项                  | 含义            | 默认                              |
+| ----------------------- | --------------- | --------------------------------- |
+| `protocols`             | 支持协议        | saml / oauth2 / oidc              |
+| `provider-types`        | 提供商          | azure-ad / okta / google / custom |
+| `token_encryption`      | 令牌加密算法    | AES-256-GCM                       |
+| `kdf.iterations`        | PBKDF2 迭代次数 | 100000                            |
+| `kdf.hash`              | 散列算法        | sha512                            |
+| V2 per-owner active cap | per memory 文件 | 见 `sso_manager_v2_cli.md`        |
 
 查看：`chainlesschain sso protocols`、`sso provider-types`、`sso templates`。
 
@@ -68,16 +68,16 @@ SSO 模块为企业提供单点登录集成，支持 SAML 2.0、OAuth 2.0 和 Op
 
 ## 性能指标
 
-| 操作                         | 典型耗时          |
-| ---------------------------- | ----------------- |
-| create provider              | < 15 ms           |
-| generate-pkce                | < 5 ms            |
-| login-url（OAuth2/OIDC）     | < 10 ms           |
-| saml-authn-request           | < 15 ms           |
-| complete-login（含解密）     | < 30 ms           |
-| session-valid                | < 10 ms           |
-| link / unlink                | < 15 ms           |
-| V2 createLoginV2 dispatch    | < 50 ms           |
+| 操作                      | 典型耗时 |
+| ------------------------- | -------- |
+| create provider           | < 15 ms  |
+| generate-pkce             | < 5 ms   |
+| login-url（OAuth2/OIDC）  | < 10 ms  |
+| saml-authn-request        | < 15 ms  |
+| complete-login（含解密）  | < 30 ms  |
+| session-valid             | < 10 ms  |
+| link / unlink             | < 15 ms  |
+| V2 createLoginV2 dispatch | < 50 ms  |
 
 ---
 

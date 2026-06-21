@@ -281,12 +281,12 @@ const result = await window.electron.ipcRenderer.invoke(
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/a2a/a2a-protocol-engine.js` | A2A 协议核心引擎 |
-| `desktop-app-vue/src/main/ai-engine/a2a/agent-card-registry.js` | Agent Card 注册与发现 |
-| `desktop-app-vue/src/main/ai-engine/a2a/task-lifecycle-manager.js` | 任务生命周期管理 |
-| `desktop-app-vue/src/main/ai-engine/a2a/a2a-ipc.js` | A2A IPC 处理器 |
+| 文件                                                               | 职责                  |
+| ------------------------------------------------------------------ | --------------------- |
+| `desktop-app-vue/src/main/ai-engine/a2a/a2a-protocol-engine.js`    | A2A 协议核心引擎      |
+| `desktop-app-vue/src/main/ai-engine/a2a/agent-card-registry.js`    | Agent Card 注册与发现 |
+| `desktop-app-vue/src/main/ai-engine/a2a/task-lifecycle-manager.js` | 任务生命周期管理      |
+| `desktop-app-vue/src/main/ai-engine/a2a/a2a-ipc.js`                | A2A IPC 处理器        |
 
 ## 使用示例
 
@@ -319,13 +319,13 @@ await window.electron.ipcRenderer.invoke("a2a:subscribe-updates", {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Agent 不可达 | 目标 Agent 离线或网络不通 | 执行 `a2a:list-peers` 确认在线状态，检查防火墙端口 9001 |
-| 任务长时间处于 working | 远端 Agent 处理超时 | 调整 `taskTimeout` 配置，或取消任务重新提交 |
-| SSE 订阅断开 | 网络抖动或 EventBus 异常 | 检查网络连接，重新调用 `a2a:subscribe-updates` |
-| Agent Card 注册失败 | capabilities 格式不合规 | 确认 inputSchema 符合 JSON Schema 规范 |
-| 能力协商无匹配 | 无 Agent 提供所需能力 | 降低 `qualityThreshold`，或扩大发现范围 |
+| 问题                   | 可能原因                  | 解决方案                                                |
+| ---------------------- | ------------------------- | ------------------------------------------------------- |
+| Agent 不可达           | 目标 Agent 离线或网络不通 | 执行 `a2a:list-peers` 确认在线状态，检查防火墙端口 9001 |
+| 任务长时间处于 working | 远端 Agent 处理超时       | 调整 `taskTimeout` 配置，或取消任务重新提交             |
+| SSE 订阅断开           | 网络抖动或 EventBus 异常  | 检查网络连接，重新调用 `a2a:subscribe-updates`          |
+| Agent Card 注册失败    | capabilities 格式不合规   | 确认 inputSchema 符合 JSON Schema 规范                  |
+| 能力协商无匹配         | 无 Agent 提供所需能力     | 降低 `qualityThreshold`，或扩大发现范围                 |
 
 ## 配置参考
 
@@ -375,18 +375,18 @@ await window.electron.ipcRenderer.invoke("a2a:subscribe-updates", {
 
 在标准测试环境（MacBook Pro M2, 8 Core, 16 GB RAM，局域网 1 Gbps）下的实测基准：
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| Agent Card 注册 | < 50 ms | 18 ms | ✅ |
-| mDNS 对等节点发现（局域网） | < 500 ms | 220 ms | ✅ |
-| DHT 对等节点发现（广域网） | < 3 s | 1.8 s | ✅ |
-| 任务提交 (`a2a:send-task`) | < 100 ms | 42 ms | ✅ |
-| 任务状态查询 | < 20 ms | 8 ms | ✅ |
-| SSE 推送延迟（局域网） | < 30 ms | 11 ms | ✅ |
-| 能力协商匹配 | < 200 ms | 95 ms | ✅ |
-| 并发任务吞吐（20 任务） | > 15 tasks/s | 18.4 tasks/s | ✅ |
-| Agent Card 缓存命中率 | > 90% | 96.2% | ✅ |
-| DID 身份验证开销 | < 10 ms | 4.5 ms | ✅ |
+| 操作                        | 目标         | 实际         | 状态 |
+| --------------------------- | ------------ | ------------ | ---- |
+| Agent Card 注册             | < 50 ms      | 18 ms        | ✅   |
+| mDNS 对等节点发现（局域网） | < 500 ms     | 220 ms       | ✅   |
+| DHT 对等节点发现（广域网）  | < 3 s        | 1.8 s        | ✅   |
+| 任务提交 (`a2a:send-task`)  | < 100 ms     | 42 ms        | ✅   |
+| 任务状态查询                | < 20 ms      | 8 ms         | ✅   |
+| SSE 推送延迟（局域网）      | < 30 ms      | 11 ms        | ✅   |
+| 能力协商匹配                | < 200 ms     | 95 ms        | ✅   |
+| 并发任务吞吐（20 任务）     | > 15 tasks/s | 18.4 tasks/s | ✅   |
+| Agent Card 缓存命中率       | > 90%        | 96.2%        | ✅   |
+| DID 身份验证开销            | < 10 ms      | 4.5 ms       | ✅   |
 
 > 注：广域网延迟受实际网络拓扑影响，以上数据基于同城 IDC 测试。
 
@@ -394,16 +394,16 @@ await window.electron.ipcRenderer.invoke("a2a:subscribe-updates", {
 
 A2A 协议引擎测试覆盖率：**94.7%**（语句）/ **91.3%**（分支）
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| --- | --- | --- |
-| ✅ `tests/unit/a2a/a2a-protocol-engine.test.js` | 协议引擎核心逻辑、任务状态流转 | 38 |
-| ✅ `tests/unit/a2a/agent-card-registry.test.js` | Card 注册、更新、发现、缓存失效 | 29 |
-| ✅ `tests/unit/a2a/task-lifecycle-manager.test.js` | 全状态机流转、超时、并发边界 | 31 |
-| ✅ `tests/unit/a2a/capability-negotiation.test.js` | 能力匹配、信任评分、备选排序 | 22 |
-| ✅ `tests/unit/a2a/sse-event-bus.test.js` | SSE 订阅、断线重连、事件过滤 | 17 |
-| ✅ `tests/unit/a2a/a2a-ipc.test.js` | 全部 8 个 IPC Handler 输入验证与返回格式 | 24 |
-| ✅ `tests/integration/a2a/peer-discovery.test.js` | mDNS 发现、DHT 路由、心跳检测 | 14 |
-| ✅ `tests/integration/a2a/task-e2e.test.js` | 完整跨 Agent 任务端到端流程 | 11 |
+| 测试文件                                           | 覆盖范围                                 | 用例数 |
+| -------------------------------------------------- | ---------------------------------------- | ------ |
+| ✅ `tests/unit/a2a/a2a-protocol-engine.test.js`    | 协议引擎核心逻辑、任务状态流转           | 38     |
+| ✅ `tests/unit/a2a/agent-card-registry.test.js`    | Card 注册、更新、发现、缓存失效          | 29     |
+| ✅ `tests/unit/a2a/task-lifecycle-manager.test.js` | 全状态机流转、超时、并发边界             | 31     |
+| ✅ `tests/unit/a2a/capability-negotiation.test.js` | 能力匹配、信任评分、备选排序             | 22     |
+| ✅ `tests/unit/a2a/sse-event-bus.test.js`          | SSE 订阅、断线重连、事件过滤             | 17     |
+| ✅ `tests/unit/a2a/a2a-ipc.test.js`                | 全部 8 个 IPC Handler 输入验证与返回格式 | 24     |
+| ✅ `tests/integration/a2a/peer-discovery.test.js`  | mDNS 发现、DHT 路由、心跳检测            | 14     |
+| ✅ `tests/integration/a2a/task-e2e.test.js`        | 完整跨 Agent 任务端到端流程              | 11     |
 
 **运行测试**:
 

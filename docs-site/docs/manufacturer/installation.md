@@ -7,23 +7,27 @@
 ### Docker部署（推荐）
 
 ✅ **优点**:
+
 - 一键启动，无需配置环境
 - 所有依赖已打包
 - 版本管理简单
 - 适合快速体验和生产环境
 
 ❌ **限制**:
+
 - 需要安装Docker
 - 占用一定磁盘空间
 
 ### 手动部署
 
 ✅ **优点**:
+
 - 完全控制
 - 可自定义配置
 - 适合开发调试
 
 ❌ **限制**:
+
 - 需要手动安装JDK、Node.js等
 - 配置复杂
 - 需要一定技术基础
@@ -45,6 +49,7 @@
 2. 运行安装程序
 3. 启动Docker Desktop
 4. 确认安装成功：
+
 ```cmd
 docker --version
 docker-compose --version
@@ -56,6 +61,7 @@ docker-compose --version
 2. 安装.dmg文件
 3. 启动Docker Desktop
 4. 确认安装成功：
+
 ```bash
 docker --version
 docker-compose --version
@@ -101,17 +107,20 @@ cd manufacturer-system
 #### 2. 一键启动
 
 **Windows**:
+
 ```cmd
 start.bat
 ```
 
 **Linux/Mac**:
+
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
 启动脚本会自动完成以下任务：
+
 1. 检查Docker环境
 2. 拉取所有Docker镜像
 3. 启动MySQL、Redis、后端、前端服务
@@ -131,7 +140,7 @@ chmod +x start.sh
 如果需要自定义端口或其他配置，编辑 `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # MySQL数据库
@@ -139,10 +148,10 @@ services:
     image: mysql:8.0
     container_name: manufacturer-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root123456  # 修改数据库密码
+      MYSQL_ROOT_PASSWORD: root123456 # 修改数据库密码
       MYSQL_DATABASE: manufacturer_system
     ports:
-      - "3306:3306"  # 修改映射端口
+      - "3306:3306" # 修改映射端口
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/src/main/resources/db:/docker-entrypoint-initdb.d
@@ -153,7 +162,7 @@ services:
     image: redis:7.0-alpine
     container_name: manufacturer-redis
     ports:
-      - "6379:6379"  # 修改映射端口
+      - "6379:6379" # 修改映射端口
     volumes:
       - redis-data:/data
 
@@ -164,11 +173,11 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/manufacturer_system
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root123456  # 与MySQL密码一致
+      SPRING_DATASOURCE_PASSWORD: root123456 # 与MySQL密码一致
       SPRING_REDIS_HOST: redis
-      JWT_SECRET: your-custom-secret-key-change-this-in-production  # 修改JWT密钥
+      JWT_SECRET: your-custom-secret-key-change-this-in-production # 修改JWT密钥
     ports:
-      - "8080:8080"  # 修改映射端口
+      - "8080:8080" # 修改映射端口
     depends_on:
       - mysql
       - redis
@@ -180,7 +189,7 @@ services:
     build: ./frontend
     container_name: manufacturer-frontend
     ports:
-      - "80:80"  # 修改映射端口（如改为8888:80）
+      - "80:80" # 修改映射端口（如改为8888:80）
     depends_on:
       - backend
 
@@ -247,10 +256,12 @@ docker-compose down -v
 #### 1. 安装JDK
 
 **Windows**:
+
 1. 下载 [OpenJDK 17](https://adoptium.net/)
 2. 安装并配置环境变量JAVA_HOME
 
 **Linux**:
+
 ```bash
 sudo apt-get update
 sudo apt-get install openjdk-17-jdk
@@ -258,6 +269,7 @@ java -version
 ```
 
 **Mac**:
+
 ```bash
 brew install openjdk@17
 java -version
@@ -266,16 +278,19 @@ java -version
 #### 2. 安装Maven
 
 **Windows**:
+
 1. 下载 [Maven](https://maven.apache.org/download.cgi)
 2. 解压并配置环境变量
 
 **Linux**:
+
 ```bash
 sudo apt-get install maven
 mvn -version
 ```
 
 **Mac**:
+
 ```bash
 brew install maven
 mvn -version
@@ -284,10 +299,12 @@ mvn -version
 #### 3. 安装MySQL
 
 **Windows**:
+
 1. 下载 [MySQL Installer](https://dev.mysql.com/downloads/installer/)
 2. 安装MySQL Server 8.0
 
 **Linux**:
+
 ```bash
 sudo apt-get update
 sudo apt-get install mysql-server
@@ -296,6 +313,7 @@ sudo systemctl enable mysql
 ```
 
 **Mac**:
+
 ```bash
 brew install mysql@8.0
 brew services start mysql
@@ -327,10 +345,12 @@ mysql -u root -p manufacturer_system < src/main/resources/db/app_version_schema.
 #### 6. 安装Redis
 
 **Windows**:
+
 - 下载 [Redis for Windows](https://github.com/microsoftarchive/redis/releases)
 - 解压并运行`redis-server.exe`
 
 **Linux**:
+
 ```bash
 sudo apt-get install redis-server
 sudo systemctl start redis
@@ -338,6 +358,7 @@ sudo systemctl enable redis
 ```
 
 **Mac**:
+
 ```bash
 brew install redis
 brew services start redis
@@ -352,13 +373,13 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/manufacturer_system?useSSL=false&serverTimezone=Asia/Shanghai
     username: root
-    password: your_mysql_password  # 修改为你的MySQL密码
+    password: your_mysql_password # 修改为你的MySQL密码
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   redis:
     host: localhost
     port: 6379
-    password:  # 如果Redis设置了密码，填写这里
+    password: # 如果Redis设置了密码，填写这里
 
   servlet:
     multipart:
@@ -366,8 +387,8 @@ spring:
       max-request-size: 2GB
 
 jwt:
-  secret: your-secret-key-at-least-256-bits-change-this-in-production  # 修改JWT密钥
-  expiration: 86400000  # 24小时
+  secret: your-secret-key-at-least-256-bits-change-this-in-production # 修改JWT密钥
+  expiration: 86400000 # 24小时
 
 system:
   upload-path: ./uploads
@@ -404,21 +425,25 @@ mvn spring-boot:run
 #### 1. 安装Node.js
 
 **Windows**:
+
 1. 下载 [Node.js LTS](https://nodejs.org/)
 2. 运行安装程序
 
 **Linux**:
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
 **Mac**:
+
 ```bash
 brew install node@18
 ```
 
 确认安装：
+
 ```bash
 node -v
 npm -v
@@ -492,11 +517,13 @@ npm run build
 #### 1. 安装Nginx
 
 **Linux**:
+
 ```bash
 sudo apt-get install nginx
 ```
 
 **Mac**:
+
 ```bash
 brew install nginx
 ```
@@ -838,11 +865,11 @@ docker compose up
 
 ### 5. 核心功能
 
-| 部署方式 | 说明 |
-|---|---|
-| Docker 部署 | `start.bat` / `start.sh` 一键起 4 容器 |
-| 手动部署 | 分别部署 MySQL / Redis / 后端 / 前端 |
-| 自定义配置 | 改 `docker-compose.yml` 端口 / 密码 / JWT |
+| 部署方式    | 说明                                      |
+| ----------- | ----------------------------------------- |
+| Docker 部署 | `start.bat` / `start.sh` 一键起 4 容器    |
+| 手动部署    | 分别部署 MySQL / Redis / 后端 / 前端      |
+| 自定义配置  | 改 `docker-compose.yml` 端口 / 密码 / JWT |
 
 ### 6. 技术架构
 
@@ -860,23 +887,23 @@ docker compose up
 
 ### 9. 竞品对比
 
-| 维度 | Docker 一键 | 手动部署 |
-|---|---|---|
-| 部署时间 | ✅ 5 分钟 | ⚠️ 数小时 |
-| 环境依赖 | ✅ 零依赖 | ❌ 手装 JDK/Node |
-| 一致性 | ✅ 容器化 | ⚠️ 环境差异 |
+| 维度     | Docker 一键 | 手动部署         |
+| -------- | ----------- | ---------------- |
+| 部署时间 | ✅ 5 分钟   | ⚠️ 数小时        |
+| 环境依赖 | ✅ 零依赖   | ❌ 手装 JDK/Node |
+| 一致性   | ✅ 容器化   | ⚠️ 环境差异      |
 
 ### 10. 配置参考
 
 见正文「自定义配置」`docker-compose.yml`：
 
-| 项 | 默认 | 说明 |
-|---|---|---|
-| MySQL 端口 / 密码 | 3306 / root123456 | 生产必改 |
-| Redis 端口 | 6379 | |
-| 后端端口 | 8080 | |
-| 前端端口 | 80 | |
-| `JWT_SECRET` | 占位值 | **生产必须改** |
+| 项                | 默认              | 说明           |
+| ----------------- | ----------------- | -------------- |
+| MySQL 端口 / 密码 | 3306 / root123456 | 生产必改       |
+| Redis 端口        | 6379              |                |
+| 后端端口          | 8080              |                |
+| 前端端口          | 80                |                |
+| `JWT_SECRET`      | 占位值            | **生产必须改** |
 
 ### 11. 性能指标
 
@@ -895,21 +922,21 @@ docker compose up
 
 ### 14. 故障排除
 
-| 症状 | 可能原因 | 处理 |
-|---|---|---|
-| 端口冲突 | 80/3306/6379/8080 被占 | 改 `docker-compose.yml` 映射端口 |
-| 前端打不开 | 后端未就绪 | 等数据库初始化 / 看 `docker compose logs` |
-| 登录失败 | 数据库未初始化 | 确认 initdb 脚本执行 |
-| 后端连不上 DB | 密码不一致 | 后端 `SPRING_DATASOURCE_PASSWORD` 与 MySQL 一致 |
+| 症状          | 可能原因               | 处理                                            |
+| ------------- | ---------------------- | ----------------------------------------------- |
+| 端口冲突      | 80/3306/6379/8080 被占 | 改 `docker-compose.yml` 映射端口                |
+| 前端打不开    | 后端未就绪             | 等数据库初始化 / 看 `docker compose logs`       |
+| 登录失败      | 数据库未初始化         | 确认 initdb 脚本执行                            |
+| 后端连不上 DB | 密码不一致             | 后端 `SPRING_DATASOURCE_PASSWORD` 与 MySQL 一致 |
 
 ### 15. 关键文件
 
-| 文件 | 说明 |
-|---|---|
-| `docker-compose.yml` | 四服务编排 |
-| `start.bat` / `start.sh` | 一键启动脚本 |
-| `backend/src/main/resources/db/` | 数据库初始化脚本 |
-| `data/uploads/` | 安装包上传持久化卷 |
+| 文件                             | 说明               |
+| -------------------------------- | ------------------ |
+| `docker-compose.yml`             | 四服务编排         |
+| `start.bat` / `start.sh`         | 一键启动脚本       |
+| `backend/src/main/resources/db/` | 数据库初始化脚本   |
+| `data/uploads/`                  | 安装包上传持久化卷 |
 
 ### 16. 使用示例
 

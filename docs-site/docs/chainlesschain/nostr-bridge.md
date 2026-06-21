@@ -48,13 +48,13 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/p2p/nostr-bridge.js` | Nostr 桥接管理器核心 |
-| `src/main/p2p/nostr-relay-pool.js` | Relay 连接池管理 |
-| `src/main/p2p/nostr-identity.js` | 密钥对生成/导入/加密存储 |
-| `src/main/p2p/nostr-sync.js` | 内容双向同步引擎 |
-| `src/renderer/stores/nostrBridge.ts` | Pinia 状态管理 |
+| 文件                                 | 职责                     |
+| ------------------------------------ | ------------------------ |
+| `src/main/p2p/nostr-bridge.js`       | Nostr 桥接管理器核心     |
+| `src/main/p2p/nostr-relay-pool.js`   | Relay 连接池管理         |
+| `src/main/p2p/nostr-identity.js`     | 密钥对生成/导入/加密存储 |
+| `src/main/p2p/nostr-sync.js`         | 内容双向同步引擎         |
+| `src/renderer/stores/nostrBridge.ts` | Pinia 状态管理           |
 
 ## 概述
 
@@ -372,9 +372,17 @@ const identity = await window.electronAPI.invoke("nostr:create-identity", {
 });
 
 // 2. 连接多个 Relay
-const relays = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.nostr.band"];
+const relays = [
+  "wss://relay.damus.io",
+  "wss://nos.lol",
+  "wss://relay.nostr.band",
+];
 for (const url of relays) {
-  await window.electronAPI.invoke("nostr:add-relay", { url, read: true, write: true });
+  await window.electronAPI.invoke("nostr:add-relay", {
+    url,
+    read: true,
+    write: true,
+  });
 }
 
 // 3. 确认连接状态
@@ -385,7 +393,10 @@ console.log(`已连接 ${status.connected}/${status.total} 个 Relay`);
 await window.electronAPI.invoke("nostr:publish-event", {
   kind: 1,
   content: "ChainlessChain + Nostr 去中心化社交体验！",
-  tags: [["t", "ChainlessChain"], ["t", "去中心化"]],
+  tags: [
+    ["t", "ChainlessChain"],
+    ["t", "去中心化"],
+  ],
 });
 ```
 
@@ -398,9 +409,13 @@ await window.electronAPI.invoke("nostr:subscribe", {
 });
 
 // 获取最近事件并批量导入本地
-const events = await window.electronAPI.invoke("nostr:get-events", { limit: 10 });
+const events = await window.electronAPI.invoke("nostr:get-events", {
+  limit: 10,
+});
 for (const event of events) {
-  await window.electronAPI.invoke("nostr:import-event", { eventId: event.event_id });
+  await window.electronAPI.invoke("nostr:import-event", {
+    eventId: event.event_id,
+  });
 }
 ```
 
@@ -408,28 +423,28 @@ for (const event of events) {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Relay 连接失败 | WebSocket 地址无效或网络不通 | 检查 Relay URL 格式（必须以 `wss://` 开头），确认网络可达 |
-| 事件发布无响应 | 未连接任何可写 Relay | 运行 `nostr:relay-status` 确认至少有一个 `write: true` 的连接 |
-| 身份创建失败 | DID 未初始化或已绑定其他 npub | 先通过 `did:create` 创建 DID，检查是否已有绑定关系 |
-| 签名验证失败 | 本地时钟偏差过大 | 同步系统时间，Nostr 事件依赖 UNIX 时间戳 |
-| 同步内容为空 | 订阅过滤条件过严 | 放宽 `filters` 条件，增大 `limit` 值 |
-| 批量同步缓慢 | Relay 响应慢或事件量过大 | 减小批量范围，尝试切换到延迟更低的 Relay |
-| 密钥导入失败 | nsec 格式错误 | 确认使用 bech32 编码的 nsec 密钥（以 `nsec1` 开头） |
+| 问题           | 可能原因                      | 解决方案                                                      |
+| -------------- | ----------------------------- | ------------------------------------------------------------- |
+| Relay 连接失败 | WebSocket 地址无效或网络不通  | 检查 Relay URL 格式（必须以 `wss://` 开头），确认网络可达     |
+| 事件发布无响应 | 未连接任何可写 Relay          | 运行 `nostr:relay-status` 确认至少有一个 `write: true` 的连接 |
+| 身份创建失败   | DID 未初始化或已绑定其他 npub | 先通过 `did:create` 创建 DID，检查是否已有绑定关系            |
+| 签名验证失败   | 本地时钟偏差过大              | 同步系统时间，Nostr 事件依赖 UNIX 时间戳                      |
+| 同步内容为空   | 订阅过滤条件过严              | 放宽 `filters` 条件，增大 `limit` 值                          |
+| 批量同步缓慢   | Relay 响应慢或事件量过大      | 减小批量范围，尝试切换到延迟更低的 Relay                      |
+| 密钥导入失败   | nsec 格式错误                 | 确认使用 bech32 编码的 nsec 密钥（以 `nsec1` 开头）           |
 
 ---
 
 ## 配置参考
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `nostr.enabled` | boolean | `true` | 是否启用 Nostr 桥接 |
-| `nostr.defaultRelays` | string[] | 见下方 | 默认连接的 Relay 列表 |
-| `nostr.autoConnect` | boolean | `true` | 启动时是否自动连接 Relay |
-| `nostr.syncInterval` | number | `300000` | 事件同步间隔（毫秒） |
-| `nostr.maxEventsPerRelay` | number | `1000` | 每个 Relay 最大缓存事件数 |
-| `nostr.eventKinds` | number[] | `[0,1,3,5,7]` | 订阅的事件类型（kind 值） |
+| 配置项                    | 类型     | 默认值        | 说明                      |
+| ------------------------- | -------- | ------------- | ------------------------- |
+| `nostr.enabled`           | boolean  | `true`        | 是否启用 Nostr 桥接       |
+| `nostr.defaultRelays`     | string[] | 见下方        | 默认连接的 Relay 列表     |
+| `nostr.autoConnect`       | boolean  | `true`        | 启动时是否自动连接 Relay  |
+| `nostr.syncInterval`      | number   | `300000`      | 事件同步间隔（毫秒）      |
+| `nostr.maxEventsPerRelay` | number   | `1000`        | 每个 Relay 最大缓存事件数 |
+| `nostr.eventKinds`        | number[] | `[0,1,3,5,7]` | 订阅的事件类型（kind 值） |
 
 **配置示例**（`.chainlesschain/config.json`）：
 
@@ -452,13 +467,13 @@ for (const event of events) {
 
 **eventKinds 速查**：
 
-| Kind | 说明 |
-| --- | --- |
-| `0` | 用户元数据（Profile） |
-| `1` | 文本笔记 |
-| `3` | 联系人列表 |
-| `5` | 事件删除 |
-| `7` | 反应（点赞等） |
+| Kind | 说明                  |
+| ---- | --------------------- |
+| `0`  | 用户元数据（Profile） |
+| `1`  | 文本笔记              |
+| `3`  | 联系人列表            |
+| `5`  | 事件删除              |
+| `7`  | 反应（点赞等）        |
 
 ---
 
@@ -466,12 +481,12 @@ for (const event of events) {
 
 ### 单元测试
 
-| 测试文件 | 覆盖范围 | 测试数 |
-| --- | --- | --- |
-| `tests/unit/p2p/nostr-bridge.test.js` | 身份管理、事件发布与订阅、内容同步 | 28 |
-| `tests/unit/p2p/nostr-relay-pool.test.js` | Relay 连接/断开、读写权限、状态管理 | 16 |
-| `tests/unit/p2p/nostr-identity.test.js` | 密钥对生成、nsec 导入/导出、加密存储 | 14 |
-| `src/renderer/stores/__tests__/nostrBridge.test.ts` | Pinia store 状态管理 | 12 |
+| 测试文件                                            | 覆盖范围                             | 测试数 |
+| --------------------------------------------------- | ------------------------------------ | ------ |
+| `tests/unit/p2p/nostr-bridge.test.js`               | 身份管理、事件发布与订阅、内容同步   | 28     |
+| `tests/unit/p2p/nostr-relay-pool.test.js`           | Relay 连接/断开、读写权限、状态管理  | 16     |
+| `tests/unit/p2p/nostr-identity.test.js`             | 密钥对生成、nsec 导入/导出、加密存储 | 14     |
+| `src/renderer/stores/__tests__/nostrBridge.test.ts` | Pinia store 状态管理                 | 12     |
 
 **运行测试**：
 

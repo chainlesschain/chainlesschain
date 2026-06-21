@@ -337,6 +337,7 @@ const prediction = await window.electronAPI.invoke("governance:predict-vote", {
 **现象**: 投票结果统计与预期不符，某些 DID 的投票权重不正确。
 
 **排查步骤**:
+
 1. 确认每个 DID 仅投了一票（`UNIQUE(proposal_id, voter_did)` 约束保证唯一性）
 2. 检查是否有委托投票影响了权重计算（若与信誉系统关联）
 3. 查看 `governance_votes` 表确认所有投票记录的 `vote` 字段值正确
@@ -347,6 +348,7 @@ const prediction = await window.electronAPI.invoke("governance:predict-vote", {
 **现象**: 两个提案修改同一配置参数，存在冲突。
 
 **排查步骤**:
+
 1. 使用 `governance:list-proposals` 筛选 `ACTIVE` 状态的提案，检查是否有参数冲突
 2. 配置 `proposalCooldown`（默认 86400000ms / 24 小时）限制同类提案提交频率
 3. 若两个提案均通过，系统按执行时间顺序应用，后执行的提案覆盖先执行的
@@ -356,13 +358,13 @@ const prediction = await window.electronAPI.invoke("governance:predict-vote", {
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| AI 分析结果偏差大 | 训练数据偏斜或分析模型过时 | 更新模型版本，补充平衡数据集 |
-| 投票率低提案无法通过 | 参与门槛过高或通知未触达 | 降低 `quorumThreshold`，启用多渠道通知 |
-| 提案冲突多个提案互相矛盾 | 缺乏提案依赖检查机制 | 启用提案冲突检测 `governance conflict-check` |
-| 治理决议执行延迟 | 执行队列拥堵或审批流程卡住 | 检查执行队列 `governance queue-status`，催办审批 |
-| 权限变更未生效 | 缓存未刷新或同步延迟 | 清除权限缓存 `governance cache-flush` |
+| 症状                     | 可能原因                   | 解决方案                                         |
+| ------------------------ | -------------------------- | ------------------------------------------------ |
+| AI 分析结果偏差大        | 训练数据偏斜或分析模型过时 | 更新模型版本，补充平衡数据集                     |
+| 投票率低提案无法通过     | 参与门槛过高或通知未触达   | 降低 `quorumThreshold`，启用多渠道通知           |
+| 提案冲突多个提案互相矛盾 | 缺乏提案依赖检查机制       | 启用提案冲突检测 `governance conflict-check`     |
+| 治理决议执行延迟         | 执行队列拥堵或审批流程卡住 | 检查执行队列 `governance queue-status`，催办审批 |
+| 权限变更未生效           | 缓存未刷新或同步延迟       | 清除权限缓存 `governance cache-flush`            |
 
 ### 常见错误修复
 
@@ -398,15 +400,15 @@ chainlesschain governance conflict-detail --proposal-id <id>
 
 ## 配置参考
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `enabled` | boolean | `true` | 是否启用 AI 社区治理模块 |
-| `votingDuration` | number (ms) | `604800000` | 单次提案投票周期，默认 7 天 |
-| `quorumPercentage` | number (0–100) | `51` | 法定人数百分比，达到才能结算提案 |
-| `aiAnalysisEnabled` | boolean | `true` | 是否对新提案自动触发 AI 影响分析 |
-| `votePredictionEnabled` | boolean | `true` | 是否启用基于社区情感的投票结果预测 |
-| `maxActiveProposals` | number | `10` | 同时处于 ACTIVE 状态的最大提案数量 |
-| `proposalCooldown` | number (ms) | `86400000` | 同一 DID 连续提交提案的最短间隔，默认 24 小时 |
+| 字段                    | 类型           | 默认值      | 说明                                          |
+| ----------------------- | -------------- | ----------- | --------------------------------------------- |
+| `enabled`               | boolean        | `true`      | 是否启用 AI 社区治理模块                      |
+| `votingDuration`        | number (ms)    | `604800000` | 单次提案投票周期，默认 7 天                   |
+| `quorumPercentage`      | number (0–100) | `51`        | 法定人数百分比，达到才能结算提案              |
+| `aiAnalysisEnabled`     | boolean        | `true`      | 是否对新提案自动触发 AI 影响分析              |
+| `votePredictionEnabled` | boolean        | `true`      | 是否启用基于社区情感的投票结果预测            |
+| `maxActiveProposals`    | number         | `10`        | 同时处于 ACTIVE 状态的最大提案数量            |
+| `proposalCooldown`      | number (ms)    | `86400000`  | 同一 DID 连续提交提案的最短间隔，默认 24 小时 |
 
 **配置示例**（宽松社区环境）:
 
@@ -432,12 +434,12 @@ chainlesschain governance conflict-detail --proposal-id <id>
 
 ### 单元测试
 
-| 测试文件 | 覆盖场景 | 用例数 |
-| --- | --- | --- |
-| `tests/unit/social/governance-manager.test.js` | 提案 CRUD、状态流转、投票计数 | 24 |
-| `tests/unit/social/governance-ai-analysis.test.js` | AI 影响分析评级、推荐结论生成 | 16 |
-| `tests/unit/social/governance-vote-prediction.test.js` | 情感分析、预测置信度计算 | 14 |
-| `tests/unit/social/governance-ipc.test.js` | 4 个 IPC 处理器输入验证与响应格式 | 18 |
+| 测试文件                                               | 覆盖场景                          | 用例数 |
+| ------------------------------------------------------ | --------------------------------- | ------ |
+| `tests/unit/social/governance-manager.test.js`         | 提案 CRUD、状态流转、投票计数     | 24     |
+| `tests/unit/social/governance-ai-analysis.test.js`     | AI 影响分析评级、推荐结论生成     | 16     |
+| `tests/unit/social/governance-vote-prediction.test.js` | 情感分析、预测置信度计算          | 14     |
+| `tests/unit/social/governance-ipc.test.js`             | 4 个 IPC 处理器输入验证与响应格式 | 18     |
 
 ### 集成测试
 
@@ -503,12 +505,12 @@ it('prediction confidence is between 0 and 1', async () => { ... });
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/social/governance-manager.js` | 社区治理核心引擎（提案/投票/AI 分析） |
-| `src/main/social/governance-ipc.js` | IPC 处理器（4 个通道） |
-| `src/renderer/stores/governance.ts` | Pinia 状态管理 |
-| `src/renderer/pages/social/GovernancePage.vue` | AI 社区治理页面 |
+| 文件                                           | 职责                                  |
+| ---------------------------------------------- | ------------------------------------- |
+| `src/main/social/governance-manager.js`        | 社区治理核心引擎（提案/投票/AI 分析） |
+| `src/main/social/governance-ipc.js`            | IPC 处理器（4 个通道）                |
+| `src/renderer/stores/governance.ts`            | Pinia 状态管理                        |
+| `src/renderer/pages/social/GovernancePage.vue` | AI 社区治理页面                       |
 
 ---
 

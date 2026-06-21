@@ -33,12 +33,12 @@ chainlesschain tech analyze /path/to/project --json
 
 分析项目目录的技术栈。自动解析以下清单文件：
 
-| 文件 | 识别内容 |
-|------|---------|
-| `package.json` | Node.js 依赖、框架（Vue/React/Express 等） |
-| `requirements.txt` | Python 依赖、框架（Django/FastAPI 等） |
-| `Cargo.toml` | Rust 依赖 |
-| `go.mod` | Go 模块依赖 |
+| 文件               | 识别内容                                   |
+| ------------------ | ------------------------------------------ |
+| `package.json`     | Node.js 依赖、框架（Vue/React/Express 等） |
+| `requirements.txt` | Python 依赖、框架（Django/FastAPI 等）     |
+| `Cargo.toml`       | Rust 依赖                                  |
+| `go.mod`           | Go 模块依赖                                |
 
 输出包含：语言列表、框架列表、数据库列表、工具列表、总依赖数。未指定路径时使用当前工作目录。
 
@@ -60,13 +60,13 @@ chainlesschain tech detect src/main/index.js --json
 
 对单个文件执行反模式启发式检测。返回：
 
-| 反模式 | 说明 |
-|--------|------|
-| 大函数 | 函数体过长 |
-| 深嵌套 | 嵌套层级过深 |
+| 反模式     | 说明                        |
+| ---------- | --------------------------- |
+| 大函数     | 函数体过长                  |
+| 深嵌套     | 嵌套层级过深                |
 | 硬编码密钥 | 疑似硬编码 API Key / Secret |
-| 过长文件 | 文件行数过多 |
-| 过多参数 | 函数参数过多 |
+| 过长文件   | 文件行数过多                |
+| 过多参数   | 函数参数过多                |
 
 每个发现包含类型、严重程度和详情。
 
@@ -80,15 +80,15 @@ chainlesschain tech practice framework vue "composition-api" intermediate --sour
 
 记录一条技术实践经验：
 
-| 参数 | 说明 |
-|------|------|
+| 参数        | 说明                                                                 |
+| ----------- | -------------------------------------------------------------------- |
 | `tech-type` | 技术类型: language / framework / library / database / tool / pattern |
-| `tech-name` | 技术名称（如 typescript, vue, postgresql） |
-| `pattern` | 模式名称（如 strict-mode, composition-api） |
-| `level` | 实践级别 |
-| `-d` | 描述文本 |
-| `-s` | 分数 0~1 |
-| `--source` | 来源标签（默认 manual） |
+| `tech-name` | 技术名称（如 typescript, vue, postgresql）                           |
+| `pattern`   | 模式名称（如 strict-mode, composition-api）                          |
+| `level`     | 实践级别                                                             |
+| `-d`        | 描述文本                                                             |
+| `-s`        | 分数 0~1                                                             |
+| `--source`  | 来源标签（默认 manual）                                              |
 
 ### tech practices — 列出实践
 
@@ -151,21 +151,21 @@ chainlesschain tech recommend --limit 10 --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/tech.js` | tech 命令主入口 |
+| 文件                                           | 职责                                               |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `packages/cli/src/commands/tech.js`            | tech 命令主入口                                    |
 | `packages/cli/src/lib/tech-learning-engine.js` | 清单解析、反模式启发式、实践存储、推荐匹配核心实现 |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `tech analyze <dir>` | 典型 500 ms–2 s | 取决于文件数与 manifest 类型 |
-| `tech profile` | < 50 ms | 聚合查询 |
-| `tech detect <file>` | < 200 ms | 启发式扫描 |
-| `tech practices` | < 50 ms | 列表查询 |
-| `tech recommend` | < 100 ms | 画像相似度 |
-| V2 learning-run dispatch | < 50 ms | `tech_learning_engine_v2_cli.md` |
+| 操作                     | 典型耗时        | 备注                             |
+| ------------------------ | --------------- | -------------------------------- |
+| `tech analyze <dir>`     | 典型 500 ms–2 s | 取决于文件数与 manifest 类型     |
+| `tech profile`           | < 50 ms         | 聚合查询                         |
+| `tech detect <file>`     | < 200 ms        | 启发式扫描                       |
+| `tech practices`         | < 50 ms         | 列表查询                         |
+| `tech recommend`         | < 100 ms        | 画像相似度                       |
+| V2 learning-run dispatch | < 50 ms         | `tech_learning_engine_v2_cli.md` |
 
 ## 测试覆盖率
 
@@ -185,12 +185,12 @@ __tests__/unit/tech-learning-engine.test.js — 95 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `analyze` 输出空 | manifest 未识别 | `--manifest package.json,requirements.txt` 显式指定 |
-| `detect` 误报过多 | 启发式规则过宽 | `--ignore-rule <id>` 或降低 sensitivity |
-| `recommend` 无结果 | profile 为空 | 先 `analyze` 建立画像 |
-| V2 createRunV2 cap exceeded | per-learner running cap 满 | `gov-stats-v2` 查看，fail 现有 run |
+| 症状                        | 可能原因                   | 解决方案                                            |
+| --------------------------- | -------------------------- | --------------------------------------------------- |
+| `analyze` 输出空            | manifest 未识别            | `--manifest package.json,requirements.txt` 显式指定 |
+| `detect` 误报过多           | 启发式规则过宽             | `--ignore-rule <id>` 或降低 sensitivity             |
+| `recommend` 无结果          | profile 为空               | 先 `analyze` 建立画像                               |
+| V2 createRunV2 cap exceeded | per-learner running cap 满 | `gov-stats-v2` 查看，fail 现有 run                  |
 
 ## 测试
 

@@ -1086,11 +1086,11 @@ services:
       resources:
         reservations:
           devices:
-            - capabilities: [gpu]   # 启用 NVIDIA GPU
+            - capabilities: [gpu] # 启用 NVIDIA GPU
 
   qdrant:
     ports:
-      - "6334:6334"   # 将 gRPC 端口暴露到本地
+      - "6334:6334" # 将 gRPC 端口暴露到本地
 
   postgres:
     environment:
@@ -1112,10 +1112,10 @@ services:
     "binaryPath": "/usr/local/bin/chainlesschain-desktop"
   },
   "services": {
-    "ollama":    { "host": "http://localhost:11434", "autoStart": true },
-    "qdrant":    { "host": "http://localhost:6333",  "autoStart": true },
-    "postgres":  { "host": "localhost", "port": 5432, "autoStart": true },
-    "redis":     { "host": "localhost", "port": 6379, "autoStart": true }
+    "ollama": { "host": "http://localhost:11434", "autoStart": true },
+    "qdrant": { "host": "http://localhost:6333", "autoStart": true },
+    "postgres": { "host": "localhost", "port": 5432, "autoStart": true },
+    "redis": { "host": "localhost", "port": 6379, "autoStart": true }
   },
   "doctor": {
     "checks": ["node", "docker", "ports", "ollama", "disk"],
@@ -1127,16 +1127,16 @@ services:
 
 ### 环境变量速查
 
-| 变量名 | 默认值 | 说明 |
-|---|---|---|
-| `CC_DATA_DIR` | `~/.chainlesschain` | 数据存储根目录 |
-| `CC_VERSION` | `personal` | 安装版本（personal / enterprise） |
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama 服务地址 |
-| `QDRANT_HOST` | `http://localhost:6333` | Qdrant 向量库地址 |
-| `DB_HOST` | `localhost:5432` | PostgreSQL 连接地址 |
-| `REDIS_HOST` | `localhost:6379` | Redis 连接地址 |
-| `CC_SKIP_DOCTOR` | `false` | 跳过启动时环境检查 |
-| `NODE_OPTIONS` | — | Node.js 运行时参数（如 `--max-old-space-size=4096`） |
+| 变量名           | 默认值                   | 说明                                                 |
+| ---------------- | ------------------------ | ---------------------------------------------------- |
+| `CC_DATA_DIR`    | `~/.chainlesschain`      | 数据存储根目录                                       |
+| `CC_VERSION`     | `personal`               | 安装版本（personal / enterprise）                    |
+| `OLLAMA_HOST`    | `http://localhost:11434` | Ollama 服务地址                                      |
+| `QDRANT_HOST`    | `http://localhost:6333`  | Qdrant 向量库地址                                    |
+| `DB_HOST`        | `localhost:5432`         | PostgreSQL 连接地址                                  |
+| `REDIS_HOST`     | `localhost:6379`         | Redis 连接地址                                       |
+| `CC_SKIP_DOCTOR` | `false`                  | 跳过启动时环境检查                                   |
+| `NODE_OPTIONS`   | —                        | Node.js 运行时参数（如 `--max-old-space-size=4096`） |
 
 ---
 
@@ -1144,45 +1144,45 @@ services:
 
 ### 安装耗时（参考值）
 
-| 安装方式 | 网络条件 | 典型耗时 |
-|---|---|---|
-| `npm install -g chainlesschain` | 100 Mbps | ~15 秒 |
-| `chainlesschain setup`（仅配置，无模型下载） | — | ~30 秒 |
-| `chainlesschain setup`（含 llama3:8b 模型下载） | 100 Mbps | ~8 分钟 |
-| `docker-compose up -d`（首次拉取所有镜像） | 100 Mbps | ~5 分钟 |
-| `docker-compose up -d`（镜像已缓存） | — | ~20 秒 |
-| AppImage / DMG / .exe 安装包 | 100 Mbps | ~2 分钟 |
+| 安装方式                                        | 网络条件 | 典型耗时 |
+| ----------------------------------------------- | -------- | -------- |
+| `npm install -g chainlesschain`                 | 100 Mbps | ~15 秒   |
+| `chainlesschain setup`（仅配置，无模型下载）    | —        | ~30 秒   |
+| `chainlesschain setup`（含 llama3:8b 模型下载） | 100 Mbps | ~8 分钟  |
+| `docker-compose up -d`（首次拉取所有镜像）      | 100 Mbps | ~5 分钟  |
+| `docker-compose up -d`（镜像已缓存）            | —        | ~20 秒   |
+| AppImage / DMG / .exe 安装包                    | 100 Mbps | ~2 分钟  |
 
 ### 磁盘占用
 
-| 组件 | 占用空间 |
-|---|---|
-| CLI 核心包（`chainlesschain` npm） | ~2 MB |
-| 桌面应用（Electron 打包后） | ~180 MB |
-| Docker 镜像合计（Ollama + Qdrant + PostgreSQL + Redis） | ~3.5 GB |
-| llama3:8b 模型文件 | ~4.7 GB |
-| qwen2:7b 模型文件 | ~4.4 GB |
-| `~/.chainlesschain/` 初始数据目录（无笔记） | ~50 MB |
+| 组件                                                    | 占用空间 |
+| ------------------------------------------------------- | -------- |
+| CLI 核心包（`chainlesschain` npm）                      | ~2 MB    |
+| 桌面应用（Electron 打包后）                             | ~180 MB  |
+| Docker 镜像合计（Ollama + Qdrant + PostgreSQL + Redis） | ~3.5 GB  |
+| llama3:8b 模型文件                                      | ~4.7 GB  |
+| qwen2:7b 模型文件                                       | ~4.4 GB  |
+| `~/.chainlesschain/` 初始数据目录（无笔记）             | ~50 MB   |
 
 ### 运行时资源（推荐配置下）
 
-| 指标 | 空载 | 对话中（7B 模型） |
-|---|---|---|
-| 桌面应用内存 | ~120 MB | ~200 MB |
-| Ollama 内存 | ~200 MB | ~5–6 GB（模型加载后） |
-| Qdrant 内存 | ~80 MB | ~150 MB |
-| CPU 占用（推理时，8 核） | <1% | 40–70% |
-| GPU 显存（NVIDIA，启用时） | — | ~5 GB（7B 模型） |
+| 指标                       | 空载    | 对话中（7B 模型）     |
+| -------------------------- | ------- | --------------------- |
+| 桌面应用内存               | ~120 MB | ~200 MB               |
+| Ollama 内存                | ~200 MB | ~5–6 GB（模型加载后） |
+| Qdrant 内存                | ~80 MB  | ~150 MB               |
+| CPU 占用（推理时，8 核）   | <1%     | 40–70%                |
+| GPU 显存（NVIDIA，启用时） | —       | ~5 GB（7B 模型）      |
 
 ### 启动时间
 
-| 阶段 | 时间（SSD，推荐配置） |
-|---|---|
-| 桌面应用冷启动到主界面 | ~3 秒 |
-| `chainlesschain doctor` 完成全项检查 | ~5 秒 |
-| Ollama 首次加载 7B 模型 | ~8–15 秒 |
-| Ollama 模型已缓存时加载 | ~2–4 秒 |
-| Docker 全服务就绪（镜像已缓存） | ~20 秒 |
+| 阶段                                 | 时间（SSD，推荐配置） |
+| ------------------------------------ | --------------------- |
+| 桌面应用冷启动到主界面               | ~3 秒                 |
+| `chainlesschain doctor` 完成全项检查 | ~5 秒                 |
+| Ollama 首次加载 7B 模型              | ~8–15 秒              |
+| Ollama 模型已缓存时加载              | ~2–4 秒               |
+| Docker 全服务就绪（镜像已缓存）      | ~20 秒                |
 
 ---
 

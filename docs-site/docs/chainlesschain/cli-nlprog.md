@@ -62,13 +62,13 @@ NL Programming 模块将自然语言描述转为结构化规格（intent / entit
 
 ## 配置参考
 
-| 配置项                  | 含义                    | 默认                     |
-| ----------------------- | ----------------------- | ------------------------ |
-| `intents`               | 支持意图数              | 9                        |
-| `statuses`              | 翻译状态                | draft/reviewing/approved/rejected |
-| `style-categories`      | 约定类别                | naming/style/architecture/testing |
-| 约定影响范围            | 对所有后续 translate 生效 |                        |
-| V2 spec maturity caps   | 见 `nl_programming_v2_phase28_cli.md` |         |
+| 配置项                | 含义                                  | 默认                              |
+| --------------------- | ------------------------------------- | --------------------------------- |
+| `intents`             | 支持意图数                            | 9                                 |
+| `statuses`            | 翻译状态                              | draft/reviewing/approved/rejected |
+| `style-categories`    | 约定类别                              | naming/style/architecture/testing |
+| 约定影响范围          | 对所有后续 translate 生效             |                                   |
+| V2 spec maturity caps | 见 `nl_programming_v2_phase28_cli.md` |                                   |
 
 查看：`chainlesschain nlprog intents`、`nlprog statuses`、`nlprog style-categories`。
 
@@ -76,14 +76,14 @@ NL Programming 模块将自然语言描述转为结构化规格（intent / entit
 
 ## 性能指标
 
-| 操作                        | 典型耗时          |
-| --------------------------- | ----------------- |
-| classify（100 字以内）      | < 10 ms           |
-| extract                     | < 15 ms           |
-| detect-stack                | < 10 ms           |
-| translate（含启发式匹配）   | < 50 ms           |
-| refine                      | < 50 ms           |
-| list --limit 20             | < 10 ms           |
+| 操作                      | 典型耗时 |
+| ------------------------- | -------- |
+| classify（100 字以内）    | < 10 ms  |
+| extract                   | < 15 ms  |
+| detect-stack              | < 10 ms  |
+| translate（含启发式匹配） | < 50 ms  |
+| refine                    | < 50 ms  |
+| list --limit 20           | < 10 ms  |
 
 ---
 

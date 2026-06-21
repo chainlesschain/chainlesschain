@@ -98,17 +98,17 @@ cc multisig show <proposalId> [--json]              # 含 payload + 全部签名
 
 ## 配置参考
 
-| 项 | 默认值 | 说明 |
-|----|--------|------|
-| `--db` | `~/.chainlesschain/multisig.db` | SQLite（表：`multisig_proposals` / `multisig_signatures` / `multisig_policies`） |
-| `--log` | `~/.chainlesschain/multisig.governance.log` | JSONL 治理日志 |
-| `--key` | （必填） | 十六进制私钥字符串，或指向 hex 文件的路径（`readSecretKey` 自动判别） |
-| `policy.m` | （必填） | 阈值，整数 ≥1 且 ≤ n |
-| `policy.members[].alg` | — | 仅 `Ed25519` / `SLH-DSA-SHA2-128F`（`SUPPORTED_ALGS` 白名单） |
-| `policy.requirePqc` | `false` | 为 true 时成员中必须有 SLH-DSA 成员，且达阈需至少 1 个 SLH-DSA 有效签名 |
-| `policy.defaultExpiryMs` | `86400000`（24h） | 提案过期窗口（`--expiry-ms` 覆盖） |
-| `list --limit` | `50` | store 层内部默认 100 |
-| `LARGE_PURCHASE_THRESHOLD_FEN` | `100000`（分，即 ¥1000） | `cc marketplace purchase` 大额订单强制走多签的阈值（`--threshold-fen` 覆盖），domain 固定 `marketplace.purchase` |
+| 项                             | 默认值                                      | 说明                                                                                                             |
+| ------------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--db`                         | `~/.chainlesschain/multisig.db`             | SQLite（表：`multisig_proposals` / `multisig_signatures` / `multisig_policies`）                                 |
+| `--log`                        | `~/.chainlesschain/multisig.governance.log` | JSONL 治理日志                                                                                                   |
+| `--key`                        | （必填）                                    | 十六进制私钥字符串，或指向 hex 文件的路径（`readSecretKey` 自动判别）                                            |
+| `policy.m`                     | （必填）                                    | 阈值，整数 ≥1 且 ≤ n                                                                                             |
+| `policy.members[].alg`         | —                                           | 仅 `Ed25519` / `SLH-DSA-SHA2-128F`（`SUPPORTED_ALGS` 白名单）                                                    |
+| `policy.requirePqc`            | `false`                                     | 为 true 时成员中必须有 SLH-DSA 成员，且达阈需至少 1 个 SLH-DSA 有效签名                                          |
+| `policy.defaultExpiryMs`       | `86400000`（24h）                           | 提案过期窗口（`--expiry-ms` 覆盖）                                                                               |
+| `list --limit`                 | `50`                                        | store 层内部默认 100                                                                                             |
+| `LARGE_PURCHASE_THRESHOLD_FEN` | `100000`（分，即 ¥1000）                    | `cc marketplace purchase` 大额订单强制走多签的阈值（`--threshold-fen` 覆盖），domain 固定 `marketplace.purchase` |
 
 环境变量：无专用变量；DB/日志位置由 `getHomeDir()`（`~/.chainlesschain/`）推导。Phase 1d 内 keystore 集成（core-did/UnifiedKeyStore）留待 v1.3 —— 目前私钥只能经 `--key` 提供。
 
@@ -126,21 +126,21 @@ cc multisig show <proposalId> [--json]              # 含 payload + 全部签名
 
 **core-multisig 单元测试 86 个**（`packages/core-multisig/__tests__/`）：
 
-| 文件 | 用例数 |
-|------|--------|
-| `proposals.test.js` | 31 |
-| `signing.test.js` | 19 |
-| `policy.test.js` | 15 |
-| `store.test.js` | 14 |
-| `governance-log.test.js` | 7 |
+| 文件                     | 用例数 |
+| ------------------------ | ------ |
+| `proposals.test.js`      | 31     |
+| `signing.test.js`        | 19     |
+| `policy.test.js`         | 15     |
+| `store.test.js`          | 14     |
+| `governance-log.test.js` | 7      |
 
 **CLI 集成/E2E 测试 32 个**（`packages/cli/__tests__/integration/`，subprocess 跑真 CLI bin）：
 
-| 文件 | 用例数 | 覆盖 |
-|------|--------|------|
-| `multisig-cli.test.js` | 10 | policy set + propose + sign + show + list + cancel + finalize + sweep 端到端、`--json` 形状、失败路径 |
-| `crosschain-multisig-e2e.test.js` | 14 | `cc crosschain bridge --require-multisig`（2-of-2，domain `crosschain.bridge.outbound`）+ 桥记录持久化多签溯源 |
-| `marketplace-multisig-e2e.test.js` | 8 | 大额购买强制路由多签、`purchase-consume` 域校验 |
+| 文件                               | 用例数 | 覆盖                                                                                                           |
+| ---------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
+| `multisig-cli.test.js`             | 10     | policy set + propose + sign + show + list + cancel + finalize + sweep 端到端、`--json` 形状、失败路径          |
+| `crosschain-multisig-e2e.test.js`  | 14     | `cc crosschain bridge --require-multisig`（2-of-2，domain `crosschain.bridge.outbound`）+ 桥记录持久化多签溯源 |
+| `marketplace-multisig-e2e.test.js` | 8      | 大额购买强制路由多签、`purchase-consume` 域校验                                                                |
 
 ```bash
 cd packages/core-multisig && npx vitest run
@@ -162,32 +162,32 @@ cd packages/cli && npx vitest run __tests__/integration/multisig-cli.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `No policy set for domain "..."`（exit 2） | 该 domain 未配置策略 | 先 `cc multisig policy set <domain> --m <M> --members <json>` |
-| `✗ Signature rejected: not_a_member` | `--signer` DID 不在提案快照的 memberSet 中 | 用 `cc multisig show <id>` 核对成员；策略改动不影响已建提案（成员集合在 propose 时快照） |
-| `✗ Signature rejected: alg_mismatch` | `--alg` 与策略中该成员登记的算法不一致 | 按 `policy show` 中该成员的 alg 传参 |
-| `✗ Signature rejected: duplicate_signer` | 同一 DID 重复加签 | 预期行为；每个成员只计一次 |
-| `✗ Signature rejected: sig_self_verify_failed` | `--key` 与该成员登记的公钥不配对 | 核对私钥 hex / 文件内容 |
-| `✗ Signature rejected: expired` | 提案已过 `expiresAtMs` | 重新 propose；可在 policy 上调大 `--expiry-ms` |
-| `✗ Finalize rejected: proposal_state_pending` | 尚未凑满 M 个有效签名 | `show` 查看 `Sigs x/M`，先补签 |
-| `validatePolicy: m must be ≤ n` 等抛错 | 策略形状非法（m>n、重复 DID、不支持的 alg、requirePqc 但无 PQC 成员…） | 按报错修 members JSON；`policy set` 是 fail-fast 的 |
-| `--key: not hex and not an existing file path` | `--key` 既不是合法 hex 也不是存在的文件 | 检查路径或 hex 串 |
-| 原生 SQLite 模块加载失败但命令仍可用 | 驱动级联落到 sql.js（WASM） | 功能等价；注意 WASM 模式在进程退出（close）时才落盘 |
+| 现象                                           | 可能原因                                                               | 处理                                                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `No policy set for domain "..."`（exit 2）     | 该 domain 未配置策略                                                   | 先 `cc multisig policy set <domain> --m <M> --members <json>`                            |
+| `✗ Signature rejected: not_a_member`           | `--signer` DID 不在提案快照的 memberSet 中                             | 用 `cc multisig show <id>` 核对成员；策略改动不影响已建提案（成员集合在 propose 时快照） |
+| `✗ Signature rejected: alg_mismatch`           | `--alg` 与策略中该成员登记的算法不一致                                 | 按 `policy show` 中该成员的 alg 传参                                                     |
+| `✗ Signature rejected: duplicate_signer`       | 同一 DID 重复加签                                                      | 预期行为；每个成员只计一次                                                               |
+| `✗ Signature rejected: sig_self_verify_failed` | `--key` 与该成员登记的公钥不配对                                       | 核对私钥 hex / 文件内容                                                                  |
+| `✗ Signature rejected: expired`                | 提案已过 `expiresAtMs`                                                 | 重新 propose；可在 policy 上调大 `--expiry-ms`                                           |
+| `✗ Finalize rejected: proposal_state_pending`  | 尚未凑满 M 个有效签名                                                  | `show` 查看 `Sigs x/M`，先补签                                                           |
+| `validatePolicy: m must be ≤ n` 等抛错         | 策略形状非法（m>n、重复 DID、不支持的 alg、requirePqc 但无 PQC 成员…） | 按报错修 members JSON；`policy set` 是 fail-fast 的                                      |
+| `--key: not hex and not an existing file path` | `--key` 既不是合法 hex 也不是存在的文件                                | 检查路径或 hex 串                                                                        |
+| 原生 SQLite 模块加载失败但命令仍可用           | 驱动级联落到 sql.js（WASM）                                            | 功能等价；注意 WASM 模式在进程退出（close）时才落盘                                      |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/multisig.js` | `cc multisig` 全部子命令 |
-| `packages/cli/src/lib/multisig-runtime.js` | DB 级联打开（bs3mc→bs3→sql.js 适配器）+ manager 装配 + `readSecretKey`/`readJsonArg` |
-| `packages/core-multisig/lib/policy.js` | 策略校验/归一化（`SUPPORTED_ALGS`、`DEFAULT_EXPIRY_MS`） |
-| `packages/core-multisig/lib/signing.js` | JCS 规范化 + `MULTISIG:` 域前缀 + signRaw/verifyOne/verifyThreshold |
-| `packages/core-multisig/lib/proposals.js` | 提案状态机（propose/sign/signWithExternal/cancel/finalize/expireStale） |
-| `packages/core-multisig/lib/store.js` | SQLite 读写包装（proposals/signatures/policies） |
-| `packages/core-multisig/lib/schema.js` | DDL（幂等 CREATE TABLE/INDEX IF NOT EXISTS） |
-| `packages/core-multisig/lib/governance-log.js` | append-only JSONL 审计日志 |
-| `packages/cli/src/commands/marketplace.js` | 大额购买多签集成（`LARGE_PURCHASE_THRESHOLD_FEN`、domain `marketplace.purchase`） |
+| 文件                                           | 说明                                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `packages/cli/src/commands/multisig.js`        | `cc multisig` 全部子命令                                                             |
+| `packages/cli/src/lib/multisig-runtime.js`     | DB 级联打开（bs3mc→bs3→sql.js 适配器）+ manager 装配 + `readSecretKey`/`readJsonArg` |
+| `packages/core-multisig/lib/policy.js`         | 策略校验/归一化（`SUPPORTED_ALGS`、`DEFAULT_EXPIRY_MS`）                             |
+| `packages/core-multisig/lib/signing.js`        | JCS 规范化 + `MULTISIG:` 域前缀 + signRaw/verifyOne/verifyThreshold                  |
+| `packages/core-multisig/lib/proposals.js`      | 提案状态机（propose/sign/signWithExternal/cancel/finalize/expireStale）              |
+| `packages/core-multisig/lib/store.js`          | SQLite 读写包装（proposals/signatures/policies）                                     |
+| `packages/core-multisig/lib/schema.js`         | DDL（幂等 CREATE TABLE/INDEX IF NOT EXISTS）                                         |
+| `packages/core-multisig/lib/governance-log.js` | append-only JSONL 审计日志                                                           |
+| `packages/cli/src/commands/marketplace.js`     | 大额购买多签集成（`LARGE_PURCHASE_THRESHOLD_FEN`、domain `marketplace.purchase`）    |
 
 ## 使用示例
 

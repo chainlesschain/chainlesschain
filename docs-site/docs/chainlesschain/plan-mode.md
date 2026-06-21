@@ -461,12 +461,12 @@ const history = await planMode.getHistory({
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/ai-engine/plan-mode/plan-mode-manager.js` | Plan Mode 核心引擎 |
-| `src/main/ai-engine/plan-mode/plan-mode-ipc.js` | IPC 处理器（14 个） |
-| `src/main/hooks/plan-mode-check.js` | PreToolUse 风险检测钩子 |
-| `src/renderer/stores/planMode.ts` | Pinia 规划模式状态管理 |
+| 文件                                                | 职责                    |
+| --------------------------------------------------- | ----------------------- |
+| `src/main/ai-engine/plan-mode/plan-mode-manager.js` | Plan Mode 核心引擎      |
+| `src/main/ai-engine/plan-mode/plan-mode-ipc.js`     | IPC 处理器（14 个）     |
+| `src/main/hooks/plan-mode-check.js`                 | PreToolUse 风险检测钩子 |
+| `src/renderer/stores/planMode.ts`                   | Pinia 规划模式状态管理  |
 
 ## 使用示例
 
@@ -485,25 +485,25 @@ chainlesschain agent
 ```javascript
 // 进入规划模式
 await planMode.enter({
-  task: '迁移数据库从 SQLite 到 PostgreSQL',
-  reason: '涉及多表结构变更和数据迁移'
+  task: "迁移数据库从 SQLite 到 PostgreSQL",
+  reason: "涉及多表结构变更和数据迁移",
 });
 
 // 生成执行计划
 const plan = await planMode.generatePlan({
-  task: '添加用户头像上传功能',
-  context: '需要图片压缩、存储和CDN分发'
+  task: "添加用户头像上传功能",
+  context: "需要图片压缩、存储和CDN分发",
 });
 
 // 部分批准（只批准安全的步骤）
 await planMode.approvePartial(planId, {
-  approvedSteps: ['step-1', 'step-2'],
-  rejectedSteps: ['step-3'],
-  comment: 'step-3 的删除操作需要修改'
+  approvedSteps: ["step-1", "step-2"],
+  rejectedSteps: ["step-3"],
+  comment: "step-3 的删除操作需要修改",
 });
 
 // 单步执行并确认
-await planMode.executeStep(planId, 'step-1');
+await planMode.executeStep(planId, "step-1");
 ```
 
 ---
@@ -614,17 +614,33 @@ await planMode.executeStep(planId, 'step-1');
 // plan-mode-manager.js — 内置风险级别映射
 const TOOL_RISK_LEVELS = {
   // 只读工具 — 规划模式默认允许
-  Read:        { riskLevel: "low",    availableInPlanMode: true  },
-  Glob:        { riskLevel: "low",    availableInPlanMode: true  },
-  Grep:        { riskLevel: "low",    availableInPlanMode: true  },
-  WebFetch:    { riskLevel: "low",    availableInPlanMode: true  },
-  WebSearch:   { riskLevel: "low",    availableInPlanMode: true  },
+  Read: { riskLevel: "low", availableInPlanMode: true },
+  Glob: { riskLevel: "low", availableInPlanMode: true },
+  Grep: { riskLevel: "low", availableInPlanMode: true },
+  WebFetch: { riskLevel: "low", availableInPlanMode: true },
+  WebSearch: { riskLevel: "low", availableInPlanMode: true },
 
   // 写入工具 — 规划模式默认阻止，审批后可执行
-  Write:       { riskLevel: "medium", availableInPlanMode: false, requiresPlanApproval: true },
-  Edit:        { riskLevel: "medium", availableInPlanMode: false, requiresPlanApproval: true },
-  Bash:        { riskLevel: "high",   availableInPlanMode: false, requiresPlanApproval: true },
-  NotebookEdit:{ riskLevel: "medium", availableInPlanMode: false, requiresPlanApproval: true },
+  Write: {
+    riskLevel: "medium",
+    availableInPlanMode: false,
+    requiresPlanApproval: true,
+  },
+  Edit: {
+    riskLevel: "medium",
+    availableInPlanMode: false,
+    requiresPlanApproval: true,
+  },
+  Bash: {
+    riskLevel: "high",
+    availableInPlanMode: false,
+    requiresPlanApproval: true,
+  },
+  NotebookEdit: {
+    riskLevel: "medium",
+    availableInPlanMode: false,
+    requiresPlanApproval: true,
+  },
 };
 ```
 
@@ -645,25 +661,25 @@ const TOOL_RISK_LEVELS = {
 
 ### 审批响应延迟
 
-| 操作                   | P50 延迟 | P95 延迟 | 说明                          |
-| ---------------------- | -------- | -------- | ----------------------------- |
-| `planMode:enter`       | 12 ms    | 45 ms    | IPC 进入规划模式              |
-| `planMode:generatePlan`| 变量     | 变量     | 取决于 LLM 响应和文件扫描量   |
-| `planMode:approve`     | 8 ms     | 22 ms    | 写入审批记录 + 状态变更       |
-| `planMode:approvePartial` | 10 ms | 30 ms    | 部分步骤标记 + 依赖检查       |
-| `planMode:reject`      | 6 ms     | 18 ms    | 记录拒绝原因 + 状态归档       |
-| `planMode:execute`     | 15 ms    | 50 ms    | 首步骤前初始化 + 权限校验     |
-| `planMode:executeStep` | 5 ms     | 20 ms    | 单步调度延迟（不含工具执行）  |
-| `planMode:getHistory`  | 3 ms     | 12 ms    | 磁盘读取 + 反序列化           |
+| 操作                      | P50 延迟 | P95 延迟 | 说明                         |
+| ------------------------- | -------- | -------- | ---------------------------- |
+| `planMode:enter`          | 12 ms    | 45 ms    | IPC 进入规划模式             |
+| `planMode:generatePlan`   | 变量     | 变量     | 取决于 LLM 响应和文件扫描量  |
+| `planMode:approve`        | 8 ms     | 22 ms    | 写入审批记录 + 状态变更      |
+| `planMode:approvePartial` | 10 ms    | 30 ms    | 部分步骤标记 + 依赖检查      |
+| `planMode:reject`         | 6 ms     | 18 ms    | 记录拒绝原因 + 状态归档      |
+| `planMode:execute`        | 15 ms    | 50 ms    | 首步骤前初始化 + 权限校验    |
+| `planMode:executeStep`    | 5 ms     | 20 ms    | 单步调度延迟（不含工具执行） |
+| `planMode:getHistory`     | 3 ms     | 12 ms    | 磁盘读取 + 反序列化          |
 
 ### 内存占用
 
-| 场景               | 增量内存占用 | 说明                         |
-| ------------------ | ------------ | ---------------------------- |
-| 规划模式空闲       | ~2 MB        | 状态管理 + 钩子监听          |
-| 单个活跃计划       | ~5–15 MB     | 计划 JSON + 上下文缓存       |
-| 10 个历史计划      | ~30 MB       | 磁盘序列化，内存中仅索引     |
-| PreToolUse 钩子    | < 1 ms/次    | 每次工具调用前的风险检测开销 |
+| 场景            | 增量内存占用 | 说明                         |
+| --------------- | ------------ | ---------------------------- |
+| 规划模式空闲    | ~2 MB        | 状态管理 + 钩子监听          |
+| 单个活跃计划    | ~5–15 MB     | 计划 JSON + 上下文缓存       |
+| 10 个历史计划   | ~30 MB       | 磁盘序列化，内存中仅索引     |
+| PreToolUse 钩子 | < 1 ms/次    | 每次工具调用前的风险检测开销 |
 
 ---
 
@@ -671,28 +687,28 @@ const TOOL_RISK_LEVELS = {
 
 ### 单元测试
 
-| 测试文件 | 测试数 | 覆盖模块 |
-| -------- | ------ | -------- |
-| ✅ `tests/unit/ai-engine/plan-mode-manager.test.js` | 42 | PlanModeManager 核心逻辑、计划 CRUD、状态机 |
-| ✅ `tests/unit/ai-engine/plan-mode-ipc.test.js` | 28 | 14 个 IPC 处理器、参数校验、错误处理 |
-| ✅ `tests/unit/ai-engine/plan-approval-gate.test.js` | 31 | ApprovalGate 策略合流、strict/trusted/autopilot 三模式 |
-| ✅ `tests/unit/hooks/plan-mode-check.test.js` | 18 | PreToolUse 钩子风险检测、高风险操作模式匹配 |
-| ✅ `packages/cli/src/lib/__tests__/interactive-planner.test.js` | 24 | InteractivePlanner LLM 驱动计划生成、步骤推荐 |
-| ✅ `packages/cli/src/lib/__tests__/slot-filler.test.js` | 19 | SlotFiller 槽位识别、上下文推断、终端/WS 双模 |
+| 测试文件                                                        | 测试数 | 覆盖模块                                               |
+| --------------------------------------------------------------- | ------ | ------------------------------------------------------ |
+| ✅ `tests/unit/ai-engine/plan-mode-manager.test.js`             | 42     | PlanModeManager 核心逻辑、计划 CRUD、状态机            |
+| ✅ `tests/unit/ai-engine/plan-mode-ipc.test.js`                 | 28     | 14 个 IPC 处理器、参数校验、错误处理                   |
+| ✅ `tests/unit/ai-engine/plan-approval-gate.test.js`            | 31     | ApprovalGate 策略合流、strict/trusted/autopilot 三模式 |
+| ✅ `tests/unit/hooks/plan-mode-check.test.js`                   | 18     | PreToolUse 钩子风险检测、高风险操作模式匹配            |
+| ✅ `packages/cli/src/lib/__tests__/interactive-planner.test.js` | 24     | InteractivePlanner LLM 驱动计划生成、步骤推荐          |
+| ✅ `packages/cli/src/lib/__tests__/slot-filler.test.js`         | 19     | SlotFiller 槽位识别、上下文推断、终端/WS 双模          |
 
 ### 集成测试
 
-| 测试文件 | 测试数 | 覆盖场景 |
-| -------- | ------ | -------- |
-| ✅ `tests/integration/plan-mode-flow.test.js` | 16 | 完整规划→审批→执行端到端流程 |
-| ✅ `tests/integration/plan-mode-hooks.test.js` | 12 | PreToolUse 钩子与规划模式联动 |
-| ✅ `tests/integration/plan-mode-partial-approve.test.js` | 10 | 部分批准、依赖步骤跳过、恢复执行 |
+| 测试文件                                                 | 测试数 | 覆盖场景                         |
+| -------------------------------------------------------- | ------ | -------------------------------- |
+| ✅ `tests/integration/plan-mode-flow.test.js`            | 16     | 完整规划→审批→执行端到端流程     |
+| ✅ `tests/integration/plan-mode-hooks.test.js`           | 12     | PreToolUse 钩子与规划模式联动    |
+| ✅ `tests/integration/plan-mode-partial-approve.test.js` | 10     | 部分批准、依赖步骤跳过、恢复执行 |
 
 ### Pinia Store 测试
 
-| 测试文件 | 测试数 | 覆盖模块 |
-| -------- | ------ | -------- |
-| ✅ `src/renderer/stores/__tests__/planMode.test.ts` | 35 | Pinia planMode store、状态同步、IPC 响应处理 |
+| 测试文件                                            | 测试数 | 覆盖模块                                     |
+| --------------------------------------------------- | ------ | -------------------------------------------- |
+| ✅ `src/renderer/stores/__tests__/planMode.test.ts` | 35     | Pinia planMode store、状态同步、IPC 响应处理 |
 
 ### 测试总计
 
@@ -758,13 +774,13 @@ WebSocket模式: 发送 question 消息，等待 session-answer
 
 ```javascript
 REQUIRED_SLOTS = {
-  create_file: ['fileType', 'path'],
-  edit_file: ['target'],
-  deploy: ['platform'],
-  refactor: ['scope'],
-  test: ['target'],
-  analyze: ['target'],
-}
+  create_file: ["fileType", "path"],
+  edit_file: ["target"],
+  deploy: ["platform"],
+  refactor: ["scope"],
+  test: ["target"],
+  analyze: ["target"],
+};
 ```
 
 ### 使用方式
@@ -781,9 +797,9 @@ chainlesschain agent
 
 ### 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/lib/slot-filler.js` | SlotFiller 核心引擎 |
+| 文件                                          | 职责                         |
+| --------------------------------------------- | ---------------------------- |
+| `packages/cli/src/lib/slot-filler.js`         | SlotFiller 核心引擎          |
 | `packages/cli/src/lib/interaction-adapter.js` | 交互抽象层（终端/WebSocket） |
 
 ---
@@ -832,10 +848,10 @@ chainlesschain agent
 
 ### 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/lib/interactive-planner.js` | 交互式计划生成器 |
-| `packages/cli/src/lib/slot-filler.js` | 参数槽填充（计划前信息收集） |
+| 文件                                          | 职责                         |
+| --------------------------------------------- | ---------------------------- |
+| `packages/cli/src/lib/interactive-planner.js` | 交互式计划生成器             |
+| `packages/cli/src/lib/slot-filler.js`         | 参数槽填充（计划前信息收集） |
 
 ---
 

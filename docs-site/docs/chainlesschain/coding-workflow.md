@@ -93,6 +93,7 @@ $deep-interview      $ralplan           $ralph   或   $team
 ```
 
 **强制顺序**：
+
 - `$ralplan` 拒绝执行如果 `intent.md` 不存在
 - `$ralph` / `$team` 拒绝执行如果 `plan.md` 不存在或 `approved: false`
 
@@ -100,12 +101,12 @@ $deep-interview      $ralplan           $ralph   或   $team
 
 ## 技能一览
 
-| 技能 | 阶段 | 作用 | Gate |
-|---|---|---|---|
-| `$deep-interview` | INTENT | 澄清 goal / 边界 / non-goals，写 `intent.md` | — |
-| `$ralplan` | PLAN | 读 intent 生成 `plan.md` (unapproved)；`--approve` 翻转审批标志 | 需要 intent.md |
-| `$ralph` | EXECUTE | 单 owner 持久完成循环，追加 `progress.log` | 需要 approved plan |
-| `$team` | EXECUTE | 按 `N:role` 拆分步骤，输出并行分派表 | 需要 approved plan |
+| 技能              | 阶段    | 作用                                                            | Gate               |
+| ----------------- | ------- | --------------------------------------------------------------- | ------------------ |
+| `$deep-interview` | INTENT  | 澄清 goal / 边界 / non-goals，写 `intent.md`                    | —                  |
+| `$ralplan`        | PLAN    | 读 intent 生成 `plan.md` (unapproved)；`--approve` 翻转审批标志 | 需要 intent.md     |
+| `$ralph`          | EXECUTE | 单 owner 持久完成循环，追加 `progress.log`                      | 需要 approved plan |
+| `$team`           | EXECUTE | 按 `N:role` 拆分步骤，输出并行分派表                            | 需要 approved plan |
 
 ## 快速开始
 
@@ -231,12 +232,12 @@ executor-3: 步骤 3
 
 ## 与现有系统的关系
 
-| 系统 | 关系 |
-|---|---|
-| **Cowork 多 Agent** | `$team` 最终会落到 cowork runtime 分派子会话 |
-| **Skills System (138)** | workflow 技能是 138 的增量 (+4)，四层加载自动发现 |
+| 系统                     | 关系                                                             |
+| ------------------------ | ---------------------------------------------------------------- |
+| **Cowork 多 Agent**      | `$team` 最终会落到 cowork runtime 分派子会话                     |
+| **Skills System (138)**  | workflow 技能是 138 的增量 (+4)，四层加载自动发现                |
 | **Coding Agent Session** | `.chainlesschain/sessions/` 与 Coding Agent 会话互相独立，可绑定 |
-| **CLI `cc agent`** | 后续 Phase 3 会把 `$xxx` 解析集成到 agent REPL |
+| **CLI `cc agent`**       | 后续 Phase 3 会把 `$xxx` 解析集成到 agent REPL                   |
 
 ## 设计边界（不做的事）
 
@@ -247,18 +248,23 @@ executor-3: 步骤 3
 ## 常见问题
 
 ### Q1：`$ralplan` 报 "intent.md missing"？
+
 先跑 `$deep-interview`。系统强制顺序。
 
 ### Q2：`$ralph` 报 "plan not approved"？
+
 跑 `$ralplan --approve`。
 
 ### Q3：怎么恢复旧 session？
+
 每个技能都支持传 `sessionId` param 复用：
+
 ```
 $ralph "继续" --params '{"sessionId":"session-1712345678"}'
 ```
 
 ### Q4：`$team` 最大并行数？
+
 硬上限 6（`MAX_SIZE = 6`）。超过会被截断到 6。
 
 ## Phase 3：`$xxx` 快捷命令与 CLI 检查器
@@ -275,9 +281,9 @@ Phase 3 补齐两样东西：
 典型用法（Electron 主进程或 IPC handler 里）：
 
 ```javascript
-const { runWorkflowCommand } = require(
-  "./ai-engine/code-agent/workflow-command-runner.js",
-);
+const {
+  runWorkflowCommand,
+} = require("./ai-engine/code-agent/workflow-command-runner.js");
 
 const result = await runWorkflowCommand('$deep-interview "add OAuth"', {
   projectRoot: "/path/to/project",
@@ -337,17 +343,18 @@ Workflow sessions (2):
 
 ### 支持的事件
 
-| 事件 | 触发点 | Veto 语义 |
-|---|---|---|
-| `pre-intent` | `$deep-interview` 写 `intent.md` 之前 | 抛异常可阻止 |
-| `post-intent` | `$deep-interview` 写完 `intent.md` 之后 | 仅记录 |
-| `pre-plan` | `$ralplan` 写 `plan.md` 或 `--approve` 之前 | 抛异常可阻止 |
-| `post-plan` | `$ralplan` 写/审批完成之后 | 仅记录 |
-| `pre-execute` | `$ralph` / `$team` 追加进度之前 | 抛异常可阻止 |
-| `post-execute` | `$ralph` / `$team` 追加进度之后 | 仅记录 |
-| `pre-done` / `post-done` | 预留给未来的 `$done` 技能 | — |
+| 事件                     | 触发点                                      | Veto 语义    |
+| ------------------------ | ------------------------------------------- | ------------ |
+| `pre-intent`             | `$deep-interview` 写 `intent.md` 之前       | 抛异常可阻止 |
+| `post-intent`            | `$deep-interview` 写完 `intent.md` 之后     | 仅记录       |
+| `pre-plan`               | `$ralplan` 写 `plan.md` 或 `--approve` 之前 | 抛异常可阻止 |
+| `post-plan`              | `$ralplan` 写/审批完成之后                  | 仅记录       |
+| `pre-execute`            | `$ralph` / `$team` 追加进度之前             | 抛异常可阻止 |
+| `post-execute`           | `$ralph` / `$team` 追加进度之后             | 仅记录       |
+| `pre-done` / `post-done` | 预留给未来的 `$done` 技能                   | —            |
 
 规则：
+
 - **`pre-*` hook 抛异常** → 步骤被否决，返回 `{ success: false, error }` 给调用者，不会写入状态文件
 - **`post-*` hook 抛异常** → 只记录日志，步骤已经完成，不再回滚
 - **默认超时** 30 秒；`pre-*` 超时等同抛异常，会否决步骤
@@ -528,13 +535,13 @@ cat .chainlesschain/sessions/my-session.m0-executor/progress.log
 
 ### 路由规则
 
-| 条件 | 决策 | 置信度 |
-|---|---|---|
-| `scopeCount >= 2` (跨 2+ monorepo 边界) | `team` | high |
-| 命中 cross-cutting 短语(`main and renderer`, `across modules`) | `team` | low |
-| 命中 trivial 短语(`typo`, `rename`, `whitespace`, `docstring`) | `ralph` | high |
-| 单 scope 明确 | `ralph` | high |
-| 默认 | `ralph` | medium |
+| 条件                                                           | 决策    | 置信度 |
+| -------------------------------------------------------------- | ------- | ------ |
+| `scopeCount >= 2` (跨 2+ monorepo 边界)                        | `team`  | high   |
+| 命中 cross-cutting 短语(`main and renderer`, `across modules`) | `team`  | low    |
+| 命中 trivial 短语(`typo`, `rename`, `whitespace`, `docstring`) | `ralph` | high   |
+| 单 scope 明确                                                  | `ralph` | high   |
+| 默认                                                           | `ralph` | medium |
 
 ### Monorepo 边界桶
 
@@ -583,7 +590,7 @@ chainlesschain session workflow s1
 window.electronAPI.workflowSession.classifyIntake({
   request: "add OAuth to API",
   scopePaths: ["backend/auth/oauth.js"],
-})
+});
 // → { success: true, classification: { decision: "ralph", ... } }
 ```
 
@@ -610,20 +617,20 @@ const result = await store.classifyIntake({ request: "anything" });
 
 ## 后续路线图
 
-| Phase | 内容 | 状态 |
-|---|---|---|
-| Phase 1 | 4 workflow skills | ✅ 完成 |
-| Phase 2 | SessionStateManager | ✅ 完成 |
-| Phase 3 | `$xxx` 解析器 + 分派器 + CLI 检查器 | ✅ 完成 |
-| Phase 3.5 | AIChatPage UI 集成 | ✅ 完成 |
-| Phase 4 | Lifecycle hooks (`.chainlesschain/hooks/`) | ✅ 完成 |
-| Phase 5 | Sub-runtime Pool(真 spawn Electron-main 子 runtime) | ✅ 完成 |
-| ADR Phase A | tasks.json / verify.json / fix-loop retries 状态扩展 | ✅ 完成 |
-| ADR Phase B | `$team` 按 scopePaths 拆分(不再平均分步骤) | ✅ 完成 |
-| ADR Phase C | `$verify` / `$complete` + 门控(verify.status 必须 passed) | ✅ 完成 |
+| Phase       | 内容                                                                    | 状态    |
+| ----------- | ----------------------------------------------------------------------- | ------- |
+| Phase 1     | 4 workflow skills                                                       | ✅ 完成 |
+| Phase 2     | SessionStateManager                                                     | ✅ 完成 |
+| Phase 3     | `$xxx` 解析器 + 分派器 + CLI 检查器                                     | ✅ 完成 |
+| Phase 3.5   | AIChatPage UI 集成                                                      | ✅ 完成 |
+| Phase 4     | Lifecycle hooks (`.chainlesschain/hooks/`)                              | ✅ 完成 |
+| Phase 5     | Sub-runtime Pool(真 spawn Electron-main 子 runtime)                     | ✅ 完成 |
+| ADR Phase A | tasks.json / verify.json / fix-loop retries 状态扩展                    | ✅ 完成 |
+| ADR Phase B | `$team` 按 scopePaths 拆分(不再平均分步骤)                              | ✅ 完成 |
+| ADR Phase C | `$verify` / `$complete` + 门控(verify.status 必须 passed)               | ✅ 完成 |
 | ADR Phase D | Workflow Monitor UI 收敛(session view + task readiness + verify checks) | ✅ 完成 |
-| ADR Phase E | Intake classifier + routingHint 持久化 + UI 可视化 | ✅ 完成 |
-| Phase 6 | Git worktree integration | 🔜 按需 |
+| ADR Phase E | Intake classifier + routingHint 持久化 + UI 可视化                      | ✅ 完成 |
+| Phase 6     | Git worktree integration                                                | 🔜 按需 |
 
 ## 配置参考
 
@@ -691,19 +698,26 @@ module.exports = async ({ event, sessionId, projectRoot, payload }) => {
 
 ```javascript
 // Preload 暴露的 workflow API
-window.electronAPI.codingAgent.checkWorkflowCommand(text)
+window.electronAPI.codingAgent.checkWorkflowCommand(text);
 // → { isWorkflow: boolean, skill: string | null }
 
-window.electronAPI.codingAgent.runWorkflowCommand(text, { projectRoot, sessionId })
+window.electronAPI.codingAgent.runWorkflowCommand(text, {
+  projectRoot,
+  sessionId,
+});
 // → { success, skill, result, message, guidance, error }
 
-window.electronAPI.workflowSession.classifyIntake({ request, scopePaths, fileHints })
+window.electronAPI.workflowSession.classifyIntake({
+  request,
+  scopePaths,
+  fileHints,
+});
 // → { success: true, classification: { decision, confidence, ... } }
 
-window.electronAPI.workflowSession.list({ projectRoot })
+window.electronAPI.workflowSession.list({ projectRoot });
 // → { sessions: [{ sessionId, stage, approved, updatedAt }] }
 
-window.electronAPI.workflowSession.get(sessionId, { projectRoot })
+window.electronAPI.workflowSession.get(sessionId, { projectRoot });
 // → { session, intent, plan, recentProgress }
 ```
 
@@ -711,53 +725,53 @@ window.electronAPI.workflowSession.get(sessionId, { projectRoot })
 
 ### 响应时间目标
 
-| 操作 | 目标 | 备注 |
-|------|------|------|
-| `$deep-interview` 写 intent.md | < 100ms | 不含 LLM 追问延迟 |
-| `$ralplan` 生成 plan.md | < 200ms | 不含 LLM 推理延迟 |
-| `$ralplan --approve` 翻转标志 | < 30ms | 纯文件写操作 |
-| `$ralph` 追加 progress.log | < 20ms | 单次 append |
-| `$team` spawn 子进程（×3） | < 500ms | 含首个子进程 ready |
-| Intake Classifier 分类 | < 5ms | 纯函数，无 LLM 调用 |
-| CLI `cc session workflow` 列表 | < 50ms | 读取本地 JSON 文件 |
-| Hook 调用（pre-/post-） | < 30s | 超时后等同抛异常 |
+| 操作                           | 目标    | 备注                |
+| ------------------------------ | ------- | ------------------- |
+| `$deep-interview` 写 intent.md | < 100ms | 不含 LLM 追问延迟   |
+| `$ralplan` 生成 plan.md        | < 200ms | 不含 LLM 推理延迟   |
+| `$ralplan --approve` 翻转标志  | < 30ms  | 纯文件写操作        |
+| `$ralph` 追加 progress.log     | < 20ms  | 单次 append         |
+| `$team` spawn 子进程（×3）     | < 500ms | 含首个子进程 ready  |
+| Intake Classifier 分类         | < 5ms   | 纯函数，无 LLM 调用 |
+| CLI `cc session workflow` 列表 | < 50ms  | 读取本地 JSON 文件  |
+| Hook 调用（pre-/post-）        | < 30s   | 超时后等同抛异常    |
 
 ### 资源使用预算
 
-| 指标 | 预算 |
-|------|------|
-| Sub-runtime 子进程最大并发数 | 6 |
-| 单个子进程超时 | 60s |
-| 父 session progress.log 单条追加 | < 1KB |
+| 指标                              | 预算    |
+| --------------------------------- | ------- |
+| Sub-runtime 子进程最大并发数      | 6       |
+| 单个子进程超时                    | 60s     |
+| 父 session progress.log 单条追加  | < 1KB   |
 | tasks.json / verify.json 最大大小 | < 500KB |
-| mode.json routingHint 字段大小 | < 2KB |
+| mode.json routingHint 字段大小    | < 2KB   |
 
 ### 可扩展性目标
 
-| 限制 | 数值 |
-|------|------|
-| 单项目同时运行的 workflow session 数 | 不限（文件隔离） |
-| $team size 硬上限 | 6 |
-| plan.md steps 软上限 | 50 步 |
-| progress.log 单文件建议上限 | 10MB（超出不影响功能） |
-| hooks/ 目录 hook 文件数 | 不限 |
+| 限制                                 | 数值                   |
+| ------------------------------------ | ---------------------- |
+| 单项目同时运行的 workflow session 数 | 不限（文件隔离）       |
+| $team size 硬上限                    | 6                      |
+| plan.md steps 软上限                 | 50 步                  |
+| progress.log 单文件建议上限          | 10MB（超出不影响功能） |
+| hooks/ 目录 hook 文件数              | 不限                   |
 
 ## 测试覆盖率
 
 ### 当前实测（v2.0）
 
-| 类型 | 测试文件 | 覆盖内容 | 状态 |
-|------|----------|----------|------|
-| 单元 | `workflow-skills.test.js` | 4 个技能 handler 门控逻辑 | ✅ |
-| 单元 | `session-state-manager.test.js` | stage 迁移、routingHint 持久化 | ✅ |
-| 单元 | `workflow-command-parser.test.js` | `$xxx --flags` 解析、边界输入 | ✅ |
-| 单元 | `workflow-command-runner.test.js` | in-process 分派、isWorkflowCommand | ✅ |
-| 单元 | `intake-classifier.test.js` | 路由规则、置信度、monorepo 边界 | ✅ |
-| 单元 | `sub-runtime-pool.test.js` | spawn / 超时 / 崩溃容错 / sessionId 分片 | ✅ |
-| 单元 | `workflow-hooks.test.js` | pre-/post- veto、热重载、超时 | ✅ |
-| 集成 | `workflow-lifecycle.integration.test.js` | 全流程 intent→plan→approve→execute | ✅ |
-| 集成 | `workflow-team-pool.integration.test.js` | $team 真实 spawn + 聚合 | ✅ |
-| **合计** | **9 个文件** | **215+ 用例** | **215+/215+ 通过** |
+| 类型     | 测试文件                                 | 覆盖内容                                 | 状态               |
+| -------- | ---------------------------------------- | ---------------------------------------- | ------------------ |
+| 单元     | `workflow-skills.test.js`                | 4 个技能 handler 门控逻辑                | ✅                 |
+| 单元     | `session-state-manager.test.js`          | stage 迁移、routingHint 持久化           | ✅                 |
+| 单元     | `workflow-command-parser.test.js`        | `$xxx --flags` 解析、边界输入            | ✅                 |
+| 单元     | `workflow-command-runner.test.js`        | in-process 分派、isWorkflowCommand       | ✅                 |
+| 单元     | `intake-classifier.test.js`              | 路由规则、置信度、monorepo 边界          | ✅                 |
+| 单元     | `sub-runtime-pool.test.js`               | spawn / 超时 / 崩溃容错 / sessionId 分片 | ✅                 |
+| 单元     | `workflow-hooks.test.js`                 | pre-/post- veto、热重载、超时            | ✅                 |
+| 集成     | `workflow-lifecycle.integration.test.js` | 全流程 intent→plan→approve→execute       | ✅                 |
+| 集成     | `workflow-team-pool.integration.test.js` | $team 真实 spawn + 聚合                  | ✅                 |
+| **合计** | **9 个文件**                             | **215+ 用例**                            | **215+/215+ 通过** |
 
 运行命令：
 
@@ -798,12 +812,12 @@ npx vitest run src/main/ai-engine/code-agent/__tests__/workflow-skills.test.js \
 
 ### 测试目标
 
-| 项 | 目标 |
-|----|------|
-| 技能门控覆盖率 | 100%（所有 pre-condition 检查） |
-| Hook veto 覆盖率 | 100%（pre-* 超时 / 抛异常两种路径） |
-| Sub-runtime 容错覆盖率 | 100%（崩溃、超时、spawn 失败） |
-| 集成测试通过率 | 100% |
+| 项                     | 目标                                 |
+| ---------------------- | ------------------------------------ |
+| 技能门控覆盖率         | 100%（所有 pre-condition 检查）      |
+| Hook veto 覆盖率       | 100%（pre-\* 超时 / 抛异常两种路径） |
+| Sub-runtime 容错覆盖率 | 100%（崩溃、超时、spawn 失败）       |
+| 集成测试通过率         | 100%                                 |
 
 ## 安全考虑
 
@@ -893,23 +907,23 @@ mkdir -p .chainlesschain/sessions
 
 ## 关键文件
 
-| 文件 | 作用 |
-|------|------|
-| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-parser.js` | `$xxx [--flags] [rest]` 纯函数解析器 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js` | in-process 分派器，不走 CLI WS server |
-| `desktop-app-vue/src/main/ai-engine/code-agent/session-state-manager.js` | mode.json 读写、stage 迁移、routingHint 持久化 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/intake-classifier.js` | 纯函数路由分类器，11 个 monorepo 边界桶 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js` | spawn Electron-main 子进程、JSON-lines 协议、超时容错 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-lifecycle-hook-runner.js` | pre-/post- hook 加载、执行、超时处理 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-ipc-v3.js` | `coding-agent:check-workflow-command` / `run-workflow-command` IPC 通道 |
-| `desktop-app-vue/src/main/ipc/ipc-registry.js` | workflow IPC 注册入口 |
-| `desktop-app-vue/src/renderer/stores/workflow-session.ts` | Pinia 只读 store，驱动 Workflow Monitor 面板 |
-| `desktop-app-vue/src/renderer/pages/AIChatPage.vue` | `$xxx` 输入拦截逻辑（handleSubmitAgentAwareMessage） |
-| `packages/cli/src/commands/session.js` | `cc session workflow` CLI 只读巡查入口 |
-| `desktop-app-vue/builtin-skills/deep-interview.md` | $deep-interview 技能定义（SKILL.md 格式） |
-| `desktop-app-vue/builtin-skills/ralplan.md` | $ralplan 技能定义 |
-| `desktop-app-vue/builtin-skills/ralph.md` | $ralph 技能定义 |
-| `desktop-app-vue/builtin-skills/team.md` | $team 技能定义 |
+| 文件                                                                              | 作用                                                                    |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-parser.js`        | `$xxx [--flags] [rest]` 纯函数解析器                                    |
+| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-command-runner.js`        | in-process 分派器，不走 CLI WS server                                   |
+| `desktop-app-vue/src/main/ai-engine/code-agent/session-state-manager.js`          | mode.json 读写、stage 迁移、routingHint 持久化                          |
+| `desktop-app-vue/src/main/ai-engine/code-agent/intake-classifier.js`              | 纯函数路由分类器，11 个 monorepo 边界桶                                 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/sub-runtime-pool.js`               | spawn Electron-main 子进程、JSON-lines 协议、超时容错                   |
+| `desktop-app-vue/src/main/ai-engine/code-agent/workflow-lifecycle-hook-runner.js` | pre-/post- hook 加载、执行、超时处理                                    |
+| `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-ipc-v3.js`            | `coding-agent:check-workflow-command` / `run-workflow-command` IPC 通道 |
+| `desktop-app-vue/src/main/ipc/ipc-registry.js`                                    | workflow IPC 注册入口                                                   |
+| `desktop-app-vue/src/renderer/stores/workflow-session.ts`                         | Pinia 只读 store，驱动 Workflow Monitor 面板                            |
+| `desktop-app-vue/src/renderer/pages/AIChatPage.vue`                               | `$xxx` 输入拦截逻辑（handleSubmitAgentAwareMessage）                    |
+| `packages/cli/src/commands/session.js`                                            | `cc session workflow` CLI 只读巡查入口                                  |
+| `desktop-app-vue/builtin-skills/deep-interview.md`                                | $deep-interview 技能定义（SKILL.md 格式）                               |
+| `desktop-app-vue/builtin-skills/ralplan.md`                                       | $ralplan 技能定义                                                       |
+| `desktop-app-vue/builtin-skills/ralph.md`                                         | $ralph 技能定义                                                         |
+| `desktop-app-vue/builtin-skills/team.md`                                          | $team 技能定义                                                          |
 
 ## 使用示例
 

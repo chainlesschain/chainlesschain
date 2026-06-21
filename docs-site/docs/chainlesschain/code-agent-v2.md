@@ -197,6 +197,7 @@ Code Agent 2.0 内置以下安全检测：
 **现象**: 生成的代码存在语法错误、逻辑缺陷或不符合项目规范。
 
 **排查步骤**:
+
 1. 在 `description` 中明确指定语言版本、框架和目标环境（如 `TypeScript 5.x + Express 4`）
 2. 降低 `generation.temperature` 配置值（建议 0.1-0.3）提高生成稳定性
 3. 开启 `includeTests: true` 让系统同时生成测试用例以验证生成质量
@@ -207,6 +208,7 @@ Code Agent 2.0 内置以下安全检测：
 **现象**: `code-agent:analyze-git` 或代码重构操作遇到 Git 合并冲突。
 
 **排查步骤**:
+
 1. 确认当前分支是否有未提交的更改，建议先 commit 或 stash
 2. `code-agent:analyze-git` 为只读操作，不会修改仓库历史
 3. 代码重构前建议创建新分支，避免在主分支上直接修改
@@ -217,6 +219,7 @@ Code Agent 2.0 内置以下安全检测：
 **现象**: `code-agent:scaffold` 返回失败或生成的项目结构不完整。
 
 **排查步骤**:
+
 1. 确认 `outputDir` 路径存在且有写入权限
 2. 检查 `template` 值是否为支持的模板之一（react/vue/express/fastapi/spring-boot）
 3. 确认 `features` 数组中的特性名称拼写正确且彼此兼容
@@ -226,13 +229,13 @@ Code Agent 2.0 内置以下安全检测：
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 代码生成语法错误 | LLM 输出不规范或目标语言版本不匹配 | 启用 `syntaxValidation`，指定语言版本参数 |
-| Git 冲突导致提交失败 | 自动生成代码与已有代码冲突 | 执行 `git status` 检查冲突文件，手动合并后重试 |
-| 脚手架模板缺失 | 模板目录未初始化或模板名称拼写错误 | 运行 `agent template-list` 确认模板，执行 `template-sync` |
-| 代码审查超时 | 文件过大或审查规则过于复杂 | 拆分大文件，减少同时审查的规则数量 |
-| 测试生成覆盖率低 | 源代码复杂度高或函数缺少类型注释 | 添加 JSDoc/TypeScript 类型标注，提高可分析性 |
+| 症状                 | 可能原因                           | 解决方案                                                  |
+| -------------------- | ---------------------------------- | --------------------------------------------------------- |
+| 代码生成语法错误     | LLM 输出不规范或目标语言版本不匹配 | 启用 `syntaxValidation`，指定语言版本参数                 |
+| Git 冲突导致提交失败 | 自动生成代码与已有代码冲突         | 执行 `git status` 检查冲突文件，手动合并后重试            |
+| 脚手架模板缺失       | 模板目录未初始化或模板名称拼写错误 | 运行 `agent template-list` 确认模板，执行 `template-sync` |
+| 代码审查超时         | 文件过大或审查规则过于复杂         | 拆分大文件，减少同时审查的规则数量                        |
+| 测试生成覆盖率低     | 源代码复杂度高或函数缺少类型注释   | 添加 JSDoc/TypeScript 类型标注，提高可分析性              |
 
 ### 常见错误修复
 
@@ -270,21 +273,21 @@ chainlesschain agent template-sync --source official
 
 在 `.chainlesschain/config.json` 中可调整以下 Code Agent 2.0 参数：
 
-| 配置键 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `codeAgent.enabled` | boolean | `true` | 是否启用 Code Agent 2.0 |
-| `codeAgent.defaultLanguage` | string | `"typescript"` | 默认代码生成语言 |
-| `codeAgent.generation.model` | string | `"gpt-4"` | 代码生成使用的 LLM 模型 |
-| `codeAgent.generation.temperature` | number | `0.3` | 生成随机性（0=确定，1=随机） |
-| `codeAgent.generation.includeTests` | boolean | `true` | 是否随代码同步生成测试文件 |
-| `codeAgent.generation.includeComments` | boolean | `true` | 是否在生成代码中添加注释 |
-| `codeAgent.review.autoReview` | boolean | `true` | 生成后自动执行安全审查 |
-| `codeAgent.review.qualityThreshold` | number | `70` | 代码质量评分合格阈值（0-100） |
-| `codeAgent.review.securityChecks` | string[] | 见配置示例 | 启用的安全检测项列表 |
-| `codeAgent.scaffold.defaultFeatures` | string[] | `["typescript","eslint","prettier"]` | 脚手架默认特性包 |
-| `codeAgent.scaffold.templateDir` | string\|null | `null` | 自定义模板目录（null 使用内置） |
-| `codeAgent.cicd.defaultPlatform` | string | `"github-actions"` | 默认 CI/CD 平台 |
-| `codeAgent.cicd.autoDetectLanguage` | boolean | `true` | 是否根据项目自动检测语言 |
+| 配置键                                 | 类型         | 默认值                               | 说明                            |
+| -------------------------------------- | ------------ | ------------------------------------ | ------------------------------- |
+| `codeAgent.enabled`                    | boolean      | `true`                               | 是否启用 Code Agent 2.0         |
+| `codeAgent.defaultLanguage`            | string       | `"typescript"`                       | 默认代码生成语言                |
+| `codeAgent.generation.model`           | string       | `"gpt-4"`                            | 代码生成使用的 LLM 模型         |
+| `codeAgent.generation.temperature`     | number       | `0.3`                                | 生成随机性（0=确定，1=随机）    |
+| `codeAgent.generation.includeTests`    | boolean      | `true`                               | 是否随代码同步生成测试文件      |
+| `codeAgent.generation.includeComments` | boolean      | `true`                               | 是否在生成代码中添加注释        |
+| `codeAgent.review.autoReview`          | boolean      | `true`                               | 生成后自动执行安全审查          |
+| `codeAgent.review.qualityThreshold`    | number       | `70`                                 | 代码质量评分合格阈值（0-100）   |
+| `codeAgent.review.securityChecks`      | string[]     | 见配置示例                           | 启用的安全检测项列表            |
+| `codeAgent.scaffold.defaultFeatures`   | string[]     | `["typescript","eslint","prettier"]` | 脚手架默认特性包                |
+| `codeAgent.scaffold.templateDir`       | string\|null | `null`                               | 自定义模板目录（null 使用内置） |
+| `codeAgent.cicd.defaultPlatform`       | string       | `"github-actions"`                   | 默认 CI/CD 平台                 |
+| `codeAgent.cicd.autoDetectLanguage`    | boolean      | `true`                               | 是否根据项目自动检测语言        |
 
 > **类别路由提示**: `generation.model` 支持类别别名（如 `"deep"`、`"reasoning"`），运行时由 LLM Manager 映射到已配置的最优 Provider。详见 [LLM 类别路由](/chainlesschain/llm-manager#category-routing)。
 
@@ -292,16 +295,16 @@ chainlesschain agent template-sync --source official
 
 以下基准数据基于 GPT-4 / Claude Sonnet 模型，运行于本地 Electron 主进程：
 
-| 操作 | 典型耗时 | P95 耗时 | 说明 |
-| --- | --- | --- | --- |
-| 代码生成（单文件，<200 行） | 3–8 s | 15 s | 含 LLM 推理和语法验证 |
-| 代码生成（含测试，多文件） | 8–20 s | 35 s | 额外生成测试套件 |
-| 代码审查（<500 行） | 2–5 s | 10 s | 7 类安全规则并行扫描 |
-| 代码重构（提取函数） | 3–8 s | 12 s | AST 分析 + LLM 重写 |
-| 项目脚手架（React/Vue） | 5–12 s | 20 s | 模板渲染 + 文件写入 |
-| CI/CD 配置生成 | 2–5 s | 8 s | 根据语言类型选模板 |
-| Git 上下文分析（近 30 天） | 1–3 s | 6 s | 本地 git log 解析，无 LLM |
-| 代码解释（<300 行） | 3–6 s | 10 s | 含 LLM 语义理解 |
+| 操作                        | 典型耗时 | P95 耗时 | 说明                      |
+| --------------------------- | -------- | -------- | ------------------------- |
+| 代码生成（单文件，<200 行） | 3–8 s    | 15 s     | 含 LLM 推理和语法验证     |
+| 代码生成（含测试，多文件）  | 8–20 s   | 35 s     | 额外生成测试套件          |
+| 代码审查（<500 行）         | 2–5 s    | 10 s     | 7 类安全规则并行扫描      |
+| 代码重构（提取函数）        | 3–8 s    | 12 s     | AST 分析 + LLM 重写       |
+| 项目脚手架（React/Vue）     | 5–12 s   | 20 s     | 模板渲染 + 文件写入       |
+| CI/CD 配置生成              | 2–5 s    | 8 s      | 根据语言类型选模板        |
+| Git 上下文分析（近 30 天）  | 1–3 s    | 6 s      | 本地 git log 解析，无 LLM |
+| 代码解释（<300 行）         | 3–6 s    | 10 s     | 含 LLM 语义理解           |
 
 **资源占用参考**（桌面端 Electron 主进程）：
 
@@ -315,15 +318,15 @@ chainlesschain agent template-sync --source official
 
 Code Agent 2.0 测试套件覆盖核心生成、审查、脚手架和 CI/CD 流程：
 
-| 测试文件 | 用例数 | 覆盖范围 |
-| --- | --- | --- |
-| `code-agent-v2.test.js` | 38 | IPC 入口、参数校验、错误处理 |
-| `code-generator.test.js` | 45 | 6 种语言生成、多框架脚手架输出 |
-| `security-reviewer.test.js` | 52 | 7 类漏洞检测、误报率、评分算法 |
-| `scaffold-manager.test.js` | 29 | 5 种模板、feature 组合、文件写入 |
-| `cicd-configurator.test.js` | 24 | 3 平台配置生成、环境变量替换 |
-| `git-analyzer.test.js` | 31 | 历史解析、热点文件、贡献者统计 |
-| **合计** | **219** | **核心模块全覆盖** |
+| 测试文件                    | 用例数  | 覆盖范围                         |
+| --------------------------- | ------- | -------------------------------- |
+| `code-agent-v2.test.js`     | 38      | IPC 入口、参数校验、错误处理     |
+| `code-generator.test.js`    | 45      | 6 种语言生成、多框架脚手架输出   |
+| `security-reviewer.test.js` | 52      | 7 类漏洞检测、误报率、评分算法   |
+| `scaffold-manager.test.js`  | 29      | 5 种模板、feature 组合、文件写入 |
+| `cicd-configurator.test.js` | 24      | 3 平台配置生成、环境变量替换     |
+| `git-analyzer.test.js`      | 31      | 历史解析、热点文件、贡献者统计   |
+| **合计**                    | **219** | **核心模块全覆盖**               |
 
 运行方式：
 
@@ -355,11 +358,11 @@ npx vitest run tests/unit/ai-engine/code-agent/
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/code-agent/code-agent-v2.js` | Code Agent 2.0 核心引擎 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/code-generator.js` | 多语言代码生成器 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/security-reviewer.js` | 安全漏洞检测模块 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/scaffold-manager.js` | 项目脚手架管理器 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/cicd-configurator.js` | CI/CD 配置生成器 |
-| `desktop-app-vue/src/main/ai-engine/code-agent/git-analyzer.js` | Git 上下文分析器 |
+| 文件                                                                 | 说明                    |
+| -------------------------------------------------------------------- | ----------------------- |
+| `desktop-app-vue/src/main/ai-engine/code-agent/code-agent-v2.js`     | Code Agent 2.0 核心引擎 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/code-generator.js`    | 多语言代码生成器        |
+| `desktop-app-vue/src/main/ai-engine/code-agent/security-reviewer.js` | 安全漏洞检测模块        |
+| `desktop-app-vue/src/main/ai-engine/code-agent/scaffold-manager.js`  | 项目脚手架管理器        |
+| `desktop-app-vue/src/main/ai-engine/code-agent/cicd-configurator.js` | CI/CD 配置生成器        |
+| `desktop-app-vue/src/main/ai-engine/code-agent/git-analyzer.js`      | Git 上下文分析器        |

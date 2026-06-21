@@ -189,33 +189,33 @@ chainlesschain crosschain stats --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/crosschain.js` | crosschain 命令主入口 |
-| `packages/cli/src/lib/cross-chain.js` | 跨链桥接、原子交换、消息传递核心实现 |
+| 文件                                      | 职责                                 |
+| ----------------------------------------- | ------------------------------------ |
+| `packages/cli/src/commands/crosschain.js` | crosschain 命令主入口                |
+| `packages/cli/src/lib/cross-chain.js`     | 跨链桥接、原子交换、消息传递核心实现 |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `chains` | 支持的链列表 | ethereum / bsc / polygon / arbitrum / clc |
-| `bridge.confirmations` | 确认数 | 依链而定（以太坊 12） |
-| `swap.timelock` | 原子交换时间锁（秒） | 3600 |
-| `swap.hashAlgo` | HTLC 哈希算法 | `sha256` |
-| `message.maxSize` | 跨链消息最大字节 | 8192 |
-| V2 channel cap / transfer cap | 见 `cross_chain_v2_cli.md` | 10 / 20 |
+| 配置项                        | 含义                       | 默认                                      |
+| ----------------------------- | -------------------------- | ----------------------------------------- |
+| `chains`                      | 支持的链列表               | ethereum / bsc / polygon / arbitrum / clc |
+| `bridge.confirmations`        | 确认数                     | 依链而定（以太坊 12）                     |
+| `swap.timelock`               | 原子交换时间锁（秒）       | 3600                                      |
+| `swap.hashAlgo`               | HTLC 哈希算法              | `sha256`                                  |
+| `message.maxSize`             | 跨链消息最大字节           | 8192                                      |
+| V2 channel cap / transfer cap | 见 `cross_chain_v2_cli.md` | 10 / 20                                   |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `chains` / `tokens` | < 20 ms | 内置枚举 |
-| `bridge` 发起 | < 50 ms（本地） | 真实确认依赖目标链 |
-| `bridge-status` | < 30 ms | 本地索引查询 |
-| `swap` 创建 | < 50 ms | HTLC 写入 SQLite |
-| `claim` / `refund` | < 50 ms（本地） | 实际上链由外部执行 |
-| `send` 跨链消息 | < 50 ms | 异步投递 |
-| V2 transfer dispatch | < 50 ms | `cross_chain_v2_cli.md` |
+| 操作                 | 典型耗时        | 备注                    |
+| -------------------- | --------------- | ----------------------- |
+| `chains` / `tokens`  | < 20 ms         | 内置枚举                |
+| `bridge` 发起        | < 50 ms（本地） | 真实确认依赖目标链      |
+| `bridge-status`      | < 30 ms         | 本地索引查询            |
+| `swap` 创建          | < 50 ms         | HTLC 写入 SQLite        |
+| `claim` / `refund`   | < 50 ms（本地） | 实际上链由外部执行      |
+| `send` 跨链消息      | < 50 ms         | 异步投递                |
+| V2 transfer dispatch | < 50 ms         | `cross_chain_v2_cli.md` |
 
 ## 测试覆盖率
 
@@ -266,11 +266,11 @@ chainlesschain crosschain swap-refund sw-001
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
+| 症状                        | 可能原因           | 解决方案                   |
+| --------------------------- | ------------------ | -------------------------- |
 | "Failed: unsupported chain" | 链 ID 不在支持列表 | 运行 `chains` 查看支持列表 |
-| "Secret unavailable" | 交换未领取 | 仅领取后才可揭示 secret |
-| 手续费估算失败 | 链对不支持 | 检查 from/to 链是否有效 |
+| "Secret unavailable"        | 交换未领取         | 仅领取后才可揭示 secret    |
+| 手续费估算失败              | 链对不支持         | 检查 from/to 链是否有效    |
 
 ## 相关文档
 

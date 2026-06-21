@@ -10,10 +10,10 @@
 
 ### 双引擎
 
-| 引擎 | 触发条件 | 存储 | 特点 |
-|------|---------|------|------|
+| 引擎                     | 触发条件          | 存储                                                               | 特点                                                                                                                 |
+| ------------------------ | ----------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **git-plumbing（默认）** | cwd 是 git 工作树 | 影子提交 `refs/cc-checkpoints/<session>/<id>`（+ `_tip` 链接指针） | 经临时索引（`GIT_INDEX_FILE`）捕获整棵工作树，**零触真实索引/工作区**；内容寻址（未变文件零成本）；`.gitignore` 感知 |
-| **copy（兜底）** | cwd 非 git 工作树 | `<home>/checkpoints/<id>/<sha256>` | 快照显式指定的路径 |
+| **copy（兜底）**         | cwd 非 git 工作树 | `<home>/checkpoints/<id>/<sha256>`                                 | 快照显式指定的路径                                                                                                   |
 
 命令按调用现场用 `isCheckpointAvailable(dir)` 选引擎，并通过归一化适配器（`gitEngine` / `copyEngine`）分发，对外接口一致。
 
@@ -105,23 +105,23 @@ npx vitest run __tests__/unit/checkpoint-store.test.js
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 走了 copy 引擎而非 git | cwd 不是 git 工作树 | 在 git 仓库内运行；或接受 copy 引擎按显式路径快照 |
-| 回滚后行尾全变了 | Windows `core.autocrlf=true` 在 checkout-index 改写换行 | 设 `core.autocrlf=false`（测试已固定此项） |
-| `commit-tree` 报缺用户配置 | git 身份未配置 | 引擎已用 `GIT_*_NAME/EMAIL` 强制注入；确认环境未被清空 |
-| 自动检查点没生成 | 工具是只读，或非 git 目录 | 只读工具跳过、非 git no-op 均为预期；改文件工具才快照 |
-| 找不到快照 | `--session` 不匹配 | 用 `cc checkpoint list --session <s>` 确认会话 |
+| 现象                       | 可能原因                                                | 处理                                                   |
+| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| 走了 copy 引擎而非 git     | cwd 不是 git 工作树                                     | 在 git 仓库内运行；或接受 copy 引擎按显式路径快照      |
+| 回滚后行尾全变了           | Windows `core.autocrlf=true` 在 checkout-index 改写换行 | 设 `core.autocrlf=false`（测试已固定此项）             |
+| `commit-tree` 报缺用户配置 | git 身份未配置                                          | 引擎已用 `GIT_*_NAME/EMAIL` 强制注入；确认环境未被清空 |
+| 自动检查点没生成           | 工具是只读，或非 git 目录                               | 只读工具跳过、非 git no-op 均为预期；改文件工具才快照  |
+| 找不到快照                 | `--session` 不匹配                                      | 用 `cc checkpoint list --session <s>` 确认会话         |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/checkpoint-store.js` | git-plumbing 引擎（临时索引捕获、影子提交、回滚、dry-run、安全检查点） |
-| `packages/cli/src/lib/file-checkpoint.js` | copy 兜底引擎（非 git 目录，按显式路径快照） |
-| `packages/cli/src/commands/checkpoint.js` | `cc checkpoint` 命令 + 引擎选择/归一化适配器 |
-| `packages/cli/src/ai/agent-core.js` | `agentLoop` 自动检查点钩子（yield `checkpoint` 事件） |
-| `packages/cli/__tests__/unit/checkpoint-store.test.js` | 14 单元测试（真实临时仓库） |
+| 文件                                                   | 说明                                                                   |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `packages/cli/src/lib/checkpoint-store.js`             | git-plumbing 引擎（临时索引捕获、影子提交、回滚、dry-run、安全检查点） |
+| `packages/cli/src/lib/file-checkpoint.js`              | copy 兜底引擎（非 git 目录，按显式路径快照）                           |
+| `packages/cli/src/commands/checkpoint.js`              | `cc checkpoint` 命令 + 引擎选择/归一化适配器                           |
+| `packages/cli/src/ai/agent-core.js`                    | `agentLoop` 自动检查点钩子（yield `checkpoint` 事件）                  |
+| `packages/cli/__tests__/unit/checkpoint-store.test.js` | 14 单元测试（真实临时仓库）                                            |
 
 ## 使用示例
 

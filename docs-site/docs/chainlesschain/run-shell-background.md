@@ -51,19 +51,19 @@ check_shell {}                     → 列出全部后台任务
 
 ## 工具参考
 
-| 工具 | 参数 | 说明 |
-|------|------|------|
-| `run_shell` | `command`, `run_in_background?`, `timeout?` | `run_in_background:true` 后台执行返 task_id；否则前台（`timeout` 默认 60s，上限 10min） |
-| `check_shell` | `task_id?`, `kill?` | 轮询某任务的新输出/状态；`kill:true` 终止；无 `task_id` 列全部（只读，plan-mode 允许） |
+| 工具          | 参数                                        | 说明                                                                                    |
+| ------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `run_shell`   | `command`, `run_in_background?`, `timeout?` | `run_in_background:true` 后台执行返 task_id；否则前台（`timeout` 默认 60s，上限 10min） |
+| `check_shell` | `task_id?`, `kill?`                         | 轮询某任务的新输出/状态；`kill:true` 终止；无 `task_id` 列全部（只读，plan-mode 允许）  |
 
 ## 配置参考
 
-| 项 | 默认 | 说明 |
-|----|------|------|
-| 前台 `timeout` | 60s | 可配，硬上限 10min（`_resolveShellTimeout`） |
-| 后台超时 | 无 | 后台任务不设超时，由 agent 主动 `kill` 或退出清理 |
-| `MAX_BG_BUFFER` | 1MB | 每任务尾部缓冲上限，超出按尾部保留 |
-| 门禁 | shell-policy + ApprovalGate | 后台执行与前台同等审批 |
+| 项              | 默认                        | 说明                                              |
+| --------------- | --------------------------- | ------------------------------------------------- |
+| 前台 `timeout`  | 60s                         | 可配，硬上限 10min（`_resolveShellTimeout`）      |
+| 后台超时        | 无                          | 后台任务不设超时，由 agent 主动 `kill` 或退出清理 |
+| `MAX_BG_BUFFER` | 1MB                         | 每任务尾部缓冲上限，超出按尾部保留                |
+| 门禁            | shell-policy + ApprovalGate | 后台执行与前台同等审批                            |
 
 ## 性能指标
 
@@ -80,10 +80,10 @@ cd packages/cli
 npx vitest run __tests__/unit/agent-core-run-shell-background.test.js
 ```
 
-| 覆盖 | 数量 |
-|------|------|
-| 后台 spawn / 增量轮询 / kill / 列出 / `close` 完成判定 / timeout 解析 | 10 |
-| disposer 契约（kill 全部返回 count / 空时返回 0） | 2 |
+| 覆盖                                                                  | 数量 |
+| --------------------------------------------------------------------- | ---- |
+| 后台 spawn / 增量轮询 / kill / 列出 / `close` 完成判定 / timeout 解析 | 10   |
+| disposer 契约（kill 全部返回 count / 空时返回 0）                     | 2    |
 
 > 工具总数断言 16→17（`agent-core.test` / `parity-open-agents` / `sub-agent-isolation` 三处）。轮询测试 helper 必须**跨轮累加**输出，否则末轮为空（消费式 cursor 语义）。
 
@@ -96,23 +96,23 @@ npx vitest run __tests__/unit/agent-core-run-shell-background.test.js
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 轮询看到「已完成」但末段输出缺失 | 误用 `exit` 而非 `close` 判定（已修） | 当前实现用 `close`；自定义勿改回 `exit` |
-| `check_shell` 末轮输出为空 | 消费式 cursor，调用方未累加 | 跨轮累加（agent 靠 message history 自动保留） |
-| 后台 dev server 在 agent 退出后仍在跑 | 未主动 kill 且未触发 disposer | disposer 已接 REPL/headless 退出；或主动 `check_shell{kill:true}` |
-| 前台长命令仍 60s 超时 | 未传 `timeout` | 前台传 `run_shell{timeout}`（上限 10min），或改用 `run_in_background` |
-| 后台任务输出被截断 | 超过 1MB 尾部缓冲 | 预期：保留尾部；需要全量请重定向到文件再读 |
+| 现象                                  | 可能原因                              | 处理                                                                  |
+| ------------------------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| 轮询看到「已完成」但末段输出缺失      | 误用 `exit` 而非 `close` 判定（已修） | 当前实现用 `close`；自定义勿改回 `exit`                               |
+| `check_shell` 末轮输出为空            | 消费式 cursor，调用方未累加           | 跨轮累加（agent 靠 message history 自动保留）                         |
+| 后台 dev server 在 agent 退出后仍在跑 | 未主动 kill 且未触发 disposer         | disposer 已接 REPL/headless 退出；或主动 `check_shell{kill:true}`     |
+| 前台长命令仍 60s 超时                 | 未传 `timeout`                        | 前台传 `run_shell{timeout}`（上限 10min），或改用 `run_in_background` |
+| 后台任务输出被截断                    | 超过 1MB 尾部缓冲                     | 预期：保留尾部；需要全量请重定向到文件再读                            |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/ai/agent-core.js` | `_backgroundShellTasks` Map / `run_shell` 后台分支 / `check_shell` case / `_readBgStream` / `listBackgroundShellTasks` / `killAllBackgroundShellTasks` |
-| `coding-agent-contract-shared.cjs` | `run_shell` schema（+`run_in_background`/`timeout`）+ `check_shell` 工具 schema |
-| `coding-agent-policy.cjs` | `check_shell` 只读 / plan-mode 允许 |
-| `packages/cli/src/repl/agent-repl.js` · `runtime/headless-runner.js` | disposer 接线（退出清理） |
-| `packages/cli/__tests__/unit/agent-core-run-shell-background.test.js` | 12 单元测试 |
+| 文件                                                                  | 说明                                                                                                                                                   |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/cli/src/ai/agent-core.js`                                   | `_backgroundShellTasks` Map / `run_shell` 后台分支 / `check_shell` case / `_readBgStream` / `listBackgroundShellTasks` / `killAllBackgroundShellTasks` |
+| `coding-agent-contract-shared.cjs`                                    | `run_shell` schema（+`run_in_background`/`timeout`）+ `check_shell` 工具 schema                                                                        |
+| `coding-agent-policy.cjs`                                             | `check_shell` 只读 / plan-mode 允许                                                                                                                    |
+| `packages/cli/src/repl/agent-repl.js` · `runtime/headless-runner.js`  | disposer 接线（退出清理）                                                                                                                              |
+| `packages/cli/__tests__/unit/agent-core-run-shell-background.test.js` | 12 单元测试                                                                                                                                            |
 
 ## 使用示例
 

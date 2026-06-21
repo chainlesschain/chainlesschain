@@ -70,19 +70,19 @@ cc sync oss test             # HeadBucket 连通性探测
 cc sync oss run [-v]
 ```
 
-| 选项 | 适用 | 必填 | 默认 | 说明 |
-|------|------|------|------|------|
-| `--url <url>` | webdav | ✅ | — | WebDAV 端点 URL |
-| `--username <name>` | webdav | | `""` | WebDAV 用户名 |
-| `--password <pw>` | webdav | ✅ | — | 密码（v0.1 仅 flag，**会留 shell history**；stdin 提示留 v0.2） |
-| `--remote-path <p>` | 两者 | | webdav `/`，oss `""` | 远端目录 / object key 前缀 |
-| `--endpoint <url>` | oss | ✅ | — | S3 兼容端点（如 `https://oss-cn-hangzhou.aliyuncs.com`） |
-| `--region <r>` | oss | | `auto` | R2 用 auto；AWS / 阿里云填显式 region |
-| `--bucket <name>` | oss | ✅ | — | 目标 bucket |
-| `--access-key-id <id>` | oss | ✅ | — | access key id |
-| `--secret-access-key <secret>` | oss | ✅ | — | secret（同样会留 shell history，stdin 留 v0.2） |
-| `--force-path-style` | oss | | 关 | path-style URL（R2 / MinIO 需要） |
-| `-v, --verbose` | run | | 关 | 显示 vault 路径 + 详细进度 |
+| 选项                           | 适用   | 必填 | 默认                 | 说明                                                            |
+| ------------------------------ | ------ | ---- | -------------------- | --------------------------------------------------------------- |
+| `--url <url>`                  | webdav | ✅   | —                    | WebDAV 端点 URL                                                 |
+| `--username <name>`            | webdav |      | `""`                 | WebDAV 用户名                                                   |
+| `--password <pw>`              | webdav | ✅   | —                    | 密码（v0.1 仅 flag，**会留 shell history**；stdin 提示留 v0.2） |
+| `--remote-path <p>`            | 两者   |      | webdav `/`，oss `""` | 远端目录 / object key 前缀                                      |
+| `--endpoint <url>`             | oss    | ✅   | —                    | S3 兼容端点（如 `https://oss-cn-hangzhou.aliyuncs.com`）        |
+| `--region <r>`                 | oss    |      | `auto`               | R2 用 auto；AWS / 阿里云填显式 region                           |
+| `--bucket <name>`              | oss    | ✅   | —                    | 目标 bucket                                                     |
+| `--access-key-id <id>`         | oss    | ✅   | —                    | access key id                                                   |
+| `--secret-access-key <secret>` | oss    | ✅   | —                    | secret（同样会留 shell history，stdin 留 v0.2）                 |
+| `--force-path-style`           | oss    |      | 关                   | path-style URL（R2 / MinIO 需要）                               |
+| `-v, --verbose`                | run    |      | 关                   | 显示 vault 路径 + 详细进度                                      |
 
 所有失败路径统一 `process.exitCode = 2`。
 
@@ -108,10 +108,10 @@ cc sync oss run [-v]
 
 共 **36** 个单元测试（`it(` 计数）：
 
-| 文件 | 数量 | 覆盖 |
-|------|------|------|
-| `packages/cli/src/lib/__tests__/sync-credentials.test.js` | 24 | 加解密往返、master key 生成/长度校验、脱敏、provider 白名单、clear 幂等等 |
-| `packages/cli/src/lib/__tests__/sync-engine-cli.test.js` | 12 | 游标推进、tombstone 排空、批量推送、失败记录等引擎流程 |
+| 文件                                                      | 数量 | 覆盖                                                                      |
+| --------------------------------------------------------- | ---- | ------------------------------------------------------------------------- |
+| `packages/cli/src/lib/__tests__/sync-credentials.test.js` | 24   | 加解密往返、master key 生成/长度校验、脱敏、provider 白名单、clear 幂等等 |
+| `packages/cli/src/lib/__tests__/sync-engine-cli.test.js`  | 12   | 游标推进、tombstone 排空、批量推送、失败记录等引擎流程                    |
 
 ```bash
 cd packages/cli
@@ -130,30 +130,30 @@ npx vitest run src/lib/__tests__/sync-credentials.test.js src/lib/__tests__/sync
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `--password required` / `--secret-access-key required` | v0.1 仅支持 flag 传入 | 用 flag 提供（注意 history 留痕）；stdin 留 v0.2 |
-| `decrypt failed … Vault may be corrupted or master key changed` | enc 文件损坏或 key 被换 | `rm ~/.chainlesschain/sync-credentials.enc` 后重新 configure |
-| `master key file … has wrong length` | key 文件被截断/篡改 | 确认无并发写坏；确属故意则删 key + enc 重新生成 |
-| `凭据未配置，先跑 cc sync <provider> configure` | test/run 前没 configure | 先跑对应 `configure` |
-| `✗ webdav 连接失败 (401/403)` | 账号密码错 / 应用专用密码未启用 | 坚果云等需在网页端生成应用密码；核对 `--url` 与 `--username` |
-| `✗ oss 连接失败` | endpoint/region/bucket 不匹配，或 R2/MinIO 未开 path-style | 核对 endpoint；R2 / MinIO 加 `--force-path-style` |
-| run 报 `BETTER_SQLITE3_MISSING` | native better-sqlite3 不可用（run 必须 native vault） | `npm rebuild better-sqlite3` 后重试 |
-| 进度长时间无输出 | stdout 节流（≥1000ms）+ 批内静默 | 加 `-v` 看 vault 路径；start/success/failed 事件总会打印 |
-| `parent sync command not registered yet` | 注册顺序错误（开发场景） | `registerSyncProviderCommands` 必须在 `registerSyncCommand` 之后调用 |
+| 现象                                                            | 可能原因                                                   | 处理                                                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| `--password required` / `--secret-access-key required`          | v0.1 仅支持 flag 传入                                      | 用 flag 提供（注意 history 留痕）；stdin 留 v0.2                     |
+| `decrypt failed … Vault may be corrupted or master key changed` | enc 文件损坏或 key 被换                                    | `rm ~/.chainlesschain/sync-credentials.enc` 后重新 configure         |
+| `master key file … has wrong length`                            | key 文件被截断/篡改                                        | 确认无并发写坏；确属故意则删 key + enc 重新生成                      |
+| `凭据未配置，先跑 cc sync <provider> configure`                 | test/run 前没 configure                                    | 先跑对应 `configure`                                                 |
+| `✗ webdav 连接失败 (401/403)`                                   | 账号密码错 / 应用专用密码未启用                            | 坚果云等需在网页端生成应用密码；核对 `--url` 与 `--username`         |
+| `✗ oss 连接失败`                                                | endpoint/region/bucket 不匹配，或 R2/MinIO 未开 path-style | 核对 endpoint；R2 / MinIO 加 `--force-path-style`                    |
+| run 报 `BETTER_SQLITE3_MISSING`                                 | native better-sqlite3 不可用（run 必须 native vault）      | `npm rebuild better-sqlite3` 后重试                                  |
+| 进度长时间无输出                                                | stdout 节流（≥1000ms）+ 批内静默                           | 加 `-v` 看 vault 路径；start/success/failed 事件总会打印             |
+| `parent sync command not registered yet`                        | 注册顺序错误（开发场景）                                   | `registerSyncProviderCommands` 必须在 `registerSyncCommand` 之后调用 |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/sync-providers.js` | `cc sync webdav/oss` 子命令组（configure/status/clear/test/run 接线） |
-| `packages/cli/src/lib/sync-credentials.js` | AES-256-GCM 凭据库（master key、加解密、脱敏、白名单） |
-| `packages/cli/src/lib/sync-webdav-client.js` | WebDAV 客户端（PROPFIND 探测、PUT/DELETE，429/5xx 重试） |
-| `packages/cli/src/lib/sync-oss-client.js` | S3/OSS 客户端（HeadBucket 探测、PutObject，相同重试策略） |
-| `packages/cli/src/lib/sync-engine-cli.js` | 同步引擎（游标、tombstone 排空、批量 200 推送、Markdown 渲染） |
-| `packages/cli/src/lib/sync-cli-db.js` | CLI vault（`~/.chainlesschain/cli-vault.db`，自动建表 + 删除触发器） |
-| `packages/cli/src/lib/__tests__/sync-credentials.test.js` | 24 单元测试 |
-| `packages/cli/src/lib/__tests__/sync-engine-cli.test.js` | 12 单元测试 |
+| 文件                                                      | 说明                                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------------------- |
+| `packages/cli/src/commands/sync-providers.js`             | `cc sync webdav/oss` 子命令组（configure/status/clear/test/run 接线） |
+| `packages/cli/src/lib/sync-credentials.js`                | AES-256-GCM 凭据库（master key、加解密、脱敏、白名单）                |
+| `packages/cli/src/lib/sync-webdav-client.js`              | WebDAV 客户端（PROPFIND 探测、PUT/DELETE，429/5xx 重试）              |
+| `packages/cli/src/lib/sync-oss-client.js`                 | S3/OSS 客户端（HeadBucket 探测、PutObject，相同重试策略）             |
+| `packages/cli/src/lib/sync-engine-cli.js`                 | 同步引擎（游标、tombstone 排空、批量 200 推送、Markdown 渲染）        |
+| `packages/cli/src/lib/sync-cli-db.js`                     | CLI vault（`~/.chainlesschain/cli-vault.db`，自动建表 + 删除触发器）  |
+| `packages/cli/src/lib/__tests__/sync-credentials.test.js` | 24 单元测试                                                           |
+| `packages/cli/src/lib/__tests__/sync-engine-cli.test.js`  | 12 单元测试                                                           |
 
 ## 使用示例
 

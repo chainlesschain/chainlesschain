@@ -102,19 +102,19 @@ chainlesschain workflow delete <workflow-id>
 
 ## 内置模板
 
-| 模板 ID | 名称 | 阶段数 | 说明 |
-|---------|------|--------|------|
-| `data-pipeline` | 数据流水线 | 4 | 采集 → 清洗 → 转换 → 加载 |
-| `code-review` | 代码审查 | 3 | 静态分析 → 人工审查 → 合并 |
-| `content-generation` | 内容生成 | 3 | 草稿 → 审核 → 发布 |
-| `employee-onboarding` | 员工入职 | 5 | 信息收集 → 账号创建 → 权限 → 培训 → 确认 |
-| `incident-response` | 事件响应 | 4 | 检测 → 分类 → 处置 → 复盘 |
+| 模板 ID               | 名称       | 阶段数 | 说明                                     |
+| --------------------- | ---------- | ------ | ---------------------------------------- |
+| `data-pipeline`       | 数据流水线 | 4      | 采集 → 清洗 → 转换 → 加载                |
+| `code-review`         | 代码审查   | 3      | 静态分析 → 人工审查 → 合并               |
+| `content-generation`  | 内容生成   | 3      | 草稿 → 审核 → 发布                       |
+| `employee-onboarding` | 员工入职   | 5      | 信息收集 → 账号创建 → 权限 → 培训 → 确认 |
+| `incident-response`   | 事件响应   | 4      | 检测 → 分类 → 处置 → 复盘                |
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `workflows` | 工作流定义（名称、描述、阶段配置、DAG 结构） |
+| 表名                  | 说明                                         |
+| --------------------- | -------------------------------------------- |
+| `workflows`           | 工作流定义（名称、描述、阶段配置、DAG 结构） |
 | `workflow_executions` | 执行记录（状态、输入输出、各阶段进度、耗时） |
 
 ## 系统架构
@@ -186,12 +186,12 @@ chainlesschain workflow resume <execution-id>
 
 ### DAG 验证失败
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Invalid DAG: cycle detected" | stage 的 `next` 引用形成环 | 检查 DAG 拓扑，确保无循环依赖 |
-| "Invalid DAG: missing reference" | `next` 引用了不存在的 stage ID | 核对所有 stage ID 是否一致 |
-| "Invalid DAG: empty stages" | stages 数组为空 | 至少提供一个 stage |
-| 工作流执行卡住 | approval 类型的 stage 等待人工审批 | 使用 `workflow resume` 通过审批节点 |
+| 症状                             | 可能原因                           | 解决方案                            |
+| -------------------------------- | ---------------------------------- | ----------------------------------- |
+| "Invalid DAG: cycle detected"    | stage 的 `next` 引用形成环         | 检查 DAG 拓扑，确保无循环依赖       |
+| "Invalid DAG: missing reference" | `next` 引用了不存在的 stage ID     | 核对所有 stage ID 是否一致          |
+| "Invalid DAG: empty stages"      | stages 数组为空                    | 至少提供一个 stage                  |
+| 工作流执行卡住                   | approval 类型的 stage 等待人工审批 | 使用 `workflow resume` 通过审批节点 |
 
 ### 常见错误
 
@@ -233,14 +233,14 @@ export CHAINLESSCHAIN_DB_PATH=~/.chainlesschain/db.sqlite
 
 ## 性能指标
 
-| 操作              | 目标    | 实际      | 状态 |
-| ----------------- | ------- | --------- | ---- |
+| 操作               | 目标    | 实际      | 状态 |
+| ------------------ | ------- | --------- | ---- |
 | DAG 验证（环检测） | < 50ms  | 5–30ms    | ✅   |
-| 拓扑排序          | < 20ms  | 1–10ms    | ✅   |
-| 创建工作流        | < 100ms | 20–80ms   | ✅   |
-| 启动执行          | < 200ms | 50–150ms  | ✅   |
-| 单 stage 调度开销 | < 50ms  | 10–30ms   | ✅   |
-| 回滚执行          | < 500ms | 100–400ms | ✅   |
+| 拓扑排序           | < 20ms  | 1–10ms    | ✅   |
+| 创建工作流         | < 100ms | 20–80ms   | ✅   |
+| 启动执行           | < 200ms | 50–150ms  | ✅   |
+| 单 stage 调度开销  | < 50ms  | 10–30ms   | ✅   |
+| 回滚执行           | < 500ms | 100–400ms | ✅   |
 
 ## 测试覆盖率
 

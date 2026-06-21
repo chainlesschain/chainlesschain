@@ -44,11 +44,11 @@ chainlesschain browse
 chainlesschain browse fetch <url> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--html` | 显示原始 HTML | — |
-| `--links` | 仅提取链接（最多显示 50 条） | — |
-| `--json` | JSON 格式输出 | — |
+| 选项      | 说明                         | 默认值 |
+| --------- | ---------------------------- | ------ |
+| `--html`  | 显示原始 HTML                | —      |
+| `--links` | 仅提取链接（最多显示 50 条） | —      |
+| `--json`  | JSON 格式输出                | —      |
 
 ### browse scrape
 
@@ -58,11 +58,11 @@ chainlesschain browse fetch <url> [options]
 chainlesschain browse scrape <url> -s <selector> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-s, --selector <css>` | CSS 选择器（必填） | — |
-| `-n, --limit <n>` | 最大结果数 | `20` |
-| `--json` | JSON 格式输出 | — |
+| 选项                   | 说明               | 默认值 |
+| ---------------------- | ------------------ | ------ |
+| `-s, --selector <css>` | CSS 选择器（必填） | —      |
+| `-n, --limit <n>`      | 最大结果数         | `20`   |
+| `--json`               | JSON 格式输出      | —      |
 
 ### browse screenshot
 
@@ -72,13 +72,13 @@ chainlesschain browse scrape <url> -s <selector> [options]
 chainlesschain browse screenshot <url> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-o, --output <path>` | 输出文件路径 | `screenshot.png` |
-| `--width <n>` | 视口宽度 | `1280` |
-| `--height <n>` | 视口高度 | `720` |
-| `--full-page` | 捕获完整页面 | — |
-| `--json` | JSON 格式输出 | — |
+| 选项                  | 说明          | 默认值           |
+| --------------------- | ------------- | ---------------- |
+| `-o, --output <path>` | 输出文件路径  | `screenshot.png` |
+| `--width <n>`         | 视口宽度      | `1280`           |
+| `--height <n>`        | 视口高度      | `720`            |
+| `--full-page`         | 捕获完整页面  | —                |
+| `--json`              | JSON 格式输出 | —                |
 
 ## 配置参考
 
@@ -112,14 +112,14 @@ screenshot 选项:
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| fetch 小型页面（< 100KB） | < 1s | ~400ms | ✅ |
-| fetch 大型页面（1MB） | < 3s | ~1.2s | ✅ |
-| scrape CSS 选择器匹配 | < 500ms | ~180ms | ✅ |
-| 链接提取（含去重） | < 200ms | ~60ms | ✅ |
-| screenshot 视口截图 | < 3s | ~1.5s | ✅ |
-| screenshot 全页截图 | < 5s | ~2.8s | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| fetch 小型页面（< 100KB） | < 1s    | ~400ms | ✅   |
+| fetch 大型页面（1MB）     | < 3s    | ~1.2s  | ✅   |
+| scrape CSS 选择器匹配     | < 500ms | ~180ms | ✅   |
+| 链接提取（含去重）        | < 200ms | ~60ms  | ✅   |
+| screenshot 视口截图       | < 3s    | ~1.5s  | ✅   |
+| screenshot 全页截图       | < 5s    | ~2.8s  | ✅   |
 
 ## 测试覆盖率
 
@@ -183,13 +183,13 @@ chainlesschain browse fetch https://example.com --html > page.html
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Fetch failed: fetch is not defined` | Node.js 版本需 >= 18（内置 fetch API） |
-| `Screenshot failed` | 安装 Playwright：`npm install -g playwright` |
-| `No elements matching "..."` | 检查 CSS 选择器是否正确，页面可能使用动态渲染 |
-| 文本内容被截断 | 默认显示前 5000 字符，使用 `--json` 获取完整内容 |
-| 中文乱码 | 确保终端编码为 UTF-8（Windows 运行 `chcp 65001`） |
+| 问题                                 | 解决方案                                          |
+| ------------------------------------ | ------------------------------------------------- |
+| `Fetch failed: fetch is not defined` | Node.js 版本需 >= 18（内置 fetch API）            |
+| `Screenshot failed`                  | 安装 Playwright：`npm install -g playwright`      |
+| `No elements matching "..."`         | 检查 CSS 选择器是否正确，页面可能使用动态渲染     |
+| 文本内容被截断                       | 默认显示前 5000 字符，使用 `--json` 获取完整内容  |
+| 中文乱码                             | 确保终端编码为 UTF-8（Windows 运行 `chcp 65001`） |
 
 ## 相关文档
 

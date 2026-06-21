@@ -86,15 +86,15 @@ features:
 
 **2026-04-08 文档对齐回归（修改文件全量定向）**：
 
-| 类型 | 范围 | 通过 |
-| --- | --- | --- |
-| CLI 单元 | agent-core / sub-agent-registry / ws-agent-handler | 126/126 |
-| Desktop main 单元 | coding-agent-bridge / coding-agent-ipc-v3 / coding-agent-session-service | 77/77 |
-| Renderer 单元 | coding-agent store / AIChatPage | 81/81 |
-| CLI 集成 | ws-session-workflow | 32/32 |
-| Desktop 集成 | coding-agent-lifecycle | 18/18 |
-| CLI E2E | coding-agent-envelope-roundtrip | 7/7 |
-| **小计** | **6 套** | **341/341** |
+| 类型              | 范围                                                                     | 通过        |
+| ----------------- | ------------------------------------------------------------------------ | ----------- |
+| CLI 单元          | agent-core / sub-agent-registry / ws-agent-handler                       | 126/126     |
+| Desktop main 单元 | coding-agent-bridge / coding-agent-ipc-v3 / coding-agent-session-service | 77/77       |
+| Renderer 单元     | coding-agent store / AIChatPage                                          | 81/81       |
+| CLI 集成          | ws-session-workflow                                                      | 32/32       |
+| Desktop 集成      | coding-agent-lifecycle                                                   | 18/18       |
+| CLI E2E           | coding-agent-envelope-roundtrip                                          | 7/7         |
+| **小计**          | **6 套**                                                                 | **341/341** |
 
 ## 快速开始
 

@@ -12,16 +12,16 @@ ChainlessChain 桌面端通过 `node-pty` 托管新开的 shell（pwsh / cmd / b
 
 ## 2. 核心特性
 
-| 特性 | 说明 |
-|---|---|
-| 托管 PTY | 桌面端用 `node-pty` 自己 spawn 终端，session 表统一管理 |
-| 跨壳一致 | V6 preview / Web Shell / cc ui 共享同一份 `<TerminalPanel>` Vue 组件 + xterm.js |
-| 韧性补帧 | 每 session 256KB ring buffer + `terminal.history` 按 `seq` 补帧；Android 断连重连自动续接 |
-| 高危拦截 | 桌面端扫 stdin 关键字（`rm -rf` / `format` / `shutdown` / fork bomb），命中弹桌面端确认 |
-| Shell 白名单 | `.chainlesschain/config.json` 配 `shellWhitelist`，不在表内的 shell 直接拒绝创建 |
-| trusted-paired 闸 | 只接受 `paired_devices` 表中 `trustLevel >= "full"` 的设备 envelope |
-| 24h 空闲 kill | session 24h 内无 stdin/stdout 自动 kill，防遗忘 |
-| 不落盘 | ring buffer 仅内存；进程重启等于清空（安全 > 韧性的取舍）|
+| 特性              | 说明                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| 托管 PTY          | 桌面端用 `node-pty` 自己 spawn 终端，session 表统一管理                                   |
+| 跨壳一致          | V6 preview / Web Shell / cc ui 共享同一份 `<TerminalPanel>` Vue 组件 + xterm.js           |
+| 韧性补帧          | 每 session 256KB ring buffer + `terminal.history` 按 `seq` 补帧；Android 断连重连自动续接 |
+| 高危拦截          | 桌面端扫 stdin 关键字（`rm -rf` / `format` / `shutdown` / fork bomb），命中弹桌面端确认   |
+| Shell 白名单      | `.chainlesschain/config.json` 配 `shellWhitelist`，不在表内的 shell 直接拒绝创建          |
+| trusted-paired 闸 | 只接受 `paired_devices` 表中 `trustLevel >= "full"` 的设备 envelope                       |
+| 24h 空闲 kill     | session 24h 内无 stdin/stdout 自动 kill，防遗忘                                           |
+| 不落盘            | ring buffer 仅内存；进程重启等于清空（安全 > 韧性的取舍）                                 |
 
 ## 3. 系统架构
 
@@ -61,25 +61,25 @@ ChainlessChain 桌面端通过 `node-pty` 托管新开的 shell（pwsh / cmd / b
 
 ### 5.1 三种入口
 
-| 壳 | 路由 / 入口 | 说明 |
-|---|---|---|
-| V6 Preview | `/v6-preview` → 工具栏 "远程终端" | plugin widget，与 Knowledge / Memory 等同框架 |
-| Web Shell | `/terminal` | 桌面 Electron 内嵌 ws-server，BrowserWindow 直加载 |
-| cc ui | 同 `/terminal` | CLI 起一个本地 ws-server + 浏览器打开同份 SPA |
+| 壳         | 路由 / 入口                       | 说明                                               |
+| ---------- | --------------------------------- | -------------------------------------------------- |
+| V6 Preview | `/v6-preview` → 工具栏 "远程终端" | plugin widget，与 Knowledge / Memory 等同框架      |
+| Web Shell  | `/terminal`                       | 桌面 Electron 内嵌 ws-server，BrowserWindow 直加载 |
+| cc ui      | 同 `/terminal`                    | CLI 起一个本地 ws-server + 浏览器打开同份 SPA      |
 
 V5 旧壳不补，opt-out 用户走 cc ui 兜底。
 
 ### 5.2 Session 操作
 
-| 操作 | UI | 协议 envelope |
-|---|---|---|
-| 创建 | 顶栏 "+ 新会话" 按钮，选 shell + cwd | `terminal.create` |
-| 列出 | 左侧 session 列表 | `terminal.list` |
-| 输入 | xterm.js 接管键盘 | `terminal.stdin`（含特殊键如 Ctrl+C = `\x03`）|
-| 输出 | xterm.js 渲染 ANSI | `terminal.stdout`（server push）|
-| 调整窗口 | 容器 resize 自动触发 | `terminal.resize` |
-| 关闭 | 标签 "×" 按钮 | `terminal.close` |
-| 历史补帧 | 重连后自动补 | `terminal.history` |
+| 操作     | UI                                   | 协议 envelope                                  |
+| -------- | ------------------------------------ | ---------------------------------------------- |
+| 创建     | 顶栏 "+ 新会话" 按钮，选 shell + cwd | `terminal.create`                              |
+| 列出     | 左侧 session 列表                    | `terminal.list`                                |
+| 输入     | xterm.js 接管键盘                    | `terminal.stdin`（含特殊键如 Ctrl+C = `\x03`） |
+| 输出     | xterm.js 渲染 ANSI                   | `terminal.stdout`（server push）               |
+| 调整窗口 | 容器 resize 自动触发                 | `terminal.resize`                              |
+| 关闭     | 标签 "×" 按钮                        | `terminal.close`                               |
+| 历史补帧 | 重连后自动补                         | `terminal.history`                             |
 
 ### 5.3 Android 软键盘补键
 
@@ -90,6 +90,7 @@ Ctrl 是 sticky modifier（点亮后下一个字符自动组合发送）。
 ### 5.4 高危关键字拦截
 
 桌面端默认拦截：
+
 - `rm -rf`
 - `format <drive>:`
 - `shutdown`
@@ -101,15 +102,15 @@ Ctrl 是 sticky modifier（点亮后下一个字符自动组合发送）。
 
 ## 6. 技术架构
 
-| 层 | 技术 | 说明 |
-|---|---|---|
-| PTY native | `node-pty` (ConPTY on Windows) | 主进程单例，多 session 共享 |
-| 传输 | 复用 #21 signaling-relay (`wss://signaling.chainlesschain.com`) + 后续 WebRTC DC | LAN / WAN 同一根管道 |
-| Envelope | 协议 v1.0（dot-case + `requestId`）| 与 `coding-agent-envelope-roundtrip` 同模式 |
-| WS 网关 | 桌面内嵌 + cc ui 各注册一份 | 遵循 cross-shell 双登记 |
-| UI 渲染 | Vue 3.4 + xterm.js | V6 / web-shell / cc ui 共享 `<TerminalPanel>` |
-| Android UI | Compose + WebView（嵌 xterm.js）| 移动端 VT100 emulator 太重，用 WebView 性价比最高 |
-| 序列化 | base64(UTF-8 bytes) over JSON | 避开控制字符在 JSON 中的转义陷阱 |
+| 层         | 技术                                                                             | 说明                                              |
+| ---------- | -------------------------------------------------------------------------------- | ------------------------------------------------- |
+| PTY native | `node-pty` (ConPTY on Windows)                                                   | 主进程单例，多 session 共享                       |
+| 传输       | 复用 #21 signaling-relay (`wss://signaling.chainlesschain.com`) + 后续 WebRTC DC | LAN / WAN 同一根管道                              |
+| Envelope   | 协议 v1.0（dot-case + `requestId`）                                              | 与 `coding-agent-envelope-roundtrip` 同模式       |
+| WS 网关    | 桌面内嵌 + cc ui 各注册一份                                                      | 遵循 cross-shell 双登记                           |
+| UI 渲染    | Vue 3.4 + xterm.js                                                               | V6 / web-shell / cc ui 共享 `<TerminalPanel>`     |
+| Android UI | Compose + WebView（嵌 xterm.js）                                                 | 移动端 VT100 emulator 太重，用 WebView 性价比最高 |
+| 序列化     | base64(UTF-8 bytes) over JSON                                                    | 避开控制字符在 JSON 中的转义陷阱                  |
 
 ## 7. 系统特点
 
@@ -122,25 +123,25 @@ Ctrl 是 sticky modifier（点亮后下一个字符自动组合发送）。
 
 ## 8. 应用场景
 
-| 场景 | 用法 |
-|---|---|
-| **出差路上看 CI** | 远程开会话跑 `gh run watch <id>`，stdout 流到手机 |
-| **家里改服务器配置** | 桌面端在公司，远程开 wsl 会话编辑配置 + 重启服务 |
-| **演示给同事看命令输出** | 桌面端开会话跑 demo，会议室同事手机 join 远程终端围观 |
-| **凌晨被告警唤起** | 不开电脑，手机直接 `kubectl get pods` / `docker logs` |
-| **培训学员** | 讲师桌面端开教学会话，学员手机看实时输出（read-only 模式后续支持） |
+| 场景                     | 用法                                                               |
+| ------------------------ | ------------------------------------------------------------------ |
+| **出差路上看 CI**        | 远程开会话跑 `gh run watch <id>`，stdout 流到手机                  |
+| **家里改服务器配置**     | 桌面端在公司，远程开 wsl 会话编辑配置 + 重启服务                   |
+| **演示给同事看命令输出** | 桌面端开会话跑 demo，会议室同事手机 join 远程终端围观              |
+| **凌晨被告警唤起**       | 不开电脑，手机直接 `kubectl get pods` / `docker logs`              |
+| **培训学员**             | 讲师桌面端开教学会话，学员手机看实时输出（read-only 模式后续支持） |
 
 ## 9. 竞品对比
 
-| 能力 | 远程终端 (Plan A) | Termius | JuiceSSH | Tailscale SSH |
-|---|---|---|---|---|
-| 远程控制本机已托管终端 | ✅ | ❌（只能 SSH 远程主机）| ❌ | ❌ |
-| 零新基础设施（复用配对通道）| ✅ | ❌ 自己装 SSH server | ❌ | ❌ 需 Tailscale |
-| 与桌面信任链一体（U-Key / DID）| ✅ | ❌ 独立密钥 | ❌ | ⚠️ 走 Tailscale 身份 |
-| 高危关键字桌面端二次确认 | ✅ | ❌ | ❌ | ❌ |
-| stdin/stdout 完全 P2P（无中心服务器看明文）| 🚧 (Plan A.1) | ❌ 中转走 SSH server | ❌ | ⚠️ |
-| 软键盘补键 toolbar | ✅ | ✅ | ✅ | — |
-| 移动端 ANSI 渲染 | ✅ (xterm.js) | ✅ | ✅ | — |
+| 能力                                        | 远程终端 (Plan A) | Termius                 | JuiceSSH | Tailscale SSH        |
+| ------------------------------------------- | ----------------- | ----------------------- | -------- | -------------------- |
+| 远程控制本机已托管终端                      | ✅                | ❌（只能 SSH 远程主机） | ❌       | ❌                   |
+| 零新基础设施（复用配对通道）                | ✅                | ❌ 自己装 SSH server    | ❌       | ❌ 需 Tailscale      |
+| 与桌面信任链一体（U-Key / DID）             | ✅                | ❌ 独立密钥             | ❌       | ⚠️ 走 Tailscale 身份 |
+| 高危关键字桌面端二次确认                    | ✅                | ❌                      | ❌       | ❌                   |
+| stdin/stdout 完全 P2P（无中心服务器看明文） | 🚧 (Plan A.1)     | ❌ 中转走 SSH server    | ❌       | ⚠️                   |
+| 软键盘补键 toolbar                          | ✅                | ✅                      | ✅       | —                    |
+| 移动端 ANSI 渲染                            | ✅ (xterm.js)     | ✅                      | ✅       | —                    |
 
 ## 10. 配置参考
 
@@ -166,6 +167,7 @@ Ctrl 是 sticky modifier（点亮后下一个字符自动组合发送）。
 ```
 
 字段含义：
+
 - `shellWhitelist` — 允许 `terminal.create` 传入的 shell 名
 - `maxConcurrentSessions` — 同时存活的 session 上限（含 Android 断连后仍跑的）
 - `ringBufferBytes` — 单 session 输出缓冲（不落盘）
@@ -181,41 +183,41 @@ Ctrl 是 sticky modifier（点亮后下一个字符自动组合发送）。
 
 目标值（Phase 1 落地后实测回填）：
 
-| 指标 | 目标 |
-|---|---|
-| `terminal.create` 端到端（Android 点 + 到第一个 prompt 渲染） | ≤ 1500 ms（LAN）/ ≤ 3000 ms（中继）|
-| stdin 敲键到 stdout 回显 p50 | ≤ 200 ms（LAN）/ ≤ 500 ms（中继）|
-| stdin 敲键到 stdout 回显 p99 | ≤ 500 ms（LAN）/ ≤ 1500 ms（中继）|
-| 桌面 PtyManager spawn 单 session | ≤ 200 ms |
-| ring buffer push 单条 4KB | ≤ 0.1 ms |
-| 重连 `terminal.history` 补 100KB | ≤ 800 ms（中继）|
+| 指标                                                          | 目标                                |
+| ------------------------------------------------------------- | ----------------------------------- |
+| `terminal.create` 端到端（Android 点 + 到第一个 prompt 渲染） | ≤ 1500 ms（LAN）/ ≤ 3000 ms（中继） |
+| stdin 敲键到 stdout 回显 p50                                  | ≤ 200 ms（LAN）/ ≤ 500 ms（中继）   |
+| stdin 敲键到 stdout 回显 p99                                  | ≤ 500 ms（LAN）/ ≤ 1500 ms（中继）  |
+| 桌面 PtyManager spawn 单 session                              | ≤ 200 ms                            |
+| ring buffer push 单条 4KB                                     | ≤ 0.1 ms                            |
+| 重连 `terminal.history` 补 100KB                              | ≤ 800 ms（中继）                    |
 
 Plan A.1 把流量切到 DataChannel 后中继路径应降到接近 LAN。
 
 ## 12. 测试覆盖
 
-| 层 | 文件 | 用例 | 状态 |
-|---|---|---|---|
-| 主进程 — PtyManager | `tests/unit/main/terminal/PtyManager.test.js` | 17 | 🚧 Phase 1 |
-| 主进程 — handlers | `tests/unit/main/web-shell/handlers/terminal-handlers.test.js` | 8 | 🚧 Phase 1 |
-| WS smoke | DevTools console 手敲 | 1 | 🚧 Phase 1 |
-| Web Panel — TerminalPanel.vue | `packages/web-panel/src/views/__tests__/TerminalPanel.test.ts` | TBD | 📝 Phase 2 |
-| V6 Plugin Widget | `tests/unit/renderer/plugins-builtin/terminal/*.test.ts` | TBD | 📝 Phase 2 |
-| Android — TerminalRpcClient | `app/.../remote/terminal/TerminalRpcClientTest.kt` | TBD | 📝 Phase 3 |
-| 真机 e2e | Xiaomi 24115RA8EC + 桌面 + 中继 | 烟雾 | 📝 Phase 4 |
+| 层                            | 文件                                                           | 用例 | 状态       |
+| ----------------------------- | -------------------------------------------------------------- | ---- | ---------- |
+| 主进程 — PtyManager           | `tests/unit/main/terminal/PtyManager.test.js`                  | 17   | 🚧 Phase 1 |
+| 主进程 — handlers             | `tests/unit/main/web-shell/handlers/terminal-handlers.test.js` | 8    | 🚧 Phase 1 |
+| WS smoke                      | DevTools console 手敲                                          | 1    | 🚧 Phase 1 |
+| Web Panel — TerminalPanel.vue | `packages/web-panel/src/views/__tests__/TerminalPanel.test.ts` | TBD  | 📝 Phase 2 |
+| V6 Plugin Widget              | `tests/unit/renderer/plugins-builtin/terminal/*.test.ts`       | TBD  | 📝 Phase 2 |
+| Android — TerminalRpcClient   | `app/.../remote/terminal/TerminalRpcClientTest.kt`             | TBD  | 📝 Phase 3 |
+| 真机 e2e                      | Xiaomi 24115RA8EC + 桌面 + 中继                                | 烟雾 | 📝 Phase 4 |
 
 ## 13. 安全考虑
 
-| 威胁 | 缓解 |
-|---|---|
-| **未配对设备发命令** | trusted-paired 闸：deviceId 必须在 `paired_devices` 表中且 `trustLevel >= "full"` |
-| **Android 端被劫持远程 `rm -rf`** | 桌面端高危关键字拦截，必须本机用户确认 |
-| **shell 任意路径** | shellWhitelist，未列入直接 `error.code = "shell_not_allowed"` |
-| **中继看到明文 stdin/stdout** | 当前 wss TLS 但中继可见 payload；Plan A.1 切 DC 后端到端 P2P；进一步可挂 Signal session（与 Plan C 同状态）|
-| **敏感输出磁盘泄漏** | ring buffer 仅内存，进程重启清空 |
-| **session 永生** | 24h 空闲自动 kill + 桌面 systray 红点提示活跃数 |
-| **WS envelope 探测** | trusted-paired 闸 silent drop 而非返 error，避免暴露认证状态 |
-| **stdin 注入控制序列** | base64 编码 + xterm.js 由 PTY 端真实回显校验，不在传输层解析 |
+| 威胁                              | 缓解                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **未配对设备发命令**              | trusted-paired 闸：deviceId 必须在 `paired_devices` 表中且 `trustLevel >= "full"`                           |
+| **Android 端被劫持远程 `rm -rf`** | 桌面端高危关键字拦截，必须本机用户确认                                                                      |
+| **shell 任意路径**                | shellWhitelist，未列入直接 `error.code = "shell_not_allowed"`                                               |
+| **中继看到明文 stdin/stdout**     | 当前 wss TLS 但中继可见 payload；Plan A.1 切 DC 后端到端 P2P；进一步可挂 Signal session（与 Plan C 同状态） |
+| **敏感输出磁盘泄漏**              | ring buffer 仅内存，进程重启清空                                                                            |
+| **session 永生**                  | 24h 空闲自动 kill + 桌面 systray 红点提示活跃数                                                             |
+| **WS envelope 探测**              | trusted-paired 闸 silent drop 而非返 error，避免暴露认证状态                                                |
+| **stdin 注入控制序列**            | base64 编码 + xterm.js 由 PTY 端真实回显校验，不在传输层解析                                                |
 
 ## 14. 故障排除
 
@@ -327,6 +329,6 @@ mobile-app-android/app/src/main/java/.../remote/terminal/
 
 **版本历史**
 
-| 版本 | 日期 | 说明 |
-|---|---|---|
+| 版本 | 日期       | 说明                                 |
+| ---- | ---------- | ------------------------------------ |
 | v0.1 | 2026-05-14 | 设计与用户文档初稿，Phase 1 即将开工 |

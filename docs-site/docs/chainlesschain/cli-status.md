@@ -57,14 +57,14 @@ chainlesschain status    # 显示完整系统状态
 
 检查以下默认端口的连通性：
 
-| 服务 | 端口 |
-|------|------|
-| Vite Dev | 5173 |
-| Signaling | 9001 |
-| Ollama | 11434 |
-| Qdrant | 6333 |
-| PostgreSQL | 5432 |
-| Redis | 6379 |
+| 服务       | 端口  |
+| ---------- | ----- |
+| Vite Dev   | 5173  |
+| Signaling  | 9001  |
+| Ollama     | 11434 |
+| Qdrant     | 6333  |
+| PostgreSQL | 5432  |
+| Redis      | 6379  |
 
 状态图标：`●` (绿色=运行/可达) `●` (红色=异常) `○` (灰色=未运行/不可达) `●` (黄色=警告)
 
@@ -148,12 +148,12 @@ chainlesschain status
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| 端口显示不可达但服务已启动 | 检查服务是否绑定了正确的端口和地址 |
-| Docker 服务状态不显示 | 确认 Docker Desktop 运行中且 `docker-compose.yml` 可找到 |
-| `Setup not completed` | 运行 `chainlesschain setup` 完成配置 |
-| 所有端口均不可达 | 检查防火墙设置，确认服务已启动 |
+| 问题                       | 解决方案                                                 |
+| -------------------------- | -------------------------------------------------------- |
+| 端口显示不可达但服务已启动 | 检查服务是否绑定了正确的端口和地址                       |
+| Docker 服务状态不显示      | 确认 Docker Desktop 运行中且 `docker-compose.yml` 可找到 |
+| `Setup not completed`      | 运行 `chainlesschain setup` 完成配置                     |
+| 所有端口均不可达           | 检查防火墙设置，确认服务已启动                           |
 
 ## 相关文档
 

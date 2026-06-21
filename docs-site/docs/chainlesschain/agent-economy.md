@@ -237,6 +237,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 **现象**: 调用 `economy:pay` 或 `economy:open-channel` 返回余额不足错误。
 
 **排查步骤**:
+
 1. 调用 `economy:get-balance` 确认当前 Agent 账户余额
 2. 检查是否有未关闭的通道锁定了保证金（`state_channels` 表中 `status = 'open'` 的记录）
 3. 确认 `maxDeposit` 配置未被误设为过低值
@@ -247,6 +248,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 **现象**: 通道状态卡在 `closing` 或进入 `disputed` 状态，无法正常结算。
 
 **排查步骤**:
+
 1. 检查 `state_channels` 表中对应通道的 `nonce` 是否一致
 2. 确认双方最后签名的状态是否匹配，如不一致则触发争议仲裁
 3. 检查 `settlementInterval` 配置，等待结算周期完成后重试关闭
@@ -257,6 +259,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 **现象**: 调用 `economy:mint-nft` 返回失败，NFT 未生成。
 
 **排查步骤**:
+
 1. 确认 `agentDid` 格式正确且为有效的 DID 标识
 2. 查询 `agent_nfts` 表确认该 DID 是否已铸造过 NFT（`UNIQUE` 约束）
 3. 检查 `mintFee` 配置，确认账户余额足以支付铸造费用
@@ -266,13 +269,13 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 余额不足无法发起支付 | 账户未充值或通道保证金被锁定 | 检查可用余额，确认通道状态是否为 `open` |
-| State Channel 结算失败 | 双方签名不一致或通道已过期 | 重新协商签名，检查通道 `expiry` 时间戳 |
-| NFT 铸造返回错误 | DID 已铸造过 NFT 或 metadata 格式异常 | 查询 `agent_nfts` 表确认唯一约束，验证 JSON 格式 |
-| 贡献分配金额为零 | 贡献证明未提交或权重配置错误 | 确认 `contribution-proof` 记录存在，检查权重参数 |
-| 资源市场报价查询为空 | 市场未初始化或无卖方注册 | 运行 `economy:market-init`，检查卖方注册状态 |
+| 症状                   | 可能原因                              | 解决方案                                         |
+| ---------------------- | ------------------------------------- | ------------------------------------------------ |
+| 余额不足无法发起支付   | 账户未充值或通道保证金被锁定          | 检查可用余额，确认通道状态是否为 `open`          |
+| State Channel 结算失败 | 双方签名不一致或通道已过期            | 重新协商签名，检查通道 `expiry` 时间戳           |
+| NFT 铸造返回错误       | DID 已铸造过 NFT 或 metadata 格式异常 | 查询 `agent_nfts` 表确认唯一约束，验证 JSON 格式 |
+| 贡献分配金额为零       | 贡献证明未提交或权重配置错误          | 确认 `contribution-proof` 记录存在，检查权重参数 |
+| 资源市场报价查询为空   | 市场未初始化或无卖方注册              | 运行 `economy:market-init`，检查卖方注册状态     |
 
 ### 常见错误修复
 
@@ -381,18 +384,18 @@ chainlesschain economy nft-revoke --nft-id <id>
 
 在标准测试环境（MacBook Pro M2, 8 Core, 16 GB RAM）下的实测基准：
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| State Channel 开启 | < 100 ms | 54 ms | ✅ |
-| 微支付执行 (`economy:pay`) | < 20 ms | 7 ms | ✅ |
-| State Channel 链上结算 | < 500 ms | 310 ms | ✅ |
-| 资源市场列表查询（20 条） | < 50 ms | 21 ms | ✅ |
-| 资源交易撮合 | < 200 ms | 88 ms | ✅ |
-| Agent NFT 铸造 | < 300 ms | 145 ms | ✅ |
-| 贡献证明写入 | < 30 ms | 12 ms | ✅ |
-| 收益分配计算（50 Agent） | < 100 ms | 43 ms | ✅ |
-| 余额查询 (`economy:get-balance`) | < 10 ms | 4 ms | ✅ |
-| 并发微支付吞吐 | > 500 tx/s | 720 tx/s | ✅ |
+| 操作                             | 目标       | 实际     | 状态 |
+| -------------------------------- | ---------- | -------- | ---- |
+| State Channel 开启               | < 100 ms   | 54 ms    | ✅   |
+| 微支付执行 (`economy:pay`)       | < 20 ms    | 7 ms     | ✅   |
+| State Channel 链上结算           | < 500 ms   | 310 ms   | ✅   |
+| 资源市场列表查询（20 条）        | < 50 ms    | 21 ms    | ✅   |
+| 资源交易撮合                     | < 200 ms   | 88 ms    | ✅   |
+| Agent NFT 铸造                   | < 300 ms   | 145 ms   | ✅   |
+| 贡献证明写入                     | < 30 ms    | 12 ms    | ✅   |
+| 收益分配计算（50 Agent）         | < 100 ms   | 43 ms    | ✅   |
+| 余额查询 (`economy:get-balance`) | < 10 ms    | 4 ms     | ✅   |
+| 并发微支付吞吐                   | > 500 tx/s | 720 tx/s | ✅   |
 
 > 注：链上结算延迟受区块链网络确认时间影响，以上数据基于本地测试链（Hardhat）。
 
@@ -400,16 +403,16 @@ chainlesschain economy nft-revoke --nft-id <id>
 
 Agent 经济系统测试覆盖率：**93.2%**（语句）/ **89.6%**（分支）
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| --- | --- | --- |
-| ✅ `tests/unit/blockchain/agent-economy.test.js` | 经济引擎核心逻辑、IPC 输入验证 | 42 |
-| ✅ `tests/unit/blockchain/state-channel.test.js` | 通道开启/支付/结算、nonce 竞争、TTL 超时 | 35 |
-| ✅ `tests/unit/blockchain/resource-market.test.js` | 上架、撮合、下架、费率计算 | 27 |
-| ✅ `tests/unit/blockchain/agent-nft.test.js` | NFT 铸造、唯一性约束、metadata 验证、转移 | 22 |
-| ✅ `tests/unit/blockchain/contribution-proof.test.js` | 贡献写入、评分聚合、收益比例计算 | 28 |
-| ✅ `tests/unit/blockchain/revenue-distribution.test.js` | 三种分配方法、最小池金额、最大参与者边界 | 19 |
-| ✅ `tests/integration/economy/payment-flow.test.js` | 完整支付通道端到端：开启→支付→结算 | 13 |
-| ✅ `tests/integration/economy/market-trade.test.js` | 资源上架到交易完成的完整流程 | 10 |
+| 测试文件                                                | 覆盖范围                                  | 用例数 |
+| ------------------------------------------------------- | ----------------------------------------- | ------ |
+| ✅ `tests/unit/blockchain/agent-economy.test.js`        | 经济引擎核心逻辑、IPC 输入验证            | 42     |
+| ✅ `tests/unit/blockchain/state-channel.test.js`        | 通道开启/支付/结算、nonce 竞争、TTL 超时  | 35     |
+| ✅ `tests/unit/blockchain/resource-market.test.js`      | 上架、撮合、下架、费率计算                | 27     |
+| ✅ `tests/unit/blockchain/agent-nft.test.js`            | NFT 铸造、唯一性约束、metadata 验证、转移 | 22     |
+| ✅ `tests/unit/blockchain/contribution-proof.test.js`   | 贡献写入、评分聚合、收益比例计算          | 28     |
+| ✅ `tests/unit/blockchain/revenue-distribution.test.js` | 三种分配方法、最小池金额、最大参与者边界  | 19     |
+| ✅ `tests/integration/economy/payment-flow.test.js`     | 完整支付通道端到端：开启→支付→结算        | 13     |
+| ✅ `tests/integration/economy/market-trade.test.js`     | 资源上架到交易完成的完整流程              | 10     |
 
 **运行测试**:
 
@@ -435,13 +438,13 @@ cd desktop-app-vue && npx vitest run tests/unit/blockchain/ --coverage
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/blockchain/agent-economy.js` | Agent 经济核心引擎 |
-| `desktop-app-vue/src/main/blockchain/state-channel.js` | State Channel 微支付通道 |
-| `desktop-app-vue/src/main/blockchain/resource-market.js` | 计算资源交易市场 |
-| `desktop-app-vue/src/main/blockchain/agent-nft.js` | Agent NFT 身份铸造 |
-| `desktop-app-vue/src/main/blockchain/contribution-proof.js` | 贡献证明与收益分配 |
+| 文件                                                        | 职责                     |
+| ----------------------------------------------------------- | ------------------------ |
+| `desktop-app-vue/src/main/blockchain/agent-economy.js`      | Agent 经济核心引擎       |
+| `desktop-app-vue/src/main/blockchain/state-channel.js`      | State Channel 微支付通道 |
+| `desktop-app-vue/src/main/blockchain/resource-market.js`    | 计算资源交易市场         |
+| `desktop-app-vue/src/main/blockchain/agent-nft.js`          | Agent NFT 身份铸造       |
+| `desktop-app-vue/src/main/blockchain/contribution-proof.js` | 贡献证明与收益分配       |
 
 ## 相关文档
 

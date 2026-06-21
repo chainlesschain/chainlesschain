@@ -197,20 +197,22 @@ const result = await window.electron.ipcRenderer.invoke("ipc:preload-domain", {
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/index.js` | 应用入口，初始化 LazyPhaseLoader |
-| `src/main/ipc/lazy-phase-loader.js` | 按需加载调度器，管理域注册与卸载 |
-| `src/main/ipc/ipc-middleware.js` | Middleware 管道，串联速率限制/权限/计时 |
-| `src/main/ipc/domains/core.domain.js` | 核心域 IPC handlers（笔记/搜索/配置） |
-| `src/main/ipc/domains/ai.domain.js` | AI 域 IPC handlers（LLM/RAG/Cowork） |
-| `src/main/ipc/domains/enterprise.domain.js` | 企业域 IPC handlers（RBAC/SSO/审计） |
+| 文件                                        | 职责                                    |
+| ------------------------------------------- | --------------------------------------- |
+| `src/main/index.js`                         | 应用入口，初始化 LazyPhaseLoader        |
+| `src/main/ipc/lazy-phase-loader.js`         | 按需加载调度器，管理域注册与卸载        |
+| `src/main/ipc/ipc-middleware.js`            | Middleware 管道，串联速率限制/权限/计时 |
+| `src/main/ipc/domains/core.domain.js`       | 核心域 IPC handlers（笔记/搜索/配置）   |
+| `src/main/ipc/domains/ai.domain.js`         | AI 域 IPC handlers（LLM/RAG/Cowork）    |
+| `src/main/ipc/domains/enterprise.domain.js` | 企业域 IPC handlers（RBAC/SSO/审计）    |
 
 ## 使用示例
 
 ```javascript
 // 1. 查看当前域加载状态
-const stats = await window.electron.ipcRenderer.invoke("ipc:get-registry-stats");
+const stats = await window.electron.ipcRenderer.invoke(
+  "ipc:get-registry-stats",
+);
 console.log("已加载域:", stats.loadedDomains);
 console.log("未加载域:", stats.unloadedDomains);
 
@@ -221,56 +223,59 @@ await window.electron.ipcRenderer.invoke("ipc:preload-domain", {
 });
 
 // 3. 查看特定域的调用统计与中间件拦截情况
-const aiStatus = await window.electron.ipcRenderer.invoke("ipc:get-domain-status", "ai");
+const aiStatus = await window.electron.ipcRenderer.invoke(
+  "ipc:get-domain-status",
+  "ai",
+);
 console.log("平均响应时间:", aiStatus.avgResponseTime, "ms");
 console.log("权限拒绝次数:", aiStatus.middlewareStats.permissionDenied);
 ```
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| IPC 调用返回 handler 未注册 | 对应域尚未加载 | 确认域名拼写正确，或手动预加载 `ipc:preload-domain` |
-| 域加载超时 | 域文件依赖模块加载缓慢 | 调大 `lazyLoadTimeout`，检查域文件是否有重量级依赖 |
-| 速率限制触发过频 | 前端高频轮询同一通道 | 增大 `maxRequests` 或使用 EventBus 订阅替代轮询 |
-| 权限检查拒绝 | 用户角色无该通道权限 | 检查 RBAC 配置，确认角色拥有对应 IPC 通道权限 |
-| Middleware 导致响应变慢 | 计时日志或权限检查开销大 | 关闭 `timingLogger` 或调高 `slowThresholdMs` |
+| 问题                        | 可能原因                 | 解决方案                                            |
+| --------------------------- | ------------------------ | --------------------------------------------------- |
+| IPC 调用返回 handler 未注册 | 对应域尚未加载           | 确认域名拼写正确，或手动预加载 `ipc:preload-domain` |
+| 域加载超时                  | 域文件依赖模块加载缓慢   | 调大 `lazyLoadTimeout`，检查域文件是否有重量级依赖  |
+| 速率限制触发过频            | 前端高频轮询同一通道     | 增大 `maxRequests` 或使用 EventBus 订阅替代轮询     |
+| 权限检查拒绝                | 用户角色无该通道权限     | 检查 RBAC 配置，确认角色拥有对应 IPC 通道权限       |
+| Middleware 导致响应变慢     | 计时日志或权限检查开销大 | 关闭 `timingLogger` 或调高 `slowThresholdMs`        |
 
 ## 配置参考
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `ipcDomainSplit.enabled` | boolean | `true` | 是否启用域分割系统 |
-| `ipcDomainSplit.domainDir` | string | `"ipc-domains"` | 域文件目录名 |
-| `ipcDomainSplit.preloadOnStartup` | string[] | `["core"]` | 启动时立即加载的域列表 |
-| `ipcDomainSplit.lazyLoadTimeout` | number | `5000` | 域文件加载超时（毫秒） |
-| `ipcDomainSplit.maxHandlersPerDomain` | number | `100` | 每个域允许注册的最大 handler 数量 |
-| `ipcDomainSplit.middlewareOrder` | string[] | `["rate-limiter","permission-guard","timing-logger"]` | 中间件执行顺序 |
-| `ipcMiddleware.rateLimiter.enabled` | boolean | `true` | 是否启用速率限制 |
-| `ipcMiddleware.rateLimiter.windowMs` | number | `60000` | 滑动窗口时长（毫秒） |
-| `ipcMiddleware.rateLimiter.maxRequests` | number | `100` | 窗口内最大请求数 |
-| `ipcMiddleware.rateLimiter.perChannel` | boolean | `true` | 是否按通道独立计数 |
-| `ipcMiddleware.permissionGuard.enabled` | boolean | `true` | 是否启用权限守卫 |
-| `ipcMiddleware.permissionGuard.defaultPolicy` | string | `"allow"` | 默认策略（生产环境建议 `"deny"`） |
-| `ipcMiddleware.permissionGuard.auditLog` | boolean | `true` | 是否记录权限拒绝事件 |
-| `ipcMiddleware.timingLogger.enabled` | boolean | `true` | 是否启用调用计时 |
-| `ipcMiddleware.timingLogger.slowThresholdMs` | number | `500` | 慢调用告警阈值（毫秒） |
-| `lazyLoader.predictivePreload` | boolean | `true` | 是否启用预测性预加载 |
-| `lazyLoader.unloadIdleMs` | number | `300000` | 空闲域自动卸载时间（毫秒，0 表示禁用） |
+| 配置项                                        | 类型     | 默认值                                                | 说明                                   |
+| --------------------------------------------- | -------- | ----------------------------------------------------- | -------------------------------------- |
+| `ipcDomainSplit.enabled`                      | boolean  | `true`                                                | 是否启用域分割系统                     |
+| `ipcDomainSplit.domainDir`                    | string   | `"ipc-domains"`                                       | 域文件目录名                           |
+| `ipcDomainSplit.preloadOnStartup`             | string[] | `["core"]`                                            | 启动时立即加载的域列表                 |
+| `ipcDomainSplit.lazyLoadTimeout`              | number   | `5000`                                                | 域文件加载超时（毫秒）                 |
+| `ipcDomainSplit.maxHandlersPerDomain`         | number   | `100`                                                 | 每个域允许注册的最大 handler 数量      |
+| `ipcDomainSplit.middlewareOrder`              | string[] | `["rate-limiter","permission-guard","timing-logger"]` | 中间件执行顺序                         |
+| `ipcMiddleware.rateLimiter.enabled`           | boolean  | `true`                                                | 是否启用速率限制                       |
+| `ipcMiddleware.rateLimiter.windowMs`          | number   | `60000`                                               | 滑动窗口时长（毫秒）                   |
+| `ipcMiddleware.rateLimiter.maxRequests`       | number   | `100`                                                 | 窗口内最大请求数                       |
+| `ipcMiddleware.rateLimiter.perChannel`        | boolean  | `true`                                                | 是否按通道独立计数                     |
+| `ipcMiddleware.permissionGuard.enabled`       | boolean  | `true`                                                | 是否启用权限守卫                       |
+| `ipcMiddleware.permissionGuard.defaultPolicy` | string   | `"allow"`                                             | 默认策略（生产环境建议 `"deny"`）      |
+| `ipcMiddleware.permissionGuard.auditLog`      | boolean  | `true`                                                | 是否记录权限拒绝事件                   |
+| `ipcMiddleware.timingLogger.enabled`          | boolean  | `true`                                                | 是否启用调用计时                       |
+| `ipcMiddleware.timingLogger.slowThresholdMs`  | number   | `500`                                                 | 慢调用告警阈值（毫秒）                 |
+| `lazyLoader.predictivePreload`                | boolean  | `true`                                                | 是否启用预测性预加载                   |
+| `lazyLoader.unloadIdleMs`                     | number   | `300000`                                              | 空闲域自动卸载时间（毫秒，0 表示禁用） |
 
 ## 性能指标
 
 IPC 域分割系统的核心性能收益来自启动时的延迟加载策略：
 
-| 指标 | 单体模式 | 域分割模式 | 改善幅度 |
-| --- | --- | --- | --- |
-| 应用冷启动时间 | ~2400 ms | ~980 ms | **−59%** |
-| 启动期内存占用 | ~180 MB | ~72 MB | **−60%** |
-| 首次 IPC 调用延迟（core 域） | 0 ms（已加载） | 0 ms（预加载） | 持平 |
-| 首次 IPC 调用延迟（ai 域） | 0 ms | ~120 ms（首次懒加载） | 一次性开销 |
-| 总 handler 数量 | 213 | 213 | 不变 |
-| 中间件单次开销（速率限制） | — | ~0.3 ms | 可忽略 |
-| 中间件单次开销（权限校验） | — | ~0.8 ms | 可忽略 |
+| 指标                         | 单体模式       | 域分割模式            | 改善幅度   |
+| ---------------------------- | -------------- | --------------------- | ---------- |
+| 应用冷启动时间               | ~2400 ms       | ~980 ms               | **−59%**   |
+| 启动期内存占用               | ~180 MB        | ~72 MB                | **−60%**   |
+| 首次 IPC 调用延迟（core 域） | 0 ms（已加载） | 0 ms（预加载）        | 持平       |
+| 首次 IPC 调用延迟（ai 域）   | 0 ms           | ~120 ms（首次懒加载） | 一次性开销 |
+| 总 handler 数量              | 213            | 213                   | 不变       |
+| 中间件单次开销（速率限制）   | —              | ~0.3 ms               | 可忽略     |
+| 中间件单次开销（权限校验）   | —              | ~0.8 ms               | 可忽略     |
 
 **关键优化建议**:
 
@@ -281,15 +286,15 @@ IPC 域分割系统的核心性能收益来自启动时的延迟加载策略：
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖模块 | 用例数 |
-| --- | --- | --- |
-| `__tests__/unit/ipc/lazy-phase-loader.test.js` | LazyPhaseLoader 加载/卸载/预加载逻辑 | 24 |
-| `__tests__/unit/ipc/ipc-middleware.test.js` | Middleware 管道串联、速率限制、权限校验 | 31 |
-| `__tests__/unit/ipc/rate-limiter.test.js` | 滑动窗口速率限制、按通道独立计数 | 18 |
-| `__tests__/unit/ipc/permission-guard.test.js` | RBAC 权限校验、defaultPolicy、审计日志 | 22 |
-| `__tests__/unit/ipc/timing-logger.test.js` | 调用计时、慢调用告警、统计聚合 | 14 |
-| `__tests__/integration/ipc-domain-split.test.js` | 端到端域加载、handler 注册、注册表统计 | 19 |
-| **合计** | | **128** |
+| 测试文件                                         | 覆盖模块                                | 用例数  |
+| ------------------------------------------------ | --------------------------------------- | ------- |
+| `__tests__/unit/ipc/lazy-phase-loader.test.js`   | LazyPhaseLoader 加载/卸载/预加载逻辑    | 24      |
+| `__tests__/unit/ipc/ipc-middleware.test.js`      | Middleware 管道串联、速率限制、权限校验 | 31      |
+| `__tests__/unit/ipc/rate-limiter.test.js`        | 滑动窗口速率限制、按通道独立计数        | 18      |
+| `__tests__/unit/ipc/permission-guard.test.js`    | RBAC 权限校验、defaultPolicy、审计日志  | 22      |
+| `__tests__/unit/ipc/timing-logger.test.js`       | 调用计时、慢调用告警、统计聚合          | 14      |
+| `__tests__/integration/ipc-domain-split.test.js` | 端到端域加载、handler 注册、注册表统计  | 19      |
+| **合计**                                         |                                         | **128** |
 
 关键覆盖场景：
 

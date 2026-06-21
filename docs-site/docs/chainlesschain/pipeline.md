@@ -126,28 +126,28 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/ai-engine/cowork/pipeline-orchestrator.js` | DAG 流水线编排核心引擎 |
-| `src/main/ai-engine/cowork/pipeline-ipc.js` | 流水线 IPC 处理器（14 个） |
-| `src/main/ai-engine/cowork/requirement-parser.js` | NL→Spec JSON 需求解析 |
-| `src/main/ai-engine/cowork/deploy-agent.js` | 多环境部署代理 |
-| `src/main/ai-engine/cowork/post-deploy-monitor.js` | 部署后健康监控 |
-| `src/main/ai-engine/cowork/rollback-manager.js` | 多策略自动回滚 |
-| `src/renderer/pages/DeploymentMonitorPage.vue` | 流水线监控前端页面 |
-| `src/renderer/stores/deployment.ts` | Pinia 部署状态管理 |
+| 文件                                                 | 职责                       |
+| ---------------------------------------------------- | -------------------------- |
+| `src/main/ai-engine/cowork/pipeline-orchestrator.js` | DAG 流水线编排核心引擎     |
+| `src/main/ai-engine/cowork/pipeline-ipc.js`          | 流水线 IPC 处理器（14 个） |
+| `src/main/ai-engine/cowork/requirement-parser.js`    | NL→Spec JSON 需求解析      |
+| `src/main/ai-engine/cowork/deploy-agent.js`          | 多环境部署代理             |
+| `src/main/ai-engine/cowork/post-deploy-monitor.js`   | 部署后健康监控             |
+| `src/main/ai-engine/cowork/rollback-manager.js`      | 多策略自动回滚             |
+| `src/renderer/pages/DeploymentMonitorPage.vue`       | 流水线监控前端页面         |
+| `src/renderer/stores/deployment.ts`                  | Pinia 部署状态管理         |
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 流水线卡在某阶段 | 该阶段有门控等待审批 | 检查 `dev-pipeline:gate-pending` 事件，在待审批列表中批准或拒绝 |
-| 构建产物丢失 | 超过保留期限被自动清理 | 检查 `artifactRetention` 配置（默认 30 天），重要产物手动备份 |
-| 并行流水线超限 | 同时运行数超过 `parallelLimit` | 等待前序流水线完成，或调整 `parallelLimit`（默认 3） |
-| 阶段执行失败 | 构建/测试命令执行出错 | 通过 `dev-pipeline:get-stage-detail` 查看详细日志和错误信息 |
-| 流水线创建失败 | 模板名称不存在 | 使用 `dev-pipeline:get-templates` 确认可用模板列表 |
-| 门控审批后未继续 | 审批事件未正确触发 | 重新调用 `dev-pipeline:approve-gate`，确认传入正确的 gate ID |
-| 指标数据为空 | 流水线尚未完成首次运行 | 至少完成一次完整流水线运行后，指标数据才会生成 |
+| 问题             | 可能原因                       | 解决方案                                                        |
+| ---------------- | ------------------------------ | --------------------------------------------------------------- |
+| 流水线卡在某阶段 | 该阶段有门控等待审批           | 检查 `dev-pipeline:gate-pending` 事件，在待审批列表中批准或拒绝 |
+| 构建产物丢失     | 超过保留期限被自动清理         | 检查 `artifactRetention` 配置（默认 30 天），重要产物手动备份   |
+| 并行流水线超限   | 同时运行数超过 `parallelLimit` | 等待前序流水线完成，或调整 `parallelLimit`（默认 3）            |
+| 阶段执行失败     | 构建/测试命令执行出错          | 通过 `dev-pipeline:get-stage-detail` 查看详细日志和错误信息     |
+| 流水线创建失败   | 模板名称不存在                 | 使用 `dev-pipeline:get-templates` 确认可用模板列表              |
+| 门控审批后未继续 | 审批事件未正确触发             | 重新调用 `dev-pipeline:approve-gate`，确认传入正确的 gate ID    |
+| 指标数据为空     | 流水线尚未完成首次运行         | 至少完成一次完整流水线运行后，指标数据才会生成                  |
 
 ---
 
@@ -155,17 +155,17 @@
 
 以下为完整配置项说明：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `enabled` | boolean | `true` | 是否启用流水线编排系统 |
-| `defaultTemplate` | string | `"feature"` | 新建流水线时默认使用的模板（`feature` / `bugfix` / `release`） |
-| `parallelLimit` | number | `3` | 同时运行的最大并行流水线数量 |
-| `artifactRetention` | number | `30` | 构建产物保留天数，超期自动清理 |
-| `notifications.onGatePending` | boolean | `true` | 门控等待审批时是否发送通知 |
-| `notifications.onFailure` | boolean | `true` | 流水线失败时是否发送通知 |
-| `stageTimeout` | number | `1800` | 单阶段最大执行时间（秒），超时自动中止 |
-| `retryPolicy.maxAttempts` | number | `2` | 失败阶段自动重试次数（0 表示不重试） |
-| `retryPolicy.backoffSeconds` | number | `30` | 重试前等待时间（秒） |
+| 配置项                        | 类型    | 默认值      | 说明                                                           |
+| ----------------------------- | ------- | ----------- | -------------------------------------------------------------- |
+| `enabled`                     | boolean | `true`      | 是否启用流水线编排系统                                         |
+| `defaultTemplate`             | string  | `"feature"` | 新建流水线时默认使用的模板（`feature` / `bugfix` / `release`） |
+| `parallelLimit`               | number  | `3`         | 同时运行的最大并行流水线数量                                   |
+| `artifactRetention`           | number  | `30`        | 构建产物保留天数，超期自动清理                                 |
+| `notifications.onGatePending` | boolean | `true`      | 门控等待审批时是否发送通知                                     |
+| `notifications.onFailure`     | boolean | `true`      | 流水线失败时是否发送通知                                       |
+| `stageTimeout`                | number  | `1800`      | 单阶段最大执行时间（秒），超时自动中止                         |
+| `retryPolicy.maxAttempts`     | number  | `2`         | 失败阶段自动重试次数（0 表示不重试）                           |
+| `retryPolicy.backoffSeconds`  | number  | `30`        | 重试前等待时间（秒）                                           |
 
 示例完整配置：
 
@@ -195,18 +195,19 @@
 
 流水线编排系统在典型工作负载下的基准数据：
 
-| 指标 | 数值 | 说明 |
-| --- | --- | --- |
-| 流水线创建延迟 | < 50ms | 从 `dev-pipeline:create` 调用到流水线就绪 |
-| 阶段调度延迟 | < 20ms | 前序阶段完成到下一阶段启动的时间 |
-| 最大并行阶段数 | 8 | 单条流水线内可同时运行的最大阶段数 |
-| 最大并行流水线数 | 可配置（默认 3） | 受 `parallelLimit` 控制 |
-| 产物写入吞吐 | ~200MB/s | 本地磁盘构建产物写入速度（SSD） |
-| 门控通知延迟 | < 200ms | 门控触发到前端收到 `gate-pending` 事件的时间 |
-| 状态推送频率 | 实时（事件驱动） | 阶段变更即时推送，无轮询开销 |
-| DAG 最大节点数 | 50 个阶段 | 单条流水线支持的最大阶段数量 |
+| 指标             | 数值             | 说明                                         |
+| ---------------- | ---------------- | -------------------------------------------- |
+| 流水线创建延迟   | < 50ms           | 从 `dev-pipeline:create` 调用到流水线就绪    |
+| 阶段调度延迟     | < 20ms           | 前序阶段完成到下一阶段启动的时间             |
+| 最大并行阶段数   | 8                | 单条流水线内可同时运行的最大阶段数           |
+| 最大并行流水线数 | 可配置（默认 3） | 受 `parallelLimit` 控制                      |
+| 产物写入吞吐     | ~200MB/s         | 本地磁盘构建产物写入速度（SSD）              |
+| 门控通知延迟     | < 200ms          | 门控触发到前端收到 `gate-pending` 事件的时间 |
+| 状态推送频率     | 实时（事件驱动） | 阶段变更即时推送，无轮询开销                 |
+| DAG 最大节点数   | 50 个阶段        | 单条流水线支持的最大阶段数量                 |
 
 **性能调优建议**：
+
 - 将 `parallelLimit` 设置为 CPU 核心数的一半，避免构建任务争抢资源导致整体变慢
 - 对耗时超过 10 分钟的阶段设置合理的 `stageTimeout`，防止僵死阶段占用并行槽位
 - 生产部署阶段建议串行执行（不设置 `parallel: true`），确保回滚时状态可追溯
@@ -215,16 +216,17 @@
 
 ## 测试覆盖率
 
-| 测试类型 | 文件 | 用例数 | 覆盖场景 |
-| --- | --- | --- | --- |
-| 单元测试 | `tests/unit/ai-engine/pipeline-orchestrator.test.js` | 38 | DAG 编排、阶段状态机、并发控制 |
-| 单元测试 | `tests/unit/ai-engine/pipeline-ipc.test.js` | 24 | 14 个 IPC 通道入参校验与响应格式 |
-| 单元测试 | `tests/unit/ai-engine/pipeline-gate.test.js` | 16 | 门控审批流程、权限校验、拒绝回滚 |
-| 单元测试 | `tests/unit/ai-engine/pipeline-artifacts.test.js` | 12 | 产物收集、哈希校验、保留期清理 |
-| 集成测试 | `tests/integration/pipeline-e2e.test.js` | 9 | feature/bugfix/release 三模板端到端流程 |
-| **合计** | — | **99** | — |
+| 测试类型 | 文件                                                 | 用例数 | 覆盖场景                                |
+| -------- | ---------------------------------------------------- | ------ | --------------------------------------- |
+| 单元测试 | `tests/unit/ai-engine/pipeline-orchestrator.test.js` | 38     | DAG 编排、阶段状态机、并发控制          |
+| 单元测试 | `tests/unit/ai-engine/pipeline-ipc.test.js`          | 24     | 14 个 IPC 通道入参校验与响应格式        |
+| 单元测试 | `tests/unit/ai-engine/pipeline-gate.test.js`         | 16     | 门控审批流程、权限校验、拒绝回滚        |
+| 单元测试 | `tests/unit/ai-engine/pipeline-artifacts.test.js`    | 12     | 产物收集、哈希校验、保留期清理          |
+| 集成测试 | `tests/integration/pipeline-e2e.test.js`             | 9      | feature/bugfix/release 三模板端到端流程 |
+| **合计** | —                                                    | **99** | —                                       |
 
 **核心测试用例**：
+
 - `PipelineOrchestrator` — 并行阶段调度、DAG 依赖解析、失败传播与自动重试
 - `GateApproval` — 审批通过后恢复执行、拒绝后标记流水线失败并通知
 - `ArtifactManager` — 产物哈希校验防篡改、30 天保留期到期清理

@@ -166,11 +166,11 @@ chainlesschain tenant import tenant-backup.json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `tenants` | 租户（名称、slug、计划、状态、所有者、配置、删除时间） |
-| `tenant_subscriptions` | 订阅（租户 ID、计划、状态、金额、开始/过期时间） |
-| `tenant_usage` | 用量记录（租户 ID、指标、值、周期） |
+| 表名                   | 说明                                                   |
+| ---------------------- | ------------------------------------------------------ |
+| `tenants`              | 租户（名称、slug、计划、状态、所有者、配置、删除时间） |
+| `tenant_subscriptions` | 订阅（租户 ID、计划、状态、金额、开始/过期时间）       |
+| `tenant_usage`         | 用量记录（租户 ID、指标、值、周期）                    |
 
 ## 系统架构
 
@@ -208,20 +208,20 @@ chainlesschain tenant import tenant-backup.json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| create 创建租户 | < 200ms | ~100ms | OK |
-| subscribe 创建订阅 | < 200ms | ~120ms | OK |
-| check-quota 配额检查 | < 200ms | ~80ms | OK |
-| record 记录用量 | < 150ms | ~60ms | OK |
-| stats 全局统计 | < 500ms | ~250ms | OK |
-| export 导出 | < 1s | ~400ms | OK |
+| 操作                 | 目标    | 实际   | 状态 |
+| -------------------- | ------- | ------ | ---- |
+| create 创建租户      | < 200ms | ~100ms | OK   |
+| subscribe 创建订阅   | < 200ms | ~120ms | OK   |
+| check-quota 配额检查 | < 200ms | ~80ms  | OK   |
+| record 记录用量      | < 150ms | ~60ms  | OK   |
+| stats 全局统计       | < 500ms | ~250ms | OK   |
+| export 导出          | < 1s    | ~400ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/tenant.js` | tenant 命令主入口 (Phase 97) |
+| 文件                                  | 职责                                                  |
+| ------------------------------------- | ----------------------------------------------------- |
+| `packages/cli/src/commands/tenant.js` | tenant 命令主入口 (Phase 97)                          |
 | `packages/cli/src/lib/tenant-saas.js` | 租户 CRUD、订阅管理、用量计量、配额检查、统计核心实现 |
 
 ## 测试覆盖率
@@ -242,12 +242,12 @@ __tests__/unit/tenant-saas.test.js — 135 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `create` 重名 | slug 冲突 | 改 slug 或 `--force` |
-| `subscribe` 拒 | tenant 未 active | `tenant activate` |
-| `check-quota` 越界 | period 参数错 | 使用 `YYYY-MM` 格式 |
-| `export` 空 | tenant 无数据 | `stats` 先验证 |
+| 症状               | 可能原因         | 解决方案             |
+| ------------------ | ---------------- | -------------------- |
+| `create` 重名      | slug 冲突        | 改 slug 或 `--force` |
+| `subscribe` 拒     | tenant 未 active | `tenant activate`    |
+| `check-quota` 越界 | period 参数错    | 使用 `YYYY-MM` 格式  |
+| `export` 空        | tenant 无数据    | `stats` 先验证       |
 
 ## 使用示例
 

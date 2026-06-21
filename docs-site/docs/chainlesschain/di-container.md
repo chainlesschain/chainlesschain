@@ -203,52 +203,52 @@ container.register("b", ServiceB, { dependencies: ["a"] });
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| CircularDependencyError | 服务 A 依赖 B，B 又依赖 A | 重新设计依赖关系，引入中间服务或使用事件总线解耦 |
-| 服务解析返回 undefined | 服务未注册或名称拼写错误 | 调用 `core:service-health` 查看已注册服务列表 |
-| 缓存命中率低 | TTL 设置过短或命名空间配置不当 | 查看 `core:cache-stats` 调整 TTL 和 maxSize |
-| EventBus 死信过多 | 订阅者已销毁但未取消订阅 | 在模块 dispose 时调用 `eventBus.off()` 清理订阅 |
-| 资源池连接耗尽 | 并发请求超过 max 连接数 | 增大 `dbConnections.max`，检查是否有连接泄漏 |
+| 问题                    | 可能原因                       | 解决方案                                         |
+| ----------------------- | ------------------------------ | ------------------------------------------------ |
+| CircularDependencyError | 服务 A 依赖 B，B 又依赖 A      | 重新设计依赖关系，引入中间服务或使用事件总线解耦 |
+| 服务解析返回 undefined  | 服务未注册或名称拼写错误       | 调用 `core:service-health` 查看已注册服务列表    |
+| 缓存命中率低            | TTL 设置过短或命名空间配置不当 | 查看 `core:cache-stats` 调整 TTL 和 maxSize      |
+| EventBus 死信过多       | 订阅者已销毁但未取消订阅       | 在模块 dispose 时调用 `eventBus.off()` 清理订阅  |
+| 资源池连接耗尽          | 并发请求超过 max 连接数        | 增大 `dbConnections.max`，检查是否有连接泄漏     |
 
 ## 配置参考
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `cache.defaultMaxSize` | number | `1000` | 缓存命名空间默认最大条目数 |
-| `cache.defaultTtlMs` | number | `300000` | 缓存默认 TTL（毫秒，5 分钟） |
-| `cache.evictionPolicy` | string | `"lru"` | 淘汰策略：`lru`（最近最少使用） |
-| `cache.namespaces.rag.maxSize` | number | `1000` | RAG 命名空间最大条目数 |
-| `cache.namespaces.rag.ttlMs` | number | `300000` | RAG 缓存 TTL（毫秒） |
-| `cache.namespaces.llm-response.maxSize` | number | `500` | LLM 响应缓存最大条目数 |
-| `cache.namespaces.llm-response.ttlMs` | number | `600000` | LLM 响应缓存 TTL（毫秒，10 分钟） |
-| `eventBus.maxListenersPerEvent` | number | `20` | 单事件最大订阅者数量 |
-| `eventBus.deadLetterEnabled` | boolean | `true` | 是否启用死信队列（无订阅者时记录） |
-| `eventBus.asyncBroadcast` | boolean | `true` | 是否异步广播（避免阻塞发布方） |
-| `resourcePool.dbConnections.min` | number | `5` | 数据库连接池最小连接数 |
-| `resourcePool.dbConnections.max` | number | `20` | 数据库连接池最大连接数 |
-| `resourcePool.dbConnections.idleTimeoutMs` | number | `60000` | 空闲连接回收超时（毫秒） |
-| `resourcePool.healthCheckIntervalMs` | number | `30000` | 连接健康检查间隔（毫秒） |
-| `container.circularDepDetection` | boolean | `true` | 是否在注册时检测循环依赖 |
-| `container.autoDispose` | boolean | `true` | 容器销毁时是否自动调用服务的 `dispose()` |
+| 配置项                                     | 类型    | 默认值   | 说明                                     |
+| ------------------------------------------ | ------- | -------- | ---------------------------------------- |
+| `cache.defaultMaxSize`                     | number  | `1000`   | 缓存命名空间默认最大条目数               |
+| `cache.defaultTtlMs`                       | number  | `300000` | 缓存默认 TTL（毫秒，5 分钟）             |
+| `cache.evictionPolicy`                     | string  | `"lru"`  | 淘汰策略：`lru`（最近最少使用）          |
+| `cache.namespaces.rag.maxSize`             | number  | `1000`   | RAG 命名空间最大条目数                   |
+| `cache.namespaces.rag.ttlMs`               | number  | `300000` | RAG 缓存 TTL（毫秒）                     |
+| `cache.namespaces.llm-response.maxSize`    | number  | `500`    | LLM 响应缓存最大条目数                   |
+| `cache.namespaces.llm-response.ttlMs`      | number  | `600000` | LLM 响应缓存 TTL（毫秒，10 分钟）        |
+| `eventBus.maxListenersPerEvent`            | number  | `20`     | 单事件最大订阅者数量                     |
+| `eventBus.deadLetterEnabled`               | boolean | `true`   | 是否启用死信队列（无订阅者时记录）       |
+| `eventBus.asyncBroadcast`                  | boolean | `true`   | 是否异步广播（避免阻塞发布方）           |
+| `resourcePool.dbConnections.min`           | number  | `5`      | 数据库连接池最小连接数                   |
+| `resourcePool.dbConnections.max`           | number  | `20`     | 数据库连接池最大连接数                   |
+| `resourcePool.dbConnections.idleTimeoutMs` | number  | `60000`  | 空闲连接回收超时（毫秒）                 |
+| `resourcePool.healthCheckIntervalMs`       | number  | `30000`  | 连接健康检查间隔（毫秒）                 |
+| `container.circularDepDetection`           | boolean | `true`   | 是否在注册时检测循环依赖                 |
+| `container.autoDispose`                    | boolean | `true`   | 容器销毁时是否自动调用服务的 `dispose()` |
 
 ---
 
 ## 性能指标
 
-| 指标 | 典型值 | 说明 |
-| --- | --- | --- |
-| 服务注册耗时 | < 1ms | 单次 `container.register()` 同步调用 |
-| 服务解析耗时（无依赖） | < 0.1ms | 单例命中缓存，直接返回 |
-| 服务解析耗时（3 级依赖树） | < 5ms | 含循环依赖检测（DFS 拓扑排序） |
-| 缓存读取延迟（命中） | < 0.05ms | LRU Map 直接命中 |
-| 缓存写入延迟 | < 0.1ms | 含 TTL 设置和 LRU 更新 |
-| 整体缓存命中率（典型） | 87–95% | 取决于命名空间 TTL 与访问频率配置 |
-| EventBus 同步广播延迟 | < 1ms | 10 个订阅者以内 |
-| EventBus 异步广播延迟 | < 5ms | `asyncBroadcast: true`，基于微任务队列 |
-| 连接池获取连接耗时 | < 3ms | 有空闲连接时直接返回；无空闲时等待回收 |
-| 连接健康检查间隔 | 30s | `healthCheckIntervalMs` 默认值 |
-| 内存占用（全量加载） | ~12–20MB | 含所有命名空间缓存和连接池元数据 |
+| 指标                       | 典型值   | 说明                                   |
+| -------------------------- | -------- | -------------------------------------- |
+| 服务注册耗时               | < 1ms    | 单次 `container.register()` 同步调用   |
+| 服务解析耗时（无依赖）     | < 0.1ms  | 单例命中缓存，直接返回                 |
+| 服务解析耗时（3 级依赖树） | < 5ms    | 含循环依赖检测（DFS 拓扑排序）         |
+| 缓存读取延迟（命中）       | < 0.05ms | LRU Map 直接命中                       |
+| 缓存写入延迟               | < 0.1ms  | 含 TTL 设置和 LRU 更新                 |
+| 整体缓存命中率（典型）     | 87–95%   | 取决于命名空间 TTL 与访问频率配置      |
+| EventBus 同步广播延迟      | < 1ms    | 10 个订阅者以内                        |
+| EventBus 异步广播延迟      | < 5ms    | `asyncBroadcast: true`，基于微任务队列 |
+| 连接池获取连接耗时         | < 3ms    | 有空闲连接时直接返回；无空闲时等待回收 |
+| 连接健康检查间隔           | 30s      | `healthCheckIntervalMs` 默认值         |
+| 内存占用（全量加载）       | ~12–20MB | 含所有命名空间缓存和连接池元数据       |
 
 > **优化建议**: 对访问频繁但数据变化慢的命名空间（如 `user-profile`）适当增大 `ttlMs`；RAG 缓存命中率低于 0.7 时应增大 `maxSize` 而非缩短 TTL。
 
@@ -256,15 +256,15 @@ container.register("b", ServiceB, { dependencies: ["a"] });
 
 ## 测试覆盖率
 
-| 模块 | 测试文件 | 测试数 | 覆盖率 |
-| --- | --- | --- | --- |
-| ServiceContainer（DI 容器） | `tests/unit/core/service-container.test.js` | 38 | 97% |
-| SharedCacheManager（缓存） | `tests/unit/core/shared-cache-manager.test.js` | 44 | 96% |
-| EventBus（事件总线） | `tests/unit/core/event-bus.test.js` | 36 | 95% |
-| ResourcePool（资源池） | `tests/unit/core/resource-pool.test.js` | 32 | 93% |
-| IPC Handlers（4 个） | `tests/unit/ipc/ipc-core.test.js` | 28 | 94% |
-| 循环依赖检测 | `tests/unit/core/circular-dep-detection.test.js` | 18 | 100% |
-| **合计** | 6 文件 | **196** | **96%** |
+| 模块                        | 测试文件                                         | 测试数  | 覆盖率  |
+| --------------------------- | ------------------------------------------------ | ------- | ------- |
+| ServiceContainer（DI 容器） | `tests/unit/core/service-container.test.js`      | 38      | 97%     |
+| SharedCacheManager（缓存）  | `tests/unit/core/shared-cache-manager.test.js`   | 44      | 96%     |
+| EventBus（事件总线）        | `tests/unit/core/event-bus.test.js`              | 36      | 95%     |
+| ResourcePool（资源池）      | `tests/unit/core/resource-pool.test.js`          | 32      | 93%     |
+| IPC Handlers（4 个）        | `tests/unit/ipc/ipc-core.test.js`                | 28      | 94%     |
+| 循环依赖检测                | `tests/unit/core/circular-dep-detection.test.js` | 18      | 100%    |
+| **合计**                    | 6 文件                                           | **196** | **96%** |
 
 运行测试：
 
@@ -295,24 +295,24 @@ cd desktop-app-vue && npx vitest run tests/unit/core/circular-dep-detection.test
 ### 服务注册与依赖注入
 
 ```javascript
-const { ServiceContainer } = require('./shared/service-container');
+const { ServiceContainer } = require("./shared/service-container");
 const container = new ServiceContainer();
 
 // 注册单例服务（全局唯一实例）
-container.register('logger', LoggerService, { lifecycle: 'singleton' });
-container.register('database', DatabaseService, {
-  lifecycle: 'singleton',
-  dependencies: ['logger']
+container.register("logger", LoggerService, { lifecycle: "singleton" });
+container.register("database", DatabaseService, {
+  lifecycle: "singleton",
+  dependencies: ["logger"],
 });
 
 // 注册作用域服务（每个请求/会话独立实例）
-container.register('noteService', NoteService, {
-  lifecycle: 'scoped',
-  dependencies: ['database', 'logger']
+container.register("noteService", NoteService, {
+  lifecycle: "scoped",
+  dependencies: ["database", "logger"],
 });
 
 // 解析服务时自动注入所有声明的依赖
-const noteService = container.resolve('noteService');
+const noteService = container.resolve("noteService");
 // noteService 已自动获得 database 和 logger 实例
 ```
 
@@ -320,9 +320,9 @@ const noteService = container.resolve('noteService');
 
 ```javascript
 // 瞬态服务：每次 resolve 创建新实例（适用于无状态工具类）
-container.register('validator', ValidatorService, { lifecycle: 'transient' });
-const v1 = container.resolve('validator');
-const v2 = container.resolve('validator');
+container.register("validator", ValidatorService, { lifecycle: "transient" });
+const v1 = container.resolve("validator");
+const v2 = container.resolve("validator");
 // v1 !== v2，每次都是新实例
 
 // 销毁时自动释放资源（需开启 autoDispose）
@@ -333,8 +333,8 @@ const v2 = container.resolve('validator');
 
 ```javascript
 // 注册时即检测循环依赖，立刻抛出错误而非运行时死锁
-container.register('serviceA', ServiceA, { dependencies: ['serviceB'] });
-container.register('serviceB', ServiceB, { dependencies: ['serviceA'] });
+container.register("serviceA", ServiceA, { dependencies: ["serviceB"] });
+container.register("serviceB", ServiceB, { dependencies: ["serviceA"] });
 // 抛出: CircularDependencyError: serviceA → serviceB → serviceA
 // 解决方案：引入中间服务或使用 EventBus 解耦
 ```
@@ -343,29 +343,28 @@ container.register('serviceB', ServiceB, { dependencies: ['serviceA'] });
 
 ```javascript
 // 通过 IPC 查看所有已注册服务的健康状态
-const health = await window.electron.ipcRenderer.invoke('core:service-health');
+const health = await window.electron.ipcRenderer.invoke("core:service-health");
 // health.services 列出每个服务的 status/uptime/memoryMB
 // health.circularDeps 为空数组表示无循环依赖
 // health.unresolvedDeps 列出尚未解析的依赖项
 
 // 查看缓存命名空间统计（辅助调优 TTL 和 maxSize）
-const cacheStats = await window.electron.ipcRenderer.invoke('core:cache-stats');
+const cacheStats = await window.electron.ipcRenderer.invoke("core:cache-stats");
 // 关注 hitRate 低于 0.5 的命名空间，考虑增大 TTL 或 maxSize
 ```
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/core/service-container.js` | DI 容器（循环依赖检测、生命周期管理） |
-| `desktop-app-vue/src/main/core/shared-cache-manager.js` | LRU+TTL 多策略缓存管理 |
-| `desktop-app-vue/src/main/core/event-bus.js` | 发布/订阅事件总线 |
-| `desktop-app-vue/src/main/core/resource-pool.js` | 资源池（连接池、健康检查） |
-| `desktop-app-vue/src/main/ipc/ipc-core.js` | 共享资源层 IPC Handler |
+| 文件                                                    | 职责                                  |
+| ------------------------------------------------------- | ------------------------------------- |
+| `desktop-app-vue/src/main/core/service-container.js`    | DI 容器（循环依赖检测、生命周期管理） |
+| `desktop-app-vue/src/main/core/shared-cache-manager.js` | LRU+TTL 多策略缓存管理                |
+| `desktop-app-vue/src/main/core/event-bus.js`            | 发布/订阅事件总线                     |
+| `desktop-app-vue/src/main/core/resource-pool.js`        | 资源池（连接池、健康检查）            |
+| `desktop-app-vue/src/main/ipc/ipc-core.js`              | 共享资源层 IPC Handler                |
 
 ## 相关文档
 
 - [数据库演进](/chainlesschain/database-evolution) — 数据库迁移与查询优化
 - [性能优化](/chainlesschain/performance) — 缓存与资源池调优
 - [IPC 系统](/chainlesschain/ipc) — IPC 域拆分与中间件
-```

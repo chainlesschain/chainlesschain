@@ -39,15 +39,15 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/main/file-sync/sync-manager.js` | 文件同步原生模块守卫 |
-| `desktop-app-vue/src/main/git/git-hot-reload.js` | Git 热重载守卫 |
-| `desktop-app-vue/src/main/llm/memory-file-watcher.js` | 记忆文件监听守卫 |
-| `desktop-app-vue/src/main/project/automation-manager.js` | 自动化管理守卫 |
-| `desktop-app-vue/src/main/project/file-cache-manager.js` | 文件缓存守卫 |
-| `desktop-app-vue/src/main/project/project-rag.js` | 项目 RAG 守卫 |
-| `desktop-app-vue/src/main/project/stats-collector.js` | 统计收集守卫 |
+| 文件                                                     | 职责                 |
+| -------------------------------------------------------- | -------------------- |
+| `desktop-app-vue/src/main/file-sync/sync-manager.js`     | 文件同步原生模块守卫 |
+| `desktop-app-vue/src/main/git/git-hot-reload.js`         | Git 热重载守卫       |
+| `desktop-app-vue/src/main/llm/memory-file-watcher.js`    | 记忆文件监听守卫     |
+| `desktop-app-vue/src/main/project/automation-manager.js` | 自动化管理守卫       |
+| `desktop-app-vue/src/main/project/file-cache-manager.js` | 文件缓存守卫         |
+| `desktop-app-vue/src/main/project/project-rag.js`        | 项目 RAG 守卫        |
+| `desktop-app-vue/src/main/project/stats-collector.js`    | 统计收集守卫         |
 
 ## 使用示例
 
@@ -57,9 +57,9 @@
 // 正确写法：安全 require 模式
 let sharp = null;
 try {
-  sharp = require('sharp');
+  sharp = require("sharp");
 } catch (_err) {
-  console.warn('sharp 模块不可用，图像处理将使用降级方案');
+  console.warn("sharp 模块不可用，图像处理将使用降级方案");
 }
 
 // 使用时检查是否可用
@@ -68,7 +68,7 @@ async function processImage(imagePath) {
     return await sharp(imagePath).resize(800, 600).toBuffer();
   }
   // 降级方案：返回原始图片
-  return require('fs').readFileSync(imagePath);
+  return require("fs").readFileSync(imagePath);
 }
 ```
 
@@ -119,12 +119,12 @@ grep -r "require('sharp')\|require('koffi')\|require('better-sqlite3')" src/main
 
 原生模块守卫行为可通过 `unified-config-manager.js` 的 `nativeModuleGuard` 配置节调整：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `warnOnFallback` | boolean | `true` | 降级时是否输出 `console.warn` 日志 |
-| `ukeySimulationMode` | boolean | `false` | 强制 U-Key 始终使用模拟模式（开发/测试用） |
-| `disableFileWatcherOnFallback` | boolean | `true` | `chokidar` 不可用时是否禁用文件监听 |
-| `dbFallbackPromptUser` | boolean | `true` | `better-sqlite3` 不可用时是否提示用户重装依赖 |
+| 配置项                         | 类型    | 默认值  | 说明                                          |
+| ------------------------------ | ------- | ------- | --------------------------------------------- |
+| `warnOnFallback`               | boolean | `true`  | 降级时是否输出 `console.warn` 日志            |
+| `ukeySimulationMode`           | boolean | `false` | 强制 U-Key 始终使用模拟模式（开发/测试用）    |
+| `disableFileWatcherOnFallback` | boolean | `true`  | `chokidar` 不可用时是否禁用文件监听           |
+| `dbFallbackPromptUser`         | boolean | `true`  | `better-sqlite3` 不可用时是否提示用户重装依赖 |
 
 ```javascript
 // .chainlesschain/config.json 示例
@@ -146,35 +146,35 @@ grep -r "require('sharp')\|require('koffi')\|require('better-sqlite3')" src/main
 
 原生模块守卫的运行开销极低，主要体现在应用启动阶段：
 
-| 操作 | 耗时 | 说明 |
-| --- | --- | --- |
-| 单个原生模块 try-catch 加载 | < 1 ms（成功）/ 5–20 ms（失败） | 失败时 Node.js 需要解析 `.node` 文件路径 |
-| 7 个守卫文件全部初始化 | < 50 ms | 顺序加载，不并发 |
-| `chokidar` 降级后文件监听跳过 | 0 ms | 直接返回 no-op 函数 |
-| `sharp` 降级后图像处理 | 与原始文件读取相同 | `fs.readFileSync` 替代 |
+| 操作                          | 耗时                            | 说明                                     |
+| ----------------------------- | ------------------------------- | ---------------------------------------- |
+| 单个原生模块 try-catch 加载   | < 1 ms（成功）/ 5–20 ms（失败） | 失败时 Node.js 需要解析 `.node` 文件路径 |
+| 7 个守卫文件全部初始化        | < 50 ms                         | 顺序加载，不并发                         |
+| `chokidar` 降级后文件监听跳过 | 0 ms                            | 直接返回 no-op 函数                      |
+| `sharp` 降级后图像处理        | 与原始文件读取相同              | `fs.readFileSync` 替代                   |
 
 **整体影响**: 所有模块正常加载时无额外开销；全部降级时启动耗时增加约 50–100 ms（来自 require 失败的文件系统探测），对用户体验无感知影响。
 
 ### 内存占用对比
 
-| 模式 | 增量内存 | 说明 |
-| --- | --- | --- |
-| 正常加载（所有原生模块可用） | 基准 | `sharp`、`koffi` 等各占 10–30 MB |
-| 完全降级（所有模块不可用） | -50 ~ -80 MB | 未加载原生模块，内存占用更低 |
+| 模式                         | 增量内存     | 说明                             |
+| ---------------------------- | ------------ | -------------------------------- |
+| 正常加载（所有原生模块可用） | 基准         | `sharp`、`koffi` 等各占 10–30 MB |
+| 完全降级（所有模块不可用）   | -50 ~ -80 MB | 未加载原生模块，内存占用更低     |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖功能 | 用例数 |
-| --- | --- | --- |
-| `tests/unit/file-sync/sync-manager.test.js` | `chokidar` 守卫、降级文件同步 | 8 |
-| `tests/unit/git/git-hot-reload.test.js` | `chokidar` 守卫、热重载降级 | 6 |
-| `tests/unit/llm/memory-file-watcher.test.js` | 记忆文件监听守卫与降级 | 7 |
-| `tests/unit/project/automation-manager.test.js` | 自动化管理原生守卫 | 9 |
-| `tests/unit/project/file-cache-manager.test.js` | 文件缓存守卫 | 7 |
-| `tests/unit/project/project-rag.test.js` | RAG 原生模块守卫 | 10 |
-| `tests/unit/project/stats-collector.test.js` | 统计收集守卫 | 6 |
+| 测试文件                                        | 覆盖功能                      | 用例数 |
+| ----------------------------------------------- | ----------------------------- | ------ |
+| `tests/unit/file-sync/sync-manager.test.js`     | `chokidar` 守卫、降级文件同步 | 8      |
+| `tests/unit/git/git-hot-reload.test.js`         | `chokidar` 守卫、热重载降级   | 6      |
+| `tests/unit/llm/memory-file-watcher.test.js`    | 记忆文件监听守卫与降级        | 7      |
+| `tests/unit/project/automation-manager.test.js` | 自动化管理原生守卫            | 9      |
+| `tests/unit/project/file-cache-manager.test.js` | 文件缓存守卫                  | 7      |
+| `tests/unit/project/project-rag.test.js`        | RAG 原生模块守卫              | 10     |
+| `tests/unit/project/stats-collector.test.js`    | 统计收集守卫                  | 6      |
 
 **运行测试**:
 

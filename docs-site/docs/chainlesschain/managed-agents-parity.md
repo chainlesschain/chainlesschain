@@ -90,31 +90,31 @@ ChainlessChain 这轮对标的是 Anthropic Claude Managed Agents 的托管式 A
 
 ```js
 // packages/session-core/lib/index.js
-const { createSessionCore } = require('@chainlesschain/session-core');
+const { createSessionCore } = require("@chainlesschain/session-core");
 
 const core = createSessionCore({
   // 持久化根目录，默认 ~/.chainlesschain/
-  dataDir: '/custom/path/.chainlesschain',
+  dataDir: "/custom/path/.chainlesschain",
 
   // IdleParker 参数
-  idleTimeoutMs: 300_000,      // 5 分钟无活动后标记 idle
-  parkOnIdle: true,            // idle 后自动 park
+  idleTimeoutMs: 300_000, // 5 分钟无活动后标记 idle
+  parkOnIdle: true, // idle 后自动 park
 
   // MemoryStore 检索参数
   memory: {
-    defaultLimit: 10,          // recall 默认返回条数
-    similarityThreshold: 0.6,  // 向量相似度阈值（0~1）
-    maxEntriesPerScope: 1000,  // 单 scope 最大条目数
+    defaultLimit: 10, // recall 默认返回条数
+    similarityThreshold: 0.6, // 向量相似度阈值（0~1）
+    maxEntriesPerScope: 1000, // 单 scope 最大条目数
   },
 
   // ApprovalGate 默认策略
   approval: {
-    defaultPolicy: 'strict',   // 'strict' | 'trusted' | 'autopilot'
+    defaultPolicy: "strict", // 'strict' | 'trusted' | 'autopilot'
   },
 
   // BetaFlags TTL 校验
   betaFlags: {
-    allowExpired: false,       // true = 过期 flag 仍生效（测试用）
+    allowExpired: false, // true = 过期 flag 仍生效（测试用）
   },
 });
 ```
@@ -158,22 +158,22 @@ CHAINLESSCHAIN_WS_TOKEN=your-secret-token
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `SessionHandle` 创建 | < 1 ms | ~0.3 ms | ✅ |
-| `TraceStore` 追加写入（单事件） | < 2 ms | ~0.8 ms | ✅ |
-| `TraceStore` tail 读取（最后 100 行） | < 10 ms | ~4 ms | ✅ |
-| `MemoryStore` store（单条） | < 5 ms | ~2 ms | ✅ |
-| `MemoryStore` recall（全量扫描，1000 条） | < 50 ms | ~18 ms | ✅ |
-| `ApprovalGate` decide（缓存命中） | < 1 ms | ~0.2 ms | ✅ |
-| `ApprovalGate` decide（文件读取） | < 10 ms | ~5 ms | ✅ |
-| `BetaFlags` isEnabled | < 1 ms | ~0.1 ms | ✅ |
-| `StreamRouter` 单事件分发 | < 1 ms | ~0.4 ms | ✅ |
-| `MemoryConsolidator` 批量（50 条 trace） | < 200 ms | ~85 ms | ✅ |
-| `SessionManager` park/unpark | < 20 ms | ~9 ms | ✅ |
-| file-adapter 原子写入 | < 15 ms | ~6 ms | ✅ |
-| WS 路由响应（sessions.list） | < 30 ms | ~12 ms | ✅ |
-| WS 路由响应（memory.recall） | < 60 ms | ~28 ms | ✅ |
+| 操作                                      | 目标     | 实际    | 状态 |
+| ----------------------------------------- | -------- | ------- | ---- |
+| `SessionHandle` 创建                      | < 1 ms   | ~0.3 ms | ✅   |
+| `TraceStore` 追加写入（单事件）           | < 2 ms   | ~0.8 ms | ✅   |
+| `TraceStore` tail 读取（最后 100 行）     | < 10 ms  | ~4 ms   | ✅   |
+| `MemoryStore` store（单条）               | < 5 ms   | ~2 ms   | ✅   |
+| `MemoryStore` recall（全量扫描，1000 条） | < 50 ms  | ~18 ms  | ✅   |
+| `ApprovalGate` decide（缓存命中）         | < 1 ms   | ~0.2 ms | ✅   |
+| `ApprovalGate` decide（文件读取）         | < 10 ms  | ~5 ms   | ✅   |
+| `BetaFlags` isEnabled                     | < 1 ms   | ~0.1 ms | ✅   |
+| `StreamRouter` 单事件分发                 | < 1 ms   | ~0.4 ms | ✅   |
+| `MemoryConsolidator` 批量（50 条 trace）  | < 200 ms | ~85 ms  | ✅   |
+| `SessionManager` park/unpark              | < 20 ms  | ~9 ms   | ✅   |
+| file-adapter 原子写入                     | < 15 ms  | ~6 ms   | ✅   |
+| WS 路由响应（sessions.list）              | < 30 ms  | ~12 ms  | ✅   |
+| WS 路由响应（memory.recall）              | < 60 ms  | ~28 ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -372,70 +372,82 @@ const {
   MemoryStore,
   ApprovalGate,
   StreamRouter,
-} = require('@chainlesschain/session-core');
+} = require("@chainlesschain/session-core");
 
 // 创建 session
-const session = new SessionHandle({ agentId: 'coder' });
+const session = new SessionHandle({ agentId: "coder" });
 console.log(session.sessionId); // sess_xxxxxxxx
 
 // 追踪事件
-const trace = new TraceStore(session.sessionId, { dataDir: '~/.chainlesschain' });
-await trace.append({ type: 'assistant_message', content: 'Hello' });
+const trace = new TraceStore(session.sessionId, {
+  dataDir: "~/.chainlesschain",
+});
+await trace.append({ type: "assistant_message", content: "Hello" });
 
 // 存储记忆
-const memory = new MemoryStore({ dataDir: '~/.chainlesschain' });
+const memory = new MemoryStore({ dataDir: "~/.chainlesschain" });
 await memory.store({
-  content: '用户偏好 TypeScript',
-  scope: 'global',
-  category: 'preference',
+  content: "用户偏好 TypeScript",
+  scope: "global",
+  category: "preference",
 });
-const results = await memory.recall({ query: 'TypeScript', scope: 'global', limit: 5 });
+const results = await memory.recall({
+  query: "TypeScript",
+  scope: "global",
+  limit: 5,
+});
 
 // 审批策略检查
-const gate = new ApprovalGate({ dataDir: '~/.chainlesschain' });
+const gate = new ApprovalGate({ dataDir: "~/.chainlesschain" });
 const decision = await gate.decide(session.sessionId, {
-  toolName: 'run_shell',
-  riskLevel: 'high',
+  toolName: "run_shell",
+  riskLevel: "high",
 });
 // decision.approved === false (strict 模式下高风险工具需要人工审批)
 
 // 流式输出
 const router = new StreamRouter();
-router.on('event', (evt) => process.stdout.write(JSON.stringify(evt) + '\n'));
+router.on("event", (evt) => process.stdout.write(JSON.stringify(evt) + "\n"));
 const text = await router.collect(asyncLLMStream);
 ```
 
 ### WebSocket — cc serve API
 
 ```js
-const ws = new WebSocket('ws://localhost:18800');
+const ws = new WebSocket("ws://localhost:18800");
 
 // 鉴权握手
-ws.send(JSON.stringify({
-  type: 'auth',
-  token: process.env.CC_WS_TOKEN,
-}));
+ws.send(
+  JSON.stringify({
+    type: "auth",
+    token: process.env.CC_WS_TOKEN,
+  }),
+);
 
 // 存储记忆
-ws.send(JSON.stringify({
-  id: 'req-1',
-  type: 'memory.store',
-  content: '偏好 TypeScript',
-  scope: 'global',
-  category: 'preference',
-}));
+ws.send(
+  JSON.stringify({
+    id: "req-1",
+    type: "memory.store",
+    content: "偏好 TypeScript",
+    scope: "global",
+    category: "preference",
+  }),
+);
 
 // 检索记忆
-ws.send(JSON.stringify({
-  id: 'req-2',
-  type: 'memory.recall',
-  query: 'TypeScript',
-  scope: 'global',
-  limit: 5,
-}));
+ws.send(
+  JSON.stringify({
+    id: "req-2",
+    type: "memory.recall",
+    query: "TypeScript",
+    scope: "global",
+    limit: 5,
+  }),
+);
 
 // 接收响应
-ws.on('message', (raw) => {
+ws.on("message", (raw) => {
   const msg = JSON.parse(raw);
   // msg.type === 'memory.recall.response'
   // msg.ok === true

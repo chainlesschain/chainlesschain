@@ -25,11 +25,11 @@ chainlesschain sla tiers --json
 
 列出内置 SLA 等级：
 
-| 等级 | 可用性 | 最大响应时间 | 最小吞吐量 | 赔偿率 |
-|------|--------|-------------|-----------|--------|
-| gold | 最高 | 最低 | 最高 | 最高 |
-| silver | 中等 | 中等 | 中等 | 中等 |
-| bronze | 基础 | 较宽 | 较低 | 较低 |
+| 等级   | 可用性 | 最大响应时间 | 最小吞吐量 | 赔偿率 |
+| ------ | ------ | ------------ | ---------- | ------ |
+| gold   | 最高   | 最低         | 最高       | 最高   |
+| silver | 中等   | 中等         | 中等       | 中等   |
+| bronze | 基础   | 较宽         | 较低       | 较低   |
 
 ### sla create — 创建合约
 
@@ -79,12 +79,12 @@ chainlesschain sla record sla-001 error_rate 0.002 --json
 
 记录 SLA 性能指标。支持的 term：
 
-| Term | 说明 | 典型值 |
-|------|------|--------|
-| `availability` | 可用性 | 0.0~1.0 |
-| `response_time` | 响应时间 (ms) | 正整数 |
-| `throughput` | 吞吐量 (rps) | 正整数 |
-| `error_rate` | 错误率 | 0.0~1.0 |
+| Term            | 说明          | 典型值  |
+| --------------- | ------------- | ------- |
+| `availability`  | 可用性        | 0.0~1.0 |
+| `response_time` | 响应时间 (ms) | 正整数  |
+| `throughput`    | 吞吐量 (rps)  | 正整数  |
+| `error_rate`    | 错误率        | 0.0~1.0 |
 
 ### sla metrics — 聚合指标
 
@@ -106,11 +106,11 @@ chainlesschain sla check sla-001 --json
 
 违约严重程度：
 
-| 严重程度 | 说明 |
-|----------|------|
-| `minor` | 轻微偏差 |
+| 严重程度   | 说明     |
+| ---------- | -------- |
+| `minor`    | 轻微偏差 |
 | `moderate` | 中等偏差 |
-| `major` | 严重偏差 |
+| `major`    | 严重偏差 |
 | `critical` | 极端偏差 |
 
 ### sla violations — 违约历史
@@ -156,34 +156,34 @@ chainlesschain sla report sla-001 --start 1700000000000 --end 1710000000000 --js
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/sla.js` | sla 命令主入口 |
+| 文件                                  | 职责                                                     |
+| ------------------------------------- | -------------------------------------------------------- |
+| `packages/cli/src/commands/sla.js`    | sla 命令主入口                                           |
 | `packages/cli/src/lib/sla-manager.js` | 等级目录、合约管理、指标聚合、违约检测、赔偿计算核心实现 |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `tiers` | SLA 等级 | bronze / silver / gold / platinum |
-| `tier.gold.availability` | 可用性阈值 | 0.999 |
-| `tier.gold.responseTimeMs` | P95 响应阈值 | 100 |
-| `tier.gold.throughputRps` | 吞吐阈值 | 500 |
-| `compensation.currency` | 赔偿币种 | `CLC` |
-| `compensation.multiplier` | 违约倍率 | 1.0 |
-| `report.defaultWindowMs` | 默认报告窗口 | 30 天 |
+| 配置项                     | 含义         | 默认                              |
+| -------------------------- | ------------ | --------------------------------- |
+| `tiers`                    | SLA 等级     | bronze / silver / gold / platinum |
+| `tier.gold.availability`   | 可用性阈值   | 0.999                             |
+| `tier.gold.responseTimeMs` | P95 响应阈值 | 100                               |
+| `tier.gold.throughputRps`  | 吞吐阈值     | 500                               |
+| `compensation.currency`    | 赔偿币种     | `CLC`                             |
+| `compensation.multiplier`  | 违约倍率     | 1.0                               |
+| `report.defaultWindowMs`   | 默认报告窗口 | 30 天                             |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `tiers` | < 20 ms | 内置枚举 |
-| `create` | < 30 ms | 单行 INSERT |
-| `record` | < 15 ms | 指标写入 |
-| `check` | < 100 ms | 聚合 + 违约写入 |
-| `violations` | < 50 ms | 带索引分页 |
-| `compensate` | < 50 ms | 赔偿计算 |
-| `report` | < 200 ms | 时间窗聚合 |
+| 操作         | 典型耗时 | 备注            |
+| ------------ | -------- | --------------- |
+| `tiers`      | < 20 ms  | 内置枚举        |
+| `create`     | < 30 ms  | 单行 INSERT     |
+| `record`     | < 15 ms  | 指标写入        |
+| `check`      | < 100 ms | 聚合 + 违约写入 |
+| `violations` | < 50 ms  | 带索引分页      |
+| `compensate` | < 50 ms  | 赔偿计算        |
+| `report`     | < 200 ms | 时间窗聚合      |
 
 ## 测试覆盖率
 
@@ -203,12 +203,12 @@ __tests__/unit/sla-manager.test.js — 83 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `check` 无违约 | 阈值过宽或样本不足 | 查看 `record` 数量 |
-| `compensate` 报错 | 违约已赔偿 | `violations` 确认 status |
-| `report` 空 | 时间窗外 | 放宽 `--start/--end` |
-| 吞吐统计异常 | metric 单位错 | 确认写入为 RPS |
+| 症状              | 可能原因           | 解决方案                 |
+| ----------------- | ------------------ | ------------------------ |
+| `check` 无违约    | 阈值过宽或样本不足 | 查看 `record` 数量       |
+| `compensate` 报错 | 违约已赔偿         | `violations` 确认 status |
+| `report` 空       | 时间窗外           | 放宽 `--start/--end`     |
+| 吞吐统计异常      | metric 单位错      | 确认写入为 RPS           |
 
 ## 测试
 

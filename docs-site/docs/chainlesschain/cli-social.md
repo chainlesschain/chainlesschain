@@ -157,11 +157,11 @@ chainlesschain social stats --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `social_contacts` | 联系人（名称、DID、邮箱、备注、创建时间） |
-| `social_friends` | 好友关系（联系人 ID、状态、创建时间） |
-| `social_posts` | 社交动态（内容、作者、点赞数、创建时间） |
+| 表名              | 说明                                              |
+| ----------------- | ------------------------------------------------- |
+| `social_contacts` | 联系人（名称、DID、邮箱、备注、创建时间）         |
+| `social_friends`  | 好友关系（联系人 ID、状态、创建时间）             |
+| `social_posts`    | 社交动态（内容、作者、点赞数、创建时间）          |
 | `social_messages` | 聊天消息（线程 ID、发送者、接收者、内容、时间戳） |
 
 ## 系统架构
@@ -195,14 +195,14 @@ chainlesschain social stats --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| contact list (100 条) | < 50ms | ~25ms | ✅ |
-| friend add (请求) | < 30ms | ~15ms | ✅ |
-| post publish | < 30ms | ~15ms | ✅ |
-| chat send (单条) | < 50ms | ~25ms | ✅ |
-| chat messages (20 条) | < 40ms | ~20ms | ✅ |
-| stats 汇总 | < 30ms | ~15ms | ✅ |
+| 操作                  | 目标   | 实际  | 状态 |
+| --------------------- | ------ | ----- | ---- |
+| contact list (100 条) | < 50ms | ~25ms | ✅   |
+| friend add (请求)     | < 30ms | ~15ms | ✅   |
+| post publish          | < 30ms | ~15ms | ✅   |
+| chat send (单条)      | < 50ms | ~25ms | ✅   |
+| chat messages (20 条) | < 40ms | ~20ms | ✅   |
+| stats 汇总            | < 30ms | ~15ms | ✅   |
 
 ## 测试覆盖率
 
@@ -277,11 +277,11 @@ chainlesschain social stats --json
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No contacts" | 未添加联系人 | 使用 `social contact add` |
-| "No friends" | 无好友关系 | 先添加联系人再发送好友请求 |
-| "No posts" | 无动态 | 使用 `social post publish` 发布 |
+| 症状                 | 可能原因     | 解决方案                                |
+| -------------------- | ------------ | --------------------------------------- |
+| "No contacts"        | 未添加联系人 | 使用 `social contact add`               |
+| "No friends"         | 无好友关系   | 先添加联系人再发送好友请求              |
+| "No posts"           | 无动态       | 使用 `social post publish` 发布         |
 | 消息发送后找不到线程 | 线程 ID 变化 | 使用 `social chat threads` 查看最新线程 |
 
 ## 安全考虑

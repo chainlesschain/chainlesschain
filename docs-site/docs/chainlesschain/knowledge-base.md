@@ -43,14 +43,14 @@ ChainlessChain的知识库管理功能帮助您构建个人第二大脑，统一
 
 ## 核心模块
 
-| 模块 | 说明 | 关键文件 |
-|------|------|---------|
-| 笔记管理 | CRUD、标签、分类、软删除 | `database.js` |
-| RAG 搜索 | BM25 + 向量混合检索 | `rag/` |
+| 模块     | 说明                     | 关键文件                            |
+| -------- | ------------------------ | ----------------------------------- |
+| 笔记管理 | CRUD、标签、分类、软删除 | `database.js`                       |
+| RAG 搜索 | BM25 + 向量混合检索      | `rag/`                              |
 | 知识导入 | Markdown/PDF/ENEX/Notion | `cli/src/lib/knowledge-importer.js` |
 | 知识导出 | Markdown 批量 / 静态站点 | `cli/src/lib/knowledge-exporter.js` |
-| 版本控制 | 笔记历史、diff、回滚 | `cli/src/lib/note-versioning.js` |
-| 网页剪藏 | 浏览器扩展剪藏 | `browser/` |
+| 版本控制 | 笔记历史、diff、回滚     | `cli/src/lib/note-versioning.js`    |
+| 网页剪藏 | 浏览器扩展剪藏           | `browser/`                          |
 
 ## 核心概念
 
@@ -106,10 +106,12 @@ ChainlessChain使用所见即所得的Markdown编辑器，支持：
 
 ```markdown
 # 一级标题
+
 ## 二级标题
+
 ### 三级标题
 
-**粗体** *斜体* ~~删除线~~
+**粗体** _斜体_ ~~删除线~~
 
 - 无序列表
 - 项目2
@@ -127,12 +129,13 @@ ChainlessChain使用所见即所得的Markdown编辑器，支持：
 ````markdown
 ```javascript
 function hello() {
-  console.log('Hello, World!')
+  console.log("Hello, World!");
 }
 ```
 ````
 
 支持100+种语言语法高亮：
+
 - JavaScript, TypeScript, Python, Java, C++, Rust...
 - JSON, YAML, TOML, XML...
 - Bash, PowerShell, SQL...
@@ -143,6 +146,7 @@ function hello() {
 行内公式: $E = mc^2$
 
 块级公式:
+
 $$
 \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
 $$
@@ -154,7 +158,7 @@ $$
 
 ```markdown
 | 列1 | 列2 | 列3 |
-|-----|-----|-----|
+| --- | --- | --- |
 | A   | B   | C   |
 | D   | E   | F   |
 ```
@@ -194,12 +198,15 @@ $$
 
 ```markdown
 # 方式一: Markdown语法
+
 ![描述](./images/photo.jpg)
 
 # 方式二: 拖拽
+
 直接拖拽图片到编辑器
 
 # 方式三: 粘贴
+
 Ctrl/Cmd + V 粘贴剪贴板图片
 ```
 
@@ -212,6 +219,7 @@ Ctrl/Cmd + V 粘贴剪贴板图片
 ```
 
 支持的文件类型：
+
 - 文档: PDF, DOCX, XLSX, PPTX
 - 压缩包: ZIP, RAR, 7Z
 - 代码: 所有文本文件
@@ -220,12 +228,15 @@ Ctrl/Cmd + V 粘贴剪贴板图片
 
 ```markdown
 # 内部链接
+
 [[另一个笔记的标题]]
 
 # 外部链接
+
 [Google](https://google.com)
 
 # 带标题的链接
+
 [Google](https://google.com "搜索引擎")
 ```
 
@@ -272,8 +283,8 @@ date: 2024-12-02
 
 ```markdown
 ---
-title: {{title}}
-date: {{date}}
+title: { { title } }
+date: { { date } }
 tags: []
 ---
 
@@ -286,6 +297,7 @@ tags: []
 ## 参考资料
 
 ---
+
 Created: {{date}}
 Updated: {{updated}}
 ```
@@ -297,6 +309,7 @@ Updated: {{updated}}
 ```
 
 内置模板:
+
 - 📝 日记模板
 - 📚 读书笔记
 - 💡 想法记录
@@ -317,6 +330,7 @@ Ctrl/Cmd + Shift + F - 全局搜索
 ```
 
 搜索框支持:
+
 - 关键词搜索
 - 多关键词 AND: `keyword1 keyword2`
 - OR搜索: `keyword1 OR keyword2`
@@ -326,23 +340,27 @@ Ctrl/Cmd + Shift + F - 全局搜索
 #### 高级搜索
 
 **按标签搜索**:
+
 ```
 tag:技术 tag:编程
 ```
 
 **按日期搜索**:
+
 ```
 created:2024-12-01
 modified:>2024-12-01
 ```
 
 **按文件类型**:
+
 ```
 type:markdown
 type:pdf
 ```
 
 **组合搜索**:
+
 ```
 编程 tag:技术 created:>2024-11-01
 ```
@@ -398,6 +416,7 @@ Ctrl/Cmd + K - 打开AI助手
 ```
 
 示例问题:
+
 ```
 Q: 总结一下我关于机器学习的所有笔记
 A: 根据您的笔记，您主要学习了...
@@ -440,6 +459,7 @@ AI会根据上下文继续写作。
 ```
 
 可选择：
+
 - 更正式
 - 更口语
 - 更简洁
@@ -491,6 +511,7 @@ AI功能 → 生成大纲
 ```
 
 显示笔记之间的关联关系:
+
 - 节点: 笔记
 - 边: 链接、标签、主题关联
 - 颜色: 标签分类
@@ -523,6 +544,7 @@ AI功能 → 生成大纲
 #### 导入其他格式
 
 **PDF**:
+
 ```
 文件 → 导入 → PDF
 
@@ -531,6 +553,7 @@ AI功能 → 生成大纲
 ```
 
 **Word文档**:
+
 ```
 文件 → 导入 → Word文档
 
@@ -539,6 +562,7 @@ AI功能 → 生成大纲
 ```
 
 **网页**:
+
 ```
 浏览器插件 → 剪藏到ChainlessChain
 
@@ -548,6 +572,7 @@ AI功能 → 生成大纲
 ```
 
 **Notion**:
+
 ```
 文件 → 导入 → Notion导出
 
@@ -557,6 +582,7 @@ AI功能 → 生成大纲
 ```
 
 **Evernote**:
+
 ```
 文件 → 导入 → Evernote
 
@@ -609,6 +635,7 @@ AI功能 → 生成大纲
 ```
 
 可部署到:
+
 - GitHub Pages
 - Netlify
 - Vercel
@@ -622,6 +649,7 @@ AI功能 → 生成大纲
 #### 安装插件
 
 支持浏览器:
+
 - Chrome/Edge
 - Firefox
 - Safari
@@ -631,16 +659,19 @@ AI功能 → 生成大纲
 #### 使用插件
 
 **完整网页**:
+
 ```
 点击插件图标 → 保存整页
 ```
 
 **选择区域**:
+
 ```
 选中内容 → 右键 → 剪藏到ChainlessChain
 ```
 
 **快捷键**:
+
 ```
 Ctrl/Cmd + Shift + S - 快速剪藏
 ```
@@ -656,11 +687,13 @@ Ctrl/Cmd + Shift + S - 快速剪藏
 ### 网页管理
 
 所有剪藏的网页保存在:
+
 ```
 知识库 → 网页剪藏
 ```
 
 支持:
+
 - 全文搜索
 - 标签分类
 - 离线阅读
@@ -763,6 +796,7 @@ Ctrl/Cmd + Shift + S - 快速剪藏
 #### 实时协作
 
 多人可同时编辑:
+
 - 实时同步
 - 冲突自动合并
 - 显示编辑者光标
@@ -837,6 +871,7 @@ date: 2024-12-02
 #### 3. 定期整理
 
 建议流程:
+
 ```
 1. 每周回顾收件箱
 2. 整理到对应文件夹
@@ -862,16 +897,16 @@ date: 2024-12-02
 
 ```javascript
 // 自动添加创建时间
-plugin.registerHook('onCreate', (note) => {
-  note.metadata.created = new Date().toISOString()
-})
+plugin.registerHook("onCreate", (note) => {
+  note.metadata.created = new Date().toISOString();
+});
 
 // 自动生成摘要
-plugin.registerHook('onSave', async (note) => {
+plugin.registerHook("onSave", async (note) => {
   if (note.content.length > 500) {
-    note.metadata.summary = await ai.summarize(note.content)
+    note.metadata.summary = await ai.summarize(note.content);
   }
-})
+});
 ```
 
 ### 自定义主题
@@ -881,7 +916,7 @@ CSS自定义样式:
 ```css
 /* 自定义编辑器样式 */
 .editor {
-  font-family: 'Monaco', monospace;
+  font-family: "Monaco", monospace;
   font-size: 16px;
   line-height: 1.8;
 }
@@ -1000,27 +1035,27 @@ chainlesschain export site -o ./my-site
 // packages/cli/src/lib/bm25-search.js
 const bm25Config = {
   // BM25 调参
-  k1: 1.5,          // 词频饱和度（默认 1.5，越大越强调高频词）
-  b: 0.75,          // 字段长度归一化系数（0–1，0 = 不归一化）
-  delta: 0.5,       // BM25+ 下限修正（防止 TF=0 时得分为 0）
+  k1: 1.5, // 词频饱和度（默认 1.5，越大越强调高频词）
+  b: 0.75, // 字段长度归一化系数（0–1，0 = 不归一化）
+  delta: 0.5, // BM25+ 下限修正（防止 TF=0 时得分为 0）
 
   // TF-IDF fallback
   tfidf: {
     enabled: true,
-    minTermFreq: 1,       // 最低词频阈值
+    minTermFreq: 1, // 最低词频阈值
     maxDocFreqRatio: 0.9, // 文档频率超过 90% 视为停用词
   },
 
   // 字段权重
   fieldWeights: {
-    title:   3.0,   // 标题权重最高
-    tags:    2.0,
+    title: 3.0, // 标题权重最高
+    tags: 2.0,
     content: 1.0,
     summary: 1.5,
   },
 
   // 索引存储
-  indexPath: '.chainlesschain/bm25-index.json',
+  indexPath: ".chainlesschain/bm25-index.json",
   rebuildOnStart: false,
 };
 ```
@@ -1030,26 +1065,26 @@ const bm25Config = {
 ```javascript
 // desktop-app-vue/src/main/rag/vector-store.js
 const qdrantConfig = {
-  host: process.env.QDRANT_HOST || 'http://localhost:6333',
-  collectionName: 'chainlesschain_notes',
+  host: process.env.QDRANT_HOST || "http://localhost:6333",
+  collectionName: "chainlesschain_notes",
 
   // 向量参数
   vectorParams: {
-    size: 768,              // nomic-embed-text 嵌入维度
-    distance: 'Cosine',     // 距离度量: Cosine | Euclid | Dot
+    size: 768, // nomic-embed-text 嵌入维度
+    distance: "Cosine", // 距离度量: Cosine | Euclid | Dot
   },
 
   // HNSW 索引参数（影响召回率 vs 速度）
   hnsw: {
-    m: 16,                  // 每层最大邻居数（越大越准，越慢）
-    efConstruct: 128,       // 构建时搜索范围（越大越准）
+    m: 16, // 每层最大邻居数（越大越准，越慢）
+    efConstruct: 128, // 构建时搜索范围（越大越准）
   },
 
   // 查询参数
   searchParams: {
-    ef: 64,                 // 查询时搜索范围
-    limit: 20,              // 候选结果数（re-rank 前）
-    scoreThreshold: 0.5,    // 相似度阈值（低于此值不返回）
+    ef: 64, // 查询时搜索范围
+    limit: 20, // 候选结果数（re-rank 前）
+    scoreThreshold: 0.5, // 相似度阈值（低于此值不返回）
   },
 };
 ```
@@ -1060,28 +1095,28 @@ const qdrantConfig = {
 // desktop-app-vue/src/main/rag/hybrid-search.js
 const hybridSearchConfig = {
   // RRF (Reciprocal Rank Fusion) 融合
-  fusion: 'rrf',
-  rrfK: 60,               // RRF 平滑系数（默认 60）
+  fusion: "rrf",
+  rrfK: 60, // RRF 平滑系数（默认 60）
 
   // BM25 / 向量 权重比
   weights: {
-    bm25:   0.4,
+    bm25: 0.4,
     vector: 0.6,
   },
 
   // 文本分块（Chunking）
   chunking: {
-    chunkSize: 512,         // 单块最大 token 数
-    chunkOverlap: 64,       // 相邻块重叠 token 数
-    splitOn: 'sentence',    // 分割策略: sentence | paragraph | fixed
+    chunkSize: 512, // 单块最大 token 数
+    chunkOverlap: 64, // 相邻块重叠 token 数
+    splitOn: "sentence", // 分割策略: sentence | paragraph | fixed
   },
 
   // Embedding 模型
   embedding: {
-    model: 'nomic-embed-text',
-    provider: 'ollama',
-    batchSize: 32,          // 批量嵌入大小
-    cacheEmbeddings: true,  // 缓存已计算的嵌入向量
+    model: "nomic-embed-text",
+    provider: "ollama",
+    batchSize: 32, // 批量嵌入大小
+    cacheEmbeddings: true, // 缓存已计算的嵌入向量
   },
 
   // 最终返回条数
@@ -1096,18 +1131,18 @@ const hybridSearchConfig = {
 const dbConfig = {
   // SQLite / SQLCipher 选项
   pragma: {
-    journalMode:  'WAL',      // 写前日志，支持并发读
-    busyTimeout:  30000,      // 30s 等待超时
-    synchronous:  'NORMAL',   // 性能 / 安全平衡
-    cacheSize:    -64000,     // 64 MB 页缓存
-    foreignKeys:  true,
+    journalMode: "WAL", // 写前日志，支持并发读
+    busyTimeout: 30000, // 30s 等待超时
+    synchronous: "NORMAL", // 性能 / 安全平衡
+    cacheSize: -64000, // 64 MB 页缓存
+    foreignKeys: true,
   },
 
   // 全文搜索虚拟表 (FTS5)
   fts5: {
-    tokenizer: 'unicode61',   // 支持 CJK 分词
-    content:   'notes',       // 来源表
-    columns:   ['title', 'content', 'tags'],
+    tokenizer: "unicode61", // 支持 CJK 分词
+    content: "notes", // 来源表
+    columns: ["title", "content", "tags"],
   },
 };
 ```
@@ -1118,42 +1153,42 @@ const dbConfig = {
 
 ### 搜索延迟
 
-| 操作 | 目标 | 实际 (P50) | 实际 (P95) | 状态 |
-|------|------|-----------|-----------|------|
-| BM25 关键词搜索 (FTS5) | < 50 ms | 12 ms | 38 ms | ✅ 达标 |
-| Qdrant 向量语义搜索 | < 100 ms | 45 ms | 89 ms | ✅ 达标 |
-| 混合搜索 (BM25 + 向量 RRF) | < 200 ms | 78 ms | 156 ms | ✅ 达标 |
-| 全文搜索 (SQLite FTS5) | < 30 ms | 8 ms | 22 ms | ✅ 达标 |
-| AI 问答 (RAG + Ollama) | < 5 s | 2.1 s | 4.3 s | ✅ 达标 |
+| 操作                       | 目标     | 实际 (P50) | 实际 (P95) | 状态    |
+| -------------------------- | -------- | ---------- | ---------- | ------- |
+| BM25 关键词搜索 (FTS5)     | < 50 ms  | 12 ms      | 38 ms      | ✅ 达标 |
+| Qdrant 向量语义搜索        | < 100 ms | 45 ms      | 89 ms      | ✅ 达标 |
+| 混合搜索 (BM25 + 向量 RRF) | < 200 ms | 78 ms      | 156 ms     | ✅ 达标 |
+| 全文搜索 (SQLite FTS5)     | < 30 ms  | 8 ms       | 22 ms      | ✅ 达标 |
+| AI 问答 (RAG + Ollama)     | < 5 s    | 2.1 s      | 4.3 s      | ✅ 达标 |
 
 ### 索引构建
 
-| 操作 | 数据集规模 | 目标 | 实际 | 状态 |
-|------|-----------|------|------|------|
-| BM25 增量索引更新 | 单篇笔记 | < 10 ms | 3 ms | ✅ 达标 |
-| Qdrant 嵌入向量写入 | 单篇笔记 | < 200 ms | 85 ms | ✅ 达标 |
-| 全量索引重建 | 1000 篇笔记 | < 60 s | 38 s | ✅ 达标 |
-| 全量索引重建 | 10000 篇笔记 | < 10 min | 7.2 min | ✅ 达标 |
-| Evernote 导入 (ENEX) | 500 条记录 | < 120 s | 74 s | ✅ 达标 |
-| PDF 导入 + OCR | 单个文件 50 页 | < 30 s | 18 s | ✅ 达标 |
+| 操作                 | 数据集规模     | 目标     | 实际    | 状态    |
+| -------------------- | -------------- | -------- | ------- | ------- |
+| BM25 增量索引更新    | 单篇笔记       | < 10 ms  | 3 ms    | ✅ 达标 |
+| Qdrant 嵌入向量写入  | 单篇笔记       | < 200 ms | 85 ms   | ✅ 达标 |
+| 全量索引重建         | 1000 篇笔记    | < 60 s   | 38 s    | ✅ 达标 |
+| 全量索引重建         | 10000 篇笔记   | < 10 min | 7.2 min | ✅ 达标 |
+| Evernote 导入 (ENEX) | 500 条记录     | < 120 s  | 74 s    | ✅ 达标 |
+| PDF 导入 + OCR       | 单个文件 50 页 | < 30 s   | 18 s    | ✅ 达标 |
 
 ### 存储占用
 
-| 项目 | 规模 | 磁盘占用 | 状态 |
-|------|------|---------|------|
-| SQLite 数据库 (含 FTS5 索引) | 1000 篇笔记 | ~45 MB | ✅ |
-| Qdrant 向量存储 | 1000 篇笔记 (768 维) | ~12 MB | ✅ |
-| BM25 JSON 索引 | 1000 篇笔记 | ~8 MB | ✅ |
-| 嵌入向量缓存 | 1000 篇笔记 | ~6 MB | ✅ |
+| 项目                         | 规模                 | 磁盘占用 | 状态 |
+| ---------------------------- | -------------------- | -------- | ---- |
+| SQLite 数据库 (含 FTS5 索引) | 1000 篇笔记          | ~45 MB   | ✅   |
+| Qdrant 向量存储              | 1000 篇笔记 (768 维) | ~12 MB   | ✅   |
+| BM25 JSON 索引               | 1000 篇笔记          | ~8 MB    | ✅   |
+| 嵌入向量缓存                 | 1000 篇笔记          | ~6 MB    | ✅   |
 
 ### 并发与内存
 
-| 指标 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 并发搜索请求 | ≥ 10 req/s | 18 req/s | ✅ 达标 |
-| 主进程内存基线 (Electron) | < 150 MB | 112 MB | ✅ 达标 |
-| BM25 索引内存占用 (1k 笔记) | < 30 MB | 21 MB | ✅ 达标 |
-| SQLite WAL 模式下写并发 | 无锁等待 < 30 s | < 1 s | ✅ 达标 |
+| 指标                        | 目标            | 实际     | 状态    |
+| --------------------------- | --------------- | -------- | ------- |
+| 并发搜索请求                | ≥ 10 req/s      | 18 req/s | ✅ 达标 |
+| 主进程内存基线 (Electron)   | < 150 MB        | 112 MB   | ✅ 达标 |
+| BM25 索引内存占用 (1k 笔记) | < 30 MB         | 21 MB    | ✅ 达标 |
+| SQLite WAL 模式下写并发     | 无锁等待 < 30 s | < 1 s    | ✅ 达标 |
 
 ---
 
@@ -1161,35 +1196,35 @@ const dbConfig = {
 
 ### 单元测试
 
-| 测试文件 | 覆盖范围 | 用例数 |
-|---------|---------|--------|
-| ✅ `packages/cli/__tests__/unit/bm25-search.test.js` | BM25 评分、FTS5 增量索引、字段权重 | 34 |
-| ✅ `packages/cli/__tests__/unit/knowledge-importer.test.js` | Markdown / PDF / ENEX / Notion 导入 | 28 |
-| ✅ `packages/cli/__tests__/unit/knowledge-exporter.test.js` | Markdown 批量导出、静态站点生成 | 21 |
-| ✅ `packages/cli/__tests__/unit/note-versioning.test.js` | 历史版本、diff、回滚逻辑 | 19 |
-| ✅ `desktop-app-vue/tests/unit/rag/hybrid-search.test.js` | RRF 融合、权重计算、topK 过滤 | 31 |
-| ✅ `desktop-app-vue/tests/unit/rag/vector-store.test.js` | Qdrant CRUD、批量 upsert、相似度查询 | 26 |
-| ✅ `desktop-app-vue/tests/unit/rag/chunking.test.js` | 分块策略、overlap 边界、CJK 句子切割 | 22 |
-| ✅ `desktop-app-vue/tests/unit/rag/embedding-cache.test.js` | 嵌入缓存命中率、TTL 淘汰、批量预计算 | 18 |
-| ✅ `desktop-app-vue/tests/unit/database.test.js` | Schema 初始化、FTS5 虚拟表、WAL 模式 | 24 |
+| 测试文件                                                    | 覆盖范围                             | 用例数 |
+| ----------------------------------------------------------- | ------------------------------------ | ------ |
+| ✅ `packages/cli/__tests__/unit/bm25-search.test.js`        | BM25 评分、FTS5 增量索引、字段权重   | 34     |
+| ✅ `packages/cli/__tests__/unit/knowledge-importer.test.js` | Markdown / PDF / ENEX / Notion 导入  | 28     |
+| ✅ `packages/cli/__tests__/unit/knowledge-exporter.test.js` | Markdown 批量导出、静态站点生成      | 21     |
+| ✅ `packages/cli/__tests__/unit/note-versioning.test.js`    | 历史版本、diff、回滚逻辑             | 19     |
+| ✅ `desktop-app-vue/tests/unit/rag/hybrid-search.test.js`   | RRF 融合、权重计算、topK 过滤        | 31     |
+| ✅ `desktop-app-vue/tests/unit/rag/vector-store.test.js`    | Qdrant CRUD、批量 upsert、相似度查询 | 26     |
+| ✅ `desktop-app-vue/tests/unit/rag/chunking.test.js`        | 分块策略、overlap 边界、CJK 句子切割 | 22     |
+| ✅ `desktop-app-vue/tests/unit/rag/embedding-cache.test.js` | 嵌入缓存命中率、TTL 淘汰、批量预计算 | 18     |
+| ✅ `desktop-app-vue/tests/unit/database.test.js`            | Schema 初始化、FTS5 虚拟表、WAL 模式 | 24     |
 
 ### 集成测试
 
-| 测试文件 | 覆盖范围 | 用例数 |
-|---------|---------|--------|
-| ✅ `packages/cli/__tests__/integration/note-search.test.js` | CLI `note search` 端到端 BM25 + 向量 | 16 |
-| ✅ `packages/cli/__tests__/integration/import-export.test.js` | 导入 → 索引 → 搜索 → 导出全链路 | 14 |
-| ✅ `desktop-app-vue/tests/integration/rag-pipeline.test.js` | RAG 问答链路：检索 → Prompt → Ollama | 12 |
-| ✅ `desktop-app-vue/tests/integration/knowledge-sync.test.js` | 笔记写入 → BM25 + Qdrant 双路索引同步 | 10 |
+| 测试文件                                                      | 覆盖范围                              | 用例数 |
+| ------------------------------------------------------------- | ------------------------------------- | ------ |
+| ✅ `packages/cli/__tests__/integration/note-search.test.js`   | CLI `note search` 端到端 BM25 + 向量  | 16     |
+| ✅ `packages/cli/__tests__/integration/import-export.test.js` | 导入 → 索引 → 搜索 → 导出全链路       | 14     |
+| ✅ `desktop-app-vue/tests/integration/rag-pipeline.test.js`   | RAG 问答链路：检索 → Prompt → Ollama  | 12     |
+| ✅ `desktop-app-vue/tests/integration/knowledge-sync.test.js` | 笔记写入 → BM25 + Qdrant 双路索引同步 | 10     |
 
 ### CLI 命令测试
 
-| 测试文件 | 覆盖命令 | 用例数 |
-|---------|---------|--------|
-| ✅ `packages/cli/__tests__/commands/note.test.js` | `note add / list / search / delete` | 32 |
-| ✅ `packages/cli/__tests__/commands/search.test.js` | `search` 混合搜索命令 | 18 |
-| ✅ `packages/cli/__tests__/commands/import.test.js` | `import markdown / pdf / evernote` | 24 |
-| ✅ `packages/cli/__tests__/commands/export.test.js` | `export site / markdown` | 14 |
+| 测试文件                                            | 覆盖命令                            | 用例数 |
+| --------------------------------------------------- | ----------------------------------- | ------ |
+| ✅ `packages/cli/__tests__/commands/note.test.js`   | `note add / list / search / delete` | 32     |
+| ✅ `packages/cli/__tests__/commands/search.test.js` | `search` 混合搜索命令               | 18     |
+| ✅ `packages/cli/__tests__/commands/import.test.js` | `import markdown / pdf / evernote`  | 24     |
+| ✅ `packages/cli/__tests__/commands/export.test.js` | `export site / markdown`            | 14     |
 
 **总计: 363 个测试用例，覆盖率 ≥ 87%**
 

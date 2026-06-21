@@ -80,42 +80,43 @@ chainlesschain llm providers --json     # JSON 格式
 
 ## 支持的 LLM 提供商
 
-| 提供商             | 默认模型                  | 需要 API Key | API 格式           |
-| ------------------ | ------------------------- | ------------ | ------------------ |
-| Volcengine (豆包)  | doubao-seed-1-6-251015    | 是           | OpenAI 兼容        |
-| OpenAI             | gpt-4o                    | 是           | OpenAI             |
-| Anthropic (Claude) | claude-sonnet-4-6         | 是           | Anthropic Messages |
-| DeepSeek           | deepseek-chat             | 是           | OpenAI 兼容        |
-| DashScope (阿里)   | qwen-max                  | 是           | OpenAI 兼容        |
-| Google Gemini      | gemini-2.0-flash          | 是           | Gemini 原生        |
-| Kimi (月之暗面)    | moonshot-v1-auto          | 是           | OpenAI 兼容        |
-| MiniMax (海螺AI)   | MiniMax-Text-01           | 是           | OpenAI 兼容        |
-| Mistral AI         | mistral-large-latest      | 是           | OpenAI 兼容        |
-| Ollama (本地)      | qwen2:7b                  | 否           | Ollama 原生        |
+| 提供商             | 默认模型               | 需要 API Key | API 格式           |
+| ------------------ | ---------------------- | ------------ | ------------------ |
+| Volcengine (豆包)  | doubao-seed-1-6-251015 | 是           | OpenAI 兼容        |
+| OpenAI             | gpt-4o                 | 是           | OpenAI             |
+| Anthropic (Claude) | claude-sonnet-4-6      | 是           | Anthropic Messages |
+| DeepSeek           | deepseek-chat          | 是           | OpenAI 兼容        |
+| DashScope (阿里)   | qwen-max               | 是           | OpenAI 兼容        |
+| Google Gemini      | gemini-2.0-flash       | 是           | Gemini 原生        |
+| Kimi (月之暗面)    | moonshot-v1-auto       | 是           | OpenAI 兼容        |
+| MiniMax (海螺AI)   | MiniMax-Text-01        | 是           | OpenAI 兼容        |
+| Mistral AI         | mistral-large-latest   | 是           | OpenAI 兼容        |
+| Ollama (本地)      | qwen2:7b               | 否           | Ollama 原生        |
 
 ### Volcengine (豆包) 模型列表
 
-| 模型 ID                        | 适用场景     | 说明                 |
-| ------------------------------ | ------------ | -------------------- |
-| doubao-seed-1-6-251015         | 通用/推理    | Seed 1.6 旗舰模型   |
-| doubao-seed-1-6-flash-250828   | 日常对话     | 快速响应，成本低     |
-| doubao-seed-1-6-lite-251015    | 快速查询     | 轻量版，延迟最低     |
-| doubao-seed-code               | 代码编程     | 专用代码生成模型     |
+| 模型 ID                      | 适用场景  | 说明              |
+| ---------------------------- | --------- | ----------------- |
+| doubao-seed-1-6-251015       | 通用/推理 | Seed 1.6 旗舰模型 |
+| doubao-seed-1-6-flash-250828 | 日常对话  | 快速响应，成本低  |
+| doubao-seed-1-6-lite-251015  | 快速查询  | 轻量版，延迟最低  |
+| doubao-seed-code             | 代码编程  | 专用代码生成模型  |
 
 ## 智能模型选择 (Task Model Selector)
 
 Agent 模式自动根据用户消息检测任务类型，选择最佳模型：
 
-| 任务类型   | 检测关键词                          | Volcengine 推荐模型          |
-| ---------- | ----------------------------------- | ---------------------------- |
-| 日常对话   | 普通问候、闲聊                      | doubao-seed-1-6-flash-250828 |
-| 代码任务   | code, debug, function, 代码, 编程   | doubao-seed-code             |
-| 复杂推理   | analyze, step by step, 分析, 推理   | doubao-seed-1-6-251015       |
-| 快速响应   | quick, brief, 简短, 一句话          | doubao-seed-1-6-lite-251015  |
-| 翻译任务   | translate, 翻译, 英译中             | doubao-seed-1-6-251015       |
-| 创意写作   | story, poem, essay, 写文章, 创作    | doubao-seed-1-6-251015       |
+| 任务类型 | 检测关键词                        | Volcengine 推荐模型          |
+| -------- | --------------------------------- | ---------------------------- |
+| 日常对话 | 普通问候、闲聊                    | doubao-seed-1-6-flash-250828 |
+| 代码任务 | code, debug, function, 代码, 编程 | doubao-seed-code             |
+| 复杂推理 | analyze, step by step, 分析, 推理 | doubao-seed-1-6-251015       |
+| 快速响应 | quick, brief, 简短, 一句话        | doubao-seed-1-6-lite-251015  |
+| 翻译任务 | translate, 翻译, 英译中           | doubao-seed-1-6-251015       |
+| 创意写作 | story, poem, essay, 写文章, 创作  | doubao-seed-1-6-251015       |
 
 Agent 模式下自动切换示例：
+
 ```
 you> 写一个Python排序函数
 [auto] 代码任务 → doubao-seed-code
@@ -145,13 +146,13 @@ ai>  def bubble_sort(arr): ...
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| models 列表（Ollama API） | < 500ms | ~250ms | ✅ |
-| test 单次往返（云端 LLM） | < 3s | ~1.8s | ✅ |
-| providers 读取配置 | < 100ms | ~40ms | ✅ |
-| switch 写入配置 | < 150ms | ~60ms | ✅ |
-| 任务类型智能检测 | < 50ms | ~15ms | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| models 列表（Ollama API） | < 500ms | ~250ms | ✅   |
+| test 单次往返（云端 LLM） | < 3s    | ~1.8s  | ✅   |
+| providers 读取配置        | < 100ms | ~40ms  | ✅   |
+| switch 写入配置           | < 150ms | ~60ms  | ✅   |
+| 任务类型智能检测          | < 50ms  | ~15ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -165,27 +166,27 @@ ai>  def bubble_sort(arr): ...
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/llm.js` | llm 命令主入口（providers / switch / test / models） |
-| `packages/cli/src/lib/llm-providers.js` | 10 个 LLM 提供商定义、连通性测试、模型列表 |
-| `packages/cli/src/lib/task-model-selector.js` | Agent 模式任务类型检测 + 智能模型推荐 |
-| `packages/cli/__tests__/unit/llm-providers.test.js` | Providers 核心单元测试 |
-| `packages/cli/__tests__/integration/llm-provider-workflow.test.js` | LLM 提供商端到端工作流集成测试 |
+| 文件                                                               | 职责                                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------------- |
+| `packages/cli/src/commands/llm.js`                                 | llm 命令主入口（providers / switch / test / models） |
+| `packages/cli/src/lib/llm-providers.js`                            | 10 个 LLM 提供商定义、连通性测试、模型列表           |
+| `packages/cli/src/lib/task-model-selector.js`                      | Agent 模式任务类型检测 + 智能模型推荐                |
+| `packages/cli/__tests__/unit/llm-providers.test.js`                | Providers 核心单元测试                               |
+| `packages/cli/__tests__/integration/llm-provider-workflow.test.js` | LLM 提供商端到端工作流集成测试                       |
 
 ## 环境变量
 
-| 变量名              | 提供商           | 说明          |
-| ------------------- | ---------------- | ------------- |
-| `VOLCENGINE_API_KEY`| Volcengine (豆包) | 火山引擎 API Key |
-| `OPENAI_API_KEY`    | OpenAI           | OpenAI API Key |
-| `ANTHROPIC_API_KEY` | Anthropic        | Anthropic API Key |
-| `DEEPSEEK_API_KEY`  | DeepSeek         | DeepSeek API Key |
-| `DASHSCOPE_API_KEY` | DashScope        | 阿里 DashScope API Key |
-| `GEMINI_API_KEY`    | Google Gemini    | Gemini API Key |
-| `MOONSHOT_API_KEY`  | Kimi (月之暗面)  | Moonshot API Key |
-| `MINIMAX_API_KEY`   | MiniMax (海螺AI) | MiniMax API Key |
-| `MISTRAL_API_KEY`   | Mistral AI       | Mistral API Key |
+| 变量名               | 提供商            | 说明                   |
+| -------------------- | ----------------- | ---------------------- |
+| `VOLCENGINE_API_KEY` | Volcengine (豆包) | 火山引擎 API Key       |
+| `OPENAI_API_KEY`     | OpenAI            | OpenAI API Key         |
+| `ANTHROPIC_API_KEY`  | Anthropic         | Anthropic API Key      |
+| `DEEPSEEK_API_KEY`   | DeepSeek          | DeepSeek API Key       |
+| `DASHSCOPE_API_KEY`  | DashScope         | 阿里 DashScope API Key |
+| `GEMINI_API_KEY`     | Google Gemini     | Gemini API Key         |
+| `MOONSHOT_API_KEY`   | Kimi (月之暗面)   | Moonshot API Key       |
+| `MINIMAX_API_KEY`    | MiniMax (海螺AI)  | MiniMax API Key        |
+| `MISTRAL_API_KEY`    | Mistral AI        | Mistral API Key        |
 
 ## 安全考虑
 
@@ -242,13 +243,13 @@ chainlesschain llm test
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `models` 返回空列表 | 确认 Ollama 已启动且已拉取模型：`ollama list` |
-| `test` 连接超时 | 检查 `OLLAMA_HOST` 环境变量（默认 `http://localhost:11434`） |
-| 自定义提供商报错 | 检查 `baseUrl` 格式，确保以 `/v1` 结尾 |
-| 火山引擎认证失败 | 检查 `VOLCENGINE_API_KEY` 是否正确设置 |
-| 模型自动选择不生效 | 仅在 Agent 模式 (`chainlesschain agent`) 下生效 |
+| 问题                | 解决方案                                                     |
+| ------------------- | ------------------------------------------------------------ |
+| `models` 返回空列表 | 确认 Ollama 已启动且已拉取模型：`ollama list`                |
+| `test` 连接超时     | 检查 `OLLAMA_HOST` 环境变量（默认 `http://localhost:11434`） |
+| 自定义提供商报错    | 检查 `baseUrl` 格式，确保以 `/v1` 结尾                       |
+| 火山引擎认证失败    | 检查 `VOLCENGINE_API_KEY` 是否正确设置                       |
+| 模型自动选择不生效  | 仅在 Agent 模式 (`chainlesschain agent`) 下生效              |
 
 ## 相关文档
 

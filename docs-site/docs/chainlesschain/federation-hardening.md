@@ -63,10 +63,10 @@ Phase 58 为 Cowork 联邦代理网络引入生产级可靠性保障，包含熔
                     CLOSED  OPEN
 ```
 
-| 状态        | 说明                                         |
-| ----------- | -------------------------------------------- |
-| **CLOSED**  | 正常通信，记录失败次数                       |
-| **OPEN**    | 拒绝所有请求，等待恢复超时                   |
+| 状态          | 说明                                           |
+| ------------- | ---------------------------------------------- |
+| **CLOSED**    | 正常通信，记录失败次数                         |
+| **OPEN**      | 拒绝所有请求，等待恢复超时                     |
 | **HALF_OPEN** | 试探性放行少量请求，成功则恢复，失败则重新打开 |
 
 ---
@@ -77,12 +77,14 @@ Phase 58 为 Cowork 联邦代理网络引入生产级可靠性保障，包含熔
 
 ```javascript
 // 查看所有熔断器状态
-const breakers = await window.electronAPI.invoke('federation-hardening:get-circuit-breakers');
+const breakers = await window.electronAPI.invoke(
+  "federation-hardening:get-circuit-breakers",
+);
 // [{ nodeId, state: 'CLOSED', failureCount: 0, lastSuccessAt, ... }]
 
 // 手动重置熔断器
-await window.electronAPI.invoke('federation-hardening:reset-circuit', {
-  nodeId: 'node-abc'
+await window.electronAPI.invoke("federation-hardening:reset-circuit", {
+  nodeId: "node-abc",
 });
 ```
 
@@ -90,9 +92,12 @@ await window.electronAPI.invoke('federation-hardening:reset-circuit', {
 
 ```javascript
 // 对指定节点运行健康检查
-const result = await window.electronAPI.invoke('federation-hardening:run-health-check', {
-  nodeId: 'node-abc'
-});
+const result = await window.electronAPI.invoke(
+  "federation-hardening:run-health-check",
+  {
+    nodeId: "node-abc",
+  },
+);
 
 console.log(result);
 // {
@@ -107,7 +112,9 @@ console.log(result);
 
 ```javascript
 // 获取综合状态
-const status = await window.electronAPI.invoke('federation-hardening:get-status');
+const status = await window.electronAPI.invoke(
+  "federation-hardening:get-status",
+);
 // {
 //   circuitBreakers: { total: 12, closed: 10, open: 1, halfOpen: 1 },
 //   healthChecks: { healthy: 9, degraded: 2, unhealthy: 1, lastCheckAt: ... }
@@ -118,12 +125,12 @@ const status = await window.electronAPI.invoke('federation-hardening:get-status'
 
 ## 配置参数
 
-| 参数                  | 默认值 | 说明                         |
-| --------------------- | ------ | ---------------------------- |
-| `failureThreshold`    | 5      | 触发熔断的连续失败次数       |
-| `recoveryTimeout`     | 30s    | OPEN → HALF_OPEN 等待时间    |
-| `healthCheckInterval` | 60s    | 健康检查间隔                 |
-| `maxPoolSize`         | 10     | 连接池最大连接数             |
+| 参数                  | 默认值 | 说明                      |
+| --------------------- | ------ | ------------------------- |
+| `failureThreshold`    | 5      | 触发熔断的连续失败次数    |
+| `recoveryTimeout`     | 30s    | OPEN → HALF_OPEN 等待时间 |
+| `healthCheckInterval` | 60s    | 健康检查间隔              |
+| `maxPoolSize`         | 10     | 连接池最大连接数          |
 
 ---
 
@@ -140,7 +147,7 @@ const federationHardeningConfig = {
     recoveryTimeoutMs: 30000,
 
     // HALF_OPEN 状态允许通过的试探请求数
-    halfOpenProbeCount: 1
+    halfOpenProbeCount: 1,
   },
 
   healthCheck: {
@@ -157,7 +164,7 @@ const federationHardeningConfig = {
     unhealthyLatencyThreshold: 1000,
 
     // 每批并发探测节点数
-    batchSize: 50
+    batchSize: 50,
   },
 
   connectionPool: {
@@ -168,8 +175,8 @@ const federationHardeningConfig = {
     idleTimeoutMs: 300000,
 
     // 连接建立超时（毫秒）
-    connectTimeoutMs: 5000
-  }
+    connectTimeoutMs: 5000,
+  },
 };
 ```
 
@@ -177,12 +184,12 @@ const federationHardeningConfig = {
 
 ## IPC 通道
 
-| 通道                                      | 参数           | 返回值         |
-| ----------------------------------------- | -------------- | -------------- |
-| `federation-hardening:get-status`          | 无             | 综合状态       |
-| `federation-hardening:get-circuit-breakers`| 无             | 熔断器列表     |
-| `federation-hardening:reset-circuit`       | `{ nodeId }`   | 操作结果       |
-| `federation-hardening:run-health-check`    | `{ nodeId }`   | 检查结果       |
+| 通道                                        | 参数         | 返回值     |
+| ------------------------------------------- | ------------ | ---------- |
+| `federation-hardening:get-status`           | 无           | 综合状态   |
+| `federation-hardening:get-circuit-breakers` | 无           | 熔断器列表 |
+| `federation-hardening:reset-circuit`        | `{ nodeId }` | 操作结果   |
+| `federation-hardening:run-health-check`     | `{ nodeId }` | 检查结果   |
 
 ---
 
@@ -190,26 +197,26 @@ const federationHardeningConfig = {
 
 ### federation_circuit_breakers
 
-| 字段            | 类型    | 说明                       |
-| --------------- | ------- | -------------------------- |
+| 字段            | 类型    | 说明                      |
+| --------------- | ------- | ------------------------- |
 | id              | TEXT PK | 记录 ID                   |
 | node_id         | TEXT    | 节点 ID（唯一索引）       |
-| state           | TEXT    | CLOSED / OPEN / HALF_OPEN  |
-| failure_count   | INTEGER | 连续失败次数               |
-| last_failure_at | INTEGER | 最后失败时间               |
-| last_success_at | INTEGER | 最后成功时间               |
-| opened_at       | INTEGER | 熔断器打开时间             |
+| state           | TEXT    | CLOSED / OPEN / HALF_OPEN |
+| failure_count   | INTEGER | 连续失败次数              |
+| last_failure_at | INTEGER | 最后失败时间              |
+| last_success_at | INTEGER | 最后成功时间              |
+| opened_at       | INTEGER | 熔断器打开时间            |
 
 ### federation_health_checks
 
-| 字段       | 类型    | 说明                             |
-| ---------- | ------- | -------------------------------- |
-| id         | TEXT PK | 记录 ID                         |
-| node_id    | TEXT    | 节点 ID                         |
-| status     | TEXT    | HEALTHY / DEGRADED / UNHEALTHY   |
-| latency_ms | REAL    | 延迟（毫秒）                    |
-| details    | JSON    | 检查详情                         |
-| checked_at | INTEGER | 检查时间                         |
+| 字段       | 类型    | 说明                           |
+| ---------- | ------- | ------------------------------ |
+| id         | TEXT PK | 记录 ID                        |
+| node_id    | TEXT    | 节点 ID                        |
+| status     | TEXT    | HEALTHY / DEGRADED / UNHEALTHY |
+| latency_ms | REAL    | 延迟（毫秒）                   |
+| details    | JSON    | 检查详情                       |
+| checked_at | INTEGER | 检查时间                       |
 
 ---
 
@@ -237,41 +244,41 @@ const federationHardeningConfig = {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 大量节点进入 OPEN 状态 | 网络大面积故障或配置阈值过低 | 检查网络连通性，适当调高 `failureThreshold` |
-| 健康检查全部超时 | 检查间隔过短导致资源争用 | 增大 `healthCheckInterval`（默认 60s） |
-| 熔断器无法恢复 | HALF_OPEN 试探请求持续失败 | 确认节点已修复后手动重置熔断器 |
-| 连接池耗尽 | 并发请求过多或连接泄露 | 增大 `maxPoolSize`，检查连接释放逻辑 |
-| 状态仪表板数据延迟 | 数据库查询缓慢 | 检查 SQLite 表索引，清理过期记录 |
-| 节点频繁在 OPEN/CLOSED 间切换 | 节点网络不稳定 | 增大 `recoveryTimeout` 避免过早试探 |
+| 问题                          | 可能原因                     | 解决方案                                    |
+| ----------------------------- | ---------------------------- | ------------------------------------------- |
+| 大量节点进入 OPEN 状态        | 网络大面积故障或配置阈值过低 | 检查网络连通性，适当调高 `failureThreshold` |
+| 健康检查全部超时              | 检查间隔过短导致资源争用     | 增大 `healthCheckInterval`（默认 60s）      |
+| 熔断器无法恢复                | HALF_OPEN 试探请求持续失败   | 确认节点已修复后手动重置熔断器              |
+| 连接池耗尽                    | 并发请求过多或连接泄露       | 增大 `maxPoolSize`，检查连接释放逻辑        |
+| 状态仪表板数据延迟            | 数据库查询缓慢               | 检查 SQLite 表索引，清理过期记录            |
+| 节点频繁在 OPEN/CLOSED 间切换 | 节点网络不稳定               | 增大 `recoveryTimeout` 避免过早试探         |
 
 ## 性能指标
 
-| 指标                  | 说明                         | 参考值        |
-| --------------------- | ---------------------------- | ------------- |
-| 熔断器状态切换延迟    | CLOSED → OPEN 触发响应时间   | < 5ms         |
-| 健康检查探测延迟      | 单节点探测往返时间           | < 100ms       |
-| 连接池建立时间        | 新连接建立耗时               | < 50ms        |
-| 状态仪表板刷新延迟    | IPC 查询到渲染完成           | < 200ms       |
-| 最大并发节点数        | 同时管理的联邦节点上限       | 500 节点      |
-| 健康检查并发数        | 同时探测节点数               | 50 节点/批次  |
-| 连接池复用率          | 复用连接占总连接比例         | > 80%         |
-| 状态持久化耗时        | 熔断器状态写入 SQLite        | < 10ms        |
+| 指标               | 说明                       | 参考值       |
+| ------------------ | -------------------------- | ------------ |
+| 熔断器状态切换延迟 | CLOSED → OPEN 触发响应时间 | < 5ms        |
+| 健康检查探测延迟   | 单节点探测往返时间         | < 100ms      |
+| 连接池建立时间     | 新连接建立耗时             | < 50ms       |
+| 状态仪表板刷新延迟 | IPC 查询到渲染完成         | < 200ms      |
+| 最大并发节点数     | 同时管理的联邦节点上限     | 500 节点     |
+| 健康检查并发数     | 同时探测节点数             | 50 节点/批次 |
+| 连接池复用率       | 复用连接占总连接比例       | > 80%        |
+| 状态持久化耗时     | 熔断器状态写入 SQLite      | < 10ms       |
 
 ---
 
 ## 测试覆盖率
 
-| 测试类型           | 文件                                            | 覆盖项                                         |
-| ------------------ | ----------------------------------------------- | ---------------------------------------------- |
-| 单元测试           | `federation-hardening.test.js`                  | 熔断器三态转换、失败计数、恢复超时逻辑         |
-| 集成测试           | `federation-hardening-ipc.test.js`              | 4 个 IPC 通道、参数验证、返回值格式            |
-| 健康检查测试       | `health-check.test.js`                          | HEALTHY/DEGRADED/UNHEALTHY 状态判定、延迟计算  |
-| 连接池测试         | `connection-pool.test.js`                       | 最大连接数限制、连接复用、超时释放             |
-| 状态机测试         | `circuit-breaker-state-machine.test.js`         | 全状态转移路径、边界条件（阈值恰好满足）       |
-| 数据库测试         | `federation-hardening-db.test.js`               | 表结构、索引、并发写入、过期记录清理           |
-| 端到端测试         | `federation-hardening-e2e.test.js`              | 节点故障模拟、自动熔断、HALF_OPEN 自动恢复     |
+| 测试类型     | 文件                                    | 覆盖项                                        |
+| ------------ | --------------------------------------- | --------------------------------------------- |
+| 单元测试     | `federation-hardening.test.js`          | 熔断器三态转换、失败计数、恢复超时逻辑        |
+| 集成测试     | `federation-hardening-ipc.test.js`      | 4 个 IPC 通道、参数验证、返回值格式           |
+| 健康检查测试 | `health-check.test.js`                  | HEALTHY/DEGRADED/UNHEALTHY 状态判定、延迟计算 |
+| 连接池测试   | `connection-pool.test.js`               | 最大连接数限制、连接复用、超时释放            |
+| 状态机测试   | `circuit-breaker-state-machine.test.js` | 全状态转移路径、边界条件（阈值恰好满足）      |
+| 数据库测试   | `federation-hardening-db.test.js`       | 表结构、索引、并发写入、过期记录清理          |
+| 端到端测试   | `federation-hardening-e2e.test.js`      | 节点故障模拟、自动熔断、HALF_OPEN 自动恢复    |
 
 > **总测试数**: 约 85 个测试用例，覆盖率 > 90%
 
@@ -296,9 +303,9 @@ const federationHardeningConfig = {
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/ai-engine/cowork/federation-hardening.js` | 联邦加固核心引擎（熔断器/健康检查/连接池） |
-| `src/main/ai-engine/cowork/federation-hardening-ipc.js` | IPC 处理器（4 个通道） |
-| `src/renderer/stores/federationHardening.ts` | Pinia 状态管理 |
-| `src/renderer/pages/ai/FederationHardeningPage.vue` | 状态仪表板页面 |
+| 文件                                                    | 职责                                       |
+| ------------------------------------------------------- | ------------------------------------------ |
+| `src/main/ai-engine/cowork/federation-hardening.js`     | 联邦加固核心引擎（熔断器/健康检查/连接池） |
+| `src/main/ai-engine/cowork/federation-hardening-ipc.js` | IPC 处理器（4 个通道）                     |
+| `src/renderer/stores/federationHardening.ts`            | Pinia 状态管理                             |
+| `src/renderer/pages/ai/FederationHardeningPage.vue`     | 状态仪表板页面                             |

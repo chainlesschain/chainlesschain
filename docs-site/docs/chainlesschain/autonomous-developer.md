@@ -67,10 +67,14 @@ INTENT → PRD → ARCHITECTURE → GENERATING → REVIEWING → COMPLETE
 ### 1. 启动开发会话
 
 ```javascript
-const session = await window.electronAPI.invoke('autonomous-dev:start-session', {
-  title: '用户注册模块',
-  intent: '需要一个支持邮箱/手机号注册的用户模块，包含验证码验证和密码强度检查'
-});
+const session = await window.electronAPI.invoke(
+  "autonomous-dev:start-session",
+  {
+    title: "用户注册模块",
+    intent:
+      "需要一个支持邮箱/手机号注册的用户模块，包含验证码验证和密码强度检查",
+  },
+);
 
 console.log(session);
 // {
@@ -86,9 +90,9 @@ console.log(session);
 
 ```javascript
 // 最多 20 轮细化对话
-const refined = await window.electronAPI.invoke('autonomous-dev:refine', {
-  sessionId: 'dev-001',
-  feedback: '还需要支持第三方 OAuth 登录（Google/GitHub），注册后自动创建 DID'
+const refined = await window.electronAPI.invoke("autonomous-dev:refine", {
+  sessionId: "dev-001",
+  feedback: "还需要支持第三方 OAuth 登录（Google/GitHub），注册后自动创建 DID",
 });
 
 // refined.prd: {
@@ -102,8 +106,8 @@ const refined = await window.electronAPI.invoke('autonomous-dev:refine', {
 
 ```javascript
 // 自动进行架构决策 → 代码生成 → 自我审查
-const result = await window.electronAPI.invoke('autonomous-dev:generate', {
-  sessionId: 'dev-001'
+const result = await window.electronAPI.invoke("autonomous-dev:generate", {
+  sessionId: "dev-001",
 });
 
 // result.architecture: { decisions: [{ type: 'BACKEND', title: '使用 Express + JWT', ... }] }
@@ -114,8 +118,8 @@ const result = await window.electronAPI.invoke('autonomous-dev:generate', {
 ### 4. 代码审查
 
 ```javascript
-const review = await window.electronAPI.invoke('autonomous-dev:review', {
-  sessionId: 'dev-001'
+const review = await window.electronAPI.invoke("autonomous-dev:review", {
+  sessionId: "dev-001",
 });
 
 console.log(review);
@@ -133,33 +137,36 @@ console.log(review);
 ### 5. 会话列表
 
 ```javascript
-const sessions = await window.electronAPI.invoke('autonomous-dev:list-sessions', {
-  filter: { status: 'COMPLETE' }
-});
+const sessions = await window.electronAPI.invoke(
+  "autonomous-dev:list-sessions",
+  {
+    filter: { status: "COMPLETE" },
+  },
+);
 ```
 
 ---
 
 ## 审查维度
 
-| 维度                | 检查项                               | 权重 |
-| ------------------- | ------------------------------------ | ---- |
-| **SECURITY**        | 输入验证、注入防护、认证/授权、加密  | 25%  |
-| **PERFORMANCE**     | 查询优化、缓存策略、内存使用         | 25%  |
-| **MAINTAINABILITY** | 代码结构、命名规范、注释、模块化     | 25%  |
-| **CORRECTNESS**     | 边界条件、错误处理、类型安全         | 25%  |
+| 维度                | 检查项                              | 权重 |
+| ------------------- | ----------------------------------- | ---- |
+| **SECURITY**        | 输入验证、注入防护、认证/授权、加密 | 25%  |
+| **PERFORMANCE**     | 查询优化、缓存策略、内存使用        | 25%  |
+| **MAINTAINABILITY** | 代码结构、命名规范、注释、模块化    | 25%  |
+| **CORRECTNESS**     | 边界条件、错误处理、类型安全        | 25%  |
 
 ---
 
 ## IPC 通道
 
-| 通道                            | 参数                         | 返回值       |
-| ------------------------------- | ---------------------------- | ------------ |
-| `autonomous-dev:start-session`  | `{ title, intent }`         | 会话对象     |
-| `autonomous-dev:refine`         | `{ sessionId, feedback }`   | 细化结果     |
-| `autonomous-dev:generate`       | `{ sessionId }`             | 代码生成结果 |
-| `autonomous-dev:review`         | `{ sessionId }`             | 审查报告     |
-| `autonomous-dev:list-sessions`  | `{ filter? }`               | 会话列表     |
+| 通道                           | 参数                      | 返回值       |
+| ------------------------------ | ------------------------- | ------------ |
+| `autonomous-dev:start-session` | `{ title, intent }`       | 会话对象     |
+| `autonomous-dev:refine`        | `{ sessionId, feedback }` | 细化结果     |
+| `autonomous-dev:generate`      | `{ sessionId }`           | 代码生成结果 |
+| `autonomous-dev:review`        | `{ sessionId }`           | 审查报告     |
+| `autonomous-dev:list-sessions` | `{ filter? }`             | 会话列表     |
 
 ---
 
@@ -167,46 +174,46 @@ const sessions = await window.electronAPI.invoke('autonomous-dev:list-sessions',
 
 ### dev_sessions
 
-| 字段           | 类型    | 说明                                     |
-| -------------- | ------- | ---------------------------------------- |
-| id             | TEXT PK | 会话 ID                                 |
-| title          | TEXT    | 开发任务标题                             |
-| intent         | TEXT    | 用户业务意图                             |
-| prd            | JSON    | 产品需求文档                             |
-| architecture   | JSON    | 架构决策                                 |
-| generated_code | JSON    | 生成的代码文件                           |
-| review_result  | JSON    | 审查结果                                 |
-| status         | TEXT    | INTENT/PRD/ARCHITECTURE/.../COMPLETE     |
-| turn_count     | INTEGER | 细化对话轮数（最多 20）                  |
-| created_at     | INTEGER | 创建时间                                 |
-| updated_at     | INTEGER | 更新时间                                 |
+| 字段           | 类型    | 说明                                 |
+| -------------- | ------- | ------------------------------------ |
+| id             | TEXT PK | 会话 ID                              |
+| title          | TEXT    | 开发任务标题                         |
+| intent         | TEXT    | 用户业务意图                         |
+| prd            | JSON    | 产品需求文档                         |
+| architecture   | JSON    | 架构决策                             |
+| generated_code | JSON    | 生成的代码文件                       |
+| review_result  | JSON    | 审查结果                             |
+| status         | TEXT    | INTENT/PRD/ARCHITECTURE/.../COMPLETE |
+| turn_count     | INTEGER | 细化对话轮数（最多 20）              |
+| created_at     | INTEGER | 创建时间                             |
+| updated_at     | INTEGER | 更新时间                             |
 
 ### architecture_decisions
 
-| 字段          | 类型    | 说明                         |
-| ------------- | ------- | ---------------------------- |
-| id            | TEXT PK | 决策 ID                     |
-| session_id    | TEXT FK | 关联会话 ID                 |
-| decision_type | TEXT    | 决策类型                     |
-| title         | TEXT    | 决策标题                     |
-| context       | TEXT    | 决策上下文                   |
-| options       | JSON    | 候选方案                     |
-| chosen_option | TEXT    | 选定方案                     |
-| rationale     | TEXT    | 选择理由                     |
-| confidence    | REAL    | 置信度                       |
-| created_at    | INTEGER | 创建时间                     |
+| 字段          | 类型    | 说明        |
+| ------------- | ------- | ----------- |
+| id            | TEXT PK | 决策 ID     |
+| session_id    | TEXT FK | 关联会话 ID |
+| decision_type | TEXT    | 决策类型    |
+| title         | TEXT    | 决策标题    |
+| context       | TEXT    | 决策上下文  |
+| options       | JSON    | 候选方案    |
+| chosen_option | TEXT    | 选定方案    |
+| rationale     | TEXT    | 选择理由    |
+| confidence    | REAL    | 置信度      |
+| created_at    | INTEGER | 创建时间    |
 
 ---
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-developer.js` | 自主开发者核心引擎 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/intent-refiner.js` | 多轮意图理解与 PRD 生成 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/architecture-decision.js` | 架构决策引擎 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/code-reviewer.js` | 四维代码审查 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-dev-ipc.js` | 自主开发 IPC 处理器 |
+| 文件                                                                     | 职责                    |
+| ------------------------------------------------------------------------ | ----------------------- |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-developer.js`  | 自主开发者核心引擎      |
+| `desktop-app-vue/src/main/ai-engine/autonomous/intent-refiner.js`        | 多轮意图理解与 PRD 生成 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/architecture-decision.js` | 架构决策引擎            |
+| `desktop-app-vue/src/main/ai-engine/autonomous/code-reviewer.js`         | 四维代码审查            |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-dev-ipc.js`    | 自主开发 IPC 处理器     |
 
 ## 使用示例
 
@@ -240,7 +247,12 @@ const sessions = await window.electronAPI.invoke('autonomous-dev:list-sessions',
   "autonomousDeveloper": {
     "enabled": true,
     "maxRefineTurns": 20,
-    "reviewDimensions": ["SECURITY", "PERFORMANCE", "MAINTAINABILITY", "CORRECTNESS"],
+    "reviewDimensions": [
+      "SECURITY",
+      "PERFORMANCE",
+      "MAINTAINABILITY",
+      "CORRECTNESS"
+    ],
     "reviewPassThreshold": 0.75,
     "architectureDecisionHistory": true,
     "codeStyle": {
@@ -256,54 +268,54 @@ const sessions = await window.electronAPI.invoke('autonomous-dev:list-sessions',
 }
 ```
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `maxRefineTurns` | 20 | 多轮需求细化最大对话轮数 |
-| `reviewPassThreshold` | 0.75 | 四维审查通过最低总分 |
-| `architectureDecisionHistory` | true | 是否持久化架构决策供后续会话参考 |
-| `codeStyle.autoDetect` | true | 自动检测项目编码规范 |
-| `llm.codeGenerator` | `"deep"` | 代码生成使用的 LLM 类别（Category Routing） |
-| `llm.codeReviewer` | `"reasoning"` | 代码审查使用的 LLM 类别 |
+| 参数                          | 默认值        | 说明                                        |
+| ----------------------------- | ------------- | ------------------------------------------- |
+| `maxRefineTurns`              | 20            | 多轮需求细化最大对话轮数                    |
+| `reviewPassThreshold`         | 0.75          | 四维审查通过最低总分                        |
+| `architectureDecisionHistory` | true          | 是否持久化架构决策供后续会话参考            |
+| `codeStyle.autoDetect`        | true          | 自动检测项目编码规范                        |
+| `llm.codeGenerator`           | `"deep"`      | 代码生成使用的 LLM 类别（Category Routing） |
+| `llm.codeReviewer`            | `"reasoning"` | 代码审查使用的 LLM 类别                     |
 
 ---
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 会话启动 | < 500ms | ~200ms | ✅ |
-| 单轮需求细化 | < 10s | ~5-8s | ✅ |
-| 架构决策生成 | < 15s | ~10s | ✅ |
-| 全栈代码生成（中等规模） | < 60s | ~40s | ✅ |
-| 四维代码审查 | < 30s | ~20s | ✅ |
-| 会话列表查询 | < 100ms | ~30ms | ✅ |
-| 架构决策历史检索 | < 200ms | ~80ms | ✅ |
+| 操作                     | 目标    | 实际   | 状态 |
+| ------------------------ | ------- | ------ | ---- |
+| 会话启动                 | < 500ms | ~200ms | ✅   |
+| 单轮需求细化             | < 10s   | ~5-8s  | ✅   |
+| 架构决策生成             | < 15s   | ~10s   | ✅   |
+| 全栈代码生成（中等规模） | < 60s   | ~40s   | ✅   |
+| 四维代码审查             | < 30s   | ~20s   | ✅   |
+| 会话列表查询             | < 100ms | ~30ms  | ✅   |
+| 架构决策历史检索         | < 200ms | ~80ms  | ✅   |
 
 ---
 
 ## 测试覆盖率
 
-| 文件 | 类型 | 测试数 |
-| --- | --- | --- |
-| ✅ `autonomous-developer.test.js` | 单元 | 28 |
-| ✅ `intent-refiner.test.js` | 单元 | 22 |
-| ✅ `architecture-decision.test.js` | 单元 | 18 |
-| ✅ `code-reviewer.test.js` | 单元 | 24 |
-| ✅ `autonomous-dev-ipc.test.js` | 集成 | 15 |
-| **合计** | | **107** |
+| 文件                               | 类型 | 测试数  |
+| ---------------------------------- | ---- | ------- |
+| ✅ `autonomous-developer.test.js`  | 单元 | 28      |
+| ✅ `intent-refiner.test.js`        | 单元 | 22      |
+| ✅ `architecture-decision.test.js` | 单元 | 18      |
+| ✅ `code-reviewer.test.js`         | 单元 | 24      |
+| ✅ `autonomous-dev-ipc.test.js`    | 集成 | 15      |
+| **合计**                           |      | **107** |
 
 ---
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 会话启动失败 | 数据库表未初始化 | 重启应用触发自动建表，检查 `dev_sessions` 表 |
-| 需求细化无响应 | LLM 服务不可用或上下文过长 | 确认 Ollama 运行中，减少单次描述长度 |
-| 代码生成质量低 | 项目风格分析未完成 | 先运行技术栈检测，确保 AI 了解项目规范 |
-| 审查分数全为 0 | 未生成代码即触发审查 | 确保会话状态为 GENERATING 后再调用审查 |
-| 架构决策不合理 | 历史决策库为空 | 积累更多会话数据后决策质量会逐步提升 |
-| 会话状态卡在 PRD | 多轮细化达到 20 轮上限 | 手动跳过细化阶段，直接触发代码生成 |
+| 问题             | 可能原因                   | 解决方案                                     |
+| ---------------- | -------------------------- | -------------------------------------------- |
+| 会话启动失败     | 数据库表未初始化           | 重启应用触发自动建表，检查 `dev_sessions` 表 |
+| 需求细化无响应   | LLM 服务不可用或上下文过长 | 确认 Ollama 运行中，减少单次描述长度         |
+| 代码生成质量低   | 项目风格分析未完成         | 先运行技术栈检测，确保 AI 了解项目规范       |
+| 审查分数全为 0   | 未生成代码即触发审查       | 确保会话状态为 GENERATING 后再调用审查       |
+| 架构决策不合理   | 历史决策库为空             | 积累更多会话数据后决策质量会逐步提升         |
+| 会话状态卡在 PRD | 多轮细化达到 20 轮上限     | 手动跳过细化阶段，直接触发代码生成           |
 
 ## 安全考虑
 

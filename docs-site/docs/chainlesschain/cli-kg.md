@@ -115,9 +115,9 @@ chainlesschain kg import graph.json --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `kg_entities` | 实体（名称、类型、属性 JSON、标签、创建时间） |
+| 表名           | 说明                                                |
+| -------------- | --------------------------------------------------- |
+| `kg_entities`  | 实体（名称、类型、属性 JSON、标签、创建时间）       |
 | `kg_relations` | 关系（源实体、目标实体、关系类型、权重、属性 JSON） |
 
 ## 系统架构
@@ -157,20 +157,20 @@ chainlesschain kg import graph.json --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| add 添加实体 | < 200ms | ~80ms | OK |
-| add-relation 添加关系 | < 200ms | ~70ms | OK |
-| reason 3 跳推理 | < 1s | ~350ms | OK |
-| stats 统计 | < 500ms | ~200ms | OK |
-| export (1000 实体) | < 2s | ~900ms | OK |
-| import (1000 实体) | < 3s | ~1.5s | OK |
+| 操作                  | 目标    | 实际   | 状态 |
+| --------------------- | ------- | ------ | ---- |
+| add 添加实体          | < 200ms | ~80ms  | OK   |
+| add-relation 添加关系 | < 200ms | ~70ms  | OK   |
+| reason 3 跳推理       | < 1s    | ~350ms | OK   |
+| stats 统计            | < 500ms | ~200ms | OK   |
+| export (1000 实体)    | < 2s    | ~900ms | OK   |
+| import (1000 实体)    | < 3s    | ~1.5s  | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/kg.js` | kg 命令主入口 (Phase 94) |
+| 文件                                      | 职责                                             |
+| ----------------------------------------- | ------------------------------------------------ |
+| `packages/cli/src/commands/kg.js`         | kg 命令主入口 (Phase 94)                         |
 | `packages/cli/src/lib/knowledge-graph.js` | 实体/关系 CRUD、BFS 推理、统计、导入导出核心实现 |
 
 ## 测试覆盖率
@@ -192,12 +192,12 @@ __tests__/unit/code-knowledge-graph-cli.test.js — 补充代码图谱测试
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `add-relation` 失败 | 源/目标实体不存在 | 先 `kg add` 对应实体 |
-| `reason` 结果过多 | max-depth 过大 | 缩小深度或加 `--relation-type` |
-| `export` 文件空 | 过滤条件过严 | 先 `stats` 查看实体数 |
-| `import` 冲突 | ID 重复 | 使用 `--merge` 合并模式 |
+| 症状                | 可能原因          | 解决方案                       |
+| ------------------- | ----------------- | ------------------------------ |
+| `add-relation` 失败 | 源/目标实体不存在 | 先 `kg add` 对应实体           |
+| `reason` 结果过多   | max-depth 过大    | 缩小深度或加 `--relation-type` |
+| `export` 文件空     | 过滤条件过严      | 先 `stats` 查看实体数          |
+| `import` 冲突       | ID 重复           | 使用 `--merge` 合并模式        |
 
 ## 使用示例
 

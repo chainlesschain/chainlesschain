@@ -147,24 +147,24 @@ chainlesschain perception stats --json
 
 ## 配置参考
 
-| 配置项                    | 含义                  | 默认                            |
-| ------------------------- | --------------------- | ------------------------------- |
-| `modalities`              | 支持的模态            | screen / voice / document / video |
-| `analysis-types`          | 分析类型              | ocr / object_detection / scene_recognition / action_detection |
-| `voice-statuses`          | 语音会话状态          | idle / recording / transcribing / completed |
-| `confidence` 范围         | `-c` 置信度           | 0.0 – 1.0                       |
-| V2 sensor maturity (Phase 84) | 5 态 sensor + 5 态 capture lifecycle | 见 `perception_v2_phase84_cli.md` |
+| 配置项                        | 含义                                 | 默认                                                          |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------- |
+| `modalities`                  | 支持的模态                           | screen / voice / document / video                             |
+| `analysis-types`              | 分析类型                             | ocr / object_detection / scene_recognition / action_detection |
+| `voice-statuses`              | 语音会话状态                         | idle / recording / transcribing / completed                   |
+| `confidence` 范围             | `-c` 置信度                          | 0.0 – 1.0                                                     |
+| V2 sensor maturity (Phase 84) | 5 态 sensor + 5 态 capture lifecycle | 见 `perception_v2_phase84_cli.md`                             |
 
 ## 性能指标
 
-| 操作                         | 典型耗时          |
-| ---------------------------- | ----------------- |
-| record 写入                  | < 15 ms           |
-| index-add                    | < 15 ms           |
-| query（1000 条索引）         | < 30 ms           |
-| voice-status 转换            | < 5 ms            |
-| context 快照聚合             | < 30 ms           |
-| V2 capture processing timeout | 可配置            |
+| 操作                          | 典型耗时 |
+| ----------------------------- | -------- |
+| record 写入                   | < 15 ms  |
+| index-add                     | < 15 ms  |
+| query（1000 条索引）          | < 30 ms  |
+| voice-status 转换             | < 5 ms   |
+| context 快照聚合              | < 30 ms  |
+| V2 capture processing timeout | 可配置   |
 
 ## 测试覆盖率
 

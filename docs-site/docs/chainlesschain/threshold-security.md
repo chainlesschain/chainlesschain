@@ -403,16 +403,16 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 
 `.chainlesschain/config.json` 中 `thresholdSecurity` 字段的完整说明：
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `enabled` | boolean | `true` | 是否启用门限安全模块 |
-| `defaultThreshold` | number | `2` | 默认门限值 t（需要多少份 share 才能恢复） |
-| `defaultTotalShares` | number | `3` | 默认总份额数 n |
-| `shareLabels` | string[] | `["device","ukey","backup"]` | 各份额的标签，长度必须等于 `defaultTotalShares` |
-| `biometric.enabled` | boolean | `true` | 是否启用生物特征绑定 |
-| `biometric.allowedTypes` | string[] | `["fingerprint","face"]` | 允许的生物特征类型（`fingerprint` / `face` / `iris`） |
-| `biometric.verificationTimeout` | number (ms) | `30000` | 生物验证超时（毫秒），验证完成需在此窗口内完成签名 |
-| `biometric.maxRetries` | number | `3` | 生物验证失败后的最大重试次数，超出后锁定 |
+| 字段                            | 类型        | 默认值                       | 说明                                                  |
+| ------------------------------- | ----------- | ---------------------------- | ----------------------------------------------------- |
+| `enabled`                       | boolean     | `true`                       | 是否启用门限安全模块                                  |
+| `defaultThreshold`              | number      | `2`                          | 默认门限值 t（需要多少份 share 才能恢复）             |
+| `defaultTotalShares`            | number      | `3`                          | 默认总份额数 n                                        |
+| `shareLabels`                   | string[]    | `["device","ukey","backup"]` | 各份额的标签，长度必须等于 `defaultTotalShares`       |
+| `biometric.enabled`             | boolean     | `true`                       | 是否启用生物特征绑定                                  |
+| `biometric.allowedTypes`        | string[]    | `["fingerprint","face"]`     | 允许的生物特征类型（`fingerprint` / `face` / `iris`） |
+| `biometric.verificationTimeout` | number (ms) | `30000`                      | 生物验证超时（毫秒），验证完成需在此窗口内完成签名    |
+| `biometric.maxRetries`          | number      | `3`                          | 生物验证失败后的最大重试次数，超出后锁定              |
 
 **最小配置示例**（仅门限，不启用生物绑定）：
 
@@ -452,12 +452,12 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 
 ### 测试文件
 
-| 测试文件 | 覆盖范围 | 用例数 |
-|----------|----------|--------|
-| `desktop-app-vue/tests/unit/ukey/threshold-manager.test.js` | Shamir 分割、门限签名、密钥恢复、份额刷新 | 24 |
-| `desktop-app-vue/tests/unit/ukey/biometric-binding.test.js` | TEE 绑定注册、验证、撤销、多类型支持 | 18 |
-| `desktop-app-vue/tests/unit/ukey/threshold-ipc.test.js` | 8 个 IPC 处理器参数校验与错误处理 | 16 |
-| `desktop-app-vue/src/renderer/stores/__tests__/thresholdSecurity.test.ts` | Pinia store 状态流转与 IPC 调用 | 12 |
+| 测试文件                                                                  | 覆盖范围                                  | 用例数 |
+| ------------------------------------------------------------------------- | ----------------------------------------- | ------ |
+| `desktop-app-vue/tests/unit/ukey/threshold-manager.test.js`               | Shamir 分割、门限签名、密钥恢复、份额刷新 | 24     |
+| `desktop-app-vue/tests/unit/ukey/biometric-binding.test.js`               | TEE 绑定注册、验证、撤销、多类型支持      | 18     |
+| `desktop-app-vue/tests/unit/ukey/threshold-ipc.test.js`                   | 8 个 IPC 处理器参数校验与错误处理         | 16     |
+| `desktop-app-vue/src/renderer/stores/__tests__/thresholdSecurity.test.ts` | Pinia store 状态流转与 IPC 调用           | 12     |
 
 **合计**: 70 个测试用例
 
@@ -477,30 +477,32 @@ cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/thresholdSecu
 
 ```javascript
 // 1. 2-of-3 分割后使用任意两份恢复
-it('recovers key from any 2-of-3 shares', async () => {
-  const { shares } = await thresholdManager.splitKey('key-001', 2, 3)
-  const recovered1 = await thresholdManager.recoverKey([shares[0], shares[1]])
-  const recovered2 = await thresholdManager.recoverKey([shares[0], shares[2]])
-  const recovered3 = await thresholdManager.recoverKey([shares[1], shares[2]])
-  expect(recovered1).toEqual(recovered2)
-  expect(recovered2).toEqual(recovered3)
-})
+it("recovers key from any 2-of-3 shares", async () => {
+  const { shares } = await thresholdManager.splitKey("key-001", 2, 3);
+  const recovered1 = await thresholdManager.recoverKey([shares[0], shares[1]]);
+  const recovered2 = await thresholdManager.recoverKey([shares[0], shares[2]]);
+  const recovered3 = await thresholdManager.recoverKey([shares[1], shares[2]]);
+  expect(recovered1).toEqual(recovered2);
+  expect(recovered2).toEqual(recovered3);
+});
 
 // 2. 单份 share 无法恢复（信息论安全）
-it('cannot recover key from a single share', async () => {
-  const { shares } = await thresholdManager.splitKey('key-002', 2, 3)
-  await expect(thresholdManager.recoverKey([shares[0]])).rejects.toThrow('insufficient shares')
-})
+it("cannot recover key from a single share", async () => {
+  const { shares } = await thresholdManager.splitKey("key-002", 2, 3);
+  await expect(thresholdManager.recoverKey([shares[0]])).rejects.toThrow(
+    "insufficient shares",
+  );
+});
 
 // 3. 生物验证窗口超时后签名失败
-it('rejects sign when verification window expires', async () => {
-  vi.useFakeTimers()
-  const binding = await biometricBinding.register('key-001', 'fingerprint')
-  vi.advanceTimersByTime(31000) // 超过 30s 窗口
+it("rejects sign when verification window expires", async () => {
+  vi.useFakeTimers();
+  const binding = await biometricBinding.register("key-001", "fingerprint");
+  vi.advanceTimersByTime(31000); // 超过 30s 窗口
   await expect(
-    biometricBinding.verifyAndSign(binding.bindingId, 'msg')
-  ).rejects.toThrow('verification window expired')
-})
+    biometricBinding.verifyAndSign(binding.bindingId, "msg"),
+  ).rejects.toThrow("verification window expired");
+});
 ```
 
 ---
@@ -530,31 +532,37 @@ it('rejects sign when verification window expires', async () => {
 
 ```javascript
 // 1. Shamir 密钥分割（3/5 门限）
-const { shares } = await window.electronAPI.invoke('threshold:split', {
-  secret: '<master-private-key>', threshold: 3, total: 5
-})
+const { shares } = await window.electronAPI.invoke("threshold:split", {
+  secret: "<master-private-key>",
+  threshold: 3,
+  total: 5,
+});
 // → 将 shares 分发给 5 名持有人，任意 3 人即可恢复
 
 // 2. 门限签名（不恢复原始私钥的前提下产出签名）
-const sig = await window.electronAPI.invoke('threshold:sign', {
-  shares: [share1, share2, share3],  // 任意 3 份
-  message: '0x<tx-hash>'
-})
+const sig = await window.electronAPI.invoke("threshold:sign", {
+  shares: [share1, share2, share3], // 任意 3 份
+  message: "0x<tx-hash>",
+});
 
 // 3. 密钥恢复（恢复原始私钥到本地 TEE）
-const ok = await window.electronAPI.invoke('threshold:recover', {
+const ok = await window.electronAPI.invoke("threshold:recover", {
   shares: [share1, share2, share3],
-  targetKeyRef: 'corp-root'
-})
+  targetKeyRef: "corp-root",
+});
 
 // 4. 生物特征绑定（指纹/面部 → TEE 解锁 share）
-await window.electronAPI.invoke('bio:enroll', { kind: 'fingerprint', tpl: '<template-id>' })
-const myShare = await window.electronAPI.invoke('bio:unlock-share', {
-  kind: 'fingerprint', shareId: '<id>'
-})
+await window.electronAPI.invoke("bio:enroll", {
+  kind: "fingerprint",
+  tpl: "<template-id>",
+});
+const myShare = await window.electronAPI.invoke("bio:unlock-share", {
+  kind: "fingerprint",
+  shareId: "<id>",
+});
 
 // 5. 审计
-await window.electronAPI.invoke('threshold:audit:list', { limit: 100 })
+await window.electronAPI.invoke("threshold:audit:list", { limit: 100 });
 ```
 
 ---
@@ -571,13 +579,13 @@ await window.electronAPI.invoke('threshold:audit:list', { limit: 100 })
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/main/ukey/threshold-manager.js` | Shamir 密钥分割与门限签名核心 |
-| `desktop-app-vue/src/main/ukey/biometric-binding.js` | 生物特征 TEE 绑定管理 |
-| `desktop-app-vue/src/main/ukey/threshold-ipc.js` | 门限安全 IPC 处理器 (8个) |
-| `desktop-app-vue/src/renderer/stores/thresholdSecurity.ts` | Pinia 状态管理 |
-| `desktop-app-vue/src/renderer/pages/security/ThresholdSecurityPage.vue` | 门限安全管理页面 |
+| 文件                                                                    | 职责                          |
+| ----------------------------------------------------------------------- | ----------------------------- |
+| `desktop-app-vue/src/main/ukey/threshold-manager.js`                    | Shamir 密钥分割与门限签名核心 |
+| `desktop-app-vue/src/main/ukey/biometric-binding.js`                    | 生物特征 TEE 绑定管理         |
+| `desktop-app-vue/src/main/ukey/threshold-ipc.js`                        | 门限安全 IPC 处理器 (8个)     |
+| `desktop-app-vue/src/renderer/stores/thresholdSecurity.ts`              | Pinia 状态管理                |
+| `desktop-app-vue/src/renderer/pages/security/ThresholdSecurityPage.vue` | 门限安全管理页面              |
 
 ---
 

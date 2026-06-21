@@ -48,12 +48,12 @@ chainlesschain instinct
 chainlesschain instinct [show] [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--category <cat>` | 按类别过滤 | — |
-| `-n, --limit <n>` | 最大显示数 | `30` |
-| `--strong` | 仅显示高置信度本能（>= 70%） | — |
-| `--json` | JSON 格式输出 | — |
+| 选项               | 说明                         | 默认值 |
+| ------------------ | ---------------------------- | ------ |
+| `--category <cat>` | 按类别过滤                   | —      |
+| `-n, --limit <n>`  | 最大显示数                   | `30`   |
+| `--strong`         | 仅显示高置信度本能（>= 70%） | —      |
+| `--json`           | JSON 格式输出                | —      |
 
 ### instinct categories
 
@@ -71,9 +71,9 @@ chainlesschain instinct categories
 chainlesschain instinct prompt [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--json` | JSON 格式输出 | — |
+| 选项     | 说明          | 默认值 |
+| -------- | ------------- | ------ |
+| `--json` | JSON 格式输出 | —      |
 
 ### instinct delete
 
@@ -83,8 +83,8 @@ chainlesschain instinct prompt [options]
 chainlesschain instinct delete <id>
 ```
 
-| 参数 | 说明 |
-|------|------|
+| 参数   | 说明               |
+| ------ | ------------------ |
 | `<id>` | 本能 ID 或 ID 前缀 |
 
 ### instinct reset
@@ -95,9 +95,9 @@ chainlesschain instinct delete <id>
 chainlesschain instinct reset [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--force` | 跳过确认提示 | — |
+| 选项      | 说明         | 默认值 |
+| --------- | ------------ | ------ |
+| `--force` | 跳过确认提示 | —      |
 
 ### instinct decay
 
@@ -107,9 +107,9 @@ chainlesschain instinct reset [options]
 chainlesschain instinct decay [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--days <n>` | 天数阈值（超过该天数未使用的本能会被衰减） | `30` |
+| 选项         | 说明                                       | 默认值 |
+| ------------ | ------------------------------------------ | ------ |
+| `--days <n>` | 天数阈值（超过该天数未使用的本能会被衰减） | `30`   |
 
 ## 配置参考
 
@@ -139,13 +139,13 @@ chainlesschain instinct decay [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| show 查询 (100 条) | < 200ms | ~90ms | ✅ |
-| prompt 生成系统提示词 | < 300ms | ~150ms | ✅ |
-| decay 衰减批量更新 | < 500ms | ~280ms | ✅ |
-| delete 单条 | < 50ms | ~20ms | ✅ |
-| reset 清空全部 | < 200ms | ~80ms | ✅ |
+| 操作                  | 目标    | 实际   | 状态 |
+| --------------------- | ------- | ------ | ---- |
+| show 查询 (100 条)    | < 200ms | ~90ms  | ✅   |
+| prompt 生成系统提示词 | < 300ms | ~150ms | ✅   |
+| decay 衰减批量更新    | < 500ms | ~280ms | ✅   |
+| delete 单条           | < 50ms  | ~20ms  | ✅   |
+| reset 清空全部        | < 200ms | ~80ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -159,12 +159,12 @@ chainlesschain instinct decay [options]
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/instinct.js` | instinct 命令主入口（show / categories / prompt / delete / reset / decay） |
-| `packages/cli/src/lib/instinct-manager.js` | 本能学习核心（INSTINCT_CATEGORIES、置信度计算、衰减调度） |
-| `packages/cli/__tests__/unit/instinct-manager.test.js` | 本能管理器单元测试 |
-| `packages/cli/__tests__/unit/instinct.test.js` | CLI 命令层测试 |
+| 文件                                                   | 职责                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `packages/cli/src/commands/instinct.js`                | instinct 命令主入口（show / categories / prompt / delete / reset / decay） |
+| `packages/cli/src/lib/instinct-manager.js`             | 本能学习核心（INSTINCT_CATEGORIES、置信度计算、衰减调度）                  |
+| `packages/cli/__tests__/unit/instinct-manager.test.js` | 本能管理器单元测试                                                         |
+| `packages/cli/__tests__/unit/instinct.test.js`         | CLI 命令层测试                                                             |
 
 ## 安全考虑
 
@@ -182,6 +182,7 @@ chainlesschain instinct show
 ```
 
 输出示例：
+
 ```
 Learned Instincts (12):
 
@@ -235,13 +236,13 @@ chainlesschain instinct reset
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Database not available` | 运行 `chainlesschain setup` 初始化环境 |
+| 问题                       | 解决方案                                                                  |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `Database not available`   | 运行 `chainlesschain setup` 初始化环境                                    |
 | `No instincts learned yet` | 使用 `chainlesschain agent` 或 `chainlesschain chat` 与 AI 交互以积累偏好 |
-| `No strong instincts yet` | 需要更多交互次数以提高置信度 |
-| `Instinct not found` | 检查 ID 是否正确，使用 `instinct show --json` 获取完整 ID |
-| 偏好学习不准确 | 使用 `instinct delete` 删除错误条目，或 `instinct reset` 重新开始 |
+| `No strong instincts yet`  | 需要更多交互次数以提高置信度                                              |
+| `Instinct not found`       | 检查 ID 是否正确，使用 `instinct show --json` 获取完整 ID                 |
+| 偏好学习不准确             | 使用 `instinct delete` 删除错误条目，或 `instinct reset` 重新开始         |
 
 ## 相关文档
 

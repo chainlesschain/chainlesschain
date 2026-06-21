@@ -47,6 +47,7 @@ chainlesschain nostr publish "自定义事件" -k 30023 -p npub1...
 发布一个 Nostr 事件。`--kind` 指定事件类型（默认 1 = 文本笔记），`--pubkey` 指定作者公钥。
 
 NIP-01 事件结构：
+
 ```json
 {
   "id": "<sha256 hash>",
@@ -89,9 +90,9 @@ chainlesschain nostr map-did "did:chainless:abc123" "npub1xyz..."
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `nostr_relays` | 中继节点（URL、状态、事件计数、最后连接时间） |
+| 表名           | 说明                                                      |
+| -------------- | --------------------------------------------------------- |
+| `nostr_relays` | 中继节点（URL、状态、事件计数、最后连接时间）             |
 | `nostr_events` | 事件记录（事件 ID、公钥、类型、内容、标签、签名、时间戳） |
 
 ## 连接架构
@@ -120,7 +121,7 @@ publishEvent(content, kind, tags)
   → 构造 NIP-01 事件对象
   → 序列化为 JSON
   → 遍历所有 status=connected 的中继
-  → ws.send(["EVENT", event]) 
+  → ws.send(["EVENT", event])
   → 统计 sentCount / failedCount
 ```
 
@@ -156,14 +157,14 @@ CHAINLESSCHAIN_DB_PATH   # nostr_relays / nostr_events 存储路径
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `nostr keygen` | < 100ms | ~40ms | ✅ |
-| `nostr add-relay` + WS 连接 | < 2s | ~1.1s | ✅ |
-| `nostr publish` (3 中继) | < 1.5s | ~800ms | ✅ |
-| `nostr events` (50 条) | < 300ms | ~180ms | ✅ |
-| `nostr relays` | < 100ms | ~50ms | ✅ |
-| `nostr map-did` | < 150ms | ~70ms | ✅ |
+| 操作                        | 目标    | 实际   | 状态 |
+| --------------------------- | ------- | ------ | ---- |
+| `nostr keygen`              | < 100ms | ~40ms  | ✅   |
+| `nostr add-relay` + WS 连接 | < 2s    | ~1.1s  | ✅   |
+| `nostr publish` (3 中继)    | < 1.5s  | ~800ms | ✅   |
+| `nostr events` (50 条)      | < 300ms | ~180ms | ✅   |
+| `nostr relays`              | < 100ms | ~50ms  | ✅   |
+| `nostr map-did`             | < 150ms | ~70ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -218,11 +219,11 @@ chainlesschain nostr relays --json
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No relays configured" | 未添加中继 | 使用 `nostr add-relay <url>` |
-| 发布事件后 sentCount=0 | 中继不可达 | 检查中继 URL 和网络连接 |
-| 事件列表为空 | 未发布或中继无事件 | 先发布事件或更换中继 |
+| 症状                   | 可能原因           | 解决方案                     |
+| ---------------------- | ------------------ | ---------------------------- |
+| "No relays configured" | 未添加中继         | 使用 `nostr add-relay <url>` |
+| 发布事件后 sentCount=0 | 中继不可达         | 检查中继 URL 和网络连接      |
+| 事件列表为空           | 未发布或中继无事件 | 先发布事件或更换中继         |
 
 ## 安全考虑
 

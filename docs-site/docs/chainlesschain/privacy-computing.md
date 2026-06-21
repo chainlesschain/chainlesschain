@@ -327,6 +327,7 @@ CREATE INDEX IF NOT EXISTS idx_privacy_model_status ON privacy_models(status);
 ### 联邦学习 (FedAvg)
 
 基于 FedAvg 算法的真实加权梯度聚合实现：
+
 - 参与方通过 `submitUpdate(modelId, participantId, { gradients, sampleCount })` 提交本地训练结果
 - 聚合器按 `sampleCount` 加权平均所有参与方的梯度更新
 - 所有参与方提交后自动触发聚合，轮次自动递进（`currentRound++`）
@@ -335,6 +336,7 @@ CREATE INDEX IF NOT EXISTS idx_privacy_model_status ON privacy_models(status);
 ### 安全多方计算 (Shamir 秘密共享)
 
 在 128-bit 素数域 F_p 上实现真实的 Shamir (t, n) 秘密共享：
+
 - 构造 t-1 次随机多项式 f(x)，其中 f(0) = secret
 - 为每个参与方生成 share = (i, f(i) mod p)
 - 通过 Lagrange 插值从任意 t 个 shares 重构秘密
@@ -343,34 +345,35 @@ CREATE INDEX IF NOT EXISTS idx_privacy_model_status ON privacy_models(status);
 ### 差分隐私 (Laplace 噪声)
 
 实现真实的 Laplace 机制噪声注入：
+
 - 噪声采样：`noise = Laplace(0, sensitivity / epsilon)`，使用逆 CDF 方法
 - 对数值数据添加校准噪声后发布
 - 追踪累积隐私预算（sequential composition）：每次查询消耗 ε，总预算耗尽后拒绝新查询
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/crypto/privacy-computing-manager.js` | 隐私计算核心引擎 |
-| `src/main/crypto/privacy-computing.js` | 隐私计算算法库（FedAvg/Shamir/Laplace） |
-| `src/main/crypto/privacy-computing-ipc.js` | IPC 处理器（8 个） |
-| `src/main/crypto/federated-learning.js` | 联邦学习训练引擎 |
-| `src/main/crypto/mpc-engine.js` | 安全多方计算（Shamir/Beaver） |
-| `src/main/crypto/differential-privacy.js` | 差分隐私机制（Laplace/Gaussian） |
-| `src/main/crypto/homomorphic-encryption.js` | 同态加密（Paillier/BFV） |
-| `src/renderer/stores/privacyComputing.ts` | Pinia 隐私计算状态管理 |
+| 文件                                           | 职责                                    |
+| ---------------------------------------------- | --------------------------------------- |
+| `src/main/crypto/privacy-computing-manager.js` | 隐私计算核心引擎                        |
+| `src/main/crypto/privacy-computing.js`         | 隐私计算算法库（FedAvg/Shamir/Laplace） |
+| `src/main/crypto/privacy-computing-ipc.js`     | IPC 处理器（8 个）                      |
+| `src/main/crypto/federated-learning.js`        | 联邦学习训练引擎                        |
+| `src/main/crypto/mpc-engine.js`                | 安全多方计算（Shamir/Beaver）           |
+| `src/main/crypto/differential-privacy.js`      | 差分隐私机制（Laplace/Gaussian）        |
+| `src/main/crypto/homomorphic-encryption.js`    | 同态加密（Paillier/BFV）                |
+| `src/renderer/stores/privacyComputing.ts`      | Pinia 隐私计算状态管理                  |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 联邦学习收敛慢 | 数据分布不均匀或学习率设置不当 | 启用 `federated-averaging` 加权策略，调整学习率 |
-| MPC 通信超时 | 参与方网络延迟高或消息体过大 | 优化网络路由，启用消息压缩 `mpc compress-enable` |
-| 差分隐私噪声过大影响结果 | epsilon 值过小隐私保护过强 | 适当增大 `epsilon` 值，平衡隐私与可用性 |
-| 安全多方计算结果不一致 | 参与方掉线导致协议中断 | 启用容错模式 `mpc fault-tolerant`，增加冗余参与方 |
-| 隐私预算耗尽 | 查询次数过多消耗完隐私预算 | 查看预算使用情况 `privacy budget-status`，申请重置 |
+| 症状                     | 可能原因                       | 解决方案                                           |
+| ------------------------ | ------------------------------ | -------------------------------------------------- |
+| 联邦学习收敛慢           | 数据分布不均匀或学习率设置不当 | 启用 `federated-averaging` 加权策略，调整学习率    |
+| MPC 通信超时             | 参与方网络延迟高或消息体过大   | 优化网络路由，启用消息压缩 `mpc compress-enable`   |
+| 差分隐私噪声过大影响结果 | epsilon 值过小隐私保护过强     | 适当增大 `epsilon` 值，平衡隐私与可用性            |
+| 安全多方计算结果不一致   | 参与方掉线导致协议中断         | 启用容错模式 `mpc fault-tolerant`，增加冗余参与方  |
+| 隐私预算耗尽             | 查询次数过多消耗完隐私预算     | 查看预算使用情况 `privacy budget-status`，申请重置 |
 
 ### 常见错误修复
 
@@ -472,30 +475,35 @@ chainlesschain privacy dp-config --epsilon 1.0 --delta 1e-5
 
 ```javascript
 // 通过 IPC 调整全局隐私预算
-await window.electron.ipcRenderer.invoke('privacy:configure', {
-  globalEpsilon: 20.0,            // 扩大预算上限
-  defaultMechanism: 'gaussian'    // 切换为 Gaussian 机制
+await window.electron.ipcRenderer.invoke("privacy:configure", {
+  globalEpsilon: 20.0, // 扩大预算上限
+  defaultMechanism: "gaussian", // 切换为 Gaussian 机制
 });
 
 // 为单次联邦训练覆盖默认参数
-await window.electron.ipcRenderer.invoke('privacy:federated-train', {
-  modelId: 'my-model',
-  datasetRef: 'local-dataset',
-  federationType: 'horizontal',
+await window.electron.ipcRenderer.invoke("privacy:federated-train", {
+  modelId: "my-model",
+  datasetRef: "local-dataset",
+  federationType: "horizontal",
   config: {
     rounds: 20,
     learningRate: 0.005,
-    aggregation: 'fedprox',        // 覆盖全局默认
+    aggregation: "fedprox", // 覆盖全局默认
     minParticipants: 5,
-    differentialPrivacy: { enabled: true, epsilon: 0.5, delta: 1e-6 }
-  }
+    differentialPrivacy: { enabled: true, epsilon: 0.5, delta: 1e-6 },
+  },
 });
 
 // 查询剩余隐私预算
-const report = await window.electron.ipcRenderer.invoke('privacy:get-privacy-report', {
-  includeDetails: false
-});
-console.log(`预算剩余: ${report.report.privacyBudgetTotal - report.report.privacyBudgetUsed}`);
+const report = await window.electron.ipcRenderer.invoke(
+  "privacy:get-privacy-report",
+  {
+    includeDetails: false,
+  },
+);
+console.log(
+  `预算剩余: ${report.report.privacyBudgetTotal - report.report.privacyBudgetUsed}`,
+);
 ```
 
 ---
@@ -504,27 +512,27 @@ console.log(`预算剩余: ${report.report.privacyBudgetTotal - report.report.pr
 
 ### 计算性能
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 联邦学习单轮聚合（5 方，轻量模型） | < 2 s | ~1.3 s | ✅ |
-| Shamir 秘密共享（3 方求和） | < 100 ms | ~65 ms | ✅ |
-| Shamir 秘密重构（Lagrange 插值） | < 50 ms | ~28 ms | ✅ |
-| Laplace 噪声注入（单次查询） | < 5 ms | ~2 ms | ✅ |
-| Gaussian 噪声注入（高维，1000 维） | < 30 ms | ~18 ms | ✅ |
-| Paillier 加法同态加密（2048 bit） | < 200 ms | ~140 ms | ✅ |
-| Paillier 密文求和（100 个密文） | < 500 ms | ~340 ms | ✅ |
-| BFV 全同态乘法（单次） | < 2 s | ~1.6 s | ✅ |
+| 操作                               | 目标     | 实际    | 状态 |
+| ---------------------------------- | -------- | ------- | ---- |
+| 联邦学习单轮聚合（5 方，轻量模型） | < 2 s    | ~1.3 s  | ✅   |
+| Shamir 秘密共享（3 方求和）        | < 100 ms | ~65 ms  | ✅   |
+| Shamir 秘密重构（Lagrange 插值）   | < 50 ms  | ~28 ms  | ✅   |
+| Laplace 噪声注入（单次查询）       | < 5 ms   | ~2 ms   | ✅   |
+| Gaussian 噪声注入（高维，1000 维） | < 30 ms  | ~18 ms  | ✅   |
+| Paillier 加法同态加密（2048 bit）  | < 200 ms | ~140 ms | ✅   |
+| Paillier 密文求和（100 个密文）    | < 500 ms | ~340 ms | ✅   |
+| BFV 全同态乘法（单次）             | < 2 s    | ~1.6 s  | ✅   |
 
 ### 可扩展性
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 联邦学习参与方上限 | ≥ 20 方 | 验证至 20 方 | ✅ |
-| MPC 并发计算任务 | ≥ 5 并发 | ~8 并发 | ✅ |
-| 差分隐私批量查询（10 个并发） | < 50 ms | ~35 ms | ✅ |
-| 隐私报告生成（1000 条记录） | < 500 ms | ~310 ms | ✅ |
-| SGX Enclave 远程证明 | < 3 s | ~2.1 s | ✅ |
-| 联邦模型导出（ONNX，15 MB） | < 5 s | ~3.4 s | ✅ |
+| 操作                          | 目标     | 实际         | 状态 |
+| ----------------------------- | -------- | ------------ | ---- |
+| 联邦学习参与方上限            | ≥ 20 方  | 验证至 20 方 | ✅   |
+| MPC 并发计算任务              | ≥ 5 并发 | ~8 并发      | ✅   |
+| 差分隐私批量查询（10 个并发） | < 50 ms  | ~35 ms       | ✅   |
+| 隐私报告生成（1000 条记录）   | < 500 ms | ~310 ms      | ✅   |
+| SGX Enclave 远程证明          | < 3 s    | ~2.1 s       | ✅   |
+| 联邦模型导出（ONNX，15 MB）   | < 5 s    | ~3.4 s       | ✅   |
 
 ---
 
@@ -547,36 +555,40 @@ console.log(`预算剩余: ${report.report.privacyBudgetTotal - report.report.pr
 
 ### 总覆盖
 
-| 模块 | 行覆盖率 | 分支覆盖率 |
-| --- | --- | --- |
-| `privacy-computing.js` | 96% | 93% |
-| `federated-learning.js` | 91% | 88% |
-| `mpc-engine.js` | 93% | 90% |
-| `differential-privacy.js` | 97% | 95% |
-| `homomorphic-encryption.js` | 88% | 84% |
-| `privacy-computing-ipc.js` | 98% | 96% |
-| **整体** | **94%** | **91%** |
+| 模块                        | 行覆盖率 | 分支覆盖率 |
+| --------------------------- | -------- | ---------- |
+| `privacy-computing.js`      | 96%      | 93%        |
+| `federated-learning.js`     | 91%      | 88%        |
+| `mpc-engine.js`             | 93%      | 90%        |
+| `differential-privacy.js`   | 97%      | 95%        |
+| `homomorphic-encryption.js` | 88%      | 84%        |
+| `privacy-computing-ipc.js`  | 98%      | 96%        |
+| **整体**                    | **94%**  | **91%**    |
 
 ---
 
 ## 安全考虑
 
 ### 隐私预算管理
+
 - **Epsilon 控制**: 差分隐私的隐私预算 ε 是有限资源，每次查询消耗一部分；`globalEpsilonBudget` 耗尽后系统拒绝新的 DP 查询，防止通过大量查询推断原始数据
 - **预算分配策略**: 建议为高频查询分配较小的 ε 值，为关键业务查询预留较大预算，避免预算过早耗尽
 - **预算重置周期**: 定期重置隐私预算时应评估历史查询的累积信息泄露风险，不建议频繁重置
 
 ### 联邦学习安全
+
 - **梯度隐私**: 联邦学习中共享的模型梯度可能泄露训练数据信息，务必启用差分隐私噪声注入（`differentialPrivacy.enabled: true`）
 - **模型投毒防护**: 验证参与方提交的梯度更新是否异常，恶意参与者可能通过投毒攻击降低全局模型质量
 - **模型导出加密**: 导出联邦模型时使用 `encryptExport: true`，并指定接收方 DID 进行端到端加密
 
 ### 安全多方计算
+
 - **参与方认证**: MPC 计算中所有参与方必须通过 DID 身份验证，防止未授权节点参与联合计算
 - **秘密共享阈值**: Shamir 秘密共享的 `threshold` 应大于参与方总数的一半，防止少数合谋方恢复秘密
 - **TEE 远程证明**: 启用 `attestationRequired` 确保 TEE 环境未被篡改，定期验证 SGX/TrustZone 的完整性
 
 ### 同态加密注意事项
+
 - **密钥长度**: Paillier 密钥建议至少 2048 位，BFV 方案根据安全参数选择合适的多项式模数
 - **计算深度限制**: BFV 全同态加密的计算深度有限，超出深度需要 bootstrapping，显著增加延迟
 
@@ -623,11 +635,11 @@ console.log(`预算剩余: ${report.report.privacyBudgetTotal - report.report.pr
 
 ### 精度损失
 
-| 现象 | 原因与解决方案 |
-|------|--------------|
-| 联邦模型精度低于集中训练 | 数据分布不均匀（non-IID），尝试切换到 `fedprox` 或 `scaffold` 聚合算法 |
-| 差分隐私查询偏差大 | `epsilon` 值过小导致噪声过大，适当增大 ε（但会降低隐私保护强度） |
-| 同态加密计算结果错误 | BFV 方案的计算深度有限，超出深度后结果不可靠；减少连续乘法次数或使用 Paillier 加法方案 |
+| 现象                     | 原因与解决方案                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| 联邦模型精度低于集中训练 | 数据分布不均匀（non-IID），尝试切换到 `fedprox` 或 `scaffold` 聚合算法                 |
+| 差分隐私查询偏差大       | `epsilon` 值过小导致噪声过大，适当增大 ε（但会降低隐私保护强度）                       |
+| 同态加密计算结果错误     | BFV 方案的计算深度有限，超出深度后结果不可靠；减少连续乘法次数或使用 Paillier 加法方案 |
 
 ## 相关文档
 

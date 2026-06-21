@@ -62,13 +62,13 @@ DRAFT → ACTIVE → VIOLATED → TERMINATED
                     └── EXPIRED ────┘
 ```
 
-| 状态           | 说明                       |
-| -------------- | -------------------------- |
-| **DRAFT**      | 草稿，双方协商中           |
-| **ACTIVE**     | 生效中                     |
-| **VIOLATED**   | 发生违约                   |
-| **EXPIRED**    | 到期失效                   |
-| **TERMINATED** | 提前终止                   |
+| 状态           | 说明             |
+| -------------- | ---------------- |
+| **DRAFT**      | 草稿，双方协商中 |
+| **ACTIVE**     | 生效中           |
+| **VIOLATED**   | 发生违约         |
+| **EXPIRED**    | 到期失效         |
+| **TERMINATED** | 提前终止         |
 
 ---
 
@@ -77,32 +77,32 @@ DRAFT → ACTIVE → VIOLATED → TERMINATED
 ### 1. 创建 SLA 合约
 
 ```javascript
-const contract = await window.electronAPI.invoke('sla:create-contract', {
-  name: 'org-a-b-premium-sla',
-  orgId: 'org-a',
-  partnerOrgId: 'org-b',
+const contract = await window.electronAPI.invoke("sla:create-contract", {
+  name: "org-a-b-premium-sla",
+  orgId: "org-a",
+  partnerOrgId: "org-b",
   guarantees: {
-    maxExecutionMs: 30000,    // 最大执行时间 30s
-    minAvailability: 0.99,    // 最低可用性 99%
-    minQualityScore: 0.8      // 最低质量评分 0.8
+    maxExecutionMs: 30000, // 最大执行时间 30s
+    minAvailability: 0.99, // 最低可用性 99%
+    minQualityScore: 0.8, // 最低质量评分 0.8
   },
   penalties: {
-    availability: { threshold: 0.95, action: 'CREDIT_REFUND' },
-    execution: { threshold: 60000, action: 'ESCALATE' }
+    availability: { threshold: 0.95, action: "CREDIT_REFUND" },
+    execution: { threshold: 60000, action: "ESCALATE" },
   },
   rewards: {
-    overPerformance: { threshold: 0.999, bonus: 'REPUTATION_BOOST' }
+    overPerformance: { threshold: 0.999, bonus: "REPUTATION_BOOST" },
   },
-  validFrom: '2026-03-01',
-  validUntil: '2026-12-31'
+  validFrom: "2026-03-01",
+  validUntil: "2026-12-31",
 });
 ```
 
 ### 2. 合规检查
 
 ```javascript
-const compliance = await window.electronAPI.invoke('sla:check-compliance', {
-  contractId: 'sla-001'
+const compliance = await window.electronAPI.invoke("sla:check-compliance", {
+  contractId: "sla-001",
 });
 
 console.log(compliance);
@@ -121,15 +121,15 @@ console.log(compliance);
 ### 3. 违约查询
 
 ```javascript
-const violations = await window.electronAPI.invoke('sla:get-violations', {
-  filter: { contractId: 'sla-001', severity: 'CRITICAL' }
+const violations = await window.electronAPI.invoke("sla:get-violations", {
+  filter: { contractId: "sla-001", severity: "CRITICAL" },
 });
 ```
 
 ### 4. 仪表板
 
 ```javascript
-const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
+const dashboard = await window.electronAPI.invoke("sla:get-dashboard");
 // {
 //   contracts: { total: 15, active: 10, violated: 2, expired: 3 },
 //   violations: { total: 8, critical: 1, major: 3, minor: 4, resolved: 5 }
@@ -140,23 +140,23 @@ const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
 
 ## 违约严重度
 
-| 严重度       | 触发条件                     | 响应动作         |
-| ------------ | ---------------------------- | ---------------- |
-| **CRITICAL** | 可用性 < 95%                 | 自动升级 + 退款  |
-| **MAJOR**    | 可用性 < 99% 或执行超时 2x  | 通知 + 记录      |
-| **MINOR**    | 质量评分轻微下降             | 记录             |
+| 严重度       | 触发条件                   | 响应动作        |
+| ------------ | -------------------------- | --------------- |
+| **CRITICAL** | 可用性 < 95%               | 自动升级 + 退款 |
+| **MAJOR**    | 可用性 < 99% 或执行超时 2x | 通知 + 记录     |
+| **MINOR**    | 质量评分轻微下降           | 记录            |
 
 ---
 
 ## IPC 通道
 
-| 通道                      | 参数                                                | 返回值     |
-| ------------------------- | --------------------------------------------------- | ---------- |
-| `sla:list-contracts`      | `{ filter? }`                                       | 合约列表   |
-| `sla:create-contract`     | `{ name, orgId, partnerOrgId, guarantees, ... }`    | 合约对象   |
-| `sla:get-violations`      | `{ filter? }`                                       | 违约列表   |
-| `sla:check-compliance`    | `{ contractId }`                                    | 合规结果   |
-| `sla:get-dashboard`       | 无                                                  | 仪表板数据 |
+| 通道                   | 参数                                             | 返回值     |
+| ---------------------- | ------------------------------------------------ | ---------- |
+| `sla:list-contracts`   | `{ filter? }`                                    | 合约列表   |
+| `sla:create-contract`  | `{ name, orgId, partnerOrgId, guarantees, ... }` | 合约对象   |
+| `sla:get-violations`   | `{ filter? }`                                    | 违约列表   |
+| `sla:check-compliance` | `{ contractId }`                                 | 合规结果   |
+| `sla:get-dashboard`    | 无                                               | 仪表板数据 |
 
 ---
 
@@ -173,27 +173,27 @@ const slaDefaultConfig = {
     minAvailability: 0.99,
 
     // 最低质量评分（0-1）
-    minQualityScore: 0.8
+    minQualityScore: 0.8,
   },
 
   penalties: {
     // 可用性低于 95% 触发信用退款
-    availability: { threshold: 0.95, action: 'CREDIT_REFUND' },
+    availability: { threshold: 0.95, action: "CREDIT_REFUND" },
 
     // 执行时间超出 2 倍触发升级处理
-    execution: { threshold: 60000, action: 'ESCALATE' }
+    execution: { threshold: 60000, action: "ESCALATE" },
   },
 
   rewards: {
     // 可用性超过 99.9% 获得信誉加分
-    overPerformance: { threshold: 0.999, bonus: 'REPUTATION_BOOST' }
+    overPerformance: { threshold: 0.999, bonus: "REPUTATION_BOOST" },
   },
 
   // 违约自动升级延迟（毫秒）
   autoEscalateDelayMs: 3600000,
 
   // 合规检查间隔（毫秒）
-  complianceCheckIntervalMs: 300000
+  complianceCheckIntervalMs: 300000,
 };
 ```
 
@@ -201,14 +201,14 @@ const slaDefaultConfig = {
 
 ## 性能指标
 
-| 操作                      | 目标       | 实际       | 状态 |
-| ------------------------- | ---------- | ---------- | ---- |
-| 合约创建                  | < 50ms     | ~18ms      | ✅   |
-| 合规检查（单合约）        | < 200ms    | ~85ms      | ✅   |
-| 违约记录写入              | < 30ms     | ~12ms      | ✅   |
-| 仪表板数据聚合查询        | < 300ms    | ~140ms     | ✅   |
-| 违约列表分页查询          | < 100ms    | ~42ms      | ✅   |
-| 合约状态批量更新          | < 500ms    | ~210ms     | ✅   |
+| 操作               | 目标    | 实际   | 状态 |
+| ------------------ | ------- | ------ | ---- |
+| 合约创建           | < 50ms  | ~18ms  | ✅   |
+| 合规检查（单合约） | < 200ms | ~85ms  | ✅   |
+| 违约记录写入       | < 30ms  | ~12ms  | ✅   |
+| 仪表板数据聚合查询 | < 300ms | ~140ms | ✅   |
+| 违约列表分页查询   | < 100ms | ~42ms  | ✅   |
+| 合约状态批量更新   | < 500ms | ~210ms | ✅   |
 
 ---
 
@@ -234,26 +234,26 @@ const slaDefaultConfig = {
 
 ### sla_contracts
 
-| 字段            | 类型    | 说明                |
-| --------------- | ------- | ------------------- |
-| id              | TEXT PK | 合约 ID             |
-| name            | TEXT    | 合约名称            |
-| org_id          | TEXT    | 发起方组织 ID       |
-| partner_org_id  | TEXT    | 合作方组织 ID       |
-| status          | TEXT    | 合约状态            |
-| guarantees      | JSON    | 保障条款            |
-| penalties       | JSON    | 惩罚条款            |
-| rewards         | JSON    | 奖励条款            |
-| valid_from      | TEXT    | 生效日期            |
-| valid_until     | TEXT    | 失效日期            |
-| created_at      | INTEGER | 创建时间            |
+| 字段           | 类型    | 说明          |
+| -------------- | ------- | ------------- |
+| id             | TEXT PK | 合约 ID       |
+| name           | TEXT    | 合约名称      |
+| org_id         | TEXT    | 发起方组织 ID |
+| partner_org_id | TEXT    | 合作方组织 ID |
+| status         | TEXT    | 合约状态      |
+| guarantees     | JSON    | 保障条款      |
+| penalties      | JSON    | 惩罚条款      |
+| rewards        | JSON    | 奖励条款      |
+| valid_from     | TEXT    | 生效日期      |
+| valid_until    | TEXT    | 失效日期      |
+| created_at     | INTEGER | 创建时间      |
 
 ### sla_violations
 
-| 字段           | 类型    | 说明                |
-| -------------- | ------- | ------------------- |
-| id             | TEXT PK | 违约 ID             |
-| contract_id    | TEXT FK | 关联合约 ID         |
+| 字段           | 类型    | 说明                 |
+| -------------- | ------- | -------------------- |
+| id             | TEXT PK | 违约 ID              |
+| contract_id    | TEXT FK | 关联合约 ID          |
 | severity       | TEXT    | CRITICAL/MAJOR/MINOR |
 | metric         | TEXT    | 违约指标名           |
 | expected_value | REAL    | 承诺值               |
@@ -274,12 +274,12 @@ const slaDefaultConfig = {
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-| --- | --- | --- |
-| `src/main/enterprise/sla-manager.js` | SLA 合约管理核心引擎 | ~380 |
-| `src/main/enterprise/sla-compliance-checker.js` | 合规检查与违约检测 | ~250 |
-| `src/main/ipc/ipc-sla.js` | SLA IPC 处理器注册 | ~120 |
-| `src/renderer/stores/sla.ts` | SLA Pinia 状态管理 | ~150 |
+| 文件                                            | 职责                 | 行数 |
+| ----------------------------------------------- | -------------------- | ---- |
+| `src/main/enterprise/sla-manager.js`            | SLA 合约管理核心引擎 | ~380 |
+| `src/main/enterprise/sla-compliance-checker.js` | 合规检查与违约检测   | ~250 |
+| `src/main/ipc/ipc-sla.js`                       | SLA IPC 处理器注册   | ~120 |
+| `src/renderer/stores/sla.ts`                    | SLA Pinia 状态管理   | ~150 |
 
 ## 使用示例
 
@@ -307,14 +307,14 @@ const slaDefaultConfig = {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 合约创建失败 | 必填字段缺失或组织 ID 无效 | 确认所有保障条款已填写，验证组织 ID 存在 |
-| 合规检查无结果 | 合约状态非 ACTIVE | 确认合约处于生效状态 |
-| 违约未自动检测 | 合规检查未定期执行 | 配置自动合规检查间隔，启用 `slaEnforcement` |
-| 仪表板数据延迟 | 数据库查询缓存 | 手动刷新页面，检查数据库索引状态 |
-| 违约严重度分级错误 | 阈值配置不合理 | 调整 penalties 中的 threshold 值 |
-| 合约过期未自动终止 | 状态更新任务未运行 | 重启应用触发合约状态检查任务 |
+| 问题               | 可能原因                   | 解决方案                                    |
+| ------------------ | -------------------------- | ------------------------------------------- |
+| 合约创建失败       | 必填字段缺失或组织 ID 无效 | 确认所有保障条款已填写，验证组织 ID 存在    |
+| 合规检查无结果     | 合约状态非 ACTIVE          | 确认合约处于生效状态                        |
+| 违约未自动检测     | 合规检查未定期执行         | 配置自动合规检查间隔，启用 `slaEnforcement` |
+| 仪表板数据延迟     | 数据库查询缓存             | 手动刷新页面，检查数据库索引状态            |
+| 违约严重度分级错误 | 阈值配置不合理             | 调整 penalties 中的 threshold 值            |
+| 合约过期未自动终止 | 状态更新任务未运行         | 重启应用触发合约状态检查任务                |
 
 ## 安全考虑
 

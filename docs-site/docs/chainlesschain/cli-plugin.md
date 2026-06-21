@@ -78,13 +78,12 @@ chainlesschain plugin install my-plugin --manifest ./manifest.json
 ```
 
 manifest.json 示例：
+
 ```json
 {
   "name": "my-plugin",
   "version": "1.0.0",
-  "skills": [
-    { "name": "my-skill", "path": "skills/my-skill" }
-  ]
+  "skills": [{ "name": "my-skill", "path": "skills/my-skill" }]
 }
 ```
 
@@ -92,12 +91,12 @@ manifest.json 示例：
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `plugins` | 已安装插件（名称、版本、状态、启停标记） |
-| `plugin_settings` | 插件配置键值对 |
-| `plugin_registry` | 注册表/市场目录 |
-| `plugin_skills` | 插件-技能关联（插件名、技能名、技能路径） |
+| 表名              | 说明                                      |
+| ----------------- | ----------------------------------------- |
+| `plugins`         | 已安装插件（名称、版本、状态、启停标记）  |
+| `plugin_settings` | 插件配置键值对                            |
+| `plugin_registry` | 注册表/市场目录                           |
+| `plugin_skills`   | 插件-技能关联（插件名、技能名、技能路径） |
 
 ## 配置参考
 
@@ -116,14 +115,14 @@ PLUGIN_MARKETPLACE_SKILLS  # marketplace 技能目录覆盖
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `plugin list` | < 100ms | ~50ms | ✅ |
-| `plugin install` (无技能) | < 300ms | ~180ms | ✅ |
-| `plugin install` (含技能复制) | < 800ms | ~500ms | ✅ |
-| `plugin search` (模糊匹配) | < 150ms | ~80ms | ✅ |
-| `plugin enable` / `disable` | < 100ms | ~40ms | ✅ |
-| `plugin summary` | < 120ms | ~60ms | ✅ |
+| 操作                          | 目标    | 实际   | 状态 |
+| ----------------------------- | ------- | ------ | ---- |
+| `plugin list`                 | < 100ms | ~50ms  | ✅   |
+| `plugin install` (无技能)     | < 300ms | ~180ms | ✅   |
+| `plugin install` (含技能复制) | < 800ms | ~500ms | ✅   |
+| `plugin search` (模糊匹配)    | < 150ms | ~80ms  | ✅   |
+| `plugin enable` / `disable`   | < 100ms | ~40ms  | ✅   |
+| `plugin summary`              | < 120ms | ~60ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -174,10 +173,10 @@ chainlesschain plugin remove markdown-plus
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `install` 失败 | 确认数据库已初始化：`chainlesschain db init` |
-| `search` 无结果 | 尝试更短的关键词，或用 `registry` 浏览全部 |
+| 问题                  | 解决方案                                     |
+| --------------------- | -------------------------------------------- |
+| `install` 失败        | 确认数据库已初始化：`chainlesschain db init` |
+| `search` 无结果       | 尝试更短的关键词，或用 `registry` 浏览全部   |
 | `enable` 报插件不存在 | 确认插件已安装：`chainlesschain plugin list` |
 
 ## 关键文件

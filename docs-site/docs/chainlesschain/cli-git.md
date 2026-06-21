@@ -52,10 +52,10 @@ chainlesschain git
 chainlesschain git status [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-d, --dir <dir>` | 目标目录 | `.`（当前目录） |
-| `--json` | JSON 格式输出 | — |
+| 选项              | 说明          | 默认值          |
+| ----------------- | ------------- | --------------- |
+| `-d, --dir <dir>` | 目标目录      | `.`（当前目录） |
+| `--json`          | JSON 格式输出 | —               |
 
 ### git init
 
@@ -65,9 +65,9 @@ chainlesschain git status [options]
 chainlesschain git init [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-d, --dir <dir>` | 目标目录 | `.` |
+| 选项              | 说明     | 默认值 |
+| ----------------- | -------- | ------ |
+| `-d, --dir <dir>` | 目标目录 | `.`    |
 
 ### git auto-commit
 
@@ -77,11 +77,11 @@ chainlesschain git init [options]
 chainlesschain git auto-commit [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-d, --dir <dir>` | 目标目录 | `.` |
+| 选项                  | 说明           | 默认值   |
+| --------------------- | -------------- | -------- |
+| `-d, --dir <dir>`     | 目标目录       | `.`      |
 | `-m, --message <msg>` | 自定义提交消息 | 自动生成 |
-| `--json` | JSON 格式输出 | — |
+| `--json`              | JSON 格式输出  | —        |
 
 ### git hooks
 
@@ -91,10 +91,10 @@ chainlesschain git auto-commit [options]
 chainlesschain git hooks [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-d, --dir <dir>` | 目标目录 | `.` |
-| `--install` | 安装钩子 | — |
+| 选项              | 说明     | 默认值 |
+| ----------------- | -------- | ------ |
+| `-d, --dir <dir>` | 目标目录 | `.`    |
+| `--install`       | 安装钩子 | —      |
 
 ### git history-analyze
 
@@ -104,11 +104,11 @@ chainlesschain git hooks [options]
 chainlesschain git history-analyze [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-d, --dir <dir>` | 目标目录 | `.` |
-| `-n, --limit <n>` | 显示最近的提交数 | `10` |
-| `--json` | JSON 格式输出 | — |
+| 选项              | 说明             | 默认值 |
+| ----------------- | ---------------- | ------ |
+| `-d, --dir <dir>` | 目标目录         | `.`    |
+| `-n, --limit <n>` | 显示最近的提交数 | `10`   |
+| `--json`          | JSON 格式输出    | —      |
 
 ## 配置参考
 
@@ -133,13 +133,13 @@ chainlesschain git history-analyze [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| git status 扫描 | < 300ms | ~180ms | ✅ |
-| auto-commit (50 文件) | < 2s | ~1.2s | ✅ |
-| history-analyze (1000 commits) | < 1.5s | ~900ms | ✅ |
-| installHooks 写入 | < 100ms | ~40ms | ✅ |
-| 分支信息读取 | < 50ms | ~20ms | ✅ |
+| 操作                           | 目标    | 实际   | 状态 |
+| ------------------------------ | ------- | ------ | ---- |
+| git status 扫描                | < 300ms | ~180ms | ✅   |
+| auto-commit (50 文件)          | < 2s    | ~1.2s  | ✅   |
+| history-analyze (1000 commits) | < 1.5s  | ~900ms | ✅   |
+| installHooks 写入              | < 100ms | ~40ms  | ✅   |
+| 分支信息读取                   | < 50ms  | ~20ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -153,12 +153,12 @@ chainlesschain git history-analyze [options]
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/git.js` | git 命令主入口（status / init / auto-commit / hooks / history-analyze） |
-| `packages/cli/src/lib/git-integration.js` | Git 集成核心（gitStatus / gitAutoCommit / installHooks / gitHistoryAnalyze / gitLog） |
-| `packages/cli/__tests__/unit/git-integration.test.js` | Git 集成层单元测试 |
-| `packages/cli/__tests__/unit/git.test.js` | CLI 命令层测试 |
+| 文件                                                  | 职责                                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `packages/cli/src/commands/git.js`                    | git 命令主入口（status / init / auto-commit / hooks / history-analyze）               |
+| `packages/cli/src/lib/git-integration.js`             | Git 集成核心（gitStatus / gitAutoCommit / installHooks / gitHistoryAnalyze / gitLog） |
+| `packages/cli/__tests__/unit/git-integration.test.js` | Git 集成层单元测试                                                                    |
+| `packages/cli/__tests__/unit/git.test.js`             | CLI 命令层测试                                                                        |
 
 ## 安全考虑
 
@@ -175,6 +175,7 @@ chainlesschain git status
 ```
 
 输出示例：
+
 ```
 Branch: main
 
@@ -193,6 +194,7 @@ chainlesschain git auto-commit -d ./my-knowledge
 ```
 
 输出示例：
+
 ```
 Committed a1b2c3d: Auto-commit: 3 files changed
   3 file(s) changed
@@ -217,6 +219,7 @@ chainlesschain git history-analyze -n 5
 ```
 
 输出示例：
+
 ```
 Repository Analysis
 
@@ -245,13 +248,13 @@ chainlesschain git history-analyze --json | jq '.totalCommits'
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Not a git repository` | 运行 `chainlesschain git init` 初始化仓库 |
-| `Git status failed` | 确认 Git 已安装：`git --version` |
-| auto-commit 无变更 | 工作区已是 clean 状态，无需提交 |
-| hooks 安装失败 | 确认目录是 Git 仓库且 `.git/hooks/` 目录存在 |
-| 历史分析耗时长 | 大型仓库分析较慢，可用 `--limit` 减少显示的提交数 |
+| 问题                   | 解决方案                                          |
+| ---------------------- | ------------------------------------------------- |
+| `Not a git repository` | 运行 `chainlesschain git init` 初始化仓库         |
+| `Git status failed`    | 确认 Git 已安装：`git --version`                  |
+| auto-commit 无变更     | 工作区已是 clean 状态，无需提交                   |
+| hooks 安装失败         | 确认目录是 Git 仓库且 `.git/hooks/` 目录存在      |
+| 历史分析耗时长         | 大型仓库分析较慢，可用 `--limit` 减少显示的提交数 |
 
 ## 相关文档
 

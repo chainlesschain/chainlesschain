@@ -47,12 +47,12 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/sync/mobile-sync-manager.js` | 移动端同步管理器核心 |
-| `src/main/p2p/p2p-manager.js` | P2P 通信层，提供设备间消息通道 |
-| `src/main/database.js` | SQLite 数据库，同步数据源 |
-| `src/renderer/stores/mobileSync.ts` | Pinia 状态管理 |
+| 文件                                   | 职责                           |
+| -------------------------------------- | ------------------------------ |
+| `src/main/sync/mobile-sync-manager.js` | 移动端同步管理器核心           |
+| `src/main/p2p/p2p-manager.js`          | P2P 通信层，提供设备间消息通道 |
+| `src/main/database.js`                 | SQLite 数据库，同步数据源      |
+| `src/renderer/stores/mobileSync.ts`    | Pinia 状态管理                 |
 
 ---
 
@@ -653,13 +653,13 @@ Batch 4: [301 ~ 350 ] ──> P2P发送 ──> 进度: 100%
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 同步冲突解决失败 | CRDT 合并策略不适用或时钟偏移 | 切换冲突策略为 `last-writer-wins`，同步设备时钟 |
-| 网络断连后恢复同步失败 | 增量日志丢失或版本号不连续 | 执行全量同步 `sync full --force`，重建增量日志 |
-| 设备配对超时 | 信令服务不可达或二维码过期 | 检查信令服务器状态，重新生成配对二维码 |
-| 同步数据不一致 | 部分数据未落盘即断电 | 执行 `sync integrity-check`，修复不一致记录 |
-| 大文件同步进度卡住 | 带宽受限或分片传输中断 | 减小分片大小 `sync config --chunk-size 256KB` |
+| 症状                   | 可能原因                      | 解决方案                                        |
+| ---------------------- | ----------------------------- | ----------------------------------------------- |
+| 同步冲突解决失败       | CRDT 合并策略不适用或时钟偏移 | 切换冲突策略为 `last-writer-wins`，同步设备时钟 |
+| 网络断连后恢复同步失败 | 增量日志丢失或版本号不连续    | 执行全量同步 `sync full --force`，重建增量日志  |
+| 设备配对超时           | 信令服务不可达或二维码过期    | 检查信令服务器状态，重新生成配对二维码          |
+| 同步数据不一致         | 部分数据未落盘即断电          | 执行 `sync integrity-check`，修复不一致记录     |
+| 大文件同步进度卡住     | 带宽受限或分片传输中断        | 减小分片大小 `sync config --chunk-size 256KB`   |
 
 ### 常见错误修复
 
@@ -697,13 +697,13 @@ chainlesschain p2p pair --manual --code <pairing-code>
 
 ### 吞吐量基准
 
-| 数据类别 | 场景           | 耗时    | 传输量  |
-| -------- | -------------- | ------- | ------- |
-| 知识库   | 首次全量同步（1000条笔记） | ~4秒  | ~2MB  |
+| 数据类别 | 场景                       | 耗时   | 传输量 |
+| -------- | -------------------------- | ------ | ------ |
+| 知识库   | 首次全量同步（1000条笔记） | ~4秒   | ~2MB   |
 | 知识库   | 增量同步（50条变更）       | <500ms | ~100KB |
-| 联系人   | 全量同步（500条）          | ~2秒  | ~500KB |
-| 消息     | 全量同步（10000条）        | ~12秒 | ~8MB  |
-| 消息     | 增量同步（100条）          | ~1秒  | ~200KB |
+| 联系人   | 全量同步（500条）          | ~2秒   | ~500KB |
+| 消息     | 全量同步（10000条）        | ~12秒  | ~8MB   |
+| 消息     | 增量同步（100条）          | ~1秒   | ~200KB |
 
 ### 批量传输性能
 
@@ -711,9 +711,9 @@ chainlesschain p2p pair --manual --code <pairing-code>
 
 | 数据总量 | 批次数 | 总耗时 | 内存峰值 |
 | -------- | ------ | ------ | -------- |
-| 100条    | 1批    | ~0.5秒 | <10MB   |
-| 500条    | 5批    | ~2.5秒 | <15MB   |
-| 2000条   | 20批   | ~10秒  | <20MB   |
+| 100条    | 1批    | ~0.5秒 | <10MB    |
+| 500条    | 5批    | ~2.5秒 | <15MB    |
+| 2000条   | 20批   | ~10秒  | <20MB    |
 
 `batchSize` 越大，吞吐量越高，但单条 P2P 消息体积也越大。建议低带宽环境下调小至 50，高性能局域网可调至 200。
 
@@ -722,9 +722,9 @@ chainlesschain p2p pair --manual --code <pairing-code>
 知识库、联系人、群聊、消息四类别通过 `Promise.allSettled` 并行执行，相比串行同步耗时减少约 60%：
 
 | 同步方式 | 4类别总耗时（估算） |
-| -------- | ------------------ |
-| 串行     | ~12秒              |
-| 并行     | ~4秒               |
+| -------- | ------------------- |
+| 串行     | ~12秒               |
+| 并行     | ~4秒                |
 
 ---
 
@@ -732,11 +732,11 @@ chainlesschain p2p pair --manual --code <pairing-code>
 
 ### 测试文件
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| -------- | -------- | ------ |
-| `desktop-app-vue/tests/unit/sync/mobile-sync-manager.test.js` | 设备注册/注销、全量同步、增量同步、冲突解决 | ~60 |
-| `desktop-app-vue/tests/unit/sync/mobile-sync-conflict.test.js` | latest-wins、manual、merge 三种策略 | ~25 |
-| `desktop-app-vue/tests/unit/sync/mobile-sync-offline.test.js` | 离线队列入队、上线自动消费 | ~20 |
+| 测试文件                                                       | 覆盖范围                                    | 用例数 |
+| -------------------------------------------------------------- | ------------------------------------------- | ------ |
+| `desktop-app-vue/tests/unit/sync/mobile-sync-manager.test.js`  | 设备注册/注销、全量同步、增量同步、冲突解决 | ~60    |
+| `desktop-app-vue/tests/unit/sync/mobile-sync-conflict.test.js` | latest-wins、manual、merge 三种策略         | ~25    |
+| `desktop-app-vue/tests/unit/sync/mobile-sync-offline.test.js`  | 离线队列入队、上线自动消费                  | ~20    |
 
 ### 关键测试场景
 
@@ -744,7 +744,9 @@ chainlesschain p2p pair --manual --code <pairing-code>
 // 设备注册后自动触发全量同步
 it("registerMobileDevice should trigger full sync", async () => {
   await mobileSyncManager.registerMobileDevice("device-001", "peer-abc", {
-    name: "Test Phone", platform: "android", version: "1.0.0",
+    name: "Test Phone",
+    platform: "android",
+    version: "1.0.0",
   });
   expect(startSyncSpy).toHaveBeenCalledWith("device-001");
 });
@@ -752,9 +754,9 @@ it("registerMobileDevice should trigger full sync", async () => {
 // latest-wins 冲突策略：取时间戳较新的版本
 it("latest-wins should keep newer timestamp", async () => {
   const resolution = await mobileSyncManager._resolveConflict(
-    { id: "note-1", updated_at: 1000 },  // 本地
-    { id: "note-1", updated_at: 2000 },  // 远程（较新）
-    "latest-wins"
+    { id: "note-1", updated_at: 1000 }, // 本地
+    { id: "note-1", updated_at: 2000 }, // 远程（较新）
+    "latest-wins",
   );
   expect(resolution.updated_at).toBe(2000);
 });
@@ -802,11 +804,11 @@ cd desktop-app-vue && npx vitest run tests/unit/sync/mobile-sync-conflict.test.j
 
 ### 冲突解决异常
 
-| 现象 | 排查方法 |
-|------|---------|
-| `merge` 策略合并结果不正确 | 检查两端修改的字段是否重叠；同一字段被两端修改时自动回退到 `latest-wins`，确认 `updated_at` 时间戳准确 |
-| `manual` 策略无提示 | 确认前端已监听 `conflict:detected` 事件并展示 UI 提示；检查事件 payload 中 `localData` 和 `remoteData` 是否完整 |
-| 冲突计数只增不减 | `conflictsDetected` 为累计值，属正常行为；通过 `conflictsResolved` 确认冲突已处理 |
+| 现象                       | 排查方法                                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `merge` 策略合并结果不正确 | 检查两端修改的字段是否重叠；同一字段被两端修改时自动回退到 `latest-wins`，确认 `updated_at` 时间戳准确          |
+| `manual` 策略无提示        | 确认前端已监听 `conflict:detected` 事件并展示 UI 提示；检查事件 payload 中 `localData` 和 `remoteData` 是否完整 |
+| 冲突计数只增不减           | `conflictsDetected` 为累计值，属正常行为；通过 `conflictsResolved` 确认冲突已处理                               |
 
 ### 设备配对失败
 

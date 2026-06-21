@@ -237,53 +237,53 @@ const notesWithTags = new QueryBuilder("notes")
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 迁移执行失败 | SQL 语法错误或表已存在 | 使用 `dryRun: true` 预览变更，检查迁移文件 SQL 语法 |
-| 回滚后数据丢失 | down() 方法使用了 DROP TABLE | 回滚前先备份数据库，down() 中尽量用 ALTER 而非 DROP |
-| 索引建议不准确 | 查询日志样本不足 | 确保 `minQueryCount` 阈值合理，积累足够查询日志后再分析 |
-| 慢查询未被记录 | queryLog 未启用或阈值过高 | 确认 `queryLog.enabled: true`，调低 `slowThresholdMs` |
-| 迁移版本冲突 | 多人开发时版本号重复 | 使用时间戳作为版本号前缀，合并前检查版本唯一性 |
+| 问题           | 可能原因                     | 解决方案                                                |
+| -------------- | ---------------------------- | ------------------------------------------------------- |
+| 迁移执行失败   | SQL 语法错误或表已存在       | 使用 `dryRun: true` 预览变更，检查迁移文件 SQL 语法     |
+| 回滚后数据丢失 | down() 方法使用了 DROP TABLE | 回滚前先备份数据库，down() 中尽量用 ALTER 而非 DROP     |
+| 索引建议不准确 | 查询日志样本不足             | 确保 `minQueryCount` 阈值合理，积累足够查询日志后再分析 |
+| 慢查询未被记录 | queryLog 未启用或阈值过高    | 确认 `queryLog.enabled: true`，调低 `slowThresholdMs`   |
+| 迁移版本冲突   | 多人开发时版本号重复         | 使用时间戳作为版本号前缀，合并前检查版本唯一性          |
 
 ## 配置参考
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `migrationsDir` | `"migrations"` | 迁移文件目录，相对于数据库根路径 |
-| `autoMigrate` | `true` | 应用启动时自动执行待迁移版本 |
-| `queryLog.enabled` | `true` | 是否启用查询日志记录 |
-| `queryLog.slowThresholdMs` | `100` | 慢查询判定阈值（毫秒） |
-| `queryLog.retentionDays` | `30` | 查询日志保留天数，超期自动清理 |
-| `queryLog.maxEntries` | `100000` | 日志最大条数，超出时清理最旧记录 |
-| `indexOptimizer.enabled` | `true` | 是否启用自动索引优化分析 |
-| `indexOptimizer.analyzeIntervalMs` | `3600000` | 索引分析周期（默认 1 小时） |
-| `indexOptimizer.autoApply` | `false` | 是否自动应用索引建议（建议保持关闭） |
-| `indexOptimizer.minQueryCount` | `10` | 触发建议所需的最低查询次数 |
-| `indexOptimizer.minImprovementPercent` | `50` | 建议索引的最低预估提升百分比 |
+| 配置项                                 | 默认值         | 说明                                 |
+| -------------------------------------- | -------------- | ------------------------------------ |
+| `migrationsDir`                        | `"migrations"` | 迁移文件目录，相对于数据库根路径     |
+| `autoMigrate`                          | `true`         | 应用启动时自动执行待迁移版本         |
+| `queryLog.enabled`                     | `true`         | 是否启用查询日志记录                 |
+| `queryLog.slowThresholdMs`             | `100`          | 慢查询判定阈值（毫秒）               |
+| `queryLog.retentionDays`               | `30`           | 查询日志保留天数，超期自动清理       |
+| `queryLog.maxEntries`                  | `100000`       | 日志最大条数，超出时清理最旧记录     |
+| `indexOptimizer.enabled`               | `true`         | 是否启用自动索引优化分析             |
+| `indexOptimizer.analyzeIntervalMs`     | `3600000`      | 索引分析周期（默认 1 小时）          |
+| `indexOptimizer.autoApply`             | `false`        | 是否自动应用索引建议（建议保持关闭） |
+| `indexOptimizer.minQueryCount`         | `10`           | 触发建议所需的最低查询次数           |
+| `indexOptimizer.minImprovementPercent` | `50`           | 建议索引的最低预估提升百分比         |
 
 ## 性能指标
 
-| 指标 | 典型值 | 说明 |
-| --- | --- | --- |
-| 单次迁移执行时间 | 45–250 ms | 取决于 DDL 复杂度和表数据量 |
-| QueryBuilder 链式查询开销 | < 1 ms | 仅构建 SQL 字符串，不含执行时间 |
-| 慢查询检测阈值 | 100 ms | 超过阈值记录到 `_query_log` 并触发分析 |
-| 索引分析采样量 | 1024 条/周期 | IndexOptimizer 每轮从日志取样分析 |
-| 索引创建预估提升 | 70–85% | 针对 JOIN 和 WHERE+ORDER BY 组合列 |
-| `_query_log` 查询写入成本 | < 0.5 ms | 异步写入，不阻塞主查询执行 |
-| 最大日志条目容量 | 100,000 条 | 超限后按 FIFO 策略清理最旧记录 |
-| 回滚单版本耗时 | < 100 ms | 含 BEGIN/COMMIT 事务开销 |
+| 指标                      | 典型值       | 说明                                   |
+| ------------------------- | ------------ | -------------------------------------- |
+| 单次迁移执行时间          | 45–250 ms    | 取决于 DDL 复杂度和表数据量            |
+| QueryBuilder 链式查询开销 | < 1 ms       | 仅构建 SQL 字符串，不含执行时间        |
+| 慢查询检测阈值            | 100 ms       | 超过阈值记录到 `_query_log` 并触发分析 |
+| 索引分析采样量            | 1024 条/周期 | IndexOptimizer 每轮从日志取样分析      |
+| 索引创建预估提升          | 70–85%       | 针对 JOIN 和 WHERE+ORDER BY 组合列     |
+| `_query_log` 查询写入成本 | < 0.5 ms     | 异步写入，不阻塞主查询执行             |
+| 最大日志条目容量          | 100,000 条   | 超限后按 FIFO 策略清理最旧记录         |
+| 回滚单版本耗时            | < 100 ms     | 含 BEGIN/COMMIT 事务开销               |
 
 ## 测试覆盖率
 
-| 模块 | 测试文件 | 用例数 | 覆盖场景 |
-| --- | --- | --- | --- |
-| MigrationManager | `migration-manager.test.js` | 32 | up/down/rollback/dryRun/校验和校验/事务回滚 |
-| QueryBuilder | `query-builder.test.js` | 28 | SELECT/JOIN/WHERE/ORDER BY/LIMIT/参数化防注入 |
-| IndexOptimizer | `index-optimizer.test.js` | 21 | 慢查询识别/索引建议生成/autoApply 门控 |
-| IPC Handlers | `ipc-database.test.js` | 18 | 4 个通道的请求/响应/错误路径 |
-| 并发安全 | `migration-concurrency.test.js` | 12 | WAL 模式/busy_timeout/并发写入不丢数据 |
-| **合计** | **5 个文件** | **111** | **主流程 + 边界 + 错误路径全覆盖** |
+| 模块             | 测试文件                        | 用例数  | 覆盖场景                                      |
+| ---------------- | ------------------------------- | ------- | --------------------------------------------- |
+| MigrationManager | `migration-manager.test.js`     | 32      | up/down/rollback/dryRun/校验和校验/事务回滚   |
+| QueryBuilder     | `query-builder.test.js`         | 28      | SELECT/JOIN/WHERE/ORDER BY/LIMIT/参数化防注入 |
+| IndexOptimizer   | `index-optimizer.test.js`       | 21      | 慢查询识别/索引建议生成/autoApply 门控        |
+| IPC Handlers     | `ipc-database.test.js`          | 18      | 4 个通道的请求/响应/错误路径                  |
+| 并发安全         | `migration-concurrency.test.js` | 12      | WAL 模式/busy_timeout/并发写入不丢数据        |
+| **合计**         | **5 个文件**                    | **111** | **主流程 + 边界 + 错误路径全覆盖**            |
 
 运行数据库演进模块测试：
 
@@ -310,14 +310,18 @@ cd desktop-app-vue && npx vitest run tests/unit/database/
 // migrations/006_add_user_preferences.js
 
 // 预览待执行的迁移（不实际执行）
-const preview = await window.electron.ipcRenderer.invoke('db:run-migration', {
-  direction: 'up', targetVersion: null, dryRun: true
+const preview = await window.electron.ipcRenderer.invoke("db:run-migration", {
+  direction: "up",
+  targetVersion: null,
+  dryRun: true,
 });
 // preview.executed 列出将要执行的迁移，确认无误后正式执行
 
 // 正式执行所有待迁移
-const result = await window.electron.ipcRenderer.invoke('db:run-migration', {
-  direction: 'up', targetVersion: null, dryRun: false
+const result = await window.electron.ipcRenderer.invoke("db:run-migration", {
+  direction: "up",
+  targetVersion: null,
+  dryRun: false,
 });
 ```
 
@@ -325,8 +329,10 @@ const result = await window.electron.ipcRenderer.invoke('db:run-migration', {
 
 ```javascript
 // 回滚到指定版本（执行 down() 方法，按版本降序逐个回滚）
-const rollback = await window.electron.ipcRenderer.invoke('db:run-migration', {
-  direction: 'down', targetVersion: 4, dryRun: false
+const rollback = await window.electron.ipcRenderer.invoke("db:run-migration", {
+  direction: "down",
+  targetVersion: 4,
+  dryRun: false,
 });
 // 回滚前建议先备份数据库文件，down() 中使用 DROP TABLE 会导致数据丢失
 ```
@@ -335,42 +341,44 @@ const rollback = await window.electron.ipcRenderer.invoke('db:run-migration', {
 
 ```javascript
 // 获取索引建议（基于查询日志中的慢查询自动分析）
-const suggestions = await window.electron.ipcRenderer.invoke('db:index-suggestions');
+const suggestions = await window.electron.ipcRenderer.invoke(
+  "db:index-suggestions",
+);
 // 每条建议包含 createSQL 字段，可直接执行
 
 // 查看查询统计，定位性能瓶颈
-const stats = await window.electron.ipcRenderer.invoke('db:query-stats');
+const stats = await window.electron.ipcRenderer.invoke("db:query-stats");
 // topSlowest 列出平均耗时最高的查询，结合 tableStats 的读写比判断优化方向
 ```
 
 ### QueryBuilder 链式查询
 
 ```javascript
-const { QueryBuilder } = require('./database/query-builder');
+const { QueryBuilder } = require("./database/query-builder");
 
 // 带分页的条件查询（参数化防注入）
-const results = new QueryBuilder('notes')
-  .select('id', 'title', 'created_at')
-  .where('category', '=', 'work')
-  .where('created_at', '>', '2026-01-01')
-  .orderBy('created_at', 'DESC')
-  .limit(20).offset(40)
+const results = new QueryBuilder("notes")
+  .select("id", "title", "created_at")
+  .where("category", "=", "work")
+  .where("created_at", ">", "2026-01-01")
+  .orderBy("created_at", "DESC")
+  .limit(20)
+  .offset(40)
   .execute(db);
 ```
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
+| 文件                                                     | 职责                               |
+| -------------------------------------------------------- | ---------------------------------- |
 | `desktop-app-vue/src/main/database/migration-manager.js` | 版本化迁移管理（up/down/rollback） |
-| `desktop-app-vue/src/main/database/query-builder.js` | 流式 SQL 构建器（链式 API） |
-| `desktop-app-vue/src/main/database/index-optimizer.js` | 索引优化器（慢查询分析+自动推荐） |
-| `desktop-app-vue/src/main/database.js` | SQLite/SQLCipher 数据库核心 |
-| `desktop-app-vue/src/main/ipc/ipc-database.js` | 数据库 IPC Handler |
+| `desktop-app-vue/src/main/database/query-builder.js`     | 流式 SQL 构建器（链式 API）        |
+| `desktop-app-vue/src/main/database/index-optimizer.js`   | 索引优化器（慢查询分析+自动推荐）  |
+| `desktop-app-vue/src/main/database.js`                   | SQLite/SQLCipher 数据库核心        |
+| `desktop-app-vue/src/main/ipc/ipc-database.js`           | 数据库 IPC Handler                 |
 
 ## 相关文档
 
 - [数据库核心](/chainlesschain/database) — SQLite/SQLCipher 加密数据库
 - [性能优化](/chainlesschain/performance) — 应用整体性能调优
 - [企业知识图谱](/chainlesschain/enterprise-knowledge-graph) — 基于数据库的知识管理
-```

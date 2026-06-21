@@ -51,11 +51,11 @@
 
 通话复用消息的信令服务器 + TURN 配置，无需额外服务端配置。客户端关键常量（`CallManager`）：
 
-| 项 | 默认值 | 说明 |
-|---|---|---|
-| `NO_ANSWER_TIMEOUT_MS` | 60s | 无应答超时自动结束 |
-| `MEDIA_TIMEOUT_MS` | 30s | 媒体协商（ICE）超时 |
-| `END_LINGER_MS` | 2.5s | 结束态短暂保留供 UI 展示后清空 |
+| 项                     | 默认值 | 说明                           |
+| ---------------------- | ------ | ------------------------------ |
+| `NO_ANSWER_TIMEOUT_MS` | 60s    | 无应答超时自动结束             |
+| `MEDIA_TIMEOUT_MS`     | 30s    | 媒体协商（ICE）超时            |
+| `END_LINGER_MS`        | 2.5s   | 结束态短暂保留供 UI 展示后清空 |
 
 所需权限（已在 `AndroidManifest.xml`）：`RECORD_AUDIO`、`CAMERA`、`MODIFY_AUDIO_SETTINGS`、`FOREGROUND_SERVICE_MICROPHONE`、`FOREGROUND_SERVICE_CAMERA`、`USE_FULL_SCREEN_INTENT`、`WAKE_LOCK`、`POST_NOTIFICATIONS`。`RECORD_AUDIO` / `CAMERA` 在进入通话时运行时申请。
 
@@ -84,15 +84,15 @@
 
 ## 故障排除
 
-| 现象 | 可能原因 / 排查 |
-|---|---|
-| 拨号对方无来电 | 双方是否互为好友（同一 DID）；对端是否在线注册到信令服务器；查 logcat `[CallSignaling]` 出/入向 |
-| 响铃但接通后无声 | `RECORD_AUDIO` 是否授予；查 `[CallMedia] ICE state`；跨网时 TURN 凭证 / `49152-65535` UDP 是否放行 |
-| 视频黑屏 | `CAMERA` 是否授予；查 `[CallMedia] local video setup`；部分 ROM 需回落 Camera1 |
-| 锁屏收不到全屏来电 | `POST_NOTIFICATIONS`（Android 13+）/ `USE_FULL_SCREEN_INTENT` 是否授予；通话渠道是否被系统静音 |
-| 后台一会儿就断 | 确认前台服务已启动（接通后）；Android 14 后台拨号→接听场景前台服务可能被系统限制（已兜底降级为前台时工作） |
-| 来电没有铃声 | 检查手机是否处于静音 / 振动模式（静音模式不响铃只振动）；确认系统默认铃声已设置；通话通知渠道未被静音 |
-| 查看通话记录为空 | 仅记录**升级到含通话记录版本之后**的通话；旧通话不会回填。新打一通后即出现 |
+| 现象               | 可能原因 / 排查                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 拨号对方无来电     | 双方是否互为好友（同一 DID）；对端是否在线注册到信令服务器；查 logcat `[CallSignaling]` 出/入向            |
+| 响铃但接通后无声   | `RECORD_AUDIO` 是否授予；查 `[CallMedia] ICE state`；跨网时 TURN 凭证 / `49152-65535` UDP 是否放行         |
+| 视频黑屏           | `CAMERA` 是否授予；查 `[CallMedia] local video setup`；部分 ROM 需回落 Camera1                             |
+| 锁屏收不到全屏来电 | `POST_NOTIFICATIONS`（Android 13+）/ `USE_FULL_SCREEN_INTENT` 是否授予；通话渠道是否被系统静音             |
+| 后台一会儿就断     | 确认前台服务已启动（接通后）；Android 14 后台拨号→接听场景前台服务可能被系统限制（已兜底降级为前台时工作） |
+| 来电没有铃声       | 检查手机是否处于静音 / 振动模式（静音模式不响铃只振动）；确认系统默认铃声已设置；通话通知渠道未被静音      |
+| 查看通话记录为空   | 仅记录**升级到含通话记录版本之后**的通话；旧通话不会回填。新打一通后即出现                                 |
 
 ## 关键文件
 

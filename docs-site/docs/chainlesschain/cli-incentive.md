@@ -116,10 +116,10 @@ chainlesschain incentive leaderboard --limit 20 --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `token_accounts` | 账户（余额、总收入、总支出） |
-| `token_transactions` | 交易记录（类型、金额、来源、目标、原因） |
+| 表名                  | 说明                                                   |
+| --------------------- | ------------------------------------------------------ |
+| `token_accounts`      | 账户（余额、总收入、总支出）                           |
+| `token_transactions`  | 交易记录（类型、金额、来源、目标、原因）               |
 | `token_contributions` | 贡献记录（用户、类型、值、元数据、奖励状态、奖励金额） |
 
 ## 系统架构
@@ -161,19 +161,19 @@ chainlesschain incentive leaderboard --limit 20 --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| mint 铸造 | < 200ms | ~90ms | OK |
-| transfer 转账 | < 200ms | ~100ms | OK |
-| contribute 记录 | < 200ms | ~110ms | OK |
-| history 查询 (50 条) | < 300ms | ~150ms | OK |
-| leaderboard (10 条) | < 300ms | ~120ms | OK |
+| 操作                 | 目标    | 实际   | 状态 |
+| -------------------- | ------- | ------ | ---- |
+| mint 铸造            | < 200ms | ~90ms  | OK   |
+| transfer 转账        | < 200ms | ~100ms | OK   |
+| contribute 记录      | < 200ms | ~110ms | OK   |
+| history 查询 (50 条) | < 300ms | ~150ms | OK   |
+| leaderboard (10 条)  | < 300ms | ~120ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/incentive.js` | incentive 命令主入口 (Phase 66) |
+| 文件                                      | 职责                             |
+| ----------------------------------------- | -------------------------------- |
+| `packages/cli/src/commands/incentive.js`  | incentive 命令主入口 (Phase 66)  |
 | `packages/cli/src/lib/token-incentive.js` | 账本、贡献、奖励、排行榜核心实现 |
 
 ## 测试覆盖率
@@ -194,12 +194,12 @@ __tests__/unit/token-incentive.test.js — 103 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `transfer` 报余额不足 | balance < amount | `balance <user>` 核对 |
-| `contribute --auto-reward` 未奖励 | 策略未命中 | `policy show` 检查规则 |
-| `leaderboard` 为空 | 时间窗过窄 | `--since` 放宽或改 `all` |
-| 倍率异常 | `--multiplier` 越界 | 显式限制业务侧上限 |
+| 症状                              | 可能原因            | 解决方案                 |
+| --------------------------------- | ------------------- | ------------------------ |
+| `transfer` 报余额不足             | balance < amount    | `balance <user>` 核对    |
+| `contribute --auto-reward` 未奖励 | 策略未命中          | `policy show` 检查规则   |
+| `leaderboard` 为空                | 时间窗过窄          | `--since` 放宽或改 `all` |
+| 倍率异常                          | `--multiplier` 越界 | 显式限制业务侧上限       |
 
 ## 使用示例
 

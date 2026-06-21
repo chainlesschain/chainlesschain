@@ -81,10 +81,10 @@ chainlesschain compliance check-access "financial-data" "write" "auditor" --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
+| 表名                  | 说明                                         |
+| --------------------- | -------------------------------------------- |
 | `compliance_evidence` | 合规证据（框架、类型、描述、来源、收集时间） |
-| `compliance_reports` | 合规报告（框架、标题、评分、摘要、生成时间） |
+| `compliance_reports`  | 合规报告（框架、标题、评分、摘要、生成时间） |
 | `compliance_policies` | 合规策略（名称、类型、框架、严重级别、规则） |
 
 ## 系统架构
@@ -128,14 +128,14 @@ chainlesschain compliance <subcommand> [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| evidence 写入 | < 50ms | ~18ms | ✅ |
-| report 生成（含评分） | < 500ms | ~200ms | ✅ |
-| classify 敏感数据识别 | < 100ms | ~30ms | ✅ |
-| scan 合规扫描（含策略） | < 800ms | ~300ms | ✅ |
-| policies 列表查询 | < 50ms | ~20ms | ✅ |
-| check-access RBAC 权限检查 | < 30ms | ~10ms | ✅ |
+| 操作                       | 目标    | 实际   | 状态 |
+| -------------------------- | ------- | ------ | ---- |
+| evidence 写入              | < 50ms  | ~18ms  | ✅   |
+| report 生成（含评分）      | < 500ms | ~200ms | ✅   |
+| classify 敏感数据识别      | < 100ms | ~30ms  | ✅   |
+| scan 合规扫描（含策略）    | < 800ms | ~300ms | ✅   |
+| policies 列表查询          | < 50ms  | ~20ms  | ✅   |
+| check-access RBAC 权限检查 | < 30ms  | ~10ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -190,12 +190,12 @@ chainlesschain compliance policies --framework hipaa
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Database not available" | 数据库未初始化 | 先运行 `chainlesschain db init` |
-| 报告评分为 0 | 未收集证据 | 先使用 `evidence` 收集合规证据 |
-| 扫描无策略 | 策略库为空 | 需先配置合规策略 |
-| 分类结果为空 | 内容无敏感数据 | 系统仅识别已知模式（邮箱、信用卡、SSN 等） |
+| 症状                     | 可能原因       | 解决方案                                   |
+| ------------------------ | -------------- | ------------------------------------------ |
+| "Database not available" | 数据库未初始化 | 先运行 `chainlesschain db init`            |
+| 报告评分为 0             | 未收集证据     | 先使用 `evidence` 收集合规证据             |
+| 扫描无策略               | 策略库为空     | 需先配置合规策略                           |
+| 分类结果为空             | 内容无敏感数据 | 系统仅识别已知模式（邮箱、信用卡、SSN 等） |
 
 ## 安全考虑
 
@@ -309,4 +309,3 @@ cc compliance threat-intel stats-v2                         # 全枚举零初始
 ```
 
 测试：`__tests__/unit/threat-intel.test.js` 69 用例全部通过。
-

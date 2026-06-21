@@ -174,32 +174,32 @@ chainlesschain activitypub search "hello" -t notes -a alice --since 2026-01-01 -
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/activitypub.js` | activitypub 命令主入口（别名 `ap`） |
+| 文件                                         | 职责                                           |
+| -------------------------------------------- | ---------------------------------------------- |
+| `packages/cli/src/commands/activitypub.js`   | activitypub 命令主入口（别名 `ap`）            |
 | `packages/cli/src/lib/activitypub-bridge.js` | C2S 桥接核心实现（Actor/Activity/Follow 图谱） |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `actor.kind` | 行为者类型 | Person / Service / Application |
-| `publish.to` | 投递目标 | `followers` / 显式 URI 列表 |
-| `deliver.queueSize` | 出站投递并发 | 8 |
-| `search.scope` | 搜索范围 | `local` / `remote` / `all` |
-| `search.indexBM25` | 索引算法 | `bm25`（默认） |
-| V2 per-owner active cap | 见 `activitypub_bridge_v2_cli.md` | 15/25 |
+| 配置项                  | 含义                              | 默认                           |
+| ----------------------- | --------------------------------- | ------------------------------ |
+| `actor.kind`            | 行为者类型                        | Person / Service / Application |
+| `publish.to`            | 投递目标                          | `followers` / 显式 URI 列表    |
+| `deliver.queueSize`     | 出站投递并发                      | 8                              |
+| `search.scope`          | 搜索范围                          | `local` / `remote` / `all`     |
+| `search.indexBM25`      | 索引算法                          | `bm25`（默认）                 |
+| V2 per-owner active cap | 见 `activitypub_bridge_v2_cli.md` | 15/25                          |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `actor create` | < 20 ms | 本地 SQLite 写入 |
-| `publish note` | < 30 ms（本地） | 远端投递异步化 |
-| `follow` / `like` / `announce` | < 20 ms | 写入 activity + 事件 |
-| `inbox list` / `outbox list` | < 50 ms | 带索引分页 |
-| `search` | < 100 ms | BM25 本地联邦索引 |
-| V2 createActivityV2 dispatch | < 50 ms | `activitypub_bridge_v2_cli.md` |
+| 操作                           | 典型耗时        | 备注                           |
+| ------------------------------ | --------------- | ------------------------------ |
+| `actor create`                 | < 20 ms         | 本地 SQLite 写入               |
+| `publish note`                 | < 30 ms（本地） | 远端投递异步化                 |
+| `follow` / `like` / `announce` | < 20 ms         | 写入 activity + 事件           |
+| `inbox list` / `outbox list`   | < 50 ms         | 带索引分页                     |
+| `search`                       | < 100 ms        | BM25 本地联邦索引              |
+| V2 createActivityV2 dispatch   | < 50 ms         | `activitypub_bridge_v2_cli.md` |
 
 对公网实例投递耗时取决于远端 ActivityPub 服务器。
 
@@ -252,11 +252,11 @@ chainlesschain activitypub followers bob
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Actor not found" | 行为者未创建 | 使用 `actor create` 先创建 |
-| "Database not available" | 数据库未初始化 | 运行 `chainlesschain db init` |
-| JSON 解析失败 | deliver 的 JSON 格式错误 | 检查 JSON 字符串引号 |
+| 症状                     | 可能原因                 | 解决方案                      |
+| ------------------------ | ------------------------ | ----------------------------- |
+| "Actor not found"        | 行为者未创建             | 使用 `actor create` 先创建    |
+| "Database not available" | 数据库未初始化           | 运行 `chainlesschain db init` |
+| JSON 解析失败            | deliver 的 JSON 格式错误 | 检查 JSON 字符串引号          |
 
 ## 相关文档
 

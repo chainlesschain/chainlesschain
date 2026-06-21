@@ -4,12 +4,12 @@
 
 ## 接口列表
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| [查询日志列表](#查询日志列表) | GET | `/api/logs` | 分页查询操作日志 |
-| [日志详情](#日志详情) | GET | `/api/logs/{id}` | 获取日志详情 |
-| [日志统计](#日志统计) | GET | `/api/logs/stats` | 日志统计信息 |
-| [导出日志](#导出日志) | POST | `/api/logs/export` | 导出日志到文件 |
+| 接口                          | 方法 | 路径               | 说明             |
+| ----------------------------- | ---- | ------------------ | ---------------- |
+| [查询日志列表](#查询日志列表) | GET  | `/api/logs`        | 分页查询操作日志 |
+| [日志详情](#日志详情)         | GET  | `/api/logs/{id}`   | 获取日志详情     |
+| [日志统计](#日志统计)         | GET  | `/api/logs/stats`  | 日志统计信息     |
+| [导出日志](#导出日志)         | POST | `/api/logs/export` | 导出日志到文件   |
 
 ---
 
@@ -26,16 +26,16 @@ Authorization: Bearer <token>
 
 **查询参数**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| page | number | 否 | 页码，默认1 |
-| pageSize | number | 否 | 每页条数，默认20，最大100 |
-| action | string | 否 | 操作类型过滤 |
-| level | string | 否 | 日志级别：INFO/WARN/ERROR |
-| userId | string | 否 | 操作人ID |
-| startDate | string | 否 | 开始时间（ISO 8601） |
-| endDate | string | 否 | 结束时间（ISO 8601） |
-| keyword | string | 否 | 关键词搜索 |
+| 参数      | 类型   | 必填 | 说明                      |
+| --------- | ------ | ---- | ------------------------- |
+| page      | number | 否   | 页码，默认1               |
+| pageSize  | number | 否   | 每页条数，默认20，最大100 |
+| action    | string | 否   | 操作类型过滤              |
+| level     | string | 否   | 日志级别：INFO/WARN/ERROR |
+| userId    | string | 否   | 操作人ID                  |
+| startDate | string | 否   | 开始时间（ISO 8601）      |
+| endDate   | string | 否   | 结束时间（ISO 8601）      |
+| keyword   | string | 否   | 关键词搜索                |
 
 ### 响应
 
@@ -121,10 +121,10 @@ Authorization: Bearer <token>
 
 **查询参数**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| startDate | string | 否 | 开始日期，默认近30天 |
-| endDate | string | 否 | 结束日期，默认今天 |
+| 参数      | 类型   | 必填 | 说明                 |
+| --------- | ------ | ---- | -------------------- |
+| startDate | string | 否   | 开始日期，默认近30天 |
+| endDate   | string | 否   | 结束日期，默认今天   |
 
 ### 响应
 
@@ -188,13 +188,13 @@ Content-Type: application/json
 
 **参数说明**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| format | string | 否 | 导出格式：csv/xlsx，默认csv |
-| startDate | string | 否 | 开始日期 |
-| endDate | string | 否 | 结束日期 |
-| action | string | 否 | 操作类型过滤 |
-| level | string | 否 | 日志级别过滤 |
+| 参数      | 类型   | 必填 | 说明                        |
+| --------- | ------ | ---- | --------------------------- |
+| format    | string | 否   | 导出格式：csv/xlsx，默认csv |
+| startDate | string | 否   | 开始日期                    |
+| endDate   | string | 否   | 结束日期                    |
+| action    | string | 否   | 操作类型过滤                |
+| level     | string | 否   | 日志级别过滤                |
 
 ### 响应
 
@@ -210,31 +210,31 @@ Content-Disposition: attachment; filename="logs-2024-12.csv"
 
 ## 操作类型列表
 
-| 操作类型 | 说明 |
-|---------|------|
-| USER_LOGIN | 用户登录 |
-| USER_LOGOUT | 用户登出 |
-| USER_CREATE | 创建用户 |
-| USER_UPDATE | 更新用户 |
-| DEVICE_REGISTER | 设备注册 |
-| DEVICE_ACTIVATE | 设备激活 |
-| DEVICE_LOCK | 设备锁定 |
-| DEVICE_UNLOCK | 设备解锁 |
+| 操作类型          | 说明     |
+| ----------------- | -------- |
+| USER_LOGIN        | 用户登录 |
+| USER_LOGOUT       | 用户登出 |
+| USER_CREATE       | 创建用户 |
+| USER_UPDATE       | 更新用户 |
+| DEVICE_REGISTER   | 设备注册 |
+| DEVICE_ACTIVATE   | 设备激活 |
+| DEVICE_LOCK       | 设备锁定 |
+| DEVICE_UNLOCK     | 设备解锁 |
 | DEVICE_DEACTIVATE | 设备注销 |
-| APP_CREATE | 创建版本 |
-| APP_PUBLISH | 发布版本 |
-| BACKUP_CREATE | 创建备份 |
-| BACKUP_RESTORE | 恢复备份 |
+| APP_CREATE        | 创建版本 |
+| APP_PUBLISH       | 发布版本 |
+| BACKUP_CREATE     | 创建备份 |
+| BACKUP_RESTORE    | 恢复备份 |
 | PERMISSION_CHANGE | 权限变更 |
 
 ## 错误码
 
-| 错误码 | 说明 |
-|--------|------|
-| 7001 | 日志不存在 |
-| 7002 | 日期范围无效 |
-| 7003 | 导出数据量过大（最大10万条） |
-| 7004 | 不支持的导出格式 |
+| 错误码 | 说明                         |
+| ------ | ---------------------------- |
+| 7001   | 日志不存在                   |
+| 7002   | 日期范围无效                 |
+| 7003   | 导出数据量过大（最大10万条） |
+| 7004   | 不支持的导出格式             |
 
 ## 附录：规范章节补全（v5.0.3.108）
 
@@ -285,11 +285,11 @@ Spring Boot REST + JWT 鉴权；统一响应 `{code, message, data}`；分页 `p
 
 ### 9. 竞品对比
 
-| 维度 | 本 API | 直连数据库查日志 |
-|---|---|---|
-| 鉴权 / 权限 | ✅ JWT + RBAC | ❌ |
-| 统一分页 / 过滤 | ✅ | ⚠️ 手写 SQL |
-| 统计聚合 | ✅ 内置 | ⚠️ |
+| 维度            | 本 API        | 直连数据库查日志 |
+| --------------- | ------------- | ---------------- |
+| 鉴权 / 权限     | ✅ JWT + RBAC | ❌               |
+| 统一分页 / 过滤 | ✅            | ⚠️ 手写 SQL      |
+| 统计聚合        | ✅ 内置       | ⚠️               |
 
 ### 10. 配置参考
 
@@ -311,20 +311,20 @@ Base URL：开发 `http://localhost:8080/api`、生产 `https://api.chainlesscha
 
 ### 14. 故障排除
 
-| 现象 | 错误码 / 状态 | 处理 |
-|---|---|---|
-| 日志不存在 | 7001 | 核对日志 ID |
-| 日期范围无效 | 7002 | 用 ISO 8601 且 start ≤ end |
-| 导出失败 | 7003 / 7004 | 缩小范围 ≤10 万条；用 csv/xlsx |
-| 401 / 403 | Token 过期 / 无权限 | 刷新 Token / 确认角色 |
+| 现象         | 错误码 / 状态       | 处理                           |
+| ------------ | ------------------- | ------------------------------ |
+| 日志不存在   | 7001                | 核对日志 ID                    |
+| 日期范围无效 | 7002                | 用 ISO 8601 且 start ≤ end     |
+| 导出失败     | 7003 / 7004         | 缩小范围 ≤10 万条；用 csv/xlsx |
+| 401 / 403    | Token 过期 / 无权限 | 刷新 Token / 确认角色          |
 
 ### 15. 关键文件
 
-| 资源 | 说明 |
-|---|---|
-| `device_logs` 表 | 日志数据源 |
-| `/api/logs*` | 日志查询 REST API（4 接口） |
-| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+| 资源             | 说明                                        |
+| ---------------- | ------------------------------------------- |
+| `device_logs` 表 | 日志数据源                                  |
+| `/api/logs*`     | 日志查询 REST API（4 接口）                 |
+| Swagger UI       | `http://localhost:8080/api/swagger-ui.html` |
 
 ### 16. 使用示例
 

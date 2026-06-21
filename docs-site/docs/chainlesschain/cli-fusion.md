@@ -133,20 +133,20 @@ score = 0.5
 
 均为代码内默认值，经对应 `set-*` 子命令在**当前进程内**修改（无配置文件/环境变量）：
 
-| 配置项 | 默认值 | 读/写命令 |
-|--------|--------|-----------|
-| `PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR` | `10` | `max-active-bridges-per-operator` / `set-...` |
-| `PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE` | `5` | `max-running-translations-per-bridge` / `set-...` |
-| `PF_DEFAULT_BRIDGE_IDLE_MS` | `1209600000`（14 天） | `bridge-idle-ms` / `set-bridge-idle-ms` |
-| `PF_DEFAULT_TRANSLATION_STUCK_MS` | `600000`（10 分钟） | `translation-stuck-ms` / `set-...` |
-| pfgov maxActive / maxPending | `6` / `15` | `pfgov-config-v2` / `pfgov-set-max-*-v2` |
-| pfgov idleMs / stuckMs | 30 天 / `60000`（60 秒） | `pfgov-set-idle-ms-v2` / `pfgov-set-stuck-ms-v2` |
-| `translate -s` 源语言默认 | `auto` | — |
-| `enqueue-translation-v2 -s` 默认 | `auto` | — |
-| 质量等级阈值 | high ≥ 0.7 / medium ≥ 0.4 / harmful 封顶 0.2 | — |
-| 有害关键词表 | spam, scam, phishing, malware, exploit, hack, injection | — |
-| 各 list 命令 `--limit` | `50` | — |
-| V1 持久化 DB | 运行时注入的共享 SQLite（`root._db`） | — |
+| 配置项                                           | 默认值                                                  | 读/写命令                                         |
+| ------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------- |
+| `PF_DEFAULT_MAX_ACTIVE_BRIDGES_PER_OPERATOR`     | `10`                                                    | `max-active-bridges-per-operator` / `set-...`     |
+| `PF_DEFAULT_MAX_RUNNING_TRANSLATIONS_PER_BRIDGE` | `5`                                                     | `max-running-translations-per-bridge` / `set-...` |
+| `PF_DEFAULT_BRIDGE_IDLE_MS`                      | `1209600000`（14 天）                                   | `bridge-idle-ms` / `set-bridge-idle-ms`           |
+| `PF_DEFAULT_TRANSLATION_STUCK_MS`                | `600000`（10 分钟）                                     | `translation-stuck-ms` / `set-...`                |
+| pfgov maxActive / maxPending                     | `6` / `15`                                              | `pfgov-config-v2` / `pfgov-set-max-*-v2`          |
+| pfgov idleMs / stuckMs                           | 30 天 / `60000`（60 秒）                                | `pfgov-set-idle-ms-v2` / `pfgov-set-stuck-ms-v2`  |
+| `translate -s` 源语言默认                        | `auto`                                                  | —                                                 |
+| `enqueue-translation-v2 -s` 默认                 | `auto`                                                  | —                                                 |
+| 质量等级阈值                                     | high ≥ 0.7 / medium ≥ 0.4 / harmful 封顶 0.2            | —                                                 |
+| 有害关键词表                                     | spam, scam, phishing, malware, exploit, hack, injection | —                                                 |
+| 各 list 命令 `--limit`                           | `50`                                                    | —                                                 |
+| V1 持久化 DB                                     | 运行时注入的共享 SQLite（`root._db`）                   | —                                                 |
 
 ## 性能指标
 
@@ -162,10 +162,10 @@ score = 0.5
 
 ## 测试覆盖
 
-| 文件 | 用例数 | 覆盖 |
-|------|--------|------|
-| `packages/cli/__tests__/unit/protocol-fusion.test.js` | 93 | V1 四子系统（消息/身份/质量/翻译/stats）+ V2 桥注册/转移/过滤/翻译生命周期/auto-flip/stats |
-| `packages/cli/__tests__/unit/lib/protocol-fusion-v2-iter23.test.js` | 44 | pfgov 覆盖层：枚举/配置/档案生命周期/活跃配额/路由生命周期/auto-flip/治理统计 |
+| 文件                                                                | 用例数 | 覆盖                                                                                       |
+| ------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `packages/cli/__tests__/unit/protocol-fusion.test.js`               | 93     | V1 四子系统（消息/身份/质量/翻译/stats）+ V2 桥注册/转移/过滤/翻译生命周期/auto-flip/stats |
+| `packages/cli/__tests__/unit/lib/protocol-fusion-v2-iter23.test.js` | 44     | pfgov 覆盖层：枚举/配置/档案生命周期/活跃配额/路由生命周期/auto-flip/治理统计              |
 
 ```bash
 cd packages/cli
@@ -185,28 +185,28 @@ npx vitest run __tests__/unit/protocol-fusion.test.js __tests__/unit/lib/protoco
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `Failed: invalid_source_protocol` | `-s` 不在四协议白名单 | `cc fusion protocols` 查合法值 |
-| `Failed: at_least_one_identity_required` | `map-identity` 四个标识一个都没传 | 至少给 `-d/-a/-n/-m` 之一 |
-| `Identity mapping not found.` | `identity <did>` 按 `did_id` 精确匹配查询 | 确认映射建立时填了 `-d`；按映射 ID 查请用 `--json` 列表筛选 |
-| `assess` 给优质长文打了 harmful | 内容含有害关键词子串（如 "hack" 出现在 "hackathon"） | 启发式按子串匹配，属已知模拟行为；真实判定走桌面 ML 路径 |
-| `Translation: [zh] hello` 而不是真翻译 | CLI 端翻译是模拟实现 | 预期行为；`translation-stats` 仍可验证缓存逻辑 |
-| `operator <x> ... cap reached` / `bridge ... running cap` | V2 配额超限（桥 10 / 并发翻译 5） | 先 retire/完结释放，或 `set-max-*` 调大 |
-| `illegal transition provisional → degraded` 等 | V2 转移表不允许 | 先 `activate-bridge` 再降级；`deprecated` 可经 `activate-bridge` 复活 |
-| 重启后 V2 桥/翻译/pfgov 数据消失 | V2 与 pfgov 是**纯进程内**状态，不落 SQLite | 预期行为；持久对象用 V1 表面 |
-| V1 数据也不持久 / 列表为空 | 当前调用环境未注入共享 DB（`root._db`），preAction 跳过建表 | 在已初始化 DB 的运行时（REPL/桌面联动）中使用 |
-| `invalid JSON: ...` | `--metadata` / `--result` 不是合法 JSON | 注意 shell 引号转义 |
+| 现象                                                      | 可能原因                                                    | 处理                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `Failed: invalid_source_protocol`                         | `-s` 不在四协议白名单                                       | `cc fusion protocols` 查合法值                                        |
+| `Failed: at_least_one_identity_required`                  | `map-identity` 四个标识一个都没传                           | 至少给 `-d/-a/-n/-m` 之一                                             |
+| `Identity mapping not found.`                             | `identity <did>` 按 `did_id` 精确匹配查询                   | 确认映射建立时填了 `-d`；按映射 ID 查请用 `--json` 列表筛选           |
+| `assess` 给优质长文打了 harmful                           | 内容含有害关键词子串（如 "hack" 出现在 "hackathon"）        | 启发式按子串匹配，属已知模拟行为；真实判定走桌面 ML 路径              |
+| `Translation: [zh] hello` 而不是真翻译                    | CLI 端翻译是模拟实现                                        | 预期行为；`translation-stats` 仍可验证缓存逻辑                        |
+| `operator <x> ... cap reached` / `bridge ... running cap` | V2 配额超限（桥 10 / 并发翻译 5）                           | 先 retire/完结释放，或 `set-max-*` 调大                               |
+| `illegal transition provisional → degraded` 等            | V2 转移表不允许                                             | 先 `activate-bridge` 再降级；`deprecated` 可经 `activate-bridge` 复活 |
+| 重启后 V2 桥/翻译/pfgov 数据消失                          | V2 与 pfgov 是**纯进程内**状态，不落 SQLite                 | 预期行为；持久对象用 V1 表面                                          |
+| V1 数据也不持久 / 列表为空                                | 当前调用环境未注入共享 DB（`root._db`），preAction 跳过建表 | 在已初始化 DB 的运行时（REPL/桌面联动）中使用                         |
+| `invalid JSON: ...`                                       | `--metadata` / `--result` 不是合法 JSON                     | 注意 shell 引号转义                                                   |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/fusion.js` | `cc fusion` 全部子命令（含 `registerPfgovV2Commands` 覆盖层注册） |
-| `packages/cli/src/lib/protocol-fusion.js` | V1 四子系统 + V2 状态机 + pfgov 覆盖层全部实现（1290 行） |
-| `packages/cli/__tests__/unit/protocol-fusion.test.js` | 93 单元测试（MockDatabase） |
-| `packages/cli/__tests__/unit/lib/protocol-fusion-v2-iter23.test.js` | 44 单元测试（pfgov） |
-| `docs/design/modules/40_协议融合系统.md` | 桌面端设计文档（Phase 72-73 全量设计） |
+| 文件                                                                | 说明                                                              |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/cli/src/commands/fusion.js`                               | `cc fusion` 全部子命令（含 `registerPfgovV2Commands` 覆盖层注册） |
+| `packages/cli/src/lib/protocol-fusion.js`                           | V1 四子系统 + V2 状态机 + pfgov 覆盖层全部实现（1290 行）         |
+| `packages/cli/__tests__/unit/protocol-fusion.test.js`               | 93 单元测试（MockDatabase）                                       |
+| `packages/cli/__tests__/unit/lib/protocol-fusion-v2-iter23.test.js` | 44 单元测试（pfgov）                                              |
+| `docs/design/modules/40_协议融合系统.md`                            | 桌面端设计文档（Phase 72-73 全量设计）                            |
 
 ## 使用示例
 

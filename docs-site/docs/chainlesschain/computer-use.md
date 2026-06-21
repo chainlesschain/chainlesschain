@@ -936,16 +936,16 @@ workflow.run { name: "完整流程" }
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/browser/computer-use.js` | Computer Use 核心模块 |
-| `desktop-app-vue/src/main/browser/coordinate-action.js` | 像素级坐标操作 |
-| `desktop-app-vue/src/main/browser/vision-action.js` | Vision AI 元素定位 |
-| `desktop-app-vue/src/main/browser/desktop-action.js` | 桌面截图与鼠标键盘控制 |
-| `desktop-app-vue/src/main/browser/workflow-engine.js` | 工作流引擎（条件/循环/并行） |
-| `desktop-app-vue/src/main/browser/safe-mode.js` | 安全模式与权限控制 |
-| `desktop-app-vue/src/main/browser/screen-recorder.js` | 屏幕录制与导出 |
-| `desktop-app-vue/src/renderer/components/browser/ComputerUsePanel.vue` | 前端操作面板 |
+| 文件                                                                   | 说明                         |
+| ---------------------------------------------------------------------- | ---------------------------- |
+| `desktop-app-vue/src/main/browser/computer-use.js`                     | Computer Use 核心模块        |
+| `desktop-app-vue/src/main/browser/coordinate-action.js`                | 像素级坐标操作               |
+| `desktop-app-vue/src/main/browser/vision-action.js`                    | Vision AI 元素定位           |
+| `desktop-app-vue/src/main/browser/desktop-action.js`                   | 桌面截图与鼠标键盘控制       |
+| `desktop-app-vue/src/main/browser/workflow-engine.js`                  | 工作流引擎（条件/循环/并行） |
+| `desktop-app-vue/src/main/browser/safe-mode.js`                        | 安全模式与权限控制           |
+| `desktop-app-vue/src/main/browser/screen-recorder.js`                  | 屏幕录制与导出               |
+| `desktop-app-vue/src/renderer/components/browser/ComputerUsePanel.vue` | 前端操作面板                 |
 
 ## 故障排查
 
@@ -1094,49 +1094,49 @@ Computer Use 模块的核心配置项，通过 `.chainlesschain/config.json` 或
 
 ### 核心操作延迟
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 全屏截图 (1920×1080 PNG) | < 200ms | 85ms | ✅ 达标 |
-| 区域截图 (800×600) | < 100ms | 32ms | ✅ 达标 |
-| 鼠标点击 (含冷却) | < 150ms | 110ms | ✅ 达标 |
-| 键盘输入 (100 字符) | < 500ms | 320ms | ✅ 达标 |
-| 滚动操作 | < 100ms | 48ms | ✅ 达标 |
-| 拖拽操作 (500ms 时长) | < 600ms | 540ms | ✅ 达标 |
-| 窗口列表获取 | < 300ms | 145ms | ✅ 达标 |
+| 操作                     | 目标    | 实际  | 状态    |
+| ------------------------ | ------- | ----- | ------- |
+| 全屏截图 (1920×1080 PNG) | < 200ms | 85ms  | ✅ 达标 |
+| 区域截图 (800×600)       | < 100ms | 32ms  | ✅ 达标 |
+| 鼠标点击 (含冷却)        | < 150ms | 110ms | ✅ 达标 |
+| 键盘输入 (100 字符)      | < 500ms | 320ms | ✅ 达标 |
+| 滚动操作                 | < 100ms | 48ms  | ✅ 达标 |
+| 拖拽操作 (500ms 时长)    | < 600ms | 540ms | ✅ 达标 |
+| 窗口列表获取             | < 300ms | 145ms | ✅ 达标 |
 
 ### Vision AI 定位性能
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
+| 操作                   | 目标     | 实际   | 状态    |
+| ---------------------- | -------- | ------ | ------- |
 | Claude Vision 元素定位 | < 3000ms | 1850ms | ✅ 达标 |
-| GPT-4V 元素定位 | < 4000ms | 2600ms | ✅ 达标 |
-| 本地 LLaVA 元素定位 | < 8000ms | 5200ms | ✅ 达标 |
-| Qwen-VL 元素定位 | < 3500ms | 2100ms | ✅ 达标 |
-| OCR 文字识别 (A4 区域) | < 1000ms | 420ms | ✅ 达标 |
-| 屏幕内容分析 | < 5000ms | 3100ms | ✅ 达标 |
-| 元素验证 (首帧命中) | < 500ms | 210ms | ✅ 达标 |
+| GPT-4V 元素定位        | < 4000ms | 2600ms | ✅ 达标 |
+| 本地 LLaVA 元素定位    | < 8000ms | 5200ms | ✅ 达标 |
+| Qwen-VL 元素定位       | < 3500ms | 2100ms | ✅ 达标 |
+| OCR 文字识别 (A4 区域) | < 1000ms | 420ms  | ✅ 达标 |
+| 屏幕内容分析           | < 5000ms | 3100ms | ✅ 达标 |
+| 元素验证 (首帧命中)    | < 500ms  | 210ms  | ✅ 达标 |
 
 ### 工作流与录制性能
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 工作流创建 | < 50ms | 12ms | ✅ 达标 |
-| 工作流单步执行开销 | < 20ms | 8ms | ✅ 达标 |
-| 并行任务调度 (8 任务) | < 100ms | 55ms | ✅ 达标 |
-| 录制启动 | < 200ms | 90ms | ✅ 达标 |
-| GIF 导出 (30s 录制 → 5fps) | < 10s | 6.2s | ✅ 达标 |
-| MP4 导出 (30s 录制，需 ffmpeg) | < 15s | 9.8s | ✅ 达标 |
-| 操作回放加载 (100 步) | < 100ms | 38ms | ✅ 达标 |
+| 操作                           | 目标    | 实际 | 状态    |
+| ------------------------------ | ------- | ---- | ------- |
+| 工作流创建                     | < 50ms  | 12ms | ✅ 达标 |
+| 工作流单步执行开销             | < 20ms  | 8ms  | ✅ 达标 |
+| 并行任务调度 (8 任务)          | < 100ms | 55ms | ✅ 达标 |
+| 录制启动                       | < 200ms | 90ms | ✅ 达标 |
+| GIF 导出 (30s 录制 → 5fps)     | < 10s   | 6.2s | ✅ 达标 |
+| MP4 导出 (30s 录制，需 ffmpeg) | < 15s   | 9.8s | ✅ 达标 |
+| 操作回放加载 (100 步)          | < 100ms | 38ms | ✅ 达标 |
 
 ### 并发与稳定性
 
-| 指标 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 连续运行 1h 无内存泄漏 | 增量 < 50MB | +18MB | ✅ 达标 |
-| 1000 次连续截图成功率 | > 99% | 99.7% | ✅ 达标 |
-| Vision AI 重试成功率 (3 次内) | > 95% | 97.2% | ✅ 达标 |
-| 工作流 500 步完成成功率 | > 99% | 99.4% | ✅ 达标 |
-| IPC 处理器平均响应时间 | < 50ms | 22ms | ✅ 达标 |
+| 指标                          | 目标        | 实际  | 状态    |
+| ----------------------------- | ----------- | ----- | ------- |
+| 连续运行 1h 无内存泄漏        | 增量 < 50MB | +18MB | ✅ 达标 |
+| 1000 次连续截图成功率         | > 99%       | 99.7% | ✅ 达标 |
+| Vision AI 重试成功率 (3 次内) | > 95%       | 97.2% | ✅ 达标 |
+| 工作流 500 步完成成功率       | > 99%       | 99.4% | ✅ 达标 |
+| IPC 处理器平均响应时间        | < 50ms      | 22ms  | ✅ 达标 |
 
 ---
 
@@ -1192,32 +1192,36 @@ cd desktop-app-vue && npx vitest run tests/unit/browser/vision-action.test.js
 
 ```javascript
 // 1. 坐标操作：点击屏幕 (500, 300)
-await window.electronAPI.invoke('computer-use:coord:click', { x: 500, y: 300 })
+await window.electronAPI.invoke("computer-use:coord:click", { x: 500, y: 300 });
 
 // 2. 视觉查找目标按钮（OCR + 图像匹配）后点击
-const match = await window.electronAPI.invoke('computer-use:vision:find', {
-  template: 'submit-button.png',
-  threshold: 0.9
-})
+const match = await window.electronAPI.invoke("computer-use:vision:find", {
+  template: "submit-button.png",
+  threshold: 0.9,
+});
 if (match) {
-  await window.electronAPI.invoke('computer-use:coord:click', match.center)
+  await window.electronAPI.invoke("computer-use:coord:click", match.center);
 }
 
 // 3. 桌面级：打开记事本并录入文字
-await window.electronAPI.invoke('computer-use:desktop:launch', { app: 'notepad.exe' })
-await window.electronAPI.invoke('computer-use:desktop:type', { text: 'Hello from AI' })
+await window.electronAPI.invoke("computer-use:desktop:launch", {
+  app: "notepad.exe",
+});
+await window.electronAPI.invoke("computer-use:desktop:type", {
+  text: "Hello from AI",
+});
 
 // 4. 工作流：录制动作并回放
-const rec = await window.electronAPI.invoke('computer-use:recorder:start')
+const rec = await window.electronAPI.invoke("computer-use:recorder:start");
 // ... 用户手工演示 ...
-await window.electronAPI.invoke('computer-use:recorder:stop', { id: rec.id })
-await window.electronAPI.invoke('computer-use:replay:run', { id: rec.id })
+await window.electronAPI.invoke("computer-use:recorder:stop", { id: rec.id });
+await window.electronAPI.invoke("computer-use:replay:run", { id: rec.id });
 
 // 5. SafeMode：为敏感操作加入确认
-await window.electronAPI.invoke('computer-use:safemode:enable', {
+await window.electronAPI.invoke("computer-use:safemode:enable", {
   blockedRegions: [{ x: 0, y: 0, w: 1920, h: 40 }], // 任务栏
-  confirmRequired: ['desktop:launch', 'desktop:type']
-})
+  confirmRequired: ["desktop:launch", "desktop:type"],
+});
 ```
 
 所有操作自动写入审计日志，可在 `AuditLogger` 面板逐条回放。

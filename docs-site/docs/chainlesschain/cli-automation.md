@@ -52,15 +52,15 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 
 ## 配置参考
 
-| 配置项                          | 含义                | 默认         |
-| ------------------------------- | ------------------- | ------------ |
-| `maxConcurrentExecutions`       | 并发执行数          | 10           |
-| `executionTimeoutMs`            | 单次执行超时        | 300000 ms    |
-| `logRetentionDays`              | 日志保留天数        | 30           |
-| `maxStepsPerFlow`               | 单工作流最大步骤    | 100          |
-| V2 `perOwnerActiveAutomationCap`| 每 owner 活跃工作流 | ~20          |
-| V2 `perAutomationRunningExecCap`| 每工作流运行中执行  | ~10          |
-| V2 `autoPauseIdleAfterMs`       | 闲置自动暂停阈值    | 86400000 ms  |
+| 配置项                           | 含义                | 默认        |
+| -------------------------------- | ------------------- | ----------- |
+| `maxConcurrentExecutions`        | 并发执行数          | 10          |
+| `executionTimeoutMs`             | 单次执行超时        | 300000 ms   |
+| `logRetentionDays`               | 日志保留天数        | 30          |
+| `maxStepsPerFlow`                | 单工作流最大步骤    | 100         |
+| V2 `perOwnerActiveAutomationCap` | 每 owner 活跃工作流 | ~20         |
+| V2 `perAutomationRunningExecCap` | 每工作流运行中执行  | ~10         |
+| V2 `autoPauseIdleAfterMs`        | 闲置自动暂停阈值    | 86400000 ms |
 
 查看：`chainlesschain auto config`、`auto trigger-types`、`auto statuses`。
 
@@ -68,14 +68,14 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 
 ## 性能指标
 
-| 指标                        | 典型值        |
-| --------------------------- | ------------- |
-| 创建工作流                  | < 20 ms       |
-| 添加触发器                  | < 15 ms       |
-| DAG 拓扑排序（20 节点）     | < 10 ms       |
-| 手动 execute（含连接器调用）| 依赖外部服务  |
-| V2 createExecV2 dispatch    | < 50 ms       |
-| V2 cap (default)            | per-owner 20 active / per-auto 10 running |
+| 指标                         | 典型值                                    |
+| ---------------------------- | ----------------------------------------- |
+| 创建工作流                   | < 20 ms                                   |
+| 添加触发器                   | < 15 ms                                   |
+| DAG 拓扑排序（20 节点）      | < 10 ms                                   |
+| 手动 execute（含连接器调用） | 依赖外部服务                              |
+| V2 createExecV2 dispatch     | < 50 ms                                   |
+| V2 cap (default)             | per-owner 20 active / per-auto 10 running |
 
 ---
 

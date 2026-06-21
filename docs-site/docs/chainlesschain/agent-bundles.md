@@ -63,14 +63,14 @@ sandbox = "thread"
 
 ### 清单字段参考
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `id` | string | `null` | Bundle 唯一标识（可选） |
-| `name` | string | `null` | 显示名称（可选） |
-| `version` | string | `"0.1.0"` | 语义版本 |
-| `defaultModel` | string | `null` | 默认 LLM 模型 |
-| `mode` | string | `"local"` | 运行模式：`local` / `lan` / `hosted` |
-| `sandbox` | string | `"thread"` | 沙箱类型 |
+| 字段           | 类型   | 默认值     | 说明                                 |
+| -------------- | ------ | ---------- | ------------------------------------ |
+| `id`           | string | `null`     | Bundle 唯一标识（可选）              |
+| `name`         | string | `null`     | 显示名称（可选）                     |
+| `version`      | string | `"0.1.0"`  | 语义版本                             |
+| `defaultModel` | string | `null`     | 默认 LLM 模型                        |
+| `mode`         | string | `"local"`  | 运行模式：`local` / `lan` / `hosted` |
+| `sandbox`      | string | `"thread"` | 沙箱类型                             |
 
 ## AGENTS.md — 系统指令
 
@@ -130,11 +130,11 @@ sandbox = "thread"
 
 ### 运行模式与 MCP 传输兼容性
 
-| 传输类型 | local | lan | hosted |
-|----------|-------|-----|--------|
-| `stdio` | ✅ | ✅ | ❌ |
-| `sse` | ✅ | ✅ | ✅ |
-| `streamable-http` | ✅ | ✅ | ✅ |
+| 传输类型          | local | lan | hosted |
+| ----------------- | ----- | --- | ------ |
+| `stdio`           | ✅    | ✅  | ❌     |
+| `sse`             | ✅    | ✅  | ✅     |
+| `streamable-http` | ✅    | ✅  | ✅     |
 
 > `hosted` 模式下含 `stdio` 传输的 MCP 服务器会被自动过滤（防止远程执行本地命令）。
 
@@ -200,11 +200,11 @@ sandbox = "thread"
 
 ### Desktop IPC 通道
 
-| 通道 | 参数 | 返回值 | 说明 |
-|------|------|--------|------|
-| `bundle:load` | `{ bundlePath, sessionId? }` | `{ ok, data: { bundle, resolved } }` | 加载 bundle，可选绑定到 session |
-| `bundle:info` | - | `{ ok, data: { bundle, resolved, loadedAt } \| null }` | 查询当前活跃 bundle |
-| `bundle:unload` | - | `{ ok, data: { unloaded: boolean } }` | 卸载当前 bundle |
+| 通道            | 参数                         | 返回值                                                 | 说明                            |
+| --------------- | ---------------------------- | ------------------------------------------------------ | ------------------------------- |
+| `bundle:load`   | `{ bundlePath, sessionId? }` | `{ ok, data: { bundle, resolved } }`                   | 加载 bundle，可选绑定到 session |
+| `bundle:info`   | -                            | `{ ok, data: { bundle, resolved, loadedAt } \| null }` | 查询当前活跃 bundle             |
+| `bundle:unload` | -                            | `{ ok, data: { unloaded: boolean } }`                  | 卸载当前 bundle                 |
 
 ## 配置参考
 
@@ -243,22 +243,22 @@ chainlesschain serve --bundle <path> --port 18800
 
 ### 响应时间
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| Bundle 加载 (本地 FS) | &lt; 100ms | &lt; 50ms | ✅ |
-| TOML 清单解析 | &lt; 10ms | &lt; 5ms | ✅ |
-| AGENTS.md 编译 | &lt; 5ms | &lt; 2ms | ✅ |
-| USER.md 种子解析 | &lt; 5ms | &lt; 2ms | ✅ |
-| USER.md 种子写入 | &lt; 20ms/entry | &lt; 10ms/entry | ✅ |
-| MCP 配置解析 + 过滤 | &lt; 10ms | &lt; 5ms | ✅ |
+| 操作                  | 目标            | 实际            | 状态 |
+| --------------------- | --------------- | --------------- | ---- |
+| Bundle 加载 (本地 FS) | &lt; 100ms      | &lt; 50ms       | ✅   |
+| TOML 清单解析         | &lt; 10ms       | &lt; 5ms        | ✅   |
+| AGENTS.md 编译        | &lt; 5ms        | &lt; 2ms        | ✅   |
+| USER.md 种子解析      | &lt; 5ms        | &lt; 2ms        | ✅   |
+| USER.md 种子写入      | &lt; 20ms/entry | &lt; 10ms/entry | ✅   |
+| MCP 配置解析 + 过滤   | &lt; 10ms       | &lt; 5ms        | ✅   |
 
 ### 资源使用
 
-| 指标 | 数值 |
-|------|------|
-| Bundle 解析内存 | &lt; 1MB |
-| 典型 Bundle 目录大小 | 5-50KB |
-| MCP 配置最大服务器数 | 无限制 |
+| 指标                 | 数值     |
+| -------------------- | -------- |
+| Bundle 解析内存      | &lt; 1MB |
+| 典型 Bundle 目录大小 | 5-50KB   |
+| MCP 配置最大服务器数 | 无限制   |
 
 ## 测试覆盖率
 
@@ -364,36 +364,36 @@ node -e "
 
 ### session-core Bundle 模块
 
-| 文件 | 职责 | 行数 |
-|------|------|------|
-| `packages/session-core/lib/agent-bundle-schema.js` | 目录结构常量 + 验证 | ~120 |
-| `packages/session-core/lib/agent-bundle-loader.js` | 文件系统读取 + TOML/JSON 解析 | ~180 |
+| 文件                                                 | 职责                              | 行数 |
+| ---------------------------------------------------- | --------------------------------- | ---- |
+| `packages/session-core/lib/agent-bundle-schema.js`   | 目录结构常量 + 验证               | ~120 |
+| `packages/session-core/lib/agent-bundle-loader.js`   | 文件系统读取 + TOML/JSON 解析     | ~180 |
 | `packages/session-core/lib/agent-bundle-resolver.js` | AGENTS.md→prompt + USER.md→memory | ~220 |
-| `packages/session-core/lib/mcp-policy.js` | 模式级 MCP 传输过滤 | ~150 |
-| `packages/session-core/lib/sandbox-policy.js` | 沙箱生命周期策略 | ~200 |
+| `packages/session-core/lib/mcp-policy.js`            | 模式级 MCP 传输过滤               | ~150 |
+| `packages/session-core/lib/sandbox-policy.js`        | 沙箱生命周期策略                  | ~200 |
 
 ### CLI 集成
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/agent.js` | `--bundle` 选项，加载 bundle → 注入会话 |
+| 文件                                 | 职责                                     |
+| ------------------------------------ | ---------------------------------------- |
+| `packages/cli/src/commands/agent.js` | `--bundle` 选项，加载 bundle → 注入会话  |
 | `packages/cli/src/commands/serve.js` | `--bundle` 选项，所有连入会话共享 bundle |
 
 ### Desktop 集成
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/main/session/session-core-ipc.js` | `bundle:load/info/unload` IPC 通道 |
-| `desktop-app-vue/src/renderer/stores/sessionCore.ts` | `loadBundle/unloadBundle` Pinia actions |
+| 文件                                                   | 职责                                    |
+| ------------------------------------------------------ | --------------------------------------- |
+| `desktop-app-vue/src/main/session/session-core-ipc.js` | `bundle:load/info/unload` IPC 通道      |
+| `desktop-app-vue/src/renderer/stores/sessionCore.ts`   | `loadBundle/unloadBundle` Pinia actions |
 
 ### 测试文件
 
-| 文件 | 测试数 |
-|------|--------|
-| `packages/session-core/__tests__/agent-bundle-schema.test.js` | 14 |
-| `packages/session-core/__tests__/agent-bundle-loader.test.js` | 9 |
-| `packages/session-core/__tests__/agent-bundle-resolver.test.js` | 17 |
-| `packages/cli/__tests__/unit/agent-bundle-integration.test.js` | 15 |
+| 文件                                                            | 测试数 |
+| --------------------------------------------------------------- | ------ |
+| `packages/session-core/__tests__/agent-bundle-schema.test.js`   | 14     |
+| `packages/session-core/__tests__/agent-bundle-loader.test.js`   | 9      |
+| `packages/session-core/__tests__/agent-bundle-resolver.test.js` | 17     |
+| `packages/cli/__tests__/unit/agent-bundle-integration.test.js`  | 15     |
 
 ## 使用示例
 

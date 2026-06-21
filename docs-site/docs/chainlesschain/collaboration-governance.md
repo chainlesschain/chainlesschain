@@ -47,14 +47,14 @@
 NONE(0) → MINIMAL(2) → LOW(4) → MEDIUM(6) → HIGH(8) → FULL(10)
 ```
 
-| 等级        | 数值 | 说明                                |
-| ----------- | ---- | ----------------------------------- |
-| **NONE**    | 0    | 所有操作需人工审批                  |
-| **MINIMAL** | 2    | 仅信息查询类操作自主                |
-| **LOW**     | 4    | 非关键配置变更可自主                |
-| **MEDIUM**  | 6    | 常规开发任务可自主                  |
-| **HIGH**    | 8    | 除安全策略外均可自主                |
-| **FULL**    | 10   | 完全自主（仍保留人工否决权）        |
+| 等级        | 数值 | 说明                         |
+| ----------- | ---- | ---------------------------- |
+| **NONE**    | 0    | 所有操作需人工审批           |
+| **MINIMAL** | 2    | 仅信息查询类操作自主         |
+| **LOW**     | 4    | 非关键配置变更可自主         |
+| **MEDIUM**  | 6    | 常规开发任务可自主           |
+| **HIGH**    | 8    | 除安全策略外均可自主         |
+| **FULL**    | 10   | 完全自主（仍保留人工否决权） |
 
 **自动提升条件**: 在某作用域内，当 `track_record > 0.9` 且总决策数 `≥ 10` 时，自主等级自动 +1。
 
@@ -62,14 +62,14 @@ NONE(0) → MINIMAL(2) → LOW(4) → MEDIUM(6) → HIGH(8) → FULL(10)
 
 ## 决策类型
 
-| 类型             | 说明         | 默认需审批 |
-| ---------------- | ------------ | ---------- |
-| **ARCHITECTURE** | 架构决策     | 是         |
-| **MIGRATION**    | 数据迁移     | 是         |
-| **SECURITY**     | 安全策略     | 是         |
-| **DEPLOYMENT**   | 部署操作     | 否         |
-| **DATA**         | 数据操作     | 否         |
-| **GENERAL**      | 通用决策     | 否         |
+| 类型             | 说明     | 默认需审批 |
+| ---------------- | -------- | ---------- |
+| **ARCHITECTURE** | 架构决策 | 是         |
+| **MIGRATION**    | 数据迁移 | 是         |
+| **SECURITY**     | 安全策略 | 是         |
+| **DEPLOYMENT**   | 部署操作 | 否         |
+| **DATA**         | 数据操作 | 否         |
+| **GENERAL**      | 通用决策 | 否         |
 
 ---
 
@@ -80,12 +80,12 @@ NONE(0) → MINIMAL(2) → LOW(4) → MEDIUM(6) → HIGH(8) → FULL(10)
 ```javascript
 // AI 提交一个架构决策
 const decision = await submitDecision({
-  decisionType: 'ARCHITECTURE',
-  title: '采用事件驱动架构重构消息模块',
-  description: '当前消息模块采用同步调用，建议迁移到事件驱动以提升可扩展性',
+  decisionType: "ARCHITECTURE",
+  title: "采用事件驱动架构重构消息模块",
+  description: "当前消息模块采用同步调用，建议迁移到事件驱动以提升可扩展性",
   confidence: 0.88,
-  context: { currentArch: 'sync-rpc', proposedArch: 'event-driven' },
-  proposedAction: 'refactor-messaging-to-events'
+  context: { currentArch: "sync-rpc", proposedArch: "event-driven" },
+  proposedAction: "refactor-messaging-to-events",
 });
 
 // 置信度 0.88 < 0.95 且类型为 ARCHITECTURE（需审批）→ status: 'PENDING'
@@ -95,42 +95,48 @@ const decision = await submitDecision({
 
 ```javascript
 // 人工审批
-await window.electronAPI.invoke('collab-governance:approve-decision', {
-  decisionId: 'gd-001',
-  reviewer: 'admin',
-  comment: '同意，但需要在 staging 环境先验证'
+await window.electronAPI.invoke("collab-governance:approve-decision", {
+  decisionId: "gd-001",
+  reviewer: "admin",
+  comment: "同意，但需要在 staging 环境先验证",
 });
 
 // 拒绝
-await window.electronAPI.invoke('collab-governance:reject-decision', {
-  decisionId: 'gd-002',
-  reviewer: 'admin',
-  comment: '风险太高，建议分阶段实施'
+await window.electronAPI.invoke("collab-governance:reject-decision", {
+  decisionId: "gd-002",
+  reviewer: "admin",
+  comment: "风险太高，建议分阶段实施",
 });
 ```
 
 ### 3. 查看待审决策
 
 ```javascript
-const pending = await window.electronAPI.invoke('collab-governance:get-pending', {
-  filter: { decisionType: 'ARCHITECTURE' }
-});
+const pending = await window.electronAPI.invoke(
+  "collab-governance:get-pending",
+  {
+    filter: { decisionType: "ARCHITECTURE" },
+  },
+);
 ```
 
 ### 4. 自主等级管理
 
 ```javascript
 // 查看某作用域的自主等级
-const level = await window.electronAPI.invoke('collab-governance:get-autonomy-level', {
-  scope: 'deployment'
-});
+const level = await window.electronAPI.invoke(
+  "collab-governance:get-autonomy-level",
+  {
+    scope: "deployment",
+  },
+);
 // { scope: 'deployment', level: 6, trackRecord: 0.95, totalDecisions: 23, ... }
 
 // 设置自主策略
-await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
-  scope: 'deployment',
+await window.electronAPI.invoke("collab-governance:set-autonomy-policy", {
+  scope: "deployment",
   level: 8,
-  requireApprovalFor: ['ARCHITECTURE', 'MIGRATION', 'SECURITY']
+  requireApprovalFor: ["ARCHITECTURE", "MIGRATION", "SECURITY"],
 });
 ```
 
@@ -150,13 +156,13 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 ## IPC 通道
 
-| 通道                                     | 参数                                              | 返回值       |
-| ---------------------------------------- | ------------------------------------------------- | ------------ |
-| `collab-governance:get-pending`          | `{ filter? }`                                     | 待审决策列表 |
-| `collab-governance:approve-decision`     | `{ decisionId, reviewer, comment? }`              | 操作结果     |
-| `collab-governance:reject-decision`      | `{ decisionId, reviewer, comment? }`              | 操作结果     |
-| `collab-governance:get-autonomy-level`   | `{ scope }`                                       | 自主等级     |
-| `collab-governance:set-autonomy-policy`  | `{ scope, level?, requireApprovalFor? }`          | 操作结果     |
+| 通道                                    | 参数                                     | 返回值       |
+| --------------------------------------- | ---------------------------------------- | ------------ |
+| `collab-governance:get-pending`         | `{ filter? }`                            | 待审决策列表 |
+| `collab-governance:approve-decision`    | `{ decisionId, reviewer, comment? }`     | 操作结果     |
+| `collab-governance:reject-decision`     | `{ decisionId, reviewer, comment? }`     | 操作结果     |
+| `collab-governance:get-autonomy-level`  | `{ scope }`                              | 自主等级     |
+| `collab-governance:set-autonomy-policy` | `{ scope, level?, requireApprovalFor? }` | 操作结果     |
 
 ---
 
@@ -164,33 +170,33 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 ### governance_decisions
 
-| 字段            | 类型    | 说明                                      |
-| --------------- | ------- | ----------------------------------------- |
-| id              | TEXT PK | 决策 ID                                  |
-| decision_type   | TEXT    | ARCHITECTURE/MIGRATION/SECURITY/...       |
-| title           | TEXT    | 决策标题                                  |
-| description     | TEXT    | 详细描述                                  |
-| confidence      | REAL    | AI 置信度（0-1）                          |
-| status          | TEXT    | PENDING/APPROVED/REJECTED/AUTO_APPROVED   |
-| context         | JSON    | 决策上下文                                |
-| proposed_action | TEXT    | 建议操作                                  |
-| reviewer        | TEXT    | 审批人                                    |
-| review_comment  | TEXT    | 审批意见                                  |
-| created_at      | INTEGER | 创建时间                                  |
-| reviewed_at     | INTEGER | 审批时间                                  |
+| 字段            | 类型    | 说明                                    |
+| --------------- | ------- | --------------------------------------- |
+| id              | TEXT PK | 决策 ID                                 |
+| decision_type   | TEXT    | ARCHITECTURE/MIGRATION/SECURITY/...     |
+| title           | TEXT    | 决策标题                                |
+| description     | TEXT    | 详细描述                                |
+| confidence      | REAL    | AI 置信度（0-1）                        |
+| status          | TEXT    | PENDING/APPROVED/REJECTED/AUTO_APPROVED |
+| context         | JSON    | 决策上下文                              |
+| proposed_action | TEXT    | 建议操作                                |
+| reviewer        | TEXT    | 审批人                                  |
+| review_comment  | TEXT    | 审批意见                                |
+| created_at      | INTEGER | 创建时间                                |
+| reviewed_at     | INTEGER | 审批时间                                |
 
 ### autonomy_levels
 
-| 字段               | 类型    | 说明               |
-| ------------------ | ------- | ------------------ |
-| id                 | TEXT PK | 记录 ID            |
-| scope              | TEXT    | 作用域（唯一）     |
-| level              | INTEGER | 自主等级（0-10）   |
-| total_decisions    | INTEGER | 总决策数           |
-| approved_decisions | INTEGER | 通过数             |
-| rejected_decisions | INTEGER | 拒绝数             |
-| track_record       | REAL    | 通过率             |
-| updated_at         | INTEGER | 更新时间           |
+| 字段               | 类型    | 说明             |
+| ------------------ | ------- | ---------------- |
+| id                 | TEXT PK | 记录 ID          |
+| scope              | TEXT    | 作用域（唯一）   |
+| level              | INTEGER | 自主等级（0-10） |
+| total_decisions    | INTEGER | 总决策数         |
+| approved_decisions | INTEGER | 通过数           |
+| rejected_decisions | INTEGER | 拒绝数           |
+| track_record       | REAL    | 通过率           |
+| updated_at         | INTEGER | 更新时间         |
 
 ---
 
@@ -203,12 +209,12 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/autonomous/collaboration-governance.js` | 协作治理框架核心实现 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/decision-gateway.js` | 决策网关与自动审批逻辑 |
-| `desktop-app-vue/src/main/ai-engine/autonomous/autonomy-manager.js` | 自主等级管理与自动提升 |
-| `desktop-app-vue/src/renderer/stores/collaborationGovernance.ts` | 协作治理 Pinia Store |
+| 文件                                                                        | 说明                   |
+| --------------------------------------------------------------------------- | ---------------------- |
+| `desktop-app-vue/src/main/ai-engine/autonomous/collaboration-governance.js` | 协作治理框架核心实现   |
+| `desktop-app-vue/src/main/ai-engine/autonomous/decision-gateway.js`         | 决策网关与自动审批逻辑 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomy-manager.js`         | 自主等级管理与自动提升 |
+| `desktop-app-vue/src/renderer/stores/collaborationGovernance.ts`            | 协作治理 Pinia Store   |
 
 ## 使用示例
 
@@ -234,30 +240,30 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 决策提交后无响应 | 数据库写入失败 | 检查 `governance_decisions` 表状态，确认磁盘空间充足 |
-| 自动审批不生效 | 置信度未达阈值或类型在审批列表中 | 确认置信度 >= 0.95 且决策类型不在 `requireApprovalFor` 中 |
-| 自主等级未自动提升 | track_record 未达 0.9 或总决策数不足 | 需在该作用域累计 10+ 决策且通过率 > 90% |
-| 审批操作返回错误 | 决策已被处理或 ID 无效 | 刷新列表获取最新状态，确认决策处于 PENDING 状态 |
-| 待审列表为空 | 所有决策被自动审批 | 检查当前自主等级是否过高，必要时降低等级 |
-| 决策上下文丢失 | context 字段 JSON 格式错误 | 确认提交时 context 为有效 JSON 对象 |
+| 问题               | 可能原因                             | 解决方案                                                  |
+| ------------------ | ------------------------------------ | --------------------------------------------------------- |
+| 决策提交后无响应   | 数据库写入失败                       | 检查 `governance_decisions` 表状态，确认磁盘空间充足      |
+| 自动审批不生效     | 置信度未达阈值或类型在审批列表中     | 确认置信度 >= 0.95 且决策类型不在 `requireApprovalFor` 中 |
+| 自主等级未自动提升 | track_record 未达 0.9 或总决策数不足 | 需在该作用域累计 10+ 决策且通过率 > 90%                   |
+| 审批操作返回错误   | 决策已被处理或 ID 无效               | 刷新列表获取最新状态，确认决策处于 PENDING 状态           |
+| 待审列表为空       | 所有决策被自动审批                   | 检查当前自主等级是否过高，必要时降低等级                  |
+| 决策上下文丢失     | context 字段 JSON 格式错误           | 确认提交时 context 为有效 JSON 对象                       |
 
 ## 配置参考
 
 在 `.chainlesschain/config.json` 中可调整以下协作治理参数：
 
-| 配置键 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `governance.enabled` | boolean | `true` | 是否启用协作治理框架 |
-| `governance.defaultScope` | string | `"general"` | 未指定 scope 时的默认作用域 |
-| `governance.autoApproveThreshold` | number | `0.95` | 自动审批的最低置信度阈值（0-1） |
-| `governance.autoEscalateTypes` | string[] | `["ARCHITECTURE","MIGRATION","SECURITY"]` | 强制人工审批的决策类型 |
-| `governance.trackRecordThreshold` | number | `0.9` | 触发自主等级自动提升所需的通过率 |
-| `governance.minDecisionsForPromotion` | number | `10` | 触发自动提升所需的最少决策数 |
-| `governance.maxAutonomyLevel` | number | `10` | 允许的最高自主等级上限 |
-| `governance.auditRetentionDays` | number | `365` | 审计记录保留天数（0 = 永久） |
-| `governance.pendingExpiryHours` | number | `72` | PENDING 决策超时自动拒绝时间（0 = 不超时） |
+| 配置键                                | 类型     | 默认值                                    | 说明                                       |
+| ------------------------------------- | -------- | ----------------------------------------- | ------------------------------------------ |
+| `governance.enabled`                  | boolean  | `true`                                    | 是否启用协作治理框架                       |
+| `governance.defaultScope`             | string   | `"general"`                               | 未指定 scope 时的默认作用域                |
+| `governance.autoApproveThreshold`     | number   | `0.95`                                    | 自动审批的最低置信度阈值（0-1）            |
+| `governance.autoEscalateTypes`        | string[] | `["ARCHITECTURE","MIGRATION","SECURITY"]` | 强制人工审批的决策类型                     |
+| `governance.trackRecordThreshold`     | number   | `0.9`                                     | 触发自主等级自动提升所需的通过率           |
+| `governance.minDecisionsForPromotion` | number   | `10`                                      | 触发自动提升所需的最少决策数               |
+| `governance.maxAutonomyLevel`         | number   | `10`                                      | 允许的最高自主等级上限                     |
+| `governance.auditRetentionDays`       | number   | `365`                                     | 审计记录保留天数（0 = 永久）               |
+| `governance.pendingExpiryHours`       | number   | `72`                                      | PENDING 决策超时自动拒绝时间（0 = 不超时） |
 
 **示例配置**（保守策略，所有非通用决策需人工审批）：
 
@@ -266,7 +272,12 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
   "governance": {
     "enabled": true,
     "autoApproveThreshold": 0.98,
-    "autoEscalateTypes": ["ARCHITECTURE", "MIGRATION", "SECURITY", "DEPLOYMENT"],
+    "autoEscalateTypes": [
+      "ARCHITECTURE",
+      "MIGRATION",
+      "SECURITY",
+      "DEPLOYMENT"
+    ],
     "trackRecordThreshold": 0.95,
     "minDecisionsForPromotion": 20
   }
@@ -277,15 +288,15 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 以下基准数据基于 SQLite WAL 模式，运行于本地 Electron 主进程：
 
-| 操作 | 典型耗时 | P95 耗时 | 说明 |
-| --- | --- | --- | --- |
-| 提交决策（submitDecision） | < 5 ms | 15 ms | 含置信度判断和 DB 写入 |
-| 自动审批路径 | < 2 ms | 5 ms | 无 LLM 调用，纯规则判断 |
-| 查询待审列表（getpending） | < 3 ms | 10 ms | 带 filter 的索引查询 |
-| 审批/拒绝操作 | < 5 ms | 12 ms | DB 更新 + track_record 重算 |
-| 自主等级查询 | < 2 ms | 5 ms | 单行 SELECT，内存缓存命中 |
-| 等级自动提升检查 | < 3 ms | 8 ms | 聚合查询，每次审批后触发 |
-| 决策历史分页查询（100条） | < 10 ms | 20 ms | 按 created_at 降序索引 |
+| 操作                       | 典型耗时 | P95 耗时 | 说明                        |
+| -------------------------- | -------- | -------- | --------------------------- |
+| 提交决策（submitDecision） | < 5 ms   | 15 ms    | 含置信度判断和 DB 写入      |
+| 自动审批路径               | < 2 ms   | 5 ms     | 无 LLM 调用，纯规则判断     |
+| 查询待审列表（getpending） | < 3 ms   | 10 ms    | 带 filter 的索引查询        |
+| 审批/拒绝操作              | < 5 ms   | 12 ms    | DB 更新 + track_record 重算 |
+| 自主等级查询               | < 2 ms   | 5 ms     | 单行 SELECT，内存缓存命中   |
+| 等级自动提升检查           | < 3 ms   | 8 ms     | 聚合查询，每次审批后触发    |
+| 决策历史分页查询（100条）  | < 10 ms  | 20 ms    | 按 created_at 降序索引      |
 
 **并发能力**：
 
@@ -302,13 +313,13 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 
 协作治理框架测试套件覆盖决策生命周期、自动审批规则和等级提升逻辑：
 
-| 测试文件 | 用例数 | 覆盖范围 |
-| --- | --- | --- |
-| `collaboration-governance.test.js` | 41 | IPC 入口、决策提交、审批/拒绝流程 |
-| `decision-gateway.test.js` | 35 | 自动审批规则、置信度门控、类型路由 |
-| `autonomy-manager.test.js` | 28 | 等级查询、自动提升、阈值边界条件 |
-| `collab-governance-store.test.ts` | 22 | Pinia Store 状态管理、响应式更新 |
-| **合计** | **126** | **全路径覆盖** |
+| 测试文件                           | 用例数  | 覆盖范围                           |
+| ---------------------------------- | ------- | ---------------------------------- |
+| `collaboration-governance.test.js` | 41      | IPC 入口、决策提交、审批/拒绝流程  |
+| `decision-gateway.test.js`         | 35      | 自动审批规则、置信度门控、类型路由 |
+| `autonomy-manager.test.js`         | 28      | 等级查询、自动提升、阈值边界条件   |
+| `collab-governance-store.test.ts`  | 22      | Pinia Store 状态管理、响应式更新   |
+| **合计**                           | **126** | **全路径覆盖**                     |
 
 运行方式：
 

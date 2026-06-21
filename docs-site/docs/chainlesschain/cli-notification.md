@@ -22,12 +22,12 @@
 
 ### 退出码
 
-| 退出码 | 含义 |
-|--------|------|
-| `0` | 推送成功 |
-| `2` | 桌面 port 文件缺失 / 不可读 / 格式错误 / pid 已退出（桌面未运行） |
-| `3` | 桌面返回 `ok:false` / handler 不可用 / 网络或协议错误 / RPC 超时 |
-| `4` | 参数非法 |
+| 退出码 | 含义                                                              |
+| ------ | ----------------------------------------------------------------- |
+| `0`    | 推送成功                                                          |
+| `2`    | 桌面 port 文件缺失 / 不可读 / 格式错误 / pid 已退出（桌面未运行） |
+| `3`    | 桌面返回 `ok:false` / handler 不可用 / 网络或协议错误 / RPC 超时  |
+| `4`    | 参数非法                                                          |
 
 ## 系统架构
 
@@ -59,15 +59,15 @@ cc notification send --target <did> --title <title> [选项]
 cc notif send --target <did> --title <title>          # 别名
 ```
 
-| 选项 | 必填 | 默认 | 说明 |
-|------|------|------|------|
-| `--target <did>` | ✅ | — | 目标设备 DID（已配对的 iPhone/Android） |
-| `--title <title>` | ✅ | — | 通知标题 |
-| `--body <body>` | | `""` | 通知正文 |
-| `--silenced` | | 关 | 只投递不响铃（勿扰时段测试） |
-| `--type <type>` | | `app` | 通知语义类型（随帧 `notificationType` 传递） |
-| `--timeout <ms>` | | `10000` | RPC 超时，强制夹取在 1000–120000ms |
-| `--json` | | 关 | 输出机器可读 JSON（成功走 stdout，失败走 stderr） |
+| 选项              | 必填 | 默认    | 说明                                              |
+| ----------------- | ---- | ------- | ------------------------------------------------- |
+| `--target <did>`  | ✅   | —       | 目标设备 DID（已配对的 iPhone/Android）           |
+| `--title <title>` | ✅   | —       | 通知标题                                          |
+| `--body <body>`   |      | `""`    | 通知正文                                          |
+| `--silenced`      |      | 关      | 只投递不响铃（勿扰时段测试）                      |
+| `--type <type>`   |      | `app`   | 通知语义类型（随帧 `notificationType` 传递）      |
+| `--timeout <ms>`  |      | `10000` | RPC 超时，强制夹取在 1000–120000ms                |
+| `--json`          |      | 关      | 输出机器可读 JSON（成功走 stdout，失败走 stderr） |
 
 ## 配置参考
 
@@ -102,22 +102,22 @@ npx vitest run __tests__/unit/notification-send.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `desktop_not_running`（退出码 2） | 找不到 `~/.chainlesschain/desktop.port` | 先启动桌面 app：`cd desktop-app-vue && npm run dev`（需 ws-bridge / `--web-shell`） |
-| `desktop_stale_pid`（退出码 2） | port 文件存在但写入进程已退出 | 手动 `rm ~/.chainlesschain/desktop.port` 或重启桌面 app |
-| `port_file_malformed`（退出码 2） | port 文件不是含 `wsUrl` 字符串的 JSON | 删除残留文件，让桌面重写 |
-| `rpc_timeout`（退出码 3） | 桌面忙 / handler 慢 / 手机离线 | 加大 `--timeout`（上限 120000）；确认手机在线已配对 |
-| `ws_error` / `ws_construct_failed`（退出码 3） | wsUrl 失效或桥已关闭 | 重启桌面 app 刷新 port 文件 |
-| 推送返回 `ok:false`（退出码 3） | 桌面侧 handler 不可用 / 目标 DID 未配对 | 检查 `--target` DID 与桌面端配对状态 |
+| 现象                                           | 可能原因                                | 处理                                                                                |
+| ---------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `desktop_not_running`（退出码 2）              | 找不到 `~/.chainlesschain/desktop.port` | 先启动桌面 app：`cd desktop-app-vue && npm run dev`（需 ws-bridge / `--web-shell`） |
+| `desktop_stale_pid`（退出码 2）                | port 文件存在但写入进程已退出           | 手动 `rm ~/.chainlesschain/desktop.port` 或重启桌面 app                             |
+| `port_file_malformed`（退出码 2）              | port 文件不是含 `wsUrl` 字符串的 JSON   | 删除残留文件，让桌面重写                                                            |
+| `rpc_timeout`（退出码 3）                      | 桌面忙 / handler 慢 / 手机离线          | 加大 `--timeout`（上限 120000）；确认手机在线已配对                                 |
+| `ws_error` / `ws_construct_failed`（退出码 3） | wsUrl 失效或桥已关闭                    | 重启桌面 app 刷新 port 文件                                                         |
+| 推送返回 `ok:false`（退出码 3）                | 桌面侧 handler 不可用 / 目标 DID 未配对 | 检查 `--target` DID 与桌面端配对状态                                                |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/notification.js` | 命令注册 + `runSendNotification`（port 文件解析、stale-pid 检查、WS RPC、退出码） |
-| `packages/cli/__tests__/unit/notification-send.test.js` | 10 单元测试（`_deps` 注入 fake fs / WebSocket） |
-| `~/.chainlesschain/desktop.port` | 桌面 ws-bridge 描述符（`wsUrl` + `pid`），桌面运行时生成 |
+| 文件                                                    | 说明                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `packages/cli/src/commands/notification.js`             | 命令注册 + `runSendNotification`（port 文件解析、stale-pid 检查、WS RPC、退出码） |
+| `packages/cli/__tests__/unit/notification-send.test.js` | 10 单元测试（`_deps` 注入 fake fs / WebSocket）                                   |
+| `~/.chainlesschain/desktop.port`                        | 桌面 ws-bridge 描述符（`wsUrl` + `pid`），桌面运行时生成                          |
 
 ## 使用示例
 

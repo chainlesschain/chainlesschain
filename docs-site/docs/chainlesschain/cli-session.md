@@ -135,11 +135,11 @@ chainlesschain session workflow wf_123 --json
 
 ### 支持的策略
 
-| 策略 | 含义 |
-|------|------|
-| `strict` | 默认最保守策略，中高风险操作需要确认 |
-| `trusted` | 低中风险尽量放行，仅高风险操作要求确认 |
-| `autopilot` | 自动驾驶策略，直接放行 |
+| 策略        | 含义                                   |
+| ----------- | -------------------------------------- |
+| `strict`    | 默认最保守策略，中高风险操作需要确认   |
+| `trusted`   | 低中风险尽量放行，仅高风险操作要求确认 |
+| `autopilot` | 自动驾驶策略，直接放行                 |
 
 ### 查看当前策略
 
@@ -203,24 +203,24 @@ Managed Agents 相关策略会写入本地 home 目录：
 const POLICIES = {
   // strict: 默认值，最保守 — 中/高风险工具调用均需用户确认
   strict: {
-    lowRisk:    "auto-approve",   // read_file, list_files 等
-    mediumRisk: "require-confirm",// write_file, run_shell 等
-    highRisk:   "require-confirm" // delete, network, secrets 等
+    lowRisk: "auto-approve", // read_file, list_files 等
+    mediumRisk: "require-confirm", // write_file, run_shell 等
+    highRisk: "require-confirm", // delete, network, secrets 等
   },
 
   // trusted: 日常开发模式 — 仅高风险操作要求确认
   trusted: {
-    lowRisk:    "auto-approve",
+    lowRisk: "auto-approve",
     mediumRisk: "auto-approve",
-    highRisk:   "require-confirm"
+    highRisk: "require-confirm",
   },
 
   // autopilot: 完全自动 — 直接放行所有操作（CI/受信任环境专用）
   autopilot: {
-    lowRisk:    "auto-approve",
+    lowRisk: "auto-approve",
     mediumRisk: "auto-approve",
-    highRisk:   "auto-approve"
-  }
+    highRisk: "auto-approve",
+  },
 };
 ```
 
@@ -237,17 +237,17 @@ const POLICIES = {
 
 ## 性能指标
 
-| 操作 | 典型延迟 | 数据规模建议 |
-|------|----------|--------------|
-| `session list` | < 50ms | 建议保留 < 1,000 条会话 |
-| `session show` | < 30ms | 取决于消息数量 |
-| `session resume` | 1–3s | 含 LLM 初始化 |
-| `session export` | < 100ms | 含 Markdown 渲染 |
-| `session delete` | < 20ms | SQLite 单条删除 |
-| `session migrate` (批量) | 1–10s | 取决于会话文件数 |
-| `session validate` | < 200ms | JSONL 逐行校验 |
-| `session policy get` | < 10ms | 读取 JSON 文件 |
-| `session policy set` | < 15ms | 写入并持久化 |
+| 操作                     | 典型延迟 | 数据规模建议            |
+| ------------------------ | -------- | ----------------------- |
+| `session list`           | < 50ms   | 建议保留 < 1,000 条会话 |
+| `session show`           | < 30ms   | 取决于消息数量          |
+| `session resume`         | 1–3s     | 含 LLM 初始化           |
+| `session export`         | < 100ms  | 含 Markdown 渲染        |
+| `session delete`         | < 20ms   | SQLite 单条删除         |
+| `session migrate` (批量) | 1–10s    | 取决于会话文件数        |
+| `session validate`       | < 200ms  | JSONL 逐行校验          |
+| `session policy get`     | < 10ms   | 读取 JSON 文件          |
+| `session policy set`     | < 15ms   | 写入并持久化            |
 
 ## 安全考虑
 

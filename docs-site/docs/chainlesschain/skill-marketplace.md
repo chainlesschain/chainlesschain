@@ -138,25 +138,25 @@ const pipeline = await window.electron.ipcRenderer.invoke(
 
 ### 响应时间
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 技能注册（本地） | < 50ms | < 30ms | ✅ |
-| 技能列表查询 | < 100ms | < 60ms | ✅ |
-| 远程技能调用（局域网） | < 500ms | < 300ms | ✅ |
-| 远程技能调用（跨节点） | < 5000ms | < 3000ms | ✅ |
-| 流水线 DAG 组合（3 步骤） | < 10000ms | < 7000ms | ✅ |
-| 版本历史查询 | < 100ms | < 50ms | ✅ |
+| 操作                      | 目标      | 实际     | 状态 |
+| ------------------------- | --------- | -------- | ---- |
+| 技能注册（本地）          | < 50ms    | < 30ms   | ✅   |
+| 技能列表查询              | < 100ms   | < 60ms   | ✅   |
+| 远程技能调用（局域网）    | < 500ms   | < 300ms  | ✅   |
+| 远程技能调用（跨节点）    | < 5000ms  | < 3000ms | ✅   |
+| 流水线 DAG 组合（3 步骤） | < 10000ms | < 7000ms | ✅   |
+| 版本历史查询              | < 100ms   | < 50ms   | ✅   |
 
 ### 资源使用
 
-| 指标 | 数值 |
-|------|------|
-| 最大并发调用数（默认） | 10 |
-| 单次调用默认超时 | 30,000ms |
-| 技能注册元数据大小（平均） | ~2 KB |
-| 调用历史记录保留条数 | 无上限（SQLite） |
-| 内存占用（空闲） | ~5 MB |
-| 内存占用（10 并发调用） | ~40 MB |
+| 指标                       | 数值             |
+| -------------------------- | ---------------- |
+| 最大并发调用数（默认）     | 10               |
+| 单次调用默认超时           | 30,000ms         |
+| 技能注册元数据大小（平均） | ~2 KB            |
+| 调用历史记录保留条数       | 无上限（SQLite） |
+| 内存占用（空闲）           | ~5 MB            |
+| 内存占用（10 并发调用）    | ~40 MB           |
 
 ## 前端集成
 
@@ -217,22 +217,34 @@ const useSkillServiceStore = defineStore("skillService", {
 
 ```javascript
 // 1. 发布数据分析技能
-const skill = await window.electron.ipcRenderer.invoke("skill-service:publish-skill", {
-  name: "data-analysis",
-  description: "智能数据分析与趋势预测",
-  version: "1.0.0",
-  inputSchema: { type: "object", properties: { filePath: { type: "string" } } },
-  outputSchema: { type: "object", properties: { report: { type: "string" } } },
-  sla: { maxLatencyMs: 30000, availability: 0.99 },
-});
+const skill = await window.electron.ipcRenderer.invoke(
+  "skill-service:publish-skill",
+  {
+    name: "data-analysis",
+    description: "智能数据分析与趋势预测",
+    version: "1.0.0",
+    inputSchema: {
+      type: "object",
+      properties: { filePath: { type: "string" } },
+    },
+    outputSchema: {
+      type: "object",
+      properties: { report: { type: "string" } },
+    },
+    sla: { maxLatencyMs: 30000, availability: 0.99 },
+  },
+);
 console.log(`技能已发布: ${skill.skill.id}, 状态: ${skill.skill.status}`);
 
 // 2. 远程调用该技能
-const result = await window.electron.ipcRenderer.invoke("skill-service:invoke-remote", {
-  skillId: skill.skill.id,
-  input: { filePath: "/data/monthly-sales.csv" },
-  timeout: 30000,
-});
+const result = await window.electron.ipcRenderer.invoke(
+  "skill-service:invoke-remote",
+  {
+    skillId: skill.skill.id,
+    input: { filePath: "/data/monthly-sales.csv" },
+    timeout: 30000,
+  },
+);
 console.log(`执行耗时: ${result.duration}ms`);
 ```
 
@@ -240,33 +252,42 @@ console.log(`执行耗时: ${result.duration}ms`);
 
 ```javascript
 // 将数据加载、分析、图表生成三个技能串联
-const pipeline = await window.electron.ipcRenderer.invoke("skill-service:compose-pipeline", {
-  steps: [
-    { skillId: "data-loader", input: { path: "/data" } },
-    { skillId: "data-analysis", input: { mode: "trend" } },
-    { skillId: "chart-creator", input: { type: "bar", title: "月度销售趋势" } },
-  ],
-});
+const pipeline = await window.electron.ipcRenderer.invoke(
+  "skill-service:compose-pipeline",
+  {
+    steps: [
+      { skillId: "data-loader", input: { path: "/data" } },
+      { skillId: "data-analysis", input: { mode: "trend" } },
+      {
+        skillId: "chart-creator",
+        input: { type: "bar", title: "月度销售趋势" },
+      },
+    ],
+  },
+);
 
 // 查看技能版本历史
-const versions = await window.electron.ipcRenderer.invoke("skill-service:get-versions", {
-  skillName: "data-analysis",
-});
-versions.forEach(v => console.log(`v${v.version} - ${v.status}`));
+const versions = await window.electron.ipcRenderer.invoke(
+  "skill-service:get-versions",
+  {
+    skillName: "data-analysis",
+  },
+);
+versions.forEach((v) => console.log(`v${v.version} - ${v.status}`));
 ```
 
 ---
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 技能发布失败 | 名称重复或 Schema 格式错误 | 检查技能名称唯一性，确认 inputSchema/outputSchema 为有效 JSON Schema |
-| 远程调用超时 | 目标节点离线或网络延迟高 | 增大 `timeout` 值，确认目标节点在线且网络可达 |
-| 流水线执行中断 | 某个步骤的技能不可用 | 检查流水线中所有 `skillId` 是否已注册且状态为 `published` |
-| 并发调用被限制 | 超过 `maxConcurrentInvocations` | 调整配置中的最大并发数（默认 10），或等待当前调用完成 |
-| 版本查询为空 | 技能名称拼写错误 | 使用 `skill-service:list-skills` 确认已注册的技能列表 |
-| SLA 违规告警 | 技能执行延迟超过承诺值 | 优化技能实现性能，或放宽 `sla.maxLatencyMs` 约束 |
+| 问题           | 可能原因                        | 解决方案                                                             |
+| -------------- | ------------------------------- | -------------------------------------------------------------------- |
+| 技能发布失败   | 名称重复或 Schema 格式错误      | 检查技能名称唯一性，确认 inputSchema/outputSchema 为有效 JSON Schema |
+| 远程调用超时   | 目标节点离线或网络延迟高        | 增大 `timeout` 值，确认目标节点在线且网络可达                        |
+| 流水线执行中断 | 某个步骤的技能不可用            | 检查流水线中所有 `skillId` 是否已注册且状态为 `published`            |
+| 并发调用被限制 | 超过 `maxConcurrentInvocations` | 调整配置中的最大并发数（默认 10），或等待当前调用完成                |
+| 版本查询为空   | 技能名称拼写错误                | 使用 `skill-service:list-skills` 确认已注册的技能列表                |
+| SLA 违规告警   | 技能执行延迟超过承诺值          | 优化技能实现性能，或放宽 `sla.maxLatencyMs` 约束                     |
 
 ---
 

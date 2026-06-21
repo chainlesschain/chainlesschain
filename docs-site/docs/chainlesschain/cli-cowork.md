@@ -77,22 +77,22 @@ chainlesschain cowork status
 chainlesschain cowork debate <file-or-topic> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
+| 选项                    | 说明                 | 默认值                                 |
+| ----------------------- | -------------------- | -------------------------------------- |
 | `--perspectives <list>` | 审查视角（逗号分隔） | `performance,security,maintainability` |
-| `--provider <name>` | LLM 提供商 | `ollama` |
-| `--model <name>` | 模型名称 | 提供商默认 |
-| `--json` | JSON 格式输出 | — |
+| `--provider <name>`     | LLM 提供商           | `ollama`                               |
+| `--model <name>`        | 模型名称             | 提供商默认                             |
+| `--json`                | JSON 格式输出        | —                                      |
 
 **内置 5 种审查视角**：
 
-| 视角 | 关注点 |
-|------|--------|
-| `performance` | 性能瓶颈、复杂度、资源使用 |
-| `security` | 安全漏洞、输入验证、数据保护 |
-| `maintainability` | 代码可读性、模块化、文档 |
-| `correctness` | 逻辑正确性、边界情况、错误处理 |
-| `architecture` | 设计模式、耦合度、可扩展性 |
+| 视角              | 关注点                         |
+| ----------------- | ------------------------------ |
+| `performance`     | 性能瓶颈、复杂度、资源使用     |
+| `security`        | 安全漏洞、输入验证、数据保护   |
+| `maintainability` | 代码可读性、模块化、文档       |
+| `correctness`     | 逻辑正确性、边界情况、错误处理 |
+| `architecture`    | 设计模式、耦合度、可扩展性     |
 
 **输出结构**：
 
@@ -124,22 +124,22 @@ chainlesschain cowork debate <file-or-topic> [options]
 chainlesschain cowork compare <prompt> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--variants <n>` | 生成变体数量 | `3` |
+| 选项                | 说明                 | 默认值                           |
+| ------------------- | -------------------- | -------------------------------- |
+| `--variants <n>`    | 生成变体数量         | `3`                              |
 | `--criteria <list>` | 评判标准（逗号分隔） | `quality,performance,simplicity` |
-| `--provider <name>` | LLM 提供商 | `ollama` |
-| `--model <name>` | 模型名称 | 提供商默认 |
-| `--json` | JSON 格式输出 | — |
+| `--provider <name>` | LLM 提供商           | `ollama`                         |
+| `--model <name>`    | 模型名称             | 提供商默认                       |
+| `--json`            | JSON 格式输出        | —                                |
 
 **4 种变体风格**：
 
-| 风格 | 特点 |
-|------|------|
-| `conservative` | 稳定可靠、经过验证的方案 |
-| `innovative` | 创新前沿、实验性方案 |
-| `pragmatic` | 实用平衡、快速交付 |
-| `performance-focused` | 性能优先、极致优化 |
+| 风格                  | 特点                     |
+| --------------------- | ------------------------ |
+| `conservative`        | 稳定可靠、经过验证的方案 |
+| `innovative`          | 创新前沿、实验性方案     |
+| `pragmatic`           | 实用平衡、快速交付       |
+| `performance-focused` | 性能优先、极致优化       |
 
 **输出结构**：
 
@@ -169,32 +169,40 @@ chainlesschain cowork compare <prompt> [options]
 chainlesschain cowork analyze <path> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--type <type>` | 分析类型 | `knowledge-graph` |
-| `--provider <name>` | LLM 提供商（style/decisions 需要） | `ollama` |
-| `--model <name>` | 模型名称 | 提供商默认 |
-| `--json` | JSON 格式输出 | — |
+| 选项                | 说明                               | 默认值            |
+| ------------------- | ---------------------------------- | ----------------- |
+| `--type <type>`     | 分析类型                           | `knowledge-graph` |
+| `--provider <name>` | LLM 提供商（style/decisions 需要） | `ollama`          |
+| `--model <name>`    | 模型名称                           | 提供商默认        |
+| `--json`            | JSON 格式输出                      | —                 |
 
 **分析类型**：
 
-| 类型 | 说明 | 需要 LLM |
-|------|------|----------|
-| `knowledge-graph` | 代码知识图谱：提取 imports/exports/classes/functions，构建依赖关系图 | 否 |
-| `style` | 项目风格分析：编码约定、命名规范、架构模式 | 是 |
-| `decisions` | 架构决策提取：从文档和配置中提取 ADR（Architecture Decision Records） | 是 |
+| 类型              | 说明                                                                  | 需要 LLM |
+| ----------------- | --------------------------------------------------------------------- | -------- |
+| `knowledge-graph` | 代码知识图谱：提取 imports/exports/classes/functions，构建依赖关系图  | 否       |
+| `style`           | 项目风格分析：编码约定、命名规范、架构模式                            | 是       |
+| `decisions`       | 架构决策提取：从文档和配置中提取 ADR（Architecture Decision Records） | 是       |
 
 **knowledge-graph 输出**：
 
 ```json
 {
-  "stats": { "fileCount": 15, "defCount": 42, "importCount": 78, "exportCount": 35 },
+  "stats": {
+    "fileCount": 15,
+    "defCount": 42,
+    "importCount": 78,
+    "exportCount": 35
+  },
   "entities": [
-    { "name": "MyClass", "type": "class", "file": "src/index.js", "language": "js" }
+    {
+      "name": "MyClass",
+      "type": "class",
+      "file": "src/index.js",
+      "language": "js"
+    }
   ],
-  "relationships": [
-    { "from": "src/index.js", "type": "imports", "to": "fs" }
-  ],
+  "relationships": [{ "from": "src/index.js", "type": "imports", "to": "fs" }],
   "summary": "Code Knowledge Graph\nFiles analyzed: 15\nEntities: 42\n..."
 }
 ```
@@ -222,15 +230,15 @@ cowork 命令默认使用 CLI 配置中的 LLM 设置，也可通过 `--provider
 
 支持的提供商：
 
-| 提供商 | 协议 | 说明 |
-|--------|------|------|
-| `ollama` | 原生 API | 本地运行，数据不出设备 |
+| 提供商      | 协议          | 说明                                |
+| ----------- | ------------- | ----------------------------------- |
+| `ollama`    | 原生 API      | 本地运行，数据不出设备              |
 | `anthropic` | Anthropic API | Claude 系列（支持 system 消息提取） |
-| `openai` | OpenAI 兼容 | GPT 系列 |
-| `deepseek` | OpenAI 兼容 | DeepSeek 系列 |
-| `dashscope` | OpenAI 兼容 | 通义千问系列 |
-| `gemini` | OpenAI 兼容 | Google Gemini 系列 |
-| `mistral` | OpenAI 兼容 | Mistral 系列 |
+| `openai`    | OpenAI 兼容   | GPT 系列                            |
+| `deepseek`  | OpenAI 兼容   | DeepSeek 系列                       |
+| `dashscope` | OpenAI 兼容   | 通义千问系列                        |
+| `gemini`    | OpenAI 兼容   | Google Gemini 系列                  |
+| `mistral`   | OpenAI 兼容   | Mistral 系列                        |
 
 ## 配置参考
 
@@ -248,14 +256,14 @@ chainlesschain cowork status
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| knowledge-graph 分析（无 LLM） | < 1s / 100 文件 | ~ 0.6s | ✅ |
-| debate 多视角审查（3 视角） | < 20s | ~ 12-18s | ✅ |
-| compare A/B（3 变体） | < 30s | ~ 18-25s | ✅ |
-| workflow DAG 调度开销 | < 50ms / step | ~ 20ms | ✅ |
-| learning recommend 查询 | < 100ms | ~ 40ms | ✅ |
-| cron 调度器心跳 | 1s 精度 | ✅ 符合 | ✅ |
+| 操作                           | 目标            | 实际     | 状态 |
+| ------------------------------ | --------------- | -------- | ---- |
+| knowledge-graph 分析（无 LLM） | < 1s / 100 文件 | ~ 0.6s   | ✅   |
+| debate 多视角审查（3 视角）    | < 20s           | ~ 12-18s | ✅   |
+| compare A/B（3 变体）          | < 30s           | ~ 18-25s | ✅   |
+| workflow DAG 调度开销          | < 50ms / step   | ~ 20ms   | ✅   |
+| learning recommend 查询        | < 100ms         | ~ 40ms   | ✅   |
+| cron 调度器心跳                | 1s 精度         | ✅ 符合  | ✅   |
 
 ## 测试覆盖率
 
@@ -343,17 +351,17 @@ chainlesschain cowork share verify writer.pkt.json
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `debate` 报 LLM 连接失败 | 确认 Ollama 已启动或提供有效的 API Key |
-| `analyze` 返回空结果 | 确认目标路径包含代码文件（.js/.ts/.py） |
-| `compare` 变体内容相似 | 尝试增加 `--variants` 数量或使用更强的模型 |
-| JSON 解析错误 | 部分 LLM 可能返回格式不标准的 JSON，尝试更换模型 |
-| `cron add` 报 `bogus` | `validateCron(expr)` 返回字符串即错误描述；只接受 5 字段 POSIX，别名（`@daily`）见设计文档 N5 |
-| `workflow run` 卡在某一步 | 检查 `${step.<id>.summary}` 占位符对应的上游 `id` 是否存在；添加 `--continue-on-error` 跳过失败步 |
-| `share import` 报 `Invalid packet: checksum mismatch` | 包体在传输中被改过；让发送方用 `cowork share export-*` 重新生成 |
-| `learning recommend` 返回 null | `history.jsonl` 里没有与消息 token 重叠的成功任务；先积累一些历史再推荐 |
-| `learning stats` 空列表 | 先跑 `cowork` 日常任务产生 history，或手动导入 `shared-results/*.json` |
+| 问题                                                  | 解决方案                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `debate` 报 LLM 连接失败                              | 确认 Ollama 已启动或提供有效的 API Key                                                            |
+| `analyze` 返回空结果                                  | 确认目标路径包含代码文件（.js/.ts/.py）                                                           |
+| `compare` 变体内容相似                                | 尝试增加 `--variants` 数量或使用更强的模型                                                        |
+| JSON 解析错误                                         | 部分 LLM 可能返回格式不标准的 JSON，尝试更换模型                                                  |
+| `cron add` 报 `bogus`                                 | `validateCron(expr)` 返回字符串即错误描述；只接受 5 字段 POSIX，别名（`@daily`）见设计文档 N5     |
+| `workflow run` 卡在某一步                             | 检查 `${step.<id>.summary}` 占位符对应的上游 `id` 是否存在；添加 `--continue-on-error` 跳过失败步 |
+| `share import` 报 `Invalid packet: checksum mismatch` | 包体在传输中被改过；让发送方用 `cowork share export-*` 重新生成                                   |
+| `learning recommend` 返回 null                        | `history.jsonl` 里没有与消息 token 重叠的成功任务；先积累一些历史再推荐                           |
+| `learning stats` 空列表                               | 先跑 `cowork` 日常任务产生 history，或手动导入 `shared-results/*.json`                            |
 
 ## v0.46.0 — Cowork Evolution 演进特性
 
@@ -394,7 +402,11 @@ chainlesschain cowork workflow remove <id>
   "name": "抓取并汇总",
   "steps": [
     { "id": "fetch", "message": "find items" },
-    { "id": "sum",   "message": "summarize: ${step.fetch.summary}", "dependsOn": ["fetch"] }
+    {
+      "id": "sum",
+      "message": "summarize: ${step.fetch.summary}",
+      "dependsOn": ["fetch"]
+    }
   ]
 }
 ```

@@ -219,27 +219,27 @@ suspend fun bootstrap(): Result<Unit> = withContext(Dispatchers.IO) {
 
 ### 启动与响应
 
-| 指标 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 首启 bootstrap（cold install） | ≤ 10s | ~6s | ✅ |
-| 二次启动（已 bootstrap，仅 relink lib） | ≤ 500ms | ~120ms | ✅ |
-| `echo hello` 端到端 stdin → stdout | < 50ms | ~25ms | ✅ |
-| xterm.js p99 latency（连续 1000 字符回环） | < 30ms | ~18ms（Xiaomi 24115RA8EC） | ✅ |
-| Node v25 cold start（`node -v`） | < 800ms | ~400ms | ✅ |
-| cc CLI 首次执行（`cc -v`） | < 1.5s | ~1.0s | ✅ |
+| 指标                                       | 目标    | 实际                       | 状态 |
+| ------------------------------------------ | ------- | -------------------------- | ---- |
+| 首启 bootstrap（cold install）             | ≤ 10s   | ~6s                        | ✅   |
+| 二次启动（已 bootstrap，仅 relink lib）    | ≤ 500ms | ~120ms                     | ✅   |
+| `echo hello` 端到端 stdin → stdout         | < 50ms  | ~25ms                      | ✅   |
+| xterm.js p99 latency（连续 1000 字符回环） | < 30ms  | ~18ms（Xiaomi 24115RA8EC） | ✅   |
+| Node v25 cold start（`node -v`）           | < 800ms | ~400ms                     | ✅   |
+| cc CLI 首次执行（`cc -v`）                 | < 1.5s  | ~1.0s                      | ✅   |
 
 ### 资源占用
 
-| 指标 | 数值 |
-| --- | --- |
-| APK arm64-v8a Lite 体积 | ~50MB |
-| `libnode.so` stripped | ~30MB |
-| `cc-cli.tgz` snapshot（hydrated prod deps） | ~40MB |
-| `libtoybox.so` | ~600KB |
-| mksh binary | ~500KB |
-| 1 小时连续使用 APK process RSS | < 80MB（无 leak） |
-| idle mksh session RSS | ~3-5MB |
-| 多 session 并发上限 | 4（OOM 保护） |
+| 指标                                        | 数值              |
+| ------------------------------------------- | ----------------- |
+| APK arm64-v8a Lite 体积                     | ~50MB             |
+| `libnode.so` stripped                       | ~30MB             |
+| `cc-cli.tgz` snapshot（hydrated prod deps） | ~40MB             |
+| `libtoybox.so`                              | ~600KB            |
+| mksh binary                                 | ~500KB            |
+| 1 小时连续使用 APK process RSS              | < 80MB（无 leak） |
+| idle mksh session RSS                       | ~3-5MB            |
+| 多 session 并发上限                         | 4（OOM 保护）     |
 
 ### 真机基线
 
@@ -269,16 +269,16 @@ suspend fun bootstrap(): Result<Unit> = withContext(Dispatchers.IO) {
 
 ### 真机 E2E 验证场景（Phase 6）
 
-| # | 场景 | 验收 |
-| --- | --- | --- |
-| 1 | 首启 bootstrap | 解压 $PREFIX ≤ 10s；终端见 motd；`ls /data/data/.../files/usr` 见 `bin/etc/lib` |
-| 2 | 基础命令 | `echo hello` 200ms 内 stdout `hello\n` |
-| 3 | **`cc -v`** | 返回 `0.162.2`（或 bundled snapshot 版本） |
-| 4 | `cc chat` / `cc note add` | LLM 调用成功（密钥已自动桥接）/ 笔记入本地 SQLite |
-| 5 | `cc ui` LAN 访问 | 终端起 `cc ui` → 同 WiFi 电脑浏览器开 `http://<手机 IP>:5174` 显示管理面板 |
-| 6 | 信号中断 | `sleep 100` → Ctrl+C 200ms 内退出（pty ctty 正确设置） |
-| 7 | 多 session | "+ 新建 session" 开第 2 个 → 切来切去 #1 stdout 完整 |
-| 8 | 工厂重置 | Settings "工厂重置 $PREFIX" → 重新 bootstrap → cc 仍可用 |
+| #   | 场景                      | 验收                                                                            |
+| --- | ------------------------- | ------------------------------------------------------------------------------- |
+| 1   | 首启 bootstrap            | 解压 $PREFIX ≤ 10s；终端见 motd；`ls /data/data/.../files/usr` 见 `bin/etc/lib` |
+| 2   | 基础命令                  | `echo hello` 200ms 内 stdout `hello\n`                                          |
+| 3   | **`cc -v`**               | 返回 `0.162.2`（或 bundled snapshot 版本）                                      |
+| 4   | `cc chat` / `cc note add` | LLM 调用成功（密钥已自动桥接）/ 笔记入本地 SQLite                               |
+| 5   | `cc ui` LAN 访问          | 终端起 `cc ui` → 同 WiFi 电脑浏览器开 `http://<手机 IP>:5174` 显示管理面板      |
+| 6   | 信号中断                  | `sleep 100` → Ctrl+C 200ms 内退出（pty ctty 正确设置）                          |
+| 7   | 多 session                | "+ 新建 session" 开第 2 个 → 切来切去 #1 stdout 完整                            |
+| 8   | 工厂重置                  | Settings "工厂重置 $PREFIX" → 重新 bootstrap → cc 仍可用                        |
 
 ## 安全考虑
 
@@ -322,6 +322,7 @@ suspend fun bootstrap(): Result<Unit> = withContext(Dispatchers.IO) {
 **Q: 进入"本地" tab 后终端空白，看不到 motd？**
 
 可能原因：
+
 1. Bootstrap 仍在进行中（首启 ~6-10s）— 等 10s 后下拉刷新
 2. APK 升级后 lib symlinks 仍指向旧路径 — 重启 app 触发 `relinkLibrariesFromApk()`
 3. xterm.js WebView 加载失败 — Settings → 本地终端 → "工厂重置 $PREFIX" → 重启 app
@@ -403,55 +404,55 @@ alias | grep cc
 
 ### Phase 2.5 核心文件
 
-| 文件 | 职责 | 行数 |
-| --- | --- | --- |
-| `android-app/feature-local-terminal/src/main/java/.../LocalFilesystemBootstrapper.kt` | $PREFIX 首启 + tar 解压 + cc CLI extract + symlinks relink | ~600 |
-| `android-app/feature-local-terminal/src/main/java/.../LocalPtyClient.kt` | Kotlin pty 包装（@AssistedInject 多 session）+ shutdown killpg | ~400 |
-| `android-app/feature-local-terminal/src/main/java/.../PtyEnvironment.kt` | envp 构造 + LLM 密钥桥接 + ccUiToken 持久化 | ~190 |
-| `android-app/feature-local-terminal/src/main/java/.../LocalPtyNative.kt` | JNI bindings（nativeOpenPty / nativeSpawn / nativeWrite / nativeRead / nativeSetWinsize / nativeKillpg / nativeWaitpid） | ~120 |
-| `android-app/feature-local-terminal/src/main/java/.../LocalTerminalNative.kt` | Native lib 加载入口（`System.loadLibrary("pty_jni")`） | ~30 |
-| `android-app/feature-local-terminal/src/main/cpp/pty_jni.cpp` | JNI 实现（posix_spawn + POSIX_SPAWN_SETSID + TIOCSCTTY） | ~300 |
-| `android-app/feature-local-terminal/src/main/cpp/CMakeLists.txt` | mksh / toybox / pty_jni CMake 三 ABI 构建 | ~80 |
-| `android-app/feature-local-terminal/src/main/java/.../ui/LocalSessionViewModel.kt` | Multi-session ViewModel + 生命周期管理 | ~200 |
-| `android-app/feature-local-terminal/src/main/java/.../ui/LocalTerminalScreen.kt` | Compose 壳 + 工具栏（额外按键） | ~250 |
-| `android-app/feature-local-terminal/src/main/java/.../ui/LocalTerminalWebView.kt` | xterm.js WebView 桥（JS bridge stdin/onResize） | ~180 |
+| 文件                                                                                  | 职责                                                                                                                     | 行数 |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---- |
+| `android-app/feature-local-terminal/src/main/java/.../LocalFilesystemBootstrapper.kt` | $PREFIX 首启 + tar 解压 + cc CLI extract + symlinks relink                                                               | ~600 |
+| `android-app/feature-local-terminal/src/main/java/.../LocalPtyClient.kt`              | Kotlin pty 包装（@AssistedInject 多 session）+ shutdown killpg                                                           | ~400 |
+| `android-app/feature-local-terminal/src/main/java/.../PtyEnvironment.kt`              | envp 构造 + LLM 密钥桥接 + ccUiToken 持久化                                                                              | ~190 |
+| `android-app/feature-local-terminal/src/main/java/.../LocalPtyNative.kt`              | JNI bindings（nativeOpenPty / nativeSpawn / nativeWrite / nativeRead / nativeSetWinsize / nativeKillpg / nativeWaitpid） | ~120 |
+| `android-app/feature-local-terminal/src/main/java/.../LocalTerminalNative.kt`         | Native lib 加载入口（`System.loadLibrary("pty_jni")`）                                                                   | ~30  |
+| `android-app/feature-local-terminal/src/main/cpp/pty_jni.cpp`                         | JNI 实现（posix_spawn + POSIX_SPAWN_SETSID + TIOCSCTTY）                                                                 | ~300 |
+| `android-app/feature-local-terminal/src/main/cpp/CMakeLists.txt`                      | mksh / toybox / pty_jni CMake 三 ABI 构建                                                                                | ~80  |
+| `android-app/feature-local-terminal/src/main/java/.../ui/LocalSessionViewModel.kt`    | Multi-session ViewModel + 生命周期管理                                                                                   | ~200 |
+| `android-app/feature-local-terminal/src/main/java/.../ui/LocalTerminalScreen.kt`      | Compose 壳 + 工具栏（额外按键）                                                                                          | ~250 |
+| `android-app/feature-local-terminal/src/main/java/.../ui/LocalTerminalWebView.kt`     | xterm.js WebView 桥（JS bridge stdin/onResize）                                                                          | ~180 |
 
 ### Assets 与 jniLibs
 
-| 路径 | 内容 |
-| --- | --- |
-| `android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz` | chainlesschain CLI snapshot（npm pack + `npm install --omit=dev` hydrated + `tar --format=ustar` 重打） |
-| `android-app/feature-local-terminal/src/main/assets/local-terminal/xterm.{js,css}` + `addon-fit.js` | xterm.js 终端渲染 |
-| `android-app/feature-local-terminal/src/main/assets/local-terminal/xterm-shell.html` | WebView HTML 容器 |
-| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so` | Termux Node v25 patchelf 重打（RUNPATH=$ORIGIN） |
-| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libtermux_cxx.so` | Termux libc++_shared.so 重命名（避 AGP merge 冲突） |
-| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/lib{crypto,ssl,sqlite3,icu*,cares,z,android-support}.so` | Node 8 个直接 DT_NEEDED 依赖 |
-| `android-app/feature-local-terminal/src/main/jniLibs/<abi>/libtoybox.so` | toybox 多用途 multi-call binary |
+| 路径                                                                                                                    | 内容                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz`                                          | chainlesschain CLI snapshot（npm pack + `npm install --omit=dev` hydrated + `tar --format=ustar` 重打） |
+| `android-app/feature-local-terminal/src/main/assets/local-terminal/xterm.{js,css}` + `addon-fit.js`                     | xterm.js 终端渲染                                                                                       |
+| `android-app/feature-local-terminal/src/main/assets/local-terminal/xterm-shell.html`                                    | WebView HTML 容器                                                                                       |
+| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so`                                              | Termux Node v25 patchelf 重打（RUNPATH=$ORIGIN）                                                        |
+| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libtermux_cxx.so`                                        | Termux libc++\_shared.so 重命名（避 AGP merge 冲突）                                                    |
+| `android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/lib{crypto,ssl,sqlite3,icu*,cares,z,android-support}.so` | Node 8 个直接 DT_NEEDED 依赖                                                                            |
+| `android-app/feature-local-terminal/src/main/jniLibs/<abi>/libtoybox.so`                                                | toybox 多用途 multi-call binary                                                                         |
 
 ### CI 工作流
 
-| 文件 | 用途 |
-| --- | --- |
-| `.github/workflows/node-runtime-bundle.yml` | 拉 Termux 8 .deb → patchelf 重打 → npm pack hydrate → 自动 commit 到 jniLibs/ + assets/ |
-| `.github/workflows/local-terminal-bundle.yml` | 验 mksh / toybox / pty_jni 三 ABI 编译产出（gate 9 个 .so 都在） |
+| 文件                                          | 用途                                                                                    |
+| --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `.github/workflows/node-runtime-bundle.yml`   | 拉 Termux 8 .deb → patchelf 重打 → npm pack hydrate → 自动 commit 到 jniLibs/ + assets/ |
+| `.github/workflows/local-terminal-bundle.yml` | 验 mksh / toybox / pty_jni 三 ABI 编译产出（gate 9 个 .so 都在）                        |
 
 ### 关键 commits（Phase 2.5 一晚串联）
 
-| Commit | 说明 |
-| --- | --- |
-| `da7457306` | wireCcCliSymlinks 第一版（wrapper script，后被 trap 4 推翻） |
-| `baf645b23` | open() probe + wrapper（trap 1+2 修） |
-| `839ef3af3` | CI workflow npm install --omit=dev 后再 tar（trap 6 修） |
-| `f17b1402b` | CI `tar --format=ustar`（trap 7 修） |
-| `9f20c9fb7` | rename Termux libc++_shared.so → libtermux_cxx.so（trap 5 修） |
-| `910a3ba6e` | mksh alias 取代 wrapper（trap 4 终极解） |
-| `02d1a9342` | 每次 bootstrap 写 etc/（USR_VERSION 不 bump 也写） |
-| `209b6c7f1` | profile sources mkshrc（trap 8 修） |
-| `a9ef596ab` | bridge app LLM keys to cc CLI via PtyEnvironment |
-| `e7419ec95` | key toolbar with Ctrl/Esc/Tab/arrows |
-| `74a6d71d6` | child pty needs ctty for SIGINT delivery |
-| `cedf0745b` | cc ui binds 0.0.0.0 + auto-token (LAN access) |
-| `f3e8d55d0` | refresh Phase 2.5 Node + cc CLI bundle |
+| Commit      | 说明                                                            |
+| ----------- | --------------------------------------------------------------- |
+| `da7457306` | wireCcCliSymlinks 第一版（wrapper script，后被 trap 4 推翻）    |
+| `baf645b23` | open() probe + wrapper（trap 1+2 修）                           |
+| `839ef3af3` | CI workflow npm install --omit=dev 后再 tar（trap 6 修）        |
+| `f17b1402b` | CI `tar --format=ustar`（trap 7 修）                            |
+| `9f20c9fb7` | rename Termux libc++\_shared.so → libtermux_cxx.so（trap 5 修） |
+| `910a3ba6e` | mksh alias 取代 wrapper（trap 4 终极解）                        |
+| `02d1a9342` | 每次 bootstrap 写 etc/（USR_VERSION 不 bump 也写）              |
+| `209b6c7f1` | profile sources mkshrc（trap 8 修）                             |
+| `a9ef596ab` | bridge app LLM keys to cc CLI via PtyEnvironment                |
+| `e7419ec95` | key toolbar with Ctrl/Esc/Tab/arrows                            |
+| `74a6d71d6` | child pty needs ctty for SIGINT delivery                        |
+| `cedf0745b` | cc ui binds 0.0.0.0 + auto-token (LAN access)                   |
+| `f3e8d55d0` | refresh Phase 2.5 Node + cc CLI bundle                          |
 
 ## 使用示例
 

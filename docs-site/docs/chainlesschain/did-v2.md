@@ -269,27 +269,27 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 
 ## 性能指标
 
-| 操作                   | 目标       | 实际       | 状态 |
-| ---------------------- | ---------- | ---------- | ---- |
-| DID 创建（Ed25519）    | < 100ms    | ~45ms      | ✅   |
-| DID 解析（本地缓存）   | < 20ms     | ~8ms       | ✅   |
-| 可验证展示生成（VP）   | < 150ms    | ~90ms      | ✅   |
-| VP 签名验证            | < 80ms     | ~35ms      | ✅   |
-| 社交恢复签名聚合       | < 500ms    | ~280ms     | ✅   |
-| 跨平台漫游包生成       | < 200ms    | ~120ms     | ✅   |
-| 信誉聚合（3 来源）     | < 300ms    | ~160ms     | ✅   |
-| DID 导出（JSON-LD）    | < 100ms    | ~50ms      | ✅   |
+| 操作                 | 目标    | 实际   | 状态 |
+| -------------------- | ------- | ------ | ---- |
+| DID 创建（Ed25519）  | < 100ms | ~45ms  | ✅   |
+| DID 解析（本地缓存） | < 20ms  | ~8ms   | ✅   |
+| 可验证展示生成（VP） | < 150ms | ~90ms  | ✅   |
+| VP 签名验证          | < 80ms  | ~35ms  | ✅   |
+| 社交恢复签名聚合     | < 500ms | ~280ms | ✅   |
+| 跨平台漫游包生成     | < 200ms | ~120ms | ✅   |
+| 信誉聚合（3 来源）   | < 300ms | ~160ms | ✅   |
+| DID 导出（JSON-LD）  | < 100ms | ~50ms  | ✅   |
 
 ## 测试覆盖率
 
-| 测试文件                                                             | 覆盖范围                                    |
-| -------------------------------------------------------------------- | ------------------------------------------- |
-| ✅ `tests/unit/did/did-v2-manager.test.js`                           | DID 创建、解析、导出（42 tests）            |
-| ✅ `tests/unit/did/vp-manager.test.js`                               | VP 生成、选择性披露、验证（38 tests）       |
-| ✅ `tests/unit/did/did-recovery.test.js`                             | 社交恢复 N-of-M 逻辑、多因子恢复（29 tests）|
-| ✅ `tests/unit/did/did-roaming.test.js`                              | 跨平台漫游包生成与解析（24 tests）          |
-| ✅ `tests/unit/did/reputation-aggregator.test.js`                    | 信誉聚合三种算法（18 tests）                |
-| ✅ `tests/unit/did/did-v2-ipc.test.js`                               | 8 个 IPC Handler 端到端测试（33 tests）     |
+| 测试文件                                          | 覆盖范围                                     |
+| ------------------------------------------------- | -------------------------------------------- |
+| ✅ `tests/unit/did/did-v2-manager.test.js`        | DID 创建、解析、导出（42 tests）             |
+| ✅ `tests/unit/did/vp-manager.test.js`            | VP 生成、选择性披露、验证（38 tests）        |
+| ✅ `tests/unit/did/did-recovery.test.js`          | 社交恢复 N-of-M 逻辑、多因子恢复（29 tests） |
+| ✅ `tests/unit/did/did-roaming.test.js`           | 跨平台漫游包生成与解析（24 tests）           |
+| ✅ `tests/unit/did/reputation-aggregator.test.js` | 信誉聚合三种算法（18 tests）                 |
+| ✅ `tests/unit/did/did-v2-ipc.test.js`            | 8 个 IPC Handler 端到端测试（33 tests）      |
 
 **合计**: 184 tests，覆盖率 96%+
 
@@ -307,6 +307,7 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 **现象**: `did-v2:recover` 返回恢复失败，DID 密钥未轮换。
 
 **排查步骤**:
+
 1. **社交恢复**: 确认收集的 `socialProofs` 数量 >= `threshold`（默认 3），且每个 trustee 签名有效
 2. 确认提供的 `trusteeDid` 均在创建时配置的 `trustees` 列表中
 3. **多因子恢复**: 检查硬件密钥是否可用，助记词是否正确匹配
@@ -318,6 +319,7 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 **现象**: `did-v2:verify` 返回 `valid: false`，展示验证不通过。
 
 **排查步骤**:
+
 1. 确认 `challenge` 和 `domain` 值与创建展示时使用的值完全一致
 2. 检查 VP 中包含的 VC 是否有过期或已被撤销的凭证
 3. 确认签名算法（Ed25519）匹配，且 holder DID 的公钥可正常解析
@@ -328,6 +330,7 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 **现象**: `did-v2:roam` 生成的漫游包在目标平台无法恢复身份。
 
 **排查步骤**:
+
 1. 检查漫游包是否在有效期内（QR 码默认 5 分钟过期，`qrCodeExpiry` 可配置）
 2. 确认 `transferMethod` 匹配目标平台能力（移动端支持 QR/BLE，Web 端仅支持 QR/cloud）
 3. 若 `includeCredentials: true`，确认 VC 数据量未超过传输方式限制
@@ -335,14 +338,14 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/did/did-v2-manager.js` | DID v2.0 核心管理器 |
-| `desktop-app-vue/src/main/did/vp-manager.js` | 可验证展示（VP）管理 |
-| `desktop-app-vue/src/main/did/did-recovery.js` | 社交恢复 + 多因子恢复 |
-| `desktop-app-vue/src/main/did/did-roaming.js` | 跨平台漫游（QR/BLE/Cloud） |
-| `desktop-app-vue/src/main/did/reputation-aggregator.js` | 信誉聚合计算 |
-| `desktop-app-vue/src/main/did/did-v2-ipc.js` | DID v2 的 8 个 IPC Handler |
+| 文件                                                    | 职责                       |
+| ------------------------------------------------------- | -------------------------- |
+| `desktop-app-vue/src/main/did/did-v2-manager.js`        | DID v2.0 核心管理器        |
+| `desktop-app-vue/src/main/did/vp-manager.js`            | 可验证展示（VP）管理       |
+| `desktop-app-vue/src/main/did/did-recovery.js`          | 社交恢复 + 多因子恢复      |
+| `desktop-app-vue/src/main/did/did-roaming.js`           | 跨平台漫游（QR/BLE/Cloud） |
+| `desktop-app-vue/src/main/did/reputation-aggregator.js` | 信誉聚合计算               |
+| `desktop-app-vue/src/main/did/did-v2-ipc.js`            | DID v2 的 8 个 IPC Handler |
 
 ## 使用示例
 
@@ -354,7 +357,15 @@ const did = await window.electron.ipcRenderer.invoke("did-v2:create", {
   method: "chainless",
   keyType: "Ed25519",
   recoveryConfig: {
-    socialRecovery: { threshold: 3, trustees: ["did:chainless:alice", "did:chainless:bob", "did:chainless:carol", "did:chainless:dave"] },
+    socialRecovery: {
+      threshold: 3,
+      trustees: [
+        "did:chainless:alice",
+        "did:chainless:bob",
+        "did:chainless:carol",
+        "did:chainless:dave",
+      ],
+    },
   },
 });
 
@@ -380,13 +391,13 @@ const roam = await window.electron.ipcRenderer.invoke("did-v2:roam", {
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 社交恢复失败 | 恢复联系人数量不足或签名过期 | 确认已收集足够恢复签名，检查签名有效期 |
-| VP 验证错误 | 可验证表述格式不规范或签发者 DID 已撤销 | 使用 `did vp-validate` 检查格式，确认签发者状态 |
-| 跨平台漫游断开 | 同步通道中断或设备授权过期 | 重新建立 P2P 连接，刷新设备授权 `did device-reauth` |
-| DID 解析失败 | DID 文档未发布或解析器配置错误 | 确认 DID 文档已注册，检查解析器端点配置 |
-| 密钥轮换后旧凭证失效 | 轮换未同步到所有验证方 | 广播密钥轮换事件，通知验证方更新缓存 |
+| 症状                 | 可能原因                                | 解决方案                                            |
+| -------------------- | --------------------------------------- | --------------------------------------------------- |
+| 社交恢复失败         | 恢复联系人数量不足或签名过期            | 确认已收集足够恢复签名，检查签名有效期              |
+| VP 验证错误          | 可验证表述格式不规范或签发者 DID 已撤销 | 使用 `did vp-validate` 检查格式，确认签发者状态     |
+| 跨平台漫游断开       | 同步通道中断或设备授权过期              | 重新建立 P2P 连接，刷新设备授权 `did device-reauth` |
+| DID 解析失败         | DID 文档未发布或解析器配置错误          | 确认 DID 文档已注册，检查解析器端点配置             |
+| 密钥轮换后旧凭证失效 | 轮换未同步到所有验证方                  | 广播密钥轮换事件，通知验证方更新缓存                |
 
 ### 常见错误修复
 
@@ -423,16 +434,19 @@ chainlesschain p2p peers --did <your-did>
 ## 安全考虑
 
 ### 密钥安全
+
 - **私钥存储**: DID 私钥通过 SQLCipher 加密存储在本地数据库中，支持硬件密钥（U-Key/SIMKey）绑定，私钥永不离开安全存储区域
 - **密钥轮换**: 恢复 DID 时强制进行密钥轮换（`rotatedKeys: true`），确保旧密钥立即失效，防止被盗密钥继续使用
 - **多因子恢复**: 建议同时启用社交恢复和硬件密钥恢复，单一恢复途径存在被社会工程攻击的风险
 
 ### 可验证展示安全
+
 - **挑战值验证**: 创建和验证 VP 时必须使用一次性 `challenge` 值，防止重放攻击；`domain` 字段绑定验证方身份
 - **最小披露**: 使用 `selectiveDisclosure` 仅披露验证方所需的最少字段，避免不必要的个人信息泄露
 - **VP 有效期**: 可验证展示建议设置短有效期，过期后需重新生成，降低被盗用风险
 
 ### 跨平台漫游安全
+
 - **漫游包加密**: 跨平台传输的漫游包（`roamingPackage`）使用端到端加密，QR 码默认 5 分钟过期
 - **蓝牙传输**: BLE 传输仅在配对设备间进行，自动协商加密通道，传输完成后立即断开
 - **信誉数据完整性**: 聚合信誉分数包含来源签名，防止篡改单一来源的信誉评分

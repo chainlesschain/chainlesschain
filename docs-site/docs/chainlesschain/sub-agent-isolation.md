@@ -43,12 +43,12 @@
 
 ### 核心问题
 
-| 问题 | 描述 |
-|------|------|
-| 共享消息数组 | 所有工具调用和技能结果追加到同一 `messages[]`，子任务中间推理污染主代理上下文 |
-| 全局上下文注入 | BM25 搜索、记忆召回、偏好注入都是全局的，不按任务范围过滤 |
-| 单例内存泄漏 | `_working`/`_shortTerm` 是模块级全局 Map，所有代理共享 |
-| Cowork 交叉污染 | Debate 的 moderator 看到所有 reviewer 的完整输出 |
+| 问题            | 描述                                                                          |
+| --------------- | ----------------------------------------------------------------------------- |
+| 共享消息数组    | 所有工具调用和技能结果追加到同一 `messages[]`，子任务中间推理污染主代理上下文 |
+| 全局上下文注入  | BM25 搜索、记忆召回、偏好注入都是全局的，不按任务范围过滤                     |
+| 单例内存泄漏    | `_working`/`_shortTerm` 是模块级全局 Map，所有代理共享                        |
+| Cowork 交叉污染 | Debate 的 moderator 看到所有 reviewer 的完整输出                              |
 
 ### 解决方案
 
@@ -85,21 +85,21 @@ SubAgentContext {
 
 **关键方法**：
 
-| 方法 | 说明 |
-|------|------|
-| `SubAgentContext.create(options)` | 工厂方法，创建隔离上下文 |
-| `run(userPrompt, loopOptions)` | 运行子代理循环，返回结构化结果 |
-| `summarize(content)` | 三级摘要策略 |
-| `forceComplete(reason)` | 强制完成（超时/取消） |
-| `toJSON()` | 可序列化快照（不包含 messages） |
+| 方法                              | 说明                            |
+| --------------------------------- | ------------------------------- |
+| `SubAgentContext.create(options)` | 工厂方法，创建隔离上下文        |
+| `run(userPrompt, loopOptions)`    | 运行子代理循环，返回结构化结果  |
+| `summarize(content)`              | 三级摘要策略                    |
+| `forceComplete(reason)`           | 强制完成（超时/取消）           |
+| `toJSON()`                        | 可序列化快照（不包含 messages） |
 
 ### 三级摘要策略
 
-| 策略 | 条件 | 行为 |
-|------|------|------|
-| 直接使用 | 结果 ≤ 500 字符 | 原样返回 |
-| 结构化提取 | 包含 `## Summary`/`## Result` 等标题 | 提取该 section |
-| 截断 + 标注 | 超长结果 | 取前 500 字符 + 完整输出长度标注 |
+| 策略        | 条件                                 | 行为                             |
+| ----------- | ------------------------------------ | -------------------------------- |
+| 直接使用    | 结果 ≤ 500 字符                      | 原样返回                         |
+| 结构化提取  | 包含 `## Summary`/`## Result` 等标题 | 提取该 section                   |
+| 截断 + 标注 | 超长结果                             | 取前 500 字符 + 完整输出长度标注 |
 
 ### spawn_sub_agent 工具
 
@@ -137,25 +137,25 @@ SubAgentContext {
 
 `CLIContextEngineering` 的 `scope` 选项：
 
-| 注入层 | 有 scope 时的行为 |
-|--------|------------------|
-| BM25 笔记搜索 | 查询前缀加 `[${role}]` |
-| 记忆召回 | 命名空间隔离，阈值从 0.3 提升到 0.6 |
-| 压缩摘要 | 新实例从空开始 |
-| 错误历史 | 新实例从空开始 |
+| 注入层        | 有 scope 时的行为                   |
+| ------------- | ----------------------------------- |
+| BM25 笔记搜索 | 查询前缀加 `[${role}]`              |
+| 记忆召回      | 命名空间隔离，阈值从 0.3 提升到 0.6 |
+| 压缩摘要      | 新实例从空开始                      |
+| 错误历史      | 新实例从空开始                      |
 
 ## 角色工具白名单
 
 `agent-coordinator.js` 中按角色限制可用工具：
 
-| 角色 | 可用工具 |
-|------|---------|
-| code-review | read_file, search_files, list_dir |
-| code-generation | read_file, write_file, edit_file, run_shell, search_files, list_dir |
-| data-analysis | read_file, search_files, list_dir, run_code, run_shell |
-| document | read_file, write_file, search_files, list_dir |
-| testing | read_file, write_file, edit_file, run_shell, search_files, list_dir, run_code |
-| general | 所有工具 |
+| 角色            | 可用工具                                                                      |
+| --------------- | ----------------------------------------------------------------------------- |
+| code-review     | read_file, search_files, list_dir                                             |
+| code-generation | read_file, write_file, edit_file, run_shell, search_files, list_dir           |
+| data-analysis   | read_file, search_files, list_dir, run_code, run_shell                        |
+| document        | read_file, write_file, search_files, list_dir                                 |
+| testing         | read_file, write_file, edit_file, run_shell, search_files, list_dir, run_code |
+| general         | 所有工具                                                                      |
 
 ## 生命周期管理
 
@@ -206,16 +206,16 @@ const REVIEW_SUMMARY_MAX = 300;
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/sub-agent-context.js` | 子代理上下文核心 |
-| `packages/cli/src/lib/sub-agent-registry.js` | 生命周期注册表 |
-| `packages/cli/src/lib/agent-core.js` | spawn_sub_agent 工具 |
-| `packages/cli/src/lib/cli-context-engineering.js` | 作用域化上下文 |
-| `packages/cli/src/lib/hierarchical-memory.js` | 命名空间化记忆 |
-| `packages/cli/src/lib/agent-coordinator.js` | 任务分解执行 |
-| `packages/cli/src/lib/cowork/debate-review-cli.js` | Debate 摘要化 |
-| `desktop-app-vue/src/main/ai-engine/agents/sub-agent-context.js` | Desktop 等价实现 |
+| 文件                                                             | 说明                 |
+| ---------------------------------------------------------------- | -------------------- |
+| `packages/cli/src/lib/sub-agent-context.js`                      | 子代理上下文核心     |
+| `packages/cli/src/lib/sub-agent-registry.js`                     | 生命周期注册表       |
+| `packages/cli/src/lib/agent-core.js`                             | spawn_sub_agent 工具 |
+| `packages/cli/src/lib/cli-context-engineering.js`                | 作用域化上下文       |
+| `packages/cli/src/lib/hierarchical-memory.js`                    | 命名空间化记忆       |
+| `packages/cli/src/lib/agent-coordinator.js`                      | 任务分解执行         |
+| `packages/cli/src/lib/cowork/debate-review-cli.js`               | Debate 摘要化        |
+| `desktop-app-vue/src/main/ai-engine/agents/sub-agent-context.js` | Desktop 等价实现     |
 
 ## 配置参考
 
@@ -224,22 +224,22 @@ const REVIEW_SUMMARY_MAX = 300;
 const subAgentConfig = {
   // 子代理角色（决定工具白名单）
   // "code-review" | "code-generation" | "data-analysis" | "document" | "testing" | "general"
-  role: 'code-review',
+  role: "code-review",
 
   // 任务描述
-  task: '审查 src/auth/ 目录的安全性',
+  task: "审查 src/auth/ 目录的安全性",
 
   // 可选：从父代理传入的精简上下文（未提供时自动提取父代理最近3条消息前200字符）
-  context: 'Auth 模块使用 JWT + bcrypt，关键文件: auth.js, middleware/auth.js',
+  context: "Auth 模块使用 JWT + bcrypt，关键文件: auth.js, middleware/auth.js",
 
   // 可选：显式指定工具白名单（覆盖角色默认白名单）
-  tools: ['read_file', 'search_files', 'list_dir'],
+  tools: ["read_file", "search_files", "list_dir"],
 
   // 子代理最大迭代次数（默认 8）
   maxIterations: 8,
 
   // Token 预算（字符数，~4字符/token，默认不限制）
-  tokenBudget: 40000
+  tokenBudget: 40000,
 };
 
 // SubAgentRegistry 全局配置
@@ -254,7 +254,7 @@ const registryConfig = {
   summaryMaxChars: 500,
 
   // Debate reviewer 摘要截断字符上限
-  reviewSummaryMaxChars: 300
+  reviewSummaryMaxChars: 300,
 };
 ```
 
@@ -262,15 +262,15 @@ const registryConfig = {
 
 ## 性能指标
 
-| 操作                               | 目标        | 实际        | 状态 |
-| ---------------------------------- | ----------- | ----------- | ---- |
-| 子代理上下文创建                   | < 5ms       | ~2ms        | ✅   |
-| 并行子代理启动（3 个并发）         | < 20ms      | ~8ms        | ✅   |
-| 三级摘要策略处理                   | < 10ms      | ~3ms        | ✅   |
-| 命名空间化记忆存取                 | < 15ms      | ~6ms        | ✅   |
-| 强制完成（forceCompleteAll）       | < 50ms      | ~18ms       | ✅   |
-| 环形缓冲区 100 条记录查询          | < 5ms       | ~1ms        | ✅   |
-| 子代理状态 IPC 查询（/sub-agents） | < 100ms     | ~35ms       | ✅   |
+| 操作                               | 目标    | 实际  | 状态 |
+| ---------------------------------- | ------- | ----- | ---- |
+| 子代理上下文创建                   | < 5ms   | ~2ms  | ✅   |
+| 并行子代理启动（3 个并发）         | < 20ms  | ~8ms  | ✅   |
+| 三级摘要策略处理                   | < 10ms  | ~3ms  | ✅   |
+| 命名空间化记忆存取                 | < 15ms  | ~6ms  | ✅   |
+| 强制完成（forceCompleteAll）       | < 50ms  | ~18ms | ✅   |
+| 环形缓冲区 100 条记录查询          | < 5ms   | ~1ms  | ✅   |
+| 子代理状态 IPC 查询（/sub-agents） | < 100ms | ~35ms | ✅   |
 
 ---
 
@@ -376,14 +376,14 @@ chainlesschain agent
 
 ## 安全考虑
 
-| 安全机制 | 说明 |
-|----------|------|
-| 隔离消息历史 | 子代理的 `messages[]` 完全独立，防止子代理之间或子代理与父代理之间的数据泄漏 |
-| 工具白名单 | 按角色限制可用工具，`code-review` 仅有只读权限，`document` 无法执行 shell 命令，最小权限原则 |
-| Token 预算 | 每个子代理有独立的 token 消耗上限，超限自动终止，防止失控的子代理产生高额 API 费用 |
+| 安全机制      | 说明                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| 隔离消息历史  | 子代理的 `messages[]` 完全独立，防止子代理之间或子代理与父代理之间的数据泄漏                   |
+| 工具白名单    | 按角色限制可用工具，`code-review` 仅有只读权限，`document` 无法执行 shell 命令，最小权限原则   |
+| Token 预算    | 每个子代理有独立的 token 消耗上限，超限自动终止，防止失控的子代理产生高额 API 费用             |
 | Worktree 隔离 | 子代理在独立工作树中操作文件，避免并行子代理的文件写入冲突，也防止子代理意外修改父代理的工作区 |
-| 摘要化输出 | 子代理结果经三级摘要压缩后才注入父代理，限制信息回传量，降低上下文注入攻击面 |
-| 迭代上限 | `maxIterations` (默认 8) 限制子代理最大循环次数，防止无限循环消耗资源 |
+| 摘要化输出    | 子代理结果经三级摘要压缩后才注入父代理，限制信息回传量，降低上下文注入攻击面                   |
+| 迭代上限      | `maxIterations` (默认 8) 限制子代理最大循环次数，防止无限循环消耗资源                          |
 
 ## 相关文档
 

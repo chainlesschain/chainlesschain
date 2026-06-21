@@ -52,19 +52,19 @@ chainlesschain ask <question> [options]
 
 ### 参数
 
-| 参数 | 说明 |
-|------|------|
+| 参数         | 说明                 |
+| ------------ | -------------------- |
 | `<question>` | 要提问的问题（必填） |
 
 ### 选项
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--model <model>` | 模型名称 | `qwen2:7b` |
-| `--provider <provider>` | LLM 提供商 (ollama/openai/volcengine/deepseek/dashscope/gemini/mistral/anthropic) | `ollama` |
-| `--base-url <url>` | API 基础地址（可覆盖为中转站/代理地址） | 根据 provider 自动选择 |
-| `--api-key <key>` | API 密钥 | 从对应环境变量读取 |
-| `--json` | 以 JSON 格式输出结果 | — |
+| 选项                    | 说明                                                                              | 默认值                 |
+| ----------------------- | --------------------------------------------------------------------------------- | ---------------------- |
+| `--model <model>`       | 模型名称                                                                          | `qwen2:7b`             |
+| `--provider <provider>` | LLM 提供商 (ollama/openai/volcengine/deepseek/dashscope/gemini/mistral/anthropic) | `ollama`               |
+| `--base-url <url>`      | API 基础地址（可覆盖为中转站/代理地址）                                           | 根据 provider 自动选择 |
+| `--api-key <key>`       | API 密钥                                                                          | 从对应环境变量读取     |
+| `--json`                | 以 JSON 格式输出结果                                                              | —                      |
 
 ## 配置参考
 
@@ -94,14 +94,14 @@ chainlesschain ask <question> [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 参数解析与 provider 路由 | < 20ms | ~8ms | ✅ |
-| Ollama 本地响应（qwen2:7b） | < 3s | ~1.5s | ✅ |
-| 云端 API 响应（gpt-4o） | < 5s | ~2s | ✅ |
-| JSON 输出序列化 | < 10ms | ~3ms | ✅ |
-| 中转站请求透传 | < 5s | ~2.5s | ✅ |
-| API Key 读取（环境变量 fallback） | < 5ms | ~1ms | ✅ |
+| 操作                              | 目标   | 实际  | 状态 |
+| --------------------------------- | ------ | ----- | ---- |
+| 参数解析与 provider 路由          | < 20ms | ~8ms  | ✅   |
+| Ollama 本地响应（qwen2:7b）       | < 3s   | ~1.5s | ✅   |
+| 云端 API 响应（gpt-4o）           | < 5s   | ~2s   | ✅   |
+| JSON 输出序列化                   | < 10ms | ~3ms  | ✅   |
+| 中转站请求透传                    | < 5s   | ~2.5s | ✅   |
+| API Key 读取（环境变量 fallback） | < 5ms  | ~1ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -231,6 +231,7 @@ chainlesschain ask "今天天气如何？" --json
 ```
 
 输出示例：
+
 ```json
 {
   "question": "今天天气如何？",
@@ -242,27 +243,27 @@ chainlesschain ask "今天天气如何？" --json
 
 ## 环境变量
 
-| 变量名 | 提供商 |
-|--------|--------|
-| `OPENAI_API_KEY` | OpenAI |
-| `ANTHROPIC_API_KEY` | Anthropic |
-| `DEEPSEEK_API_KEY` | DeepSeek |
-| `DASHSCOPE_API_KEY` | DashScope (阿里) |
-| `GEMINI_API_KEY` | Google Gemini |
-| `MISTRAL_API_KEY` | Mistral AI |
+| 变量名               | 提供商            |
+| -------------------- | ----------------- |
+| `OPENAI_API_KEY`     | OpenAI            |
+| `ANTHROPIC_API_KEY`  | Anthropic         |
+| `DEEPSEEK_API_KEY`   | DeepSeek          |
+| `DASHSCOPE_API_KEY`  | DashScope (阿里)  |
+| `GEMINI_API_KEY`     | Google Gemini     |
+| `MISTRAL_API_KEY`    | Mistral AI        |
 | `VOLCENGINE_API_KEY` | Volcengine (豆包) |
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Ollama error: 404` | 模型未安装，运行 `ollama pull qwen2:7b` |
-| `Ollama error: connection refused` | Ollama 服务未启动，运行 `ollama serve` |
-| `API key required for volcengine` | 设置 `VOLCENGINE_API_KEY` 或使用 `--api-key` |
-| `Unsupported provider` | 支持 8 个提供商，使用 `chainlesschain llm providers` 查看列表 |
-| 中转站返回 401 | 检查 `--api-key` 格式，中转站密钥格式可能与官方不同 |
-| `--base-url` 不生效 | 确保 URL 包含 `/v1` 后缀 |
-| 响应较慢 | 本地模型受硬件限制，可尝试使用云端 API 或更小的模型 |
+| 问题                               | 解决方案                                                      |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `Ollama error: 404`                | 模型未安装，运行 `ollama pull qwen2:7b`                       |
+| `Ollama error: connection refused` | Ollama 服务未启动，运行 `ollama serve`                        |
+| `API key required for volcengine`  | 设置 `VOLCENGINE_API_KEY` 或使用 `--api-key`                  |
+| `Unsupported provider`             | 支持 8 个提供商，使用 `chainlesschain llm providers` 查看列表 |
+| 中转站返回 401                     | 检查 `--api-key` 格式，中转站密钥格式可能与官方不同           |
+| `--base-url` 不生效                | 确保 URL 包含 `/v1` 后缀                                      |
+| 响应较慢                           | 本地模型受硬件限制，可尝试使用云端 API 或更小的模型           |
 
 ## 相关文档
 

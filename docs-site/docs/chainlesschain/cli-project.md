@@ -53,19 +53,19 @@ cc project show <id> [--db <path>] [--json]
 cc project delete <id> [--hard] [--db <path>] [--json]
 ```
 
-| 子命令 | 选项 | 默认 | 说明 |
-|--------|------|------|------|
-| `init <name>` | `--type <type>` | `document` | 10 种合法类型之一，非法值退出码 2 |
-| | `--description <text>` | — | 项目描述 |
-| | `--user <userId>` | `default` | 所属用户 ID |
-| | `--root <path>` | — | 文件系统根路径（`root_path`） |
-| `list` | `--user <userId>` | `default` | 按用户过滤（恒过滤 `deleted=0`） |
-| | `--status <s>` | — | 按状态过滤（4 种合法值，非法值退出码 2） |
-| | `--limit <n>` | `50` | 最大行数，按 `updated_at` 倒序 |
-| `show <id>` | — | — | 完整行；不存在退出码 2 |
-| `delete <id>` | `--hard` | 关（软删） | 软删置 `deleted=1` + `sync_status='pending'`；`--hard` 真删行 |
-| 公共 | `--db <path>` | 桌面默认 DB 路径 | DB 路径覆盖 |
-| | `--json` | 关 | JSON 输出 |
+| 子命令        | 选项                   | 默认             | 说明                                                          |
+| ------------- | ---------------------- | ---------------- | ------------------------------------------------------------- |
+| `init <name>` | `--type <type>`        | `document`       | 10 种合法类型之一，非法值退出码 2                             |
+|               | `--description <text>` | —                | 项目描述                                                      |
+|               | `--user <userId>`      | `default`        | 所属用户 ID                                                   |
+|               | `--root <path>`        | —                | 文件系统根路径（`root_path`）                                 |
+| `list`        | `--user <userId>`      | `default`        | 按用户过滤（恒过滤 `deleted=0`）                              |
+|               | `--status <s>`         | —                | 按状态过滤（4 种合法值，非法值退出码 2）                      |
+|               | `--limit <n>`          | `50`             | 最大行数，按 `updated_at` 倒序                                |
+| `show <id>`   | —                      | —                | 完整行；不存在退出码 2                                        |
+| `delete <id>` | `--hard`               | 关（软删）       | 软删置 `deleted=1` + `sync_status='pending'`；`--hard` 真删行 |
+| 公共          | `--db <path>`          | 桌面默认 DB 路径 | DB 路径覆盖                                                   |
+|               | `--json`               | 关               | JSON 输出                                                     |
 
 ## 配置参考
 
@@ -112,23 +112,23 @@ npx vitest run __tests__/integration/project-cli.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `Desktop DB not found at: …`（`DB_NOT_FOUND`） | 桌面 app 从未启动过，DB 未创建 | 先启动一次桌面 app（首次运行建库），或用 `--db` 指向已有库 |
-| `Invalid type "…"`（退出码 2） | `--type` 不在 10 种白名单内 | 用 `web/document/data/app/presentation/spreadsheet/design/code/workflow/knowledge` 之一 |
-| `Invalid status "…"`（退出码 2） | `list --status` 值非法 | 用 `draft/active/completed/archived` 之一 |
-| `Project not found: <id>`（退出码 2） | id 不存在（或 show 一个 hard 删掉的项目） | `cc project list` 确认 id；软删的项目 list 不显示但 show 仍可查 |
-| 桌面 UI 没看到新项目 | 用了 `--db` 指到别的库 / 桌面读的是另一 userData | 不带 `--db` 用默认路径；确认桌面与 CLI 同一用户 profile |
-| native 驱动加载失败、行为变慢 | better-sqlite3(-mc) 缺 prebuild，回落 sql.js | `npm rebuild better-sqlite3`；WASM 路径下先关桌面再操作 |
+| 现象                                           | 可能原因                                         | 处理                                                                                    |
+| ---------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `Desktop DB not found at: …`（`DB_NOT_FOUND`） | 桌面 app 从未启动过，DB 未创建                   | 先启动一次桌面 app（首次运行建库），或用 `--db` 指向已有库                              |
+| `Invalid type "…"`（退出码 2）                 | `--type` 不在 10 种白名单内                      | 用 `web/document/data/app/presentation/spreadsheet/design/code/workflow/knowledge` 之一 |
+| `Invalid status "…"`（退出码 2）               | `list --status` 值非法                           | 用 `draft/active/completed/archived` 之一                                               |
+| `Project not found: <id>`（退出码 2）          | id 不存在（或 show 一个 hard 删掉的项目）        | `cc project list` 确认 id；软删的项目 list 不显示但 show 仍可查                         |
+| 桌面 UI 没看到新项目                           | 用了 `--db` 指到别的库 / 桌面读的是另一 userData | 不带 `--db` 用默认路径；确认桌面与 CLI 同一用户 profile                                 |
+| native 驱动加载失败、行为变慢                  | better-sqlite3(-mc) 缺 prebuild，回落 sql.js     | `npm rebuild better-sqlite3`；WASM 路径下先关桌面再操作                                 |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/project.js` | `cc project` 四个子命令（init/list/show/delete）+ 表格/着色输出 |
-| `packages/cli/src/lib/project-runtime.js` | DB 路径解析、驱动级联（bs3mc → bs3 → sql.js）、WAL、UUID、类型/状态白名单 |
-| `packages/cli/__tests__/integration/project-cli.test.js` | 7 集成测试 |
-| `chainlesschain.db`（桌面 userData/data/） | 与桌面 app 共享的 SQLite 库（projects 表） |
+| 文件                                                     | 说明                                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `packages/cli/src/commands/project.js`                   | `cc project` 四个子命令（init/list/show/delete）+ 表格/着色输出           |
+| `packages/cli/src/lib/project-runtime.js`                | DB 路径解析、驱动级联（bs3mc → bs3 → sql.js）、WAL、UUID、类型/状态白名单 |
+| `packages/cli/__tests__/integration/project-cli.test.js` | 7 集成测试                                                                |
+| `chainlesschain.db`（桌面 userData/data/）               | 与桌面 app 共享的 SQLite 库（projects 表）                                |
 
 ## 使用示例
 

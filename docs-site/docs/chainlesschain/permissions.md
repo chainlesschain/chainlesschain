@@ -446,11 +446,11 @@ teamManager.getParentTeam(teamId);
 
 ### 环境变量覆盖
 
-| 环境变量 | 对应配置项 | 说明 |
-| --- | --- | --- |
-| `PERMISSION_CACHE_TTL` | `permission.cache.ttlMs` | 权限缓存 TTL（毫秒） |
-| `PERMISSION_AUDIT_RETENTION` | `permission.audit.retentionDays` | 审计日志保留天数 |
-| `PERMISSION_INHERITANCE_DEPTH` | `permission.inheritance.maxDepth` | 继承链最大深度 |
+| 环境变量                             | 对应配置项                          | 说明                   |
+| ------------------------------------ | ----------------------------------- | ---------------------- |
+| `PERMISSION_CACHE_TTL`               | `permission.cache.ttlMs`            | 权限缓存 TTL（毫秒）   |
+| `PERMISSION_AUDIT_RETENTION`         | `permission.audit.retentionDays`    | 审计日志保留天数       |
+| `PERMISSION_INHERITANCE_DEPTH`       | `permission.inheritance.maxDepth`   | 继承链最大深度         |
 | `PERMISSION_DELEGATION_MAX_DURATION` | `permission.delegation.maxDuration` | 委托最长有效期（毫秒） |
 
 ---
@@ -459,15 +459,15 @@ teamManager.getParentTeam(teamId);
 
 ### 测试矩阵
 
-| 测试文件 | 类型 | 测试数 | 覆盖内容 |
-| --- | --- | --- | --- |
-| `permission-engine.test.js` | 单元 | 42 | RBAC 核心检查、角色分配、资源级权限 |
-| `team-manager.test.js` | 单元 | 31 | 团队 CRUD、成员管理、父子团队嵌套 |
-| `delegation-manager.test.js` | 单元 | 28 | 临时授权、过期失效、撤销、范围限制 |
-| `approval-workflow.test.js` | 单元 | 24 | 审批流创建、批准/拒绝、超时处理 |
-| `permission-ipc.test.js` | 集成 | 19 | IPC 处理器、序列化、权限拦截 |
-| `permission-inheritance.test.js` | 集成 | 22 | 五级继承链、覆盖语义、深度限制 |
-| **合计** | | **166** | |
+| 测试文件                         | 类型 | 测试数  | 覆盖内容                            |
+| -------------------------------- | ---- | ------- | ----------------------------------- |
+| `permission-engine.test.js`      | 单元 | 42      | RBAC 核心检查、角色分配、资源级权限 |
+| `team-manager.test.js`           | 单元 | 31      | 团队 CRUD、成员管理、父子团队嵌套   |
+| `delegation-manager.test.js`     | 单元 | 28      | 临时授权、过期失效、撤销、范围限制  |
+| `approval-workflow.test.js`      | 单元 | 24      | 审批流创建、批准/拒绝、超时处理     |
+| `permission-ipc.test.js`         | 集成 | 19      | IPC 处理器、序列化、权限拦截        |
+| `permission-inheritance.test.js` | 集成 | 22      | 五级继承链、覆盖语义、深度限制      |
+| **合计**                         |      | **166** |                                     |
 
 ### 关键测试场景
 
@@ -531,14 +531,14 @@ npx vitest run tests/integration/permission/
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/permission/permission-engine.js` | RBAC 权限引擎核心实现 |
-| `src/main/permission/team-manager.js` | 团队管理与成员权限 |
-| `src/main/permission/delegation-manager.js` | 权限委托管理 |
-| `src/main/permission/approval-workflow.js` | 审批工作流引擎 |
-| `src/main/ipc/permission-ipc.js` | 权限系统 IPC 处理器 |
-| `src/renderer/stores/permission.ts` | Pinia 权限状态管理 |
+| 文件                                        | 职责                  |
+| ------------------------------------------- | --------------------- |
+| `src/main/permission/permission-engine.js`  | RBAC 权限引擎核心实现 |
+| `src/main/permission/team-manager.js`       | 团队管理与成员权限    |
+| `src/main/permission/delegation-manager.js` | 权限委托管理          |
+| `src/main/permission/approval-workflow.js`  | 审批工作流引擎        |
+| `src/main/ipc/permission-ipc.js`            | 权限系统 IPC 处理器   |
+| `src/renderer/stores/permission.ts`         | Pinia 权限状态管理    |
 
 ## 使用示例
 
@@ -563,26 +563,26 @@ chainlesschain audit stats
 ```javascript
 // 创建自定义角色
 await permissionEngine.createRole({
-  name: 'reviewer',
-  description: '代码审查员',
-  permissions: ['code:read', 'code:comment', 'pr:approve']
+  name: "reviewer",
+  description: "代码审查员",
+  permissions: ["code:read", "code:comment", "pr:approve"],
 });
 
 // 设置资源级权限
 await permissionEngine.setResourcePermission({
-  resourceType: 'note',
-  resourceId: 'note-123',
-  userId: 'user-456',
-  permissions: ['read', 'write']
+  resourceType: "note",
+  resourceId: "note-123",
+  userId: "user-456",
+  permissions: ["read", "write"],
 });
 
 // 委托临时权限
 await delegationManager.delegate({
-  fromUserId: 'user-owner',
-  toUserId: 'user-delegate',
-  permissions: ['note:write'],
-  expiresAt: new Date('2026-03-20'),
-  reason: '休假期间代理'
+  fromUserId: "user-owner",
+  toUserId: "user-delegate",
+  permissions: ["note:write"],
+  expiresAt: new Date("2026-03-20"),
+  reason: "休假期间代理",
 });
 ```
 

@@ -55,26 +55,26 @@
 
 > 客户端无需手工配置；以下为部署 P2P 通信基础设施的服务端配置。
 
-| 项 | 值 / 说明 |
-|---|---|
-| 信令服务器 | `wss://signaling.chainlesschain.com`（offer/answer/ICE + 命令中继转发 `type:"message"`） |
-| TURN 服务器 | `turn.chainlesschain.com` · STUN/TURN `3478` · TLS `5349` · relay 端口 `49152-65535`（UDP，**必须放行**） |
-| coturn `external-ip` | `公网IP/私网IP`（云主机 1:1 NAT 必需；缺私网映射会广播私网 relay IP 导致 CREATE_PERMISSION 403） |
-| TURN 凭证 | time-limited credentials，经 `https://signaling.chainlesschain.com/turn-credentials?uid=<did>` 签发，`static-auth-secret` 仅在服务端 |
-| ICE 策略 | `ALL`（同网 host 直连 + 跨网 srflx/relay 兜底）——勿改 `relay-only`（会禁直连且撞 coturn 自身 IP） |
-| DataChannel OPEN 超时 | `40s`（给同网直连 + DTLS 握手足够时间） |
-| 重连兜底间隔 | `IDLE_INTERVAL_MS = 15s`（连接丢失后重拨上限） |
-| 推送周期兜底 | `pushIntervalMs = 30s`（有新消息时由 changeSignal 即时唤醒，不等满 30s） |
+| 项                    | 值 / 说明                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 信令服务器            | `wss://signaling.chainlesschain.com`（offer/answer/ICE + 命令中继转发 `type:"message"`）                                             |
+| TURN 服务器           | `turn.chainlesschain.com` · STUN/TURN `3478` · TLS `5349` · relay 端口 `49152-65535`（UDP，**必须放行**）                            |
+| coturn `external-ip`  | `公网IP/私网IP`（云主机 1:1 NAT 必需；缺私网映射会广播私网 relay IP 导致 CREATE_PERMISSION 403）                                     |
+| TURN 凭证             | time-limited credentials，经 `https://signaling.chainlesschain.com/turn-credentials?uid=<did>` 签发，`static-auth-secret` 仅在服务端 |
+| ICE 策略              | `ALL`（同网 host 直连 + 跨网 srflx/relay 兜底）——勿改 `relay-only`（会禁直连且撞 coturn 自身 IP）                                    |
+| DataChannel OPEN 超时 | `40s`（给同网直连 + DTLS 握手足够时间）                                                                                              |
+| 重连兜底间隔          | `IDLE_INTERVAL_MS = 15s`（连接丢失后重拨上限）                                                                                       |
+| 推送周期兜底          | `pushIntervalMs = 30s`（有新消息时由 changeSignal 即时唤醒，不等满 30s）                                                             |
 
 ## 性能指标
 
-| 指标 | 实测 / 设计值 |
-|---|---|
-| 消息端到端送达延迟 | **< 1 秒**（真机 amethyst↔chopin 双向，直连路径 ~400-650ms） |
-| 即时推送触发 | 发送后同毫秒触发推送（CONFLATED changeSignal），不等 30s 周期 |
-| 断连后重连 | ≤ 15 秒自动重拨恢复 |
-| 会话握手 | X3DH 2 次 RPC 往返；会话落盘后重启免重握手 |
-| 失败退避 | 离线 peer 指数退避 5/10/20/40/封顶 60 秒 |
+| 指标               | 实测 / 设计值                                                 |
+| ------------------ | ------------------------------------------------------------- |
+| 消息端到端送达延迟 | **< 1 秒**（真机 amethyst↔chopin 双向，直连路径 ~400-650ms）  |
+| 即时推送触发       | 发送后同毫秒触发推送（CONFLATED changeSignal），不等 30s 周期 |
+| 断连后重连         | ≤ 15 秒自动重拨恢复                                           |
+| 会话握手           | X3DH 2 次 RPC 往返；会话落盘后重启免重握手                    |
+| 失败退避           | 离线 peer 指数退避 5/10/20/40/封顶 60 秒                      |
 
 ## 测试覆盖
 
@@ -93,31 +93,31 @@
 
 ## 故障排除
 
-| 现象 | 原因 | 处理 |
-|---|---|---|
-| 扫码加好友总加到一个连不上的身份 | 二维码显示的是残留旧 DID（DID 存 Keystore，`pm clear` 清不掉、auto-backup 会恢复） | **彻底卸载重装**（`adb uninstall`）换新 DID；勿用 pm clear |
-| 提示「设备未验证」 | 验证态在内存、重启即丢，且会话未就绪 | 等连接 + 会话恢复（自动验证）；会话存在即自动标记已验证 |
-| 输入框显示「请先建立连接」 | E2EE 会话未就绪（连接未建/未恢复） | 启动会自动恢复持久化会话；连接建立后输入框自动可用 |
-| 消息已发但对方看不到 | 旧版收方未按本机视角重写消息归属（已于 v5.0.3.119 修复） | 升级到 v5.0.3.119+ |
-| 连不上 / 对方收不到 | DataChannel 在双方 NAT 下打不通 | v5.0.3.119 起自动经信令中继兜底；确认 TURN UDP 49152-65535 已放行 |
-| 顶部 loading 进度条一直转 | 旧版 isLoading 卡 true（已修复） | 升级到 v5.0.3.119+ |
+| 现象                             | 原因                                                                               | 处理                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 扫码加好友总加到一个连不上的身份 | 二维码显示的是残留旧 DID（DID 存 Keystore，`pm clear` 清不掉、auto-backup 会恢复） | **彻底卸载重装**（`adb uninstall`）换新 DID；勿用 pm clear        |
+| 提示「设备未验证」               | 验证态在内存、重启即丢，且会话未就绪                                               | 等连接 + 会话恢复（自动验证）；会话存在即自动标记已验证           |
+| 输入框显示「请先建立连接」       | E2EE 会话未就绪（连接未建/未恢复）                                                 | 启动会自动恢复持久化会话；连接建立后输入框自动可用                |
+| 消息已发但对方看不到             | 旧版收方未按本机视角重写消息归属（已于 v5.0.3.119 修复）                           | 升级到 v5.0.3.119+                                                |
+| 连不上 / 对方收不到              | DataChannel 在双方 NAT 下打不通                                                    | v5.0.3.119 起自动经信令中继兜底；确认 TURN UDP 49152-65535 已放行 |
+| 顶部 loading 进度条一直转        | 旧版 isLoading 卡 true（已修复）                                                   | 升级到 v5.0.3.119+                                                |
 
 **诊断顺序**（连不上时）：① `adb shell ping` 测两机直连（排除路由器 AP 隔离）② 看 logcat ICE 状态（`CHECKING`/`CONNECTED`/`FAILED`）+ 候选 sent/received ③ coturn 日志看 `CREATE_PERMISSION ... 403` / `peer usage` 字节 ④ 再考虑调整 ICE/超时。
 
 ## 关键文件
 
-| 文件 | 职责 |
-|---|---|
-| `feature-p2p/.../ui/social/QRCodeScannerScreen.kt` · `viewmodel/social/MyQRCodeViewModel.kt` | 扫码 / 我的二维码（DID + 签名） |
-| `app/.../sync/FriendSessionHandshake.kt` | 发起方 X3DH 会话握手（offerer） |
-| `app/.../remote/p2p/E2EEHandshakeCommandRouter.kt` | 响应方 `e2ee.*` 路由（PreKeyBundle / acceptSession） |
-| `core-e2ee/.../session/PersistentSessionManager.kt` | Signal 会话（加密/解密 + 落盘恢复） |
-| `feature-p2p/.../repository/P2PMessageRepository.kt` | 发送/接收/按本机视角重写消息归属 |
-| `feature-p2p/.../repository/social/SocialSyncAdapter.kt` · `core-p2p/.../sync/SyncManager.kt` · `app/.../sync/SyncCoordinator.kt` | 消息进同步队列 + changeSignal 即时推送 |
-| `app/.../remote/p2p/P2PClient.kt` | 命令 RPC（DataChannel + 信令中继兜底）+ 单连接 + 自动重连 |
-| `app/.../remote/webrtc/WebRTCClient.kt` | WebRTC PeerConnection / DataChannel / 信令客户端 |
-| `app/.../sync/FriendSyncConnector.kt` | 好友自动接通 + 角色选举 + 触发握手 |
-| `feature-p2p/.../viewmodel/P2PChatViewModel.kt` | 聊天界面状态（连接观察 + 自动验证） |
+| 文件                                                                                                                              | 职责                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `feature-p2p/.../ui/social/QRCodeScannerScreen.kt` · `viewmodel/social/MyQRCodeViewModel.kt`                                      | 扫码 / 我的二维码（DID + 签名）                           |
+| `app/.../sync/FriendSessionHandshake.kt`                                                                                          | 发起方 X3DH 会话握手（offerer）                           |
+| `app/.../remote/p2p/E2EEHandshakeCommandRouter.kt`                                                                                | 响应方 `e2ee.*` 路由（PreKeyBundle / acceptSession）      |
+| `core-e2ee/.../session/PersistentSessionManager.kt`                                                                               | Signal 会话（加密/解密 + 落盘恢复）                       |
+| `feature-p2p/.../repository/P2PMessageRepository.kt`                                                                              | 发送/接收/按本机视角重写消息归属                          |
+| `feature-p2p/.../repository/social/SocialSyncAdapter.kt` · `core-p2p/.../sync/SyncManager.kt` · `app/.../sync/SyncCoordinator.kt` | 消息进同步队列 + changeSignal 即时推送                    |
+| `app/.../remote/p2p/P2PClient.kt`                                                                                                 | 命令 RPC（DataChannel + 信令中继兜底）+ 单连接 + 自动重连 |
+| `app/.../remote/webrtc/WebRTCClient.kt`                                                                                           | WebRTC PeerConnection / DataChannel / 信令客户端          |
+| `app/.../sync/FriendSyncConnector.kt`                                                                                             | 好友自动接通 + 角色选举 + 触发握手                        |
+| `feature-p2p/.../viewmodel/P2PChatViewModel.kt`                                                                                   | 聊天界面状态（连接观察 + 自动验证）                       |
 
 ## 使用示例
 

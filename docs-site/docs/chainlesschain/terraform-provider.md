@@ -365,7 +365,9 @@ const plan = await window.electronAPI.invoke("terraform:plan-run", {
   runType: "PLAN",
   message: "检查 staging 环境变更",
 });
-console.log(`Plan 结果: +${plan.resourceChanges.add} ~${plan.resourceChanges.change} -${plan.resourceChanges.destroy}`);
+console.log(
+  `Plan 结果: +${plan.resourceChanges.add} ~${plan.resourceChanges.change} -${plan.resourceChanges.destroy}`,
+);
 
 // 3. 确认无误后执行 Apply
 const apply = await window.electronAPI.invoke("terraform:plan-run", {
@@ -392,21 +394,21 @@ const runs = await window.electronAPI.invoke("terraform:list-runs", {
   workspaceId: "ws-staging",
   limit: 10,
 });
-runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
+runs.forEach((r) => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 ```
 
 ---
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Plan 执行报错 | Terraform 版本不匹配或配置语法错误 | 检查 `terraformVersion` 是否已安装，查看 `planLog` 中的详细错误 |
-| Apply 超时 | 资源创建耗时过长或云平台响应慢 | 增大 `runTimeout` 配置（默认 3600000ms），检查云平台配额 |
-| Destroy 操作被拒绝 | 当前用户无管理员权限 | 确认操作者具有 Destroy 权限，且传入 `confirm: true` |
-| 工作区状态为 LOCKED | 有正在执行的运行未完成 | 等待当前运行完成，或检查是否有异常中断的运行需要取消 |
-| 并发运行排队 | 超过最大并发数限制 | 等待前序运行完成，或调整 `maxConcurrentRuns`（默认 3） |
-| 敏感变量泄露 | 变量未标记为敏感 | 在配置中使用 `sensitive: true` 标记，系统会自动 AES-256 加密存储 |
+| 问题                | 可能原因                           | 解决方案                                                         |
+| ------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Plan 执行报错       | Terraform 版本不匹配或配置语法错误 | 检查 `terraformVersion` 是否已安装，查看 `planLog` 中的详细错误  |
+| Apply 超时          | 资源创建耗时过长或云平台响应慢     | 增大 `runTimeout` 配置（默认 3600000ms），检查云平台配额         |
+| Destroy 操作被拒绝  | 当前用户无管理员权限               | 确认操作者具有 Destroy 权限，且传入 `confirm: true`              |
+| 工作区状态为 LOCKED | 有正在执行的运行未完成             | 等待当前运行完成，或检查是否有异常中断的运行需要取消             |
+| 并发运行排队        | 超过最大并发数限制                 | 等待前序运行完成，或调整 `maxConcurrentRuns`（默认 3）           |
+| 敏感变量泄露        | 变量未标记为敏感                   | 在配置中使用 `sensitive: true` 标记，系统会自动 AES-256 加密存储 |
 
 ---
 
@@ -414,36 +416,36 @@ runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 
 ### 完整配置字段说明
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `terraform.enabled` | `boolean` | `true` | 启用/禁用 Terraform Provider 模块 |
-| `terraform.defaultVersion` | `string` | `"1.9.0"` | 新建工作区时默认的 Terraform 版本 |
-| `terraform.maxConcurrentRuns` | `number` | `3` | 跨工作区最大并发运行数；超出后进入 PENDING 队列 |
-| `terraform.autoApplyDefault` | `boolean` | `false` | 新建工作区是否默认开启自动 Apply |
-| `terraform.runTimeout` | `number` | `3600000` | 单次运行的超时时长（毫秒）；超时后状态置为 ERRORED |
-| `terraform.logRetention` | `number` | `30` | 运行日志保留天数；超期记录由定时清理任务删除 |
-| `terraform.stateBackup` | `boolean` | `true` | Apply/Destroy 成功后自动保存状态快照 |
+| 字段                          | 类型      | 默认值    | 说明                                               |
+| ----------------------------- | --------- | --------- | -------------------------------------------------- |
+| `terraform.enabled`           | `boolean` | `true`    | 启用/禁用 Terraform Provider 模块                  |
+| `terraform.defaultVersion`    | `string`  | `"1.9.0"` | 新建工作区时默认的 Terraform 版本                  |
+| `terraform.maxConcurrentRuns` | `number`  | `3`       | 跨工作区最大并发运行数；超出后进入 PENDING 队列    |
+| `terraform.autoApplyDefault`  | `boolean` | `false`   | 新建工作区是否默认开启自动 Apply                   |
+| `terraform.runTimeout`        | `number`  | `3600000` | 单次运行的超时时长（毫秒）；超时后状态置为 ERRORED |
+| `terraform.logRetention`      | `number`  | `30`      | 运行日志保留天数；超期记录由定时清理任务删除       |
+| `terraform.stateBackup`       | `boolean` | `true`    | Apply/Destroy 成功后自动保存状态快照               |
 
 ### 工作区创建参数
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `name` | `string` | ✅ | 工作区名称，全局唯一 |
-| `description` | `string` | — | 可选描述 |
-| `terraformVersion` | `string` | — | 覆盖 `defaultVersion`，如 `"1.10.0"` |
-| `workingDirectory` | `string` | — | Terraform 配置文件目录路径 |
-| `autoApply` | `boolean` | — | 是否在 Plan 通过后自动执行 Apply |
-| `variables` | `Record<string, string>` | — | 工作区变量键值对；敏感值自动 AES-256 加密 |
-| `providers` | `string[]` | — | 声明所需 Provider（如 `["aws", "cloudflare"]`） |
+| 参数               | 类型                     | 必填 | 说明                                            |
+| ------------------ | ------------------------ | ---- | ----------------------------------------------- |
+| `name`             | `string`                 | ✅   | 工作区名称，全局唯一                            |
+| `description`      | `string`                 | —    | 可选描述                                        |
+| `terraformVersion` | `string`                 | —    | 覆盖 `defaultVersion`，如 `"1.10.0"`            |
+| `workingDirectory` | `string`                 | —    | Terraform 配置文件目录路径                      |
+| `autoApply`        | `boolean`                | —    | 是否在 Plan 通过后自动执行 Apply                |
+| `variables`        | `Record<string, string>` | —    | 工作区变量键值对；敏感值自动 AES-256 加密       |
+| `providers`        | `string[]`               | —    | 声明所需 Provider（如 `["aws", "cloudflare"]`） |
 
 ### 运行触发参数
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `workspaceId` | `string` | ✅ | 目标工作区 ID |
-| `runType` | `"PLAN" \| "APPLY" \| "DESTROY"` | ✅ | 运行类型 |
-| `message` | `string` | — | 本次运行的描述信息，记录到运行历史 |
-| `confirm` | `boolean` | — | DESTROY 类型必须传 `true`，否则拒绝执行 |
+| 参数          | 类型                             | 必填 | 说明                                    |
+| ------------- | -------------------------------- | ---- | --------------------------------------- |
+| `workspaceId` | `string`                         | ✅   | 目标工作区 ID                           |
+| `runType`     | `"PLAN" \| "APPLY" \| "DESTROY"` | ✅   | 运行类型                                |
+| `message`     | `string`                         | —    | 本次运行的描述信息，记录到运行历史      |
+| `confirm`     | `boolean`                        | —    | DESTROY 类型必须传 `true`，否则拒绝执行 |
 
 ---
 
@@ -451,12 +453,12 @@ runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 
 ### 测试文件
 
-| 文件 | 测试数 | 覆盖内容 |
-| --- | --- | --- |
-| `tests/unit/enterprise/terraform-provider.test.js` | 28 | 工作区 CRUD、状态流转、并发限制 |
-| `tests/unit/enterprise/terraform-run-controller.test.js` | 24 | Plan/Apply/Destroy 执行路径、超时、错误处理 |
-| `tests/unit/enterprise/terraform-workspace-manager.test.js` | 18 | 工作区变量加密、Provider 配置、归档操作 |
-| `tests/unit/ipc/ipc-terraform.test.js` | 16 | 4 个 IPC 通道参数校验与权限检查 |
+| 文件                                                        | 测试数 | 覆盖内容                                    |
+| ----------------------------------------------------------- | ------ | ------------------------------------------- |
+| `tests/unit/enterprise/terraform-provider.test.js`          | 28     | 工作区 CRUD、状态流转、并发限制             |
+| `tests/unit/enterprise/terraform-run-controller.test.js`    | 24     | Plan/Apply/Destroy 执行路径、超时、错误处理 |
+| `tests/unit/enterprise/terraform-workspace-manager.test.js` | 18     | 工作区变量加密、Provider 配置、归档操作     |
+| `tests/unit/ipc/ipc-terraform.test.js`                      | 16     | 4 个 IPC 通道参数校验与权限检查             |
 
 **总计**: 86 个单元测试
 
@@ -464,25 +466,29 @@ runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
 
 ```javascript
 // 并发运行队列：第 4 个运行应进入 PENDING
-it('queues run when maxConcurrentRuns exceeded', async () => {
+it("queues run when maxConcurrentRuns exceeded", async () => {
   // 建立 3 个 APPLYING 状态的运行
-  for (let i = 0; i < 3; i++) await controller.startRun(ws.id, 'APPLY');
-  const queued = await controller.startRun(ws.id, 'APPLY');
-  expect(queued.status).toBe('PENDING');
+  for (let i = 0; i < 3; i++) await controller.startRun(ws.id, "APPLY");
+  const queued = await controller.startRun(ws.id, "APPLY");
+  expect(queued.status).toBe("PENDING");
 });
 
 // Destroy 必须携带 confirm: true
-it('rejects DESTROY without confirm flag', async () => {
+it("rejects DESTROY without confirm flag", async () => {
   await expect(
-    controller.startRun(ws.id, 'DESTROY', { confirm: false })
-  ).rejects.toThrow('Destroy operation requires explicit confirmation');
+    controller.startRun(ws.id, "DESTROY", { confirm: false }),
+  ).rejects.toThrow("Destroy operation requires explicit confirmation");
 });
 
 // 敏感变量不得以明文写入数据库
-it('encrypts sensitive variables at rest', async () => {
-  const ws = await manager.createWorkspace({ variables: { SECRET_KEY: 'abc123' } });
-  const raw = db.prepare('SELECT variables FROM terraform_workspaces WHERE id = ?').get(ws.id);
-  expect(raw.variables).not.toContain('abc123');
+it("encrypts sensitive variables at rest", async () => {
+  const ws = await manager.createWorkspace({
+    variables: { SECRET_KEY: "abc123" },
+  });
+  const raw = db
+    .prepare("SELECT variables FROM terraform_workspaces WHERE id = ?")
+    .get(ws.id);
+  expect(raw.variables).not.toContain("abc123");
 });
 ```
 
@@ -520,13 +526,13 @@ it('encrypts sensitive variables at rest', async () => {
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-| --- | --- | --- |
-| `src/main/enterprise/terraform-provider.js` | Terraform 核心引擎 | ~400 |
-| `src/main/enterprise/terraform-workspace-manager.js` | 工作区管理器 | ~280 |
-| `src/main/enterprise/terraform-run-controller.js` | 运行控制器 (Plan/Apply/Destroy) | ~320 |
-| `src/main/ipc/ipc-terraform.js` | IPC 处理器注册 | ~100 |
-| `src/renderer/stores/terraform.ts` | Pinia 状态管理 | ~150 |
+| 文件                                                 | 职责                            | 行数 |
+| ---------------------------------------------------- | ------------------------------- | ---- |
+| `src/main/enterprise/terraform-provider.js`          | Terraform 核心引擎              | ~400 |
+| `src/main/enterprise/terraform-workspace-manager.js` | 工作区管理器                    | ~280 |
+| `src/main/enterprise/terraform-run-controller.js`    | 运行控制器 (Plan/Apply/Destroy) | ~320 |
+| `src/main/ipc/ipc-terraform.js`                      | IPC 处理器注册                  | ~100 |
+| `src/renderer/stores/terraform.ts`                   | Pinia 状态管理                  | ~150 |
 
 **文档版本**: 1.0.0
 **最后更新**: 2026-02-27

@@ -993,58 +993,58 @@ network.waitForIdle { timeout: 5000 }
 
 ### 连接与通信延迟
 
-| 指标                   | 平均值  | P95     | P99     |
-| ---------------------- | ------- | ------- | ------- |
-| WebSocket 初始连接     | 12 ms   | 28 ms   | 45 ms   |
-| 命令往返延迟 (RTT)     | 3 ms    | 8 ms    | 15 ms   |
-| 自动重连耗时 (1次失败) | 1.1 s   | 1.5 s   | 2.0 s   |
-| 心跳检测周期           | 30 s    | —       | —       |
+| 指标                   | 平均值 | P95   | P99   |
+| ---------------------- | ------ | ----- | ----- |
+| WebSocket 初始连接     | 12 ms  | 28 ms | 45 ms |
+| 命令往返延迟 (RTT)     | 3 ms   | 8 ms  | 15 ms |
+| 自动重连耗时 (1次失败) | 1.1 s  | 1.5 s | 2.0 s |
+| 心跳检测周期           | 30 s   | —     | —     |
 
 ### 页面加载开销
 
-| 场景                         | 无插件  | 有插件  | 开销    |
-| ---------------------------- | ------- | ------- | ------- |
-| 普通页面首屏 (DOMContentLoaded) | 820 ms | 831 ms | +11 ms  |
-| 普通页面完全加载 (load)       | 1240 ms | 1258 ms | +18 ms  |
-| SPA 路由切换                 | 95 ms   | 97 ms   | +2 ms   |
-| 重型页面 (JS >2MB)           | 3100 ms | 3127 ms | +27 ms  |
+| 场景                            | 无插件  | 有插件  | 开销   |
+| ------------------------------- | ------- | ------- | ------ |
+| 普通页面首屏 (DOMContentLoaded) | 820 ms  | 831 ms  | +11 ms |
+| 普通页面完全加载 (load)         | 1240 ms | 1258 ms | +18 ms |
+| SPA 路由切换                    | 95 ms   | 97 ms   | +2 ms  |
+| 重型页面 (JS >2MB)              | 3100 ms | 3127 ms | +27 ms |
 
 ### Content Script 注入
 
-| 指标                        | 值       |
-| --------------------------- | -------- |
-| content.js 注入耗时         | 4–9 ms   |
-| 注入后 DOM ready 额外延迟   | < 2 ms   |
-| 内存占用 (content script)   | ~1.8 MB  |
-| 内存占用 (background page)  | ~6.2 MB  |
+| 指标                       | 值      |
+| -------------------------- | ------- |
+| content.js 注入耗时        | 4–9 ms  |
+| 注入后 DOM ready 额外延迟  | < 2 ms  |
+| 内存占用 (content script)  | ~1.8 MB |
+| 内存占用 (background page) | ~6.2 MB |
 
 ### DOM 操作性能
 
-| 操作                         | 平均耗时 | 说明                  |
-| ---------------------------- | -------- | --------------------- |
-| `dom.click`                  | 5 ms     | 不含 waitForSelector  |
-| `dom.type` (100字符)         | 220 ms   | delay: 2ms/字符       |
-| `dom.waitForSelector` (命中) | 8 ms     | 元素已存在            |
-| `dom.waitForSelector` (等待) | ≈ timeout| 轮询间隔 100ms        |
-| `dom.shadowQuery`            | 12 ms    | Shadow DOM 穿透       |
+| 操作                         | 平均耗时  | 说明                 |
+| ---------------------------- | --------- | -------------------- |
+| `dom.click`                  | 5 ms      | 不含 waitForSelector |
+| `dom.type` (100字符)         | 220 ms    | delay: 2ms/字符      |
+| `dom.waitForSelector` (命中) | 8 ms      | 元素已存在           |
+| `dom.waitForSelector` (等待) | ≈ timeout | 轮询间隔 100ms       |
+| `dom.shadowQuery`            | 12 ms     | Shadow DOM 穿透      |
 
 ### 截图性能
 
-| 类型                    | 分辨率        | 耗时    | 文件大小 (PNG) |
-| ----------------------- | ------------- | ------- | -------------- |
-| 可见区域截图            | 1920×1080     | 85 ms   | ~420 KB        |
-| 元素截图                | 取决于元素    | 60 ms   | ~80 KB         |
-| 整页截图 (长页面)       | 1920×4000     | 320 ms  | ~1.2 MB        |
-| 截图对比 (pixelmatch)   | 1920×1080     | 45 ms   | —              |
+| 类型                  | 分辨率     | 耗时   | 文件大小 (PNG) |
+| --------------------- | ---------- | ------ | -------------- |
+| 可见区域截图          | 1920×1080  | 85 ms  | ~420 KB        |
+| 元素截图              | 取决于元素 | 60 ms  | ~80 KB         |
+| 整页截图 (长页面)     | 1920×4000  | 320 ms | ~1.2 MB        |
+| 截图对比 (pixelmatch) | 1920×1080  | 45 ms  | —              |
 
 ### 网络拦截开销
 
-| 指标                        | 值        |
-| --------------------------- | --------- |
-| 启用拦截后每请求额外延迟    | < 1 ms    |
-| Mock 响应替换延迟           | 2–5 ms    |
-| 最大并发拦截请求数          | 1000      |
-| 内存占用 (1000条捕获记录)   | ~12 MB    |
+| 指标                      | 值     |
+| ------------------------- | ------ |
+| 启用拦截后每请求额外延迟  | < 1 ms |
+| Mock 响应替换延迟         | 2–5 ms |
+| 最大并发拦截请求数        | 1000   |
+| 内存占用 (1000条捕获记录) | ~12 MB |
 
 ---
 
@@ -1108,36 +1108,41 @@ network.waitForIdle { timeout: 5000 }
 
 ```javascript
 // 1. 打开目标页面并抓取标题
-await window.chainlesschain.ext.tabs.create({ url: 'https://example.com', active: true })
-const title = await window.chainlesschain.ext.dom.evaluate('document.title')
+await window.chainlesschain.ext.tabs.create({
+  url: "https://example.com",
+  active: true,
+});
+const title = await window.chainlesschain.ext.dom.evaluate("document.title");
 
 // 2. 等待元素加载后点击
-await window.chainlesschain.ext.dom.waitFor('button.submit', { timeout: 5000 })
-await window.chainlesschain.ext.dom.click('button.submit')
+await window.chainlesschain.ext.dom.waitFor("button.submit", { timeout: 5000 });
+await window.chainlesschain.ext.dom.click("button.submit");
 
 // 3. 数据提取：读取表格为 JSON
-const rows = await window.chainlesschain.ext.dom.extractTable('table.data')
+const rows = await window.chainlesschain.ext.dom.extractTable("table.data");
 
 // 4. 网络拦截：Mock /api/user 响应
-await window.chainlesschain.ext.network.mock('*/api/user', { json: { id: 1, name: 'mock' } })
+await window.chainlesschain.ext.network.mock("*/api/user", {
+  json: { id: 1, name: "mock" },
+});
 
 // 5. 截图对比（用于回归测试）
-const before = await window.chainlesschain.ext.screenshot.capture('#hero')
+const before = await window.chainlesschain.ext.screenshot.capture("#hero");
 // ...交互...
-const diff = await window.chainlesschain.ext.screenshot.diff(before)
+const diff = await window.chainlesschain.ext.screenshot.diff(before);
 ```
 
 连接流程：用户在 Chrome/Edge 安装扩展后点击「连接到 Desktop」→ Desktop 端 `remote-control-server.js` 弹出授权 → 通过后 215 个命令可用。
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/remote/browser-extension/manifest.json` | 插件清单配置 |
-| `desktop-app-vue/src/main/remote/browser-extension/background.js` | 插件后台脚本 |
-| `desktop-app-vue/src/main/remote/browser-extension/content.js` | 内容注入脚本 |
-| `desktop-app-vue/src/main/remote/remote-control-server.js` | WebSocket 远程控制服务 |
-| `desktop-app-vue/src/main/remote/command-handler.js` | 远程命令处理器 |
+| 文件                                                              | 说明                   |
+| ----------------------------------------------------------------- | ---------------------- |
+| `desktop-app-vue/src/main/remote/browser-extension/manifest.json` | 插件清单配置           |
+| `desktop-app-vue/src/main/remote/browser-extension/background.js` | 插件后台脚本           |
+| `desktop-app-vue/src/main/remote/browser-extension/content.js`    | 内容注入脚本           |
+| `desktop-app-vue/src/main/remote/remote-control-server.js`        | WebSocket 远程控制服务 |
+| `desktop-app-vue/src/main/remote/command-handler.js`              | 远程命令处理器         |
 
 ## 相关文档
 

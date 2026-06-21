@@ -68,9 +68,9 @@ chainlesschain matrix join "!newroom:matrix.org"
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `matrix_rooms` | 房间记录（房间 ID、名称、成员数、加密状态、加入时间） |
+| 表名            | 说明                                                          |
+| --------------- | ------------------------------------------------------------- |
+| `matrix_rooms`  | 房间记录（房间 ID、名称、成员数、加密状态、加入时间）         |
 | `matrix_events` | 事件/消息记录（事件 ID、房间 ID、发送者、类型、内容、时间戳） |
 
 ## 系统架构
@@ -105,13 +105,13 @@ CHAINLESSCHAIN_DB_PATH   # matrix_rooms / matrix_events 存储路径
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `matrix login` | < 2s | ~1.2s | ✅ |
-| `matrix rooms` | < 500ms | ~280ms | ✅ |
-| `matrix send` | < 1s | ~450ms | ✅ |
-| `matrix messages` (50 条) | < 800ms | ~500ms | ✅ |
-| `matrix join` | < 1.5s | ~900ms | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| `matrix login`            | < 2s    | ~1.2s  | ✅   |
+| `matrix rooms`            | < 500ms | ~280ms | ✅   |
+| `matrix send`             | < 1s    | ~450ms | ✅   |
+| `matrix messages` (50 条) | < 800ms | ~500ms | ✅   |
+| `matrix join`             | < 1.5s  | ~900ms | ✅   |
 
 ## 测试覆盖率
 
@@ -164,12 +164,12 @@ chainlesschain matrix send "!newroom:matrix.org" "大家好！"
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| 登录失败 | 用户名或密码错误 | 检查 Matrix 用户 ID 格式（@user:server） |
-| "No rooms joined" | 未加入任何房间 | 使用 `matrix join` 加入房间 |
-| 消息发送失败 | 未登录或令牌过期 | 重新执行 `matrix login` |
-| 房间 ID 无效 | 格式错误 | Matrix 房间 ID 格式：`!roomid:server.com` |
+| 症状              | 可能原因         | 解决方案                                  |
+| ----------------- | ---------------- | ----------------------------------------- |
+| 登录失败          | 用户名或密码错误 | 检查 Matrix 用户 ID 格式（@user:server）  |
+| "No rooms joined" | 未加入任何房间   | 使用 `matrix join` 加入房间               |
+| 消息发送失败      | 未登录或令牌过期 | 重新执行 `matrix login`                   |
+| 房间 ID 无效      | 格式错误         | Matrix 房间 ID 格式：`!roomid:server.com` |
 
 ## 安全考虑
 

@@ -780,7 +780,10 @@ console.log(`节点: ${reg.data.nodeId}, 初始信用: ${reg.data.credits}`);
 await window.electronAPI.invoke("evomap:start-heartbeat");
 
 // 3. 发布高置信度 Instinct（自动合成为 Gene+Capsule）
-const pub = await window.electronAPI.invoke("evomap:publish-instinct", "instinct-001");
+const pub = await window.electronAPI.invoke(
+  "evomap:publish-instinct",
+  "instinct-001",
+);
 if (pub.pendingReview) {
   // 审核门控：确认后批准发布
   await window.electronAPI.invoke("evomap:approve-publish", pub.reviewId);
@@ -792,7 +795,10 @@ if (pub.pendingReview) {
 ```javascript
 // 搜索 JavaScript 错误处理相关的社区策略
 const assets = await window.electronAPI.invoke(
-  "evomap:search-assets", ["javascript", "error-handling"], "Gene", "relevance"
+  "evomap:search-assets",
+  ["javascript", "error-handling"],
+  "Gene",
+  "relevance",
 );
 console.log(`找到 ${assets.length} 个相关策略`);
 

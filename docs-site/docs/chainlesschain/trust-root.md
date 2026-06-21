@@ -132,25 +132,25 @@ const result = await window.electron.ipcRenderer.invoke(
 }
 ```
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `attestationChain.ukey.simulationMode` | boolean | `false` | macOS/Linux 下使用 U-Key 模拟模式 |
-| `attestationChain.tee.type` | string | `"sgx"` | TEE 类型：`sgx` / `trustzone` / `auto` |
-| `trustLevelPolicy.requiredForKeySync` | string | `"verified"` | 密钥同步所需最低信任等级 |
-| `trustLevelPolicy.autoDegrade` | boolean | `true` | 检测到威胁时是否自动降级信任等级 |
-| `keySync.requireMutualVerification` | boolean | `true` | 密钥同步是否要求双向 verified |
-| `bootVerification.checkInterval` | number | `3600` | 安全启动状态检查间隔（秒） |
+| 配置项                                 | 类型    | 默认值       | 说明                                   |
+| -------------------------------------- | ------- | ------------ | -------------------------------------- |
+| `attestationChain.ukey.simulationMode` | boolean | `false`      | macOS/Linux 下使用 U-Key 模拟模式      |
+| `attestationChain.tee.type`            | string  | `"sgx"`      | TEE 类型：`sgx` / `trustzone` / `auto` |
+| `trustLevelPolicy.requiredForKeySync`  | string  | `"verified"` | 密钥同步所需最低信任等级               |
+| `trustLevelPolicy.autoDegrade`         | boolean | `true`       | 检测到威胁时是否自动降级信任等级       |
+| `keySync.requireMutualVerification`    | boolean | `true`       | 密钥同步是否要求双向 verified          |
+| `bootVerification.checkInterval`       | number  | `3600`       | 安全启动状态检查间隔（秒）             |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 证明链三步验证（U-Key→SIMKey→TEE） | <500ms | ~380ms | ✅ |
-| 硬件指纹绑定 | <100ms | ~70ms | ✅ |
-| 跨设备密钥同步（加密传输） | <300ms | ~220ms | ✅ |
-| 信任根状态查询 | <30ms | ~18ms | ✅ |
-| 安全启动状态查询 | <50ms | ~30ms | ✅ |
-| 数据库证明链记录写入 | <20ms | ~12ms | ✅ |
+| 操作                               | 目标   | 实际   | 状态 |
+| ---------------------------------- | ------ | ------ | ---- |
+| 证明链三步验证（U-Key→SIMKey→TEE） | <500ms | ~380ms | ✅   |
+| 硬件指纹绑定                       | <100ms | ~70ms  | ✅   |
+| 跨设备密钥同步（加密传输）         | <300ms | ~220ms | ✅   |
+| 信任根状态查询                     | <30ms  | ~18ms  | ✅   |
+| 安全启动状态查询                   | <50ms  | ~30ms  | ✅   |
+| 数据库证明链记录写入               | <20ms  | ~12ms  | ✅   |
 
 ## IPC 接口完整列表
 
@@ -301,24 +301,24 @@ const useTrustRootStore = defineStore("trustRoot", {
 
 ### 认证链断裂
 
-| 现象 | 排查步骤 |
-|------|---------|
-| `ukey_check: failed` | U-Key 未连接或 SDK 未初始化；检查 Koffi FFI 加载是否成功 |
-| `simkey_verify: failed` | SIM 卡认证失败，确认 PIN 正确且未锁定；检查 SIM 卡有效期 |
-| `tee_attest: failed` | TEE 远程证明失败，检查 SGX 驱动版本（需 2.x+）和 BIOS 中 SGX 设置；确认 EPID 或 DCAP attestation 服务可达 |
-| `trust_level: compromised` | 检测到安全威胁，立即隔离该设备；检查固件是否被篡改，重新执行安全启动验证 |
+| 现象                       | 排查步骤                                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ukey_check: failed`       | U-Key 未连接或 SDK 未初始化；检查 Koffi FFI 加载是否成功                                                  |
+| `simkey_verify: failed`    | SIM 卡认证失败，确认 PIN 正确且未锁定；检查 SIM 卡有效期                                                  |
+| `tee_attest: failed`       | TEE 远程证明失败，检查 SGX 驱动版本（需 2.x+）和 BIOS 中 SGX 设置；确认 EPID 或 DCAP attestation 服务可达 |
+| `trust_level: compromised` | 检测到安全威胁，立即隔离该设备；检查固件是否被篡改，重新执行安全启动验证                                  |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| TPM 不可用或初始化失败 | 硬件未启用或驱动未安装 | 在 BIOS 中启用 TPM，安装对应驱动程序 |
-| TEE 验证失败 | 远程证明服务不可达或证书过期 | 检查证明服务连通性，更新 TEE 证书 |
-| 安全启动链断裂 | 固件签名不匹配或中间证书缺失 | 重新签名固件，补全证书链 |
-| 信任度评分骤降 | 检测到异常行为或硬件篡改告警 | 执行安全审计 `trust audit`，排除误报后重置评分 |
-| 密钥封装/解封失败 | PCR 值变更或 TPM 状态异常 | 确认 PCR 策略匹配当前状态，重新封装密钥 |
+| 症状                   | 可能原因                     | 解决方案                                       |
+| ---------------------- | ---------------------------- | ---------------------------------------------- |
+| TPM 不可用或初始化失败 | 硬件未启用或驱动未安装       | 在 BIOS 中启用 TPM，安装对应驱动程序           |
+| TEE 验证失败           | 远程证明服务不可达或证书过期 | 检查证明服务连通性，更新 TEE 证书              |
+| 安全启动链断裂         | 固件签名不匹配或中间证书缺失 | 重新签名固件，补全证书链                       |
+| 信任度评分骤降         | 检测到异常行为或硬件篡改告警 | 执行安全审计 `trust audit`，排除误报后重置评分 |
+| 密钥封装/解封失败      | PCR 值变更或 TPM 状态异常    | 确认 PCR 策略匹配当前状态，重新封装密钥        |
 
 ### 常见错误修复
 
@@ -355,11 +355,13 @@ chainlesschain trust boot-chain --diagnose
 ## 安全考虑
 
 ### 信任根保护
+
 - **三位一体验证**: U-Key + SIMKey + TEE 三步验证确保从硬件到软件的完整信任链，任一环节失败即标记为 `unverified`
 - **硬件指纹绑定**: 密钥与设备硬件指纹绑定后，即使密钥文件被拷贝到其他设备也无法使用，防止密钥迁移攻击
 - **跨设备同步限制**: 密钥同步仅允许在双方均为 `verified` 状态的设备之间进行，加密传输密钥数据
 
 ### 固件验证
+
 - **安全启动校验**: 系统启动时验证固件链完整性，检测 Bootloader 和 OS 是否被篡改
 - **TEE 远程证明**: 定期执行 TEE 远程证明（Intel EPID/DCAP），验证可信执行环境未被破坏
 - **信任等级降级**: 若检测到固件异常或 TEE 被攻破，设备信任等级自动降为 `compromised`，阻止该设备参与敏感操作

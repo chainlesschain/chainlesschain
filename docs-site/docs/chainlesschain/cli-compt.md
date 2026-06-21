@@ -96,12 +96,12 @@ cc compt gov-stats-v2                               # 治理统计
 
 均为运行时 setter（进程内生效），无环境变量、无配置文件键：
 
-| 配置项 | 默认值 | 设置命令 | gov-stats 字段 |
-|--------|--------|---------|---------------|
-| 每 owner 活跃 profile 上限 | `10` | `set-max-active-profiles-v2 <n>` | `maxActiveComptProfilesPerOwner` |
-| 每 profile pending sample 上限 | `30` | `set-max-pending-samples-v2 <n>` | `maxPendingComptSamplesPerProfile` |
-| profile idle 阈值 | `2592000000` ms（30 天） | `set-profile-idle-ms-v2 <ms>` | `comptProfileIdleMs` |
-| sample stuck 阈值 | `30000` ms（30 秒） | `set-sample-stuck-ms-v2 <ms>` | `comptSampleStuckMs` |
+| 配置项                         | 默认值                   | 设置命令                         | gov-stats 字段                     |
+| ------------------------------ | ------------------------ | -------------------------------- | ---------------------------------- |
+| 每 owner 活跃 profile 上限     | `10`                     | `set-max-active-profiles-v2 <n>` | `maxActiveComptProfilesPerOwner`   |
+| 每 profile pending sample 上限 | `30`                     | `set-max-pending-samples-v2 <n>` | `maxPendingComptSamplesPerProfile` |
+| profile idle 阈值              | `2592000000` ms（30 天） | `set-profile-idle-ms-v2 <ms>`    | `comptProfileIdleMs`               |
+| sample stuck 阈值              | `30000` ms（30 秒）      | `set-sample-stuck-ms-v2 <ms>`    | `comptSampleStuckMs`               |
 
 子命令参数：`register-profile-v2` 必填 `--id`/`--owner`，`--kind` 默认 `"default"`；`create-sample-v2` 必填 `--id`/`--profile-id`，`--metric` 默认空字符串。所有 setter 校验「正整数」（`Math.floor` 后必须 > 0），非法值抛错。
 
@@ -116,8 +116,8 @@ cc compt gov-stats-v2                               # 治理统计
 
 ## 测试覆盖
 
-| 测试文件 | 数量 | 覆盖范围 |
-|---------|------|---------|
+| 测试文件                                                           | 数量   | 覆盖范围                                                |
+| ------------------------------------------------------------------ | ------ | ------------------------------------------------------- |
 | `packages/cli/__tests__/unit/lib/compression-telemetry-v2.test.js` | **38** | `cc compt` 对应的 V2 治理层（状态机、限额、巡检、统计） |
 
 ```bash
@@ -135,24 +135,24 @@ npx vitest run __tests__/unit/lib/compression-telemetry-v2.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 想压缩会话却用了 `cc compt` | 与 `cc compact` 混淆 | 会话上下文压缩用 `cc compact <session-id>`；`cc compt` 只做遥测采样治理 |
-| `invalid compt sample transition queued → recorded` | 跳过了 recording 阶段 | 先 `recording-sample-v2` 再 `record-sample-v2` |
-| 激活 profile 报上限错误 | 该 owner 已有 10 个 active profile | `set-max-active-profiles-v2` 调高，或 archive/stale 闲置 profile |
-| `create-sample-v2` 报 pending 上限 | 该 profile 下 queued + recording 的 sample 已达 30 | 让采样走完终态，或 `set-max-pending-samples-v2` 调高 |
-| sample 莫名变 failed | recording 超 30s 被 `auto-fail-stuck-v2` 翻转 | `get-sample-v2 <id>` 看 `metadata.failReason: "auto-fail-stuck"`；长采样先 `set-sample-stuck-ms-v2` 调大 |
-| 重启后 profile/sample 全部消失 | 治理层为纯内存实现 | 预期行为；跨进程持久不在本命令面范围内 |
-| `auto-stale-idle-v2` 返回 `{"flipped":[],"count":0}` | 没有 active profile 闲置超 30 天 | 预期行为；`set-profile-idle-ms-v2` 调小阈值可验证 |
+| 现象                                                 | 可能原因                                           | 处理                                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 想压缩会话却用了 `cc compt`                          | 与 `cc compact` 混淆                               | 会话上下文压缩用 `cc compact <session-id>`；`cc compt` 只做遥测采样治理                                  |
+| `invalid compt sample transition queued → recorded`  | 跳过了 recording 阶段                              | 先 `recording-sample-v2` 再 `record-sample-v2`                                                           |
+| 激活 profile 报上限错误                              | 该 owner 已有 10 个 active profile                 | `set-max-active-profiles-v2` 调高，或 archive/stale 闲置 profile                                         |
+| `create-sample-v2` 报 pending 上限                   | 该 profile 下 queued + recording 的 sample 已达 30 | 让采样走完终态，或 `set-max-pending-samples-v2` 调高                                                     |
+| sample 莫名变 failed                                 | recording 超 30s 被 `auto-fail-stuck-v2` 翻转      | `get-sample-v2 <id>` 看 `metadata.failReason: "auto-fail-stuck"`；长采样先 `set-sample-stuck-ms-v2` 调大 |
+| 重启后 profile/sample 全部消失                       | 治理层为纯内存实现                                 | 预期行为；跨进程持久不在本命令面范围内                                                                   |
+| `auto-stale-idle-v2` 返回 `{"flipped":[],"count":0}` | 没有 active profile 闲置超 30 天                   | 预期行为；`set-profile-idle-ms-v2` 调小阈值可验证                                                        |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/compt.js` | `cc compt` 全部子命令注册（薄层，直调 lib） |
-| `packages/cli/src/lib/compression-telemetry.js` | COMPT V2 治理 overlay + re-export harness 遥测原语 |
-| `packages/cli/src/harness/compression-telemetry.js` | 底层压缩指标采集（`recordCompressionMetric` 等，agent 内部链路） |
-| `packages/cli/__tests__/unit/lib/compression-telemetry-v2.test.js` | 38 治理单元测试 |
+| 文件                                                               | 说明                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `packages/cli/src/commands/compt.js`                               | `cc compt` 全部子命令注册（薄层，直调 lib）                      |
+| `packages/cli/src/lib/compression-telemetry.js`                    | COMPT V2 治理 overlay + re-export harness 遥测原语               |
+| `packages/cli/src/harness/compression-telemetry.js`                | 底层压缩指标采集（`recordCompressionMetric` 等，agent 内部链路） |
+| `packages/cli/__tests__/unit/lib/compression-telemetry-v2.test.js` | 38 治理单元测试                                                  |
 
 ## 使用示例
 

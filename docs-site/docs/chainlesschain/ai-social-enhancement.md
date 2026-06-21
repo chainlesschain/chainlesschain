@@ -197,14 +197,14 @@ const useAiSocialEnhancementStore = defineStore("aiSocialEnhancement", {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 翻译结果为空 | 本地 LLM 服务未启动 | 确认 Ollama 服务运行中，执行 `chainlesschain llm test` |
-| 语言检测不准确 | 文本过短或混合语言 | 提供更长的文本片段，避免多语言混合输入 |
-| 质量评估返回错误 | 内容为空或格式异常 | 检查输入内容是否为有效文本，长度不少于 10 字符 |
-| 翻译延迟较高 | LLM 模型较大或 GPU 资源不足 | 切换到更小的模型，或启用 GPU 加速 |
-| 缓存命中率低 | 缓存表数据量过大或过期 | 检查 `translation_cache` 表，清理过期记录 |
-| 统计数据加载失败 | 数据库连接异常 | 重启应用，检查 SQLite 数据库文件完整性 |
+| 问题             | 可能原因                    | 解决方案                                               |
+| ---------------- | --------------------------- | ------------------------------------------------------ |
+| 翻译结果为空     | 本地 LLM 服务未启动         | 确认 Ollama 服务运行中，执行 `chainlesschain llm test` |
+| 语言检测不准确   | 文本过短或混合语言          | 提供更长的文本片段，避免多语言混合输入                 |
+| 质量评估返回错误 | 内容为空或格式异常          | 检查输入内容是否为有效文本，长度不少于 10 字符         |
+| 翻译延迟较高     | LLM 模型较大或 GPU 资源不足 | 切换到更小的模型，或启用 GPU 加速                      |
+| 缓存命中率低     | 缓存表数据量过大或过期      | 检查 `translation_cache` 表，清理过期记录              |
+| 统计数据加载失败 | 数据库连接异常              | 重启应用，检查 SQLite 数据库文件完整性                 |
 
 ## 配置参考
 
@@ -219,7 +219,18 @@ const useAiSocialEnhancementStore = defineStore("aiSocialEnhancement", {
       "cacheEnabled": true,
       "cacheTTL": 86400,
       "maxCacheSize": 10000,
-      "supportedLanguages": ["zh", "en", "ja", "ko", "fr", "de", "es", "ar", "ru", "pt"]
+      "supportedLanguages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ar",
+        "ru",
+        "pt"
+      ]
     },
     "contentQuality": {
       "enabled": true,
@@ -241,28 +252,28 @@ const useAiSocialEnhancementStore = defineStore("aiSocialEnhancement", {
 
 **配置项说明**:
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `translation.model` | `qwen2:7b` | 翻译使用的本地 LLM 模型 |
-| `translation.cacheTTL` | `86400` | 翻译缓存有效期（秒），默认 24 小时 |
-| `translation.maxCacheSize` | `10000` | 缓存最大条目数，超出时 LRU 淘汰 |
-| `contentQuality.threshold.approve` | `0.75` | 质量分高于此值自动通过 |
-| `contentQuality.threshold.review` | `0.4` | 质量分低于此值进入人工审核 |
-| `contentQuality.retainScoreDays` | `30` | 质量评分记录保留天数 |
-| `rateLimiting.translatePerMinute` | `60` | 每分钟最大翻译请求数 |
-| `rateLimiting.assessPerMinute` | `30` | 每分钟最大质量评估请求数 |
+| 配置项                             | 默认值     | 说明                               |
+| ---------------------------------- | ---------- | ---------------------------------- |
+| `translation.model`                | `qwen2:7b` | 翻译使用的本地 LLM 模型            |
+| `translation.cacheTTL`             | `86400`    | 翻译缓存有效期（秒），默认 24 小时 |
+| `translation.maxCacheSize`         | `10000`    | 缓存最大条目数，超出时 LRU 淘汰    |
+| `contentQuality.threshold.approve` | `0.75`     | 质量分高于此值自动通过             |
+| `contentQuality.threshold.review`  | `0.4`      | 质量分低于此值进入人工审核         |
+| `contentQuality.retainScoreDays`   | `30`       | 质量评分记录保留天数               |
+| `rateLimiting.translatePerMinute`  | `60`       | 每分钟最大翻译请求数               |
+| `rateLimiting.assessPerMinute`     | `30`       | 每分钟最大质量评估请求数           |
 
 ## 性能指标
 
-| 指标 | 目标 | 实际（qwen2:7b, CPU） |
-| --- | --- | --- |
-| 首次翻译延迟（短文本 <100 字符） | <3s | ~1.8s |
-| 首次翻译延迟（长文本 <1000 字符） | <8s | ~5.2s |
-| 缓存命中翻译延迟 | <50ms | ~10ms |
-| 语言检测延迟 | <1s | ~0.6s |
-| 内容质量评估延迟 | <5s | ~3.1s |
-| 缓存命中率（稳定运行后） | >40% | ~55% |
-| 并发翻译请求吞吐 | 5 req/s | ~4 req/s |
+| 指标                              | 目标    | 实际（qwen2:7b, CPU） |
+| --------------------------------- | ------- | --------------------- |
+| 首次翻译延迟（短文本 <100 字符）  | <3s     | ~1.8s                 |
+| 首次翻译延迟（长文本 <1000 字符） | <8s     | ~5.2s                 |
+| 缓存命中翻译延迟                  | <50ms   | ~10ms                 |
+| 语言检测延迟                      | <1s     | ~0.6s                 |
+| 内容质量评估延迟                  | <5s     | ~3.1s                 |
+| 缓存命中率（稳定运行后）          | >40%    | ~55%                  |
+| 并发翻译请求吞吐                  | 5 req/s | ~4 req/s              |
 
 > **提示**: 启用 GPU 加速（Ollama + NVIDIA GPU）可将翻译延迟降低 60–80%。建议在生产环境中启用 `translation.cacheEnabled`，高频社交场景下缓存命中率可超过 70%。
 

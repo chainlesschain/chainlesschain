@@ -389,8 +389,10 @@ const history = await window.electronAPI.invoke("matrix:get-messages", {
 });
 
 // 遍历消息，显示加密状态
-history.messages.forEach(msg => {
-  console.log(`[${msg.encrypted ? "加密" : "明文"}] ${msg.sender}: ${msg.body}`);
+history.messages.forEach((msg) => {
+  console.log(
+    `[${msg.encrypted ? "加密" : "明文"}] ${msg.sender}: ${msg.body}`,
+  );
 });
 ```
 
@@ -398,30 +400,30 @@ history.messages.forEach(msg => {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 登录失败 | Homeserver 地址错误或凭证无效 | 检查 homeserver URL（含 `https://`），确认用户名密码正确 |
-| E2EE 解密失败 | 密钥未同步或设备未验证 | 在 Matrix 客户端中验证设备，确保密钥备份已导入 |
-| 房间列表为空 | 未完成初始同步 | 等待 `syncInterval` 周期完成首次同步（默认 30 秒） |
-| 消息发送超时 | 网络中断或 Homeserver 不可达 | 检查网络连接，确认 Homeserver 服务正常运行 |
-| DID 映射失败 | WebFinger 服务未配置 | 手动在设置中绑定 DID 和 MXID，或配置 `.well-known` 文件 |
-| SSO 登录报错 | Token 过期或 SSO Provider 异常 | 重新获取 SSO Token，检查企业 IdP 服务状态 |
-| 加入房间被拒 | 房间设置为邀请制 | 联系房间管理员获取邀请，或搜索公开房间加入 |
+| 问题          | 可能原因                       | 解决方案                                                 |
+| ------------- | ------------------------------ | -------------------------------------------------------- |
+| 登录失败      | Homeserver 地址错误或凭证无效  | 检查 homeserver URL（含 `https://`），确认用户名密码正确 |
+| E2EE 解密失败 | 密钥未同步或设备未验证         | 在 Matrix 客户端中验证设备，确保密钥备份已导入           |
+| 房间列表为空  | 未完成初始同步                 | 等待 `syncInterval` 周期完成首次同步（默认 30 秒）       |
+| 消息发送超时  | 网络中断或 Homeserver 不可达   | 检查网络连接，确认 Homeserver 服务正常运行               |
+| DID 映射失败  | WebFinger 服务未配置           | 手动在设置中绑定 DID 和 MXID，或配置 `.well-known` 文件  |
+| SSO 登录报错  | Token 过期或 SSO Provider 异常 | 重新获取 SSO Token，检查企业 IdP 服务状态                |
+| 加入房间被拒  | 房间设置为邀请制               | 联系房间管理员获取邀请，或搜索公开房间加入               |
 
 ---
 
 ## 配置参考
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `matrix.enabled` | boolean | `true` | 是否启用 Matrix 桥接 |
-| `matrix.defaultHomeserver` | string | `"https://matrix.org"` | 默认 Homeserver 地址 |
-| `matrix.e2eeEnabled` | boolean | `true` | 是否默认启用 E2EE 加密 |
-| `matrix.syncInterval` | number | `30000` | 消息同步间隔（毫秒） |
-| `matrix.messageRetention` | number | `90` | 本地消息保留天数 |
-| `matrix.maxRooms` | number | `100` | 最大房间缓存数量 |
-| `matrix.didMapping.enabled` | boolean | `true` | 是否启用 DID 身份映射 |
-| `matrix.didMapping.autoDiscover` | boolean | `true` | 是否通过 WebFinger 自动发现映射 |
+| 配置项                           | 类型    | 默认值                 | 说明                            |
+| -------------------------------- | ------- | ---------------------- | ------------------------------- |
+| `matrix.enabled`                 | boolean | `true`                 | 是否启用 Matrix 桥接            |
+| `matrix.defaultHomeserver`       | string  | `"https://matrix.org"` | 默认 Homeserver 地址            |
+| `matrix.e2eeEnabled`             | boolean | `true`                 | 是否默认启用 E2EE 加密          |
+| `matrix.syncInterval`            | number  | `30000`                | 消息同步间隔（毫秒）            |
+| `matrix.messageRetention`        | number  | `90`                   | 本地消息保留天数                |
+| `matrix.maxRooms`                | number  | `100`                  | 最大房间缓存数量                |
+| `matrix.didMapping.enabled`      | boolean | `true`                 | 是否启用 DID 身份映射           |
+| `matrix.didMapping.autoDiscover` | boolean | `true`                 | 是否通过 WebFinger 自动发现映射 |
 
 **配置示例**（`.chainlesschain/config.json`）：
 
@@ -448,12 +450,12 @@ history.messages.forEach(msg => {
 
 ### 单元测试
 
-| 测试文件 | 覆盖范围 | 测试数 |
-| --- | --- | --- |
-| `tests/unit/p2p/matrix-bridge.test.js` | 登录认证、房间管理、消息收发 | 24 |
-| `tests/unit/p2p/matrix-e2ee.test.js` | Olm/Megolm 加解密、密钥轮换 | 18 |
-| `tests/unit/p2p/matrix-did-mapper.test.js` | DID ↔ MXID 映射、WebFinger 发现 | 12 |
-| `src/renderer/stores/__tests__/matrixBridge.test.ts` | Pinia store 状态管理 | 16 |
+| 测试文件                                             | 覆盖范围                        | 测试数 |
+| ---------------------------------------------------- | ------------------------------- | ------ |
+| `tests/unit/p2p/matrix-bridge.test.js`               | 登录认证、房间管理、消息收发    | 24     |
+| `tests/unit/p2p/matrix-e2ee.test.js`                 | Olm/Megolm 加解密、密钥轮换     | 18     |
+| `tests/unit/p2p/matrix-did-mapper.test.js`           | DID ↔ MXID 映射、WebFinger 发现 | 12     |
+| `src/renderer/stores/__tests__/matrixBridge.test.ts` | Pinia store 状态管理            | 16     |
 
 **运行测试**：
 
@@ -500,13 +502,13 @@ cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/matrixBridge.
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/p2p/matrix-bridge.js` | Matrix 桥接管理器核心，CS API 交互 |
-| `src/main/p2p/matrix-e2ee.js` | Olm/Megolm 端到端加密实现 |
-| `src/main/p2p/matrix-did-mapper.js` | DID 与 MXID 双向映射管理 |
-| `src/renderer/stores/matrixBridge.ts` | Pinia 状态管理 |
-| `src/renderer/pages/MatrixBridge.vue` | Matrix 桥接前端页面 |
+| 文件                                  | 职责                               |
+| ------------------------------------- | ---------------------------------- |
+| `src/main/p2p/matrix-bridge.js`       | Matrix 桥接管理器核心，CS API 交互 |
+| `src/main/p2p/matrix-e2ee.js`         | Olm/Megolm 端到端加密实现          |
+| `src/main/p2p/matrix-did-mapper.js`   | DID 与 MXID 双向映射管理           |
+| `src/renderer/stores/matrixBridge.ts` | Pinia 状态管理                     |
+| `src/renderer/pages/MatrixBridge.vue` | Matrix 桥接前端页面                |
 
 ## 相关文档
 

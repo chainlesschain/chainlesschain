@@ -216,12 +216,12 @@ chainlesschain skill run cli-infra-pack "status"           # 查看系统状态
 
 ## 4 层优先级系统
 
-| 层 | 优先级 | 路径 | 用途 |
-|---|--------|------|------|
-| bundled | 0 (最低) | `desktop-app-vue/.../skills/builtin/` | 141 内置技能 |
-| marketplace | 1 | `<userData>/marketplace/skills/` | 插件安装的技能 |
-| managed | 2 | `<userData>/skills/` | 用户全局自定义技能 |
-| workspace | 3 (最高) | `<projectRoot>/.chainlesschain/skills/` | 项目级自定义技能 |
+| 层          | 优先级   | 路径                                    | 用途               |
+| ----------- | -------- | --------------------------------------- | ------------------ |
+| bundled     | 0 (最低) | `desktop-app-vue/.../skills/builtin/`   | 141 内置技能       |
+| marketplace | 1        | `<userData>/marketplace/skills/`        | 插件安装的技能     |
+| managed     | 2        | `<userData>/skills/`                    | 用户全局自定义技能 |
+| workspace   | 3 (最高) | `<projectRoot>/.chainlesschain/skills/` | 项目级自定义技能   |
 
 同名技能按优先级覆盖：workspace > managed > marketplace > bundled。
 
@@ -254,14 +254,14 @@ ai, analysis, automation, code-review, data, database, debugging, design, develo
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| skill list (141 技能) | < 200ms | ~100ms | ✅ |
-| skill info (带文档) | < 50ms | ~20ms | ✅ |
-| skill search (关键词) | < 80ms | ~40ms | ✅ |
-| skill add (脚手架) | < 100ms | ~50ms | ✅ |
-| skill sync-cli (增量) | < 2s | ~800ms | ✅ |
-| skill sync-cli (--force 全量) | < 5s | ~2.5s | ✅ |
+| 操作                          | 目标    | 实际   | 状态 |
+| ----------------------------- | ------- | ------ | ---- |
+| skill list (141 技能)         | < 200ms | ~100ms | ✅   |
+| skill info (带文档)           | < 50ms  | ~20ms  | ✅   |
+| skill search (关键词)         | < 80ms  | ~40ms  | ✅   |
+| skill add (脚手架)            | < 100ms | ~50ms  | ✅   |
+| skill sync-cli (增量)         | < 2s    | ~800ms | ✅   |
+| skill sync-cli (--force 全量) | < 5s    | ~2.5s  | ✅   |
 
 ## 测试覆盖率
 
@@ -320,11 +320,11 @@ chainlesschain skill list --source bundled --json
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `run` 报 LLM 连接失败 | 确认 Ollama 已启动或提供有效的 API Key |
-| `list` 显示 0 技能 | 技能从内置定义加载，检查 CLI 安装完整性 |
-| 技能执行结果为空 | 检查输入内容是否足够，尝试更详细的描述 |
+| 问题                  | 解决方案                                |
+| --------------------- | --------------------------------------- |
+| `run` 报 LLM 连接失败 | 确认 Ollama 已启动或提供有效的 API Key  |
+| `list` 显示 0 技能    | 技能从内置定义加载，检查 CLI 安装完整性 |
+| 技能执行结果为空      | 检查输入内容是否足够，尝试更详细的描述  |
 
 ## 相关文档
 

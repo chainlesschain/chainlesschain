@@ -4,15 +4,15 @@
 
 ## 接口列表
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| [创建版本](#创建版本) | POST | `/api/app-versions` | 创建新的应用版本 |
-| [版本列表](#版本列表) | GET | `/api/app-versions` | 分页查询版本列表 |
-| [版本详情](#版本详情) | GET | `/api/app-versions/{id}` | 获取版本详情 |
-| [更新版本状态](#更新版本状态) | PUT | `/api/app-versions/{id}/status` | 更新版本发布状态 |
-| [删除版本](#删除版本) | DELETE | `/api/app-versions/{id}` | 删除草稿版本 |
-| [检查更新](#检查更新) | GET | `/api/app-versions/check-update` | 客户端检查更新 |
-| [下载统计](#下载统计) | GET | `/api/app-versions/{id}/stats` | 查询下载统计 |
+| 接口                          | 方法   | 路径                             | 说明             |
+| ----------------------------- | ------ | -------------------------------- | ---------------- |
+| [创建版本](#创建版本)         | POST   | `/api/app-versions`              | 创建新的应用版本 |
+| [版本列表](#版本列表)         | GET    | `/api/app-versions`              | 分页查询版本列表 |
+| [版本详情](#版本详情)         | GET    | `/api/app-versions/{id}`         | 获取版本详情     |
+| [更新版本状态](#更新版本状态) | PUT    | `/api/app-versions/{id}/status`  | 更新版本发布状态 |
+| [删除版本](#删除版本)         | DELETE | `/api/app-versions/{id}`         | 删除草稿版本     |
+| [检查更新](#检查更新)         | GET    | `/api/app-versions/check-update` | 客户端检查更新   |
+| [下载统计](#下载统计)         | GET    | `/api/app-versions/{id}/stats`   | 查询下载统计     |
 
 ---
 
@@ -43,14 +43,14 @@ Content-Type: application/json
 
 **参数说明**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| appName | string | 是 | 应用名称 |
-| version | string | 是 | 版本号（语义化版本） |
-| platform | string | 是 | 平台：WINDOWS/MACOS/LINUX/ANDROID/IOS |
-| releaseNotes | string | 否 | 版本说明 |
-| minVersion | string | 否 | 最低兼容版本 |
-| forceUpdate | boolean | 否 | 是否强制更新，默认false |
+| 参数         | 类型    | 必填 | 说明                                  |
+| ------------ | ------- | ---- | ------------------------------------- |
+| appName      | string  | 是   | 应用名称                              |
+| version      | string  | 是   | 版本号（语义化版本）                  |
+| platform     | string  | 是   | 平台：WINDOWS/MACOS/LINUX/ANDROID/IOS |
+| releaseNotes | string  | 否   | 版本说明                              |
+| minVersion   | string  | 否   | 最低兼容版本                          |
+| forceUpdate  | boolean | 否   | 是否强制更新，默认false               |
 
 ### 响应
 
@@ -87,12 +87,12 @@ Authorization: Bearer <token>
 
 **查询参数**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| platform | string | 否 | 按平台过滤 |
-| status | string | 否 | 按状态过滤：DRAFT/TESTING/PUBLISHED/DEPRECATED |
-| page | number | 否 | 页码，默认1 |
-| pageSize | number | 否 | 每页条数，默认20 |
+| 参数     | 类型   | 必填 | 说明                                           |
+| -------- | ------ | ---- | ---------------------------------------------- |
+| platform | string | 否   | 按平台过滤                                     |
+| status   | string | 否   | 按状态过滤：DRAFT/TESTING/PUBLISHED/DEPRECATED |
+| page     | number | 否   | 页码，默认1                                    |
+| pageSize | number | 否   | 每页条数，默认20                               |
 
 ### 响应
 
@@ -186,11 +186,11 @@ Content-Type: application/json
 
 **状态流转**:
 
-| 当前状态 | 可转为 | 说明 |
-|---------|--------|------|
-| DRAFT | TESTING | 提交测试 |
-| TESTING | PUBLISHED | 正式发布 |
-| TESTING | DRAFT | 退回修改 |
+| 当前状态  | 可转为     | 说明     |
+| --------- | ---------- | -------- |
+| DRAFT     | TESTING    | 提交测试 |
+| TESTING   | PUBLISHED  | 正式发布 |
+| TESTING   | DRAFT      | 退回修改 |
 | PUBLISHED | DEPRECATED | 废弃版本 |
 
 ### 响应
@@ -258,10 +258,10 @@ GET /api/app-versions/check-update?platform=WINDOWS&currentVersion=5.0.1
 
 **查询参数**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| platform | string | 是 | 客户端平台 |
-| currentVersion | string | 是 | 当前版本号 |
+| 参数           | 类型   | 必填 | 说明       |
+| -------------- | ------ | ---- | ---------- |
+| platform       | string | 是   | 客户端平台 |
+| currentVersion | string | 是   | 当前版本号 |
 
 ### 响应
 
@@ -331,14 +331,14 @@ Authorization: Bearer <token>
 
 ## 错误码
 
-| 错误码 | 说明 |
-|--------|------|
-| 3001 | 版本号已存在 |
-| 3002 | 版本不存在 |
-| 3003 | 版本状态不允许此操作 |
-| 3004 | 不支持的平台类型 |
-| 3005 | 安装包文件未上传 |
-| 3006 | 版本号格式无效 |
+| 错误码 | 说明                 |
+| ------ | -------------------- |
+| 3001   | 版本号已存在         |
+| 3002   | 版本不存在           |
+| 3003   | 版本状态不允许此操作 |
+| 3004   | 不支持的平台类型     |
+| 3005   | 安装包文件未上传     |
+| 3006   | 版本号格式无效       |
 
 ## 附录：规范章节补全（v5.0.3.108）
 
@@ -389,11 +389,11 @@ Spring Boot REST + JWT；版本元数据存 `app_versions`，下载记录存 `ap
 
 ### 9. 竞品对比
 
-| 维度 | 本 API | 手工分发 |
-|---|---|---|
-| 多平台统一 | ✅ 5 平台 | ⚠️ |
-| 客户端 check-update | ✅ | ❌ |
-| 下载统计 | ✅ | ❌ |
+| 维度                | 本 API    | 手工分发 |
+| ------------------- | --------- | -------- |
+| 多平台统一          | ✅ 5 平台 | ⚠️       |
+| 客户端 check-update | ✅        | ❌       |
+| 下载统计            | ✅        | ❌       |
 
 ### 10. 配置参考
 
@@ -416,22 +416,22 @@ Base URL：`http://localhost:8080/api`（生产 `https://api.chainlesschain.com/
 
 ### 14. 故障排除
 
-| 现象 | 错误码 | 处理 |
-|---|---|---|
-| 版本号已存在 | 3001 | 换版本号（SemVer） |
-| 版本不存在 | 3002 | 核对版本 ID |
-| 状态不允许操作 | 3003 | 确认当前状态可流转 |
-| 不支持平台 | 3004 | 用 5 平台之一 |
-| 安装包未上传 | 3005 | 先上传安装包 |
-| 版本号格式无效 | 3006 | 遵循 SemVer |
+| 现象           | 错误码 | 处理               |
+| -------------- | ------ | ------------------ |
+| 版本号已存在   | 3001   | 换版本号（SemVer） |
+| 版本不存在     | 3002   | 核对版本 ID        |
+| 状态不允许操作 | 3003   | 确认当前状态可流转 |
+| 不支持平台     | 3004   | 用 5 平台之一      |
+| 安装包未上传   | 3005   | 先上传安装包       |
+| 版本号格式无效 | 3006   | 遵循 SemVer        |
 
 ### 15. 关键文件
 
-| 资源 | 说明 |
-|---|---|
-| `app_versions` / `app_downloads` 表 | 版本 / 下载数据 |
-| `/api/app-versions*` | 版本管理 REST API（7 接口） |
-| Swagger UI | `http://localhost:8080/api/swagger-ui.html` |
+| 资源                                | 说明                                        |
+| ----------------------------------- | ------------------------------------------- |
+| `app_versions` / `app_downloads` 表 | 版本 / 下载数据                             |
+| `/api/app-versions*`                | 版本管理 REST API（7 接口）                 |
+| Swagger UI                          | `http://localhost:8080/api/swagger-ui.html` |
 
 ### 16. 使用示例
 

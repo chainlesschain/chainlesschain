@@ -67,59 +67,59 @@
 
 **基本输入输出**:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `-o, --output <path>` | `dist/chainlesschain-portable-<target>` | 产物路径（不含扩展名，Windows 自动追加 `.exe`） |
-| `-t, --targets <list>` | `node20-win-x64` | 逗号分隔的 pkg 目标平台列表 |
-| `--cwd <dir>` | `process.cwd()` | 覆盖项目根目录 |
+| 参数                   | 默认值                                  | 说明                                            |
+| ---------------------- | --------------------------------------- | ----------------------------------------------- |
+| `-o, --output <path>`  | `dist/chainlesschain-portable-<target>` | 产物路径（不含扩展名，Windows 自动追加 `.exe`） |
+| `-t, --targets <list>` | `node20-win-x64`                        | 逗号分隔的 pkg 目标平台列表                     |
+| `--cwd <dir>`          | `process.cwd()`                         | 覆盖项目根目录                                  |
 
 **运行时默认值（烘焙进产物）**:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--ws-port <n>` | `18800` | 产物启动时的 WebSocket 端口 |
-| `--ui-port <n>` | `18810` | 产物启动时的 Web UI 端口 |
-| `--token <str>` | `auto` | 访问 token；`auto` 表示首次启动时生成并写入 `.chainlesschain/token` |
-| `--bind-host <host>` | `127.0.0.1` | 默认绑定地址 |
-| `--allow-remote` | `false` | 将默认绑定改为 `0.0.0.0`，允许远程访问 |
-| `--enable-tls` | `false` | 产物运行时启用 TLS |
-| `--tls-cert <path>` / `--tls-key <path>` | — | TLS 证书与私钥路径 (PEM) |
+| 参数                                     | 默认值      | 说明                                                                |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------- |
+| `--ws-port <n>`                          | `18800`     | 产物启动时的 WebSocket 端口                                         |
+| `--ui-port <n>`                          | `18810`     | 产物启动时的 Web UI 端口                                            |
+| `--token <str>`                          | `auto`      | 访问 token；`auto` 表示首次启动时生成并写入 `.chainlesschain/token` |
+| `--bind-host <host>`                     | `127.0.0.1` | 默认绑定地址                                                        |
+| `--allow-remote`                         | `false`     | 将默认绑定改为 `0.0.0.0`，允许远程访问                              |
+| `--enable-tls`                           | `false`     | 产物运行时启用 TLS                                                  |
+| `--tls-cert <path>` / `--tls-key <path>` | —           | TLS 证书与私钥路径 (PEM)                                            |
 
 **内容纳入策略**:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--preset-config <path>` | — | 预置 `config.json` 模板（会扫描密钥） |
-| `--allow-secrets` | `false` | 跳过密钥扫描（⚠️ 危险） |
-| `--include-db` / `--no-include-db` | `true` | 是否打入 DB 初始化模板 |
-| `--include-models` | `false` | 是否打入本地 LLM 模型（产物体积激增） |
-| `--access-policy <path>` | — | 预置访问策略 JSON |
+| 参数                               | 默认值  | 说明                                  |
+| ---------------------------------- | ------- | ------------------------------------- |
+| `--preset-config <path>`           | —       | 预置 `config.json` 模板（会扫描密钥） |
+| `--allow-secrets`                  | `false` | 跳过密钥扫描（⚠️ 危险）               |
+| `--include-db` / `--no-include-db` | `true`  | 是否打入 DB 初始化模板                |
+| `--include-models`                 | `false` | 是否打入本地 LLM 模型（产物体积激增） |
+| `--access-policy <path>`           | —       | 预置访问策略 JSON                     |
 
 **构建与验证**:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--compress` / `--no-compress` | `true` | 启用 pkg GZip 压缩 |
-| `--smoke-test` / `--no-smoke-test` | `true` | 产物构建完成后运行冒烟测试 (Phase 2 完成后启用) |
-| `--sign <cert>` / `--sign-password <pass>` | — | 代码签名证书 (Phase 2) |
-| `--dry-run` | `false` | 只跑 Phase 1–5，输出构建计划 |
-| `--skip-web-panel-build` | `false` | 复用已有 `web-panel/dist`，跳过 Phase 2 的 `npm run build` |
-| `--allow-dirty` | `false` | 允许在工作树有未提交修改时打包 |
+| 参数                                       | 默认值  | 说明                                                       |
+| ------------------------------------------ | ------- | ---------------------------------------------------------- |
+| `--compress` / `--no-compress`             | `true`  | 启用 pkg GZip 压缩                                         |
+| `--smoke-test` / `--no-smoke-test`         | `true`  | 产物构建完成后运行冒烟测试 (Phase 2 完成后启用)            |
+| `--sign <cert>` / `--sign-password <pass>` | —       | 代码签名证书 (Phase 2)                                     |
+| `--dry-run`                                | `false` | 只跑 Phase 1–5，输出构建计划                               |
+| `--skip-web-panel-build`                   | `false` | 复用已有 `web-panel/dist`，跳过 Phase 2 的 `npm run build` |
+| `--allow-dirty`                            | `false` | 允许在工作树有未提交修改时打包                             |
 
 ## 性能指标
 
-| 操作 | 目标 | 实测 (v0.2, 2026-04-24 @ Win x64) | 状态 |
-|------|------|------|------|
-| `--dry-run` 全程 (Phase 1–5) | < 10s | ~ 3–6s | ✅ |
-| Phase 2 首次构建 `web-panel/dist` | 依赖项目 | ~ 30–60s | — |
-| Phase 2 复用现有 dist (`--skip-web-panel-build`) | < 2s | ~ 0.3s | ✅ |
-| Phase 3 密钥扫描 (preset 配置) | < 500ms | ~ 50ms (10 种正则) | ✅ |
-| Phase 4 原生模块收集 (Win x64) | < 3s | ~ 1–2s | ✅ |
-| Phase 6 `@yao-pkg/pkg` 打包 (冷 cache) | < 180s | ~ 45–90s | ✅ |
-| Phase 6 `@yao-pkg/pkg` 打包 (热 cache) | < 90s | ~ 20–40s | ✅ |
-| Phase 8 冒烟测试 | < 30s | ~ 4–8s | ✅ |
-| 产物启动冷启动 (无 DB 文件) | < 5s | ~ 2–3s | ✅ |
-| 产物体积 (Win x64，不含模型) | 40–80 MB | ~ 58 MB (GZip) | ✅ |
+| 操作                                             | 目标     | 实测 (v0.2, 2026-04-24 @ Win x64) | 状态 |
+| ------------------------------------------------ | -------- | --------------------------------- | ---- |
+| `--dry-run` 全程 (Phase 1–5)                     | < 10s    | ~ 3–6s                            | ✅   |
+| Phase 2 首次构建 `web-panel/dist`                | 依赖项目 | ~ 30–60s                          | —    |
+| Phase 2 复用现有 dist (`--skip-web-panel-build`) | < 2s     | ~ 0.3s                            | ✅   |
+| Phase 3 密钥扫描 (preset 配置)                   | < 500ms  | ~ 50ms (10 种正则)                | ✅   |
+| Phase 4 原生模块收集 (Win x64)                   | < 3s     | ~ 1–2s                            | ✅   |
+| Phase 6 `@yao-pkg/pkg` 打包 (冷 cache)           | < 180s   | ~ 45–90s                          | ✅   |
+| Phase 6 `@yao-pkg/pkg` 打包 (热 cache)           | < 90s    | ~ 20–40s                          | ✅   |
+| Phase 8 冒烟测试                                 | < 30s    | ~ 4–8s                            | ✅   |
+| 产物启动冷启动 (无 DB 文件)                      | < 5s     | ~ 2–3s                            | ✅   |
+| 产物体积 (Win x64，不含模型)                     | 40–80 MB | ~ 58 MB (GZip)                    | ✅   |
 
 ## 测试覆盖
 
@@ -195,29 +195,29 @@ Phase 7 为每个产物写 sidecar `.pack-manifest.json`，含：
 
 烘入的默认值都能用环境变量在启动时覆盖，不必重新打包：
 
-| 环境变量 | 覆盖的字段 | 说明 |
-|---|---|---|
-| `CC_PACK_TOKEN` | `--token` | 固定 access token，压过 `auto` 生成 |
-| `CC_PACK_UI_PORT` | `--ui-port` | HTTP UI 端口 |
-| `CC_PACK_WS_PORT` | `--ws-port` | WebSocket 端口 |
-| `CC_PACK_HOST` | `--bind-host` | 绑定地址 |
-| `CC_PACK_MODE` | — | 由合成入口自动 `=1`，放开 chat/agent 的 WS allowlist |
+| 环境变量          | 覆盖的字段    | 说明                                                 |
+| ----------------- | ------------- | ---------------------------------------------------- |
+| `CC_PACK_TOKEN`   | `--token`     | 固定 access token，压过 `auto` 生成                  |
+| `CC_PACK_UI_PORT` | `--ui-port`   | HTTP UI 端口                                         |
+| `CC_PACK_WS_PORT` | `--ws-port`   | WebSocket 端口                                       |
+| `CC_PACK_HOST`    | `--bind-host` | 绑定地址                                             |
+| `CC_PACK_MODE`    | —             | 由合成入口自动 `=1`，放开 chat/agent 的 WS allowlist |
 
 ## 故障排除
 
-| 症状 | 根因 | 处理 |
-|---|---|---|
-| 双击 exe 黑窗一闪而过 | 合成入口无 subcommand 时 commander 默认只打印 help 就退出 | v0.2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚 |
-| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` | pkg 的 snapshot bootstrap 没给 V8 注册 import callback | 合成入口**必须**用静态 ESM 导入；unit test 里有明确断言「entry 不得含 `import(`」 |
-| 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进 Node 20 | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js；看到 `"Using sql.js (WASM fallback)"` + `Database initialized` 为正常 |
-| Auth: disabled 即使 `--token auto` | 合成入口的 `--token` 注入条件被破坏 | 对照 `packer-pkg-config-generator.test.js` 的 token 三模式断言 |
-| 事务里 `cannot commit - no transaction is active` | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务 | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist（v0.2 已修） |
-| `@yao-pkg/pkg not found` | `pkg` 是 dev-only 工具，未默认随 CLI 安装；CLI 会按当前安装方式（monorepo / 全局 / 本地）给出对应安装命令 | 全局安装：`cd "$(npm root -g)/chainlesschain" && npm install @yao-pkg/pkg`；monorepo：`npm install -D @yao-pkg/pkg --workspace packages/cli`；本地：在 CLI 所在目录 `npm install -D @yao-pkg/pkg` |
-| `Working tree is dirty` (exit 10) | precheck 发现有 uncommitted changes | 先提交 / 贮藏；或调试时加 `--allow-dirty` |
-| `web-panel/dist not found and build failed` (exit 11) | Phase 2 找不到已构建的 Vue 面板 | `cd desktop-app-vue && npm run build`，再 `cc pack --skip-web-panel-build` |
-| `Secrets detected in preset config: ...` (exit 16) | preset 里有疑似 API key / mnemonic | 清理或**确认无误后**显式 `--allow-secrets` |
-| `Smoke-test timeout: ports :... did not open` (exit 14) | 产物启动后 45s 内端口没起来 | 手动跑 exe 看 stderr；常见是 web-panel/dist 缺失或 DB init 死锁 |
-| 产物端口占用 | 18800/18810 被占 | 运行时 env `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` 覆盖 |
+| 症状                                                               | 根因                                                                                                      | 处理                                                                                                                                                                                              |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 双击 exe 黑窗一闪而过                                              | 合成入口无 subcommand 时 commander 默认只打印 help 就退出                                                 | v0.2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚                                                                                        |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`                           | pkg 的 snapshot bootstrap 没给 V8 注册 import callback                                                    | 合成入口**必须**用静态 ESM 导入；unit test 里有明确断言「entry 不得含 `import(`」                                                                                                                 |
+| 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进 Node 20                               | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js；看到 `"Using sql.js (WASM fallback)"` + `Database initialized` 为正常                                                                           |
+| Auth: disabled 即使 `--token auto`                                 | 合成入口的 `--token` 注入条件被破坏                                                                       | 对照 `packer-pkg-config-generator.test.js` 的 token 三模式断言                                                                                                                                    |
+| 事务里 `cannot commit - no transaction is active`                  | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务                                                | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist（v0.2 已修）                                                                                                                        |
+| `@yao-pkg/pkg not found`                                           | `pkg` 是 dev-only 工具，未默认随 CLI 安装；CLI 会按当前安装方式（monorepo / 全局 / 本地）给出对应安装命令 | 全局安装：`cd "$(npm root -g)/chainlesschain" && npm install @yao-pkg/pkg`；monorepo：`npm install -D @yao-pkg/pkg --workspace packages/cli`；本地：在 CLI 所在目录 `npm install -D @yao-pkg/pkg` |
+| `Working tree is dirty` (exit 10)                                  | precheck 发现有 uncommitted changes                                                                       | 先提交 / 贮藏；或调试时加 `--allow-dirty`                                                                                                                                                         |
+| `web-panel/dist not found and build failed` (exit 11)              | Phase 2 找不到已构建的 Vue 面板                                                                           | `cd desktop-app-vue && npm run build`，再 `cc pack --skip-web-panel-build`                                                                                                                        |
+| `Secrets detected in preset config: ...` (exit 16)                 | preset 里有疑似 API key / mnemonic                                                                        | 清理或**确认无误后**显式 `--allow-secrets`                                                                                                                                                        |
+| `Smoke-test timeout: ports :... did not open` (exit 14)            | 产物启动后 45s 内端口没起来                                                                               | 手动跑 exe 看 stderr；常见是 web-panel/dist 缺失或 DB init 死锁                                                                                                                                   |
+| 产物端口占用                                                       | 18800/18810 被占                                                                                          | 运行时 env `CC_PACK_UI_PORT` / `CC_PACK_WS_PORT` 覆盖                                                                                                                                             |
 
 ## 关键文件
 

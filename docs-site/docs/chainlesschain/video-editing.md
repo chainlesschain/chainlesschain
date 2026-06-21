@@ -54,12 +54,12 @@ Video Editing Agent 解决的核心问题：从一段长视频素材（如拍摄
 
 从原始视频中提取帧、字幕、音频节拍。结果按内容哈希缓存。
 
-| 提取项 | 工具 | 输出 |
-|--------|------|------|
-| 视频帧 | FFmpeg | `frames/*.jpg` (2fps) |
-| 字幕 (ASR) | LLM ASR 或已有 .srt | `subtitles.json` |
-| 节拍 | FFmpeg 或 madmom | `beats.json` |
-| 内容哈希 | SHA-256 | 缓存键 |
+| 提取项     | 工具                | 输出                  |
+| ---------- | ------------------- | --------------------- |
+| 视频帧     | FFmpeg              | `frames/*.jpg` (2fps) |
+| 字幕 (ASR) | LLM ASR 或已有 .srt | `subtitles.json`      |
+| 节拍       | FFmpeg 或 madmom    | `beats.json`          |
+| 内容哈希   | SHA-256             | 缓存键                |
 
 ### Phase 2: Plan（生成剪辑计划）
 
@@ -114,23 +114,23 @@ chainlesschain video edit \
   --ducking
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--video <path>` | 输入视频文件（必填） | - |
-| `--audio <path>` | 背景音乐文件 | - |
-| `--instruction <text>` | 剪辑指令 | `""` |
-| `--output <path>` | 输出路径 | `./output.mp4` |
-| `--srt <path>` | 已有字幕文件（跳过 ASR） | - |
-| `--fps <n>` | 抽帧 FPS | `2` |
-| `--character <name>` | 主角名称 | - |
-| `--parallel` | 多段并行 + 冲突解决 | `false` |
-| `--concurrency <n>` | 最大并行段数 | `4` |
-| `--review` | 启用 VLM 质量门控 | `false` |
-| `--use-madmom` | 使用 madmom Python beat 检测 | `false` |
-| `--snap-beats` | 剪辑点卡节拍 | `false` |
-| `--ducking` | 对白段音乐自动压低 | `false` |
-| `--stream` | NDJSON 进度事件输出 | `false` |
-| `--json` | JSON 最终输出 | `false` |
+| 选项                   | 说明                         | 默认值         |
+| ---------------------- | ---------------------------- | -------------- |
+| `--video <path>`       | 输入视频文件（必填）         | -              |
+| `--audio <path>`       | 背景音乐文件                 | -              |
+| `--instruction <text>` | 剪辑指令                     | `""`           |
+| `--output <path>`      | 输出路径                     | `./output.mp4` |
+| `--srt <path>`         | 已有字幕文件（跳过 ASR）     | -              |
+| `--fps <n>`            | 抽帧 FPS                     | `2`            |
+| `--character <name>`   | 主角名称                     | -              |
+| `--parallel`           | 多段并行 + 冲突解决          | `false`        |
+| `--concurrency <n>`    | 最大并行段数                 | `4`            |
+| `--review`             | 启用 VLM 质量门控            | `false`        |
+| `--use-madmom`         | 使用 madmom Python beat 检测 | `false`        |
+| `--snap-beats`         | 剪辑点卡节拍                 | `false`        |
+| `--ducking`            | 对白段音乐自动压低           | `false`        |
+| `--stream`             | NDJSON 进度事件输出          | `false`        |
+| `--json`               | JSON 最终输出                | `false`        |
 
 ### cc video deconstruct — 解构素材
 
@@ -170,13 +170,13 @@ chainlesschain video assets prune --older-than 30   # 清理 30 天前的缓存
 
 `--stream` 模式下每行输出一个 JSON 事件：
 
-| type | 字段 | 说明 |
-|------|------|------|
-| `phase.start` | `phase` | 阶段开始（deconstruct/plan/assemble/render） |
-| `phase.progress` | `phase`, `pct`, `message` | 进度更新（0-1 百分比） |
-| `phase.end` | `phase` | 阶段完成 |
-| `error` | `phase`, `error` | 阶段错误 |
-| `review.result` | `section`, `pass`, `score` | 质量门控检查结果 |
+| type             | 字段                       | 说明                                         |
+| ---------------- | -------------------------- | -------------------------------------------- |
+| `phase.start`    | `phase`                    | 阶段开始（deconstruct/plan/assemble/render） |
+| `phase.progress` | `phase`, `pct`, `message`  | 进度更新（0-1 百分比）                       |
+| `phase.end`      | `phase`                    | 阶段完成                                     |
+| `error`          | `phase`, `error`           | 阶段错误                                     |
+| `review.result`  | `section`, `pass`, `score` | 质量门控检查结果                             |
 
 示例：
 
@@ -223,11 +223,11 @@ chainlesschain video assets prune --older-than 30   # 清理 30 天前的缓存
 
 视频编辑使用三个媒体类别进行 LLM 路由：
 
-| 类别 | 用途 | Provider 优先级 |
-|------|------|------------------|
-| `asr` | 语音转文字 | openai → gemini → volcengine |
-| `audio-analysis` | 节拍检测/音频特征 | ollama → gemini → openai |
-| `video-vlm` | 视频理解 VLM | gemini → openai → anthropic |
+| 类别             | 用途              | Provider 优先级              |
+| ---------------- | ----------------- | ---------------------------- |
+| `asr`            | 语音转文字        | openai → gemini → volcengine |
+| `audio-analysis` | 节拍检测/音频特征 | ollama → gemini → openai     |
+| `video-vlm`      | 视频理解 VLM      | gemini → openai → anthropic  |
 
 ## 配置参考
 
@@ -273,30 +273,30 @@ chainlesschain video assets prune --older-than 30   # 清理 30 天前的缓存
 
 ### 响应时间
 
-| 操作 | 视频时长 | 预估耗时 | 说明 |
-|------|----------|----------|------|
-| Deconstruct (2fps) | 1h | 3-5 min | 含 ASR |
-| Deconstruct (madmom) | 1h | 4-6 min | Python sidecar |
-| Plan 生成 | - | 10-30s | 取决于 LLM |
-| Assemble (串行) | - | 1-3 min | 取决于 section 数 |
-| Assemble (并行 4x) | - | 30s-1 min | 4 路并行 |
-| Render | 5 min 输出 | 30-60s | FFmpeg H.264 |
+| 操作                 | 视频时长   | 预估耗时  | 说明              |
+| -------------------- | ---------- | --------- | ----------------- |
+| Deconstruct (2fps)   | 1h         | 3-5 min   | 含 ASR            |
+| Deconstruct (madmom) | 1h         | 4-6 min   | Python sidecar    |
+| Plan 生成            | -          | 10-30s    | 取决于 LLM        |
+| Assemble (串行)      | -          | 1-3 min   | 取决于 section 数 |
+| Assemble (并行 4x)   | -          | 30s-1 min | 4 路并行          |
+| Render               | 5 min 输出 | 30-60s    | FFmpeg H.264      |
 
 ### 缓存效果
 
-| 指标 | 数值 |
-|------|------|
-| 首次解构 | 完整运行 |
-| 重复解构（同哈希） | 跳过（&lt; 100ms） |
-| 缓存存储位置 | `.chainlesschain/video-assets/` |
+| 指标               | 数值                            |
+| ------------------ | ------------------------------- |
+| 首次解构           | 完整运行                        |
+| 重复解构（同哈希） | 跳过（&lt; 100ms）              |
+| 缓存存储位置       | `.chainlesschain/video-assets/` |
 
 ### 资源使用
 
-| 指标 | 数值 |
-|------|------|
-| 内存占用 (单管线) | &lt; 200MB |
-| FFmpeg CPU (渲染) | ~100% 单核 |
-| 缓存磁盘 (1h 视频) | ~500MB |
+| 指标               | 数值       |
+| ------------------ | ---------- |
+| 内存占用 (单管线)  | &lt; 200MB |
+| FFmpeg CPU (渲染)  | ~100% 单核 |
+| 缓存磁盘 (1h 视频) | ~500MB     |
 
 ## 测试覆盖率
 
@@ -406,55 +406,55 @@ chainlesschain video edit --video raw.mp4 --audio bgm.mp3 \
 
 ### CLI 视频编辑核心
 
-| 文件 | 职责 | 说明 |
-|------|------|------|
-| `packages/cli/src/commands/video.js` | 5 子命令注册 | Commander 入口 |
-| `packages/cli/src/skills/video-editing/pipeline.js` | 四阶段编排 | EventEmitter |
-| `packages/cli/src/skills/video-editing/parallel-orchestrator.js` | 多段并行 + 冲突解决 | Phase 3 |
-| `packages/cli/src/skills/video-editing/reviewer.js` | VLM 审核 + QualityGate | Phase 3 |
-| `packages/cli/src/skills/video-editing/beat-snap.js` | Beat snap 卡点对齐 | Phase 4 |
+| 文件                                                             | 职责                   | 说明           |
+| ---------------------------------------------------------------- | ---------------------- | -------------- |
+| `packages/cli/src/commands/video.js`                             | 5 子命令注册           | Commander 入口 |
+| `packages/cli/src/skills/video-editing/pipeline.js`              | 四阶段编排             | EventEmitter   |
+| `packages/cli/src/skills/video-editing/parallel-orchestrator.js` | 多段并行 + 冲突解决    | Phase 3        |
+| `packages/cli/src/skills/video-editing/reviewer.js`              | VLM 审核 + QualityGate | Phase 3        |
+| `packages/cli/src/skills/video-editing/beat-snap.js`             | Beat snap 卡点对齐     | Phase 4        |
 
 ### 素材提取器
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/skills/video-editing/extractors/video-extractor.js` | 抽帧 (FFmpeg) |
-| `packages/cli/src/skills/video-editing/extractors/audio-extractor.js` | ASR + beat 分析 |
-| `packages/cli/src/skills/video-editing/extractors/subtitle-extractor.js` | SRT 解析 |
+| 文件                                                                     | 职责            |
+| ------------------------------------------------------------------------ | --------------- |
+| `packages/cli/src/skills/video-editing/extractors/video-extractor.js`    | 抽帧 (FFmpeg)   |
+| `packages/cli/src/skills/video-editing/extractors/audio-extractor.js`    | ASR + beat 分析 |
+| `packages/cli/src/skills/video-editing/extractors/subtitle-extractor.js` | SRT 解析        |
 
 ### 渲染工具
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/skills/video-editing/render/ffmpeg-extract.js` | FFmpeg 封装 |
-| `packages/cli/src/skills/video-editing/render/ffmpeg-concat.js` | 片段拼接 |
-| `packages/cli/src/skills/video-editing/render/audio-mix.js` | ducking 混音 |
+| 文件                                                             | 职责         |
+| ---------------------------------------------------------------- | ------------ |
+| `packages/cli/src/skills/video-editing/render/ffmpeg-extract.js` | FFmpeg 封装  |
+| `packages/cli/src/skills/video-editing/render/ffmpeg-concat.js`  | 片段拼接     |
+| `packages/cli/src/skills/video-editing/render/audio-mix.js`      | ducking 混音 |
 
 ### 编辑工具
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/skills/video-editing/tools/shot-trimming.js` | 片段裁剪 |
-| `packages/cli/src/skills/video-editing/tools/review-clip.js` | VLM 审核片段 |
+| 文件                                                                | 职责         |
+| ------------------------------------------------------------------- | ------------ |
+| `packages/cli/src/skills/video-editing/tools/shot-trimming.js`      | 片段裁剪     |
+| `packages/cli/src/skills/video-editing/tools/review-clip.js`        | VLM 审核片段 |
 | `packages/cli/src/skills/video-editing/tools/semantic-retrieval.js` | 语义检索素材 |
-| `packages/cli/src/skills/video-editing/tools/commit.js` | 提交编辑结果 |
+| `packages/cli/src/skills/video-editing/tools/commit.js`             | 提交编辑结果 |
 
 ### AI 提示词
 
-| 文件 | 用途 |
-|------|------|
-| `packages/cli/src/skills/video-editing/prompts/editor-system.md` | Editor 系统提示 |
-| `packages/cli/src/skills/video-editing/prompts/shot-plan.md` | Plan 生成提示 |
-| `packages/cli/src/skills/video-editing/prompts/protagonist-detect.md` | 主角检测 |
-| `packages/cli/src/skills/video-editing/prompts/aesthetic-analysis.md` | 美学分析 |
-| `packages/cli/src/skills/video-editing/prompts/dense-caption.md` | 密集字幕 |
+| 文件                                                                  | 用途            |
+| --------------------------------------------------------------------- | --------------- |
+| `packages/cli/src/skills/video-editing/prompts/editor-system.md`      | Editor 系统提示 |
+| `packages/cli/src/skills/video-editing/prompts/shot-plan.md`          | Plan 生成提示   |
+| `packages/cli/src/skills/video-editing/prompts/protagonist-detect.md` | 主角检测        |
+| `packages/cli/src/skills/video-editing/prompts/aesthetic-analysis.md` | 美学分析        |
+| `packages/cli/src/skills/video-editing/prompts/dense-caption.md`      | 密集字幕        |
 
 ### 协议与技能
 
-| 文件 | 职责 |
-|------|------|
+| 文件                                             | 职责               |
+| ------------------------------------------------ | ------------------ |
 | `packages/cli/src/gateways/ws/video-protocol.js` | WebSocket 视频路由 |
-| `packages/cli/src/skills/video-editing/SKILL.md` | 技能定义文件 |
+| `packages/cli/src/skills/video-editing/SKILL.md` | 技能定义文件       |
 
 ## 使用示例
 

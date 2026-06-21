@@ -43,13 +43,13 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/ai-engine/cowork/modality-fusion.js` | 多模态输入融合引擎 |
+| 文件                                              | 职责                              |
+| ------------------------------------------------- | --------------------------------- |
+| `src/main/ai-engine/cowork/modality-fusion.js`    | 多模态输入融合引擎                |
 | `src/main/ai-engine/cowork/multimodal-context.js` | 跨模态上下文构建与 Token 预算管理 |
-| `src/main/ai-engine/cowork/multimodal-output.js` | 多格式输出生成引擎 |
-| `src/main/ai-engine/cowork/document-parser.js` | 文档解析器（PDF/Word/TXT/MD） |
-| `src/renderer/stores/multimodal.ts` | Pinia 状态管理 |
+| `src/main/ai-engine/cowork/multimodal-output.js`  | 多格式输出生成引擎                |
+| `src/main/ai-engine/cowork/document-parser.js`    | 文档解析器（PDF/Word/TXT/MD）     |
+| `src/renderer/stores/multimodal.ts`               | Pinia 状态管理                    |
 
 ## 系统概述
 
@@ -121,15 +121,15 @@
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| Token 预算超限 | 输入内容总量超过 `maxTokenBudget` | 减少输入项数量或内容长度，或调大 `maxTokenBudget`（默认 128000） |
-| 文档解析失败 | 文件格式不在支持列表中 | 确认文件扩展名为 `.pdf/.doc/.docx/.txt/.md` 之一 |
-| 屏幕捕获失败 | 应用缺少屏幕录制权限 | macOS 需在「系统偏好设置 → 隐私 → 屏幕录制」中授权，Windows 需管理员权限 |
-| 图像输入无法识别 | 图片格式不支持或文件损坏 | 使用 `.png/.jpg/.jpeg/.gif/.webp` 格式，确认文件可正常打开 |
-| ECharts 输出为空 | 输入数据不包含可视化数据 | 确保输入中包含结构化数据（如 CSV、表格），并在描述中指明图表类型 |
-| PPT 生成内容缺失 | 上下文信息不足 | 增加文本描述或补充更多文档输入，提供足够的内容素材 |
-| 融合结果质量差 | 多模态输入之间缺乏关联 | 在文本描述中明确说明各输入之间的关系和期望的融合方式 |
+| 问题             | 可能原因                          | 解决方案                                                                 |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| Token 预算超限   | 输入内容总量超过 `maxTokenBudget` | 减少输入项数量或内容长度，或调大 `maxTokenBudget`（默认 128000）         |
+| 文档解析失败     | 文件格式不在支持列表中            | 确认文件扩展名为 `.pdf/.doc/.docx/.txt/.md` 之一                         |
+| 屏幕捕获失败     | 应用缺少屏幕录制权限              | macOS 需在「系统偏好设置 → 隐私 → 屏幕录制」中授权，Windows 需管理员权限 |
+| 图像输入无法识别 | 图片格式不支持或文件损坏          | 使用 `.png/.jpg/.jpeg/.gif/.webp` 格式，确认文件可正常打开               |
+| ECharts 输出为空 | 输入数据不包含可视化数据          | 确保输入中包含结构化数据（如 CSV、表格），并在描述中指明图表类型         |
+| PPT 生成内容缺失 | 上下文信息不足                    | 增加文本描述或补充更多文档输入，提供足够的内容素材                       |
+| 融合结果质量差   | 多模态输入之间缺乏关联            | 在文本描述中明确说明各输入之间的关系和期望的融合方式                     |
 
 ---
 
@@ -165,14 +165,14 @@
 }
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `maxTokenBudget` | `128000` | 单次融合最大 Token 预算 |
-| `tokenBudgetAllocation` | 见上 | 各模态 Token 配额占比（合计须等于 1.0） |
-| `screen.defaultMode` | `"full"` | 屏幕捕获模式（`full` / `region` / `window`） |
-| `screen.quality` | `85` | 截图压缩质量（1–100） |
-| `document.maxPagesPDF` | `50` | PDF 解析最大页数限制 |
-| `document.extractImages` | `true` | 是否从文档中提取嵌入图像 |
+| 配置项                   | 默认值   | 说明                                         |
+| ------------------------ | -------- | -------------------------------------------- |
+| `maxTokenBudget`         | `128000` | 单次融合最大 Token 预算                      |
+| `tokenBudgetAllocation`  | 见上     | 各模态 Token 配额占比（合计须等于 1.0）      |
+| `screen.defaultMode`     | `"full"` | 屏幕捕获模式（`full` / `region` / `window`） |
+| `screen.quality`         | `85`     | 截图压缩质量（1–100）                        |
+| `document.maxPagesPDF`   | `50`     | PDF 解析最大页数限制                         |
+| `document.extractImages` | `true`   | 是否从文档中提取嵌入图像                     |
 
 ---
 
@@ -180,25 +180,25 @@
 
 ### 各模态处理延迟参考（本地环境，M2 Pro / i7-12700H）
 
-| 操作 | 平均耗时 | P95 耗时 |
-| --- | --- | --- |
-| 文本融合（10K Token） | 12 ms | 20 ms |
-| PDF 解析（10 页） | 380 ms | 650 ms |
-| PDF 解析（50 页） | 1.8 s | 3.2 s |
-| 图像描述提取（1 张） | 220 ms | 400 ms |
-| 全屏截图（1080p） | 45 ms | 80 ms |
-| Markdown 输出生成 | 60 ms | 120 ms |
-| ECharts JSON 生成 | 90 ms | 160 ms |
-| PPT 生成（10 页） | 2.1 s | 3.8 s |
+| 操作                  | 平均耗时 | P95 耗时 |
+| --------------------- | -------- | -------- |
+| 文本融合（10K Token） | 12 ms    | 20 ms    |
+| PDF 解析（10 页）     | 380 ms   | 650 ms   |
+| PDF 解析（50 页）     | 1.8 s    | 3.2 s    |
+| 图像描述提取（1 张）  | 220 ms   | 400 ms   |
+| 全屏截图（1080p）     | 45 ms    | 80 ms    |
+| Markdown 输出生成     | 60 ms    | 120 ms   |
+| ECharts JSON 生成     | 90 ms    | 160 ms   |
+| PPT 生成（10 页）     | 2.1 s    | 3.8 s    |
 
 ### Token 预算利用率
 
-| 场景 | 平均 Token 消耗 | 预算利用率 |
-| --- | --- | --- |
-| 单图 + 文本描述 | ~4,200 | 3.3% |
-| 10 页 PDF + 分析指令 | ~18,000 | 14% |
-| 4 图 + 2 文档 + 文本 | ~52,000 | 41% |
-| 会议纪要（满载） | ~95,000 | 74% |
+| 场景                 | 平均 Token 消耗 | 预算利用率 |
+| -------------------- | --------------- | ---------- |
+| 单图 + 文本描述      | ~4,200          | 3.3%       |
+| 10 页 PDF + 分析指令 | ~18,000         | 14%        |
+| 4 图 + 2 文档 + 文本 | ~52,000         | 41%        |
+| 会议纪要（满载）     | ~95,000         | 74%        |
 
 > 建议单次融合控制在 Token 预算 70% 以内，为 LLM 推理保留充足空间。
 
@@ -206,14 +206,14 @@
 
 ## 测试覆盖率
 
-| 模块 | 测试文件 | 用例数 | 覆盖率 |
-| --- | --- | --- | --- |
-| `ModalityFusion` | `tests/unit/multimodal/modality-fusion.test.js` | 34 | 93% |
-| `MultimodalContext` | `tests/unit/multimodal/multimodal-context.test.js` | 28 | 91% |
-| `MultimodalOutput` | `tests/unit/multimodal/multimodal-output.test.js` | 31 | 90% |
-| `DocumentParser` | `tests/unit/multimodal/document-parser.test.js` | 25 | 95% |
-| IPC 通道 | `tests/unit/multimodal/ipc-handlers.test.js` | 20 | 97% |
-| Pinia Store | `src/renderer/stores/__tests__/multimodal.test.ts` | 22 | 92% |
+| 模块                | 测试文件                                           | 用例数 | 覆盖率 |
+| ------------------- | -------------------------------------------------- | ------ | ------ |
+| `ModalityFusion`    | `tests/unit/multimodal/modality-fusion.test.js`    | 34     | 93%    |
+| `MultimodalContext` | `tests/unit/multimodal/multimodal-context.test.js` | 28     | 91%    |
+| `MultimodalOutput`  | `tests/unit/multimodal/multimodal-output.test.js`  | 31     | 90%    |
+| `DocumentParser`    | `tests/unit/multimodal/document-parser.test.js`    | 25     | 95%    |
+| IPC 通道            | `tests/unit/multimodal/ipc-handlers.test.js`       | 20     | 97%    |
+| Pinia Store         | `src/renderer/stores/__tests__/multimodal.test.ts` | 22     | 92%    |
 
 **运行测试**：
 

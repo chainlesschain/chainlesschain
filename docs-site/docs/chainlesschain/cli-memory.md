@@ -109,13 +109,13 @@ chainlesschain memory store "这个会话在做 CLI 文档收口" --scope sessio
 
 可选参数：
 
-| 参数 | 说明 |
-|------|------|
-| `--scope` | 必填，`session` / `agent` / `global` |
+| 参数         | 说明                                  |
+| ------------ | ------------------------------------- |
+| `--scope`    | 必填，`session` / `agent` / `global`  |
 | `--scope-id` | `session` 或 `agent` 作用域时建议提供 |
-| `--category` | 分类，默认 `general` |
-| `--tags` | 逗号分隔标签 |
-| `--json` | 输出 JSON |
+| `--category` | 分类，默认 `general`                  |
+| `--tags`     | 逗号分隔标签                          |
+| `--json`     | 输出 JSON                             |
 
 ### `recall`
 
@@ -202,15 +202,15 @@ chainlesschain memory recall "<query>" \
 
 ## 性能指标
 
-| 操作 | 典型延迟 | 存储规模建议 |
-|------|----------|--------------|
-| `memory store` | < 20ms | 单条写入，无限制 |
-| `memory recall` (全局) | < 30ms | 建议 < 10,000 条 |
-| `memory recall` (带 scope) | < 15ms | 作用域过滤显著提速 |
-| `memory consolidate` | 50–500ms | 取决于 JSONL 会话大小 |
-| `memory add` (SQLite) | < 25ms | SQLite 单写 |
-| `memory search` (SQLite) | < 50ms | BM25 全文搜索 |
-| `memory daily --append` | < 10ms | 追加写文件 |
+| 操作                       | 典型延迟 | 存储规模建议          |
+| -------------------------- | -------- | --------------------- |
+| `memory store`             | < 20ms   | 单条写入，无限制      |
+| `memory recall` (全局)     | < 30ms   | 建议 < 10,000 条      |
+| `memory recall` (带 scope) | < 15ms   | 作用域过滤显著提速    |
+| `memory consolidate`       | 50–500ms | 取决于 JSONL 会话大小 |
+| `memory add` (SQLite)      | < 25ms   | SQLite 单写           |
+| `memory search` (SQLite)   | < 50ms   | BM25 全文搜索         |
+| `memory daily --append`    | < 10ms   | 追加写文件            |
 
 ## 安全考虑
 

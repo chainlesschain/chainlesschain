@@ -64,18 +64,18 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 ### 命令选项
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `--model <model>` | LLM 模型名称 | `qwen2.5:7b` |
-| `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine） | `ollama` |
-| `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
-| `--api-key <key>` | API 密钥 | — |
-| `--session <id>` | 恢复历史会话 | — |
-| `--add-dir <dir>` | 额外工作根（可重复） | — |
-| `--mcp-config <file>` | 临时挂载 MCP server，工具 → `mcp__<server>__<tool>` | — |
-| `--no-mcp` | 不自动连 `cc mcp add --auto-connect` 的服务 | （默认连） |
-| `--settings <file>` | 一次性 `.claude/settings.json`：权限规则 + `model`/`env` 覆盖 | — |
-| `--output-style <name>` | 套用命名人格（内置 `explanatory`/`learning` 或 `.claude/output-styles/<name>.md`），详见 [输出风格](./output-styles) | — |
+| 选项                    | 说明                                                                                                                 | 默认值                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `--model <model>`       | LLM 模型名称                                                                                                         | `qwen2.5:7b`             |
+| `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）                                   | `ollama`                 |
+| `--base-url <url>`      | API 基础 URL                                                                                                         | `http://localhost:11434` |
+| `--api-key <key>`       | API 密钥                                                                                                             | —                        |
+| `--session <id>`        | 恢复历史会话                                                                                                         | —                        |
+| `--add-dir <dir>`       | 额外工作根（可重复）                                                                                                 | —                        |
+| `--mcp-config <file>`   | 临时挂载 MCP server，工具 → `mcp__<server>__<tool>`                                                                  | —                        |
+| `--no-mcp`              | 不自动连 `cc mcp add --auto-connect` 的服务                                                                          | （默认连）               |
+| `--settings <file>`     | 一次性 `.claude/settings.json`：权限规则 + `model`/`env` 覆盖                                                        | —                        |
+| `--output-style <name>` | 套用命名人格（内置 `explanatory`/`learning` 或 `.claude/output-styles/<name>.md`），详见 [输出风格](./output-styles) | —                        |
 
 ## Headless 模式 (`agent -p`) 与 Claude Code 平价旗标
 
@@ -171,26 +171,29 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 
 ## 内置工具
 
-代理模式提供 16 个内置工具（v0.47.0）：
+代理模式提供 19 个内置工具：
 
-| 工具                | 说明                 |
-| ------------------- | -------------------- |
-| `read_file`         | 读取文件内容（支持 `hashed: true` 返回带哈希锚点的内容） |
-| `write_file`        | 写入文件             |
-| `edit_file`         | 编辑文件（查找替换） |
-| `edit_file_hashed`  | 基于内容哈希锚点的行编辑（抗空白/行号漂移） |
-| `run_shell`         | 执行 Shell 命令（超时 60s，输出截断 30KB） |
-| `git`               | Git 操作封装（status / diff / log / commit 等） |
-| `search_files`      | 搜索文件内容         |
-| `search_sessions`   | 跨历史会话语义搜索   |
-| `list_dir`          | 列出目录内容         |
-| `run_skill`         | 运行内置技能         |
-| `list_skills`       | 列出可用技能         |
-| `run_code`          | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB |
+| 工具                | 说明                                                               |
+| ------------------- | ------------------------------------------------------------------ |
+| `read_file`         | 读取文件内容（支持 `hashed: true` 返回带哈希锚点的内容）           |
+| `write_file`        | 写入文件                                                           |
+| `edit_file`         | 编辑文件（查找替换）                                               |
+| `edit_file_hashed`  | 基于内容哈希锚点的行编辑（抗空白/行号漂移）                        |
+| `run_shell`         | 执行 Shell 命令（超时 60s，输出截断 30KB；`run_in_background: true` 返回 task_id） |
+| `check_shell`       | 轮询/终止后台 `run_shell` 任务（增量读取 + `kill`，详见[后台 Shell](./run-shell-background)） |
+| `git`               | Git 操作封装（status / diff / log / commit 等）                    |
+| `search_files`      | 搜索文件内容                                                       |
+| `search_sessions`   | 跨历史会话语义搜索                                                 |
+| `list_dir`          | 列出目录内容                                                       |
+| `run_skill`         | 运行内置技能                                                       |
+| `list_skills`       | 列出可用技能                                                       |
+| `run_code`          | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB  |
 | `spawn_sub_agent`   | 分派独立上下文的子代理（支持 `profile: explorer/executor/design`） |
-| `web_fetch`         | 抓取 URL 内容（默认拒绝私网 / SSRF 防护） |
-| `todo_write`        | 会话级待办清单（open-agents 对标） |
-| `ask_user_question` | 主动向用户提问并阻塞等待回答 |
+| `web_fetch`         | 抓取 URL 内容（默认拒绝私网 / SSRF 防护）                          |
+| `web_search`        | 联网搜索（7 个可插拔搜索源，`auto` 按密钥择优，详见[联网搜索](./web-search)） |
+| `notebook_edit`     | 编辑 Jupyter `.ipynb` 单元格：按 `cell_id`（优先）或 `cell_index` 定位，`edit_mode` = replace（默认）/ insert / delete |
+| `todo_write`        | 会话级待办清单（open-agents 对标）                                 |
+| `ask_user_question` | 主动向用户提问并阻塞等待回答                                       |
 
 ### run_code 工具详情
 
@@ -204,6 +207,7 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 | `timeout` | number | 否 | 超时时间（秒），默认 60，最大 300 |
 
 **执行流程**：
+
 1. 代码写入临时文件（`os.tmpdir()` + 时间戳）
 2. 根据语言选择解释器（`python3`/`python`、`node`、`bash`）
 3. 执行并捕获输出（最大 50KB）
@@ -211,11 +215,13 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 5. 清理临时文件
 
 **语言选择建议**：
+
 - **Python**: 数据处理、数学计算、Web 抓取、文件批量操作
 - **Node.js**: JSON 处理、API 调用、npm 生态相关
 - **Bash**: 系统管理、文件操作、管道命令
 
 **使用示例**：
+
 ```
 > 帮我统计当前目录下每种文件类型的数量
 
@@ -227,6 +233,23 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
   .test.js: 23
 共 88 个文件
 ```
+
+### notebook_edit 工具详情
+
+`notebook_edit` 补齐了 cc 此前缺失的最后一个 Claude Code 代理工具（NotebookEdit），用于编辑 Jupyter `.ipynb` 笔记本的单元格。纯函数 `editNotebookCell()` 实现：解析 → 变更 → 以 nbformat 规范（1 空格缩进 + 末尾换行）重新序列化。
+
+**参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `notebook_path` | string | 是 | `.ipynb` 文件路径 |
+| `cell_id` | string | 否* | 目标单元格 id（**优先**） |
+| `cell_index` | number | 否* | 0 基单元格下标（无 `cell_id` 时用） |
+| `edit_mode` | string | 否 | `replace`（默认）/ `insert` / `delete` |
+| `new_source` | string | replace/insert 必填 | 新单元格源码 |
+
+> *`replace` / `delete` 须给 `cell_id` 或 `cell_index` 之一定位目标。
+
+**语义**：源码以行数组存储并保留末尾 `\n`；`replace` 一个代码单元会**清空其 outputs 与 execution_count**；`insert` 会**生成新的 cell id**（插在目标之后，或无定位时插到顶部）。完善的错误路径：坏 JSON / 无 `cells[]` / 缺定位符 / 目标不存在 / 缺参数。
 
 ## Auto Pip-Install (自动安装 Python 包)
 
@@ -258,6 +281,7 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 ### 安全防护
 
 `isValidPackageName()` 使用正则 `/^[a-zA-Z0-9_][a-zA-Z0-9._-]*$/` 验证包名：
+
 - ✅ 合法：`pandas`, `scikit-learn`, `python_dotenv`, `Flask`
 - ❌ 拒绝：`foo; rm -rf /`, `$(whoami)`, `foo|bar`, 空字符串, 超过 100 字符
 
@@ -292,13 +316,13 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 
 `run_code` 执行失败时，`classifyError()` 函数将错误分为 5 种类型，每种附带 `hint` 字段提供可操作的修复建议。
 
-| errorType | 匹配模式 | hint 示例 |
-|-----------|---------|-----------|
-| `import_error` | `ModuleNotFoundError`, `ImportError` | `Missing Python module "pandas". Will attempt auto-install.` |
-| `syntax_error` | `SyntaxError`, `IndentationError` | `Syntax error on line 15. Check for typos.` |
-| `timeout` | `ETIMEDOUT`, `timed out`, exitCode=null | `Script timed out. Consider increasing timeout.` |
-| `permission_error` | `EACCES`, `Permission denied` | `Permission denied. Try a different directory.` |
-| `runtime_error` | 其他所有错误 | `Runtime error near line 42. Check traceback.` |
+| errorType          | 匹配模式                                | hint 示例                                                    |
+| ------------------ | --------------------------------------- | ------------------------------------------------------------ |
+| `import_error`     | `ModuleNotFoundError`, `ImportError`    | `Missing Python module "pandas". Will attempt auto-install.` |
+| `syntax_error`     | `SyntaxError`, `IndentationError`       | `Syntax error on line 15. Check for typos.`                  |
+| `timeout`          | `ETIMEDOUT`, `timed out`, exitCode=null | `Script timed out. Consider increasing timeout.`             |
+| `permission_error` | `EACCES`, `Permission denied`           | `Permission denied. Try a different directory.`              |
+| `runtime_error`    | 其他所有错误                            | `Runtime error near line 42. Check traceback.`               |
 
 ### 返回示例（错误）
 
@@ -322,14 +346,14 @@ cc pdh list / status / doctor    # 检视 PDH 发现状态（token 脱敏）
 
 ### 检测项
 
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| `os` | 操作系统 | `win32`, `linux`, `darwin` |
-| `arch` | 架构 | `x64`, `arm64` |
+| 字段     | 说明          | 示例                         |
+| -------- | ------------- | ---------------------------- |
+| `os`     | 操作系统      | `win32`, `linux`, `darwin`   |
+| `arch`   | 架构          | `x64`, `arm64`               |
 | `python` | Python 解释器 | `python3 (3.11.0)` 或 `null` |
-| `pip` | pip 是否可用 | `true` / `false` |
-| `node` | Node.js 版本 | `v22.12.0` |
-| `git` | Git 是否可用 | `true` / `false` |
+| `pip`    | pip 是否可用  | `true` / `false`             |
+| `node`   | Node.js 版本  | `v22.12.0`                   |
+| `git`    | Git 是否可用  | `true` / `false`             |
 
 ### System Prompt 注入
 
@@ -363,14 +387,14 @@ agent-core.js （中心模块）
 
 ### 6 维上下文注入
 
-| 注入器 | 数据源 | 说明 |
-|--------|--------|------|
-| **Instinct** | `instinct-manager.js` | 从学习到的用户偏好生成提示（编码风格、工具偏好等） |
-| **Memory** | `hierarchical-memory.js` | 召回与当前查询相关的四层记忆（working→core） |
-| **BM25 Notes** | `bm25-search.js` + `notes` 表 | 搜索笔记库中的相关内容（topK: 3, threshold: 0.5） |
-| **Task Reminder** | 内置 | 重述当前任务目标和进度，保持 AI 聚焦 |
-| **Permanent Memory** | `permanent-memory.js` | 跨会话持久记忆 + Daily Notes + MEMORY.md |
-| **Compaction Summary** | 内置 | 被压缩消息的单行摘要，支持上下文恢复 |
+| 注入器                 | 数据源                        | 说明                                               |
+| ---------------------- | ----------------------------- | -------------------------------------------------- |
+| **Instinct**           | `instinct-manager.js`         | 从学习到的用户偏好生成提示（编码风格、工具偏好等） |
+| **Memory**             | `hierarchical-memory.js`      | 召回与当前查询相关的四层记忆（working→core）       |
+| **BM25 Notes**         | `bm25-search.js` + `notes` 表 | 搜索笔记库中的相关内容（topK: 3, threshold: 0.5）  |
+| **Task Reminder**      | 内置                          | 重述当前任务目标和进度，保持 AI 聚焦               |
+| **Permanent Memory**   | `permanent-memory.js`         | 跨会话持久记忆 + Daily Notes + MEMORY.md           |
+| **Compaction Summary** | 内置                          | 被压缩消息的单行摘要，支持上下文恢复               |
 
 ### 稳定前缀缓存 (Stable Prefix Cache)
 
@@ -389,6 +413,7 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 ### 智能压缩 (`/compact`)
 
 基于重要性评分的对话压缩（替代简单的 "保留最后 4 条"）：
+
 - 始终保留 System Prompt
 - 评分维度：时间近、含 tool_calls、关联任务目标
 - 默认保留得分最高的 6 对消息
@@ -418,61 +443,61 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 
 ### 基础命令
 
-| 命令             | 说明                                 |
-| ---------------- | ------------------------------------ |
-| `/exit`          | 退出代理                             |
-| `/help`          | 显示所有命令帮助                     |
-| `/model <name>`  | 切换/查看模型                        |
-| `/provider <p>`  | 切换/查看提供商，支持 8 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
-| `/clear`         | 清空对话历史                         |
-| `/compact`       | 智能压缩对话（基于重要性评分）       |
-| `/rewind [n]`    | 列出/回退到历史用户轮次（双击 Esc 同效；文件回退用 `cc checkpoint`） |
-| `! <cmd>`        | bash 直通：直接跑 shell，输出进对话上下文 |
-| `# <note>`       | 快捷记忆：追加到项目 `cc.md` 的 `## Notes` |
-| `/output-style [name]` | 列出 / 切换 [输出风格](./output-styles) 人格；`none` 清除 |
+| 命令                   | 说明                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `/exit`                | 退出代理                                                                                                |
+| `/help`                | 显示所有命令帮助                                                                                        |
+| `/model <name>`        | 切换/查看模型                                                                                           |
+| `/provider <p>`        | 切换/查看提供商，支持 8 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
+| `/clear`               | 清空对话历史                                                                                            |
+| `/compact`             | 智能压缩对话（基于重要性评分）                                                                          |
+| `/rewind [n]`          | 列出/回退到历史用户轮次（双击 Esc 同效；文件回退用 `cc checkpoint`）                                    |
+| `! <cmd>`              | bash 直通：直接跑 shell，输出进对话上下文                                                               |
+| `# <note>`             | 快捷记忆：追加到项目 `cc.md` 的 `## Notes`                                                              |
+| `/output-style [name]` | 列出 / 切换 [输出风格](./output-styles) 人格；`none` 清除                                               |
 
 ### Context Engineering 命令
 
-| 命令                      | 说明                                 |
-| ------------------------- | ------------------------------------ |
-| `/task <objective>`       | 设置当前任务目标                     |
-| `/task clear`             | 清除任务                             |
-| `/session`                | 显示当前 Session ID 和消息数         |
-| `/session resume <id>`    | 加载历史会话消息                     |
-| `/reindex`                | 重新索引笔记到 BM25                  |
-| `/stats`                  | 显示 Context Engine 统计信息         |
+| 命令                   | 说明                         |
+| ---------------------- | ---------------------------- |
+| `/task <objective>`    | 设置当前任务目标             |
+| `/task clear`          | 清除任务                     |
+| `/session`             | 显示当前 Session ID 和消息数 |
+| `/session resume <id>` | 加载历史会话消息             |
+| `/reindex`             | 重新索引笔记到 BM25          |
+| `/stats`               | 显示 Context Engine 统计信息 |
 
 ### Plan Mode 命令
 
-| 命令             | 说明                         |
-| ---------------- | ---------------------------- |
-| `/plan`          | 进入规划模式                 |
-| `/plan show`     | 查看当前计划                 |
-| `/plan approve`  | 批准计划并开始执行           |
-| `/plan reject`   | 拒绝计划，重新规划           |
-| `/plan exit`     | 退出规划模式                 |
-| `/plan execute`  | 按 DAG 依赖顺序执行计划      |
-| `/plan risk`     | 显示风险评估报告             |
+| 命令            | 说明                    |
+| --------------- | ----------------------- |
+| `/plan`         | 进入规划模式            |
+| `/plan show`    | 查看当前计划            |
+| `/plan approve` | 批准计划并开始执行      |
+| `/plan reject`  | 拒绝计划，重新规划      |
+| `/plan exit`    | 退出规划模式            |
+| `/plan execute` | 按 DAG 依赖顺序执行计划 |
+| `/plan risk`    | 显示风险评估报告        |
 
 ### Cowork 命令
 
-| 命令                          | 说明                         |
-| ----------------------------- | ---------------------------- |
-| `/cowork debate <file>`       | 多视角代码评审               |
-| `/cowork compare <prompt>`    | A/B 方案对比                 |
-| `/cowork graph`               | ASCII 代码知识图谱           |
-| `/cowork decision`            | 决策追踪知识库               |
+| 命令                       | 说明               |
+| -------------------------- | ------------------ |
+| `/cowork debate <file>`    | 多视角代码评审     |
+| `/cowork compare <prompt>` | A/B 方案对比       |
+| `/cowork graph`            | ASCII 代码知识图谱 |
+| `/cowork decision`         | 决策追踪知识库     |
 
 ### 自主模式命令
 
-| 命令                | 说明                         |
-| ------------------- | ---------------------------- |
-| `/auto <goal>`      | 提交目标，AI 自主分解执行    |
-| `/auto status`      | 查看当前自主目标进度         |
-| `/auto pause`       | 暂停自主执行                 |
-| `/auto resume`      | 恢复自主执行                 |
-| `/auto cancel`      | 取消当前目标                 |
-| `/auto list`        | 列出所有目标（含历史）       |
+| 命令           | 说明                      |
+| -------------- | ------------------------- |
+| `/auto <goal>` | 提交目标，AI 自主分解执行 |
+| `/auto status` | 查看当前自主目标进度      |
+| `/auto pause`  | 暂停自主执行              |
+| `/auto resume` | 恢复自主执行              |
+| `/auto cancel` | 取消当前目标              |
+| `/auto list`   | 列出所有目标（含历史）    |
 
 ## Plan Mode
 
@@ -568,17 +593,17 @@ Agent 模式集成了 SlotFiller 参数槽填充引擎，在调用 LLM 之前自
 
 ### 支持的意图类型
 
-| 意图类型 | 触发关键词 | 必需参数 |
-|----------|-----------|---------|
+| 意图类型      | 触发关键词                        | 必需参数       |
+| ------------- | --------------------------------- | -------------- |
 | `create_file` | create a file, new file, scaffold | fileType, path |
-| `deploy` | deploy, ship it, push to prod | platform |
-| `refactor` | refactor, restructure | target |
-| `test` | write tests, add test, unit test | target |
-| `analyze` | analyze, audit, review code | — |
-| `search` | search for, find all, grep | query |
-| `install` | install, add package | package |
-| `generate` | generate, create component | — |
-| `edit_file` | edit file, modify file | target |
+| `deploy`      | deploy, ship it, push to prod     | platform       |
+| `refactor`    | refactor, restructure             | target         |
+| `test`        | write tests, add test, unit test  | target         |
+| `analyze`     | analyze, audit, review code       | —              |
+| `search`      | search for, find all, grep        | query          |
+| `install`     | install, add package              | package        |
+| `generate`    | generate, create component        | —              |
+| `edit_file`   | edit file, modify file            | target         |
 
 ### 工作流程
 
@@ -841,47 +866,47 @@ Resumed session session-17... (8 messages)
 
 ### 启动与初始化
 
-| 指标 | 数值 | 说明 |
-|------|------|------|
-| 7 阶段无头启动（`bootstrap.js`） | ~200ms | DB 初始化 + 配置加载 + 技能注册 |
-| Context Engineering 首次初始化 | ~50ms | BM25 索引加载 + 记忆模型预热 |
-| 环境检测（`getEnvironmentInfo`） | ~30ms | 检测 Python/Node/Git，结果缓存 |
-| 138 个技能元数据加载（stub） | ~15ms | 仅加载 YAML frontmatter，body 按需读取 |
+| 指标                             | 数值   | 说明                                   |
+| -------------------------------- | ------ | -------------------------------------- |
+| 7 阶段无头启动（`bootstrap.js`） | ~200ms | DB 初始化 + 配置加载 + 技能注册        |
+| Context Engineering 首次初始化   | ~50ms  | BM25 索引加载 + 记忆模型预热           |
+| 环境检测（`getEnvironmentInfo`） | ~30ms  | 检测 Python/Node/Git，结果缓存         |
+| 138 个技能元数据加载（stub）     | ~15ms  | 仅加载 YAML frontmatter，body 按需读取 |
 
 ### 工具执行性能
 
-| 工具 | 典型延迟 | 备注 |
-|------|---------|------|
-| `read_file` | < 5ms | 本地文件读取 |
-| `write_file` / `edit_file` | < 10ms | 含 fsync |
-| `edit_file_hashed` | < 5ms | 哈希锚定，无需全文扫描 |
-| `search_files` | 10–200ms | 取决于代码库大小 |
-| `run_shell` | 视命令而定 | 超时 60s，输出截断 30KB |
-| `run_code` (Python/Node) | 500ms–5s | 含解释器启动开销 |
-| `run_code` + auto pip-install | +5–15s | 含 `pip install` 耗时 |
-| `web_fetch` | 500ms–3s | 含 DNS + TCP + 页面抓取 |
-| `spawn_sub_agent` | 200ms+ | 独立上下文初始化 |
+| 工具                          | 典型延迟   | 备注                    |
+| ----------------------------- | ---------- | ----------------------- |
+| `read_file`                   | < 5ms      | 本地文件读取            |
+| `write_file` / `edit_file`    | < 10ms     | 含 fsync                |
+| `edit_file_hashed`            | < 5ms      | 哈希锚定，无需全文扫描  |
+| `search_files`                | 10–200ms   | 取决于代码库大小        |
+| `run_shell`                   | 视命令而定 | 超时 60s，输出截断 30KB |
+| `run_code` (Python/Node)      | 500ms–5s   | 含解释器启动开销        |
+| `run_code` + auto pip-install | +5–15s     | 含 `pip install` 耗时   |
+| `web_fetch`                   | 500ms–3s   | 含 DNS + TCP + 页面抓取 |
+| `spawn_sub_agent`             | 200ms+     | 独立上下文初始化        |
 
 ### Context Engineering 注入开销
 
-| 注入器 | 典型延迟 | 说明 |
-|--------|---------|------|
-| Instinct | < 2ms | 内存读取，已缓存 |
-| Memory（层次化记忆） | 5–20ms | BM25 + 向量相关性搜索 |
-| BM25 Notes | 10–30ms | topK=3，threshold=0.5 |
-| Task Reminder | < 1ms | 内存字段拼接 |
-| Permanent Memory | 5–15ms | MEMORY.md + Daily Notes 读取 |
-| Compaction Summary | < 1ms | 内存字段拼接 |
-| **6 维合计** | **20–70ms** | KV-Cache 稳定前缀可复用 |
+| 注入器               | 典型延迟    | 说明                         |
+| -------------------- | ----------- | ---------------------------- |
+| Instinct             | < 2ms       | 内存读取，已缓存             |
+| Memory（层次化记忆） | 5–20ms      | BM25 + 向量相关性搜索        |
+| BM25 Notes           | 10–30ms     | topK=3，threshold=0.5        |
+| Task Reminder        | < 1ms       | 内存字段拼接                 |
+| Permanent Memory     | 5–15ms      | MEMORY.md + Daily Notes 读取 |
+| Compaction Summary   | < 1ms       | 内存字段拼接                 |
+| **6 维合计**         | **20–70ms** | KV-Cache 稳定前缀可复用      |
 
 ### 智能压缩效果
 
-| 指标 | 数值 |
-|------|------|
-| 压缩率 | 0.76–0.93 |
-| 节省 token | 7–24% |
-| 压缩触发阈值 | 消息数 ≥ 12 |
-| 保留消息对数（默认） | 6 对 |
+| 指标                 | 数值        |
+| -------------------- | ----------- |
+| 压缩率               | 0.76–0.93   |
+| 节省 token           | 7–24%       |
+| 压缩触发阈值         | 消息数 ≥ 12 |
+| 保留消息对数（默认） | 6 对        |
 
 ## 测试覆盖率
 
@@ -909,32 +934,32 @@ Resumed session session-17... (8 messages)
 
 ### 验证结果（v5.0.2.10）
 
-| 验证项 | 结果 |
-|--------|------|
-| `agent-core` 定向单测 | ✅ 66/66 |
-| `hashline` 单测 | ✅ 29/29 |
-| `edit_file_hashed` 单测 | ✅ 12/12 |
-| `slot-filler` 单测 | ✅ 18/18 |
-| `plan-mode` 单测 | ✅ 22/22 |
-| `session-hooks` 单测 | ✅ 15/15 |
-| `skill-mcp` 单测 | ✅ 26/26 |
-| Agent REPL 集成 | ✅ 18/18 |
-| `run-code` 集成 | ✅ 16/16 |
-| CLI 本轮定向合计 | ✅ 222/222 |
+| 验证项                  | 结果       |
+| ----------------------- | ---------- |
+| `agent-core` 定向单测   | ✅ 66/66   |
+| `hashline` 单测         | ✅ 29/29   |
+| `edit_file_hashed` 单测 | ✅ 12/12   |
+| `slot-filler` 单测      | ✅ 18/18   |
+| `plan-mode` 单测        | ✅ 22/22   |
+| `session-hooks` 单测    | ✅ 15/15   |
+| `skill-mcp` 单测        | ✅ 26/26   |
+| Agent REPL 集成         | ✅ 18/18   |
+| `run-code` 集成         | ✅ 16/16   |
+| CLI 本轮定向合计        | ✅ 222/222 |
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| 工具调用失败 | 检查当前目录的文件权限 |
-| Plan Mode 不生效 | 输入 `/plan` 手动进入规划模式 |
-| 代理响应过慢 | 切换到更快的模型（如 `qwen2.5:7b`）或使用云端 API |
-| `run_shell` 权限不足 | 检查当前用户的 Shell 执行权限 |
-| Context 注入无效果 | 检查 DB 是否初始化（`chainlesschain db init`） |
+| 问题                 | 解决方案                                              |
+| -------------------- | ----------------------------------------------------- |
+| 工具调用失败         | 检查当前目录的文件权限                                |
+| Plan Mode 不生效     | 输入 `/plan` 手动进入规划模式                         |
+| 代理响应过慢         | 切换到更快的模型（如 `qwen2.5:7b`）或使用云端 API     |
+| `run_shell` 权限不足 | 检查当前用户的 Shell 执行权限                         |
+| Context 注入无效果   | 检查 DB 是否初始化（`chainlesschain db init`）        |
 | `--session` 恢复失败 | 确认 Session ID 存在（`chainlesschain session list`） |
-| 记忆/笔记未注入 | 使用 `/stats` 检查 DB 连接和索引状态 |
-| `/auto` 无响应 | 检查 LLM 连接和 Token 预算 |
-| Hook 执行失败 | 使用 `chainlesschain hook stats` 检查钩子状态 |
+| 记忆/笔记未注入      | 使用 `/stats` 检查 DB 连接和索引状态                  |
+| `/auto` 无响应       | 检查 LLM 连接和 Token 预算                            |
+| Hook 执行失败        | 使用 `chainlesschain hook stats` 检查钩子状态         |
 
 ## 相关文档
 

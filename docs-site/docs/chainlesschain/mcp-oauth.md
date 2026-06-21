@@ -53,12 +53,12 @@ cc mcp logout <url>                           # 按 origin 删除已存 token
 cc mcp auth [--json]                          # 列出各 origin 的授权状态（valid/expired/有无 refresh）
 ```
 
-| flag | 说明 |
-|------|------|
-| `--scope <s>` | 请求的 OAuth scope |
-| `--client-id <id>` | 跳过动态注册，使用已有 client id |
-| `--port <n>` | 本地回调端口（默认 53682） |
-| `--no-open` | 不自动开浏览器（手动打印授权 URL） |
+| flag               | 说明                               |
+| ------------------ | ---------------------------------- |
+| `--scope <s>`      | 请求的 OAuth scope                 |
+| `--client-id <id>` | 跳过动态注册，使用已有 client id   |
+| `--port <n>`       | 本地回调端口（默认 53682）         |
+| `--no-open`        | 不自动开浏览器（手动打印授权 URL） |
 
 ## 配置参考
 
@@ -91,10 +91,10 @@ cd packages/cli
 npx vitest run __tests__/unit/mcp-oauth.test.js
 ```
 
-| 覆盖 | 数量 |
-|------|------|
-| 纯流程（discover/register/pkce/exchange/refresh/token store/expiry）| 14 |
-| connect 时 Bearer 注入 | 2 |
+| 覆盖                                                                 | 数量 |
+| -------------------------------------------------------------------- | ---- |
+| 纯流程（discover/register/pkce/exchange/refresh/token store/expiry） | 14   |
+| connect 时 Bearer 注入                                               | 2    |
 
 > 浏览器编排 `authorizeInteractive` 无真 OAuth server 端到端测试（thin glue，纯函数块全测）；`cc mcp auth` / `logout` 有真 CLI e2e。
 
@@ -108,22 +108,22 @@ npx vitest run __tests__/unit/mcp-oauth.test.js
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
+| 现象                            | 可能原因                                               | 处理                                                                        |
+| ------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- |
 | Windows 下 token store 路径不对 | `os.homedir()` 在 Windows 读 `USERPROFILE` 而非 `HOME` | smoke 测试用 `USERPROFILE=$TMP`；正常使用读 `%USERPROFILE%\.chainlesschain` |
-| 浏览器没自动打开 | 用了 `--no-open`，或系统无默认浏览器 | 手动复制打印的授权 URL；或去掉 `--no-open` |
-| 回调端口被占用 | 53682 已被占用 | `--port <n>` 指定其它端口 |
-| connect 仍 401 | token 过期且无 refresh token | 重新 `cc mcp login <url>` |
-| 显式 token 没生效自动 Bearer | 配置里已有静态 `Authorization` 头 | 预期：显式头优先，不被覆盖 |
+| 浏览器没自动打开                | 用了 `--no-open`，或系统无默认浏览器                   | 手动复制打印的授权 URL；或去掉 `--no-open`                                  |
+| 回调端口被占用                  | 53682 已被占用                                         | `--port <n>` 指定其它端口                                                   |
+| connect 仍 401                  | token 过期且无 refresh token                           | 重新 `cc mcp login <url>`                                                   |
+| 显式 token 没生效自动 Bearer    | 配置里已有静态 `Authorization` 头                      | 预期：显式头优先，不被覆盖                                                  |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/mcp-oauth.js` | `generatePkce` / `discoverAuthMetadata` / `registerClient` / `buildAuthorizeUrl` / `exchangeCodeForToken` / `refreshAccessToken` / token store / `authorizeInteractive`（`_deps` 注入） |
-| `packages/cli/src/runtime/mcp-config.js` | `setupMcpFromConfig` connect 前 `ensureValidToken` + Bearer 注入 |
-| `packages/cli/src/commands/mcp.js` | `cc mcp login \| logout \| auth` |
-| `packages/cli/__tests__/unit/mcp-oauth.test.js` | 16 单元测试 |
+| 文件                                            | 说明                                                                                                                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/src/lib/mcp-oauth.js`             | `generatePkce` / `discoverAuthMetadata` / `registerClient` / `buildAuthorizeUrl` / `exchangeCodeForToken` / `refreshAccessToken` / token store / `authorizeInteractive`（`_deps` 注入） |
+| `packages/cli/src/runtime/mcp-config.js`        | `setupMcpFromConfig` connect 前 `ensureValidToken` + Bearer 注入                                                                                                                        |
+| `packages/cli/src/commands/mcp.js`              | `cc mcp login \| logout \| auth`                                                                                                                                                        |
+| `packages/cli/__tests__/unit/mcp-oauth.test.js` | 16 单元测试                                                                                                                                                                             |
 
 ## 使用示例
 

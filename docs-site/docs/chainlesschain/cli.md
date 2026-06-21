@@ -86,28 +86,28 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 }
 ```
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `edition` | string | `"personal"` | 版本：`personal` / `enterprise` |
-| `llm.provider` | string | `"ollama"` | LLM 提供商：`ollama` / `openai` / `dashscope` / `deepseek` / `custom` |
-| `llm.streaming` | boolean | `true` | 是否启用流式输出 |
-| `agent.planMode` | boolean | `false` | 默认是否启用 Plan Mode |
-| `agent.recallLimit` | number | `5` | 启动时注入的历史记忆条数上限 |
-| `agent.parkOnExit` | boolean | `true` | 退出 Agent 时自动 Park 会话 |
-| `update.channel` | string | `"stable"` | 更新通道：`stable` / `beta` / `dev` |
-| `logging.level` | string | `"info"` | 日志级别：`debug` / `info` / `warn` / `error` |
+| 配置项              | 类型    | 默认值       | 说明                                                                  |
+| ------------------- | ------- | ------------ | --------------------------------------------------------------------- |
+| `edition`           | string  | `"personal"` | 版本：`personal` / `enterprise`                                       |
+| `llm.provider`      | string  | `"ollama"`   | LLM 提供商：`ollama` / `openai` / `dashscope` / `deepseek` / `custom` |
+| `llm.streaming`     | boolean | `true`       | 是否启用流式输出                                                      |
+| `agent.planMode`    | boolean | `false`      | 默认是否启用 Plan Mode                                                |
+| `agent.recallLimit` | number  | `5`          | 启动时注入的历史记忆条数上限                                          |
+| `agent.parkOnExit`  | boolean | `true`       | 退出 Agent 时自动 Park 会话                                           |
+| `update.channel`    | string  | `"stable"`   | 更新通道：`stable` / `beta` / `dev`                                   |
+| `logging.level`     | string  | `"info"`     | 日志级别：`debug` / `info` / `warn` / `error`                         |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| CLI 冷启动时间 | <300ms | ~200ms | ✅ |
-| `cc doctor` 全项检查 | <2s | ~1.5s | ✅ |
-| `cc note search` BM25 查询 | <100ms | ~60ms | ✅ |
-| `cc agent` 首次响应（流式） | <3s | ~2.2s | ✅ |
-| `cc skill list` 四层加载 | <500ms | ~350ms | ✅ |
-| `cc serve` WebSocket 启动 | <1s | ~700ms | ✅ |
-| 全部 2063 测试执行时间 | <120s | ~95s | ✅ |
+| 操作                        | 目标   | 实际   | 状态 |
+| --------------------------- | ------ | ------ | ---- |
+| CLI 冷启动时间              | <300ms | ~200ms | ✅   |
+| `cc doctor` 全项检查        | <2s    | ~1.5s  | ✅   |
+| `cc note search` BM25 查询  | <100ms | ~60ms  | ✅   |
+| `cc agent` 首次响应（流式） | <3s    | ~2.2s  | ✅   |
+| `cc skill list` 四层加载    | <500ms | ~350ms | ✅   |
+| `cc serve` WebSocket 启动   | <1s    | ~700ms | ✅   |
+| 全部 2063 测试执行时间      | <120s  | ~95s   | ✅   |
 
 ## 相关文档
 
@@ -157,12 +157,12 @@ npm install -g chainlesschain
 
 安装后提供 3 个等价命令：
 
-| 命令             | 说明                                  |
-| ---------------- | ------------------------------------- |
-| `chainlesschain` | 完整名称                              |
-| `cc`             | 最短别名，日常使用推荐                |
+| 命令             | 说明                                     |
+| ---------------- | ---------------------------------------- |
+| `chainlesschain` | 完整名称                                 |
+| `cc`             | 最短别名，日常使用推荐                   |
 | `clc`            | ChainLessChain 缩写，避免与 C 编译器冲突 |
-| `clchain`        | chainlesschain 缩写，较易辨识         |
+| `clchain`        | chainlesschain 缩写，较易辨识            |
 
 ### 验证安装
 
@@ -371,43 +371,43 @@ chainlesschain --quiet      # 静默模式
 
 以下命令不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-| 命令               | 说明                                        | 详情                          |
-| ------------------ | ------------------------------------------- | ----------------------------- |
-| `db`               | 数据库初始化、信息、备份、恢复              | [数据库管理](./cli-db)        |
-| `note`             | 笔记增删改查、版本控制、全文搜索            | [笔记/知识库管理](./cli-note) |
-| `chat` / `ask`     | 交互式 AI 对话 / 单次问答                   | [AI 对话](./cli-chat)         |
-| `llm`              | 模型列表、7 Provider 管理、连通性测试       | [LLM 管理](./cli-llm)         |
-| `agent` (别名 `a`) | Claude Code 风格代理会话，8 工具 + 141 技能 + Plan Mode；headless `-p` + `--mcp-config`/`--permission-prompt-tool`/`--include-partial-messages`/`--settings` | [代理模式](./cli-agent)       |
-| `agents`           | 命名子代理（`.chainlesschain`/`.claude/agents/*.md`）— list/show/run/new | [代理模式](./cli-agent)       |
-| `context`          | 上下文窗口占用拆分（`/context` 对标）        | [代理模式](./cli-agent)       |
-| `skill`            | 技能列表、搜索、运行                        | [技能系统](./cli-skill)       |
-| `search`           | BM25 混合搜索                               | [混合搜索](./cli-search)      |
-| `tokens`           | Token 用量追踪、成本分析                    | [Token追踪](./cli-tokens)     |
-| `memory`           | 持久记忆管理、每日笔记                      | [持久记忆](./cli-memory)      |
-| `session`          | 会话持久化、恢复、导出                      | [会话管理](./cli-session)     |
-| `import`           | 知识导入 (Markdown/Evernote/Notion/PDF)     | Phase 2                       |
-| `export`           | 知识导出 (Markdown/静态HTML站点)            | Phase 2                       |
-| `git`              | Git 集成（状态/初始化/自动提交/历史分析）   | Phase 2                       |
-| `mcp`              | MCP 服务器管理 (JSON-RPC 2.0 over stdio)；`add --auto-connect` 的 server 自动喂给 `cc agent` | Phase 3                       |
-| `browse`           | 浏览器自动化（页面抓取/CSS选择器/截图）     | Phase 3                       |
-| `instinct`         | 本能学习（偏好追踪/衰减/系统提示生成）      | Phase 3                       |
-| `did`              | DID 身份管理 (Ed25519 签名/验证)             | [DID身份](./cli-did)          |
-| `encrypt`/`decrypt`| AES-256-GCM 文件加密/解密                    | [文件加密](./cli-encrypt)     |
-| `auth`             | RBAC 权限引擎 (4角色/26权限范围)             | [RBAC权限](./cli-auth)        |
-| `audit`            | 审计日志 (8事件类型/4风险级别)               | [审计日志](./cli-audit)       |
-| `dao`              | DAO 治理 v2 (二次方投票/委托/国库)           | [DAO治理](./cli-dao)         |
-| `compliance`       | 合规管理 (GDPR/SOC2/HIPAA/ISO27001)         | [合规管理](./cli-compliance) |
-| `dlp`              | 数据防泄漏 (正则扫描/策略管理)               | [数据防泄漏](./cli-dlp)     |
-| `siem`             | SIEM 日志导出 (Splunk/ES/Azure)              | [SIEM集成](./cli-siem)      |
-| `pqc`              | 后量子密码 (ML-KEM/ML-DSA/混合模式)          | [后量子密码](./cli-pqc)     |
-| `nostr`            | Nostr 桥接 (NIP-01/密钥生成/DID映射)        | [Nostr桥接](./cli-nostr)    |
-| `matrix`           | Matrix 桥接 (E2EE/房间管理)                  | [Matrix桥接](./cli-matrix)  |
-| `scim`             | SCIM 2.0 用户配置/连接器管理                 | [SCIM配置](./cli-scim)      |
-| `terraform`        | 基础设施编排 (工作区/Plan/Apply)             | [Terraform](./cli-terraform) |
-| `hardening`        | 安全加固 (性能基线/回归检测/审计)            | [安全加固](./cli-hardening)  |
-| `social`           | 社交平台 (联系人/好友/动态/即时聊天)         | [社交平台](./cli-social)     |
-| `serve`            | WebSocket 服务器 (远程CLI调用/流式/认证)     | [WebSocket服务器](./cli-serve) |
-| `ui`               | Web 管理界面 (浏览器端/项目&全局模式)        | [Web管理界面](./cli-ui)       |
+| 命令                | 说明                                                                                                                                                         | 详情                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `db`                | 数据库初始化、信息、备份、恢复                                                                                                                               | [数据库管理](./cli-db)         |
+| `note`              | 笔记增删改查、版本控制、全文搜索                                                                                                                             | [笔记/知识库管理](./cli-note)  |
+| `chat` / `ask`      | 交互式 AI 对话 / 单次问答                                                                                                                                    | [AI 对话](./cli-chat)          |
+| `llm`               | 模型列表、7 Provider 管理、连通性测试                                                                                                                        | [LLM 管理](./cli-llm)          |
+| `agent` (别名 `a`)  | Claude Code 风格代理会话，8 工具 + 141 技能 + Plan Mode；headless `-p` + `--mcp-config`/`--permission-prompt-tool`/`--include-partial-messages`/`--settings` | [代理模式](./cli-agent)        |
+| `agents`            | 命名子代理（`.chainlesschain`/`.claude/agents/*.md`）— list/show/run/new                                                                                     | [代理模式](./cli-agent)        |
+| `context`           | 上下文窗口占用拆分（`/context` 对标）                                                                                                                        | [代理模式](./cli-agent)        |
+| `skill`             | 技能列表、搜索、运行                                                                                                                                         | [技能系统](./cli-skill)        |
+| `search`            | BM25 混合搜索                                                                                                                                                | [混合搜索](./cli-search)       |
+| `tokens`            | Token 用量追踪、成本分析                                                                                                                                     | [Token追踪](./cli-tokens)      |
+| `memory`            | 持久记忆管理、每日笔记                                                                                                                                       | [持久记忆](./cli-memory)       |
+| `session`           | 会话持久化、恢复、导出                                                                                                                                       | [会话管理](./cli-session)      |
+| `import`            | 知识导入 (Markdown/Evernote/Notion/PDF)                                                                                                                      | Phase 2                        |
+| `export`            | 知识导出 (Markdown/静态HTML站点)                                                                                                                             | Phase 2                        |
+| `git`               | Git 集成（状态/初始化/自动提交/历史分析）                                                                                                                    | Phase 2                        |
+| `mcp`               | MCP 服务器管理 (JSON-RPC 2.0 over stdio)；`add --auto-connect` 的 server 自动喂给 `cc agent`                                                                 | Phase 3                        |
+| `browse`            | 浏览器自动化（页面抓取/CSS选择器/截图）                                                                                                                      | Phase 3                        |
+| `instinct`          | 本能学习（偏好追踪/衰减/系统提示生成）                                                                                                                       | Phase 3                        |
+| `did`               | DID 身份管理 (Ed25519 签名/验证)                                                                                                                             | [DID身份](./cli-did)           |
+| `encrypt`/`decrypt` | AES-256-GCM 文件加密/解密                                                                                                                                    | [文件加密](./cli-encrypt)      |
+| `auth`              | RBAC 权限引擎 (4角色/26权限范围)                                                                                                                             | [RBAC权限](./cli-auth)         |
+| `audit`             | 审计日志 (8事件类型/4风险级别)                                                                                                                               | [审计日志](./cli-audit)        |
+| `dao`               | DAO 治理 v2 (二次方投票/委托/国库)                                                                                                                           | [DAO治理](./cli-dao)           |
+| `compliance`        | 合规管理 (GDPR/SOC2/HIPAA/ISO27001)                                                                                                                          | [合规管理](./cli-compliance)   |
+| `dlp`               | 数据防泄漏 (正则扫描/策略管理)                                                                                                                               | [数据防泄漏](./cli-dlp)        |
+| `siem`              | SIEM 日志导出 (Splunk/ES/Azure)                                                                                                                              | [SIEM集成](./cli-siem)         |
+| `pqc`               | 后量子密码 (ML-KEM/ML-DSA/混合模式)                                                                                                                          | [后量子密码](./cli-pqc)        |
+| `nostr`             | Nostr 桥接 (NIP-01/密钥生成/DID映射)                                                                                                                         | [Nostr桥接](./cli-nostr)       |
+| `matrix`            | Matrix 桥接 (E2EE/房间管理)                                                                                                                                  | [Matrix桥接](./cli-matrix)     |
+| `scim`              | SCIM 2.0 用户配置/连接器管理                                                                                                                                 | [SCIM配置](./cli-scim)         |
+| `terraform`         | 基础设施编排 (工作区/Plan/Apply)                                                                                                                             | [Terraform](./cli-terraform)   |
+| `hardening`         | 安全加固 (性能基线/回归检测/审计)                                                                                                                            | [安全加固](./cli-hardening)    |
+| `social`            | 社交平台 (联系人/好友/动态/即时聊天)                                                                                                                         | [社交平台](./cli-social)       |
+| `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
+| `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
 ---
 
@@ -472,11 +472,11 @@ chainlesschain services logs
 
 CLI 包包含 2009 个测试（118 核心包测试 + 1842 CLI 测试），全部通过：
 
-| 测试类型 | 文件数 | 测试数 | 说明 |
-|---------|--------|--------|------|
-| 单元测试 | 55+ | 1500+ | 各模块功能测试 |
-| 集成测试 | 5+ | 80+ | 模块间协作测试 |
-| E2E 测试 | 14 | 200+ | 端到端命令测试 |
+| 测试类型 | 文件数 | 测试数 | 说明           |
+| -------- | ------ | ------ | -------------- |
+| 单元测试 | 55+    | 1500+  | 各模块功能测试 |
+| 集成测试 | 5+     | 80+    | 模块间协作测试 |
+| E2E 测试 | 14     | 200+   | 端到端命令测试 |
 
 ```bash
 cd packages/cli

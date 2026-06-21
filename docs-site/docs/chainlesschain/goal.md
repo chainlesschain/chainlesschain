@@ -10,12 +10,12 @@
 
 它与相邻概念边界清晰：
 
-| 概念 | 作用域 | 用途 |
-|------|--------|------|
-| `cc session` | 短期上下文 | 单次会话的消息历史 |
-| `cc memory` | 事实 | 跨会话的事实/偏好记忆 |
-| `cc planmode` | 单次运行 | 一次运行的计划 |
-| `cc workflow` | 执行状态 | 工作流的执行进度 |
+| 概念          | 作用域         | 用途                               |
+| ------------- | -------------- | ---------------------------------- |
+| `cc session`  | 短期上下文     | 单次会话的消息历史                 |
+| `cc memory`   | 事实           | 跨会话的事实/偏好记忆              |
+| `cc planmode` | 单次运行       | 一次运行的计划                     |
+| `cc workflow` | 执行状态       | 工作流的执行进度                   |
 | **`cc goal`** | **跨会话目标** | **长期目标 + OKR，逐轮注入 agent** |
 
 ## 核心特性
@@ -106,11 +106,11 @@ cc agent --goal <id> --goal-assess   # 运行后让模型自评进度并写回
 
 共 **33** 个单元测试，全绿：
 
-| 测试文件 | 数量 | 覆盖 |
-|----------|------|------|
-| `goal-store.test.js` | 21 | 创建/进度/KR 推导/自动完成/clamp/`resolveActiveGoal` 优先级/漂移标记 |
-| `goal-context.test.js` | 6 | `buildGoalContext` 后缀 / `goalPrepareCall` / `composePrepareCall` 叠加 |
-| `agent-goal-binding.test.js` | 6 | `--goal` 解析、会话绑定、`--continue`/`--resume` 保持目标 |
+| 测试文件                     | 数量 | 覆盖                                                                    |
+| ---------------------------- | ---- | ----------------------------------------------------------------------- |
+| `goal-store.test.js`         | 21   | 创建/进度/KR 推导/自动完成/clamp/`resolveActiveGoal` 优先级/漂移标记    |
+| `goal-context.test.js`       | 6    | `buildGoalContext` 后缀 / `goalPrepareCall` / `composePrepareCall` 叠加 |
+| `agent-goal-binding.test.js` | 6    | `--goal` 解析、会话绑定、`--continue`/`--resume` 保持目标               |
 
 ```bash
 cd packages/cli
@@ -128,24 +128,24 @@ npx vitest run test/goal-store.test.js test/goal-context.test.js test/agent-goal
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `cc agent --goal`（无值）未注入目标 | 存在多个活跃目标 → 解析歧义返回 null | 用 `cc goal active` 查看解析结果，或显式 `--goal <id>` |
-| `--continue`/`--resume` 丢了目标 | 之前是自动解析（未显式绑定，会话未挂到目标） | 用 `cc agent --goal <id>` 显式绑定一次，使会话挂到目标 |
-| 进度一直不动且出现 stale 提示 | >14 天无进度 | 用 `cc goal progress <id> --pct <n> --note <text>` 记录进度，或 `pause`/`close` |
-| 自评没有写回进度 | 未加 `--goal-assess`（默认关闭） | 运行时显式加 `--goal-assess`（注意 token 成本） |
-| 测试写到了真实存储 | `getHomeDir()` 忽略环境变量，实机写真实目录 | 测试用 `opts.root` 覆盖；实机 smoke 后手动清理 `<home>/goals/` |
+| 现象                                | 可能原因                                     | 处理                                                                            |
+| ----------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------- |
+| `cc agent --goal`（无值）未注入目标 | 存在多个活跃目标 → 解析歧义返回 null         | 用 `cc goal active` 查看解析结果，或显式 `--goal <id>`                          |
+| `--continue`/`--resume` 丢了目标    | 之前是自动解析（未显式绑定，会话未挂到目标） | 用 `cc agent --goal <id>` 显式绑定一次，使会话挂到目标                          |
+| 进度一直不动且出现 stale 提示       | >14 天无进度                                 | 用 `cc goal progress <id> --pct <n> --note <text>` 记录进度，或 `pause`/`close` |
+| 自评没有写回进度                    | 未加 `--goal-assess`（默认关闭）             | 运行时显式加 `--goal-assess`（注意 token 成本）                                 |
+| 测试写到了真实存储                  | `getHomeDir()` 忽略环境变量，实机写真实目录  | 测试用 `opts.root` 覆盖；实机 smoke 后手动清理 `<home>/goals/`                  |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/goal-store.js` | 文件存储（`<home>/goals/<id>.json`）、KR 推导进度、自动完成、`resolveActiveGoal` 优先级 |
-| `packages/cli/src/lib/goal-context.js` | `buildGoalContext` / `goalPrepareCall` / `composePrepareCall`（与 `defaultPrepareCall` 叠加） |
-| `packages/cli/src/lib/goal-assess.js` | Phase 2 运行后自评：`buildAssessPrompt` / `parseAssessment` / `applyAssessment` / `assessGoalProgress` |
-| `packages/cli/src/commands/goal.js` | `cc goal` 命令树，注册于 `index.js` |
-| `packages/cli/src/repl/agent-repl.js` | Phase 0：REPL 解析活跃目标并叠加 prepareCall |
-| `packages/cli/src/runtime/headless-runner.js` · `headless-stream.js` | Phase 1：`--goal [id]` flag + 会话绑定 + `goal_id` 初始化事件；Phase 2 自评钩子 |
+| 文件                                                                 | 说明                                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `packages/cli/src/lib/goal-store.js`                                 | 文件存储（`<home>/goals/<id>.json`）、KR 推导进度、自动完成、`resolveActiveGoal` 优先级                |
+| `packages/cli/src/lib/goal-context.js`                               | `buildGoalContext` / `goalPrepareCall` / `composePrepareCall`（与 `defaultPrepareCall` 叠加）          |
+| `packages/cli/src/lib/goal-assess.js`                                | Phase 2 运行后自评：`buildAssessPrompt` / `parseAssessment` / `applyAssessment` / `assessGoalProgress` |
+| `packages/cli/src/commands/goal.js`                                  | `cc goal` 命令树，注册于 `index.js`                                                                    |
+| `packages/cli/src/repl/agent-repl.js`                                | Phase 0：REPL 解析活跃目标并叠加 prepareCall                                                           |
+| `packages/cli/src/runtime/headless-runner.js` · `headless-stream.js` | Phase 1：`--goal [id]` flag + 会话绑定 + `goal_id` 初始化事件；Phase 2 自评钩子                        |
 
 ## 使用示例
 

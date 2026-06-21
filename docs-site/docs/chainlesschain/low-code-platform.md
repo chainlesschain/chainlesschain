@@ -361,25 +361,25 @@ CREATE INDEX IF NOT EXISTS idx_lowcode_ds_type ON lowcode_datasources(type);
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/enterprise/low-code-platform.js` | 低代码引擎核心，应用 CRUD 与发布逻辑 |
-| `src/main/enterprise/low-code-components.js` | 15 种内置组件注册与属性校验 |
+| 文件                                         | 职责                                 |
+| -------------------------------------------- | ------------------------------------ |
+| `src/main/enterprise/low-code-platform.js`   | 低代码引擎核心，应用 CRUD 与发布逻辑 |
+| `src/main/enterprise/low-code-components.js` | 15 种内置组件注册与属性校验          |
 | `src/main/enterprise/low-code-datasource.js` | REST/GraphQL/Database/CSV 数据连接器 |
-| `src/renderer/stores/lowCode.ts` | Pinia 状态管理 |
-| `src/renderer/pages/LowCodeDesigner.vue` | 可视化拖拽设计器页面 |
+| `src/renderer/stores/lowCode.ts`             | Pinia 状态管理                       |
+| `src/renderer/pages/LowCodeDesigner.vue`     | 可视化拖拽设计器页面                 |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 组件渲染异常显示空白 | 组件版本不兼容或属性绑定错误 | 检查组件版本兼容性，验证 props 绑定表达式 |
-| 数据源连接超时 | 数据库地址配置错误或防火墙拦截 | 执行 `lowcode datasource-test`，检查网络连通性 |
-| 版本回滚失败 | 目标版本快照已过期或存储损坏 | 查看可用快照列表 `lowcode snapshot-list`，使用最近快照 |
-| 表单提交数据丢失 | 字段映射不完整或验证规则拦截 | 检查字段映射配置，查看验证错误日志 |
-| 页面发布后样式错乱 | CSS 作用域冲突或资源路径错误 | 启用 CSS 模块隔离，检查静态资源路径 |
+| 症状                 | 可能原因                       | 解决方案                                               |
+| -------------------- | ------------------------------ | ------------------------------------------------------ |
+| 组件渲染异常显示空白 | 组件版本不兼容或属性绑定错误   | 检查组件版本兼容性，验证 props 绑定表达式              |
+| 数据源连接超时       | 数据库地址配置错误或防火墙拦截 | 执行 `lowcode datasource-test`，检查网络连通性         |
+| 版本回滚失败         | 目标版本快照已过期或存储损坏   | 查看可用快照列表 `lowcode snapshot-list`，使用最近快照 |
+| 表单提交数据丢失     | 字段映射不完整或验证规则拦截   | 检查字段映射配置，查看验证错误日志                     |
+| 页面发布后样式错乱   | CSS 作用域冲突或资源路径错误   | 启用 CSS 模块隔离，检查静态资源路径                    |
 
 ### 常见错误修复
 
@@ -426,36 +426,36 @@ const lowCodeConfig = {
     // 可视化设计器行为
     designer: {
       autoSave: true,
-      autoSaveInterval: 30000,   // 自动保存间隔（毫秒）
-      gridSize: 8,               // 画布栅格尺寸（px）
-      snapToGrid: true,          // 组件拖拽对齐栅格
+      autoSaveInterval: 30000, // 自动保存间隔（毫秒）
+      gridSize: 8, // 画布栅格尺寸（px）
+      snapToGrid: true, // 组件拖拽对齐栅格
       maxComponentsPerPage: 100, // 单页最大组件数
-      undoHistoryLimit: 50,      // 撤销历史步数
+      undoHistoryLimit: 50, // 撤销历史步数
     },
 
     // 内置组件配置
     components: {
       builtinEnabled: true,
-      customComponentsDir: "./custom-components",  // 自定义组件目录
-      chartLibrary: "echarts",   // 图表库: "echarts" | "chartjs"
-      lazyLoadComponents: true,  // 按需加载组件（降低首屏体积）
+      customComponentsDir: "./custom-components", // 自定义组件目录
+      chartLibrary: "echarts", // 图表库: "echarts" | "chartjs"
+      lazyLoadComponents: true, // 按需加载组件（降低首屏体积）
     },
 
     // 数据源连接器配置
     datasource: {
       maxConnections: 10,
-      defaultTimeout: 30000,     // 连接超时（毫秒）
-      encryptCredentials: true,  // 凭证 SQLCipher 加密存储
+      defaultTimeout: 30000, // 连接超时（毫秒）
+      encryptCredentials: true, // 凭证 SQLCipher 加密存储
       allowedTypes: ["rest", "graphql", "database", "csv"],
       // SSRF 防护: 仅允许可信域名
-      allowedRestDomains: [],    // 为空表示不限制；生产环境建议配置白名单
+      allowedRestDomains: [], // 为空表示不限制；生产环境建议配置白名单
       maxRecordsPerFetch: 10000,
     },
 
     // 应用发布配置
     publishing: {
-      defaultAccess: "private",  // "private" | "organization" | "public"
-      maxVersions: 50,           // 单应用保留版本上限
+      defaultAccess: "private", // "private" | "organization" | "public"
+      maxVersions: 50, // 单应用保留版本上限
       autoBackup: true,
       buildOutputDir: "./apps-dist",
     },
@@ -467,54 +467,58 @@ const lowCodeConfig = {
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
+| 操作                                     | 目标     | 实际   | 状态    |
+| ---------------------------------------- | -------- | ------ | ------- |
 | 创建应用（`lowcode:create-app`，含模板） | < 500 ms | 180 ms | ✅ 达标 |
-| 保存设计（50 个组件页面） | < 300 ms | 95 ms | ✅ 达标 |
-| 加载组件列表（15 种） | < 100 ms | 22 ms | ✅ 达标 |
-| 数据源连通性测试（REST） | < 3 s | 0.8 s | ✅ 达标 |
-| 数据源连通性测试（PostgreSQL） | < 2 s | 0.5 s | ✅ 达标 |
-| 应用预览启动（Desktop 模式） | < 2 s | 1.1 s | ✅ 达标 |
-| 应用发布（含版本快照写入） | < 1 s | 350 ms | ✅ 达标 |
-| 版本回滚（恢复设计 JSON） | < 500 ms | 140 ms | ✅ 达标 |
-| 导出应用（JSON 格式，50 组件） | < 1 s | 280 ms | ✅ 达标 |
-| 获取版本历史列表（50 版本） | < 100 ms | 30 ms | ✅ 达标 |
+| 保存设计（50 个组件页面）                | < 300 ms | 95 ms  | ✅ 达标 |
+| 加载组件列表（15 种）                    | < 100 ms | 22 ms  | ✅ 达标 |
+| 数据源连通性测试（REST）                 | < 3 s    | 0.8 s  | ✅ 达标 |
+| 数据源连通性测试（PostgreSQL）           | < 2 s    | 0.5 s  | ✅ 达标 |
+| 应用预览启动（Desktop 模式）             | < 2 s    | 1.1 s  | ✅ 达标 |
+| 应用发布（含版本快照写入）               | < 1 s    | 350 ms | ✅ 达标 |
+| 版本回滚（恢复设计 JSON）                | < 500 ms | 140 ms | ✅ 达标 |
+| 导出应用（JSON 格式，50 组件）           | < 1 s    | 280 ms | ✅ 达标 |
+| 获取版本历史列表（50 版本）              | < 100 ms | 30 ms  | ✅ 达标 |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖场景 |
-| -------- | -------- |
-| ✅ `tests/unit/enterprise/low-code-platform.test.js` | 应用 CRUD、5 种模板初始化、draft/published/archived 状态流转 |
-| ✅ `tests/unit/enterprise/low-code-components.test.js` | 15 种组件注册、属性校验、category 分类检索、chartType 枚举 |
-| ✅ `tests/unit/enterprise/low-code-datasource.test.js` | REST/GraphQL/Database/CSV 四类连接器、凭证加密存储、连接超时处理 |
-| ✅ `tests/unit/enterprise/low-code-designer.test.js` | 组件拖拽布局保存、栅格对齐、autoSave 防抖、撤销历史（50 步） |
-| ✅ `tests/unit/enterprise/low-code-publish.test.js` | 一键发布、版本号递增、访问权限控制（private/org/public）、maxVersions 裁剪 |
-| ✅ `tests/unit/enterprise/low-code-versioning.test.js` | 版本列表查询、回滚到历史版本、快照完整性校验、并发回滚保护 |
-| ✅ `tests/integration/lowcode-ipc-handlers.test.js` | 10 个 IPC 通道端到端调用、错误码验证、权限边界检查 |
-| ✅ `tests/unit/enterprise/low-code-security.test.js` | JS 表达式沙箱隔离、XSS 模板转义、SSRF 域名白名单、导入模板结构校验 |
+| 测试文件                                               | 覆盖场景                                                                   |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| ✅ `tests/unit/enterprise/low-code-platform.test.js`   | 应用 CRUD、5 种模板初始化、draft/published/archived 状态流转               |
+| ✅ `tests/unit/enterprise/low-code-components.test.js` | 15 种组件注册、属性校验、category 分类检索、chartType 枚举                 |
+| ✅ `tests/unit/enterprise/low-code-datasource.test.js` | REST/GraphQL/Database/CSV 四类连接器、凭证加密存储、连接超时处理           |
+| ✅ `tests/unit/enterprise/low-code-designer.test.js`   | 组件拖拽布局保存、栅格对齐、autoSave 防抖、撤销历史（50 步）               |
+| ✅ `tests/unit/enterprise/low-code-publish.test.js`    | 一键发布、版本号递增、访问权限控制（private/org/public）、maxVersions 裁剪 |
+| ✅ `tests/unit/enterprise/low-code-versioning.test.js` | 版本列表查询、回滚到历史版本、快照完整性校验、并发回滚保护                 |
+| ✅ `tests/integration/lowcode-ipc-handlers.test.js`    | 10 个 IPC 通道端到端调用、错误码验证、权限边界检查                         |
+| ✅ `tests/unit/enterprise/low-code-security.test.js`   | JS 表达式沙箱隔离、XSS 模板转义、SSRF 域名白名单、导入模板结构校验         |
 
 ---
 
 ## 安全考虑
 
 ### 数据源安全
+
 - **凭证加密存储**: 数据源连接配置中的密码、Token 等敏感信息通过 SQLCipher 加密存储（`encryptCredentials: true`），切勿在日志中输出连接配置
 - **最小权限连接**: 数据库数据源建议使用只读账号连接（如 `readonly` 用户），避免低代码应用意外修改或删除源数据
 - **网络访问控制**: REST/GraphQL 数据源的 URL 应限制为可信域名，防止 SSRF（服务端请求伪造）攻击
 
 ### 应用访问控制
+
 - **发布权限**: 应用发布支持三级访问控制（`private`/`organization`/`public`），默认 `private` 仅创建者可见
 - **数据隔离**: 不同应用的数据源相互隔离，跨应用数据访问需要显式授权
 - **版本回滚审计**: 所有版本发布和回滚操作记录完整审计日志，支持追溯变更历史
 
 ### 组件安全
+
 - **输入校验**: 表单组件应配置输入校验规则（长度限制、格式校验、XSS 过滤），防止用户提交恶意数据
 - **自定义表达式沙箱**: Pipeline 中的 JavaScript 表达式在沙箱环境中执行，禁止访问 `process`、`require` 等 Node.js API
 - **模板注入防护**: 组件模板渲染使用安全的模板引擎，自动转义 HTML 特殊字符，防止 XSS 攻击
 
 ### 导出安全
+
 - **导出脱敏**: 导出应用时可选择 `includeData: false` 仅导出设计结构，避免敏感业务数据随导出文件泄露
 - **导入验证**: 导入外部应用模板时自动校验 JSON 结构完整性和组件类型合法性，拒绝包含未知组件的模板
 
@@ -545,11 +549,11 @@ const lowCodeConfig = {
 
 ### 数据源连接排查
 
-| 现象 | 排查步骤 |
-|------|---------|
+| 现象              | 排查步骤                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 渲染失败/页面空白 | 1. 确认组件绑定的 `dataSource` ID 存在且状态为 `connected` 2. 检查 API 返回的字段名与组件 `columns` 配置是否匹配 3. 使用浏览器开发者工具查看控制台错误 |
-| 数据源连接错误 | 1. 使用 `lowcode:test-connection` 单独测试连接 2. 检查 URL、凭证、网络代理配置 3. 数据库类型确认端口和防火墙设置 |
-| REST 数据源返回空 | 确认 `pagination` 配置与 API 分页参数一致（`pageParam`/`sizeParam`），检查 `Authorization` 头是否有效 |
+| 数据源连接错误    | 1. 使用 `lowcode:test-connection` 单独测试连接 2. 检查 URL、凭证、网络代理配置 3. 数据库类型确认端口和防火墙设置                                       |
+| REST 数据源返回空 | 确认 `pagination` 配置与 API 分页参数一致（`pageParam`/`sizeParam`），检查 `Authorization` 头是否有效                                                  |
 
 ## 相关文档
 

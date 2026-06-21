@@ -40,10 +40,10 @@ chainlesschain setup --skip-services    # 跳过 Docker 服务配置
 
 ## 选项说明
 
-| 选项 | 说明 |
-|------|------|
+| 选项              | 说明                       |
+| ----------------- | -------------------------- |
 | `--skip-download` | 跳过桌面应用二进制下载步骤 |
-| `--skip-services` | 跳过 Docker 服务启动步骤 |
+| `--skip-services` | 跳过 Docker 服务启动步骤   |
 
 ## 向导步骤详解
 
@@ -62,12 +62,14 @@ chainlesschain setup --skip-services    # 跳过 Docker 服务配置
 ### 步骤 4：版本选择
 
 选择使用版本：
+
 - **个人版** (Personal) — 个人 AI 管理
 - **企业版** (Enterprise) — 企业级功能
 
 ### 步骤 5：LLM 提供商配置
 
 从内置提供商列表中选择，配置 API 密钥和模型：
+
 - 需要 API 密钥的提供商会提示输入（密码输入模式）
 - 选择 `custom` 提供商可自定义 API 地址和模型名
 - 默认模型可确认使用或自定义修改
@@ -104,13 +106,13 @@ ANTHROPIC_API_KEY    # Anthropic API 密钥
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| Node.js 版本检查 | < 100ms | ~50ms | ✅ |
-| Docker 环境检测 | < 1s | ~400ms | ✅ |
-| 配置目录初始化 | < 50ms | ~20ms | ✅ |
-| config.json 保存 | < 30ms | ~10ms | ✅ |
-| 完整向导流程 | < 2 分钟 | 取决于用户输入 | ✅ |
+| 操作             | 目标     | 实际           | 状态 |
+| ---------------- | -------- | -------------- | ---- |
+| Node.js 版本检查 | < 100ms  | ~50ms          | ✅   |
+| Docker 环境检测  | < 1s     | ~400ms         | ✅   |
+| 配置目录初始化   | < 50ms   | ~20ms          | ✅   |
+| config.json 保存 | < 30ms   | ~10ms          | ✅   |
+| 完整向导流程     | < 2 分钟 | 取决于用户输入 | ✅   |
 
 ## 测试覆盖率
 
@@ -166,13 +168,13 @@ chainlesschain setup
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Node.js X+ required` | 升级 Node.js 到要求的最低版本 |
-| 下载失败 | 检查网络连接，后续可用 `chainlesschain update` 重试 |
-| Docker 服务启动失败 | 确认 Docker Desktop 运行中，检查端口占用 |
-| `ExitPromptError` | 用户按 Ctrl+C 取消向导，正常退出 |
-| 配置丢失 | 检查配置目录路径：`chainlesschain config list` |
+| 问题                  | 解决方案                                            |
+| --------------------- | --------------------------------------------------- |
+| `Node.js X+ required` | 升级 Node.js 到要求的最低版本                       |
+| 下载失败              | 检查网络连接，后续可用 `chainlesschain update` 重试 |
+| Docker 服务启动失败   | 确认 Docker Desktop 运行中，检查端口占用            |
+| `ExitPromptError`     | 用户按 Ctrl+C 取消向导，正常退出                    |
+| 配置丢失              | 检查配置目录路径：`chainlesschain config list`      |
 
 ## 相关文档
 

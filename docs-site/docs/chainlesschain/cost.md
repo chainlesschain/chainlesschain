@@ -80,14 +80,14 @@ Cost — global
 }
 ```
 
-| 概念 | 说明 |
-|------|------|
-| `FREE_PROVIDERS` | 本地/免费 provider（如 ollama），计 0 成本，标 `free (local)` |
-| `PRICE_TABLE` | 内置公开 list 价格表（USD / 1M tokens） |
-| `config.llm.pricing` | 用户覆盖/新增费率（键为 `provider/model`） |
-| `unpriced` | 无费率的模型，token 不计入总额，提示补价格 |
-| `CACHE_READ_MULTIPLIER_BY_PROVIDER` | 提示缓存**读**相对输入价的倍率，按 provider：Anthropic `0.1` / OpenAI `0.5` / DeepSeek `0.25`（其余回退 `CACHE_READ_MULTIPLIER`=`0.1`）|
-| `CACHE_WRITE_MULTIPLIER` | 提示缓存**写**（创建）倍率 `1.25`，仅 Anthropic 上报；仅在缓存 token >0 时计入 |
+| 概念                                | 说明                                                                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `FREE_PROVIDERS`                    | 本地/免费 provider（如 ollama），计 0 成本，标 `free (local)`                                                                           |
+| `PRICE_TABLE`                       | 内置公开 list 价格表（USD / 1M tokens）                                                                                                 |
+| `config.llm.pricing`                | 用户覆盖/新增费率（键为 `provider/model`）                                                                                              |
+| `unpriced`                          | 无费率的模型，token 不计入总额，提示补价格                                                                                              |
+| `CACHE_READ_MULTIPLIER_BY_PROVIDER` | 提示缓存**读**相对输入价的倍率，按 provider：Anthropic `0.1` / OpenAI `0.5` / DeepSeek `0.25`（其余回退 `CACHE_READ_MULTIPLIER`=`0.1`） |
+| `CACHE_WRITE_MULTIPLIER`            | 提示缓存**写**（创建）倍率 `1.25`，仅 Anthropic 上报；仅在缓存 token >0 时计入                                                          |
 
 > 价格为公开 list 价格的**估算**，仅供参考，不等同于实际账单。
 
@@ -114,25 +114,25 @@ npx vitest run __tests__/unit/llm-pricing.test.js
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `(no token_usage events recorded)` | 该会话/全局没有记录用量事件 | 先用 `cc agent`/`cc chat` 产生带用量记录的会话 |
-| 某模型显示 `unpriced` | 内置价格表无该模型费率 | 在 `config.llm.pricing` 加 `provider/model` 费率 |
-| 本地模型显示 `free (local)` | 该 provider 在 `FREE_PROVIDERS` | 预期：本地模型不计费 |
-| 总额比预期低 | 有 `unpriced` 模型被排除出总额 | 看 `note` 行提示，补齐费率后重算 |
-| 成本显示很多位小数 | 亚分成本（便宜模型）高精度展示 | 预期：`< $0.01` 显示 6 位小数 |
-| 行里没有 `cache_read=` | 该会话无缓存 token（provider 未命中缓存） | 预期：仅缓存读/写 token >0 时才显示 |
-| `/cost` 与 `cc cost` 总额对不上 | 旧版 `/cost` 忽略缓存 token | 升级后两者共用 `priceRollup`，已一致 |
+| 现象                               | 可能原因                                  | 处理                                             |
+| ---------------------------------- | ----------------------------------------- | ------------------------------------------------ |
+| `(no token_usage events recorded)` | 该会话/全局没有记录用量事件               | 先用 `cc agent`/`cc chat` 产生带用量记录的会话   |
+| 某模型显示 `unpriced`              | 内置价格表无该模型费率                    | 在 `config.llm.pricing` 加 `provider/model` 费率 |
+| 本地模型显示 `free (local)`        | 该 provider 在 `FREE_PROVIDERS`           | 预期：本地模型不计费                             |
+| 总额比预期低                       | 有 `unpriced` 模型被排除出总额            | 看 `note` 行提示，补齐费率后重算                 |
+| 成本显示很多位小数                 | 亚分成本（便宜模型）高精度展示            | 预期：`< $0.01` 显示 6 位小数                    |
+| 行里没有 `cache_read=`             | 该会话无缓存 token（provider 未命中缓存） | 预期：仅缓存读/写 token >0 时才显示              |
+| `/cost` 与 `cc cost` 总额对不上    | 旧版 `/cost` 忽略缓存 token               | 升级后两者共用 `priceRollup`，已一致             |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/cost.js` | `cc cost` 命令（展示层） |
-| `packages/cli/src/lib/llm-pricing.js` | `PRICE_TABLE` / `FREE_PROVIDERS` / `mergePricing` / `lookupRate` / `estimateCost` / `priceRollup` / `CACHE_READ_MULTIPLIER_BY_PROVIDER` / `CACHE_WRITE_MULTIPLIER` |
-| `packages/cli/src/lib/session-usage.js` | `sessionUsage` / `allSessionsUsage`（token 聚合，含缓存 token、缓存-only 不丢弃） |
-| `packages/cli/src/repl/session-cost.js` | REPL `/cost` 实时累计（`newCostStore` / `addUsage` / `renderSessionCost`，携缓存 token） |
-| `packages/cli/__tests__/unit/llm-pricing.test.js` | 价格表与 rollup 单元测试（含缓存计价） |
+| 文件                                              | 说明                                                                                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/cli/src/commands/cost.js`               | `cc cost` 命令（展示层）                                                                                                                                           |
+| `packages/cli/src/lib/llm-pricing.js`             | `PRICE_TABLE` / `FREE_PROVIDERS` / `mergePricing` / `lookupRate` / `estimateCost` / `priceRollup` / `CACHE_READ_MULTIPLIER_BY_PROVIDER` / `CACHE_WRITE_MULTIPLIER` |
+| `packages/cli/src/lib/session-usage.js`           | `sessionUsage` / `allSessionsUsage`（token 聚合，含缓存 token、缓存-only 不丢弃）                                                                                  |
+| `packages/cli/src/repl/session-cost.js`           | REPL `/cost` 实时累计（`newCostStore` / `addUsage` / `renderSessionCost`，携缓存 token）                                                                           |
+| `packages/cli/__tests__/unit/llm-pricing.test.js` | 价格表与 rollup 单元测试（含缓存计价）                                                                                                                             |
 
 ## 使用示例
 

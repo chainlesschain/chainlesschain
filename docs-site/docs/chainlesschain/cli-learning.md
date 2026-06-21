@@ -89,44 +89,44 @@ TrajectoryStore ReflectionEngine SkillSynthesizer
 
 ### 核心模块
 
-| 模块 | 职责 |
-|------|------|
-| `TrajectoryStore` | 轨迹的存储、查询、统计和清理 |
+| 模块               | 职责                               |
+| ------------------ | ---------------------------------- |
+| `TrajectoryStore`  | 轨迹的存储、查询、统计和清理       |
 | `ReflectionEngine` | 分析轨迹趋势、工具使用模式和错误率 |
-| `SkillSynthesizer` | 从高分轨迹模式中自动生成 SKILL.md |
+| `SkillSynthesizer` | 从高分轨迹模式中自动生成 SKILL.md  |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/learning.js` | learning 命令主入口 |
-| `packages/cli/src/lib/learning/trajectory-store.js` | 轨迹存储与查询 |
-| `packages/cli/src/lib/learning/reflection-engine.js` | 反思引擎核心实现 |
-| `packages/cli/src/lib/learning/skill-synthesizer.js` | 技能合成器核心实现 |
+| 文件                                                 | 职责                |
+| ---------------------------------------------------- | ------------------- |
+| `packages/cli/src/commands/learning.js`              | learning 命令主入口 |
+| `packages/cli/src/lib/learning/trajectory-store.js`  | 轨迹存储与查询      |
+| `packages/cli/src/lib/learning/reflection-engine.js` | 反思引擎核心实现    |
+| `packages/cli/src/lib/learning/skill-synthesizer.js` | 技能合成器核心实现  |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `trajectory.retentionDays` | 轨迹保留期（天） | 90 |
-| `trajectory.minScoreToKeep` | 最低评分过滤 | 0.0（全部保留） |
-| `reflect.sampleSize` | 反思采样条数 | 200 |
-| `reflect.trendWindow` | 趋势窗口（天） | 14 |
-| `synthesize.minScore` | 合成最低评分门槛 | 0.8 |
-| `synthesize.minSupport` | 模式最小支持度（命中次数） | 5 |
-| `cleanup.days` | `cleanup` 默认天数 | 90 |
+| 配置项                      | 含义                       | 默认            |
+| --------------------------- | -------------------------- | --------------- |
+| `trajectory.retentionDays`  | 轨迹保留期（天）           | 90              |
+| `trajectory.minScoreToKeep` | 最低评分过滤               | 0.0（全部保留） |
+| `reflect.sampleSize`        | 反思采样条数               | 200             |
+| `reflect.trendWindow`       | 趋势窗口（天）             | 14              |
+| `synthesize.minScore`       | 合成最低评分门槛           | 0.8             |
+| `synthesize.minSupport`     | 模式最小支持度（命中次数） | 5               |
+| `cleanup.days`              | `cleanup` 默认天数         | 90              |
 
 可通过环境变量覆盖，例如 `CC_LEARNING_RETENTION_DAYS=60`。
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `learning stats` | < 100 ms | 索引化聚合 |
-| `learning trajectories` | < 50 ms | SQLite LIMIT 查询 |
-| `learning reflect` | 典型 300–800 ms | 取决于样本量 |
-| `learning synthesize` | 典型 500 ms–2 s | 模式挖掘 + SKILL.md 生成 |
-| `learning cleanup` | 依赖轨迹规模 | 批量 DELETE + VACUUM |
+| 操作                    | 典型耗时        | 备注                     |
+| ----------------------- | --------------- | ------------------------ |
+| `learning stats`        | < 100 ms        | 索引化聚合               |
+| `learning trajectories` | < 50 ms         | SQLite LIMIT 查询        |
+| `learning reflect`      | 典型 300–800 ms | 取决于样本量             |
+| `learning synthesize`   | 典型 500 ms–2 s | 模式挖掘 + SKILL.md 生成 |
+| `learning cleanup`      | 依赖轨迹规模    | 批量 DELETE + VACUUM     |
 
 ## 测试覆盖率
 
@@ -178,12 +178,12 @@ chainlesschain learning reflect --json | jq '.trend'
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No trajectories recorded" | 未运行过 agent 会话 | 使用 `chainlesschain agent` 运行会话 |
-| "Database not available" | 数据库未初始化 | 运行 `chainlesschain db init` |
-| "No new skills synthesized" | 轨迹评分不够高或模式不够明确 | 积累更多高质量会话后重试 |
-| 反思趋势始终 "stable" | 样本量太少 | 需要足够多的已评分轨迹 |
+| 症状                        | 可能原因                     | 解决方案                             |
+| --------------------------- | ---------------------------- | ------------------------------------ |
+| "No trajectories recorded"  | 未运行过 agent 会话          | 使用 `chainlesschain agent` 运行会话 |
+| "Database not available"    | 数据库未初始化               | 运行 `chainlesschain db init`        |
+| "No new skills synthesized" | 轨迹评分不够高或模式不够明确 | 积累更多高质量会话后重试             |
+| 反思趋势始终 "stable"       | 样本量太少                   | 需要足够多的已评分轨迹               |
 
 ## 安全考虑
 

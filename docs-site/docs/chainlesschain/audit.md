@@ -734,6 +734,7 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 **现象**: `audit:query-logs` 接口响应时间超过数秒。
 
 **排查步骤**:
+
 1. 检查 `enterprise_audit_log` 表记录总数，超过 10 万条时建议执行 `retention:apply-policy` 清理
 2. 确认查询条件是否命中索引（`timestamp`、`event_type`、`risk_level`、`actor`、`created_at`）
 3. 减小 `pageSize` 参数（默认 50，最大 500），避免单次查询返回过多数据
@@ -744,6 +745,7 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 **现象**: 数据库文件持续增长，磁盘空间不足。
 
 **排查步骤**:
+
 1. 配置并执行 `retention:apply-policy`，设置合理的 `retentionDays`（默认 90 天）
 2. 调高 `logLevel` 从 `info` 到 `warning`，减少低风险事件的记录量
 3. 使用 `retention:preview-deletion` 预览将被清理的数据量
@@ -754,6 +756,7 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 **现象**: 导出或查询日志时 `details` 字段 JSON 解析失败。
 
 **排查步骤**:
+
 1. 检查写入日志时 `details` 参数是否包含不可序列化的对象（如循环引用）
 2. 确认脱敏处理后的字段值未被截断为不完整的 JSON 字符串
 3. 对于 CSV 导出，检查 `details` 中的逗号和引号是否正确转义
@@ -762,25 +765,25 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/audit/enterprise-audit-logger.js` | 企业审计日志核心模块 |
-| `desktop-app-vue/src/main/audit/audit-ipc.js` | 审计 IPC 处理器 (18 handlers) |
-| `desktop-app-vue/src/main/audit/compliance-manager.js` | 合规策略管理 |
-| `desktop-app-vue/src/main/audit/dsr-handler.js` | 数据主体请求处理 |
-| `desktop-app-vue/src/main/hooks/index.js` | Hook 系统 (21 种事件) |
+| 文件                                                        | 职责                          |
+| ----------------------------------------------------------- | ----------------------------- |
+| `desktop-app-vue/src/main/audit/enterprise-audit-logger.js` | 企业审计日志核心模块          |
+| `desktop-app-vue/src/main/audit/audit-ipc.js`               | 审计 IPC 处理器 (18 handlers) |
+| `desktop-app-vue/src/main/audit/compliance-manager.js`      | 合规策略管理                  |
+| `desktop-app-vue/src/main/audit/dsr-handler.js`             | 数据主体请求处理              |
+| `desktop-app-vue/src/main/hooks/index.js`                   | Hook 系统 (21 种事件)         |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 日志查询超时 | 数据量过大未建立索引或查询时间范围过宽 | 缩小查询时间范围，执行 `audit index-rebuild` |
-| 存储空间满导致写入失败 | 日志轮转策略未配置或保留周期过长 | 配置 `retentionDays`，启用自动清理 |
-| 导出格式错误或文件损坏 | 导出过程中断或编码不匹配 | 指定编码 `--encoding utf-8`，检查磁盘空间 |
-| 审计事件丢失 | 高并发下写入队列溢出 | 增大 `bufferSize` 配置，启用异步批量写入 |
-| 合规报告生成失败 | 模板文件缺失或数据源连接异常 | 检查模板路径，确认数据库连接正常 |
+| 症状                   | 可能原因                               | 解决方案                                     |
+| ---------------------- | -------------------------------------- | -------------------------------------------- |
+| 日志查询超时           | 数据量过大未建立索引或查询时间范围过宽 | 缩小查询时间范围，执行 `audit index-rebuild` |
+| 存储空间满导致写入失败 | 日志轮转策略未配置或保留周期过长       | 配置 `retentionDays`，启用自动清理           |
+| 导出格式错误或文件损坏 | 导出过程中断或编码不匹配               | 指定编码 `--encoding utf-8`，检查磁盘空间    |
+| 审计事件丢失           | 高并发下写入队列溢出                   | 增大 `bufferSize` 配置，启用异步批量写入     |
+| 合规报告生成失败       | 模板文件缺失或数据源连接异常           | 检查模板路径，确认数据库连接正常             |
 
 ### 常见错误修复
 
@@ -818,45 +821,45 @@ chainlesschain audit export-verify --file ./audit-export.csv
 
 ### 核心操作基准
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 单条日志写入（内存缓冲） | < 1ms | ~0.3ms | ✅ |
-| 单条日志写入（SQLite 持久化） | < 10ms | ~4ms | ✅ |
-| 风险评估（`assessRisk`） | < 1ms | ~0.2ms | ✅ |
-| 敏感字段脱敏（`sanitizeData`，10 层递归） | < 2ms | ~0.8ms | ✅ |
-| 分页查询（pageSize=50，有索引） | < 50ms | ~18ms | ✅ |
-| 统计分析（7 天 / `day` 粒度） | < 200ms | ~85ms | ✅ |
-| 全量导出 JSON（1 万条） | < 2s | ~1.1s | ✅ |
-| 全量导出 CSV（1 万条） | < 2s | ~1.3s | ✅ |
-| 数据保留策略执行（清理 5 万条） | < 5s | ~2.8s | ✅ |
-| Hook 事件映射并写入审计记录 | < 5ms | ~1.5ms | ✅ |
+| 操作                                      | 目标    | 实际   | 状态 |
+| ----------------------------------------- | ------- | ------ | ---- |
+| 单条日志写入（内存缓冲）                  | < 1ms   | ~0.3ms | ✅   |
+| 单条日志写入（SQLite 持久化）             | < 10ms  | ~4ms   | ✅   |
+| 风险评估（`assessRisk`）                  | < 1ms   | ~0.2ms | ✅   |
+| 敏感字段脱敏（`sanitizeData`，10 层递归） | < 2ms   | ~0.8ms | ✅   |
+| 分页查询（pageSize=50，有索引）           | < 50ms  | ~18ms  | ✅   |
+| 统计分析（7 天 / `day` 粒度）             | < 200ms | ~85ms  | ✅   |
+| 全量导出 JSON（1 万条）                   | < 2s    | ~1.1s  | ✅   |
+| 全量导出 CSV（1 万条）                    | < 2s    | ~1.3s  | ✅   |
+| 数据保留策略执行（清理 5 万条）           | < 5s    | ~2.8s  | ✅   |
+| Hook 事件映射并写入审计记录               | < 5ms   | ~1.5ms | ✅   |
 
 ### 资源使用
 
-| 指标 | 说明 | 典型值 |
-| ---- | ---- | ------ |
-| 内存缓冲占用 | 2000 条上限，FIFO 淘汰 | ~2MB |
-| SQLite 单条记录大小 | 含 details/context JSON，已脱敏截断 | ~500B |
-| 10 万条日志数据库体积 | 含全部索引 | ~60MB |
-| 启动时初始化耗时 | 建表 + 5 个索引 | < 20ms |
-| 高并发写入（100 req/s） | WAL 模式，busy_timeout=30s | 无阻塞 |
+| 指标                    | 说明                                | 典型值 |
+| ----------------------- | ----------------------------------- | ------ |
+| 内存缓冲占用            | 2000 条上限，FIFO 淘汰              | ~2MB   |
+| SQLite 单条记录大小     | 含 details/context JSON，已脱敏截断 | ~500B  |
+| 10 万条日志数据库体积   | 含全部索引                          | ~60MB  |
+| 启动时初始化耗时        | 建表 + 5 个索引                     | < 20ms |
+| 高并发写入（100 req/s） | WAL 模式，busy_timeout=30s          | 无阻塞 |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖范围 |
-| -------- | -------- |
-| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger.test.js` | 核心日志写入、风险评估、脱敏、高风险告警、Hook 集成、内存缓冲 FIFO |
-| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-query.test.js` | 分页查询、多条件过滤、统计分析、时间趋势、topActors |
-| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-export.test.js` | JSON/CSV 导出、字段转义、导出元信息、过滤器组合 |
-| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-retention.test.js` | 保留策略执行、高风险日志豁免、maxRecords 截断、preview 模式 |
-| ✅ `desktop-app-vue/tests/unit/audit/audit-ipc.test.js` | 18 个 IPC 处理器注册与调用、参数校验、权限拦截 |
-| ✅ `desktop-app-vue/tests/unit/audit/compliance-manager.test.js` | 合规策略 CRUD、合规检查逻辑、报告生成 |
-| ✅ `desktop-app-vue/tests/unit/audit/dsr-handler.test.js` | DSR 请求创建/列表/详情/处理/审批/数据导出 |
-| ✅ `desktop-app-vue/tests/unit/audit/sanitize-data.test.js` | 22 类敏感字段脱敏、递归深度限制、二进制替换、超长字符串截断 |
-| ✅ `desktop-app-vue/tests/unit/audit/risk-assessor.test.js` | 4 级风险判定、critical 关键词匹配、medium 模式覆盖、事件类型默认规则 |
-| ✅ `desktop-app-vue/tests/unit/audit/hook-integration.test.js` | 21 种 Hook 事件映射为审计记录、hookSystem 缺失时的降级行为 |
+| 测试文件                                                                        | 覆盖范围                                                             |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger.test.js`           | 核心日志写入、风险评估、脱敏、高风险告警、Hook 集成、内存缓冲 FIFO   |
+| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-query.test.js`     | 分页查询、多条件过滤、统计分析、时间趋势、topActors                  |
+| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-export.test.js`    | JSON/CSV 导出、字段转义、导出元信息、过滤器组合                      |
+| ✅ `desktop-app-vue/tests/unit/audit/enterprise-audit-logger-retention.test.js` | 保留策略执行、高风险日志豁免、maxRecords 截断、preview 模式          |
+| ✅ `desktop-app-vue/tests/unit/audit/audit-ipc.test.js`                         | 18 个 IPC 处理器注册与调用、参数校验、权限拦截                       |
+| ✅ `desktop-app-vue/tests/unit/audit/compliance-manager.test.js`                | 合规策略 CRUD、合规检查逻辑、报告生成                                |
+| ✅ `desktop-app-vue/tests/unit/audit/dsr-handler.test.js`                       | DSR 请求创建/列表/详情/处理/审批/数据导出                            |
+| ✅ `desktop-app-vue/tests/unit/audit/sanitize-data.test.js`                     | 22 类敏感字段脱敏、递归深度限制、二进制替换、超长字符串截断          |
+| ✅ `desktop-app-vue/tests/unit/audit/risk-assessor.test.js`                     | 4 级风险判定、critical 关键词匹配、medium 模式覆盖、事件类型默认规则 |
+| ✅ `desktop-app-vue/tests/unit/audit/hook-integration.test.js`                  | 21 种 Hook 事件映射为审计记录、hookSystem 缺失时的降级行为           |
 
 ---
 

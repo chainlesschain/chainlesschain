@@ -38,12 +38,12 @@ chainlesschain rep score did:key:z6Mk... -d linear --alpha 0.001 --json
 
 计算指定 DID 的聚合信誉分数。`-d` 指定衰减模型：
 
-| 衰减模型 | 说明 | 参数 |
-|----------|------|------|
-| `none` | 无衰减（默认） | — |
-| `exponential` | 指数衰减 | `--lambda` (衰减速率) |
-| `linear` | 线性衰减 | `--alpha` (衰减斜率) |
-| `step` | 阶梯衰减 | — |
+| 衰减模型      | 说明           | 参数                  |
+| ------------- | -------------- | --------------------- |
+| `none`        | 无衰减（默认） | —                     |
+| `exponential` | 指数衰减       | `--lambda` (衰减速率) |
+| `linear`      | 线性衰减       | `--alpha` (衰减斜率)  |
+| `step`        | 阶梯衰减       | —                     |
 
 ### reputation list — 列出所有 DID 分数
 
@@ -72,12 +72,12 @@ chainlesschain rep optimize -o fairness -i 100 --json
 
 运行模拟贝叶斯优化，搜索最优信誉算法参数。`-o` 指定优化目标：
 
-| 目标 | 说明 |
-|------|------|
-| `accuracy` | 最大化评分准确度（默认） |
-| `fairness` | 最大化公平性 |
-| `resilience` | 最大化抗攻击能力 |
-| `convergence_speed` | 最大化收敛速度 |
+| 目标                | 说明                     |
+| ------------------- | ------------------------ |
+| `accuracy`          | 最大化评分准确度（默认） |
+| `fairness`          | 最大化公平性             |
+| `resilience`        | 最大化抗攻击能力         |
+| `convergence_speed` | 最大化收敛速度           |
 
 `-i` 设置迭代次数（默认 50）。
 
@@ -168,20 +168,20 @@ chainlesschain rep objectives --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/reputation.js` | reputation 命令主入口（含 `rep` 别名） |
+| 文件                                           | 职责                                             |
+| ---------------------------------------------- | ------------------------------------------------ |
+| `packages/cli/src/commands/reputation.js`      | reputation 命令主入口（含 `rep` 别名）           |
 | `packages/cli/src/lib/reputation-optimizer.js` | 观测存储、衰减计算、异常检测、贝叶斯优化核心实现 |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `observe` | < 15 ms | 单行 INSERT |
-| `score` | < 30 ms | 聚合 + 衰减计算 |
-| `list` | < 50 ms | 带索引 LIMIT |
-| `anomalies` (z_score/iqr) | < 100 ms | 基于最近窗口 |
-| `optimize` 50 iter | 典型 1–3 s | 简化贝叶斯，全程在 JS 侧 |
+| 操作                      | 典型耗时   | 备注                     |
+| ------------------------- | ---------- | ------------------------ |
+| `observe`                 | < 15 ms    | 单行 INSERT              |
+| `score`                   | < 30 ms    | 聚合 + 衰减计算          |
+| `list`                    | < 50 ms    | 带索引 LIMIT             |
+| `anomalies` (z_score/iqr) | < 100 ms   | 基于最近窗口             |
+| `optimize` 50 iter        | 典型 1–3 s | 简化贝叶斯，全程在 JS 侧 |
 
 ## 测试覆盖率
 
@@ -201,12 +201,12 @@ __tests__/unit/reputation-optimizer.test.js — 79 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `score` 始终为 0 | `observe` 未落库（未指定 `-k`） | 检查 `list` 是否有数据 |
-| 异常检测误报 | 样本量不足 / 分布偏斜 | 增大窗口或切换 `iqr` |
-| `optimize` 不收敛 | 目标冲突 / `iterations` 过小 | 放宽目标或升高 iter |
-| `observe` 拒绝 | score 越界 (非 0–1) | 在调用前做 clamp |
+| 症状              | 可能原因                        | 解决方案               |
+| ----------------- | ------------------------------- | ---------------------- |
+| `score` 始终为 0  | `observe` 未落库（未指定 `-k`） | 检查 `list` 是否有数据 |
+| 异常检测误报      | 样本量不足 / 分布偏斜           | 增大窗口或切换 `iqr`   |
+| `optimize` 不收敛 | 目标冲突 / `iterations` 过小    | 放宽目标或升高 iter    |
+| `observe` 拒绝    | score 越界 (非 0–1)             | 在调用前做 clamp       |
 
 ## 测试
 

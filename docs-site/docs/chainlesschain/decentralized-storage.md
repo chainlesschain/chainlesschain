@@ -220,14 +220,14 @@ const useDecentralizedStorageStore = defineStore("decentralizedStorage", {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 交易创建失败 | Filecoin 网络不可达或矿工离线 | 检查网络连接，更换矿工节点重试 |
-| 交易状态一直为 proposed | 矿工未确认或 FIL 余额不足 | 确认钱包余额充足，联系矿工节点确认 |
-| P2P 分发节点数为 0 | 无在线对等节点 | 确保 P2P 网络已启动，检查节点发现配置 |
-| 版本历史查询为空 | CID 未经过版本管理 | 需先通过 IPLD DAG 创建版本记录 |
-| 存储统计数据异常 | 数据库缓存未刷新 | 手动刷新页面或重启存储服务 |
-| 证明验证失败 | 矿工未按时提交存储证明 | 属于矿工侧问题，考虑更换可靠矿工 |
+| 问题                    | 可能原因                      | 解决方案                              |
+| ----------------------- | ----------------------------- | ------------------------------------- |
+| 交易创建失败            | Filecoin 网络不可达或矿工离线 | 检查网络连接，更换矿工节点重试        |
+| 交易状态一直为 proposed | 矿工未确认或 FIL 余额不足     | 确认钱包余额充足，联系矿工节点确认    |
+| P2P 分发节点数为 0      | 无在线对等节点                | 确保 P2P 网络已启动，检查节点发现配置 |
+| 版本历史查询为空        | CID 未经过版本管理            | 需先通过 IPLD DAG 创建版本记录        |
+| 存储统计数据异常        | 数据库缓存未刷新              | 手动刷新页面或重启存储服务            |
+| 证明验证失败            | 矿工未按时提交存储证明        | 属于矿工侧问题，考虑更换可靠矿工      |
 
 ## 配置参考
 
@@ -235,40 +235,40 @@ const useDecentralizedStorageStore = defineStore("decentralizedStorage", {
 // desktop-app-vue/src/main/ipfs/filecoin-storage.js
 const DEFAULT_CONFIG = {
   filecoin: {
-    defaultDurationEpochs: 518400,   // ~6 个月 (1 epoch ≈ 30s)
-    renewalThresholdEpochs: 86400,   // 临期 1 个月时自动续期
-    verifiedDeals: true,             // 优先使用已验证交易（享受存储折扣）
-    maxPriceFilPerGiB: 0.0000001,    // 最高可接受价格 FIL/GiB/epoch
+    defaultDurationEpochs: 518400, // ~6 个月 (1 epoch ≈ 30s)
+    renewalThresholdEpochs: 86400, // 临期 1 个月时自动续期
+    verifiedDeals: true, // 优先使用已验证交易（享受存储折扣）
+    maxPriceFilPerGiB: 0.0000001, // 最高可接受价格 FIL/GiB/epoch
   },
   distributor: {
-    defaultPeerCount: 5,             // 默认分发对等节点数
-    hotCacheThresholdAccess: 10,     // 访问次数 ≥10 视为热内容
+    defaultPeerCount: 5, // 默认分发对等节点数
+    hotCacheThresholdAccess: 10, // 访问次数 ≥10 视为热内容
     cacheEvictionTtlMs: 7 * 24 * 3600 * 1000, // 冷内容 7 天后逐出
   },
   ipld: {
-    dagFormat: "dag-cbor",           // IPLD DAG 序列化格式
-    hashFunction: "sha2-256",        // 内容 CID 哈希算法
+    dagFormat: "dag-cbor", // IPLD DAG 序列化格式
+    hashFunction: "sha2-256", // 内容 CID 哈希算法
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `defaultDurationEpochs` | 518400 | 默认存储时长（约 6 个月） |
-| `defaultPeerCount` | 5 | P2P 分发节点数 |
-| `verifiedDeals` | true | 是否使用已验证交易以降低费率 |
-| `hotCacheThresholdAccess` | 10 | 热内容判定访问阈值 |
+| 配置项                    | 默认值 | 说明                         |
+| ------------------------- | ------ | ---------------------------- |
+| `defaultDurationEpochs`   | 518400 | 默认存储时长（约 6 个月）    |
+| `defaultPeerCount`        | 5      | P2P 分发节点数               |
+| `verifiedDeals`           | true   | 是否使用已验证交易以降低费率 |
+| `hotCacheThresholdAccess` | 10     | 热内容判定访问阈值           |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| Filecoin 交易创建（模拟） | < 200ms | ~80ms | ✅ |
-| P2P 内容分发（5 节点） | < 500ms | ~200ms | ✅ |
-| 版本历史查询（50 条） | < 100ms | ~30ms | ✅ |
-| 存储统计聚合 | < 50ms | ~15ms | ✅ |
-| 存储证明验证 | < 1000ms | ~400ms | ✅ |
-| 数据库写入（单条交易） | < 10ms | ~3ms | ✅ |
+| 操作                      | 目标     | 实际   | 状态 |
+| ------------------------- | -------- | ------ | ---- |
+| Filecoin 交易创建（模拟） | < 200ms  | ~80ms  | ✅   |
+| P2P 内容分发（5 节点）    | < 500ms  | ~200ms | ✅   |
+| 版本历史查询（50 条）     | < 100ms  | ~30ms  | ✅   |
+| 存储统计聚合              | < 50ms   | ~15ms  | ✅   |
+| 存储证明验证              | < 1000ms | ~400ms | ✅   |
+| 数据库写入（单条交易）    | < 10ms   | ~3ms   | ✅   |
 
 ## 安全考虑
 

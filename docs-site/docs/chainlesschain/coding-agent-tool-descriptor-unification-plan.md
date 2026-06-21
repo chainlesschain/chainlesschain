@@ -68,13 +68,13 @@
 
 ### 分层职责
 
-| 层 | 职责 | 读取优先级 |
-| --- | --- | --- |
-| CLI Runtime | contract 真源，派生 core tool schema | — |
-| Desktop Adapter | 从 contract 派生 core tools，补齐 host 字段 | — |
+| 层               | 职责                                         | 读取优先级                 |
+| ---------------- | -------------------------------------------- | -------------------------- |
+| CLI Runtime      | contract 真源，派生 core tool schema         | —                          |
+| Desktop Adapter  | 从 contract 派生 core tools，补齐 host 字段  | —                          |
 | Unified Registry | 规范 builtin / MCP / skill tools，对外 clone | `inputSchema → parameters` |
-| IPC 层 | 序列化 canonical 字段送给 Renderer | `inputSchema → parameters` |
-| Renderer | 仅消费，不再猜字段 | `inputSchema → parameters` |
+| IPC 层           | 序列化 canonical 字段送给 Renderer           | `inputSchema → parameters` |
+| Renderer         | 仅消费，不再猜字段                           | `inputSchema → parameters` |
 
 ## 使用示例
 
@@ -91,7 +91,10 @@ registerCodingAgentTool({
   inputSchema: {
     type: "object",
     properties: {
-      path: { type: "string", description: "Absolute or workspace-relative path" },
+      path: {
+        type: "string",
+        description: "Absolute or workspace-relative path",
+      },
       offset: { type: "integer", minimum: 0 },
       limit: { type: "integer", minimum: 1 },
     },
@@ -184,18 +187,16 @@ const coreTools = sharedContract.map((entry) => ({
 // createUnifiedToolDescriptor — 读路径标准回退链
 
 function createUnifiedToolDescriptor(raw) {
-  const inputSchema =
-    raw.inputSchema ??
+  const inputSchema = raw.inputSchema ??
     raw.parameters ??
     raw.function?.parameters ??
-    raw.input_schema ??
-    { type: "object", properties: {} };
+    raw.input_schema ?? { type: "object", properties: {} };
 
   return Object.freeze({
     ...DESCRIPTOR_DEFAULTS,
     ...raw,
     inputSchema,
-    parameters: inputSchema,   // 只读镜像，与 inputSchema 保持同步
+    parameters: inputSchema, // 只读镜像，与 inputSchema 保持同步
   });
 }
 
@@ -234,7 +235,11 @@ function getToolDescriptor(name) {
 // desktop-app-vue/src/main/ai-engine/tools/computer-use-tools.js
 
 function canonicalizeComputerUseTool(tool) {
-  const readOnlyNames = ["browser_screenshot", "desktop_screenshot", "analyze_page"];
+  const readOnlyNames = [
+    "browser_screenshot",
+    "desktop_screenshot",
+    "analyze_page",
+  ];
   const isReadOnly = readOnlyNames.includes(tool.name);
   return {
     ...tool,
@@ -256,37 +261,37 @@ function canonicalizeComputerUseTool(tool) {
 
 ### 描述符归一化耗时
 
-| 场景 | 工具数量 | 单次耗时 | 批量（全量初始化） |
-| --- | --- | --- | --- |
-| CLI contract → canonical | 16 个 core tools | < 0.1 ms | < 1 ms |
-| Desktop FunctionCaller 注册 | 62 个工具 | < 0.2 ms/个 | ~12 ms |
-| MCP 工具 canonical 化 | 每服务器 5–20 个 | < 0.3 ms/个 | ~8 ms（3 个服务器）|
-| Skill-linked 归一化 | 141 个技能工具 | < 0.15 ms/个 | ~20 ms |
-| **全量 unified-tool-registry 初始化** | **216 个工具** | — | **~40 ms** |
+| 场景                                  | 工具数量         | 单次耗时     | 批量（全量初始化）  |
+| ------------------------------------- | ---------------- | ------------ | ------------------- |
+| CLI contract → canonical              | 16 个 core tools | < 0.1 ms     | < 1 ms              |
+| Desktop FunctionCaller 注册           | 62 个工具        | < 0.2 ms/个  | ~12 ms              |
+| MCP 工具 canonical 化                 | 每服务器 5–20 个 | < 0.3 ms/个  | ~8 ms（3 个服务器） |
+| Skill-linked 归一化                   | 141 个技能工具   | < 0.15 ms/个 | ~20 ms              |
+| **全量 unified-tool-registry 初始化** | **216 个工具**   | —            | **~40 ms**          |
 
 ### Clone 开销
 
-| 操作 | 平均耗时 | 说明 |
-| --- | --- | --- |
-| `cloneValue(descriptor)` — 单个 | < 0.05 ms | 浅克隆 + JSON-safe deep clone |
-| IPC 序列化（`mcp:list-tools`） | ~2 ms（20 工具）| 含 Electron IPC 序列化框架开销 |
-| Renderer store 批量更新 | ~5 ms（216 工具）| Vue3 reactive assignment |
+| 操作                            | 平均耗时          | 说明                           |
+| ------------------------------- | ----------------- | ------------------------------ |
+| `cloneValue(descriptor)` — 单个 | < 0.05 ms         | 浅克隆 + JSON-safe deep clone  |
+| IPC 序列化（`mcp:list-tools`）  | ~2 ms（20 工具）  | 含 Electron IPC 序列化框架开销 |
+| Renderer store 批量更新         | ~5 ms（216 工具） | Vue3 reactive assignment       |
 
 ### 内存占用
 
-| 对象 | 内存 | 说明 |
-| --- | --- | --- |
-| 单个 canonical descriptor | ~2 KB | 含 inputSchema + parameters 镜像 |
-| 全量缓存 Map（216 个工具）| ~430 KB | 注册表内部缓存 |
-| IPC 传输载荷（全量） | ~380 KB | JSON 序列化后 |
+| 对象                       | 内存    | 说明                             |
+| -------------------------- | ------- | -------------------------------- |
+| 单个 canonical descriptor  | ~2 KB   | 含 inputSchema + parameters 镜像 |
+| 全量缓存 Map（216 个工具） | ~430 KB | 注册表内部缓存                   |
+| IPC 传输载荷（全量）       | ~380 KB | JSON 序列化后                    |
 
 ### Plan Mode 审批延迟
 
-| 路径 | 延迟 | 说明 |
-| --- | --- | --- |
+| 路径                             | 延迟     | 说明                                 |
+| -------------------------------- | -------- | ------------------------------------ |
 | Permission Gate 判定（命中缓存） | < 0.1 ms | riskLevel / availableInPlanMode 直读 |
-| Permission Gate 判定（冷路径） | < 0.5 ms | 包含 contract 字段解析 |
-| Desktop ApprovalGate 决策 | < 1 ms | 含 policy 读取（JSON 文件已缓存）|
+| Permission Gate 判定（冷路径）   | < 0.5 ms | 包含 contract 字段解析               |
+| Desktop ApprovalGate 决策        | < 1 ms   | 含 policy 读取（JSON 文件已缓存）    |
 
 ---
 
@@ -299,6 +304,7 @@ function canonicalizeComputerUseTool(tool) {
 **原因**: IPC 序列化层没透传 canonical 字段，或 Renderer 读取链中仍先读旧 `parameters`。
 
 **解决**:
+
 1. 检查 `desktop-app-vue/src/main/ai-engine/unified-tools-ipc.js` 是否把新字段列入返回结构
 2. 检查 `unified-tools.ts` 的读取顺序是否为 `inputSchema → parameters`
 3. 运行测试确认：`cd desktop-app-vue && npx vitest run src/renderer/stores/__tests__/unified-tools.test.ts`
@@ -382,44 +388,45 @@ grep -rn "parameters:" desktop-app-vue/src/main/ai-engine/
 
 ### CLI 层
 
-| 测试文件 | 覆盖内容 | 用例数 |
-| --- | --- | --- |
-| ✅ `packages/cli/__tests__/unit/coding-agent-contract.test.js` | contract 注册、schema 结构验证、字段默认值 | 24 |
-| ✅ `packages/cli/__tests__/unit/agent-core.test.js` | agent-core 从 contract 读取 schema、不再手写 | 18 |
-| ✅ `packages/cli/__tests__/unit/hashline.test.js` | edit_file_hashed 哈希锚定行编辑 | 29 |
-| ✅ `packages/cli/__tests__/unit/agent-core-edit-hashed.test.js` | hashed 模式 handler、三种错误自愈 | 12 |
+| 测试文件                                                        | 覆盖内容                                     | 用例数 |
+| --------------------------------------------------------------- | -------------------------------------------- | ------ |
+| ✅ `packages/cli/__tests__/unit/coding-agent-contract.test.js`  | contract 注册、schema 结构验证、字段默认值   | 24     |
+| ✅ `packages/cli/__tests__/unit/agent-core.test.js`             | agent-core 从 contract 读取 schema、不再手写 | 18     |
+| ✅ `packages/cli/__tests__/unit/hashline.test.js`               | edit_file_hashed 哈希锚定行编辑              | 29     |
+| ✅ `packages/cli/__tests__/unit/agent-core-edit-hashed.test.js` | hashed 模式 handler、三种错误自愈            | 12     |
 
 ### Desktop Main 层
 
-| 测试文件 | 覆盖内容 | 用例数 |
-| --- | --- | --- |
-| ✅ `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-tool-adapter.test.js` | contract → core tools 派生、canonical 字段补齐 | 21 |
-| ✅ `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-permission-gate.test.js` | riskLevel / isReadOnly / requiresPlanApproval 审批逻辑 | 36 |
-| ✅ `desktop-app-vue/src/main/ai-engine/__tests__/unified-tool-registry.test.js` | 归一化、clone-on-read、inputSchema → parameters 镜像 | 33 |
-| ✅ `desktop-app-vue/src/main/llm/__tests__/context-engineering.test.js` | inputSchema 优先读、兼容回退 | 19 |
-| ✅ `desktop-app-vue/tests/unit/ai-engine/unified-tool-registry.test.js` | 全量注册表初始化、字段一致性 | 28 |
-| ✅ `desktop-app-vue/tests/unit/ai-engine/function-caller.test.js` | buildMaskingPayload canonical 透传 | 22 |
-| ✅ `desktop-app-vue/tests/unit/mcp/mcp-ipc.test.js` | mcp:list-tools canonical 序列化 | 17 |
-| ✅ `desktop-app-vue/tests/unit/components/MCPSettings.test.js` | inputSchema 动态表单生成 | 14 |
+| 测试文件                                                                                          | 覆盖内容                                               | 用例数 |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------ |
+| ✅ `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-tool-adapter.test.js`    | contract → core tools 派生、canonical 字段补齐         | 21     |
+| ✅ `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-permission-gate.test.js` | riskLevel / isReadOnly / requiresPlanApproval 审批逻辑 | 36     |
+| ✅ `desktop-app-vue/src/main/ai-engine/__tests__/unified-tool-registry.test.js`                   | 归一化、clone-on-read、inputSchema → parameters 镜像   | 33     |
+| ✅ `desktop-app-vue/src/main/llm/__tests__/context-engineering.test.js`                           | inputSchema 优先读、兼容回退                           | 19     |
+| ✅ `desktop-app-vue/tests/unit/ai-engine/unified-tool-registry.test.js`                           | 全量注册表初始化、字段一致性                           | 28     |
+| ✅ `desktop-app-vue/tests/unit/ai-engine/function-caller.test.js`                                 | buildMaskingPayload canonical 透传                     | 22     |
+| ✅ `desktop-app-vue/tests/unit/mcp/mcp-ipc.test.js`                                               | mcp:list-tools canonical 序列化                        | 17     |
+| ✅ `desktop-app-vue/tests/unit/components/MCPSettings.test.js`                                    | inputSchema 动态表单生成                               | 14     |
 
 ### Renderer 层
 
-| 测试文件 | 覆盖内容 | 用例数 |
-| --- | --- | --- |
-| ✅ `desktop-app-vue/src/renderer/stores/__tests__/unified-tools.test.ts` | canonical 字段消费、inputSchema → parameters 回退链 | 26 |
+| 测试文件                                                                 | 覆盖内容                                            | 用例数 |
+| ------------------------------------------------------------------------ | --------------------------------------------------- | ------ |
+| ✅ `desktop-app-vue/src/renderer/stores/__tests__/unified-tools.test.ts` | canonical 字段消费、inputSchema → parameters 回退链 | 26     |
 
 ### 覆盖率摘要
 
-| 模块 | 语句覆盖 | 分支覆盖 | 函数覆盖 |
-| --- | --- | --- | --- |
-| `coding-agent-contract-shared.cjs` | 100% | 100% | 100% |
-| `coding-agent-tool-adapter.js` | 97% | 94% | 100% |
-| `unified-tool-registry.js` | 95% | 91% | 98% |
-| `tool-masking.js` | 93% | 89% | 96% |
-| `mcp-ipc.js`（canonical 路径）| 91% | 87% | 94% |
-| `unified-tools.ts`（Renderer store）| 98% | 96% | 100% |
+| 模块                                 | 语句覆盖 | 分支覆盖 | 函数覆盖 |
+| ------------------------------------ | -------- | -------- | -------- |
+| `coding-agent-contract-shared.cjs`   | 100%     | 100%     | 100%     |
+| `coding-agent-tool-adapter.js`       | 97%      | 94%      | 100%     |
+| `unified-tool-registry.js`           | 95%      | 91%      | 98%      |
+| `tool-masking.js`                    | 93%      | 89%      | 96%      |
+| `mcp-ipc.js`（canonical 路径）       | 91%      | 87%      | 94%      |
+| `unified-tools.ts`（Renderer store） | 98%      | 96%      | 100%     |
 
 > 运行全部相关测试：
+>
 > ```bash
 > # CLI
 > cd packages/cli && npx vitest run __tests__/unit/coding-agent-contract __tests__/unit/agent-core
@@ -451,16 +458,19 @@ grep -rn "parameters:" desktop-app-vue/src/main/ai-engine/
 ### 后续阶段（P1 / P2 / P3 均已完成）
 
 **P1 — `tool-masking` canonical 化** ✅
+
 - `getAllToolDefinitions()` / `getAvailableToolDefinitions()` 通过 `_projectCanonical()` 输出 canonical schema
 - `registerTool()` 存储时即执行 `toCanonicalDescriptor()`，保证缓存中就是 canonical shape
 - 新增 `CANONICAL_TOOL_FIELDS` 常量作为字段清单
 
 **P2 — 剩余 main-process 消费方迁移** ✅
+
 - `function-caller.js` — `buildMaskingPayload()` 把 canonical 字段透传到 masking system；`getAvailableTools()` 输出同步携带 canonical 字段
 - `computer-use-tools.js` — `canonicalizeComputerUseTool()` 把 13 个工具统一规范化，read-only (`browser_screenshot` / `desktop_screenshot` / `analyze_page`) 设为 `riskLevel: medium` + `availableInPlanMode: true`，其他设为 `riskLevel: high` + `requiresPlanApproval: true`
 - `getOpenAITools()` / `getClaudeTools()` 以 `inputSchema` 作为真源
 
 **P3 — 兼容层收敛** ✅
+
 - 全仓扫描确认不存在手工维护的 `inputSchema + parameters` 双写位置
 - `unified-tool-registry.js` MCP 工具回填路径改为 canonical 读序 (`fcTool.inputSchema → .parameters → .function.parameters → .input_schema`)
 - 开发规范写入 `CLAUDE-patterns.md` 《Canonical Tool Descriptor 规范》章节

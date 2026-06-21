@@ -55,21 +55,21 @@
 
 **数据流要点**：
 
-| 阶段 | 函数 | 行为 |
-|------|------|------|
-| 发现 | `discoverOutputStyles(cwd, opts)` | 内置打底 → 个人目录 → 项目目录依次合并，文件按 `name`（或文件名）覆盖同名项 |
-| 取单个 | `getOutputStyle(name, cwd)` | 大小写不敏感匹配，未命中返回 `null` |
-| 读默认 | `settingsDefaultOutputStyle(cwd)` | 按 `~/.claude` < 项目 `.claude` < `.claude/settings.local.json` 顺序读 `outputStyle`，**后者覆盖前者** |
+| 阶段     | 函数                                | 行为                                                                                                         |
+| -------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 发现     | `discoverOutputStyles(cwd, opts)`   | 内置打底 → 个人目录 → 项目目录依次合并，文件按 `name`（或文件名）覆盖同名项                                  |
+| 取单个   | `getOutputStyle(name, cwd)`         | 大小写不敏感匹配，未命中返回 `null`                                                                          |
+| 读默认   | `settingsDefaultOutputStyle(cwd)`   | 按 `~/.claude` < 项目 `.claude` < `.claude/settings.local.json` 顺序读 `outputStyle`，**后者覆盖前者**       |
 | 解析生效 | `resolveOutputStyle(explicit, cwd)` | 显式名 → settings 默认 → 无；命中返回 `{name, body}`；名存在但找不到风格返回 `{name, body:"", missing:true}` |
-| 组装 | `composeSystemPrompt(base, {...})` | `outputStyle` 作为最后一层追加，前置空行分隔 |
+| 组装     | `composeSystemPrompt(base, {...})`  | `outputStyle` 作为最后一层追加，前置空行分隔                                                                 |
 
 ## 内置风格
 
-| 名称 | 说明 | 行为 |
-|------|------|------|
-| `default` | 标准编码助手（无人格叠加） | 正文为空，`composeSystemPrompt` 不追加任何内容 |
-| `explanatory` | 解释改动背后的推理与权衡 | 工作中穿插简短 `★ Insight` 笔记，讲清为什么这么选、有哪些非显而易见的权衡（1–2 句，不为常规步骤注水） |
-| `learning` | 协作式，给用户留可学习的小块 | 遇到「用户自己写会更有收获」的小范围片段时，插入 `TODO(you):` 标记（含一行说明）而非代劳，再继续其余部分 |
+| 名称          | 说明                         | 行为                                                                                                     |
+| ------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `default`     | 标准编码助手（无人格叠加）   | 正文为空，`composeSystemPrompt` 不追加任何内容                                                           |
+| `explanatory` | 解释改动背后的推理与权衡     | 工作中穿插简短 `★ Insight` 笔记，讲清为什么这么选、有哪些非显而易见的权衡（1–2 句，不为常规步骤注水）    |
+| `learning`    | 协作式，给用户留可学习的小块 | 遇到「用户自己写会更有收获」的小范围片段时，插入 `TODO(you):` 标记（含一行说明）而非代劳，再继续其余部分 |
 
 > 同名文件会 shadow 内置风格——例如新建 `.claude/output-styles/explanatory.md` 即可覆盖内置 `explanatory` 的正文。
 
@@ -136,12 +136,12 @@ description: 像海盗船长一样说话，但代码照样严谨
 
 ### 发现目录优先级（低 → 高）
 
-| 优先级 | 目录 | 作用域 |
-|--------|------|--------|
-| 1（最低） | 内置常量 `BUILTIN_OUTPUT_STYLES` | — |
-| 2 | `~/.claude/output-styles/*.md` | 个人 |
-| 3 | `<cwd>/.claude/output-styles/*.md` | 项目 |
-| 4（最高） | `<cwd>/.chainlesschain/output-styles/*.md` | 项目 |
+| 优先级    | 目录                                       | 作用域 |
+| --------- | ------------------------------------------ | ------ |
+| 1（最低） | 内置常量 `BUILTIN_OUTPUT_STYLES`           | —      |
+| 2         | `~/.claude/output-styles/*.md`             | 个人   |
+| 3         | `<cwd>/.claude/output-styles/*.md`         | 项目   |
+| 4（最高） | `<cwd>/.chainlesschain/output-styles/*.md` | 项目   |
 
 同名时，高优先级覆盖低优先级（文件覆盖内置，项目覆盖个人）。
 
@@ -155,10 +155,10 @@ description: 像海盗船长一样说话，但代码照样严谨
 
 ## 测试覆盖
 
-| 测试文件 | 用例数 | 覆盖点 |
-|----------|--------|--------|
-| `packages/cli/__tests__/unit/output-styles.test.js` | 11 | frontmatter 解析、内置风格、文件发现/覆盖、项目优先个人、`getOutputStyle` 大小写不敏感、`settingsDefaultOutputStyle` 层级合并、`resolveOutputStyle` 优先级与 `missing` 标记 |
-| `packages/cli/__tests__/unit/output-style-command.test.js` | 3 | `list` / `show` / `new` 命令行为 |
+| 测试文件                                                   | 用例数 | 覆盖点                                                                                                                                                                      |
+| ---------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/output-styles.test.js`        | 11     | frontmatter 解析、内置风格、文件发现/覆盖、项目优先个人、`getOutputStyle` 大小写不敏感、`settingsDefaultOutputStyle` 层级合并、`resolveOutputStyle` 优先级与 `missing` 标记 |
+| `packages/cli/__tests__/unit/output-style-command.test.js` | 3      | `list` / `show` / `new` 命令行为                                                                                                                                            |
 
 合计 **14** 个单测（loader 11 + command 3）。测试通过 `_deps` 注入 `fs` / `homedir`，无真实磁盘副作用。
 
@@ -177,28 +177,28 @@ npx vitest run __tests__/unit/output-styles.test.js __tests__/unit/output-style-
 
 ## 故障排除
 
-| 现象 | 原因 | 解决 |
-|------|------|------|
-| `cc output-style list` 看不到我的文件 | 文件不在三个发现目录之一，或扩展名不是 `.md` | 放到 `.claude/output-styles/` 或 `.chainlesschain/output-styles/`，确认 `.md` 后缀 |
-| 套了风格但行为没变 | 名字拼错 / settings 默认被 `--output-style` 覆盖 / 用的是 `default`（空正文） | `cc output-style show <name>` 看正文是否非空；headless 留意 stderr 的 `unknown style` 警告 |
-| headless 报 `unknown style "x"` | `--output-style` 或 settings 的 `outputStyle` 指向不存在的风格 | 用 `cc output-style list` 核对可用名 |
-| 自定义风格覆盖不了内置 | 文件 `name:` 与内置名不一致 | frontmatter `name` 必须与内置名完全相同（如 `explanatory`） |
-| 个人风格被忽略 | 项目目录存在同名文件 | 项目级优先于个人级；改名或移除项目同名文件 |
-| REPL `/output-style <name>` 无反应 | 名不存在 | 先 `/output-style`（无参）列出全部，再切换；`/output-style none` 清除 |
-| settings 默认不生效 | `outputStyle` 写在了错误的 JSON 文件，或被命令行覆盖 | 确认写在 `.claude/settings.json`；`--output-style` 会覆盖默认 |
+| 现象                                  | 原因                                                                          | 解决                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `cc output-style list` 看不到我的文件 | 文件不在三个发现目录之一，或扩展名不是 `.md`                                  | 放到 `.claude/output-styles/` 或 `.chainlesschain/output-styles/`，确认 `.md` 后缀         |
+| 套了风格但行为没变                    | 名字拼错 / settings 默认被 `--output-style` 覆盖 / 用的是 `default`（空正文） | `cc output-style show <name>` 看正文是否非空；headless 留意 stderr 的 `unknown style` 警告 |
+| headless 报 `unknown style "x"`       | `--output-style` 或 settings 的 `outputStyle` 指向不存在的风格                | 用 `cc output-style list` 核对可用名                                                       |
+| 自定义风格覆盖不了内置                | 文件 `name:` 与内置名不一致                                                   | frontmatter `name` 必须与内置名完全相同（如 `explanatory`）                                |
+| 个人风格被忽略                        | 项目目录存在同名文件                                                          | 项目级优先于个人级；改名或移除项目同名文件                                                 |
+| REPL `/output-style <name>` 无反应    | 名不存在                                                                      | 先 `/output-style`（无参）列出全部，再切换；`/output-style none` 清除                      |
+| settings 默认不生效                   | `outputStyle` 写在了错误的 JSON 文件，或被命令行覆盖                          | 确认写在 `.claude/settings.json`；`--output-style` 会覆盖默认                              |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/lib/output-styles.js` | 核心：`discoverOutputStyles` / `getOutputStyle` / `settingsDefaultOutputStyle` / `resolveOutputStyle` + `BUILTIN_OUTPUT_STYLES` + 零依赖 frontmatter 解析（`_deps` 注入） |
-| `packages/cli/src/runtime/system-prompt.js` | `composeSystemPrompt` 的 `outputStyle` 追加层（最后一层） |
-| `packages/cli/src/commands/output-style.js` | `cc output-style list / show / new` 命令实现 |
-| `packages/cli/src/commands/agent.js` | `--output-style <name>` flag，透传 `outputStyle` 到 headless-runner / headless-stream |
-| `packages/cli/src/runtime/headless-runner.js` | `-p` 一次性：`resolveOutputStyle` → 组装系统提示，missing 名 stderr 警告 |
-| `packages/cli/src/runtime/headless-stream.js` | stream-json：解析风格正文并 append |
-| `packages/cli/src/repl/agent-repl.js` | 启动时套用 + `/output-style` 运行时热切换（`_replBaseSystem` / `_activeOutputStyle`，重算 `messages[0]`） |
-| `packages/cli/src/index.js` | 注册 `output-style` 命令 |
+| 文件                                          | 职责                                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/src/lib/output-styles.js`       | 核心：`discoverOutputStyles` / `getOutputStyle` / `settingsDefaultOutputStyle` / `resolveOutputStyle` + `BUILTIN_OUTPUT_STYLES` + 零依赖 frontmatter 解析（`_deps` 注入） |
+| `packages/cli/src/runtime/system-prompt.js`   | `composeSystemPrompt` 的 `outputStyle` 追加层（最后一层）                                                                                                                 |
+| `packages/cli/src/commands/output-style.js`   | `cc output-style list / show / new` 命令实现                                                                                                                              |
+| `packages/cli/src/commands/agent.js`          | `--output-style <name>` flag，透传 `outputStyle` 到 headless-runner / headless-stream                                                                                     |
+| `packages/cli/src/runtime/headless-runner.js` | `-p` 一次性：`resolveOutputStyle` → 组装系统提示，missing 名 stderr 警告                                                                                                  |
+| `packages/cli/src/runtime/headless-stream.js` | stream-json：解析风格正文并 append                                                                                                                                        |
+| `packages/cli/src/repl/agent-repl.js`         | 启动时套用 + `/output-style` 运行时热切换（`_replBaseSystem` / `_activeOutputStyle`，重算 `messages[0]`）                                                                 |
+| `packages/cli/src/index.js`                   | 注册 `output-style` 命令                                                                                                                                                  |
 
 ## 使用示例
 

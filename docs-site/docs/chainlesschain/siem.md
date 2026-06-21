@@ -373,16 +373,20 @@ await window.electronAPI.invoke("siem:configure-exporter", {
 
 // 2. 验证连接
 const test = await window.electronAPI.invoke("siem:test-connection");
-console.log(`连接状态: ${test.success ? "成功" : "失败"}, 延迟: ${test.latency}ms`);
+console.log(
+  `连接状态: ${test.success ? "成功" : "失败"}, 延迟: ${test.latency}ms`,
+);
 
 // 3. 配置登录失败告警聚合（5 分钟内 3 次触发高严重度告警）
 await window.electronAPI.invoke("siem:configure-aggregation", {
-  rules: [{
-    eventType: "AUTH_FAILED",
-    window: 300,
-    threshold: 3,
-    aggregatedSeverity: 9,
-  }],
+  rules: [
+    {
+      eventType: "AUTH_FAILED",
+      window: 300,
+      threshold: 3,
+      aggregatedSeverity: 9,
+    },
+  ],
 });
 ```
 
@@ -413,36 +417,36 @@ console.log(`事件缩减率: ${(stats.reductionRate * 100).toFixed(0)}%`);
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 连接测试失败 | SIEM 端口不可达或凭证错误 | 检查防火墙规则，确认 HEC Token 和 Syslog 端口配置正确 |
-| 事件发送状态为 `failed` | 网络中断或 SIEM 拒绝请求 | 查看 `siem:list-exports` 中的 `error_message`，系统会自动重试 |
-| CEF/LEEF 格式解析异常 | 事件字段包含特殊字符 | 确认事件详情中无管道符 `|` 或换行符，系统会自动转义 |
-| 聚合未生效 | 事件类型不匹配规则 | 检查 `eventType` 拼写，确认与聚合规则中的类型完全一致 |
-| 事件量过大导致积压 | 批量大小或刷新间隔不合理 | 调整 `batchSize`（默认 100）和 `flushInterval`（默认 5000ms） |
-| TLS 连接报错 | 证书链不完整或过期 | 更新 SIEM 服务端证书，或在配置中指定自签名 CA 证书路径 |
+| 问题                    | 可能原因                  | 解决方案                                                      |
+| ----------------------- | ------------------------- | ------------------------------------------------------------- | -------------------------- |
+| 连接测试失败            | SIEM 端口不可达或凭证错误 | 检查防火墙规则，确认 HEC Token 和 Syslog 端口配置正确         |
+| 事件发送状态为 `failed` | 网络中断或 SIEM 拒绝请求  | 查看 `siem:list-exports` 中的 `error_message`，系统会自动重试 |
+| CEF/LEEF 格式解析异常   | 事件字段包含特殊字符      | 确认事件详情中无管道符 `                                      | ` 或换行符，系统会自动转义 |
+| 聚合未生效              | 事件类型不匹配规则        | 检查 `eventType` 拼写，确认与聚合规则中的类型完全一致         |
+| 事件量过大导致积压      | 批量大小或刷新间隔不合理  | 调整 `batchSize`（默认 100）和 `flushInterval`（默认 5000ms） |
+| TLS 连接报错            | 证书链不完整或过期        | 更新 SIEM 服务端证书，或在配置中指定自签名 CA 证书路径        |
 
 ---
 
 ## 配置参考
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `enabled` | `boolean` | `false` | 是否启用 SIEM 导出 |
-| `exporter.type` | `string` | `"splunk"` | 导出目标类型：`splunk` / `syslog` / `elasticsearch` / `azure-sentinel` |
-| `exporter.format` | `string` | `"json"` | 事件格式：`cef` / `leef` / `json` |
-| `exporter.config.url` | `string` | — | 目标平台地址（HTTP/HTTPS/Syslog 主机） |
-| `exporter.config.token` | `string` | — | HEC Token 或 API 密钥（加密存储） |
-| `exporter.config.index` | `string` | `"chainlesschain"` | Splunk/Elasticsearch 索引名 |
-| `exporter.config.port` | `number` | `514` | Syslog 端口（TCP/UDP/TLS） |
-| `exporter.config.protocol` | `string` | `"tcp"` | Syslog 传输协议：`tcp` / `udp` / `tls` |
-| `exporter.config.facility` | `string` | `"local0"` | Syslog facility |
-| `batchSize` | `number` | `100` | 批量发送大小（事件数） |
-| `flushInterval` | `number` | `5000` | 批量刷新间隔（毫秒） |
-| `retryAttempts` | `number` | `3` | 发送失败最大重试次数 |
-| `aggregation.enabled` | `boolean` | `true` | 是否启用事件聚合 |
-| `aggregation.defaultWindow` | `number` | `300` | 聚合时间窗口（秒） |
-| `aggregation.defaultThreshold` | `number` | `5` | 触发聚合的事件数阈值 |
+| 字段                           | 类型      | 默认值             | 说明                                                                   |
+| ------------------------------ | --------- | ------------------ | ---------------------------------------------------------------------- |
+| `enabled`                      | `boolean` | `false`            | 是否启用 SIEM 导出                                                     |
+| `exporter.type`                | `string`  | `"splunk"`         | 导出目标类型：`splunk` / `syslog` / `elasticsearch` / `azure-sentinel` |
+| `exporter.format`              | `string`  | `"json"`           | 事件格式：`cef` / `leef` / `json`                                      |
+| `exporter.config.url`          | `string`  | —                  | 目标平台地址（HTTP/HTTPS/Syslog 主机）                                 |
+| `exporter.config.token`        | `string`  | —                  | HEC Token 或 API 密钥（加密存储）                                      |
+| `exporter.config.index`        | `string`  | `"chainlesschain"` | Splunk/Elasticsearch 索引名                                            |
+| `exporter.config.port`         | `number`  | `514`              | Syslog 端口（TCP/UDP/TLS）                                             |
+| `exporter.config.protocol`     | `string`  | `"tcp"`            | Syslog 传输协议：`tcp` / `udp` / `tls`                                 |
+| `exporter.config.facility`     | `string`  | `"local0"`         | Syslog facility                                                        |
+| `batchSize`                    | `number`  | `100`              | 批量发送大小（事件数）                                                 |
+| `flushInterval`                | `number`  | `5000`             | 批量刷新间隔（毫秒）                                                   |
+| `retryAttempts`                | `number`  | `3`                | 发送失败最大重试次数                                                   |
+| `aggregation.enabled`          | `boolean` | `true`             | 是否启用事件聚合                                                       |
+| `aggregation.defaultWindow`    | `number`  | `300`              | 聚合时间窗口（秒）                                                     |
+| `aggregation.defaultThreshold` | `number`  | `5`                | 触发聚合的事件数阈值                                                   |
 
 **完整配置示例**:
 
@@ -478,14 +482,14 @@ console.log(`事件缩减率: ${(stats.reductionRate * 100).toFixed(0)}%`);
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| --- | --- | --- |
-| `tests/unit/enterprise/siem-exporter.test.js` | 导出器初始化、批量发送、重试逻辑、flush 间隔 | 18 |
-| `tests/unit/enterprise/siem-formatter.test.js` | CEF / LEEF / JSON 格式化、特殊字符转义 | 24 |
-| `tests/unit/enterprise/siem-aggregator.test.js` | 聚合窗口计算、阈值触发、严重度提升 | 15 |
-| `tests/unit/enterprise/siem-ipc.test.js` | 4 个 IPC Handler（configure / test / send / list） | 12 |
-| `tests/integration/enterprise/siem-splunk.test.js` | Splunk HEC 端到端（mock server） | 8 |
-| `tests/integration/enterprise/siem-syslog.test.js` | Syslog TCP / UDP / TLS 推送 | 9 |
+| 测试文件                                           | 覆盖范围                                           | 用例数 |
+| -------------------------------------------------- | -------------------------------------------------- | ------ |
+| `tests/unit/enterprise/siem-exporter.test.js`      | 导出器初始化、批量发送、重试逻辑、flush 间隔       | 18     |
+| `tests/unit/enterprise/siem-formatter.test.js`     | CEF / LEEF / JSON 格式化、特殊字符转义             | 24     |
+| `tests/unit/enterprise/siem-aggregator.test.js`    | 聚合窗口计算、阈值触发、严重度提升                 | 15     |
+| `tests/unit/enterprise/siem-ipc.test.js`           | 4 个 IPC Handler（configure / test / send / list） | 12     |
+| `tests/integration/enterprise/siem-splunk.test.js` | Splunk HEC 端到端（mock server）                   | 8      |
+| `tests/integration/enterprise/siem-syslog.test.js` | Syslog TCP / UDP / TLS 推送                        | 9      |
 
 **运行测试**:
 
@@ -546,14 +550,14 @@ expect(exportRecord.retryCount).toBe(3);
 
 ## 关键文件
 
-| 文件                                                | 职责                     |
-| --------------------------------------------------- | ------------------------ |
-| `src/main/enterprise/siem-exporter.js`              | SIEM 事件导出核心引擎    |
-| `src/main/enterprise/siem-formatter.js`             | CEF/LEEF/JSON 格式化器   |
-| `src/main/enterprise/siem-aggregator.js`            | 事件聚合与去重           |
-| `src/main/enterprise/siem-ipc.js`                   | IPC 处理器（4 个）       |
-| `src/renderer/pages/enterprise/SIEMPage.vue`        | SIEM 集成管理页面        |
-| `src/renderer/stores/siem.ts`                       | Pinia 状态管理           |
+| 文件                                         | 职责                   |
+| -------------------------------------------- | ---------------------- |
+| `src/main/enterprise/siem-exporter.js`       | SIEM 事件导出核心引擎  |
+| `src/main/enterprise/siem-formatter.js`      | CEF/LEEF/JSON 格式化器 |
+| `src/main/enterprise/siem-aggregator.js`     | 事件聚合与去重         |
+| `src/main/enterprise/siem-ipc.js`            | IPC 处理器（4 个）     |
+| `src/renderer/pages/enterprise/SIEMPage.vue` | SIEM 集成管理页面      |
+| `src/renderer/stores/siem.ts`                | Pinia 状态管理         |
 
 ---
 

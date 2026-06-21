@@ -277,14 +277,14 @@ const useEvoMapGovernanceStore = defineStore("evoMapGovernance", {
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 所有权注册失败 | 基因 ID 已被注册或 DID 无效 | 检查基因是否已有所有者，确认 DID 状态为 active |
-| 剽窃检测分数偏高 | 基因与已有基因高度相似 | 检查相似基因，确认是独立创作还是衍生作品 |
-| 提案创建被拒绝 | 提案者 DID 权限不足 | 确认提案者 DID 已注册且未被挂起 |
-| 投票无法提交 | 投票者已投过或提案已截止 | 检查提案状态和投票截止时间 |
-| 治理仪表板数据为空 | 尚未创建任何提案 | 属于正常状态，创建首个提案后数据将显示 |
-| 收益分成比例不生效 | 分成总比例不为 100% | 确保所有参与者的分成比例之和为 100 |
+| 问题               | 可能原因                    | 解决方案                                       |
+| ------------------ | --------------------------- | ---------------------------------------------- |
+| 所有权注册失败     | 基因 ID 已被注册或 DID 无效 | 检查基因是否已有所有者，确认 DID 状态为 active |
+| 剽窃检测分数偏高   | 基因与已有基因高度相似      | 检查相似基因，确认是独立创作还是衍生作品       |
+| 提案创建被拒绝     | 提案者 DID 权限不足         | 确认提案者 DID 已注册且未被挂起                |
+| 投票无法提交       | 投票者已投过或提案已截止    | 检查提案状态和投票截止时间                     |
+| 治理仪表板数据为空 | 尚未创建任何提案            | 属于正常状态，创建首个提案后数据将显示         |
+| 收益分成比例不生效 | 分成总比例不为 100%         | 确保所有参与者的分成比例之和为 100             |
 
 ## 配置参考
 
@@ -292,37 +292,37 @@ const useEvoMapGovernanceStore = defineStore("evoMapGovernance", {
 // desktop-app-vue/src/main/evomap/evomap-dao.js
 const DEFAULT_CONFIG = {
   governance: {
-    defaultVotingDurationMs: 7 * 24 * 60 * 60 * 1000,  // 默认投票时长 7 天
-    emergencyVotingDurationMs: 24 * 60 * 60 * 1000,     // 紧急提案 24 小时
-    quorumThreshold: 3,              // 法定人数最低票数
-    quorumRatioThreshold: 0.1,       // 法定人数最低投票率 10%
+    defaultVotingDurationMs: 7 * 24 * 60 * 60 * 1000, // 默认投票时长 7 天
+    emergencyVotingDurationMs: 24 * 60 * 60 * 1000, // 紧急提案 24 小时
+    quorumThreshold: 3, // 法定人数最低票数
+    quorumRatioThreshold: 0.1, // 法定人数最低投票率 10%
     proposalCooldownMs: 60 * 60 * 1000, // 同一 DID 提案冷却 1 小时
   },
   ip: {
-    plagiarismScoreThreshold: 0.8,   // 剽窃评分 ≥0.8 触发人工审核
-    revenueSplitPrecision: 2,        // 收益分成小数精度（百分比）
-    ownershipVerifyTimeoutMs: 5000,  // DID+VC 验证超时
+    plagiarismScoreThreshold: 0.8, // 剽窃评分 ≥0.8 触发人工审核
+    revenueSplitPrecision: 2, // 收益分成小数精度（百分比）
+    ownershipVerifyTimeoutMs: 5000, // DID+VC 验证超时
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `defaultVotingDurationMs` | 7 天 | 标准提案投票时长 |
-| `quorumThreshold` | 3 票 | 法定人数最低票数 |
-| `plagiarismScoreThreshold` | 0.8 | 触发审核的剽窃评分阈值 |
-| `proposalCooldownMs` | 1 小时 | 同一 DID 的提案冷却时间 |
+| 配置项                     | 默认值 | 说明                    |
+| -------------------------- | ------ | ----------------------- |
+| `defaultVotingDurationMs`  | 7 天   | 标准提案投票时长        |
+| `quorumThreshold`          | 3 票   | 法定人数最低票数        |
+| `plagiarismScoreThreshold` | 0.8    | 触发审核的剽窃评分阈值  |
+| `proposalCooldownMs`       | 1 小时 | 同一 DID 的提案冷却时间 |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 所有权注册（含 VC 验证） | < 300ms | ~120ms | ✅ |
-| 贡献链追踪查询 | < 100ms | ~40ms | ✅ |
-| 治理提案创建 | < 150ms | ~60ms | ✅ |
-| 投票提交（含法定人数检查） | < 100ms | ~35ms | ✅ |
-| 治理仪表板聚合 | < 200ms | ~70ms | ✅ |
-| 反剽窃检测（相似度计算） | < 500ms | ~180ms | ✅ |
+| 操作                       | 目标    | 实际   | 状态 |
+| -------------------------- | ------- | ------ | ---- |
+| 所有权注册（含 VC 验证）   | < 300ms | ~120ms | ✅   |
+| 贡献链追踪查询             | < 100ms | ~40ms  | ✅   |
+| 治理提案创建               | < 150ms | ~60ms  | ✅   |
+| 投票提交（含法定人数检查） | < 100ms | ~35ms  | ✅   |
+| 治理仪表板聚合             | < 200ms | ~70ms  | ✅   |
+| 反剽窃检测（相似度计算）   | < 500ms | ~180ms | ✅   |
 
 ## 安全考虑
 

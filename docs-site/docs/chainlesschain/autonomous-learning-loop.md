@@ -71,6 +71,7 @@ chainlesschain learning trajectories --json        # JSON 格式
 ```
 
 每条轨迹包含：
+
 - 用户原始输入 (意图)
 - 工具调用链 (工具名、参数、结果、耗时、状态)
 - Agent 最终响应
@@ -87,6 +88,7 @@ chainlesschain learning reflect --json     # JSON 报告
 ```
 
 **报告内容**:
+
 - 轨迹总数和评分统计
 - 工具使用频次和错误率排行
 - 评分趋势分析 (improving / declining / stable)
@@ -104,12 +106,12 @@ chainlesschain learning synthesize --json  # JSON 输出
 
 **合成触发条件** (全部满足):
 
-| 条件 | 阈值 | 说明 |
-| --- | --- | --- |
-| 工具调用数 | >= 5 | 只从复杂任务中学习 |
-| 结果评分 | >= 0.7 | 只从成功经验学习 |
-| 未被合成过 | `synthesized_skill IS NULL` | 防止重复 |
-| 模式可复用 | >= 2 条相似轨迹 | Jaccard >= 0.5 确认可泛化 |
+| 条件       | 阈值                        | 说明                      |
+| ---------- | --------------------------- | ------------------------- |
+| 工具调用数 | >= 5                        | 只从复杂任务中学习        |
+| 结果评分   | >= 0.7                      | 只从成功经验学习          |
+| 未被合成过 | `synthesized_skill IS NULL` | 防止重复                  |
+| 模式可复用 | >= 2 条相似轨迹             | Jaccard >= 0.5 确认可泛化 |
 
 合成的技能会写入 **workspace 层** (`~/.chainlesschain/skills/`)，可通过 `chainlesschain skill list` 查看。
 
@@ -150,12 +152,12 @@ chainlesschain learning cleanup --json     # JSON 输出
 
 **触发点**: 通过 `learning-hooks.js` 的 4 个钩子自动接入：
 
-| 钩子 | 触发时机 | 动作 |
-| --- | --- | --- |
-| `onUserPromptSubmit` | 用户输入时 | `startTrajectory()` 开始记录 |
-| `onPostToolUse` | 每次工具调用后 | `appendToolCall()` 追加记录 |
+| 钩子                 | 触发时机       | 动作                            |
+| -------------------- | -------------- | ------------------------------- |
+| `onUserPromptSubmit` | 用户输入时     | `startTrajectory()` 开始记录    |
+| `onPostToolUse`      | 每次工具调用后 | `appendToolCall()` 追加记录     |
 | `onResponseComplete` | Agent 回复完成 | `completeTrajectory()` 完成轨迹 |
-| `onSessionEnd` | 会话结束 | 预留自省触发点 |
+| `onSessionEnd`       | 会话结束       | 预留自省触发点                  |
 
 **每条轨迹存储的数据**:
 
@@ -179,6 +181,7 @@ chainlesschain learning cleanup --json     # JSON 输出
 ```
 
 **复杂度判定**:
+
 - **simple** (<=2 工具调用): 简单查询/单文件操作
 - **moderate** (3-5 工具调用): 多步操作
 - **complex** (6+ 工具调用): 技能合成候选
@@ -191,28 +194,28 @@ chainlesschain learning cleanup --json     # JSON 输出
 
 **三种信号来源**:
 
-| 来源 | 机制 | 优先级 |
-| --- | --- | --- |
-| 自动评分 | 错误率、重试次数、最终状态 | 基线 |
+| 来源     | 机制                               | 优先级       |
+| -------- | ---------------------------------- | ------------ |
+| 自动评分 | 错误率、重试次数、最终状态         | 基线         |
 | 用户反馈 | `positive` / `negative` 或数值 0-1 | 覆盖自动评分 |
-| 修正检测 | 否定模式匹配 (中英双语) + 文件引用 | 降低 0.3 分 |
+| 修正检测 | 否定模式匹配 (中英双语) + 文件引用 | 降低 0.3 分  |
 
 **自动评分规则**:
 
 ```javascript
 function autoScore(trajectory) {
-  let score = 0.5;  // 基线
+  let score = 0.5; // 基线
 
   const chain = trajectory.toolChain;
-  const errorCount = chain.filter(t => t.status === "error").length;
+  const errorCount = chain.filter((t) => t.status === "error").length;
   const totalCount = chain.length;
 
-  if (errorCount === 0) score += 0.2;           // 无错误: +0.2
+  if (errorCount === 0) score += 0.2; // 无错误: +0.2
   if (errorCount / totalCount > 0.5) score -= 0.3; // 错误率>50%: -0.3
-  if (hasRetries(chain)) score -= 0.1;           // 有重试: -0.1
+  if (hasRetries(chain)) score -= 0.1; // 有重试: -0.1
   if (chain.at(-1)?.status === "completed") score += 0.1; // 最终成功: +0.1
 
-  return Math.max(0, Math.min(1, score));        // 夹持到 [0, 1]
+  return Math.max(0, Math.min(1, score)); // 夹持到 [0, 1]
 }
 ```
 
@@ -221,12 +224,19 @@ function autoScore(trajectory) {
 ```javascript
 // 否定模式匹配
 const NEGATION_PATTERNS = [
-  /不[是对]/, /错了/, /重[新做来]/, /别这样/,   // 中文
-  /not right/i, /wrong/i, /redo/i, /don't/i    // 英文
+  /不[是对]/,
+  /错了/,
+  /重[新做来]/,
+  /别这样/, // 中文
+  /not right/i,
+  /wrong/i,
+  /redo/i,
+  /don't/i, // 英文
 ];
 ```
 
 **传播路径**:
+
 - 高分 (>=0.8) → `InstinctManager` 记录工具偏好 (TOOL_PREFERENCE)
 - 低分 (<=0.3) → `InstinctManager` 记录应避免的模式 (WORKFLOW)
 - 所有评分 → `EvolutionSystem` 更新能力评估
@@ -247,7 +257,7 @@ const NEGATION_PATTERNS = [
 
 ```javascript
 // 工具链指纹: 排序后的工具名集合
-toolChainFingerprint(["read_file", "edit_file", "run_shell", "read_file"])
+toolChainFingerprint(["read_file", "edit_file", "run_shell", "read_file"]);
 // → ["edit_file", "read_file", "run_shell"]
 
 // Jaccard 相似度 = |A ∩ B| / |A ∪ B|
@@ -286,11 +296,11 @@ tools: [read_file, edit_file, run_shell]
 
 **三种改进触发方式**:
 
-| 触发方式 | 方法 | 数据来源 |
-| --- | --- | --- |
-| 错误驱动修复 | `repairFromError()` | 错误信息 + 执行上下文 |
-| 用户修正驱动 | `updateFromCorrection()` | 用户消息 + 工具链对比 |
-| 对比改进 | `improveFromBetterTrajectory()` | 更高评分轨迹 |
+| 触发方式     | 方法                            | 数据来源              |
+| ------------ | ------------------------------- | --------------------- |
+| 错误驱动修复 | `repairFromError()`             | 错误信息 + 执行上下文 |
+| 用户修正驱动 | `updateFromCorrection()`        | 用户消息 + 工具链对比 |
+| 对比改进     | `improveFromBetterTrajectory()` | 更高评分轨迹          |
 
 **改进流程**:
 
@@ -307,10 +317,12 @@ tools: [read_file, edit_file, run_shell]
 定时回顾会话轨迹，生成统计报告和改进建议。
 
 **触发方式**:
+
 - **手动**: `chainlesschain learning reflect`
 - **定时**: 可配置间隔 (默认 24 小时)，通过 `isReflectionDue()` 检查
 
 **自省报告内容**:
+
 - 轨迹总数 / 已评分数
 - 工具使用统计 (使用次数 + 错误率)
 - 评分趋势分析: improving / declining / stable
@@ -318,6 +330,7 @@ tools: [read_file, edit_file, run_shell]
 - 可选 LLM 分析 (优势 / 劣势 / 建议)
 
 **趋势算法**: 将已评分轨迹分为前后两半，比较平均分差值：
+
 - 差值 > 0.05 → **improving** (能力在提升)
 - 差值 < -0.05 → **declining** (需要注意)
 - 其他 → **stable** (稳定状态)
@@ -345,40 +358,40 @@ tools: [read_file, edit_file, run_shell]
 
 ### learning_trajectories
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| id | TEXT PK | 轨迹唯一 ID |
-| session_id | TEXT NOT NULL | 所属会话 |
-| user_intent | TEXT | 用户原始输入 |
-| tool_chain | TEXT NOT NULL | JSON 工具调用链 |
-| tool_count | INTEGER | 工具调用数 |
-| final_response | TEXT | Agent 最终响应 |
-| outcome_score | REAL | 质量评分 0-1 |
-| outcome_source | TEXT | auto / user / reflection |
-| complexity_level | TEXT | simple / moderate / complex |
-| synthesized_skill | TEXT | 已合成的技能名称 |
-| created_at | TEXT | 创建时间 |
-| completed_at | TEXT | 完成时间 |
+| 字段              | 类型          | 说明                        |
+| ----------------- | ------------- | --------------------------- |
+| id                | TEXT PK       | 轨迹唯一 ID                 |
+| session_id        | TEXT NOT NULL | 所属会话                    |
+| user_intent       | TEXT          | 用户原始输入                |
+| tool_chain        | TEXT NOT NULL | JSON 工具调用链             |
+| tool_count        | INTEGER       | 工具调用数                  |
+| final_response    | TEXT          | Agent 最终响应              |
+| outcome_score     | REAL          | 质量评分 0-1                |
+| outcome_source    | TEXT          | auto / user / reflection    |
+| complexity_level  | TEXT          | simple / moderate / complex |
+| synthesized_skill | TEXT          | 已合成的技能名称            |
+| created_at        | TEXT          | 创建时间                    |
+| completed_at      | TEXT          | 完成时间                    |
 
 **索引**: session_id, outcome_score, complexity_level
 
 ### learning_trajectory_tags
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
+| 字段          | 类型          | 说明    |
+| ------------- | ------------- | ------- |
 | trajectory_id | TEXT NOT NULL | 轨迹 ID |
-| tag | TEXT NOT NULL | 标签 |
+| tag           | TEXT NOT NULL | 标签    |
 
 **约束**: UNIQUE(trajectory_id, tag)
 
 ### skill_improvement_log
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| skill_name | TEXT NOT NULL | 技能名称 |
+| 字段         | 类型          | 说明                                                            |
+| ------------ | ------------- | --------------------------------------------------------------- |
+| skill_name   | TEXT NOT NULL | 技能名称                                                        |
 | trigger_type | TEXT NOT NULL | error_repair / user_correction / better_trajectory / reflection |
-| detail | TEXT | 改进详情 |
-| created_at | TEXT | 创建时间 |
+| detail       | TEXT          | 改进详情                                                        |
+| created_at   | TEXT          | 创建时间                                                        |
 
 ## 配置参考
 
@@ -410,16 +423,16 @@ tools: [read_file, edit_file, run_shell]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 轨迹记录（单条追加） | < 50ms | ~10ms | ✅ |
-| 自动评分计算 | < 5ms | ~2ms | ✅ |
-| 修正检测（正则匹配） | < 10ms | ~3ms | ✅ |
-| 技能合成（含 LLM 调用） | < 30s | ~15-25s | ✅ |
-| 技能改进 patch | < 20s | ~10-15s | ✅ |
-| 手动自省报告生成 | < 10s | ~5s | ✅ |
-| 轨迹清理（90 天） | < 1s | ~200ms | ✅ |
-| CLI stats 查询 | < 500ms | ~100ms | ✅ |
+| 操作                    | 目标    | 实际    | 状态 |
+| ----------------------- | ------- | ------- | ---- |
+| 轨迹记录（单条追加）    | < 50ms  | ~10ms   | ✅   |
+| 自动评分计算            | < 5ms   | ~2ms    | ✅   |
+| 修正检测（正则匹配）    | < 10ms  | ~3ms    | ✅   |
+| 技能合成（含 LLM 调用） | < 30s   | ~15-25s | ✅   |
+| 技能改进 patch          | < 20s   | ~10-15s | ✅   |
+| 手动自省报告生成        | < 10s   | ~5s     | ✅   |
+| 轨迹清理（90 天）       | < 1s    | ~200ms  | ✅   |
+| CLI stats 查询          | < 500ms | ~100ms  | ✅   |
 
 ---
 
@@ -449,15 +462,15 @@ chainlesschain skill list --layer workspace
 
 ```javascript
 // 在 Desktop 中通过 IPC 提交正向反馈
-await window.electronAPI.invoke('learning:feedback', {
-  trajectoryId: 'traj-abc123',
-  feedback: 'positive'
+await window.electronAPI.invoke("learning:feedback", {
+  trajectoryId: "traj-abc123",
+  feedback: "positive",
 });
 
 // 提交数值评分
-await window.electronAPI.invoke('learning:feedback', {
-  trajectoryId: 'traj-abc123',
-  feedback: 0.95
+await window.electronAPI.invoke("learning:feedback", {
+  trajectoryId: "traj-abc123",
+  feedback: 0.95,
 });
 ```
 
@@ -477,56 +490,56 @@ chainlesschain learning trajectories --session sess_20260416_001
 
 ## 与 Hermes Agent 的对比
 
-| 维度 | Hermes Agent | ChainlessChain |
-| --- | --- | --- |
-| 合成触发 | 5+ 工具 + 成功 | 5+ 工具 + 评分>=0.7 + 2+ 相似轨迹 |
-| 改进方式 | skill_manage patch/edit | LLM patch + section 替换 + 版本递增 |
-| 自省机制 | nudge_interval 定时 | 24h 定时 + 手动 CLI 命令 |
-| 质量信号 | 仅 Agent 自评 | 自动评分 + 用户反馈 + 修正检测 (中英双语) |
-| 技能格式 | SKILL.md | 同款格式，兼容 4 层 loader |
-| 去重 | 无 | Jaccard 工具链指纹 (阈值 0.7) |
-| 版本历史 | 无 (in-place) | skill_improvement_log 全量记录 |
-| 本能集成 | 无 | 直接连接 instinct-manager |
+| 维度     | Hermes Agent            | ChainlessChain                            |
+| -------- | ----------------------- | ----------------------------------------- |
+| 合成触发 | 5+ 工具 + 成功          | 5+ 工具 + 评分>=0.7 + 2+ 相似轨迹         |
+| 改进方式 | skill_manage patch/edit | LLM patch + section 替换 + 版本递增       |
+| 自省机制 | nudge_interval 定时     | 24h 定时 + 手动 CLI 命令                  |
+| 质量信号 | 仅 Agent 自评           | 自动评分 + 用户反馈 + 修正检测 (中英双语) |
+| 技能格式 | SKILL.md                | 同款格式，兼容 4 层 loader                |
+| 去重     | 无                      | Jaccard 工具链指纹 (阈值 0.7)             |
+| 版本历史 | 无 (in-place)           | skill_improvement_log 全量记录            |
+| 本能集成 | 无                      | 直接连接 instinct-manager                 |
 
 ## 关键文件
 
-| 文件 | 用途 | 状态 |
-| --- | --- | --- |
-| `src/lib/learning/learning-tables.js` | 数据库建表 (3 表 + 3 索引) | ✅ |
-| `src/lib/learning/trajectory-store.js` | 执行轨迹存储 (12 方法) | ✅ |
-| `src/lib/learning/learning-hooks.js` | Hook 注册 (4 钩子 + 工厂) | ✅ |
-| `src/lib/learning/outcome-feedback.js` | 结果质量反馈 (3 信号源) | ✅ |
-| `src/lib/learning/skill-synthesizer.js` | 自动技能合成 (6 helper + 类) | ✅ |
-| `src/lib/learning/skill-improver.js` | 技能持续改进 (3 触发器 + 扫描) | ✅ |
-| `src/lib/learning/reflection-engine.js` | 周期性自省 (统计 + LLM 分析) | ✅ |
-| `src/commands/learning.js` | CLI 命令组 (5 子命令) | ✅ |
+| 文件                                    | 用途                           | 状态 |
+| --------------------------------------- | ------------------------------ | ---- |
+| `src/lib/learning/learning-tables.js`   | 数据库建表 (3 表 + 3 索引)     | ✅   |
+| `src/lib/learning/trajectory-store.js`  | 执行轨迹存储 (12 方法)         | ✅   |
+| `src/lib/learning/learning-hooks.js`    | Hook 注册 (4 钩子 + 工厂)      | ✅   |
+| `src/lib/learning/outcome-feedback.js`  | 结果质量反馈 (3 信号源)        | ✅   |
+| `src/lib/learning/skill-synthesizer.js` | 自动技能合成 (6 helper + 类)   | ✅   |
+| `src/lib/learning/skill-improver.js`    | 技能持续改进 (3 触发器 + 扫描) | ✅   |
+| `src/lib/learning/reflection-engine.js` | 周期性自省 (统计 + LLM 分析)   | ✅   |
+| `src/commands/learning.js`              | CLI 命令组 (5 子命令)          | ✅   |
 
 > 所有文件路径相对于 `packages/cli/`
 
 ## 测试覆盖率
 
-| 文件 | 类型 | 测试数 |
-| --- | --- | --- |
-| `learning-tables.test.js` | 单元 | 5 |
-| `learning-hooks.test.js` | 单元 | 22 |
-| `trajectory-store.test.js` | 单元 | 50 |
-| `outcome-feedback.test.js` | 单元 | 33 |
-| `skill-synthesizer.test.js` | 单元 | 32 |
-| `skill-improver.test.js` | 单元 | 28 |
-| `reflection-engine.test.js` | 单元 | 27 |
-| `learning-integration.test.js` | 集成 | 10 |
-| `learning-commands.test.js` | E2E | 17 |
-| **合计** | | **224** |
+| 文件                           | 类型 | 测试数  |
+| ------------------------------ | ---- | ------- |
+| `learning-tables.test.js`      | 单元 | 5       |
+| `learning-hooks.test.js`       | 单元 | 22      |
+| `trajectory-store.test.js`     | 单元 | 50      |
+| `outcome-feedback.test.js`     | 单元 | 33      |
+| `skill-synthesizer.test.js`    | 单元 | 32      |
+| `skill-improver.test.js`       | 单元 | 28      |
+| `reflection-engine.test.js`    | 单元 | 27      |
+| `learning-integration.test.js` | 集成 | 10      |
+| `learning-commands.test.js`    | E2E  | 17      |
+| **合计**                       |      | **224** |
 
 ## 已知局限
 
-| 局限 | 缓解措施 |
-| --- | --- |
-| 自评偏差 | 用户反馈覆盖；修正检测提供负信号 |
-| 无版本回滚 | improvement_log 保存变更历史，可手动恢复 |
-| LLM 提取质量不稳定 | 要求 2+ 相似轨迹才合成，confidence >= 0.4 |
-| 每次自省的 Token 成本 | 批量处理轨迹；可配置辅助模型 |
-| 低质量技能累积 | 手动 `skill remove`；可扩展 decay 机制 |
+| 局限                  | 缓解措施                                  |
+| --------------------- | ----------------------------------------- |
+| 自评偏差              | 用户反馈覆盖；修正检测提供负信号          |
+| 无版本回滚            | improvement_log 保存变更历史，可手动恢复  |
+| LLM 提取质量不稳定    | 要求 2+ 相似轨迹才合成，confidence >= 0.4 |
+| 每次自省的 Token 成本 | 批量处理轨迹；可配置辅助模型              |
+| 低质量技能累积        | 手动 `skill remove`；可扩展 decay 机制    |
 
 ## 故障排查
 
@@ -535,6 +548,7 @@ chainlesschain learning trajectories --session sess_20260416_001
 **症状**: `chainlesschain learning stats` 显示轨迹数为 0
 
 **排查步骤**:
+
 1. 确认学习闭环已启用: 检查配置 `learning.enabled` 是否为 `true`
 2. 确认 `createLearningContext()` 返回非 null: 需要有效的 DB 连接
 3. 检查 Hook 注册: `learning-hooks.js` 中的 4 个钩子是否正确接入 agent-repl
@@ -546,6 +560,7 @@ chainlesschain learning trajectories --session sess_20260416_001
 **原因**: 工具调用链为空或所有工具都没有 `status` 字段
 
 **解决方案**:
+
 ```javascript
 // 确保每个工具调用都有 status 字段
 onPostToolUse(ctx, {
@@ -553,7 +568,7 @@ onPostToolUse(ctx, {
   args: { path: "foo.js" },
   result: "ok",
   durationMs: 50,
-  status: "completed"  // 必须提供
+  status: "completed", // 必须提供
 });
 ```
 
@@ -562,6 +577,7 @@ onPostToolUse(ctx, {
 **症状**: `chainlesschain learning synthesize` 无输出
 
 **排查**:
+
 - 检查是否有满足条件的轨迹 (工具数 >= 5, 评分 >= 0.7, 未合成过)
 - 检查是否有 >= 2 条相似轨迹 (Jaccard >= 0.5)
 - 查看是否已被去重 (Jaccard >= 0.7 视为已有技能的重复)
@@ -576,14 +592,14 @@ onPostToolUse(ctx, {
 
 ## 安全考虑
 
-| 安全要点 | 说明 |
-| --- | --- |
-| 轨迹数据隐私 | 轨迹存储在本地 SQLite，不上传到外部服务 |
+| 安全要点     | 说明                                                           |
+| ------------ | -------------------------------------------------------------- |
+| 轨迹数据隐私 | 轨迹存储在本地 SQLite，不上传到外部服务                        |
 | LLM 调用安全 | 合成/改进/自省的 LLM 调用遵循现有 provider 配置和 API Key 管理 |
-| 技能写入权限 | 自动合成的技能只写入 workspace 层，不影响 bundled/managed 层 |
-| SQL 注入防护 | 所有数据库操作使用参数化查询 (`db.prepare()`) |
-| 用户输入截断 | `finalResponse` 截断至 500 字符，防止大量数据存储 |
-| 轨迹保留策略 | 默认 90 天自动清理，可通过 `cleanup --days` 调整 |
+| 技能写入权限 | 自动合成的技能只写入 workspace 层，不影响 bundled/managed 层   |
+| SQL 注入防护 | 所有数据库操作使用参数化查询 (`db.prepare()`)                  |
+| 用户输入截断 | `finalResponse` 截断至 500 字符，防止大量数据存储              |
+| 轨迹保留策略 | 默认 90 天自动清理，可通过 `cleanup --days` 调整               |
 
 ## 相关文档
 

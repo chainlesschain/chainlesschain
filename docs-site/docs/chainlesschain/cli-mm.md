@@ -72,16 +72,16 @@
 
 ## 配置参考
 
-| 配置项                    | 含义                    | 默认            |
-| ------------------------- | ----------------------- | --------------- |
-| `context.maxTokens`       | 上下文 token 上限       | 4000            |
-| `modality.weights.text`   | text 权重               | 1.0             |
-| `modality.weights.code`   | code 权重               | 0.9             |
-| `modality.weights.image`  | image 权重              | 0.7             |
-| `modality.weights.audio`  | audio 权重              | 0.7             |
-| `modality.weights.structured` | structured 权重    | 0.8             |
-| V2 `perOwnerActiveSessCap` | V2 活跃会话上限        | 见 memory 文件  |
-| V2 `perSessionArtifactCap` | V2 每会话 artifact 上限 | 见 memory 文件 |
+| 配置项                        | 含义                    | 默认           |
+| ----------------------------- | ----------------------- | -------------- |
+| `context.maxTokens`           | 上下文 token 上限       | 4000           |
+| `modality.weights.text`       | text 权重               | 1.0            |
+| `modality.weights.code`       | code 权重               | 0.9            |
+| `modality.weights.image`      | image 权重              | 0.7            |
+| `modality.weights.audio`      | audio 权重              | 0.7            |
+| `modality.weights.structured` | structured 权重         | 0.8            |
+| V2 `perOwnerActiveSessCap`    | V2 活跃会话上限         | 见 memory 文件 |
+| V2 `perSessionArtifactCap`    | V2 每会话 artifact 上限 | 见 memory 文件 |
 
 查看：`chainlesschain mm modalities`、`mm input-formats`、`mm output-formats`。
 
@@ -89,15 +89,15 @@
 
 ## 性能指标
 
-| 操作                           | 典型耗时          |
-| ------------------------------ | ----------------- |
-| session-create                 | < 10 ms           |
-| add 模态输入                   | < 20 ms           |
-| parse（单文档 100KB）          | < 50 ms           |
-| fuse（5 模态各 1k tokens）     | < 30 ms           |
-| build-context（含 trim）       | < 50 ms           |
-| generate（模板化格式）         | < 100 ms          |
-| V2 session-v2 dispatch         | < 50 ms           |
+| 操作                       | 典型耗时 |
+| -------------------------- | -------- |
+| session-create             | < 10 ms  |
+| add 模态输入               | < 20 ms  |
+| parse（单文档 100KB）      | < 50 ms  |
+| fuse（5 模态各 1k tokens） | < 30 ms  |
+| build-context（含 trim）   | < 50 ms  |
+| generate（模板化格式）     | < 100 ms |
+| V2 session-v2 dispatch     | < 50 ms  |
 
 ---
 

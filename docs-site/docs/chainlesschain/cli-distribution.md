@@ -158,13 +158,13 @@ HTTPS_PROXY=<proxy-url> chainlesschain setup
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| CLI 包大小（纯 JS） | < 3MB | ~ 2MB | ✅ |
-| `npm install -g` 安装耗时 | < 20s | ~ 10-15s | ✅ |
-| 二进制下载（100MB，SHA-256 校验） | 依赖网络 | ~ 30-120s | ✅ |
-| `chainlesschain start` 冷启动 | < 5s | ~ 2-4s | ✅ |
-| `doctor` 环境诊断 | < 3s | ~ 1-2s | ✅ |
+| 操作                              | 目标     | 实际      | 状态 |
+| --------------------------------- | -------- | --------- | ---- |
+| CLI 包大小（纯 JS）               | < 3MB    | ~ 2MB     | ✅   |
+| `npm install -g` 安装耗时         | < 20s    | ~ 10-15s  | ✅   |
+| 二进制下载（100MB，SHA-256 校验） | 依赖网络 | ~ 30-120s | ✅   |
+| `chainlesschain start` 冷启动     | < 5s     | ~ 2-4s    | ✅   |
+| `doctor` 环境诊断                 | < 3s     | ~ 1-2s    | ✅   |
 
 ## 测试覆盖率
 
@@ -238,26 +238,29 @@ HTTPS_PROXY=http://proxy:8080 chainlesschain setup
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `npm install -g` 权限不足 | Linux/macOS: `sudo npm install -g chainlesschain` 或使用 nvm |
-| 安装后命令找不到 | 确认 `npm config get prefix` 路径在 PATH 中 |
-| 下载二进制文件失败 | 使用代理：`HTTPS_PROXY=http://proxy:port chainlesschain setup` |
-| 校验和验证失败 | 网络传输可能损坏，删除缓存重新下载 |
+| 问题                      | 解决方案                                                       |
+| ------------------------- | -------------------------------------------------------------- |
+| `npm install -g` 权限不足 | Linux/macOS: `sudo npm install -g chainlesschain` 或使用 nvm   |
+| 安装后命令找不到          | 确认 `npm config get prefix` 路径在 PATH 中                    |
+| 下载二进制文件失败        | 使用代理：`HTTPS_PROXY=http://proxy:port chainlesschain setup` |
+| 校验和验证失败            | 网络传输可能损坏，删除缓存重新下载                             |
 
 ## 安全考虑
 
 ### 二进制校验
+
 - **SHA-256 校验和**: 从 GitHub Releases 下载的二进制文件通过 `checksum.js` 进行 SHA-256 完整性校验，校验失败时自动拒绝安装并提示用户重新下载
 - **HTTPS 传输**: 所有下载通过 HTTPS 加密通道进行，防止中间人篡改二进制文件
 - **校验失败处理**: 若校验和不匹配，删除本地缓存文件后重试；持续失败可能表示 CDN 缓存污染或网络劫持，建议切换网络环境
 
 ### 供应链安全
+
 - **纯 JS 无原生依赖**: CLI 包不包含任何原生 Node.js 模块（无 `.node` 文件），消除了原生依赖中可能隐藏的恶意代码风险
 - **依赖最小化**: 仅依赖 5 个经过广泛审计的纯 JS 包（commander/inquirer/chalk/ora/semver），减少供应链攻击面
 - **锁文件固定**: `package-lock.json` 锁定所有依赖的精确版本和完整性哈希，防止依赖被替换
 
 ### npm Provenance
+
 - **CI/CD 来源证明**: 发布流水线（`.github/workflows/publish-cli.yml`）在 GitHub Actions 中执行，支持 npm provenance 签名，用户可验证包确实从官方仓库构建发布
 - **Tag 触发发布**: 仅 `v*` 格式的 Git Tag 触发自动发布，非授权人员无法触发 npm publish
 - **PID 文件防冲突**: 进程管理使用 PID 文件防止重复启动，避免多实例运行导致的安全隐患

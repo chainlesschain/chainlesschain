@@ -105,14 +105,14 @@ serve / chat / agent / setup
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| WebSocket 握手 + 认证 | < 100ms | ~45ms (loopback) | ✅ |
-| 缓冲模式命令回传 (短命令) | < 200ms | ~90ms | ✅ |
-| 流式模式首字节时间 | < 150ms | ~80ms | ✅ |
-| 心跳 ping/pong | < 20ms | ~8ms | ✅ |
-| Session 创建 (Agent) | < 300ms | ~180ms | ✅ |
-| 并发连接上限 | 10 (可配) | 10 | ✅ |
+| 操作                      | 目标      | 实际             | 状态 |
+| ------------------------- | --------- | ---------------- | ---- |
+| WebSocket 握手 + 认证     | < 100ms   | ~45ms (loopback) | ✅   |
+| 缓冲模式命令回传 (短命令) | < 200ms   | ~90ms            | ✅   |
+| 流式模式首字节时间        | < 150ms   | ~80ms            | ✅   |
+| 心跳 ping/pong            | < 20ms    | ~8ms             | ✅   |
+| Session 创建 (Agent)      | < 300ms   | ~180ms           | ✅   |
+| 并发连接上限              | 10 (可配) | 10               | ✅   |
 
 ## 测试覆盖率
 
@@ -205,7 +205,9 @@ const ws = new WebSocket("ws://127.0.0.1:18800");
 ws.send(JSON.stringify({ id: "1", type: "auth", token: "my-secret-token" }));
 
 // 2. 执行命令 (缓冲模式)
-ws.send(JSON.stringify({ id: "2", type: "execute", command: "note list --json" }));
+ws.send(
+  JSON.stringify({ id: "2", type: "execute", command: "note list --json" }),
+);
 
 // 3. 流式执行
 ws.send(JSON.stringify({ id: "3", type: "stream", command: "search keyword" }));
@@ -233,38 +235,38 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
 
 ### Client → Server
 
-| type | 说明 | 额外字段 |
-|------|------|----------|
-| `auth` | 认证 | `token` |
-| `ping` | 心跳 | — |
+| type      | 说明             | 额外字段  |
+| --------- | ---------------- | --------- |
+| `auth`    | 认证             | `token`   |
+| `ping`    | 心跳             | —         |
 | `execute` | 缓冲模式执行命令 | `command` |
-| `stream` | 流式模式执行命令 | `command` |
-| `cancel` | 取消请求 | `id` |
+| `stream`  | 流式模式执行命令 | `command` |
+| `cancel`  | 取消请求         | `id`      |
 
 ### Server → Client
 
-| type | 说明 |
-|------|------|
-| `auth-result` | 认证结果 |
-| `pong` | 心跳响应 |
-| `result` | 命令执行结果 |
+| type          | 说明         |
+| ------------- | ------------ |
+| `auth-result` | 认证结果     |
+| `pong`        | 心跳响应     |
+| `result`      | 命令执行结果 |
 | `stream-data` | 流式输出片段 |
-| `stream-end` | 流结束 |
-| `error` | 错误响应 |
+| `stream-end`  | 流结束       |
+| `error`       | 错误响应     |
 
 ## 2. Session 协议
 
 ### 常用消息
 
-| type | 说明 | 额外字段 |
-|------|------|----------|
-| `session-create` | 创建 agent/chat 会话 | `sessionType`, `provider`, `model`, `apiKey`, `baseUrl`, `projectRoot` |
-| `session-resume` | 恢复会话 | `sessionId` |
-| `session-message` | 发送消息 | `sessionId`, `content` |
-| `session-list` | 列出会话 | — |
-| `session-close` | 关闭会话 | `sessionId` |
-| `slash-command` | 发送 slash 命令 | `sessionId`, `command` |
-| `session-answer` | 回答交互式问题 | `sessionId`, `requestId`, `answer` |
+| type              | 说明                 | 额外字段                                                               |
+| ----------------- | -------------------- | ---------------------------------------------------------------------- |
+| `session-create`  | 创建 agent/chat 会话 | `sessionType`, `provider`, `model`, `apiKey`, `baseUrl`, `projectRoot` |
+| `session-resume`  | 恢复会话             | `sessionId`                                                            |
+| `session-message` | 发送消息             | `sessionId`, `content`                                                 |
+| `session-list`    | 列出会话             | —                                                                      |
+| `session-close`   | 关闭会话             | `sessionId`                                                            |
+| `slash-command`   | 发送 slash 命令      | `sessionId`, `command`                                                 |
+| `session-answer`  | 回答交互式问题       | `sessionId`, `requestId`, `answer`                                     |
 
 ### 创建会话示例
 
@@ -321,16 +323,12 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
   "id": "2",
   "type": "session-resumed",
   "sessionId": "session-123",
-  "history": [
-    { "role": "user", "content": "hello" }
-  ],
+  "history": [{ "role": "user", "content": "hello" }],
   "record": {
     "id": "session-123",
     "type": "agent",
     "messageCount": 1,
-    "history": [
-      { "role": "user", "content": "hello" }
-    ],
+    "history": [{ "role": "user", "content": "hello" }],
     "status": "resumed"
   }
 }
@@ -371,9 +369,7 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
   "model": "gpt-4o-mini",
   "projectRoot": "C:/code/demo",
   "messageCount": 3,
-  "history": [
-    { "role": "user", "content": "hello" }
-  ],
+  "history": [{ "role": "user", "content": "hello" }],
   "status": "resumed"
 }
 ```
@@ -386,13 +382,13 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
 
 ## 3. 后台任务协议
 
-| type | 说明 |
-|------|------|
-| `tasks-list` | 返回任务列表 |
-| `tasks-detail` | 返回任务详情，含 `outputSummary` |
-| `tasks-history` | 返回任务历史，支持 `offset` / `limit` |
-| `tasks-stop` | 停止任务 |
-| `task:notification` | 任务完成或失败时的实时通知 |
+| type                | 说明                                  |
+| ------------------- | ------------------------------------- |
+| `tasks-list`        | 返回任务列表                          |
+| `tasks-detail`      | 返回任务详情，含 `outputSummary`      |
+| `tasks-history`     | 返回任务历史，支持 `offset` / `limit` |
+| `tasks-stop`        | 停止任务                              |
+| `task:notification` | 任务完成或失败时的实时通知            |
 
 这部分能力已不只是“列任务”，还承担：
 
@@ -403,10 +399,10 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
 
 ## 4. Worktree 协议
 
-| type | 说明 |
-|------|------|
-| `worktree-list` | 列出 worktree |
-| `worktree-diff` | 返回 diff 预览与 `record` |
+| type             | 说明                                |
+| ---------------- | ----------------------------------- |
+| `worktree-list`  | 列出 worktree                       |
+| `worktree-diff`  | 返回 diff 预览与 `record`           |
 | `worktree-merge` | 返回 merge 结果、冲突摘要和预览入口 |
 
 当前 worktree 返回值已开始统一带：
@@ -419,8 +415,8 @@ ws.send(JSON.stringify({ id: "4", type: "cancel", id: "3" }));
 
 ## 5. 压缩观测协议
 
-| type | 说明 |
-|------|------|
+| type                | 说明                                               |
+| ------------------- | -------------------------------------------------- |
 | `compression-stats` | 返回压缩摘要，支持 `windowMs`、`provider`、`model` |
 
 当前可观测数据包括：
@@ -592,18 +588,18 @@ chainlesschain serve --timeout 60000
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/serve.js` | `serve` 命令注册与参数解析 |
-| `packages/cli/src/gateways/ws/ws-server.js` | WebSocket 服务器主体（连接管理、认证、心跳、命令执行） |
-| `packages/cli/src/gateways/ws/message-dispatcher.js` | 消息类型分发器 |
-| `packages/cli/src/gateways/ws/session-protocol.js` | Agent/Chat 会话协议处理 |
-| `packages/cli/src/gateways/ws/ws-session-gateway.js` | 会话网关（会话池管理） |
-| `packages/cli/src/gateways/ws/ws-agent-handler.js` | Agent 会话运行时桥接 |
-| `packages/cli/src/gateways/ws/action-protocol.js` | Slash 命令和 orchestrate 协议 |
-| `packages/cli/src/gateways/ws/task-protocol.js` | 后台任务协议 |
-| `packages/cli/src/gateways/ws/worktree-protocol.js` | Worktree 和压缩观测协议 |
-| `packages/cli/src/lib/ws-server.js` | 向后兼容的 re-export shim（已废弃） |
+| 文件                                                 | 说明                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| `packages/cli/src/commands/serve.js`                 | `serve` 命令注册与参数解析                             |
+| `packages/cli/src/gateways/ws/ws-server.js`          | WebSocket 服务器主体（连接管理、认证、心跳、命令执行） |
+| `packages/cli/src/gateways/ws/message-dispatcher.js` | 消息类型分发器                                         |
+| `packages/cli/src/gateways/ws/session-protocol.js`   | Agent/Chat 会话协议处理                                |
+| `packages/cli/src/gateways/ws/ws-session-gateway.js` | 会话网关（会话池管理）                                 |
+| `packages/cli/src/gateways/ws/ws-agent-handler.js`   | Agent 会话运行时桥接                                   |
+| `packages/cli/src/gateways/ws/action-protocol.js`    | Slash 命令和 orchestrate 协议                          |
+| `packages/cli/src/gateways/ws/task-protocol.js`      | 后台任务协议                                           |
+| `packages/cli/src/gateways/ws/worktree-protocol.js`  | Worktree 和压缩观测协议                                |
+| `packages/cli/src/lib/ws-server.js`                  | 向后兼容的 re-export shim（已废弃）                    |
 
 ## 相关文档
 

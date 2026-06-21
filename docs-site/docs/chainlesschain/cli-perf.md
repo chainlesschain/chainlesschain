@@ -51,14 +51,14 @@ CLI 端仅生成报告和建议，不自动应用变更。
 
 ## 配置参考
 
-| 配置项                 | 含义                  | 默认       |
-| ---------------------- | --------------------- | ---------- |
-| `sample_interval_ms`   | 采样间隔              | 1000 ms    |
-| `ring_buffer_size`     | 环形缓冲容量          | 300 samples |
-| `cooldown_ms`          | 规则冷却时间          | 60000 ms   |
-| `hysteresis`           | 迟滞阈值偏差          | ±5%        |
-| 规则状态               | enabled / disabled    |            |
-| 性能级别               | normal/warning/critical |          |
+| 配置项               | 含义                    | 默认        |
+| -------------------- | ----------------------- | ----------- |
+| `sample_interval_ms` | 采样间隔                | 1000 ms     |
+| `ring_buffer_size`   | 环形缓冲容量            | 300 samples |
+| `cooldown_ms`        | 规则冷却时间            | 60000 ms    |
+| `hysteresis`         | 迟滞阈值偏差            | ±5%         |
+| 规则状态             | enabled / disabled      |             |
+| 性能级别             | normal/warning/critical |             |
 
 查看：`chainlesschain perf levels`、`perf rule-statuses`、`perf config`。
 
@@ -66,14 +66,14 @@ CLI 端仅生成报告和建议，不自动应用变更。
 
 ## 性能指标
 
-| 操作                    | 典型耗时         |
-| ----------------------- | ---------------- |
-| collect 单次采样        | < 10 ms          |
-| evaluate（5 规则）      | < 10 ms          |
-| recommendations 查询    | < 5 ms           |
-| report 综合生成         | < 50 ms          |
-| clear-history           | < 10 ms          |
-| 内置环形缓冲容量        | 300 samples      |
+| 操作                 | 典型耗时    |
+| -------------------- | ----------- |
+| collect 单次采样     | < 10 ms     |
+| evaluate（5 规则）   | < 10 ms     |
+| recommendations 查询 | < 5 ms      |
+| report 综合生成      | < 50 ms     |
+| clear-history        | < 10 ms     |
+| 内置环形缓冲容量     | 300 samples |
 
 ---
 

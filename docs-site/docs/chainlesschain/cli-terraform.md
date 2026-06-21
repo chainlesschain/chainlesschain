@@ -60,10 +60,10 @@ chainlesschain terraform runs --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `terraform_workspaces` | 工作区（名称、描述、Terraform 版本、自动应用、状态版本、状态） |
-| `terraform_runs` | 运行记录（工作区 ID、运行类型、状态、新增/变更/销毁数、计划输出） |
+| 表名                   | 说明                                                              |
+| ---------------------- | ----------------------------------------------------------------- |
+| `terraform_workspaces` | 工作区（名称、描述、Terraform 版本、自动应用、状态版本、状态）    |
+| `terraform_runs`       | 运行记录（工作区 ID、运行类型、状态、新增/变更/销毁数、计划输出） |
 
 ## 系统架构
 
@@ -164,11 +164,11 @@ chainlesschain terraform runs
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No workspaces" | 未创建工作区 | 使用 `terraform create` |
-| "No runs found" | 工作区无运行记录 | 使用 `terraform plan` 执行运行 |
-| plan 失败 | 工作区 ID 不存在 | 使用 `terraform workspaces` 确认有效 ID |
+| 症状            | 可能原因         | 解决方案                                |
+| --------------- | ---------------- | --------------------------------------- |
+| "No workspaces" | 未创建工作区     | 使用 `terraform create`                 |
+| "No runs found" | 工作区无运行记录 | 使用 `terraform plan` 执行运行          |
+| plan 失败       | 工作区 ID 不存在 | 使用 `terraform workspaces` 确认有效 ID |
 
 ## 安全考虑
 

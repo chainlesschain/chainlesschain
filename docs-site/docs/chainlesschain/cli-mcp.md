@@ -87,16 +87,16 @@ chainlesschain mcp add <name> -c <command> [-a <args>] [--auto-connect] [--json]
 chainlesschain mcp add <name> -u <url> [-t http|sse|stdio] [-H K=V]... [--auto-connect] [--json]
 ```
 
-| 参数/选项 | 说明 |
-|-----------|------|
-| `<name>` | 服务器名称 |
-| `-c, --command <cmd>` | 服务器启动命令（stdio 模式必填） |
-| `-a, --args <args>` | 命令参数，逗号分隔（stdio 模式） |
-| `-u, --url <url>` | 远程服务器 URL（http / https） |
+| 参数/选项                | 说明                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `<name>`                 | 服务器名称                                                                        |
+| `-c, --command <cmd>`    | 服务器启动命令（stdio 模式必填）                                                  |
+| `-a, --args <args>`      | 命令参数，逗号分隔（stdio 模式）                                                  |
+| `-u, --url <url>`        | 远程服务器 URL（http / https）                                                    |
 | `-t, --transport <type>` | 显式指定传输：`http`（Streamable HTTP）· `sse` · `stdio`。不指定时从 URL 自动探测 |
-| `-H, --header <K=V>` | 自定义请求头，可重复（如 `-H Authorization=Bearer+xxx`） |
-| `--auto-connect` | 启动时自动连接 |
-| `--json` | JSON 格式输出 |
+| `-H, --header <K=V>`     | 自定义请求头，可重复（如 `-H Authorization=Bearer+xxx`）                          |
+| `--auto-connect`         | 启动时自动连接                                                                    |
+| `--json`                 | JSON 格式输出                                                                     |
 
 **Streamable HTTP 传输细节**（v5.0.2.10）：
 
@@ -146,12 +146,12 @@ chainlesschain mcp tools --json
 chainlesschain mcp call <tool> [-s <server>] [-a <json-args>] [--json]
 ```
 
-| 参数/选项 | 说明 |
-|-----------|------|
-| `<tool>` | 工具名称 |
+| 参数/选项             | 说明                         |
+| --------------------- | ---------------------------- |
+| `<tool>`              | 工具名称                     |
 | `-s, --server <name>` | 指定服务器（可选，自动查找） |
-| `-a, --args <json>` | 工具参数，JSON 格式 |
-| `--json` | JSON 格式输出 |
+| `-a, --args <json>`   | 工具参数，JSON 格式          |
+| `--json`              | JSON 格式输出                |
 
 ### scaffold (v5.0.2.10)
 
@@ -161,17 +161,17 @@ chainlesschain mcp call <tool> [-s <server>] [-a <json-args>] [--json]
 chainlesschain mcp scaffold <name> [options]
 ```
 
-| 参数/选项 | 说明 |
-|-----------|------|
-| `<name>` | 服务器名称（也作为包名默认前缀 `mcp-<name>`） |
-| `-t, --transport <type>` | 传输类型：`stdio`（默认）或 `http` |
-| `-p, --port <port>` | HTTP 模式监听端口（默认 `4001`） |
-| `-d, --description <text>` | package.json 描述 |
-| `-a, --author <name>` | package.json 作者 |
-| `-o, --output <dir>` | 输出目录（默认 `./<name>`） |
-| `--force` | 覆盖已有目录 |
-| `--dry-run` | 预览文件清单而不写盘 |
-| `--json` | JSON 格式输出 |
+| 参数/选项                  | 说明                                          |
+| -------------------------- | --------------------------------------------- |
+| `<name>`                   | 服务器名称（也作为包名默认前缀 `mcp-<name>`） |
+| `-t, --transport <type>`   | 传输类型：`stdio`（默认）或 `http`            |
+| `-p, --port <port>`        | HTTP 模式监听端口（默认 `4001`）              |
+| `-d, --description <text>` | package.json 描述                             |
+| `-a, --author <name>`      | package.json 作者                             |
+| `-o, --output <dir>`       | 输出目录（默认 `./<name>`）                   |
+| `--force`                  | 覆盖已有目录                                  |
+| `--dry-run`                | 预览文件清单而不写盘                          |
+| `--json`                   | JSON 格式输出                                 |
 
 ### registry (v5.0.2.10)
 
@@ -185,13 +185,13 @@ chainlesschain mcp registry install <id> [options]
 chainlesschain mcp registry categories [--json]
 ```
 
-| 子命令 | 关键选项 |
-|--------|---------|
-| `list` | `-c, --category <cat>` · `-t, --tags <tag1,tag2>` · `--sort <field>` · `--order <asc\|desc>` · `--json` |
-| `search` | `--json` — 匹配 name/description/tags |
-| `show` | 接受条目 `id` 或短名 |
-| `install` | `--as <alias>` 自定义服务器名 · `--auto-connect` 安装后立即连接 |
-| `categories` | `--json` |
+| 子命令       | 关键选项                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| `list`       | `-c, --category <cat>` · `-t, --tags <tag1,tag2>` · `--sort <field>` · `--order <asc\|desc>` · `--json` |
+| `search`     | `--json` — 匹配 name/description/tags                                                                   |
+| `show`       | 接受条目 `id` 或短名                                                                                    |
+| `install`    | `--as <alias>` 自定义服务器名 · `--auto-connect` 安装后立即连接                                         |
+| `categories` | `--json`                                                                                                |
 
 ### MCP Server 模式（`cc mcp serve`，v0.162.40+）
 
@@ -239,14 +239,14 @@ MCP_SERVER_LOG_LEVEL         # 子进程日志级别（error/warn/info/debug）
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `mcp servers` | < 100ms | ~50ms | ✅ |
-| `mcp add` | < 150ms | ~80ms | ✅ |
-| `mcp connect` (npx 子进程) | < 3s | ~1.8s | ✅ |
-| `mcp tools` (已连接) | < 200ms | ~120ms | ✅ |
-| `mcp call` (本地工具) | < 500ms | ~250ms | ✅ |
-| `mcp disconnect` | < 200ms | ~100ms | ✅ |
+| 操作                       | 目标    | 实际   | 状态 |
+| -------------------------- | ------- | ------ | ---- |
+| `mcp servers`              | < 100ms | ~50ms  | ✅   |
+| `mcp add`                  | < 150ms | ~80ms  | ✅   |
+| `mcp connect` (npx 子进程) | < 3s    | ~1.8s  | ✅   |
+| `mcp tools` (已连接)       | < 200ms | ~120ms | ✅   |
+| `mcp call` (本地工具)      | < 500ms | ~250ms | ✅   |
+| `mcp disconnect`           | < 200ms | ~100ms | ✅   |
 
 ## 测试覆盖率
 
@@ -304,13 +304,13 @@ chainlesschain mcp remove github
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Database not available` | 先运行 `chainlesschain db init` 初始化数据库 |
-| `Server not configured` | 使用 `chainlesschain mcp add` 添加服务器配置 |
-| `Connection failed` | 检查命令和参数是否正确，确认 npx/node 可用 |
-| `Tool not found` | 先连接服务器：`chainlesschain mcp connect <name>` |
-| 工具调用超时 | 检查 MCP 服务器进程是否正常运行 |
+| 问题                     | 解决方案                                          |
+| ------------------------ | ------------------------------------------------- |
+| `Database not available` | 先运行 `chainlesschain db init` 初始化数据库      |
+| `Server not configured`  | 使用 `chainlesschain mcp add` 添加服务器配置      |
+| `Connection failed`      | 检查命令和参数是否正确，确认 npx/node 可用        |
+| `Tool not found`         | 先连接服务器：`chainlesschain mcp connect <name>` |
+| 工具调用超时             | 检查 MCP 服务器进程是否正常运行                   |
 
 ## 相关文档
 

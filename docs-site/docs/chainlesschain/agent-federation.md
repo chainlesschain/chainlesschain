@@ -166,6 +166,7 @@
 **现象**: 调用 `fed-registry:discover` 或 `fed-registry:register` 超时或返回连接失败。
 
 **排查步骤**:
+
 1. 确认 `registryUrl` 配置地址正确且可访问（`curl` 或浏览器测试）
 2. 检查本地网络代理/防火墙设置是否阻断了外部请求
 3. 确认 `autoDiscover` 和 `autoRegister` 是否为 `true`
@@ -176,6 +177,7 @@
 **现象**: 跨组织调用时返回认证失败，Agent 被拒绝访问。
 
 **排查步骤**:
+
 1. 确认本地 Agent DID 的 Ed25519 密钥未过期或被撤销
 2. 检查双方系统时间差是否在允许范围内（时间戳验证依赖时钟同步）
 3. 确认会话 Token 未过期（默认 TTL 1 小时），过期后需重新认证
@@ -186,6 +188,7 @@
 **现象**: `cross-org:route-task` 长时间无响应或返回超时错误。
 
 **排查步骤**:
+
 1. 检查 `crossOrg.defaultTimeout` 配置是否设置过短（默认 300000ms）
 2. 确认目标 Agent 在线并有空闲处理能力（`maxConcurrentTasks` 未超限）
 3. 查看 `cross-org:get-task-status` 确认任务是否卡在某个中间状态
@@ -195,13 +198,13 @@
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 节点注册失败 | DID 格式错误或注册服务不可达 | 验证 DID 格式，检查联邦注册中心网络连通性 |
-| 跨组织路由超时 | 目标组织防火墙阻断或路由表过期 | 检查网络策略，执行 `federation route-refresh` |
-| 认证令牌过期 | Token TTL 过短或时钟偏移 | 增大 `tokenTTL` 配置，同步系统时钟（NTP） |
-| Agent 心跳丢失 | 网络抖动或心跳间隔过长 | 缩短 `heartbeatInterval`，检查网络稳定性 |
-| 联邦发现服务无响应 | 发现服务未启动或端口被占用 | 重启发现服务，确认端口未冲突 |
+| 症状               | 可能原因                       | 解决方案                                      |
+| ------------------ | ------------------------------ | --------------------------------------------- |
+| 节点注册失败       | DID 格式错误或注册服务不可达   | 验证 DID 格式，检查联邦注册中心网络连通性     |
+| 跨组织路由超时     | 目标组织防火墙阻断或路由表过期 | 检查网络策略，执行 `federation route-refresh` |
+| 认证令牌过期       | Token TTL 过短或时钟偏移       | 增大 `tokenTTL` 配置，同步系统时钟（NTP）     |
+| Agent 心跳丢失     | 网络抖动或心跳间隔过长         | 缩短 `heartbeatInterval`，检查网络稳定性      |
+| 联邦发现服务无响应 | 发现服务未启动或端口被占用     | 重启发现服务，确认端口未冲突                  |
 
 ### 常见错误修复
 
@@ -239,19 +242,19 @@ chainlesschain doctor --check ntp
 
 完整配置项说明（`.chainlesschain/config.json`）：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `agentFederation.enabled` | boolean | `true` | 是否启用联邦网络 |
-| `agentFederation.registryUrl` | string | `"https://registry.chainlesschain.io"` | 联邦注册中心地址 |
-| `agentFederation.autoRegister` | boolean | `true` | 启动时自动注册到联邦网络 |
-| `agentFederation.autoDiscover` | boolean | `true` | 自动发现并缓存网络中的 Agent |
-| `agentFederation.discoverInterval` | number | `300000` | 自动发现轮询间隔（ms） |
-| `agentFederation.reputation.initialScore` | number | `5.0` | 新 Agent 初始信誉分（0–10） |
-| `agentFederation.reputation.decayFactor` | number | `0.95` | 每次衰减周期的信誉折损系数 |
-| `agentFederation.reputation.minTasksForRanking` | number | `3` | 进入排行榜所需最少完成任务数 |
-| `agentFederation.crossOrg.maxConcurrentTasks` | number | `5` | 单 Agent 最大并发跨组织任务数 |
-| `agentFederation.crossOrg.defaultTimeout` | number | `300000` | 跨组织任务默认超时时间（ms） |
-| `agentFederation.crossOrg.slaEnforcement` | boolean | `true` | 是否强制执行 SLA 约束 |
+| 配置项                                          | 类型    | 默认值                                 | 说明                          |
+| ----------------------------------------------- | ------- | -------------------------------------- | ----------------------------- |
+| `agentFederation.enabled`                       | boolean | `true`                                 | 是否启用联邦网络              |
+| `agentFederation.registryUrl`                   | string  | `"https://registry.chainlesschain.io"` | 联邦注册中心地址              |
+| `agentFederation.autoRegister`                  | boolean | `true`                                 | 启动时自动注册到联邦网络      |
+| `agentFederation.autoDiscover`                  | boolean | `true`                                 | 自动发现并缓存网络中的 Agent  |
+| `agentFederation.discoverInterval`              | number  | `300000`                               | 自动发现轮询间隔（ms）        |
+| `agentFederation.reputation.initialScore`       | number  | `5.0`                                  | 新 Agent 初始信誉分（0–10）   |
+| `agentFederation.reputation.decayFactor`        | number  | `0.95`                                 | 每次衰减周期的信誉折损系数    |
+| `agentFederation.reputation.minTasksForRanking` | number  | `3`                                    | 进入排行榜所需最少完成任务数  |
+| `agentFederation.crossOrg.maxConcurrentTasks`   | number  | `5`                                    | 单 Agent 最大并发跨组织任务数 |
+| `agentFederation.crossOrg.defaultTimeout`       | number  | `300000`                               | 跨组织任务默认超时时间（ms）  |
+| `agentFederation.crossOrg.slaEnforcement`       | boolean | `true`                                 | 是否强制执行 SLA 约束         |
 
 ### 最小配置示例
 
@@ -286,18 +289,18 @@ chainlesschain doctor --check ntp
 
 ### 基准测试数据（v1.1.0，单节点，16 GB RAM）
 
-| 操作 | P50 延迟 | P99 延迟 | 吞吐量 |
-| --- | --- | --- | --- |
-| DID 创建（含密钥生成） | 12 ms | 45 ms | 80 ops/s |
-| DID 解析（本地缓存命中） | < 1 ms | 3 ms | 5000 ops/s |
-| 联邦注册（单节点写入） | 20 ms | 80 ms | 50 ops/s |
-| Agent 发现（本地注册表） | 2 ms | 10 ms | 2000 ops/s |
-| Agent 发现（联邦 DHT 查询） | 80 ms | 350 ms | 200 ops/s |
-| VC 凭证颁发（含 Ed25519 签名） | 8 ms | 30 ms | 120 ops/s |
-| VC 凭证验证 | 5 ms | 20 ms | 500 ops/s |
-| 跨组织任务路由（best-reputation） | 50 ms | 200 ms | 100 ops/s |
-| 信誉分查询 | 3 ms | 15 ms | 1000 ops/s |
-| 信誉排行榜（Top 100） | 10 ms | 40 ms | 300 ops/s |
+| 操作                              | P50 延迟 | P99 延迟 | 吞吐量     |
+| --------------------------------- | -------- | -------- | ---------- |
+| DID 创建（含密钥生成）            | 12 ms    | 45 ms    | 80 ops/s   |
+| DID 解析（本地缓存命中）          | < 1 ms   | 3 ms     | 5000 ops/s |
+| 联邦注册（单节点写入）            | 20 ms    | 80 ms    | 50 ops/s   |
+| Agent 发现（本地注册表）          | 2 ms     | 10 ms    | 2000 ops/s |
+| Agent 发现（联邦 DHT 查询）       | 80 ms    | 350 ms   | 200 ops/s  |
+| VC 凭证颁发（含 Ed25519 签名）    | 8 ms     | 30 ms    | 120 ops/s  |
+| VC 凭证验证                       | 5 ms     | 20 ms    | 500 ops/s  |
+| 跨组织任务路由（best-reputation） | 50 ms    | 200 ms   | 100 ops/s  |
+| 信誉分查询                        | 3 ms     | 15 ms    | 1000 ops/s |
+| 信誉排行榜（Top 100）             | 10 ms    | 40 ms    | 300 ops/s  |
 
 ### 扩展性说明
 
@@ -310,14 +313,14 @@ chainlesschain doctor --check ntp
 
 ### 测试文件
 
-| 文件 | 测试数 | 覆盖模块 |
-| --- | --- | --- |
-| `tests/unit/ai-engine/agent-did.test.js` | 28 | DID 创建/解析/撤销、状态机 |
-| `tests/unit/ai-engine/federated-agent-registry.test.js` | 34 | 注册、发现、DHT、心跳 |
-| `tests/unit/ai-engine/agent-credential-manager.test.js` | 22 | VC 颁发/验证/撤销、链式委托 |
-| `tests/unit/ai-engine/cross-org-task-router.test.js` | 26 | 四种路由策略、超时、SLA |
-| `tests/unit/ai-engine/agent-reputation.test.js` | 20 | 四维评分、时间衰减、排行 |
-| `tests/integration/agent-federation-e2e.test.js` | 15 | 完整联邦入网→发现→委派→信誉更新流程 |
+| 文件                                                    | 测试数 | 覆盖模块                            |
+| ------------------------------------------------------- | ------ | ----------------------------------- |
+| `tests/unit/ai-engine/agent-did.test.js`                | 28     | DID 创建/解析/撤销、状态机          |
+| `tests/unit/ai-engine/federated-agent-registry.test.js` | 34     | 注册、发现、DHT、心跳               |
+| `tests/unit/ai-engine/agent-credential-manager.test.js` | 22     | VC 颁发/验证/撤销、链式委托         |
+| `tests/unit/ai-engine/cross-org-task-router.test.js`    | 26     | 四种路由策略、超时、SLA             |
+| `tests/unit/ai-engine/agent-reputation.test.js`         | 20     | 四维评分、时间衰减、排行            |
+| `tests/integration/agent-federation-e2e.test.js`        | 15     | 完整联邦入网→发现→委派→信誉更新流程 |
 
 **合计**: 145 个测试用例，行覆盖率 ≥ 87%
 
@@ -347,13 +350,13 @@ cd desktop-app-vue && npx vitest run tests/unit/ai-engine/agent-did tests/unit/a
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js` | Agent DID 身份管理 |
-| `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦注册表与发现 |
-| `desktop-app-vue/src/main/ai-engine/cowork/agent-credential-manager.js` | 可验证凭证管理 |
-| `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js` | 跨组织任务路由 |
-| `desktop-app-vue/src/main/ai-engine/cowork/agent-reputation.js` | 信誉评分系统 |
+| 文件                                                                    | 职责               |
+| ----------------------------------------------------------------------- | ------------------ |
+| `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js`                | Agent DID 身份管理 |
+| `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦注册表与发现   |
+| `desktop-app-vue/src/main/ai-engine/cowork/agent-credential-manager.js` | 可验证凭证管理     |
+| `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js`    | 跨组织任务路由     |
+| `desktop-app-vue/src/main/ai-engine/cowork/agent-reputation.js`         | 信誉评分系统       |
 
 ## 相关文档
 

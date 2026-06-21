@@ -158,13 +158,13 @@ chainlesschain compliance scan                  # 综合扫描
 
 ## 5. 数据存储
 
-| 范围 | 存储位置 |
-| --- | --- |
-| 威胁指标 | SQLite `threat_indicators` |
+| 范围      | 存储位置                                          |
+| --------- | ------------------------------------------------- |
+| 威胁指标  | SQLite `threat_indicators`                        |
 | UEBA 基线 | SQLite `ueba_baselines`（按实体存储的 JSON 数据） |
-| UEBA 告警 | SQLite `ueba_alerts` |
-| 合规报告 | 输出到标准输出或 `--output` 文件（不持久化） |
-| 审计证据 | 实时从 `audit_logs` 表拉取 |
+| UEBA 告警 | SQLite `ueba_alerts`                              |
+| 合规报告  | 输出到标准输出或 `--output` 文件（不持久化）      |
+| 审计证据  | 实时从 `audit_logs` 表拉取                        |
 
 所有表存储在 SQLCipher 加密的应用数据库中。
 
@@ -193,7 +193,6 @@ chainlesschain compliance scan                  # 综合扫描
 - CLI 参考: `docs/CLI_COMMANDS_REFERENCE.md`（Phase 8 部分）
 - 审计 / SIEM: `chainlesschain audit log`、`chainlesschain siem export`
 - DLP: `chainlesschain dlp scan` — 与 UEBA 互补的数据流防护
-
 
 ## 附录：规范章节补全（v5.0.2.34）
 
@@ -230,14 +229,14 @@ cc compliance ─┬─ stixgov-*-v2   → stix-parser.js
 
 ### 5. 核心功能
 
-| 能力 | CLI 表面 |
-|---|---|
-| STIX 解析 | `cc compliance stixgov-...-v2` |
-| 威胁源 | `cc compliance tigov-...-v2` |
-| UEBA 告警 | `cc compliance uebgov-...-v2` |
-| 合规报告 | `cc compliance cmpmgov-...-v2`（默认 `framework=soc2`） |
-| 审计导出 | `cc audit log` / `cc siem export` |
-| DLP | `cc dlp scan` |
+| 能力      | CLI 表面                                                |
+| --------- | ------------------------------------------------------- |
+| STIX 解析 | `cc compliance stixgov-...-v2`                          |
+| 威胁源    | `cc compliance tigov-...-v2`                            |
+| UEBA 告警 | `cc compliance uebgov-...-v2`                           |
+| 合规报告  | `cc compliance cmpmgov-...-v2`（默认 `framework=soc2`） |
+| 审计导出  | `cc audit log` / `cc siem export`                       |
+| DLP       | `cc dlp scan`                                           |
 
 ### 6. 技术架构
 
@@ -260,14 +259,14 @@ cc compliance ─┬─ stixgov-*-v2   → stix-parser.js
 
 ### 9. 竞品对比
 
-| 能力 | ChainlessChain | Splunk ES | Wazuh |
-|---|---|---|---|
-| STIX 2.1 | ✅ `stixgov` | ✅ 收费 | ✅ |
-| UEBA | ✅ `uebgov` | ✅ 收费 | ⚠️ 基础 |
-| SOC2 / ISO27001 报告 | ✅ `cmpmgov` | ✅ 模板 | ⚠️ |
-| CLI 可自动化 | ✅ 159 命令 | ⚠️ | ⚠️ |
-| 本地优先 / 可离线 | ✅ | ❌ | ✅ |
-| V2 治理生命周期 | ✅ | ❌ | ❌ |
+| 能力                 | ChainlessChain | Splunk ES | Wazuh   |
+| -------------------- | -------------- | --------- | ------- |
+| STIX 2.1             | ✅ `stixgov`   | ✅ 收费   | ✅      |
+| UEBA                 | ✅ `uebgov`    | ✅ 收费   | ⚠️ 基础 |
+| SOC2 / ISO27001 报告 | ✅ `cmpmgov`   | ✅ 模板   | ⚠️      |
+| CLI 可自动化         | ✅ 159 命令    | ⚠️        | ⚠️      |
+| 本地优先 / 可离线    | ✅             | ❌        | ✅      |
+| V2 治理生命周期      | ✅             | ❌        | ❌      |
 
 ### 10. 配置参考
 

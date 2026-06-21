@@ -180,35 +180,35 @@ EvoMapManager federation.js governance.js
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/evomap.js` | evomap 命令主入口 |
-| `packages/cli/src/lib/evomap-client.js` | EvoMap Hub 客户端（搜索/下载/发布） |
-| `packages/cli/src/lib/evomap-manager.js` | 本地基因管理（安装/列出/打包） |
-| `packages/cli/src/lib/evomap-federation.js` | 联邦 Hub 管理、基因同步、演化压力 |
-| `packages/cli/src/lib/evomap-governance.js` | 治理系统（所有权/提案/投票） |
+| 文件                                        | 职责                                |
+| ------------------------------------------- | ----------------------------------- |
+| `packages/cli/src/commands/evomap.js`       | evomap 命令主入口                   |
+| `packages/cli/src/lib/evomap-client.js`     | EvoMap Hub 客户端（搜索/下载/发布） |
+| `packages/cli/src/lib/evomap-manager.js`    | 本地基因管理（安装/列出/打包）      |
+| `packages/cli/src/lib/evomap-federation.js` | 联邦 Hub 管理、基因同步、演化压力   |
+| `packages/cli/src/lib/evomap-governance.js` | 治理系统（所有权/提案/投票）        |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `hub.url` | 默认 EvoMap Hub | 内置公共 Hub |
-| `federation.syncInterval` | 联邦同步周期 | 3600 s |
-| `federation.maxHubs` | 最大 Hub 数 | 16 |
-| `governance.quorum` | 提案法定人数 | 3 |
-| `governance.voteWindow` | 投票窗口 | 7 天 |
-| V2 map cap / evolution cap | 见 `evomap_manager_v2_cli.md` | 10 / 15 |
+| 配置项                     | 含义                          | 默认         |
+| -------------------------- | ----------------------------- | ------------ |
+| `hub.url`                  | 默认 EvoMap Hub               | 内置公共 Hub |
+| `federation.syncInterval`  | 联邦同步周期                  | 3600 s       |
+| `federation.maxHubs`       | 最大 Hub 数                   | 16           |
+| `governance.quorum`        | 提案法定人数                  | 3            |
+| `governance.voteWindow`    | 投票窗口                      | 7 天         |
+| V2 map cap / evolution cap | 见 `evomap_manager_v2_cli.md` | 10 / 15      |
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `search` / `list` | < 100 ms | 本地索引 + 增量 Hub 拉取 |
-| `install <gene>` | 典型 300 ms–2 s | 取决于基因包大小 |
-| `publish` | 依赖网络 | Hub API 上传 |
-| `fed sync` | 依赖 Hub 数 / 网络 | 每 Hub ~100–500 ms |
-| `gov propose` / `vote` | < 50 ms | 本地 SQLite |
-| V2 evolution dispatch | < 50 ms | `evomap_manager_v2_cli.md` |
+| 操作                   | 典型耗时           | 备注                       |
+| ---------------------- | ------------------ | -------------------------- |
+| `search` / `list`      | < 100 ms           | 本地索引 + 增量 Hub 拉取   |
+| `install <gene>`       | 典型 300 ms–2 s    | 取决于基因包大小           |
+| `publish`              | 依赖网络           | Hub API 上传               |
+| `fed sync`             | 依赖 Hub 数 / 网络 | 每 Hub ~100–500 ms         |
+| `gov propose` / `vote` | < 50 ms            | 本地 SQLite                |
+| V2 evolution dispatch  | < 50 ms            | `evomap_manager_v2_cli.md` |
 
 ## 测试覆盖率
 
@@ -273,10 +273,10 @@ chainlesschain evomap gov dashboard
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Search failed" | Hub 不可达 | 检查网络连接和 Hub 配置 |
-| "No genes installed" | 未下载基因 | 使用 `evomap download` 安装 |
+| 症状                     | 可能原因       | 解决方案                      |
+| ------------------------ | -------------- | ----------------------------- |
+| "Search failed"          | Hub 不可达     | 检查网络连接和 Hub 配置       |
+| "No genes installed"     | 未下载基因     | 使用 `evomap download` 安装   |
 | "Database not available" | 数据库未初始化 | 运行 `chainlesschain db init` |
 
 ## 相关文档

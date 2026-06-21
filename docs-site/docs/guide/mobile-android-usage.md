@@ -5,20 +5,22 @@
 > 架构 / 源码 / Phase 设计深入请看 [Android v1.0 GA 用户文档](/guide/mobile-android)。本页是用户视角的完整操作手册。
 
 ::: tip 适用版本
+
 - App：Android **5.0.3.64**（versionCode `503064`，versionName `5.0.3.64`）
 - 桌面：v5.0.3.64
 - 桌面与移动同 tag 同步发布，从 release 页面下载时**两端版本号必须一致**
+
 :::
 
 ## 概述
 
 ChainlessChain Android 是桌面 ChainlessChain 在移动场景下的**三层延伸**：
 
-| 层 | 定位 | 桌面替代不了的原因 |
-|---|---|---|
-| **L1** StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥 | Android Keystore + StrongBox HSM 芯片级隔离，桌面 U-Key 需插着才能用 |
-| **L2** 移动现场捕获 | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没麦克风触手可及、没摄像头、没 GPS、不能接 Android 系统分享 |
-| **L3** REMOTE 遥控器 | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
+| 层                        | 定位                                    | 桌面替代不了的原因                                                   |
+| ------------------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| **L1** StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥              | Android Keystore + StrongBox HSM 芯片级隔离，桌面 U-Key 需插着才能用 |
+| **L2** 移动现场捕获       | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没麦克风触手可及、没摄像头、没 GPS、不能接 Android 系统分享      |
+| **L3** REMOTE 遥控器      | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑                           |
 
 设计原则：**手机不重复实现桌面**，只补桌面在移动场景做不到的事。对齐 Claude Desktop / Mobile 的二端分工。
 
@@ -74,11 +76,11 @@ ChainlessChain Android 是桌面 ChainlessChain 在移动场景下的**三层延
 
 ### 远程操控三段位链路
 
-| 层 | 何时用 | 延迟 | 链路 |
-|---|---|---|---|
-| **Plan A** WebRTC DC 直连 | 高吞吐流式（PTY stdout / 文件流） | 30-80ms LAN | P2P 加密 |
-| **Plan B** STUN-TURN 中继 | NAT 穿透失败兜底 | 200-500ms | 公网中继 |
-| **Plan C** Signaling forward | 单次低频命令（Ping / SysInfo） | 100-400ms | 复用配对 signaling 管道 |
+| 层                           | 何时用                            | 延迟        | 链路                    |
+| ---------------------------- | --------------------------------- | ----------- | ----------------------- |
+| **Plan A** WebRTC DC 直连    | 高吞吐流式（PTY stdout / 文件流） | 30-80ms LAN | P2P 加密                |
+| **Plan B** STUN-TURN 中继    | NAT 穿透失败兜底                  | 200-500ms   | 公网中继                |
+| **Plan C** Signaling forward | 单次低频命令（Ping / SysInfo）    | 100-400ms   | 复用配对 signaling 管道 |
 
 WebRTC SDP 协商成功后自动切 Plan A；失败 fallback Plan B；Plan B 仍不通走 Plan C。状态 chip 实时显示当前路径。
 
@@ -168,67 +170,67 @@ Desktop walker (5 ResourceType) ───SyncCoordinator───► Android syn
 
 ### 启动 / 响应时间
 
-| 操作 | 目标 | 实际 | 状态 |
-|---|---|---|---|
-| 冷启动到 PIN 屏 | < 2s | ~1.5s | ✅ |
-| PIN 解锁到主界面 | < 500ms | ~300ms | ✅ |
-| 扫码识别 QR | < 2s | ~1.2s | ✅ |
-| 配对协商（LAN） | < 3s | ~2s | ✅ |
-| 配对协商（跨网中继） | < 10s | ~5-8s | ✅ |
-| 远程终端 PTY 拉起 | < 800ms | ~500ms | ✅ |
+| 操作                 | 目标    | 实际   | 状态 |
+| -------------------- | ------- | ------ | ---- |
+| 冷启动到 PIN 屏      | < 2s    | ~1.5s  | ✅   |
+| PIN 解锁到主界面     | < 500ms | ~300ms | ✅   |
+| 扫码识别 QR          | < 2s    | ~1.2s  | ✅   |
+| 配对协商（LAN）      | < 3s    | ~2s    | ✅   |
+| 配对协商（跨网中继） | < 10s   | ~5-8s  | ✅   |
+| 远程终端 PTY 拉起    | < 800ms | ~500ms | ✅   |
 
 ### 远程操控延迟
 
-| 链路 | RTT p50 | RTT p99 |
-|---|---|---|
-| Plan A WebRTC DC 直连 LAN | 30ms | 80ms |
-| Plan A WebRTC DC 直连 蜂窝 | 60ms | 200ms |
-| Plan B TURN 中继 | 200ms | 500ms |
-| Plan C signaling forward | 150ms | 400ms |
+| 链路                       | RTT p50 | RTT p99 |
+| -------------------------- | ------- | ------- |
+| Plan A WebRTC DC 直连 LAN  | 30ms    | 80ms    |
+| Plan A WebRTC DC 直连 蜂窝 | 60ms    | 200ms   |
+| Plan B TURN 中继           | 200ms   | 500ms   |
+| Plan C signaling forward   | 150ms   | 400ms   |
 
 ### 资源使用
 
-| 指标 | 数值 |
-|---|---|
-| APK 大小 | 82 MB (arm64-v8a) / 59 MB (armeabi-v7a) / 124 MB (universal) |
-| 安装后占用 | ~150 MB |
-| 内存 (空闲) | < 50 MB |
-| 内存 (远程终端会话) | ~80 MB |
-| 内存 (VoiceMode) | ~120 MB |
-| CPU (空闲) | < 3% |
-| CPU (远程终端流式) | < 15% |
-| 后台同步流量 | < 1 MB/h（增量 cursor） |
+| 指标                | 数值                                                         |
+| ------------------- | ------------------------------------------------------------ |
+| APK 大小            | 82 MB (arm64-v8a) / 59 MB (armeabi-v7a) / 124 MB (universal) |
+| 安装后占用          | ~150 MB                                                      |
+| 内存 (空闲)         | < 50 MB                                                      |
+| 内存 (远程终端会话) | ~80 MB                                                       |
+| 内存 (VoiceMode)    | ~120 MB                                                      |
+| CPU (空闲)          | < 3%                                                         |
+| CPU (远程终端流式)  | < 15%                                                        |
+| 后台同步流量        | < 1 MB/h（增量 cursor）                                      |
 
 ### 兼容范围
 
-| 指标 | 范围 |
-|---|---|
-| Android API 范围 | 26 (8.0) — 35 (15) |
-| 推荐版本 | Android 12+（StrongBox HSM 需 9+；强制 biometric 需 10+） |
-| 同时活跃 PTY session | 8+ |
-| 同时配对桌面数 | 5+ |
+| 指标                 | 范围                                                      |
+| -------------------- | --------------------------------------------------------- |
+| Android API 范围     | 26 (8.0) — 35 (15)                                        |
+| 推荐版本             | Android 12+（StrongBox HSM 需 9+；强制 biometric 需 10+） |
+| 同时活跃 PTY session | 8+                                                        |
+| 同时配对桌面数       | 5+                                                        |
 
 ## 测试覆盖率
 
 ### 单元测试
 
-| 模块 | 测试数 | 覆盖率 |
-|---|---|---|
-| 配对 ViewModel + DID 验签 | 57 | ~90% |
-| 远程终端 TerminalRpcClient | 38 | ~85% |
-| 远程文件 RemoteCommandClient | 34 | ~85% |
-| 同步 walker + cursor | 52 | ~80% |
-| StrongBox / DID Manager | 41 | ~92% |
-| VoiceMode / OCR / Push | 89 | ~75% |
-| 其它（utilities / repo / VM） | 72 | ~70% |
-| **合计** | **383+** | **平均 ~80%** |
+| 模块                          | 测试数   | 覆盖率        |
+| ----------------------------- | -------- | ------------- |
+| 配对 ViewModel + DID 验签     | 57       | ~90%          |
+| 远程终端 TerminalRpcClient    | 38       | ~85%          |
+| 远程文件 RemoteCommandClient  | 34       | ~85%          |
+| 同步 walker + cursor          | 52       | ~80%          |
+| StrongBox / DID Manager       | 41       | ~92%          |
+| VoiceMode / OCR / Push        | 89       | ~75%          |
+| 其它（utilities / repo / VM） | 72       | ~70%          |
+| **合计**                      | **383+** | **平均 ~80%** |
 
 ### 集成测试 / E2E
 
-| 类型 | 范围 |
-|---|---|
-| Robolectric 集成 | sync 53 case / pairing 18 case |
-| Android Instrumented | DID lifecycle / Room migration |
+| 类型                                    | 范围                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| Robolectric 集成                        | sync 53 case / pairing 18 case                                                 |
+| Android Instrumented                    | DID lifecycle / Room migration                                                 |
 | 真机 E2E (Xiaomi 24115RA8EC × Win 桌面) | 配对 3 流 / 远程终端 PTY 完整链路 / 文件 8 场景 / 远程操控 4 skill / VoiceMode |
 
 ### CI 状态
@@ -342,24 +344,24 @@ adb logcat -s SignalingRpc -s WebRTCClient -s TerminalRpcClient
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-|---|---|---|
-| `android-app/app/src/main/java/.../auth/AuthViewModel.kt` | PIN / 生物识别 / DID 登录 | ~480 |
-| `android-app/app/src/main/java/.../did/DIDManager.kt` | StrongBox DID 钱包 + BIP-39 | ~720 |
-| `android-app/app/src/main/java/.../p2p/P2PClient.kt` | libp2p + WebRTC 协调 | ~890 |
-| `android-app/app/src/main/java/.../p2p/WebRTCClient.kt` | Plan A DC 直连 | ~1,100 |
-| `android-app/app/src/main/java/.../p2p/SignalingRpcClient.kt` | Plan C signaling forward | ~530 |
-| `android-app/app/src/main/java/.../p2p/RemoteCommandClient.kt` | 4 skill RPC 客户端 | ~640 |
-| `android-app/app/src/main/java/.../remote/FileCommands.kt` | 文件 11 action handler | ~1,116 |
-| `android-app/app/src/main/java/.../remote/ClipboardCommands.kt` | 剪贴板双向 | ~229 |
-| `android-app/app/src/main/java/.../remote/DisplayCommands.kt` | 截图 skill | ~298 |
-| `android-app/app/src/main/java/.../remote/SystemInfoCommands.kt` | 系统信息 4 cards + 5s polling | ~1,129 |
-| `android-app/app/src/main/java/.../terminal/TerminalRpcClient.kt` | xterm.js bridge | ~580 |
-| `android-app/app/src/main/java/.../sync/SyncCoordinator.kt` | Phase 3d 双向同步 | ~920 |
-| `android-app/app/src/main/java/.../voice/VoiceModeManager.kt` | SeedASR + VAD + TTS | ~1,260 |
-| `desktop-app-vue/src/main/mobile-bridge.js` | 桌面侧配对 + sync gateway | ~1,400 |
-| `desktop-app-vue/src/main/p2p/mobile-bridge-sync.js` | 5 ResourceType walker | ~2,100 |
-| `desktop-app-vue/src/main/p2p/android-file-handler.js` | 11 action 桌面 handler | ~890 |
+| 文件                                                              | 职责                          | 行数   |
+| ----------------------------------------------------------------- | ----------------------------- | ------ |
+| `android-app/app/src/main/java/.../auth/AuthViewModel.kt`         | PIN / 生物识别 / DID 登录     | ~480   |
+| `android-app/app/src/main/java/.../did/DIDManager.kt`             | StrongBox DID 钱包 + BIP-39   | ~720   |
+| `android-app/app/src/main/java/.../p2p/P2PClient.kt`              | libp2p + WebRTC 协调          | ~890   |
+| `android-app/app/src/main/java/.../p2p/WebRTCClient.kt`           | Plan A DC 直连                | ~1,100 |
+| `android-app/app/src/main/java/.../p2p/SignalingRpcClient.kt`     | Plan C signaling forward      | ~530   |
+| `android-app/app/src/main/java/.../p2p/RemoteCommandClient.kt`    | 4 skill RPC 客户端            | ~640   |
+| `android-app/app/src/main/java/.../remote/FileCommands.kt`        | 文件 11 action handler        | ~1,116 |
+| `android-app/app/src/main/java/.../remote/ClipboardCommands.kt`   | 剪贴板双向                    | ~229   |
+| `android-app/app/src/main/java/.../remote/DisplayCommands.kt`     | 截图 skill                    | ~298   |
+| `android-app/app/src/main/java/.../remote/SystemInfoCommands.kt`  | 系统信息 4 cards + 5s polling | ~1,129 |
+| `android-app/app/src/main/java/.../terminal/TerminalRpcClient.kt` | xterm.js bridge               | ~580   |
+| `android-app/app/src/main/java/.../sync/SyncCoordinator.kt`       | Phase 3d 双向同步             | ~920   |
+| `android-app/app/src/main/java/.../voice/VoiceModeManager.kt`     | SeedASR + VAD + TTS           | ~1,260 |
+| `desktop-app-vue/src/main/mobile-bridge.js`                       | 桌面侧配对 + sync gateway     | ~1,400 |
+| `desktop-app-vue/src/main/p2p/mobile-bridge-sync.js`              | 5 ResourceType walker         | ~2,100 |
+| `desktop-app-vue/src/main/p2p/android-file-handler.js`            | 11 action 桌面 handler        | ~890   |
 
 ## 使用示例
 

@@ -358,7 +358,6 @@ chmod 777 data/uploads
 
 **祝您使用愉快！**
 
-
 ## 附录：规范章节补全（v5.0.2.34）
 
 > 为对齐项目用户文档标准结构，下列章节补齐若干未在正文中单独列出的视角。已在正文覆盖的章节在此段仅作简述并标注 `见上文` 指引。
@@ -384,13 +383,13 @@ chmod 777 data/uploads
 
 ### 5. 核心功能
 
-| 路径 | 命令 |
-|---|---|
-| 全局 CLI | `npm i -g chainlesschain` |
-| 桌面版 | `cd desktop-app-vue && npm install && npm run dev` |
-| 后端依赖 | `docker-compose up -d` |
-| CLI 测试 | `cd packages/cli && npm test` |
-| 自检 | `cc doctor` |
+| 路径     | 命令                                               |
+| -------- | -------------------------------------------------- |
+| 全局 CLI | `npm i -g chainlesschain`                          |
+| 桌面版   | `cd desktop-app-vue && npm install && npm run dev` |
+| 后端依赖 | `docker-compose up -d`                             |
+| CLI 测试 | `cd packages/cli && npm test`                      |
+| 自检     | `cc doctor`                                        |
 
 ### 6. 技术架构
 
@@ -412,12 +411,12 @@ chmod 777 data/uploads
 
 ### 9. 竞品对比
 
-| 维度 | ChainlessChain | Ollama 裸用 | Open WebUI |
-|---|---|---|---|
-| 全栈一键起 | ✅ `docker-compose up` | ⚠️ 仅推理 | ⚠️ 仅 UI |
-| CLI + 桌面双端 | ✅ | ❌ | ❌ |
-| 环境自检 | ✅ `cc doctor` | ❌ | ❌ |
-| 企业下发配置 | ✅ Profile / MDM | ❌ | ❌ |
+| 维度           | ChainlessChain         | Ollama 裸用 | Open WebUI |
+| -------------- | ---------------------- | ----------- | ---------- |
+| 全栈一键起     | ✅ `docker-compose up` | ⚠️ 仅推理   | ⚠️ 仅 UI   |
+| CLI + 桌面双端 | ✅                     | ❌          | ❌         |
+| 环境自检       | ✅ `cc doctor`         | ❌          | ❌         |
+| 企业下发配置   | ✅ Profile / MDM       | ❌          | ❌         |
 
 ### 10. 配置参考
 

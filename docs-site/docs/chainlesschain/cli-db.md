@@ -172,13 +172,13 @@ chainlesschain db reset [--force]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| db init（创建表 + 索引） | < 500ms | ~ 200ms | ✅ |
-| db info（元数据查询） | < 100ms | ~ 30ms | ✅ |
-| db backup（本地文件复制） | < 2s / 100MB | ~ 1.2s | ✅ |
-| db restore（覆盖恢复） | < 2s / 100MB | ~ 1.5s | ✅ |
-| JSON 输出序列化 | < 50ms | ~ 10ms | ✅ |
+| 操作                      | 目标         | 实际    | 状态 |
+| ------------------------- | ------------ | ------- | ---- |
+| db init（创建表 + 索引）  | < 500ms      | ~ 200ms | ✅   |
+| db info（元数据查询）     | < 100ms      | ~ 30ms  | ✅   |
+| db backup（本地文件复制） | < 2s / 100MB | ~ 1.2s  | ✅   |
+| db restore（覆盖恢复）    | < 2s / 100MB | ~ 1.5s  | ✅   |
+| JSON 输出序列化           | < 50ms       | ~ 10ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -232,14 +232,14 @@ chainlesschain db info --json
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `init` 失败报权限错误 | 检查数据目录写入权限 |
-| `info` 显示 0 tables | 数据库未初始化，运行 `db init` |
-| `restore` 后数据不一致 | 确认备份文件未损坏，重新备份恢复 |
-| `database disk image is malformed` | 跑 `cc db check` 确认范围；`cc db repair` 抢救 → `cc db reset --force` 备份原库 → 可选 `cc db restore <recovered>` 把抢救出的数据切回去 |
+| 问题                                                   | 解决方案                                                                                                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init` 失败报权限错误                                  | 检查数据目录写入权限                                                                                                                                                              |
+| `info` 显示 0 tables                                   | 数据库未初始化，运行 `db init`                                                                                                                                                    |
+| `restore` 后数据不一致                                 | 确认备份文件未损坏，重新备份恢复                                                                                                                                                  |
+| `database disk image is malformed`                     | 跑 `cc db check` 确认范围；`cc db repair` 抢救 → `cc db reset --force` 备份原库 → 可选 `cc db restore <recovered>` 把抢救出的数据切回去                                           |
 | `cc db check / repair` 报 "No SQLite driver available" | 极少见——通常 `better-sqlite3` 装得上就走原生路径。装不上时升级到 `chainlesschain@0.157.4+` 会自动回落 `sql.js` WASM；如还报错，确认 `npm i -g chainlesschain@latest` 真的更新成功 |
-| 频繁出现损坏 | 多半是 Desktop + CLI 长期共写同一个 `.db`。短暂并存可以（WAL 模式），但请避免同时长时间持有写连接；另请检查是否有进程被强杀的历史 |
+| 频繁出现损坏                                           | 多半是 Desktop + CLI 长期共写同一个 `.db`。短暂并存可以（WAL 模式），但请避免同时长时间持有写连接；另请检查是否有进程被强杀的历史                                                 |
 
 ### 数据库损坏完整恢复流程
 

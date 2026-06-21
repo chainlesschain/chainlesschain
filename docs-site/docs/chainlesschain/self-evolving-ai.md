@@ -43,16 +43,16 @@ ChainlessChain 自进化 AI 系统实现了 AI 模型的自主进化能力，包
 
 ## 关键文件
 
-| 文件                                                    | 职责                         |
-| ------------------------------------------------------- | ---------------------------- |
-| `src/main/ai-engine/evolution/self-evolving-manager.js` | 自进化核心管理器             |
-| `src/main/ai-engine/evolution/capability-assessor.js`   | 多维度能力评估               |
-| `src/main/ai-engine/evolution/continual-learner.js`     | EWC/蒸馏增量学习             |
-| `src/main/ai-engine/evolution/self-diagnosis.js`        | 自诊断与自修复引擎           |
-| `src/main/ai-engine/evolution/behavior-predictor.js`    | 用户行为预测与主动服务       |
-| `src/main/ai-engine/evolution/evolution-ipc.js`         | IPC 处理器（8 个）           |
-| `src/renderer/pages/ai/EvolutionDashboardPage.vue`      | 进化成长日志可视化页面       |
-| `src/renderer/stores/evolution.ts`                      | Pinia 状态管理               |
+| 文件                                                    | 职责                   |
+| ------------------------------------------------------- | ---------------------- |
+| `src/main/ai-engine/evolution/self-evolving-manager.js` | 自进化核心管理器       |
+| `src/main/ai-engine/evolution/capability-assessor.js`   | 多维度能力评估         |
+| `src/main/ai-engine/evolution/continual-learner.js`     | EWC/蒸馏增量学习       |
+| `src/main/ai-engine/evolution/self-diagnosis.js`        | 自诊断与自修复引擎     |
+| `src/main/ai-engine/evolution/behavior-predictor.js`    | 用户行为预测与主动服务 |
+| `src/main/ai-engine/evolution/evolution-ipc.js`         | IPC 处理器（8 个）     |
+| `src/renderer/pages/ai/EvolutionDashboardPage.vue`      | 进化成长日志可视化页面 |
+| `src/renderer/stores/evolution.ts`                      | Pinia 状态管理         |
 
 ---
 
@@ -466,46 +466,46 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 ## 故障排查
 
-| 问题 | 原因分析 | 解决方案 |
-|------|---------|---------|
-| 能力评估耗时过长 | `sampleSize` 设置过大或评测集过于复杂 | 减小 `sampleSize`（建议 50-100），使用 `standard-v2` 轻量评测集 |
-| 增量训练后其他维度退化严重 | `maxDegradation` 阈值过高或训练数据质量差 | 降低 `maxDegradation`（建议 0.02），检查训练数据质量；切换到 `distillation` 策略 |
-| 自诊断误报频繁 | 基线指标过于严格或系统负载波动 | 重新校准基线指标，增加诊断采样次数；在系统低负载时段进行诊断 |
-| 自修复失败 | 修复策略不适用或回滚目标版本不存在 | 检查可用的修复策略列表，确认历史版本存在；使用 `dryRun: true` 先模拟修复 |
-| 行为预测准确率低 | 用户行为数据不足或模式变化 | 增大 `contextWindow`（建议 20-50），积累更多历史行为数据后预测准确率会提升 |
-| NAS 搜索未找到更优架构 | 搜索预算不足或搜索空间过小 | 增大 `searchBudgetHours`，扩展模型搜索空间参数；确认目标设备配置正确 |
-| 模型导出格式不支持 | 目标格式缺少对应的转换器 | 确认 `format` 在支持列表中（onnx/tflite/coreml/openvino），检查导出依赖是否已安装 |
+| 问题                       | 原因分析                                  | 解决方案                                                                          |
+| -------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| 能力评估耗时过长           | `sampleSize` 设置过大或评测集过于复杂     | 减小 `sampleSize`（建议 50-100），使用 `standard-v2` 轻量评测集                   |
+| 增量训练后其他维度退化严重 | `maxDegradation` 阈值过高或训练数据质量差 | 降低 `maxDegradation`（建议 0.02），检查训练数据质量；切换到 `distillation` 策略  |
+| 自诊断误报频繁             | 基线指标过于严格或系统负载波动            | 重新校准基线指标，增加诊断采样次数；在系统低负载时段进行诊断                      |
+| 自修复失败                 | 修复策略不适用或回滚目标版本不存在        | 检查可用的修复策略列表，确认历史版本存在；使用 `dryRun: true` 先模拟修复          |
+| 行为预测准确率低           | 用户行为数据不足或模式变化                | 增大 `contextWindow`（建议 20-50），积累更多历史行为数据后预测准确率会提升        |
+| NAS 搜索未找到更优架构     | 搜索预算不足或搜索空间过小                | 增大 `searchBudgetHours`，扩展模型搜索空间参数；确认目标设备配置正确              |
+| 模型导出格式不支持         | 目标格式缺少对应的转换器                  | 确认 `format` 在支持列表中（onnx/tflite/coreml/openvino），检查导出依赖是否已安装 |
 
 ## 配置参考
 
 下表列出 `.chainlesschain/config.json` 中 `selfEvolvingAI` 所有可配置项及其默认值：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `enabled` | boolean | `true` | 是否启用自进化系统 |
-| `autoAssessment.enabled` | boolean | `true` | 启用定时能力评估 |
-| `autoAssessment.interval` | integer | `604800000` | 评估间隔（ms），默认每周一次 |
-| `autoAssessment.dimensions` | string[] | 6 维度 | 评估维度列表 |
-| `autoAssessment.minScoreThreshold` | number | `0.85` | 低于此分值触发升级 |
-| `continualLearning.strategy` | string | `"ewc"` | 增量学习策略：`ewc` / `distillation` / `replay` |
-| `continualLearning.maxDegradation` | number | `0.02` | 其他维度最大允许退化幅度 |
-| `continualLearning.maxTrainingDuration` | integer | `3600000` | 单次训练最大时长（ms） |
-| `continualLearning.dataSourcePriority` | string[] | `["user-feedback","curated","synthetic"]` | 训练数据来源优先级 |
-| `selfDiagnosis.enabled` | boolean | `true` | 启用自诊断 |
-| `selfDiagnosis.interval` | integer | `86400000` | 诊断间隔（ms），默认每天一次 |
-| `selfDiagnosis.checks` | string[] | 5 项检查 | 诊断检查项列表 |
-| `selfRepair.enabled` | boolean | `true` | 启用自修复 |
-| `selfRepair.autoRepair` | boolean | `true` | 是否自动执行修复（无需用户确认） |
-| `selfRepair.requireApproval` | boolean | `false` | 是否需要用户审批才能执行修复 |
-| `selfRepair.strategies` | string[] | 4 种策略 | 允许执行的修复策略列表 |
-| `behaviorPrediction.enabled` | boolean | `true` | 启用行为预测 |
-| `behaviorPrediction.contextWindow` | integer | `20` | 行为上下文窗口大小（条） |
-| `behaviorPrediction.predictionHorizon` | integer | `3` | 向前预测步数 |
-| `behaviorPrediction.minConfidence` | number | `0.6` | 预测结果最低置信度阈值 |
-| `nas.enabled` | boolean | `false` | 是否启用 NAS 架构搜索（耗时较长，默认关闭） |
-| `nas.targetDevice` | string | `"edge"` | NAS 优化目标设备：`edge` / `mobile` / `server` |
-| `nas.searchBudgetHours` | integer | `4` | NAS 搜索时间预算（小时） |
-| `nas.exportFormats` | string[] | `["onnx","tflite"]` | NAS 结果导出格式列表 |
+| 配置项                                  | 类型     | 默认值                                    | 说明                                            |
+| --------------------------------------- | -------- | ----------------------------------------- | ----------------------------------------------- |
+| `enabled`                               | boolean  | `true`                                    | 是否启用自进化系统                              |
+| `autoAssessment.enabled`                | boolean  | `true`                                    | 启用定时能力评估                                |
+| `autoAssessment.interval`               | integer  | `604800000`                               | 评估间隔（ms），默认每周一次                    |
+| `autoAssessment.dimensions`             | string[] | 6 维度                                    | 评估维度列表                                    |
+| `autoAssessment.minScoreThreshold`      | number   | `0.85`                                    | 低于此分值触发升级                              |
+| `continualLearning.strategy`            | string   | `"ewc"`                                   | 增量学习策略：`ewc` / `distillation` / `replay` |
+| `continualLearning.maxDegradation`      | number   | `0.02`                                    | 其他维度最大允许退化幅度                        |
+| `continualLearning.maxTrainingDuration` | integer  | `3600000`                                 | 单次训练最大时长（ms）                          |
+| `continualLearning.dataSourcePriority`  | string[] | `["user-feedback","curated","synthetic"]` | 训练数据来源优先级                              |
+| `selfDiagnosis.enabled`                 | boolean  | `true`                                    | 启用自诊断                                      |
+| `selfDiagnosis.interval`                | integer  | `86400000`                                | 诊断间隔（ms），默认每天一次                    |
+| `selfDiagnosis.checks`                  | string[] | 5 项检查                                  | 诊断检查项列表                                  |
+| `selfRepair.enabled`                    | boolean  | `true`                                    | 启用自修复                                      |
+| `selfRepair.autoRepair`                 | boolean  | `true`                                    | 是否自动执行修复（无需用户确认）                |
+| `selfRepair.requireApproval`            | boolean  | `false`                                   | 是否需要用户审批才能执行修复                    |
+| `selfRepair.strategies`                 | string[] | 4 种策略                                  | 允许执行的修复策略列表                          |
+| `behaviorPrediction.enabled`            | boolean  | `true`                                    | 启用行为预测                                    |
+| `behaviorPrediction.contextWindow`      | integer  | `20`                                      | 行为上下文窗口大小（条）                        |
+| `behaviorPrediction.predictionHorizon`  | integer  | `3`                                       | 向前预测步数                                    |
+| `behaviorPrediction.minConfidence`      | number   | `0.6`                                     | 预测结果最低置信度阈值                          |
+| `nas.enabled`                           | boolean  | `false`                                   | 是否启用 NAS 架构搜索（耗时较长，默认关闭）     |
+| `nas.targetDevice`                      | string   | `"edge"`                                  | NAS 优化目标设备：`edge` / `mobile` / `server`  |
+| `nas.searchBudgetHours`                 | integer  | `4`                                       | NAS 搜索时间预算（小时）                        |
+| `nas.exportFormats`                     | string[] | `["onnx","tflite"]`                       | NAS 结果导出格式列表                            |
 
 ---
 
@@ -513,18 +513,18 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 以下为自进化 AI 系统在标准硬件（Intel Core i7-12700 / NVIDIA RTX 3060）上的典型性能数据：
 
-| 操作 | 典型耗时 | 内存占用 | 说明 |
-|------|----------|----------|------|
-| 能力评估（sampleSize=100） | 45–90 秒 | ~300 MB | 6 维度标准评测集 standard-v2 |
-| 能力评估（sampleSize=50） | 25–50 秒 | ~180 MB | 轻量模式，适合频繁巡检 |
-| EWC 增量训练（5000 样本） | 30–45 分钟 | ~1.2 GB | 单维度，maxDegradation=0.02 |
-| 知识蒸馏训练（5000 样本） | 20–35 分钟 | ~2.0 GB | 需同时加载教师模型和学生模型 |
-| 自诊断（全部 5 项检查） | 3–8 秒 | ~50 MB | 包含幻觉率采样 50 次推理 |
-| 自修复（quantize-model） | 5–15 分钟 | ~800 MB | INT8 量化，精度损失 <2% |
-| 自修复（rollback） | 10–30 秒 | ~100 MB | 模型文件替换 + 验证 |
-| 行为预测（contextWindow=20） | <50 ms | ~20 MB | 本地 LSTM 模型，延迟极低 |
-| NAS 架构搜索（4h 预算） | 3–4 小时 | ~2.5 GB | Edge 设备目标，ONNX 导出 |
-| 模型导出（INT8 量化） | 8–20 分钟 | ~1.5 GB | 450MB FP32 → 125MB INT8 |
+| 操作                         | 典型耗时   | 内存占用 | 说明                         |
+| ---------------------------- | ---------- | -------- | ---------------------------- |
+| 能力评估（sampleSize=100）   | 45–90 秒   | ~300 MB  | 6 维度标准评测集 standard-v2 |
+| 能力评估（sampleSize=50）    | 25–50 秒   | ~180 MB  | 轻量模式，适合频繁巡检       |
+| EWC 增量训练（5000 样本）    | 30–45 分钟 | ~1.2 GB  | 单维度，maxDegradation=0.02  |
+| 知识蒸馏训练（5000 样本）    | 20–35 分钟 | ~2.0 GB  | 需同时加载教师模型和学生模型 |
+| 自诊断（全部 5 项检查）      | 3–8 秒     | ~50 MB   | 包含幻觉率采样 50 次推理     |
+| 自修复（quantize-model）     | 5–15 分钟  | ~800 MB  | INT8 量化，精度损失 <2%      |
+| 自修复（rollback）           | 10–30 秒   | ~100 MB  | 模型文件替换 + 验证          |
+| 行为预测（contextWindow=20） | <50 ms     | ~20 MB   | 本地 LSTM 模型，延迟极低     |
+| NAS 架构搜索（4h 预算）      | 3–4 小时   | ~2.5 GB  | Edge 设备目标，ONNX 导出     |
+| 模型导出（INT8 量化）        | 8–20 分钟  | ~1.5 GB  | 450MB FP32 → 125MB INT8      |
 
 **关键吞吐量指标**（v5.0.1 生产统计）：
 
@@ -539,16 +539,16 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 自进化 AI 系统的测试分布在以下文件中，当前总覆盖率 **≥ 92%**：
 
-| 测试文件 | 测试数 | 覆盖模块 |
-|----------|--------|----------|
-| `tests/unit/ai-engine/evolution/capability-assessor.test.js` | 24 | 多维度评估、阈值判断、推荐生成 |
-| `tests/unit/ai-engine/evolution/continual-learner.test.js` | 31 | EWC 权重保护、蒸馏、经验回放、退化检测 |
-| `tests/unit/ai-engine/evolution/self-diagnosis.test.js` | 22 | 5 项检查逻辑、基线比对、严重度分级 |
-| `tests/unit/ai-engine/evolution/self-repair.test.js` | 19 | 修复策略选择、dryRun 模式、回滚验证 |
-| `tests/unit/ai-engine/evolution/behavior-predictor.test.js` | 18 | 序列建模、置信度过滤、预加载动作生成 |
-| `tests/unit/ai-engine/evolution/self-evolving-manager.test.js` | 27 | 调度逻辑、配置热更新、进化日志写入 |
-| `tests/unit/ai-engine/evolution/evolution-ipc.test.js` | 16 | 8 个 IPC 通道的参数校验和响应格式 |
-| `tests/integration/evolution/evolution-lifecycle.test.js` | 12 | 评估 → 训练 → 验证 → 发布完整流程 |
+| 测试文件                                                       | 测试数 | 覆盖模块                               |
+| -------------------------------------------------------------- | ------ | -------------------------------------- |
+| `tests/unit/ai-engine/evolution/capability-assessor.test.js`   | 24     | 多维度评估、阈值判断、推荐生成         |
+| `tests/unit/ai-engine/evolution/continual-learner.test.js`     | 31     | EWC 权重保护、蒸馏、经验回放、退化检测 |
+| `tests/unit/ai-engine/evolution/self-diagnosis.test.js`        | 22     | 5 项检查逻辑、基线比对、严重度分级     |
+| `tests/unit/ai-engine/evolution/self-repair.test.js`           | 19     | 修复策略选择、dryRun 模式、回滚验证    |
+| `tests/unit/ai-engine/evolution/behavior-predictor.test.js`    | 18     | 序列建模、置信度过滤、预加载动作生成   |
+| `tests/unit/ai-engine/evolution/self-evolving-manager.test.js` | 27     | 调度逻辑、配置热更新、进化日志写入     |
+| `tests/unit/ai-engine/evolution/evolution-ipc.test.js`         | 16     | 8 个 IPC 通道的参数校验和响应格式      |
+| `tests/integration/evolution/evolution-lifecycle.test.js`      | 12     | 评估 → 训练 → 验证 → 发布完整流程      |
 
 **运行测试**：
 
@@ -568,21 +568,25 @@ cd desktop-app-vue && npx vitest run tests/unit/ai-engine/evolution/continual-le
 ## 安全考虑
 
 ### 训练数据安全
+
 - **数据不出域**: 所有增量训练在本地设备上完成，训练数据不上传到外部服务器，保护用户隐私
 - **数据来源验证**: `curated` 数据经过人工审核，`user-feedback` 数据经过去标识化处理，`synthetic` 数据由本地模型生成
 - **训练沙箱**: 增量训练在隔离环境中执行，训练过程无法访问非训练相关的系统资源
 
 ### 模型安全
+
 - **版本回滚**: 每次进化保留完整的前后版本，自修复失败时可立即回滚到最后已知的稳定版本
 - **A/B 验证**: 进化后的模型上线前通过 A/B 测试验证，避免有缺陷的模型直接进入生产环境
 - **退化检测**: 自动监控所有维度的能力得分，任何维度退化超过 `maxDegradation` 阈值立即告警
 
 ### 自修复安全
+
 - **审批控制**: 通过 `requireApproval` 配置是否需要用户确认才能执行自修复操作，防止自动修复引入新问题
 - **修复范围限制**: 自修复仅允许执行预定义的策略（quantize/rollback/retrain/degrade-gracefully），不执行任意代码
 - **修复审计**: 每次自修复操作完整记录到 `evolution_growth_log`，包含触发原因、执行动作和效果对比
 
 ### 行为预测隐私
+
 - **本地推理**: 行为预测模型在本地运行，用户行为序列不上传到外部服务，所有预测在设备端完成
 - **数据最小化**: 仅收集必要的行为类型和时间戳用于预测，不记录具体的用户输入内容
 - **用户控制**: 用户可随时通过 `evolution:configure` 关闭行为预测功能（`behaviorPrediction.enabled: false`）

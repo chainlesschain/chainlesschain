@@ -93,12 +93,12 @@ cc sganal gov-stats-v2                              # 治理统计
 
 均为运行时 setter（进程内生效），无环境变量、无配置文件键：
 
-| 配置项 | 默认值 | 设置命令 | gov-stats 字段 |
-|--------|--------|---------|---------------|
-| 每 owner 活跃 profile 上限 | `6` | `set-max-active-profiles-v2 <n>` | `maxActiveSganProfilesPerOwner` |
-| 每 profile pending run 上限 | `12` | `set-max-pending-runs-v2 <n>` | `maxPendingSganRunsPerProfile` |
-| profile idle 阈值 | `2592000000` ms（30 天） | `set-profile-idle-ms-v2 <ms>` | `sganProfileIdleMs` |
-| run stuck 阈值 | `60000` ms（60 秒） | `set-run-stuck-ms-v2 <ms>` | `sganRunStuckMs` |
+| 配置项                      | 默认值                   | 设置命令                         | gov-stats 字段                  |
+| --------------------------- | ------------------------ | -------------------------------- | ------------------------------- |
+| 每 owner 活跃 profile 上限  | `6`                      | `set-max-active-profiles-v2 <n>` | `maxActiveSganProfilesPerOwner` |
+| 每 profile pending run 上限 | `12`                     | `set-max-pending-runs-v2 <n>`    | `maxPendingSganRunsPerProfile`  |
+| profile idle 阈值           | `2592000000` ms（30 天） | `set-profile-idle-ms-v2 <ms>`    | `sganProfileIdleMs`             |
+| run stuck 阈值              | `60000` ms（60 秒）      | `set-run-stuck-ms-v2 <ms>`       | `sganRunStuckMs`                |
 
 子命令参数：`register-profile-v2` 必填 `--id`/`--owner`，`--algorithm` 默认 `"centrality"`；`create-run-v2` 必填 `--id`/`--profile-id`，`--snapshot-id` 默认空字符串。所有 setter 校验「正整数」（`Math.floor` 后必须 > 0），非法值抛错。
 
@@ -113,10 +113,10 @@ cc sganal gov-stats-v2                              # 治理统计
 
 ## 测试覆盖
 
-| 测试文件 | 数量 | 覆盖范围 |
-|---------|------|---------|
-| `packages/cli/__tests__/unit/lib/social-graph-analytics-v2.test.js` | **38** | `cc sganal` 对应的 V2 治理层（状态机、限额、巡检、统计） |
-| `packages/cli/__tests__/unit/social-graph-analytics.test.js` | 66 | 同文件底层图分析算法（中心性/社区/最短路径等，服务 `cc social`，非本命令面） |
+| 测试文件                                                            | 数量   | 覆盖范围                                                                     |
+| ------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/lib/social-graph-analytics-v2.test.js` | **38** | `cc sganal` 对应的 V2 治理层（状态机、限额、巡检、统计）                     |
+| `packages/cli/__tests__/unit/social-graph-analytics.test.js`        | 66     | 同文件底层图分析算法（中心性/社区/最短路径等，服务 `cc social`，非本命令面） |
 
 ```bash
 cd packages/cli
@@ -133,24 +133,24 @@ npx vitest run __tests__/unit/lib/social-graph-analytics-v2.test.js
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `invalid sgan profile transition pending → stale` | 跳过了 active 阶段 | 先 `activate-profile-v2`，stale 只能从 active 进入 |
-| 激活 profile 报上限错误 | 该 owner 已有 6 个 active profile | `set-max-active-profiles-v2` 调高，或 archive/stale 闲置 profile |
-| `create-run-v2` 报 pending 上限 | 该 profile 下 queued + running 的 run 已达 12 | 等 run 完结，或 `set-max-pending-runs-v2` 调高 |
-| `auto-fail-stuck-v2` 返回 `{"flipped":[],"count":0}` | 没有 run 处于 running 超过 60s | 预期行为；`set-run-stuck-ms-v2` 调小阈值可验证 |
-| active profile 莫名变 stale | 超过 30 天未 touch，被 idle 巡检翻转 | 周期性 `touch-profile-v2` 保活，或调大 `set-profile-idle-ms-v2` |
-| 重启后 profile/run 全部消失 | 治理层为纯内存实现 | 预期行为；需要持久治理时改用数据库后端的命令面（如 `cc infra` V1） |
-| run 被自动失败后想知道原因 | 巡检写入 `metadata.failReason` | `get-run-v2 <id>` 查看 `metadata.failReason: "auto-fail-stuck"` |
+| 现象                                                 | 可能原因                                      | 处理                                                               |
+| ---------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| `invalid sgan profile transition pending → stale`    | 跳过了 active 阶段                            | 先 `activate-profile-v2`，stale 只能从 active 进入                 |
+| 激活 profile 报上限错误                              | 该 owner 已有 6 个 active profile             | `set-max-active-profiles-v2` 调高，或 archive/stale 闲置 profile   |
+| `create-run-v2` 报 pending 上限                      | 该 profile 下 queued + running 的 run 已达 12 | 等 run 完结，或 `set-max-pending-runs-v2` 调高                     |
+| `auto-fail-stuck-v2` 返回 `{"flipped":[],"count":0}` | 没有 run 处于 running 超过 60s                | 预期行为；`set-run-stuck-ms-v2` 调小阈值可验证                     |
+| active profile 莫名变 stale                          | 超过 30 天未 touch，被 idle 巡检翻转          | 周期性 `touch-profile-v2` 保活，或调大 `set-profile-idle-ms-v2`    |
+| 重启后 profile/run 全部消失                          | 治理层为纯内存实现                            | 预期行为；需要持久治理时改用数据库后端的命令面（如 `cc infra` V1） |
+| run 被自动失败后想知道原因                           | 巡检写入 `metadata.failReason`                | `get-run-v2 <id>` 查看 `metadata.failReason: "auto-fail-stuck"`    |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/sganal.js` | `cc sganal` 全部子命令注册（薄层，直调 lib） |
-| `packages/cli/src/lib/social-graph-analytics.js` | SGAN V2 治理 overlay（约 712 行起）+ 底层图分析算法 |
-| `packages/cli/__tests__/unit/lib/social-graph-analytics-v2.test.js` | 38 治理单元测试 |
-| `packages/cli/__tests__/unit/social-graph-analytics.test.js` | 66 底层分析算法测试（`cc social` 命令面） |
+| 文件                                                                | 说明                                                |
+| ------------------------------------------------------------------- | --------------------------------------------------- |
+| `packages/cli/src/commands/sganal.js`                               | `cc sganal` 全部子命令注册（薄层，直调 lib）        |
+| `packages/cli/src/lib/social-graph-analytics.js`                    | SGAN V2 治理 overlay（约 712 行起）+ 底层图分析算法 |
+| `packages/cli/__tests__/unit/lib/social-graph-analytics-v2.test.js` | 38 治理单元测试                                     |
+| `packages/cli/__tests__/unit/social-graph-analytics.test.js`        | 66 底层分析算法测试（`cc social` 命令面）           |
 
 ## 使用示例
 

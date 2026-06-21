@@ -239,23 +239,23 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 
 面板支持 4 种颜色主题，可在顶部导航栏右上角切换：
 
-| 主题 | 图标 | 特点 |
-|------|------|------|
-| 深色 (Dark) | 🌑 | 默认主题，深灰背景 |
-| 浅色 (Light) | ☀️ | 白色背景，适合日间使用 |
-| 海蓝 (Blue) | 🌊 | 深蓝背景，科技感强 |
-| 绿野 (Green) | 🌿 | 深绿背景，护眼模式 |
+| 主题         | 图标 | 特点                   |
+| ------------ | ---- | ---------------------- |
+| 深色 (Dark)  | 🌑   | 默认主题，深灰背景     |
+| 浅色 (Light) | ☀️   | 白色背景，适合日间使用 |
+| 海蓝 (Blue)  | 🌊   | 深蓝背景，科技感强     |
+| 绿野 (Green) | 🌿   | 深绿背景，护眼模式     |
 
 主题偏好自动持久化到 `localStorage`（key: `cc_theme`），重新打开面板时恢复上次选择。所有颜色通过 CSS 自定义属性（`--bg-base`、`--bg-card`、`--text-primary` 等）驱动，Ant Design 组件使用对应的深色/浅色算法。
 
 ## 项目级 vs 全局模式
 
-| 特性 | 项目模式 🔵 | 全局模式 🟣 |
-|------|-----------|-----------|
-| 侧边栏横幅 | 蓝色 + 文件夹图标 + 项目名 | 紫色 + 地球图标 + "全局模式" |
-| 仪表板顶部 | 蓝色项目信息卡片（含路径） | 紫色提示：如何切换到项目级 |
-| Chat 作用域 | 会话绑定 `projectRoot` | 无项目绑定 |
-| Header 范围标签 | 蓝色 🗂 项目名 | 紫色 🌐 全局会话 |
+| 特性            | 项目模式 🔵                | 全局模式 🟣                  |
+| --------------- | -------------------------- | ---------------------------- |
+| 侧边栏横幅      | 蓝色 + 文件夹图标 + 项目名 | 紫色 + 地球图标 + "全局模式" |
+| 仪表板顶部      | 蓝色项目信息卡片（含路径） | 紫色提示：如何切换到项目级   |
+| Chat 作用域     | 会话绑定 `projectRoot`     | 无项目绑定                   |
+| Header 范围标签 | 蓝色 🗂 项目名             | 紫色 🌐 全局会话             |
 
 在含 `.chainlesschain/` 目录的项目下运行 → **项目级面板**；在其他目录运行 → **全局面板**。
 
@@ -328,7 +328,9 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 
 ```html
 <!-- index.html 构建时含占位符 -->
-<script>window.__CC_CONFIG__ = __CC_CONFIG_PLACEHOLDER__;</script>
+<script>
+  window.__CC_CONFIG__ = __CC_CONFIG_PLACEHOLDER__;
+</script>
 ```
 
 服务器启动时将 `__CC_CONFIG_PLACEHOLDER__` 替换为：
@@ -365,15 +367,18 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 **根因**：v1.0 Envelope 协议使用 `createCodingAgentEvent()` 构建响应，`msg.id` 是新生成的 `eventId`（非请求 ID），客户端用 `msg.id` 匹配 pending promise 永远匹配不上，导致所有 session 操作超时。
 
 **修复**（`ws.js`）：
+
 - 优先用 `msg.requestId` 匹配 pending，fallback 到 `msg.id`
 - `flattenEnvelope()` 将 `payload` 合并到顶层
 - `normalizeRuntimeEvent()` 同时处理 dot-case 和 kebab-case 类型
 
 **修复**（`chat.js`）：
+
 - `DOT_TO_LEGACY_TYPE` 映射表：`assistant.delta` → `response-token`、`assistant.final` → `response-complete` 等
 - `handleSessionMsg()` 自动规范化 v1.0 类型到 legacy 类型
 
 **修复**（`agent-runtime.js`）：
+
 - `startServer()` 加载 config 并传给 sessionManager，解决 LLM 默认配置缺失
 
 ## 关键 Bug 修复（v5.0.2.8）
@@ -385,9 +390,9 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 **修复**（`ws.js`）：
 
 ```js
-const output = result.output ?? result.stdout ?? ''   // 兼容新旧服务端
-const stderr = result.stderr ?? ''
-return { output: output || stderr, exitCode: result.exitCode ?? 0 }
+const output = result.output ?? result.stdout ?? ""; // 兼容新旧服务端
+const stderr = result.stderr ?? "";
+return { output: output || stderr, exitCode: result.exitCode ?? 0 };
 ```
 
 ### Provider 列表不含国产模型
@@ -398,34 +403,34 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 
 ## 与旧版对比
 
-| 特性 | v5.0.2.6 | v5.0.2.8 | v5.0.2.11 | v5.0.2.12 |
-|------|-----------|-----------|-----------|-----------|
-| 功能模块数 | 4 | 10 | 15 | **23**（+钱包/组织/分析/模板/权限/RSS/备份/认证）|
-| 颜色主题 | 仅深色 | **4 种** | 4 种 | 4 种 |
-| Provider 列表 | 不含国产模型 | **10 个** | 10 个 + **LLM 参数设置面板** | 10 个 |
-| 技能数量显示 | ❌ 始终为 0 | ✅ 正确 | ✅ 正确 | ✅ 正确 |
-| v1.0 Envelope 协议 | — | ❌ 超时 | ✅ requestId 关联 + payload flatten | ✅ |
-| Chat 流式消息 | — | ❌ dot-case 不兼容 | ✅ DOT_TO_LEGACY_TYPE 映射 | ✅ |
-| Desktop 功能迁移 | — | — | ✅ DID/P2P/Git/Projects | ✅ 企业+扩展 8 页 |
-| 侧边栏分组 | 1 组 | 3 组 | 4 组 | **7 组** |
+| 特性               | v5.0.2.6     | v5.0.2.8           | v5.0.2.11                           | v5.0.2.12                                         |
+| ------------------ | ------------ | ------------------ | ----------------------------------- | ------------------------------------------------- |
+| 功能模块数         | 4            | 10                 | 15                                  | **23**（+钱包/组织/分析/模板/权限/RSS/备份/认证） |
+| 颜色主题           | 仅深色       | **4 种**           | 4 种                                | 4 种                                              |
+| Provider 列表      | 不含国产模型 | **10 个**          | 10 个 + **LLM 参数设置面板**        | 10 个                                             |
+| 技能数量显示       | ❌ 始终为 0  | ✅ 正确            | ✅ 正确                             | ✅ 正确                                           |
+| v1.0 Envelope 协议 | —            | ❌ 超时            | ✅ requestId 关联 + payload flatten | ✅                                                |
+| Chat 流式消息      | —            | ❌ dot-case 不兼容 | ✅ DOT_TO_LEGACY_TYPE 映射          | ✅                                                |
+| Desktop 功能迁移   | —            | —                  | ✅ DID/P2P/Git/Projects             | ✅ 企业+扩展 8 页                                 |
+| 侧边栏分组         | 1 组         | 3 组               | 4 组                                | **7 组**                                          |
 
 ## 测试覆盖率
 
-| 文件 | 类型 | 测试数 |
-|------|------|--------|
-| `parsers.test.js` | 单元 | 85 |
-| `theme.test.js` | 单元 | 17 |
-| `ws-store.test.js` | 单元 | 12 |
-| `chat-store.test.js` | 单元 | 15 |
-| `tasks-store.test.js` | 单元 | 8 |
-| `dashboard-store.test.js` | 单元 | 6 |
-| `new-pages.test.js` | 单元 | 83 |
-| `batch-pages.test.js` | 单元 | 309 |
-| `web-ui-server.test.js` | 集成 | 23 |
-| `cli-commands.test.js` | 集成 | 17 |
-| `ws-protocol-compat.test.js` | E2E | 12 |
-| `panel.test.js` | E2E | 46 |
-| **Web Panel 合计** | | **621** |
+| 文件                         | 类型 | 测试数  |
+| ---------------------------- | ---- | ------- |
+| `parsers.test.js`            | 单元 | 85      |
+| `theme.test.js`              | 单元 | 17      |
+| `ws-store.test.js`           | 单元 | 12      |
+| `chat-store.test.js`         | 单元 | 15      |
+| `tasks-store.test.js`        | 单元 | 8       |
+| `dashboard-store.test.js`    | 单元 | 6       |
+| `new-pages.test.js`          | 单元 | 83      |
+| `batch-pages.test.js`        | 单元 | 309     |
+| `web-ui-server.test.js`      | 集成 | 23      |
+| `cli-commands.test.js`       | 集成 | 17      |
+| `ws-protocol-compat.test.js` | E2E  | 12      |
+| `panel.test.js`              | E2E  | 46      |
+| **Web Panel 合计**           |      | **621** |
 
 ## 配置参考
 
@@ -456,14 +461,14 @@ CC_UI_WEB_PANEL_DIR=<dir>   # 等同于 --web-panel-dir
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 面板首屏加载 (本地) | < 1.5s | ~0.8s (Vite 构建产物) | ✅ |
-| WebSocket 连接建立 | < 100ms | ~40ms (loopback) | ✅ |
-| 页面切换渲染 | < 100ms | ~35ms (Vue Router) | ✅ |
-| 技能列表加载 (141 技能) | < 300ms | ~160ms | ✅ |
-| 流式 Chat 渲染 (每 token) | < 20ms | ~8ms | ✅ |
-| 主题切换过渡 | < 500ms | ~400ms (CSS 变量) | ✅ |
+| 操作                      | 目标    | 实际                  | 状态 |
+| ------------------------- | ------- | --------------------- | ---- |
+| 面板首屏加载 (本地)       | < 1.5s  | ~0.8s (Vite 构建产物) | ✅   |
+| WebSocket 连接建立        | < 100ms | ~40ms (loopback)      | ✅   |
+| 页面切换渲染              | < 100ms | ~35ms (Vue Router)    | ✅   |
+| 技能列表加载 (141 技能)   | < 300ms | ~160ms                | ✅   |
+| 流式 Chat 渲染 (每 token) | < 20ms  | ~8ms                  | ✅   |
+| 主题切换过渡              | < 500ms | ~400ms (CSS 变量)     | ✅   |
 
 ## 使用示例
 
@@ -578,19 +583,19 @@ WS 服务端使用安全的命令分词器（`tokenizeCommand`）解析命令字
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/ui.js` | `ui` 命令注册与参数解析 |
-| `packages/cli/src/lib/web-ui-server.js` | HTTP 服务器（静态文件服务 + 运行时配置注入 + 经典 HTML 回退） |
-| `packages/cli/src/lib/web-ui-envelope.js` | Envelope 协议内联源码 |
-| `packages/web-panel/` | Vue3 前端应用源码 |
-| `packages/web-panel/src/stores/ws.js` | WebSocket 连接管理（指数退避重连） |
-| `packages/web-panel/src/stores/theme.js` | 主题状态管理（4 主题 + localStorage 持久化） |
-| `packages/web-panel/src/stores/chat.js` | 会话与消息状态 |
-| `packages/web-panel/src/utils/parsers.js` | 纯函数解析层（技能/状态/笔记/MCP/记忆/Cron） |
-| `packages/web-panel/src/views/` | 23 个页面视图组件 |
-| `packages/web-panel/src/components/AppLayout.vue` | 七组侧边栏布局 + 主题切换器 |
-| `packages/web-panel/src/style.css` | 全局 CSS 变量驱动的主题系统 |
+| 文件                                              | 说明                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------- |
+| `packages/cli/src/commands/ui.js`                 | `ui` 命令注册与参数解析                                       |
+| `packages/cli/src/lib/web-ui-server.js`           | HTTP 服务器（静态文件服务 + 运行时配置注入 + 经典 HTML 回退） |
+| `packages/cli/src/lib/web-ui-envelope.js`         | Envelope 协议内联源码                                         |
+| `packages/web-panel/`                             | Vue3 前端应用源码                                             |
+| `packages/web-panel/src/stores/ws.js`             | WebSocket 连接管理（指数退避重连）                            |
+| `packages/web-panel/src/stores/theme.js`          | 主题状态管理（4 主题 + localStorage 持久化）                  |
+| `packages/web-panel/src/stores/chat.js`           | 会话与消息状态                                                |
+| `packages/web-panel/src/utils/parsers.js`         | 纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）                  |
+| `packages/web-panel/src/views/`                   | 23 个页面视图组件                                             |
+| `packages/web-panel/src/components/AppLayout.vue` | 七组侧边栏布局 + 主题切换器                                   |
+| `packages/web-panel/src/style.css`                | 全局 CSS 变量驱动的主题系统                                   |
 
 ## 相关文档
 

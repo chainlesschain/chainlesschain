@@ -64,14 +64,14 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 ## 选项
 
-| 选项 | 说明 |
-|------|------|
+| 选项                | 说明                                                                                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--template <name>` | 指定模板（code-project / data-science / devops / medical-triage / agriculture-expert / general-assistant / ai-media-creator / **ai-doc-creator** / empty）；**不传时默认盘点模式生成 cc.md** |
-| `--yes` | 跳过交互确认，使用默认值 |
-| `--bare` | 最小初始化，等同于 `--template empty --yes`（跳过盘点） |
-| `--memory` | 即使带模板旗标也强制盘点模式 |
-| `--force` | 覆盖已存在的 `cc.md`（盘点模式） |
-| `--cwd <dir>` | 在指定目录初始化（web-panel 目录选择器使用） |
+| `--yes`             | 跳过交互确认，使用默认值                                                                                                                                                                     |
+| `--bare`            | 最小初始化，等同于 `--template empty --yes`（跳过盘点）                                                                                                                                      |
+| `--memory`          | 即使带模板旗标也强制盘点模式                                                                                                                                                                 |
+| `--force`           | 覆盖已存在的 `cc.md`（盘点模式）                                                                                                                                                             |
+| `--cwd <dir>`       | 在指定目录初始化（web-panel 目录选择器使用）                                                                                                                                                 |
 
 ## 模板说明
 
@@ -79,7 +79,9 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 ```markdown
 # Project Rules
+
 ## General
+
 - Follow project conventions
 - Write clean, maintainable code
 ```
@@ -88,14 +90,20 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 ```markdown
 # Project Rules
+
 ## Code Style
+
 - Use consistent naming conventions
 - Write unit tests for new features
 - Document public APIs
+
 ## Git Workflow
+
 - Use feature branches
 - Write descriptive commit messages
+
 ## Code Review
+
 - All changes require review
 - Check for security issues
 ```
@@ -104,14 +112,20 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 ```markdown
 # Project Rules
+
 ## Data Handling
+
 - Document data sources and transformations
 - Version control datasets and models
 - Use reproducible pipelines
+
 ## Analysis
+
 - Include visualizations for key findings
 - Document assumptions and limitations
+
 ## Notebooks
+
 - Keep notebooks clean and well-organized
 - Use markdown cells for explanations
 ```
@@ -120,15 +134,21 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 ```markdown
 # Project Rules
+
 ## Infrastructure
+
 - Use Infrastructure as Code
 - Document all configurations
 - Follow least-privilege principle
+
 ## Deployment
+
 - Use CI/CD pipelines
 - Implement health checks
 - Plan for rollback
+
 ## Monitoring
+
 - Set up alerts for critical metrics
 - Document runbooks
 ```
@@ -203,11 +223,11 @@ chainlesschain init --template ai-doc-creator --yes     # AI文档模板（含 P
 
 **三个媒体技能说明：**
 
-| 技能 | 后端 | 需要 |
-|------|------|------|
-| `comfyui-image` | ComfyUI REST API | 本地 ComfyUI 运行（默认端口 8188） |
-| `comfyui-video` | ComfyUI + AnimateDiff | ComfyUI + AnimateDiff 扩展 + 工作流 JSON |
-| `audio-gen` | edge-tts / piper-tts / ElevenLabs / OpenAI | 至少安装一个 TTS 后端 |
+| 技能            | 后端                                       | 需要                                     |
+| --------------- | ------------------------------------------ | ---------------------------------------- |
+| `comfyui-image` | ComfyUI REST API                           | 本地 ComfyUI 运行（默认端口 8188）       |
+| `comfyui-video` | ComfyUI + AnimateDiff                      | ComfyUI + AnimateDiff 扩展 + 工作流 JSON |
+| `audio-gen`     | edge-tts / piper-tts / ElevenLabs / OpenAI | 至少安装一个 TTS 后端                    |
 
 **使用示例：**
 
@@ -288,11 +308,11 @@ chainlesschain cli-anything list              # 查看已注册工具
 
 **三个文档技能说明：**
 
-| 技能 | 功能 | 依赖 |
-|------|------|------|
-| `doc-generate` | AI 生成结构化文档，支持 md/html/docx/pdf 输出 | md/html 内置；docx 需要 pandoc；pdf 需要 LibreOffice |
-| `libre-convert` | LibreOffice 无头模式格式转换（docx/pdf/html/odt 等） | LibreOffice 本地安装 |
-| `doc-edit` | AI 修改现有文档，保留公式/图表/样式（xlsx/pptx 结构完整） | md/txt/html 内置；docx 需要 pandoc 或 LibreOffice；xlsx 需要 Python + openpyxl；pptx 需要 Python + python-pptx |
+| 技能            | 功能                                                      | 依赖                                                                                                           |
+| --------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `doc-generate`  | AI 生成结构化文档，支持 md/html/docx/pdf 输出             | md/html 内置；docx 需要 pandoc；pdf 需要 LibreOffice                                                           |
+| `libre-convert` | LibreOffice 无头模式格式转换（docx/pdf/html/odt 等）      | LibreOffice 本地安装                                                                                           |
+| `doc-edit`      | AI 修改现有文档，保留公式/图表/样式（xlsx/pptx 结构完整） | md/txt/html 内置；docx 需要 pandoc 或 LibreOffice；xlsx 需要 Python + openpyxl；pptx 需要 Python + python-pptx |
 
 **使用示例：**
 
@@ -348,13 +368,13 @@ chainlesschain cli-anything scan                # 扫描 PATH 中可用工具
 
 当使用含 Persona 的模板初始化时，`config.json` 会包含 `persona` 字段，控制 Agent 的行为：
 
-| 字段 | 说明 |
-|------|------|
-| `persona.name` | AI 角色名称 |
-| `persona.role` | 系统级角色描述（替换默认编码助手 prompt） |
-| `persona.behaviors` | 行为约束列表 |
-| `persona.toolsPriority` | 优先使用的工具 |
-| `persona.toolsDisabled` | 禁用的工具列表 |
+| 字段                    | 说明                                      |
+| ----------------------- | ----------------------------------------- |
+| `persona.name`          | AI 角色名称                               |
+| `persona.role`          | 系统级角色描述（替换默认编码助手 prompt） |
+| `persona.behaviors`     | 行为约束列表                              |
+| `persona.toolsPriority` | 优先使用的工具                            |
+| `persona.toolsDisabled` | 禁用的工具列表                            |
 
 Persona 模板还会在 `skills/` 下创建自动激活的 Persona Skill（`activation: auto`），在 Agent 启动时自动注入到系统 prompt。
 
@@ -436,13 +456,13 @@ if (isInsideProject()) {
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| empty 模板初始化 | < 300ms | ~150ms | ✅ |
-| code-project 模板生成 | < 500ms | ~280ms | ✅ |
-| ai-media-creator（含 3 技能） | < 1.2s | ~700ms | ✅ |
-| ai-doc-creator（含 3 技能） | < 1.2s | ~750ms | ✅ |
-| 已有项目检测 | < 100ms | ~40ms | ✅ |
+| 操作                          | 目标    | 实际   | 状态 |
+| ----------------------------- | ------- | ------ | ---- |
+| empty 模板初始化              | < 300ms | ~150ms | ✅   |
+| code-project 模板生成         | < 500ms | ~280ms | ✅   |
+| ai-media-creator（含 3 技能） | < 1.2s  | ~700ms | ✅   |
+| ai-doc-creator（含 3 技能）   | < 1.2s  | ~750ms | ✅   |
+| 已有项目检测                  | < 100ms | ~40ms  | ✅   |
 
 ## 测试覆盖率
 
@@ -490,16 +510,16 @@ chainlesschain init --bare
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| 报错"已存在" | 当前目录或父目录已有 `.chainlesschain/`，不支持重复初始化 |
-| 模板不存在 | 仅支持 code-project / data-science / devops / medical-triage / agriculture-expert / general-assistant / ai-media-creator / ai-doc-creator / empty，其他名称会报错 |
-| 权限不足 | 检查当前目录写权限 |
-| comfyui-image 连接失败 | 确认 ComfyUI 正在运行：`python main.py --listen 0.0.0.0`，默认端口 8188 |
-| audio-gen 无后端 | 安装 `pip install edge-tts` 或设置 `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` |
-| comfyui-video 需要工作流 | AnimateDiff 必须提供工作流 JSON 文件，从 ComfyUI UI 导出（Save → API Format） |
-| doc-generate 输出 md 但请求了 docx | 需要安装 pandoc 或 LibreOffice；安装后重试 |
-| libre-convert 报错"LibreOffice not found" | 安装 LibreOffice：`winget install LibreOffice.LibreOffice`；或通过 `cli-anything register soffice` 注册 |
+| 问题                                      | 解决方案                                                                                                                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 报错"已存在"                              | 当前目录或父目录已有 `.chainlesschain/`，不支持重复初始化                                                                                                         |
+| 模板不存在                                | 仅支持 code-project / data-science / devops / medical-triage / agriculture-expert / general-assistant / ai-media-creator / ai-doc-creator / empty，其他名称会报错 |
+| 权限不足                                  | 检查当前目录写权限                                                                                                                                                |
+| comfyui-image 连接失败                    | 确认 ComfyUI 正在运行：`python main.py --listen 0.0.0.0`，默认端口 8188                                                                                           |
+| audio-gen 无后端                          | 安装 `pip install edge-tts` 或设置 `OPENAI_API_KEY` / `ELEVENLABS_API_KEY`                                                                                        |
+| comfyui-video 需要工作流                  | AnimateDiff 必须提供工作流 JSON 文件，从 ComfyUI UI 导出（Save → API Format）                                                                                     |
+| doc-generate 输出 md 但请求了 docx        | 需要安装 pandoc 或 LibreOffice；安装后重试                                                                                                                        |
+| libre-convert 报错"LibreOffice not found" | 安装 LibreOffice：`winget install LibreOffice.LibreOffice`；或通过 `cli-anything register soffice` 注册                                                           |
 
 ## 关键文件
 

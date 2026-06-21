@@ -67,6 +67,7 @@ chainlesschain pqc generate HYBRID-X25519-ML-KEM      -p encryption
 生成指定算法的 PQC 密钥对。
 
 支持的算法：
+
 - **ML-KEM-768** / **ML-KEM-1024** — 密钥封装机制（加密、密钥交换，FIPS 203）
 - **ML-DSA-65** / **ML-DSA-87** — 格基数字签名（签名，FIPS 204）
 - **SLH-DSA-{128,192,256}{s,f}** — 基于哈希的无状态签名（v5.0.2.10 · FIPS 205）：`s` 变体签名更短、速度慢；`f` 变体签名更大、速度快。共 6 个参数集
@@ -93,10 +94,10 @@ chainlesschain pqc migrate "签名迁移" ML-DSA-65 -s Ed25519
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `pqc_keys` | PQC 密钥（算法、用途、密钥大小、混合模式、经典算法、创建时间） |
-| `pqc_migration_status` | 迁移计划（计划名、源算法、目标算法、已迁移数、总数、状态） |
+| 表名                   | 说明                                                           |
+| ---------------------- | -------------------------------------------------------------- |
+| `pqc_keys`             | PQC 密钥（算法、用途、密钥大小、混合模式、经典算法、创建时间） |
+| `pqc_migration_status` | 迁移计划（计划名、源算法、目标算法、已迁移数、总数、状态）     |
 
 ## 系统架构
 
@@ -130,14 +131,14 @@ PQC_DEFAULT_DSA          # 默认 DSA 算法 (默认 ML-DSA-65)
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `pqc keys` | < 100ms | ~50ms | ✅ |
-| `pqc generate ML-KEM-768` | < 500ms | ~280ms | ✅ |
-| `pqc generate ML-DSA-65` | < 600ms | ~350ms | ✅ |
-| `pqc generate ML-KEM-1024` | < 800ms | ~450ms | ✅ |
-| `pqc migration-status` | < 120ms | ~60ms | ✅ |
-| `pqc migrate` (计划创建) | < 200ms | ~100ms | ✅ |
+| 操作                       | 目标    | 实际   | 状态 |
+| -------------------------- | ------- | ------ | ---- |
+| `pqc keys`                 | < 100ms | ~50ms  | ✅   |
+| `pqc generate ML-KEM-768`  | < 500ms | ~280ms | ✅   |
+| `pqc generate ML-DSA-65`   | < 600ms | ~350ms | ✅   |
+| `pqc generate ML-KEM-1024` | < 800ms | ~450ms | ✅   |
+| `pqc migration-status`     | < 120ms | ~60ms  | ✅   |
+| `pqc migrate` (计划创建)   | < 200ms | ~100ms | ✅   |
 
 ## 测试覆盖率
 
@@ -187,11 +188,11 @@ chainlesschain pqc migration-status --json
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No PQC keys" | 未生成密钥 | 使用 `pqc generate` 生成密钥 |
-| "No migration plans" | 未创建迁移计划 | 使用 `pqc migrate` 创建迁移 |
-| 密钥生成失败 | 不支持的算法 | 使用支持的算法：ML-KEM-768/1024、ML-DSA-65/87 |
+| 症状                 | 可能原因       | 解决方案                                      |
+| -------------------- | -------------- | --------------------------------------------- |
+| "No PQC keys"        | 未生成密钥     | 使用 `pqc generate` 生成密钥                  |
+| "No migration plans" | 未创建迁移计划 | 使用 `pqc migrate` 创建迁移                   |
+| 密钥生成失败         | 不支持的算法   | 使用支持的算法：ML-KEM-768/1024、ML-DSA-65/87 |
 
 ## 安全考虑
 

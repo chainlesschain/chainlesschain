@@ -104,12 +104,14 @@ chainlesschain did delete <did>
 {
   "@context": ["https://www.w3.org/ns/did/v1"],
   "id": "did:chainless:abc123...",
-  "verificationMethod": [{
-    "id": "did:chainless:abc123...#key-1",
-    "type": "Ed25519VerificationKey2020",
-    "controller": "did:chainless:abc123...",
-    "publicKeyMultibase": "z..."
-  }],
+  "verificationMethod": [
+    {
+      "id": "did:chainless:abc123...#key-1",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:chainless:abc123...",
+      "publicKeyMultibase": "z..."
+    }
+  ],
   "authentication": ["did:chainless:abc123...#key-1"],
   "assertionMethod": ["did:chainless:abc123...#key-1"]
 }
@@ -154,13 +156,13 @@ chainlesschain did delete <did>
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| Ed25519 密钥对生成 | < 50ms | ~ 10ms | ✅ |
-| DID 标识符计算（SHA-256） | < 10ms | ~ 2ms | ✅ |
-| did sign（Ed25519 签名） | < 20ms | ~ 5ms | ✅ |
-| did verify（签名验证） | < 20ms | ~ 6ms | ✅ |
-| did list（SQLite 查询） | < 100ms | ~ 15ms | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| Ed25519 密钥对生成        | < 50ms  | ~ 10ms | ✅   |
+| DID 标识符计算（SHA-256） | < 10ms  | ~ 2ms  | ✅   |
+| did sign（Ed25519 签名）  | < 20ms  | ~ 5ms  | ✅   |
+| did verify（签名验证）    | < 20ms  | ~ 6ms  | ✅   |
+| did list（SQLite 查询）   | < 100ms | ~ 15ms | ✅   |
 
 ## 测试覆盖率
 
@@ -212,12 +214,12 @@ chainlesschain did export did:chainless:abc123 --include-private
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `create` 失败 | 确认数据库已初始化：`chainlesschain db init` |
-| `sign` 找不到默认身份 | 先创建身份：`chainlesschain did create` |
-| `verify` 验证失败 | 确认消息内容、签名、DID 三者匹配 |
-| `resolve` 返回空 | DID 仅支持本地解析，确认 DID 存在于本地数据库 |
+| 问题                  | 解决方案                                      |
+| --------------------- | --------------------------------------------- |
+| `create` 失败         | 确认数据库已初始化：`chainlesschain db init`  |
+| `sign` 找不到默认身份 | 先创建身份：`chainlesschain did create`       |
+| `verify` 验证失败     | 确认消息内容、签名、DID 三者匹配              |
+| `resolve` 返回空      | DID 仅支持本地解析，确认 DID 存在于本地数据库 |
 
 ## 关键文件
 

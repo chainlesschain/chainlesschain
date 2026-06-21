@@ -82,10 +82,10 @@ chainlesschain scim status --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
+| 表名             | 说明                                                      |
+| ---------------- | --------------------------------------------------------- |
 | `scim_resources` | SCIM 用户资源（用户名、显示名称、邮箱、活跃状态、元数据） |
-| `scim_sync_log` | 同步记录（连接器 ID、操作类型、状态、时间戳） |
+| `scim_sync_log`  | 同步记录（连接器 ID、操作类型、状态、时间戳）             |
 
 ## 系统架构
 
@@ -115,13 +115,13 @@ $APPDATA/chainlesschain-desktop-vue/.chainlesschain/config.json  # IdP 连接器
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| users list (100 条) | < 50ms | ~25ms | ✅ |
-| users create | < 30ms | ~15ms | ✅ |
-| users get | < 20ms | ~8ms | ✅ |
-| connectors 列表 | < 30ms | ~15ms | ✅ |
-| sync (本地记录) | < 100ms | ~50ms | ✅ |
+| 操作                | 目标    | 实际  | 状态 |
+| ------------------- | ------- | ----- | ---- |
+| users list (100 条) | < 50ms  | ~25ms | ✅   |
+| users create        | < 30ms  | ~15ms | ✅   |
+| users get           | < 20ms  | ~8ms  | ✅   |
+| connectors 列表     | < 30ms  | ~15ms | ✅   |
+| sync (本地记录)     | < 100ms | ~50ms | ✅   |
 
 ## 测试覆盖率
 
@@ -182,12 +182,12 @@ chainlesschain scim status
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No SCIM users" | 未创建用户 | 使用 `scim users create` |
-| "User not found" | 用户 ID 不存在 | 使用 `scim users list` 确认有效 ID |
-| "No SCIM connectors" | 未配置连接器 | 需在配置文件中添加 IdP 连接器 |
-| 同步失败 | 连接器不可达 | 检查 IdP 连接和凭证 |
+| 症状                 | 可能原因       | 解决方案                           |
+| -------------------- | -------------- | ---------------------------------- |
+| "No SCIM users"      | 未创建用户     | 使用 `scim users create`           |
+| "User not found"     | 用户 ID 不存在 | 使用 `scim users list` 确认有效 ID |
+| "No SCIM connectors" | 未配置连接器   | 需在配置文件中添加 IdP 连接器      |
+| 同步失败             | 连接器不可达   | 检查 IdP 连接和凭证                |
 
 ## 安全考虑
 

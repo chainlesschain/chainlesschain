@@ -123,14 +123,14 @@ chainlesschain economy contribute agent-002 "review" 8 --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `economy_balances` | Agent 余额账本（Agent ID、余额、最后更新时间） |
-| `economy_transactions` | 交易记录（发送方、接收方、金额、类型、描述） |
-| `economy_channels` | 状态通道（双方 ID、保证金、状态、交易计数） |
-| `economy_market` | 资源市场（名称、类型、价格、卖方、状态） |
-| `economy_nfts` | NFT 记录（名称、类型、所有者、元数据哈希） |
-| `economy_contributions` | 贡献记录（Agent ID、贡献类型、贡献值） |
+| 表名                    | 说明                                           |
+| ----------------------- | ---------------------------------------------- |
+| `economy_balances`      | Agent 余额账本（Agent ID、余额、最后更新时间） |
+| `economy_transactions`  | 交易记录（发送方、接收方、金额、类型、描述）   |
+| `economy_channels`      | 状态通道（双方 ID、保证金、状态、交易计数）    |
+| `economy_market`        | 资源市场（名称、类型、价格、卖方、状态）       |
+| `economy_nfts`          | NFT 记录（名称、类型、所有者、元数据哈希）     |
+| `economy_contributions` | 贡献记录（Agent ID、贡献类型、贡献值）         |
 
 ## 系统架构
 
@@ -164,14 +164,14 @@ chainlesschain economy contribute <agent-id> <type> <value> [--json]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| economy pay 转账（含事务） | < 100ms | ~ 30ms | ✅ |
-| balance 查询 | < 50ms | ~ 10ms | ✅ |
-| channel open/close | < 200ms | ~ 80ms | ✅ |
-| market browse（含过滤） | < 150ms | ~ 40ms | ✅ |
-| nft mint（哈希绑定） | < 100ms | ~ 40ms | ✅ |
-| revenue 分配计算 | < 200ms | ~ 60ms | ✅ |
+| 操作                       | 目标    | 实际   | 状态 |
+| -------------------------- | ------- | ------ | ---- |
+| economy pay 转账（含事务） | < 100ms | ~ 30ms | ✅   |
+| balance 查询               | < 50ms  | ~ 10ms | ✅   |
+| channel open/close         | < 200ms | ~ 80ms | ✅   |
+| market browse（含过滤）    | < 150ms | ~ 40ms | ✅   |
+| nft mint（哈希绑定）       | < 100ms | ~ 40ms | ✅   |
+| revenue 分配计算           | < 200ms | ~ 60ms | ✅   |
 
 ## 测试覆盖率
 
@@ -240,13 +240,13 @@ chainlesschain economy revenue --json
 
 ### 支付与通道问题
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "Insufficient balance" | 发送方余额不足 | 先充值或检查余额：`economy balance <agent>` |
-| "Channel not found" | 通道 ID 不存在或已关闭 | 使用 `economy market list` 查看活跃通道 |
-| "Channel already closed" | 尝试在已关闭通道中交易 | 重新开启新通道 |
-| NFT 铸造失败 | Agent 无贡献记录 | 先记录贡献：`economy contribute <agent>` |
-| 交易记录缺失 | 链下交易未同步到数据库 | 关闭通道触发链上结算后记录才会持久化 |
+| 症状                     | 可能原因               | 解决方案                                    |
+| ------------------------ | ---------------------- | ------------------------------------------- |
+| "Insufficient balance"   | 发送方余额不足         | 先充值或检查余额：`economy balance <agent>` |
+| "Channel not found"      | 通道 ID 不存在或已关闭 | 使用 `economy market list` 查看活跃通道     |
+| "Channel already closed" | 尝试在已关闭通道中交易 | 重新开启新通道                              |
+| NFT 铸造失败             | Agent 无贡献记录       | 先记录贡献：`economy contribute <agent>`    |
+| 交易记录缺失             | 链下交易未同步到数据库 | 关闭通道触发链上结算后记录才会持久化        |
 
 ### 常见错误
 

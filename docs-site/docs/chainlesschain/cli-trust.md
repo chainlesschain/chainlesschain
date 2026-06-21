@@ -123,19 +123,19 @@ trustgov 检查: queued → verifying|cancelled;  verifying → verified|failed|
 
 均为代码内默认值，经对应 `set-*` 子命令在**当前进程内**修改（无配置文件/环境变量）：
 
-| 配置项 | 默认值 | 读/写命令 |
-|--------|--------|-----------|
-| `TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR` | `8` | `max-active-devices-per-operator` / `set-...` |
-| `TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE` | `20` | `max-pending-transmissions-per-device` / `set-...` |
-| `TS_DEFAULT_DEVICE_IDLE_MS` | `2592000000`（30 天） | `device-idle-ms` / `set-device-idle-ms` |
-| `TS_DEFAULT_TRANSMISSION_STUCK_MS` | `120000`（2 分钟） | `transmission-stuck-ms` / `set-...` |
-| trustgov maxActive / maxPending | `8` / `20` | `trustgov-config-v2` / `trustgov-set-max-*-v2` |
-| trustgov idleMs / stuckMs | 30 天 / `60000`（60 秒） | `trustgov-set-idle-ms-v2` / `trustgov-set-stuck-ms-v2` |
-| 卫星 provider 默认 | `iridium` | `sat-send -p` |
-| 卫星 priority | 默认 `5`，钳制到 `[1,10]` | `sat-send -r` |
-| HSM 签名算法默认 | `ecdsa-p256` | `hsm-sign -a` |
-| 各 list 命令 `--limit` | `50` | — |
-| V1 持久化 DB | 运行时注入的共享 SQLite（`root._db`） | — |
+| 配置项                                            | 默认值                                | 读/写命令                                              |
+| ------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `TS_DEFAULT_MAX_ACTIVE_DEVICES_PER_OPERATOR`      | `8`                                   | `max-active-devices-per-operator` / `set-...`          |
+| `TS_DEFAULT_MAX_PENDING_TRANSMISSIONS_PER_DEVICE` | `20`                                  | `max-pending-transmissions-per-device` / `set-...`     |
+| `TS_DEFAULT_DEVICE_IDLE_MS`                       | `2592000000`（30 天）                 | `device-idle-ms` / `set-device-idle-ms`                |
+| `TS_DEFAULT_TRANSMISSION_STUCK_MS`                | `120000`（2 分钟）                    | `transmission-stuck-ms` / `set-...`                    |
+| trustgov maxActive / maxPending                   | `8` / `20`                            | `trustgov-config-v2` / `trustgov-set-max-*-v2`         |
+| trustgov idleMs / stuckMs                         | 30 天 / `60000`（60 秒）              | `trustgov-set-idle-ms-v2` / `trustgov-set-stuck-ms-v2` |
+| 卫星 provider 默认                                | `iridium`                             | `sat-send -p`                                          |
+| 卫星 priority                                     | 默认 `5`，钳制到 `[1,10]`             | `sat-send -r`                                          |
+| HSM 签名算法默认                                  | `ecdsa-p256`                          | `hsm-sign -a`                                          |
+| 各 list 命令 `--limit`                            | `50`                                  | —                                                      |
+| V1 持久化 DB                                      | 运行时注入的共享 SQLite（`root._db`） | —                                                      |
 
 ## 性能指标
 
@@ -150,10 +150,10 @@ trustgov 检查: queued → verifying|cancelled;  verifying → verified|failed|
 
 ## 测试覆盖
 
-| 文件 | 用例数 | 覆盖 |
-|------|--------|------|
-| `packages/cli/__tests__/unit/trust-security.test.js` | 74 | V1 四子系统（attest/interop/satellite/hsm/stats）+ V2 设备注册/转移/过滤/传输/auto-flip/stats |
-| `packages/cli/__tests__/unit/lib/trust-security-v2.test.js` | 44 | trustgov 覆盖层：枚举/配置/档案生命周期/活跃配额/检查生命周期/auto-flip/治理统计 |
+| 文件                                                        | 用例数 | 覆盖                                                                                          |
+| ----------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `packages/cli/__tests__/unit/trust-security.test.js`        | 74     | V1 四子系统（attest/interop/satellite/hsm/stats）+ V2 设备注册/转移/过滤/传输/auto-flip/stats |
+| `packages/cli/__tests__/unit/lib/trust-security-v2.test.js` | 44     | trustgov 覆盖层：枚举/配置/档案生命周期/活跃配额/检查生命周期/auto-flip/治理统计              |
 
 ```bash
 cd packages/cli
@@ -172,28 +172,28 @@ npx vitest run __tests__/unit/trust-security.test.js __tests__/unit/lib/trust-se
 
 ## 故障排除
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| `Failed: invalid_anchor` | 锚点不在 `tpm/tee/secure_element` | `cc trust anchors` 查合法值 |
-| `Compatible: NO (unsupported)` | 算法不在 PQC 白名单（大小写不敏感比对） | 用 `ml-kem-768/1024`、`ml-dsa-65/87`、`slh-dsa-128s/128f` |
-| `Failed: invalid_transition`（sat-status） | 状态转移不在白名单（如 `confirmed` 后再改） | 按 `queued→sent→confirmed`、`failed→queued` 顺序推进 |
-| `operator <x> active device cap reached` | 该 operator 活跃设备已达上限（默认 8） | 先 `retire-device` 释放，或 `set-max-active-devices-per-operator` 调大 |
-| `illegal transition provisional → degraded` 等 | V2 转移表不允许 | 先 `activate-device` 再 `degrade-device` |
-| `device <id> is terminal (retired)` | 终态设备不可再转移 | 用新 id 重新 `register-device-v2` |
-| 重启后 V2 设备/传输/trustgov 数据消失 | V2 与 trustgov 是**纯进程内**状态，不落 SQLite | 预期行为；持久对象用 V1 表面（hsm-register / sat-send 等） |
-| V1 数据也不持久 / 列表为空 | 当前调用环境未注入共享 DB（`root._db`），preAction 跳过建表 | 在已初始化 DB 的运行时（REPL/桌面联动）中使用；纯 headless 下 V1 持久化依赖该注入 |
-| `invalid JSON: ...` | `--metadata` 不是合法 JSON | 注意 shell 引号转义，传紧凑 JSON |
-| 把模拟证明当真实硬件证明 | CLI port 不含真实硬件路径 | 见「安全考虑」模拟边界说明 |
+| 现象                                           | 可能原因                                                    | 处理                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `Failed: invalid_anchor`                       | 锚点不在 `tpm/tee/secure_element`                           | `cc trust anchors` 查合法值                                                       |
+| `Compatible: NO (unsupported)`                 | 算法不在 PQC 白名单（大小写不敏感比对）                     | 用 `ml-kem-768/1024`、`ml-dsa-65/87`、`slh-dsa-128s/128f`                         |
+| `Failed: invalid_transition`（sat-status）     | 状态转移不在白名单（如 `confirmed` 后再改）                 | 按 `queued→sent→confirmed`、`failed→queued` 顺序推进                              |
+| `operator <x> active device cap reached`       | 该 operator 活跃设备已达上限（默认 8）                      | 先 `retire-device` 释放，或 `set-max-active-devices-per-operator` 调大            |
+| `illegal transition provisional → degraded` 等 | V2 转移表不允许                                             | 先 `activate-device` 再 `degrade-device`                                          |
+| `device <id> is terminal (retired)`            | 终态设备不可再转移                                          | 用新 id 重新 `register-device-v2`                                                 |
+| 重启后 V2 设备/传输/trustgov 数据消失          | V2 与 trustgov 是**纯进程内**状态，不落 SQLite              | 预期行为；持久对象用 V1 表面（hsm-register / sat-send 等）                        |
+| V1 数据也不持久 / 列表为空                     | 当前调用环境未注入共享 DB（`root._db`），preAction 跳过建表 | 在已初始化 DB 的运行时（REPL/桌面联动）中使用；纯 headless 下 V1 持久化依赖该注入 |
+| `invalid JSON: ...`                            | `--metadata` 不是合法 JSON                                  | 注意 shell 引号转义，传紧凑 JSON                                                  |
+| 把模拟证明当真实硬件证明                       | CLI port 不含真实硬件路径                                   | 见「安全考虑」模拟边界说明                                                        |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/trust.js` | `cc trust` 全部子命令（含 `registerTrustgovV2Commands` 覆盖层注册） |
-| `packages/cli/src/lib/trust-security.js` | V1 四子系统 + V2 状态机 + trustgov 覆盖层全部实现（1206 行） |
-| `packages/cli/__tests__/unit/trust-security.test.js` | 74 单元测试（MockDatabase） |
-| `packages/cli/__tests__/unit/lib/trust-security-v2.test.js` | 44 单元测试（trustgov） |
-| `docs/design/modules/39_信任安全系统.md` | 桌面端设计文档（Phase 68-71 全量设计） |
+| 文件                                                        | 说明                                                                |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| `packages/cli/src/commands/trust.js`                        | `cc trust` 全部子命令（含 `registerTrustgovV2Commands` 覆盖层注册） |
+| `packages/cli/src/lib/trust-security.js`                    | V1 四子系统 + V2 状态机 + trustgov 覆盖层全部实现（1206 行）        |
+| `packages/cli/__tests__/unit/trust-security.test.js`        | 74 单元测试（MockDatabase）                                         |
+| `packages/cli/__tests__/unit/lib/trust-security-v2.test.js` | 44 单元测试（trustgov）                                             |
+| `docs/design/modules/39_信任安全系统.md`                    | 桌面端设计文档（Phase 68-71 全量设计）                              |
 
 ## 使用示例
 

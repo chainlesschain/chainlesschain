@@ -115,6 +115,7 @@ chainlesschain lowcode deploy <app-id> --output ./dist
 **前置条件**: 应用必须先通过 `lowcode publish` 发布后才能部署。
 
 **输出文件**:
+
 - `index.html` — 包含组件布局的响应式 HTML 页面
 - `app.js` — 应用逻辑和组件交互脚本
 - `style.css` — 组件样式（Grid 布局、卡片式组件）
@@ -125,31 +126,31 @@ chainlesschain lowcode deploy <app-id> --output ./dist
 
 ## 内置组件
 
-| 组件 | 类型 | 说明 |
-|------|------|------|
-| `Form` | 输入 | 表单容器，支持验证规则 |
-| `Input` | 输入 | 文本输入框（text / number / email / password） |
-| `Select` | 输入 | 下拉选择器（单选/多选） |
-| `DatePicker` | 输入 | 日期/日期时间选择器 |
-| `Button` | 交互 | 按钮（submit / action / link） |
-| `Modal` | 交互 | 弹窗对话框 |
-| `Tabs` | 交互 | 标签页切换 |
-| `DataTable` | 展示 | 数据表格（分页、排序、筛选） |
-| `Chart` | 展示 | 图表（line / bar / pie / scatter） |
-| `Card` | 展示 | 卡片容器 |
-| `Text` | 展示 | 文本/富文本展示 |
-| `Image` | 展示 | 图片展示 |
-| `List` | 展示 | 列表展示 |
-| `Badge` | 展示 | 状态徽标 |
-| `Progress` | 展示 | 进度条 |
+| 组件         | 类型 | 说明                                           |
+| ------------ | ---- | ---------------------------------------------- |
+| `Form`       | 输入 | 表单容器，支持验证规则                         |
+| `Input`      | 输入 | 文本输入框（text / number / email / password） |
+| `Select`     | 输入 | 下拉选择器（单选/多选）                        |
+| `DatePicker` | 输入 | 日期/日期时间选择器                            |
+| `Button`     | 交互 | 按钮（submit / action / link）                 |
+| `Modal`      | 交互 | 弹窗对话框                                     |
+| `Tabs`       | 交互 | 标签页切换                                     |
+| `DataTable`  | 展示 | 数据表格（分页、排序、筛选）                   |
+| `Chart`      | 展示 | 图表（line / bar / pie / scatter）             |
+| `Card`       | 展示 | 卡片容器                                       |
+| `Text`       | 展示 | 文本/富文本展示                                |
+| `Image`      | 展示 | 图片展示                                       |
+| `List`       | 展示 | 列表展示                                       |
+| `Badge`      | 展示 | 状态徽标                                       |
+| `Progress`   | 展示 | 进度条                                         |
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `lowcode_apps` | 应用定义（名称、描述、平台、状态、页面 Schema） |
-| `lowcode_datasources` | 数据源配置（应用 ID、名称、类型、连接配置） |
-| `lowcode_versions` | 版本快照（应用 ID、版本号、快照数据、创建时间） |
+| 表名                  | 说明                                            |
+| --------------------- | ----------------------------------------------- |
+| `lowcode_apps`        | 应用定义（名称、描述、平台、状态、页面 Schema） |
+| `lowcode_datasources` | 数据源配置（应用 ID、名称、类型、连接配置）     |
+| `lowcode_versions`    | 版本快照（应用 ID、版本号、快照数据、创建时间） |
 
 ## 系统架构
 
@@ -187,14 +188,14 @@ CHAINLESSCHAIN_DATA_DIR  # 部署输出默认根目录
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| `lowcode create` | < 200ms | ~120ms | ✅ |
-| `lowcode list` (10+ apps) | < 100ms | ~60ms | ✅ |
-| `lowcode preview` | < 150ms | ~90ms | ✅ |
-| `lowcode publish` | < 300ms | ~180ms | ✅ |
-| `lowcode deploy` (单应用) | < 1s | ~700ms | ✅ |
-| `lowcode rollback` | < 200ms | ~110ms | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| `lowcode create`          | < 200ms | ~120ms | ✅   |
+| `lowcode list` (10+ apps) | < 100ms | ~60ms  | ✅   |
+| `lowcode preview`         | < 150ms | ~90ms  | ✅   |
+| `lowcode publish`         | < 300ms | ~180ms | ✅   |
+| `lowcode deploy` (单应用) | < 1s    | ~700ms | ✅   |
+| `lowcode rollback`        | < 200ms | ~110ms | ✅   |
 
 ## 测试覆盖率
 
@@ -266,13 +267,13 @@ chainlesschain lowcode list --json
 
 ### 应用创建与发布问题
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "App not found" | app-id 不存在 | 使用 `lowcode list` 查看可用应用 |
-| 发布失败 | 应用未保存设计 | 先 `lowcode preview` 保存设计后再发布 |
-| 数据源连接失败 | 配置参数错误 | 检查 `--config` 中的 URL、端口、认证信息 |
-| 回滚版本不存在 | 指定版本号超出范围 | 使用 `lowcode versions <app-id>` 查看有效版本 |
-| 组件不显示 | 组件名拼写错误 | 使用 `lowcode components` 查看 15 个内置组件的正确名称 |
+| 症状            | 可能原因           | 解决方案                                               |
+| --------------- | ------------------ | ------------------------------------------------------ |
+| "App not found" | app-id 不存在      | 使用 `lowcode list` 查看可用应用                       |
+| 发布失败        | 应用未保存设计     | 先 `lowcode preview` 保存设计后再发布                  |
+| 数据源连接失败  | 配置参数错误       | 检查 `--config` 中的 URL、端口、认证信息               |
+| 回滚版本不存在  | 指定版本号超出范围 | 使用 `lowcode versions <app-id>` 查看有效版本          |
+| 组件不显示      | 组件名拼写错误     | 使用 `lowcode components` 查看 15 个内置组件的正确名称 |
 
 ### 常见错误
 

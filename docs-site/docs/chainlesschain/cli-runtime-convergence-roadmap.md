@@ -6,32 +6,32 @@
 
 ## 当前进度 (2026-04-09 Phase 7 完成 — 收口闭环)
 
-| 阶段 | 状态 | 说明 |
-|---|---|---|
-| Phase 0 — 冻结边界 | ✅ 完成 | ADR 已签发 (`docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md`) |
-| Phase 1 — 收口入口层 | ✅ 完成 | `agent/chat/serve/ui` 四个命令均经过 `createAgentRuntimeFactory()`;`AgentRuntime` 520 行已齐备 |
-| Phase 2 — 收口 session 与 event | ✅ 完成 | `src/lib/jsonl-session-store.js`、`prompt-compressor.js` 均已挂 `@deprecated` re-export;`gateways/repl/agent-repl.js` 已是 1 行 re-export |
-| Phase 3 — 收口 MCP | ✅ 完成 | `mcp-client.js` 迁移到 `harness/mcp-client.js`;`src/lib/mcp-client.js` 为 `@deprecated` 再导出 |
-| Phase 4 — 收口 plugin/skill | ✅ 完成 | `plugin-manager.js` 迁移到 `harness/plugin-manager.js`;`src/lib/plugin-manager.js` 为 `@deprecated` 再导出;`commands/plugin.js` 直连 canonical 路径 |
-| Phase 5 — 升级 doctor/status | ✅ 完成 | `runtime/diagnostics.js` 纯数据采集;`doctor --json` / `status --json` 落地稳定 schema (`chainlesschain.doctor.v1` / `chainlesschain.status.v1`),满足 D6 |
-| Phase 6a — ws-server & ws-session-manager 反向迁移 | ✅ 完成 | `ws-server.js` (760 行) → `gateways/ws/ws-server.js`;`ws-session-manager.js` (1421 行) → `gateways/ws/ws-session-gateway.js`;两处 `src/lib/*` 均为 `@deprecated` 再导出 |
-| Phase 6b — agent-core & ws-agent-handler 反向迁移 | ✅ 完成 | `agent-core.js` (1651 行) → `runtime/agent-core.js`;`ws-agent-handler.js` (476 行) → `gateways/ws/ws-agent-handler.js`;生产调用点 (`repl/agent-repl.js`、`gateways/ws/session-protocol.js`、`gateways/ws/ws-session-gateway.js`) 直连 canonical;`src/lib/*` 均为 `@deprecated` 再导出 |
-| Phase 7 — parity harness | ✅ 完成 | 8 步 parity 测试全部落地 (91 tests)，`mock-llm-provider.js` + `jsonl-session-store.js` harness 发布 |
+| 阶段                                               | 状态    | 说明                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 — 冻结边界                                 | ✅ 完成 | ADR 已签发 (`docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md`)                                                                                                                                                                                                               |
+| Phase 1 — 收口入口层                               | ✅ 完成 | `agent/chat/serve/ui` 四个命令均经过 `createAgentRuntimeFactory()`;`AgentRuntime` 520 行已齐备                                                                                                                                                                                        |
+| Phase 2 — 收口 session 与 event                    | ✅ 完成 | `src/lib/jsonl-session-store.js`、`prompt-compressor.js` 均已挂 `@deprecated` re-export;`gateways/repl/agent-repl.js` 已是 1 行 re-export                                                                                                                                             |
+| Phase 3 — 收口 MCP                                 | ✅ 完成 | `mcp-client.js` 迁移到 `harness/mcp-client.js`;`src/lib/mcp-client.js` 为 `@deprecated` 再导出                                                                                                                                                                                        |
+| Phase 4 — 收口 plugin/skill                        | ✅ 完成 | `plugin-manager.js` 迁移到 `harness/plugin-manager.js`;`src/lib/plugin-manager.js` 为 `@deprecated` 再导出;`commands/plugin.js` 直连 canonical 路径                                                                                                                                   |
+| Phase 5 — 升级 doctor/status                       | ✅ 完成 | `runtime/diagnostics.js` 纯数据采集;`doctor --json` / `status --json` 落地稳定 schema (`chainlesschain.doctor.v1` / `chainlesschain.status.v1`),满足 D6                                                                                                                               |
+| Phase 6a — ws-server & ws-session-manager 反向迁移 | ✅ 完成 | `ws-server.js` (760 行) → `gateways/ws/ws-server.js`;`ws-session-manager.js` (1421 行) → `gateways/ws/ws-session-gateway.js`;两处 `src/lib/*` 均为 `@deprecated` 再导出                                                                                                               |
+| Phase 6b — agent-core & ws-agent-handler 反向迁移  | ✅ 完成 | `agent-core.js` (1651 行) → `runtime/agent-core.js`;`ws-agent-handler.js` (476 行) → `gateways/ws/ws-agent-handler.js`;生产调用点 (`repl/agent-repl.js`、`gateways/ws/session-protocol.js`、`gateways/ws/ws-session-gateway.js`) 直连 canonical;`src/lib/*` 均为 `@deprecated` 再导出 |
+| Phase 7 — parity harness                           | ✅ 完成 | 8 步 parity 测试全部落地 (91 tests)，`mock-llm-provider.js` + `jsonl-session-store.js` harness 发布                                                                                                                                                                                   |
 
 **兼容层当前状态:** 6 个历史 lib 实体文件 (~5151 行) 已全部退化为 `@deprecated` re-export shim。`src/lib/*` 冻结为兼容层,新增代码默认落到 `runtime/`、`gateways/`、`harness/`、`tools/`、`contracts/`。
 
 ## Phase 7 Parity Harness 落地清单
 
-| Step | 范围 | 测试文件 | 用例数 | 提交 |
-|---|---|---|---|---|
-| 1 | agent loop parity | `__tests__/integration/parity-agent-loop.test.js` | 4 | Phase 7 前 3 步 |
-| 2 | plan approval parity | `parity-plan-approval.test.js` | 4 | |
-| 3 | shell policy parity (DENY / REROUTE / ALLOW) | `parity-shell-policy.test.js` | 6 | |
-| 4 | MCP invoke parity (success / error / unavailable / scalar wrap) | `parity-mcp-invoke.test.js` | 4 | `8b937994a` |
-| 5 | plugin tool parity (via `run_skill`) | `parity-plugin-tool.test.js` | 4 | `ccc582790` |
-| 6 | session resume parity (JSONL round-trip + compact boundary) | `parity-session-resume.test.js` | 6 | `2324b3817` |
-| 7 | worktree isolation parity (real `git init` + cwd flip) | `parity-worktree-isolation.test.js` | 5 | `b28dfcd4d` |
-| 8 | Desktop bridge envelope parity (legacy↔envelope roundtrip) | `parity-envelope-bridge.test.js` | 58 | `897df3f81` |
+| Step | 范围                                                            | 测试文件                                          | 用例数 | 提交            |
+| ---- | --------------------------------------------------------------- | ------------------------------------------------- | ------ | --------------- |
+| 1    | agent loop parity                                               | `__tests__/integration/parity-agent-loop.test.js` | 4      | Phase 7 前 3 步 |
+| 2    | plan approval parity                                            | `parity-plan-approval.test.js`                    | 4      |                 |
+| 3    | shell policy parity (DENY / REROUTE / ALLOW)                    | `parity-shell-policy.test.js`                     | 6      |                 |
+| 4    | MCP invoke parity (success / error / unavailable / scalar wrap) | `parity-mcp-invoke.test.js`                       | 4      | `8b937994a`     |
+| 5    | plugin tool parity (via `run_skill`)                            | `parity-plugin-tool.test.js`                      | 4      | `ccc582790`     |
+| 6    | session resume parity (JSONL round-trip + compact boundary)     | `parity-session-resume.test.js`                   | 6      | `2324b3817`     |
+| 7    | worktree isolation parity (real `git init` + cwd flip)          | `parity-worktree-isolation.test.js`               | 5      | `b28dfcd4d`     |
+| 8    | Desktop bridge envelope parity (legacy↔envelope roundtrip)      | `parity-envelope-bridge.test.js`                  | 58     | `897df3f81`     |
 
 合计 **91 parity tests** + **41 runtime-convergence-shims regression tests** = **132 硬回归护栏**。
 
@@ -97,23 +97,23 @@ Desktop Main
 
 ### 分层职责
 
-| 层 | 位置 | 职责 |
-|---|---|---|
-| **Commands** | `packages/cli/src/commands/` | 参数解析、入口选择、调用 runtime factory |
-| **Runtime** | `packages/cli/src/runtime/` | agent turn 生命周期、session 恢复、事件发射、policy / contract / state |
-| **Gateways** | `packages/cli/src/gateways/` | 外部接入边界（WS / REPL / IPC bridge） |
-| **Harness** | `packages/cli/src/harness/` | 生产级增强能力（session store、prompt compression、worktree 隔离） |
-| **Tools** | `packages/cli/src/tools/` | 工具 registry、canonical tool descriptor |
-| **Host (Desktop)** | `desktop-app-vue/src/main/` | bridge / IPC / 权限 UI / event consumer，不持有 runtime 真相 |
+| 层                 | 位置                         | 职责                                                                   |
+| ------------------ | ---------------------------- | ---------------------------------------------------------------------- |
+| **Commands**       | `packages/cli/src/commands/` | 参数解析、入口选择、调用 runtime factory                               |
+| **Runtime**        | `packages/cli/src/runtime/`  | agent turn 生命周期、session 恢复、事件发射、policy / contract / state |
+| **Gateways**       | `packages/cli/src/gateways/` | 外部接入边界（WS / REPL / IPC bridge）                                 |
+| **Harness**        | `packages/cli/src/harness/`  | 生产级增强能力（session store、prompt compression、worktree 隔离）     |
+| **Tools**          | `packages/cli/src/tools/`    | 工具 registry、canonical tool descriptor                               |
+| **Host (Desktop)** | `desktop-app-vue/src/main/`  | bridge / IPC / 权限 UI / event consumer，不持有 runtime 真相           |
 
 ### 当前问题与收口方向
 
-| 问题 | 现状 | 收口方向 |
-|---|---|---|
-| 主运行时双轨 | `src/runtime/` 已存在，但 `src/lib/agent-core.js`、`ws-server.js`、`ws-agent-handler.js`、`jsonl-session-store.js`、`mcp-client.js`、`plugin-manager.js` 仍并存 | 旧 `lib/*` 改为薄 re-export，最终删除实现 |
-| Desktop 平行真相 | `coding-agent-bridge.js` / `mcp-client-manager.js` / `plugins/*` 持有 runtime 级逻辑 | Desktop 仅做 bridge / adapter，不再维护独立生命周期 |
-| 运维面偏"安装诊断" | `doctor` / `status` 只做环境检查 | 增加 provider / MCP / plugin / session store / sandbox / bridge / worktree 检查 |
-| 缺 parity harness | 有 unit / integration / e2e，但偏模块验证 | 引入 mock provider / MCP、golden transcript、turn-level parity test |
+| 问题               | 现状                                                                                                                                                            | 收口方向                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 主运行时双轨       | `src/runtime/` 已存在，但 `src/lib/agent-core.js`、`ws-server.js`、`ws-agent-handler.js`、`jsonl-session-store.js`、`mcp-client.js`、`plugin-manager.js` 仍并存 | 旧 `lib/*` 改为薄 re-export，最终删除实现                                       |
+| Desktop 平行真相   | `coding-agent-bridge.js` / `mcp-client-manager.js` / `plugins/*` 持有 runtime 级逻辑                                                                            | Desktop 仅做 bridge / adapter，不再维护独立生命周期                             |
+| 运维面偏"安装诊断" | `doctor` / `status` 只做环境检查                                                                                                                                | 增加 provider / MCP / plugin / session store / sandbox / bridge / worktree 检查 |
+| 缺 parity harness  | 有 unit / integration / e2e，但偏模块验证                                                                                                                       | 引入 mock provider / MCP、golden transcript、turn-level parity test             |
 
 ## 配置参考
 
@@ -140,13 +140,13 @@ packages/cli/src/runtime/runtime-factory.js   # canonical 工厂
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| runtime 冷启动 (runTurn) | < 500ms | ~320ms | ✅ |
-| session 恢复 (JSONL 读取) | < 200ms | ~90ms | ✅ |
-| event envelope 序列化 | < 2ms | < 1ms | ✅ |
-| parity harness 单轮比对 | < 1s | ~600ms | ✅ |
-| doctor 深度检查全量 | < 3s | ~2.1s | ✅ |
+| 操作                      | 目标    | 实际   | 状态 |
+| ------------------------- | ------- | ------ | ---- |
+| runtime 冷启动 (runTurn)  | < 500ms | ~320ms | ✅   |
+| session 恢复 (JSONL 读取) | < 200ms | ~90ms  | ✅   |
+| event envelope 序列化     | < 2ms   | < 1ms  | ✅   |
+| parity harness 单轮比对   | < 1s    | ~600ms | ✅   |
+| doctor 深度检查全量       | < 3s    | ~2.1s  | ✅   |
 
 ## 使用示例
 
@@ -169,14 +169,14 @@ Phase 7  建 parity harness — deterministic agent 行为回归
 
 根据 2026-04-09 基线审计,Phase 0/1 已完成、Phase 2 部分完成,原 6 周计划压缩为 5 周:
 
-| 周 | 工作 |
-|---|---|
-| ~~第 1 周~~ | ~~Phase 0 + Phase 1~~ ✅ 已完成 |
-| 第 1 周 | 完成 Phase 2 剩余项 (`ws-session-manager.js` 迁移到 `harness/` 或 `runtime/`) |
-| 第 2 周 | Phase 3A / 3B (MCP canonical contract + CLI/Desktop 差异对照) |
-| 第 3 周 | Phase 4 (plugin / skill) + 启动 Phase 5 |
-| 第 4 周 | 完成 Phase 5 (`doctor --json` / `status --json` 稳定字段) + 启动 Phase 6 |
-| 第 5 周 | 完成 Phase 6 (`agent-core.js` / `ws-server.js` / `ws-agent-handler.js` 退化为 shim) + 最小可用 parity harness |
+| 周          | 工作                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| ~~第 1 周~~ | ~~Phase 0 + Phase 1~~ ✅ 已完成                                                                               |
+| 第 1 周     | 完成 Phase 2 剩余项 (`ws-session-manager.js` 迁移到 `harness/` 或 `runtime/`)                                 |
+| 第 2 周     | Phase 3A / 3B (MCP canonical contract + CLI/Desktop 差异对照)                                                 |
+| 第 3 周     | Phase 4 (plugin / skill) + 启动 Phase 5                                                                       |
+| 第 4 周     | 完成 Phase 5 (`doctor --json` / `status --json` 稳定字段) + 启动 Phase 6                                      |
+| 第 5 周     | 完成 Phase 6 (`agent-core.js` / `ws-server.js` / `ws-agent-handler.js` 退化为 shim) + 最小可用 parity harness |
 
 ### 里程碑验收
 
@@ -253,12 +253,12 @@ Phase 7  建 parity harness — deterministic agent 行为回归
 
 ### 风险应对
 
-| 风险 | 应对 |
-|---|---|
-| 收口过程中功能回退 | 每阶段先做 adapter，再删旧实现；targeted integration test 兜住主链路 |
-| Desktop 依赖旧 flat shape | 先桥接 envelope 与 legacy shape，消费者全部迁移后再删兼容层 |
-| MCP / plugin 差异比预期大 | 先做 canonical contract，不追求实现合并，先追求状态模型统一 |
-| 文档先行但代码未跟进 | 每阶段结束必须同步更新本文档状态，文档不写"理想态" |
+| 风险                      | 应对                                                                 |
+| ------------------------- | -------------------------------------------------------------------- |
+| 收口过程中功能回退        | 每阶段先做 adapter，再删旧实现；targeted integration test 兜住主链路 |
+| Desktop 依赖旧 flat shape | 先桥接 envelope 与 legacy shape，消费者全部迁移后再删兼容层          |
+| MCP / plugin 差异比预期大 | 先做 canonical contract，不追求实现合并，先追求状态模型统一          |
+| 文档先行但代码未跟进      | 每阶段结束必须同步更新本文档状态，文档不写"理想态"                   |
 
 ## 测试覆盖率
 

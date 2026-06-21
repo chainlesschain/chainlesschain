@@ -174,16 +174,16 @@ CHAINLESSCHAIN_CONFIG_DIR=/custom/config/dir
 
 ## 性能指标
 
-| 操作 | 典型延迟 | 说明 |
-|------|----------|------|
-| `config list` | < 10ms | 读取本地 JSON 文件 |
-| `config get <key>` | < 5ms | 点分路径解析 |
-| `config set <key> <val>` | < 15ms | 写入并同步到磁盘 |
-| `config edit` | 取决于编辑器 | 打开系统默认编辑器 |
-| `config reset` | < 20ms | 覆写为默认模板 |
-| `config beta list` | < 10ms | 读取 beta-flags.json |
-| `config beta enable <flag>` | < 15ms | 追加并持久化 |
-| `config beta disable <flag>` | < 15ms | 移除并持久化 |
+| 操作                         | 典型延迟     | 说明                 |
+| ---------------------------- | ------------ | -------------------- |
+| `config list`                | < 10ms       | 读取本地 JSON 文件   |
+| `config get <key>`           | < 5ms        | 点分路径解析         |
+| `config set <key> <val>`     | < 15ms       | 写入并同步到磁盘     |
+| `config edit`                | 取决于编辑器 | 打开系统默认编辑器   |
+| `config reset`               | < 20ms       | 覆写为默认模板       |
+| `config beta list`           | < 10ms       | 读取 beta-flags.json |
+| `config beta enable <flag>`  | < 15ms       | 追加并持久化         |
+| `config beta disable <flag>` | < 15ms       | 移除并持久化         |
 
 ## 安全考虑
 

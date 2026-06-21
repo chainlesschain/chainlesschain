@@ -38,10 +38,10 @@ chainlesschain start --services     # 启动桌面应用 + Docker 服务
 
 ## 选项说明
 
-| 选项 | 说明 |
-|------|------|
+| 选项         | 说明                                   |
+| ------------ | -------------------------------------- |
 | `--headless` | 仅启动 Docker 后端服务，不启动桌面 GUI |
-| `--services` | 同时启动 Docker 后端服务 |
+| `--services` | 同时启动 Docker 后端服务               |
 
 ## 配置参考
 
@@ -61,13 +61,13 @@ chainlesschain start --services     # 启动桌面应用 + Docker 服务
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| 配置状态检查 | < 50ms | ~20ms | ✅ |
-| 重复运行检测 (PID) | < 100ms | ~40ms | ✅ |
-| 桌面应用冷启动 | < 5s | ~3s | ✅ |
-| --headless Docker 启动 | < 20s | ~12s | ✅ |
-| --services 联动启动 | < 25s | ~15s | ✅ |
+| 操作                   | 目标    | 实际  | 状态 |
+| ---------------------- | ------- | ----- | ---- |
+| 配置状态检查           | < 50ms  | ~20ms | ✅   |
+| 重复运行检测 (PID)     | < 100ms | ~40ms | ✅   |
+| 桌面应用冷启动         | < 5s    | ~3s   | ✅   |
+| --headless Docker 启动 | < 20s   | ~12s  | ✅   |
+| --services 联动启动    | < 25s   | ~15s  | ✅   |
 
 ## 测试覆盖率
 
@@ -121,13 +121,13 @@ chainlesschain start --headless
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Setup not completed` | 先运行 `chainlesschain setup` 完成配置 |
-| `Docker is required` | 安装 Docker Desktop（`--headless` 和 `--services` 需要） |
-| `docker-compose.yml not found` | 在项目根目录下运行，或确认 `backend/docker` 目录存在 |
-| 应用启动后无窗口 | 检查 Electron 二进制是否已下载：`chainlesschain update` |
-| `already running` | 应用已在运行，无需重复启动 |
+| 问题                           | 解决方案                                                 |
+| ------------------------------ | -------------------------------------------------------- |
+| `Setup not completed`          | 先运行 `chainlesschain setup` 完成配置                   |
+| `Docker is required`           | 安装 Docker Desktop（`--headless` 和 `--services` 需要） |
+| `docker-compose.yml not found` | 在项目根目录下运行，或确认 `backend/docker` 目录存在     |
+| 应用启动后无窗口               | 检查 Electron 二进制是否已下载：`chainlesschain update`  |
+| `already running`              | 应用已在运行，无需重复启动                               |
 
 ## 相关文档
 

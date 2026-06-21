@@ -204,14 +204,14 @@
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 性能数据未采集 | 监控模块未初始化 | 重启应用，确认 PerformanceMonitor 已加载 |
-| 自动调优不触发 | 冷却期未过或条件未满足 | 检查冷却期配置（默认 10 分钟），确认指标达到阈值 |
-| 调优后性能反而下降 | 规则动作不适合当前场景 | 调整规则条件和动作，增大冷却期避免震荡 |
-| P99 延迟持续偏高 | 系统整体负载过重 | 排查资源瓶颈（CPU/内存/磁盘），考虑扩容 |
-| 历史记录超过 500 条 | 调优频率过高 | 增大评估间隔和冷却期，减少不必要的调优 |
-| 数据库慢查询规则误触发 | 阈值设置过低 | 根据实际业务场景调整慢查询阈值 |
+| 问题                   | 可能原因               | 解决方案                                         |
+| ---------------------- | ---------------------- | ------------------------------------------------ |
+| 性能数据未采集         | 监控模块未初始化       | 重启应用，确认 PerformanceMonitor 已加载         |
+| 自动调优不触发         | 冷却期未过或条件未满足 | 检查冷却期配置（默认 10 分钟），确认指标达到阈值 |
+| 调优后性能反而下降     | 规则动作不适合当前场景 | 调整规则条件和动作，增大冷却期避免震荡           |
+| P99 延迟持续偏高       | 系统整体负载过重       | 排查资源瓶颈（CPU/内存/磁盘），考虑扩容          |
+| 历史记录超过 500 条    | 调优频率过高           | 增大评估间隔和冷却期，减少不必要的调优           |
+| 数据库慢查询规则误触发 | 阈值设置过低           | 根据实际业务场景调整慢查询阈值                   |
 
 ## 配置参考
 
@@ -228,11 +228,11 @@
       "retentionDays": 30,
       "stages": {
         "intent_recognition": { "warnMs": 200, "criticalMs": 500 },
-        "task_planning":      { "warnMs": 500, "criticalMs": 1000 },
-        "tool_execution":     { "warnMs": 2000, "criticalMs": 5000 },
-        "rag_retrieval":      { "warnMs": 1500, "criticalMs": 3000 },
-        "llm_calls":          { "warnMs": 5000, "criticalMs": 15000 },
-        "total_pipeline":     { "warnMs": 8000, "criticalMs": 20000 }
+        "task_planning": { "warnMs": 500, "criticalMs": 1000 },
+        "tool_execution": { "warnMs": 2000, "criticalMs": 5000 },
+        "rag_retrieval": { "warnMs": 1500, "criticalMs": 3000 },
+        "llm_calls": { "warnMs": 5000, "criticalMs": 15000 },
+        "total_pipeline": { "warnMs": 8000, "criticalMs": 20000 }
       }
     },
     "autoTuner": {
@@ -240,11 +240,11 @@
       "cooldownMs": 600000,
       "maxHistoryEntries": 500,
       "rules": {
-        "db-slow-queries":  { "enabled": true, "thresholdMs": 100 },
-        "db-vacuum":        { "enabled": true, "fragmentRatio": 0.3 },
+        "db-slow-queries": { "enabled": true, "thresholdMs": 100 },
+        "db-vacuum": { "enabled": true, "fragmentRatio": 0.3 },
         "llm-high-latency": { "enabled": true, "p95ThresholdMs": 10000 },
-        "memory-pressure":  { "enabled": true, "heapUsageRatio": 0.85 },
-        "p2p-connections":  { "enabled": true, "maxConnections": 50 }
+        "memory-pressure": { "enabled": true, "heapUsageRatio": 0.85 },
+        "p2p-connections": { "enabled": true, "maxConnections": 50 }
       },
       "customRules": []
     }
@@ -254,13 +254,13 @@
 
 ### 环境变量
 
-| 变量                             | 默认值   | 说明                     |
-| -------------------------------- | -------- | ------------------------ |
-| `PERF_MONITOR_INTERVAL_MS`       | `300000` | 指标采集间隔（毫秒）     |
-| `PERF_TUNER_COOLDOWN_MS`         | `600000` | 调优规则冷却期（毫秒）   |
-| `PERF_TUNER_MAX_HISTORY`         | `500`    | 最大历史记录条数         |
-| `PERF_LLM_LATENCY_THRESHOLD_MS`  | `10000`  | LLM 高延迟触发阈值       |
-| `PERF_DB_SLOW_QUERY_THRESHOLD_MS`| `100`    | 数据库慢查询触发阈值     |
+| 变量                              | 默认值   | 说明                   |
+| --------------------------------- | -------- | ---------------------- |
+| `PERF_MONITOR_INTERVAL_MS`        | `300000` | 指标采集间隔（毫秒）   |
+| `PERF_TUNER_COOLDOWN_MS`          | `600000` | 调优规则冷却期（毫秒） |
+| `PERF_TUNER_MAX_HISTORY`          | `500`    | 最大历史记录条数       |
+| `PERF_LLM_LATENCY_THRESHOLD_MS`   | `10000`  | LLM 高延迟触发阈值     |
+| `PERF_DB_SLOW_QUERY_THRESHOLD_MS` | `100`    | 数据库慢查询触发阈值   |
 
 ---
 
@@ -270,23 +270,23 @@
 
 > 测试环境：Intel Core i7-12700K / 32GB RAM / NVMe SSD / Windows 10 Pro
 
-| 指标                     | 典型值   | P95 值   | 目标上限  |
-| ------------------------ | -------- | -------- | --------- |
-| 意图识别延迟             | 45 ms    | 120 ms   | 200 ms    |
-| 任务规划延迟             | 180 ms   | 420 ms   | 500 ms    |
-| RAG 检索延迟（10 文档）  | 320 ms   | 890 ms   | 1500 ms   |
-| LLM 调用延迟（qwen2:7b） | 1800 ms  | 4200 ms  | 5000 ms   |
-| 完整管道端到端延迟       | 2800 ms  | 6500 ms  | 8000 ms   |
-| 指标采集开销             | < 1 ms   | < 3 ms   | < 5 ms    |
-| 规则引擎评估耗时（5 规则）| < 2 ms  | < 5 ms   | < 10 ms   |
+| 指标                       | 典型值  | P95 值  | 目标上限 |
+| -------------------------- | ------- | ------- | -------- |
+| 意图识别延迟               | 45 ms   | 120 ms  | 200 ms   |
+| 任务规划延迟               | 180 ms  | 420 ms  | 500 ms   |
+| RAG 检索延迟（10 文档）    | 320 ms  | 890 ms  | 1500 ms  |
+| LLM 调用延迟（qwen2:7b）   | 1800 ms | 4200 ms | 5000 ms  |
+| 完整管道端到端延迟         | 2800 ms | 6500 ms | 8000 ms  |
+| 指标采集开销               | < 1 ms  | < 3 ms  | < 5 ms   |
+| 规则引擎评估耗时（5 规则） | < 2 ms  | < 5 ms  | < 10 ms  |
 
 ### 内存占用
 
-| 组件                  | 空闲内存  | 峰值内存  |
-| --------------------- | --------- | --------- |
-| PerformanceMonitor    | ~2 MB     | ~8 MB     |
-| AutoTuner（500 历史） | ~4 MB     | ~12 MB    |
-| 性能指标数据库        | ~10 MB    | ~50 MB    |
+| 组件                  | 空闲内存 | 峰值内存 |
+| --------------------- | -------- | -------- |
+| PerformanceMonitor    | ~2 MB    | ~8 MB    |
+| AutoTuner（500 历史） | ~4 MB    | ~12 MB   |
+| 性能指标数据库        | ~10 MB   | ~50 MB   |
 
 ### 调优效果
 
@@ -306,22 +306,22 @@
 
 ### 测试文件
 
-| 测试文件                                                    | 测试数 | 覆盖模块                     |
-| ----------------------------------------------------------- | ------ | ---------------------------- |
-| `tests/unit/monitoring/performance-monitor.test.js`        | 24     | 6 阶段追踪、百分位统计       |
-| `tests/unit/performance/auto-tuner.test.js`                 | 31     | 规则引擎、冷却期、历史记录   |
-| `tests/unit/performance/auto-tuner-rules.test.js`           | 18     | 5 条内置规则触发与执行       |
-| `tests/unit/performance/performance-monitor.test.js`        | 12     | 数据采集与持久化             |
-| `tests/integration/performance/tuner-monitor.test.js`       | 9      | 监控→调优端到端联动          |
+| 测试文件                                              | 测试数 | 覆盖模块                   |
+| ----------------------------------------------------- | ------ | -------------------------- |
+| `tests/unit/monitoring/performance-monitor.test.js`   | 24     | 6 阶段追踪、百分位统计     |
+| `tests/unit/performance/auto-tuner.test.js`           | 31     | 规则引擎、冷却期、历史记录 |
+| `tests/unit/performance/auto-tuner-rules.test.js`     | 18     | 5 条内置规则触发与执行     |
+| `tests/unit/performance/performance-monitor.test.js`  | 12     | 数据采集与持久化           |
+| `tests/integration/performance/tuner-monitor.test.js` | 9      | 监控→调优端到端联动        |
 
 **总计: 94 个测试**
 
 ### 覆盖率摘要
 
-| 模块                       | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 |
-| -------------------------- | ---------- | ---------- | ---------- |
-| `performance-monitor.js`   | 96%        | 91%        | 100%       |
-| `auto-tuner.js`            | 94%        | 89%        | 100%       |
+| 模块                     | 语句覆盖率 | 分支覆盖率 | 函数覆盖率 |
+| ------------------------ | ---------- | ---------- | ---------- |
+| `performance-monitor.js` | 96%        | 91%        | 100%       |
+| `auto-tuner.js`          | 94%        | 89%        | 100%       |
 
 ### 运行测试
 

@@ -46,13 +46,13 @@ chainlesschain export
 chainlesschain export markdown -o <dir> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-o, --output <dir>` | 输出目录（必填） | — |
-| `--category <category>` | 按分类过滤 | — |
-| `--tag <tag>` | 按标签过滤 | — |
-| `-n, --limit <n>` | 最大导出数量 | 全部 |
-| `--json` | JSON 格式输出 | — |
+| 选项                    | 说明             | 默认值 |
+| ----------------------- | ---------------- | ------ |
+| `-o, --output <dir>`    | 输出目录（必填） | —      |
+| `--category <category>` | 按分类过滤       | —      |
+| `--tag <tag>`           | 按标签过滤       | —      |
+| `-n, --limit <n>`       | 最大导出数量     | 全部   |
+| `--json`                | JSON 格式输出    | —      |
 
 ### export site
 
@@ -62,13 +62,13 @@ chainlesschain export markdown -o <dir> [options]
 chainlesschain export site -o <dir> [options]
 ```
 
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-o, --output <dir>` | 输出目录（必填） | — |
-| `--title <title>` | 站点标题 | `ChainlessChain Knowledge Base` |
-| `--category <category>` | 按分类过滤 | — |
-| `--tag <tag>` | 按标签过滤 | — |
-| `--json` | JSON 格式输出 | — |
+| 选项                    | 说明             | 默认值                          |
+| ----------------------- | ---------------- | ------------------------------- |
+| `-o, --output <dir>`    | 输出目录（必填） | —                               |
+| `--title <title>`       | 站点标题         | `ChainlessChain Knowledge Base` |
+| `--category <category>` | 按分类过滤       | —                               |
+| `--tag <tag>`           | 按标签过滤       | —                               |
+| `--json`                | JSON 格式输出    | —                               |
 
 ## 配置参考
 
@@ -95,13 +95,13 @@ chainlesschain export site \
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| Markdown 导出 100 篇 | < 1.5s | ~0.8s | ✅ |
-| 静态站点生成 500 页 | < 5s | ~3.2s | ✅ |
-| 标签/分类过滤扫描 | < 200ms | ~120ms | ✅ |
-| JSON 输出序列化 | < 50ms | ~20ms | ✅ |
-| 运行时 bootstrap 初始化 | < 800ms | ~500ms | ✅ |
+| 操作                    | 目标    | 实际   | 状态 |
+| ----------------------- | ------- | ------ | ---- |
+| Markdown 导出 100 篇    | < 1.5s  | ~0.8s  | ✅   |
+| 静态站点生成 500 页     | < 5s    | ~3.2s  | ✅   |
+| 标签/分类过滤扫描       | < 200ms | ~120ms | ✅   |
+| JSON 输出序列化         | < 50ms  | ~20ms  | ✅   |
+| 运行时 bootstrap 初始化 | < 800ms | ~500ms | ✅   |
 
 ## 测试覆盖率
 
@@ -115,12 +115,12 @@ chainlesschain export site \
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/export.js` | export 命令主入口（markdown / site 子命令注册） |
-| `packages/cli/src/lib/knowledge-exporter.js` | 导出核心实现（`exportToMarkdown` / `exportToSite`） |
-| `packages/cli/__tests__/unit/knowledge-exporter.test.js` | 导出核心单元测试 |
-| `packages/cli/__tests__/unit/export.test.js` | CLI 命令层测试 |
+| 文件                                                     | 职责                                                |
+| -------------------------------------------------------- | --------------------------------------------------- |
+| `packages/cli/src/commands/export.js`                    | export 命令主入口（markdown / site 子命令注册）     |
+| `packages/cli/src/lib/knowledge-exporter.js`             | 导出核心实现（`exportToMarkdown` / `exportToSite`） |
+| `packages/cli/__tests__/unit/knowledge-exporter.test.js` | 导出核心单元测试                                    |
+| `packages/cli/__tests__/unit/export.test.js`             | CLI 命令层测试                                      |
 
 ## 安全考虑
 
@@ -138,6 +138,7 @@ chainlesschain export markdown -o ./my-notes
 ```
 
 输出示例：
+
 ```
 Exported 42 notes to ./my-notes
   ./my-notes/blockchain-basics.md
@@ -158,6 +159,7 @@ chainlesschain export site -o ./public --title "我的知识库"
 ```
 
 输出示例：
+
 ```
 Generated static site with 42 pages
   Output: ./public
@@ -171,6 +173,7 @@ chainlesschain export markdown -o ./export --category "学习笔记" --json
 ```
 
 输出示例：
+
 ```json
 {
   "count": 15,
@@ -184,13 +187,13 @@ chainlesschain export markdown -o ./export --category "学习笔记" --json
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Database not available` | 确保已运行 `chainlesschain setup` 初始化数据库 |
-| `No notes to export` | 知识库为空，先使用 `import` 或 `note add` 添加内容 |
-| 输出目录权限错误 | 检查目标目录的写入权限 |
-| 中文文件名乱码 | 确保操作系统文件系统支持 UTF-8 编码 |
-| 导出过程中断 | 检查磁盘空间是否充足 |
+| 问题                     | 解决方案                                           |
+| ------------------------ | -------------------------------------------------- |
+| `Database not available` | 确保已运行 `chainlesschain setup` 初始化数据库     |
+| `No notes to export`     | 知识库为空，先使用 `import` 或 `note add` 添加内容 |
+| 输出目录权限错误         | 检查目标目录的写入权限                             |
+| 中文文件名乱码           | 确保操作系统文件系统支持 UTF-8 编码                |
+| 导出过程中断             | 检查磁盘空间是否充足                               |
 
 ## 相关文档
 

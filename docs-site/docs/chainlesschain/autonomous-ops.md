@@ -98,44 +98,44 @@
 }
 ```
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `enabled` | true | 是否启用自主运维系统 |
-| `alertThresholds.cpu` | 80 | CPU 使用率告警阈值 (%) |
-| `alertThresholds.memory` | 85 | 内存使用率告警阈值 (%) |
-| `alertThresholds.errorRate` | 5 | 错误率告警阈值 (%) |
-| `autoRemediation` | true | 是否自动触发 Playbook 修复 |
-| `rollbackOnFailure` | true | 修复失败时自动回滚 |
-| `postmortemAutoGenerate` | false | 是否自动生成事故报告 |
-| `deduplicationWindow` | 300 | 告警去重时间窗口（秒） |
-| `sla.P0.responseMins` | 5 | P0 事故最大响应时间（分钟） |
+| 参数                        | 默认值 | 说明                        |
+| --------------------------- | ------ | --------------------------- |
+| `enabled`                   | true   | 是否启用自主运维系统        |
+| `alertThresholds.cpu`       | 80     | CPU 使用率告警阈值 (%)      |
+| `alertThresholds.memory`    | 85     | 内存使用率告警阈值 (%)      |
+| `alertThresholds.errorRate` | 5      | 错误率告警阈值 (%)          |
+| `autoRemediation`           | true   | 是否自动触发 Playbook 修复  |
+| `rollbackOnFailure`         | true   | 修复失败时自动回滚          |
+| `postmortemAutoGenerate`    | false  | 是否自动生成事故报告        |
+| `deduplicationWindow`       | 300    | 告警去重时间窗口（秒）      |
+| `sla.P0.responseMins`       | 5      | P0 事故最大响应时间（分钟） |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 异常检测延迟 | < 5s | ~2s | ✅ |
-| 事故创建与分级 | < 1s | ~300ms | ✅ |
-| Playbook 触发延迟 | < 2s | ~800ms | ✅ |
-| 修复步骤执行（单步） | < 30s | ~10-20s | ✅ |
-| 自动回滚响应时间 | < 10s | ~5s | ✅ |
-| 事故报告生成 | < 20s | ~12s | ✅ |
-| 告警去重命中率 | > 95% | ~97% | ✅ |
+| 操作                 | 目标  | 实际    | 状态 |
+| -------------------- | ----- | ------- | ---- |
+| 异常检测延迟         | < 5s  | ~2s     | ✅   |
+| 事故创建与分级       | < 1s  | ~300ms  | ✅   |
+| Playbook 触发延迟    | < 2s  | ~800ms  | ✅   |
+| 修复步骤执行（单步） | < 30s | ~10-20s | ✅   |
+| 自动回滚响应时间     | < 10s | ~5s     | ✅   |
+| 事故报告生成         | < 20s | ~12s    | ✅   |
+| 告警去重命中率       | > 95% | ~97%    | ✅   |
 
 ---
 
 ## 测试覆盖率
 
-| 文件 | 类型 | 测试数 |
-| --- | --- | --- |
-| ✅ `incident-classifier.test.js` | 单元 | 20 |
-| ✅ `auto-remediator.test.js` | 单元 | 25 |
-| ✅ `rollback-manager.test.js` | 单元 | 18 |
-| ✅ `alert-manager.test.js` | 单元 | 22 |
-| ✅ `postmortem-generator.test.js` | 单元 | 15 |
-| ✅ `anomaly-detector.test.js` | 单元 | 20 |
-| ✅ `autonomous-ops-ipc.test.js` | 集成 | 16 |
-| **合计** | | **136** |
+| 文件                              | 类型 | 测试数  |
+| --------------------------------- | ---- | ------- |
+| ✅ `incident-classifier.test.js`  | 单元 | 20      |
+| ✅ `auto-remediator.test.js`      | 单元 | 25      |
+| ✅ `rollback-manager.test.js`     | 单元 | 18      |
+| ✅ `alert-manager.test.js`        | 单元 | 22      |
+| ✅ `postmortem-generator.test.js` | 单元 | 15      |
+| ✅ `anomaly-detector.test.js`     | 单元 | 20      |
+| ✅ `autonomous-ops-ipc.test.js`   | 集成 | 16      |
+| **合计**                          |      | **136** |
 
 ---
 
@@ -170,6 +170,7 @@
 **现象**: Playbook 触发后步骤执行失败，事故未能自动解决。
 
 **排查步骤**:
+
 1. 通过 `ops:get-incident-detail` 查看事故详情和修复执行日志
 2. 确认 Playbook 中的每个步骤是否有足够的系统权限（如重启服务需要管理员权限）
 3. 检查 `autoRemediation` 是否为 `true`，以及 `rollbackOnFailure` 是否开启
@@ -181,6 +182,7 @@
 **现象**: 系统频繁触发告警，但实际服务运行正常。
 
 **排查步骤**:
+
 1. 检查 `alertThresholds` 配置，CPU/内存/错误率阈值是否设置过低
 2. 确认是否存在短暂的瞬时波动触发了告警（建议设置持续时间窗口）
 3. 通过 `ops:get-baseline` 查看性能基线，确认基线数据是否准确反映正常状态
@@ -189,26 +191,26 @@
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js` | 事故分类与优先级判定 |
-| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js` | Playbook 自动修复引擎 |
-| `desktop-app-vue/src/main/ai-engine/cowork/rollback-manager.js` | 回滚管理器 |
-| `desktop-app-vue/src/main/ai-engine/cowork/alert-manager.js` | 告警规则与通知 |
-| `desktop-app-vue/src/main/ai-engine/cowork/postmortem-generator.js` | 事故报告生成 |
-| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js` | 异常检测引擎 |
+| 文件                                                                | 职责                  |
+| ------------------------------------------------------------------- | --------------------- |
+| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js`  | 事故分类与优先级判定  |
+| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js`      | Playbook 自动修复引擎 |
+| `desktop-app-vue/src/main/ai-engine/cowork/rollback-manager.js`     | 回滚管理器            |
+| `desktop-app-vue/src/main/ai-engine/cowork/alert-manager.js`        | 告警规则与通知        |
+| `desktop-app-vue/src/main/ai-engine/cowork/postmortem-generator.js` | 事故报告生成          |
+| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js`     | 异常检测引擎          |
 
 ## 故障排查
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 自动修复误操作导致服务中断 | 修复策略过于激进或匹配规则不精确 | 启用 `dryRun` 模式验证，收紧修复规则匹配条件 |
-| 告警风暴大量重复告警 | 告警去重窗口过短或阈值过低 | 增大 `deduplicationWindow`，调整告警阈值 |
-| 资源检测误报频繁 | 基线数据不准确或采样间隔过长 | 重新采集基线 `ops baseline-reset`，缩短采样间隔 |
-| 自动扩缩容未触发 | 扩缩容策略条件未满足或权限不足 | 检查策略条件表达式，确认服务账号权限 |
-| 事后报告生成不完整 | 关联数据源缺失或时间窗口不匹配 | 检查数据源连接，扩大报告时间范围 |
+| 症状                       | 可能原因                         | 解决方案                                        |
+| -------------------------- | -------------------------------- | ----------------------------------------------- |
+| 自动修复误操作导致服务中断 | 修复策略过于激进或匹配规则不精确 | 启用 `dryRun` 模式验证，收紧修复规则匹配条件    |
+| 告警风暴大量重复告警       | 告警去重窗口过短或阈值过低       | 增大 `deduplicationWindow`，调整告警阈值        |
+| 资源检测误报频繁           | 基线数据不准确或采样间隔过长     | 重新采集基线 `ops baseline-reset`，缩短采样间隔 |
+| 自动扩缩容未触发           | 扩缩容策略条件未满足或权限不足   | 检查策略条件表达式，确认服务账号权限            |
+| 事后报告生成不完整         | 关联数据源缺失或时间窗口不匹配   | 检查数据源连接，扩大报告时间范围                |
 
 ### 常见错误修复
 

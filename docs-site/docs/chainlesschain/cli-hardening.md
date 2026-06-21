@@ -82,7 +82,7 @@ chainlesschain hardening config-check -f json      # JSON 输出
 chainlesschain hardening config-check -s critical  # 仅输出 critical 级别
 ```
 
-对 `.chainlesschain/config.json`、环境变量、密钥存储、TLS 证书链等进行真检查（不再是 stub）。返回每条规则的 `pass / warn / fail` 状态与修复建议，覆盖 29_生产强化系统设计的安全基线清单。
+对 `.chainlesschain/config.json`、环境变量、密钥存储、TLS 证书链等进行真检查（不再是 stub）。返回每条规则的 `pass / warn / fail` 状态与修复建议，覆盖 29\_生产强化系统设计的安全基线清单。
 
 ### hardening deploy-check — 部署前预检 (v5.0.2.10)
 
@@ -96,10 +96,10 @@ chainlesschain hardening deploy-check --strict     # 任一 warn 视为失败
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `performance_baselines` | 性能基线（名称、版本、状态、采样数、指标数据、创建时间） |
-| `hardening_audits` | 安全审计（名称、评分、通过数、失败数、检查项、建议、创建时间） |
+| 表名                    | 说明                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| `performance_baselines` | 性能基线（名称、版本、状态、采样数、指标数据、创建时间）       |
+| `hardening_audits`      | 安全审计（名称、评分、通过数、失败数、检查项、建议、创建时间） |
 
 ## 系统架构
 
@@ -140,13 +140,13 @@ chainlesschain hardening deploy-check --strict     # 任一 warn 视为失败
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| baseline collect 采样 | < 3s | ~2.1s | ✅ |
-| baseline compare 对比 | < 500ms | ~280ms | ✅ |
-| audit run 完整检查 | < 10s | ~6.5s | ✅ |
-| report 读取渲染 | < 200ms | ~120ms | ✅ |
-| baseline list (100 条) | < 300ms | ~150ms | ✅ |
+| 操作                   | 目标    | 实际   | 状态 |
+| ---------------------- | ------- | ------ | ---- |
+| baseline collect 采样  | < 3s    | ~2.1s  | ✅   |
+| baseline compare 对比  | < 500ms | ~280ms | ✅   |
+| audit run 完整检查     | < 10s   | ~6.5s  | ✅   |
+| report 读取渲染        | < 200ms | ~120ms | ✅   |
+| baseline list (100 条) | < 300ms | ~150ms | ✅   |
 
 ## 测试覆盖率
 
@@ -160,12 +160,12 @@ chainlesschain hardening deploy-check --strict     # 任一 warn 视为失败
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/hardening.js` | hardening 命令主入口（baseline / audit 子命令组） |
-| `packages/cli/src/lib/hardening-manager.js` | 基线采集、回归检测、安全审计核心实现 |
-| `packages/cli/__tests__/unit/hardening-manager.test.js` | 核心单元测试（21 tests） |
-| `packages/cli/__tests__/unit/hardening.test.js` | CLI 命令层测试 |
+| 文件                                                    | 职责                                              |
+| ------------------------------------------------------- | ------------------------------------------------- |
+| `packages/cli/src/commands/hardening.js`                | hardening 命令主入口（baseline / audit 子命令组） |
+| `packages/cli/src/lib/hardening-manager.js`             | 基线采集、回归检测、安全审计核心实现              |
+| `packages/cli/__tests__/unit/hardening-manager.test.js` | 核心单元测试（21 tests）                          |
+| `packages/cli/__tests__/unit/hardening.test.js`         | CLI 命令层测试                                    |
 
 ## 测试
 
@@ -207,12 +207,12 @@ chainlesschain hardening audit report aud-001 --json
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "No baselines collected" | 未收集基线 | 使用 `baseline collect` 收集 |
-| "No audit reports" | 未运行审计 | 使用 `audit run` 执行审计 |
-| 回归误报 | 阈值过低 | 调整检测阈值参数 |
-| 审计评分偏低 | 系统存在安全配置缺陷 | 按建议逐项修复 |
+| 症状                     | 可能原因             | 解决方案                     |
+| ------------------------ | -------------------- | ---------------------------- |
+| "No baselines collected" | 未收集基线           | 使用 `baseline collect` 收集 |
+| "No audit reports"       | 未运行审计           | 使用 `audit run` 执行审计    |
+| 回归误报                 | 阈值过低             | 调整检测阈值参数             |
+| 审计评分偏低             | 系统存在安全配置缺陷 | 按建议逐项修复               |
 
 ## 安全考虑
 

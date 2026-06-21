@@ -89,6 +89,7 @@ chainlesschain orchestrate "Fix the null reference error in auth.service.ts" \
 ```
 
 输出示例：
+
 ```
 ⚡ ChainlessChain Orchestrator
 
@@ -192,6 +193,7 @@ chainlesschain orchestrate detect
 ```
 
 示例输出：
+
 ```
 🔍 AI CLI Detection
 
@@ -266,10 +268,10 @@ chainlesschain orchestrate "Fix the bug" --ci "npm test"
 
 ### 通知内容
 
-| 时机 | 内容 |
-|------|------|
-| 任务开始 | 任务 ID、描述、子任务数 |
-| CI 失败 | 失败原因摘要、当前重试次数 |
+| 时机     | 内容                        |
+| -------- | --------------------------- |
+| 任务开始 | 任务 ID、描述、子任务数     |
+| CI 失败  | 失败原因摘要、当前重试次数  |
 | 任务完成 | 执行时间、Agent 数、CI 通过 |
 
 ## Webhook 模式：从 IM 接收指令
@@ -281,6 +283,7 @@ chainlesschain orchestrate --webhook --webhook-port 18820
 ```
 
 输出：
+
 ```
 ⚡ Orchestrator Webhook Server
 
@@ -372,6 +375,7 @@ chainlesschain orchestrate \
 **Q: 执行时报 `No agent backends available`？**
 
 运行 `orchestrate detect` 检查是否安装了 Claude Code。安装方法：
+
 ```bash
 npm install -g @anthropic-ai/claude-code
 claude --version  # 验证安装
@@ -507,14 +511,14 @@ FEISHU_WEBHOOK_URL / FEISHU_SECRET
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| AI 工具检测 (autoDetect) | < 300ms | ~150ms | ✅ |
-| 任务分解 (LLM 调用) | < 5s | ~2.8s (Gemini Flash) | ✅ |
-| 单子任务执行 (claude-code) | 依赖任务 | ~30-180s | ✅ |
-| parallel-all 并发调度 | 延迟 ≈ 最慢后端 | ≈ max(backends) | ✅ |
-| Webhook 事件响应 | < 200ms | ~80ms | ✅ |
-| WebSocket 状态推送 | < 50ms | ~20ms | ✅ |
+| 操作                       | 目标            | 实际                 | 状态 |
+| -------------------------- | --------------- | -------------------- | ---- |
+| AI 工具检测 (autoDetect)   | < 300ms         | ~150ms               | ✅   |
+| 任务分解 (LLM 调用)        | < 5s            | ~2.8s (Gemini Flash) | ✅   |
+| 单子任务执行 (claude-code) | 依赖任务        | ~30-180s             | ✅   |
+| parallel-all 并发调度      | 延迟 ≈ 最慢后端 | ≈ max(backends)      | ✅   |
+| Webhook 事件响应           | < 200ms         | ~80ms                | ✅   |
+| WebSocket 状态推送         | < 50ms          | ~20ms                | ✅   |
 
 ## 测试覆盖率
 
@@ -537,14 +541,14 @@ packages/cli/__tests__/
 
 ## 安全考虑
 
-| 安全措施 | 说明 |
-|----------|------|
-| Webhook 本地绑定 | Webhook 服务器默认绑定 `127.0.0.1`，不对外暴露，需通过 Nginx 反代或 ngrok 显式暴露 |
-| API 密钥管理 | 所有 AI 后端的 API 密钥通过环境变量传递，不在配置文件或日志中明文存储 |
-| 任务输出隔离 | 任务执行结果和代码变更仅保留在本地工作目录，不会自动上传至外部通知服务 |
-| 通知内容脱敏 | 推送到 IM 平台的通知仅包含任务状态摘要（ID、状态、耗时），不包含代码内容或敏感上下文 |
-| CI 命令限制 | CI 验证命令在本地项目目录中执行，受限于当前用户权限 |
-| Claude Code 沙箱 | 当使用 Claude Code 作为后端时，继承其内置的文件读写权限控制 |
+| 安全措施         | 说明                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Webhook 本地绑定 | Webhook 服务器默认绑定 `127.0.0.1`，不对外暴露，需通过 Nginx 反代或 ngrok 显式暴露   |
+| API 密钥管理     | 所有 AI 后端的 API 密钥通过环境变量传递，不在配置文件或日志中明文存储                |
+| 任务输出隔离     | 任务执行结果和代码变更仅保留在本地工作目录，不会自动上传至外部通知服务               |
+| 通知内容脱敏     | 推送到 IM 平台的通知仅包含任务状态摘要（ID、状态、耗时），不包含代码内容或敏感上下文 |
+| CI 命令限制      | CI 验证命令在本地项目目录中执行，受限于当前用户权限                                  |
+| Claude Code 沙箱 | 当使用 Claude Code 作为后端时，继承其内置的文件读写权限控制                          |
 
 ## 使用示例
 
@@ -589,17 +593,17 @@ chainlesschain orchestrate "Prototype experiment" --no-ci
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/orchestrate.js` | CLI 命令入口，解析参数并调用 Orchestrator |
-| `packages/cli/src/lib/orchestrator.js` | 核心编排器，负责任务分解、子任务分发、CI 验证和重试逻辑 |
-| `packages/cli/src/lib/agent-router.js` | Agent 路由器，自动检测后端、维护权重、实现 5 种路由策略 |
+| 文件                                         | 说明                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| `packages/cli/src/commands/orchestrate.js`   | CLI 命令入口，解析参数并调用 Orchestrator                            |
+| `packages/cli/src/lib/orchestrator.js`       | 核心编排器，负责任务分解、子任务分发、CI 验证和重试逻辑              |
+| `packages/cli/src/lib/agent-router.js`       | Agent 路由器，自动检测后端、维护权重、实现 5 种路由策略              |
 | `packages/cli/src/lib/claude-code-bridge.js` | Claude Code CLI 桥接器，通过 `spawn` 调用 `claude -p` 并解析流式输出 |
-| `packages/cli/src/lib/notifiers/telegram.js` | Telegram Bot 通知推送 |
-| `packages/cli/src/lib/notifiers/wecom.js` | 企业微信 Webhook 通知推送 |
-| `packages/cli/src/lib/notifiers/dingtalk.js` | 钉钉 Webhook 通知推送（支持加签） |
-| `packages/cli/src/lib/notifiers/feishu.js` | 飞书 Webhook 通知推送（支持签名校验和 challenge 验证） |
-| `packages/cli/src/lib/ws-server.js` | WebSocket 服务器中的 `orchestrate` 消息处理 |
+| `packages/cli/src/lib/notifiers/telegram.js` | Telegram Bot 通知推送                                                |
+| `packages/cli/src/lib/notifiers/wecom.js`    | 企业微信 Webhook 通知推送                                            |
+| `packages/cli/src/lib/notifiers/dingtalk.js` | 钉钉 Webhook 通知推送（支持加签）                                    |
+| `packages/cli/src/lib/notifiers/feishu.js`   | 飞书 Webhook 通知推送（支持签名校验和 challenge 验证）               |
+| `packages/cli/src/lib/ws-server.js`          | WebSocket 服务器中的 `orchestrate` 消息处理                          |
 
 ## 相关文档
 

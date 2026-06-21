@@ -355,18 +355,18 @@ await window.electronAPI.invoke("dlp:create-policy", {
 
 ## 配置参考
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `enabled` | `boolean` | `true` | 是否启用 DLP 引擎 |
-| `realTimeScan` | `boolean` | `true` | 是否启用实时内容扫描（聊天/输入时触发） |
-| `defaultAction` | `string` | `"warn"` | 策略未匹配时的默认动作：`block` / `mask` / `warn` / `log` |
-| `maxContentSize` | `number` | `10485760` | 单次扫描最大内容大小（字节，默认 10 MB） |
-| `customDetectors` | `array` | `[]` | 自定义检测器列表（对象数组，含 `name` / `pattern` / `severity`） |
-| `excludePaths` | `array` | `["/tmp", "/cache"]` | 文件扫描排除路径，减少对临时目录的不必要扫描 |
-| `incidentRetention` | `number` | `90` | 事件记录保留天数，超期自动清理 |
-| `deepScanThreshold` | `string` | `"RESTRICTED"` | 触发深度扫描（OCR 等）的最低分类级别 |
-| `whitelistPatterns` | `array` | `[]` | 全局白名单正则，匹配的内容跳过所有检测器 |
-| `notifyAdmin` | `boolean` | `true` | `critical` 级别事件是否通知管理员 |
+| 字段                | 类型      | 默认值               | 说明                                                             |
+| ------------------- | --------- | -------------------- | ---------------------------------------------------------------- |
+| `enabled`           | `boolean` | `true`               | 是否启用 DLP 引擎                                                |
+| `realTimeScan`      | `boolean` | `true`               | 是否启用实时内容扫描（聊天/输入时触发）                          |
+| `defaultAction`     | `string`  | `"warn"`             | 策略未匹配时的默认动作：`block` / `mask` / `warn` / `log`        |
+| `maxContentSize`    | `number`  | `10485760`           | 单次扫描最大内容大小（字节，默认 10 MB）                         |
+| `customDetectors`   | `array`   | `[]`                 | 自定义检测器列表（对象数组，含 `name` / `pattern` / `severity`） |
+| `excludePaths`      | `array`   | `["/tmp", "/cache"]` | 文件扫描排除路径，减少对临时目录的不必要扫描                     |
+| `incidentRetention` | `number`  | `90`                 | 事件记录保留天数，超期自动清理                                   |
+| `deepScanThreshold` | `string`  | `"RESTRICTED"`       | 触发深度扫描（OCR 等）的最低分类级别                             |
+| `whitelistPatterns` | `array`   | `[]`                 | 全局白名单正则，匹配的内容跳过所有检测器                         |
+| `notifyAdmin`       | `boolean` | `true`               | `critical` 级别事件是否通知管理员                                |
 
 **完整配置示例**:
 
@@ -400,14 +400,14 @@ await window.electronAPI.invoke("dlp:create-policy", {
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| --- | --- | --- |
-| `tests/unit/security/dlp-engine.test.js` | 8 内置检测器正确性、Luhn 校验、边界值 | 32 |
-| `tests/unit/security/dlp-policy-manager.test.js` | 策略 CRUD、优先级排序、作用域匹配 | 20 |
-| `tests/unit/security/dlp-incident-manager.test.js` | 事件记录、状态流转（open→resolved）、统计聚合 | 18 |
-| `tests/unit/security/dlp-ipc.test.js` | 8 个 IPC Handler（scan / policy / incident / stats） | 24 |
-| `tests/integration/security/dlp-classification.test.js` | 与 Phase 43 数据分类联动、RESTRICTED 自动触发 | 10 |
-| `tests/integration/security/dlp-realtime.test.js` | 实时扫描延迟（<50ms）、并发扫描、误报率 | 12 |
+| 测试文件                                                | 覆盖范围                                             | 用例数 |
+| ------------------------------------------------------- | ---------------------------------------------------- | ------ |
+| `tests/unit/security/dlp-engine.test.js`                | 8 内置检测器正确性、Luhn 校验、边界值                | 32     |
+| `tests/unit/security/dlp-policy-manager.test.js`        | 策略 CRUD、优先级排序、作用域匹配                    | 20     |
+| `tests/unit/security/dlp-incident-manager.test.js`      | 事件记录、状态流转（open→resolved）、统计聚合        | 18     |
+| `tests/unit/security/dlp-ipc.test.js`                   | 8 个 IPC Handler（scan / policy / incident / stats） | 24     |
+| `tests/integration/security/dlp-classification.test.js` | 与 Phase 43 数据分类联动、RESTRICTED 自动触发        | 10     |
+| `tests/integration/security/dlp-realtime.test.js`       | 实时扫描延迟（<50ms）、并发扫描、误报率              | 12     |
 
 **运行测试**:
 
@@ -470,10 +470,10 @@ expect(incident.resolvedAt).toBeDefined();
 
 ```javascript
 // 标记误报事件
-await window.electronAPI.invoke('dlp:update-incident', {
-  incidentId: 'inc-xxx',
-  status: 'dismissed',
-  resolution: '误报，测试数据'
+await window.electronAPI.invoke("dlp:update-incident", {
+  incidentId: "inc-xxx",
+  status: "dismissed",
+  resolution: "误报，测试数据",
 });
 ```
 
@@ -498,16 +498,26 @@ await window.electronAPI.invoke('dlp:update-incident', {
 
 ```javascript
 // 创建多规则 DLP 策略（覆盖聊天、文件分享、导出三个场景）
-const policy = await window.electronAPI.invoke('dlp:create-policy', {
-  name: '企业数据外泄防护',
+const policy = await window.electronAPI.invoke("dlp:create-policy", {
+  name: "企业数据外泄防护",
   rules: [
-    { detector: 'credit-card', action: 'block', severity: 'critical', notify: true },
-    { detector: 'api-key', action: 'block', severity: 'critical', notify: true },
-    { detector: 'phone-number', action: 'mask', severity: 'medium' },
-    { detector: 'email', action: 'warn', severity: 'low' }
+    {
+      detector: "credit-card",
+      action: "block",
+      severity: "critical",
+      notify: true,
+    },
+    {
+      detector: "api-key",
+      action: "block",
+      severity: "critical",
+      notify: true,
+    },
+    { detector: "phone-number", action: "mask", severity: "medium" },
+    { detector: "email", action: "warn", severity: "low" },
   ],
-  scope: ['chat', 'file-share', 'export'],
-  enabled: true
+  scope: ["chat", "file-share", "export"],
+  enabled: true,
 });
 ```
 
@@ -515,16 +525,16 @@ const policy = await window.electronAPI.invoke('dlp:create-policy', {
 
 ```javascript
 // 实时扫描文本内容（<50ms 延迟）
-const result = await window.electronAPI.invoke('dlp:scan-content', {
-  content: '服务器密码是 admin123，API 密钥 sk-abc123xyz',
-  context: 'chat-message'
+const result = await window.electronAPI.invoke("dlp:scan-content", {
+  content: "服务器密码是 admin123，API 密钥 sk-abc123xyz",
+  context: "chat-message",
 });
 // result.violations 列出每个检测到的敏感项及其位置和严重级别
 
 // 深度扫描文件（支持 OCR 识别图片中的文字）
-const fileScan = await window.electronAPI.invoke('dlp:scan-file', {
-  filePath: '/path/to/document.pdf',
-  deep: true
+const fileScan = await window.electronAPI.invoke("dlp:scan-file", {
+  filePath: "/path/to/document.pdf",
+  deep: true,
 });
 ```
 
@@ -532,13 +542,16 @@ const fileScan = await window.electronAPI.invoke('dlp:scan-file', {
 
 ```javascript
 // 先调用数据分类接口，RESTRICTED 级别自动触发 DLP 深度扫描
-const classification = await window.electronAPI.invoke('compliance:classify-text', {
-  text: someContent
-});
-if (classification.level === 'RESTRICTED') {
-  const dlpResult = await window.electronAPI.invoke('dlp:scan-content', {
+const classification = await window.electronAPI.invoke(
+  "compliance:classify-text",
+  {
+    text: someContent,
+  },
+);
+if (classification.level === "RESTRICTED") {
+  const dlpResult = await window.electronAPI.invoke("dlp:scan-content", {
     content: someContent,
-    classificationLevel: 'RESTRICTED'
+    classificationLevel: "RESTRICTED",
   });
   // RESTRICTED 数据匹配策略后执行 block 动作
 }
@@ -548,30 +561,34 @@ if (classification.level === 'RESTRICTED') {
 
 ```javascript
 // 查看高严重度事件列表
-const incidents = await window.electronAPI.invoke('dlp:list-incidents', {
-  severity: 'critical', startDate: '2026-03-01', limit: 20
+const incidents = await window.electronAPI.invoke("dlp:list-incidents", {
+  severity: "critical",
+  startDate: "2026-03-01",
+  limit: 20,
 });
 
 // 将误报事件标记为已处理
-await window.electronAPI.invoke('dlp:update-incident', {
-  incidentId: 'inc-001',
-  status: 'dismissed',
-  resolution: '确认为测试数据，非真实敏感信息'
+await window.electronAPI.invoke("dlp:update-incident", {
+  incidentId: "inc-001",
+  status: "dismissed",
+  resolution: "确认为测试数据，非真实敏感信息",
 });
 
 // 获取 DLP 拦截统计（按严重度和检测器类型汇总）
-const stats = await window.electronAPI.invoke('dlp:get-stats', { period: '30d' });
+const stats = await window.electronAPI.invoke("dlp:get-stats", {
+  period: "30d",
+});
 ```
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/security/dlp-engine.js` | DLP 检测引擎核心（8 内置检测器） |
-| `desktop-app-vue/src/main/security/dlp-policy-manager.js` | 策略管理（CRUD + 优先级匹配） |
-| `desktop-app-vue/src/main/security/dlp-incident-manager.js` | 事件管理（记录、分级、响应） |
-| `desktop-app-vue/src/main/security/dlp-ipc.js` | DLP 8 个 IPC Handler |
-| `desktop-app-vue/src/main/security/content-detectors/` | 内置检测器目录（正则 + Luhn 校验） |
+| 文件                                                        | 职责                               |
+| ----------------------------------------------------------- | ---------------------------------- |
+| `desktop-app-vue/src/main/security/dlp-engine.js`           | DLP 检测引擎核心（8 内置检测器）   |
+| `desktop-app-vue/src/main/security/dlp-policy-manager.js`   | 策略管理（CRUD + 优先级匹配）      |
+| `desktop-app-vue/src/main/security/dlp-incident-manager.js` | 事件管理（记录、分级、响应）       |
+| `desktop-app-vue/src/main/security/dlp-ipc.js`              | DLP 8 个 IPC Handler               |
+| `desktop-app-vue/src/main/security/content-detectors/`      | 内置检测器目录（正则 + Luhn 校验） |
 
 ## 相关文档
 

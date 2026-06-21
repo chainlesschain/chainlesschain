@@ -119,10 +119,10 @@ chainlesschain dev adrs -s <session-id> -S accepted --limit 20 --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
+| 表名                      | 说明                                                     |
+| ------------------------- | -------------------------------------------------------- |
 | `autonomous_dev_sessions` | 开发会话（需求、阶段、状态、自治等级、创建者、审查反馈） |
-| `autonomous_dev_adrs` | 架构决策记录（标题、决策、上下文、后果、替代方案、状态） |
+| `autonomous_dev_adrs`     | 架构决策记录（标题、决策、上下文、后果、替代方案、状态） |
 
 ## 系统架构
 
@@ -167,19 +167,19 @@ chainlesschain dev adrs -s <session-id> -S accepted --limit 20 --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| start 创建会话 | < 200ms | ~120ms | OK |
-| phase 推进阶段 | < 100ms | ~60ms | OK |
-| review 文件审查 | < 2s | ~1.2s | OK |
-| adr 记录 | < 150ms | ~80ms | OK |
-| list 列出 (50 条) | < 300ms | ~140ms | OK |
+| 操作              | 目标    | 实际   | 状态 |
+| ----------------- | ------- | ------ | ---- |
+| start 创建会话    | < 200ms | ~120ms | OK   |
+| phase 推进阶段    | < 100ms | ~60ms  | OK   |
+| review 文件审查   | < 2s    | ~1.2s  | OK   |
+| adr 记录          | < 150ms | ~80ms  | OK   |
+| list 列出 (50 条) | < 300ms | ~140ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/dev.js` | dev 命令主入口 (Phase 63) |
+| 文件                                           | 职责                                      |
+| ---------------------------------------------- | ----------------------------------------- |
+| `packages/cli/src/commands/dev.js`             | dev 命令主入口 (Phase 63)                 |
 | `packages/cli/src/lib/autonomous-developer.js` | 会话管理、阶段推进、ADR、代码审查核心实现 |
 
 ## 测试覆盖率
@@ -200,11 +200,11 @@ __tests__/unit/autonomous-developer.test.js — 85 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `phase` 不前进 | 当前阶段未 mark 完成 | `phase complete` 后再 `phase next` |
-| `review` 报错 | 路径不存在或无权限 | 检查传入路径 + 权限 |
-| `adr --render` 空 | 未记录 consequences | 补全 `-q` 参数 |
+| 症状                   | 可能原因                   | 解决方案                           |
+| ---------------------- | -------------------------- | ---------------------------------- |
+| `phase` 不前进         | 当前阶段未 mark 完成       | `phase complete` 后再 `phase next` |
+| `review` 报错          | 路径不存在或无权限         | 检查传入路径 + 权限                |
+| `adr --render` 空      | 未记录 consequences        | 补全 `-q` 参数                     |
 | V2 createSessionV2 cap | per-developer running 已满 | `gov-stats-v2` 查看，fail 现有会话 |
 
 ## 使用示例

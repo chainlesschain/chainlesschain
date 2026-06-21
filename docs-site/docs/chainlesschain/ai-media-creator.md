@@ -48,36 +48,36 @@ AI Media Creator 是一个 CLI 初始化模板，通过 `cc init --template ai-m
 
 ## 安全考虑
 
-| 安全项 | 说明 |
-|--------|------|
-| ComfyUI 本地运行 | 图像/视频生成完全在本地完成，不上传数据到云端 |
+| 安全项           | 说明                                                                      |
+| ---------------- | ------------------------------------------------------------------------- |
+| ComfyUI 本地运行 | 图像/视频生成完全在本地完成，不上传数据到云端                             |
 | TTS API Key 管理 | ElevenLabs 和 OpenAI 的 API Key 通过环境变量或 config.json 管理，不硬编码 |
-| 生成文件本地存储 | 所有生成的图像、视频、音频文件存储在项目本地 `output/` 目录 |
-| 本地后端无外传 | edge-tts 和 piper-tts 后端不向外部传输用户数据 |
-| 工作流 JSON 验证 | 提交到 ComfyUI 的工作流 JSON 在发送前经过格式验证，防止注入恶意节点 |
+| 生成文件本地存储 | 所有生成的图像、视频、音频文件存储在项目本地 `output/` 目录               |
+| 本地后端无外传   | edge-tts 和 piper-tts 后端不向外部传输用户数据                            |
+| 工作流 JSON 验证 | 提交到 ComfyUI 的工作流 JSON 在发送前经过格式验证，防止注入恶意节点       |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/commands/init.js` | 模板定义与技能生成逻辑（`ai-media-creator` 模板及 `SKILL_TEMPLATES`） |
-| `.chainlesschain/skills/comfyui-image/SKILL.md` | 文生图/图生图技能定义（生成到项目目录） |
-| `.chainlesschain/skills/comfyui-image/handler.js` | ComfyUI REST API 调用、默认工作流构建、图像保存 |
-| `.chainlesschain/skills/comfyui-video/SKILL.md` | AnimateDiff 视频生成技能定义（生成到项目目录） |
-| `.chainlesschain/skills/comfyui-video/handler.js` | ComfyUI 视频工作流提交、进度轮询、视频输出 |
-| `.chainlesschain/skills/audio-gen/SKILL.md` | TTS 语音合成技能定义（生成到项目目录） |
-| `.chainlesschain/skills/audio-gen/handler.js` | 4 后端 TTS 降级链（edge-tts → piper → ElevenLabs → OpenAI） |
-| `.chainlesschain/config.json` | AI创作助手 Persona 配置 |
-| `.chainlesschain/rules.md` | ComfyUI + cli-anything 集成规则 |
-| `workflows/README.md` | ComfyUI 工作流导出指南 |
+| 文件                                              | 说明                                                                  |
+| ------------------------------------------------- | --------------------------------------------------------------------- |
+| `packages/cli/src/commands/init.js`               | 模板定义与技能生成逻辑（`ai-media-creator` 模板及 `SKILL_TEMPLATES`） |
+| `.chainlesschain/skills/comfyui-image/SKILL.md`   | 文生图/图生图技能定义（生成到项目目录）                               |
+| `.chainlesschain/skills/comfyui-image/handler.js` | ComfyUI REST API 调用、默认工作流构建、图像保存                       |
+| `.chainlesschain/skills/comfyui-video/SKILL.md`   | AnimateDiff 视频生成技能定义（生成到项目目录）                        |
+| `.chainlesschain/skills/comfyui-video/handler.js` | ComfyUI 视频工作流提交、进度轮询、视频输出                            |
+| `.chainlesschain/skills/audio-gen/SKILL.md`       | TTS 语音合成技能定义（生成到项目目录）                                |
+| `.chainlesschain/skills/audio-gen/handler.js`     | 4 后端 TTS 降级链（edge-tts → piper → ElevenLabs → OpenAI）           |
+| `.chainlesschain/config.json`                     | AI创作助手 Persona 配置                                               |
+| `.chainlesschain/rules.md`                        | ComfyUI + cli-anything 集成规则                                       |
+| `workflows/README.md`                             | ComfyUI 工作流导出指南                                                |
 
 ## 三个媒体技能
 
-| 技能 | 功能 | 需要 |
-|------|------|------|
-| `comfyui-image` | ComfyUI 文生图 / 图生图 | 本地 ComfyUI 运行（默认端口 8188） |
+| 技能            | 功能                           | 需要                                     |
+| --------------- | ------------------------------ | ---------------------------------------- |
+| `comfyui-image` | ComfyUI 文生图 / 图生图        | 本地 ComfyUI 运行（默认端口 8188）       |
 | `comfyui-video` | ComfyUI + AnimateDiff 视频生成 | ComfyUI + AnimateDiff 扩展 + 工作流 JSON |
-| `audio-gen` | TTS 语音合成（4 后端自动降级） | 至少安装一个 TTS 后端 |
+| `audio-gen`     | TTS 语音合成（4 后端自动降级） | 至少安装一个 TTS 后端                    |
 
 ## 快速开始
 
@@ -116,12 +116,12 @@ chainlesschain skill run comfyui-image "portrait photo" --args '{"workflow":"wor
 
 **默认工作流参数：**
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| 宽度 / 高度 | 512 × 512 | 图像尺寸 |
-| 步数 | 20 | 采样步数 |
-| 引导系数 | 7 | CFG scale |
-| 模型 | v1-5-pruned-emaonly.ckpt | 需与本地模型名匹配 |
+| 参数        | 默认值                   | 说明               |
+| ----------- | ------------------------ | ------------------ |
+| 宽度 / 高度 | 512 × 512                | 图像尺寸           |
+| 步数        | 20                       | 采样步数           |
+| 引导系数    | 7                        | CFG scale          |
+| 模型        | v1-5-pruned-emaonly.ckpt | 需与本地模型名匹配 |
 
 ### comfyui-video — 生成视频
 
@@ -182,11 +182,11 @@ chainlesschain cli-anything scan               # 扫描 PATH 中可用工具
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `comfyui-image` 连接失败 | 确认 ComfyUI 正在运行：`python main.py --listen 0.0.0.0`，默认端口 8188 |
-| `comfyui-video` 提示"需要工作流" | AnimateDiff 必须提供工作流 JSON，从 ComfyUI UI 导出（Save → API Format） |
-| `audio-gen` 提示无后端 | 安装 `pip install edge-tts`，或设置 `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` |
+| 问题                             | 解决方案                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| `comfyui-image` 连接失败         | 确认 ComfyUI 正在运行：`python main.py --listen 0.0.0.0`，默认端口 8188     |
+| `comfyui-video` 提示"需要工作流" | AnimateDiff 必须提供工作流 JSON，从 ComfyUI UI 导出（Save → API Format）    |
+| `audio-gen` 提示无后端           | 安装 `pip install edge-tts`，或设置 `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` |
 
 ## 配置参考
 
@@ -226,14 +226,14 @@ chainlesschain cli-anything scan               # 扫描 PATH 中可用工具
 }
 ```
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `skills.comfyui-image.comfyuiUrl` | string | `"http://localhost:8188"` | ComfyUI REST API 地址 |
-| `skills.comfyui-image.defaultWorkflow` | string\|null | `null` | 自定义工作流 JSON 路径（null 使用内置 SD 1.5） |
-| `skills.comfyui-video.pollIntervalMs` | number | `2000` | 视频生成进度轮询间隔 |
-| `skills.comfyui-video.timeoutMs` | number | `300000` | 视频生成超时时间（毫秒） |
-| `skills.audio-gen.preferredBackend` | string | `"auto"` | TTS 后端选择策略 |
-| `skills.audio-gen.defaultVoice` | string | `"zh-CN-XiaoxiaoNeural"` | edge-tts 默认语音 |
+| 配置项                                 | 类型         | 默认值                    | 说明                                           |
+| -------------------------------------- | ------------ | ------------------------- | ---------------------------------------------- |
+| `skills.comfyui-image.comfyuiUrl`      | string       | `"http://localhost:8188"` | ComfyUI REST API 地址                          |
+| `skills.comfyui-image.defaultWorkflow` | string\|null | `null`                    | 自定义工作流 JSON 路径（null 使用内置 SD 1.5） |
+| `skills.comfyui-video.pollIntervalMs`  | number       | `2000`                    | 视频生成进度轮询间隔                           |
+| `skills.comfyui-video.timeoutMs`       | number       | `300000`                  | 视频生成超时时间（毫秒）                       |
+| `skills.audio-gen.preferredBackend`    | string       | `"auto"`                  | TTS 后端选择策略                               |
+| `skills.audio-gen.defaultVoice`        | string       | `"zh-CN-XiaoxiaoNeural"`  | edge-tts 默认语音                              |
 
 ## 性能指标
 
@@ -241,37 +241,37 @@ chainlesschain cli-anything scan               # 扫描 PATH 中可用工具
 
 ### 图像生成耗时（comfyui-image）
 
-| 分辨率 | 采样步数 | GPU | 平均耗时 |
-|--------|----------|-----|----------|
-| 512×512 | 20 | RTX 3080 | 3–6s |
-| 512×512 | 20 | CPU only | 60–120s |
-| 768×768 | 30 | RTX 3080 | 8–15s |
-| 1024×1024 | 30 | RTX 3080 | 20–35s |
+| 分辨率    | 采样步数 | GPU      | 平均耗时 |
+| --------- | -------- | -------- | -------- |
+| 512×512   | 20       | RTX 3080 | 3–6s     |
+| 512×512   | 20       | CPU only | 60–120s  |
+| 768×768   | 30       | RTX 3080 | 8–15s    |
+| 1024×1024 | 30       | RTX 3080 | 20–35s   |
 
 ### 视频生成耗时（comfyui-video，AnimateDiff）
 
-| 帧数 | 分辨率 | GPU | 平均耗时 |
-|------|--------|-----|----------|
-| 16 帧 | 512×512 | RTX 3080 | 30–60s |
-| 32 帧 | 512×512 | RTX 3080 | 60–120s |
-| 16 帧 | 768×512 | RTX 3080 | 50–90s |
+| 帧数  | 分辨率  | GPU      | 平均耗时 |
+| ----- | ------- | -------- | -------- |
+| 16 帧 | 512×512 | RTX 3080 | 30–60s   |
+| 32 帧 | 512×512 | RTX 3080 | 60–120s  |
+| 16 帧 | 768×512 | RTX 3080 | 50–90s   |
 
 ### TTS 语音合成耗时（audio-gen）
 
-| 后端 | 文本长度 | 平均耗时 | 网络需求 |
-|------|----------|----------|----------|
-| edge-tts | 100 字 | 1–3s | 需联网 |
-| piper-tts | 100 字 | 0.5–2s | 离线 |
-| ElevenLabs | 100 字 | 2–5s | 需联网 + API Key |
-| OpenAI TTS | 100 字 | 2–4s | 需联网 + API Key |
+| 后端       | 文本长度 | 平均耗时 | 网络需求         |
+| ---------- | -------- | -------- | ---------------- |
+| edge-tts   | 100 字   | 1–3s     | 需联网           |
+| piper-tts  | 100 字   | 0.5–2s   | 离线             |
+| ElevenLabs | 100 字   | 2–5s     | 需联网 + API Key |
+| OpenAI TTS | 100 字   | 2–4s     | 需联网 + API Key |
 
 ## 测试覆盖率
 
-| 测试层级 | 文件 | 测试数 | 覆盖场景 |
-|----------|------|--------|----------|
-| ✅ 单元测试 | `init-ai-media-creator.test.js` | 45 | 技能生成、Persona 配置、模板结构 |
-| ✅ 集成测试 | `ai-media-creator-handlers.test.js` | 38 | comfyui-image / comfyui-video / audio-gen handler 完整流程（mock ComfyUI + mock TTS） |
-| **合计** | **2 文件** | **83** | |
+| 测试层级    | 文件                                | 测试数 | 覆盖场景                                                                              |
+| ----------- | ----------------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| ✅ 单元测试 | `init-ai-media-creator.test.js`     | 45     | 技能生成、Persona 配置、模板结构                                                      |
+| ✅ 集成测试 | `ai-media-creator-handlers.test.js` | 38     | comfyui-image / comfyui-video / audio-gen handler 完整流程（mock ComfyUI + mock TTS） |
+| **合计**    | **2 文件**                          | **83** |                                                                                       |
 
 关键测试场景：
 

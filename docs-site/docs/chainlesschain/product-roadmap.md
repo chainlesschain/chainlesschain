@@ -70,16 +70,16 @@
 
 > 目标性能指标（各阶段规划值，随版本演进持续优化）
 
-| 维度 | v1.1.0 目标 | v2.0.0 目标 | 长期愿景 |
-|------|-------------|-------------|---------|
-| 内置技能数 | 95 | 200+ | 500+ |
-| IPC 处理器数 | 557+ | 700+ | 1000+ |
-| 测试用例数 | 19,785+ | 25,000+ | 50,000+ |
-| 代理启动延迟 | < 2s | < 1s | < 500ms |
-| DID 认证延迟 | < 500ms | < 200ms | < 100ms |
-| 联邦网络节点规模 | 100 节点压测 | 1,000 节点 | 全球分布式 |
-| 多平台支持 | 4 平台 | 4 平台 + Web Panel | 统一平台层 |
-| 后量子密码覆盖 | 部分（ZKP Beta） | 全量迁移规划 | 完全 PQC |
+| 维度             | v1.1.0 目标      | v2.0.0 目标        | 长期愿景   |
+| ---------------- | ---------------- | ------------------ | ---------- |
+| 内置技能数       | 95               | 200+               | 500+       |
+| IPC 处理器数     | 557+             | 700+               | 1000+      |
+| 测试用例数       | 19,785+          | 25,000+            | 50,000+    |
+| 代理启动延迟     | < 2s             | < 1s               | < 500ms    |
+| DID 认证延迟     | < 500ms          | < 200ms            | < 100ms    |
+| 联邦网络节点规模 | 100 节点压测     | 1,000 节点         | 全球分布式 |
+| 多平台支持       | 4 平台           | 4 平台 + Web Panel | 统一平台层 |
+| 后量子密码覆盖   | 部分（ZKP Beta） | 全量迁移规划       | 完全 PQC   |
 
 ## 测试覆盖率
 
@@ -137,13 +137,13 @@ U-Key/SIMKey 驱动仅支持 Windows。在 macOS/Linux 下需在配置中设置 
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/main/ai-engine/` | AI 智能体核心引擎 |
-| `desktop-app-vue/src/main/ukey/` | U-Key/SIMKey 硬件安全 |
-| `desktop-app-vue/src/main/p2p/` | P2P 去中心化通信 |
-| `desktop-app-vue/src/main/enterprise/` | 企业平台模块 |
-| `desktop-app-vue/src/main/blockchain/` | 区块链与 DAO 治理 |
+| 文件                                   | 职责                  |
+| -------------------------------------- | --------------------- |
+| `desktop-app-vue/src/main/ai-engine/`  | AI 智能体核心引擎     |
+| `desktop-app-vue/src/main/ukey/`       | U-Key/SIMKey 硬件安全 |
+| `desktop-app-vue/src/main/p2p/`        | P2P 去中心化通信      |
+| `desktop-app-vue/src/main/enterprise/` | 企业平台模块          |
+| `desktop-app-vue/src/main/blockchain/` | 区块链与 DAO 治理     |
 
 ## 使用示例
 
@@ -177,10 +177,10 @@ chainlesschain audit log --limit 50
 
 ```javascript
 // 通过 IPC 查询产品演进状态（Renderer 层）
-const status = await window.electron.ipcRenderer.invoke('app:get-version')
+const status = await window.electron.ipcRenderer.invoke("app:get-version");
 // → { version: '1.1.0', features: ['cowork-v3.3', 'agent-federation', ...] }
 
-const betaFlags = await window.electron.ipcRenderer.invoke('config:beta-list')
+const betaFlags = await window.electron.ipcRenderer.invoke("config:beta-list");
 // → [{ flag: 'idle-park-2026-05-01', enabled: false }, ...]
 ```
 
@@ -200,13 +200,13 @@ const betaFlags = await window.electron.ipcRenderer.invoke('config:beta-list')
 
 ### 平台矩阵
 
-| 平台                          | 版本   | 技术栈                | 技能数                           | 状态     |
-| ----------------------------- | ------ | --------------------- | -------------------------------- | -------- |
-| Desktop (Windows/macOS/Linux) | v1.1.0 | Electron + Vue3       | 95                               | 生产就绪 |
-| Android                       | v1.1.0 | Jetpack Compose       | 25 REMOTE Skills (SeedRegistry)  | 生产就绪 |
-| iOS                           | v1.1.0 | SwiftUI               | —                                | 生产就绪 |
-| Web 文档站                    | v1.1.0 | VitePress             | —                                | 已上线   |
-| 后端服务                      | v1.1.0 | Spring Boot + FastAPI | —                                | 生产就绪 |
+| 平台                          | 版本   | 技术栈                | 技能数                          | 状态     |
+| ----------------------------- | ------ | --------------------- | ------------------------------- | -------- |
+| Desktop (Windows/macOS/Linux) | v1.1.0 | Electron + Vue3       | 95                              | 生产就绪 |
+| Android                       | v1.1.0 | Jetpack Compose       | 25 REMOTE Skills (SeedRegistry) | 生产就绪 |
+| iOS                           | v1.1.0 | SwiftUI               | —                               | 生产就绪 |
+| Web 文档站                    | v1.1.0 | VitePress             | —                               | 已上线   |
+| 后端服务                      | v1.1.0 | Spring Boot + FastAPI | —                               | 生产就绪 |
 
 ### 核心数据
 

@@ -145,10 +145,10 @@ chainlesschain collab optimize tasks.json agents.json --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `collab_decisions` | 治理决策（类型、状态、提案、投票、计票结果） |
-| `collab_autonomy_levels` | Agent 自治等级（当前等级、权限、调整历史） |
+| 表名                     | 说明                                         |
+| ------------------------ | -------------------------------------------- |
+| `collab_decisions`       | 治理决策（类型、状态、提案、投票、计票结果） |
+| `collab_autonomy_levels` | Agent 自治等级（当前等级、权限、调整历史）   |
 
 ## 系统架构
 
@@ -185,19 +185,19 @@ chainlesschain collab optimize tasks.json agents.json --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| propose 创建决策 | < 200ms | ~110ms | OK |
-| vote 投票 | < 100ms | ~50ms | OK |
-| tally 计票 | < 200ms | ~90ms | OK |
-| optimize 任务分配 | < 1s | ~450ms | OK |
-| agents 列出 (50 条) | < 300ms | ~130ms | OK |
+| 操作                | 目标    | 实际   | 状态 |
+| ------------------- | ------- | ------ | ---- |
+| propose 创建决策    | < 200ms | ~110ms | OK   |
+| vote 投票           | < 100ms | ~50ms  | OK   |
+| tally 计票          | < 200ms | ~90ms  | OK   |
+| optimize 任务分配   | < 1s    | ~450ms | OK   |
+| agents 列出 (50 条) | < 300ms | ~130ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/collab.js` | collab 命令主入口 (Phase 64) |
+| 文件                                               | 职责                                                     |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| `packages/cli/src/commands/collab.js`              | collab 命令主入口 (Phase 64)                             |
 | `packages/cli/src/lib/collaboration-governance.js` | 决策管理、投票计票、自治等级、技能匹配、任务优化核心实现 |
 
 ## V2 规范表面 (CLI 0.105.0+)
@@ -272,12 +272,12 @@ V2 surface：37 V2 tests（见 `collaboration_governance_v2_cli.md`）。
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `vote` 被拒 | proposal 非 voting 状态 | `proposal-v2 <id>` 看当前状态 |
-| `tally` 结果异常 | 投票权重未生效 | 核对 agent maturity，`suspended` 不计权重 |
-| `optimize` 无分配 | 技能匹配过严 | 放宽技能约束或降低阈值 |
-| V2 createProposalV2 cap | per-proposer voting 已满 | 先 `approve/reject/withdraw` 现有提案 |
+| 症状                    | 可能原因                 | 解决方案                                  |
+| ----------------------- | ------------------------ | ----------------------------------------- |
+| `vote` 被拒             | proposal 非 voting 状态  | `proposal-v2 <id>` 看当前状态             |
+| `tally` 结果异常        | 投票权重未生效           | 核对 agent maturity，`suspended` 不计权重 |
+| `optimize` 无分配       | 技能匹配过严             | 放宽技能约束或降低阈值                    |
+| V2 createProposalV2 cap | per-proposer voting 已满 | 先 `approve/reject/withdraw` 现有提案     |
 
 ## 使用示例
 
@@ -305,4 +305,3 @@ cc collab stats-v2
 - [合规与 UEBA (cli-compliance)](./cli-compliance)
 - [V2 设计文档](/chainlesschain/collaboration_governance_v2_cli)
 - 设计文档：`docs/design/modules/76_协作治理系统.md`
-

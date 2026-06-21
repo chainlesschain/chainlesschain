@@ -277,37 +277,40 @@ const sig = await window.electronAPI.invoke("ukey:sign", {
 
 ```javascript
 // 1. 扫描附近 BLE U-Key 设备
-const devices = await window.electronAPI.invoke('ukey:ble-scan', {
-  duration: 5000
+const devices = await window.electronAPI.invoke("ukey:ble-scan", {
+  duration: 5000,
 });
-console.log('发现设备:', devices.map(d => d.name));
+console.log(
+  "发现设备:",
+  devices.map((d) => d.name),
+);
 
 // 2. 连接信号最强的设备
 const best = devices.sort((a, b) => b.rssi - a.rssi)[0];
-await window.electronAPI.invoke('ukey:ble-connect', {
+await window.electronAPI.invoke("ukey:ble-connect", {
   deviceId: best.id,
-  autoReconnect: true
+  autoReconnect: true,
 });
 
 // 3. 通过 BLE 执行数字签名
-const signature = await window.electronAPI.invoke('ukey:sign', {
-  keyId: 'signing-key-001',
-  data: '待签名的交易数据',
-  transport: 'ble'
+const signature = await window.electronAPI.invoke("ukey:sign", {
+  keyId: "signing-key-001",
+  data: "待签名的交易数据",
+  transport: "ble",
 });
-console.log('签名结果:', signature);
+console.log("签名结果:", signature);
 
 // 4. 查看设备电量
-const status = await window.electronAPI.invoke('ukey:ble-status', {
-  deviceId: best.id
+const status = await window.electronAPI.invoke("ukey:ble-status", {
+  deviceId: best.id,
 });
-console.log('电量:', status.batteryLevel + '%');
+console.log("电量:", status.batteryLevel + "%");
 ```
 
 ### 前端 Pinia Store 集成
 
 ```typescript
-import { useBLEUkeyStore } from '@/stores/bleUkey';
+import { useBLEUkeyStore } from "@/stores/bleUkey";
 
 const ble = useBLEUkeyStore();
 
@@ -318,11 +321,14 @@ await ble.scanDevices();
 await ble.connectDevice(ble.discoveredDevices[0].id);
 
 // 实时监控连接状态和电量
-watch(() => ble.connectionStatus, (status) => {
-  if (status === 'disconnected') {
-    console.warn('BLE 连接断开，正在自动重连...');
-  }
-});
+watch(
+  () => ble.connectionStatus,
+  (status) => {
+    if (status === "disconnected") {
+      console.warn("BLE 连接断开，正在自动重连...");
+    }
+  },
+);
 ```
 
 ## 故障排查
@@ -390,20 +396,20 @@ watch(() => ble.connectionStatus, (status) => {
 
 **配置项说明**:
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `enabled` | `true` | 是否启用 BLE 传输通道 |
-| `scanDuration` | `10000` | 单次扫描持续时间（毫秒） |
-| `autoReconnect` | `true` | 连接断开后是否自动重连 |
-| `reconnectAttempts` | `5` | 自动重连最大尝试次数 |
-| `reconnectDelay` | `2000` | 相邻重连尝试间隔（毫秒） |
-| `rssiThreshold` | `-80` | 信号强度过滤阈值（dBm），低于此值的设备不显示 |
-| `mtuSize` | `512` | BLE MTU 协商目标大小（字节） |
-| `apduTimeout` | `5000` | 单条 APDU 命令最大等待时间（毫秒） |
-| `pairingMode` | `numeric-comparison` | 配对模式：`numeric-comparison` \| `just-works` |
-| `whitelist` | `[]` | 已信任设备 ID 白名单，为空时允许所有已配对设备 |
-| `transport.default` | `auto` | 默认传输：`auto` \| `usb` \| `ble` |
-| `transport.fallbackOrder` | `["usb","ble"]` | `auto` 模式下的传输优先级顺序 |
+| 配置项                    | 默认值               | 说明                                           |
+| ------------------------- | -------------------- | ---------------------------------------------- |
+| `enabled`                 | `true`               | 是否启用 BLE 传输通道                          |
+| `scanDuration`            | `10000`              | 单次扫描持续时间（毫秒）                       |
+| `autoReconnect`           | `true`               | 连接断开后是否自动重连                         |
+| `reconnectAttempts`       | `5`                  | 自动重连最大尝试次数                           |
+| `reconnectDelay`          | `2000`               | 相邻重连尝试间隔（毫秒）                       |
+| `rssiThreshold`           | `-80`                | 信号强度过滤阈值（dBm），低于此值的设备不显示  |
+| `mtuSize`                 | `512`                | BLE MTU 协商目标大小（字节）                   |
+| `apduTimeout`             | `5000`               | 单条 APDU 命令最大等待时间（毫秒）             |
+| `pairingMode`             | `numeric-comparison` | 配对模式：`numeric-comparison` \| `just-works` |
+| `whitelist`               | `[]`                 | 已信任设备 ID 白名单，为空时允许所有已配对设备 |
+| `transport.default`       | `auto`               | 默认传输：`auto` \| `usb` \| `ble`             |
+| `transport.fallbackOrder` | `["usb","ble"]`      | `auto` 模式下的传输优先级顺序                  |
 
 ## 测试覆盖率
 
@@ -459,13 +465,13 @@ cd desktop-app-vue && npx vitest run tests/e2e/ukey/
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/ukey/ble-transport.js` | BLE 传输通道实现 |
-| `desktop-app-vue/src/main/ukey/ble-scanner.js` | BLE 设备扫描与发现 |
+| 文件                                               | 说明                    |
+| -------------------------------------------------- | ----------------------- |
+| `desktop-app-vue/src/main/ukey/ble-transport.js`   | BLE 传输通道实现        |
+| `desktop-app-vue/src/main/ukey/ble-scanner.js`     | BLE 设备扫描与发现      |
 | `desktop-app-vue/src/main/ukey/driver-registry.js` | 统一驱动注册（USB+BLE） |
-| `desktop-app-vue/src/main/ukey/apdu-handler.js` | APDU 命令处理 |
-| `desktop-app-vue/src/renderer/stores/bleUkey.ts` | BLE U-Key Pinia Store |
+| `desktop-app-vue/src/main/ukey/apdu-handler.js`    | APDU 命令处理           |
+| `desktop-app-vue/src/renderer/stores/bleUkey.ts`   | BLE U-Key Pinia Store   |
 
 ---
 

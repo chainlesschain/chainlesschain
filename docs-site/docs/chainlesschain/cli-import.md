@@ -43,10 +43,10 @@ chainlesschain import
 chainlesschain import markdown <dir> [options]
 ```
 
-| 参数/选项 | 说明 | 默认值 |
-|-----------|------|--------|
-| `<dir>` | 包含 `.md` 文件的目录（必填） | — |
-| `--json` | JSON 格式输出 | — |
+| 参数/选项 | 说明                          | 默认值 |
+| --------- | ----------------------------- | ------ |
+| `<dir>`   | 包含 `.md` 文件的目录（必填） | —      |
+| `--json`  | JSON 格式输出                 | —      |
 
 ### import evernote
 
@@ -56,10 +56,10 @@ chainlesschain import markdown <dir> [options]
 chainlesschain import evernote <file> [options]
 ```
 
-| 参数/选项 | 说明 | 默认值 |
-|-----------|------|--------|
-| `<file>` | `.enex` 文件路径（必填） | — |
-| `--json` | JSON 格式输出 | — |
+| 参数/选项 | 说明                     | 默认值 |
+| --------- | ------------------------ | ------ |
+| `<file>`  | `.enex` 文件路径（必填） | —      |
+| `--json`  | JSON 格式输出            | —      |
 
 ### import notion
 
@@ -69,10 +69,10 @@ chainlesschain import evernote <file> [options]
 chainlesschain import notion <dir> [options]
 ```
 
-| 参数/选项 | 说明 | 默认值 |
-|-----------|------|--------|
-| `<dir>` | Notion 导出目录（必填） | — |
-| `--json` | JSON 格式输出 | — |
+| 参数/选项 | 说明                    | 默认值 |
+| --------- | ----------------------- | ------ |
+| `<dir>`   | Notion 导出目录（必填） | —      |
+| `--json`  | JSON 格式输出           | —      |
 
 ### import pdf
 
@@ -82,10 +82,10 @@ chainlesschain import notion <dir> [options]
 chainlesschain import pdf <file> [options]
 ```
 
-| 参数/选项 | 说明 | 默认值 |
-|-----------|------|--------|
-| `<file>` | `.pdf` 文件路径（必填） | — |
-| `--json` | JSON 格式输出 | — |
+| 参数/选项 | 说明                    | 默认值 |
+| --------- | ----------------------- | ------ |
+| `<file>`  | `.pdf` 文件路径（必填） | —      |
+| `--json`  | JSON 格式输出           | —      |
 
 ## 配置参考
 
@@ -106,13 +106,13 @@ chainlesschain import pdf <file> [options]
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| markdown 导入 (100 文件) | < 2s | ~1.2s | ✅ |
-| evernote ENEX (1000 笔记) | < 8s | ~5.5s | ✅ |
-| notion 导出目录扫描 | < 3s | ~1.8s | ✅ |
-| PDF 文本提取 (20 页) | < 4s | ~2.6s | ✅ |
-| 单条 note 入库 | < 30ms | ~12ms | ✅ |
+| 操作                      | 目标   | 实际  | 状态 |
+| ------------------------- | ------ | ----- | ---- |
+| markdown 导入 (100 文件)  | < 2s   | ~1.2s | ✅   |
+| evernote ENEX (1000 笔记) | < 8s   | ~5.5s | ✅   |
+| notion 导出目录扫描       | < 3s   | ~1.8s | ✅   |
+| PDF 文本提取 (20 页)      | < 4s   | ~2.6s | ✅   |
+| 单条 note 入库            | < 30ms | ~12ms | ✅   |
 
 ## 测试覆盖率
 
@@ -126,13 +126,13 @@ chainlesschain import pdf <file> [options]
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/import.js` | import 命令主入口（markdown / evernote / notion / pdf 子命令） |
-| `packages/cli/src/lib/knowledge-importer.js` | 导入核心实现（`importMarkdownDir` / `importEnexFile` / `importNotionDir`） |
-| `packages/cli/src/lib/pdf-parser.js` | PDF 文本提取（pdf-parse 延迟加载） |
-| `packages/cli/__tests__/unit/knowledge-importer.test.js` | 导入核心单元测试 |
-| `packages/cli/__tests__/unit/import.test.js` | CLI 命令层测试 |
+| 文件                                                     | 职责                                                                       |
+| -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `packages/cli/src/commands/import.js`                    | import 命令主入口（markdown / evernote / notion / pdf 子命令）             |
+| `packages/cli/src/lib/knowledge-importer.js`             | 导入核心实现（`importMarkdownDir` / `importEnexFile` / `importNotionDir`） |
+| `packages/cli/src/lib/pdf-parser.js`                     | PDF 文本提取（pdf-parse 延迟加载）                                         |
+| `packages/cli/__tests__/unit/knowledge-importer.test.js` | 导入核心单元测试                                                           |
+| `packages/cli/__tests__/unit/import.test.js`             | CLI 命令层测试                                                             |
 
 ## 安全考虑
 
@@ -150,6 +150,7 @@ chainlesschain import markdown ./my-notes
 ```
 
 输出示例：
+
 ```
 Imported 25 markdown notes
   a1b2c3d4  Getting Started
@@ -164,6 +165,7 @@ chainlesschain import evernote ~/Downloads/My_Notes.enex
 ```
 
 输出示例：
+
 ```
 Imported 156 Evernote notes
   a1b2c3d4  Meeting Notes  [work, meeting]
@@ -184,6 +186,7 @@ chainlesschain import pdf ~/Documents/whitepaper.pdf
 ```
 
 输出示例：
+
 ```
 Imported PDF as note: whitepaper
   ID: a1b2c3d4
@@ -199,15 +202,15 @@ chainlesschain import markdown ./docs --json | jq '.count'
 
 ## 故障排查
 
-| 问题 | 解决方案 |
-|------|---------|
-| `Database not available` | 运行 `chainlesschain setup` 初始化环境 |
-| `Directory not found` | 检查路径是否正确，使用绝对路径 |
-| `File not found` | 确认文件存在且路径拼写正确 |
-| `No .md files found` | 目录中没有 `.md` 文件，检查文件扩展名 |
+| 问题                                      | 解决方案                                |
+| ----------------------------------------- | --------------------------------------- |
+| `Database not available`                  | 运行 `chainlesschain setup` 初始化环境  |
+| `Directory not found`                     | 检查路径是否正确，使用绝对路径          |
+| `File not found`                          | 确认文件存在且路径拼写正确              |
+| `No .md files found`                      | 目录中没有 `.md` 文件，检查文件扩展名   |
 | `No text could be extracted from the PDF` | PDF 可能是扫描件（图片），需要 OCR 支持 |
-| PDF 导入失败 | 确认 pdf-parser 依赖已安装 |
-| Evernote 导入标签丢失 | 确认导出时选择了包含标签的 ENEX 格式 |
+| PDF 导入失败                              | 确认 pdf-parser 依赖已安装              |
+| Evernote 导入标签丢失                     | 确认导出时选择了包含标签的 ENEX 格式    |
 
 ## 相关文档
 

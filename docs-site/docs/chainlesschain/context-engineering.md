@@ -313,43 +313,43 @@ const ce = getContextEngineering({
 
 ### 核心操作延迟
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| `buildOptimizedPrompt`（缓存命中） | < 5ms | ~2ms | ✅ |
-| `buildOptimizedPrompt`（缓存未命中） | < 20ms | ~12ms | ✅ |
-| System Prompt 动态内容清理 | < 2ms | ~0.8ms | ✅ |
-| 工具定义确定性序列化（60 工具） | < 10ms | ~6ms | ✅ |
-| 工具定义确定性序列化（技能分组模式） | < 15ms | ~9ms | ✅ |
-| 上下文注入管道（4 个注入器全启） | < 50ms | ~30ms | ✅ |
-| `RecoverableCompressor.compress`（网页 15KB） | < 5ms | ~1ms | ✅ |
-| `RecoverableCompressor.recover`（网络请求除外） | < 2ms | ~0.5ms | ✅ |
-| KV-Cache 命中率（稳定会话） | ≥ 80% | ~85% | ✅ |
-| Token 节省率（压缩生效时） | ≥ 20% | ~28% | ✅ |
+| 操作                                            | 目标   | 实际   | 状态 |
+| ----------------------------------------------- | ------ | ------ | ---- |
+| `buildOptimizedPrompt`（缓存命中）              | < 5ms  | ~2ms   | ✅   |
+| `buildOptimizedPrompt`（缓存未命中）            | < 20ms | ~12ms  | ✅   |
+| System Prompt 动态内容清理                      | < 2ms  | ~0.8ms | ✅   |
+| 工具定义确定性序列化（60 工具）                 | < 10ms | ~6ms   | ✅   |
+| 工具定义确定性序列化（技能分组模式）            | < 15ms | ~9ms   | ✅   |
+| 上下文注入管道（4 个注入器全启）                | < 50ms | ~30ms  | ✅   |
+| `RecoverableCompressor.compress`（网页 15KB）   | < 5ms  | ~1ms   | ✅   |
+| `RecoverableCompressor.recover`（网络请求除外） | < 2ms  | ~0.5ms | ✅   |
+| KV-Cache 命中率（稳定会话）                     | ≥ 80%  | ~85%   | ✅   |
+| Token 节省率（压缩生效时）                      | ≥ 20%  | ~28%   | ✅   |
 
 ### 资源使用
 
-| 指标 | 说明 | 典型值 |
-| ---- | ---- | ------ |
-| 内存占用（单例实例） | ContextEngineering 实例自身 | < 2MB |
-| 错误历史缓冲 | `maxPreservedErrors` × 平均错误大小 | < 50KB |
-| 静态部分 MD5 缓存 | 上次哈希值 × 2（system + tools） | < 1KB |
-| 统计数据 | 6 个计数器，内存驻留，重启清零 | < 1KB |
-| 注入器引用 | 4 个弱引用（InstinctManager 等） | 可忽略 |
+| 指标                 | 说明                                | 典型值 |
+| -------------------- | ----------------------------------- | ------ |
+| 内存占用（单例实例） | ContextEngineering 实例自身         | < 2MB  |
+| 错误历史缓冲         | `maxPreservedErrors` × 平均错误大小 | < 50KB |
+| 静态部分 MD5 缓存    | 上次哈希值 × 2（system + tools）    | < 1KB  |
+| 统计数据             | 6 个计数器，内存驻留，重启清零      | < 1KB  |
+| 注入器引用           | 4 个弱引用（InstinctManager 等）    | 可忽略 |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖范围 |
-| -------- | -------- |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering.test.js` | `buildOptimizedPrompt` 三部分结构、缓存命中/未命中判定、KV-Cache 统计、`getStats`/`resetStats` |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-cache.test.js` | System Prompt 动态内容清理规则（ISO 时间戳/UUID/Session ID）、稳定前缀哈希一致性、多次调用命中率 |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-injection.test.js` | 4 级注入管道（Instinct/KG/Memory/EvoMap）、注入器未设置时静默跳过、注入器抛异常时容错 |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-tools.test.js` | 工具定义确定性序列化（普通列表模式 vs 技能分组模式）、Instructions/参数截断、"Other Tools" 分组 |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-task.test.js` | `setCurrentTask`/`updateTaskProgress`/`clearTask`、任务重述末尾注入、todo.md 进度格式 |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-errors.test.js` | `recordError`/`resolveError`/`clearErrors`、错误历史上下文注入、`maxPreservedErrors` 限制 |
-| ✅ `desktop-app-vue/tests/unit/llm/recoverable-compressor.test.js` | 四种内容类型（webpage/file/dbResult/default）压缩阈值、`compressed_ref` 格式、`isCompressedRef`、`recover` 成功/失败路径 |
-| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-singleton.test.js` | `getContextEngineering` 单例一致性、多次初始化参数合并、跨模块共享缓存 |
+| 测试文件                                                                  | 覆盖范围                                                                                                                 |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering.test.js`           | `buildOptimizedPrompt` 三部分结构、缓存命中/未命中判定、KV-Cache 统计、`getStats`/`resetStats`                           |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-cache.test.js`     | System Prompt 动态内容清理规则（ISO 时间戳/UUID/Session ID）、稳定前缀哈希一致性、多次调用命中率                         |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-injection.test.js` | 4 级注入管道（Instinct/KG/Memory/EvoMap）、注入器未设置时静默跳过、注入器抛异常时容错                                    |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-tools.test.js`     | 工具定义确定性序列化（普通列表模式 vs 技能分组模式）、Instructions/参数截断、"Other Tools" 分组                          |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-task.test.js`      | `setCurrentTask`/`updateTaskProgress`/`clearTask`、任务重述末尾注入、todo.md 进度格式                                    |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-errors.test.js`    | `recordError`/`resolveError`/`clearErrors`、错误历史上下文注入、`maxPreservedErrors` 限制                                |
+| ✅ `desktop-app-vue/tests/unit/llm/recoverable-compressor.test.js`        | 四种内容类型（webpage/file/dbResult/default）压缩阈值、`compressed_ref` 格式、`isCompressedRef`、`recover` 成功/失败路径 |
+| ✅ `desktop-app-vue/tests/unit/llm/context-engineering-singleton.test.js` | `getContextEngineering` 单例一致性、多次初始化参数合并、跨模块共享缓存                                                   |
 
 ---
 
@@ -600,6 +600,7 @@ ce.resetStats();
 **症状：** LLM 返回截断响应或报错 "context length exceeded"。
 
 **排查步骤**:
+
 1. 调低 `maxHistoryMessages`（建议 20~30），减少历史对话注入量
 2. 减少 `maxPreservedErrors` 值（默认 5），清理累积的错误历史
 3. 检查 4 级注入管道是否注入了过长的上下文（逐一禁用测试）
@@ -610,6 +611,7 @@ ce.resetStats();
 **症状：** `RecoverableCompressor` 压缩后的内容缺少关键数据，恢复后与原始数据不一致。
 
 **排查步骤**:
+
 1. 确认压缩内容类型正确（`webpage`/`file`/`dbResult`），不同类型保留不同引用信息
 2. 对于文件类型，确认 `path` 字段存在，否则无法恢复完整内容
 3. 检查恢复函数（`fetchWebpage`/`readFile`/`runQuery`）是否正确实现
@@ -620,6 +622,7 @@ ce.resetStats();
 **症状：** 担心敏感信息通过上下文注入泄露到 LLM Prompt 中。
 
 **排查步骤**:
+
 1. System Prompt 中的动态内容（时间戳、UUID、Session ID）已自动清理为占位符
 2. 确认 Instinct/Memory 注入的内容不包含密码、密钥等敏感字段
 3. 工具参数 JSON 超过 500 字符会自动截断，但截断前的内容仍会暴露
@@ -631,13 +634,13 @@ ce.resetStats();
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 上下文超长被截断丢失信息 | 输入内容超过 Token 上限 | 启用自动压缩 `context compress-enable`，设置优先级保留策略 |
-| 压缩后丢失关键信息 | 压缩算法过于激进或关键信息未标记 | 使用 `importance: high` 标记关键段落，调整压缩比 |
-| 多轮对话遗忘早期内容 | 滑动窗口过小或摘要质量低 | 增大 `windowSize`，启用长期记忆回溯 |
-| 上下文注入延迟高 | RAG 检索慢或嵌入模型负载高 | 启用嵌入缓存，优化检索索引 |
-| 上下文质量评分持续偏低 | 噪声数据过多或相关性阈值过低 | 提高 `relevanceThreshold`，清理低质量数据源 |
+| 症状                     | 可能原因                         | 解决方案                                                   |
+| ------------------------ | -------------------------------- | ---------------------------------------------------------- |
+| 上下文超长被截断丢失信息 | 输入内容超过 Token 上限          | 启用自动压缩 `context compress-enable`，设置优先级保留策略 |
+| 压缩后丢失关键信息       | 压缩算法过于激进或关键信息未标记 | 使用 `importance: high` 标记关键段落，调整压缩比           |
+| 多轮对话遗忘早期内容     | 滑动窗口过小或摘要质量低         | 增大 `windowSize`，启用长期记忆回溯                        |
+| 上下文注入延迟高         | RAG 检索慢或嵌入模型负载高       | 启用嵌入缓存，优化检索索引                                 |
+| 上下文质量评分持续偏低   | 噪声数据过多或相关性阈值过低     | 提高 `relevanceThreshold`，清理低质量数据源                |
 
 ### 常见错误修复
 
@@ -720,13 +723,13 @@ chainlesschain context recall --session-id <id> --depth full
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `desktop-app-vue/src/main/llm/context-engineering.js` | ContextEngineering + RecoverableCompressor 主模块 |
-| `desktop-app-vue/src/main/llm/instinct-manager.js` | Instinct 学习管理器（注入步骤 4.5） |
-| `desktop-app-vue/src/main/ai-engine/cowork/code-knowledge-graph.js` | 代码知识图谱（注入步骤 4.6） |
-| `desktop-app-vue/src/main/llm/memory-augmented-generation.js` | 长期记忆管理（注入步骤 4.7） |
-| `desktop-app-vue/src/main/ai-engine/unified-tool-registry.js` | 统一工具注册表（技能分组序列化） |
+| 文件                                                                | 说明                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------- |
+| `desktop-app-vue/src/main/llm/context-engineering.js`               | ContextEngineering + RecoverableCompressor 主模块 |
+| `desktop-app-vue/src/main/llm/instinct-manager.js`                  | Instinct 学习管理器（注入步骤 4.5）               |
+| `desktop-app-vue/src/main/ai-engine/cowork/code-knowledge-graph.js` | 代码知识图谱（注入步骤 4.6）                      |
+| `desktop-app-vue/src/main/llm/memory-augmented-generation.js`       | 长期记忆管理（注入步骤 4.7）                      |
+| `desktop-app-vue/src/main/ai-engine/unified-tool-registry.js`       | 统一工具注册表（技能分组序列化）                  |
 
 ---
 

@@ -224,6 +224,7 @@ const report = await window.electron.ipcRenderer.invoke(
 **现象**: 沙箱内代码访问文件或网络时返回 `Permission Denied`。
 
 **排查步骤**:
+
 1. 确认目标路径匹配 `filesystem.read` 或 `filesystem.write` 中的 glob 模式
 2. 检查 `deny` 列表是否包含了该路径（deny 优先级最高，始终覆盖 allow）
 3. 对于网络请求，检查 `network.allowedHosts` 和 `allowedPorts` 是否包含目标地址
@@ -234,6 +235,7 @@ const report = await window.electron.ipcRenderer.invoke(
 **现象**: 沙箱进程被自动终止，返回配额超限错误。
 
 **排查步骤**:
+
 1. 通过 `sandbox:monitor-behavior` 查看 `resourceUsage` 中哪项资源（CPU/内存/存储）超限
 2. 调整 `sandbox:set-quota` 增大相应配额，或优化代码减少资源消耗
 3. 检查 `timeout` 是否设置过短导致长任务被中断（默认 300000ms）
@@ -244,6 +246,7 @@ const report = await window.electron.ipcRenderer.invoke(
 **现象**: 调用 `sandbox:create` 返回失败，沙箱实例未创建。
 
 **排查步骤**:
+
 1. 确认系统是否支持指定的 `runtime` 类型（wasm 需要 WebAssembly 运行时）
 2. 检查系统可用内存和磁盘空间是否满足 `defaultQuota` 的最低要求
 3. 查看日志中是否有 WASM 模块加载或编译错误
@@ -253,13 +256,13 @@ const report = await window.electron.ipcRenderer.invoke(
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 权限拒绝无法执行操作 | 沙箱策略限制或 ACL 配置错误 | 检查 `sandbox-policy.json`，确认操作在白名单中 |
-| 配额超限导致任务中断 | CPU/内存/磁盘配额设置过低 | 调整 `quotas` 配置，增大对应资源限额 |
-| WASM 隔离环境启动失败 | WASM 运行时未安装或版本不兼容 | 确认 `wasmtime` 已安装，版本 >= 14.0 |
-| 沙箱内网络请求被拦截 | 网络策略默认拒绝出站请求 | 在 `networkPolicy` 中添加允许的域名白名单 |
-| 文件系统写入被拒绝 | 挂载目录为只读或路径越界 | 检查 `mountPoints` 配置，确认 `writable: true` |
+| 症状                  | 可能原因                      | 解决方案                                       |
+| --------------------- | ----------------------------- | ---------------------------------------------- |
+| 权限拒绝无法执行操作  | 沙箱策略限制或 ACL 配置错误   | 检查 `sandbox-policy.json`，确认操作在白名单中 |
+| 配额超限导致任务中断  | CPU/内存/磁盘配额设置过低     | 调整 `quotas` 配置，增大对应资源限额           |
+| WASM 隔离环境启动失败 | WASM 运行时未安装或版本不兼容 | 确认 `wasmtime` 已安装，版本 >= 14.0           |
+| 沙箱内网络请求被拦截  | 网络策略默认拒绝出站请求      | 在 `networkPolicy` 中添加允许的域名白名单      |
+| 文件系统写入被拒绝    | 挂载目录为只读或路径越界      | 检查 `mountPoints` 配置，确认 `writable: true` |
 
 ### 常见错误修复
 
@@ -297,30 +300,30 @@ chainlesschain sandbox reset --confirm
 
 完整的沙箱配置项及默认值：
 
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `agentSandbox.enabled` | boolean | `true` | 是否启用沙箱隔离 |
-| `agentSandbox.defaultRuntime` | string | `"wasm"` | 默认运行时（`wasm` / `node-isolated` / `docker`） |
-| `agentSandbox.defaultQuota.cpu` | string | `"50%"` | CPU 使用上限（百分比） |
-| `agentSandbox.defaultQuota.memory` | string | `"512MB"` | 内存硬性上限 |
-| `agentSandbox.defaultQuota.storage` | string | `"1GB"` | 磁盘存储上限 |
-| `agentSandbox.defaultQuota.networkBandwidth` | string | `"10MB/s"` | 网络带宽上限 |
-| `agentSandbox.defaultQuota.timeout` | number | `300000` | 执行超时（毫秒） |
-| `agentSandbox.audit.enabled` | boolean | `true` | 是否写入审计日志 |
-| `agentSandbox.audit.retentionDays` | number | `90` | 审计日志保留天数 |
-| `agentSandbox.audit.logLevel` | string | `"info"` | 日志级别（`debug` / `info` / `warning` / `critical`） |
-| `agentSandbox.behaviorMonitoring.enabled` | boolean | `true` | 是否启用 AI 行为监控 |
-| `agentSandbox.behaviorMonitoring.analysisInterval` | number | `30000` | 行为分析间隔（毫秒） |
-| `agentSandbox.behaviorMonitoring.riskThreshold` | number | `75` | 触发自动暂停的风险评分阈值 |
-| `agentSandbox.behaviorMonitoring.autoSuspend` | boolean | `true` | 超阈值是否自动暂停沙箱 |
+| 配置项                                             | 类型    | 默认值     | 说明                                                  |
+| -------------------------------------------------- | ------- | ---------- | ----------------------------------------------------- |
+| `agentSandbox.enabled`                             | boolean | `true`     | 是否启用沙箱隔离                                      |
+| `agentSandbox.defaultRuntime`                      | string  | `"wasm"`   | 默认运行时（`wasm` / `node-isolated` / `docker`）     |
+| `agentSandbox.defaultQuota.cpu`                    | string  | `"50%"`    | CPU 使用上限（百分比）                                |
+| `agentSandbox.defaultQuota.memory`                 | string  | `"512MB"`  | 内存硬性上限                                          |
+| `agentSandbox.defaultQuota.storage`                | string  | `"1GB"`    | 磁盘存储上限                                          |
+| `agentSandbox.defaultQuota.networkBandwidth`       | string  | `"10MB/s"` | 网络带宽上限                                          |
+| `agentSandbox.defaultQuota.timeout`                | number  | `300000`   | 执行超时（毫秒）                                      |
+| `agentSandbox.audit.enabled`                       | boolean | `true`     | 是否写入审计日志                                      |
+| `agentSandbox.audit.retentionDays`                 | number  | `90`       | 审计日志保留天数                                      |
+| `agentSandbox.audit.logLevel`                      | string  | `"info"`   | 日志级别（`debug` / `info` / `warning` / `critical`） |
+| `agentSandbox.behaviorMonitoring.enabled`          | boolean | `true`     | 是否启用 AI 行为监控                                  |
+| `agentSandbox.behaviorMonitoring.analysisInterval` | number  | `30000`    | 行为分析间隔（毫秒）                                  |
+| `agentSandbox.behaviorMonitoring.riskThreshold`    | number  | `75`       | 触发自动暂停的风险评分阈值                            |
+| `agentSandbox.behaviorMonitoring.autoSuspend`      | boolean | `true`     | 超阈值是否自动暂停沙箱                                |
 
 ### 运行时对比
 
-| 运行时 | 隔离强度 | 启动耗时 | 适用场景 |
-| --- | --- | --- | --- |
-| `wasm` | 高（内存安全） | 约 50ms | 默认推荐；计算密集型任务 |
-| `node-isolated` | 中（进程隔离） | 约 20ms | 轻量任务；需要完整 Node.js API |
-| `docker` | 最高（容器隔离） | 约 500ms | 高风险任务；需要独立 OS 环境 |
+| 运行时          | 隔离强度         | 启动耗时 | 适用场景                       |
+| --------------- | ---------------- | -------- | ------------------------------ |
+| `wasm`          | 高（内存安全）   | 约 50ms  | 默认推荐；计算密集型任务       |
+| `node-isolated` | 中（进程隔离）   | 约 20ms  | 轻量任务；需要完整 Node.js API |
+| `docker`        | 最高（容器隔离） | 约 500ms | 高风险任务；需要独立 OS 环境   |
 
 ## 性能指标
 
@@ -328,22 +331,22 @@ chainlesschain sandbox reset --confirm
 
 ### 吞吐与延迟
 
-| 指标 | WASM 运行时 | Node-Isolated | Docker |
-| --- | --- | --- | --- |
-| 沙箱创建耗时（P50） | 48ms | 18ms | 480ms |
-| 沙箱创建耗时（P99） | 95ms | 40ms | 950ms |
-| 代码执行额外开销 | < 5% | < 2% | < 8% |
-| 并发沙箱数上限（默认） | 50 | 100 | 10 |
-| 权限检查耗时（单次） | < 0.5ms | < 0.5ms | < 0.5ms |
+| 指标                   | WASM 运行时 | Node-Isolated | Docker  |
+| ---------------------- | ----------- | ------------- | ------- |
+| 沙箱创建耗时（P50）    | 48ms        | 18ms          | 480ms   |
+| 沙箱创建耗时（P99）    | 95ms        | 40ms          | 950ms   |
+| 代码执行额外开销       | < 5%        | < 2%          | < 8%    |
+| 并发沙箱数上限（默认） | 50          | 100           | 10      |
+| 权限检查耗时（单次）   | < 0.5ms     | < 0.5ms       | < 0.5ms |
 
 ### 资源消耗
 
-| 指标 | 说明 |
-| --- | --- |
-| 每个 WASM 沙箱基础内存占用 | 约 8MB |
-| AI 行为监控后台进程内存 | 约 32MB |
-| 审计日志写入速率（P99） | < 1ms/条 |
-| 风险评分计算耗时 | 10–50ms（取决于 `analysisDepth`） |
+| 指标                       | 说明                              |
+| -------------------------- | --------------------------------- |
+| 每个 WASM 沙箱基础内存占用 | 约 8MB                            |
+| AI 行为监控后台进程内存    | 约 32MB                           |
+| 审计日志写入速率（P99）    | < 1ms/条                          |
+| 风险评分计算耗时           | 10–50ms（取决于 `analysisDepth`） |
 
 ### 优化建议
 
@@ -353,16 +356,16 @@ chainlesschain sandbox reset --confirm
 
 ## 测试覆盖率
 
-| 测试套件 | 测试文件 | 用例数 | 通过率 |
-| --- | --- | --- | --- |
-| 沙箱核心（WASM 隔离） | `sandbox-v2.test.js` | 38 | 100% |
-| 权限白名单引擎 | `permission-whitelist.test.js` | 27 | 100% |
-| 资源配额管控 | `resource-quota.test.js` | 21 | 100% |
-| AI 行为监控 | `behavior-monitor.test.js` | 19 | 100% |
-| 审计日志 | `audit-log.test.js` | 16 | 100% |
-| IPC 处理器（6 通道） | `sandbox-ipc.test.js` | 24 | 100% |
-| 集成测试 | `sandbox-integration.test.js` | 15 | 100% |
-| **合计** | **7 文件** | **160** | **100%** |
+| 测试套件              | 测试文件                       | 用例数  | 通过率   |
+| --------------------- | ------------------------------ | ------- | -------- |
+| 沙箱核心（WASM 隔离） | `sandbox-v2.test.js`           | 38      | 100%     |
+| 权限白名单引擎        | `permission-whitelist.test.js` | 27      | 100%     |
+| 资源配额管控          | `resource-quota.test.js`       | 21      | 100%     |
+| AI 行为监控           | `behavior-monitor.test.js`     | 19      | 100%     |
+| 审计日志              | `audit-log.test.js`            | 16      | 100%     |
+| IPC 处理器（6 通道）  | `sandbox-ipc.test.js`          | 24      | 100%     |
+| 集成测试              | `sandbox-integration.test.js`  | 15      | 100%     |
+| **合计**              | **7 文件**                     | **160** | **100%** |
 
 覆盖场景包括：
 
@@ -384,13 +387,13 @@ chainlesschain sandbox reset --confirm
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/security/sandbox-v2.js` | 沙箱核心引擎 |
-| `desktop-app-vue/src/main/security/wasm-runtime.js` | WASM 隔离执行环境 |
-| `desktop-app-vue/src/main/security/permission-whitelist.js` | 细粒度权限白名单 |
-| `desktop-app-vue/src/main/security/behavior-monitor.js` | AI 行为监控与风险评分 |
-| `desktop-app-vue/src/main/security/sandbox-ipc.js` | 沙箱 IPC 处理器 |
+| 文件                                                        | 职责                  |
+| ----------------------------------------------------------- | --------------------- |
+| `desktop-app-vue/src/main/security/sandbox-v2.js`           | 沙箱核心引擎          |
+| `desktop-app-vue/src/main/security/wasm-runtime.js`         | WASM 隔离执行环境     |
+| `desktop-app-vue/src/main/security/permission-whitelist.js` | 细粒度权限白名单      |
+| `desktop-app-vue/src/main/security/behavior-monitor.js`     | AI 行为监控与风险评分 |
+| `desktop-app-vue/src/main/security/sandbox-ipc.js`          | 沙箱 IPC 处理器       |
 
 ## 相关文档
 

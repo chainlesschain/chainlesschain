@@ -192,19 +192,28 @@ const adapter = await window.electron.ipcRenderer.invoke("hsm:connect-device", {
   firmwareVersion: "5.4.3",
   supportedAlgorithms: ["RSA-2048", "ECDSA-P256", "ML-KEM-768"],
 });
-console.log(`设备已连接: ${adapter.adapter.id}, FIPS: ${adapter.adapter.fips_compliant}`);
+console.log(
+  `设备已连接: ${adapter.adapter.id}, FIPS: ${adapter.adapter.fips_compliant}`,
+);
 
 // 2. 使用设备执行 ECDSA 签名
-const signResult = await window.electron.ipcRenderer.invoke("hsm:execute-operation", {
-  adapterId: adapter.adapter.id,
-  operation: "sign",
-  params: { algorithm: "ECDSA-P256", data: "待签名数据摘要" },
-});
+const signResult = await window.electron.ipcRenderer.invoke(
+  "hsm:execute-operation",
+  {
+    adapterId: adapter.adapter.id,
+    operation: "sign",
+    params: { algorithm: "ECDSA-P256", data: "待签名数据摘要" },
+  },
+);
 console.log(`签名完成: ${signResult.result.executedAt}`);
 
 // 3. 查看整体合规状态
-const compliance = await window.electron.ipcRenderer.invoke("hsm:get-compliance-status");
-console.log(`合规等级: ${compliance.status.complianceLevel}, FIPS设备: ${compliance.status.fipsCompliant}/${compliance.status.totalAdapters}`);
+const compliance = await window.electron.ipcRenderer.invoke(
+  "hsm:get-compliance-status",
+);
+console.log(
+  `合规等级: ${compliance.status.complianceLevel}, FIPS设备: ${compliance.status.fipsCompliant}/${compliance.status.totalAdapters}`,
+);
 ```
 
 ### 示例 2: 列出设备并生成密钥
@@ -212,14 +221,17 @@ console.log(`合规等级: ${compliance.status.complianceLevel}, FIPS设备: ${c
 ```javascript
 // 列出所有已连接的 HSM 适配器
 const adapters = await window.electron.ipcRenderer.invoke("hsm:list-adapters");
-adapters.forEach(a => console.log(`[${a.vendor}] ${a.model} - ${a.status}`));
+adapters.forEach((a) => console.log(`[${a.vendor}] ${a.model} - ${a.status}`));
 
 // 在指定设备上生成新密钥对
-const keyResult = await window.electron.ipcRenderer.invoke("hsm:execute-operation", {
-  adapterId: adapters[0].id,
-  operation: "generateKey",
-  params: { algorithm: "RSA-2048" },
-});
+const keyResult = await window.electron.ipcRenderer.invoke(
+  "hsm:execute-operation",
+  {
+    adapterId: adapters[0].id,
+    operation: "generateKey",
+    params: { algorithm: "RSA-2048" },
+  },
+);
 console.log(`密钥生成完成: ${keyResult.result.result}`);
 ```
 
@@ -229,53 +241,53 @@ console.log(`密钥生成完成: ${keyResult.result.result}`);
 // desktop-app-vue/src/main/ukey/hsm-adapter-manager.js
 const DEFAULT_CONFIG = {
   discovery: {
-    autoDetectIntervalMs: 10000,     // USB 热插拔检测间隔（10 秒）
-    connectionTimeoutMs: 5000,       // 设备连接超时
-    maxAdapters: 10,                 // 最多同时管理的 HSM 设备数
+    autoDetectIntervalMs: 10000, // USB 热插拔检测间隔（10 秒）
+    connectionTimeoutMs: 5000, // 设备连接超时
+    maxAdapters: 10, // 最多同时管理的 HSM 设备数
   },
   operations: {
-    operationTimeoutMs: 30000,       // 加密操作超时（30 秒）
-    pinRetryLimit: 3,                // PIN 错误重试上限
-    firmwareCheckOnConnect: true,    // 连接时自动检查固件版本
+    operationTimeoutMs: 30000, // 加密操作超时（30 秒）
+    pinRetryLimit: 3, // PIN 错误重试上限
+    firmwareCheckOnConnect: true, // 连接时自动检查固件版本
   },
   compliance: {
-    requireFipsForSignature: false,  // 签名操作是否强制要求 FIPS 设备
-    auditAllOperations: true,        // 是否审计所有加密操作
-    fipsMinLevel: 2,                 // 最低可接受 FIPS 认证等级
+    requireFipsForSignature: false, // 签名操作是否强制要求 FIPS 设备
+    auditAllOperations: true, // 是否审计所有加密操作
+    fipsMinLevel: 2, // 最低可接受 FIPS 认证等级
   },
 };
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `autoDetectIntervalMs` | 10000 | USB 热插拔检测间隔 |
-| `operationTimeoutMs` | 30000 | 单次加密操作超时 |
-| `pinRetryLimit` | 3 | PIN 验证重试上限 |
-| `auditAllOperations` | true | 是否记录全部操作到审计日志 |
+| 配置项                 | 默认值 | 说明                       |
+| ---------------------- | ------ | -------------------------- |
+| `autoDetectIntervalMs` | 10000  | USB 热插拔检测间隔         |
+| `operationTimeoutMs`   | 30000  | 单次加密操作超时           |
+| `pinRetryLimit`        | 3      | PIN 验证重试上限           |
+| `auditAllOperations`   | true   | 是否记录全部操作到审计日志 |
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| --- | --- | --- | --- |
-| 设备连接（YubiKey） | < 500ms | ~200ms | ✅ |
-| ECDSA-P256 签名 | < 1000ms | ~400ms | ✅ |
-| RSA-2048 签名 | < 2000ms | ~800ms | ✅ |
-| ML-KEM-768 密钥生成 | < 500ms | ~180ms | ✅ |
-| 合规状态查询 | < 50ms | ~10ms | ✅ |
-| 设备列表枚举 | < 100ms | ~30ms | ✅ |
+| 操作                | 目标     | 实际   | 状态 |
+| ------------------- | -------- | ------ | ---- |
+| 设备连接（YubiKey） | < 500ms  | ~200ms | ✅   |
+| ECDSA-P256 签名     | < 1000ms | ~400ms | ✅   |
+| RSA-2048 签名       | < 2000ms | ~800ms | ✅   |
+| ML-KEM-768 密钥生成 | < 500ms  | ~180ms | ✅   |
+| 合规状态查询        | < 50ms   | ~10ms  | ✅   |
+| 设备列表枚举        | < 100ms  | ~30ms  | ✅   |
 
 ---
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 设备连接失败 | USB 驱动未安装或设备未插入 | 确认设备已正确连接，安装对应厂商的驱动程序 |
-| 加密操作超时 | 设备繁忙或通信中断 | 拔插设备重新连接，检查 USB 线缆是否松动 |
-| FIPS 合规状态为 `partial` | 存在非 FIPS 认证的设备 | 替换为 FIPS 140-3 认证设备（如 YubiKey FIPS 版） |
-| 算法不支持 | 设备固件版本过低 | 升级设备固件，或选择设备 `supportedAlgorithms` 中列出的算法 |
-| PKCS#11 通用设备不识别 | 缺少 PKCS#11 中间件 | 安装设备厂商提供的 PKCS#11 库，配置库文件路径 |
-| 设备列表为空 | 未执行过连接操作 | 先调用 `hsm:connect-device` 注册设备到系统中 |
+| 问题                      | 可能原因                   | 解决方案                                                    |
+| ------------------------- | -------------------------- | ----------------------------------------------------------- |
+| 设备连接失败              | USB 驱动未安装或设备未插入 | 确认设备已正确连接，安装对应厂商的驱动程序                  |
+| 加密操作超时              | 设备繁忙或通信中断         | 拔插设备重新连接，检查 USB 线缆是否松动                     |
+| FIPS 合规状态为 `partial` | 存在非 FIPS 认证的设备     | 替换为 FIPS 140-3 认证设备（如 YubiKey FIPS 版）            |
+| 算法不支持                | 设备固件版本过低           | 升级设备固件，或选择设备 `supportedAlgorithms` 中列出的算法 |
+| PKCS#11 通用设备不识别    | 缺少 PKCS#11 中间件        | 安装设备厂商提供的 PKCS#11 库，配置库文件路径               |
+| 设备列表为空              | 未执行过连接操作           | 先调用 `hsm:connect-device` 注册设备到系统中                |
 
 ---
 

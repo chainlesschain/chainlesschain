@@ -301,25 +301,25 @@ const result = await window.electron.ipcRenderer.invoke("saas:delete-tenant", {
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `src/main/enterprise/multi-tenant-saas.js` | SaaS 引擎核心，租户 CRUD 与隔离逻辑 |
-| `src/main/enterprise/tenant-isolation.js` | 数据库级/Schema 级/行级隔离实现 |
-| `src/main/enterprise/usage-metering.js` | API 调用/存储/用户数计量引擎 |
-| `src/main/enterprise/subscription-manager.js` | 订阅计划管理与计费集成 |
-| `src/renderer/stores/saas.ts` | Pinia 状态管理 |
+| 文件                                          | 职责                                |
+| --------------------------------------------- | ----------------------------------- |
+| `src/main/enterprise/multi-tenant-saas.js`    | SaaS 引擎核心，租户 CRUD 与隔离逻辑 |
+| `src/main/enterprise/tenant-isolation.js`     | 数据库级/Schema 级/行级隔离实现     |
+| `src/main/enterprise/usage-metering.js`       | API 调用/存储/用户数计量引擎        |
+| `src/main/enterprise/subscription-manager.js` | 订阅计划管理与计费集成              |
+| `src/renderer/stores/saas.ts`                 | Pinia 状态管理                      |
 
 ## 故障排查
 
-| 问题 | 原因分析 | 解决方案 |
-|------|---------|---------|
-| 租户创建失败 | `slug` 重复或管理员邮箱格式错误 | 检查 `slug` 唯一性（`TEXT UQ` 约束），确认邮箱格式正确 |
-| 数据隔离泄漏 | 行级隔离模式下中间件拦截未生效 | 切换到 `database` 或 `schema` 隔离模式；检查查询是否绑定 `tenant_id` 过滤条件 |
-| 用量统计不准确 | 计量引擎采集周期未对齐或数据库写入延迟 | 确认 `period` 参数格式为 `YYYY-MM`，等待当前采集周期结束后重新查询 |
-| 订阅升级后配额未更新 | 订阅状态变更但配额配置未同步刷新 | 调用 `saas:configure` 手动刷新配额，或重启租户隔离引擎 |
-| SSO 登录失败 | OIDC/SAML 配置的 `issuerUrl` 不可达或 `clientId` 不匹配 | 验证 SSO 提供商的 URL 可访问，确认 Client ID 和 Secret 正确 |
-| 数据导入冲突多 | 使用 `replace` 策略导致已有数据被覆盖 | 先使用 `dryRun: true` 预检，确认冲突数量可接受后再执行；优先使用 `merge` 策略 |
-| 租户删除后数据恢复 | 未启用 `retainBackup` 导致数据永久丢失 | 删除时务必设置 `retainBackup: true`，在 `retainDays` 内可从备份恢复 |
+| 问题                 | 原因分析                                                | 解决方案                                                                      |
+| -------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 租户创建失败         | `slug` 重复或管理员邮箱格式错误                         | 检查 `slug` 唯一性（`TEXT UQ` 约束），确认邮箱格式正确                        |
+| 数据隔离泄漏         | 行级隔离模式下中间件拦截未生效                          | 切换到 `database` 或 `schema` 隔离模式；检查查询是否绑定 `tenant_id` 过滤条件 |
+| 用量统计不准确       | 计量引擎采集周期未对齐或数据库写入延迟                  | 确认 `period` 参数格式为 `YYYY-MM`，等待当前采集周期结束后重新查询            |
+| 订阅升级后配额未更新 | 订阅状态变更但配额配置未同步刷新                        | 调用 `saas:configure` 手动刷新配额，或重启租户隔离引擎                        |
+| SSO 登录失败         | OIDC/SAML 配置的 `issuerUrl` 不可达或 `clientId` 不匹配 | 验证 SSO 提供商的 URL 可访问，确认 Client ID 和 Secret 正确                   |
+| 数据导入冲突多       | 使用 `replace` 策略导致已有数据被覆盖                   | 先使用 `dryRun: true` 预检，确认冲突数量可接受后再执行；优先使用 `merge` 策略 |
+| 租户删除后数据恢复   | 未启用 `retainBackup` 导致数据永久丢失                  | 删除时务必设置 `retainBackup: true`，在 `retainDays` 内可从备份恢复           |
 
 ## 配置参考
 
@@ -339,22 +339,22 @@ const multiTenantConfig = {
 
     // 四级订阅配额定义
     plans: {
-      free:       { maxUsers: 3,   maxApiCalls: 1000,   maxStorageMB: 100   },
-      starter:    { maxUsers: 10,  maxApiCalls: 10000,  maxStorageMB: 1024  },
-      pro:        { maxUsers: 50,  maxApiCalls: 100000, maxStorageMB: 10240 },
-      enterprise: { maxUsers: -1,  maxApiCalls: -1,     maxStorageMB: -1    },
+      free: { maxUsers: 3, maxApiCalls: 1000, maxStorageMB: 100 },
+      starter: { maxUsers: 10, maxApiCalls: 10000, maxStorageMB: 1024 },
+      pro: { maxUsers: 50, maxApiCalls: 100000, maxStorageMB: 10240 },
+      enterprise: { maxUsers: -1, maxApiCalls: -1, maxStorageMB: -1 },
     },
 
     // 计量引擎配置
     metering: {
-      samplingIntervalMs: 60000,   // 用量采集间隔（毫秒）
-      quotaWarningThresholds: [80, 90, 100],  // 触发 Webhook 通知的百分比阈值
-      overageAction: "throttle",   // "throttle" | "block" | "notify-only"
+      samplingIntervalMs: 60000, // 用量采集间隔（毫秒）
+      quotaWarningThresholds: [80, 90, 100], // 触发 Webhook 通知的百分比阈值
+      overageAction: "throttle", // "throttle" | "block" | "notify-only"
     },
 
     // 计费集成
     billing: {
-      provider: "stripe",          // "stripe" | "alipay" | "manual"
+      provider: "stripe", // "stripe" | "alipay" | "manual"
       currency: "CNY",
       webhookSecret: "${BILLING_WEBHOOK_SECRET}",
       invoiceEmailEnabled: true,
@@ -363,7 +363,7 @@ const multiTenantConfig = {
     // SSO 全局默认（租户级可覆盖）
     sso: {
       supportedProviders: ["oidc", "saml"],
-      sessionTtlSeconds: 28800,    // 8 小时
+      sessionTtlSeconds: 28800, // 8 小时
     },
 
     // 数据保留策略
@@ -379,54 +379,58 @@ const multiTenantConfig = {
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| 创建租户（`saas:create-tenant`） | < 500 ms | 210 ms | ✅ 达标 |
-| 租户列表查询（20 条） | < 100 ms | 38 ms | ✅ 达标 |
-| 用量统计查询（单租户单月） | < 200 ms | 65 ms | ✅ 达标 |
-| 配额校验中间件拦截 | < 10 ms | 3 ms | ✅ 达标 |
-| 数据导出（100 MB JSON） | < 30 s | 12 s | ✅ 达标 |
-| 数据导入（10,000 条记录） | < 60 s | 45 s | ✅ 达标 |
-| 订阅升级（`saas:manage-subscription`） | < 1 s | 320 ms | ✅ 达标 |
-| 并发租户写操作（10 租户同时写） | WAL 无锁竞争 | SQLITE_BUSY = 0 | ✅ 达标 |
-| Schema 级隔离切换开销 | < 5 ms | 2 ms | ✅ 达标 |
-| 计量引擎定时采集（每分钟） | CPU < 2% | 0.8% | ✅ 达标 |
+| 操作                                   | 目标         | 实际            | 状态    |
+| -------------------------------------- | ------------ | --------------- | ------- |
+| 创建租户（`saas:create-tenant`）       | < 500 ms     | 210 ms          | ✅ 达标 |
+| 租户列表查询（20 条）                  | < 100 ms     | 38 ms           | ✅ 达标 |
+| 用量统计查询（单租户单月）             | < 200 ms     | 65 ms           | ✅ 达标 |
+| 配额校验中间件拦截                     | < 10 ms      | 3 ms            | ✅ 达标 |
+| 数据导出（100 MB JSON）                | < 30 s       | 12 s            | ✅ 达标 |
+| 数据导入（10,000 条记录）              | < 60 s       | 45 s            | ✅ 达标 |
+| 订阅升级（`saas:manage-subscription`） | < 1 s        | 320 ms          | ✅ 达标 |
+| 并发租户写操作（10 租户同时写）        | WAL 无锁竞争 | SQLITE_BUSY = 0 | ✅ 达标 |
+| Schema 级隔离切换开销                  | < 5 ms       | 2 ms            | ✅ 达标 |
+| 计量引擎定时采集（每分钟）             | CPU < 2%     | 0.8%            | ✅ 达标 |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖场景 |
-| -------- | -------- |
-| ✅ `tests/unit/enterprise/multi-tenant-saas.test.js` | 租户 CRUD、plan 枚举校验、slug 唯一性约束、隔离模式切换 |
-| ✅ `tests/unit/enterprise/tenant-isolation.test.js` | database/schema/row 三种隔离模式、跨租户访问拒绝、中间件拦截 |
-| ✅ `tests/unit/enterprise/usage-metering.test.js` | API 调用/存储/用户数计量、配额预警阈值（80/90/100%）、超额限流 |
-| ✅ `tests/unit/enterprise/subscription-manager.test.js` | 订阅升级/降级/取消、Stripe Webhook 处理、计费周期计算 |
-| ✅ `tests/unit/enterprise/tenant-sso.test.js` | OIDC/SAML 配置校验、Token 验证、SSO 会话管理 |
+| 测试文件                                                 | 覆盖场景                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------- |
+| ✅ `tests/unit/enterprise/multi-tenant-saas.test.js`     | 租户 CRUD、plan 枚举校验、slug 唯一性约束、隔离模式切换          |
+| ✅ `tests/unit/enterprise/tenant-isolation.test.js`      | database/schema/row 三种隔离模式、跨租户访问拒绝、中间件拦截     |
+| ✅ `tests/unit/enterprise/usage-metering.test.js`        | API 调用/存储/用户数计量、配额预警阈值（80/90/100%）、超额限流   |
+| ✅ `tests/unit/enterprise/subscription-manager.test.js`  | 订阅升级/降级/取消、Stripe Webhook 处理、计费周期计算            |
+| ✅ `tests/unit/enterprise/tenant-sso.test.js`            | OIDC/SAML 配置校验、Token 验证、SSO 会话管理                     |
 | ✅ `tests/unit/enterprise/tenant-data-migration.test.js` | merge/replace/append 策略、dryRun 预检、冲突计数、大批量导入性能 |
-| ✅ `tests/integration/saas-ipc-handlers.test.js` | 8 个 IPC 通道端到端调用、错误码验证、权限边界 |
-| ✅ `tests/unit/enterprise/saas-billing-webhook.test.js` | Webhook 签名验证、超额事件处理、`webhookSecret` 加密存储 |
+| ✅ `tests/integration/saas-ipc-handlers.test.js`         | 8 个 IPC 通道端到端调用、错误码验证、权限边界                    |
+| ✅ `tests/unit/enterprise/saas-billing-webhook.test.js`  | Webhook 签名验证、超额事件处理、`webhookSecret` 加密存储         |
 
 ---
 
 ## 安全考虑
 
 ### 租户隔离
+
 - **数据库级隔离**: 企业版建议使用 `database` 隔离模式，每个租户独立数据库实例，物理隔离杜绝跨租户数据泄漏
 - **行级策略**: 使用 `row` 隔离模式时，所有数据库查询自动注入 `tenant_id` 过滤条件，中间件层进行二次校验
 - **跨租户访问禁止**: 系统严格禁止跨租户数据访问，即使管理员也需要通过专用管理接口操作
 
 ### 认证与授权
+
 - **租户级 RBAC**: 每个租户拥有独立的角色权限体系，角色定义和权限分配互不影响
 - **SSO 安全**: OIDC/SAML SSO 集成使用标准安全协议，Token 验证在服务端完成，不在前端暴露敏感信息
 - **管理员权限**: 租户管理员仅能管理本租户资源，平台超级管理员操作记录完整审计日志
 
 ### 计费安全
+
 - **计量防篡改**: 用量计量数据由服务端引擎自动采集，租户无法修改自身用量记录
 - **支付安全**: 计费集成 Stripe/支付宝等第三方支付平台，敏感支付信息不经过本系统，`webhookSecret` 加密存储
 - **超额保护**: 达到配额上限时系统自动限流（而非直接停服），给予租户缓冲时间升级或优化用量
 
 ### 数据安全
+
 - **导出加密**: 数据导出支持 `encryption: true`，使用 AES-256 加密导出文件，防止传输过程中数据泄露
 - **删除保留**: 租户删除后数据保留 `retainDays`（默认 30 天）后永久删除，满足合规要求
 - **备份隔离**: 租户备份数据独立存储，不同租户的备份文件相互隔离
@@ -459,10 +463,10 @@ const multiTenantConfig = {
 
 ### 租户配置最佳实践
 
-| 场景 | 推荐配置 |
-|------|---------|
-| 小团队试用 | `plan: "free"`, `isolation: "row"`, 功能按需开启 |
-| 中型企业 | `plan: "pro"`, `isolation: "schema"`, 启用 SSO |
+| 场景              | 推荐配置                                                    |
+| ----------------- | ----------------------------------------------------------- |
+| 小团队试用        | `plan: "free"`, `isolation: "row"`, 功能按需开启            |
+| 中型企业          | `plan: "pro"`, `isolation: "schema"`, 启用 SSO              |
 | 大型企业/合规要求 | `plan: "enterprise"`, `isolation: "database"`, 启用全部审计 |
 
 ## 相关文档

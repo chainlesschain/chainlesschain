@@ -172,23 +172,23 @@ chainlesschain codegen stats --json
 
 ## 配置参考
 
-| 配置项             | 含义                     | 默认                          |
-| ------------------ | ------------------------ | ----------------------------- |
-| 模板目录           | 支持的脚手架模板         | react, vue, express, fastapi, spring_boot |
-| 审查规则           | 启发式正则规则           | eval_detection, sql_injection, xss, path_traversal, command_injection |
-| 严重性等级         | 审查结果分级             | critical / high / medium / low / info |
-| 关联模式           | `review -g <gen-id>`     | 可选，关联到已有生成记录      |
-| JSON 输出          | `--json`                 | 所有列表/show 命令支持        |
+| 配置项     | 含义                 | 默认                                                                  |
+| ---------- | -------------------- | --------------------------------------------------------------------- |
+| 模板目录   | 支持的脚手架模板     | react, vue, express, fastapi, spring_boot                             |
+| 审查规则   | 启发式正则规则       | eval_detection, sql_injection, xss, path_traversal, command_injection |
+| 严重性等级 | 审查结果分级         | critical / high / medium / low / info                                 |
+| 关联模式   | `review -g <gen-id>` | 可选，关联到已有生成记录                                              |
+| JSON 输出  | `--json`             | 所有列表/show 命令支持                                                |
 
 ## 性能指标
 
-| 操作                      | 典型耗时         |
-| ------------------------- | ---------------- |
-| generate 记录写入         | < 15 ms          |
-| review（小代码片段）      | < 20 ms          |
-| review（1000+ 行）        | < 100 ms         |
-| scaffold 记录写入         | < 10 ms          |
-| stats 聚合（10k 记录）    | < 50 ms          |
+| 操作                   | 典型耗时 |
+| ---------------------- | -------- |
+| generate 记录写入      | < 15 ms  |
+| review（小代码片段）   | < 20 ms  |
+| review（1000+ 行）     | < 100 ms |
+| scaffold 记录写入      | < 10 ms  |
+| stats 聚合（10k 记录） | < 50 ms  |
 
 注：CLI 侧 review 为启发式模式匹配，非 LLM 调用；LLM 审查由 Desktop 端 Code Generation Agent 2.0 完成。
 

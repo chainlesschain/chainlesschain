@@ -29,23 +29,23 @@ chainlesschain video edit --video raw.mp4 --json
 
 执行完整管线：deconstruct → plan → assemble → render。
 
-| 选项 | 说明 |
-|------|------|
-| `--video <path>` | 输入视频文件（必填） |
-| `--audio <path>` | 背景音乐文件 |
-| `--instruction <text>` | 剪辑指令（自然语言） |
-| `--output <path>` | 输出路径（默认 `./output.mp4`） |
-| `--srt <path>` | 已有字幕文件（跳过 ASR） |
-| `--fps <n>` | 抽帧 FPS（默认 2） |
-| `--character <name>` | 主角名称（用于角色识别） |
-| `--parallel` | 并行处理 section + 冲突解决 |
-| `--concurrency <n>` | 最大并行数（默认 4） |
-| `--review` | 启用质量门控（VLM 审查） |
-| `--use-madmom` | 使用 madmom Python 节拍检测 |
-| `--snap-beats` | shot plan 时间戳对齐到最近节拍 |
-| `--ducking` | 启用对话 ducking（音量闪避） |
-| `--stream` | NDJSON 进度事件输出 |
-| `--json` | JSON 最终输出 |
+| 选项                   | 说明                            |
+| ---------------------- | ------------------------------- |
+| `--video <path>`       | 输入视频文件（必填）            |
+| `--audio <path>`       | 背景音乐文件                    |
+| `--instruction <text>` | 剪辑指令（自然语言）            |
+| `--output <path>`      | 输出路径（默认 `./output.mp4`） |
+| `--srt <path>`         | 已有字幕文件（跳过 ASR）        |
+| `--fps <n>`            | 抽帧 FPS（默认 2）              |
+| `--character <name>`   | 主角名称（用于角色识别）        |
+| `--parallel`           | 并行处理 section + 冲突解决     |
+| `--concurrency <n>`    | 最大并行数（默认 4）            |
+| `--review`             | 启用质量门控（VLM 审查）        |
+| `--use-madmom`         | 使用 madmom Python 节拍检测     |
+| `--snap-beats`         | shot plan 时间戳对齐到最近节拍  |
+| `--ducking`            | 启用对话 ducking（音量闪避）    |
+| `--stream`             | NDJSON 进度事件输出             |
+| `--json`               | JSON 最终输出                   |
 
 ### video deconstruct — 解构素材
 
@@ -137,43 +137,43 @@ chainlesschain video assets prune --older-than 7
 
 ## 音频增强功能
 
-| 功能 | 标志 | 说明 |
-|------|------|------|
+| 功能            | 标志           | 说明                                             |
+| --------------- | -------------- | ------------------------------------------------ |
 | madmom 节拍检测 | `--use-madmom` | 使用 Python madmom 库进行精确 BPM 和节拍位置检测 |
-| 节拍对齐 | `--snap-beats` | 将 shot plan 时间戳吸附到最近的节拍点 |
-| 对话 ducking | `--ducking` | 在对话段落自动降低背景音乐音量 |
+| 节拍对齐        | `--snap-beats` | 将 shot plan 时间戳吸附到最近的节拍点            |
+| 对话 ducking    | `--ducking`    | 在对话段落自动降低背景音乐音量                   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/video.js` | video 命令主入口 |
+| 文件                                                | 职责                                                       |
+| --------------------------------------------------- | ---------------------------------------------------------- |
+| `packages/cli/src/commands/video.js`                | video 命令主入口                                           |
 | `packages/cli/src/skills/video-editing/pipeline.js` | VideoPipeline 核心管线（deconstruct/plan/assemble/render） |
 
 ## 配置参考
 
-| 配置项 | 含义 | 默认 |
-| ------ | ---- | ---- |
-| `render.encoder` | 视频编码器 | `libx264` |
-| `render.crf` | 质量 CRF（越小越清晰） | 20 |
-| `render.fps` | 输出帧率 | 30 |
-| `audio.sampleRate` | 音频采样率 | 48000 |
-| `ducking.threshold` | ducking 触发阈值 (dB) | -20 |
-| `beat.useMadmom` | madmom 精确节拍 | false |
-| `parallel.workers` | 并行合成 worker 数 | 4 |
+| 配置项              | 含义                   | 默认      |
+| ------------------- | ---------------------- | --------- |
+| `render.encoder`    | 视频编码器             | `libx264` |
+| `render.crf`        | 质量 CRF（越小越清晰） | 20        |
+| `render.fps`        | 输出帧率               | 30        |
+| `audio.sampleRate`  | 音频采样率             | 48000     |
+| `ducking.threshold` | ducking 触发阈值 (dB)  | -20       |
+| `beat.useMadmom`    | madmom 精确节拍        | false     |
+| `parallel.workers`  | 并行合成 worker 数     | 4         |
 
 依赖 `ffmpeg` 在 `PATH` 中可用；madmom 走 Python venv（见 `video-editing/pipeline.js`）。
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| `video deconstruct` | 依赖素材时长 | 主要为 ffprobe + 关键帧检测 |
-| `video plan` | < 500 ms | shot plan 生成 |
-| `video snap-beats` | < 1 s | madmom 模式 ~2–5 s |
-| `video assemble` | 依赖素材 | 主要为 ffmpeg 拼接 |
-| `video render` | 依赖分辨率/时长 | 依赖外部 ffmpeg |
-| 并行 orchestrator 加速比 | ~2–3× | 4-worker，CPU 绑定 |
+| 操作                     | 典型耗时        | 备注                        |
+| ------------------------ | --------------- | --------------------------- |
+| `video deconstruct`      | 依赖素材时长    | 主要为 ffprobe + 关键帧检测 |
+| `video plan`             | < 500 ms        | shot plan 生成              |
+| `video snap-beats`       | < 1 s           | madmom 模式 ~2–5 s          |
+| `video assemble`         | 依赖素材        | 主要为 ffmpeg 拼接          |
+| `video render`           | 依赖分辨率/时长 | 依赖外部 ffmpeg             |
+| 并行 orchestrator 加速比 | ~2–3×           | 4-worker，CPU 绑定          |
 
 ## 测试覆盖率
 
@@ -197,10 +197,10 @@ __tests__/unit/video-protocol.test.js             — 15 tests
 
 ## 缓存位置
 
-| 平台 | 路径 |
-|------|------|
-| Windows | `%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/video-editing/` |
-| macOS/Linux | `~/.chainlesschain/video-editing/` |
+| 平台        | 路径                                                                  |
+| ----------- | --------------------------------------------------------------------- |
+| Windows     | `%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/video-editing/` |
+| macOS/Linux | `~/.chainlesschain/video-editing/`                                    |
 
 ## 使用示例
 
@@ -247,12 +247,12 @@ chainlesschain video assets prune --older-than 7
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| "ffmpeg not found" | 未安装 ffmpeg | `brew install ffmpeg` 或下载安装 |
-| madmom 检测失败 | Python/madmom 未安装 | `pip install madmom` |
-| 渲染输出为空 | shot_point.json 格式不正确 | 用 `--json` 检查 assemble 输出 |
-| 素材缓存过大 | 累积解构缓存 | `video assets prune --older-than 7` |
+| 症状               | 可能原因                   | 解决方案                            |
+| ------------------ | -------------------------- | ----------------------------------- |
+| "ffmpeg not found" | 未安装 ffmpeg              | `brew install ffmpeg` 或下载安装    |
+| madmom 检测失败    | Python/madmom 未安装       | `pip install madmom`                |
+| 渲染输出为空       | shot_point.json 格式不正确 | 用 `--json` 检查 assemble 输出      |
+| 素材缓存过大       | 累积解构缓存               | `video assets prune --older-than 7` |
 
 ## 相关文档
 

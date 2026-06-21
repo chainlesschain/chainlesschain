@@ -70,22 +70,23 @@ v1.1.0 实施计划是 ChainlessChain v3.0-v4.0 后端模块（28 个模块、72
 
 > 目标指标（Sprint 5 性能基线采集后确认）
 
-| 指标 | 目标值 | 测量方法 |
-|------|--------|----------|
-| IPC 通道 p50 延迟 | < 50ms | 72 个新 IPC 全量压测 |
-| IPC 通道 p95 延迟 | < 200ms | 高负载场景 |
-| 流水线全流程耗时 | < 5 min | pipeline-full-lifecycle E2E |
-| 流水线自动回滚 | < 30s | 异常注入测试 |
-| DID 认证延迟 | < 500ms | 100 节点并发认证 |
-| 联邦代理发现延迟 | < 2s | 50 并发跨组织委派 |
-| SQLite 查询（10 万行） | < 100ms | 13 张新表典型查询 |
-| 内存增长（4 小时运行） | < 50MB | 长时间运行监控 |
+| 指标                   | 目标值  | 测量方法                    |
+| ---------------------- | ------- | --------------------------- |
+| IPC 通道 p50 延迟      | < 50ms  | 72 个新 IPC 全量压测        |
+| IPC 通道 p95 延迟      | < 200ms | 高负载场景                  |
+| 流水线全流程耗时       | < 5 min | pipeline-full-lifecycle E2E |
+| 流水线自动回滚         | < 30s   | 异常注入测试                |
+| DID 认证延迟           | < 500ms | 100 节点并发认证            |
+| 联邦代理发现延迟       | < 2s    | 50 并发跨组织委派           |
+| SQLite 查询（10 万行） | < 100ms | 13 张新表典型查询           |
+| 内存增长（4 小时运行） | < 50MB  | 长时间运行监控              |
 
 ## 测试覆盖率
 
 > 目标覆盖（Sprint 5 执行，Sprint 6 验收前完成）
 
 ✅ **已完成单元测试**（19 个模块）
+
 - `pipeline-orchestrator.js` — 流水线 7 阶段生命周期
 - `spec-translator.js` — NL→Spec 多轮消歧
 - `modality-fusion.js` — 多模态上下文融合
@@ -93,6 +94,7 @@ v1.1.0 实施计划是 ChainlessChain v3.0-v4.0 后端模块（28 个模块、72
 - `agent-did.js` + `federated-agent-registry.js` — DID 与联邦注册
 
 📋 **待完成 E2E 测试**（Sprint 5）
+
 - `__tests__/e2e/pipeline-full-lifecycle.e2e.test.js`
 - `__tests__/e2e/nl-to-code.e2e.test.js`
 - `__tests__/e2e/multimodal-fusion.e2e.test.js`
@@ -136,13 +138,13 @@ Deploy Agent 仅持有以下最小权限：指定目录的文件读写、受控 
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `desktop-app-vue/src/renderer/pages/DeploymentMonitorPage.vue` | 部署监控页面 |
-| `desktop-app-vue/src/renderer/pages/NLProgrammingPage.vue` | NL 编程页面 |
-| `desktop-app-vue/src/renderer/pages/MultimodalCollabPage.vue` | 多模态协作页面 |
-| `desktop-app-vue/src/renderer/pages/AutonomousOpsPage.vue` | 自主运维页面 |
-| `desktop-app-vue/src/renderer/pages/FederatedNetworkPage.vue` | 联邦网络页面 |
+| 文件                                                           | 职责           |
+| -------------------------------------------------------------- | -------------- |
+| `desktop-app-vue/src/renderer/pages/DeploymentMonitorPage.vue` | 部署监控页面   |
+| `desktop-app-vue/src/renderer/pages/NLProgrammingPage.vue`     | NL 编程页面    |
+| `desktop-app-vue/src/renderer/pages/MultimodalCollabPage.vue`  | 多模态协作页面 |
+| `desktop-app-vue/src/renderer/pages/AutonomousOpsPage.vue`     | 自主运维页面   |
+| `desktop-app-vue/src/renderer/pages/FederatedNetworkPage.vue`  | 联邦网络页面   |
 
 ## 使用示例
 
@@ -162,17 +164,17 @@ chainlesschain doctor --ipc-latency
 
 ```typescript
 // 触发流水线并监控状态（DeploymentMonitorPage Store）
-import { useDeploymentStore } from '@/stores/deployment'
+import { useDeploymentStore } from "@/stores/deployment";
 
-const store = useDeploymentStore()
-await store.startPipeline({ type: 'feature', requirement: '添加用户注册功能' })
+const store = useDeploymentStore();
+await store.startPipeline({ type: "feature", requirement: "添加用户注册功能" });
 
 // 轮询状态直到完成
 store.$subscribe((mutation, state) => {
-  if (state.currentDeployment?.status === 'completed') {
-    console.log('流水线完成', state.healthStatus)
+  if (state.currentDeployment?.status === "completed") {
+    console.log("流水线完成", state.healthStatus);
   }
-})
+});
 ```
 
 ## 相关文档

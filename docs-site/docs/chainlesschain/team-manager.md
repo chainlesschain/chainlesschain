@@ -547,13 +547,13 @@ const addResult = await manager.addMember(
 
 ### 常见问题
 
-| 症状 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 成员权限不同步 | 权限缓存未刷新或角色变更未传播 | 执行 `org cache-flush`，确认角色变更已保存 |
-| 任务分配冲突 | 多人同时分配同一任务或锁机制失效 | 启用任务分配锁 `team task-lock-enable`，刷新任务列表 |
-| 团队配额超限 | 成员数超出计划限制或存储配额用尽 | 查看配额使用 `org quota-status`，升级团队计划 |
-| 邀请链接失效 | 链接过期或使用次数已达上限 | 重新生成邀请链接 `org invite --regenerate` |
-| 成员离开后数据未迁移 | 数据所有权未转移 | 执行 `team data-transfer --from <user> --to <user>` |
+| 症状                 | 可能原因                         | 解决方案                                             |
+| -------------------- | -------------------------------- | ---------------------------------------------------- |
+| 成员权限不同步       | 权限缓存未刷新或角色变更未传播   | 执行 `org cache-flush`，确认角色变更已保存           |
+| 任务分配冲突         | 多人同时分配同一任务或锁机制失效 | 启用任务分配锁 `team task-lock-enable`，刷新任务列表 |
+| 团队配额超限         | 成员数超出计划限制或存储配额用尽 | 查看配额使用 `org quota-status`，升级团队计划        |
+| 邀请链接失效         | 链接过期或使用次数已达上限       | 重新生成邀请链接 `org invite --regenerate`           |
+| 成员离开后数据未迁移 | 数据所有权未转移                 | 执行 `team data-transfer --from <user> --to <user>`  |
 
 ### 常见错误修复
 
@@ -589,16 +589,16 @@ chainlesschain team prune-inactive --days 90
 
 ## 性能指标
 
-| 指标                   | 目标    | 实际    | 说明                                    |
-| ---------------------- | ------- | ------- | --------------------------------------- |
-| `createTeam` 响应时间  | <50ms   | ~15ms   | 含负责人自动注册为成员                  |
-| `addMember` 响应时间   | <30ms   | ~10ms   | 单次插入，含唯一性检查                  |
-| `getTeams` 响应时间    | <100ms  | ~25ms   | 含成员数量聚合查询，百团队级别          |
-| `getTeamMembers` 响应时间 | <50ms | ~12ms   | 含角色排序，百成员级别                  |
-| `setLead` 响应时间     | <80ms   | ~20ms   | 含两次 UPDATE（teams + members 表）     |
-| `deleteTeam` 响应时间  | <50ms   | ~15ms   | 含子团队存在性检查                      |
-| 层级树构建（10 层）    | <500ms  | ~200ms  | 递归 getTeams 逐层查询，已有索引加速    |
-| SQLite WAL 并发写      | <30ms   | ~8ms    | 多写请求并发时通过 busy_timeout 自动重试 |
+| 指标                      | 目标   | 实际   | 说明                                     |
+| ------------------------- | ------ | ------ | ---------------------------------------- |
+| `createTeam` 响应时间     | <50ms  | ~15ms  | 含负责人自动注册为成员                   |
+| `addMember` 响应时间      | <30ms  | ~10ms  | 单次插入，含唯一性检查                   |
+| `getTeams` 响应时间       | <100ms | ~25ms  | 含成员数量聚合查询，百团队级别           |
+| `getTeamMembers` 响应时间 | <50ms  | ~12ms  | 含角色排序，百成员级别                   |
+| `setLead` 响应时间        | <80ms  | ~20ms  | 含两次 UPDATE（teams + members 表）      |
+| `deleteTeam` 响应时间     | <50ms  | ~15ms  | 含子团队存在性检查                       |
+| 层级树构建（10 层）       | <500ms | ~200ms | 递归 getTeams 逐层查询，已有索引加速     |
+| SQLite WAL 并发写         | <30ms  | ~8ms   | 多写请求并发时通过 busy_timeout 自动重试 |
 
 > 测量环境：本地 SQLite WAL 模式，1000 团队 / 5000 成员数据集，Intel i7 / 16GB RAM。
 
@@ -608,12 +608,12 @@ chainlesschain team prune-inactive --days 90
 
 ### 测试文件
 
-| 文件                                                    | 类型       | 用例数 | 说明                               |
-| ------------------------------------------------------- | ---------- | ------ | ---------------------------------- |
-| `tests/unit/permission/team-manager.test.js`            | 单元测试   | 42     | 核心 CRUD、角色变更、错误路径      |
-| `tests/unit/permission/team-manager-hierarchy.test.js`  | 单元测试   | 18     | 多级层次结构、递归删除场景         |
-| `tests/integration/permission/team-ipc.test.js`         | 集成测试   | 16     | 8 个 IPC 通道端到端调用            |
-| `tests/unit/permission/team-manager-edge-cases.test.js` | 单元测试   | 12     | 边界条件、并发写入、事务一致性     |
+| 文件                                                    | 类型     | 用例数 | 说明                           |
+| ------------------------------------------------------- | -------- | ------ | ------------------------------ |
+| `tests/unit/permission/team-manager.test.js`            | 单元测试 | 42     | 核心 CRUD、角色变更、错误路径  |
+| `tests/unit/permission/team-manager-hierarchy.test.js`  | 单元测试 | 18     | 多级层次结构、递归删除场景     |
+| `tests/integration/permission/team-ipc.test.js`         | 集成测试 | 16     | 8 个 IPC 通道端到端调用        |
+| `tests/unit/permission/team-manager-edge-cases.test.js` | 单元测试 | 12     | 边界条件、并发写入、事务一致性 |
 
 **总计**: 88 个测试用例，覆盖率 ~94%
 
@@ -621,43 +621,54 @@ chainlesschain team prune-inactive --days 90
 
 ```javascript
 // 1. 创建团队并自动注册负责人
-it('should auto-register leadDid as lead member', async () => {
+it("should auto-register leadDid as lead member", async () => {
   const { teamId } = await manager.createTeam({
-    orgId: 'org-001', name: '测试团队',
-    leadDid: 'did:example:lead', leadName: 'Alice',
+    orgId: "org-001",
+    name: "测试团队",
+    leadDid: "did:example:lead",
+    leadName: "Alice",
   });
   const { members } = await manager.getTeamMembers(teamId);
-  expect(members[0]).toMatchObject({ memberDid: 'did:example:lead', role: 'lead' });
+  expect(members[0]).toMatchObject({
+    memberDid: "did:example:lead",
+    role: "lead",
+  });
 });
 
 // 2. 删除含子团队时的保护机制
-it('should reject deleteTeam when sub-teams exist', async () => {
-  const parent = await manager.createTeam({ orgId: 'org-001', name: '父团队' });
-  await manager.createTeam({ orgId: 'org-001', name: '子团队', parentTeamId: parent.teamId });
+it("should reject deleteTeam when sub-teams exist", async () => {
+  const parent = await manager.createTeam({ orgId: "org-001", name: "父团队" });
+  await manager.createTeam({
+    orgId: "org-001",
+    name: "子团队",
+    parentTeamId: parent.teamId,
+  });
   const result = await manager.deleteTeam(parent.teamId);
-  expect(result).toEqual({ success: false, error: 'HAS_SUB_TEAMS' });
+  expect(result).toEqual({ success: false, error: "HAS_SUB_TEAMS" });
 });
 
 // 3. setLead 角色自动升降级
-it('should downgrade old lead and upgrade new lead', async () => {
+it("should downgrade old lead and upgrade new lead", async () => {
   const { teamId } = await manager.createTeam({
-    orgId: 'org-001', name: '变更团队',
-    leadDid: 'did:example:old-lead', leadName: 'OldLead',
+    orgId: "org-001",
+    name: "变更团队",
+    leadDid: "did:example:old-lead",
+    leadName: "OldLead",
   });
-  await manager.addMember(teamId, 'did:example:new-lead', 'NewLead', 'member');
-  await manager.setLead(teamId, 'did:example:new-lead', 'NewLead');
+  await manager.addMember(teamId, "did:example:new-lead", "NewLead", "member");
+  await manager.setLead(teamId, "did:example:new-lead", "NewLead");
   const { members } = await manager.getTeamMembers(teamId);
-  const oldLead = members.find(m => m.memberDid === 'did:example:old-lead');
-  const newLead = members.find(m => m.memberDid === 'did:example:new-lead');
-  expect(oldLead.role).toBe('member');
-  expect(newLead.role).toBe('lead');
+  const oldLead = members.find((m) => m.memberDid === "did:example:old-lead");
+  const newLead = members.find((m) => m.memberDid === "did:example:new-lead");
+  expect(oldLead.role).toBe("member");
+  expect(newLead.role).toBe("lead");
 });
 
 // 4. 同组织内团队重名校验
-it('should return TEAM_NAME_EXISTS for duplicate name in same org', async () => {
-  await manager.createTeam({ orgId: 'org-001', name: '研发部' });
-  const result = await manager.createTeam({ orgId: 'org-001', name: '研发部' });
-  expect(result).toEqual({ success: false, error: 'TEAM_NAME_EXISTS' });
+it("should return TEAM_NAME_EXISTS for duplicate name in same org", async () => {
+  await manager.createTeam({ orgId: "org-001", name: "研发部" });
+  const result = await manager.createTeam({ orgId: "org-001", name: "研发部" });
+  expect(result).toEqual({ success: false, error: "TEAM_NAME_EXISTS" });
 });
 ```
 
@@ -715,20 +726,22 @@ cd desktop-app-vue && npx vitest run tests/unit/permission/team-manager-hierarch
 
 ### 任务分配失败
 
-| 现象 | 排查步骤 |
-|------|---------|
-| 分配任务时提示无权限 | 确认当前操作者角色为 `lead` 或组织管理员；`guest` 角色无任务分配权限 |
-| 团队成员列表为空 | 检查 `orgId` 是否正确；确认 `addMember` 调用时未返回 `ALREADY_MEMBER` 错误 |
-| 子团队成员看不到父团队任务 | 团队层级不自动共享任务，需在父团队中显式添加子团队成员或配置跨团队可见性 |
+| 现象                       | 排查步骤                                                                   |
+| -------------------------- | -------------------------------------------------------------------------- |
+| 分配任务时提示无权限       | 确认当前操作者角色为 `lead` 或组织管理员；`guest` 角色无任务分配权限       |
+| 团队成员列表为空           | 检查 `orgId` 是否正确；确认 `addMember` 调用时未返回 `ALREADY_MEMBER` 错误 |
+| 子团队成员看不到父团队任务 | 团队层级不自动共享任务，需在父团队中显式添加子团队成员或配置跨团队可见性   |
 
 ## 安全深度说明
 
 ### 权限隔离
+
 - 不同团队的数据通过 `team_id` 严格隔离，跨团队数据访问需要显式授权
 - `guest` 角色仅拥有只读权限，无法修改团队数据或邀请新成员
 - 团队负责人变更（`setLead`）同时更新 `org_teams` 和 `org_team_members` 两张表，确保权限一致性
 
 ### 审计追踪
+
 - 所有团队操作（创建/删除/成员变更/负责人变更）自动记录到企业审计日志，日志标签为 `[Team]`
 - 审计日志支持按操作者 DID、时间范围、操作类型（如 `member:add`/`member:remove`）过滤查询
 - 高风险操作（如删除团队、移除负责人）可在 `settings` 中配置为需要审批工作流确认后才执行
@@ -741,9 +754,9 @@ cd desktop-app-vue && npx vitest run tests/unit/permission/team-manager-hierarch
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-| --- | --- | --- |
-| `src/main/permission/team-manager.js` | 团队管理核心逻辑（单例模式） | ~300 |
-| `src/main/permission/permission-ipc.js` | IPC 通道注册与路由 | ~200 |
+| 文件                                       | 职责                          | 行数 |
+| ------------------------------------------ | ----------------------------- | ---- |
+| `src/main/permission/team-manager.js`      | 团队管理核心逻辑（单例模式）  | ~300 |
+| `src/main/permission/permission-ipc.js`    | IPC 通道注册与路由            | ~200 |
 | `src/main/permission/permission-engine.js` | RBAC 权限引擎（团队角色联动） | ~450 |
-| `src/renderer/stores/team.ts` | 团队 Pinia 状态管理 | ~150 |
+| `src/renderer/stores/team.ts`              | 团队 Pinia 状态管理           | ~150 |

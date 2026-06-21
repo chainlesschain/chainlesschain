@@ -66,14 +66,14 @@ IPFS 模块在本地模拟去中心化内容寻址存储，所有内容通过 CI
 
 ## 配置参考
 
-| 配置项           | 含义                   | 默认          |
-| ---------------- | ---------------------- | ------------- |
-| `node.mode`      | 节点模式               | full          |
-| `default.quota`  | 默认配额               | 10 GB         |
-| `gc.strategy`    | GC 策略                | unpinned-only |
-| `encrypt.alg`    | 加密算法               | AES-256-GCM   |
-| `cid.prefix`     | CID 前缀               | bafy          |
-| V2 gateway caps  | per-operator active + per-owner pending-pin | 见备忘录 |
+| 配置项          | 含义                                        | 默认          |
+| --------------- | ------------------------------------------- | ------------- |
+| `node.mode`     | 节点模式                                    | full          |
+| `default.quota` | 默认配额                                    | 10 GB         |
+| `gc.strategy`   | GC 策略                                     | unpinned-only |
+| `encrypt.alg`   | 加密算法                                    | AES-256-GCM   |
+| `cid.prefix`    | CID 前缀                                    | bafy          |
+| V2 gateway caps | per-operator active + per-owner pending-pin | 见备忘录      |
 
 枚举：`chainlesschain ipfs modes`、`ipfs statuses`。
 
@@ -81,14 +81,14 @@ IPFS 模块在本地模拟去中心化内容寻址存储，所有内容通过 CI
 
 ## 性能指标
 
-| 操作                     | 典型耗时          |
-| ------------------------ | ----------------- |
-| add（1 KB 文本）         | < 10 ms           |
-| add（1 MB 文件）         | < 50 ms           |
-| add --encrypt（1 MB）    | < 80 ms           |
-| get（已 pin）            | < 15 ms           |
-| pin / unpin              | < 10 ms           |
-| gc --dry-run（1000 obj）| < 50 ms           |
+| 操作                     | 典型耗时                      |
+| ------------------------ | ----------------------------- |
+| add（1 KB 文本）         | < 10 ms                       |
+| add（1 MB 文件）         | < 50 ms                       |
+| add --encrypt（1 MB）    | < 80 ms                       |
+| get（已 pin）            | < 15 ms                       |
+| pin / unpin              | < 10 ms                       |
+| gc --dry-run（1000 obj） | < 50 ms                       |
 | V2 auto-offline 心跳超时 | 默认 stale 阈值见 memory 文件 |
 
 ---

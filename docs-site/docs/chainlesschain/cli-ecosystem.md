@@ -51,16 +51,16 @@ Plugin Ecosystem 2.0 管理插件从注册到发布的完整生命周期。
 
 ## 配置参考
 
-| 配置项                       | 含义                     | 默认          |
-| ---------------------------- | ------------------------ | ------------- |
-| `DEV_REVENUE_SHARE`          | 开发者分成比例           | 0.70          |
-| `PLATFORM_REVENUE_SHARE`     | 平台分成比例             | 0.30          |
-| `MAX_DEPENDENCY_DEPTH`       | 依赖链最大深度           | 10            |
-| `REVIEW_RULES`               | AI 审查规则数            | 8             |
-| `SEVERITIES`                 | critical/high/medium/low/info |        |
-| `STATUSES`                   | draft/submitted/approved/rejected/published/archived | |
-| `REVENUE_TYPES`              | subscription/one_time/donation |           |
-| `DEP_KINDS`                  | runtime/peer/dev/optional |              |
+| 配置项                   | 含义                                                 | 默认 |
+| ------------------------ | ---------------------------------------------------- | ---- |
+| `DEV_REVENUE_SHARE`      | 开发者分成比例                                       | 0.70 |
+| `PLATFORM_REVENUE_SHARE` | 平台分成比例                                         | 0.30 |
+| `MAX_DEPENDENCY_DEPTH`   | 依赖链最大深度                                       | 10   |
+| `REVIEW_RULES`           | AI 审查规则数                                        | 8    |
+| `SEVERITIES`             | critical/high/medium/low/info                        |      |
+| `STATUSES`               | draft/submitted/approved/rejected/published/archived |      |
+| `REVENUE_TYPES`          | subscription/one_time/donation                       |      |
+| `DEP_KINDS`              | runtime/peer/dev/optional                            |      |
 
 查看：`chainlesschain eco config`、`eco severities`、`eco statuses`、`eco rules`。
 
@@ -68,14 +68,14 @@ Plugin Ecosystem 2.0 管理插件从注册到发布的完整生命周期。
 
 ## 性能指标
 
-| 操作                          | 典型耗时          |
-| ----------------------------- | ----------------- |
-| register + checksum           | < 15 ms           |
-| resolve（10 层依赖）          | < 30 ms           |
-| review（8 规则 × ~1000 行代码）| < 50 ms          |
-| sandbox 启动                  | 依赖运行时环境    |
-| revenue 记录                  | < 10 ms           |
-| recommend（1000 插件）        | < 20 ms           |
+| 操作                            | 典型耗时       |
+| ------------------------------- | -------------- |
+| register + checksum             | < 15 ms        |
+| resolve（10 层依赖）            | < 30 ms        |
+| review（8 规则 × ~1000 行代码） | < 50 ms        |
+| sandbox 启动                    | 依赖运行时环境 |
+| revenue 记录                    | < 10 ms        |
+| recommend（1000 插件）          | < 20 ms        |
 
 ---
 

@@ -42,14 +42,14 @@ Git 同步模块基于 isomorphic-git（纯 JS 实现）提供去中心化的跨
 
 ## 核心模块
 
-| 模块 | 说明 |
-|------|------|
-| Git 集成 | isomorphic-git 纯 JS 实现，无需系统 Git |
+| 模块     | 说明                                      |
+| -------- | ----------------------------------------- |
+| Git 集成 | isomorphic-git 纯 JS 实现，无需系统 Git   |
 | 自动提交 | 智能检测变更，生成有意义的 commit message |
-| 冲突解决 | 3-way merge + AI 辅助冲突解决 |
-| 历史分析 | 版本对比、变更统计、贡献者分析 |
-| 加密同步 | git-crypt 透明加密，密钥由 U 盾管理 |
-| P2P 同步 | 设备间直连同步，无需远程仓库（v1.0.0+） |
+| 冲突解决 | 3-way merge + AI 辅助冲突解决             |
+| 历史分析 | 版本对比、变更统计、贡献者分析            |
+| 加密同步 | git-crypt 透明加密，密钥由 U 盾管理       |
+| P2P 同步 | 设备间直连同步，无需远程仓库（v1.0.0+）   |
 
 ## 为什么选择Git?
 
@@ -438,15 +438,15 @@ git sparse-checkout set knowledge/ configs/
 
 ## 性能指标
 
-| 操作 | 典型耗时 | 备注 |
-| ---- | -------- | ---- |
-| 变更检测（status） | < 50 ms | 基于 isomorphic-git，纯 JS 实现 |
-| 增量提交（单文件） | < 150 ms | 含 diff + 哈希 |
-| 推送到远端（LAN） | < 500 ms | 依赖网络/托管方 |
-| 推送到远端（公网） | 典型 1–3 s | GitHub/Gitee/自建 |
-| 浅克隆（depth=10） | < 5 s | 小仓库，常规网速 |
-| 冲突检测 | < 100 ms | 三种策略（ours/theirs/merge） |
-| 仓库 GC 压缩 | 依赖仓库大小 | 见 `git gc --aggressive` |
+| 操作               | 典型耗时     | 备注                            |
+| ------------------ | ------------ | ------------------------------- |
+| 变更检测（status） | < 50 ms      | 基于 isomorphic-git，纯 JS 实现 |
+| 增量提交（单文件） | < 150 ms     | 含 diff + 哈希                  |
+| 推送到远端（LAN）  | < 500 ms     | 依赖网络/托管方                 |
+| 推送到远端（公网） | 典型 1–3 s   | GitHub/Gitee/自建               |
+| 浅克隆（depth=10） | < 5 s        | 小仓库，常规网速                |
+| 冲突检测           | < 100 ms     | 三种策略（ours/theirs/merge）   |
+| 仓库 GC 压缩       | 依赖仓库大小 | 见 `git gc --aggressive`        |
 
 - 10 万条笔记的仓库，稀疏检出 + 增量同步可将日常同步控制在秒级。
 - 大仓库推荐开启 `shallowClone` + `sparse-checkout` 组合。
@@ -1072,17 +1072,17 @@ git remote set-url --add --push origin git@gitlab.com:...
 
 ### 核心配置字段
 
-| 字段                              | 类型      | 默认值     | 说明                                                   |
-| --------------------------------- | --------- | ---------- | ------------------------------------------------------ |
-| `sync.autoSync`                   | `boolean` | `true`     | 是否启用自动定时同步                                   |
-| `sync.syncInterval`               | `number`  | `5`        | 自动同步间隔（分钟）                                   |
-| `sync.syncOnChange`               | `boolean` | `true`     | 数据变更后立即触发同步                                 |
-| `sync.syncOnStartup`              | `boolean` | `true`     | 应用启动时自动同步                                     |
-| `sync.conflictStrategy`           | `string`  | `"manual"` | 冲突解决策略：`newest` / `local` / `remote` / `manual` |
-| `sync.shallowClone`               | `boolean` | `false`    | 是否使用浅克隆（新设备首次同步推荐开启）               |
-| `sync.depth`                      | `number`  | `10`       | 浅克隆深度（`shallowClone: true` 时生效）              |
-| `sync.lfsEnabled`                 | `boolean` | `false`    | 是否启用 Git LFS（大文件存储）                         |
-| `sync.lfsPatterns`                | `string[]`| `[]`       | LFS 跟踪的文件模式，如 `["*.mp4", "*.psd"]`            |
+| 字段                    | 类型       | 默认值     | 说明                                                   |
+| ----------------------- | ---------- | ---------- | ------------------------------------------------------ |
+| `sync.autoSync`         | `boolean`  | `true`     | 是否启用自动定时同步                                   |
+| `sync.syncInterval`     | `number`   | `5`        | 自动同步间隔（分钟）                                   |
+| `sync.syncOnChange`     | `boolean`  | `true`     | 数据变更后立即触发同步                                 |
+| `sync.syncOnStartup`    | `boolean`  | `true`     | 应用启动时自动同步                                     |
+| `sync.conflictStrategy` | `string`   | `"manual"` | 冲突解决策略：`newest` / `local` / `remote` / `manual` |
+| `sync.shallowClone`     | `boolean`  | `false`    | 是否使用浅克隆（新设备首次同步推荐开启）               |
+| `sync.depth`            | `number`   | `10`       | 浅克隆深度（`shallowClone: true` 时生效）              |
+| `sync.lfsEnabled`       | `boolean`  | `false`    | 是否启用 Git LFS（大文件存储）                         |
+| `sync.lfsPatterns`      | `string[]` | `[]`       | LFS 跟踪的文件模式，如 `["*.mp4", "*.psd"]`            |
 
 ### 远程仓库配置
 
@@ -1136,11 +1136,11 @@ git remote set-url --add --push origin git@gitlab.com:...
 
 ### 测试文件
 
-| 测试文件 | 覆盖范围 | 用例数 |
-| -------- | -------- | ------ |
-| `packages/cli/src/commands/__tests__/git.test.js`   | `git status`、`git auto-commit` CLI 命令 | ~20 |
-| `packages/cli/src/lib/__tests__/git-integration.test.js` | isomorphic-git 封装、提交、推送、拉取 | ~35 |
-| `desktop-app-vue/tests/unit/git/git-manager.test.js`     | 自动提交检测、3-way merge、冲突解决 | ~40 |
+| 测试文件                                                 | 覆盖范围                                 | 用例数 |
+| -------------------------------------------------------- | ---------------------------------------- | ------ |
+| `packages/cli/src/commands/__tests__/git.test.js`        | `git status`、`git auto-commit` CLI 命令 | ~20    |
+| `packages/cli/src/lib/__tests__/git-integration.test.js` | isomorphic-git 封装、提交、推送、拉取    | ~35    |
+| `desktop-app-vue/tests/unit/git/git-manager.test.js`     | 自动提交检测、3-way merge、冲突解决      | ~40    |
 
 ### 关键测试场景
 
@@ -1156,7 +1156,7 @@ it("auto-commit should detect changes and generate message", async () => {
 // 增量同步：仅拉取最新提交的变更文件
 it("pull should only return changed files since last sync", async () => {
   const changes = await gitManager.pull();
-  expect(changes.every(f => f.updatedAt > lastSyncTime)).toBe(true);
+  expect(changes.every((f) => f.updatedAt > lastSyncTime)).toBe(true);
 });
 
 // 冲突检测：同一文件在两端均有修改

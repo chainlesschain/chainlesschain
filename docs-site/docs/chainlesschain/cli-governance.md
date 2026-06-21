@@ -148,10 +148,10 @@ chainlesschain governance stats --json
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
+| 表名                   | 说明                                                                   |
+| ---------------------- | ---------------------------------------------------------------------- |
 | `governance_proposals` | 提案（标题、类型、状态、描述、提案者、影响等级、投票数、投票时间窗口） |
-| `governance_votes` | 投票记录（提案 ID、投票者 DID、投票值、权重、理由） |
+| `governance_votes`     | 投票记录（提案 ID、投票者 DID、投票值、权重、理由）                    |
 
 ## 系统架构
 
@@ -191,20 +191,20 @@ chainlesschain governance stats --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| create 创建提案 | < 200ms | ~90ms | OK |
-| vote 投票 | < 100ms | ~50ms | OK |
-| tally 计票 | < 200ms | ~100ms | OK |
-| analyze 影响分析 | < 500ms | ~200ms | OK |
-| predict 预测 | < 300ms | ~120ms | OK |
-| stats 统计 | < 300ms | ~150ms | OK |
+| 操作             | 目标    | 实际   | 状态 |
+| ---------------- | ------- | ------ | ---- |
+| create 创建提案  | < 200ms | ~90ms  | OK   |
+| vote 投票        | < 100ms | ~50ms  | OK   |
+| tally 计票       | < 200ms | ~100ms | OK   |
+| analyze 影响分析 | < 500ms | ~200ms | OK   |
+| predict 预测     | < 300ms | ~120ms | OK   |
+| stats 统计       | < 300ms | ~150ms | OK   |
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/governance.js` | governance 命令主入口 (Phase 54) |
+| 文件                                           | 职责                                              |
+| ---------------------------------------------- | ------------------------------------------------- |
+| `packages/cli/src/commands/governance.js`      | governance 命令主入口 (Phase 54)                  |
 | `packages/cli/src/lib/community-governance.js` | 提案 CRUD、投票计票、影响分析、预测、统计核心实现 |
 
 ## 测试覆盖率
@@ -225,12 +225,12 @@ __tests__/unit/community-governance.test.js — 117 tests
 
 ## 故障排查
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| `activate` 失败 | 提案非 draft | `proposal show <id>` 查看状态 |
-| `vote` 被拒 | 提案非 active | 先 `activate` |
-| `tally` 未通过 | quorum/threshold 不达标 | 检查参数或延长投票期 |
-| `predict` 数据不足 | 历史提案 < 10 | 等累计更多数据 |
+| 症状               | 可能原因                | 解决方案                      |
+| ------------------ | ----------------------- | ----------------------------- |
+| `activate` 失败    | 提案非 draft            | `proposal show <id>` 查看状态 |
+| `vote` 被拒        | 提案非 active           | 先 `activate`                 |
+| `tally` 未通过     | quorum/threshold 不达标 | 检查参数或延长投票期          |
+| `predict` 数据不足 | 历史提案 < 10           | 等累计更多数据                |
 
 ## 使用示例
 

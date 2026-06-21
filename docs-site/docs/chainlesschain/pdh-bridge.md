@@ -18,17 +18,17 @@ ChainlessChain 个人数据中台（PDH）此前的能力都锁在 Kotlin 侧—
 
 ## 实现进度
 
-| 阶段 | 内容 | 状态 |
-| ---- | ---- | ---- |
-| **Phase 0** | 协议冻结 + Kotlin 协议核 + Ktor HTTP shell + lockfile 发现 + app 启动接线 + cc 侧发现层 | ✅ **已落地 + chopin 真机 e2e 验证** |
+| 阶段        | 内容                                                                                         | 状态                                                                |
+| ----------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Phase 0** | 协议冻结 + Kotlin 协议核 + Ktor HTTP shell + lockfile 发现 + app 启动接线 + cc 侧发现层      | ✅ **已落地 + chopin 真机 e2e 验证**                                |
 | **Phase 1** | 采集工具（L1 本地文件 / L2 系统数据 / L3 App 业务数据 7 源 / L4 root 打捞）接入生产 ToolHost | ✅ **代码已落地 + 单元测试**（完整真机采集需登录账号 / L4 需 root） |
-| **Phase 2** | 安卓单输入框 Chat + 三类信任卡 + 隐私分级路由 + 不可信数据隔离 | ⬜ 设计待开工 |
-| **Phase 3** | 本地文件（L1）抽取管线（PDF/Office/OCR/转写/EXIF） | ⬜ 设计待开工 |
-| **Phase 4** | 数据库直读（L4 归一化 + 原库只读直查） | ⬜ 设计待开工 |
-| **Phase 5** | 自学习纠正回路（补 PDH feedback loop） | ⬜ 设计待开工 |
-| **Phase 6** | 人看视图（数据全貌 / 出境台账 / AI 画像可纠） | ⬜ 设计待开工 |
-| **Phase 7** | 跨设备资产备份（加密 + DID + libp2p E2E P2P） | ⬜ 设计待开工 |
-| **Phase 8** | 跨设备操作 + 事务执行 | ⬜ 设计待开工 |
+| **Phase 2** | 安卓单输入框 Chat + 三类信任卡 + 隐私分级路由 + 不可信数据隔离                               | ⬜ 设计待开工                                                       |
+| **Phase 3** | 本地文件（L1）抽取管线（PDF/Office/OCR/转写/EXIF）                                           | ⬜ 设计待开工                                                       |
+| **Phase 4** | 数据库直读（L4 归一化 + 原库只读直查）                                                       | ⬜ 设计待开工                                                       |
+| **Phase 5** | 自学习纠正回路（补 PDH feedback loop）                                                       | ⬜ 设计待开工                                                       |
+| **Phase 6** | 人看视图（数据全貌 / 出境台账 / AI 画像可纠）                                                | ⬜ 设计待开工                                                       |
+| **Phase 7** | 跨设备资产备份（加密 + DID + libp2p E2E P2P）                                                | ⬜ 设计待开工                                                       |
+| **Phase 8** | 跨设备操作 + 事务执行                                                                        | ⬜ 设计待开工                                                       |
 
 > **真机 e2e（Phase 0，chopin rooted）**：App 启动后 bridge 在 `127.0.0.1:18510` 起服 + 写出 cc 兼容 lockfile（0600/0700）；`curl` 实证 `initialize` → `protocolVersion 2024-11-05`、`tools/call pdh_ping` → `pong`、错误 token → `401`。
 
@@ -81,13 +81,13 @@ ChainlessChain 个人数据中台（PDH）此前的能力都锁在 Kotlin 侧—
 
 纯 Kotlin / JSON-RPC 2.0，与 cc 的 MCP client POST 的内容字节兼容。支持方法：
 
-| 方法 | 行为 |
-| ---- | ---- |
-| `initialize` | 返回 `protocolVersion: 2024-11-05` + `capabilities.tools` + `serverInfo`（name `chainlesschain-pdh-android`, version `0.1.0`） |
-| `notifications/initialized` | 通知（无 `id`）→ 仅 ACK（HTTP 202，无响应体） |
-| `tools/list` | 返回工具清单（name / description / inputSchema） |
-| `tools/call` | 调用指定工具；工具内部失败 → **带 `isError:true` 的 in-band 内容结果**（不是 transport 错误） |
-| `resources/list` / `prompts/list` | 返回空数组（占位，保持客户端兼容） |
+| 方法                              | 行为                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `initialize`                      | 返回 `protocolVersion: 2024-11-05` + `capabilities.tools` + `serverInfo`（name `chainlesschain-pdh-android`, version `0.1.0`） |
+| `notifications/initialized`       | 通知（无 `id`）→ 仅 ACK（HTTP 202，无响应体）                                                                                  |
+| `tools/list`                      | 返回工具清单（name / description / inputSchema）                                                                               |
+| `tools/call`                      | 调用指定工具；工具内部失败 → **带 `isError:true` 的 in-band 内容结果**（不是 transport 错误）                                  |
+| `resources/list` / `prompts/list` | 返回空数组（占位，保持客户端兼容）                                                                                             |
 
 错误码遵循 JSON-RPC：`-32700` Parse error / `-32600` Invalid request / `-32601` Method/Tool not found / `-32603` Internal error。
 
@@ -118,10 +118,10 @@ App 在内置 cc 的 HOME 下写发现锁，cc 侧读取后连接：
 
 ### 发现两条路径（cc 侧 `discoverPdhServer`）
 
-| 路径 | 触发 | 行为 |
-| ---- | ---- | ---- |
+| 路径                 | 触发                                       | 行为                                                                  |
+| -------------------- | ------------------------------------------ | --------------------------------------------------------------------- |
 | **Path A（确定性）** | `CHAINLESSCHAIN_PDH_PORT` 已设（App 注入） | 找到端口匹配的存活锁直接用；令牌可来自锁或 `CHAINLESSCHAIN_PDH_TOKEN` |
-| **Path B（扫描）** | 无 env / env 端口无存活锁 | 取最新存活锁（一台设备只有一个 PDH server，无 workspace 概念） |
+| **Path B（扫描）**   | 无 env / env 端口无存活锁                  | 取最新存活锁（一台设备只有一个 PDH server，无 workspace 概念）        |
 
 存活判定：`pid` 发信号 0 探活（跨平台，含 Windows）；锁文件 `pid` 已死 **且** 文件 mtime 超过 30s TTL → 判定 stale 丢弃。
 
@@ -129,26 +129,26 @@ App 在内置 cc 的 HOME 下写发现锁，cc 侧读取后连接：
 
 PDH Bridge 当前暴露 **6 个设备工具**（agent 侧命名空间 `mcp__pdh__*`）：
 
-| 工具 | 层 | 需 root | 功能 |
-| ---- | -- | ------- | ---- |
-| `pdh_ping` | — | 否 | 存活探针（liveness） |
-| `collect_files` | L1 | 否 | 采集本地文件入库（默认 Documents + Download，或传 `roots` 数组覆盖） |
-| `collect_system_data` | L2 | 否 | 采集系统数据（联系人 + 已安装应用），免 root 免登录 |
-| `collect_app_data` | L3 | 否 | 经 App 已存登录态采集业务数据；无凭证 → 返回 `assist_required` |
-| `salvage_app_data` | L4 | **是** | 免密钥 root 内存打捞（目标 App 须前台运行） |
-| `list_collectors` | — | — | 列出各采集器的层级 + root 需求（自反射） |
+| 工具                  | 层  | 需 root | 功能                                                                 |
+| --------------------- | --- | ------- | -------------------------------------------------------------------- |
+| `pdh_ping`            | —   | 否      | 存活探针（liveness）                                                 |
+| `collect_files`       | L1  | 否      | 采集本地文件入库（默认 Documents + Download，或传 `roots` 数组覆盖） |
+| `collect_system_data` | L2  | 否      | 采集系统数据（联系人 + 已安装应用），免 root 免登录                  |
+| `collect_app_data`    | L3  | 否      | 经 App 已存登录态采集业务数据；无凭证 → 返回 `assist_required`       |
+| `salvage_app_data`    | L4  | **是**  | 免密钥 root 内存打捞（目标 App 须前台运行）                          |
+| `list_collectors`     | —   | —       | 列出各采集器的层级 + root 需求（自反射）                             |
 
 ### `collect_app_data` 支持的 7 个数据源
 
-| App key | 适配器 | 取数方式 |
-| ------- | ------ | -------- |
-| `weibo` | `social-weibo` | cookie（无需签名） |
-| `bilibili` | `social-bilibili` | cookie（无需签名） |
-| `12306` | `travel-12306` | cookie（无需签名） |
-| `douyin` | `social-douyin` | 签名门控（WebSignBridge） |
+| App key               | 适配器               | 取数方式                  |
+| --------------------- | -------------------- | ------------------------- |
+| `weibo`               | `social-weibo`       | cookie（无需签名）        |
+| `bilibili`            | `social-bilibili`    | cookie（无需签名）        |
+| `12306`               | `travel-12306`       | cookie（无需签名）        |
+| `douyin`              | `social-douyin`      | 签名门控（WebSignBridge） |
 | `xiaohongshu` / `xhs` | `social-xiaohongshu` | 签名门控（WebSignBridge） |
-| `toutiao` | `social-toutiao` | 签名门控（WebSignBridge） |
-| `kuaishou` | `social-kuaishou` | 签名门控（WebSignBridge） |
+| `toutiao`             | `social-toutiao`     | 签名门控（WebSignBridge） |
+| `kuaishou`            | `social-kuaishou`    | 签名门控（WebSignBridge） |
 
 ### `salvage_app_data` 支持的目标 App（root）
 
@@ -158,30 +158,30 @@ PDH Bridge 当前暴露 **6 个设备工具**（agent 侧命名空间 `mcp__pdh_
 
 ### 工具统一返回契约（诚实降级）
 
-| status | 含义 |
-| ------ | ---- |
-| `ok` | 成功，返回 `collected` / `ingested` / `kgTriples` / `ragDocs` 等计数 |
+| status            | 含义                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| `ok`              | 成功，返回 `collected` / `ingested` / `kgTriples` / `ragDocs` 等计数                   |
 | `assist_required` | 采集前置缺失（需人在 App 内操作），返回 `instruction` + `reason`，agent 引导用户后重试 |
-| `partial` | 部分成功（设计契约） |
-| `error` | 失败，返回错误信息——**绝不静默失败 / 假装成功 / 编造数据** |
+| `partial`         | 部分成功（设计契约）                                                                   |
+| `error`           | 失败，返回错误信息——**绝不静默失败 / 假装成功 / 编造数据**                             |
 
 ## 配置参考
 
 ### 环境变量
 
-| 变量 | 作用 | 设置方 |
-| ---- | ---- | ------ |
-| `CHAINLESSCHAIN_PDH_PORT` | 直连指定端口（Path A 快路径） | App 注入内置 cc |
+| 变量                       | 作用                                            | 设置方           |
+| -------------------------- | ----------------------------------------------- | ---------------- |
+| `CHAINLESSCHAIN_PDH_PORT`  | 直连指定端口（Path A 快路径）                   | App 注入内置 cc  |
 | `CHAINLESSCHAIN_PDH_TOKEN` | 配合上面，提供 Bearer 令牌（lockfile 无令牌时） | App 注入（可选） |
-| `CHAINLESSCHAIN_PDH` | 显式声明"在 PDH 终端内"（开启自动连接） | 可选 opt-in |
+| `CHAINLESSCHAIN_PDH`       | 显式声明"在 PDH 终端内"（开启自动连接）         | 可选 opt-in      |
 
 ### `cc agent` 命令行开关
 
-| 开关 | 行为 |
-| ---- | ---- |
-| `--pdh` | 强制启用 PDH 发现（即便不在 PDH 终端） |
-| `--no-pdh` | 关闭 PDH 发现 |
-| 默认 | 在 PDH 终端内（env 命中）自动连接 |
+| 开关       | 行为                                   |
+| ---------- | -------------------------------------- |
+| `--pdh`    | 强制启用 PDH 发现（即便不在 PDH 终端） |
+| `--no-pdh` | 关闭 PDH 发现                          |
+| 默认       | 在 PDH 终端内（env 命中）自动连接      |
 
 ### server 端口与路径
 
@@ -212,23 +212,23 @@ stale TTL       : 30000ms  (pid 已死 + 文件超时才判废)
 
 ### 协议层（架构事实）
 
-| 指标 | 数值 / 特征 |
-| ---- | ----------- |
-| 传输 | Streamable HTTP（POST /mcp），localhost 回环，无跨网开销 |
-| 协议核 | 纯 JSON 解析 + 分发，无重型依赖 |
-| 端口绑定 | 启动时一次性扫描 ≤10 端口（`ServerSocket` 探测），幂等 |
-| 鉴权 | 每请求一次 Bearer 字符串比较 |
-| 发现 | lockfile 读取 + `process.kill(pid,0)` 探活，O(锁数量)，一台设备通常 1 把锁 |
+| 指标     | 数值 / 特征                                                                |
+| -------- | -------------------------------------------------------------------------- |
+| 传输     | Streamable HTTP（POST /mcp），localhost 回环，无跨网开销                   |
+| 协议核   | 纯 JSON 解析 + 分发，无重型依赖                                            |
+| 端口绑定 | 启动时一次性扫描 ≤10 端口（`ServerSocket` 探测），幂等                     |
+| 鉴权     | 每请求一次 Bearer 字符串比较                                               |
+| 发现     | lockfile 读取 + `process.kill(pid,0)` 探活，O(锁数量)，一台设备通常 1 把锁 |
 
 ### 采集特征
 
-| 维度 | 特征 |
-| ---- | ---- |
-| `collect_system_data` (L2) | 本地 ContentResolver 读取 + 入库，免 root/登录，最快路径 |
-| `collect_app_data` (L3) | 受网络 / cookie 暖热 / 签名生成影响；无凭证立即返回 `assist_required`（不阻塞） |
-| `salvage_app_data` (L4) | root 内存扫描 + 叶子页打捞，耗时随目标库大小变化 |
-| `assist_required` 阻塞 | 由用户操作节奏决定，故 server 标记 `longRunning` 豁免超时 |
-| 重活调度（设计） | 大批量采集 / 抽取走 WorkManager（充电 + WiFi + idle），不占前台 |
+| 维度                       | 特征                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| `collect_system_data` (L2) | 本地 ContentResolver 读取 + 入库，免 root/登录，最快路径                        |
+| `collect_app_data` (L3)    | 受网络 / cookie 暖热 / 签名生成影响；无凭证立即返回 `assist_required`（不阻塞） |
+| `salvage_app_data` (L4)    | root 内存扫描 + 叶子页打捞，耗时随目标库大小变化                                |
+| `assist_required` 阻塞     | 由用户操作节奏决定，故 server 标记 `longRunning` 豁免超时                       |
+| 重活调度（设计）           | 大批量采集 / 抽取走 WorkManager（充电 + WiFi + idle），不占前台                 |
 
 ## 测试覆盖
 
@@ -332,29 +332,29 @@ cc pdh doctor
 
 ### Android 侧（`android-app/app/src/main/java/com/chainlesschain/android/pdh/bridge/`）
 
-| 文件 | 职责 |
-| ---- | ---- |
-| `PdhBridgeProtocol.kt` | 纯 JDK MCP / JSON-RPC 2.0 协议核（headless 可测） |
-| `PdhBridgeServer.kt` | Ktor CIO HTTP 外壳（端口扫描 / Bearer / 会话头 / 写锁 / 启停） |
-| `PdhLockfileWriter.kt` | 发现 lockfile 读写（schema 对齐 cc reader，0600/0700） |
-| `PdhBridgeModule.kt` | Hilt 装配——把 L1–L4 采集器接成生产 ToolHost |
-| `PdhToolHost.kt` | 生产工具集组装器（pdh_ping + 采集工具 + list_collectors） |
-| `PdhTool.kt` | 工具接口（name / description / inputSchema / call） |
-| `CollectFilesTool.kt` | L1 本地文件采集工具 |
-| `CollectSystemDataTool.kt` | L2 系统数据采集工具 |
-| `CollectAppDataTool.kt` | L3 App 业务数据采集工具（7 源 + 签名门控接线） |
-| `SalvageAppDataTool.kt` | L4 root 内存打捞工具 |
-| `ListCollectorsTool.kt` / `PdhPingTool.kt` | 采集器清单 / 存活探针 |
-| `StubPdhToolHost.kt` | Phase 0 假工具集（仅供 headless 协议测试保留） |
+| 文件                                       | 职责                                                           |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `PdhBridgeProtocol.kt`                     | 纯 JDK MCP / JSON-RPC 2.0 协议核（headless 可测）              |
+| `PdhBridgeServer.kt`                       | Ktor CIO HTTP 外壳（端口扫描 / Bearer / 会话头 / 写锁 / 启停） |
+| `PdhLockfileWriter.kt`                     | 发现 lockfile 读写（schema 对齐 cc reader，0600/0700）         |
+| `PdhBridgeModule.kt`                       | Hilt 装配——把 L1–L4 采集器接成生产 ToolHost                    |
+| `PdhToolHost.kt`                           | 生产工具集组装器（pdh_ping + 采集工具 + list_collectors）      |
+| `PdhTool.kt`                               | 工具接口（name / description / inputSchema / call）            |
+| `CollectFilesTool.kt`                      | L1 本地文件采集工具                                            |
+| `CollectSystemDataTool.kt`                 | L2 系统数据采集工具                                            |
+| `CollectAppDataTool.kt`                    | L3 App 业务数据采集工具（7 源 + 签名门控接线）                 |
+| `SalvageAppDataTool.kt`                    | L4 root 内存打捞工具                                           |
+| `ListCollectorsTool.kt` / `PdhPingTool.kt` | 采集器清单 / 存活探针                                          |
+| `StubPdhToolHost.kt`                       | Phase 0 假工具集（仅供 headless 协议测试保留）                 |
 
 ### CLI 侧（`packages/cli/src/`）
 
-| 文件 | 职责 |
-| ---- | ---- |
-| `lib/pdh-bridge.js` | cc 侧发现层（env 直连 + lockfile 扫描 + stale 过滤 + MCP 配置 + 诊断） |
-| `commands/pdh.js` | `cc pdh list / status / doctor` 检视命令（token 脱敏） |
-| `runtime/mcp-config.js` | `loadPdhMcp` + `resolveAgentMcp` 把 PDH 接进 agent 的 MCP 装配 |
-| `commands/agent.js` | `--pdh` / `--no-pdh` 开关 |
+| 文件                    | 职责                                                                   |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `lib/pdh-bridge.js`     | cc 侧发现层（env 直连 + lockfile 扫描 + stale 过滤 + MCP 配置 + 诊断） |
+| `commands/pdh.js`       | `cc pdh list / status / doctor` 检视命令（token 脱敏）                 |
+| `runtime/mcp-config.js` | `loadPdhMcp` + `resolveAgentMcp` 把 PDH 接进 agent 的 MCP 装配         |
+| `commands/agent.js`     | `--pdh` / `--no-pdh` 开关                                              |
 
 ## 使用示例
 

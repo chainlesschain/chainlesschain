@@ -188,15 +188,15 @@ pending → running → completed
 
 ```javascript
 // 通过 IPC 创建量化任务
-const job = await window.electronAPI.invoke('quantization:create-job', {
-  modelPath: '/path/to/original-model',
-  format: 'gguf',
-  level: 'Q4_K_M'  // 推荐：质量与大小的最佳平衡
+const job = await window.electronAPI.invoke("quantization:create-job", {
+  modelPath: "/path/to/original-model",
+  format: "gguf",
+  level: "Q4_K_M", // 推荐：质量与大小的最佳平衡
 });
 
 // 查询量化进度
-const status = await window.electronAPI.invoke('quantization:get-status', {
-  jobId: job.id
+const status = await window.electronAPI.invoke("quantization:get-status", {
+  jobId: job.id,
 });
 // { status: 'running', progress: 65.2 }
 ```
@@ -264,13 +264,13 @@ const status = await window.electronAPI.invoke('quantization:get-status', {
 }
 ```
 
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `defaultFormat` | `"gguf"` | 默认量化格式（`gguf` / `gptq`） |
-| `defaultLevel` | `"Q4_K_M"` | 默认 GGUF 量化级别 |
-| `autoImportToOllama` | `true` | 量化完成后是否自动导入 Ollama |
-| `maxConcurrentJobs` | `1` | 最大并发量化任务数 |
-| `maxMemoryPercent` | `80` | 量化过程最大内存占用百分比 |
+| 配置项               | 默认值     | 说明                            |
+| -------------------- | ---------- | ------------------------------- |
+| `defaultFormat`      | `"gguf"`   | 默认量化格式（`gguf` / `gptq`） |
+| `defaultLevel`       | `"Q4_K_M"` | 默认 GGUF 量化级别              |
+| `autoImportToOllama` | `true`     | 量化完成后是否自动导入 Ollama   |
+| `maxConcurrentJobs`  | `1`        | 最大并发量化任务数              |
+| `maxMemoryPercent`   | `80`       | 量化过程最大内存占用百分比      |
 
 ---
 
@@ -305,13 +305,13 @@ const status = await window.electronAPI.invoke('quantization:get-status', {
 
 ## 测试覆盖率
 
-| 模块 | 测试文件 | 用例数 | 覆盖率 |
-| --- | --- | --- | --- |
-| `QuantizationManager` | `tests/unit/quantization/quantization-manager.test.js` | 38 | 94% |
-| `GGUFQuantizer` | `tests/unit/quantization/gguf-quantizer.test.js` | 29 | 91% |
-| `GPTQQuantizer` | `tests/unit/quantization/gptq-quantizer.test.js` | 22 | 88% |
-| Ollama 导入流程 | `tests/unit/quantization/ollama-import.test.js` | 15 | 92% |
-| IPC 通道 | `tests/unit/quantization/ipc-handlers.test.js` | 18 | 96% |
+| 模块                  | 测试文件                                               | 用例数 | 覆盖率 |
+| --------------------- | ------------------------------------------------------ | ------ | ------ |
+| `QuantizationManager` | `tests/unit/quantization/quantization-manager.test.js` | 38     | 94%    |
+| `GGUFQuantizer`       | `tests/unit/quantization/gguf-quantizer.test.js`       | 29     | 91%    |
+| `GPTQQuantizer`       | `tests/unit/quantization/gptq-quantizer.test.js`       | 22     | 88%    |
+| Ollama 导入流程       | `tests/unit/quantization/ollama-import.test.js`        | 15     | 92%    |
+| IPC 通道              | `tests/unit/quantization/ipc-handlers.test.js`         | 18     | 96%    |
 
 **运行测试**：
 

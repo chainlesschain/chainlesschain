@@ -60,6 +60,7 @@ chainlesschain agent --provider volcengine
 ### 什么是中转站？
 
 中转站是第三方提供的 OpenAI API 代理服务，通常提供：
+
 - 无需科学上网即可访问 GPT-4o / o1 等模型
 - 按量计费，价格通常低于官方
 - 使用中转站自己的 API Key
@@ -115,13 +116,13 @@ chainlesschain ask "什么是 WebRTC?" \
 
 ### 常见中转站示例
 
-| 中转站        | Base URL                         | 说明                         |
-| ------------- | -------------------------------- | ---------------------------- |
-| API2D         | `https://oa.api2d.net/v1`       | 国内可用，支持 GPT-4o        |
-| OpenAI-SB     | `https://api.openai-sb.com/v1`  | 按量计费                     |
-| CloseAI       | `https://api.closeai-proxy.xyz/v1` | 低延迟                    |
-| AiHubMix      | `https://aihubmix.com/v1`      | 多模型聚合                   |
-| 自建 Nginx    | `https://your-proxy.com/v1`     | 企业内网部署                 |
+| 中转站     | Base URL                           | 说明                  |
+| ---------- | ---------------------------------- | --------------------- |
+| API2D      | `https://oa.api2d.net/v1`          | 国内可用，支持 GPT-4o |
+| OpenAI-SB  | `https://api.openai-sb.com/v1`     | 按量计费              |
+| CloseAI    | `https://api.closeai-proxy.xyz/v1` | 低延迟                |
+| AiHubMix   | `https://aihubmix.com/v1`          | 多模型聚合            |
+| 自建 Nginx | `https://your-proxy.com/v1`        | 企业内网部署          |
 
 > **注意**：中转站的 URL 格式可能略有差异，请以中转站实际提供的文档为准。部分中转站不需要 `/v1` 后缀。
 
@@ -163,12 +164,12 @@ chainlesschain agent --provider volcengine
 
 ### 模型选择指南
 
-| 模型 ID                        | 适用场景         | 特点               | 推荐用法           |
-| ------------------------------ | ---------------- | ------------------ | ------------------ |
-| `doubao-seed-1-6-251015`       | 通用/推理/创作   | 旗舰模型，能力最强 | 复杂分析、长文写作 |
-| `doubao-seed-1-6-flash-250828` | 日常对话         | 快速响应，成本低   | 日常问答、闲聊     |
-| `doubao-seed-1-6-lite-251015`  | 快速查询         | 延迟最低           | 简单查询、快速回答 |
-| `doubao-seed-code`             | 代码编程         | 专用代码模型       | 写代码、debug      |
+| 模型 ID                        | 适用场景       | 特点               | 推荐用法           |
+| ------------------------------ | -------------- | ------------------ | ------------------ |
+| `doubao-seed-1-6-251015`       | 通用/推理/创作 | 旗舰模型，能力最强 | 复杂分析、长文写作 |
+| `doubao-seed-1-6-flash-250828` | 日常对话       | 快速响应，成本低   | 日常问答、闲聊     |
+| `doubao-seed-1-6-lite-251015`  | 快速查询       | 延迟最低           | 简单查询、快速回答 |
+| `doubao-seed-code`             | 代码编程       | 专用代码模型       | 写代码、debug      |
 
 ### 任务智能选择
 
@@ -344,18 +345,18 @@ chainlesschain ask "你好" \
 
 ### 所有内置提供商
 
-| 提供商             | 环境变量                | 默认 Base URL                                              |
-| ------------------ | ----------------------- | ---------------------------------------------------------- |
-| Volcengine (豆包)  | `VOLCENGINE_API_KEY`    | `https://ark.cn-beijing.volces.com/api/v3`                 |
-| OpenAI             | `OPENAI_API_KEY`        | `https://api.openai.com/v1`                                |
-| Anthropic (Claude) | `ANTHROPIC_API_KEY`     | `https://api.anthropic.com/v1`                             |
-| DeepSeek           | `DEEPSEEK_API_KEY`      | `https://api.deepseek.com/v1`                              |
-| DashScope (阿里)   | `DASHSCOPE_API_KEY`     | `https://dashscope.aliyuncs.com/compatible-mode/v1`        |
-| Google Gemini      | `GEMINI_API_KEY`        | `https://generativelanguage.googleapis.com/v1beta`         |
-| Kimi (月之暗面)    | `MOONSHOT_API_KEY`      | `https://api.moonshot.cn/v1`                               |
-| MiniMax (海螺AI)   | `MINIMAX_API_KEY`       | `https://api.minimax.chat/v1`                              |
-| Mistral AI         | `MISTRAL_API_KEY`       | `https://api.mistral.ai/v1`                                |
-| Ollama (本地)      | —                       | `http://localhost:11434`                                   |
+| 提供商             | 环境变量             | 默认 Base URL                                       |
+| ------------------ | -------------------- | --------------------------------------------------- |
+| Volcengine (豆包)  | `VOLCENGINE_API_KEY` | `https://ark.cn-beijing.volces.com/api/v3`          |
+| OpenAI             | `OPENAI_API_KEY`     | `https://api.openai.com/v1`                         |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY`  | `https://api.anthropic.com/v1`                      |
+| DeepSeek           | `DEEPSEEK_API_KEY`   | `https://api.deepseek.com/v1`                       |
+| DashScope (阿里)   | `DASHSCOPE_API_KEY`  | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| Google Gemini      | `GEMINI_API_KEY`     | `https://generativelanguage.googleapis.com/v1beta`  |
+| Kimi (月之暗面)    | `MOONSHOT_API_KEY`   | `https://api.moonshot.cn/v1`                        |
+| MiniMax (海螺AI)   | `MINIMAX_API_KEY`    | `https://api.minimax.chat/v1`                       |
+| Mistral AI         | `MISTRAL_API_KEY`    | `https://api.mistral.ai/v1`                         |
+| Ollama (本地)      | —                    | `http://localhost:11434`                            |
 
 ### 优先级规则
 
@@ -498,17 +499,17 @@ chainlesschain chat \
 
 下表为各提供商在标准网络环境下的典型首 token 延迟（TTFT）和吞吐量（基于 `chainlesschain ask` 单轮 128 token 输出测试）：
 
-| 提供商               | 首 token 延迟 (TTFT) | 吞吐量 (tokens/s) | 说明                           |
-| -------------------- | -------------------- | ------------------ | ------------------------------ |
-| Ollama（本地 7B）    | 200–600 ms           | 30–80              | 取决于 GPU/CPU 型号            |
-| Ollama（本地 70B）   | 1–3 s                | 5–15               | 需要 ≥48 GB VRAM               |
-| Volcengine（豆包）   | 300–800 ms           | 40–120             | 国内节点，延迟稳定             |
-| OpenAI（直连）       | 500–1500 ms          | 30–80              | 受网络环境影响明显             |
-| OpenAI（中转站）     | 600–2000 ms          | 25–70              | 多一跳代理，延迟略高           |
-| DeepSeek             | 400–1000 ms          | 50–100             | 国内直连推荐                   |
-| Anthropic Claude     | 600–1500 ms          | 30–70              | Messages API，流式输出稳定     |
-| DashScope（阿里）    | 400–900 ms           | 40–90              | 国内节点                       |
-| Google Gemini        | 500–1200 ms          | 35–80              | 需要 VPN，延迟受网络影响       |
+| 提供商             | 首 token 延迟 (TTFT) | 吞吐量 (tokens/s) | 说明                       |
+| ------------------ | -------------------- | ----------------- | -------------------------- |
+| Ollama（本地 7B）  | 200–600 ms           | 30–80             | 取决于 GPU/CPU 型号        |
+| Ollama（本地 70B） | 1–3 s                | 5–15              | 需要 ≥48 GB VRAM           |
+| Volcengine（豆包） | 300–800 ms           | 40–120            | 国内节点，延迟稳定         |
+| OpenAI（直连）     | 500–1500 ms          | 30–80             | 受网络环境影响明显         |
+| OpenAI（中转站）   | 600–2000 ms          | 25–70             | 多一跳代理，延迟略高       |
+| DeepSeek           | 400–1000 ms          | 50–100            | 国内直连推荐               |
+| Anthropic Claude   | 600–1500 ms          | 30–70             | Messages API，流式输出稳定 |
+| DashScope（阿里）  | 400–900 ms           | 40–90             | 国内节点                   |
+| Google Gemini      | 500–1200 ms          | 35–80             | 需要 VPN，延迟受网络影响   |
 
 > **注意**：以上数据为经验参考值，实际延迟受网络状况、模型负载、请求 token 数等因素影响。
 
@@ -516,11 +517,11 @@ chainlesschain chat \
 
 使用第三方中转站相比直连官方 API，通常引入以下额外开销：
 
-| 开销来源         | 典型增量    | 缓解方法                                    |
-| ---------------- | ----------- | ------------------------------------------- |
-| 中转站网络跳数   | +50–300 ms  | 选择地理位置近的中转站节点                  |
-| 中转站请求解析   | +10–50 ms   | 影响可忽略                                  |
-| HTTPS 握手       | +30–100 ms  | 连接复用（keep-alive）自动减少后续请求开销  |
+| 开销来源       | 典型增量   | 缓解方法                                   |
+| -------------- | ---------- | ------------------------------------------ |
+| 中转站网络跳数 | +50–300 ms | 选择地理位置近的中转站节点                 |
+| 中转站请求解析 | +10–50 ms  | 影响可忽略                                 |
+| HTTPS 握手     | +30–100 ms | 连接复用（keep-alive）自动减少后续请求开销 |
 
 ### 流式输出 (SSE) 性能
 
@@ -542,14 +543,14 @@ chainlesschain ask "写一篇技术文章" --provider volcengine --no-stream
 
 LLM 中转与自定义接入功能通过以下测试模块保证正确性：
 
-| 测试文件                                                                         | 用例数 | 覆盖内容                                          |
-| -------------------------------------------------------------------------------- | ------ | ------------------------------------------------- |
-| `packages/cli/__tests__/unit/llm-providers/index.test.js`                        | 22     | 提供商注册、路由优先级、环境变量读取              |
-| `packages/cli/__tests__/unit/llm-providers/openai.test.js`                       | 18     | `--base-url` 覆盖、认证头、SSE 流式解析           |
-| `packages/cli/__tests__/unit/llm-providers/volcengine.test.js`                   | 15     | 豆包模型映射、任务类型自动选择、`ark-` key 校验  |
-| `packages/cli/__tests__/unit/llm-providers/anthropic.test.js`                    | 14     | Messages API 格式转换、流式块拼接                 |
-| `packages/cli/__tests__/unit/llm-providers/deepseek.test.js`                     | 12     | DeepSeek 端点、模型别名映射                       |
-| `packages/cli/__tests__/unit/commands/llm.test.js`                               | 20     | `llm add/remove/switch/test` 命令行解析与持久化   |
+| 测试文件                                                       | 用例数 | 覆盖内容                                        |
+| -------------------------------------------------------------- | ------ | ----------------------------------------------- |
+| `packages/cli/__tests__/unit/llm-providers/index.test.js`      | 22     | 提供商注册、路由优先级、环境变量读取            |
+| `packages/cli/__tests__/unit/llm-providers/openai.test.js`     | 18     | `--base-url` 覆盖、认证头、SSE 流式解析         |
+| `packages/cli/__tests__/unit/llm-providers/volcengine.test.js` | 15     | 豆包模型映射、任务类型自动选择、`ark-` key 校验 |
+| `packages/cli/__tests__/unit/llm-providers/anthropic.test.js`  | 14     | Messages API 格式转换、流式块拼接               |
+| `packages/cli/__tests__/unit/llm-providers/deepseek.test.js`   | 12     | DeepSeek 端点、模型别名映射                     |
+| `packages/cli/__tests__/unit/commands/llm.test.js`             | 20     | `llm add/remove/switch/test` 命令行解析与持久化 |
 
 **总计**: 101 个测试用例，覆盖率 ≥ 90%（提供商适配器层）。
 
@@ -589,40 +590,40 @@ it("selects code model for code task", async () => {
 
 ## 安全考虑
 
-| 安全措施 | 说明 |
-|----------|------|
-| API 密钥本地存储 | 密钥通过环境变量或本地配置文件管理，不会传输至第三方服务 |
-| 密钥不落日志 | CLI 输出和日志中自动脱敏 API 密钥，避免泄露 |
-| 端点验证 | `--base-url` 指定的端点需为 HTTPS（中转站）或本地地址（Ollama/vLLM），CLI 不会向未验证端点发送密钥 |
-| 本地模型优先 | 默认使用本地 Ollama 模型，敏感数据不出境；仅在用户显式指定云端提供商时才发送到外部 API |
-| 中转站风险提示 | 第三方中转站由其运营方管理，API 密钥和请求内容经过中转站服务器，用户需自行评估信任度 |
-| 环境变量隔离 | 每个提供商使用独立的环境变量名（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY` 等），避免密钥混用 |
+| 安全措施         | 说明                                                                                               |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| API 密钥本地存储 | 密钥通过环境变量或本地配置文件管理，不会传输至第三方服务                                           |
+| 密钥不落日志     | CLI 输出和日志中自动脱敏 API 密钥，避免泄露                                                        |
+| 端点验证         | `--base-url` 指定的端点需为 HTTPS（中转站）或本地地址（Ollama/vLLM），CLI 不会向未验证端点发送密钥 |
+| 本地模型优先     | 默认使用本地 Ollama 模型，敏感数据不出境；仅在用户显式指定云端提供商时才发送到外部 API             |
+| 中转站风险提示   | 第三方中转站由其运营方管理，API 密钥和请求内容经过中转站服务器，用户需自行评估信任度               |
+| 环境变量隔离     | 每个提供商使用独立的环境变量名（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY` 等），避免密钥混用           |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/llm-providers/` | LLM 提供商适配器目录，每个提供商一个文件 |
-| `packages/cli/src/lib/llm-providers/index.js` | 提供商注册表和路由入口 |
-| `packages/cli/src/lib/llm-providers/ollama.js` | Ollama 本地模型适配器 |
-| `packages/cli/src/lib/llm-providers/openai.js` | OpenAI 适配器（同时用于中转站和 One-API） |
-| `packages/cli/src/lib/llm-providers/anthropic.js` | Anthropic Claude 适配器（Messages API 格式） |
-| `packages/cli/src/lib/llm-providers/volcengine.js` | 火山引擎（豆包）适配器 |
-| `packages/cli/src/lib/llm-providers/deepseek.js` | DeepSeek 适配器 |
-| `packages/cli/src/lib/llm-providers/gemini.js` | Google Gemini 适配器 |
-| `packages/cli/src/commands/llm.js` | `chainlesschain llm` 命令入口（providers/switch/test/add/remove） |
+| 文件                                               | 说明                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/cli/src/lib/llm-providers/`              | LLM 提供商适配器目录，每个提供商一个文件                          |
+| `packages/cli/src/lib/llm-providers/index.js`      | 提供商注册表和路由入口                                            |
+| `packages/cli/src/lib/llm-providers/ollama.js`     | Ollama 本地模型适配器                                             |
+| `packages/cli/src/lib/llm-providers/openai.js`     | OpenAI 适配器（同时用于中转站和 One-API）                         |
+| `packages/cli/src/lib/llm-providers/anthropic.js`  | Anthropic Claude 适配器（Messages API 格式）                      |
+| `packages/cli/src/lib/llm-providers/volcengine.js` | 火山引擎（豆包）适配器                                            |
+| `packages/cli/src/lib/llm-providers/deepseek.js`   | DeepSeek 适配器                                                   |
+| `packages/cli/src/lib/llm-providers/gemini.js`     | Google Gemini 适配器                                              |
+| `packages/cli/src/commands/llm.js`                 | `chainlesschain llm` 命令入口（providers/switch/test/add/remove） |
 
 ## 故障排查
 
-| 问题                               | 解决方案                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------ |
-| 中转站返回 401                     | 检查 `--api-key` 是否正确，注意中转站密钥格式可能与官方不同              |
-| 连接超时                           | 检查 `--base-url` 是否可访问，尝试 `curl <base-url>/models`             |
-| 模型不存在                         | 中转站可能不支持所有模型，使用 `--model` 指定中转站支持的模型            |
-| `--base-url` 不生效                | 确保 URL 包含 `/v1` 后缀（如 `https://proxy.com/v1`）                   |
-| Agent 模式工具调用失败             | 部分中转站不支持 function calling，建议使用支持 tools 的模型             |
-| 火山引擎认证失败                   | 确认 API Key 以 `ark-` 开头，且已开通豆包模型服务                       |
-| 流式输出乱码                       | Windows 用户确保终端 UTF-8：`chcp 65001`                                |
+| 问题                   | 解决方案                                                      |
+| ---------------------- | ------------------------------------------------------------- |
+| 中转站返回 401         | 检查 `--api-key` 是否正确，注意中转站密钥格式可能与官方不同   |
+| 连接超时               | 检查 `--base-url` 是否可访问，尝试 `curl <base-url>/models`   |
+| 模型不存在             | 中转站可能不支持所有模型，使用 `--model` 指定中转站支持的模型 |
+| `--base-url` 不生效    | 确保 URL 包含 `/v1` 后缀（如 `https://proxy.com/v1`）         |
+| Agent 模式工具调用失败 | 部分中转站不支持 function calling，建议使用支持 tools 的模型  |
+| 火山引擎认证失败       | 确认 API Key 以 `ark-` 开头，且已开通豆包模型服务             |
+| 流式输出乱码           | Windows 用户确保终端 UTF-8：`chcp 65001`                      |
 
 ## 相关文档
 

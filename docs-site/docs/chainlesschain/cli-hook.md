@@ -80,20 +80,20 @@ chainlesschain hook events --json
 
 ## 事件类型
 
-| 分类 | 事件 | 说明 |
-|------|------|------|
-| 笔记 | `note:created`, `note:updated`, `note:deleted` | 笔记生命周期 |
-| 会话 | `session:started`, `session:ended` | 会话管理 |
-| AI | `ai:request`, `ai:response`, `ai:error` | AI 交互事件 |
-| 系统 | `system:startup`, `system:shutdown`, `system:error` | 系统级事件 |
-| 同步 | `sync:push`, `sync:pull`, `sync:conflict` | 数据同步事件 |
+| 分类 | 事件                                                | 说明         |
+| ---- | --------------------------------------------------- | ------------ |
+| 笔记 | `note:created`, `note:updated`, `note:deleted`      | 笔记生命周期 |
+| 会话 | `session:started`, `session:ended`                  | 会话管理     |
+| AI   | `ai:request`, `ai:response`, `ai:error`             | AI 交互事件  |
+| 系统 | `system:startup`, `system:shutdown`, `system:error` | 系统级事件   |
+| 同步 | `sync:push`, `sync:pull`, `sync:conflict`           | 数据同步事件 |
 
 ## 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `hooks` | Hook 注册信息（事件、名称、类型、优先级、处理函数） |
-| `hook_stats` | 执行统计（执行次数、成功/失败、平均耗时） |
+| 表名         | 说明                                                |
+| ------------ | --------------------------------------------------- |
+| `hooks`      | Hook 注册信息（事件、名称、类型、优先级、处理函数） |
+| `hook_stats` | 执行统计（执行次数、成功/失败、平均耗时）           |
 
 ## 系统架构
 
@@ -136,13 +136,13 @@ chainlesschain hook events --json
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| hook add 注册 | < 50ms | ~25ms | ✅ |
-| list 查询 (100 Hook) | < 150ms | ~80ms | ✅ |
-| SYNC 事件触发分发 | < 20ms | ~8ms | ✅ |
-| ASYNC 投递 (fire-forget) | < 5ms | ~2ms | ✅ |
-| stats 聚合 | < 200ms | ~100ms | ✅ |
+| 操作                     | 目标    | 实际   | 状态 |
+| ------------------------ | ------- | ------ | ---- |
+| hook add 注册            | < 50ms  | ~25ms  | ✅   |
+| list 查询 (100 Hook)     | < 150ms | ~80ms  | ✅   |
+| SYNC 事件触发分发        | < 20ms  | ~8ms   | ✅   |
+| ASYNC 投递 (fire-forget) | < 5ms   | ~2ms   | ✅   |
+| stats 聚合               | < 200ms | ~100ms | ✅   |
 
 ## 测试覆盖率
 
@@ -156,13 +156,13 @@ chainlesschain hook events --json
 
 ## 关键文件
 
-| 文件 | 职责 |
-|------|------|
-| `packages/cli/src/commands/hook.js` | hook 命令主入口（list / add / remove / run / stats / events） |
-| `packages/cli/src/lib/hook-manager.js` | Hook 管理核心（28 种 HookEvents、优先级排序、SYNC/ASYNC 执行） |
-| `packages/cli/src/lib/session-hooks.js` | 会话级钩子触发器（SessionStart / UserPromptSubmit / SessionEnd） |
-| `packages/cli/__tests__/unit/hook-manager.test.js` | Hook 核心单元测试 |
-| `packages/cli/__tests__/unit/hook.test.js` | CLI 命令层测试 |
+| 文件                                               | 职责                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| `packages/cli/src/commands/hook.js`                | hook 命令主入口（list / add / remove / run / stats / events）    |
+| `packages/cli/src/lib/hook-manager.js`             | Hook 管理核心（28 种 HookEvents、优先级排序、SYNC/ASYNC 执行）   |
+| `packages/cli/src/lib/session-hooks.js`            | 会话级钩子触发器（SessionStart / UserPromptSubmit / SessionEnd） |
+| `packages/cli/__tests__/unit/hook-manager.test.js` | Hook 核心单元测试                                                |
+| `packages/cli/__tests__/unit/hook.test.js`         | CLI 命令层测试                                                   |
 
 ## 使用示例
 
@@ -206,12 +206,12 @@ chainlesschain hook add --event PreGitCommit \
 
 ### Hook 未触发
 
-| 症状 | 可能原因 | 解决方案 |
-|------|---------|---------|
-| Hook 已注册但不执行 | 事件名拼写错误 | 运行 `chainlesschain hook events` 查看支持的事件列表 |
-| Hook 执行但无效果 | 优先级配置不当 | 检查 `--priority`，SYSTEM(0) 最先执行，MONITOR(1000) 最后 |
-| Command 类型 Hook 报错 | 命令路径不正确 | 使用绝对路径或确保命令在 PATH 中 |
-| Pattern 不匹配 | 正则/通配符语法错误 | 使用 `chainlesschain hook list` 查看已注册的 pattern |
+| 症状                   | 可能原因            | 解决方案                                                  |
+| ---------------------- | ------------------- | --------------------------------------------------------- |
+| Hook 已注册但不执行    | 事件名拼写错误      | 运行 `chainlesschain hook events` 查看支持的事件列表      |
+| Hook 执行但无效果      | 优先级配置不当      | 检查 `--priority`，SYSTEM(0) 最先执行，MONITOR(1000) 最后 |
+| Command 类型 Hook 报错 | 命令路径不正确      | 使用绝对路径或确保命令在 PATH 中                          |
+| Pattern 不匹配         | 正则/通配符语法错误 | 使用 `chainlesschain hook list` 查看已注册的 pattern      |
 
 ### 常见错误
 

@@ -92,12 +92,12 @@ REPL 内：
 
 ### 内置行开关
 
-| 方式 | 效果 |
-|------|------|
-| 默认 | 未配置自定义命令时**默认开启**内置行 |
-| `CC_STATUSLINE=0`（环境变量） | 禁用内置行 |
-| `settings.json` `"statusLine": false` | 禁用 |
-| REPL `/statusline off` | 本会话禁用 |
+| 方式                                  | 效果                                 |
+| ------------------------------------- | ------------------------------------ |
+| 默认                                  | 未配置自定义命令时**默认开启**内置行 |
+| `CC_STATUSLINE=0`（环境变量）         | 禁用内置行                           |
+| `settings.json` `"statusLine": false` | 禁用                                 |
+| REPL `/statusline off`                | 本会话禁用                           |
 
 > 自定义命令优先于内置行；两者上下文 JSON 均含 `context`/`turn`。
 
@@ -111,10 +111,10 @@ REPL 内：
 
 共 **23** 个单元测试：
 
-| 测试文件 | 数量 | 覆盖 |
-|----------|------|------|
-| `status-line.test.js` | 12 | 配置加载（层级 last-wins/禁用）、`buildContext`、`renderStatusLine`、`cc statusline` 命令 |
-| `status-line-context.test.js` | 11 | `formatTokens`/`shortenPath`/`renderDefaultStatusLine`、`buildContext` 附加 `context`/`turn`、内置行开关 |
+| 测试文件                      | 数量 | 覆盖                                                                                                     |
+| ----------------------------- | ---- | -------------------------------------------------------------------------------------------------------- |
+| `status-line.test.js`         | 12   | 配置加载（层级 last-wins/禁用）、`buildContext`、`renderStatusLine`、`cc statusline` 命令                |
+| `status-line-context.test.js` | 11   | `formatTokens`/`shortenPath`/`renderDefaultStatusLine`、`buildContext` 附加 `context`/`turn`、内置行开关 |
 
 ```bash
 cd packages/cli
@@ -131,22 +131,22 @@ npx vitest run __tests__/unit/status-line.test.js __tests__/unit/status-line-con
 
 ## 故障排查
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| 状态行不显示 | 自定义命令冷启动 > 5s（Windows cmd 重负载下可达 2.4s+） | 用更轻量的脚本；机制本身 5s 超时正确 |
-| 内置行不显示 | 被 `CC_STATUSLINE=0` / `statusLine:false` / `/statusline off` 禁用 | `/statusline on` 重新开启 |
-| 内联 `node -e "…"` 命令在 Windows 挂 | cmd.exe 下嵌套引号易解析失败 | 改用脚本文件（`./status.sh`）而非内联命令 |
-| 自定义配了却没生效 | 高层级 `statusLine:false` 禁用了它 | 检查各层 `.claude/settings.json`（last-wins，但 false 禁用） |
-| 状态行没有颜色 | 命令输出被 trim 但 ANSI 保留 | 确认脚本输出 ANSI 转义；首行才被采用 |
+| 现象                                 | 可能原因                                                           | 处理                                                         |
+| ------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 状态行不显示                         | 自定义命令冷启动 > 5s（Windows cmd 重负载下可达 2.4s+）            | 用更轻量的脚本；机制本身 5s 超时正确                         |
+| 内置行不显示                         | 被 `CC_STATUSLINE=0` / `statusLine:false` / `/statusline off` 禁用 | `/statusline on` 重新开启                                    |
+| 内联 `node -e "…"` 命令在 Windows 挂 | cmd.exe 下嵌套引号易解析失败                                       | 改用脚本文件（`./status.sh`）而非内联命令                    |
+| 自定义配了却没生效                   | 高层级 `statusLine:false` 禁用了它                                 | 检查各层 `.claude/settings.json`（last-wins，但 false 禁用） |
+| 状态行没有颜色                       | 命令输出被 trim 但 ANSI 保留                                       | 确认脚本输出 ANSI 转义；首行才被采用                         |
 
 ## 关键文件
 
-| 文件 | 说明 |
-|------|------|
-| `packages/cli/src/lib/status-line.cjs` | `loadStatusLineConfig` / `buildContext` / `renderStatusLine`（自定义）/ `renderDefaultStatusLine`（内置）/ `getStatusLine` |
-| `packages/cli/src/repl/agent-repl.js` | REPL `prompt()` 每提示前渲染装配 + `/statusline` 命令 |
-| `packages/cli/src/commands/statusline.js` | `cc statusline preview \| show` |
-| `packages/cli/__tests__/unit/status-line.test.js` · `status-line-context.test.js` | 23 单元测试 |
+| 文件                                                                              | 说明                                                                                                                       |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/src/lib/status-line.cjs`                                            | `loadStatusLineConfig` / `buildContext` / `renderStatusLine`（自定义）/ `renderDefaultStatusLine`（内置）/ `getStatusLine` |
+| `packages/cli/src/repl/agent-repl.js`                                             | REPL `prompt()` 每提示前渲染装配 + `/statusline` 命令                                                                      |
+| `packages/cli/src/commands/statusline.js`                                         | `cc statusline preview \| show`                                                                                            |
+| `packages/cli/__tests__/unit/status-line.test.js` · `status-line-context.test.js` | 23 单元测试                                                                                                                |
 
 ## 使用示例
 

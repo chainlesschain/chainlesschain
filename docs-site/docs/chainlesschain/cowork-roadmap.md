@@ -2125,49 +2125,56 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 
 > 已实现系统的目标性能指标（基于设计规格与测试用例验证）
 
-| 模块 | 指标 | 目标值 |
-|------|------|--------|
-| 流水线编排 | 全流程端到端 | < 5 分钟 |
-| 流水线编排 | 自动回滚触发 | < 30 秒 |
-| NL 编程 | NL→Spec 翻译延迟 | < 10 秒 |
-| NL 编程 | Spec 完整度评分 | ≥ 80% |
-| 多模态协作 | 文档解析（PDF 10 页） | < 5 秒 |
-| 多模态协作 | Token 预算利用率 | ≤ 100%（硬限制） |
-| 自主运维 | 异常检测触发延迟 | < 30 秒 |
-| 自主运维 | 自动修复成功率 | ≥ 70% |
-| 联邦网络 | DID 认证延迟 | < 500ms |
-| 联邦网络 | 跨组织代理发现 | < 2 秒 |
-| 联邦网络 | 100 节点并发压测通过率 | 100% |
+| 模块       | 指标                   | 目标值           |
+| ---------- | ---------------------- | ---------------- |
+| 流水线编排 | 全流程端到端           | < 5 分钟         |
+| 流水线编排 | 自动回滚触发           | < 30 秒          |
+| NL 编程    | NL→Spec 翻译延迟       | < 10 秒          |
+| NL 编程    | Spec 完整度评分        | ≥ 80%            |
+| 多模态协作 | 文档解析（PDF 10 页）  | < 5 秒           |
+| 多模态协作 | Token 预算利用率       | ≤ 100%（硬限制） |
+| 自主运维   | 异常检测触发延迟       | < 30 秒          |
+| 自主运维   | 自动修复成功率         | ≥ 70%            |
+| 联邦网络   | DID 认证延迟           | < 500ms          |
+| 联邦网络   | 跨组织代理发现         | < 2 秒           |
+| 联邦网络   | 100 节点并发压测通过率 | 100%             |
 
 ## 测试覆盖率
 
 > 440+ 测试用例，通过率 99.6%
 
 ✅ **v1.2.0 — Instinct Learning + Orchestrate + Verification Loop**
+
 - `instinct-manager.test.js` — 置信度强化/衰减、上下文检索
 - `orchestrate-workflow.test.js` — 4 种工作流模板、代理交接
 - `verification-loop.test.js` — 6 阶段验证、READY/NOT READY 裁决
 
 ✅ **v1.3.0 — ML 调度 + CI/CD 优化**
+
 - `ml-task-scheduler.test.js` — 复杂度预测、在线权重更新
 - `load-balancer.test.js` — 动态任务迁移
 - `cicd-optimizer.test.js` — 智能测试选择（70%+ 缓存命中）
 
 ✅ **v3.0 — 全自动开发流水线**
+
 - `pipeline-orchestrator.test.js` — 7 阶段生命周期、门控审批
 - `deploy-agent.test.js` — 5 种部署策略、回滚验证
 
 ✅ **v3.1 — 自然语言编程**
+
 - `spec-translator.test.js` — NL→Spec 翻译、多轮消歧
 
 ✅ **v3.2 — 多模态协作**
+
 - `modality-fusion.test.js` — 多模态融合、token 预算控制
 
 ✅ **v3.3 — 自主运维**
+
 - `anomaly-detector.test.js` — Z-score/IQR 检测
 - `incident-classifier.test.js` + `auto-remediator.test.js`
 
 ✅ **v4.0 — 去中心化代理网络**
+
 - `agent-did.test.js` — Ed25519 签名、DID 文档
 - `federated-agent-registry.test.js` — 注册、发现、信誉评分
 - `cross-org-task-router.test.js` — 跨组织路由、SLA 验证
@@ -2213,18 +2220,18 @@ AutoRemediator 执行的所有自动修复操作均写入审计日志（`audit-c
 
 ## 关键文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `desktop-app-vue/src/main/ai-engine/cowork/pipeline-orchestrator.js` | 流水线编排器（7 阶段） |
-| `desktop-app-vue/src/main/ai-engine/cowork/deploy-agent.js` | 部署 Agent（5 种策略） |
-| `desktop-app-vue/src/main/ai-engine/cowork/spec-translator.js` | NL→Spec 规范翻译 |
-| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js` | 异常检测（Z-score/IQR） |
-| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js` | 事件分类器 |
-| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js` | 自动修复引擎 |
-| `desktop-app-vue/src/main/ai-engine/cowork/modality-fusion.js` | 多模态融合 |
-| `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js` | Agent DID 身份 |
-| `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦代理注册 |
-| `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js` | 跨组织任务路由 |
+| 文件                                                                    | 职责                    |
+| ----------------------------------------------------------------------- | ----------------------- |
+| `desktop-app-vue/src/main/ai-engine/cowork/pipeline-orchestrator.js`    | 流水线编排器（7 阶段）  |
+| `desktop-app-vue/src/main/ai-engine/cowork/deploy-agent.js`             | 部署 Agent（5 种策略）  |
+| `desktop-app-vue/src/main/ai-engine/cowork/spec-translator.js`          | NL→Spec 规范翻译        |
+| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js`         | 异常检测（Z-score/IQR） |
+| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js`      | 事件分类器              |
+| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js`          | 自动修复引擎            |
+| `desktop-app-vue/src/main/ai-engine/cowork/modality-fusion.js`          | 多模态融合              |
+| `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js`                | Agent DID 身份          |
+| `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦代理注册            |
+| `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js`    | 跨组织任务路由          |
 
 ## 使用示例
 

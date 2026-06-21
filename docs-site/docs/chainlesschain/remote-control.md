@@ -280,17 +280,21 @@ const ALLOWED_ORIGINS = ["127.0.0.1", "localhost"];
 const ws = new WebSocket("ws://127.0.0.1:18790");
 
 // 2. 注册插件设备
-ws.send(JSON.stringify({
-  type: "register",
-  client: { type: "browser-extension", version: "1.0.0" }
-}));
+ws.send(
+  JSON.stringify({
+    type: "register",
+    client: { type: "browser-extension", version: "1.0.0" },
+  }),
+);
 
 // 3. 发送 AI 分析命令
-ws.send(JSON.stringify({
-  type: "ai",
-  command: "analyze",
-  params: { content: "帮我总结这篇文章的要点" }
-}));
+ws.send(
+  JSON.stringify({
+    type: "ai",
+    command: "analyze",
+    params: { content: "帮我总结这篇文章的要点" },
+  }),
+);
 
 // 4. 接收 AI 响应
 ws.onmessage = (event) => {
@@ -330,11 +334,11 @@ ws.onmessage = (event) => {
 ```javascript
 // src/main/remote/remote-control-server.js
 const remoteControlServerConfig = {
-  host: '127.0.0.1',   // 严格绑定本地回环，不对外暴露
+  host: "127.0.0.1", // 严格绑定本地回环，不对外暴露
   port: 18790,
-  maxConnections: 5,   // 最大同时连接数
-  heartbeatInterval: 30 * 1000,   // 心跳检测间隔（毫秒）
-  connectionTimeout: 60 * 1000,   // 空闲连接超时时间（毫秒）
+  maxConnections: 5, // 最大同时连接数
+  heartbeatInterval: 30 * 1000, // 心跳检测间隔（毫秒）
+  connectionTimeout: 60 * 1000, // 空闲连接超时时间（毫秒）
 };
 ```
 
@@ -345,26 +349,26 @@ const remoteControlServerConfig = {
 const remoteControlConfig = {
   enabled: true,
   port: 18790,
-  allowedClients: ['browser-extension', 'mobile-app'],
+  allowedClients: ["browser-extension", "mobile-app"],
 
   // 四级权限分配
   permissions: {
-    'browser-extension': ['READ', 'WRITE', 'EXECUTE'],
-    'mobile-app': ['READ', 'WRITE'],
+    "browser-extension": ["READ", "WRITE", "EXECUTE"],
+    "mobile-app": ["READ", "WRITE"],
   },
 
   // 速率限制
   rateLimit: {
     maxCommandsPerSecond: 10,
     maxCommandsPerMinute: 200,
-    burstAllowance: 5,       // 允许短时突发超量
+    burstAllowance: 5, // 允许短时突发超量
   },
 
   // 审计日志
   audit: {
     enabled: true,
     retentionDays: 30,
-    sensitiveParamsMask: ['password', 'token', 'apiKey'],  // 自动脱敏字段
+    sensitiveParamsMask: ["password", "token", "apiKey"], // 自动脱敏字段
   },
 };
 ```
@@ -375,12 +379,12 @@ const remoteControlConfig = {
 // src/main/remote/remote-command-handler.js
 const aiCommandConfig = {
   // AI 命令超时
-  timeout: 60 * 1000,      // 60 秒（毫秒）
-  streamEnabled: true,      // 启用流式响应
-  maxContextLength: 4096,   // 最大上下文长度（tokens）
+  timeout: 60 * 1000, // 60 秒（毫秒）
+  streamEnabled: true, // 启用流式响应
+  maxContextLength: 4096, // 最大上下文长度（tokens）
 
   // 允许远程调用的 AI 功能
-  allowedFeatures: ['analyze', 'summarize', 'translate', 'generate'],
+  allowedFeatures: ["analyze", "summarize", "translate", "generate"],
 };
 ```
 
@@ -388,33 +392,33 @@ const aiCommandConfig = {
 
 ## 性能指标
 
-| 操作 | 目标 | 实际 | 状态 |
-| ---- | ---- | ---- | ---- |
-| WebSocket 连接建立耗时 | < 50ms | ~20ms | ✅ 达标 |
-| 系统命令响应延迟（READ） | < 100ms | ~30ms | ✅ 达标 |
-| 系统命令响应延迟（WRITE） | < 200ms | ~80ms | ✅ 达标 |
-| AI 命令首字节延迟（流式） | < 1000ms | ~500ms | ✅ 达标 |
-| 浏览器命令执行延迟 | < 500ms | ~200ms | ✅ 达标 |
-| 最大并发连接数 | 5 | 5 | ✅ 达标 |
-| 速率限制响应延迟（超限拦截） | < 5ms | ~2ms | ✅ 达标 |
-| 审计日志写入耗时 | < 10ms | ~3ms | ✅ 达标 |
-| 心跳检测周期 | 30s | 30s | ✅ 达标 |
-| 空闲连接超时断开 | 60s | 60s | ✅ 达标 |
+| 操作                         | 目标     | 实际   | 状态    |
+| ---------------------------- | -------- | ------ | ------- |
+| WebSocket 连接建立耗时       | < 50ms   | ~20ms  | ✅ 达标 |
+| 系统命令响应延迟（READ）     | < 100ms  | ~30ms  | ✅ 达标 |
+| 系统命令响应延迟（WRITE）    | < 200ms  | ~80ms  | ✅ 达标 |
+| AI 命令首字节延迟（流式）    | < 1000ms | ~500ms | ✅ 达标 |
+| 浏览器命令执行延迟           | < 500ms  | ~200ms | ✅ 达标 |
+| 最大并发连接数               | 5        | 5      | ✅ 达标 |
+| 速率限制响应延迟（超限拦截） | < 5ms    | ~2ms   | ✅ 达标 |
+| 审计日志写入耗时             | < 10ms   | ~3ms   | ✅ 达标 |
+| 心跳检测周期                 | 30s      | 30s    | ✅ 达标 |
+| 空闲连接超时断开             | 60s      | 60s    | ✅ 达标 |
 
 ---
 
 ## 测试覆盖率
 
-| 测试文件 | 覆盖范围 |
-| -------- | -------- |
-| ✅ `tests/unit/remote/remote-control-server.test.js` | WebSocket 服务器启动/停止、仅本地连接校验、心跳检测 |
-| ✅ `tests/unit/remote/remote-command-handler.test.js` | AI/系统/浏览器命令分发、超时处理、响应格式 |
-| ✅ `tests/unit/remote/remote-permission-manager.test.js` | 四级权限校验、设备白名单、未授权拒绝 |
-| ✅ `tests/unit/remote/remote-audit-logger.test.js` | 命令审计记录、敏感参数脱敏、日志保留策略 |
-| ✅ `tests/unit/remote/rate-limiter.test.js` | 速率限制阈值、突发允许、超限拦截 |
-| ✅ `tests/integration/remote/browser-extension-flow.test.js` | 插件注册→命令→响应完整流程 |
-| ✅ `tests/integration/remote/mobile-app-flow.test.js` | 移动端连接、二维码授权、笔记读写流程 |
-| ✅ `tests/e2e/remote/multi-client-concurrent.test.js` | 多客户端并发命令、权限隔离验证 |
+| 测试文件                                                     | 覆盖范围                                            |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| ✅ `tests/unit/remote/remote-control-server.test.js`         | WebSocket 服务器启动/停止、仅本地连接校验、心跳检测 |
+| ✅ `tests/unit/remote/remote-command-handler.test.js`        | AI/系统/浏览器命令分发、超时处理、响应格式          |
+| ✅ `tests/unit/remote/remote-permission-manager.test.js`     | 四级权限校验、设备白名单、未授权拒绝                |
+| ✅ `tests/unit/remote/remote-audit-logger.test.js`           | 命令审计记录、敏感参数脱敏、日志保留策略            |
+| ✅ `tests/unit/remote/rate-limiter.test.js`                  | 速率限制阈值、突发允许、超限拦截                    |
+| ✅ `tests/integration/remote/browser-extension-flow.test.js` | 插件注册→命令→响应完整流程                          |
+| ✅ `tests/integration/remote/mobile-app-flow.test.js`        | 移动端连接、二维码授权、笔记读写流程                |
+| ✅ `tests/e2e/remote/multi-client-concurrent.test.js`        | 多客户端并发命令、权限隔离验证                      |
 
 ---
 
@@ -498,14 +502,14 @@ const aiCommandConfig = {
 
 ## 关键文件
 
-| 文件                                                  | 职责                     |
-| ----------------------------------------------------- | ------------------------ |
-| `src/main/remote/remote-control-server.js`            | WebSocket 服务器核心     |
-| `src/main/remote/remote-command-handler.js`           | 远程命令分发与执行       |
-| `src/main/remote/remote-permission-manager.js`        | 权限校验与设备白名单     |
-| `src/main/remote/remote-audit-logger.js`              | 命令审计日志记录         |
-| `src/renderer/pages/settings/RemoteControlPage.vue`   | 远程控制设置页面         |
-| `src/renderer/stores/remoteControl.ts`                | 远程控制状态管理         |
+| 文件                                                | 职责                 |
+| --------------------------------------------------- | -------------------- |
+| `src/main/remote/remote-control-server.js`          | WebSocket 服务器核心 |
+| `src/main/remote/remote-command-handler.js`         | 远程命令分发与执行   |
+| `src/main/remote/remote-permission-manager.js`      | 权限校验与设备白名单 |
+| `src/main/remote/remote-audit-logger.js`            | 命令审计日志记录     |
+| `src/renderer/pages/settings/RemoteControlPage.vue` | 远程控制设置页面     |
+| `src/renderer/stores/remoteControl.ts`              | 远程控制状态管理     |
 
 ---
 

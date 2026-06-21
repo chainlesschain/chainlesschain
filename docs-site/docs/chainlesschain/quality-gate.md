@@ -91,36 +91,40 @@ const lintResult = await gate.check(result, context, { only: ["lint-pass"] });
 
 ```typescript
 interface Checker {
-  name: string;                                    // 唯一标识
-  fn: (result: any, context: any) => Promise<{     // 检查函数
+  name: string; // 唯一标识
+  fn: (
+    result: any,
+    context: any,
+  ) => Promise<{
+    // 检查函数
     pass: boolean;
-    score: number;   // [0, 1]，超出范围自动 clamp
+    score: number; // [0, 1]，超出范围自动 clamp
     reason?: string; // 可选的检查理由
   }>;
-  weight?: number;   // 聚合权重，默认 1
+  weight?: number; // 聚合权重，默认 1
   description?: string;
-  tags?: string[];   // 用于 tag-based 过滤
+  tags?: string[]; // 用于 tag-based 过滤
 }
 ```
 
 ## 聚合策略
 
-| 策略 | 语义 | 适用场景 |
-|------|------|----------|
-| `weighted-mean` | &Sigma;(score &times; weight) / &Sigma;(weight) | 多维度综合评分（默认） |
-| `min` | 取最低分 | 木桶效应，任一维度差则差 |
-| `all-pass` | 全部 pass → 1，任一 fail → 0 | 严格门控，CI/CD 场景 |
+| 策略            | 语义                                            | 适用场景                 |
+| --------------- | ----------------------------------------------- | ------------------------ |
+| `weighted-mean` | &Sigma;(score &times; weight) / &Sigma;(weight) | 多维度综合评分（默认）   |
+| `min`           | 取最低分                                        | 木桶效应，任一维度差则差 |
+| `all-pass`      | 全部 pass → 1，任一 fail → 0                    | 严格门控，CI/CD 场景     |
 
 SKIP 状态的 checker 在聚合时自动跳过，不影响分数。
 
 ## 内置 Checker 工厂
 
-| 工厂函数 | 输入字段 | 用途 | 默认 tags |
-|----------|----------|------|-----------|
-| `createProtagonistChecker({ minRatio })` | `protagonist_ratio` | 视频主角占比 ≥ minRatio | `["video", "vision"]` |
-| `createDurationChecker({ tolerance })` | `target_duration`, `total_duration` | 时长偏差 ≤ tolerance | `["video", "timing"]` |
-| `createThresholdChecker({ field, minValue })` | `result[field]` | 通用字段阈值 | 自定义 |
-| `createLintPassChecker({ maxErrors })` | `errorCount`, `totalCount` | lint/test 错误数 ≤ maxErrors | `["code"]` |
+| 工厂函数                                      | 输入字段                            | 用途                         | 默认 tags             |
+| --------------------------------------------- | ----------------------------------- | ---------------------------- | --------------------- |
+| `createProtagonistChecker({ minRatio })`      | `protagonist_ratio`                 | 视频主角占比 ≥ minRatio      | `["video", "vision"]` |
+| `createDurationChecker({ tolerance })`        | `target_duration`, `total_duration` | 时长偏差 ≤ tolerance         | `["video", "timing"]` |
+| `createThresholdChecker({ field, minValue })` | `result[field]`                     | 通用字段阈值                 | 自定义                |
+| `createLintPassChecker({ maxErrors })`        | `errorCount`, `totalCount`          | lint/test 错误数 ≤ maxErrors | `["code"]`            |
 
 ## 与 ApprovalGate 的关系
 
@@ -211,20 +215,20 @@ QualityGate:  内容级 — "这次执行的结果是否达标？" (执行后)
 
 ### 响应时间
 
-| 操作 | 目标 | 实际 | 状态 |
-|------|------|------|------|
-| register() | &lt; 1ms | &lt; 0.1ms | ✅ |
-| check() (4 checkers) | &lt; 15ms | &lt; 10ms | ✅ |
-| 聚合计算 | &lt; 1ms | &lt; 0.1ms | ✅ |
-| validateChecker | &lt; 1ms | &lt; 0.1ms | ✅ |
+| 操作                 | 目标      | 实际       | 状态 |
+| -------------------- | --------- | ---------- | ---- |
+| register()           | &lt; 1ms  | &lt; 0.1ms | ✅   |
+| check() (4 checkers) | &lt; 15ms | &lt; 10ms  | ✅   |
+| 聚合计算             | &lt; 1ms  | &lt; 0.1ms | ✅   |
+| validateChecker      | &lt; 1ms  | &lt; 0.1ms | ✅   |
 
 ### 资源使用
 
-| 指标 | 数值 |
-|------|------|
-| 内存占用 (单 gate) | &lt; 1MB |
-| Checker 数量上限 | 无限制 |
-| 并发检查支持 | Promise.all |
+| 指标               | 数值        |
+| ------------------ | ----------- |
+| 内存占用 (单 gate) | &lt; 1MB    |
+| Checker 数量上限   | 无限制      |
+| 并发检查支持       | Promise.all |
 
 ## 测试覆盖率
 
@@ -308,24 +312,26 @@ console.log(gate.checkers);
 const gate = new QualityGate({
   threshold: 0.6,
   onCheck: (result) => {
-    console.log(`[${result.name}] pass=${result.pass} score=${result.score} reason=${result.reason}`);
+    console.log(
+      `[${result.name}] pass=${result.pass} score=${result.score} reason=${result.reason}`,
+    );
   },
 });
 ```
 
 ## 关键文件
 
-| 文件 | 职责 | 行数 |
-|------|------|------|
-| `packages/session-core/lib/quality-gate.js` | 核心类 + 聚合引擎 + 4 个工厂 | ~370 |
-| `packages/session-core/__tests__/quality-gate.test.js` | 39 个测试用例 | ~340 |
+| 文件                                                   | 职责                         | 行数 |
+| ------------------------------------------------------ | ---------------------------- | ---- |
+| `packages/session-core/lib/quality-gate.js`            | 核心类 + 聚合引擎 + 4 个工厂 | ~370 |
+| `packages/session-core/__tests__/quality-gate.test.js` | 39 个测试用例                | ~340 |
 
 ### 消费方文件
 
-| 文件 | 用法 |
-|------|------|
-| `packages/cli/src/skills/video-editing/reviewer.js` | `--review` flag 注册 protagonist + duration checker |
-| `desktop-app-vue/src/main/ai-engine/cowork/debate-review.js` | `resolveConflictingVerdicts` 质量评分排序 |
+| 文件                                                         | 用法                                                |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| `packages/cli/src/skills/video-editing/reviewer.js`          | `--review` flag 注册 protagonist + duration checker |
+| `desktop-app-vue/src/main/ai-engine/cowork/debate-review.js` | `resolveConflictingVerdicts` 质量评分排序           |
 
 ## 使用示例
 
@@ -344,12 +350,14 @@ chainlesschain video edit --video raw.mp4 --audio bgm.mp3 \
 const gate = new QualityGate({ threshold: 0.8, aggregate: "all-pass" });
 
 gate.register(createLintPassChecker({ maxErrors: 0 }));
-gate.register(createThresholdChecker({
-  name: "test-coverage",
-  field: "coveragePercent",
-  minValue: 80,
-  tags: ["code", "coverage"],
-}));
+gate.register(
+  createThresholdChecker({
+    name: "test-coverage",
+    field: "coveragePercent",
+    minValue: 80,
+    tags: ["code", "coverage"],
+  }),
+);
 
 const result = await gate.check({
   errorCount: 0,
@@ -358,7 +366,10 @@ const result = await gate.check({
 });
 
 if (!result.pass) {
-  console.log("Quality gate failed:", result.checks.filter(c => !c.pass));
+  console.log(
+    "Quality gate failed:",
+    result.checks.filter((c) => !c.pass),
+  );
 }
 ```
 

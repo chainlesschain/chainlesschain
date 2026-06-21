@@ -151,27 +151,27 @@ chainlesschain federation stats --json
 
 ## 配置参考
 
-| 配置项               | 含义                    | 默认       |
-| -------------------- | ----------------------- | ---------- |
-| `failure_threshold`  | 连续失败阈值            | 3          |
-| `success_threshold`  | half_open 恢复阈值      | 2          |
-| `open_timeout_ms`    | open → half_open 超时   | 30000 ms   |
-| `pool.min`           | 连接池最小连接数        | 2          |
-| `pool.max`           | 连接池最大连接数        | 10         |
-| `pool.idleTimeout`   | 空闲连接回收            | 30000 ms   |
-| 健康指标类型         | latency/error_rate/availability/throughput/resource | |
-| 健康状态             | healthy/degraded/unhealthy/unknown |    |
+| 配置项              | 含义                                                | 默认     |
+| ------------------- | --------------------------------------------------- | -------- |
+| `failure_threshold` | 连续失败阈值                                        | 3        |
+| `success_threshold` | half_open 恢复阈值                                  | 2        |
+| `open_timeout_ms`   | open → half_open 超时                               | 30000 ms |
+| `pool.min`          | 连接池最小连接数                                    | 2        |
+| `pool.max`          | 连接池最大连接数                                    | 10       |
+| `pool.idleTimeout`  | 空闲连接回收                                        | 30000 ms |
+| 健康指标类型        | latency/error_rate/availability/throughput/resource |          |
+| 健康状态            | healthy/degraded/unhealthy/unknown                  |          |
 
 ## 性能指标
 
-| 操作                      | 典型耗时        |
-| ------------------------- | --------------- |
-| register（含初始化熔断器）| < 15 ms         |
-| failure/success 记录      | < 5 ms          |
-| check 写入                | < 5 ms          |
-| node-health 聚合          | < 10 ms         |
-| pool-acquire              | < 2 ms（有可用连接时）|
-| stats 聚合                | < 20 ms         |
+| 操作                       | 典型耗时               |
+| -------------------------- | ---------------------- |
+| register（含初始化熔断器） | < 15 ms                |
+| failure/success 记录       | < 5 ms                 |
+| check 写入                 | < 5 ms                 |
+| node-health 聚合           | < 10 ms                |
+| pool-acquire               | < 2 ms（有可用连接时） |
+| stats 聚合                 | < 20 ms                |
 
 ## 测试覆盖率
 
