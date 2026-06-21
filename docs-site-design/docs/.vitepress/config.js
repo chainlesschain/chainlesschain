@@ -110,7 +110,7 @@ export default defineConfig({
           { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
           {
             text: "Minimal Coding Agent 实施计划",
-            link: "/MINIMAL_CODING_AGENT_PLAN",
+            link: "https://docs.chainlesschain.com/chainlesschain/minimal-coding-agent-plan",
           },
         ],
       },
@@ -301,7 +301,7 @@ export default defineConfig({
             { text: "浏览器扩展规划", link: "/BROWSER_EXTENSION_PLAN" },
             {
               text: "Minimal Coding Agent 实施计划 ⭐NEW",
-              link: "/MINIMAL_CODING_AGENT_PLAN",
+              link: "https://docs.chainlesschain.com/chainlesschain/minimal-coding-agent-plan",
             },
             {
               text: "桌面版 UI 重构 (v6 Shell P0–P6) ⭐NEW",

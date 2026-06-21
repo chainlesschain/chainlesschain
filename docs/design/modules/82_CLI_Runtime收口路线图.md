@@ -2,7 +2,7 @@
 
 > **状态：Phase 0–7 全部完成 · 收口闭环** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
 >
-> 关联设计：[78. CLI Agent Runtime 重构实施计划](./78-cli-agent-runtime) · [79. Coding Agent 系统](./79-coding-agent) · [81. Tool Descriptor 统一](./81-tool-descriptor-unification)
+> 关联设计：[78. CLI Agent Runtime 重构实施计划](./78_CLI_Agent_Runtime重构实施计划.md) · [79. Coding Agent 系统](./79_Coding_Agent系统.md) · [83. Tool Descriptor 统一](./83_工具描述规范统一.md)
 >
 > 用户文档：[CLI Runtime 收口路线图](../../chainlesschain/cli-runtime-convergence-roadmap)
 >
