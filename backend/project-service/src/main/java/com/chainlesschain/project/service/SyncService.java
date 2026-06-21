@@ -16,9 +16,10 @@ public interface SyncService {
      * 批量上传数据
      *
      * @param request 同步请求
+     * @param authentication 已认证调用方（用于按归属限定写入，防跨用户覆盖他人记录）
      * @return 上传结果统计
      */
-    Map<String, Object> uploadBatch(SyncRequestDTO request);
+    Map<String, Object> uploadBatch(SyncRequestDTO request, Authentication authentication);
 
     /**
      * 增量下载数据
@@ -44,8 +45,9 @@ public interface SyncService {
      * 解决冲突
      *
      * @param resolution 冲突解决方案
+     * @param authentication 已认证调用方（用于防止经冲突解决端点跨用户覆盖他人记录）
      */
-    void resolveConflict(ConflictResolutionDTO resolution);
+    void resolveConflict(ConflictResolutionDTO resolution, Authentication authentication);
 
     /**
      * 在独立事务中处理单条记录

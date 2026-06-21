@@ -77,7 +77,7 @@ public class SyncServiceImpl implements SyncService {
     }
 
     @Override
-    public Map<String, Object> uploadBatch(SyncRequestDTO request) {
+    public Map<String, Object> uploadBatch(SyncRequestDTO request, Authentication authentication) {
         long startTime = System.currentTimeMillis();
         String requestId = request.getRequestId();
 
@@ -101,9 +101,34 @@ public class SyncServiceImpl implements SyncService {
         int successCount = 0;
         int failedCount = 0;
         int conflictCount = 0;
+        int deniedCount = 0;
         List<Map<String, Object>> conflicts = new ArrayList<>();
 
+        // 写授权（IDOR 修复 #7 上传侧）：此前 upload 完全无写授权——任意已认证设备凭 id
+        // 即可经 updateById 覆盖<b>他人</b>的记录（projects/files/tasks/collaborators/
+        // comments/conversations/knowledge）。现按调用方身份限定覆盖：若服务器已存在同 id 的
+        // 记录且其归属不在调用方可访问范围内，则拒绝该条覆盖（绝不改他人数据）。新增记录
+        // （服务器无同 id）保持放行，避免破坏合法的新建数据同步；dev-mode（未认证 permitAll）
+        // 保持旧的无授权行为。
+        boolean enforce = accessGuard != null && accessGuard.isCallerAuthenticated(authentication);
+        Set<String> ids = enforce ? accessGuard.callerIdentities(authentication) : null;
+        Set<String> projectIds = enforce ? accessGuard.accessibleProjectIds(authentication) : null;
+
         for (Map<String, Object> record : request.getRecords()) {
+            String recordId = (String) record.get("id");
+            // 拦截跨用户覆盖：仅当服务器已存在同 id 且归属不在调用方范围内时拒绝
+            if (enforce && existingOwnerOutOfScope(request.getTableName(), recordId, ids, projectIds)) {
+                deniedCount++;
+                log.warn("[SyncService] 拒绝跨用户覆盖: table={}, id={}, caller={}",
+                    request.getTableName(), recordId, authentication.getName());
+                try {
+                    logSyncInNewTransaction(request.getTableName(), recordId, "upload", "denied",
+                        request.getDeviceId(), "cross-user overwrite blocked");
+                } catch (Exception ignore) {
+                    // 审计日志失败不影响拒绝结果
+                }
+                continue;
+            }
             try {
                 // 每条记录在独立的新事务中处理（REQUIRES_NEW）
                 Boolean hasConflict = requiresNewTransactionTemplate.execute(status -> {
@@ -135,13 +160,14 @@ public class SyncServiceImpl implements SyncService {
         }
 
         long executionTime = System.currentTimeMillis() - startTime;
-        log.info("[SyncService] 批量上传完成: success={}, failed={}, conflict={}, time={}ms",
-            successCount, failedCount, conflictCount, executionTime);
+        log.info("[SyncService] 批量上传完成: success={}, failed={}, conflict={}, denied={}, time={}ms",
+            successCount, failedCount, conflictCount, deniedCount, executionTime);
 
         Map<String, Object> result = new HashMap<>();
         result.put("successCount", successCount);
         result.put("failedCount", failedCount);
         result.put("conflictCount", conflictCount);
+        result.put("deniedCount", deniedCount);
         result.put("conflicts", conflicts);
         result.put("executionTimeMs", executionTime);
 
@@ -310,13 +336,26 @@ public class SyncServiceImpl implements SyncService {
     }
 
     @Override
-    public void resolveConflict(ConflictResolutionDTO resolution) {
+    public void resolveConflict(ConflictResolutionDTO resolution, Authentication authentication) {
         log.info("[SyncService] 解决冲突: conflictId={}, resolution={}",
             resolution.getConflictId(), resolution.getResolution());
 
         try {
             // 根据解决策略更新数据（独立事务）
             if ("manual".equals(resolution.getResolution()) && resolution.getMergedData() != null) {
+                // 写授权（IDOR 修复 #7）：冲突解决端点同为写入路径，按上传侧同口径防跨用户覆盖。
+                boolean enforce = accessGuard != null && accessGuard.isCallerAuthenticated(authentication);
+                if (enforce) {
+                    Set<String> ids = accessGuard.callerIdentities(authentication);
+                    Set<String> projectIds = accessGuard.accessibleProjectIds(authentication);
+                    String recordId = (String) resolution.getMergedData().get("id");
+                    if (existingOwnerOutOfScope(resolution.getTableName(), recordId, ids, projectIds)) {
+                        log.warn("[SyncService] 拒绝经冲突解决跨用户覆盖: table={}, id={}, caller={}",
+                            resolution.getTableName(), recordId, authentication.getName());
+                        throw new org.springframework.security.access.AccessDeniedException(
+                            "无权覆盖该记录");
+                    }
+                }
                 processRecordInTransaction(resolution.getTableName(), resolution.getMergedData(), resolution.getDeviceId());
             }
 
@@ -490,6 +529,66 @@ public class SyncServiceImpl implements SyncService {
             if (c.getId() != null) result.add(c.getId());
         }
         return result;
+    }
+
+    /**
+     * 上传写授权（#7）：判断「服务器已存在的同 id 记录」是否归属在调用方可访问范围<b>之外</b>。
+     * 返回 true 表示该记录归属他人 → 调用方无权覆盖（拒绝写入）。
+     * 服务器无同 id 记录（新增）返回 false —— 新增不在此拦截，避免破坏合法新建数据同步。
+     * 各表归属判定与下载侧 {@link #queryIncrementalData} 完全对称：
+     * 用户自有数据按 {user_id/owner_did}，项目相关数据按 project_id，消息/项目会话为只插入
+     * （永不覆盖）故不在此拦截。
+     */
+    private boolean existingOwnerOutOfScope(String tableName, String id,
+                                           Set<String> ids, Set<String> projectIds) {
+        if (id == null || ids == null || projectIds == null) {
+            return false;
+        }
+        switch (tableName) {
+            case "projects": {
+                Project e = projectMapper.selectById(id);
+                if (e == null) return false;
+                return !(has(ids,e.getUserId()) || has(ids,e.getOwnerDid()));
+            }
+            case "project_files": {
+                ProjectFile e = projectFileMapper.selectById(id);
+                if (e == null) return false;
+                return !has(projectIds,e.getProjectId());
+            }
+            case "project_tasks": {
+                ProjectTask e = projectTaskMapper.selectById(id);
+                if (e == null) return false;
+                return !has(projectIds,e.getProjectId());
+            }
+            case "project_collaborators": {
+                ProjectCollaborator e = projectCollaboratorMapper.selectById(id);
+                if (e == null) return false;
+                return !(has(projectIds,e.getProjectId()) || has(ids,e.getUserId()));
+            }
+            case "project_comments": {
+                ProjectComment e = projectCommentMapper.selectById(id);
+                if (e == null) return false;
+                return !(has(projectIds,e.getProjectId()) || has(ids,e.getUserId()));
+            }
+            case "conversations": {
+                Conversation e = conversationMapper.selectById(id);
+                if (e == null) return false;
+                return !(has(ids,e.getUserId()) || has(projectIds,e.getProjectId()));
+            }
+            case "knowledge_items": {
+                KnowledgeItem e = knowledgeItemMapper.selectById(id);
+                if (e == null) return false;
+                return !has(ids,e.getUserId());
+            }
+            // messages / project_conversations 为只插入（upsert 命中已存在即跳过，不覆盖）→ 无覆盖风险
+            default:
+                return false;
+        }
+    }
+
+    /** Null-safe membership test (entity owner fields may be null; some Set impls reject contains(null)). */
+    private static boolean has(Set<String> set, String value) {
+        return value != null && set.contains(value);
     }
 
     /**

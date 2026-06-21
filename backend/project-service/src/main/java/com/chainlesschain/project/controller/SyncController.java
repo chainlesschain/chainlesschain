@@ -60,12 +60,13 @@ public class SyncController {
      */
     @PostMapping("/upload")
     @Operation(summary = "批量上传数据", description = "客户端批量上传本地变更的数据到服务器")
-    public Result<Map<String, Object>> uploadBatch(@Validated @RequestBody SyncRequestDTO request) {
+    public Result<Map<String, Object>> uploadBatch(@Validated @RequestBody SyncRequestDTO request,
+            org.springframework.security.core.Authentication authentication) {
         log.info("[SyncController] 收到批量上传请求: table={}, deviceId={}, records={}",
             request.getTableName(), request.getDeviceId(), request.getRecords().size());
 
         try {
-            Map<String, Object> result = syncService.uploadBatch(request);
+            Map<String, Object> result = syncService.uploadBatch(request, authentication);
             return Result.success(result);
         } catch (Exception e) {
             log.error("[SyncController] 批量上传失败: {}", e.getMessage(), e);
@@ -131,12 +132,13 @@ public class SyncController {
      */
     @PostMapping("/resolve-conflict")
     @Operation(summary = "解决冲突", description = "提交冲突解决方案")
-    public Result<Void> resolveConflict(@Validated @RequestBody ConflictResolutionDTO resolution) {
+    public Result<Void> resolveConflict(@Validated @RequestBody ConflictResolutionDTO resolution,
+            org.springframework.security.core.Authentication authentication) {
         log.info("[SyncController] 收到冲突解决请求: conflictId={}, resolution={}",
             resolution.getConflictId(), resolution.getResolution());
 
         try {
-            syncService.resolveConflict(resolution);
+            syncService.resolveConflict(resolution, authentication);
             return Result.success(null, "冲突解决成功");
         } catch (Exception e) {
             log.error("[SyncController] 解决冲突失败: {}", e.getMessage(), e);
