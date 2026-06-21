@@ -15,12 +15,15 @@
  * through the phase loader. Consumers call `resolveActorDid(claimed, …)`.
  *
  * Gated rollout (mirrors ipc-sender-guard), via `CC_IPC_ACTOR_GUARD`:
- *   - unset / "report" → DEFAULT: log anomalies (claimed actor != authenticated,
- *     or no unlocked user) but return the claimed value UNCHANGED — zero
- *     behavior change, so the logs reveal whether "actor == current user" always
- *     holds before we enforce.
- *   - "enforce" / "1"  → return the AUTHENTICATED did (override a mismatched
- *     claim); throw on a privileged action when no user is unlocked.
+ *   - unset / "enforce" / "1" → DEFAULT: return the AUTHENTICATED did (override a
+ *     mismatched/absent claim); throw on a privileged action when no user is
+ *     unlocked. Static verification of the renderer call sites confirmed every
+ *     guarded handler sources its actor from the current user
+ *     (authStore.currentUser.did / identityStore.primaryDID), with no
+ *     grant-on-behalf flow — so legit calls already send the current user and
+ *     see no behavior change; only spoofed/absent claims are corrected.
+ *   - "report" / "audit" → log mismatches but return the claim UNCHANGED (use to
+ *     re-verify after adding handlers / a delegated-actor flow).
  *   - "0" / "off"      → disabled (return claimed verbatim).
  *
  * @module permission/current-user-context
@@ -56,10 +59,11 @@ function resolveActorMode() {
   if (v === "0" || v === "off" || v === "false" || v === "disable") {
     return "off";
   }
-  if (v === "enforce" || v === "1" || v === "block" || v === "true") {
-    return "enforce";
+  if (v === "report" || v === "audit" || v === "warn") {
+    return "report";
   }
-  return "report";
+  // Default (unset) + explicit enforce values → enforce (authoritative actor).
+  return "enforce";
 }
 
 /** DIDs are public identifiers, but keep logs short + tidy. */

@@ -49,14 +49,20 @@ describe("current-user-context / resolveActorMode", () => {
       process.env.CC_IPC_ACTOR_GUARD = orig;
     }
   });
-  it("defaults to report", () => {
+  it("defaults to enforce (hardening on; renderer call sites verified)", () => {
     delete process.env.CC_IPC_ACTOR_GUARD;
+    expect(resolveActorMode()).toBe("enforce");
+  });
+  it("honors explicit report/audit (opt-out of override)", () => {
+    process.env.CC_IPC_ACTOR_GUARD = "report";
+    expect(resolveActorMode()).toBe("report");
+    process.env.CC_IPC_ACTOR_GUARD = "audit";
     expect(resolveActorMode()).toBe("report");
   });
-  it("honors enforce + off", () => {
-    process.env.CC_IPC_ACTOR_GUARD = "enforce";
-    expect(resolveActorMode()).toBe("enforce");
+  it("honors the kill-switch (0/off)", () => {
     process.env.CC_IPC_ACTOR_GUARD = "0";
+    expect(resolveActorMode()).toBe("off");
+    process.env.CC_IPC_ACTOR_GUARD = "off";
     expect(resolveActorMode()).toBe("off");
   });
 });
