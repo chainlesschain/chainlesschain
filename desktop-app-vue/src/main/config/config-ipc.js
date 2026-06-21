@@ -7,21 +7,45 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
 
 // 防止重复注册的标志
 let isRegistered = false;
 
 /**
+ * config 写保护命名空间（IPC 安全发现 #4）。
+ * 渲染层只合法写入少数 UI/项目配置项（如 project.rootPath / ui.useWebShellExperimental），
+ * 从不写入数据库敏感配置。`database`（含 `database.sqlcipherKey` —— SQLCipher 主密钥）
+ * 必须由主进程/keychain 管理，绝不接受渲染层经 config:set / config:update 写入/篡改
+ * （防止被恶意或被攻陷的渲染帧改写加密密钥造成数据库不可解/篡改）。
+ *
+ * 同时匹配「整命名空间」(`config:update` 传 key="database" + 整对象) 和「点分子键」
+ * (`config:set` 传 "database.sqlcipherKey")。
+ */
+const PROTECTED_CONFIG_NAMESPACES = ["database"];
+
+function isProtectedConfigKey(key) {
+  if (typeof key !== "string") {
+    return false;
+  }
+  return PROTECTED_CONFIG_NAMESPACES.some(
+    (ns) => key === ns || key.startsWith(`${ns}.`),
+  );
+}
+
+/**
  * 注册所有配置 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.appConfig - 应用配置管理器实例
+ * @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
  */
-function registerConfigIPC({ appConfig }) {
+function registerConfigIPC({ appConfig, ipcMain: injectedIpcMain }) {
   if (isRegistered) {
     logger.info("[Config IPC] Handlers already registered, skipping...");
     return;
   }
+
+  // 支持依赖注入，用于测试
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
   logger.info("[Config IPC] Registering Config IPC handlers...");
 
@@ -62,6 +86,15 @@ function registerConfigIPC({ appConfig }) {
     try {
       if (!appConfig) {
         throw new Error("AppConfig未初始化");
+      }
+
+      // 写保护（#4）：拒绝渲染层写入敏感配置（如 database.* 加密密钥）。
+      if (isProtectedConfigKey(key)) {
+        logger.warn(`[Config IPC] 拒绝写入受保护配置项: ${key}`);
+        return {
+          success: false,
+          error: `Refused to set protected config key: ${key}`,
+        };
       }
 
       appConfig.set(key, value);
@@ -175,9 +208,13 @@ function registerConfigIPC({ appConfig }) {
         throw new Error("AppConfig未初始化");
       }
 
-      // 批量更新配置
+      // 批量更新配置（跳过受保护命名空间，防止经 config:update 绕过 config:set 写保护）
       if (config && typeof config === "object") {
         for (const [key, value] of Object.entries(config)) {
+          if (isProtectedConfigKey(key)) {
+            logger.warn(`[Config IPC] config:update 跳过受保护配置项: ${key}`);
+            continue;
+          }
           appConfig.set(key, value);
         }
       }
