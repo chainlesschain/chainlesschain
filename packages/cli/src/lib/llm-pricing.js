@@ -155,11 +155,20 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
  * @returns {{ inputCost:number, outputCost:number, totalCost:number,
  *             currency:string, matched:boolean, free:boolean, rate:object|null }}
  */
+// Prompt-cache price multipliers relative to the input rate (Anthropic public
+// pricing): a cache READ bills at ~10% of input, a cache WRITE (5-minute
+// ephemeral breakpoint) at ~125%. Applied only when cache token counts are
+// present, so non-caching usage is priced exactly as before.
+export const CACHE_READ_MULTIPLIER = 0.1;
+export const CACHE_WRITE_MULTIPLIER = 1.25;
+
 export function estimateCost({
   provider,
   model,
   inputTokens = 0,
   outputTokens = 0,
+  cacheReadTokens = 0,
+  cacheCreationTokens = 0,
   table,
 } = {}) {
   const rate = lookupRate(provider, model, table);
@@ -167,6 +176,8 @@ export function estimateCost({
     return {
       inputCost: 0,
       outputCost: 0,
+      cacheReadCost: 0,
+      cacheCreationCost: 0,
       totalCost: 0,
       currency: "USD",
       matched: false,
@@ -176,10 +187,20 @@ export function estimateCost({
   }
   const inputCost = round((Number(inputTokens) / 1e6) * rate.in);
   const outputCost = round((Number(outputTokens) / 1e6) * rate.out);
+  const cacheReadCost = round(
+    (Number(cacheReadTokens) / 1e6) * rate.in * CACHE_READ_MULTIPLIER,
+  );
+  const cacheCreationCost = round(
+    (Number(cacheCreationTokens) / 1e6) * rate.in * CACHE_WRITE_MULTIPLIER,
+  );
   return {
     inputCost,
     outputCost,
-    totalCost: round(inputCost + outputCost),
+    cacheReadCost,
+    cacheCreationCost,
+    totalCost: round(
+      inputCost + outputCost + cacheReadCost + cacheCreationCost,
+    ),
     currency: "USD",
     matched: true,
     free: rate.pattern === "free",
@@ -202,6 +223,8 @@ export function priceRollup(aggregate, { table } = {}) {
       model: row.model,
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,
+      cacheReadTokens: row.cacheReadTokens,
+      cacheCreationTokens: row.cacheCreationTokens,
       table,
     });
     return {
@@ -209,6 +232,8 @@ export function priceRollup(aggregate, { table } = {}) {
       cost: est.totalCost,
       inputCost: est.inputCost,
       outputCost: est.outputCost,
+      cacheReadCost: est.cacheReadCost,
+      cacheCreationCost: est.cacheCreationCost,
       currency: est.currency,
       matched: est.matched,
       free: est.free,

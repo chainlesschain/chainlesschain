@@ -19,6 +19,8 @@ describe("session-usage", () => {
         inputTokens: 100,
         outputTokens: 50,
         totalTokens: 150,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
         timestamp: 1,
       });
     });
@@ -99,6 +101,8 @@ describe("session-usage", () => {
         inputTokens: 150,
         outputTokens: 65,
         totalTokens: 215,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
         calls: 3,
       });
       expect(agg.byModel).toHaveLength(2);

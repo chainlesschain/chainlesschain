@@ -2833,8 +2833,15 @@ export async function chatWithTools(rawMessages, options) {
     const normalized = _normalizeAnthropicResponse(data);
     if (data.usage) {
       normalized.usage = {
+        // With prompt caching, Anthropic splits input into uncached
+        // `input_tokens` + cache read/write — capture all three so cost
+        // accounting prices the cached prefix correctly (read ≈ 0.1×,
+        // write ≈ 1.25× input). Absent (caching off) → 0, byte-identical.
         input_tokens: data.usage.input_tokens || 0,
         output_tokens: data.usage.output_tokens || 0,
+        cache_read_input_tokens: data.usage.cache_read_input_tokens || 0,
+        cache_creation_input_tokens:
+          data.usage.cache_creation_input_tokens || 0,
       };
     }
     return normalized;
@@ -3305,7 +3312,14 @@ async function _chatOllamaStreaming(
 // the same shape chatWithTools returns non-streamed.
 
 function _anthropicInitState() {
-  return { text: "", blocks: {}, inputTokens: 0, outputTokens: 0 };
+  return {
+    text: "",
+    blocks: {},
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+  };
 }
 
 function _anthropicReduceLine(state, raw, onToken, onThinking) {
@@ -3320,8 +3334,13 @@ function _anthropicReduceLine(state, raw, onToken, onThinking) {
     return state;
   }
   if (obj.type === "message_start") {
-    state.inputTokens =
-      Number(obj.message?.usage?.input_tokens) || state.inputTokens;
+    const u = obj.message?.usage || {};
+    state.inputTokens = Number(u.input_tokens) || state.inputTokens;
+    // Prompt-cache token counts ride message_start.usage (Anthropic caching).
+    state.cacheReadTokens =
+      Number(u.cache_read_input_tokens) || state.cacheReadTokens;
+    state.cacheCreationTokens =
+      Number(u.cache_creation_input_tokens) || state.cacheCreationTokens;
   } else if (obj.type === "content_block_start") {
     const cb = obj.content_block || {};
     state.blocks[obj.index] =
@@ -3400,10 +3419,17 @@ function _anthropicFinalize(state) {
   // tool turn — required by the API when extended thinking is on.
   if (thinkingBlocks.length) message._thinkingBlocks = thinkingBlocks;
   const out = { message };
-  if (state.inputTokens || state.outputTokens) {
+  if (
+    state.inputTokens ||
+    state.outputTokens ||
+    state.cacheReadTokens ||
+    state.cacheCreationTokens
+  ) {
     out.usage = {
       input_tokens: state.inputTokens,
       output_tokens: state.outputTokens,
+      cache_read_input_tokens: state.cacheReadTokens,
+      cache_creation_input_tokens: state.cacheCreationTokens,
     };
   }
   return out;

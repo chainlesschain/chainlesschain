@@ -49,6 +49,15 @@ export function extractUsage(event) {
   const totalTokens = toNumber(
     raw.total_tokens ?? raw.totalTokens ?? inputTokens + outputTokens,
   );
+  // Prompt-cache token counts (Anthropic caching): read tokens are billed at
+  // ~10% and creation/write at ~1.25× the input rate, so they are tracked
+  // separately for accurate cost. Absent on non-caching providers → 0.
+  const cacheReadTokens = toNumber(
+    raw.cache_read_input_tokens ?? raw.cacheReadTokens ?? 0,
+  );
+  const cacheCreationTokens = toNumber(
+    raw.cache_creation_input_tokens ?? raw.cacheCreationTokens ?? 0,
+  );
 
   if (inputTokens === 0 && outputTokens === 0 && totalTokens === 0) {
     return null;
@@ -60,6 +69,8 @@ export function extractUsage(event) {
     inputTokens,
     outputTokens,
     totalTokens,
+    cacheReadTokens,
+    cacheCreationTokens,
     timestamp: event.timestamp || null,
   };
 }
@@ -73,6 +84,8 @@ export function aggregateUsage(events) {
     inputTokens: 0,
     outputTokens: 0,
     totalTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
     calls: 0,
   };
 
@@ -83,6 +96,8 @@ export function aggregateUsage(events) {
     total.inputTokens += u.inputTokens;
     total.outputTokens += u.outputTokens;
     total.totalTokens += u.totalTokens;
+    total.cacheReadTokens += u.cacheReadTokens || 0;
+    total.cacheCreationTokens += u.cacheCreationTokens || 0;
     total.calls += 1;
 
     const key = `${u.provider || "?"}/${u.model || "?"}`;
@@ -92,11 +107,15 @@ export function aggregateUsage(events) {
       inputTokens: 0,
       outputTokens: 0,
       totalTokens: 0,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 0,
       calls: 0,
     };
     entry.inputTokens += u.inputTokens;
     entry.outputTokens += u.outputTokens;
     entry.totalTokens += u.totalTokens;
+    entry.cacheReadTokens += u.cacheReadTokens || 0;
+    entry.cacheCreationTokens += u.cacheCreationTokens || 0;
     entry.calls += 1;
     byKey.set(key, entry);
   }
@@ -129,6 +148,8 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
     inputTokens: 0,
     outputTokens: 0,
     totalTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
     calls: 0,
   };
   const byKey = new Map();
@@ -137,6 +158,8 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
     total.inputTokens += s.total.inputTokens;
     total.outputTokens += s.total.outputTokens;
     total.totalTokens += s.total.totalTokens;
+    total.cacheReadTokens += s.total.cacheReadTokens || 0;
+    total.cacheCreationTokens += s.total.cacheCreationTokens || 0;
     total.calls += s.total.calls;
     for (const row of s.byModel) {
       const key = `${row.provider || "?"}/${row.model || "?"}`;
@@ -146,11 +169,15 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
         calls: 0,
       };
       entry.inputTokens += row.inputTokens;
       entry.outputTokens += row.outputTokens;
       entry.totalTokens += row.totalTokens;
+      entry.cacheReadTokens += row.cacheReadTokens || 0;
+      entry.cacheCreationTokens += row.cacheCreationTokens || 0;
       entry.calls += row.calls;
       byKey.set(key, entry);
     }
