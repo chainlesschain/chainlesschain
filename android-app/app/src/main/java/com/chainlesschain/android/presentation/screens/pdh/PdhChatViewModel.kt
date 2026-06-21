@@ -12,10 +12,12 @@ import com.chainlesschain.android.pdh.PdhCrossDevice
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhLedger
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResourceBudget
 import com.chainlesschain.android.pdh.PdhResultView
+import com.chainlesschain.android.pdh.PdhRouteBridge
 import com.chainlesschain.android.pdh.PdhTransaction
 import com.chainlesschain.android.pdh.PdhTransparency
 import com.chainlesschain.android.pdh.TxnRisk
@@ -54,6 +56,8 @@ class PdhChatViewModel @Inject constructor(
     private val deviceState: PdhDeviceState,
     // §3.5.18: append-only egress/action ledgers (transparency 读写两侧的写持久化)。
     private val ledger: PdhLedger,
+    // §3.5.10 接线4: HubAsk route-config source (LAN Ollama URL) for the bridge.
+    private val llmPreferences: LlmPreferences,
 ) : ViewModel() {
 
     // §3.7: the chat is in-memory; MIUI killing the backgrounded app would lose
@@ -199,8 +203,10 @@ class PdhChatViewModel @Inject constructor(
         val error: String? = null,
         /** §3.5.9 内联信任卡(引导/预览/审批/计划),按到达顺序渲染。 */
         val pendingCards: List<TrustCard> = emptyList(),
-        /** §3.5.10 顶栏数据流向徽章:这次 AI 在哪跑、数据是否离开手机(透明度优先)。 */
-        val privacyBadge: PdhPrivacyTier.TierBadge? = null,
+        /** §3.5.10 接线4: 本轮选的隐私档(驱动徽章/出境/同意/per-turn LLM)。 */
+        val selectedRoute: LlmRoute = LlmRoute.CLOUD_ANDROID,
+        /** §3.5.10 接线4: HubAsk 的 LAN Ollama URL(空=局域网档不可选)。 */
+        val lanBaseUrl: String? = null,
         /** §3.5.19 首跑 onboarding(空态三步);非空=正在引导,取代"已就绪"文案。 */
         val onboarding: Onboarding? = null,
         /** §3.5.20 重活预算提醒(非空=展示提醒卡,等用户「现在就跑」或取消)。 */
@@ -224,6 +230,14 @@ class PdhChatViewModel @Inject constructor(
          */
         val targetDevice: String
             get() = PdhCrossDevice.resolveTarget(selectedDevice, SELF_DEVICE, pairedDevices.toSet())
+
+        /** §3.5.10 接线3: 顶栏数据流向徽章(从当前选档算,随切档实时变)。 */
+        val privacyBadge: PdhPrivacyTier.TierBadge
+            get() = PdhPrivacyTier.badge(selectedRoute)
+
+        /** §3.5.10 接线4: 对话助手可直驱的档(云常在;局域网需 LAN URL)。 */
+        val routeOptions: List<LlmRoute>
+            get() = PdhRouteBridge.agentSelectableRoutes(PdhRouteBridge.Config(lanBaseUrl))
         /** 实际渲染的消息:搜索命中(全量过滤) 或 最近 displayLimit 条(翻页窗口)。 */
         val visibleMessages: List<ChatMessage>
             get() = if (searchQuery.isBlank()) {
@@ -245,9 +259,6 @@ class PdhChatViewModel @Inject constructor(
 
     /** §3.5.20 资源预算(默认保守:省电省流量);预算设置 UI 是后续 seam。 */
     private val budgetSettings = PdhResourceBudget.Settings()
-
-    /** §3.5.18: this session's LLM route — drives the egress 台账(数据去过哪)。 */
-    private var sessionRoute: LlmRoute? = null
 
     /** §3.5.10 接线5: cloud-data consent state ("本类不再问" 持久 / 本 session 已问)。 */
     private var cloudConsentGranted = false
@@ -278,14 +289,16 @@ class PdhChatViewModel @Inject constructor(
                     it.copy(error = "无法启动本机 AI（cc agent）：${r.exceptionOrNull()?.message ?: "未知"}")
                 }
             } else {
-                // §3.5.10/§3.5.18: resolve the session route once → privacy badge +
-                // egress 台账 destination (best-effort; never crash).
+                // §3.5.10 接线4: initial route = the session's cc-agent LLM (云 by
+                // default); LAN URL from HubAsk's config source (best-effort).
                 val route = runCatching { session.currentRoute() }.getOrNull()
-                sessionRoute = route
+                    ?: LlmRoute.CLOUD_ANDROID
+                val lan = runCatching { llmPreferences.getLanLlmBaseUrl() }.getOrNull()
                 _uiState.update {
                     it.copy(
                         ready = true,
-                        privacyBadge = route?.let { r -> PdhPrivacyTier.badge(r) },
+                        selectedRoute = route,
+                        lanBaseUrl = lan,
                         // §3.5.19: first-run 3-step onboarding (免 root 默认源先出价值).
                         onboarding = if (showOnboarding) {
                             Onboarding(
@@ -385,7 +398,7 @@ class PdhChatViewModel @Inject constructor(
     private fun shouldAskCloudConsent(): Boolean =
         !cloudConsentGranted &&
             !cloudConsentAskedThisSession &&
-            sessionRoute == LlmRoute.CLOUD_ANDROID &&
+            _uiState.value.selectedRoute == LlmRoute.CLOUD_ANDROID &&
             hasUntrustedDataSinceLastUser(_uiState.value.messages)
 
     /** Actually send a user turn (post-consent). */
@@ -405,9 +418,15 @@ class PdhChatViewModel @Inject constructor(
             )
         }
         persistChat()
-        recordEgressIfLeaving() // §3.5.18: the turn's text goes to the session LLM.
+        recordEgressIfLeaving() // §3.5.18: the turn's text goes to the selected LLM.
+        // §3.5.10 接线4/6: route THIS turn to the selected 档's LLM (云=默认不覆盖;
+        // 局域网=ollama@LAN). The cc side applies the per-turn override.
+        val override = PdhRouteBridge.toLlmOverride(
+            _uiState.value.selectedRoute,
+            PdhRouteBridge.Config(_uiState.value.lanBaseUrl),
+        )
         viewModelScope.launch {
-            val ok = session.send(text)
+            val ok = session.send(text, override)
             if (!ok) {
                 _uiState.update {
                     it.copy(
@@ -449,7 +468,7 @@ class PdhChatViewModel @Inject constructor(
      * 设备;云=第三方。诚实:出境就记,绝不隐藏(§13.3)。
      */
     private fun recordEgressIfLeaving() {
-        val route = sessionRoute ?: return
+        val route = _uiState.value.selectedRoute
         val destination = when (route) {
             LlmRoute.LOCAL_DEVICE -> return // 端侧推理,数据不出手机 → 无出境
             LlmRoute.PC_LOCAL -> "你的桌面(自有设备)"
@@ -891,6 +910,20 @@ class PdhChatViewModel @Inject constructor(
     /** §10 device discovery 注入已配对的自有设备列表(seam;Phase 2 暂无来源=仅本机)。 */
     fun setPairedDevices(devices: List<String>) = _uiState.update {
         it.copy(pairedDevices = devices)
+    }
+
+    // ── §3.5.10 接线4: 隐私档位选择(驱动徽章/出境/同意/per-turn LLM)──────────
+
+    /**
+     * 选隐私档(仅对话助手可直驱的档:云/局域网);未配 LAN 时选局域网会被忽略
+     * (诚实:无 LAN URL 不假装可路由)。切档实时反映在徽章,并作用到后续每轮。
+     */
+    fun setRoute(route: LlmRoute) = _uiState.update {
+        if (PdhRouteBridge.isAgentSelectable(route, PdhRouteBridge.Config(it.lanBaseUrl))) {
+            it.copy(selectedRoute = route)
+        } else {
+            it
+        }
     }
 
     /** 结束 onboarding:落"已完成"标志(不再引导)+ 清面板;可选补已就绪文案。 */

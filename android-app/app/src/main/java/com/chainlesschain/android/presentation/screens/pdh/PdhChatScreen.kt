@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -132,8 +133,8 @@ fun PdhChatScreen(
                             contentDescription = if (searchOpen) "关闭搜索" else "搜索记录",
                         )
                     }
-                    // §3.5.10 接线3: data-flow badge — 这次 AI 在哪跑、数据是否离开手机。
-                    state.privacyBadge?.let { PrivacyBadge(it) }
+                    // §3.5.10 接线3+4: data-flow badge + 隐私档位选择器(点开切档)。
+                    RouteSelector(state = state, viewModel = viewModel)
                 },
             )
         },
@@ -308,6 +309,43 @@ private fun DeviceSelector(targetDevice: String, paired: List<String>, onSelect:
                     DropdownMenuItem(text = { Text(d) }, onClick = { onSelect(d); expanded = false })
                 }
             }
+        }
+    }
+}
+
+/**
+ * §3.5.10 接线4 — 顶栏隐私档位选择器:点徽章展开,在对话助手可直驱的档(云 / 局域网
+ * Ollama)间切换;切档实时改徽章 + 作用到后续每轮(per-turn LLM,接线6)。端侧/桌面
+ * 对话助手不可直驱 → 列为禁用项,如实说明(诚实,§13.4)。
+ */
+@Composable
+private fun RouteSelector(state: PdhChatViewModel.UiState, viewModel: PdhChatViewModel) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Box(modifier = Modifier.clickable { expanded = true }) {
+            PrivacyBadge(state.privacyBadge)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            state.routeOptions.forEach { route ->
+                val b = PdhPrivacyTier.badge(route)
+                DropdownMenuItem(
+                    text = { Text("${b.label} · ${b.dataFlow}") },
+                    onClick = {
+                        viewModel.setRoute(route)
+                        expanded = false
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "端侧 / 桌面:对话助手暂不支持(用于「本机数据」问答)",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
+                onClick = {},
+                enabled = false,
+            )
         }
     }
 }

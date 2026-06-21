@@ -8,6 +8,8 @@ import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhLedger
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhResourceBudget
+import com.chainlesschain.android.pdh.PdhRouteBridge
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.pdh.PdhTransparency
 import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
@@ -47,6 +49,7 @@ class PdhChatViewModelTest {
     private lateinit var tmpDir: java.io.File
     private lateinit var deviceState: PdhDeviceState
     private lateinit var ledger: PdhLedger
+    private lateinit var llmPreferences: LlmPreferences
 
     @Before
     fun setUp() {
@@ -66,6 +69,8 @@ class PdhChatViewModelTest {
             PdhResourceBudget.Device(charging = true, batteryPercent = 90, onWifi = true)
         // §3.5.18: relaxed ledger (read* → empty lists) unless a test stubs it.
         ledger = mockk(relaxed = true)
+        // §3.5.10 接线4: relaxed prefs (getLanLlmBaseUrl → null = LAN not configured).
+        llmPreferences = mockk(relaxed = true)
     }
 
     @After
@@ -78,7 +83,7 @@ class PdhChatViewModelTest {
     private fun newVm(): PdhChatViewModel {
         // Inject the test dispatcher as @IoDispatcher so init's file IO runs on the
         // test scheduler → advanceUntilIdle deterministically drains it.
-        val vm = PdhChatViewModel(session, context, dispatcher, deviceState, ledger)
+        val vm = PdhChatViewModel(session, context, dispatcher, deviceState, ledger, llmPreferences)
         dispatcher.scheduler.advanceUntilIdle() // start() + IO + subscribe to events
         return vm
     }
@@ -441,6 +446,67 @@ class PdhChatViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.cloudConsent)
         coVerify { session.send("你好") }
+    }
+
+    // ── §3.5.10 接线4 隐私档位桥接 ───────────────────────────────────────────
+
+    @Test
+    fun default_route_is_session_route_cloud() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        val vm = newVm()
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.selectedRoute)
+        assertEquals("☁️ 云", vm.uiState.value.privacyBadge.label)
+    }
+
+    @Test
+    fun lan_url_makes_lan_route_selectable() = runTest(dispatcher) {
+        every { llmPreferences.getLanLlmBaseUrl() } returns "http://192.168.1.5:11434"
+        val vm = newVm()
+        assertTrue(vm.uiState.value.routeOptions.contains(LlmRoute.LAN_OLLAMA))
+    }
+
+    @Test
+    fun selecting_unconfigured_lan_is_ignored() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        val vm = newVm() // no LAN url configured
+        vm.setRoute(LlmRoute.LAN_OLLAMA)
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.selectedRoute) // ignored
+    }
+
+    @Test
+    fun selecting_lan_updates_badge_routes_the_turn_and_skips_cloud_consent() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        every { llmPreferences.getLanLlmBaseUrl() } returns "http://lan:11434"
+        coEvery { session.send(any(), any()) } returns true
+        val vm = newVm()
+        vm.setRoute(LlmRoute.LAN_OLLAMA)
+        assertEquals("🟡 局域网", vm.uiState.value.privacyBadge.label) // badge follows route
+        // even with collected (untrusted) data, LAN = your own device → no cloud consent
+        seedUntrustedData()
+        vm.send("总结")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cloudConsent)
+        coVerify {
+            session.send(
+                any(),
+                match {
+                    it != null &&
+                        it.provider == "ollama" &&
+                        it.baseUrl == "http://lan:11434" &&
+                        it.model == PdhRouteBridge.DEFAULT_LAN_MODEL
+                },
+            )
+        }
+    }
+
+    @Test
+    fun cloud_route_sends_without_an_llm_override() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any(), any()) } returns true
+        val vm = newVm()
+        vm.send("你好")
+        advanceUntilIdle()
+        coVerify { session.send(any(), isNull()) } // 云=会话默认,不覆盖
     }
 
     // ── §3.5.16 跨设备目标设备选择 ──────────────────────────────────────────

@@ -219,11 +219,29 @@ class PdhAgentSession @Inject constructor(
             Result.success(Unit)
         }
 
-    /** Send one user turn (NDJSON `{"type":"user","text":…}`). No-op if not running. */
-    suspend fun send(text: String): Boolean = sendRaw(
+    /**
+     * Send one user turn (NDJSON `{"type":"user","text":…}`). No-op if not running.
+     * §3.5.10 接线4/6: an optional [llm] override routes THIS turn to a different
+     * model (e.g. 云 → 局域网 Ollama) without restarting the session; null = use
+     * the session default.
+     */
+    suspend fun send(
+        text: String,
+        llm: PdhRouteBridge.LlmOverride? = null,
+    ): Boolean = sendRaw(
         buildJsonObject {
             put("type", "user")
             put("text", text)
+            if (llm != null) {
+                put(
+                    "llm",
+                    buildJsonObject {
+                        put("provider", llm.provider)
+                        put("model", llm.model)
+                        put("baseUrl", llm.baseUrl)
+                    },
+                )
+            }
         },
     )
 
