@@ -57,6 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
+import com.chainlesschain.android.pdh.PdhAssetBackup
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
@@ -372,6 +373,79 @@ private fun BudgetNoticeCard(notice: PdhChatViewModel.BudgetNotice, viewModel: P
                 onClick = { viewModel.runCollectNow() },
                 modifier = Modifier.padding(start = 8.dp),
             ) { Text("现在就跑") }
+        }
+    }
+}
+
+/**
+ * §3.5.14 资产备份卡(高风险,可逆):列出将备份的资产范围 + E2E/不上云保证。
+ * 真同步引擎(libp2p 增量 + DID 解密)是 §8.3/Phase 7;本卡只做范围可见 + 审批。
+ */
+@Composable
+private fun BackupCard(card: TrustCard.Backup, viewModel: PdhChatViewModel) {
+    val onColor = MaterialTheme.colorScheme.onTertiaryContainer
+    CardSurface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+        Text("资产备份(高风险)", style = MaterialTheme.typography.titleSmall, color = onColor)
+        if (card.summary.isNotBlank()) {
+            Text(card.summary, style = MaterialTheme.typography.bodySmall, color = onColor)
+        }
+        Text(
+            "将端到端加密备份以下资产到你的自有设备:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = onColor,
+        )
+        card.assets.forEach { a ->
+            val count = if (a.itemCount > 0) " · ${a.itemCount} 项" else ""
+            Text("· ${a.label}$count", style = MaterialTheme.typography.bodySmall, color = onColor)
+        }
+        Text(
+            "🔒 端到端加密,只在你自有设备间,绝不上云。",
+            style = MaterialTheme.typography.bodySmall,
+            color = onColor,
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { viewModel.resolveCard(card.id, false) }) { Text("取消") }
+            Button(
+                onClick = { viewModel.resolveCard(card.id, true) },
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("确认备份") }
+        }
+    }
+}
+
+/**
+ * §3.5.14 资产恢复卡(更高风险):覆盖/合并本地资产 → 强确认(确认词)+ 凭 DID 认领;
+ * 冲突合并预览是 §8.3/§13.5/Phase 7,本卡只做强确认 + 不静默覆盖的提示。
+ */
+@Composable
+private fun RestoreCard(card: TrustCard.Restore, viewModel: PdhChatViewModel) {
+    val onColor = MaterialTheme.colorScheme.onErrorContainer
+    var confirmWord by remember(card.id) { mutableStateOf("") }
+    val ok = confirmWord.trim() == TXN_CONFIRM_WORD
+    CardSurface(color = MaterialTheme.colorScheme.errorContainer) {
+        Text("资产恢复(更高风险)", style = MaterialTheme.typography.titleSmall, color = onColor)
+        if (card.summary.isNotBlank()) {
+            Text(card.summary, style = MaterialTheme.typography.bodySmall, color = onColor)
+        }
+        Text(
+            "将用备份覆盖/合并本地资产。凭你的 DID 认领并解密属于你的资产;冲突会让你确认,绝不静默覆盖。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = onColor,
+        )
+        OutlinedTextField(
+            value = confirmWord,
+            onValueChange = { confirmWord = it },
+            singleLine = true,
+            label = { Text("输入「$TXN_CONFIRM_WORD」以继续") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { viewModel.resolveCard(card.id, false) }) { Text("取消") }
+            Button(
+                onClick = { viewModel.resolveCard(card.id, true) },
+                enabled = ok,
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("确认恢复") }
         }
     }
 }
@@ -749,6 +823,8 @@ private fun TrustCardItem(card: TrustCard, viewModel: PdhChatViewModel, context:
             onDeny = { viewModel.resolveCard(card.id, false) },
         )
         is TrustCard.Transaction -> TransactionCard(card = card, viewModel = viewModel)
+        is TrustCard.Backup -> BackupCard(card = card, viewModel = viewModel)
+        is TrustCard.Restore -> RestoreCard(card = card, viewModel = viewModel)
         is TrustCard.Plan -> PlanCard(
             card = card,
             onApprove = { viewModel.resolvePlan("approve") },

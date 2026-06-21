@@ -3,6 +3,7 @@ package com.chainlesschain.android.presentation.screens.pdh
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.pdh.AssetKind
 import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhLedger
 import com.chainlesschain.android.pdh.PdhOnboarding
@@ -366,6 +367,35 @@ class PdhChatViewModelTest {
         assertFalse(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(data, user)))
         // USER then DATA → untrusted data appeared this turn.
         assertTrue(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(user, data)))
+    }
+
+    // ── §3.5.14 资产备份/恢复卡 ──────────────────────────────────────────────
+
+    @Test
+    fun backup_tool_builds_backup_card_listing_all_assets() = runTest(dispatcher) {
+        val vm = newVm()
+        emit(approval("b1", "mcp__pdh__backup_assets", "备份到桌面"))
+        val card = vm.uiState.value.pendingCards
+            .filterIsInstance<PdhChatViewModel.TrustCard.Backup>().single()
+        assertEquals(AssetKind.values().size, card.assets.size)
+    }
+
+    @Test
+    fun restore_tool_builds_restore_card() = runTest(dispatcher) {
+        val vm = newVm()
+        emit(approval("r1", "mcp__pdh__restore_assets", "从桌面恢复"))
+        assertTrue(vm.uiState.value.pendingCards.any { it is PdhChatViewModel.TrustCard.Restore })
+    }
+
+    @Test
+    fun resolving_backup_card_sends_approval_and_removes_it() = runTest(dispatcher) {
+        coEvery { session.sendApproval(any(), any()) } returns true
+        val vm = newVm()
+        emit(approval("b2", "mcp__pdh__backup_assets", "备份"))
+        vm.resolveCard("b2", true)
+        advanceUntilIdle()
+        coVerify { session.sendApproval("b2", true) }
+        assertTrue(vm.uiState.value.pendingCards.isEmpty())
     }
 
     // ── §3.5.18 透明度台账(出境/操作 写 + 读)─────────────────────────────

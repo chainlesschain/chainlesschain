@@ -7,6 +7,7 @@ import com.chainlesschain.android.di.IoDispatcher
 import com.chainlesschain.android.pdh.PdhAgentSession
 import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhAgentSession.PdhAgentEvent
+import com.chainlesschain.android.pdh.PdhAssetBackup
 import com.chainlesschain.android.pdh.PdhDataProvenance
 import com.chainlesschain.android.pdh.PdhDeviceState
 import com.chainlesschain.android.pdh.PdhLedger
@@ -121,6 +122,23 @@ class PdhChatViewModel @Inject constructor(
             val reversible: Boolean,
             val needsConfirmWord: Boolean,
             val sourceWarning: Boolean,
+        ) : TrustCard()
+        /**
+         * §3.5.14 备份卡:把"训练好的个人 AI"(数据+学习层)E2E 加密同步到你的自有
+         * 设备。高风险但可逆;显式列出资产范围 + 不上云保证。
+         */
+        data class Backup(
+            override val id: String,
+            val summary: String,
+            val assets: List<PdhAssetBackup.Asset>,
+        ) : TrustCard()
+        /**
+         * §3.5.14 恢复卡:用备份覆盖/合并本地资产 —— 更高风险,强确认(确认词)+ 凭
+         * DID 认领解密 + 冲突不静默覆盖(合并预览是 §8.3/Phase 7 引擎)。
+         */
+        data class Restore(
+            override val id: String,
+            val summary: String,
         ) : TrustCard()
         /** 计划卡:Plan Mode 当前计划项。 */
         data class Plan(
@@ -427,6 +445,11 @@ class PdhChatViewModel @Inject constructor(
             is PdhAgentEvent.ApprovalRequest -> _uiState.update { st ->
                 val card: TrustCard = when {
                     isPreviewTool(ev.tool) -> TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk)
+                    // §3.5.14 资产备份/恢复 → 专用卡(范围可见 + 不上云 / 强确认)。
+                    ev.tool.contains("backup", ignoreCase = true) ->
+                        TrustCard.Backup(ev.id, ev.summary, PdhAssetBackup.inventory(emptyMap()))
+                    ev.tool.contains("restore", ignoreCase = true) ->
+                        TrustCard.Restore(ev.id, ev.summary)
                     PdhTransaction.isTransaction(ev.tool) -> {
                         val risk = PdhTransaction.riskOf(ev.tool, ev.summary)
                         TrustCard.Transaction(
