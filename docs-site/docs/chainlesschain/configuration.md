@@ -409,7 +409,7 @@ ChainlessChain 采用统一配置目录 `.chainlesschain/` 集中管理所有配
     "llmProvider": "anthropic",
     "llmConfig": {
       "apiKey": "sk-ant-...",
-      "model": "claude-3-opus-20240229"
+      "model": "claude-opus-4-8"
     }
   }
 }
@@ -836,7 +836,7 @@ const provider = configManager.getValue(
 configManager.updateConfig({
   ai: {
     llmProvider: "anthropic",
-    llmConfig: { model: "claude-3-opus-20240229" },
+    llmConfig: { model: "claude-opus-4-8" },
   },
 });
 
