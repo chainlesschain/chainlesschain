@@ -8,9 +8,18 @@
  */
 
 import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { loadConfig } from "./config-manager.js";
+import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
 
 /**
  * Create a chat completion function that routes through the active LLM provider.
+ *
+ * Provider precedence: explicit `options.provider` > `LLM_PROVIDER` env >
+ * `~/.chainlesschain/config.json` `llm` > ollama. Honoring config.llm here is
+ * what makes the cowork/orchestrate commands (which build createChatFn with no
+ * provider unless `--provider` is passed) work against a cloud-configured setup
+ * instead of silently defaulting to ollama/localhost:11434 and failing with a
+ * connection error on machines without a local ollama.
  *
  * @param {object} [options]
  * @param {string} [options.provider] - Provider name override
@@ -20,10 +29,24 @@ import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
  * @returns {(messages: object[], opts?: object) => Promise<string>}
  */
 export function createChatFn(options = {}) {
-  const provider = options.provider || process.env.LLM_PROVIDER || "ollama";
+  // Fill provider/model/baseUrl/apiKey from config.llm only when the caller
+  // gave no explicit provider AND no LLM_PROVIDER env override (both still win).
+  // Fail-open: a config read must never break chat construction.
+  const resolved = { ...options };
+  if (!resolved.provider && !process.env.LLM_PROVIDER) {
+    try {
+      applyConfigLlmDefaults(resolved, loadConfig()?.llm || {}, {
+        explicitModel: options.model,
+      });
+    } catch {
+      /* fall through to ollama defaults below */
+    }
+  }
+  const provider = resolved.provider || process.env.LLM_PROVIDER || "ollama";
   const providerDef = BUILT_IN_PROVIDERS[provider] || BUILT_IN_PROVIDERS.ollama;
-  const model = options.model || process.env.LLM_MODEL || providerDef.models[0];
-  const baseUrl = options.baseUrl || providerDef.baseUrl;
+  const model =
+    resolved.model || process.env.LLM_MODEL || providerDef.models[0];
+  const baseUrl = resolved.baseUrl || providerDef.baseUrl;
 
   return async function chat(messages, opts = {}) {
     const currentModel = opts.model || model;
@@ -46,7 +69,7 @@ export function createChatFn(options = {}) {
     }
 
     if (provider === "anthropic") {
-      const key = options.apiKey || process.env[providerDef.apiKeyEnv];
+      const key = resolved.apiKey || process.env[providerDef.apiKeyEnv];
       if (!key) throw new Error("ANTHROPIC_API_KEY not set");
       // Extract system message if present
       const systemMsgs = messages.filter((m) => m.role === "system");
@@ -74,7 +97,7 @@ export function createChatFn(options = {}) {
     }
 
     // OpenAI-compatible (openai, deepseek, dashscope, mistral, gemini)
-    const key = options.apiKey || process.env[providerDef.apiKeyEnv];
+    const key = resolved.apiKey || process.env[providerDef.apiKeyEnv];
     if (!key) throw new Error(`${providerDef.apiKeyEnv} not set`);
 
     const res = await fetch(`${baseUrl}/chat/completions`, {
