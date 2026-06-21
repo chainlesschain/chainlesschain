@@ -174,6 +174,13 @@ class IntentClassifier:
                     # 空数组，返回默认值
                     return self._get_default_intent("")
 
+            # 防御：LLM 可能返回合法 JSON 但不是对象（字符串/数字/布尔/null，或数组里
+            # 不是 dict 的元素）。此时下面的字段校验 `field not in result` /
+            # `result[field] = ...` 会抛 TypeError（且在 except json.JSONDecodeError
+            # 之外，崩溃不可恢复）。统一回退到默认意图。
+            if not isinstance(result, dict):
+                return self._get_default_intent("")
+
             # 验证必需字段
             required_fields = ["intent", "project_type", "entities", "confidence", "action"]
             for field in required_fields:
@@ -191,7 +198,19 @@ class IntentClassifier:
                 if start >= 0 and end > start:
                     json_str = response[start:end]
                     result = json.loads(json_str)
-                    return result
+                    # 仅当提取到的确实是对象时才采用（否则落到下面的默认结果），
+                    # 并补齐缺失字段，避免把不完整/非 dict 结果返回给调用方。
+                    if isinstance(result, dict):
+                        for field in [
+                            "intent",
+                            "project_type",
+                            "entities",
+                            "confidence",
+                            "action",
+                        ]:
+                            if field not in result:
+                                result[field] = self._get_default_value(field)
+                        return result
             except Exception as e:
                 print(f"JSON parse error: {e}")
 
