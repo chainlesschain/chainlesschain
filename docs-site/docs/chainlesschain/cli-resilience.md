@@ -1,11 +1,11 @@
 # CLI Agent 弹性提示（流式停顿 + 弃用模型预警）
 
-> **版本: v0.162.94+ | 状态: ✅ 生产可用 | Claude-Code 2.1.183 / 2.1.185 平价 + 弹性增强 | agent/chat/ask 流式弹性对齐 + Provider 自动回退 | 65 单元测试**
+> **版本: v0.162.94+ | 状态: ✅ 生产可用 | Claude-Code 2.1.183 / 2.1.185 平价 + 弹性增强 | agent/chat/ask 流式弹性对齐 + Provider 自动回退 | 69 单元测试**
 >
 > 当 `cc agent` / `cc chat` / `cc ask` 与 LLM 接口交互出现「沉默故障」时，CLI 会**主动在 stderr 给出一行提示**（必要时还能**自动恢复**），而不是让用户对着冻住的 spinner 或一句不透明的 `model not found` 干等。三条命令的流式弹性行为现已**对齐**：
 >
-> 1. **流式停顿提示**（2.1.185）——流式回复中途 API 静默（连接还在、但 >20s 没有任何字节）时，提示「仍在等待 API 响应」。覆盖 `cc agent` 与 `cc chat`/`cc ask`。
-> 2. **弃用模型预警**（2.1.183）——请求的模型 id 命中「厂商已退役快照」名单时提醒并给出替代型号；触发点覆盖**运行开始前**（`cc agent` / `cc ask`）与**配置 pin 时**（`cc config set llm.model`）。
+> 1. **流式停顿提示**（2.1.185）——流式回复中途 API 静默（连接还在、但 >20s 没有任何字节）时，提示「仍在等待 API 响应」；若开了硬超时/硬中止，还附上 `· will retry in Ns` 的**自动重试倒计时**。覆盖 `cc agent` 与 `cc chat`/`cc ask`。
+> 2. **弃用模型预警**（2.1.183）——请求的模型 id 命中「厂商已退役快照」名单时提醒并给出替代型号；触发点覆盖**运行开始前**（`cc agent` / `cc ask`）、**配置 pin 时**（`cc config set llm.model`）与**命令 / 子代理 frontmatter** 的 `model` 字段。
 > 3. **流式硬超时 / 硬中止**——`cc agent` 可选（`config.llm.streamStallTimeoutMs`，**默认关闭**）；`cc chat`/`cc ask` 默认在 **180s** 静默后硬中止（`CC_CHAT_STALL_MS`）。超时均以可重试方式触发重发，避免「连接半死、永久挂起、只能 Esc」。
 > 4. **瞬时断流自动重试**——流式中途的可重试连接抖动（非 abort），`cc agent` 与 `cc chat`/`cc ask` 现经**共享分类器 `stream-retry.js`** 一致判定并自动重发（最多 2 次、指数退避），网络抖一下不再杀掉整轮。
 > 5. **Provider 自动回退（sticky + 去重）**——配置的 provider 与其 `baseUrl` 不匹配（auth 失败）时，自动改用可用 provider，并**记住**这次回退，后续回合直连可用 provider（不再每回合白白重试已知坏的那个），回退提示**每个 from→to 对只打印一次**。
@@ -59,7 +59,8 @@
 | --------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | 弃用模型预警（运行时）            | 模型解析后、首次调用前                       | `agent.js`（`applyConfigLlmDefaults` 之后）+ `ask.js`（高频单次问答路径）                    | `chalk.yellow` stderr 一行                                           |
 | 弃用模型预警（pin 时）            | `cc config set` 写入模型键                   | `config.js`（**仅** `model` / `visionModel` / `fallbackModel` 键，key-gated）                | `chalk.yellow` stderr 一行                                           |
-| 流式停顿提示                      | 流式回复中途静默 >20s                        | `cc agent`：三路 reader → `onStall`；`cc chat`/`cc ask`：`chat-core` `makeStallGuard` onHint | `chalk.dim` stderr 一行                                              |
+| 弃用模型预警（frontmatter）       | 加载命令 / 子代理定义时                      | `command.js`（`.claude/commands/*.md`）+ `agents.js`（`.claude/agents/*.md`）的 `model` 字段 | `chalk.yellow` stderr 一行                                           |
+| 流式停顿提示                      | 流式回复中途静默 >20s                        | `cc agent`：三路 reader → `onStall`；`cc chat`/`cc ask`：`chat-core` `makeStallGuard` onHint | `chalk.dim` stderr 一行；开了硬超时/硬中止时附 `· will retry in Ns` |
 | 流式硬超时（agent，可选）         | 静默超过 `streamStallTimeoutMs`（默认 0=关） | 三路 reader → 取消 reader + 抛 `ETIMEDOUT`                                                   | 经 `_retryStreamingChat` 自动重发                                    |
 | 流式硬中止（chat/ask，默认 180s） | 静默超过 `CC_CHAT_STALL_MS`（默认 180000）   | `chat-core` `makeStallGuard` 硬中止                                                          | abort 当前流（可重试路径）                                           |
 | 瞬时断流自动重试                  | 可重试连接抖动（非 abort）                   | 共享 `stream-retry.js` `isRetryableStreamError`（agent-core + chat-core 同源）               | 自动重发，最多 `STREAM_RETRY_MAX=2`、退避 `STREAM_RETRY_BASE_MS=400` |
@@ -150,9 +151,9 @@ npx vitest run __tests__/unit/chat-core-stall-hint.test.js \
 | 模块                              | 测试数 | 覆盖要点                                                                                                                                                                                            |
 | --------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `model-deprecation.test.js`       | 14     | 精确/前缀/大小写匹配、GA + 国产/本地 id 不误报、去重、`CC_MODEL_NOTICE=0`、fail-open                                                                                                                |
-| `agent-core-stream-stall.test.js` | 12     | 看门狗 race 行为、三路接线、`done`/abort 透传、无 `onStall` 路径不变、硬超时抛可重试 `ETIMEDOUT` + 取消 reader、提示先于超时排序、默认关闭慢 chunk 仍到达、`chatWithTools` 静默流重试 3× 后浮出超时 |
+| `agent-core-stream-stall.test.js` | 15     | 看门狗 race 行为、三路接线、`done`/abort 透传、无 `onStall` 路径不变、硬超时抛可重试 `ETIMEDOUT` + 取消 reader、提示先于超时排序、默认关闭慢 chunk 仍到达、`chatWithTools` 静默流重试 3× 后浮出超时、停顿提示带自动重试倒计时 |
 | `runnable-provider.test.js`       | 24     | `computeFallback` 选取、sticky 跨回合直连、env-key sticky、健康 provider 永不 sticky、回退提示每对一次                                                                                              |
-| `chat-core-stall-hint.test.js`    | 3      | chat/ask 软提示按 chunk 重整、20s 触发、不影响正常流                                                                                                                                                |
+| `chat-core-stall-hint.test.js`    | 4      | chat/ask 软提示按 chunk 重整、20s 触发、不影响正常流、提示带硬中止倒计时                                                                                                                            |
 | `chat-core-stall.test.js`         | 5      | chat/ask 180s 硬中止、`CC_CHAT_STALL_MS` 覆盖                                                                                                                                                       |
 | `chat-core-retry.test.js`         | 3      | chat/ask 瞬时断流自动重发、abort 不重试                                                                                                                                                             |
 | `stream-retry.test.js`            | 4      | `isRetryableStreamError` 分类（抖动 vs abort vs 真错误）、重试预算常量                                                                                                                              |
@@ -193,6 +194,8 @@ packages/cli/__tests__/unit/agent-core-stream-stall.test.js  # 12 单元测试
 packages/cli/src/commands/agent.js                           # 弃用预警接入（applyConfigLlmDefaults 之后）
 packages/cli/src/commands/ask.js                             # 弃用预警接入（cc ask 单次问答路径）
 packages/cli/src/commands/config.js                          # 弃用预警接入（cc config set 模型键 pin 时，key-gated）
+packages/cli/src/commands/command.js                         # 弃用预警接入（.claude/commands/*.md frontmatter model）
+packages/cli/src/commands/agents.js                          # 弃用预警接入（.claude/agents/*.md 子代理 frontmatter model）
 packages/cli/src/repl/agent-repl.js                          # onStall → dim stderr 提示渲染；启动读 config.llm.streamStallTimeoutMs
 packages/cli/src/lib/runnable-provider.js                    # Provider 自动回退 computeFallback + stickyFrom（每对一次提示）
 packages/cli/__tests__/unit/runnable-provider.test.js        # 24 单元测试
@@ -235,7 +238,7 @@ cc agent -p "..." --output-format json 2>/dev/null   # 屏蔽提示只取 JSON
 #    云端 API 建议开启；本地 CPU 模型（ollama 首字慢）保持 0 或设更大值。
 cc agent
 # > ...
-#   ⏳ waiting for API response (silent 21s)…   ← 先软提示
+#   ⏳ waiting for API response (silent 21s)… · will retry in 99s  ← 软提示 + 自动重试倒计时
 #   ⟳ connection dropped — retrying (attempt 1)… ← 到 120s 硬超时 → 自动重发
 
 # 8) provider 标错（与 baseUrl 不符）—— 自动回退，且多回合只提示一次
