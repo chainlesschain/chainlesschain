@@ -418,4 +418,4 @@ ChainlessChain 的「Agent 架构优化系统」。
 见正文使用 / API 示例。
 
 ### 17. 相关文档
-[系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。
+[系统设计主文档](../system-design-main.md)、`docs-site` 对应功能页。

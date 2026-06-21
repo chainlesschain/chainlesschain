@@ -4,7 +4,7 @@
 > **日期**: 2026-04-12
 > **作用范围**: `packages/cli`
 > **灵感来源**: [Hermes Agent](https://github.com/NousResearch/hermes-agent) — Nous Research
-> **关联文档**: [65. 自进化AI系统](./65_自进化AI系统.md) · [16. AI技能系统](./16_AI技能系统.md) · [76. 技能创建系统](./76_技能创建系统.md)
+> **关联文档**: [65. 自进化AI系统](./65-self-evolving-ai.md) · [16. AI技能系统](./16-ai-skills.md) · [76. 技能创建系统](./76-skill-creator.md)
 
 ## 1. 概述
 
@@ -831,4 +831,4 @@ ChainlessChain 的「自主学习闭环系统」。
 见正文使用 / API 示例。
 
 ### 17. 相关文档
-[系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。
+[系统设计主文档](../system-design-main.md)、`docs-site` 对应功能页。
