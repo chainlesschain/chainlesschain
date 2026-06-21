@@ -143,7 +143,19 @@ function normalizeValue(value) {
   }
 
   if (typeof value === "bigint") {
-    return (Number(value) / 1e18).toString();
+    // 不能走 Number(value)/1e18 —— 大于 2^53 的 wei 值转 Number 会丢精度，签名前
+    // 展示的金额会被静默篡改（例：999999999999999999999999 显示成 "1000000000"）。
+    // 与下方 hex/十进制路径一致，全程用 BigInt 整数+小数运算。
+    if (value === 0n) {
+      return "0";
+    }
+    const unit = BigInt("1000000000000000000");
+    const ethInt = value / unit;
+    const ethFrac = value % unit;
+    if (ethFrac === 0n) {
+      return ethInt.toString();
+    }
+    return `${ethInt}.${ethFrac.toString().padStart(18, "0").replace(/0+$/, "")}`;
   }
 
   if (typeof value === "number") {

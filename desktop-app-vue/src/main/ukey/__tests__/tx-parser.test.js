@@ -186,3 +186,38 @@ describe("decodeABI", () => {
     expect(params[1]).toMatch(/^0x[0-9a-f]+$/);
   });
 });
+
+describe("parseTx value normalization — bigint precision", () => {
+  // Regression: the bigint branch used Number(value)/1e18, losing precision for
+  // wei values above 2^53 → the amount shown before hardware signing was wrong.
+  it("preserves precision for a large bigint wei value", () => {
+    const wei = BigInt("999999999999999999999999"); // 999999.999999999999999999 ETH
+    const txInfo = parseTx({ to: "0xR", value: wei }, "ethereum");
+    expect(txInfo.value).toBe("999999.999999999999999999");
+  });
+
+  it("matches the hex path for the same wei amount", () => {
+    const wei = BigInt("1500000000000000000"); // 1.5 ETH
+    const fromBig = parseTx({ to: "0xR", value: wei }, "ethereum").value;
+    const fromHex = parseTx(
+      { to: "0xR", value: "0x" + wei.toString(16) },
+      "ethereum",
+    ).value;
+    expect(fromBig).toBe("1.5");
+    expect(fromBig).toBe(fromHex);
+  });
+
+  it("handles whole-ETH bigint without a trailing dot", () => {
+    const wei = BigInt("3000000000000000000"); // 3 ETH
+    expect(parseTx({ to: "0xR", value: wei }, "ethereum").value).toBe("3");
+  });
+
+  it("normalizes 0n to '0'", () => {
+    expect(parseTx({ to: "0xR", value: 0n }, "ethereum").value).toBe("0");
+  });
+
+  it("preserves precision for 1 wei (smallest unit)", () => {
+    const txInfo = parseTx({ to: "0xR", value: 1n }, "ethereum");
+    expect(txInfo.value).toBe("0.000000000000000001");
+  });
+});
