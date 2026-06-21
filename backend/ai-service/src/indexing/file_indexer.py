@@ -311,9 +311,14 @@ class FileIndexer:
             logger.warning(f"路径不存在: {root_path}")
             return files
 
-        # 构建文件类型过滤集合
+        # 构建文件类型过滤集合（统一小写，做大小写不敏感匹配）。
+        # TEXT_EXTENSIONS 全为小写；若按 item.suffix 原样比较，则大写扩展名
+        # （如 README.MD / Query.SQL，Windows/macOS 常见）会被静默漏掉、不被索引。
         if file_types:
-            allowed_extensions = {f'.{ft}' if not ft.startswith('.') else ft for ft in file_types}
+            allowed_extensions = {
+                (f'.{ft}' if not ft.startswith('.') else ft).lower()
+                for ft in file_types
+            }
         else:
             allowed_extensions = self.TEXT_EXTENSIONS
 
@@ -326,8 +331,8 @@ class FileIndexer:
             if any(skip_dir in item.parts for skip_dir in self.SKIP_DIRS):
                 continue
 
-            # 文件类型过滤
-            if item.suffix not in allowed_extensions:
+            # 文件类型过滤（大小写不敏感）
+            if item.suffix.lower() not in allowed_extensions:
                 continue
 
             # 文件大小过滤
