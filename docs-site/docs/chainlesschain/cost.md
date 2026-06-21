@@ -1,6 +1,6 @@
 # 成本估算（cc cost）
 
-> **版本: Claude-Code cost 平价 | 状态: ✅ 生产可用 | 纯报表视图（不采集新数据）| 价格可配置覆盖 | 含 Anthropic 提示缓存计费**
+> **版本: Claude-Code cost 平价 | 状态: ✅ 生产可用 | 纯报表视图（不采集新数据）| 价格可配置覆盖 | 含多 provider 提示缓存计费**
 >
 > `cc cost` 基于已记录的 token 用量，叠加 LLM 价格表估算美元花费。它读取与 `cc session usage` 相同的 JSONL `token_usage` 事件，**不采集任何新数据**——是纯粹的报表视图。本地模型（free providers）计 0 成本，未知模型标 `unpriced` 且不计入总额；价格可经 `config.llm.pricing` 覆盖，无需改源码。
 
@@ -17,7 +17,7 @@
 - ⚠️ **未知模型透明**：无价格的模型标 `unpriced` 并**排除出总额**，明确提示补价格
 - 🛠️ **价格可覆盖**：`config.llm.pricing` 覆盖/新增模型费率，无需改源码
 - 🔬 **小额高精度**：便宜模型的亚分成本显示到 6 位小数
-- 🧊 **Prompt-cache 计费**：Anthropic 提示缓存 token 单独计价——缓存**读** ≈ 输入价 ×0.1、缓存**写**（5 分钟临时断点）≈ 输入价 ×1.25；有缓存的行显示 `cache_read=`，REPL `/cost` 也实时计入（此前 `/cost` 完全忽略缓存 token）
+- 🧊 **Prompt-cache 计费（多 provider）**：提示缓存**读** token 按 provider 折价——Anthropic ≈ 输入价 ×0.1、OpenAI ≈ ×0.5、DeepSeek ≈ ×0.25（其余默认 ×0.1）；缓存**写**（5 分钟临时断点）≈ 输入价 ×1.25，**仅 Anthropic** 单独上报。OpenAI 兼容 provider（OpenAI/DeepSeek/volcengine）的缓存 token 混在 `prompt_tokens` 内，此前被按满输入价多算，现已正确折价。有缓存的行显示 `cache_read=`，REPL `/cost` 也实时计入（此前 `/cost` 完全忽略缓存 token）
 - 📤 **JSON 输出**：`--json` 输出机器可读结构
 - 🔁 **零新增采集**：复用 `token_usage` 事件，纯报表，不收集新数据
 - 🧮 **缓存-only 用量不丢**：「跳过空用量」守卫现也检查缓存 token，纯缓存事件（0 新增输入/输出）不再被静默丢弃
@@ -36,7 +36,8 @@ cc cost [id] [--json] [--limit <n>]
 │                    priceRollup(aggregate, {table})           │  → cost.totalCost / byModel[] / unpriced[]
 │                      ├─ FREE_PROVIDERS → free (本地计 0)      │
 │                      ├─ lookupRate 命中 → matched 计费        │
-│                      ├─ cacheRead ×0.1 / cacheWrite ×1.25     │  缓存 token 单独计价（Anthropic）
+│                      ├─ cacheRead ×(0.1/0.5/0.25 per provider)│  缓存读按 provider 折价
+│                      ├─ cacheWrite ×1.25（仅 Anthropic）       │  缓存写计价
 │                      └─ 未命中 → unpriced（排除出总额）        │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -72,7 +73,7 @@ Cost — global
 {
   "llm": {
     "pricing": {
-      "anthropic/claude-opus-4-8": { "input": 15, "output": 75 },
+      "anthropic/claude-opus-4-8": { "input": 5, "output": 25 },
       "volcengine/doubao-seed-1-6": { "input": 0.5, "output": 1.5 }
     }
   }
@@ -85,7 +86,8 @@ Cost — global
 | `PRICE_TABLE` | 内置公开 list 价格表（USD / 1M tokens） |
 | `config.llm.pricing` | 用户覆盖/新增费率（键为 `provider/model`） |
 | `unpriced` | 无费率的模型，token 不计入总额，提示补价格 |
-| `CACHE_READ_MULTIPLIER` / `CACHE_WRITE_MULTIPLIER` | 提示缓存读/写相对**输入价**的倍率（`0.1` / `1.25`，Anthropic 公开价）；仅在缓存 token >0 时计入 |
+| `CACHE_READ_MULTIPLIER_BY_PROVIDER` | 提示缓存**读**相对输入价的倍率，按 provider：Anthropic `0.1` / OpenAI `0.5` / DeepSeek `0.25`（其余回退 `CACHE_READ_MULTIPLIER`=`0.1`）|
+| `CACHE_WRITE_MULTIPLIER` | 提示缓存**写**（创建）倍率 `1.25`，仅 Anthropic 上报；仅在缓存 token >0 时计入 |
 
 > 价格为公开 list 价格的**估算**，仅供参考，不等同于实际账单。
 
@@ -119,7 +121,7 @@ npx vitest run __tests__/unit/llm-pricing.test.js
 | 本地模型显示 `free (local)` | 该 provider 在 `FREE_PROVIDERS` | 预期：本地模型不计费 |
 | 总额比预期低 | 有 `unpriced` 模型被排除出总额 | 看 `note` 行提示，补齐费率后重算 |
 | 成本显示很多位小数 | 亚分成本（便宜模型）高精度展示 | 预期：`< $0.01` 显示 6 位小数 |
-| 行里没有 `cache_read=` | 该会话无缓存 token，或模型非 Anthropic 提示缓存 | 预期：仅缓存读/写 token >0 时才显示 |
+| 行里没有 `cache_read=` | 该会话无缓存 token（provider 未命中缓存） | 预期：仅缓存读/写 token >0 时才显示 |
 | `/cost` 与 `cc cost` 总额对不上 | 旧版 `/cost` 忽略缓存 token | 升级后两者共用 `priceRollup`，已一致 |
 
 ## 关键文件
@@ -127,7 +129,7 @@ npx vitest run __tests__/unit/llm-pricing.test.js
 | 文件 | 说明 |
 |------|------|
 | `packages/cli/src/commands/cost.js` | `cc cost` 命令（展示层） |
-| `packages/cli/src/lib/llm-pricing.js` | `PRICE_TABLE` / `FREE_PROVIDERS` / `mergePricing` / `lookupRate` / `estimateCost` / `priceRollup` / `CACHE_READ_MULTIPLIER` / `CACHE_WRITE_MULTIPLIER` |
+| `packages/cli/src/lib/llm-pricing.js` | `PRICE_TABLE` / `FREE_PROVIDERS` / `mergePricing` / `lookupRate` / `estimateCost` / `priceRollup` / `CACHE_READ_MULTIPLIER_BY_PROVIDER` / `CACHE_WRITE_MULTIPLIER` |
 | `packages/cli/src/lib/session-usage.js` | `sessionUsage` / `allSessionsUsage`（token 聚合，含缓存 token、缓存-only 不丢弃） |
 | `packages/cli/src/repl/session-cost.js` | REPL `/cost` 实时累计（`newCostStore` / `addUsage` / `renderSessionCost`，携缓存 token） |
 | `packages/cli/__tests__/unit/llm-pricing.test.js` | 价格表与 rollup 单元测试（含缓存计价） |
@@ -153,7 +155,7 @@ cc cost
 # 5) 交互会话内实时看本会话花费（含提示缓存）
 #    在 cc agent REPL 里输入：
 #    /cost
-#      cache: 50,000 read + 2,000 write tokens   ← Anthropic 提示缓存计入
+#      cache: 50,000 read + 2,000 write tokens   ← 提示缓存计入（按 provider 折价）
 ```
 
 ## 相关文档
