@@ -169,6 +169,27 @@ describe("DAOGovernanceV2", () => {
     expect(result.status).toBe("executed");
   });
 
+  it("should NOT allow double-execution (treasury double-drain guard)", async () => {
+    await dao.initialize(db);
+    const proposal = dao.createProposal("Test", "Desc", "alice");
+    dao.vote(proposal.id, "bob", "for", 10);
+    expect(dao.execute(proposal.id).status).toBe("executed");
+    // Second call must be rejected — vote totals are immutable, so without the
+    // status guard this would execute again and re-drain the treasury.
+    expect(() => dao.execute(proposal.id)).toThrow("not active");
+  });
+
+  it("should reject a NaN vote weight (votesFor poisoning guard)", async () => {
+    await dao.initialize(db);
+    const proposal = dao.createProposal("Test", "Desc", "alice");
+    expect(() => dao.vote(proposal.id, "bob", "for", NaN)).toThrow(
+      "Invalid vote weight",
+    );
+    // votesFor stays a clean number — a NaN total would slip past execute()'s
+    // "did not pass" guard (NaN <= x is false).
+    expect(Number.isNaN(proposal.votesFor)).toBe(false);
+  });
+
   it("should throw when executing failing proposal", async () => {
     await dao.initialize(db);
     const proposal = dao.createProposal("Test", "Desc", "alice");

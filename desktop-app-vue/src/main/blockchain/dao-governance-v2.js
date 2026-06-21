@@ -126,6 +126,14 @@ class DAOGovernanceV2 extends EventEmitter {
     if (proposal.status !== "active") {
       throw new Error("Proposal not active");
     }
+    // Reject NaN/Infinity/negative weight — otherwise it poisons votesFor and a
+    // NaN total slips past execute()'s `votesFor <= votesAgainst` guard (NaN
+    // comparisons are always false), executing a proposal that never passed.
+    if (!Number.isFinite(weight) || weight < 0) {
+      throw new Error(
+        "Invalid vote weight: must be a non-negative finite number",
+      );
+    }
 
     let effectiveWeight = weight;
     // Quadratic voting: cost = weight^2
@@ -183,6 +191,13 @@ class DAOGovernanceV2 extends EventEmitter {
     const proposal = this._proposals.get(proposalId);
     if (!proposal) {
       throw new Error("Proposal not found");
+    }
+    // Guard against re-execution: vote totals are immutable, so without a status
+    // check execute() would succeed every time it's called (states are only
+    // "active" → "executed"), letting a wired allocateFunds double-drain the
+    // treasury. executed !== active, so this blocks the double-execute path.
+    if (proposal.status !== "active") {
+      throw new Error("Proposal not active");
     }
     if (proposal.votesFor <= proposal.votesAgainst) {
       throw new Error("Proposal did not pass");
