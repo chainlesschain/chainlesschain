@@ -367,6 +367,8 @@ class PdhAgentSession @Inject constructor(
               collect_app_data(走已存 cookie);若它返回 assist_required,在已 root 的设备上
               自动改试 collect_app_data_root(直读 App 本地库,常无需登录、采得更全)或
               salvage_app_data(IM 内存打捞);多法都拿不到再考虑引导用户。能自动完成就别打扰用户。
+            - 用户问「我最近发的微博 / 我收藏了啥 / 我关注了谁」这类具体问题时,优先用
+              query_app_data 拿已存 cookie 实时查该 App 的 API(直接拿到答案),而不是先批量采集。
             - 只有所有自动方法都失败、确实需要用户配合(登录 / 打开 App / 授权 / root)时,才把
               assist_required 的指引简短转达,等用户完成后重试该工具——这是最后手段,不是第一反应。
             - 诚实:工具采到 0 条或失败就如实告知,绝不编造数据。

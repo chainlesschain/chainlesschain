@@ -11,6 +11,8 @@ import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
+import com.chainlesschain.android.pdh.social.weibo.WeiboApiClient
+import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
@@ -68,6 +70,8 @@ object PdhBridgeModule {
         xhsRoot: XhsRootDbCollector,
         toutiaoRoot: ToutiaoRootDbCollector,
         kuaishouRoot: KuaishouRootDbCollector,
+        weiboApi: WeiboApiClient,
+        weiboCreds: WeiboCredentialsStore,
     ): PdhBridgeServer {
         val lockDir = File(bootstrapper.homeDir, ".chainlesschain/pdh-bridge")
         val collectors = listOf(
@@ -106,6 +110,11 @@ object PdhBridgeModule {
                 ),
                 layer = "L4",
                 requiresRoot = true,
+            ),
+            PdhToolHost.Collector(
+                tool = QueryAppDataTool(weiboApi, weiboCreds),
+                layer = "L3",
+                requiresRoot = false,
             ),
         )
         return PdhBridgeServer(
