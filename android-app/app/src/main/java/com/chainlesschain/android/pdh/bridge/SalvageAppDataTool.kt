@@ -71,7 +71,7 @@ class SalvageAppDataTool(
                 throw RuntimeException("device is not rooted; salvage requires root")
             is MemSalvageCollector.Result.AppNotRunning -> buildJsonObject {
                 // Human-in-loop assist (design §3.6): the user opens the app, then
-                // re-calls the tool. Lightweight form (no resumeToken yet).
+                // re-calls the tool.
                 put("status", "assist_required")
                 put(
                     "instruction",
@@ -79,6 +79,11 @@ class SalvageAppDataTool(
                         "salvage_app_data。",
                 )
                 put("reason", "target app process not alive (memory scan needs it running)")
+                // §3.5.15: structured resume so the 引导卡 re-runs this exact tool.
+                put("resumeToken", "salvage_app_data:${target.appKey}")
+                // §3.6: one-tap "打开 App" — open the target (e.g. 微信/QQ/头条) so the
+                // user doesn't have to switch apps manually. Package launched on the UI.
+                put("deepLink", target.packageName)
             }
             is MemSalvageCollector.Result.NoDumps -> buildJsonObject {
                 // Honest degradation — NOT a fake success (decision #13).

@@ -560,13 +560,24 @@ private fun PlanCard(card: TrustCard.Plan, onApprove: () -> Unit, onReject: () -
     }
 }
 
-/** Open a deepLink (Android intent) for a 引导卡; degrade silently if no app/bad scheme. */
+/**
+ * Open a 引导卡's target (§3.6 one-tap "打开 App"); degrade silently otherwise.
+ * A bare package name (no "://") is launched via getLaunchIntentForPackage — the
+ * robust way to bring the target app to the foreground so the user can log in;
+ * a URI scheme falls back to ACTION_VIEW.
+ */
 private fun openDeepLink(context: Context, link: String) {
     try {
-        val intent = android.content.Intent(
-            android.content.Intent.ACTION_VIEW,
-            android.net.Uri.parse(link),
-        ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = if (!link.contains("://")) {
+            context.packageManager.getLaunchIntentForPackage(link)
+                ?: return // target app not installed → leave the text steps
+        } else {
+            android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse(link),
+            )
+        }
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     } catch (_: Throwable) {
         // No matching app / malformed scheme → fall back to the text steps.

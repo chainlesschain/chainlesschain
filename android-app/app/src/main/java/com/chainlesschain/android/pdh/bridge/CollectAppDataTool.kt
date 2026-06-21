@@ -121,6 +121,10 @@ class CollectAppDataTool(
                 // §3.5.15: a correlation token so the chat's 引导卡 can resume via
                 // {type:resume,token,…} (structured) instead of a plain user turn.
                 put("resumeToken", "collect_app_data:$app")
+                // §3.6: one-tap "打开 App" — the chat opens this target so the user
+                // doesn't have to manually switch apps to log in. The package name
+                // (no scheme) is launched by getLaunchIntentForPackage on the UI side.
+                APP_PACKAGES[app]?.let { put("deepLink", it) }
             }
             snap.failed != null -> throw RuntimeException("$app snapshot failed: ${snap.failed}")
             snap.path == null -> throw RuntimeException("$app snapshot produced no data")
@@ -197,5 +201,16 @@ class CollectAppDataTool(
     companion object {
         private val SUPPORTED =
             listOf("weibo", "bilibili", "12306", "douyin", "xiaohongshu", "toutiao", "kuaishou")
+
+        /** app key → Android package, for the 引导卡's one-tap "打开 App" (§3.6). */
+        private val APP_PACKAGES = mapOf(
+            "weibo" to "com.sina.weibo",
+            "bilibili" to "tv.danmaku.bili",
+            "12306" to "com.MobileTicket",
+            "douyin" to "com.ss.android.ugc.aweme",
+            "xiaohongshu" to "com.xingin.xhs",
+            "toutiao" to "com.ss.android.article.news",
+            "kuaishou" to "com.smile.gifmaker",
+        )
     }
 }
