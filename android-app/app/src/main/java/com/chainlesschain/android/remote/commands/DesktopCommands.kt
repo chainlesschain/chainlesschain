@@ -655,7 +655,7 @@ class DesktopCommands @Inject constructor(
         width: Int,
         height: Int,
         language: String = "chi_sim+eng"
-    ): Result<OcrResponse> {
+    ): Result<DesktopOcrResponse> {
         return client.invoke("desktop.ocrRegion", mapOf(
             "x" to x,
             "y" to y,
@@ -674,7 +674,7 @@ class DesktopCommands @Inject constructor(
     suspend fun ocrImage(
         imageData: String,
         language: String = "chi_sim+eng"
-    ): Result<OcrResponse> {
+    ): Result<DesktopOcrResponse> {
         return client.invoke("desktop.ocrImage", mapOf(
             "imageData" to imageData,
             "language" to language
@@ -1203,7 +1203,7 @@ data class AudioControlResponse(
 // ==================== OCR 响应 ====================
 
 @Serializable
-data class OcrResponse(
+data class DesktopOcrResponse(
     val success: Boolean,
     val text: String,
     val confidence: Double,
