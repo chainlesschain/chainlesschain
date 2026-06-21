@@ -54,12 +54,13 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
           "--json",
         ]);
         const j = extractJson(r.stdout);
-        expect(j.published).toBe(1);
+        // 2 events: genesis `create` (from join) + invite.
+        expect(j.published).toBe(2);
         expect(j.skipped).toBe(0);
         const dir = path.join(dropZone, "federation-governance", "fed-test");
         expect(fs.existsSync(dir)).toBe(true);
         const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
-        expect(files).toHaveLength(1);
+        expect(files).toHaveLength(2);
       } finally {
         fs.rmSync(dropZone, { recursive: true, force: true });
       }
@@ -101,7 +102,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
         ]);
         const j2 = extractJson(r2.stdout);
         expect(j2.published).toBe(0);
-        expect(j2.skipped).toBe(1);
+        // genesis `create` + invite both already published → both skipped.
+        expect(j2.skipped).toBe(2);
       } finally {
         fs.rmSync(dropZone, { recursive: true, force: true });
       }
@@ -160,7 +162,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
             "--json",
           ]);
           const pj = extractJson(pull.stdout);
-          expect(pj.appended).toBe(2);
+          // 3 events: genesis `create` (written by alice's join) + invite + vote.
+          expect(pj.appended).toBe(3);
           expect(pj.duplicates).toBe(0);
 
           const log = mustRun([
@@ -171,7 +174,7 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
             "--json",
           ]);
           const data = extractJson(log.stdout);
-          expect(data.events).toHaveLength(2);
+          expect(data.events).toHaveLength(3);
           const carol = data.state.members.find((m) => m.member_id === "carol");
           expect(carol).toBeDefined();
           expect(carol.weight).toBe(0.5);
@@ -187,7 +190,7 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
           ]);
           const pj2 = extractJson(pull2.stdout);
           expect(pj2.appended).toBe(0);
-          expect(pj2.duplicates).toBe(2);
+          expect(pj2.duplicates).toBe(3);
         } finally {
           fs.rmSync(bobHome, { recursive: true, force: true });
           tmpHome = aliceHome;
@@ -242,7 +245,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
             dropZone,
             "--json",
           ]);
-          expect(extractJson(pullNoVerify.stdout).appended).toBe(1);
+          // genesis `create` + invite, both pulled without verification.
+          expect(extractJson(pullNoVerify.stdout).appended).toBe(2);
 
           const peer2 = fs.mkdtempSync(path.join(os.tmpdir(), "cc-fed-peer2-"));
           tmpHome = peer2;
@@ -257,7 +261,9 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
             "--json",
           ]);
           const pvj = extractJson(pullVerify.stdout);
-          expect(pvj.unknown_signer).toBe(1);
+          // genesis `create` + invite, both signed by alice whose pubkey the
+          // fresh peer doesn't know → both rejected as unknown_signer.
+          expect(pvj.unknown_signer).toBe(2);
           expect(pvj.appended).toBe(0);
           fs.rmSync(peer2, { recursive: true, force: true });
         } finally {
@@ -462,7 +468,9 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
         ]);
         const j = extractJson(r.stdout);
         expect(j.tick_at).toBeDefined();
-        expect(j.publish.published).toBe(0);
+        // join wrote a genesis `create` event; the first tick publishes it.
+        // Nothing comes back from the (otherwise empty) remote.
+        expect(j.publish.published).toBe(1);
         expect(j.pull.appended).toBe(0);
       } finally {
         fs.rmSync(dropZone, { recursive: true, force: true });
@@ -496,7 +504,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
           "--json",
         ]);
         const aj = extractJson(aliceTick.stdout);
-        expect(aj.publish.published).toBe(1);
+        // genesis `create` (from join) + invite.
+        expect(aj.publish.published).toBe(2);
 
         const aliceHome = tmpHome;
         const bobHome = fs.mkdtempSync(path.join(os.tmpdir(), "fed-bob-sync-"));
@@ -513,7 +522,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
             "--json",
           ]);
           const bj = extractJson(bobTick.stdout);
-          expect(bj.pull.appended).toBe(1);
+          // bob pulls the genesis `create` + invite (2 events).
+          expect(bj.pull.appended).toBe(2);
           expect(bj.publish.published).toBe(0);
 
           const bobTick2 = mustRun([
@@ -528,7 +538,8 @@ describe("cc mtc federation governance — cross-member sync (publish/pull/quoru
           ]);
           const bj2 = extractJson(bobTick2.stdout);
           expect(bj2.pull.appended).toBe(0);
-          expect(bj2.pull.duplicates).toBe(1);
+          // genesis `create` + invite already local → both duplicates.
+          expect(bj2.pull.duplicates).toBe(2);
         } finally {
           fs.rmSync(bobHome, { recursive: true, force: true });
           tmpHome = aliceHome;

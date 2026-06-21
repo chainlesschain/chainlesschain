@@ -147,6 +147,12 @@ describe("cowork-evomap-adapter", () => {
       mpDeps.writeFileSync = vi.fn((path, content) => {
         saved = { path, content: JSON.parse(content) };
       });
+      // saveUserTemplate writes atomically (tmp sibling + renameSync). The
+      // mocked writeFileSync never creates a real tmp file, so the real
+      // renameSync would ENOENT — mock it to reflect the tmp → final move.
+      mpDeps.renameSync = vi.fn((from, to) => {
+        if (saved && saved.path === from) saved.path = to;
+      });
     });
 
     it("extracts packet from { gene: { packet } } shape and saves", async () => {

@@ -136,7 +136,8 @@ describe("cc mtc federation governance — trust + on-chain anchor + help", () =
       const r = mustRun(["mtc", "federation", "audit", "fed-test", "--json"]);
       const j = extractJson(r.stdout);
       expect(j.ok).toBe(true);
-      expect(j.events_count).toBe(0);
+      // join writes a self-signed genesis `create` event; audit verifies it.
+      expect(j.events_count).toBe(1);
     });
 
     it("audit --summary surface", () => {

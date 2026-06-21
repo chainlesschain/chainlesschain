@@ -62,8 +62,13 @@ describe("cc mtc federation governance — core (invite/vote/revoke/rotate/thres
       );
       expect(fs.existsSync(logPath)).toBe(true);
       const lines = fs.readFileSync(logPath, "utf-8").trim().split(/\r?\n/);
-      expect(lines).toHaveLength(1);
-      expect(JSON.parse(lines[0]).event_id).toBe(event.event_id);
+      // join writes a genesis `create` event (the founder is anchored into the
+      // log so the membership-gated vote replay recognizes them everywhere the
+      // log is synced); the invite is appended after it.
+      expect(lines).toHaveLength(2);
+      expect(JSON.parse(lines[0]).event_type).toBe("create");
+      expect(JSON.parse(lines[0]).actor_member_id).toBe("alice");
+      expect(JSON.parse(lines[1]).event_id).toBe(event.event_id);
     });
 
     it("vote approve emits a signed event", () => {
@@ -324,8 +329,10 @@ describe("cc mtc federation governance — core (invite/vote/revoke/rotate/thres
       ]);
       const data = extractJson(r.stdout);
       expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBe(1);
-      expect(data[0].event_type).toBe("invite");
+      // genesis `create` (from join) + invite, no replay state.
+      expect(data.length).toBe(2);
+      expect(data[0].event_type).toBe("create");
+      expect(data[1].event_type).toBe("invite");
     });
 
     it("returns empty replay when no events", () => {

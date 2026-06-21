@@ -1374,6 +1374,14 @@ function registerFederationCommands(mtc) {
         const issuer =
           options.issuer || `mtca:cc:${federationId}:${options.memberId}`;
         const registry = loadFederationRegistry();
+        // Founding the federation = first time this node has seen it. The
+        // founder writes a genesis `create` event into governance.log so the
+        // founding member is part of the replayed roster everywhere the log is
+        // synced (a peer that pulls the log must know who the founder is to
+        // recognize their votes — the membership-gated vote replay would
+        // otherwise silently drop the founder's own approve). See the create
+        // handler in core-mtc replayGovernanceLog.
+        const isFounding = !registry.federations[federationId];
         const fedEntry = registry.federations[federationId] || {
           federation_id: federationId,
           members: {},
@@ -1428,6 +1436,25 @@ function registerFederationCommands(mtc) {
         };
         registry.federations[federationId] = fedEntry;
         saveFederationRegistry(registry);
+
+        // Genesis event: anchor the founder into the governance.log so the
+        // M-of-N vote replay (which only counts votes from current members)
+        // recognizes the founder — locally and on any peer that syncs the log.
+        if (isFounding) {
+          emitAndPersist(federationId, {
+            eventType: "create",
+            actorMemberId: options.memberId,
+            secretKey: keys.secretKey,
+            publicKey: keys.publicKey,
+            alg: sig.signer.ALG,
+            payload: {
+              bootstrap_member_id: options.memberId,
+              bootstrap_pubkey_id: trustAnchor.pubkey_id,
+              bootstrap_alg: sig.signer.ALG,
+              initial_threshold: 1,
+            },
+          });
+        }
 
         if (options.json) {
           console.log(

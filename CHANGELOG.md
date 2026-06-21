@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — MTC 联邦治理:创始成员投票被静默丢弃（无法扩员）+ cowork 模板原子写测试桩
+> 跟进昨日的「关闭 M-of-N 投票阈值绕过」安全修复（core-mtc `replayGovernanceLog` 仅统计当前成员的投票）暴露的回归 + 一处过期测试桩。`git commit --only` 隔离并行 session。
+
+- **联邦创始成员投票被丢弃（核心修复，`packages/cli/src/commands/mtc.js`）**：`cc mtc federation join` 此前只把创始成员写进本地注册表、**不向 governance.log 写任何 `create` 创世事件**。安全修复后投票回放只认 `state.members` 里的成员，而创始成员从不在回放名册里 → 其自己的 `approve` 被静默丢弃，单创始人联邦**永远无法接纳第二名成员**；跨节点同步时更糟（peer 拉取日志后完全不知道谁是创始人）。修复：`join` 在**首次创建**联邦时写一条由创始人自签名的创世 `create` 事件（`bootstrap_member_id`/`bootstrap_pubkey_id`/`initial_threshold=1`），使创始人在本地与任意同步该日志的 peer 上都进入回放名册。`audit` 对创世事件自签名验签通过（实测 0 error）。安全不变量保留：伪造/非成员投票仍被拒。
+- **cowork 模板原子写测试桩过期（`__tests__/unit/cowork-evomap-adapter.test.js`）**：`saveUserTemplate` 改为原子写（临时文件 + `renameSync`）后，`installTemplateFromHub` 测试只 mock 了 `writeFileSync`、未 mock `renameSync` → 真 `renameSync` 对不存在的临时文件 ENOENT。补上 `renameSync` 桩（反映 tmp→final 移动）。
+- 治理日志事件计数测试（core/sync/trust 三个 governance CLI 套件）相应 +1 创世事件。
+
 ### Added — 个人数据 IDE 桥接（module 101）Phase 2 单输入框 UI 接线:设计 §3.5.9–3.5.20 + 代码核
 > 把 Phase 2「单输入框 Chat」从 MVP 细化为完整 UI 接线:设计文档 §3.5 共 20 子节(屏幕解剖 / UI⇆agent stream-json 协议 / 三类信任卡 / 隐私分级路由 / 不可信数据隔离 / 内联结果视图 / 自学习纠正 / 跨设备备份·操作 / 引导续跑 / 事务执行 / 透明度审计 / onboarding / 资源预算)已上线 docs + design 两站;其中纯 Android 可落核 12 块落地,~85 单测全绿(`:app:testDebugUnitTest`),`git commit --only` + plumbing 双推 github=gitee。grounded 在已落地的 `PdhAgentSession`/`PdhChatViewModel`/`PdhChatScreen`/`HubAskViewModel`。
 
