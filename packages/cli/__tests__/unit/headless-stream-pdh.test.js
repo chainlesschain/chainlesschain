@@ -20,9 +20,10 @@ import {
 import {
   _deps as ledgerDeps,
   readFeedback,
+  appendFeedback,
 } from "../../src/lib/pdh-feedback-ledger.js";
 
-function harness({ inputObjs, agentLoop } = {}) {
+function harness({ inputObjs, agentLoop, options = {} } = {}) {
   const lines = [];
   const seenTurns = [];
   const loop =
@@ -46,7 +47,8 @@ function harness({ inputObjs, agentLoop } = {}) {
     input: input(),
   };
   return {
-    run: () => runAgentHeadlessStream({ expandFileRefs: false }, deps),
+    run: () =>
+      runAgentHeadlessStream({ expandFileRefs: false, ...options }, deps),
     events: () =>
       lines
         .join("")
@@ -201,5 +203,61 @@ describe("stream PDH resume consumption", () => {
     expect(h.seenTurns).toHaveLength(1);
     const lastUser = h.seenTurns[0].filter((m) => m.role === "user").pop();
     expect(lastUser.content).toContain("跳过");
+  });
+});
+
+describe("stream PDH flywheel — learned-preference injection (§3.5.13)", () => {
+  let tmp;
+  const origHome = ledgerDeps.homeDir;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-flywheel-"));
+    ledgerDeps.homeDir = () => tmp;
+  });
+  afterEach(() => {
+    ledgerDeps.homeDir = origHome;
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it("injects standing corrections into a PDH session's first turn", async () => {
+    appendFeedback(
+      { kind: "correction", comment: "金额一律用人民币" },
+      ledgerDeps,
+    );
+    appendFeedback({ kind: "positive" }, ledgerDeps);
+    const h = harness({
+      options: { pdh: true },
+      inputObjs: [{ type: "user", text: "看看我的消费" }],
+    });
+    await h.run();
+    const sys = h.seenTurns[0].filter((m) => m.role === "system");
+    expect(sys.some((m) => m.content.includes("金额一律用人民币"))).toBe(true);
+  });
+
+  it("does NOT inject outside PDH context (IDE/coding sessions unaffected)", async () => {
+    appendFeedback(
+      { kind: "correction", comment: "金额一律用人民币" },
+      ledgerDeps,
+    );
+    const h = harness({
+      options: { pdh: false },
+      inputObjs: [{ type: "user", text: "看看我的消费" }],
+    });
+    await h.run();
+    const sys = h.seenTurns[0].filter((m) => m.role === "system");
+    expect(sys.some((m) => m.content.includes("金额一律用人民币"))).toBe(false);
+  });
+
+  it("injects nothing when the ledger is empty even in a PDH session", async () => {
+    const h = harness({
+      options: { pdh: true },
+      inputObjs: [{ type: "user", text: "hi" }],
+    });
+    await h.run();
+    const sys = h.seenTurns[0].filter((m) => m.role === "system");
+    expect(sys.some((m) => /过往纠正|认可|不满/.test(m.content))).toBe(false);
   });
 });

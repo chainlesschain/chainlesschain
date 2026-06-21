@@ -532,6 +532,27 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   );
   const messages = [{ role: "system", content: systemContent }];
 
+  // §3.5.13 flywheel consumption (design module 101): in a PDH session, lead
+  // with the user's standing feedback preferences learned ACROSS sessions
+  // (corrections + net sentiment) so the agent honours past corrections from
+  // the very first turn — the read side of pdh-feedback-ledger.js. Gated to PDH
+  // context (the in-APK chat sets CHAINLESSCHAIN_PDH_PORT; `--pdh` forces,
+  // `--no-pdh` opts out) so IDE/coding sessions are never polluted. Best-effort.
+  try {
+    const { isInPdhTerminal } = await import("../lib/pdh-bridge.js");
+    const pdhContext =
+      options.pdh === true ||
+      (options.pdh !== false && isInPdhTerminal(process.env));
+    if (pdhContext) {
+      const { readFeedback, summarizeFeedback, feedbackSystemNote } =
+        await import("../lib/pdh-feedback-ledger.js");
+      const note = feedbackSystemNote(summarizeFeedback(readFeedback()));
+      if (note) messages.push({ role: "system", content: note });
+    }
+  } catch {
+    /* learned-preference injection must never break the chat */
+  }
+
   // settings.json SessionStart hooks → inject session context once (observe-only).
   if (settingsHooks) {
     try {
