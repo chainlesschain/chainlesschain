@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import naclUtil from "tweetnacl-util";
 
 // ============================================================
 // CRITICAL: Mock ALL dependencies BEFORE any imports
@@ -554,12 +555,15 @@ describe("DIDManager", () => {
     });
 
     it("应该验证有效的 DID 文档签名", () => {
+      // id 必须由签名公钥派生（与生产一致），否则触发 #3 绑定校验。
+      const pkB64 = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=";
+      const did = didManager.generateDID(naclUtil.decodeBase64(pkB64));
       const document = {
-        id: "did:chainlesschain:test123",
+        id: did,
         verificationMethod: [
           {
-            id: "did:chainlesschain:test123#sign-key-1",
-            publicKeyBase64: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+            id: `${did}#sign-key-1`,
+            publicKeyBase64: pkB64,
           },
         ],
       };
@@ -568,7 +572,7 @@ describe("DIDManager", () => {
         ...document,
         proof: {
           type: "Ed25519Signature2020",
-          verificationMethod: "did:chainlesschain:test123#sign-key-1",
+          verificationMethod: `${did}#sign-key-1`,
           proofPurpose: "assertionMethod",
           proofValue:
             "BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU=",
@@ -578,6 +582,51 @@ describe("DIDManager", () => {
       const isValid = didManager.verifyDIDDocument(signedDocument);
 
       expect(isValid).toBe(true);
+    });
+
+    it("拒绝 DID 与签名公钥不绑定的文档（#3 密钥替换攻击）", () => {
+      // 攻击者保留受害者的 DID id，但换成自己的公钥并用自己的私钥重新签名（fake nacl
+      // 让自洽签名通过）。绑定校验须发现 id 末段标识符 != sha256(攻击者公钥) 而拒绝。
+      const victimDid =
+        "did:chainlesschain:victimidentifier0000000000000000000";
+      const attackerKeyB64 = naclUtil.encodeBase64(new Uint8Array(32).fill(7));
+      const signedDocument = {
+        id: victimDid,
+        verificationMethod: [
+          {
+            id: `${victimDid}#sign-key-1`,
+            publicKeyBase64: attackerKeyB64,
+          },
+        ],
+        proof: {
+          type: "Ed25519Signature2020",
+          verificationMethod: `${victimDid}#sign-key-1`,
+          proofPurpose: "assertionMethod",
+          proofValue: naclUtil.encodeBase64(new Uint8Array(64).fill(5)),
+        },
+      };
+
+      // fake nacl 的 verify 恒为 true（自洽签名通过），但绑定校验必须拒绝。
+      expect(didManager.verifyDIDDocument(signedDocument)).toBe(false);
+    });
+
+    it("接受 DID 由签名公钥正确派生的文档（#3 绑定通过）", () => {
+      const keyB64 = naclUtil.encodeBase64(new Uint8Array(32).fill(9));
+      const did = didManager.generateDID(naclUtil.decodeBase64(keyB64));
+      const signedDocument = {
+        id: did,
+        verificationMethod: [
+          { id: `${did}#sign-key-1`, publicKeyBase64: keyB64 },
+        ],
+        proof: {
+          type: "Ed25519Signature2020",
+          verificationMethod: `${did}#sign-key-1`,
+          proofPurpose: "assertionMethod",
+          proofValue: naclUtil.encodeBase64(new Uint8Array(64).fill(5)),
+        },
+      };
+
+      expect(didManager.verifyDIDDocument(signedDocument)).toBe(true);
     });
 
     it("缺少签名时验证应该失败", () => {
@@ -814,7 +863,10 @@ describe("DIDManager", () => {
     });
 
     it("应该从 DHT 解析 DID", async () => {
-      const testDID = "did:chainlesschain:test123";
+      // DID 必须由签名公钥派生（#3 绑定校验），否则 verifyDIDDocument 会拒绝。
+      const pkB64 = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=";
+      const testDID = didManager.generateDID(naclUtil.decodeBase64(pkB64));
+      const identifier = testDID.split(":").pop();
       const mockDIDData = {
         did: testDID,
         didDocument: {
@@ -828,7 +880,7 @@ describe("DIDManager", () => {
           verificationMethod: [
             {
               id: `${testDID}#sign-key-1`,
-              publicKeyBase64: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+              publicKeyBase64: pkB64,
             },
           ],
         },
@@ -845,7 +897,7 @@ describe("DIDManager", () => {
       expect(result).toBeDefined();
       expect(result.did).toBe(testDID);
       expect(mockP2PManager.dhtGet).toHaveBeenCalledWith(
-        "/did/chainlesschain/test123",
+        `/did/chainlesschain/${identifier}`,
       );
       expect(didManager.cache.set).toHaveBeenCalledWith(testDID, mockDIDData);
     });

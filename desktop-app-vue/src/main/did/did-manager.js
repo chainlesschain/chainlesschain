@@ -432,8 +432,33 @@ class DIDManager extends EventEmitter {
       const message = JSON.stringify(document);
       const messageBytes = naclUtil.decodeUTF8(message);
 
-      // 验证签名
-      return _nacl.sign.detached.verify(messageBytes, signature, publicKey);
+      // 验证签名（文档自洽性）
+      if (!_nacl.sign.detached.verify(messageBytes, signature, publicKey)) {
+        return false;
+      }
+
+      // 关键绑定校验（安全发现 #3，密钥替换 / DID 伪造）：仅验证「文档用其自带的密钥
+      // 自洽签名」不足以防伪造——拥有 DHT 写入位置的攻击者可把受害者的 DID id 配上
+      // <b>自己的</b>公钥并用自己的私钥重新签名后发布，从而冒充受害者做 P2P E2EE。
+      // DID 由签名公钥派生（generateDID = did:method[:prefix]:sha256(signPubKey)[0:20]），
+      // 故必须断言「文档 id 末段标识符 == 用于验签的公钥派生出的标识符」，否则拒绝。
+      const claimedIdentifier = String(document.id || "")
+        .split(":")
+        .pop();
+      const expectedIdentifier = crypto
+        .createHash("sha256")
+        .update(publicKey)
+        .digest()
+        .slice(0, 20)
+        .toString("hex");
+      if (!claimedIdentifier || claimedIdentifier !== expectedIdentifier) {
+        logger.error(
+          `[DIDManager] DID 与签名公钥不绑定（疑似密钥替换攻击）: id=${document.id}`,
+        );
+        return false;
+      }
+
+      return true;
     } catch (error) {
       logger.error("[DIDManager] 验证 DID 文档失败:", error);
       return false;
