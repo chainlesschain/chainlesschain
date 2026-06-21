@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.120 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.81 / 159 命令 / 30,000+ 测试 | Android 5.0.3.120 (versionCode 503120 · USR_VERSION 48 · binariesVersion 20260617c) | iOS 5.0.3 (build 120，ad-hoc 签名 .ipa)**
+> **当前版本: v5.0.3.120 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.81 / 160 命令 / 30,000+ 测试 | Android 5.0.3.120 (versionCode 503120 · USR_VERSION 48 · binariesVersion 20260617c) | iOS 5.0.3 (build 120，ad-hoc 签名 .ipa)**
 >
 > **v5.0.3.120 FAMILY-67 好友通话历史 + 来电铃声 + CLI 网络鲁棒性（2026-06-18）**：好友语音/视频通话终态经 `CallHistoryRecorder` 落库 `call_history`（来/去电、未接、音视频类型与挂断原因），好友资料页「查看通话记录」按好友 DID 过滤或查看全部；来电播放系统铃声 + 振动、去电播放回铃音（修「来电无声音」）；CLI 各处网络 fetch（webhook 通知 / `cc update`·`vcheck` 更新检查 / provider 连通性探针）补超时防永久挂起，reputation/插件分账拒绝 NaN。`chainlesschain` 0.162.81 已发 npm；release 发 18 assets。
 >
@@ -76,7 +76,7 @@
 
 ## 概述
 
-ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、159 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
+ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、160 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
 
 **v5.0.2.x新增**: CLI进化版 — Hashline哈希锚定行编辑（内容哈希替代行号，抗格式化漂移）、Hooks三件套（SessionStart/UserPromptSubmit/SessionEnd会话级钩子触发）、Skill-Embedded MCP（技能内联MCP服务器按需mount/unmount）、Category Routing类别路由（5类别quick/deep/reasoning/vision/creative自动匹配provider）、Canonical Tool Descriptor工具描述规范统一（inputSchema为真源，parameters只读镜像）、Coding Agent Envelope Protocol（统一WS信封协议，dot-case类型，requestId关联）、Sub-Runtime Pool子运行时池（Electron主进程子进程spawn，sessionId分片）、Web UI管理面板（HTTP 18810端口，项目/全局双模式）、AI Orchestration编排层（Claude Code/Codex/多Agent路由，5种策略）、AI Doc Creator模板（doc-generate/libre-convert/doc-edit三技能）、CLI Skill Packs（9个领域技能包，sync-cli命令自动生成）。**v0.46.0–v0.47.0（2026-04-15）增量**: Cowork Evolution F1–F9 全部落地（共享学习 / 决策回放 / 11 类任务模板 / Cron 调度 / DAG 工作流 / 历史学习 / 签名 P2P 共享）+ Open-Agents 对标 Phase 1–5（AGENT_TOOLS 13→16，新增 web_fetch / todo_write / ask_user_question；Skill `$ARGUMENTS` 占位符；Sub-Agent Profiles explorer/executor/design；prepareCall 转瞬即逝的 turn-context 注入；provider-options 三层深合并）。
 
@@ -1879,7 +1879,7 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 | ✅ `packages/cli/__tests__/unit/skill-mcp.test.js`                                | Skill-Embedded MCP mount/unmount（26 tests）                                                                   |
 | ✅ `packages/session-core/__tests__/quality-gate.test.js`                         | QualityGate 可插拔检查器注册表（39 tests）                                                                     |
 | ✅ `desktop-app-vue/tests/unit/cowork/debate-review.test.js`                      | Cowork debate-review 冲突仲裁（18 tests）                                                                      |
-| ✅ `packages/cli/__tests__/` (全量)                                               | CLI 159 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests） |
+| ✅ `packages/cli/__tests__/` (全量)                                               | CLI 160 命令，9 技能包，管理 Agent（含 iter16–iter28 V2 治理浪潮 ~5,984 V2 tests + MTC v0.5→v0.11 476+ tests） |
 
 **全项目合计**: 30,000+ tests（Desktop ~28k + CLI ~19k + web-panel ~2k + core packages ~2k）
 
