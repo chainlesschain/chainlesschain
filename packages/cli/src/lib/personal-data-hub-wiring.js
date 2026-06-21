@@ -1377,7 +1377,7 @@ async function initHub() {
 
 // ─── Phase 12.6.8 — WeChat account persistence helpers (cli mirror) ──────
 
-function loadWechatAccounts(filePath) {
+export function loadWechatAccounts(filePath) {
   try {
     if (!existsSync(filePath)) return [];
     const raw = readFileSync(filePath, "utf-8");
@@ -1420,7 +1420,7 @@ function saveWechatAccounts(filePath, accounts) {
 
 // ─── Email account persistence (Phase 5.6) ───────────────────────────────
 
-function loadEmailAccounts(filePath) {
+export function loadEmailAccounts(filePath) {
   try {
     if (!existsSync(filePath)) return [];
     const raw = readFileSync(filePath, "utf-8");
@@ -1437,7 +1437,7 @@ function saveEmailAccounts(filePath, accounts) {
 
 // ─── Alipay account persistence (Phase 6) ───────────────────────────────
 
-function loadAlipayAccounts(filePath) {
+export function loadAlipayAccounts(filePath) {
   try {
     if (!existsSync(filePath)) return [];
     const raw = readFileSync(filePath, "utf-8");
