@@ -1,0 +1,6 @@
+id=pdh_qqd
+name=PDH QQ Staging Daemon
+version=v1.0
+versionCode=1
+author=ChainlessChain
+description=Stages QQ nt_msg.db + uid candidates for ChainlessChain on-device QQ collection (works around MIUI app-process cross-app-read restriction). Root daemon, non-app context.
