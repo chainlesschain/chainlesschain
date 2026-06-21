@@ -44,6 +44,11 @@ import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
 import {
+  isRetryableStreamError,
+  STREAM_RETRY_MAX,
+  STREAM_RETRY_BASE_MS,
+} from "../lib/stream-retry.js";
+import {
   annotateLines,
   replaceByHash,
   snippetAround,
@@ -3088,34 +3093,11 @@ export function formatProviderHttpError(provider, status) {
  * streamed (partial-output drops are preserved internally and never throw) — so
  * a retry can never duplicate visible text. Pure + exported for tests.
  */
-export function _isRetryableStreamError(err, signal) {
-  if (isAbortError(err)) return false;
-  if (signal && signal.aborted) return false;
-  if (!err) return false;
-  const code = String(err.code || err.cause?.code || "").toUpperCase();
-  if (
-    [
-      "ECONNRESET",
-      "ETIMEDOUT",
-      "ECONNREFUSED",
-      "EAI_AGAIN",
-      "EPIPE",
-      "ENETUNREACH",
-      "ENOTFOUND",
-      "UND_ERR_SOCKET",
-    ].includes(code)
-  ) {
-    return true;
-  }
-  const msg = String(err.message || err).toLowerCase();
-  return /econnreset|etimedout|econnrefused|eai_again|socket hang ?up|terminated|fetch failed|network error|timed?\s*out|premature close/.test(
-    msg,
-  );
-}
-
-/** Bounded auto-retry for streaming connection drops (Claude-Code 2.1.181). */
-const STREAM_RETRY_MAX = 2;
-const STREAM_RETRY_BASE_MS = 400;
+// Re-exported from the shared classifier (src/lib/stream-retry.js) so agent-core
+// internals and existing test imports keep resolving it from this module, while
+// the agent and chat streaming paths share ONE definition (no drift). The retry
+// budget constants (STREAM_RETRY_MAX / STREAM_RETRY_BASE_MS) come from there too.
+export const _isRetryableStreamError = isRetryableStreamError;
 // 2.1.185 parity: when a streaming response goes silent mid-flight (the TCP
 // connection is alive but no bytes arrive — a slow/overloaded API), surface a
 // "waiting for API response" hint after this many ms instead of leaving the
