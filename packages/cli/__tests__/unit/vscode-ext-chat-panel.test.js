@@ -723,6 +723,64 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     ).toBe(null);
   });
 
+  it("getConfiguredModel/getConfiguredBaseUrl parse output and map unset to null (wizard pre-fill)", async () => {
+    const mk = (out, err) => ({
+      execFile: (c, a, o, cb) => cb(err || null, out || ""),
+    });
+    expect(
+      await llmCfg.getConfiguredModel({ deps: mk("llm.model = doubao-x") }),
+    ).toBe("doubao-x");
+    expect(await llmCfg.getConfiguredModel({ deps: mk("undefined") })).toBe(
+      null,
+    );
+    expect(
+      await llmCfg.getConfiguredBaseUrl({ deps: mk("https://ark.example/v3") }),
+    ).toBe("https://ark.example/v3");
+    expect(
+      await llmCfg.getConfiguredBaseUrl({ deps: mk("", new Error("no cc")) }),
+    ).toBe(null);
+  });
+
+  it("hasConfiguredApiKey: true when a key is stored, false when unset / cli missing", async () => {
+    const mk = (out, err) => ({
+      execFile: (c, a, o, cb) => cb(err || null, out || ""),
+    });
+    // present (value never surfaced — only presence matters)
+    expect(await llmCfg.hasConfiguredApiKey({ deps: mk("sk-abc123") })).toBe(
+      true,
+    );
+    expect(await llmCfg.hasConfiguredApiKey({ deps: mk("undefined") })).toBe(
+      false,
+    );
+    expect(await llmCfg.hasConfiguredApiKey({ deps: mk("") })).toBe(false);
+    expect(
+      await llmCfg.hasConfiguredApiKey({ deps: mk("", new Error("no cc")) }),
+    ).toBe(false);
+  });
+
+  it("blank apiKey KEEPS the existing key (the '更新后又要重配key' fix)", () => {
+    // The wizard passes apiKey:"" when the user leaves it blank to keep the
+    // stored key; buildConfigSetArgs must NOT emit llm.apiKey so cc never
+    // overwrites it with empty. Model/baseUrl still update.
+    expect(
+      llmCfg.buildConfigSetArgs({
+        provider: "volcengine",
+        model: "doubao-seed-1-6-251015",
+        apiKey: "",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      }),
+    ).toEqual([
+      ["config", "set", "llm.provider", "volcengine"],
+      ["config", "set", "llm.model", "doubao-seed-1-6-251015"],
+      [
+        "config",
+        "set",
+        "llm.baseUrl",
+        "https://ark.cn-beijing.volces.com/api/v3",
+      ],
+    ]);
+  });
+
   it("rejects shell-unsafe values before writing", async () => {
     expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
     expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);

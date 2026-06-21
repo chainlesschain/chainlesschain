@@ -317,37 +317,70 @@ function activate(context) {
           applyLlmConfig,
           suggestVisionModel,
           testLlm,
+          getConfiguredProvider,
+          getConfiguredModel,
+          getConfiguredBaseUrl,
+          getConfiguredVisionModel,
+          hasConfiguredApiKey,
         } = require("./llm-config.js");
         const cliCmd =
           vscode.workspace
             .getConfiguration("chainlesschain.cli")
             .get("path") || "cc";
-        const pick = await vscode.window.showQuickPick(
-          PROVIDER_PRESETS.map((p) => ({
-            label: p.label,
-            description: p.id,
-            detail: `默认模型 ${p.defaultModel} · ${p.needsKey ? "需要 API key" : "免 key"}`,
-            preset: p,
-          })),
-          { placeHolder: "选择 LLM 提供商(写入 ~/.chainlesschain/config.json,CLI 与 Chat 面板共用)" },
+        // Pre-read existing config so re-running the wizard PRE-FILLS instead of
+        // forcing a full re-type. Fixes "更新后又要重新配置模型和key": the model/
+        // baseUrl/vision default to the current values and the API key can be
+        // kept by leaving it blank. The key value is never read into the UI —
+        // only its presence (curHasKey), so "blank = keep" stays secure.
+        const [curProvider, curModel, curBaseUrl, curVision, curHasKey] =
+          await Promise.all([
+            getConfiguredProvider({ command: cliCmd }),
+            getConfiguredModel({ command: cliCmd }),
+            getConfiguredBaseUrl({ command: cliCmd }),
+            getConfiguredVisionModel({ command: cliCmd }),
+            hasConfiguredApiKey({ command: cliCmd }),
+          ]);
+        const items = PROVIDER_PRESETS.map((p) => ({
+          label: p.label + (p.id === curProvider ? "  ✓ 当前" : ""),
+          description: p.id,
+          detail: `默认模型 ${p.defaultModel} · ${p.needsKey ? "需要 API key" : "免 key"}`,
+          preset: p,
+        }));
+        // Surface the current provider first so re-running defaults to "keep".
+        items.sort((a, b) =>
+          a.preset.id === curProvider ? -1 : b.preset.id === curProvider ? 1 : 0,
         );
+        const pick = await vscode.window.showQuickPick(items, {
+          placeHolder:
+            "选择 LLM 提供商(写入 ~/.chainlesschain/config.json,CLI 与 Chat 面板共用)",
+        });
         if (!pick) return;
         const preset = pick.preset;
+        // Same provider as before → pre-fill its current model/baseUrl/vision and
+        // allow keeping the stored key. Switched provider → use preset defaults.
+        const sameProvider = preset.id === curProvider;
         const model = await vscode.window.showInputBox({
           prompt: `模型名(${preset.id})`,
-          value: preset.defaultModel,
+          value: (sameProvider && curModel) || preset.defaultModel,
           ignoreFocusOut: true,
         });
         if (model === undefined) return;
         let apiKey = "";
         if (preset.needsKey) {
-          apiKey =
-            (await vscode.window.showInputBox({
-              prompt: `${preset.label} 的 API key(只写入本机 config.json,不进 VS Code 设置)`,
-              password: true,
-              ignoreFocusOut: true,
-            })) || "";
-          if (!apiKey) {
+          const canKeep = sameProvider && curHasKey;
+          const entered = await vscode.window.showInputBox({
+            prompt: canKeep
+              ? `${preset.label} 的 API key(留空 = 保留已有的 key,不必重输)`
+              : `${preset.label} 的 API key(只写入本机 config.json,不进 VS Code 设置)`,
+            password: true,
+            ignoreFocusOut: true,
+            placeHolder: canKeep ? "留空保留现有 key" : "",
+          });
+          if (entered === undefined) return; // cancelled
+          // Blank + canKeep → applyLlmConfig omits llm.apiKey, keeping the
+          // existing one (buildConfigSetArgs skips empty values).
+          apiKey = entered;
+          if (!apiKey && !canKeep) {
             vscode.window.showWarningMessage(
               "未输入 API key — 配置已取消(该提供商必须有 key)。",
             );
@@ -356,7 +389,7 @@ function activate(context) {
         }
         const baseUrl = await vscode.window.showInputBox({
           prompt: "Base URL(回车用默认)",
-          value: preset.baseUrl,
+          value: (sameProvider && curBaseUrl) || preset.baseUrl,
           ignoreFocusOut: true,
         });
         if (baseUrl === undefined) return;
@@ -366,7 +399,7 @@ function activate(context) {
         const visionModel = await vscode.window.showInputBox({
           prompt:
             "图片识别(视觉)模型(留空 = 与文本模型相同 / 用 CLI 默认;粘贴截图时自动切到此模型)",
-          value: suggestVisionModel(preset.id),
+          value: (sameProvider && curVision) || suggestVisionModel(preset.id),
           ignoreFocusOut: true,
         });
         if (visionModel === undefined) return;

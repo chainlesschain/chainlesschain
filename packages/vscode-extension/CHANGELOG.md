@@ -2,6 +2,24 @@
 
 All notable changes to this extension are documented here.
 
+## [0.34.0] — fix: Configure LLM pre-fills your config — no more re-typing model+key
+
+- **Fix: re-running "Configure LLM" no longer makes you re-enter everything.**
+  The wizard now pre-fills the **current model, base URL, and vision model**, and
+  surfaces your **current provider first** (marked `✓ 当前`). When you keep the
+  same provider, the **API-key box can be left blank to keep the stored key** —
+  it's only required when there's no key yet or you switch to a new keyed
+  provider. The key value is never read into the UI (only its presence), so
+  "blank = keep" stays secure.
+- **Why:** previously every reconfigure reset model/baseUrl to preset defaults
+  and forced re-typing the API key — the reported "更新后又要重新配置模型和key"
+  pain. Note the config itself was never lost (it lives in
+  `~/.chainlesschain/config.json` and survives CLI updates); the wizard just
+  didn't pre-fill it.
+- New `llm-config` helpers `getConfiguredModel` / `getConfiguredBaseUrl` /
+  `hasConfiguredApiKey`; `buildConfigSetArgs` already omits a blank key so the
+  stored one is preserved. +3 tests.
+
 ## [0.33.9] — 2026-06-20 — fix: the question prompt now shows IN the panel
 
 - **Fix: `ask_user_question` is answered with an in-panel card, not a native

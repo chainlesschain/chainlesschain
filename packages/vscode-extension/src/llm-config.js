@@ -118,6 +118,35 @@ async function getConfiguredVisionModel({ command = "cc", deps } = {}) {
   return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
 }
 
+/** Currently configured text model (null when unset / CLI missing). */
+async function getConfiguredModel({ command = "cc", deps } = {}) {
+  const r = await runCli(command, ["config", "get", "llm.model"], deps);
+  if (!r.ok) return null;
+  const raw = r.stdout.trim().split("=").pop().trim();
+  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+}
+
+/** Currently configured base URL (null when unset / CLI missing). */
+async function getConfiguredBaseUrl({ command = "cc", deps } = {}) {
+  const r = await runCli(command, ["config", "get", "llm.baseUrl"], deps);
+  if (!r.ok) return null;
+  const raw = r.stdout.trim().split("=").pop().trim();
+  return raw && !/^(undefined|null)$/i.test(raw) ? raw : null;
+}
+
+/**
+ * True when an API key is already stored. Lets the wizard offer "leave blank to
+ * keep the existing key" instead of forcing the user to re-type it on every
+ * reconfigure (the #1 reported pain: "更新后又要重新配置模型和key"). The key
+ * value itself is never surfaced to the UI — only its presence.
+ */
+async function hasConfiguredApiKey({ command = "cc", deps } = {}) {
+  const r = await runCli(command, ["config", "get", "llm.apiKey"], deps);
+  if (!r.ok) return false;
+  const raw = r.stdout.trim().split("=").pop().trim();
+  return !!raw && !/^(undefined|null)$/i.test(raw);
+}
+
 /**
  * Set just `llm.visionModel` — the dedicated vision-model entry, so the user
  * need not re-run the full wizard / re-type the API key. A blank value clears it
@@ -161,6 +190,9 @@ module.exports = {
   looksLikeLlmConfigError,
   getConfiguredProvider,
   getConfiguredVisionModel,
+  getConfiguredModel,
+  getConfiguredBaseUrl,
+  hasConfiguredApiKey,
   setVisionModel,
   applyLlmConfig,
   testLlm,
