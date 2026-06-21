@@ -422,13 +422,18 @@ class FileIndexer:
                         overlap_size += len(l)
 
                     current_chunk = overlap_lines
-                    current_size = overlap_size
+                    # current_size 必须等于 '\n'.join(current_chunk) 的实际长度，
+                    # 即各行长度之和 + (行数-1) 个换行分隔符；overlap_size 只累加了行长。
+                    current_size = overlap_size + max(0, len(overlap_lines) - 1)
                 else:
                     current_chunk = []
                     current_size = 0
 
             current_chunk.append(line)
-            current_size += line_size
+            # 维持 current_size == len('\n'.join(current_chunk)) 不变式：非首行追加时
+            # join 会插入一个 '\n' 分隔符，需计入；否则 size 偏小、分块会超出 chunk_size
+            # 且误差随 overlap 跨块累积漂移。
+            current_size += line_size + (1 if len(current_chunk) > 1 else 0)
 
         # 添加最后一个chunk
         if current_chunk:
