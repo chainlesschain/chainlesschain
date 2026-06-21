@@ -72,7 +72,9 @@ describe("anthropic prompt caching", () => {
     // Exactly one tool breakpoint, and it is on the LAST tool.
     const tools = cap.body.tools;
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools[tools.length - 1].cache_control).toEqual({ type: "ephemeral" });
+    expect(tools[tools.length - 1].cache_control).toEqual({
+      type: "ephemeral",
+    });
     const withCC = tools.filter((t) => t.cache_control);
     expect(withCC).toHaveLength(1);
   });

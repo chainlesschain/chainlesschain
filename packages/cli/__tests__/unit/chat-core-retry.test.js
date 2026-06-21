@@ -16,7 +16,8 @@ function fakeBody(chunks, errorToThrow) {
   return {
     getReader: () => ({
       read: async () => {
-        if (i < chunks.length) return { done: false, value: enc.encode(chunks[i++]) };
+        if (i < chunks.length)
+          return { done: false, value: enc.encode(chunks[i++]) };
         if (errorToThrow) throw errorToThrow;
         return { done: true, value: undefined };
       },
@@ -60,7 +61,9 @@ describe("chat-core retry-on-drop", () => {
         return { ok: true, body: fakeBody(okStream) };
       }),
     );
-    const { tokens, content } = await drain(chatStream([{ role: "user", content: "hi" }], baseOpts));
+    const { tokens, content } = await drain(
+      chatStream([{ role: "user", content: "hi" }], baseOpts),
+    );
     expect(calls).toBe(2);
     expect(tokens).toEqual(["Hel", "lo"]); // streamed exactly once
     expect(content).toBe("Hello");
@@ -85,7 +88,10 @@ describe("chat-core retry-on-drop", () => {
     const tokens = [];
     await expect(
       (async () => {
-        for await (const ev of chatStream([{ role: "user", content: "hi" }], baseOpts)) {
+        for await (const ev of chatStream(
+          [{ role: "user", content: "hi" }],
+          baseOpts,
+        )) {
           if (ev.type === "response-token") tokens.push(ev.token);
         }
       })(),

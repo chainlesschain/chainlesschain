@@ -12,9 +12,9 @@ import {
 describe("isRetryableStreamError", () => {
   it("retries genuine connection drops (by code and by message)", () => {
     for (const code of ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EPIPE"]) {
-      expect(isRetryableStreamError(Object.assign(new Error("x"), { code }))).toBe(
-        true,
-      );
+      expect(
+        isRetryableStreamError(Object.assign(new Error("x"), { code })),
+      ).toBe(true);
     }
     expect(isRetryableStreamError(new TypeError("fetch failed"))).toBe(true);
     expect(isRetryableStreamError(new Error("socket hang up"))).toBe(true);
@@ -37,10 +37,16 @@ describe("isRetryableStreamError", () => {
   });
 
   it("does NOT retry HTTP/auth/server errors or stall aborts", () => {
-    expect(isRetryableStreamError(new Error("API error: HTTP 401"))).toBe(false);
-    expect(isRetryableStreamError(new Error("API error: HTTP 500"))).toBe(false);
+    expect(isRetryableStreamError(new Error("API error: HTTP 401"))).toBe(
+      false,
+    );
+    expect(isRetryableStreamError(new Error("API error: HTTP 500"))).toBe(
+      false,
+    );
     expect(
-      isRetryableStreamError(new Error("Ollama stream stalled (no data in 180s)")),
+      isRetryableStreamError(
+        new Error("Ollama stream stalled (no data in 180s)"),
+      ),
     ).toBe(false);
     expect(isRetryableStreamError(null)).toBe(false);
     expect(isRetryableStreamError(undefined)).toBe(false);

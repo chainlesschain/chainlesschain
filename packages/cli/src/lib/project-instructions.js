@@ -213,7 +213,11 @@ export function ruleApplies(globs, relCwd) {
     const star = g.search(/[*?[]/);
     const prefix = (star === -1 ? g : g.slice(0, star)).replace(/\/+$/, "");
     if (!prefix) return true; // "**/*.js" — applies everywhere
-    if (cwd === prefix || cwd.startsWith(`${prefix}/`) || prefix.startsWith(`${cwd}/`)) {
+    if (
+      cwd === prefix ||
+      cwd.startsWith(`${prefix}/`) ||
+      prefix.startsWith(`${cwd}/`)
+    ) {
       return true;
     }
   }

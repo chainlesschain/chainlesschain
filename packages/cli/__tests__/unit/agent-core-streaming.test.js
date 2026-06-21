@@ -20,9 +20,21 @@ describe("_accumulateAnthropicStream", () => {
     const out = _accumulateAnthropicStream(
       sse([
         { type: "message_start", message: { usage: { input_tokens: 10 } } },
-        { type: "content_block_start", index: 0, content_block: { type: "text" } },
-        { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Hel" } },
-        { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "lo" } },
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "text" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: "Hel" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: "lo" },
+        },
         { type: "message_delta", usage: { output_tokens: 7 } },
       ]),
       (t) => tokens.push(t),
@@ -40,9 +52,21 @@ describe("_accumulateAnthropicStream", () => {
   it("reassembles a tool_use block from input_json_delta fragments", () => {
     const out = _accumulateAnthropicStream(
       sse([
-        { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "tu_1", name: "get_weather" } },
-        { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '{"city":' } },
-        { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '"NYC"}' } },
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "tool_use", id: "tu_1", name: "get_weather" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "input_json_delta", partial_json: '{"city":' },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "input_json_delta", partial_json: '"NYC"}' },
+        },
       ]),
       null,
     );
@@ -60,7 +84,12 @@ describe("_accumulateAnthropicStream", () => {
 
   it("tolerates malformed lines and omits usage when none seen", () => {
     const out = _accumulateAnthropicStream(
-      ["data: {bad", "event: ping", 'data: {"type":"content_block_start","index":0,"content_block":{"type":"text"}}', 'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"x"}}'],
+      [
+        "data: {bad",
+        "event: ping",
+        'data: {"type":"content_block_start","index":0,"content_block":{"type":"text"}}',
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"x"}}',
+      ],
       null,
     );
     expect(out.message.content).toBe("x");
@@ -76,10 +105,45 @@ describe("_accumulateOpenAIStream", () => {
         ...sse([
           { choices: [{ delta: { content: "Hel" } }] },
           { choices: [{ delta: { content: "lo" } }] },
-          { choices: [{ delta: { tool_calls: [{ index: 0, id: "call_1", function: { name: "get_weather", arguments: "" } }] } }] },
-          { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '{"city":' } }] } }] },
-          { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '"NYC"}' } }] } }] },
-          { choices: [{ delta: {}, finish_reason: "tool_calls" }], usage: { prompt_tokens: 5, completion_tokens: 3 } },
+          {
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      id: "call_1",
+                      function: { name: "get_weather", arguments: "" },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    { index: 0, function: { arguments: '{"city":' } },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            choices: [
+              {
+                delta: {
+                  tool_calls: [{ index: 0, function: { arguments: '"NYC"}' } }],
+                },
+              },
+            ],
+          },
+          {
+            choices: [{ delta: {}, finish_reason: "tool_calls" }],
+            usage: { prompt_tokens: 5, completion_tokens: 3 },
+          },
         ]),
         "data: [DONE]",
       ],
@@ -114,7 +178,17 @@ describe("_accumulateOpenAIStream", () => {
   it("synthesizes an id when a tool_call delta omits one", () => {
     const out = _accumulateOpenAIStream(
       sse([
-        { choices: [{ delta: { tool_calls: [{ index: 0, function: { name: "ping", arguments: "{}" } }] } }] },
+        {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { index: 0, function: { name: "ping", arguments: "{}" } },
+                ],
+              },
+            },
+          ],
+        },
       ]),
       null,
     );

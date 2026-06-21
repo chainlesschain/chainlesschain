@@ -19,9 +19,8 @@ vi.mock("../../src/lib/config-manager.js", () => ({
 
 const store = await import("../../src/harness/jsonl-session-store.js");
 const { logger } = await import("../../src/lib/logger.js");
-const { registerInsightsCommand } = await import(
-  "../../src/commands/insights.js"
-);
+const { registerInsightsCommand } =
+  await import("../../src/commands/insights.js");
 
 const T0 = 1_700_000_000_000;
 const sampleEvents = [

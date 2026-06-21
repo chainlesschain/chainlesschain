@@ -45,7 +45,9 @@ export function appendFeedback(entry, deps = _deps) {
     turnId: entry.turnId != null ? String(entry.turnId) : null,
     kind,
     comment:
-      kind === "correction" && typeof entry.comment === "string" && entry.comment
+      kind === "correction" &&
+      typeof entry.comment === "string" &&
+      entry.comment
         ? entry.comment
         : null,
   };

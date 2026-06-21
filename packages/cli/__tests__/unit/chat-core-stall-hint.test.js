@@ -12,9 +12,8 @@ import { describe, it, expect, afterEach } from "vitest";
 
 process.env.CC_CHAT_STALL_MS = "5000";
 process.env.CC_CHAT_STALL_HINT_MS = "20";
-const { streamOpenAI, STREAM_STALL_HINT_MS } = await import(
-  "../../src/lib/chat-core.js"
-);
+const { streamOpenAI, STREAM_STALL_HINT_MS } =
+  await import("../../src/lib/chat-core.js");
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -57,7 +56,10 @@ describe("chat-core stall hint", () => {
       Promise.resolve({
         ok: true,
         body: delayedBody(
-          ['data: {"choices":[{"delta":{"content":"hi"}}]}\n', "data: [DONE]\n"],
+          [
+            'data: {"choices":[{"delta":{"content":"hi"}}]}\n',
+            "data: [DONE]\n",
+          ],
           80, // first chunk 80ms late: > 20ms hint, < 5000ms abort
         ),
       });
@@ -80,7 +82,10 @@ describe("chat-core stall hint", () => {
       Promise.resolve({
         ok: true,
         body: delayedBody(
-          ['data: {"choices":[{"delta":{"content":"yo"}}]}\n', "data: [DONE]\n"],
+          [
+            'data: {"choices":[{"delta":{"content":"yo"}}]}\n',
+            "data: [DONE]\n",
+          ],
           0, // immediate
         ),
       });
