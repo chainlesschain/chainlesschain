@@ -86,13 +86,14 @@ public class SyncController {
     public Result<SyncResponseDTO> downloadIncremental(
         @Parameter(description = "表名") @PathVariable String tableName,
         @Parameter(description = "最后同步时间戳（毫秒）") @RequestParam(required = false, defaultValue = "0") Long lastSyncedAt,
-        @Parameter(description = "设备ID") @RequestParam String deviceId
+        @Parameter(description = "设备ID") @RequestParam String deviceId,
+        org.springframework.security.core.Authentication authentication
     ) {
         log.info("[SyncController] 收到增量下载请求: table={}, lastSyncedAt={}, deviceId={}",
             tableName, lastSyncedAt, deviceId);
 
         try {
-            SyncResponseDTO response = syncService.downloadIncremental(tableName, lastSyncedAt, deviceId);
+            SyncResponseDTO response = syncService.downloadIncremental(tableName, lastSyncedAt, deviceId, authentication);
             return Result.success(response);
         } catch (Exception e) {
             log.error("[SyncController] 增量下载失败: {}", e.getMessage(), e);

@@ -3,6 +3,7 @@ package com.chainlesschain.project.service;
 import com.chainlesschain.project.dto.ConflictResolutionDTO;
 import com.chainlesschain.project.dto.SyncRequestDTO;
 import com.chainlesschain.project.dto.SyncResponseDTO;
+import org.springframework.security.core.Authentication;
 
 import java.util.Map;
 
@@ -25,9 +26,11 @@ public interface SyncService {
      * @param tableName    表名
      * @param lastSyncedAt 最后同步时间戳（毫秒）
      * @param deviceId     设备ID
+     * @param authentication 已认证调用方（用于按归属限定结果，防跨用户拉取）
      * @return 增量数据
      */
-    SyncResponseDTO downloadIncremental(String tableName, Long lastSyncedAt, String deviceId);
+    SyncResponseDTO downloadIncremental(String tableName, Long lastSyncedAt, String deviceId,
+                                        Authentication authentication);
 
     /**
      * 获取同步状态

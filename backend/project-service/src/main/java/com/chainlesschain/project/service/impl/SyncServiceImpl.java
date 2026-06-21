@@ -7,10 +7,12 @@ import com.chainlesschain.project.dto.SyncRequestDTO;
 import com.chainlesschain.project.dto.SyncResponseDTO;
 import com.chainlesschain.project.entity.*;
 import com.chainlesschain.project.mapper.*;
+import com.chainlesschain.project.security.ProjectAccessGuard;
 import com.chainlesschain.project.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -58,6 +60,9 @@ public class SyncServiceImpl implements SyncService {
 
     @Autowired(required = true)
     private SyncLogMapper syncLogMapper;
+
+    @Autowired
+    private ProjectAccessGuard accessGuard;
 
     @Autowired(required = false)
     private RedisTemplate<String, Object> redisTemplate;
@@ -214,7 +219,8 @@ public class SyncServiceImpl implements SyncService {
     }
 
     @Override
-    public SyncResponseDTO downloadIncremental(String tableName, Long lastSyncedAt, String deviceId) {
+    public SyncResponseDTO downloadIncremental(String tableName, Long lastSyncedAt, String deviceId,
+                                               Authentication authentication) {
         long startTime = System.currentTimeMillis();
         log.info("[SyncService] 开始增量下载: table={}, lastSyncedAt={}, deviceId={}",
             tableName, lastSyncedAt, deviceId);
@@ -232,7 +238,7 @@ public class SyncServiceImpl implements SyncService {
 
         try {
             // 根据表名查询增量数据
-            List<Map<String, Object>> records = queryIncrementalData(tableName, lastSyncTime, deviceId);
+            List<Map<String, Object>> records = queryIncrementalData(tableName, lastSyncTime, deviceId, authentication);
 
             for (Map<String, Object> record : records) {
                 Integer deleted = (Integer) record.get("deleted");
@@ -366,59 +372,124 @@ public class SyncServiceImpl implements SyncService {
     /**
      * 查询增量数据
      */
-    private List<Map<String, Object>> queryIncrementalData(String tableName, LocalDateTime lastSyncTime, String deviceId) {
-        // 这里需要使用MyBatis的动态SQL或者直接JDBC查询
-        // 简化实现：只查询updatedAt > lastSyncTime的记录
+    private List<Map<String, Object>> queryIncrementalData(String tableName, LocalDateTime lastSyncTime,
+                                                           String deviceId, Authentication authentication) {
+        // 简化实现：查询 updatedAt/createdAt > lastSyncTime 的记录。
+        //
+        // 授权（IDOR 修复）：此前 download 只按时间戳过滤、无任何归属过滤，任意已认证用户凭
+        // deviceId 即可拉取<b>所有用户</b>的原始数据行。现按调用方身份强制限定：用户自有数据
+        // 按 callerIdentities（user_id/owner_did），项目相关数据按 accessibleProjectIds
+        // （project_id），消息按调用方可访问对话 id；调用方无可访问范围时返回空（绝不返回
+        // 他人数据）。dev-mode（未认证 permitAll）保持旧的无过滤行为。
+        boolean enforce = accessGuard != null && accessGuard.isCallerAuthenticated(authentication);
+        Set<String> ids = enforce ? accessGuard.callerIdentities(authentication) : null;
+        Set<String> projectIds = enforce ? accessGuard.accessibleProjectIds(authentication) : null;
 
         switch (tableName) {
-            case "projects":
-                QueryWrapper<Project> projectWrapper = new QueryWrapper<>();
-                projectWrapper.gt("updated_at", lastSyncTime);
-                return projectMapper.selectMaps(projectWrapper);
+            case "projects": {
+                QueryWrapper<Project> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) {
+                    w.and(q -> q.in("user_id", ids).or().in("owner_did", ids));
+                }
+                return projectMapper.selectMaps(w);
+            }
 
-            case "project_files":
-                QueryWrapper<ProjectFile> fileWrapper = new QueryWrapper<>();
-                fileWrapper.gt("updated_at", lastSyncTime);
-                return projectFileMapper.selectMaps(fileWrapper);
+            case "project_files": {
+                if (enforce && projectIds.isEmpty()) return new ArrayList<>();
+                QueryWrapper<ProjectFile> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) w.in("project_id", projectIds);
+                return projectFileMapper.selectMaps(w);
+            }
 
-            case "project_conversations":
-                QueryWrapper<ProjectConversation> convWrapper = new QueryWrapper<>();
-                convWrapper.gt("created_at", lastSyncTime);
-                return projectConversationMapper.selectMaps(convWrapper);
+            case "project_conversations": {
+                if (enforce && projectIds.isEmpty()) return new ArrayList<>();
+                QueryWrapper<ProjectConversation> w = new QueryWrapper<>();
+                w.gt("created_at", lastSyncTime);
+                if (enforce) w.in("project_id", projectIds);
+                return projectConversationMapper.selectMaps(w);
+            }
 
-            case "project_tasks":
-                QueryWrapper<ProjectTask> taskWrapper = new QueryWrapper<>();
-                taskWrapper.gt("updated_at", lastSyncTime);
-                return projectTaskMapper.selectMaps(taskWrapper);
+            case "project_tasks": {
+                if (enforce && projectIds.isEmpty()) return new ArrayList<>();
+                QueryWrapper<ProjectTask> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) w.in("project_id", projectIds);
+                return projectTaskMapper.selectMaps(w);
+            }
 
-            case "project_collaborators":
-                QueryWrapper<ProjectCollaborator> collabWrapper = new QueryWrapper<>();
-                collabWrapper.gt("updated_at", lastSyncTime);
-                return projectCollaboratorMapper.selectMaps(collabWrapper);
+            case "project_collaborators": {
+                QueryWrapper<ProjectCollaborator> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) {
+                    w.and(q -> {
+                        q.in("user_id", ids);
+                        if (!projectIds.isEmpty()) q.or().in("project_id", projectIds);
+                    });
+                }
+                return projectCollaboratorMapper.selectMaps(w);
+            }
 
-            case "project_comments":
-                QueryWrapper<ProjectComment> commentWrapper = new QueryWrapper<>();
-                commentWrapper.gt("updated_at", lastSyncTime);
-                return projectCommentMapper.selectMaps(commentWrapper);
+            case "project_comments": {
+                QueryWrapper<ProjectComment> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) {
+                    w.and(q -> {
+                        q.in("user_id", ids);
+                        if (!projectIds.isEmpty()) q.or().in("project_id", projectIds);
+                    });
+                }
+                return projectCommentMapper.selectMaps(w);
+            }
 
-            case "conversations":
-                QueryWrapper<Conversation> conversationWrapper = new QueryWrapper<>();
-                conversationWrapper.gt("updated_at", lastSyncTime);
-                return conversationMapper.selectMaps(conversationWrapper);
+            case "conversations": {
+                QueryWrapper<Conversation> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) {
+                    w.and(q -> {
+                        q.in("user_id", ids);
+                        if (!projectIds.isEmpty()) q.or().in("project_id", projectIds);
+                    });
+                }
+                return conversationMapper.selectMaps(w);
+            }
 
-            case "messages":
-                QueryWrapper<ConversationMessage> messageWrapper = new QueryWrapper<>();
-                messageWrapper.gt("created_at", lastSyncTime);
-                return conversationMessageMapper.selectMaps(messageWrapper);
+            case "messages": {
+                QueryWrapper<ConversationMessage> w = new QueryWrapper<>();
+                w.gt("created_at", lastSyncTime);
+                if (enforce) {
+                    Set<String> convIds = callerConversationIds(ids, projectIds);
+                    if (convIds.isEmpty()) return new ArrayList<>();
+                    w.in("conversation_id", convIds);
+                }
+                return conversationMessageMapper.selectMaps(w);
+            }
 
-            case "knowledge_items":
-                QueryWrapper<KnowledgeItem> knowledgeWrapper = new QueryWrapper<>();
-                knowledgeWrapper.gt("updated_at", lastSyncTime);
-                return knowledgeItemMapper.selectMaps(knowledgeWrapper);
+            case "knowledge_items": {
+                QueryWrapper<KnowledgeItem> w = new QueryWrapper<>();
+                w.gt("updated_at", lastSyncTime);
+                if (enforce) w.in("user_id", ids);
+                return knowledgeItemMapper.selectMaps(w);
+            }
 
             default:
                 return new ArrayList<>();
         }
+    }
+
+    /** 调用方可访问的全部对话 id（自有 user_id 或可访问 project_id）——用于限定消息下载。 */
+    private Set<String> callerConversationIds(Set<String> ids, Set<String> projectIds) {
+        QueryWrapper<Conversation> w = new QueryWrapper<>();
+        w.in("user_id", ids);
+        if (projectIds != null && !projectIds.isEmpty()) {
+            w.or().in("project_id", projectIds);
+        }
+        Set<String> result = new HashSet<>();
+        for (Conversation c : conversationMapper.selectList(w)) {
+            if (c.getId() != null) result.add(c.getId());
+        }
+        return result;
     }
 
     /**
