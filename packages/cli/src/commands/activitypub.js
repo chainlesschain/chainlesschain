@@ -9,6 +9,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -320,7 +321,12 @@ export function registerActivityPubCommand(program) {
       try {
         await bootstrapDb(program);
         const items = getOutbox(username, {
-          limit: parseInt(options.limit),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
           types: options.type,
         });
         if (options.json) {
@@ -354,7 +360,12 @@ export function registerActivityPubCommand(program) {
       try {
         await bootstrapDb(program);
         const items = getInbox(username, {
-          limit: parseInt(options.limit),
+          limit: numericOption(options.limit, {
+            name: "--limit",
+            integer: true,
+            min: 1,
+            fallback: 50,
+          }),
           types: options.type,
         });
         if (options.json) {
@@ -452,7 +463,12 @@ export function registerActivityPubCommand(program) {
     .action(async (query, options) => {
       try {
         await bootstrapDb(program);
-        const limit = parseInt(options.limit);
+        const limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 1,
+          fallback: 20,
+        });
         const target = options.target;
         const result = {};
         if (target === "actors" || target === "all") {

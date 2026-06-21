@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { parseNumberOption } from "../lib/parse-number-option.js";
@@ -310,10 +311,22 @@ export function registerDaoCommand(program) {
 
         const cfg = {};
         if (options.votingPeriod)
-          cfg.votingPeriod = parseInt(options.votingPeriod);
-        if (options.quorum) cfg.quorum = parseFloat(options.quorum);
+          cfg.votingPeriod = numericOption(options.votingPeriod, {
+            name: "--voting-period",
+            integer: true,
+            min: 1,
+          });
+        if (options.quorum)
+          cfg.quorum = numericOption(options.quorum, {
+            name: "--quorum",
+            min: 0,
+          });
         if (options.executionDelay)
-          cfg.executionDelay = parseInt(options.executionDelay);
+          cfg.executionDelay = numericOption(options.executionDelay, {
+            name: "--execution-delay",
+            integer: true,
+            min: 0,
+          });
 
         const result = configure(cfg);
         logger.success("Configuration updated");

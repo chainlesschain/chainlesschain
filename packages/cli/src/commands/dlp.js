@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -537,7 +538,12 @@ export function registerDlpCommand(program) {
         if (options.policy) filter.policyId = options.policy;
         if (options.from) filter.fromDate = options.from;
         if (options.to) filter.toDate = options.to;
-        filter.limit = Number(options.limit);
+        filter.limit = numericOption(options.limit, {
+          name: "--limit",
+          integer: true,
+          min: 1,
+          fallback: 50,
+        });
         console.log(JSON.stringify(listIncidentsV2(filter), null, 2));
 
         await shutdown();
