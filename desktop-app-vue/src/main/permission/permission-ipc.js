@@ -17,6 +17,11 @@ const { logger } = require("../utils/logger.js");
 // Report-only by default (logs mismatches, no behavior change); CC_IPC_ACTOR_
 // GUARD=enforce to override claims. See permission/current-user-context.js.
 const { resolveActorDid } = require("./current-user-context.js");
+// RBAC authority: require the (authenticated) actor to be an org owner/admin
+// before they can manage another user's permissions. Report-only by default
+// (logs would-deny, no behavior change); CC_IPC_RBAC_GUARD=enforce to deny.
+// See permission/rbac-authority.js.
+const { requireOrgManageAuthority } = require("./rbac-authority.js");
 
 let databaseInitPromise = null;
 
@@ -89,8 +94,13 @@ function registerPermissionIPC(database) {
         field: "grantedBy",
         channel: "perm:grant-permission",
       });
+      const grantDbMgr = await ensureDatabase(database);
+      requireOrgManageAuthority(grantDbMgr.getDatabase(), {
+        orgId: params.orgId,
+        channel: "perm:grant-permission",
+      });
       const { getPermissionEngine } = require("./permission-engine");
-      const engine = getPermissionEngine(await ensureDatabase(database));
+      const engine = getPermissionEngine(grantDbMgr);
       return await engine.grantPermission(params);
     } catch (error) {
       logger.error("[IPC] perm:grant-permission failed:", error);
@@ -751,6 +761,13 @@ function registerPermissionIPC(database) {
         field: "userDID",
         channel: "permission:create-override",
       });
+      requireOrgManageAuthority(
+        (await ensureDatabase(database)).getDatabase(),
+        {
+          orgId,
+          channel: "permission:create-override",
+        },
+      );
 
       db.prepare(
         `
