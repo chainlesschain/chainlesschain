@@ -113,7 +113,9 @@ fun PdhChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("个人助手", style = MaterialTheme.typography.titleMedium) },
+                // 标题留空:底部导航已标「个人助手」,顶栏不再重复;腾出空间给顶栏控件
+                // (设备选择 / 透明度 / 搜索 / 隐私档位),避免标题换行挤压。
+                title = {},
                 actions = {
                     // §3.5.16: 目标设备选择器 —— 指挥本机或你的其他自有设备。
                     DeviceSelector(
