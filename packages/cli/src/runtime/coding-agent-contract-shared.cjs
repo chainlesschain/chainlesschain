@@ -27,11 +27,22 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     title: "Read File",
     kind: "filesystem",
     tier: "mvp",
-    description: "Read a file's content",
+    description:
+      "Read a file's content. Jupyter notebooks (.ipynb) are rendered as a compact cell listing (index/id/type/source, outputs hidden) for use with notebook_edit — pass raw:true for the underlying JSON.",
     inputSchema: {
       type: "object",
       properties: {
         path: { type: "string", description: "File path to read" },
+        hashed: {
+          type: "boolean",
+          description:
+            "Prefix each line with a 6-char content hash for edit_file_hashed anchoring",
+        },
+        raw: {
+          type: "boolean",
+          description:
+            "For .ipynb: return the raw notebook JSON instead of the rendered cell listing",
+        },
       },
       required: ["path"],
     },

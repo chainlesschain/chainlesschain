@@ -1408,6 +1408,45 @@ export function editNotebookCell(notebookText, args = {}) {
 }
 
 /**
+ * Render a Jupyter notebook (.ipynb) as a compact, token-cheap cell listing so
+ * the model can locate cells (index + id + type + source) to edit with
+ * notebook_edit — instead of drowning in raw JSON / base64 output blobs. Cell
+ * OUTPUTS are summarized, not dumped. Pure + exported for tests; returns null
+ * when the text is not a parseable nbformat-4 notebook (caller falls back to raw).
+ */
+export function renderNotebook(text) {
+  let nb;
+  try {
+    nb = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!nb || !Array.isArray(nb.cells)) return null;
+  const srcOf = (c) =>
+    Array.isArray(c.source) ? c.source.join("") : String(c.source ?? "");
+  const lines = [
+    `Jupyter notebook — ${nb.cells.length} cell(s), nbformat ${nb.nbformat ?? "?"}. Edit cells with the notebook_edit tool (target by the id shown below). Pass raw:true to read_file for the underlying JSON.`,
+    "",
+  ];
+  nb.cells.forEach((c, i) => {
+    const id = c && c.id != null ? ` id=${c.id}` : "";
+    lines.push(`── Cell ${i} [${(c && c.cell_type) || "?"}${id}] ──`);
+    const src = srcOf(c || {});
+    lines.push(src.length ? src.replace(/\n$/, "") : "(empty)");
+    if (
+      c &&
+      c.cell_type === "code" &&
+      Array.isArray(c.outputs) &&
+      c.outputs.length
+    ) {
+      lines.push(`  ⟨${c.outputs.length} output(s) hidden⟩`);
+    }
+    lines.push("");
+  });
+  return lines.join("\n");
+}
+
+/**
  * Inner tool execution — no hooks, no plan-mode checks.
  */
 async function executeToolInner(
@@ -1476,6 +1515,24 @@ async function executeToolInner(
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
       const content = fs.readFileSync(filePath, "utf8");
+      // Jupyter notebooks: render a compact cell listing (index/id/type/source,
+      // outputs summarized) so the model can find cells for notebook_edit
+      // without ingesting raw JSON / base64 output blobs. `raw:true` returns the
+      // underlying JSON. Non-.ipynb reads are unchanged.
+      if (args.raw !== true && /\.ipynb$/i.test(filePath)) {
+        const nbView = renderNotebook(content);
+        if (nbView) {
+          return attachDescriptor(
+            nbView.length > 50000
+              ? {
+                  content: nbView.substring(0, 50000) + "\n...(truncated)",
+                  size: nbView.length,
+                  notebook: true,
+                }
+              : { content: nbView, notebook: true },
+          );
+        }
+      }
       // Hashline mode: prefix each line with a 6-char content hash tag
       // so downstream edit_file_hashed calls can anchor by hash.
       const rendered = args.hashed === true ? annotateLines(content) : content;
