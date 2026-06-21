@@ -490,7 +490,7 @@ const badges = [
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">CLI v{CLI_VERSION}</span>
-          <span class="chip">158 命令</span>
+          <span class="chip">159 命令</span>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>
           <span class="chip">MTC v0.11</span>
@@ -600,7 +600,7 @@ const badges = [
       <div class="max-w-4xl mb-16">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
           <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
-          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.99 采集大更新 + 真机生效</span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.121 · 50+ 数据源真机生效</span>
         </div>
         <h2 class="text-display-md md:text-5xl leading-tight font-display">
           把散落各处的数字足迹，<br/>
@@ -706,6 +706,182 @@ const badges = [
     </div>
   </section>
 
+  <!-- ═══════════════════════════════ 去中心化社交（Decentralized Social）═══════════════════════════════ -->
+  <section class="py-24 md:py-32 bg-cream/40 border-y border-line relative overflow-hidden">
+    <div class="container-wide relative">
+      <div class="max-w-4xl mb-16">
+        <div class="chip mb-6">三大核心 · 去中心化社交</div>
+        <h2 class="text-display-md md:text-5xl leading-tight font-display">
+          加好友、发消息、发动态 ——<br/>
+          <span class="italic text-ember">没有平台居中。</span>
+        </h2>
+        <p class="mt-6 text-xl md:text-2xl text-muted leading-relaxed">
+          身份是你自己的 DID，消息点对点端到端加密，社区跨机同步 ——<br class="hidden md:block"/>
+          <span class="text-ink">没人能封你的号、删你的帖、看你的私信。</span>
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">🪪</div>
+          <div class="font-display text-lg mb-2">自主身份 DID v2</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· W3C DID + 可验证凭证 VC / VP</li>
+            <li>· 社交恢复 + 跨设备漫游</li>
+            <li>· 信誉聚合，无需中心账号体系</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">🔒</div>
+          <div class="font-display text-lg mb-2">端到端加密消息</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· Signal 协议 + libp2p + WebRTC</li>
+            <li>· 密钥只在两端，服务器看不到明文</li>
+            <li>· 离线互加 + 信令中继兜底</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">📞</div>
+          <div class="font-display text-lg mb-2">好友语音 / 视频通话</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· WebRTC 直连，毫秒级建连</li>
+            <li>· 锁屏全屏来电 + 前台保活</li>
+            <li>· 通话历史本地落库（FAMILY-67）</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">🌐</div>
+          <div class="font-display text-lg mb-2">社区 / 频道 跨机同步</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· gossip 跨节点分发</li>
+            <li>· Audit-grade Merkle 信封</li>
+            <li>· 外部归档，断网也不丢</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">🔗</div>
+          <div class="font-display text-lg mb-2">协议融合互通</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· ActivityPub C2S 联邦</li>
+            <li>· Nostr NIP-01/04/09/25</li>
+            <li>· Matrix 线程 & 空间</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-paper border border-line hover:border-ember/50 transition-all">
+          <div class="text-2xl mb-3">🛡️</div>
+          <div class="font-display text-lg mb-2">反审查传输</div>
+          <ul class="space-y-1 text-xs text-ink/70 leading-relaxed">
+            <li>· Tor + 域前置</li>
+            <li>· 卫星消息通道</li>
+            <li>· 多跳路由 + 跨联邦信任锚</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 items-center">
+        <a href="https://docs.chainlesschain.com/chainlesschain/social.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-ember text-ink font-medium hover:bg-ember/90 transition-colors">
+          去中心化社交详解 →
+        </a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/did-v2.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-line text-muted hover:border-ember hover:text-ink transition-all">
+          DID v2 身份 ↗
+        </a>
+        <span class="text-xs font-mono text-muted ml-2">Signal + libp2p + WebRTC · DID v2 + VC/VP · ActivityPub / Nostr / Matrix · 好友音视频通话</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 数字资产交易（Digital Asset Trading）═══════════════════════════════ -->
+  <section class="py-24 md:py-32 bg-ink text-cream relative overflow-hidden">
+    <div class="absolute inset-0 opacity-[0.04] pointer-events-none" aria-hidden="true">
+      <div class="absolute top-10 right-10 w-80 h-80 rounded-full bg-ember blur-3xl"></div>
+      <div class="absolute bottom-10 left-10 w-96 h-96 rounded-full bg-ember blur-3xl"></div>
+    </div>
+
+    <div class="container-wide relative">
+      <div class="max-w-4xl mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">三大核心 · 数字资产交易</span>
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight font-display">
+          你的钱包、你的密钥、<br/>
+          <span class="italic text-ember">你的资产。</span>
+        </h2>
+        <p class="mt-6 text-xl md:text-2xl text-cream/80 leading-relaxed">
+          多链 + 跨链 + 零知识，签名全在本地完成 ——<br class="hidden md:block"/>
+          <span class="text-cream">私钥从不离开设备，没有托管、没有中间商。</span>
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">👛</div>
+          <div class="font-display text-lg mb-2">多链自托管钱包</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· EVM 系 + Solana</li>
+            <li>· 私钥本地，硬件级 U-Key 保护</li>
+            <li>· 资产 / 余额 / 交易历史聚合</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🌉</div>
+          <div class="font-display text-lg mb-2">跨链互操作</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· HTLC 原子交换</li>
+            <li>· 跨链消息 + 资产桥接</li>
+            <li>· 多签 swap / send</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🔐</div>
+          <div class="font-display text-lg mb-2">零知识证明</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· zk-SNARK / zk-STARK 本地生成</li>
+            <li>· 隐私交易 + 可验证不泄露</li>
+            <li>· compile / prove / verify 全链路</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🏛️</div>
+          <div class="font-display text-lg mb-2">DAO 治理 v2</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· 二次方投票</li>
+            <li>· 国库管理 + 委托</li>
+            <li>· 提案 / 投票 / 计票</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🌳</div>
+          <div class="font-display text-lg mb-2">MTC 联邦多签</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· Merkle Tree Certs M-of-N</li>
+            <li>· libp2p / 文件系统自动发现</li>
+            <li>· 异构 Ed25519 + SLH-DSA</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🛒</div>
+          <div class="font-display text-lg mb-2">技能市场 & 激励</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· 技能市场发布 + 调用统计</li>
+            <li>· 代币激励（7 种贡献类型）</li>
+            <li>· NFT 铸造 / 转移</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 items-center">
+        <a href="https://docs.chainlesschain.com/chainlesschain/trading.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-ember text-ink font-medium hover:bg-ember/90 transition-colors">
+          数字资产交易详解 →
+        </a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/mtc.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-cream/20 text-cream/80 hover:border-ember hover:text-cream transition-all">
+          MTC 联邦多签 ↗
+        </a>
+        <span class="text-xs font-mono text-cream/40 ml-2">EVM + Solana · HTLC 原子交换 · zk-SNARK/STARK 本地 · DAO v2 二次方投票 · MTC M-of-N</span>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════ CLI ═══════════════════════════════ -->
   <section class="py-24 md:py-32">
     <div class="container-wide grid md:grid-cols-2 gap-12 md:gap-16 items-center">
@@ -740,186 +916,6 @@ const badges = [
         <Terminal />
         <div class="mt-4 text-xs text-muted font-mono text-center">Agent / Cowork / Skill — 终端里的完整 AI 工作流</div>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════ 普通人能做什么 ═══════════════════════════════ -->
-  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
-    <div class="container-wide">
-      <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">普通人 · 零门槛 AI 工具箱</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">
-          对 AI 说人话，<br/>
-          <span class="italic text-ember">它替你干活</span>。
-        </h2>
-        <p class="mt-6 text-xl text-muted leading-relaxed">
-          不用背命令、不用写代码。打开 Web 控制台，告诉它你想做什么 —<br class="hidden md:block"/>
-          Agent 自动挑工具、自动装依赖、实时流式回报进度。
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        {everyday.map((e) => (
-          <div class="group p-7 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
-            <div class="text-3xl mb-4">{e.icon}</div>
-            <h3 class="font-display text-xl mb-2 group-hover:text-ember transition-colors">{e.title}</h3>
-            <p class="text-sm text-muted leading-relaxed mb-4">{e.example}</p>
-            <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-ember/10 text-ember text-[11px] font-mono">
-              <span class="w-1 h-1 bg-ember rounded-full"></span> 自动安装所需工具，无需手动配置
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <!-- Web Cowork screenshot -->
-      <figure class="mt-10 border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
-        <img
-          src="/screenshots/cowork.png"
-          alt="Web Cowork 日常协作界面 · 10 个任务模板"
-          width="1400"
-          height="900"
-          loading="lazy"
-          class="block w-full h-auto"
-        />
-      </figure>
-      <p class="mt-3 text-center text-xs text-muted">运行 <code class="font-mono bg-cream px-2 py-0.5 rounded">chainlesschain ui</code>，浏览器打开 <code class="font-mono bg-cream px-2 py-0.5 rounded">http://localhost:18810/#/cowork</code></p>
-
-      <div class="mt-10 grid md:grid-cols-3 gap-4">
-        <div class="p-5 rounded-xl bg-paper border border-line">
-          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">零安装工作流</div>
-          <div class="text-sm text-ink/80">Agent 自动 winget / choco / pip / npm 装工具，不用你配环境。</div>
-        </div>
-        <div class="p-5 rounded-xl bg-paper border border-line">
-          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">安全隔离执行</div>
-          <div class="text-sm text-ink/80">SubAgentContext 沙箱隔离，每个任务独立上下文，互不污染。</div>
-        </div>
-        <div class="p-5 rounded-xl bg-paper border border-line">
-          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">实时进度</div>
-          <div class="text-sm text-ink/80">WebSocket 流式返回每一步结果，不是"黑盒跑完才告诉你"。</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════ Cowork 5 阶段编排 ═══════════════════════════════ -->
-  <section class="py-24 md:py-32">
-    <div class="container-wide">
-      <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">AI 引擎 · Cowork 多智能体编排</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">
-          5 阶段编排 · Plan Mode · <br/>
-          <span class="italic text-ember">本能学习 · 验证循环</span>。
-        </h2>
-        <p class="mt-6 text-xl text-muted leading-relaxed">
-          不是单 Agent 撞运气。Planner / Architect / Coder / Reviewer / Verify 五角色串联，每步可中断、可审查、可重放。
-        </p>
-      </div>
-
-      <!-- 5-stage flow -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-2 mb-12">
-        {[
-          { n: '01', name: 'Planner', sub: '拆解需求' },
-          { n: '02', name: 'Architect', sub: '设计方案' },
-          { n: '03', name: 'Coder', sub: '执行落地' },
-          { n: '04', name: 'Reviewer', sub: '辩论审查' },
-          { n: '05', name: 'Verify', sub: '6 阶段验证' },
-        ].map((s, i) => (
-          <div class="relative">
-            <div class="p-5 rounded-xl border border-line bg-paper hover:border-ember transition-colors">
-              <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{s.n}</div>
-              <div class="font-display text-xl mb-1">{s.name}</div>
-              <div class="text-xs text-muted">{s.sub}</div>
-            </div>
-            {i < 4 && (
-              <div class="hidden md:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10 w-4 h-4 items-center justify-center text-ember">
-                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <!-- 4 reinforcement cards -->
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
-          <div class="font-display text-lg mb-2">4 编排模板</div>
-          <div class="text-sm text-muted">feature / bugfix / refactor / security-audit — 一键套用。</div>
-        </div>
-        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
-          <div class="font-display text-lg mb-2">Plan Mode</div>
-          <div class="text-sm text-muted">先出计划、确认后再执行 — 防 AI 跑偏。</div>
-        </div>
-        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
-          <div class="font-display text-lg mb-2">本能学习 Instinct</div>
-          <div class="text-sm text-muted">8 类模式 + 置信度衰减 + 自动注入 — 越用越懂你。</div>
-        </div>
-        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
-          <div class="font-display text-lg mb-2">Sub-Agent 隔离</div>
-          <div class="text-sm text-muted">工具白名单 + 3 级摘要 + 独立消息 — 上下文不污染。</div>
-        </div>
-      </div>
-
-      <!-- 146 skills strip -->
-      <div class="mt-10 p-6 md:p-8 rounded-2xl bg-ink text-cream">
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <div class="font-display text-xl">146 内置技能 · 13 组别</div>
-          <div class="font-mono text-xs text-muted-dark">146 桌面 + 25 Android REMOTE + 158 CLI</div>
-        </div>
-        <div class="text-sm text-muted-dark leading-relaxed">
-          原有技能 15 · 开发工具扩展 15 · 高级技能 10 · AI 会话效率 10 · Office 音视频 10 · 图像数据 10 · 开发系统 10 · 安全设计 10 · 工具增强 10 · 协作工作流 10 · 知识研究 10 · 媒体安全 11 · 社区视频 7
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════ 工程基线 · 测试细分 ═══════════════════════════════ -->
-  <section class="py-20 md:py-24 bg-cream/40 border-y border-line">
-    <div class="container-wide">
-      <div class="max-w-3xl mb-10">
-        <div class="chip mb-6">工程基线 · 5 平台统一</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">
-          一套 AI 引擎，<br/>
-          <span class="italic text-ember">30,000+ 测试守护</span>。
-        </h2>
-        <p class="mt-6 text-lg text-muted leading-relaxed">
-          Win / macOS / Linux / Android / iOS / CLI — 同一套引擎跨终端。所有发布前必须六层全绿，单层失败即拦截发版。
-        </p>
-      </div>
-
-      <!-- 6 平台 -->
-      <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-10">
-        {[
-          { name: 'Windows', sub: 'Electron 39 · Win 10/11' },
-          { name: 'macOS', sub: 'Electron 39 · 12+' },
-          { name: 'Linux', sub: 'Electron 39 · Ubuntu 20+' },
-          { name: 'Android', sub: 'Jetpack Compose · Kotlin' },
-          { name: 'iOS', sub: 'SwiftUI' },
-          { name: 'CLI', sub: 'npm · Node 22 LTS' },
-        ].map((p) => (
-          <div class="p-4 rounded-xl border border-line bg-paper text-center">
-            <div class="font-display text-base md:text-lg mb-1">{p.name}</div>
-            <div class="font-mono text-[10px] text-muted leading-tight">{p.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      <!-- 测试六层细分 -->
-      <div class="grid grid-cols-2 md:grid-cols-6 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
-        {[
-          { n: '14,255', label: 'CLI 单元' },
-          { n: '696', label: 'CLI 集成' },
-          { n: '565', label: 'CLI E2E' },
-          { n: '197', label: '桌面 Coding Agent' },
-          { n: '84', label: 'Phase 5 harness' },
-          { n: '27', label: 'Web Panel' },
-        ].map((t) => (
-          <div class="bg-paper p-5 text-center">
-            <div class="font-display text-2xl md:text-3xl text-ember">{t.n}</div>
-            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mt-2">{t.label}</div>
-          </div>
-        ))}
-      </div>
-      <p class="mt-4 text-xs text-muted text-center font-mono">2026-04-19 工程验证回归 · 全绿</p>
     </div>
   </section>
 
@@ -972,42 +968,6 @@ const badges = [
 
       <div class="mt-10">
         <a href="/security" class="inline-flex items-center gap-2 text-ember hover:text-cream transition-colors">查看完整安全架构 <span aria-hidden="true">→</span></a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════ WEB COWORK ═══════════════════════════════ -->
-  <section class="py-24 md:py-32">
-    <div class="container-wide">
-      <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">Web Cowork</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">
-          对 AI 说人话，<br/>
-          <span class="italic text-ember">工具自动干活</span>。
-        </h2>
-        <p class="mt-6 text-xl text-muted leading-relaxed">
-          10 个任务模板 · 自动安装依赖 · 实时流式进度。<br class="hidden md:block"/>
-          "把 report.docx 转成 PDF" — Agent 自己去装 pandoc、调工具、回报结果。
-        </p>
-      </div>
-
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {templates.map((t) => (
-          <div class="group p-5 rounded-xl border border-line hover:border-ember hover:bg-ember/5 transition-all cursor-default">
-            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mb-2">{t.id}</div>
-            <div class="font-display text-lg mb-1 group-hover:text-ember transition-colors">{t.name}</div>
-            <div class="text-xs text-muted">{t.tools}</div>
-          </div>
-        ))}
-        <div class="p-5 rounded-xl border border-dashed border-ember bg-ember/5">
-          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">free-mode</div>
-          <div class="font-display text-lg mb-1">自由模式</div>
-          <div class="text-xs text-muted">不选模板，直接描述任务</div>
-        </div>
-      </div>
-
-      <div class="mt-10 flex flex-wrap gap-3 items-center">
-        <div class="font-mono text-sm bg-ink text-cream px-4 py-2 rounded-md">$ chainlesschain ui → http://localhost:18810/#/cowork</div>
       </div>
     </div>
   </section>
@@ -1090,92 +1050,11 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 158 命令 · 30,000+ 测试 · V2 规范层 220+ 治理表面</li>
+            <li>· 159 命令 · 30,000+ 测试 · V2 规范层 220+ 治理表面</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>
           </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════ 行业落地案例 ═══════════════════════════════ -->
-  <section class="py-24 md:py-32">
-    <div class="container-wide">
-      <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">行业落地案例</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">
-          不止 Demo，<br/>
-          <span class="italic text-ember">已在工厂里跑起来了</span>。
-        </h2>
-        <p class="mt-6 text-xl text-muted leading-relaxed">
-          从供应链 Excel 协作到 AI 报数，真实工厂部署验证。
-        </p>
-      </div>
-
-      <!-- Hero case: factory -->
-      <div class="rounded-2xl bg-ink text-cream border border-line-dark overflow-hidden">
-        <div class="p-10 md:p-14 border-b border-line-dark">
-          <div class="flex flex-wrap items-center gap-3 mb-6">
-            <span class="font-mono text-xs text-ember">CASE · 01 · 制造业</span>
-            <span class="chip bg-ember/15 text-ember border border-ember/30">已交付</span>
-          </div>
-          <h3 class="font-display text-4xl md:text-5xl leading-tight mb-4">
-            链厂数据管家 · <span class="italic text-ember">工厂供应链 AI 协作</span>
-          </h3>
-          <p class="text-xl text-muted-dark leading-relaxed max-w-3xl">
-            把 Excel 搬进浏览器，把 AI 装进工厂 —<br class="hidden md:block"/>
-            OnlyOffice 实时协作 · AI Text-to-SQL · OCR 单据录入 · Git 版本管理。
-          </p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-[1px] bg-line-dark">
-          <div class="bg-ink p-8">
-            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">01 · COLLAB</div>
-            <h4 class="font-display text-xl mb-3">Excel 在线协作</h4>
-            <p class="text-sm text-muted-dark leading-relaxed">OnlyOffice 内嵌浏览器，多人实时编辑同一份 Excel，Git 自动版本管理，改错能回滚。Socket.IO 实时同步单元格。</p>
-          </div>
-          <div class="bg-ink p-8">
-            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">02 · TEXT-TO-SQL</div>
-            <h4 class="font-display text-xl mb-3">AI 自然语言报数</h4>
-            <p class="text-sm text-muted-dark leading-relaxed">业务员直接中文问："本月万节公斤销量多少？"AI 自动生成 SQL 查 SQLite 运营数据库，秒级返回结果与图表。</p>
-          </div>
-          <div class="bg-ink p-8">
-            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">03 · OCR</div>
-            <h4 class="font-display text-xl mb-3">单据自动录入</h4>
-            <p class="text-sm text-muted-dark leading-relaxed">手机拍物料单据上传，AI 识别 + 结构化入库，从此告别手工 Excel 抄单。Drizzle ORM 规范化存储。</p>
-          </div>
-        </div>
-
-        <div class="p-8 md:p-10 flex flex-wrap items-center justify-between gap-6 bg-[#17171510] border-t border-line-dark">
-          <div>
-            <div class="font-mono text-[10px] text-muted-dark uppercase tracking-widest mb-2">适用场景</div>
-            <div class="text-sm text-muted-dark">供应链 · 物料管理 · 生产计划 · 成本核算 · 质检追溯</div>
-          </div>
-          <div class="flex gap-3 items-center">
-            <a href="/enterprise" class="btn-ember">联系定制工厂版</a>
-            <a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream transition-colors">☎ 400-1068-687</a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Other industries: short mentions -->
-      <div class="grid md:grid-cols-3 gap-6 mt-10">
-        <div class="p-8 rounded-2xl border border-line bg-paper">
-          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 02 · 医疗</div>
-          <h4 class="font-display text-xl mb-2">医院病历 AI 检索</h4>
-          <p class="text-sm text-muted leading-relaxed">本地 Ollama 推理，病历数据不出院。RAG 检索 + 医嘱生成辅助。</p>
-        </div>
-        <div class="p-8 rounded-2xl border border-line bg-paper">
-          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 03 · 法律</div>
-          <h4 class="font-display text-xl mb-2">律所知识库 & 合同审阅</h4>
-          <p class="text-sm text-muted leading-relaxed">U-Key 硬件加密保护卷宗，Cowork 多角色审阅合同条款。</p>
-        </div>
-        <div class="p-8 rounded-2xl border border-line bg-paper">
-          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 04 · 政企</div>
-          <h4 class="font-display text-xl mb-2">内网 AI 办公平台</h4>
-          <p class="text-sm text-muted leading-relaxed">私有化部署 · SSO / SCIM / RBAC · 等保三级合规 · 审计日志。</p>
         </div>
       </div>
     </div>
@@ -1196,7 +1075,7 @@ const badges = [
           </div>
           <p class="text-muted mb-6">适合个人用户 & 独立开发者。完整的 CLI、桌面、移动端三端体验。</p>
           <ul class="space-y-2 text-sm mb-8">
-            <li>✓ 全部 158 条 CLI 命令 + 146 Skills</li>
+            <li>✓ 全部 159 条 CLI 命令 + 146 Skills</li>
             <li>✓ U-Key / SIMKey 硬件加密</li>
             <li>✓ 本地 Ollama + 10 LLM Providers</li>
             <li>✓ Cowork 多智能体协作</li>
