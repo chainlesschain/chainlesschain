@@ -22,10 +22,33 @@ function emit(obj) {
   try { send(obj); } catch (e) {}
   try { console.log(JSON.stringify(obj)); } catch (e) {}
 }
+// QQNT's nt_msg.db goes through WCDB (libwcdb.so), which bundles its OWN
+// SQLCipher — the sqlite3_* symbols we need are exported THERE, not in the
+// system libsqlite.so. Resolve/hook from WCDB first, fall back to global.
+var MODS = null;
+function modCandidates() {
+  if (MODS) return MODS;
+  MODS = [];
+  try {
+    Process.enumerateModules().forEach(function (m) {
+      if (/wcdb|sqlcipher/i.test(m.name)) MODS.push(m.name);
+    });
+  } catch (e) {}
+  MODS.push(null); // global fallback last
+  return MODS;
+}
+function findSym(name) {
+  var c = modCandidates();
+  for (var i = 0; i < c.length; i++) {
+    var p = Module.findExportByName(c[i], name);
+    if (p) return p;
+  }
+  return null;
+}
 function resolve() {
   if (f_exec) return true;
-  f_exec = Module.findExportByName(null, 'sqlite3_exec');
-  f_dbfn = Module.findExportByName(null, 'sqlite3_db_filename');
+  f_exec = findSym('sqlite3_exec');
+  f_dbfn = findSym('sqlite3_db_filename');
   return !!f_exec;
 }
 function filenameOf(db) {
@@ -43,6 +66,12 @@ function execOn(db, sql) {
   var ep = errOut.readPointer();
   return { rc: rc, msg: ep.isNull() ? '' : ep.readUtf8String() };
 }
+var SEEN_FN = {};
+function noteFn(db) {
+  if (INEXEC || !resolve()) return;
+  var fn = filenameOf(db);
+  if (fn && !SEEN_FN[fn]) { SEEN_FN[fn] = true; emit({ kind: 'dbfile', fn: fn }); }
+}
 function tryExport(db) {
   if (INEXEC || !resolve()) return;
   var fn = filenameOf(db);
@@ -55,14 +84,14 @@ function tryExport(db) {
 }
 function install() {
   if (!resolve()) { setTimeout(install, 400); return; }
-  emit({ kind: 'ready', match: String(DB_MATCH) });
+  emit({ kind: 'ready', match: String(DB_MATCH), mods: modCandidates() });
   ['sqlite3_key', 'sqlite3_key_v2'].forEach(function (n) {
-    var p = Module.findExportByName(null, n);
+    var p = findSym(n);
     if (p) { Interceptor.attach(p, { onEnter: function (a) { this.db = a[0]; }, onLeave: function () { try { tryExport(this.db); } catch (e) {} } }); emit({ kind: 'hook', sym: n }); }
   });
   ['sqlite3_prepare_v2', 'sqlite3_prepare', 'sqlite3_prepare_v3'].forEach(function (n) {
-    var p = Module.findExportByName(null, n);
-    if (p) { Interceptor.attach(p, { onEnter: function (a) { try { tryExport(a[0]); } catch (e) {} } }); emit({ kind: 'hook', sym: n }); }
+    var p = findSym(n);
+    if (p) { Interceptor.attach(p, { onEnter: function (a) { try { noteFn(a[0]); tryExport(a[0]); } catch (e) {} } }); emit({ kind: 'hook', sym: n }); }
   });
 }
 install();
