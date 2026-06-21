@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -111,6 +112,8 @@ fun PdhChatScreen(
     ) { missingPerms = missingPermissions(context, dataPermissions) }
 
     Scaffold(
+        // 顶栏下移到状态栏之下:edge-to-edge 下顶栏控件原本贴着状态栏(~y72)难点按。
+        modifier = Modifier.statusBarsPadding(),
         topBar = {
             TopAppBar(
                 // 标题留空:底部导航已标「个人助手」,顶栏不再重复;腾出空间给顶栏控件
