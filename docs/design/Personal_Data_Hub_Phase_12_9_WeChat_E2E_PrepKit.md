@@ -354,7 +354,7 @@ echo "Artifacts: $ART"
 ## G. 相关
 
 - **场景定义** → [`Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`](./Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md)
-- **用户文档（功能在哪用 / 怎么启动）** → [`../WeChat_数据采集_快速开始.md`](../WeChat_数据采集_快速开始.md)
+- **用户文档（功能在哪用 / 怎么启动）** → [`WeChat_数据采集_快速开始.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/WeChat_数据采集_快速开始.md)
 - **frida-server setup 完整指南** → [`Adapter_WeChat_SQLCipher_Frida_Setup.md`](./Adapter_WeChat_SQLCipher_Frida_Setup.md)
 - **adapter 架构** → [`Adapter_WeChat_SQLCipher.md`](./Adapter_WeChat_SQLCipher.md)
 

@@ -77,7 +77,7 @@
 
 **Rule 2.3.b — 进度推进语义**：`collected` 永远指**已签名计数**，不要混入"本设备签完后的预测计数"。Android `MultisigState.progressLabel()` 当前用 `collected+1` 是 phone-side 预演 — 文档建议**提示文案分开**：`"已签 2 / 阈值 3"` (Standard) 或 `"再签 1 个 → 完成"` (action hint)。
 
-**Rule 2.3.c — 算法标识**：当 multisig 涉及 hybrid Ed25519+SLH-DSA（[mtc_publisher_sig_threshold.md](MTC_落地方案.md)），三端 UI **可以**用 small badge 显示 `Ed25519+SLH-DSA` 算法名（详 [B5 spike](B5_Crosschain_Outbound_Multisig_spike.md) PR2 hybrid 案例），但不要强行展示给非技术用户。
+**Rule 2.3.c — 算法标识**：当 multisig 涉及 hybrid Ed25519+SLH-DSA（[mtc_publisher_sig_threshold.md](默克尔树证书_MTC_落地方案.md)），三端 UI **可以**用 small badge 显示 `Ed25519+SLH-DSA` 算法名（详 [B5 spike](B5_Crosschain_Outbound_Multisig_spike.md) PR2 hybrid 案例），但不要强行展示给非技术用户。
 
 ### 2.4 高风险操作的"二次确认"语义
 
