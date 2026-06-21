@@ -24,7 +24,14 @@ function fmtUsd(n) {
 /** A fresh accumulator: running totals + per provider/model rows. */
 export function newCostStore() {
   return {
-    total: { inputTokens: 0, outputTokens: 0, totalTokens: 0, calls: 0 },
+    total: {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 0,
+      calls: 0,
+    },
     byKey: new Map(),
   };
 }
@@ -43,10 +50,16 @@ export function addUsage(store, events) {
     const inT = num(u.input_tokens ?? u.prompt_tokens ?? u.inputTokens);
     const outT = num(u.output_tokens ?? u.completion_tokens ?? u.outputTokens);
     const totT = num(u.total_tokens ?? u.totalTokens ?? inT + outT);
-    if (inT === 0 && outT === 0 && totT === 0) continue;
+    // Prompt-cache token counts (Anthropic caching) so /cost prices cached
+    // reads/writes correctly; absent on non-caching providers → 0.
+    const cR = num(u.cache_read_input_tokens ?? u.cacheReadTokens);
+    const cC = num(u.cache_creation_input_tokens ?? u.cacheCreationTokens);
+    if (inT === 0 && outT === 0 && totT === 0 && cR === 0 && cC === 0) continue;
     s.total.inputTokens += inT;
     s.total.outputTokens += outT;
     s.total.totalTokens += totT;
+    s.total.cacheReadTokens += cR;
+    s.total.cacheCreationTokens += cC;
     s.total.calls += 1;
     const key = `${ev.provider || "?"}/${ev.model || "?"}`;
     let row = s.byKey.get(key);
@@ -57,6 +70,8 @@ export function addUsage(store, events) {
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
         calls: 0,
       };
       s.byKey.set(key, row);
@@ -64,6 +79,8 @@ export function addUsage(store, events) {
     row.inputTokens += inT;
     row.outputTokens += outT;
     row.totalTokens += totT;
+    row.cacheReadTokens += cR;
+    row.cacheCreationTokens += cC;
     row.calls += 1;
   }
   return s;
@@ -172,10 +189,21 @@ export function renderSessionCost(store, { pricingOverrides, roles } = {}) {
     `  total: ${fmtUsd(result.cost.totalCost)} USD  ` +
       `(${result.total.totalTokens.toLocaleString()} tokens, ${result.total.calls} calls)`,
   );
+  // Cache line only when caching actually happened this session.
+  const cacheRead = num(result.total.cacheReadTokens);
+  const cacheWrite = num(result.total.cacheCreationTokens);
+  if (cacheRead || cacheWrite) {
+    lines.push(
+      `  cache: ${cacheRead.toLocaleString()} read + ${cacheWrite.toLocaleString()} write tokens`,
+    );
+  }
   for (const row of result.byModel) {
     const provider = (row.provider || "?").padEnd(10);
     const model = (row.model || "?").padEnd(24);
-    const tokens = `in=${row.inputTokens} out=${row.outputTokens}`;
+    const cacheSuffix = num(row.cacheReadTokens)
+      ? ` cache_read=${row.cacheReadTokens}`
+      : "";
+    const tokens = `in=${row.inputTokens} out=${row.outputTokens}${cacheSuffix}`;
     const price = row.free
       ? "free (local)"
       : row.matched

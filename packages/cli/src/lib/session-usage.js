@@ -59,7 +59,13 @@ export function extractUsage(event) {
     raw.cache_creation_input_tokens ?? raw.cacheCreationTokens ?? 0,
   );
 
-  if (inputTokens === 0 && outputTokens === 0 && totalTokens === 0) {
+  if (
+    inputTokens === 0 &&
+    outputTokens === 0 &&
+    totalTokens === 0 &&
+    cacheReadTokens === 0 &&
+    cacheCreationTokens === 0
+  ) {
     return null;
   }
 

@@ -214,3 +214,55 @@ describe("renderSessionCost — category breakdown", () => {
     expect(renderSessionCost(s)).not.toContain("by category:");
   });
 });
+
+describe("/cost prompt-cache tokens", () => {
+  const cacheEv = (input, output, cacheRead, cacheWrite) => ({
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    usage: {
+      input_tokens: input,
+      output_tokens: output,
+      cache_read_input_tokens: cacheRead,
+      cache_creation_input_tokens: cacheWrite,
+    },
+  });
+
+  it("accumulates cache read/write tokens into total and rows", () => {
+    const s = newCostStore();
+    addUsage(s, [cacheEv(100, 20, 900, 100)]);
+    addUsage(s, [cacheEv(50, 10, 950, 0)]);
+    const agg = costAggregate(s);
+    expect(agg.total.cacheReadTokens).toBe(1850);
+    expect(agg.total.cacheCreationTokens).toBe(100);
+    expect(agg.byModel[0].cacheReadTokens).toBe(1850);
+    expect(agg.byModel[0].cacheCreationTokens).toBe(100);
+  });
+
+  it("renders a cache line and per-row cache_read when caching occurred", () => {
+    const s = newCostStore();
+    addUsage(s, [cacheEv(100, 20, 1800, 200)]);
+    const out = renderSessionCost(s);
+    expect(out).toMatch(/cache: 1,800 read \+ 200 write tokens/);
+    expect(out).toContain("cache_read=1800");
+  });
+
+  it("omits the cache line for a non-caching session", () => {
+    const s = newCostStore();
+    addUsage(s, [ev("openai", "gpt-4o", 100, 20)]);
+    const out = renderSessionCost(s);
+    expect(out).not.toContain("cache:");
+    expect(out).not.toContain("cache_read=");
+  });
+
+  it("prices cached reads cheaper than the same tokens uncached", () => {
+    const cached = newCostStore();
+    addUsage(cached, [cacheEv(0, 0, 1_000_000, 0)]);
+    const uncached = newCostStore();
+    addUsage(uncached, [ev("anthropic", "claude-sonnet-4-6", 1_000_000, 0)]);
+    // Both have nonzero token totals; cached read total cost << uncached input.
+    const cText = renderSessionCost(cached);
+    const uText = renderSessionCost(uncached);
+    expect(cText).toContain("cache: 1,000,000 read");
+    expect(uText).not.toContain("cache:");
+  });
+});

@@ -71,7 +71,12 @@ export function registerCostCommand(program) {
         for (const row of result.byModel) {
           const provider = (row.provider || "?").padEnd(10);
           const model = (row.model || "?").padEnd(24);
-          const tokens = `in=${row.inputTokens} out=${row.outputTokens}`;
+          // Show cached-read tokens (Anthropic prompt caching) when present so
+          // the savings behind the priced total are visible.
+          const cacheSuffix = row.cacheReadTokens
+            ? ` cache_read=${row.cacheReadTokens}`
+            : "";
+          const tokens = `in=${row.inputTokens} out=${row.outputTokens}${cacheSuffix}`;
           if (row.free) {
             logger.log(
               `  ${chalk.gray(provider)} ${chalk.white(model)} ${chalk.gray("free (local)")}  ${chalk.gray(tokens)}`,
