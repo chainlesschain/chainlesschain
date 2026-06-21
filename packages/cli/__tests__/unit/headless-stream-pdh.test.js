@@ -9,11 +9,18 @@
  * retries, while positive/negative feedback is recorded in history without a
  * fresh reply. Mirrors the plan-control test harness.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   runAgentHeadlessStream,
   parseInputEvent,
 } from "../../src/runtime/headless-stream.js";
+import {
+  _deps as ledgerDeps,
+  readFeedback,
+} from "../../src/lib/pdh-feedback-ledger.js";
 
 function harness({ inputObjs, agentLoop } = {}) {
   const lines = [];
@@ -85,6 +92,42 @@ describe("parseInputEvent — PDH resume (§3.5.15)", () => {
 });
 
 describe("stream PDH feedback consumption", () => {
+  // §3.5.13: feedback is also persisted to the cross-session ledger. Redirect
+  // the ledger home to a temp dir so the stream loop's best-effort write lands
+  // somewhere isolated and assertable.
+  let tmp;
+  const origHome = ledgerDeps.homeDir;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pdh-stream-fb-"));
+    ledgerDeps.homeDir = () => tmp;
+  });
+  afterEach(() => {
+    ledgerDeps.homeDir = origHome;
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it("persists every feedback to the cross-session ledger", async () => {
+    const h = harness({
+      inputObjs: [
+        { type: "feedback", turn_id: "t1", kind: "positive" },
+        {
+          type: "feedback",
+          turn_id: "t1",
+          kind: "correction",
+          comment: "金额用人民币",
+        },
+      ],
+    });
+    await h.run();
+    const ledger = readFeedback(ledgerDeps);
+    expect(ledger.map((e) => e.kind)).toEqual(["positive", "correction"]);
+    expect(ledger[1].comment).toBe("金额用人民币");
+  });
+
   it("correction → feedback_ack + a turn carrying the correction prompt", async () => {
     const h = harness({
       inputObjs: [

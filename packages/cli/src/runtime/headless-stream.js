@@ -950,6 +950,16 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         kind,
         session_id: sessionId,
       });
+      // §3.5.13: persist to the cross-session learning ledger so the next
+      // session can honour the user's standing preferences ("越用越聪明"
+      // flywheel). Best-effort — a learning ledger must never break the chat.
+      try {
+        const { appendFeedback } =
+          await import("../lib/pdh-feedback-ledger.js");
+        appendFeedback({ sessionId, turnId, kind, comment });
+      } catch {
+        /* persistence is best-effort */
+      }
       if (kind === "correction") {
         parsed.text = comment
           ? `用户对上一轮回复给出纠正：${comment}\n请据此调整并重新回复。`
