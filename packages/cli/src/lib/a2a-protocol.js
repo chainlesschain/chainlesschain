@@ -5,6 +5,20 @@
  * capability negotiation, and peer discovery.
  */
 
+// Safe JSON-array parse for values read back from the DB (capabilities / skills /
+// history / artifacts are stored as JSON strings). Written via JSON.stringify so
+// normally valid, but a corrupted or externally-edited DB must not crash agent
+// discovery / task lifecycle with an uncaught SyntaxError — fall back to [].
+function parseJsonArray(value) {
+  if (value == null || value === "") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 // ─── Task statuses ───────────────────────────────────────────────
 export const TASK_STATUS = {
   SUBMITTED: "submitted",
@@ -165,8 +179,8 @@ export function discoverAgents(db, filter = {}) {
   // Parse JSON fields
   rows = rows.map((r) => ({
     ...r,
-    capabilities: JSON.parse(r.capabilities || "[]"),
-    skills: JSON.parse(r.skills || "[]"),
+    capabilities: parseJsonArray(r.capabilities),
+    skills: parseJsonArray(r.skills),
   }));
 
   if (filter.capability) {
@@ -220,7 +234,7 @@ export function completeTask(db, taskId, output, artifacts = []) {
 
   const now = nowISO();
   const task = _getTask(db, taskId);
-  const history = JSON.parse(task.history || "[]");
+  const history = parseJsonArray(task.history);
   history.push({ status: TASK_STATUS.COMPLETED, timestamp: now });
 
   db.prepare(
@@ -249,7 +263,7 @@ export function failTask(db, taskId, error) {
 
   const now = nowISO();
   const task = _getTask(db, taskId);
-  const history = JSON.parse(task.history || "[]");
+  const history = parseJsonArray(task.history);
   history.push({ status: TASK_STATUS.FAILED, timestamp: now });
 
   db.prepare(
@@ -276,8 +290,8 @@ export function getTaskStatus(db, taskId) {
   const task = _getTask(db, taskId);
   return {
     ...task,
-    history: JSON.parse(task.history || "[]"),
-    artifacts: JSON.parse(task.artifacts || "[]"),
+    history: parseJsonArray(task.history),
+    artifacts: parseJsonArray(task.artifacts),
   };
 }
 
@@ -305,7 +319,7 @@ export function negotiateCapability(db, agentId, requiredCapabilities) {
     .get(agentId);
   if (!card) throw new Error(`Agent not found: ${agentId}`);
 
-  const agentCaps = JSON.parse(card.capabilities || "[]");
+  const agentCaps = parseJsonArray(card.capabilities);
   const supported = requiredCapabilities.filter((c) => agentCaps.includes(c));
   const missing = requiredCapabilities.filter((c) => !agentCaps.includes(c));
 
@@ -329,8 +343,8 @@ export function listPeers(db) {
     .all();
   return rows.map((r) => ({
     ...r,
-    capabilities: JSON.parse(r.capabilities || "[]"),
-    skills: JSON.parse(r.skills || "[]"),
+    capabilities: parseJsonArray(r.capabilities),
+    skills: parseJsonArray(r.skills),
   }));
 }
 

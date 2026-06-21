@@ -159,8 +159,19 @@ function _killTask(task) {
   try {
     if (process.platform === "win32") {
       if (child.pid) {
-        spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+        const tk = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
           windowsHide: true,
+        });
+        // A spawn that fails to launch emits an async 'error' event — with no
+        // listener Node rethrows it as an UNCAUGHT exception (the try/catch
+        // here can't catch the async emit), crashing the CLI. Handle it and
+        // fall back to a direct kill.
+        tk.on("error", () => {
+          try {
+            child.kill();
+          } catch {
+            /* already dead */
+          }
         });
       } else {
         child.kill();

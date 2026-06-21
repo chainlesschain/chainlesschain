@@ -240,6 +240,36 @@ describe("a2a-protocol", () => {
       const agents = discoverAgents(db, { skill: "code-review" });
       expect(Array.isArray(agents)).toBe(true);
     });
+
+    it("does not crash on malformed JSON in the DB (corruption-resilient)", () => {
+      // A corrupted / externally-edited DB must not throw an uncaught
+      // SyntaxError and kill discovery — malformed columns degrade to [].
+      const badDb = {
+        exec: () => {},
+        prepare: () => ({
+          run: () => ({ changes: 0 }),
+          get: () => null,
+          all: () => [
+            {
+              id: "agent-x",
+              name: "X",
+              description: "",
+              url: "",
+              capabilities: "{bad json",
+              skills: "not json at all",
+              auth_type: "",
+              status: "active",
+              created_at: 0,
+              updated_at: 0,
+            },
+          ],
+        }),
+      };
+      const agents = discoverAgents(badDb);
+      expect(agents).toHaveLength(1);
+      expect(agents[0].capabilities).toEqual([]);
+      expect(agents[0].skills).toEqual([]);
+    });
   });
 
   // ─── sendTask ─────────────────────────────────────────────────
