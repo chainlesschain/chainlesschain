@@ -113,6 +113,54 @@ context 不受此 LSM 约束）——这正是 `cc hub collect-qq` 验证时 sta
   到 app 可读处 → 设备上 `cc hub collect-qq` 解密入库（已验证）。
 - 代码无 bug；这是 MIUI 设备级限制。
 
+## 2.7 ✅ MIUI 全自动正解 = Magisk 守护进程（2026-06-22，chopin 验证，460 条）
+
+MIUI 拦的是 **App 进程的 su**。**非 App 的 root（adb-shell→su / init 上下文的守护进程）
+不受此拦**——这就是破法。落地 = **Magisk 模块跑一个 root 守护进程**替 App 做跨应用读。
+
+**已落地 + 验证**（`android-app/magisk-module-pdh-qqd/`，打包 `pdh-qqd-magisk-v1.0.zip`）：
+
+```
+个人助手 →(bridge) collect_qq_native (QQNTNativeCollector)
+   1. App 写 <cache>/qqd/request                         （App 无需 su）
+   2. pdh-qqd.sh（root 守护进程，init 上下文，非 App）轮询到 request：
+        - find QQ nt_msg.db → cp 到 <cache>/qqd/nt_msg.enc.db（chown App, 600）
+        - **targeted uid 扫描**（files/mmkv + databases，~48s；self uid 在
+          files/mmkv/qq_uin_uid_map，**别扫 GB 级 media cache**）→ uids.txt（chown App）
+        - touch done / error
+   3. App 等到 done → cc hub collect-qq --db …enc.db --uids uids.txt --self <qq>
+        → 派生 key 解密 + protobuf 解析 + 入设备金库（纯 Node，bundle 内）
+   4. App 抹掉暂存的密文 + uid
+```
+
+**实测**：守护进程暂存 + 6438 uid → `cc hub collect-qq` → **460 条 QQ 消息入设备金库，
+全程手机端、无 PC/USB**。`DaemonUnavailable`(没装模块) → assist_required，**非 root 机不崩**
+（模块装不上、App 优雅降级）。
+
+### 复现 runbook（本机/同款 MIUI root 机）
+
+**A. 装一次（持久）**：① Magisk 刷 `pdh-qqd-magisk-v1.0.zip` → 重启，守护进程自启；
+② cc bundle 要带 `cc hub collect-qq`（走发版链发 pdh+cli，或 dev-stage 见下）；③ 装 App APK。
+之后**个人助手一句话「采集我的 QQ」即可全自动**。
+
+**B. dev-stage 临时验证**（不发版，调试用）：
+```bash
+B=/data/data/<pkg>/files/usr/lib/node_modules/chainlesschain
+PDH=$B/node_modules/@chainlesschain/personal-data-hub
+adb push packages/cli/src/commands/hub.js /data/local/tmp/_h && su cp 进 $B/src/commands/hub.js（chown app,644）
+adb push packages/personal-data-hub/lib/forensics/qq-nt-collect.js → $PDH/lib/forensics/（chown app,644）
+# pdh package.json 加 exports "./forensics/qq-nt-collect"
+# 起守护进程：su setsid sh /data/local/tmp/pdh-qqd.sh &
+```
+
+### 坑（复现必看）
+- **MSYS 路径**：`adb push/shell` 的 `/data/..` 会被 Git-Bash 改写 → 全程 `MSYS_NO_PATHCONV=1`，local 用 `C:/..`。
+- **cc bundle 反复 wedge**：node/mksh symlink 指向 APK native-lib 路径，**重装/系统重优化后 APK hash 变 → symlink 失效 → `cc: No such file`**。修=删 `usr/.bootstrap_version` + 重启 App 进采集屏触发**重解压**（会**冲掉 dev-stage**，要重 dev-stage）。
+- **better-sqlite3**：bundle 里 native binding 不在标准 `bindings` 路径 → collect-qq 用 **vault 已加载的 Database 构造器**（`hub.vault.db.constructor`），别 `require('better-sqlite3')`。
+- **os.tmpdir() = /data/local/tmp**（App 写不了，EACCES）→ 明文临时库写在**输入库同目录**（app cache）。
+- **App-su Magisk 授权**：`collect_qq_native` 走守护进程后 App 不再需要 su；但若要 App 自身 su，需 `magisk --sqlite "REPLACE INTO policies (uid,policy,until,logging,notification) VALUES(<uid>,2,0,0,0)"`（policy 2=allow）——**且在 MIUI 上即便授权也读不了跨应用数据**（故才要守护进程）。
+- **uid 扫描别全盘**：self uid 在 `files/mmkv/qq_uin_uid_map`；全盘 `strings` 慢到 timeout 出 0 条。只扫 `files/mmkv databases`。
+
 ## 3. Frida 在线解密（Method C 为主，库无关）— ⚠️ 见 §2.5：对 QQNT WCDB 不通，保留作通用 SQLCipher app 模板
 
 **为什么用 Method C（sqlcipher_export）而不是抓 key 离线解密：**
