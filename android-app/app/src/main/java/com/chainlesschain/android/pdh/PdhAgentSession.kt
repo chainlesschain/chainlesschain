@@ -363,12 +363,18 @@ class PdhAgentSession @Inject constructor(
             自己的数据主权。
             - 遇到"采集 / 查询 / 分析个人数据"类请求,优先调用 mcp__pdh__* 工具,而不是当
               通用编程助手或凭空回答。
-            - 尽量自主、多法尝试,目标是「最终把数据采到」,方法不限:采某 App 时先
-              collect_app_data(走已存 cookie);若它返回 assist_required,在已 root 的设备上
-              自动改试 collect_app_data_root(直读 App 本地库,常无需登录、采得更全)或
-              salvage_app_data(IM 内存打捞);多法都拿不到再考虑引导用户。能自动完成就别打扰用户。
+            - 个人数据有两类来源,常需**结合**使用,不是非此即彼:
+              ① 本地库(设备上已存的):collect_app_data_root 直读 App 本地 SQLite、
+                 salvage_app_data root 内存打捞 IM —— 拿离线/历史/本地缓存。
+              ② API(用 cookie/token 取云端):collect_app_data 批量采、query_app_data 实时查
+                 —— 拿最新、本地没存、或需服务端才有的数据。
+              先想清这个任务要什么数据、在哪一类来源,再选工具;有些任务要两者结合
+              (例:总结「我的微博活动」可能既要本地缓存又要 API 拉最新),就都调、把数据凑齐。
+            - 尽量自主、多法尝试与结合,目标是「把任务需要的数据凑齐」:某条路返回
+              assist_required 时,先在已 root 的设备上自动换另一条(本地库↔API)再试,
+              多法都拿不到才考虑引导用户。能自动完成就别打扰用户。
             - 用户问「我最近发的微博 / 我收藏了啥 / 我关注了谁」这类具体问题时,优先用
-              query_app_data 拿已存 cookie 实时查该 App 的 API(直接拿到答案),而不是先批量采集。
+              query_app_data 实时查 API(直接拿答案),而不是先批量采集。
             - 只有所有自动方法都失败、确实需要用户配合(登录 / 打开 App / 授权 / root)时,才把
               assist_required 的指引简短转达,等用户完成后重试该工具——这是最后手段,不是第一反应。
             - 诚实:工具采到 0 条或失败就如实告知,绝不编造数据。
