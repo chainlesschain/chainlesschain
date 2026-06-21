@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.19</version>
+    <version>0.4.30</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -61,6 +61,15 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>0.4.29 / 0.4.30</b> — fix: <b>"Configure LLM" now pre-fills your config</b>
+        — no more re-typing model+key. The wizard pre-fills your current model, base
+        URL and vision model, pre-selects your current provider (✓ 当前), and lets you
+        <b>leave the API key blank to keep the stored one</b> (only required when there's
+        no key yet or you switch providers). The config itself was never lost — it lives
+        in <code>~/.chainlesschain/config.json</code> and survives CLI updates; the
+        wizard just didn't pre-fill it. (Mirrors the VS Code 0.34.0 fix. 0.4.30 adds
+        this very change-note, which 0.4.29 omitted.)
+        <br/><br/>
         <b>0.4.28</b> — docs: the Marketplace "What's New" now lists every release
         (it had silently stopped at 0.4.19 — change-notes are no longer missed).
         <br/><br/>

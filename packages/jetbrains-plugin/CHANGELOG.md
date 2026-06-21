@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.30] — same fix as 0.4.29 + the Marketplace change-note 0.4.29 omitted
+
+- Identical code to 0.4.29 (Configure-LLM pre-fill / keep-key). 0.4.29 shipped the
+  fix but its `plugin.xml` `<change-notes>` wasn't updated, so the Marketplace
+  "What's New" wouldn't show it. 0.4.30 adds the change-note (and supersedes the
+  in-review 0.4.29, since Marketplace versions are immutable).
+
 ## [0.4.29] — fix: Configure LLM pre-fills config — no more re-typing model+key
 
 - **Fix: re-running "Configure LLM" no longer makes you re-enter everything.**
