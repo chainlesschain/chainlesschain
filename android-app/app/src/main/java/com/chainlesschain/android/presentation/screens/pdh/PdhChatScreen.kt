@@ -60,6 +60,7 @@ import com.chainlesschain.android.pdh.PdhAgentSession.FeedbackKind
 import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResultView
+import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.Role
 import com.chainlesschain.android.presentation.screens.pdh.PdhChatViewModel.TrustCard
 
@@ -681,11 +682,78 @@ private fun TrustCardItem(card: TrustCard, viewModel: PdhChatViewModel, context:
             onConfirm = { viewModel.resolveCard(card.id, true) },
             onDeny = { viewModel.resolveCard(card.id, false) },
         )
+        is TrustCard.Transaction -> TransactionCard(card = card, viewModel = viewModel)
         is TrustCard.Plan -> PlanCard(
             card = card,
             onApprove = { viewModel.resolvePlan("approve") },
             onReject = { viewModel.resolvePlan("reject") },
         )
+    }
+}
+
+/** §3.5.17 最高风险事务须输入的确认词(防误触不可逆操作)。 */
+private const val TXN_CONFIRM_WORD = "确认"
+
+/**
+ * §3.5.17 事务审批卡:不可逆真实世界副作用的"办事"最后一闸。分级样式 + dry-run 动作 +
+ * 可撤销/不可逆提示 + 来源警示(§7.2 防 injection)+ 最高风险须输入确认词。
+ * 回执/撤销窗口/执行器去重是 cc/FAMILY 集成层(§4/Phase 8),本卡只做审批前的精确确认。
+ */
+@Composable
+private fun TransactionCard(card: TrustCard.Transaction, viewModel: PdhChatViewModel) {
+    val container = when (card.risk) {
+        TxnRisk.LOW -> MaterialTheme.colorScheme.secondaryContainer
+        TxnRisk.MEDIUM -> MaterialTheme.colorScheme.tertiaryContainer
+        TxnRisk.HIGH, TxnRisk.CRITICAL -> MaterialTheme.colorScheme.errorContainer
+    }
+    val onContainer = when (card.risk) {
+        TxnRisk.LOW -> MaterialTheme.colorScheme.onSecondaryContainer
+        TxnRisk.MEDIUM -> MaterialTheme.colorScheme.onTertiaryContainer
+        TxnRisk.HIGH, TxnRisk.CRITICAL -> MaterialTheme.colorScheme.onErrorContainer
+    }
+    val riskLabel = when (card.risk) {
+        TxnRisk.LOW -> "低风险"
+        TxnRisk.MEDIUM -> "中风险"
+        TxnRisk.HIGH -> "高风险"
+        TxnRisk.CRITICAL -> "最高风险"
+    }
+    var confirmWord by remember(card.id) { mutableStateOf("") }
+    val confirmOk = !card.needsConfirmWord || confirmWord.trim() == TXN_CONFIRM_WORD
+
+    CardSurface(color = container) {
+        Text("需要确认 · 事务($riskLabel)", style = MaterialTheme.typography.titleSmall, color = onContainer)
+        // dry-run:展示将执行的确切动作(所见即所办)。
+        Text(card.summary, style = MaterialTheme.typography.bodyMedium, color = onContainer)
+        Text(
+            if (card.reversible) "ℹ 此操作可在撤销窗口内撤回" else "⚠ 此操作不可撤销",
+            style = MaterialTheme.typography.bodySmall,
+            color = onContainer,
+        )
+        // §3.5.17 接线3:injection 最后一闸 —— 参数可能来自采集数据,请核对本意。
+        if (card.sourceWarning) {
+            Text(
+                "⚠ 本轮处理过采集数据,请核对收件人/内容确是你的本意(防被采集内容操纵)。",
+                style = MaterialTheme.typography.bodySmall,
+                color = onContainer,
+            )
+        }
+        if (card.needsConfirmWord) {
+            OutlinedTextField(
+                value = confirmWord,
+                onValueChange = { confirmWord = it },
+                singleLine = true,
+                label = { Text("输入「$TXN_CONFIRM_WORD」以继续") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { viewModel.resolveCard(card.id, false) }) { Text("拒绝") }
+            Button(
+                onClick = { viewModel.resolveCard(card.id, true) },
+                enabled = confirmOk,
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("允许") }
+        }
     }
 }
 

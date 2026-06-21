@@ -27,6 +27,19 @@ class PdhTransactionTest {
     }
 
     @Test
+    fun is_transaction_recognizes_side_effect_tools_only() {
+        for (t in listOf(
+            "mcp__pdh__send_message", "make_call", "set_reminder",
+            "pay_order", "transfer", "purchase", "manage_data_lifecycle",
+        )) {
+            assertTrue(PdhTransaction.isTransaction(t), "txn: $t")
+        }
+        assertFalse(PdhTransaction.isTransaction("mcp__pdh__collect_app_data"))
+        assertFalse(PdhTransaction.isTransaction("query_vault"))
+        assertFalse(PdhTransaction.isTransaction(null))
+    }
+
+    @Test
     fun only_critical_requires_confirm_word() {
         assertTrue(PdhTransaction.requiresConfirmWord(TxnRisk.CRITICAL))
         assertFalse(PdhTransaction.requiresConfirmWord(TxnRisk.HIGH))

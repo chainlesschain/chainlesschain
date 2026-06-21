@@ -13,6 +13,8 @@ import com.chainlesschain.android.pdh.PdhOnboarding
 import com.chainlesschain.android.pdh.PdhPrivacyTier
 import com.chainlesschain.android.pdh.PdhResourceBudget
 import com.chainlesschain.android.pdh.PdhResultView
+import com.chainlesschain.android.pdh.PdhTransaction
+import com.chainlesschain.android.pdh.TxnRisk
 import com.chainlesschain.android.pdh.ViewKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -94,12 +96,26 @@ class PdhChatViewModel @Inject constructor(
             val summary: String,
             val risk: String?,
         ) : TrustCard()
-        /** 审批卡:有副作用的写/事务(send_message/make_call/…)。 */
+        /** 审批卡:有副作用的写(未归类为事务的其他工具)。 */
         data class Approve(
             override val id: String,
             val tool: String,
             val summary: String,
             val risk: String?,
+        ) : TrustCard()
+        /**
+         * §3.5.17 事务卡:不可逆真实世界副作用(send/call/pay/lifecycle/reminder)。
+         * 比普通审批多:风险级(确认强度)/ 可撤销(回执给不给撤销)/ 需确认词(最高
+         * 风险)/ 参数来源警示(§7.2 最后一闸:本轮处理过采集数据→提示核对)。
+         */
+        data class Transaction(
+            override val id: String,
+            val tool: String,
+            val summary: String,
+            val risk: TxnRisk,
+            val reversible: Boolean,
+            val needsConfirmWord: Boolean,
+            val sourceWarning: Boolean,
         ) : TrustCard()
         /** 计划卡:Plan Mode 当前计划项。 */
         data class Plan(
@@ -362,14 +378,28 @@ class PdhChatViewModel @Inject constructor(
                 }
             }
 
-            // §3.5.9 trust cards.
-            is PdhAgentEvent.ApprovalRequest -> _uiState.update {
-                val card = if (isPreviewTool(ev.tool)) {
-                    TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk)
-                } else {
-                    TrustCard.Approve(ev.id, ev.tool, ev.summary, ev.risk)
+            // §3.5.9/§3.5.17 trust cards: collect/index/salvage → 预览卡;事务工具
+            // (send/call/pay/lifecycle/reminder) → 事务卡(分级 + 来源警示);其余
+            // 有副作用工具 → 普通审批卡。
+            is PdhAgentEvent.ApprovalRequest -> _uiState.update { st ->
+                val card: TrustCard = when {
+                    isPreviewTool(ev.tool) -> TrustCard.Preview(ev.id, ev.tool, ev.summary, ev.risk)
+                    PdhTransaction.isTransaction(ev.tool) -> {
+                        val risk = PdhTransaction.riskOf(ev.tool, ev.summary)
+                        TrustCard.Transaction(
+                            id = ev.id,
+                            tool = ev.tool,
+                            summary = ev.summary,
+                            risk = risk,
+                            reversible = PdhTransaction.isReversible(ev.tool),
+                            needsConfirmWord = PdhTransaction.requiresConfirmWord(risk),
+                            // §3.5.17 接线3: 本轮处理过不可信采集数据 → 提示核对(防 injection)。
+                            sourceWarning = hasUntrustedDataSinceLastUser(st.messages),
+                        )
+                    }
+                    else -> TrustCard.Approve(ev.id, ev.tool, ev.summary, ev.risk)
                 }
-                it.copy(pendingCards = it.pendingCards.filterNot { c -> c.id == ev.id } + card)
+                st.copy(pendingCards = st.pendingCards.filterNot { c -> c.id == ev.id } + card)
             }
 
             is PdhAgentEvent.ApprovalResolved -> _uiState.update {
@@ -692,5 +722,16 @@ class PdhChatViewModel @Inject constructor(
         /** 空态/结束 onboarding 后的已就绪提示文案。 */
         private const val READY_LINE =
             "本机个人数据助手已就绪。用一句话指挥采集 / 查询 / 分析你的个人数据。"
+
+        /**
+         * §3.5.17 接线3 (pure): 本轮(上一个 USER turn 之后)是否出现过不可信采集
+         * 数据(§3.5.11 的 DATA)。事务卡据此提示核对收件人/内容是你的本意——把人
+         * 钉成 prompt injection 触发副作用的最后一闸(§7.2)。
+         */
+        fun hasUntrustedDataSinceLastUser(messages: List<ChatMessage>): Boolean {
+            val lastUser = messages.indexOfLast { it.role == Role.USER }
+            val after = if (lastUser >= 0) messages.subList(lastUser + 1, messages.size) else messages
+            return after.any { it.role == Role.DATA && it.untrusted }
+        }
     }
 }

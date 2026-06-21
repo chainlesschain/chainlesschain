@@ -35,6 +35,17 @@ object PdhTransaction {
         }
     }
 
+    /**
+     * 是否"事务"工具(有真实世界副作用 → 走事务审批卡而非普通审批/预览)。
+     * send/call/reminder/pay/transfer/purchase/lifecycle 类;采集/查询不算。
+     */
+    fun isTransaction(tool: String?): Boolean {
+        val t = (tool ?: "").lowercase()
+        return t.contains("send") || t.contains("call") || t.contains("reminder") ||
+            t.contains("pay") || t.contains("transfer") || t.contains("purchase") ||
+            t.contains("lifecycle") || t.contains("manage_data")
+    }
+
     /** 最高风险(CRITICAL)须输入确认词才放行(防误触不可逆操作)。 */
     fun requiresConfirmWord(risk: TxnRisk): Boolean = risk == TxnRisk.CRITICAL
 
