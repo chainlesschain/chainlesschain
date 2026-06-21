@@ -174,3 +174,40 @@ describe("runAgentHeadlessStream stream_retry (auto-retry notice, 2.1.181)", () 
     expect(retry.message).toMatch(/retrying/i);
   });
 });
+
+describe("runAgentHeadlessStream — prompt-cache tokens in result usage", () => {
+  it("accumulates cache read/write tokens into the turn result envelope", async () => {
+    const cacheLoop = async function* () {
+      yield {
+        type: "token-usage",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        usage: {
+          input_tokens: 100,
+          output_tokens: 20,
+          cache_read_input_tokens: 1800,
+          cache_creation_input_tokens: 200,
+        },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop: cacheLoop,
+      input: input({ text: "hi" }),
+    });
+    await runAgentHeadlessStream({ expandFileRefs: false }, deps);
+    const result = parse(deps._lines)
+      .filter((e) => e.type === "result")
+      .at(-1);
+    expect(result.usage).toMatchObject({
+      input_tokens: 100,
+      output_tokens: 20,
+      cache_read_input_tokens: 1800,
+      cache_creation_input_tokens: 200,
+    });
+    // The per-event token_usage carries the raw cache fields too.
+    const tu = parse(deps._lines).find((e) => e.type === "token_usage");
+    expect(tu.usage.cache_read_input_tokens).toBe(1800);
+  });
+});

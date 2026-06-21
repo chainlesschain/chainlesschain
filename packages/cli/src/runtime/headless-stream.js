@@ -213,7 +213,12 @@ export async function* readJsonLines(input) {
  * Returns the turn outcome so the caller can grow history + the result line.
  */
 async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
-  const usage = { input_tokens: 0, output_tokens: 0 };
+  const usage = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
   const toolCalls = [];
   let finalText = "";
   let endReason = "complete";
@@ -241,6 +246,12 @@ async function runTurn(messages, loopOptions, { runLoop, emit, costBudget }) {
       case "token-usage":
         usage.input_tokens += event.usage?.input_tokens || 0;
         usage.output_tokens += event.usage?.output_tokens || 0;
+        // Carry prompt-cache tokens into the turn's accumulated usage so the
+        // final `result` envelope (read by IDE panels) reflects caching too.
+        usage.cache_read_input_tokens +=
+          event.usage?.cache_read_input_tokens || 0;
+        usage.cache_creation_input_tokens +=
+          event.usage?.cache_creation_input_tokens || 0;
         emit({ type: "token_usage", usage: event.usage });
         if (costBudget) {
           costBudget.add({
