@@ -60,8 +60,12 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return;
     }
 
-    // Listen for organization messages
-    this.orgP2PNetwork.on("message", async (data) => {
+    // Listen for organization messages. Store the handler reference so destroy()
+    // can detach it from the (shared, longer-lived) orgP2PNetwork — otherwise a
+    // destroyed-then-recreated manager leaks its listener on the persistent
+    // network, double-processing every org message. (removeAllListeners() below
+    // only clears listeners on THIS emitter, not ones registered elsewhere.)
+    this._orgMessageHandler = async (data) => {
       try {
         const { orgId, type, payload, from } = data;
 
@@ -109,7 +113,8 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       } catch (error) {
         logger.error("[OrgKnowledgeSync] Error handling message:", error);
       }
-    });
+    };
+    this.orgP2PNetwork.on("message", this._orgMessageHandler);
   }
 
   /**
@@ -930,6 +935,11 @@ class OrgKnowledgeSyncManager extends EventEmitter {
   destroy() {
     this.syncState.clear();
     this.syncQueue.clear();
+    // Detach the handler we registered on the (external) orgP2PNetwork.
+    if (this._orgMessageHandler) {
+      this.orgP2PNetwork?.removeListener?.("message", this._orgMessageHandler);
+      this._orgMessageHandler = null;
+    }
     this.removeAllListeners();
   }
 }

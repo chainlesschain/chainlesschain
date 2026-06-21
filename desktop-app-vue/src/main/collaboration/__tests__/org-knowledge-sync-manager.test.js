@@ -47,6 +47,7 @@ function createMockDatabase() {
 function createMockP2PNetwork() {
   return {
     on: vi.fn(),
+    removeListener: vi.fn(),
     broadcast: vi.fn().mockResolvedValue(true),
     sendDirect: vi.fn().mockResolvedValue(true),
   };
@@ -824,6 +825,19 @@ describe("OrgKnowledgeSyncManager", () => {
       expect(manager.syncState.size).toBe(0);
       expect(manager.syncQueue.size).toBe(0);
       expect(manager.listenerCount("test-event")).toBe(0);
+    });
+
+    it("detaches its 'message' listener from the (external) orgP2PNetwork", () => {
+      // The handler registered on the shared network in the constructor must be
+      // removed on destroy — same reference — so a recreated manager doesn't
+      // leak a stale listener that double-processes org messages.
+      const msgCall = mockP2P.on.mock.calls.find((c) => c[0] === "message");
+      expect(msgCall).toBeDefined();
+      const handler = msgCall[1];
+
+      manager.destroy();
+
+      expect(mockP2P.removeListener).toHaveBeenCalledWith("message", handler);
     });
   });
 });
