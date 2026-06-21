@@ -112,22 +112,23 @@ describe("findInstructionFiles", () => {
     expect(found).toEqual([{ path: legacy, scope: "user" }]);
   });
 
-  it("includes .chainlesschain/rules.md (template-scaffold rules) in the chain", () => {
+  it("does NOT include .chainlesschain/rules.md (buildSystemPrompt loads it; avoid double-send)", () => {
     fs.mkdirSync(path.join(tmp, "repo", ".git"), { recursive: true });
     write("repo/cc.md", "memory");
     write("repo/.chainlesschain/rules.md", "scaffold rules");
     const found = findInstructionFiles({ cwd: path.join(tmp, "repo"), home });
+    // rules.md is injected by buildSystemPrompt() (the base of every
+    // composeSystemPrompt call) — loading it here too sent it twice per turn.
     expect(found.map((f) => [path.basename(f.path), f.scope])).toEqual([
       ["cc.md", "project"],
-      ["rules.md", "rules"],
     ]);
   });
 
   it("returns [] when nothing exists", () => {
     fs.mkdirSync(path.join(tmp, "empty"), { recursive: true });
-    expect(findInstructionFiles({ cwd: path.join(tmp, "empty"), home })).toEqual(
-      [],
-    );
+    expect(
+      findInstructionFiles({ cwd: path.join(tmp, "empty"), home }),
+    ).toEqual([]);
   });
 });
 
@@ -213,9 +214,9 @@ describe("path-scoped rules (.claude/rules)", () => {
     );
     expect(fm.globs).toEqual(["desktop-app-vue/**", "packages/cli/**"]);
     expect(fm.body).toBe("# Body here");
-    expect(parseRuleFrontmatter('---\nglobs: "backend/**"\n---\nX').globs).toEqual(
-      ["backend/**"],
-    );
+    expect(
+      parseRuleFrontmatter('---\nglobs: "backend/**"\n---\nX').globs,
+    ).toEqual(["backend/**"]);
     expect(parseRuleFrontmatter("plain body").globs).toEqual([]);
   });
 
@@ -256,7 +257,10 @@ describe("path-scoped rules (.claude/rules)", () => {
     expect(all).not.toContain("DESKTOP RULE BODY");
 
     // at the project root, every rule is in play
-    const atRoot = loadProjectInstructions({ cwd: path.join(tmp, "repo"), home });
+    const atRoot = loadProjectInstructions({
+      cwd: path.join(tmp, "repo"),
+      home,
+    });
     expect(atRoot.files.map((f) => f.content).join("\n")).toContain(
       "DESKTOP RULE BODY",
     );

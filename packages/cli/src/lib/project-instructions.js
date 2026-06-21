@@ -133,9 +133,11 @@ export function findInstructionFiles(opts = {}) {
   for (const d of chain) {
     push(firstExisting(fs, path, d, PROJECT_FILE_NAMES), "project");
     push(firstExisting(fs, path, d, LOCAL_FILE_NAMES), "local");
-    // Template-scaffolded project rules (`cc init -t` writes these) join the
-    // chain too, so scaffold-flow and memory-flow projects both feed the agent.
-    push(path.join(d, ".chainlesschain", "rules.md"), "rules");
+    // NOTE: `.chainlesschain/rules.md` is intentionally NOT loaded here — it is
+    // already injected by buildSystemPrompt() (as "## Project Rules"), which is
+    // the base of every composeSystemPrompt() call. Loading it here too sent it
+    // TWICE in the system prompt on every turn. Path-scoped `.claude/rules/*.md`
+    // below are NOT covered by buildSystemPrompt, so they stay.
     // Path-scoped rule files (`.claude/rules/*.md`, YAML frontmatter `paths:`
     // globs). Glob filtering happens at LOAD time where content is available.
     try {
@@ -211,7 +213,11 @@ export function ruleApplies(globs, relCwd) {
     const star = g.search(/[*?[]/);
     const prefix = (star === -1 ? g : g.slice(0, star)).replace(/\/+$/, "");
     if (!prefix) return true; // "**/*.js" — applies everywhere
-    if (cwd === prefix || cwd.startsWith(`${prefix}/`) || prefix.startsWith(`${cwd}/`)) {
+    if (
+      cwd === prefix ||
+      cwd.startsWith(`${prefix}/`) ||
+      prefix.startsWith(`${cwd}/`)
+    ) {
       return true;
     }
   }
