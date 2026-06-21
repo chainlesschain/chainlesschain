@@ -3386,8 +3386,9 @@ function _finalizeTruncatedStream(finalize, state) {
 }
 
 // Wrap a ReadableStream reader so the read loop yields chunk values while a
-// watchdog (a) fires `onStall(elapsedMs)` at most once per silent gap longer
-// than `stallMs` (2.1.185 stream-stall hint) and (b) — when `stallTimeoutMs` is
+// watchdog (a) fires `onStall(elapsedMs, stallTimeoutMs)` at most once per silent
+// gap longer than `stallMs` (2.1.185 stream-stall hint; the 2nd arg lets the hint
+// surface the auto-retry deadline, 0 when no timeout) and (b) — when `stallTimeoutMs` is
 // set — cancels the reader and throws a RETRYABLE ETIMEDOUT after that long a
 // silence, so a permanently dead-but-open connection recovers via the retry
 // layer instead of hanging forever. The SAME in-flight read() promise is
@@ -3454,7 +3455,10 @@ export async function* _iterateStreamWithStall(reader, opts = {}) {
         if (onStall && !notified && Date.now() - start >= stallMs) {
           notified = true;
           try {
-            onStall(Date.now() - start);
+            // 2.1.185: pass the hard-timeout deadline so the hint can tell the
+            // user when the dead-but-open stream will be auto-retried (0 = no
+            // timeout configured → caller shows no retry deadline).
+            onStall(Date.now() - start, timeoutMs || 0);
           } catch {
             /* stall hint is best-effort — never break the stream over it */
           }

@@ -3271,12 +3271,20 @@ export async function startAgentRepl(options = {}) {
         // the API has gone silent mid-response — tell the user we're still
         // waiting instead of leaving a frozen spinner. stderr so it never
         // corrupts the streamed answer on stdout.
-        onStall: (ms) =>
+        onStall: (ms, timeoutMs) => {
+          const silent = Math.round(ms / 1000);
+          // 2.1.185: when a hard inactivity timeout is set, tell the user when
+          // the stalled stream will auto-retry instead of leaving them unsure
+          // whether it's hung forever.
+          const retryIn =
+            timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
+          const suffix = retryIn > 0 ? ` · will retry in ${retryIn}s` : "";
           process.stderr.write(
             chalk.dim(
-              `  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\n`,
+              `  ⏳ waiting for API response (silent ${silent}s)${suffix}…\n`,
             ),
-          ),
+          );
+        },
         // Hard inactivity timeout: abort + retry a dead-but-open stream instead
         // of hanging forever. undefined → agent-core's 180s default (matches cc
         // chat/ask); config.llm.streamStallTimeoutMs tunes or disables (0).

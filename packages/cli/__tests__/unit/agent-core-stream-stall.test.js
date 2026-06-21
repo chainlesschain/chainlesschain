@@ -5,8 +5,8 @@
  * alive but no bytes arrive (a slow / overloaded API) — cc surfaces a "waiting
  * for API response" hint instead of leaving the user staring at a frozen
  * spinner. The mechanism is `_iterateStreamWithStall`: it wraps a stream reader
- * and fires `onStall(elapsedMs)` at most once per silent gap longer than
- * `stallMs`, while never dropping or double-reading a chunk.
+ * and fires `onStall(elapsedMs, stallTimeoutMs)` at most once per silent gap
+ * longer than `stallMs`, while never dropping or double-reading a chunk.
  *
  * Two layers:
  *   1. _iterateStreamWithStall — the pure watchdog generator (real timers,
@@ -80,6 +80,34 @@ describe("_iterateStreamWithStall (watchdog generator)", () => {
     // Exactly one notification per gap — the re-armed timer is guarded.
     expect(stalls).toHaveLength(1);
     expect(stalls[0]).toBeGreaterThanOrEqual(10);
+  });
+
+  it("passes the hard-timeout deadline as onStall's 2nd arg (2.1.185 retry hint)", async () => {
+    const calls = [];
+    const reader = makeReader([42], [60]); // one chunk, 60ms late
+    await drain(
+      _iterateStreamWithStall(reader, {
+        stallMs: 10,
+        stallTimeoutMs: 5000,
+        onStall: (ms, timeoutMs) => calls.push([ms, timeoutMs]),
+      }),
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toBe(5000); // deadline forwarded so the hint can say "will retry in …"
+  });
+
+  it("forwards 0 as the deadline when no hard timeout is configured", async () => {
+    const calls = [];
+    const reader = makeReader([1], [40]);
+    await drain(
+      _iterateStreamWithStall(reader, {
+        stallMs: 10,
+        stallTimeoutMs: 0, // disabled
+        onStall: (ms, timeoutMs) => calls.push([ms, timeoutMs]),
+      }),
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toBe(0);
   });
 
   it("re-arms per gap: two silent gaps → two notifications", async () => {
