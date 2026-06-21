@@ -83,6 +83,36 @@ QQNT 解密工具（已知 WCDB cipher 参数 / 从内存取 key）离线解密 
 - **WCDB C++ key hook**：hook `WCDB::...setCipherKey` / 派生函数拿 raw key，再用 WCDB 的
   cipher 参数离线解（离线 better-sqlite3 标准 SQLCipher 参数实测**不通**，须复刻 WCDB 参数）。
 
+## 2.6 ✅ 真机突破 + ⚠️ MIUI 限制（2026-06-21，chopin）— 派生 key 路线打通
+
+**正解 = 派生 key（非 frida）**，仓库早有 `pdh-qq-android-decrypt.mjs`：
+`key = MD5(MD5(uid)+rand)`（rand 读库头、uid 从 QQ 数据 `strings|grep u_` 暴破），
+标准 SQLCipher（PBKDF2-HMAC-SHA512/AES-256-CBC）。纯 Node，无 frida、无手填 key。
+
+**已抽进 cc bundle**：`packages/personal-data-hub/lib/forensics/qq-nt-collect.js`
++ `cc hub collect-qq`（解密+protobuf 解析+入库）。**真机实测（chopin）`cc hub
+collect-qq` 在设备上跑通 → 442 条 QQ 消息入设备金库、`cc hub search` 可查**。
+
+**on-device bridge 工具** `collect_qq_native`（`QQNTNativeCollector` su 取库+uid →
+`cc hub collect-qq`）已建并接入 bridge。
+
+**⚠️ MIUI/HyperOS 限制（关键）**：`collect_qq_native` 在本机**采不到**，根因 =
+**App 进程的 su（即便 `u:r:magisk:s0` root）读不了别的 app 数据目录**。逐一验证全失败：
+直接 `ls /data/data/com.tencent.mobileqq` = Permission denied；`magiskpolicy --live`
+放开 SELinux 后**仍** denied（→ 不是 SELinux，是 MIUI **内核级跨应用隔离**）；
+`su --context` / `su -mm`(mount master) / `nsenter -t 1 -m`(读不到 `/proc/1/ns`) /
+`/proc/<qqpid>/fd`(pidof 都返空) **全部被拦**。**而 adb shell→su 能读**（不同来源
+context 不受此 LSM 约束）——这正是 `cc hub collect-qq` 验证时 staging 的路径。
+
+**结论**：
+- **解密+入库 = 全程手机端、已验证**（cc bundle 里跑，442 条）。
+- **取加密库这一步**：MIUI 拦 App-进程 root 跨应用读 → `collect_qq_native` 全自动在
+  MIUI 上**不通**；**非 MIUI 的 stock-Android root 机大概率可**（限制是 MIUI 特有，未在
+  stock 机验证）。
+- **MIUI 可用路径 = 混合**：adb/PC（或配对桌面经 adb）把**加密** `nt_msg.db` staging
+  到 app 可读处 → 设备上 `cc hub collect-qq` 解密入库（已验证）。
+- 代码无 bug；这是 MIUI 设备级限制。
+
 ## 3. Frida 在线解密（Method C 为主，库无关）— ⚠️ 见 §2.5：对 QQNT WCDB 不通，保留作通用 SQLCipher app 模板
 
 **为什么用 Method C（sqlcipher_export）而不是抓 key 离线解密：**
