@@ -37,6 +37,7 @@ describe("cc hub command surface", () => {
         "ask",
         "bilibili-adb-doctor", // Phase 1e (Bilibili C 路径) — dry-run doctor
         "bilibili-adb-sync", // Phase 1c (Bilibili C 路径) — PC + ADB chrome cookies
+        "collect-qq", // module 101 — frida-free QQNT (nt_msg.db) decrypt + ingest in the bundle
         "destroy",
         "douyin-adb-sync", // Phase 2a (Douyin C 路径) — PC + ADB <uid>_im.db
         "douyin-watch-sync", // Douyin 观看历史 C 路径 — ADB video_record.db → history (BROWSE) events
