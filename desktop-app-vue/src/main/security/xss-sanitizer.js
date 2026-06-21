@@ -12,44 +12,44 @@
  * 危险的HTML标签
  */
 const DANGEROUS_TAGS = [
-  'script',
-  'iframe',
-  'object',
-  'embed',
-  'applet',
-  'link',
-  'style',
-  'meta',
-  'base',
-  'form',
+  "script",
+  "iframe",
+  "object",
+  "embed",
+  "applet",
+  "link",
+  "style",
+  "meta",
+  "base",
+  "form",
 ];
 
 /**
  * 危险的HTML属性
  */
 const DANGEROUS_ATTRS = [
-  'onload',
-  'onerror',
-  'onclick',
-  'onmouseover',
-  'onmouseout',
-  'onkeydown',
-  'onkeyup',
-  'onfocus',
-  'onblur',
-  'onchange',
-  'onsubmit',
+  "onload",
+  "onerror",
+  "onclick",
+  "onmouseover",
+  "onmouseout",
+  "onkeydown",
+  "onkeyup",
+  "onfocus",
+  "onblur",
+  "onchange",
+  "onsubmit",
 ];
 
 /**
  * 允许的URL协议
  */
 const ALLOWED_PROTOCOLS = [
-  'http:',
-  'https:',
-  'mailto:',
-  'tel:',
-  'data:image/',  // 只允许图片的data URI
+  "http:",
+  "https:",
+  "mailto:",
+  "tel:",
+  "data:image/", // 只允许图片的data URI
 ];
 
 class XSSSanitizer {
@@ -60,41 +60,44 @@ class XSSSanitizer {
    * @returns {string} 清理后的HTML
    */
   static sanitizeHTML(html, options = {}) {
-    if (!html || typeof html !== 'string') {
-      return '';
+    if (!html || typeof html !== "string") {
+      return "";
     }
 
     let cleaned = html;
 
     // 1. 移除危险标签
     if (!options.allowDangerousTags) {
-      DANGEROUS_TAGS.forEach(tag => {
-        const regex = new RegExp(`<${tag}[^>]*>.*?</${tag}>`, 'gis');
-        cleaned = cleaned.replace(regex, '');
+      DANGEROUS_TAGS.forEach((tag) => {
+        const regex = new RegExp(`<${tag}[^>]*>.*?</${tag}>`, "gis");
+        cleaned = cleaned.replace(regex, "");
 
         // 移除自闭合标签
-        const selfClosingRegex = new RegExp(`<${tag}[^>]*/>`, 'gi');
-        cleaned = cleaned.replace(selfClosingRegex, '');
+        const selfClosingRegex = new RegExp(`<${tag}[^>]*/>`, "gi");
+        cleaned = cleaned.replace(selfClosingRegex, "");
       });
     }
 
     // 2. 移除危险属性
-    DANGEROUS_ATTRS.forEach(attr => {
-      const regex = new RegExp(`\\s${attr}\\s*=\\s*["'][^"']*["']`, 'gi');
-      cleaned = cleaned.replace(regex, '');
+    DANGEROUS_ATTRS.forEach((attr) => {
+      const regex = new RegExp(`\\s${attr}\\s*=\\s*["'][^"']*["']`, "gi");
+      cleaned = cleaned.replace(regex, "");
     });
 
     // 3. 清理javascript:协议的链接
-    cleaned = cleaned.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
-    cleaned = cleaned.replace(/src\s*=\s*["']javascript:[^"']*["']/gi, '');
+    cleaned = cleaned.replace(
+      /href\s*=\s*["']javascript:[^"']*["']/gi,
+      'href="#"',
+    );
+    cleaned = cleaned.replace(/src\s*=\s*["']javascript:[^"']*["']/gi, "");
 
     // 4. 清理data URI (除了图片)
-    cleaned = cleaned.replace(/src\s*=\s*["']data:(?!image\/)[^"']*["']/gi, '');
+    cleaned = cleaned.replace(/src\s*=\s*["']data:(?!image\/)[^"']*["']/gi, "");
 
     // 5. 移除HTML注释中的脚本
     cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, (match) => {
       if (/<script/i.test(match)) {
-        return '';
+        return "";
       }
       return match;
     });
@@ -113,29 +116,32 @@ class XSSSanitizer {
    * @returns {string} 清理后的Markdown
    */
   static sanitizeMarkdown(markdown) {
-    if (!markdown || typeof markdown !== 'string') {
-      return '';
+    if (!markdown || typeof markdown !== "string") {
+      return "";
     }
 
     let cleaned = markdown;
 
     // 1. 移除内联HTML脚本
-    cleaned = cleaned.replace(/<script[\s\S]*?<\/script>/gi, '');
+    cleaned = cleaned.replace(/<script[\s\S]*?<\/script>/gi, "");
 
     // 2. 清理危险的HTML标签
-    DANGEROUS_TAGS.forEach(tag => {
-      const regex = new RegExp(`<${tag}[^>]*>.*?</${tag}>`, 'gis');
-      cleaned = cleaned.replace(regex, '');
+    DANGEROUS_TAGS.forEach((tag) => {
+      const regex = new RegExp(`<${tag}[^>]*>.*?</${tag}>`, "gis");
+      cleaned = cleaned.replace(regex, "");
     });
 
     // 3. 清理图片链接中的javascript:协议
-    cleaned = cleaned.replace(/!\[([^\]]*)\]\(javascript:[^)]*\)/g, '![$1](#)');
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(javascript:[^)]*\)/g, "![$1](#)");
 
     // 4. 清理普通链接中的javascript:协议
-    cleaned = cleaned.replace(/\[([^\]]*)\]\(javascript:[^)]*\)/g, '[$1](#)');
+    cleaned = cleaned.replace(/\[([^\]]*)\]\(javascript:[^)]*\)/g, "[$1](#)");
 
     // 5. 移除危险的data URI
-    cleaned = cleaned.replace(/!\[([^\]]*)\]\(data:(?!image\/)[^)]*\)/g, '![$1](#)');
+    cleaned = cleaned.replace(
+      /!\[([^\]]*)\]\(data:(?!image\/)[^)]*\)/g,
+      "![$1](#)",
+    );
 
     return cleaned;
   }
@@ -153,33 +159,39 @@ class XSSSanitizer {
       errors: [],
     };
 
-    if (!url || typeof url !== 'string') {
-      result.errors.push('Invalid URL');
+    if (!url || typeof url !== "string") {
+      result.errors.push("Invalid URL");
       return result;
     }
 
     try {
-      // 检查是否是相对URL
-      if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+      // 检查是否是相对URL（同源路径）。注意：`//host` 是<b>协议相对</b>URL，会导航到
+      // 外部源（如 https://host），属开放重定向/外部资源加载向量，绝不能当作安全的相对
+      // 路径放行 —— 必须排除 `//` 开头，让其落到下面的 URL 解析（无 base 会抛错→拒绝）。
+      if (
+        (url.startsWith("/") && !url.startsWith("//")) ||
+        url.startsWith("./") ||
+        url.startsWith("../")
+      ) {
         result.valid = true;
-        result.protocol = 'relative';
+        result.protocol = "relative";
         return result;
       }
 
       // 检查是否包含危险协议
-      if (url.toLowerCase().startsWith('javascript:')) {
-        result.errors.push('javascript: protocol not allowed');
+      if (url.toLowerCase().startsWith("javascript:")) {
+        result.errors.push("javascript: protocol not allowed");
         return result;
       }
 
-      if (url.toLowerCase().startsWith('data:')) {
+      if (url.toLowerCase().startsWith("data:")) {
         // 只允许图片的data URI
-        if (!url.toLowerCase().startsWith('data:image/')) {
-          result.errors.push('data: protocol only allowed for images');
+        if (!url.toLowerCase().startsWith("data:image/")) {
+          result.errors.push("data: protocol only allowed for images");
           return result;
         }
         result.valid = true;
-        result.protocol = 'data';
+        result.protocol = "data";
         return result;
       }
 
@@ -188,8 +200,8 @@ class XSSSanitizer {
       result.protocol = urlObj.protocol;
 
       // 检查协议是否在白名单中
-      const isAllowed = ALLOWED_PROTOCOLS.some(proto => {
-        if (proto.endsWith('/')) {
+      const isAllowed = ALLOWED_PROTOCOLS.some((proto) => {
+        if (proto.endsWith("/")) {
           return urlObj.protocol.startsWith(proto.slice(0, -1));
         }
         return urlObj.protocol === proto;
@@ -202,7 +214,6 @@ class XSSSanitizer {
 
       result.valid = true;
       return result;
-
     } catch (error) {
       result.errors.push(`URL parsing error: ${error.message}`);
       return result;
@@ -215,7 +226,7 @@ class XSSSanitizer {
    * @returns {Array} 检测到的威胁
    */
   static detectXSS(content) {
-    if (!content || typeof content !== 'string') {
+    if (!content || typeof content !== "string") {
       return [];
     }
 
@@ -224,48 +235,48 @@ class XSSSanitizer {
     // XSS检测模式
     const patterns = [
       {
-        name: 'Script Tag',
+        name: "Script Tag",
         regex: /<script[\s\S]*?<\/script>/gi,
-        severity: 'high',
+        severity: "high",
       },
       {
-        name: 'Inline JavaScript',
+        name: "Inline JavaScript",
         regex: /on\w+\s*=\s*["'][^"']*["']/gi,
-        severity: 'high',
+        severity: "high",
       },
       {
-        name: 'JavaScript Protocol',
+        name: "JavaScript Protocol",
         regex: /javascript:/gi,
-        severity: 'high',
+        severity: "high",
       },
       {
-        name: 'Data URI Script',
+        name: "Data URI Script",
         regex: /data:text\/html/gi,
-        severity: 'medium',
+        severity: "medium",
       },
       {
-        name: 'Iframe Injection',
+        name: "Iframe Injection",
         regex: /<iframe[\s\S]*?>/gi,
-        severity: 'medium',
+        severity: "medium",
       },
       {
-        name: 'Object/Embed Tag',
+        name: "Object/Embed Tag",
         regex: /<(object|embed)[\s\S]*?>/gi,
-        severity: 'medium',
+        severity: "medium",
       },
       {
-        name: 'Style with Expression',
+        name: "Style with Expression",
         regex: /style\s*=\s*["'][^"']*expression\s*\(/gi,
-        severity: 'high',
+        severity: "high",
       },
       {
-        name: 'Import Statement',
+        name: "Import Statement",
         regex: /@import/gi,
-        severity: 'low',
+        severity: "low",
       },
     ];
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       const matches = content.match(pattern.regex);
       if (matches && matches.length > 0) {
         threats.push({
@@ -287,12 +298,12 @@ class XSSSanitizer {
    */
   static encodeHTMLEntities(str) {
     const entityMap = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '/': '&#x2F;',
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+      "/": "&#x2F;",
     };
 
     return String(str).replace(/[&<>"'/]/g, (char) => entityMap[char]);
@@ -305,15 +316,18 @@ class XSSSanitizer {
    */
   static decodeHTMLEntities(str) {
     const entityMap = {
-      '&amp;': '&',
-      '&lt;': '<',
-      '&gt;': '>',
-      '&quot;': '"',
-      '&#39;': "'",
-      '&#x2F;': '/',
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&#39;": "'",
+      "&#x2F;": "/",
     };
 
-    return String(str).replace(/&(?:amp|lt|gt|quot|#39|#x2F);/g, (entity) => entityMap[entity] || entity);
+    return String(str).replace(
+      /&(?:amp|lt|gt|quot|#39|#x2F);/g,
+      (entity) => entityMap[entity] || entity,
+    );
   }
 
   /**
@@ -322,24 +336,32 @@ class XSSSanitizer {
    * @returns {Object} 清理后的对象
    */
   static sanitizeJSON(obj) {
-    if (typeof obj !== 'object' || obj === null) {
+    if (typeof obj !== "object" || obj === null) {
       return obj;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.sanitizeJSON(item));
+      // 字符串数组元素也需清理：此前直接 sanitizeJSON(item) 对字符串走基础分支原样返回，
+      // 导致 {tags:["<script>…"]} / ["<iframe …>"] 里的 XSS 绕过（而对象属性里的字符串
+      // 会被清理）。与下方对象属性同口径处理字符串元素。
+      return obj.map((item) => {
+        if (typeof item === "string") {
+          return /<[^>]+>/.test(item) ? this.sanitizeHTML(item) : item;
+        }
+        return this.sanitizeJSON(item);
+      });
     }
 
     const cleaned = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         // 检查字符串是否包含HTML内容
         if (/<[^>]+>/.test(value)) {
           cleaned[key] = this.sanitizeHTML(value);
         } else {
           cleaned[key] = value;
         }
-      } else if (typeof value === 'object') {
+      } else if (typeof value === "object") {
         cleaned[key] = this.sanitizeJSON(value);
       } else {
         cleaned[key] = value;
@@ -356,8 +378,8 @@ class XSSSanitizer {
    * @returns {string} 清理后的输入
    */
   static sanitizeUserInput(input, options = {}) {
-    if (!input || typeof input !== 'string') {
-      return '';
+    if (!input || typeof input !== "string") {
+      return "";
     }
 
     let cleaned = input;
@@ -376,7 +398,7 @@ class XSSSanitizer {
         const code = char.charCodeAt(0);
         return !(code <= 31 || code === 127);
       })
-      .join('');
+      .join("");
 
     // 4. 编码HTML实体
     if (options.encodeHTML) {
@@ -385,12 +407,12 @@ class XSSSanitizer {
 
     // 5. 移除SQL注入模式
     if (options.preventSQLInjection) {
-      cleaned = cleaned.replace(/['";]/g, '');
+      cleaned = cleaned.replace(/['";]/g, "");
     }
 
     // 6. 移除路径遍历
     if (options.preventPathTraversal) {
-      cleaned = cleaned.replace(/\.\./g, '');
+      cleaned = cleaned.replace(/\.\./g, "");
     }
 
     return cleaned;
@@ -413,7 +435,7 @@ class XSSSanitizer {
       "frame-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-    ].join('; ');
+    ].join("; ");
   }
 }
 
