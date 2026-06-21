@@ -118,6 +118,9 @@ class CollectAppDataTool(
                     "请先在 App 内登录「$app」(让 cookie 生效),然后重试 collect_app_data。",
                 )
                 put("reason", "no stored credentials for $app")
+                // §3.5.15: a correlation token so the chat's 引导卡 can resume via
+                // {type:resume,token,…} (structured) instead of a plain user turn.
+                put("resumeToken", "collect_app_data:$app")
             }
             snap.failed != null -> throw RuntimeException("$app snapshot failed: ${snap.failed}")
             snap.path == null -> throw RuntimeException("$app snapshot produced no data")

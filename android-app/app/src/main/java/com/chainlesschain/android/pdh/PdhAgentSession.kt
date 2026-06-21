@@ -395,7 +395,7 @@ class PdhAgentSession @Inject constructor(
                     input = obj["input"]?.toString(),
                 )
                 "tool_result" -> {
-                    val content = str(obj, "content").ifEmpty { str(obj, "text") }
+                    val content = toolResultText(obj)
                     // §3.6/§3.5.9: a tool may return status:assist_required as its
                     // result — surface it as a 引导卡, not a plain tool result.
                     parseAssist(content) ?: PdhAgentEvent.ToolResult(content)
@@ -450,6 +450,30 @@ class PdhAgentSession @Inject constructor(
         /** Boolean value of a JSON field, else false. */
         private fun bool(obj: JsonObject, key: String): Boolean =
             (obj[key] as? JsonPrimitive)?.booleanOrNull ?: false
+
+        /**
+         * Extract a tool_result's textual content. cc (headless-stream) emits the
+         * content under `result` as the MCP shape `{content:[{type:text,text:…}]}`
+         * — NOT a top-level `content`/`text` field. Concatenate the text blocks;
+         * fall back to a plain-string `result`, then to legacy `content`/`text`.
+         * Without this the assist_required JSON never reaches [parseAssist] (no
+         * 引导卡) and DATA rows are always empty.
+         */
+        private fun toolResultText(obj: JsonObject): String {
+            val result = obj["result"]
+            if (result is JsonObject) {
+                (result["content"] as? JsonArray)?.let { arr ->
+                    val sb = StringBuilder()
+                    for (el in arr) {
+                        val b = el as? JsonObject ?: continue
+                        if (str(b, "type") == "text") sb.append(str(b, "text"))
+                    }
+                    if (sb.isNotEmpty()) return sb.toString()
+                }
+            }
+            (result as? JsonPrimitive)?.takeIf { it.isString }?.let { return it.content }
+            return str(obj, "content").ifEmpty { str(obj, "text") }
+        }
 
         /**
          * §3.6/§3.5.9: a tool_result whose content is a JSON object with

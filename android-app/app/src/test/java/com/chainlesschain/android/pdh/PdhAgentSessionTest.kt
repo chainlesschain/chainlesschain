@@ -195,6 +195,32 @@ class PdhAgentSessionTest {
     }
 
     @Test
+    fun tool_result_reads_cc_result_content_text_shape() {
+        // cc (headless-stream) actual shape: result.content[{type:text,text:…}].
+        val line =
+            """{"type":"tool_result","tool":"mcp__pdh__collect_app_data","result":""" +
+                """{"content":[{"type":"text","text":"hello from tool"}]}}"""
+        assertEquals(
+            PdhAgentEvent.ToolResult("hello from tool"),
+            PdhAgentSession.parseLine(line),
+        )
+    }
+
+    @Test
+    fun tool_result_assist_required_inside_cc_result_shape_yields_guide() {
+        // The real on-device shape: assist_required JSON nested at result.content[].text.
+        val line =
+            """{"type":"tool_result","tool":"mcp__pdh__collect_app_data","result":{"content":[""" +
+                """{"type":"text","text":"{\"status\":\"assist_required\",\"instruction\":\"先登录微博\",""" +
+                """\"resumeToken\":\"collect_app_data:weibo\"}"}]}}"""
+        val e = PdhAgentSession.parseLine(line)
+        assertTrue(e is PdhAgentEvent.AssistRequired)
+        e as PdhAgentEvent.AssistRequired
+        assertEquals("先登录微博", e.instruction)
+        assertEquals("collect_app_data:weibo", e.resumeToken)
+    }
+
+    @Test
     fun tool_result_json_without_assist_status_stays_tool_result() {
         // A JSON-object content that ISN'T assist_required must not be hijacked.
         val line = """{"type":"tool_result","content":"{\"status\":\"ok\",\"ingested\":3}"}"""
