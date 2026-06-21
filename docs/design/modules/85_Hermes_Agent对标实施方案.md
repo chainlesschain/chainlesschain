@@ -571,8 +571,8 @@ export default { name: "my-plugin", tools: [...] };
 - [78. CLI Agent Runtime 重构](./78_CLI_Agent_Runtime重构实施计划.md) — agent-core 架构基础
 - [82. CLI Runtime 收口路线图](./82_CLI_Runtime收口路线图.md) — envelope 协议统一
 - [16. AI 技能系统](./16_AI技能系统.md) — 141 技能 + 4 层加载
-- [docs/claude/CLAUDE-patterns.md](../../docs/claude/CLAUDE-patterns.md) — Hooks 三件套、Skill-Embedded MCP 等模式
-- [docs-site 英文版](../../docs-site/docs/design/modules/85-hermes-agent-parity.md) — 用户文档
+- [docs/claude/CLAUDE-patterns.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/claude/CLAUDE-patterns.md) — Hooks 三件套、Skill-Embedded MCP 等模式
+- [docs-site 英文版](https://docs.chainlesschain.com/design/modules/85-hermes-agent-parity) — 用户文档
 
 ## 附录：规范章节补全（v5.0.3.108）
 

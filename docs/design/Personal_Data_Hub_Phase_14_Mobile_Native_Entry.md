@@ -1,6 +1,6 @@
 # Personal Data Hub — Phase 14：移动端原生入口（Android + iOS）
 
-> **状态**：v0.1 设计稿（2026-05-20）。Phase 14.0（Android `SeedRegistry` 元数据 21 method）已落地（v5.0.3.72，commit 见 `android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt:386-555`）；14.1 (Android 接线 + UI) / 14.2 (iOS) / 14.3 (双端审计 + 同步进度推送) 待实施。本文档系**首次为 PDH 移动端入口建立完整设计稿**——此前路线图只在 [`personal-data-hub.md`](../../docs-site/docs/chainlesschain/personal-data-hub.md) 末尾以内联段落形式呈现。
+> **状态**：v0.1 设计稿（2026-05-20）。Phase 14.0（Android `SeedRegistry` 元数据 21 method）已落地（v5.0.3.72，commit 见 `android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt:386-555`）；14.1 (Android 接线 + UI) / 14.2 (iOS) / 14.3 (双端审计 + 同步进度推送) 待实施。本文档系**首次为 PDH 移动端入口建立完整设计稿**——此前路线图只在 [`personal-data-hub.md`](https://docs.chainlesschain.com/chainlesschain/personal-data-hub) 末尾以内联段落形式呈现。
 >
 > **关联文档**：父文档 [`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md)（13-Phase 路线图，PDH 主架构）；同构先例 [`iOS_Phase_5_AI_Chat_Skill.md`](./iOS_Phase_5_AI_Chat_Skill.md)（iOS 远程 AI Chat skill = 同框架同模式）、[`iOS_Phase_4_Notification_Skill.md`](./iOS_Phase_4_Notification_Skill.md)（events fan-out + dispatcher 模式参考）、[`Android_Remote_Terminal_Plan_A1.md`](./Android_Remote_Terminal_Plan_A1.md)（Android RemoteCommandClient 框架样板）
 >

@@ -19,7 +19,7 @@
 - **Phase 3a**（commit `dce8e5d66`）：`createProgram(opts)` 接受 `allowedCommands: Set<string>`，或从环境变量 `CC_PROJECT_ALLOWED_SUBCOMMANDS`（逗号分隔）解析；在注册 commander 命令前按 action 名过滤；未列出的子命令根本不注册到 commander，避免 `--help` 也能发现隐藏能力
 - **Phase 3b**（commit `7633ad483`）：入口脚本追加 `CC_PACK_AUTO_PERSONA` 环境变量（来自 `BAKED.projectAutoPersona`）；`pack-manifest.json` 扩展 `bundledSkills` 字段（名字列表），供收件方审计；Phase 8 smoke 用该字段对照 `/api/skills` 返回集合
 - **文档产出**：
-  - 新增独立用户文档 [`docs-site/docs/chainlesschain/cli-pack-project.md`](../../docs-site/docs/chainlesschain/cli-pack-project.md)（v0.4），从"设计中"占位状态升级为"已落地"正式文档，含 108 条实测测试清单 + 本地 Win11 x64 性能实测
+  - 新增独立用户文档 [`docs-site/docs/chainlesschain/cli-pack-project.md`](https://docs.chainlesschain.com/chainlesschain/cli-pack-project)（v0.4），从"设计中"占位状态升级为"已落地"正式文档，含 108 条实测测试清单 + 本地 Win11 x64 性能实测
   - `README.md` / `README_EN.md` 追加项目模式速查（§`cc pack` 小节）
   - `.gitignore` 新增 `tmp-pack/` + `*.pack-manifest.json`（打包烟测临时目录，避免误提交 61MB exe）
 - **测试产出**（项目模式合计 **+97 条单元 + 11 条集成 = 108 条**，全绿）：

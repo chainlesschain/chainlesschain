@@ -3,7 +3,7 @@
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) A.1（GA 后续 scope · P1，但 GA-反馈优先级敏感）
 > **状态**: 🟢 PR1 ✅ + PR2 ✅ + PR3 ✅ landed (2026-05-15) — **A.1 主体闭环**
 > **作者**: 2026-05-15
-> **关联**: [Android 重新定位 §10 A.1](Android_重新定位_设计文档.md) / [Phase3d_Mobile_Sync 设计文档](Phase3d_Mobile_Sync_设计文档.md) (mDNS auto-discovery) / [docs/linux/PAIRING.md](../linux/PAIRING.md) 用户指南
+> **关联**: [Android 重新定位 §10 A.1](Android_重新定位_设计文档.md) / [Phase3d_Mobile_Sync 设计文档](Phase3d_Mobile_Sync_设计文档.md) (mDNS auto-discovery) / [docs/linux/PAIRING.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/linux/PAIRING.md) 用户指南
 > **下一步**: A.1 主体已闭环。Follow-ups（gated on GA reflection）：(1) full headless WS signaling listener — 让 `cc` 直接接 mobile pairing 连接，免 Electron 兜底；涉及 libp2p + crypto bootstrap 跨 CLI/Electron 边界 (2) WSL2 vEthernet detection helper (3) IPv6 multicast (ff02::fb) 支持
 
 ---

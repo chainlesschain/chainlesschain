@@ -256,7 +256,7 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 ### 现状问题
 
-仓库已有 [AGENTS.md](/C:/code/chainlesschain/AGENTS.md)，但它当前更像开发协作规范，而不是运行时 agent bundle 的稳定输入。
+仓库已有 [AGENTS.md](https://github.com/chainlesschain/chainlesschain/blob/main/AGENTS.md)，但它当前更像开发协作规范，而不是运行时 agent bundle 的稳定输入。
 
 ### 落地建议
 
@@ -438,7 +438,7 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 - 为 Web / Mobile / 外部 agent 接入打通基础层
 - 避免将来再做第三套 agent host
-- 与 [91_Managed_Agents对标计划.md](/C:/code/chainlesschain/docs/design/modules/91_Managed_Agents%E5%AF%B9%E6%A0%87%E8%AE%A1%E5%88%92.md) 的 session-core 收口方向一致
+- 与 [91_Managed_Agents对标计划.md](./91_Managed_Agents对标计划.md) 的 session-core 收口方向一致
 
 ---
 

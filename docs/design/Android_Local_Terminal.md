@@ -748,7 +748,7 @@ mobile 端默认开机展示一段 motd 说明这些差异（避免用户跑 `cc
 
 ---
 
-**Status**: 📐 设计完成，**Phase 0.1 已落地** (2026-05-18) — `feature-local-terminal` module skeleton + Gradle externalNativeBuild + 3 ABI × `libpty_jni.so` placeholder + Kotlin LocalTerminalNative JNI 桥 + Hilt 接入 + unit tests 全过。建议在 [iOS Phase 1.7 / 2.7 / 3.7 真机 E2E 完成后启 Phase 0.2](../../C--code-chainlesschain/memory/MEMORY.md)，避免框架级 bug 回锅。
+**Status**: 📐 设计完成，**Phase 0.1 已落地** (2026-05-18) — `feature-local-terminal` module skeleton + Gradle externalNativeBuild + 3 ABI × `libpty_jni.so` placeholder + Kotlin LocalTerminalNative JNI 桥 + Hilt 接入 + unit tests 全过。建议在 iOS Phase 1.7 / 2.7 / 3.7 真机 E2E 完成后启 Phase 0.2，避免框架级 bug 回锅。
 
 ## 附录：规范章节补全（v5.0.3.108）
 

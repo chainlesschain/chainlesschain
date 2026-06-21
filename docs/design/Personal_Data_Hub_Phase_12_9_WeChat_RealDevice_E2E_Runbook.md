@@ -493,7 +493,7 @@ node packages/cli/bin/chainlesschain.js hub wechat register \
 
 ### 5.3 新发现的 trap（场景外，要补回设计稿）
 
-> 每发现一个新 trap，按 [`docs/internal/hidden-risk-traps.md`](../internal/hidden-risk-traps.md) 模式追加到 §18.9 + 索引到 MEMORY.md + 扩 §5.1 表。
+> 每发现一个新 trap，按 [`docs/internal/hidden-risk-traps.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/internal/hidden-risk-traps.md) 模式追加到 §18.9 + 索引到 MEMORY.md + 扩 §5.1 表。
 
 ---
 
@@ -530,7 +530,7 @@ PASS 后该做的：
 
 1. 在 `docs-site/docs/chainlesschain/personal-data-hub.md` 把 WeChat row 状态从 🚧 v0.5 升为 ✅ Phase 12.9 verified
 2. 在 `Adapter_WeChat_SQLCipher.md` §18.8 v1 验收清单打勾
-3. 在 [`docs/internal/hidden-risk-traps.md`](../internal/hidden-risk-traps.md) 补充本次发现的新 trap
+3. 在 [`docs/internal/hidden-risk-traps.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/internal/hidden-risk-traps.md) 补充本次发现的新 trap
 4. 在 `MEMORY.md` 加 entry：`wechat_phase_12_9_real_device_verified.md` — 设备型号 + WeChat 版本 + 通过日期
 5. 升级 productVersion `vX.Y.Z.N+1`，CHANGELOG 加 "Phase 12.9 WeChat real-device E2E PASS — N scenarios verified on `<device>` / WeChat `<ver>`"
 

@@ -606,7 +606,7 @@ console.log('MCP Server 运行在 http://localhost:8080');
 ## 10. 相关文档
 
 - [MCP与配置系统](08_MCP与配置系统.md)
-- [MCP用户指南](../../features/MCP_USER_GUIDE.md)
+- [MCP用户指南](https://github.com/chainlesschain/chainlesschain/blob/main/docs/features/MCP_USER_GUIDE.md)
 - [插件市场系统](12_插件市场系统.md)
 - [MCP协议规范](https://spec.modelcontextprotocol.io/specification/2024-11-05/)
 

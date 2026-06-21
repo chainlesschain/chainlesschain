@@ -1,7 +1,7 @@
 # 81 轻量多 Agent 编排系统 (Lightweight Multi-Agent Orchestration)
 
 > **版本**: v2.0 (已实施) | **日期**: 2026-04-09 | **状态**: Phase A–E 全部落地
-> **ADR 原文**: [LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR](../../implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md)
+> **ADR 原文**: [LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md)
 > **前置模块**: [80 规范工作流系统](./80_规范工作流系统.md)
 
 ## 1. 背景
@@ -433,8 +433,8 @@ intake
 
 ## 14. 相关文档
 
-- **ADR 原文**: [docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md](../../implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md)
-- **用户指南**: [docs/features/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION.md](../../features/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION.md)
+- **ADR 原文**: [docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md)
+- **用户指南**: [docs/features/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/features/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION.md)
 - **前置模块**: [80 规范工作流系统](./80_规范工作流系统.md)
 
 ## 15. 结论
