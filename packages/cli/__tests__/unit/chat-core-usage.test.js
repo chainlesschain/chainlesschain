@@ -125,7 +125,9 @@ describe("chat-core — onUsage callback", () => {
       () => {},
       (u) => usages.push(u),
     );
-    expect(usages).toEqual([{ inputTokens: 7, outputTokens: 5 }]);
+    expect(usages).toEqual([
+      { inputTokens: 7, outputTokens: 5, cacheReadTokens: 0 },
+    ]);
   });
 
   it("streamOpenAI sends stream_options.include_usage in body", async () => {
@@ -214,7 +216,14 @@ describe("chat-core — onUsage callback", () => {
     );
     expect(text).toBe("Hi there");
     expect(tokens).toEqual(["Hi", " there"]);
-    expect(usages).toEqual([{ inputTokens: 42, outputTokens: 23 }]);
+    expect(usages).toEqual([
+      {
+        inputTokens: 42,
+        outputTokens: 23,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+      },
+    ]);
   });
 
   it("streamAnthropic splits system role into top-level system field", async () => {
@@ -314,5 +323,88 @@ describe("chat-core — onUsage callback", () => {
       const files = fs.readdirSync(sessionsDir);
       expect(files).toEqual([]);
     }
+  });
+});
+
+describe("chat-core — prompt-cache token capture (cc cost accuracy)", () => {
+  it("streamOpenAI splits cached_tokens out of prompt_tokens", async () => {
+    const { streamOpenAI } = await import("../../src/lib/chat-core.js");
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"hi"}}]}\n',
+      'data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":1000,"completion_tokens":10,"prompt_tokens_details":{"cached_tokens":800}}}\n',
+      "data: [DONE]\n",
+    ];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeReadableStream(chunks),
+    });
+    const usages = [];
+    await streamOpenAI(
+      [{ role: "user", content: "hi" }],
+      "gpt-4o",
+      "https://api.openai.com/v1",
+      "sk-test",
+      () => {},
+      (u) => usages.push(u),
+    );
+    expect(usages).toEqual([
+      { inputTokens: 200, outputTokens: 10, cacheReadTokens: 800 },
+    ]);
+  });
+
+  it("streamOpenAI reads DeepSeek prompt_cache_hit_tokens", async () => {
+    const { streamOpenAI } = await import("../../src/lib/chat-core.js");
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"ok"}}]}\n',
+      'data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":500,"completion_tokens":5,"prompt_cache_hit_tokens":450,"prompt_cache_miss_tokens":50}}\n',
+      "data: [DONE]\n",
+    ];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeReadableStream(chunks),
+    });
+    const usages = [];
+    await streamOpenAI(
+      [{ role: "user", content: "hi" }],
+      "deepseek-chat",
+      "https://api.deepseek.com/v1",
+      "sk-test",
+      () => {},
+      (u) => usages.push(u),
+    );
+    expect(usages).toEqual([
+      { inputTokens: 50, outputTokens: 5, cacheReadTokens: 450 },
+    ]);
+  });
+
+  it("streamAnthropic captures cache_read/creation from message_start", async () => {
+    const { streamAnthropic } = await import("../../src/lib/chat-core.js");
+    const chunks = [
+      'data: {"type":"message_start","message":{"usage":{"input_tokens":100,"output_tokens":1,"cache_read_input_tokens":1800,"cache_creation_input_tokens":200}}}\n',
+      'data: {"type":"content_block_delta","delta":{"text":"hi"}}\n',
+      'data: {"type":"message_delta","usage":{"output_tokens":20}}\n',
+      'data: {"type":"message_stop"}\n',
+    ];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeReadableStream(chunks),
+    });
+    const usages = [];
+    await streamAnthropic(
+      [{ role: "user", content: "hi" }],
+      "claude-sonnet-4-6",
+      "https://api.anthropic.com/v1",
+      "sk-ant-test",
+      () => {},
+      (u) => usages.push(u),
+    );
+    expect(usages).toEqual([
+      {
+        inputTokens: 100,
+        outputTokens: 20,
+        cacheReadTokens: 1800,
+        cacheCreationTokens: 200,
+      },
+    ]);
   });
 });

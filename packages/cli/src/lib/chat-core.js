@@ -40,6 +40,21 @@ function makeStallGuard(stallMs = STREAM_STALL_MS) {
   };
 }
 
+// OpenAI-compatible cached-prompt-token count (mirrors agent-core's
+// _openaiCachedTokens). OpenAI/volcengine report it as
+// usage.prompt_tokens_details.cached_tokens; DeepSeek as
+// usage.prompt_cache_hit_tokens. prompt_tokens INCLUDES the cached count, so
+// callers subtract it to recover uncached input (avoids over-pricing in
+// `cc cost` for cc chat sessions).
+function _cachedPromptTokens(usage) {
+  if (!usage || typeof usage !== "object") return 0;
+  const detailed = Number(usage.prompt_tokens_details?.cached_tokens);
+  if (Number.isFinite(detailed) && detailed > 0) return detailed;
+  const deepseek = Number(usage.prompt_cache_hit_tokens);
+  if (Number.isFinite(deepseek) && deepseek > 0) return deepseek;
+  return 0;
+}
+
 /**
  * Stream a response from Ollama.
  * If `onUsage` is provided, it's called with `{inputTokens, outputTokens}`
@@ -189,10 +204,14 @@ export async function streamOpenAI(
               onToken(content);
             }
             if (json.usage && onUsage) {
-              const inputTokens = Number(json.usage.prompt_tokens) || 0;
+              // Split cached prompt tokens out of prompt_tokens so cc cost
+              // prices the cached prefix correctly (matches agent-core).
+              const cacheReadTokens = _cachedPromptTokens(json.usage);
+              const prompt = Number(json.usage.prompt_tokens) || 0;
+              const inputTokens = Math.max(0, prompt - cacheReadTokens);
               const outputTokens = Number(json.usage.completion_tokens) || 0;
-              if (inputTokens || outputTokens) {
-                onUsage({ inputTokens, outputTokens });
+              if (inputTokens || outputTokens || cacheReadTokens) {
+                onUsage({ inputTokens, outputTokens, cacheReadTokens });
               }
             }
           } catch {
@@ -279,6 +298,8 @@ export async function streamAnthropic(
   let buf = "";
   let inputTokens = 0;
   let outputTokens = 0;
+  let cacheReadTokens = 0;
+  let cacheCreationTokens = 0;
 
   try {
     while (true) {
@@ -302,10 +323,13 @@ export async function streamAnthropic(
               onToken(delta);
             }
           } else if (obj.type === "message_start") {
-            inputTokens =
-              Number(obj.message?.usage?.input_tokens) || inputTokens;
-            outputTokens =
-              Number(obj.message?.usage?.output_tokens) || outputTokens;
+            const u = obj.message?.usage || {};
+            inputTokens = Number(u.input_tokens) || inputTokens;
+            outputTokens = Number(u.output_tokens) || outputTokens;
+            cacheReadTokens =
+              Number(u.cache_read_input_tokens) || cacheReadTokens;
+            cacheCreationTokens =
+              Number(u.cache_creation_input_tokens) || cacheCreationTokens;
           } else if (obj.type === "message_delta") {
             outputTokens = Number(obj.usage?.output_tokens) || outputTokens;
           }
@@ -324,8 +348,16 @@ export async function streamAnthropic(
     guard.stop();
   }
 
-  if (onUsage && (inputTokens || outputTokens)) {
-    onUsage({ inputTokens, outputTokens });
+  if (
+    onUsage &&
+    (inputTokens || outputTokens || cacheReadTokens || cacheCreationTokens)
+  ) {
+    onUsage({
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
+    });
   }
 
   return fullResponse;
@@ -451,6 +483,8 @@ export async function* chatStream(messages, options) {
         usage: {
           input_tokens: capturedUsage.inputTokens,
           output_tokens: capturedUsage.outputTokens,
+          cache_read_input_tokens: capturedUsage.cacheReadTokens || 0,
+          cache_creation_input_tokens: capturedUsage.cacheCreationTokens || 0,
         },
       });
     } catch {
