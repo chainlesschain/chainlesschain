@@ -76,8 +76,11 @@ class ConflictResolver:
                 if i < len(lines) and lines[i].startswith('>>>>>>>'):
                     conflict['incoming_branch'] = lines[i].replace('>>>>>>>', '').strip()
                     conflict['end_line'] = i
-
-                conflicts.append(conflict)
+                    # 仅当找到闭合标记（完整冲突）时才记录。不完整/伪冲突标记
+                    # （如源码/文档中出现的 `<<<<<<<` 文本、被截断的合并）会产生缺少
+                    # end_line 的冲突块，导致 resolve_conflicts 在 conflict['end_line']
+                    # 处 KeyError 崩溃 —— 故直接跳过。
+                    conflicts.append(conflict)
 
             i += 1
 

@@ -74,6 +74,38 @@ class TestConflictResolver:
         assert len(conflict["base_content"]) == 2
         assert "original" in '\n'.join(conflict["base_content"])
 
+    def test_parse_conflict_markers_incomplete_skipped(self, conflict_resolver):
+        """不完整冲突（缺少闭合 >>>>>>>）应被跳过，不产生缺 end_line 的冲突块。
+
+        回归：此前会 append 一个没有 end_line/incoming_branch 的冲突块，
+        导致 resolve_conflicts 在 conflict['end_line'] 处 KeyError 崩溃。
+        """
+        incomplete = "a\n<<<<<<< HEAD\nmine\n=======\ntheirs\nb\n"  # 无 >>>>>>>
+        conflicts = conflict_resolver.parse_conflict_markers(incomplete)
+        assert conflicts == []
+
+    def test_parse_conflict_markers_all_have_end_line(
+        self, conflict_resolver, conflict_content, complex_conflict_content
+    ):
+        """所有返回的冲突块都必须含 end_line + incoming_branch（resolve 依赖之）。"""
+        for content in (conflict_content, complex_conflict_content):
+            for c in conflict_resolver.parse_conflict_markers(content):
+                assert "end_line" in c
+                assert "incoming_branch" in c
+
+    @pytest.mark.asyncio
+    async def test_resolve_file_with_incomplete_marker_does_not_crash(
+        self, conflict_resolver, tmp_path
+    ):
+        """对含「不完整/伪冲突标记」的文件解析+解决不应崩溃（视为无可解决冲突）。"""
+        f = tmp_path / "doc.md"
+        # 文档里出现 <<<<<<< 文本但没有完整冲突结构（常见于讲解 git 的文档/源码）。
+        f.write_text("# About git\nUse <<<<<<< to mark conflicts.\n", encoding="utf-8")
+        result = await conflict_resolver.resolve_file_conflicts(
+            str(f), strategy="accept_current"
+        )
+        assert result.get("conflicts_count", 0) == 0
+
     def test_heuristic_resolve_empty_current(self, conflict_resolver):
         """测试启发式解决（当前分支为空）"""
         conflict = {
