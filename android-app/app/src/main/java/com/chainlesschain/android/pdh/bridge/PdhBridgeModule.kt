@@ -5,6 +5,7 @@ import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.MemSalvageCollector
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
+import com.chainlesschain.android.pdh.messaging.qq.QQNTFridaCollector
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
@@ -65,6 +66,7 @@ object PdhBridgeModule {
         ccRunner: LocalCcRunner,
         memSalvage: MemSalvageCollector,
         qq: QQLocalCollector,
+        qqnt: QQNTFridaCollector,
         weibo: WeiboLocalCollector,
         bilibili: BilibiliLocalCollector,
         kyfw12306: Kyfw12306LocalCollector,
@@ -127,6 +129,12 @@ object PdhBridgeModule {
             // module 101 QQNT 方案 Phase 0 — legacy <uin>.db (plain SQLite + IMEI XOR).
             PdhToolHost.Collector(
                 tool = CollectQqTool(ccRunner, qq),
+                layer = "L4",
+                requiresRoot = true,
+            ),
+            // module 101 QQNT 方案 Phase 1 — modern nt_msg.db (SQLCipher, frida export).
+            PdhToolHost.Collector(
+                tool = CollectQqntTool(ccRunner, qqnt),
                 layer = "L4",
                 requiresRoot = true,
             ),
