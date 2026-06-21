@@ -94,6 +94,16 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "plan",
     isReadOnly: false,
   },
+  notebook_edit: {
+    riskLevel: RISK_LEVELS.MEDIUM,
+    category: TOOL_CATEGORIES.WRITE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: true,
+    requiresConfirmation: false,
+    approvalFlow: "plan",
+    isReadOnly: false,
+  },
   run_shell: {
     riskLevel: RISK_LEVELS.HIGH,
     category: TOOL_CATEGORIES.EXECUTE,

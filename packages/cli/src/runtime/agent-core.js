@@ -958,7 +958,9 @@ export async function executeTool(name, args, context = {}) {
   // An explicit settings `allow` rule is the only bypass (exact user
   // pre-authorization); headless without a confirmer fails closed.
   if (
-    (name === "write_file" || name === "edit_file") &&
+    (name === "write_file" ||
+      name === "edit_file" ||
+      name === "notebook_edit") &&
     settingsVerdict.decision !== "allow" &&
     args?.path
   ) {
@@ -1217,7 +1219,8 @@ export async function executeTool(name, args, context = {}) {
   if (
     (name === "write_file" ||
       name === "edit_file" ||
-      name === "edit_file_hashed") &&
+      name === "edit_file_hashed" ||
+      name === "notebook_edit") &&
     toolResult &&
     typeof toolResult === "object" &&
     !toolResult.error &&
@@ -1274,6 +1277,134 @@ export function writeFileVerified(filePath, content, fsImpl = fs) {
     };
   }
   return { size: actual };
+}
+
+// Short, stable-ish id for a freshly inserted notebook cell (nbformat 4.5+).
+function _newNotebookCellId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * Apply a single cell edit to a Jupyter notebook (.ipynb) given its raw text.
+ * Pure (no fs) + exported for tests. Returns `{ text, summary, cellId }` on
+ * success or `{ error }` on any validation failure — the caller writes `text`.
+ *
+ * edit_mode:
+ *   - "replace" (default): overwrite the target cell's source; a code cell also
+ *     gets outputs=[] + execution_count=null (stale output would be misleading).
+ *   - "insert": add a new cell of `cell_type` after the target (or at the top
+ *     when no target is given).
+ *   - "delete": remove the target cell.
+ * Target = cell_id (preferred) or 0-based cell_index.
+ */
+export function editNotebookCell(notebookText, args = {}) {
+  let nb;
+  try {
+    nb = JSON.parse(notebookText);
+  } catch {
+    return { error: "Notebook is not valid JSON (.ipynb)" };
+  }
+  if (!nb || !Array.isArray(nb.cells)) {
+    return { error: "Not a valid notebook: missing cells[] (need nbformat 4)" };
+  }
+  const mode = args.edit_mode || "replace";
+  if (!["replace", "insert", "delete"].includes(mode)) {
+    return { error: `Unknown edit_mode "${mode}" (replace|insert|delete)` };
+  }
+  // .ipynb stores source as an array of lines that each KEEP their trailing \n.
+  const toLines = (s) => {
+    const t = String(s ?? "");
+    return t === "" ? [] : t.split(/(?<=\n)/);
+  };
+  // Re-serialize with Jupyter's 1-space indent + trailing newline.
+  const out = (summary, cellId) => ({
+    text: JSON.stringify(nb, null, 1) + "\n",
+    summary,
+    cellId,
+  });
+  const locate = () => {
+    if (args.cell_id != null) {
+      return nb.cells.findIndex((c) => c && c.id === args.cell_id);
+    }
+    if (Number.isInteger(args.cell_index)) {
+      return args.cell_index >= 0 && args.cell_index < nb.cells.length
+        ? args.cell_index
+        : -1;
+    }
+    return -2; // no locator supplied
+  };
+
+  if (mode === "insert") {
+    if (typeof args.new_source !== "string") {
+      return { error: "new_source is required for edit_mode 'insert'" };
+    }
+    const ct = args.cell_type;
+    if (ct !== "code" && ct !== "markdown") {
+      return {
+        error:
+          "cell_type ('code'|'markdown') is required for edit_mode 'insert'",
+      };
+    }
+    const id = _newNotebookCellId();
+    const cell =
+      ct === "code"
+        ? {
+            cell_type: "code",
+            id,
+            metadata: {},
+            source: toLines(args.new_source),
+            outputs: [],
+            execution_count: null,
+          }
+        : {
+            cell_type: "markdown",
+            id,
+            metadata: {},
+            source: toLines(args.new_source),
+          };
+    let at = 0;
+    if (args.cell_id != null || Number.isInteger(args.cell_index)) {
+      const idx = locate();
+      if (idx < 0) return { error: "Target cell not found for insert" };
+      at = idx + 1; // insert AFTER the target
+    }
+    nb.cells.splice(at, 0, cell);
+    return out(`inserted ${ct} cell at index ${at}`, id);
+  }
+
+  // replace / delete both need an existing target
+  const idx = locate();
+  if (idx === -2) {
+    return {
+      error: "Provide cell_id or cell_index to identify the target cell",
+    };
+  }
+  if (idx < 0) {
+    return {
+      error: `Target cell not found (${
+        args.cell_id != null
+          ? "cell_id " + args.cell_id
+          : "cell_index " + args.cell_index
+      })`,
+    };
+  }
+
+  if (mode === "delete") {
+    const [removed] = nb.cells.splice(idx, 1);
+    return out(`deleted cell at index ${idx}`, removed?.id);
+  }
+
+  // replace
+  if (typeof args.new_source !== "string") {
+    return { error: "new_source is required for edit_mode 'replace'" };
+  }
+  const cell = nb.cells[idx];
+  cell.source = toLines(args.new_source);
+  if (cell.cell_type === "code") {
+    cell.outputs = [];
+    cell.execution_count = null;
+  }
+  return out(`replaced ${cell.cell_type} cell at index ${idx}`, cell.id);
 }
 
 /**
@@ -1373,6 +1504,25 @@ async function executeToolInner(
         success: true,
         path: filePath,
         size: wrote.size,
+      });
+    }
+
+    case "notebook_edit": {
+      const filePath = path.resolve(cwd, args.path);
+      if (!fs.existsSync(filePath)) {
+        return attachDescriptor({ error: `Notebook not found: ${filePath}` });
+      }
+      const original = fs.readFileSync(filePath, "utf8");
+      const res = editNotebookCell(original, args);
+      if (res.error) return attachDescriptor({ error: res.error });
+      const wrote = writeFileVerified(filePath, res.text);
+      if (wrote.error) return attachDescriptor({ error: wrote.error });
+      return attachDescriptor({
+        success: true,
+        path: filePath,
+        size: wrote.size,
+        summary: res.summary,
+        cellId: res.cellId,
       });
     }
 

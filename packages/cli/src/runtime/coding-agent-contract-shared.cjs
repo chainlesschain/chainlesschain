@@ -70,6 +70,52 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "notebook_edit",
+    title: "Edit Notebook",
+    kind: "filesystem",
+    tier: "mvp",
+    description:
+      "Edit a Jupyter notebook (.ipynb) cell. edit_mode 'replace' (default) overwrites a cell's source; 'insert' adds a new cell (after the target cell, or at the top when no target given); 'delete' removes a cell. Identify the target with cell_id (preferred) or 0-based cell_index. cell_type ('code'|'markdown') is required for 'insert'. Source is plain text with newlines preserved; replacing a code cell clears its previous outputs + execution_count.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Path to the .ipynb notebook" },
+        new_source: {
+          type: "string",
+          description: "New cell source text (required for replace/insert)",
+        },
+        cell_id: {
+          type: "string",
+          description: "Target cell id (preferred over cell_index)",
+        },
+        cell_index: {
+          type: "number",
+          description: "0-based cell index (when cell_id is unknown)",
+        },
+        cell_type: {
+          type: "string",
+          enum: ["code", "markdown"],
+          description: "Cell type — required for edit_mode 'insert'",
+        },
+        edit_mode: {
+          type: "string",
+          enum: ["replace", "insert", "delete"],
+          description: "replace (default) | insert | delete",
+        },
+      },
+      required: ["path"],
+    },
+    ...TOOL_POLICY_METADATA.notebook_edit,
+    permissions: {
+      level: "elevated",
+      scopes: ["filesystem:write"],
+    },
+    telemetry: {
+      category: "filesystem",
+      tags: ["tool:notebook_edit", "contract:coding-agent", "tier:mvp"],
+    },
+  },
+  {
     name: "edit_file",
     title: "Edit File",
     kind: "filesystem",
