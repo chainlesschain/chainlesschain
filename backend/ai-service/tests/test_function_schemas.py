@@ -105,6 +105,13 @@ class TestBuildProjectContextPrompt:
         assert "- f19.txt (txt)" in out
         assert "more files" not in out
 
+    def test_markdown_fences_are_clean_no_backslash_artifacts(self):
+        # 回归：prompt 模板曾误用 `\`` 转义（Python 无该转义→残留反斜杠），
+        # 使发给 LLM 的代码围栏变成 "\\`\\`\\`json" 而非 "```json"。
+        out = build_project_context_prompt({"name": "X"})
+        assert out.count("\\`") == 0  # 没有任何 反斜杠+反引号
+        assert "```json" in out      # 干净的 JSON 代码围栏
+
 
 # --------------------------------------------------------------------------- #
 # build_system_prompt_with_context

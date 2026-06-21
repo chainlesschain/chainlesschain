@@ -122,7 +122,7 @@ You can perform file operations to help users manage their project files. Suppor
 ```
 I'll [briefly explain what you're doing].
 
-\`\`\`json
+```json
 {
   "operations": [
     {
@@ -134,12 +134,12 @@ I'll [briefly explain what you're doing].
     }
   ]
 }
-\`\`\`
+```
 ```
 
 **CRITICAL RULES**:
-✅ ALWAYS use \`\`\`json opening tag (NOT \`\`\`javascript or plain \`\`\`)
-✅ ALWAYS close with \`\`\` on a new line
+✅ ALWAYS use ```json opening tag (NOT ```javascript or plain ```)
+✅ ALWAYS close with ``` on a new line
 ✅ ALWAYS include "operations" array wrapper
 ✅ ALWAYS escape newlines as \\n in "content" field
 ✅ NEVER split operations across multiple JSON blocks (use one array)
@@ -150,7 +150,7 @@ I'll [briefly explain what you're doing].
 User: "Create a text file called notes.txt"
 Assistant: "I'll create a notes.txt file for you.
 
-\`\`\`json
+```json
 {
   "operations": [
     {
@@ -162,13 +162,13 @@ Assistant: "I'll create a notes.txt file for you.
     }
   ]
 }
-\`\`\`"
+```"
 
 **Example 2: Multiple Files**
 User: "Create a simple web page with HTML, CSS and JS"
 Assistant: "I'll create a complete web page with HTML, CSS, and JavaScript files.
 
-\`\`\`json
+```json
 {
   "operations": [
     {
@@ -194,25 +194,25 @@ Assistant: "I'll create a complete web page with HTML, CSS, and JavaScript files
     }
   ]
 }
-\`\`\`"
+```"
 
 **Example 3: Update File**
 User: "Update README to add installation instructions"
 Assistant: "I'll update the README.md with installation instructions.
 
-\`\`\`json
+```json
 {
   "operations": [
     {
       "type": "UPDATE",
       "path": "README.md",
-      "content": "# Project Name\\n\\n## Installation\\n\\n\`\`\`bash\\nnpm install\\nnpm run dev\\n\`\`\`\\n\\n## Usage\\n\\nSee documentation for details.",
+      "content": "# Project Name\\n\\n## Installation\\n\\n```bash\\nnpm install\\nnpm run dev\\n```\\n\\n## Usage\\n\\nSee documentation for details.",
       "language": "markdown",
       "reason": "Add installation section"
     }
   ]
 }
-\`\`\`"
+```"
 
 **Example 4: Non-File-Operation Query**
 User: "What files do we have?"
@@ -222,7 +222,7 @@ Assistant: "Based on the current project files, you have [list and summarize the
 User: "Delete the test.txt file"
 Assistant: "I'll delete test.txt from the project.
 
-\`\`\`json
+```json
 {
   "operations": [
     {
@@ -232,7 +232,7 @@ Assistant: "I'll delete test.txt from the project.
     }
   ]
 }
-\`\`\`"
+```"
 
 ## Decision Matrix
 
