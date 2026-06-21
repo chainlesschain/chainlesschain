@@ -118,19 +118,31 @@ export function registerAgentsCommand(program) {
         const prompt = Array.isArray(task) ? task.join(" ").trim() : "";
         if (!prompt) {
           logger.error(
-            chalk.red(`agents run requires a task, e.g. cc agents run ${name} "review @src/x.js"`),
+            chalk.red(
+              `agents run requires a task, e.g. cc agents run ${name} "review @src/x.js"`,
+            ),
           );
           process.exitCode = 1;
           return;
         }
-        const { runAgentHeadless } = await import("../runtime/headless-runner.js");
+        // Claude-Code 2.1.183 parity: deprecation warnings appear in stderr
+        // during print mode AND for agent-frontmatter models. The resolved model
+        // here comes from `--model` or the agent file's frontmatter `model:`.
+        const resolvedModel = options.model || a.model || undefined;
+        if (resolvedModel) {
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
+          maybeWarnDeprecatedModel({ model: resolvedModel });
+        }
+        const { runAgentHeadless } =
+          await import("../runtime/headless-runner.js");
         const outcome = await runAgentHeadless({
           prompt,
           // The agent file's body becomes the system prompt (its persona).
           systemPrompt: a.systemPrompt || undefined,
           // Frontmatter `tools` scopes the run; null = inherit all.
           allowedTools: a.tools || undefined,
-          model: options.model || a.model || undefined,
+          model: resolvedModel,
           outputFormat: options.outputFormat,
           permissionMode: options.permissionMode,
           additionalDirectories: Array.isArray(options.addDir)
@@ -147,7 +159,9 @@ export function registerAgentsCommand(program) {
   // ── new (scaffold) ────────────────────────────────────────────────────
   cmd
     .command("new <name>")
-    .description("Scaffold a new agent file (project-native .chainlesschain/agents/)")
+    .description(
+      "Scaffold a new agent file (project-native .chainlesschain/agents/)",
+    )
     .option("--description <d>", "Frontmatter description")
     .option("--tools <list>", "Comma-separated tool allow-list")
     .option("--claude", "Create under .claude/agents (Claude-Code-portable)")
