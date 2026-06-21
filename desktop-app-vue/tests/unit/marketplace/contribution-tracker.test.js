@@ -34,6 +34,13 @@ describe("ContributionTracker", () => {
       "Score must be between 0 and 1",
     );
   });
+  it("should reject a NaN score (would poison leaderboard AVG)", async () => {
+    // NaN slips past `score < 0 || score > 1`; without Number.isFinite it gets
+    // stored and AVG(quality_score) on the leaderboard becomes NaN.
+    await expect(tracker.scoreContribution("id", NaN)).rejects.toThrow(
+      "Score must be between 0 and 1",
+    );
+  });
   it("should get empty leaderboard", async () => {
     const l = await tracker.getLeaderboard();
     expect(l).toHaveLength(0);

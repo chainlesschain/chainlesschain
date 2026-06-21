@@ -53,7 +53,10 @@ class ContributionTracker {
     if (!contributionId) {
       throw new Error("Contribution ID is required");
     }
-    if (score < 0 || score > 1) {
+    // Number.isFinite first: a NaN slips past `score < 0 || score > 1` (NaN
+    // comparisons are always false) and gets stored to quality_score, which then
+    // poisons the leaderboard's AVG(quality_score) into NaN.
+    if (!Number.isFinite(score) || score < 0 || score > 1) {
       throw new Error("Score must be between 0 and 1");
     }
     if (this.database && this.database.db) {

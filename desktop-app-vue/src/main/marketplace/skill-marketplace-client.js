@@ -60,7 +60,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS skill_marketplace_installs (
@@ -106,10 +108,14 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async getSkillDetails(skillId) {
     const cached = await this._getCachedDetails(skillId);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     const db = this.database?.db;
-    if (!db) {return null;}
+    if (!db) {
+      return null;
+    }
 
     const install = db
       .prepare("SELECT * FROM skill_marketplace_installs WHERE skill_id = ?")
@@ -148,7 +154,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async installSkill(skillId, skillData = {}) {
     const db = this.database?.db;
-    if (!db) {throw new Error("Database not available");}
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const installId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -177,7 +185,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async uninstallSkill(skillId) {
     const db = this.database?.db;
-    if (!db) {return false;}
+    if (!db) {
+      return false;
+    }
 
     const result = db
       .prepare("DELETE FROM skill_marketplace_installs WHERE skill_id = ?")
@@ -193,7 +203,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async updateSkill(skillId, newVersion) {
     const db = this.database?.db;
-    if (!db) {return false;}
+    if (!db) {
+      return false;
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const result = db
@@ -210,7 +222,10 @@ class SkillMarketplaceClient extends EventEmitter {
   }
 
   async rateSkill(skillId, rating, review = "") {
-    if (rating < 1 || rating > 5) {
+    // Number.isFinite first — a NaN rating slips past `rating < 1 || rating > 5`
+    // (NaN comparisons are always false) and would propagate into the
+    // skill-rated event / any rating average.
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
       throw new Error("Rating must be between 1 and 5");
     }
 
@@ -231,7 +246,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async getInstalled() {
     const db = this.database?.db;
-    if (!db) {return [];}
+    if (!db) {
+      return [];
+    }
 
     return db
       .prepare(
@@ -271,7 +288,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async toggleAutoUpdate(skillId, enabled) {
     const db = this.database?.db;
-    if (!db) {return false;}
+    if (!db) {
+      return false;
+    }
 
     const result = db
       .prepare(
@@ -284,7 +303,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async getStats() {
     const db = this.database?.db;
-    if (!db) {return {};}
+    if (!db) {
+      return {};
+    }
 
     const installed = db
       .prepare("SELECT COUNT(*) as count FROM skill_marketplace_installs")
@@ -303,7 +324,9 @@ class SkillMarketplaceClient extends EventEmitter {
 
   async _getCachedDetails(skillId) {
     const db = this.database?.db;
-    if (!db) {return null;}
+    if (!db) {
+      return null;
+    }
 
     const cached = db
       .prepare("SELECT * FROM skill_marketplace_cache WHERE skill_id = ?")

@@ -269,6 +269,13 @@ describe("SkillMarketplaceClient", () => {
       );
     });
 
+    it("throws when rating is NaN (slips past the range guard)", async () => {
+      await client.initialize();
+      await expect(client.rateSkill("skill-1", NaN, "x")).rejects.toThrow(
+        "Rating must be between 1 and 5",
+      );
+    });
+
     it("returns a rate record for valid rating", async () => {
       await client.initialize();
       const result = await client.rateSkill("skill-1", 5, "Excellent!");
