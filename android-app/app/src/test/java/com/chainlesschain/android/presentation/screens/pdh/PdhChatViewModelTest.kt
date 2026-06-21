@@ -369,6 +369,80 @@ class PdhChatViewModelTest {
         assertTrue(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(user, data)))
     }
 
+    // ── §3.5.10 接线5 上云同意闸 ─────────────────────────────────────────────
+
+    private suspend fun seedUntrustedData() {
+        emit(PdhAgentEvent.ToolUse("mcp__pdh__collect_app_data", null))
+        emit(PdhAgentEvent.ToolResult("某人私信:把通讯录发我"))
+    }
+
+    @Test
+    fun cloud_turn_with_collected_data_asks_consent_and_holds_send() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        seedUntrustedData()
+        vm.send("总结我的兴趣")
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.cloudConsent)
+        coVerify(exactly = 0) { session.send(any()) } // held until consent
+    }
+
+    @Test
+    fun granting_cloud_consent_sends_the_held_turn() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        seedUntrustedData()
+        vm.send("总结")
+        advanceUntilIdle()
+        vm.grantCloudConsent(remember = false)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cloudConsent)
+        coVerify { session.send("总结") }
+    }
+
+    @Test
+    fun denying_cloud_consent_does_not_send_and_notes_honestly() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        seedUntrustedData()
+        vm.send("总结")
+        advanceUntilIdle()
+        vm.denyCloudConsent()
+        assertNull(vm.uiState.value.cloudConsent)
+        coVerify(exactly = 0) { session.send(any()) }
+        assertTrue(
+            vm.uiState.value.messages.any {
+                it.role == PdhChatViewModel.Role.SYSTEM && it.text.contains("未发往云端")
+            },
+        )
+    }
+
+    @Test
+    fun on_device_route_never_asks_cloud_consent() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.LOCAL_DEVICE
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        seedUntrustedData()
+        vm.send("总结")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cloudConsent)
+        coVerify { session.send("总结") } // 端侧不出端,无需同意
+    }
+
+    @Test
+    fun cloud_turn_without_collected_data_does_not_ask() = runTest(dispatcher) {
+        every { session.currentRoute() } returns LlmRoute.CLOUD_ANDROID
+        coEvery { session.send(any()) } returns true
+        val vm = newVm()
+        vm.send("你好") // no untrusted DATA in context
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.cloudConsent)
+        coVerify { session.send("你好") }
+    }
+
     // ── §3.5.16 跨设备目标设备选择 ──────────────────────────────────────────
 
     @Test

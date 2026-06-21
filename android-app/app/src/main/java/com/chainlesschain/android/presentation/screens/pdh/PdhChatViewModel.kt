@@ -65,6 +65,10 @@ class PdhChatViewModel @Inject constructor(
     private val onboardingFlagFile: File
         get() = File(appContext.filesDir, "pdh-onboarding-done")
 
+    // §3.5.10 接线5 上云同意持久标志("本类不再问")。
+    private val cloudConsentFlagFile: File
+        get() = File(appContext.filesDir, "pdh-cloud-consent")
+
     enum class Role { USER, ASSISTANT, SYSTEM, TOOL, DATA, VIEW }
 
     data class ChatMessage(
@@ -171,6 +175,12 @@ class PdhChatViewModel @Inject constructor(
     )
 
     /**
+     * §3.5.10 接线5 上云同意:本轮涉及采集数据且 AI 在云端 → 待用户显式同意/取消
+     * (默认安全、上限由人掌控,§7.1)。[pendingText] 是被暂缓的那一轮文本。
+     */
+    data class CloudConsent(val pendingText: String)
+
+    /**
      * §3.5.18 透明度审计视图(读侧):AI 画像(可纠)+ 出境台账 + 操作(行为)台账。
      * 写侧:出境=§3.5.10/16(本类 send 时按档记)、操作=§3.5.17(事务批准时记);
      * 画像源自 instinct/memory(cc/集成层),Phase 2 honest-empty。
@@ -197,6 +207,8 @@ class PdhChatViewModel @Inject constructor(
         val budgetNotice: BudgetNotice? = null,
         /** §3.5.18 透明度审计视图(非空=展示;从本地台账读取)。 */
         val transparency: Transparency? = null,
+        /** §3.5.10 接线5 上云同意卡(非空=待用户决定是否把采集数据发往云端)。 */
+        val cloudConsent: CloudConsent? = null,
         /** §3.5.16 跨设备:已配对的自有设备(§10 discovery 注入;Phase 2 暂空=仅本机)。 */
         val pairedDevices: List<String> = emptyList(),
         /** §3.5.16 用户选的目标设备(null=本机);经 resolveTarget 落到 [targetDevice]。 */
@@ -237,15 +249,24 @@ class PdhChatViewModel @Inject constructor(
     /** §3.5.18: this session's LLM route — drives the egress 台账(数据去过哪)。 */
     private var sessionRoute: LlmRoute? = null
 
+    /** §3.5.10 接线5: cloud-data consent state ("本类不再问" 持久 / 本 session 已问)。 */
+    private var cloudConsentGranted = false
+    private var cloudConsentAskedThisSession = false
+
     init {
         viewModelScope.launch {
             // §3.7: restore the persisted transcript first so it survives an app
             // kill/recreate, THEN start the agent. The 已就绪 line is only added for
             // a fresh chat (no restored history) to avoid stacking it each launch.
-            // §3.7 restore + §3.5.19 first-run probe in a single IO hop.
-            val (restored, onboardingDone) = withContext(ioDispatcher) {
-                loadChat() to onboardingFlagFile.exists()
+            // §3.7 restore + §3.5.19 first-run probe + §3.5.10 consent flag in one IO hop.
+            val (restored, onboardingDone, consentGranted) = withContext(ioDispatcher) {
+                Triple(
+                    loadChat(),
+                    onboardingFlagFile.exists(),
+                    cloudConsentFlagFile.exists(),
+                )
             }
+            cloudConsentGranted = consentGranted
             // §3.5.19 接线2: only guide NEW users. Fresh chat (no restored history)
             // and onboarding never finished → show the 3-step onboarding instead of
             // the 已就绪 line; returning users go straight to the chat (zero打扰).
@@ -346,6 +367,29 @@ class PdhChatViewModel @Inject constructor(
     fun send(raw: String) {
         val text = raw.trim()
         if (text.isEmpty() || _uiState.value.isSending || !_uiState.value.ready) return
+        // §3.5.10 接线5: hold a cloud turn that carries freshly-collected
+        // (untrusted) data until the user explicitly consents (默认安全,§7.1).
+        if (shouldAskCloudConsent()) {
+            _uiState.update { it.copy(cloudConsent = CloudConsent(text)) }
+            return
+        }
+        doSend(text)
+    }
+
+    /**
+     * §3.5.10 接线5: ask cloud-data consent when this turn would send freshly
+     * collected (untrusted) data to a 第三方云 model — unless granted before
+     * ("本类不再问") or already asked this session. Detectable signals only
+     * (no client-side NL classification, §3.5.4): cloud route × recent DATA.
+     */
+    private fun shouldAskCloudConsent(): Boolean =
+        !cloudConsentGranted &&
+            !cloudConsentAskedThisSession &&
+            sessionRoute == LlmRoute.CLOUD_ANDROID &&
+            hasUntrustedDataSinceLastUser(_uiState.value.messages)
+
+    /** Actually send a user turn (post-consent). */
+    private fun doSend(text: String) {
         _uiState.update {
             it.copy(
                 messages = it.messages + ChatMessage(role = Role.USER, text = text),
@@ -373,6 +417,31 @@ class PdhChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** §3.5.10 接线5「同意一次」/「本类不再问」→ 放行本轮(remember 记持久偏好)。 */
+    fun grantCloudConsent(remember: Boolean) {
+        cloudConsentAskedThisSession = true
+        if (remember) {
+            cloudConsentGranted = true
+            viewModelScope.launch(ioDispatcher) {
+                runCatching { cloudConsentFlagFile.writeText("1") }
+            }
+        }
+        val pending = _uiState.value.cloudConsent?.pendingText
+        _uiState.update { it.copy(cloudConsent = null) }
+        if (pending != null) doSend(pending)
+    }
+
+    /** §3.5.10 接线5「取消」→ 不出端;诚实告知未完成(端侧模型暂不可用,不假装)。 */
+    fun denyCloudConsent() = _uiState.update {
+        it.copy(
+            cloudConsent = null,
+            messages = it.messages + ChatMessage(
+                role = Role.SYSTEM,
+                text = "已取消:你的数据未发往云端(端侧模型暂不可用,本轮未在不出端前提下完成)。",
+            ),
+        )
     }
 
     /**

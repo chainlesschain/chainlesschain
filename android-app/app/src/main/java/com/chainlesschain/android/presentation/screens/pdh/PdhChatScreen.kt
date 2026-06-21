@@ -193,6 +193,10 @@ fun PdhChatScreen(
                 state.budgetNotice?.let { notice ->
                     item { BudgetNoticeCard(notice = notice, viewModel = viewModel) }
                 }
+                // §3.5.10 接线5 上云同意卡(采集数据 × 云端 → 显式同意才放行)。
+                state.cloudConsent?.let {
+                    item { ConsentCard(viewModel = viewModel) }
+                }
                 // §3.5.18 透明度审计视图(数据去过哪 / AI 替你办过什么 / AI 画像)。
                 state.transparency?.let { t ->
                     item { TransparencyPanel(t = t, viewModel = viewModel) }
@@ -415,6 +419,35 @@ private fun BudgetNoticeCard(notice: PdhChatViewModel.BudgetNotice, viewModel: P
                 onClick = { viewModel.runCollectNow() },
                 modifier = Modifier.padding(start = 8.dp),
             ) { Text("现在就跑") }
+        }
+    }
+}
+
+/**
+ * §3.5.10 接线5 上云同意卡:本轮涉及采集数据且 AI 在云端 → 显式同意才放行。
+ * 诚实(§7.1/§13.4):只送问题 + RAG 摘要、不送原始私信/账单;取消则不出端。
+ */
+@Composable
+private fun ConsentCard(viewModel: PdhChatViewModel) {
+    var dontAskAgain by remember { mutableStateOf(false) }
+    val onColor = MaterialTheme.colorScheme.onTertiaryContainer
+    CardSurface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+        Text("上云确认", style = MaterialTheme.typography.titleSmall, color = onColor)
+        Text(
+            "本轮涉及采集数据,且 AI 在云端。将把【你的问题 + RAG 事实摘要】发往云端模型,不送原始私信/账单。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = onColor,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = dontAskAgain, onCheckedChange = { dontAskAgain = it })
+            Text("本类不再问", style = MaterialTheme.typography.bodySmall, color = onColor)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { viewModel.denyCloudConsent() }) { Text("取消") }
+            Button(
+                onClick = { viewModel.grantCloudConsent(dontAskAgain) },
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("同意") }
         }
     }
 }
