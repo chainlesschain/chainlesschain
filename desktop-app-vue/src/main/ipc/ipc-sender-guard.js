@@ -169,45 +169,68 @@ function validateSender(event) {
 const _warned = new Set();
 
 /**
- * Wrap a raw handler so it validates the sender first.
- * @param {string} channel
- * @param {Function} handler
- * @param {() => string} getMode
+ * Core verdict: should this call be BLOCKED? Logs would-block/BLOCKED (deduped
+ * per channel+reason in report mode). Fails OPEN on an internal guard error.
+ * Shared by the handle wrapper (rejects) and the on/once wrapper (drops).
+ * @returns {boolean} true only in enforce mode with an untrusted sender.
+ */
+function shouldBlock(channel, event, getMode) {
+  const mode = getMode();
+  if (mode === "off") {
+    return false;
+  }
+  let verdict;
+  try {
+    verdict = validateSender(event);
+  } catch (err) {
+    // Guard bug → fail OPEN (never brick legit IPC), but make it loud.
+    logger.error(
+      `[ipc-sender-guard] internal error validating "${channel}" (allowing): ${err && err.message}`,
+    );
+    return false;
+  }
+  if (!verdict || verdict.trusted !== false) {
+    return false;
+  }
+  const blocking = mode === "enforce";
+  const key = `${channel}:${verdict.reason}`;
+  if (blocking || !_warned.has(key)) {
+    _warned.add(key);
+    logger.warn(
+      `[ipc-sender-guard] ${blocking ? "BLOCKED" : "would-block"} ` +
+        `channel="${channel}" reason=${verdict.reason} url=${verdict.url || "?"}`,
+    );
+  }
+  return blocking;
+}
+
+/**
+ * Wrap an ipcMain.handle handler so it validates the sender first.
+ * Async so an enforce-mode rejection surfaces as a rejected promise (uniform
+ * with ipcMain.handle's await semantics) rather than a synchronous throw.
  */
 function wrapHandler(channel, handler, getMode) {
-  // async so an enforce-mode rejection surfaces as a rejected promise (uniform
-  // with ipcMain.handle's await semantics) rather than a synchronous throw.
   return async function guardedHandler(event, ...args) {
-    const mode = getMode();
-    if (mode !== "off") {
-      let verdict;
-      try {
-        verdict = validateSender(event);
-      } catch (err) {
-        // Guard bug → fail OPEN (never brick legit IPC), but make it loud.
-        verdict = { trusted: true, error: err && err.message };
-        logger.error(
-          `[ipc-sender-guard] internal error validating "${channel}" (allowing): ${verdict.error}`,
-        );
-      }
-      if (verdict && verdict.trusted === false) {
-        const blocking = mode === "enforce";
-        const key = `${channel}:${verdict.reason}`;
-        if (blocking || !_warned.has(key)) {
-          _warned.add(key);
-          logger.warn(
-            `[ipc-sender-guard] ${blocking ? "BLOCKED" : "would-block"} ` +
-              `channel="${channel}" reason=${verdict.reason} url=${verdict.url || "?"}`,
-          );
-        }
-        if (blocking) {
-          throw new Error(
-            `[ipc-sender-guard] untrusted sender rejected for channel "${channel}"`,
-          );
-        }
-      }
+    if (shouldBlock(channel, event, getMode)) {
+      throw new Error(
+        `[ipc-sender-guard] untrusted sender rejected for channel "${channel}"`,
+      );
     }
     return handler(event, ...args);
+  };
+}
+
+/**
+ * Wrap an ipcMain.on / once listener. Fire-and-forget has no return to reject,
+ * so an untrusted sender in enforce mode is DROPPED (listener never invoked).
+ * Kept synchronous to match ipcMain.on listener semantics.
+ */
+function wrapListener(channel, listener, getMode) {
+  return function guardedListener(event, ...args) {
+    if (shouldBlock(channel, event, getMode)) {
+      return; // drop the untrusted event — do not invoke the listener
+    }
+    return listener(event, ...args);
   };
 }
 
@@ -246,6 +269,22 @@ function installSenderGuard(ipcMain, opts = {}) {
     };
   }
 
+  // Fire-and-forget channels (ipcMain.on / once): untrusted senders are dropped
+  // (no response to reject). Safe to wrap — the codebase has no ipcMain
+  // removeListener/off by reference, so the wrapper identity never matters.
+  for (const method of ["on", "once"]) {
+    if (typeof ipcMain[method] !== "function") {
+      continue;
+    }
+    const orig = ipcMain[method].bind(ipcMain);
+    ipcMain[method] = function (channel, listener) {
+      if (typeof listener !== "function") {
+        return orig(channel, listener);
+      }
+      return orig(channel, wrapListener(channel, listener, getMode));
+    };
+  }
+
   ipcMain.__ccSenderGuardInstalled = true;
   logger.info(
     `[ipc-sender-guard] installed (mode=${getMode()}; set CC_IPC_SENDER_GUARD=report for audit-only, =0 to disable)`,
@@ -260,5 +299,6 @@ module.exports = {
   resolveMode,
   // exported for tests
   _wrapHandler: wrapHandler,
+  _wrapListener: wrapListener,
   _appFileRoot: appFileRoot,
 };

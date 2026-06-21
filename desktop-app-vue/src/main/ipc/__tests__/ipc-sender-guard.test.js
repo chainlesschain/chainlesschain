@@ -15,6 +15,7 @@ const {
   originIsTrusted,
   installSenderGuard,
   _wrapHandler,
+  _wrapListener,
   _appFileRoot,
 } = guard;
 
@@ -182,12 +183,47 @@ describe("ipc-sender-guard / wrapHandler modes", () => {
   });
 });
 
+describe("ipc-sender-guard / wrapListener modes (fire-and-forget)", () => {
+  const trustedEvt = evt(topFrame(trustedFileUrl));
+  const untrustedEvt = evt(topFrame("https://evil.example.com/"));
+
+  it("enforce mode: untrusted sender is DROPPED (listener never runs, no throw)", () => {
+    const listener = vi.fn();
+    const wrapped = _wrapListener("evt:x", listener, () => "enforce");
+    expect(() => wrapped(untrustedEvt, 1)).not.toThrow();
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("enforce mode: trusted sender runs", () => {
+    const listener = vi.fn();
+    const wrapped = _wrapListener("evt:x", listener, () => "enforce");
+    wrapped(trustedEvt, 1, 2);
+    expect(listener).toHaveBeenCalledWith(trustedEvt, 1, 2);
+  });
+
+  it("report mode: untrusted sender still runs (logged, not dropped)", () => {
+    const listener = vi.fn();
+    const wrapped = _wrapListener("evt:x", listener, () => "report");
+    wrapped(untrustedEvt);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("off mode: listener always runs", () => {
+    const listener = vi.fn();
+    const wrapped = _wrapListener("evt:x", listener, () => "off");
+    wrapped(untrustedEvt);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+});
+
 describe("ipc-sender-guard / installSenderGuard", () => {
   function fakeIpcMain() {
     const handlers = new Map();
     return {
       handle: vi.fn((channel, fn) => handlers.set(channel, fn)),
       handleOnce: vi.fn((channel, fn) => handlers.set(`once:${channel}`, fn)),
+      on: vi.fn((channel, fn) => handlers.set(`on:${channel}`, fn)),
+      once: vi.fn((channel, fn) => handlers.set(`evtonce:${channel}`, fn)),
       _handlers: handlers,
     };
   }
@@ -215,6 +251,29 @@ describe("ipc-sender-guard / installSenderGuard", () => {
     expect(handler).not.toHaveBeenCalled();
     await expect(registered(evt(topFrame(trustedFileUrl)))).resolves.toBe("ok");
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("also wraps on/once: untrusted event dropped, trusted runs (no throw)", () => {
+    const ipcMain = fakeIpcMain();
+    installSenderGuard(ipcMain, { getMode: () => "enforce" });
+
+    const listener = vi.fn();
+    ipcMain.on("evt:y", listener);
+    const registered = ipcMain._handlers.get("on:evt:y");
+    expect(registered).not.toBe(listener);
+
+    expect(() =>
+      registered(evt(topFrame("https://evil.example.com/")), 1),
+    ).not.toThrow();
+    expect(listener).not.toHaveBeenCalled();
+
+    registered(evt(topFrame(trustedFileUrl)), 1, 2);
+    expect(listener).toHaveBeenCalledWith(evt(topFrame(trustedFileUrl)), 1, 2);
+
+    // once is patched too
+    const onceListener = vi.fn();
+    ipcMain.once("evt:z", onceListener);
+    expect(ipcMain._handlers.get("evtonce:evt:z")).not.toBe(onceListener);
   });
 
   it("passes through a non-function handler unchanged", () => {
