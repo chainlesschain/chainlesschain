@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **agent REPL** 流静默提示补 `· will retry in Ns`（agent 路径硬超时后自动重发）；**chat REPL（`cc chat` / `cc ask`）** 补 `· will time out in Ns`——chat 路径停顿是中止报错，故措辞「超时」非「重试」。
 - 底层：`_iterateStreamWithStall` / `makeStallGuard` 把硬超时截止时间作为第 2 参传给停顿回调（`onStall` / `onHint`），无超时时优雅省略后缀；含单元测试。
 
+## [v5.0.3.125] - 2026-06-22 — 微信派生 key 采集 + 通用明文库采集 + 守护进程多 app 通用化（参考 QQ 模式扩展头条/抖音/微信）
+
+### Added — 微信 + 通用明文库端侧采集（module 101，参考 QQ 派生 key + Magisk 守护进程模式）
+
+- **`cc hub collect-wechat`**（pdh 0.4.32 `lib/forensics/wechat-collect.js`）：解密微信 `EnMicroMsg.db`(SQLCipher) 用**派生 key** `MD5(IMEI+uin)[:7]`（同 QQ 思路、**无 frida**；Android 13 难取真 IMEI → 自动补 androidId/空 IMEI 占位 + 已存 key/frida raw-key 兜底）+ 解析 message/rcontact/chatroom 入金库（群消息 `wxid:content` 前缀拆分）。fixture 实测 4989 条消息解析。
+- **`cc hub collect-db`**（pdh 0.4.32 `lib/forensics/plaintext-db-collect.js`）：**通用明文 SQLite 库采集器**——读任意 app 明文库的可读 TEXT 记录入金库（CJK/≥6 字母过滤噪声、uuid/hash/base64 排除、ns/µs/s 时间归一），`source.adapter=local-<app>`。补齐「头条/抖音 IM=WCDB2 加密难破，但其明文非-IM 库都是重要个人数据」缺口。真机实测头条 `news_article.db` 163 条记录入库。
+- **Magisk 守护进程通用化**（`pdh-qqd.sh` v1.1，重打包 `pdh-qqd-magisk-v1.1.zip`）：单一守护进程支持 `qq` / `wechat` / `plaintext <pkg>` 三模式，分别喂 `collect-qq` / `collect-wechat` / `collect-db`。请求语法 + IPC 文件协议见脚本头注释。
+- **明文库也采（QQ 含）**：明文库是个人数据重要组成部分，QQ/微信/头条/抖音的明文非加密库均经 `collect-db` 通用路径采集，不遗漏。
+- 版本面：cli 0.162.100 / pdh 0.4.32 / Android bundle v20260622c / USR_VERSION 53。
+
 ## [v5.0.3.124] - 2026-06-22 — QQNT 现代 QQ 全自动采集（派生 key 解密无 frida + MIUI Magisk 守护进程）
 
 ### Added — QQ (QQNT) 端侧采集（module 101）
