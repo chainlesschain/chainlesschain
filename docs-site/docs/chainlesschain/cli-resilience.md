@@ -1,10 +1,11 @@
 # CLI Agent 弹性提示（流式停顿 + 弃用模型预警）
 
-> **版本: v0.162.94+ | 状态: ✅ 生产可用 | Claude-Code 2.1.183 / 2.1.185 平价 | 2 项前台提示 + 2 个 kill-switch | 22 单元测试**
+> **版本: v0.162.94+ | 状态: ✅ 生产可用 | Claude-Code 2.1.183 / 2.1.185 平价 | 2 项前台提示 + 可选硬超时 + 2 个 kill-switch | 26 单元测试**
 >
-> 当 `cc agent` / `cc ask` 与 LLM 接口交互出现两类「沉默故障」时，CLI 会**主动在 stderr 给出一行提示**，而不是让用户对着冻住的 spinner 或一句不透明的 `model not found` 干等：
+> 当 `cc agent` / `cc ask` 与 LLM 接口交互出现「沉默故障」时，CLI 会**主动在 stderr 给出一行提示**（必要时还能**自动恢复**），而不是让用户对着冻住的 spinner 或一句不透明的 `model not found` 干等：
 > 1. **流式停顿提示**（2.1.185）——流式回复中途 API 静默（连接还在、但 >20s 没有任何字节）时，提示「仍在等待 API 响应」。
 > 2. **弃用模型预警**（2.1.183）——请求的模型 id 命中「厂商已退役快照」名单时，在运行**开始前**就提醒并给出替代型号。
+> 3. **流式硬超时**（可选，**默认关闭**）——流持续静默超过用户设定的阈值时，主动取消连接并以**可重试**的 `ETIMEDOUT` 触发自动重发，避免「连接半死、cc 永久挂起、只能 Esc」。
 
 ## 概述
 
@@ -20,7 +21,8 @@
 ## 核心特性
 
 - ⏳ **流式停顿看门狗**：`_iterateStreamWithStall` 把同一个在途 `read()` 与一个新计时器反复 race——超过 `STREAM_STALL_MS`（默认 20s）没有新字节就触发一次 `onStall(elapsedMs)`，**不丢任何 chunk、不重复读**，`done` / 错误 / abort 全部原样透传。
-- 🔌 **三路流式读取器统一接入**：ollama / anthropic / openai 三个流式分支都经由 `options.onStall` + `options.streamStallMs` 接入同一看门狗；不传 `onStall` 时退化为零额外计时器的普通读循环。
+- 🔌 **三路流式读取器统一接入**：ollama / anthropic / openai 三个流式分支都经由 `options.onStall` + `options.streamStallMs` + `options.streamStallTimeoutMs` 接入同一看门狗；不传 `onStall` 且不开硬超时时退化为零额外计时器的普通读循环。
+- 🛑 **可选流式硬超时**：设了 `config.llm.streamStallTimeoutMs`（默认 `0`=关闭）后，看门狗在持续静默超过该阈值时**取消 reader（释放 socket）并抛出可重试的 `ETIMEDOUT`**，由 `_retryStreamingChat` 重发请求；单个**重整计时器**在 `min(停顿提示, 硬超时)` 唤醒，停顿提示仍会在超时前先触发一次。**默认关闭**是因为本地模型（CPU 上的 ollama）首字可能要几分钟——只有用户显式开启 cc 才会自动中断。
 - 🟡 **弃用模型保守名单**：`DEPRECATED_MODELS` 只收录厂商**已正式退役 / 排期下线**的快照（Anthropic 的 `claude-1/2/instant`、`claude-3-*-20240229`；OpenAI 的 `gpt-4-0314/0613/32k/vision-preview`、`gpt-3.5-turbo-0301/0613`、`text-davinci-*`）。
 - 🎯 **绝不误伤在产模型**：匹配为「精确 id 或前缀」，但所有模式都经过挑选，**不会前缀撞上任何在产 GA 模型**（没有裸 `gpt-4` / `claude-3` 这种宽匹配），对 `doubao-*` / `ollama` 等本地与国产 id 零误报。
 - 🧪 **纯函数 + 易测**：`checkModelDeprecation` / `formatModelDeprecationWarning` 都是纯函数；`maybeWarnDeprecatedModel` 在解析出最终 model 后立即调用、命中即提示替代型号。
@@ -51,19 +53,37 @@
 |------|---------|---------|------|
 | 弃用模型预警 | 模型解析后、首次调用前 | `agent.js`（`applyConfigLlmDefaults` 之后）+ `ask.js`（高频单次问答路径） | `chalk.yellow` stderr 一行 |
 | 流式停顿提示 | 流式回复中途静默 >20s | 三路 streaming reader → `onStall` | REPL `chalk.dim` stderr 一行 |
+| 流式硬超时（可选） | 静默超过 `streamStallTimeoutMs` | 三路 reader → 取消 reader + 抛 `ETIMEDOUT` | 经 `_retryStreamingChat` 自动重发 |
 
+> **停顿提示 vs 硬超时**：两者共用同一个看门狗与单个重整计时器——计时器在 `min(停顿提示, 硬超时)` 唤醒。先到 20s 触发**一次**停顿提示（软：只通知、继续等）；再到硬超时阈值则**取消连接 + 抛可重试 `ETIMEDOUT`**（硬：放弃这条静默连接、重发）。硬超时未配置（=0）时只有软提示、永不自动中断。
+>
 > **与 fallback-model 的关系**：2.1.183 描述的「自动切换到更新的模型」那一半，已由 fallback-model 机制覆盖（model-not-found 错误 → 切链中下一个模型 → `onFallback` 提示）。本特性补的是**主动那一半**：在失败前就预警。
 
 ## 配置参考
 
-```bash
-# ── 流式停顿提示 ──────────────────────────────────────────
-# 阈值（毫秒）：连接存活但无新字节超过此值即提示一次。默认 20000。
-# 仅作为内部 options.streamStallMs 覆盖，通常无需调整。
-STREAM_STALL_MS=20000        # 源码常量，编程接口经 options.streamStallMs 覆盖
+```jsonc
+// ~/.chainlesschain/config.json —— 流式硬超时（默认关闭）
+{
+  "llm": {
+    // 流持续静默超过此毫秒数则取消连接 + 自动重试。
+    // 0 / 缺省 = 关闭（永不自动中断）。建议 >20000（停顿提示阈值），
+    // 例如 120000 = 静默 2 分钟仍无字节才放弃这条连接并重发。
+    "streamStallTimeoutMs": 0
+  }
+}
+```
 
-# ── 弃用模型预警 ──────────────────────────────────────────
-CC_MODEL_NOTICE=0            # 关闭弃用模型预警（默认开启）
+```bash
+# ── 流式停顿提示（软，默认开启）──────────────────────────────
+# 阈值（毫秒）：连接存活但无新字节超过此值即提示一次。默认 20000。
+# 源码常量，编程接口经 options.streamStallMs 覆盖，通常无需调整。
+STREAM_STALL_MS=20000        # 仅源码默认；非环境变量开关
+
+# ── 流式硬超时（默认关闭）────────────────────────────────────
+STREAM_STALL_TIMEOUT_MS=0    # 仅源码默认；实际开启请用 config.llm.streamStallTimeoutMs
+
+# ── 弃用模型预警 ────────────────────────────────────────────
+CC_MODEL_NOTICE=0            # 环境变量：关闭弃用模型预警（默认开启）
 
 # 提示样例：
 #   ⚠ Warning: model "claude-2.1" is deprecated — Anthropic retired the
@@ -72,18 +92,22 @@ CC_MODEL_NOTICE=0            # 关闭弃用模型预警（默认开启）
 #   ⏳ waiting for API response (silent 21s)…
 ```
 
+> **配置 vs 环境变量**：弃用预警用环境变量 `CC_MODEL_NOTICE` 关；流式硬超时用配置 `config.llm.streamStallTimeoutMs` 开（REPL 启动时读取）。停顿提示阈值与硬超时的源码默认（`STREAM_STALL_MS` / `STREAM_STALL_TIMEOUT_MS`）不作为环境变量暴露，仅在编程接口经 options 覆盖。
+
 **编程接口**（`chatWithTools` / 流式读取器 options）：
 
 | 选项 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `options.onStall` | `(elapsedMs:number)=>void` | 无 | 静默间隙回调；不传则不挂计时器 |
-| `options.streamStallMs` | `number` | `20000` | 单次流式停顿判定阈值 |
+| `options.streamStallMs` | `number` | `20000` | 单次流式停顿（软提示）判定阈值 |
+| `options.streamStallTimeoutMs` | `number` | `0` | 流式硬超时（取消 + 抛 `ETIMEDOUT`）；`0`=关闭 |
 
 ## 性能指标
 
-- **零额外开销（默认路径）**：不提供 `onStall` 时，看门狗退化为普通 `await read()` 循环，**不创建任何计时器**。
+- **零额外开销（默认路径）**：不提供 `onStall` 且未开硬超时时，看门狗退化为普通 `await read()` 循环，**不创建任何计时器**。
+- **单个重整计时器**：软提示与硬超时共用一个计时器，唤醒点取 `min(streamStallMs, streamStallTimeoutMs)`，到点重整——不会为两套阈值各挂一个计时器。
 - **计时器 unref**：停顿计时器调用 `timer.unref()`，绝不阻止进程退出。
-- **不丢 chunk / 不重复读**：每个静默间隙复用同一个在途 `read()` promise 与新计时器 race，超时只触发提示、不重新发起读取。
+- **不丢 chunk / 不重复读**：每个静默间隙复用同一个在途 `read()` promise 与新计时器 race，软提示只通知、不重新发起读取；仅硬超时才取消 reader 并以 `ETIMEDOUT` 走重试。
 - **弃用查表 O(n)**：`DEPRECATED_MODELS` 名单 < 20 条，单次解析查表纯内存、无 I/O。
 - **去重**：弃用预警每个模型 id 在一次进程内只打印一次（`_warned` Set）；停顿提示每个间隙只触发一次（`notified` 标志）。
 
@@ -96,15 +120,15 @@ cd packages/cli
 #   doubao/ollama id 零误报、去重、env kill-switch、fail-open
 npx vitest run src/lib/__tests__/model-deprecation.test.js
 
-# 流式停顿看门狗（8 测试）：看门狗生成器 + chatWithTools 端到端接线；
-#   无 onStall 的普通路径不变
+# 流式停顿看门狗 + 硬超时（12 测试）：看门狗生成器 + chatWithTools 端到端接线 +
+#   硬超时抛可重试 ETIMEDOUT 并取消 reader + 提示先于超时 + 默认关闭不误伤
 npx vitest run __tests__/unit/agent-core-stream-stall.test.js
 ```
 
 | 模块 | 测试数 | 覆盖要点 |
 |------|-------|---------|
 | `model-deprecation.test.js` | 14 | 精确/前缀/大小写匹配、GA + 国产/本地 id 不误报、去重、`CC_MODEL_NOTICE=0`、fail-open |
-| `agent-core-stream-stall.test.js` | 8 | 看门狗生成器 race 行为、三路接线、`done`/abort 透传、无 `onStall` 路径不变 |
+| `agent-core-stream-stall.test.js` | 12 | 看门狗 race 行为、三路接线、`done`/abort 透传、无 `onStall` 路径不变、硬超时抛可重试 `ETIMEDOUT` + 取消 reader、提示先于超时排序、默认关闭慢 chunk 仍到达、`chatWithTools` 静默流重试 3× 后浮出超时 |
 
 > 既有 streaming / resilience 套件（45 测试）保持全绿；普通无 `onStall` 路径字节级不变。
 > 已现网实测：`claude-2.1` 触发预警，`claude-opus-4-8` 静默。
@@ -123,6 +147,9 @@ npx vitest run __tests__/unit/agent-core-stream-stall.test.js
 |------|------|------|
 | 一直看到 `⏳ waiting for API response` | API 慢/过载，连接存活但长时间无字节 | 属正常提示；如频繁出现可换 provider/模型，或检查上游 API 负载 |
 | 想关掉停顿提示 | — | 编程接口不传 `onStall` 即可（REPL 默认开启，提示无害） |
+| cc 对着死连接永久挂起、只能 Esc | 连接半死（TCP 存活、无字节/无 close/无 error），硬超时未开 | 设 `config.llm.streamStallTimeoutMs`（如 `120000`）让 cc 自动取消并重发 |
+| 开了硬超时后本地模型被误中断 | 本地模型（CPU ollama）首字耗时可能数分钟，超过了阈值 | 调大 `streamStallTimeoutMs`，或对本地模型设回 `0` 关闭 |
+| `ETIMEDOUT` 重试 3 次后报错退出 | 连接持续静默、重试用尽 | 上游确实不可用；检查 provider/网络，或换模型 |
 | 启动时出现 `model is deprecated` 预警 | 配置/`--model` 指向厂商已退役快照 | 按提示切换到替代型号；`cc llm switch`/改 `config.json` |
 | 不想看到弃用预警 | — | 设 `CC_MODEL_NOTICE=0` |
 | 用了在产模型却被误报弃用 | 不应发生（名单从严、不前缀撞 GA） | 若确有误报请提 issue 并附完整 model id |
@@ -133,11 +160,11 @@ npx vitest run __tests__/unit/agent-core-stream-stall.test.js
 ```
 packages/cli/src/lib/model-deprecation.js                    # 弃用名单 + 查表 + maybeWarnDeprecatedModel
 packages/cli/src/lib/__tests__/model-deprecation.test.js     # 14 单元测试
-packages/cli/src/runtime/agent-core.js                       # _iterateStreamWithStall 看门狗 + 三路接线 + STREAM_STALL_MS
-packages/cli/__tests__/unit/agent-core-stream-stall.test.js  # 8 单元测试
+packages/cli/src/runtime/agent-core.js                       # _iterateStreamWithStall 看门狗（软提示 + 硬超时）+ 三路接线 + STREAM_STALL_MS / STREAM_STALL_TIMEOUT_MS + 可重试 ETIMEDOUT
+packages/cli/__tests__/unit/agent-core-stream-stall.test.js  # 12 单元测试
 packages/cli/src/commands/agent.js                           # 弃用预警接入（applyConfigLlmDefaults 之后）
 packages/cli/src/commands/ask.js                             # 弃用预警接入（cc ask 单次问答路径）
-packages/cli/src/repl/agent-repl.js                          # onStall → dim stderr 提示渲染
+packages/cli/src/repl/agent-repl.js                          # onStall → dim stderr 提示渲染；启动读 config.llm.streamStallTimeoutMs
 ```
 
 ## 使用示例
@@ -162,6 +189,15 @@ cc agent
 
 # 5) headless / 管道场景 —— 提示在 stderr，stdout 仅保留干净结果
 cc agent -p "..." --output-format json 2>/dev/null   # 屏蔽提示只取 JSON
+
+# 6) 开启流式硬超时 —— 静默 2 分钟仍无字节则自动取消并重发（默认关闭）
+#    编辑 ~/.chainlesschain/config.json：
+#    { "llm": { "streamStallTimeoutMs": 120000 } }
+#    云端 API 建议开启；本地 CPU 模型（ollama 首字慢）保持 0 或设更大值。
+cc agent
+# > ...
+#   ⏳ waiting for API response (silent 21s)…   ← 先软提示
+#   ⟳ connection dropped — retrying (attempt 1)… ← 到 120s 硬超时 → 自动重发
 ```
 
 ## 相关文档
