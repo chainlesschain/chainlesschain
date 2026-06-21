@@ -852,6 +852,106 @@ async function cmdSalvage(dumpfile, options) {
   }
 }
 
+// ─── collect-qq (QQNT frida-free decrypt → vault) ────────────────────────
+//
+// module 101 QQNT 采集方案 — on-device path. Decrypts a (root-staged) encrypted
+// nt_msg.db via the DERIVED key (MD5(MD5(uid)+rand), no frida), protobuf-parses
+// the messages, and ingests them. The Android CollectQqNativeTool su-reads the
+// DB + uid candidates, then invokes this. Same logic also runs on PC (USB).
+// Plaintext is written to a temp file only for parsing, then deleted.
+async function cmdCollectQq(options) {
+  const spinner = options.json
+    ? null
+    : ora("collect-qq (decrypt + ingest)...").start();
+  try {
+    const { createRequire } = await import("module");
+    const require = createRequire(import.meta.url);
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const Database = require("better-sqlite3");
+    const qq = options._qqCore
+      ? options._qqCore
+      : await import("@chainlesschain/personal-data-hub/forensics/qq-nt-collect");
+
+    if (!options.db) throw new Error("need --db <encrypted nt_msg.db>");
+    if (!options.uids) throw new Error("need --uids <file with u_ candidates>");
+    const raw = fs.readFileSync(options.db);
+    const rand = options.rand || qq.extractRand(raw);
+    if (!rand)
+      throw new Error(
+        "could not read `rand` from nt_msg.db header (pass --rand)",
+      );
+    const uids = fs
+      .readFileSync(options.uids, "utf8")
+      .split(/\s+/)
+      .filter((u) => /^u_[A-Za-z0-9_-]{10,}$/.test(u));
+    if (!uids.length) throw new Error("no u_ uid candidates in --uids file");
+
+    const result = qq.deriveAndDecrypt(raw, uids, rand);
+    if (!result) {
+      const report = {
+        ok: false,
+        reason: "no-uid-match",
+        uidCandidates: uids.length,
+      };
+      if (options.json) {
+        jsonAndExit(report);
+        return;
+      }
+      if (spinner)
+        spinner.fail(
+          "no uid matched (account uid not in candidates, or formula changed)",
+        );
+      process.exit(2);
+    }
+
+    const tmp = path.join(os.tmpdir(), `qqnt-dec-${process.pid}.db`);
+    fs.writeFileSync(tmp, result.decrypted);
+    let events;
+    try {
+      events = qq.parseEvents(Database, tmp, options.self || "self");
+    } finally {
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* best-effort wipe */
+      }
+    }
+
+    const hub = await (options._getHub || getHub)();
+    const vault = hub.vault;
+    let ingested = 0;
+    for (const ev of events) {
+      try {
+        vault.putEvent(ev);
+        ingested++;
+      } catch {
+        /* skip dup/invalid */
+      }
+    }
+    const report = {
+      ok: true,
+      matchedUid: result.uid,
+      kdf: result.kdf,
+      messages: events.length,
+      ingested,
+    };
+    if (spinner) spinner.succeed(`collect-qq: ${ingested} QQ messages → vault`);
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    logger.log(chalk.green("✓ QQNT collect succeeded"));
+    logger.log(`  matched uid:  ${result.uid} (kdf ${result.kdf})`);
+    logger.log(`  messages:     ${events.length}`);
+    logger.log(`  ingested:     ${ingested}`);
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
 //
 // Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
@@ -2560,6 +2660,21 @@ export function registerHubCommand(program) {
     .option("--no-unaligned", "Disable the finer (512) stride scan")
     .option("--json", "Output JSON")
     .action(cmdSalvage);
+
+  hub
+    .command("collect-qq")
+    .description(
+      "QQNT (modern QQ): decrypt a root-staged encrypted nt_msg.db via the DERIVED key (no frida), protobuf-parse messages, and ingest into the vault. Used by the Android CollectQqNativeTool (su-reads DB + uids); also runnable on PC.",
+    )
+    .requiredOption("--db <path>", "Encrypted nt_msg.db (root-staged / pulled)")
+    .requiredOption(
+      "--uids <path>",
+      "File with u_ uid candidates (one per line)",
+    )
+    .option("--rand <str>", "Override the header-derived rand")
+    .option("--self <qq>", "Your own QQ number (attribution fallback)")
+    .option("--json", "Output JSON")
+    .action(cmdCollectQq);
 
   hub
     .command("event-detail <eventId>")
