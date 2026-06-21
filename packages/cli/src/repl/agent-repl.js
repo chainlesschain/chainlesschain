@@ -3250,6 +3250,16 @@ export async function startAgentRepl(options = {}) {
               `  ⟳ connection dropped — retrying (attempt ${attempt})…\n`,
             ),
           ),
+        // Stream-stall hint (Claude-Code 2.1.185): the connection is alive but
+        // the API has gone silent mid-response — tell the user we're still
+        // waiting instead of leaving a frozen spinner. stderr so it never
+        // corrupts the streamed answer on stdout.
+        onStall: (ms) =>
+          process.stderr.write(
+            chalk.dim(
+              `  ⏳ waiting for API response (silent ${Math.round(ms / 1000)}s)…\n`,
+            ),
+          ),
         signal: _turnAbort.signal,
         // On an auto-detected image turn, switch to the vision LLM for this
         // turn only (provider/baseUrl/apiKey unchanged, model → vision model).

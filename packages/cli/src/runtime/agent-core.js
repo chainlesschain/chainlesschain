@@ -1380,7 +1380,10 @@ async function executeToolInner(
       if (!content.includes(args.old_string)) {
         return attachDescriptor({ error: "old_string not found in file" });
       }
-      const newContent = content.replace(args.old_string, () => args.new_string);
+      const newContent = content.replace(
+        args.old_string,
+        () => args.new_string,
+      );
       const wrote = writeFileVerified(filePath, newContent);
       if (wrote.error) return attachDescriptor({ error: wrote.error });
       return attachDescriptor({
@@ -2679,6 +2682,8 @@ export async function chatWithTools(rawMessages, options) {
             { model, messages: ollamaMessages, tools },
             options.onToken,
             signal,
+            options.onStall,
+            options.streamStallMs,
           ),
         { signal, onRetry: options.onStreamRetry },
       );
@@ -2771,6 +2776,8 @@ export async function chatWithTools(rawMessages, options) {
             options.onToken,
             signal,
             options.onThinking,
+            options.onStall,
+            options.streamStallMs,
           ),
         { signal, onRetry: options.onStreamRetry },
       );
@@ -2865,6 +2872,8 @@ export async function chatWithTools(rawMessages, options) {
           options.onToken,
           signal,
           provider,
+          options.onStall,
+          options.streamStallMs,
         ),
       { signal, onRetry: options.onStreamRetry },
     );
@@ -3061,6 +3070,12 @@ export function _isRetryableStreamError(err, signal) {
 /** Bounded auto-retry for streaming connection drops (Claude-Code 2.1.181). */
 const STREAM_RETRY_MAX = 2;
 const STREAM_RETRY_BASE_MS = 400;
+// 2.1.185 parity: when a streaming response goes silent mid-flight (the TCP
+// connection is alive but no bytes arrive — a slow/overloaded API), surface a
+// "waiting for API response" hint after this many ms instead of leaving the
+// user staring at a frozen spinner. Upstream raised this from 10s to 20s.
+const STREAM_STALL_MS = 20000;
+const _STREAM_STALL = Symbol("stream-stall");
 
 /**
  * Run a streaming chat attempt with bounded auto-retry on transient API
@@ -3114,7 +3129,65 @@ function _finalizeTruncatedStream(finalize, state) {
   return out;
 }
 
-async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
+// Wrap a ReadableStream reader so the read loop yields chunk values while a
+// watchdog fires `onStall(elapsedMs)` at most once per silent gap longer than
+// `stallMs` (2.1.185 stream-stall hint). The SAME in-flight read() promise is
+// re-raced against a fresh timer each tick, so no chunk is ever dropped or
+// double-read; `done`, errors, and aborts all propagate unchanged. With no
+// onStall hook this degrades to a plain read loop (zero extra timers).
+export async function* _iterateStreamWithStall(reader, opts = {}) {
+  const onStall = typeof opts.onStall === "function" ? opts.onStall : null;
+  const stallMs = opts.stallMs ?? STREAM_STALL_MS;
+  for (;;) {
+    const readP = reader.read();
+    if (!onStall) {
+      const { done, value } = await readP;
+      if (done) return;
+      yield value;
+      continue;
+    }
+    const start = Date.now();
+    let notified = false;
+    let result;
+    for (;;) {
+      let timer;
+      const stallP = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(_STREAM_STALL), stallMs);
+        if (timer && typeof timer.unref === "function") timer.unref();
+      });
+      let r;
+      try {
+        r = await Promise.race([readP, stallP]);
+      } finally {
+        clearTimeout(timer);
+      }
+      if (r === _STREAM_STALL) {
+        if (!notified) {
+          notified = true;
+          try {
+            onStall(Date.now() - start);
+          } catch {
+            /* stall hint is best-effort — never break the stream over it */
+          }
+        }
+        continue; // keep awaiting the SAME read() against a fresh timer
+      }
+      result = r;
+      break;
+    }
+    if (result.done) return;
+    yield result.value;
+  }
+}
+
+async function _chatOllamaStreaming(
+  apiUrl,
+  body,
+  onToken,
+  signal,
+  onStall,
+  stallMs,
+) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3129,9 +3202,10 @@ async function _chatOllamaStreaming(apiUrl, body, onToken, signal) {
   const decoder = new TextDecoder();
   let buf = "";
   try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    for await (const value of _iterateStreamWithStall(reader, {
+      onStall,
+      stallMs,
+    })) {
       buf += decoder.decode(value, { stream: true });
       let idx;
       while ((idx = buf.indexOf("\n")) >= 0) {
@@ -3276,6 +3350,8 @@ async function _chatAnthropicStreaming(
   onToken,
   signal,
   onThinking,
+  onStall,
+  stallMs,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3291,9 +3367,10 @@ async function _chatAnthropicStreaming(
   const decoder = new TextDecoder();
   let buf = "";
   try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    for await (const value of _iterateStreamWithStall(reader, {
+      onStall,
+      stallMs,
+    })) {
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
@@ -3393,6 +3470,8 @@ async function _chatOpenAIStreaming(
   onToken,
   signal,
   provider,
+  onStall,
+  stallMs,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -3411,9 +3490,10 @@ async function _chatOpenAIStreaming(
   const decoder = new TextDecoder();
   let buf = "";
   try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    for await (const value of _iterateStreamWithStall(reader, {
+      onStall,
+      stallMs,
+    })) {
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
