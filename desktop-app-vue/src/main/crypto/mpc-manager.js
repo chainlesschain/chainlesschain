@@ -240,6 +240,12 @@ class MPCManager extends EventEmitter {
       threshold,
     });
 
+    // Number.isFinite first: a NaN threshold slips past both range guards below
+    // (NaN comparisons are always false), creating a recovery scheme with a NaN
+    // threshold that can never be satisfied at recovery time.
+    if (!Number.isFinite(threshold)) {
+      throw new Error("Threshold must be a finite number");
+    }
     if (threshold > totalGuardians) {
       throw new Error("Threshold cannot exceed total guardians");
     }

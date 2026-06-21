@@ -164,6 +164,15 @@ describe("MPCManager", () => {
       expect(result).toHaveProperty("totalGuardians");
     });
 
+    it("rejects a NaN threshold (slips past both range guards)", async () => {
+      await manager.initialize(null);
+      // NaN > totalGuardians and NaN < 2 are both false, so without the finite
+      // check this would build a recovery scheme that can never be satisfied.
+      await expect(
+        manager.socialRecoverySetup("u", ["g1", "g2", "g3"], NaN),
+      ).rejects.toThrow("Threshold must be a finite number");
+    });
+
     it("guardianShares should have guardianId and share for each guardian", async () => {
       await manager.initialize(null);
       const guardians = ["g1", "g2", "g3"];
