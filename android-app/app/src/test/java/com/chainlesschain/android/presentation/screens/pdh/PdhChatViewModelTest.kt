@@ -369,6 +369,40 @@ class PdhChatViewModelTest {
         assertTrue(PdhChatViewModel.hasUntrustedDataSinceLastUser(listOf(user, data)))
     }
 
+    // ── §3.5.16 跨设备目标设备选择 ──────────────────────────────────────────
+
+    @Test
+    fun default_target_device_is_self() = runTest(dispatcher) {
+        val vm = newVm()
+        assertEquals(PdhChatViewModel.SELF_DEVICE, vm.uiState.value.targetDevice)
+        assertNull(vm.uiState.value.selectedDevice)
+    }
+
+    @Test
+    fun selecting_a_paired_device_resolves_to_it() = runTest(dispatcher) {
+        val vm = newVm()
+        vm.setPairedDevices(listOf("desktop"))
+        vm.setTargetDevice("desktop")
+        assertEquals("desktop", vm.uiState.value.targetDevice)
+    }
+
+    @Test
+    fun selecting_an_unpaired_device_falls_back_to_self() = runTest(dispatcher) {
+        val vm = newVm() // pairedDevices empty
+        vm.setTargetDevice("ghost-device")
+        assertEquals(PdhChatViewModel.SELF_DEVICE, vm.uiState.value.targetDevice)
+    }
+
+    @Test
+    fun selecting_self_clears_selection() = runTest(dispatcher) {
+        val vm = newVm()
+        vm.setPairedDevices(listOf("desktop"))
+        vm.setTargetDevice("desktop")
+        vm.setTargetDevice(PdhChatViewModel.SELF_DEVICE)
+        assertNull(vm.uiState.value.selectedDevice)
+        assertEquals(PdhChatViewModel.SELF_DEVICE, vm.uiState.value.targetDevice)
+    }
+
     // ── §3.5.14 资产备份/恢复卡 ──────────────────────────────────────────────
 
     @Test

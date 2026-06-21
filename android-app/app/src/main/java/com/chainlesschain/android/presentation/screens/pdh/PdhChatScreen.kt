@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -112,6 +114,12 @@ fun PdhChatScreen(
             TopAppBar(
                 title = { Text("个人数据助手") },
                 actions = {
+                    // §3.5.16: 目标设备选择器 —— 指挥本机或你的其他自有设备。
+                    DeviceSelector(
+                        targetDevice = state.targetDevice,
+                        paired = state.pairedDevices,
+                        onSelect = { viewModel.setTargetDevice(it) },
+                    )
                     // §3.5.18: 透明度入口 —— 看数据去过哪 / AI 替你办过什么。
                     TextButton(onClick = { viewModel.openTransparency() }) { Text("透明度") }
                     // 记录搜索开关:开→显示搜索框,关→清空关键词恢复正常视图。
@@ -262,6 +270,40 @@ fun PdhChatScreen(
                     }
                 },
             )
+        }
+    }
+}
+
+/**
+ * §3.5.16 顶栏目标设备选择器:在本机或你的其他自有设备上执行。Phase 2 真正连远端
+ * bridge 的传输是 §10/Phase 8;无已配对设备时如实显示"需配对"(诚实,不假装可用)。
+ */
+@Composable
+private fun DeviceSelector(targetDevice: String, paired: List<String>, onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { expanded = true }) { Text("⇄ $targetDevice") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(PdhChatViewModel.SELF_DEVICE) },
+                onClick = { onSelect(PdhChatViewModel.SELF_DEVICE); expanded = false },
+            )
+            if (paired.isEmpty()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "未发现其他已配对设备(跨设备需配对)",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    onClick = {},
+                    enabled = false,
+                )
+            } else {
+                paired.forEach { d ->
+                    DropdownMenuItem(text = { Text(d) }, onClick = { onSelect(d); expanded = false })
+                }
+            }
         }
     }
 }
