@@ -2943,9 +2943,14 @@ export async function chatWithTools(rawMessages, options) {
   const choice = data.choices[0];
   const out = { message: choice.message };
   if (data.usage) {
+    // OpenAI/DeepSeek/volcengine report cached prompt tokens AS PART of
+    // prompt_tokens — split them out so cost prices the cached prefix at the
+    // provider's cache rate, not full input. 0 (or absent) → input unchanged.
+    const cached = _openaiCachedTokens(data.usage);
     out.usage = {
-      input_tokens: data.usage.prompt_tokens || 0,
+      input_tokens: Math.max(0, (data.usage.prompt_tokens || 0) - cached),
       output_tokens: data.usage.completion_tokens || 0,
+      cache_read_input_tokens: cached,
     };
   }
   return out;
@@ -3495,8 +3500,30 @@ async function _chatAnthropicStreaming(
 // concatenated across chunks). usage rides the terminal chunk when
 // stream_options.include_usage was requested. Terminator: `data: [DONE]`.
 
+// OpenAI-compatible cached-prompt-token count. OpenAI / volcengine report it as
+// usage.prompt_tokens_details.cached_tokens; DeepSeek as
+// usage.prompt_cache_hit_tokens. In BOTH, prompt_tokens already INCLUDES the
+// cached count (unlike Anthropic, where input_tokens is the uncached remainder)
+// — so callers subtract it to recover the uncached input and avoid pricing the
+// cached prefix twice. Verified live against volcengine (field present, 0 when
+// the provider does not auto-cache).
+function _openaiCachedTokens(usage) {
+  if (!usage || typeof usage !== "object") return 0;
+  const detailed = Number(usage.prompt_tokens_details?.cached_tokens);
+  if (Number.isFinite(detailed) && detailed > 0) return detailed;
+  const deepseek = Number(usage.prompt_cache_hit_tokens);
+  if (Number.isFinite(deepseek) && deepseek > 0) return deepseek;
+  return 0;
+}
+
 function _openaiInitState() {
-  return { text: "", tools: [], inputTokens: 0, outputTokens: 0 };
+  return {
+    text: "",
+    tools: [],
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+  };
 }
 
 function _openaiReduceLine(state, raw, onToken) {
@@ -3533,7 +3560,11 @@ function _openaiReduceLine(state, raw, onToken) {
     }
   }
   if (obj.usage) {
-    state.inputTokens = Number(obj.usage.prompt_tokens) || state.inputTokens;
+    const cached = _openaiCachedTokens(obj.usage);
+    const prompt = Number(obj.usage.prompt_tokens);
+    if (Number.isFinite(prompt))
+      state.inputTokens = Math.max(0, prompt - cached);
+    if (cached) state.cacheReadTokens = cached;
     state.outputTokens =
       Number(obj.usage.completion_tokens) || state.outputTokens;
   }
@@ -3549,10 +3580,11 @@ function _openaiFinalize(state) {
   const message = { role: "assistant", content: state.text };
   if (toolCalls.length) message.tool_calls = toolCalls;
   const out = { message };
-  if (state.inputTokens || state.outputTokens) {
+  if (state.inputTokens || state.outputTokens || state.cacheReadTokens) {
     out.usage = {
       input_tokens: state.inputTokens,
       output_tokens: state.outputTokens,
+      cache_read_input_tokens: state.cacheReadTokens || 0,
     };
   }
   return out;

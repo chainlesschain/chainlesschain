@@ -167,12 +167,25 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
  * @returns {{ inputCost:number, outputCost:number, totalCost:number,
  *             currency:string, matched:boolean, free:boolean, rate:object|null }}
  */
-// Prompt-cache price multipliers relative to the input rate (Anthropic public
-// pricing): a cache READ bills at ~10% of input, a cache WRITE (5-minute
-// ephemeral breakpoint) at ~125%. Applied only when cache token counts are
-// present, so non-caching usage is priced exactly as before.
+// Prompt-cache price multipliers relative to the input rate. A cache WRITE
+// (Anthropic 5-minute ephemeral breakpoint) bills at ~125%; only Anthropic
+// reports cache creation. Cache READ pricing differs per provider — Anthropic
+// ~10%, OpenAI ~50%, DeepSeek ~25% of the input rate — so the default below is
+// overridden per provider. Applied only when cache token counts are present, so
+// non-caching usage is priced exactly as before. Public list-price estimates
+// that drift; override the table via config.llm.pricing for the base rates.
 export const CACHE_READ_MULTIPLIER = 0.1;
 export const CACHE_WRITE_MULTIPLIER = 1.25;
+export const CACHE_READ_MULTIPLIER_BY_PROVIDER = Object.freeze({
+  anthropic: 0.1,
+  openai: 0.5,
+  deepseek: 0.25,
+});
+
+function cacheReadMultiplier(provider) {
+  const p = String(provider || "").toLowerCase();
+  return CACHE_READ_MULTIPLIER_BY_PROVIDER[p] ?? CACHE_READ_MULTIPLIER;
+}
 
 export function estimateCost({
   provider,
@@ -200,7 +213,7 @@ export function estimateCost({
   const inputCost = round((Number(inputTokens) / 1e6) * rate.in);
   const outputCost = round((Number(outputTokens) / 1e6) * rate.out);
   const cacheReadCost = round(
-    (Number(cacheReadTokens) / 1e6) * rate.in * CACHE_READ_MULTIPLIER,
+    (Number(cacheReadTokens) / 1e6) * rate.in * cacheReadMultiplier(provider),
   );
   const cacheCreationCost = round(
     (Number(cacheCreationTokens) / 1e6) * rate.in * CACHE_WRITE_MULTIPLIER,

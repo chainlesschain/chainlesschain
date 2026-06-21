@@ -159,3 +159,34 @@ describe("priceRollup — cache costs flow into byModel rows", () => {
     expect(priced.cost.totalCost).toBeCloseTo(0.3 + 3.75, 6);
   });
 });
+
+describe("estimateCost — per-provider cache-read multipliers", () => {
+  it("prices OpenAI cached reads at ~50% of the input rate", () => {
+    // gpt-4o input rate = $2.5 / 1M.
+    const est = estimateCost({
+      provider: "openai",
+      model: "gpt-4o",
+      cacheReadTokens: 1_000_000,
+    });
+    expect(est.cacheReadCost).toBeCloseTo(2.5 * 0.5, 6); // 1.25
+  });
+
+  it("prices DeepSeek cache hits at ~25% of the input rate", () => {
+    // deepseek-chat input rate = $0.27 / 1M.
+    const est = estimateCost({
+      provider: "deepseek",
+      model: "deepseek-chat",
+      cacheReadTokens: 1_000_000,
+    });
+    expect(est.cacheReadCost).toBeCloseTo(0.27 * 0.25, 6);
+  });
+
+  it("keeps Anthropic cached reads at ~10% (default)", () => {
+    const est = estimateCost({
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      cacheReadTokens: 1_000_000,
+    });
+    expect(est.cacheReadCost).toBeCloseTo(3 * 0.1, 6); // 0.30
+  });
+});
