@@ -2726,6 +2726,24 @@ export async function chatWithTools(rawMessages, options) {
       input_schema: t.function.parameters,
     }));
 
+    // Prompt caching (Claude-Code parity, default-on): the system prompt + the
+    // ~18 tool schemas are a large, stable prefix re-sent on every agent-loop
+    // iteration. Marking the LAST tool and the system block as cache
+    // breakpoints lets Anthropic serve that prefix from cache (~10% the input
+    // cost, lower latency) across iterations and turns. Anthropic ignores a
+    // breakpoint when the prefix is under the model's minimum cacheable size,
+    // so it is always safe. Opt out (e.g. a custom gateway that rejects the
+    // field) with CC_PROMPT_CACHE=0 or options.promptCaching:false.
+    const cacheEnabled =
+      options.promptCaching !== false && process.env.CC_PROMPT_CACHE !== "0";
+    if (cacheEnabled && anthropicTools.length > 0) {
+      const last = anthropicTools.length - 1;
+      anthropicTools[last] = {
+        ...anthropicTools[last],
+        cache_control: { type: "ephemeral" },
+      };
+    }
+
     // Model-aware max_tokens (Opus → 16384, Haiku → 4096, else 8192) via
     // provider-options. We read ONLY maxTokens: the module's `temperature`
     // default is never forwarded (400s on Opus 4.7/4.8).
@@ -2756,7 +2774,18 @@ export async function chatWithTools(rawMessages, options) {
     );
     if (thinkingParams) Object.assign(body, thinkingParams);
     if (systemMsgs.length > 0) {
-      body.system = systemMsgs.map((m) => m.content).join("\n");
+      const systemText = systemMsgs.map((m) => m.content).join("\n");
+      // Array-form system with a cache breakpoint when caching is on; plain
+      // string otherwise (byte-identical to the prior request shape).
+      body.system = cacheEnabled
+        ? [
+            {
+              type: "text",
+              text: systemText,
+              cache_control: { type: "ephemeral" },
+            },
+          ]
+        : systemText;
     }
 
     const url =
