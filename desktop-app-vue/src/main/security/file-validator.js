@@ -405,12 +405,15 @@ class FileValidator {
       }
     }
 
-    // 检查文件名中的路径遍历
+    // 检查文件名中的路径遍历。真正的遍历表现为路径分隔符或<b>独立的 `..` 段</b>
+    // （`../`、`..\`、或文件名就是 `..`），而非文件名中任意位置的 `..` 子串 —— 后者
+    // 会把 `report..2024.txt` 这类合法名误判为遍历（旧实现的假阳性）。另外 basename
+    // 已剥离目录，分隔符判断保留作纵深防御（万一传入未规整路径）。
     const basename = path.basename(filePath);
     if (
-      basename.includes("..") ||
       basename.includes("/") ||
-      basename.includes("\\")
+      basename.includes("\\") ||
+      /(^|[/\\])\.\.([/\\]|$)/.test(basename)
     ) {
       result.errors.push("Filename contains path traversal characters");
     }
