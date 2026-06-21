@@ -61,7 +61,7 @@ describe("runAgentHeadlessStream --replay-user-messages", () => {
 });
 
 describe("runAgentHeadlessStream --max-budget-usd", () => {
-  // Each turn's loop emits one $15 call (anthropic opus, 1M input).
+  // Each turn's loop emits one $5 call (anthropic opus 4.x, 1M input @ $5/M).
   const expensiveLoop = async function* () {
     yield {
       type: "token-usage",
@@ -76,13 +76,13 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
   it("ends the session once the session-wide cap is reached", async () => {
     const deps = baseDeps({
       agentLoop: expensiveLoop,
-      // two turns offered; cap $20 → first turn ($15) ok, second would exceed,
-      // but the cap is folded per call: turn 1 spends $15 (< $20, completes);
-      // turn 2 spends another $15 → total $30 ≥ $20 → stop.
+      // two turns offered; cap $8, folded per call across the session: turn 1
+      // spends $5 (< $8, completes); turn 2 spends another $5 → total $10 ≥ $8
+      // → stop with a budget-exhausted result.
       input: input({ text: "one" }, { text: "two" }),
     });
     const outcome = await runAgentHeadlessStream(
-      { expandFileRefs: false, maxCostUsd: 20 },
+      { expandFileRefs: false, maxCostUsd: 8 },
       deps,
     );
     const events = parse(deps._lines);
