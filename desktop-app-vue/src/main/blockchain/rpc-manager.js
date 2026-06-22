@@ -158,12 +158,15 @@ class RPCManager extends EventEmitter {
       throw new Error("没有可用的 RPC 节点");
     }
 
-    // 轮询选择
-    this.currentNodeIndex = (this.currentNodeIndex + 1) % healthyNodes.length;
-    const node = healthyNodes[this.currentNodeIndex];
+    // 轮询选择：先按当前索引取节点，再前进。旧实现先自增再读取，会在第一次
+    // 调用时跳过 index 0（首选节点永远轮不到第一次）。对索引取模可防止健康
+    // 节点列表收缩后越界。
+    const index = this.currentNodeIndex % healthyNodes.length;
+    const node = healthyNodes[index];
+    this.currentNodeIndex = (index + 1) % healthyNodes.length;
 
     logger.info(
-      `[RPCManager] 使用节点 ${this.currentNodeIndex + 1}/${healthyNodes.length}: ${node.url}`,
+      `[RPCManager] 使用节点 ${index + 1}/${healthyNodes.length}: ${node.url}`,
     );
 
     return node.provider;
