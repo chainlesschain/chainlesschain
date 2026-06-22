@@ -528,7 +528,7 @@ async function cmdQueryEvents(options) {
     // skips the 77-adapter registry build (and is crash-resilient to a
     // partial pdh install). getHubMinimal() returns the full hub if one was
     // already built this process, so the vault instance is identical.
-    const hub = await getHubMinimal();
+    const hub = await (options._getHub || getHubMinimal)();
     const q = {};
     if (options.subtype) q.subtype = options.subtype;
     if (options.since) q.since = Number(options.since);
@@ -543,10 +543,18 @@ async function cmdQueryEvents(options) {
     }
     logger.log(`${events.length} events:`);
     for (const ev of events) {
-      const at = new Date(ev.at).toISOString();
-      logger.log(
-        `  ${chalk.gray(at)} ${chalk.cyan(ev.subtype)} ${ev.summary || ev.id}`,
-      );
+      // Vault events carry `occurredAt` (epoch ms) + `content`, NOT `at` /
+      // `summary` — reading the wrong fields previously threw "Invalid time
+      // value" on the first row and killed the whole listing. Guard the
+      // timestamp so one malformed row can't crash the output.
+      const ts = Number(ev.occurredAt);
+      const at = Number.isFinite(ts) ? new Date(ts).toISOString() : "(no date)";
+      const summary =
+        (ev.content &&
+          (ev.content.text || ev.content.title || ev.content.subject)) ||
+        ev.summary ||
+        ev.id;
+      logger.log(`  ${chalk.gray(at)} ${chalk.cyan(ev.subtype)} ${summary}`);
     }
     process.exit(0);
   } catch (err) {
@@ -3263,6 +3271,7 @@ export const _internal = {
   cmdRetrieveContext,
   cmdStats,
   cmdHealth,
+  cmdQueryEvents,
   parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,
