@@ -212,3 +212,72 @@ describe("slash-command completion", () => {
     expect(c("/he")[0]).toEqual(["/help"]); // single, not doubled
   });
 });
+
+describe("dynamic (custom) slash-command completion", () => {
+  const CMDS = ["/help", "/exit", "/model"];
+
+  it("merges custom commands and completes namespaced `:` names", () => {
+    const c = makeAtCompleter({
+      slashCommands: CMDS,
+      getDynamicSlashCommands: () => ["/git:commit", "/git:push", "/deploy"],
+    });
+    expect(c("/git:")[0]).toEqual(["/git:commit", "/git:push"]); // sorted
+    const [bare] = c("/");
+    expect(bare).toContain("/git:commit"); // custom present
+    expect(bare).toContain("/help"); // built-ins still present
+  });
+
+  it("completes a custom name typed with digits / dots", () => {
+    const c = makeAtCompleter({
+      getDynamicSlashCommands: () => ["/v2:plan", "/my.cmd"],
+    });
+    expect(c("/v2:")[0]).toEqual(["/v2:plan"]);
+    expect(c("/my.")[0]).toEqual(["/my.cmd"]);
+  });
+
+  it("de-duplicates a custom command that shadows a built-in name", () => {
+    const c = makeAtCompleter({
+      slashCommands: ["/deploy", "/help"],
+      getDynamicSlashCommands: () => ["/deploy", "/release"],
+    });
+    expect(c("/de")[0]).toEqual(["/deploy"]); // single, not doubled
+    expect(c("/")[0]).toEqual(["/deploy", "/help", "/release"]);
+  });
+
+  it("TTL-caches the dynamic source (no FS walk per keystroke)", () => {
+    let calls = 0;
+    let t = 1000;
+    const c = makeAtCompleter({
+      getDynamicSlashCommands: () => {
+        calls += 1;
+        return ["/foo"];
+      },
+      deps: { now: () => t },
+    });
+    c("/f");
+    c("/fo");
+    c("/foo");
+    expect(calls).toBe(1); // one fetch for the burst
+    t += 6000; // past TTL
+    c("/f");
+    expect(calls).toBe(2);
+  });
+
+  it("a throwing dynamic source never breaks completion", () => {
+    const c = makeAtCompleter({
+      slashCommands: CMDS,
+      getDynamicSlashCommands: () => {
+        throw new Error("commands dir unreadable");
+      },
+    });
+    expect(c("/he")[0]).toEqual(["/help"]); // built-ins still work
+  });
+
+  it("works with no built-ins (custom-only) and stays empty when none match", () => {
+    const c = makeAtCompleter({
+      getDynamicSlashCommands: () => ["/deploy"],
+    });
+    expect(c("/de")[0]).toEqual(["/deploy"]);
+    expect(c("/zzz")[0]).toEqual([]); // no match → no hits, not a crash
+  });
+});

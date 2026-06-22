@@ -136,23 +136,62 @@ export function makeAtCompleter(opts = {}) {
     ? [...new Set(opts.slashCommands)].sort()
     : [];
 
+  // User/project custom slash commands (.claude/commands/*.md → `/git:commit`),
+  // surfaced in TAB completion the same as built-ins (Claude-Code parity — its
+  // slash autocomplete includes user-authored commands too). Pulled from an
+  // injected SYNC source so newly authored command files become completable
+  // without a restart and `/cd` follows whichever project's commands apply.
+  // Cached with the same short TTL as the IDE source so a burst of TABs never
+  // re-walks the filesystem.
+  const getDynamic =
+    typeof opts.getDynamicSlashCommands === "function"
+      ? opts.getDynamicSlashCommands
+      : null;
+  let dynCache = [];
+  let dynFetchedAt = -Infinity;
+  const dynamicSlashCommands = () => {
+    if (!getDynamic) return [];
+    if (now() - dynFetchedAt < IDE_CACHE_TTL_MS) return dynCache;
+    try {
+      const list = getDynamic();
+      dynCache = Array.isArray(list)
+        ? list.filter((c) => typeof c === "string" && c)
+        : [];
+    } catch {
+      dynCache = []; // a broken command source never breaks completion
+    }
+    dynFetchedAt = now();
+    return dynCache;
+  };
+  const mergedSlashCommands = () => {
+    const dyn = dynamicSlashCommands();
+    if (!dyn.length) return slashCommands; // common case: built-ins only
+    return [...new Set([...slashCommands, ...dyn])].sort();
+  };
+
   const completer = (line) => {
     // `/command` completion (Claude-Code parity): only while typing the
-    // command token itself — once a space follows, args are the user's.
-    const slash = /^\/([A-Za-z_-]*)$/.exec(line);
-    if (slash && slashCommands.length) {
-      const pref = `/${slash[1].toLowerCase()}`;
-      const hits = slashCommands.filter((c) =>
-        c.toLowerCase().startsWith(pref),
-      );
-      return [hits, line];
+    // command token itself — once a space follows, args are the user's. The
+    // token charset includes `:` / `.` / digits so namespaced custom commands
+    // (`/git:commit` from commands/git/commit.md) complete too.
+    const slash = /^\/([A-Za-z0-9:._-]*)$/.exec(line);
+    if (slash) {
+      const all = mergedSlashCommands();
+      if (all.length) {
+        const pref = `/${slash[1].toLowerCase()}`;
+        const hits = all.filter((c) => c.toLowerCase().startsWith(pref));
+        return [hits, line];
+      }
     }
     const at = extractAtPrefix(line);
     if (!at) return [[], line];
     refreshIde(); // async top-up for the NEXT tab; this one uses the cache
     const norm = fwd(at.prefix).toLowerCase();
     const fromIde = ideFiles.filter((f) => f.toLowerCase().startsWith(norm));
-    const fromFs = fileCandidates(at.prefix, { cwd: getCwd(), deps: opts.deps });
+    const fromFs = fileCandidates(at.prefix, {
+      cwd: getCwd(),
+      deps: opts.deps,
+    });
     const merged = [...new Set([...fromIde, ...fromFs])].slice(
       0,
       MAX_CANDIDATES,

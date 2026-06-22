@@ -894,6 +894,7 @@ export async function startAgentRepl(options = {}) {
   // `@` tab-completion (Claude-Code @-mention parity): filesystem paths +
   // (when the IDE bridge is connected) the editor's open tabs ranked first.
   const { makeAtCompleter } = await import("../lib/repl-completer.js");
+  const { discoverCommands } = await import("../lib/slash-commands.js");
   const atCompleter = makeAtCompleter({
     // cwd left unset on purpose: the completer resolves process.cwd() lazily
     // so it follows `/cd` mid-session.
@@ -941,6 +942,17 @@ export async function startAgentRepl(options = {}) {
       "/ultrathink",
       "/vim",
     ],
+    // User/project custom commands (.claude/commands/*.md) join TAB completion
+    // alongside the built-ins above. Sync + best-effort; the completer
+    // TTL-caches the result so this filesystem walk runs at most once per few
+    // seconds, and process.cwd() makes it follow `/cd` mid-session.
+    getDynamicSlashCommands: () => {
+      try {
+        return discoverCommands(process.cwd()).map((cmd) => `/${cmd.name}`);
+      } catch {
+        return [];
+      }
+    },
     getIdeOpenFiles: async () => {
       const exec = _adhocMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
       if (!exec || exec.kind !== "mcp" || !_adhocMcp?.mcpClient?.callTool) {
