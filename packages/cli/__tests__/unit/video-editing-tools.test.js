@@ -4,6 +4,14 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 
+// fs mock for the semantic-retrieval suite. vi.hoisted()/vi.mock() are hoisted
+// module-wide regardless of nesting, so declare them at top level to match
+// actual execution order (vitest warns — soon errors — when they're nested).
+const mockFs = vi.hoisted(() => ({
+  readFile: vi.fn(),
+}));
+vi.mock("fs", () => ({ promises: mockFs }));
+
 // ── review-clip ─────────────────────────────────────────────
 
 describe("video_review_clip", () => {
@@ -150,11 +158,6 @@ describe("video_commit_clip", () => {
 
 describe("video_semantic_retrieval", () => {
   let execute;
-  const mockFs = vi.hoisted(() => ({
-    readFile: vi.fn(),
-  }));
-
-  vi.mock("fs", () => ({ promises: mockFs }));
 
   beforeEach(async () => {
     const mod =
