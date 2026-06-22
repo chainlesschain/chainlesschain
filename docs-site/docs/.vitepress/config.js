@@ -1498,6 +1498,7 @@ export default defineConfig({
             { text: "99 项目记忆与 init 对标方案 ⭐NEW", link: "/design/modules/99-project-memory-init" },
             { text: "100 自定义斜杠命令与宏系统 ⭐NEW", link: "/design/modules/100-slash-commands-macros" },
             { text: "101 个人数据 IDE 桥接方案 ⭐NEW", link: "/design/modules/101-personal-data-ide-bridge" },
+            { text: "101b QQNT Frida 采集方案 ⭐NEW", link: "/design/modules/101b-qqnt-frida-collection" },
             { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

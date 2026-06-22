@@ -925,6 +925,10 @@ export default defineConfig({
               text: "101 个人数据 IDE 桥接方案 ⭐NEW",
               link: "/modules/m101-personal-data-ide-bridge",
             },
+            {
+              text: "101b QQNT Frida 采集方案 ⭐NEW",
+              link: "/modules/m101b-qqnt-frida-collection",
+            },
           ],
         },
         {
