@@ -19,7 +19,8 @@ import java.util.UUID
  */
 class P2PConnectionMessenger(
     private val connectionManager: P2PConnectionManager,
-    private val ownDeviceId: String,
+    /** 本机 DID(惰性:DID 异步加载,provide 时可能未就绪,故每次发送时取最新)。 */
+    private val ownDeviceId: () -> String,
 ) : PdhP2PResponder.P2PMessenger {
 
     override val incoming: Flow<P2PMessage> = connectionManager.receivedMessages
@@ -29,7 +30,7 @@ class P2PConnectionMessenger(
             toDeviceId,
             P2PMessage(
                 id = UUID.randomUUID().toString(),
-                fromDeviceId = ownDeviceId,
+                fromDeviceId = ownDeviceId(),
                 toDeviceId = toDeviceId,
                 type = MessageType.KNOWLEDGE_SYNC,
                 payload = payload,

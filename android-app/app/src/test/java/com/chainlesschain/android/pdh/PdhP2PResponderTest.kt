@@ -58,6 +58,21 @@ class PdhP2PResponderTest {
     }
 
     @Test
+    fun request_auto_starts_collector_without_explicit_start() = runTest(UnconfinedTestDispatcher()) {
+        val m = FakeMessenger("A")
+        val responder = PdhP2PResponder(m, backgroundScope, genRequestId = { "rid-x" })
+        // 不调 start() —— request() 应惰性自启动收集器
+        val result = async { responder.request("B", "t", "hi".toByteArray()) }
+        m.flow.emit(
+            P2PMessage(
+                "id", "B", "A", MessageType.KNOWLEDGE_SYNC,
+                PdhP2PResponder.Envelope("rid-x", "t", true, "ok".toByteArray()).encode(),
+            ),
+        )
+        assertEquals("ok", String(result.await()!!))
+    }
+
+    @Test
     fun request_times_out_to_null_when_no_response() = runTest {
         val responder = PdhP2PResponder(FakeMessenger("A"), backgroundScope, timeoutMs = 1000L)
         responder.start()

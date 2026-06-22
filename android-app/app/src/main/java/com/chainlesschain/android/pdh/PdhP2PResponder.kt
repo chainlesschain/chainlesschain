@@ -69,6 +69,7 @@ class PdhP2PResponder(
     }
 
     override suspend fun request(peerId: String, type: String, payload: ByteArray): ByteArray? {
+        start() // 惰性自启动收集器(幂等):无需外部生命周期接线即可收发
         val rid = genRequestId()
         val deferred = CompletableDeferred<ByteArray?>()
         pending[rid] = deferred
