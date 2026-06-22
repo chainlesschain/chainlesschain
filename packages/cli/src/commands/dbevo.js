@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   MIGRATION_STATUS,
@@ -239,7 +240,7 @@ export function registerDbEvoCommand(program) {
   dbevo
     .command("history")
     .description("Show migration history")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(dbevo);
@@ -340,7 +341,7 @@ export function registerDbEvoCommand(program) {
   dbevo
     .command("analyze")
     .description("Analyze slow queries and generate index suggestions")
-    .option("--min-count <n>", "Min query count for suggestion", parseInt)
+    .option("--min-count <n>", "Min query count for suggestion", intArg("--min-count"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(dbevo);

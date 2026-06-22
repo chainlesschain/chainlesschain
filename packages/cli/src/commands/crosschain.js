@@ -8,6 +8,7 @@
  */
 
 import fs from "node:fs";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import { Command } from "commander";
 
@@ -651,7 +652,7 @@ export function registerCrossChainCommand(program) {
     .option("-f, --from <chain>", "Filter by source chain")
     .option("-t, --to <chain>", "Filter by destination chain")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cc);
@@ -677,7 +678,7 @@ export function registerCrossChainCommand(program) {
     .option("-a, --from-asset <asset>", "Source asset", "native")
     .option("-b, --to-asset <asset>", "Target asset", "native")
     .option("-c, --counterparty <address>", "Counterparty address")
-    .option("-t, --timeout <ms>", "Timeout in ms", parseInt)
+    .option("-t, --timeout <ms>", "Timeout in ms", intArg("--timeout"))
     .option("--mtc", "On success, stage an MTC swap-init envelope")
     .option("--mtc-config-dir <dir>", "Override MTC config root")
     .option("--json", "JSON output")
@@ -779,7 +780,7 @@ export function registerCrossChainCommand(program) {
     .description("List swaps")
     .option("-f, --from <chain>", "Filter by source chain")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cc);
@@ -871,7 +872,7 @@ export function registerCrossChainCommand(program) {
     .option("-f, --from <chain>", "Filter by source chain")
     .option("-t, --to <chain>", "Filter by destination chain")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cc);

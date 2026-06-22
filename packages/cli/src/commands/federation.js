@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   CIRCUIT_STATE,
@@ -109,8 +110,8 @@ export function registerFederationCommand(program) {
       "Failure threshold before tripping",
       parseInt,
     )
-    .option("-s, --success-threshold <n>", "Success probes to close", parseInt)
-    .option("-t, --open-timeout <ms>", "Open timeout in ms", parseInt)
+    .option("-s, --success-threshold <n>", "Success probes to close", intArg("--success-threshold"))
+    .option("-t, --open-timeout <ms>", "Open timeout in ms", intArg("--open-timeout"))
     .option("-m, --metadata <json>", "Metadata JSON")
     .option("--json", "JSON output")
     .action((nodeId, opts) => {
@@ -165,7 +166,7 @@ export function registerFederationCommand(program) {
     .command("breakers")
     .description("List circuit breakers")
     .option("-s, --state <state>", "Filter by state (closed/open/half_open)")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(fed);
@@ -295,7 +296,7 @@ export function registerFederationCommand(program) {
     .option("-n, --node <id>", "Filter by node ID")
     .option("-t, --type <type>", "Filter by check type")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(fed);
@@ -337,9 +338,9 @@ export function registerFederationCommand(program) {
   fed
     .command("pool-init <node-id>")
     .description("Initialize a connection pool for a node")
-    .option("--min <n>", "Min connections", parseInt)
-    .option("--max <n>", "Max connections", parseInt)
-    .option("--idle-timeout <ms>", "Idle timeout in ms", parseInt)
+    .option("--min <n>", "Min connections", intArg("--min"))
+    .option("--max <n>", "Max connections", intArg("--max"))
+    .option("--idle-timeout <ms>", "Idle timeout in ms", intArg("--idle-timeout"))
     .option("--json", "JSON output")
     .action((nodeId, opts) => {
       const result = initPool(nodeId, {

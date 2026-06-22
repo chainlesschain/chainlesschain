@@ -6,6 +6,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -290,8 +291,8 @@ export function registerGovernanceCommand(program) {
   gov
     .command("close <proposal-id>")
     .description("Close voting — auto-resolves to passed/rejected")
-    .option("-q, --quorum <n>", "Quorum threshold (0-1)", parseFloat)
-    .option("-t, --threshold <n>", "Pass threshold (0-1)", parseFloat)
+    .option("-q, --quorum <n>", "Quorum threshold (0-1)", floatArg("--quorum"))
+    .option("-t, --threshold <n>", "Pass threshold (0-1)", floatArg("--threshold"))
     .option(
       "-n, --total-voters <n>",
       "Total eligible voters (for quorum)",
@@ -402,9 +403,9 @@ export function registerGovernanceCommand(program) {
   gov
     .command("tally <proposal-id>")
     .description("Show vote tally with quorum/threshold check")
-    .option("-q, --quorum <n>", "Quorum threshold (0-1)", parseFloat)
-    .option("-t, --threshold <n>", "Pass threshold (0-1)", parseFloat)
-    .option("-n, --total-voters <n>", "Total eligible voters", parseInt)
+    .option("-q, --quorum <n>", "Quorum threshold (0-1)", floatArg("--quorum"))
+    .option("-t, --threshold <n>", "Pass threshold (0-1)", floatArg("--threshold"))
+    .option("-n, --total-voters <n>", "Total eligible voters", intArg("--total-voters"))
     .option("--json", "Output as JSON")
     .action(async (proposalId, options) => {
       try {

@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   PROTOCOL,
@@ -145,7 +146,7 @@ export function registerFusionCommand(program) {
   fu.command("messages")
     .description("List unified messages")
     .option("-p, --protocol <name>", "Filter by protocol")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(fu);
@@ -203,7 +204,7 @@ export function registerFusionCommand(program) {
 
   fu.command("identities")
     .description("List identity mappings")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(fu);
@@ -269,7 +270,7 @@ export function registerFusionCommand(program) {
   fu.command("quality-scores")
     .description("List quality scores")
     .option("-l, --level <level>", "Filter by quality level")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(fu);

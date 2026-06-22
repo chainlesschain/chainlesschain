@@ -6,6 +6,7 @@
  */
 
 import fs from "fs";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -421,7 +422,7 @@ export function registerCollabCommand(program) {
   collab
     .command("agents")
     .description("List agents with autonomy levels")
-    .option("-l, --level <n>", "Filter by level 0..4", parseInt)
+    .option("-l, --level <n>", "Filter by level 0..4", intArg("--level"))
     .option("--limit <n>", "Maximum entries", parseInt, 50)
     .option("--json", "Output as JSON")
     .action(async (options) => {

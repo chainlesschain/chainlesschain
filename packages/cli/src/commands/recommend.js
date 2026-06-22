@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   CONTENT_TYPES,
@@ -154,7 +155,7 @@ export function registerRecommendCommand(program) {
     .description("Update interest profile")
     .option("-t, --topics <json>", "Topic weights JSON")
     .option("-w, --weights <json>", "Interaction weights JSON")
-    .option("-d, --decay <factor>", "Decay factor", parseFloat)
+    .option("-d, --decay <factor>", "Decay factor", floatArg("--decay"))
     .option("--json", "JSON output")
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);
@@ -186,7 +187,7 @@ export function registerRecommendCommand(program) {
   rec
     .command("profiles")
     .description("List all interest profiles")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(rec);
@@ -222,8 +223,8 @@ export function registerRecommendCommand(program) {
       "Generate recommendations from content pool (JSON stdin or --pool)",
     )
     .option("-p, --pool <json>", "Content pool as JSON array")
-    .option("-l, --limit <n>", "Max recommendations", parseInt)
-    .option("-m, --min-score <n>", "Minimum score", parseFloat)
+    .option("-l, --limit <n>", "Max recommendations", intArg("--limit"))
+    .option("-m, --min-score <n>", "Minimum score", floatArg("--min-score"))
     .option("--json", "JSON output")
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);
@@ -266,8 +267,8 @@ export function registerRecommendCommand(program) {
     .description("List recommendations for a user")
     .option("-s, --status <status>", "Filter by status")
     .option("-t, --type <type>", "Filter by content type")
-    .option("-m, --min-score <n>", "Minimum score", parseFloat)
-    .option("--limit <n>", "Max results", parseInt)
+    .option("-m, --min-score <n>", "Minimum score", floatArg("--min-score"))
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);
@@ -347,7 +348,7 @@ export function registerRecommendCommand(program) {
   rec
     .command("top-interests <user-id>")
     .description("Show top interests from profile")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((userId, opts) => {
       const db = _dbFromCtx(rec);

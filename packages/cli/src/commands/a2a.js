@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -514,7 +515,7 @@ export function registerA2aCommand(program) {
     .description("Submit a V2 task (in-memory, with optional timeout)")
     .argument("<agentId>", "Agent ID")
     .argument("<input>", "Task input")
-    .option("--timeout-ms <ms>", "Timeout in ms", parseInt)
+    .option("--timeout-ms <ms>", "Timeout in ms", intArg("--timeout-ms"))
     .option("--json", "Output as JSON")
     .action((agentId, input, options) => {
       const res = sendTaskV2(null, {

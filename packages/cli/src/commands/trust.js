@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   TRUST_ANCHOR,
@@ -163,7 +164,7 @@ export function registerTrustCommand(program) {
     .description("List attestations")
     .option("-a, --anchor <type>", "Filter by anchor")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(tr);
@@ -186,7 +187,7 @@ export function registerTrustCommand(program) {
   tr.command("interop-test <algorithm>")
     .description("Run PQC interoperability test")
     .option("-p, --peer <id>", "Peer identifier")
-    .option("-l, --latency <ms>", "Latency in ms", parseInt)
+    .option("-l, --latency <ms>", "Latency in ms", intArg("--latency"))
     .option("--json", "JSON output")
     .action((algorithm, opts) => {
       const db = _dbFromCtx(tr);
@@ -207,7 +208,7 @@ export function registerTrustCommand(program) {
   tr.command("interop-tests")
     .description("List PQC interop tests")
     .option("-a, --algorithm <algo>", "Filter by algorithm")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(tr);
@@ -229,7 +230,7 @@ export function registerTrustCommand(program) {
   tr.command("sat-send <payload>")
     .description("Send satellite message")
     .option("-p, --provider <name>", "Provider (iridium/starlink/beidou)")
-    .option("-r, --priority <n>", "Priority (1-10)", parseInt)
+    .option("-r, --priority <n>", "Priority (1-10)", intArg("--priority"))
     .option("--json", "JSON output")
     .action((payload, opts) => {
       const db = _dbFromCtx(tr);
@@ -277,7 +278,7 @@ export function registerTrustCommand(program) {
     .description("List satellite messages")
     .option("-p, --provider <name>", "Filter by provider")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(tr);
@@ -346,7 +347,7 @@ export function registerTrustCommand(program) {
   tr.command("hsm-devices")
     .description("List HSM devices")
     .option("-v, --vendor <name>", "Filter by vendor")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(tr);

@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   MODALITY,
@@ -131,7 +132,7 @@ export function registerPerceptionCommand(program) {
     )
     .option("-i, --input <source>", "Input source (file path or session id)")
     .option("-r, --result <json>", "Result data JSON")
-    .option("-c, --confidence <n>", "Confidence score (0-1)", parseFloat)
+    .option("-c, --confidence <n>", "Confidence score (0-1)", floatArg("--confidence"))
     .option("--metadata <json>", "Metadata JSON")
     .option("--json", "JSON output")
     .action((opts) => {
@@ -173,7 +174,7 @@ export function registerPerceptionCommand(program) {
     .description("List perception results")
     .option("-m, --modality <type>", "Filter by modality")
     .option("-a, --analysis <type>", "Filter by analysis type")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(perc);
@@ -262,7 +263,7 @@ export function registerPerceptionCommand(program) {
     .description("List voice sessions")
     .option("-s, --status <status>", "Filter by status")
     .option("-l, --language <lang>", "Filter by language")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(perc);
@@ -329,7 +330,7 @@ export function registerPerceptionCommand(program) {
     .command("index-list")
     .description("List index entries")
     .option("-m, --modality <type>", "Filter by modality")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(perc);
@@ -365,7 +366,7 @@ export function registerPerceptionCommand(program) {
     .command("query <text>")
     .description("Cross-modal search across index entries")
     .option("-m, --modalities <csv>", "Filter modalities (comma-separated)")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((text, opts) => {
       const db = _dbFromCtx(perc);

@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -95,8 +96,8 @@ export function registerReputationCommand(program) {
       "Decay model (none|exponential|linear|step)",
       "none",
     )
-    .option("--lambda <n>", "Exponential decay lambda", parseFloat)
-    .option("--alpha <n>", "Linear decay alpha", parseFloat)
+    .option("--lambda <n>", "Exponential decay lambda", floatArg("--lambda"))
+    .option("--alpha <n>", "Linear decay alpha", floatArg("--alpha"))
     .option("--json", "Output as JSON")
     .action(async (did, options) => {
       try {
@@ -164,7 +165,7 @@ export function registerReputationCommand(program) {
       "Detection method (z_score|iqr)",
       "z_score",
     )
-    .option("-t, --threshold <n>", "Detection threshold", parseFloat)
+    .option("-t, --threshold <n>", "Detection threshold", floatArg("--threshold"))
     .option(
       "-d, --decay <model>",
       "Decay model applied before detection",

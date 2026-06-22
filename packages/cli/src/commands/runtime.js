@@ -6,6 +6,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   PLUGIN_STATUS,
@@ -222,7 +223,7 @@ export function registerRuntimeCommand(program) {
     .command("plugins")
     .description("List plugins")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(runtime);
@@ -282,7 +283,7 @@ export function registerRuntimeCommand(program) {
     .command("updates")
     .description("List updates")
     .option("-p, --plugin <id>", "Filter by plugin id")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(runtime);
@@ -305,7 +306,7 @@ export function registerRuntimeCommand(program) {
     .command("profile")
     .description("Take a runtime profile sample")
     .option("-t, --type <type>", "Profile type (cpu/memory/flamegraph)", "cpu")
-    .option("-d, --duration <ms>", "Duration in ms", parseInt)
+    .option("-d, --duration <ms>", "Duration in ms", intArg("--duration"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(runtime);
@@ -344,7 +345,7 @@ export function registerRuntimeCommand(program) {
     .command("profiles")
     .description("List profiles")
     .option("-t, --type <type>", "Filter by profile type")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(runtime);
@@ -391,7 +392,7 @@ export function registerRuntimeCommand(program) {
   runtime
     .command("state-list")
     .description("List synced state keys")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(runtime);

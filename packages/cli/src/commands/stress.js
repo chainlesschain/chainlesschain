@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -58,9 +59,9 @@ export function registerStressCommand(program) {
       "Load level (light|medium|heavy|extreme)",
       "medium",
     )
-    .option("-c, --concurrency <n>", "Override concurrency", parseInt)
-    .option("-r, --rps <n>", "Override requests per second", parseInt)
-    .option("-d, --duration <ms>", "Override duration in ms", parseInt)
+    .option("-c, --concurrency <n>", "Override concurrency", intArg("--concurrency"))
+    .option("-r, --rps <n>", "Override requests per second", intArg("--rps"))
+    .option("-d, --duration <ms>", "Override duration in ms", intArg("--duration"))
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
@@ -354,9 +355,9 @@ export function registerStressCommand(program) {
       "Load level (light|medium|heavy|extreme)",
       "medium",
     )
-    .option("-c, --concurrency <n>", "Override concurrency", parseInt)
-    .option("-r, --rps <n>", "Override requests per second", parseInt)
-    .option("-d, --duration <ms>", "Override duration in ms", parseInt)
+    .option("-c, --concurrency <n>", "Override concurrency", intArg("--concurrency"))
+    .option("-r, --rps <n>", "Override requests per second", intArg("--rps"))
+    .option("-d, --duration <ms>", "Override duration in ms", intArg("--duration"))
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {

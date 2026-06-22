@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   INTENT,
@@ -214,7 +215,7 @@ export function registerNlProgCommand(program) {
     .description("List translations")
     .option("-i, --intent <intent>", "Filter by intent")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _requireDb(nlp);
@@ -289,7 +290,7 @@ export function registerNlProgCommand(program) {
     )
     .requiredOption("-p, --pattern <text>", "Pattern description")
     .option("-e, --examples <json>", "Examples JSON")
-    .option("-f, --confidence <n>", "Confidence (0-1)", parseFloat)
+    .option("-f, --confidence <n>", "Confidence (0-1)", floatArg("--confidence"))
     .option("-s, --source-files <json>", "Source files JSON")
     .option("--json", "JSON output")
     .action((opts) => {
@@ -326,7 +327,7 @@ export function registerNlProgCommand(program) {
     .command("conventions")
     .description("List project conventions")
     .option("-c, --category <cat>", "Filter by category")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _requireDb(nlp);

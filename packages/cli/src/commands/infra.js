@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   DEAL_STATUS,
@@ -115,8 +116,8 @@ export function registerInfraCommand(program) {
     .requiredOption("-c, --cid <cid>", "Content CID")
     .requiredOption("-s, --size <bytes>", "Size in bytes", parseInt)
     .option("-m, --miner <id>", "Miner ID")
-    .option("-p, --price <fil>", "Price in FIL", parseFloat)
-    .option("-d, --duration <epochs>", "Duration in epochs", parseInt)
+    .option("-p, --price <fil>", "Price in FIL", floatArg("--price"))
+    .option("-d, --duration <epochs>", "Duration in epochs", intArg("--duration"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -180,7 +181,7 @@ export function registerInfraCommand(program) {
     .command("deals")
     .description("List storage deals")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -205,7 +206,7 @@ export function registerInfraCommand(program) {
     .requiredOption("-c, --cid <cid>", "Content CID")
     .option("-p, --parent <cid>", "Parent CID")
     .option("-d, --dag <json>", "DAG structure")
-    .option("-n, --peers <n>", "Peer count", parseInt)
+    .option("-n, --peers <n>", "Peer count", intArg("--peers"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -242,7 +243,7 @@ export function registerInfraCommand(program) {
     .command("versions")
     .description("List content versions")
     .option("-c, --cid <cid>", "Filter by content CID")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -282,8 +283,8 @@ export function registerInfraCommand(program) {
       "Route type (tor/domain_front/mesh_ble/mesh_wifi/direct)",
     )
     .option("-e, --endpoint <url>", "Endpoint URL")
-    .option("-l, --latency <ms>", "Latency in ms", parseInt)
-    .option("-r, --reliability <0-1>", "Reliability score", parseFloat)
+    .option("-l, --latency <ms>", "Latency in ms", intArg("--latency"))
+    .option("-r, --reliability <0-1>", "Reliability score", floatArg("--reliability"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -346,7 +347,7 @@ export function registerInfraCommand(program) {
     .description("List anti-censorship routes")
     .option("-t, --type <type>", "Filter by route type")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);

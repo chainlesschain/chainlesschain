@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
@@ -292,7 +293,7 @@ export function registerEvolutionCommand(program) {
     .command("growth")
     .description("Show growth log")
     .option("--type <filter>", "Filter by event type")
-    .option("--limit <n>", "Limit entries", parseInt)
+    .option("--limit <n>", "Limit entries", intArg("--limit"))
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {

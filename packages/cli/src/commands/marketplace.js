@@ -5,6 +5,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -240,7 +241,7 @@ export function registerMarketplaceCommand(program) {
       "Status (pending|running|success|failed|timeout)",
       "success",
     )
-    .option("-d, --duration-ms <n>", "Duration in ms", parseInt)
+    .option("-d, --duration-ms <n>", "Duration in ms", intArg("--duration-ms"))
     .option("-e, --error <text>", "Error message when failed")
     .option("--json", "Output as JSON")
     .action(async (serviceId, options) => {
@@ -466,7 +467,7 @@ export function registerMarketplaceCommand(program) {
   mp.command("complete-invocation <invocation-id>")
     .description("Complete a V2 invocation (RUNNING → SUCCESS)")
     .option("-o, --output <json>", "JSON-encoded output")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
     .option("--json", "Output as JSON")
     .action(async (invocationId, options) => {
       try {
@@ -496,7 +497,7 @@ export function registerMarketplaceCommand(program) {
   mp.command("fail-invocation <invocation-id>")
     .description("Fail a V2 invocation")
     .option("-m, --message <msg>", "Error message")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
     .action(async (invocationId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -515,7 +516,7 @@ export function registerMarketplaceCommand(program) {
 
   mp.command("timeout-invocation <invocation-id>")
     .description("Timeout a V2 invocation")
-    .option("-d, --duration-ms <n>", "Duration in milliseconds", parseInt)
+    .option("-d, --duration-ms <n>", "Duration in milliseconds", intArg("--duration-ms"))
     .action(async (invocationId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });

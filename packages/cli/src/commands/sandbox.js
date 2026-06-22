@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -252,7 +253,7 @@ export function registerSandboxCommand(program) {
     .description("Show audit log for sandboxes")
     .argument("[sandbox-id]", "Optional sandbox ID to filter")
     .option("--action <name>", "Filter by action type")
-    .option("--limit <n>", "Limit entries", parseInt)
+    .option("--limit <n>", "Limit entries", intArg("--limit"))
     .option("--json", "Output as JSON")
     .action(async (sandboxId, options) => {
       try {
@@ -293,8 +294,8 @@ export function registerSandboxCommand(program) {
     .command("quota")
     .description("Show or set sandbox quota")
     .argument("<sandbox-id>", "Sandbox ID")
-    .option("--cpu <n>", "Set CPU quota", parseInt)
-    .option("--memory <n>", "Set memory quota in MB", parseInt)
+    .option("--cpu <n>", "Set CPU quota", intArg("--cpu"))
+    .option("--memory <n>", "Set memory quota in MB", intArg("--memory"))
     .option("--json", "Output as JSON")
     .action(async (sandboxId, options) => {
       try {
@@ -780,7 +781,7 @@ export function registerSandboxCommand(program) {
     .option("-e, --events <types>", "Comma-separated event types")
     .option("--from <iso>", "ISO timestamp lower bound")
     .option("--to <iso>", "ISO timestamp upper bound")
-    .option("-l, --limit <n>", "Max entries to return", parseInt)
+    .option("-l, --limit <n>", "Max entries to return", intArg("--limit"))
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
       try {

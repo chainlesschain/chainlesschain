@@ -70,4 +70,15 @@ describe("E2E: numeric option validation (no NaN threading)", () => {
     expect(r.status).toBe(1);
     expect(`${r.stdout}${r.stderr}`).toMatch(/--data-size must be a number/);
   });
+
+  it("rejects a bad commander coercer arg (stress run --concurrency)", () => {
+    // `--concurrency` uses a validating coercer (intArg) instead of bare
+    // parseInt, so commander rejects the value at parse time rather than
+    // threading NaN into the load generator.
+    const r = run(["stress", "run", "--concurrency", "abc"]);
+    expect(r.status).toBe(1);
+    expect(`${r.stdout}${r.stderr}`).toMatch(
+      /option '-c, --concurrency <n>' argument 'abc' is invalid/,
+    );
+  });
 });

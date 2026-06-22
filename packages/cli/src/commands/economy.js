@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
@@ -502,9 +503,9 @@ export function registerEconomyCommand(program) {
     .argument("<from>", "From agent ID")
     .argument("<to>", "To agent ID")
     .argument("<service-id>", "Service ID")
-    .option("--tokens <n>", "Token count (for per_token)", parseInt)
-    .option("--minutes <n>", "Minute count (for per_minute)", parseFloat)
-    .option("--calls <n>", "Call count (for per_call)", parseInt)
+    .option("--tokens <n>", "Token count (for per_token)", intArg("--tokens"))
+    .option("--minutes <n>", "Minute count (for per_minute)", floatArg("--minutes"))
+    .option("--calls <n>", "Call count (for per_call)", intArg("--calls"))
     .option("--json", "Output as JSON")
     .action(async (from, to, serviceId, options) => {
       try {
@@ -535,8 +536,8 @@ export function registerEconomyCommand(program) {
     .description("Open a two-sided channel (Phase 85)")
     .argument("<party-a>", "Party A ID")
     .argument("<party-b>", "Party B ID")
-    .option("--deposit-a <n>", "Deposit from party A", parseFloat)
-    .option("--deposit-b <n>", "Deposit from party B", parseFloat)
+    .option("--deposit-a <n>", "Deposit from party A", floatArg("--deposit-a"))
+    .option("--deposit-b <n>", "Deposit from party B", floatArg("--deposit-b"))
     .option("--json", "Output as JSON")
     .action(async (a, b, options) => {
       try {

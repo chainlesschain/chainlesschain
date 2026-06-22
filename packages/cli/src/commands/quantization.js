@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   JOB_STATUS,
@@ -190,7 +191,7 @@ export function registerQuantizationCommand(program) {
     .command("complete <id>")
     .description("Mark a running job as completed")
     .option("-o, --output <path>", "Output file path")
-    .option("-s, --size <bytes>", "Output file size in bytes", parseInt)
+    .option("-s, --size <bytes>", "Output file size in bytes", intArg("--size"))
     .option("--json", "JSON output")
     .action((id, opts) => {
       const db = _dbFromCtx(quant);
@@ -271,7 +272,7 @@ export function registerQuantizationCommand(program) {
     .description("List quantization jobs")
     .option("-s, --status <status>", "Filter by status")
     .option("-t, --type <type>", "Filter by quant type (gguf/gptq)")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(quant);

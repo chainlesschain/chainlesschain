@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   FL_STATUS,
@@ -117,9 +118,9 @@ export function registerPrivacyCommand(program) {
     .description("Create federated learning model")
     .option("-t, --type <type>", "Model type", "neural_network")
     .option("-a, --arch <architecture>", "Architecture", "mlp")
-    .option("-r, --rounds <n>", "Total training rounds", parseInt)
-    .option("-l, --lr <rate>", "Learning rate", parseFloat)
-    .option("-p, --participants <n>", "Participant count", parseInt)
+    .option("-r, --rounds <n>", "Total training rounds", intArg("--rounds"))
+    .option("-l, --lr <rate>", "Learning rate", floatArg("--lr"))
+    .option("-p, --participants <n>", "Participant count", intArg("--participants"))
     .option("--json", "JSON output")
     .action((name, opts) => {
       const db = _dbFromCtx(pc);
@@ -183,7 +184,7 @@ export function registerPrivacyCommand(program) {
   pc.command("models")
     .description("List federated learning models")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(pc);
@@ -206,7 +207,7 @@ export function registerPrivacyCommand(program) {
     .description("Create MPC computation")
     .option("-p, --protocol <proto>", "Protocol (shamir/beaver/gmw)", "shamir")
     .option("-i, --participants <ids>", "Comma-separated participant IDs")
-    .option("-t, --threshold <n>", "Shares required", parseInt)
+    .option("-t, --threshold <n>", "Shares required", intArg("--threshold"))
     .option("--json", "JSON output")
     .action((type, opts) => {
       const db = _dbFromCtx(pc);
@@ -258,7 +259,7 @@ export function registerPrivacyCommand(program) {
     .description("List MPC computations")
     .option("-p, --protocol <proto>", "Filter by protocol")
     .option("-s, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(pc);
@@ -281,13 +282,13 @@ export function registerPrivacyCommand(program) {
   pc.command("dp-publish")
     .description("Publish data with differential privacy noise")
     .option("-d, --data <json>", "Data (number or JSON array)")
-    .option("-e, --epsilon <n>", "Privacy parameter epsilon", parseFloat)
-    .option("--delta <n>", "Privacy parameter delta", parseFloat)
+    .option("-e, --epsilon <n>", "Privacy parameter epsilon", floatArg("--epsilon"))
+    .option("--delta <n>", "Privacy parameter delta", floatArg("--delta"))
     .option(
       "-m, --mechanism <type>",
       "Noise mechanism (laplace/gaussian/exponential)",
     )
-    .option("-s, --sensitivity <n>", "Sensitivity", parseFloat)
+    .option("-s, --sensitivity <n>", "Sensitivity", floatArg("--sensitivity"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(pc);
@@ -598,10 +599,10 @@ export function registerPrivacyCommand(program) {
   pc.command("dp-publish-v2")
     .description("V2 DP publish (throws on invalid input / exceeded budget)")
     .requiredOption("-d, --data <n>", "Data value", Number)
-    .option("-e, --epsilon <n>", "Epsilon", Number)
-    .option("--delta <n>", "Delta", Number)
+    .option("-e, --epsilon <n>", "Epsilon", floatArg("--epsilon"))
+    .option("--delta <n>", "Delta", floatArg("--delta"))
     .option("-m, --mechanism <mech>", "Mechanism")
-    .option("-s, --sensitivity <n>", "Sensitivity", Number)
+    .option("-s, --sensitivity <n>", "Sensitivity", floatArg("--sensitivity"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(pc);

@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   NODE_STATUS,
@@ -95,7 +96,7 @@ export function registerInferenceCommand(program) {
     .description("Register inference node")
     .option("-e, --endpoint <url>", "Node endpoint URL")
     .option("-c, --capabilities <list>", "Comma-separated capabilities")
-    .option("-g, --gpu <mb>", "GPU memory in MB", parseInt)
+    .option("-g, --gpu <mb>", "GPU memory in MB", intArg("--gpu"))
     .option("--json", "JSON output")
     .action((nodeId, opts) => {
       const db = _dbFromCtx(inf);
@@ -176,7 +177,7 @@ export function registerInferenceCommand(program) {
     .description("List inference nodes")
     .option("-s, --status <status>", "Filter by status")
     .option("-c, --capability <cap>", "Filter by capability")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -200,7 +201,7 @@ export function registerInferenceCommand(program) {
     .command("submit <model>")
     .description("Submit inference task")
     .option("-i, --input <text>", "Input data")
-    .option("-p, --priority <n>", "Priority (1-10)", parseInt)
+    .option("-p, --priority <n>", "Priority (1-10)", intArg("--priority"))
     .option("-m, --mode <mode>", "Privacy mode (standard/encrypted/federated)")
     .option("--json", "JSON output")
     .action((model, opts) => {
@@ -223,7 +224,7 @@ export function registerInferenceCommand(program) {
     .command("complete <task-id>")
     .description("Mark task as complete")
     .option("-o, --output <text>", "Task output")
-    .option("-d, --duration <ms>", "Duration in ms", parseInt)
+    .option("-d, --duration <ms>", "Duration in ms", intArg("--duration"))
     .option("--json", "JSON output")
     .action((taskId, opts) => {
       const db = _dbFromCtx(inf);
@@ -279,7 +280,7 @@ export function registerInferenceCommand(program) {
     .option("-s, --status <status>", "Filter by status")
     .option("-m, --model <model>", "Filter by model")
     .option("-p, --privacy <mode>", "Filter by privacy mode")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(inf);
@@ -437,7 +438,7 @@ export function registerInferenceCommand(program) {
     .command("submit-v2 <model>")
     .description("Submit task (V2, creates queued no assignment)")
     .option("-i, --input <text>", "Input data")
-    .option("-p, --priority <n>", "Priority (1-10)", parseInt)
+    .option("-p, --priority <n>", "Priority (1-10)", intArg("--priority"))
     .option("-m, --mode <mode>", "Privacy mode")
     .option("--json", "JSON output")
     .action((model, opts) => {
@@ -501,7 +502,7 @@ export function registerInferenceCommand(program) {
     .command("complete-v2 <task-id>")
     .description("Complete running task (running → complete)")
     .option("-o, --output <text>", "Task output")
-    .option("-d, --duration <ms>", "Duration in ms", parseInt)
+    .option("-d, --duration <ms>", "Duration in ms", intArg("--duration"))
     .option("--json", "JSON output")
     .action((taskId, opts) => {
       const db = _dbFromCtx(inf);
@@ -543,7 +544,7 @@ export function registerInferenceCommand(program) {
     .command("set-task-status <task-id> <status>")
     .description("Generic state-machine-guarded task status setter")
     .option("-o, --output <text>", "Patch: output")
-    .option("-d, --duration <ms>", "Patch: durationMs", parseInt)
+    .option("-d, --duration <ms>", "Patch: durationMs", intArg("--duration"))
     .option("-e, --error <text>", "Patch: errorMessage")
     .option("--json", "JSON output")
     .action((taskId, status, opts) => {

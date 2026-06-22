@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   SCAFFOLD_TEMPLATE,
@@ -117,8 +118,8 @@ export function registerCodegenCommand(program) {
     .option("-l, --language <lang>", "Programming language")
     .option("-f, --framework <fw>", "Framework used")
     .option("--code <code>", "Generated code")
-    .option("--files <n>", "Files generated", parseInt)
-    .option("--tokens <n>", "Tokens consumed", parseInt)
+    .option("--files <n>", "Files generated", intArg("--files"))
+    .option("--tokens <n>", "Tokens consumed", intArg("--tokens"))
     .option("-m, --metadata <json>", "Metadata JSON")
     .option("--json", "JSON output")
     .action((opts) => {
@@ -158,7 +159,7 @@ export function registerCodegenCommand(program) {
     .description("List code generations")
     .option("-l, --language <lang>", "Filter by language")
     .option("-f, --framework <fw>", "Filter by framework")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cg);
@@ -233,7 +234,7 @@ export function registerCodegenCommand(program) {
   cg.command("reviews")
     .description("List code reviews")
     .option("-l, --language <lang>", "Filter by language")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cg);
@@ -260,7 +261,7 @@ export function registerCodegenCommand(program) {
     )
     .requiredOption("-n, --name <name>", "Project name")
     .option("-o, --options <json>", "Options JSON")
-    .option("--files <n>", "Files generated", parseInt)
+    .option("--files <n>", "Files generated", intArg("--files"))
     .option("--output <path>", "Output path")
     .option("--json", "JSON output")
     .action((opts) => {
@@ -297,7 +298,7 @@ export function registerCodegenCommand(program) {
   cg.command("scaffolds")
     .description("List scaffolds")
     .option("-t, --template <type>", "Filter by template")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(cg);

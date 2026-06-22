@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -556,8 +557,8 @@ export function registerHardeningCommand(program) {
   hardening
     .command("complete-audit <audit-id>")
     .description("Complete a RUNNING audit")
-    .option("-p, --passed <n>", "Passed check count", parseInt)
-    .option("-f, --failed <n>", "Failed check count", parseInt)
+    .option("-p, --passed <n>", "Passed check count", intArg("--passed"))
+    .option("-f, --failed <n>", "Failed check count", intArg("--failed"))
     .option("-w, --warning-threshold <n>", "Score threshold for WARNING (0–1)")
     .option("--json", "JSON output")
     .action(async (auditId, opts) => {

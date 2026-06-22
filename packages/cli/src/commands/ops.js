@@ -3,6 +3,7 @@
  */
 
 import { Command } from "commander";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 
 import {
   SEVERITY,
@@ -288,7 +289,7 @@ export function registerOpsCommand(program) {
     .description("List incidents")
     .option("-s, --severity <P0-P3>", "Filter by severity")
     .option("-S, --status <status>", "Filter by status")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(ops);
@@ -380,7 +381,7 @@ export function registerOpsCommand(program) {
     .description("List playbooks")
     .option("-e, --enabled", "Only enabled")
     .option("-d, --disabled", "Only disabled")
-    .option("--limit <n>", "Max results", parseInt)
+    .option("--limit <n>", "Max results", intArg("--limit"))
     .option("--json", "JSON output")
     .action((opts) => {
       const db = _dbFromCtx(ops);

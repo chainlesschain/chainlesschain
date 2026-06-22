@@ -6,6 +6,7 @@
  */
 
 import fs from "fs";
+import { intArg, floatArg } from "../lib/cli-arg.js";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
@@ -380,8 +381,8 @@ export function registerTenantCommand(program) {
     .command("subscribe <tenant-id>")
     .description("Start a new subscription (cancels any prior active one)")
     .requiredOption("-p, --plan <plan>", "Plan id")
-    .option("-a, --amount <n>", "Override amount", parseFloat)
-    .option("-d, --duration-ms <ms>", "Duration in ms (default 30d)", parseInt)
+    .option("-a, --amount <n>", "Override amount", floatArg("--amount"))
+    .option("-d, --duration-ms <ms>", "Duration in ms (default 30d)", intArg("--duration-ms"))
     .option("--json", "Output as JSON")
     .action(async (tenantId, options) => {
       try {
