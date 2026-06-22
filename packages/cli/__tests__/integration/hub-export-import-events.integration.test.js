@@ -49,6 +49,8 @@ describe("hub export-events/import-events — real vault round-trip", () => {
       path: path.join(dir, "b.db"),
       key: generateKeyHex(),
     });
+    vaultA.open();
+    vaultB.open();
   });
 
   afterEach(() => {
