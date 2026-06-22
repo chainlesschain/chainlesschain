@@ -273,3 +273,106 @@ describe("runAgentHeadlessStream", () => {
     expect(result.result).toContain("injected");
   });
 });
+
+describe("runAgentHeadlessStream — custom slash-command macros (panel parity)", () => {
+  const baseDeps = (over = {}) => {
+    const lines = [];
+    return {
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      writeOut: (s) => lines.push(s),
+      writeErr: () => {},
+      _lines: lines,
+      ...over,
+    };
+  };
+  async function* input(...objs) {
+    yield objs.map((o) => JSON.stringify(o)).join("\n") + "\n";
+  }
+  const captureUser = () => {
+    const seen = [];
+    return {
+      seen,
+      agentLoop: async function* (messages) {
+        seen.push(
+          [...messages].reverse().find((m) => m.role === "user").content,
+        );
+        yield { type: "response-complete", content: "ok" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    };
+  };
+
+  it("expands a resolved /name macro and skips the @file pass for that turn", async () => {
+    const { seen, agentLoop } = captureUser();
+    const resolveSlashMacro = vi.fn(async (text) => ({
+      matched: true,
+      promptText: "EXPANDED: review the diff",
+      warnings: [],
+      name: "git:review",
+      scope: "project",
+    }));
+    const expandFileRefs = vi.fn(async (p) => ({
+      prompt: p + " [@]",
+      warnings: [],
+    }));
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro,
+      expandFileRefs,
+      input: input({ type: "user", text: "/git:review HEAD" }),
+    });
+    await runAgentHeadlessStream({}, deps);
+    expect(resolveSlashMacro).toHaveBeenCalledOnce();
+    expect(seen[0]).toBe("EXPANDED: review the diff"); // expanded, no @file suffix
+    expect(expandFileRefs).not.toHaveBeenCalled();
+  });
+
+  it("leaves a non-slash turn untouched and still runs @file expansion", async () => {
+    const { seen, agentLoop } = captureUser();
+    const resolveSlashMacro = vi.fn();
+    const expandFileRefs = vi.fn(async (p) => ({
+      prompt: p + " [@]",
+      warnings: [],
+    }));
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro,
+      expandFileRefs,
+      input: input({ type: "user", text: "plain question" }),
+    });
+    await runAgentHeadlessStream({}, deps);
+    expect(resolveSlashMacro).not.toHaveBeenCalled(); // not a /token
+    expect(seen[0]).toBe("plain question [@]");
+  });
+
+  it("slashMacros:false disables expansion (literal /name reaches the loop)", async () => {
+    const { seen, agentLoop } = captureUser();
+    const resolveSlashMacro = vi.fn();
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro,
+      expandFileRefs: async (p) => ({ prompt: p, warnings: [] }),
+      input: input({ type: "user", text: "/git:review" }),
+    });
+    await runAgentHeadlessStream({ slashMacros: false }, deps);
+    expect(resolveSlashMacro).not.toHaveBeenCalled();
+    expect(seen[0]).toBe("/git:review");
+  });
+
+  it("an unmatched /token falls through to @file expansion", async () => {
+    const { seen, agentLoop } = captureUser();
+    const deps = baseDeps({
+      agentLoop,
+      resolveSlashMacro: async () => ({
+        matched: false,
+        promptText: "/etc/hosts",
+        warnings: [],
+      }),
+      expandFileRefs: async (p) => ({ prompt: p + " [@]", warnings: [] }),
+      input: input({ type: "user", text: "/etc/hosts is broken" }),
+    });
+    await runAgentHeadlessStream({}, deps);
+    expect(seen[0]).toBe("/etc/hosts is broken [@]");
+  });
+});

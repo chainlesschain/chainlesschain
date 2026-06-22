@@ -1078,9 +1078,38 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
         })
       : new IterationBudget();
 
-    // @file expansion per user event (parity with single-turn headless).
+    // Custom slash-command macro expansion per user event (Claude-Code parity:
+    // a /name from .claude/commands runs in panel / stream mode too, not just
+    // the REPL). expandCommand already runs @file expansion, so the @-ref pass
+    // below is skipped when a macro matched. Opt out: options.slashMacros:false.
     let userContent = parsed.text;
-    if (options.expandFileRefs !== false) {
+    let slashExpanded = false;
+    if (
+      options.slashMacros !== false &&
+      typeof parsed.text === "string" &&
+      parsed.text.startsWith("/")
+    ) {
+      try {
+        const doMacro =
+          deps.resolveSlashMacro ||
+          (await import("../repl/slash-macro.js")).resolveSlashMacro;
+        const macro = await doMacro(parsed.text, { cwd });
+        if (macro && macro.matched) {
+          userContent = macro.promptText;
+          slashExpanded = true;
+          for (const w of macro.warnings || []) {
+            writeErr(`  /${macro.name}: ${w}\n`);
+          }
+          writeErr(`  command: /${macro.name} [${macro.scope}]\n`);
+        }
+      } catch {
+        // macro resolution is best-effort — fall back to the literal text
+      }
+    }
+
+    // @file expansion per user event (parity with single-turn headless).
+    // Skipped when a slash macro already expanded (expandCommand ran @refs).
+    if (!slashExpanded && options.expandFileRefs !== false) {
       const expanded = await doExpand(parsed.text, { cwd });
       userContent = expanded.prompt;
       for (const w of expanded.warnings) writeErr(`  @ref: ${w}\n`);
