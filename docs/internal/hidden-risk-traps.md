@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#31）
+# 隐性风险陷阱手册（#6-#32）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -2047,6 +2047,61 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 
 ---
 
+## 32. 运行中的 `cc` 进程锁住 `better_sqlite3.node` → `npm i -g` 半截安装 → 无关命令崩 `ERR_MODULE_NOT_FOUND`（隐性风险）
+
+**Slug**: `cli_global_install_ebusy_partial_tree`（实战触发 2026-06-22，一次 session 内复发 3+ 次）
+
+**陷阱本质**：
+
+全局装/升级 `npm i -g chainlesschain` 时，若有**后台 `cc` 进程仍在跑**（最常见是 IDE 面板或测试残留的 `cc agent --input-format stream-json` orphan，它把原生模块 mmap 进内存），Windows 会锁住 `node_modules\chainlesschain\node_modules\better-sqlite3-multiple-ciphers\build\Release\better_sqlite3.node`。npm 在 copyfile/rename 整棵树时撞 **`EBUSY: resource busy or locked`**（errno -4082），解压**中途中断**，留下一棵**缺文件的 cc 安装树**。
+
+后果是**误导性极强的级联崩溃**：缺的文件不是固定的——可能是 `@chainlesschain/personal-data-hub/lib/adapters/wechat/index.js`，下次重装失败又变成 `@noble/curves/.../@noble/hashes/sha2.js`，或 `@aws-sdk/...`。任何 `import` 这些缺文件的命令在启动期就 `throw ERR_MODULE_NOT_FOUND`，报错文本指向**包内某个深层文件路径**，读起来像"这个包有 bug"，而非"你本地装了一半"。
+
+**为什么排查难**：
+
+- 报错指向 `node_modules/.../<dep>/<file>.js`，看起来是依赖包损坏或版本不兼容，**完全不提"安装不完整"**。用户无从知道修复方法就是重装。
+- **缺失文件会漂移**：第一次缺 pdh，重装失败后变成缺 `@noble/hashes`，再变成 `@aws-sdk`——给人"修一个又冒一个"的错觉，其实根因只有一条（树半截）。
+- `npm i -g` **重装本身也会失败**：半删除态的树让 npm 撞 `EPERM rmdir`（旧文件还被锁/残留）+ `ENOENT mkdir`（目录半建），覆盖不干净。
+- `npm i -g` 的 `EPERM cleanup` 警告（删不掉 `.chainlesschain-<hash>` 临时 staging 目录）常被当成无害噪声忽略，但它正是"上一次解压没完成"的信号。
+
+**SOP / checklist**（修复半截安装）：
+
+1. **先杀锁住原生模块的进程**（根因），不要直接重装：
+   ```powershell
+   Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+     Where-Object { $_.CommandLine -match 'chainlesschain\\bin\\chainlesschain.js' } |
+     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+   ```
+   这些通常是 IDE 面板/测试残留的 `cc agent` stream-json orphan，杀掉无副作用（面板会自己重连）。注意 `C:\nvm4w\nodejs` 是 nvm 活动版本的 symlink，与 `C:\Users\<u>\AppData\Local\nvm\v<x>\node_modules` 是**同一目录**——别因路径字面不同以为不相干。
+2. **直接重装若仍报 `EPERM rmdir` / `ENOENT mkdir`** = 树已半删除损坏，npm 覆盖不干净 → **先整目录删除再全新装**：
+   ```powershell
+   Remove-Item 'C:\Users\<u>\AppData\Local\nvm\v<x>\node_modules\chainlesschain' -Recurse -Force
+   ```
+   连同残留的 `node_modules\.chainlesschain-<hash>` staging 目录一并清掉。
+3. `npm i -g chainlesschain@latest` —— 现在无锁、无残留，应 `added N packages` 干净完成。
+4. **核验完整性**（别只看 `cc -v` 不报错）：`cc -v` 出版本号 + `cc doctor` 看 `✔ Personal Data Hub package`（见下）+ 抽查之前缺的文件 `ls .../@noble/curves/node_modules/@noble/hashes/sha2.js`。
+
+**已落地的缓解（2026-06-22，全部在 `chainlesschain@0.162.107`）**：
+
+- **lazy-load PDH**（`6aa067d480`）：pdh 从 top-level static import 改为按需 `await import`，**一个缺失的 pdh 文件不再 brick 无关命令**（`cc -v`/`cc --help`/非-hub 命令照常跑）。只有真正用到 pdh 的 `cc hub …` 才付加载成本。
+- **actionable runtime error**（`4d2cdfee0f` + `d078c9eb2e`）：所有 pdh 懒加载点（wiring / ws ingest / forensics 命令）经 `src/lib/pdh-load-error.js` 的 `rewritePdhLoadError`，把裸 `ERR_MODULE_NOT_FOUND` 重写成「Personal Data Hub package is missing files — your install looks incomplete. Repair it with: npm i -g chainlesschain@latest」。
+- **`cc doctor` 安装完整性检查**（`eaeaf7e23c`）：`collectDoctorReport` 新增 `pdh-package` 检查（`checkPdhPackageIntegrity`），解析 pdh 两个导出入口并验文件存在，缺则报 `✖ Personal Data Hub package (Incomplete install — Repair: npm i -g chainlesschain@latest)`。因为 pdh 现在懒加载，`cc doctor` 自己在半截安装下**仍能启动并主动诊断**（而 `cc hub` 会崩）。
+
+**反模式**：
+
+- ❌ 半截安装时直接 `npm i -g` 重装——树半删除态会撞 `EPERM rmdir`/`ENOENT mkdir`，越修越乱。必须先杀进程 + 删目录。
+- ❌ 把缺失文件当成"依赖包 bug"去查包源码——根因是本地装了一半，包发布的 tarball 是完整的（可下载 tarball `tar tzf` 核对文件数证明）。
+- ❌ 在有 `cc agent`/`cc` 进程跑着时装包——必然撞 EBUSY。装前先确认无 cc 进程（同 [[next_release_rebuild_android_cc_bundle]] 的 EBUSY 提示）。
+- ❌ 只看 `cc -v` 不报错就以为修好了——lazy-load 后 `cc -v` 即使 pdh 缺失也能跑；要 `cc doctor` 看 `pdh-package` 检查 + 抽查文件。
+
+**关联 memory / trap**：
+
+- trap #23（bs3mc/bs3 ABI dual-load）、#27/#28（改 pdh lib → bump version + USR_VERSION）——同属 better_sqlite3 / pdh 安装家族
+- memory: `next_release_rebuild_android_cc_bundle`（Android cc bundle 重建同样的 EBUSY 提示）、`cli_undeclared_dep_hoisting_global_crash`（另一类"本地全绿、全局装机才崩"）
+- 实战 commit：`6aa067d480`（lazy-load）/ `d078c9eb2e`+`4d2cdfee0f`（actionable error）/ `eaeaf7e23c`（cc doctor 完整性检查）
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间
@@ -2060,7 +2115,7 @@ CLI e2e 用 `singleFork`（所有 e2e 串到一个进程里跑）。某测试 `b
 > 为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
 
 ### 1. 概述
-见正文头部。本文：隐性风险陷阱手册（#6-#31）。
+见正文头部。本文：隐性风险陷阱手册（#6-#32）。
 
 ### 2. 核心特性
 见正文要点 / 特性 / 范围章节。
