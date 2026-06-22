@@ -20,6 +20,70 @@ export function ensureInstinctsTable(db) {
   `);
 }
 
+/** datetime('now')-style timestamp for rows missing one on import. */
+function _instinctNowSqlite() {
+  return new Date().toISOString().replace("T", " ").slice(0, 19);
+}
+
+/**
+ * Export ALL instincts (full dump) for §8.3 cross-device backup. Deterministic
+ * order so the same DB exports identically.
+ */
+export function exportInstincts(db) {
+  ensureInstinctsTable(db);
+  return db
+    .prepare(
+      `SELECT id, category, pattern, confidence, occurrences, last_seen, created_at
+       FROM instincts ORDER BY created_at ASC, id ASC`,
+    )
+    .all();
+}
+
+/**
+ * Import instincts (§8.3 restore): idempotent upsert by id — preserves created_at,
+ * updates category/pattern/confidence/occurrences/last_seen. Never aborts mid-batch.
+ */
+export function importInstincts(db, rows) {
+  ensureInstinctsTable(db);
+  if (!Array.isArray(rows)) {
+    throw new Error("importInstincts: rows must be a JSON array");
+  }
+  const stmt = db.prepare(
+    `INSERT INTO instincts (id, category, pattern, confidence, occurrences, last_seen, created_at)
+     VALUES (@id, @category, @pattern, @confidence, @occurrences, @last_seen, @created_at)
+     ON CONFLICT(id) DO UPDATE SET
+       category = excluded.category,
+       pattern = excluded.pattern,
+       confidence = excluded.confidence,
+       occurrences = excluded.occurrences,
+       last_seen = excluded.last_seen`,
+  );
+  let imported = 0;
+  let failed = 0;
+  const errors = [];
+  for (const r of rows) {
+    try {
+      if (!r || !r.id || !r.category || !r.pattern) {
+        throw new Error("invalid instinct (need id + category + pattern)");
+      }
+      stmt.run({
+        id: String(r.id),
+        category: r.category,
+        pattern: r.pattern,
+        confidence: typeof r.confidence === "number" ? r.confidence : 0.5,
+        occurrences: Number.isInteger(r.occurrences) ? r.occurrences : 1,
+        last_seen: r.last_seen || _instinctNowSqlite(),
+        created_at: r.created_at || _instinctNowSqlite(),
+      });
+      imported += 1;
+    } catch (e) {
+      failed += 1;
+      if (errors.length < 10) errors.push({ id: r && r.id, error: e.message });
+    }
+  }
+  return { ok: failed === 0, imported, failed, errors };
+}
+
 function generateId() {
   const hex = () =>
     Math.floor(Math.random() * 0x10000)
