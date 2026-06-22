@@ -11,6 +11,7 @@ import {
   collectDoctorReport,
   collectStatusReport,
   checkPort,
+  checkPdhPackageIntegrity,
 } from "../../src/runtime/diagnostics.js";
 
 describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
@@ -43,6 +44,7 @@ describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
         "config-file",
         "desktop-binary",
         "setup-completed",
+        "pdh-package",
       ]),
     );
   });
@@ -53,6 +55,7 @@ describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
     expect(byId.docker.optional).toBe(true);
     expect(byId["docker-compose"].optional).toBe(true);
     expect(byId["desktop-binary"].optional).toBe(true);
+    expect(byId["pdh-package"].optional).toBe(true);
     expect(byId.node.optional).toBe(false);
     expect(byId.npm.optional).toBe(false);
     expect(byId.git.optional).toBe(false);
@@ -156,5 +159,45 @@ describe("diagnostics.checkPort", () => {
   it("resolves a boolean within timeout", async () => {
     const result = await checkPort(65535, "127.0.0.1", 500);
     expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("diagnostics.checkPdhPackageIntegrity", () => {
+  it("ok when both probed entries resolve and exist on disk", () => {
+    const out = checkPdhPackageIntegrity({
+      resolve: (spec) => `/pkg/${spec}.js`,
+      existsSync: () => true,
+    });
+    expect(out.ok).toBe(true);
+    expect(out.detail).toBe("");
+  });
+
+  it("reports incomplete install when a resolved file is missing", () => {
+    const out = checkPdhPackageIntegrity({
+      resolve: (spec) => `/pkg/${spec}.js`,
+      existsSync: (p) => !p.includes("adapters/wechat"), // wechat missing
+    });
+    expect(out.ok).toBe(false);
+    expect(out.detail).toMatch(/Incomplete install/);
+    expect(out.detail).toMatch(/npm i -g chainlesschain@latest/);
+  });
+
+  it("reports missing/unresolvable when resolve throws (package absent)", () => {
+    const out = checkPdhPackageIntegrity({
+      resolve: () => {
+        const e = new Error("Cannot find module");
+        e.code = "ERR_MODULE_NOT_FOUND";
+        throw e;
+      },
+    });
+    expect(out.ok).toBe(false);
+    expect(out.detail).toMatch(/Missing\/unresolvable/);
+    expect(out.detail).toMatch(/npm i -g chainlesschain@latest/);
+  });
+
+  it("passes against the real (complete) install in this workspace", () => {
+    // The dev workspace always has a complete pdh package, so the live check
+    // must be ok — guards against a probe spec that silently stops resolving.
+    expect(checkPdhPackageIntegrity().ok).toBe(true);
   });
 });

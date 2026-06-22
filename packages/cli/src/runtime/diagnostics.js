@@ -14,6 +14,7 @@
 
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { createConnection } from "node:net";
 import semver from "semver";
 
@@ -59,6 +60,41 @@ function safeExec(cmd) {
     return execSync(cmd, { encoding: "utf-8" }).trim();
   } catch {
     return null;
+  }
+}
+
+/**
+ * Verify the personal-data-hub package (lazily loaded by every `cc hub …`
+ * command) is fully present on disk.
+ *
+ * A partial global install — most commonly an interrupted `npm i -g
+ * chainlesschain` whose extraction was blocked by a running `cc` process
+ * locking a native file (EBUSY) — leaves pdh files unwritten. The hub
+ * commands then fail at runtime with a raw ERR_MODULE_NOT_FOUND. Because pdh
+ * is lazy-loaded, `cc doctor` itself still starts and can surface this
+ * proactively with a one-line repair hint instead of leaving the user to
+ * decode a stack trace.
+ *
+ * Probes the two exported entry points (main + the wechat adapter); CJS
+ * require.resolve verifies the target file exists, so a missing file throws.
+ * Deps are injectable for unit tests.
+ */
+export function checkPdhPackageIntegrity(deps = {}) {
+  const resolve =
+    deps.resolve || ((spec) => createRequire(import.meta.url).resolve(spec));
+  const exists = deps.existsSync || existsSync;
+  const repair = "Repair: npm i -g chainlesschain@latest";
+  const probes = [
+    "@chainlesschain/personal-data-hub",
+    "@chainlesschain/personal-data-hub/adapters/wechat",
+  ];
+  try {
+    const paths = probes.map((spec) => resolve(spec));
+    const missing = paths.filter((p) => !exists(p));
+    if (missing.length === 0) return { ok: true, detail: "" };
+    return { ok: false, detail: `Incomplete install — ${repair}` };
+  } catch {
+    return { ok: false, detail: `Missing/unresolvable — ${repair}` };
   }
 }
 
@@ -177,6 +213,18 @@ export async function collectDoctorReport() {
     ok: setupCompleted,
     optional: false,
     detail: setupCompleted ? "" : 'Run "chainlesschain setup"',
+  });
+
+  // Personal Data Hub package integrity (catches partial/EBUSY-corrupted
+  // global installs before the user hits a raw ERR_MODULE_NOT_FOUND from a
+  // `cc hub …` command). Optional: non-hub usage works without it.
+  const pdh = checkPdhPackageIntegrity();
+  checks.push({
+    id: "pdh-package",
+    name: "Personal Data Hub package",
+    ok: pdh.ok,
+    optional: true,
+    detail: pdh.detail,
   });
 
   // Port scan
