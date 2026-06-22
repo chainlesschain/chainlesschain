@@ -60,6 +60,7 @@ public class SearchService {
     private static final long CACHE_EXPIRATION = 300; // 5分钟
     private static final int MAX_SNIPPET_LENGTH = 200;
     private static final int MAX_RESULTS_PER_TYPE = 50;
+    private static final int MAX_PAGE_SIZE = 200;
 
     /**
      * 调用方搜索范围。{@code enforce=false} 表示 dev-mode/未认证，保持旧的可选过滤行为。
@@ -112,20 +113,28 @@ public class SearchService {
 
         // 计算分页
         int total = results.size();
-        int start = (request.getPage() - 1) * request.getPageSize();
+        // Clamp client-controlled paging. page/pageSize come straight from query
+        // params / request body with no bean validation, so a negative pageSize
+        // crashes subList (IndexOutOfBounds → HTTP 500) and pageSize=0 makes
+        // totalPages = ceil(n / 0) = Infinity → (int) Integer.MAX_VALUE.
+        int page = request.getPage() == null ? 1 : Math.max(1, request.getPage());
+        int pageSize = request.getPageSize() == null
+                ? 20
+                : Math.min(Math.max(1, request.getPageSize()), MAX_PAGE_SIZE);
+        int start = (page - 1) * pageSize;
         if (start < 0) start = 0;
-        int end = Math.min(start + request.getPageSize(), total);
+        int end = Math.min(start + pageSize, total);
         List<SearchResult> pagedResults = start <= total
                 ? new ArrayList<>(results.subList(Math.min(start, total), end))
                 : new ArrayList<>();
 
-        // 构建响应
+        // 构建响应（回填归一后的 page/pageSize，使响应与实际分页一致）
         SearchResponse response = new SearchResponse();
         response.setResults(pagedResults);
         response.setTotal((long) total);
-        response.setPage(request.getPage());
-        response.setPageSize(request.getPageSize());
-        response.setTotalPages((int) Math.ceil((double) total / request.getPageSize()));
+        response.setPage(page);
+        response.setPageSize(pageSize);
+        response.setTotalPages((int) Math.ceil((double) total / pageSize));
         response.setDuration(System.currentTimeMillis() - startTime);
         response.setSuggestions(generateSuggestions(request.getKeyword(), scope));
 
