@@ -11,6 +11,8 @@ import {
   addMemory,
   searchMemory,
   listMemory,
+  exportMemory,
+  importMemory,
   deleteMemory,
   appendDailyNote,
   getDailyNote,
@@ -156,6 +158,70 @@ export function registerMemoryCommand(program) {
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // memory export — §8.3 cross-device backup: full dump of memory_entries
+  memory
+    .command("export")
+    .description("Export all memory entries as JSON (module 101 §8.3 backup)")
+    .option("--output <file>", "Write JSON array to file (default: stdout)")
+    .option("--json", "Output JSON ({ok,count} with --output; array otherwise)")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const entries = exportMemory(ctx.db.getDatabase());
+        if (options.output) {
+          const fs = await import("fs");
+          fs.writeFileSync(options.output, JSON.stringify(entries), "utf-8");
+          if (options.json) {
+            console.log(JSON.stringify({ ok: true, count: entries.length, output: options.output }));
+          } else {
+            logger.log(`exported ${entries.length} memory entries → ${options.output}`);
+          }
+        } else {
+          console.log(JSON.stringify(entries)); // data command: emit the array
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`memory export failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // memory import — §8.3 restore: idempotent upsert by id from a JSON-array file
+  memory
+    .command("import")
+    .description("Import memory entries from a JSON array file (idempotent upsert by id; §8.3)")
+    .requiredOption("--input <file>", "JSON array of memory entries to import")
+    .option("--json", "Output JSON result")
+    .action(async (options) => {
+      try {
+        const fs = await import("fs");
+        const entries = JSON.parse(fs.readFileSync(options.input, "utf-8"));
+        if (!Array.isArray(entries)) {
+          throw new Error("import: expected a JSON array of memory entries");
+        }
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const result = importMemory(ctx.db.getDatabase(), entries);
+        if (options.json) {
+          console.log(JSON.stringify(result));
+        } else {
+          logger.log(`imported ${result.imported}, failed ${result.failed}`);
+        }
+        await shutdown();
+        if (!result.ok) process.exitCode = 1;
+      } catch (err) {
+        logger.error(`memory import failed: ${err.message}`);
         process.exit(1);
       }
     });

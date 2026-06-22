@@ -134,6 +134,73 @@ export function listMemory(db, options = {}) {
 }
 
 /**
+ * Export ALL memory entries (full dump, no limit) for §8.3 cross-device backup.
+ * Returns rows with id/content/category/importance/source/created_at/updated_at,
+ * ordered deterministically so the same DB exports identically.
+ */
+export function exportMemory(db) {
+  ensureMemoryTable(db);
+  return db
+    .prepare(
+      `SELECT id, content, category, importance, source, created_at, updated_at
+       FROM memory_entries ORDER BY created_at ASC, id ASC`,
+    )
+    .all();
+}
+
+/** datetime('now')-style timestamp for entries missing one on import. */
+function _nowSqlite() {
+  return new Date().toISOString().replace("T", " ").slice(0, 19);
+}
+
+/**
+ * Import memory entries (§8.3 backup restore): idempotent upsert by id —
+ * preserves the original created_at, updates content/category/importance/source/
+ * updated_at. Never aborts mid-batch; returns {ok, imported, failed, errors}.
+ */
+export function importMemory(db, entries) {
+  ensureMemoryTable(db);
+  if (!Array.isArray(entries)) {
+    throw new Error("importMemory: entries must be a JSON array");
+  }
+  const stmt = db.prepare(
+    `INSERT INTO memory_entries
+       (id, content, category, importance, source, created_at, updated_at)
+     VALUES (@id, @content, @category, @importance, @source, @created_at, @updated_at)
+     ON CONFLICT(id) DO UPDATE SET
+       content = excluded.content,
+       category = excluded.category,
+       importance = excluded.importance,
+       source = excluded.source,
+       updated_at = excluded.updated_at`,
+  );
+  let imported = 0;
+  let failed = 0;
+  const errors = [];
+  for (const e of entries) {
+    try {
+      if (!e || !e.id || typeof e.content !== "string") {
+        throw new Error("invalid memory entry (need id + content)");
+      }
+      stmt.run({
+        id: String(e.id),
+        content: e.content,
+        category: e.category || "general",
+        importance: Number.isInteger(e.importance) ? e.importance : 3,
+        source: e.source || "user",
+        created_at: e.created_at || _nowSqlite(),
+        updated_at: e.updated_at || _nowSqlite(),
+      });
+      imported += 1;
+    } catch (err) {
+      failed += 1;
+      if (errors.length < 10) errors.push({ id: e && e.id, error: err.message });
+    }
+  }
+  return { ok: failed === 0, imported, failed, errors };
+}
+
+/**
  * Delete a memory entry
  */
 export function deleteMemory(db, id) {
