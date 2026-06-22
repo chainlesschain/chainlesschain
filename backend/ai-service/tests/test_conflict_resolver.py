@@ -319,6 +319,70 @@ class TestConflictResolver:
         with pytest.raises(ValueError, match="未知策略"):
             conflict_resolver._apply_strategy(conflict, "invalid_strategy")
 
+    # ── AI-driven analyze_conflict path (uses the LLM client's chat()) ──
+
+    @pytest.mark.asyncio
+    async def test_analyze_conflict_uses_chat_and_parses_json(self, conflict_resolver):
+        """analyze_conflict 必须调用 LLM 客户端的 chat()（返回字符串）并解析其 JSON。
+        此前误调用不存在的 chat_completion() → AttributeError 被吞 → 永远退回启发式。"""
+        calls = {}
+
+        class FakeLlm:
+            async def chat(self, messages, temperature=0.7, max_tokens=2048):
+                calls["messages"] = messages
+                calls["temperature"] = temperature
+                return (
+                    '{"analysis": "ok", "strategy": "merge_both", '
+                    '"resolved_content": "merged code", "risks": [], "confidence": 0.9}'
+                )
+
+        conflict_resolver.llm_client = FakeLlm()
+        conflict = {
+            "current_content": ["a = 1"],
+            "incoming_content": ["a = 2"],
+        }
+        result = await conflict_resolver.analyze_conflict(conflict, "f.py")
+
+        assert calls, "chat() must be called"
+        assert calls["temperature"] == 0.3
+        assert result["strategy"] == "merge_both"
+        assert result["resolved_content"] == "merged code"
+
+    @pytest.mark.asyncio
+    async def test_analyze_conflict_parses_markdown_fenced_json(self, conflict_resolver):
+        """chat() 返回 ```json 包裹的内容时也应正确解析。"""
+
+        class FakeLlm:
+            async def chat(self, messages, temperature=0.7, max_tokens=2048):
+                return (
+                    "分析如下:\n```json\n"
+                    '{"analysis": "x", "strategy": "accept_current", '
+                    '"resolved_content": "kept current", "risks": [], "confidence": 0.8}'
+                    "\n```\n"
+                )
+
+        conflict_resolver.llm_client = FakeLlm()
+        conflict = {"current_content": ["x"], "incoming_content": ["y"]}
+        result = await conflict_resolver.analyze_conflict(conflict, "f.py")
+
+        assert result["strategy"] == "accept_current"
+        assert result["resolved_content"] == "kept current"
+
+    @pytest.mark.asyncio
+    async def test_analyze_conflict_falls_back_to_heuristic_on_client_error(self, conflict_resolver):
+        """chat() 抛错时应被捕获并退回启发式（incoming 为空 → accept_current）。"""
+
+        class BoomLlm:
+            async def chat(self, messages, temperature=0.7, max_tokens=2048):
+                raise RuntimeError("network down")
+
+        conflict_resolver.llm_client = BoomLlm()
+        conflict = {"current_content": ["keep me"], "incoming_content": [""]}
+        result = await conflict_resolver.analyze_conflict(conflict, "f.py")
+
+        assert result["strategy"] == "accept_current"
+        assert "keep me" in result["resolved_content"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

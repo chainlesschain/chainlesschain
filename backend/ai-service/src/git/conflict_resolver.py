@@ -150,14 +150,17 @@ class ConflictResolver:
 
         try:
             if self.llm_client:
-                response = await self.llm_client.chat_completion(
+                # LLM 客户端统一接口是 chat()（返回纯文本字符串），此前误调用了不存在的
+                # chat_completion() 并把返回当 dict.get('content')，导致 AI 分析路径永远抛
+                # AttributeError 被下方 except 吞掉、静默退回启发式规则（功能形同虚设）。
+                response = await self.llm_client.chat(
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3  # 降低温度以获得更稳定的结果
                 )
 
-                # 解析JSON响应
+                # 解析JSON响应（chat() 返回纯文本字符串）
                 import json
-                result_text = response.get('content', '{}')
+                result_text = response if isinstance(response, str) and response else "{}"
 
                 # 提取JSON部分（如果被markdown包裹）
                 json_match = re.search(r'```json\s*(.*?)\s*```', result_text, re.DOTALL)
