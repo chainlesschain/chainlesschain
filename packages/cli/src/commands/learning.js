@@ -109,6 +109,72 @@ export function registerLearningCommand(program) {
       }
     });
 
+  // learning export — §8.3 cross-device backup: full dump of learning_trajectories
+  learning
+    .command("export")
+    .description("Export all learning trajectories as JSON (module 101 §8.3 backup)")
+    .option("--output <file>", "Write JSON array to file (default: stdout)")
+    .option("--json", "Output JSON ({ok,count} with --output; array otherwise)")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const { exportTrajectories } = await import("../lib/learning/learning-tables.js");
+        const rows = exportTrajectories(ctx.db.getDatabase());
+        if (options.output) {
+          const fs = await import("fs");
+          fs.writeFileSync(options.output, JSON.stringify(rows), "utf-8");
+          if (options.json) {
+            console.log(JSON.stringify({ ok: true, count: rows.length, output: options.output }));
+          } else {
+            logger.log(`exported ${rows.length} trajectories → ${options.output}`);
+          }
+        } else {
+          console.log(JSON.stringify(rows));
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`learning export failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // learning import — §8.3 restore: idempotent upsert by id from a JSON-array file
+  learning
+    .command("import")
+    .description("Import learning trajectories from a JSON array file (idempotent upsert by id; §8.3)")
+    .requiredOption("--input <file>", "JSON array of trajectories to import")
+    .option("--json", "Output JSON result")
+    .action(async (options) => {
+      try {
+        const fs = await import("fs");
+        const rows = JSON.parse(fs.readFileSync(options.input, "utf-8"));
+        if (!Array.isArray(rows)) {
+          throw new Error("import: expected a JSON array of trajectories");
+        }
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+        const { importTrajectories } = await import("../lib/learning/learning-tables.js");
+        const result = importTrajectories(ctx.db.getDatabase(), rows);
+        if (options.json) {
+          console.log(JSON.stringify(result));
+        } else {
+          logger.log(`imported ${result.imported}, failed ${result.failed}`);
+        }
+        await shutdown();
+        if (!result.ok) process.exitCode = 1;
+      } catch (err) {
+        logger.error(`learning import failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // learning reflect
   learning
     .command("reflect")
