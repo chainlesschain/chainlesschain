@@ -31,6 +31,7 @@ export const PlanState = {
   APPROVED: "approved",
   EXECUTING: "executing",
   COMPLETED: "completed",
+  FAILED: "failed",
   REJECTED: "rejected",
 };
 
@@ -499,10 +500,10 @@ export class PlanModeManager extends EventEmitter {
     });
 
     const allDone = results.every((r) => r.success);
-    this.state = allDone ? PlanState.COMPLETED : PlanState.COMPLETED;
+    this.state = allDone ? PlanState.COMPLETED : PlanState.FAILED;
     this.currentPlan.status = allDone
       ? PlanState.COMPLETED
-      : PlanState.COMPLETED;
+      : PlanState.FAILED;
 
     return { results, success: allDone };
   }

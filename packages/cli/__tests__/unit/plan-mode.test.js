@@ -697,6 +697,25 @@ describe("PlanModeManager advanced", () => {
 
     expect(success).toBe(true);
     expect(results.length).toBe(2);
+    expect(manager.state).toBe(PlanState.COMPLETED);
+  });
+
+  it("executePlan marks the plan FAILED when an item throws", async () => {
+    manager.enterPlanMode();
+    manager.addPlanItem({ title: "Step 1", tool: "read_file" });
+    manager.addPlanItem({ title: "Step 2", tool: "edit_file" });
+    manager.approvePlan();
+
+    const { success } = await manager.executePlan(async (item) => {
+      if (item.tool === "edit_file") throw new Error("boom");
+      return { done: true };
+    });
+
+    // Previously both ternary branches returned COMPLETED, so a failed plan
+    // was silently marked COMPLETED. It must now be FAILED.
+    expect(success).toBe(false);
+    expect(manager.state).toBe(PlanState.FAILED);
+    expect(manager.currentPlan.status).toBe(PlanState.FAILED);
   });
 
   it("executePlan requires approval", async () => {
