@@ -181,7 +181,7 @@ export function registerBiCommand(program) {
       try {
         const data = parseJsonOption(options.data, "--data", []);
         const result = detectAnomaly(data, {
-          threshold: parseFloat(options.threshold),
+          threshold: numericOption(options.threshold, { name: "--threshold", fallback: 2 }),
         });
 
         if (options.json) {
@@ -344,7 +344,7 @@ export function registerBiCommand(program) {
         const data = parseJsonOption(options.data, "--data", []);
         const threshold =
           options.threshold !== undefined
-            ? parseFloat(options.threshold)
+            ? numericOption(options.threshold, { name: "--threshold" })
             : undefined;
         const result = detectAnomalyV2({
           data,

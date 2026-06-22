@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
@@ -523,10 +524,10 @@ export function registerEvolutionCommand(program) {
       try {
         const r = trainIncrementalV2({
           strategy: options.strategy,
-          dataSize: parseFloat(options.dataSize),
-          lossBefore: parseFloat(options.lossBefore),
-          lossAfter: parseFloat(options.lossAfter),
-          durationMs: parseFloat(options.durationMs),
+          dataSize: numericOption(options.dataSize, { name: "--data-size", min: 0 }),
+          lossBefore: numericOption(options.lossBefore, { name: "--loss-before" }),
+          lossAfter: numericOption(options.lossAfter, { name: "--loss-after" }),
+          durationMs: numericOption(options.durationMs, { name: "--duration-ms", min: 0, fallback: 0 }),
         });
         if (options.json) console.log(JSON.stringify(r, null, 2));
         else {
@@ -650,7 +651,7 @@ export function registerEvolutionCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       const horizon = options.horizonMs
-        ? parseFloat(options.horizonMs)
+        ? numericOption(options.horizonMs, { name: "--horizon-ms", min: 0 })
         : undefined;
       const r = predictBehaviorV2({ timeHorizonMs: horizon });
       if (options.json) console.log(JSON.stringify(r, null, 2));
@@ -703,8 +704,8 @@ export function registerEvolutionCommand(program) {
     .option("--json", "Output as JSON")
     .action((options) => {
       const period = {};
-      if (options.from) period.fromMs = parseFloat(options.from);
-      if (options.to) period.toMs = parseFloat(options.to);
+      if (options.from) period.fromMs = numericOption(options.from, { name: "--from", min: 0 });
+      if (options.to) period.toMs = numericOption(options.to, { name: "--to", min: 0 });
       const list = getGrowthLogV2({
         milestoneType: options.type,
         period: Object.keys(period).length ? period : undefined,

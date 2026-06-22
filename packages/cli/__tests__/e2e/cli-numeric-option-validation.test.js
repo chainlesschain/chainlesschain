@@ -53,4 +53,21 @@ describe("E2E: numeric option validation (no NaN threading)", () => {
     expect(`${r.stdout}${r.stderr}`).not.toMatch(/NaN/);
     expect(r.stdout).toMatch(/prediction/i);
   });
+
+  it("fails loudly on a non-numeric float option (evolution train-v2 --data-size)", () => {
+    const r = run([
+      "evolution",
+      "train-v2",
+      "--strategy",
+      "replay",
+      "--data-size",
+      "abc",
+      "--loss-before",
+      "1",
+      "--loss-after",
+      "0.5",
+    ]);
+    expect(r.status).toBe(1);
+    expect(`${r.stdout}${r.stderr}`).toMatch(/--data-size must be a number/);
+  });
 });

@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -166,7 +167,7 @@ export function registerEconomyCommand(program) {
         const db = ctx.db.getDatabase();
         ensureEconomyTables(db);
 
-        const ch = openChannel(db, partyA, partyB, parseFloat(options.deposit));
+        const ch = openChannel(db, partyA, partyB, numericOption(options.deposit, { name: "--deposit", min: 0 }));
         logger.success("Channel opened");
         logger.log(`  ${chalk.bold("ID:")}      ${chalk.cyan(ch.id)}`);
         logger.log(`  ${chalk.bold("Party A:")} ${ch.partyA} (${ch.balanceA})`);

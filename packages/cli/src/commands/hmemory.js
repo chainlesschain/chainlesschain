@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import { numericOption } from "../lib/cli-numeric.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -661,7 +662,7 @@ export function registerHmemoryCommand(program) {
           maxAge: parseFloat(options.maxAge) || 720,
           threshold:
             options.threshold !== undefined
-              ? parseFloat(options.threshold)
+              ? numericOption(options.threshold, { name: "--threshold", min: 0, max: 1 })
               : undefined,
         });
         if (options.json) console.log(JSON.stringify(result, null, 2));

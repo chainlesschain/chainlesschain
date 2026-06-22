@@ -967,10 +967,10 @@ export function registerSocialCommand(program) {
           directed: !!options.directed,
           edgeTypes: _splitEdgeTypes(options.edgeTypes),
           weights: {
-            degree: parseFloat(options.wDegree),
-            closeness: parseFloat(options.wCloseness),
-            betweenness: parseFloat(options.wBetweenness),
-            eigenvector: parseFloat(options.wEigenvector),
+            degree: numericOption(options.wDegree, { name: "--w-degree", fallback: 0.25 }),
+            closeness: numericOption(options.wCloseness, { name: "--w-closeness", fallback: 0.25 }),
+            betweenness: numericOption(options.wBetweenness, { name: "--w-betweenness", fallback: 0.25 }),
+            eigenvector: numericOption(options.wEigenvector, { name: "--w-eigenvector", fallback: 0.25 }),
           },
         });
         if (options.json) console.log(JSON.stringify(scores, null, 2));

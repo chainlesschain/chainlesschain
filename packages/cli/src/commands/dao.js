@@ -458,7 +458,7 @@ export function registerDaoCommand(program) {
           voterDid: options.voter,
           voteType: options.type,
           voteCount: numericOption(options.count, { name: "--count", integer: true, min: 1 }),
-          balance: options.balance ? parseFloat(options.balance) : undefined,
+          balance: options.balance ? numericOption(options.balance, { name: "--balance", min: 0 }) : undefined,
         });
 
         logger.success("Vote cast");
@@ -835,7 +835,7 @@ export function registerDaoCommand(program) {
         if (options.votingDuration)
           updates.votingDurationMs = numericOption(options.votingDuration, { name: "--voting-duration", integer: true, min: 0 });
         if (options.quorumPercentage)
-          updates.quorumPercentage = parseFloat(options.quorumPercentage);
+          updates.quorumPercentage = numericOption(options.quorumPercentage, { name: "--quorum-percentage", min: 0, max: 100 });
         if (options.timelockMs)
           updates.timelockMs = numericOption(options.timelockMs, { name: "--timelock-ms", integer: true, min: 0 });
         if (options.quadraticEnabled !== undefined)
@@ -843,9 +843,9 @@ export function registerDaoCommand(program) {
         if (options.maxDelegationDepth)
           updates.maxDelegationDepth = numericOption(options.maxDelegationDepth, { name: "--max-delegation-depth", integer: true, min: 0 });
         if (options.proposalThreshold)
-          updates.proposalThreshold = parseFloat(options.proposalThreshold);
+          updates.proposalThreshold = numericOption(options.proposalThreshold, { name: "--proposal-threshold", min: 0 });
         if (options.maxSingleAllocation)
-          updates.maxSingleAllocation = parseFloat(options.maxSingleAllocation);
+          updates.maxSingleAllocation = numericOption(options.maxSingleAllocation, { name: "--max-single-allocation", min: 0 });
 
         const cfg = configureV2(updates);
         if (options.json) {
