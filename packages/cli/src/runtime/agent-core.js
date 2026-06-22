@@ -1546,17 +1546,43 @@ async function executeToolInner(
       }
       // Hashline mode: prefix each line with a 6-char content hash tag
       // so downstream edit_file_hashed calls can anchor by hash.
-      const rendered = args.hashed === true ? annotateLines(content) : content;
+      let rendered = args.hashed === true ? annotateLines(content) : content;
+
+      // Line-range slice (Claude-Code Read offset/limit parity): `offset` is the
+      // 1-based first line, `limit` the max line count — so a file larger than
+      // the size cap can be paged through instead of being stuck at its head.
+      // Coerces numeric strings the model may emit ("10" → 10).
+      const toPos = (v) => {
+        const n = typeof v === "number" ? v : parseInt(v, 10);
+        return Number.isInteger(n) && n > 0 ? n : null;
+      };
+      const offset = toPos(args.offset);
+      const limit = toPos(args.limit);
+      let range = null;
+      if (offset || limit) {
+        const lines = rendered.split("\n");
+        const start = offset ? offset - 1 : 0;
+        const end = limit != null ? start + limit : lines.length;
+        rendered = lines.slice(start, end).join("\n");
+        range = {
+          startLine: Math.min(start + 1, lines.length),
+          endLine: Math.min(end, lines.length),
+          totalLines: lines.length,
+        };
+      }
+
       if (rendered.length > 50000) {
         return attachDescriptor({
           content: rendered.substring(0, 50000) + "\n...(truncated)",
           size: rendered.length,
           hashed: args.hashed === true,
+          ...(range ? { range } : {}),
         });
       }
       return attachDescriptor({
         content: rendered,
         hashed: args.hashed === true,
+        ...(range ? { range } : {}),
       });
     }
 

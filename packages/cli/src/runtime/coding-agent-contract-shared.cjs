@@ -28,11 +28,21 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "filesystem",
     tier: "mvp",
     description:
-      "Read a file's content. Jupyter notebooks (.ipynb) are rendered as a compact cell listing (index/id/type/source, outputs hidden) for use with notebook_edit — pass raw:true for the underlying JSON.",
+      "Read a file's content. For a large file, page through it with offset+limit (line range) instead of re-reading the head. Jupyter notebooks (.ipynb) are rendered as a compact cell listing (index/id/type/source, outputs hidden) for use with notebook_edit — pass raw:true for the underlying JSON.",
     inputSchema: {
       type: "object",
       properties: {
         path: { type: "string", description: "File path to read" },
+        offset: {
+          type: "integer",
+          description:
+            "1-based line number to start reading from (omit to read from the top). Use with limit to page a large file.",
+        },
+        limit: {
+          type: "integer",
+          description:
+            "Maximum number of lines to return starting at offset (omit to read to end, subject to the size cap).",
+        },
         hashed: {
           type: "boolean",
           description:
