@@ -42,14 +42,18 @@ object PdhBackupCoordinator {
         fun decode(bytes: ByteArray): Record
     }
 
-    /** 一次同步结果:传输统计 + 各类冲突 key(收敛优先,冲突两份都已写回)+ 拉回后解密/解码失败的块数。 */
+    /** 一次同步结果:传输统计 + 各类冲突 key(收敛优先,冲突两份都已写回)+ 拉回后解密/解码失败的块数 + 无处落的远端类型。 */
     data class SyncOutcome(
         val transfer: PdhBackupTransport.TransferResult,
         val conflictsByKind: Map<AssetKind, List<String>>,
         /** 拉回但解密校验失败/解码失败被跳过的块数(篡改/错密钥/坏数据;不中止整体恢复)。 */
         val decryptFailed: Int = 0,
+        /** 对端有、但本机无对应 AssetSource 可写的资产类型(数据已拉到却无处落 → 如实暴露,不静默丢)。 */
+        val unhandledRemoteKinds: List<AssetKind> = emptyList(),
     ) {
-        val ok: Boolean get() = transfer.ok && decryptFailed == 0
+        /** 全清同步:传输全成 + 无解密失败 + 无无处落的远端类型(任一不满足即未完全落地)。 */
+        val ok: Boolean get() =
+            transfer.ok && decryptFailed == 0 && unhandledRemoteKinds.isEmpty()
         val hasConflicts: Boolean get() = conflictsByKind.values.any { it.isNotEmpty() }
     }
 
@@ -116,7 +120,12 @@ object PdhBackupCoordinator {
             src.write(merged)
             conflicts[src.kind] = merge.conflicts
         }
-        return SyncOutcome(transfer, conflicts, decryptFailed)
+
+        // 5) 暴露"对端有、本机无对应源"的远端类型:数据已拉回却无 AssetSource 可写 → 如实列出
+        //    (而非静默丢),便于调用方提示"该设备缺某资产源,无法落地"。
+        val sourceKinds = sources.mapTo(HashSet()) { it.kind }
+        val unhandled = remoteByKind.keys.filterNot { it in sourceKinds }.sortedBy { it.name }
+        return SyncOutcome(transfer, conflicts, decryptFailed, unhandled)
     }
 
     private fun encodedHash(codec: RecordCodec, r: Record): String =

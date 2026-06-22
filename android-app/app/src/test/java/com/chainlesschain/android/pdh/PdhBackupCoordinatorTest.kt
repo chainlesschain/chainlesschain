@@ -141,4 +141,19 @@ class PdhBackupCoordinatorTest {
         assertFalse(out.ok) // decryptFailed>0 → 整体非 ok
         assertEquals(listOf("good"), mem.records.map { it.key }) // 好块仍正常恢复(未被坏块中止)
     }
+
+    @Test
+    fun remote_kind_with_no_local_source_is_surfaced_not_dropped() = runTest {
+        // 本机只有 MEMORY 源;对端有 SKILLS 块 → 拉回却无处落,须在 unhandledRemoteKinds 暴露
+        val mem = FakeSource(AssetKind.MEMORY, mutableListOf())
+        val orphanBlock = blockOf(AssetKind.SKILLS, rec("s1", 1, "skill-data"))
+        val channel = FakeChannel(listOf(orphanBlock))
+        val manifest = PdhBackupSync.Manifest(listOf(PdhBackupEnvelope.toSyncBlock(orphanBlock)))
+
+        val out = PdhBackupCoordinator.sync(listOf(mem), codec, cipher, channel, manifest)
+
+        assertEquals(listOf(AssetKind.SKILLS), out.unhandledRemoteKinds) // 如实暴露,不静默丢
+        assertFalse(out.ok) // 未完全落地 → 非 ok
+        assertTrue(mem.records.isEmpty()) // 有源的 MEMORY 不受影响
+    }
 }
