@@ -220,6 +220,10 @@ export function registerAgentCommand(program) {
       "Disable @path file-reference expansion in the prompt (headless)",
     )
     .option(
+      "--no-slash-macros",
+      "Disable /name custom-command (.claude/commands) expansion in the prompt (headless)",
+    )
+    .option(
       "--system-prompt <text>",
       "Replace the built-in system prompt (literal text or @file)",
     )
@@ -627,6 +631,7 @@ export function registerAgentCommand(program) {
               ? parseInt(options.maxTurns, 10)
               : undefined,
             expandFileRefs: options.fileRefs !== false,
+            slashMacros: options.slashMacros !== false,
             systemPrompt: resolvePromptText(options.systemPrompt, { cwd }),
             appendSystemPrompt: resolvePromptText(options.appendSystemPrompt, {
               cwd,
@@ -729,6 +734,7 @@ export function registerAgentCommand(program) {
           maxTurns,
           // commander maps --no-file-refs 鈫?options.fileRefs === false
           expandFileRefs: options.fileRefs !== false,
+          slashMacros: options.slashMacros !== false,
           // --system-prompt / --append-system-prompt (literal or @file)
           systemPrompt: resolvePromptText(options.systemPrompt, {
             cwd: process.cwd(),

@@ -393,6 +393,111 @@ describe("headless-runner — tool list threading into the loop", () => {
   });
 });
 
+describe("headless-runner — custom slash-command macros (-p parity)", () => {
+  /** A fake agentLoop that records the messages it received, then completes. */
+  function capturingLoop(captured) {
+    return async function* (messages) {
+      captured.messages = messages;
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+  }
+
+  const lastUser = (captured) =>
+    captured.messages.filter((m) => m.role === "user").pop().content;
+
+  it("expands a resolved /name macro into the user turn before the loop", async () => {
+    const captured = {};
+    const { deps, err } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = vi.fn(async (input) => {
+      expect(input).toBe("/git:review HEAD");
+      return {
+        matched: true,
+        promptText: "EXPANDED: review the staged diff for HEAD",
+        warnings: [],
+        name: "git:review",
+        scope: "project",
+      };
+    });
+    await runAgentHeadless({ prompt: "/git:review HEAD" }, deps);
+    expect(lastUser(captured)).toBe(
+      "EXPANDED: review the staged diff for HEAD",
+    );
+    expect(err.join("")).toContain("command: /git:review [project]");
+  });
+
+  it("skips the @file pass when a macro matched (expandCommand ran it)", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () => ({
+      matched: true,
+      promptText: "macro body",
+      warnings: [],
+      name: "c",
+      scope: "personal",
+    });
+    deps.expandFileRefs = vi.fn(async () => ({
+      prompt: "SHOULD NOT RUN",
+      warnings: [],
+    }));
+    await runAgentHeadless({ prompt: "/c" }, deps);
+    expect(deps.expandFileRefs).not.toHaveBeenCalled();
+    expect(lastUser(captured)).toBe("macro body");
+  });
+
+  it("leaves an unmatched /token untouched and still runs @file expansion", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () => ({
+      matched: false,
+      promptText: "/etc/hosts",
+      warnings: [],
+    });
+    deps.expandFileRefs = vi.fn(async (p) => ({
+      prompt: p + " [@expanded]",
+      warnings: [],
+    }));
+    await runAgentHeadless({ prompt: "/etc/hosts is broken" }, deps);
+    expect(deps.expandFileRefs).toHaveBeenCalled();
+    expect(lastUser(captured)).toBe("/etc/hosts is broken [@expanded]");
+  });
+
+  it("does not even consult the macro resolver for a non-slash prompt", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = vi.fn();
+    await runAgentHeadless({ prompt: "just a question" }, deps);
+    expect(deps.resolveSlashMacro).not.toHaveBeenCalled();
+  });
+
+  it("slashMacros:false disables expansion (literal /name reaches the LLM)", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = vi.fn();
+    deps.expandFileRefs = async (p) => ({ prompt: p, warnings: [] });
+    await runAgentHeadless({ prompt: "/git:review", slashMacros: false }, deps);
+    expect(deps.resolveSlashMacro).not.toHaveBeenCalled();
+    expect(lastUser(captured)).toBe("/git:review");
+  });
+
+  it("a throwing macro resolver falls back to the literal prompt (best-effort)", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    deps.resolveSlashMacro = async () => {
+      throw new Error("commands dir unreadable");
+    };
+    deps.expandFileRefs = async (p) => ({ prompt: p, warnings: [] });
+    await runAgentHeadless({ prompt: "/broken" }, deps);
+    expect(lastUser(captured)).toBe("/broken");
+  });
+});
+
 describe("resolveHeadlessSession — pure resolution", () => {
   it("resumes a specific id and turns persistence on", () => {
     const r = resolveHeadlessSession({ resume: "sess-A" }, {}, "fallback");

@@ -369,12 +369,40 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     return { exitCode: isError ? 1 : 0, result: text, isError };
   }
 
+  // ── Custom slash-command macros (Claude-Code parity: a .claude/commands/*
+  // command runs in `-p` mode too, not just the interactive REPL). A leading
+  // `/name …` that resolves to a user/project command is expanded into its
+  // prompt template ($ARGUMENTS / $1.. + !`bang` + @file) before the turn; an
+  // unknown `/...` (or plain text) is left untouched so it reaches the LLM
+  // verbatim. expandCommand already runs @file expansion, so the @-ref pass
+  // below is skipped when a macro matched. Opt out with options.slashMacros:false.
+  let userContent = prompt;
+  let slashExpanded = false;
+  if (options.slashMacros !== false && prompt.startsWith("/")) {
+    try {
+      const doMacro =
+        deps.resolveSlashMacro ||
+        (await import("../repl/slash-macro.js")).resolveSlashMacro;
+      const macro = await doMacro(prompt, { cwd });
+      if (macro && macro.matched) {
+        userContent = macro.promptText;
+        slashExpanded = true;
+        for (const w of macro.warnings || []) {
+          writeErr(`  /${macro.name}: ${w}\n`);
+        }
+        writeErr(`  command: /${macro.name} [${macro.scope}]\n`);
+      }
+    } catch {
+      // macro resolution is best-effort — fall back to the literal prompt
+    }
+  }
+
   // ── Expand @file references in the prompt (Claude-Code parity) ─────────
   // `@path/to/file` tokens are augmented with the referenced file contents (or
   // a dir listing) so `cc agent -p "review @src/x.js"` works without a manual
   // cat-pipe. Opt out with `--no-file-refs` (options.expandFileRefs === false).
-  let userContent = prompt;
-  if (options.expandFileRefs !== false) {
+  // Skipped when a slash macro already expanded (expandCommand ran @refs).
+  if (!slashExpanded && options.expandFileRefs !== false) {
     const doExpand = deps.expandFileRefs || expandFileRefsAsync;
     const expanded = await doExpand(prompt, { cwd });
     userContent = expanded.prompt;
