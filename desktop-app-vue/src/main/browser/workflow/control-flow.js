@@ -600,10 +600,14 @@ function parseValue(valueStr) {
     return valueStr.slice(1, -1);
   }
 
-  // Number
-  const num = Number(valueStr);
-  if (!isNaN(num)) {
-    return num;
+  // Number — but NOT empty/whitespace-only input: Number("") and
+  // Number("  ") are 0, which would silently turn a bare empty token (or an
+  // empty variable name) into the number 0 instead of leaving it as a string.
+  if (valueStr.trim() !== "") {
+    const num = Number(valueStr);
+    if (!isNaN(num)) {
+      return num;
+    }
   }
 
   // Boolean
