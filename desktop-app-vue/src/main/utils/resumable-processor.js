@@ -107,6 +107,9 @@ class ResumableProcessor extends EventEmitter {
     let currentProgress = checkpoint ? checkpoint.progress : 0;
     let retries = 0;
     let lastError = null;
+    // 上次保存检查点时的进度，用于按"已推进 >= checkpointInterval"判断，
+    // 而非要求进度恰好是间隔的整数倍（否则不规则进度如 7/14/23 永不保存）。
+    let lastCheckpointProgress = currentProgress;
 
     // 2. 重试循环
     while (retries <= this.config.maxRetries) {
@@ -130,11 +133,13 @@ class ResumableProcessor extends EventEmitter {
               task.progress = newProgress;
             }
 
-            // 定期保存检查点
+            // 定期保存检查点：进度自上次检查点起推进了至少一个间隔，或已完成。
+            // （旧逻辑要求 newProgress 恰为间隔整数倍，不规则进度会一直不保存。）
             if (
-              newProgress % this.config.checkpointInterval === 0 ||
-              newProgress >= 100
+              newProgress >= 100 ||
+              newProgress - lastCheckpointProgress >= this.config.checkpointInterval
             ) {
+              lastCheckpointProgress = newProgress;
               await this.saveCheckpoint(taskId, {
                 progress: newProgress,
                 timestamp: Date.now(),
