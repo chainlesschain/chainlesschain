@@ -14,7 +14,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { _internal } from "../hub.js";
 
-const { cmdQueryEvents } = _internal;
+const { cmdQueryEvents, cmdEventDetail } = _internal;
 
 let exitSpy, logSpy, lines;
 
@@ -92,5 +92,43 @@ describe("cc hub query-events — human rendering", () => {
     expect(text).toContain("t");
     expect(text).toContain("u"); // listing continued past the bad row
     expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("cc hub event-detail — human rendering", () => {
+  function hubWithEvent(event) {
+    return { _getHub: async () => ({ vault: { getEvent: () => event } }) };
+  }
+
+  it("renders adapter (not [object Object]) + occurred + content", async () => {
+    const event = {
+      id: "qq:1",
+      subtype: "message",
+      occurredAt: 1782046916000,
+      actor: "person-qq-1",
+      content: { text: "hello" },
+      source: { adapter: "qq-pc", account: "x" },
+    };
+    await cmdEventDetail("qq:1", hubWithEvent(event));
+    const text = lines.join("\n");
+    expect(text).toContain("source:   qq-pc");
+    expect(text).not.toContain("[object Object]");
+    expect(text).toContain(new Date(1782046916000).toISOString());
+    expect(text).toContain("hello");
+    expect(text).toContain("person-qq-1");
+  });
+
+  it("tolerates a string source and a missing/invalid timestamp", async () => {
+    const event = {
+      id: "e9",
+      subtype: "note",
+      occurredAt: undefined,
+      source: "legacy-string",
+      content: {},
+    };
+    await cmdEventDetail("e9", hubWithEvent(event));
+    const text = lines.join("\n");
+    expect(text).toContain("source:   legacy-string");
+    expect(text).not.toContain("occurred:"); // invalid ts → line omitted, no crash
   });
 });

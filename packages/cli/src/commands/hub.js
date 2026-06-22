@@ -797,7 +797,7 @@ async function cmdEventDetail(eventId, options) {
   }
   try {
     // Read-only single-event lookup — vault-only, use the minimal hub.
-    const hub = await getHubMinimal();
+    const hub = await (options._getHub || getHubMinimal)();
     const event = hub.vault.getEvent(eventId);
     if (!event) {
       const result = { found: false, eventId };
@@ -810,9 +810,24 @@ async function cmdEventDetail(eventId, options) {
     } else {
       logger.log(chalk.bold(`event ${event.id}`));
       logger.log(`  subtype:  ${event.subtype}`);
-      logger.log(`  source:   ${event.source}`);
-      if (event.title) logger.log(`  title:    ${event.title}`);
+      // occurredAt (epoch ms) is the canonical timestamp; guard a bad value.
+      const ts = Number(event.occurredAt);
+      if (Number.isFinite(ts)) {
+        logger.log(`  occurred: ${new Date(ts).toISOString()}`);
+      }
+      // `source` is an object ({ adapter, ... }) — print the adapter, not the
+      // object (which renders as "[object Object]").
+      const adapter =
+        event.source && typeof event.source === "object"
+          ? event.source.adapter
+          : event.source;
+      if (adapter) logger.log(`  source:   ${adapter}`);
       if (event.actor) logger.log(`  actor:    ${event.actor}`);
+      const summary =
+        event.content &&
+        (event.content.text || event.content.title || event.content.subject);
+      if (summary) logger.log(`  content:  ${summary}`);
+      if (event.title) logger.log(`  title:    ${event.title}`);
       if (event.amount != null) {
         logger.log(`  amount:   ${event.amount} ${event.currency || ""}`);
       }
@@ -3272,6 +3287,7 @@ export const _internal = {
   cmdStats,
   cmdHealth,
   cmdQueryEvents,
+  cmdEventDetail,
   parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,
