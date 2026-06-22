@@ -239,18 +239,39 @@ async function cmdStats(options) {
 
 async function cmdHealth(options) {
   try {
-    const hub = await getHub();
+    // Full hub is the default: health's whole job is verifying that hub init
+    // wired every component (llm / kgSink / ragSink), which a minimal hub
+    // deliberately leaves null — reporting those as ✗ would be a false
+    // negative, not a faster check. `--quick` opts into a vault-only probe
+    // on the minimal hub (skips the 77-adapter registry + sink wiring) for
+    // when you just need "is the vault openable / what schema". Tests stub
+    // via _getHub.
+    const quick = options.quick === true;
+    const hub = options._getHub
+      ? await options._getHub()
+      : quick
+        ? await getHubMinimal()
+        : await getHub();
     const out = {
+      quick,
       vault: {
         ok: !!hub.vault.db,
         schemaVersion: hub.vault.schemaVersion(),
       },
-      llm: hub.llm
-        ? { ok: true, isLocal: hub.llm.isLocal, name: hub.llm.name }
-        : { ok: false, reason: "LLM unavailable" },
-      kgSink: { ok: !!hub.kgSink },
-      ragSink: { ok: !!hub.ragSink },
     };
+    if (quick) {
+      // Minimal hub intentionally has no llm / kgSink / ragSink — mark them
+      // "not probed" rather than reporting a misleading down state.
+      out.llm = { probed: false };
+      out.kgSink = { probed: false };
+      out.ragSink = { probed: false };
+    } else {
+      out.llm = hub.llm
+        ? { ok: true, isLocal: hub.llm.isLocal, name: hub.llm.name }
+        : { ok: false, reason: "LLM unavailable" };
+      out.kgSink = { ok: !!hub.kgSink };
+      out.ragSink = { ok: !!hub.ragSink };
+    }
     if (options.json) {
       printJson(out);
     } else {
@@ -258,17 +279,25 @@ async function cmdHealth(options) {
       logger.log(
         `${mark(out.vault.ok)} vault    schema=${out.vault.schemaVersion}`,
       );
-      logger.log(
-        `${mark(out.llm.ok)} llm      ${out.llm.name || out.llm.reason}${
-          out.llm.ok
-            ? out.llm.isLocal
-              ? chalk.green(" [local]")
-              : chalk.yellow(" [remote]")
-            : ""
-        }`,
-      );
-      logger.log(`${mark(out.kgSink.ok)} kgSink`);
-      logger.log(`${mark(out.ragSink.ok)} ragSink`);
+      if (quick) {
+        logger.log(
+          chalk.gray(
+            "· llm / kgSink / ragSink not probed (run without --quick)",
+          ),
+        );
+      } else {
+        logger.log(
+          `${mark(out.llm.ok)} llm      ${out.llm.name || out.llm.reason}${
+            out.llm.ok
+              ? out.llm.isLocal
+                ? chalk.green(" [local]")
+                : chalk.yellow(" [remote]")
+              : ""
+          }`,
+        );
+        logger.log(`${mark(out.kgSink.ok)} kgSink`);
+        logger.log(`${mark(out.ragSink.ok)} ragSink`);
+      }
     }
   } catch (err) {
     fail(null, err, options.json);
@@ -2647,6 +2676,10 @@ export function registerHubCommand(program) {
     .command("health")
     .description("Component health: vault / llm / kgSink / ragSink")
     .option("--json", "Output JSON")
+    .option(
+      "--quick",
+      "Vault-only probe via the minimal hub (skips llm/kgSink/ragSink wiring)",
+    )
     .action(cmdHealth);
 
   hub
@@ -3209,6 +3242,7 @@ export const _internal = {
   cmdAsk,
   cmdRetrieveContext,
   cmdStats,
+  cmdHealth,
   parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,
