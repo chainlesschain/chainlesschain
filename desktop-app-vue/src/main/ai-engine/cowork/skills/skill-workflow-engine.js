@@ -498,6 +498,18 @@ class SkillWorkflowEngine extends EventEmitter {
     // Topological sort of nodes based on edges
     const sortedNodes = this._topologicalSort(workflow.nodes, workflow.edges);
 
+    // Kahn's algorithm silently drops nodes that are part of a cycle. Without
+    // this guard, a cyclic workflow would export a pipeline missing those
+    // nodes' steps and execute "successfully" while skipping them. Surface it
+    // as an explicit error instead (IPC handlers turn this into
+    // { success: false, error } and executeWorkflow rejects).
+    if (sortedNodes.length < workflow.nodes.length) {
+      const dropped = workflow.nodes.length - sortedNodes.length;
+      throw new Error(
+        `Workflow contains a cycle: ${dropped} node(s) could not be ordered (workflow ${workflowId})`,
+      );
+    }
+
     // Convert nodes to pipeline steps (skip start/end nodes)
     const steps = sortedNodes
       .filter(
