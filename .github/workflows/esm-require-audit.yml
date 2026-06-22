@@ -1,0 +1,62 @@
+name: ESM require() Audit (hard gate, trap #33)
+
+# Hard gate: packages/cli is `"type": "module"`, so every .js under src/ is
+# ESM where the CJS globals (require / module / exports / __dirname /
+# __filename) are undefined. A bare `require("fs")` inside a function does NOT
+# error at import time — it throws "require is not defined" only when that path
+# runs, so it stays latent and slips past unit tests (vitest inlines CJS and
+# provides a `require`). 2026-06-22: `cc hub export-events --output` /
+# `cc hub import-events` shipped fully broken this way, and shell-approval.js's
+# agent gate never worked (require crash + module.exports exporting nothing).
+#
+# scripts/audit-esm-require.mjs uses acorn + eslint-scope (AST + scope precise):
+# template-string require() and createRequire-shim bindings are correctly
+# ignored; only truly-unresolved CJS globals are flagged.
+#
+# See:
+#   docs/internal/hidden-risk-traps.md #33
+#   scripts/audit-esm-require.mjs
+#   scripts/__tests__/audit-esm-require.test.mjs
+
+on:
+  pull_request:
+    paths:
+      - 'packages/cli/src/**'
+      - 'scripts/audit-esm-require.mjs'
+      - 'scripts/__tests__/audit-esm-require.test.mjs'
+      - '.github/workflows/esm-require-audit.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/cli/src/**'
+      - 'scripts/audit-esm-require.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: esm-require-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Bare CJS globals in ESM (mandatory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install audit parser deps
+        # acorn + eslint-scope are dev tooling for the audit only; install them
+        # standalone (no workspace lifecycle scripts / native builds).
+        run: npm install acorn eslint-scope --no-save --no-audit --no-fund --no-package-lock
+
+      - name: Run audit unit tests
+        run: node --test scripts/__tests__/audit-esm-require.test.mjs
+
+      - name: Audit CLI ESM for bare CJS globals
+        run: node scripts/audit-esm-require.mjs

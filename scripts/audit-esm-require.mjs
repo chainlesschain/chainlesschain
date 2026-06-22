@@ -43,7 +43,7 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import * as acorn from "acorn";
 import * as eslintScope from "eslint-scope";
 
@@ -74,9 +74,11 @@ function listJsFiles(dir) {
   return out;
 }
 
-/** Return findings [{ file, line, column, snippet }] for one source file. */
-function auditFile(file) {
-  const code = readFileSync(file, "utf-8");
+/**
+ * Audit one source string for bare CJS globals in ESM. Returns findings
+ * [{ file, line, column, snippet }]. Exported for unit tests.
+ */
+export function auditCode(code, label = "<input>") {
   // Cheap pre-filter: none of the CJS globals appear textually → nothing to do.
   if (![...CJS_GLOBALS].some((g) => code.includes(g))) return [];
 
@@ -119,7 +121,7 @@ function auditFile(file) {
       if (seen.has(key)) continue;
       seen.add(key);
       findings.push({
-        file: relative(REPO_ROOT, file).split(sep).join("/"),
+        file: label,
         line: node.loc.start.line,
         column: node.loc.start.column + 1,
         snippet: code.split("\n")[node.loc.start.line - 1].trim().slice(0, 100),
@@ -127,6 +129,12 @@ function auditFile(file) {
     }
   }
   return findings;
+}
+
+/** Return findings for one source file (reads + labels by repo-relative path). */
+function auditFile(file) {
+  const code = readFileSync(file, "utf-8");
+  return auditCode(code, relative(REPO_ROOT, file).split(sep).join("/"));
 }
 
 function main() {
@@ -160,4 +168,11 @@ function main() {
   process.exit(findings.length === 0 ? 0 : 1);
 }
 
-main();
+// Run as a CLI only when executed directly — importing (e.g. from the unit
+// test) must not trigger the scan or process.exit.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main();
+}
